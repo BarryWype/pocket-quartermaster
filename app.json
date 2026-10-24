@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "pocket-quartermaster",
+    "name": "Pocket Quartermaster",
     "slug": "pocket-quartermaster",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -16,10 +16,31 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.barrywype.pocketquartermaster"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "@maplibre/maplibre-react-native",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Pocket Quartermaster uses your location to show nearby resources."
+        }
+      ],
+      [
+        "expo-sensors",
+        {
+          "motionPermission": "Pocket Quartermaster counts your steps to unlock daily chests."
+        }
+      ]
+    ],
+    "scheme": "pocketquartermaster",
+    "experiments": {
+      "typedRoutes": true
     }
   }
 }
