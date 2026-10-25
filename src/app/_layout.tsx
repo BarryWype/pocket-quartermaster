@@ -1,16 +1,14 @@
-import { Tabs } from 'expo-router';
+import { useFonts } from 'expo-font';
+import { Stack } from 'expo-router';
 import { useEffect } from 'react';
-import { AppState, Text } from 'react-native';
+import { AppState } from 'react-native';
 
 import { useStepTracking } from '@/hooks/useTodaySteps';
 import { configureNotifications } from '@/services/notifications';
 import { useGameStore } from '@/store/gameStore';
+import { colors, fonts } from '@/theme';
 
 configureNotifications();
-
-function tabIcon(emoji: string) {
-  return () => <Text style={{ fontSize: 20 }}>{emoji}</Text>;
-}
 
 /** Resolves finished expeditions on launch, on return to the app, and while it is open. */
 function useExpeditionResolver() {
@@ -32,26 +30,31 @@ function useExpeditionResolver() {
 export default function RootLayout() {
   useExpeditionResolver();
   useStepTracking();
-  const unseenReports = useGameStore((state) => state.save.reports.filter((r) => !r.seen).length);
+  const [fontsLoaded, fontError] = useFonts({
+    [fonts.body]: require('../../assets/fonts/FantaisieArtistique.ttf'),
+  });
+
+  // On a load error, fall back to the system font rather than a blank screen.
+  if (!fontsLoaded && !fontError) return null;
 
   return (
-    <Tabs>
-      <Tabs.Screen name="index" options={{ title: 'Map', tabBarIcon: tabIcon('🗺️') }} />
-      <Tabs.Screen name="inventory" options={{ title: 'Inventory', tabBarIcon: tabIcon('🎒') }} />
-      <Tabs.Screen name="forge" options={{ title: 'Forge', tabBarIcon: tabIcon('⚒️') }} />
-      <Tabs.Screen name="team" options={{ title: 'Team', tabBarIcon: tabIcon('🛡️') }} />
-      <Tabs.Screen
-        name="expeditions"
-        options={{
-          title: 'Expeditions',
-          tabBarIcon: tabIcon('🧭'),
-          tabBarBadge: unseenReports > 0 ? unseenReports : undefined,
-        }}
-      />
-      <Tabs.Screen
-        name="debug"
-        options={{ title: 'Debug', tabBarIcon: tabIcon('🐞'), href: __DEV__ ? undefined : null }}
-      />
-    </Tabs>
+    <Stack
+      screenOptions={{
+        headerStyle: { backgroundColor: colors.wood },
+        headerTintColor: colors.parchment,
+        headerTitleStyle: { fontFamily: fonts.body, fontSize: 22 },
+        headerBackTitleStyle: { fontFamily: fonts.body },
+        contentStyle: { backgroundColor: colors.parchment },
+      }}
+    >
+      <Stack.Screen name="index" options={{ title: 'Map', headerShown: false }} />
+      <Stack.Screen name="forge" options={{ title: 'Forge' }} />
+      <Stack.Screen name="alchemy" options={{ title: 'Alchemy' }} />
+      <Stack.Screen name="inventory" options={{ title: 'Inventory' }} />
+      <Stack.Screen name="team/index" options={{ title: 'Team' }} />
+      <Stack.Screen name="team/[heroId]" options={{ title: 'Character sheet' }} />
+      <Stack.Screen name="expeditions" options={{ title: 'Expeditions' }} />
+      <Stack.Screen name="debug" options={{ title: 'Debug' }} />
+    </Stack>
   );
 }

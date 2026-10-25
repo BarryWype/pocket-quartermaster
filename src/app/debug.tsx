@@ -1,5 +1,7 @@
-import { Alert, Button, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
+import { Button } from '@/components/Button';
+import { Text } from '@/components/Text';
 import type { TimeOfDay } from '@/game/generation/types';
 import { deviceLocation } from '@/services/location';
 import { useDebugStore } from '@/store/debugStore';

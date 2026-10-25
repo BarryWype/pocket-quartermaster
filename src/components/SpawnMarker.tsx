@@ -1,6 +1,8 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import type { ResourceKind } from '@/game/generation/types';
+
+import { Text } from './Text';
 
 const borderColors: Record<ResourceKind, string> = {
   ore: '#6b6b6b',
