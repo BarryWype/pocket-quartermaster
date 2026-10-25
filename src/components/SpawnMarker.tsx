@@ -16,16 +16,18 @@ type Props = {
   kind: ResourceKind;
   inRange: boolean;
   fleeing: boolean;
+  /** Needs a better pickaxe than the player has. */
+  locked: boolean;
 };
 
-export function SpawnMarker({ emoji, kind, inRange, fleeing }: Props) {
+export function SpawnMarker({ emoji, kind, inRange, fleeing, locked }: Props) {
   return (
     <View
       style={[
         styles.tile,
         { borderColor: borderColors[kind] },
         inRange && styles.inRange,
-        fleeing && styles.fleeing,
+        (fleeing || locked) && styles.faded,
       ]}
     >
       <Text style={styles.emoji}>{fleeing ? '💨' : emoji}</Text>
@@ -43,6 +45,6 @@ const styles = StyleSheet.create({
     borderWidth: 3,
   },
   inRange: { backgroundColor: '#fff6a8', transform: [{ scale: 1.2 }] },
-  fleeing: { opacity: 0.6 },
+  faded: { opacity: 0.6 },
   emoji: { fontSize: 16 },
 });

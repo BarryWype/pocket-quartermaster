@@ -24,7 +24,7 @@ export function heroStats(save: SaveData, hero: HeroState): Stats {
 
   for (const gear of equippedGear(save, hero)) {
     const item = itemById[gear.itemId];
-    if (item.slot === 'consumable') continue;
+    if (item.slot !== 'weapon' && item.slot !== 'armor') continue;
     const affinity = item.weaponType ? (heroClass.affinities[item.weaponType] ?? 1) : 1;
     for (const key of STAT_KEYS) stats[key] += (item.stats[key] ?? 0) * affinity;
   }

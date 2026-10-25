@@ -16,17 +16,19 @@ import { isFleeing, type CollectFailure } from '@/game/gathering/gathering';
 import { generateSpawnsAround } from '@/game/generation/spawns';
 import type { LatLng, Spawn, SpawnConfig } from '@/game/generation/types';
 import { visibleSpawns } from '@/game/generation/visibility';
+import { canGather, pickaxeFor } from '@/game/tools';
 import { usePlayerLocation } from '@/hooks/usePlayerLocation';
 import { useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
 
 const toLngLat = (position: LatLng): [number, number] => [position.longitude, position.latitude];
-const failureMessages: Record<CollectFailure, (distance: number) => string> = {
-  tooFar: (distance) => `Too far: ${Math.round(distance)} m away (need ${gatheringConfig.collectRadiusMeters} m)`,
+const failureMessages: Record<CollectFailure, (failure: { distance: number; requiredPickaxe?: number }) => string> = {
+  tooFar: ({ distance }) => `Too far: ${Math.round(distance)} m away (need ${gatheringConfig.collectRadiusMeters} m)`,
   fled: () => 'It ran off. Slow down to approach animals.',
   collected: () => 'Already gathered.',
   expired: () => 'It is gone.',
+  needsPickaxe: ({ requiredPickaxe }) => `You need a ${pickaxeFor(requiredPickaxe ?? 1)?.name ?? 'better pickaxe'} for this.`,
 };
 
 export default function MapScreen() {
@@ -36,6 +38,7 @@ export default function MapScreen() {
   const timeOfDay = useDebugStore((state) => state.timeOfDay);
   const windowMinutes = useDebugStore((state) => state.windowMinutes);
   const collected = useGameStore((state) => state.save.collected);
+  const tools = useGameStore((state) => state.save.tools);
   const collect = useGameStore((state) => state.collect);
   const cameraRef = useRef<CameraRef>(null);
   const [now, setNow] = useState(Date.now());
@@ -99,7 +102,7 @@ export default function MapScreen() {
     setMessage(
       result.ok
         ? `+ ${result.gained.map((g) => `${g.amount} ${materialById[g.materialId]?.name ?? g.materialId}`).join(', ')}`
-        : failureMessages[result.reason](result.distance),
+        : failureMessages[result.reason](result),
     );
   };
 
@@ -128,6 +131,7 @@ export default function MapScreen() {
               emoji={resourceById[spawn.resourceId]?.emoji ?? '❓'}
               inRange={distance <= gatheringConfig.collectRadiusMeters}
               fleeing={spawn.kind === 'animal' && isFleeing(speed)}
+              locked={spawn.resourceId in resourceById && !canGather({ tools }, resourceById[spawn.resourceId])}
             />
           </Marker>
         ))}

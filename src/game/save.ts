@@ -8,6 +8,8 @@ export type SaveData = {
   materials: Record<string, number>;
   consumables: Record<string, number>;
   gear: GearInstance[];
+  /** Item ids of owned tools such as pickaxes. */
+  tools: string[];
   knownRecipes: string[];
   heroes: HeroState[];
   expeditions: ActiveExpedition[];
@@ -29,6 +31,7 @@ export function createInitialSave(): SaveData {
     materials: {},
     consumables: {},
     gear: [],
+    tools: [],
     heroes: startingHeroes,
     expeditions: [],
     reports: [],

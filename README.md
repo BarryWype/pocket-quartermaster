@@ -135,11 +135,23 @@ The **🐞 Debug** tab (development builds only) lets you test everything from y
 
 ### Inventory, forge and alchemy
 
-1. **Inventory** lists gold, materials, gear (with durability) and consumables.
+1. **Inventory** lists gold, materials, tools, gear (with durability) and consumables.
 2. To skip the walking, on Debug tap **+10 of every material**.
-3. **Forge** lists forge and alchemy recipes, showing what you have against what's needed, e.g. `🪨 3/4`.
+3. **Forge** lists recipes by tier, showing what you have against what's needed, e.g. `🪨 3/4`. **Alchemy** lists potions.
    - The button is only active when you have every input.
-   - 🔒 recipes are unlocked by expedition or chest rewards.
+   - 🔒 blueprints are unlocked by expedition or chest rewards.
+4. **Tiers:** every tier has a pickaxe, a sword, a bow, a wand and an armor.
+
+   | Tier | Made from | Its pickaxe mines | Pickaxe blueprint |
+   |---|---|---|---|
+   | Wood | Wood (trees need no tool) | Stone | Known |
+   | Stone | Stone + wood | Copper | Known |
+   | Copper | Copper ore | Iron | Goblin Warren |
+   | Iron | Iron ore | Coal | Troll Bridge |
+   | Steel | Iron ore + coal | Everything, +1 per node | Collapsed Mine |
+
+   - You craft each pickaxe once and keep it. Nodes you can't mine yet look faded on the map.
+   - Swords, bows, wands and armor of every tier are known from the start: the materials are the gate.
 
 ### Team
 
@@ -154,9 +166,11 @@ The **🐞 Debug** tab (development builds only) lets you test everything from y
 
    | Dungeon | Duration | Notes |
    |---|---|---|
-   | Goblin Warren | 5 min | |
-   | Troll Bridge | 30 min | |
-   | Cinder Hollow | 2 h | Fire hazard: fire resistance elixirs help, and Mira is immune |
+   | Goblin Warren | 5 min | Fresh team or wooden gear. First clear: copper pickaxe blueprint |
+   | Troll Bridge | 20 min | Stone to copper gear. First clear: iron pickaxe blueprint |
+   | Collapsed Mine | 1 h | Copper to iron gear. First clear: steel pickaxe blueprint |
+   | Cinder Hollow | 2 h | Iron to steel gear. Fire hazard: fire resistance elixirs help, and Mira is immune |
+   | Wyrm's Spire | 4 h | Steel gear at high level. Best chance at the legendary blueprints |
 
 2. Heroes who are away can't be re-equipped.
 3. **Shorter timers:** on Debug, turn on **Fast expeditions** (minutes become seconds), or tap **Finish all expeditions now**.

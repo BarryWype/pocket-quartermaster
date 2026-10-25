@@ -20,10 +20,14 @@ export type WeaponType = 'sword' | 'dagger' | 'knife' | 'wand' | 'bow';
 
 export type EquipmentSlot = 'weapon' | 'armor' | 'consumable';
 
+/** Forge tiers in progression order; the index + 1 is the tier number. */
+export type Tier = 'wood' | 'stone' | 'copper' | 'iron' | 'steel';
+
 type ItemBase = {
   id: string;
   name: string;
   emoji: string;
+  tier?: Tier;
 };
 
 export type GearDef = ItemBase & {
@@ -41,7 +45,17 @@ export type ConsumableDef = ItemBase & {
   protectsAgainst?: string;
 };
 
-export type ItemDef = GearDef | ConsumableDef;
+/** Kept by the quartermaster rather than a hero; owning one is enough. */
+export type ToolDef = ItemBase & {
+  slot: 'tool';
+  tool: 'pickaxe';
+  /** Mines nodes that need this tier or lower. */
+  power: number;
+  /** Extra materials from every gathering node. */
+  yieldBonus?: number;
+};
+
+export type ItemDef = GearDef | ConsumableDef | ToolDef;
 
 export type RecipeDef = {
   id: string;

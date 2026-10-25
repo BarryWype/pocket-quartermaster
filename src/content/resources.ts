@@ -1,7 +1,8 @@
 import type { ResourceDef } from '@/game/generation/types';
 
 export const resources: ResourceDef[] = [
-  // Gathering nodes (the 'ore' kind): long-lived, visible from afar.
+  // Gathering nodes (the 'ore' kind): long-lived, visible from afar. Trees need
+  // no tool; the rest need a pickaxe of at least `requiresPickaxe` power.
   {
     id: 'tree',
     kind: 'ore',
@@ -16,6 +17,7 @@ export const resources: ResourceDef[] = [
     name: 'Stone outcrop',
     emoji: '🪨',
     weight: 3,
+    requiresPickaxe: 1,
     yields: [{ materialId: 'stone', amount: 1 }],
   },
   {
@@ -24,6 +26,7 @@ export const resources: ResourceDef[] = [
     name: 'Copper vein',
     emoji: '🟠',
     weight: 5,
+    requiresPickaxe: 2,
     yields: [{ materialId: 'copperOre', amount: 1 }],
   },
   {
@@ -32,6 +35,7 @@ export const resources: ResourceDef[] = [
     name: 'Iron vein',
     emoji: '🔩',
     weight: 8,
+    requiresPickaxe: 3,
     yields: [{ materialId: 'ironOre', amount: 1 }],
   },
   {
@@ -40,6 +44,7 @@ export const resources: ResourceDef[] = [
     name: 'Coal seam',
     emoji: '⚫',
     weight: 2,
+    requiresPickaxe: 4,
     yields: [{ materialId: 'coal', amount: 1 }],
   },
 

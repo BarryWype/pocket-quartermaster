@@ -28,11 +28,15 @@ const deerSpawn: AnimalSpawn = {
   path: { waypoints: [offsetPosition(origin, 5, 0)], loopMs: 60_000, phaseMs: 0 },
 };
 
+const treeSpawn: StaticSpawn = { ...ironSpawn, id: 'ore:abc:1:1', resourceId: 'tree', quantity: 1 };
+
 const walking = { position: origin, speed: 1.4 };
+const withTools = (...tools: string[]) => ({ ...createInitialSave(), tools });
+const miner = withTools('copperPickaxe');
 
 describe('collectSpawn', () => {
   it('adds the yield to the inventory and marks the spawn collected', () => {
-    const result = collectSpawn(createInitialSave(), ironSpawn, walking, now);
+    const result = collectSpawn(miner, ironSpawn, walking, now);
     if (!result.ok) throw new Error(result.reason);
     expect(result.gained).toEqual([{ materialId: 'ironOre', amount: 2 }]);
     expect(result.save.materials).toEqual({ ironOre: 2 });
@@ -40,23 +44,44 @@ describe('collectSpawn', () => {
   });
 
   it('cannot collect the same spawn twice in a window', () => {
-    const first = collectSpawn(createInitialSave(), ironSpawn, walking, now);
+    const first = collectSpawn(miner, ironSpawn, walking, now);
     if (!first.ok) throw new Error(first.reason);
     expect(collectSpawn(first.save, ironSpawn, walking, now)).toMatchObject({ ok: false, reason: 'collected' });
   });
 
   it('requires the player to be within range', () => {
     const far = { position: offsetPosition(origin, -40, 0), speed: 1 };
-    const result = collectSpawn(createInitialSave(), ironSpawn, far, now);
+    const result = collectSpawn(miner, ironSpawn, far, now);
     expect(result).toMatchObject({ ok: false, reason: 'tooFar' });
     if (!result.ok) expect(result.distance).toBeCloseTo(50, 0);
   });
 
   it('refuses expired spawns', () => {
-    expect(collectSpawn(createInitialSave(), ironSpawn, walking, ironSpawn.expiresAt)).toMatchObject({
+    expect(collectSpawn(miner, ironSpawn, walking, ironSpawn.expiresAt)).toMatchObject({
       ok: false,
       reason: 'expired',
     });
+  });
+
+  it('gathers trees without a tool', () => {
+    const result = collectSpawn(createInitialSave(), treeSpawn, walking, now);
+    expect(result).toMatchObject({ ok: true, gained: [{ materialId: 'wood', amount: 1 }] });
+  });
+
+  it('needs a strong enough pickaxe for ore', () => {
+    expect(collectSpawn(createInitialSave(), ironSpawn, walking, now)).toMatchObject({
+      ok: false,
+      reason: 'needsPickaxe',
+      requiredPickaxe: 3,
+    });
+    expect(collectSpawn(withTools('woodPickaxe', 'stonePickaxe'), ironSpawn, walking, now).ok).toBe(false);
+    expect(collectSpawn(withTools('ironPickaxe'), ironSpawn, walking, now).ok).toBe(true);
+  });
+
+  it('gives extra materials with the steel pickaxe', () => {
+    const result = collectSpawn(withTools('steelPickaxe'), ironSpawn, walking, now);
+    if (!result.ok) throw new Error(result.reason);
+    expect(result.gained).toEqual([{ materialId: 'ironOre', amount: 3 }]);
   });
 
   it('gives every material an animal yields', () => {
@@ -68,7 +93,7 @@ describe('collectSpawn', () => {
   it('makes animals flee from fast players but not ore', () => {
     const driving = { position: origin, speed: 12 };
     expect(collectSpawn(createInitialSave(), deerSpawn, driving, now)).toMatchObject({ ok: false, reason: 'fled' });
-    expect(collectSpawn(createInitialSave(), ironSpawn, driving, now).ok).toBe(true);
+    expect(collectSpawn(miner, ironSpawn, driving, now).ok).toBe(true);
   });
 });
 
