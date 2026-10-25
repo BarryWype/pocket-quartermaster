@@ -202,7 +202,7 @@ npx expo-doctor
 
 ```
 src/
-  app/          Screens (Expo Router): map, inventory, forge, team, expeditions, debug
+  app/          Screens (Expo Router): map, forge, alchemy, inventory, team + character sheet, expeditions, debug
   game/         Pure game rules, no React or Expo, all unit-tested
     generation/   Seeded RNG, geohash tiles, time windows, spawns, animal paths, visibility
     gathering/    Collecting spawns, fleeing animals, GPS filtering
@@ -220,6 +220,7 @@ src/
 
 - **Content is data.** To tune the game, edit the files in `src/content/`. Run `npm test` afterwards: `src/game/balance/balance.test.ts` fails if the yields or difficulty curve drift too far.
 - **Map style:** the pixel-style map look is in `src/content/mapStyle.ts`, a MapLibre style over [OpenFreeMap](https://openfreemap.org) vector tiles. They're free, with no API key, and the OpenStreetMap credit stays visible.
+- **Menu and font:** the floating menu on the map is `src/components/IslandMenu.tsx`; add a crafting station to its `CRAFT_LINKS` to list it under Craft. Shared colours and the font name are in `src/theme.ts`. The font, [Fantaisie Artistique](https://www.1001fonts.com/fantaisieartistique-font.html), is loaded from `assets/fonts/FantaisieArtistique.ttf`. Use `Text` and `Button` from `src/components/` instead of the React Native ones so it applies.
 
 ---
 
