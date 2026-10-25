@@ -1,8 +1,10 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Button, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { Button } from '@/components/Button';
 import { Row, SectionTitle } from '@/components/Row';
+import { Text } from '@/components/Text';
 import { dungeons } from '@/content/dungeons';
 import { heroClasses } from '@/content/heroes';
 import { dungeonById, itemById, materialById, recipeById } from '@/content/lookup';

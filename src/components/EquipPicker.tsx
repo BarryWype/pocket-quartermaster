@@ -1,10 +1,13 @@
-import { Button, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { itemById } from '@/content/lookup';
 import type { SaveData } from '@/game/save';
 import type { EquipmentSlot } from '@/game/types';
+import { colors } from '@/theme';
 
+import { Button } from './Button';
 import { Row } from './Row';
+import { Text } from './Text';
 
 type Props = {
   save: SaveData;
@@ -72,7 +75,14 @@ export function EquipPicker({ save, heroId, slot, onPick, onClose }: Props) {
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
-  sheet: { backgroundColor: '#fff', padding: 16, maxHeight: '70%', gap: 8 },
+  sheet: {
+    backgroundColor: colors.parchment,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 16,
+    maxHeight: '70%',
+    gap: 8,
+  },
   title: { fontSize: 18, fontWeight: '600' },
   empty: { color: '#666', paddingVertical: 8 },
 });

@@ -1,7 +1,8 @@
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 
 import { Row, SectionTitle } from '@/components/Row';
 import { StepChests } from '@/components/StepChests';
+import { Text } from '@/components/Text';
 import { itemById } from '@/content/lookup';
 import { materials } from '@/content/materials';
 import { useGameStore } from '@/store/gameStore';
