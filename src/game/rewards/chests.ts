@@ -1,4 +1,5 @@
 import { chests as defaultChests } from '@/content/chests';
+import { itemById } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
 
 import { unlockRecipe } from '../crafting/crafting';
@@ -57,7 +58,8 @@ export function openChest(
   const rng = createRng(`chest|${chest.id}|${day}`);
   const gold = rng.int(chest.gold[0], chest.gold[1]);
   const materials = rollLoot(rng, chest.loot);
-  const unknown = recipes.filter((r) => !save.knownRecipes.includes(r.id));
+  // Pickaxe blueprints only come from dungeons, so chests can't skip a tier.
+  const unknown = recipes.filter((r) => !save.knownRecipes.includes(r.id) && itemById[r.itemId].slot !== 'tool');
   const recipeId =
     rng.chance(chest.recipeChance) && unknown.length > 0 ? unknown[rng.int(0, unknown.length - 1)].id : null;
 

@@ -69,6 +69,13 @@ describe('chests', () => {
     });
   });
 
+  it('never teaches pickaxe blueprints, which come from dungeons', () => {
+    const days = Array.from({ length: 200 }, (_, i) => `2026-02-${i}`);
+    for (const day of days) {
+      expect(openChest(createInitialSave(), 'iron', 10000, day).reward.recipeId ?? '').not.toMatch(/Pickaxe$/);
+    }
+  });
+
   it('never teaches a recipe when everything is known', () => {
     const allKnown: SaveData = { ...createInitialSave(), knownRecipes: recipes.map((r) => r.id) };
     for (let i = 0; i < 50; i++) {

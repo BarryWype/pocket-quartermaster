@@ -1,7 +1,8 @@
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 
 import { Row, SectionTitle } from '@/components/Row';
 import { StepChests } from '@/components/StepChests';
+import { Text } from '@/components/Text';
 import { itemById } from '@/content/lookup';
 import { materials } from '@/content/materials';
 import { useGameStore } from '@/store/gameStore';
@@ -23,6 +24,12 @@ export default function InventoryScreen() {
         <Row key={m.id} emoji={m.emoji} title={m.name} right={save.materials[m.id]} />
       ))}
 
+      <SectionTitle>Tools</SectionTitle>
+      {save.tools.length === 0 && <Text style={styles.empty}>Craft a wooden pickaxe at the forge to mine stone.</Text>}
+      {save.tools.map((toolId) => (
+        <Row key={toolId} emoji={itemById[toolId].emoji} title={itemById[toolId].name} />
+      ))}
+
       <SectionTitle>Gear</SectionTitle>
       {save.gear.length === 0 && <Text style={styles.empty}>Forge weapons and armor at the forge.</Text>}
       {save.gear.map((gear) => {
@@ -32,7 +39,7 @@ export default function InventoryScreen() {
             key={gear.uid}
             emoji={item.emoji}
             title={item.name}
-            subtitle={item.slot !== 'consumable' ? `Durability ${gear.durability}/${item.maxDurability}` : undefined}
+            subtitle={'maxDurability' in item ? `Durability ${gear.durability}/${item.maxDurability}` : undefined}
           />
         );
       })}

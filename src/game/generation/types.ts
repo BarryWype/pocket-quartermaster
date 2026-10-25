@@ -19,6 +19,8 @@ export type ResourceDef = {
   boosts?: Partial<Record<TimeOfDay, number>>;
   /** Materials gained per unit of spawn quantity. */
   yields: MaterialStack[];
+  /** Pickaxe power needed to gather it; no tool needed when unset. */
+  requiresPickaxe?: number;
 };
 
 export type KindConfig = {

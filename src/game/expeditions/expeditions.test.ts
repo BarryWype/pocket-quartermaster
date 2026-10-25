@@ -13,9 +13,9 @@ function geared(): SaveData {
     ...createInitialSave(),
     gear: [
       { uid: 'g1', itemId: 'ironSword', durability: 30 },
-      { uid: 'g2', itemId: 'boneBow', durability: 25 },
-      { uid: 'g3', itemId: 'crystalWand', durability: 20 },
-      { uid: 'g4', itemId: 'leatherArmor', durability: 30 },
+      { uid: 'g2', itemId: 'ironBow', durability: 30 },
+      { uid: 'g3', itemId: 'ironWand', durability: 30 },
+      { uid: 'g4', itemId: 'ironArmor', durability: 30 },
     ],
     consumables: { healingPotion: 1, fireResistanceElixir: 1 },
     nextUid: 10,
@@ -38,12 +38,12 @@ function outcomes(save: SaveData, dungeonId: string, runs = 200) {
 describe('startExpedition', () => {
   it('creates a timed expedition with the dungeon duration', () => {
     const save = startExpedition(createInitialSave(), 'trollBridge', ['bram'], 1000);
-    expect(save.expeditions[0]).toMatchObject({ dungeonId: 'trollBridge', heroIds: ['bram'], endsAt: 1000 + 30 * MIN });
+    expect(save.expeditions[0]).toMatchObject({ dungeonId: 'trollBridge', heroIds: ['bram'], endsAt: 1000 + 20 * MIN });
   });
 
   it('scales duration in debug mode', () => {
     const save = startExpedition(createInitialSave(), 'trollBridge', ['bram'], 0, 1 / 60);
-    expect(save.expeditions[0].endsAt).toBe(30_000);
+    expect(save.expeditions[0].endsAt).toBe(20_000);
   });
 
   it('rejects busy heroes and empty parties', () => {
@@ -95,7 +95,7 @@ describe('resolveExpedition', () => {
     const losses = results.filter((r) => !r.report.success);
     expect(wins.length).toBeGreaterThan(0);
     expect(losses.length).toBeGreaterThan(0);
-    wins.forEach(({ report }) => expect(report.gold).toBeGreaterThanOrEqual(35));
+    wins.forEach(({ report }) => expect(report.gold).toBeGreaterThanOrEqual(30));
     losses.forEach(({ report }) => {
       expect(report.gold).toBe(0);
       expect(report.materials).toEqual([]);
@@ -127,6 +127,12 @@ describe('resolveExpedition', () => {
     expect(report.brokenGear).toContain('ironSword');
     expect(save.gear.some((g) => g.uid === 'g1')).toBe(false);
     expect(save.heroes.find((h) => h.id === 'bram')!.equipment.weapon).toBeNull();
+  });
+
+  it('teaches the next pickaxe on the first clear', () => {
+    const wins = outcomes(geared(), 'goblinWarren', 50).filter((r) => r.report.success);
+    expect(wins.length).toBeGreaterThan(0);
+    wins.forEach(({ report }) => expect(report.recipeId).toBe('copperPickaxe'));
   });
 
   it('can unlock a recipe it has not taught yet', () => {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, StyleSheet, Text } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { chests } from '@/content/chests';
 import { itemById, materialById, recipeById } from '@/content/lookup';
@@ -7,7 +7,9 @@ import { chestState, dayKey } from '@/game/rewards/chests';
 import { useTodaySteps } from '@/hooks/useTodaySteps';
 import { useGameStore } from '@/store/gameStore';
 
+import { Button } from './Button';
 import { Row, SectionTitle } from './Row';
+import { Text } from './Text';
 
 export function StepChests() {
   const steps = useTodaySteps();

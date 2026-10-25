@@ -98,7 +98,7 @@ export function resolveExpedition(
       const piece = gear.find((g) => g.uid === hero.equipment[slot]);
       if (!piece) continue;
       const item = itemById[piece.itemId];
-      if (item.slot === 'consumable') continue;
+      if (item.slot !== 'weapon' && item.slot !== 'armor') continue;
       const loss = Math.round(rng.int(...dungeon.durabilityLoss) * (success ? 1 : rules.failureWearMultiplier));
       const durability = Math.max(0, piece.durability - loss);
       const threshold = item.maxDurability * rules.crackedThreshold;

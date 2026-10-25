@@ -6,13 +6,14 @@ import { distanceMeters } from '../generation/geo';
 import type { LatLng, ResourceDef, Spawn } from '../generation/types';
 import { addMaterials } from '../inventory';
 import type { SaveData } from '../save';
+import { bestPickaxe, canGather } from '../tools';
 import type { MaterialStack } from '../types';
 
-export type CollectFailure = 'collected' | 'expired' | 'tooFar' | 'fled';
+export type CollectFailure = 'collected' | 'expired' | 'tooFar' | 'fled' | 'needsPickaxe';
 
 export type CollectResult =
   | { ok: true; save: SaveData; gained: MaterialStack[] }
-  | { ok: false; reason: CollectFailure; distance: number };
+  | { ok: false; reason: CollectFailure; distance: number; requiredPickaxe?: number };
 
 export type Gatherer = {
   position: LatLng;
@@ -29,10 +30,19 @@ export function isFleeing(speed: number | null, config: GatheringConfig = gather
   return (speed ?? 0) > config.animalFleeSpeed;
 }
 
-export function spawnYield(spawn: Spawn, resources: ResourceDef[] = defaultResources) {
+function resourceOf(spawn: Spawn, resources: ResourceDef[]) {
   const resource = resources.find((r) => r.id === spawn.resourceId);
   if (!resource) throw new Error(`Unknown resource ${spawn.resourceId}`);
-  return resource.yields.map((y) => ({ materialId: y.materialId, amount: y.amount * spawn.quantity }));
+  return resource;
+}
+
+/** Materials from a spawn; `bonus` is added to each yield of a gathering node. */
+export function spawnYield(spawn: Spawn, resources: ResourceDef[] = defaultResources, bonus = 0) {
+  const extra = spawn.kind === 'ore' ? bonus : 0;
+  return resourceOf(spawn, resources).yields.map((y) => ({
+    materialId: y.materialId,
+    amount: y.amount * spawn.quantity + extra,
+  }));
 }
 
 /** Drops collected-spawn entries whose window has ended. */
@@ -55,8 +65,12 @@ export function collectSpawn(
   if (spawn.kind === 'animal' && isFleeing(gatherer.speed, config)) {
     return { ok: false, reason: 'fled', distance };
   }
+  const resource = resourceOf(spawn, resources);
+  if (!canGather(save, resource)) {
+    return { ok: false, reason: 'needsPickaxe', distance, requiredPickaxe: resource.requiresPickaxe };
+  }
 
-  const gained = spawnYield(spawn, resources);
+  const gained = spawnYield(spawn, resources, bestPickaxe(save)?.yieldBonus ?? 0);
   return {
     ok: true,
     gained,

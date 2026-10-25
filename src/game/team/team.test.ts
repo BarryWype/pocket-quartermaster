@@ -6,8 +6,8 @@ function saveWithGear(): SaveData {
     ...createInitialSave(),
     gear: [
       { uid: 'g1', itemId: 'ironSword', durability: 30 },
-      { uid: 'g2', itemId: 'crystalWand', durability: 20 },
-      { uid: 'g3', itemId: 'leatherArmor', durability: 30 },
+      { uid: 'g2', itemId: 'ironWand', durability: 30 },
+      { uid: 'g3', itemId: 'ironArmor', durability: 30 },
     ],
     consumables: { healingPotion: 1 },
   };
@@ -23,13 +23,13 @@ describe('heroStats', () => {
 
   it('adds gear stats, boosted by class affinity', () => {
     const save = equip(equip(saveWithGear(), 'bram', 'weapon', 'g1'), 'mira', 'weapon', 'g2');
-    expect(heroStats(save, hero(save, 'bram')).attack).toBe(5 + 6 * 1.5);
-    expect(heroStats(save, hero(save, 'mira')).magic).toBe(Math.round(6 + 7 * 1.5));
+    expect(heroStats(save, hero(save, 'bram')).attack).toBe(Math.round(5 + 9 * 1.5));
+    expect(heroStats(save, hero(save, 'mira')).magic).toBe(Math.round(6 + 9 * 1.5));
   });
 
   it('gives no affinity bonus to other classes', () => {
     const save = equip(saveWithGear(), 'lyra', 'weapon', 'g2');
-    expect(heroStats(save, hero(save, 'lyra')).magic).toBe(1 + 7);
+    expect(heroStats(save, hero(save, 'lyra')).magic).toBe(1 + 9);
   });
 
   it('grows with level', () => {
