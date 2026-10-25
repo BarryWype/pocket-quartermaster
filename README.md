@@ -1,6 +1,6 @@
 # Pocket Quartermaster
 
-A location-based mobile game. You are the quartermaster of a small band of heroes: walk around your neighbourhood to gather ore, animal materials and herbs, forge gear, and send your heroes on timed expeditions.
+A location-based mobile game. You are the quartermaster of a small band of heroes: walk around your neighbourhood to gather wood, stone, ore, animal materials and herbs, forge gear, and send your heroes on timed expeditions.
 
 This is the MVP, a playable proof of the core loop. Everything runs on the device: there is no backend.
 
@@ -117,13 +117,13 @@ The **🐞 Debug** tab (development builds only) lets you test everything from y
 
 1. Open the **Map** tab. It centres on you and follows you. The 🧙 marker is you.
 2. Markers are spawns. Each kind is visible from a different distance:
-   - Ore (🪨 🟠 💎): 500 m.
+   - Trees, stone, copper, iron and coal (🌳 🪨 🟠 🔩 ⚫): 500 m.
    - Animals (🐇 🦌 🐗): 150 m. Animals wander.
    - Herbs (🌿 🫐 🍄): 50 m.
    - Rare drops (🌠 🌸): 200 m, and they only last an hour.
 3. **Test without walking:** on Debug, turn on **Mock location**. Then use the N/S/E/W buttons, or tap the map to teleport.
 4. **Determinism:** two phones at the same place, in the same time window, see the same spawns.
-5. **Time of day:** on Debug, change **Time of day**. Deer get more common at dawn and dusk, crystals and boars at night.
+5. **Time of day:** on Debug, change **Time of day**. Deer get more common at dawn and dusk. Boars, mushrooms and rare finds get more common at night.
 6. **Refresh:** set **Spawn refresh window** to 1 min to see spawns change quickly.
 
 ### Gathering
