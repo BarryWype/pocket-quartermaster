@@ -1,8 +1,11 @@
 import type { MaterialDef } from '@/game/types';
 
 export const materials: MaterialDef[] = [
-  { id: 'ironOre', name: 'Iron ore', emoji: '🪨' },
+  { id: 'wood', name: 'Wood', emoji: '🪵' },
+  { id: 'stone', name: 'Stone', emoji: '🪨' },
   { id: 'copperOre', name: 'Copper ore', emoji: '🟠' },
+  { id: 'ironOre', name: 'Iron ore', emoji: '🔩' },
+  { id: 'coal', name: 'Coal', emoji: '⚫' },
   { id: 'crystal', name: 'Crystal shard', emoji: '💎' },
   { id: 'hide', name: 'Hide', emoji: '🟫' },
   { id: 'bone', name: 'Bone', emoji: '🦴' },

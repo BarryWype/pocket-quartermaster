@@ -1,30 +1,46 @@
 import type { ResourceDef } from '@/game/generation/types';
 
 export const resources: ResourceDef[] = [
+  // Gathering nodes (the 'ore' kind): long-lived, visible from afar.
   {
-    id: 'iron',
+    id: 'tree',
     kind: 'ore',
-    name: 'Iron vein',
+    name: 'Tree',
+    emoji: '🌳',
+    weight: 3,
+    yields: [{ materialId: 'wood', amount: 1 }],
+  },
+  {
+    id: 'stone',
+    kind: 'ore',
+    name: 'Stone outcrop',
     emoji: '🪨',
-    weight: 6,
-    yields: [{ materialId: 'ironOre', amount: 1 }],
+    weight: 3,
+    yields: [{ materialId: 'stone', amount: 1 }],
   },
   {
     id: 'copper',
     kind: 'ore',
     name: 'Copper vein',
     emoji: '🟠',
-    weight: 4,
+    weight: 5,
     yields: [{ materialId: 'copperOre', amount: 1 }],
   },
   {
-    id: 'crystal',
+    id: 'iron',
     kind: 'ore',
-    name: 'Crystal cluster',
-    emoji: '💎',
-    weight: 1.5,
-    boosts: { night: 2 },
-    yields: [{ materialId: 'crystal', amount: 1 }],
+    name: 'Iron vein',
+    emoji: '🔩',
+    weight: 8,
+    yields: [{ materialId: 'ironOre', amount: 1 }],
+  },
+  {
+    id: 'coal',
+    kind: 'ore',
+    name: 'Coal seam',
+    emoji: '⚫',
+    weight: 2,
+    yields: [{ materialId: 'coal', amount: 1 }],
   },
 
   {

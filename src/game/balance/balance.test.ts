@@ -26,7 +26,8 @@ function averageWalk(minutes: number) {
   }
   const avg = (id: string) => (totals[id] ?? 0) / runs.length;
   return {
-    ore: avg('ironOre') + avg('copperOre') + avg('crystal'),
+    ore: avg('wood') + avg('stone') + avg('copperOre') + avg('ironOre') + avg('coal'),
+    metal: avg('copperOre') + avg('ironOre'),
     animal: avg('hide') + avg('bone') + avg('meat'),
     herb: avg('herb') + avg('berries') + avg('mushroom'),
     rare: avg('starMetal') + avg('moonpetal'),
@@ -67,6 +68,7 @@ describe('gathering balance (30 minute walk)', () => {
   it('yields enough ore for a couple of weapons, not a whole armoury', () => {
     expect(walk.ore).toBeGreaterThan(8);
     expect(walk.ore).toBeLessThan(30);
+    expect(walk.metal).toBeGreaterThan(8);
   });
 
   it('keeps animal and herb materials in the same range as ore', () => {
