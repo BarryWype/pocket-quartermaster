@@ -1,6 +1,8 @@
 import { expeditionRules } from '@/content/dungeons';
+import { elementRules } from '@/content/elements';
 import { dungeonById, itemById } from '@/content/lookup';
 
+import type { Element } from '../elements';
 import type { BossDef, ConsumableDef, DungeonDef, EncounterDef } from '../types';
 import { simulateRun, type PartyMember } from './simulate';
 
@@ -19,7 +21,8 @@ function member(heroId: string, overrides: Partial<PartyMember> = {}): PartyMemb
     damage: 10,
     defense: 0,
     threat: 1,
-    protections: [],
+    resists: [],
+    traits: [],
     consumable: null,
     ...overrides,
   };
@@ -83,11 +86,11 @@ describe('fights', () => {
 
   it('hurts heroes unprotected from the element more', () => {
     const fire = bossOnly({ hp: 300, damage: 10, element: 'fire' });
-    const taken = (protections: string[]) =>
-      simulateRun([member('a', { ...tough, damage: 30, protections })], fire, 's', { rules: steady }).encounters.find(
+    const taken = (resists: Element[]) =>
+      simulateRun([member('a', { ...tough, damage: 30, resists })], fire, 's', { rules: steady }).encounters.find(
         (e) => e.kind === 'boss',
       )!.taken.a;
-    expect(taken([])).toBeCloseTo(taken(['fire']) * steady.elementMultiplier);
+    expect(taken([])).toBeCloseTo(taken(['fire']) * elementRules.unprotectedMultiplier);
   });
 
   it('aims at heroes with more threat more often', () => {
@@ -112,7 +115,7 @@ describe('traps and events', () => {
 
   it('can be avoided by a matching trait or protection', () => {
     const run = simulateRun(
-      [member('a', { protections: ['spotTraps'] }), member('b')],
+      [member('a', { traits: ['spotTraps'] }), member('b')],
       dungeon([trap({ avoidedBy: 'spotTraps' })]),
       's',
       { rules: calm },

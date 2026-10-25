@@ -1,4 +1,6 @@
-import type { RecipeDef } from '@/game/types';
+import type { GearInstance, RecipeDef } from '@/game/types';
+
+import { elementInfo } from './elements';
 
 import { dungeons } from './dungeons';
 import { items } from './items';
@@ -15,3 +17,9 @@ export const dungeonById = Object.fromEntries(dungeons.map((d) => [d.id, d]));
 /** What a recipe makes: an item, or a material for smelting recipes. */
 export const recipeOutput = (recipe: RecipeDef) =>
   'itemId' in recipe.output ? itemById[recipe.output.itemId] : materialById[recipe.output.materialId];
+
+/** A gear piece's display name, with its element first, e.g. "Fire Wooden sword". */
+export function gearName(gear: GearInstance) {
+  const name = itemById[gear.itemId].name;
+  return gear.element ? `${elementInfo[gear.element].name} ${name}` : name;
+}

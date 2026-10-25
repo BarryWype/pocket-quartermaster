@@ -6,6 +6,7 @@ import { unlockRecipe } from '../crafting/crafting';
 import { createRng } from '../generation/rng';
 import { addMaterials } from '../inventory';
 import { rollLoot } from '../rewards/loot';
+import { grantMainRewards, type MainRewardOptions } from '../rewards/mainRewards';
 import type { SaveData } from '../save';
 import { addXp, isOnExpedition } from '../team/team';
 import { isTutorialExpedition } from '../tutorial/tutorial';
@@ -67,7 +68,7 @@ export function startExpedition(
 export function resolveExpedition(
   save: SaveData,
   expedition: ActiveExpedition,
-  rules: ExpeditionRules = expeditionRules,
+  { rules = expeditionRules, mainReward }: { rules?: ExpeditionRules; mainReward?: MainRewardOptions } = {},
 ): { save: SaveData; report: ExpeditionReport } {
   const dungeon = dungeonById[expedition.dungeonId];
   const party = prepareParty(save, expedition.heroIds);
@@ -143,6 +144,27 @@ export function resolveExpedition(
     );
   });
 
+  let next: SaveData = {
+    ...save,
+    gold: save.gold + gold,
+    materials: addMaterials(save.materials, materials),
+    consumables,
+    gear: gear.filter((g) => !brokenUids.has(g.uid)),
+    heroes,
+    expeditions: save.expeditions.filter((e) => e.id !== expedition.id),
+    clearedDungeons:
+      success && !save.clearedDungeons.includes(dungeon.id) ? [...save.clearedDungeons, dungeon.id] : save.clearedDungeons,
+  };
+  if (recipeId) next = unlockRecipe(next, recipeId);
+
+  // Main rewards: only for successes, and not for the tutorial run, which has its own.
+  let mainRewards: ExpeditionReport['mainRewards'] = [];
+  if (success && !tutorialReward) {
+    const granted = grantMainRewards(next, dungeon, createRng(`${expedition.seed}|main`), expedition.endsAt, mainReward);
+    next = granted.save;
+    mainRewards = granted.rewards;
+  }
+
   const log = buildLog(
     {
       dungeon,
@@ -151,6 +173,7 @@ export function resolveExpedition(
       gold,
       recipeItemName: recipeId ? recipeOutput(recipeById[recipeId]).name : null,
       finds: tutorialReward ? tutorialReward.materials.map((m) => materialById[m.materialId].name) : [],
+      mainRewards,
       gearEvents,
     },
     createRng(`${expedition.seed}|log`),
@@ -166,6 +189,7 @@ export function resolveExpedition(
     encountersCleared: run.encountersCleared,
     encounterCount: run.encounterCount,
     heroHp: run.hp,
+    mainRewards,
     gold,
     materials,
     recipeId,
@@ -176,28 +200,19 @@ export function resolveExpedition(
     seen: false,
   };
 
-  let next: SaveData = {
-    ...save,
-    gold: save.gold + gold,
-    materials: addMaterials(save.materials, materials),
-    consumables,
-    gear: gear.filter((g) => !brokenUids.has(g.uid)),
-    heroes,
-    expeditions: save.expeditions.filter((e) => e.id !== expedition.id),
-    clearedDungeons:
-      success && !save.clearedDungeons.includes(dungeon.id) ? [...save.clearedDungeons, dungeon.id] : save.clearedDungeons,
-    reports: [report, ...save.reports].slice(0, rules.reportsKept),
-  };
-  if (recipeId) next = unlockRecipe(next, recipeId);
-  return { save: next, report };
+  return { save: { ...next, reports: [report, ...save.reports].slice(0, rules.reportsKept) }, report };
 }
 
 /** Resolves every expedition whose timer has ended, oldest first. */
-export function resolveDue(save: SaveData, now: number): { save: SaveData; reports: ExpeditionReport[] } {
+export function resolveDue(
+  save: SaveData,
+  now: number,
+  mainReward?: MainRewardOptions,
+): { save: SaveData; reports: ExpeditionReport[] } {
   const due = save.expeditions.filter((e) => e.endsAt <= now).sort((a, b) => a.endsAt - b.endsAt);
   return due.reduce<{ save: SaveData; reports: ExpeditionReport[] }>(
     (acc, expedition) => {
-      const { save: next, report } = resolveExpedition(acc.save, expedition);
+      const { save: next, report } = resolveExpedition(acc.save, expedition, { mainReward });
       return { save: next, reports: [...acc.reports, report] };
     },
     { save, reports: [] },

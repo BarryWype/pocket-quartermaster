@@ -1,6 +1,6 @@
 import { Modal, Pressable, ScrollView, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 
-import { itemById } from '@/content/lookup';
+import { gearName, itemById } from '@/content/lookup';
 import type { SaveData } from '@/game/save';
 import type { EquipmentSlot } from '@/game/types';
 import { colors } from '@/theme';
@@ -44,7 +44,7 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot): Option
       id: gear.uid,
       emoji: item.emoji,
       icon: item.icon,
-      title: item.name,
+      title: gearName(gear),
       subtitle: `Durability ${gear.durability}${holder ? ` · used by ${holder.name}` : ''}`,
     }));
 }

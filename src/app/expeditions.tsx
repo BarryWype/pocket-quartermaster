@@ -167,6 +167,12 @@ export default function ExpeditionsScreen() {
           report.gold > 0 ? `🪙 ${report.gold}` : null,
           ...report.materials.map((m) => `${materialById[m.materialId].emoji} ${m.amount}`),
           report.recipeId ? `📜 ${recipeOutput(recipeById[report.recipeId]).name}` : null,
+          ...(report.mainRewards ?? []).map((reward) => {
+            if (reward.kind === 'goldPouch') return `👛 +${reward.gold}`;
+            if (reward.kind === 'sigil') return `🎟️ Sigil T${reward.tier}`;
+            if (reward.kind === 'treasureMap') return '🗺️ Treasure map';
+            return '🪤 Lure';
+          }),
           `+${report.xp} XP`,
         ]
           .filter(Boolean)

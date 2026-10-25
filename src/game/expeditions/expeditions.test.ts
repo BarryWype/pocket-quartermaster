@@ -230,6 +230,28 @@ describe('resolveExpedition', () => {
   });
 });
 
+describe('main rewards', () => {
+  it('only rolls on a successful expedition', () => {
+    for (const { report } of outcomes(geared(), 'banditStockade', 60)) {
+      if (!report.success) expect(report.mainRewards).toEqual([]);
+      else expect(report.mainRewards.length).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it('can be forced from debug, and shows in the log', () => {
+    const wins = Array.from({ length: 20 }, (_, i) => {
+      const run = startExpedition({ ...geared(), nextUid: i }, 'ratCellar', ALL, 0);
+      return resolveExpedition(run, run.expeditions[0], { mainReward: { force: 'lure' } });
+    }).filter((r) => r.report.success);
+    expect(wins.length).toBeGreaterThan(0);
+    wins.forEach(({ save, report }) => {
+      expect(report.mainRewards).toEqual([{ kind: 'lure' }]);
+      expect(save.lures).toBe(1);
+      expect(report.log.join(' ')).toMatch(/lure/);
+    });
+  });
+});
+
 describe('tutorial expedition', () => {
   /** Fresh from the tutorial: only Bram's wooden sword, about to send the first expedition. */
   const tutorialSave = (): SaveData => {

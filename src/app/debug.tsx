@@ -1,8 +1,14 @@
+import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { Text } from '@/components/Text';
-import type { TimeOfDay } from '@/game/generation/types';
+import { elementInfo } from '@/content/elements';
+import { sanctums } from '@/content/sanctums';
+import { ELEMENTS, type Element } from '@/game/elements';
+import { offsetPosition } from '@/game/generation/geo';
+import type { LatLng, TimeOfDay } from '@/game/generation/types';
+import type { MainRewardKind } from '@/game/types';
 import { deviceLocation } from '@/services/location';
 import { useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
@@ -11,6 +17,8 @@ const FALLBACK_LOCATION = { latitude: -41.2865, longitude: 174.7762 };
 const STEP_METERS = [10, 50];
 const TIMES_OF_DAY: (TimeOfDay | null)[] = [null, 'dawn', 'day', 'dusk', 'night'];
 const WINDOWS: (number | null)[] = [null, 1, 5, 15];
+const TIERS = [1, 2, 3, 4, 5];
+const MAIN_REWARDS: (MainRewardKind | null)[] = [null, 'goldPouch', 'sigil', 'treasureMap', 'lure'];
 
 function Choice<T>({
   options,
@@ -42,17 +50,26 @@ export default function DebugScreen() {
   const debug = useDebugStore();
   const game = useGameStore();
 
-  const toggleMock = async (enabled: boolean) => {
-    if (!enabled) {
-      debug.set({ mockLocation: null });
-      return;
-    }
+  const [element, setElement] = useState<Element>('fire');
+
+  /** The mock location if set, else the device's, else a fallback. */
+  const currentPosition = async (): Promise<LatLng> => {
+    if (debug.mockLocation) return debug.mockLocation;
     try {
-      const granted = await deviceLocation.requestPermission();
-      debug.set({ mockLocation: granted ? (await deviceLocation.getCurrent()).position : FALLBACK_LOCATION });
+      return (await deviceLocation.requestPermission()) ? (await deviceLocation.getCurrent()).position : FALLBACK_LOCATION;
     } catch {
-      debug.set({ mockLocation: FALLBACK_LOCATION });
+      return FALLBACK_LOCATION;
     }
+  };
+
+  const toggleMock = async (enabled: boolean) => {
+    debug.set({ mockLocation: enabled ? await currentPosition() : null });
+  };
+
+  const placeSanctum = async (sanctumId: string) => {
+    const now = Date.now();
+    const position = offsetPosition(await currentPosition(), 20, 0);
+    debug.set({ debugSanctum: { id: `debug:${sanctumId}:${now}`, sanctumId, position, expiresAt: now + 24 * 3_600_000 } });
   };
 
   const confirmReset = () =>
@@ -119,6 +136,49 @@ export default function DebugScreen() {
         <Switch value={debug.fastExpeditions} onValueChange={(fastExpeditions) => debug.set({ fastExpeditions })} />
       </View>
       <Button title="Finish all expeditions now" onPress={game.fastForwardExpeditions} />
+
+      <Text style={styles.title}>Sanctums and rewards</Text>
+      <Text>
+        Sigils: {game.save.sigils.length ? game.save.sigils.join(', ') : 'none'} · pity {game.save.sigilPity} · maps{' '}
+        {game.save.treasureMaps.length} · lures {game.save.lures}
+      </Text>
+      <Text>Add a Sigil</Text>
+      <View style={styles.row}>
+        {TIERS.map((tier) => (
+          <Button key={tier} title={`T${tier}`} onPress={() => game.addSigil(tier)} />
+        ))}
+      </View>
+      <Text>Elemental shards and stones</Text>
+      <Choice
+        options={[...ELEMENTS]}
+        value={element}
+        label={(option) => `${elementInfo[option].emoji} ${option}`}
+        onChange={setElement}
+      />
+      <View style={styles.row}>
+        <Button title="+5 shards" onPress={() => game.addElemental(element, 'shard', 5)} />
+        <Button title="+1 stone" onPress={() => game.addElemental(element, 'stone', 1)} />
+        <Button title="+ Map" onPress={game.addTreasureMap} />
+        <Button title="+ Lure" onPress={game.addLure} />
+      </View>
+      <Text>Place a Sanctum next to you</Text>
+      <Choice
+        options={sanctums.map((s) => s.id)}
+        value={debug.debugSanctum?.sanctumId ?? ''}
+        label={(id) => {
+          const sanctum = sanctums.find((s) => s.id === id)!;
+          return `${sanctum.emoji} ${sanctum.name}`;
+        }}
+        onChange={placeSanctum}
+      />
+      <Button title="Reset used Sanctums and Sigil pity" onPress={game.resetSanctums} />
+      <Text>Force the next main reward</Text>
+      <Choice
+        options={MAIN_REWARDS}
+        value={debug.forcedMainReward}
+        label={(option) => option ?? 'off'}
+        onChange={(forcedMainReward) => debug.set({ forcedMainReward })}
+      />
 
       <Text style={styles.title}>Steps</Text>
       <Text>Extra steps today: {debug.extraSteps}</Text>

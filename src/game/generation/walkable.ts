@@ -184,6 +184,22 @@ export function snapToWalkable(tile: WalkableTile, point: LatLng, maxMeters: num
   return { latitude: point.latitude + best.y / METERS_PER_DEGREE, longitude: point.longitude + best.x / scaleX };
 }
 
+/**
+ * Where a point goes: snapped onto its map tile's walkable places, kept as is
+ * when the tile could not be loaded (null), undefined while it is still
+ * loading, null when nothing walkable is near.
+ */
+export function placePoint(
+  point: LatLng,
+  tiles: Record<string, WalkableTile | null>,
+  rules: WalkableRules = defaultRules,
+): LatLng | null | undefined {
+  const key = mapTileKey(mapTileAt(point, rules.mapZoom));
+  if (!(key in tiles)) return undefined;
+  const tile = tiles[key];
+  return tile === null ? point : snapToWalkable(tile, point, rules.maxSnapMeters);
+}
+
 function pointsOf(spawn: Spawn): LatLng[] {
   return spawn.kind === 'animal' ? spawn.path.waypoints : [spawn.position];
 }
@@ -227,12 +243,7 @@ export function placeSpawns(
   tiles: Record<string, WalkableTile | null>,
   rules: WalkableRules = defaultRules,
 ): Spawn[] {
-  const place = (point: LatLng): LatLng | null | undefined => {
-    const key = mapTileKey(mapTileAt(point, rules.mapZoom));
-    if (!(key in tiles)) return undefined;
-    const tile = tiles[key];
-    return tile === null ? point : snapToWalkable(tile, point, rules.maxSnapMeters);
-  };
+  const place = (point: LatLng) => placePoint(point, tiles, rules);
 
   return spawns.flatMap((spawn): Spawn[] => {
     if (spawn.kind === 'animal') {

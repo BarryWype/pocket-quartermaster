@@ -1,4 +1,7 @@
-import type { BossDef, MobDef } from '@/game/types';
+import type { Element } from '@/game/elements';
+import type { BossDef, MobDef, SanctumDef } from '@/game/types';
+
+import { sanctumRules, sanctums } from './sanctums';
 
 // Enemies are written at tier 1 strength, then scaled by their tier and by how
 // tough their dungeon should be within it. Per-dungeon strengths are tuned so
@@ -9,7 +12,7 @@ const TIER_SCALE = [1, 1.9, 3, 4.2, 5.6];
 
 const strength = (tier: number, dungeonFactor: number) => TIER_SCALE[tier - 1] * dungeonFactor;
 
-function mob(id: string, name: string, scale: number, hp: number, damage: number, element?: string): MobDef {
+function mob(id: string, name: string, scale: number, hp: number, damage: number, element?: Element): MobDef {
   return { id, name, hp: Math.round(hp * scale), damage: Math.round(damage * scale), element };
 }
 
@@ -20,7 +23,7 @@ function boss(
   hp: number,
   damage: number,
   effect?: BossDef['effect'],
-  element?: string,
+  element?: Element,
 ): BossDef {
   return { ...mob(id, name, scale, hp, damage, element), effect };
 }
@@ -114,5 +117,26 @@ export const bosses: BossDef[] = [
   boss('elderDragon', 'elder dragon', S.dragonLair, 140, 12, 'sweep', 'fire'),
 ];
 
-export const mobById = Object.fromEntries(mobs.map((m) => [m.id, m]));
+// Sanctum enemies: one set per Sigil tier, scaled like dungeon enemies.
+const sanctumScale = (tier: number) => strength(tier, sanctumRules.tierStrength[tier - 1]);
+
+export const sanctumMinionId = (sanctumId: string, which: 'weak' | 'strong', tier: number) =>
+  `${sanctumId}:${which}:${tier}`;
+
+const sanctumMinions: MobDef[] = sanctums.flatMap((sanctum) =>
+  sanctumRules.tierStrength.flatMap((_, i) =>
+    (['weak', 'strong'] as const).map((which, j) => {
+      const { hp, damage } = sanctumRules.minionBase[which];
+      return mob(sanctumMinionId(sanctum.id, which, i + 1), sanctum.minions[j], sanctumScale(i + 1), hp, damage, sanctum.element);
+    }),
+  ),
+);
+
+/** A Sanctum's guardian at a Sigil tier. */
+export function sanctumGuardian(sanctum: SanctumDef, tier: number): BossDef {
+  const { hp, damage } = sanctumRules.guardianBase;
+  return boss(`${sanctum.id}:guardian:${tier}`, sanctum.guardian.name, sanctumScale(tier), hp, damage, sanctum.guardian.effect, sanctum.element);
+}
+
+export const mobById = Object.fromEntries([...mobs, ...sanctumMinions].map((m) => [m.id, m]));
 export const bossById = Object.fromEntries(bosses.map((b) => [b.id, b]));

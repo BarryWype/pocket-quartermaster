@@ -4,6 +4,8 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { offsetPosition } from '@/game/generation/geo';
 import type { LatLng, TimeOfDay } from '@/game/generation/types';
+import type { SanctumSpawn } from '@/game/sanctums/sanctums';
+import type { MainRewardKind } from '@/game/types';
 
 type DebugSettings = {
   /** When set, replaces the device GPS position. */
@@ -15,6 +17,10 @@ type DebugSettings = {
   fastExpeditions: boolean;
   /** Added to today's pedometer count. */
   extraSteps: number;
+  /** Main reward the next successful expedition gets, then cleared. */
+  forcedMainReward: MainRewardKind | null;
+  /** A Sanctum placed by hand next to the player. */
+  debugSanctum: SanctumSpawn | null;
 };
 
 type DebugState = DebugSettings & {
@@ -30,6 +36,8 @@ export const useDebugStore = create<DebugState>()(
       windowMinutes: null,
       fastExpeditions: false,
       extraSteps: 0,
+      forcedMainReward: null,
+      debugSanctum: null,
       set: (settings) => set(settings),
       moveMockLocation: (northMeters, eastMeters) =>
         set((state) => ({

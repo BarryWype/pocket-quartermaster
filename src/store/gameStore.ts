@@ -7,21 +7,31 @@ import { items } from '@/content/items';
 import { dungeonById, recipeById } from '@/content/lookup';
 import { materials } from '@/content/materials';
 import { craft, unlockRecipe } from '@/game/crafting/crafting';
+import { infuse, recycle } from '@/game/crafting/infusion';
+import { convertShards, shardId, stoneId, type Element } from '@/game/elements';
 import { fastForward, resolveDue, startExpedition } from '@/game/expeditions/expeditions';
 import { collectSpawn, type CollectResult, type Gatherer } from '@/game/gathering/gathering';
 import type { LatLng, Spawn } from '@/game/generation/types';
 import { addMaterials } from '@/game/inventory';
 import { dayKey, openChest, recordSteps, syncSteps, type ChestReward } from '@/game/rewards/chests';
+import { activateLure } from '@/game/rewards/lures';
+import { collectTreasure, readTreasureMap, type TreasureContents } from '@/game/rewards/treasure';
+import { challengeSanctum, type SanctumResult, type SanctumSpawn } from '@/game/sanctums/sanctums';
 import { createInitialSave, type SaveData } from '@/game/save';
 import { equip, unequip } from '@/game/team/team';
 import { advanceTutorial, finishTutorial, placeTutorialWood } from '@/game/tutorial/tutorial';
+import { pruneExpired } from '@/game/upkeep';
 import type { EquipmentSlot, ExpeditionReport } from '@/game/types';
 import { deviceNotifications } from '@/services/notifications';
+
+import { useDebugStore } from './debugStore';
 
 type GameState = {
   save: SaveData;
   collect: (spawn: Spawn, gatherer: Gatherer, timeMs: number) => CollectResult;
   craft: (recipeId: string) => void;
+  infuse: (gearUid: string, element: Element) => void;
+  recycle: (gearUid: string) => void;
   /** Pass null to empty the slot. */
   equip: (heroId: string, slot: EquipmentSlot, id: string | null) => void;
   startExpedition: (dungeonId: string, heroIds: string[], durationScale: number) => Promise<void>;
@@ -31,6 +41,10 @@ type GameState = {
   syncSteps: (day: string, total: number) => void;
   openChest: (chestId: string, steps: number) => ChestReward;
   placeTutorialWood: (position: LatLng) => void;
+  challengeSanctum: (spawn: SanctumSpawn, tier: number, heroIds: string[], player: LatLng) => SanctumResult;
+  readTreasureMap: (mapId: string, position: LatLng) => void;
+  collectTreasure: (mapId: string, player: LatLng, treasureAt: LatLng) => TreasureContents;
+  activateLure: (position: LatLng) => void;
   /** Closes the tutorial's last tip; from debug, skips the whole tutorial. */
   finishTutorial: () => void;
   // Debug
@@ -40,6 +54,12 @@ type GameState = {
   beatNextBoss: () => void;
   addGold: (amount: number) => void;
   addAllMaterials: (amount: number) => void;
+  addSigil: (tier: number) => void;
+  addElemental: (element: Element, kind: 'shard' | 'stone', amount: number) => void;
+  addTreasureMap: () => void;
+  addLure: () => void;
+  /** Forgets used Sanctums and the Sigil pity counter. */
+  resetSanctums: () => void;
   fastForwardExpeditions: () => void;
   resetSave: () => void;
 };
@@ -60,6 +80,8 @@ export const useGameStore = create<GameState>()(
         return result;
       },
       craft: (recipeId) => set(({ save }) => ({ save: advanceTutorial(craft(save, recipeById[recipeId])) })),
+      infuse: (gearUid, element) => set(({ save }) => ({ save: infuse(save, gearUid, element) })),
+      recycle: (gearUid) => set(({ save }) => ({ save: recycle(save, gearUid) })),
       equip: (heroId, slot, id) =>
         set(({ save }) => ({
           save: advanceTutorial(id ? equip(save, heroId, slot, id) : unequip(save, heroId, slot)),
@@ -83,8 +105,14 @@ export const useGameStore = create<GameState>()(
         }));
       },
       resolveDue: () => {
-        const { save, reports } = resolveDue(get().save, Date.now());
-        if (reports.length > 0) set({ save: advanceTutorial(save) });
+        const now = Date.now();
+        const debug = useDebugStore.getState();
+        const force = debug.forcedMainReward ?? undefined;
+        const { save, reports } = resolveDue(get().save, now, { force });
+        if (force && reports.some((r) => r.success)) debug.set({ forcedMainReward: null });
+        // Also the moment to drop expired maps, lures and used Sanctums.
+        const pruned = pruneExpired(save, now);
+        if (reports.length > 0 || pruned !== get().save) set({ save: advanceTutorial(pruned) });
         return reports;
       },
       markReportsSeen: () =>
@@ -99,6 +127,19 @@ export const useGameStore = create<GameState>()(
         return reward;
       },
       placeTutorialWood: (position) => set(({ save }) => ({ save: placeTutorialWood(save, position) })),
+      challengeSanctum: (spawn, tier, heroIds, player) => {
+        const { save, result } = challengeSanctum(get().save, spawn, tier, heroIds, player, Date.now());
+        set({ save });
+        return result;
+      },
+      readTreasureMap: (mapId, position) =>
+        set(({ save }) => ({ save: readTreasureMap(save, mapId, position, Date.now()) })),
+      collectTreasure: (mapId, player, treasureAt) => {
+        const { save, contents } = collectTreasure(get().save, mapId, player, treasureAt, Date.now());
+        set({ save });
+        return contents;
+      },
+      activateLure: (position) => set(({ save }) => ({ save: activateLure(save, position, Date.now()) })),
       finishTutorial: () => set(({ save }) => ({ save: finishTutorial(save) })),
       grantNextPickaxe: () =>
         set(({ save }) => {
@@ -124,6 +165,29 @@ export const useGameStore = create<GameState>()(
             materials: addMaterials(save.materials, materials.map((m) => ({ materialId: m.id, amount }))),
           },
         })),
+      addSigil: (tier) => set(({ save }) => ({ save: { ...save, sigils: [...save.sigils, tier] } })),
+      addElemental: (element, kind, amount) =>
+        set(({ save }) => ({
+          save: {
+            ...save,
+            materials: convertShards(
+              addMaterials(save.materials, [{ materialId: kind === 'shard' ? shardId(element) : stoneId(element), amount }]),
+            ),
+          },
+        })),
+      addTreasureMap: () =>
+        set(({ save }) => ({
+          save: {
+            ...save,
+            treasureMaps: [
+              ...save.treasureMaps,
+              { id: `map${save.nextUid}`, tier: 1, expiresAt: Date.now() + 48 * 3_600_000, location: null },
+            ],
+            nextUid: save.nextUid + 1,
+          },
+        })),
+      addLure: () => set(({ save }) => ({ save: { ...save, lures: save.lures + 1 } })),
+      resetSanctums: () => set(({ save }) => ({ save: { ...save, usedSanctums: {}, sigilPity: 0 } })),
       fastForwardExpeditions: () => {
         cancelNotifications(get().save);
         set(({ save }) => ({ save: fastForward(save, Date.now()) }));

@@ -9,7 +9,7 @@ import { Row } from '@/components/Row';
 import { Text } from '@/components/Text';
 import { TutorialHint } from '@/components/TutorialHint';
 import { heroClasses, xpToNextLevel } from '@/content/heroes';
-import { itemById } from '@/content/lookup';
+import { gearName, itemById } from '@/content/lookup';
 import { heroStats, isOnExpedition } from '@/game/team/team';
 import type { EquipmentSlot } from '@/game/types';
 import { useGameStore } from '@/store/gameStore';
@@ -35,7 +35,7 @@ export default function CharacterSheetScreen() {
     if (!id) return 'Empty';
     if (slot === 'consumable') return `${itemById[id].emoji} ${itemById[id].name}`;
     const gear = save.gear.find((g) => g.uid === id);
-    return gear ? `${itemById[gear.itemId].emoji} ${itemById[gear.itemId].name} (${gear.durability})` : 'Empty';
+    return gear ? `${itemById[gear.itemId].emoji} ${gearName(gear)} (${gear.durability})` : 'Empty';
   };
 
   return (

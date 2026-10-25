@@ -1,4 +1,4 @@
-import type { ExpeditionOutcome, HeroClassId } from '@/game/types';
+import type { ExpeditionOutcome, HeroClassId, MainRewardKind } from '@/game/types';
 
 // Placeholders: {hero} {weapon} {mobs} {boss} {trap} {event} {damage} {gold}
 // {cleared} {total} {gear} {item}. One line per encounter, then a summary.
@@ -34,7 +34,15 @@ export const logTemplates = {
     defeat: ['The team retreated at the first obstacle, empty-handed.'],
   } satisfies Record<ExpeditionOutcome, string[]>,
   recipe: ['Among the spoils: the recipe for {item}!'],
+  sanctumWon: ['The {guardian} yields. The Sanctum grants its power.'],
+  sanctumLost: ['The {guardian} drives the party out, but a little power lingers on them.'],
   found: ['They also found a {item}. Nobody knows what it opens.'],
+  mainReward: {
+    goldPouch: ['A heavy pouch held {gold} extra gold.'],
+    sigil: ['They brought back a tier {tier} Sanctum Sigil.'],
+    treasureMap: ['They found an old treasure map.'],
+    lure: ['They found a lure.'],
+  } satisfies Record<MainRewardKind, string[]>,
   cracked: "{hero}'s {gear} is badly worn.",
   broken: "{hero}'s {gear} broke and was lost.",
   /** Used for {weapon} when a hero has none. */

@@ -2,7 +2,7 @@ import { mobById } from '@/content/enemies';
 import { logTemplates } from '@/content/logTemplates';
 
 import type { Rng } from '../generation/rng';
-import type { DungeonDef, MobGroup } from '../types';
+import type { DungeonDef, MainReward, MobGroup } from '../types';
 import type { EncounterResult, PartyMember, RunResult } from './simulate';
 
 export type LogInput = {
@@ -13,6 +13,9 @@ export type LogInput = {
   recipeItemName: string | null;
   /** Special items worth a line of their own, e.g. the tutorial's key. */
   finds: string[];
+  mainRewards: MainReward[];
+  /** Replaces the usual outcome line, e.g. for Sanctum fights. */
+  summary?: string;
   gearEvents: { heroName: string; gearName: string; kind: 'cracked' | 'broken' }[];
 };
 
@@ -113,7 +116,9 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
     }
   };
 
-  const summary = fill(pick(rng, logTemplates.outcome[run.outcome]), {
+  const summary =
+    input.summary ??
+    fill(pick(rng, logTemplates.outcome[run.outcome]), {
     boss: dungeon.boss.name,
     gold: input.gold,
     cleared: run.encountersCleared,
@@ -124,6 +129,12 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
     summary,
     ...(input.recipeItemName ? [fill(pick(rng, logTemplates.recipe), { item: input.recipeItemName.toLowerCase() })] : []),
     ...input.finds.map((item) => fill(pick(rng, logTemplates.found), { item: item.toLowerCase() })),
+    ...input.mainRewards.map((reward) =>
+      fill(pick(rng, logTemplates.mainReward[reward.kind]), {
+        gold: reward.kind === 'goldPouch' ? reward.gold : 0,
+        tier: reward.kind === 'sigil' || reward.kind === 'treasureMap' ? reward.tier : 0,
+      }),
+    ),
     ...input.gearEvents.map((event) =>
       fill(logTemplates[event.kind], { hero: event.heroName, gear: event.gearName.toLowerCase() }),
     ),

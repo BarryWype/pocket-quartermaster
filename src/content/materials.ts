@@ -1,4 +1,7 @@
+import { ELEMENTS, shardId, stoneId } from '@/game/elements';
 import type { MaterialDef } from '@/game/types';
+
+import { elementInfo } from './elements';
 
 export const materials: MaterialDef[] = [
   { id: 'wood', name: 'Wood', emoji: '🪵', icon: require('../../assets/icons/scaled/wood.png') },
@@ -15,4 +18,9 @@ export const materials: MaterialDef[] = [
   { id: 'mushroom', name: 'Mushroom', emoji: '🍄' },
   // Found on the tutorial's first expedition; what it opens comes later.
   { id: 'mysteriousKey', name: 'Mysterious key', emoji: '🗝️' },
+  // Elemental shards (won at Sanctums) merge into stones, which infuse gear.
+  ...ELEMENTS.flatMap((element): MaterialDef[] => [
+    { id: shardId(element), name: `${elementInfo[element].name} shard`, emoji: elementInfo[element].emoji },
+    { id: stoneId(element), name: `${elementInfo[element].name} stone`, emoji: '💠' },
+  ]),
 ];

@@ -1,7 +1,11 @@
 import { dungeons } from '@/content/dungeons';
+import { elementRules } from '@/content/elements';
+import { sanctums } from '@/content/sanctums';
 import type { DungeonDef } from '@/game/types';
 
+import type { Element } from '../elements';
 import { estimateOdds } from '../expeditions/odds';
+import { sanctumOdds } from '../sanctums/sanctums';
 import { createInitialSave, type SaveData } from '../save';
 import { equip } from '../team/team';
 import { simulateWalk } from './simulateWalk';
@@ -180,4 +184,44 @@ describe('expedition progression', () => {
       expect(chance(team(level, material, true), dungeon)).toBeGreaterThan(chance(team(level, material), dungeon) + 0.1);
     });
   }
+});
+
+describe('Sanctum guardians', () => {
+  /** The element that beats `element`. */
+  const beater = (element: Element) =>
+    (Object.keys(elementRules.beats) as Element[]).find((e) => elementRules.beats[e] === element)!;
+
+  /** Full tier kit and a potion each; optionally every weapon of one element. */
+  function prepared(tier: number, weaponElement?: Element): SaveData {
+    let save: SaveData = {
+      ...team(TIER_LEVELS[tier - 1], TIER_MATERIALS[tier - 1]),
+      consumables: { healingPotion: 3 },
+    };
+    save = { ...save, gear: save.gear.map((g, i) => (i < 3 ? { ...g, element: weaponElement } : g)) };
+    ALL.forEach((heroId) => {
+      save = equip(save, heroId, 'consumable', 'healingPotion');
+    });
+    return save;
+  }
+
+  const average = (tier: number, elemental: boolean) =>
+    sanctums.reduce(
+      (sum, s) => sum + sanctumOdds(prepared(tier, elemental ? beater(s.element) : undefined), ALL, s, tier, 300).success,
+      0,
+    ) / sanctums.length;
+
+  for (let tier = 1; tier <= 5; tier++) {
+    it(`gives a tier ${tier} Sigil about 65% with the tier kit and potions, ~85–90% with the winning element`, () => {
+      const plain = average(tier, false);
+      expect(plain).toBeGreaterThan(0.57);
+      expect(plain).toBeLessThan(0.73);
+      const elemental = average(tier, true);
+      expect(elemental).toBeGreaterThan(0.8);
+      expect(elemental).toBeLessThan(0.96);
+    });
+  }
+
+  it('lets every tier 1 guardian be beaten without elemental gear', () => {
+    for (const sanctum of sanctums) expect(sanctumOdds(prepared(1), ALL, sanctum, 1, 300).success).toBeGreaterThan(0.45);
+  });
 });

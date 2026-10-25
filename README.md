@@ -201,6 +201,25 @@ A fresh save walks you through the whole loop in a few minutes. A one-line 🧭 
 7. **Closed-app check:** send a 5-minute expedition, close the app completely, wait, then reopen it. The result is resolved on launch.
 8. Gear wears down on each expedition and breaks at 0 durability.
 
+### Sanctums, elements and main rewards
+
+1. **Main rewards:** a successful expedition may bring back one extra reward (a gold pouch, Sanctum Sigil, treasure map or lure), listed in its report.
+   - Chances: 30% for a tier's first dungeon, 75% for the second, and 100% plus a 50% second roll for the boss.
+   - The first win at the Bandit Stockade always gives a Sigil, and so does the next success after 10 in a row without one.
+   - You can hold 3 Sigils and 3 maps; any more become gold pouches.
+2. **Sanctums:** five elemental places on the map, shown from 4.5 km away, greyed out with a 🔒 when you hold no Sigil. Zoom out to spot far ones.
+   - Tap one for its guardian, a Sigil-tier choice, your heroes at home and the estimated odds.
+   - Within 50 m, challenge it once. Win or lose, the Sigil is spent and that Sanctum closes for you until it refreshes (every 24 h).
+   - The fight plays out line by line, then pays shards or stones of its element.
+3. **Elements:** fire beats grass, grass beats stone, stone beats electric, electric beats water, and water beats fire.
+   - A weapon deals ×1.5 against the element it beats and ×0.75 against the one that beats it.
+   - Armour halves damage from its own element.
+   - 10 shards merge into a stone.
+4. **Infuse:** Forge → **Infuse** tab. Use a stone on a plain weapon or armour to give it that element, e.g. "Fire Wooden sword". Each piece can be infused once. Recycling an infused piece destroys it and gives 1 shard back.
+5. **Treasure maps:** Inventory → **Read** marks a 💰 300–1,500 m away on your map. Walk there and tap it within 30 m. Maps expire 48 h after they drop.
+6. **Lures:** Inventory → **Activate**. For 30 minutes extra herbs and animals appear around you, and a timer shows on the map.
+7. **Debug:** add Sigils by tier, shards or stones by element, maps and lures; place a Sanctum next to you; reset used Sanctums and the Sigil pity; force the next main reward.
+
 ### Daily step chests
 
 1. The top of **Inventory** shows today's steps and two chests:

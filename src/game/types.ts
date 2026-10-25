@@ -1,5 +1,7 @@
 import type { ImageSourcePropType } from 'react-native';
 
+import type { Element } from './elements';
+
 export type MaterialStack = {
   materialId: string;
   amount: number;
@@ -43,8 +45,8 @@ export type ConsumableDef = ItemBase & {
   heal?: number;
   /** When a healing consumable is used: below the HP threshold, or before the boss. */
   when?: 'lowHp' | 'beforeBoss';
-  /** Element (or trap) this consumable protects its hero against for the whole run. */
-  protectsAgainst?: string;
+  /** Element this consumable protects its hero against for the whole run. */
+  protectsAgainst?: Element;
 };
 
 /** Owned by the player rather than a hero; never wears out. */
@@ -79,7 +81,7 @@ export type HeroClassDef = {
   /** Multiplier on a weapon's stats when this class wields it. */
   affinities: Partial<Record<WeaponType, number>>;
   /** Elements this class takes no extra damage from. */
-  resists?: string[];
+  resists?: Element[];
   /** Relative chance of being the one enemies attack; tanks have more. */
   threat: number;
   /** Abilities traps and events can check, e.g. 'spotTraps'. None yet. */
@@ -106,6 +108,8 @@ export type GearInstance = {
   uid: string;
   itemId: string;
   durability: number;
+  /** Infused element; a piece can only be infused once. */
+  element?: Element;
 };
 
 export type ActiveExpedition = {
@@ -134,7 +138,7 @@ export type MobDef = {
   hp: number;
   /** Damage per round before the target's defense. */
   damage: number;
-  element?: string;
+  element?: Element;
 };
 
 export type BossDef = MobDef & {
@@ -153,7 +157,7 @@ export type EncounterDef = { weight: number } & (
       damagePct: number;
       targets: 'one' | 'all';
       triggerChance: number;
-      element?: string;
+      element?: Element;
       /** A class trait or consumable protection that avoids it. */
       avoidedBy?: string;
     }
@@ -194,6 +198,45 @@ export type DungeonDef = {
   loot: LootEntry[];
   /** Only dropped when the boss is beaten. */
   recipeDrops: { recipeId: string; chance: number }[];
+  /** Chance a successful run rolls one main reward from the pool. */
+  mainRewardChance: number;
+  /** Chance of a second main reward on top (boss dungeons). */
+  mainRewardExtraRollChance?: number;
+};
+
+export type MainRewardKind = 'goldPouch' | 'sigil' | 'treasureMap' | 'lure';
+
+/** A main reward as granted; a Sigil or map at its cap turns into a gold pouch. */
+export type MainReward =
+  | { kind: 'goldPouch'; gold: number }
+  | { kind: 'sigil'; tier: number }
+  | { kind: 'treasureMap'; mapId: string; tier: number }
+  | { kind: 'lure' };
+
+export type TreasureMap = {
+  id: string;
+  /** Tier of the dungeon that dropped it; sets the loot. */
+  tier: number;
+  expiresAt: number;
+  /** Set when the map is first read, from where the player stood. */
+  location: { latitude: number; longitude: number } | null;
+};
+
+export type ActiveLure = {
+  id: string;
+  activatedAt: number;
+  center: { latitude: number; longitude: number };
+};
+
+export type SanctumDef = {
+  id: string;
+  name: string;
+  element: Element;
+  emoji: string;
+  description: string;
+  guardian: { name: string; description: string; effect?: BossDef['effect'] };
+  /** Names of the guardian's minions, weakest first. */
+  minions: [string, string];
 };
 
 export type ExpeditionReport = {
@@ -208,6 +251,8 @@ export type ExpeditionReport = {
   encounterCount: number;
   /** HP each hero came back with, for injuries later. */
   heroHp: { heroId: string; hp: number; maxHp: number }[];
+  /** Extra rewards rolled on success, besides gold, loot and recipes. */
+  mainRewards: MainReward[];
   gold: number;
   materials: MaterialStack[];
   recipeId: string | null;

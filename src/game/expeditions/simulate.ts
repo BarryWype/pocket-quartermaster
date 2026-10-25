@@ -2,8 +2,9 @@ import { expeditionRules } from '@/content/dungeons';
 import { mobById } from '@/content/enemies';
 import { eventById } from '@/content/events';
 import { heroClasses } from '@/content/heroes';
-import { itemById } from '@/content/lookup';
+import { gearName, itemById } from '@/content/lookup';
 
+import { incomingMultiplier, weaponMultiplier, type Element } from '../elements';
 import { createRng } from '../generation/rng';
 import type { SaveData } from '../save';
 import { heroStats } from '../team/team';
@@ -31,8 +32,12 @@ export type PartyMember = {
   damage: number;
   defense: number;
   threat: number;
-  /** Elements and trap kinds this hero shrugs off (class resists and traits, consumable). */
-  protections: string[];
+  /** Elements this hero takes no extra damage from (class resist, protective consumable). */
+  resists: Element[];
+  /** Class abilities traps can check, e.g. 'spotTraps'. */
+  traits: string[];
+  weaponElement?: Element;
+  armourElement?: Element;
   consumable: ConsumableDef | null;
 };
 
@@ -84,22 +89,22 @@ export function prepareParty(save: SaveData, heroIds: string[]): PartyMember[] {
       const heroClass = heroClasses[hero.classId];
       const stats = heroStats(save, hero);
       const weapon = save.gear.find((g) => g.uid === hero.equipment.weapon);
+      const armour = save.gear.find((g) => g.uid === hero.equipment.armor);
       const item = hero.equipment.consumable ? itemById[hero.equipment.consumable] : null;
       const consumable = item?.slot === 'consumable' ? item : null;
       return {
         heroId: hero.id,
         name: hero.name,
         classId: hero.classId,
-        weaponName: weapon ? itemById[weapon.itemId].name : null,
+        weaponName: weapon ? gearName(weapon) : null,
         maxHp: stats.hp,
         damage: stats.attack + stats.magic,
         defense: stats.defense,
         threat: heroClass.threat,
-        protections: [
-          ...(heroClass.resists ?? []),
-          ...(heroClass.traits ?? []),
-          ...(consumable?.protectsAgainst ? [consumable.protectsAgainst] : []),
-        ],
+        resists: [...(heroClass.resists ?? []), ...(consumable?.protectsAgainst ? [consumable.protectsAgainst] : [])],
+        traits: heroClass.traits ?? [],
+        weaponElement: weapon?.element,
+        armourElement: armour?.element,
         consumable,
       };
     });
@@ -155,8 +160,8 @@ export function simulateRun(
     const varied = value * (1 + (rng.next() * 2 - 1) * rules.damageVariance);
     return rng.chance(rules.critChance) ? varied * rules.critMultiplier : varied;
   };
-  const elementFactor = (hero: HeroState, element?: string) =>
-    element && !hero.member.protections.includes(element) ? rules.elementMultiplier : 1;
+  const elementFactor = (hero: HeroState, attack?: Element) =>
+    incomingMultiplier(attack, { armour: hero.member.armourElement, resists: hero.member.resists });
 
   const heal = (hero: HeroState, share: number, result: EncounterResult) => {
     const amount = Math.min(hero.member.maxHp - hero.hp, share * hero.member.maxHp);
@@ -191,7 +196,7 @@ export function simulateRun(
       for (const hero of alive()) {
         const target = enemies.find((e) => e.hp > 0);
         if (!target) return;
-        const damage = roll(hero.member.damage) * fortune;
+        const damage = roll(hero.member.damage) * fortune * weaponMultiplier(hero.member.weaponElement, target.def.element);
         target.hp -= damage;
         add(result.dealt, hero.member.heroId, damage);
       }
@@ -241,7 +246,7 @@ export function simulateRun(
       if (result.trapTriggered) {
         const caught = encounter.targets === 'all' ? alive() : [rng.weighted(alive(), () => 1)];
         for (const hero of caught) {
-          if (encounter.avoidedBy && hero.member.protections.includes(encounter.avoidedBy)) {
+          if (encounter.avoidedBy && hero.member.traits.includes(encounter.avoidedBy)) {
             result.avoided.push(hero.member.heroId);
           } else {
             hurt(hero, encounter.damagePct * hero.member.maxHp * elementFactor(hero, encounter.element), result);
