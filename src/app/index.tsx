@@ -136,7 +136,7 @@ export default function MapScreen() {
         </Marker>
       </Map>
       {player.mocked && (
-        <Text style={[styles.banner, { top: insets.top + 44 }]}>Mock location · tap the map to teleport</Text>
+        <Text style={[styles.banner, { top: insets.top + 48 }]}>Mock location · tap the map to teleport</Text>
       )}
       {__DEV__ && (
         <Pressable
@@ -170,15 +170,15 @@ const styles = StyleSheet.create({
   },
   debugButton: {
     position: 'absolute',
-    right: 12,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    alignSelf: 'center',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: colors.woodDark,
     backgroundColor: colors.parchment,
   },
-  debugEmoji: { fontSize: 20 },
+  debugEmoji: { fontSize: 15 },
 });
