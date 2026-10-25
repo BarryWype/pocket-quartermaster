@@ -17,12 +17,15 @@ const palette = {
   path: '#c2a46a',
 };
 
+/** OpenFreeMap's TileJSON: the map renders from it and spawn placement reads it. */
+export const OPENFREEMAP_TILEJSON = 'https://tiles.openfreemap.org/planet';
+
 export const mapStyle: StyleSpecification = {
   version: 8,
   sources: {
     openmaptiles: {
       type: 'vector',
-      url: 'https://tiles.openfreemap.org/planet',
+      url: OPENFREEMAP_TILEJSON,
       attribution:
         '<a href="https://openfreemap.org">OpenFreeMap</a> © <a href="https://www.openmaptiles.org/">OpenMapTiles</a> Data from <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     },

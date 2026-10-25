@@ -1,3 +1,5 @@
+import type { RecipeDef } from '@/game/types';
+
 import { dungeons } from './dungeons';
 import { items } from './items';
 import { materials } from './materials';
@@ -9,3 +11,7 @@ export const resourceById = Object.fromEntries(resources.map((r) => [r.id, r]));
 export const itemById = Object.fromEntries(items.map((i) => [i.id, i]));
 export const recipeById = Object.fromEntries(recipes.map((r) => [r.id, r]));
 export const dungeonById = Object.fromEntries(dungeons.map((d) => [d.id, d]));
+
+/** What a recipe makes: an item, or a material for smelting recipes. */
+export const recipeOutput = (recipe: RecipeDef) =>
+  'itemId' in recipe.output ? itemById[recipe.output.itemId] : materialById[recipe.output.materialId];

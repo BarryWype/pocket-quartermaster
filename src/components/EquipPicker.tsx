@@ -1,4 +1,4 @@
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 
 import { itemById } from '@/content/lookup';
 import type { SaveData } from '@/game/save';
@@ -17,7 +17,7 @@ type Props = {
   onClose: () => void;
 };
 
-type Option = { id: string; emoji: string; title: string; subtitle?: string };
+type Option = { id: string; emoji: string; icon?: ImageSourcePropType; title: string; subtitle?: string };
 
 function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot): Option[] {
   if (slot === 'consumable') {
@@ -26,6 +26,7 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot): Option
       .map(([itemId, count]) => ({
         id: itemId,
         emoji: itemById[itemId].emoji,
+        icon: itemById[itemId].icon,
         title: itemById[itemId].name,
         subtitle: `${count} in stock`,
       }));
@@ -42,6 +43,7 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot): Option
     .map(({ gear, item, holder }) => ({
       id: gear.uid,
       emoji: item.emoji,
+      icon: item.icon,
       title: item.name,
       subtitle: `Durability ${gear.durability}${holder ? ` · used by ${holder.name}` : ''}`,
     }));
@@ -61,7 +63,7 @@ export function EquipPicker({ save, heroId, slot, onPick, onClose }: Props) {
             </Pressable>
             {options.map((option) => (
               <Pressable key={option.id} onPress={() => onPick(option.id)}>
-                <Row emoji={option.emoji} title={option.title} subtitle={option.subtitle} />
+                <Row emoji={option.emoji} icon={option.icon} title={option.title} subtitle={option.subtitle} />
               </Pressable>
             ))}
             {options.length === 0 && <Text style={styles.empty}>Nothing available. Visit the forge.</Text>}

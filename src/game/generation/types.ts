@@ -1,3 +1,5 @@
+import type { ImageSourcePropType } from 'react-native';
+
 import type { MaterialStack } from '../types';
 
 export type LatLng = {
@@ -7,16 +9,19 @@ export type LatLng = {
 
 export type TimeOfDay = 'dawn' | 'day' | 'dusk' | 'night';
 
-export type ResourceKind = 'ore' | 'animal' | 'herb' | 'rare';
+export type ResourceKind = 'wood' | 'ore' | 'animal' | 'herb';
 
 export type ResourceDef = {
   id: string;
   kind: ResourceKind;
   name: string;
   emoji: string;
+  icon?: ImageSourcePropType;
   weight: number;
-  /** Weight multiplier per time of day. Boosted resources also spawn with +1 quantity. */
+  /** Weight multiplier per time of day. */
   boosts?: Partial<Record<TimeOfDay, number>>;
+  /** Lowest pickaxe tier able to gather it; omitted when no tool is needed. */
+  pickaxeTier?: number;
   /** Materials gained per unit of spawn quantity. */
   yields: MaterialStack[];
 };
@@ -28,7 +33,7 @@ export type KindConfig = {
   visibilityMeters: number;
   minPerTile: number;
   maxPerTile: number;
-  /** Spawn quantity is rolled in [1, maxQuantity], +1 when boosted. */
+  /** Spawn quantity is rolled in [1, maxQuantity]. */
   maxQuantity: number;
   /** Probability that a tile has any spawns of this kind in a given window. */
   tileChance: number;
@@ -60,7 +65,7 @@ type SpawnBase = {
 };
 
 export type StaticSpawn = SpawnBase & {
-  kind: 'ore' | 'herb' | 'rare';
+  kind: 'wood' | 'ore' | 'herb';
   position: LatLng;
 };
 

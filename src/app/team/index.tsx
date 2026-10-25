@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet } from 'react-native';
 
 import { Row } from '@/components/Row';
 import { Text } from '@/components/Text';
+import { TutorialHint } from '@/components/TutorialHint';
 import { heroClasses } from '@/content/heroes';
 import { isOnExpedition } from '@/game/team/team';
 import { useGameStore } from '@/store/gameStore';
@@ -13,6 +14,7 @@ export default function TeamScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      <TutorialHint screen="team" />
       {save.heroes.map((hero) => {
         const heroClass = heroClasses[hero.classId];
         const away = isOnExpedition(save, hero.id);

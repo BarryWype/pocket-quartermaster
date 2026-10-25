@@ -1,43 +1,33 @@
-import { expeditionRules } from '@/content/dungeons';
-import { heroClasses } from '@/content/heroes';
-import { dungeonById, itemById, recipeById } from '@/content/lookup';
+import { dungeons as allDungeons, expeditionRules } from '@/content/dungeons';
+import { dungeonById, itemById, materialById, recipeById, recipeOutput } from '@/content/lookup';
+import { tutorialRules } from '@/content/tutorial';
 
 import { unlockRecipe } from '../crafting/crafting';
 import { createRng } from '../generation/rng';
 import { addMaterials } from '../inventory';
-import type { SaveData } from '../save';
-import { addXp, heroPower, heroStats, isOnExpedition } from '../team/team';
 import { rollLoot } from '../rewards/loot';
-import type { ActiveExpedition, DungeonDef, ExpeditionReport, HeroState } from '../types';
+import type { SaveData } from '../save';
+import { addXp, isOnExpedition } from '../team/team';
+import { isTutorialExpedition } from '../tutorial/tutorial';
+import type { ActiveExpedition, DungeonDef, ExpeditionReport } from '../types';
 import { buildLog, type LogInput } from './log';
+import { prepareParty, simulateRun, type ExpeditionRules, type PartyMember } from './simulate';
 
-type Rules = typeof expeditionRules;
-
-function consumableOf(hero: HeroState) {
-  const item = hero.equipment.consumable ? itemById[hero.equipment.consumable] : null;
-  return item?.slot === 'consumable' ? item : null;
+/** Tier 1 is open from the start; tier N opens once a tier N-1 boss has been beaten. */
+export function isDungeonUnlocked(save: SaveData, dungeon: DungeonDef, dungeons: DungeonDef[] = allDungeons) {
+  if (dungeon.tier <= 1) return true;
+  return dungeons.some((d) => d.tier === dungeon.tier - 1 && d.isBoss && save.clearedDungeons.includes(d.id));
 }
 
-export function isProtected(hero: HeroState, dungeon: DungeonDef) {
-  if (!dungeon.hazard) return true;
-  if (heroClasses[hero.classId].resists?.includes(dungeon.hazard)) return true;
-  return consumableOf(hero)?.protectsAgainst === dungeon.hazard;
+/** Whether the player can send a party there now: unlocked, and the tutorial's dungeon during the tutorial. */
+export function isDungeonAvailable(save: SaveData, dungeon: DungeonDef) {
+  if (isTutorialExpedition(save)) return dungeon.id === tutorialRules.firstExpedition.dungeonId;
+  return isDungeonUnlocked(save, dungeon);
 }
 
-/** Sum of hero power, reduced by unprotected hazards, plus consumable bonuses. */
-export function teamPower(save: SaveData, heroIds: string[], dungeon: DungeonDef, rules: Rules = expeditionRules) {
-  return save.heroes
-    .filter((hero) => heroIds.includes(hero.id))
-    .reduce((total, hero) => {
-      const power = heroPower(heroStats(save, hero)) * (isProtected(hero, dungeon) ? 1 : rules.hazardPenalty);
-      return total + power + (consumableOf(hero)?.power ?? 0);
-    }, 0);
-}
-
-/** 50% when power equals difficulty, rising or falling along a logistic curve. */
-export function successChance(power: number, difficulty: number, rules: Rules = expeditionRules) {
-  const chance = 1 / (1 + Math.exp(-rules.steepness * (power / difficulty - 1)));
-  return Math.min(rules.maxSuccessChance, Math.max(rules.minSuccessChance, chance));
+/** Minutes an expedition to this dungeon would take now; the tutorial's first one takes seconds. */
+export function expeditionMinutes(save: SaveData, dungeon: DungeonDef) {
+  return isTutorialExpedition(save) ? tutorialRules.firstExpedition.seconds / 60 : dungeon.durationMinutes;
 }
 
 export function startExpedition(
@@ -49,6 +39,7 @@ export function startExpedition(
 ): SaveData {
   const dungeon = dungeonById[dungeonId];
   if (!dungeon) throw new Error(`Unknown dungeon ${dungeonId}`);
+  if (!isDungeonAvailable(save, dungeon)) throw new Error(`${dungeon.name} is not available`);
   if (heroIds.length === 0) throw new Error('Pick at least one hero');
   for (const heroId of heroIds) {
     if (!save.heroes.some((h) => h.id === heroId)) throw new Error(`Unknown hero ${heroId}`);
@@ -61,44 +52,58 @@ export function startExpedition(
     dungeonId,
     heroIds,
     startedAt: now,
-    endsAt: now + dungeon.durationMinutes * 60_000 * durationScale,
+    endsAt: now + expeditionMinutes(save, dungeon) * 60_000 * durationScale,
     seed: `${id}:${now}`,
+    guaranteed: isTutorialExpedition(save),
     notificationId: null,
   };
   return { ...save, expeditions: [...save.expeditions, expedition], nextUid: save.nextUid + 1 };
 }
 
-/** Applies an expedition's outcome: rewards, XP, wear, used consumables and a report. */
+/**
+ * Runs the expedition and applies it: gold, loot and XP for the share of
+ * encounters cleared, boss-only recipe drops, gear wear, consumables and a report.
+ */
 export function resolveExpedition(
   save: SaveData,
   expedition: ActiveExpedition,
-  rules: Rules = expeditionRules,
+  rules: ExpeditionRules = expeditionRules,
 ): { save: SaveData; report: ExpeditionReport } {
   const dungeon = dungeonById[expedition.dungeonId];
+  const party = prepareParty(save, expedition.heroIds);
+  const run = simulateRun(party, dungeon, `${expedition.seed}|run`, { rules, guaranteed: expedition.guaranteed });
+  // Separate streams so a change to the run doesn't reshuffle the rewards, and vice versa.
   const rng = createRng(expedition.seed);
-  const party = save.heroes.filter((h) => expedition.heroIds.includes(h.id));
+  const success = run.bossDefeated;
+  const progress = run.encountersCleared / run.encounterCount;
 
-  const success = rng.next() < successChance(teamPower(save, expedition.heroIds, dungeon, rules), dungeon.difficulty, rules);
-
-  const gold = success ? rng.int(dungeon.gold[0], dungeon.gold[1]) : 0;
-  const rolledLoot = rollLoot(rng, dungeon.loot);
-  const materials = success ? rolledLoot : [];
+  let gold = Math.round(rng.int(dungeon.gold[0], dungeon.gold[1]) * progress) + run.bonusGold;
+  let materials = rollLoot(rng, dungeon.loot)
+    .map((stack) => ({ ...stack, amount: Math.floor(stack.amount * progress) }))
+    .filter((stack) => stack.amount > 0);
   let recipeId: string | null = null;
   for (const drop of dungeon.recipeDrops) {
     const dropped = rng.chance(drop.chance);
     if (success && dropped && !recipeId && !save.knownRecipes.includes(drop.recipeId)) recipeId = drop.recipeId;
   }
-  const xp = success ? dungeon.xp : Math.round(dungeon.xp * rules.failureXpShare);
+  // The tutorial's first expedition pays a fixed reward instead.
+  const tutorialReward = expedition.guaranteed ? tutorialRules.firstExpedition : null;
+  if (tutorialReward) {
+    gold = tutorialReward.gold;
+    materials = tutorialReward.materials;
+    recipeId = save.knownRecipes.includes(tutorialReward.recipeId) ? null : tutorialReward.recipeId;
+  }
+  const xp = Math.round(dungeon.xp * progress);
 
   const gearEvents: LogInput['gearEvents'] = [];
   const brokenUids = new Set<string>();
   let gear = save.gear;
-  for (const hero of party) {
+  for (const hero of save.heroes.filter((h) => expedition.heroIds.includes(h.id))) {
     for (const slot of ['weapon', 'armor'] as const) {
       const piece = gear.find((g) => g.uid === hero.equipment[slot]);
       if (!piece) continue;
       const item = itemById[piece.itemId];
-      if (item.slot === 'consumable') continue;
+      if (item.slot !== 'weapon' && item.slot !== 'armor') continue;
       const loss = Math.round(rng.int(...dungeon.durabilityLoss) * (success ? 1 : rules.failureWearMultiplier));
       const durability = Math.max(0, piece.durability - loss);
       const threshold = item.maxDurability * rules.crackedThreshold;
@@ -112,7 +117,16 @@ export function resolveExpedition(
     }
   }
 
-  const consumablesUsed = party.flatMap((hero) => (hero.equipment.consumable ? [hero.equipment.consumable] : []));
+  // Potions nobody needed go back to the stock; everything else is used up.
+  const unusedPotion = (member: PartyMember) =>
+    member.consumable?.when === 'lowHp' && !run.consumed.includes(member.heroId);
+  const consumablesUsed = party.flatMap((m) => (m.consumable && !unusedPotion(m) ? [m.consumable.id] : []));
+  const consumables = { ...save.consumables };
+  for (const member of party.filter(unusedPotion)) {
+    const itemId = member.consumable!.id;
+    consumables[itemId] = (consumables[itemId] ?? 0) + 1;
+  }
+
   const heroes = save.heroes.map((hero) => {
     if (!expedition.heroIds.includes(hero.id)) return hero;
     const { weapon, armor } = hero.equipment;
@@ -132,21 +146,14 @@ export function resolveExpedition(
   const log = buildLog(
     {
       dungeon,
-      heroes: party.map((hero) => {
-        const weapon = save.gear.find((g) => g.uid === hero.equipment.weapon);
-        return { name: hero.name, classId: hero.classId, weaponName: weapon ? itemById[weapon.itemId].name : null };
-      }),
-      consumables: party.flatMap((hero) => {
-        const item = consumableOf(hero);
-        return item ? [{ heroName: hero.name, itemName: item.name }] : [];
-      }),
-      hazardHit: party.filter((hero) => !isProtected(hero, dungeon)).map((hero) => hero.name),
-      gearEvents,
-      success,
+      party,
+      run,
       gold,
-      recipeItemName: recipeId ? itemById[recipeById[recipeId].itemId].name : null,
+      recipeItemName: recipeId ? recipeOutput(recipeById[recipeId]).name : null,
+      finds: tutorialReward ? tutorialReward.materials.map((m) => materialById[m.materialId].name) : [],
+      gearEvents,
     },
-    rng,
+    createRng(`${expedition.seed}|log`),
   );
 
   const report: ExpeditionReport = {
@@ -154,7 +161,11 @@ export function resolveExpedition(
     dungeonId: dungeon.id,
     heroIds: expedition.heroIds,
     finishedAt: expedition.endsAt,
+    outcome: run.outcome,
     success,
+    encountersCleared: run.encountersCleared,
+    encounterCount: run.encounterCount,
+    heroHp: run.hp,
     gold,
     materials,
     recipeId,
@@ -169,9 +180,12 @@ export function resolveExpedition(
     ...save,
     gold: save.gold + gold,
     materials: addMaterials(save.materials, materials),
+    consumables,
     gear: gear.filter((g) => !brokenUids.has(g.uid)),
     heroes,
     expeditions: save.expeditions.filter((e) => e.id !== expedition.id),
+    clearedDungeons:
+      success && !save.clearedDungeons.includes(dungeon.id) ? [...save.clearedDungeons, dungeon.id] : save.clearedDungeons,
     reports: [report, ...save.reports].slice(0, rules.reportsKept),
   };
   if (recipeId) next = unlockRecipe(next, recipeId);

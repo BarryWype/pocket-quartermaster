@@ -1,24 +1,25 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, type ImageSourcePropType } from 'react-native';
 
 import type { ResourceKind } from '@/game/generation/types';
 
-import { Text } from './Text';
+import { GameIcon } from './GameIcon';
 
 const borderColors: Record<ResourceKind, string> = {
+  wood: '#5e3622',
   ore: '#6b6b6b',
   animal: '#8a5a2b',
   herb: '#2f6b2a',
-  rare: '#c99a00',
 };
 
 type Props = {
   emoji: string;
+  icon?: ImageSourcePropType;
   kind: ResourceKind;
   inRange: boolean;
   fleeing: boolean;
 };
 
-export function SpawnMarker({ emoji, kind, inRange, fleeing }: Props) {
+export function SpawnMarker({ emoji, icon, kind, inRange, fleeing }: Props) {
   return (
     <View
       style={[
@@ -28,7 +29,7 @@ export function SpawnMarker({ emoji, kind, inRange, fleeing }: Props) {
         fleeing && styles.fleeing,
       ]}
     >
-      <Text style={styles.emoji}>{fleeing ? '💨' : emoji}</Text>
+      {fleeing ? <GameIcon emoji="💨" size={21} /> : <GameIcon emoji={emoji} icon={icon} size={21} />}
     </View>
   );
 }
@@ -44,5 +45,4 @@ const styles = StyleSheet.create({
   },
   inRange: { backgroundColor: '#fff6a8', transform: [{ scale: 1.2 }] },
   fleeing: { opacity: 0.6 },
-  emoji: { fontSize: 16 },
 });

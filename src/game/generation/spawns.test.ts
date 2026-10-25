@@ -76,22 +76,23 @@ describe('generateTileSpawns', () => {
     expect(countResource(at('dawn'), 'deer')).toBeGreaterThan(countResource(at('day'), 'deer') * 1.3);
   });
 
-  it('marks boosted spawns and gives them extra quantity', () => {
+  it('marks boosted spawns', () => {
     const spawns = manyTiles('animal', 1000).flatMap((t) =>
       generateTileSpawns('animal', t, 3, { timeOfDay: 'dawn' }),
     );
-    const deer = spawns.filter((s) => s.resourceId === 'deer');
-    const boar = spawns.filter((s) => s.resourceId === 'boar');
-    deer.forEach((s) => expect(s.boosted).toBe(true));
-    deer.forEach((s) => expect(s.quantity).toBeGreaterThanOrEqual(2));
-    boar.forEach((s) => expect(s.boosted).toBe(false));
+    spawns.filter((s) => s.resourceId === 'deer').forEach((s) => expect(s.boosted).toBe(true));
+    spawns.filter((s) => s.resourceId === 'boar').forEach((s) => expect(s.boosted).toBe(false));
   });
 
-  it('spawns rare drops in only a small share of tiles', () => {
-    const tiles = manyTiles('rare', 500);
-    const withRare = tiles.filter((t) => generateTileSpawns('rare', t, 42).length > 0).length;
-    expect(withRare / tiles.length).toBeGreaterThan(0.02);
-    expect(withRare / tiles.length).toBeLessThan(0.16);
+  it('gives 1–2 per tap for every kind, boosted or not', () => {
+    for (const kind of ['wood', 'ore', 'animal', 'herb'] as const) {
+      const quantities = manyTiles(kind, 300).flatMap((t) =>
+        generateTileSpawns(kind, t, 9, { timeOfDay: 'dawn' }).map((s) => s.quantity),
+      );
+      expect(quantities.length).toBeGreaterThan(0);
+      expect(Math.min(...quantities)).toBe(1);
+      expect(Math.max(...quantities)).toBe(2);
+    }
   });
 
   it('uses configurable windows', () => {
@@ -122,6 +123,7 @@ describe('generateSpawnsAround', () => {
 
   it('includes every regular resource kind', () => {
     const kinds = new Set(generateSpawnsAround(wellington, now).map((spawn) => spawn.kind));
+    expect(kinds.has('wood')).toBe(true);
     expect(kinds.has('ore')).toBe(true);
     expect(kinds.has('animal')).toBe(true);
     expect(kinds.has('herb')).toBe(true);

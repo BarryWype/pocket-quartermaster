@@ -7,6 +7,7 @@ import { EquipPicker } from '@/components/EquipPicker';
 import { PlaceholderScreen } from '@/components/PlaceholderScreen';
 import { Row } from '@/components/Row';
 import { Text } from '@/components/Text';
+import { TutorialHint } from '@/components/TutorialHint';
 import { heroClasses, xpToNextLevel } from '@/content/heroes';
 import { itemById } from '@/content/lookup';
 import { heroStats, isOnExpedition } from '@/game/team/team';
@@ -40,6 +41,7 @@ export default function CharacterSheetScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Stack.Screen options={{ title: hero.name }} />
+      <TutorialHint screen="hero" />
       <View style={styles.card}>
         <Row
           emoji={heroClass.emoji}

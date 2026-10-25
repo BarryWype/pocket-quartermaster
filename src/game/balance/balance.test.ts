@@ -1,6 +1,7 @@
-import { dungeonById } from '@/content/lookup';
+import { dungeons } from '@/content/dungeons';
+import type { DungeonDef } from '@/game/types';
 
-import { successChance, teamPower } from '../expeditions/expeditions';
+import { estimateOdds } from '../expeditions/odds';
 import { createInitialSave, type SaveData } from '../save';
 import { equip } from '../team/team';
 import { simulateWalk } from './simulateWalk';
@@ -9,8 +10,17 @@ import { simulateWalk } from './simulateWalk';
 // roughly half of these numbers.
 
 const ALL = ['bram', 'lyra', 'mira'];
+const TIER_MATERIALS = ['wood', 'stone', 'copper', 'iron', 'steel'];
+/** Level the team is expected to reach while playing each tier. */
+const TIER_LEVELS = [1, 3, 5, 7, 9];
 
-function averageWalk(minutes: number) {
+const withTools = (tools: string[]): SaveData => ({
+  ...createInitialSave(),
+  tools,
+  tutorial: { step: tools.length ? 'done' : 'collectWood', woodSpot: null },
+});
+
+function averageWalk(save: SaveData, minutes: number) {
   const starts = [
     { latitude: -41.2865, longitude: 174.7762 },
     { latitude: 48.8566, longitude: 2.3522 },
@@ -19,37 +29,28 @@ function averageWalk(minutes: number) {
   ];
   const totals: Record<string, number> = {};
   const runs = starts.flatMap((start, i) =>
-    [6, 12, 18].map((hour) => simulateWalk(start, Date.UTC(2026, 9, 20 + i, hour), minutes)),
+    [6, 12, 18].map((hour) => simulateWalk(save, start, Date.UTC(2026, 9, 20 + i, hour), minutes)),
   );
-  for (const save of runs) {
-    for (const [id, amount] of Object.entries(save.materials)) totals[id] = (totals[id] ?? 0) + amount;
+  for (const run of runs) {
+    for (const [id, amount] of Object.entries(run.materials)) totals[id] = (totals[id] ?? 0) + amount;
   }
-  const avg = (id: string) => (totals[id] ?? 0) / runs.length;
-  return {
-    ore: avg('ironOre') + avg('copperOre') + avg('crystal'),
-    animal: avg('hide') + avg('bone') + avg('meat'),
-    herb: avg('herb') + avg('berries') + avg('mushroom'),
-    rare: avg('starMetal') + avg('moonpetal'),
-  };
+  return (...ids: string[]) => ids.reduce((sum, id) => sum + (totals[id] ?? 0), 0) / runs.length;
 }
 
-function team(level: number, geared: boolean, elixirs = false): SaveData {
+/** Every hero in the tier's weapon and armour; fire elixirs for heroes who need them. */
+function team(level: number, material: string | null, elixirs = false): SaveData {
   let save: SaveData = {
     ...createInitialSave(),
     heroes: createInitialSave().heroes.map((h) => ({ ...h, level })),
-    gear: [
-      { uid: 'g1', itemId: 'ironSword', durability: 30 },
-      { uid: 'g2', itemId: 'boneBow', durability: 25 },
-      { uid: 'g3', itemId: 'crystalWand', durability: 20 },
-      { uid: 'g4', itemId: 'leatherArmor', durability: 30 },
-    ],
     consumables: { fireResistanceElixir: 2 },
   };
-  if (geared) {
-    save = equip(save, 'bram', 'weapon', 'g1');
-    save = equip(save, 'lyra', 'weapon', 'g2');
-    save = equip(save, 'mira', 'weapon', 'g3');
-    save = equip(save, 'bram', 'armor', 'g4');
+  if (material) {
+    const pieces = ['Sword', 'Bow', 'Wand', 'Armour', 'Armour', 'Armour'];
+    save = { ...save, gear: pieces.map((piece, i) => ({ uid: `g${i}`, itemId: material + piece, durability: 99 })) };
+    ALL.forEach((heroId, i) => {
+      save = equip(save, heroId, 'weapon', `g${i}`);
+      save = equip(save, heroId, 'armor', `g${i + 3}`);
+    });
   }
   if (elixirs) {
     save = equip(save, 'bram', 'consumable', 'fireResistanceElixir');
@@ -58,45 +59,125 @@ function team(level: number, geared: boolean, elixirs = false): SaveData {
   return save;
 }
 
-const chance = (save: SaveData, dungeonId: string) =>
-  successChance(teamPower(save, ALL, dungeonById[dungeonId]), dungeonById[dungeonId].difficulty);
+/** Simulated success rate; enough runs that a couple of points of noise don't flip a test. */
+const chance = (save: SaveData, dungeon: DungeonDef) => estimateOdds(save, ALL, dungeon, 400).success;
+
+const dealsFire = (dungeon: DungeonDef) =>
+  dungeon.boss.element === 'fire' || dungeon.encounters.some((e) => e.type === 'trap' && e.element === 'fire');
 
 describe('gathering balance (30 minute walk)', () => {
-  const walk = averageWalk(30);
+  it('shows only wood during the tutorial', () => {
+    const walk = averageWalk(withTools([]), 30);
+    expect(walk('wood')).toBeGreaterThan(10);
+    expect(walk('stone', 'hide', 'herb')).toBe(0);
+  });
 
-  it('yields enough ore for a couple of weapons, not a whole armoury', () => {
-    expect(walk.ore).toBeGreaterThan(8);
-    expect(walk.ore).toBeLessThan(30);
+  it('gives enough wood and stone for a couple of pieces of gear with the wooden pickaxe', () => {
+    const walk = averageWalk(withTools(['woodPickaxe']), 30);
+    expect(walk('wood')).toBeGreaterThan(15);
+    expect(walk('wood')).toBeLessThan(40);
+    expect(walk('stone')).toBeGreaterThan(7);
+    expect(walk('stone')).toBeLessThan(25);
+    expect(walk('copper', 'iron', 'coal')).toBe(0);
   });
 
   it('keeps animal and herb materials in the same range as ore', () => {
-    expect(walk.animal).toBeGreaterThan(8);
-    expect(walk.animal).toBeLessThan(45);
-    expect(walk.herb).toBeGreaterThan(6);
-    expect(walk.herb).toBeLessThan(30);
+    const walk = averageWalk(withTools(['woodPickaxe']), 30);
+    expect(walk('hide', 'bone', 'meat')).toBeGreaterThan(10);
+    expect(walk('hide', 'bone', 'meat')).toBeLessThan(45);
+    expect(walk('herb', 'berries', 'mushroom')).toBeGreaterThan(4);
+    expect(walk('herb', 'berries', 'mushroom')).toBeLessThan(25);
   });
 
-  it('makes rare materials rare', () => {
-    expect(walk.rare).toBeLessThan(1);
+  it('opens copper, iron and coal with the better pickaxes', () => {
+    const walk = averageWalk(withTools(['woodPickaxe', 'stonePickaxe', 'copperPickaxe', 'ironPickaxe']), 30);
+    expect(walk('copper')).toBeGreaterThan(3);
+    expect(walk('iron')).toBeGreaterThan(2);
+    expect(walk('coal')).toBeGreaterThan(3);
+  });
+});
+
+/** Tier 1 team states, all at level 1 unless given. */
+function swordOnly(level = 1): SaveData {
+  const save: SaveData = {
+    ...createInitialSave(),
+    heroes: createInitialSave().heroes.map((h) => ({ ...h, level })),
+    gear: [{ uid: 'g', itemId: 'woodSword', durability: 15 }],
+  };
+  return equip(save, 'bram', 'weapon', 'g');
+}
+
+function fullKitWithPotions(): SaveData {
+  let save: SaveData = { ...team(1, 'wood'), consumables: { healingPotion: 3 } };
+  ALL.forEach((heroId) => {
+    save = equip(save, heroId, 'consumable', 'healingPotion');
+  });
+  return save;
+}
+
+describe('tier 1 odds open up as the team gears up', () => {
+  const [cellar, warren, stockade] = dungeons.filter((d) => d.tier === 1);
+  // [dungeon, team, low, high]: the design targets with about ±10 points of room.
+  const cases: [string, () => SaveData, DungeonDef, number, number][] = [
+    ['one wooden sword', swordOnly, cellar, 0.65, 0.85],
+    // By design one sword is not enough for Goblin Warren: forge more first.
+    ['one wooden sword', swordOnly, warren, 0, 0.1],
+    ['one wooden sword', swordOnly, stockade, 0, 0.1],
+    ['full wooden kit', () => team(1, 'wood'), cellar, 0.88, 0.98],
+    ['full wooden kit', () => team(1, 'wood'), warren, 0.6, 0.8],
+    ['full wooden kit', () => team(1, 'wood'), stockade, 0.25, 0.45],
+    ['full kit and potions', fullKitWithPotions, cellar, 0.88, 0.98],
+    ['full kit and potions', fullKitWithPotions, warren, 0.75, 0.95],
+    ['full kit and potions', fullKitWithPotions, stockade, 0.68, 0.9],
+  ];
+  for (const [label, makeTeam, dungeon, low, high] of cases) {
+    it(`${label}: ${dungeon.name} between ${low * 100}% and ${high * 100}%`, () => {
+      const odds = chance(makeTeam(), dungeon);
+      expect(odds).toBeGreaterThanOrEqual(low);
+      expect(odds).toBeLessThanOrEqual(high);
+    });
+  }
+
+  it('never reaches 100%: a mishap can always end a run', () => {
+    expect(chance(team(5, 'steel'), cellar)).toBeLessThan(1);
+  });
+
+  it('does not let levels replace gear', () => {
+    const levelled = swordOnly(3);
+    expect(chance(levelled, warren)).toBeLessThan(chance(team(1, 'wood'), warren) - 0.3);
+    expect(chance(levelled, stockade)).toBeLessThan(chance(team(1, 'wood'), stockade) - 0.2);
   });
 });
 
 describe('expedition progression', () => {
-  it('lets a fresh team usually clear the first dungeon', () => {
-    expect(chance(team(1, false), 'goblinWarren')).toBeGreaterThan(0.6);
-  });
 
-  it('makes the second dungeon a coin flip with basic gear', () => {
-    const odds = chance(team(1, true), 'trollBridge');
-    expect(odds).toBeGreaterThan(0.35);
-    expect(odds).toBeLessThan(0.7);
-  });
+  for (let tier = 1; tier <= 5; tier++) {
+    const [first, second, boss] = dungeons.filter((d) => d.tier === tier);
+    const level = TIER_LEVELS[tier - 1];
+    const current = team(level, TIER_MATERIALS[tier - 1], true);
+    const previous = team(level, tier > 1 ? TIER_MATERIALS[tier - 2] : null, true);
 
-  it('keeps the third dungeon out of reach early and rewards fire protection', () => {
-    expect(chance(team(1, true), 'cinderHollow')).toBeLessThan(0.1);
-    const levelFour = chance(team(4, true), 'cinderHollow');
-    const withElixirs = chance(team(4, true, true), 'cinderHollow');
-    expect(levelFour).toBeLessThan(0.35);
-    expect(withElixirs).toBeGreaterThan(levelFour + 0.1);
-  });
+    it(`makes tier ${tier}'s first dungeon comfortable with tier ${tier} gear`, () => {
+      expect(chance(current, first)).toBeGreaterThan(0.65);
+    });
+
+    it(`gets harder through tier ${tier}`, () => {
+      expect(chance(current, second)).toBeLessThan(chance(current, first));
+      expect(chance(current, boss)).toBeLessThan(chance(current, second));
+    });
+
+    it(`makes the tier ${tier} boss a real fight that needs tier ${tier} gear`, () => {
+      expect(chance(current, boss)).toBeGreaterThan(0.3);
+      expect(chance(current, boss)).toBeLessThan(0.6);
+      expect(chance(previous, boss)).toBeLessThan(chance(current, boss) - 0.08);
+    });
+  }
+
+  for (const dungeon of dungeons.filter(dealsFire)) {
+    it(`makes fire resistance elixirs worth at least 10 points in ${dungeon.name}`, () => {
+      const level = TIER_LEVELS[dungeon.tier - 1];
+      const material = TIER_MATERIALS[dungeon.tier - 1];
+      expect(chance(team(level, material, true), dungeon)).toBeGreaterThan(chance(team(level, material), dungeon) + 0.1);
+    });
+  }
 });

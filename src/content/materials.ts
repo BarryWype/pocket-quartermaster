@@ -1,15 +1,18 @@
 import type { MaterialDef } from '@/game/types';
 
 export const materials: MaterialDef[] = [
-  { id: 'ironOre', name: 'Iron ore', emoji: '🪨' },
-  { id: 'copperOre', name: 'Copper ore', emoji: '🟠' },
-  { id: 'crystal', name: 'Crystal shard', emoji: '💎' },
+  { id: 'wood', name: 'Wood', emoji: '🪵', icon: require('../../assets/icons/scaled/wood.png') },
+  { id: 'stone', name: 'Stone', emoji: '🪨', icon: require('../../assets/icons/scaled/stone.png') },
+  { id: 'copper', name: 'Copper ore', emoji: '🟠', icon: require('../../assets/icons/scaled/copper.png') },
+  { id: 'iron', name: 'Iron ore', emoji: '⛓️', icon: require('../../assets/icons/scaled/iron.png') },
+  { id: 'coal', name: 'Coal', emoji: '⚫', icon: require('../../assets/icons/scaled/charcoal.png') },
+  { id: 'steel', name: 'Steel ingot', emoji: '🔩' },
   { id: 'hide', name: 'Hide', emoji: '🟫' },
   { id: 'bone', name: 'Bone', emoji: '🦴' },
   { id: 'meat', name: 'Meat', emoji: '🍖' },
   { id: 'herb', name: 'Herbs', emoji: '🌿' },
   { id: 'berries', name: 'Berries', emoji: '🫐' },
   { id: 'mushroom', name: 'Mushroom', emoji: '🍄' },
-  { id: 'starMetal', name: 'Star metal', emoji: '🌠' },
-  { id: 'moonpetal', name: 'Moonpetal', emoji: '🌸' },
+  // Found on the tutorial's first expedition; what it opens comes later.
+  { id: 'mysteriousKey', name: 'Mysterious key', emoji: '🗝️' },
 ];

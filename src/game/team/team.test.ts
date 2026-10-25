@@ -5,9 +5,9 @@ function saveWithGear(): SaveData {
   return {
     ...createInitialSave(),
     gear: [
-      { uid: 'g1', itemId: 'ironSword', durability: 30 },
-      { uid: 'g2', itemId: 'crystalWand', durability: 20 },
-      { uid: 'g3', itemId: 'leatherArmor', durability: 30 },
+      { uid: 'g1', itemId: 'woodSword', durability: 15 },
+      { uid: 'g2', itemId: 'woodWand', durability: 15 },
+      { uid: 'g3', itemId: 'woodArmour', durability: 15 },
     ],
     consumables: { healingPotion: 1 },
   };
@@ -18,24 +18,24 @@ const hero = (save: SaveData, id: string) => save.heroes.find((h) => h.id === id
 describe('heroStats', () => {
   it('starts from class base stats', () => {
     const save = createInitialSave();
-    expect(heroStats(save, hero(save, 'bram'))).toEqual({ attack: 5, defense: 5, magic: 0, hp: 40 });
+    expect(heroStats(save, hero(save, 'bram'))).toEqual({ attack: 4, defense: 3, magic: 0, hp: 30 });
   });
 
   it('adds gear stats, boosted by class affinity', () => {
     const save = equip(equip(saveWithGear(), 'bram', 'weapon', 'g1'), 'mira', 'weapon', 'g2');
-    expect(heroStats(save, hero(save, 'bram')).attack).toBe(5 + 6 * 1.5);
-    expect(heroStats(save, hero(save, 'mira')).magic).toBe(Math.round(6 + 7 * 1.5));
+    expect(heroStats(save, hero(save, 'bram')).attack).toBe(4 + 6 * 1.5);
+    expect(heroStats(save, hero(save, 'mira')).magic).toBe(6 + 6 * 1.5);
   });
 
   it('gives no affinity bonus to other classes', () => {
     const save = equip(saveWithGear(), 'lyra', 'weapon', 'g2');
-    expect(heroStats(save, hero(save, 'lyra')).magic).toBe(1 + 7);
+    expect(heroStats(save, hero(save, 'lyra')).magic).toBe(0 + 6);
   });
 
   it('grows with level', () => {
     const save = createInitialSave();
     const levelThree = { ...hero(save, 'bram'), level: 3 };
-    expect(heroStats(save, levelThree).hp).toBe(40 + 8 * 2);
+    expect(heroStats(save, levelThree).hp).toBe(30 + 3 * 2);
   });
 });
 

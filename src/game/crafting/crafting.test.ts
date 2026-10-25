@@ -1,67 +1,113 @@
+import { dungeons } from '@/content/dungeons';
 import { items } from '@/content/items';
 import { recipeById } from '@/content/lookup';
 import { materials } from '@/content/materials';
 import { recipes } from '@/content/recipes';
 
-import { createInitialSave } from '../save';
-import { canCraft, craft, unlockRecipe } from './crafting';
+import { createInitialSave, type SaveData } from '../save';
+import { canCraft, craft, ownsTool, unlockRecipe } from './crafting';
 
-const withMaterials = (counts: Record<string, number>) => ({ ...createInitialSave(), materials: counts });
+const withMaterials = (counts: Record<string, number>, extra: Partial<SaveData> = {}): SaveData => ({
+  ...createInitialSave(),
+  materials: counts,
+  ...extra,
+});
 
 describe('content', () => {
-  it('only references existing items and materials', () => {
+  it('only references existing items, materials and recipes', () => {
     const itemIds = new Set(items.map((i) => i.id));
     const materialIds = new Set(materials.map((m) => m.id));
+    const recipeIds = new Set(recipes.map((r) => r.id));
     for (const recipe of recipes) {
-      expect(itemIds.has(recipe.itemId)).toBe(true);
+      if ('itemId' in recipe.output) expect(itemIds.has(recipe.output.itemId)).toBe(true);
+      else expect(materialIds.has(recipe.output.materialId)).toBe(true);
       recipe.inputs.forEach((input) => expect(materialIds.has(input.materialId)).toBe(true));
+      recipe.unlocks?.forEach((id) => expect(recipeIds.has(id)).toBe(true));
+    }
+    for (const dungeon of dungeons) {
+      dungeon.recipeDrops.forEach((drop) => expect(recipeIds.has(drop.recipeId)).toBe(true));
+      dungeon.loot.forEach((entry) => expect(materialIds.has(entry.materialId)).toBe(true));
     }
   });
 
-  it('has around 6 forge and 3 alchemy recipes, some locked', () => {
-    expect(recipes.filter((r) => r.station === 'forge').length).toBeGreaterThanOrEqual(6);
-    expect(recipes.filter((r) => r.station === 'alchemy')).toHaveLength(3);
-    expect(recipes.some((r) => !r.unlockedByDefault)).toBe(true);
+  it('starts with only the wooden sword at the forge', () => {
+    const known = createInitialSave().knownRecipes.filter((id) => recipeById[id].station === 'forge');
+    expect(known).toEqual(['woodSword']);
+  });
+
+  it('makes every forge recipe reachable through pickaxes or dungeon drops', () => {
+    const reachable = new Set(createInitialSave().knownRecipes);
+    recipes.forEach((r) => r.unlocks?.forEach((id) => reachable.add(id)));
+    dungeons.forEach((d) => d.recipeDrops.forEach((drop) => reachable.add(drop.recipeId)));
+    recipes.forEach((r) => expect(reachable.has(r.id)).toBe(true));
   });
 });
 
 describe('crafting', () => {
-  const sword = recipeById.ironSword;
-  const potion = recipeById.healingPotion;
-  const blade = recipeById.starforgedBlade;
-
   it('needs every input', () => {
-    expect(canCraft(withMaterials({ ironOre: 4, hide: 1 }), sword)).toBe(true);
-    expect(canCraft(withMaterials({ ironOre: 3, hide: 1 }), sword)).toBe(false);
+    expect(canCraft(withMaterials({ wood: 3 }), recipeById.woodSword)).toBe(true);
+    expect(canCraft(withMaterials({ wood: 2 }), recipeById.woodSword)).toBe(false);
   });
 
-  it('forges a gear piece with full durability and consumes the inputs', () => {
-    const save = craft(withMaterials({ ironOre: 5, hide: 1 }), sword);
-    expect(save.materials).toEqual({ ironOre: 1 });
-    expect(save.gear).toEqual([{ uid: 'g1', itemId: 'ironSword', durability: 30 }]);
-    expect(save.nextUid).toBe(2);
+  it('crafts a pickaxe once and has it teach the next tier sword only', () => {
+    const save = craft(withMaterials({ wood: 5 }, { knownRecipes: ['woodPickaxe'] }), recipeById.woodPickaxe);
+    expect(save.tools).toEqual(['woodPickaxe']);
+    expect(save.materials).toEqual({ wood: 3 });
+    expect(save.knownRecipes).toContain('stoneSword');
+    expect(save.knownRecipes).not.toContain('stoneBow');
+    expect(save.knownRecipes).not.toContain('stoneWand');
+    expect(save.knownRecipes).not.toContain('stoneArmour');
+    expect(ownsTool(save, recipeById.woodPickaxe)).toBe(true);
+    expect(canCraft(save, recipeById.woodPickaxe)).toBe(false);
   });
 
-  it('gives each gear piece a unique id', () => {
-    const twice = craft(craft(withMaterials({ ironOre: 8, hide: 2 }), sword), sword);
-    expect(twice.gear.map((g) => g.uid)).toEqual(['g1', 'g2']);
+  it('forges a gear piece with full durability and a unique id', () => {
+    const start = withMaterials({ wood: 7 }, { knownRecipes: ['woodSword'] });
+    const twice = craft(craft(start, recipeById.woodSword), recipeById.woodSword);
+    expect(twice.gear).toEqual([
+      { uid: 'g1', itemId: 'woodSword', durability: 15 },
+      { uid: 'g2', itemId: 'woodSword', durability: 15 },
+    ]);
+    expect(twice.materials).toEqual({ wood: 1 });
+  });
+
+  it('uses the costs from the design', () => {
+    expect(recipeById.woodSword.inputs).toEqual([{ materialId: 'wood', amount: 3 }]);
+    expect(recipeById.woodBow.inputs).toEqual([
+      { materialId: 'wood', amount: 3 },
+      { materialId: 'hide', amount: 1 },
+    ]);
+    expect(recipeById.woodWand.inputs).toEqual([
+      { materialId: 'wood', amount: 3 },
+      { materialId: 'bone', amount: 1 },
+    ]);
+    expect(recipeById.woodArmour.inputs).toEqual([
+      { materialId: 'wood', amount: 5 },
+      { materialId: 'hide', amount: 2 },
+    ]);
+  });
+
+  it('smelts steel from iron and coal', () => {
+    const save = craft(withMaterials({ iron: 2, coal: 1 }, { knownRecipes: ['smeltSteel'] }), recipeById.smeltSteel);
+    expect(save.materials).toEqual({ steel: 1 });
+  });
+
+  it('teaches smelting with the iron pickaxe', () => {
+    const save = craft(withMaterials({ iron: 3, wood: 2 }, { knownRecipes: ['ironPickaxe'] }), recipeById.ironPickaxe);
+    expect(save.knownRecipes).toEqual(expect.arrayContaining(['smeltSteel', 'steelSword']));
   });
 
   it('brews consumables into a stack', () => {
+    const potion = recipeById.healingPotion;
     const save = craft(craft(withMaterials({ herb: 4, berries: 2 }), potion), potion);
     expect(save.consumables).toEqual({ healingPotion: 2 });
     expect(save.materials).toEqual({});
   });
 
   it('cannot craft a locked recipe until it is unlocked', () => {
-    const save = withMaterials({ starMetal: 1, ironOre: 4, hide: 2 });
-    expect(canCraft(save, blade)).toBe(false);
-    expect(() => craft(save, blade)).toThrow();
-    expect(canCraft(unlockRecipe(save, blade.id), blade)).toBe(true);
-  });
-
-  it('unlocking twice keeps one entry', () => {
-    const save = unlockRecipe(unlockRecipe(createInitialSave(), 'starforgedBlade'), 'starforgedBlade');
-    expect(save.knownRecipes.filter((id) => id === 'starforgedBlade')).toHaveLength(1);
+    const save = withMaterials({ wood: 3, hide: 1 });
+    expect(canCraft(save, recipeById.woodBow)).toBe(false);
+    expect(() => craft(save, recipeById.woodBow)).toThrow();
+    expect(canCraft(unlockRecipe(save, 'woodBow'), recipeById.woodBow)).toBe(true);
   });
 });

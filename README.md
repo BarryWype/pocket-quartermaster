@@ -113,17 +113,36 @@ On first launch, allow **location**, **notifications** and **physical activity**
 
 The **🐞 Debug** tab (development builds only) lets you test everything from your desk.
 
+### Tutorial
+
+A fresh save walks you through the whole loop in a few minutes. A one-line 🧭 hint at the top of each screen says what to do next, and the menu button you need lights up.
+
+1. **Gather:** only wood shows on the map, plus one guaranteed tree about 10 m from you, even indoors. Tap it for 3 wood.
+2. **Forge:** Craft → Forge has a single recipe, the **Wooden sword**. Make it. Animals and herbs start appearing on the map.
+3. **Equip:** in Team, give the sword to a hero (Bram the warrior suits it best).
+4. **Send:** in Expeditions, only the Rat Cellar can be picked. It shows its real odds, but this first trip always succeeds and takes about 5 seconds. Tap it under "Under way" to watch its progress bar.
+   - It pays a little gold, the **wooden bow** blueprint and a **mysterious key**. What the key opens comes later.
+5. **Explore:** animals and herbs have been on the map since the sword was forged; gather some while the team is away.
+6. **Read:** when they're back, open Expeditions to read the report.
+7. A last tip on the map explains what comes next. Tap it to close the tutorial.
+
+**Skip it:** on Debug, tap **Skip tutorial**. **Reset save data** starts it again.
+
 ### Map and spawns
 
 1. Open the **Map** tab. It centres on you and follows you. The 🧙 marker is you.
-2. Markers are spawns. Each kind is visible from a different distance:
-   - Ore (🪨 🟠 💎): 500 m.
+2. Markers are spawns. Each one gives 1–2 per tap, and each kind is visible from a different distance:
+   - Wood (trees): 120 m.
+   - Ore: 500 m. Only ore your pickaxe can mine is shown: stone needs the wooden pickaxe, copper the stone pickaxe, iron the copper pickaxe, coal the iron pickaxe.
    - Animals (🐇 🦌 🐗): 150 m. Animals wander.
    - Herbs (🌿 🫐 🍄): 50 m.
-   - Rare drops (🌠 🌸): 200 m, and they only last an hour.
+   - **Where they appear:** on footpaths, tracks, streets up to secondary roads, piers, pedestrian squares, parks and playgrounds. Never on motorways, trunk or primary roads, private driveways or gardens, indoors, in tunnels or in water.
+     - The rules are in `src/content/walkable.ts`.
+     - Placement reads OpenFreeMap's map data, so every phone puts a spawn in the same place.
+     - Offline, spawns keep their generated position instead.
 3. **Test without walking:** on Debug, turn on **Mock location**. Then use the N/S/E/W buttons, or tap the map to teleport.
 4. **Determinism:** two phones at the same place, in the same time window, see the same spawns.
-5. **Time of day:** on Debug, change **Time of day**. Deer get more common at dawn and dusk, crystals and boars at night.
+5. **Time of day:** on Debug, change **Time of day**. Deer get more common at dawn and dusk, coal and boars at night.
 6. **Refresh:** set **Spawn refresh window** to 1 min to see spawns change quickly.
 
 ### Gathering
@@ -137,9 +156,12 @@ The **🐞 Debug** tab (development builds only) lets you test everything from y
 
 1. **Inventory** lists gold, materials, gear (with durability) and consumables.
 2. To skip the walking, on Debug tap **+10 of every material**.
-3. **Forge** lists forge and alchemy recipes, showing what you have against what's needed, e.g. `🪨 3/4`.
-   - The button is only active when you have every input.
-   - 🔒 recipes are unlocked by expedition or chest rewards.
+3. **Forge** lists the recipes you know, showing what you have against what's needed, e.g. `🪨 3/4`. Locked recipes are hidden.
+   - The button is only active when you have every input. Pickaxes are crafted once and then show **Owned**.
+   - Tiers go wood → stone → copper → iron → steel. Only the **Wooden sword** is known at first. Each tier's bow, wand and armour drop in that tier's dungeons.
+   - Each tier boss drops a pickaxe that opens the next tier: the wooden pickaxe mines stone and teaches the stone sword, the stone pickaxe mines copper and teaches the copper sword, and so on.
+   - The iron pickaxe mines coal and teaches **Steel ingot** smelting (2 iron + 1 coal). Steel has no map nodes. The steel pickaxe is the final boss's trophy.
+4. **Alchemy** brews potions and rations. Step chests can teach the fire resistance elixir.
 
 ### Team
 
@@ -150,22 +172,34 @@ The **🐞 Debug** tab (development builds only) lets you test everything from y
 
 ### Expeditions
 
-1. **Expeditions:** pick the party, then tap **Send** on a dungeon. Each one shows its success chance for the current party.
+1. **Expeditions:** pick the party, then tap **Send** on a dungeon. Each dungeon shows the party's estimated chance of beating its boss, with a band: Risky below 40%, Fair from 40 to 75%, Safe at 75% or more. The estimate comes from simulating 100 runs and updates as you change the party or its gear.
+   - **How a run works:** it is a series of encounters: fights, traps, a healing spring, a hidden cache or an ambush. The boss always comes last. Heroes lose HP as they go and are knocked out at 0. The run ends when the boss falls or the whole party is down.
+   - **What stats do:** damage is attack + magic, defense reduces the damage taken, and HP is each hero's buffer. Enemies aim at warriors more often. Gear gives most of a hero's power; levels add only a little.
+   - **Luck:** each run has a good or bad day (±25% damage dealt and taken), and a 3% chance of a mishap, such as a cave-in, that ends it early. Only the tutorial run is certain.
+   - **Consumables:** a healing potion is drunk automatically below 35% HP and heals to full; it goes back to your stock if nobody needed it. A ration heals before the boss fight. A fire resistance elixir protects its hero from fire damage for the whole run. Mira resists fire anyway.
+2. There are 5 tiers of 3 dungeons. Only tier 1 shows at first; a tier appears once the previous tier's boss (its third dungeon) has been beaten.
 
-   | Dungeon | Duration | Notes |
+   | Tier | Dungeons (boss last) | Durations |
    |---|---|---|
-   | Goblin Warren | 5 min | |
-   | Troll Bridge | 30 min | |
-   | Cinder Hollow | 2 h | Fire hazard: fire resistance elixirs help, and Mira is immune |
+   | 1 | Rat Cellar, Goblin Warren, Bandit Stockade | 5 min, 15 min, 30 min |
+   | 2 | Wolf Den, Troll Bridge, Ogre Quarry | 10 min, 30 min, 1 h |
+   | 3 | Haunted Mine, Cinder Hollow 🔥, Drowned Crypt | 20 min, 45 min, 1 h 30 |
+   | 4 | Harpy Cliffs, Orc Warcamp, Giant's Hall | 30 min, 1 h, 2 h |
+   | 5 | Wyvern Peaks, Ashen Citadel 🔥, Dragon's Lair 🔥 | 45 min, 1 h 30, 3 h |
 
-2. Heroes who are away can't be re-equipped.
-3. **Shorter timers:** on Debug, turn on **Fast expeditions** (minutes become seconds), or tap **Finish all expeditions now**.
-4. When an expedition ends:
+   🔥 = fire hazard: fire resistance elixirs help, and Mira is immune.
+3. **Skip ahead:** on Debug, **Beat next boss** reveals the next tier, and **Grant next pickaxe** crafts the next pickaxe.
+
+4. Heroes who are away can't be re-equipped.
+5. **Shorter timers:** on Debug, turn on **Fast expeditions** (minutes become seconds), or tap **Finish all expeditions now**.
+6. When an expedition ends:
    - You get a notification, even if the app is closed.
-   - A report appears with success or failure, gold, loot, any recipe, XP and a short log.
+   - A report appears with the outcome, the encounters cleared, gold, loot, any recipe, XP, each hero's HP and a log of one line per encounter.
+   - **Outcomes:** Flawless (boss beaten, nobody knocked out), Success (boss beaten), Retreat (some encounters cleared), Defeat (the party fell at the first encounter).
+   - **Rewards on a retreat:** gold, loot and XP scale with the share of encounters cleared. Recipes and unlocking the next tier need the boss beaten.
    - The tab shows a badge until you've read it.
-5. **Closed-app check:** send a 5-minute expedition, close the app completely, wait, then reopen it. The result is resolved on launch.
-6. Gear wears down on each expedition and breaks at 0 durability.
+7. **Closed-app check:** send a 5-minute expedition, close the app completely, wait, then reopen it. The result is resolved on launch.
+8. Gear wears down on each expedition and breaks at 0 durability.
 
 ### Daily step chests
 
@@ -234,6 +268,7 @@ src/
 | `adb devices` shows nothing | Try another cable or USB port, and check that USB debugging is on. |
 | The app can't reach the dev server | Use the same Wi-Fi, or run `adb reverse tcp:8081 tcp:8081`. |
 | The map is blank | The phone needs internet for the map tiles. Check the dev server log for errors. |
+| Spawns take a moment to appear | The map data for your area is downloading (up to about 1 MB per tile in dense cities). It's cached for the session. |
 | "Finding you…" never ends | Go outside or near a window. Readings worse than 40 m accuracy are ignored. You can also use Mock location. |
 | Native changes don't show up | Rebuild with `npx expo run:android --device`. |
 | Build is in a weird state | `npx expo prebuild --clean --platform android`, then rebuild. This regenerates `android/`. |

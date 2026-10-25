@@ -57,7 +57,8 @@ export function openChest(
   const rng = createRng(`chest|${chest.id}|${day}`);
   const gold = rng.int(chest.gold[0], chest.gold[1]);
   const materials = rollLoot(rng, chest.loot);
-  const unknown = recipes.filter((r) => !save.knownRecipes.includes(r.id));
+  // Only alchemy recipes, so chests never skip the gear progression.
+  const unknown = recipes.filter((r) => r.station === 'alchemy' && !save.knownRecipes.includes(r.id));
   const recipeId =
     rng.chance(chest.recipeChance) && unknown.length > 0 ? unknown[rng.int(0, unknown.length - 1)].id : null;
 

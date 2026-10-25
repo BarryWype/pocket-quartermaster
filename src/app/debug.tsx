@@ -101,6 +101,18 @@ export default function DebugScreen() {
         onChange={(windowMinutes) => debug.set({ windowMinutes })}
       />
 
+      <Text style={styles.title}>Progression</Text>
+      <Text>
+        Tutorial: {game.save.tutorial.step} · Pickaxes: {game.save.tools.length} · Bosses beaten:{' '}
+        {game.save.clearedDungeons.length}
+      </Text>
+      <View style={styles.row}>
+        <Button title="Skip tutorial" onPress={game.finishTutorial} />
+        <Button title="Grant next pickaxe" onPress={game.grantNextPickaxe} />
+        <Button title="Beat next boss" onPress={game.beatNextBoss} />
+      </View>
+      <Text style={styles.hint}>Pickaxes open the next ore. Beating a boss reveals the next dungeon tier.</Text>
+
       <Text style={styles.title}>Expeditions</Text>
       <View style={styles.row}>
         <Text>Fast expeditions (minutes → seconds)</Text>

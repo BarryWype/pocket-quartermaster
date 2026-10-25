@@ -1,20 +1,21 @@
 import { router, type Href } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { tutorialTarget, type MenuTarget } from '@/game/tutorial/tutorial';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
 
 import { Text } from './Text';
 
-type MenuLink = { emoji: string; label: string; href: Href };
+type MenuLink = { icon: ImageSourcePropType; label: string; href: Href; target?: MenuTarget };
 
 // Add a station here (e.g. cooking) to list it under Craft.
 const CRAFT_LINKS: MenuLink[] = [
-  { emoji: '⚒️', label: 'Forge', href: '/forge' },
-  { emoji: '⚗️', label: 'Alchemy', href: '/alchemy' },
-  { emoji: '🎒', label: 'Inventory', href: '/inventory' },
+  { icon: require('../../assets/icons/scaled/menu-forge.png'), label: 'Forge', href: '/forge', target: 'forge' },
+  { icon: require('../../assets/icons/scaled/menu-alchemy.png'), label: 'Alchemy', href: '/alchemy' },
+  { icon: require('../../assets/icons/scaled/menu-inventory.png'), label: 'Inventory', href: '/inventory' },
 ];
 
 /** Height of the island above the safe area, so overlays can sit above it. */
@@ -25,6 +26,8 @@ export function IslandMenu() {
   const insets = useSafeAreaInsets();
   const [craftOpen, setCraftOpen] = useState(false);
   const unseenReports = useGameStore((state) => state.save.reports.filter((r) => !r.seen).length);
+  // The tutorial points at the button its current step is waiting for.
+  const target = useGameStore((state) => tutorialTarget(state.save));
 
   const go = (href: Href) => {
     setCraftOpen(false);
@@ -41,9 +44,13 @@ export function IslandMenu() {
               <Pressable
                 key={link.label}
                 onPress={() => go(link.href)}
-                style={({ pressed }) => [styles.dropdownItem, pressed && styles.pressed]}
+                style={({ pressed }) => [
+                  styles.dropdownItem,
+                  link.target === target && styles.dropdownHighlight,
+                  pressed && styles.pressed,
+                ]}
               >
-                <Text style={styles.dropdownEmoji}>{link.emoji}</Text>
+                <Image source={link.icon} style={styles.dropdownIcon} />
                 <Text style={styles.dropdownLabel}>{link.label}</Text>
               </Pressable>
             ))}
@@ -51,16 +58,23 @@ export function IslandMenu() {
         )}
         <View style={styles.island}>
           <MenuButton
-            emoji="🔨"
+            icon={require('../../assets/icons/scaled/menu-craft.png')}
             label={craftOpen ? 'Craft ▾' : 'Craft ▴'}
             active={craftOpen}
+            highlight={!craftOpen && CRAFT_LINKS.some((link) => link.target === target)}
             onPress={() => setCraftOpen((open) => !open)}
           />
-          <MenuButton emoji="🛡️" label="Team" onPress={() => go('/team')} />
           <MenuButton
-            emoji="🧭"
+            icon={require('../../assets/icons/scaled/menu-team.png')}
+            label="Team"
+            highlight={target === 'team'}
+            onPress={() => go('/team')}
+          />
+          <MenuButton
+            icon={require('../../assets/icons/scaled/menu-expeditions.png')}
             label="Expeditions"
             badge={unseenReports}
+            highlight={target === 'expeditions'}
             onPress={() => go('/expeditions')}
           />
         </View>
@@ -70,22 +84,29 @@ export function IslandMenu() {
 }
 
 type MenuButtonProps = {
-  emoji: string;
+  icon: ImageSourcePropType;
   label: string;
   onPress: () => void;
   active?: boolean;
+  /** Draws attention to the button, e.g. for the tutorial. */
+  highlight?: boolean;
   badge?: number;
 };
 
-function MenuButton({ emoji, label, onPress, active, badge }: MenuButtonProps) {
+function MenuButton({ icon, label, onPress, active, highlight, badge }: MenuButtonProps) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
-      style={({ pressed }) => [styles.button, active && styles.buttonActive, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.button,
+        active && styles.buttonActive,
+        highlight && styles.buttonHighlight,
+        pressed && styles.pressed,
+      ]}
     >
-      <Text style={styles.buttonEmoji}>{emoji}</Text>
+      <Image source={icon} style={styles.buttonIcon} />
       <Text style={styles.buttonLabel}>{label}</Text>
       {badge ? (
         <View style={styles.badge}>
@@ -116,8 +137,9 @@ const styles = StyleSheet.create({
   },
   button: { flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 26 },
   buttonActive: { backgroundColor: colors.woodLight },
+  buttonHighlight: { backgroundColor: colors.woodLight, borderWidth: 3, borderColor: colors.highlight },
   pressed: { opacity: 0.7 },
-  buttonEmoji: { fontSize: 22 },
+  buttonIcon: { width: 32, height: 32 },
   buttonLabel: { color: colors.parchment, fontSize: 14 },
   badge: {
     position: 'absolute',
@@ -144,6 +166,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   dropdownItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 14 },
-  dropdownEmoji: { fontSize: 20 },
+  dropdownHighlight: { backgroundColor: colors.highlight },
+  dropdownIcon: { width: 28, height: 28 },
   dropdownLabel: { fontSize: 17 },
 });

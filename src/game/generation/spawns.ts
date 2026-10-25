@@ -14,7 +14,7 @@ export type GenerationOptions = {
   timeOfDay?: TimeOfDay;
 };
 
-const KINDS: ResourceKind[] = ['ore', 'animal', 'herb', 'rare'];
+const KINDS: ResourceKind[] = ['wood', 'ore', 'animal', 'herb'];
 
 export function generateTileSpawns(
   kind: ResourceKind,
@@ -42,7 +42,7 @@ export function generateTileSpawns(
       id: `${kind}:${tile}:${window}:${i}`,
       resourceId: resource.id,
       tile,
-      quantity: rng.int(1, kindConfig.maxQuantity) + (boosted ? 1 : 0),
+      quantity: rng.int(1, kindConfig.maxQuantity),
       boosted,
       expiresAt: end,
     };

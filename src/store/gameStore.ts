@@ -2,16 +2,19 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
+import { dungeons } from '@/content/dungeons';
+import { items } from '@/content/items';
 import { dungeonById, recipeById } from '@/content/lookup';
 import { materials } from '@/content/materials';
-import { craft } from '@/game/crafting/crafting';
+import { craft, unlockRecipe } from '@/game/crafting/crafting';
 import { fastForward, resolveDue, startExpedition } from '@/game/expeditions/expeditions';
 import { collectSpawn, type CollectResult, type Gatherer } from '@/game/gathering/gathering';
-import type { Spawn } from '@/game/generation/types';
+import type { LatLng, Spawn } from '@/game/generation/types';
 import { addMaterials } from '@/game/inventory';
 import { dayKey, openChest, recordSteps, syncSteps, type ChestReward } from '@/game/rewards/chests';
 import { createInitialSave, type SaveData } from '@/game/save';
 import { equip, unequip } from '@/game/team/team';
+import { advanceTutorial, finishTutorial, placeTutorialWood } from '@/game/tutorial/tutorial';
 import type { EquipmentSlot, ExpeditionReport } from '@/game/types';
 import { deviceNotifications } from '@/services/notifications';
 
@@ -27,7 +30,14 @@ type GameState = {
   recordSteps: (day: string, newSteps: number) => void;
   syncSteps: (day: string, total: number) => void;
   openChest: (chestId: string, steps: number) => ChestReward;
+  placeTutorialWood: (position: LatLng) => void;
+  /** Closes the tutorial's last tip; from debug, skips the whole tutorial. */
+  finishTutorial: () => void;
   // Debug
+  /** Crafts the next pickaxe for free. */
+  grantNextPickaxe: () => void;
+  /** Marks the lowest unbeaten boss as beaten, revealing the next dungeon tier. */
+  beatNextBoss: () => void;
   addGold: (amount: number) => void;
   addAllMaterials: (amount: number) => void;
   fastForwardExpeditions: () => void;
@@ -46,14 +56,16 @@ export const useGameStore = create<GameState>()(
       save: createInitialSave(),
       collect: (spawn, gatherer, timeMs) => {
         const result = collectSpawn(get().save, spawn, gatherer, timeMs);
-        if (result.ok) set({ save: result.save });
+        if (result.ok) set({ save: advanceTutorial(result.save) });
         return result;
       },
-      craft: (recipeId) => set(({ save }) => ({ save: craft(save, recipeById[recipeId]) })),
+      craft: (recipeId) => set(({ save }) => ({ save: advanceTutorial(craft(save, recipeById[recipeId])) })),
       equip: (heroId, slot, id) =>
-        set(({ save }) => ({ save: id ? equip(save, heroId, slot, id) : unequip(save, heroId, slot) })),
+        set(({ save }) => ({
+          save: advanceTutorial(id ? equip(save, heroId, slot, id) : unequip(save, heroId, slot)),
+        })),
       startExpedition: async (dungeonId, heroIds, durationScale) => {
-        const save = startExpedition(get().save, dungeonId, heroIds, Date.now(), durationScale);
+        const save = advanceTutorial(startExpedition(get().save, dungeonId, heroIds, Date.now(), durationScale));
         set({ save });
         const expedition = save.expeditions[save.expeditions.length - 1];
         const notificationId = await deviceNotifications
@@ -72,11 +84,13 @@ export const useGameStore = create<GameState>()(
       },
       resolveDue: () => {
         const { save, reports } = resolveDue(get().save, Date.now());
-        if (reports.length > 0) set({ save });
+        if (reports.length > 0) set({ save: advanceTutorial(save) });
         return reports;
       },
       markReportsSeen: () =>
-        set(({ save }) => ({ save: { ...save, reports: save.reports.map((r) => ({ ...r, seen: true })) } })),
+        set(({ save }) => ({
+          save: advanceTutorial({ ...save, reports: save.reports.map((r) => ({ ...r, seen: true })) }),
+        })),
       recordSteps: (day, newSteps) => set(({ save }) => ({ save: recordSteps(save, day, newSteps) })),
       syncSteps: (day, total) => set(({ save }) => ({ save: syncSteps(save, day, total) })),
       openChest: (chestId, steps) => {
@@ -84,6 +98,24 @@ export const useGameStore = create<GameState>()(
         set({ save });
         return reward;
       },
+      placeTutorialWood: (position) => set(({ save }) => ({ save: placeTutorialWood(save, position) })),
+      finishTutorial: () => set(({ save }) => ({ save: finishTutorial(save) })),
+      grantNextPickaxe: () =>
+        set(({ save }) => {
+          const pickaxe = items
+            .flatMap((item) => (item.slot === 'tool' ? [item] : []))
+            .sort((a, b) => a.tier - b.tier)
+            .find((item) => !save.tools.includes(item.id));
+          if (!pickaxe) return { save };
+          const recipe = recipeById[pickaxe.id];
+          const ready = { ...unlockRecipe(save, recipe.id), materials: addMaterials(save.materials, recipe.inputs) };
+          return { save: craft(ready, recipe) };
+        }),
+      beatNextBoss: () =>
+        set(({ save }) => {
+          const boss = dungeons.find((d) => d.isBoss && !save.clearedDungeons.includes(d.id));
+          return boss ? { save: { ...save, clearedDungeons: [...save.clearedDungeons, boss.id] } } : { save };
+        }),
       addGold: (amount) => set(({ save }) => ({ save: { ...save, gold: save.gold + amount } })),
       addAllMaterials: (amount) =>
         set(({ save }) => ({
@@ -104,7 +136,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 2,
+      version: 5,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
       // Saves from older builds start fresh; new fields get their defaults.

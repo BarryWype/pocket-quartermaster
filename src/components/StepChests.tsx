@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { StyleSheet } from 'react-native';
 
 import { chests } from '@/content/chests';
-import { itemById, materialById, recipeById } from '@/content/lookup';
+import { materialById, recipeById, recipeOutput } from '@/content/lookup';
 import { chestState, dayKey } from '@/game/rewards/chests';
 import { useTodaySteps } from '@/hooks/useTodaySteps';
 import { useGameStore } from '@/store/gameStore';
@@ -24,7 +24,7 @@ export function StepChests() {
       [
         `🪙 ${reward.gold}`,
         ...reward.materials.map((m) => `${materialById[m.materialId].emoji} ${m.amount}`),
-        reward.recipeId ? `📜 ${itemById[recipeById[reward.recipeId].itemId].name}` : null,
+        reward.recipeId ? `📜 ${recipeOutput(recipeById[reward.recipeId]).name}` : null,
       ]
         .filter(Boolean)
         .join('  '),

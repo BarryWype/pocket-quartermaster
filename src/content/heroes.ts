@@ -1,27 +1,32 @@
 import type { HeroClassDef, HeroClassId, HeroState } from '@/game/types';
 
+// Heroes are deliberately modest: gear provides most of their power, and a
+// level adds only a little, so levelling up never replaces forging better gear.
 export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   warrior: {
     name: 'Warrior',
     emoji: '🛡️',
-    baseStats: { attack: 5, defense: 5, magic: 0, hp: 40 },
-    growth: { attack: 2, defense: 2, magic: 0, hp: 8 },
-    affinities: { sword: 1.5, dagger: 1.1 },
+    baseStats: { attack: 4, defense: 3, magic: 0, hp: 30 },
+    growth: { attack: 0.6, defense: 0.5, magic: 0, hp: 3 },
+    affinities: { sword: 1.5 },
+    threat: 3,
   },
   archer: {
     name: 'Archer',
     emoji: '🏹',
-    baseStats: { attack: 5, defense: 2, magic: 1, hp: 30 },
-    growth: { attack: 2.5, defense: 1, magic: 0.5, hp: 5 },
-    affinities: { bow: 1.5, knife: 1.25, dagger: 1.25 },
+    baseStats: { attack: 5, defense: 1, magic: 0, hp: 24 },
+    growth: { attack: 0.7, defense: 0.3, magic: 0.1, hp: 2.5 },
+    affinities: { bow: 1.5 },
+    threat: 1,
   },
   fireMage: {
     name: 'Fire mage',
     emoji: '🔥',
-    baseStats: { attack: 1, defense: 1, magic: 6, hp: 25 },
-    growth: { attack: 0.5, defense: 1, magic: 3, hp: 4 },
+    baseStats: { attack: 0, defense: 0, magic: 6, hp: 22 },
+    growth: { attack: 0.1, defense: 0.3, magic: 0.8, hp: 2 },
     affinities: { wand: 1.5 },
     resists: ['fire'],
+    threat: 1,
   },
 };
 

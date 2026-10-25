@@ -1,22 +1,24 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, type ImageSourcePropType } from 'react-native';
 
+import { GameIcon } from './GameIcon';
 import { Text } from './Text';
 
 type Props = {
   emoji: string;
+  icon?: ImageSourcePropType;
   title: string;
-  subtitle?: string;
+  subtitle?: ReactNode;
   right?: ReactNode;
 };
 
-export function Row({ emoji, title, subtitle, right }: Props) {
+export function Row({ emoji, icon, title, subtitle, right }: Props) {
   return (
     <View style={styles.row}>
-      <Text style={styles.emoji}>{emoji}</Text>
+      <GameIcon emoji={emoji} icon={icon} size={32} />
       <View style={styles.body}>
         <Text style={styles.title}>{title}</Text>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        {typeof subtitle === 'string' ? <Text style={styles.subtitle}>{subtitle}</Text> : subtitle}
       </View>
       {typeof right === 'string' || typeof right === 'number' ? <Text style={styles.right}>{right}</Text> : right}
     </View>
@@ -36,7 +38,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#ccc',
   },
-  emoji: { fontSize: 24, width: 32, textAlign: 'center' },
   body: { flex: 1 },
   title: { fontSize: 16 },
   subtitle: { fontSize: 13, color: '#666' },
