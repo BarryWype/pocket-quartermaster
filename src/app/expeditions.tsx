@@ -10,9 +10,10 @@ import { abilityText } from '@/content/abilities';
 import { tutorialRules } from '@/content/tutorial';
 import { heroClasses } from '@/content/heroes';
 import { dungeonById, materialById, recipeById, recipeOutput } from '@/content/lookup';
-import { rosterRules } from '@/content/roster';
+import { modifierById } from '@/content/modifiers';
 import { tagInfo } from '@/content/rotation';
 import { countersFor } from '@/game/dungeons/counters';
+import { guildRank, partySize } from '@/game/guild/guild';
 import { modifierFor, nextRotationAt, rotationDay, withModifier } from '@/game/dungeons/rotation';
 import { dungeonTags } from '@/game/dungeons/tags';
 import { expeditionMinutes, isDungeonAvailable, isDungeonUnlocked } from '@/game/expeditions/expeditions';
@@ -53,12 +54,14 @@ export default function ExpeditionsScreen() {
   const durationScale = fastExpeditions ? 1 / 60 : 1;
   const [now, setNow] = useState(Date.now());
   const [selected, setSelected] = useState<string[]>(() =>
-    save.heroes.filter((h) => !isOnExpedition(save, h.id)).slice(0, rosterRules.partySize).map((h) => h.id),
+    save.heroes.filter((h) => !isOnExpedition(save, h.id)).slice(0, partySize(save)).map((h) => h.id),
   );
   /** The expedition whose progress bar is open. */
   const [following, setFollowing] = useState<string | null>(null);
   /** The dungeon card tapped last: heroes who are good there get a badge. */
   const [focused, setFocused] = useState<string | null>(null);
+  /** Scouting report (Guild Hall): tomorrow's rotation. */
+  const [showTomorrow, setShowTomorrow] = useState(false);
   // Re-read when the day changes or a debug override does.
   const day = rotationDay(now);
   const dayOffset = useDebugStore((state) => state.rotationDayOffset);
@@ -96,7 +99,7 @@ export default function ExpeditionsScreen() {
   useFocusEffect(useCallback(() => () => markReportsSeen(), [markReportsSeen]));
 
   const party = useMemo(
-    () => selected.filter((id) => !isOnExpedition(save, id)).slice(0, rosterRules.partySize),
+    () => selected.filter((id) => !isOnExpedition(save, id)).slice(0, partySize(save)),
     [selected, save],
   );
 
@@ -125,7 +128,7 @@ export default function ExpeditionsScreen() {
   /** Parties are capped: a hero can only join while there's room. */
   const toggle = (heroId: string) => {
     if (party.includes(heroId)) return setSelected((current) => current.filter((id) => id !== heroId));
-    if (party.length >= rosterRules.partySize) return;
+    if (party.length >= partySize(save)) return;
     setSelected([...party, heroId]);
   };
 
@@ -164,7 +167,7 @@ export default function ExpeditionsScreen() {
         );
       })}
 
-      <SectionTitle>{`Party (${party.length}/${rosterRules.partySize})`}</SectionTitle>
+      <SectionTitle>{`Party (${party.length}/${partySize(save)})`}</SectionTitle>
       <View style={styles.chips}>
         {save.heroes.map((hero) => {
           const away = isOnExpedition(save, hero.id);
@@ -196,6 +199,22 @@ export default function ExpeditionsScreen() {
       <Text style={styles.empty}>
         Tap a dungeon to see who is good there. New dungeons in {formatDuration(nextRotationAt(now) - now)}.
       </Text>
+      {guildRank(save, 'scouting') > 0 && (
+        <Button title={showTomorrow ? 'Hide tomorrow' : 'Tomorrow'} onPress={() => setShowTomorrow(!showTomorrow)} />
+      )}
+      {showTomorrow &&
+        Object.entries(currentRotation(nextRotationAt(now)).tiers)
+          .filter(([, t]) => isDungeonUnlocked(save, dungeonById[t.boss]))
+          .map(([tier, t]) => {
+            const modifier = t.modifier ? modifierById[t.modifier.modifierId] : null;
+            const name = (id: string) => `${dungeonById[id].emoji} ${dungeonById[id].name}`;
+            return (
+              <Text key={tier} style={styles.empty}>
+                Tomorrow, tier {tier}: {name(t.short)} (short) · {name(t.long)} (long)
+                {modifier ? ` · ${modifier.emoji} ${modifier.name} on ${dungeonById[t.modifier!.dungeonId].name}` : ''}
+              </Text>
+            );
+          })}
 
       {open.map((dungeon, i) => {
         const chance = odds[dungeon.id].success;

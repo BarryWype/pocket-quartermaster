@@ -1,14 +1,13 @@
 import { dungeons as allDungeons, expeditionRules } from '@/content/dungeons';
 import { dungeonById, recipeById, recipeOutput } from '@/content/lookup';
-import { mainRewardRules } from '@/content/mainRewards';
 import { modifierById } from '@/content/modifiers';
 import { firstClearRules } from '@/content/rotation';
-import { rosterRules } from '@/content/roster';
 import { traitById } from '@/content/traits';
 import { tutorialRules } from '@/content/tutorial';
 
 import { forgedItem, unlockRecipe } from '../crafting/crafting';
 import { masteryTypeOf } from '../forging/mastery';
+import { guildBonus, partySize, sigilCap } from '../guild/guild';
 import { modifierFor, openDungeonIds, withModifier, type Rotation } from '../dungeons/rotation';
 import { createRng } from '../generation/rng';
 import { addMaterials } from '../inventory';
@@ -39,9 +38,10 @@ export function isDungeonAvailable(save: SaveData, dungeon: DungeonDef, rotation
   return isDungeonUnlocked(save, dungeon) && (!rotation || openDungeonIds(rotation).includes(dungeon.id));
 }
 
-/** Minutes an expedition to this dungeon would take now; the tutorial's first one takes seconds. */
+/** Minutes an expedition to this dungeon would take now: Guild Hall time cuts apply; the tutorial's first one takes seconds. */
 export function expeditionMinutes(save: SaveData, dungeon: DungeonDef) {
-  return isTutorialExpedition(save) ? tutorialRules.firstExpedition.seconds / 60 : dungeon.durationMinutes;
+  if (isTutorialExpedition(save)) return tutorialRules.firstExpedition.seconds / 60;
+  return dungeon.durationMinutes * (1 - guildBonus(save, 'fasterExpeditions'));
 }
 
 export function startExpedition(
@@ -57,7 +57,7 @@ export function startExpedition(
   if (!dungeon) throw new Error(`Unknown dungeon ${dungeonId}`);
   if (!isDungeonAvailable(save, dungeon, rotation)) throw new Error(`${dungeon.name} is not available`);
   if (heroIds.length === 0) throw new Error('Pick at least one hero');
-  if (heroIds.length > rosterRules.partySize) throw new Error(`At most ${rosterRules.partySize} heroes per expedition`);
+  if (heroIds.length > partySize(save)) throw new Error(`At most ${partySize(save)} heroes per expedition`);
   for (const heroId of heroIds) {
     if (!save.heroes.some((h) => h.id === heroId)) throw new Error(`Unknown hero ${heroId}`);
     if (isOnExpedition(save, heroId)) throw new Error(`${heroId} is already away`);
@@ -69,7 +69,8 @@ export function startExpedition(
     dungeonId,
     heroIds,
     startedAt: now,
-    endsAt: now + expeditionMinutes(save, dungeon) * 60_000 * durationScale,
+    // Whole seconds, so the notification and the timer agree.
+    endsAt: now + Math.round(expeditionMinutes(save, dungeon) * 60 * durationScale) * 1000,
     seed: `${id}:${now}`,
     guaranteed: isTutorialExpedition(save),
     modifierId: rotation ? (modifierFor(rotation, dungeonId)?.id ?? null) : null,
@@ -95,14 +96,19 @@ export function resolveExpedition(
   const success = run.bossDefeated;
   const progress = run.encountersCleared / run.encounterCount;
   // Calmed beasts let the party through but bring nothing back.
-  const lootShare = (run.encountersCleared - run.encountersCalmed) / run.encounterCount;
+  // Better retreats (Guild Hall) raise what a failed run brings back, up to a full clear.
+  const retreat = success ? 1 : 1 + guildBonus(save, 'betterRetreats');
+  const lootShare = Math.min(1, ((run.encountersCleared - run.encountersCalmed) / run.encounterCount) * retreat);
   const multipliers = dungeon.rewardMultipliers ?? { gold: 1, materials: 1 };
+  const guildGold = 1 + guildBonus(save, 'gold');
 
   // Thrifty and greedy heroes: each trait counts once per party, different ones combine.
   const traitGold = [...new Set(party.map((m) => m.traitId))]
     .flatMap((id) => traitById[id]?.effects ?? [])
     .reduce((product, e) => product * (e.kind === 'goldMultiplier' ? e.multiplier : 1), 1);
-  let gold = Math.round((rng.int(dungeon.gold[0], dungeon.gold[1]) * lootShare * multipliers.gold + run.bonusGold) * traitGold);
+  let gold = Math.round(
+    (rng.int(dungeon.gold[0], dungeon.gold[1]) * lootShare * multipliers.gold * guildGold + run.bonusGold) * traitGold,
+  );
   let materials = rollLoot(rng, dungeon.loot)
     .map((stack) => ({ ...stack, amount: Math.floor(stack.amount * lootShare * multipliers.materials) }))
     .filter((stack) => stack.amount > 0);
@@ -125,7 +131,7 @@ export function resolveExpedition(
     materials = [];
     recipeId = save.knownRecipes.includes(tutorialReward.recipeId) ? null : tutorialReward.recipeId;
   }
-  const xp = Math.round(dungeon.xp * progress);
+  const xp = Math.round(dungeon.xp * Math.min(1, progress * retreat));
   // The first win in each pool dungeon pays a one-time bonus.
   const firstClear =
     success && dungeon.slot && !tutorialReward && !save.firstClears.includes(dungeon.id)
@@ -147,12 +153,15 @@ export function resolveExpedition(
     const xpBonus = (traitById[hero.trait]?.effects ?? []).reduce((m, e) => m * (e.kind === 'xpMultiplier' ? e.multiplier : 1), 1);
     return addXp(
       { ...hero, equipment: { ...hero.equipment, consumable: null } },
-      Math.round((xp + (firstClear?.xp ?? 0)) * xpBonus),
+      Math.round((xp + (firstClear?.xp ?? 0)) * xpBonus * (1 + guildBonus(save, 'heroXp'))),
     );
   });
 
+  // The first win against each tier boss earns a Guild Hall charter.
+  const charter = success && !!dungeon.isBoss && !save.clearedDungeons.includes(dungeon.id);
   let next: SaveData = {
     ...save,
+    charters: save.charters + (charter ? 1 : 0),
     gold: save.gold + gold + (firstClear?.gold ?? 0),
     materials: addMaterials(save.materials, materials),
     consumables,
@@ -167,12 +176,16 @@ export function resolveExpedition(
   // Main rewards: only for successes. The tutorial run always brings back a Sigil.
   let mainRewards: ExpeditionReport['mainRewards'] = [];
   if (tutorialReward) {
-    if (next.sigils.length < mainRewardRules.sigilCap) {
+    if (next.sigils.length < sigilCap(next)) {
       next = { ...next, sigils: [...next.sigils, tutorialReward.sigilTier] };
       mainRewards = [{ kind: 'sigil', tier: tutorialReward.sigilTier }];
     }
   } else if (success) {
-    const granted = grantMainRewards(next, dungeon, createRng(`${expedition.seed}|main`), expedition.endsAt, mainReward);
+    const granted = grantMainRewards(next, dungeon, createRng(`${expedition.seed}|main`), expedition.endsAt, {
+      ...mainReward,
+      goldMultiplier: guildGold,
+      chanceMultiplier: 1 + guildBonus(save, 'mainRewards'),
+    });
     next = granted.save;
     mainRewards = granted.rewards;
   }
@@ -186,6 +199,7 @@ export function resolveExpedition(
       recipeItemName: recipeId ? recipeOutput(recipeById[recipeId]).name : null,
       mainRewards,
       firstClear,
+      charter,
     },
     createRng(`${expedition.seed}|log`),
   );
@@ -207,6 +221,7 @@ export function resolveExpedition(
     xp,
     consumablesUsed,
     firstClear,
+    charter: charter || undefined,
     log,
     seen: false,
   };

@@ -1,6 +1,7 @@
 import { mainRewardPool, mainRewardRules } from '@/content/mainRewards';
 
 import type { Rng } from '../generation/rng';
+import { guildBonus } from '../guild/guild';
 import type { SaveData } from '../save';
 import type { DungeonDef, MainReward, MainRewardKind } from '../types';
 
@@ -10,13 +11,17 @@ export type MainRewardOptions = {
   /** Debug: replace the rolls with this reward. */
   force?: MainRewardKind;
   rules?: Rules;
+  /** Guild Hall gold bonus: pouches are based on the dungeon's gold roll, so they follow it. */
+  goldMultiplier?: number;
+  /** Guild Hall main reward bonus on both roll chances (capped at 100%). */
+  chanceMultiplier?: number;
 };
 
 /** Bonus gold: 2–3× a fresh roll of the dungeon's gold. */
-function goldPouch(dungeon: DungeonDef, rng: Rng, rules: Rules): Extract<MainReward, { kind: 'goldPouch' }> {
+function goldPouch(dungeon: DungeonDef, rng: Rng, rules: Rules, goldMultiplier: number): Extract<MainReward, { kind: 'goldPouch' }> {
   const [min, max] = rules.goldPouchMultiplier;
   const multiplier = min + rng.next() * (max - min);
-  return { kind: 'goldPouch', gold: Math.round(rng.int(dungeon.gold[0], dungeon.gold[1]) * multiplier) };
+  return { kind: 'goldPouch', gold: Math.round(rng.int(dungeon.gold[0], dungeon.gold[1]) * multiplier * goldMultiplier) };
 }
 
 /**
@@ -29,15 +34,16 @@ export function grantMainRewards(
   dungeon: DungeonDef,
   rng: Rng,
   finishedAt: number,
-  { force, rules = mainRewardRules }: MainRewardOptions = {},
+  { force, rules = mainRewardRules, goldMultiplier = 1, chanceMultiplier = 1 }: MainRewardOptions = {},
 ): { save: SaveData; rewards: MainReward[] } {
   const pick = () => rng.weighted(mainRewardPool, (entry) => entry.weight).kind;
   const kinds: MainRewardKind[] = [];
   if (force) {
     kinds.push(force);
   } else {
-    if (rng.chance(dungeon.mainRewardChance)) kinds.push(pick());
-    if (dungeon.mainRewardExtraRollChance && rng.chance(dungeon.mainRewardExtraRollChance)) kinds.push(pick());
+    const chance = (base: number) => Math.min(1, base * chanceMultiplier);
+    if (rng.chance(chance(dungeon.mainRewardChance))) kinds.push(pick());
+    if (dungeon.mainRewardExtraRollChance && rng.chance(chance(dungeon.mainRewardExtraRollChance))) kinds.push(pick());
   }
   const firstSigil = !save.firstSigilGiven && dungeon.tier === 1 && !!dungeon.isBoss;
   const pityDue = save.sigilPity >= rules.sigilPityAfter;
@@ -46,7 +52,7 @@ export function grantMainRewards(
   let next = save;
   const rewards: MainReward[] = [];
   for (const kind of kinds) {
-    if (kind === 'sigil' && next.sigils.length < rules.sigilCap) {
+    if (kind === 'sigil' && next.sigils.length < rules.sigilCap + guildBonus(save, 'sigilCap')) {
       next = { ...next, sigils: [...next.sigils, dungeon.tier] };
       rewards.push({ kind: 'sigil', tier: dungeon.tier });
     } else if (kind === 'treasureMap' && next.treasureMaps.length < rules.treasureMapCap) {
@@ -63,7 +69,7 @@ export function grantMainRewards(
       rewards.push({ kind: 'lure' });
     } else {
       // Gold pouches, and Sigils or maps that would go over their cap.
-      const pouch = goldPouch(dungeon, rng, rules);
+      const pouch = goldPouch(dungeon, rng, rules, goldMultiplier);
       next = { ...next, gold: next.gold + pouch.gold };
       rewards.push(pouch);
     }

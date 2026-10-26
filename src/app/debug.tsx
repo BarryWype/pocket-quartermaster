@@ -6,6 +6,7 @@ import { Text } from '@/components/Text';
 import { elementInfo } from '@/content/elements';
 import { MASTERY_TYPES, masteryTypeNames, QUALITIES, qualities } from '@/content/forging';
 import { dungeons } from '@/content/dungeons';
+import { guildTrackById, guildTracks, type GuildTrackId } from '@/content/guild';
 import { heroClasses } from '@/content/heroes';
 import { traits } from '@/content/traits';
 import { items } from '@/content/items';
@@ -18,6 +19,7 @@ import type { LatLng, TimeOfDay } from '@/game/generation/types';
 import { fill } from '@/game/notifications/plan';
 import type { NotificationCategory } from '@/game/notifications/types';
 import { masteryCap, masteryOf } from '@/game/forging/mastery';
+import { guildRank } from '@/game/guild/guild';
 import type { HeroClassId, MainRewardKind, Quality } from '@/game/types';
 import { deviceLocation } from '@/services/location';
 import { deviceNotifications } from '@/services/notifications';
@@ -85,6 +87,7 @@ export default function DebugScreen() {
   const [heroClass, setHeroClass] = useState<HeroClassId>('thief');
   const [heroLevel, setHeroLevel] = useState(1);
   const [heroTrait, setHeroTrait] = useState(traits[0].id);
+  const [guildTrack, setGuildTrack] = useState<GuildTrackId>('gold');
   const [rotationSlot, setRotationSlot] = useState<'short' | 'long'>('short');
   const rotation = currentRotation();
   const slotKey = `${rotationTier}:${rotationSlot}`;
@@ -247,6 +250,37 @@ export default function DebugScreen() {
         </View>
       </View>
       <Text style={styles.hint}>Debug heroes skip the roster cap and teach their weapon types like recruits.</Text>
+
+      <Text style={styles.title}>Guild Hall</Text>
+      <Text>Charters: {game.save.charters}</Text>
+      <View style={styles.row}>
+        <Button title="+1 charter" onPress={() => game.addCharters(1)} />
+        <Button title="Reset the Guild Hall" color="#c0392b" onPress={game.resetGuild} />
+      </View>
+      <Choice
+        options={guildTracks.map((t) => t.id)}
+        value={guildTrack}
+        label={(id) => `${guildTrackById[id].name} ${guildRank(game.save, id)}/${guildTrackById[id].ranks}`}
+        onChange={setGuildTrack}
+      />
+      <View style={styles.row}>
+        <Text>
+          {guildTrackById[guildTrack].name}: rank {guildRank(game.save, guildTrack)}
+        </Text>
+        <View style={styles.choices}>
+          <Button
+            title="−"
+            disabled={guildRank(game.save, guildTrack) <= 0}
+            onPress={() => game.setGuildRank(guildTrack, guildRank(game.save, guildTrack) - 1)}
+          />
+          <Button
+            title="+"
+            disabled={guildRank(game.save, guildTrack) >= guildTrackById[guildTrack].ranks}
+            onPress={() => game.setGuildRank(guildTrack, guildRank(game.save, guildTrack) + 1)}
+          />
+        </View>
+      </View>
+      <Text style={styles.hint}>Setting a rank here is free. Use +1,000 gold below to test buying.</Text>
 
       <Text style={styles.title}>Dungeon rotation</Text>
       <View style={styles.row}>

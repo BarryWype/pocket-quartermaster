@@ -383,6 +383,8 @@ export type ExpeditionReport = {
   consumablesUsed: string[];
   /** Bonus for the first win in a pool dungeon. */
   firstClear?: { gold: number; xp: number };
+  /** A Guild Hall charter, for the first win against a tier boss. */
+  charter?: boolean;
   log: string[];
   seen: boolean;
 };

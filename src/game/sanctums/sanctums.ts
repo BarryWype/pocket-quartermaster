@@ -1,5 +1,6 @@
 import { sanctumGuardian, sanctumMinionId } from '@/content/enemies';
 import { logTemplates } from '@/content/logTemplates';
+import { guildRules } from '@/content/guild';
 import { sanctumRules, sanctums } from '@/content/sanctums';
 
 import { convertShards, shardId, stoneId } from '../elements';
@@ -7,6 +8,7 @@ import { buildLog } from '../expeditions/log';
 import { estimateOdds } from '../expeditions/odds';
 import { prepareParty, simulateRun } from '../expeditions/simulate';
 import { distanceMeters } from '../generation/geo';
+import { guildBonus } from '../guild/guild';
 import { createRng } from '../generation/rng';
 import { randomPointInTile, tilesAround } from '../generation/tiles';
 import { windowIndex, windowRange } from '../generation/time';
@@ -25,7 +27,7 @@ export type SanctumSpawn = {
   expiresAt: number;
 };
 
-export type SanctumReward = { element: SanctumDef['element']; shards: number; stones: number };
+export type SanctumReward = { element: SanctumDef['element']; shards: number; stones: number; charter: boolean };
 
 export type SanctumResult = {
   win: boolean;
@@ -126,7 +128,13 @@ export function challengeSanctum(
   const run = simulateRun(party, dungeon, seed);
   const win = run.bossDefeated;
   const amounts = rules.rewards[tier - 1][win ? 'win' : 'loss'];
-  const reward = { element: sanctum.element, ...amounts };
+  // Wins also get the Guild Hall's extra shards, and sometimes a charter.
+  const reward = {
+    element: sanctum.element,
+    shards: amounts.shards + (win ? guildBonus(save, 'shards') : 0),
+    stones: amounts.stones,
+    charter: win && createRng(`${seed}|charter`).chance(guildRules.charters.sanctumWinChance),
+  };
 
   const log = buildLog(
     {
@@ -147,6 +155,7 @@ export function challengeSanctum(
     save: {
       ...save,
       sigils: save.sigils.filter((_, i) => i !== sigilIndex),
+      charters: save.charters + (reward.charter ? 1 : 0),
       materials: convertShards(
         addMaterials(
           save.materials,

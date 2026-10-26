@@ -1,3 +1,4 @@
+import { dungeons } from '@/content/dungeons';
 import { itemById } from '@/content/lookup';
 import { mainRewardRules } from '@/content/mainRewards';
 
@@ -52,4 +53,11 @@ export function migrateV7Save(old: Partial<SaveData>): SaveData {
     };
   });
   return { ...save, heroes };
+}
+
+/** Version 8 → 9: the Guild Hall starts empty, with one charter per tier boss already beaten. */
+export function migrateV8Save(old: Partial<SaveData>): SaveData {
+  const save: SaveData = { ...createInitialSave(), ...old };
+  const bosses = dungeons.filter((d) => d.isBoss && save.clearedDungeons.includes(d.id)).length;
+  return { ...save, guild: {}, charters: bosses, trainedAt: null };
 }

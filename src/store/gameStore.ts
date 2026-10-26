@@ -10,7 +10,7 @@ import { materials } from '@/content/materials';
 import { craft, forgeResult, unlockRecipe, type ForgeResult } from '@/game/crafting/crafting';
 import { infuse } from '@/game/crafting/infusion';
 import { salvage } from '@/game/forging/salvage';
-import { migrateV5Save, migrateV6Save, migrateV7Save } from '@/game/migrations';
+import { migrateV5Save, migrateV6Save, migrateV7Save, migrateV8Save } from '@/game/migrations';
 import { convertShards, shardId, stoneId, type Element } from '@/game/elements';
 import { fastForward, resolveDue, startExpedition } from '@/game/expeditions/expeditions';
 import { collectSpawn, type CollectResult, type Gatherer } from '@/game/gathering/gathering';
@@ -23,6 +23,9 @@ import { challengeSanctum, type SanctumResult, type SanctumSpawn } from '@/game/
 import { createInitialSave, type SaveData, type TutorialStep } from '@/game/save';
 import { dismissHero, equip, unequip } from '@/game/team/team';
 import { learnWeaponTypes, recruit, type RecruitOffer } from '@/game/taverns/taverns';
+import { buyRank } from '@/game/guild/guild';
+import { applyTraining } from '@/game/guild/training';
+import type { GuildTrackId } from '@/content/guild';
 import { advanceTutorial, finishTutorial, nextTutorialStep, placeTutorialWood } from '@/game/tutorial/tutorial';
 import { pruneExpired } from '@/game/upkeep';
 import type { EquipmentSlot, ExpeditionReport, HeroClassId, MasteryType, Quality } from '@/game/types';
@@ -41,6 +44,9 @@ type GameState = {
   dismissHero: (heroId: string) => void;
   recruit: (offer: RecruitOffer, tavern: LatLng, player: LatLng) => void;
   closeTavernHint: () => void;
+  buyRank: (trackId: GuildTrackId) => void;
+  /** Credits Guild Hall training XP since the last check. */
+  train: () => void;
   startExpedition: (dungeonId: string, heroIds: string[], durationScale: number) => void;
   resolveDue: () => ExpeditionReport[];
   markReportsSeen: () => void;
@@ -68,6 +74,9 @@ type GameState = {
   addTreasureMap: () => void;
   resetFirstClears: () => void;
   addHero: (classId: HeroClassId, level: number, trait: string) => void;
+  addCharters: (amount: number) => void;
+  setGuildRank: (trackId: GuildTrackId, rank: number) => void;
+  resetGuild: () => void;
   setMastery: (type: MasteryType, level: number) => void;
   addGear: (itemId: string, quality: Quality, element: Element | null) => void;
   addLure: () => void;
@@ -106,6 +115,8 @@ export const useGameStore = create<GameState>()(
       dismissHero: (heroId) => set(({ save }) => ({ save: dismissHero(save, heroId) })),
       recruit: (offer, tavern, player) => set(({ save }) => ({ save: recruit(save, offer, tavern, player) })),
       closeTavernHint: () => set(({ save }) => ({ save: { ...save, tavernHintSeen: true } })),
+      buyRank: (trackId) => set(({ save }) => ({ save: buyRank(save, trackId) })),
+      train: () => set(({ save }) => ({ save: applyTraining(save, Date.now()) })),
       startExpedition: (dungeonId, heroIds, durationScale) =>
         set(({ save }) => ({
           save: advanceTutorial(startExpedition(save, dungeonId, heroIds, Date.now(), durationScale, currentRotation())),
@@ -204,6 +215,9 @@ export const useGameStore = create<GameState>()(
           },
         })),
       resetFirstClears: () => set(({ save }) => ({ save: { ...save, firstClears: [] } })),
+      addCharters: (amount) => set(({ save }) => ({ save: { ...save, charters: save.charters + amount } })),
+      setGuildRank: (trackId, rank) => set(({ save }) => ({ save: { ...save, guild: { ...save.guild, [trackId]: rank } } })),
+      resetGuild: () => set(({ save }) => ({ save: { ...save, guild: {} } })),
       addHero: (classId, level, trait) =>
         set(({ save }) => ({
           save: learnWeaponTypes(
@@ -227,7 +241,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 8,
+      version: 9,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
       // Saves from version 5 on are converted step by step; older ones start fresh. New fields get their defaults.
@@ -236,7 +250,8 @@ export const useGameStore = create<GameState>()(
         if (!old || version < 5) return { save: createInitialSave() };
         let save: SaveData = version === 5 ? migrateV5Save(old) : (old as SaveData);
         if (version <= 6) save = migrateV6Save(save);
-        return { save: migrateV7Save(save) };
+        if (version <= 7) save = migrateV7Save(save);
+        return { save: migrateV8Save(save) };
       },
       merge: (persisted, current) => ({
         ...current,

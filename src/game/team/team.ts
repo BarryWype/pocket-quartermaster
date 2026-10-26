@@ -1,9 +1,9 @@
 import { heroClasses, xpToNextLevel } from '@/content/heroes';
 import { itemById } from '@/content/lookup';
-import { rosterRules } from '@/content/roster';
 import { traitById } from '@/content/traits';
 
 import { gearStats } from '../forging/quality';
+import { rosterCap } from '../guild/guild';
 import type { SaveData } from '../save';
 import type { Ability, EquipmentSlot, HeroState, ItemDef, Stats } from '../types';
 
@@ -98,7 +98,7 @@ export function dismissHero(save: SaveData, heroId: string): SaveData {
   return { ...next, heroes: next.heroes.filter((h) => h.id !== heroId) };
 }
 
-export const rosterFull = (save: SaveData) => save.heroes.length >= rosterRules.rosterCap;
+export const rosterFull = (save: SaveData) => save.heroes.length >= rosterCap(save);
 
 export function addXp(hero: HeroState, amount: number): HeroState {
   let { level, xp } = hero;

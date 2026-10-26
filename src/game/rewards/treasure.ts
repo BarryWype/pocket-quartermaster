@@ -1,11 +1,11 @@
 import { gatheringConfig } from '@/content/gatheringConfig';
-import { mainRewardRules } from '@/content/mainRewards';
 import { treasureRules, treasureTiers } from '@/content/treasure';
 
 import { distanceMeters, offsetPosition } from '../generation/geo';
 import { createRng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { addMaterials } from '../inventory';
+import { sigilCap } from '../guild/guild';
 import type { SaveData } from '../save';
 import type { MaterialStack, TreasureMap } from '../types';
 import { rollLoot } from './loot';
@@ -72,7 +72,7 @@ export function collectTreasure(
   if (distanceMeters(player, treasureAt) > gatheringConfig.collectRadiusMeters) throw new Error('Too far from the treasure');
 
   let contents = treasureContents(map);
-  if (contents.special?.kind === 'sigil' && save.sigils.length >= mainRewardRules.sigilCap) {
+  if (contents.special?.kind === 'sigil' && save.sigils.length >= sigilCap(save)) {
     contents = { ...contents, special: { kind: 'jackpot', gold: contents.gold * treasureRules.jackpotMultiplier } };
   }
   const special = contents.special;

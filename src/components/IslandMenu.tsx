@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Image, Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { isGuildUnlocked } from '@/game/guild/guild';
 import { tutorialTarget, type MenuTarget } from '@/game/tutorial/tutorial';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
@@ -28,6 +29,7 @@ export function IslandMenu() {
   const unseenReports = useGameStore((state) => state.save.reports.filter((r) => !r.seen).length);
   // The tutorial points at the button its current step is waiting for.
   const target = useGameStore((state) => tutorialTarget(state.save));
+  const guildOpen = useGameStore((state) => isGuildUnlocked(state.save));
 
   const go = (href: Href) => {
     setCraftOpen(false);
@@ -70,6 +72,7 @@ export function IslandMenu() {
             highlight={target === 'team'}
             onPress={() => go('/team')}
           />
+          <MenuButton emoji={guildOpen ? '🏛️' : '🔒'} label="Guild" onPress={() => go('/guild')} />
           <MenuButton
             icon={require('../../assets/icons/scaled/menu-expeditions.png')}
             label="Expeditions"
@@ -84,7 +87,9 @@ export function IslandMenu() {
 }
 
 type MenuButtonProps = {
-  icon: ImageSourcePropType;
+  /** An image icon, or an emoji until the button has one. */
+  icon?: ImageSourcePropType;
+  emoji?: string;
   label: string;
   onPress: () => void;
   active?: boolean;
@@ -93,7 +98,7 @@ type MenuButtonProps = {
   badge?: number;
 };
 
-function MenuButton({ icon, label, onPress, active, highlight, badge }: MenuButtonProps) {
+function MenuButton({ icon, emoji, label, onPress, active, highlight, badge }: MenuButtonProps) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -106,7 +111,7 @@ function MenuButton({ icon, label, onPress, active, highlight, badge }: MenuButt
         pressed && styles.pressed,
       ]}
     >
-      <Image source={icon} style={styles.buttonIcon} />
+      {icon ? <Image source={icon} style={styles.buttonIcon} /> : <Text style={styles.buttonEmoji}>{emoji}</Text>}
       <Text style={styles.buttonLabel}>{label}</Text>
       {badge ? (
         <View style={styles.badge}>
@@ -140,6 +145,7 @@ const styles = StyleSheet.create({
   buttonHighlight: { backgroundColor: colors.woodLight, borderWidth: 3, borderColor: colors.highlight },
   pressed: { opacity: 0.7 },
   buttonIcon: { width: 32, height: 32 },
+  buttonEmoji: { fontSize: 24, lineHeight: 32 },
   buttonLabel: { color: colors.parchment, fontSize: 14 },
   badge: {
     position: 'absolute',

@@ -3,6 +3,7 @@ import { recipes } from '@/content/recipes';
 
 import { unlockRecipe } from '../crafting/crafting';
 import { createRng } from '../generation/rng';
+import { guildBonus } from '../guild/guild';
 import { addMaterials } from '../inventory';
 import type { SaveData } from '../save';
 import type { ChestDef, MaterialStack } from '../types';
@@ -56,7 +57,14 @@ export function openChest(
 
   const rng = createRng(`chest|${chest.id}|${day}`);
   const gold = rng.int(chest.gold[0], chest.gold[1]);
-  const materials = rollLoot(rng, chest.loot);
+  // Each Guild Hall step chest rank rolls the loot table once more (same day seed, so still fixed per day).
+  const rolls = 1 + guildBonus(save, 'stepChests');
+  const materials = Object.entries(
+    addMaterials(
+      {},
+      Array.from({ length: rolls }, () => rollLoot(rng, chest.loot)).flat(),
+    ),
+  ).map(([materialId, amount]) => ({ materialId, amount }));
   // Only alchemy recipes, so chests never skip the gear progression.
   const unknown = recipes.filter((r) => r.station === 'alchemy' && !save.knownRecipes.includes(r.id));
   const recipeId =

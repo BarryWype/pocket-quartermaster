@@ -238,6 +238,17 @@ A fresh save walks you through the whole loop in a few minutes. A one-line 🧭 
 5. **Dismiss** a hero from their page; their gear and consumable return to the inventory. Not while they're away, and not your last hero.
 6. **Debug → Taverns and heroes:** place a tavern next to you, roll new offers, add a hero of any class, trait and level, and add gold.
 
+### Guild Hall
+
+1. **Guild** in the island menu opens it from anywhere, once the Bandit Stockade is beaten (taverns open at the same time). It spends gold on upgrades that speed up the economy and unlock features; it never raises hero stats.
+2. Three buildings: **🗺️ War room** (Hero XP, Faster expeditions, Better retreats, Scouting report, ⭐ Extra party slot), **💰 Treasury** (Gold, Main rewards, Shards, Step chests, ⭐ Sigil cap) and **🛏️ Barracks** (Tavern discount, Extra tavern offer, Training, ⭐ Roster slots 7 and 8).
+   - Rank cost = base × 1.8^(rank − 1). Rank 1 opens with the hall, rank 2 needs it too, rank 3 the tier 2 boss (+15 stone), rank 4 the tier 3 boss (+10 copper).
+   - ⭐ Milestones also cost a **charter** 📜: one for the first win against each tier boss, and a 10% chance per Sanctum win. They ask for confirmation. Nothing is refunded.
+   - **Training** gives heroes at home XP per hour, credited when you open or return to the app (up to 24 h at a time).
+   - **Scouting report** adds a **Tomorrow** button on Expeditions, showing the next day's dungeons and modifiers.
+3. All tracks, costs, gates and materials are in `src/content/guild.ts`. `src/game/balance/economy.ts` models the gold economy; its test checks that the Gold and Main rewards ranks pay back in 3–7 days.
+4. **Debug → Guild Hall:** add charters, set any track's rank, reset the hall (and +1,000 gold further down).
+
 ### Sanctums, elements and main rewards
 
 1. **Main rewards:** a successful expedition may bring back one extra reward (a gold pouch, Sanctum Sigil, treasure map or lure), listed in its report.

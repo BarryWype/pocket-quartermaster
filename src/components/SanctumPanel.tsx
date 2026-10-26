@@ -87,6 +87,7 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
     ? [
         result.reward.shards > 0 && `${result.reward.shards} ${element.name.toLowerCase()} shards`,
         result.reward.stones > 0 && `${result.reward.stones} ${element.name.toLowerCase()} stone`,
+        result.reward.charter && 'a Guild Hall charter',
       ]
         .filter(Boolean)
         .join(' and ')

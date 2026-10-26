@@ -4,10 +4,10 @@ import { Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { abilityText } from '@/content/abilities';
 import { masteryTypeNames } from '@/content/forging';
 import { heroClasses } from '@/content/heroes';
-import { rosterRules } from '@/content/roster';
 import { tavernRules } from '@/content/taverns';
 import { traitById } from '@/content/traits';
 import { distanceMeters } from '@/game/generation/geo';
+import { rosterCap } from '@/game/guild/guild';
 import type { LatLng } from '@/game/generation/types';
 import { recruitProblem, tavernOffers, type RecruitOffer, type RecruitProblem, type TavernSpawn } from '@/game/taverns/taverns';
 import type { WeaponType } from '@/game/types';
@@ -18,11 +18,11 @@ import { colors } from '@/theme';
 import { Button } from './Button';
 import { Text } from './Text';
 
-const problemText: Record<RecruitProblem, (distance: number) => string> = {
+const problemText: Record<RecruitProblem, (distance: number, cap: number) => string> = {
   locked: () => 'Beat the Bandit Stockade to recruit heroes.',
   tooFar: (distance) => `Get within ${tavernRules.interactionMeters} m to recruit (${Math.round(distance)} m away).`,
   taken: () => 'Recruited. New faces arrive tomorrow.',
-  rosterFull: () => `Your roster is full (${rosterRules.rosterCap} heroes). Dismiss someone from Team first.`,
+  rosterFull: (_distance, cap) => `Your roster is full (${cap} heroes). Dismiss someone from Team first.`,
   gold: () => 'Not enough gold.',
 };
 
@@ -57,7 +57,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
           <Text style={styles.price}>🪙 {offer.price}</Text>
           <Button title="Recruit" disabled={problem !== null} onPress={() => recruit(offer, tavern.position, player)} />
         </View>
-        {problem && <Text style={styles.problem}>{problemText[problem](distance)}</Text>}
+        {problem && <Text style={styles.problem}>{problemText[problem](distance, rosterCap(save))}</Text>}
       </View>
     );
   };
@@ -69,7 +69,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
           <ScrollView contentContainerStyle={styles.content}>
             <Text style={styles.title}>🍺 {tavern.name}</Text>
             <Text style={styles.muted}>
-              Gold: {save.gold} · Roster {save.heroes.length}/{rosterRules.rosterCap} · new recruits every day
+              Gold: {save.gold} · Roster {save.heroes.length}/{rosterCap(save)} · new recruits every day
             </Text>
             {offers.map(offerRow)}
           </ScrollView>

@@ -70,6 +70,7 @@ export const logTemplates = {
   /** Names for {tag} in `tagBonus`. */
   tagNames: { undead: 'undead', beast: 'beasts', trap: 'traps', obstacle: 'obstacles', locals: 'locals' } as Record<string, string>,
   firstClear: ['First time through! A bonus of {gold} gold and {xp} XP.'],
+  charter: ['The guild sent a charter to mark the victory.'],
   spring: ['A {event} restored the party.', 'The party rested by a {event}.'],
   cache: ['A {event} held {gold} gold.'],
   mishap: ['A {event} forced the party to turn back.', 'Bad luck: a {event} cut the expedition short.'],

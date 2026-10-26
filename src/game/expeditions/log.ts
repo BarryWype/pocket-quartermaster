@@ -13,6 +13,7 @@ export type LogInput = {
   recipeItemName: string | null;
   mainRewards: MainReward[];
   firstClear?: { gold: number; xp: number };
+  charter?: boolean;
   /** Replaces the usual outcome line, e.g. for Sanctum fights. */
   summary?: string;
 };
@@ -223,6 +224,7 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
     summary,
     ...(input.recipeItemName ? [fill(pick(rng, logTemplates.recipe), { item: input.recipeItemName.toLowerCase() })] : []),
     ...(input.firstClear ? [fill(pick(rng, logTemplates.firstClear), input.firstClear)] : []),
+    ...(input.charter ? [pick(rng, logTemplates.charter)] : []),
     ...input.mainRewards.map((reward) =>
       fill(pick(rng, logTemplates.mainReward[reward.kind]), {
         gold: reward.kind === 'goldPouch' ? reward.gold : 0,

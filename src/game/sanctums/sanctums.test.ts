@@ -119,7 +119,7 @@ describe('Sanctum rewards', () => {
       for (const strong of [true, false]) {
         const { save, result } = challengeSanctum(party([tier], strong), spawn('sunkenGrotto'), tier, ALL, here, now);
         const expected = tierRewards[result.win ? 'win' : 'loss'];
-        expect(result.reward).toEqual({ element: 'water', ...expected });
+        expect(result.reward).toEqual({ element: 'water', ...expected, charter: expect.any(Boolean) });
         expect(save.materials[shardId('water')] ?? 0).toBe(expected.shards);
         expect(save.materials[stoneId('water')] ?? 0).toBe(expected.stones);
       }

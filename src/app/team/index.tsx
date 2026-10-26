@@ -5,9 +5,9 @@ import { Row } from '@/components/Row';
 import { Text } from '@/components/Text';
 import { TutorialHint } from '@/components/TutorialHint';
 import { heroClasses } from '@/content/heroes';
-import { rosterRules } from '@/content/roster';
 import { traitById } from '@/content/traits';
 import { isOnExpedition } from '@/game/team/team';
+import { partySize, rosterCap } from '@/game/guild/guild';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
 
@@ -18,7 +18,7 @@ export default function TeamScreen() {
     <ScrollView contentContainerStyle={styles.container}>
       <TutorialHint screen="team" />
       <Text style={styles.roster}>
-        Roster {save.heroes.length}/{rosterRules.rosterCap} · up to {rosterRules.partySize} per expedition
+        Roster {save.heroes.length}/{rosterCap(save)} · up to {partySize(save)} per expedition
       </Text>
       {save.heroes.map((hero) => {
         const heroClass = heroClasses[hero.classId];

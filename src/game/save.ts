@@ -1,4 +1,5 @@
 import { MASTERY_TYPES } from '@/content/forging';
+import type { GuildTrackId } from '@/content/guild';
 import { startingHeroes } from '@/content/heroes';
 import { recipes } from '@/content/recipes';
 
@@ -71,6 +72,12 @@ export type SaveData = {
   takenOffers: Record<string, number>;
   /** The "taverns are open" tip was closed. */
   tavernHintSeen: boolean;
+  /** Guild Hall ranks bought, by track. */
+  guild: Partial<Record<GuildTrackId, number>>;
+  /** Needed for ⭐ Guild Hall milestones. */
+  charters: number;
+  /** When home heroes last got their training XP (null before the first check). */
+  trainedAt: number | null;
   /** Counter for unique ids (gear, maps, lures, fights, heroes). */
   nextUid: number;
 };
@@ -101,6 +108,9 @@ export function createInitialSave(): SaveData {
     usedSanctums: {},
     takenOffers: {},
     tavernHintSeen: false,
+    guild: {},
+    charters: 0,
+    trainedAt: null,
     mastery: Object.fromEntries(MASTERY_TYPES.map((type) => [type, { level: 1, progress: 0 }])),
     nextUid: 1,
   };

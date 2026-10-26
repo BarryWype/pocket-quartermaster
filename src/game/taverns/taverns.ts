@@ -9,6 +9,7 @@ import { forgedItem, unlockRecipe } from '../crafting/crafting';
 import { nextRotationAt, rotationDay } from '../dungeons/rotation';
 import { isDungeonUnlocked } from '../expeditions/expeditions';
 import { masteryTypeOf, startingMastery } from '../forging/mastery';
+import { guildBonus, tavernOfferCount } from '../guild/guild';
 import { distanceMeters } from '../generation/geo';
 import { createRng } from '../generation/rng';
 import { randomPointInTile, tilesAround } from '../generation/tiles';
@@ -82,7 +83,9 @@ export function tavernOffers(save: SaveData, tavernId: string, now: number, seed
   const rng = createRng(`offers|${tavernId}|${day}|${seed}`);
   const classIds = Object.keys(heroClasses) as HeroClassId[];
   const level = offerLevel(save, rules);
-  return Array.from({ length: rules.offersPerTavern }, (_, i) => {
+  // Offers are drawn one after another from the seed, so a 4th one leaves the first 3 unchanged.
+  const discount = 1 - guildBonus(save, 'tavernDiscount');
+  return Array.from({ length: tavernOfferCount(save) }, (_, i) => {
     const rarity = rng.weighted(Object.keys(rules.rarityWeights) as ClassRarity[], (r) => rules.rarityWeights[r]);
     const classId = rng.weighted(
       classIds.filter((id) => heroClasses[id].rarity === rarity),
@@ -97,7 +100,7 @@ export function tavernOffers(save: SaveData, tavernId: string, now: number, seed
       name: names[rng.int(0, names.length - 1)],
       level,
       trait: pool[rng.int(0, pool.length - 1)].id,
-      price: recruitPrice(rarity, level, save.heroes.length, positive, rules),
+      price: Math.round(recruitPrice(rarity, level, save.heroes.length, positive, rules) * discount),
       expiresAt: nextRotationAt(now),
     };
   });
