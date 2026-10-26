@@ -3,9 +3,11 @@ import { Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 
-import { useNotifications } from '@/hooks/useNotifications';
+import { useLanguage } from '@/hooks/useLanguage';
+import { syncPlan, useNotifications } from '@/hooks/useNotifications';
 import { useStepTracking } from '@/hooks/useTodaySteps';
-import { configureNotifications } from '@/services/notifications';
+import { t } from '@/i18n';
+import { configureChannels, configureNotifications } from '@/services/notifications';
 import { useGameStore } from '@/store/gameStore';
 import { colors, fonts } from '@/theme';
 
@@ -34,6 +36,11 @@ function useExpeditionResolver() {
 }
 
 export default function RootLayout() {
+  const locale = useLanguage();
+  useEffect(() => {
+    configureChannels();
+    syncPlan();
+  }, [locale]);
   useExpeditionResolver();
   useStepTracking();
   useNotifications();
@@ -54,16 +61,16 @@ export default function RootLayout() {
         contentStyle: { backgroundColor: colors.parchment },
       }}
     >
-      <Stack.Screen name="index" options={{ title: 'Map', headerShown: false }} />
-      <Stack.Screen name="forge" options={{ title: 'Forge' }} />
-      <Stack.Screen name="alchemy" options={{ title: 'Alchemy' }} />
-      <Stack.Screen name="inventory" options={{ title: 'Inventory' }} />
-      <Stack.Screen name="team/index" options={{ title: 'Team' }} />
-      <Stack.Screen name="team/[heroId]" options={{ title: 'Character sheet' }} />
-      <Stack.Screen name="expeditions" options={{ title: 'Expeditions' }} />
-      <Stack.Screen name="guild" options={{ title: 'Guild Hall' }} />
-      <Stack.Screen name="settings" options={{ title: 'Settings' }} />
-      <Stack.Screen name="debug" options={{ title: 'Debug' }} />
+      <Stack.Screen name="index" options={{ title: t('screens.map'), headerShown: false }} />
+      <Stack.Screen name="forge" options={{ title: t('screens.forge') }} />
+      <Stack.Screen name="alchemy" options={{ title: t('screens.alchemy') }} />
+      <Stack.Screen name="inventory" options={{ title: t('screens.inventory') }} />
+      <Stack.Screen name="team/index" options={{ title: t('screens.team') }} />
+      <Stack.Screen name="team/[heroId]" options={{ title: t('screens.hero') }} />
+      <Stack.Screen name="expeditions" options={{ title: t('screens.expeditions') }} />
+      <Stack.Screen name="guild" options={{ title: t('screens.guild') }} />
+      <Stack.Screen name="settings" options={{ title: t('screens.settings') }} />
+      <Stack.Screen name="debug" options={{ title: t('screens.debug') }} />
     </Stack>
   );
 }

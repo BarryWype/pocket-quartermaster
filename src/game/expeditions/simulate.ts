@@ -313,7 +313,10 @@ export function simulateRun(
     };
     /** A protector takes a share of the hits aimed at the most hurt ally. */
     const shielded = (target: HeroState, amount: number) => {
-      const lowest = alive().reduce((low, h) => (h.hp / h.member.maxHp < low.hp / low.member.maxHp ? h : low));
+      // A sweep can knock out the whole party before it reaches this hero.
+      const living = alive();
+      if (!living.includes(target)) return amount;
+      const lowest = living.reduce((low, h) => (h.hp / h.member.maxHp < low.hp / low.member.maxHp ? h : low));
       if (lowest !== target) return amount;
       const protector = alive().find((h) => h !== target && own(h, 'protect'));
       if (!protector) return amount;

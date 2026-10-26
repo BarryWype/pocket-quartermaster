@@ -32,6 +32,38 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - name: Restore the release keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "::error::The ANDROID_KEYSTORE_BASE64 secret is missing. See README → Releases."
+            exit 1
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
+
+      - name: Check the keystore password and alias
+        # Fails in seconds rather than at the end of a 15-minute build.
+        env:
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if ! keytool -list -keystore "$RUNNER_TEMP/release.keystore" -storepass "$STORE_PASSWORD" > /dev/null 2>&1; then
+            echo "::error::ANDROID_KEYSTORE_PASSWORD doesn't open the keystore in ANDROID_KEYSTORE_BASE64."
+            exit 1
+          fi
+          if ! keytool -list -keystore "$RUNNER_TEMP/release.keystore" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" > /dev/null 2>&1; then
+            echo "::error::The keystore has no key named by ANDROID_KEY_ALIAS. It contains:"
+            keytool -list -keystore "$RUNNER_TEMP/release.keystore" -storepass "$STORE_PASSWORD" | grep -i entry || true
+            exit 1
+          fi
+          # keytool's PKCS12 keystores use the store password for the key too.
+          if [ "$KEY_PASSWORD" != "$STORE_PASSWORD" ]; then
+            echo "::error::ANDROID_KEY_PASSWORD must be the same as ANDROID_KEYSTORE_PASSWORD for this keystore."
+            exit 1
+          fi
+
       - uses: gradle/actions/setup-gradle@v4
 
       - run: npm ci
@@ -46,16 +78,6 @@ jobs:
 
       - name: Generate the Android project
         run: npx expo prebuild --platform android --no-install
-
-      - name: Restore the release keystore
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-        run: |
-          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
-            echo "::error::The ANDROID_KEYSTORE_BASE64 secret is missing. See README → Releases."
-            exit 1
-          fi
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
 
       - name: Build the APK
         working-directory: android

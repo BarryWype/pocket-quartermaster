@@ -317,6 +317,22 @@ npm run typecheck
 npx expo-doctor
 ```
 
+### Balance lab
+
+Plays 30 days with a bot for each player profile and writes `report.html`, `summary.json` and CSVs to `sim-output/<timestamp>/`. The first run measures walk yields and caches them in `sim-output/.cache/`.
+
+```bash
+npm run sim -- --profile all --days 30
+```
+
+Try a number without editing files, and compare with an earlier run:
+
+```bash
+npm run sim -- --set guild.gold.baseCost=80 --compare sim-output/<earlier>/summary.json
+```
+
+Profiles, bot settings and targets live in `src/game/sim/config.ts` and `src/game/sim/targets.ts`. `npm run sim -- --help` lists the options.
+
 ---
 
 ## 7. Releases

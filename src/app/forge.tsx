@@ -4,14 +4,17 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { CraftingStation } from '@/components/CraftingStation';
 import { InfuseStation } from '@/components/InfuseStation';
 import { Text } from '@/components/Text';
+import { useLanguage } from '@/hooks/useLanguage';
+import { t } from '@/i18n';
 import { colors } from '@/theme';
 
 const TABS = [
-  { id: 'forge', label: 'Forge' },
-  { id: 'infuse', label: 'Infuse' },
+  { id: 'forge', label: () => t('crafting.forge') },
+  { id: 'infuse', label: () => t('crafting.infuse') },
 ] as const;
 
 export default function ForgeScreen() {
+  useLanguage();
   const [tab, setTab] = useState<(typeof TABS)[number]['id']>('forge');
 
   return (
@@ -19,11 +22,11 @@ export default function ForgeScreen() {
       <View style={styles.tabs}>
         {TABS.map(({ id, label }) => (
           <Pressable key={id} onPress={() => setTab(id)} style={[styles.tab, tab === id && styles.tabActive]}>
-            <Text style={[styles.tabLabel, tab === id && styles.tabLabelActive]}>{label}</Text>
+            <Text style={[styles.tabLabel, tab === id && styles.tabLabelActive]}>{label()}</Text>
           </Pressable>
         ))}
       </View>
-      {tab === 'forge' ? <CraftingStation station="forge" action="Forge" /> : <InfuseStation />}
+      {tab === 'forge' ? <CraftingStation station="forge" action={t('crafting.forge')} /> : <InfuseStation />}
     </View>
   );
 }

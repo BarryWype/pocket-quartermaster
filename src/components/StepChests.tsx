@@ -5,6 +5,7 @@ import { chests } from '@/content/chests';
 import { materialById, recipeById, recipeOutput } from '@/content/lookup';
 import { chestState, dayKey } from '@/game/rewards/chests';
 import { useTodaySteps } from '@/hooks/useTodaySteps';
+import { formatNumber, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 
 import { Button } from './Button';
@@ -24,7 +25,7 @@ export function StepChests() {
       [
         `🪙 ${reward.gold}`,
         ...reward.materials.map((m) => `${materialById[m.materialId].emoji} ${m.amount}`),
-        reward.recipeId ? `📜 ${recipeOutput(recipeById[reward.recipeId]).name}` : null,
+        reward.recipeId ? `📜 ${tr(recipeOutput(recipeById[reward.recipeId]).name)}` : null,
       ]
         .filter(Boolean)
         .join('  '),
@@ -33,26 +34,26 @@ export function StepChests() {
 
   return (
     <>
-      <SectionTitle>{`Daily step chests · ${steps.toLocaleString()} steps today`}</SectionTitle>
+      <SectionTitle>{t('chests.title', { steps: formatNumber(steps) })}</SectionTitle>
       {chests.map((chest) => {
         const state = chestState(save, chest, steps, day);
         return (
           <Row
             key={chest.id}
             emoji={chest.emoji}
-            title={chest.name}
-            subtitle={`${chest.steps.toLocaleString()} steps`}
+            title={tr(chest.name)}
+            subtitle={t('chests.steps', { steps: formatNumber(chest.steps) })}
             right={
               state === 'opened' ? (
-                'Opened'
+                t('chests.opened')
               ) : (
-                <Button title="Open" disabled={state === 'locked'} onPress={() => open(chest.id)} />
+                <Button title={t('chests.open')} disabled={state === 'locked'} onPress={() => open(chest.id)} />
               )
             }
           />
         );
       })}
-      {message && <Text style={styles.reward}>Chest reward: {message}</Text>}
+      {message && <Text style={styles.reward}>{t('chests.reward', { reward: message })}</Text>}
     </>
   );
 }

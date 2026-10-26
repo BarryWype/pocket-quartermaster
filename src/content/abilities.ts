@@ -1,4 +1,5 @@
 import type { Ability } from '@/game/types';
+import { formatNumber, formatPercent as percent, t, tr } from '@/i18n';
 
 import { tagInfo } from './rotation';
 
@@ -6,48 +7,49 @@ import { tagInfo } from './rotation';
 export function abilityText(ability: Ability): string {
   switch (ability.kind) {
     case 'damageVsTag':
-      return `+${Math.round((ability.multiplier - 1) * 100)}% damage against ${tagInfo[ability.tag].name.toLowerCase()}`;
+      return t('abilities.damageVsTag', { percent: percent(ability.multiplier - 1), tag: tr(tagInfo[ability.tag].name).toLowerCase() });
     case 'trapDisarm':
-      return `Disarms traps (${Math.round(ability.chance * 100)}%)`;
+      return t('abilities.trapDisarm', { percent: percent(ability.chance) });
     case 'trapReduce':
-      return `Trap damage ×${ability.multiplier} for the party`;
+      return t('abilities.trapReduce', { multiplier: formatNumber(ability.multiplier) });
     case 'obstacleSolve':
-      return `Clears ${ability.kinds.join(' and ')} obstacles`;
+      return t('abilities.obstacleSolve', { kinds: ability.kinds.map((kind) => t(`abilities.obstacles.${kind}`)).join(t('common.and')) });
     case 'calmBeasts':
-      return `Calms beast fights (${Math.round(ability.chance * 100)}%)`;
+      return t('abilities.calmBeasts', { percent: percent(ability.chance) });
     case 'localsReaction':
-      return { charm: 'Charms locals into helping', provoke: 'Provokes locals into a fight', pickpocket: 'Picks locals’ pockets' }[
-        ability.key
-      ];
+      return t(`abilities.${ability.key}`);
     case 'partyHeal':
-      return `Heals the party ${Math.round(ability.pct * 100)}% after each encounter`;
+      return t('abilities.partyHeal', { percent: percent(ability.pct) });
     case 'protect':
-      return `Takes ${Math.round(ability.share * 100)}% of the hits aimed at the most hurt ally`;
+      return t('abilities.protect', { percent: percent(ability.share) });
     case 'rage':
-      return `+${Math.round((ability.multiplier - 1) * 100)}% damage below ${Math.round(ability.belowPct * 100)}% HP`;
+      return t('abilities.rage', { percent: percent(ability.multiplier - 1), below: percent(ability.belowPct) });
     case 'partyDamageBuff':
-      return `+${Math.round((ability.multiplier - 1) * 100)}% damage for the whole party`;
+      return t('abilities.partyDamageBuff', { percent: percent(ability.multiplier - 1) });
     case 'critBonus':
-      return `+${Math.round(ability.chance * 100)}% critical hits`;
+      return t('abilities.critBonus', { percent: percent(ability.chance) });
     case 'cacheBonus':
-      return `×${ability.multiplier} gold from hidden caches`;
+      return t('abilities.cacheBonus', { multiplier: formatNumber(ability.multiplier) });
     case 'elementalAdvantage':
-      return `×${ability.multiplier} elemental advantage with an infused weapon`;
+      return t('abilities.elementalAdvantage', { multiplier: formatNumber(ability.multiplier) });
     case 'statMultiplier':
-      return `+${Math.round((ability.multiplier - 1) * 100)}% ${ability.stat}`;
+      return t('abilities.statMultiplier', { percent: percent(ability.multiplier - 1), stat: t(`abilities.stats.${ability.stat}`) });
     case 'goldMultiplier':
-      return `${ability.multiplier >= 1 ? '+' : '−'}${Math.round(Math.abs(ability.multiplier - 1) * 100)}% gold`;
+      return t('abilities.goldMultiplier', {
+        sign: ability.multiplier >= 1 ? '+' : '−',
+        percent: percent(Math.abs(ability.multiplier - 1)),
+      });
     case 'xpMultiplier':
-      return `+${Math.round((ability.multiplier - 1) * 100)}% XP`;
+      return t('abilities.xpMultiplier', { percent: percent(ability.multiplier - 1) });
     case 'ambushAlert':
-      return 'Ambushes don’t strike first';
+      return t('abilities.ambushAlert');
     case 'rationBoost':
-      return `Rations heal ×${ability.multiplier}`;
+      return t('abilities.rationBoost', { multiplier: formatNumber(ability.multiplier) });
     case 'trapTrigger':
-      return 'Traps trigger more often';
+      return t('abilities.trapTrigger');
     case 'potionThreshold':
-      return 'Drinks potions early';
+      return t('abilities.potionThreshold');
     case 'hostileLocals':
-      return 'Locals turn hostile more often';
+      return t('abilities.hostileLocals');
   }
 }

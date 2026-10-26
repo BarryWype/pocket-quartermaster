@@ -2,19 +2,17 @@ import { chests } from '@/content/chests';
 import { dungeons } from '@/content/dungeons';
 import { guildTracks, type GuildTrack, type GuildTrackId } from '@/content/guild';
 import { mainRewardPool, mainRewardRules } from '@/content/mainRewards';
-import { recruitRules } from '@/content/roster';
 import { treasureRules, treasureTiers } from '@/content/treasure';
 
 import { resolveExpedition, startExpedition } from '../expeditions/expeditions';
 import { rankCost } from '../guild/guild';
 import { createInitialSave, type SaveData } from '../save';
-import { recruitPrice } from '../taverns/taverns';
 import { equip } from '../team/team';
 import type { DungeonDef } from '../types';
 
-// A rough, deterministic model of a player's gold, used to tune Guild Hall
-// prices: income per tier from simulated expeditions, and when upgrades and
-// recruits pay for themselves.
+// A rough, deterministic model of a player's gold: income per tier from
+// simulated expeditions with a reference team, and when Guild Hall upgrades pay
+// for themselves. The balance lab reports it next to the payback it measures.
 
 export const economyConfig = {
   /** Expeditions per day, by slot. */
@@ -164,66 +162,6 @@ export function paybacks(incomes: TierIncome[], gates: number[], config: Config 
       return { track: track.id, rank, cost, boughtOn, days };
     });
   });
-}
-
-/** What a recruit costs on average: the rarity and trait mix, at the level offered on that day. */
-export function averageRecruitPrice(day: number, rosterSize: number, config: Config = economyConfig) {
-  const level = Math.max(1, Math.round(config.levels[tierOnDay(day, config) - 1] - recruitRules.levelsBelowAverage));
-  const positive = recruitRules.positiveTraitChance;
-  return (['common', 'uncommon'] as const).reduce(
-    (sum, rarity) =>
-      sum +
-      recruitRules.rarityWeights[rarity] *
-        (positive * recruitPrice(rarity, level, rosterSize, true) + (1 - positive) * recruitPrice(rarity, level, rosterSize, false)),
-    0,
-  );
-}
-
-export type Timeline = { recruits: number[]; maxed: Partial<Record<string, number>>; everything: number | null };
-
-/**
- * Spends a day's income as it comes: recruits first (when `withRecruits`), then
- * the cheapest unlocked Guild Hall rank. Gold and main reward ranks raise later
- * income. Returns the day each recruit and each building's last rank were bought.
- */
-export function spendTimeline(incomes: TierIncome[], gates: number[], withRecruits: boolean, config: Config = economyConfig, days = 120): Timeline {
-  const ranks: Partial<Record<GuildTrackId, number>> = {};
-  const recruits: number[] = [];
-  const maxed: Partial<Record<string, number>> = {};
-  let gold = 0;
-  let everything: number | null = null;
-  for (let day = 0; day < days; day++) {
-    const income = incomes[tierOnDay(day, config) - 1];
-    gold +=
-      income.dungeonGold * (1 + 0.1 * (ranks.gold ?? 0)) +
-      income.mainRewardsPerRank * (ranks.mainRewards ?? 0) +
-      config.chestGoldPerDay;
-    const hallOpen = day >= bossBeatenOn(1, config);
-    while (withRecruits && hallOpen && recruits.length < 3) {
-      const price = averageRecruitPrice(day, 3 + recruits.length);
-      if (gold < price) break;
-      gold -= price;
-      recruits.push(day);
-    }
-    if (withRecruits && recruits.length < 3) continue;
-    for (;;) {
-      const options = guildTracks
-        .filter((t) => (ranks[t.id] ?? 0) < t.ranks && (!t.requires || (ranks[t.requires] ?? 0) >= 1))
-        .map((t) => ({ t, rank: (ranks[t.id] ?? 0) + 1 }))
-        .filter(({ t, rank }) => hallOpen && rankUnlockDay(t, rank, gates, config) <= day)
-        .sort((a, b) => rankCost(a.t, a.rank) - rankCost(b.t, b.rank));
-      const next = options[0];
-      if (!next || gold < rankCost(next.t, next.rank)) break;
-      gold -= rankCost(next.t, next.rank);
-      ranks[next.t.id] = next.rank;
-      for (const building of ['warRoom', 'treasury', 'barracks']) {
-        const tracks = guildTracks.filter((t) => t.building === building);
-        if (maxed[building] === undefined && tracks.every((t) => (ranks[t.id] ?? 0) >= t.ranks)) maxed[building] = day;
-      }
-    }
-    if (everything === null && guildTracks.every((t) => (ranks[t.id] ?? 0) >= t.ranks)) everything = day;
-  }
-  return { recruits, maxed, everything };
 }
 
 /** Total gold to max each building. */

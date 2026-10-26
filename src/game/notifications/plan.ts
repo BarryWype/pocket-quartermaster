@@ -1,5 +1,7 @@
 import { dungeonById, recipeById, recipeOutput } from '@/content/lookup';
-import { notificationCategories, notificationRules, notificationTexts } from '@/content/notifications';
+import { frNotificationTexts } from '@/content/fr/notifications';
+import { notificationCategories, notificationRules, notificationTexts as enNotificationTexts } from '@/content/notifications';
+import { fill, localized, tr } from '@/i18n';
 
 import { resolveExpedition } from '../expeditions/expeditions';
 import type { SaveData } from '../save';
@@ -9,9 +11,10 @@ import type { NotificationCategory, NotificationSettings, PlannedNotification } 
 
 type Rules = typeof notificationRules;
 
-export function fill(template: string, vars: Record<string, string | number>) {
-  return template.replace(/\{(\w+)\}/g, (match, key: string) => String(vars[key] ?? match));
-}
+export { fill };
+
+/** The notification wording in the current language. */
+export const notificationTexts = () => localized({ en: enNotificationTexts, fr: frNotificationTexts });
 
 export function defaultNotificationSettings(): NotificationSettings {
   return {
@@ -35,10 +38,10 @@ export function previewExpedition(save: SaveData, expedition: ActiveExpedition):
 /** What makes a result worth highlighting. Sigils come from the main reward roll. */
 export function highlightsOf(report: ExpeditionReport): string[] {
   if (!report.success) return [];
-  const { highlights } = notificationTexts;
+  const { highlights } = notificationTexts();
   return [
     dungeonById[report.dungeonId].isBoss ? highlights.boss : null,
-    report.recipeId ? fill(highlights.blueprint, { item: recipeOutput(recipeById[report.recipeId]).name }) : null,
+    report.recipeId ? fill(highlights.blueprint, { item: tr(recipeOutput(recipeById[report.recipeId]).name) }) : null,
     report.mainRewards.some((r) => r.kind === 'sigil') ? highlights.sigil : null,
   ].filter((line): line is string => line !== null);
 }
@@ -67,10 +70,10 @@ function expeditionNotifications(save: SaveData, settings: NotificationSettings,
     const category: NotificationCategory = big ? 'bigResult' : 'expeditionFinished';
     const at = Math.max(...cluster.map((e) => e.endsAt));
     const id = `expedition:${cluster.map((e) => e.id).join('+')}`;
-    const t = notificationTexts;
+    const t = notificationTexts();
     if (results.length === 1) {
       const [{ report, highlights }] = results;
-      const dungeon = dungeonById[report.dungeonId].name;
+      const dungeon = tr(dungeonById[report.dungeonId].name);
       const text = big ? t.bigResult : t.finished;
       return [
         {
@@ -84,7 +87,7 @@ function expeditionNotifications(save: SaveData, settings: NotificationSettings,
       ];
     }
     const lines = results.map(({ report, highlights }) => {
-      const dungeon = dungeonById[report.dungeonId].name;
+      const dungeon = tr(dungeonById[report.dungeonId].name);
       return `${dungeon}: ${highlights.length ? highlights.join(', ') : t.outcome[report.outcome]}`;
     });
     const text = big ? t.groupBigResult : t.groupFinished;
@@ -98,7 +101,7 @@ function idleNotification(save: SaveData, rules: Rules): PlannedNotification[] {
     ? Math.max(...save.expeditions.map((e) => e.endsAt))
     : (save.reports[0]?.finishedAt ?? null);
   if (lastActive === null) return [];
-  const t = notificationTexts.heroesIdle;
+  const t = notificationTexts().heroesIdle;
   return [
     { id: 'idle', category: 'heroesIdle', group: 'expeditions', at: lastActive + rules.idleHours * 3_600_000, ...t },
   ];
@@ -108,7 +111,7 @@ function idleNotification(save: SaveData, rules: Rules): PlannedNotification[] {
 function dailyResetNotification(now: number): PlannedNotification[] {
   const midnight = new Date(now);
   midnight.setHours(24, 0, 0, 0);
-  return [{ id: 'daily', category: 'dailyReset', group: 'steps', at: midnight.getTime(), ...notificationTexts.dailyReset }];
+  return [{ id: 'daily', category: 'dailyReset', group: 'steps', at: midnight.getTime(), ...notificationTexts().dailyReset }];
 }
 
 /**

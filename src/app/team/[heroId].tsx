@@ -15,12 +15,15 @@ import { traitById } from '@/content/traits';
 import { gearName, itemById } from '@/content/lookup';
 import { canDismiss, heroStats, isOnExpedition } from '@/game/team/team';
 import type { EquipmentSlot, WeaponType } from '@/game/types';
+import { useLanguage } from '@/hooks/useLanguage';
+import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
 
 const SLOTS: EquipmentSlot[] = ['weapon', 'armor', 'consumable'];
 
 export default function CharacterSheetScreen() {
+  useLanguage();
   const { heroId } = useLocalSearchParams<{ heroId: string }>();
   const save = useGameStore((state) => state.save);
   const equip = useGameStore((state) => state.equip);
@@ -28,7 +31,7 @@ export default function CharacterSheetScreen() {
   const [picking, setPicking] = useState<EquipmentSlot | null>(null);
 
   const hero = save.heroes.find((h) => h.id === heroId);
-  if (!hero) return <PlaceholderScreen title="Unknown hero" description="This hero is not in your team." />;
+  if (!hero) return <PlaceholderScreen title={t('hero.unknown')} description={t('hero.unknownHint')} />;
 
   const heroClass = heroClasses[hero.classId];
   const stats = heroStats(save, hero);
@@ -36,18 +39,18 @@ export default function CharacterSheetScreen() {
 
   const slotLabel = (slot: EquipmentSlot) => {
     const id = hero.equipment[slot];
-    if (!id) return 'Empty';
-    if (slot === 'consumable') return `${itemById[id].emoji} ${itemById[id].name}`;
+    if (!id) return t('hero.empty');
+    if (slot === 'consumable') return `${itemById[id].emoji} ${tr(itemById[id].name)}`;
     const gear = save.gear.find((g) => g.uid === id);
-    return gear ? `${itemById[gear.itemId].emoji} ${gearName(gear)}` : 'Empty';
+    return gear ? `${itemById[gear.itemId].emoji} ${gearName(gear)}` : t('hero.empty');
   };
   const trait = traitById[hero.trait];
-  const weapons = (Object.keys(heroClass.affinities) as WeaponType[]).map((w) => masteryTypeNames[w].name.toLowerCase());
+  const weapons = (Object.keys(heroClass.affinities) as WeaponType[]).map((w) => tr(masteryTypeNames[w].name).toLowerCase());
   const confirmDismiss = () =>
-    Alert.alert(`Dismiss ${hero.name}?`, 'Their gear and consumable go back to your inventory. This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('hero.dismissTitle', { name: hero.name }), t('hero.dismissBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Dismiss',
+        text: t('hero.dismiss'),
         style: 'destructive',
         onPress: () => {
           router.back();
@@ -67,42 +70,42 @@ export default function CharacterSheetScreen() {
       <View style={styles.card}>
         <Row
           emoji={heroClass.emoji}
-          title={`${hero.name} · ${heroClass.name}`}
-          subtitle={`Level ${hero.level} · XP ${hero.xp}/${xpToNextLevel(hero.level)}${away ? ' · on expedition' : ''}`}
+          title={`${hero.name} · ${tr(heroClass.name)}`}
+          subtitle={`${t('hero.xp', { level: hero.level, xp: hero.xp, next: xpToNextLevel(hero.level) })}${away ? t('common.onExpedition') : ''}`}
         />
         <Text style={styles.stats}>
           ⚔️ {stats.attack}   🛡️ {stats.defense}   ✨ {stats.magic}   ❤️ {stats.hp}
         </Text>
         {SLOTS.map((slot) => (
           <View key={slot} style={styles.slot}>
-            <Text style={styles.slotName}>{slot}</Text>
+            <Text style={styles.slotName}>{t(`hero.slots.${slot}`)}</Text>
             <Text style={[styles.slotValue, slotColor(slot)]}>{slotLabel(slot)}</Text>
-            <Button title="Change" disabled={away} onPress={() => setPicking(slot)} />
+            <Button title={t('hero.change')} disabled={away} onPress={() => setPicking(slot)} />
           </View>
         ))}
-        {away && <Text style={styles.hint}>Equipment can be changed once the hero is back.</Text>}
+        {away && <Text style={styles.hint}>{t('hero.awayHint')}</Text>}
       </View>
 
       <View style={styles.details}>
         {trait && (
           <Text style={{ color: trait.positive ? colors.ink : colors.danger }}>
-            Trait: {trait.name}. {trait.description}
+            {t('hero.trait', { name: tr(trait.name), description: tr(trait.description) })}
           </Text>
         )}
-        <Text>Weapons: {weapons.join(', ')} (any armour)</Text>
+        <Text>{t('hero.weapons', { weapons: weapons.join(', ') })}</Text>
         {heroClass.abilities.map((ability, i) => (
           <Text key={i} style={styles.hint}>
             • {abilityText(ability)}
           </Text>
         ))}
         <Button
-          title="Dismiss"
+          title={t('hero.dismiss')}
           color={colors.danger}
           disabled={!canDismiss(save, hero.id)}
           onPress={confirmDismiss}
         />
         {!canDismiss(save, hero.id) && (
-          <Text style={styles.hint}>{away ? 'Heroes on an expedition can’t be dismissed.' : 'Your last hero can’t be dismissed.'}</Text>
+          <Text style={styles.hint}>{away ? t('hero.cantDismissAway') : t('hero.cantDismissLast')}</Text>
         )}
       </View>
 

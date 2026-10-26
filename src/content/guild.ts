@@ -1,4 +1,5 @@
 import type { MaterialStack } from '@/game/types';
+import { formatPercent, t } from '@/i18n';
 
 export type GuildBuildingId = 'warRoom' | 'treasury' | 'barracks';
 
@@ -44,27 +45,27 @@ export const guildBuildings: Record<GuildBuildingId, { name: string; emoji: stri
   barracks: { name: 'Barracks', emoji: '🛏️' },
 };
 
-const pct = (value: number) => `${Math.round(value * 100)}%`;
+const pct = formatPercent;
 
 export const guildTracks: GuildTrack[] = [
   // War room
-  { id: 'heroXp', building: 'warRoom', name: 'Hero XP', ranks: 4, perRank: 0.1, baseCost: 150, describe: (r) => `+${pct(r * 0.1)} XP from expeditions` },
-  { id: 'fasterExpeditions', building: 'warRoom', name: 'Faster expeditions', ranks: 3, perRank: 0.1, baseCost: 250, describe: (r) => `−${pct(r * 0.1)} expedition time` },
-  { id: 'betterRetreats', building: 'warRoom', name: 'Better retreats', ranks: 3, perRank: 0.15, baseCost: 80, describe: (r) => `+${pct(r * 0.15)} rewards from retreats` },
-  { id: 'scouting', building: 'warRoom', name: 'Scouting report', ranks: 1, perRank: 1, baseCost: 400, gate: 1, describe: (r) => (r ? 'See tomorrow’s dungeons' : 'Tomorrow’s dungeons hidden') },
-  { id: 'partySlot', building: 'warRoom', name: 'Extra party slot', ranks: 1, perRank: 1, baseCost: 3000, milestone: true, gate: 3, describe: (r) => `${3 + r} heroes per expedition` },
+  { id: 'heroXp', building: 'warRoom', name: 'Hero XP', ranks: 4, perRank: 0.1, baseCost: 150, describe: (r) => t('guildTracks.heroXp', { percent: pct(r * 0.1) }) },
+  { id: 'fasterExpeditions', building: 'warRoom', name: 'Faster expeditions', ranks: 3, perRank: 0.1, baseCost: 250, describe: (r) => t('guildTracks.fasterExpeditions', { percent: pct(r * 0.1) }) },
+  { id: 'betterRetreats', building: 'warRoom', name: 'Better retreats', ranks: 3, perRank: 0.15, baseCost: 80, describe: (r) => t('guildTracks.betterRetreats', { percent: pct(r * 0.15) }) },
+  { id: 'scouting', building: 'warRoom', name: 'Scouting report', ranks: 1, perRank: 1, baseCost: 400, gate: 1, describe: (r) => t(r ? 'guildTracks.scoutingOn' : 'guildTracks.scoutingOff') },
+  { id: 'partySlot', building: 'warRoom', name: 'Extra party slot', ranks: 1, perRank: 1, baseCost: 3000, milestone: true, gate: 3, describe: (r) => t('guildTracks.partySlot', { count: 3 + r }) },
   // Treasury
-  { id: 'gold', building: 'treasury', name: 'Gold', ranks: 4, perRank: 0.1, baseCost: 100, describe: (r) => `+${pct(r * 0.1)} dungeon gold` },
-  { id: 'mainRewards', building: 'treasury', name: 'Main rewards', ranks: 3, perRank: 0.1, baseCost: 50, describe: (r) => `+${pct(r * 0.1)} main reward chance` },
-  { id: 'shards', building: 'treasury', name: 'Shards', ranks: 3, perRank: 1, baseCost: 200, gate: 1, describe: (r) => `+${r} shards per Sanctum win` },
-  { id: 'stepChests', building: 'treasury', name: 'Step chests', ranks: 3, perRank: 1, baseCost: 100, describe: (r) => `+${r} loot rolls per step chest` },
-  { id: 'sigilCap', building: 'treasury', name: 'Sigil cap', ranks: 1, perRank: 1, baseCost: 2500, milestone: true, gate: 3, describe: (r) => `Hold ${3 + r} Sigils` },
+  { id: 'gold', building: 'treasury', name: 'Gold', ranks: 4, perRank: 0.1, baseCost: 100, describe: (r) => t('guildTracks.gold', { percent: pct(r * 0.1) }) },
+  { id: 'mainRewards', building: 'treasury', name: 'Main rewards', ranks: 3, perRank: 0.1, baseCost: 50, describe: (r) => t('guildTracks.mainRewards', { percent: pct(r * 0.1) }) },
+  { id: 'shards', building: 'treasury', name: 'Shards', ranks: 3, perRank: 1, baseCost: 200, gate: 1, describe: (r) => t('guildTracks.shards', { count: r }) },
+  { id: 'stepChests', building: 'treasury', name: 'Step chests', ranks: 3, perRank: 1, baseCost: 100, describe: (r) => t('guildTracks.stepChests', { count: r }) },
+  { id: 'sigilCap', building: 'treasury', name: 'Sigil cap', ranks: 1, perRank: 1, baseCost: 2500, milestone: true, gate: 3, describe: (r) => t('guildTracks.sigilCap', { count: 3 + r }) },
   // Barracks
-  { id: 'tavernDiscount', building: 'barracks', name: 'Tavern discount', ranks: 3, perRank: 0.1, baseCost: 120, describe: (r) => `−${pct(r * 0.1)} recruit price` },
-  { id: 'tavernOffer', building: 'barracks', name: 'Extra tavern offer', ranks: 1, perRank: 1, baseCost: 500, gate: 1, describe: (r) => `${3 + r} recruits per tavern` },
-  { id: 'training', building: 'barracks', name: 'Training', ranks: 3, perRank: 2, baseCost: 250, describe: (r) => `${r * 2} XP per hour for heroes at home` },
-  { id: 'rosterSlot7', building: 'barracks', name: 'Roster slot 7', ranks: 1, perRank: 1, baseCost: 1200, milestone: true, gate: 2, describe: (r) => `Roster of ${6 + r}` },
-  { id: 'rosterSlot8', building: 'barracks', name: 'Roster slot 8', ranks: 1, perRank: 1, baseCost: 4000, milestone: true, gate: 4, requires: 'rosterSlot7', describe: (r) => `Roster of ${7 + r}` },
+  { id: 'tavernDiscount', building: 'barracks', name: 'Tavern discount', ranks: 3, perRank: 0.1, baseCost: 120, describe: (r) => t('guildTracks.tavernDiscount', { percent: pct(r * 0.1) }) },
+  { id: 'tavernOffer', building: 'barracks', name: 'Extra tavern offer', ranks: 1, perRank: 1, baseCost: 500, gate: 1, describe: (r) => t('guildTracks.tavernOffer', { count: 3 + r }) },
+  { id: 'training', building: 'barracks', name: 'Training', ranks: 3, perRank: 2, baseCost: 250, describe: (r) => t('guildTracks.training', { count: r * 2 }) },
+  { id: 'rosterSlot7', building: 'barracks', name: 'Roster slot 7', ranks: 1, perRank: 1, baseCost: 1200, milestone: true, gate: 2, describe: (r) => t('guildTracks.roster', { count: 6 + r }) },
+  { id: 'rosterSlot8', building: 'barracks', name: 'Roster slot 8', ranks: 1, perRank: 1, baseCost: 4000, milestone: true, gate: 4, requires: 'rosterSlot7', describe: (r) => t('guildTracks.roster', { count: 7 + r }) },
 ];
 
 export const guildRules = {

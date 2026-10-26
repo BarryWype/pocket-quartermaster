@@ -1,5 +1,7 @@
 import { sanctumGuardian, sanctumMinionId } from '@/content/enemies';
+import { frLogTemplates } from '@/content/fr/logTemplates';
 import { logTemplates } from '@/content/logTemplates';
+import { fill, localized, tr } from '@/i18n';
 import { guildRules } from '@/content/guild';
 import { sanctumRules, sanctums } from '@/content/sanctums';
 
@@ -144,7 +146,9 @@ export function challengeSanctum(
       gold: 0,
       recipeItemName: null,
       mainRewards: [],
-      summary: (win ? logTemplates.sanctumWon : logTemplates.sanctumLost)[0].replace('{guardian}', dungeon.boss.name),
+      summary: fill(localized({ en: logTemplates, fr: frLogTemplates })[win ? 'sanctumWon' : 'sanctumLost'][0], {
+        guardian: tr(dungeon.boss.name),
+      }),
     },
     createRng(`${seed}|log`),
   );

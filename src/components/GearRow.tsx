@@ -5,6 +5,7 @@ import { qualities } from '@/content/forging';
 import { gearName, itemById } from '@/content/lookup';
 import { gearStats } from '@/game/forging/quality';
 import type { GearInstance } from '@/game/types';
+import { tr } from '@/i18n';
 
 import { Row } from './Row';
 
@@ -27,7 +28,7 @@ export function GearRow({ gear, note, right }: Props) {
   const item = itemById[gear.itemId];
   const subtitle = [
     gearStatsText(gear),
-    gear.element ? `${elementInfo[gear.element].emoji} ${elementInfo[gear.element].name}` : null,
+    gear.element ? `${elementInfo[gear.element].emoji} ${tr(elementInfo[gear.element].name)}` : null,
     note,
   ]
     .filter(Boolean)

@@ -2,7 +2,7 @@ import { dungeons } from '@/content/dungeons';
 import { heroClasses, newHero } from '@/content/heroes';
 import { recipes } from '@/content/recipes';
 import { heroNames, recruitRules } from '@/content/roster';
-import { tavernNames, tavernRules } from '@/content/taverns';
+import { tavernName, tavernNames, tavernRules } from '@/content/taverns';
 import { traits } from '@/content/traits';
 
 import { forgedItem, unlockRecipe } from '../crafting/crafting';
@@ -42,9 +42,7 @@ export function generateTavernsAround(position: LatLng, rules: TavernRules = tav
     const rng = createRng(`tavern|${tile}`);
     return Array.from({ length: rng.int(rules.perTile[0], rules.perTile[1]) }, (_, i) => ({
       id: `tavern:${tile}:${i}`,
-      name: `The ${tavernNames.adjectives[rng.int(0, tavernNames.adjectives.length - 1)]} ${
-        tavernNames.nouns[rng.int(0, tavernNames.nouns.length - 1)]
-      }`,
+      name: tavernName(rng.int(0, tavernNames.adjectives.length - 1), rng.int(0, tavernNames.nouns.length - 1)),
       position: randomPointInTile(tile, rng),
     }));
   });

@@ -5,18 +5,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { isGuildUnlocked } from '@/game/guild/guild';
 import { tutorialTarget, type MenuTarget } from '@/game/tutorial/tutorial';
+import { t, type TextKey } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
 
 import { Text } from './Text';
 
-type MenuLink = { icon: ImageSourcePropType; label: string; href: Href; target?: MenuTarget };
+type MenuLink = { icon: ImageSourcePropType; label: TextKey; href: Href; target?: MenuTarget };
 
 // Add a station here (e.g. cooking) to list it under Craft.
 const CRAFT_LINKS: MenuLink[] = [
-  { icon: require('../../assets/icons/scaled/menu-forge.png'), label: 'Forge', href: '/forge', target: 'forge' },
-  { icon: require('../../assets/icons/scaled/menu-alchemy.png'), label: 'Alchemy', href: '/alchemy' },
-  { icon: require('../../assets/icons/scaled/menu-inventory.png'), label: 'Inventory', href: '/inventory' },
+  { icon: require('../../assets/icons/scaled/menu-forge.png'), label: 'screens.forge', href: '/forge', target: 'forge' },
+  { icon: require('../../assets/icons/scaled/menu-alchemy.png'), label: 'screens.alchemy', href: '/alchemy' },
+  { icon: require('../../assets/icons/scaled/menu-inventory.png'), label: 'screens.inventory', href: '/inventory' },
 ];
 
 /** Height of the island above the safe area, so overlays can sit above it. */
@@ -53,7 +54,7 @@ export function IslandMenu() {
                 ]}
               >
                 <Image source={link.icon} style={styles.dropdownIcon} />
-                <Text style={styles.dropdownLabel}>{link.label}</Text>
+                <Text style={styles.dropdownLabel}>{t(link.label)}</Text>
               </Pressable>
             ))}
           </View>
@@ -61,21 +62,21 @@ export function IslandMenu() {
         <View style={styles.island}>
           <MenuButton
             icon={require('../../assets/icons/scaled/menu-craft.png')}
-            label={craftOpen ? 'Craft ▾' : 'Craft ▴'}
+            label={craftOpen ? t('menu.craftOpen') : t('menu.craftClosed')}
             active={craftOpen}
             highlight={!craftOpen && CRAFT_LINKS.some((link) => link.target === target)}
             onPress={() => setCraftOpen((open) => !open)}
           />
           <MenuButton
             icon={require('../../assets/icons/scaled/menu-team.png')}
-            label="Team"
+            label={t('screens.team')}
             highlight={target === 'team'}
             onPress={() => go('/team')}
           />
-          <MenuButton emoji={guildOpen ? '🏛️' : '🔒'} label="Guild" onPress={() => go('/guild')} />
+          <MenuButton emoji={guildOpen ? '🏛️' : '🔒'} label={t('menu.guild')} onPress={() => go('/guild')} />
           <MenuButton
             icon={require('../../assets/icons/scaled/menu-expeditions.png')}
-            label="Expeditions"
+            label={t('screens.expeditions')}
             badge={unseenReports}
             highlight={target === 'expeditions'}
             onPress={() => go('/expeditions')}

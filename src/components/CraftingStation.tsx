@@ -9,6 +9,7 @@ import { forgesForNextLevel, masteryCap, masteryOf, masteryTypeOf } from '@/game
 import { qualityOdds } from '@/game/forging/quality';
 import type { SaveData } from '@/game/save';
 import type { GearDef, RecipeDef } from '@/game/types';
+import { formatPercent, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
 
@@ -35,18 +36,20 @@ function MasteryLine({ save, item }: { save: SaveData; item: GearDef }) {
   return (
     <View>
       <Text style={styles.mastery}>
-        {masteryTypeNames[type].name} mastery {level}
+        {t('crafting.mastery', { type: tr(masteryTypeNames[type].name), level })}
         {maxed
-          ? ` · ${TIER_NAMES[item.tier - 1]} mastery maxed.${next ? ` Forge ${next.toLowerCase()} ${masteryTypeNames[type].plural} to keep improving.` : ''}`
+          ? `${t('crafting.maxed', { tier: tr(TIER_NAMES[item.tier - 1]) })}${
+              next ? t('crafting.keepImproving', { tier: tr(next).toLowerCase(), weapons: tr(masteryTypeNames[type].plural) }) : ''
+            }`
           : needed
-            ? ` · ${progress}/${needed} to level ${level + 1}`
+            ? t('crafting.toLevel', { progress, needed, level: level + 1 })
             : ''}
       </Text>
       <Text style={styles.mastery}>
         {QUALITIES.filter((q) => odds[q] > 0).map((q, i) => (
           <Text key={q} style={{ color: qualities[q].color }}>
             {i > 0 ? ' · ' : ''}
-            {qualities[q].name} {odds[q]}%
+            {tr(qualities[q].name)} {formatPercent(odds[q] / 100)}
           </Text>
         ))}
       </Text>
@@ -68,8 +71,8 @@ function ForgeBanner({ result, onClose }: { result: ForgeResult; onClose: () => 
         {gearName(result.gear)}
       </Text>
       <Text>
-        {qualities[quality].name} quality
-        {result.levelUp ? ` · ${masteryTypeNames[result.type].name} mastery is now level ${result.mastery.level}!` : ''}
+        {t('crafting.quality', { quality: tr(qualities[quality].name) })}
+        {result.levelUp ? t('crafting.levelUp', { type: tr(masteryTypeNames[result.type].name), level: result.mastery.level }) : ''}
       </Text>
     </Pressable>
   );
@@ -113,11 +116,11 @@ export function CraftingStation({ station, action }: Props) {
               key={recipe.id}
               emoji={output.emoji}
               icon={output.icon}
-              title={output.name}
+              title={tr(output.name)}
               subtitle={inputs}
               right={
                 ownsTool(save, recipe) ? (
-                  'Owned'
+                  t('crafting.owned')
                 ) : (
                   <Button
                     title={action}

@@ -3,6 +3,8 @@ import { AndroidImportance } from 'expo-notifications';
 import { Platform } from 'react-native';
 
 import { notificationGroups } from '@/content/notifications';
+import { frNotificationGroups } from '@/content/fr/notifications';
+import { localized } from '@/i18n';
 import type { NotificationCategory, NotificationGroup, PlannedNotification } from '@/game/notifications/types';
 
 export type NotificationPermission = { granted: boolean; canAskAgain: boolean };
@@ -24,7 +26,7 @@ export type NotificationService = {
 const PLAN_PREFIX = 'pq:plan:';
 const STEP_PREFIX = 'pq:step:';
 
-/** Shows notifications as banners even while the app is open, and sets up one Android channel per group. */
+/** Shows notifications as banners even while the app is open. */
 export function configureNotifications() {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -34,8 +36,12 @@ export function configureNotifications() {
       shouldSetBadge: false,
     }),
   });
+}
+
+/** One Android channel per group, named in the current language. */
+export function configureChannels() {
   if (Platform.OS === 'android') {
-    for (const [id, group] of Object.entries(notificationGroups)) {
+    for (const [id, group] of Object.entries(localized({ en: notificationGroups, fr: frNotificationGroups }))) {
       Notifications.setNotificationChannelAsync(id, {
         name: group.title,
         description: group.description,

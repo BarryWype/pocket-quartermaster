@@ -16,6 +16,7 @@ import {
   type SanctumResult,
   type SanctumSpawn,
 } from '@/game/sanctums/sanctums';
+import { formatPercent, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
 
@@ -26,12 +27,13 @@ import { TutorialHint } from './TutorialHint';
 const LINE_DELAY_MS = 600;
 
 const problemText: Record<ChallengeProblem, (distance: number) => string> = {
-  used: () => 'You already challenged this Sanctum. It reopens when it refreshes.',
-  expired: () => 'This Sanctum has faded. A new one appears soon.',
-  noSigil: () => 'You need a Sanctum Sigil. Successful expeditions sometimes bring one back.',
-  tooFar: (distance) => `Get within ${sanctumRules.interactionMeters} m to open it (${Math.round(distance)} m away).`,
-  noHeroes: () => 'Pick at least one hero who is at home.',
-  heroAway: () => 'Heroes on an expedition cannot fight here.',
+  used: () => t('sanctum.used'),
+  expired: () => t('sanctum.expired'),
+  noSigil: () => t('sanctum.noSigil'),
+  tooFar: (distance) =>
+    t('common.tooFar', { radius: sanctumRules.interactionMeters, action: t('sanctum.open'), distance: Math.round(distance) }),
+  noHeroes: () => t('sanctum.noHeroes'),
+  heroAway: () => t('sanctum.heroAway'),
 };
 
 type Props = {
@@ -74,23 +76,23 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
 
   const start = () =>
     Alert.alert(
-      `Challenge the ${sanctum.guardian.name}?`,
-      'This is your only attempt: win or lose, the Sigil is spent and this Sanctum closes for you until it refreshes.',
+      t('sanctum.confirmTitle', { guardian: tr(sanctum.guardian.name) }),
+      t('sanctum.confirmBody'),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Challenge', style: 'destructive', onPress: () => tier && setResult(challenge(spawn, tier, heroIds, player)) },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('sanctum.challenge'), style: 'destructive', onPress: () => tier && setResult(challenge(spawn, tier, heroIds, player)) },
       ],
     );
 
   const finished = result && shown >= result.log.length;
   const rewardText = result
     ? [
-        result.reward.shards > 0 && `${result.reward.shards} ${element.name.toLowerCase()} shards`,
-        result.reward.stones > 0 && `${result.reward.stones} ${element.name.toLowerCase()} stone`,
-        result.reward.charter && 'a Guild Hall charter',
+        result.reward.shards > 0 && t('sanctum.shards', { count: result.reward.shards, element: tr(element.name).toLowerCase() }),
+        result.reward.stones > 0 && t('sanctum.stones', { count: result.reward.stones, element: tr(element.name).toLowerCase() }),
+        result.reward.charter && t('sanctum.charter'),
       ]
         .filter(Boolean)
-        .join(' and ')
+        .join(t('common.and'))
     : '';
 
   return (
@@ -100,28 +102,30 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
           <ScrollView contentContainerStyle={styles.content}>
             <TutorialHint screen="sanctum" />
             <Text style={styles.title}>
-              {sanctum.emoji} {sanctum.name}
+              {sanctum.emoji} {tr(sanctum.name)}
             </Text>
             <Text style={styles.muted}>
-              {element.emoji} {element.name} · {sanctum.description}
+              {element.emoji} {tr(element.name)} · {tr(sanctum.description)}
             </Text>
-            <Text style={styles.subtitle}>Guardian: {sanctum.guardian.name}</Text>
-            <Text style={styles.muted}>{sanctum.guardian.description}</Text>
+            <Text style={styles.subtitle}>{t('sanctum.guardian', { name: tr(sanctum.guardian.name) })}</Text>
+            <Text style={styles.muted}>{tr(sanctum.guardian.description)}</Text>
 
             {!result && (
               <>
-                <Text style={styles.subtitle}>Sigil</Text>
+                <Text style={styles.subtitle}>{t('sanctum.sigil')}</Text>
                 <View style={styles.chips}>
-                  {tiers.length === 0 && <Text style={styles.muted}>No Sigil held.</Text>}
-                  {tiers.map((t) => (
-                    <Pressable key={t} onPress={() => setTier(t)} style={[styles.chip, tier === t && styles.chipActive]}>
-                      <Text>
-                        Tier {t} ×{save.sigils.filter((s) => s === t).length}
-                      </Text>
+                  {tiers.length === 0 && <Text style={styles.muted}>{t('sanctum.noSigilHeld')}</Text>}
+                  {tiers.map((sigilTier) => (
+                    <Pressable
+                      key={sigilTier}
+                      onPress={() => setTier(sigilTier)}
+                      style={[styles.chip, tier === sigilTier && styles.chipActive]}
+                    >
+                      <Text>{t('sanctum.tier', { tier: sigilTier, count: save.sigils.filter((s) => s === sigilTier).length })}</Text>
                     </Pressable>
                   ))}
                 </View>
-                <Text style={styles.subtitle}>Heroes</Text>
+                <Text style={styles.subtitle}>{t('sanctum.heroes')}</Text>
                 <View style={styles.chips}>
                   {availableHeroes(save).map((hero) => (
                     <Pressable
@@ -137,12 +141,10 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
                 </View>
                 {odds && (
                   <Text style={styles.odds}>
-                    Estimated success: {Math.round(odds.success * 100)}% · {oddsBand(odds.success)}
+                    {t('sanctum.estimate', { percent: formatPercent(odds.success), band: t(`odds.${oddsBand(odds.success)}`) })}
                   </Text>
                 )}
-                <Text style={styles.warning}>
-                  ⚠️ One attempt only. Win or lose, the Sigil is spent and this Sanctum closes for you until it refreshes.
-                </Text>
+                <Text style={styles.warning}>{t('sanctum.warning')}</Text>
                 {problem && <Text style={styles.problem}>{problemText[problem](distance)}</Text>}
               </>
             )}
@@ -156,15 +158,17 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
                 ))}
                 {finished && (
                   <Text style={[styles.outcome, { color: result.win ? colors.wood : colors.danger }]}>
-                    {result.win ? 'Victory!' : 'Defeat.'} You gain {rewardText}.
+                    {t(result.win ? 'sanctum.victory' : 'sanctum.defeat', { reward: rewardText })}
                   </Text>
                 )}
               </View>
             )}
           </ScrollView>
           <View style={styles.actions}>
-            {!result && <Button title="Challenge" disabled={problem !== null} onPress={start} />}
-            <Button title={result && !finished ? 'Skip' : 'Close'} onPress={() => (result && !finished ? setShown(result.log.length) : onClose())} />
+            {!result && <Button title={t('sanctum.challenge')} disabled={problem !== null} onPress={start} />}
+            <Button
+              title={result && !finished ? t('sanctum.skip') : t('common.close')}
+              onPress={() => (result && !finished ? setShown(result.log.length) : onClose())} />
           </View>
         </View>
       </View>

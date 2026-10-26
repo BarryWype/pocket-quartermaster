@@ -12,6 +12,7 @@ import type { LatLng } from '@/game/generation/types';
 import { recruitProblem, tavernOffers, type RecruitOffer, type RecruitProblem, type TavernSpawn } from '@/game/taverns/taverns';
 import type { WeaponType } from '@/game/types';
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
+import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
 
@@ -19,11 +20,12 @@ import { Button } from './Button';
 import { Text } from './Text';
 
 const problemText: Record<RecruitProblem, (distance: number, cap: number) => string> = {
-  locked: () => 'Beat the Bandit Stockade to recruit heroes.',
-  tooFar: (distance) => `Get within ${tavernRules.interactionMeters} m to recruit (${Math.round(distance)} m away).`,
-  taken: () => 'Recruited. New faces arrive tomorrow.',
-  rosterFull: (_distance, cap) => `Your roster is full (${cap} heroes). Dismiss someone from Team first.`,
-  gold: () => 'Not enough gold.',
+  locked: () => t('tavern.locked'),
+  tooFar: (distance) =>
+    t('common.tooFar', { radius: tavernRules.interactionMeters, action: t('tavern.recruitAction'), distance: Math.round(distance) }),
+  taken: () => t('tavern.taken'),
+  rosterFull: (_distance, cap) => t('tavern.rosterFull', { cap }),
+  gold: () => t('tavern.gold'),
 };
 
 type Props = { tavern: TavernSpawn; player: LatLng; onClose: () => void };
@@ -41,21 +43,21 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
     const heroClass = heroClasses[offer.classId];
     const trait = traitById[offer.trait];
     const problem = recruitProblem(save, offer, tavern.position, player);
-    const weapons = (Object.keys(heroClass.affinities) as WeaponType[]).map((w) => masteryTypeNames[w].name.toLowerCase());
+    const weapons = (Object.keys(heroClass.affinities) as WeaponType[]).map((w) => tr(masteryTypeNames[w].name).toLowerCase());
     return (
       <View key={offer.id} style={styles.offer}>
         <Text style={styles.name}>
-          {heroClass.emoji} {offer.name} · {heroClass.name} · level {offer.level}
+          {heroClass.emoji} {t('tavern.offer', { name: offer.name, className: tr(heroClass.name), level: offer.level })}
         </Text>
         <Text style={[styles.trait, { color: trait.positive ? colors.ink : colors.danger }]}>
-          {trait.name}: {trait.description}
+          {tr(trait.name)}: {tr(trait.description)}
         </Text>
         <Text style={styles.muted}>
-          {[`Uses ${weapons.join(', ')}`, ...heroClass.abilities.map(abilityText)].join(' · ')}
+          {[t('tavern.uses', { weapons: weapons.join(', ') }), ...heroClass.abilities.map(abilityText)].join(' · ')}
         </Text>
         <View style={styles.actions}>
           <Text style={styles.price}>🪙 {offer.price}</Text>
-          <Button title="Recruit" disabled={problem !== null} onPress={() => recruit(offer, tavern.position, player)} />
+          <Button title={t('tavern.recruit')} disabled={problem !== null} onPress={() => recruit(offer, tavern.position, player)} />
         </View>
         {problem && <Text style={styles.problem}>{problemText[problem](distance, rosterCap(save))}</Text>}
       </View>
@@ -69,11 +71,11 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
           <ScrollView contentContainerStyle={styles.content}>
             <Text style={styles.title}>🍺 {tavern.name}</Text>
             <Text style={styles.muted}>
-              Gold: {save.gold} · Roster {save.heroes.length}/{rosterCap(save)} · new recruits every day
+              {t('tavern.header', { gold: save.gold, count: save.heroes.length, cap: rosterCap(save) })}
             </Text>
             {offers.map(offerRow)}
           </ScrollView>
-          <Button title="Close" onPress={onClose} />
+          <Button title={t('common.close')} onPress={onClose} />
         </View>
       </View>
     </Modal>

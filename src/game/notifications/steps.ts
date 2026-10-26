@@ -1,10 +1,11 @@
 import { chests as allChests } from '@/content/chests';
-import { notificationRules, notificationTexts } from '@/content/notifications';
+import { notificationRules } from '@/content/notifications';
+import { formatNumber, tr } from '@/i18n';
 
 import { chestState } from '../rewards/chests';
 import type { SaveData } from '../save';
 import type { ChestDef } from '../types';
-import { fill } from './plan';
+import { fill, notificationTexts } from './plan';
 import type { NotificationSettings, PlannedNotification } from './types';
 
 /** Step alerts already sent today, e.g. 'unlocked:wooden' or 'close:iron'. */
@@ -26,6 +27,7 @@ export function stepAlerts(
   if (!settings.enabled) return { alerts: [], log: { day, sent } };
   const { categories } = settings;
   const alerts: PlannedNotification[] = [];
+  const texts = notificationTexts();
   const nextLocked = [...chests].sort((a, b) => a.steps - b.steps).find((c) => steps < c.steps);
 
   for (const chest of chests) {
@@ -36,8 +38,8 @@ export function stepAlerts(
         category: 'chestUnlocked',
         group: 'steps',
         at: null,
-        title: notificationTexts.chestUnlocked.title,
-        body: fill(notificationTexts.chestUnlocked.body, { chest: chest.name.toLowerCase() }),
+        title: texts.chestUnlocked.title,
+        body: fill(texts.chestUnlocked.body, { chest: tr(chest.name).toLowerCase() }),
       });
     }
   }
@@ -49,10 +51,10 @@ export function stepAlerts(
         category: 'chestClose',
         group: 'steps',
         at: null,
-        title: notificationTexts.chestClose.title,
-        body: fill(notificationTexts.chestClose.body, {
-          steps: (nextLocked.steps - steps).toLocaleString('en'),
-          chest: nextLocked.name.toLowerCase(),
+        title: texts.chestClose.title,
+        body: fill(texts.chestClose.body, {
+          steps: formatNumber(nextLocked.steps - steps),
+          chest: tr(nextLocked.name).toLowerCase(),
         }),
       });
     }

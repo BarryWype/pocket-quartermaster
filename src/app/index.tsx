@@ -29,13 +29,17 @@ import { liveTreasureMaps } from '@/game/rewards/treasure';
 import { generateSanctumsAround, sanctumById, type SanctumSpawn } from '@/game/sanctums/sanctums';
 import { generateTavernsAround, isTavernUnlocked, type TavernSpawn } from '@/game/taverns/taverns';
 import { tutorialSpawns } from '@/game/tutorial/tutorial';
+import { useLanguage } from '@/hooks/useLanguage';
 import { usePlacedPoints, usePlacedSpawns } from '@/hooks/usePlacedSpawns';
 import { usePlayerLocation } from '@/hooks/usePlayerLocation';
+import { t, tr } from '@/i18n';
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
 
 const toLngLat = (position: LatLng): [number, number] => [position.longitude, position.latitude];
+/** Dragging the map further than this from the player stops the camera following them. */
+const FOLLOW_SLACK_METERS = 40;
 
 /** Sanctums and taverns snap with coarse map tiles so they can be shown from kilometres away. */
 const sanctumPlacement = { ...walkableRules, ...sanctumRules.placement };
@@ -43,14 +47,15 @@ const tavernPlacement = { ...walkableRules, ...tavernRules.placement };
 
 const minutesLeft = (ms: number) => `${Math.floor(ms / 60_000)}:${String(Math.floor((ms % 60_000) / 1000)).padStart(2, '0')}`;
 const failureMessages: Record<CollectFailure, (distance: number) => string> = {
-  tooFar: (distance) => `Too far: ${Math.round(distance)} m away (need ${gatheringConfig.collectRadiusMeters} m)`,
-  fled: () => 'It ran off. Slow down to approach animals.',
-  collected: () => 'Already gathered.',
-  expired: () => 'It is gone.',
-  needsTool: () => 'You need a better pickaxe for this.',
+  tooFar: (distance) => t('map.tooFar', { distance: Math.round(distance), radius: gatheringConfig.collectRadiusMeters }),
+  fled: () => t('map.fled'),
+  collected: () => t('map.collected'),
+  expired: () => t('map.expired'),
+  needsTool: () => t('map.needsTool'),
 };
 
 export default function MapScreen() {
+  useLanguage();
   const player = usePlayerLocation();
   const insets = useSafeAreaInsets();
   const setDebug = useDebugStore((state) => state.set);
@@ -67,6 +72,7 @@ export default function MapScreen() {
   const closeTavernHint = useGameStore((state) => state.closeTavernHint);
   const [openTavern, setOpenTavern] = useState<TavernSpawn | null>(null);
   const cameraRef = useRef<CameraRef>(null);
+  const [following, setFollowing] = useState(true);
   const [now, setNow] = useState(Date.now());
   const [message, setMessage] = useState<string | null>(null);
 
@@ -149,20 +155,17 @@ export default function MapScreen() {
   }, [position, placeTutorialWood]);
 
   useEffect(() => {
-    if (position) cameraRef.current?.easeTo({ center: toLngLat(position), duration: 500 });
-  }, [position?.latitude, position?.longitude]);
+    if (position && following) cameraRef.current?.easeTo({ center: toLngLat(position), duration: 500 });
+  }, [position?.latitude, position?.longitude, following]);
 
   // The menu stays reachable while there is no map to show.
   if (player.status === 'pending' || player.status === 'denied' || !position) {
     return (
       <View style={styles.container}>
         {player.status === 'pending' ? (
-          <PlaceholderScreen title="Finding you…" description="Waiting for an accurate GPS position." />
+          <PlaceholderScreen title={t('map.findingYou')} description={t('map.waitingGps')} />
         ) : (
-          <PlaceholderScreen
-            title="Location needed"
-            description="Allow location access in your phone settings to see nearby resources."
-          />
+          <PlaceholderScreen title={t('map.locationNeeded')} description={t('map.locationHint')} />
         )}
         <IslandMenu />
       </View>
@@ -172,23 +175,23 @@ export default function MapScreen() {
   const digUp = (mapId: string, treasureAt: LatLng) => {
     const distance = distanceMeters(position, treasureAt);
     if (distance > gatheringConfig.collectRadiusMeters) {
-      setMessage(`Treasure: ${Math.round(distance)} m away (need ${gatheringConfig.collectRadiusMeters} m)`);
+      setMessage(t('map.treasureTooFar', { distance: Math.round(distance), radius: gatheringConfig.collectRadiusMeters }));
       return;
     }
     const contents = collectTreasure(mapId, position, treasureAt);
     const special = contents.special
       ? contents.special.kind === 'sigil'
-        ? ` and a tier ${contents.special.tier} Sigil`
-        : ` and a ${contents.special.gold} gold jackpot`
+        ? t('map.treasureSigil', { tier: contents.special.tier })
+        : t('map.treasureJackpot', { gold: contents.special.gold })
       : '';
-    setMessage(`Treasure! ${contents.gold} gold, ${contents.materials.length} kinds of materials${special}`);
+    setMessage(t('map.treasureFound', { gold: contents.gold, kinds: contents.materials.length, special }));
   };
 
   const gather = (spawn: Spawn) => {
     const result = collect(spawn, { position, speed }, Date.now());
     setMessage(
       result.ok
-        ? `+ ${result.gained.map((g) => `${g.amount} ${materialById[g.materialId]?.name ?? g.materialId}`).join(', ')}`
+        ? `+ ${result.gained.map((g) => `${g.amount} ${tr(materialById[g.materialId]?.name ?? g.materialId)}`).join(', ')}`
         : failureMessages[result.reason](result.distance),
     );
   };
@@ -198,11 +201,15 @@ export default function MapScreen() {
       <Map
         style={styles.map}
         mapStyle={mapStyle}
-        dragPan={false}
         touchRotate={false}
         touchPitch={false}
         logo={false}
         attributionPosition={{ top: insets.top + 8, left: 8 }}
+        onRegionDidChange={(event) => {
+          const { userInteraction, center } = event.nativeEvent;
+          const away = distanceMeters(position, { longitude: center[0], latitude: center[1] }) > FOLLOW_SLACK_METERS;
+          if (userInteraction && away) setFollowing(false);
+        }}
         onPress={(event) => {
           if (debugOn && player.mocked) {
             const [longitude, latitude] = event.nativeEvent.lngLat;
@@ -247,11 +254,11 @@ export default function MapScreen() {
         </Marker>
       </Map>
       {player.mocked && (
-        <Text style={[styles.banner, { top: insets.top + 48 }]}>Mock location · tap the map to teleport</Text>
+        <Text style={[styles.banner, { top: insets.top + 48 }]}>{t('map.mockBanner')}</Text>
       )}
       {debugOn && (
         <Pressable
-          accessibilityLabel="Debug"
+          accessibilityLabel={t('map.debug')}
           onPress={() => router.push('/debug')}
           style={[styles.roundButton, styles.debugButton, { top: insets.top + 8 }]}
         >
@@ -259,25 +266,35 @@ export default function MapScreen() {
         </Pressable>
       )}
       <Pressable
-        accessibilityLabel="Settings"
+        accessibilityLabel={t('screens.settings')}
         onPress={() => router.push('/settings')}
         style={[styles.roundButton, styles.settingsButton, { marginLeft: debugOn ? 20 : -16, top: insets.top + 8 }]}
       >
         <Text style={styles.buttonEmoji}>⚙️</Text>
       </Pressable>
+      {!following && (
+        <Pressable
+          accessibilityLabel={t('map.recentre')}
+          onPress={() => {
+            setFollowing(true);
+            cameraRef.current?.easeTo({ center: toLngLat(position), duration: 500 });
+          }}
+          style={[styles.roundButton, styles.recentreButton, { bottom: insets.bottom + ISLAND_HEIGHT + 12 }]}
+        >
+          <Text style={styles.recentreEmoji}>🧙</Text>
+        </Pressable>
+      )}
       <TutorialHint screen="map" style={[styles.tutorialHint, { top: insets.top + (player.mocked ? 84 : 48) }]} />
       {isLureActive(save, now) && (
         <Text style={[styles.banner, styles.lure, { top: insets.top + 8 }]}>
-          🪤 Lure {minutesLeft(lureEndsAt(save) - now)}
+          {t('map.lure', { time: minutesLeft(lureEndsAt(save) - now) })}
         </Text>
       )}
       {openSanctum && <SanctumPanel spawn={openSanctum} player={position} onClose={() => setOpenSanctum(null)} />}
       {openTavern && <TavernPanel tavern={openTavern} player={position} onClose={() => setOpenTavern(null)} />}
       {tavernsOpen && !save.tavernHintSeen && (
         <Pressable onPress={closeTavernHint} style={[styles.tavernHint, { bottom: insets.bottom + ISLAND_HEIGHT + 56 }]}>
-          <Text style={styles.tavernHintText}>
-            🍺 Taverns are open! Recruit heroes for gold at the 🍺 on the map. Tap to close.
-          </Text>
+          <Text style={styles.tavernHintText}>{t('map.tavernsOpen')}</Text>
         </Pressable>
       )}
       {message && <Text style={[styles.banner, { bottom: insets.bottom + ISLAND_HEIGHT + 12 }]}>{message}</Text>}
@@ -330,4 +347,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.parchment,
   },
   buttonEmoji: { fontSize: 15 },
+  recentreButton: { right: 16, width: 48, height: 48, borderRadius: 24 },
+  recentreEmoji: { fontSize: 24 },
 });

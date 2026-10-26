@@ -1,5 +1,7 @@
 import { recipeById } from '@/content/lookup';
+import { frTutorialHints } from '@/content/fr/tutorial';
 import { tutorialHints, tutorialTargets } from '@/content/tutorial';
+import { localized } from '@/i18n/locale';
 
 import { offsetPosition } from '../generation/geo';
 import type { LatLng, StaticSpawn } from '../generation/types';
@@ -113,7 +115,7 @@ export function finishTutorial(save: SaveData): SaveData {
 }
 
 export function tutorialHint(save: SaveData, screen: TutorialScreen): string | null {
-  const hints = tutorialHints[save.tutorial.step];
+  const hints = localized({ en: tutorialHints, fr: frTutorialHints })[save.tutorial.step];
   return hints[screen] ?? hints.default ?? null;
 }
 

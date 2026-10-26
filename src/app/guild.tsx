@@ -8,40 +8,43 @@ import { guildBuildings, guildTrackById, guildTracks, type GuildBuildingId, type
 import { materialById } from '@/content/lookup';
 import { guildRank, isGuildUnlocked, rankPrice, rankProblem, type RankPrice, type RankProblem } from '@/game/guild/guild';
 import type { MaterialStack } from '@/game/types';
+import { useLanguage } from '@/hooks/useLanguage';
+import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
 
 const materialsText = (materials: MaterialStack[]) =>
-  materials.map(({ materialId, amount }) => `${amount} ${materialById[materialId].name.toLowerCase()}`);
+  materials.map(({ materialId, amount }) => `${amount} ${tr(materialById[materialId].name).toLowerCase()}`);
 
 const priceText = (price: RankPrice) =>
-  [`🪙 ${price.gold}`, ...materialsText(price.materials), price.charters ? `📜 ${price.charters} charter` : null]
+  [`🪙 ${price.gold}`, ...materialsText(price.materials), price.charters ? `📜 ${t('common.charters', { count: price.charters })}` : null]
     .filter(Boolean)
     .join(' · ');
 
 function problemText(problem: RankProblem) {
   switch (problem.kind) {
     case 'hallLocked':
-      return 'Beat the Bandit Stockade to open the Guild Hall.';
+      return t('guild.hallLocked');
     case 'maxed':
-      return 'Maxed';
+      return t('guild.maxed');
     case 'gate':
-      return `Beat the ${problem.boss} to unlock.`;
+      return t('guild.gate', { boss: tr(problem.boss) });
     case 'requires':
-      return `Needs ${guildTrackById[problem.track].name} first.`;
+      return t('guild.requires', { track: tr(guildTrackById[problem.track].name) });
     case 'missing': {
       const parts = [
-        problem.gold ? `${problem.gold} gold` : null,
+        problem.gold ? t('guild.missingGold', { gold: problem.gold }) : null,
         ...materialsText(problem.materials),
-        problem.charters ? `${problem.charters} charter` : null,
+        problem.charters ? t('common.charters', { count: problem.charters }) : null,
       ].filter(Boolean);
-      return `Missing ${parts.join(', ')}.`;
+      return t('guild.missing', { parts: parts.join(', ') });
     }
   }
 }
 
 /** Gold upgrades: three buildings, each with a few tracks bought rank by rank. */
 export default function GuildScreen() {
+  useLanguage();
   const save = useGameStore((state) => state.save);
   const buy = useGameStore((state) => state.buyRank);
   const [justBought, setJustBought] = useState<string | null>(null);
@@ -59,9 +62,9 @@ export default function GuildScreen() {
     };
     if (!track.milestone) return done();
     const price = rankPrice(track, guildRank(save, track.id) + 1);
-    Alert.alert(`Buy ${track.name}?`, `${track.describe(1)}. Costs ${priceText(price)}. Purchases are permanent.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Buy', onPress: done },
+    Alert.alert(t('guild.buyTitle', { track: tr(track.name) }), t('guild.buyBody', { effect: track.describe(1), price: priceText(price) }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('guild.buy'), onPress: done },
     ]);
   };
 
@@ -74,7 +77,7 @@ export default function GuildScreen() {
         <View style={styles.header}>
           <Text style={styles.name}>
             {track.milestone ? '⭐ ' : ''}
-            {track.name}
+            {tr(track.name)}
           </Text>
           <Text style={styles.dots}>{'●'.repeat(rank) + '○'.repeat(track.ranks - rank)}</Text>
         </View>
@@ -82,7 +85,7 @@ export default function GuildScreen() {
         {!maxed && (
           <View style={styles.header}>
             <Text style={styles.muted}>{priceText(rankPrice(track, rank + 1))}</Text>
-            <Button title="Buy" disabled={problem !== null} onPress={() => purchase(track)} />
+            <Button title={t('guild.buy')} disabled={problem !== null} onPress={() => purchase(track)} />
           </View>
         )}
         {problem && problem.kind !== 'maxed' && <Text style={styles.problem}>{problemText(problem)}</Text>}
@@ -93,16 +96,14 @@ export default function GuildScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.wallet}>
-        🪙 {save.gold} gold · 📜 {save.charters} charter{save.charters === 1 ? '' : 's'}
+        {t('guild.wallet', { gold: save.gold, charters: t('common.charters', { count: save.charters }) })}
       </Text>
-      {!isGuildUnlocked(save) && <Text style={styles.problem}>Beat the Bandit Stockade to open the Guild Hall.</Text>}
-      <Text style={styles.muted}>
-        Charters come from the first win against each tier boss, and sometimes from Sanctum wins.
-      </Text>
+      {!isGuildUnlocked(save) && <Text style={styles.problem}>{t('guild.hallLocked')}</Text>}
+      <Text style={styles.muted}>{t('guild.chartersHint')}</Text>
       {(Object.keys(guildBuildings) as GuildBuildingId[]).map((building) => (
         <View key={building}>
-          <SectionTitle>{`${guildBuildings[building].emoji} ${guildBuildings[building].name}`}</SectionTitle>
-          {guildTracks.filter((t) => t.building === building).map(row)}
+          <SectionTitle>{`${guildBuildings[building].emoji} ${tr(guildBuildings[building].name)}`}</SectionTitle>
+          {guildTracks.filter((track) => track.building === building).map(row)}
         </View>
       ))}
     </ScrollView>

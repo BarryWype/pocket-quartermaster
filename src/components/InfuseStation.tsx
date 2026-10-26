@@ -4,6 +4,7 @@ import { elementInfo } from '@/content/elements';
 import { canInfuse } from '@/game/crafting/infusion';
 import { ELEMENTS, stoneId } from '@/game/elements';
 import { wornBy } from '@/game/forging/salvage';
+import { t } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
 
@@ -21,17 +22,17 @@ export function InfuseStation() {
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.intro}>
         {stones.length === 0
-          ? 'No elemental stones yet. Win shards at Sanctums: 10 shards make a stone.'
-          : `Stones: ${stones.map((e) => `${elementInfo[e].emoji} ${save.materials[stoneId(e)]}`).join('  ')}`}
+          ? t('crafting.noStones')
+          : t('crafting.stones', { stones: stones.map((e) => `${elementInfo[e].emoji} ${save.materials[stoneId(e)]}`).join('  ') })}
       </Text>
-      {save.gear.length === 0 && <Text style={styles.empty}>Forge some gear first.</Text>}
+      {save.gear.length === 0 && <Text style={styles.empty}>{t('crafting.noGear')}</Text>}
       {save.gear.map((gear) => {
         const holder = wornBy(save, gear.uid);
         return (
           <GearRow
             key={gear.uid}
             gear={gear}
-            note={holder ? `Worn by ${holder.name}` : null}
+            note={holder ? t('common.wornBy', { name: holder.name }) : null}
             right={
               gear.element ? undefined : (
                 <View style={styles.stones}>

@@ -8,17 +8,20 @@ import { heroClasses } from '@/content/heroes';
 import { traitById } from '@/content/traits';
 import { isOnExpedition } from '@/game/team/team';
 import { partySize, rosterCap } from '@/game/guild/guild';
+import { useLanguage } from '@/hooks/useLanguage';
+import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
 
 export default function TeamScreen() {
+  useLanguage();
   const save = useGameStore((state) => state.save);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <TutorialHint screen="team" />
       <Text style={styles.roster}>
-        Roster {save.heroes.length}/{rosterCap(save)} · up to {partySize(save)} per expedition
+        {t('team.roster', { count: save.heroes.length, cap: rosterCap(save), party: partySize(save) })}
       </Text>
       {save.heroes.map((hero) => {
         const heroClass = heroClasses[hero.classId];
@@ -32,7 +35,7 @@ export default function TeamScreen() {
             <Row
               emoji={heroClass.emoji}
               title={hero.name}
-              subtitle={`${heroClass.name} · Level ${hero.level} · ${traitById[hero.trait]?.name ?? ''}${away ? ' · on expedition' : ''}`}
+              subtitle={`${tr(heroClass.name)} · ${t('common.level', { level: hero.level })} · ${tr(traitById[hero.trait]?.name ?? '')}${away ? t('common.onExpedition') : ''}`}
               right={<Text style={styles.chevron}>›</Text>}
             />
           </Pressable>

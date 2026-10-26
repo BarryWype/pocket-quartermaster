@@ -1,5 +1,8 @@
 import { mobById } from '@/content/enemies';
-import { logTemplates } from '@/content/logTemplates';
+import { frLogTemplates } from '@/content/fr/logTemplates';
+import { logTemplates as enLogTemplates } from '@/content/logTemplates';
+import { article, plural } from '@/i18n/french';
+import { fill, getLocale, localized, t, tr } from '@/i18n';
 
 import type { Rng } from '../generation/rng';
 import type { DungeonDef, MainReward, MobGroup } from '../types';
@@ -18,19 +21,17 @@ export type LogInput = {
   summary?: string;
 };
 
-function fill(template: string, vars: Record<string, string | number>) {
-  return template.replace(/\{(\w+)\}/g, (match, key: string) => String(vars[key] ?? match));
-}
-
 const pick = <T>(rng: Rng, list: readonly T[]) => list[rng.int(0, list.length - 1)];
 
-/** "3 giant rats", "a goblin and 2 goblin slingers". */
+/** "3 giant rats", "a goblin and 2 goblin slingers" ("3 rats géants", "un gobelin et 2 gobelins frondeurs"). */
 export function describeMobs(groups: MobGroup[]) {
+  const french = getLocale() === 'fr';
   const parts = groups.map(({ mobId, count }) => {
-    const name = mobById[mobId].name;
+    const name = tr(mobById[mobId].name);
+    if (french) return count === 1 ? article('un', name) : `${count} ${plural(name)}`;
     return count === 1 ? `a ${name}` : `${count} ${name}s`;
   });
-  return parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0];
+  return parts.length > 1 ? `${parts.slice(0, -1).join(', ')}${t('common.and')}${parts[parts.length - 1]}` : parts[0];
 }
 
 /** The hero with the highest value in a per-hero map, if any. */
@@ -44,9 +45,13 @@ function top(party: PartyMember[], values: Record<string, number>) {
 /** One line per encounter, a summary, then any recipe or broken gear. */
 export function buildLog(input: LogInput, rng: Rng): string[] {
   const { dungeon, party, run } = input;
+  const logTemplates = localized({ en: enLogTemplates, fr: frLogTemplates });
   const nameOf = (heroId: string) => party.find((m) => m.heroId === heroId)?.name ?? heroId;
-  const weaponOf = (member: PartyMember) =>
-    member.weaponName ? `the ${member.weaponName.toLowerCase()}` : logTemplates.noWeapon;
+  const weaponOf = (member: PartyMember) => {
+    if (!member.weaponName) return logTemplates.noWeapon;
+    const name = member.weaponName.toLowerCase();
+    return getLocale() === 'fr' ? article('le', name) : `the ${name}`;
+  };
 
   const usedWhen = (encounter: EncounterResult, when: 'lowHp' | 'beforeBoss') =>
     encounter.consumed.filter((id) => party.find((m) => m.heroId === id)?.consumable?.when === when);
@@ -55,7 +60,7 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
     const names = encounter.knockedOut.map(nameOf);
     if (names.length === 0) return '';
     if (names.length === 1) return fill(logTemplates.knockedOut, { hero: names[0] });
-    return fill(logTemplates.knockedOutMany, { heroes: `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` });
+    return fill(logTemplates.knockedOutMany, { heroes: `${names.slice(0, -1).join(', ')}${t('common.and')}${names[names.length - 1]}` });
   };
 
   /** Abilities that changed a fight, one short sentence each. */
@@ -124,12 +129,12 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
         const rations = usedWhen(encounter, 'beforeBoss').map((id) => fill(logTemplates.ration, { hero: nameOf(id) }));
         const sentence =
           encounter.cleared && star
-            ? fill(pick(rng, logTemplates.bossWon), { hero: star.name, boss: encounter.name, weapon: weaponOf(star) })
-            : fill(pick(rng, logTemplates.bossLost), { boss: encounter.name });
+            ? fill(pick(rng, logTemplates.bossWon), { hero: star.name, boss: tr(encounter.name), weapon: weaponOf(star) })
+            : fill(pick(rng, logTemplates.bossLost), { boss: tr(encounter.name) });
         return rations.join('') + sentence + aftermath(encounter);
       }
       case 'trap': {
-        const trap = encounter.name;
+        const trap = tr(encounter.name);
         if (effect(encounter, 'tip')) return fill(pick(rng, logTemplates.trapTip), { trap });
         if (effect(encounter, 'disarm')) {
           return fill(pick(rng, logTemplates.trapDisarmed), { trap, hero: effectHero(encounter, 'disarm') });
@@ -151,10 +156,10 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
         return [line, reduced, ...potions, knockedOut(encounter)].join('');
       }
       case 'obstacle': {
-        const obstacle = encounter.name;
+        const obstacle = tr(encounter.name);
         const solved = effect(encounter, 'solve');
         if (solved) {
-          const kind = dungeon.encounters.find((e) => e.type === 'obstacle' && e.name === obstacle);
+          const kind = dungeon.encounters.find((e) => e.type === 'obstacle' && e.name === encounter.name);
           const template = logTemplates.obstacleSolved[kind?.type === 'obstacle' ? kind.kind : 'rubble'];
           return fill(template, { hero: effectHero(encounter, 'solve'), obstacle });
         }
@@ -169,7 +174,7 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
         );
       }
       case 'locals': {
-        const npc = encounter.name;
+        const npc = tr(encounter.name);
         switch (encounter.reaction) {
           case 'help':
             return fill(logTemplates.localsHelp[encounter.help!.kind], {
@@ -196,33 +201,34 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
         }
       }
       case 'spring':
-        return fill(pick(rng, logTemplates.spring), { event: encounter.name });
+        return fill(pick(rng, logTemplates.spring), { event: tr(encounter.name) });
       case 'cache':
         return (
-          fill(pick(rng, logTemplates.cache), { event: encounter.name, gold: encounter.gold }) +
+          fill(pick(rng, logTemplates.cache), { event: tr(encounter.name), gold: encounter.gold }) +
           (effect(encounter, 'cacheBonus') ? fill(logTemplates.cacheBonus, { hero: effectHero(encounter, 'cacheBonus') }) : '')
         );
       case 'mishap':
-        return fill(pick(rng, logTemplates.mishap), { event: encounter.name });
+        return fill(pick(rng, logTemplates.mishap), { event: tr(encounter.name) });
     }
   };
 
   const summary =
     input.summary ??
     fill(pick(rng, logTemplates.outcome[run.outcome]), {
-    boss: dungeon.boss.name,
+    boss: tr(dungeon.boss.name),
     gold: input.gold,
     cleared: run.encountersCleared,
     total: run.encounterCount,
   });
   return [
-    ...run.encounters.map(
-      (encounter) =>
+    ...run.encounters.map((encounter) =>
+      capitalised(
         lineFor(encounter) +
-        (effect(encounter, 'partyHeal') ? fill(logTemplates.partyHeal, { hero: effectHero(encounter, 'partyHeal') }) : ''),
+          (effect(encounter, 'partyHeal') ? fill(logTemplates.partyHeal, { hero: effectHero(encounter, 'partyHeal') }) : ''),
+      ),
     ),
-    summary,
-    ...(input.recipeItemName ? [fill(pick(rng, logTemplates.recipe), { item: input.recipeItemName.toLowerCase() })] : []),
+    capitalised(summary),
+    ...(input.recipeItemName ? [fill(pick(rng, logTemplates.recipe), { item: tr(input.recipeItemName).toLowerCase() })] : []),
     ...(input.firstClear ? [fill(pick(rng, logTemplates.firstClear), input.firstClear)] : []),
     ...(input.charter ? [pick(rng, logTemplates.charter)] : []),
     ...input.mainRewards.map((reward) =>

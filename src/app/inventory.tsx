@@ -12,13 +12,16 @@ import { materials } from '@/content/materials';
 import { canSalvage, salvageNeedsConfirmation, salvageReturns, wornBy } from '@/game/forging/salvage';
 import { isLureActive, lureEndsAt } from '@/game/rewards/lures';
 import { liveTreasureMaps } from '@/game/rewards/treasure';
+import { useLanguage } from '@/hooks/useLanguage';
 import { usePlayerLocation } from '@/hooks/usePlayerLocation';
+import { t, tr } from '@/i18n';
 import type { GearInstance } from '@/game/types';
 import { useGameStore } from '@/store/gameStore';
 
 const HOUR = 3_600_000;
 
 export default function InventoryScreen() {
+  useLanguage();
   const save = useGameStore((state) => state.save);
   const readMap = useGameStore((state) => state.readTreasureMap);
   const activateLure = useGameStore((state) => state.activateLure);
@@ -39,91 +42,94 @@ export default function InventoryScreen() {
   const confirmSalvage = (gear: GearInstance) => {
     if (!salvageNeedsConfirmation(gear)) return salvage(gear.uid);
     const returns = salvageReturns(gear)
-      .map(({ materialId, amount }) => `${amount} ${materialById[materialId].name.toLowerCase()}`)
+      .map(({ materialId, amount }) => `${amount} ${tr(materialById[materialId].name).toLowerCase()}`)
       .join(', ');
-    Alert.alert(`Salvage ${gearName(gear)}?`, `It is destroyed and you get back ${returns}.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Salvage', style: 'destructive', onPress: () => salvage(gear.uid) },
+    Alert.alert(t('inventory.salvageTitle', { item: gearName(gear) }), t('inventory.salvageBody', { returns }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('inventory.salvage'), style: 'destructive', onPress: () => salvage(gear.uid) },
     ]);
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <TutorialHint screen="inventory" />
-      <Row emoji="🪙" title="Gold" right={save.gold} />
+      <Row emoji="🪙" title={t('common.gold')} right={save.gold} />
 
       <StepChests />
 
-      <SectionTitle>Expedition finds</SectionTitle>
+      <SectionTitle>{t('inventory.expeditionFinds')}</SectionTitle>
       <Row
         emoji="🎟️"
-        title="Sanctum Sigils"
-        subtitle={save.sigils.length ? 'Tap a Sanctum on the map to use one.' : 'Successful expeditions sometimes bring one back.'}
+        title={t('inventory.sigils')}
+        subtitle={save.sigils.length ? t('inventory.sigilsHint') : t('inventory.sigilsEmpty')}
         right={sigilTiers.map((t) => `T${t}×${save.sigils.filter((s) => s === t).length}`).join(' ') || '0'}
       />
       {maps.map((map) => (
         <Row
           key={map.id}
           emoji="🗺️"
-          title={`Treasure map (tier ${map.tier})`}
-          subtitle={`${map.location ? 'Marked on your map' : 'Not read yet'} · expires in ${Math.ceil((map.expiresAt - now) / HOUR)} h`}
+          title={t('inventory.treasureMap', { tier: map.tier })}
+          subtitle={t('inventory.expiresIn', {
+            state: map.location ? t('inventory.marked') : t('inventory.notRead'),
+            hours: Math.ceil((map.expiresAt - now) / HOUR),
+          })}
           right={
             map.location ? undefined : (
-              <Button title="Read" disabled={!position} onPress={() => position && readMap(map.id, position)} />
+              <Button title={t('inventory.read')} disabled={!position} onPress={() => position && readMap(map.id, position)} />
             )
           }
         />
       ))}
       <Row
         emoji="🪤"
-        title={`Lures: ${save.lures}`}
+        title={t('inventory.lures', { count: save.lures })}
         subtitle={
           isLureActive(save, now)
-            ? `Active: ${Math.ceil((lureEndsAt(save) - now) / 60_000)} min left`
-            : 'Draws extra herbs and animals around you for 30 minutes.'
+            ? t('inventory.lureActive', { minutes: Math.ceil((lureEndsAt(save) - now) / 60_000) })
+            : t('inventory.lureHint')
         }
         right={
           <Button
-            title="Activate"
+            title={t('inventory.activate')}
             disabled={!position || save.lures === 0 || isLureActive(save, now)}
             onPress={() => position && activateLure(position)}
           />
         }
       />
 
-      <SectionTitle>Materials</SectionTitle>
-      {ownedMaterials.length === 0 && <Text style={styles.empty}>Walk around to gather materials.</Text>}
+      <SectionTitle>{t('inventory.materials')}</SectionTitle>
+      {ownedMaterials.length === 0 && <Text style={styles.empty}>{t('inventory.noMaterials')}</Text>}
       {ownedMaterials.map((m) => (
-        <Row key={m.id} emoji={m.emoji} icon={m.icon} title={m.name} right={save.materials[m.id]} />
+        <Row key={m.id} emoji={m.emoji} icon={m.icon} title={tr(m.name)} right={save.materials[m.id]} />
       ))}
 
-      <SectionTitle>Tools</SectionTitle>
-      {save.tools.length === 0 && <Text style={styles.empty}>Craft a pickaxe at the forge.</Text>}
+      <SectionTitle>{t('inventory.tools')}</SectionTitle>
+      {save.tools.length === 0 && <Text style={styles.empty}>{t('inventory.noTools')}</Text>}
       {save.tools.map((toolId) => (
-        <Row key={toolId} emoji={itemById[toolId].emoji} icon={itemById[toolId].icon} title={itemById[toolId].name} />
+        <Row key={toolId} emoji={itemById[toolId].emoji} icon={itemById[toolId].icon} title={tr(itemById[toolId].name)} />
       ))}
 
-      <SectionTitle>Gear</SectionTitle>
-      {save.gear.length === 0 && <Text style={styles.empty}>Forge weapons and armor at the forge.</Text>}
+      <SectionTitle>{t('inventory.gear')}</SectionTitle>
+      {save.gear.length === 0 && <Text style={styles.empty}>{t('inventory.noGear')}</Text>}
       {save.gear.map((gear) => {
         const holder = wornBy(save, gear.uid);
         return (
           <GearRow
             key={gear.uid}
             gear={gear}
-            note={holder ? `Worn by ${holder.name}` : null}
-            right={<Button title="Salvage" disabled={!canSalvage(save, gear.uid)} onPress={() => confirmSalvage(gear)} />}
+            note={holder ? t('common.wornBy', { name: holder.name }) : null}
+            right={<Button title={t('inventory.salvage')} disabled={!canSalvage(save, gear.uid)} onPress={() => confirmSalvage(gear)} />}
           />
         );
       })}
       {save.gear.length > 0 && (
-        <Text style={styles.empty}>Salvage gives back part of the materials: more for better quality. Take gear off first.</Text>
+        <Text style={styles.empty}>{t('inventory.salvageHint')}</Text>
       )}
 
-      <SectionTitle>Consumables</SectionTitle>
-      {ownedConsumables.length === 0 && <Text style={styles.empty}>Brew potions and rations with alchemy.</Text>}
+      <SectionTitle>{t('inventory.consumables')}</SectionTitle>
+      {ownedConsumables.length === 0 && <Text style={styles.empty}>{t('inventory.noConsumables')}</Text>}
       {ownedConsumables.map(([itemId, count]) => (
-        <Row key={itemId} emoji={itemById[itemId].emoji} icon={itemById[itemId].icon} title={itemById[itemId].name} right={count} />
+        <Row key={itemId} emoji={itemById[itemId].emoji} icon={itemById[itemId].icon} title={tr(itemById[itemId].name)} right={count} />
       ))}
     </ScrollView>
   );

@@ -20,31 +20,16 @@ import { expeditionMinutes, isDungeonAvailable, isDungeonUnlocked } from '@/game
 import { estimateOdds, oddsBand } from '@/game/expeditions/odds';
 import { prepareParty } from '@/game/expeditions/simulate';
 import { isOnExpedition } from '@/game/team/team';
-import type { ExpeditionOutcome } from '@/game/types';
+import { useLanguage } from '@/hooks/useLanguage';
 import { syncPlan } from '@/hooks/useNotifications';
+import { formatDuration, formatPercent, t, tr } from '@/i18n';
 import { deviceNotifications } from '@/services/notifications';
 import { currentRotation, debugEnabled, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { useSettingsStore } from '@/store/settingsStore';
 
-const OUTCOME_LABELS: Record<ExpeditionOutcome, string> = {
-  flawless: 'Flawless',
-  success: 'Success',
-  retreat: 'Retreat',
-  defeat: 'Defeat',
-};
-
-function formatDuration(ms: number) {
-  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  if (hours > 0) return `${hours}h ${String(minutes).padStart(2, '0')}m`;
-  if (minutes > 0) return `${minutes}m ${String(seconds).padStart(2, '0')}s`;
-  return `${seconds}s`;
-}
-
 export default function ExpeditionsScreen() {
+  useLanguage();
   const save = useGameStore((state) => state.save);
   const start = useGameStore((state) => state.startExpedition);
   const markReportsSeen = useGameStore((state) => state.markReportsSeen);
@@ -80,9 +65,9 @@ export default function ExpeditionsScreen() {
     setSettings({ askedNotificationPermission: true });
     const permission = await deviceNotifications.getPermission().catch(() => null);
     if (!permission || permission.granted || !permission.canAskAgain) return;
-    Alert.alert('Want to know when your team is back?', 'You can change this any time in Settings.', [
-      { text: 'Not now', style: 'cancel' },
-      { text: 'Yes', onPress: () => deviceNotifications.requestPermission().then(syncPlan, () => {}) },
+    Alert.alert(t('expeditions.askTitle'), t('expeditions.askBody'), [
+      { text: t('expeditions.notNow'), style: 'cancel' },
+      { text: t('expeditions.yes'), onPress: () => deviceNotifications.requestPermission().then(syncPlan, () => {}) },
     ]);
   };
 
@@ -135,7 +120,7 @@ export default function ExpeditionsScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <TutorialHint screen="expeditions" />
-      {save.expeditions.length > 0 && <SectionTitle>Under way</SectionTitle>}
+      {save.expeditions.length > 0 && <SectionTitle>{t('expeditions.underWay')}</SectionTitle>}
       {save.expeditions.map((expedition) => {
         const dungeon = dungeonById[expedition.dungeonId];
         const names = save.heroes.filter((h) => expedition.heroIds.includes(h.id)).map((h) => h.name);
@@ -149,7 +134,7 @@ export default function ExpeditionsScreen() {
           >
             <Row
               emoji={dungeon.emoji}
-              title={dungeon.name}
+              title={tr(dungeon.name)}
               subtitle={names.join(', ')}
               right={formatDuration(expedition.endsAt - now)}
             />
@@ -159,7 +144,7 @@ export default function ExpeditionsScreen() {
                   <View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%` }]} />
                 </View>
                 <Text style={styles.progressText}>
-                  {progress >= 1 ? 'Coming home…' : `${Math.round(progress * 100)}% explored`}
+                  {progress >= 1 ? t('expeditions.comingHome') : t('expeditions.explored', { percent: formatPercent(progress) })}
                 </Text>
               </View>
             )}
@@ -167,7 +152,7 @@ export default function ExpeditionsScreen() {
         );
       })}
 
-      <SectionTitle>{`Party (${party.length}/${partySize(save)})`}</SectionTitle>
+      <SectionTitle>{t('expeditions.party', { count: party.length, max: partySize(save) })}</SectionTitle>
       <View style={styles.chips}>
         {save.heroes.map((hero) => {
           const away = isOnExpedition(save, hero.id);
@@ -182,14 +167,14 @@ export default function ExpeditionsScreen() {
             >
               <Text>
                 {heroClasses[hero.classId].emoji} {hero.name}
-                {away ? ' (away)' : ''}
+                {away ? t('common.away') : ''}
               </Text>
               {good.length > 0 && (
                 <Pressable
-                  onPress={() => Alert.alert(`${hero.name} is good here`, good.map(abilityText).join('\n'))}
+                  onPress={() => Alert.alert(t('expeditions.goodHereTitle', { name: hero.name }), good.map(abilityText).join('\n'))}
                   style={styles.goodHere}
                 >
-                  <Text style={styles.goodHereText}>Good here</Text>
+                  <Text style={styles.goodHereText}>{t('expeditions.goodHere')}</Text>
                 </Pressable>
               )}
             </Pressable>
@@ -197,21 +182,26 @@ export default function ExpeditionsScreen() {
         })}
       </View>
       <Text style={styles.empty}>
-        Tap a dungeon to see who is good there. New dungeons in {formatDuration(nextRotationAt(now) - now)}.
+        {t('expeditions.tapDungeon', { time: formatDuration(nextRotationAt(now) - now) })}
       </Text>
       {guildRank(save, 'scouting') > 0 && (
-        <Button title={showTomorrow ? 'Hide tomorrow' : 'Tomorrow'} onPress={() => setShowTomorrow(!showTomorrow)} />
+        <Button title={showTomorrow ? t('expeditions.hideTomorrow') : t('expeditions.tomorrow')} onPress={() => setShowTomorrow(!showTomorrow)} />
       )}
       {showTomorrow &&
         Object.entries(currentRotation(nextRotationAt(now)).tiers)
-          .filter(([, t]) => isDungeonUnlocked(save, dungeonById[t.boss]))
-          .map(([tier, t]) => {
-            const modifier = t.modifier ? modifierById[t.modifier.modifierId] : null;
-            const name = (id: string) => `${dungeonById[id].emoji} ${dungeonById[id].name}`;
+          .filter(([, slots]) => isDungeonUnlocked(save, dungeonById[slots.boss]))
+          .map(([tier, slots]) => {
+            const modifier = slots.modifier ? modifierById[slots.modifier.modifierId] : null;
+            const name = (id: string) => `${dungeonById[id].emoji} ${tr(dungeonById[id].name)}`;
             return (
               <Text key={tier} style={styles.empty}>
-                Tomorrow, tier {tier}: {name(t.short)} (short) · {name(t.long)} (long)
-                {modifier ? ` · ${modifier.emoji} ${modifier.name} on ${dungeonById[t.modifier!.dungeonId].name}` : ''}
+                {t('expeditions.tomorrowLine', { tier, short: name(slots.short), long: name(slots.long) })}
+                {modifier
+                  ? t('expeditions.tomorrowModifier', {
+                      modifier: `${modifier.emoji} ${tr(modifier.name)}`,
+                      dungeon: tr(dungeonById[slots.modifier!.dungeonId].name),
+                    })
+                  : ''}
               </Text>
             );
           })}
@@ -224,31 +214,31 @@ export default function ExpeditionsScreen() {
         const fresh = dungeon.slot && !save.firstClears.includes(dungeon.id);
         return (
           <View key={dungeon.id}>
-            {open[i - 1]?.tier !== dungeon.tier && <SectionTitle>{`Tier ${dungeon.tier} dungeons`}</SectionTitle>}
+            {open[i - 1]?.tier !== dungeon.tier && <SectionTitle>{t('expeditions.tierDungeons', { tier: dungeon.tier })}</SectionTitle>}
             <Pressable
               onPress={() => setFocused(focused === dungeon.id ? null : dungeon.id)}
               style={[focused === dungeon.id && styles.focused]}
             >
               <Row
                 emoji={dungeon.emoji}
-                title={`${dungeon.name}${dungeon.isBoss ? ' (boss)' : dungeon.slot === 'short' ? ' (short)' : ' (long)'}`}
+                title={`${tr(dungeon.name)}${dungeon.isBoss ? t('expeditions.boss') : dungeon.slot === 'short' ? t('expeditions.short') : t('expeditions.long')}`}
                 subtitle={[
                   [
                     formatDuration(expeditionMinutes(save, dungeon) * 60_000 * durationScale),
-                    party.length === 0 ? null : `${Math.round(chance * 100)}% · ${oddsBand(chance)}`,
-                    available ? null : 'after the tutorial',
+                    party.length === 0 ? null : `${formatPercent(chance)} · ${t(`odds.${oddsBand(chance)}`)}`,
+                    available ? null : t('expeditions.afterTutorial'),
                   ]
                     .filter(Boolean)
                     .join(' · '),
-                  tags.map((tag) => `${tagInfo[tag].emoji} ${tagInfo[tag].name}`).join('  '),
-                  modifier ? `${modifier.emoji} ${modifier.name}: ${modifier.description}` : null,
-                  fresh ? '✨ Never cleared: first-clear bonus' : null,
+                  tags.map((tag) => `${tagInfo[tag].emoji} ${tr(tagInfo[tag].name)}`).join('  '),
+                  modifier ? `${modifier.emoji} ${tr(modifier.name)}: ${tr(modifier.description)}` : null,
+                  fresh ? t('expeditions.neverCleared') : null,
                 ]
                   .filter(Boolean)
                   .join('\n')}
                 right={
                   <Button
-                    title="Send"
+                    title={t('expeditions.send')}
                     disabled={!available || party.length === 0}
                     onPress={() => send(dungeon.id, party)}
                   />
@@ -259,20 +249,20 @@ export default function ExpeditionsScreen() {
         );
       })}
 
-      <SectionTitle>Reports</SectionTitle>
-      {save.reports.length === 0 && <Text style={styles.empty}>No expeditions have returned yet.</Text>}
+      <SectionTitle>{t('expeditions.reports')}</SectionTitle>
+      {save.reports.length === 0 && <Text style={styles.empty}>{t('expeditions.noReports')}</Text>}
       {save.reports.map((report) => {
         const dungeon = dungeonById[report.dungeonId];
         const loot = [
           report.gold > 0 ? `🪙 ${report.gold}` : null,
           ...report.materials.map((m) => `${materialById[m.materialId].emoji} ${m.amount}`),
-          report.recipeId ? `📜 ${recipeOutput(recipeById[report.recipeId]).name}` : null,
-          report.firstClear ? `✨ First clear +${report.firstClear.gold}` : null,
+          report.recipeId ? `📜 ${tr(recipeOutput(recipeById[report.recipeId]).name)}` : null,
+          report.firstClear ? t('expeditions.firstClear', { gold: report.firstClear.gold }) : null,
           ...(report.mainRewards ?? []).map((reward) => {
             if (reward.kind === 'goldPouch') return `👛 +${reward.gold}`;
-            if (reward.kind === 'sigil') return `🎟️ Sigil T${reward.tier}`;
-            if (reward.kind === 'treasureMap') return '🗺️ Treasure map';
-            return '🪤 Lure';
+            if (reward.kind === 'sigil') return t('expeditions.sigil', { tier: reward.tier });
+            if (reward.kind === 'treasureMap') return t('expeditions.treasureMap');
+            return t('expeditions.lure');
           }),
           `+${report.xp} XP`,
         ]
@@ -281,8 +271,8 @@ export default function ExpeditionsScreen() {
         return (
           <View key={report.id} style={[styles.report, !report.seen && styles.reportNew]}>
             <Text style={styles.reportTitle}>
-              {dungeon.emoji} {dungeon.name} · {OUTCOME_LABELS[report.outcome]} ({report.encountersCleared}/
-              {report.encounterCount}){report.seen ? '' : ' · NEW'}
+              {dungeon.emoji} {tr(dungeon.name)} · {t(`expeditions.outcome.${report.outcome}`)} ({report.encountersCleared}/
+              {report.encounterCount}){report.seen ? '' : t('expeditions.new')}
             </Text>
             {report.log.map((line, i) => (
               <Text key={i} style={styles.logLine}>
@@ -292,7 +282,7 @@ export default function ExpeditionsScreen() {
             <Text style={styles.loot}>{loot}</Text>
             <Text style={styles.hp}>
               {report.heroHp
-                .map(({ heroId, hp, maxHp }) => `${save.heroes.find((h) => h.id === heroId)?.name ?? heroId} ${hp}/${maxHp} HP`)
+                .map(({ heroId, hp, maxHp }) => t('expeditions.hp', { name: save.heroes.find((h) => h.id === heroId)?.name ?? heroId, hp, max: maxHp }))
                 .join(' · ')}
             </Text>
           </View>

@@ -5,8 +5,13 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { defaultNotificationSettings } from '@/game/notifications/plan';
 import type { StepAlertLog } from '@/game/notifications/steps';
 import type { NotificationCategory, NotificationSettings } from '@/game/notifications/types';
+import type { Locale } from '@/i18n';
+
+/** `system` follows the phone's language. */
+export type LanguageSetting = Locale | 'system';
 
 type SettingsState = {
+  language: LanguageSetting;
   notifications: NotificationSettings;
   /** Step alerts already sent today. */
   stepAlertLog: StepAlertLog;
@@ -15,12 +20,13 @@ type SettingsState = {
   updateNotifications: (change: Partial<NotificationSettings>) => void;
   setCategory: (category: NotificationCategory, on: boolean) => void;
   setQuietHours: (change: Partial<NotificationSettings['quietHours']>) => void;
-  set: (change: Partial<Pick<SettingsState, 'stepAlertLog' | 'askedNotificationPermission'>>) => void;
+  set: (change: Partial<Pick<SettingsState, 'language' | 'stepAlertLog' | 'askedNotificationPermission'>>) => void;
 };
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
+      language: 'system',
       notifications: defaultNotificationSettings(),
       stepAlertLog: { day: '', sent: [] },
       askedNotificationPermission: false,
@@ -39,7 +45,8 @@ export const useSettingsStore = create<SettingsState>()(
       name: 'pocket-quartermaster-settings',
       version: 1,
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: ({ notifications, stepAlertLog, askedNotificationPermission }) => ({
+      partialize: ({ language, notifications, stepAlertLog, askedNotificationPermission }) => ({
+        language,
         notifications,
         stepAlertLog,
         askedNotificationPermission,

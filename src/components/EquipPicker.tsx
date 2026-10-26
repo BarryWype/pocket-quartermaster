@@ -7,6 +7,7 @@ import { gearStats } from '@/game/forging/quality';
 import { canWield } from '@/game/team/team';
 import type { SaveData } from '@/game/save';
 import type { EquipmentSlot } from '@/game/types';
+import { t, tr } from '@/i18n';
 import { colors } from '@/theme';
 
 import { Button } from './Button';
@@ -31,8 +32,8 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot): Option
         id: itemId,
         emoji: itemById[itemId].emoji,
         icon: itemById[itemId].icon,
-        title: itemById[itemId].name,
-        subtitle: `${count} in stock`,
+        title: tr(itemById[itemId].name),
+        subtitle: t('equip.inStock', { count }),
       }));
   }
   const hero = save.heroes.find((h) => h.id === heroId);
@@ -57,7 +58,7 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot): Option
       emoji: item.emoji,
       icon: item.icon,
       title: gearName(gear),
-      subtitle: `${item.slot === 'weapon' ? '⚔️' : '🛡️'} ${Math.round(power)}${holder ? ` · used by ${holder.name}` : ''}`,
+      subtitle: `${item.slot === 'weapon' ? '⚔️' : '🛡️'} ${Math.round(power)}${holder ? t('equip.usedBy', { name: holder.name }) : ''}`,
       color: qualities[gear.quality].color,
     }));
 }
@@ -69,10 +70,10 @@ export function EquipPicker({ save, heroId, slot, onPick, onClose }: Props) {
     <Modal animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <View style={styles.sheet}>
-          <Text style={styles.title}>Choose {slot}</Text>
+          <Text style={styles.title}>{t(`equip.choose.${slot}`)}</Text>
           <ScrollView>
             <Pressable onPress={() => onPick(null)}>
-              <Row emoji="🚫" title="Nothing" />
+              <Row emoji="🚫" title={t('equip.nothing')} />
             </Pressable>
             {options.map((option) => (
               <Pressable key={option.id} onPress={() => onPick(option.id)}>
@@ -85,9 +86,9 @@ export function EquipPicker({ save, heroId, slot, onPick, onClose }: Props) {
                 />
               </Pressable>
             ))}
-            {options.length === 0 && <Text style={styles.empty}>Nothing available. Visit the forge.</Text>}
+            {options.length === 0 && <Text style={styles.empty}>{t('equip.empty')}</Text>}
           </ScrollView>
-          <Button title="Cancel" onPress={onClose} />
+          <Button title={t('common.cancel')} onPress={onClose} />
         </View>
       </View>
     </Modal>

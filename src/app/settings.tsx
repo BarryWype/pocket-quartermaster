@@ -5,17 +5,25 @@ import { Alert, AppState, Linking, ScrollView, StyleSheet, Switch, View } from '
 import { Button } from '@/components/Button';
 import { SectionTitle } from '@/components/Row';
 import { Text } from '@/components/Text';
+import { frNotificationCategories, frNotificationGroups } from '@/content/fr/notifications';
 import { notificationCategories, notificationGroups } from '@/content/notifications';
 import type { NotificationCategory, NotificationGroup } from '@/game/notifications/types';
+import { useLanguage } from '@/hooks/useLanguage';
 import { syncPlan } from '@/hooks/useNotifications';
+import { localized, t } from '@/i18n';
 import { deviceNotifications, type NotificationPermission } from '@/services/notifications';
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
-import { useSettingsStore } from '@/store/settingsStore';
+import { type LanguageSetting, useSettingsStore } from '@/store/settingsStore';
 import { colors } from '@/theme';
 
 const DAY_MINUTES = 24 * 60;
 const QUIET_STEP = 30;
+const LANGUAGES: { id: LanguageSetting; label: () => string }[] = [
+  { id: 'system', label: () => t('settings.languageSystem') },
+  { id: 'en', label: () => 'English' },
+  { id: 'fr', label: () => 'Français' },
+];
 
 const clock = (minutes: number) =>
   `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
@@ -59,15 +67,18 @@ function TimeStepper({ label, value, onChange }: { label: string; value: number;
 }
 
 export default function SettingsScreen() {
-  const { notifications, updateNotifications, setCategory, setQuietHours } = useSettingsStore();
+  useLanguage();
+  const { language, notifications, updateNotifications, setCategory, setQuietHours, set } = useSettingsStore();
+  const groupTexts = localized({ en: notificationGroups, fr: frNotificationGroups });
+  const categoryTexts = localized({ en: notificationCategories, fr: frNotificationCategories });
   const resetSave = useGameStore((state) => state.resetSave);
   const debugOn = useDebugStore(debugEnabled);
   const setDebugEnabled = useDebugStore((state) => state.setEnabled);
   const toggleDebug = (on: boolean) => {
     if (!on) return setDebugEnabled(false);
-    Alert.alert('Turn on debug tools?', 'The 🐞 button on the map can change your save: gold, gear, heroes, timers and more.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Turn on', onPress: () => setDebugEnabled(true) },
+    Alert.alert(t('settings.debugConfirmTitle'), t('settings.debugConfirmBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('settings.debugConfirmOk'), onPress: () => setDebugEnabled(true) },
     ]);
   };
   const [permission, setPermission] = useState<NotificationPermission | null>(null);
@@ -90,9 +101,9 @@ export default function SettingsScreen() {
   };
 
   const confirmReset = () =>
-    Alert.alert('Reset progression?', 'Heroes, gear, inventory, gold, expeditions and chests go back to the start.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Reset', style: 'destructive', onPress: resetSave },
+    Alert.alert(t('settings.resetConfirmTitle'), t('settings.resetConfirmBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('settings.resetConfirmOk'), style: 'destructive', onPress: resetSave },
     ]);
 
   const off = !notifications.enabled;
@@ -101,33 +112,38 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Notifications</Text>
+      <Text style={styles.title}>{t('settings.language')}</Text>
+      <View style={styles.languages}>
+        {LANGUAGES.map(({ id, label }) => (
+          <Button key={id} title={label()} color={language === id ? colors.woodDark : colors.muted} onPress={() => set({ language: id })} />
+        ))}
+      </View>
+
+      <Text style={styles.title}>{t('settings.notifications')}</Text>
       {permission && !permission.granted && (
         <View style={styles.warning}>
           <Text>
-            {permission.canAskAgain
-              ? 'Notifications are not allowed yet.'
-              : 'Notifications are blocked in your system settings.'}
+            {permission.canAskAgain ? t('settings.notAllowed') : t('settings.blocked')}
           </Text>
-          <Button title={permission.canAskAgain ? 'Allow notifications' : 'Open settings'} onPress={askPermission} />
+          <Button title={permission.canAskAgain ? t('settings.allow') : t('settings.openSettings')} onPress={askPermission} />
         </View>
       )}
       <SwitchRow
-        title="All notifications"
+        title={t('settings.allNotifications')}
         value={notifications.enabled}
         onChange={(enabled) => updateNotifications({ enabled })}
       />
 
       {groups.map((group) => (
         <View key={group} style={styles.section}>
-          <SectionTitle>{notificationGroups[group].title}</SectionTitle>
+          <SectionTitle>{groupTexts[group].title}</SectionTitle>
           {categories
             .filter((category) => notificationCategories[category].group === group)
             .map((category) => (
               <SwitchRow
                 key={category}
-                title={notificationCategories[category].title}
-                description={notificationCategories[category].description}
+                title={categoryTexts[category].title}
+                description={categoryTexts[category].description}
                 value={notifications.categories[category]}
                 disabled={off}
                 onChange={(on) => setCategory(category, on)}
@@ -137,10 +153,10 @@ export default function SettingsScreen() {
       ))}
 
       <View style={styles.section}>
-        <SectionTitle>{'Quiet hours'}</SectionTitle>
+        <SectionTitle>{t('settings.quietHours')}</SectionTitle>
         <SwitchRow
-          title="Quiet hours"
-          description="Notifications wait until quiet hours end."
+          title={t('settings.quietHours')}
+          description={t('settings.quietHoursHint')}
           value={notifications.quietHours.enabled}
           disabled={off}
           onChange={(enabled) => setQuietHours({ enabled })}
@@ -148,13 +164,13 @@ export default function SettingsScreen() {
         {notifications.quietHours.enabled && (
           <>
             <TimeStepper
-              label="Start"
+              label={t('settings.start')}
               value={notifications.quietHours.start}
               onChange={(start) => setQuietHours({ start })}
             />
-            <TimeStepper label="End" value={notifications.quietHours.end} onChange={(end) => setQuietHours({ end })} />
+            <TimeStepper label={t('settings.end')} value={notifications.quietHours.end} onChange={(end) => setQuietHours({ end })} />
             <SwitchRow
-              title="Allow expedition results during quiet hours"
+              title={t('settings.allowResults')}
               value={notifications.allowResultsInQuietHours}
               disabled={off}
               onChange={(allowResultsInQuietHours) => updateNotifications({ allowResultsInQuietHours })}
@@ -164,14 +180,10 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.section}>
-        <SectionTitle>Developer</SectionTitle>
+        <SectionTitle>{t('settings.developer')}</SectionTitle>
         <SwitchRow
-          title="Debug tools"
-          description={
-            __DEV__
-              ? 'Always on in development builds.'
-              : 'Shows the 🐞 button on the map. Turning it off resets every debug option.'
-          }
+          title={t('settings.debugTools')}
+          description={__DEV__ ? t('settings.debugAlwaysOn') : t('settings.debugHint')}
           value={debugOn}
           disabled={__DEV__}
           onChange={toggleDebug}
@@ -179,9 +191,9 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.section}>
-        <SectionTitle>Progression</SectionTitle>
-        <Text style={styles.hint}>Start the game over from the tutorial. This cannot be undone.</Text>
-        <Button title="Reset progression" color={colors.danger} onPress={confirmReset} />
+        <SectionTitle>{t('settings.progression')}</SectionTitle>
+        <Text style={styles.hint}>{t('settings.resetHint')}</Text>
+        <Button title={t('settings.reset')} color={colors.danger} onPress={confirmReset} />
       </View>
     </ScrollView>
   );
@@ -190,6 +202,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: { gap: 12, padding: 24 },
   title: { fontSize: 24 },
+  languages: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   section: { gap: 12 },
   row: {
     flexDirection: 'row',
