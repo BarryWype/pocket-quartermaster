@@ -1,10 +1,11 @@
-import { Camera, type CameraRef, Map, Marker } from '@maplibre/maplibre-react-native';
+import { Camera, type CameraRef, Map, type MapRef, Marker } from '@maplibre/maplibre-react-native';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { IslandMenu, ISLAND_HEIGHT } from '@/components/IslandMenu';
+import { MapFoliage, useFoliage } from '@/components/MapFoliage';
 import { PlaceholderScreen } from '@/components/PlaceholderScreen';
 import { SpawnMarker } from '@/components/SpawnMarker';
 import { Text } from '@/components/Text';
@@ -41,6 +42,8 @@ export default function MapScreen() {
   const tools = useGameStore((state) => state.save.tools);
   const collect = useGameStore((state) => state.collect);
   const cameraRef = useRef<CameraRef>(null);
+  const mapRef = useRef<MapRef>(null);
+  const foliage = useFoliage(mapRef);
   const [now, setNow] = useState(Date.now());
   const [message, setMessage] = useState<string | null>(null);
 
@@ -109,6 +112,9 @@ export default function MapScreen() {
   return (
     <View style={styles.container}>
       <Map
+        ref={mapRef}
+        onDidFinishLoadingMap={foliage.refresh}
+        onRegionDidChange={foliage.refresh}
         style={styles.map}
         mapStyle={mapStyle}
         dragPan={false}
@@ -124,6 +130,7 @@ export default function MapScreen() {
         }}
       >
         <Camera ref={cameraRef} initialViewState={{ center: toLngLat(position), zoom: 17 }} />
+        <MapFoliage data={foliage.data} />
         {visible.map(({ spawn, position: spawnPosition, distance }) => (
           <Marker key={spawn.id} id={spawn.id} lngLat={toLngLat(spawnPosition)} onPress={() => gather(spawn)}>
             <SpawnMarker
@@ -132,6 +139,7 @@ export default function MapScreen() {
               inRange={distance <= gatheringConfig.collectRadiusMeters}
               fleeing={spawn.kind === 'animal' && isFleeing(speed)}
               locked={spawn.resourceId in resourceById && !canGather({ tools }, resourceById[spawn.resourceId])}
+              sway={spawn.resourceId === 'tree'}
             />
           </Marker>
         ))}

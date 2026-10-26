@@ -234,6 +234,7 @@ src/
 
 - **Content is data.** To tune the game, edit the files in `src/content/`. Run `npm test` afterwards: `src/game/balance/balance.test.ts` fails if the yields or difficulty curve drift too far.
 - **Map style:** the pixel-style map look is in `src/content/mapStyle.ts`, a MapLibre style over [OpenFreeMap](https://openfreemap.org) vector tiles. They're free, with no API key, and the OpenStreetMap credit stays visible.
+- **Animated foliage:** bushes and trees are scattered on open ground (`src/game/generation/foliage.ts`, drawn by `src/components/MapFoliage.tsx`). They skip roads, water, buildings and residential areas, and trees are more common in woods and parks. Each plant has 4 sway frames played at 4 fps, which pause when the app is in the background or the phone's reduce-motion setting is on. The placeholder sprites in `assets/sprites/` come from `scripts/generate-foliage-sprites.py`. Replace them with real art under the same names (`bush-0…3`, `tree-0…3`, with `@2x`/`@3x` versions), then rebuild the development app.
 - **Menu and font:** the floating menu on the map is `src/components/IslandMenu.tsx`; add a crafting station to its `CRAFT_LINKS` to list it under Craft. Shared colours and the font name are in `src/theme.ts`. The font, [Fantaisie Artistique](https://www.1001fonts.com/fantaisieartistique-font.html), is loaded from `assets/fonts/FantaisieArtistique.ttf`. Use `Text` and `Button` from `src/components/` instead of the React Native ones so it applies.
 
 ---
