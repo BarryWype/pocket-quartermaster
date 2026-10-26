@@ -3,7 +3,7 @@ import { logTemplates } from '@/content/logTemplates';
 
 import type { Rng } from '../generation/rng';
 import type { DungeonDef, MainReward, MobGroup } from '../types';
-import type { EncounterResult, PartyMember, RunResult } from './simulate';
+import type { AbilityEffect, EncounterResult, PartyMember, RunResult } from './simulate';
 
 export type LogInput = {
   dungeon: DungeonDef;
@@ -11,12 +11,10 @@ export type LogInput = {
   run: RunResult;
   gold: number;
   recipeItemName: string | null;
-  /** Special items worth a line of their own, e.g. the tutorial's key. */
-  finds: string[];
   mainRewards: MainReward[];
+  firstClear?: { gold: number; xp: number };
   /** Replaces the usual outcome line, e.g. for Sanctum fights. */
   summary?: string;
-  gearEvents: { heroName: string; gearName: string; kind: 'cracked' | 'broken' }[];
 };
 
 function fill(template: string, vars: Record<string, string | number>) {
@@ -59,28 +57,66 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
     return fill(logTemplates.knockedOutMany, { heroes: `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` });
   };
 
-  /** Damage taken, potions and knock-outs, appended to a fight line. */
+  /** Abilities that changed a fight, one short sentence each. */
+  const combatNotes = (encounter: EncounterResult) =>
+    encounter.effects
+      .flatMap((e) => {
+        const hero = e.heroId ? nameOf(e.heroId) : '';
+        switch (e.key) {
+          case 'tagBonus':
+            return [fill(logTemplates.tagBonus, { hero, tag: logTemplates.tagNames[e.tag!] ?? `${e.tag} foes` })];
+          case 'rage':
+          case 'buff':
+          case 'crit':
+          case 'advantage':
+            return [fill(logTemplates[e.key], { hero })];
+          case 'protect':
+            return [fill(logTemplates.protect, { hero, ally: nameOf(e.allyId!) })];
+          default:
+            return [];
+        }
+      })
+      .join('');
+
+  /** Ability notes, damage taken, potions and knock-outs, appended to a fight line. */
   const aftermath = (encounter: EncounterResult) => {
     const hurt = top(party, encounter.taken);
     return [
+      combatNotes(encounter),
       hurt ? fill(logTemplates.tookDamage, { hero: hurt.name, damage: Math.round(encounter.taken[hurt.heroId]) }) : '',
       ...usedWhen(encounter, 'lowHp').map((id) => fill(logTemplates.potion, { hero: nameOf(id) })),
       knockedOut(encounter),
     ].join('');
   };
 
+  /** The fight part of a line: who won it, or who it overwhelmed. */
+  const fightSentence = (encounter: EncounterResult) => {
+    const mobs = describeMobs(encounter.mobs);
+    const star = top(party, encounter.dealt);
+    return encounter.cleared && star
+      ? fill(pick(rng, logTemplates.fightWon[star.classId]), { hero: star.name, mobs, weapon: weaponOf(star) })
+      : fill(pick(rng, logTemplates.fightLost), { mobs });
+  };
+  const capitalised = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+  const effect = (encounter: EncounterResult, key: AbilityEffect['key']) => encounter.effects.find((e) => e.key === key);
+  const effectHero = (encounter: EncounterResult, key: AbilityEffect['key']) => {
+    const heroId = effect(encounter, key)?.heroId;
+    return heroId ? nameOf(heroId) : '';
+  };
   const lineFor = (encounter: EncounterResult): string => {
     switch (encounter.kind) {
       case 'fight':
       case 'ambush': {
-        const mobs = describeMobs(encounter.mobs);
-        const prefix = encounter.kind === 'ambush' ? logTemplates.ambush : '';
-        const star = top(party, encounter.dealt);
-        const sentence =
-          encounter.cleared && star
-            ? fill(pick(rng, logTemplates.fightWon[star.classId]), { hero: star.name, mobs, weapon: weaponOf(star) })
-            : fill(pick(rng, logTemplates.fightLost), { mobs });
-        return prefix + sentence.charAt(0).toUpperCase() + sentence.slice(1) + aftermath(encounter);
+        if (encounter.calmed) {
+          return fill(pick(rng, logTemplates.calmed), {
+            hero: effectHero(encounter, 'calm'),
+            mobs: describeMobs(encounter.mobs),
+          });
+        }
+        const alert = effect(encounter, 'alert');
+        const prefix =
+          encounter.kind !== 'ambush' ? '' : alert ? fill(logTemplates.ambushAlert, { hero: effectHero(encounter, 'alert') }) : logTemplates.ambush;
+        return prefix + capitalised(fightSentence(encounter)) + aftermath(encounter);
       }
       case 'boss': {
         const star = top(party, encounter.dealt);
@@ -93,9 +129,12 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
       }
       case 'trap': {
         const trap = encounter.name;
+        if (effect(encounter, 'tip')) return fill(pick(rng, logTemplates.trapTip), { trap });
+        if (effect(encounter, 'disarm')) {
+          return fill(pick(rng, logTemplates.trapDisarmed), { trap, hero: effectHero(encounter, 'disarm') });
+        }
         if (!encounter.trapTriggered) return fill(pick(rng, logTemplates.trapMissed), { trap });
         const hit = Object.keys(encounter.taken);
-        if (hit.length === 0) return fill(pick(rng, logTemplates.trapAvoided), { trap, hero: nameOf(encounter.avoided[0]) });
         const line =
           hit.length === 1
             ? fill(pick(rng, logTemplates.trapHit), {
@@ -104,13 +143,64 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
                 damage: Math.round(encounter.taken[hit[0]]),
               })
             : fill(pick(rng, logTemplates.trapAll), { trap });
+        const reduced = effect(encounter, 'trapReduce')
+          ? fill(logTemplates.trapReduced, { hero: effectHero(encounter, 'trapReduce') })
+          : '';
         const potions = usedWhen(encounter, 'lowHp').map((id) => fill(logTemplates.potion, { hero: nameOf(id) }));
-        return [line, ...potions, knockedOut(encounter)].join('');
+        return [line, reduced, ...potions, knockedOut(encounter)].join('');
+      }
+      case 'obstacle': {
+        const obstacle = encounter.name;
+        const solved = effect(encounter, 'solve');
+        if (solved) {
+          const kind = dungeon.encounters.find((e) => e.type === 'obstacle' && e.name === obstacle);
+          const template = logTemplates.obstacleSolved[kind?.type === 'obstacle' ? kind.kind : 'rubble'];
+          return fill(template, { hero: effectHero(encounter, 'solve'), obstacle });
+        }
+        const line = fill(pick(rng, logTemplates.obstacleCost), { obstacle });
+        if (!encounter.detour) return line + knockedOut(encounter);
+        return (
+          line +
+          fill(logTemplates.detour, { mobs: describeMobs(encounter.mobs) }) +
+          ' ' +
+          capitalised(fightSentence(encounter)) +
+          aftermath(encounter)
+        );
+      }
+      case 'locals': {
+        const npc = encounter.name;
+        switch (encounter.reaction) {
+          case 'help':
+            return fill(logTemplates.localsHelp[encounter.help!.kind], {
+              hero: effectHero(encounter, 'charm'),
+              npc,
+              gold: encounter.gold,
+            });
+          case 'fight':
+            return (
+              (effect(encounter, 'loud')
+                ? fill(logTemplates.loudLocals, { hero: effectHero(encounter, 'loud'), npc })
+                : fill(logTemplates.localsProvoked, { hero: effectHero(encounter, 'provoke'), npc })) +
+              ' ' +
+              capitalised(fightSentence(encounter)) +
+              aftermath(encounter)
+            );
+          case 'steal': {
+            const line = fill(logTemplates.localsStolen, { hero: effectHero(encounter, 'pickpocket'), npc, gold: encounter.gold });
+            if (!encounter.noticed) return line;
+            return line + logTemplates.localsNoticed + ' ' + capitalised(fightSentence(encounter)) + aftermath(encounter);
+          }
+          default:
+            return fill(pick(rng, logTemplates.localsNeutral), { npc });
+        }
       }
       case 'spring':
         return fill(pick(rng, logTemplates.spring), { event: encounter.name });
       case 'cache':
-        return fill(pick(rng, logTemplates.cache), { event: encounter.name, gold: encounter.gold });
+        return (
+          fill(pick(rng, logTemplates.cache), { event: encounter.name, gold: encounter.gold }) +
+          (effect(encounter, 'cacheBonus') ? fill(logTemplates.cacheBonus, { hero: effectHero(encounter, 'cacheBonus') }) : '')
+        );
       case 'mishap':
         return fill(pick(rng, logTemplates.mishap), { event: encounter.name });
     }
@@ -125,18 +215,19 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
     total: run.encounterCount,
   });
   return [
-    ...run.encounters.map(lineFor),
+    ...run.encounters.map(
+      (encounter) =>
+        lineFor(encounter) +
+        (effect(encounter, 'partyHeal') ? fill(logTemplates.partyHeal, { hero: effectHero(encounter, 'partyHeal') }) : ''),
+    ),
     summary,
     ...(input.recipeItemName ? [fill(pick(rng, logTemplates.recipe), { item: input.recipeItemName.toLowerCase() })] : []),
-    ...input.finds.map((item) => fill(pick(rng, logTemplates.found), { item: item.toLowerCase() })),
+    ...(input.firstClear ? [fill(pick(rng, logTemplates.firstClear), input.firstClear)] : []),
     ...input.mainRewards.map((reward) =>
       fill(pick(rng, logTemplates.mainReward[reward.kind]), {
         gold: reward.kind === 'goldPouch' ? reward.gold : 0,
         tier: reward.kind === 'sigil' || reward.kind === 'treasureMap' ? reward.tier : 0,
       }),
-    ),
-    ...input.gearEvents.map((event) =>
-      fill(logTemplates[event.kind], { hero: event.heroName, gear: event.gearName.toLowerCase() }),
     ),
   ];
 }

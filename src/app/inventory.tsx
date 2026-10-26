@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { Alert, ScrollView, StyleSheet } from 'react-native';
 
 import { Button } from '@/components/Button';
-
+import { GearRow } from '@/components/GearRow';
 import { Row, SectionTitle } from '@/components/Row';
 import { StepChests } from '@/components/StepChests';
 import { Text } from '@/components/Text';
 import { TutorialHint } from '@/components/TutorialHint';
-import { elementInfo } from '@/content/elements';
-import { gearName, itemById } from '@/content/lookup';
+import { gearName, itemById, materialById } from '@/content/lookup';
 import { materials } from '@/content/materials';
+import { canSalvage, salvageNeedsConfirmation, salvageReturns, wornBy } from '@/game/forging/salvage';
 import { isLureActive, lureEndsAt } from '@/game/rewards/lures';
 import { liveTreasureMaps } from '@/game/rewards/treasure';
 import { usePlayerLocation } from '@/hooks/usePlayerLocation';
+import type { GearInstance } from '@/game/types';
 import { useGameStore } from '@/store/gameStore';
 
 const HOUR = 3_600_000;
@@ -21,6 +22,7 @@ export default function InventoryScreen() {
   const save = useGameStore((state) => state.save);
   const readMap = useGameStore((state) => state.readTreasureMap);
   const activateLure = useGameStore((state) => state.activateLure);
+  const salvage = useGameStore((state) => state.salvage);
   const player = usePlayerLocation();
   const position = player.status === 'ready' ? player.location.position : null;
   const [now, setNow] = useState(() => Date.now());
@@ -32,6 +34,18 @@ export default function InventoryScreen() {
   const sigilTiers = [...new Set(save.sigils)].sort((a, b) => a - b);
   const ownedMaterials = materials.filter((m) => (save.materials[m.id] ?? 0) > 0);
   const ownedConsumables = Object.entries(save.consumables).filter(([, count]) => count > 0);
+
+  /** Rare, Legendary and infused pieces ask first, showing what comes back. */
+  const confirmSalvage = (gear: GearInstance) => {
+    if (!salvageNeedsConfirmation(gear)) return salvage(gear.uid);
+    const returns = salvageReturns(gear)
+      .map(({ materialId, amount }) => `${amount} ${materialById[materialId].name.toLowerCase()}`)
+      .join(', ');
+    Alert.alert(`Salvage ${gearName(gear)}?`, `It is destroyed and you get back ${returns}.`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Salvage', style: 'destructive', onPress: () => salvage(gear.uid) },
+    ]);
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -92,21 +106,19 @@ export default function InventoryScreen() {
       <SectionTitle>Gear</SectionTitle>
       {save.gear.length === 0 && <Text style={styles.empty}>Forge weapons and armor at the forge.</Text>}
       {save.gear.map((gear) => {
-        const item = itemById[gear.itemId];
+        const holder = wornBy(save, gear.uid);
         return (
-          <Row
+          <GearRow
             key={gear.uid}
-            emoji={item.emoji}
-            icon={item.icon}
-            title={gearName(gear)}
-            subtitle={
-              item.slot === 'weapon' || item.slot === 'armor'
-                ? `${gear.element ? `${elementInfo[gear.element].emoji} ` : ''}Durability ${gear.durability}/${item.maxDurability}`
-                : undefined
-            }
+            gear={gear}
+            note={holder ? `Worn by ${holder.name}` : null}
+            right={<Button title="Salvage" disabled={!canSalvage(save, gear.uid)} onPress={() => confirmSalvage(gear)} />}
           />
         );
       })}
+      {save.gear.length > 0 && (
+        <Text style={styles.empty}>Salvage gives back part of the materials: more for better quality. Take gear off first.</Text>
+      )}
 
       <SectionTitle>Consumables</SectionTitle>
       {ownedConsumables.length === 0 && <Text style={styles.empty}>Brew potions and rations with alchemy.</Text>}

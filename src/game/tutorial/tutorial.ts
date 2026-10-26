@@ -5,7 +5,7 @@ import { offsetPosition } from '../generation/geo';
 import type { LatLng, StaticSpawn } from '../generation/types';
 import type { SaveData, TutorialStep } from '../save';
 
-export type TutorialScreen = 'map' | 'forge' | 'alchemy' | 'inventory' | 'team' | 'hero' | 'expeditions';
+export type TutorialScreen = 'map' | 'forge' | 'alchemy' | 'inventory' | 'team' | 'hero' | 'expeditions' | 'sanctum';
 export type MenuTarget = 'forge' | 'team' | 'expeditions';
 
 export const TUTORIAL_SPAWN_ID = 'tutorial:wood';
@@ -69,7 +69,7 @@ function isComplete(save: SaveData, step: TutorialStep): boolean {
     case 'readReport':
       return save.reports.some((r) => r.seen);
     default:
-      // The outro waits for the player to close it.
+      // Finding a Sanctum, and the tips the player closes, move on through `nextTutorialStep`.
       return false;
   }
 }
@@ -81,6 +81,8 @@ const ORDER: TutorialStep[] = [
   'sendExpedition',
   'awaitReport',
   'readReport',
+  'findSanctum',
+  'sanctumIntro',
   'outro',
   'done',
 ];
@@ -92,7 +94,20 @@ export function advanceTutorial(save: SaveData): SaveData {
   return step === save.tutorial.step ? save : { ...save, tutorial: { ...save.tutorial, step } };
 }
 
-/** Closes the tutorial: from the outro, or from debug to skip it. */
+/** Steps whose hint waits for a tap to close. */
+const CLOSABLE: TutorialStep[] = ['sanctumIntro', 'outro'];
+
+export function isClosableHint(save: SaveData) {
+  return CLOSABLE.includes(save.tutorial.step);
+}
+
+/** Moves on from `step` if it is the current one: a Sanctum opened, or a tip closed. */
+export function nextTutorialStep(save: SaveData, step: TutorialStep): SaveData {
+  if (save.tutorial.step !== step || step === 'done') return save;
+  return { ...save, tutorial: { ...save.tutorial, step: ORDER[ORDER.indexOf(step) + 1] } };
+}
+
+/** Skips the whole tutorial, from debug. */
 export function finishTutorial(save: SaveData): SaveData {
   return { ...save, tutorial: { ...save.tutorial, step: 'done' } };
 }

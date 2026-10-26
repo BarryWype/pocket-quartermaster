@@ -4,8 +4,9 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { offsetPosition } from '@/game/generation/geo';
 import type { LatLng, TimeOfDay } from '@/game/generation/types';
+import { applyOverrides, dailyRotation, rotationDay, type TierRotation } from '@/game/dungeons/rotation';
 import type { SanctumSpawn } from '@/game/sanctums/sanctums';
-import type { MainRewardKind } from '@/game/types';
+import type { MainRewardKind, Quality } from '@/game/types';
 
 type DebugSettings = {
   /** When set, replaces the device GPS position. */
@@ -21,23 +22,52 @@ type DebugSettings = {
   forcedMainReward: MainRewardKind | null;
   /** A Sanctum placed by hand next to the player. */
   debugSanctum: SanctumSpawn | null;
+  /** Quality the next forged gear piece gets, then cleared. */
+  forcedQuality: Quality | null;
+  /** A tavern placed by hand next to the player. */
+  debugTavern: { id: string; name: string; position: LatLng } | null;
+  /** Changes every tavern's offers, to reroll them. */
+  offerSeed: string;
+  /** Days added to today's rotation day. */
+  rotationDayOffset: number;
+  /** Dungeons forced into a `tier:slot`, e.g. `2:short`. */
+  forcedSlots: Record<string, string>;
+  /** Modifier forced per tier; null clears that tier's modifier. */
+  forcedModifiers: Record<number, TierRotation['modifier']>;
 };
 
 type DebugState = DebugSettings & {
+  /** Debug tools in a release build, turned on from Settings. Development builds always have them. */
+  enabled: boolean;
+  /** Turning the tools off also resets every debug option. */
+  setEnabled: (enabled: boolean) => void;
   set: (settings: Partial<DebugSettings>) => void;
   moveMockLocation: (northMeters: number, eastMeters: number) => void;
+};
+
+/** Every debug option off; turning the debug tools off resets to this. */
+const DEBUG_DEFAULTS: DebugSettings = {
+  mockLocation: null,
+  timeOfDay: null,
+  windowMinutes: null,
+  fastExpeditions: false,
+  extraSteps: 0,
+  forcedMainReward: null,
+  debugSanctum: null,
+  forcedQuality: null,
+  rotationDayOffset: 0,
+  debugTavern: null,
+  offerSeed: '',
+  forcedSlots: {},
+  forcedModifiers: {},
 };
 
 export const useDebugStore = create<DebugState>()(
   persist(
     (set) => ({
-      mockLocation: null,
-      timeOfDay: null,
-      windowMinutes: null,
-      fastExpeditions: false,
-      extraSteps: 0,
-      forcedMainReward: null,
-      debugSanctum: null,
+      ...DEBUG_DEFAULTS,
+      enabled: false,
+      setEnabled: (enabled) => set(enabled ? { enabled } : { ...DEBUG_DEFAULTS, enabled }),
       set: (settings) => set(settings),
       moveMockLocation: (northMeters, eastMeters) =>
         set((state) => ({
@@ -50,7 +80,17 @@ export const useDebugStore = create<DebugState>()(
       name: 'pocket-quartermaster-debug',
       version: 1,
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: ({ set, moveMockLocation, ...settings }) => settings,
+      partialize: ({ set, setEnabled, moveMockLocation, ...settings }) => settings,
     },
   ),
 );
+
+/** Whether the debug tools are available: always in development builds, and in release when turned on in Settings. */
+export const debugEnabled = (state: Pick<DebugState, 'enabled'>) => __DEV__ || state.enabled;
+
+/** Today's dungeon rotation, with the debug day shift and overrides when debug tools are on. */
+export function currentRotation(now = Date.now()) {
+  if (!debugEnabled(useDebugStore.getState())) return dailyRotation(rotationDay(now));
+  const { rotationDayOffset, forcedSlots, forcedModifiers } = useDebugStore.getState();
+  return applyOverrides(dailyRotation(rotationDay(now) + rotationDayOffset), { slots: forcedSlots, modifiers: forcedModifiers });
+}

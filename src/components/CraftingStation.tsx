@@ -1,10 +1,16 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { materialById, recipeOutput } from '@/content/lookup';
+import { masteryTypeNames, QUALITIES, qualities, TIER_NAMES } from '@/content/forging';
+import { gearName, materialById, recipeOutput } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
-import { canCraft, isKnown, ownsTool } from '@/game/crafting/crafting';
-import type { RecipeDef } from '@/game/types';
+import { canCraft, forgedItem, isKnown, ownsTool, type ForgeResult } from '@/game/crafting/crafting';
+import { forgesForNextLevel, masteryCap, masteryOf, masteryTypeOf } from '@/game/forging/mastery';
+import { qualityOdds } from '@/game/forging/quality';
+import type { SaveData } from '@/game/save';
+import type { GearDef, RecipeDef } from '@/game/types';
 import { useGameStore } from '@/store/gameStore';
+import { colors } from '@/theme';
 
 import { Button } from './Button';
 import { GameIcon } from './GameIcon';
@@ -18,31 +24,88 @@ type Props = {
   action: string;
 };
 
+/** Mastery level and progress for the item's type, and the quality odds of forging it now. */
+function MasteryLine({ save, item }: { save: SaveData; item: GearDef }) {
+  const type = masteryTypeOf(item);
+  const { level, progress } = masteryOf(save, type);
+  const odds = qualityOdds(level, item.tier);
+  const needed = forgesForNextLevel(level);
+  const maxed = level >= masteryCap(item.tier);
+  const next = TIER_NAMES[item.tier];
+  return (
+    <View>
+      <Text style={styles.mastery}>
+        {masteryTypeNames[type].name} mastery {level}
+        {maxed
+          ? ` · ${TIER_NAMES[item.tier - 1]} mastery maxed.${next ? ` Forge ${next.toLowerCase()} ${masteryTypeNames[type].plural} to keep improving.` : ''}`
+          : needed
+            ? ` · ${progress}/${needed} to level ${level + 1}`
+            : ''}
+      </Text>
+      <Text style={styles.mastery}>
+        {QUALITIES.filter((q) => odds[q] > 0).map((q, i) => (
+          <Text key={q} style={{ color: qualities[q].color }}>
+            {i > 0 ? ' · ' : ''}
+            {qualities[q].name} {odds[q]}%
+          </Text>
+        ))}
+      </Text>
+    </View>
+  );
+}
+
+/** The forged piece in its quality colour, bigger for Legendary, and any mastery level-up. */
+function ForgeBanner({ result, onClose }: { result: ForgeResult; onClose: () => void }) {
+  const { quality } = result.gear;
+  const legendary = quality === 'legendary';
+  return (
+    <Pressable
+      onPress={onClose}
+      style={[styles.banner, (quality === 'rare' || legendary) && { borderColor: qualities[quality].color }, legendary && styles.legendary]}
+    >
+      <Text style={[styles.bannerTitle, legendary && styles.legendaryTitle, { color: qualities[quality].color }]}>
+        {legendary ? '🌟 ' : quality === 'rare' ? '✨ ' : ''}
+        {gearName(result.gear)}
+      </Text>
+      <Text>
+        {qualities[quality].name} quality
+        {result.levelUp ? ` · ${masteryTypeNames[result.type].name} mastery is now level ${result.mastery.level}!` : ''}
+      </Text>
+    </Pressable>
+  );
+}
+
 /** The known recipes of one crafting station; locked ones stay hidden. */
 export function CraftingStation({ station, action }: Props) {
   const save = useGameStore((state) => state.save);
   const craft = useGameStore((state) => state.craft);
+  const [result, setResult] = useState<ForgeResult | null>(null);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <TutorialHint screen={station} />
+      {result && <ForgeBanner result={result} onClose={() => setResult(null)} />}
       {recipes
         .filter((recipe) => recipe.station === station && isKnown(save, recipe))
         .map((recipe) => {
           const output = recipeOutput(recipe);
+          const item = forgedItem(recipe);
           const inputs = (
-            <View style={styles.inputs}>
-              {recipe.inputs.map(({ materialId, amount }) => {
-                const material = materialById[materialId];
-                return (
-                  <View key={materialId} style={styles.input}>
-                    <GameIcon emoji={material.emoji} icon={material.icon} size={18} />
-                    <Text style={styles.inputText}>
-                      {save.materials[materialId] ?? 0}/{amount}
-                    </Text>
-                  </View>
-                );
-              })}
+            <View>
+              <View style={styles.inputs}>
+                {recipe.inputs.map(({ materialId, amount }) => {
+                  const material = materialById[materialId];
+                  return (
+                    <View key={materialId} style={styles.input}>
+                      <GameIcon emoji={material.emoji} icon={material.icon} size={18} />
+                      <Text style={styles.inputText}>
+                        {save.materials[materialId] ?? 0}/{amount}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+              {item && <MasteryLine save={save} item={item} />}
             </View>
           );
           return (
@@ -56,7 +119,11 @@ export function CraftingStation({ station, action }: Props) {
                 ownsTool(save, recipe) ? (
                   'Owned'
                 ) : (
-                  <Button title={action} disabled={!canCraft(save, recipe)} onPress={() => craft(recipe.id)} />
+                  <Button
+                    title={action}
+                    disabled={!canCraft(save, recipe)}
+                    onPress={() => setResult(craft(recipe.id))}
+                  />
                 )
               }
             />
@@ -71,4 +138,17 @@ const styles = StyleSheet.create({
   inputs: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   input: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   inputText: { fontSize: 13, color: '#666' },
+  mastery: { fontSize: 12, color: colors.muted },
+  banner: {
+    gap: 2,
+    padding: 12,
+    marginBottom: 8,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.woodDark,
+    backgroundColor: colors.parchmentDark,
+  },
+  legendary: { borderWidth: 4, padding: 16, backgroundColor: colors.highlight },
+  bannerTitle: { fontSize: 18 },
+  legendaryTitle: { fontSize: 22 },
 });

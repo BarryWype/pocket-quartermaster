@@ -25,10 +25,10 @@ function geared(): SaveData {
   let save: SaveData = allTiers({
     ...createInitialSave(),
     gear: [
-      { uid: 'g1', itemId: 'woodSword', durability: 15 },
-      { uid: 'g2', itemId: 'woodBow', durability: 15 },
-      { uid: 'g3', itemId: 'woodWand', durability: 15 },
-      { uid: 'g4', itemId: 'woodArmour', durability: 15 },
+      { uid: 'g1', itemId: 'woodSword', quality: 'normal' },
+      { uid: 'g2', itemId: 'woodBow', quality: 'normal' },
+      { uid: 'g3', itemId: 'woodWand', quality: 'normal' },
+      { uid: 'g4', itemId: 'woodArmour', quality: 'normal' },
     ],
     consumables: { healingPotion: 1, fireResistanceElixir: 1 },
     nextUid: 10,
@@ -49,20 +49,25 @@ function outcomes(save: SaveData, dungeonId: string, runs = 200) {
 }
 
 describe('dungeon tiers', () => {
-  it('has five tiers of three, each ending with one boss', () => {
+  it('has five tiers, each with one boss and three short and three long dungeons', () => {
     for (let tier = 1; tier <= 5; tier++) {
       const inTier = dungeons.filter((d) => d.tier === tier);
-      expect(inTier).toHaveLength(3);
-      expect(inTier.filter((d) => d.isBoss)).toEqual([inTier[2]]);
-      expect(inTier[0].encounterCount[0]).toBeLessThan(inTier[1].encounterCount[0]);
-      expect(inTier[1].encounterCount[0]).toBeLessThan(inTier[2].encounterCount[0]);
-      expect(inTier[2].boss.hp).toBeGreaterThan(inTier[1].boss.hp);
+      const [boss] = inTier.filter((d) => d.isBoss);
+      const short = inTier.filter((d) => d.slot === 'short');
+      const long = inTier.filter((d) => d.slot === 'long');
+      expect(inTier.filter((d) => d.isBoss)).toHaveLength(1);
+      expect([short.length, long.length]).toEqual([3, 3]);
+      for (const s of short) for (const l of long) expect(s.encounterCount[0]).toBeLessThan(l.encounterCount[0]);
+      for (const l of long) {
+        expect(l.encounterCount[0]).toBeLessThan(boss.encounterCount[0]);
+        expect(boss.boss.hp).toBeGreaterThan(l.boss.hp);
+      }
     }
   });
 
   it('opens only tier 1 at the start', () => {
     const fresh = createInitialSave();
-    expect(dungeons.filter((d) => isDungeonUnlocked(fresh, d)).map((d) => d.tier)).toEqual([1, 1, 1]);
+    expect(new Set(dungeons.filter((d) => isDungeonUnlocked(fresh, d)).map((d) => d.tier))).toEqual(new Set([1]));
     expect(() => startExpedition(fresh, 'wolfDen', ['bram'], 0)).toThrow();
   });
 
@@ -171,14 +176,19 @@ describe('resolveExpedition', () => {
     });
   });
 
-  it('applies rewards, XP and wear to the save', () => {
+  it('applies rewards and XP to the save, and never wears gear down', () => {
     const started = startExpedition(geared(), 'goblinWarren', ALL, 0);
     const { save, report } = resolveExpedition(started, started.expeditions[0]);
     expect(save.expeditions).toEqual([]);
     expect(save.reports[0]).toEqual(report);
-    expect(save.gold).toBe(report.gold);
-    save.heroes.forEach((hero) => expect(hero.xp + (hero.level - 1) * 100).toBe(report.xp));
-    expect(save.gear.find((g) => g.uid === 'g1')!.durability).toBeLessThan(15);
+    expect(save.gold).toBe(report.gold + (report.firstClear?.gold ?? 0));
+    // Mira is a quick learner: +20% XP.
+    save.heroes.forEach((hero) =>
+      expect(hero.xp + (hero.level - 1) * 100).toBe(
+        Math.round((report.xp + (report.firstClear?.xp ?? 0)) * (hero.trait === 'quickLearner' ? 1.2 : 1)),
+      ),
+    );
+    expect(save.gear).toEqual(started.gear);
   });
 
   it('returns potions nobody needed and uses up the ones drunk', () => {
@@ -198,13 +208,10 @@ describe('resolveExpedition', () => {
     expect(resolveExpedition(started, started.expeditions[0]).report.consumablesUsed).toContain('fireResistanceElixir');
   });
 
-  it('breaks worn-out gear and unequips it', () => {
-    const worn = { ...geared(), gear: geared().gear.map((g) => (g.uid === 'g1' ? { ...g, durability: 1 } : g)) };
-    const started = startExpedition(worn, 'goblinWarren', ALL, 0);
-    const { save, report } = resolveExpedition(started, started.expeditions[0]);
-    expect(report.brokenGear).toContain('woodSword');
-    expect(save.gear.some((g) => g.uid === 'g1')).toBe(false);
-    expect(save.heroes.find((h) => h.id === 'bram')!.equipment.weapon).toBeNull();
+  it('keeps gear equipped whatever the outcome', () => {
+    for (const { save } of outcomes(geared(), 'banditStockade', 30)) {
+      expect(save.heroes.find((h) => h.id === 'bram')!.equipment.weapon).toBe('g1');
+    }
   });
 
   it('drops the tier gear recipes in tier 1 dungeons', () => {
@@ -219,7 +226,7 @@ describe('resolveExpedition', () => {
       for (const { report } of outcomes(geared(), dungeon.id, 20)) {
         // Every encounter played gets a line: all cleared ones, plus the one the team fell in.
         const played = report.encountersCleared + (report.success ? 0 : 1);
-        const extras = (report.recipeId ? 1 : 0) + report.brokenGear.length;
+        const extras = report.recipeId ? 1 : 0;
         expect(report.log.length).toBeGreaterThanOrEqual(played + 1 + extras);
         expect(report.log.length).toBeLessThanOrEqual(played + 1 + extras + 4);
         expect(report.log.join(' ')).not.toMatch(/\{\w+\}/);
@@ -257,7 +264,7 @@ describe('tutorial expedition', () => {
   const tutorialSave = (): SaveData => {
     const save: SaveData = {
       ...createInitialSave(),
-      gear: [{ uid: 'g1', itemId: 'woodSword', durability: 15 }],
+      gear: [{ uid: 'g1', itemId: 'woodSword', quality: 'normal' }],
       tutorial: { step: 'sendExpedition', woodSpot: null },
     };
     return equip(save, 'bram', 'weapon', 'g1');
@@ -281,15 +288,25 @@ describe('tutorial expedition', () => {
     }
   });
 
-  it('pays a little gold, the wooden bow blueprint and a mysterious key', () => {
+  it('pays a little gold, the wooden bow blueprint and a tier 1 Sigil', () => {
     const started = startExpedition(tutorialSave(), 'ratCellar', ALL, 0);
     const { save, report } = resolveExpedition(started, started.expeditions[0]);
     expect(report.gold).toBe(10);
     expect(report.recipeId).toBe('woodBow');
-    expect(report.materials).toEqual([{ materialId: 'mysteriousKey', amount: 1 }]);
+    expect(report.materials).toEqual([]);
+    expect(report.mainRewards).toEqual([{ kind: 'sigil', tier: 1 }]);
+    expect(save.sigils).toEqual([1]);
     expect(save.knownRecipes).toContain('woodBow');
-    expect(save.materials.mysteriousKey).toBe(1);
-    expect(report.log.join(' ')).toMatch(/mysterious key/);
+    // The first Bandit Stockade win still guarantees its own Sigil.
+    expect(save.firstSigilGiven).toBe(false);
+  });
+
+  it('respects the Sigil cap', () => {
+    const full = { ...tutorialSave(), sigils: [1, 1, 1] };
+    const started = startExpedition(full, 'ratCellar', ALL, 0);
+    const { save, report } = resolveExpedition(started, started.expeditions[0]);
+    expect(report.mainRewards).toEqual([]);
+    expect(save.sigils).toEqual([1, 1, 1]);
   });
 
   it('only applies to the first expedition', () => {

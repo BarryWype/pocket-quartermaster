@@ -21,7 +21,14 @@ export type Stats = {
   hp: number;
 };
 
-export type WeaponType = 'sword' | 'wand' | 'bow';
+export type WeaponType = 'sword' | 'wand' | 'bow' | 'axe' | 'mace' | 'dagger' | 'staff' | 'instrument';
+
+export type Quality = 'crappy' | 'normal' | 'rare' | 'legendary';
+
+/** What forging mastery is tracked by: each weapon type, plus armour. */
+export type MasteryType = WeaponType | 'armour';
+
+export type MasteryState = { level: number; progress: number };
 
 export type EquipmentSlot = 'weapon' | 'armor' | 'consumable';
 
@@ -36,7 +43,8 @@ export type GearDef = ItemBase & {
   slot: 'weapon' | 'armor';
   weaponType?: WeaponType;
   stats: Partial<Stats>;
-  maxDurability: number;
+  /** Material tier: wood 1 … steel 5. */
+  tier: number;
 };
 
 export type ConsumableDef = ItemBase & {
@@ -70,28 +78,102 @@ export type RecipeDef = {
   unlocks?: string[];
 };
 
-export type HeroClassId = 'warrior' | 'archer' | 'fireMage';
+export type HeroClassId =
+  | 'warrior'
+  | 'ranger'
+  | 'fireMage'
+  | 'frostMage'
+  | 'thief'
+  | 'barbarian'
+  | 'cleric'
+  | 'paladin'
+  | 'druid'
+  | 'troubadour'
+  | 'sorcerer';
+
+export type ClassRarity = 'common' | 'uncommon';
+
+/** What a dungeon's encounters are made of; heroes with matching abilities counter them. */
+export type Tag = 'undead' | 'beast' | 'trap' | 'obstacle' | 'locals' | Element;
+
+export type ObstacleKind = 'rubble' | 'locked' | 'barricade';
+
+export type LocalsReactionKey = 'charm' | 'provoke' | 'pickpocket';
+
+/**
+ * A class ability: one of a few effects the simulation knows. Party-wide ones
+ * (disarm, calm, obstacles, locals) work if any conscious hero has them.
+ */
+export type Ability =
+  | { kind: 'damageVsTag'; tag: Tag; multiplier: number }
+  /** Chance per trap to skip it for the whole party. */
+  | { kind: 'trapDisarm'; chance: number }
+  /** Trap damage to the party is multiplied by this. */
+  | { kind: 'trapReduce'; multiplier: number }
+  | { kind: 'obstacleSolve'; kinds: ObstacleKind[] }
+  /** Chance per all-beast fight to skip it. */
+  | { kind: 'calmBeasts'; chance: number }
+  | { kind: 'localsReaction'; key: LocalsReactionKey }
+  /** After each encounter, conscious heroes regain this share of max HP. */
+  | { kind: 'partyHeal'; pct: number }
+  /** This share of the damage aimed at the most hurt ally is taken by this hero instead. */
+  | { kind: 'protect'; share: number }
+  /** Damage multiplier while this hero is below the HP share. */
+  | { kind: 'rage'; belowPct: number; multiplier: number }
+  /** Damage multiplier for the whole party while this hero is conscious; the best one applies. */
+  | { kind: 'partyDamageBuff'; multiplier: number }
+  | { kind: 'critBonus'; chance: number }
+  /** Gold from cache events is multiplied by this. */
+  | { kind: 'cacheBonus'; multiplier: number }
+  /** Replaces the elemental advantage multiplier for this hero's attacks. */
+  | { kind: 'elementalAdvantage'; multiplier: number }
+  // Personal traits. Party-wide ones count once per trait, however many heroes have it.
+  | { kind: 'statMultiplier'; stat: keyof Stats; multiplier: number }
+  | { kind: 'goldMultiplier'; multiplier: number }
+  | { kind: 'xpMultiplier'; multiplier: number }
+  /** Ambushes don't get the first strike. */
+  | { kind: 'ambushAlert' }
+  | { kind: 'rationBoost'; multiplier: number }
+  /** Trap trigger chance multiplier. */
+  | { kind: 'trapTrigger'; multiplier: number }
+  /** Added to the share of max HP below which this hero drinks a potion. */
+  | { kind: 'potionThreshold'; add: number }
+  /** Locals who would ignore the party attack with this chance; pickpockets get noticed more. */
+  | { kind: 'hostileLocals'; chance: number; noticeBonus: number };
+
+export type TraitDef = {
+  id: string;
+  name: string;
+  description: string;
+  /** Positive traits make a recruit dearer, negative ones cheaper. */
+  positive: boolean;
+  effects: Ability[];
+};
 
 export type HeroClassDef = {
   name: string;
   emoji: string;
+  rarity: ClassRarity;
+  /** Its attacks use this element unless its weapon is infused. */
+  element?: Element;
   baseStats: Stats;
   /** Added per level above 1. */
   growth: Stats;
-  /** Multiplier on a weapon's stats when this class wields it. */
+  /** The weapon types this class can use, with the multiplier on their stats. Armour is open to all. */
   affinities: Partial<Record<WeaponType, number>>;
   /** Elements this class takes no extra damage from. */
   resists?: Element[];
   /** Relative chance of being the one enemies attack; tanks have more. */
   threat: number;
-  /** Abilities traps and events can check, e.g. 'spotTraps'. None yet. */
-  traits?: string[];
+  abilities: Ability[];
 };
 
 export type HeroState = {
   id: string;
   name: string;
   classId: HeroClassId;
+  /** Personal trait id (see content/traits.ts). */
+  trait: string;
   level: number;
   /** XP towards the next level. */
   xp: number;
@@ -103,11 +185,11 @@ export type HeroState = {
   };
 };
 
-/** A crafted piece of gear; each one wears down on its own. */
+/** A forged piece of gear. */
 export type GearInstance = {
   uid: string;
   itemId: string;
-  durability: number;
+  quality: Quality;
   /** Infused element; a piece can only be infused once. */
   element?: Element;
 };
@@ -122,6 +204,8 @@ export type ActiveExpedition = {
   seed: string;
   /** The tutorial's first expedition always succeeds. */
   guaranteed?: boolean;
+  /** The daily modifier the dungeon had at launch, kept if the rotation changes. */
+  modifierId?: string | null;
   notificationId: string | null;
 };
 
@@ -139,6 +223,8 @@ export type MobDef = {
   /** Damage per round before the target's defense. */
   damage: number;
   element?: Element;
+  /** E.g. undead or beast; the element is a tag too, added by `mobTags`. */
+  tags: Tag[];
 };
 
 export type BossDef = MobDef & {
@@ -158,11 +244,44 @@ export type EncounterDef = { weight: number } & (
       targets: 'one' | 'all';
       triggerChance: number;
       element?: Element;
-      /** A class trait or consumable protection that avoids it. */
-      avoidedBy?: string;
     }
   | { type: 'event'; eventId: string }
+  /** Solved for free by a hero with the ability; otherwise costs HP and maybe a detour fight. */
+  | { type: 'obstacle'; name: string; kind: ObstacleKind; hpCostPct: number; detourChance: number }
+  | { type: 'locals'; npcId: string }
 );
+
+/** How locals help a party that charms them. */
+export type NpcHelp =
+  | { kind: 'heal'; pct: number }
+  /** This share of the dungeon's top gold reward. */
+  | { kind: 'gold'; share: number }
+  /** The party skips the next trap. */
+  | { kind: 'tip' };
+
+export type NpcDef = {
+  id: string;
+  name: string;
+  description: string;
+  help: NpcHelp;
+  /** What they turn into when provoked or caught: scaled to the dungeon's tier in `enemies.ts`. */
+  hostile: { name: string; count: number; hp: number; damage: number };
+};
+
+/** A daily twist on one dungeon. Only adjusts data; needs every tag in `requires`. */
+export type DungeonModifier = {
+  id: string;
+  name: string;
+  emoji: string;
+  description: string;
+  requires: Tag[];
+  /** Encounters with this tag get their weight multiplied. */
+  boost?: { tag: Tag; multiplier: number };
+  /** Every enemy takes this element. */
+  enemyElement?: Element;
+  gold?: number;
+  materials?: number;
+};
 
 export type EventDef = { id: string; name: string } & (
   | { kind: 'spring'; healPct: number }
@@ -180,8 +299,14 @@ export type DungeonDef = {
   emoji: string;
   /** Tier N shows up once the tier N-1 boss has been beaten. */
   tier: number;
-  /** The tier's last dungeon; beating it reveals the next tier. */
+  /** The tier's last dungeon; beating it reveals the next tier. Always available. */
   isBoss?: boolean;
+  /** Regular dungeons rotate daily: one `short` (farm) and one `long` slot per tier. */
+  slot?: 'short' | 'long';
+  /** Set by a daily modifier. */
+  enemyElement?: Element;
+  rewardMultipliers?: { gold: number; materials: number };
+  modifierId?: string;
   durationMinutes: number;
   /** Number of encounters, boss included. */
   encounterCount: [min: number, max: number];
@@ -192,8 +317,6 @@ export type DungeonDef = {
   gold: [min: number, max: number];
   /** XP per hero for beating the boss; retreats get the cleared share. */
   xp: number;
-  /** Durability lost per equipped gear piece. */
-  durabilityLoss: [min: number, max: number];
   /** Rolled once; amounts are scaled by the share of encounters cleared. */
   loot: LootEntry[];
   /** Only dropped when the boss is beaten. */
@@ -258,8 +381,8 @@ export type ExpeditionReport = {
   recipeId: string | null;
   xp: number;
   consumablesUsed: string[];
-  /** Item ids of gear that broke. */
-  brokenGear: string[];
+  /** Bonus for the first win in a pool dungeon. */
+  firstClear?: { gold: number; xp: number };
   log: string[];
   seen: boolean;
 };

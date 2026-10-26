@@ -2,6 +2,7 @@ import { dungeons } from '@/content/dungeons';
 import { items } from '@/content/items';
 import { recipeById } from '@/content/lookup';
 import { materials } from '@/content/materials';
+import { QUALITIES } from '@/content/forging';
 import { recipes } from '@/content/recipes';
 
 import { createInitialSave, type SaveData } from '../save';
@@ -61,13 +62,14 @@ describe('crafting', () => {
     expect(canCraft(save, recipeById.woodPickaxe)).toBe(false);
   });
 
-  it('forges a gear piece with full durability and a unique id', () => {
+  it('forges a gear piece with a quality and a unique id', () => {
     const start = withMaterials({ wood: 7 }, { knownRecipes: ['woodSword'] });
     const twice = craft(craft(start, recipeById.woodSword), recipeById.woodSword);
-    expect(twice.gear).toEqual([
-      { uid: 'g1', itemId: 'woodSword', durability: 15 },
-      { uid: 'g2', itemId: 'woodSword', durability: 15 },
+    expect(twice.gear.map((g) => [g.uid, g.itemId])).toEqual([
+      ['g1', 'woodSword'],
+      ['g2', 'woodSword'],
     ]);
+    twice.gear.forEach((g) => expect(QUALITIES).toContain(g.quality));
     expect(twice.materials).toEqual({ wood: 1 });
   });
 

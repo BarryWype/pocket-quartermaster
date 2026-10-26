@@ -1,14 +1,16 @@
 import { expeditionRules } from '@/content/dungeons';
-import { mobById } from '@/content/enemies';
+import { mobById, mobTags, npcMobId } from '@/content/enemies';
 import { eventById } from '@/content/events';
+import { localsRules, npcById } from '@/content/npcs';
 import { heroClasses } from '@/content/heroes';
 import { gearName, itemById } from '@/content/lookup';
 
-import { incomingMultiplier, weaponMultiplier, type Element } from '../elements';
+import { beats, incomingMultiplier, weaponMultiplier, type Element } from '../elements';
 import { createRng } from '../generation/rng';
 import type { SaveData } from '../save';
-import { heroStats } from '../team/team';
+import { heroAbilities, heroStats } from '../team/team';
 import type {
+  Ability,
   BossDef,
   ConsumableDef,
   DungeonDef,
@@ -17,6 +19,8 @@ import type {
   HeroClassId,
   MobDef,
   MobGroup,
+  NpcHelp,
+  Tag,
 } from '../types';
 
 export type ExpeditionRules = typeof expeditionRules;
@@ -26,6 +30,8 @@ export type PartyMember = {
   heroId: string;
   name: string;
   classId: HeroClassId;
+  /** Personal trait id; party-wide trait effects count once per trait. */
+  traitId: string;
   weaponName: string | null;
   maxHp: number;
   /** Damage per round: attack + magic. */
@@ -34,17 +40,47 @@ export type PartyMember = {
   threat: number;
   /** Elements this hero takes no extra damage from (class resist, protective consumable). */
   resists: Element[];
-  /** Class abilities traps can check, e.g. 'spotTraps'. */
-  traits: string[];
+  /** Class abilities and trait effects, plus any the gear gives (a fire weapon burns barricades). */
+  abilities: Ability[];
+  /** The infused weapon's element, or the class's innate one. */
   weaponElement?: Element;
   armourElement?: Element;
   consumable: ConsumableDef | null;
 };
 
+/** An ability that changed an encounter, for the log. `heroId` is null for a local's tip. */
+export type AbilityEffect = {
+  heroId: string | null;
+  key:
+    | 'tagBonus'
+    | 'disarm'
+    | 'tip'
+    | 'trapReduce'
+    | 'solve'
+    | 'calm'
+    | 'charm'
+    | 'provoke'
+    | 'pickpocket'
+    | 'rage'
+    | 'buff'
+    | 'protect'
+    | 'partyHeal'
+    | 'crit'
+    | 'cacheBonus'
+    | 'advantage'
+    | 'alert'
+    | 'loud';
+  tag?: Tag;
+  /** The ally a `protect` shielded. */
+  allyId?: string;
+};
+
+export type LocalsReaction = 'help' | 'fight' | 'steal' | 'neutral';
+
 /** What happened in one encounter, for rewards and the log. Per-hero maps are keyed by hero id. */
 export type EncounterResult = {
-  kind: 'fight' | 'ambush' | 'boss' | 'trap' | 'spring' | 'cache' | 'mishap';
-  /** Trap, event or boss name. */
+  kind: 'fight' | 'ambush' | 'boss' | 'trap' | 'spring' | 'cache' | 'mishap' | 'obstacle' | 'locals';
+  /** Trap, event, obstacle, NPC or boss name. */
   name: string;
   /** The enemies of a fight or ambush. */
   mobs: MobGroup[];
@@ -57,14 +93,25 @@ export type EncounterResult = {
   consumed: string[];
   knockedOut: string[];
   trapTriggered: boolean;
-  avoided: string[];
   gold: number;
+  effects: AbilityEffect[];
+  /** A beast fight skipped by calming them: cleared, but it brings no loot. */
+  calmed: boolean;
+  /** An unsolved obstacle sent the party round a fight. */
+  detour: boolean;
+  reaction?: LocalsReaction;
+  /** What the locals did to help. */
+  help?: NpcHelp;
+  /** Pickpocketed locals noticed and fought. */
+  noticed?: boolean;
 };
 
 export type RunResult = {
   encounters: EncounterResult[];
   encounterCount: number;
   encountersCleared: number;
+  /** Cleared by calming beasts, so left out of the loot share. */
+  encountersCalmed: number;
   bossDefeated: boolean;
   outcome: ExpeditionOutcome;
   bonusGold: number;
@@ -96,14 +143,18 @@ export function prepareParty(save: SaveData, heroIds: string[]): PartyMember[] {
         heroId: hero.id,
         name: hero.name,
         classId: hero.classId,
+        traitId: hero.trait,
         weaponName: weapon ? gearName(weapon) : null,
         maxHp: stats.hp,
         damage: stats.attack + stats.magic,
         defense: stats.defense,
         threat: heroClass.threat,
         resists: [...(heroClass.resists ?? []), ...(consumable?.protectsAgainst ? [consumable.protectsAgainst] : [])],
-        traits: heroClass.traits ?? [],
-        weaponElement: weapon?.element,
+        abilities: [
+          ...heroAbilities(hero),
+          ...(weapon?.element === 'fire' ? [{ kind: 'obstacleSolve', kinds: ['barricade'] } satisfies Ability] : []),
+        ],
+        weaponElement: weapon?.element ?? heroClass.element,
         armourElement: armour?.element,
         consumable,
       };
@@ -123,8 +174,10 @@ function emptyResult(kind: EncounterResult['kind'], name: string, mobs: MobGroup
     consumed: [],
     knockedOut: [],
     trapTriggered: false,
-    avoided: [],
     gold: 0,
+    effects: [],
+    calmed: false,
+    detour: false,
   };
 }
 
@@ -149,16 +202,40 @@ export function simulateRun(
   const heroes: HeroState[] = party.map((member) => ({
     member,
     hp: member.maxHp,
-    out: false,
+    // A hero with no HP to start with can't act at all.
+    out: member.maxHp <= 0,
     consumableLeft: member.consumable !== null,
   }));
   const alive = () => heroes.filter((h) => !h.out);
   const fights = dungeon.encounters.flatMap((e) => (e.type === 'fight' ? [e] : []));
+  /** A local's tip: the next trap is skipped. */
+  let tipped = false;
+
+  /** The first conscious hero with an ability of this kind that passes `test`. */
+  const withAbility = <K extends Ability['kind']>(kind: K, test: (ability: Extract<Ability, { kind: K }>) => boolean = () => true) => {
+    for (const hero of alive()) {
+      const ability = hero.member.abilities.find(
+        (a): a is Extract<Ability, { kind: K }> => a.kind === kind && test(a as Extract<Ability, { kind: K }>),
+      );
+      if (ability) return { hero, ability };
+    }
+    return null;
+  };
+  /** A hero's own ability of this kind (not the party's). */
+  const own = <K extends Ability['kind']>(hero: HeroState, kind: K) =>
+    hero.member.abilities.find((a): a is Extract<Ability, { kind: K }> => a.kind === kind);
+  const enemyElement = (def: MobDef | BossDef) => dungeon.enemyElement ?? def.element;
+  const enemyTags = (def: MobDef | BossDef): Tag[] => {
+    const element = enemyElement(def);
+    return element ? [...def.tags, element] : mobTags(def);
+  };
 
   /** ±variance, sometimes a crit. */
-  const roll = (value: number) => {
+  const roll = (value: number, critBonus = 0, onCrit?: () => void) => {
     const varied = value * (1 + (rng.next() * 2 - 1) * rules.damageVariance);
-    return rng.chance(rules.critChance) ? varied * rules.critMultiplier : varied;
+    if (!rng.chance(rules.critChance + critBonus)) return varied;
+    onCrit?.();
+    return varied * rules.critMultiplier;
   };
   const elementFactor = (hero: HeroState, attack?: Element) =>
     incomingMultiplier(attack, { armour: hero.member.armourElement, resists: hero.member.resists });
@@ -183,7 +260,8 @@ export function simulateRun(
       }
     }
     const potion = hero.member.consumable;
-    if (hero.consumableLeft && potion?.when === 'lowHp' && hero.hp < rules.potionThreshold * hero.member.maxHp) {
+    const threshold = rules.potionThreshold + (own(hero, 'potionThreshold')?.add ?? 0);
+    if (hero.consumableLeft && potion?.when === 'lowHp' && hero.hp < threshold * hero.member.maxHp) {
       hero.consumableLeft = false;
       heal(hero, potion.heal ?? 0, result);
       result.consumed.push(hero.member.heroId);
@@ -192,14 +270,57 @@ export function simulateRun(
 
   const fight = (enemyDefs: (MobDef | BossDef)[], result: EncounterResult, enemiesFirst: boolean) => {
     const enemies: EnemyState[] = enemyDefs.map((def) => ({ def, hp: def.hp }));
+    /** Logs an effect once per encounter and hero. */
+    const note = (heroId: string, key: AbilityEffect['key'], extra: Partial<AbilityEffect> = {}) => {
+      if (!result.effects.some((e) => e.key === key && e.heroId === heroId)) result.effects.push({ heroId, key, ...extra });
+    };
     const heroesAttack = () => {
+      // The best buff of a conscious hero lifts everyone; buffs don't stack.
+      const buffer = alive()
+        .map((h) => ({ h, buff: own(h, 'partyDamageBuff') }))
+        .filter((b) => b.buff)
+        .sort((a, b) => b.buff!.multiplier - a.buff!.multiplier)[0];
+      if (buffer) note(buffer.h.member.heroId, 'buff');
       for (const hero of alive()) {
         const target = enemies.find((e) => e.hp > 0);
         if (!target) return;
-        const damage = roll(hero.member.damage) * fortune * weaponMultiplier(hero.member.weaponElement, target.def.element);
+        const id = hero.member.heroId;
+        const tags = enemyTags(target.def);
+        let bonus = buffer?.buff?.multiplier ?? 1;
+        for (const ability of hero.member.abilities) {
+          if (ability.kind !== 'damageVsTag' || !tags.includes(ability.tag)) continue;
+          bonus *= ability.multiplier;
+          note(id, 'tagBonus', { tag: ability.tag });
+        }
+        const rage = own(hero, 'rage');
+        if (rage && hero.hp < rage.belowPct * hero.member.maxHp) {
+          bonus *= rage.multiplier;
+          note(id, 'rage');
+        }
+        const targetElement = enemyElement(target.def);
+        const advantage = own(hero, 'elementalAdvantage');
+        let elemental = weaponMultiplier(hero.member.weaponElement, targetElement);
+        if (advantage && hero.member.weaponElement && targetElement && beats(hero.member.weaponElement, targetElement)) {
+          elemental = advantage.multiplier;
+          note(id, 'advantage');
+        }
+        const critBonus = hero.member.abilities.reduce((sum, a) => sum + (a.kind === 'critBonus' ? a.chance : 0), 0);
+        const hit = roll(hero.member.damage, critBonus, critBonus > 0 ? () => note(id, 'crit') : undefined);
+        const damage = hit * fortune * bonus * elemental;
         target.hp -= damage;
-        add(result.dealt, hero.member.heroId, damage);
+        add(result.dealt, id, damage);
       }
+    };
+    /** A protector takes a share of the hits aimed at the most hurt ally. */
+    const shielded = (target: HeroState, amount: number) => {
+      const lowest = alive().reduce((low, h) => (h.hp / h.member.maxHp < low.hp / low.member.maxHp ? h : low));
+      if (lowest !== target) return amount;
+      const protector = alive().find((h) => h !== target && own(h, 'protect'));
+      if (!protector) return amount;
+      const moved = amount * own(protector, 'protect')!.share;
+      note(protector.member.heroId, 'protect', { allyId: target.member.heroId });
+      hurt(protector, moved, result);
+      return amount - moved;
     };
     const enemiesAttack = () => {
       for (const enemy of enemies.filter((e) => e.hp > 0)) {
@@ -209,8 +330,10 @@ export function simulateRun(
         const targets =
           boss?.effect === 'sweep' ? alive() : alive().length ? [rng.weighted(alive(), (h) => h.member.threat)] : [];
         for (const hero of targets) {
-          const incoming = roll(boss?.effect === 'sweep' ? base * rules.sweepShare : base) * elementFactor(hero, enemy.def.element);
-          hurt(hero, (incoming * 100) / (100 + rules.defenseFactor * hero.member.defense) / fortune, result);
+          const incoming =
+            roll(boss?.effect === 'sweep' ? base * rules.sweepShare : base) * elementFactor(hero, enemyElement(enemy.def));
+          const taken = (incoming * 100) / (100 + rules.defenseFactor * hero.member.defense) / fortune;
+          hurt(hero, shielded(hero, taken), result);
         }
       }
     };
@@ -237,35 +360,122 @@ export function simulateRun(
   const runEncounter = (encounter: EncounterDef): EncounterResult => {
     if (encounter.type === 'fight') {
       const result = emptyResult('fight', '', encounter.mobs);
+      const calmer = expand(encounter.mobs).every((mob) => enemyTags(mob).includes('beast')) ? withAbility('calmBeasts') : null;
+      if (calmer && rng.chance(calmer.ability.chance)) {
+        result.effects.push({ heroId: calmer.hero.member.heroId, key: 'calm' });
+        result.calmed = true;
+        result.cleared = true;
+        return result;
+      }
       fight(expand(encounter.mobs), result, false);
       return result;
     }
     if (encounter.type === 'trap') {
       const result = emptyResult('trap', encounter.name);
-      result.trapTriggered = rng.chance(encounter.triggerChance);
+      result.cleared = true;
+      if (tipped) {
+        tipped = false;
+        result.effects.push({ heroId: null, key: 'tip' });
+        return result;
+      }
+      const disarmer = withAbility('trapDisarm');
+      if (disarmer && rng.chance(disarmer.ability.chance)) {
+        result.effects.push({ heroId: disarmer.hero.member.heroId, key: 'disarm' });
+        return result;
+      }
+      // Clumsy heroes set traps off more often (once per party, whoever it is).
+      const clumsy = withAbility('trapTrigger');
+      result.trapTriggered = rng.chance(Math.min(1, encounter.triggerChance * (clumsy?.ability.multiplier ?? 1)));
       if (result.trapTriggered) {
+        const reducer = withAbility('trapReduce');
+        if (reducer) result.effects.push({ heroId: reducer.hero.member.heroId, key: 'trapReduce' });
+        const reduce = reducer?.ability.multiplier ?? 1;
         const caught = encounter.targets === 'all' ? alive() : [rng.weighted(alive(), () => 1)];
         for (const hero of caught) {
-          if (encounter.avoidedBy && hero.member.traits.includes(encounter.avoidedBy)) {
-            result.avoided.push(hero.member.heroId);
-          } else {
-            hurt(hero, encounter.damagePct * hero.member.maxHp * elementFactor(hero, encounter.element), result);
-          }
+          hurt(hero, encounter.damagePct * hero.member.maxHp * reduce * elementFactor(hero, encounter.element), result);
         }
       }
       result.cleared = alive().length > 0;
+      return result;
+    }
+    if (encounter.type === 'obstacle') {
+      const result = emptyResult('obstacle', encounter.name);
+      const solver = withAbility('obstacleSolve', (a) => a.kinds.includes(encounter.kind));
+      if (solver) {
+        result.effects.push({ heroId: solver.hero.member.heroId, key: 'solve' });
+        result.cleared = true;
+        return result;
+      }
+      for (const hero of alive()) hurt(hero, encounter.hpCostPct * hero.member.maxHp, result);
+      if (alive().length > 0 && fights.length > 0 && rng.chance(encounter.detourChance)) {
+        const { mobs } = rng.weighted(fights, (f) => f.weight);
+        result.detour = true;
+        result.mobs = mobs;
+        fight(expand(mobs), result, false);
+        return result;
+      }
+      result.cleared = alive().length > 0;
+      return result;
+    }
+    if (encounter.type === 'locals') {
+      const npc = npcById[encounter.npcId];
+      const result = emptyResult('locals', npc.name);
+      const hostile = [{ mobId: npcMobId(npc.id, dungeon.tier), count: npc.hostile.count }];
+      const reacts = (key: 'charm' | 'provoke' | 'pickpocket') => withAbility('localsReaction', (a) => a.key === key);
+      const charmer = reacts('charm');
+      const provoker = charmer ? null : reacts('provoke');
+      const thief = charmer || provoker ? null : reacts('pickpocket');
+      const loud = withAbility('hostileLocals');
+      const by = charmer ?? provoker ?? thief;
+      if (by) result.effects.push({ heroId: by.hero.member.heroId, key: by.ability.key });
+      result.cleared = true;
+      if (charmer) {
+        result.reaction = 'help';
+        result.help = npc.help;
+        const { help } = npc;
+        if (help.kind === 'heal') alive().forEach((hero) => heal(hero, help.pct, result));
+        if (help.kind === 'gold') result.gold = Math.round(help.share * dungeon.gold[1]);
+        if (help.kind === 'tip') tipped = true;
+      } else if (provoker) {
+        result.reaction = 'fight';
+        result.mobs = hostile;
+        fight(expand(hostile), result, false);
+      } else if (thief) {
+        result.reaction = 'steal';
+        result.gold = Math.round(localsRules.pickpocketGoldShare * dungeon.gold[1]);
+        if (rng.chance(localsRules.noticeChance + (loud?.ability.noticeBonus ?? 0))) {
+          result.noticed = true;
+          result.mobs = hostile;
+          result.cleared = false;
+          fight(expand(hostile), result, false);
+        }
+      } else if (loud && rng.chance(loud.ability.chance)) {
+        // A loud hero turns indifferent locals hostile.
+        result.reaction = 'fight';
+        result.effects.push({ heroId: loud.hero.member.heroId, key: 'loud' });
+        result.mobs = hostile;
+        fight(expand(hostile), result, false);
+      } else {
+        result.reaction = 'neutral';
+      }
       return result;
     }
     const event = eventById[encounter.eventId];
     if (event.kind === 'ambush') {
       const { mobs } = rng.weighted(fights, (f) => f.weight);
       const result = emptyResult('ambush', event.name, mobs);
-      fight(expand(mobs), result, true);
+      const alert = withAbility('ambushAlert');
+      if (alert) result.effects.push({ heroId: alert.hero.member.heroId, key: 'alert' });
+      fight(expand(mobs), result, !alert);
       return result;
     }
     const result = emptyResult(event.kind, event.name);
     if (event.kind === 'spring') alive().forEach((hero) => heal(hero, event.healPct, result));
-    if (event.kind === 'cache') result.gold = Math.round(event.goldShare * dungeon.gold[1]);
+    if (event.kind === 'cache') {
+      const finder = withAbility('cacheBonus');
+      if (finder) result.effects.push({ heroId: finder.hero.member.heroId, key: 'cacheBonus' });
+      result.gold = Math.round(event.goldShare * dungeon.gold[1] * (finder?.ability.multiplier ?? 1));
+    }
     result.cleared = true;
     return result;
   };
@@ -283,6 +493,12 @@ export function simulateRun(
       const result = runEncounter(rng.weighted(dungeon.encounters, (e) => e.weight));
       encounters.push(result);
       if (!result.cleared) break;
+      // A healer tends the party between encounters.
+      const healer = withAbility('partyHeal');
+      if (healer && alive().some((h) => h.hp < h.member.maxHp)) {
+        alive().forEach((hero) => heal(hero, healer.ability.pct, result));
+        result.effects.push({ heroId: healer.hero.member.heroId, key: 'partyHeal' });
+      }
       continue;
     }
     const result = emptyResult('boss', dungeon.boss.name);
@@ -290,7 +506,7 @@ export function simulateRun(
       const ration = hero.member.consumable;
       if (hero.consumableLeft && ration?.when === 'beforeBoss') {
         hero.consumableLeft = false;
-        heal(hero, ration.heal ?? 0, result);
+        heal(hero, (ration.heal ?? 0) * (own(hero, 'rationBoost')?.multiplier ?? 1), result);
         result.consumed.push(hero.member.heroId);
       }
     }
@@ -313,6 +529,7 @@ export function simulateRun(
     encounters,
     encounterCount,
     encountersCleared,
+    encountersCalmed: encounters.filter((e) => e.calmed).length,
     bossDefeated,
     outcome,
     bonusGold: encounters.reduce((sum, e) => sum + e.gold, 0),

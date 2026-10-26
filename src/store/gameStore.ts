@@ -3,11 +3,14 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { dungeons } from '@/content/dungeons';
+import { newHero } from '@/content/heroes';
 import { items } from '@/content/items';
-import { dungeonById, recipeById } from '@/content/lookup';
+import { recipeById } from '@/content/lookup';
 import { materials } from '@/content/materials';
-import { craft, unlockRecipe } from '@/game/crafting/crafting';
-import { infuse, recycle } from '@/game/crafting/infusion';
+import { craft, forgeResult, unlockRecipe, type ForgeResult } from '@/game/crafting/crafting';
+import { infuse } from '@/game/crafting/infusion';
+import { salvage } from '@/game/forging/salvage';
+import { migrateV5Save, migrateV6Save, migrateV7Save } from '@/game/migrations';
 import { convertShards, shardId, stoneId, type Element } from '@/game/elements';
 import { fastForward, resolveDue, startExpedition } from '@/game/expeditions/expeditions';
 import { collectSpawn, type CollectResult, type Gatherer } from '@/game/gathering/gathering';
@@ -17,24 +20,28 @@ import { dayKey, openChest, recordSteps, syncSteps, type ChestReward } from '@/g
 import { activateLure } from '@/game/rewards/lures';
 import { collectTreasure, readTreasureMap, type TreasureContents } from '@/game/rewards/treasure';
 import { challengeSanctum, type SanctumResult, type SanctumSpawn } from '@/game/sanctums/sanctums';
-import { createInitialSave, type SaveData } from '@/game/save';
-import { equip, unequip } from '@/game/team/team';
-import { advanceTutorial, finishTutorial, placeTutorialWood } from '@/game/tutorial/tutorial';
+import { createInitialSave, type SaveData, type TutorialStep } from '@/game/save';
+import { dismissHero, equip, unequip } from '@/game/team/team';
+import { learnWeaponTypes, recruit, type RecruitOffer } from '@/game/taverns/taverns';
+import { advanceTutorial, finishTutorial, nextTutorialStep, placeTutorialWood } from '@/game/tutorial/tutorial';
 import { pruneExpired } from '@/game/upkeep';
-import type { EquipmentSlot, ExpeditionReport } from '@/game/types';
-import { deviceNotifications } from '@/services/notifications';
+import type { EquipmentSlot, ExpeditionReport, HeroClassId, MasteryType, Quality } from '@/game/types';
 
-import { useDebugStore } from './debugStore';
+import { currentRotation, debugEnabled, useDebugStore } from './debugStore';
 
 type GameState = {
   save: SaveData;
   collect: (spawn: Spawn, gatherer: Gatherer, timeMs: number) => CollectResult;
-  craft: (recipeId: string) => void;
+  /** Returns the forged gear piece and mastery change, for gear recipes. */
+  craft: (recipeId: string) => ForgeResult | null;
   infuse: (gearUid: string, element: Element) => void;
-  recycle: (gearUid: string) => void;
+  salvage: (gearUid: string) => void;
   /** Pass null to empty the slot. */
   equip: (heroId: string, slot: EquipmentSlot, id: string | null) => void;
-  startExpedition: (dungeonId: string, heroIds: string[], durationScale: number) => Promise<void>;
+  dismissHero: (heroId: string) => void;
+  recruit: (offer: RecruitOffer, tavern: LatLng, player: LatLng) => void;
+  closeTavernHint: () => void;
+  startExpedition: (dungeonId: string, heroIds: string[], durationScale: number) => void;
   resolveDue: () => ExpeditionReport[];
   markReportsSeen: () => void;
   recordSteps: (day: string, newSteps: number) => void;
@@ -45,7 +52,9 @@ type GameState = {
   readTreasureMap: (mapId: string, position: LatLng) => void;
   collectTreasure: (mapId: string, player: LatLng, treasureAt: LatLng) => TreasureContents;
   activateLure: (position: LatLng) => void;
-  /** Closes the tutorial's last tip; from debug, skips the whole tutorial. */
+  /** Moves the tutorial past `step` if it is the current one, e.g. when a tip is closed. */
+  nextTutorialStep: (step: TutorialStep) => void;
+  /** Debug: skips the whole tutorial. */
   finishTutorial: () => void;
   // Debug
   /** Crafts the next pickaxe for free. */
@@ -57,18 +66,16 @@ type GameState = {
   addSigil: (tier: number) => void;
   addElemental: (element: Element, kind: 'shard' | 'stone', amount: number) => void;
   addTreasureMap: () => void;
+  resetFirstClears: () => void;
+  addHero: (classId: HeroClassId, level: number, trait: string) => void;
+  setMastery: (type: MasteryType, level: number) => void;
+  addGear: (itemId: string, quality: Quality, element: Element | null) => void;
   addLure: () => void;
   /** Forgets used Sanctums and the Sigil pity counter. */
   resetSanctums: () => void;
   fastForwardExpeditions: () => void;
   resetSave: () => void;
 };
-
-function cancelNotifications(save: SaveData) {
-  for (const { notificationId } of save.expeditions) {
-    if (notificationId) deviceNotifications.cancel(notificationId).catch(() => {});
-  }
-}
 
 export const useGameStore = create<GameState>()(
   persist(
@@ -79,31 +86,30 @@ export const useGameStore = create<GameState>()(
         if (result.ok) set({ save: advanceTutorial(result.save) });
         return result;
       },
-      craft: (recipeId) => set(({ save }) => ({ save: advanceTutorial(craft(save, recipeById[recipeId])) })),
+      craft: (recipeId) => {
+        const before = get().save;
+        const debug = useDebugStore.getState();
+        const quality = debugEnabled(debug) ? (debug.forcedQuality ?? undefined) : undefined;
+        const save = advanceTutorial(craft(before, recipeById[recipeId], quality));
+        set({ save });
+        const result = forgeResult(before, save);
+        if (result && quality) debug.set({ forcedQuality: null });
+        return result;
+      },
       infuse: (gearUid, element) => set(({ save }) => ({ save: infuse(save, gearUid, element) })),
-      recycle: (gearUid) => set(({ save }) => ({ save: recycle(save, gearUid) })),
+      salvage: (gearUid) => set(({ save }) => ({ save: salvage(save, gearUid) })),
       equip: (heroId, slot, id) =>
         set(({ save }) => ({
           save: advanceTutorial(id ? equip(save, heroId, slot, id) : unequip(save, heroId, slot)),
         })),
-      startExpedition: async (dungeonId, heroIds, durationScale) => {
-        const save = advanceTutorial(startExpedition(get().save, dungeonId, heroIds, Date.now(), durationScale));
-        set({ save });
-        const expedition = save.expeditions[save.expeditions.length - 1];
-        const notificationId = await deviceNotifications
-          .scheduleAt(
-            new Date(expedition.endsAt),
-            'Expedition finished',
-            `Your heroes are back from ${dungeonById[dungeonId].name}.`,
-          )
-          .catch(() => null);
-        set(({ save: current }) => ({
-          save: {
-            ...current,
-            expeditions: current.expeditions.map((e) => (e.id === expedition.id ? { ...e, notificationId } : e)),
-          },
-        }));
-      },
+      // Notifications follow the save: see `useNotifications`.
+      dismissHero: (heroId) => set(({ save }) => ({ save: dismissHero(save, heroId) })),
+      recruit: (offer, tavern, player) => set(({ save }) => ({ save: recruit(save, offer, tavern, player) })),
+      closeTavernHint: () => set(({ save }) => ({ save: { ...save, tavernHintSeen: true } })),
+      startExpedition: (dungeonId, heroIds, durationScale) =>
+        set(({ save }) => ({
+          save: advanceTutorial(startExpedition(save, dungeonId, heroIds, Date.now(), durationScale, currentRotation())),
+        })),
       resolveDue: () => {
         const now = Date.now();
         const debug = useDebugStore.getState();
@@ -140,6 +146,7 @@ export const useGameStore = create<GameState>()(
         return contents;
       },
       activateLure: (position) => set(({ save }) => ({ save: activateLure(save, position, Date.now()) })),
+      nextTutorialStep: (step) => set(({ save }) => ({ save: nextTutorialStep(save, step) })),
       finishTutorial: () => set(({ save }) => ({ save: finishTutorial(save) })),
       grantNextPickaxe: () =>
         set(({ save }) => {
@@ -186,25 +193,51 @@ export const useGameStore = create<GameState>()(
             nextUid: save.nextUid + 1,
           },
         })),
+      setMastery: (type, level) =>
+        set(({ save }) => ({ save: { ...save, mastery: { ...save.mastery, [type]: { level, progress: 0 } } } })),
+      addGear: (itemId, quality, element) =>
+        set(({ save }) => ({
+          save: {
+            ...save,
+            gear: [...save.gear, { uid: `g${save.nextUid}`, itemId, quality, ...(element ? { element } : {}) }],
+            nextUid: save.nextUid + 1,
+          },
+        })),
+      resetFirstClears: () => set(({ save }) => ({ save: { ...save, firstClears: [] } })),
+      addHero: (classId, level, trait) =>
+        set(({ save }) => ({
+          save: learnWeaponTypes(
+            {
+              ...save,
+              heroes: [...save.heroes, newHero(`h${save.nextUid}`, `Debug ${classId}`, classId, trait, level)],
+              nextUid: save.nextUid + 1,
+            },
+            classId,
+          ),
+        })),
       addLure: () => set(({ save }) => ({ save: { ...save, lures: save.lures + 1 } })),
       resetSanctums: () => set(({ save }) => ({ save: { ...save, usedSanctums: {}, sigilPity: 0 } })),
       fastForwardExpeditions: () => {
-        cancelNotifications(get().save);
         set(({ save }) => ({ save: fastForward(save, Date.now()) }));
         get().resolveDue();
       },
       resetSave: () => {
-        cancelNotifications(get().save);
         set({ save: createInitialSave() });
       },
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 5,
+      version: 8,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
-      // Saves from older builds start fresh; new fields get their defaults.
-      migrate: () => ({ save: createInitialSave() }),
+      // Saves from version 5 on are converted step by step; older ones start fresh. New fields get their defaults.
+      migrate: (persisted, version) => {
+        const old = (persisted as { save?: Parameters<typeof migrateV5Save>[0] } | undefined)?.save;
+        if (!old || version < 5) return { save: createInitialSave() };
+        let save: SaveData = version === 5 ? migrateV5Save(old) : (old as SaveData);
+        if (version <= 6) save = migrateV6Save(save);
+        return { save: migrateV7Save(save) };
+      },
       merge: (persisted, current) => ({
         ...current,
         save: { ...createInitialSave(), ...(persisted as { save?: Partial<SaveData> } | undefined)?.save },

@@ -10,14 +10,16 @@ type Props = {
   title: string;
   subtitle?: ReactNode;
   right?: ReactNode;
+  /** E.g. a gear piece's quality colour. */
+  titleColor?: string;
 };
 
-export function Row({ emoji, icon, title, subtitle, right }: Props) {
+export function Row({ emoji, icon, title, subtitle, right, titleColor }: Props) {
   return (
     <View style={styles.row}>
       <GameIcon emoji={emoji} icon={icon} size={32} />
       <View style={styles.body}>
-        <Text style={styles.title}>{title}</Text>
+        <Text style={[styles.title, titleColor ? { color: titleColor } : null]}>{title}</Text>
         {typeof subtitle === 'string' ? <Text style={styles.subtitle}>{subtitle}</Text> : subtitle}
       </View>
       {typeof right === 'string' || typeof right === 'number' ? <Text style={styles.right}>{right}</Text> : right}

@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 
+import { useNotifications } from '@/hooks/useNotifications';
 import { useStepTracking } from '@/hooks/useTodaySteps';
 import { configureNotifications } from '@/services/notifications';
 import { useGameStore } from '@/store/gameStore';
@@ -30,6 +31,7 @@ function useExpeditionResolver() {
 export default function RootLayout() {
   useExpeditionResolver();
   useStepTracking();
+  useNotifications();
   const [fontsLoaded, fontError] = useFonts({
     [fonts.body]: require('../../assets/fonts/FantaisieArtistique.ttf'),
   });
@@ -54,6 +56,7 @@ export default function RootLayout() {
       <Stack.Screen name="team/index" options={{ title: 'Team' }} />
       <Stack.Screen name="team/[heroId]" options={{ title: 'Character sheet' }} />
       <Stack.Screen name="expeditions" options={{ title: 'Expeditions' }} />
+      <Stack.Screen name="settings" options={{ title: 'Settings' }} />
       <Stack.Screen name="debug" options={{ title: 'Debug' }} />
     </Stack>
   );

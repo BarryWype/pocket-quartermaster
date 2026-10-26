@@ -1,6 +1,7 @@
 import type { GearInstance, RecipeDef } from '@/game/types';
 
 import { elementInfo } from './elements';
+import { qualities } from './forging';
 
 import { dungeons } from './dungeons';
 import { items } from './items';
@@ -18,8 +19,13 @@ export const dungeonById = Object.fromEntries(dungeons.map((d) => [d.id, d]));
 export const recipeOutput = (recipe: RecipeDef) =>
   'itemId' in recipe.output ? itemById[recipe.output.itemId] : materialById[recipe.output.materialId];
 
-/** A gear piece's display name, with its element first, e.g. "Fire Wooden sword". */
+/** A gear piece's display name with its quality and element, e.g. "Rare Fire Stone sword". Normal is left out. */
 export function gearName(gear: GearInstance) {
-  const name = itemById[gear.itemId].name;
-  return gear.element ? `${elementInfo[gear.element].name} ${name}` : name;
+  return [
+    gear.quality === 'normal' ? null : qualities[gear.quality].name,
+    gear.element ? elementInfo[gear.element].name : null,
+    itemById[gear.itemId].name,
+  ]
+    .filter(Boolean)
+    .join(' ');
 }

@@ -11,7 +11,8 @@ export const tutorialRules = {
     seconds: 5,
     gold: 10,
     recipeId: 'woodBow',
-    materials: [{ materialId: 'mysteriousKey', amount: 1 }],
+    /** A lucky Sigil, so the player meets Sanctums early. It doesn't count as the Bandit Stockade's guaranteed one. */
+    sigilTier: 1,
   },
 };
 
@@ -43,6 +44,14 @@ export const tutorialHints: Record<TutorialStep, Partial<Record<TutorialScreen |
   readReport: {
     default: 'Your heroes are back! Open Expeditions to read their report.',
     expeditions: 'Here’s their report: what happened, the loot and the XP earned.',
+  },
+  findSanctum: {
+    default: 'Explore the map for a Sanctum to use your Sigil.',
+    map: 'Lucky you: the Rat Cellar gave a Sanctum Sigil! Most expeditions don’t bring one back. Look around for a Sanctum (zoom out to see farther) and tap it.',
+  },
+  sanctumIntro: {
+    sanctum:
+      'Sanctums are elemental shrines with a guardian. Walk within 50 m and spend a Sigil to challenge it with heroes at home: one try, win or lose. A win gives elemental shards to infuse your gear. Guardians are tough: you can come back once your team is stronger. Tap to close.',
   },
   outro: {
     map: 'That’s the loop: gather, forge, equip, send. Beat the Bandit Stockade to earn a pickaxe and mine stone. Tap to close.',

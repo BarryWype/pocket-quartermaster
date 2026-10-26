@@ -1,6 +1,6 @@
 import { createInitialSave, type SaveData } from '../save';
 import { equip } from '../team/team';
-import { canInfuse, canRecycle, infuse, recycle } from './infusion';
+import { canInfuse, infuse } from './infusion';
 
 const withGear = (materials: Record<string, number> = { fireStone: 1 }): SaveData =>
   equip(
@@ -8,8 +8,8 @@ const withGear = (materials: Record<string, number> = { fireStone: 1 }): SaveDat
       ...createInitialSave(),
       materials,
       gear: [
-        { uid: 'g1', itemId: 'woodSword', durability: 15 },
-        { uid: 'g2', itemId: 'steelArmour', durability: 40 },
+        { uid: 'g1', itemId: 'woodSword', quality: 'normal' },
+        { uid: 'g2', itemId: 'steelArmour', quality: 'normal' },
       ],
     },
     'bram',
@@ -43,25 +43,5 @@ describe('infuse', () => {
       expeditions: [{ id: 'x', dungeonId: 'ratCellar', heroIds: ['bram'], startedAt: 0, endsAt: 1, seed: 's', notificationId: null }],
     };
     expect(canInfuse(away, 'g1', 'fire')).toBe(false);
-  });
-});
-
-describe('recycle', () => {
-  it('destroys an infused piece, unequips it and gives one shard back', () => {
-    const infused = infuse(withGear(), 'g1', 'fire');
-    const recycled = recycle(infused, 'g1');
-    expect(recycled.gear.map((g) => g.uid)).toEqual(['g2']);
-    expect(recycled.heroes.find((h) => h.id === 'bram')!.equipment.weapon).toBeNull();
-    expect(recycled.materials).toEqual({ fireShard: 1 });
-  });
-
-  it('turns the tenth shard into a stone', () => {
-    const infused = { ...infuse(withGear(), 'g1', 'fire'), materials: { fireShard: 9 } };
-    expect(recycle(infused, 'g1').materials).toEqual({ fireStone: 1 });
-  });
-
-  it('refuses plain pieces', () => {
-    expect(canRecycle(withGear(), 'g1')).toBe(false);
-    expect(() => recycle(withGear(), 'g1')).toThrow();
   });
 });

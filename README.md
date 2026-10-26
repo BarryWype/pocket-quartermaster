@@ -109,9 +109,9 @@ Saving a file reloads the app. Shake the phone to open the dev menu.
 
 ## 5. Test the core loop
 
-On first launch, allow **location**, **notifications** and **physical activity**.
+On first launch, allow **location** and **physical activity**. Notification permission is asked when you send your first expedition.
 
-The **🐞 Debug** tab (development builds only) lets you test everything from your desk.
+The **🐞 Debug** screen lets you test everything from your desk. It's always there in development builds; in a release build, turn it on in ⚙️ Settings → Developer → **Debug tools** (turning it off resets every debug option).
 
 ### Tutorial
 
@@ -121,10 +121,12 @@ A fresh save walks you through the whole loop in a few minutes. A one-line 🧭 
 2. **Forge:** Craft → Forge has a single recipe, the **Wooden sword**. Make it. Animals and herbs start appearing on the map.
 3. **Equip:** in Team, give the sword to a hero (Bram the warrior suits it best).
 4. **Send:** in Expeditions, only the Rat Cellar can be picked. It shows its real odds, but this first trip always succeeds and takes about 5 seconds. Tap it under "Under way" to watch its progress bar.
-   - It pays a little gold, the **wooden bow** blueprint and a **mysterious key**. What the key opens comes later.
+   - It pays a little gold, the **wooden bow** blueprint and a tier 1 **Sanctum Sigil**. The Sigil is a lucky extra: it doesn't replace the one guaranteed by the first Bandit Stockade win.
 5. **Explore:** animals and herbs have been on the map since the sword was forged; gather some while the team is away.
 6. **Read:** when they're back, open Expeditions to read the report.
-7. A last tip on the map explains what comes next. Tap it to close the tutorial.
+7. **Find a Sanctum:** back on the map, a tip says you got lucky with the Sigil and asks you to look for a Sanctum (zoom out to see farther). Sanctums can be up to 4.5 km away; place one next to you from Debug to test at your desk.
+8. **Sanctum tip:** tapping a Sanctum shows how it works (walk within 50 m, spend a Sigil, one try, shards for infusing). Tap the tip to close it.
+9. A last tip on the map explains what comes next. Tap it to close the tutorial.
 
 **Skip it:** on Debug, tap **Skip tutorial**. **Reset save data** starts it again.
 
@@ -152,9 +154,19 @@ A fresh save walks you through the whole loop in a few minutes. A one-line 🧭 
 3. Tap a marker that's further away and you'll get "Too far: N m away".
 4. Animals show 💨 and can't be gathered when you move faster than about 18 km/h. Try this on a bike or in a car, not in mock mode.
 
+### Quality, mastery and salvage
+
+1. **Quality:** every forged weapon or armour piece is Crappy (×0.85 stats, grey), Normal (×1, ink), Rare (×1.15, blue) or Legendary (×1.3, gold). Names read e.g. "Rare Fire Stone sword"; Normal is left out.
+2. **Mastery:** swords, bows, wands and armour each have a level, shown under each recipe in the Forge with the quality odds.
+   - Each material tier caps it: wood 4, stone 6, copper 8, iron 10, steel 12. Forging an item whose cap you've reached gives no progress, so the Forge tells you to move to the next tier.
+   - Forges per level: 3 up to level 6, then 4. That's about 30 min of walking to max wood swords, 50 min for stone, 1.5 h copper, 3 h iron and 5 h steel (simulated walks).
+   - The closer you are to the item's cap, the better the odds: 3+ levels below is 80% Crappy; maxed is 10–12% Crappy, 75% Normal, 12% Rare and 1–3% Legendary.
+3. **Salvage:** Inventory → **Salvage** on gear nobody is wearing. You get back 25% / 40% / 60% / 100% of the recipe (by quality, at least 1 of the first input), 5 shards if infused, and for a Legendary piece 1 shard per tier of a random element. Rare, Legendary and infused pieces ask first.
+4. **Debug → Forging:** set each mastery level, force the next forge's quality, or add any gear piece with a quality and element.
+
 ### Inventory, forge and alchemy
 
-1. **Inventory** lists gold, materials, gear (with durability) and consumables.
+1. **Inventory** lists gold, materials, gear (in its quality colour, with its stats) and consumables. Gear that isn't worn can be **salvaged** (see below).
 2. To skip the walking, on Debug tap **+10 of every material**.
 3. **Forge** lists the recipes you know, showing what you have against what's needed, e.g. `🪨 3/4`. Locked recipes are hidden.
    - The button is only active when you have every input. Pickaxes are crafted once and then show **Owned**.
@@ -165,7 +177,7 @@ A fresh save walks you through the whole loop in a few minutes. A one-line 🧭 
 
 ### Team
 
-1. **Team** shows Bram (warrior), Lyra (archer) and Mira (fire mage), with level, XP and stats.
+1. **Team** shows Bram (warrior, Tough), Lyra (ranger, Lucky) and Mira (fire mage, Quick learner), with level, XP, trait and stats. Up to 3 heroes go on each expedition; the roster holds 6.
 2. Tap **Change** on a slot to equip gear or a consumable.
    - Stats update straight away.
    - Class affinities apply: swords boost Bram, bows boost Lyra, wands boost Mira.
@@ -177,29 +189,54 @@ A fresh save walks you through the whole loop in a few minutes. A one-line 🧭 
    - **What stats do:** damage is attack + magic, defense reduces the damage taken, and HP is each hero's buffer. Enemies aim at warriors more often. Gear gives most of a hero's power; levels add only a little.
    - **Luck:** each run has a good or bad day (±25% damage dealt and taken), and a 3% chance of a mishap, such as a cave-in, that ends it early. Only the tutorial run is certain.
    - **Consumables:** a healing potion is drunk automatically below 35% HP and heals to full; it goes back to your stock if nobody needed it. A ration heals before the boss fight. A fire resistance elixir protects its hero from fire damage for the whole run. Mira resists fire anyway.
-2. There are 5 tiers of 3 dungeons. Only tier 1 shows at first; a tier appears once the previous tier's boss (its third dungeon) has been beaten.
+2. **Tiers and the daily rotation:** 5 tiers, one per gear material. Only tier 1 shows at first; a tier appears once the previous tier's boss has been beaten.
+   - Each tier has a fixed **boss** dungeon, always open, plus a pool of 3 **short** and 3 **long** dungeons. Each day one short and one long are open per tier.
+   - The rotation is the same for every player and changes at 00:00 UTC (countdown on the Expeditions screen). A slot never repeats the previous day's dungeon, and the two open dungeons of a tier never share their main tag.
+   - Expeditions already under way keep their dungeon when the rotation changes. The Rat Cellar stays open until the tutorial is done.
+   - **Daily modifiers:** on about 60% of days, one dungeon per tier gets a modifier that fits its tags: Restless dead (more undead), Flooded (water enemies), Booby-trapped (more traps), Rich veins (+30% materials), Bounty (+30% gold) or Pack hunt (more beasts).
+   - **First clear:** the first win in each pool dungeon pays a one-time bonus (its top gold reward and half its XP). Dungeons never cleared are marked ✨.
 
-   | Tier | Dungeons (boss last) | Durations |
-   |---|---|---|
-   | 1 | Rat Cellar, Goblin Warren, Bandit Stockade | 5 min, 15 min, 30 min |
-   | 2 | Wolf Den, Troll Bridge, Ogre Quarry | 10 min, 30 min, 1 h |
-   | 3 | Haunted Mine, Cinder Hollow 🔥, Drowned Crypt | 20 min, 45 min, 1 h 30 |
-   | 4 | Harpy Cliffs, Orc Warcamp, Giant's Hall | 30 min, 1 h, 2 h |
-   | 5 | Wyvern Peaks, Ashen Citadel 🔥, Dragon's Lair 🔥 | 45 min, 1 h 30, 3 h |
+   | Tier | Short | Long | Boss |
+   |---|---|---|---|
+   | 1 | Rat Cellar, Spider Burrow, Old Graveyard | Goblin Warren, Collapsed Mill, Smugglers’ Cove | Bandit Stockade |
+   | 2 | Wolf Den, Barrow Mounds, Boar Thicket | Troll Bridge, Sunken Ford, Abandoned Watchtower | Ogre Quarry |
+   | 3 | Haunted Mine, Fungal Grotto, Storm Ridge | Cinder Hollow 🔥, Collapsed Dwarfhold, Marsh Witch Hut | Drowned Crypt |
+   | 4 | Harpy Cliffs, Thunder Plateau, Bone Field | Orc Warcamp, Clockwork Vault, Frozen Lake | Giant's Hall |
+   | 5 | Wyvern Peaks, Ossuary of Kings, Stormcaller Isle | Ashen Citadel 🔥, Abyssal Depths, Titan Ruins | Dragon's Lair 🔥 |
 
    🔥 = fire hazard: fire resistance elixirs help, and Mira is immune.
-3. **Skip ahead:** on Debug, **Beat next boss** reveals the next tier, and **Grant next pickaxe** crafts the next pickaxe.
+3. **Tags and counters:** each dungeon card shows its main tags: 💀 Undead, 🐺 Beasts, ⚙️ Traps, 🪨 Obstacles, 🧑 Locals and elements. Heroes' abilities counter them:
+   - **Bram (warrior)** shoulders rubble aside. **Lyra (ranger)** halves trap damage for the party and deals +50% to beasts. **Mira (fire mage)** burns barricades; so does anyone with a fire-infused weapon.
+   - **Obstacles** (rubble, barricades, locked doors) are free for a hero who can solve them; otherwise everyone loses 6% HP and there's a 35% chance of a detour fight. Locked doors have no solver yet.
+   - **Locals** (toll troll, wandering hermit, pedlar, lost miner, poachers' camp) ignore the party unless someone can charm, provoke or pickpocket them; no current class can.
+   - Tap a dungeon to highlight it: heroes who counter it get a **Good here** badge; tap the badge to see why. Every ability that triggers gets a line in the report.
+4. **Skip ahead:** on Debug, **Beat next boss** reveals the next tier, and **Grant next pickaxe** crafts the next pickaxe.
 
-4. Heroes who are away can't be re-equipped.
-5. **Shorter timers:** on Debug, turn on **Fast expeditions** (minutes become seconds), or tap **Finish all expeditions now**.
-6. When an expedition ends:
-   - You get a notification, even if the app is closed.
+5. Heroes who are away can't be re-equipped.
+6. **Shorter timers:** on Debug, turn on **Fast expeditions** (minutes become seconds), or tap **Finish all expeditions now**.
+7. When an expedition ends:
+   - You get a notification, even if the app is closed (see **Notifications** below).
    - A report appears with the outcome, the encounters cleared, gold, loot, any recipe, XP, each hero's HP and a log of one line per encounter.
    - **Outcomes:** Flawless (boss beaten, nobody knocked out), Success (boss beaten), Retreat (some encounters cleared), Defeat (the party fell at the first encounter).
    - **Rewards on a retreat:** gold, loot and XP scale with the share of encounters cleared. Recipes and unlocking the next tier need the boss beaten.
    - The tab shows a badge until you've read it.
-7. **Closed-app check:** send a 5-minute expedition, close the app completely, wait, then reopen it. The result is resolved on launch.
-8. Gear wears down on each expedition and breaks at 0 durability.
+8. **Closed-app check:** send a 5-minute expedition, close the app completely, wait, then reopen it. The result is resolved on launch.
+9. **Debug → Dungeon rotation:** shift the rotation day back or forward, force a dungeon into a tier's short or long slot, force or clear a tier's modifier, and reset first-clear bonuses.
+
+### Taverns, classes and traits
+
+1. **Taverns** 🍺 sit in fixed places on the map (1–2 per ~5 km tile), visible from 4.5 km. They open once the Bandit Stockade is beaten; a tip on the map says so.
+2. Within 50 m, tap one to see its **3 recruits** for the day (they change at 00:00 UTC with the dungeon rotation): class, name, level, trait, abilities and price.
+   - About 60% common classes (warrior, ranger, fire mage, frost mage) and 40% uncommon (thief, barbarian, cleric, paladin, druid, troubadour, sorcerer).
+   - **Level:** the roster's average level minus 1.
+   - **Price:** base (80 common, 180 uncommon) × (1 + 25% per level above 1) × (1 + 35% per hero beyond 3) × trait (×1.15 positive, ×0.75 negative).
+   - A recruited offer is gone until the next day. You can't recruit with a full roster (6).
+3. **Classes** only use their own weapon types (armour is open to all): axes, maces, daggers, staves and lutes are new. Recruiting the first hero who uses a type teaches its recipes up to your highest tier, with mastery starting at the previous tier's cap; later tiers drop from dungeons.
+   - Fire mages attack with fire, frost mages with water, druids with grass, unless their weapon is infused.
+   - Thieves disarm traps, pick locks and pockets and find more in caches. Barbarians clear rubble, provoke locals and rage when hurt. Clerics heal the party between encounters; paladins shield the most hurt ally; both hit the undead hard. Druids calm beasts. Troubadours charm locals and lift the party's damage. Sorcerers get more from elemental advantage.
+4. **Traits:** every hero has one. Positive: Tough, Thrifty, Lucky, Quick learner, Light sleeper, Iron stomach. Negative: Clumsy, Greedy, Coward, Loud. Party-wide ones (gold, traps, locals, ambushes) count once per trait.
+5. **Dismiss** a hero from their page; their gear and consumable return to the inventory. Not while they're away, and not your last hero.
+6. **Debug → Taverns and heroes:** place a tavern next to you, roll new offers, add a hero of any class, trait and level, and add gold.
 
 ### Sanctums, elements and main rewards
 
@@ -215,7 +252,7 @@ A fresh save walks you through the whole loop in a few minutes. A one-line 🧭 
    - A weapon deals ×1.5 against the element it beats and ×0.75 against the one that beats it.
    - Armour halves damage from its own element.
    - 10 shards merge into a stone.
-4. **Infuse:** Forge → **Infuse** tab. Use a stone on a plain weapon or armour to give it that element, e.g. "Fire Wooden sword". Each piece can be infused once. Recycling an infused piece destroys it and gives 1 shard back.
+4. **Infuse:** Forge → **Infuse** tab. Use a stone on a plain weapon or armour to give it that element, e.g. "Fire Wooden sword". Each piece can be infused once. Salvaging an infused piece gives 5 shards of its element back.
 5. **Treasure maps:** Inventory → **Read** marks a 💰 300–1,500 m away on your map. Walk there and tap it within 30 m. Maps expire 48 h after they drop.
 6. **Lures:** Inventory → **Activate**. For 30 minutes extra herbs and animals appear around you, and a timer shows on the map.
 7. **Debug:** add Sigils by tier, shards or stones by element, maps and lures; place a Sanctum next to you; reset used Sanctums and the Sigil pity; force the next main reward.
@@ -228,6 +265,26 @@ A fresh save walks you through the whole loop in a few minutes. A one-line 🧭 
 2. Each chest opens once per day.
 3. On Debug, **+5,000** steps unlocks them without walking.
 4. **Android limitation:** steps only count while the app is open. iOS reads the full day from the phone's history.
+
+### Notifications
+
+The ⚙️ button on the map opens **Settings**: a master switch, one switch per notification type and quiet hours.
+
+| Type | When | Default |
+| --- | --- | --- |
+| Expedition finished | A team is back, with the outcome. Teams back within 2 minutes share one notification. | On |
+| Big result | Same, highlighted for a boss victory, a blueprint or a Sanctum Sigil. | On |
+| Heroes idle | 4 h with nobody on an expedition. One reminder, moved whenever a team leaves or returns. | Off |
+| Step chest unlocked | Today's steps open a chest. | On |
+| Close to the next chest | Within 1,000 steps of the next chest, once per chest per day. | On |
+| Daily reset | Midnight: new step chests. | Off |
+
+- **Quiet hours** (22:00–08:00 by default) hold notifications until they end. **Allow expedition results during quiet hours** lets results through.
+- If notifications are blocked, Settings says so and links to the system settings.
+- Android has one channel per group (Expeditions & heroes, Steps & daily goals), also adjustable in the system settings.
+- **What works with the app closed:** expedition results, the idle reminder and the daily reset are scheduled ahead, so they arrive with the app closed. Expedition outcomes are worked out when the team leaves.
+- **What needs the app:** step alerts. Expo can't count steps in the background on Android, and iOS has no reliable background trigger without an extra native module. Steps are checked when the app opens, comes back to the foreground, and while it's open.
+- **Debug → Notifications** sends one of each type now, ignoring settings and quiet hours. To test the real flow, turn on **Fast expeditions**, send a team, close the app and wait. For step alerts, use **+1,000** / **+5,000** steps.
 
 ### Reset
 

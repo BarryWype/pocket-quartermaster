@@ -9,6 +9,7 @@ import { PlaceholderScreen } from '@/components/PlaceholderScreen';
 import { SanctumMarker } from '@/components/SanctumMarker';
 import { SanctumPanel } from '@/components/SanctumPanel';
 import { SpawnMarker } from '@/components/SpawnMarker';
+import { TavernPanel } from '@/components/TavernPanel';
 import { Text } from '@/components/Text';
 import { TutorialHint } from '@/components/TutorialHint';
 import { gatheringConfig } from '@/content/gatheringConfig';
@@ -16,6 +17,7 @@ import { materialById, resourceById } from '@/content/lookup';
 import { mapStyle } from '@/content/mapStyle';
 import { sanctumRules } from '@/content/sanctums';
 import { spawnConfig } from '@/content/spawnConfig';
+import { tavernRules } from '@/content/taverns';
 import { walkableRules } from '@/content/walkable';
 import { canGather, isFleeing, type CollectFailure } from '@/game/gathering/gathering';
 import { distanceMeters } from '@/game/generation/geo';
@@ -25,17 +27,19 @@ import { visibleSpawns } from '@/game/generation/visibility';
 import { isLureActive, lureEndsAt, lureSpawns } from '@/game/rewards/lures';
 import { liveTreasureMaps } from '@/game/rewards/treasure';
 import { generateSanctumsAround, sanctumById, type SanctumSpawn } from '@/game/sanctums/sanctums';
+import { generateTavernsAround, isTavernUnlocked, type TavernSpawn } from '@/game/taverns/taverns';
 import { tutorialSpawns } from '@/game/tutorial/tutorial';
 import { usePlacedPoints, usePlacedSpawns } from '@/hooks/usePlacedSpawns';
 import { usePlayerLocation } from '@/hooks/usePlayerLocation';
-import { useDebugStore } from '@/store/debugStore';
+import { debugEnabled, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
 
 const toLngLat = (position: LatLng): [number, number] => [position.longitude, position.latitude];
 
-/** Sanctums snap with coarse map tiles so they can be shown from kilometres away. */
+/** Sanctums and taverns snap with coarse map tiles so they can be shown from kilometres away. */
 const sanctumPlacement = { ...walkableRules, ...sanctumRules.placement };
+const tavernPlacement = { ...walkableRules, ...tavernRules.placement };
 
 const minutesLeft = (ms: number) => `${Math.floor(ms / 60_000)}:${String(Math.floor((ms % 60_000) / 1000)).padStart(2, '0')}`;
 const failureMessages: Record<CollectFailure, (distance: number) => string> = {
@@ -50,6 +54,7 @@ export default function MapScreen() {
   const player = usePlayerLocation();
   const insets = useSafeAreaInsets();
   const setDebug = useDebugStore((state) => state.set);
+  const debugOn = useDebugStore(debugEnabled);
   const timeOfDay = useDebugStore((state) => state.timeOfDay);
   const windowMinutes = useDebugStore((state) => state.windowMinutes);
   const save = useGameStore((state) => state.save);
@@ -58,6 +63,9 @@ export default function MapScreen() {
   const collectTreasure = useGameStore((state) => state.collectTreasure);
   const debugSanctum = useDebugStore((state) => state.debugSanctum);
   const [openSanctum, setOpenSanctum] = useState<SanctumSpawn | null>(null);
+  const debugTavern = useDebugStore((state) => state.debugTavern);
+  const closeTavernHint = useGameStore((state) => state.closeTavernHint);
+  const [openTavern, setOpenTavern] = useState<TavernSpawn | null>(null);
   const cameraRef = useRef<CameraRef>(null);
   const [now, setNow] = useState(Date.now());
   const [message, setMessage] = useState<string | null>(null);
@@ -110,6 +118,18 @@ export default function MapScreen() {
       position !== null &&
       distanceMeters(position, s.position) <= sanctumRules.visibilityMeters,
   );
+
+  // Taverns never move, so they only need placing again when the player moves.
+  const tavernCandidates = useMemo(() => {
+    if (!position) return [];
+    const reach = tavernRules.visibilityMeters + tavernRules.placement.maxSnapMeters;
+    return generateTavernsAround(position).filter((t) => distanceMeters(position, t.position) <= reach);
+  }, [position]);
+  const placedTaverns = usePlacedPoints(tavernCandidates, tavernPlacement);
+  const tavernsInSight = [...placedTaverns, ...(debugTavern ? [debugTavern] : [])].filter(
+    (t) => position !== null && distanceMeters(position, t.position) <= tavernRules.visibilityMeters,
+  );
+  const tavernsOpen = isTavernUnlocked(save);
 
   // Treasure from read maps, shown only to this player.
   const treasureSpots = useMemo(
@@ -184,7 +204,7 @@ export default function MapScreen() {
         logo={false}
         attributionPosition={{ top: insets.top + 8, left: 8 }}
         onPress={(event) => {
-          if (__DEV__ && player.mocked) {
+          if (debugOn && player.mocked) {
             const [longitude, latitude] = event.nativeEvent.lngLat;
             setDebug({ mockLocation: { latitude, longitude } });
           }
@@ -212,6 +232,11 @@ export default function MapScreen() {
             <SanctumMarker emoji={sanctumById[sanctum.sanctumId].emoji} locked={save.sigils.length === 0} />
           </Marker>
         ))}
+        {tavernsInSight.map((tavern) => (
+          <Marker key={tavern.id} id={tavern.id} lngLat={toLngLat(tavern.position)} onPress={() => setOpenTavern(tavern)}>
+            <SanctumMarker emoji="🍺" locked={!tavernsOpen} />
+          </Marker>
+        ))}
         {placedTreasure.map((spot) => (
           <Marker key={spot.id} id={spot.id} lngLat={toLngLat(spot.position)} onPress={() => digUp(spot.id, spot.position)}>
             <Text style={styles.treasure}>💰</Text>
@@ -224,15 +249,22 @@ export default function MapScreen() {
       {player.mocked && (
         <Text style={[styles.banner, { top: insets.top + 48 }]}>Mock location · tap the map to teleport</Text>
       )}
-      {__DEV__ && (
+      {debugOn && (
         <Pressable
           accessibilityLabel="Debug"
           onPress={() => router.push('/debug')}
-          style={[styles.debugButton, { top: insets.top + 8 }]}
+          style={[styles.roundButton, styles.debugButton, { top: insets.top + 8 }]}
         >
-          <Text style={styles.debugEmoji}>🐞</Text>
+          <Text style={styles.buttonEmoji}>🐞</Text>
         </Pressable>
       )}
+      <Pressable
+        accessibilityLabel="Settings"
+        onPress={() => router.push('/settings')}
+        style={[styles.roundButton, styles.settingsButton, { marginLeft: debugOn ? 20 : -16, top: insets.top + 8 }]}
+      >
+        <Text style={styles.buttonEmoji}>⚙️</Text>
+      </Pressable>
       <TutorialHint screen="map" style={[styles.tutorialHint, { top: insets.top + (player.mocked ? 84 : 48) }]} />
       {isLureActive(save, now) && (
         <Text style={[styles.banner, styles.lure, { top: insets.top + 8 }]}>
@@ -240,6 +272,14 @@ export default function MapScreen() {
         </Text>
       )}
       {openSanctum && <SanctumPanel spawn={openSanctum} player={position} onClose={() => setOpenSanctum(null)} />}
+      {openTavern && <TavernPanel tavern={openTavern} player={position} onClose={() => setOpenTavern(null)} />}
+      {tavernsOpen && !save.tavernHintSeen && (
+        <Pressable onPress={closeTavernHint} style={[styles.tavernHint, { bottom: insets.bottom + ISLAND_HEIGHT + 56 }]}>
+          <Text style={styles.tavernHintText}>
+            🍺 Taverns are open! Recruit heroes for gold at the 🍺 on the map. Tap to close.
+          </Text>
+        </Pressable>
+      )}
       {message && <Text style={[styles.banner, { bottom: insets.bottom + ISLAND_HEIGHT + 12 }]}>{message}</Text>}
       <IslandMenu />
     </View>
@@ -251,7 +291,7 @@ const styles = StyleSheet.create({
   map: { flex: 1 },
   player: { fontSize: 28 },
   treasure: { fontSize: 30 },
-  lure: { right: 16, alignSelf: 'auto' },
+  lure: { right: 56, alignSelf: 'auto' },
   banner: {
     position: 'absolute',
     alignSelf: 'center',
@@ -264,9 +304,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   tutorialHint: { position: 'absolute', left: 16, right: 16 },
-  debugButton: {
+  tavernHint: {
     position: 'absolute',
-    alignSelf: 'center',
+    left: 16,
+    right: 16,
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: colors.woodDark,
+    backgroundColor: colors.wood,
+  },
+  tavernHintText: { color: colors.parchment, fontSize: 16 },
+  debugButton: { alignSelf: 'center' },
+  // Next to 🐞 when debug tools are on; the top-right corner is taken by the dev menu button.
+  settingsButton: { left: '50%' },
+  roundButton: {
+    position: 'absolute',
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -276,5 +329,5 @@ const styles = StyleSheet.create({
     borderColor: colors.woodDark,
     backgroundColor: colors.parchment,
   },
-  debugEmoji: { fontSize: 15 },
+  buttonEmoji: { fontSize: 15 },
 });

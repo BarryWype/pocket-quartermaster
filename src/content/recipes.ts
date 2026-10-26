@@ -1,4 +1,30 @@
-import type { RecipeDef } from '@/game/types';
+import type { MaterialStack, RecipeDef } from '@/game/types';
+
+import { MATERIAL_TIERS, extraWeaponTypes } from './items';
+
+/** Costs of the newer weapon types, by material (wood is the wood tier's main material too). */
+const extraWeaponInputs: Record<string, (material: string) => MaterialStack[]> = {
+  Axe: (m) => (m === 'wood' ? [{ materialId: 'wood', amount: 4 }] : [{ materialId: m, amount: 3 }, { materialId: 'wood', amount: 2 }]),
+  Mace: (m) => [{ materialId: m, amount: 3 }, { materialId: 'bone', amount: 1 }],
+  Dagger: (m) => [{ materialId: m, amount: 2 }, { materialId: 'hide', amount: 1 }],
+  Staff: (m) => (m === 'wood' ? [{ materialId: 'wood', amount: 5 }] : [{ materialId: m, amount: 1 }, { materialId: 'wood', amount: 4 }]),
+  Lute: (m) =>
+    m === 'wood'
+      ? [{ materialId: 'wood', amount: 3 }, { materialId: 'hide', amount: 2 }]
+      : [{ materialId: m, amount: 1 }, { materialId: 'wood', amount: 2 }, { materialId: 'hide', amount: 2 }],
+};
+
+// Learned when a hero who uses the type is recruited (up to the highest tier
+// reached), then from dungeon drops for later tiers.
+const extraWeaponRecipes: RecipeDef[] = extraWeaponTypes.flatMap(({ suffix }) =>
+  MATERIAL_TIERS.map(({ id }) => ({
+    id: `${id}${suffix}`,
+    station: 'forge' as const,
+    output: { itemId: `${id}${suffix}` },
+    inputs: extraWeaponInputs[suffix](id),
+    unlockedByDefault: false,
+  })),
+);
 
 // Progression: the wooden sword is known from the start (the tutorial forges
 // it). Each tier boss drops a pickaxe that mines the next tier's material and
@@ -220,4 +246,6 @@ export const recipes: RecipeDef[] = [
     inputs: [{ materialId: 'mushroom', amount: 2 }, { materialId: 'herb', amount: 1 }, { materialId: 'berries', amount: 1 }],
     unlockedByDefault: false,
   },
+
+  ...extraWeaponRecipes,
 ];

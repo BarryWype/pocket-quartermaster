@@ -16,13 +16,14 @@ function member(heroId: string, overrides: Partial<PartyMember> = {}): PartyMemb
     heroId,
     name: heroId,
     classId: 'warrior',
+    traitId: 'none',
     weaponName: null,
     maxHp: 100,
     damage: 10,
     defense: 0,
     threat: 1,
     resists: [],
-    traits: [],
+    abilities: [],
     consumable: null,
     ...overrides,
   };
@@ -33,7 +34,7 @@ function dungeon(encounters: EncounterDef[], boss: Partial<BossDef> = {}, count:
     ...dungeonById.ratCellar,
     encounterCount: count,
     encounters,
-    boss: { id: 'testBoss', name: 'test boss', hp: 100, damage: 5, ...boss },
+    boss: { id: 'testBoss', name: 'test boss', hp: 100, damage: 5, tags: [], ...boss },
   };
 }
 
@@ -52,14 +53,14 @@ const ration = itemById.ration as ConsumableDef;
 
 describe('simulateRun', () => {
   it('gives the same result for the same party, dungeon and seed', () => {
-    const party = [member('a'), member('b', { classId: 'archer' })];
+    const party = [member('a'), member('b', { classId: 'ranger' })];
     const real = dungeonById.goblinWarren;
     expect(simulateRun(party, real, 'seed', { rules: calm })).toEqual(simulateRun(party, real, 'seed', { rules: calm }));
     expect(simulateRun(party, real, 'seed', { rules: calm })).not.toEqual(simulateRun(party, real, 'other', { rules: calm }));
   });
 
   it('ends with the boss', () => {
-    const run = simulateRun([member('a', { damage: 1000 })], dungeonById.banditStockade, 'x', { rules: calm });
+    const run = simulateRun([member('a', { damage: 1000, maxHp: 1e6 })], dungeonById.banditStockade, 'x', { rules: calm });
     expect(run.encounters[run.encounters.length - 1].kind).toBe('boss');
     expect(run.encounters).toHaveLength(run.encounterCount);
   });
@@ -111,17 +112,6 @@ describe('traps and events', () => {
     const caught = run.encounters[0];
     expect(caught.trapTriggered).toBe(true);
     expect(caught.taken).toEqual({ a: 20, b: 10 });
-  });
-
-  it('can be avoided by a matching trait or protection', () => {
-    const run = simulateRun(
-      [member('a', { traits: ['spotTraps'] }), member('b')],
-      dungeon([trap({ avoidedBy: 'spotTraps' })]),
-      's',
-      { rules: calm },
-    );
-    expect(run.encounters[0].avoided).toEqual(['a']);
-    expect(Object.keys(run.encounters[0].taken)).toEqual(['b']);
   });
 
   it('does nothing when it does not trigger', () => {

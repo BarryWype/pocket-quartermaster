@@ -1,6 +1,10 @@
 import { Modal, Pressable, ScrollView, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 
+import { heroClasses } from '@/content/heroes';
+import { qualities } from '@/content/forging';
 import { gearName, itemById } from '@/content/lookup';
+import { gearStats } from '@/game/forging/quality';
+import { canWield } from '@/game/team/team';
 import type { SaveData } from '@/game/save';
 import type { EquipmentSlot } from '@/game/types';
 import { colors } from '@/theme';
@@ -17,7 +21,7 @@ type Props = {
   onClose: () => void;
 };
 
-type Option = { id: string; emoji: string; icon?: ImageSourcePropType; title: string; subtitle?: string };
+type Option = { id: string; emoji: string; icon?: ImageSourcePropType; title: string; subtitle?: string; color?: string };
 
 function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot): Option[] {
   if (slot === 'consumable') {
@@ -31,21 +35,30 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot): Option
         subtitle: `${count} in stock`,
       }));
   }
+  const hero = save.heroes.find((h) => h.id === heroId);
+  const affinities = hero ? heroClasses[hero.classId].affinities : {};
   return save.gear
-    .filter((gear) => itemById[gear.itemId].slot === slot)
-    .map((gear) => {
+    .flatMap((gear) => {
       const item = itemById[gear.itemId];
+      if (item.slot !== slot || (item.slot !== 'weapon' && item.slot !== 'armor')) return [];
+      if (hero && !canWield(hero, item)) return [];
       const holder = save.heroes.find((h) => h.id !== heroId && h.equipment[slot] === gear.uid);
       const away = holder && save.expeditions.some((e) => e.heroIds.includes(holder.id));
-      return { gear, item, holder, away };
+      if (away) return [];
+      // The main stat this hero would actually get: attack or magic with class affinity, or defense.
+      const stats = gearStats(item, gear);
+      const affinity = item.weaponType ? (affinities[item.weaponType] ?? 1) : 1;
+      const power = item.slot === 'weapon' ? ((stats.attack ?? 0) + (stats.magic ?? 0)) * affinity : (stats.defense ?? 0);
+      return [{ gear, item, holder, power }];
     })
-    .filter(({ away }) => !away)
-    .map(({ gear, item, holder }) => ({
+    .sort((a, b) => b.power - a.power)
+    .map(({ gear, item, holder, power }) => ({
       id: gear.uid,
       emoji: item.emoji,
       icon: item.icon,
       title: gearName(gear),
-      subtitle: `Durability ${gear.durability}${holder ? ` · used by ${holder.name}` : ''}`,
+      subtitle: `${item.slot === 'weapon' ? '⚔️' : '🛡️'} ${Math.round(power)}${holder ? ` · used by ${holder.name}` : ''}`,
+      color: qualities[gear.quality].color,
     }));
 }
 
@@ -63,7 +76,13 @@ export function EquipPicker({ save, heroId, slot, onPick, onClose }: Props) {
             </Pressable>
             {options.map((option) => (
               <Pressable key={option.id} onPress={() => onPick(option.id)}>
-                <Row emoji={option.emoji} icon={option.icon} title={option.title} subtitle={option.subtitle} />
+                <Row
+                  emoji={option.emoji}
+                  icon={option.icon}
+                  title={option.title}
+                  subtitle={option.subtitle}
+                  titleColor={option.color}
+                />
               </Pressable>
             ))}
             {options.length === 0 && <Text style={styles.empty}>Nothing available. Visit the forge.</Text>}

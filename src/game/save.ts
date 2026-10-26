@@ -1,3 +1,4 @@
+import { MASTERY_TYPES } from '@/content/forging';
 import { startingHeroes } from '@/content/heroes';
 import { recipes } from '@/content/recipes';
 
@@ -8,6 +9,8 @@ import type {
   ExpeditionReport,
   GearInstance,
   HeroState,
+  MasteryState,
+  MasteryType,
   TreasureMap,
 } from './types';
 
@@ -19,6 +22,8 @@ export type TutorialStep =
   | 'sendExpedition'
   | 'awaitReport'
   | 'readReport'
+  | 'findSanctum'
+  | 'sanctumIntro'
   | 'outro'
   | 'done';
 
@@ -34,8 +39,10 @@ export type SaveData = {
   expeditions: ActiveExpedition[];
   /** Finished expeditions, newest first. */
   reports: ExpeditionReport[];
-  /** Dungeons won at least once. */
+  /** Dungeons won at least once; unlocks tiers. */
   clearedDungeons: string[];
+  /** Pool dungeons whose first-clear bonus was paid. */
+  firstClears: string[];
   /** Spawn id → time the spawn expires; collected spawns stay hidden until then. */
   collected: Record<string, number>;
   tutorial: {
@@ -58,7 +65,13 @@ export type SaveData = {
   activeLure: ActiveLure | null;
   /** Sanctum spawn id → when it refreshes; one attempt per spawn, win or lose. */
   usedSanctums: Record<string, number>;
-  /** Counter for unique ids (gear, maps, lures, fights). */
+  /** Forging mastery per weapon type and armour; a type is added when first met. */
+  mastery: Partial<Record<MasteryType, MasteryState>>;
+  /** Tavern offer id → when the offers refresh; recruited offers stay gone until then. */
+  takenOffers: Record<string, number>;
+  /** The "taverns are open" tip was closed. */
+  tavernHintSeen: boolean;
+  /** Counter for unique ids (gear, maps, lures, fights, heroes). */
   nextUid: number;
 };
 
@@ -73,6 +86,7 @@ export function createInitialSave(): SaveData {
     expeditions: [],
     reports: [],
     clearedDungeons: [],
+    firstClears: [],
     knownRecipes: recipes.filter((r) => r.unlockedByDefault).map((r) => r.id),
     collected: {},
     tutorial: { step: 'collectWood', woodSpot: null },
@@ -85,6 +99,9 @@ export function createInitialSave(): SaveData {
     lures: 0,
     activeLure: null,
     usedSanctums: {},
+    takenOffers: {},
+    tavernHintSeen: false,
+    mastery: Object.fromEntries(MASTERY_TYPES.map((type) => [type, { level: 1, progress: 0 }])),
     nextUid: 1,
   };
 }

@@ -9,7 +9,7 @@ import { createInitialSave, type SaveData } from '../save';
 import { equip } from '../team/team';
 import {
   advanceTutorial,
-  finishTutorial,
+  nextTutorialStep,
   placeTutorialWood,
   TUTORIAL_SPAWN_ID,
   tutorialHint,
@@ -62,7 +62,7 @@ describe('tutorial wood', () => {
 });
 
 describe('tutorial walkthrough', () => {
-  it('goes gather → forge → equip → send → wait → read → outro → done', () => {
+  it('goes gather → forge → equip → send → wait → read → Sanctum → outro → done', () => {
     let save = gatherTutorialWood(createInitialSave());
     expect(save.tutorial.step).toBe('forgeSword');
     expect(tutorialTarget(save)).toBe('forge');
@@ -81,14 +81,27 @@ describe('tutorial walkthrough', () => {
 
     const { save: back, reports } = resolveDue(save, now + 5000);
     expect(reports[0].success).toBe(true);
+    expect(reports[0].mainRewards).toEqual([{ kind: 'sigil', tier: 1 }]);
+    expect(back.sigils).toEqual([1]);
+    expect(back.firstSigilGiven).toBe(false);
     save = advanceTutorial(back);
     expect(save.tutorial.step).toBe('readReport');
 
     save = advanceTutorial({ ...save, reports: save.reports.map((r) => ({ ...r, seen: true })) });
+    expect(save.tutorial.step).toBe('findSanctum');
+    expect(tutorialHint(save, 'map')).toMatch(/Lucky/);
+    expect(nextTutorialStep(save, 'outro')).toBe(save);
+
+    save = nextTutorialStep(save, 'findSanctum');
+    expect(save.tutorial.step).toBe('sanctumIntro');
+    expect(tutorialHint(save, 'sanctum')).toMatch(/Tap to close/);
+    expect(tutorialHint(save, 'map')).toBeNull();
+
+    save = nextTutorialStep(save, 'sanctumIntro');
     expect(save.tutorial.step).toBe('outro');
     expect(tutorialHint(save, 'map')).toMatch(/Tap to close/);
 
-    save = finishTutorial(save);
+    save = nextTutorialStep(save, 'outro');
     expect(save.tutorial.step).toBe('done');
     expect(tutorialHint(save, 'map')).toBeNull();
   });
@@ -103,7 +116,7 @@ describe('tutorial walkthrough', () => {
   it('skips steps the player already did out of order', () => {
     const save: SaveData = {
       ...createInitialSave(),
-      gear: [{ uid: 'g1', itemId: 'woodSword', durability: 15 }],
+      gear: [{ uid: 'g1', itemId: 'woodSword', quality: 'normal' }],
     };
     expect(advanceTutorial(save).tutorial.step).toBe('equipSword');
   });

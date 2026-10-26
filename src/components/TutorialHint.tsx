@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
-import { tutorialHint, type TutorialScreen } from '@/game/tutorial/tutorial';
+import { isClosableHint, tutorialHint, type TutorialScreen } from '@/game/tutorial/tutorial';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
 
@@ -14,15 +14,16 @@ type Props = {
 /** The tutorial's one-line hint for this screen, if the current step has one. */
 export function TutorialHint({ screen, style }: Props) {
   const hint = useGameStore((state) => tutorialHint(state.save, screen));
-  const closable = useGameStore((state) => state.save.tutorial.step === 'outro');
-  const finishTutorial = useGameStore((state) => state.finishTutorial);
+  const step = useGameStore((state) => state.save.tutorial.step);
+  const closable = useGameStore((state) => isClosableHint(state.save));
+  const nextTutorialStep = useGameStore((state) => state.nextTutorialStep);
   if (!hint) return null;
 
   return (
     <Pressable
       accessibilityRole={closable ? 'button' : 'text'}
       disabled={!closable}
-      onPress={finishTutorial}
+      onPress={() => nextTutorialStep(step)}
       style={[styles.hint, style]}
     >
       <Text style={styles.icon}>🧭</Text>
