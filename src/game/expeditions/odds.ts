@@ -14,10 +14,17 @@ export type Odds = {
 export type OddsBand = 'Risky' | 'Fair' | 'Safe';
 
 /**
+ * Runs per estimate. The seeds are fixed so the preview doesn't flicker, which
+ * makes its error the same every time: 100 runs could be 7 points off for a
+ * dungeon, 300 keep it to about 3.
+ */
+export const ODDS_RUNS = 300;
+
+/**
  * Estimates a party's chances by running the dungeon with many seeds. The real
  * expedition uses its own seed, so this is a preview, not a promise.
  */
-export function estimateOdds(save: SaveData, heroIds: string[], dungeon: DungeonDef, runs = 100): Odds {
+export function estimateOdds(save: SaveData, heroIds: string[], dungeon: DungeonDef, runs = ODDS_RUNS): Odds {
   const party = prepareParty(save, heroIds);
   if (party.length === 0) return { success: 0, flawless: 0, progress: 0 };
   let success = 0;

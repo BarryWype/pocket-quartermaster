@@ -24,6 +24,8 @@ export const recruitRules = {
     /** +35% per hero beyond `freeHeroes`. */
     perExtraHero: 0.35,
     trait: { positive: 1.15, negative: 0.75 },
+    /** × this per tier above 1 (highest unlocked tier), so recruits keep pace with income. */
+    perTier: 1.8,
   },
 };
 

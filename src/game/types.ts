@@ -329,12 +329,14 @@ export type DungeonDef = {
 
 export type MainRewardKind = 'goldPouch' | 'sigil' | 'treasureMap' | 'lure';
 
-/** A main reward as granted; a Sigil or map at its cap turns into a gold pouch. */
+/** A main reward as granted; a Sigil at its cap turns into shards, a map at its cap into a little gold. */
 export type MainReward =
   | { kind: 'goldPouch'; gold: number }
   | { kind: 'sigil'; tier: number }
   | { kind: 'treasureMap'; mapId: string; tier: number }
-  | { kind: 'lure' };
+  | { kind: 'lure' }
+  | { kind: 'shards'; element: Element; amount: number }
+  | { kind: 'mapGold'; gold: number };
 
 export type TreasureMap = {
   id: string;

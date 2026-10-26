@@ -2,6 +2,8 @@
 export const targets = {
   /** Day (1 = first day) of each tier boss's first win: [earliest, latest]. */
   bossDays: { 1: [1, 2], 2: [3, 5], 3: [7, 10], 4: [12, 18], 5: [21, 30] } as Record<number, [number, number]>,
+  /** Day the roster reaches this many heroes: [earliest, latest]. */
+  recruitDays: { 4: [3, 5], 6: [7, 12] } as Record<number, [number, number]>,
   profileScale: { casual: 1.8, regular: 1, dedicated: 0.6 } as Record<string, number>,
   /** Gold held above this many days of income… */
   goldPileDays: 5,
@@ -21,9 +23,14 @@ export const targets = {
 
 export type Targets = typeof targets;
 
-/** A boss's target days for a profile. */
-export function bossTarget(tier: number, profile: string, t: Targets = targets): [number, number] {
+/** A regular-profile day range scaled for another profile. */
+function scaled([min, max]: [number, number], profile: string, t: Targets): [number, number] {
   const scale = t.profileScale[profile] ?? 1;
-  const [min, max] = t.bossDays[tier];
   return [Math.max(1, Math.floor(min * scale)), Math.ceil(max * scale)];
 }
+
+/** A boss's target days for a profile. */
+export const bossTarget = (tier: number, profile: string, t: Targets = targets) => scaled(t.bossDays[tier], profile, t);
+
+/** The day range for the roster's Nth hero, for a profile. */
+export const recruitTarget = (heroes: number, profile: string, t: Targets = targets) => scaled(t.recruitDays[heroes], profile, t);

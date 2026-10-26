@@ -1,6 +1,7 @@
 import { gatheringConfig } from '@/content/gatheringConfig';
 import { treasureRules, treasureTiers } from '@/content/treasure';
 
+import { convertShards, ELEMENTS, shardId, type Element } from '../elements';
 import { distanceMeters, offsetPosition } from '../generation/geo';
 import { createRng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
@@ -12,8 +13,9 @@ import { rollLoot } from './loot';
 
 export type TreasureContents = {
   gold: number;
+  shards: { element: Element; amount: number };
   materials: MaterialStack[];
-  special: { kind: 'sigil'; tier: number } | { kind: 'jackpot'; gold: number } | null;
+  special: { kind: 'sigil'; tier: number } | { kind: 'jackpot'; gold: number } | { kind: 'charter' } | null;
 };
 
 export const liveTreasureMaps = (save: SaveData, now: number) => save.treasureMaps.filter((m) => m.expiresAt > now);
@@ -45,14 +47,13 @@ export function treasureContents(map: TreasureMap): TreasureContents {
   const rng = createRng(`treasure|${map.id}|loot`);
   const tier = treasureTiers[map.tier - 1];
   const gold = rng.int(tier.gold[0], tier.gold[1]);
+  const shards = { element: ELEMENTS[rng.int(0, ELEMENTS.length - 1)], amount: tier.shards };
   const materials = rollLoot(rng, tier.materials);
-  if (!rng.chance(treasureRules.specialChance)) return { gold, materials, special: null };
+  if (!rng.chance(treasureRules.specialChance)) return { gold, shards, materials, special: null };
   const kind = rng.weighted(treasureRules.specials, (s) => s.weight).kind;
-  return {
-    gold,
-    materials,
-    special: kind === 'sigil' ? { kind, tier: map.tier } : { kind, gold: gold * treasureRules.jackpotMultiplier },
-  };
+  const special: TreasureContents['special'] =
+    kind === 'sigil' ? { kind, tier: map.tier } : kind === 'jackpot' ? { kind, gold: gold * treasureRules.jackpotMultiplier } : { kind };
+  return { gold, shards, materials, special };
 }
 
 /**
@@ -81,8 +82,11 @@ export function collectTreasure(
     save: {
       ...save,
       gold: save.gold + contents.gold + (special?.kind === 'jackpot' ? special.gold : 0),
-      materials: addMaterials(save.materials, contents.materials),
+      materials: convertShards(
+        addMaterials(save.materials, [...contents.materials, { materialId: shardId(contents.shards.element), amount: contents.shards.amount }]),
+      ),
       sigils: special?.kind === 'sigil' ? [...save.sigils, special.tier] : save.sigils,
+      charters: save.charters + (special?.kind === 'charter' ? 1 : 0),
       treasureMaps: save.treasureMaps.filter((m) => m.id !== mapId),
     },
   };

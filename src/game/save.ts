@@ -76,6 +76,8 @@ export type SaveData = {
   guild: Partial<Record<GuildTrackId, number>>;
   /** Needed for ⭐ Guild Hall milestones. */
   charters: number;
+  /** Boss dungeon id → rotation day its daily bonus (guaranteed reward and extra roll) was last claimed. */
+  bossBonusDays: Record<string, number>;
   /** When home heroes last got their training XP (null before the first check). */
   trainedAt: number | null;
   /** Counter for unique ids (gear, maps, lures, fights, heroes). */
@@ -111,6 +113,7 @@ export function createInitialSave(): SaveData {
     guild: {},
     charters: 0,
     trainedAt: null,
+    bossBonusDays: {},
     mastery: Object.fromEntries(MASTERY_TYPES.map((type) => [type, { level: 1, progress: 0 }])),
     nextUid: 1,
   };

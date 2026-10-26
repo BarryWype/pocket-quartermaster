@@ -1,65 +1,38 @@
 import type { LootEntry } from '@/game/types';
 
 type TreasureTier = {
-  /** About 3–5 gathering nodes' worth of the tier's materials. */
-  materials: LootEntry[];
   gold: [min: number, max: number];
+  /** Shards of an element picked by the map. */
+  shards: number;
+  /** A little of the common materials at most: ore and ingots come from walking. */
+  materials: LootEntry[];
 };
 
 export const treasureRules = {
   /** Where the treasure lies, measured from the player when the map is first read. */
   distanceMeters: [300, 1500] as [min: number, max: number],
-  /** Chance of a special find on top: a Sanctum Sigil or a gold jackpot. */
+  /** Chance of a special find on top: a Sanctum Sigil, a gold jackpot or a Guild Hall charter. */
   specialChance: 0.25,
   /** Special finds by weight. A Sigil found at the cap becomes the jackpot. */
   specials: [
     { kind: 'sigil', weight: 1 },
     { kind: 'jackpot', weight: 1 },
+    { kind: 'charter', weight: 0.5 },
   ] as const,
   /** A jackpot is this many times the treasure's gold. */
   jackpotMultiplier: 5,
 };
 
-/** Loot by the tier of the dungeon that dropped the map (index 0 = tier 1). */
+const commonFinds: LootEntry[] = [
+  { materialId: 'herb', min: 1, max: 2, chance: 0.5 },
+  { materialId: 'hide', min: 1, max: 2, chance: 0.3 },
+];
+
+/** Loot by the tier of the dungeon that dropped the map (index 0 = tier 1). Gold follows dungeon gold, about ×2 per tier. */
 export const treasureTiers: TreasureTier[] = [
-  {
-    materials: [
-      { materialId: 'wood', min: 4, max: 7, chance: 1 },
-      { materialId: 'hide', min: 1, max: 3, chance: 0.7 },
-      { materialId: 'herb', min: 1, max: 3, chance: 0.5 },
-    ],
-    gold: [15, 30],
-  },
-  {
-    materials: [
-      { materialId: 'stone', min: 4, max: 7, chance: 1 },
-      { materialId: 'wood', min: 2, max: 4, chance: 0.7 },
-      { materialId: 'bone', min: 1, max: 3, chance: 0.5 },
-    ],
-    gold: [30, 60],
-  },
-  {
-    materials: [
-      { materialId: 'copper', min: 4, max: 7, chance: 1 },
-      { materialId: 'stone', min: 2, max: 4, chance: 0.7 },
-      { materialId: 'hide', min: 2, max: 3, chance: 0.5 },
-    ],
-    gold: [60, 120],
-  },
-  {
-    materials: [
-      { materialId: 'iron', min: 4, max: 7, chance: 1 },
-      { materialId: 'coal', min: 2, max: 4, chance: 0.7 },
-      { materialId: 'bone', min: 2, max: 3, chance: 0.5 },
-    ],
-    gold: [120, 240],
-  },
-  {
-    materials: [
-      { materialId: 'iron', min: 5, max: 8, chance: 1 },
-      { materialId: 'coal', min: 3, max: 5, chance: 1 },
-      { materialId: 'steel', min: 1, max: 2, chance: 0.5 },
-    ],
-    gold: [240, 480],
-  },
+  { gold: [15, 30], shards: 1, materials: commonFinds },
+  { gold: [55, 110], shards: 2, materials: commonFinds },
+  { gold: [180, 360], shards: 3, materials: commonFinds },
+  { gold: [475, 955], shards: 4, materials: commonFinds },
+  { gold: [1365, 2725], shards: 5, materials: commonFinds },
 ];

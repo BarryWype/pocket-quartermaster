@@ -1,3 +1,4 @@
+import { forgeRules } from '@/content/forging';
 import { itemById, recipeById } from '@/content/lookup';
 
 import { gainMastery, masteryOf, masteryTypeOf, startingMastery } from '../forging/mastery';
@@ -16,8 +17,20 @@ export function ownsTool(save: SaveData, recipe: RecipeDef) {
   return 'itemId' in recipe.output && save.tools.includes(recipe.output.itemId);
 }
 
+/** Gold a recipe costs: forged weapons, armour and tools by item tier; smelting, alchemy and the tutorial are free. */
+export function forgeFee(save: SaveData, recipe: RecipeDef, rules: typeof forgeRules = forgeRules) {
+  if (recipe.station !== 'forge' || !('itemId' in recipe.output) || save.tutorial.step !== 'done') return 0;
+  const item = itemById[recipe.output.itemId];
+  return item.slot === 'consumable' ? 0 : (rules.fees[item.tier - 1] ?? 0);
+}
+
 export function canCraft(save: SaveData, recipe: RecipeDef) {
-  return isKnown(save, recipe) && !ownsTool(save, recipe) && hasMaterials(save.materials, recipe.inputs);
+  return (
+    isKnown(save, recipe) &&
+    !ownsTool(save, recipe) &&
+    hasMaterials(save.materials, recipe.inputs) &&
+    save.gold >= forgeFee(save, recipe)
+  );
 }
 
 /** The gear a recipe forges, if it makes a weapon or armour piece. */
@@ -44,7 +57,7 @@ export function unlockRecipe(save: SaveData, recipeId: string): SaveData {
  */
 export function craft(save: SaveData, recipe: RecipeDef, forceQuality?: Quality): SaveData {
   if (!canCraft(save, recipe)) throw new Error(`Cannot craft ${recipe.id}`);
-  let next: SaveData = { ...save, materials: removeMaterials(save.materials, recipe.inputs) };
+  let next: SaveData = { ...save, gold: save.gold - forgeFee(save, recipe), materials: removeMaterials(save.materials, recipe.inputs) };
 
   const gearItem = forgedItem(recipe);
   if ('materialId' in recipe.output) {

@@ -160,5 +160,13 @@ export const startingHeroes: HeroState[] = [
   newHero('mira', 'Mira', 'fireMage', 'quickLearner'),
 ];
 
+export const xpRules = {
+  /** XP to go from level L to L + 1: round(base × L^exponent). */
+  base: 100,
+  exponent: 1.5,
+  /** Share of XP from dungeons 0, 1, and 2 or more tiers below the highest unlocked tier. */
+  lowerTierShare: [1, 0.5, 0.25],
+};
+
 /** XP needed to go from `level` to `level + 1`. */
-export const xpToNextLevel = (level: number) => 100 * level;
+export const xpToNextLevel = (level: number, rules: typeof xpRules = xpRules) => Math.round(rules.base * level ** rules.exponent);

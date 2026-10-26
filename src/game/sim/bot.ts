@@ -1,8 +1,9 @@
 import { dungeons } from '@/content/dungeons';
 import { mobById } from '@/content/enemies';
 import { guildTrackById, guildTracks } from '@/content/guild';
-import { heroClasses } from '@/content/heroes';
+import { heroClasses, xpRules } from '@/content/heroes';
 import { dungeonById, itemById, recipeById } from '@/content/lookup';
+import { mainRewardRules } from '@/content/mainRewards';
 import { modifierById } from '@/content/modifiers';
 import { recipes } from '@/content/recipes';
 import { firstClearRules } from '@/content/rotation';
@@ -14,7 +15,7 @@ import { countersFor } from '../dungeons/counters';
 import { modifierFor, withModifier, type Rotation } from '../dungeons/rotation';
 import { dungeonTagWeights } from '../dungeons/tags';
 import { ELEMENTS, stoneId, weaponMultiplier, type Element } from '../elements';
-import { isDungeonAvailable, isDungeonUnlocked, resolveExpedition, startExpedition } from '../expeditions/expeditions';
+import { bossBonusAvailable, highestUnlockedTier, isDungeonAvailable, resolveExpedition, startExpedition } from '../expeditions/expeditions';
 import { estimateOdds, type Odds } from '../expeditions/odds';
 import { prepareParty, simulateRun } from '../expeditions/simulate';
 import { masteryCap, masteryOf, masteryTypeOf } from '../forging/mastery';
@@ -55,6 +56,14 @@ export type ExpeditionRow = {
   qualities: Record<Quality, number>;
   /** Abilities that changed an encounter, e.g. "calm" or "tagBonus:beast". */
   effects: Record<string, number>;
+  /** The same by the class that used them, as "class|effect" ("local" for a local's tip). */
+  classEffects: Record<string, number>;
+  /** Hours from launch to the end of the run. */
+  hours: number;
+  /** The party's average level at launch. */
+  level: number;
+  /** A boss win that claimed the daily bonus. */
+  bossBonus: boolean;
 };
 
 export type CraftRow = {
@@ -65,6 +74,8 @@ export type CraftRow = {
   quality: Quality | null;
   /** Mastery level of the piece's type after the forge. */
   mastery: number | null;
+  /** Forged with the type's mastery already at the item tier's cap. */
+  maxed?: boolean;
   /** Materials used (negative) or returned (positive). */
   materials: Record<string, number>;
 };
@@ -125,7 +136,7 @@ export type Sim = {
   /** When the first session at or after a time happens. */
   collectionAt: (time: number) => number;
   oddsCache: Map<string, Odds>;
-  launched: Map<string, Pick<ExpeditionRow, 'odds' | 'qualities' | 'day' | 'hour'>>;
+  launched: Map<string, Pick<ExpeditionRow, 'odds' | 'qualities' | 'day' | 'hour' | 'level'>>;
   log: RunLog;
 };
 
@@ -163,7 +174,7 @@ export function act(sim: Sim, source: string, action: (save: SaveData) => SaveDa
 
 // —— Helpers ——
 
-export const highestTier = (save: SaveData) => Math.max(...dungeons.filter((d) => isDungeonUnlocked(save, d)).map((d) => d.tier));
+export const highestTier = highestUnlockedTier;
 export const homeHeroes = (save: SaveData) => save.heroes.filter((h) => !isOnExpedition(save, h.id));
 const gearOf = (save: SaveData, uid: string | null) => save.gear.find((g) => g.uid === uid);
 
@@ -218,7 +229,8 @@ function recordCraft(sim: Sim, kind: CraftRow['kind'], before: SaveData, materia
   const item = itemById[gear.itemId] as GearDef;
   const type = masteryTypeOf(item);
   const mastery = masteryOf(sim.save, type).level;
-  sim.log.crafts.push({ day: sim.day, kind, itemId: item.id, tier: item.tier, quality: gear.quality, mastery, materials });
+  const maxed = masteryOf(before, type).level >= masteryCap(item.tier);
+  sim.log.crafts.push({ day: sim.day, kind, itemId: item.id, tier: item.tier, quality: gear.quality, mastery, maxed, materials });
   if (gear.quality === 'rare' || gear.quality === 'legendary') mark(sim, `rare:${item.tier}`);
   if (gear.quality === 'legendary') mark(sim, `legendary:${item.tier}`);
   for (let tier = 1; tier <= 5; tier++) if (mastery >= masteryCap(tier)) mark(sim, `masteryCap:${tier}`);
@@ -317,7 +329,7 @@ export function forge(sim: Sim) {
           const best = bestRecipe(sim.save, hero, slot);
           if (!gear || !best || gear.itemId !== best.item.id) return null;
           const twice = best.recipe.inputs.map((s) => ({ ...s, amount: s.amount * 2 }));
-          if (betterChance(sim.save, best.item, gear.quality) < sim.config.reforgeChance || !hasMaterials(sim.save.materials, twice)) return null;
+          if (betterChance(sim.save, best.item, gear.quality) < sim.config.reforgeChance || !hasMaterials(sim.save.materials, twice) || !canCraft(sim.save, best.recipe)) return null;
           return { recipe: best.recipe, quality: QUALITY_ORDER.indexOf(gear.quality) };
         }),
       )
@@ -377,7 +389,7 @@ export function infuseWeapons(sim: Sim) {
 // —— Recruiting and the Guild Hall ——
 
 function nextRecruitPrice(save: SaveData) {
-  return Math.round(recruitPrice('common', offerLevel(save), save.heroes.length, false) * (1 - guildBonus(save, 'tavernDiscount')));
+  return Math.round(recruitPrice('common', offerLevel(save), save.heroes.length, false, highestTier(save)) * (1 - guildBonus(save, 'tavernDiscount')));
 }
 
 export function recruitHeroes(sim: Sim) {
@@ -436,12 +448,12 @@ const heroKey = (save: SaveData, hero: HeroState) => {
 };
 
 /** Odds with fewer runs than the app, remembered for the same heroes, gear and dungeon. */
-export function odds(sim: Sim, save: SaveData, heroIds: string[], dungeon: DungeonDef): Odds {
+export function odds(sim: Sim, save: SaveData, heroIds: string[], dungeon: DungeonDef, runs = sim.config.odds.runs): Odds {
   const heroes = save.heroes.filter((h) => heroIds.includes(h.id));
-  const key = `${dungeon.id}|${dungeon.modifierId ?? ''}|${heroes.map((h) => heroKey(save, h)).sort().join('|')}`;
+  const key = `${runs}|${dungeon.id}|${dungeon.modifierId ?? ''}|${heroes.map((h) => heroKey(save, h)).sort().join('|')}`;
   let result = sim.oddsCache.get(key);
   if (!result) {
-    result = estimateOdds(save, heroIds, dungeon, sim.config.odds.runs);
+    result = estimateOdds(save, heroIds, dungeon, runs);
     sim.oddsCache.set(key, result);
   }
   return result;
@@ -460,7 +472,11 @@ function withLoadout(save: SaveData, heroIds: string[], dungeon: DungeonDef): Sa
   return next;
 }
 
-/** Adds the hero who raises the odds most, until the party is full or safe enough. */
+/**
+ * Adds the hero who raises the odds most, until the party is full or safe
+ * enough. Candidates are compared with a quick estimate on the same seeds;
+ * the party found gets the full one.
+ */
 export function bestParty(sim: Sim, dungeon: DungeonDef, candidates: string[]) {
   const save = withLoadout(sim.save, candidates, dungeon);
   const party: string[] = [];
@@ -468,14 +484,14 @@ export function bestParty(sim: Sim, dungeon: DungeonDef, candidates: string[]) {
   while (party.length < partySize(save) && party.length < candidates.length) {
     let pick: { id: string; odds: Odds } | null = null;
     for (const id of candidates.filter((c) => !party.includes(c))) {
-      const o = odds(sim, save, [...party, id], dungeon);
+      const o = odds(sim, save, [...party, id], dungeon, sim.config.odds.searchRuns);
       if (!pick || o.success > pick.odds.success || (o.success === pick.odds.success && o.progress > pick.odds.progress)) pick = { id, odds: o };
     }
     party.push(pick!.id);
     best = pick!.odds;
     if (best.success >= sim.config.odds.enough) break;
   }
-  return { heroIds: party, odds: best };
+  return { heroIds: party, odds: party.length ? odds(sim, save, party, dungeon) : best };
 }
 
 // —— Sanctums and treasure ——
@@ -536,16 +552,31 @@ export function launch(sim: Sim, dungeon: DungeonDef, heroIds: string[], o: Odds
   }
   const id = `x${sim.save.nextUid}`;
   sim.save = startExpedition(sim.save, dungeon.id, heroIds, sim.now, 1, sim.rotation);
-  sim.launched.set(id, { odds: o.success, qualities, day: sim.day, hour: (sim.now - sim.startedAt) / 3_600_000 });
+  const level = heroIds.reduce((s, h) => s + sim.save.heroes.find((x) => x.id === h)!.level, 0) / heroIds.length;
+  sim.launched.set(id, { odds: o.success, qualities, day: sim.day, hour: (sim.now - sim.startedAt) / 3_600_000, level });
+}
+
+/** Whether a win here could teach a weapon or armour blueprint the roster can use and doesn't know yet. */
+function dropsBlueprint(save: SaveData, dungeon: DungeonDef) {
+  return dungeon.recipeDrops.some(({ recipeId }) => {
+    const item = forgedItem(recipeById[recipeId]);
+    return item && !save.knownRecipes.includes(recipeId) && masteryTypeOf(item) in save.mastery && save.heroes.some((h) => canWield(h, item));
+  });
 }
 
 /** Gold-equivalent of a run: gold for the share cleared, first-clear bonus, pouches and XP. */
+/**
+ * Gold-equivalent of a run: gold for the share cleared, first-clear bonus,
+ * main rewards (about a gold roll each) and XP. A boss whose daily bonus is
+ * gone today only rolls the repeat chance.
+ */
 function expectedValue(sim: Sim, dungeon: DungeonDef, o: Odds, heroes: number) {
   const mid = ((dungeon.gold[0] + dungeon.gold[1]) / 2) * (dungeon.rewardMultipliers?.gold ?? 1) * (1 + guildBonus(sim.save, 'gold'));
   const firstClear = dungeon.slot && !sim.save.firstClears.includes(dungeon.id) ? dungeon.gold[1] * firstClearRules.goldShare : 0;
-  return (
-    mid * o.progress + o.success * (firstClear + dungeon.mainRewardChance * mid * 2.5) + dungeon.xp * o.progress * heroes * sim.config.xpGoldValue
-  );
+  const bonus = !dungeon.isBoss || bossBonusAvailable(sim.save, dungeon.id, sim.now);
+  const rolls = bonus ? dungeon.mainRewardChance + (dungeon.mainRewardExtraRollChance ?? 0) : mainRewardRules.repeatMainRewardChance;
+  const tierShare = xpRules.lowerTierShare[Math.min(xpRules.lowerTierShare.length - 1, highestTier(sim.save) - dungeon.tier)];
+  return mid * o.progress + o.success * (firstClear + rolls * mid) + dungeon.xp * tierShare * o.progress * heroes * sim.config.xpGoldValue;
 }
 
 export function sendExpeditions(sim: Sim) {
@@ -568,7 +599,8 @@ export function sendExpeditions(sim: Sim) {
         const hours = (sim.collectionAt(sim.now + d.durationMinutes * (1 - guildBonus(sim.save, 'fasterExpeditions')) * 60_000) - sim.now) / 3_600_000;
         return { d, party, score: expectedValue(sim, d, party.odds, party.heroIds.length) / Math.max(0.1, hours) };
       });
-    const good = options.filter((o) => o.party.odds.success >= sim.profile.oddsThreshold).sort((a, b) => b.score - a.score);
+    const threshold = (d: DungeonDef) => (d.tier === top && dropsBlueprint(sim.save, d) ? sim.config.odds.blueprint : sim.profile.oddsThreshold);
+    const good = options.filter((o) => o.party.odds.success >= threshold(o.d)).sort((a, b) => b.score - a.score);
     let pick = good[0];
     if (!pick && sim.save.expeditions.length === 0) {
       pick = options.filter((o) => o.party.odds.success >= sim.config.odds.fallback).sort((a, b) => b.party.odds.success - a.party.odds.success)[0];
@@ -586,9 +618,11 @@ export function collectExpedition(sim: Sim, expedition: ActiveExpedition) {
   const classes = expedition.heroIds.map((id) => sim.save.heroes.find((h) => h.id === id)!.classId);
 
   const before = sim.save;
+  const bossBonus = !!dungeon.isBoss && bossBonusAvailable(before, dungeon.id, expedition.endsAt);
   const { save, report } = resolveExpedition(before, expedition);
   // Gold by source; everything else through `act` so materials are counted.
   const pouches = report.mainRewards.reduce((sum, r) => sum + (r.kind === 'goldPouch' ? r.gold : 0), 0);
+  const mapGold = report.mainRewards.reduce((sum, r) => sum + (r.kind === 'mapGold' ? r.gold : 0), 0);
   const source = expedition.guaranteed ? 'tutorial' : 'dungeon';
   // Materials through `act` (with the gold held back), then the gold split by source.
   act(sim, source, () => ({ ...save, gold: before.gold }));
@@ -597,14 +631,19 @@ export function collectExpedition(sim: Sim, expedition: ActiveExpedition) {
     [source, report.gold],
     ['firstClear', report.firstClear?.gold ?? 0],
     ['pouch', pouches],
+    ['mapGold', mapGold],
   ] as const) {
     if (amount > 0) sim.log.goldIn.push({ day: sim.day, source: kind, amount });
   }
 
   const effects: Record<string, number> = {};
+  const classEffects: Record<string, number> = {};
   for (const effect of run.encounters.flatMap((e) => e.effects)) {
     const key = effect.tag ? `${effect.key}:${effect.tag}` : effect.key;
     effects[key] = (effects[key] ?? 0) + 1;
+    const classId = effect.heroId ? sim.save.heroes.find((h) => h.id === effect.heroId)?.classId : 'local';
+    const byClass = `${classId}|${effect.key}`;
+    classEffects[byClass] = (classEffects[byClass] ?? 0) + 1;
   }
   const launched = sim.launched.get(expedition.id);
   sim.log.expeditions.push({
@@ -619,10 +658,14 @@ export function collectExpedition(sim: Sim, expedition: ActiveExpedition) {
     odds: launched?.odds ?? 1,
     success: report.success,
     outcome: report.outcome,
-    gold: report.gold + (report.firstClear?.gold ?? 0) + pouches,
+    gold: report.gold + (report.firstClear?.gold ?? 0) + pouches + mapGold,
     xp: report.xp,
     qualities: launched?.qualities ?? { crappy: 0, normal: 0, rare: 0, legendary: 0 },
     effects,
+    classEffects,
+    hours: (expedition.endsAt - expedition.startedAt) / 3_600_000,
+    level: launched?.level ?? 1,
+    bossBonus,
   });
   if (report.success && dungeon.isBoss) mark(sim, `boss:${dungeon.tier}`);
 }

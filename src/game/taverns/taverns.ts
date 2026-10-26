@@ -1,4 +1,3 @@
-import { dungeons } from '@/content/dungeons';
 import { heroClasses, newHero } from '@/content/heroes';
 import { recipes } from '@/content/recipes';
 import { heroNames, recruitRules } from '@/content/roster';
@@ -7,7 +6,7 @@ import { traits } from '@/content/traits';
 
 import { forgedItem, unlockRecipe } from '../crafting/crafting';
 import { nextRotationAt, rotationDay } from '../dungeons/rotation';
-import { isDungeonUnlocked } from '../expeditions/expeditions';
+import { highestUnlockedTier } from '../expeditions/expeditions';
 import { masteryTypeOf, startingMastery } from '../forging/mastery';
 import { guildBonus, tavernOfferCount } from '../guild/guild';
 import { distanceMeters } from '../generation/geo';
@@ -57,18 +56,20 @@ export function offerLevel(save: SaveData, rules: RecruitRules = recruitRules) {
   return Math.max(1, Math.round(average - rules.levelsBelowAverage));
 }
 
-/** base by rarity × level factor × roster factor × trait factor. */
+/** base by rarity × level factor × roster factor × trait factor × tier factor. */
 export function recruitPrice(
   rarity: ClassRarity,
   level: number,
   rosterSize: number,
   positiveTrait: boolean,
+  tier = 1,
   rules: RecruitRules = recruitRules,
 ) {
-  const { base, perLevel, freeHeroes, perExtraHero, trait } = rules.price;
+  const { base, perLevel, freeHeroes, perExtraHero, trait, perTier } = rules.price;
   const levelFactor = 1 + perLevel * (level - 1);
   const rosterFactor = 1 + perExtraHero * Math.max(0, rosterSize - freeHeroes);
-  return Math.round(base[rarity] * levelFactor * rosterFactor * (positiveTrait ? trait.positive : trait.negative));
+  const tierFactor = perTier ** (tier - 1);
+  return Math.round(base[rarity] * levelFactor * rosterFactor * tierFactor * (positiveTrait ? trait.positive : trait.negative));
 }
 
 /**
@@ -98,7 +99,7 @@ export function tavernOffers(save: SaveData, tavernId: string, now: number, seed
       name: names[rng.int(0, names.length - 1)],
       level,
       trait: pool[rng.int(0, pool.length - 1)].id,
-      price: Math.round(recruitPrice(rarity, level, save.heroes.length, positive, rules) * discount),
+      price: Math.round(recruitPrice(rarity, level, save.heroes.length, positive, highestUnlockedTier(save), rules) * discount),
       expiresAt: nextRotationAt(now),
     };
   });
@@ -119,15 +120,12 @@ export function recruitProblem(
   return null;
 }
 
-/** The highest dungeon tier the player can reach. */
-const highestTier = (save: SaveData) => Math.max(...dungeons.filter((d) => isDungeonUnlocked(save, d)).map((d) => d.tier));
-
 /**
  * The first hero who uses a weapon type teaches its recipes up to the highest
  * tier reached; its mastery starts at the cap of the tier before.
  */
 export function learnWeaponTypes(save: SaveData, classId: HeroClassId): SaveData {
-  const tier = highestTier(save);
+  const tier = highestUnlockedTier(save);
   let next = save;
   for (const type of Object.keys(heroClasses[classId].affinities) as WeaponType[]) {
     if (next.mastery[type]) continue;

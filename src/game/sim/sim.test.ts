@@ -21,7 +21,7 @@ describe('balance lab', () => {
   });
 
   it('plays through the tutorial and the first tier', () => {
-    const log = runSim({ profile: 'regular', days: 6, seed: 'progress', rates });
+    const log = runSim({ profile: 'regular', days: 8, seed: 'progress', rates });
     expect(log.milestones['boss:1']).toBeDefined();
     expect(log.expeditions.length).toBeGreaterThan(5);
     expect(log.crafts.some((c) => c.kind === 'upgrade')).toBe(true);
@@ -43,11 +43,11 @@ describe('balance lab', () => {
 
 describe('--set overrides', () => {
   it('changes a content number until undone', () => {
-    const before = rankCost(guildTrackById.gold, 1);
-    const undo = applyOverrides([parseOverride('guild.gold.baseCost=80')]);
-    expect(rankCost(guildTrackById.gold, 1)).toBe(80);
+    const before = rankCost(guildTrackById.heroXp, 1);
+    const undo = applyOverrides([parseOverride('guild.heroXp.baseCost=80')]);
+    expect(rankCost(guildTrackById.heroXp, 1)).toBe(80);
     undo();
-    expect(rankCost(guildTrackById.gold, 1)).toBe(before);
+    expect(rankCost(guildTrackById.heroXp, 1)).toBe(before);
   });
 
   it('reaches into arrays and refuses unknown or non-numeric paths', () => {

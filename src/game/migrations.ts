@@ -61,3 +61,8 @@ export function migrateV8Save(old: Partial<SaveData>): SaveData {
   const bosses = dungeons.filter((d) => d.isBoss && save.clearedDungeons.includes(d.id)).length;
   return { ...save, guild: {}, charters: bosses, trainedAt: null };
 }
+
+/** Version 9 → 10: daily boss bonuses start unclaimed; gold, materials and levels stay as they are. */
+export function migrateV9Save(old: Partial<SaveData>): SaveData {
+  return { ...createInitialSave(), ...old, bossBonusDays: {} };
+}

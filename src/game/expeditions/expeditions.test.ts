@@ -1,9 +1,12 @@
 import { dungeons } from '@/content/dungeons';
+import { xpRules } from '@/content/heroes';
 import { dungeonById } from '@/content/lookup';
+import { mainRewardRules } from '@/content/mainRewards';
 
 import { createInitialSave, type SaveData } from '../save';
 import { equip } from '../team/team';
 import {
+  bossBonusAvailable,
   expeditionMinutes,
   fastForward,
   isDungeonAvailable,
@@ -137,7 +140,8 @@ describe('resolveExpedition', () => {
 
   it('pays in full for the boss and the cleared share on a retreat', () => {
     const dungeon = dungeonById.banditStockade;
-    const results = outcomes(geared(), dungeon.id);
+    // Tier 1 is still the highest, so its XP isn't reduced.
+    const results = outcomes({ ...geared(), clearedDungeons: [] }, dungeon.id);
     const wins = results.filter((r) => r.report.success);
     const retreats = results.filter((r) => r.report.outcome === 'retreat');
     expect(wins.length).toBeGreaterThan(0);
@@ -327,5 +331,58 @@ describe('resolveDue', () => {
   it('fast-forwards running expeditions', () => {
     const save = startExpedition(allTiers(createInitialSave()), 'cinderHollow', ['lyra'], 0);
     expect(resolveDue(fastForward(save, 5), 5).reports).toHaveLength(1);
+  });
+});
+
+describe('daily boss bonus', () => {
+  const boss = dungeonById.ogreQuarry;
+  const DAY = 86_400_000;
+  /** A strong team so the boss falls; runs finishing at `endsAt`. */
+  const win = (save: SaveData, i: number, endsAt: number) => {
+    const started = startExpedition({ ...save, nextUid: 100 + i }, boss.id, ALL, endsAt - boss.durationMinutes * MIN);
+    return resolveExpedition(started, started.expeditions[0]);
+  };
+  const strong = () => ({ ...geared(), heroes: geared().heroes.map((h) => ({ ...h, level: 30 })) });
+
+  it('comes with the first win of each rotation day only', () => {
+    const day = Date.UTC(2026, 10, 2, 12);
+    const wins = Array.from({ length: 40 }, (_, i) => win(strong(), i, day)).filter((r) => r.report.success);
+    expect(wins.length).toBeGreaterThan(20);
+    const first = wins[0];
+    expect(bossBonusAvailable(first.save, boss.id, day)).toBe(false);
+    expect(bossBonusAvailable(first.save, boss.id, day + DAY)).toBe(true);
+    // The first win of the day always rolls; a repeat rolls the lower chance once.
+    for (const r of wins) expect(r.report.mainRewards.length).toBeGreaterThanOrEqual(1);
+    const repeats = Array.from({ length: 200 }, (_, i) => win(first.save, i, day)).filter((r) => r.report.success);
+    const rolled = repeats.filter((r) => r.report.mainRewards.length > 0).length / repeats.length;
+    expect(Math.max(...repeats.map((r) => r.report.mainRewards.length))).toBeLessThanOrEqual(1);
+    expect(rolled).toBeGreaterThan(mainRewardRules.repeatMainRewardChance - 0.12);
+    expect(rolled).toBeLessThan(mainRewardRules.repeatMainRewardChance + 0.12);
+    expect(repeats.every((r) => r.save.bossBonusDays[boss.id] === first.save.bossBonusDays[boss.id])).toBe(true);
+    // Next day, the bonus is back.
+    const tomorrow = win(first.save, 0, day + DAY);
+    if (tomorrow.report.success) expect(tomorrow.save.bossBonusDays[boss.id]).toBe(first.save.bossBonusDays[boss.id] + 1);
+  });
+});
+
+describe('XP by tier', () => {
+  it('teaches half one tier below the highest unlocked, a quarter further down', () => {
+    const xpAt = (cleared: string[]) => {
+      const save = { ...geared(), heroes: geared().heroes.map((h) => ({ ...h, level: 30 })), clearedDungeons: cleared };
+      const started = startExpedition(save, 'ratCellar', ALL, 0);
+      return resolveExpedition(started, started.expeditions[0]).report;
+    };
+    const full = xpAt([]);
+    expect(full.success).toBe(true);
+    expect(full.xp).toBe(dungeonById.ratCellar.xp);
+    expect(xpAt(['banditStockade']).xp).toBe(Math.round(dungeonById.ratCellar.xp * xpRules.lowerTierShare[1]));
+    expect(xpAt(BOSSES).xp).toBe(Math.round(dungeonById.ratCellar.xp * xpRules.lowerTierShare[2]));
+  });
+});
+
+describe('materials come from walking', () => {
+  it('leaves gathering materials out of every dungeon, wins and retreats alike', () => {
+    for (const dungeon of dungeons) expect(dungeon.loot).toEqual([]);
+    for (const { report } of outcomes(geared(), 'banditStockade', 60)) expect(report.materials).toEqual([]);
   });
 });

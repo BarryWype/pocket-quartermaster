@@ -1,4 +1,4 @@
-import { newHero } from '@/content/heroes';
+import { newHero, xpToNextLevel } from '@/content/heroes';
 import { itemById } from '@/content/lookup';
 
 import { createInitialSave, type SaveData } from '../save';
@@ -114,6 +114,9 @@ describe('addXp', () => {
     const leveled = addXp(hero(save, 'bram'), 250);
     expect(leveled.level).toBe(2);
     expect(leveled.xp).toBe(150);
-    expect(addXp(hero(save, 'bram'), 300).level).toBe(3);
+    // 100 to level 2, then round(100 × 2^1.5) = 283 to level 3.
+    expect(addXp(hero(save, 'bram'), 382).level).toBe(2);
+    expect(addXp(hero(save, 'bram'), 383).level).toBe(3);
+    expect([1, 2, 3, 4].map((level) => xpToNextLevel(level))).toEqual([100, 283, 520, 800]);
   });
 });

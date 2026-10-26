@@ -10,6 +10,8 @@ import { bossById } from './enemies';
 // A run is a series of encounters drawn from the dungeon's pool, then its boss.
 // Regular dungeons of a slot share their tier's rewards: main reward chance 30%
 // for short, 75% for long; 100% plus a 50% second roll for the boss.
+// Dungeons pay gold, XP, main rewards and blueprints; materials come from
+// walking, so `loot` stays empty for dungeon-only items later.
 // Tuned against src/game/balance/balance.test.ts.
 
 type Trap = Extract<EncounterDef, { type: 'trap' }>;
@@ -85,14 +87,10 @@ const ratCellar: DungeonDef = {
   mainRewardChance: 0.3,
   gold: [5, 12],
   xp: 30,
-  loot: [
-    { materialId: 'wood', min: 2, max: 4, chance: 0.8 },
-    { materialId: 'hide', min: 1, max: 2, chance: 0.5 },
-    { materialId: 'meat', min: 1, max: 2, chance: 0.4 },
-  ],
+  loot: [],
   recipeDrops: [
-    { recipeId: 'woodArmour', chance: 0.4 },
-    { recipeId: 'woodWand', chance: 0.25 },
+    { recipeId: 'woodArmour', chance: 0.6 },
+    { recipeId: 'woodWand', chance: 0.5 },
     ...extraDrops('wood', 'short'),
   ],
 };
@@ -113,14 +111,10 @@ const goblinWarren: DungeonDef = {
   mainRewardChance: 0.75,
   gold: [8, 18],
   xp: 50,
-  loot: [
-    { materialId: 'hide', min: 1, max: 3, chance: 0.7 },
-    { materialId: 'bone', min: 1, max: 2, chance: 0.5 },
-    { materialId: 'wood', min: 1, max: 3, chance: 0.4 },
-  ],
+  loot: [],
   recipeDrops: [
-    { recipeId: 'woodBow', chance: 0.4 },
-    { recipeId: 'woodWand', chance: 0.25 },
+    { recipeId: 'woodBow', chance: 0.6 },
+    { recipeId: 'woodWand', chance: 0.5 },
     ...extraDrops('wood', 'long'),
   ],
 };
@@ -141,16 +135,12 @@ const wolfDen: DungeonDef = {
   }),
   boss: bossById.alphaWolf,
   mainRewardChance: 0.3,
-  gold: [12, 25],
+  gold: [22, 47],
   xp: 80,
-  loot: [
-    { materialId: 'hide', min: 2, max: 3, chance: 0.7 },
-    { materialId: 'bone', min: 1, max: 3, chance: 0.6 },
-    { materialId: 'meat', min: 1, max: 2, chance: 0.5 },
-  ],
+  loot: [],
   recipeDrops: [
-    { recipeId: 'stoneArmour', chance: 0.4 },
-    { recipeId: 'stoneWand', chance: 0.25 },
+    { recipeId: 'stoneArmour', chance: 0.6 },
+    { recipeId: 'stoneWand', chance: 0.5 },
     ...extraDrops('stone', 'short'),
   ],
 };
@@ -169,17 +159,13 @@ const trollBridge: DungeonDef = {
   ),
   boss: bossById.bridgeTroll,
   mainRewardChance: 0.75,
-  gold: [18, 35],
+  gold: [34, 65],
   xp: 120,
-  loot: [
-    { materialId: 'stone', min: 2, max: 4, chance: 0.7 },
-    { materialId: 'wood', min: 2, max: 3, chance: 0.5 },
-    { materialId: 'herb', min: 1, max: 2, chance: 0.3 },
-  ],
+  loot: [],
   recipeDrops: [
-    { recipeId: 'stoneBow', chance: 0.4 },
+    { recipeId: 'stoneBow', chance: 0.6 },
     { recipeId: 'fireResistanceElixir', chance: 0.3 },
-    { recipeId: 'stoneWand', chance: 0.25 },
+    { recipeId: 'stoneWand', chance: 0.5 },
     ...extraDrops('stone', 'long'),
   ],
 };
@@ -199,15 +185,12 @@ const hauntedMine: DungeonDef = {
   ),
   boss: bossById.mineWraith,
   mainRewardChance: 0.3,
-  gold: [25, 50],
+  gold: [75, 150],
   xp: 150,
-  loot: [
-    { materialId: 'copper', min: 2, max: 4, chance: 0.7 },
-    { materialId: 'stone', min: 2, max: 3, chance: 0.5 },
-  ],
+  loot: [],
   recipeDrops: [
-    { recipeId: 'copperArmour', chance: 0.4 },
-    { recipeId: 'copperWand', chance: 0.25 },
+    { recipeId: 'copperArmour', chance: 0.6 },
+    { recipeId: 'copperWand', chance: 0.5 },
     ...extraDrops('copper', 'short'),
   ],
 };
@@ -228,16 +211,12 @@ const cinderHollow: DungeonDef = {
   }),
   boss: bossById.ashWyrm,
   mainRewardChance: 0.75,
-  gold: [40, 75],
+  gold: [120, 225],
   xp: 220,
-  loot: [
-    { materialId: 'copper', min: 1, max: 3, chance: 0.5 },
-    { materialId: 'hide', min: 2, max: 3, chance: 0.5 },
-    { materialId: 'mushroom', min: 1, max: 2, chance: 0.4 },
-  ],
+  loot: [],
   recipeDrops: [
-    { recipeId: 'copperBow', chance: 0.4 },
-    { recipeId: 'copperWand', chance: 0.25 },
+    { recipeId: 'copperBow', chance: 0.6 },
+    { recipeId: 'copperWand', chance: 0.5 },
     ...extraDrops('copper', 'long'),
   ],
 };
@@ -257,16 +236,12 @@ const harpyCliffs: DungeonDef = {
   ),
   boss: bossById.harpyMatriarch,
   mainRewardChance: 0.3,
-  gold: [55, 105],
+  gold: [220, 415],
   xp: 250,
-  loot: [
-    { materialId: 'hide', min: 2, max: 4, chance: 0.6 },
-    { materialId: 'bone', min: 2, max: 4, chance: 0.6 },
-    { materialId: 'iron', min: 1, max: 2, chance: 0.4 },
-  ],
+  loot: [],
   recipeDrops: [
-    { recipeId: 'ironArmour', chance: 0.4 },
-    { recipeId: 'ironWand', chance: 0.25 },
+    { recipeId: 'ironArmour', chance: 0.6 },
+    { recipeId: 'ironWand', chance: 0.5 },
     ...extraDrops('iron', 'short'),
   ],
 };
@@ -285,16 +260,12 @@ const orcWarcamp: DungeonDef = {
   ),
   boss: bossById.orcWarlord,
   mainRewardChance: 0.75,
-  gold: [85, 160],
+  gold: [335, 640],
   xp: 350,
-  loot: [
-    { materialId: 'iron', min: 2, max: 4, chance: 0.7 },
-    { materialId: 'wood', min: 2, max: 4, chance: 0.5 },
-    { materialId: 'hide', min: 1, max: 3, chance: 0.4 },
-  ],
+  loot: [],
   recipeDrops: [
-    { recipeId: 'ironBow', chance: 0.4 },
-    { recipeId: 'ironWand', chance: 0.25 },
+    { recipeId: 'ironBow', chance: 0.6 },
+    { recipeId: 'ironWand', chance: 0.5 },
     ...extraDrops('iron', 'long'),
   ],
 };
@@ -314,16 +285,12 @@ const wyvernPeaks: DungeonDef = {
   ),
   boss: bossById.wyvernQueen,
   mainRewardChance: 0.3,
-  gold: [115, 220],
+  gold: [650, 1250],
   xp: 400,
-  loot: [
-    { materialId: 'hide', min: 3, max: 5, chance: 0.6 },
-    { materialId: 'bone', min: 3, max: 5, chance: 0.6 },
-    { materialId: 'steel', min: 1, max: 2, chance: 0.3 },
-  ],
+  loot: [],
   recipeDrops: [
-    { recipeId: 'steelArmour', chance: 0.4 },
-    { recipeId: 'steelWand', chance: 0.25 },
+    { recipeId: 'steelArmour', chance: 0.6 },
+    { recipeId: 'steelWand', chance: 0.5 },
     ...extraDrops('steel', 'short'),
   ],
 };
@@ -342,16 +309,12 @@ const ashenCitadel: DungeonDef = {
   ),
   boss: bossById.ashLord,
   mainRewardChance: 0.75,
-  gold: [180, 340],
+  gold: [1020, 1930],
   xp: 550,
-  loot: [
-    { materialId: 'coal', min: 3, max: 5, chance: 0.6 },
-    { materialId: 'iron', min: 3, max: 5, chance: 0.6 },
-    { materialId: 'steel', min: 1, max: 2, chance: 0.3 },
-  ],
+  loot: [],
   recipeDrops: [
-    { recipeId: 'steelBow', chance: 0.4 },
-    { recipeId: 'steelWand', chance: 0.25 },
+    { recipeId: 'steelBow', chance: 0.6 },
+    { recipeId: 'steelWand', chance: 0.5 },
     ...extraDrops('steel', 'long'),
   ],
 };
@@ -426,11 +389,7 @@ export const dungeons: DungeonDef[] = [
     mainRewardExtraRollChance: 0.5,
     gold: [20, 40],
     xp: 100,
-    loot: [
-      { materialId: 'wood', min: 3, max: 5, chance: 0.7 },
-      { materialId: 'stone', min: 2, max: 3, chance: 0.6 },
-      { materialId: 'hide', min: 1, max: 2, chance: 0.5 },
-    ],
+    loot: [],
     recipeDrops: [
       { recipeId: 'woodPickaxe', chance: 1 },
       { recipeId: 'woodArmour', chance: 0.3 },
@@ -504,13 +463,9 @@ export const dungeons: DungeonDef[] = [
     boss: bossById.ogreChieftain,
     mainRewardChance: 1,
     mainRewardExtraRollChance: 0.5,
-    gold: [45, 85],
+    gold: [85, 160],
     xp: 220,
-    loot: [
-      { materialId: 'stone', min: 3, max: 5, chance: 0.8 },
-      { materialId: 'copper', min: 1, max: 2, chance: 0.4 },
-      { materialId: 'bone', min: 2, max: 3, chance: 0.5 },
-    ],
+    loot: [],
     recipeDrops: [
       { recipeId: 'stonePickaxe', chance: 1 },
       { recipeId: 'fireResistanceElixir', chance: 0.2 },
@@ -584,13 +539,9 @@ export const dungeons: DungeonDef[] = [
     boss: bossById.lichOfTheDeep,
     mainRewardChance: 1,
     mainRewardExtraRollChance: 0.5,
-    gold: [95, 180],
+    gold: [285, 540],
     xp: 400,
-    loot: [
-      { materialId: 'copper', min: 3, max: 5, chance: 0.7 },
-      { materialId: 'iron', min: 1, max: 2, chance: 0.4 },
-      { materialId: 'bone', min: 2, max: 4, chance: 0.5 },
-    ],
+    loot: [],
     recipeDrops: [
       { recipeId: 'copperPickaxe', chance: 1 },
       { recipeId: 'copperArmour', chance: 0.3 },
@@ -667,13 +618,9 @@ export const dungeons: DungeonDef[] = [
     boss: bossById.giantKing,
     mainRewardChance: 1,
     mainRewardExtraRollChance: 0.5,
-    gold: [200, 380],
+    gold: [790, 1510],
     xp: 600,
-    loot: [
-      { materialId: 'iron', min: 3, max: 5, chance: 0.7 },
-      { materialId: 'coal', min: 2, max: 4, chance: 0.6 },
-      { materialId: 'steel', min: 1, max: 1, chance: 0.3 },
-    ],
+    loot: [],
     recipeDrops: [
       { recipeId: 'ironPickaxe', chance: 1 },
       { recipeId: 'ironArmour', chance: 0.3 },
@@ -746,13 +693,9 @@ export const dungeons: DungeonDef[] = [
     boss: bossById.elderDragon,
     mainRewardChance: 1,
     mainRewardExtraRollChance: 0.5,
-    gold: [420, 800],
+    gold: [2390, 4540],
     xp: 900,
-    loot: [
-      { materialId: 'steel', min: 2, max: 3, chance: 0.6 },
-      { materialId: 'iron', min: 4, max: 6, chance: 0.6 },
-      { materialId: 'coal', min: 3, max: 5, chance: 0.5 },
-    ],
+    loot: [],
     recipeDrops: [
       { recipeId: 'steelPickaxe', chance: 1 },
       { recipeId: 'steelArmour', chance: 0.3 },

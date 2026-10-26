@@ -1,7 +1,9 @@
 import { mainRewardPool, mainRewardRules } from '@/content/mainRewards';
 
+import { convertShards, ELEMENTS, shardId } from '../elements';
 import type { Rng } from '../generation/rng';
 import { guildBonus } from '../guild/guild';
+import { addMaterials } from '../inventory';
 import type { SaveData } from '../save';
 import type { DungeonDef, MainReward, MainRewardKind } from '../types';
 
@@ -11,23 +13,21 @@ export type MainRewardOptions = {
   /** Debug: replace the rolls with this reward. */
   force?: MainRewardKind;
   rules?: Rules;
-  /** Guild Hall gold bonus: pouches are based on the dungeon's gold roll, so they follow it. */
+  /** Guild Hall gold bonus: pouches and map gold are based on the dungeon's gold roll, so they follow it. */
   goldMultiplier?: number;
   /** Guild Hall main reward bonus on both roll chances (capped at 100%). */
   chanceMultiplier?: number;
 };
 
-/** Bonus gold: 2–3× a fresh roll of the dungeon's gold. */
-function goldPouch(dungeon: DungeonDef, rng: Rng, rules: Rules, goldMultiplier: number): Extract<MainReward, { kind: 'goldPouch' }> {
-  const [min, max] = rules.goldPouchMultiplier;
-  const multiplier = min + rng.next() * (max - min);
-  return { kind: 'goldPouch', gold: Math.round(rng.int(dungeon.gold[0], dungeon.gold[1]) * multiplier * goldMultiplier) };
-}
+/** A fresh roll of the dungeon's gold × `share`, with the Guild Hall bonus. */
+const goldRoll = (dungeon: DungeonDef, rng: Rng, share: number, goldMultiplier: number) =>
+  Math.round(rng.int(dungeon.gold[0], dungeon.gold[1]) * share * goldMultiplier);
 
 /**
  * Rolls a successful expedition's main rewards and applies them. A roll may
  * happen (dungeon chance), a boss may roll twice, the first tier 1 boss win and
- * the pity timer guarantee a Sigil, and anything over its cap becomes a gold pouch.
+ * the pity timer guarantee a Sigil. A Sigil over the cap becomes shards, a map
+ * over the cap a little gold.
  */
 export function grantMainRewards(
   save: SaveData,
@@ -67,11 +67,19 @@ export function grantMainRewards(
     } else if (kind === 'lure') {
       next = { ...next, lures: next.lures + 1 };
       rewards.push({ kind: 'lure' });
+    } else if (kind === 'sigil') {
+      const element = ELEMENTS[rng.int(0, ELEMENTS.length - 1)];
+      const amount = rules.capShardsPerTier * dungeon.tier;
+      next = { ...next, materials: convertShards(addMaterials(next.materials, [{ materialId: shardId(element), amount }])) };
+      rewards.push({ kind: 'shards', element, amount });
+    } else if (kind === 'treasureMap') {
+      const gold = goldRoll(dungeon, rng, rules.mapCapGoldShare, goldMultiplier);
+      next = { ...next, gold: next.gold + gold };
+      rewards.push({ kind: 'mapGold', gold });
     } else {
-      // Gold pouches, and Sigils or maps that would go over their cap.
-      const pouch = goldPouch(dungeon, rng, rules, goldMultiplier);
-      next = { ...next, gold: next.gold + pouch.gold };
-      rewards.push(pouch);
+      const gold = goldRoll(dungeon, rng, rules.goldPouchMultiplier, goldMultiplier);
+      next = { ...next, gold: next.gold + gold };
+      rewards.push({ kind: 'goldPouch', gold });
     }
   }
 

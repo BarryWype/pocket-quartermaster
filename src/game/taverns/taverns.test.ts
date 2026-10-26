@@ -64,12 +64,14 @@ describe('offers', () => {
     expect(offerLevel(veterans)).toBe(4);
   });
 
-  it('cost base × level × roster × trait', () => {
+  it('cost base × level × roster × trait × tier', () => {
     expect(recruitPrice('common', 1, 3, true)).toBe(Math.round(80 * 1.15));
     expect(recruitPrice('uncommon', 3, 5, false)).toBe(Math.round(180 * 1.5 * 1.7 * 0.75));
+    expect(recruitPrice('common', 1, 3, true, 3)).toBe(Math.round(80 * 1.15 * recruitRules.price.perTier ** 2));
+    // Taverns open with tier 2, so offers already carry one tier step.
     const offer = firstOffer(unlocked());
     const positive = traitById[offer.trait].positive;
-    expect(offer.price).toBe(recruitPrice(heroClasses[offer.classId].rarity, offer.level, 3, positive));
+    expect(offer.price).toBe(recruitPrice(heroClasses[offer.classId].rarity, offer.level, 3, positive, 2));
   });
 });
 

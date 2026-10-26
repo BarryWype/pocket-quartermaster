@@ -1,10 +1,9 @@
 import { dungeons } from '@/content/dungeons';
-import { guildRules, guildTracks } from '@/content/guild';
 import type { Quality } from '@/game/types';
 
-import { rankCost, rankGate } from '../guild/guild';
 import { QUALITY_ORDER, type RunLog } from './bot';
-import { bossTarget, targets as defaultTargets, type Targets } from './targets';
+import { paybacks, type Payback } from './payback';
+import { bossTarget, recruitTarget, targets as defaultTargets, type Targets } from './targets';
 
 /** Median and 10th–90th percentiles across runs; null where a run never got there. */
 export type Stat = { median: number | null; p10: number | null; p90: number | null; reached: number };
@@ -46,6 +45,16 @@ function medianTotals(perRun: Record<string, number>[]) {
 
 const dayTier = (log: RunLog, day: number) => log.daily[day - 1]?.tier ?? 1;
 
+/** 95% Wilson interval for a win rate. */
+export function winInterval(wins: number, n: number): [number, number] {
+  if (n === 0) return [0, 1];
+  const z = 1.96;
+  const p = wins / n;
+  const center = (p + (z * z) / (2 * n)) / (1 + (z * z) / n);
+  const half = (z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n))) / (1 + (z * z) / n);
+  return [round(Math.max(0, center - half)), round(Math.min(1, center + half))];
+}
+
 export type ProfileSummary = {
   profile: string;
   runs: number;
@@ -57,6 +66,8 @@ export type ProfileSummary = {
     /** Median run totals by source and sink. */
     income: Record<string, number>;
     spend: Record<string, number>;
+    /** Median over runs of gold spent ÷ gold earned. */
+    spentShare: number;
     /** Median per day, by source and sink. */
     incomePerDay: { day: number; values: Record<string, number> }[];
     spendPerDay: { day: number; values: Record<string, number> }[];
@@ -79,42 +90,44 @@ export type ProfileSummary = {
     quality: Record<number, Record<Quality, number>>;
     mastery: Record<string, Point[]>;
     salvageReturned: Record<string, number>;
+    /** Share of forges made with mastery already at the item tier's cap, by tier. */
+    maxedShare: Record<number, number>;
     /** Share of each quality among worn pieces at boss attempts, by tier. */
     bossQuality: Record<number, Record<Quality, number> & { attempts: number }>;
   };
   expeditions: {
-    perDungeon: Record<string, { tier: number; runs: number; predicted: number; actual: number; outcomes: Record<string, number> }>;
+    perDungeon: Record<
+      string,
+      {
+        tier: number;
+        /** Per run, and over all runs. */
+        runs: number;
+        total: number;
+        predicted: number;
+        actual: number;
+        /** 95% interval on the win rate. */
+        interval: [number, number];
+        goldPerHour: number;
+        outcomes: Record<string, number>;
+      }
+    >;
     /** Times each ability changed an encounter, median per run. */
     effects: Record<string, number>;
+    /** Class → effect → median times per run. */
+    classEffects: Record<string, Record<string, number>>;
+    /** Share of expeditions each class took part in. */
+    classShare: Record<string, number>;
+    /** Boss runs per day, daily bonuses claimed per run, and the party's median level at the first attempt, by tier. */
+    bosses: Record<number, { perDay: number; bonuses: number; firstLevel: number }>;
     sanctums: { attempts: number; wins: number };
   };
   guild: {
-    /** Median gold per day while playing a tier, from the runs, and what a rank pays back. */
-    paybacks: { track: string; rank: number; cost: number; tier: number; days: number | null }[];
+    /** What each rank of the economic tracks pays back, from the gold the runs earned per day at each tier. */
+    paybacks: Payback[];
     buildings: Record<string, Stat>;
   };
   warnings: string[];
 };
-
-/** Days for each gold and main-reward rank to earn back its cost, at the tier it opens, from the income the runs measured. */
-function measuredPaybacks(perDayByTier: ProfileSummary['gold']['perDayByTier']) {
-  const gain = {
-    gold: (income: Record<string, number>) => (income.dungeon ?? 0) * 0.1,
-    mainRewards: (income: Record<string, number>) => ((income.pouch ?? 0) + (income.treasure ?? 0)) * 0.1,
-  };
-  return guildTracks.flatMap((track) => {
-    const perDay = gain[track.id as keyof typeof gain];
-    if (!perDay) return [];
-    return Array.from({ length: track.ranks }, (_, i) => {
-      const rank = i + 1;
-      const tier = Math.min(5, Math.max(1, rankGate(track, rank, guildRules)) + 1);
-      const cost = rankCost(track, rank);
-      const income = perDayByTier[tier];
-      const daily = income ? perDay(income) : 0;
-      return { track: track.id, rank, cost, tier, days: daily > 0 ? round(cost / daily, 1) : null };
-    });
-  });
-}
 
 export function summarize(logs: RunLog[], targets: Targets = defaultTargets): ProfileSummary {
   const { profile, days } = logs[0];
@@ -156,11 +169,13 @@ export function summarize(logs: RunLog[], targets: Targets = defaultTargets): Pr
   // Crafting.
   const forged = logs.flatMap((log) => log.crafts.filter((c) => c.quality && c.kind !== 'salvage'));
   const forgesPerTier: Record<number, number> = {};
+  const maxedShare: Record<number, number> = {};
   const quality: Record<number, Record<Quality, number>> = {};
   for (let tier = 1; tier <= 5; tier++) {
     const ofTier = forged.filter((c) => c.tier === tier);
     if (!ofTier.length) continue;
     forgesPerTier[tier] = round(ofTier.length / logs.length, 1);
+    maxedShare[tier] = round(ofTier.filter((c) => c.maxed).length / ofTier.length);
     quality[tier] = Object.fromEntries(QUALITY_ORDER.map((q) => [q, round(ofTier.filter((c) => c.quality === q).length / ofTier.length)])) as Record<Quality, number>;
   }
   const masteryTypes = [...new Set(logs.flatMap((log) => Object.keys(log.daily[0]?.mastery ?? {})))];
@@ -180,12 +195,39 @@ export function summarize(logs: RunLog[], targets: Targets = defaultTargets): Pr
   const perDungeon: ProfileSummary['expeditions']['perDungeon'] = {};
   for (const id of [...new Set(all.map((e) => e.dungeonId))]) {
     const runs = all.filter((e) => e.dungeonId === id);
+    const wins = runs.filter((e) => e.success).length;
     perDungeon[id] = {
       tier: runs[0].tier,
       runs: round(runs.length / logs.length, 1),
+      total: runs.length,
       predicted: round(runs.reduce((s, e) => s + e.odds, 0) / runs.length),
-      actual: round(runs.filter((e) => e.success).length / runs.length),
+      actual: round(wins / runs.length),
+      interval: winInterval(wins, runs.length),
+      goldPerHour: round(runs.reduce((s, e) => s + e.gold, 0) / runs.reduce((s, e) => s + e.hours, 0), 0),
       outcomes: sumBy(runs, (e) => e.outcome, () => 1),
+    };
+  }
+  const classes = [...new Set(all.flatMap((e) => e.classes))];
+  const classShare = Object.fromEntries(classes.map((c) => [c, round(all.filter((e) => e.classes.includes(c)).length / Math.max(1, all.length))]));
+  const byClass = medianTotals(logs.map((log) => {
+    const totals: Record<string, number> = {};
+    for (const e of log.expeditions) for (const [k, n] of Object.entries(e.classEffects)) totals[k] = (totals[k] ?? 0) + n;
+    return totals;
+  }));
+  const classEffects: Record<string, Record<string, number>> = {};
+  for (const [key, n] of Object.entries(byClass)) {
+    const [classId, effect] = key.split('|');
+    (classEffects[classId] ??= {})[effect] = n;
+  }
+  const bosses: ProfileSummary['expeditions']['bosses'] = {};
+  for (let tier = 1; tier <= 5; tier++) {
+    const runs = all.filter((e) => e.boss && e.tier === tier);
+    if (!runs.length) continue;
+    const firsts = logs.flatMap((log) => log.expeditions.find((e) => e.boss && e.tier === tier) ?? []);
+    bosses[tier] = {
+      perDay: round(runs.length / logs.length / days, 1),
+      bonuses: round(runs.filter((e) => e.bossBonus).length / logs.length, 1),
+      firstLevel: round(median(firsts.map((e) => e.level)), 1),
     };
   }
   const effects = medianTotals(logs.map((log) => {
@@ -205,6 +247,7 @@ export function summarize(logs: RunLog[], targets: Targets = defaultTargets): Pr
       final: stat(logs.map((log) => log.daily.at(-1)?.gold ?? 0)),
       income: medianTotals(logs.map((log) => sumBy(log.goldIn, (g) => g.source, (g) => g.amount))),
       spend: medianTotals(logs.map((log) => sumBy(log.goldOut, (g) => g.sink, (g) => g.amount))),
+      spentShare: round(median(logs.map((log) => log.goldOut.reduce((s, g) => s + g.amount, 0) / Math.max(1, log.goldIn.reduce((s, g) => s + g.amount, 0))))),
       incomePerDay: perDay(incomeOf),
       spendPerDay: perDay(spendOf),
       perDayByTier,
@@ -224,14 +267,17 @@ export function summarize(logs: RunLog[], targets: Targets = defaultTargets): Pr
       neverUsed: Object.keys(gathered).filter((m) => gathered[m] >= targets.unusedStockpile && !(used[m] > 0)),
       bottleneck,
     },
-    crafting: { forgesPerTier, quality, mastery, salvageReturned, bossQuality },
+    crafting: { forgesPerTier, maxedShare, quality, mastery, salvageReturned, bossQuality },
     expeditions: {
       perDungeon,
       effects,
+      classEffects,
+      classShare,
+      bosses,
       sanctums: { attempts: round(sanctumRuns.length / logs.length, 1), wins: round(sanctumRuns.filter((s) => s.win).length / logs.length, 1) },
     },
     guild: {
-      paybacks: measuredPaybacks(perDayByTier),
+      paybacks: paybacks(perDayByTier),
       buildings: Object.fromEntries(['warRoom', 'treasury', 'barracks'].map((b) => [b, stat(logs.map((log) => log.milestones[`building:${b}`]))])),
     },
     warnings: [],
@@ -260,6 +306,12 @@ function warnings(summary: ProfileSummary, logs: RunLog[], targets: Targets): st
     const day = summary.milestones[`boss:${tier}`]?.median ?? null;
     if (day === null && max <= days) out.push(`Tier ${tier} boss not beaten within ${days} days (target day ${min}–${max}).`);
     else if (day !== null && (day < min || day > max)) out.push(`Tier ${tier} boss first beaten on day ${day} (target ${min}–${max}).`);
+  }
+  for (const n of Object.keys(targets.recruitDays).map(Number)) {
+    const [min, max] = recruitTarget(n, profile, targets);
+    const day = summary.milestones[`recruit:${n}`]?.median ?? null;
+    if (day === null && max <= days) out.push(`Hero #${n} not recruited within ${days} days (target day ${min}–${max}).`);
+    else if (day !== null && (day < min || day > max)) out.push(`Hero #${n} recruited on day ${day} (target ${min}–${max}).`);
   }
   const piles = logs.map((log) => goldPileDay(log, targets)).filter((d) => d !== null);
   if (piles.length * 2 >= logs.length) {

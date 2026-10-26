@@ -12,6 +12,8 @@ import { estimateOdds } from '../expeditions/odds';
 import { prepareParty, simulateRun, type PartyMember } from '../expeditions/simulate';
 import { sanctumOdds } from '../sanctums/sanctums';
 import { createInitialSave, type SaveData } from '../save';
+import { expectedLevels } from '../sim/config';
+import { referenceTeam } from '../sim/matrix';
 import { equip } from '../team/team';
 import { simulateWalk } from './simulateWalk';
 
@@ -20,8 +22,8 @@ import { simulateWalk } from './simulateWalk';
 
 const ALL = ['bram', 'lyra', 'mira'];
 const TIER_MATERIALS = ['wood', 'stone', 'copper', 'iron', 'steel'];
-/** Level the team is expected to reach while playing each tier. */
-const TIER_LEVELS = [1, 3, 5, 7, 9];
+/** Level the team is expected to reach while playing each tier (measured by the balance lab). */
+const TIER_LEVELS = expectedLevels;
 
 const withTools = (tools: string[]): SaveData => ({
   ...createInitialSave(),
@@ -113,7 +115,8 @@ describe('gathering balance (30 minute walk)', () => {
   });
 });
 
-// Tier 1 targets use Crappy gear: what a new player actually forges.
+// A new player starts with the tutorial's Crappy wooden sword: tier 1's short
+// dungeons are where they earn the rest of the wooden kit.
 
 /** Tier 1 team states, all at level 1 unless given. */
 function swordOnly(level = 1): SaveData {
@@ -125,88 +128,69 @@ function swordOnly(level = 1): SaveData {
   return equip(save, 'bram', 'weapon', 'g');
 }
 
-const woodKit = () => team(1, 'wood', false, 'crappy');
-
-function fullKitWithPotions(): SaveData {
-  let save: SaveData = { ...woodKit(), consumables: { healingPotion: 3 } };
-  ALL.forEach((heroId) => {
-    save = equip(save, heroId, 'consumable', 'healingPotion');
-  });
-  return save;
-}
-
-describe('tier 1 odds open up as the team gears up', () => {
-  const [cellar, warren, stockade] = [dungeonById.ratCellar, dungeonById.goblinWarren, dungeonById.banditStockade];
-  // [dungeon, team, low, high]: the design targets with about ±10 points of room.
-  const cases: [string, () => SaveData, DungeonDef, number, number][] = [
-    ['one wooden sword', swordOnly, cellar, 0.65, 0.85],
-    // By design one sword is not enough for Goblin Warren: forge more first.
-    ['one wooden sword', swordOnly, warren, 0, 0.1],
-    ['one wooden sword', swordOnly, stockade, 0, 0.1],
-    ['full wooden kit', woodKit, cellar, 0.88, 0.98],
-    ['full wooden kit', woodKit, warren, 0.6, 0.8],
-    ['full wooden kit', woodKit, stockade, 0.25, 0.45],
-    ['full kit and potions', fullKitWithPotions, cellar, 0.88, 0.98],
-    ['full kit and potions', fullKitWithPotions, warren, 0.75, 0.95],
-    ['full kit and potions', fullKitWithPotions, stockade, 0.68, 0.9],
-  ];
-  for (const [label, makeTeam, dungeon, low, high] of cases) {
-    it(`${label}: ${dungeon.name} between ${low * 100}% and ${high * 100}%`, () => {
-      const odds = chance(makeTeam(), dungeon);
-      expect(odds).toBeGreaterThanOrEqual(low);
-      expect(odds).toBeLessThanOrEqual(high);
+describe('tier 1 opens up as the team gears up', () => {
+  for (const dungeon of dungeons.filter((d) => d.tier === 1 && d.slot === 'short')) {
+    it(`lets one wooden sword clear ${dungeon.name} 60–80% of the time`, () => {
+      const odds = chance(swordOnly(), dungeon);
+      expect(odds).toBeGreaterThanOrEqual(0.6);
+      expect(odds).toBeLessThanOrEqual(0.8);
     });
   }
 
+  it('needs more than one sword for the long dungeons and the boss', () => {
+    for (const dungeon of dungeons.filter((d) => d.tier === 1 && d.slot !== 'short')) expect(chance(swordOnly(), dungeon)).toBeLessThan(0.1);
+  });
+
   it('never reaches 100%: a mishap can always end a run', () => {
-    expect(chance(team(5, 'steel'), cellar)).toBeLessThan(1);
+    expect(chance(team(10, 'steel'), dungeonById.ratCellar)).toBeLessThan(1);
   });
 
   it('does not let levels replace gear', () => {
     const levelled = swordOnly(3);
-    expect(chance(levelled, warren)).toBeLessThan(chance(woodKit(), warren) - 0.3);
-    expect(chance(levelled, stockade)).toBeLessThan(chance(woodKit(), stockade) - 0.2);
+    const kit = team(expectedLevels[0], 'wood');
+    expect(chance(levelled, dungeonById.goblinWarren)).toBeLessThan(chance(kit, dungeonById.goblinWarren) - 0.3);
+    expect(chance(levelled, dungeonById.banditStockade)).toBeLessThan(chance(kit, dungeonById.banditStockade) - 0.2);
   });
 });
 
 describe('expedition progression', () => {
-  /** What each slot should give the tier's geared team; counters may move it, but not by more than 25 points. */
-  const TARGETS = { short: 0.65, long: 0.45, boss: 0.3 };
+  /**
+   * Odds for the starting classes at the tier's expected level, in the tier's
+   * gear at Normal quality, a healing potion each, no traits or counters.
+   * Tier 1 short dungeons follow the lone-sword start above instead.
+   */
+  const BANDS = { short: [0.75, 0.85], long: [0.6, 0.75], boss: [0.45, 0.6] };
+  const BASE: HeroClassId[] = ['warrior', 'ranger', 'fireMage'];
+  const reference = (tier: number, quality: Quality, gearTier = tier) => {
+    const save = referenceTeam(BASE, gearTier, quality, expectedLevels[tier - 1]);
+    return (dungeon: DungeonDef) => estimateOdds(save, save.heroes.map((h) => h.id), dungeon, 400).success;
+  };
 
   for (let tier = 1; tier <= 5; tier++) {
-    const inTier = dungeons.filter((d) => d.tier === tier);
-    const boss = inTier.find((d) => d.isBoss)!;
-    const shorts = inTier.filter((d) => d.slot === 'short');
-    const longs = inTier.filter((d) => d.slot === 'long');
-    const level = TIER_LEVELS[tier - 1];
-    const current = team(level, TIER_MATERIALS[tier - 1], true);
-    const previous = team(level, tier > 1 ? TIER_MATERIALS[tier - 2] : null, true);
-
-    for (const dungeon of shorts) {
-      it(`makes ${dungeon.name} (tier ${tier} short) comfortable with tier ${tier} gear`, () => {
-        expect(chance(current, dungeon)).toBeGreaterThan(TARGETS.short);
+    const normal = reference(tier, 'normal');
+    for (const dungeon of dungeons.filter((d) => d.tier === tier && !(tier === 1 && d.slot === 'short'))) {
+      const [low, high] = BANDS[dungeon.isBoss ? 'boss' : dungeon.slot!];
+      it(`puts ${dungeon.name} (tier ${tier} ${dungeon.isBoss ? 'boss' : dungeon.slot}) at ${low * 100}–${high * 100}% with Normal tier gear`, () => {
+        const odds = normal(dungeon);
+        expect(odds).toBeGreaterThanOrEqual(low);
+        expect(odds).toBeLessThanOrEqual(high);
       });
     }
 
-    for (const dungeon of longs) {
-      it(`makes ${dungeon.name} (tier ${tier} long) harder than the short ones, but above ${TARGETS.long * 100}%`, () => {
-        const odds = chance(current, dungeon);
-        expect(odds).toBeGreaterThan(TARGETS.long);
-        expect(odds).toBeLessThan(Math.min(...shorts.map((d) => chance(current, d))));
-      });
-    }
-
-    it(`makes the tier ${tier} boss a real fight that needs tier ${tier} gear`, () => {
-      expect(chance(current, boss)).toBeGreaterThan(0.3);
-      expect(chance(current, boss)).toBeLessThan(0.6);
-      expect(chance(previous, boss)).toBeLessThan(chance(current, boss) - 0.08);
+    const boss = dungeons.find((d) => d.tier === tier && d.isBoss)!;
+    it(`makes the tier ${tier} boss about 30–45% with Crappy gear, and much harder in the previous tier's gear`, () => {
+      const crappy = reference(tier, 'crappy')(boss);
+      expect(crappy).toBeGreaterThanOrEqual(0.27);
+      expect(crappy).toBeLessThanOrEqual(0.45);
+      if (tier > 1) expect(reference(tier, 'normal', tier - 1)(boss)).toBeLessThan(normal(boss) - 0.08);
     });
 
-    it(`keeps tier ${tier} within 25 points of its targets without any class counters`, () => {
-      const party = prepareParty(current, ALL).map((m) => ({ ...m, abilities: [] }));
-      for (const dungeon of inTier) {
-        const target = dungeon.isBoss ? TARGETS.boss : TARGETS[dungeon.slot!];
-        expect(memberChance(party, dungeon)).toBeGreaterThan(target - 0.25);
+    it(`keeps tier ${tier} within 25 points of its targets without any abilities: no hard gates`, () => {
+      const save = referenceTeam(BASE, tier, 'normal', expectedLevels[tier - 1]);
+      const party = prepareParty(save, save.heroes.map((h) => h.id)).map((m) => ({ ...m, abilities: [] }));
+      for (const dungeon of dungeons.filter((d) => d.tier === tier && !(tier === 1 && d.slot === 'short'))) {
+        const [low] = BANDS[dungeon.isBoss ? 'boss' : dungeon.slot!];
+        expect(memberChance(party, dungeon)).toBeGreaterThan(low - 0.25);
       }
     });
   }

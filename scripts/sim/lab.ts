@@ -1,14 +1,12 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-import { guildRules } from '@/content/guild';
 import type { RunLog } from '@/game/sim/bot';
 import { BOT_RULES, profiles, simConfig } from '@/game/sim/config';
 import { runSim } from '@/game/sim/engine';
 import { oddsMatrix, type MatrixRow } from '@/game/sim/matrix';
 import { summarize, type ProfileSummary } from '@/game/sim/metrics';
 import { applyOverrides, parseOverride } from '@/game/sim/overrides';
-import { paybacks, tierIncome, type Payback } from '@/game/sim/payback';
 import { bossTarget, targets } from '@/game/sim/targets';
 import { measureWalkRates, walkCacheKey, type WalkRates } from '@/game/sim/walking';
 
@@ -37,8 +35,6 @@ export type Summary = {
   settings: { profiles: string[]; days: number; runs: number; seed: string; overrides: string[]; walkEfficiency: number };
   profiles: Record<string, ProfileSummary>;
   oddsMatrix: MatrixRow[];
-  /** The reference-team income model's payback per rank. */
-  modelPaybacks: Payback[];
 };
 
 function walkRates(cacheDir: string, print: (line: string) => void): WalkRates {
@@ -79,7 +75,6 @@ export function runLab(options: LabOptions) {
       },
       profiles: summaries,
       oddsMatrix: options.matrix === false ? [] : oddsMatrix(),
-      modelPaybacks: paybacks([1, 2, 3, 4, 5].map((tier) => tierIncome(tier)), guildRules.rankGates),
     };
     const comparison: Comparison | null = options.compareWith
       ? compare(JSON.parse(fs.readFileSync(options.compareWith, 'utf8')) as Summary, summary, targets.compareThreshold)

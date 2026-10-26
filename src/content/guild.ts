@@ -29,6 +29,8 @@ export type GuildTrack = {
   perRank: number;
   /** Rank 1 cost; each rank after costs `rules.costMultiplier` times more. */
   baseCost: number;
+  /** Gold per rank instead of the multiplier, for a track whose ranks don't follow income that way. */
+  costs?: number[];
   /** ⭐ Milestones also cost a charter and ask for confirmation. */
   milestone?: boolean;
   /** Tier whose boss must be beaten for rank 1 (single-rank tracks); ranked tracks use `rules.rankGates`. */
@@ -55,7 +57,7 @@ export const guildTracks: GuildTrack[] = [
   { id: 'scouting', building: 'warRoom', name: 'Scouting report', ranks: 1, perRank: 1, baseCost: 400, gate: 1, describe: (r) => t(r ? 'guildTracks.scoutingOn' : 'guildTracks.scoutingOff') },
   { id: 'partySlot', building: 'warRoom', name: 'Extra party slot', ranks: 1, perRank: 1, baseCost: 3000, milestone: true, gate: 3, describe: (r) => t('guildTracks.partySlot', { count: 3 + r }) },
   // Treasury
-  { id: 'gold', building: 'treasury', name: 'Gold', ranks: 4, perRank: 0.1, baseCost: 100, describe: (r) => t('guildTracks.gold', { percent: pct(r * 0.1) }) },
+  { id: 'gold', building: 'treasury', name: 'Gold', ranks: 4, perRank: 0.1, baseCost: 60, costs: [60, 80, 300, 1000], describe: (r) => t('guildTracks.gold', { percent: pct(r * 0.1) }) },
   { id: 'mainRewards', building: 'treasury', name: 'Main rewards', ranks: 3, perRank: 0.1, baseCost: 50, describe: (r) => t('guildTracks.mainRewards', { percent: pct(r * 0.1) }) },
   { id: 'shards', building: 'treasury', name: 'Shards', ranks: 3, perRank: 1, baseCost: 200, gate: 1, describe: (r) => t('guildTracks.shards', { count: r }) },
   { id: 'stepChests', building: 'treasury', name: 'Step chests', ranks: 3, perRank: 1, baseCost: 100, describe: (r) => t('guildTracks.stepChests', { count: r }) },

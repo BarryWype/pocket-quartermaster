@@ -1,5 +1,6 @@
-import { treasureRules } from '@/content/treasure';
+import { treasureRules, treasureTiers } from '@/content/treasure';
 
+import { shardId } from '../elements';
 import { distanceMeters, offsetPosition } from '../generation/geo';
 import { createInitialSave, type SaveData } from '../save';
 import { pruneExpired } from '../upkeep';
@@ -7,6 +8,7 @@ import { collectTreasure, liveTreasureMaps, readTreasureMap, treasureContents, t
 
 const here = { latitude: -41.2865, longitude: 174.7762 };
 const map = { id: 'map7', tier: 2, expiresAt: 10_000, location: null };
+const ORE = ['stone', 'copper', 'iron', 'coal', 'steel'];
 const withMap = (extra: Partial<SaveData> = {}): SaveData => ({ ...createInitialSave(), treasureMaps: [map], ...extra });
 
 describe('treasure maps', () => {
@@ -34,14 +36,28 @@ describe('treasure maps', () => {
     expect(pruneExpired(withMap(), 10_000).treasureMaps).toEqual([]);
   });
 
-  it('holds tier materials and gold, sometimes a special', () => {
-    const contents = treasureContents(map);
-    expect(contents.gold).toBeGreaterThan(0);
-    expect(contents.materials.map((m) => m.materialId)).toContain('stone');
-    const specials = Array.from({ length: 400 }, (_, i) => treasureContents({ ...map, id: `m${i}` }).special);
-    const share = specials.filter(Boolean).length / specials.length;
+  it('holds gold, shards by tier and no ore, sometimes a special', () => {
+    const all = Array.from({ length: 400 }, (_, i) => treasureContents({ ...map, id: `m${i}` }));
+    for (const contents of all) {
+      expect(contents.gold).toBeGreaterThan(0);
+      expect(contents.shards.amount).toBe(treasureTiers[1].shards);
+      for (const { materialId } of contents.materials) expect(ORE).not.toContain(materialId);
+    }
+    const share = all.filter((c) => c.special).length / all.length;
     expect(share).toBeGreaterThan(0.15);
     expect(share).toBeLessThan(0.35);
+    expect(new Set(all.map((c) => c.special?.kind).filter(Boolean))).toEqual(new Set(['sigil', 'jackpot', 'charter']));
+  });
+
+  it('pays shards and charters when dug up', () => {
+    const charterMap = Array.from({ length: 400 }, (_, i) => ({ ...map, id: `m${i}` })).find(
+      (m) => treasureContents(m).special?.kind === 'charter',
+    )!;
+    const read = readTreasureMap({ ...createInitialSave(), treasureMaps: [charterMap] }, charterMap.id, here, 0);
+    const spot = read.treasureMaps[0].location!;
+    const { save, contents } = collectTreasure(read, charterMap.id, spot, spot, 0);
+    expect(save.charters).toBe(1);
+    expect(save.materials[shardId(contents.shards.element)]).toBe(contents.shards.amount);
   });
 
   it('is dug up in range, once, and pays its contents', () => {

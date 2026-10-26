@@ -79,6 +79,8 @@ export const frLogTemplates: typeof logTemplates = {
     sigil: ['Ils ont rapporté un Sceau de Sanctuaire de palier {tier}.'],
     treasureMap: ['Ils ont trouvé une vieille carte au trésor.'],
     lure: ['Ils ont trouvé un leurre.'],
+    shards: ['Faute de place pour un autre Sceau, il s’est brisé en {amount} {shards}.'],
+    mapGold: ['Faute de place pour une autre carte, ils l’ont vendue {gold} pièces d’or.'],
   },
   noWeapon: 'ses poings',
 };

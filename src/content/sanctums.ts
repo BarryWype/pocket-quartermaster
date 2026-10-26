@@ -88,7 +88,7 @@ export const sanctumRules = {
    * Guardian difficulty by Sigil tier (index 0 = tier 1), as a multiplier on
    * the base stats below. Tuned so a full tier N kit with potions wins ~65%.
    */
-  tierStrength: [2.04, 1.93, 1.8, 1.88, 1.88],
+  tierStrength: [2.21, 1.96, 1.85, 1.88, 1.93],
   minionBase: { weak: { hp: 10, damage: 4 }, strong: { hp: 16, damage: 5 } },
   guardianBase: { hp: 110, damage: 9 },
   /** Shards or stones of the Sanctum's element, by Sigil tier. */

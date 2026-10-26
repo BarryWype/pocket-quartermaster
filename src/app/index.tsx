@@ -20,6 +20,7 @@ import { spawnConfig } from '@/content/spawnConfig';
 import { tavernRules } from '@/content/taverns';
 import { walkableRules } from '@/content/walkable';
 import { canGather, isFleeing, type CollectFailure } from '@/game/gathering/gathering';
+import { shardId } from '@/game/elements';
 import { distanceMeters } from '@/game/generation/geo';
 import { generateSpawnsAround } from '@/game/generation/spawns';
 import type { LatLng, Spawn, SpawnConfig } from '@/game/generation/types';
@@ -182,9 +183,17 @@ export default function MapScreen() {
     const special = contents.special
       ? contents.special.kind === 'sigil'
         ? t('map.treasureSigil', { tier: contents.special.tier })
-        : t('map.treasureJackpot', { gold: contents.special.gold })
+        : contents.special.kind === 'charter'
+          ? t('map.treasureCharter')
+          : t('map.treasureJackpot', { gold: contents.special.gold })
       : '';
-    setMessage(t('map.treasureFound', { gold: contents.gold, kinds: contents.materials.length, special }));
+    setMessage(
+      t('map.treasureFound', {
+        gold: contents.gold,
+        shards: `${contents.shards.amount} ${tr(materialById[shardId(contents.shards.element)].name).toLowerCase()}`,
+        special,
+      }),
+    );
   };
 
   const gather = (spawn: Spawn) => {

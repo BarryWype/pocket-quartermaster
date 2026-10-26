@@ -53,6 +53,11 @@ export const masteryRules = {
   } as Partial<Record<number, Record<Quality, number>>>,
 };
 
+/** Gold each forge costs, by the item's tier (wood → steel): weapons, armour and pickaxes. Smelting and alchemy are free, and so is the tutorial. */
+export const forgeRules = {
+  fees: [5, 15, 40, 100, 250],
+};
+
 export const salvageRules = {
   /** Share of each recipe input returned, rounded down; the first input always returns at least 1. */
   returned: { crappy: 0.25, normal: 0.4, rare: 0.6, legendary: 1 } satisfies Record<Quality, number>,

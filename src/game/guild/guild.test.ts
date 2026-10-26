@@ -51,10 +51,11 @@ const run = (save: SaveData, dungeonId = 'ratCellar', seed = 0) => {
 };
 
 describe('costs and gates', () => {
-  it('cost baseCost × 1.8^(rank − 1), rounded to clean numbers', () => {
-    expect([1, 2, 3, 4].map((r) => rankCost(guildTrackById.gold, r))).toEqual([100, 180, 320, 580]);
+  it('cost baseCost × 1.8^(rank − 1), rounded to clean numbers, unless a track lists its own', () => {
+    expect([1, 2, 3].map((r) => rankCost(guildTrackById.heroXp, r))).toEqual([150, 270, 490]);
     expect(rankCost(guildTrackById.partySlot, 1)).toBe(3000);
-    expect(rankCost({ ...guildTrackById.gold, baseCost: 700 }, 2)).toBe(1250);
+    expect(rankCost({ ...guildTrackById.heroXp, baseCost: 700 }, 2)).toBe(1250);
+    expect([1, 2, 3, 4].map((r) => rankCost(guildTrackById.gold, r))).toEqual(guildTrackById.gold.costs);
   });
 
   it('add stone at rank 3, copper at rank 4 and a charter for milestones', () => {
@@ -81,7 +82,7 @@ describe('costs and gates', () => {
     const poor = { ...withRanks({ gold: 2 }, hall(2)), gold: 50, materials: { stone: 5 }, charters: 0 };
     expect(rankProblem(poor, 'gold')).toEqual({
       kind: 'missing',
-      gold: 270,
+      gold: rankCost(guildTrackById.gold, 3) - 50,
       materials: [{ materialId: 'stone', amount: 10 }],
       charters: 0,
     });
@@ -92,7 +93,7 @@ describe('costs and gates', () => {
 describe('buying', () => {
   it('spends gold, materials and charters, and raises the rank', () => {
     const save = buyRank(withRanks({ gold: 2 }, hall(2)), 'gold');
-    expect(save).toMatchObject({ gold: 100_000 - 320, materials: { stone: 85, copper: 100 }, guild: { gold: 3 } });
+    expect(save).toMatchObject({ gold: 100_000 - rankCost(guildTrackById.gold, 3), materials: { stone: 85, copper: 100 }, guild: { gold: 3 } });
     const roster = buyRank(hall(2), 'rosterSlot7');
     expect(roster.charters).toBe(4);
   });
@@ -123,6 +124,18 @@ describe('effects', () => {
     expect(withRanks({ fasterExpeditions: 3 }, { ...started, guild: {} }).expeditions[0]).toEqual(started.expeditions[0]);
     const tutorial = { ...save, tutorial: { step: 'sendExpedition' as const, woodSpot: null } };
     expect(expeditionMinutes(tutorial, dungeonById.ratCellar) * 60).toBe(5);
+  });
+
+  it('Gold multiplies all dungeon gold: boss rolls, caches and pouches', () => {
+    const reports = (save: SaveData) => Array.from({ length: 30 }, (_, i) => run(save, 'banditStockade', i).report);
+    const plain = reports(strongTeam(hall()));
+    const rich = reports(strongTeam(withRanks({ gold: 4 })));
+    const pouches = (r: (typeof plain)[number]) => r.mainRewards.reduce((s, m) => s + (m.kind === 'goldPouch' ? m.gold : 0), 0);
+    expect(plain.some((r) => pouches(r) > 0)).toBe(true);
+    plain.forEach((r, i) => {
+      expect(Math.abs(rich[i].gold - r.gold * 1.4)).toBeLessThanOrEqual(1);
+      expect(Math.abs(pouches(rich[i]) - pouches(r) * 1.4)).toBeLessThanOrEqual(2);
+    });
   });
 
   it('Better retreats raises failed runs, never above a full clear', () => {
@@ -184,11 +197,11 @@ describe('effects', () => {
     expect(startExpedition(four, 'ratCellar', [...ALL, 'h9'], 0).expeditions[0].heroIds).toHaveLength(4);
   });
 
-  it('a gold pouch replaces a Sigil only at the raised cap', () => {
+  it('shards replace a Sigil only at the raised cap', () => {
     const full = { ...hall(), sigils: [1, 1, 1] };
     const sigil = (save: SaveData) =>
       grantMainRewards(save, dungeonById.goblinWarren, createRng('s'), 0, { force: 'sigil' }).rewards[0].kind;
-    expect(sigil(full)).toBe('goldPouch');
+    expect(sigil(full)).toBe('shards');
     expect(sigil(withRanks({ sigilCap: 1 }, full))).toBe('sigil');
   });
 

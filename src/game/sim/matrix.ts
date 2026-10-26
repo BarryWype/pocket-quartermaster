@@ -7,7 +7,7 @@ import { countersFor } from '../dungeons/counters';
 import { estimateOdds } from '../expeditions/odds';
 import { createInitialSave, type SaveData } from '../save';
 import { equip } from '../team/team';
-import { simConfig, type SimConfig } from './config';
+import { expectedLevels, simConfig, type SimConfig } from './config';
 
 const MATRIX_QUALITIES: Quality[] = ['crappy', 'normal', 'rare'];
 
@@ -29,12 +29,16 @@ function weaponFor(classId: HeroClassId, tier: number) {
     .sort((a, b) => (affinities[b.weaponType!] ?? 0) - (affinities[a.weaponType!] ?? 0))[0];
 }
 
-/** A team in the tier's gear at one quality, each with a healing potion. Traits are left out. */
-function team(classes: HeroClassId[], tier: number, quality: Quality, level: number): SaveData {
+/**
+ * The reference team for odds targets: these classes at a level, in a tier's
+ * best weapons and armour at one quality, each with a healing potion, no traits.
+ */
+export function referenceTeam(classes: HeroClassId[], tier: number, quality: Quality, level: number): SaveData {
   const heroes: HeroState[] = classes.map((classId, i) => newHero(`h${i}`, classId, classId, '', level));
   const armour = items.find((i) => i.slot === 'armor' && i.tier === tier)!;
   let save: SaveData = {
     ...createInitialSave(),
+    tutorial: { step: 'done', woodSpot: null },
     heroes,
     consumables: { healingPotion: classes.length },
     gear: classes.flatMap((classId, i) => [
@@ -51,7 +55,7 @@ function team(classes: HeroClassId[], tier: number, quality: Quality, level: num
 function oddsByQuality(classes: HeroClassId[], dungeon: DungeonDef, level: number, runs: number) {
   return Object.fromEntries(
     MATRIX_QUALITIES.map((q) => {
-      const save = team(classes, dungeon.tier, q, level);
+      const save = referenceTeam(classes, dungeon.tier, q, level);
       return [q, estimateOdds(save, save.heroes.map((h) => h.id), dungeon, runs).success];
     }),
   );
@@ -60,9 +64,9 @@ function oddsByQuality(classes: HeroClassId[], dungeon: DungeonDef, level: numbe
 /** Every dungeon against the starting classes in its tier's gear, with and without a countering class. */
 export function oddsMatrix(config: SimConfig = simConfig): MatrixRow[] {
   const base = startingHeroes.map((h) => h.classId);
-  const { runs, levels } = config.matrix;
+  const { runs } = config.matrix;
   return dungeons.map((dungeon) => {
-    const level = levels[dungeon.tier - 1];
+    const level = expectedLevels[dungeon.tier - 1];
     const counters = (Object.keys(heroClasses) as HeroClassId[]).filter(
       (c) => !base.includes(c) && countersFor(heroClasses[c].abilities, dungeon).length > 0,
     );
@@ -71,7 +75,7 @@ export function oddsMatrix(config: SimConfig = simConfig): MatrixRow[] {
     for (const classId of counters) {
       for (let i = 0; i < base.length; i++) {
         const classes = base.map((c, j) => (j === i ? classId : c));
-        const save = team(classes, dungeon.tier, 'normal', level);
+        const save = referenceTeam(classes, dungeon.tier, 'normal', level);
         const odds = estimateOdds(save, save.heroes.map((h) => h.id), dungeon, Math.ceil(runs / 4)).success;
         if (!best || odds > best.odds) best = { classes, odds };
       }

@@ -42,6 +42,30 @@ function problemText(problem: RankProblem) {
   }
 }
 
+/** The next rank's full cost; whatever the player is short of is in red. */
+function PriceLine({ price }: { price: RankPrice }) {
+  const save = useGameStore((state) => state.save);
+  const parts = [
+    { key: 'gold', text: `🪙 ${price.gold}`, short: save.gold < price.gold },
+    ...price.materials.map(({ materialId, amount }) => ({
+      key: materialId,
+      text: `${materialById[materialId].emoji} ${amount} ${tr(materialById[materialId].name).toLowerCase()}`,
+      short: (save.materials[materialId] ?? 0) < amount,
+    })),
+    ...(price.charters ? [{ key: 'charter', text: `📜 ${t('common.charters', { count: price.charters })}`, short: save.charters < price.charters }] : []),
+  ];
+  return (
+    <Text style={[styles.price, styles.priceLine]}>
+      {parts.map((part, i) => (
+        <Text key={part.key} style={part.short && styles.short}>
+          {i > 0 ? ' · ' : ''}
+          {part.text}
+        </Text>
+      ))}
+    </Text>
+  );
+}
+
 /** Gold upgrades: three buildings, each with a few tracks bought rank by rank. */
 export default function GuildScreen() {
   useLanguage();
@@ -82,13 +106,15 @@ export default function GuildScreen() {
           <Text style={styles.dots}>{'●'.repeat(rank) + '○'.repeat(track.ranks - rank)}</Text>
         </View>
         <Text>{maxed ? track.describe(rank) : `${track.describe(rank)} → ${track.describe(rank + 1)}`}</Text>
-        {!maxed && (
+        {maxed ? (
+          <Text style={styles.price}>{t('guild.max')}</Text>
+        ) : (
           <View style={styles.header}>
-            <Text style={styles.muted}>{priceText(rankPrice(track, rank + 1))}</Text>
+            <PriceLine price={rankPrice(track, rank + 1)} />
             <Button title={t('guild.buy')} disabled={problem !== null} onPress={() => purchase(track)} />
           </View>
         )}
-        {problem && problem.kind !== 'maxed' && <Text style={styles.problem}>{problemText(problem)}</Text>}
+        {problem && problem.kind !== 'maxed' && problem.kind !== 'missing' && <Text style={styles.problem}>{problemText(problem)}</Text>}
       </View>
     );
   };
@@ -119,5 +145,8 @@ const styles = StyleSheet.create({
   name: { fontSize: 17 },
   dots: { fontSize: 14, color: colors.wood, letterSpacing: 2 },
   muted: { color: colors.muted },
+  price: { fontSize: 15, color: colors.ink },
+  priceLine: { flexShrink: 1 },
+  short: { color: colors.danger },
   problem: { color: colors.muted, fontStyle: 'italic' },
 });

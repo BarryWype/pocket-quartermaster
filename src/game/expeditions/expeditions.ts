@@ -1,6 +1,8 @@
 import { dungeons as allDungeons, expeditionRules } from '@/content/dungeons';
+import { xpRules } from '@/content/heroes';
 import { dungeonById, recipeById, recipeOutput } from '@/content/lookup';
 import { modifierById } from '@/content/modifiers';
+import { mainRewardRules } from '@/content/mainRewards';
 import { firstClearRules } from '@/content/rotation';
 import { traitById } from '@/content/traits';
 import { tutorialRules } from '@/content/tutorial';
@@ -8,7 +10,7 @@ import { tutorialRules } from '@/content/tutorial';
 import { forgedItem, unlockRecipe } from '../crafting/crafting';
 import { masteryTypeOf } from '../forging/mastery';
 import { guildBonus, partySize, sigilCap } from '../guild/guild';
-import { modifierFor, openDungeonIds, withModifier, type Rotation } from '../dungeons/rotation';
+import { modifierFor, openDungeonIds, rotationDay, withModifier, type Rotation } from '../dungeons/rotation';
 import { createRng } from '../generation/rng';
 import { addMaterials } from '../inventory';
 import { rollLoot } from '../rewards/loot';
@@ -26,6 +28,10 @@ export function isDungeonUnlocked(save: SaveData, dungeon: DungeonDef, dungeons:
   return dungeons.some((d) => d.tier === dungeon.tier - 1 && d.isBoss && save.clearedDungeons.includes(d.id));
 }
 
+/** The highest dungeon tier the player can reach. */
+export const highestUnlockedTier = (save: SaveData, dungeons: DungeonDef[] = allDungeons) =>
+  Math.max(...dungeons.filter((d) => isDungeonUnlocked(save, d, dungeons)).map((d) => d.tier));
+
 /**
  * Whether the player can send a party there now: unlocked and open in the
  * rotation (if given). The tutorial's dungeon stays open until the tutorial is
@@ -37,6 +43,13 @@ export function isDungeonAvailable(save: SaveData, dungeon: DungeonDef, rotation
   if (tutorialDungeon && save.tutorial.step !== 'done') return true;
   return isDungeonUnlocked(save, dungeon) && (!rotation || openDungeonIds(rotation).includes(dungeon.id));
 }
+
+/**
+ * Whether a boss's daily bonus is still there today: its guaranteed main reward
+ * and extra roll come with the first win each rotation day.
+ */
+export const bossBonusAvailable = (save: SaveData, dungeonId: string, now: number) =>
+  save.bossBonusDays[dungeonId] !== rotationDay(now);
 
 /** Minutes an expedition to this dungeon would take now: Guild Hall time cuts apply; the tutorial's first one takes seconds. */
 export function expeditionMinutes(save: SaveData, dungeon: DungeonDef) {
@@ -107,7 +120,7 @@ export function resolveExpedition(
     .flatMap((id) => traitById[id]?.effects ?? [])
     .reduce((product, e) => product * (e.kind === 'goldMultiplier' ? e.multiplier : 1), 1);
   let gold = Math.round(
-    (rng.int(dungeon.gold[0], dungeon.gold[1]) * lootShare * multipliers.gold * guildGold + run.bonusGold) * traitGold,
+    (rng.int(dungeon.gold[0], dungeon.gold[1]) * lootShare * multipliers.gold + run.bonusGold) * guildGold * traitGold,
   );
   let materials = rollLoot(rng, dungeon.loot)
     .map((stack) => ({ ...stack, amount: Math.floor(stack.amount * lootShare * multipliers.materials) }))
@@ -131,11 +144,13 @@ export function resolveExpedition(
     materials = [];
     recipeId = save.knownRecipes.includes(tutorialReward.recipeId) ? null : tutorialReward.recipeId;
   }
-  const xp = Math.round(dungeon.xp * Math.min(1, progress * retreat));
+  // Dungeons below the highest unlocked tier teach less.
+  const tierShare = xpRules.lowerTierShare[Math.min(xpRules.lowerTierShare.length - 1, highestUnlockedTier(save) - dungeon.tier)];
+  const xp = Math.round(dungeon.xp * Math.min(1, progress * retreat) * tierShare);
   // The first win in each pool dungeon pays a one-time bonus.
   const firstClear =
     success && dungeon.slot && !tutorialReward && !save.firstClears.includes(dungeon.id)
-      ? { gold: Math.round(dungeon.gold[1] * firstClearRules.goldShare), xp: Math.round(dungeon.xp * firstClearRules.xpShare) }
+      ? { gold: Math.round(dungeon.gold[1] * firstClearRules.goldShare), xp: Math.round(dungeon.xp * firstClearRules.xpShare * tierShare) }
       : undefined;
 
   // Potions nobody needed go back to the stock; everything else is used up.
@@ -159,6 +174,11 @@ export function resolveExpedition(
 
   // The first win against each tier boss earns a Guild Hall charter.
   const charter = success && !!dungeon.isBoss && !save.clearedDungeons.includes(dungeon.id);
+  // Later boss wins on the same rotation day roll a lower chance once.
+  const dailyBonus = !dungeon.isBoss || bossBonusAvailable(save, dungeon.id, expedition.endsAt);
+  const rewardDungeon = dailyBonus
+    ? dungeon
+    : { ...dungeon, mainRewardChance: mainRewardRules.repeatMainRewardChance, mainRewardExtraRollChance: 0 };
   let next: SaveData = {
     ...save,
     charters: save.charters + (charter ? 1 : 0),
@@ -170,6 +190,8 @@ export function resolveExpedition(
     expeditions: save.expeditions.filter((e) => e.id !== expedition.id),
     clearedDungeons:
       success && !save.clearedDungeons.includes(dungeon.id) ? [...save.clearedDungeons, dungeon.id] : save.clearedDungeons,
+    bossBonusDays:
+      success && dungeon.isBoss && dailyBonus ? { ...save.bossBonusDays, [dungeon.id]: rotationDay(expedition.endsAt) } : save.bossBonusDays,
   };
   if (recipeId) next = unlockRecipe(next, recipeId);
 
@@ -181,7 +203,7 @@ export function resolveExpedition(
       mainRewards = [{ kind: 'sigil', tier: tutorialReward.sigilTier }];
     }
   } else if (success) {
-    const granted = grantMainRewards(next, dungeon, createRng(`${expedition.seed}|main`), expedition.endsAt, {
+    const granted = grantMainRewards(next, rewardDungeon, createRng(`${expedition.seed}|main`), expedition.endsAt, {
       ...mainReward,
       goldMultiplier: guildGold,
       chanceMultiplier: 1 + guildBonus(save, 'mainRewards'),

@@ -28,7 +28,7 @@ const extraWeaponRecipes: RecipeDef[] = extraWeaponTypes.flatMap(({ suffix }) =>
 
 // Progression: the wooden sword is known from the start (the tutorial forges
 // it). Each tier boss drops a pickaxe that mines the next tier's material and
-// teaches that tier's sword; the tier's bow, wand and armour drop in its
+// teaches that tier's sword and armour; the tier's bow and wand drop in its
 // dungeons (see content/dungeons.ts).
 export const recipes: RecipeDef[] = [
   // Tier 1: wood. The wooden pickaxe is the tier 1 boss reward and opens stone.
@@ -38,7 +38,7 @@ export const recipes: RecipeDef[] = [
     output: { itemId: 'woodPickaxe' },
     inputs: [{ materialId: 'wood', amount: 2 }],
     unlockedByDefault: false,
-    unlocks: ['stoneSword'],
+    unlocks: ['stoneSword', 'stoneArmour'],
   },
   { id: 'woodSword', station: 'forge', output: { itemId: 'woodSword' }, inputs: [{ materialId: 'wood', amount: 3 }], unlockedByDefault: true },
   {
@@ -70,7 +70,7 @@ export const recipes: RecipeDef[] = [
     output: { itemId: 'stonePickaxe' },
     inputs: [{ materialId: 'stone', amount: 3 }, { materialId: 'wood', amount: 2 }],
     unlockedByDefault: false,
-    unlocks: ['copperSword'],
+    unlocks: ['copperSword', 'copperArmour'],
   },
   {
     id: 'stoneSword',
@@ -108,7 +108,7 @@ export const recipes: RecipeDef[] = [
     output: { itemId: 'copperPickaxe' },
     inputs: [{ materialId: 'copper', amount: 3 }, { materialId: 'wood', amount: 2 }],
     unlockedByDefault: false,
-    unlocks: ['ironSword'],
+    unlocks: ['ironSword', 'ironArmour'],
   },
   {
     id: 'copperSword',
@@ -147,7 +147,7 @@ export const recipes: RecipeDef[] = [
     output: { itemId: 'ironPickaxe' },
     inputs: [{ materialId: 'iron', amount: 3 }, { materialId: 'wood', amount: 2 }],
     unlockedByDefault: false,
-    unlocks: ['smeltSteel', 'steelSword'],
+    unlocks: ['smeltSteel', 'steelSword', 'steelArmour'],
   },
   {
     id: 'ironSword',

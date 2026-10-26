@@ -7,7 +7,7 @@ import { sanctumRules, sanctums } from '@/content/sanctums';
 
 import { convertShards, shardId, stoneId } from '../elements';
 import { buildLog } from '../expeditions/log';
-import { estimateOdds } from '../expeditions/odds';
+import { estimateOdds, ODDS_RUNS } from '../expeditions/odds';
 import { prepareParty, simulateRun } from '../expeditions/simulate';
 import { distanceMeters } from '../generation/geo';
 import { guildBonus } from '../guild/guild';
@@ -82,7 +82,7 @@ export function sanctumDungeon(sanctum: SanctumDef, tier: number, rules: Rules =
 
 export const availableHeroes = (save: SaveData) => save.heroes.filter((h) => !isOnExpedition(save, h.id));
 
-export function sanctumOdds(save: SaveData, heroIds: string[], sanctum: SanctumDef, tier: number, runs = 100) {
+export function sanctumOdds(save: SaveData, heroIds: string[], sanctum: SanctumDef, tier: number, runs = ODDS_RUNS) {
   return estimateOdds(save, heroIds, sanctumDungeon(sanctum, tier), runs);
 }
 

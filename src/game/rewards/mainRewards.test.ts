@@ -1,6 +1,7 @@
 import { dungeonById } from '@/content/lookup';
 import { mainRewardPool, mainRewardRules } from '@/content/mainRewards';
 
+import { shardId } from '../elements';
 import { createRng } from '../generation/rng';
 import { createInitialSave, type SaveData } from '../save';
 import type { MainRewardKind } from '../types';
@@ -44,28 +45,44 @@ describe('main reward contents', () => {
   const force = (kind: MainRewardKind, save = veteran()) =>
     grantMainRewards(save, dungeonById.ogreQuarry, createRng('f'), 1000, { force: kind });
 
-  it('pays a gold pouch of 2–3× a gold roll', () => {
+  it('pays a gold pouch of one gold roll', () => {
     const { save, rewards } = force('goldPouch');
     const pouch = rewards[0];
     if (pouch.kind !== 'goldPouch') throw new Error(pouch.kind);
     const [min, max] = dungeonById.ogreQuarry.gold;
-    expect(pouch.gold).toBeGreaterThanOrEqual(min * 2);
-    expect(pouch.gold).toBeLessThanOrEqual(max * 3);
+    expect(mainRewardRules.goldPouchMultiplier).toBe(1);
+    expect(pouch.gold).toBeGreaterThanOrEqual(min);
+    expect(pouch.gold).toBeLessThanOrEqual(max);
     expect(save.gold).toBe(pouch.gold);
   });
 
-  it('gives a Sigil of the dungeon tier, and a gold pouch instead at the cap', () => {
-    expect(force('sigil').save.sigils).toEqual([2]);
-    const full = force('sigil', veteran({ sigils: [1, 1, 1] }));
-    expect(full.rewards[0].kind).toBe('goldPouch');
-    expect(full.save.sigils).toEqual([1, 1, 1]);
+  it('weighs gold pouches 15 in the pool', () => {
+    expect(mainRewardPool.find((p) => p.kind === 'goldPouch')!.weight).toBe(15);
   });
 
-  it('adds a treasure map that expires in 48 hours, or a gold pouch at the cap', () => {
+  it('gives a Sigil of the dungeon tier, and 2 × tier shards instead at the cap', () => {
+    expect(force('sigil').save.sigils).toEqual([2]);
+    const full = force('sigil', veteran({ sigils: [1, 1, 1] }));
+    const reward = full.rewards[0];
+    if (reward.kind !== 'shards') throw new Error(reward.kind);
+    expect(reward.amount).toBe(4);
+    expect(full.save.materials[shardId(reward.element)]).toBe(4);
+    expect(full.save.sigils).toEqual([1, 1, 1]);
+    expect(full.save.gold).toBe(0);
+    expect(force('sigil', veteran({ sigils: [1, 1, 1] })).rewards).toEqual(full.rewards);
+  });
+
+  it('adds a treasure map that expires in 48 hours, or half a gold roll at the cap', () => {
     const { save } = force('treasureMap');
     expect(save.treasureMaps).toEqual([{ id: 'map1', tier: 2, expiresAt: 1000 + 48 * 3_600_000, location: null }]);
     const maps = Array.from({ length: mainRewardRules.treasureMapCap }, (_, i) => ({ ...save.treasureMaps[0], id: `m${i}` }));
-    expect(force('treasureMap', veteran({ treasureMaps: maps })).rewards[0].kind).toBe('goldPouch');
+    const full = force('treasureMap', veteran({ treasureMaps: maps }));
+    const reward = full.rewards[0];
+    if (reward.kind !== 'mapGold') throw new Error(reward.kind);
+    const [min, max] = dungeonById.ogreQuarry.gold;
+    expect(reward.gold).toBeGreaterThanOrEqual(Math.round(min / 2));
+    expect(reward.gold).toBeLessThanOrEqual(Math.round(max / 2));
+    expect(full.save.gold).toBe(reward.gold);
   });
 
   it('stocks a lure', () => {

@@ -1,9 +1,11 @@
 import { mobById } from '@/content/enemies';
 import { frLogTemplates } from '@/content/fr/logTemplates';
 import { logTemplates as enLogTemplates } from '@/content/logTemplates';
+import { materialById } from '@/content/lookup';
 import { article, plural } from '@/i18n/french';
 import { fill, getLocale, localized, t, tr } from '@/i18n';
 
+import { shardId } from '../elements';
 import type { Rng } from '../generation/rng';
 import type { DungeonDef, MainReward, MobGroup } from '../types';
 import type { AbilityEffect, EncounterResult, PartyMember, RunResult } from './simulate';
@@ -233,8 +235,10 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
     ...(input.charter ? [pick(rng, logTemplates.charter)] : []),
     ...input.mainRewards.map((reward) =>
       fill(pick(rng, logTemplates.mainReward[reward.kind]), {
-        gold: reward.kind === 'goldPouch' ? reward.gold : 0,
+        gold: reward.kind === 'goldPouch' || reward.kind === 'mapGold' ? reward.gold : 0,
         tier: reward.kind === 'sigil' || reward.kind === 'treasureMap' ? reward.tier : 0,
+        amount: reward.kind === 'shards' ? reward.amount : 0,
+        shards: reward.kind === 'shards' ? tr(materialById[shardId(reward.element)].name).toLowerCase() : '',
       }),
     ),
   ];

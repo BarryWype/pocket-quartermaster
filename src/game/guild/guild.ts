@@ -9,8 +9,9 @@ import type { MaterialStack } from '../types';
 
 type Rules = typeof guildRules;
 
-/** Gold for a rank: baseCost × multiplier^(rank − 1), rounded to a clean number. */
+/** Gold for a rank: the track's own cost list, or baseCost × multiplier^(rank − 1) rounded to a clean number. */
 export function rankCost(track: GuildTrack, rank: number, rules: Rules = guildRules) {
+  if (track.costs) return track.costs[rank - 1];
   const raw = track.baseCost * rules.costMultiplier ** (rank - 1);
   const step = raw >= 1000 ? rules.roundToLarge : rules.roundTo;
   return Math.round(raw / step) * step;

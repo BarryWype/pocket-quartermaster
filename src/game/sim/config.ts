@@ -44,13 +44,17 @@ export const simConfig = {
   /** A place at distance d is reachable on a day with chance min(1, scale × metres walked ÷ (2 × d)). */
   reach: { scale: 1 },
   odds: {
-    /** Odds runs per estimate inside the bot (the app uses 100). */
-    runs: 24,
+    /** Odds runs per estimate inside the bot (the app uses 300). */
+    runs: 100,
+    /** Quicker estimate used to compare heroes while building a party. */
+    searchRuns: 30,
     /** Boss attempts need at least these odds. */
     boss: 0.45,
     sanctum: 0.5,
     /** Stop adding heroes to a party once its odds reach this. */
     enough: 0.9,
+    /** A dungeon of the highest tier that can drop a blueprint the team lacks is worth trying at these odds. */
+    blueprint: 0.35,
     /** When nothing reaches the profile's threshold and nobody is out, the best option still goes if it reaches this. */
     fallback: 0.3,
   },
@@ -81,18 +85,26 @@ export const simConfig = {
     'sigilCap',
     'rosterSlot8',
   ] as GuildTrackId[],
-  /** Odds matrix: runs per cell and the level of the reference team at each tier. */
-  matrix: { runs: 200, levels: [1, 3, 5, 7, 9] },
+  /** Odds matrix: runs per cell. */
+  matrix: { runs: 200 },
 };
 
 export type SimConfig = typeof simConfig;
+
+/**
+ * Hero level expected while playing each tier: the median level of the party
+ * at each boss's first attempt, as `npm run sim` measures it for the regular
+ * profile. The balance tests and the odds matrix use it; update it when the
+ * report's "Party level at the first attempt" moves.
+ */
+export const expectedLevels = [2, 4, 6, 8, 10];
 
 /** The bot's rules, printed at the top of the report. Keep in step with `bot.ts`. */
 export const BOT_RULES = [
   'Day 1 starts with the tutorial, played through the real functions, then skipped to done.',
   'Walking: each session adds its share of the day’s walk, at the average yield per minute measured for the pickaxes owned (±variation). A lure in stock is used on the first walk of the day.',
   'Collect: finished expeditions, ready step chests and Guild Hall training.',
-  'Forge: the next pickaxe as soon as it can be made; then, per hero, the biggest upgrade first (best tier of a weapon they can use, and armour). New pieces go to whoever gains most; spare pieces are salvaged. Steel is smelted when a wanted forge is short of it.',
+  'Forge: the next pickaxe as soon as it can be made; then, per hero, the biggest upgrade first (best tier of a weapon they can use, and armour). New pieces go to whoever gains most; spare pieces are salvaged. Steel is smelted when a wanted forge is short of it. Forges are only made when the gold for the fee is there.',
   'Re-forge a worn piece of the best known tier while the chance of a better quality is at least 20% and the materials for one more forge remain; keep the better piece, salvage the other.',
   'Keep 3 healing potions and 3 rations; brew fire elixirs only when one of today’s dungeons deals fire.',
   'Infuse the best plain weapon with the held stone that does best against the most common enemy element of the current tier.',
@@ -100,5 +112,5 @@ export const BOT_RULES = [
   'Guild Hall: buy ranks in priority order, keeping the next recruit’s price while the roster has room.',
   'Sanctums: with a Sigil, a reachable Sanctum and odds ≥ 0.5 with the best heroes at home, use the highest Sigil tier that passes.',
   'Treasure: read every map; dig it up on a day its spot is reachable.',
-  'Expeditions: the unbeaten boss of the highest tier first when its odds are ≥ 0.45. Then, while heroes are idle, the open dungeon of the top two tiers with the best expected value per hour among those with odds ≥ the profile threshold. Parties are built greedily (add the hero who raises the odds most) and each hero takes a potion (a fire elixir for fire dungeons, a ration when out of potions).',
+  'Expeditions: the unbeaten boss of the highest tier first when its odds are ≥ 0.45. Then, while heroes are idle, the open dungeon of the top two tiers with the best expected value per hour among those with odds ≥ the profile threshold; a boss whose daily bonus is already claimed is valued at the repeat reward chance. A dungeon of the highest tier that can drop a gear blueprint the team lacks only needs odds ≥ 0.35. Parties are built greedily (add the hero who raises the odds most) and each hero takes a potion (a fire elixir for fire dungeons, a ration when out of potions).',
 ];

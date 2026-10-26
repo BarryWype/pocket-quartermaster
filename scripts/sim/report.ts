@@ -1,8 +1,10 @@
 import { dungeonById, itemById, materialById } from '@/content/lookup';
 import { guildBuildings, guildTrackById, type GuildBuildingId } from '@/content/guild';
+import { dungeons } from '@/content/dungeons';
 import { heroClasses } from '@/content/heroes';
+import { dungeonTagWeights } from '@/game/dungeons/tags';
 import type { Point, ProfileSummary, Stat } from '@/game/sim/metrics';
-import { bossTarget } from '@/game/sim/targets';
+import { bossTarget, recruitTarget, targets } from '@/game/sim/targets';
 import type { HeroClassId } from '@/game/types';
 
 import type { Comparison } from './compare';
@@ -162,8 +164,10 @@ export function renderReport({ summary, comparison, elapsed, rules, compareWith 
       esc(milestoneLabel(k)),
       ...ps.map((p) => {
         const stat = p.milestones[k];
-        if (!k.startsWith('boss:')) return range(stat);
-        const [min, max] = bossTarget(Number(k.split(':')[1]), p.profile);
+        const n = Number(k.split(':')[1]);
+        const target = k.startsWith('boss:') ? bossTarget(n, p.profile) : k.startsWith('recruit:') && targets.recruitDays[n] ? recruitTarget(n, p.profile) : null;
+        if (!target) return range(stat);
+        const [min, max] = target;
         const off = !stat || stat.median === null ? max <= p.days : stat.median < min || stat.median > max;
         return `${range(stat)} <span class="${off ? 'flag' : 'ok'}">${off ? '⚠' : '✓'} target ${min}–${max}</span>`;
       }),
@@ -178,6 +182,7 @@ export function renderReport({ summary, comparison, elapsed, rules, compareWith 
       .map(
         (p) =>
           `<h3>${p.profile}</h3>` +
+          `<p>Spent ${pct(p.gold.spentShare)} of the gold earned (median run).</p>` +
           stackedBars('Gold in per day, by source (median)', p.gold.incomePerDay, sources(p, 'income')) +
           stackedBars('Gold out per day, by sink (median)', p.gold.spendPerDay, sources(p, 'spend')) +
           table(
@@ -238,13 +243,14 @@ export function renderReport({ summary, comparison, elapsed, rules, compareWith 
       (p) =>
         `<h3>${p.profile}</h3>` +
         table(
-          ['Tier', 'Forges per run', 'Crappy', 'Normal', 'Rare', 'Legendary', 'Boss attempts per run', 'Worn at boss: Crappy / Normal / Rare / Legendary'],
+          ['Tier', 'Forges per run', 'At max mastery', 'Crappy', 'Normal', 'Rare', 'Legendary', 'Boss attempts per run', 'Worn at boss: Crappy / Normal / Rare / Legendary'],
           [1, 2, 3, 4, 5].map((t) => {
             const q = p.crafting.quality[t];
             const b = p.crafting.bossQuality[t];
             return [
               String(t),
               fmt(p.crafting.forgesPerTier[t] ?? 0, 1),
+              pct(p.crafting.maxedShare[t]),
               pct(q?.crappy), pct(q?.normal), pct(q?.rare), pct(q?.legendary),
               fmt(b?.attempts, 1),
               b ? `${b.crappy > 0.5 ? '<span class="flag">⚠</span> ' : ''}${pct(b.crappy)} / ${pct(b.normal)} / ${pct(b.rare)} / ${pct(b.legendary)}` : '—',
@@ -262,17 +268,25 @@ export function renderReport({ summary, comparison, elapsed, rules, compareWith 
       (p) =>
         `<h3>${p.profile}</h3>` +
         table(
-          ['Dungeon', 'Tier', 'Runs per run', 'Odds at launch', 'Won', 'Outcomes'],
+          ['Dungeon', 'Tier', 'Runs (per run / total)', 'Odds at launch', 'Won (95% interval)', 'Gold per hour', 'Outcomes'],
           Object.entries(p.expeditions.perDungeon)
             .sort((a, b) => a[1].tier - b[1].tier || b[1].runs - a[1].runs)
-            .map(([id, d]) => [
-              esc(dungeonById[id]?.name ?? id) + (dungeonById[id]?.isBoss ? ' 👑' : ''),
-              String(d.tier),
-              fmt(d.runs, 1),
-              pct(d.predicted),
-              `${pct(d.actual)}${Math.abs(d.actual - d.predicted) > 0.15 ? ' <span class="flag">⚠</span>' : ''}`,
-              Object.entries(d.outcomes).map(([o, n]) => `${o} ${n}`).join(', '),
-            ]),
+            .map(([id, d]) => {
+              const off = d.total >= 20 && (d.predicted < d.interval[0] || d.predicted > d.interval[1]);
+              return [
+                esc(dungeonById[id]?.name ?? id) + (dungeonById[id]?.isBoss ? ' 👑' : ''),
+                String(d.tier),
+                `${fmt(d.runs, 1)} / ${d.total}`,
+                pct(d.predicted),
+                `${pct(d.actual)} <span class="muted">(${pct(d.interval[0])}–${pct(d.interval[1])})</span>${off ? ' <span class="flag">⚠ odds outside</span>' : ''}`,
+                fmt(d.goldPerHour),
+                Object.entries(d.outcomes).map(([o, n]) => `${o} ${n}`).join(', '),
+              ];
+            }),
+        ) +
+        table(
+          ['Boss tier', 'Runs per day', 'Daily bonuses claimed per run', 'Party level at the first attempt'],
+          Object.entries(p.expeditions.bosses).map(([tier, b]) => [tier, fmt(b.perDay, 1), fmt(b.bonuses, 1), fmt(b.firstLevel, 1)]),
         ) +
         `<p>Sanctums per run: ${fmt(p.expeditions.sanctums.attempts, 1)} attempts, ${fmt(p.expeditions.sanctums.wins, 1)} wins.</p>` +
         table(
@@ -282,37 +296,81 @@ export function renderReport({ summary, comparison, elapsed, rules, compareWith 
     )
     .join('');
 
+  const className = (id: string) => (id in heroClasses ? heroClasses[id as HeroClassId].name : id === 'local' ? 'Locals’ tips' : id);
+  const classes =
+    `<p class="muted">Share of expeditions each class took part in, and what their abilities did (median times per run).</p>` +
+    ps
+      .map(
+        (p) =>
+          `<h3>${p.profile}</h3>` +
+          table(
+            ['Class', 'Share of expeditions', 'Ability triggers per run'],
+            [...new Set([...Object.keys(p.expeditions.classShare), ...Object.keys(p.expeditions.classEffects)])]
+              .sort((a, b) => (p.expeditions.classShare[b] ?? 0) - (p.expeditions.classShare[a] ?? 0))
+              .map((c) => [
+                esc(className(c)),
+                pct(p.expeditions.classShare[c] ?? 0),
+                Object.entries(p.expeditions.classEffects[c] ?? {})
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([k, n]) => `${esc(k)} ${fmt(n)}`)
+                  .join(', ') || '—',
+              ]),
+          ),
+      )
+      .join('');
+
+  // Tags: share of encounter weight carrying each tag, per tier (bosses count like `tagRules.bossWeight` encounters).
+  const tagRows = [1, 2, 3, 4, 5].map((tier) => {
+    const totals: Record<string, number> = {};
+    for (const d of dungeons.filter((x) => x.tier === tier)) {
+      const weights = dungeonTagWeights(d);
+      const sum = Object.values(weights).reduce((a, b) => a + (b ?? 0), 0) || 1;
+      for (const [tag, w] of Object.entries(weights)) totals[tag] = (totals[tag] ?? 0) + (w ?? 0) / sum;
+    }
+    const count = dungeons.filter((x) => x.tier === tier).length;
+    return { tier, shares: Object.fromEntries(Object.entries(totals).map(([k, v]) => [k, v / count])) };
+  });
+  const tagNames = [...new Set(tagRows.flatMap((r) => Object.keys(r.shares)))];
+  const tags = table(
+    ['Tier', ...tagNames.map((t) => esc(t))],
+    tagRows.map((r) => [String(r.tier), ...tagNames.map((t) => (r.shares[t] ? pct(r.shares[t]) : '—'))]),
+  );
+
   // 8. Odds matrix
   const cell = (v: number | undefined) =>
     v === undefined ? '—' : `<span class="heat" style="--v:${v.toFixed(2)}">${pct(v)}</span>`;
   const matrix = summary.oddsMatrix.length
     ? `<p class="muted">The three starting classes at the tier's expected level, every hero in the tier's weapon and armour at one quality, with a healing potion each, no traits. “Counter” swaps in the class that counters the dungeon best.</p>` +
       table(
-        ['Dungeon', 'Tier', 'Crappy', 'Normal', 'Rare', 'Counter class', 'Crappy', 'Normal', 'Rare'],
-        summary.oddsMatrix.map((r) => [
-          esc(dungeonById[r.dungeonId]?.name ?? r.dungeonId) + (r.boss ? ' 👑' : ''),
-          String(r.tier),
-          cell(r.base.crappy), cell(r.base.normal), cell(r.base.rare),
-          r.counter ? esc(heroClasses[r.counter.classId as HeroClassId].name) : '—',
-          cell(r.counter?.odds.crappy), cell(r.counter?.odds.normal), cell(r.counter?.odds.rare),
-        ]),
+        ['Dungeon', 'Tier', 'Crappy', 'Normal', 'Rare', 'Counter class', 'Crappy', 'Normal', 'Rare', 'Counter at Normal'],
+        summary.oddsMatrix.map((r) => {
+          const delta = r.counter ? Math.round((r.counter.odds.normal - r.base.normal) * 100) : null;
+          return [
+            esc(dungeonById[r.dungeonId]?.name ?? r.dungeonId) + (r.boss ? ' 👑' : ''),
+            String(r.tier),
+            cell(r.base.crappy), cell(r.base.normal), cell(r.base.rare),
+            r.counter ? esc(heroClasses[r.counter.classId as HeroClassId].name) : '—',
+            cell(r.counter?.odds.crappy), cell(r.counter?.odds.normal), cell(r.counter?.odds.rare),
+            delta === null ? '—' : `${delta > 0 ? '+' : ''}${delta} pts`,
+          ];
+        }),
         'matrix',
       )
     : '<p class="muted">Skipped.</p>';
 
   // 9. Guild Hall
   const guild =
-    `<p class="muted">Model: income of a reference team (see payback.ts). Measured: median gold per day the runs earned while playing the tier the rank opens at.</p>` +
+    `<p class="muted">Days for a rank to earn back its cost, from the median gold per day the runs earned while playing the tier the rank opens at (see payback.ts).</p>` +
     table(
-      ['Rank', 'Cost', 'Model payback (days)', ...names.map((n) => `${n}: measured (days)`)],
-      summary.modelPaybacks.map((m) => [
+      ['Rank', 'Cost', 'Opens at tier', ...names.map((n) => `${n} (days)`)],
+      (ps[0]?.guild.paybacks ?? []).map((m) => [
         `${guildTrackById[m.track].name} ${m.rank}`,
         fmt(m.cost),
-        fmt(m.days),
+        String(m.tier),
         ...ps.map((p) => {
           const r = p.guild.paybacks.find((x) => x.track === m.track && x.rank === m.rank);
           const off = r?.days !== null && r?.days !== undefined && (r.days < 3 || r.days > 7);
-          return `${fmt(r?.days, 1)}${r ? ` <span class="muted">at tier ${r.tier}</span>` : ''}${off ? ' <span class="flag">⚠</span>' : ''}`;
+          return `${fmt(r?.days, 1)}${off ? ' <span class="flag">⚠</span>' : ''}`;
         }),
       ]),
     ) +
@@ -334,6 +392,8 @@ export function renderReport({ summary, comparison, elapsed, rules, compareWith 
     section('materials', '5. Materials', materials),
     section('crafting', '6. Crafting', crafting),
     section('expeditions', '7. Expeditions', expeditions),
+    section('classes', '7b. Classes and abilities', classes),
+    section('tags', '7c. Tags in encounters', `<p class="muted">Share of each tier's encounter weight that carries a tag, averaged over the tier's dungeons.</p>${tags}`),
     section('matrix', '8. Odds matrix', matrix),
     section('guild', '9. Guild Hall', guild),
     section('warnings', '10. Warnings', warningsBlock),
@@ -357,7 +417,7 @@ code{font-size:12px}
 </style></head><body><main><h1>Balance lab</h1><nav>${[
     comparison ? ['compare', 'Changes'] : null,
     ['warnings-top', 'Warnings'], ['rules', 'Rules'], ['milestones', 'Milestones'], ['gold', 'Gold'], ['heroes', 'Heroes'], ['materials', 'Materials'],
-    ['crafting', 'Crafting'], ['expeditions', 'Expeditions'], ['matrix', 'Odds matrix'], ['guild', 'Guild Hall'],
+    ['crafting', 'Crafting'], ['expeditions', 'Expeditions'], ['classes', 'Classes'], ['tags', 'Tags'], ['matrix', 'Odds matrix'], ['guild', 'Guild Hall'],
   ]
     .filter((x): x is string[] => x !== null)
     .map(([id, name]) => `<a href="#${id}">${name}</a>`)

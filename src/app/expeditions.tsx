@@ -13,10 +13,11 @@ import { dungeonById, materialById, recipeById, recipeOutput } from '@/content/l
 import { modifierById } from '@/content/modifiers';
 import { tagInfo } from '@/content/rotation';
 import { countersFor } from '@/game/dungeons/counters';
+import { shardId } from '@/game/elements';
 import { guildRank, partySize } from '@/game/guild/guild';
 import { modifierFor, nextRotationAt, rotationDay, withModifier } from '@/game/dungeons/rotation';
 import { dungeonTags } from '@/game/dungeons/tags';
-import { expeditionMinutes, isDungeonAvailable, isDungeonUnlocked } from '@/game/expeditions/expeditions';
+import { bossBonusAvailable, expeditionMinutes, isDungeonAvailable, isDungeonUnlocked } from '@/game/expeditions/expeditions';
 import { estimateOdds, oddsBand } from '@/game/expeditions/odds';
 import { prepareParty } from '@/game/expeditions/simulate';
 import { isOnExpedition } from '@/game/team/team';
@@ -233,6 +234,9 @@ export default function ExpeditionsScreen() {
                   tags.map((tag) => `${tagInfo[tag].emoji} ${tr(tagInfo[tag].name)}`).join('  '),
                   modifier ? `${modifier.emoji} ${tr(modifier.name)}: ${tr(modifier.description)}` : null,
                   fresh ? t('expeditions.neverCleared') : null,
+                  dungeon.isBoss
+                    ? t(bossBonusAvailable(save, dungeon.id, now) ? 'expeditions.bossBonusAvailable' : 'expeditions.bossBonusClaimed')
+                    : null,
                 ]
                   .filter(Boolean)
                   .join('\n')}
@@ -262,6 +266,8 @@ export default function ExpeditionsScreen() {
             if (reward.kind === 'goldPouch') return `👛 +${reward.gold}`;
             if (reward.kind === 'sigil') return t('expeditions.sigil', { tier: reward.tier });
             if (reward.kind === 'treasureMap') return t('expeditions.treasureMap');
+            if (reward.kind === 'mapGold') return `🗺️ +${reward.gold}`;
+            if (reward.kind === 'shards') return `${materialById[shardId(reward.element)].emoji} ${reward.amount}`;
             return t('expeditions.lure');
           }),
           `+${report.xp} XP`,

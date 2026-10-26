@@ -4,7 +4,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { masteryTypeNames, QUALITIES, qualities, TIER_NAMES } from '@/content/forging';
 import { gearName, materialById, recipeOutput } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
-import { canCraft, forgedItem, isKnown, ownsTool, type ForgeResult } from '@/game/crafting/crafting';
+import { canCraft, forgeFee, forgedItem, isKnown, ownsTool, type ForgeResult } from '@/game/crafting/crafting';
 import { forgesForNextLevel, masteryCap, masteryOf, masteryTypeOf } from '@/game/forging/mastery';
 import { qualityOdds } from '@/game/forging/quality';
 import type { SaveData } from '@/game/save';
@@ -93,6 +93,7 @@ export function CraftingStation({ station, action }: Props) {
         .map((recipe) => {
           const output = recipeOutput(recipe);
           const item = forgedItem(recipe);
+          const fee = forgeFee(save, recipe);
           const inputs = (
             <View>
               <View style={styles.inputs}>
@@ -107,6 +108,7 @@ export function CraftingStation({ station, action }: Props) {
                     </View>
                   );
                 })}
+                {fee > 0 && <Text style={[styles.inputText, save.gold < fee && styles.short]}>🪙 {save.gold}/{fee}</Text>}
               </View>
               {item && <MasteryLine save={save} item={item} />}
             </View>
@@ -141,6 +143,7 @@ const styles = StyleSheet.create({
   inputs: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   input: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   inputText: { fontSize: 13, color: '#666' },
+  short: { color: colors.danger },
   mastery: { fontSize: 12, color: colors.muted },
   banner: {
     gap: 2,

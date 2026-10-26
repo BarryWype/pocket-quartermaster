@@ -10,7 +10,7 @@ import { materials } from '@/content/materials';
 import { craft, forgeResult, unlockRecipe, type ForgeResult } from '@/game/crafting/crafting';
 import { infuse } from '@/game/crafting/infusion';
 import { salvage } from '@/game/forging/salvage';
-import { migrateV5Save, migrateV6Save, migrateV7Save, migrateV8Save } from '@/game/migrations';
+import { migrateV5Save, migrateV6Save, migrateV7Save, migrateV8Save, migrateV9Save } from '@/game/migrations';
 import { convertShards, shardId, stoneId, type Element } from '@/game/elements';
 import { fastForward, resolveDue, startExpedition } from '@/game/expeditions/expeditions';
 import { collectSpawn, type CollectResult, type Gatherer } from '@/game/gathering/gathering';
@@ -241,7 +241,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 9,
+      version: 10,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
       // Saves from version 5 on are converted step by step; older ones start fresh. New fields get their defaults.
@@ -251,7 +251,8 @@ export const useGameStore = create<GameState>()(
         let save: SaveData = version === 5 ? migrateV5Save(old) : (old as SaveData);
         if (version <= 6) save = migrateV6Save(save);
         if (version <= 7) save = migrateV7Save(save);
-        return { save: migrateV8Save(save) };
+        if (version <= 8) save = migrateV8Save(save);
+        return { save: migrateV9Save(save) };
       },
       merge: (persisted, current) => ({
         ...current,

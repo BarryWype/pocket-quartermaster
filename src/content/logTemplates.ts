@@ -1,4 +1,4 @@
-import type { ExpeditionOutcome, HeroClassId, MainRewardKind, NpcHelp, ObstacleKind } from '@/game/types';
+import type { ExpeditionOutcome, HeroClassId, MainReward, NpcHelp, ObstacleKind } from '@/game/types';
 
 // Placeholders: {hero} {weapon} {mobs} {boss} {trap} {event} {damage} {gold}
 // {cleared} {total} {gear} {item} {obstacle} {npc} {tag}. One line per
@@ -88,7 +88,9 @@ export const logTemplates = {
     sigil: ['They brought back a tier {tier} Sanctum Sigil.'],
     treasureMap: ['They found an old treasure map.'],
     lure: ['They found a lure.'],
-  } satisfies Record<MainRewardKind, string[]>,
+    shards: ['With no room for another Sigil, it crumbled into {amount} {shards}.'],
+    mapGold: ['With no room for another map, they sold it for {gold} gold.'],
+  } satisfies Record<MainReward['kind'], string[]>,
   /** Used for {weapon} when a hero has none. */
   noWeapon: 'bare hands',
 };

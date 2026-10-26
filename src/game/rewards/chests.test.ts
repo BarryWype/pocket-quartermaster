@@ -76,3 +76,10 @@ describe('chests', () => {
     }
   });
 });
+
+describe('step chest loot', () => {
+  it('never holds ore or ingots', () => {
+    const ore = ['stone', 'copper', 'iron', 'coal', 'steel'];
+    for (const chest of chests) for (const entry of chest.loot) expect(ore).not.toContain(entry.materialId);
+  });
+});
