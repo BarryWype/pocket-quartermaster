@@ -44,10 +44,21 @@ function party(sigils: number[], strong = false): SaveData {
 }
 
 describe('Sanctum generation', () => {
-  it('places about one of each Sanctum per tile around the player', () => {
+  it('places a set number of Sanctums of random kinds per tile around the player', () => {
     const spawns = generateSanctumsAround(here, now);
-    expect(spawns).toHaveLength(tilesAround(here, sanctumRules.precision).length * sanctums.length);
+    const tiles = tilesAround(here, sanctumRules.precision).length;
+    expect(spawns.length).toBeGreaterThanOrEqual(tiles * sanctumRules.perTile[0]);
+    expect(spawns.length).toBeLessThanOrEqual(tiles * sanctumRules.perTile[1]);
     for (const sanctum of sanctums) expect(spawns.filter((s) => s.sanctumId === sanctum.id).length).toBeGreaterThan(0);
+  });
+
+  it('usually has one within a few hundred metres, and only a few in sight', () => {
+    const days = Array.from({ length: 30 }, (_, d) => generateSanctumsAround(here, now + d * DAY).map((s) => distanceMeters(here, s.position)));
+    const nearest = days.map((ds) => Math.min(...ds)).sort((a, b) => a - b);
+    expect(nearest[15]).toBeLessThan(700);
+    const inSight = days.map((ds) => ds.filter((d) => d <= sanctumRules.visibilityMeters).length).sort((a, b) => a - b);
+    expect(inSight[15]).toBeGreaterThanOrEqual(2);
+    expect(inSight[15]).toBeLessThanOrEqual(8);
   });
 
   it('is the same for everyone in a window and changes after it', () => {

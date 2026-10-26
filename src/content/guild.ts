@@ -57,8 +57,8 @@ export const guildTracks: GuildTrack[] = [
   { id: 'scouting', building: 'warRoom', name: 'Scouting report', ranks: 1, perRank: 1, baseCost: 400, gate: 1, describe: (r) => t(r ? 'guildTracks.scoutingOn' : 'guildTracks.scoutingOff') },
   { id: 'partySlot', building: 'warRoom', name: 'Extra party slot', ranks: 1, perRank: 1, baseCost: 3000, milestone: true, gate: 3, describe: (r) => t('guildTracks.partySlot', { count: 3 + r }) },
   // Treasury
-  { id: 'gold', building: 'treasury', name: 'Gold', ranks: 4, perRank: 0.1, baseCost: 60, costs: [60, 80, 300, 1000], describe: (r) => t('guildTracks.gold', { percent: pct(r * 0.1) }) },
-  { id: 'mainRewards', building: 'treasury', name: 'Main rewards', ranks: 3, perRank: 0.1, baseCost: 50, describe: (r) => t('guildTracks.mainRewards', { percent: pct(r * 0.1) }) },
+  { id: 'gold', building: 'treasury', name: 'Gold', ranks: 4, perRank: 0.1, baseCost: 50, costs: [50, 60, 85, 240], describe: (r) => t('guildTracks.gold', { percent: pct(r * 0.1) }) },
+  { id: 'mainRewards', building: 'treasury', name: 'Main rewards', ranks: 3, perRank: 0.2, baseCost: 20, costs: [20, 25, 70], describe: (r) => t('guildTracks.mainRewards', { percent: pct(r * 0.2) }) },
   { id: 'shards', building: 'treasury', name: 'Shards', ranks: 3, perRank: 1, baseCost: 200, gate: 1, describe: (r) => t('guildTracks.shards', { count: r }) },
   { id: 'stepChests', building: 'treasury', name: 'Step chests', ranks: 3, perRank: 1, baseCost: 100, describe: (r) => t('guildTracks.stepChests', { count: r }) },
   { id: 'sigilCap', building: 'treasury', name: 'Sigil cap', ranks: 1, perRank: 1, baseCost: 2500, milestone: true, gate: 3, describe: (r) => t('guildTracks.sigilCap', { count: 3 + r }) },

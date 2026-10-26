@@ -45,14 +45,15 @@ export function generateSanctumsAround(position: LatLng, timeMs: number, rules: 
   const { end } = windowRange(window, rules.windowMinutes);
   return tilesAround(position, rules.precision).flatMap((tile) => {
     const rng = createRng(`sanctum|${tile}|${window}`);
-    return sanctums.flatMap((sanctum) =>
-      Array.from({ length: rng.int(rules.perTile[0], rules.perTile[1]) }, (_, i) => ({
+    return Array.from({ length: rng.int(rules.perTile[0], rules.perTile[1]) }, (_, i) => {
+      const sanctum = sanctums[rng.int(0, sanctums.length - 1)];
+      return {
         id: `sanctum:${sanctum.id}:${tile}:${window}:${i}`,
         sanctumId: sanctum.id,
         position: randomPointInTile(tile, rng),
         expiresAt: end,
-      })),
-    );
+      };
+    });
   });
 }
 

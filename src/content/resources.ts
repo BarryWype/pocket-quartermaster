@@ -38,7 +38,8 @@ export const resources: ResourceDef[] = [
     name: 'Iron vein',
     emoji: '⛓️',
     icon: require('../../assets/icons/scaled/iron.png'),
-    weight: 4,
+    // Iron makes tier 4 gear and, with coal, tier 5 steel: walking is its only source.
+    weight: 6,
     pickaxeTier: 3,
     yields: [{ materialId: 'iron', amount: 1 }],
   },

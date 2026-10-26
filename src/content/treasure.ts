@@ -28,11 +28,11 @@ const commonFinds: LootEntry[] = [
   { materialId: 'hide', min: 1, max: 2, chance: 0.3 },
 ];
 
-/** Loot by the tier of the dungeon that dropped the map (index 0 = tier 1). Gold follows dungeon gold, about ×2 per tier. */
+/** Loot by the tier of the dungeon that dropped the map (index 0 = tier 1). Gold follows dungeon gold, ×2 per tier. */
 export const treasureTiers: TreasureTier[] = [
   { gold: [15, 30], shards: 1, materials: commonFinds },
-  { gold: [55, 110], shards: 2, materials: commonFinds },
-  { gold: [180, 360], shards: 3, materials: commonFinds },
-  { gold: [475, 955], shards: 4, materials: commonFinds },
-  { gold: [1365, 2725], shards: 5, materials: commonFinds },
+  { gold: [30, 60], shards: 2, materials: commonFinds },
+  { gold: [60, 120], shards: 3, materials: commonFinds },
+  { gold: [120, 240], shards: 4, materials: commonFinds },
+  { gold: [240, 480], shards: 5, materials: commonFinds },
 ];

@@ -72,10 +72,10 @@ export const sanctumRules = {
   /** Geohash precision 5 ≈ 4.9 × 4.9 km; a tile and its neighbours are generated around the player. */
   precision: 5,
   windowMinutes: 24 * 60,
-  /** How many of each Sanctum a tile holds. */
-  perTile: [1, 1] as [min: number, max: number],
-  /** Shown from this far, so a Sanctum can set the goal of a walk. */
-  visibilityMeters: 4500,
+  /** Sanctums a tile holds, each of a random kind: about one within 500 m of most places. */
+  perTile: [18, 24] as [min: number, max: number],
+  /** Shown from this far, so a few are on the map at once and one can set the goal of a walk. */
+  visibilityMeters: 1200,
   interactionMeters: 50,
   /**
    * Snapped to walkable places with coarse map tiles: a zoom 12 tile spans

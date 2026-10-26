@@ -10,8 +10,10 @@ import { bossById } from './enemies';
 // A run is a series of encounters drawn from the dungeon's pool, then its boss.
 // Regular dungeons of a slot share their tier's rewards: main reward chance 30%
 // for short, 75% for long; 100% plus a 50% second roll for the boss.
-// Dungeons pay gold, XP, main rewards and blueprints; materials come from
-// walking, so `loot` stays empty for dungeon-only items later.
+// Gold per run doubles each tier: players collect once a session, so runs,
+// not hours, set daily income. Dungeons pay gold, XP, main rewards and
+// blueprints; materials come from walking, so `loot` stays empty for
+// dungeon-only items later.
 // Tuned against src/game/balance/balance.test.ts.
 
 type Trap = Extract<EncounterDef, { type: 'trap' }>;
@@ -135,7 +137,7 @@ const wolfDen: DungeonDef = {
   }),
   boss: bossById.alphaWolf,
   mainRewardChance: 0.3,
-  gold: [22, 47],
+  gold: [10, 24],
   xp: 80,
   loot: [],
   recipeDrops: [
@@ -159,7 +161,7 @@ const trollBridge: DungeonDef = {
   ),
   boss: bossById.bridgeTroll,
   mainRewardChance: 0.75,
-  gold: [34, 65],
+  gold: [16, 36],
   xp: 120,
   loot: [],
   recipeDrops: [
@@ -185,7 +187,7 @@ const hauntedMine: DungeonDef = {
   ),
   boss: bossById.mineWraith,
   mainRewardChance: 0.3,
-  gold: [75, 150],
+  gold: [20, 48],
   xp: 150,
   loot: [],
   recipeDrops: [
@@ -211,7 +213,7 @@ const cinderHollow: DungeonDef = {
   }),
   boss: bossById.ashWyrm,
   mainRewardChance: 0.75,
-  gold: [120, 225],
+  gold: [32, 72],
   xp: 220,
   loot: [],
   recipeDrops: [
@@ -236,7 +238,7 @@ const harpyCliffs: DungeonDef = {
   ),
   boss: bossById.harpyMatriarch,
   mainRewardChance: 0.3,
-  gold: [220, 415],
+  gold: [40, 96],
   xp: 250,
   loot: [],
   recipeDrops: [
@@ -260,7 +262,7 @@ const orcWarcamp: DungeonDef = {
   ),
   boss: bossById.orcWarlord,
   mainRewardChance: 0.75,
-  gold: [335, 640],
+  gold: [64, 144],
   xp: 350,
   loot: [],
   recipeDrops: [
@@ -285,7 +287,7 @@ const wyvernPeaks: DungeonDef = {
   ),
   boss: bossById.wyvernQueen,
   mainRewardChance: 0.3,
-  gold: [650, 1250],
+  gold: [80, 192],
   xp: 400,
   loot: [],
   recipeDrops: [
@@ -309,7 +311,7 @@ const ashenCitadel: DungeonDef = {
   ),
   boss: bossById.ashLord,
   mainRewardChance: 0.75,
-  gold: [1020, 1930],
+  gold: [128, 288],
   xp: 550,
   loot: [],
   recipeDrops: [
@@ -463,7 +465,7 @@ export const dungeons: DungeonDef[] = [
     boss: bossById.ogreChieftain,
     mainRewardChance: 1,
     mainRewardExtraRollChance: 0.5,
-    gold: [85, 160],
+    gold: [40, 80],
     xp: 220,
     loot: [],
     recipeDrops: [
@@ -539,7 +541,7 @@ export const dungeons: DungeonDef[] = [
     boss: bossById.lichOfTheDeep,
     mainRewardChance: 1,
     mainRewardExtraRollChance: 0.5,
-    gold: [285, 540],
+    gold: [80, 160],
     xp: 400,
     loot: [],
     recipeDrops: [
@@ -618,7 +620,7 @@ export const dungeons: DungeonDef[] = [
     boss: bossById.giantKing,
     mainRewardChance: 1,
     mainRewardExtraRollChance: 0.5,
-    gold: [790, 1510],
+    gold: [160, 320],
     xp: 600,
     loot: [],
     recipeDrops: [
@@ -693,7 +695,7 @@ export const dungeons: DungeonDef[] = [
     boss: bossById.elderDragon,
     mainRewardChance: 1,
     mainRewardExtraRollChance: 0.5,
-    gold: [2390, 4540],
+    gold: [320, 640],
     xp: 900,
     loot: [],
     recipeDrops: [

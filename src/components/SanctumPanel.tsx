@@ -60,7 +60,9 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
     [save, heroIds, sanctum, tier],
   );
 
-  useEffect(() => nextTutorialStep('findSanctum'), [nextTutorialStep]);
+  useEffect(() => {
+    nextTutorialStep('findSanctum');
+  }, [nextTutorialStep]);
 
   // Reveal the fight one line at a time.
   useEffect(() => {
