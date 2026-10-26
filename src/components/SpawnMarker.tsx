@@ -1,6 +1,8 @@
-import { StyleSheet, View, type ImageSourcePropType } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Animated, Easing, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 
 import type { ResourceKind } from '@/game/generation/types';
+import { useAnimationsEnabled } from '@/hooks/useAnimationFrame';
 
 import { GameIcon } from './GameIcon';
 
@@ -17,9 +19,12 @@ type Props = {
   kind: ResourceKind;
   inRange: boolean;
   fleeing: boolean;
+  /** Rocks gently in the wind, e.g. trees. */
+  sway?: boolean;
 };
 
-export function SpawnMarker({ emoji, icon, kind, inRange, fleeing }: Props) {
+export function SpawnMarker({ emoji, icon, kind, inRange, fleeing, sway = false }: Props) {
+  const tilt = useSway(sway);
   return (
     <View
       style={[
@@ -29,9 +34,32 @@ export function SpawnMarker({ emoji, icon, kind, inRange, fleeing }: Props) {
         fleeing && styles.fleeing,
       ]}
     >
-      {fleeing ? <GameIcon emoji="💨" size={21} /> : <GameIcon emoji={emoji} icon={icon} size={21} />}
+      <Animated.View style={[styles.swayOrigin, tilt && { transform: [{ rotate: tilt }] }]}>
+        {fleeing ? <GameIcon emoji="💨" size={21} /> : <GameIcon emoji={emoji} icon={icon} size={21} />}
+      </Animated.View>
     </View>
   );
+}
+
+/** A rotation that rocks back and forth while `enabled` and animations are allowed. */
+function useSway(enabled: boolean) {
+  const animationsEnabled = useAnimationsEnabled();
+  const [value] = useState(() => new Animated.Value(0));
+  const active = enabled && animationsEnabled;
+
+  useEffect(() => {
+    if (!active) return;
+    const swing = (toValue: number) =>
+      Animated.timing(value, { toValue, duration: 1400, easing: Easing.inOut(Easing.sin), useNativeDriver: true });
+    const loop = Animated.loop(Animated.sequence([swing(1), swing(-1)]));
+    loop.start();
+    return () => {
+      loop.stop();
+      value.setValue(0);
+    };
+  }, [active, value]);
+
+  return active ? value.interpolate({ inputRange: [-1, 1], outputRange: ['-7deg', '7deg'] }) : null;
 }
 
 const styles = StyleSheet.create({
@@ -45,4 +73,5 @@ const styles = StyleSheet.create({
   },
   inRange: { backgroundColor: '#fff6a8', transform: [{ scale: 1.2 }] },
   fleeing: { opacity: 0.6 },
+  swayOrigin: { transformOrigin: 'bottom' },
 });
