@@ -308,7 +308,50 @@ npx expo-doctor
 
 ---
 
-## 7. Project structure
+## 7. Releases
+
+A GitHub Actions workflow (`.github/workflows/release.yml`) builds a signed release APK and attaches it to a GitHub release whenever a `v*` tag is pushed.
+
+**One-time setup**
+
+1. Create the release signing key, outside the repo, and back it up with its password (losing it means no build can update installed copies):
+
+   ```bash
+   keytool -genkeypair -v -storetype PKCS12 -keystore ~/pocket-quartermaster-release.keystore -alias pocketquartermaster -keyalg RSA -keysize 2048 -validity 10000
+   ```
+
+2. Add the repository secrets (the password ones prompt for the value; with PKCS12 the key password is the keystore password):
+
+   ```bash
+   base64 -i ~/pocket-quartermaster-release.keystore | pbcopy
+   gh secret set ANDROID_KEYSTORE_BASE64 --body "$(pbpaste)"
+   gh secret set ANDROID_KEYSTORE_PASSWORD
+   gh secret set ANDROID_KEY_ALIAS --body "pocketquartermaster"
+   gh secret set ANDROID_KEY_PASSWORD
+   ```
+
+3. Optional, to sign local release builds with the same key: add these lines to `~/.gradle/gradle.properties`, then rebuild with `npx expo prebuild --platform android` first.
+
+   ```properties
+   PQ_RELEASE_STORE_FILE=/Users/you/pocket-quartermaster-release.keystore
+   PQ_RELEASE_STORE_PASSWORD=...
+   PQ_RELEASE_KEY_ALIAS=pocketquartermaster
+   PQ_RELEASE_KEY_PASSWORD=...
+   ```
+
+**Releasing**
+
+```bash
+git tag v0.2.0 && git push origin v0.2.0
+```
+
+About 15 minutes later the release page has `pocket-quartermaster-v0.2.0.apk`. The workflow runs the typecheck and tests first. The version shown in the app comes from the tag; the Android version code is the workflow run number, so each APK installs over the previous one.
+
+- Release builds are signed by `plugins/withReleaseSigning.js` when the `PQ_RELEASE_*` Gradle properties are set, and with the debug key otherwise. Versions come from `app.config.js` (`APP_VERSION`, `ANDROID_VERSION_CODE`).
+- The first release-signed APK can't install over a debug-signed one: uninstall it first (this loses that phone's save).
+- On the phone, open the release page, download the APK and allow installing apps from the browser.
+
+## 8. Project structure
 
 ```
 src/
@@ -334,7 +377,7 @@ src/
 
 ---
 
-## 8. Troubleshooting
+## 9. Troubleshooting
 
 | Problem | Fix |
 |---|---|
