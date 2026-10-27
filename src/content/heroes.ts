@@ -155,7 +155,7 @@ export const newHero = (id: string, name: string, classId: HeroClassId, trait: s
 });
 
 export const startingHeroes: HeroState[] = [
-  newHero('bram', 'Bram', 'warrior', 'tough'),
+  newHero('bram', 'Bram', 'warrior', 'resilient'),
   newHero('lyra', 'Lyra', 'ranger', 'lucky'),
   newHero('mira', 'Mira', 'fireMage', 'quickLearner'),
 ];

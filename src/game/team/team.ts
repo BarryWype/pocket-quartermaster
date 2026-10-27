@@ -53,6 +53,26 @@ function updateHero(save: SaveData, heroId: string, update: (hero: HeroState) =>
   return { ...save, heroes: save.heroes.map((h) => (h.id === heroId ? update(h) : h)) };
 }
 
+/**
+ * After a change of max HP (gear, level): a higher max keeps the same share
+ * of HP, a lower one caps HP at the new max. Expects HP settled beforehand.
+ */
+export function keepHpShare(hero: HeroState, oldMax: number, newMax: number): HeroState {
+  if (hero.hp === undefined || oldMax === newMax) return hero;
+  const hp = newMax > oldMax ? (oldMax > 0 ? (hero.hp / oldMax) * newMax : newMax) : Math.min(hero.hp, newMax);
+  if (hp < newMax) return { ...hero, hp };
+  const { hp: _hp, hpAt: _at, ...full } = hero;
+  return full;
+}
+
+/** `next` with the hero's HP adjusted to the max HP change since `before`. */
+function keepingHp(before: SaveData, next: SaveData, heroId: string): SaveData {
+  const old = before.heroes.find((h) => h.id === heroId);
+  const hero = next.heroes.find((h) => h.id === heroId);
+  if (!old || !hero || hero.hp === undefined) return next;
+  return updateHero(next, heroId, (h) => keepHpShare(h, heroStats(before, old).hp, heroStats(next, hero).hp));
+}
+
 export function unequip(save: SaveData, heroId: string, slot: EquipmentSlot): SaveData {
   if (isOnExpedition(save, heroId)) throw new Error('Hero is on an expedition');
   const hero = save.heroes.find((h) => h.id === heroId);
@@ -60,7 +80,7 @@ export function unequip(save: SaveData, heroId: string, slot: EquipmentSlot): Sa
   if (!hero || !current) return save;
 
   const next = updateHero(save, heroId, (h) => ({ ...h, equipment: { ...h.equipment, [slot]: null } }));
-  if (slot !== 'consumable') return next;
+  if (slot !== 'consumable') return keepingHp(save, next, heroId);
   return { ...next, consumables: { ...next.consumables, [current]: (next.consumables[current] ?? 0) + 1 } };
 }
 
@@ -73,6 +93,7 @@ export function equip(save: SaveData, heroId: string, slot: EquipmentSlot, id: s
   let next = unequip(save, heroId, slot);
 
   if (slot === 'consumable') {
+    if (itemById[id]?.slot !== 'consumable') throw new Error(`${id} is not a consumable`);
     if ((next.consumables[id] ?? 0) < 1) throw new Error(`No ${id} left`);
     next = { ...next, consumables: { ...next.consumables, [id]: next.consumables[id] - 1 } };
   } else {
@@ -83,7 +104,7 @@ export function equip(save: SaveData, heroId: string, slot: EquipmentSlot, id: s
     const holder = next.heroes.find((h) => h.id !== heroId && h.equipment[slot] === id);
     if (holder) next = unequip(next, holder.id, slot);
   }
-  return updateHero(next, heroId, (h) => ({ ...h, equipment: { ...h.equipment, [slot]: id } }));
+  return keepingHp(next, updateHero(next, heroId, (h) => ({ ...h, equipment: { ...h.equipment, [slot]: id } })), heroId);
 }
 
 /** Heroes can be dismissed at home, keeping at least one; their gear and consumable go back to the stock. */

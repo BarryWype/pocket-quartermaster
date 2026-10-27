@@ -8,6 +8,7 @@ import { gearName, itemById } from '@/content/lookup';
 import { beats, incomingMultiplier, weaponMultiplier, type Element } from '../elements';
 import { createRng } from '../generation/rng';
 import type { SaveData } from '../save';
+import { currentHp } from '../team/health';
 import { heroAbilities, heroStats } from '../team/team';
 import type {
   Ability,
@@ -17,11 +18,15 @@ import type {
   EncounterDef,
   ExpeditionOutcome,
   HeroClassId,
+  Hunger,
+  KitEffect,
+  MealEffect,
   MobDef,
   MobGroup,
   NpcHelp,
   Tag,
 } from '../types';
+import { hungerEffect } from './provisions';
 
 export type ExpeditionRules = typeof expeditionRules;
 
@@ -34,6 +39,8 @@ export type PartyMember = {
   traitId: string;
   weaponName: string | null;
   maxHp: number;
+  /** HP at the start of the run. */
+  hp: number;
   /** Damage per round: attack + magic. */
   damage: number;
   defense: number;
@@ -45,6 +52,7 @@ export type PartyMember = {
   /** The infused weapon's element, or the class's innate one. */
   weaponElement?: Element;
   armourElement?: Element;
+  /** Potion, elixir or charm. */
   consumable: ConsumableDef | null;
 };
 
@@ -69,8 +77,16 @@ export type AbilityEffect = {
     | 'cacheBonus'
     | 'advantage'
     | 'alert'
-    | 'loud';
+    | 'loud'
+    /** The party's kit triggered (`heroId` null). */
+    | 'kit'
+    /** A ward bone turned a trap away. */
+    | 'ward'
+    /** Hunter's stew before the boss (`heroId` null). */
+    | 'stew';
   tag?: Tag;
+  /** A kit that was used up without working (bait the beasts ignored). */
+  failed?: boolean;
   /** The ally a `protect` shielded. */
   allyId?: string;
 };
@@ -118,18 +134,40 @@ export type RunResult = {
   hp: { heroId: string; hp: number; maxHp: number }[];
   /** Heroes whose healing consumable was used up during the run. */
   consumed: string[];
+  /** The kit triggered and is used up. */
+  kitUsed: boolean;
 };
 
-type RunOptions = {
+/** What the party ate and carried: the same for the odds preview and the real run. */
+export type RunProvisions = {
+  hunger?: Hunger;
+  meal?: MealEffect | null;
+  kit?: KitEffect | null;
+};
+
+export type RunOptions = RunProvisions & {
   rules?: ExpeditionRules;
   /** The tutorial run: heroes can't drop below 1 HP, so the boss always falls eventually. */
   guaranteed?: boolean;
 };
 
-type HeroState = { member: PartyMember; hp: number; out: boolean; consumableLeft: boolean };
+type HeroState = {
+  member: PartyMember;
+  hp: number;
+  out: boolean;
+  consumableLeft: boolean;
+  /** Damage multiplier from the supply status. */
+  fed: number;
+  /** A ward bone not used yet. */
+  ward: boolean;
+};
 type EnemyState = { def: MobDef | BossDef; hp: number };
 
-export function prepareParty(save: SaveData, heroIds: string[]): PartyMember[] {
+/**
+ * The heroes as they set out, with their HP at `now` (heroes away keep the HP
+ * they left with; left out, HP as stored).
+ */
+export function prepareParty(save: SaveData, heroIds: string[], now = 0): PartyMember[] {
   return save.heroes
     .filter((hero) => heroIds.includes(hero.id))
     .map((hero) => {
@@ -139,6 +177,7 @@ export function prepareParty(save: SaveData, heroIds: string[]): PartyMember[] {
       const armour = save.gear.find((g) => g.uid === hero.equipment.armor);
       const item = hero.equipment.consumable ? itemById[hero.equipment.consumable] : null;
       const consumable = item?.slot === 'consumable' ? item : null;
+      const charm = consumable?.charm;
       return {
         heroId: hero.id,
         name: hero.name,
@@ -146,6 +185,7 @@ export function prepareParty(save: SaveData, heroIds: string[]): PartyMember[] {
         traitId: hero.trait,
         weaponName: weapon ? gearName(weapon) : null,
         maxHp: stats.hp,
+        hp: currentHp(save, hero, now),
         damage: stats.attack + stats.magic,
         defense: stats.defense,
         threat: heroClass.threat,
@@ -153,6 +193,7 @@ export function prepareParty(save: SaveData, heroIds: string[]): PartyMember[] {
         abilities: [
           ...heroAbilities(hero),
           ...(weapon?.element === 'fire' ? [{ kind: 'obstacleSolve', kinds: ['barricade'] } satisfies Ability] : []),
+          ...(charm?.kind === 'crit' ? [{ kind: 'critBonus', chance: charm.chance } satisfies Ability] : []),
         ],
         weaponElement: weapon?.element ?? heroClass.element,
         armourElement: armour?.element,
@@ -193,19 +234,32 @@ export function simulateRun(
   party: PartyMember[],
   dungeon: DungeonDef,
   seed: string,
-  { rules = expeditionRules, guaranteed = false }: RunOptions = {},
+  { rules = expeditionRules, guaranteed = false, hunger = 'fed', meal = null, kit = null }: RunOptions = {},
 ): RunResult {
   const rng = createRng(seed);
   // How the day goes for the whole party: a good day hits harder and gets hurt less.
   // Unlike per-hit variance this doesn't average out, so weaker teams keep a real chance.
   const fortune = 1 + (rng.next() * 2 - 1) * rules.fortune;
-  const heroes: HeroState[] = party.map((member) => ({
-    member,
-    hp: member.maxHp,
-    // A hero with no HP to start with can't act at all.
-    out: member.maxHp <= 0,
-    consumableLeft: member.consumable !== null,
-  }));
+  const heroes: HeroState[] = party.map((member) => {
+    const { damage, hpLoss } = hungerEffect(hunger, member.abilities);
+    // Starving costs HP before the first step, but never knocks anyone out.
+    const hp = Math.min(member.maxHp, member.hp > 0 ? Math.max(Math.min(member.hp, 1), member.hp - hpLoss * member.maxHp) : 0);
+    return {
+      member,
+      hp,
+      // A hero with no HP to start with can't act at all.
+      out: hp <= 0,
+      consumableLeft: member.consumable !== null,
+      fed: damage,
+      ward: member.consumable?.charm?.kind === 'wardTrap',
+    };
+  });
+  /** The kit stands in once for a missing ability. */
+  let kitLeft = kit !== null;
+  const spendKit = (result: EncounterResult, failed = false) => {
+    kitLeft = false;
+    result.effects.push({ heroId: null, key: 'kit', ...(failed ? { failed } : {}) });
+  };
   const alive = () => heroes.filter((h) => !h.out);
   const fights = dungeon.encounters.flatMap((e) => (e.type === 'fight' ? [e] : []));
   /** A local's tip: the next trap is skipped. */
@@ -246,7 +300,8 @@ export function simulateRun(
     add(result.healed, hero.member.heroId, amount);
   };
 
-  const hurt = (hero: HeroState, amount: number, result: EncounterResult) => {
+  const hurt = (hero: HeroState, raw: number, result: EncounterResult) => {
+    const amount = raw * (own(hero, 'damageTaken')?.multiplier ?? 1);
     hero.hp -= amount;
     add(result.taken, hero.member.heroId, amount);
     if (hero.hp <= 0) {
@@ -270,6 +325,17 @@ export function simulateRun(
 
   const fight = (enemyDefs: (MobDef | BossDef)[], result: EncounterResult, enemiesFirst: boolean) => {
     const enemies: EnemyState[] = enemyDefs.map((def) => ({ def, hp: def.hp }));
+    // Holy water: the first undead fight, unless a hero already hits undead harder.
+    let holy = 1;
+    if (
+      kitLeft &&
+      kit?.kind === 'undeadDamage' &&
+      enemyDefs.some((def) => enemyTags(def).includes('undead')) &&
+      !withAbility('damageVsTag', (a) => a.tag === 'undead')
+    ) {
+      holy = kit.multiplier;
+      spendKit(result);
+    }
     /** Logs an effect once per encounter and hero. */
     const note = (heroId: string, key: AbilityEffect['key'], extra: Partial<AbilityEffect> = {}) => {
       if (!result.effects.some((e) => e.key === key && e.heroId === heroId)) result.effects.push({ heroId, key, ...extra });
@@ -286,7 +352,7 @@ export function simulateRun(
         if (!target) return;
         const id = hero.member.heroId;
         const tags = enemyTags(target.def);
-        let bonus = buffer?.buff?.multiplier ?? 1;
+        let bonus = (buffer?.buff?.multiplier ?? 1) * (tags.includes('undead') ? holy : 1);
         for (const ability of hero.member.abilities) {
           if (ability.kind !== 'damageVsTag' || !tags.includes(ability.tag)) continue;
           bonus *= ability.multiplier;
@@ -306,7 +372,7 @@ export function simulateRun(
         }
         const critBonus = hero.member.abilities.reduce((sum, a) => sum + (a.kind === 'critBonus' ? a.chance : 0), 0);
         const hit = roll(hero.member.damage, critBonus, critBonus > 0 ? () => note(id, 'crit') : undefined);
-        const damage = hit * fortune * bonus * elemental;
+        const damage = hit * fortune * bonus * elemental * hero.fed;
         target.hp -= damage;
         add(result.dealt, id, damage);
       }
@@ -363,12 +429,23 @@ export function simulateRun(
   const runEncounter = (encounter: EncounterDef): EncounterResult => {
     if (encounter.type === 'fight') {
       const result = emptyResult('fight', '', encounter.mobs);
-      const calmer = expand(encounter.mobs).every((mob) => enemyTags(mob).includes('beast')) ? withAbility('calmBeasts') : null;
+      const beasts = expand(encounter.mobs).every((mob) => enemyTags(mob).includes('beast'));
+      const calmer = beasts ? withAbility('calmBeasts') : null;
       if (calmer && rng.chance(calmer.ability.chance)) {
         result.effects.push({ heroId: calmer.hero.member.heroId, key: 'calm' });
         result.calmed = true;
         result.cleared = true;
         return result;
+      }
+      // Bait: the first beast fight a calming hero didn't take.
+      if (!calmer && beasts && kitLeft && kit?.kind === 'calmBeasts') {
+        const calmed = rng.chance(kit.chance);
+        spendKit(result, !calmed);
+        if (calmed) {
+          result.calmed = true;
+          result.cleared = true;
+          return result;
+        }
       }
       fight(expand(encounter.mobs), result, false);
       return result;
@@ -395,6 +472,11 @@ export function simulateRun(
         const reduce = reducer?.ability.multiplier ?? 1;
         const caught = encounter.targets === 'all' ? alive() : [rng.weighted(alive(), () => 1)];
         for (const hero of caught) {
+          if (hero.ward) {
+            hero.ward = false;
+            result.effects.push({ heroId: hero.member.heroId, key: 'ward' });
+            continue;
+          }
           hurt(hero, encounter.damagePct * hero.member.maxHp * reduce * elementFactor(hero, encounter.element), result);
         }
       }
@@ -406,6 +488,11 @@ export function simulateRun(
       const solver = withAbility('obstacleSolve', (a) => a.kinds.includes(encounter.kind));
       if (solver) {
         result.effects.push({ heroId: solver.hero.member.heroId, key: 'solve' });
+        result.cleared = true;
+        return result;
+      }
+      if (kitLeft && kit?.kind === 'obstacle' && kit.obstacle === encounter.kind) {
+        spendKit(result);
         result.cleared = true;
         return result;
       }
@@ -426,13 +513,16 @@ export function simulateRun(
       const hostile = [{ mobId: npcMobId(npc.id, dungeon.tier), count: npc.hostile.count }];
       const reacts = (key: 'charm' | 'provoke' | 'pickpocket') => withAbility('localsReaction', (a) => a.key === key);
       const charmer = reacts('charm');
-      const provoker = charmer ? null : reacts('provoke');
-      const thief = charmer || provoker ? null : reacts('pickpocket');
+      // Gifts win over the first locals nobody charms.
+      const gifts = !charmer && kitLeft && kit?.kind === 'charmLocals';
+      if (gifts) spendKit(result);
+      const provoker = charmer || gifts ? null : reacts('provoke');
+      const thief = charmer || gifts || provoker ? null : reacts('pickpocket');
       const loud = withAbility('hostileLocals');
       const by = charmer ?? provoker ?? thief;
       if (by) result.effects.push({ heroId: by.hero.member.heroId, key: by.ability.key });
       result.cleared = true;
-      if (charmer) {
+      if (charmer || gifts) {
         result.reaction = 'help';
         result.help = npc.help;
         const { help } = npc;
@@ -505,13 +595,9 @@ export function simulateRun(
       continue;
     }
     const result = emptyResult('boss', dungeon.boss.name);
-    for (const hero of alive()) {
-      const ration = hero.member.consumable;
-      if (hero.consumableLeft && ration?.when === 'beforeBoss') {
-        hero.consumableLeft = false;
-        heal(hero, (ration.heal ?? 0) * (own(hero, 'rationBoost')?.multiplier ?? 1), result);
-        result.consumed.push(hero.member.heroId);
-      }
+    if (meal?.kind === 'bossHeal' && alive().length > 0) {
+      for (const hero of alive()) heal(hero, meal.pct * (own(hero, 'stewBoost')?.multiplier ?? 1), result);
+      result.effects.push({ heroId: null, key: 'stew' });
     }
     fight([dungeon.boss], result, false);
     encounters.push(result);
@@ -538,6 +624,7 @@ export function simulateRun(
     bonusGold: encounters.reduce((sum, e) => sum + e.gold, 0),
     hp: heroes.map((h) => ({ heroId: h.member.heroId, hp: Math.round(h.hp), maxHp: h.member.maxHp })),
     consumed: encounters.flatMap((e) => e.consumed),
+    kitUsed: kit !== null && !kitLeft,
   };
 }
 

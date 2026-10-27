@@ -33,7 +33,11 @@ export function abilityText(ability: Ability): string {
     case 'elementalAdvantage':
       return t('abilities.elementalAdvantage', { multiplier: formatNumber(ability.multiplier) });
     case 'statMultiplier':
-      return t('abilities.statMultiplier', { percent: percent(ability.multiplier - 1), stat: t(`abilities.stats.${ability.stat}`) });
+      return t('abilities.statMultiplier', {
+        sign: ability.multiplier >= 1 ? '+' : '−',
+        percent: percent(Math.abs(ability.multiplier - 1)),
+        stat: t(`abilities.stats.${ability.stat}`),
+      });
     case 'goldMultiplier':
       return t('abilities.goldMultiplier', {
         sign: ability.multiplier >= 1 ? '+' : '−',
@@ -43,8 +47,19 @@ export function abilityText(ability: Ability): string {
       return t('abilities.xpMultiplier', { percent: percent(ability.multiplier - 1) });
     case 'ambushAlert':
       return t('abilities.ambushAlert');
-    case 'rationBoost':
-      return t('abilities.rationBoost', { multiplier: formatNumber(ability.multiplier) });
+    case 'stewBoost':
+      return t('abilities.stewBoost', { multiplier: formatNumber(ability.multiplier) });
+    case 'damageTaken':
+      return t('abilities.damageTaken', { percent: percent(1 - ability.multiplier) });
+    case 'healRate':
+      return t('abilities.healRate', {
+        sign: ability.multiplier >= 1 ? '+' : '−',
+        percent: percent(Math.abs(ability.multiplier - 1)),
+      });
+    case 'supplyNeed':
+      return t('abilities.supplyNeed', { sign: ability.add >= 0 ? '+' : '−', count: Math.abs(ability.add) });
+    case 'hungerResist':
+      return t('abilities.hungerResist', { multiplier: formatNumber(ability.multiplier) });
     case 'trapTrigger':
       return t('abilities.trapTrigger');
     case 'potionThreshold':

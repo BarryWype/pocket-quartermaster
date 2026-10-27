@@ -6,6 +6,7 @@ import { Button } from '@/components/Button';
 import { EquipPicker } from '@/components/EquipPicker';
 import { PlaceholderScreen } from '@/components/PlaceholderScreen';
 import { gearStatsText, STATS, statIcons } from '@/components/GearRow';
+import { HpBar } from '@/components/HpBar';
 import { Panel } from '@/components/Panel';
 import { PixelBar } from '@/components/PixelBar';
 import { IconSlot, SectionTitle } from '@/components/Row';
@@ -18,9 +19,11 @@ import { masteryTypeNames, qualities } from '@/content/forging';
 import { heroClasses, xpToNextLevel } from '@/content/heroes';
 import { traitById } from '@/content/traits';
 import { gearName, itemById } from '@/content/lookup';
+import { drinkProblem } from '@/game/team/health';
 import { canDismiss, heroStats, isOnExpedition } from '@/game/team/team';
 import type { EquipmentSlot, WeaponType } from '@/game/types';
 import { useLanguage } from '@/hooks/useLanguage';
+import { useNow } from '@/hooks/useNow';
 import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
@@ -33,6 +36,8 @@ export default function CharacterSheetScreen() {
   const save = useGameStore((state) => state.save);
   const equip = useGameStore((state) => state.equip);
   const dismiss = useGameStore((state) => state.dismissHero);
+  const drinkPotion = useGameStore((state) => state.drinkPotion);
+  const now = useNow();
   const [picking, setPicking] = useState<EquipmentSlot | null>(null);
 
   const hero = save.heroes.find((h) => h.id === heroId);
@@ -90,6 +95,17 @@ export default function CharacterSheetScreen() {
           {t('hero.xp', { xp: hero.xp, next })}
           {away ? t('common.onExpedition') : ''}
         </Text>
+        <HpBar save={save} hero={hero} now={now} light />
+        {!away && (
+          <View style={styles.drink}>
+            <Button
+              title={t('health.drink', { count: (save.consumables.healingPotion ?? 0) + (hero.equipment.consumable === 'healingPotion' ? 1 : 0) })}
+              disabled={drinkProblem(save, hero.id, now) !== null}
+              onPress={() => drinkPotion(hero.id)}
+            />
+            <Text style={styles.xp}>{t('health.drinkHint')}</Text>
+          </View>
+        )}
       </Panel>
 
       <SectionTitle>{t('hero.stats')}</SectionTitle>
@@ -172,6 +188,7 @@ const styles = StyleSheet.create({
   className: { fontSize: 19, color: colors.parchment },
   level: { alignSelf: 'flex-start', marginTop: 4, paddingHorizontal: 6, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.highlight },
   xp: { color: colors.parchment, fontSize: 17 },
+  drink: { alignItems: 'flex-start', gap: 4 },
   stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   stat: {
     width: '48%',

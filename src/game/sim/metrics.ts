@@ -121,6 +121,25 @@ export type ProfileSummary = {
     bosses: Record<number, { perDay: number; bonuses: number; firstLevel: number }>;
     sanctums: { attempts: number; wins: number };
   };
+  provisions: {
+    /** Average share of max HP the party set out with, and the share of runs that set out below 70%. */
+    startHp: number;
+    lowStart: number;
+    /** Healing potions drunk per run (median): at home and in dungeons. */
+    potionsAtHome: number;
+    potionsInDungeons: number;
+    /** Supply points used per run (median), and the share of expeditions Underfed or Starving. */
+    supplyUsed: number;
+    underfed: number;
+    starving: number;
+    emergencySupply: number;
+    /** Expeditions per run (median) that took each meal. */
+    meals: Record<string, number>;
+    /** Expeditions per run (median) that took each kit, and that used it up. */
+    kits: Record<string, { taken: number; triggered: number }>;
+    /** Meat and berries gathered and used by the kitchen (median per run), and the share used. */
+    food: { gathered: number; used: number; share: number };
+  };
   guild: {
     /** What each rank of the economic tracks pays back, from the gold the runs earned per day at each tier. */
     paybacks: Payback[];
@@ -237,6 +256,18 @@ export function summarize(logs: RunLog[], targets: Targets = defaultTargets): Pr
   }));
   const sanctumRuns = logs.flatMap((log) => log.sanctums);
 
+  // Provisions and HP.
+  const regular = all.filter((e) => e.hours > 0.01);
+  const share = (test: (e: (typeof all)[number]) => boolean) => round(regular.filter(test).length / Math.max(1, regular.length));
+  const perRun = (value: (log: RunLog) => number) => round(median(logs.map(value)), 1);
+  const count = (pick: (e: (typeof all)[number]) => string | null, test: (e: (typeof all)[number]) => boolean = () => true) =>
+    medianTotals(logs.map((log) => sumBy(log.expeditions.filter((e) => pick(e) && test(e)), (e) => pick(e)!, () => 1)));
+  const kitsTaken = count((e) => e.kit);
+  const kitsUsed = count((e) => e.kit, (e) => e.kitUsed);
+  const FOOD = ['meat', 'berries'];
+  const foodGathered = perRun((log) => FOOD.reduce((s, m) => s + Object.values(log.gathered[m] ?? {}).reduce((a, b) => a + b, 0), 0));
+  const foodUsed = perRun((log) => FOOD.reduce((s, m) => s + (log.used[m]?.kitchen ?? 0), 0));
+
   const summary: ProfileSummary = {
     profile,
     runs: logs.length,
@@ -275,6 +306,19 @@ export function summarize(logs: RunLog[], targets: Targets = defaultTargets): Pr
       classShare,
       bosses,
       sanctums: { attempts: round(sanctumRuns.length / logs.length, 1), wins: round(sanctumRuns.filter((s) => s.win).length / logs.length, 1) },
+    },
+    provisions: {
+      startHp: round(regular.reduce((s, e) => s + e.startHp, 0) / Math.max(1, regular.length)),
+      lowStart: share((e) => e.startHp < 0.7),
+      potionsAtHome: perRun((log) => log.potionsAtHome),
+      potionsInDungeons: perRun((log) => log.expeditions.reduce((s, e) => s + e.potions, 0)),
+      supplyUsed: perRun((log) => log.expeditions.reduce((s, e) => s + e.supplyUsed, 0)),
+      underfed: share((e) => e.hunger === 'underfed'),
+      starving: share((e) => e.hunger === 'starving'),
+      emergencySupply: perRun((log) => log.emergencySupply),
+      meals: count((e) => e.meal),
+      kits: Object.fromEntries(Object.keys(kitsTaken).map((k) => [k, { taken: kitsTaken[k], triggered: kitsUsed[k] ?? 0 }])),
+      food: { gathered: foodGathered, used: foodUsed, share: round(foodUsed / Math.max(1, foodGathered)) },
     },
     guild: {
       paybacks: paybacks(perDayByTier),
@@ -318,6 +362,12 @@ function warnings(summary: ProfileSummary, logs: RunLog[], targets: Targets): st
     out.push(`Gold piles up: more than ${targets.goldPileDays} days of income held for over ${targets.goldPileStreak} days in a row in ${piles.length}/${logs.length} runs (from about day ${median(piles)}).`);
   }
   if (summary.heroes.idleShare > targets.idleShare) out.push(`Heroes are left idle in ${Math.round(summary.heroes.idleShare * 100)}% of sessions.`);
+  const { food, starving } = summary.provisions;
+  // The food target is set for the regular profile.
+  if (profile === 'regular' && (food.share < targets.foodUse[0] || food.share > targets.foodUse[1])) {
+    out.push(`Food uses ${Math.round(food.share * 100)}% of the meat and berries gathered (target ${targets.foodUse.map((v) => v * 100).join('–')}%).`);
+  }
+  if (starving > targets.starvingShare) out.push(`${Math.round(starving * 100)}% of expeditions set out Starving (target under ${targets.starvingShare * 100}%).`);
   for (const m of summary.materials.neverUsed) out.push(`${m}: ${summary.materials.gathered[m]} gathered, never used.`);
   for (const p of summary.guild.paybacks) {
     if (p.days !== null && (p.days < targets.paybackDays[0] || p.days > targets.paybackDays[1])) {

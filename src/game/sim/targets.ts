@@ -17,6 +17,15 @@ export const targets = {
   unusedStockpile: 20,
   /** Share of Crappy pieces at a boss attempt. */
   crappyAtBoss: 0.5,
+  /** Share of the meat and berries the regular profile gathers that food (the kitchen) uses: [min, max]. */
+  foodUse: [0.6, 0.8] as [number, number],
+  /** Most runs that may start Starving. */
+  starvingShare: 0.1,
+  /**
+   * Rotating the roster must earn at least this many times the XP and gold per
+   * hour of sending the same 3 heroes to the shortest tier 1 dungeon over and over.
+   */
+  spamAdvantage: 1.2,
   /** Changes larger than this are highlighted by compare mode. */
   compareThreshold: 0.1,
 };

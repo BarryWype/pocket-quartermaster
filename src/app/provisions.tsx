@@ -2,7 +2,7 @@ import { CraftingStation } from '@/components/CraftingStation';
 import { useLanguage } from '@/hooks/useLanguage';
 import { t } from '@/i18n';
 
-export default function AlchemyScreen() {
+export default function ProvisionsScreen() {
   useLanguage();
-  return <CraftingStation station="alchemy" action={t('crafting.brew')} />;
+  return <CraftingStation station="provisions" action={t('crafting.brew')} />;
 }

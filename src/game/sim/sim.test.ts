@@ -9,6 +9,7 @@ import { simConfig } from './config';
 import { checkSave, runSim } from './engine';
 import { summarize } from './metrics';
 import { applyOverrides, parseOverride } from './overrides';
+import { spamCheck } from './spam';
 import { measureWalkRates } from './walking';
 
 // One short walk per pickaxe set keeps the tests quick; the CLI measures the full set.
@@ -58,5 +59,11 @@ describe('--set overrides', () => {
     expect(() => applyOverrides([parseOverride('guild.nope.baseCost=1')])).toThrow(/Unknown path/);
     expect(() => applyOverrides([parseOverride('dungeons.ratCellar.name=1')])).toThrow(/string/);
     expect(() => parseOverride('sim.odds.runs=lots')).toThrow();
+  });
+
+  it('makes rotating the roster beat spamming the shortest tier 1 dungeon with the same 3 heroes', () => {
+    const check = spamCheck(4);
+    expect(check.ratio.xp).toBeGreaterThan(1.2);
+    expect(check.ratio.gold).toBeGreaterThan(1.2);
   });
 });

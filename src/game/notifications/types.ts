@@ -4,6 +4,7 @@ export type NotificationCategory =
   | 'expeditionFinished'
   | 'bigResult'
   | 'heroesIdle'
+  | 'heroesRested'
   | 'chestUnlocked'
   | 'chestClose'
   | 'dailyReset';

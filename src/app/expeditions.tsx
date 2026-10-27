@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { HpBar } from '@/components/HpBar';
 import { Panel } from '@/components/Panel';
 import { PixelBar } from '@/components/PixelBar';
 import { IconSlot, Row, SectionTitle } from '@/components/Row';
@@ -13,7 +14,8 @@ import { TutorialHint } from '@/components/TutorialHint';
 import { abilityText } from '@/content/abilities';
 import { tutorialRules } from '@/content/tutorial';
 import { heroClasses } from '@/content/heroes';
-import { dungeonById, materialById, recipeById, recipeOutput } from '@/content/lookup';
+import { dungeonById, itemById, materialById, recipeById, recipeOutput } from '@/content/lookup';
+import { provisionRules } from '@/content/provisions';
 import { modifierById } from '@/content/modifiers';
 import { tagInfo } from '@/content/rotation';
 import { countersFor } from '@/game/dungeons/counters';
@@ -21,8 +23,9 @@ import { shardId } from '@/game/elements';
 import { guildRank, partySize } from '@/game/guild/guild';
 import { modifierFor, nextRotationAt, rotationDay, withModifier } from '@/game/dungeons/rotation';
 import { dungeonTags } from '@/game/dungeons/tags';
-import { bossBonusAvailable, expeditionMinutes, isDungeonAvailable, isDungeonUnlocked } from '@/game/expeditions/expeditions';
+import { bossBonusAvailable, expeditionMinutes, isDungeonAvailable, isDungeonUnlocked, type Loadout } from '@/game/expeditions/expeditions';
 import { estimateOdds, oddsBand } from '@/game/expeditions/odds';
+import { supplyHeld } from '@/game/expeditions/provisions';
 import { prepareParty } from '@/game/expeditions/simulate';
 import { isOnExpedition } from '@/game/team/team';
 import type { ExpeditionOutcome } from '@/game/types';
@@ -40,6 +43,7 @@ export default function ExpeditionsScreen() {
   const save = useGameStore((state) => state.save);
   const start = useGameStore((state) => state.startExpedition);
   const markReportsSeen = useGameStore((state) => state.markReportsSeen);
+  const closeCookingHint = useGameStore((state) => state.closeCookingHint);
   const askedPermission = useSettingsStore((state) => state.askedNotificationPermission);
   const setSettings = useSettingsStore((state) => state.set);
   const fastExpeditions = useDebugStore((state) => debugEnabled(state) && state.fastExpeditions);
@@ -66,8 +70,8 @@ export default function ExpeditionsScreen() {
   );
 
   /** The first launch asks, in game, before the OS permission prompt. */
-  const send = async (dungeonId: string, party: string[]) => {
-    start(dungeonId, party, durationScale);
+  const send = async (dungeonId: string, party: string[], loadout: Loadout) => {
+    start(dungeonId, party, durationScale, loadout);
     if (askedPermission) return;
     setSettings({ askedNotificationPermission: true });
     const permission = await deviceNotifications.getPermission().catch(() => null);
@@ -107,10 +111,12 @@ export default function ExpeditionsScreen() {
       .sort((a, b) => a.tier - b.tier);
   }, [rotation, save]);
 
-  // Simulated runs per open dungeon; recomputed only when the party, the save or the rotation changes.
+  // Simulated runs per open dungeon with current HP; recomputed when the party, the save or the rotation
+  // changes, and once a minute as heroes heal.
+  const minute = Math.floor(now / 60_000);
   const odds = useMemo(
-    () => Object.fromEntries(open.map((d) => [d.id, estimateOdds(save, party, d)])),
-    [save, party, open],
+    () => Object.fromEntries(open.map((d) => [d.id, estimateOdds(save, party, d, undefined, { now: minute * 60_000 })])),
+    [save, party, open, minute],
   );
 
   const focusedDungeon = open.find((d) => d.id === focused);
@@ -125,9 +131,16 @@ export default function ExpeditionsScreen() {
     setSelected([...party, heroId]);
   };
 
+  const lowSupply = save.tutorial.step === 'done' && !save.cookingHintSeen && supplyHeld(save.consumables) < provisionRules.lowStockPoints;
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <TutorialHint screen="expeditions" />
+      {lowSupply && (
+        <Pressable onPress={closeCookingHint} style={styles.hint}>
+          <Text style={styles.hintText}>{t('map.cookingHint')}</Text>
+        </Pressable>
+      )}
       {save.expeditions.length > 0 && <SectionTitle>{t('expeditions.underWay')}</SectionTitle>}
       {save.expeditions.map((expedition) => {
         const dungeon = dungeonById[expedition.dungeonId];
@@ -165,6 +178,7 @@ export default function ExpeditionsScreen() {
                   {hero.name}
                 </Text>
                 <Text style={styles.heroLevel}>{away ? t('expeditions.away') : t('common.levelShort', { level: hero.level })}</Text>
+                {!away && <HpBar save={save} hero={hero} now={now} />}
                 {good.length > 0 && (
                   <Tip title={t('expeditions.goodHereTitle', { name: hero.name })} text={good.map(abilityText).join('\n')} style={styles.goodHere}>
                     <Text style={styles.goodHereText}>★ {t('expeditions.goodHere')}</Text>
@@ -269,13 +283,13 @@ export default function ExpeditionsScreen() {
           save={save}
           dungeon={confirmingDungeon}
           party={party}
-          chance={odds[confirmingDungeon.id].success}
-          durationMs={expeditionMinutes(save, confirmingDungeon) * 60_000 * durationScale}
+          durationScale={durationScale}
           now={now}
           onClose={() => setConfirming(null)}
-          onConfirm={() => {
+          onSwap={(out, into) => setSelected(party.map((id) => (id === out ? into : id)))}
+          onConfirm={(loadout) => {
             setConfirming(null);
-            send(confirmingDungeon.id, party);
+            send(confirmingDungeon.id, party, loadout);
           }}
         />
       )}
@@ -298,6 +312,11 @@ export default function ExpeditionsScreen() {
             return t('expeditions.lure');
           }),
           `+${report.xp} XP`,
+          report.hunger && report.hunger !== 'fed' ? t(`expeditions.hunger.${report.hunger}`) : null,
+          report.mealId ? `${itemById[report.mealId].emoji} ${tr(itemById[report.mealId].name)}` : null,
+          report.kitId
+            ? `${itemById[report.kitId].emoji} ${t(report.kitUsed ? 'expeditions.kitUsed' : 'expeditions.kitBack', { kit: tr(itemById[report.kitId].name) })}`
+            : null,
         ].filter(Boolean);
         return (
           <Panel key={report.id} borderColor={OUTCOME_COLORS[report.outcome]} color={report.seen ? undefined : colors.highlight}>
@@ -320,7 +339,7 @@ export default function ExpeditionsScreen() {
                 </View>
               ))}
             </View>
-            {report.heroHp.map(({ heroId, hp, maxHp }) => (
+            {report.heroHp.map(({ heroId, hp, maxHp, before }) => (
               <View key={heroId} style={styles.hp}>
                 <Text style={styles.hpName} numberOfLines={1}>
                   {save.heroes.find((h) => h.id === heroId)?.name ?? heroId}
@@ -329,7 +348,7 @@ export default function ExpeditionsScreen() {
                   <PixelBar value={hp / maxHp} color={hp / maxHp < 0.3 ? colors.danger : colors.success} />
                 </View>
                 <Text style={styles.muted}>
-                  {hp}/{maxHp}
+                  {before === undefined ? `${hp}/${maxHp}` : t('expeditions.hpChange', { before, hp, max: maxHp })}
                 </Text>
               </View>
             ))}
@@ -387,5 +406,7 @@ const styles = StyleSheet.create({
   logLine: { fontSize: 18 },
   hp: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   hpName: { width: 90 },
+  hint: { padding: 10, marginBottom: 8, borderWidth: pixel.outline, borderColor: colors.ink, backgroundColor: colors.wood },
+  hintText: { color: colors.parchment, fontSize: 18 },
   hpBar: { flex: 1 },
 });

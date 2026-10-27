@@ -19,7 +19,7 @@ import { traits } from '../traits';
 export function contentTexts(): string[] {
   const texts = [
     ...materials.map((m) => m.name),
-    ...items.map((i) => i.name),
+    ...items.flatMap((i) => [i.name, ...(i.description ? [i.description] : [])]),
     ...resources.map((r) => r.name),
     ...chests.map((c) => c.name),
     ...dungeons.flatMap((d) => [

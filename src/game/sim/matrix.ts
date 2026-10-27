@@ -40,7 +40,7 @@ export function referenceTeam(classes: HeroClassId[], tier: number, quality: Qua
     ...createInitialSave(),
     tutorial: { step: 'done', woodSpot: null },
     heroes,
-    consumables: { healingPotion: classes.length },
+    consumables: { ...createInitialSave().consumables, healingPotion: classes.length },
     gear: classes.flatMap((classId, i) => [
       { uid: `w${i}`, itemId: weaponFor(classId, tier).id, quality },
       { uid: `a${i}`, itemId: armour.id, quality },

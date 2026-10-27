@@ -1,6 +1,7 @@
 import type { SaveData } from '../save';
 import type { DungeonDef } from '../types';
-import { prepareParty, simulateRun } from './simulate';
+import { launchPlan, runProvisions, type Loadout } from './expeditions';
+import { prepareParty, simulateRun, type PartyMember, type RunProvisions } from './simulate';
 
 export type Odds = {
   /** Share of runs that beat the boss (0-1). */
@@ -20,23 +21,39 @@ export type OddsBand = 'Risky' | 'Fair' | 'Safe';
  */
 export const ODDS_RUNS = 300;
 
-/**
- * Estimates a party's chances by running the dungeon with many seeds. The real
- * expedition uses its own seed, so this is a preview, not a promise.
- */
-export function estimateOdds(save: SaveData, heroIds: string[], dungeon: DungeonDef, runs = ODDS_RUNS): Odds {
-  const party = prepareParty(save, heroIds);
+export type OddsOptions = {
+  /** HP is taken at this time; left out, as stored. */
+  now?: number;
+  loadout?: Loadout;
+  /** Every hero at full HP, for comparison. */
+  fullHp?: boolean;
+};
+
+/** Runs a prepared party through the dungeon with many seeds. */
+export function estimatePartyOdds(party: PartyMember[], dungeon: DungeonDef, runs = ODDS_RUNS, provisions: RunProvisions = {}): Odds {
   if (party.length === 0) return { success: 0, flawless: 0, progress: 0 };
   let success = 0;
   let flawless = 0;
   let progress = 0;
   for (let i = 0; i < runs; i++) {
-    const run = simulateRun(party, dungeon, `odds|${dungeon.id}|${i}`);
+    const run = simulateRun(party, dungeon, `odds|${dungeon.id}|${i}`, provisions);
     if (run.bossDefeated) success++;
     if (run.outcome === 'flawless') flawless++;
     progress += run.encountersCleared / run.encounterCount;
   }
   return { success: success / runs, flawless: flawless / runs, progress: progress / runs };
+}
+
+/**
+ * Estimates a party's chances by running the dungeon with many seeds, with
+ * their current HP and the supply, meal and kit they would take. The real
+ * expedition uses its own seed, so this is a preview, not a promise.
+ */
+export function estimateOdds(save: SaveData, heroIds: string[], dungeon: DungeonDef, runs = ODDS_RUNS, options: OddsOptions = {}): Odds {
+  const { now, loadout = {}, fullHp = false } = options;
+  const party = prepareParty(save, heroIds, now).map((m) => (fullHp ? { ...m, hp: m.maxHp } : m));
+  const { hunger } = launchPlan(save, dungeon, heroIds, loadout);
+  return estimatePartyOdds(party, dungeon, runs, runProvisions(hunger, loadout));
 }
 
 export function oddsBand(success: number): OddsBand {

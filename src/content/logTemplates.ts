@@ -25,7 +25,30 @@ export const logTemplates = {
   /** Appended to a fight line for whoever took the most damage. */
   tookDamage: ' {hero} took {damage} damage.',
   /** Before the boss line. */
-  ration: '{hero} ate a ration. ',
+  stew: 'The party shared a Hunter’s stew before the fight. ',
+  /** The first line when the party set out short of food. */
+  hunger: {
+    underfed: 'Short on food, the party set out hungry.',
+    starving: 'With nothing to eat, the party set out starving.',
+  },
+  /** A kit standing in for a missing ability. */
+  kits: {
+    lockpicks: 'With the lockpicks, the party opened the {obstacle}.',
+    ropeAndPitons: 'With rope and pitons, the party climbed over the {obstacle}.',
+    torches: 'The party’s torches burned through the {obstacle}.',
+    bait: 'The party threw out bait, and {mobs} slunk away after it.',
+    /** Before the fight line. */
+    baitIgnored: '{mobs} ignored the bait. ',
+    /** Appended to the fight line. */
+    holyWater: ' Holy water made the undead burn.',
+  },
+  giftsHelp: {
+    heal: 'The party’s gifts won over the {npc}, who patched everyone up.',
+    gold: 'The party’s gifts won over the {npc}, who paid {gold} gold for the company.',
+    tip: 'The party’s gifts won over the {npc}, who pointed out a trap ahead.',
+  } satisfies Record<NpcHelp['kind'], string>,
+  /** Appended to a trap line, or the whole line when nobody else was caught. */
+  ward: ' {hero}’s ward bone turned the {trap} away.',
   potion: ' {hero} drank a healing potion.',
   knockedOut: ' {hero} was knocked out.',
   knockedOutMany: ' {heroes} were knocked out.',

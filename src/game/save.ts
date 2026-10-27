@@ -1,6 +1,7 @@
 import { MASTERY_TYPES } from '@/content/forging';
 import type { GuildTrackId } from '@/content/guild';
 import { startingHeroes } from '@/content/heroes';
+import { provisionRules } from '@/content/provisions';
 import { recipes } from '@/content/recipes';
 
 import type { LatLng } from './generation/types';
@@ -72,6 +73,8 @@ export type SaveData = {
   takenOffers: Record<string, number>;
   /** The "taverns are open" tip was closed. */
   tavernHintSeen: boolean;
+  /** The cooking tip (shown when supply first runs low) was closed. */
+  cookingHintSeen: boolean;
   /** Guild Hall ranks bought, by track. */
   guild: Partial<Record<GuildTrackId, number>>;
   /** Needed for ⭐ Guild Hall milestones. */
@@ -88,7 +91,7 @@ export function createInitialSave(): SaveData {
   return {
     gold: 0,
     materials: {},
-    consumables: {},
+    consumables: { ...provisionRules.startingStock },
     gear: [],
     tools: [],
     heroes: startingHeroes,
@@ -110,6 +113,7 @@ export function createInitialSave(): SaveData {
     usedSanctums: {},
     takenOffers: {},
     tavernHintSeen: false,
+    cookingHintSeen: false,
     guild: {},
     charters: 0,
     trainedAt: null,

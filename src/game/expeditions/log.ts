@@ -7,7 +7,7 @@ import { fill, getLocale, localized, t, tr } from '@/i18n';
 
 import { shardId } from '../elements';
 import type { Rng } from '../generation/rng';
-import type { DungeonDef, MainReward, MobGroup } from '../types';
+import type { DungeonDef, Hunger, MainReward, MobGroup } from '../types';
 import type { AbilityEffect, EncounterResult, PartyMember, RunResult } from './simulate';
 
 export type LogInput = {
@@ -21,7 +21,12 @@ export type LogInput = {
   charter?: boolean;
   /** Replaces the usual outcome line, e.g. for Sanctum fights. */
   summary?: string;
+  hunger?: Hunger;
+  /** The kit the party carried, for its lines. */
+  kitId?: string | null;
 };
+
+type KitLine = 'lockpicks' | 'ropeAndPitons' | 'torches';
 
 const pick = <T>(rng: Rng, list: readonly T[]) => list[rng.int(0, list.length - 1)];
 
@@ -55,8 +60,8 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
     return getLocale() === 'fr' ? article('le', name) : `the ${name}`;
   };
 
-  const usedWhen = (encounter: EncounterResult, when: 'lowHp' | 'beforeBoss') =>
-    encounter.consumed.filter((id) => party.find((m) => m.heroId === id)?.consumable?.when === when);
+  const potions = (encounter: EncounterResult) => encounter.consumed.map((id) => fill(logTemplates.potion, { hero: nameOf(id) }));
+  const kitUsed = (encounter: EncounterResult) => encounter.effects.find((e) => e.key === 'kit');
 
   const knockedOut = (encounter: EncounterResult) => {
     const names = encounter.knockedOut.map(nameOf);
@@ -80,6 +85,8 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
             return [fill(logTemplates[e.key], { hero })];
           case 'protect':
             return [fill(logTemplates.protect, { hero, ally: nameOf(e.allyId!) })];
+          case 'kit':
+            return input.kitId === 'holyWater' ? [logTemplates.kits.holyWater] : [];
           default:
             return [];
         }
@@ -92,7 +99,7 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
     return [
       combatNotes(encounter),
       hurt ? fill(logTemplates.tookDamage, { hero: hurt.name, damage: Math.round(encounter.taken[hurt.heroId]) }) : '',
-      ...usedWhen(encounter, 'lowHp').map((id) => fill(logTemplates.potion, { hero: nameOf(id) })),
+      ...potions(encounter),
       knockedOut(encounter),
     ].join('');
   };
@@ -115,6 +122,8 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
     switch (encounter.kind) {
       case 'fight':
       case 'ambush': {
+        const bait = input.kitId === 'bait' ? kitUsed(encounter) : undefined;
+        if (encounter.calmed && bait) return fill(logTemplates.kits.bait, { mobs: describeMobs(encounter.mobs) });
         if (encounter.calmed) {
           return fill(pick(rng, logTemplates.calmed), {
             hero: effectHero(encounter, 'calm'),
@@ -124,16 +133,17 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
         const alert = effect(encounter, 'alert');
         const prefix =
           encounter.kind !== 'ambush' ? '' : alert ? fill(logTemplates.ambushAlert, { hero: effectHero(encounter, 'alert') }) : logTemplates.ambush;
-        return prefix + capitalised(fightSentence(encounter)) + aftermath(encounter);
+        const ignored = bait ? capitalised(fill(logTemplates.kits.baitIgnored, { mobs: describeMobs(encounter.mobs) })) : '';
+        return prefix + ignored + capitalised(fightSentence(encounter)) + aftermath(encounter);
       }
       case 'boss': {
         const star = top(party, encounter.dealt);
-        const rations = usedWhen(encounter, 'beforeBoss').map((id) => fill(logTemplates.ration, { hero: nameOf(id) }));
+        const stew = effect(encounter, 'stew') ? logTemplates.stew : '';
         const sentence =
           encounter.cleared && star
             ? fill(pick(rng, logTemplates.bossWon), { hero: star.name, boss: tr(encounter.name), weapon: weaponOf(star) })
             : fill(pick(rng, logTemplates.bossLost), { boss: tr(encounter.name) });
-        return rations.join('') + sentence + aftermath(encounter);
+        return stew + sentence + aftermath(encounter);
       }
       case 'trap': {
         const trap = tr(encounter.name);
@@ -143,8 +153,11 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
         }
         if (!encounter.trapTriggered) return fill(pick(rng, logTemplates.trapMissed), { trap });
         const hit = Object.keys(encounter.taken);
+        const wards = encounter.effects.filter((e) => e.key === 'ward').map((e) => fill(logTemplates.ward, { hero: nameOf(e.heroId!), trap }));
         const line =
-          hit.length === 1
+          hit.length === 0
+            ? ''
+            : hit.length === 1
             ? fill(pick(rng, logTemplates.trapHit), {
                 trap,
                 hero: nameOf(hit[0]),
@@ -154,11 +167,11 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
         const reduced = effect(encounter, 'trapReduce')
           ? fill(logTemplates.trapReduced, { hero: effectHero(encounter, 'trapReduce') })
           : '';
-        const potions = usedWhen(encounter, 'lowHp').map((id) => fill(logTemplates.potion, { hero: nameOf(id) }));
-        return [line, reduced, ...potions, knockedOut(encounter)].join('');
+        return [line, ...wards, reduced, ...potions(encounter), knockedOut(encounter)].join('').trim();
       }
       case 'obstacle': {
         const obstacle = tr(encounter.name);
+        if (kitUsed(encounter)) return fill(logTemplates.kits[input.kitId as KitLine], { obstacle });
         const solved = effect(encounter, 'solve');
         if (solved) {
           const kind = dungeon.encounters.find((e) => e.type === 'obstacle' && e.name === encounter.name);
@@ -179,6 +192,7 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
         const npc = tr(encounter.name);
         switch (encounter.reaction) {
           case 'help':
+            if (kitUsed(encounter)) return fill(logTemplates.giftsHelp[encounter.help!.kind], { npc, gold: encounter.gold });
             return fill(logTemplates.localsHelp[encounter.help!.kind], {
               hero: effectHero(encounter, 'charm'),
               npc,
@@ -223,6 +237,7 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
     total: run.encounterCount,
   });
   return [
+    ...(input.hunger && input.hunger !== 'fed' ? [logTemplates.hunger[input.hunger]] : []),
     ...run.encounters.map((encounter) =>
       capitalised(
         lineFor(encounter) +

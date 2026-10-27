@@ -34,6 +34,7 @@ import {
   reachChance,
   recruitHeroes,
   sendExpeditions,
+  stockProvisions,
   type RunLog,
   type Sim,
 } from './bot';
@@ -106,6 +107,7 @@ function session(sim: Sim, walkMinutes: number, steps: number, dayKey: string, f
 
   if (sim.save.tutorial.step !== 'done') playTutorial(sim);
   forge(sim);
+  stockProvisions(sim);
   infuseWeapons(sim);
   recruitHeroes(sim);
   buyGuildRanks(sim);
@@ -144,6 +146,7 @@ export function runSim({ profile: name, days, seed, rates, config = simConfig, a
     },
     oddsCache: new Map(),
     launched: new Map(),
+    waiting: new Set(),
     log: {
       profile: name,
       seed,
@@ -160,6 +163,8 @@ export function runSim({ profile: name, days, seed, rates, config = simConfig, a
       sanctums: [],
       recruits: [],
       guildBuys: [],
+      potionsAtHome: 0,
+      emergencySupply: 0,
     },
   };
 

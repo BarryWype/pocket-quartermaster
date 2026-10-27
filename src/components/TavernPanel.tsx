@@ -9,7 +9,15 @@ import { traitById } from '@/content/traits';
 import { distanceMeters } from '@/game/generation/geo';
 import { rosterCap } from '@/game/guild/guild';
 import type { LatLng } from '@/game/generation/types';
-import { recruitProblem, tavernOffers, type RecruitOffer, type RecruitProblem, type TavernSpawn } from '@/game/taverns/taverns';
+import {
+  buySupplyProblem,
+  recruitProblem,
+  supplyPrice,
+  tavernOffers,
+  type RecruitOffer,
+  type RecruitProblem,
+  type TavernSpawn,
+} from '@/game/taverns/taverns';
 import type { WeaponType } from '@/game/types';
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
 import { t, tr } from '@/i18n';
@@ -34,6 +42,7 @@ type Props = { tavern: TavernSpawn; player: LatLng; onClose: () => void };
 export function TavernPanel({ tavern, player, onClose }: Props) {
   const save = useGameStore((state) => state.save);
   const recruit = useGameStore((state) => state.recruit);
+  const buySupply = useGameStore((state) => state.buySupply);
   const offerSeed = useDebugStore((state) => (debugEnabled(state) ? state.offerSeed : ''));
   const [openedAt] = useState(() => Date.now());
   const offers = tavernOffers(save, tavern.id, openedAt, offerSeed);
@@ -74,6 +83,18 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
               {t('tavern.header', { gold: save.gold, count: save.heroes.length, cap: rosterCap(save) })}
             </Text>
             {offers.map(offerRow)}
+            <View style={styles.offer}>
+              <Text style={styles.name}>🥓 {t('tavern.emergency')}</Text>
+              <Text style={styles.muted}>{t('tavern.emergencyHint', { held: save.consumables.jerky ?? 0 })}</Text>
+              <View style={styles.actions}>
+                <Text style={styles.price}>🪙 {supplyPrice(save)}</Text>
+                <Button
+                  title={t('tavern.buy')}
+                  disabled={buySupplyProblem(save, 1, tavern.position, player) !== null}
+                  onPress={() => buySupply(1, tavern.position, player)}
+                />
+              </View>
+            </View>
           </ScrollView>
           <Button title={t('common.close')} onPress={onClose} />
         </View>

@@ -20,9 +20,11 @@ import { fill } from '@/game/notifications/plan';
 import type { NotificationCategory } from '@/game/notifications/types';
 import { masteryCap, masteryOf } from '@/game/forging/mastery';
 import { guildRank } from '@/game/guild/guild';
+import { currentHp, isExhausted, maxHp } from '@/game/team/health';
 import type { HeroClassId, MainRewardKind, Quality } from '@/game/types';
 import { deviceLocation } from '@/services/location';
 import { deviceNotifications } from '@/services/notifications';
+import { useNow } from '@/hooks/useNow';
 import { currentRotation, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 
@@ -31,6 +33,7 @@ const STEP_METERS = [10, 50];
 const TIMES_OF_DAY: (TimeOfDay | null)[] = [null, 'dawn', 'day', 'dusk', 'night'];
 const WINDOWS: (number | null)[] = [null, 1, 5, 15];
 const TIERS = [1, 2, 3, 4, 5];
+const HP_SHARES = [0, 0.25, 0.5, 0.75];
 const MAIN_REWARDS: (MainRewardKind | null)[] = [null, 'goldPouch', 'sigil', 'treasureMap', 'lure'];
 const GEAR_ITEMS = items.filter((item) => item.slot === 'weapon' || item.slot === 'armor');
 const MAX_MASTERY = masteryCap(5);
@@ -44,6 +47,7 @@ const SAMPLE_NOTIFICATIONS: Record<NotificationCategory, { title: string; body: 
     body: fill(texts.bigResult.body, { dungeon: 'Bandit Stockade', highlights: texts.highlights.boss }),
   },
   heroesIdle: texts.heroesIdle,
+  heroesRested: texts.heroesRested,
   chestUnlocked: { ...texts.chestUnlocked, body: fill(texts.chestUnlocked.body, { chest: 'wooden chest' }) },
   chestClose: { ...texts.chestClose, body: fill(texts.chestClose.body, { steps: 600, chest: 'iron chest' }) },
   dailyReset: texts.dailyReset,
@@ -87,6 +91,10 @@ export default function DebugScreen() {
   const [heroClass, setHeroClass] = useState<HeroClassId>('thief');
   const [heroLevel, setHeroLevel] = useState(1);
   const [heroTrait, setHeroTrait] = useState(traits[0].id);
+  const [hpHero, setHpHero] = useState(game.save.heroes[0]?.id ?? '');
+  const now = useNow();
+  const hpHeroState = game.save.heroes.find((h) => h.id === hpHero);
+  const hpShareNow = hpHeroState ? currentHp(game.save, hpHeroState, now) / maxHp(game.save, hpHeroState) : 1;
   const [guildTrack, setGuildTrack] = useState<GuildTrackId>('gold');
   const [rotationSlot, setRotationSlot] = useState<'short' | 'long'>('short');
   const rotation = currentRotation();
@@ -314,6 +322,30 @@ export default function DebugScreen() {
       />
       <Text style={styles.hint}>A forced modifier goes on the dungeon in the selected slot, whatever its tags.</Text>
       <Button title="Reset first-clear bonuses" onPress={game.resetFirstClears} />
+
+      <Text style={styles.title}>Hero HP and provisions</Text>
+      <Choice
+        options={game.save.heroes.map((h) => h.id)}
+        value={hpHero}
+        label={(id) => {
+          const hero = game.save.heroes.find((h) => h.id === id)!;
+          return `${hero.name} ${Math.floor(currentHp(game.save, hero, now))}/${maxHp(game.save, hero)}${isExhausted(hero, now) ? ' 💤' : ''}`;
+        }}
+        onChange={setHpHero}
+      />
+      <View style={styles.row}>
+        {HP_SHARES.map((share) => (
+          <Button key={share} title={`${share * 100}%`} onPress={() => game.setHeroHp(hpHero, share, false)} />
+        ))}
+        <Button title="Knock out" onPress={() => game.setHeroHp(hpHero, 0, true)} />
+        <Button title="Clear exhaustion" onPress={() => game.setHeroHp(hpHero, hpShareNow, false)} />
+      </View>
+      <View style={styles.row}>
+        <Button title="Heal everyone" onPress={game.healAll} />
+        <Button title="+10 min healing" onPress={() => game.fastForwardHealing(10)} />
+        <Button title="+1 h healing" onPress={() => game.fastForwardHealing(60)} />
+      </View>
+      <Button title="+5 of every food, kit and charm" onPress={() => game.addProvisions(5)} />
 
       <Text style={styles.title}>Expeditions</Text>
       <View style={styles.row}>

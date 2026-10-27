@@ -1,6 +1,6 @@
 import { dungeons as allDungeons, expeditionRules } from '@/content/dungeons';
 import { xpRules } from '@/content/heroes';
-import { dungeonById, recipeById, recipeOutput } from '@/content/lookup';
+import { dungeonById, itemById, recipeById, recipeOutput } from '@/content/lookup';
 import { modifierById } from '@/content/modifiers';
 import { mainRewardRules } from '@/content/mainRewards';
 import { firstClearRules } from '@/content/rotation';
@@ -16,11 +16,13 @@ import { addMaterials } from '../inventory';
 import { rollLoot } from '../rewards/loot';
 import { grantMainRewards, type MainRewardOptions } from '../rewards/mainRewards';
 import type { SaveData } from '../save';
-import { addXp, isOnExpedition } from '../team/team';
+import { applyRunHp, settleHp } from '../team/health';
+import { addXp, heroAbilities, heroStats, isOnExpedition } from '../team/team';
 import { isTutorialExpedition } from '../tutorial/tutorial';
-import type { ActiveExpedition, DungeonDef, ExpeditionReport } from '../types';
+import type { ActiveExpedition, DungeonDef, ExpeditionReport, Hunger, ProvisionDef } from '../types';
 import { buildLog } from './log';
-import { prepareParty, simulateRun, type ExpeditionRules, type PartyMember } from './simulate';
+import { heroSupplyNeed, hungerFor, pickSupply, supplyHeld, type SupplyPick } from './provisions';
+import { prepareParty, simulateRun, type ExpeditionRules, type PartyMember, type RunProvisions } from './simulate';
 
 /** Tier 1 is open from the start; tier N opens once a tier N-1 boss has been beaten. */
 export function isDungeonUnlocked(save: SaveData, dungeon: DungeonDef, dungeons: DungeonDef[] = allDungeons) {
@@ -57,6 +59,48 @@ export function expeditionMinutes(save: SaveData, dungeon: DungeonDef) {
   return dungeon.durationMinutes * (1 - guildBonus(save, 'fasterExpeditions'));
 }
 
+/** The optional meal and kit for an expedition (provision item ids). */
+export type Loadout = { mealId?: string | null; kitId?: string | null };
+
+export type LaunchPlan = {
+  /** Duration after the meal. */
+  minutes: number;
+  /** Supply points needed, held, and what would be taken. */
+  need: number;
+  held: number;
+  supply: SupplyPick;
+  hunger: Hunger;
+};
+
+const provision = (id: string | null | undefined) => {
+  const item = id ? itemById[id] : null;
+  return item?.slot === 'provision' ? (item as ProvisionDef) : null;
+};
+
+/** Supply and duration for sending these heroes with this loadout now. */
+export function launchPlan(save: SaveData, dungeon: DungeonDef, heroIds: string[], loadout: Loadout = {}): LaunchPlan {
+  const base = expeditionMinutes(save, dungeon);
+  const need = save.heroes
+    .filter((h) => heroIds.includes(h.id))
+    .reduce((sum, hero) => sum + heroSupplyNeed(heroAbilities(hero), base), 0);
+  const supply = pickSupply(save.consumables, need);
+  const meal = provision(loadout.mealId)?.meal;
+  return {
+    minutes: base * (meal?.kind === 'duration' ? meal.multiplier : 1),
+    need,
+    held: supplyHeld(save.consumables),
+    supply,
+    hunger: hungerFor(supply.points, need),
+  };
+}
+
+/** The run's provisions from what the party took: the odds preview and the real run use this. */
+export const runProvisions = (hunger: Hunger, loadout: Loadout = {}): RunProvisions => ({
+  hunger,
+  meal: provision(loadout.mealId)?.meal ?? null,
+  kit: provision(loadout.kitId)?.kit ?? null,
+});
+
 export function startExpedition(
   save: SaveData,
   dungeonId: string,
@@ -65,6 +109,7 @@ export function startExpedition(
   durationScale = 1,
   /** Today's rotation: the dungeon must be open, and its modifier is kept for the run. */
   rotation?: Rotation,
+  loadout: Loadout = {},
 ): SaveData {
   const dungeon = dungeonById[dungeonId];
   if (!dungeon) throw new Error(`Unknown dungeon ${dungeonId}`);
@@ -75,6 +120,24 @@ export function startExpedition(
     if (!save.heroes.some((h) => h.id === heroId)) throw new Error(`Unknown hero ${heroId}`);
     if (isOnExpedition(save, heroId)) throw new Error(`${heroId} is already away`);
   }
+  const consumables = { ...save.consumables };
+  const take = (itemId: string, count: number) => {
+    if ((consumables[itemId] ?? 0) < count) throw new Error(`No ${itemId} left`);
+    consumables[itemId] -= count;
+  };
+  if (loadout.mealId) {
+    if (!provision(loadout.mealId)?.meal) throw new Error(`${loadout.mealId} is not a meal`);
+    take(loadout.mealId, 1);
+  }
+  if (loadout.kitId) {
+    if (!provision(loadout.kitId)?.kit) throw new Error(`${loadout.kitId} is not a kit`);
+    take(loadout.kitId, 1);
+  }
+
+  // Heroes set out with the HP they have now, and keep it until they come back.
+  const settled = settleHp(save, now);
+  const plan = launchPlan(settled, dungeon, heroIds, loadout);
+  for (const [itemId, count] of Object.entries(plan.supply.items)) take(itemId, count);
 
   const id = `x${save.nextUid}`;
   const expedition: ActiveExpedition = {
@@ -83,13 +146,17 @@ export function startExpedition(
     heroIds,
     startedAt: now,
     // Whole seconds, so the notification and the timer agree.
-    endsAt: now + Math.round(expeditionMinutes(save, dungeon) * 60 * durationScale) * 1000,
+    endsAt: now + Math.round(plan.minutes * 60 * durationScale) * 1000,
     seed: `${id}:${now}`,
     guaranteed: isTutorialExpedition(save),
     modifierId: rotation ? (modifierFor(rotation, dungeonId)?.id ?? null) : null,
+    hunger: plan.hunger,
+    supplyUsed: plan.supply.points,
+    mealId: loadout.mealId ?? null,
+    kitId: loadout.kitId ?? null,
     notificationId: null,
   };
-  return { ...save, expeditions: [...save.expeditions, expedition], nextUid: save.nextUid + 1 };
+  return { ...settled, consumables, expeditions: [...save.expeditions, expedition], nextUid: save.nextUid + 1 };
 }
 
 /**
@@ -103,14 +170,21 @@ export function resolveExpedition(
 ): { save: SaveData; report: ExpeditionReport } {
   const dungeon = withModifier(dungeonById[expedition.dungeonId], expedition.modifierId ? modifierById[expedition.modifierId] : null);
   const party = prepareParty(save, expedition.heroIds);
-  const run = simulateRun(party, dungeon, `${expedition.seed}|run`, { rules, guaranteed: expedition.guaranteed });
+  const loadout = { mealId: expedition.mealId, kitId: expedition.kitId };
+  const run = simulateRun(party, dungeon, `${expedition.seed}|run`, {
+    rules,
+    guaranteed: expedition.guaranteed,
+    ...runProvisions(expedition.hunger ?? 'fed', loadout),
+  });
+  const meal = provision(expedition.mealId)?.meal;
   // Separate streams so a change to the run doesn't reshuffle the rewards, and vice versa.
   const rng = createRng(expedition.seed);
   const success = run.bossDefeated;
   const progress = run.encountersCleared / run.encounterCount;
   // Calmed beasts let the party through but bring nothing back.
   // Better retreats (Guild Hall) raise what a failed run brings back, up to a full clear.
-  const retreat = success ? 1 : 1 + guildBonus(save, 'betterRetreats');
+  // Comfort broth adds to it.
+  const retreat = success ? 1 : 1 + guildBonus(save, 'betterRetreats') + (meal?.kind === 'retreat' ? meal.bonus : 0);
   const lootShare = Math.min(1, ((run.encountersCleared - run.encountersCalmed) / run.encounterCount) * retreat);
   const multipliers = dungeon.rewardMultipliers ?? { gold: 1, materials: 1 };
   const guildGold = 1 + guildBonus(save, 'gold');
@@ -119,8 +193,11 @@ export function resolveExpedition(
   const traitGold = [...new Set(party.map((m) => m.traitId))]
     .flatMap((id) => traitById[id]?.effects ?? [])
     .reduce((product, e) => product * (e.kind === 'goldMultiplier' ? e.multiplier : 1), 1);
+  // Merchant's pie, and one Lucky tooth for the party however many there are.
+  const charmGold = Math.max(1, ...party.map((m) => (m.consumable?.charm?.kind === 'gold' ? m.consumable.charm.multiplier : 1)));
+  const mealGold = meal?.kind === 'gold' ? meal.multiplier : 1;
   let gold = Math.round(
-    (rng.int(dungeon.gold[0], dungeon.gold[1]) * lootShare * multipliers.gold + run.bonusGold) * guildGold * traitGold,
+    (rng.int(dungeon.gold[0], dungeon.gold[1]) * lootShare * multipliers.gold + run.bonusGold) * guildGold * traitGold * charmGold * mealGold,
   );
   let materials = rollLoot(rng, dungeon.loot)
     .map((stack) => ({ ...stack, amount: Math.floor(stack.amount * lootShare * multipliers.materials) }))
@@ -162,13 +239,16 @@ export function resolveExpedition(
     const itemId = member.consumable!.id;
     consumables[itemId] = (consumables[itemId] ?? 0) + 1;
   }
+  // A kit that never triggered comes back.
+  if (expedition.kitId && !run.kitUsed) consumables[expedition.kitId] = (consumables[expedition.kitId] ?? 0) + 1;
+  const mealXp = meal?.kind === 'xp' ? meal.multiplier : 1;
 
   const heroes = save.heroes.map((hero) => {
     if (!expedition.heroIds.includes(hero.id)) return hero;
     const xpBonus = (traitById[hero.trait]?.effects ?? []).reduce((m, e) => m * (e.kind === 'xpMultiplier' ? e.multiplier : 1), 1);
     return addXp(
       { ...hero, equipment: { ...hero.equipment, consumable: null } },
-      Math.round((xp + (firstClear?.xp ?? 0)) * xpBonus * (1 + guildBonus(save, 'heroXp'))),
+      Math.round((xp + (firstClear?.xp ?? 0)) * xpBonus * mealXp * (1 + guildBonus(save, 'heroXp'))),
     );
   });
 
@@ -194,6 +274,16 @@ export function resolveExpedition(
       success && dungeon.isBoss && dailyBonus ? { ...save.bossBonusDays, [dungeon.id]: rotationDay(expedition.endsAt) } : save.bossBonusDays,
   };
   if (recipeId) next = unlockRecipe(next, recipeId);
+  // Heroes come back with the HP the run left them, as a share of their max after any level up.
+  next = applyRunHp(
+    next,
+    run.hp.map((h) => {
+      const hero = next.heroes.find((x) => x.id === h.heroId)!;
+      const max = heroStats(next, hero).hp;
+      return { heroId: h.heroId, hp: h.maxHp > 0 ? (h.hp / h.maxHp) * max : 0, maxHp: max };
+    }),
+    expedition.endsAt,
+  );
 
   // Main rewards: only for successes. The tutorial run always brings back a Sigil.
   let mainRewards: ExpeditionReport['mainRewards'] = [];
@@ -222,6 +312,8 @@ export function resolveExpedition(
       mainRewards,
       firstClear,
       charter,
+      hunger: expedition.hunger,
+      kitId: expedition.kitId,
     },
     createRng(`${expedition.seed}|log`),
   );
@@ -235,7 +327,12 @@ export function resolveExpedition(
     success,
     encountersCleared: run.encountersCleared,
     encounterCount: run.encounterCount,
-    heroHp: run.hp,
+    heroHp: run.hp.map((h) => ({ ...h, before: Math.round(party.find((m) => m.heroId === h.heroId)?.hp ?? h.maxHp) })),
+    hunger: expedition.hunger,
+    supplyUsed: expedition.supplyUsed,
+    mealId: expedition.mealId ?? null,
+    kitId: expedition.kitId ?? null,
+    kitUsed: run.kitUsed,
     mainRewards,
     gold,
     materials,

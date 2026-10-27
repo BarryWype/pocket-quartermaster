@@ -65,8 +65,8 @@ export function openChest(
       Array.from({ length: rolls }, () => rollLoot(rng, chest.loot)).flat(),
     ),
   ).map(([materialId, amount]) => ({ materialId, amount }));
-  // Only alchemy recipes, so chests never skip the gear progression.
-  const unknown = recipes.filter((r) => r.station === 'alchemy' && !save.knownRecipes.includes(r.id));
+  // Only Provisions recipes, so chests never skip the gear progression.
+  const unknown = recipes.filter((r) => r.station === 'provisions' && !save.knownRecipes.includes(r.id));
   const recipeId =
     rng.chance(chest.recipeChance) && unknown.length > 0 ? unknown[rng.int(0, unknown.length - 1)].id : null;
 

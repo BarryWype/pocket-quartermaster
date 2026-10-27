@@ -372,9 +372,9 @@ A GitHub Actions workflow (`.github/workflows/release.yml`) builds a signed rele
 git tag v0.2.0 && git push origin v0.2.0
 ```
 
-About 15 minutes later the release page has `pocket-quartermaster-v0.2.0.apk`. The workflow runs the typecheck and tests first. The version shown in the app comes from the tag; the Android version code is the workflow run number, so each APK installs over the previous one.
+About 15 minutes later the release page has `pocket-quartermaster-v0.2.0.apk`. The workflow runs the typecheck and tests first. The version shown in the app comes from the tag; the Android version code is the build time, so each APK installs over any older build, including a local release build signed with the same key.
 
-- Release builds are signed by `plugins/withReleaseSigning.js` when the `PQ_RELEASE_*` Gradle properties are set, and with the debug key otherwise. Versions come from `app.config.js` (`APP_VERSION`, `ANDROID_VERSION_CODE`).
+- Release builds are signed by `plugins/withReleaseSigning.js` when the `PQ_RELEASE_*` Gradle properties are set, and with the debug key otherwise. The version name comes from `app.config.js` (`APP_VERSION`), the version code from `plugins/withBuildTimeVersionCode.js`.
 - The first release-signed APK can't install over a debug-signed one: uninstall it first (this loses that phone's save).
 - On the phone, open the release page, download the APK and allow installing apps from the browser.
 

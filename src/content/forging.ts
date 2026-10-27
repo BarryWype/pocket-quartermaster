@@ -53,7 +53,7 @@ export const masteryRules = {
   } as Partial<Record<number, Record<Quality, number>>>,
 };
 
-/** Gold each forge costs, by the item's tier (wood → steel): weapons, armour and pickaxes. Smelting and alchemy are free, and so is the tutorial. */
+/** Gold each forge costs, by the item's tier (wood → steel): weapons, armour and pickaxes. Smelting and provisions are free, and so is the tutorial. */
 export const forgeRules = {
   fees: [5, 15, 40, 100, 250],
 };

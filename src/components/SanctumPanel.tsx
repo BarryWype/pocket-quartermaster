@@ -56,8 +56,8 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
   const [openedAt] = useState(() => Date.now());
 
   const odds = useMemo(
-    () => (tier && heroIds.length > 0 ? sanctumOdds(save, heroIds, sanctum, tier) : null),
-    [save, heroIds, sanctum, tier],
+    () => (tier && heroIds.length > 0 ? sanctumOdds(save, heroIds, sanctum, tier, undefined, openedAt) : null),
+    [save, heroIds, sanctum, tier, openedAt],
   );
 
   useEffect(() => {

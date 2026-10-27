@@ -14,6 +14,18 @@ const extraWeaponInputs: Record<string, (material: string) => MaterialStack[]> =
       : [{ materialId: m, amount: 1 }, { materialId: 'wood', amount: 2 }, { materialId: 'hide', amount: 2 }],
 };
 
+/** Provisions recipes: [item id, tab, inputs, known from the start (default yes)]. */
+function provisionRecipes(list: [string, 'kitchen' | 'alchemy', Record<string, number>, boolean?][]): RecipeDef[] {
+  return list.map(([itemId, tab, inputs, unlockedByDefault = true]) => ({
+    id: itemId,
+    station: 'provisions',
+    tab,
+    output: { itemId },
+    inputs: Object.entries(inputs).map(([materialId, amount]) => ({ materialId, amount })),
+    unlockedByDefault,
+  }));
+}
+
 // Learned when a hero who uses the type is recruited (up to the highest tier
 // reached), then from dungeon drops for later tiers.
 const extraWeaponRecipes: RecipeDef[] = extraWeaponTypes.flatMap(({ suffix }) =>
@@ -224,28 +236,28 @@ export const recipes: RecipeDef[] = [
     unlockedByDefault: false,
   },
 
-  // Alchemy
-  {
-    id: 'healingPotion',
-    station: 'alchemy',
-    output: { itemId: 'healingPotion' },
-    inputs: [{ materialId: 'herb', amount: 2 }, { materialId: 'berries', amount: 1 }],
-    unlockedByDefault: true,
-  },
-  {
-    id: 'ration',
-    station: 'alchemy',
-    output: { itemId: 'ration' },
-    inputs: [{ materialId: 'meat', amount: 2 }, { materialId: 'berries', amount: 1 }],
-    unlockedByDefault: true,
-  },
-  {
-    id: 'fireResistanceElixir',
-    station: 'alchemy',
-    output: { itemId: 'fireResistanceElixir' },
-    inputs: [{ materialId: 'mushroom', amount: 2 }, { materialId: 'herb', amount: 1 }, { materialId: 'berries', amount: 1 }],
-    unlockedByDefault: false,
-  },
+  // Provisions: food from meat and berries in the kitchen; potions from herbs
+  // and mushrooms, kits and charms from tier 1 materials in alchemy.
+  ...provisionRecipes([
+    ['trailMix', 'kitchen', { berries: 2 }],
+    ['jerky', 'kitchen', { meat: 2 }],
+    ['huntersStew', 'kitchen', { meat: 1, berries: 1, herb: 1 }],
+    ['scholarsPorridge', 'kitchen', { berries: 1, herb: 2 }],
+    ['merchantsPie', 'kitchen', { meat: 1, berries: 1, herb: 1 }],
+    ['quickBites', 'kitchen', { meat: 1, berries: 1 }],
+    ['comfortBroth', 'kitchen', { meat: 1, herb: 2 }],
+    ['healingPotion', 'alchemy', { herb: 2, mushroom: 1 }],
+    ['fireResistanceElixir', 'alchemy', { mushroom: 2, herb: 2 }, false],
+    ['lockpicks', 'alchemy', { bone: 2, hide: 1 }],
+    ['ropeAndPitons', 'alchemy', { hide: 3, bone: 1 }],
+    ['torches', 'alchemy', { wood: 2, hide: 1 }],
+    ['bait', 'alchemy', { meat: 2, berries: 1 }],
+    ['gifts', 'alchemy', { berries: 2, hide: 1 }],
+    ['holyWater', 'alchemy', { herb: 2, bone: 1 }],
+    ['rabbitsFoot', 'alchemy', { bone: 2, hide: 1 }],
+    ['luckyTooth', 'alchemy', { bone: 2, wood: 1 }],
+    ['wardBone', 'alchemy', { bone: 3 }],
+  ]),
 
   ...extraWeaponRecipes,
 ];

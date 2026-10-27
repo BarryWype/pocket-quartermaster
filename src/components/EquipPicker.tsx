@@ -26,15 +26,19 @@ type Option = { id: string; emoji: string; icon?: ImageSourcePropType; title: st
 
 function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot): Option[] {
   if (slot === 'consumable') {
+    // Potions, elixirs and charms; food and kits are for the whole party.
     return Object.entries(save.consumables)
-      .filter(([, count]) => count > 0)
-      .map(([itemId, count]) => ({
-        id: itemId,
-        emoji: itemById[itemId].emoji,
-        icon: itemById[itemId].icon,
-        title: tr(itemById[itemId].name),
-        subtitle: t('equip.inStock', { count }),
-      }));
+      .filter(([itemId, count]) => count > 0 && itemById[itemId]?.slot === 'consumable')
+      .map(([itemId, count]) => {
+        const item = itemById[itemId];
+        return {
+          id: itemId,
+          emoji: item.emoji,
+          icon: item.icon,
+          title: tr(item.name),
+          subtitle: [t('equip.inStock', { count }), item.description ? tr(item.description) : null].filter(Boolean).join(' · '),
+        };
+      });
   }
   const hero = save.heroes.find((h) => h.id === heroId);
   const affinities = hero ? heroClasses[hero.classId].affinities : {};

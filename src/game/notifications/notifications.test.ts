@@ -3,8 +3,9 @@ import { dungeons } from '@/content/dungeons';
 import { notificationTexts } from '@/content/notifications';
 import { recipes } from '@/content/recipes';
 
-import { startExpedition } from '../expeditions/expeditions';
+import { resolveExpedition, startExpedition } from '../expeditions/expeditions';
 import { createInitialSave, type SaveData } from '../save';
+import { timeToFull } from '../team/health';
 import { equip } from '../team/team';
 import { defaultNotificationSettings, planNotifications, previewExpedition } from './plan';
 import { deliveryTime, inQuietHours, quietHoursEnd } from './quietHours';
@@ -154,6 +155,34 @@ describe('idle reminder', () => {
     const save: SaveData = { ...veterans(), reports: [report] };
     expect(planNotifications(save, idleOn, at(12)).find((n) => n.category === 'heroesIdle')!.at).toBe(at(14));
     expect(planNotifications(save, idleOn, at(15)).some((n) => n.category === 'heroesIdle')).toBe(false);
+  });
+});
+
+describe('heroes rested', () => {
+  const restedOn = withCategories({ heroesRested: true, expeditionFinished: false, bigResult: false });
+  /** Bram alone with no gear in the boss dungeon: he comes back hurt. */
+  const hurtRun = () => startExpedition({ ...createInitialSave(), tutorial: { step: 'done', woodSpot: null } }, 'banditStockade', ['bram'], at(12));
+
+  it('is off by default', () => {
+    expect(planNotifications(hurtRun(), settings(), at(12)).some((n) => n.category === 'heroesRested')).toBe(false);
+  });
+
+  it('comes when every hero who came back hurt is full again', () => {
+    const save = hurtRun();
+    const { save: back, report } = resolveExpedition(save, save.expeditions[0]);
+    const bram = back.heroes.find((h) => h.id === 'bram')!;
+    expect(report.heroHp[0].hp).toBeLessThan(report.heroHp[0].maxHp);
+    const endsAt = save.expeditions[0].endsAt;
+    const expected = endsAt + timeToFull(back, bram, endsAt);
+    expect(planNotifications(save, restedOn, at(12)).find((n) => n.category === 'heroesRested')!.at).toBe(expected);
+    // Once home, from the report.
+    expect(planNotifications(back, restedOn, endsAt).find((n) => n.category === 'heroesRested')!.at).toBe(expected);
+  });
+
+  it('waits for the end of quiet hours', () => {
+    const save = hurtRun();
+    const quiet = { ...restedOn, quietHours: { enabled: true, start: 12 * 60, end: 18 * 60 } };
+    expect(planNotifications(save, quiet, at(12)).find((n) => n.category === 'heroesRested')!.at).toBe(at(18));
   });
 });
 

@@ -4,6 +4,7 @@ import { dungeonById } from '@/content/lookup';
 import { mainRewardRules } from '@/content/mainRewards';
 
 import { createInitialSave, type SaveData } from '../save';
+import { healAll } from '../team/health';
 import { equip } from '../team/team';
 import {
   bossBonusAvailable,
@@ -33,7 +34,7 @@ function geared(): SaveData {
       { uid: 'g3', itemId: 'woodWand', quality: 'normal' },
       { uid: 'g4', itemId: 'woodArmour', quality: 'normal' },
     ],
-    consumables: { healingPotion: 1, fireResistanceElixir: 1 },
+    consumables: { ...createInitialSave().consumables, healingPotion: 1, fireResistanceElixir: 1 },
     nextUid: 10,
   });
   save = equip(save, 'bram', 'weapon', 'g1');
@@ -353,7 +354,7 @@ describe('daily boss bonus', () => {
     expect(bossBonusAvailable(first.save, boss.id, day + DAY)).toBe(true);
     // The first win of the day always rolls; a repeat rolls the lower chance once.
     for (const r of wins) expect(r.report.mainRewards.length).toBeGreaterThanOrEqual(1);
-    const repeats = Array.from({ length: 200 }, (_, i) => win(first.save, i, day)).filter((r) => r.report.success);
+    const repeats = Array.from({ length: 200 }, (_, i) => win(healAll(first.save), i, day)).filter((r) => r.report.success);
     const rolled = repeats.filter((r) => r.report.mainRewards.length > 0).length / repeats.length;
     expect(Math.max(...repeats.map((r) => r.report.mainRewards.length))).toBeLessThanOrEqual(1);
     expect(rolled).toBeGreaterThan(mainRewardRules.repeatMainRewardChance - 0.12);

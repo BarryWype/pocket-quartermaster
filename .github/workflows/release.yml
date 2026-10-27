@@ -15,10 +15,8 @@ jobs:
   android:
     runs-on: ubuntu-latest
     env:
-      # Read by app.config.js: the visible version comes from the tag, and the
-      # version code grows with every run so each APK installs as an update.
+      # Read by app.config.js: the visible version comes from the tag.
       APP_VERSION: ${{ github.ref_name }}
-      ANDROID_VERSION_CODE: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
 

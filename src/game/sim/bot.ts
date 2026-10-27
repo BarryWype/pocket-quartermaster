@@ -1,5 +1,5 @@
 import { dungeons } from '@/content/dungeons';
-import { mobById } from '@/content/enemies';
+import { mobById, mobTags } from '@/content/enemies';
 import { guildTrackById, guildTracks } from '@/content/guild';
 import { heroClasses, xpRules } from '@/content/heroes';
 import { dungeonById, itemById, recipeById } from '@/content/lookup';
@@ -9,14 +9,24 @@ import { recipes } from '@/content/recipes';
 import { firstClearRules } from '@/content/rotation';
 import { traitById } from '@/content/traits';
 
-import { canCraft, craft, forgedItem } from '../crafting/crafting';
+import { canCraft, craft, craftableCount, craftMany, forgedItem } from '../crafting/crafting';
 import { canInfuse, infuse } from '../crafting/infusion';
 import { countersFor } from '../dungeons/counters';
 import { modifierFor, withModifier, type Rotation } from '../dungeons/rotation';
 import { dungeonTagWeights } from '../dungeons/tags';
 import { ELEMENTS, stoneId, weaponMultiplier, type Element } from '../elements';
-import { bossBonusAvailable, highestUnlockedTier, isDungeonAvailable, resolveExpedition, startExpedition } from '../expeditions/expeditions';
+import {
+  bossBonusAvailable,
+  highestUnlockedTier,
+  isDungeonAvailable,
+  launchPlan,
+  resolveExpedition,
+  runProvisions,
+  startExpedition,
+  type Loadout,
+} from '../expeditions/expeditions';
 import { estimateOdds, type Odds } from '../expeditions/odds';
+import { charmItems, kitItems, mealItems, supplyHeld, supplyItems } from '../expeditions/provisions';
 import { prepareParty, simulateRun } from '../expeditions/simulate';
 import { masteryCap, masteryOf, masteryTypeOf } from '../forging/mastery';
 import { gearStats, qualityOdds } from '../forging/quality';
@@ -29,10 +39,11 @@ import { hasMaterials } from '../inventory';
 import { collectTreasure, liveTreasureMaps, readTreasureMap } from '../rewards/treasure';
 import { challengeSanctum, sanctumById, sanctumDungeon, type SanctumSpawn } from '../sanctums/sanctums';
 import type { SaveData } from '../save';
-import { isTavernUnlocked, offerLevel, recruit, recruitPrice, tavernOffers, type TavernSpawn } from '../taverns/taverns';
+import { buySupply, buySupplyProblem, isTavernUnlocked, offerLevel, recruit, recruitPrice, tavernOffers, type TavernSpawn } from '../taverns/taverns';
+import { currentHp, drinkPotion, drinkProblem, maxHp } from '../team/health';
 import { canWield, equip, isOnExpedition, rosterFull } from '../team/team';
 import type { ActiveExpedition, DungeonDef, GearDef, HeroState, Quality, RecipeDef } from '../types';
-import type { Profile, SimConfig } from './config';
+import { expectedLevels, type Profile, type SimConfig } from './config';
 import { PICKAXES, type WalkRates } from './walking';
 
 export const QUALITY_ORDER: Quality[] = ['crappy', 'normal', 'rare', 'legendary'];
@@ -64,11 +75,20 @@ export type ExpeditionRow = {
   level: number;
   /** A boss win that claimed the daily bonus. */
   bossBonus: boolean;
+  /** The party's average share of max HP at launch. */
+  startHp: number;
+  hunger: string;
+  supplyUsed: number;
+  meal: string | null;
+  kit: string | null;
+  kitUsed: boolean;
+  /** Healing potions drunk in the dungeon. */
+  potions: number;
 };
 
 export type CraftRow = {
   day: number;
-  kind: 'pickaxe' | 'upgrade' | 'reforge' | 'consumable' | 'salvage' | 'tutorial';
+  kind: 'pickaxe' | 'upgrade' | 'reforge' | 'consumable' | 'provision' | 'salvage' | 'tutorial';
   itemId: string;
   tier: number;
   quality: Quality | null;
@@ -115,6 +135,10 @@ export type RunLog = {
   sanctums: { day: number; tier: number; odds: number; win: boolean }[];
   recruits: { day: number; classId: string; price: number; trait: string }[];
   guildBuys: { day: number; track: string; rank: number; gold: number }[];
+  /** Healing potions drunk at home. */
+  potionsAtHome: number;
+  /** Emergency jerky bought at taverns. */
+  emergencySupply: number;
 };
 
 /** Everything a session works with. The save only changes through the game's own functions. */
@@ -137,6 +161,8 @@ export type Sim = {
   collectionAt: (time: number) => number;
   oddsCache: Map<string, Odds>;
   launched: Map<string, Pick<ExpeditionRow, 'odds' | 'qualities' | 'day' | 'hour' | 'level'>>;
+  /** Dungeons left for a later session this one, waiting for the heroes to heal. */
+  waiting: Set<string>;
   log: RunLog;
 };
 
@@ -339,16 +365,117 @@ export function forge(sim: Sim) {
     forgeGear(sim, candidates[0].recipe, 'reforge');
   }
 
-  // Consumables.
-  const fireToday = dungeons.some((d) => isDungeonAvailable(sim.save, d, sim.rotation) && dealsFire(asToday(sim, d)));
-  for (const [id, target] of Object.entries(sim.config.stock)) {
-    if (id === 'fireResistanceElixir' && !fireToday) continue;
-    const recipe = recipeById[id];
-    while ((sim.save.consumables[id] ?? 0) < target && canCraft(sim.save, recipe)) {
-      act(sim, 'brew', (save) => craft(save, recipe));
-      sim.log.crafts.push({ day: sim.day, kind: 'consumable', itemId: id, tier: 0, quality: null, mastery: null, materials: {} });
-    }
+}
+
+// —— Provisions ——
+
+/** Crafts up to `count` of a Provisions recipe at once, logged under its tab (kitchen or alchemy). */
+function cook(sim: Sim, itemId: string, count: number) {
+  const recipe = recipeById[itemId];
+  const n = Math.min(count, craftableCount(sim.save, recipe));
+  if (n <= 0) return 0;
+  act(sim, recipe.tab ?? 'alchemy', (save) => craftMany(save, recipe, n));
+  for (let i = 0; i < n; i++) sim.log.crafts.push({ day: sim.day, kind: 'provision', itemId, tier: 0, quality: null, mastery: null, materials: {} });
+  return n;
+}
+
+/**
+ * Supply first, cooked in batches (jerky while meat lasts, then trail mix);
+ * then potions, meals, kits and charms up to their stock.
+ */
+export function stockProvisions(sim: Sim) {
+  const { provisions } = sim.config;
+  const bySupply = [...supplyItems].sort((a, b) => b.supply! - a.supply!);
+  while (supplyHeld(sim.save.consumables) < provisions.supplyBuffer) {
+    if (!bySupply.some((item) => cook(sim, item.id, provisions.batch) > 0)) break;
   }
+  const fireToday = dungeons.some((d) => isDungeonAvailable(sim.save, d, sim.rotation) && dealsFire(asToday(sim, d)));
+  const targets: [string, number][] = [
+    ...Object.entries(sim.config.stock).filter(([id]) => id !== 'fireResistanceElixir' || fireToday),
+    ...mealItems.map((i): [string, number] => [i.id, provisions.meals]),
+    ...kitItems.map((i): [string, number] => [i.id, provisions.kits]),
+    ...charmItems.map((i): [string, number] => [i.id, provisions.charms]),
+  ];
+  for (const [id, target] of targets) {
+    const missing = target - (sim.save.consumables[id] ?? 0);
+    if (missing > 0 && isKnownRecipe(sim.save, id)) cook(sim, id, missing);
+  }
+}
+
+const isKnownRecipe = (save: SaveData, id: string) => save.knownRecipes.includes(id) && !!recipeById[id];
+
+/** The meal for a run's goal (see BOT_RULES). */
+function mealFor(sim: Sim, dungeon: DungeonDef, heroIds: string[], o: Odds): string | null {
+  const plan = launchPlan(sim.save, dungeon, heroIds);
+  const back = (minutes: number) => sim.collectionAt(sim.now + minutes * 60_000);
+  const level = heroIds.reduce((s, id) => s + sim.save.heroes.find((h) => h.id === id)!.level, 0) / heroIds.length;
+  const goal = dungeon.isBoss
+    ? 'huntersStew'
+    : o.success < 0.5
+      ? 'comfortBroth'
+      : back(plan.minutes * 0.9) < back(plan.minutes)
+        ? 'quickBites'
+        : level < expectedLevels[highestTier(sim.save) - 1]
+          ? 'scholarsPorridge'
+          : 'merchantsPie';
+  return (sim.save.consumables[goal] ?? 0) > 0 ? goal : null;
+}
+
+/** The kit whose counter the party lacks, for the most frequent such encounter in the dungeon. */
+function kitFor(sim: Sim, dungeon: DungeonDef, heroIds: string[]): string | null {
+  const abilities = prepareParty(sim.save, heroIds).flatMap((m) => m.abilities);
+  const weightFor = (kit: (typeof kitItems)[number]['kit']) =>
+    dungeon.encounters.reduce((sum, e) => {
+      if (kit?.kind === 'obstacle' && e.type === 'obstacle' && e.kind === kit.obstacle) {
+        return abilities.some((a) => a.kind === 'obstacleSolve' && a.kinds.includes(kit.obstacle)) ? sum : sum + e.weight;
+      }
+      if (kit?.kind === 'charmLocals' && e.type === 'locals') {
+        return abilities.some((a) => a.kind === 'localsReaction' && a.key === 'charm') ? sum : sum + e.weight;
+      }
+      if (e.type !== 'fight') return sum;
+      const mobs = e.mobs.map(({ mobId }) => mobTags(mobById[mobId]));
+      if (kit?.kind === 'calmBeasts' && mobs.every((tags) => tags.includes('beast'))) {
+        return abilities.some((a) => a.kind === 'calmBeasts') ? sum : sum + e.weight;
+      }
+      if (kit?.kind === 'undeadDamage' && mobs.some((tags) => tags.includes('undead'))) {
+        return abilities.some((a) => a.kind === 'damageVsTag' && a.tag === 'undead') ? sum : sum + e.weight;
+      }
+      return sum;
+    }, 0);
+  return (
+    kitItems
+      .filter((item) => (sim.save.consumables[item.id] ?? 0) > 0)
+      .map((item) => ({ id: item.id, weight: weightFor(item.kit) }))
+      .filter((k) => k.weight > 0)
+      .sort((a, b) => b.weight - a.weight)[0]?.id ?? null
+  );
+}
+
+/** On safe short runs, potions give way to charms. */
+function withCharms(sim: Sim, dungeon: DungeonDef, heroIds: string[], o: Odds) {
+  if (dungeon.isBoss || dungeon.slot !== 'short' || o.success < sim.config.provisions.charmOdds) return;
+  const traps = dungeon.encounters.some((e) => e.type === 'trap');
+  let tooth = false;
+  for (const id of heroIds) {
+    if (sim.save.heroes.find((h) => h.id === id)!.equipment.consumable !== 'healingPotion') continue;
+    const held = (item: string) => (sim.save.consumables[item] ?? 0) > 0;
+    const charm: string | null = traps && held('wardBone') ? 'wardBone' : !tooth && held('luckyTooth') ? 'luckyTooth' : held('rabbitsFoot') ? 'rabbitsFoot' : null;
+    if (!charm) continue;
+    tooth ||= charm === 'luckyTooth';
+    sim.save = equip(sim.save, id, 'consumable', charm);
+  }
+}
+
+/** Buys the missing supply at a tavern reachable today, if the stock falls short. */
+function topUpSupply(sim: Sim, dungeon: DungeonDef, heroIds: string[], loadout: Loadout) {
+  const plan = launchPlan(sim.save, dungeon, heroIds, loadout);
+  if (plan.hunger === 'fed' || !sim.reach.tavern) return;
+  const jerky = supplyItems.find((i) => i.id === 'jerky')!;
+  const count = Math.ceil((plan.need - plan.held) / jerky.supply!);
+  const at = sim.tavern.position;
+  if (count <= 0 || buySupplyProblem(sim.save, count, at, at) !== null) return;
+  act(sim, 'emergencySupply', (save) => buySupply(save, count, at, at));
+  sim.log.emergencySupply += count;
 }
 
 // —— Infusion ——
@@ -439,34 +566,56 @@ export function buyGuildRanks(sim: Sim) {
 
 // —— Parties and odds ——
 
-const heroKey = (save: SaveData, hero: HeroState) => {
+const heroKey = (save: SaveData, hero: HeroState, now: number) => {
   const gear = (uid: string | null) => {
     const g = gearOf(save, uid);
     return g ? `${g.uid}${g.quality}${g.element ?? ''}` : '-';
   };
-  return `${hero.id}:${hero.level}:${gear(hero.equipment.weapon)}:${gear(hero.equipment.armor)}:${hero.equipment.consumable}`;
+  // HP in 5% steps, so healing heroes don't miss the cache every minute.
+  const hp = Math.round((currentHp(save, hero, now) / maxHp(save, hero)) * 20);
+  return `${hero.id}:${hero.level}:${gear(hero.equipment.weapon)}:${gear(hero.equipment.armor)}:${hero.equipment.consumable}:${hp}`;
 };
 
-/** Odds with fewer runs than the app, remembered for the same heroes, gear and dungeon. */
-export function odds(sim: Sim, save: SaveData, heroIds: string[], dungeon: DungeonDef, runs = sim.config.odds.runs): Odds {
+/** Odds with fewer runs than the app, with current HP, remembered for the same heroes, gear, HP, supply and dungeon. */
+export function odds(sim: Sim, save: SaveData, heroIds: string[], dungeon: DungeonDef, runs = sim.config.odds.runs, fullHp = false): Odds {
   const heroes = save.heroes.filter((h) => heroIds.includes(h.id));
-  const key = `${runs}|${dungeon.id}|${dungeon.modifierId ?? ''}|${heroes.map((h) => heroKey(save, h)).sort().join('|')}`;
+  const { hunger } = launchPlan(save, dungeon, heroIds);
+  const key = `${runs}|${dungeon.id}|${dungeon.modifierId ?? ''}|${hunger}|${fullHp}|${heroes.map((h) => heroKey(save, h, sim.now)).sort().join('|')}`;
   let result = sim.oddsCache.get(key);
   if (!result) {
-    result = estimateOdds(save, heroIds, dungeon, runs);
+    result = estimateOdds(save, heroIds, dungeon, runs, { now: sim.now, fullHp });
     sim.oddsCache.set(key, result);
   }
   return result;
 }
 
-/** Each hero takes a potion; a fire elixir for fire dungeons if they don't resist fire; a ration when potions run out. */
+/**
+ * When current HP costs the party more than `potionGain` against full HP,
+ * drinks potions from the stock at home, most hurt first. Returns whether
+ * the party is now rested enough to go.
+ */
+function restUp(sim: Sim, dungeon: DungeonDef, heroIds: string[]) {
+  const gap = () => odds(sim, sim.save, heroIds, dungeon, undefined, true).success - odds(sim, sim.save, heroIds, dungeon).success;
+  while (gap() > sim.config.provisions.potionGain) {
+    const hurt = heroIds
+      .map((id) => sim.save.heroes.find((h) => h.id === id)!)
+      .filter((h) => drinkProblem(sim.save, h.id, sim.now) === null)
+      .sort((a, b) => currentHp(sim.save, a, sim.now) / maxHp(sim.save, a) - currentHp(sim.save, b, sim.now) / maxHp(sim.save, b))[0];
+    if (!hurt || (sim.save.consumables.healingPotion ?? 0) < 1) return false;
+    sim.save = drinkPotion(sim.save, hurt.id, sim.now);
+    sim.log.potionsAtHome++;
+  }
+  return true;
+}
+
+/** Each hero takes a potion; a fire elixir for fire dungeons if they don't resist fire. */
 function withLoadout(save: SaveData, heroIds: string[], dungeon: DungeonDef): SaveData {
   let next = save;
   for (const id of heroIds) {
     const hero = next.heroes.find((h) => h.id === id)!;
     const stock = (item: string) => (next.consumables[item] ?? 0) + (hero.equipment.consumable === item ? 1 : 0);
     const fire = dealsFire(dungeon) && !heroClasses[hero.classId].resists?.includes('fire');
-    const want = [fire ? 'fireResistanceElixir' : null, 'healingPotion', 'ration'].find((item) => item && stock(item) > 0);
+    const want = [fire ? 'fireResistanceElixir' : null, 'healingPotion'].find((item) => item && stock(item) > 0);
     if (want && hero.equipment.consumable !== want) next = equip(next, id, 'consumable', want);
   }
   return next;
@@ -542,6 +691,11 @@ export function digTreasure(sim: Sim) {
 
 export function launch(sim: Sim, dungeon: DungeonDef, heroIds: string[], o: Odds) {
   sim.save = withLoadout(sim.save, heroIds, dungeon);
+  withCharms(sim, dungeon, heroIds, o);
+  const loadout = { mealId: mealFor(sim, dungeon, heroIds, o), kitId: kitFor(sim, dungeon, heroIds) };
+  topUpSupply(sim, dungeon, heroIds, loadout);
+  // The prediction logged is for the party exactly as it leaves.
+  const final = estimateOdds(sim.save, heroIds, dungeon, sim.config.odds.runs, { now: sim.now, loadout });
   const qualities = Object.fromEntries(QUALITY_ORDER.map((q) => [q, 0])) as Record<Quality, number>;
   for (const id of heroIds) {
     const hero = sim.save.heroes.find((h) => h.id === id)!;
@@ -551,9 +705,9 @@ export function launch(sim: Sim, dungeon: DungeonDef, heroIds: string[], o: Odds
     }
   }
   const id = `x${sim.save.nextUid}`;
-  sim.save = startExpedition(sim.save, dungeon.id, heroIds, sim.now, 1, sim.rotation);
+  sim.save = startExpedition(sim.save, dungeon.id, heroIds, sim.now, 1, sim.rotation, loadout);
   const level = heroIds.reduce((s, h) => s + sim.save.heroes.find((x) => x.id === h)!.level, 0) / heroIds.length;
-  sim.launched.set(id, { odds: o.success, qualities, day: sim.day, hour: (sim.now - sim.startedAt) / 3_600_000, level });
+  sim.launched.set(id, { odds: final.success, qualities, day: sim.day, hour: (sim.now - sim.startedAt) / 3_600_000, level });
 }
 
 /** Whether a win here could teach a weapon or armour blueprint the roster can use and doesn't know yet. */
@@ -589,11 +743,14 @@ export function sendExpeditions(sim: Sim) {
 
   if (unbeatenBoss && idle().length) {
     const party = bestParty(sim, unbeatenBoss, idle());
-    if (party.odds.success >= sim.config.odds.boss) launch(sim, unbeatenBoss, party.heroIds, party.odds);
+    if (party.odds.success >= sim.config.odds.boss && restUp(sim, unbeatenBoss, party.heroIds)) {
+      launch(sim, unbeatenBoss, party.heroIds, odds(sim, sim.save, party.heroIds, unbeatenBoss));
+    }
   }
+  sim.waiting = new Set();
   while (idle().length) {
     const options = open
-      .filter((d) => d !== unbeatenBoss)
+      .filter((d) => d !== unbeatenBoss && !sim.waiting.has(d.id))
       .map((d) => {
         const party = bestParty(sim, d, idle());
         const hours = (sim.collectionAt(sim.now + d.durationMinutes * (1 - guildBonus(sim.save, 'fasterExpeditions')) * 60_000) - sim.now) / 3_600_000;
@@ -606,7 +763,11 @@ export function sendExpeditions(sim: Sim) {
       pick = options.filter((o) => o.party.odds.success >= sim.config.odds.fallback).sort((a, b) => b.party.odds.success - a.party.odds.success)[0];
     }
     if (!pick) return;
-    launch(sim, pick.d, pick.party.heroIds, pick.party.odds);
+    if (!restUp(sim, pick.d, pick.party.heroIds)) {
+      sim.waiting.add(pick.d.id);
+      continue;
+    }
+    launch(sim, pick.d, pick.party.heroIds, odds(sim, sim.save, pick.party.heroIds, pick.d));
   }
 }
 
@@ -614,7 +775,10 @@ export function sendExpeditions(sim: Sim) {
 export function collectExpedition(sim: Sim, expedition: ActiveExpedition) {
   const modifier = expedition.modifierId ? modifierById[expedition.modifierId] : null;
   const dungeon = withModifier(dungeonById[expedition.dungeonId], modifier);
-  const run = simulateRun(prepareParty(sim.save, expedition.heroIds), dungeon, `${expedition.seed}|run`, { guaranteed: expedition.guaranteed });
+  const run = simulateRun(prepareParty(sim.save, expedition.heroIds), dungeon, `${expedition.seed}|run`, {
+    guaranteed: expedition.guaranteed,
+    ...runProvisions(expedition.hunger ?? 'fed', { mealId: expedition.mealId, kitId: expedition.kitId }),
+  });
   const classes = expedition.heroIds.map((id) => sim.save.heroes.find((h) => h.id === id)!.classId);
 
   const before = sim.save;
@@ -666,6 +830,13 @@ export function collectExpedition(sim: Sim, expedition: ActiveExpedition) {
     hours: (expedition.endsAt - expedition.startedAt) / 3_600_000,
     level: launched?.level ?? 1,
     bossBonus,
+    startHp: report.heroHp.reduce((s, h) => s + (h.before ?? h.maxHp) / Math.max(1, h.maxHp), 0) / report.heroHp.length,
+    hunger: report.hunger ?? 'fed',
+    supplyUsed: report.supplyUsed ?? 0,
+    meal: report.mealId ?? null,
+    kit: report.kitId ?? null,
+    kitUsed: !!report.kitUsed,
+    potions: report.consumablesUsed.filter((id) => id === 'healingPotion').length,
   });
   if (report.success && dungeon.isBoss) mark(sim, `boss:${dungeon.tier}`);
 }

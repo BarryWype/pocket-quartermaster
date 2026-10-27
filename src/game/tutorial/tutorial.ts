@@ -7,7 +7,7 @@ import { offsetPosition } from '../generation/geo';
 import type { LatLng, StaticSpawn } from '../generation/types';
 import type { SaveData, TutorialStep } from '../save';
 
-export type TutorialScreen = 'map' | 'forge' | 'alchemy' | 'inventory' | 'team' | 'hero' | 'expeditions' | 'sanctum';
+export type TutorialScreen = 'map' | 'forge' | 'provisions' | 'inventory' | 'team' | 'hero' | 'expeditions' | 'sanctum';
 export type MenuTarget = 'forge' | 'team' | 'expeditions';
 
 export const TUTORIAL_SPAWN_ID = 'tutorial:wood';

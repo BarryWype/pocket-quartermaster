@@ -19,6 +19,7 @@ function member(heroId: string, overrides: Partial<PartyMember> = {}): PartyMemb
     traitId: 'none',
     weaponName: null,
     maxHp: 100,
+    hp: overrides.hp ?? overrides.maxHp ?? 100,
     damage: 10,
     defense: 0,
     threat: 1,
@@ -49,7 +50,6 @@ const trap = (overrides: Partial<Extract<EncounterDef, { type: 'trap' }>> = {}):
   ...overrides,
 });
 const potion = itemById.healingPotion as ConsumableDef;
-const ration = itemById.ration as ConsumableDef;
 
 describe('simulateRun', () => {
   it('gives the same result for the same party, dungeon and seed', () => {
@@ -142,8 +142,8 @@ describe('consumables', () => {
     });
     const caught = run.encounters[0];
     expect(caught.consumed).toEqual(['a']);
-    // Down to 30 HP, then a potion heals back to full.
-    expect(caught.healed.a).toBeCloseTo(70);
+    // Down to 30 HP, then a potion heals 30% of max HP.
+    expect(caught.healed.a).toBeCloseTo(30);
     expect(run.consumed).toEqual(['a']);
   });
 
@@ -153,16 +153,14 @@ describe('consumables', () => {
     expect(run.consumed).toEqual([]);
   });
 
-  it('eats a ration before the boss', () => {
-    const run = simulateRun(
-      [member('a', { consumable: ration, damage: 1000 })],
-      dungeon([trap({ damagePct: 0.5 })]),
-      's',
-      { rules: steady },
-    );
+  it('shares a Hunter’s stew before the boss', () => {
+    const run = simulateRun([member('a', { damage: 1000 })], dungeon([trap({ damagePct: 0.5 })]), 's', {
+      rules: steady,
+      meal: { kind: 'bossHeal', pct: 0.15 },
+    });
     const bossFight = run.encounters.find((e) => e.kind === 'boss')!;
-    expect(bossFight.consumed).toEqual(['a']);
-    expect(bossFight.healed.a).toBeCloseTo(25);
+    expect(bossFight.effects).toContainEqual({ heroId: null, key: 'stew' });
+    expect(bossFight.healed.a).toBeCloseTo(15);
   });
 });
 

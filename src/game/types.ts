@@ -36,6 +36,7 @@ type ItemBase = {
   id: string;
   name: string;
   emoji: string;
+  description?: string;
   icon?: ImageSourcePropType;
 };
 
@@ -47,14 +48,52 @@ export type GearDef = ItemBase & {
   tier: number;
 };
 
+/** A charm in a hero's consumable slot: lasts one expedition. */
+export type Charm =
+  | { kind: 'crit'; chance: number }
+  /** Party gold multiplier; several Lucky teeth count once. */
+  | { kind: 'gold'; multiplier: number }
+  /** The hero ignores the first trap that would hit them. */
+  | { kind: 'wardTrap' };
+
 export type ConsumableDef = ItemBase & {
   slot: 'consumable';
   /** Share of max HP restored when used. */
   heal?: number;
-  /** When a healing consumable is used: below the HP threshold, or before the boss. */
-  when?: 'lowHp' | 'beforeBoss';
+  /** Healing consumables are drunk below the HP threshold. */
+  when?: 'lowHp';
   /** Element this consumable protects its hero against for the whole run. */
   protectsAgainst?: Element;
+  charm?: Charm;
+};
+
+/** What a meal does for the run; one meal per expedition. */
+export type MealEffect =
+  /** Heals every conscious hero this share of max HP before the boss. */
+  | { kind: 'bossHeal'; pct: number }
+  | { kind: 'xp'; multiplier: number }
+  | { kind: 'gold'; multiplier: number }
+  | { kind: 'duration'; multiplier: number }
+  /** Added to the retreat multiplier of a failed run's rewards, up to a full clear. */
+  | { kind: 'retreat'; bonus: number };
+
+/** A party-wide kit: stands in once for a missing class counter. */
+export type KitEffect =
+  | { kind: 'obstacle'; obstacle: ObstacleKind }
+  /** Chance to calm the first all-beast fight. */
+  | { kind: 'calmBeasts'; chance: number }
+  /** The first locals react as if charmed. */
+  | { kind: 'charmLocals' }
+  /** Damage multiplier against undead in the first undead fight. */
+  | { kind: 'undeadDamage'; multiplier: number };
+
+/** Food and kits: held in the stock, taken by the whole party. */
+export type ProvisionDef = ItemBase & {
+  slot: 'provision';
+  /** Supply points it covers. */
+  supply?: number;
+  meal?: MealEffect;
+  kit?: KitEffect;
 };
 
 /** Owned by the player rather than a hero; never wears out. */
@@ -65,11 +104,13 @@ export type ToolDef = ItemBase & {
   tier: number;
 };
 
-export type ItemDef = GearDef | ConsumableDef | ToolDef;
+export type ItemDef = GearDef | ConsumableDef | ToolDef | ProvisionDef;
 
 export type RecipeDef = {
   id: string;
-  station: 'forge' | 'alchemy';
+  station: 'forge' | 'provisions';
+  /** The Provisions station's tab. */
+  tab?: 'kitchen' | 'alchemy';
   /** A crafted item, or a material for smelting recipes. */
   output: { itemId: string } | { materialId: string; amount: number };
   inputs: MaterialStack[];
@@ -133,7 +174,16 @@ export type Ability =
   | { kind: 'xpMultiplier'; multiplier: number }
   /** Ambushes don't get the first strike. */
   | { kind: 'ambushAlert' }
-  | { kind: 'rationBoost'; multiplier: number }
+  /** Hunter's stew heals this hero this much more. */
+  | { kind: 'stewBoost'; multiplier: number }
+  /** Damage this hero takes is multiplied by this. */
+  | { kind: 'damageTaken'; multiplier: number }
+  /** Healing at home is multiplied by `multiplier`; exhaustion lasts `exhaustion` times as long. */
+  | { kind: 'healRate'; multiplier: number; exhaustion: number }
+  /** Added to the supply points this hero needs (never below 0). */
+  | { kind: 'supplyNeed'; add: number }
+  /** Underfed and Starving penalties are multiplied by this for this hero. */
+  | { kind: 'hungerResist'; multiplier: number }
   /** Trap trigger chance multiplier. */
   | { kind: 'trapTrigger'; multiplier: number }
   /** Added to the share of max HP below which this hero drinks a potion. */
@@ -180,10 +230,18 @@ export type HeroState = {
   equipment: {
     weapon: string | null;
     armor: string | null;
-    /** Consumable item id; equipping one takes it out of the stock. */
+    /** Consumable item id (potion, elixir or charm); equipping one takes it out of the stock. */
     consumable: string | null;
   };
+  /** HP at `hpAt`; missing means full. Heroes at home heal from then on (see team/health.ts). */
+  hp?: number;
+  hpAt?: number;
+  /** Knocked out: no healing at home before this time. */
+  exhaustedUntil?: number;
 };
+
+/** Supply at launch: enough, some, or none. */
+export type Hunger = 'fed' | 'underfed' | 'starving';
 
 /** A forged piece of gear. */
 export type GearInstance = {
@@ -206,6 +264,14 @@ export type ActiveExpedition = {
   guaranteed?: boolean;
   /** The daily modifier the dungeon had at launch, kept if the rotation changes. */
   modifierId?: string | null;
+  /** Supply status at launch. */
+  hunger?: Hunger;
+  /** Supply points taken. */
+  supplyUsed?: number;
+  /** Meal eaten (provision item id). */
+  mealId?: string | null;
+  /** Kit taken; it comes back if it never triggers. */
+  kitId?: string | null;
   notificationId: string | null;
 };
 
@@ -374,8 +440,14 @@ export type ExpeditionReport = {
   success: boolean;
   encountersCleared: number;
   encounterCount: number;
-  /** HP each hero came back with, for injuries later. */
-  heroHp: { heroId: string; hp: number; maxHp: number }[];
+  /** HP each hero set out with (`before`) and came back with. */
+  heroHp: { heroId: string; hp: number; maxHp: number; before?: number }[];
+  hunger?: Hunger;
+  supplyUsed?: number;
+  mealId?: string | null;
+  kitId?: string | null;
+  /** The kit triggered and was used up. */
+  kitUsed?: boolean;
   /** Extra rewards rolled on success, besides gold, loot and recipes. */
   mainRewards: MainReward[];
   gold: number;
@@ -398,6 +470,6 @@ export type ChestDef = {
   steps: number;
   gold: [min: number, max: number];
   loot: LootEntry[];
-  /** Chance to teach one alchemy recipe the player does not know yet. */
+  /** Chance to teach one Provisions recipe the player does not know yet. */
   recipeChance: number;
 };

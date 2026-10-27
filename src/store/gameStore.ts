@@ -7,12 +7,12 @@ import { newHero } from '@/content/heroes';
 import { items } from '@/content/items';
 import { recipeById } from '@/content/lookup';
 import { materials } from '@/content/materials';
-import { craft, forgeResult, unlockRecipe, type ForgeResult } from '@/game/crafting/crafting';
+import { craft, craftMany, forgeResult, unlockRecipe, type ForgeResult } from '@/game/crafting/crafting';
 import { infuse } from '@/game/crafting/infusion';
 import { salvage } from '@/game/forging/salvage';
-import { migrateV5Save, migrateV6Save, migrateV7Save, migrateV8Save, migrateV9Save } from '@/game/migrations';
+import { migrateV10Save, migrateV5Save, migrateV6Save, migrateV7Save, migrateV8Save, migrateV9Save } from '@/game/migrations';
 import { convertShards, shardId, stoneId, type Element } from '@/game/elements';
-import { fastForward, resolveDue, startExpedition } from '@/game/expeditions/expeditions';
+import { fastForward, resolveDue, startExpedition, type Loadout } from '@/game/expeditions/expeditions';
 import { collectSpawn, type CollectResult, type Gatherer } from '@/game/gathering/gathering';
 import type { LatLng, Spawn } from '@/game/generation/types';
 import { addMaterials } from '@/game/inventory';
@@ -21,8 +21,9 @@ import { activateLure } from '@/game/rewards/lures';
 import { collectTreasure, readTreasureMap, type TreasureContents } from '@/game/rewards/treasure';
 import { challengeSanctum, type SanctumResult, type SanctumSpawn } from '@/game/sanctums/sanctums';
 import { createInitialSave, type SaveData, type TutorialStep } from '@/game/save';
+import { drinkPotion, fastForwardHealing, healAll, setHeroHp, settleHp } from '@/game/team/health';
 import { dismissHero, equip, unequip } from '@/game/team/team';
-import { learnWeaponTypes, recruit, type RecruitOffer } from '@/game/taverns/taverns';
+import { buySupply, learnWeaponTypes, recruit, type RecruitOffer } from '@/game/taverns/taverns';
 import { buyRank } from '@/game/guild/guild';
 import { applyTraining } from '@/game/guild/training';
 import type { GuildTrackId } from '@/content/guild';
@@ -35,8 +36,8 @@ import { currentRotation, debugEnabled, useDebugStore } from './debugStore';
 type GameState = {
   save: SaveData;
   collect: (spawn: Spawn, gatherer: Gatherer, timeMs: number) => CollectResult;
-  /** Returns the forged gear piece and mastery change, for gear recipes. */
-  craft: (recipeId: string) => ForgeResult | null;
+  /** Returns the forged gear piece and mastery change, for gear recipes. Provisions can be made `count` at a time. */
+  craft: (recipeId: string, count?: number) => ForgeResult | null;
   infuse: (gearUid: string, element: Element) => void;
   salvage: (gearUid: string) => void;
   /** Pass null to empty the slot. */
@@ -44,10 +45,14 @@ type GameState = {
   dismissHero: (heroId: string) => void;
   recruit: (offer: RecruitOffer, tavern: LatLng, player: LatLng) => void;
   closeTavernHint: () => void;
+  closeCookingHint: () => void;
+  /** Drinks a healing potion at home. */
+  drinkPotion: (heroId: string) => void;
+  buySupply: (count: number, tavern: LatLng, player: LatLng) => void;
   buyRank: (trackId: GuildTrackId) => void;
   /** Credits Guild Hall training XP since the last check. */
   train: () => void;
-  startExpedition: (dungeonId: string, heroIds: string[], durationScale: number) => void;
+  startExpedition: (dungeonId: string, heroIds: string[], durationScale: number, loadout?: Loadout) => void;
   resolveDue: () => ExpeditionReport[];
   markReportsSeen: () => void;
   recordSteps: (day: string, newSteps: number) => void;
@@ -83,6 +88,12 @@ type GameState = {
   /** Forgets used Sanctums and the Sigil pity counter. */
   resetSanctums: () => void;
   fastForwardExpeditions: () => void;
+  /** Sets a hero's HP share; `exhausted` also knocks them out for a while. */
+  setHeroHp: (heroId: string, share: number, exhausted: boolean) => void;
+  healAll: () => void;
+  /** Adds this many of every provision and charm. */
+  addProvisions: (amount: number) => void;
+  fastForwardHealing: (minutes: number) => void;
   resetSave: () => void;
 };
 
@@ -95,11 +106,12 @@ export const useGameStore = create<GameState>()(
         if (result.ok) set({ save: advanceTutorial(result.save) });
         return result;
       },
-      craft: (recipeId) => {
+      craft: (recipeId, count = 1) => {
         const before = get().save;
         const debug = useDebugStore.getState();
         const quality = debugEnabled(debug) ? (debug.forcedQuality ?? undefined) : undefined;
-        const save = advanceTutorial(craft(before, recipeById[recipeId], quality));
+        const recipe = recipeById[recipeId];
+        const save = advanceTutorial(recipe.station === 'provisions' ? craftMany(before, recipe, count) : craft(before, recipe, quality));
         set({ save });
         const result = forgeResult(before, save);
         if (result && quality) debug.set({ forcedQuality: null });
@@ -109,17 +121,23 @@ export const useGameStore = create<GameState>()(
       salvage: (gearUid) => set(({ save }) => ({ save: salvage(save, gearUid) })),
       equip: (heroId, slot, id) =>
         set(({ save }) => ({
-          save: advanceTutorial(id ? equip(save, heroId, slot, id) : unequip(save, heroId, slot)),
+          // HP is settled first, so a change of max HP keeps the right share.
+          save: advanceTutorial(
+            id ? equip(settleHp(save, Date.now()), heroId, slot, id) : unequip(settleHp(save, Date.now()), heroId, slot),
+          ),
         })),
       // Notifications follow the save: see `useNotifications`.
       dismissHero: (heroId) => set(({ save }) => ({ save: dismissHero(save, heroId) })),
       recruit: (offer, tavern, player) => set(({ save }) => ({ save: recruit(save, offer, tavern, player) })),
       closeTavernHint: () => set(({ save }) => ({ save: { ...save, tavernHintSeen: true } })),
+      closeCookingHint: () => set(({ save }) => ({ save: { ...save, cookingHintSeen: true } })),
+      drinkPotion: (heroId) => set(({ save }) => ({ save: drinkPotion(save, heroId, Date.now()) })),
+      buySupply: (count, tavern, player) => set(({ save }) => ({ save: buySupply(save, count, tavern, player) })),
       buyRank: (trackId) => set(({ save }) => ({ save: buyRank(save, trackId) })),
       train: () => set(({ save }) => ({ save: applyTraining(save, Date.now()) })),
-      startExpedition: (dungeonId, heroIds, durationScale) =>
+      startExpedition: (dungeonId, heroIds, durationScale, loadout) =>
         set(({ save }) => ({
-          save: advanceTutorial(startExpedition(save, dungeonId, heroIds, Date.now(), durationScale, currentRotation())),
+          save: advanceTutorial(startExpedition(save, dungeonId, heroIds, Date.now(), durationScale, currentRotation(), loadout)),
         })),
       resolveDue: () => {
         const now = Date.now();
@@ -235,13 +253,24 @@ export const useGameStore = create<GameState>()(
         set(({ save }) => ({ save: fastForward(save, Date.now()) }));
         get().resolveDue();
       },
+      setHeroHp: (heroId, share, exhausted) => set(({ save }) => ({ save: setHeroHp(save, heroId, share, Date.now(), exhausted) })),
+      healAll: () => set(({ save }) => ({ save: healAll(save) })),
+      addProvisions: (amount) =>
+        set(({ save }) => {
+          const consumables = { ...save.consumables };
+          for (const item of items.filter((i) => i.slot === 'provision' || (i.slot === 'consumable' && i.charm))) {
+            consumables[item.id] = (consumables[item.id] ?? 0) + amount;
+          }
+          return { save: { ...save, consumables } };
+        }),
+      fastForwardHealing: (minutes) => set(({ save }) => ({ save: fastForwardHealing(save, minutes) })),
       resetSave: () => {
         set({ save: createInitialSave() });
       },
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 10,
+      version: 11,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
       // Saves from version 5 on are converted step by step; older ones start fresh. New fields get their defaults.
@@ -252,7 +281,8 @@ export const useGameStore = create<GameState>()(
         if (version <= 6) save = migrateV6Save(save);
         if (version <= 7) save = migrateV7Save(save);
         if (version <= 8) save = migrateV8Save(save);
-        return { save: migrateV9Save(save) };
+        if (version <= 9) save = migrateV9Save(save);
+        return { save: migrateV10Save(save) };
       },
       merge: (persisted, current) => ({
         ...current,

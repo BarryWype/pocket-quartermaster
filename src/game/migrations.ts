@@ -1,6 +1,7 @@
 import { dungeons } from '@/content/dungeons';
 import { itemById } from '@/content/lookup';
 import { mainRewardRules } from '@/content/mainRewards';
+import { provisionRules } from '@/content/provisions';
 
 import { createInitialSave, type SaveData } from './save';
 import { canWield } from './team/team';
@@ -65,4 +66,27 @@ export function migrateV8Save(old: Partial<SaveData>): SaveData {
 /** Version 9 → 10: daily boss bonuses start unclaimed; gold, materials and levels stay as they are. */
 export function migrateV9Save(old: Partial<SaveData>): SaveData {
   return { ...createInitialSave(), ...old, bossBonusDays: {} };
+}
+
+const RATION = 'ration';
+
+/**
+ * Version 10 → 11: heroes start at full HP; rations (in stock or carried)
+ * become jerky; the old Tough trait (+15% HP) is now Resilient; every save
+ * gets the starting supply.
+ */
+export function migrateV10Save(old: Partial<SaveData>): SaveData {
+  const save: SaveData = { ...createInitialSave(), ...old };
+  const carried = save.heroes.filter((h) => h.equipment.consumable === RATION).length;
+  const { [RATION]: stocked = 0, ...consumables } = save.consumables;
+  // A ration was worth about one jerky (3 supply points).
+  const jerky = stocked + carried;
+  for (const [id, amount] of Object.entries(provisionRules.startingStock)) consumables[id] = (consumables[id] ?? 0) + amount;
+  if (jerky > 0) consumables.jerky = (consumables.jerky ?? 0) + jerky;
+  const heroes = save.heroes.map(({ hp: _hp, hpAt: _at, exhaustedUntil: _ex, ...hero }): HeroState => ({
+    ...hero,
+    trait: hero.trait === 'tough' ? 'resilient' : hero.trait,
+    equipment: { ...hero.equipment, consumable: hero.equipment.consumable === RATION ? null : hero.equipment.consumable },
+  }));
+  return { ...save, consumables, heroes, cookingHintSeen: false };
 }

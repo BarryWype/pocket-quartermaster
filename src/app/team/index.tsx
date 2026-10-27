@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { STATS, statIcons } from '@/components/GearRow';
+import { HpBar } from '@/components/HpBar';
 import { Panel } from '@/components/Panel';
 import { IconSlot } from '@/components/Row';
 import { Text } from '@/components/Text';
@@ -11,6 +12,7 @@ import { traitById } from '@/content/traits';
 import { heroStats, isOnExpedition } from '@/game/team/team';
 import { partySize, rosterCap } from '@/game/guild/guild';
 import { useLanguage } from '@/hooks/useLanguage';
+import { useNow } from '@/hooks/useNow';
 import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
@@ -18,6 +20,7 @@ import { colors } from '@/theme';
 export default function TeamScreen() {
   useLanguage();
   const save = useGameStore((state) => state.save);
+  const now = useNow();
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -47,6 +50,7 @@ export default function TeamScreen() {
                   {away ? t('common.onExpedition') : ''}
                 </Text>
                 <Text style={styles.stats}>{STATS.map((stat) => `${statIcons[stat]} ${stats[stat]}`).join('  ')}</Text>
+                <HpBar save={save} hero={hero} now={now} />
               </View>
               <Text style={styles.chevron}>›</Text>
             </Panel>

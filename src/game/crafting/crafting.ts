@@ -17,11 +17,11 @@ export function ownsTool(save: SaveData, recipe: RecipeDef) {
   return 'itemId' in recipe.output && save.tools.includes(recipe.output.itemId);
 }
 
-/** Gold a recipe costs: forged weapons, armour and tools by item tier; smelting, alchemy and the tutorial are free. */
+/** Gold a recipe costs: forged weapons, armour and tools by item tier; smelting, provisions and the tutorial are free. */
 export function forgeFee(save: SaveData, recipe: RecipeDef, rules: typeof forgeRules = forgeRules) {
   if (recipe.station !== 'forge' || !('itemId' in recipe.output) || save.tutorial.step !== 'done') return 0;
   const item = itemById[recipe.output.itemId];
-  return item.slot === 'consumable' ? 0 : (rules.fees[item.tier - 1] ?? 0);
+  return item.slot === 'weapon' || item.slot === 'armor' || item.slot === 'tool' ? (rules.fees[item.tier - 1] ?? 0) : 0;
 }
 
 export function canCraft(save: SaveData, recipe: RecipeDef) {
@@ -76,13 +76,28 @@ export function craft(save: SaveData, recipe: RecipeDef, forceQuality?: Quality)
     };
   } else {
     const item = itemById[recipe.output.itemId];
-    if (item.slot === 'consumable') {
+    if (item.slot === 'consumable' || item.slot === 'provision') {
       next = { ...next, consumables: { ...next.consumables, [item.id]: (next.consumables[item.id] ?? 0) + 1 } };
     } else if (item.slot === 'tool') {
       next = { ...next, tools: [...next.tools, item.id] };
     }
   }
   return (recipe.unlocks ?? []).reduce(unlockRecipe, next);
+}
+
+/** How many of a recipe the materials cover right now. */
+export function craftableCount(save: SaveData, recipe: RecipeDef) {
+  if (!canCraft(save, recipe)) return 0;
+  return Math.min(...recipe.inputs.map((input) => Math.floor((save.materials[input.materialId] ?? 0) / input.amount)));
+}
+
+/** Crafts a Provisions recipe `count` times in one go. */
+export function craftMany(save: SaveData, recipe: RecipeDef, count: number): SaveData {
+  if (recipe.station !== 'provisions') throw new Error(`${recipe.id} can't be batch crafted`);
+  if (craftableCount(save, recipe) < count) throw new Error(`Cannot craft ${count} ${recipe.id}`);
+  let next = save;
+  for (let i = 0; i < count; i++) next = craft(next, recipe);
+  return next;
 }
 
 export type ForgeResult = { gear: GearInstance; type: MasteryType; mastery: MasteryState; levelUp: boolean };

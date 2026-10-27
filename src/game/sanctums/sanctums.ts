@@ -7,7 +7,7 @@ import { sanctumRules, sanctums } from '@/content/sanctums';
 
 import { convertShards, shardId, stoneId } from '../elements';
 import { buildLog } from '../expeditions/log';
-import { estimateOdds, ODDS_RUNS } from '../expeditions/odds';
+import { estimatePartyOdds, ODDS_RUNS } from '../expeditions/odds';
 import { prepareParty, simulateRun } from '../expeditions/simulate';
 import { distanceMeters } from '../generation/geo';
 import { guildBonus } from '../guild/guild';
@@ -17,6 +17,7 @@ import { windowIndex, windowRange } from '../generation/time';
 import type { LatLng } from '../generation/types';
 import { addMaterials } from '../inventory';
 import type { SaveData } from '../save';
+import { applyRunHp } from '../team/health';
 import { isOnExpedition } from '../team/team';
 import type { DungeonDef, SanctumDef } from '../types';
 
@@ -83,8 +84,9 @@ export function sanctumDungeon(sanctum: SanctumDef, tier: number, rules: Rules =
 
 export const availableHeroes = (save: SaveData) => save.heroes.filter((h) => !isOnExpedition(save, h.id));
 
-export function sanctumOdds(save: SaveData, heroIds: string[], sanctum: SanctumDef, tier: number, runs = ODDS_RUNS) {
-  return estimateOdds(save, heroIds, sanctumDungeon(sanctum, tier), runs);
+/** Odds with the heroes' HP at `now` (left out, as stored). Sanctum fights need no supply. */
+export function sanctumOdds(save: SaveData, heroIds: string[], sanctum: SanctumDef, tier: number, runs = ODDS_RUNS, now?: number) {
+  return estimatePartyOdds(prepareParty(save, heroIds, now), sanctumDungeon(sanctum, tier), runs);
 }
 
 export type ChallengeProblem = 'used' | 'expired' | 'noSigil' | 'tooFar' | 'noHeroes' | 'heroAway';
@@ -127,7 +129,7 @@ export function challengeSanctum(
   const sanctum = sanctumById[spawn.sanctumId];
   const dungeon = sanctumDungeon(sanctum, tier, rules);
   const seed = `${spawn.id}|${save.nextUid}`;
-  const party = prepareParty(save, heroIds);
+  const party = prepareParty(save, heroIds, now);
   const run = simulateRun(party, dungeon, seed);
   const win = run.bossDefeated;
   const amounts = rules.rewards[tier - 1][win ? 'win' : 'loss'];
@@ -158,7 +160,7 @@ export function challengeSanctum(
   return {
     result: { win, log, reward },
     save: {
-      ...save,
+      ...applyRunHp(save, run.hp, now),
       sigils: save.sigils.filter((_, i) => i !== sigilIndex),
       charters: save.charters + (reward.charter ? 1 : 0),
       materials: convertShards(

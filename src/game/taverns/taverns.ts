@@ -1,5 +1,6 @@
 import { heroClasses, newHero } from '@/content/heroes';
 import { recipes } from '@/content/recipes';
+import { provisionRules } from '@/content/provisions';
 import { heroNames, recruitRules } from '@/content/roster';
 import { tavernName, tavernNames, tavernRules } from '@/content/taverns';
 import { traits } from '@/content/traits';
@@ -7,6 +8,7 @@ import { traits } from '@/content/traits';
 import { forgedItem, unlockRecipe } from '../crafting/crafting';
 import { nextRotationAt, rotationDay } from '../dungeons/rotation';
 import { highestUnlockedTier } from '../expeditions/expeditions';
+import { emergencyPrice } from '../expeditions/provisions';
 import { masteryTypeOf, startingMastery } from '../forging/mastery';
 import { guildBonus, tavernOfferCount } from '../guild/guild';
 import { distanceMeters } from '../generation/geo';
@@ -155,3 +157,27 @@ export function recruit(save: SaveData, offer: RecruitOffer, tavern: LatLng, pla
   );
 }
 
+
+export type SupplyProblem = 'locked' | 'tooFar' | 'gold';
+
+/** Price of one emergency jerky at taverns now. */
+export const supplyPrice = (save: SaveData) => emergencyPrice(highestUnlockedTier(save));
+
+export function buySupplyProblem(save: SaveData, count: number, tavern: LatLng, player: LatLng, rules: TavernRules = tavernRules): SupplyProblem | null {
+  if (!isTavernUnlocked(save, rules)) return 'locked';
+  if (distanceMeters(player, tavern) > rules.interactionMeters) return 'tooFar';
+  if (save.gold < supplyPrice(save) * count) return 'gold';
+  return null;
+}
+
+/** Buys emergency supply at a tavern: jerky, at a steep price. */
+export function buySupply(save: SaveData, count: number, tavern: LatLng, player: LatLng): SaveData {
+  const problem = buySupplyProblem(save, count, tavern, player);
+  if (problem) throw new Error(`Cannot buy supply: ${problem}`);
+  const itemId = provisionRules.emergency.itemId;
+  return {
+    ...save,
+    gold: save.gold - supplyPrice(save) * count,
+    consumables: { ...save.consumables, [itemId]: (save.consumables[itemId] ?? 0) + count },
+  };
+}

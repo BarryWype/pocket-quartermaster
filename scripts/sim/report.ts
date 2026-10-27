@@ -358,6 +358,52 @@ export function renderReport({ summary, comparison, elapsed, rules, compareWith 
       )
     : '<p class="muted">Skipped.</p>';
 
+  // 7d. Provisions and HP
+  const prov = (pick: (p: ProfileSummary['provisions']) => string) => ps.map((p) => pick(p.provisions));
+  const foodTarget = targets.foodUse;
+  const flag = (off: boolean) => `<span class="${off ? 'flag' : 'ok'}">${off ? '⚠' : '✓'}</span>`;
+  const mealIds = [...new Set(ps.flatMap((p) => Object.keys(p.provisions.meals)))];
+  const kitIds = [...new Set(ps.flatMap((p) => Object.keys(p.provisions.kits)))];
+  const itemName = (id: string) => esc(itemById[id]?.name ?? id);
+  const spam = summary.spam;
+  const provisions =
+    table(
+      ['', ...names],
+      [
+        ['Average starting HP', ...prov((v) => pct(v.startHp))],
+        ['Runs started below 70% HP', ...prov((v) => pct(v.lowStart))],
+        ['Potions drunk at home / in dungeons (per run)', ...prov((v) => `${fmt(v.potionsAtHome, 1)} / ${fmt(v.potionsInDungeons, 1)}`)],
+        ['Supply points used (per run)', ...prov((v) => fmt(v.supplyUsed))],
+        ['Underfed runs', ...prov((v) => pct(v.underfed))],
+        [`Starving runs (target under ${targets.starvingShare * 100}%)`, ...prov((v) => `${pct(v.starving)} ${flag(v.starving > targets.starvingShare)}`)],
+        ['Emergency jerky bought (per run)', ...prov((v) => fmt(v.emergencySupply, 1))],
+        [
+          `Meat and berries: gathered → cooked (target ${foodTarget.map((x) => x * 100).join('–')}%)`,
+          ...prov((v) => `${fmt(v.food.gathered)} → ${fmt(v.food.used)} (${pct(v.food.share)}) ${flag(v.food.share < foodTarget[0] || v.food.share > foodTarget[1])}`),
+        ],
+      ],
+    ) +
+    `<h3>Meals and kits (expeditions per run)</h3>` +
+    table(
+      ['Item', ...names],
+      [
+        ...mealIds.map((id) => [itemName(id), ...ps.map((p) => fmt(p.provisions.meals[id] ?? 0, 1))]),
+        ...kitIds.map((id) => [
+          `${itemName(id)} <span class="muted">taken / triggered</span>`,
+          ...ps.map((p) => `${fmt(p.provisions.kits[id]?.taken ?? 0, 1)} / ${fmt(p.provisions.kits[id]?.triggered ?? 0, 1)}`),
+        ]),
+      ],
+    ) +
+    `<h3>Spam check</h3><p class="muted">One party at a time on ${esc(dungeonById[spam.dungeonId]?.name ?? spam.dungeonId)} for ${spam.hours} h, relaunched as soon as it is back, without potions: always the same 3 heroes, or the 3 healthiest of 6 (see spam.ts).</p>` +
+    table(
+      ['', 'XP per hour', 'Gold per hour'],
+      [
+        ['Same 3 heroes', fmt(spam.spam.xpPerHour), fmt(spam.spam.goldPerHour)],
+        ['Rotating 6', fmt(spam.rotate.xpPerHour), fmt(spam.rotate.goldPerHour)],
+        [`Ratio (target ×${targets.spamAdvantage})`, `×${spam.ratio.xp}`, `×${spam.ratio.gold} ${flag(!spam.ok)}`],
+      ],
+    );
+
   // 9. Guild Hall
   const guild =
     `<p class="muted">Days for a rank to earn back its cost, from the median gold per day the runs earned while playing the tier the rank opens at (see payback.ts).</p>` +
@@ -393,6 +439,7 @@ export function renderReport({ summary, comparison, elapsed, rules, compareWith 
     section('crafting', '6. Crafting', crafting),
     section('expeditions', '7. Expeditions', expeditions),
     section('classes', '7b. Classes and abilities', classes),
+    section('provisions', '7d. Provisions and HP', provisions),
     section('tags', '7c. Tags in encounters', `<p class="muted">Share of each tier's encounter weight that carries a tag, averaged over the tier's dungeons.</p>${tags}`),
     section('matrix', '8. Odds matrix', matrix),
     section('guild', '9. Guild Hall', guild),
@@ -417,7 +464,7 @@ code{font-size:12px}
 </style></head><body><main><h1>Balance lab</h1><nav>${[
     comparison ? ['compare', 'Changes'] : null,
     ['warnings-top', 'Warnings'], ['rules', 'Rules'], ['milestones', 'Milestones'], ['gold', 'Gold'], ['heroes', 'Heroes'], ['materials', 'Materials'],
-    ['crafting', 'Crafting'], ['expeditions', 'Expeditions'], ['classes', 'Classes'], ['tags', 'Tags'], ['matrix', 'Odds matrix'], ['guild', 'Guild Hall'],
+    ['crafting', 'Crafting'], ['expeditions', 'Expeditions'], ['classes', 'Classes'], ['provisions', 'Provisions'], ['tags', 'Tags'], ['matrix', 'Odds matrix'], ['guild', 'Guild Hall'],
   ]
     .filter((x): x is string[] => x !== null)
     .map(([id, name]) => `<a href="#${id}">${name}</a>`)

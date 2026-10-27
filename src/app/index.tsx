@@ -37,6 +37,7 @@ import { usePlayerLocation } from '@/hooks/usePlayerLocation';
 import { t, tr } from '@/i18n';
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
+import { useWorldStore } from '@/store/worldStore';
 import { colors } from '@/theme';
 
 const toLngLat = (position: LatLng): [number, number] => [position.longitude, position.latitude];
@@ -140,6 +141,13 @@ export default function MapScreen() {
     (t) => position !== null && distanceMeters(position, t.position) <= tavernRules.visibilityMeters,
   );
   const tavernsOpen = isTavernUnlocked(save);
+  // Other screens (the launch dialog) can sell emergency supply while a tavern is in reach.
+  const nearbyTavern = tavernsInSight.find((t) => position !== null && distanceMeters(position, t.position) <= tavernRules.interactionMeters) ?? null;
+  const setWorld = useWorldStore((state) => state.set);
+  useEffect(() => {
+    setWorld({ player: position, nearbyTavern });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [position?.latitude, position?.longitude, nearbyTavern?.id, setWorld]);
 
   // Treasure from read maps, shown only to this player.
   const treasureSpots = useMemo(

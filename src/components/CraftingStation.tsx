@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { masteryTypeNames, QUALITIES, qualities, TIER_NAMES } from '@/content/forging';
-import { gearName, materialById, recipeOutput } from '@/content/lookup';
+import { gearName, itemById, materialById, recipeOutput } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
-import { canCraft, forgeFee, forgedItem, isKnown, ownsTool, type ForgeResult } from '@/game/crafting/crafting';
+import { canCraft, craftableCount, forgeFee, forgedItem, isKnown, ownsTool, type ForgeResult } from '@/game/crafting/crafting';
 import { forgesForNextLevel, masteryCap, masteryOf, masteryTypeOf } from '@/game/forging/mastery';
 import { qualityOdds } from '@/game/forging/quality';
 import type { SaveData } from '@/game/save';
@@ -24,6 +24,11 @@ type Props = {
   /** Label of the craft button, e.g. "Forge" or "Brew". */
   action: string;
 };
+
+type Tab = NonNullable<RecipeDef['tab']>;
+const TABS: Tab[] = ['kitchen', 'alchemy'];
+/** Batch sizes for Provisions recipes. */
+const BATCHES = [1, 5, 10];
 
 /** Mastery level and progress for the item's type, and the quality odds of forging it now. */
 function MasteryLine({ save, item }: { save: SaveData; item: GearDef }) {
@@ -78,21 +83,31 @@ function ForgeBanner({ result, onClose }: { result: ForgeResult; onClose: () => 
   );
 }
 
-/** The known recipes of one crafting station; locked ones stay hidden. */
+/** The known recipes of one crafting station; locked ones stay hidden. Provisions come in two tabs and batches. */
 export function CraftingStation({ station, action }: Props) {
   const save = useGameStore((state) => state.save);
   const craft = useGameStore((state) => state.craft);
   const [result, setResult] = useState<ForgeResult | null>(null);
+  const [tab, setTab] = useState<Tab>('kitchen');
+  const tabbed = station === 'provisions';
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <TutorialHint screen={station} />
       {result && <ForgeBanner result={result} onClose={() => setResult(null)} />}
+      {tabbed && (
+        <View style={styles.tabs}>
+          {TABS.map((key) => (
+            <Button key={key} title={t(`crafting.tabs.${key}`)} color={tab === key ? undefined : colors.muted} onPress={() => setTab(key)} />
+          ))}
+        </View>
+      )}
       {recipes
-        .filter((recipe) => recipe.station === station && isKnown(save, recipe))
+        .filter((recipe) => recipe.station === station && isKnown(save, recipe) && (!tabbed || recipe.tab === tab))
         .map((recipe) => {
           const output = recipeOutput(recipe);
           const item = forgedItem(recipe);
+          const description = 'itemId' in recipe.output ? itemById[recipe.output.itemId].description : undefined;
           const fee = forgeFee(save, recipe);
           const inputs = (
             <View>
@@ -111,6 +126,8 @@ export function CraftingStation({ station, action }: Props) {
                 {fee > 0 && <Text style={[styles.inputText, save.gold < fee && styles.short]}>🪙 {save.gold}/{fee}</Text>}
               </View>
               {item && <MasteryLine save={save} item={item} />}
+              {description ? <Text style={styles.mastery}>{tr(description)}</Text> : null}
+              {tabbed && <Text style={styles.mastery}>{t('equip.inStock', { count: save.consumables[output.id] ?? 0 })}</Text>}
             </View>
           );
           return (
@@ -123,6 +140,17 @@ export function CraftingStation({ station, action }: Props) {
               right={
                 ownsTool(save, recipe) ? (
                   t('crafting.owned')
+                ) : tabbed ? (
+                  <View style={styles.batches}>
+                    {BATCHES.map((count) => (
+                      <Button
+                        key={count}
+                        title={count === 1 ? (tab === 'kitchen' ? t('crafting.cook') : action) : t('crafting.batch', { count })}
+                        disabled={craftableCount(save, recipe) < count}
+                        onPress={() => craft(recipe.id, count)}
+                      />
+                    ))}
+                  </View>
                 ) : (
                   <Button
                     title={action}
@@ -140,6 +168,8 @@ export function CraftingStation({ station, action }: Props) {
 
 const styles = StyleSheet.create({
   container: { padding: 16 },
+  tabs: { flexDirection: 'row', gap: 8, marginBottom: 8 },
+  batches: { gap: 4 },
   inputs: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   input: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   inputText: { fontSize: 17, color: colors.muted },

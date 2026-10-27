@@ -1,12 +1,7 @@
-// Adds what app.json can't hold: the release signing plugin, and the version
-// and version code CI passes in (APP_VERSION from the tag, ANDROID_VERSION_CODE
-// from the run number) so every release installs as an update.
+// Adds what app.json can't hold: the release signing and build-time version code
+// plugins, and the version CI passes in (APP_VERSION from the tag).
 module.exports = ({ config }) => ({
   ...config,
   version: process.env.APP_VERSION ?? config.version,
-  android: {
-    ...config.android,
-    versionCode: Number(process.env.ANDROID_VERSION_CODE ?? config.android?.versionCode ?? 1),
-  },
-  plugins: [...(config.plugins ?? []), './plugins/withReleaseSigning'],
+  plugins: [...(config.plugins ?? []), './plugins/withReleaseSigning', './plugins/withBuildTimeVersionCode'],
 });

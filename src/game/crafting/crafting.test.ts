@@ -101,7 +101,7 @@ describe('crafting', () => {
 
   it('brews consumables into a stack', () => {
     const potion = recipeById.healingPotion;
-    const save = craft(craft(withMaterials({ herb: 4, berries: 2 }), potion), potion);
+    const save = craft(craft(withMaterials({ herb: 4, mushroom: 2 }, { consumables: {} }), potion), potion);
     expect(save.consumables).toEqual({ healingPotion: 2 });
     expect(save.materials).toEqual({});
   });
@@ -135,8 +135,8 @@ describe('forge fee', () => {
     expect(canCraft({ ...save, gold: 15 }, recipeById.stoneSword)).toBe(true);
   });
 
-  it('leaves smelting, alchemy and the tutorial free', () => {
-    const save = withMaterials({ iron: 4, coal: 2, herb: 4, berries: 2, wood: 3 }, { ...done, knownRecipes: known(['smeltSteel']) });
+  it('leaves smelting, provisions and the tutorial free', () => {
+    const save = withMaterials({ iron: 4, coal: 2, herb: 4, mushroom: 2, wood: 3 }, { ...done, knownRecipes: known(['smeltSteel']) });
     expect(forgeFee(save, recipeById.smeltSteel)).toBe(0);
     expect(forgeFee(save, recipeById.healingPotion)).toBe(0);
     expect(craft(save, recipeById.smeltSteel).gold).toBe(0);

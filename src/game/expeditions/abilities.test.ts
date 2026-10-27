@@ -16,6 +16,7 @@ const member = (heroId: string, abilities: Ability[] = [], overrides: Partial<Pa
   traitId: 'none',
   weaponName: null,
   maxHp: 100,
+  hp: overrides.hp ?? overrides.maxHp ?? 100,
   damage: 10,
   defense: 0,
   threat: 1,
@@ -261,13 +262,13 @@ describe('trait effects', () => {
     expect(first([member('a', [{ kind: 'potionThreshold', add: 0.3 }], { consumable: potion })], half).consumed).toEqual(['a']);
   });
 
-  it('rationBoost: rations heal more before the boss', () => {
-    const ration = { id: 'r', name: 'ration', emoji: '', slot: 'consumable' as const, heal: 0.1, when: 'beforeBoss' as const };
+  it('stewBoost: Hunter’s stew heals more before the boss', () => {
     const run = (abilities: Ability[]) =>
-      simulateRun([member('a', abilities, { consumable: ration })], oneEncounter({ ...trap, damagePct: 0.5 } as EncounterDef), 's', {
+      simulateRun([member('a', abilities)], oneEncounter({ ...trap, damagePct: 0.5 } as EncounterDef), 's', {
         rules: steady,
+        meal: { kind: 'bossHeal', pct: 0.1 },
       }).encounters[1].healed.a;
-    expect(run([{ kind: 'rationBoost', multiplier: 2 }])).toBeCloseTo(run([]) * 2);
+    expect(run([{ kind: 'stewBoost', multiplier: 2 }])).toBeCloseTo(run([]) * 2);
   });
 
   it('hostileLocals: indifferent locals sometimes attack, and pickpockets get noticed more', () => {

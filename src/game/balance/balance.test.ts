@@ -53,7 +53,7 @@ function team(level: number, material: string | null, elixirs = false, quality: 
   let save: SaveData = {
     ...createInitialSave(),
     heroes: createInitialSave().heroes.map((h) => ({ ...h, level })),
-    consumables: { fireResistanceElixir: 2 },
+    consumables: { ...createInitialSave().consumables, fireResistanceElixir: 2 },
   };
   if (material) {
     const pieces = ['Sword', 'Bow', 'Wand', 'Armour', 'Armour', 'Armour'];
@@ -156,7 +156,8 @@ describe('tier 1 opens up as the team gears up', () => {
 describe('expedition progression', () => {
   /**
    * Odds for the starting classes at the tier's expected level, in the tier's
-   * gear at Normal quality, a healing potion each, no traits or counters.
+   * gear at Normal quality, at full HP with a healing potion each (30%), plain
+   * supply and no meal, kit or charm; no traits or counters.
    * Tier 1 short dungeons follow the lone-sword start above instead.
    */
   const BANDS = { short: [0.75, 0.85], long: [0.6, 0.75], boss: [0.45, 0.6] };
@@ -213,7 +214,7 @@ describe('Sanctum guardians', () => {
   function prepared(tier: number, weaponElement?: Element): SaveData {
     let save: SaveData = {
       ...team(TIER_LEVELS[tier - 1], TIER_MATERIALS[tier - 1]),
-      consumables: { healingPotion: 3 },
+      consumables: { ...createInitialSave().consumables, healingPotion: 3 },
     };
     save = { ...save, gear: save.gear.map((g, i) => (i < 3 ? { ...g, element: weaponElement } : g)) };
     ALL.forEach((heroId) => {

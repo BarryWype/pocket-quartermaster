@@ -59,7 +59,20 @@ export const simConfig = {
     fallback: 0.3,
   },
   /** Consumables kept in stock. */
-  stock: { healingPotion: 3, ration: 3, fireResistanceElixir: 2 } as Record<string, number>,
+  stock: { healingPotion: 3, fireResistanceElixir: 2 } as Record<string, number>,
+  provisions: {
+    /** Supply points kept in stock, cooked `batch` at a time. */
+    supplyBuffer: 18,
+    batch: 5,
+    /** Meals, kits and charms kept in stock, of each kind. */
+    meals: 2,
+    kits: 1,
+    charms: 2,
+    /** Short runs at least this safe take charms instead of potions. */
+    charmOdds: 0.85,
+    /** Potions are drunk at home when current HP costs the party more than this much success chance. */
+    potionGain: 0.15,
+  },
   /** Re-forge a worn piece only when the chance of a better quality is at least this. */
   reforgeChance: 0.2,
   reforgesPerSession: 6,
@@ -106,11 +119,16 @@ export const BOT_RULES = [
   'Collect: finished expeditions, ready step chests and Guild Hall training.',
   'Forge: the next pickaxe as soon as it can be made; then, per hero, the biggest upgrade first (best tier of a weapon they can use, and armour). New pieces go to whoever gains most; spare pieces are salvaged. Steel is smelted when a wanted forge is short of it. Forges are only made when the gold for the fee is there.',
   'Re-forge a worn piece of the best known tier while the chance of a better quality is at least 20% and the materials for one more forge remain; keep the better piece, salvage the other.',
-  'Keep 3 healing potions and 3 rations; brew fire elixirs only when one of today’s dungeons deals fire.',
+  'Cook supply in batches of 5 (jerky while meat lasts, else trail mix) to keep 18 points in stock; then keep 3 healing potions, 2 of each meal, 1 of each kit and 2 of each charm; brew fire elixirs only when one of today’s dungeons deals fire.',
+  'Meal: Hunter’s stew for a boss; Comfort broth when the odds are below 50%; Quick bites when they bring the party back a session earlier; Scholar’s porridge while the party is below the tier’s expected level; Merchant’s pie otherwise.',
+  'Kit: the one whose counter the party lacks for the dungeon’s encounters (obstacles, all-beast fights, locals, undead), most frequent first.',
+  'Charms: on short dungeons with odds ≥ 85%, potions give way to charms: a ward bone in trap dungeons, else one lucky tooth per party, else a rabbit’s foot.',
+  'HP: odds use current HP, so parties favour rested heroes. When current HP costs the chosen party more than 15 points against full HP, it drinks potions at home (most hurt first); if that is not enough, the dungeon waits for a later session.',
+  'Supply: when the stock is short for a launch and a tavern is reachable today, buy the missing points as emergency jerky.',
   'Infuse the best plain weapon with the held stone that does best against the most common enemy element of the current tier.',
   'Recruit when a tavern is reachable today, the roster has room and the gold covers the price: classes that counter the current tier’s tags first, then classes the roster lacks.',
   'Guild Hall: buy ranks in priority order, keeping the next recruit’s price while the roster has room.',
   'Sanctums: with a Sigil, a reachable Sanctum and odds ≥ 0.5 with the best heroes at home, use the highest Sigil tier that passes.',
   'Treasure: read every map; dig it up on a day its spot is reachable.',
-  'Expeditions: the unbeaten boss of the highest tier first when its odds are ≥ 0.45. Then, while heroes are idle, the open dungeon of the top two tiers with the best expected value per hour among those with odds ≥ the profile threshold; a boss whose daily bonus is already claimed is valued at the repeat reward chance. A dungeon of the highest tier that can drop a gear blueprint the team lacks only needs odds ≥ 0.35. Parties are built greedily (add the hero who raises the odds most) and each hero takes a potion (a fire elixir for fire dungeons, a ration when out of potions).',
+  'Expeditions: the unbeaten boss of the highest tier first when its odds are ≥ 0.45. Then, while heroes are idle, the open dungeon of the top two tiers with the best expected value per hour among those with odds ≥ the profile threshold; a boss whose daily bonus is already claimed is valued at the repeat reward chance. A dungeon of the highest tier that can drop a gear blueprint the team lacks only needs odds ≥ 0.35. Parties are built greedily (add the hero who raises the odds most) and each hero takes a potion (a fire elixir for fire dungeons).',
 ];

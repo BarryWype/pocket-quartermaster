@@ -7,6 +7,7 @@ import { runSim } from '@/game/sim/engine';
 import { oddsMatrix, type MatrixRow } from '@/game/sim/matrix';
 import { summarize, type ProfileSummary } from '@/game/sim/metrics';
 import { applyOverrides, parseOverride } from '@/game/sim/overrides';
+import { spamCheck, type SpamCheck } from '@/game/sim/spam';
 import { bossTarget, targets } from '@/game/sim/targets';
 import { measureWalkRates, walkCacheKey, type WalkRates } from '@/game/sim/walking';
 
@@ -35,6 +36,8 @@ export type Summary = {
   settings: { profiles: string[]; days: number; runs: number; seed: string; overrides: string[]; walkEfficiency: number };
   profiles: Record<string, ProfileSummary>;
   oddsMatrix: MatrixRow[];
+  /** Same 3 heroes on the shortest tier 1 dungeon vs rotating the roster. */
+  spam: SpamCheck;
 };
 
 function walkRates(cacheDir: string, print: (line: string) => void): WalkRates {
@@ -75,6 +78,7 @@ export function runLab(options: LabOptions) {
       },
       profiles: summaries,
       oddsMatrix: options.matrix === false ? [] : oddsMatrix(),
+      spam: spamCheck(),
     };
     const comparison: Comparison | null = options.compareWith
       ? compare(JSON.parse(fs.readFileSync(options.compareWith, 'utf8')) as Summary, summary, targets.compareThreshold)
@@ -109,6 +113,12 @@ function printSummary(summary: Summary, comparison: Comparison | null, print: (l
     print(`  Recruits: ${recruits}. Gold held at the end: ${day(p.gold.final.median)}. Idle: ${Math.round(p.heroes.idleShare * 100)}%`);
     for (const w of p.warnings) print(`  ⚠ ${w}`);
   }
+  const { spam } = summary;
+  print(
+    `\nSpam check (${spam.dungeonId}, ${spam.hours} h): rotating earns ×${spam.ratio.xp} XP and ×${spam.ratio.gold} gold per hour of the same 3 heroes ${
+      spam.ok ? '✓' : `⚠ (target ×${targets.spamAdvantage})`
+    }`,
+  );
   if (comparison) {
     print(`\nCompared with the previous run: ${comparison.changes.filter((c) => c.big).length} changes over ${targets.compareThreshold * 100}%`);
     for (const c of comparison.changes.filter((c) => c.big).slice(0, 15)) print(`  ${c.key}: ${c.before ?? '—'} → ${c.after ?? '—'}`);

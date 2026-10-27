@@ -5,6 +5,7 @@ import { fill, localized, tr } from '@/i18n';
 
 import { resolveExpedition } from '../expeditions/expeditions';
 import type { SaveData } from '../save';
+import { timeToFull } from '../team/health';
 import type { ActiveExpedition, ExpeditionReport } from '../types';
 import { deliveryTime } from './quietHours';
 import type { NotificationCategory, NotificationSettings, PlannedNotification } from './types';
@@ -107,6 +108,23 @@ function idleNotification(save: SaveData, rules: Rules): PlannedNotification[] {
   ];
 }
 
+/**
+ * When every hero who came back hurt from the last expedition (the last one
+ * still out, previewed, or else the last report) is full again.
+ */
+function restedNotification(save: SaveData, now: number): PlannedNotification[] {
+  const latest = [...save.expeditions].sort((a, b) => b.endsAt - a.endsAt)[0];
+  const back = latest ? resolveExpedition(save, latest) : { save, report: save.reports[0] };
+  if (!back.report) return [];
+  const from = latest ? latest.endsAt : now;
+  const hurt = back.report.heroHp
+    .filter((h) => h.hp < h.maxHp)
+    .flatMap((h) => back.save.heroes.filter((hero) => hero.id === h.heroId));
+  if (hurt.length === 0) return [];
+  const at = from + Math.max(...hurt.map((hero) => timeToFull(back.save, hero, from)));
+  return [{ id: 'rested', category: 'heroesRested', group: 'expeditions', at, ...notificationTexts().heroesRested }];
+}
+
 /** The next local midnight, when step chests reset. */
 function dailyResetNotification(now: number): PlannedNotification[] {
   const midnight = new Date(now);
@@ -116,7 +134,7 @@ function dailyResetNotification(now: number): PlannedNotification[] {
 
 /**
  * Every notification that should be scheduled right now, given the game state
- * and settings: expedition results, the idle reminder and the daily reset,
+ * and settings: expedition results, rested heroes, the idle reminder and the daily reset,
  * each moved out of quiet hours. Re-planned whenever either changes.
  */
 export function planNotifications(
@@ -130,6 +148,7 @@ export function planNotifications(
   const planned = [
     ...expeditionNotifications(save, settings, rules),
     ...(categories.heroesIdle ? idleNotification(save, rules) : []),
+    ...(categories.heroesRested ? restedNotification(save, now) : []),
     ...(categories.dailyReset ? dailyResetNotification(now) : []),
   ];
   return planned

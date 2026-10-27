@@ -12,6 +12,11 @@ function flatten(summary: Summary): Record<string, number | null> {
     for (const [key, v] of Object.entries(p.gold.spend)) out[`${name} · gold out · ${key}`] = v;
     out[`${name} · gold held at the end`] = p.gold.final.median;
     out[`${name} · idle share`] = p.heroes.idleShare;
+    if (p.provisions) {
+      out[`${name} · food use share`] = p.provisions.food.share;
+      out[`${name} · starting HP`] = p.provisions.startHp;
+      out[`${name} · starving share`] = p.provisions.starving;
+    }
     for (const [tier, q] of Object.entries(p.crafting.quality)) {
       for (const [quality, share] of Object.entries(q)) out[`${name} · tier ${tier} ${quality} share`] = share;
     }

@@ -3,7 +3,9 @@ import { useState } from 'react';
 import { Image, Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { healthRules } from '@/content/health';
 import { isGuildUnlocked } from '@/game/guild/guild';
+import { currentHp, maxHp } from '@/game/team/health';
 import { tutorialTarget, type MenuTarget } from '@/game/tutorial/tutorial';
 import { t, type TextKey } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
@@ -13,10 +15,9 @@ import { Text } from './Text';
 
 type MenuLink = { icon: ImageSourcePropType; label: TextKey; href: Href; target?: MenuTarget };
 
-// Add a station here (e.g. cooking) to list it under Craft.
 const CRAFT_LINKS: MenuLink[] = [
   { icon: require('../../assets/icons/scaled/menu-forge.png'), label: 'screens.forge', href: '/forge', target: 'forge' },
-  { icon: require('../../assets/icons/scaled/menu-alchemy.png'), label: 'screens.alchemy', href: '/alchemy' },
+  { icon: require('../../assets/icons/scaled/menu-alchemy.png'), label: 'screens.provisions', href: '/provisions' },
   { icon: require('../../assets/icons/scaled/menu-inventory.png'), label: 'screens.inventory', href: '/inventory' },
 ];
 
@@ -31,6 +32,10 @@ export function IslandMenu() {
   // The tutorial points at the button its current step is waiting for.
   const target = useGameStore((state) => tutorialTarget(state.save));
   const guildOpen = useGameStore((state) => isGuildUnlocked(state.save));
+  // Badly hurt heroes, as of the last change to the save.
+  const hurt = useGameStore(
+    ({ save }) => save.heroes.filter((h) => currentHp(save, h, Date.now()) < healthRules.hurtShare * maxHp(save, h)).length,
+  );
 
   const go = (href: Href) => {
     setCraftOpen(false);
@@ -70,6 +75,7 @@ export function IslandMenu() {
           <MenuButton
             icon={require('../../assets/icons/scaled/menu-team.png')}
             label={t('screens.team')}
+            badge={hurt}
             highlight={target === 'team'}
             onPress={() => go('/team')}
           />
