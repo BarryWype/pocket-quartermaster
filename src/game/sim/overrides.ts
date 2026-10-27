@@ -3,9 +3,11 @@ import { expeditionRules } from '@/content/dungeons';
 import { elementRules } from '@/content/elements';
 import { forgeRules, masteryRules, salvageRules } from '@/content/forging';
 import { guildRules, guildTrackById } from '@/content/guild';
+import { healthRules } from '@/content/health';
 import { heroClasses, xpRules } from '@/content/heroes';
 import { dungeonById, itemById, recipeById } from '@/content/lookup';
 import { mainRewardRules } from '@/content/mainRewards';
+import { provisionRules } from '@/content/provisions';
 import { recruitRules, rosterRules } from '@/content/roster';
 import { firstClearRules, rotationRules } from '@/content/rotation';
 import { sanctumRules } from '@/content/sanctums';
@@ -25,6 +27,8 @@ const roots: Record<string, unknown> = {
   items: itemById,
   heroes: heroClasses,
   xp: xpRules,
+  health: healthRules,
+  provisions: provisionRules,
   recruit: recruitRules,
   roster: rosterRules,
   taverns: tavernRules,

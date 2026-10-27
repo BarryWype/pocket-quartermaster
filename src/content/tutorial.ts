@@ -34,16 +34,16 @@ export const tutorialHints: Record<TutorialStep, Partial<Record<TutorialScreen |
     hero: 'Tap the Weapon slot and pick the sword.',
   },
   sendExpedition: {
-    default: 'Open Expeditions and send your team out.',
+    default: 'Open Quests and send your team out.',
     expeditions: 'Send the team to the Rat Cellar. This first trip only takes a few seconds.',
   },
   awaitReport: {
-    map: 'Your team is away. Gather some animals and herbs while you wait.',
-    expeditions: 'Your team is under way: the bar shows how far they’ve got.',
+    map: 'Your team is away. Gather some animals and herbs while you wait, then collect their loot in Quests.',
+    expeditions: 'Your team is under way: the bar shows how far they’ve got. When they’re back, tap Collect loot.',
   },
   readReport: {
-    default: 'Your heroes are back! Open Expeditions to read their report.',
-    expeditions: 'Here’s their report: what happened, the loot and the XP earned.',
+    default: 'Your heroes are back! Open Quests to read their report.',
+    expeditions: 'Their report is in the Reports tab: what happened, the loot and the XP earned.',
   },
   findSanctum: {
     default: 'Explore the map for a Sanctum to use your Sigil.',
@@ -64,5 +64,6 @@ export const tutorialTargets: Partial<Record<TutorialStep, MenuTarget>> = {
   forgeSword: 'forge',
   equipSword: 'team',
   sendExpedition: 'expeditions',
+  awaitReport: 'expeditions',
   readReport: 'expeditions',
 };

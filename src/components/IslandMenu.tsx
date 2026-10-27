@@ -28,7 +28,10 @@ export const ISLAND_HEIGHT = 84;
 export function IslandMenu() {
   const insets = useSafeAreaInsets();
   const [craftOpen, setCraftOpen] = useState(false);
-  const unseenReports = useGameStore((state) => state.save.reports.filter((r) => !r.seen).length);
+  // Unread reports and teams back with loot to collect, as of the last change to the save.
+  const unseenReports = useGameStore(
+    ({ save }) => save.reports.filter((r) => !r.seen).length + save.expeditions.filter((e) => e.endsAt <= Date.now()).length,
+  );
   // The tutorial points at the button its current step is waiting for.
   const target = useGameStore((state) => tutorialTarget(state.save));
   const guildOpen = useGameStore((state) => isGuildUnlocked(state.save));
@@ -85,7 +88,7 @@ export function IslandMenu() {
             label={t('menu.expeditions')}
             badge={unseenReports}
             highlight={target === 'expeditions'}
-            onPress={() => go('/expeditions')}
+            onPress={() => go('/quests')}
           />
         </View>
       </View>

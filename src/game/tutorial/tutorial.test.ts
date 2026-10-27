@@ -1,7 +1,7 @@
 import { recipeById } from '@/content/lookup';
 
 import { craft } from '../crafting/crafting';
-import { resolveDue, startExpedition } from '../expeditions/expeditions';
+import { readyExpeditions, resolveExpedition, startExpedition } from '../expeditions/expeditions';
 import { canGather, collectSpawn } from '../gathering/gathering';
 import { distanceMeters } from '../generation/geo';
 import type { StaticSpawn } from '../generation/types';
@@ -79,9 +79,12 @@ describe('tutorial walkthrough', () => {
     expect(save.tutorial.step).toBe('awaitReport');
     expect(save.expeditions[0].endsAt).toBe(now + 5000);
 
-    const { save: back, reports } = resolveDue(save, now + 5000);
-    expect(reports[0].success).toBe(true);
-    expect(reports[0].mainRewards).toEqual([{ kind: 'sigil', tier: 1 }]);
+    // Back after 5 seconds, waiting for the player to collect the loot.
+    expect(readyExpeditions(save, now + 5000)).toHaveLength(1);
+    expect(advanceTutorial(save).tutorial.step).toBe('awaitReport');
+    const { save: back, report } = resolveExpedition(save, save.expeditions[0]);
+    expect(report.success).toBe(true);
+    expect(report.mainRewards).toEqual([{ kind: 'sigil', tier: 1 }]);
     expect(back.sigils).toEqual([1]);
     expect(back.firstSigilGiven).toBe(false);
     save = advanceTutorial(back);

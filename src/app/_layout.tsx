@@ -13,23 +13,22 @@ import { colors, fonts } from '@/theme';
 
 configureNotifications();
 
-/** Resolves finished expeditions on launch, on return to the app, and while it is open; credits training too. */
-function useExpeditionResolver() {
+/**
+ * Drops expired maps, lures and Sanctums and credits Guild Hall training on
+ * launch and on return to the app. Finished expeditions wait for the player
+ * to collect their loot on the Quests page.
+ */
+function useUpkeep() {
   useEffect(() => {
-    const resolve = () => useGameStore.getState().resolveDue();
-    // Guild Hall training is credited on launch and on return to the app.
-    const resolveAndTrain = () => {
-      resolve();
+    const upkeep = () => {
+      useGameStore.getState().prune();
       useGameStore.getState().train();
     };
-    const unsubscribeHydration = useGameStore.persist.onFinishHydration(resolveAndTrain);
-    if (useGameStore.persist.hasHydrated()) resolveAndTrain();
-
-    const timer = setInterval(resolve, 5000);
-    const appState = AppState.addEventListener('change', (state) => state === 'active' && resolveAndTrain());
+    const unsubscribeHydration = useGameStore.persist.onFinishHydration(upkeep);
+    if (useGameStore.persist.hasHydrated()) upkeep();
+    const appState = AppState.addEventListener('change', (state) => state === 'active' && upkeep());
     return () => {
       unsubscribeHydration();
-      clearInterval(timer);
       appState.remove();
     };
   }, []);
@@ -41,7 +40,7 @@ export default function RootLayout() {
     configureChannels();
     syncPlan();
   }, [locale]);
-  useExpeditionResolver();
+  useUpkeep();
   useStepTracking();
   useNotifications();
   const [fontsLoaded, fontError] = useFonts({
@@ -67,7 +66,7 @@ export default function RootLayout() {
       <Stack.Screen name="inventory" options={{ title: t('screens.inventory') }} />
       <Stack.Screen name="team/index" options={{ title: t('screens.team') }} />
       <Stack.Screen name="team/[heroId]" options={{ title: t('screens.hero') }} />
-      <Stack.Screen name="expeditions" options={{ title: t('screens.expeditions') }} />
+      <Stack.Screen name="quests" options={{ title: t('screens.quests') }} />
       <Stack.Screen name="guild" options={{ title: t('screens.guild') }} />
       <Stack.Screen name="settings" options={{ title: t('screens.settings') }} />
       <Stack.Screen name="debug" options={{ title: t('screens.debug') }} />

@@ -348,21 +348,12 @@ export function resolveExpedition(
   return { save: { ...next, reports: [report, ...save.reports].slice(0, rules.reportsKept) }, report };
 }
 
-/** Resolves every expedition whose timer has ended, oldest first. */
-export function resolveDue(
-  save: SaveData,
-  now: number,
-  mainReward?: MainRewardOptions,
-): { save: SaveData; reports: ExpeditionReport[] } {
-  const due = save.expeditions.filter((e) => e.endsAt <= now).sort((a, b) => a.endsAt - b.endsAt);
-  return due.reduce<{ save: SaveData; reports: ExpeditionReport[] }>(
-    (acc, expedition) => {
-      const { save: next, report } = resolveExpedition(acc.save, expedition, { mainReward });
-      return { save: next, reports: [...acc.reports, report] };
-    },
-    { save, reports: [] },
-  );
-}
+/**
+ * Expeditions whose timer has ended, oldest first. They wait, heroes still
+ * away, until the player collects the loot (`resolveExpedition`).
+ */
+export const readyExpeditions = (save: SaveData, now: number) =>
+  save.expeditions.filter((e) => e.endsAt <= now).sort((a, b) => a.endsAt - b.endsAt);
 
 /** Moves every running expedition's end time to now (debug). */
 export function fastForward(save: SaveData, now: number): SaveData {

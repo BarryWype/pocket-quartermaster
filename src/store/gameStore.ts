@@ -12,7 +12,7 @@ import { infuse } from '@/game/crafting/infusion';
 import { salvage } from '@/game/forging/salvage';
 import { migrateV10Save, migrateV5Save, migrateV6Save, migrateV7Save, migrateV8Save, migrateV9Save } from '@/game/migrations';
 import { convertShards, shardId, stoneId, type Element } from '@/game/elements';
-import { fastForward, resolveDue, startExpedition, type Loadout } from '@/game/expeditions/expeditions';
+import { fastForward, resolveExpedition, startExpedition, type Loadout } from '@/game/expeditions/expeditions';
 import { collectSpawn, type CollectResult, type Gatherer } from '@/game/gathering/gathering';
 import type { LatLng, Spawn } from '@/game/generation/types';
 import { addMaterials } from '@/game/inventory';
@@ -53,7 +53,10 @@ type GameState = {
   /** Credits Guild Hall training XP since the last check. */
   train: () => void;
   startExpedition: (dungeonId: string, heroIds: string[], durationScale: number, loadout?: Loadout) => void;
-  resolveDue: () => ExpeditionReport[];
+  /** Drops expired maps, lures and used Sanctums. */
+  prune: () => void;
+  /** Brings a finished expedition home: rewards, XP and HP are applied now. */
+  collectLoot: (expeditionId: string) => ExpeditionReport | null;
   markReportsSeen: () => void;
   recordSteps: (day: string, newSteps: number) => void;
   syncSteps: (day: string, total: number) => void;
@@ -139,16 +142,20 @@ export const useGameStore = create<GameState>()(
         set(({ save }) => ({
           save: advanceTutorial(startExpedition(save, dungeonId, heroIds, Date.now(), durationScale, currentRotation(), loadout)),
         })),
-      resolveDue: () => {
+      prune: () => {
+        const pruned = pruneExpired(get().save, Date.now());
+        if (pruned !== get().save) set({ save: pruned });
+      },
+      collectLoot: (expeditionId) => {
         const now = Date.now();
+        const expedition = get().save.expeditions.find((e) => e.id === expeditionId);
+        if (!expedition || expedition.endsAt > now) return null;
         const debug = useDebugStore.getState();
         const force = debug.forcedMainReward ?? undefined;
-        const { save, reports } = resolveDue(get().save, now, { force });
-        if (force && reports.some((r) => r.success)) debug.set({ forcedMainReward: null });
-        // Also the moment to drop expired maps, lures and used Sanctums.
-        const pruned = pruneExpired(save, now);
-        if (reports.length > 0 || pruned !== get().save) set({ save: advanceTutorial(pruned) });
-        return reports;
+        const { save, report } = resolveExpedition(get().save, expedition, { mainReward: { force } });
+        if (force && report.success) debug.set({ forcedMainReward: null });
+        set({ save: advanceTutorial(pruneExpired(save, now)) });
+        return report;
       },
       markReportsSeen: () =>
         set(({ save }) => ({
@@ -249,10 +256,7 @@ export const useGameStore = create<GameState>()(
         })),
       addLure: () => set(({ save }) => ({ save: { ...save, lures: save.lures + 1 } })),
       resetSanctums: () => set(({ save }) => ({ save: { ...save, usedSanctums: {}, sigilPity: 0 } })),
-      fastForwardExpeditions: () => {
-        set(({ save }) => ({ save: fastForward(save, Date.now()) }));
-        get().resolveDue();
-      },
+      fastForwardExpeditions: () => set(({ save }) => ({ save: fastForward(save, Date.now()) })),
       setHeroHp: (heroId, share, exhausted) => set(({ save }) => ({ save: setHeroHp(save, heroId, share, Date.now(), exhausted) })),
       healAll: () => set(({ save }) => ({ save: healAll(save) })),
       addProvisions: (amount) =>

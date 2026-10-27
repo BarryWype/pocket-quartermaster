@@ -12,7 +12,7 @@ import {
   fastForward,
   isDungeonAvailable,
   isDungeonUnlocked,
-  resolveDue,
+  readyExpeditions,
   resolveExpedition,
   startExpedition,
 } from './expeditions';
@@ -320,18 +320,17 @@ describe('tutorial expedition', () => {
   });
 });
 
-describe('resolveDue', () => {
-  it('resolves only finished expeditions, even after the app was closed', () => {
+describe('readyExpeditions', () => {
+  it('lists only finished expeditions, even after the app was closed, and keeps their heroes away', () => {
     let save = startExpedition(allTiers(createInitialSave()), 'goblinWarren', ['bram'], 0);
     save = startExpedition(save, 'cinderHollow', ['lyra'], 0);
-    const later = resolveDue(save, 20 * MIN);
-    expect(later.reports.map((r) => r.dungeonId)).toEqual(['goblinWarren']);
-    expect(later.save.expeditions.map((e) => e.dungeonId)).toEqual(['cinderHollow']);
+    expect(readyExpeditions(save, 20 * MIN).map((e) => e.dungeonId)).toEqual(['goblinWarren']);
+    expect(save.expeditions).toHaveLength(2);
   });
 
   it('fast-forwards running expeditions', () => {
     const save = startExpedition(allTiers(createInitialSave()), 'cinderHollow', ['lyra'], 0);
-    expect(resolveDue(fastForward(save, 5), 5).reports).toHaveLength(1);
+    expect(readyExpeditions(fastForward(save, 5), 5)).toHaveLength(1);
   });
 });
 
