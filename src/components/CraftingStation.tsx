@@ -11,7 +11,7 @@ import type { SaveData } from '@/game/save';
 import type { GearDef, RecipeDef } from '@/game/types';
 import { formatPercent, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
-import { colors } from '@/theme';
+import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
 import { GameIcon } from './GameIcon';
@@ -142,19 +142,18 @@ const styles = StyleSheet.create({
   container: { padding: 16 },
   inputs: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   input: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  inputText: { fontSize: 13, color: '#666' },
+  inputText: { fontSize: 17, color: colors.muted },
   short: { color: colors.danger },
-  mastery: { fontSize: 12, color: colors.muted },
+  mastery: { fontSize: 16, color: colors.muted },
   banner: {
     gap: 2,
     padding: 12,
     marginBottom: 8,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: colors.woodDark,
+    borderWidth: pixel.outline,
+    borderColor: colors.ink,
     backgroundColor: colors.parchmentDark,
   },
   legendary: { borderWidth: 4, padding: 16, backgroundColor: colors.highlight },
-  bannerTitle: { fontSize: 18 },
-  legendaryTitle: { fontSize: 22 },
+  bannerTitle: { fontSize: 22 },
+  legendaryTitle: { fontSize: 26 },
 });

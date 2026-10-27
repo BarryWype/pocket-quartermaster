@@ -59,5 +59,5 @@ export function StepChests() {
 }
 
 const styles = StyleSheet.create({
-  reward: { paddingVertical: 8, fontWeight: '600' },
+  reward: { paddingVertical: 8 },
 });

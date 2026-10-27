@@ -8,7 +8,7 @@ import { canWield } from '@/game/team/team';
 import type { SaveData } from '@/game/save';
 import type { EquipmentSlot } from '@/game/types';
 import { t, tr } from '@/i18n';
-import { colors } from '@/theme';
+import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
 import { Row } from './Row';
@@ -99,12 +99,12 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
   sheet: {
     backgroundColor: colors.parchment,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopWidth: pixel.outline + 1,
+    borderColor: colors.ink,
     padding: 16,
     maxHeight: '70%',
     gap: 8,
   },
-  title: { fontSize: 18, fontWeight: '600' },
-  empty: { color: '#666', paddingVertical: 8 },
+  title: { fontSize: 22 },
+  empty: { color: colors.muted, paddingVertical: 8 },
 });

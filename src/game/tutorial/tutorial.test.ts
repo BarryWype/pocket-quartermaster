@@ -123,7 +123,7 @@ describe('tutorial walkthrough', () => {
 
   it('gives each screen its own hint where it has one', () => {
     const save = { ...createInitialSave(), tutorial: { step: 'equipSword' as const, woodSpot: null } };
-    expect(tutorialHint(save, 'hero')).toMatch(/Change/);
+    expect(tutorialHint(save, 'hero')).toMatch(/Weapon slot/);
     expect(tutorialHint(save, 'map')).toMatch(/Team/);
     expect(tutorialHint(createInitialSave(), 'forge')).toBeNull();
   });

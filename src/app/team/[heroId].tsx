@@ -1,14 +1,19 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { EquipPicker } from '@/components/EquipPicker';
 import { PlaceholderScreen } from '@/components/PlaceholderScreen';
-import { Row } from '@/components/Row';
+import { gearStatsText, STATS, statIcons } from '@/components/GearRow';
+import { Panel } from '@/components/Panel';
+import { PixelBar } from '@/components/PixelBar';
+import { IconSlot, SectionTitle } from '@/components/Row';
 import { Text } from '@/components/Text';
+import { Tip } from '@/components/Tip';
 import { TutorialHint } from '@/components/TutorialHint';
 import { abilityText } from '@/content/abilities';
+import { elementInfo } from '@/content/elements';
 import { masteryTypeNames, qualities } from '@/content/forging';
 import { heroClasses, xpToNextLevel } from '@/content/heroes';
 import { traitById } from '@/content/traits';
@@ -18,7 +23,7 @@ import type { EquipmentSlot, WeaponType } from '@/game/types';
 import { useLanguage } from '@/hooks/useLanguage';
 import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
-import { colors } from '@/theme';
+import { colors, pixel } from '@/theme';
 
 const SLOTS: EquipmentSlot[] = ['weapon', 'armor', 'consumable'];
 
@@ -37,15 +42,10 @@ export default function CharacterSheetScreen() {
   const stats = heroStats(save, hero);
   const away = isOnExpedition(save, hero.id);
 
-  const slotLabel = (slot: EquipmentSlot) => {
-    const id = hero.equipment[slot];
-    if (!id) return t('hero.empty');
-    if (slot === 'consumable') return `${itemById[id].emoji} ${tr(itemById[id].name)}`;
-    const gear = save.gear.find((g) => g.uid === id);
-    return gear ? `${itemById[gear.itemId].emoji} ${gearName(gear)}` : t('hero.empty');
-  };
   const trait = traitById[hero.trait];
   const weapons = (Object.keys(heroClass.affinities) as WeaponType[]).map((w) => tr(masteryTypeNames[w].name).toLowerCase());
+  const element = heroClass.element ? elementInfo[heroClass.element] : null;
+  const next = xpToNextLevel(hero.level);
   const confirmDismiss = () =>
     Alert.alert(t('hero.dismissTitle', { name: hero.name }), t('hero.dismissBody'), [
       { text: t('common.cancel'), style: 'cancel' },
@@ -58,55 +58,93 @@ export default function CharacterSheetScreen() {
         },
       },
     ]);
-  const slotColor = (slot: EquipmentSlot) => {
-    const gear = slot === 'consumable' ? undefined : save.gear.find((g) => g.uid === hero.equipment[slot]);
-    return gear ? { color: qualities[gear.quality].color } : null;
+
+  /** What the slot holds: icon, name in its quality colour, and stats for gear. */
+  const slotContent = (slot: EquipmentSlot) => {
+    const id = hero.equipment[slot];
+    if (id && slot === 'consumable') return { emoji: itemById[id].emoji, icon: itemById[id].icon, name: tr(itemById[id].name) };
+    const gear = id ? save.gear.find((g) => g.uid === id) : undefined;
+    if (!gear) return { emoji: '·', name: t('hero.empty') };
+    const item = itemById[gear.itemId];
+    return { emoji: item.emoji, icon: item.icon, name: gearName(gear), color: qualities[gear.quality].color, stats: gearStatsText(gear) };
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Stack.Screen options={{ title: hero.name }} />
       <TutorialHint screen="hero" />
-      <View style={styles.card}>
-        <Row
-          emoji={heroClass.emoji}
-          title={`${hero.name} · ${tr(heroClass.name)}`}
-          subtitle={`${t('hero.xp', { level: hero.level, xp: hero.xp, next: xpToNextLevel(hero.level) })}${away ? t('common.onExpedition') : ''}`}
-        />
-        <Text style={styles.stats}>
-          ⚔️ {stats.attack}   🛡️ {stats.defense}   ✨ {stats.magic}   ❤️ {stats.hp}
-        </Text>
-        {SLOTS.map((slot) => (
-          <View key={slot} style={styles.slot}>
-            <Text style={styles.slotName}>{t(`hero.slots.${slot}`)}</Text>
-            <Text style={[styles.slotValue, slotColor(slot)]}>{slotLabel(slot)}</Text>
-            <Button title={t('hero.change')} disabled={away} onPress={() => setPicking(slot)} />
+      <Panel color={colors.wood} style={styles.header}>
+        <View style={styles.identity}>
+          <IconSlot emoji={heroClass.emoji} size={64} />
+          <View style={styles.identityText}>
+            <Text style={styles.name}>{hero.name}</Text>
+            <Text style={styles.className}>
+              {tr(heroClass.name)}
+              {element ? ` · ${element.emoji} ${tr(element.name)}` : ''}
+            </Text>
+            <Text style={styles.level}>{t('common.level', { level: hero.level })}</Text>
           </View>
+        </View>
+        <PixelBar value={next ? hero.xp / next : 1} color={colors.highlight} />
+        <Text style={styles.xp}>
+          {t('hero.xp', { xp: hero.xp, next })}
+          {away ? t('common.onExpedition') : ''}
+        </Text>
+      </Panel>
+
+      <SectionTitle>{t('hero.stats')}</SectionTitle>
+      <View style={styles.stats}>
+        {STATS.map((stat) => (
+          <Tip key={stat} title={t(`hero.statNames.${stat}`)} text={t(`hero.statTips.${stat}`)} style={styles.stat}>
+            <Text style={styles.statIcon}>{statIcons[stat]}</Text>
+            <View>
+              <Text style={styles.statName}>{t(`hero.statNames.${stat}`)}</Text>
+              <Text style={styles.statValue}>{stats[stat]}</Text>
+            </View>
+          </Tip>
         ))}
-        {away && <Text style={styles.hint}>{t('hero.awayHint')}</Text>}
       </View>
 
-      <View style={styles.details}>
-        {trait && (
-          <Text style={{ color: trait.positive ? colors.ink : colors.danger }}>
-            {t('hero.trait', { name: tr(trait.name), description: tr(trait.description) })}
-          </Text>
-        )}
-        <Text>{t('hero.weapons', { weapons: weapons.join(', ') })}</Text>
-        {heroClass.abilities.map((ability, i) => (
-          <Text key={i} style={styles.hint}>
-            • {abilityText(ability)}
-          </Text>
-        ))}
-        <Button
-          title={t('hero.dismiss')}
-          color={colors.danger}
-          disabled={!canDismiss(save, hero.id)}
-          onPress={confirmDismiss}
-        />
-        {!canDismiss(save, hero.id) && (
-          <Text style={styles.hint}>{away ? t('hero.cantDismissAway') : t('hero.cantDismissLast')}</Text>
-        )}
+      <SectionTitle>{t('hero.equipment')}</SectionTitle>
+      {SLOTS.map((slot) => {
+        const content = slotContent(slot);
+        return (
+          <Pressable
+            key={slot}
+            accessibilityRole="button"
+            disabled={away}
+            onPress={() => setPicking(slot)}
+            style={({ pressed }) => [styles.slot, pressed && styles.pressed]}
+          >
+            <IconSlot emoji={content.emoji} icon={content.icon} size={40} />
+            <View style={styles.slotBody}>
+              <Text style={styles.slotName}>{t(`hero.slots.${slot}`)}</Text>
+              <Text style={[styles.slotValue, content.color ? { color: content.color } : null]}>{content.name}</Text>
+              {content.stats ? <Text style={styles.muted}>{content.stats}</Text> : null}
+            </View>
+            {!away && <Text style={styles.chevron}>›</Text>}
+          </Pressable>
+        );
+      })}
+      <Text style={styles.muted}>{away ? t('hero.awayHint') : t('hero.tapSlot')}</Text>
+
+      <SectionTitle>{t('hero.skills')}</SectionTitle>
+      {trait && (
+        <Panel color={trait.positive ? colors.parchment : colors.parchmentDark} borderColor={trait.positive ? colors.ink : colors.danger}>
+          <Text style={[styles.traitName, !trait.positive && { color: colors.danger }]}>{t('hero.traitTitle', { name: tr(trait.name) })}</Text>
+          <Text>{tr(trait.description)}</Text>
+        </Panel>
+      )}
+      <Text>{t('hero.weapons', { weapons: weapons.join(', ') })}</Text>
+      {heroClass.abilities.map((ability, i) => (
+        <Text key={i} style={styles.ability}>
+          ◆ {abilityText(ability)}
+        </Text>
+      ))}
+
+      <View style={styles.dismiss}>
+        <Button title={t('hero.dismiss')} color={colors.danger} disabled={!canDismiss(save, hero.id)} onPress={confirmDismiss} />
+        {!canDismiss(save, hero.id) && <Text style={styles.muted}>{away ? t('hero.cantDismissAway') : t('hero.cantDismissLast')}</Text>}
       </View>
 
       {picking && (
@@ -126,12 +164,37 @@ export default function CharacterSheetScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16 },
-  card: { borderWidth: 2, borderColor: colors.ink, borderRadius: 16, padding: 12, backgroundColor: colors.parchment },
-  stats: { fontSize: 15, marginVertical: 8 },
-  slot: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
-  slotName: { width: 90, textTransform: 'capitalize', color: colors.muted },
-  slotValue: { flex: 1 },
-  hint: { color: colors.muted, marginTop: 8 },
-  details: { gap: 4, marginTop: 12 },
+  container: { padding: 16, paddingBottom: 32 },
+  header: { gap: 8 },
+  identity: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  identityText: { flex: 1 },
+  name: { fontSize: 28, color: colors.parchment },
+  className: { fontSize: 19, color: colors.parchment },
+  level: { alignSelf: 'flex-start', marginTop: 4, paddingHorizontal: 6, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.highlight },
+  xp: { color: colors.parchment, fontSize: 17 },
+  stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  stat: {
+    width: '48%',
+    flexGrow: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 8,
+    borderWidth: pixel.outline,
+    borderColor: colors.ink,
+    backgroundColor: colors.parchmentDark,
+  },
+  statIcon: { fontSize: 26 },
+  statName: { fontSize: 16, color: colors.muted, textTransform: 'uppercase' },
+  statValue: { fontSize: 26 },
+  slot: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6, borderBottomWidth: 2, borderBottomColor: colors.parchmentDark },
+  pressed: { opacity: 0.6 },
+  slotBody: { flex: 1 },
+  slotName: { fontSize: 16, color: colors.muted, textTransform: 'uppercase' },
+  slotValue: { fontSize: 20 },
+  chevron: { fontSize: 28, color: colors.muted },
+  muted: { color: colors.muted, paddingVertical: 4 },
+  traitName: { fontSize: 20 },
+  ability: { color: colors.ink, paddingVertical: 2 },
+  dismiss: { marginTop: 24, alignItems: 'flex-start', gap: 4 },
 });

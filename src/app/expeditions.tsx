@@ -3,8 +3,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
-import { Row, SectionTitle } from '@/components/Row';
+import { Panel } from '@/components/Panel';
+import { PixelBar } from '@/components/PixelBar';
+import { IconSlot, Row, SectionTitle } from '@/components/Row';
+import { ODDS_COLORS, SendDialog } from '@/components/SendDialog';
 import { Text } from '@/components/Text';
+import { Tip } from '@/components/Tip';
 import { TutorialHint } from '@/components/TutorialHint';
 import { abilityText } from '@/content/abilities';
 import { tutorialRules } from '@/content/tutorial';
@@ -21,6 +25,7 @@ import { bossBonusAvailable, expeditionMinutes, isDungeonAvailable, isDungeonUnl
 import { estimateOdds, oddsBand } from '@/game/expeditions/odds';
 import { prepareParty } from '@/game/expeditions/simulate';
 import { isOnExpedition } from '@/game/team/team';
+import type { ExpeditionOutcome } from '@/game/types';
 import { useLanguage } from '@/hooks/useLanguage';
 import { syncPlan } from '@/hooks/useNotifications';
 import { formatDuration, formatPercent, t, tr } from '@/i18n';
@@ -28,6 +33,7 @@ import { deviceNotifications } from '@/services/notifications';
 import { currentRotation, debugEnabled, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { useSettingsStore } from '@/store/settingsStore';
+import { colors, pixel } from '@/theme';
 
 export default function ExpeditionsScreen() {
   useLanguage();
@@ -42,10 +48,10 @@ export default function ExpeditionsScreen() {
   const [selected, setSelected] = useState<string[]>(() =>
     save.heroes.filter((h) => !isOnExpedition(save, h.id)).slice(0, partySize(save)).map((h) => h.id),
   );
-  /** The expedition whose progress bar is open. */
-  const [following, setFollowing] = useState<string | null>(null);
   /** The dungeon card tapped last: heroes who are good there get a badge. */
   const [focused, setFocused] = useState<string | null>(null);
+  /** The dungeon whose Send was tapped, waiting for confirmation. */
+  const [confirming, setConfirming] = useState<string | null>(null);
   /** Scouting report (Guild Hall): tomorrow's rotation. */
   const [showTomorrow, setShowTomorrow] = useState(false);
   // Re-read when the day changes or a debug override does.
@@ -108,6 +114,7 @@ export default function ExpeditionsScreen() {
   );
 
   const focusedDungeon = open.find((d) => d.id === focused);
+  const confirmingDungeon = party.length > 0 ? open.find((d) => d.id === confirming) : undefined;
   const counters = (heroId: string) =>
     focusedDungeon ? countersFor(prepareParty(save, [heroId])[0].abilities, focusedDungeon) : [];
 
@@ -126,35 +133,19 @@ export default function ExpeditionsScreen() {
         const dungeon = dungeonById[expedition.dungeonId];
         const names = save.heroes.filter((h) => expedition.heroIds.includes(h.id)).map((h) => h.name);
         const progress = Math.min(1, Math.max(0, (now - expedition.startedAt) / (expedition.endsAt - expedition.startedAt)));
-        const open = following === expedition.id;
         return (
-          <Pressable
-            key={expedition.id}
-            onPress={() => setFollowing(open ? null : expedition.id)}
-            style={({ pressed }) => pressed && styles.pressed}
-          >
-            <Row
-              emoji={dungeon.emoji}
-              title={tr(dungeon.name)}
-              subtitle={names.join(', ')}
-              right={formatDuration(expedition.endsAt - now)}
-            />
-            {open && (
-              <View style={styles.progress}>
-                <View style={styles.progressTrack}>
-                  <View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%` }]} />
-                </View>
-                <Text style={styles.progressText}>
-                  {progress >= 1 ? t('expeditions.comingHome') : t('expeditions.explored', { percent: formatPercent(progress) })}
-                </Text>
-              </View>
-            )}
-          </Pressable>
+          <Panel key={expedition.id}>
+            <Row emoji={dungeon.emoji} title={tr(dungeon.name)} subtitle={names.join(', ')} right={formatDuration(expedition.endsAt - now)} />
+            <PixelBar value={progress} />
+            <Text style={styles.muted}>
+              {progress >= 1 ? t('expeditions.comingHome') : t('expeditions.explored', { percent: formatPercent(progress) })}
+            </Text>
+          </Panel>
         );
       })}
 
       <SectionTitle>{t('expeditions.party', { count: party.length, max: partySize(save) })}</SectionTitle>
-      <View style={styles.chips}>
+      <View style={styles.party}>
         {save.heroes.map((hero) => {
           const away = isOnExpedition(save, hero.id);
           const active = party.includes(hero.id);
@@ -162,31 +153,34 @@ export default function ExpeditionsScreen() {
           return (
             <Pressable
               key={hero.id}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: active, disabled: away }}
               disabled={away}
               onPress={() => toggle(hero.id)}
-              style={[styles.chip, active && styles.chipActive, away && styles.chipAway]}
+              style={[styles.hero, active && styles.heroActive, away && styles.heroAway]}
             >
-              <Text>
-                {heroClasses[hero.classId].emoji} {hero.name}
-                {away ? t('common.away') : ''}
-              </Text>
-              {good.length > 0 && (
-                <Pressable
-                  onPress={() => Alert.alert(t('expeditions.goodHereTitle', { name: hero.name }), good.map(abilityText).join('\n'))}
-                  style={styles.goodHere}
-                >
-                  <Text style={styles.goodHereText}>{t('expeditions.goodHere')}</Text>
-                </Pressable>
-              )}
+              <IconSlot emoji={heroClasses[hero.classId].emoji} size={28} />
+              <View style={styles.heroBody}>
+                <Text style={styles.heroName} numberOfLines={1}>
+                  {hero.name}
+                </Text>
+                <Text style={styles.heroLevel}>{away ? t('expeditions.away') : t('common.levelShort', { level: hero.level })}</Text>
+                {good.length > 0 && (
+                  <Tip title={t('expeditions.goodHereTitle', { name: hero.name })} text={good.map(abilityText).join('\n')} style={styles.goodHere}>
+                    <Text style={styles.goodHereText}>★ {t('expeditions.goodHere')}</Text>
+                  </Tip>
+                )}
+              </View>
+              {active && <Text style={styles.check}>✓</Text>}
             </Pressable>
           );
         })}
       </View>
-      <Text style={styles.empty}>
-        {t('expeditions.tapDungeon', { time: formatDuration(nextRotationAt(now) - now) })}
-      </Text>
+      <Text style={styles.muted}>{t('expeditions.tapDungeon', { time: formatDuration(nextRotationAt(now) - now) })}</Text>
       {guildRank(save, 'scouting') > 0 && (
-        <Button title={showTomorrow ? t('expeditions.hideTomorrow') : t('expeditions.tomorrow')} onPress={() => setShowTomorrow(!showTomorrow)} />
+        <View style={styles.tomorrow}>
+          <Button title={showTomorrow ? t('expeditions.hideTomorrow') : t('expeditions.tomorrow')} onPress={() => setShowTomorrow(!showTomorrow)} />
+        </View>
       )}
       {showTomorrow &&
         Object.entries(currentRotation(nextRotationAt(now)).tiers)
@@ -195,7 +189,7 @@ export default function ExpeditionsScreen() {
             const modifier = slots.modifier ? modifierById[slots.modifier.modifierId] : null;
             const name = (id: string) => `${dungeonById[id].emoji} ${tr(dungeonById[id].name)}`;
             return (
-              <Text key={tier} style={styles.empty}>
+              <Text key={tier} style={styles.muted}>
                 {t('expeditions.tomorrowLine', { tier, short: name(slots.short), long: name(slots.long) })}
                 {modifier
                   ? t('expeditions.tomorrowModifier', {
@@ -209,52 +203,85 @@ export default function ExpeditionsScreen() {
 
       {open.map((dungeon, i) => {
         const chance = odds[dungeon.id].success;
+        const band = oddsBand(chance);
         const available = isDungeonAvailable(save, dungeon, rotation);
         const modifier = modifierFor(rotation, dungeon.id);
-        const tags = dungeonTags(dungeon);
         const fresh = dungeon.slot && !save.firstClears.includes(dungeon.id);
+        const kind = dungeon.isBoss ? 'boss' : dungeon.slot === 'short' ? 'short' : 'long';
         return (
           <View key={dungeon.id}>
             {open[i - 1]?.tier !== dungeon.tier && <SectionTitle>{t('expeditions.tierDungeons', { tier: dungeon.tier })}</SectionTitle>}
-            <Pressable
-              onPress={() => setFocused(focused === dungeon.id ? null : dungeon.id)}
-              style={[focused === dungeon.id && styles.focused]}
-            >
-              <Row
-                emoji={dungeon.emoji}
-                title={`${tr(dungeon.name)}${dungeon.isBoss ? t('expeditions.boss') : dungeon.slot === 'short' ? t('expeditions.short') : t('expeditions.long')}`}
-                subtitle={[
-                  [
-                    formatDuration(expeditionMinutes(save, dungeon) * 60_000 * durationScale),
-                    party.length === 0 ? null : `${formatPercent(chance)} · ${t(`odds.${oddsBand(chance)}`)}`,
-                    available ? null : t('expeditions.afterTutorial'),
-                  ]
-                    .filter(Boolean)
-                    .join(' · '),
-                  tags.map((tag) => `${tagInfo[tag].emoji} ${tr(tagInfo[tag].name)}`).join('  '),
-                  modifier ? `${modifier.emoji} ${tr(modifier.name)}: ${tr(modifier.description)}` : null,
-                  fresh ? t('expeditions.neverCleared') : null,
-                  dungeon.isBoss
-                    ? t(bossBonusAvailable(save, dungeon.id, now) ? 'expeditions.bossBonusAvailable' : 'expeditions.bossBonusClaimed')
-                    : null,
-                ]
-                  .filter(Boolean)
-                  .join('\n')}
-                right={
-                  <Button
-                    title={t('expeditions.send')}
-                    disabled={!available || party.length === 0}
-                    onPress={() => send(dungeon.id, party)}
-                  />
-                }
-              />
+            <Pressable onPress={() => setFocused(focused === dungeon.id ? null : dungeon.id)}>
+              <Panel color={focused === dungeon.id ? colors.highlight : undefined} borderColor={dungeon.isBoss ? colors.danger : undefined}>
+                <View style={styles.dungeonHeader}>
+                  <IconSlot emoji={dungeon.emoji} />
+                  <Text style={styles.dungeonName}>{tr(dungeon.name)}</Text>
+                  <Text style={[styles.kind, dungeon.isBoss && styles.kindBoss]}>{t(`expeditions.kind.${kind}`)}</Text>
+                </View>
+                <View style={styles.chips}>
+                  <Tip text={t('expeditions.tips.duration')} style={styles.chip}>
+                    <Text style={styles.chipText}>⏳ {formatDuration(expeditionMinutes(save, dungeon) * 60_000 * durationScale)}</Text>
+                  </Tip>
+                  {party.length > 0 && (
+                    <Tip title={t(`odds.${band}`)} text={t('expeditions.tips.odds')} style={[styles.chip, { backgroundColor: ODDS_COLORS[band] }]}>
+                      <Text style={[styles.chipText, styles.chipTextLight]}>
+                        {formatPercent(chance)} · {t(`odds.${band}`)}
+                      </Text>
+                    </Tip>
+                  )}
+                  {dungeonTags(dungeon).map((tag) => (
+                    <Tip key={tag} title={tr(tagInfo[tag].name)} text={t('expeditions.tips.tag')} style={styles.chip}>
+                      <Text style={styles.chipText}>{tagInfo[tag].emoji}</Text>
+                    </Tip>
+                  ))}
+                  {modifier && (
+                    <Tip title={tr(modifier.name)} text={tr(modifier.description)} style={[styles.chip, styles.chipModifier]}>
+                      <Text style={styles.chipText}>
+                        {modifier.emoji} {tr(modifier.name)}
+                      </Text>
+                    </Tip>
+                  )}
+                  {fresh && (
+                    <Tip text={t('expeditions.neverCleared')} style={styles.chip}>
+                      <Text style={styles.chipText}>✨</Text>
+                    </Tip>
+                  )}
+                  {dungeon.isBoss && (
+                    <Tip
+                      text={t(bossBonusAvailable(save, dungeon.id, now) ? 'expeditions.bossBonusAvailable' : 'expeditions.bossBonusClaimed')}
+                      style={[styles.chip, !bossBonusAvailable(save, dungeon.id, now) && styles.chipDone]}
+                    >
+                      <Text style={styles.chipText}>🎁</Text>
+                    </Tip>
+                  )}
+                </View>
+                <View style={styles.dungeonFooter}>
+                  {!available && <Text style={styles.muted}>{t('expeditions.afterTutorial')}</Text>}
+                  <Button title={t('expeditions.send')} disabled={!available || party.length === 0} onPress={() => setConfirming(dungeon.id)} />
+                </View>
+              </Panel>
             </Pressable>
           </View>
         );
       })}
+      {confirmingDungeon && (
+        <SendDialog
+          save={save}
+          dungeon={confirmingDungeon}
+          party={party}
+          chance={odds[confirmingDungeon.id].success}
+          durationMs={expeditionMinutes(save, confirmingDungeon) * 60_000 * durationScale}
+          now={now}
+          onClose={() => setConfirming(null)}
+          onConfirm={() => {
+            setConfirming(null);
+            send(confirmingDungeon.id, party);
+          }}
+        />
+      )}
 
       <SectionTitle>{t('expeditions.reports')}</SectionTitle>
-      {save.reports.length === 0 && <Text style={styles.empty}>{t('expeditions.noReports')}</Text>}
+      {save.reports.length === 0 && <Text style={styles.muted}>{t('expeditions.noReports')}</Text>}
       {save.reports.map((report) => {
         const dungeon = dungeonById[report.dungeonId];
         const loot = [
@@ -271,52 +298,94 @@ export default function ExpeditionsScreen() {
             return t('expeditions.lure');
           }),
           `+${report.xp} XP`,
-        ]
-          .filter(Boolean)
-          .join('  ');
+        ].filter(Boolean);
         return (
-          <View key={report.id} style={[styles.report, !report.seen && styles.reportNew]}>
+          <Panel key={report.id} borderColor={OUTCOME_COLORS[report.outcome]} color={report.seen ? undefined : colors.highlight}>
             <Text style={styles.reportTitle}>
-              {dungeon.emoji} {tr(dungeon.name)} · {t(`expeditions.outcome.${report.outcome}`)} ({report.encountersCleared}/
-              {report.encounterCount}){report.seen ? '' : t('expeditions.new')}
+              {dungeon.emoji} {tr(dungeon.name)}
+              {report.seen ? '' : t('expeditions.new')}
+            </Text>
+            <Text style={[styles.outcome, { color: OUTCOME_COLORS[report.outcome] }]}>
+              {t(`expeditions.outcome.${report.outcome}`)} ({report.encountersCleared}/{report.encounterCount})
             </Text>
             {report.log.map((line, i) => (
               <Text key={i} style={styles.logLine}>
                 {line}
               </Text>
             ))}
-            <Text style={styles.loot}>{loot}</Text>
-            <Text style={styles.hp}>
-              {report.heroHp
-                .map(({ heroId, hp, maxHp }) => t('expeditions.hp', { name: save.heroes.find((h) => h.id === heroId)?.name ?? heroId, hp, max: maxHp }))
-                .join(' · ')}
-            </Text>
-          </View>
+            <View style={styles.chips}>
+              {loot.map((item, i) => (
+                <View key={i} style={styles.chip}>
+                  <Text style={styles.chipText}>{item}</Text>
+                </View>
+              ))}
+            </View>
+            {report.heroHp.map(({ heroId, hp, maxHp }) => (
+              <View key={heroId} style={styles.hp}>
+                <Text style={styles.hpName} numberOfLines={1}>
+                  {save.heroes.find((h) => h.id === heroId)?.name ?? heroId}
+                </Text>
+                <View style={styles.hpBar}>
+                  <PixelBar value={hp / maxHp} color={hp / maxHp < 0.3 ? colors.danger : colors.success} />
+                </View>
+                <Text style={styles.muted}>
+                  {hp}/{maxHp}
+                </Text>
+              </View>
+            ))}
+          </Panel>
         );
       })}
     </ScrollView>
   );
 }
 
+const OUTCOME_COLORS: Record<ExpeditionOutcome, string> = {
+  flawless: colors.gold,
+  success: colors.success,
+  retreat: colors.wood,
+  defeat: colors.danger,
+};
+
 const styles = StyleSheet.create({
   container: { padding: 16 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { borderWidth: 2, borderColor: '#3b2a1a', paddingHorizontal: 10, paddingVertical: 6 },
-  chipActive: { backgroundColor: '#fff6a8' },
-  chipAway: { opacity: 0.4 },
-  goodHere: { marginTop: 4, alignSelf: 'flex-start', backgroundColor: '#2f7d32', borderRadius: 6, paddingHorizontal: 6 },
-  goodHereText: { color: '#fff', fontSize: 12 },
-  focused: { backgroundColor: '#fff6a8' },
-  empty: { color: '#666', paddingVertical: 8 },
-  report: { borderWidth: 2, borderColor: '#ccc', padding: 10, marginBottom: 10, gap: 4 },
-  reportNew: { borderColor: '#c99a00', backgroundColor: '#fffbe6' },
-  reportTitle: { fontWeight: '600', fontSize: 15 },
-  logLine: { fontSize: 14 },
-  loot: { marginTop: 4, color: '#3b2a1a' },
-  hp: { color: '#666', fontSize: 13 },
-  pressed: { opacity: 0.7 },
-  progress: { paddingBottom: 10, gap: 4 },
-  progressTrack: { height: 12, borderRadius: 6, borderWidth: 2, borderColor: '#3b2a1a', overflow: 'hidden' },
-  progressFill: { height: '100%', backgroundColor: '#c99a00' },
-  progressText: { fontSize: 13, color: '#666' },
+  muted: { color: colors.muted, paddingVertical: 4 },
+  party: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  hero: {
+    width: '48%',
+    flexGrow: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 6,
+    borderWidth: pixel.outline,
+    borderColor: colors.woodDark,
+    backgroundColor: colors.parchment,
+  },
+  heroActive: { borderColor: colors.ink, backgroundColor: colors.highlight },
+  heroAway: { opacity: 0.4 },
+  heroBody: { flex: 1 },
+  heroName: { fontSize: 19 },
+  heroLevel: { color: colors.muted },
+  check: { fontSize: 24, color: colors.success },
+  goodHere: { alignSelf: 'flex-start', marginTop: 2, paddingHorizontal: 6, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.success },
+  goodHereText: { color: '#fff', fontSize: 15 },
+  tomorrow: { alignSelf: 'flex-start', marginVertical: 4 },
+  dungeonHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  dungeonName: { flex: 1, fontSize: 21 },
+  kind: { paddingHorizontal: 6, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.parchmentDark, fontSize: 16 },
+  kindBoss: { backgroundColor: colors.danger, color: colors.parchment },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  chip: { paddingHorizontal: 6, paddingVertical: 2, borderWidth: 2, borderColor: colors.woodDark, backgroundColor: colors.parchmentDark },
+  chipModifier: { borderColor: colors.danger },
+  chipDone: { opacity: 0.4 },
+  chipText: { fontSize: 17 },
+  chipTextLight: { color: colors.parchment },
+  dungeonFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10 },
+  reportTitle: { fontSize: 20 },
+  outcome: { fontSize: 19 },
+  logLine: { fontSize: 18 },
+  hp: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  hpName: { width: 90 },
+  hpBar: { flex: 1 },
 });

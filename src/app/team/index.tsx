@@ -1,12 +1,14 @@
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { Row } from '@/components/Row';
+import { STATS, statIcons } from '@/components/GearRow';
+import { Panel } from '@/components/Panel';
+import { IconSlot } from '@/components/Row';
 import { Text } from '@/components/Text';
 import { TutorialHint } from '@/components/TutorialHint';
 import { heroClasses } from '@/content/heroes';
 import { traitById } from '@/content/traits';
-import { isOnExpedition } from '@/game/team/team';
+import { heroStats, isOnExpedition } from '@/game/team/team';
 import { partySize, rosterCap } from '@/game/guild/guild';
 import { useLanguage } from '@/hooks/useLanguage';
 import { t, tr } from '@/i18n';
@@ -26,18 +28,28 @@ export default function TeamScreen() {
       {save.heroes.map((hero) => {
         const heroClass = heroClasses[hero.classId];
         const away = isOnExpedition(save, hero.id);
+        const stats = heroStats(save, hero);
         return (
           <Pressable
             key={hero.id}
             onPress={() => router.push({ pathname: '/team/[heroId]', params: { heroId: hero.id } })}
             style={({ pressed }) => pressed && styles.pressed}
           >
-            <Row
-              emoji={heroClass.emoji}
-              title={hero.name}
-              subtitle={`${tr(heroClass.name)} · ${t('common.level', { level: hero.level })} · ${tr(traitById[hero.trait]?.name ?? '')}${away ? t('common.onExpedition') : ''}`}
-              right={<Text style={styles.chevron}>›</Text>}
-            />
+            <Panel style={styles.card}>
+              <IconSlot emoji={heroClass.emoji} size={44} />
+              <View style={styles.body}>
+                <View style={styles.titleLine}>
+                  <Text style={styles.name}>{hero.name}</Text>
+                  <Text style={styles.level}>{t('common.levelShort', { level: hero.level })}</Text>
+                </View>
+                <Text style={styles.muted}>
+                  {tr(heroClass.name)} · {tr(traitById[hero.trait]?.name ?? '')}
+                  {away ? t('common.onExpedition') : ''}
+                </Text>
+                <Text style={styles.stats}>{STATS.map((stat) => `${statIcons[stat]} ${stats[stat]}`).join('  ')}</Text>
+              </View>
+              <Text style={styles.chevron}>›</Text>
+            </Panel>
           </Pressable>
         );
       })}
@@ -48,6 +60,13 @@ export default function TeamScreen() {
 const styles = StyleSheet.create({
   container: { padding: 16 },
   pressed: { opacity: 0.6 },
-  roster: { color: colors.muted, paddingBottom: 4 },
+  roster: { color: colors.muted, paddingBottom: 8 },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  body: { flex: 1 },
+  titleLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  name: { fontSize: 22 },
+  level: { paddingHorizontal: 6, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.highlight, fontSize: 16 },
+  muted: { color: colors.muted },
+  stats: { fontSize: 17 },
   chevron: { fontSize: 28, color: colors.muted },
 });

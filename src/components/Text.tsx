@@ -8,5 +8,5 @@ export function Text({ style, ...props }: TextProps) {
 }
 
 const styles = StyleSheet.create({
-  text: { fontFamily: fonts.body, color: colors.ink },
+  text: { fontFamily: fonts.body, fontSize: 18, color: colors.ink },
 });

@@ -18,7 +18,7 @@ import {
 } from '@/game/sanctums/sanctums';
 import { formatPercent, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
-import { colors } from '@/theme';
+import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
 import { Text } from './Text';
@@ -182,23 +182,23 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
   sheet: {
     backgroundColor: colors.parchment,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopWidth: pixel.outline + 1,
+    borderColor: colors.ink,
     padding: 16,
     maxHeight: '85%',
   },
   content: { gap: 6, paddingBottom: 12 },
-  title: { fontSize: 22 },
-  subtitle: { fontSize: 17, marginTop: 8 },
+  title: { fontSize: 26 },
+  subtitle: { fontSize: 21, marginTop: 8 },
   muted: { color: colors.muted },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { borderWidth: 2, borderColor: colors.ink, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6 },
-  chipActive: { backgroundColor: colors.highlight },
-  odds: { fontSize: 17, marginTop: 8 },
+  chip: { borderWidth: pixel.outline, borderColor: colors.woodDark, paddingHorizontal: 10, paddingVertical: 6 },
+  chipActive: { borderColor: colors.ink, backgroundColor: colors.highlight },
+  odds: { fontSize: 21, marginTop: 8 },
   warning: { color: colors.danger, marginTop: 4 },
   problem: { color: colors.muted, fontStyle: 'italic' },
   log: { gap: 6, marginTop: 8 },
-  logLine: { fontSize: 15 },
-  outcome: { fontSize: 18, marginTop: 8 },
+  logLine: { fontSize: 19 },
+  outcome: { fontSize: 22, marginTop: 8 },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
 });

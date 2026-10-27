@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-nat
 
 import { isClosableHint, tutorialHint, type TutorialScreen } from '@/game/tutorial/tutorial';
 import { useGameStore } from '@/store/gameStore';
-import { colors } from '@/theme';
+import { colors, pixel } from '@/theme';
 
 import { Text } from './Text';
 
@@ -40,11 +40,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     marginBottom: 12,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: colors.woodDark,
+    borderWidth: pixel.outline,
+    borderColor: colors.ink,
     backgroundColor: colors.wood,
   },
   icon: { fontSize: 20 },
-  text: { flex: 1, color: colors.parchment, fontSize: 16 },
+  text: { flex: 1, color: colors.parchment, fontSize: 20 },
 });

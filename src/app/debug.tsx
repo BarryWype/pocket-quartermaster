@@ -395,7 +395,7 @@ export default function DebugScreen() {
 
 const styles = StyleSheet.create({
   container: { gap: 12, padding: 24 },
-  title: { fontSize: 20, fontWeight: '600', marginTop: 8 },
+  title: { fontSize: 24, fontWeight: '600', marginTop: 8 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   mono: { fontFamily: 'monospace' },
   hint: { color: '#666' },

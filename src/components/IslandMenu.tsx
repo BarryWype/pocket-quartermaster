@@ -76,7 +76,7 @@ export function IslandMenu() {
           <MenuButton emoji={guildOpen ? '🏛️' : '🔒'} label={t('menu.guild')} onPress={() => go('/guild')} />
           <MenuButton
             icon={require('../../assets/icons/scaled/menu-expeditions.png')}
-            label={t('screens.expeditions')}
+            label={t('menu.expeditions')}
             badge={unseenReports}
             highlight={target === 'expeditions'}
             onPress={() => go('/expeditions')}
@@ -147,20 +147,20 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.7 },
   buttonIcon: { width: 32, height: 32 },
   buttonEmoji: { fontSize: 24, lineHeight: 32 },
-  buttonLabel: { color: colors.parchment, fontSize: 14 },
+  buttonLabel: { color: colors.parchment, fontSize: 18 },
   badge: {
     position: 'absolute',
     top: 2,
     right: 12,
-    minWidth: 20,
-    height: 20,
+    minWidth: 24,
+    height: 24,
     paddingHorizontal: 5,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.danger,
   },
-  badgeText: { color: '#fff', fontSize: 12 },
+  badgeText: { color: '#fff', fontSize: 16 },
   dropdown: {
     alignSelf: 'flex-start',
     minWidth: 170,
@@ -175,5 +175,5 @@ const styles = StyleSheet.create({
   dropdownItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 14 },
   dropdownHighlight: { backgroundColor: colors.highlight },
   dropdownIcon: { width: 28, height: 28 },
-  dropdownLabel: { fontSize: 17 },
+  dropdownLabel: { fontSize: 21 },
 });

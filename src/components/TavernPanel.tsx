@@ -14,7 +14,7 @@ import type { WeaponType } from '@/game/types';
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
 import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
-import { colors } from '@/theme';
+import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
 import { Text } from './Text';
@@ -86,18 +86,18 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
   sheet: {
     backgroundColor: colors.parchment,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopWidth: pixel.outline + 1,
+    borderColor: colors.ink,
     padding: 16,
     maxHeight: '85%',
   },
   content: { gap: 6, paddingBottom: 12 },
-  title: { fontSize: 22 },
+  title: { fontSize: 26 },
   muted: { color: colors.muted },
-  offer: { gap: 4, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.muted },
-  name: { fontSize: 17 },
-  trait: { fontSize: 15 },
-  price: { fontSize: 17 },
+  offer: { gap: 4, paddingVertical: 10, borderTopWidth: 2, borderTopColor: colors.parchmentDark },
+  name: { fontSize: 21 },
+  trait: { fontSize: 19 },
+  price: { fontSize: 21 },
   actions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   problem: { color: colors.muted, fontStyle: 'italic' },
 });

@@ -11,7 +11,7 @@ import type { MaterialStack } from '@/game/types';
 import { useLanguage } from '@/hooks/useLanguage';
 import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
-import { colors } from '@/theme';
+import { colors, pixel } from '@/theme';
 
 const materialsText = (materials: MaterialStack[]) =>
   materials.map(({ materialId, amount }) => `${amount} ${tr(materialById[materialId].name).toLowerCase()}`);
@@ -103,7 +103,7 @@ export default function GuildScreen() {
             {track.milestone ? '⭐ ' : ''}
             {tr(track.name)}
           </Text>
-          <Text style={styles.dots}>{'●'.repeat(rank) + '○'.repeat(track.ranks - rank)}</Text>
+          <Text style={styles.dots}>{'■'.repeat(rank) + '□'.repeat(track.ranks - rank)}</Text>
         </View>
         <Text>{maxed ? track.describe(rank) : `${track.describe(rank)} → ${track.describe(rank + 1)}`}</Text>
         {maxed ? (
@@ -138,14 +138,14 @@ export default function GuildScreen() {
 
 const styles = StyleSheet.create({
   container: { padding: 16, gap: 6 },
-  wallet: { fontSize: 18 },
-  track: { gap: 4, paddingVertical: 10, paddingHorizontal: 6, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.muted },
-  bought: { backgroundColor: colors.highlight, borderRadius: 10 },
+  wallet: { fontSize: 22 },
+  track: { gap: 4, marginBottom: 8, padding: 10, borderWidth: pixel.outline, borderColor: colors.ink, backgroundColor: colors.parchment },
+  bought: { backgroundColor: colors.highlight },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
-  name: { fontSize: 17 },
-  dots: { fontSize: 14, color: colors.wood, letterSpacing: 2 },
+  name: { fontSize: 21 },
+  dots: { fontSize: 18, color: colors.wood, letterSpacing: 2 },
   muted: { color: colors.muted },
-  price: { fontSize: 15, color: colors.ink },
+  price: { fontSize: 19, color: colors.ink },
   priceLine: { flexShrink: 1 },
   short: { color: colors.danger },
   problem: { color: colors.muted, fontStyle: 'italic' },

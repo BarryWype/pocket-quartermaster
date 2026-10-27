@@ -15,7 +15,7 @@ import { deviceNotifications, type NotificationPermission } from '@/services/not
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { type LanguageSetting, useSettingsStore } from '@/store/settingsStore';
-import { colors } from '@/theme';
+import { colors, pixel } from '@/theme';
 
 const DAY_MINUTES = 24 * 60;
 const QUIET_STEP = 30;
@@ -201,7 +201,7 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   container: { gap: 12, padding: 24 },
-  title: { fontSize: 24 },
+  title: { fontSize: 28 },
   languages: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   section: { gap: 12 },
   row: {
@@ -211,16 +211,15 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   label: { flex: 1 },
-  rowTitle: { fontSize: 17 },
-  hint: { color: colors.muted, fontSize: 14 },
+  rowTitle: { fontSize: 21 },
+  hint: { color: colors.muted, fontSize: 18 },
   disabled: { opacity: 0.5 },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  time: { fontSize: 17, minWidth: 52, textAlign: 'center' },
+  time: { fontSize: 21, minWidth: 52, textAlign: 'center' },
   warning: {
     gap: 8,
     padding: 12,
-    borderRadius: 10,
-    borderWidth: 2,
+    borderWidth: pixel.outline,
     borderColor: colors.danger,
     backgroundColor: colors.parchmentDark,
   },

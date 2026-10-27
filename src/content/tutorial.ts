@@ -31,7 +31,7 @@ export const tutorialHints: Record<TutorialStep, Partial<Record<TutorialScreen |
   equipSword: {
     default: 'Open Team and give the sword to a hero.',
     team: 'Pick Bram, the warrior: swords suit him best.',
-    hero: 'Tap Change next to Weapon and pick the sword.',
+    hero: 'Tap the Weapon slot and pick the sword.',
   },
   sendExpedition: {
     default: 'Open Expeditions and send your team out.',
@@ -39,7 +39,7 @@ export const tutorialHints: Record<TutorialStep, Partial<Record<TutorialScreen |
   },
   awaitReport: {
     map: 'Your team is away. Gather some animals and herbs while you wait.',
-    expeditions: 'Tap the expedition under way to follow its progress.',
+    expeditions: 'Your team is under way: the bar shows how far they’ve got.',
   },
   readReport: {
     default: 'Your heroes are back! Open Expeditions to read their report.',

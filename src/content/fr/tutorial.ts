@@ -11,7 +11,7 @@ export const frTutorialHints: typeof tutorialHints = {
   equipSword: {
     default: 'Ouvrez Équipe et donnez l’épée à un héros.',
     team: 'Choisissez Bram, le guerrier : les épées lui vont le mieux.',
-    hero: 'Touchez Changer à côté d’Arme et choisissez l’épée.',
+    hero: 'Touchez l’emplacement Arme et choisissez l’épée.',
   },
   sendExpedition: {
     default: 'Ouvrez Expéditions et envoyez votre équipe.',
@@ -19,7 +19,7 @@ export const frTutorialHints: typeof tutorialHints = {
   },
   awaitReport: {
     map: 'Votre équipe est partie. Récoltez des animaux et des herbes en attendant.',
-    expeditions: 'Touchez l’expédition en cours pour suivre sa progression.',
+    expeditions: 'Votre équipe est en route : la barre montre sa progression.',
   },
   readReport: {
     default: 'Vos héros sont de retour ! Ouvrez Expéditions pour lire leur rapport.',

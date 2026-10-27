@@ -9,15 +9,16 @@ import { tr } from '@/i18n';
 
 import { Row } from './Row';
 
+export const statIcons = { attack: '⚔️', defense: '🛡️', magic: '✨', hp: '❤️' } as const;
+export const STATS = Object.keys(statIcons) as (keyof typeof statIcons)[];
+
 /** "⚔️ 14 · ❤️ 30": a piece's stats after its quality. */
 export function gearStatsText(gear: GearInstance) {
   const item = itemById[gear.itemId];
   if (item.slot !== 'weapon' && item.slot !== 'armor') return '';
   const stats = gearStats(item, gear);
-  const icons = { attack: '⚔️', defense: '🛡️', magic: '✨', hp: '❤️' } as const;
-  return (Object.keys(icons) as (keyof typeof icons)[])
-    .filter((key) => stats[key])
-    .map((key) => `${icons[key]} ${Math.round(stats[key]!)}`)
+  return STATS.filter((key) => stats[key])
+    .map((key) => `${statIcons[key]} ${Math.round(stats[key]!)}`)
     .join(' · ');
 }
 

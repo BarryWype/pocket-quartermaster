@@ -9,7 +9,15 @@ export const colors = {
   muted: '#7a6650',
   highlight: '#fff6a8',
   danger: '#c0392b',
+  success: '#2f7d32',
+  gold: '#c99a00',
+  /** Bevel edges drawn over any fill colour, for the pixel-art frames. */
+  bevelLight: 'rgba(255,255,255,0.35)',
+  bevelDark: 'rgba(0,0,0,0.3)',
 };
+
+/** Border widths of the pixel-art frames: a dark outline, then a bevel inside it. */
+export const pixel = { outline: 3, bevel: 3 };
 
 export const fonts = {
   /** Loaded in `app/_layout.tsx` from `assets/fonts/FantaisieArtistique.ttf`. */

@@ -17,6 +17,7 @@ import { usePlayerLocation } from '@/hooks/usePlayerLocation';
 import { t, tr } from '@/i18n';
 import type { GearInstance } from '@/game/types';
 import { useGameStore } from '@/store/gameStore';
+import { colors } from '@/theme';
 
 const HOUR = 3_600_000;
 
@@ -137,5 +138,5 @@ export default function InventoryScreen() {
 
 const styles = StyleSheet.create({
   container: { padding: 16 },
-  empty: { color: '#666', paddingVertical: 8 },
+  empty: { color: colors.muted, paddingVertical: 8 },
 });

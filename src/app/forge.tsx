@@ -6,7 +6,7 @@ import { InfuseStation } from '@/components/InfuseStation';
 import { Text } from '@/components/Text';
 import { useLanguage } from '@/hooks/useLanguage';
 import { t } from '@/i18n';
-import { colors } from '@/theme';
+import { colors, pixel } from '@/theme';
 
 const TABS = [
   { id: 'forge', label: () => t('crafting.forge') },
@@ -37,12 +37,12 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 8,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: colors.woodDark,
+    paddingVertical: 6,
+    borderWidth: pixel.outline,
+    borderColor: colors.ink,
+    backgroundColor: colors.parchmentDark,
   },
-  tabActive: { backgroundColor: colors.wood },
-  tabLabel: { fontSize: 16, color: colors.ink },
+  tabActive: { backgroundColor: colors.wood, borderBottomColor: colors.highlight },
+  tabLabel: { fontSize: 20, color: colors.ink },
   tabLabelActive: { color: colors.parchment },
 });

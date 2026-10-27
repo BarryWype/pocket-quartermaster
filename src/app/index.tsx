@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
     color: colors.parchment,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    fontSize: 14,
+    fontSize: 18,
   },
   tutorialHint: { position: 'absolute', left: 16, right: 16 },
   tavernHint: {
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     borderColor: colors.woodDark,
     backgroundColor: colors.wood,
   },
-  tavernHintText: { color: colors.parchment, fontSize: 16 },
+  tavernHintText: { color: colors.parchment, fontSize: 20 },
   debugButton: { alignSelf: 'center' },
   // Next to 🐞 when debug tools are on; the top-right corner is taken by the dev menu button.
   settingsButton: { left: '50%' },
