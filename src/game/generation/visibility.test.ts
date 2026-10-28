@@ -24,13 +24,13 @@ function staticSpawn(kind: 'ore' | 'herb', metresNorth: number): Spawn {
 describe('visibleSpawns', () => {
   it('uses the visibility range of each kind', () => {
     const spawns = [
+      staticSpawn('ore', 250),
       staticSpawn('ore', 400),
-      staticSpawn('ore', 600),
-      staticSpawn('herb', 40),
-      staticSpawn('herb', 60),
+      staticSpawn('herb', 80),
+      staticSpawn('herb', 130),
     ];
     const ids = visibleSpawns(spawns, player, now).map((v) => v.spawn.id);
-    expect(ids).toEqual(['ore-400', 'herb-40']);
+    expect(ids).toEqual(['ore-250', 'herb-80']);
   });
 
   it('reports the distance to each visible spawn', () => {

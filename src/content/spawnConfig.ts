@@ -6,19 +6,21 @@ import type { SpawnConfig } from '@/game/generation/types';
 // Densities are tuned against src/game/balance/balance.test.ts.
 export const spawnConfig: SpawnConfig = {
   kinds: {
+    // Wood and ore are both building materials, so they share the long range.
+    // Same density as before on precision 7 (0.4 × 1–2 per tile, ~32 of them per precision 6 tile).
     wood: {
-      precision: 7,
+      precision: 6,
       windowMinutes: 3 * 60,
-      visibilityMeters: 120,
-      minPerTile: 1,
-      maxPerTile: 2,
+      visibilityMeters: 300,
+      minPerTile: 15,
+      maxPerTile: 23,
       maxQuantity: 2,
-      tileChance: 0.4,
+      tileChance: 1,
     },
     ore: {
       precision: 6,
       windowMinutes: 6 * 60,
-      visibilityMeters: 500,
+      visibilityMeters: 300,
       minPerTile: 12,
       maxPerTile: 20,
       maxQuantity: 2,
@@ -38,12 +40,13 @@ export const spawnConfig: SpawnConfig = {
     herb: {
       precision: 7,
       windowMinutes: 3 * 60,
-      visibilityMeters: 50,
+      visibilityMeters: 100,
       minPerTile: 1,
       maxPerTile: 1,
       maxQuantity: 2,
       // Raised from 0.5 with the pacing pass: more herbs and berries for food and potions.
-      tileChance: 0.8,
+      // Lowered from 0.8 when the range went from 50 to 100 m, to keep the yield per walk.
+      tileChance: 0.7,
     },
   },
   timeOfDay: {

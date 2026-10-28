@@ -14,9 +14,9 @@ import { measurePatrolRates } from './patrols';
 import { spamCheck } from './spam';
 import { measureWalkRates } from './walking';
 
-// One short walk per pickaxe set keeps the tests quick; the CLI measures the full set.
-const rates = measureWalkRates({ ...simConfig, walk: { ...simConfig.walk, samples: simConfig.walk.samples.slice(0, 1), sampleHours: [12], sampleMinutes: 5 } });
-const patrolRates = measurePatrolRates({ ...simConfig, walk: { ...simConfig.walk, samples: simConfig.walk.samples.slice(0, 1), sampleHours: [12], sampleMinutes: 5 } });
+// One 15-minute walk per pickaxe set keeps the tests quick; the CLI measures the full set.
+const rates = measureWalkRates({ ...simConfig, walk: { ...simConfig.walk, samples: simConfig.walk.samples.slice(0, 1), sampleHours: [12], sampleMinutes: 15 } });
+const patrolRates = measurePatrolRates({ ...simConfig, walk: { ...simConfig.walk, samples: simConfig.walk.samples.slice(0, 1), sampleHours: [12], sampleMinutes: 15 } });
 
 describe('balance lab', () => {
   it('gives the same summary for the same seed, profile and overrides', () => {
