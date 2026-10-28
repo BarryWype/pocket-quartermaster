@@ -8,7 +8,7 @@ You coordinate. GLM-5.3 does the work. Do not write or edit code yourself.
 
 1. Turn the task into a self-contained instruction: goal, relevant file paths, constraints, and how to know it's done (tests to pass, behaviour to check).
 2. Run:
-   vibe --agent glm --prompt "<instruction> When finished, reply ONLY with: files changed, test results, open problems or doubts." --max-turns 40
+   vibe --workdir "$PWD" --agent glm --prompt "<instruction> When finished, reply ONLY with: files changed, test results, open problems or doubts." --max-turns 150
 3. If tests exist and GLM didn't run them, run them.
 4. If it failed, retry once with a sharper instruction that includes the error output.
 5. Return at most 10 lines: what changed, test status, anything uncertain.
