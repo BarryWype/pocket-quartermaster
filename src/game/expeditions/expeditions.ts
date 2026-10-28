@@ -1,4 +1,4 @@
-import { dungeons as allDungeons, expeditionRules } from '@/content/dungeons';
+import { dungeons as allDungeons, expeditionRules, overnightQuestRules } from '@/content/dungeons';
 import { xpRules } from '@/content/heroes';
 import { dungeonById, itemById, recipeById, recipeOutput } from '@/content/lookup';
 import { modifierById } from '@/content/modifiers';
@@ -17,7 +17,7 @@ import { rollLoot } from '../rewards/loot';
 import { grantMainRewards, type MainRewardOptions } from '../rewards/mainRewards';
 import type { SaveData } from '../save';
 import { applyRunHp, settleHp } from '../team/health';
-import { addXp, heroAbilities, heroStats, isOnExpedition } from '../team/team';
+import { addXp, canWield, heroAbilities, heroStats, isOnExpedition } from '../team/team';
 import { isTutorialExpedition } from '../tutorial/tutorial';
 import type { ActiveExpedition, DungeonDef, ExpeditionReport, Hunger, ProvisionDef } from '../types';
 import { buildLog } from './log';
@@ -43,6 +43,8 @@ export function isDungeonAvailable(save: SaveData, dungeon: DungeonDef, rotation
   const tutorialDungeon = dungeon.id === tutorialRules.firstExpedition.dungeonId;
   if (isTutorialExpedition(save)) return tutorialDungeon;
   if (tutorialDungeon && save.tutorial.step !== 'done') return true;
+  // Overnight quests are open every day; they only follow their tier's unlock.
+  if (dungeon.overnight) return isDungeonUnlocked(save, dungeon);
   return isDungeonUnlocked(save, dungeon) && (!rotation || openDungeonIds(rotation).includes(dungeon.id));
 }
 
@@ -53,11 +55,49 @@ export function isDungeonAvailable(save: SaveData, dungeon: DungeonDef, rotation
 export const bossBonusAvailable = (save: SaveData, dungeonId: string, now: number) =>
   save.bossBonusDays[dungeonId] !== rotationDay(now);
 
+/**
+ * The blueprint the day's first win in a pool dungeon would teach: one of its
+ * unknown drops, preferring weapon types a roster hero can use, then armour.
+ * Bosses are excluded (they have their own daily bonus); nothing when the
+ * player knows them all.
+ */
+export function guaranteedBlueprint(save: SaveData, dungeon: DungeonDef): string | null {
+  if (!dungeon.slot) return null;
+  const learnable = (recipeId: string) => {
+    const item = forgedItem(recipeById[recipeId]);
+    return !item || masteryTypeOf(item) in save.mastery ? item : null;
+  };
+  let pick: string | null = null;
+  let best = 3;
+  for (const { recipeId } of dungeon.recipeDrops) {
+    const item = learnable(recipeId);
+    if (!item || save.knownRecipes.includes(recipeId)) continue;
+    // Weapon types a roster hero can use, then armour, then the rest.
+    const rank = item.slot === 'weapon' ? (save.heroes.some((h) => canWield(h, item)) ? 0 : 2) : 1;
+    if (rank < best) {
+      best = rank;
+      pick = recipeId;
+    }
+  }
+  return pick;
+}
+
+/** Whether the pool dungeon's guaranteed daily blueprint is still there today. */
+export const blueprintBonusAvailable = (save: SaveData, dungeonId: string, now: number) =>
+  save.blueprintBonusDays[dungeonId] !== rotationDay(now);
+
 /** Minutes an expedition to this dungeon would take now: Guild Hall time cuts apply; the tutorial's first one takes seconds. */
 export function expeditionMinutes(save: SaveData, dungeon: DungeonDef) {
   if (isTutorialExpedition(save)) return tutorialRules.firstExpedition.seconds / 60;
   return dungeon.durationMinutes * (1 - guildBonus(save, 'fasterExpeditions'));
 }
+
+/**
+ * Minutes an overnight quest's supply is counted for: a patrol runs for hours
+ * but is a safe, unhurried round, so it only costs `supplyHours` per hero.
+ */
+const supplyMinutes = (save: SaveData, dungeon: DungeonDef) =>
+  dungeon.overnight ? overnightQuestRules.supplyHours * 60 : expeditionMinutes(save, dungeon);
 
 /** The optional meal and kit for an expedition (provision item ids). */
 export type Loadout = { mealId?: string | null; kitId?: string | null };
@@ -82,7 +122,7 @@ export function launchPlan(save: SaveData, dungeon: DungeonDef, heroIds: string[
   const base = expeditionMinutes(save, dungeon);
   const need = save.heroes
     .filter((h) => heroIds.includes(h.id))
-    .reduce((sum, hero) => sum + heroSupplyNeed(heroAbilities(hero), base), 0);
+    .reduce((sum, hero) => sum + heroSupplyNeed(heroAbilities(hero), supplyMinutes(save, dungeon)), 0);
   const supply = pickSupply(save.consumables, need);
   const meal = provision(loadout.mealId)?.meal;
   return {
@@ -101,6 +141,9 @@ export const runProvisions = (hunger: Hunger, loadout: Loadout = {}): RunProvisi
   kit: provision(loadout.kitId)?.kit ?? null,
 });
 
+/** Whether a patrol is out right now: only one overnight quest runs at a time. */
+export const overnightUnderWay = (save: SaveData) => save.expeditions.some((e) => dungeonById[e.dungeonId]?.overnight);
+
 export function startExpedition(
   save: SaveData,
   dungeonId: string,
@@ -114,6 +157,8 @@ export function startExpedition(
   const dungeon = dungeonById[dungeonId];
   if (!dungeon) throw new Error(`Unknown dungeon ${dungeonId}`);
   if (!isDungeonAvailable(save, dungeon, rotation)) throw new Error(`${dungeon.name} is not available`);
+  // Overnight quests are patrols: only one is out at a time.
+  if (dungeon.overnight && overnightUnderWay(save)) throw new Error(`${dungeon.name} is already under way`);
   if (heroIds.length === 0) throw new Error('Pick at least one hero');
   if (heroIds.length > partySize(save)) throw new Error(`At most ${partySize(save)} heroes per expedition`);
   for (const heroId of heroIds) {
@@ -274,6 +319,19 @@ export function resolveExpedition(
       success && dungeon.isBoss && dailyBonus ? { ...save.bossBonusDays, [dungeon.id]: rotationDay(expedition.endsAt) } : save.bossBonusDays,
   };
   if (recipeId) next = unlockRecipe(next, recipeId);
+  // The first win in each pool dungeon on a rotation day teaches one of its
+  // blueprints, on top of the normal rolls (see guaranteedBlueprint). The
+  // player's known recipes are read after the normal drop, so it never repeats it.
+  const dailyBlueprint =
+    success && dungeon.slot && !tutorialReward && blueprintBonusAvailable(save, dungeon.id, expedition.endsAt)
+      ? guaranteedBlueprint(next, dungeon)
+      : null;
+  if (dailyBlueprint) {
+    next = {
+      ...unlockRecipe(next, dailyBlueprint),
+      blueprintBonusDays: { ...save.blueprintBonusDays, [dungeon.id]: rotationDay(expedition.endsAt) },
+    };
+  }
   // Heroes come back with the HP the run left them, as a share of their max after any level up.
   next = applyRunHp(
     next,
@@ -340,6 +398,7 @@ export function resolveExpedition(
     xp,
     consumablesUsed,
     firstClear,
+    dailyBlueprint: dailyBlueprint ?? undefined,
     charter: charter || undefined,
     log,
     seen: false,

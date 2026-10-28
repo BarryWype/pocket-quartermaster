@@ -41,6 +41,7 @@ export const en = {
     collected: 'Already gathered.',
     expired: 'It is gone.',
     needsTool: 'You need a better pickaxe for this.',
+    needsPickaxe: 'Needs a {pickaxe}.',
     treasureTooFar: 'Treasure: {distance} m away (need {radius} m)',
     treasureSigil: ' and a tier {tier} Sigil',
     treasureJackpot: ' and a {gold} gold jackpot',
@@ -50,6 +51,7 @@ export const en = {
     debug: 'Debug',
     recentre: 'Centre on me',
     lure: '🪤 Lure {time}',
+    freshLegs: '🦵 Fresh legs: {count} bonus gathers left',
     tavernsOpen: '🍺 Taverns are open! Recruit heroes for gold at the 🍺 on the map. Tap to close.',
     cookingHint: '🍳 Food is running low. Every expedition needs supply: cook trail mix and jerky from berries and meat in Craft → Provisions. Tap to close.',
   },
@@ -87,6 +89,13 @@ export const en = {
     tomorrowModifier: ' · {modifier} on {dungeon}',
     tierDungeons: 'Tier {tier} dungeons',
     kind: { boss: 'Boss', short: 'Short', long: 'Long' },
+    overnight: {
+      title: 'Overnight quest',
+      back: 'back at {time}',
+      rewards: '🪙 {gold} gold · ✨ {xp} XP per hero · 🎁 {percent} bonus reward',
+      hint: 'A safe, slow patrol for heroes with a long night ahead: it pays about {runs} runs of this tier.',
+      underWay: 'The patrol is already out; it comes back in the morning.',
+    },
     away: 'Away',
     confirm: {
       title: 'Send the party to {dungeon}?',
@@ -119,6 +128,7 @@ export const en = {
     },
     afterTutorial: 'after the tutorial',
     neverCleared: '✨ Never cleared: first-clear bonus',
+    blueprintToday: 'Blueprint guaranteed today',
     bossBonusAvailable: '🎁 Daily boss bonus available',
     bossBonusClaimed: '✔️ Daily boss bonus claimed (comes back tomorrow)',
     send: 'Send',
@@ -202,6 +212,9 @@ export const en = {
     inStock: '{count} in stock',
     usedBy: ' · used by {name}',
     empty: 'Nothing available. Visit the forge.',
+  },
+  gear: {
+    roll: 'roll {roll}/{max}',
   },
   team: {
     roster: 'Roster {count}/{cap} · up to {party} per expedition',

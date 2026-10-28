@@ -248,6 +248,11 @@ export type GearInstance = {
   uid: string;
   itemId: string;
   quality: Quality;
+  /**
+   * Stat roll factor (see rollRules): multiplies the piece's stats together
+   * with its quality. Set by every forge; gear from before rolls counts as 1.
+   */
+  roll?: number;
   /** Infused element; a piece can only be infused once. */
   element?: Element;
 };
@@ -369,6 +374,8 @@ export type DungeonDef = {
   isBoss?: boolean;
   /** Regular dungeons rotate daily: one `short` (farm) and one `long` slot per tier. */
   slot?: 'short' | 'long';
+  /** An overnight quest: open every day alongside the rotation, not part of it. */
+  overnight?: boolean;
   /** Set by a daily modifier. */
   enemyElement?: Element;
   rewardMultipliers?: { gold: number; materials: number };
@@ -457,6 +464,8 @@ export type ExpeditionReport = {
   consumablesUsed: string[];
   /** Bonus for the first win in a pool dungeon. */
   firstClear?: { gold: number; xp: number };
+  /** The blueprint taught by the day's first win in a pool dungeon. */
+  dailyBlueprint?: string;
   /** A Guild Hall charter, for the first win against a tier boss. */
   charter?: boolean;
   log: string[];

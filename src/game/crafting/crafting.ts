@@ -1,8 +1,8 @@
-import { forgeRules } from '@/content/forging';
 import { itemById, recipeById } from '@/content/lookup';
 
 import { gainMastery, masteryOf, masteryTypeOf, startingMastery } from '../forging/mastery';
 import { qualityOdds, rollQuality } from '../forging/quality';
+import { rollStatFactor } from '../forging/roll';
 import { createRng } from '../generation/rng';
 import { addMaterials, hasMaterials, removeMaterials } from '../inventory';
 import type { SaveData } from '../save';
@@ -17,20 +17,8 @@ export function ownsTool(save: SaveData, recipe: RecipeDef) {
   return 'itemId' in recipe.output && save.tools.includes(recipe.output.itemId);
 }
 
-/** Gold a recipe costs: forged weapons, armour and tools by item tier; smelting, provisions and the tutorial are free. */
-export function forgeFee(save: SaveData, recipe: RecipeDef, rules: typeof forgeRules = forgeRules) {
-  if (recipe.station !== 'forge' || !('itemId' in recipe.output) || save.tutorial.step !== 'done') return 0;
-  const item = itemById[recipe.output.itemId];
-  return item.slot === 'weapon' || item.slot === 'armor' || item.slot === 'tool' ? (rules.fees[item.tier - 1] ?? 0) : 0;
-}
-
 export function canCraft(save: SaveData, recipe: RecipeDef) {
-  return (
-    isKnown(save, recipe) &&
-    !ownsTool(save, recipe) &&
-    hasMaterials(save.materials, recipe.inputs) &&
-    save.gold >= forgeFee(save, recipe)
-  );
+  return isKnown(save, recipe) && !ownsTool(save, recipe) && hasMaterials(save.materials, recipe.inputs);
 }
 
 /** The gear a recipe forges, if it makes a weapon or armour piece. */
@@ -57,7 +45,7 @@ export function unlockRecipe(save: SaveData, recipeId: string): SaveData {
  */
 export function craft(save: SaveData, recipe: RecipeDef, forceQuality?: Quality): SaveData {
   if (!canCraft(save, recipe)) throw new Error(`Cannot craft ${recipe.id}`);
-  let next: SaveData = { ...save, gold: save.gold - forgeFee(save, recipe), materials: removeMaterials(save.materials, recipe.inputs) };
+  let next: SaveData = { ...save, materials: removeMaterials(save.materials, recipe.inputs) };
 
   const gearItem = forgedItem(recipe);
   if ('materialId' in recipe.output) {
@@ -70,7 +58,7 @@ export function craft(save: SaveData, recipe: RecipeDef, forceQuality?: Quality)
       forceQuality ?? rollQuality(qualityOdds(mastery.level, gearItem.tier), createRng(`${uid}|${recipe.id}`));
     next = {
       ...next,
-      gear: [...next.gear, { uid, itemId: gearItem.id, quality }],
+      gear: [...next.gear, { uid, itemId: gearItem.id, quality, roll: rollStatFactor(uid, mastery.level, gearItem.tier) }],
       mastery: { ...next.mastery, [type]: gainMastery(mastery, gearItem.tier) },
       nextUid: next.nextUid + 1,
     };

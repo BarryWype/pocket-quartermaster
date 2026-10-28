@@ -321,6 +321,104 @@ const ashenCitadel: DungeonDef = {
   ],
 };
 
+/**
+ * Overnight quests: one per tier, open every day alongside the rotation and
+ * unlocked with its tier. A long, safe patrol for players who won't be back
+ * for hours: it pays about `goldRunsWorth`/`xpRunsWorth` short runs of the tier, counted as
+ * `supplyHours` of supply per hero, and is the only dungeon with `overnight`.
+ */
+export const overnightQuestRules = {
+  /** Hours a patrol takes. */
+  durationHours: 8,
+  /** Gold for about this many of the tier's short runs. */
+  goldRunsWorth: 3,
+  /** XP for about this many of the tier's short runs. */
+  xpRunsWorth: 3,
+  /** Supply points per hero: a patrol is counted as this many started hours. */
+  supplyHours: 3,
+};
+
+/** The tier's overnight quest: the short dungeon's easiest mobs, a mild trap and a patrol leader. */
+function nightQuest(
+  id: string,
+  name: string,
+  emoji: string,
+  base: DungeonDef,
+  [weak, normal]: string[],
+  trap: Omit<Trap, 'type' | 'weight'>,
+  bossId: string,
+): DungeonDef {
+  const { goldRunsWorth, xpRunsWorth } = overnightQuestRules;
+  return {
+    id,
+    name,
+    emoji,
+    tier: base.tier,
+    overnight: true,
+    durationMinutes: overnightQuestRules.durationHours * 60,
+    encounterCount: [4, 5],
+    encounters: [
+      { type: 'fight', weight: 3, mobs: [{ mobId: weak, count: 2 }] },
+      { type: 'fight', weight: 3, mobs: [{ mobId: normal, count: 1 }] },
+      { type: 'trap', weight: 2, ...trap },
+      { type: 'event', weight: 1, eventId: 'spring' },
+      { type: 'event', weight: 1, eventId: 'cache' },
+    ],
+    boss: bossById[bossId],
+    mainRewardChance: base.mainRewardChance,
+    gold: [base.gold[0] * goldRunsWorth, base.gold[1] * goldRunsWorth],
+    xp: base.xp * xpRunsWorth,
+    loot: [],
+    recipeDrops: [],
+  };
+}
+
+const nightWatch1 = nightQuest(
+  'nightWatch1',
+  'Night Watch',
+  '🏮',
+  ratCellar,
+  ['giantRat', 'cellarSpider'],
+  { ...TRAP, name: 'loose slates', targets: 'one', damagePct: 0.08 },
+  'nightProwler',
+);
+const nightWatch2 = nightQuest(
+  'nightWatch2',
+  'Road Watch',
+  '🌉',
+  wolfDen,
+  ['wolfPup', 'greyWolf'],
+  { ...TRAP, name: 'washed-out ford', targets: 'one', damagePct: 0.08 },
+  'roadStalker',
+);
+const nightWatch3 = nightQuest(
+  'nightWatch3',
+  'Deep Watch',
+  '⛏️',
+  hauntedMine,
+  ['ghostBat', 'skeletonMiner'],
+  { ...TRAP, name: 'creaking beam', targets: 'one', damagePct: 0.08 },
+  'shaftHaunt',
+);
+const nightWatch4 = nightQuest(
+  'nightWatch4',
+  'Border Watch',
+  '🗼',
+  harpyCliffs,
+  ['rockLizard', 'cliffEagle'],
+  { ...TRAP, name: 'loose scree', targets: 'one', damagePct: 0.08 },
+  'campRaider',
+);
+const nightWatch5 = nightQuest(
+  'nightWatch5',
+  'Rampart Watch',
+  '🏰',
+  wyvernPeaks,
+  ['frostWolf', 'mountainTroll'],
+  { ...TRAP, name: 'toppled masonry', targets: 'one', damagePct: 0.08 },
+  'ashStalker',
+);
+
 export const dungeons: DungeonDef[] = [
   // Tier 1: wood
   ratCellar,
@@ -703,6 +801,13 @@ export const dungeons: DungeonDef[] = [
       { recipeId: 'steelArmour', chance: 0.3 },
     ],
   },
+
+  // Overnight quests: open every day, unlocked with their tier.
+  nightWatch1,
+  nightWatch2,
+  nightWatch3,
+  nightWatch4,
+  nightWatch5,
 ];
 
 export const expeditionRules = {

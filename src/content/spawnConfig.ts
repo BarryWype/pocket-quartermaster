@@ -31,7 +31,9 @@ export const spawnConfig: SpawnConfig = {
       minPerTile: 1,
       maxPerTile: 1,
       maxQuantity: 2,
-      tileChance: 0.15,
+      // Raised from 0.15 with the pacing pass: casual players were short of hide and meat,
+      // and the kitchen was using more than the 60–80% target share of the food gathered.
+      tileChance: 0.28,
     },
     herb: {
       precision: 7,
@@ -40,7 +42,8 @@ export const spawnConfig: SpawnConfig = {
       minPerTile: 1,
       maxPerTile: 1,
       maxQuantity: 2,
-      tileChance: 0.5,
+      // Raised from 0.5 with the pacing pass: more herbs and berries for food and potions.
+      tileChance: 0.8,
     },
   },
   timeOfDay: {

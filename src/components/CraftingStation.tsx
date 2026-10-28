@@ -4,9 +4,10 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { masteryTypeNames, QUALITIES, qualities, TIER_NAMES } from '@/content/forging';
 import { gearName, itemById, materialById, recipeOutput } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
-import { canCraft, craftableCount, forgeFee, forgedItem, isKnown, ownsTool, type ForgeResult } from '@/game/crafting/crafting';
+import { canCraft, craftableCount, forgedItem, isKnown, ownsTool, type ForgeResult } from '@/game/crafting/crafting';
 import { forgesForNextLevel, masteryCap, masteryOf, masteryTypeOf } from '@/game/forging/mastery';
 import { qualityOdds } from '@/game/forging/quality';
+import { rollToScale } from '@/game/forging/roll';
 import type { SaveData } from '@/game/save';
 import type { GearDef, RecipeDef } from '@/game/types';
 import { formatPercent, t, tr } from '@/i18n';
@@ -64,7 +65,7 @@ function MasteryLine({ save, item }: { save: SaveData; item: GearDef }) {
 
 /** The forged piece in its quality colour, bigger for Legendary, and any mastery level-up. */
 function ForgeBanner({ result, onClose }: { result: ForgeResult; onClose: () => void }) {
-  const { quality } = result.gear;
+  const { quality, roll } = result.gear;
   const legendary = quality === 'legendary';
   return (
     <Pressable
@@ -77,6 +78,7 @@ function ForgeBanner({ result, onClose }: { result: ForgeResult; onClose: () => 
       </Text>
       <Text>
         {t('crafting.quality', { quality: tr(qualities[quality].name) })}
+        {roll !== undefined ? ` · ${t('gear.roll', { roll: rollToScale(roll), max: 7 })}` : ''}
         {result.levelUp ? t('crafting.levelUp', { type: tr(masteryTypeNames[result.type].name), level: result.mastery.level }) : ''}
       </Text>
     </Pressable>
@@ -108,7 +110,6 @@ export function CraftingStation({ station, action }: Props) {
           const output = recipeOutput(recipe);
           const item = forgedItem(recipe);
           const description = 'itemId' in recipe.output ? itemById[recipe.output.itemId].description : undefined;
-          const fee = forgeFee(save, recipe);
           const inputs = (
             <View>
               <View style={styles.inputs}>
@@ -123,7 +124,6 @@ export function CraftingStation({ station, action }: Props) {
                     </View>
                   );
                 })}
-                {fee > 0 && <Text style={[styles.inputText, save.gold < fee && styles.short]}>🪙 {save.gold}/{fee}</Text>}
               </View>
               {item && <MasteryLine save={save} item={item} />}
               {description ? <Text style={styles.mastery}>{tr(description)}</Text> : null}

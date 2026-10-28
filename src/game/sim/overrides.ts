@@ -1,7 +1,7 @@
 import { chests } from '@/content/chests';
-import { expeditionRules } from '@/content/dungeons';
+import { expeditionRules, overnightQuestRules } from '@/content/dungeons';
 import { elementRules } from '@/content/elements';
-import { forgeRules, masteryRules, salvageRules } from '@/content/forging';
+import { masteryRules, salvageRules } from '@/content/forging';
 import { guildRules, guildTrackById } from '@/content/guild';
 import { healthRules } from '@/content/health';
 import { heroClasses, xpRules } from '@/content/heroes';
@@ -23,6 +23,7 @@ const roots: Record<string, unknown> = {
   guildRules,
   dungeons: dungeonById,
   expedition: expeditionRules,
+  overnight: overnightQuestRules,
   recipes: recipeById,
   items: itemById,
   heroes: heroClasses,
@@ -32,7 +33,6 @@ const roots: Record<string, unknown> = {
   recruit: recruitRules,
   roster: rosterRules,
   taverns: tavernRules,
-  forge: forgeRules,
   mastery: masteryRules,
   salvage: salvageRules,
   mainRewards: mainRewardRules,

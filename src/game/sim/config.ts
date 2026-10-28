@@ -55,6 +55,8 @@ export const simConfig = {
     enough: 0.9,
     /** A dungeon of the highest tier that can drop a blueprint the team lacks is worth trying at these odds. */
     blueprint: 0.35,
+    /** A guaranteed daily blueprint is worth this many of the dungeon's top gold in the expected-value ranking. */
+    blueprintValueRuns: 2,
     /** When nothing reaches the profile's threshold and nobody is out, the best option still goes if it reaches this. */
     fallback: 0.3,
   },
@@ -115,9 +117,9 @@ export const expectedLevels = [2, 4, 6, 8, 10];
 /** The bot's rules, printed at the top of the report. Keep in step with `bot.ts`. */
 export const BOT_RULES = [
   'Day 1 starts with the tutorial, played through the real functions, then skipped to done.',
-  'Walking: each session adds its share of the day’s walk, at the average yield per minute measured for the pickaxes owned (±variation). A lure in stock is used on the first walk of the day.',
+  'Walking: each session adds its share of the day’s walk, at the average yield per minute measured for the pickaxes owned (±variation). A lure in stock is used on the first walk of the day. The day’s first gathers (the lure’s spawns, then the walk) get the daily walking bonus: ×1.5, rounded up.',
   'Collect: finished expeditions, ready step chests and Guild Hall training.',
-  'Forge: the next pickaxe as soon as it can be made; then, per hero, the biggest upgrade first (best tier of a weapon they can use, and armour). New pieces go to whoever gains most; spare pieces are salvaged. Steel is smelted when a wanted forge is short of it. Forges are only made when the gold for the fee is there.',
+  'Forge: the next pickaxe as soon as it can be made; then, per hero, the biggest upgrade first (best tier of a weapon they can use, and armour). New pieces go to whoever gains most; spare pieces are salvaged. Steel is smelted when a wanted forge is short of it.',
   'Re-forge a worn piece of the best known tier while the chance of a better quality is at least 20% and the materials for one more forge remain; keep the better piece, salvage the other.',
   'Cook supply in batches of 5 (jerky while meat lasts, else trail mix) to keep 18 points in stock; then keep 3 healing potions, 2 of each meal, 1 of each kit and 2 of each charm; brew fire elixirs only when one of today’s dungeons deals fire.',
   'Meal: Hunter’s stew for a boss; Comfort broth when the odds are below 50%; Quick bites when they bring the party back a session earlier; Scholar’s porridge while the party is below the tier’s expected level; Merchant’s pie otherwise.',
@@ -130,5 +132,5 @@ export const BOT_RULES = [
   'Guild Hall: buy ranks in priority order, keeping the next recruit’s price while the roster has room.',
   'Sanctums: with a Sigil, a reachable Sanctum and odds ≥ 0.5 with the best heroes at home, use the highest Sigil tier that passes.',
   'Treasure: read every map; dig it up on a day its spot is reachable.',
-  'Expeditions: the unbeaten boss of the highest tier first when its odds are ≥ 0.45. Then, while heroes are idle, the open dungeon of the top two tiers with the best expected value per hour among those with odds ≥ the profile threshold; a boss whose daily bonus is already claimed is valued at the repeat reward chance. A dungeon of the highest tier that can drop a gear blueprint the team lacks only needs odds ≥ 0.35. Parties are built greedily (add the hero who raises the odds most) and each hero takes a potion (a fire elixir for fire dungeons).',
+  'Expeditions: the unbeaten boss of the highest tier first when its odds are ≥ 0.45. Then, while heroes are idle, the open dungeon of the top two tiers with the best expected value per hour among those with odds ≥ the profile threshold; a boss whose daily bonus is already claimed is valued at the repeat reward chance. A dungeon of the highest tier that can drop a gear blueprint the team lacks only needs odds ≥ 0.35, and a pool dungeon whose daily blueprint is still unclaimed ranks a little higher (blueprintValueRuns of its top gold). When the gap to the next session is at least the overnight quest’s duration, the overnight quests of the top two tiers join the ranking at their full value over that gap — but only one patrol can be out at a time. Parties are built greedily (add the hero who raises the odds most) and each hero takes a potion (a fire elixir for fire dungeons).',
 ];

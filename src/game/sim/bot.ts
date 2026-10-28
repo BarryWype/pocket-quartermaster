@@ -16,10 +16,13 @@ import { modifierFor, withModifier, type Rotation } from '../dungeons/rotation';
 import { dungeonTagWeights } from '../dungeons/tags';
 import { ELEMENTS, stoneId, weaponMultiplier, type Element } from '../elements';
 import {
+  blueprintBonusAvailable,
   bossBonusAvailable,
+  guaranteedBlueprint,
   highestUnlockedTier,
   isDungeonAvailable,
   launchPlan,
+  overnightUnderWay,
   resolveExpedition,
   runProvisions,
   startExpedition,
@@ -29,7 +32,8 @@ import { estimateOdds, type Odds } from '../expeditions/odds';
 import { charmItems, kitItems, mealItems, supplyHeld, supplyItems } from '../expeditions/provisions';
 import { prepareParty, simulateRun } from '../expeditions/simulate';
 import { masteryCap, masteryOf, masteryTypeOf } from '../forging/mastery';
-import { gearStats, qualityOdds } from '../forging/quality';
+import { gearStats, qualityOdds, type GearQualityRoll } from '../forging/quality';
+import { rollToScale } from '../forging/roll';
 import { salvage } from '../forging/salvage';
 import { distanceMeters } from '../generation/geo';
 import type { Rng } from '../generation/rng';
@@ -48,6 +52,9 @@ import { PICKAXES, type WalkRates } from './walking';
 
 export const QUALITY_ORDER: Quality[] = ['crappy', 'normal', 'rare', 'legendary'];
 
+/** A hypothetical forged piece at Normal quality with a neutral roll, for ranking recipes. */
+const NEUTRAL = { quality: 'normal' as const, roll: 1 };
+
 export type ExpeditionRow = {
   day: number;
   /** Hours since the run started. */
@@ -56,6 +63,8 @@ export type ExpeditionRow = {
   dungeonId: string;
   tier: number;
   boss: boolean;
+  /** An overnight quest: rewards follow time away, not taps. */
+  overnight: boolean;
   modifier: string;
   classes: string[];
   odds: number;
@@ -75,6 +84,8 @@ export type ExpeditionRow = {
   level: number;
   /** A boss win that claimed the daily bonus. */
   bossBonus: boolean;
+  /** A blueprint taught by the day's first win in a pool dungeon. */
+  blueprint: boolean;
   /** The party's average share of max HP at launch. */
   startHp: number;
   hunger: string;
@@ -92,6 +103,8 @@ export type CraftRow = {
   itemId: string;
   tier: number;
   quality: Quality | null;
+  /** The piece's stat roll (1–7 scale), for forged gear. */
+  roll: number | null;
   /** Mastery level of the piece's type after the forge. */
   mastery: number | null;
   /** Forged with the type's mastery already at the item tier's cap. */
@@ -157,6 +170,8 @@ export type Sim = {
   tavern: TavernSpawn;
   /** Today's reach rolls. */
   reach: { meters: number; tavern: boolean; sanctums: SanctumSpawn[]; maps: Map<string, boolean> };
+  /** Bonus gathers left today (the daily walking bonus). */
+  bonusGathers: number;
   /** When the first session at or after a time happens. */
   collectionAt: (time: number) => number;
   oddsCache: Map<string, Odds>;
@@ -167,6 +182,16 @@ export type Sim = {
 };
 
 // —— Bookkeeping ——
+
+const TIER_MATERIALS = ['wood', 'stone', 'copper', 'iron', 'steel'];
+
+/** Marks the milestone for each tier whose core kit (sword, bow, wand, armour) is fully known. */
+export function markCoreKit(sim: Sim) {
+  for (let tier = 1; tier <= 5; tier++) {
+    const kit = (['Sword', 'Bow', 'Wand', 'Armour'] as const).map((piece) => recipeById[`${TIER_MATERIALS[tier - 1]}${piece}`]?.id);
+    if (kit.every((id) => id && sim.save.knownRecipes.includes(id))) mark(sim, `coreKit:${tier}`);
+  }
+}
 
 export function mark(sim: Sim, key: string) {
   if (!(key in sim.log.milestones)) sim.log.milestones[key] = sim.day;
@@ -205,8 +230,8 @@ export const homeHeroes = (save: SaveData) => save.heroes.filter((h) => !isOnExp
 const gearOf = (save: SaveData, uid: string | null) => save.gear.find((g) => g.uid === uid);
 
 /** How much a piece adds to a hero: weapon damage after affinity, or armour defense plus a share of HP. */
-export function gearScore(hero: HeroState, item: GearDef, quality: Quality) {
-  const stats = gearStats(item, { quality });
+export function gearScore(hero: HeroState, item: GearDef, gear: GearQualityRoll) {
+  const stats = gearStats(item, gear);
   if (item.slot === 'armor') return (stats.defense ?? 0) + (stats.hp ?? 0) / 8;
   const affinity = item.weaponType ? (heroClasses[hero.classId].affinities[item.weaponType] ?? 0) : 1;
   return ((stats.attack ?? 0) + (stats.magic ?? 0)) * affinity;
@@ -214,7 +239,7 @@ export function gearScore(hero: HeroState, item: GearDef, quality: Quality) {
 
 function wornScore(save: SaveData, hero: HeroState, slot: 'weapon' | 'armor') {
   const gear = gearOf(save, hero.equipment[slot]);
-  return gear ? gearScore(hero, itemById[gear.itemId] as GearDef, gear.quality) : 0;
+  return gear ? gearScore(hero, itemById[gear.itemId] as GearDef, gear) : 0;
 }
 
 const dealsFire = (dungeon: DungeonDef) => dungeon.enemyElement === 'fire' || (dungeonTagWeights(dungeon).fire ?? 0) > 0;
@@ -242,7 +267,7 @@ function bestRecipe(save: SaveData, hero: HeroState, slot: 'weapon' | 'armor') {
   for (const recipe of forgeRecipes) {
     const item = forgedItem(recipe)!;
     if (item.slot !== slot || !save.knownRecipes.includes(recipe.id) || !canWield(hero, item)) continue;
-    if (!best || item.tier > best.item.tier || (item.tier === best.item.tier && gearScore(hero, item, 'normal') > gearScore(hero, best.item, 'normal'))) {
+    if (!best || item.tier > best.item.tier || (item.tier === best.item.tier && gearScore(hero, item, NEUTRAL) > gearScore(hero, best.item, NEUTRAL))) {
       best = { recipe, item };
     }
   }
@@ -256,7 +281,7 @@ function recordCraft(sim: Sim, kind: CraftRow['kind'], before: SaveData, materia
   const type = masteryTypeOf(item);
   const mastery = masteryOf(sim.save, type).level;
   const maxed = masteryOf(before, type).level >= masteryCap(item.tier);
-  sim.log.crafts.push({ day: sim.day, kind, itemId: item.id, tier: item.tier, quality: gear.quality, mastery, maxed, materials });
+  sim.log.crafts.push({ day: sim.day, kind, itemId: item.id, tier: item.tier, quality: gear.quality, roll: rollToScale(gear.roll ?? 1), mastery, maxed, materials });
   if (gear.quality === 'rare' || gear.quality === 'legendary') mark(sim, `rare:${item.tier}`);
   if (gear.quality === 'legendary') mark(sim, `legendary:${item.tier}`);
   for (let tier = 1; tier <= 5; tier++) if (mastery >= masteryCap(tier)) mark(sim, `masteryCap:${tier}`);
@@ -272,7 +297,7 @@ function distribute(sim: Sim) {
       const item = itemById[gear.itemId] as GearDef;
       for (const hero of homeHeroes(sim.save)) {
         if (!canWield(hero, item)) continue;
-        const gain = gearScore(hero, item, gear.quality) - wornScore(sim.save, hero, item.slot);
+        const gain = gearScore(hero, item, gear) - wornScore(sim.save, hero, item.slot);
         if (gain > 0 && (!best || gain > best.gain)) best = { hero, uid: gear.uid, slot: item.slot, gain };
       }
     }
@@ -284,7 +309,7 @@ function distribute(sim: Sim) {
   for (const gear of sim.save.gear.filter((g) => !worn.has(g.uid))) {
     const item = itemById[gear.itemId] as GearDef;
     const materials = act(sim, 'salvage', (save) => salvage(save, gear.uid));
-    sim.log.crafts.push({ day: sim.day, kind: 'salvage', itemId: item.id, tier: item.tier, quality: gear.quality, mastery: null, materials });
+    sim.log.crafts.push({ day: sim.day, kind: 'salvage', itemId: item.id, tier: item.tier, quality: gear.quality, roll: null, mastery: null, materials });
   }
 }
 
@@ -319,7 +344,7 @@ export function forge(sim: Sim) {
   const pickaxe = recipeById[PICKAXES[owned]];
   if (pickaxe && sim.save.knownRecipes.includes(pickaxe.id) && smeltFor(sim, pickaxe.inputs) && canCraft(sim.save, pickaxe)) {
     act(sim, 'pickaxe', (save) => craft(save, pickaxe));
-    sim.log.crafts.push({ day: sim.day, kind: 'pickaxe', itemId: pickaxe.id, tier: owned + 1, quality: null, mastery: null, materials: {} });
+    sim.log.crafts.push({ day: sim.day, kind: 'pickaxe', itemId: pickaxe.id, tier: owned + 1, quality: null, roll: null, mastery: null, materials: {} });
     mark(sim, `pickaxe:${pickaxe.id}`);
   } else if (pickaxe && sim.save.knownRecipes.includes(pickaxe.id)) {
     recordMissing(sim, pickaxe);
@@ -333,7 +358,7 @@ export function forge(sim: Sim) {
           const best = bestRecipe(sim.save, hero, slot);
           const current = gearOf(sim.save, hero.equipment[slot]);
           if (!best || (current && (itemById[current.itemId] as GearDef).tier >= best.item.tier)) return null;
-          return { recipe: best.recipe, gain: gearScore(hero, best.item, 'normal') - wornScore(sim.save, hero, slot) };
+          return { recipe: best.recipe, gain: gearScore(hero, best.item, NEUTRAL) - wornScore(sim.save, hero, slot) };
         }),
       )
       .filter((u) => u !== null && u.gain > 0)
@@ -375,7 +400,7 @@ function cook(sim: Sim, itemId: string, count: number) {
   const n = Math.min(count, craftableCount(sim.save, recipe));
   if (n <= 0) return 0;
   act(sim, recipe.tab ?? 'alchemy', (save) => craftMany(save, recipe, n));
-  for (let i = 0; i < n; i++) sim.log.crafts.push({ day: sim.day, kind: 'provision', itemId, tier: 0, quality: null, mastery: null, materials: {} });
+  for (let i = 0; i < n; i++) sim.log.crafts.push({ day: sim.day, kind: 'provision', itemId, tier: 0, quality: null, roll: null, mastery: null, materials: {} });
   return n;
 }
 
@@ -718,26 +743,42 @@ function dropsBlueprint(save: SaveData, dungeon: DungeonDef) {
   });
 }
 
-/** Gold-equivalent of a run: gold for the share cleared, first-clear bonus, pouches and XP. */
 /**
  * Gold-equivalent of a run: gold for the share cleared, first-clear bonus,
  * main rewards (about a gold roll each) and XP. A boss whose daily bonus is
- * gone today only rolls the repeat chance.
+ * gone today only rolls the repeat chance. The day's first win also values
+ * the guaranteed blueprint, at `blueprintValueRuns` of the dungeon's top gold.
  */
 function expectedValue(sim: Sim, dungeon: DungeonDef, o: Odds, heroes: number) {
   const mid = ((dungeon.gold[0] + dungeon.gold[1]) / 2) * (dungeon.rewardMultipliers?.gold ?? 1) * (1 + guildBonus(sim.save, 'gold'));
   const firstClear = dungeon.slot && !sim.save.firstClears.includes(dungeon.id) ? dungeon.gold[1] * firstClearRules.goldShare : 0;
   const bonus = !dungeon.isBoss || bossBonusAvailable(sim.save, dungeon.id, sim.now);
   const rolls = bonus ? dungeon.mainRewardChance + (dungeon.mainRewardExtraRollChance ?? 0) : mainRewardRules.repeatMainRewardChance;
+  const blueprint =
+    dungeon.slot && blueprintBonusAvailable(sim.save, dungeon.id, sim.now) && guaranteedBlueprint(sim.save, dungeon)
+      ? dungeon.gold[1] * sim.config.odds.blueprintValueRuns
+      : 0;
   const tierShare = xpRules.lowerTierShare[Math.min(xpRules.lowerTierShare.length - 1, highestTier(sim.save) - dungeon.tier)];
-  return mid * o.progress + o.success * (firstClear + rolls * mid) + dungeon.xp * tierShare * o.progress * heroes * sim.config.xpGoldValue;
+  return mid * o.progress + o.success * (firstClear + blueprint + rolls * mid) + dungeon.xp * tierShare * o.progress * heroes * sim.config.xpGoldValue;
 }
 
 export function sendExpeditions(sim: Sim) {
   const top = highestTier(sim.save);
   const open = dungeons
-    .filter((d) => d.tier >= top - 1 && isDungeonAvailable(sim.save, d, sim.rotation))
+    .filter((d) => !d.overnight && d.tier >= top - 1 && isDungeonAvailable(sim.save, d, sim.rotation))
     .map((d) => asToday(sim, d));
+  // The overnight quest of the top two tiers joins the ranking when the next
+  // session is at least a full patrol away (the day's last session, usually).
+  // One patrol can be out at a time.
+  const gapToNextSession = sim.collectionAt(sim.now + 1) - sim.now;
+  const overnight = dungeons.filter(
+    (d) =>
+      d.overnight &&
+      d.tier >= top - 1 &&
+      !overnightUnderWay(sim.save) &&
+      isDungeonAvailable(sim.save, d) &&
+      gapToNextSession >= d.durationMinutes * 60_000 * (1 - guildBonus(sim.save, 'fasterExpeditions')),
+  );
   const unbeatenBoss = open.find((d) => d.isBoss && d.tier === top && !sim.save.clearedDungeons.includes(d.id));
   const idle = () => homeHeroes(sim.save).map((h) => h.id);
 
@@ -749,8 +790,8 @@ export function sendExpeditions(sim: Sim) {
   }
   sim.waiting = new Set();
   while (idle().length) {
-    const options = open
-      .filter((d) => d !== unbeatenBoss && !sim.waiting.has(d.id))
+    const options = [...open, ...overnight]
+      .filter((d) => d !== unbeatenBoss && !sim.waiting.has(d.id) && !(d.overnight && overnightUnderWay(sim.save)))
       .map((d) => {
         const party = bestParty(sim, d, idle());
         const hours = (sim.collectionAt(sim.now + d.durationMinutes * (1 - guildBonus(sim.save, 'fasterExpeditions')) * 60_000) - sim.now) / 3_600_000;
@@ -817,6 +858,7 @@ export function collectExpedition(sim: Sim, expedition: ActiveExpedition) {
     dungeonId: dungeon.id,
     tier: dungeon.tier,
     boss: !!dungeon.isBoss,
+    overnight: !!dungeon.overnight,
     modifier: expedition.modifierId ?? '',
     classes,
     odds: launched?.odds ?? 1,
@@ -830,6 +872,7 @@ export function collectExpedition(sim: Sim, expedition: ActiveExpedition) {
     hours: (expedition.endsAt - expedition.startedAt) / 3_600_000,
     level: launched?.level ?? 1,
     bossBonus,
+    blueprint: !!report.dailyBlueprint,
     startHp: report.heroHp.reduce((s, h) => s + (h.before ?? h.maxHp) / Math.max(1, h.maxHp), 0) / report.heroHp.length,
     hunger: report.hunger ?? 'fed',
     supplyUsed: report.supplyUsed ?? 0,

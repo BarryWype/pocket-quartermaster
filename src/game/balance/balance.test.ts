@@ -12,6 +12,7 @@ import { estimateOdds } from '../expeditions/odds';
 import { prepareParty, simulateRun, type PartyMember } from '../expeditions/simulate';
 import { sanctumOdds } from '../sanctums/sanctums';
 import { createInitialSave, type SaveData } from '../save';
+import { baseWalkConfig } from '../sim/walking';
 import { expectedLevels } from '../sim/config';
 import { referenceTeam } from '../sim/matrix';
 import { equip } from '../team/team';
@@ -40,7 +41,7 @@ function averageWalk(save: SaveData, minutes: number) {
   ];
   const totals: Record<string, number> = {};
   const runs = starts.flatMap((start, i) =>
-    [6, 12, 18].map((hour) => simulateWalk(save, start, Date.UTC(2026, 9, 20 + i, hour), minutes)),
+    [6, 12, 18].map((hour) => simulateWalk(save, start, Date.UTC(2026, 9, 20 + i, hour), minutes, baseWalkConfig)),
   );
   for (const run of runs) {
     for (const [id, amount] of Object.entries(run.materials)) totals[id] = (totals[id] ?? 0) + amount;
@@ -84,6 +85,14 @@ const dealsFire = (dungeon: DungeonDef) =>
   dungeon.boss.element === 'fire' || dungeon.encounters.some((e) => e.type === 'trap' && e.element === 'fire');
 
 describe('gathering balance (30 minute walk)', () => {
+  // The pacing pass raised animal density (tileChance 0.15 → 0.28) and plant
+  // density (0.5 → 0.8): casual players were short of hide, bone and herbs for
+  // gear and food, and the kitchen was eating more than the 60–80% target share
+  // of the meat and berries gathered. Locked ore nodes also read as minable
+  // ore half the time (see game/gathering/lockedNodes.ts), which adds to the
+  // early stone and copper yields. The walking bonus is left out here
+  // (baseWalkConfig), so these numbers hold for any walk of the day.
+
   it('shows only wood during the tutorial', () => {
     const walk = averageWalk(withTools([]), 30);
     expect(walk('wood')).toBeGreaterThan(10);
@@ -94,16 +103,17 @@ describe('gathering balance (30 minute walk)', () => {
     const walk = averageWalk(withTools(['woodPickaxe']), 30);
     expect(walk('wood')).toBeGreaterThan(15);
     expect(walk('wood')).toBeLessThan(40);
-    expect(walk('stone')).toBeGreaterThan(7);
+    // Stone includes converted locked nodes (copper veins reading as stone).
+    expect(walk('stone')).toBeGreaterThan(10);
     expect(walk('stone')).toBeLessThan(25);
     expect(walk('copper', 'iron', 'coal')).toBe(0);
   });
 
   it('keeps animal and herb materials in the same range as ore', () => {
     const walk = averageWalk(withTools(['woodPickaxe']), 30);
-    expect(walk('hide', 'bone', 'meat')).toBeGreaterThan(10);
+    expect(walk('hide', 'bone', 'meat')).toBeGreaterThan(15);
     expect(walk('hide', 'bone', 'meat')).toBeLessThan(45);
-    expect(walk('herb', 'berries', 'mushroom')).toBeGreaterThan(4);
+    expect(walk('herb', 'berries', 'mushroom')).toBeGreaterThan(10);
     expect(walk('herb', 'berries', 'mushroom')).toBeLessThan(25);
   });
 
@@ -169,7 +179,8 @@ describe('expedition progression', () => {
 
   for (let tier = 1; tier <= 5; tier++) {
     const normal = reference(tier, 'normal');
-    for (const dungeon of dungeons.filter((d) => d.tier === tier && !(tier === 1 && d.slot === 'short'))) {
+    // Overnight quests have their own odds band (see expeditions/overnight.test.ts).
+    for (const dungeon of dungeons.filter((d) => d.tier === tier && !d.overnight && !(tier === 1 && d.slot === 'short'))) {
       const [low, high] = BANDS[dungeon.isBoss ? 'boss' : dungeon.slot!];
       it(`puts ${dungeon.name} (tier ${tier} ${dungeon.isBoss ? 'boss' : dungeon.slot}) at ${low * 100}–${high * 100}% with Normal tier gear`, () => {
         const odds = normal(dungeon);
@@ -189,14 +200,15 @@ describe('expedition progression', () => {
     it(`keeps tier ${tier} within 25 points of its targets without any abilities: no hard gates`, () => {
       const save = referenceTeam(BASE, tier, 'normal', expectedLevels[tier - 1]);
       const party = prepareParty(save, save.heroes.map((h) => h.id)).map((m) => ({ ...m, abilities: [] }));
-      for (const dungeon of dungeons.filter((d) => d.tier === tier && !(tier === 1 && d.slot === 'short'))) {
+      for (const dungeon of dungeons.filter((d) => d.tier === tier && !d.overnight && !(tier === 1 && d.slot === 'short'))) {
         const [low] = BANDS[dungeon.isBoss ? 'boss' : dungeon.slot!];
         expect(memberChance(party, dungeon)).toBeGreaterThan(low - 0.25);
       }
     });
   }
 
-  for (const dungeon of dungeons.filter(dealsFire)) {
+  // Overnight quests are safe patrols: elixirs matter less there (they have their own band).
+  for (const dungeon of dungeons.filter((d) => dealsFire(d) && !d.overnight)) {
     it(`makes fire resistance elixirs worth at least 10 points in ${dungeon.name}`, () => {
       const level = TIER_LEVELS[dungeon.tier - 1];
       const material = TIER_MATERIALS[dungeon.tier - 1];
@@ -273,7 +285,8 @@ describe('class counters', () => {
     tier > 1 ? team(TIER_LEVELS[tier - 1], TIER_MATERIALS[tier - 2]) : swordOnly(),
   ];
 
-  for (const dungeon of dungeons.filter(counterFor)) {
+  // Overnight quests are near-certain without counters, so they are left out here.
+  for (const dungeon of dungeons.filter((d) => counterFor(d) && !d.overnight)) {
     it(`gives ${dungeon.name} (${mainTag(dungeon)}) 5 to 25 points for a hero who counters it`, () => {
       // Without abilities, then with the counter on one hero. Measured on the team whose odds are most in doubt.
       const plainParty = (save: SaveData) => prepareParty(save, ALL).map((m) => ({ ...m, abilities: [] as Ability[] }));

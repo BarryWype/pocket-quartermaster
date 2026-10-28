@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { tagInfo } from '@/content/rotation';
 import { modifierFor, type Rotation } from '@/game/dungeons/rotation';
 import { dungeonTags } from '@/game/dungeons/tags';
-import { bossBonusAvailable, isDungeonAvailable } from '@/game/expeditions/expeditions';
+import { bossBonusAvailable, blueprintBonusAvailable, guaranteedBlueprint, isDungeonAvailable } from '@/game/expeditions/expeditions';
 import { oddsBand } from '@/game/expeditions/odds';
 import type { SaveData } from '@/game/save';
 import type { DungeonDef } from '@/game/types';
@@ -38,6 +38,8 @@ export function DungeonCard({ save, dungeon, rotation, now, durationMs, chance, 
   const modifier = modifierFor(rotation, dungeon.id);
   const fresh = dungeon.slot && !save.firstClears.includes(dungeon.id);
   const bonus = dungeon.isBoss && bossBonusAvailable(save, dungeon.id, now);
+  const blueprint =
+    !!dungeon.slot && blueprintBonusAvailable(save, dungeon.id, now) && guaranteedBlueprint(save, dungeon) !== null;
   const kind = dungeon.isBoss ? 'boss' : dungeon.slot === 'short' ? 'short' : 'long';
 
   return (
@@ -87,6 +89,7 @@ export function DungeonCard({ save, dungeon, rotation, now, durationMs, chance, 
             )}
           </View>
           {fresh && <Text style={styles.line}>{t('expeditions.neverCleared')}</Text>}
+          {blueprint && <Text style={styles.line}>📜 {t('expeditions.blueprintToday')}</Text>}
           {dungeon.isBoss && <Text style={styles.line}>{t(bonus ? 'expeditions.bossBonusAvailable' : 'expeditions.bossBonusClaimed')}</Text>}
           {goodHere.length > 0 && <Text style={styles.line}>★ {goodHere.map((name) => t('expeditions.goodHereTitle', { name })).join(' · ')}</Text>}
           <View style={styles.footer}>

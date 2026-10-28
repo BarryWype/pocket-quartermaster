@@ -74,6 +74,12 @@ const S = {
   abyssalDepths: strength(5, 1.69),
   titanRuins: strength(5, 1.74),
   dragonLair: strength(5, 1.37),
+  // Overnight quests: a long, safe patrol at low strength (see overnightQuestRules).
+  nightWatch1: strength(1, 1.7),
+  nightWatch2: strength(2, 2.5),
+  nightWatch3: strength(3, 2.3),
+  nightWatch4: strength(4, 2.35),
+  nightWatch5: strength(5, 2.05),
 };
 
 export const mobs: MobDef[] = [
@@ -225,6 +231,12 @@ export const bosses: BossDef[] = [
   boss('abyssalHorror', 'abyssal horror', S.abyssalDepths, 80, 9, ['beast'], 'sweep', 'water'),
   boss('titanHeart', 'titan heart', S.titanRuins, 80, 9, [], 'enrage', 'stone'),
   boss('elderDragon', 'elder dragon', S.dragonLair, 140, 12, ['beast'], 'sweep', 'fire'),
+  // The overnight quests' patrol leaders: the run's only real threat.
+  boss('nightProwler', 'night prowler', S.nightWatch1, 120, 20, ['beast']),
+  boss('roadStalker', 'road stalker', S.nightWatch2, 65, 12, ['beast']),
+  boss('shaftHaunt', 'shaft haunt', S.nightWatch3, 65, 12, ['undead']),
+  boss('campRaider', 'camp raider', S.nightWatch4, 65, 12),
+  boss('ashStalker', 'ash stalker', S.nightWatch5, 65, 12, [], undefined, 'fire'),
 ];
 
 /** The mob an NPC turns into when the party fights them, at a dungeon tier. */

@@ -2,11 +2,11 @@ import { dungeons } from '@/content/dungeons';
 import { items } from '@/content/items';
 import { recipeById } from '@/content/lookup';
 import { materials } from '@/content/materials';
-import { forgeRules, QUALITIES } from '@/content/forging';
+import { QUALITIES } from '@/content/forging';
 import { recipes } from '@/content/recipes';
 
 import { createInitialSave, type SaveData } from '../save';
-import { canCraft, craft, forgeFee, ownsTool, unlockRecipe } from './crafting';
+import { canCraft, craft, ownsTool, unlockRecipe } from './crafting';
 
 const withMaterials = (counts: Record<string, number>, extra: Partial<SaveData> = {}): SaveData => ({
   ...createInitialSave(),
@@ -114,31 +114,19 @@ describe('crafting', () => {
   });
 });
 
-describe('forge fee', () => {
+describe('forging without a fee', () => {
   const done = { tutorial: { step: 'done' as const, woodSpot: null } };
   const known = (ids: string[]) => [...createInitialSave().knownRecipes, ...ids];
 
-  it('charges forged gear and pickaxes by item tier', () => {
-    expect(forgeRules.fees).toEqual([5, 15, 40, 100, 250]);
-    const save = withMaterials({ wood: 10, stone: 10, iron: 10 }, { ...done, gold: 300, knownRecipes: known(['stoneSword', 'ironSword', 'woodPickaxe']) });
-    expect(forgeFee(save, recipeById.woodSword)).toBe(5);
-    expect(forgeFee(save, recipeById.stoneSword)).toBe(15);
-    expect(forgeFee(save, recipeById.ironSword)).toBe(100);
-    expect(forgeFee(save, recipeById.woodPickaxe)).toBe(5);
-    expect(craft(save, recipeById.ironSword).gold).toBe(200);
+  it('only needs known recipes and materials, whatever the gold', () => {
+    const save = withMaterials({ wood: 10, stone: 10, iron: 10 }, { ...done, gold: 0, knownRecipes: known(['stoneSword', 'ironSword', 'woodPickaxe']) });
+    expect(canCraft(save, recipeById.ironSword)).toBe(true);
+    expect(craft(save, recipeById.ironSword).gold).toBe(0);
+    expect(canCraft(save, recipeById.smeltSteel)).toBe(false);
   });
 
-  it('refuses a forge when gold is short', () => {
-    const save = withMaterials({ wood: 10, stone: 10 }, { ...done, gold: 14, knownRecipes: known(['stoneSword']) });
-    expect(canCraft(save, recipeById.stoneSword)).toBe(false);
-    expect(() => craft(save, recipeById.stoneSword)).toThrow();
-    expect(canCraft({ ...save, gold: 15 }, recipeById.stoneSword)).toBe(true);
-  });
-
-  it('leaves smelting, provisions and the tutorial free', () => {
+  it('leaves smelting and provisions free of materials beyond their inputs', () => {
     const save = withMaterials({ iron: 4, coal: 2, herb: 4, mushroom: 2, wood: 3 }, { ...done, knownRecipes: known(['smeltSteel']) });
-    expect(forgeFee(save, recipeById.smeltSteel)).toBe(0);
-    expect(forgeFee(save, recipeById.healingPotion)).toBe(0);
     expect(craft(save, recipeById.smeltSteel).gold).toBe(0);
     expect(craft(save, recipeById.healingPotion).gold).toBe(0);
     expect(canCraft(withMaterials({ wood: 3 }), recipeById.woodSword)).toBe(true);

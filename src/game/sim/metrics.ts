@@ -83,11 +83,17 @@ export type ProfileSummary = {
     neverUsed: string[];
     /** The material most often missing for a forge, by tier. */
     bottleneck: Record<number, string | null>;
+    /** Share of everything gathered that came through the daily walking bonus. */
+    bonusShare: number;
   };
   crafting: {
     forgesPerTier: Record<number, number>;
     /** Share of each quality among forged pieces, by tier. */
     quality: Record<number, Record<Quality, number>>;
+    /** Stat rolls (1–7 scale) among forged pieces, by tier. */
+    rolls: Record<number, Record<number, number>>;
+    /** Re-forges per run, by tier. */
+    reforges: Record<number, number>;
     mastery: Record<string, Point[]>;
     salvageReturned: Record<string, number>;
     /** Share of forges made with mastery already at the item tier's cap, by tier. */
@@ -120,6 +126,10 @@ export type ProfileSummary = {
     /** Boss runs per day, daily bonuses claimed per run, and the party's median level at the first attempt, by tier. */
     bosses: Record<number, { perDay: number; bonuses: number; firstLevel: number }>;
     sanctums: { attempts: number; wins: number };
+    /** Overnight quests: runs per day, and their share of all gold earned and XP earned. */
+    overnight: { runsPerDay: number; goldShare: number; xpShare: number };
+    /** Daily guaranteed blueprints claimed per run. */
+    blueprints: number;
   };
   provisions: {
     /** Average share of max HP the party set out with, and the share of runs that set out below 70%. */
@@ -190,12 +200,17 @@ export function summarize(logs: RunLog[], targets: Targets = defaultTargets): Pr
   const forgesPerTier: Record<number, number> = {};
   const maxedShare: Record<number, number> = {};
   const quality: Record<number, Record<Quality, number>> = {};
+  const rolls: Record<number, Record<number, number>> = {};
+  const reforges: Record<number, number> = {};
   for (let tier = 1; tier <= 5; tier++) {
     const ofTier = forged.filter((c) => c.tier === tier);
     if (!ofTier.length) continue;
     forgesPerTier[tier] = round(ofTier.length / logs.length, 1);
     maxedShare[tier] = round(ofTier.filter((c) => c.maxed).length / ofTier.length);
     quality[tier] = Object.fromEntries(QUALITY_ORDER.map((q) => [q, round(ofTier.filter((c) => c.quality === q).length / ofTier.length)])) as Record<Quality, number>;
+    const rolled = ofTier.filter((c) => c.roll !== null);
+    rolls[tier] = Object.fromEntries([1, 2, 3, 4, 5, 6, 7].map((scale) => [scale, round(rolled.filter((c) => c.roll === scale).length / Math.max(1, rolled.length))]));
+    reforges[tier] = round(logs.reduce((sum, log) => sum + log.crafts.filter((c) => c.kind === 'reforge' && c.tier === tier).length, 0) / logs.length, 1);
   }
   const masteryTypes = [...new Set(logs.flatMap((log) => Object.keys(log.daily[0]?.mastery ?? {})))];
   const mastery = Object.fromEntries(masteryTypes.map((t) => [t, series(logs, days, (log, day) => log.daily[day - 1]?.mastery[t] ?? 1)]));
@@ -255,6 +270,20 @@ export function summarize(logs: RunLog[], targets: Targets = defaultTargets): Pr
     return totals;
   }));
   const sanctumRuns = logs.flatMap((log) => log.sanctums);
+  // Overnight quests and daily blueprints.
+  const overnightRuns = all.filter((e) => e.overnight);
+  const goldEarned = logs.reduce((sum, log) => sum + log.goldIn.reduce((s, g) => s + g.amount, 0), 0);
+  const xpEarned = all.reduce((sum, e) => sum + e.xp, 0);
+  const overnight = {
+    runsPerDay: round(overnightRuns.length / logs.length / days, 2),
+    goldShare: round(overnightRuns.reduce((sum, e) => sum + e.gold, 0) / Math.max(1, goldEarned)),
+    xpShare: round(overnightRuns.reduce((sum, e) => sum + e.xp, 0) / Math.max(1, xpEarned)),
+  };
+  const blueprints = round(all.filter((e) => e.blueprint).length / logs.length, 1);
+  // The walking bonus's share of everything gathered.
+  const gatheredTotal = logs.reduce((sum, log) => sum + Object.values(log.gathered).reduce((s, bySource) => s + Object.values(bySource).reduce((a, b) => a + b, 0), 0), 0);
+  const bonusTotal = logs.reduce((sum, log) => sum + Object.values(log.gathered).reduce((s, bySource) => s + (bySource.walkBonus ?? 0), 0), 0);
+  const bonusShare = round(bonusTotal / Math.max(1, gatheredTotal));
 
   // Provisions and HP.
   const regular = all.filter((e) => e.hours > 0.01);
@@ -297,8 +326,9 @@ export function summarize(logs: RunLog[], targets: Targets = defaultTargets): Pr
       gatheredBySource,
       neverUsed: Object.keys(gathered).filter((m) => gathered[m] >= targets.unusedStockpile && !(used[m] > 0)),
       bottleneck,
+      bonusShare,
     },
-    crafting: { forgesPerTier, maxedShare, quality, mastery, salvageReturned, bossQuality },
+    crafting: { forgesPerTier, maxedShare, quality, rolls, reforges, mastery, salvageReturned, bossQuality },
     expeditions: {
       perDungeon,
       effects,
@@ -306,6 +336,8 @@ export function summarize(logs: RunLog[], targets: Targets = defaultTargets): Pr
       classShare,
       bosses,
       sanctums: { attempts: round(sanctumRuns.length / logs.length, 1), wins: round(sanctumRuns.filter((s) => s.win).length / logs.length, 1) },
+      overnight,
+      blueprints,
     },
     provisions: {
       startHp: round(regular.reduce((s, e) => s + e.startHp, 0) / Math.max(1, regular.length)),

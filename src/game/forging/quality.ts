@@ -20,8 +20,11 @@ export function rollQuality(odds: Record<Quality, number>, rng: Rng): Quality {
   );
 }
 
-/** A piece's stats after its quality. Class affinity applies on top, in `heroStats`. */
-export function gearStats(item: GearDef, gear: Pick<GearInstance, 'quality'>): Partial<Stats> {
-  const multiplier = qualities[gear.quality].multiplier;
+/** A piece's quality and (for forged pieces) its stat roll. */
+export type GearQualityRoll = Pick<GearInstance, 'quality'> & Partial<Pick<GearInstance, 'roll'>>;
+
+/** A piece's stats after its quality and stat roll. Class affinity applies on top, in `heroStats`. */
+export function gearStats(item: GearDef, gear: GearQualityRoll): Partial<Stats> {
+  const multiplier = qualities[gear.quality].multiplier * (gear.roll ?? 1);
   return Object.fromEntries(Object.entries(item.stats).map(([key, value]) => [key, value * multiplier]));
 }

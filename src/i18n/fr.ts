@@ -43,6 +43,7 @@ export const fr: Dictionary = {
     collected: 'Déjà récolté.',
     expired: 'Il n’est plus là.',
     needsTool: 'Il vous faut une meilleure pioche pour ça.',
+    needsPickaxe: 'Il faut une {pickaxe}.',
     treasureTooFar: 'Trésor : à {distance} m (il faut {radius} m)',
     treasureSigil: ' et un Sceau de palier {tier}',
     treasureJackpot: ' et un pactole de {gold} pièces d’or',
@@ -52,6 +53,7 @@ export const fr: Dictionary = {
     debug: 'Débogage',
     recentre: 'Centrer sur moi',
     lure: '🪤 Leurre {time}',
+    freshLegs: '🦵 Jambes fraîches : {count} récoltes bonus restantes',
     cookingHint: '🍳 Les vivres s’épuisent. Chaque expédition a besoin de vivres : préparez du mélange du randonneur et de la viande séchée avec des baies et de la viande dans Artisanat → Provisions. Touchez pour fermer.',
     tavernsOpen: '🍺 Les tavernes ouvrent ! Recrutez des héros contre de l’or au 🍺 sur la carte. Touchez pour fermer.',
   },
@@ -89,6 +91,13 @@ export const fr: Dictionary = {
     tomorrowModifier: ' · {modifier} sur {dungeon}',
     tierDungeons: 'Donjons de palier {tier}',
     kind: { boss: 'Boss', short: 'Court', long: 'Long' },
+    overnight: {
+      title: 'Quête de nuit',
+      back: 'retour à {time}',
+      rewards: '🪙 {gold} or · ✨ {xp} XP par héros · 🎁 {percent} de récompense bonus',
+      hint: 'Une patrouille sûre et lente pour les héros qui partent pour la nuit : elle rapporte environ {runs} expéditions de ce palier.',
+      underWay: 'La patrouille est déjà partie ; elle revient au matin.',
+    },
     away: 'Absent',
     confirm: {
       title: 'Envoyer le groupe vers {dungeon} ?',
@@ -124,6 +133,7 @@ export const fr: Dictionary = {
     },
     afterTutorial: 'après le tutoriel',
     neverCleared: '✨ Jamais terminé : bonus de première victoire',
+    blueprintToday: 'Plan garanti aujourd’hui',
     bossBonusAvailable: '🎁 Bonus quotidien du boss disponible',
     bossBonusClaimed: '✔️ Bonus quotidien du boss obtenu (de retour demain)',
     send: 'Envoyer',
@@ -208,6 +218,9 @@ export const fr: Dictionary = {
     inStock: '{count} en stock',
     usedBy: ' · utilisé par {name}',
     empty: 'Rien de disponible. Passez à la forge.',
+  },
+  gear: {
+    roll: 'roll {roll}/{max}',
   },
   team: {
     roster: 'Effectif {count}/{cap} · jusqu’à {party} par expédition',

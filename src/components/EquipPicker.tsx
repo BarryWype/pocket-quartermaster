@@ -4,6 +4,7 @@ import { heroClasses } from '@/content/heroes';
 import { qualities } from '@/content/forging';
 import { gearName, itemById } from '@/content/lookup';
 import { gearStats } from '@/game/forging/quality';
+import { rollToScale } from '@/game/forging/roll';
 import { canWield } from '@/game/team/team';
 import type { SaveData } from '@/game/save';
 import type { EquipmentSlot } from '@/game/types';
@@ -62,7 +63,7 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot): Option
       emoji: item.emoji,
       icon: item.icon,
       title: gearName(gear),
-      subtitle: `${item.slot === 'weapon' ? '⚔️' : '🛡️'} ${Math.round(power)}${holder ? t('equip.usedBy', { name: holder.name }) : ''}`,
+      subtitle: `${item.slot === 'weapon' ? '⚔️' : '🛡️'} ${Math.round(power)} · ${t('gear.roll', { roll: rollToScale(gear.roll ?? 1), max: 7 })}${holder ? t('equip.usedBy', { name: holder.name }) : ''}`,
       color: qualities[gear.quality].color,
     }));
 }

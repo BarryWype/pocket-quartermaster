@@ -90,3 +90,17 @@ export function migrateV10Save(old: Partial<SaveData>): SaveData {
   }));
   return { ...save, consumables, heroes, cookingHintSeen: false };
 }
+
+/**
+ * Version 11 → 12: gear gains a stat roll (existing pieces get the neutral 1),
+ * and the save starts tracking claimed daily blueprints and bonus gathers.
+ */
+export function migrateV11Save(old: Partial<SaveData>): SaveData {
+  const save: SaveData = { ...createInitialSave(), ...old };
+  return {
+    ...save,
+    gear: save.gear.map((g) => ({ ...g, roll: g.roll ?? 1 })),
+    blueprintBonusDays: {},
+    freshGathers: { day: '', used: 0 },
+  };
+}

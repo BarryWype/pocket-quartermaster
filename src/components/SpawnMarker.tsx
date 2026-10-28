@@ -19,11 +19,13 @@ type Props = {
   kind: ResourceKind;
   inRange: boolean;
   fleeing: boolean;
+  /** A locked node: visible but greyed out until the player has the pickaxe. */
+  locked?: boolean;
   /** Rocks gently in the wind, e.g. trees. */
   sway?: boolean;
 };
 
-export function SpawnMarker({ emoji, icon, kind, inRange, fleeing, sway = false }: Props) {
+export function SpawnMarker({ emoji, icon, kind, inRange, fleeing, locked = false, sway = false }: Props) {
   const tilt = useSway(sway);
   return (
     <View
@@ -32,6 +34,7 @@ export function SpawnMarker({ emoji, icon, kind, inRange, fleeing, sway = false 
         { borderColor: borderColors[kind] },
         inRange && styles.inRange,
         fleeing && styles.fleeing,
+        locked && styles.locked,
       ]}
     >
       <Animated.View style={[styles.swayOrigin, tilt && { transform: [{ rotate: tilt }] }]}>
@@ -73,5 +76,6 @@ const styles = StyleSheet.create({
   },
   inRange: { backgroundColor: '#fff6a8', transform: [{ scale: 1.2 }] },
   fleeing: { opacity: 0.6 },
+  locked: { opacity: 0.45, backgroundColor: '#8f8d88' },
   swayOrigin: { transformOrigin: 'bottom' },
 });

@@ -53,9 +53,16 @@ export const masteryRules = {
   } as Partial<Record<number, Record<Quality, number>>>,
 };
 
-/** Gold each forge costs, by the item's tier (wood → steel): weapons, armour and pickaxes. Smelting and provisions are free, and so is the tutorial. */
-export const forgeRules = {
-  fees: [5, 15, 40, 100, 250],
+/** Every forged piece also rolls a stat factor on top of its quality, seeded by its uid. */
+export const rollRules = {
+  /**
+   * Multiplier range. ±6% keeps the quality order intact: the lowest roll of
+   * a quality still beats the highest roll of the quality below (0.85×1.06 < 1×0.94,
+   * 1×1.06 < 1.15×0.94, 1.15×1.06 < 1.3×0.94).
+   */
+  range: { min: 0.94, max: 1.06 },
+  /** Share of rolls that land in the upper half when mastery is at the item tier's cap; lower mastery tilts less. */
+  tilt: { capUpperHalf: 2 / 3 },
 };
 
 export const salvageRules = {

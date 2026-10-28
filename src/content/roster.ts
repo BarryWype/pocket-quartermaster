@@ -16,13 +16,14 @@ export const recruitRules = {
   /** Offers are this many levels below the roster's average level (at least level 1). */
   levelsBelowAverage: 1,
   price: {
-    base: { common: 80, uncommon: 180 } satisfies Record<ClassRarity, number>,
+    /** Higher than the old 80/180: the forge fee's removal left more gold for recruits. */
+    base: { common: 100, uncommon: 220 } satisfies Record<ClassRarity, number>,
     /** +25% per level above 1. */
     perLevel: 0.25,
     /** The roster factor counts heroes beyond this many. */
     freeHeroes: 3,
-    /** +35% per hero beyond `freeHeroes`. */
-    perExtraHero: 0.35,
+    /** +45% per hero beyond `freeHeroes`; raised from 35% when the forge fee went, so the 6th hero stays a save-up. */
+    perExtraHero: 0.45,
     trait: { positive: 1.15, negative: 0.75 },
     /** × this per tier above 1 (highest unlocked tier), so recruits keep pace with income. */
     perTier: 1.5,

@@ -248,6 +248,23 @@ export const frNames: Record<string, string> = {
   'dragonfire vent': 'cheminée de feu de dragon',
   'hoard vault door': 'porte de la salle au trésor',
 
+  // Overnight quests
+  'Night Watch': 'Ronde de nuit',
+  'night prowler': 'rôdeur nocturne',
+  'loose slates': 'ardoises délogées',
+  'Road Watch': 'Ronde de la route',
+  'road stalker': 'traqueur des routes',
+  'washed-out ford': 'gué emporté',
+  'Deep Watch': 'Ronde des profondeurs',
+  'shaft haunt': 'spectre du puits',
+  'creaking beam': 'poutre qui craque',
+  'Border Watch': 'Ronde des frontières',
+  'camp raider': 'pillard de camp',
+  'loose scree': 'éboulis instables',
+  'Rampart Watch': 'Ronde des remparts',
+  'ash stalker': 'traqueur des cendres',
+  'toppled masonry': 'maçonnerie renversée',
+
   // Enemies
   'giant rat': 'rat géant',
   'cellar spider': 'araignée de cave',

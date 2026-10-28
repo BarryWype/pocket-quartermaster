@@ -14,13 +14,15 @@ import { TavernPanel } from '@/components/TavernPanel';
 import { Text } from '@/components/Text';
 import { TutorialHint } from '@/components/TutorialHint';
 import { gatheringConfig } from '@/content/gatheringConfig';
+import { items } from '@/content/items';
 import { materialById, resourceById } from '@/content/lookup';
 import { mapStyle } from '@/content/mapStyle';
 import { sanctumRules } from '@/content/sanctums';
 import { spawnConfig } from '@/content/spawnConfig';
 import { tavernRules } from '@/content/taverns';
 import { walkableRules } from '@/content/walkable';
-import { canGather, isFleeing, type CollectFailure } from '@/game/gathering/gathering';
+import { freshGathersLeft, isFleeing, showsOnMap, type CollectFailure } from '@/game/gathering/gathering';
+import { readSpawn, requiredPickaxeTier } from '@/game/gathering/lockedNodes';
 import { shardId } from '@/game/elements';
 import { distanceMeters } from '@/game/generation/geo';
 import { generateSpawnsAround } from '@/game/generation/spawns';
@@ -158,7 +160,7 @@ export default function MapScreen() {
   const placedTreasure = usePlacedPoints(treasureSpots, walkableRules);
   const visible = position
     ? visibleSpawns([...placedSpawns, ...tutorialSpawns(save)], position, now).filter(
-        ({ spawn }) => !(spawn.id in save.collected) && canGather(save, spawn),
+        ({ spawn }) => !(spawn.id in save.collected) && showsOnMap(save, spawn),
       )
     : [];
 
@@ -209,11 +211,15 @@ export default function MapScreen() {
 
   const gather = (spawn: Spawn) => {
     const result = collect(spawn, { position, speed }, Date.now());
-    setMessage(
-      result.ok
-        ? `+ ${result.gained.map((g) => `${g.amount} ${tr(materialById[g.materialId]?.name ?? g.materialId)}`).join(', ')}`
-        : failureMessages[result.reason](result.distance),
-    );
+    if (result.ok) {
+      setMessage(`+ ${result.gained.map((g) => `${g.amount} ${tr(materialById[g.materialId]?.name ?? g.materialId)}`).join(', ')}`);
+      return;
+    }
+    const needs = result.reason === 'needsTool' ? requiredPickaxeTier(spawn) : null;
+    const pickaxe = needs
+      ? items.find((item) => item.slot === 'tool' && item.toolType === 'pickaxe' && item.tier === needs)
+      : undefined;
+    setMessage(needs && pickaxe ? t('map.needsPickaxe', { pickaxe: tr(pickaxe.name) }) : failureMessages[result.reason](result.distance));
   };
 
   return (
@@ -242,18 +248,23 @@ export default function MapScreen() {
       >
         <Camera ref={cameraRef} initialViewState={{ center: toLngLat(position), zoom: 17 }} />
         <MapFoliage data={foliage.data} />
-        {visible.map(({ spawn, position: spawnPosition, distance }) => (
-          <Marker key={spawn.id} id={spawn.id} lngLat={toLngLat(spawnPosition)} onPress={() => gather(spawn)}>
-            <SpawnMarker
-              kind={spawn.kind}
-              emoji={resourceById[spawn.resourceId]?.emoji ?? '❓'}
-              icon={resourceById[spawn.resourceId]?.icon}
-              inRange={distance <= gatheringConfig.collectRadiusMeters}
-              fleeing={spawn.kind === 'animal' && isFleeing(speed)}
-              sway={spawn.resourceId === 'tree'}
-            />
-          </Marker>
-        ))}
+        {visible.map(({ spawn, position: spawnPosition, distance }) => {
+          const read = readSpawn(save, spawn);
+          const shown = resourceById[read.resourceId];
+          return (
+            <Marker key={spawn.id} id={spawn.id} lngLat={toLngLat(spawnPosition)} onPress={() => gather(spawn)}>
+              <SpawnMarker
+                kind={spawn.kind}
+                emoji={shown?.emoji ?? '❓'}
+                icon={shown?.icon}
+                inRange={distance <= gatheringConfig.collectRadiusMeters}
+                fleeing={spawn.kind === 'animal' && isFleeing(speed)}
+                sway={read.resourceId === 'tree'}
+                locked={read.state === 'locked'}
+              />
+            </Marker>
+          );
+        })}
         {sanctumsInSight.map((sanctum) => (
           <Marker
             key={sanctum.id}
@@ -315,6 +326,11 @@ export default function MapScreen() {
           {t('map.lure', { time: minutesLeft(lureEndsAt(save) - now) })}
         </Text>
       )}
+      {save.tutorial.step === 'done' && freshGathersLeft(save, now) > 0 && (
+        <Text style={[styles.banner, styles.freshLegs, { top: insets.top + 8 }]}>
+          {t('map.freshLegs', { count: freshGathersLeft(save, now) })}
+        </Text>
+      )}
       {openSanctum && <SanctumPanel spawn={openSanctum} player={position} onClose={() => setOpenSanctum(null)} />}
       {openTavern && <TavernPanel tavern={openTavern} player={position} onClose={() => setOpenTavern(null)} />}
       {tavernsOpen && !save.tavernHintSeen && (
@@ -334,6 +350,7 @@ const styles = StyleSheet.create({
   player: { fontSize: 28 },
   treasure: { fontSize: 30 },
   lure: { right: 56, alignSelf: 'auto' },
+  freshLegs: { left: 56, alignSelf: 'auto' },
   banner: {
     position: 'absolute',
     alignSelf: 'center',

@@ -6,6 +6,7 @@ import { Button } from '@/components/Button';
 import { DungeonCard } from '@/components/DungeonCard';
 import { HpBar } from '@/components/HpBar';
 import { LootReveal } from '@/components/LootReveal';
+import { OvernightCard } from '@/components/OvernightCard';
 import { Panel } from '@/components/Panel';
 import { PixelBar } from '@/components/PixelBar';
 import { IconSlot, Row, SectionTitle } from '@/components/Row';
@@ -15,6 +16,7 @@ import { Text } from '@/components/Text';
 import { Tip } from '@/components/Tip';
 import { TutorialHint } from '@/components/TutorialHint';
 import { abilityText } from '@/content/abilities';
+import { dungeons } from '@/content/dungeons';
 import { heroClasses } from '@/content/heroes';
 import { dungeonById } from '@/content/lookup';
 import { modifierById } from '@/content/modifiers';
@@ -129,22 +131,34 @@ export default function QuestsScreen() {
       .filter((d) => isDungeonUnlocked(save, d))
       .sort((a, b) => a.tier - b.tier);
   }, [rotation, save]);
+  // The overnight quest of each unlocked tier, open every day.
+  const overnight = useMemo(
+    () => dungeons.filter((d) => d.overnight && isDungeonUnlocked(save, d)).sort((a, b) => a.tier - b.tier),
+    [save],
+  );
   const tiers = [...new Set(open.map((d) => d.tier))];
   // The highest tier by default; the first one while the tutorial runs.
   const shownTier = tier !== null && tiers.includes(tier) ? tier : save.tutorial.step === 'done' ? tiers[tiers.length - 1] : tiers[0];
   const shown = open.filter((d) => d.tier === shownTier);
+  const shownOvernight = overnight.find((d) => d.tier === shownTier) ?? null;
 
   // Simulated runs for the dungeons shown, with current HP; recomputed when the party, the save or the tier
   // changes, and once a minute as heroes heal.
   const minute = Math.floor(now / 60_000);
   const odds = useMemo(
-    () => Object.fromEntries(shown.map((d) => [d.id, estimateOdds(save, party, d, undefined, { now: minute * 60_000 })])),
+    () =>
+      Object.fromEntries(
+        [...shown, ...(shownOvernight ? [shownOvernight] : [])].map((d) => [
+          d.id,
+          estimateOdds(save, party, d, undefined, { now: minute * 60_000 }),
+        ]),
+      ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [save, party, shownTier, rotation, minute],
   );
 
   const focusedDungeon = open.find((d) => d.id === focused);
-  const confirmingDungeon = party.length > 0 ? open.find((d) => d.id === confirming) : undefined;
+  const confirmingDungeon = party.length > 0 ? [...open, ...overnight].find((d) => d.id === confirming) : undefined;
   const counters = (heroId: string) => (focusedDungeon ? countersFor(prepareParty(save, [heroId])[0].abilities, focusedDungeon) : []);
 
   /** Parties are capped: a hero can only join while there's room. */
@@ -225,6 +239,15 @@ export default function QuestsScreen() {
           onSend={() => setConfirming(dungeon.id)}
         />
       ))}
+      {shownOvernight && (
+        <OvernightCard
+          save={save}
+          dungeon={shownOvernight}
+          now={now}
+          chance={party.length > 0 ? odds[shownOvernight.id]?.success ?? null : null}
+          onSend={() => setConfirming(shownOvernight.id)}
+        />
+      )}
 
       {guildRank(save, 'scouting') > 0 && (
         <View style={styles.tomorrow}>

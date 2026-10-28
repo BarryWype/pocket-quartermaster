@@ -6,6 +6,13 @@ export const gatheringConfig = {
   maxAccuracyMeters: 40,
   /** Readings implying a faster move than this are treated as GPS jumps (m/s). */
   maxPlausibleSpeed: 45,
+  /** The daily walking bonus: the first gathers each local day yield more. */
+  walkingBonus: {
+    /** Bonus gathers per local day (the tutorial's guaranteed wood doesn't count). */
+    gathers: 15,
+    /** Yield multiplier on a bonus gather, rounded up. */
+    multiplier: 1.5,
+  },
 };
 
 export type GatheringConfig = typeof gatheringConfig;

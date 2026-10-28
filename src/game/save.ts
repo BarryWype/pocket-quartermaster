@@ -81,6 +81,10 @@ export type SaveData = {
   charters: number;
   /** Boss dungeon id → rotation day its daily bonus (guaranteed reward and extra roll) was last claimed. */
   bossBonusDays: Record<string, number>;
+  /** Pool dungeon id → rotation day its guaranteed daily blueprint was last claimed. */
+  blueprintBonusDays: Record<string, number>;
+  /** Local day (ISO date) → bonus gathers used today (see `walkingBonus`). */
+  freshGathers: { day: string; used: number };
   /** When home heroes last got their training XP (null before the first check). */
   trainedAt: number | null;
   /** Counter for unique ids (gear, maps, lures, fights, heroes). */
@@ -118,6 +122,8 @@ export function createInitialSave(): SaveData {
     charters: 0,
     trainedAt: null,
     bossBonusDays: {},
+    blueprintBonusDays: {},
+    freshGathers: { day: '', used: 0 },
     mastery: Object.fromEntries(MASTERY_TYPES.map((type) => [type, { level: 1, progress: 0 }])),
     nextUid: 1,
   };

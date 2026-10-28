@@ -33,6 +33,7 @@ export function lootItems(report: ExpeditionReport): string[] {
       return t('expeditions.lure');
     }),
     report.recipeId ? `📜 ${tr(recipeOutput(recipeById[report.recipeId]).name)}` : null,
+    report.dailyBlueprint ? `📜 ${tr(recipeOutput(recipeById[report.dailyBlueprint]).name)}` : null,
     report.charter ? t('expeditions.loot.charter') : null,
     ...report.materials.map((m) => `${materialById[m.materialId].emoji} ${m.amount}`),
   ].filter((item): item is string => item !== null);

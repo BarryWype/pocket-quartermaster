@@ -113,13 +113,14 @@ function milestoneLabel(key: string) {
     case 'rare': return `First Rare or better, tier ${arg}`;
     case 'legendary': return `First Legendary, tier ${arg}`;
     case 'masteryCap': return `A mastery at the tier ${arg} cap`;
+    case 'coreKit': return `Tier ${arg} core kit (sword, bow, wand, armour) known`;
     case 'firstStone': return 'First elemental stone';
     case 'firstSanctumWin': return 'First Sanctum win';
     default: return key;
   }
 }
 
-const MILESTONE_ORDER = ['boss', 'pickaxe', 'recruit', 'guild', 'building', 'rare', 'legendary', 'masteryCap', 'firstStone', 'firstSanctumWin'];
+const MILESTONE_ORDER = ['boss', 'pickaxe', 'recruit', 'coreKit', 'guild', 'building', 'rare', 'legendary', 'masteryCap', 'firstStone', 'firstSanctumWin'];
 const milestoneSort = (a: string, b: string) =>
   MILESTONE_ORDER.indexOf(a.split(':')[0]) - MILESTONE_ORDER.indexOf(b.split(':')[0]) || a.localeCompare(b, 'en', { numeric: true });
 
@@ -215,6 +216,7 @@ export function renderReport({ summary, comparison, elapsed, rules, compareWith 
       const ids = Object.keys({ ...p.materials.gathered, ...p.materials.used }).sort((a, b) => (p.materials.gathered[b] ?? 0) - (p.materials.gathered[a] ?? 0));
       return (
         `<h3>${p.profile}</h3>` +
+        `<p>The daily walking bonus gathered ${pct(p.materials.bonusShare)} of all materials.</p>` +
         `<p>Bottleneck (most often missing for a wanted forge): ${Object.entries(p.materials.bottleneck)
           .filter(([, m]) => m)
           .map(([t, m]) => `tier ${t}: <b>${esc(materialName(m!))}</b>`)
@@ -237,21 +239,39 @@ export function renderReport({ summary, comparison, elapsed, rules, compareWith 
     })
     .join('');
 
+  // 5b. Locked ore nodes seen on the measured walks (see walking.ts).
+  const ORE_TIERS = [2, 3, 4];
+  const nodes =
+    `<p class="muted">Locked ore nodes seen on the measured walks, by the pickaxes owned: how many read as a minable ore (converted) and how many stayed greyed out, by the ore's own pickaxe tier (2 = copper, 3 = iron, 4 = coal).</p>` +
+    table(
+      ['Pickaxes owned', ...ORE_TIERS.flatMap((tier) => [`Tier ${tier} converted`, `Tier ${tier} greyed`])],
+      summary.nodes
+        .map((n, pickaxes) => ({ n, pickaxes }))
+        .filter(({ pickaxes }) => pickaxes >= 1)
+        .map(({ n, pickaxes }) => [
+          String(pickaxes),
+          ...ORE_TIERS.flatMap((tier) => [fmt(n.converted[tier] ?? 0), fmt(n.greyed[tier] ?? 0)]),
+        ]),
+    );
+
   // 6. Crafting
   const crafting = ps
     .map(
       (p) =>
         `<h3>${p.profile}</h3>` +
         table(
-          ['Tier', 'Forges per run', 'At max mastery', 'Crappy', 'Normal', 'Rare', 'Legendary', 'Boss attempts per run', 'Worn at boss: Crappy / Normal / Rare / Legendary'],
+          ['Tier', 'Forges per run', 'At max mastery', 'Crappy', 'Normal', 'Rare', 'Legendary', 'Roll 1', 'Roll 2', 'Roll 3', 'Roll 4', 'Roll 5', 'Roll 6', 'Roll 7', 'Re-forges per run', 'Boss attempts per run', 'Worn at boss: Crappy / Normal / Rare / Legendary'],
           [1, 2, 3, 4, 5].map((t) => {
             const q = p.crafting.quality[t];
             const b = p.crafting.bossQuality[t];
+            const r = p.crafting.rolls[t];
             return [
               String(t),
               fmt(p.crafting.forgesPerTier[t] ?? 0, 1),
               pct(p.crafting.maxedShare[t]),
               pct(q?.crappy), pct(q?.normal), pct(q?.rare), pct(q?.legendary),
+              ...[1, 2, 3, 4, 5, 6, 7].map((scale) => (r ? pct(r[scale]) : '—')),
+              fmt(p.crafting.reforges[t] ?? 0, 1),
               fmt(b?.attempts, 1),
               b ? `${b.crappy > 0.5 ? '<span class="flag">⚠</span> ' : ''}${pct(b.crappy)} / ${pct(b.normal)} / ${pct(b.rare)} / ${pct(b.legendary)}` : '—',
             ];
@@ -288,6 +308,7 @@ export function renderReport({ summary, comparison, elapsed, rules, compareWith 
           ['Boss tier', 'Runs per day', 'Daily bonuses claimed per run', 'Party level at the first attempt'],
           Object.entries(p.expeditions.bosses).map(([tier, b]) => [tier, fmt(b.perDay, 1), fmt(b.bonuses, 1), fmt(b.firstLevel, 1)]),
         ) +
+        `<p>Overnight quests: ${fmt(p.expeditions.overnight.runsPerDay, 2)} runs per day, bringing ${pct(p.expeditions.overnight.goldShare)} of the gold and ${pct(p.expeditions.overnight.xpShare)} of the XP. Daily guaranteed blueprints claimed: ${fmt(p.expeditions.blueprints, 1)} per run.</p>` +
         `<p>Sanctums per run: ${fmt(p.expeditions.sanctums.attempts, 1)} attempts, ${fmt(p.expeditions.sanctums.wins, 1)} wins.</p>` +
         table(
           ['Ability effect', 'Times per run (median)'],
@@ -436,6 +457,7 @@ export function renderReport({ summary, comparison, elapsed, rules, compareWith 
     section('gold', '3. Gold', gold),
     section('heroes', '4. Heroes', heroes),
     section('materials', '5. Materials', materials),
+    section('nodes', '5b. Map nodes', nodes),
     section('crafting', '6. Crafting', crafting),
     section('expeditions', '7. Expeditions', expeditions),
     section('classes', '7b. Classes and abilities', classes),
@@ -463,7 +485,7 @@ nav{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px}nav a{color:var(--mu
 code{font-size:12px}
 </style></head><body><main><h1>Balance lab</h1><nav>${[
     comparison ? ['compare', 'Changes'] : null,
-    ['warnings-top', 'Warnings'], ['rules', 'Rules'], ['milestones', 'Milestones'], ['gold', 'Gold'], ['heroes', 'Heroes'], ['materials', 'Materials'],
+    ['warnings-top', 'Warnings'], ['rules', 'Rules'], ['milestones', 'Milestones'], ['gold', 'Gold'], ['heroes', 'Heroes'], ['materials', 'Materials'], ['nodes', 'Map nodes'],
     ['crafting', 'Crafting'], ['expeditions', 'Expeditions'], ['classes', 'Classes'], ['provisions', 'Provisions'], ['tags', 'Tags'], ['matrix', 'Odds matrix'], ['guild', 'Guild Hall'],
   ]
     .filter((x): x is string[] => x !== null)

@@ -43,3 +43,9 @@ Docs: https://docs.expo.dev/eas/index.md
 ## Balance lab
 
 `npm run sim` plays the game day by day with a bot (`src/game/sim/`, CLI and report in `scripts/sim/`) and writes a report to `sim-output/`. When a change adds or alters a gameplay system, update the simulator bot and the report so the system is covered, and run `npm run sim` to check its effect.
+
+## Delegation
+Delegate all hands-on coding to the mistral-implementer agent by default (GLM-5.3).
+Handle it yourself only for: planning and design, ambiguous requirements, anything involving images,
+final review of security-sensitive changes, or tasks the agent reported failing twice.
+Prefer giving the agent a clear plan over doing the work yourself.

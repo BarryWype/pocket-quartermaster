@@ -1,4 +1,5 @@
 import { chests } from '@/content/chests';
+import { gatheringConfig } from '@/content/gatheringConfig';
 import { MASTERY_TYPES } from '@/content/forging';
 import { guildTracks } from '@/content/guild';
 import { itemById, recipeById } from '@/content/lookup';
@@ -8,6 +9,7 @@ import { craft } from '../crafting/crafting';
 import { dailyRotation, rotationDay } from '../dungeons/rotation';
 import { startExpedition } from '../expeditions/expeditions';
 import { masteryOf } from '../forging/mastery';
+import { rollToScale } from '../forging/roll';
 import { distanceMeters } from '../generation/geo';
 import { createRng } from '../generation/rng';
 import { rosterCap } from '../guild/guild';
@@ -31,6 +33,7 @@ import {
   highestTier,
   homeHeroes,
   infuseWeapons,
+  markCoreKit,
   reachChance,
   recruitHeroes,
   sendExpeditions,
@@ -39,7 +42,7 @@ import {
   type Sim,
 } from './bot';
 import { profiles, simConfig, type SimConfig } from './config';
-import { PICKAXES, walkYield, type WalkRates } from './walking';
+import { PICKAXES, bonusScaled, walkYield, type WalkRates } from './walking';
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
@@ -75,7 +78,7 @@ function playTutorial(sim: Sim) {
   sim.save = advanceTutorial(sim.save);
   act(sim, 'forge', (save) => craft(save, recipeById.woodSword));
   const sword = sim.save.gear[sim.save.gear.length - 1];
-  sim.log.crafts.push({ day: sim.day, kind: 'tutorial', itemId: sword.itemId, tier: 1, quality: sword.quality, mastery: masteryOf(sim.save, 'sword').level, materials: { wood: -wood } });
+  sim.log.crafts.push({ day: sim.day, kind: 'tutorial', itemId: sword.itemId, tier: 1, quality: sword.quality, roll: rollToScale(sword.roll ?? 1), mastery: masteryOf(sim.save, 'sword').level, materials: { wood: -wood } });
   sim.save = advanceTutorial(equip(sim.save, sim.save.heroes[0].id, 'weapon', sword.uid));
   sim.save = startExpedition(sim.save, tutorialRules.firstExpedition.dungeonId, sim.save.heroes.map((h) => h.id), sim.now, 1, sim.rotation);
   collectExpedition(sim, sim.save.expeditions[0]);
@@ -86,12 +89,30 @@ function session(sim: Sim, walkMinutes: number, steps: number, dayKey: string, f
   sim.save = pruneExpired(sim.save, sim.now);
   sim.rotation = dailyRotation(rotationDay(sim.now));
 
-  // Walking, with a lure on the first walk of the day.
+  // Walking, with a lure on the first walk of the day. The day's first gathers
+  // (the lure's, then the walk's) get the daily walking bonus.
   const pickaxes = PICKAXES.filter((id) => sim.save.tools.includes(id)).length;
-  act(sim, 'walk', (save) => ({ ...save, materials: addMaterials(save.materials, walkYield(sim.rates.perMinute[pickaxes], walkMinutes, sim.rng, sim.config)) }));
   if (first && sim.save.lures > 0 && !isLureActive(sim.save, sim.now)) {
+    const spent = Math.min(sim.bonusGathers, sim.rates.lureSpawns);
+    const lureYield = spent > 0 ? bonusScaled(walkYield(sim.rates.lure, 1, sim.rng, sim.config)) : walkYield(sim.rates.lure, 1, sim.rng, sim.config);
     sim.save = activateLure(sim.save, sim.location, sim.now);
-    act(sim, 'lure', (save) => ({ ...save, materials: addMaterials(save.materials, walkYield(sim.rates.lure, 1, sim.rng, sim.config)) }));
+    act(sim, spent > 0 ? 'walkBonus' : 'lure', (save) => ({ ...save, materials: addMaterials(save.materials, lureYield) }));
+    sim.bonusGathers -= spent;
+  }
+  const perMinute = sim.rates.perMinute[pickaxes];
+  const gathers = sim.rates.gathersPerMinute[pickaxes] * walkMinutes;
+  const bonusGathers = Math.min(sim.bonusGathers, gathers);
+  const bonusMinutes = gathers > 0 ? (bonusGathers / gathers) * walkMinutes : 0;
+  act(sim, 'walk', (save) => ({
+    ...save,
+    materials: addMaterials(save.materials, walkYield(perMinute, walkMinutes - bonusMinutes, sim.rng, sim.config)),
+  }));
+  if (bonusMinutes > 0) {
+    act(sim, 'walkBonus', (save) => ({
+      ...save,
+      materials: addMaterials(save.materials, bonusScaled(walkYield(perMinute, bonusMinutes, sim.rng, sim.config))),
+    }));
+    sim.bonusGathers -= bonusGathers;
   }
 
   // Collect.
@@ -114,6 +135,7 @@ function session(sim: Sim, walkMinutes: number, steps: number, dayKey: string, f
   challengeSanctums(sim);
   digTreasure(sim);
   sendExpeditions(sim);
+  markCoreKit(sim);
 }
 
 /** Plays `days` days of a profile with the bot and returns everything that happened. */
@@ -140,6 +162,7 @@ export function runSim({ profile: name, days, seed, rates, config = simConfig, a
     location,
     tavern,
     reach: { meters: 0, tavern: false, sanctums: [], maps: new Map() },
+    bonusGathers: gatheringConfig.walkingBonus.gathers,
     collectionAt: (time) => {
       const day = Math.max(0, Math.floor((time - startedAt) / DAY));
       return [...sessionTimes(day), ...sessionTimes(day + 1)].find((t) => t >= time) ?? time;
@@ -170,6 +193,7 @@ export function runSim({ profile: name, days, seed, rates, config = simConfig, a
 
   for (let day = 0; day < days; day++) {
     sim.day = day + 1;
+    sim.bonusGathers = gatheringConfig.walkingBonus.gathers;
     const dayStart = startedAt + day * DAY;
     const dayKey = new Date(dayStart).toISOString().slice(0, 10);
     const meters = profile.walkMinutes * 60 * config.walk.speed;
