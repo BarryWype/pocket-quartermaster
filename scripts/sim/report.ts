@@ -3,7 +3,7 @@ import { guildBuildings, guildTrackById, type GuildBuildingId } from '@/content/
 import { dungeons } from '@/content/dungeons';
 import { heroClasses } from '@/content/heroes';
 import { dungeonTagWeights } from '@/game/dungeons/tags';
-import type { Point, ProfileSummary, Stat } from '@/game/sim/metrics';
+import { milestoneMisses, type Point, type ProfileSummary, type Stat } from '@/game/sim/metrics';
 import { bossTarget, recruitTarget, targets } from '@/game/sim/targets';
 import type { HeroClassId } from '@/game/types';
 
@@ -254,6 +254,32 @@ export function renderReport({ summary, comparison, elapsed, rules, compareWith 
         ]),
     );
 
+  // 5c. Auto-gather: its yield against tapping on the same walks, and its share per profile.
+  const ratioIds = Object.keys(summary.autoRatio?.[summary.autoRatio.length - 1] ?? {}).sort();
+  const autoGather =
+    `<p class="muted">Auto-gather collects nodes within 20 m of a walk that never turns towards them; tapping walks to every node it sees and reaches 30 m. Ratio = auto-gather yield ÷ tapping yield per minute on the same starts and hours, by pickaxes owned.</p>` +
+    table(
+      ['Pickaxes owned', ...ratioIds.map((id) => esc(materialName(id)))],
+      (summary.autoRatio ?? []).map((ratio, pickaxes) => [String(pickaxes), ...ratioIds.map((id) => (ratio[id] === undefined ? '—' : pct(ratio[id])))]),
+    ) +
+    ps
+      .map((p) => {
+        const misses = milestoneMisses(p);
+        const bySource = (id: string, sources: string[]) => sources.reduce((n, src) => n + (p.materials.gatheredBySource[id]?.[src] ?? 0), 0);
+        const ids = Object.keys(p.materials.gatheredBySource).filter((id) => bySource(id, ['walk', 'walkBonus', 'autoGather', 'autoGatherBonus']) > 0).sort();
+        return (
+          `<h3>${p.profile}</h3>` +
+          `<p>Auto-gather gathered ${pct(p.materials.autoShare)} of the materials from walking. Milestones: ${
+            misses.length === 0 ? 'all within target ✓' : `<span class="flag">⚠ ${misses.map(esc).join(' ')}</span>`
+          }</p>` +
+          table(
+            ['Material', 'Tapping', 'Auto-gather'],
+            ids.map((id) => [esc(materialName(id)), fmt(bySource(id, ['walk', 'walkBonus'])), fmt(bySource(id, ['autoGather', 'autoGatherBonus']))]),
+          )
+        );
+      })
+      .join('');
+
   // 6. Crafting
   const crafting = ps
     .map(
@@ -458,6 +484,7 @@ export function renderReport({ summary, comparison, elapsed, rules, compareWith 
     section('heroes', '4. Heroes', heroes),
     section('materials', '5. Materials', materials),
     section('nodes', '5b. Map nodes', nodes),
+    section('auto-gather', '5c. Auto-gather', autoGather),
     section('crafting', '6. Crafting', crafting),
     section('expeditions', '7. Expeditions', expeditions),
     section('classes', '7b. Classes and abilities', classes),
@@ -485,7 +512,7 @@ nav{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px}nav a{color:var(--mu
 code{font-size:12px}
 </style></head><body><main><h1>Balance lab</h1><nav>${[
     comparison ? ['compare', 'Changes'] : null,
-    ['warnings-top', 'Warnings'], ['rules', 'Rules'], ['milestones', 'Milestones'], ['gold', 'Gold'], ['heroes', 'Heroes'], ['materials', 'Materials'], ['nodes', 'Map nodes'],
+    ['warnings-top', 'Warnings'], ['rules', 'Rules'], ['milestones', 'Milestones'], ['gold', 'Gold'], ['heroes', 'Heroes'], ['materials', 'Materials'], ['nodes', 'Map nodes'], ['auto-gather', 'Auto-gather'],
     ['crafting', 'Crafting'], ['expeditions', 'Expeditions'], ['classes', 'Classes'], ['provisions', 'Provisions'], ['tags', 'Tags'], ['matrix', 'Odds matrix'], ['guild', 'Guild Hall'],
   ]
     .filter((x): x is string[] => x !== null)

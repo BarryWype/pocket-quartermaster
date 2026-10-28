@@ -8,14 +8,16 @@ export type Profile = {
   /** Hours of the day (UTC) the app is opened, e.g. 12.5 for 12:30. */
   sessionHours: number[];
   stepsPerDay: number;
+  /** Share of walking time with auto-gather on, phone in the pocket; the rest is spent tapping. */
+  autoShare: number;
   /** Lowest odds the bot accepts for a regular expedition. */
   oddsThreshold: number;
 };
 
 export const profiles: Record<string, Profile> = {
-  casual: { walkMinutes: 20, sessionHours: [8, 19], stepsPerDay: 5000, oddsThreshold: 0.6 },
-  regular: { walkMinutes: 45, sessionHours: [8, 12.5, 19], stepsPerDay: 8000, oddsThreshold: 0.6 },
-  dedicated: { walkMinutes: 90, sessionHours: [7, 10, 13, 17, 21], stepsPerDay: 13000, oddsThreshold: 0.6 },
+  casual: { walkMinutes: 20, sessionHours: [8, 19], stepsPerDay: 5000, oddsThreshold: 0.6, autoShare: 0.8 },
+  regular: { walkMinutes: 45, sessionHours: [8, 12.5, 19], stepsPerDay: 8000, oddsThreshold: 0.6, autoShare: 0.5 },
+  dedicated: { walkMinutes: 90, sessionHours: [7, 10, 13, 17, 21], stepsPerDay: 13000, oddsThreshold: 0.6, autoShare: 0.2 },
 };
 
 export const simConfig = {
@@ -117,7 +119,7 @@ export const expectedLevels = [2, 4, 6, 8, 10];
 /** The bot's rules, printed at the top of the report. Keep in step with `bot.ts`. */
 export const BOT_RULES = [
   'Day 1 starts with the tutorial, played through the real functions, then skipped to done.',
-  'Walking: each session adds its share of the day’s walk, at the average yield per minute measured for the pickaxes owned (±variation). A lure in stock is used on the first walk of the day. The day’s first gathers (the lure’s spawns, then the walk) get the daily walking bonus: ×1.5, rounded up.',
+  'Walking: each session adds its share of the day’s walk, at the average yield per minute measured for the pickaxes owned (±variation). The profile’s auto-gather share of that time is walked with the phone in the pocket, at the auto-gather yield measured on the same walks (20 m radius, no detours towards nodes); the rest is spent tapping. A lure in stock is used on the first walk of the day. The day’s first gathers (the lure’s spawns, then the tapping walk, then the auto-gather walk) get the daily walking bonus: ×1.5, rounded up.',
   'Collect: finished expeditions, ready step chests and Guild Hall training.',
   'Forge: the next pickaxe as soon as it can be made; then, per hero, the biggest upgrade first (best tier of a weapon they can use, and armour). New pieces go to whoever gains most; spare pieces are salvaged. Steel is smelted when a wanted forge is short of it.',
   'Re-forge a worn piece of the best known tier while the chance of a better quality is at least 20% and the materials for one more forge remain; keep the better piece, salvage the other.',

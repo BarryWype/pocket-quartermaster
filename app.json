@@ -28,7 +28,12 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Pocket Quartermaster uses your location to show nearby resources."
+          "locationWhenInUsePermission": "Pocket Quartermaster uses your location to show nearby resources.",
+          "locationAlwaysAndWhenInUsePermission": "With auto-gather on, Pocket Quartermaster uses your location in the background to collect the resources you walk past. Your location stays on your phone.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true,
+          "androidForegroundServiceIcon": "./assets/notification-icon.png"
         }
       ],
       [

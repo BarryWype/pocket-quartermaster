@@ -1,8 +1,12 @@
+// Defines the background location task; it must run when the bundle loads, also for a background launch.
+import '@/services/walkTracking';
+
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 
+import { useAutoGather } from '@/hooks/useAutoGather';
 import { useLanguage } from '@/hooks/useLanguage';
 import { syncPlan, useNotifications } from '@/hooks/useNotifications';
 import { useStepTracking } from '@/hooks/useTodaySteps';
@@ -43,6 +47,7 @@ export default function RootLayout() {
   useUpkeep();
   useStepTracking();
   useNotifications();
+  useAutoGather();
   const [fontsLoaded, fontError] = useFonts({
     [fonts.body]: require('../../assets/fonts/FantaisieArtistique.ttf'),
   });

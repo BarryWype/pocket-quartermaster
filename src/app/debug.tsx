@@ -14,6 +14,7 @@ import { dungeonModifiers, modifierById } from '@/content/modifiers';
 import { notificationCategories, notificationTexts as texts } from '@/content/notifications';
 import { sanctums } from '@/content/sanctums';
 import { ELEMENTS, type Element } from '@/game/elements';
+import { playbackRoute, type WalkSummary } from '@/game/gathering/autoGather';
 import { offsetPosition } from '@/game/generation/geo';
 import type { LatLng, TimeOfDay } from '@/game/generation/types';
 import { fill } from '@/game/notifications/plan';
@@ -22,11 +23,14 @@ import { masteryCap, masteryOf } from '@/game/forging/mastery';
 import { guildRank } from '@/game/guild/guild';
 import { currentHp, isExhausted, maxHp } from '@/game/team/health';
 import type { HeroClassId, MainRewardKind, Quality } from '@/game/types';
+import { playBack } from '@/hooks/useAutoGather';
 import { deviceLocation } from '@/services/location';
+import { readBuffer, updateBuffer, type StoredBuffer } from '@/services/walkTracking';
 import { deviceNotifications } from '@/services/notifications';
 import { useNow } from '@/hooks/useNow';
 import { currentRotation, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
+import { useWorldStore } from '@/store/worldStore';
 
 const FALLBACK_LOCATION = { latitude: -41.2865, longitude: 174.7762 };
 const STEP_METERS = [10, 50];
@@ -51,6 +55,7 @@ const SAMPLE_NOTIFICATIONS: Record<NotificationCategory, { title: string; body: 
   chestUnlocked: { ...texts.chestUnlocked, body: fill(texts.chestUnlocked.body, { chest: 'wooden chest' }) },
   chestClose: { ...texts.chestClose, body: fill(texts.chestClose.body, { steps: 600, chest: 'iron chest' }) },
   dailyReset: texts.dailyReset,
+  walkSummary: { ...texts.walkSummary, body: fill(texts.walkSummary.body, { distance: '2.4 km' }) },
 };
 
 function Choice<T>({
@@ -82,6 +87,21 @@ function Choice<T>({
 export default function DebugScreen() {
   const debug = useDebugStore();
   const game = useGameStore();
+  const autoMode = useWorldStore((state) => state.autoGather);
+  const [buffer, setBuffer] = useState<StoredBuffer | null>(null);
+  const [playback, setPlayback] = useState<WalkSummary | null>(null);
+  const refreshBuffer = () => readBuffer().then(setBuffer, () => setBuffer(null));
+  // A loop around the mock location (or the map's last position) that ends now.
+  const playRoute = async (stepsCounted: boolean) => {
+    const center = debug.mockLocation ?? useWorldStore.getState().player ?? FALLBACK_LOCATION;
+    setPlayback(await playBack(playbackRoute(center, Date.now(), { stepsCounted })));
+    refreshBuffer();
+  };
+  const lastWalk = game.save.autoGather.history[0] ?? null;
+  const describeWalk = (walk: WalkSummary) =>
+    `${Math.round((walk.endedAt - walk.startedAt) / 60_000)} min · ${walk.distanceMeters} m · ${walk.nodes} nodes · ` +
+    `${walk.gained.map((g) => `${g.amount} ${g.materialId}`).join(', ') || 'nothing'} · ${walk.steps} steps${walk.stepsEstimated ? ' (estimated)' : ''}` +
+    `${walk.autoStopped ? ' · auto-stopped' : ''}\nIgnored: ${Object.entries(walk.ignored).map(([reason, count]) => `${reason} ${count}`).join(', ') || 'none'}`;
 
   const [element, setElement] = useState<Element>('fire');
   const [gearItem, setGearItem] = useState(GEAR_ITEMS[0].id);
@@ -396,6 +416,36 @@ export default function DebugScreen() {
         label={(option) => option ?? 'off'}
         onChange={(forcedMainReward) => debug.set({ forcedMainReward })}
       />
+
+      <Text style={styles.title}>Auto-gather</Text>
+      <Text>Mode: {autoMode} · processed until {game.save.autoGather.processedUntil ? new Date(game.save.autoGather.processedUntil).toLocaleTimeString() : 'never'}</Text>
+      <View style={styles.row}>
+        <Text>Show auto radius</Text>
+        <Switch value={debug.showAutoRadius} onValueChange={(showAutoRadius) => debug.set({ showAutoRadius })} />
+      </View>
+      <View style={styles.row}>
+        <Text>Show tap and node ranges</Text>
+        <Switch value={debug.showNodeRanges} onValueChange={(showNodeRanges) => debug.set({ showNodeRanges })} />
+      </View>
+      <View style={styles.row}>
+        <Button title="Play 30 min loop (steps estimated)" onPress={() => playRoute(false)} />
+        <Button title="Play (pedometer counted)" onPress={() => playRoute(true)} />
+      </View>
+      <Text style={styles.hint}>
+        Feeds a loop at walking pace, ending now, around the mock location (or where the map last saw you), then processes it as if the app came back. Fixes older than the last processed one are ignored as stale.
+      </Text>
+      {playback && <Text style={styles.mono}>Playback: {describeWalk(playback)}</Text>}
+      <View style={styles.row}>
+        <Button title="Read buffer" onPress={refreshBuffer} />
+        <Button title="Clear buffer" onPress={() => updateBuffer((b) => ({ ...b, fixes: [], autoStopped: false })).then(setBuffer)} />
+      </View>
+      {buffer && (
+        <Text style={styles.mono}>
+          Buffer: {buffer.fixes.length} fixes{buffer.fixes.length > 0 ? ` from ${new Date(buffer.fixes[0].timestamp).toLocaleTimeString()}` : ''} · last moved{' '}
+          {new Date(buffer.lastMovedAt).toLocaleTimeString()} · auto-stop {buffer.autoStopMinutes} min{buffer.autoStopped ? ' · auto-stopped' : ''}
+        </Text>
+      )}
+      {lastWalk && <Text style={styles.mono}>Last walk: {describeWalk(lastWalk)}</Text>}
 
       <Text style={styles.title}>Steps</Text>
       <Text>Extra steps today: {debug.extraSteps}</Text>

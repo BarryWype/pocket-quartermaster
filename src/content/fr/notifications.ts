@@ -15,6 +15,7 @@ export const frNotificationCategories: Record<keyof typeof notificationCategorie
   chestUnlocked: { title: 'Coffre de pas débloqué', description: 'Quand vos pas du jour ouvrent un coffre.' },
   chestClose: { title: 'Prochain coffre tout proche', description: 'Quand le prochain coffre n’est plus qu’à une petite marche.' },
   dailyReset: { title: 'Nouvelle journée', description: 'À minuit, quand les coffres de pas se remettent à zéro.' },
+  walkSummary: { title: 'Résumé de marche', description: 'Quand la récolte auto s’arrête d’elle-même après un moment sans bouger.' },
 };
 
 export const frNotificationTexts: typeof notificationTexts = {
@@ -34,4 +35,5 @@ export const frNotificationTexts: typeof notificationTexts = {
   chestUnlocked: { title: 'Coffre de pas débloqué', body: 'Votre {chest} est prêt à être ouvert.' },
   chestClose: { title: 'Presque arrivé', body: 'Plus que {steps} pas avant votre {chest}.' },
   dailyReset: { title: 'Nouvelle journée', body: 'Nouvelle journée, nouveaux coffres de pas.' },
+  walkSummary: { title: 'Récolte auto arrêtée', body: 'Vous avez marché {distance}. Ouvrez le jeu pour voir votre récolte.' },
 };

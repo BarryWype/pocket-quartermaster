@@ -2,7 +2,7 @@ import { gatheringConfig } from '@/content/gatheringConfig';
 import { resources as defaultResources } from '@/content/resources';
 import { spawnConfig } from '@/content/spawnConfig';
 
-import { simulateWalk } from '../balance/simulateWalk';
+import { simulateAutoWalk, simulateWalk } from '../balance/simulateWalk';
 import { spawnYield } from '../gathering/gathering';
 import { readSpawn } from '../gathering/lockedNodes';
 import type { Rng } from '../generation/rng';
@@ -22,6 +22,9 @@ export type WalkRates = {
   lureSpawns: number;
   /** Gathers per minute of walking, by number of pickaxes owned (0–5). */
   gathersPerMinute: number[];
+  /** The same for auto-gather: the same starts and hours, walked without turning towards nodes. */
+  autoPerMinute: Record<string, number>[];
+  autoGathersPerMinute: number[];
   /** Locked ore nodes seen on the measured walks, by number of pickaxes owned: converted vs greyed, by the ore's pickaxe tier. */
   nodes: { converted: Record<number, number>; greyed: Record<number, number> }[];
 };
@@ -51,6 +54,8 @@ export function measureWalkRates(config: SimConfig = simConfig): WalkRates {
     const totals: Record<string, number> = {};
     const nodes = { converted: {} as Record<number, number>, greyed: {} as Record<number, number> };
     let gathers = 0;
+    const autoTotals: Record<string, number> = {};
+    let autoGathers = 0;
     samples.forEach((start, i) => {
       for (const hour of sampleHours) {
         const before = Object.keys(save.collected).length;
@@ -70,12 +75,19 @@ export function measureWalkRates(config: SimConfig = simConfig): WalkRates {
         );
         for (const [id, amount] of Object.entries(after.materials)) totals[id] = (totals[id] ?? 0) + amount;
         gathers += Math.max(0, Object.keys(after.collected).length - before);
+        const auto = simulateAutoWalk(save, start, Date.UTC(2026, 9, 20 + i, hour), sampleMinutes, baseWalkConfig);
+        for (const [id, amount] of Object.entries(auto.materials)) autoTotals[id] = (autoTotals[id] ?? 0) + amount;
+        autoGathers += Object.keys(auto.collected).length;
       }
     });
     const walks = samples.length * sampleHours.length;
+    const perMinute = (sums: Record<string, number>) =>
+      Object.fromEntries(Object.entries(sums).map(([id, amount]) => [id, amount / walks / sampleMinutes]));
     return {
-      materials: Object.fromEntries(Object.entries(totals).map(([id, amount]) => [id, amount / walks / sampleMinutes])),
+      materials: perMinute(totals),
       gathersPerMinute: gathers / (walks * sampleMinutes),
+      autoMaterials: perMinute(autoTotals),
+      autoGathersPerMinute: autoGathers / (walks * sampleMinutes),
       nodes,
     };
   };
@@ -98,6 +110,8 @@ export function measureWalkRates(config: SimConfig = simConfig): WalkRates {
     lure,
     lureSpawns: lureSpawnCount,
     gathersPerMinute: measured.map((m) => m.gathersPerMinute),
+    autoPerMinute: measured.map((m) => m.autoMaterials),
+    autoGathersPerMinute: measured.map((m) => m.autoGathersPerMinute),
     nodes: measured.map((m) => m.nodes),
   };
 }
@@ -122,3 +136,10 @@ export function walkYield(
 /** Materials under the walking bonus: each stack scaled by the multiplier, rounded up. */
 export const bonusScaled = (stacks: MaterialStack[], multiplier: number = gatheringConfig.walkingBonus.multiplier): MaterialStack[] =>
   stacks.map((stack) => ({ materialId: stack.materialId, amount: Math.ceil(stack.amount * multiplier) }));
+
+/** Auto-gather's yield as a share of tapping's, per material, on the same walks with the pickaxes owned. */
+export function autoYieldRatio(rates: WalkRates, pickaxes: number): Record<string, number> {
+  const manual = rates.perMinute[pickaxes];
+  const auto = rates.autoPerMinute[pickaxes];
+  return Object.fromEntries(Object.keys(manual).map((id) => [id, (auto[id] ?? 0) / manual[id]]));
+}

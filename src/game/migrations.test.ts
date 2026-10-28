@@ -1,5 +1,5 @@
 import { createInitialSave, type SaveData } from './save';
-import { migrateV11Save } from './migrations';
+import { migrateV11Save, migrateV12Save } from './migrations';
 
 describe('migrateV11Save', () => {
   it('gives existing gear a neutral roll and starts the new daily counters empty', () => {
@@ -27,5 +27,15 @@ describe('migrateV11Save', () => {
       gear: [{ uid: 'g1', itemId: 'woodSword', quality: 'normal', roll: 1.06 }],
     };
     expect(migrateV11Save(before).gear).toEqual([{ uid: 'g1', itemId: 'woodSword', quality: 'normal', roll: 1.06 }]);
+  });
+});
+
+describe('migrateV12Save', () => {
+  it('starts auto-gather with no processed walk and an empty history', () => {
+    const { autoGather, ...older } = createInitialSave();
+    const after = migrateV12Save({ ...older, gold: 7 });
+    expect(after.autoGather).toEqual({ processedUntil: 0, anchor: null, history: [] });
+    expect(after.gold).toBe(7);
+    expect(autoGather).toEqual(after.autoGather);
   });
 });

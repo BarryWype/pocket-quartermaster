@@ -53,6 +53,12 @@ export const notificationCategories: Record<
     description: 'At midnight, when the step chests reset.',
     defaultOn: false,
   },
+  walkSummary: {
+    group: 'steps',
+    title: 'Walk summary',
+    description: 'When auto-gather stops by itself after a while without movement.',
+    defaultOn: false,
+  },
 };
 
 export const notificationRules = {
@@ -84,4 +90,5 @@ export const notificationTexts = {
   chestUnlocked: { title: 'Step chest unlocked', body: 'Your {chest} is ready to open.' },
   chestClose: { title: 'Almost there', body: 'Only {steps} more steps to your {chest}.' },
   dailyReset: { title: 'New day', body: 'New day, new step chests.' },
+  walkSummary: { title: 'Auto-gather stopped', body: 'You walked {distance}. Open the game to see what you gathered.' },
 };

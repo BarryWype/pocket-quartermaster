@@ -104,3 +104,8 @@ export function migrateV11Save(old: Partial<SaveData>): SaveData {
     freshGathers: { day: '', used: 0 },
   };
 }
+
+/** v12 → v13: auto-gather's bookkeeping and walk history start empty. */
+export function migrateV12Save(old: Partial<SaveData>): SaveData {
+  return { ...createInitialSave(), ...old, autoGather: createInitialSave().autoGather };
+}

@@ -7,7 +7,8 @@ export type NotificationCategory =
   | 'heroesRested'
   | 'chestUnlocked'
   | 'chestClose'
-  | 'dailyReset';
+  | 'dailyReset'
+  | 'walkSummary';
 
 export type NotificationSettings = {
   /** Master switch. */

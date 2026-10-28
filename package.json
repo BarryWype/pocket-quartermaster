@@ -17,6 +17,7 @@
     "expo-router": "~58.0.26",
     "expo-sensors": "~58.0.4",
     "expo-status-bar": "~58.0.4",
+    "expo-task-manager": "~58.0.12",
     "ngeohash": "^0.6.4",
     "pbf": "^3.3.0",
     "react": "19.3.0",

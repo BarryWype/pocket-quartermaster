@@ -4,6 +4,7 @@ import { startingHeroes } from '@/content/heroes';
 import { provisionRules } from '@/content/provisions';
 import { recipes } from '@/content/recipes';
 
+import type { AutoGatherSave } from './gathering/autoGather';
 import type { LatLng } from './generation/types';
 import type {
   ActiveExpedition,
@@ -87,6 +88,8 @@ export type SaveData = {
   freshGathers: { day: string; used: number };
   /** When home heroes last got their training XP (null before the first check). */
   trainedAt: number | null;
+  /** Auto-gather's processed path and recent walk summaries. */
+  autoGather: AutoGatherSave;
   /** Counter for unique ids (gear, maps, lures, fights, heroes). */
   nextUid: number;
 };
@@ -124,6 +127,7 @@ export function createInitialSave(): SaveData {
     bossBonusDays: {},
     blueprintBonusDays: {},
     freshGathers: { day: '', used: 0 },
+    autoGather: { processedUntil: 0, anchor: null, history: [] },
     mastery: Object.fromEntries(MASTERY_TYPES.map((type) => [type, { level: 1, progress: 0 }])),
     nextUid: 1,
   };

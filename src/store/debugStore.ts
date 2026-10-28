@@ -34,6 +34,10 @@ type DebugSettings = {
   forcedSlots: Record<string, string>;
   /** Modifier forced per tier; null clears that tier's modifier. */
   forcedModifiers: Record<number, TierRotation['modifier']>;
+  /** Shows auto-gather's radius around the player even while it is off. */
+  showAutoRadius: boolean;
+  /** Shows the tap range around the player and the auto radius around each node. */
+  showNodeRanges: boolean;
 };
 
 type DebugState = DebugSettings & {
@@ -60,6 +64,8 @@ const DEBUG_DEFAULTS: DebugSettings = {
   offerSeed: '',
   forcedSlots: {},
   forcedModifiers: {},
+  showAutoRadius: false,
+  showNodeRanges: false,
 };
 
 export const useDebugStore = create<DebugState>()(

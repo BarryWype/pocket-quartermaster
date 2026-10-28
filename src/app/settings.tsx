@@ -2,16 +2,19 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, AppState, Linking, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
+import { useAutoGatherToggle, WalkStats } from '@/components/AutoGather';
 import { Button } from '@/components/Button';
 import { SectionTitle } from '@/components/Row';
 import { Text } from '@/components/Text';
 import { frNotificationCategories, frNotificationGroups } from '@/content/fr/notifications';
+import { gatheringConfig } from '@/content/gatheringConfig';
 import { notificationCategories, notificationGroups } from '@/content/notifications';
 import type { NotificationCategory, NotificationGroup } from '@/game/notifications/types';
 import { useLanguage } from '@/hooks/useLanguage';
 import { syncPlan } from '@/hooks/useNotifications';
 import { localized, t } from '@/i18n';
 import { deviceNotifications, type NotificationPermission } from '@/services/notifications';
+import { updateBuffer } from '@/services/walkTracking';
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { type LanguageSetting, useSettingsStore } from '@/store/settingsStore';
@@ -24,6 +27,9 @@ const LANGUAGES: { id: LanguageSetting; label: () => string }[] = [
   { id: 'en', label: () => 'English' },
   { id: 'fr', label: () => 'Français' },
 ];
+
+/** Shown with the auto-gather toggle in its own section, not in the steps group. */
+const AUTO_GATHER_CATEGORY: NotificationCategory = 'walkSummary';
 
 const clock = (minutes: number) =>
   `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
@@ -68,7 +74,13 @@ function TimeStepper({ label, value, onChange }: { label: string; value: number;
 
 export default function SettingsScreen() {
   useLanguage();
-  const { language, notifications, updateNotifications, setCategory, setQuietHours, set } = useSettingsStore();
+  const { language, notifications, updateNotifications, setCategory, setQuietHours, set, autoGather, setAutoGather } = useSettingsStore();
+  const autoToggle = useAutoGatherToggle();
+  const walks = useGameStore((state) => state.save.autoGather.history);
+  const setAutoStop = (autoStopMinutes: number) => {
+    setAutoGather({ autoStopMinutes });
+    updateBuffer((buffer) => ({ ...buffer, autoStopMinutes })).catch(() => {});
+  };
   const groupTexts = localized({ en: notificationGroups, fr: frNotificationGroups });
   const categoryTexts = localized({ en: notificationCategories, fr: frNotificationCategories });
   const resetSave = useGameStore((state) => state.resetSave);
@@ -119,6 +131,54 @@ export default function SettingsScreen() {
         ))}
       </View>
 
+      <Text style={styles.title}>{t('autoGather.label')}</Text>
+      <SwitchRow
+        title={t('autoGather.label')}
+        description={
+          !autoToggle.available
+            ? t('autoGather.afterTutorial')
+            : autoToggle.enabled && autoToggle.mode === 'limited'
+              ? t('autoGather.limitedHint')
+              : t('autoGather.hint', { radius: gatheringConfig.autoGather.radiusMeters })
+        }
+        value={autoToggle.enabled}
+        disabled={!autoToggle.available}
+        onChange={autoToggle.toggle}
+      />
+      <View style={styles.languages}>
+        <Button title={t('autoGather.info')} color={colors.muted} onPress={autoToggle.showInfo} />
+        {autoToggle.enabled && autoToggle.mode === 'limited' && <Button title={t('autoGather.openSettings')} onPress={() => Linking.openSettings()} />}
+      </View>
+      <Text style={styles.rowTitle}>{t('autoGather.autoStopDelay')}</Text>
+      <View style={styles.languages}>
+        {gatheringConfig.autoGather.autoStopChoices.map((minutes) => (
+          <Button
+            key={minutes}
+            title={t('autoGather.minutes', { count: minutes })}
+            color={autoGather.autoStopMinutes === minutes ? colors.woodDark : colors.muted}
+            onPress={() => setAutoStop(minutes)}
+          />
+        ))}
+      </View>
+      <SwitchRow
+        title={categoryTexts[AUTO_GATHER_CATEGORY].title}
+        description={categoryTexts[AUTO_GATHER_CATEGORY].description}
+        value={notifications.categories[AUTO_GATHER_CATEGORY]}
+        disabled={!notifications.enabled}
+        onChange={(on) => setCategory(AUTO_GATHER_CATEGORY, on)}
+      />
+      <View style={styles.section}>
+        <SectionTitle>{t('autoGather.history')}</SectionTitle>
+        {walks.length === 0 && <Text style={styles.hint}>{t('autoGather.noHistory')}</Text>}
+        {walks.map((walk) => (
+          <View key={`${walk.startedAt}-${walk.endedAt}`} style={styles.walk}>
+            <Text style={styles.hint}>{new Date(walk.endedAt || walk.startedAt).toLocaleString()}</Text>
+            <WalkStats walk={walk} />
+          </View>
+        ))}
+      </View>
+      {autoToggle.dialog}
+
       <Text style={styles.title}>{t('settings.notifications')}</Text>
       {permission && !permission.granted && (
         <View style={styles.warning}>
@@ -138,7 +198,7 @@ export default function SettingsScreen() {
         <View key={group} style={styles.section}>
           <SectionTitle>{groupTexts[group].title}</SectionTitle>
           {categories
-            .filter((category) => notificationCategories[category].group === group)
+            .filter((category) => notificationCategories[category].group === group && category !== AUTO_GATHER_CATEGORY)
             .map((category) => (
               <SwitchRow
                 key={category}
@@ -216,6 +276,7 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.5 },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   time: { fontSize: 21, minWidth: 52, textAlign: 'center' },
+  walk: { gap: 2, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: colors.parchmentDark },
   warning: {
     gap: 8,
     padding: 12,

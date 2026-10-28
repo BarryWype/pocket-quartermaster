@@ -85,6 +85,8 @@ export type ProfileSummary = {
     bottleneck: Record<number, string | null>;
     /** Share of everything gathered that came through the daily walking bonus. */
     bonusShare: number;
+    /** Share of the materials gathered by walking that auto-gather collected. */
+    autoShare: number;
   };
   crafting: {
     forgesPerTier: Record<number, number>;
@@ -282,8 +284,11 @@ export function summarize(logs: RunLog[], targets: Targets = defaultTargets): Pr
   const blueprints = round(all.filter((e) => e.blueprint).length / logs.length, 1);
   // The walking bonus's share of everything gathered.
   const gatheredTotal = logs.reduce((sum, log) => sum + Object.values(log.gathered).reduce((s, bySource) => s + Object.values(bySource).reduce((a, b) => a + b, 0), 0), 0);
-  const bonusTotal = logs.reduce((sum, log) => sum + Object.values(log.gathered).reduce((s, bySource) => s + (bySource.walkBonus ?? 0), 0), 0);
-  const bonusShare = round(bonusTotal / Math.max(1, gatheredTotal));
+  const fromSources = (sources: string[]) =>
+    logs.reduce((sum, log) => sum + Object.values(log.gathered).reduce((s, bySource) => s + sources.reduce((n, src) => n + (bySource[src] ?? 0), 0), 0), 0);
+  const bonusShare = round(fromSources(['walkBonus', 'autoGatherBonus']) / Math.max(1, gatheredTotal));
+  const autoTotal = fromSources(['autoGather', 'autoGatherBonus']);
+  const autoShare = round(autoTotal / Math.max(1, autoTotal + fromSources(['walk', 'walkBonus'])));
 
   // Provisions and HP.
   const regular = all.filter((e) => e.hours > 0.01);
@@ -327,6 +332,7 @@ export function summarize(logs: RunLog[], targets: Targets = defaultTargets): Pr
       neverUsed: Object.keys(gathered).filter((m) => gathered[m] >= targets.unusedStockpile && !(used[m] > 0)),
       bottleneck,
       bonusShare,
+      autoShare,
     },
     crafting: { forgesPerTier, maxedShare, quality, rolls, reforges, mastery, salvageReturned, bossQuality },
     expeditions: {
@@ -373,6 +379,9 @@ function goldPileDay(log: RunLog, targets: Targets) {
   }
   return null;
 }
+
+/** A profile's boss and recruit warnings: the milestones it misses. */
+export const milestoneMisses = (summary: ProfileSummary) => summary.warnings.filter((w) => w.startsWith('Tier ') || w.startsWith('Hero #'));
 
 function warnings(summary: ProfileSummary, logs: RunLog[], targets: Targets): string[] {
   const out: string[] = [];

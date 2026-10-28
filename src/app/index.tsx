@@ -4,8 +4,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AutoGatherPill, WalkCard } from '@/components/AutoGather';
 import { IslandMenu, ISLAND_HEIGHT } from '@/components/IslandMenu';
 import { MapFoliage, useFoliage } from '@/components/MapFoliage';
+import { MapRanges, type RangeCircle } from '@/components/MapRanges';
 import { PlaceholderScreen } from '@/components/PlaceholderScreen';
 import { SanctumMarker } from '@/components/SanctumMarker';
 import { SanctumPanel } from '@/components/SanctumPanel';
@@ -37,8 +39,10 @@ import { useLanguage } from '@/hooks/useLanguage';
 import { usePlacedPoints, usePlacedSpawns } from '@/hooks/usePlacedSpawns';
 import { usePlayerLocation } from '@/hooks/usePlayerLocation';
 import { t, tr } from '@/i18n';
+import { appendFixesNow } from '@/services/walkTracking';
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { useWorldStore } from '@/store/worldStore';
 import { colors } from '@/theme';
 
@@ -82,6 +86,27 @@ export default function MapScreen() {
   const [following, setFollowing] = useState(true);
   const [now, setNow] = useState(Date.now());
   const [message, setMessage] = useState<string | null>(null);
+  const autoMode = useWorldStore((state) => state.autoGather);
+  const autoEnabled = useSettingsStore((state) => state.autoGather.enabled);
+  const showAutoRadius = useDebugStore((state) => debugOn && state.showAutoRadius);
+  const showNodeRanges = useDebugStore((state) => debugOn && state.showNodeRanges);
+
+  useEffect(
+    () =>
+      useWorldStore.subscribe((state, previous) => {
+        if (state.autoGatherMessage && state.autoGatherMessage !== previous.autoGatherMessage) setMessage(state.autoGatherMessage.text);
+      }),
+    [],
+  );
+
+  // "App open only": the map's own GPS fixes feed auto-gather.
+  const fixAt = player.status === 'ready' && !player.mocked ? player.location.timestamp : null;
+  useEffect(() => {
+    if (autoMode !== 'limited' || player.status !== 'ready' || player.mocked) return;
+    const { position: at, accuracy, timestamp } = player.location;
+    appendFixesNow([{ position: at, accuracy, timestamp, stepsCounted: true }]).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoMode, fixAt]);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -186,6 +211,18 @@ export default function MapScreen() {
     );
   }
 
+  const autoOn = autoEnabled && autoMode !== 'off';
+  const ranges: RangeCircle[] = [
+    ...(autoOn || showAutoRadius ? [{ id: 'auto', center: position, radius: gatheringConfig.autoGather.radiusMeters, kind: 'auto' as const }] : []),
+    ...(showNodeRanges
+      ? [
+          { id: 'tap', center: position, radius: gatheringConfig.collectRadiusMeters, kind: 'tap' as const },
+          ...visible.map(({ spawn, position: at }) => ({ id: spawn.id, center: at, radius: gatheringConfig.autoGather.radiusMeters, kind: 'node' as const })),
+        ]
+      : []),
+  ];
+  const showPill = save.tutorial.step === 'done';
+
   const digUp = (mapId: string, treasureAt: LatLng) => {
     const distance = distanceMeters(position, treasureAt);
     if (distance > gatheringConfig.collectRadiusMeters) {
@@ -248,6 +285,7 @@ export default function MapScreen() {
       >
         <Camera ref={cameraRef} initialViewState={{ center: toLngLat(position), zoom: 17 }} />
         <MapFoliage data={foliage.data} />
+        <MapRanges circles={ranges} />
         {visible.map(({ spawn, position: spawnPosition, distance }) => {
           const read = readSpawn(save, spawn);
           const shown = resourceById[read.resourceId];
@@ -338,7 +376,11 @@ export default function MapScreen() {
           <Text style={styles.tavernHintText}>{t('map.tavernsOpen')}</Text>
         </Pressable>
       )}
-      {message && <Text style={[styles.banner, { bottom: insets.bottom + ISLAND_HEIGHT + 12 }]}>{message}</Text>}
+      {showPill && <AutoGatherPill style={[styles.autoGather, { bottom: insets.bottom + ISLAND_HEIGHT + 12 }]} />}
+      {message && (
+        <Text style={[styles.banner, { bottom: insets.bottom + ISLAND_HEIGHT + (showPill ? 52 : 12) }]}>{message}</Text>
+      )}
+      <WalkCard />
       <IslandMenu />
     </View>
   );
@@ -363,6 +405,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   tutorialHint: { position: 'absolute', left: 16, right: 16 },
+  autoGather: { position: 'absolute', left: 16 },
   tavernHint: {
     position: 'absolute',
     left: 16,

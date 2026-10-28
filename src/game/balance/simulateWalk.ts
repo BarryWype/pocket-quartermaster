@@ -1,5 +1,6 @@
 import { gatheringConfig, type GatheringConfig } from '@/content/gatheringConfig';
 
+import { processWalkPath, type WalkFix } from '../gathering/autoGather';
 import { canGather, collectSpawn } from '../gathering/gathering';
 import { distanceMeters, interpolate } from '../generation/geo';
 import { generateSpawnsAround } from '../generation/spawns';
@@ -65,4 +66,33 @@ export function simulateWalk(
     if (t % 600 === 0) heading = { north: heading.east, east: -heading.north };
   }
   return save;
+}
+
+/**
+ * A pocket walk with auto-gather on: the same wander as `simulateWalk` from
+ * the same start, but never turning towards a node. Its fixes go through the
+ * real auto-gather rules (`processWalkPath`), so only nodes the path passes
+ * within the auto radius are collected.
+ */
+export function simulateAutoWalk(
+  save: SaveData,
+  start: LatLng,
+  startMs: number,
+  minutes: number,
+  config: GatheringConfig = gatheringConfig,
+): SaveData {
+  const fixes: WalkFix[] = [];
+  let position = start;
+  let heading = { north: 1, east: 0.3 };
+  const metresPerDegree = 111_320;
+  for (let t = 0; t <= minutes * 60; t += TICK_SECONDS) {
+    fixes.push({ position, accuracy: 5, timestamp: startMs + t * 1000, stepsCounted: true });
+    const step = WALK_SPEED * TICK_SECONDS;
+    position = {
+      latitude: position.latitude + (heading.north * step) / metresPerDegree,
+      longitude: position.longitude + (heading.east * step) / (metresPerDegree * Math.cos((position.latitude * Math.PI) / 180)),
+    };
+    if (t % 600 === 0) heading = { north: heading.east, east: -heading.north };
+  }
+  return processWalkPath(save, fixes, { config }).save;
 }

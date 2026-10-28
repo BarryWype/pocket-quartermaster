@@ -85,6 +85,24 @@ function playTutorial(sim: Sim) {
   sim.save = finishTutorial(sim.save);
 }
 
+/** A walk's materials at measured rates; its first gathers of the day get the walking bonus (logged as `<source>Bonus`). */
+function walk(sim: Sim, source: string, perMinute: Record<string, number>, gathersPerMinute: number, minutes: number) {
+  const gathers = gathersPerMinute * minutes;
+  const bonusGathers = Math.min(sim.bonusGathers, gathers);
+  const bonusMinutes = gathers > 0 ? (bonusGathers / gathers) * minutes : 0;
+  act(sim, source, (save) => ({
+    ...save,
+    materials: addMaterials(save.materials, walkYield(perMinute, minutes - bonusMinutes, sim.rng, sim.config)),
+  }));
+  if (bonusMinutes > 0) {
+    act(sim, `${source}Bonus`, (save) => ({
+      ...save,
+      materials: addMaterials(save.materials, bonusScaled(walkYield(perMinute, bonusMinutes, sim.rng, sim.config))),
+    }));
+    sim.bonusGathers -= bonusGathers;
+  }
+}
+
 function session(sim: Sim, walkMinutes: number, steps: number, dayKey: string, first: boolean) {
   sim.save = pruneExpired(sim.save, sim.now);
   sim.rotation = dailyRotation(rotationDay(sim.now));
@@ -99,21 +117,9 @@ function session(sim: Sim, walkMinutes: number, steps: number, dayKey: string, f
     act(sim, spent > 0 ? 'walkBonus' : 'lure', (save) => ({ ...save, materials: addMaterials(save.materials, lureYield) }));
     sim.bonusGathers -= spent;
   }
-  const perMinute = sim.rates.perMinute[pickaxes];
-  const gathers = sim.rates.gathersPerMinute[pickaxes] * walkMinutes;
-  const bonusGathers = Math.min(sim.bonusGathers, gathers);
-  const bonusMinutes = gathers > 0 ? (bonusGathers / gathers) * walkMinutes : 0;
-  act(sim, 'walk', (save) => ({
-    ...save,
-    materials: addMaterials(save.materials, walkYield(perMinute, walkMinutes - bonusMinutes, sim.rng, sim.config)),
-  }));
-  if (bonusMinutes > 0) {
-    act(sim, 'walkBonus', (save) => ({
-      ...save,
-      materials: addMaterials(save.materials, bonusScaled(walkYield(perMinute, bonusMinutes, sim.rng, sim.config))),
-    }));
-    sim.bonusGathers -= bonusGathers;
-  }
+  const autoMinutes = walkMinutes * sim.profile.autoShare;
+  walk(sim, 'walk', sim.rates.perMinute[pickaxes], sim.rates.gathersPerMinute[pickaxes], walkMinutes - autoMinutes);
+  walk(sim, 'autoGather', sim.rates.autoPerMinute[pickaxes], sim.rates.autoGathersPerMinute[pickaxes], autoMinutes);
 
   // Collect.
   const due = sim.save.expeditions.filter((e) => e.endsAt <= sim.now).sort((a, b) => a.endsAt - b.endsAt);

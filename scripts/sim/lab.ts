@@ -5,11 +5,11 @@ import type { RunLog } from '@/game/sim/bot';
 import { BOT_RULES, profiles, simConfig } from '@/game/sim/config';
 import { runSim } from '@/game/sim/engine';
 import { oddsMatrix, type MatrixRow } from '@/game/sim/matrix';
-import { summarize, type ProfileSummary } from '@/game/sim/metrics';
+import { milestoneMisses, summarize, type ProfileSummary } from '@/game/sim/metrics';
 import { applyOverrides, parseOverride } from '@/game/sim/overrides';
 import { spamCheck, type SpamCheck } from '@/game/sim/spam';
 import { bossTarget, targets } from '@/game/sim/targets';
-import { measureWalkRates, walkCacheKey, type WalkRates } from '@/game/sim/walking';
+import { autoYieldRatio, measureWalkRates, PICKAXES, walkCacheKey, type WalkRates } from '@/game/sim/walking';
 import { compare, type Comparison } from './compare';
 import { craftsCsv, dailyCsv, expeditionsCsv } from './csv';
 import { renderReport } from './report';
@@ -39,6 +39,8 @@ export type Summary = {
   spam: SpamCheck;
   /** Locked ore nodes seen on the measured walks, by pickaxes owned (see walking.ts). */
   nodes: WalkRates['nodes'];
+  /** Auto-gather's yield ÷ tapping's on the same walks, per material, by pickaxes owned (0–5). */
+  autoRatio: Record<string, number>[];
 };
 
 function walkRates(cacheDir: string, print: (line: string) => void): WalkRates {
@@ -81,6 +83,7 @@ export function runLab(options: LabOptions) {
       oddsMatrix: options.matrix === false ? [] : oddsMatrix(),
       spam: spamCheck(),
       nodes: rates.nodes,
+      autoRatio: PICKAXES.map((_, i) => i).concat(PICKAXES.length).map((pickaxes) => autoYieldRatio(rates, pickaxes)),
     };
     const comparison: Comparison | null = options.compareWith
       ? compare(JSON.parse(fs.readFileSync(options.compareWith, 'utf8')) as Summary, summary, targets.compareThreshold)
@@ -118,8 +121,20 @@ function printSummary(summary: Summary, comparison: Comparison | null, print: (l
         p.expeditions.overnight.xpShare * 100,
       )}% of XP · daily blueprints: ${p.expeditions.blueprints}/run · walking bonus: ${Math.round(p.materials.bonusShare * 100)}% of materials`,
     );
+    const misses = milestoneMisses(p);
+    print(
+      `  Auto-gather: ${Math.round((profiles[name]?.autoShare ?? 0) * 100)}% of walking time, ${Math.round(p.materials.autoShare * 100)}% of walking materials · milestones ${
+        misses.length === 0 ? 'met ✓' : `missed ⚠ (${misses.length})`
+      }`,
+    );
     for (const w of p.warnings) print(`  ⚠ ${w}`);
   }
+  const ratio = summary.autoRatio[summary.autoRatio.length - 1] ?? {};
+  print(
+    `\nAuto-gather ÷ tapping yield (all pickaxes): ${Object.entries(ratio)
+      .map(([id, r]) => `${id} ${Math.round(r * 100)}%`)
+      .join(', ')}`,
+  );
   const { spam } = summary;
   print(
     `\nSpam check (${spam.dungeonId}, ${spam.hours} h): rotating earns ×${spam.ratio.xp} XP and ×${spam.ratio.gold} gold per hour of the same 3 heroes ${

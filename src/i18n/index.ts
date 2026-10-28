@@ -67,3 +67,10 @@ export function formatDuration(ms: number) {
   if (minutes > 0) return `${minutes}m ${pad(seconds)}s`;
   return `${seconds}s`;
 }
+
+/** "850 m", "2.4 km" (French: "850 m", "2,4 km"). */
+export function formatDistance(meters: number) {
+  if (meters < 1000) return `${Math.round(meters)}${NBSP}m`;
+  const km = (meters / 1000).toFixed(1);
+  return `${getLocale() === 'fr' ? km.replace('.', ',') : km}${NBSP}km`;
+}

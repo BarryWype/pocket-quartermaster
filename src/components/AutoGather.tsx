@@ -1,0 +1,198 @@
+import { useState } from 'react';
+import { Alert, Linking, Modal, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+
+import { gatheringConfig } from '@/content/gatheringConfig';
+import { materialById } from '@/content/lookup';
+import { walkToShow, type WalkSummary } from '@/game/gathering/autoGather';
+import { formatDistance, formatDuration, formatNumber, t } from '@/i18n';
+import { disableAutoGather, enableAutoGather } from '@/hooks/useAutoGather';
+import { useGameStore } from '@/store/gameStore';
+import { useSettingsStore } from '@/store/settingsStore';
+import { useWorldStore } from '@/store/worldStore';
+import { colors, pixel } from '@/theme';
+
+import { Button } from './Button';
+import { GameIcon } from './GameIcon';
+import { Panel } from './Panel';
+import { Text } from './Text';
+
+const openSettings = () => Linking.openSettings().catch(() => {});
+
+function InfoDialog({ confirm, onTurnOn, onClose }: { confirm: boolean; onTurnOn: () => void; onClose: () => void }) {
+  const limited = useWorldStore((state) => state.autoGather === 'limited');
+  const lines = [
+    t('autoGather.info1'),
+    t('autoGather.info2', { radius: gatheringConfig.autoGather.radiusMeters, tapRadius: gatheringConfig.collectRadiusMeters }),
+    t('autoGather.info3'),
+    t('autoGather.info4'),
+    t('autoGather.info5'),
+    t('autoGather.info6'),
+  ];
+  return (
+    <Modal transparent statusBarTranslucent navigationBarTranslucent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.backdrop}>
+        <Panel style={styles.dialog}>
+          <Text style={styles.title}>{t('autoGather.label')}</Text>
+          {lines.map((line) => (
+            <Text key={line} style={styles.line}>
+              • {line}
+            </Text>
+          ))}
+          {limited && !confirm && (
+            <View style={styles.warning}>
+              <Text>{t('autoGather.limitedHint')}</Text>
+              <Button title={t('autoGather.openSettings')} onPress={openSettings} />
+            </View>
+          )}
+          <View style={styles.actions}>
+            <Button title={confirm ? t('common.cancel') : t('common.close')} color={colors.muted} onPress={onClose} />
+            {confirm && <Button title={t('autoGather.turnOn')} onPress={onTurnOn} />}
+          </View>
+        </Panel>
+      </View>
+    </Modal>
+  );
+}
+
+/**
+ * The auto-gather switch's behaviour, shared by the map and Settings: the
+ * info dialog before the first turn-on, the permission request, and what to
+ * say when location is refused.
+ */
+export function useAutoGatherToggle() {
+  const enabled = useSettingsStore((state) => state.autoGather.enabled);
+  const introSeen = useSettingsStore((state) => state.autoGather.introSeen);
+  const mode = useWorldStore((state) => state.autoGather);
+  const available = useGameStore((state) => state.save.tutorial.step === 'done');
+  const [dialog, setDialog] = useState<'info' | 'confirm' | null>(null);
+
+  const turnOn = async () => {
+    setDialog(null);
+    useSettingsStore.getState().setAutoGather({ introSeen: true });
+    if ((await enableAutoGather()) !== 'denied') return;
+    Alert.alert(t('autoGather.deniedTitle'), t('autoGather.deniedBody'), [
+      { text: t('common.close'), style: 'cancel' },
+      { text: t('autoGather.openSettings'), onPress: openSettings },
+    ]);
+  };
+  const toggle = (on: boolean) => {
+    if (!on) disableAutoGather();
+    else if (introSeen) turnOn();
+    else setDialog('confirm');
+  };
+
+  return {
+    enabled,
+    mode,
+    available,
+    toggle,
+    showInfo: () => setDialog('info'),
+    dialog: dialog && <InfoDialog confirm={dialog === 'confirm'} onTurnOn={turnOn} onClose={() => setDialog(null)} />,
+  };
+}
+
+/** The always-visible switch on the map, with its ⓘ. */
+export function AutoGatherPill({ style }: { style?: StyleProp<ViewStyle> }) {
+  const { enabled, mode, available, toggle, showInfo, dialog } = useAutoGatherToggle();
+  if (!available) return null;
+  const state = !enabled ? 'off' : mode === 'limited' ? 'limited' : 'on';
+  return (
+    <View style={[styles.pillRow, style]}>
+      <Pressable accessibilityRole="switch" accessibilityState={{ checked: enabled }} onPress={() => toggle(!enabled)} style={[styles.pill, styles[state]]}>
+        <Text style={styles.pillText}>
+          {state === 'off' ? '○' : '●'} {t('autoGather.label')}: {t(`autoGather.${state}`)}
+        </Text>
+      </Pressable>
+      <Pressable accessibilityLabel={t('autoGather.info')} onPress={showInfo} style={styles.info}>
+        <Text style={styles.infoText}>ⓘ</Text>
+      </Pressable>
+      {state === 'limited' && (
+        // Background location is one system setting away.
+        <Pressable accessibilityLabel={t('autoGather.openSettings')} onPress={openSettings} style={styles.info}>
+          <Text style={styles.infoText}>⚙️</Text>
+        </Pressable>
+      )}
+      {dialog}
+    </View>
+  );
+}
+
+export function WalkStats({ walk }: { walk: WalkSummary }) {
+  return (
+    <>
+      <Text style={styles.line}>
+        {t('autoGather.walkStats', {
+          duration: formatDuration(walk.endedAt - walk.startedAt),
+          distance: formatDistance(walk.distanceMeters),
+          count: walk.nodes,
+        })}
+      </Text>
+      {walk.gained.length > 0 && (
+        <View style={styles.materials}>
+          {walk.gained.map(({ materialId, amount }) => (
+            <View key={materialId} style={styles.material}>
+              <GameIcon emoji={materialById[materialId]?.emoji ?? '❓'} icon={materialById[materialId]?.icon} size={22} />
+              <Text style={styles.line}>×{amount}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+      {walk.steps > 0 && (
+        <Text style={styles.muted}>
+          {t(walk.stepsEstimated ? 'autoGather.stepsEstimated' : 'autoGather.steps', { steps: formatNumber(walk.steps) })}
+        </Text>
+      )}
+    </>
+  );
+}
+
+/** "While you walked": the newest walk recorded while the app was closed, until dismissed. */
+export function WalkCard() {
+  const walk = useGameStore((state) => walkToShow(state.save));
+  const markWalksSeen = useGameStore((state) => state.markWalksSeen);
+  const autoStopMinutes = useSettingsStore((state) => state.autoGather.autoStopMinutes);
+  if (!walk) return null;
+  return (
+    <Modal transparent statusBarTranslucent navigationBarTranslucent animationType="fade" onRequestClose={markWalksSeen}>
+      <View style={styles.backdrop}>
+        <Panel style={styles.dialog}>
+          <Text style={styles.title}>🚶 {t('autoGather.whileYouWalked')}</Text>
+          <WalkStats walk={walk} />
+          {walk.autoStopped && <Text style={styles.muted}>{t('autoGather.autoStopped', { minutes: autoStopMinutes })}</Text>}
+          <View style={styles.actions}>
+            <Button title={t('common.close')} onPress={markWalksSeen} />
+          </View>
+        </Panel>
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  backdrop: { flex: 1, justifyContent: 'center', padding: 16, backgroundColor: 'rgba(0,0,0,0.5)' },
+  dialog: { gap: 10, padding: 14 },
+  title: { fontSize: 24 },
+  line: { fontSize: 19 },
+  muted: { fontSize: 18, color: colors.muted },
+  actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 4 },
+  warning: { gap: 6, padding: 8, borderWidth: 2, borderColor: colors.danger, backgroundColor: colors.parchmentDark },
+  materials: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  material: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  pillRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  pill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 14, borderWidth: pixel.outline - 1, borderColor: colors.woodDark },
+  off: { backgroundColor: colors.parchment },
+  on: { backgroundColor: colors.highlight },
+  limited: { backgroundColor: colors.parchmentDark, borderColor: colors.gold },
+  pillText: { fontSize: 17, color: colors.ink },
+  info: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.woodDark,
+    backgroundColor: colors.parchment,
+  },
+  infoText: { fontSize: 16 },
+});

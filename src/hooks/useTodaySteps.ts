@@ -8,7 +8,7 @@ import { useGameStore } from '@/store/gameStore';
 
 /**
  * Keeps today's step count in the save while the app runs. iOS also syncs the
- * OS history; Android can only count steps while the app is open.
+ * OS history; Android counts background steps on return while the app is still running; auto-gather estimates the rest from the distance walked.
  */
 export function useStepTracking() {
   useEffect(() => {
