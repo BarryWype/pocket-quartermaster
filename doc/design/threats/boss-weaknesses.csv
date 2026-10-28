@@ -1,0 +1,6 @@
+Boss,Tier,Weakness item,Where it's found,Effect
+Bandit captain,1,His own wanted poster,A town notice board,Half his men desert: −25% HP
+Ogre chieftain,2,A cask of strong ale,Village fair,Fights drunk: −30% damage
+Lich of the deep,3,Water from a chapel font,Chapel,−25% HP and no enrage
+Giant king,4,A sleeping draught,Alchemist shop,Starts asleep: the party gets 2 free rounds
+Elder dragon,5,A decoy hoard,Market (costs gold),Distracted guarding it: no sweep attack

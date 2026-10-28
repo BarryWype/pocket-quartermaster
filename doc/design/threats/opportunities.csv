@@ -1,0 +1,12 @@
+Opportunity,Answer type,Answer or cost,Reward,Dungeon,Patrol,Exploration,Status
+Healing spring,Free,—,Heals 30% of max HP,1,0,1,Exists; now visible
+Hidden cache,Approach,Finesse 2,25% of the top gold reward (thief ×2),1,0,1,Exists; now visible
+Rich vein,Approach,Might 2,+30% materials,1,0,1,Exists as a modifier
+Bounty,Approach,Presence 2,+30% gold,1,1,0,Exists as a modifier
+Prisoners,Approach,Finesse 3 or Might 3,20% gold + 10% chance one joins,1,0,0,New
+Refugees,Cost,A meal or 3 supply,"Blessing (full heal at home), gold, or rarely a key fragment",1,1,1,New
+Forgotten shrine,Approach,Faith 3,+10% party damage for the rest of the run,1,0,1,New
+Old inscriptions,Approach,Wits 3,"+25% XP, or a recipe unlock",1,0,1,New
+Friendly merchant,Approach,Presence 3,Buy one rare consumable at half price,1,0,1,New
+Trophy beast,Keyword,"Calm, or Might 3","Extra hide and bone, chance of a shard",1,1,0,New
+Sealed vault,Cost,A key fragment,A rare item or the way to a secret place,1,0,0,New

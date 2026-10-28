@@ -1,0 +1,19 @@
+Class,Family,Rarity,Might,Finesse,Wits,Faith,Presence,Light,Watchful,Calm,Pierce,Cleave,Blessed,Guard,Score note,Signature
+Scholar,Answerer,Common,0,0,1,0,0,0,0,0,0,0,0,0,Wits 4,Old inscriptions give double
+Pathfinder,Answerer,Common,0,0,1,0,0,0,1,0,0,0,0,0,Watchful 2,Delay penalties halved for every threat
+Exorcist,Answerer,Uncommon,0,0,0,1,0,0,0,0,0,0,1,0,,Answers Desecrated ground and Undead at once
+Bulwark,Fighter,Common,1,0,0,0,0,0,0,0,0,0,0,1,,Takes the Brute's hits
+Duelist,Fighter,Common,0,0,0,0,0,0,0,0,1,0,0,0,,Big crits on single enemies
+Berserker,Fighter,Common,1,0,0,0,0,0,0,0,0,1,0,0,,Gets stronger as their HP drops
+Smuggler,Converter,Uncommon,0,1,0,0,1,0,0,0,0,0,0,0,Finesse 4,Thieves become a fence: gold instead of losses
+Diplomat,Converter,Uncommon,0,0,0,0,1,0,0,0,0,0,0,0,,Answers Locals at any level; better Bounty and Merchant
+Necromancer,Converter,Rare: secret tavern,0,0,1,0,0,0,0,0,0,0,0,0,,Undead become allies for the run
+Beastmaster,Converter,Rare: secret tavern,0,0,0,0,0,0,0,1,0,0,0,0,,Beasts join the fight on the party's side
+Engineer,Rule-bender,Uncommon,1,0,1,0,0,0,0,0,0,0,0,0,,Their kit gives +3 instead of +2
+Alchemist,Rule-bender,Uncommon,0,0,1,0,0,0,0,0,0,0,0,0,,"A second slot, for healing consumables only"
+Porter,Rule-bender,Uncommon,1,0,0,0,0,0,0,0,0,0,0,0,,Carries a kit for another hero
+Scout,Rule-bender,Uncommon,0,1,0,0,0,0,1,0,0,0,0,0,,Lowers one Extreme threat to Strong
+Curse-breaker,Rule-bender,Rare: high tiers,0,0,0,1,0,0,0,0,0,0,0,0,Faith 4,Cancels the day's restriction
+Cook,Rule-bender,Uncommon,0,0,0,0,1,0,0,0,0,0,0,0,,"Meals count double, Hunger halved, cancels Spoiled stores, light heal between fights"
+Monk,Rule-bender,Uncommon,1,0,0,1,0,0,0,0,0,0,0,0,,Fists count as Pierce; immune to Sacred ground and Anti-magic zone
+Gambler,Rule-bender,Uncommon,0,0,0,0,0,0,0,0,0,0,0,0,Random scores,Scores rolled at the daily reset and shown; +crit

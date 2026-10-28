@@ -1,0 +1,20 @@
+Threat,Family,Answer type,Answer,Alternative answer,Kit or gear,Penalty type,Level 1,Level 2,Level 3,Dungeon,Patrol,Exploration,Status
+Darkness,Environment,Keyword,Light,,Lantern,Exposed + Weakened,Exposed 1 fight,Exposed 2 fights + Weakened 10%,Exposed all fights + Weakened 20%,1,0,1,New
+Traps,Environment,Approach,Finesse,,Rogue's roll,Wounds,8% per trap,12% per trap,18% per trap,1,0,1,Exists
+Obstacle: rubble,Obstacle,Approach,Might,,Explorer's kit,Delay + Hunger,"+10% time, +1 supply","+20% time, +1 supply","+30% time, +2 supply",1,0,1,Exists; absorbs barricade
+Obstacle: locked,Obstacle,Approach,Finesse,"Might (forces it, loses 10% loot)",Rogue's roll,Lost loot,15%,25%,40%,1,0,1,Exists
+Obstacle: puzzle,Obstacle,Approach,Wits,,Scholar's satchel,Delay + Hunger,"+15% time, +1 supply","+30% time, +2 supply","+45% time, +2 supply",1,0,1,New
+Maze,Environment,Approach,Wits,,Scholar's satchel,Delay + Hunger,"+20% time, +1 supply","+35% time, +2 supply","+50% time, +3 supply",1,0,0,New
+Underwater,Environment,Approach,Wits,,Explorer's kit,Weakened,15%,25%,40%,1,0,1,New; Heavy gear doubles it
+Poison,Environment,Keyword,Antidote,,Healer's satchel,Wounds,5% per fight,10% per fight,15% per fight,1,1,1,New
+Element (any of 5),Environment,Keyword,Resist (element),,Ward salve,Elemental damage,×1.25,×1.5,×1.75,1,1,1,Exists
+Desecrated ground,Holy,Approach,Faith,,Holy relics,Weakened,10%,20%,30% + healing halved,1,0,1,New
+Casters,Enemy,Approach,Faith,,Holy relics,Wounds (ignores armour),6% per fight,10% per fight,15% per fight,1,0,0,New
+Beasts,Enemy,Keyword,Calm,,Hunter's pack,Enemy damage,+20%,+35%,+50%,1,1,0,Exists
+Ambush,Enemy,Keyword,Watchful,,Lantern,Exposed,1 fight,2 fights,All fights,1,1,0,Rework of the ambush event
+Thieves,Enemy,Approach,Finesse,,Rogue's roll,Lost loot,10%,20%,30%,1,1,0,New
+Locals,Social,Approach,Presence (they help),"Might (intimidate, no help)",Gift basket,Extra fight,Extra fight,Extra fight,Extra fight,1,1,1,Rework of locals
+Undead,Enemy,Keyword,Blessed,,"Gear: mace, censer",Enemy HP,+20%,+40%,+60%,1,1,1,Exists
+Armoured,Enemy,Keyword,Pierce,,"Gear: dagger, bow, warhammer",Weakened against them,20%,35%,50%,1,1,0,New
+Swarm,Enemy,Keyword,Cleave,,"Gear: axe, staff",Extra enemies,+1 per swarm fight,+2 per swarm fight,+3 per swarm fight,1,1,0,New
+Brute,Enemy,Keyword,Guard,,Gear: plate,Brute damage on one hero,+25%,+50%,+75%,1,1,0,Rework of enrage

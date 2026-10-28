@@ -1,0 +1,9 @@
+Restriction,Effect,Removes or weakens,Status
+Anti-magic zone,Magic damage and magic abilities −50%; Light and Cleave from mages don't count,"Magic weapons, mages",New
+Sacred ground,Only Concealed weapons hit at full strength; others −40%,Non-Concealed weapons,New
+No healing,"Potions, party heals and springs heal half as much",Healing,New
+Cursed luck,No critical hits,"Crit, Keen",New
+Thick fog,Watchful doesn't count; Ambush can only be answered by a kit,Watchful,New
+Barren,"Gold bonuses (traits, charms, meals) don't apply",Gold bonuses,New
+Narrow passages,Party of 3 heroes at most,Party size,New
+Spoiled stores,Meals have no effect; supply still counts,Meals,New

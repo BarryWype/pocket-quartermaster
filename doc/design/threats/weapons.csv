@@ -1,0 +1,13 @@
+Weapon,Status,Pierce,Cleave,Blessed,Guard,Parry,Reach,Keen,Stagger,Brace,Channel,Inspire,Mend,Swift,Warded,Concealed,Heavy
+Sword,Existing,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0
+Axe,Existing,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+Mace,Existing,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0
+Dagger,Existing,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0
+Bow,Existing,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+Wand,Existing,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0
+Staff,Existing,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0
+Lute,Existing,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0
+Spear,New,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0
+Warhammer,New,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1
+Censer,New,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0
+Knuckles,New,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0

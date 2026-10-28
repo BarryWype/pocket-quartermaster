@@ -1,4 +1,4 @@
-import { Camera, type CameraRef, Map, type MapRef, Marker } from '@maplibre/maplibre-react-native';
+import { Camera, type CameraRef, Images, Map, type MapRef, Marker } from '@maplibre/maplibre-react-native';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -7,6 +7,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AutoGatherPill, WalkCard } from '@/components/AutoGather';
 import { IslandMenu, ISLAND_HEIGHT } from '@/components/IslandMenu';
 import { MapFoliage, useFoliage } from '@/components/MapFoliage';
+import { MapTrail, MapWater } from '@/components/MapAmbience';
+import { MapSky, useSkyPan } from '@/components/MapSky';
 import { MapRanges, type RangeCircle } from '@/components/MapRanges';
 import { PatrolMarker } from '@/components/PatrolMarker';
 import { PatrolPanel } from '@/components/PatrolPanel';
@@ -31,6 +33,7 @@ import { highestUnlockedTier } from '@/game/expeditions/expeditions';
 import { freshGathersLeft, isFleeing, showsOnMap, type CollectFailure } from '@/game/gathering/gathering';
 import { readSpawn, requiredPickaxeTier } from '@/game/gathering/lockedNodes';
 import { shardId } from '@/game/elements';
+import { ambienceConfig, inSpan } from '@/game/generation/ambience';
 import { distanceMeters } from '@/game/generation/geo';
 import { generateSpawnsAround } from '@/game/generation/spawns';
 import type { LatLng, Spawn, SpawnConfig } from '@/game/generation/types';
@@ -45,6 +48,7 @@ import { generateTavernsAround, isTavernUnlocked, type TavernSpawn } from '@/gam
 import { tutorialSpawns } from '@/game/tutorial/tutorial';
 import { useLanguage } from '@/hooks/useLanguage';
 import { usePlacedPoints, usePlacedSpawns } from '@/hooks/usePlacedSpawns';
+import { useAmbience } from '@/hooks/useAmbience';
 import { usePlayerLocation } from '@/hooks/usePlayerLocation';
 import { t, tr } from '@/i18n';
 import { appendFixesNow } from '@/services/walkTracking';
@@ -57,6 +61,16 @@ import { colors } from '@/theme';
 const toLngLat = (position: LatLng): [number, number] => [position.longitude, position.latitude];
 /** Dragging the map further than this from the player stops the camera following them. */
 const FOLLOW_SLACK_METERS = 40;
+// Patterns used by content/mapStyle.ts, drawn by scripts/generate-map-textures.py.
+const MAP_TEXTURES = {
+  cobble: require('../../assets/sprites/cobble.png'),
+  dirt: require('../../assets/sprites/dirt.png'),
+  floor: require('../../assets/sprites/floor.png'),
+  trampled: require('../../assets/sprites/trampled.png'),
+  grass: require('../../assets/sprites/grass.png'),
+  'water-0': require('../../assets/sprites/water-0.png'),
+  'water-1': require('../../assets/sprites/water-1.png'),
+};
 /** How long a patrol just come into view pulses on the map. */
 const SEEN_HIGHLIGHT_MS = 5000;
 
@@ -93,7 +107,9 @@ export default function MapScreen() {
   const [openPatrol, setOpenPatrol] = useState<PatrolSpawn | null>(null);
   const cameraRef = useRef<CameraRef>(null);
   const mapRef = useRef<MapRef>(null);
-  const foliage = useFoliage(mapRef);
+  const ambience = useAmbience();
+  const skyPan = useSkyPan();
+  const foliage = useFoliage(mapRef, inSpan(ambience.hour, ambienceConfig.smoke));
   const [following, setFollowing] = useState(true);
   const [now, setNow] = useState(Date.now());
   const [message, setMessage] = useState<string | null>(null);
@@ -335,7 +351,9 @@ export default function MapScreen() {
         touchPitch={false}
         logo={false}
         attributionPosition={{ top: insets.top + 8, left: 8 }}
+        onRegionIsChanging={(event) => skyPan.update(event.nativeEvent.center, event.nativeEvent.zoom)}
         onRegionDidChange={(event) => {
+          skyPan.update(event.nativeEvent.center, event.nativeEvent.zoom);
           foliage.refresh();
           const { userInteraction, center } = event.nativeEvent;
           const away = distanceMeters(position, { longitude: center[0], latitude: center[1] }) > FOLLOW_SLACK_METERS;
@@ -349,6 +367,9 @@ export default function MapScreen() {
         }}
       >
         <Camera ref={cameraRef} initialViewState={{ center: toLngLat(position), zoom: 17 }} />
+        <Images images={MAP_TEXTURES} />
+        <MapWater />
+        <MapTrail position={position} />
         <MapFoliage data={foliage.data} />
         <MapRanges circles={ranges} />
         {visible.map(({ spawn, position: spawnPosition, distance }) => {
@@ -416,6 +437,7 @@ export default function MapScreen() {
           <Text style={styles.player}>🧙</Text>
         </Marker>
       </Map>
+      <MapSky pan={skyPan} hour={ambience.hour} raining={ambience.raining} />
       {player.mocked && (
         <Text style={[styles.banner, { top: insets.top + 48 }]}>{t('map.mockBanner')}</Text>
       )}

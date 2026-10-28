@@ -1,0 +1,5 @@
+Armour,Status,Pierce,Cleave,Blessed,Guard,Parry,Reach,Keen,Stagger,Brace,Channel,Inspire,Mend,Swift,Warded,Concealed,Heavy
+Robes,New,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0
+Leather,New,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0
+Mail,New; today's armour line becomes mail,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0
+Plate,New,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1
