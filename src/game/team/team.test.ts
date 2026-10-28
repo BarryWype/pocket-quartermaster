@@ -101,6 +101,12 @@ describe('roster', () => {
     expect(canDismiss(alone, 'mira')).toBe(false);
   });
 
+  it('stands the escort down when its hero is dismissed', () => {
+    const save = { ...saveWithGear(), escort: { heroId: 'bram' } };
+    expect(dismissHero(save, 'bram').escort).toBeNull();
+    expect(dismissHero(save, 'lyra').escort).toEqual({ heroId: 'bram' });
+  });
+
   it('is full at six heroes', () => {
     const six = Array.from({ length: 6 }, (_, i) => newHero(`h${i}`, 'X', 'warrior', 'tough'));
     expect(rosterFull(createInitialSave())).toBe(false);

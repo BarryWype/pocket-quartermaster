@@ -31,6 +31,7 @@ import { prepareParty } from '@/game/expeditions/simulate';
 import { guildRank, partySize } from '@/game/guild/guild';
 import { isOnExpedition } from '@/game/team/team';
 import type { ExpeditionReport, HeroState } from '@/game/types';
+import { syncBackground } from '@/hooks/useAutoGather';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useNow } from '@/hooks/useNow';
 import { syncPlan } from '@/hooks/useNotifications';
@@ -97,15 +98,25 @@ export default function QuestsScreen() {
   );
 
   /** The first launch asks, in game, before the OS permission prompt. */
-  const send = async (dungeonId: string, party: string[], loadout: Loadout) => {
-    start(dungeonId, party, durationScale, loadout);
-    if (askedPermission) return;
-    setSettings({ askedNotificationPermission: true });
-    const permission = await deviceNotifications.getPermission().catch(() => null);
-    if (!permission || permission.granted || !permission.canAskAgain) return;
-    Alert.alert(t('expeditions.askTitle'), t('expeditions.askBody'), [
-      { text: t('expeditions.notNow'), style: 'cancel' },
-      { text: t('expeditions.yes'), onPress: () => deviceNotifications.requestPermission().then(syncPlan, () => {}) },
+  const send = (dungeonId: string, party: string[], loadout: Loadout) => {
+    const setOut = async () => {
+      start(dungeonId, party, durationScale, loadout);
+      syncBackground();
+      if (askedPermission) return;
+      setSettings({ askedNotificationPermission: true });
+      const permission = await deviceNotifications.getPermission().catch(() => null);
+      if (!permission || permission.granted || !permission.canAskAgain) return;
+      Alert.alert(t('expeditions.askTitle'), t('expeditions.askBody'), [
+        { text: t('expeditions.notNow'), style: 'cancel' },
+        { text: t('expeditions.yes'), onPress: () => deviceNotifications.requestPermission().then(syncPlan, () => {}) },
+      ]);
+    };
+    const escortId = save.escort?.heroId;
+    const escort = escortId && party.includes(escortId) ? save.heroes.find((h) => h.id === escortId) : undefined;
+    if (!escort) return setOut();
+    Alert.alert(t('expeditions.confirm.escortTitle', { hero: escort.name }), t('expeditions.confirm.escortBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('expeditions.send'), onPress: () => void setOut() },
     ]);
   };
 

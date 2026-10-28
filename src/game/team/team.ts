@@ -13,6 +13,11 @@ export function isOnExpedition(save: SaveData, heroId: string) {
   return save.expeditions.some((e) => e.heroIds.includes(heroId));
 }
 
+/** Whether a hero is out at all: on an expedition, or in a patrol fight not yet resolved. */
+export function isAway(save: SaveData, heroId: string) {
+  return isOnExpedition(save, heroId) || save.patrolFights.some((f) => f.heroIds.includes(heroId));
+}
+
 export function equippedGear(save: SaveData, hero: HeroState) {
   return (['weapon', 'armor'] as const)
     .map((slot) => save.gear.find((g) => g.uid === hero.equipment[slot]))
@@ -74,7 +79,7 @@ function keepingHp(before: SaveData, next: SaveData, heroId: string): SaveData {
 }
 
 export function unequip(save: SaveData, heroId: string, slot: EquipmentSlot): SaveData {
-  if (isOnExpedition(save, heroId)) throw new Error('Hero is on an expedition');
+  if (isAway(save, heroId)) throw new Error('Hero is away');
   const hero = save.heroes.find((h) => h.id === heroId);
   const current = hero?.equipment[slot];
   if (!hero || !current) return save;
@@ -89,7 +94,7 @@ export function unequip(save: SaveData, heroId: string, slot: EquipmentSlot): Sa
  * another hero at home moves over; consumables come out of the stock.
  */
 export function equip(save: SaveData, heroId: string, slot: EquipmentSlot, id: string): SaveData {
-  if (isOnExpedition(save, heroId)) throw new Error('Hero is on an expedition');
+  if (isAway(save, heroId)) throw new Error('Hero is away');
   let next = unequip(save, heroId, slot);
 
   if (slot === 'consumable') {
@@ -109,14 +114,19 @@ export function equip(save: SaveData, heroId: string, slot: EquipmentSlot, id: s
 
 /** Heroes can be dismissed at home, keeping at least one; their gear and consumable go back to the stock. */
 export function canDismiss(save: SaveData, heroId: string) {
-  return save.heroes.length > 1 && save.heroes.some((h) => h.id === heroId) && !isOnExpedition(save, heroId);
+  return save.heroes.length > 1 && save.heroes.some((h) => h.id === heroId) && !isAway(save, heroId);
 }
 
 export function dismissHero(save: SaveData, heroId: string): SaveData {
   if (!canDismiss(save, heroId)) throw new Error(`Cannot dismiss ${heroId}`);
   let next = save;
   for (const slot of ['weapon', 'armor', 'consumable'] as const) next = unequip(next, heroId, slot);
-  return { ...next, heroes: next.heroes.filter((h) => h.id !== heroId) };
+  return {
+    ...next,
+    heroes: next.heroes.filter((h) => h.id !== heroId),
+    // The escort hero is gone: the background task stands down.
+    escort: next.escort && next.escort.heroId === heroId ? null : next.escort,
+  };
 }
 
 export const rosterFull = (save: SaveData) => save.heroes.length >= rosterCap(save);

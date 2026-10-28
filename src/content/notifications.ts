@@ -5,6 +5,7 @@ import type { ExpeditionOutcome } from '@/game/types';
 export const notificationGroups: Record<NotificationGroup, { title: string; description: string }> = {
   expeditions: { title: 'Expeditions & heroes', description: 'Expedition results, rested heroes and idle hero reminders.' },
   steps: { title: 'Steps & daily goals', description: 'Step chests and the daily reset.' },
+  patrols: { title: 'Patrols', description: 'Patrols and travellers spotted nearby, and your escort.' },
 };
 
 export const notificationCategories: Record<
@@ -59,6 +60,18 @@ export const notificationCategories: Record<
     description: 'When auto-gather stops by itself after a while without movement.',
     defaultOn: false,
   },
+  patrolSpotted: {
+    group: 'patrols',
+    title: 'Patrol spotted',
+    description: 'When a patrol or a traveller comes into view while the app is closed.',
+    defaultOn: true,
+  },
+  escort: {
+    group: 'patrols',
+    title: 'Escort',
+    description: 'When your escort pauses to rest or is knocked out.',
+    defaultOn: true,
+  },
 };
 
 export const notificationRules = {
@@ -91,4 +104,8 @@ export const notificationTexts = {
   chestClose: { title: 'Almost there', body: 'Only {steps} more steps to your {chest}.' },
   dailyReset: { title: 'New day', body: 'New day, new step chests.' },
   walkSummary: { title: 'Auto-gather stopped', body: 'You walked {distance}. Open the game to see what you gathered.' },
+  patrolSpotted: { title: '{patrol} spotted', body: '{patrol} {distance} away (tier {tier})' },
+  travellerSpotted: { title: '{traveller} nearby', body: '{line}' },
+  escortPaused: { title: 'Escort paused', body: '{hero} is at {percent}% HP.' },
+  escortKnockedOut: { title: 'Escort knocked out', body: '{hero} needs rest.' },
 };

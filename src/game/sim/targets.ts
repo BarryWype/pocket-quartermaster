@@ -28,6 +28,12 @@ export const targets = {
   spamAdvantage: 1.2,
   /** Changes larger than this are highlighted by compare mode. */
   compareThreshold: 0.1,
+  /** Share of the regular profile's gold earned that came from patrols and travellers: [min, max]. */
+  patrolGoldShare: [0.15, 0.25] as [number, number],
+  /** Most of a material's walked amount that patrols may bring, per material with at least 10 walked. */
+  patrolMaterialShareMax: 0.2,
+  /** Most traveller recruits may move the day the roster reaches its 4th or 6th hero. */
+  travellerRecruitShiftDays: 1,
 };
 
 export type Targets = typeof targets;

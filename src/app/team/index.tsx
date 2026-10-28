@@ -48,6 +48,8 @@ export default function TeamScreen() {
                 <Text style={styles.muted}>
                   {tr(heroClass.name)} · {tr(traitById[hero.trait]?.name ?? '')}
                   {away ? t('common.onExpedition') : ''}
+                  {save.escort?.heroId === hero.id ? t('common.escort') : ''}
+                  {save.patrolFights.some((fight) => fight.heroIds.includes(hero.id)) ? t('common.patrol') : ''}
                 </Text>
                 <Text style={styles.stats}>{STATS.map((stat) => `${statIcons[stat]} ${stats[stat]}`).join('  ')}</Text>
                 <HpBar save={save} hero={hero} now={now} />

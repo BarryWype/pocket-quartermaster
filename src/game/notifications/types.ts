@@ -1,4 +1,6 @@
-export type NotificationGroup = 'expeditions' | 'steps';
+import type { AlertFor } from '../patrols/escort';
+
+export type NotificationGroup = 'expeditions' | 'steps' | 'patrols';
 
 export type NotificationCategory =
   | 'expeditionFinished'
@@ -8,7 +10,9 @@ export type NotificationCategory =
   | 'chestUnlocked'
   | 'chestClose'
   | 'dailyReset'
-  | 'walkSummary';
+  | 'walkSummary'
+  | 'patrolSpotted'
+  | 'escort';
 
 export type NotificationSettings = {
   /** Master switch. */
@@ -22,6 +26,8 @@ export type NotificationSettings = {
   };
   /** Let expedition results through during quiet hours. */
   allowResultsInQuietHours: boolean;
+  /** Which patrols a notification is wanted for. */
+  patrolAlertFor: AlertFor;
 };
 
 /** A notification to schedule (`at` is a time) or show now (`at` is null). */
@@ -33,4 +39,6 @@ export type PlannedNotification = {
   at: number | null;
   title: string;
   body: string;
+  /** Navigation and other extras merged into the OS payload. */
+  data?: Record<string, string | number>;
 };

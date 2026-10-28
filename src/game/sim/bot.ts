@@ -40,6 +40,8 @@ import type { Rng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { buyRank, guildBonus, isGuildUnlocked, partySize, rankPrice, rankProblem } from '../guild/guild';
 import { hasMaterials } from '../inventory';
+import type { PatrolKind, PatrolSubject, TravellerKind } from '../patrols/generate';
+import type { TravellerReward } from '../patrols/travellers';
 import { collectTreasure, liveTreasureMaps, readTreasureMap } from '../rewards/treasure';
 import { challengeSanctum, sanctumById, sanctumDungeon, type SanctumSpawn } from '../sanctums/sanctums';
 import type { SaveData } from '../save';
@@ -48,6 +50,7 @@ import { currentHp, drinkPotion, drinkProblem, maxHp } from '../team/health';
 import { canWield, equip, isOnExpedition, rosterFull } from '../team/team';
 import type { ActiveExpedition, DungeonDef, GearDef, HeroState, Quality, RecipeDef } from '../types';
 import { expectedLevels, type Profile, type SimConfig } from './config';
+import type { PatrolRates } from './patrols';
 import { PICKAXES, type WalkRates } from './walking';
 
 export const QUALITY_ORDER: Quality[] = ['crappy', 'normal', 'rare', 'legendary'];
@@ -148,10 +151,34 @@ export type RunLog = {
   sanctums: { day: number; tier: number; odds: number; win: boolean }[];
   recruits: { day: number; classId: string; price: number; trait: string }[];
   guildBuys: { day: number; track: string; rank: number; gold: number }[];
+  /** Everything the walks met — patrols fought and travellers helped. */
+  patrols: PatrolLog;
   /** Healing potions drunk at home. */
   potionsAtHome: number;
   /** Emergency jerky bought at taverns. */
   emergencySupply: number;
+};
+
+/** Everything met on a walk, at the tier it would have fought at. */
+export type PatrolSeenRow = { kind: PatrolSubject; tier: number; elite: boolean };
+/** A patrol fight the player's party took on; xp is the win's XP summed over the party. */
+export type PatrolFightRow = { kind: PatrolKind; tier: number; elite: boolean; won: boolean; xp: number };
+/** A fight the background escort hero took on by itself. */
+export type EscortFightRow = { kind: PatrolKind; tier: number; won: boolean; knockout: boolean; xp: number };
+
+export type PatrolLog = {
+  seen: PatrolSeenRow[];
+  fights: PatrolFightRow[];
+  escortFights: EscortFightRow[];
+  /** Spawns the escort skipped because its HP was under 50%. */
+  escortPauses: number;
+  /** Travellers helped, and the rewards they rolled. */
+  travellers: Record<TravellerKind, number>;
+  rewards: Record<TravellerReward['kind'], number>;
+  /** Days a traveller joined the roster, key fragments rolled and trades made. */
+  recruits: number[];
+  keyFragments: number;
+  trades: number;
 };
 
 /** Everything a session works with. The save only changes through the game's own functions. */
@@ -164,6 +191,9 @@ export type Sim = {
   profile: Profile;
   config: SimConfig;
   rates: WalkRates;
+  patrolRates: PatrolRates;
+  /** Patrol spawns placed so far, for their unique ids. */
+  patrolSpawns: number;
   rng: Rng;
   rotation: Rotation;
   location: LatLng;

@@ -17,7 +17,7 @@ import { rollLoot } from '../rewards/loot';
 import { grantMainRewards, type MainRewardOptions } from '../rewards/mainRewards';
 import type { SaveData } from '../save';
 import { applyRunHp, settleHp } from '../team/health';
-import { addXp, canWield, heroAbilities, heroStats, isOnExpedition } from '../team/team';
+import { addXp, canWield, heroAbilities, heroStats, isAway } from '../team/team';
 import { isTutorialExpedition } from '../tutorial/tutorial';
 import type { ActiveExpedition, DungeonDef, ExpeditionReport, Hunger, ProvisionDef } from '../types';
 import { buildLog } from './log';
@@ -163,7 +163,7 @@ export function startExpedition(
   if (heroIds.length > partySize(save)) throw new Error(`At most ${partySize(save)} heroes per expedition`);
   for (const heroId of heroIds) {
     if (!save.heroes.some((h) => h.id === heroId)) throw new Error(`Unknown hero ${heroId}`);
-    if (isOnExpedition(save, heroId)) throw new Error(`${heroId} is already away`);
+    if (isAway(save, heroId)) throw new Error(`${heroId} is already away`);
   }
   const consumables = { ...save.consumables };
   const take = (itemId: string, count: number) => {
@@ -201,7 +201,14 @@ export function startExpedition(
     kitId: loadout.kitId ?? null,
     notificationId: null,
   };
-  return { ...settled, consumables, expeditions: [...save.expeditions, expedition], nextUid: save.nextUid + 1 };
+  return {
+    ...settled,
+    consumables,
+    expeditions: [...save.expeditions, expedition],
+    // The escort hero set out with the player instead: the background task stands down.
+    escort: save.escort && heroIds.includes(save.escort.heroId) ? null : save.escort,
+    nextUid: save.nextUid + 1,
+  };
 }
 
 /**

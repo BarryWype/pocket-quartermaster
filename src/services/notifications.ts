@@ -55,7 +55,7 @@ function request(notification: PlannedNotification, identifier: string): Notific
   const channelId: NotificationGroup = notification.group;
   return {
     identifier,
-    content: { title: notification.title, body: notification.body, data: { category: notification.category } },
+    content: { title: notification.title, body: notification.body, data: { category: notification.category, ...notification.data } },
     trigger:
       notification.at === null
         ? { channelId }

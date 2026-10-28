@@ -3,26 +3,29 @@ import { dungeonById, recipeById } from '@/content/lookup';
 
 import { craft } from '../crafting/crafting';
 import { startExpedition } from '../expeditions/expeditions';
+import { PATROL_KINDS, TRAVELLER_KINDS } from '../patrols/generate';
 import { rankCost } from '../guild/guild';
 import { createInitialSave } from '../save';
 import { simConfig } from './config';
 import { checkSave, runSim } from './engine';
 import { summarize } from './metrics';
 import { applyOverrides, parseOverride } from './overrides';
+import { measurePatrolRates } from './patrols';
 import { spamCheck } from './spam';
 import { measureWalkRates } from './walking';
 
 // One short walk per pickaxe set keeps the tests quick; the CLI measures the full set.
 const rates = measureWalkRates({ ...simConfig, walk: { ...simConfig.walk, samples: simConfig.walk.samples.slice(0, 1), sampleHours: [12], sampleMinutes: 5 } });
+const patrolRates = measurePatrolRates({ ...simConfig, walk: { ...simConfig.walk, samples: simConfig.walk.samples.slice(0, 1), sampleHours: [12], sampleMinutes: 5 } });
 
 describe('balance lab', () => {
   it('gives the same summary for the same seed, profile and overrides', () => {
-    const run = () => summarize([runSim({ profile: 'regular', days: 6, seed: 'same', rates })]);
+    const run = () => summarize([runSim({ profile: 'regular', days: 6, seed: 'same', rates, patrolRates })]);
     expect(JSON.stringify(run())).toBe(JSON.stringify(run()));
   });
 
   it('plays through the tutorial and the first tier', () => {
-    const log = runSim({ profile: 'regular', days: 8, seed: 'progress', rates });
+    const log = runSim({ profile: 'regular', days: 8, seed: 'progress', rates, patrolRates });
     expect(log.milestones['boss:1']).toBeDefined();
     expect(log.expeditions.length).toBeGreaterThan(5);
     expect(log.crafts.some((c) => c.kind === 'upgrade')).toBe(true);
@@ -30,8 +33,28 @@ describe('balance lab', () => {
 
   it('never leaves the save in a state the game forbids', () => {
     for (const profile of ['casual', 'dedicated']) {
-      runSim({ profile, days: 8, seed: 'legal', rates, afterSession: checkSave });
+      runSim({ profile, days: 8, seed: 'legal', rates, patrolRates, afterSession: checkSave });
     }
+  });
+
+  it('meets patrols and travellers while keeping the save valid', () => {
+    const log = runSim({ profile: 'regular', days: 3, seed: 'patrols', rates, patrolRates, afterSession: checkSave });
+    expect(log.patrols.seen.length).toBeGreaterThan(0);
+    const kinds = [...PATROL_KINDS, ...TRAVELLER_KINDS];
+    for (const row of log.patrols.seen) {
+      expect(kinds).toContain(row.kind);
+      expect(row.tier).toBeGreaterThanOrEqual(1);
+    }
+    for (const fight of [...log.patrols.fights, ...log.patrols.escortFights]) {
+      expect(PATROL_KINDS).toContain(fight.kind);
+      expect(fight.tier).toBeGreaterThanOrEqual(1);
+    }
+    // Every wounded traveller or pilgrim helped rolls exactly one reward; traders trade instead.
+    const helped = log.patrols.travellers.wounded + log.patrols.travellers.pilgrim;
+    const rewards = Object.values(log.patrols.rewards).reduce((a, b) => a + b, 0);
+    expect(helped).toBe(rewards);
+    expect(log.patrols.travellers.trader).toBeLessThanOrEqual(log.patrols.trades);
+    expect(log.patrols.recruits.length).toBe(log.patrols.rewards.recruit ?? 0);
   });
 
   it('relies on the game functions, which refuse what is not allowed', () => {

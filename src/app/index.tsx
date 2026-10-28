@@ -8,21 +8,26 @@ import { AutoGatherPill, WalkCard } from '@/components/AutoGather';
 import { IslandMenu, ISLAND_HEIGHT } from '@/components/IslandMenu';
 import { MapFoliage, useFoliage } from '@/components/MapFoliage';
 import { MapRanges, type RangeCircle } from '@/components/MapRanges';
+import { PatrolMarker } from '@/components/PatrolMarker';
+import { PatrolPanel } from '@/components/PatrolPanel';
 import { PlaceholderScreen } from '@/components/PlaceholderScreen';
 import { SanctumMarker } from '@/components/SanctumMarker';
 import { SanctumPanel } from '@/components/SanctumPanel';
 import { SpawnMarker } from '@/components/SpawnMarker';
 import { TavernPanel } from '@/components/TavernPanel';
+import { TravellerPanel } from '@/components/TravellerPanel';
 import { Text } from '@/components/Text';
 import { TutorialHint } from '@/components/TutorialHint';
 import { gatheringConfig } from '@/content/gatheringConfig';
 import { items } from '@/content/items';
 import { materialById, resourceById } from '@/content/lookup';
 import { mapStyle } from '@/content/mapStyle';
+import { patrolRules } from '@/content/patrols';
 import { sanctumRules } from '@/content/sanctums';
 import { spawnConfig } from '@/content/spawnConfig';
 import { tavernRules } from '@/content/taverns';
 import { walkableRules } from '@/content/walkable';
+import { highestUnlockedTier } from '@/game/expeditions/expeditions';
 import { freshGathersLeft, isFleeing, showsOnMap, type CollectFailure } from '@/game/gathering/gathering';
 import { readSpawn, requiredPickaxeTier } from '@/game/gathering/lockedNodes';
 import { shardId } from '@/game/elements';
@@ -30,6 +35,9 @@ import { distanceMeters } from '@/game/generation/geo';
 import { generateSpawnsAround } from '@/game/generation/spawns';
 import type { LatLng, Spawn, SpawnConfig } from '@/game/generation/types';
 import { visibleSpawns } from '@/game/generation/visibility';
+import { isPatrolKind, isTravellerKind, patrolPositionAt, patrolTier, patrolsAround, pruneByWindow, type PatrolSpawn } from '@/game/patrols/generate';
+import { pocketTracking } from '@/game/patrols/pocketMode';
+import { fleesAt, hasFled, isGone, isVisible } from '@/game/patrols/visibility';
 import { isLureActive, lureEndsAt, lureSpawns } from '@/game/rewards/lures';
 import { liveTreasureMaps } from '@/game/rewards/treasure';
 import { generateSanctumsAround, sanctumById, type SanctumSpawn } from '@/game/sanctums/sanctums';
@@ -49,6 +57,8 @@ import { colors } from '@/theme';
 const toLngLat = (position: LatLng): [number, number] => [position.longitude, position.latitude];
 /** Dragging the map further than this from the player stops the camera following them. */
 const FOLLOW_SLACK_METERS = 40;
+/** How long a patrol just come into view pulses on the map. */
+const SEEN_HIGHLIGHT_MS = 5000;
 
 /** Sanctums and taverns snap with coarse map tiles so they can be shown from kilometres away. */
 const sanctumPlacement = { ...walkableRules, ...sanctumRules.placement };
@@ -80,6 +90,7 @@ export default function MapScreen() {
   const debugTavern = useDebugStore((state) => state.debugTavern);
   const closeTavernHint = useGameStore((state) => state.closeTavernHint);
   const [openTavern, setOpenTavern] = useState<TavernSpawn | null>(null);
+  const [openPatrol, setOpenPatrol] = useState<PatrolSpawn | null>(null);
   const cameraRef = useRef<CameraRef>(null);
   const mapRef = useRef<MapRef>(null);
   const foliage = useFoliage(mapRef);
@@ -87,7 +98,7 @@ export default function MapScreen() {
   const [now, setNow] = useState(Date.now());
   const [message, setMessage] = useState<string | null>(null);
   const autoMode = useWorldStore((state) => state.autoGather);
-  const autoEnabled = useSettingsStore((state) => state.autoGather.enabled);
+  const autoEnabled = useSettingsStore((state) => pocketTracking(state.pocketMode));
   const showAutoRadius = useDebugStore((state) => debugOn && state.showAutoRadius);
   const showNodeRanges = useDebugStore((state) => debugOn && state.showNodeRanges);
 
@@ -95,6 +106,7 @@ export default function MapScreen() {
     () =>
       useWorldStore.subscribe((state, previous) => {
         if (state.autoGatherMessage && state.autoGatherMessage !== previous.autoGatherMessage) setMessage(state.autoGatherMessage.text);
+        if (state.patrolMessage && state.patrolMessage !== previous.patrolMessage) setMessage(state.patrolMessage.text);
       }),
     [],
   );
@@ -189,6 +201,39 @@ export default function MapScreen() {
       )
     : [];
 
+  // Patrols and travellers reroll with their window, so generating once per window is enough.
+  const patrolWindow = Math.floor(now / (patrolRules.windowMinutes * 60_000));
+  const debugPatrols = useWorldStore((state) => state.debugPatrols);
+  const patrolSpawns = useMemo(
+    () =>
+      position
+        ? [...patrolsAround(position, patrolWindow * patrolRules.windowMinutes * 60_000), ...debugPatrols]
+        : [],
+    [position, patrolWindow, debugPatrols],
+  );
+  const patrolsSeen = useWorldStore((state) => state.patrolsSeen);
+  const visiblePatrols = useMemo(
+    () =>
+      position
+        ? patrolSpawns.filter(
+            (spawn) =>
+              isVisible(spawn, position, now) &&
+              !isGone(spawn, { ...save.beatenPatrols, ...save.helpedTravellers }, now) &&
+              !hasFled(spawn, patrolsSeen[spawn.id], now),
+          )
+        : [],
+    [patrolSpawns, position, now, save.beatenPatrols, save.helpedTravellers, patrolsSeen],
+  );
+
+  // First sighting of a spawn: starts the goblins' flee timer and the "just seen" pulse.
+  useEffect(() => {
+    const unseen = visiblePatrols.filter((spawn) => patrolsSeen[spawn.id] === undefined);
+    if (unseen.length === 0) return;
+    setWorld({
+      patrolsSeen: pruneByWindow({ ...patrolsSeen, ...Object.fromEntries(unseen.map((spawn) => [spawn.id, now])) }, now),
+    });
+  }, [visiblePatrols, patrolsSeen, now, setWorld]);
+
   useEffect(() => {
     if (position) placeTutorialWood(position);
   }, [position, placeTutorialWood]);
@@ -196,6 +241,22 @@ export default function MapScreen() {
   useEffect(() => {
     if (position && following) cameraRef.current?.easeTo({ center: toLngLat(position), duration: 500 });
   }, [position?.latitude, position?.longitude, following]);
+
+  // A notification tapped patrol: the camera goes to where it was seen, and it stays selected while still around.
+  // Declared after the follow effect so the focus wins the camera while it lasts.
+  const focusPatrol = useWorldStore((state) => state.focusPatrol);
+  const focusedPatrol = focusPatrol ? (visiblePatrols.find((spawn) => spawn.id === focusPatrol.id) ?? null) : null;
+  const selectedPatrol = openPatrol ?? focusedPatrol;
+  useEffect(() => {
+    if (!focusPatrol || !position) return;
+    cameraRef.current?.easeTo({ center: toLngLat(focusPatrol), duration: 500 });
+    // Nothing to select there any more: stop holding the camera there.
+    if (!focusedPatrol) setWorld({ focusPatrol: null });
+  }, [focusPatrol, position, focusedPatrol, setWorld]);
+  const closePatrol = () => {
+    setOpenPatrol(null);
+    setWorld({ focusPatrol: null });
+  };
 
   // The menu stays reachable while there is no map to show.
   if (player.status === 'pending' || player.status === 'denied' || !position) {
@@ -213,6 +274,10 @@ export default function MapScreen() {
 
   const autoOn = autoEnabled && autoMode !== 'off';
   const ranges: RangeCircle[] = [
+    // The selected patrol's engage range, so the player can see how close to get.
+    ...(selectedPatrol
+      ? [{ id: 'patrol', center: patrolPositionAt(selectedPatrol, now), radius: patrolRules.engageMeters, kind: 'patrol' as const }]
+      : []),
     ...(autoOn || showAutoRadius ? [{ id: 'auto', center: position, radius: gatheringConfig.autoGather.radiusMeters, kind: 'auto' as const }] : []),
     ...(showNodeRanges
       ? [
@@ -318,6 +383,30 @@ export default function MapScreen() {
             <SanctumMarker emoji="🍺" locked={!tavernsOpen} />
           </Marker>
         ))}
+        {visiblePatrols.map((spawn) => {
+          const seenAt = patrolsSeen[spawn.id];
+          const fleesIn = seenAt !== undefined ? fleesAt(spawn, seenAt) : null;
+          const { tier, elite } = patrolTier(spawn, highestUnlockedTier(save));
+          return (
+            <Marker
+              key={spawn.id}
+              id={spawn.id}
+              lngLat={toLngLat(patrolPositionAt(spawn, now))}
+              onPress={() => {
+                setOpenPatrol(spawn);
+                setWorld({ focusPatrol: null });
+              }}
+            >
+              <PatrolMarker
+                kind={spawn.kind}
+                tier={tier}
+                elite={elite}
+                fleesIn={fleesIn === null ? null : Math.max(0, fleesIn - now)}
+                fresh={seenAt !== undefined && now - seenAt < SEEN_HIGHLIGHT_MS}
+              />
+            </Marker>
+          );
+        })}
         {placedTreasure.map((spot) => (
           <Marker key={spot.id} id={spot.id} lngLat={toLngLat(spot.position)} onPress={() => digUp(spot.id, spot.position)}>
             <Text style={styles.treasure}>💰</Text>
@@ -371,6 +460,12 @@ export default function MapScreen() {
       )}
       {openSanctum && <SanctumPanel spawn={openSanctum} player={position} onClose={() => setOpenSanctum(null)} />}
       {openTavern && <TavernPanel tavern={openTavern} player={position} onClose={() => setOpenTavern(null)} />}
+      {selectedPatrol && isPatrolKind(selectedPatrol.kind) && (
+        <PatrolPanel spawn={selectedPatrol} player={position} now={now} onClose={closePatrol} />
+      )}
+      {selectedPatrol && isTravellerKind(selectedPatrol.kind) && (
+        <TravellerPanel spawn={selectedPatrol} player={position} now={now} onClose={closePatrol} />
+      )}
       {tavernsOpen && !save.tavernHintSeen && (
         <Pressable onPress={closeTavernHint} style={[styles.tavernHint, { bottom: insets.bottom + ISLAND_HEIGHT + 56 }]}>
           <Text style={styles.tavernHintText}>{t('map.tavernsOpen')}</Text>

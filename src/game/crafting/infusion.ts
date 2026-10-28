@@ -2,7 +2,7 @@ import { wornBy } from '../forging/salvage';
 import { hasMaterials, removeMaterials } from '../inventory';
 import { stoneId, type Element } from '../elements';
 import type { SaveData } from '../save';
-import { isOnExpedition } from '../team/team';
+import { isAway } from '../team/team';
 
 /** A plain (never infused) piece, not away on an expedition, and a stone of the element in stock. */
 export function canInfuse(save: SaveData, gearUid: string, element: Element) {
@@ -11,7 +11,7 @@ export function canInfuse(save: SaveData, gearUid: string, element: Element) {
   return (
     !!gear &&
     !gear.element &&
-    !(holder && isOnExpedition(save, holder.id)) &&
+    !(holder && isAway(save, holder.id)) &&
     hasMaterials(save.materials, [{ materialId: stoneId(element), amount: 1 }])
   );
 }

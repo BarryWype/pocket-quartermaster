@@ -1,7 +1,7 @@
 import type { SaveData } from '../save';
 import type { DungeonDef } from '../types';
 import { launchPlan, runProvisions, type Loadout } from './expeditions';
-import { prepareParty, simulateRun, type PartyMember, type RunProvisions } from './simulate';
+import { prepareParty, simulateRun, type PartyMember, type RunOptions } from './simulate';
 
 export type Odds = {
   /** Share of runs that beat the boss (0-1). */
@@ -30,7 +30,7 @@ export type OddsOptions = {
 };
 
 /** Runs a prepared party through the dungeon with many seeds. */
-export function estimatePartyOdds(party: PartyMember[], dungeon: DungeonDef, runs = ODDS_RUNS, provisions: RunProvisions = {}): Odds {
+export function estimatePartyOdds(party: PartyMember[], dungeon: DungeonDef, runs = ODDS_RUNS, provisions: RunOptions = {}): Odds {
   if (party.length === 0) return { success: 0, flawless: 0, progress: 0 };
   let success = 0;
   let flawless = 0;

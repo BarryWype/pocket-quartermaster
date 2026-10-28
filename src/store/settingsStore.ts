@@ -6,18 +6,13 @@ import { gatheringConfig } from '@/content/gatheringConfig';
 import { defaultNotificationSettings } from '@/game/notifications/plan';
 import type { StepAlertLog } from '@/game/notifications/steps';
 import type { NotificationCategory, NotificationSettings } from '@/game/notifications/types';
+import { migrateSettingsV2, type PocketModeSettings } from '@/game/patrols/pocketMode';
 import type { Locale } from '@/i18n';
 
 /** `system` follows the phone's language. */
 export type LanguageSetting = Locale | 'system';
 
-export type AutoGatherSettings = {
-  /** The player turned auto-gather on (it may still be limited to the app being open). */
-  enabled: boolean;
-  autoStopMinutes: number;
-  /** The info dialog was shown before the first turn-on. */
-  introSeen: boolean;
-};
+export type { PocketModeSettings };
 
 type SettingsState = {
   language: LanguageSetting;
@@ -26,11 +21,11 @@ type SettingsState = {
   stepAlertLog: StepAlertLog;
   /** Whether we already asked, in game, before showing the OS permission prompt. */
   askedNotificationPermission: boolean;
-  autoGather: AutoGatherSettings;
+  pocketMode: PocketModeSettings;
   updateNotifications: (change: Partial<NotificationSettings>) => void;
   setCategory: (category: NotificationCategory, on: boolean) => void;
   setQuietHours: (change: Partial<NotificationSettings['quietHours']>) => void;
-  setAutoGather: (change: Partial<AutoGatherSettings>) => void;
+  setPocketMode: (change: Partial<PocketModeSettings>) => void;
   set: (change: Partial<Pick<SettingsState, 'language' | 'stepAlertLog' | 'askedNotificationPermission'>>) => void;
 };
 
@@ -41,7 +36,7 @@ export const useSettingsStore = create<SettingsState>()(
       notifications: defaultNotificationSettings(),
       stepAlertLog: { day: '', sent: [] },
       askedNotificationPermission: false,
-      autoGather: { enabled: false, autoStopMinutes: gatheringConfig.autoGather.autoStopMinutes, introSeen: false },
+      pocketMode: { enabled: false, autoGather: true, patrolAlerts: true, escort: true, autoStopMinutes: gatheringConfig.autoGather.autoStopMinutes, introSeen: false },
       updateNotifications: (change) => set(({ notifications }) => ({ notifications: { ...notifications, ...change } })),
       setCategory: (category, on) =>
         set(({ notifications }) => ({
@@ -51,22 +46,23 @@ export const useSettingsStore = create<SettingsState>()(
         set(({ notifications }) => ({
           notifications: { ...notifications, quietHours: { ...notifications.quietHours, ...change } },
         })),
-      setAutoGather: (change) => set(({ autoGather }) => ({ autoGather: { ...autoGather, ...change } })),
+      setPocketMode: (change) => set(({ pocketMode }) => ({ pocketMode: { ...pocketMode, ...change } })),
       set: (change) => set(change),
     }),
     {
       name: 'pocket-quartermaster-settings',
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: ({ language, notifications, stepAlertLog, askedNotificationPermission, autoGather }) => ({
+      partialize: ({ language, notifications, stepAlertLog, askedNotificationPermission, pocketMode }) => ({
         language,
         notifications,
         stepAlertLog,
         askedNotificationPermission,
-        autoGather,
+        pocketMode,
       }),
-      // v2 added auto-gather; `merge` fills in its defaults (off).
-      migrate: (persisted) => persisted as Partial<SettingsState>,
+      // v3 folded auto-gather into Pocket mode; `merge` fills in its defaults.
+      migrate: (persisted, version) =>
+        (version < 3 ? migrateSettingsV2(persisted as Record<string, unknown>) : persisted) as Partial<SettingsState>,
       // New categories added later get their defaults.
       merge: (persisted, current) => {
         const saved = persisted as Partial<SettingsState> | undefined;
@@ -74,7 +70,7 @@ export const useSettingsStore = create<SettingsState>()(
         return {
           ...current,
           ...saved,
-          autoGather: { ...current.autoGather, ...saved?.autoGather },
+          pocketMode: { ...current.pocketMode, ...saved?.pocketMode },
           notifications: {
             ...defaults,
             ...saved?.notifications,

@@ -4,6 +4,8 @@ import { AppState, Platform } from 'react-native';
 import { gatheringConfig } from '@/content/gatheringConfig';
 import { materialById } from '@/content/lookup';
 import { clearProcessed, shouldAutoStop, walkTileKeys, type WalkFix, type WalkSummary } from '@/game/gathering/autoGather';
+import { snapshotBackground } from '@/game/patrols/escort';
+import { needsBackgroundState, patrolSettingsFrom, pocketTracking } from '@/game/patrols/pocketMode';
 import type { MaterialStack } from '@/game/types';
 import { formatDistance, t, tr } from '@/i18n';
 import { walkableTiles } from '@/services/mapTiles';
@@ -15,6 +17,7 @@ import {
   requestAutoGatherPermission,
   startTracking,
   stopTracking,
+  updateBackground,
   updateBuffer,
   type AutoGatherPermission,
 } from '@/services/walkTracking';
@@ -37,7 +40,7 @@ export const materialsText = (stacks: MaterialStack[]) =>
 async function autoStop() {
   await stopTracking();
   await updateBuffer((buffer) => ({ ...buffer, autoStopped: true }));
-  useSettingsStore.getState().setAutoGather({ enabled: false });
+  useSettingsStore.getState().setPocketMode({ enabled: false });
   setMode('off');
 }
 
@@ -47,28 +50,28 @@ async function autoStop() {
  * permission was taken away, and stops after a while without movement.
  */
 async function reconcile(foregrounded: boolean) {
-  const { enabled, autoStopMinutes } = useSettingsStore.getState().autoGather;
+  const { pocketMode } = useSettingsStore.getState();
   const running = await isTracking();
-  if (!enabled) {
+  if (!pocketTracking(pocketMode)) {
     if (running) await stopTracking();
     return setMode('off');
   }
   const permission = await getAutoGatherPermission().catch((): AutoGatherPermission => 'denied');
   if (permission === 'denied') {
     await stopTracking();
-    useSettingsStore.getState().setAutoGather({ enabled: false });
+    useSettingsStore.getState().setPocketMode({ enabled: false });
     return setMode('off');
   }
   const buffer = await readBuffer();
   // "App open only" doesn't track while away, so its auto-stop counts from the return.
   const away = foregrounded && permission === 'foreground';
-  if (!away && (buffer.autoStopped || shouldAutoStop(buffer, Date.now(), autoStopMinutes))) return autoStop();
+  if (!away && (buffer.autoStopped || shouldAutoStop(buffer, Date.now(), pocketMode.autoStopMinutes))) return autoStop();
   if (permission === 'background') {
-    if (!running) await startTracking(autoStopMinutes, true);
+    if (!running) await startTracking(pocketMode.autoStopMinutes, true);
     return setMode('on');
   }
   if (running) await stopTracking();
-  if (away) await startTracking(autoStopMinutes, false);
+  if (away) await startTracking(pocketMode.autoStopMinutes, false);
   setMode('limited');
 }
 
@@ -102,6 +105,21 @@ async function processBuffer(away: boolean): Promise<WalkSummary | null> {
 
 let running: Promise<void> | null = null;
 
+/**
+ * Folds the background task's fight results into the save, then hands the task
+ * a fresh state: its `pending` starts empty, which is the hand-off. Without
+ * patrol alerts or an escort there is no state to keep, so it is cleared.
+ */
+export async function syncBackground() {
+  await updateBackground((current) => {
+    if (current?.pending.length) useGameStore.getState().mergeBackground(current.pending);
+    const { pocketMode, notifications } = useSettingsStore.getState();
+    if (!needsBackgroundState(pocketMode)) return null;
+    const save = useGameStore.getState().save;
+    return snapshotBackground(save, patrolSettingsFrom(pocketMode, save, notifications.patrolAlertFor), Date.now(), current);
+  });
+}
+
 /** One update at a time: reconcile tracking, then process what came in. */
 export function refreshAutoGather(foregrounded: boolean) {
   if (!hydrated()) return Promise.resolve();
@@ -109,12 +127,13 @@ export function refreshAutoGather(foregrounded: boolean) {
     // A failed start (e.g. the system refusing the service) must not hold up processing.
     await reconcile(foregrounded).catch(() => {});
     const summary = await processBuffer(foregrounded);
+    await syncBackground();
     // The "While you walked" card shows walks that gathered something.
     if (!summary || summary.nodes > 0) {
       if (summary && !foregrounded) say(t('autoGather.gained', { items: materialsText(summary.gained) }));
       return;
     }
-    if (summary.autoStopped) say(t('autoGather.autoStopped', { minutes: useSettingsStore.getState().autoGather.autoStopMinutes }));
+    if (summary.autoStopped) say(t('autoGather.autoStopped', { minutes: useSettingsStore.getState().pocketMode.autoStopMinutes }));
     else if (foregrounded && summary.distanceMeters > 0) say(t('autoGather.nothingInReach', { distance: formatDistance(summary.distanceMeters) }));
   })()
     .catch(() => {})
@@ -128,26 +147,28 @@ export function refreshAutoGather(foregrounded: boolean) {
 export async function enableAutoGather(): Promise<AutoGatherPermission> {
   const permission = await requestAutoGatherPermission().catch((): AutoGatherPermission => 'denied');
   if (permission === 'denied') return permission;
-  const { autoStopMinutes } = useSettingsStore.getState().autoGather;
-  useSettingsStore.getState().setAutoGather({ enabled: true });
+  const { autoStopMinutes } = useSettingsStore.getState().pocketMode;
+  useSettingsStore.getState().setPocketMode({ enabled: true });
   try {
     await startTracking(autoStopMinutes, permission === 'background');
   } catch {
     // The switch goes back off, with the same advice as a refusal: check location in system settings.
-    useSettingsStore.getState().setAutoGather({ enabled: false });
+    useSettingsStore.getState().setPocketMode({ enabled: false });
     setMode('off');
     return 'denied';
   }
   setMode(permission === 'background' ? 'on' : 'limited');
+  await syncBackground();
   return permission;
 }
 
 /** Turns auto-gather off and processes what is left in the buffer. */
 export async function disableAutoGather() {
-  useSettingsStore.getState().setAutoGather({ enabled: false });
+  useSettingsStore.getState().setPocketMode({ enabled: false });
   await stopTracking();
   setMode('off');
   await refreshAutoGather(true);
+  await syncBackground();
 }
 
 /** Debug: feeds a route into the buffer and processes it as if the app had just come back. */
@@ -164,7 +185,7 @@ export function useAutoGather() {
     refreshAutoGather(true);
     const appState = AppState.addEventListener('change', (state) => state === 'active' && refreshAutoGather(true));
     const timer = setInterval(() => {
-      if (AppState.currentState === 'active' && useSettingsStore.getState().autoGather.enabled) refreshAutoGather(false);
+      if (AppState.currentState === 'active' && pocketTracking(useSettingsStore.getState().pocketMode)) refreshAutoGather(false);
     }, LIVE_INTERVAL_MS);
     return () => {
       unsubscribe.forEach((fn) => fn());

@@ -25,6 +25,7 @@ export function defaultNotificationSettings(): NotificationSettings {
     ) as Record<NotificationCategory, boolean>,
     quietHours: { enabled: true, ...notificationRules.quietHours },
     allowResultsInQuietHours: false,
+    patrolAlertFor: 'all',
   };
 }
 

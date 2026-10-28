@@ -6,6 +6,7 @@ import { recipes } from '@/content/recipes';
 
 import type { AutoGatherSave } from './gathering/autoGather';
 import type { LatLng } from './generation/types';
+import type { PatrolFight } from './patrols/fight';
 import type {
   ActiveExpedition,
   ActiveLure,
@@ -90,6 +91,20 @@ export type SaveData = {
   trainedAt: number | null;
   /** Auto-gather's processed path and recent walk summaries. */
   autoGather: AutoGatherSave;
+  /** The hero the background task sends at patrols by itself. */
+  escort: { heroId: string } | null;
+  /** Patrol fights under way, resolved when their time is up. */
+  patrolFights: PatrolFight[];
+  /** Patrol id → window end it was beaten in; hidden until then, pruned after. */
+  beatenPatrols: Record<string, number>;
+  /** Traveller id → window end it was helped in. */
+  helpedTravellers: Record<string, number>;
+  /** Trader trade key (`spawn id:trade index`) → times used this window. */
+  traderUses: Record<string, number>;
+  /** Key fragments gathered from travellers, until they form a whole key. */
+  keyFragments: number;
+  /** Background fight result id → when it was applied; idempotence and pruning. */
+  appliedBackgroundResults: Record<string, number>;
   /** Counter for unique ids (gear, maps, lures, fights, heroes). */
   nextUid: number;
 };
@@ -128,6 +143,13 @@ export function createInitialSave(): SaveData {
     blueprintBonusDays: {},
     freshGathers: { day: '', used: 0 },
     autoGather: { processedUntil: 0, anchor: null, history: [] },
+    escort: null,
+    patrolFights: [],
+    beatenPatrols: {},
+    helpedTravellers: {},
+    traderUses: {},
+    keyFragments: 0,
+    appliedBackgroundResults: {},
     mastery: Object.fromEntries(MASTERY_TYPES.map((type) => [type, { level: 1, progress: 0 }])),
     nextUid: 1,
   };

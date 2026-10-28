@@ -14,6 +14,8 @@ import { recordSteps } from '../rewards/chests';
 import { lureSpawns } from '../rewards/lures';
 import type { SaveData } from '../save';
 import { TUTORIAL_SPAWN_ID } from '../tutorial/tutorial';
+import type { PatrolKind, TravellerKind } from '../patrols/generate';
+import type { TravellerReward } from '../patrols/travellers';
 import type { MaterialStack } from '../types';
 import { collectSpawn, localDayKey } from './gathering';
 
@@ -45,6 +47,22 @@ export type WalkSummary = {
   ignored: Partial<Record<IgnoreReason, number>>;
   /** Tracking stopped by itself after a while without movement. */
   autoStopped: boolean;
+  /** Patrols and travellers met while walking (the background task fills this in). */
+  patrols?: WalkPatrols;
+};
+
+/** A patrol fight met on a walk, by the player or the escort. */
+export type WalkFight = { kind: PatrolKind; tier: number; elite: boolean; by: 'you' | 'escort'; won: boolean };
+
+/** Patrols and travellers met on a walk, for the "While you walked" card. */
+export type WalkPatrols = {
+  fights: WalkFight[];
+  escortHp: { heroId: string; before: number; after: number; max: number } | null;
+  travellers: { kind: TravellerKind; reward: TravellerReward['kind'] }[];
+  gold: number;
+  /** XP per hero, added up. */
+  xp: number;
+  materials: MaterialStack[];
 };
 
 /** A summary kept in the history; the "While you walked" card shows the newest unseen one. */
@@ -305,10 +323,10 @@ export function recordWalk(save: SaveData, summary: WalkSummary, config: AutoCon
   return { ...save, autoGather: { ...save.autoGather, history } };
 }
 
-/** The walk to show in the "While you walked" card: the newest unseen one that gathered something. */
+/** The walk to show in the "While you walked" card: the newest unseen one that gathered something or met patrols. */
 export function walkToShow(save: SaveData): WalkRecord | null {
   const latest = save.autoGather.history[0];
-  return latest && !latest.seen && latest.nodes > 0 ? latest : null;
+  return latest && !latest.seen && (latest.nodes > 0 || !!latest.patrols?.fights.length) ? latest : null;
 }
 
 export function markWalksSeen(save: SaveData): SaveData {

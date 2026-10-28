@@ -157,10 +157,41 @@ export type ProfileSummary = {
     paybacks: Payback[];
     buildings: Record<string, Stat>;
   };
+  patrols: {
+    /** Median per run: spawns met by kind, and fights engaged, won and lost by kind. */
+    seen: Record<string, number>;
+    engaged: Record<string, number>;
+    won: Record<string, number>;
+    lost: Record<string, number>;
+    /** The same by tier ("3", or "3e" for an elite). */
+    seenTier: Record<string, number>;
+    engagedTier: Record<string, number>;
+    wonTier: Record<string, number>;
+    lostTier: Record<string, number>;
+    /** The escort's fights per run, and the spawns it skipped while under half HP. */
+    escort: { fought: number; won: number; knockouts: number; pauses: number };
+    /** Travellers helped per run by kind, and the rewards they rolled. */
+    travellers: Record<string, number>;
+    rewards: Record<string, number>;
+    /** Traveller recruits, key fragments and trades per run. */
+    recruits: number;
+    keyFragments: number;
+    trades: number;
+    /** Gold, XP and materials per run from patrols (fights, escort and travellers). */
+    gold: number;
+    xp: number;
+    materials: Record<string, number>;
+    /** Patrol gold as a share of all gold earned (median over runs). */
+    goldShare: number;
+    /** Per material gathered at least 10 per run by walking: the share of the walking materials that patrol fights and the escort brought. */
+    materialShare: Record<string, number>;
+    /** Median day the Nth hero joined with traveller recruits off, and how far the milestone moved. */
+    recruitShift: { hero: number; with: number | null; without: number | null; shift: number }[];
+  };
   warnings: string[];
 };
 
-export function summarize(logs: RunLog[], targets: Targets = defaultTargets): ProfileSummary {
+export function summarize(logs: RunLog[], targets: Targets = defaultTargets, withoutTravellerRecruits?: RunLog[]): ProfileSummary {
   const { profile, days } = logs[0];
   const keys = [...new Set(logs.flatMap((log) => Object.keys(log.milestones)))].sort();
   const milestones = Object.fromEntries(keys.map((k) => [k, stat(logs.map((log) => log.milestones[k]))]));
@@ -302,6 +333,37 @@ export function summarize(logs: RunLog[], targets: Targets = defaultTargets): Pr
   const foodGathered = perRun((log) => FOOD.reduce((s, m) => s + Object.values(log.gathered[m] ?? {}).reduce((a, b) => a + b, 0), 0));
   const foodUsed = perRun((log) => FOOD.reduce((s, m) => s + (log.used[m]?.kitchen ?? 0), 0));
 
+  // Patrols and travellers.
+  const tierKey = (tier: number, elite: boolean) => `${tier}${elite ? 'e' : ''}`;
+  const patrolCounts = (rows: (log: RunLog) => { key: string }[]) => medianTotals(logs.map((log) => sumBy(rows(log), (r) => r.key, () => 1)));
+  const PATROL_GOLD_SOURCES = ['patrol', 'escortPatrol', 'traveller'];
+  const WALK_SOURCES = ['walk', 'walkBonus', 'autoGather', 'autoGatherBonus', 'lure'];
+  const patrolGoldOf = (log: RunLog) => log.goldIn.filter((g) => PATROL_GOLD_SOURCES.includes(g.source)).reduce((s, g) => s + g.amount, 0);
+  const gatheredFrom = (log: RunLog, sources: string[]) =>
+    Object.fromEntries(Object.entries(log.gathered).map(([m, bySource]) => [m, sources.reduce((n, src) => n + (bySource[src] ?? 0), 0)]));
+  const patrolMaterials = medianTotals(logs.map((log) => Object.fromEntries(Object.entries(gatheredFrom(log, PATROL_GOLD_SOURCES)).filter(([, n]) => n > 0))));
+  const foughtMaterials = medianTotals(logs.map((log) => gatheredFrom(log, ['patrol', 'escortPatrol'])));
+  const walkedMaterials = medianTotals(logs.map((log) => gatheredFrom(log, WALK_SOURCES)));
+  const materialShare: Record<string, number> = {};
+  // Shares are only meaningful for materials the walks bring in.
+  for (const [m, walked] of Object.entries(walkedMaterials)) {
+    if (walked < 10) continue;
+    materialShare[m] = round((foughtMaterials[m] ?? 0) / walked);
+  }
+  const escort = {
+    fought: perRun((log) => log.patrols.escortFights.length),
+    won: perRun((log) => log.patrols.escortFights.filter((f) => f.won).length),
+    knockouts: perRun((log) => log.patrols.escortFights.filter((f) => f.knockout).length),
+    pauses: perRun((log) => log.patrols.escortPauses),
+  };
+  const recruitShift = withoutTravellerRecruits
+    ? [4, 6].map((n) => {
+        const withRecruits = stat(logs.map((log) => log.milestones[`recruit:${n}`])).median;
+        const without = stat(withoutTravellerRecruits.map((log) => log.milestones[`recruit:${n}`])).median;
+        return { hero: n, with: withRecruits, without, shift: Math.abs((withRecruits ?? days + 1) - (without ?? days + 1)) };
+      })
+    : [];
+
   const summary: ProfileSummary = {
     profile,
     runs: logs.length,
@@ -361,6 +423,28 @@ export function summarize(logs: RunLog[], targets: Targets = defaultTargets): Pr
     guild: {
       paybacks: paybacks(perDayByTier),
       buildings: Object.fromEntries(['warRoom', 'treasury', 'barracks'].map((b) => [b, stat(logs.map((log) => log.milestones[`building:${b}`]))])),
+    },
+    patrols: {
+      seen: patrolCounts((log) => log.patrols.seen.map((row) => ({ key: row.kind }))),
+      engaged: patrolCounts((log) => log.patrols.fights.map((row) => ({ key: row.kind }))),
+      won: patrolCounts((log) => log.patrols.fights.filter((row) => row.won).map((row) => ({ key: row.kind }))),
+      lost: patrolCounts((log) => log.patrols.fights.filter((row) => !row.won).map((row) => ({ key: row.kind }))),
+      seenTier: patrolCounts((log) => log.patrols.seen.map((row) => ({ key: tierKey(row.tier, row.elite) }))),
+      engagedTier: patrolCounts((log) => log.patrols.fights.map((row) => ({ key: tierKey(row.tier, row.elite) }))),
+      wonTier: patrolCounts((log) => log.patrols.fights.filter((row) => row.won).map((row) => ({ key: tierKey(row.tier, row.elite) }))),
+      lostTier: patrolCounts((log) => log.patrols.fights.filter((row) => !row.won).map((row) => ({ key: tierKey(row.tier, row.elite) }))),
+      escort,
+      travellers: medianTotals(logs.map((log) => log.patrols.travellers)),
+      rewards: medianTotals(logs.map((log) => log.patrols.rewards)),
+      recruits: perRun((log) => log.patrols.recruits.length),
+      keyFragments: perRun((log) => log.patrols.keyFragments),
+      trades: perRun((log) => log.patrols.trades),
+      gold: perRun(patrolGoldOf),
+      xp: perRun((log) => [...log.patrols.fights, ...log.patrols.escortFights].reduce((s, f) => s + f.xp, 0)),
+      materials: patrolMaterials,
+      goldShare: round(median(logs.map((log) => patrolGoldOf(log) / Math.max(1, log.goldIn.reduce((s, g) => s + g.amount, 0))))),
+      materialShare,
+      recruitShift,
     },
     warnings: [],
   };
@@ -422,6 +506,25 @@ function warnings(summary: ProfileSummary, logs: RunLog[], targets: Targets): st
   }
   for (const [tier, q] of Object.entries(summary.crafting.bossQuality)) {
     if (q.crappy > targets.crappyAtBoss) out.push(`Tier ${tier} boss attempted with ${Math.round(q.crappy * 100)}% Crappy gear.`);
+  }
+  if (Object.values(summary.patrols.seen).some((n) => n > 0)) {
+    if (profile === 'regular' && (summary.patrols.goldShare < targets.patrolGoldShare[0] || summary.patrols.goldShare > targets.patrolGoldShare[1])) {
+      out.push(
+        `Patrols bring ${Math.round(summary.patrols.goldShare * 100)}% of the gold earned (target ${targets.patrolGoldShare[0] * 100}–${targets.patrolGoldShare[1] * 100}%).`,
+      );
+    }
+    for (const [id, share] of Object.entries(summary.patrols.materialShare)) {
+      if (share > targets.patrolMaterialShareMax) {
+        out.push(`${id}: patrols bring ${Math.round(share * 100)}% of the walking materials (target under ${targets.patrolMaterialShareMax * 100}%).`);
+      }
+    }
+    for (const shift of summary.patrols.recruitShift) {
+      if (shift.shift > targets.travellerRecruitShiftDays) {
+        out.push(
+          `Traveller recruits move hero #${shift.hero} from day ${shift.with ?? '—'} to day ${shift.without ?? '—'} (target within ${targets.travellerRecruitShiftDays} day).`,
+        );
+      }
+    }
   }
   return out;
 }

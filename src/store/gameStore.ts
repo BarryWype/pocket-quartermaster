@@ -10,20 +10,25 @@ import { materials } from '@/content/materials';
 import { craft, craftMany, forgeResult, unlockRecipe, type ForgeResult } from '@/game/crafting/crafting';
 import { infuse } from '@/game/crafting/infusion';
 import { salvage } from '@/game/forging/salvage';
-import { migrateV10Save, migrateV11Save, migrateV12Save, migrateV5Save, migrateV6Save, migrateV7Save, migrateV8Save, migrateV9Save } from '@/game/migrations';
+import { migrateV10Save, migrateV11Save, migrateV12Save, migrateV13Save, migrateV5Save, migrateV6Save, migrateV7Save, migrateV8Save, migrateV9Save } from '@/game/migrations';
 import { convertShards, shardId, stoneId, type Element } from '@/game/elements';
 import { fastForward, resolveExpedition, startExpedition, type Loadout } from '@/game/expeditions/expeditions';
-import { markWalksSeen, processWalkPath, recordWalk, type WalkFix, type WalkOptions, type WalkSummary } from '@/game/gathering/autoGather';
+import { markWalksSeen, processWalkPath, recordWalk, type WalkFix, type WalkOptions, type WalkPatrols, type WalkSummary } from '@/game/gathering/autoGather';
 import { collectSpawn, type CollectResult, type Gatherer } from '@/game/gathering/gathering';
 import type { LatLng, Spawn } from '@/game/generation/types';
 import { addMaterials } from '@/game/inventory';
 import { dayKey, openChest, recordSteps, syncSteps, type ChestReward } from '@/game/rewards/chests';
 import { activateLure } from '@/game/rewards/lures';
 import { collectTreasure, readTreasureMap, type TreasureContents } from '@/game/rewards/treasure';
+import { applyBackgroundResults, type BackgroundResult } from '@/game/patrols/escort';
+import { isTravellerKind, type PatrolSpawn, type TravellerKind } from '@/game/patrols/generate';
+import { resolvePatrolFights as resolveDueFights, startPatrolFight, type PatrolFight } from '@/game/patrols/fight';
+import { acceptRecruit, helpTraveller as helpTravellerRule, trade, type TravellerRecruit, type TravellerReward } from '@/game/patrols/travellers';
+import { addPatrolsToWalks, escortHpChange, walkPatrolsFrom } from '@/game/patrols/walkPatrols';
 import { challengeSanctum, type SanctumResult, type SanctumSpawn } from '@/game/sanctums/sanctums';
 import { createInitialSave, type SaveData, type TutorialStep } from '@/game/save';
 import { drinkPotion, fastForwardHealing, healAll, setHeroHp, settleHp } from '@/game/team/health';
-import { dismissHero, equip, unequip } from '@/game/team/team';
+import { dismissHero, equip, isAway, unequip } from '@/game/team/team';
 import { buySupply, learnWeaponTypes, recruit, type RecruitOffer } from '@/game/taverns/taverns';
 import { buyRank } from '@/game/guild/guild';
 import { applyTraining } from '@/game/guild/training';
@@ -40,6 +45,24 @@ type GameState = {
   /** Auto-gather: collects along the walked path; `record` adds the summary to the walk history. */
   processWalk: (fixes: WalkFix[], options: WalkOptions, record: boolean) => WalkSummary;
   markWalksSeen: () => void;
+  /** Folds the background task's fight results into the save and the newest walk summary; results already applied change nothing. */
+  mergeBackground: (results: BackgroundResult[]) => void;
+  /** Settles the patrol fights whose time is up; the newest walk summary tells of them. */
+  resolvePatrolFights: () => PatrolFight[];
+  /** Sends home heroes at a patrol; the fight settles when its time is up. */
+  engagePatrol: (spawn: PatrolSpawn, heroIds: string[], player: LatLng) => void;
+  /** Helps a traveller, pays what they ask and notes them in the walk summary. */
+  helpTraveller: (
+    spawn: PatrolSpawn,
+    player: LatLng,
+    choice?: 'meal' | 'supply',
+  ) => { reward: TravellerReward; rosterFull: boolean };
+  /** Makes one of a trader's deals. */
+  tradeWithTrader: (spawn: PatrolSpawn, tradeIndex: number, player: LatLng) => void;
+  /** Takes a traveller up on joining the roster. */
+  acceptTravellerRecruit: (offer: TravellerRecruit) => void;
+  /** Sets the hero the background task sends at patrols by itself; null clears it. */
+  setEscort: (heroId: string | null) => void;
   /** Returns the forged gear piece and mastery change, for gear recipes. Provisions can be made `count` at a time. */
   craft: (recipeId: string, count?: number) => ForgeResult | null;
   infuse: (gearUid: string, element: Element) => void;
@@ -94,6 +117,8 @@ type GameState = {
   addLure: () => void;
   /** Forgets used Sanctums and the Sigil pity counter. */
   resetSanctums: () => void;
+  /** Debug: forgets beaten patrols, helped travellers and trader uses. */
+  resetPatrols: () => void;
   fastForwardExpeditions: () => void;
   /** Sets a hero's HP share; `exhausted` also knocks them out for a while. */
   setHeroHp: (heroId: string, share: number, exhausted: boolean) => void;
@@ -119,6 +144,46 @@ export const useGameStore = create<GameState>()(
         return summary;
       },
       markWalksSeen: () => set(({ save }) => ({ save: markWalksSeen(save) })),
+      mergeBackground: (results) => {
+        const now = Date.now();
+        const save = get().save;
+        const newResults = results.filter((result) => save.appliedBackgroundResults[result.id] === undefined);
+        const applied = applyBackgroundResults(save, results, now);
+        set({ save: addPatrolsToWalks(applied, walkPatrolsFrom(newResults, [], escortHpChange(newResults)), now) });
+      },
+      resolvePatrolFights: () => {
+        const now = Date.now();
+        const { save, resolved } = resolveDueFights(get().save, now);
+        const next = addPatrolsToWalks(save, walkPatrolsFrom([], resolved), now);
+        if (next !== get().save) set({ save: next });
+        return resolved;
+      },
+      engagePatrol: (spawn, heroIds, player) => set({ save: startPatrolFight(get().save, spawn, heroIds, player, Date.now()) }),
+      helpTraveller: (spawn, player, choice) => {
+        if (!isTravellerKind(spawn.kind)) throw new Error(`Nothing to ask of a ${spawn.kind}`);
+        const now = Date.now();
+        const { save, reward, rosterFull } = helpTravellerRule(get().save, spawn, player, now, choice);
+        const kind: TravellerKind = spawn.kind;
+        const patrols: WalkPatrols = {
+          fights: [],
+          escortHp: null,
+          travellers: [{ kind, reward: reward.kind }],
+          gold: reward.kind === 'gold' ? reward.gold : 0,
+          xp: 0,
+          materials: reward.kind === 'shards' ? [{ materialId: shardId(reward.element), amount: reward.amount }] : [],
+        };
+        set({ save: addPatrolsToWalks(save, patrols, now) });
+        return { reward, rosterFull };
+      },
+      tradeWithTrader: (spawn, tradeIndex, player) =>
+        set(({ save }) => ({ save: trade(save, spawn, tradeIndex, player, Date.now()) })),
+      acceptTravellerRecruit: (offer) => set(({ save }) => ({ save: acceptRecruit(save, offer) })),
+      setEscort: (heroId) => {
+        const save = get().save;
+        if (heroId && !save.heroes.some((h) => h.id === heroId)) throw new Error(`Unknown hero ${heroId}`);
+        if (heroId && isAway(save, heroId)) throw new Error(`${heroId} is away`);
+        set({ save: { ...save, escort: heroId ? { heroId } : null } });
+      },
       craft: (recipeId, count = 1) => {
         const before = get().save;
         const debug = useDebugStore.getState();
@@ -266,6 +331,8 @@ export const useGameStore = create<GameState>()(
         })),
       addLure: () => set(({ save }) => ({ save: { ...save, lures: save.lures + 1 } })),
       resetSanctums: () => set(({ save }) => ({ save: { ...save, usedSanctums: {}, sigilPity: 0 } })),
+      resetPatrols: () =>
+        set(({ save }) => ({ save: { ...save, beatenPatrols: {}, helpedTravellers: {}, traderUses: {} } })),
       fastForwardExpeditions: () => set(({ save }) => ({ save: fastForward(save, Date.now()) })),
       setHeroHp: (heroId, share, exhausted) => set(({ save }) => ({ save: setHeroHp(save, heroId, share, Date.now(), exhausted) })),
       healAll: () => set(({ save }) => ({ save: healAll(save) })),
@@ -284,7 +351,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 13,
+      version: 14,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
       // Saves from version 5 on are converted step by step; older ones start fresh. New fields get their defaults.
@@ -299,6 +366,7 @@ export const useGameStore = create<GameState>()(
         save = migrateV10Save(save);
         if (version <= 11) save = migrateV11Save(save);
         if (version <= 12) save = migrateV12Save(save);
+        if (version <= 13) save = migrateV13Save(save);
         return { save };
       },
       merge: (persisted, current) => ({

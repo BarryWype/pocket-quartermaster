@@ -7,6 +7,7 @@ import { runSim } from '@/game/sim/engine';
 import { oddsMatrix, type MatrixRow } from '@/game/sim/matrix';
 import { milestoneMisses, summarize, type ProfileSummary } from '@/game/sim/metrics';
 import { applyOverrides, parseOverride } from '@/game/sim/overrides';
+import { measurePatrolRates, patrolCacheKey, type PatrolRates } from '@/game/sim/patrols';
 import { spamCheck, type SpamCheck } from '@/game/sim/spam';
 import { bossTarget, targets } from '@/game/sim/targets';
 import { autoYieldRatio, measureWalkRates, PICKAXES, walkCacheKey, type WalkRates } from '@/game/sim/walking';
@@ -27,6 +28,8 @@ export type LabOptions = {
   matrix?: boolean;
   /** Measured walk yields; read from (or written to) the cache when not given. */
   rates?: WalkRates;
+  /** Measured patrol sighting rates; read from (or written to) the cache when not given. */
+  patrolRates?: PatrolRates;
   cacheDir?: string;
   print?: (line: string) => void;
 };
@@ -53,6 +56,16 @@ function walkRates(cacheDir: string, print: (line: string) => void): WalkRates {
   return rates;
 }
 
+function measuredPatrolRates(cacheDir: string, print: (line: string) => void): PatrolRates {
+  const file = path.join(cacheDir, `patrol-${patrolCacheKey()}.json`);
+  if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, 'utf8')) as PatrolRates;
+  print('Measuring patrol sighting rates (cached for next time)…');
+  const rates = measurePatrolRates();
+  fs.mkdirSync(cacheDir, { recursive: true });
+  fs.writeFileSync(file, JSON.stringify(rates));
+  return rates;
+}
+
 /** Runs every profile and seed, writes the report, CSVs and summary, and prints the headlines. */
 export function runLab(options: LabOptions) {
   const print = options.print ?? console.log;
@@ -61,14 +74,28 @@ export function runLab(options: LabOptions) {
   const undo = applyOverrides(options.overrides.map(parseOverride));
   try {
     const rates = options.rates ?? walkRates(options.cacheDir ?? 'sim-output/.cache', print);
+    const patrolRates = options.patrolRates ?? measuredPatrolRates(options.cacheDir ?? 'sim-output/.cache', print);
     const logs: RunLog[] = [];
     const summaries: Record<string, ProfileSummary> = {};
     for (const profile of options.profiles) {
       const runs = Array.from({ length: options.runs }, (_, i) =>
-        runSim({ profile, days: options.days, seed: `${options.seed}-${i + 1}`, rates }),
+        runSim({ profile, days: options.days, seed: `${options.seed}-${i + 1}`, rates, patrolRates }),
       );
       logs.push(...runs);
-      summaries[profile] = summarize(runs);
+      // The same seeds without traveller recruits, to measure how far they move the roster milestones.
+      const withoutRecruits = simConfig.patrols.enabled
+        ? Array.from({ length: options.runs }, (_, i) =>
+            runSim({
+              profile,
+              days: options.days,
+              seed: `${options.seed}-${i + 1}`,
+              rates,
+              patrolRates,
+              config: { ...simConfig, patrols: { ...simConfig.patrols, travellerRecruits: false } },
+            }),
+          )
+        : undefined;
+      summaries[profile] = withoutRecruits ? summarize(runs, targets, withoutRecruits) : summarize(runs);
     }
     const summary: Summary = {
       settings: {
@@ -107,6 +134,8 @@ export function runLab(options: LabOptions) {
 
 function printSummary(summary: Summary, comparison: Comparison | null, print: (line: string) => void) {
   const day = (value: number | null) => (value === null ? '—' : String(value));
+  const one = (value: number) => value.toLocaleString('en', { maximumFractionDigits: 1 });
+  const total = (record: Record<string, number>) => Object.values(record).reduce((a, b) => a + b, 0);
   for (const [name, p] of Object.entries(summary.profiles)) {
     print(`\n${name} (${p.runs} runs × ${p.days} days)`);
     for (let tier = 1; tier <= 5; tier++) {
@@ -126,6 +155,11 @@ function printSummary(summary: Summary, comparison: Comparison | null, print: (l
       `  Auto-gather: ${Math.round((profiles[name]?.autoShare ?? 0) * 100)}% of walking time, ${Math.round(p.materials.autoShare * 100)}% of walking materials · milestones ${
         misses.length === 0 ? 'met ✓' : `missed ⚠ (${misses.length})`
       }`,
+    );
+    print(
+      `  Patrols: ${one(total(p.patrols.seen))} met, ${one(total(p.patrols.engaged))} engaged (${one(total(p.patrols.won))} won), ${one(
+        p.patrols.escort.fought,
+      )} escort fights · ${Math.round(p.patrols.goldShare * 100)}% of gold from patrols`,
     );
     for (const w of p.warnings) print(`  ⚠ ${w}`);
   }

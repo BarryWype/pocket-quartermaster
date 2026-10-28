@@ -109,3 +109,8 @@ export function migrateV11Save(old: Partial<SaveData>): SaveData {
 export function migrateV12Save(old: Partial<SaveData>): SaveData {
   return { ...createInitialSave(), ...old, autoGather: createInitialSave().autoGather };
 }
+
+/** v13 → v14: patrols, travellers and the escort; everything starts empty. */
+export function migrateV13Save(old: Partial<SaveData>): SaveData {
+  return { ...createInitialSave(), ...old };
+}

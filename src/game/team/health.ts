@@ -2,7 +2,7 @@ import { healthRules } from '@/content/health';
 
 import type { SaveData } from '../save';
 import type { HeroState } from '../types';
-import { heroAbilities, heroStats, isOnExpedition } from './team';
+import { heroAbilities, heroStats, isAway } from './team';
 
 type Rules = typeof healthRules;
 
@@ -26,7 +26,7 @@ export const maxHp = (save: SaveData, hero: HeroState) => heroStats(save, hero).
 export function currentHp(save: SaveData, hero: HeroState, now: number, rules: Rules = healthRules) {
   const max = maxHp(save, hero);
   if (hero.hp === undefined) return max;
-  if (isOnExpedition(save, hero.id)) return Math.min(max, hero.hp);
+  if (isAway(save, hero.id)) return Math.min(max, hero.hp);
   const from = Math.max(hero.hpAt ?? now, hero.exhaustedUntil ?? -Infinity);
   const minutes = Math.max(0, now - from) / MINUTE;
   return Math.min(max, hero.hp + minutes * rules.healPerMinute * healRate(hero).multiplier * max);
@@ -58,7 +58,7 @@ export function settleHp(save: SaveData, now: number, rules: Rules = healthRules
   return {
     ...save,
     heroes: save.heroes.map((hero) =>
-      hero.hp === undefined || isOnExpedition(save, hero.id)
+      hero.hp === undefined || isAway(save, hero.id)
         ? hero
         : withHp(hero, currentHp(save, hero, now, rules), maxHp(save, hero), now, hero.exhaustedUntil),
     ),
@@ -92,7 +92,7 @@ const POTION = 'healingPotion';
 
 export function drinkProblem(save: SaveData, heroId: string, now: number): DrinkProblem | null {
   const hero = save.heroes.find((h) => h.id === heroId);
-  if (!hero || isOnExpedition(save, heroId)) return 'away';
+  if (!hero || isAway(save, heroId)) return 'away';
   if ((save.consumables[POTION] ?? 0) < 1 && hero.equipment.consumable !== POTION) return 'noPotion';
   if (currentHp(save, hero, now) >= maxHp(save, hero) && !isExhausted(hero, now)) return 'full';
   return null;

@@ -2,6 +2,7 @@ import { dungeonById, itemById, materialById } from '@/content/lookup';
 import { guildBuildings, guildTrackById, type GuildBuildingId } from '@/content/guild';
 import { dungeons } from '@/content/dungeons';
 import { heroClasses } from '@/content/heroes';
+import { PATROL_KINDS, TRAVELLER_KINDS } from '@/game/patrols/generate';
 import { dungeonTagWeights } from '@/game/dungeons/tags';
 import { milestoneMisses, type Point, type ProfileSummary, type Stat } from '@/game/sim/metrics';
 import { bossTarget, recruitTarget, targets } from '@/game/sim/targets';
@@ -280,6 +281,88 @@ export function renderReport({ summary, comparison, elapsed, rules, compareWith 
       })
       .join('');
 
+  // 5d. Patrols and travellers met on walks.
+  const flag = (off: boolean) => `<span class="${off ? 'flag' : 'ok'}">${off ? '⚠' : '✓'}</span>`;
+  const patrolsBody = ps
+    .map((p) => {
+      const byKind = table(
+        ['Kind', 'Seen', 'Engaged', 'Won', 'Lost'],
+        [...PATROL_KINDS, ...TRAVELLER_KINDS].map((kind) => [
+          kind,
+          fmt(p.patrols.seen[kind] ?? 0, 1),
+          fmt(p.patrols.engaged[kind] ?? 0, 1),
+          fmt(p.patrols.won[kind] ?? 0, 1),
+          fmt(p.patrols.lost[kind] ?? 0, 1),
+        ]),
+      );
+      const tierKeys = [...new Set([...Object.keys(p.patrols.seenTier), ...Object.keys(p.patrols.engagedTier)])].sort(
+        (a, b) => parseInt(a) - parseInt(b) || Number(a.endsWith('e')) - Number(b.endsWith('e')),
+      );
+      const byTier = table(
+        ['Tier', 'Seen', 'Engaged', 'Won', 'Lost'],
+        tierKeys.map((key) => [
+          key,
+          fmt(p.patrols.seenTier[key] ?? 0, 1),
+          fmt(p.patrols.engagedTier[key] ?? 0, 1),
+          fmt(p.patrols.wonTier[key] ?? 0, 1),
+          fmt(p.patrols.lostTier[key] ?? 0, 1),
+        ]),
+      );
+      const escort = `<p>Escort: ${fmt(p.patrols.escort.fought, 1)} fights, ${fmt(p.patrols.escort.won, 1)} won, ${fmt(
+        p.patrols.escort.knockouts,
+        1,
+      )} knock-outs, ${fmt(p.patrols.escort.pauses, 1)} spawns skipped while under 50% HP.</p>`;
+      const travellers = table(
+        ['Travellers (per run)', 'Median per run'],
+        [
+          ['Wounded helped', fmt(p.patrols.travellers.wounded ?? 0, 1)],
+          ['Pilgrims helped', fmt(p.patrols.travellers.pilgrim ?? 0, 1)],
+          ['Traders traded with', fmt(p.patrols.travellers.trader ?? 0, 1)],
+          ...Object.entries(p.patrols.rewards).map(([kind, n]) => [`Reward: ${kind}`, fmt(n, 1)]),
+          ['Traveller recruits joined', fmt(p.patrols.recruits, 1)],
+          ['Key fragments', fmt(p.patrols.keyFragments, 1)],
+          ['Trades made', fmt(p.patrols.trades, 1)],
+        ],
+      );
+      const goldTarget =
+        p.profile === 'regular'
+          ? `, target ${targets.patrolGoldShare[0] * 100}–${targets.patrolGoldShare[1] * 100}% ${flag(
+              p.patrols.goldShare < targets.patrolGoldShare[0] || p.patrols.goldShare > targets.patrolGoldShare[1],
+            )}`
+          : '';
+      const materials = Object.entries(p.patrols.materials)
+        .filter(([, n]) => n > 0)
+        .map(([m, n]) => `${esc(materialName(m))} ${fmt(n)}`)
+        .join(', ');
+      const fromPatrols = `<p>From patrols (per run): gold ${fmt(p.patrols.gold, 1)} (${pct(p.patrols.goldShare)} of all gold earned${goldTarget}), XP ${fmt(
+        p.patrols.xp,
+        1,
+      )}${materials ? `, materials: ${materials}` : ''}</p>`;
+      const shares = Object.entries(p.patrols.materialShare);
+      const materialShare = shares.length
+        ? table(
+            ['Material', `Share of walking materials (target under ${targets.patrolMaterialShareMax * 100}%)`],
+            shares.map(([m, share]) => [
+              esc(materialName(m)),
+              `${pct(share)}${share > targets.patrolMaterialShareMax ? ' <span class="flag">⚠</span>' : ''}`,
+            ]),
+          )
+        : '';
+      const shift = p.patrols.recruitShift.length
+        ? table(
+            ['Hero', 'Day with traveller recruits', 'Day without', 'Shift'],
+            p.patrols.recruitShift.map((s) => [
+              `#${s.hero}`,
+              s.with === null ? '—' : String(s.with),
+              s.without === null ? '—' : String(s.without),
+              `${s.shift}${s.shift > targets.travellerRecruitShiftDays ? ' <span class="flag">⚠</span>' : ''}`,
+            ]),
+          )
+        : '';
+      return `<h3>${p.profile}</h3>` + byKind + byTier + escort + travellers + fromPatrols + materialShare + shift;
+    })
+    .join('');
+
   // 6. Crafting
   const crafting = ps
     .map(
@@ -408,7 +491,6 @@ export function renderReport({ summary, comparison, elapsed, rules, compareWith 
   // 7d. Provisions and HP
   const prov = (pick: (p: ProfileSummary['provisions']) => string) => ps.map((p) => pick(p.provisions));
   const foodTarget = targets.foodUse;
-  const flag = (off: boolean) => `<span class="${off ? 'flag' : 'ok'}">${off ? '⚠' : '✓'}</span>`;
   const mealIds = [...new Set(ps.flatMap((p) => Object.keys(p.provisions.meals)))];
   const kitIds = [...new Set(ps.flatMap((p) => Object.keys(p.provisions.kits)))];
   const itemName = (id: string) => esc(itemById[id]?.name ?? id);
@@ -485,6 +567,7 @@ export function renderReport({ summary, comparison, elapsed, rules, compareWith 
     section('materials', '5. Materials', materials),
     section('nodes', '5b. Map nodes', nodes),
     section('auto-gather', '5c. Auto-gather', autoGather),
+    section('patrols', '5d. Patrols and travellers', patrolsBody),
     section('crafting', '6. Crafting', crafting),
     section('expeditions', '7. Expeditions', expeditions),
     section('classes', '7b. Classes and abilities', classes),
@@ -512,7 +595,7 @@ nav{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px}nav a{color:var(--mu
 code{font-size:12px}
 </style></head><body><main><h1>Balance lab</h1><nav>${[
     comparison ? ['compare', 'Changes'] : null,
-    ['warnings-top', 'Warnings'], ['rules', 'Rules'], ['milestones', 'Milestones'], ['gold', 'Gold'], ['heroes', 'Heroes'], ['materials', 'Materials'], ['nodes', 'Map nodes'], ['auto-gather', 'Auto-gather'],
+    ['warnings-top', 'Warnings'], ['rules', 'Rules'], ['milestones', 'Milestones'], ['gold', 'Gold'], ['heroes', 'Heroes'], ['materials', 'Materials'], ['nodes', 'Map nodes'], ['auto-gather', 'Auto-gather'], ['patrols', 'Patrols'],
     ['crafting', 'Crafting'], ['expeditions', 'Expeditions'], ['classes', 'Classes'], ['provisions', 'Provisions'], ['tags', 'Tags'], ['matrix', 'Odds matrix'], ['guild', 'Guild Hall'],
   ]
     .filter((x): x is string[] => x !== null)

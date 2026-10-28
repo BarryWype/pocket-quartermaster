@@ -1,0 +1,153 @@
+import { useMemo, useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+
+import { frPatrolTexts } from '@/content/fr/patrols';
+import { heroClasses } from '@/content/heroes';
+import { patrolKinds, patrolTexts } from '@/content/patrols';
+import { tagInfo } from '@/content/rotation';
+import { highestUnlockedTier } from '@/game/expeditions/expeditions';
+import { oddsBand } from '@/game/expeditions/odds';
+import { dungeonTags } from '@/game/dungeons/tags';
+import { partySize } from '@/game/guild/guild';
+import type { LatLng } from '@/game/generation/types';
+import { isPatrolKind, patrolTier, type PatrolSpawn } from '@/game/patrols/generate';
+import { patrolDungeon, patrolFightProblem, patrolOdds, type PatrolFightProblem } from '@/game/patrols/fight';
+import { distanceTo } from '@/game/patrols/visibility';
+import { currentHp, isExhausted, maxHp } from '@/game/team/health';
+import { isAway } from '@/game/team/team';
+import { formatDuration, formatPercent, localized, t, tr } from '@/i18n';
+import { syncBackground } from '@/hooks/useAutoGather';
+import { useGameStore } from '@/store/gameStore';
+import { useWorldStore } from '@/store/worldStore';
+import { colors, pixel } from '@/theme';
+
+import { Button } from './Button';
+import { Text } from './Text';
+
+const problemText: Record<Exclude<PatrolFightProblem, null>, (distance: number) => string> = {
+  tooFar: (distance) => t('patrols.walkCloser', { distance: Math.round(distance) }),
+  gone: () => t('patrols.gone'),
+  away: () => t('sanctum.heroAway'),
+  exhausted: () => t('patrols.exhausted'),
+  partySize: () => t('patrols.partyMax'),
+  empty: () => t('sanctum.noHeroes'),
+};
+
+type Props = {
+  spawn: PatrolSpawn;
+  player: LatLng;
+  now: number;
+  onClose: () => void;
+};
+
+/** The patrol engage sheet: what it is, what it pays, and the heroes to send at it. */
+export function PatrolPanel({ spawn, player, now, onClose }: Props) {
+  const save = useGameStore((state) => state.save);
+  const engagePatrol = useGameStore((state) => state.engagePatrol);
+  const [openedAt] = useState(() => Date.now());
+  const kind = isPatrolKind(spawn.kind) ? spawn.kind : null;
+  // Home heroes who can still fight; the escort can be sent, and stops escorting if so.
+  const candidates = save.heroes.filter((hero) => !isAway(save, hero.id) && !isExhausted(hero, now));
+  const [heroIds, setHeroIds] = useState<string[]>(() =>
+    kind ? candidates.slice(0, patrolKinds[kind].party).map((hero) => hero.id) : [],
+  );
+  const texts = localized({ en: patrolTexts, fr: frPatrolTexts });
+
+  const odds = useMemo(
+    () => (kind && heroIds.length > 0 ? patrolOdds(save, spawn, heroIds, openedAt) : null),
+    [save, spawn, heroIds, openedAt, kind],
+  );
+
+  if (!kind) return null;
+
+  const { tier, elite } = patrolTier(spawn, highestUnlockedTier(save));
+  const dungeon = patrolDungeon(spawn, tier, elite);
+  const problem = patrolFightProblem(save, spawn, heroIds, player, now);
+  const escortId = save.escort?.heroId;
+  const toggle = (heroId: string) =>
+    setHeroIds((ids) =>
+      ids.includes(heroId) ? ids.filter((id) => id !== heroId) : ids.length < partySize(save) ? [...ids, heroId] : ids,
+    );
+
+  const fight = () => {
+    engagePatrol(spawn, heroIds, player);
+    syncBackground();
+    useWorldStore
+      .getState()
+      .set({ patrolMessage: { text: t('patrols.sent', { minutes: dungeon.durationMinutes }), at: now } });
+    onClose();
+  };
+
+  return (
+    <Modal animationType="slide" transparent onRequestClose={onClose}>
+      <View style={styles.backdrop}>
+        <View style={styles.sheet}>
+          <ScrollView contentContainerStyle={styles.content}>
+            <Text style={styles.title}>
+              {dungeon.emoji} {texts.kinds[kind]}
+            </Text>
+            <Text style={styles.muted}>
+              {t('expeditions.tier', { tier })}
+              {elite ? ` ★ ${t('patrols.eliteX2')}` : ''} · ⏳ {formatDuration(dungeon.durationMinutes * 60_000)} ·{' '}
+              {t('patrols.recommended', { count: patrolKinds[kind].party })}
+            </Text>
+            <Text style={styles.muted}>{t(`patrols.rewards.${kind}`)}</Text>
+            <Text style={styles.muted}>
+              {dungeonTags(dungeon)
+                .map((tag) => `${tagInfo[tag].emoji} ${tr(tagInfo[tag].name)}`)
+                .join(' · ')}
+            </Text>
+            <Text style={styles.subtitle}>{t('sanctum.heroes')}</Text>
+            <View style={styles.chips}>
+              {candidates.map((hero) => (
+                <Pressable
+                  key={hero.id}
+                  onPress={() => toggle(hero.id)}
+                  style={[styles.chip, heroIds.includes(hero.id) && styles.chipActive]}
+                >
+                  <Text>
+                    {heroClasses[hero.classId].emoji} {hero.name}
+                    {hero.id === escortId ? t('common.escort') : ''} ·{' '}
+                    {formatPercent(currentHp(save, hero, now) / maxHp(save, hero))}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            {escortId !== undefined && heroIds.includes(escortId) && <Text style={styles.muted}>{t('patrols.escortNote')}</Text>}
+            {odds && (
+              <Text style={styles.odds}>
+                {t('sanctum.estimate', { percent: formatPercent(odds.success), band: t(`odds.${oddsBand(odds.success)}`) })}
+              </Text>
+            )}
+            {problem && <Text style={styles.problem}>{problemText[problem](distanceTo(spawn, player, now))}</Text>}
+          </ScrollView>
+          <View style={styles.actions}>
+            <Button title={t('patrols.fight')} disabled={problem !== null} onPress={fight} />
+            <Button title={t('common.close')} color={colors.muted} onPress={onClose} />
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  sheet: {
+    backgroundColor: colors.parchment,
+    borderTopWidth: pixel.outline + 1,
+    borderColor: colors.ink,
+    padding: 16,
+    maxHeight: '85%',
+  },
+  content: { gap: 6, paddingBottom: 12 },
+  title: { fontSize: 26 },
+  subtitle: { fontSize: 21, marginTop: 8 },
+  muted: { color: colors.muted },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { borderWidth: pixel.outline, borderColor: colors.woodDark, paddingHorizontal: 10, paddingVertical: 6 },
+  chipActive: { borderColor: colors.ink, backgroundColor: colors.highlight },
+  odds: { fontSize: 21, marginTop: 8 },
+  problem: { color: colors.muted, fontStyle: 'italic' },
+  actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
+});

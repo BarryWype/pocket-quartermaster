@@ -105,6 +105,12 @@ describe('startExpedition', () => {
     expect(() => startExpedition(save, 'goblinWarren', ['bram', 'lyra'], 0)).toThrow();
     expect(() => startExpedition(save, 'goblinWarren', [], 0)).toThrow();
   });
+
+  it('stands the escort down when its hero is sent', () => {
+    const save = { ...createInitialSave(), escort: { heroId: 'bram' } };
+    expect(startExpedition(save, 'goblinWarren', ['bram'], 0).escort).toBeNull();
+    expect(startExpedition(save, 'goblinWarren', ['lyra'], 0).escort).toEqual({ heroId: 'bram' });
+  });
 });
 
 describe('estimateOdds', () => {

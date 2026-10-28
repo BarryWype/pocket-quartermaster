@@ -1,7 +1,7 @@
 import { guildRules } from '@/content/guild';
 
 import type { SaveData } from '../save';
-import { addXp, isOnExpedition } from '../team/team';
+import { addXp, isAway } from '../team/team';
 import { guildBonus } from './guild';
 
 type Rules = typeof guildRules;
@@ -23,6 +23,6 @@ export function applyTraining(save: SaveData, now: number, rules: Rules = guildR
   return {
     ...save,
     trainedAt: now - (elapsed - used),
-    heroes: save.heroes.map((hero) => (isOnExpedition(save, hero.id) ? hero : addXp(hero, xp))),
+    heroes: save.heroes.map((hero) => (isAway(save, hero.id) ? hero : addXp(hero, xp))),
   };
 }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { patrolIcons } from '@/components/PatrolMarker';
 import { Text } from '@/components/Text';
 import { elementInfo } from '@/content/elements';
 import { MASTERY_TYPES, masteryTypeNames, QUALITIES, qualities } from '@/content/forging';
@@ -12,24 +13,43 @@ import { traits } from '@/content/traits';
 import { items } from '@/content/items';
 import { dungeonModifiers, modifierById } from '@/content/modifiers';
 import { notificationCategories, notificationTexts as texts } from '@/content/notifications';
+import { patrolRules, patrolTexts } from '@/content/patrols';
 import { sanctums } from '@/content/sanctums';
 import { ELEMENTS, type Element } from '@/game/elements';
+import { highestUnlockedTier } from '@/game/expeditions/expeditions';
 import { playbackRoute, type WalkSummary } from '@/game/gathering/autoGather';
 import { offsetPosition } from '@/game/generation/geo';
+import { windowIndex, windowRange } from '@/game/generation/time';
+import { tileAt } from '@/game/generation/tiles';
 import type { LatLng, TimeOfDay } from '@/game/generation/types';
+import { patrolNotifications } from '@/game/notifications/patrols';
 import { fill } from '@/game/notifications/plan';
 import type { NotificationCategory } from '@/game/notifications/types';
+import type { BackgroundAlert } from '@/game/patrols/escort';
+import {
+  PATROL_KINDS,
+  TRAVELLER_KINDS,
+  isPatrolKind,
+  isTravellerKind,
+  patrolsAround,
+  patrolTier,
+  type PatrolSpawn,
+  type PatrolSubject,
+  type TierRoll,
+} from '@/game/patrols/generate';
+import { distanceTo } from '@/game/patrols/visibility';
 import { masteryCap, masteryOf } from '@/game/forging/mastery';
 import { guildRank } from '@/game/guild/guild';
 import { currentHp, isExhausted, maxHp } from '@/game/team/health';
 import type { HeroClassId, MainRewardKind, Quality } from '@/game/types';
-import { playBack } from '@/hooks/useAutoGather';
+import { playBack, syncBackground } from '@/hooks/useAutoGather';
 import { deviceLocation } from '@/services/location';
-import { readBuffer, updateBuffer, type StoredBuffer } from '@/services/walkTracking';
+import { readBackground, readBuffer, stepPatrols, updateBackground, updateBuffer, type StoredBuffer } from '@/services/walkTracking';
 import { deviceNotifications } from '@/services/notifications';
 import { useNow } from '@/hooks/useNow';
 import { currentRotation, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { useWorldStore } from '@/store/worldStore';
 
 const FALLBACK_LOCATION = { latitude: -41.2865, longitude: 174.7762 };
@@ -56,6 +76,8 @@ const SAMPLE_NOTIFICATIONS: Record<NotificationCategory, { title: string; body: 
   chestClose: { ...texts.chestClose, body: fill(texts.chestClose.body, { steps: 600, chest: 'iron chest' }) },
   dailyReset: texts.dailyReset,
   walkSummary: { ...texts.walkSummary, body: fill(texts.walkSummary.body, { distance: '2.4 km' }) },
+  patrolSpotted: { ...texts.patrolSpotted, body: fill(texts.patrolSpotted.body, { patrol: 'Goblin patrol', distance: '180 m', tier: 2 }) },
+  escort: { ...texts.escortPaused, body: fill(texts.escortPaused.body, { hero: 'Bram', percent: 45 }) },
 };
 
 function Choice<T>({
@@ -90,11 +112,26 @@ export default function DebugScreen() {
   const autoMode = useWorldStore((state) => state.autoGather);
   const [buffer, setBuffer] = useState<StoredBuffer | null>(null);
   const [playback, setPlayback] = useState<WalkSummary | null>(null);
+  const [tierRoll, setTierRoll] = useState<TierRoll>('current');
+  const [around, setAround] = useState<{ position: LatLng; spawns: PatrolSpawn[] } | null>(null);
+  const [escortMerged, setEscortMerged] = useState<number | null>(null);
   const refreshBuffer = () => readBuffer().then(setBuffer, () => setBuffer(null));
   // A loop around the mock location (or the map's last position) that ends now.
   const playRoute = async (stepsCounted: boolean) => {
+    setEscortMerged(null);
     const center = debug.mockLocation ?? useWorldStore.getState().player ?? FALLBACK_LOCATION;
     setPlayback(await playBack(playbackRoute(center, Date.now(), { stepsCounted })));
+    refreshBuffer();
+  };
+  /** Feeds the same loop, but through the background task's patrol stepping first, escort fights and alerts included. */
+  const playRouteWithPatrols = async () => {
+    const center = debug.mockLocation ?? useWorldStore.getState().player ?? FALLBACK_LOCATION;
+    const fixes = playbackRoute(center, Date.now());
+    await stepPatrols(fixes, false);
+    const merged = (await readBackground())?.pending.length ?? 0;
+    setPlayback(await playBack(fixes));
+    await syncBackground();
+    setEscortMerged(merged);
     refreshBuffer();
   };
   const lastWalk = game.save.autoGather.history[0] ?? null;
@@ -152,6 +189,33 @@ export default function DebugScreen() {
     debug.set({ debugSanctum: { id: `debug:${sanctumId}:${now}`, sanctumId, position, expiresAt: now + 24 * 3_600_000 } });
   };
 
+  /** A hand-placed patrol next to the player, in the window that is running now. */
+  const spawnDebugPatrol = async (kind: PatrolSubject) => {
+    const position = await currentPosition();
+    // eslint-disable-next-line react-hooks/purity -- called from the buttons' onPress, never during render
+    const now = Date.now();
+    const window = windowIndex(now, patrolRules.windowMinutes);
+    const { start, end } = windowRange(window, patrolRules.windowMinutes);
+    const tile = tileAt(position, patrolRules.precision);
+    useWorldStore.getState().addDebugPatrols([
+      {
+        id: `debug:${tile}:${window}:${kind}-${now}`,
+        tile,
+        window,
+        kind,
+        tierRoll: isTravellerKind(kind) ? 'current' : tierRoll,
+        path: { waypoints: [offsetPosition(position, 30, 0)], loopMs: 60_000, phaseMs: 0 },
+        startsAt: start,
+        endsAt: end,
+      },
+    ]);
+  };
+
+  const showAround = async () => {
+    const position = await currentPosition();
+    setAround({ position, spawns: patrolsAround(position, Date.now()) });
+  };
+
   /** Ignores settings and quiet hours, so the OS side can be checked alone. */
   const sendSample = async (category: NotificationCategory) => {
     if (!(await deviceNotifications.getPermission()).granted && !(await deviceNotifications.requestPermission())) {
@@ -160,6 +224,47 @@ export default function DebugScreen() {
     }
     const { group } = notificationCategories[category];
     await deviceNotifications.send({ id: `debug:${category}`, category, group, at: null, ...SAMPLE_NOTIFICATIONS[category] });
+  };
+
+  /** Sends one of the background task's patrol alerts through the real builder, shown now whatever quiet hours say. */
+  const sendPatrolAlert = async (alert: BackgroundAlert) => {
+    if (!(await deviceNotifications.getPermission()).granted && !(await deviceNotifications.requestPermission())) {
+      Alert.alert('Notifications are not allowed', 'Allow them in Settings first.');
+      return;
+    }
+    const save = useGameStore.getState().save;
+    const settings = useSettingsStore.getState().notifications;
+    const escortName = save.heroes.find((hero) => hero.id === save.escort?.heroId)?.name ?? save.heroes[0]?.name ?? null;
+    const planned = patrolNotifications([alert], escortName, settings, Date.now());
+    if (planned.length === 0) {
+      Alert.alert('Nothing to send', 'The notification settings filter this alert out.');
+      return;
+    }
+    for (const notification of planned) await deviceNotifications.send({ ...notification, at: null });
+  };
+
+  const testPatrolAlert = async () => {
+    const position = await currentPosition();
+    const now = Date.now();
+    const spawn = patrolsAround(position, now)
+      .filter((candidate) => isPatrolKind(candidate.kind))
+      .sort((a, b) => distanceTo(a, position, now) - distanceTo(b, position, now))[0];
+    if (!spawn) {
+      Alert.alert('No patrols around', 'Spawn one with the buttons above.');
+      return;
+    }
+    await sendPatrolAlert({
+      kind: 'patrolSpotted',
+      spawn,
+      distance: distanceTo(spawn, position, now),
+      tier: patrolTier(spawn, highestUnlockedTier(useGameStore.getState().save)).tier,
+    });
+  };
+
+  /** Drops the background task's patrol state; syncBackground rebuilds it if Pocket mode needs one. */
+  const clearBackground = async () => {
+    await updateBackground(() => null);
+    await syncBackground();
   };
 
   const confirmReset = () =>
@@ -430,11 +535,13 @@ export default function DebugScreen() {
       <View style={styles.row}>
         <Button title="Play 30 min loop (steps estimated)" onPress={() => playRoute(false)} />
         <Button title="Play (pedometer counted)" onPress={() => playRoute(true)} />
+        <Button title="Play back with patrols & escort" onPress={playRouteWithPatrols} />
       </View>
       <Text style={styles.hint}>
         Feeds a loop at walking pace, ending now, around the mock location (or where the map last saw you), then processes it as if the app came back. Fixes older than the last processed one are ignored as stale.
       </Text>
       {playback && <Text style={styles.mono}>Playback: {describeWalk(playback)}</Text>}
+      {escortMerged !== null && <Text style={styles.mono}>Escort fights merged: {escortMerged}</Text>}
       <View style={styles.row}>
         <Button title="Read buffer" onPress={refreshBuffer} />
         <Button title="Clear buffer" onPress={() => updateBuffer((b) => ({ ...b, fixes: [], autoStopped: false })).then(setBuffer)} />
@@ -446,6 +553,52 @@ export default function DebugScreen() {
         </Text>
       )}
       {lastWalk && <Text style={styles.mono}>Last walk: {describeWalk(lastWalk)}</Text>}
+
+      <Text style={styles.title}>Patrols</Text>
+      <Text>Spawn next to me</Text>
+      <Choice
+        options={['current', 'below', 'elite'] as TierRoll[]}
+        value={tierRoll}
+        label={(roll) => roll}
+        onChange={setTierRoll}
+      />
+      <View style={styles.choices}>
+        {([...PATROL_KINDS, ...TRAVELLER_KINDS] as PatrolSubject[]).map((kind) => (
+          <Button
+            key={kind}
+            title={`${patrolIcons[kind]} ${isPatrolKind(kind) ? patrolTexts.kinds[kind] : patrolTexts.travellers[kind].name}`}
+            onPress={() => spawnDebugPatrol(kind)}
+          />
+        ))}
+      </View>
+      <Text style={styles.hint}>Hand-placed patrols last until their window ends and can be fought or helped like real ones.</Text>
+      <View style={styles.row}>
+        <Button title="Show patrols around" onPress={showAround} />
+        <Button title="Clear debug patrols" onPress={() => useWorldStore.getState().addDebugPatrols([])} />
+      </View>
+      {around && (
+        <Text style={styles.mono}>
+          {around.spawns.length} around {around.position.latitude.toFixed(4)}, {around.position.longitude.toFixed(4)}:
+        </Text>
+      )}
+      {around &&
+        around.spawns.map((spawn) => (
+          <Text key={spawn.id} style={styles.mono}>
+            {patrolIcons[spawn.kind]} {spawn.id} · {spawn.kind} {spawn.tierRoll} ·{' '}
+            {new Date(spawn.startsAt).toLocaleTimeString()}–{new Date(spawn.endsAt).toLocaleTimeString()} ·{' '}
+            {Math.round(distanceTo(spawn, around.position, now))} m · {spawn.path.waypoints.length} waypoints
+          </Text>
+        ))}
+      <Text>Trigger notifications</Text>
+      <View style={styles.choices}>
+        <Button title="Test patrol alert" onPress={testPatrolAlert} />
+        <Button title="Test escort paused" onPress={() => sendPatrolAlert({ kind: 'escortPaused', hpShare: 0.45 })} />
+        <Button title="Test escort knocked out" onPress={() => sendPatrolAlert({ kind: 'escortKnockedOut' })} />
+      </View>
+      <View style={styles.row}>
+        <Button title="Clear beaten patrols & helped travellers" onPress={game.resetPatrols} />
+        <Button title="Clear background state" onPress={clearBackground} />
+      </View>
 
       <Text style={styles.title}>Steps</Text>
       <Text>Extra steps today: {debug.extraSteps}</Text>

@@ -4,6 +4,7 @@ import { Alert, AppState, Linking, ScrollView, StyleSheet, Switch, View } from '
 
 import { useAutoGatherToggle, WalkStats } from '@/components/AutoGather';
 import { Button } from '@/components/Button';
+import { AlertForPicker, PocketOptionRow, PocketOptionsHint } from '@/components/PocketModePanel';
 import { SectionTitle } from '@/components/Row';
 import { Text } from '@/components/Text';
 import { frNotificationCategories, frNotificationGroups } from '@/content/fr/notifications';
@@ -74,11 +75,11 @@ function TimeStepper({ label, value, onChange }: { label: string; value: number;
 
 export default function SettingsScreen() {
   useLanguage();
-  const { language, notifications, updateNotifications, setCategory, setQuietHours, set, autoGather, setAutoGather } = useSettingsStore();
+  const { language, notifications, updateNotifications, setCategory, setQuietHours, set, pocketMode, setPocketMode } = useSettingsStore();
   const autoToggle = useAutoGatherToggle();
   const walks = useGameStore((state) => state.save.autoGather.history);
   const setAutoStop = (autoStopMinutes: number) => {
-    setAutoGather({ autoStopMinutes });
+    setPocketMode({ autoStopMinutes });
     updateBuffer((buffer) => ({ ...buffer, autoStopMinutes })).catch(() => {});
   };
   const groupTexts = localized({ en: notificationGroups, fr: frNotificationGroups });
@@ -145,6 +146,11 @@ export default function SettingsScreen() {
         disabled={!autoToggle.available}
         onChange={autoToggle.toggle}
       />
+      <PocketOptionRow option="autoGather" />
+      <PocketOptionRow option="patrolAlerts" />
+      <AlertForPicker />
+      <PocketOptionRow option="escort" />
+      <PocketOptionsHint />
       <View style={styles.languages}>
         <Button title={t('autoGather.info')} color={colors.muted} onPress={autoToggle.showInfo} />
         {autoToggle.enabled && autoToggle.mode === 'limited' && <Button title={t('autoGather.openSettings')} onPress={() => Linking.openSettings()} />}
@@ -155,7 +161,7 @@ export default function SettingsScreen() {
           <Button
             key={minutes}
             title={t('autoGather.minutes', { count: minutes })}
-            color={autoGather.autoStopMinutes === minutes ? colors.woodDark : colors.muted}
+            color={pocketMode.autoStopMinutes === minutes ? colors.woodDark : colors.muted}
             onPress={() => setAutoStop(minutes)}
           />
         ))}

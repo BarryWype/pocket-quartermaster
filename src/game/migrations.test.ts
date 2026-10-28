@@ -1,5 +1,5 @@
 import { createInitialSave, type SaveData } from './save';
-import { migrateV11Save, migrateV12Save } from './migrations';
+import { migrateV11Save, migrateV12Save, migrateV13Save } from './migrations';
 
 describe('migrateV11Save', () => {
   it('gives existing gear a neutral roll and starts the new daily counters empty', () => {
@@ -37,5 +37,15 @@ describe('migrateV12Save', () => {
     expect(after.autoGather).toEqual({ processedUntil: 0, anchor: null, history: [] });
     expect(after.gold).toBe(7);
     expect(autoGather).toEqual(after.autoGather);
+  });
+});
+
+describe('migrateV13Save', () => {
+  it('starts with no escort, no patrol fights and empty patrol bookkeeping', () => {
+    const { escort, patrolFights, beatenPatrols, helpedTravellers, traderUses, keyFragments, appliedBackgroundResults, ...older } = createInitialSave();
+    const after = migrateV13Save({ ...older, gold: 9 });
+    expect(after).toMatchObject({ escort, patrolFights, beatenPatrols, helpedTravellers, traderUses, keyFragments, appliedBackgroundResults, gold: 9 });
+    expect(after.escort).toBeNull();
+    expect(after.keyFragments).toBe(0);
   });
 });

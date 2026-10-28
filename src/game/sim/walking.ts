@@ -117,7 +117,7 @@ export function measureWalkRates(config: SimConfig = simConfig): WalkRates {
 }
 
 /** Rounds up with a chance equal to the fraction, so small rates still add up. */
-const roundRandom = (value: number, rng: Rng) => Math.floor(value) + (rng.chance(value - Math.floor(value)) ? 1 : 0);
+export const roundRandom = (value: number, rng: Rng) => Math.floor(value) + (rng.chance(value - Math.floor(value)) ? 1 : 0);
 
 /** A walk's materials: the measured average × minutes × efficiency, varied by up to ±variation. */
 export function walkYield(

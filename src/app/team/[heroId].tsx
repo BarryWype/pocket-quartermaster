@@ -94,6 +94,8 @@ export default function CharacterSheetScreen() {
         <Text style={styles.xp}>
           {t('hero.xp', { xp: hero.xp, next })}
           {away ? t('common.onExpedition') : ''}
+          {save.escort?.heroId === hero.id ? t('common.escort') : ''}
+          {save.patrolFights.some((fight) => fight.heroIds.includes(hero.id)) ? t('common.patrol') : ''}
         </Text>
         <HpBar save={save} hero={hero} now={now} light />
         {!away && (

@@ -1,3 +1,4 @@
+import type { PatrolKind } from '@/game/patrols/generate';
 import type { Element } from '@/game/elements';
 import type { BossDef, MobDef, SanctumDef, Tag } from '@/game/types';
 
@@ -253,6 +254,92 @@ const npcMobs: MobDef[] = npcs.flatMap((npc) =>
   ),
 );
 
+// Patrols: the small roaming groups home heroes fight on the map (see
+// content/patrols.ts). Template stats are scaled like dungeon enemies, by tier
+// and a factor per kind and tier, tuned so a hero in the tier's Normal gear at
+// the expected level beats goblins and herds alone ~90% of the time at full HP
+// (15% weaker than the first ~85% tuning, since players mostly wear Crappy
+// gear), and a pair beats bandits ~75% (see patrols/fight.test.ts).
+const PATROL_ROLES = ['weak', 'normal', 'boss'] as const;
+type PatrolRole = (typeof PATROL_ROLES)[number];
+
+/** Elite patrols, the rarer tougher roll; their rewards are in content/patrols.ts. */
+const PATROL_ELITE = { hp: 1.25, damage: 1.12 };
+
+type PatrolTemplate = {
+  /** Stats for [weak, normal, boss] at tier-1 strength. */
+  hp: [number, number, number];
+  damage: [number, number, number];
+  tags: Tag[];
+  /** Like a dungeon's factor, per tier: tuned against the odds targets in the comment above. */
+  factors: [number, number, number, number, number];
+  /** Names for [weak, normal, boss], one per tier. */
+  names: string[][];
+};
+
+const patrolTemplates: Record<PatrolKind, PatrolTemplate> = {
+  goblins: {
+    hp: [7, 10, 14],
+    damage: [2, 3, 4],
+    tags: ['locals'],
+    factors: [3.03, 2.75, 2.57, 2.58, 2.69],
+    names: [
+      ['goblin runt', 'goblin', 'goblin slinger'],
+      ['squatter', 'smuggler', 'turncoat knight'],
+      ['fire imp', 'hexed hunter', 'stone warden'],
+      ['orc grunt', 'brass beetle', 'vault automaton'],
+      ['ruin crawler', 'mountain troll', 'ash knight'],
+    ],
+  },
+  herd: {
+    hp: [8, 12, 16],
+    damage: [2, 3, 4],
+    tags: ['beast'],
+    factors: [2.81, 2.46, 2.33, 2.41, 2.39],
+    names: [
+      ['giant rat', 'cellar spider', 'rat swarm'],
+      ['wolf pup', 'grey wolf', 'dire wolf'],
+      ['ghost bat', 'spark moth', 'ember hound'],
+      ['rock lizard', 'storm ram', 'thunderbird'],
+      ['frost wolf', 'storm eel', 'wyvern'],
+    ],
+  },
+  bandits: {
+    hp: [10, 14, 22],
+    damage: [3, 4, 6],
+    tags: ['locals'],
+    factors: [4.88, 4.36, 4.16, 4.1, 4.29],
+    names: [
+      ['cutpurse', 'bandit', 'bandit archer'],
+      ['deserter', 'bandit', 'tower sergeant'],
+      ['bogling', 'hexed hunter', 'bone knight'],
+      ['fallen legionary', 'orc raider', 'death captain'],
+      ['flame cultist', 'abyssal priest', 'death knight'],
+    ],
+  },
+};
+
+/** A patrol mob, or its elite variant, by kind, tier and role. */
+export const patrolMobId = (kind: PatrolKind, tier: number, role: PatrolRole, elite = false) =>
+  `patrol:${kind}:${tier}:${role}${elite ? ':elite' : ''}`;
+
+const patrolMobs: MobDef[] = (Object.keys(patrolTemplates) as PatrolKind[]).flatMap((kind) => {
+  const { hp, damage, tags, factors, names } = patrolTemplates[kind];
+  return names.flatMap((tierNames, i) =>
+    tierNames.flatMap((name, role) => [
+      mob(patrolMobId(kind, i + 1, PATROL_ROLES[role]), name, strength(i + 1, factors[i]), hp[role], damage[role], tags),
+      mob(
+        patrolMobId(kind, i + 1, PATROL_ROLES[role], true),
+        name,
+        strength(i + 1, factors[i]),
+        hp[role] * PATROL_ELITE.hp,
+        damage[role] * PATROL_ELITE.damage,
+        tags,
+      ),
+    ]),
+  );
+});
+
 // Sanctum enemies: one set per Sigil tier, scaled like dungeon enemies.
 const sanctumScale = (tier: number) => strength(tier, sanctumRules.tierStrength[tier - 1]);
 
@@ -274,5 +361,5 @@ export function sanctumGuardian(sanctum: SanctumDef, tier: number): BossDef {
   return boss(`${sanctum.id}:guardian:${tier}`, sanctum.guardian.name, sanctumScale(tier), hp, damage, [], sanctum.guardian.effect, sanctum.element);
 }
 
-export const mobById = Object.fromEntries([...mobs, ...npcMobs, ...sanctumMinions].map((m) => [m.id, m]));
+export const mobById = Object.fromEntries([...mobs, ...npcMobs, ...sanctumMinions, ...patrolMobs].map((m) => [m.id, m]));
 export const bossById = Object.fromEntries(bosses.map((b) => [b.id, b]));

@@ -9,6 +9,7 @@ import { AppState } from 'react-native';
 import { useAutoGather } from '@/hooks/useAutoGather';
 import { useLanguage } from '@/hooks/useLanguage';
 import { syncPlan, useNotifications } from '@/hooks/useNotifications';
+import { usePatrols } from '@/hooks/usePatrols';
 import { useStepTracking } from '@/hooks/useTodaySteps';
 import { t } from '@/i18n';
 import { configureChannels, configureNotifications } from '@/services/notifications';
@@ -18,14 +19,15 @@ import { colors, fonts } from '@/theme';
 configureNotifications();
 
 /**
- * Drops expired maps, lures and Sanctums and credits Guild Hall training on
- * launch and on return to the app. Finished expeditions wait for the player
- * to collect their loot on the Quests page.
+ * Drops expired maps, lures and Sanctums, settles due patrol fights and
+ * credits Guild Hall training on launch and on return to the app. Finished
+ * expeditions wait for the player to collect their loot on the Quests page.
  */
 function useUpkeep() {
   useEffect(() => {
     const upkeep = () => {
       useGameStore.getState().prune();
+      useGameStore.getState().resolvePatrolFights();
       useGameStore.getState().train();
     };
     const unsubscribeHydration = useGameStore.persist.onFinishHydration(upkeep);
@@ -48,6 +50,7 @@ export default function RootLayout() {
   useStepTracking();
   useNotifications();
   useAutoGather();
+  usePatrols();
   const [fontsLoaded, fontError] = useFonts({
     [fonts.body]: require('../../assets/fonts/FantaisieArtistique.ttf'),
   });

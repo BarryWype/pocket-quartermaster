@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
+import * as Notifications from 'expo-notifications';
+import { router } from 'expo-router';
 
 import { dayKey } from '@/game/rewards/chests';
 import { planNotifications } from '@/game/notifications/plan';
@@ -10,8 +12,22 @@ import { useTodaySteps } from '@/hooks/useTodaySteps';
 import { deviceNotifications } from '@/services/notifications';
 import { useGameStore } from '@/store/gameStore';
 import { useSettingsStore } from '@/store/settingsStore';
+import { useWorldStore } from '@/store/worldStore';
 
 const hydrated = () => useGameStore.persist.hasHydrated() && useSettingsStore.persist.hasHydrated();
+
+/** Where a tapped notification points: the map with a patrol to focus, or Pocket mode's escort. */
+function openFrom(data: Record<string, unknown> | undefined) {
+  if (data?.route === 'map') {
+    useWorldStore.getState().set({
+      focusPatrol: { id: String(data.patrolId), latitude: Number(data.latitude), longitude: Number(data.longitude) },
+    });
+    router.navigate('/');
+  } else if (data?.route === 'pocketMode') {
+    useWorldStore.getState().set({ pocketPanel: 'escort' });
+    router.navigate('/');
+  }
+}
 
 /** Re-plans scheduled notifications from the save and settings, e.g. once permission is granted. */
 export function syncPlan() {
@@ -45,6 +61,19 @@ export function useNotifications() {
       unsubscribe.forEach((fn) => fn());
       appState.remove();
     };
+  }, []);
+
+  // A tapped notification opens what it points at; the one that launched the app is handled the same way.
+  useEffect(() => {
+    const last = Notifications.getLastNotificationResponse();
+    if (last) {
+      Notifications.clearLastNotificationResponse();
+      openFrom(last.notification.request.content.data);
+    }
+    const subscription = Notifications.addNotificationResponseReceivedListener((response) =>
+      openFrom(response.notification.request.content.data),
+    );
+    return () => subscription.remove();
   }, []);
 
   useEffect(() => {

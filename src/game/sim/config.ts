@@ -12,12 +12,16 @@ export type Profile = {
   autoShare: number;
   /** Lowest odds the bot accepts for a regular expedition. */
   oddsThreshold: number;
+  /** Share of seen patrols the bot engages with its own party. */
+  patrolEngageShare: number;
+  /** The background escort hero fights pocket-mode patrols. */
+  pocketEscort: boolean;
 };
 
 export const profiles: Record<string, Profile> = {
-  casual: { walkMinutes: 20, sessionHours: [8, 19], stepsPerDay: 5000, oddsThreshold: 0.6, autoShare: 0.8 },
-  regular: { walkMinutes: 45, sessionHours: [8, 12.5, 19], stepsPerDay: 8000, oddsThreshold: 0.6, autoShare: 0.5 },
-  dedicated: { walkMinutes: 90, sessionHours: [7, 10, 13, 17, 21], stepsPerDay: 13000, oddsThreshold: 0.6, autoShare: 0.2 },
+  casual: { walkMinutes: 20, sessionHours: [8, 19], stepsPerDay: 5000, oddsThreshold: 0.6, autoShare: 0.8, patrolEngageShare: 0.3, pocketEscort: true },
+  regular: { walkMinutes: 45, sessionHours: [8, 12.5, 19], stepsPerDay: 8000, oddsThreshold: 0.6, autoShare: 0.5, patrolEngageShare: 0.6, pocketEscort: true },
+  dedicated: { walkMinutes: 90, sessionHours: [7, 10, 13, 17, 21], stepsPerDay: 13000, oddsThreshold: 0.6, autoShare: 0.2, patrolEngageShare: 0.8, pocketEscort: true },
 };
 
 export const simConfig = {
@@ -43,6 +47,8 @@ export const simConfig = {
     ] as LatLng[],
     sampleHours: [6, 12, 18],
   },
+  /** Patrols and travellers met while walking. */
+  patrols: { enabled: true, travellerRecruits: true },
   /** A place at distance d is reachable on a day with chance min(1, scale × metres walked ÷ (2 × d)). */
   reach: { scale: 1 },
   odds: {
@@ -128,11 +134,12 @@ export const BOT_RULES = [
   'Kit: the one whose counter the party lacks for the dungeon’s encounters (obstacles, all-beast fights, locals, undead), most frequent first.',
   'Charms: on short dungeons with odds ≥ 85%, potions give way to charms: a ward bone in trap dungeons, else one lucky tooth per party, else a rabbit’s foot.',
   'HP: odds use current HP, so parties favour rested heroes. When current HP costs the chosen party more than 15 points against full HP, it drinks potions at home (most hurt first); if that is not enough, the dungeon waits for a later session.',
+  'Patrols: finished expeditions are collected before the walk, so those heroes are home for it; patrols and travellers are met on walks at the measured sighting rate (by kind and tier roll), and new expeditions are sent after. During the profile’s pocket (auto-gather) share, the escort hero — the home hero with the most current HP — takes goblin and herd patrols through the game’s own background rules (70% odds, stands down under 50% HP). Anything else is engaged with probability patrolEngageShare by the cheapest party of home, non-exhausted heroes whose odds reach 0.75. Wounded travellers get a healing potion, pilgrims a meal (or supply points when 8+ are held), traders are traded with while more than 20 of the material is held; traveller recruits (offered from 6 heroes) join when the roster has room.',
   'Supply: when the stock is short for a launch and a tavern is reachable today, buy the missing points as emergency jerky.',
   'Infuse the best plain weapon with the held stone that does best against the most common enemy element of the current tier.',
   'Recruit when a tavern is reachable today, the roster has room and the gold covers the price: classes that counter the current tier’s tags first, then classes the roster lacks.',
   'Guild Hall: buy ranks in priority order, keeping the next recruit’s price while the roster has room.',
   'Sanctums: with a Sigil, a reachable Sanctum and odds ≥ 0.5 with the best heroes at home, use the highest Sigil tier that passes.',
   'Treasure: read every map; dig it up on a day its spot is reachable.',
-  'Expeditions: the unbeaten boss of the highest tier first when its odds are ≥ 0.45. Then, while heroes are idle, the open dungeon of the top two tiers with the best expected value per hour among those with odds ≥ the profile threshold; a boss whose daily bonus is already claimed is valued at the repeat reward chance. A dungeon of the highest tier that can drop a gear blueprint the team lacks only needs odds ≥ 0.35, and a pool dungeon whose daily blueprint is still unclaimed ranks a little higher (blueprintValueRuns of its top gold). When the gap to the next session is at least the overnight quest’s duration, the overnight quests of the top two tiers join the ranking at their full value over that gap — but only one patrol can be out at a time. Parties are built greedily (add the hero who raises the odds most) and each hero takes a potion (a fire elixir for fire dungeons).',
+  'Expeditions: the unbeaten boss of the highest tier first when its odds are ≥ 0.45. Then, while heroes are idle, the open dungeon of the top two tiers with the best expected value per hour among those with odds ≥ the profile threshold; a boss whose daily bonus is already claimed is valued at the repeat reward chance. A dungeon of the highest tier that can drop a gear blueprint the team lacks only needs odds ≥ 0.35, and a pool dungeon whose daily blueprint is still unclaimed ranks a little higher (blueprintValueRuns of its top gold). When the gap to the next session is at least the overnight quest’s duration, the overnight quests of the top two tiers join the ranking at their full value over that gap — but only one overnight quest can be out at a time. Parties are built greedily (add the hero who raises the odds most) and each hero takes a potion (a fire elixir for fire dungeons).',
 ];
