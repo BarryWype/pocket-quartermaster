@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   dots: { fontSize: 18, color: colors.wood, letterSpacing: 2 },
   muted: { color: colors.muted },
   price: { fontSize: 19, color: colors.ink },
-  priceLine: { flexShrink: 1 },
+  priceLine: { flex: 1 },
   short: { color: colors.danger },
   problem: { color: colors.muted, fontStyle: 'italic' },
 });

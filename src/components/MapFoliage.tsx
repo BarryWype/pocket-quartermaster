@@ -1,4 +1,11 @@
-import { GeoJSONSource, Images, Layer, type MapRef } from '@maplibre/maplibre-react-native';
+import {
+  GeoJSONSource,
+  Images,
+  Layer,
+  type FilterSpecification,
+  type MapRef,
+  type SymbolLayerSpecification,
+} from '@maplibre/maplibre-react-native';
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 
 import {
@@ -113,7 +120,20 @@ export function useFoliage(mapRef: RefObject<MapRef | null>, smoke: boolean) {
   return { data, refresh };
 }
 
-/** The animated foliage layer; render it inside `<Map>`. */
+const isPost: FilterSpecification = ['==', ['get', 'kind'], 'post'];
+const LAYERS = Array.from({ length: foliageConfig.frames ** 2 }, (_, i) => ({
+  phase: Math.floor(i / foliageConfig.frames),
+  frame: i % foliageConfig.frames,
+}));
+const SIZE: NonNullable<SymbolLayerSpecification['layout']>['icon-size'] = ['interpolate', ['linear'], ['zoom'], 15, 0.6, 17, 1.25, 19, 2];
+
+/**
+ * The foliage layers; render them inside `<Map>`. Plants are split by phase
+ * and by frame into one layer each, all laid out once; animating only flips
+ * which layers are opaque. A constant opacity is a cheap paint update, while
+ * anything that varies per plant (the image, or an opacity expression) makes
+ * MapLibre lay out every symbol again on each frame. Posts get one still layer.
+ */
 export function MapFoliage({ data }: { data: GeoJSON.FeatureCollection }) {
   // Only this component re-renders on each frame, not the whole map screen.
   const frame = useAnimationFrame(FPS) % foliageConfig.frames;
@@ -124,24 +144,31 @@ export function MapFoliage({ data }: { data: GeoJSON.FeatureCollection }) {
       <GeoJSONSource id="foliage" data={data}>
         <Layer
           type="symbol"
-          id="foliage"
+          id="foliage-posts"
           minzoom={15}
-          layout={{
-            // Each plant starts on its own frame so they don't sway in sync; posts don't sway.
-            'icon-image': [
-              'case',
-              ['==', ['get', 'kind'], 'post'],
-              'post',
-              ['concat', ['get', 'kind'], '-', ['to-string', ['%', ['+', frame, ['get', 'phase']], foliageConfig.frames]]],
-            ],
-            'icon-anchor': ['case', ['==', ['get', 'kind'], 'post'], 'center', 'bottom'],
-            'icon-size': ['interpolate', ['linear'], ['zoom'], 15, 0.6, 17, 1.25, 19, 2],
-            'icon-allow-overlap': true,
-            'icon-ignore-placement': true,
-            // Plants further south are drawn on top, for a little depth.
-            'symbol-z-order': 'viewport-y',
-          }}
+          filter={isPost}
+          layout={{ 'icon-image': 'post', 'icon-size': SIZE, 'icon-allow-overlap': true, 'icon-ignore-placement': true }}
         />
+        {LAYERS.map(({ phase, frame: shown }) => (
+          <Layer
+            key={`${phase}-${shown}`}
+            type="symbol"
+            id={`foliage-${phase}-${shown}`}
+            minzoom={15}
+            filter={['all', ['!=', ['get', 'kind'], 'post'], ['==', ['get', 'phase'], phase]]}
+            layout={{
+              'icon-image': ['concat', ['get', 'kind'], `-${shown}`],
+              'icon-anchor': 'bottom',
+              'icon-size': SIZE,
+              'icon-allow-overlap': true,
+              'icon-ignore-placement': true,
+              // Plants further south are drawn on top, for a little depth.
+              'symbol-z-order': 'viewport-y',
+            }}
+            // Each phase starts on its own frame so plants don't sway in sync.
+            paint={{ 'icon-opacity': (frame + phase) % foliageConfig.frames === shown ? 1 : 0 }}
+          />
+        ))}
       </GeoJSONSource>
     </>
   );
