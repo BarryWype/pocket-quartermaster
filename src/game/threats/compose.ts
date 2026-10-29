@@ -5,7 +5,8 @@ import { itemById, opportunityById, recipeById, restrictionById, threatById } fr
 import { rosterRules } from '@/content/roster';
 import { dungeonThreats, narrowPartySize, surges, threatRules, type ThreatRules } from '@/content/threats';
 import { traits } from '@/content/traits';
-import { mobById, mobTags } from '@/content/enemies';
+import { mobById } from '@/content/enemies';
+import { mobTags } from '../enemies/tags';
 
 import { createRng, type Rng } from '../generation/rng';
 import type {

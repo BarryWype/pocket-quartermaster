@@ -440,8 +440,22 @@ export type ClassRarity = 'common' | 'uncommon' | 'rare';
 /** How a class plays its role against threats (see doc/design/threats/classes.csv). */
 export type ClassFamily = 'answerer' | 'fighter' | 'converter' | 'ruleBender';
 
+/** The enemy families a mob can belong to; the first of its tags is the main one. */
+export type FamilyTag =
+  | 'bird'
+  | 'vermin'
+  | 'carapace'
+  | 'spirit'
+  | 'goblinoid'
+  | 'humanoid'
+  | 'brute'
+  | 'construct'
+  | 'dragon'
+  | 'caster'
+  | 'elemental';
+
 /** The tags encounters and mobs carry; threats and abilities play on them. */
-export type Tag = 'undead' | 'beast' | 'trap' | 'obstacle' | 'locals' | Element;
+export type Tag = 'undead' | 'beast' | 'trap' | 'obstacle' | 'locals' | Element | FamilyTag;
 
 export type ObstacleKind = 'rubble' | 'locked' | 'barricade';
 
@@ -655,7 +669,7 @@ export type MobDef = {
   /** Turn order and extra attacks, from its speed class and tier. */
   speed: number;
   element?: Element;
-  /** E.g. undead or beast; the element is a tag too, added by `mobTags`. */
+  /** The tags in order: the first is the enemy's main family. The element is a tag too, added by `mobTags`. */
   tags: Tag[];
 };
 

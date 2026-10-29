@@ -1,6 +1,7 @@
-import { mobById, mobTags } from '@/content/enemies';
+import { mobById } from '@/content/enemies';
 import { TAG_ORDER, tagRules } from '@/content/rotation';
 
+import { mobTags } from '../enemies/tags';
 import type { DungeonDef, EncounterDef, Tag } from '../types';
 
 type Rules = typeof tagRules;
@@ -12,7 +13,7 @@ export function encounterTags(encounter: EncounterDef): Partial<Record<Tag, numb
       const total = encounter.mobs.reduce((sum, g) => sum + g.count, 0);
       const shares: Partial<Record<Tag, number>> = {};
       for (const { mobId, count } of encounter.mobs) {
-        for (const tag of mobTags(mobById[mobId])) shares[tag] = (shares[tag] ?? 0) + count / total;
+        for (const tag of mobTags(mobById[mobId])) if (TAG_ORDER.includes(tag)) shares[tag] = (shares[tag] ?? 0) + count / total;
       }
       return shares;
     }
@@ -35,7 +36,7 @@ export function dungeonTagWeights(dungeon: DungeonDef, rules: Rules = tagRules):
       weights[tag] = (weights[tag] ?? 0) + share * encounter.weight;
     }
   }
-  for (const tag of mobTags(dungeon.boss)) weights[tag] = (weights[tag] ?? 0) + rules.bossWeight;
+  for (const tag of mobTags(dungeon.boss)) if (TAG_ORDER.includes(tag)) weights[tag] = (weights[tag] ?? 0) + rules.bossWeight;
   return weights;
 }
 

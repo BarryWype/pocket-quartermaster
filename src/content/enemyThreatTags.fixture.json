@@ -1,0 +1,1508 @@
+{
+  "abyssalHorror": [
+    "beast"
+  ],
+  "abyssalPriest": [],
+  "alphaWolf": [
+    "beast"
+  ],
+  "ashKnight": [
+    "undead"
+  ],
+  "ashLord": [],
+  "ashStalker": [],
+  "ashWyrm": [
+    "beast"
+  ],
+  "bandit": [],
+  "banditArcher": [],
+  "banditCaptain": [],
+  "barrowKing": [
+    "undead"
+  ],
+  "barrowRat": [
+    "beast"
+  ],
+  "barrowWight": [
+    "undead"
+  ],
+  "bogHound": [
+    "beast"
+  ],
+  "bogling": [],
+  "boltElemental": [],
+  "boneCrawler": [
+    "undead"
+  ],
+  "boneGeneral": [
+    "undead"
+  ],
+  "boneKnight": [
+    "undead"
+  ],
+  "boneLord": [
+    "undead"
+  ],
+  "brassBeetle": [],
+  "briarTusker": [
+    "beast"
+  ],
+  "bridgeTroll": [],
+  "broodGuard": [
+    "beast"
+  ],
+  "broodMother": [
+    "beast"
+  ],
+  "burrowSpider": [
+    "beast"
+  ],
+  "campRaider": [],
+  "capCrawler": [
+    "beast"
+  ],
+  "cellarSpider": [
+    "beast"
+  ],
+  "cinderGolem": [],
+  "cliffEagle": [
+    "beast"
+  ],
+  "clockworkGuard": [],
+  "clockworkWarden": [],
+  "colossusArm": [],
+  "coveEnforcer": [],
+  "cryptEel": [
+    "beast"
+  ],
+  "cryptGuard": [
+    "undead"
+  ],
+  "cutpurse": [],
+  "deathCaptain": [
+    "undead"
+  ],
+  "deathKnight": [
+    "undead"
+  ],
+  "deepAngler": [
+    "beast"
+  ],
+  "deepQuarry:guardian:1": [],
+  "deepQuarry:guardian:2": [],
+  "deepQuarry:guardian:3": [],
+  "deepQuarry:guardian:4": [],
+  "deepQuarry:guardian:5": [],
+  "deepQuarry:strong:1": [],
+  "deepQuarry:strong:2": [],
+  "deepQuarry:strong:3": [],
+  "deepQuarry:strong:4": [],
+  "deepQuarry:strong:5": [],
+  "deepQuarry:weak:1": [],
+  "deepQuarry:weak:2": [],
+  "deepQuarry:weak:3": [],
+  "deepQuarry:weak:4": [],
+  "deepQuarry:weak:5": [],
+  "deserter": [],
+  "direWolf": [
+    "beast"
+  ],
+  "dragonCultist": [],
+  "drake": [
+    "beast"
+  ],
+  "drownedDead": [
+    "undead"
+  ],
+  "drownedSoldier": [
+    "undead"
+  ],
+  "elderDragon": [
+    "beast"
+  ],
+  "emberForge:guardian:1": [],
+  "emberForge:guardian:2": [],
+  "emberForge:guardian:3": [],
+  "emberForge:guardian:4": [],
+  "emberForge:guardian:5": [],
+  "emberForge:strong:1": [],
+  "emberForge:strong:2": [],
+  "emberForge:strong:3": [],
+  "emberForge:strong:4": [],
+  "emberForge:strong:5": [],
+  "emberForge:weak:1": [],
+  "emberForge:weak:2": [],
+  "emberForge:weak:3": [],
+  "emberForge:weak:4": [],
+  "emberForge:weak:5": [],
+  "emberHound": [
+    "beast"
+  ],
+  "fallenLegionary": [
+    "undead"
+  ],
+  "fireElemental": [],
+  "fireImp": [],
+  "flameCultist": [],
+  "fordHag": [],
+  "fordLeech": [
+    "beast"
+  ],
+  "forgeGuardian": [],
+  "frostNymph": [],
+  "frostWolf": [
+    "beast"
+  ],
+  "ghostBat": [
+    "beast",
+    "undead"
+  ],
+  "ghoul": [
+    "undead"
+  ],
+  "giantHound": [
+    "beast"
+  ],
+  "giantKing": [],
+  "giantRat": [
+    "beast"
+  ],
+  "goblin": [],
+  "goblinChief": [],
+  "goblinRunt": [],
+  "goblinSlinger": [],
+  "graveLord": [
+    "undead"
+  ],
+  "graveRobber": [],
+  "greyWolf": [
+    "beast"
+  ],
+  "guardDog": [
+    "beast"
+  ],
+  "harpy": [
+    "beast"
+  ],
+  "harpyMatriarch": [
+    "beast"
+  ],
+  "hexedHunter": [],
+  "highwayBandit": [],
+  "hillGiant": [],
+  "iceSeal": [
+    "beast"
+  ],
+  "iceWyrm": [
+    "beast"
+  ],
+  "krakenSpawn": [
+    "beast"
+  ],
+  "lakeSerpent": [
+    "beast"
+  ],
+  "lichOfTheDeep": [
+    "undead"
+  ],
+  "magmaSlug": [
+    "beast"
+  ],
+  "marshToad": [
+    "beast"
+  ],
+  "marshWitch": [],
+  "millBrute": [],
+  "millOgre": [],
+  "millRat": [
+    "beast"
+  ],
+  "mineGhost": [
+    "undead"
+  ],
+  "mineWraith": [
+    "undead"
+  ],
+  "mouldKnight": [
+    "undead"
+  ],
+  "mountainTroll": [],
+  "mycelTroll": [],
+  "nightProwler": [
+    "beast"
+  ],
+  "npc:hermit:1": [
+    "locals"
+  ],
+  "npc:hermit:2": [
+    "locals"
+  ],
+  "npc:hermit:3": [
+    "locals"
+  ],
+  "npc:hermit:4": [
+    "locals"
+  ],
+  "npc:hermit:5": [
+    "locals"
+  ],
+  "npc:lostMiner:1": [
+    "locals"
+  ],
+  "npc:lostMiner:2": [
+    "locals"
+  ],
+  "npc:lostMiner:3": [
+    "locals"
+  ],
+  "npc:lostMiner:4": [
+    "locals"
+  ],
+  "npc:lostMiner:5": [
+    "locals"
+  ],
+  "npc:pedlar:1": [
+    "locals"
+  ],
+  "npc:pedlar:2": [
+    "locals"
+  ],
+  "npc:pedlar:3": [
+    "locals"
+  ],
+  "npc:pedlar:4": [
+    "locals"
+  ],
+  "npc:pedlar:5": [
+    "locals"
+  ],
+  "npc:poachers:1": [
+    "locals"
+  ],
+  "npc:poachers:2": [
+    "locals"
+  ],
+  "npc:poachers:3": [
+    "locals"
+  ],
+  "npc:poachers:4": [
+    "locals"
+  ],
+  "npc:poachers:5": [
+    "locals"
+  ],
+  "npc:tollTroll:1": [
+    "locals"
+  ],
+  "npc:tollTroll:2": [
+    "locals"
+  ],
+  "npc:tollTroll:3": [
+    "locals"
+  ],
+  "npc:tollTroll:4": [
+    "locals"
+  ],
+  "npc:tollTroll:5": [
+    "locals"
+  ],
+  "ogreBrute": [],
+  "ogreChieftain": [],
+  "orcGrunt": [],
+  "orcRaider": [],
+  "orcShaman": [],
+  "orcWarlord": [],
+  "ossuaryKing": [
+    "undead"
+  ],
+  "overgrownLabyrinth:guardian:1": [],
+  "overgrownLabyrinth:guardian:2": [],
+  "overgrownLabyrinth:guardian:3": [],
+  "overgrownLabyrinth:guardian:4": [],
+  "overgrownLabyrinth:guardian:5": [],
+  "overgrownLabyrinth:strong:1": [],
+  "overgrownLabyrinth:strong:2": [],
+  "overgrownLabyrinth:strong:3": [],
+  "overgrownLabyrinth:strong:4": [],
+  "overgrownLabyrinth:strong:5": [],
+  "overgrownLabyrinth:weak:1": [],
+  "overgrownLabyrinth:weak:2": [],
+  "overgrownLabyrinth:weak:3": [],
+  "overgrownLabyrinth:weak:4": [],
+  "overgrownLabyrinth:weak:5": [],
+  "patrol:bandits:1:boss": [
+    "locals"
+  ],
+  "patrol:bandits:1:boss:elite": [
+    "locals"
+  ],
+  "patrol:bandits:1:normal": [
+    "locals"
+  ],
+  "patrol:bandits:1:normal:elite": [
+    "locals"
+  ],
+  "patrol:bandits:1:weak": [
+    "locals"
+  ],
+  "patrol:bandits:1:weak:elite": [
+    "locals"
+  ],
+  "patrol:bandits:2:boss": [
+    "locals"
+  ],
+  "patrol:bandits:2:boss:elite": [
+    "locals"
+  ],
+  "patrol:bandits:2:normal": [
+    "locals"
+  ],
+  "patrol:bandits:2:normal:elite": [
+    "locals"
+  ],
+  "patrol:bandits:2:weak": [
+    "locals"
+  ],
+  "patrol:bandits:2:weak:elite": [
+    "locals"
+  ],
+  "patrol:bandits:3:boss": [
+    "locals"
+  ],
+  "patrol:bandits:3:boss:elite": [
+    "locals"
+  ],
+  "patrol:bandits:3:normal": [
+    "locals"
+  ],
+  "patrol:bandits:3:normal:elite": [
+    "locals"
+  ],
+  "patrol:bandits:3:weak": [
+    "locals"
+  ],
+  "patrol:bandits:3:weak:elite": [
+    "locals"
+  ],
+  "patrol:bandits:4:boss": [
+    "locals"
+  ],
+  "patrol:bandits:4:boss:elite": [
+    "locals"
+  ],
+  "patrol:bandits:4:normal": [
+    "locals"
+  ],
+  "patrol:bandits:4:normal:elite": [
+    "locals"
+  ],
+  "patrol:bandits:4:weak": [
+    "locals"
+  ],
+  "patrol:bandits:4:weak:elite": [
+    "locals"
+  ],
+  "patrol:bandits:5:boss": [
+    "locals"
+  ],
+  "patrol:bandits:5:boss:elite": [
+    "locals"
+  ],
+  "patrol:bandits:5:normal": [
+    "locals"
+  ],
+  "patrol:bandits:5:normal:elite": [
+    "locals"
+  ],
+  "patrol:bandits:5:weak": [
+    "locals"
+  ],
+  "patrol:bandits:5:weak:elite": [
+    "locals"
+  ],
+  "patrol:goblins:1:boss": [
+    "locals"
+  ],
+  "patrol:goblins:1:boss:elite": [
+    "locals"
+  ],
+  "patrol:goblins:1:normal": [
+    "locals"
+  ],
+  "patrol:goblins:1:normal:elite": [
+    "locals"
+  ],
+  "patrol:goblins:1:weak": [
+    "locals"
+  ],
+  "patrol:goblins:1:weak:elite": [
+    "locals"
+  ],
+  "patrol:goblins:2:boss": [
+    "locals"
+  ],
+  "patrol:goblins:2:boss:elite": [
+    "locals"
+  ],
+  "patrol:goblins:2:normal": [
+    "locals"
+  ],
+  "patrol:goblins:2:normal:elite": [
+    "locals"
+  ],
+  "patrol:goblins:2:weak": [
+    "locals"
+  ],
+  "patrol:goblins:2:weak:elite": [
+    "locals"
+  ],
+  "patrol:goblins:3:boss": [
+    "locals"
+  ],
+  "patrol:goblins:3:boss:elite": [
+    "locals"
+  ],
+  "patrol:goblins:3:normal": [
+    "locals"
+  ],
+  "patrol:goblins:3:normal:elite": [
+    "locals"
+  ],
+  "patrol:goblins:3:weak": [
+    "locals"
+  ],
+  "patrol:goblins:3:weak:elite": [
+    "locals"
+  ],
+  "patrol:goblins:4:boss": [
+    "locals"
+  ],
+  "patrol:goblins:4:boss:elite": [
+    "locals"
+  ],
+  "patrol:goblins:4:normal": [
+    "locals"
+  ],
+  "patrol:goblins:4:normal:elite": [
+    "locals"
+  ],
+  "patrol:goblins:4:weak": [
+    "locals"
+  ],
+  "patrol:goblins:4:weak:elite": [
+    "locals"
+  ],
+  "patrol:goblins:5:boss": [
+    "locals"
+  ],
+  "patrol:goblins:5:boss:elite": [
+    "locals"
+  ],
+  "patrol:goblins:5:normal": [
+    "locals"
+  ],
+  "patrol:goblins:5:normal:elite": [
+    "locals"
+  ],
+  "patrol:goblins:5:weak": [
+    "locals"
+  ],
+  "patrol:goblins:5:weak:elite": [
+    "locals"
+  ],
+  "patrol:herd:1:boss": [
+    "beast"
+  ],
+  "patrol:herd:1:boss:elite": [
+    "beast"
+  ],
+  "patrol:herd:1:normal": [
+    "beast"
+  ],
+  "patrol:herd:1:normal:elite": [
+    "beast"
+  ],
+  "patrol:herd:1:weak": [
+    "beast"
+  ],
+  "patrol:herd:1:weak:elite": [
+    "beast"
+  ],
+  "patrol:herd:2:boss": [
+    "beast"
+  ],
+  "patrol:herd:2:boss:elite": [
+    "beast"
+  ],
+  "patrol:herd:2:normal": [
+    "beast"
+  ],
+  "patrol:herd:2:normal:elite": [
+    "beast"
+  ],
+  "patrol:herd:2:weak": [
+    "beast"
+  ],
+  "patrol:herd:2:weak:elite": [
+    "beast"
+  ],
+  "patrol:herd:3:boss": [
+    "beast"
+  ],
+  "patrol:herd:3:boss:elite": [
+    "beast"
+  ],
+  "patrol:herd:3:normal": [
+    "beast"
+  ],
+  "patrol:herd:3:normal:elite": [
+    "beast"
+  ],
+  "patrol:herd:3:weak": [
+    "beast"
+  ],
+  "patrol:herd:3:weak:elite": [
+    "beast"
+  ],
+  "patrol:herd:4:boss": [
+    "beast"
+  ],
+  "patrol:herd:4:boss:elite": [
+    "beast"
+  ],
+  "patrol:herd:4:normal": [
+    "beast"
+  ],
+  "patrol:herd:4:normal:elite": [
+    "beast"
+  ],
+  "patrol:herd:4:weak": [
+    "beast"
+  ],
+  "patrol:herd:4:weak:elite": [
+    "beast"
+  ],
+  "patrol:herd:5:boss": [
+    "beast"
+  ],
+  "patrol:herd:5:boss:elite": [
+    "beast"
+  ],
+  "patrol:herd:5:normal": [
+    "beast"
+  ],
+  "patrol:herd:5:normal:elite": [
+    "beast"
+  ],
+  "patrol:herd:5:weak": [
+    "beast"
+  ],
+  "patrol:herd:5:weak:elite": [
+    "beast"
+  ],
+  "place:abandonedCaravan:1:boss": [
+    "locals"
+  ],
+  "place:abandonedCaravan:1:boss:elite": [
+    "locals"
+  ],
+  "place:abandonedCaravan:1:normal": [
+    "locals"
+  ],
+  "place:abandonedCaravan:1:normal:elite": [
+    "locals"
+  ],
+  "place:abandonedCaravan:1:weak": [
+    "locals"
+  ],
+  "place:abandonedCaravan:1:weak:elite": [
+    "locals"
+  ],
+  "place:abandonedCaravan:2:boss": [
+    "locals"
+  ],
+  "place:abandonedCaravan:2:boss:elite": [
+    "locals"
+  ],
+  "place:abandonedCaravan:2:normal": [
+    "locals"
+  ],
+  "place:abandonedCaravan:2:normal:elite": [
+    "locals"
+  ],
+  "place:abandonedCaravan:2:weak": [
+    "locals"
+  ],
+  "place:abandonedCaravan:2:weak:elite": [
+    "locals"
+  ],
+  "place:abandonedCaravan:3:boss": [
+    "locals"
+  ],
+  "place:abandonedCaravan:3:boss:elite": [
+    "locals"
+  ],
+  "place:abandonedCaravan:3:normal": [
+    "locals"
+  ],
+  "place:abandonedCaravan:3:normal:elite": [
+    "locals"
+  ],
+  "place:abandonedCaravan:3:weak": [
+    "locals"
+  ],
+  "place:abandonedCaravan:3:weak:elite": [
+    "locals"
+  ],
+  "place:abandonedCaravan:4:boss": [
+    "locals"
+  ],
+  "place:abandonedCaravan:4:boss:elite": [
+    "locals"
+  ],
+  "place:abandonedCaravan:4:normal": [
+    "locals"
+  ],
+  "place:abandonedCaravan:4:normal:elite": [
+    "locals"
+  ],
+  "place:abandonedCaravan:4:weak": [
+    "locals"
+  ],
+  "place:abandonedCaravan:4:weak:elite": [
+    "locals"
+  ],
+  "place:abandonedCaravan:5:boss": [
+    "locals"
+  ],
+  "place:abandonedCaravan:5:boss:elite": [
+    "locals"
+  ],
+  "place:abandonedCaravan:5:normal": [
+    "locals"
+  ],
+  "place:abandonedCaravan:5:normal:elite": [
+    "locals"
+  ],
+  "place:abandonedCaravan:5:weak": [
+    "locals"
+  ],
+  "place:abandonedCaravan:5:weak:elite": [
+    "locals"
+  ],
+  "place:banditCamp:1:boss": [
+    "locals"
+  ],
+  "place:banditCamp:1:boss:elite": [
+    "locals"
+  ],
+  "place:banditCamp:1:normal": [
+    "locals"
+  ],
+  "place:banditCamp:1:normal:elite": [
+    "locals"
+  ],
+  "place:banditCamp:1:weak": [
+    "locals"
+  ],
+  "place:banditCamp:1:weak:elite": [
+    "locals"
+  ],
+  "place:banditCamp:2:boss": [
+    "locals"
+  ],
+  "place:banditCamp:2:boss:elite": [
+    "locals"
+  ],
+  "place:banditCamp:2:normal": [
+    "locals"
+  ],
+  "place:banditCamp:2:normal:elite": [
+    "locals"
+  ],
+  "place:banditCamp:2:weak": [
+    "locals"
+  ],
+  "place:banditCamp:2:weak:elite": [
+    "locals"
+  ],
+  "place:banditCamp:3:boss": [
+    "locals"
+  ],
+  "place:banditCamp:3:boss:elite": [
+    "locals"
+  ],
+  "place:banditCamp:3:normal": [
+    "locals"
+  ],
+  "place:banditCamp:3:normal:elite": [
+    "locals"
+  ],
+  "place:banditCamp:3:weak": [
+    "locals"
+  ],
+  "place:banditCamp:3:weak:elite": [
+    "locals"
+  ],
+  "place:banditCamp:4:boss": [
+    "locals"
+  ],
+  "place:banditCamp:4:boss:elite": [
+    "locals"
+  ],
+  "place:banditCamp:4:normal": [
+    "locals"
+  ],
+  "place:banditCamp:4:normal:elite": [
+    "locals"
+  ],
+  "place:banditCamp:4:weak": [
+    "locals"
+  ],
+  "place:banditCamp:4:weak:elite": [
+    "locals"
+  ],
+  "place:banditCamp:5:boss": [
+    "locals"
+  ],
+  "place:banditCamp:5:boss:elite": [
+    "locals"
+  ],
+  "place:banditCamp:5:normal": [
+    "locals"
+  ],
+  "place:banditCamp:5:normal:elite": [
+    "locals"
+  ],
+  "place:banditCamp:5:weak": [
+    "locals"
+  ],
+  "place:banditCamp:5:weak:elite": [
+    "locals"
+  ],
+  "place:beastDen:1:boss": [
+    "beast"
+  ],
+  "place:beastDen:1:boss:elite": [
+    "beast"
+  ],
+  "place:beastDen:1:normal": [
+    "beast"
+  ],
+  "place:beastDen:1:normal:elite": [
+    "beast"
+  ],
+  "place:beastDen:1:weak": [
+    "beast"
+  ],
+  "place:beastDen:1:weak:elite": [
+    "beast"
+  ],
+  "place:beastDen:2:boss": [
+    "beast"
+  ],
+  "place:beastDen:2:boss:elite": [
+    "beast"
+  ],
+  "place:beastDen:2:normal": [
+    "beast"
+  ],
+  "place:beastDen:2:normal:elite": [
+    "beast"
+  ],
+  "place:beastDen:2:weak": [
+    "beast"
+  ],
+  "place:beastDen:2:weak:elite": [
+    "beast"
+  ],
+  "place:beastDen:3:boss": [
+    "beast"
+  ],
+  "place:beastDen:3:boss:elite": [
+    "beast"
+  ],
+  "place:beastDen:3:normal": [
+    "beast"
+  ],
+  "place:beastDen:3:normal:elite": [
+    "beast"
+  ],
+  "place:beastDen:3:weak": [
+    "beast"
+  ],
+  "place:beastDen:3:weak:elite": [
+    "beast"
+  ],
+  "place:beastDen:4:boss": [
+    "beast"
+  ],
+  "place:beastDen:4:boss:elite": [
+    "beast"
+  ],
+  "place:beastDen:4:normal": [
+    "beast"
+  ],
+  "place:beastDen:4:normal:elite": [
+    "beast"
+  ],
+  "place:beastDen:4:weak": [
+    "beast"
+  ],
+  "place:beastDen:4:weak:elite": [
+    "beast"
+  ],
+  "place:beastDen:5:boss": [
+    "beast"
+  ],
+  "place:beastDen:5:boss:elite": [
+    "beast"
+  ],
+  "place:beastDen:5:normal": [
+    "beast"
+  ],
+  "place:beastDen:5:normal:elite": [
+    "beast"
+  ],
+  "place:beastDen:5:weak": [
+    "beast"
+  ],
+  "place:beastDen:5:weak:elite": [
+    "beast"
+  ],
+  "place:elementalRift:1:boss:electric": [],
+  "place:elementalRift:1:boss:elite:electric": [],
+  "place:elementalRift:1:boss:elite:fire": [],
+  "place:elementalRift:1:boss:elite:grass": [],
+  "place:elementalRift:1:boss:elite:stone": [],
+  "place:elementalRift:1:boss:elite:water": [],
+  "place:elementalRift:1:boss:fire": [],
+  "place:elementalRift:1:boss:grass": [],
+  "place:elementalRift:1:boss:stone": [],
+  "place:elementalRift:1:boss:water": [],
+  "place:elementalRift:1:normal:electric": [],
+  "place:elementalRift:1:normal:elite:electric": [],
+  "place:elementalRift:1:normal:elite:fire": [],
+  "place:elementalRift:1:normal:elite:grass": [],
+  "place:elementalRift:1:normal:elite:stone": [],
+  "place:elementalRift:1:normal:elite:water": [],
+  "place:elementalRift:1:normal:fire": [],
+  "place:elementalRift:1:normal:grass": [],
+  "place:elementalRift:1:normal:stone": [],
+  "place:elementalRift:1:normal:water": [],
+  "place:elementalRift:1:weak:electric": [],
+  "place:elementalRift:1:weak:elite:electric": [],
+  "place:elementalRift:1:weak:elite:fire": [],
+  "place:elementalRift:1:weak:elite:grass": [],
+  "place:elementalRift:1:weak:elite:stone": [],
+  "place:elementalRift:1:weak:elite:water": [],
+  "place:elementalRift:1:weak:fire": [],
+  "place:elementalRift:1:weak:grass": [],
+  "place:elementalRift:1:weak:stone": [],
+  "place:elementalRift:1:weak:water": [],
+  "place:elementalRift:2:boss:electric": [],
+  "place:elementalRift:2:boss:elite:electric": [],
+  "place:elementalRift:2:boss:elite:fire": [],
+  "place:elementalRift:2:boss:elite:grass": [],
+  "place:elementalRift:2:boss:elite:stone": [],
+  "place:elementalRift:2:boss:elite:water": [],
+  "place:elementalRift:2:boss:fire": [],
+  "place:elementalRift:2:boss:grass": [],
+  "place:elementalRift:2:boss:stone": [],
+  "place:elementalRift:2:boss:water": [],
+  "place:elementalRift:2:normal:electric": [],
+  "place:elementalRift:2:normal:elite:electric": [],
+  "place:elementalRift:2:normal:elite:fire": [],
+  "place:elementalRift:2:normal:elite:grass": [],
+  "place:elementalRift:2:normal:elite:stone": [],
+  "place:elementalRift:2:normal:elite:water": [],
+  "place:elementalRift:2:normal:fire": [],
+  "place:elementalRift:2:normal:grass": [],
+  "place:elementalRift:2:normal:stone": [],
+  "place:elementalRift:2:normal:water": [],
+  "place:elementalRift:2:weak:electric": [],
+  "place:elementalRift:2:weak:elite:electric": [],
+  "place:elementalRift:2:weak:elite:fire": [],
+  "place:elementalRift:2:weak:elite:grass": [],
+  "place:elementalRift:2:weak:elite:stone": [],
+  "place:elementalRift:2:weak:elite:water": [],
+  "place:elementalRift:2:weak:fire": [],
+  "place:elementalRift:2:weak:grass": [],
+  "place:elementalRift:2:weak:stone": [],
+  "place:elementalRift:2:weak:water": [],
+  "place:elementalRift:3:boss:electric": [],
+  "place:elementalRift:3:boss:elite:electric": [],
+  "place:elementalRift:3:boss:elite:fire": [],
+  "place:elementalRift:3:boss:elite:grass": [],
+  "place:elementalRift:3:boss:elite:stone": [],
+  "place:elementalRift:3:boss:elite:water": [],
+  "place:elementalRift:3:boss:fire": [],
+  "place:elementalRift:3:boss:grass": [],
+  "place:elementalRift:3:boss:stone": [],
+  "place:elementalRift:3:boss:water": [],
+  "place:elementalRift:3:normal:electric": [],
+  "place:elementalRift:3:normal:elite:electric": [],
+  "place:elementalRift:3:normal:elite:fire": [],
+  "place:elementalRift:3:normal:elite:grass": [],
+  "place:elementalRift:3:normal:elite:stone": [],
+  "place:elementalRift:3:normal:elite:water": [],
+  "place:elementalRift:3:normal:fire": [],
+  "place:elementalRift:3:normal:grass": [],
+  "place:elementalRift:3:normal:stone": [],
+  "place:elementalRift:3:normal:water": [],
+  "place:elementalRift:3:weak:electric": [],
+  "place:elementalRift:3:weak:elite:electric": [],
+  "place:elementalRift:3:weak:elite:fire": [],
+  "place:elementalRift:3:weak:elite:grass": [],
+  "place:elementalRift:3:weak:elite:stone": [],
+  "place:elementalRift:3:weak:elite:water": [],
+  "place:elementalRift:3:weak:fire": [],
+  "place:elementalRift:3:weak:grass": [],
+  "place:elementalRift:3:weak:stone": [],
+  "place:elementalRift:3:weak:water": [],
+  "place:elementalRift:4:boss:electric": [],
+  "place:elementalRift:4:boss:elite:electric": [],
+  "place:elementalRift:4:boss:elite:fire": [],
+  "place:elementalRift:4:boss:elite:grass": [],
+  "place:elementalRift:4:boss:elite:stone": [],
+  "place:elementalRift:4:boss:elite:water": [],
+  "place:elementalRift:4:boss:fire": [],
+  "place:elementalRift:4:boss:grass": [],
+  "place:elementalRift:4:boss:stone": [],
+  "place:elementalRift:4:boss:water": [],
+  "place:elementalRift:4:normal:electric": [],
+  "place:elementalRift:4:normal:elite:electric": [],
+  "place:elementalRift:4:normal:elite:fire": [],
+  "place:elementalRift:4:normal:elite:grass": [],
+  "place:elementalRift:4:normal:elite:stone": [],
+  "place:elementalRift:4:normal:elite:water": [],
+  "place:elementalRift:4:normal:fire": [],
+  "place:elementalRift:4:normal:grass": [],
+  "place:elementalRift:4:normal:stone": [],
+  "place:elementalRift:4:normal:water": [],
+  "place:elementalRift:4:weak:electric": [],
+  "place:elementalRift:4:weak:elite:electric": [],
+  "place:elementalRift:4:weak:elite:fire": [],
+  "place:elementalRift:4:weak:elite:grass": [],
+  "place:elementalRift:4:weak:elite:stone": [],
+  "place:elementalRift:4:weak:elite:water": [],
+  "place:elementalRift:4:weak:fire": [],
+  "place:elementalRift:4:weak:grass": [],
+  "place:elementalRift:4:weak:stone": [],
+  "place:elementalRift:4:weak:water": [],
+  "place:elementalRift:5:boss:electric": [],
+  "place:elementalRift:5:boss:elite:electric": [],
+  "place:elementalRift:5:boss:elite:fire": [],
+  "place:elementalRift:5:boss:elite:grass": [],
+  "place:elementalRift:5:boss:elite:stone": [],
+  "place:elementalRift:5:boss:elite:water": [],
+  "place:elementalRift:5:boss:fire": [],
+  "place:elementalRift:5:boss:grass": [],
+  "place:elementalRift:5:boss:stone": [],
+  "place:elementalRift:5:boss:water": [],
+  "place:elementalRift:5:normal:electric": [],
+  "place:elementalRift:5:normal:elite:electric": [],
+  "place:elementalRift:5:normal:elite:fire": [],
+  "place:elementalRift:5:normal:elite:grass": [],
+  "place:elementalRift:5:normal:elite:stone": [],
+  "place:elementalRift:5:normal:elite:water": [],
+  "place:elementalRift:5:normal:fire": [],
+  "place:elementalRift:5:normal:grass": [],
+  "place:elementalRift:5:normal:stone": [],
+  "place:elementalRift:5:normal:water": [],
+  "place:elementalRift:5:weak:electric": [],
+  "place:elementalRift:5:weak:elite:electric": [],
+  "place:elementalRift:5:weak:elite:fire": [],
+  "place:elementalRift:5:weak:elite:grass": [],
+  "place:elementalRift:5:weak:elite:stone": [],
+  "place:elementalRift:5:weak:elite:water": [],
+  "place:elementalRift:5:weak:fire": [],
+  "place:elementalRift:5:weak:grass": [],
+  "place:elementalRift:5:weak:stone": [],
+  "place:elementalRift:5:weak:water": [],
+  "place:goblinRaid:1:boss": [
+    "locals"
+  ],
+  "place:goblinRaid:1:boss:elite": [
+    "locals"
+  ],
+  "place:goblinRaid:1:normal": [
+    "locals"
+  ],
+  "place:goblinRaid:1:normal:elite": [
+    "locals"
+  ],
+  "place:goblinRaid:1:weak": [
+    "locals"
+  ],
+  "place:goblinRaid:1:weak:elite": [
+    "locals"
+  ],
+  "place:goblinRaid:2:boss": [
+    "locals"
+  ],
+  "place:goblinRaid:2:boss:elite": [
+    "locals"
+  ],
+  "place:goblinRaid:2:normal": [
+    "locals"
+  ],
+  "place:goblinRaid:2:normal:elite": [
+    "locals"
+  ],
+  "place:goblinRaid:2:weak": [
+    "locals"
+  ],
+  "place:goblinRaid:2:weak:elite": [
+    "locals"
+  ],
+  "place:goblinRaid:3:boss": [
+    "locals"
+  ],
+  "place:goblinRaid:3:boss:elite": [
+    "locals"
+  ],
+  "place:goblinRaid:3:normal": [
+    "locals"
+  ],
+  "place:goblinRaid:3:normal:elite": [
+    "locals"
+  ],
+  "place:goblinRaid:3:weak": [
+    "locals"
+  ],
+  "place:goblinRaid:3:weak:elite": [
+    "locals"
+  ],
+  "place:goblinRaid:4:boss": [
+    "locals"
+  ],
+  "place:goblinRaid:4:boss:elite": [
+    "locals"
+  ],
+  "place:goblinRaid:4:normal": [
+    "locals"
+  ],
+  "place:goblinRaid:4:normal:elite": [
+    "locals"
+  ],
+  "place:goblinRaid:4:weak": [
+    "locals"
+  ],
+  "place:goblinRaid:4:weak:elite": [
+    "locals"
+  ],
+  "place:goblinRaid:5:boss": [
+    "locals"
+  ],
+  "place:goblinRaid:5:boss:elite": [
+    "locals"
+  ],
+  "place:goblinRaid:5:normal": [
+    "locals"
+  ],
+  "place:goblinRaid:5:normal:elite": [
+    "locals"
+  ],
+  "place:goblinRaid:5:weak": [
+    "locals"
+  ],
+  "place:goblinRaid:5:weak:elite": [
+    "locals"
+  ],
+  "place:hauntedCrypt:1:boss": [
+    "undead"
+  ],
+  "place:hauntedCrypt:1:boss:elite": [
+    "undead"
+  ],
+  "place:hauntedCrypt:1:normal": [
+    "undead"
+  ],
+  "place:hauntedCrypt:1:normal:elite": [
+    "undead"
+  ],
+  "place:hauntedCrypt:1:weak": [
+    "undead"
+  ],
+  "place:hauntedCrypt:1:weak:elite": [
+    "undead"
+  ],
+  "place:hauntedCrypt:2:boss": [
+    "undead"
+  ],
+  "place:hauntedCrypt:2:boss:elite": [
+    "undead"
+  ],
+  "place:hauntedCrypt:2:normal": [
+    "undead"
+  ],
+  "place:hauntedCrypt:2:normal:elite": [
+    "undead"
+  ],
+  "place:hauntedCrypt:2:weak": [
+    "undead"
+  ],
+  "place:hauntedCrypt:2:weak:elite": [
+    "undead"
+  ],
+  "place:hauntedCrypt:3:boss": [
+    "undead"
+  ],
+  "place:hauntedCrypt:3:boss:elite": [
+    "undead"
+  ],
+  "place:hauntedCrypt:3:normal": [
+    "undead"
+  ],
+  "place:hauntedCrypt:3:normal:elite": [
+    "undead"
+  ],
+  "place:hauntedCrypt:3:weak": [
+    "undead"
+  ],
+  "place:hauntedCrypt:3:weak:elite": [
+    "undead"
+  ],
+  "place:hauntedCrypt:4:boss": [
+    "undead"
+  ],
+  "place:hauntedCrypt:4:boss:elite": [
+    "undead"
+  ],
+  "place:hauntedCrypt:4:normal": [
+    "undead"
+  ],
+  "place:hauntedCrypt:4:normal:elite": [
+    "undead"
+  ],
+  "place:hauntedCrypt:4:weak": [
+    "undead"
+  ],
+  "place:hauntedCrypt:4:weak:elite": [
+    "undead"
+  ],
+  "place:hauntedCrypt:5:boss": [
+    "undead"
+  ],
+  "place:hauntedCrypt:5:boss:elite": [
+    "undead"
+  ],
+  "place:hauntedCrypt:5:normal": [
+    "undead"
+  ],
+  "place:hauntedCrypt:5:normal:elite": [
+    "undead"
+  ],
+  "place:hauntedCrypt:5:weak": [
+    "undead"
+  ],
+  "place:hauntedCrypt:5:weak:elite": [
+    "undead"
+  ],
+  "place:monsterLair:1:boss": [
+    "beast"
+  ],
+  "place:monsterLair:1:boss:elite": [
+    "beast"
+  ],
+  "place:monsterLair:1:normal": [
+    "beast"
+  ],
+  "place:monsterLair:1:normal:elite": [
+    "beast"
+  ],
+  "place:monsterLair:1:weak": [
+    "beast"
+  ],
+  "place:monsterLair:1:weak:elite": [
+    "beast"
+  ],
+  "place:monsterLair:2:boss": [
+    "beast"
+  ],
+  "place:monsterLair:2:boss:elite": [
+    "beast"
+  ],
+  "place:monsterLair:2:normal": [
+    "beast"
+  ],
+  "place:monsterLair:2:normal:elite": [
+    "beast"
+  ],
+  "place:monsterLair:2:weak": [
+    "beast"
+  ],
+  "place:monsterLair:2:weak:elite": [
+    "beast"
+  ],
+  "place:monsterLair:3:boss": [
+    "beast"
+  ],
+  "place:monsterLair:3:boss:elite": [
+    "beast"
+  ],
+  "place:monsterLair:3:normal": [
+    "beast"
+  ],
+  "place:monsterLair:3:normal:elite": [
+    "beast"
+  ],
+  "place:monsterLair:3:weak": [
+    "beast"
+  ],
+  "place:monsterLair:3:weak:elite": [
+    "beast"
+  ],
+  "place:monsterLair:4:boss": [
+    "beast"
+  ],
+  "place:monsterLair:4:boss:elite": [
+    "beast"
+  ],
+  "place:monsterLair:4:normal": [
+    "beast"
+  ],
+  "place:monsterLair:4:normal:elite": [
+    "beast"
+  ],
+  "place:monsterLair:4:weak": [
+    "beast"
+  ],
+  "place:monsterLair:4:weak:elite": [
+    "beast"
+  ],
+  "place:monsterLair:5:boss": [
+    "beast"
+  ],
+  "place:monsterLair:5:boss:elite": [
+    "beast"
+  ],
+  "place:monsterLair:5:normal": [
+    "beast"
+  ],
+  "place:monsterLair:5:normal:elite": [
+    "beast"
+  ],
+  "place:monsterLair:5:weak": [
+    "beast"
+  ],
+  "place:monsterLair:5:weak:elite": [
+    "beast"
+  ],
+  "place:wantedOutlaw:1:boss": [
+    "locals"
+  ],
+  "place:wantedOutlaw:1:boss:elite": [
+    "locals"
+  ],
+  "place:wantedOutlaw:1:normal": [
+    "locals"
+  ],
+  "place:wantedOutlaw:1:normal:elite": [
+    "locals"
+  ],
+  "place:wantedOutlaw:1:weak": [
+    "locals"
+  ],
+  "place:wantedOutlaw:1:weak:elite": [
+    "locals"
+  ],
+  "place:wantedOutlaw:2:boss": [
+    "locals"
+  ],
+  "place:wantedOutlaw:2:boss:elite": [
+    "locals"
+  ],
+  "place:wantedOutlaw:2:normal": [
+    "locals"
+  ],
+  "place:wantedOutlaw:2:normal:elite": [
+    "locals"
+  ],
+  "place:wantedOutlaw:2:weak": [
+    "locals"
+  ],
+  "place:wantedOutlaw:2:weak:elite": [
+    "locals"
+  ],
+  "place:wantedOutlaw:3:boss": [
+    "locals"
+  ],
+  "place:wantedOutlaw:3:boss:elite": [
+    "locals"
+  ],
+  "place:wantedOutlaw:3:normal": [
+    "locals"
+  ],
+  "place:wantedOutlaw:3:normal:elite": [
+    "locals"
+  ],
+  "place:wantedOutlaw:3:weak": [
+    "locals"
+  ],
+  "place:wantedOutlaw:3:weak:elite": [
+    "locals"
+  ],
+  "place:wantedOutlaw:4:boss": [
+    "locals"
+  ],
+  "place:wantedOutlaw:4:boss:elite": [
+    "locals"
+  ],
+  "place:wantedOutlaw:4:normal": [
+    "locals"
+  ],
+  "place:wantedOutlaw:4:normal:elite": [
+    "locals"
+  ],
+  "place:wantedOutlaw:4:weak": [
+    "locals"
+  ],
+  "place:wantedOutlaw:4:weak:elite": [
+    "locals"
+  ],
+  "place:wantedOutlaw:5:boss": [
+    "locals"
+  ],
+  "place:wantedOutlaw:5:boss:elite": [
+    "locals"
+  ],
+  "place:wantedOutlaw:5:normal": [
+    "locals"
+  ],
+  "place:wantedOutlaw:5:normal:elite": [
+    "locals"
+  ],
+  "place:wantedOutlaw:5:weak": [
+    "locals"
+  ],
+  "place:wantedOutlaw:5:weak:elite": [
+    "locals"
+  ],
+  "quarryOgre": [],
+  "ratKing": [
+    "beast"
+  ],
+  "ratSwarm": [
+    "beast"
+  ],
+  "restlessBones": [
+    "undead"
+  ],
+  "riverSprite": [],
+  "riverTroll": [],
+  "roadStalker": [
+    "beast"
+  ],
+  "rockGolem": [],
+  "rockLizard": [
+    "beast"
+  ],
+  "ruinCrawler": [
+    "beast"
+  ],
+  "runeGolem": [],
+  "shaftHaunt": [
+    "undead"
+  ],
+  "skeletonMiner": [
+    "undead"
+  ],
+  "skyfallGolem": [],
+  "smuggler": [],
+  "smugglerQueen": [],
+  "sparkMoth": [
+    "beast"
+  ],
+  "sporeQueen": [],
+  "sporeling": [
+    "beast"
+  ],
+  "squatter": [],
+  "stoneSentinel": [],
+  "stoneWarden": [],
+  "stormEel": [
+    "beast"
+  ],
+  "stormHawk": [
+    "beast"
+  ],
+  "stormRam": [
+    "beast"
+  ],
+  "stormRoc": [
+    "beast"
+  ],
+  "stormSpire:guardian:1": [],
+  "stormSpire:guardian:2": [],
+  "stormSpire:guardian:3": [],
+  "stormSpire:guardian:4": [],
+  "stormSpire:guardian:5": [],
+  "stormSpire:strong:1": [],
+  "stormSpire:strong:2": [],
+  "stormSpire:strong:3": [],
+  "stormSpire:strong:4": [],
+  "stormSpire:strong:5": [],
+  "stormSpire:weak:1": [],
+  "stormSpire:weak:2": [],
+  "stormSpire:weak:3": [],
+  "stormSpire:weak:4": [],
+  "stormSpire:weak:5": [],
+  "stormcaller": [],
+  "sunkenGrotto:guardian:1": [],
+  "sunkenGrotto:guardian:2": [],
+  "sunkenGrotto:guardian:3": [],
+  "sunkenGrotto:guardian:4": [],
+  "sunkenGrotto:guardian:5": [],
+  "sunkenGrotto:strong:1": [],
+  "sunkenGrotto:strong:2": [],
+  "sunkenGrotto:strong:3": [],
+  "sunkenGrotto:strong:4": [],
+  "sunkenGrotto:strong:5": [],
+  "sunkenGrotto:weak:1": [],
+  "sunkenGrotto:weak:2": [],
+  "sunkenGrotto:weak:3": [],
+  "sunkenGrotto:weak:4": [],
+  "sunkenGrotto:weak:5": [],
+  "tempestCaller": [],
+  "thicketBoar": [
+    "beast"
+  ],
+  "thornPiglet": [
+    "beast"
+  ],
+  "thunderDrake": [
+    "beast"
+  ],
+  "thunderTitan": [],
+  "thunderbird": [
+    "beast"
+  ],
+  "titanHeart": [],
+  "titanShard": [],
+  "towerCrow": [
+    "beast"
+  ],
+  "towerSergeant": [],
+  "tunnelBeetle": [
+    "beast"
+  ],
+  "turncoatKnight": [],
+  "vaultAutomaton": [],
+  "webling": [
+    "beast"
+  ],
+  "wildBoar": [
+    "beast"
+  ],
+  "wolfPup": [
+    "beast"
+  ],
+  "wyvern": [
+    "beast"
+  ],
+  "wyvernQueen": [
+    "beast"
+  ]
+}

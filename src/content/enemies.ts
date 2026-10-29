@@ -68,9 +68,6 @@ function boss(
   return { ...mob(id, name, s, hp, damage, tags, element, speedClass, damageType), effect };
 }
 
-/** A mob's tags, with its element as a tag too. */
-export const mobTags = (mob: MobDef): Tag[] => (mob.element ? [...mob.tags, mob.element] : mob.tags);
-
 const S = {
   // Tier 1
   ratCellar: strength(1, 1.58),

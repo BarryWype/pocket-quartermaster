@@ -1,5 +1,5 @@
 import { expeditionRules } from '@/content/dungeons';
-import { mobById, mobTags, npcMobId, TIER_SCALE } from '@/content/enemies';
+import { mobById, npcMobId, TIER_SCALE } from '@/content/enemies';
 import { eventById } from '@/content/events';
 import { localsRules, npcById } from '@/content/npcs';
 import { heroClasses } from '@/content/heroes';
@@ -13,6 +13,7 @@ import { weaknessByBoss, type WeaknessEffect } from '@/content/weaknesses';
 
 import { ELEMENTS, beats, incomingMultiplier, shardId, weaponMultiplier, type Element } from '../elements';
 import { createRng } from '../generation/rng';
+import { mobTags } from '../enemies/tags';
 import type { SaveData } from '../save';
 import { currentHp } from '../team/health';
 import { heroAbilities, heroDamageStat, heroStats, gearKeywordsOf, healingPotion } from '../team/team';
