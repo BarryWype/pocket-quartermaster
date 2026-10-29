@@ -13,6 +13,7 @@ import {
   mapTileAt,
   mapTileKey,
   mapTileKeysFor,
+  nearWater,
   placementCandidates,
   placeSpawns,
   snapToWalkable,
@@ -133,6 +134,36 @@ describe('snapToWalkable', () => {
     samples.slice(0, 50).forEach((point) => {
       expect(snapToWalkable(fixture, point, max)).toEqual(snapToWalkable(fixture, point, max));
     });
+  });
+});
+
+describe('nearWater', () => {
+  // A hand-made water square spanning ~1.1 km north-south and ~1.5 km east-west.
+  const sw: LatLng = { latitude: -41.29, longitude: 174.77 };
+  const ne: LatLng = { latitude: -41.28, longitude: 174.79 };
+  const square: WalkableTile = {
+    ways: [],
+    areas: [],
+    water: [
+      {
+        rings: [[sw, { latitude: ne.latitude, longitude: sw.longitude }, ne, { latitude: sw.latitude, longitude: ne.longitude }, sw]],
+        bbox: { minLat: sw.latitude, minLon: sw.longitude, maxLat: ne.latitude, maxLon: ne.longitude },
+      },
+    ],
+  };
+
+  it('is true inside the water', () => {
+    expect(nearWater(square, { latitude: -41.285, longitude: 174.78 }, 0)).toBe(true);
+    expect(nearWater(square, { latitude: -41.287, longitude: 174.775 }, 0)).toBe(true);
+  });
+
+  it('reaches out to the given metres from the nearest ring edge', () => {
+    const outside = { latitude: -41.285, longitude: 174.792 };
+    expect(distanceMeters(outside, { latitude: -41.285, longitude: 174.79 })).toBeGreaterThan(100);
+    expect(distanceMeters(outside, { latitude: -41.285, longitude: 174.79 })).toBeLessThan(300);
+    expect(nearWater(square, outside, 300)).toBe(true);
+    expect(nearWater(square, outside, 100)).toBe(false);
+    expect(nearWater(square, { latitude: -41.3, longitude: 174.78 }, 250)).toBe(false);
   });
 });
 

@@ -232,6 +232,8 @@ export const frNames: Record<string, string> = {
   '2 supply points.': '2 points de vivres.',
   Jerky: 'Viande séchée',
   '3 supply points.': '3 points de vivres.',
+  'Smoked fish': 'Poisson fumé',
+  Fish: 'Poisson',
   'Hunter’s stew': 'Ragoût du chasseur',
   'Heals 15% of max HP before the boss.': 'Soigne 15 % des PV max avant le boss.',
   'Scholar’s porridge': 'Bouillie de l’érudit',

@@ -145,6 +145,35 @@ function contains(area: Area, point: LatLng) {
 }
 
 /**
+ * Whether water is at hand: the point sits inside a water polygon, or one of
+ * its rings' edges runs within `meters` of it. Flat-plane distance like
+ * snapToWalkable, with the area's bbox as a cheap prefilter.
+ */
+export function nearWater(tile: WalkableTile, point: LatLng, meters: number): boolean {
+  const scaleX = METERS_PER_DEGREE * Math.cos((point.latitude * Math.PI) / 180);
+  const toPlane = (p: LatLng) => ({
+    x: (p.longitude - point.longitude) * scaleX,
+    y: (p.latitude - point.latitude) * METERS_PER_DEGREE,
+  });
+  for (const area of tile.water) {
+    if (contains(area, point)) return true;
+    if (!inBbox(area.bbox, point, meters)) continue;
+    for (const ring of area.rings) {
+      for (let i = 1; i < ring.length; i++) {
+        const a = toPlane(ring[i - 1]);
+        const b = toPlane(ring[i]);
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const lengthSquared = dx * dx + dy * dy;
+        const t = lengthSquared === 0 ? 0 : Math.max(0, Math.min(1, -(a.x * dx + a.y * dy) / lengthSquared));
+        if (Math.hypot(a.x + t * dx, a.y + t * dy) <= meters) return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
  * Where a spawn generated at `point` actually goes: the point itself inside a
  * public area (and not in water), else the nearest point on a walkable way
  * within `maxMeters`, else nowhere.

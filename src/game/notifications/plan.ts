@@ -6,7 +6,7 @@ import { fill, localized, tr } from '@/i18n';
 import { resolveExpedition } from '../expeditions/expeditions';
 import type { SaveData } from '../save';
 import { timeToFull } from '../team/health';
-import type { ActiveExpedition, ExpeditionReport } from '../types';
+import type { ActiveExpedition, ExpeditionReport, Heist } from '../types';
 import { deliveryTime } from './quietHours';
 import type { NotificationCategory, NotificationSettings, PlannedNotification } from './types';
 
@@ -97,6 +97,41 @@ function expeditionNotifications(save: SaveData, settings: NotificationSettings,
   });
 }
 
+/** One notification per group of heists ending within a couple of minutes of each other. */
+function heistNotifications(save: SaveData, settings: NotificationSettings, rules: Rules): PlannedNotification[] {
+  if (!settings.categories.heistFinished) return [];
+  const t = notificationTexts();
+  const sorted = [...save.heists].sort((a, b) => a.endsAt - b.endsAt);
+  const clusters: Heist[][] = [];
+  for (const heist of sorted) {
+    const last = clusters[clusters.length - 1];
+    if (last && heist.endsAt - last[0].endsAt <= rules.groupWindowMinutes * 60_000) last.push(heist);
+    else clusters.push([heist]);
+  }
+
+  return clusters.flatMap((cluster): PlannedNotification[] => {
+    const nameOf = (heroId: string) => save.heroes.find((h) => h.id === heroId)?.name ?? heroId;
+    const outcome = (heist: Heist) => (heist.success ? t.heistOutcome.loot : t.heistOutcome.empty);
+    const at = Math.max(...cluster.map((h) => h.endsAt));
+    const id = `heist:${cluster.map((h) => h.id).join('+')}`;
+    if (cluster.length === 1) {
+      const [heist] = cluster;
+      return [
+        {
+          id,
+          category: 'heistFinished',
+          group: 'expeditions',
+          at,
+          title: t.heistFinished.title,
+          body: fill(t.heistFinished.body, { name: nameOf(heist.heroId), outcome: outcome(heist) }),
+        },
+      ];
+    }
+    const lines = cluster.map((heist) => `${nameOf(heist.heroId)}: ${outcome(heist)}`);
+    return [{ id, category: 'heistFinished', group: 'expeditions', at, title: t.heistFinished.title, body: lines.join(' · ') }];
+  });
+}
+
 /** Idle reminder: a while after the last team comes home, if nobody goes out again. */
 function idleNotification(save: SaveData, rules: Rules): PlannedNotification[] {
   const lastActive = save.expeditions.length
@@ -148,6 +183,7 @@ export function planNotifications(
   const { categories } = settings;
   const planned = [
     ...expeditionNotifications(save, settings, rules),
+    ...heistNotifications(save, settings, rules),
     ...(categories.heroesIdle ? idleNotification(save, rules) : []),
     ...(categories.heroesRested ? restedNotification(save, now) : []),
     ...(categories.dailyReset ? dailyResetNotification(now) : []),

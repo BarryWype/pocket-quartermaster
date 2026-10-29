@@ -91,6 +91,7 @@ export const recipes: RecipeDef[] = [
   ...provisionRecipes([
     ['trailMix', 'kitchen', { berries: 2 }],
     ['jerky', 'kitchen', { meat: 2 }],
+    ['smokedFish', 'kitchen', { fish: 2 }],
     ['huntersStew', 'kitchen', { meat: 1, berries: 1, herb: 1 }],
     ['scholarsPorridge', 'kitchen', { berries: 1, herb: 2 }],
     ['merchantsPie', 'kitchen', { meat: 1, berries: 1, herb: 1 }],

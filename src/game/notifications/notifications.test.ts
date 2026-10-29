@@ -4,6 +4,7 @@ import { notificationTexts } from '@/content/notifications';
 import { recipes } from '@/content/recipes';
 
 import { resolveExpedition, startExpedition } from '../expeditions/expeditions';
+import type { Heist } from '../types';
 import { createInitialSave, type SaveData } from '../save';
 import { timeToFull } from '../team/health';
 import { equip } from '../team/team';
@@ -232,5 +233,42 @@ describe('step alerts', () => {
   it('follows the step categories and the master switch', () => {
     expect(stepAlerts(createInitialSave(), wooden.steps, day, fresh, withCategories({ chestUnlocked: false })).alerts).toEqual([]);
     expect(stepAlerts(createInitialSave(), wooden.steps, day, fresh, settings({ enabled: false })).alerts).toEqual([]);
+  });
+});
+
+describe('heist notifications', () => {
+  const now = at(12);
+
+  const heistOf = (over: Partial<Heist> = {}): Heist => ({
+    id: 'heist9',
+    placeId: 'place:thievesGuild:tile:0:1',
+    heroId: 'bram',
+    startedAt: now,
+    endsAt: now + 20 * MIN,
+    success: true,
+    reward: { gold: 100, xp: 0, materials: [], consumables: [], gear: [], keyFragments: 0 },
+    ...over,
+  });
+
+  it('announces a hero back from a heist, with loot or empty-handed', () => {
+    const save: SaveData = { ...createInitialSave(), heists: [heistOf()] };
+    const [notification] = planNotifications(save, settings(), now);
+    expect(notification).toMatchObject({ category: 'heistFinished', group: 'expeditions', at: now + 20 * MIN });
+    expect(notification.body).toContain('Bram');
+    expect(notification.body).toContain(notificationTexts.heistOutcome.loot);
+    const lost: SaveData = { ...createInitialSave(), heists: [heistOf({ success: false })] };
+    expect(planNotifications(lost, settings(), now)[0].body).toContain(notificationTexts.heistOutcome.empty);
+  });
+
+  it('groups heists ending within a couple of minutes, and follows the category', () => {
+    const save: SaveData = {
+      ...createInitialSave(),
+      heists: [heistOf(), heistOf({ id: 'heist10', heroId: 'lyra', endsAt: now + 21 * MIN })],
+    };
+    const planned = planNotifications(save, settings(), now);
+    expect(planned).toHaveLength(1);
+    expect(planned[0].body).toContain('Bram');
+    expect(planned[0].body).toContain('Lyra');
+    expect(planNotifications(save, withCategories({ heistFinished: false }), now)).toEqual([]);
   });
 });

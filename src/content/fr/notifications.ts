@@ -11,6 +11,10 @@ export const frNotificationGroups: Record<keyof typeof notificationGroups, Texts
 export const frNotificationCategories: Record<keyof typeof notificationCategories, Texts> = {
   expeditionFinished: { title: 'Expédition terminée', description: 'Quand une équipe revient, avec le résultat.' },
   bigResult: { title: 'Grands résultats', description: 'Met en avant les boss vaincus, les plans et les Sceaux de Sanctuaire.' },
+  heistFinished: {
+    title: 'Cambriolage terminé',
+    description: 'Quand un héros revient d’un cambriolage de la guilde des voleurs, avec du butin ou les mains vides.',
+  },
   heroesIdle: { title: 'Héros inactifs', description: 'Un petit rappel quand personne n’est parti depuis un moment.' },
   heroesRested: { title: 'Héros reposés', description: 'Quand les héros revenus blessés de la dernière expédition ont retrouvé tous leurs PV.' },
   chestUnlocked: { title: 'Coffre de pas débloqué', description: 'Quand vos pas du jour ouvrent un coffre.' },
@@ -33,6 +37,8 @@ export const frNotificationTexts: typeof notificationTexts = {
   groupFinished: { title: 'Vos équipes sont de retour', body: '{results}' },
   groupBigResult: { title: '🏆 Vos équipes reviennent avec de grandes nouvelles', body: '{results}' },
   highlights: { boss: 'boss vaincu', blueprint: 'nouveau plan ({item})', sigil: 'un Sceau de Sanctuaire' },
+  heistFinished: { title: 'Cambriolage terminé', body: '{name} est de retour d’un cambriolage, {outcome}.' },
+  heistOutcome: { loot: 'avec du butin', empty: 'les mains vides' },
   heroesIdle: { title: 'Vos héros s’impatientent', body: 'Personne n’est parti en expédition depuis un moment. Envoyer une équipe ?' },
   heroesRested: { title: 'Héros reposés', body: 'Vos héros ont retrouvé toute leur santé, prêts pour la prochaine expédition.' },
   chestUnlocked: { title: 'Coffre de pas débloqué', body: 'Votre {chest} est prêt à être ouvert.' },

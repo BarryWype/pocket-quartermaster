@@ -24,6 +24,12 @@ export const notificationCategories: Record<
     description: 'Highlights boss victories, blueprints and Sanctum Sigils.',
     defaultOn: true,
   },
+  heistFinished: {
+    group: 'expeditions',
+    title: 'Heist finished',
+    description: 'When a hero comes back from a thieves’ guild heist, with loot or empty-handed.',
+    defaultOn: true,
+  },
   heroesIdle: {
     group: 'expeditions',
     title: 'Heroes idle',
@@ -98,6 +104,8 @@ export const notificationTexts = {
   groupFinished: { title: 'Your teams are back', body: '{results}' },
   groupBigResult: { title: '🏆 Your teams are back with big news', body: '{results}' },
   highlights: { boss: 'boss defeated', blueprint: 'new blueprint ({item})', sigil: 'a Sanctum Sigil' },
+  heistFinished: { title: 'Heist over', body: '{name} is back from a heist, {outcome}.' },
+  heistOutcome: { loot: 'with loot', empty: 'empty-handed' },
   heroesIdle: { title: 'Your heroes are restless', body: 'Nobody has been on an expedition for a while. Send a team out?' },
   heroesRested: { title: 'Heroes rested', body: 'Your heroes are back to full health, ready for the next expedition.' },
   chestUnlocked: { title: 'Step chest unlocked', body: 'Your {chest} is ready to open.' },

@@ -1,6 +1,7 @@
 import { gatheringConfig, type GatheringConfig } from '@/content/gatheringConfig';
 
 import { pruneCollected } from './gathering/gathering';
+import { pruneDugRuins } from './places/ruins';
 import { lureEndsAt } from './rewards/lures';
 import type { SaveData } from './save';
 
@@ -19,6 +20,7 @@ export function pruneExpired(save: SaveData, now: number, config: GatheringConfi
   const usedPlaces = pruneCollected(save.usedPlaces, now);
   const chapelVisits = pruneCollected(save.chapelVisits, now);
   const placePurchases = Object.fromEntries(Object.entries(save.placePurchases).filter(([, p]) => p.expiresAt > now));
+  const dugRuins = pruneDugRuins(save.dugRuins, now);
   const buffer = now - config.autoGather.bufferHours * 3_600_000;
   const walkEffects = save.walkEffects.filter(
     (effect) => effect.endsAt > now || (save.autoGather.processedUntil < effect.endsAt && effect.endsAt >= buffer),
@@ -32,8 +34,9 @@ export function pruneExpired(save: SaveData, now: number, config: GatheringConfi
     Object.keys(takenOffers).length === Object.keys(save.takenOffers).length &&
     Object.keys(usedPlaces).length === Object.keys(save.usedPlaces).length &&
     Object.keys(chapelVisits).length === Object.keys(save.chapelVisits).length &&
-    Object.keys(placePurchases).length === Object.keys(save.placePurchases).length;
+    Object.keys(placePurchases).length === Object.keys(save.placePurchases).length &&
+    Object.keys(dugRuins).length === Object.keys(save.dugRuins).length;
   return unchanged
     ? save
-    : { ...save, treasureMaps, activeLure, walkEffects, usedSanctums, collected, takenOffers, usedPlaces, chapelVisits, placePurchases };
+    : { ...save, treasureMaps, activeLure, walkEffects, usedSanctums, collected, takenOffers, usedPlaces, chapelVisits, placePurchases, dugRuins };
 }

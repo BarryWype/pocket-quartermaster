@@ -13,6 +13,7 @@ export const materials: MaterialDef[] = [
   { id: 'hide', name: 'Hide', emoji: '🟫' },
   { id: 'bone', name: 'Bone', emoji: '🦴' },
   { id: 'meat', name: 'Meat', emoji: '🍖' },
+  { id: 'fish', name: 'Fish', emoji: '🐟' },
   { id: 'herb', name: 'Herbs', emoji: '🌿' },
   { id: 'berries', name: 'Berries', emoji: '🫐' },
   { id: 'mushroom', name: 'Mushroom', emoji: '🍄' },

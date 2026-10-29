@@ -85,6 +85,10 @@ const SAMPLE_NOTIFICATIONS: Record<NotificationCategory, { title: string; body: 
     ...texts.bigResult,
     body: fill(texts.bigResult.body, { dungeon: 'Bandit Stockade', highlights: texts.highlights.boss }),
   },
+  heistFinished: {
+    ...texts.heistFinished,
+    body: fill(texts.heistFinished.body, { name: 'Bram', outcome: texts.heistOutcome.loot }),
+  },
   heroesIdle: texts.heroesIdle,
   heroesRested: texts.heroesRested,
   chestUnlocked: { ...texts.chestUnlocked, body: fill(texts.chestUnlocked.body, { chest: 'wooden chest' }) },

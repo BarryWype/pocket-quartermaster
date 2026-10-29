@@ -5,6 +5,7 @@ export type NotificationGroup = 'expeditions' | 'steps' | 'patrols';
 export type NotificationCategory =
   | 'expeditionFinished'
   | 'bigResult'
+  | 'heistFinished'
   | 'heroesIdle'
   | 'heroesRested'
   | 'chestUnlocked'

@@ -1,12 +1,13 @@
 import { dungeons } from '@/content/dungeons';
 import { items } from '@/content/items';
-import { recipeById } from '@/content/lookup';
+import { itemById, recipeById } from '@/content/lookup';
 import { materials } from '@/content/materials';
 import { QUALITIES } from '@/content/forging';
 import { recipes } from '@/content/recipes';
 
 import { createInitialSave, type SaveData } from '../save';
 import { startingMastery } from '../forging/mastery';
+import type { ProvisionDef } from '../types';
 import { canCraft, craft, forgetRecipe, isKnown, learnAllRecipes, ownsTool, unlockRecipe } from './crafting';
 
 const withMaterials = (counts: Record<string, number>, extra: Partial<SaveData> = {}): SaveData => ({
@@ -115,6 +116,13 @@ describe('crafting', () => {
     const save = craft(craft(withMaterials({ herb: 4, mushroom: 2 }, { consumables: {} }), potion), potion);
     expect(save.consumables).toEqual({ healingPotion: 2 });
     expect(save.materials).toEqual({});
+  });
+
+  it('smokes two fish into one smoked fish, worth 3 supply points', () => {
+    const save = craft(withMaterials({ fish: 2 }, { consumables: {} }), recipeById.smokedFish);
+    expect(save.materials).toEqual({});
+    expect(save.consumables).toEqual({ smokedFish: 1 });
+    expect((itemById.smokedFish as ProvisionDef).supply).toBe(3);
   });
 
   it('cannot craft a locked recipe until it is unlocked', () => {

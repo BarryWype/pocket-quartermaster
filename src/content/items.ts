@@ -117,6 +117,7 @@ export const items: ItemDef[] = [
   // expedition; a meal is optional.
   { id: 'trailMix', name: 'Trail mix', emoji: '🥜', description: '2 supply points.', slot: 'provision', supply: 2 },
   { id: 'jerky', name: 'Jerky', emoji: '🥓', description: '3 supply points.', slot: 'provision', supply: 3 },
+  { id: 'smokedFish', name: 'Smoked fish', emoji: '🐟', description: '3 supply points.', slot: 'provision', supply: 3 },
   { id: 'pemmican', name: 'Pemmican', emoji: '🥩', description: '5 supply points.', slot: 'provision', supply: 5 },
   { id: 'huntersStew', name: 'Hunter’s stew', emoji: '🍲', description: 'Heals 15% of max HP before the boss.', slot: 'provision', meal: { kind: 'bossHeal', pct: meals.stewHeal } },
   { id: 'scholarsPorridge', name: 'Scholar’s porridge', emoji: '🥣', description: '+15% XP.', slot: 'provision', meal: { kind: 'xp', multiplier: meals.porridgeXp } },
