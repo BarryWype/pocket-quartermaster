@@ -5,7 +5,7 @@ import { mainRewardRules } from '@/content/mainRewards';
 import { heroNames } from '@/content/roster';
 import { recipes } from '@/content/recipes';
 import { firstClearRules } from '@/content/rotation';
-import { restrictionRules } from '@/content/threats';
+import { narrowPartySize } from '@/content/threats';
 import { traitById, traits } from '@/content/traits';
 import { travellerRules } from '@/content/patrols';
 import { tutorialRules } from '@/content/tutorial';
@@ -207,10 +207,10 @@ export function startExpedition(
   if (heroIds.length === 0) throw new Error('Pick at least one hero');
   if (heroIds.length > partySize(save)) throw new Error(`At most ${partySize(save)} heroes per expedition`);
   const briefing = expeditionBriefing(save, dungeon, rotation, now);
-  // Narrow passages: no more than the restriction's party size fits through, unless a Curse-breaker lifts it.
+  // Narrow passages: one hero fewer than usual fits through, unless a Curse-breaker in the party lifts them.
   const restriction = signatureBriefing(briefing, prepareParty(save, heroIds).map(answersMemberOf)).briefing.restriction;
-  if (restriction === 'narrowPassages' && heroIds.length > restrictionRules.narrowPartySize) {
-    throw new Error(`At most ${restrictionRules.narrowPartySize} heroes fit the narrow passages`);
+  if (restriction === 'narrowPassages' && heroIds.length > narrowPartySize(partySize(save))) {
+    throw new Error(`At most ${narrowPartySize(partySize(save))} heroes fit the narrow passages`);
   }
   for (const heroId of heroIds) {
     if (!save.heroes.some((h) => h.id === heroId)) throw new Error(`Unknown hero ${heroId}`);

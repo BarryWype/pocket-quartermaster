@@ -808,7 +808,7 @@ export const frNames: Record<string, string> = {
   'Gold bonuses from traits, charms and meals don’t apply.':
     'Les bonus d’or des traits, charmes et repas ne s’appliquent pas.',
   'Narrow passages': 'Passages étroits',
-  'At most 3 heroes per expedition.': '3 héros au maximum par expédition.',
+  'One hero fewer than usual per expedition.': 'Un héros de moins que d’habitude par expédition.',
   'Spoiled stores': 'Réserves avariées',
   'Meals have no effect; supply still counts.':
     'Les repas n’ont aucun effet ; les vivres comptent toujours.',

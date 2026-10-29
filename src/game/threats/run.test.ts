@@ -1,6 +1,7 @@
 import { expeditionRules } from '@/content/dungeons';
 import { patrolThreats, restrictionRules, threatRules } from '@/content/threats';
 import { travellerRules } from '@/content/patrols';
+import { newHero } from '@/content/heroes';
 import { dungeonById, itemById } from '@/content/lookup';
 
 import { applyOverrides, dailyRotation, rotationDay } from '../dungeons/rotation';
@@ -244,12 +245,16 @@ describe('run restrictions', () => {
     expect(lit.threats[0]).toMatchObject({ state: 'met' });
   });
 
-  it('narrowPassages: startExpedition rejects more than three heroes', () => {
+  it('narrowPassages: one hero fewer than the usual party, unless a Curse-breaker goes', () => {
     const base = geared();
-    const save = { ...base, guild: { partySlot: 1 }, heroes: [...base.heroes, { ...base.heroes[0], id: 'h4', name: 'Fourth' }] };
+    const breaker = { ...newHero('cb', 'Breaker', 'curseBreaker', 'none', 30) };
+    const save = { ...base, heroes: [...base.heroes, breaker] };
     const rotation = forcedRotation('ratCellar', briefing({ restriction: 'narrowPassages' }));
-    expect(() => startExpedition(save, 'ratCellar', ALL, 0, 1, rotation)).not.toThrow();
-    expect(() => startExpedition(save, 'ratCellar', [...ALL, 'h4'], 0, 1, rotation)).toThrow(/narrow passages/);
+    expect(() => startExpedition(save, 'ratCellar', ['bram', 'lyra'], 0, 1, rotation)).not.toThrow();
+    expect(() => startExpedition(save, 'ratCellar', ALL, 0, 1, rotation)).toThrow(/At most 2 heroes fit the narrow passages/);
+    expect(() => startExpedition(save, 'ratCellar', ['bram', 'lyra', 'cb'], 0, 1, rotation)).not.toThrow();
+    // A fourth party slot (Guild Hall) lets three through.
+    expect(() => startExpedition({ ...save, guild: { partySlot: 1 } }, 'ratCellar', ALL, 0, 1, rotation)).not.toThrow();
   });
 
   it('spoiledStores: the meal is eaten but does nothing', () => {

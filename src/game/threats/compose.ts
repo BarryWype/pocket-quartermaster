@@ -2,7 +2,8 @@ import { gearProfiles } from '@/content/equipment';
 import { heroClasses } from '@/content/heroes';
 import { items } from '@/content/items';
 import { itemById, opportunityById, recipeById, restrictionById, threatById } from '@/content/lookup';
-import { dungeonThreats, restrictionRules, surges, threatRules, type ThreatRules } from '@/content/threats';
+import { rosterRules } from '@/content/roster';
+import { dungeonThreats, narrowPartySize, surges, threatRules, type ThreatRules } from '@/content/threats';
 import { traits } from '@/content/traits';
 import { mobById, mobTags } from '@/content/enemies';
 
@@ -183,7 +184,7 @@ export function restrictionKeepsAnswers(
     restriction === 'narrowPassages' &&
     threats.some((t) => {
       const def = threatById[t.id];
-      return def.answer.kind === 'keyword' && rules.levels.keyword[t.level - 1] > restrictionRules.narrowPartySize;
+      return def.answer.kind === 'keyword' && rules.levels.keyword[t.level - 1] > narrowPartySize(rosterRules.partySize);
     })
   ) {
     return false;

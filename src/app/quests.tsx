@@ -19,7 +19,7 @@ import { dungeons } from '@/content/dungeons';
 import { heroClasses } from '@/content/heroes';
 import { dungeonById } from '@/content/lookup';
 import { provisionRules } from '@/content/provisions';
-import { restrictionRules } from '@/content/threats';
+import { narrowPartySize } from '@/content/threats';
 import { tutorialRules } from '@/content/tutorial';
 import { briefingFor, nextRotationAt, rotationDay } from '@/game/dungeons/rotation';
 import { expeditionMinutes, isDungeonUnlocked, readyExpeditions, type Loadout } from '@/game/expeditions/expeditions';
@@ -180,7 +180,7 @@ export default function QuestsScreen() {
   );
   // Narrow passages cut the party down for that dungeon, unless a Curse-breaker in it lifts them.
   const narrow = focusedBriefing?.restriction === 'narrowPassages' && !coverage?.restriction?.cancelledBy;
-  const cap = narrow ? restrictionRules.narrowPartySize : partySize(save);
+  const cap = narrow ? narrowPartySize(partySize(save)) : partySize(save);
 
   /** Parties are capped: a hero can only join while there's room. */
   const toggle = (heroId: string) => {
@@ -205,7 +205,7 @@ export default function QuestsScreen() {
       )}
       <SectionTitle>{t('expeditions.party', { count: party.length, max: cap })}</SectionTitle>
       {narrow && (
-        <Text style={styles.muted}>{t('threats.narrowCap', { count: restrictionRules.narrowPartySize })}</Text>
+        <Text style={styles.muted}>{t('threats.narrowCap', { count: cap })}</Text>
       )}
       <View style={styles.party}>
         {save.heroes.map((hero) => {

@@ -181,11 +181,10 @@ describe('restrictions and answers', () => {
     expect(restrictionKeepsAnswers(darkness, 'antiMagic', [member({ kit: kit('lantern') })])).toBe(true);
   });
 
-  it('rejects narrow passages for a keyword threat needing more heroes than fit', () => {
-    const swarm = [{ id: 'swarm' as const, level: 3 as const }];
-    expect(restrictionKeepsAnswers(swarm, 'narrowPassages')).toBe(true);
-    const wide = { ...threatRules, levels: { approach: [2, 3, 4], keyword: [1, 2, 4] } };
-    expect(restrictionKeepsAnswers(swarm, 'narrowPassages', undefined, wide)).toBe(false);
+  it('rejects narrow passages for a keyword threat needing more heroes than fit (one fewer than a party)', () => {
+    // Parties of 3 squeeze down to 2: Swarm 2 needs 2 heroes with Cleave, Swarm 3 needs 3.
+    expect(restrictionKeepsAnswers([{ id: 'swarm', level: 2 }], 'narrowPassages')).toBe(true);
+    expect(restrictionKeepsAnswers([{ id: 'swarm', level: 3 }], 'narrowPassages')).toBe(false);
   });
 
   it('answers through heroAnswers with the restriction applied', () => {

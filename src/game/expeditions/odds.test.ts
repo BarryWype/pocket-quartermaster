@@ -1,4 +1,4 @@
-import { startingHeroes } from '@/content/heroes';
+import { newHero, startingHeroes } from '@/content/heroes';
 import { dungeonById } from '@/content/lookup';
 
 import { composeBriefing } from '../threats/compose';
@@ -8,6 +8,8 @@ import { setHeroHp } from '../team/health';
 import { equip } from '../team/team';
 import { resolveExpedition, startExpedition, type Loadout } from './expeditions';
 import { estimateOdds } from './odds';
+import * as simulate from './simulate';
+import type { Briefing } from '../types';
 
 const ALL = startingHeroes.map((h) => h.id);
 const WEAPONS = ['sword', 'bow', 'wand'];
@@ -111,5 +113,35 @@ describe('odds preview', () => {
     const briefed = estimateOdds(save, ALL, dungeon, 300, { briefing: composeBriefing(dungeon, DAY) }).success;
     // A briefing can only hurt: whatever the day drew, the no-threat run is the safest.
     expect(estimate).toBeGreaterThanOrEqual(briefed - 0.02);
+  });
+});
+
+describe('estimateOdds and the meal', () => {
+  /** The meal every preview run played with. */
+  function mealsSeen(save: SaveData, heroIds: string[], loadout: Loadout, briefing: Briefing) {
+    const spy = jest.spyOn(simulate, 'simulateRun');
+    try {
+      estimateOdds(save, heroIds, dungeonById.ratCellar, 3, { loadout, briefing });
+      return spy.mock.results.map((r) => (r.value as ReturnType<typeof simulate.simulateRun>).meal);
+    } finally {
+      spy.mockRestore();
+    }
+  }
+  const withCook = (): SaveData => {
+    const base = team(1, 3);
+    const cook = { ...newHero('c', 'Cook', 'cook', 'none', 3) };
+    return { ...base, heroes: [...base.heroes, cook], consumables: { ...base.consumables, huntersStew: 1 } };
+  };
+  const plain: Briefing = { threats: [], restriction: null, opportunity: null };
+
+  it('previews the meal before launch, doubled by a Cook', () => {
+    expect(mealsSeen(withCook(), ['bram', 'lyra'], { mealId: 'huntersStew' }, plain)).toEqual(Array(3).fill({ kind: 'bossHeal', pct: 0.15 }));
+    expect(mealsSeen(withCook(), ['bram', 'c'], { mealId: 'huntersStew' }, plain)).toEqual(Array(3).fill({ kind: 'bossHeal', pct: 0.3 }));
+  });
+
+  it('keeps the meal under Spoiled stores only with a Cook in the party', () => {
+    const spoiled = { ...plain, restriction: 'spoiledStores' as const };
+    expect(mealsSeen(withCook(), ['bram', 'lyra'], { mealId: 'huntersStew' }, spoiled)).toEqual(Array(3).fill(null));
+    expect(mealsSeen(withCook(), ['bram', 'c'], { mealId: 'huntersStew' }, spoiled)).toEqual(Array(3).fill({ kind: 'bossHeal', pct: 0.3 }));
   });
 });

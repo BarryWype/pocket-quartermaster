@@ -6,7 +6,7 @@ import { heroClasses, xpRules } from '@/content/heroes';
 import { dungeonById, itemById, recipeById } from '@/content/lookup';
 import { mainRewardRules } from '@/content/mainRewards';
 import { recipes } from '@/content/recipes';
-import { restrictionRules, approachRules } from '@/content/threats';
+import { approachRules, narrowPartySize } from '@/content/threats';
 import { firstClearRules } from '@/content/rotation';
 import { traitById } from '@/content/traits';
 
@@ -813,13 +813,16 @@ function withLoadout(save: SaveData, heroIds: string[], dungeon: DungeonDef, bri
 export function bestParty(sim: Sim, dungeon: DungeonDef, candidates: string[], briefingOf: Briefing | null = null) {
   const briefing = briefingOf ?? briefingFor(sim.rotation, dungeon);
   const save = withLoadout(sim.save, candidates, dungeon, briefing);
-  // Narrow passages cap the party at launch, so never build a bigger one.
-  const cap = briefing.restriction === 'narrowPassages' ? restrictionRules.narrowPartySize : partySize(save);
+  // Narrow passages cap the party at launch (one hero fewer), unless a Curse-breaker in it lifts them.
+  const fits = (ids: string[]) =>
+    briefing.restriction !== 'narrowPassages' ||
+    ids.length <= narrowPartySize(partySize(save)) ||
+    briefingCoverage(save, ids, briefing).restriction?.cancelledBy != null;
   const party: string[] = [];
   let best: Odds = { success: 0, flawless: 0, progress: 0 };
-  while (party.length < cap && party.length < candidates.length) {
+  while (party.length < partySize(save) && candidates.some((c) => !party.includes(c) && fits([...party, c]))) {
     let pick: { id: string; odds: Odds } | null = null;
-    for (const id of candidates.filter((c) => !party.includes(c))) {
+    for (const id of candidates.filter((c) => !party.includes(c) && fits([...party, c]))) {
       const o = odds(sim, save, [...party, id], dungeon, sim.config.odds.searchRuns, false, briefing);
       if (!pick || o.success > pick.odds.success || (o.success === pick.odds.success && o.progress > pick.odds.progress)) pick = { id, odds: o };
     }

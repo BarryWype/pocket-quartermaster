@@ -332,7 +332,7 @@ export const restrictionDefs: RestrictionDef[] = [
   { id: 'cursedLuck', name: 'Cursed luck', emoji: '🎲', description: 'No critical hits.' },
   { id: 'thickFog', name: 'Thick fog', emoji: '🌫️', description: 'Watchful doesn’t count; Ambush can only be answered by a kit.' },
   { id: 'barren', name: 'Barren', emoji: '💸', description: 'Gold bonuses from traits, charms and meals don’t apply.' },
-  { id: 'narrowPassages', name: 'Narrow passages', emoji: '🕳️', description: 'At most 3 heroes per expedition.' },
+  { id: 'narrowPassages', name: 'Narrow passages', emoji: '🕳️', description: 'One hero fewer than usual per expedition.' },
   { id: 'spoiledStores', name: 'Spoiled stores', emoji: '🥀', description: 'Meals have no effect; supply still counts.' },
 ];
 
@@ -344,9 +344,12 @@ export const restrictionRules = {
   sacredGround: 0.6,
   /** No healing: healing during the run multiplied by this. */
   noHealing: 0.5,
-  /** Narrow passages: party size limit. */
-  narrowPartySize: 3,
+  /** Narrow passages: this many heroes fewer than the usual party size. */
+  narrowPartyCut: 1,
 };
+
+/** The party size Narrow passages allow, from the usual one (never below 1). */
+export const narrowPartySize = (partySize: number) => Math.max(1, partySize - restrictionRules.narrowPartyCut);
 
 export const opportunityDefs: OpportunityDef[] = [
   {
