@@ -2,7 +2,7 @@ import { dungeons } from '@/content/dungeons';
 
 import { dungeonTags } from '../dungeons/tags';
 import type { MobDef } from '../types';
-import { familyTags, mobTags } from './tags';
+import { dungeonFoes, familyTags, mobTags } from './tags';
 
 const mob = (tags: MobDef['tags'], element?: MobDef['element']): MobDef => ({
   id: 'testMob',
@@ -41,6 +41,16 @@ describe('dungeon tags', () => {
     for (const dungeon of dungeons) {
       const tagged = { ...dungeon, boss: { ...dungeon.boss, tags: ['dragon', ...dungeon.boss.tags] as MobDef['tags'] } };
       expect(dungeonTags(tagged)).toEqual(dungeonTags(dungeon));
+    }
+  });
+});
+
+describe('dungeonFoes', () => {
+  it('lists each enemy once, the boss last', () => {
+    for (const dungeon of dungeons) {
+      const names = dungeonFoes(dungeon).map((mob) => mob.name);
+      expect(new Set(names).size).toBe(names.length);
+      expect(names[names.length - 1]).toBe(dungeon.boss.name);
     }
   });
 });

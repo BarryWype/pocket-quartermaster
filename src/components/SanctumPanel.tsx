@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { elementInfo } from '@/content/elements';
+import { sanctumGuardian } from '@/content/enemies';
 import { heroClasses } from '@/content/heroes';
 import { sanctumRules } from '@/content/sanctums';
 import { oddsBand } from '@/game/expeditions/odds';
@@ -21,6 +22,7 @@ import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
+import { EnemyTags } from './EnemyTags';
 import { Text } from './Text';
 import { TutorialHint } from './TutorialHint';
 
@@ -110,6 +112,7 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
               {element.emoji} {tr(element.name)} · {tr(sanctum.description)}
             </Text>
             <Text style={styles.subtitle}>{t('sanctum.guardian', { name: tr(sanctum.guardian.name) })}</Text>
+            <EnemyTags mob={sanctumGuardian(sanctum, tier ?? 1)} named={false} />
             <Text style={styles.muted}>{tr(sanctum.guardian.description)}</Text>
 
             {!result && (

@@ -10,7 +10,8 @@ import { oddsBand } from '@/game/expeditions/odds';
 import { distanceMeters } from '@/game/generation/geo';
 import type { LatLng } from '@/game/generation/types';
 import type { PlaceSpawn } from '@/game/places/generate';
-import { isFightPlace, placeFightBriefing, placeFightOdds, placeFightProblem, type PlaceFightProblem } from '@/game/places/fights';
+import { dungeonFoes } from '@/game/enemies/tags';
+import { isFightPlace, placeFightBriefing, placeFightDungeon, placeFightOdds, placeFightProblem, type PlaceFightProblem } from '@/game/places/fights';
 import { currentHp, isExhausted, maxHp } from '@/game/team/health';
 import { isAway } from '@/game/team/team';
 import { formatDuration, formatPercent, t, tr } from '@/i18n';
@@ -20,6 +21,7 @@ import { useWorldStore } from '@/store/worldStore';
 import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
+import { EnemyTags } from './EnemyTags';
 import { leavesIn } from './PlacePanel';
 import { Text } from './Text';
 import { ThreatChip } from './ThreatChip';
@@ -53,6 +55,7 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
   if (!kind || !rules) return null;
 
   const briefing = placeFightBriefing(save, place);
+  const foes = dungeonFoes(placeFightDungeon(place, highestUnlockedTier(save)));
   const problem = placeFightProblem(save, place, heroIds, player, now);
   const info = placeInfo[kind];
   const toggle = (heroId: string) =>
@@ -88,6 +91,10 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
                 {tr(opportunityById[briefing.opportunity].description)}
               </Text>
             )}
+            <Text style={styles.subtitle}>{t('expeditions.foes')}</Text>
+            {foes.map((mob) => (
+              <EnemyTags key={mob.id} mob={mob} />
+            ))}
             <Text style={styles.subtitle}>{t('sanctum.heroes')}</Text>
             <View style={styles.chips}>
               {candidates.map((hero) => (

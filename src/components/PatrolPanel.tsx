@@ -9,6 +9,7 @@ import { tagInfo } from '@/content/rotation';
 import { highestUnlockedTier } from '@/game/expeditions/expeditions';
 import { oddsBand } from '@/game/expeditions/odds';
 import { dungeonTags } from '@/game/dungeons/tags';
+import { dungeonFoes } from '@/game/enemies/tags';
 import { partySize } from '@/game/guild/guild';
 import type { LatLng } from '@/game/generation/types';
 import { isPatrolKind, patrolTier, type PatrolSpawn } from '@/game/patrols/generate';
@@ -23,6 +24,7 @@ import { useWorldStore } from '@/store/worldStore';
 import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
+import { EnemyTags } from './EnemyTags';
 import { Text } from './Text';
 import { ThreatChip } from './ThreatChip';
 
@@ -100,6 +102,10 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
                 .map((tag) => `${tagInfo[tag].emoji} ${tr(tagInfo[tag].name)}`)
                 .join(' · ')}
             </Text>
+            <Text style={styles.subtitle}>{t('expeditions.foes')}</Text>
+            {dungeonFoes(dungeon).map((mob) => (
+              <EnemyTags key={mob.id} mob={mob} />
+            ))}
             <Text style={styles.subtitle}>{t('sanctum.heroes')}</Text>
             <View style={styles.chips}>
               {candidates.map((hero) => (

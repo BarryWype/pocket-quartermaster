@@ -65,6 +65,8 @@ export const en = {
     cookingHint: '🍳 Food is running low. Every expedition needs supply: cook trail mix and jerky from berries and meat in Craft → Provisions. Tap to close.',
   },
   expeditions: {
+    boss: 'Boss',
+    foes: 'Foes',
     outcome: { flawless: 'Flawless', success: 'Success', retreat: 'Retreat', defeat: 'Defeat' },
     askTitle: 'Want to know when your team is back?',
     askBody: 'You can change this any time in Settings.',

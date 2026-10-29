@@ -13,6 +13,7 @@ import { colors, pixel } from '@/theme';
 
 import { BriefingChips } from './BriefingChips';
 import { Button } from './Button';
+import { EnemyTags } from './EnemyTags';
 import { IconSlot } from './Row';
 import { ODDS_COLORS } from './SendDialog';
 import { Text } from './Text';
@@ -74,6 +75,10 @@ export function DungeonCard({ save, dungeon, rotation, now, durationMs, chance, 
         <View style={styles.details}>
           {band && <Text style={styles.muted}>{t(`odds.${band}`)} · {t('expeditions.tips.odds')}</Text>}
           <BriefingChips briefing={briefingFor(rotation, dungeon)} />
+          <View style={styles.foe}>
+            <Text style={[styles.line, styles.muted]}>{t('expeditions.boss')}</Text>
+            <EnemyTags mob={dungeon.boss} />
+          </View>
           {fresh && <Text style={styles.line}>{t('expeditions.neverCleared')}</Text>}
           {blueprint && <Text style={styles.line}>📜 {t('expeditions.blueprintToday')}</Text>}
           {weakness && (
@@ -109,6 +114,7 @@ const styles = StyleSheet.create({
   oddsText: { color: colors.parchment, fontSize: 18 },
   chevron: { fontSize: 22, color: colors.muted, width: 16 },
   details: { gap: 6 },
+  foe: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
   line: { fontSize: 17 },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10 },
 });

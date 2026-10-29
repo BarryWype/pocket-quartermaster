@@ -67,6 +67,8 @@ export const fr: Dictionary = {
     tavernsOpen: '🍺 Les tavernes ouvrent ! Recrutez des héros contre de l’or au 🍺 sur la carte. Touchez pour fermer.',
   },
   expeditions: {
+    boss: 'Boss',
+    foes: 'Ennemis',
     outcome: { flawless: 'Sans faute', success: 'Réussite', retreat: 'Retraite', defeat: 'Défaite' },
     askTitle: 'Être prévenu quand votre équipe rentre ?',
     askBody: 'Vous pourrez changer d’avis à tout moment dans les Réglages.',
