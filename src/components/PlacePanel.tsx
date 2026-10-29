@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { bossById } from '@/content/enemies';
 import { heroClasses } from '@/content/heroes';
 import { gearName, itemById, materialById, recipeById, recipeOutput, threatById } from '@/content/lookup';
 import { heistRules } from '@/content/placeActivities';
 import { placeInfo, placeRules, type PlaceKind } from '@/content/places';
 import { serviceRules } from '@/content/services';
+import { weaknessByItem } from '@/content/weaknesses';
 import { wornBy } from '@/game/forging/salvage';
 import { pickaxeTier } from '@/game/gathering/gathering';
 import { distanceMeters } from '@/game/generation/geo';
@@ -61,9 +63,13 @@ export function leavesIn(ms: number) {
   return t('places.leavesIn', { time });
 }
 
-function lineName(line: StockLine) {
+export function lineName(line: StockLine) {
   if (line.kind === 'material') return `${materialById[line.id].emoji} ${tr(materialById[line.id].name)}`;
-  if (line.kind === 'item') return `${itemById[line.id].emoji} ${tr(itemById[line.id].name)}`;
+  if (line.kind === 'item') {
+    const weakness = weaknessByItem[line.id];
+    const name = `${itemById[line.id].emoji} ${tr(itemById[line.id].name)}`;
+    return weakness ? `${name} · ${t('places.weaknessFor', { boss: tr(bossById[weakness.bossId].name) })}` : name;
+  }
   if (line.kind === 'gear') return `${itemById[line.id].emoji} ${gearName(line.gear!)}`;
   return `📜 ${t('places.recipe', { name: tr(recipeOutput(recipeById[line.id]).name) })}`;
 }

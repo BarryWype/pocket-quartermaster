@@ -11,7 +11,7 @@ import { guildBonus, tavernOfferCount } from '../guild/guild';
 import { distanceMeters } from '../generation/geo';
 import { createRng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
-import { placeGroupOf, placesAround } from '../places/generate';
+import { placeGroupOf, placesAround, type PlaceSpawn } from '../places/generate';
 import type { SaveData } from '../save';
 import { rosterFull } from '../team/team';
 import type { ClassRarity, HeroClassId, HeroRoll } from '../types';
@@ -20,7 +20,8 @@ import { gradePriceMultiplier, recruitGrade, rollRecruit, type Grade } from './r
 type TavernRules = typeof tavernRules;
 type RecruitRules = typeof recruitRules;
 
-export type TavernSpawn = { id: string; name: string; position: LatLng; expiresAt: number };
+/** A tavern place with its name; it sells like any place (see places/shops.ts). */
+export type TavernSpawn = PlaceSpawn & { name: string };
 
 export type RecruitOffer = {
   id: string;
@@ -49,10 +50,8 @@ export function generateTavernsAround(position: LatLng, timeMs: number): TavernS
     .map((spawn) => {
       const rng = createRng(`tavern-name|${spawn.id}`);
       return {
-        id: spawn.id,
+        ...spawn,
         name: tavernName(rng.int(0, tavernNames.adjectives.length - 1), rng.int(0, tavernNames.nouns.length - 1)),
-        position: spawn.position,
-        expiresAt: spawn.expiresAt,
       };
     });
 }

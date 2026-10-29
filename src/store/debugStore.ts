@@ -7,6 +7,7 @@ import type { LatLng, TimeOfDay } from '@/game/generation/types';
 import { applyOverrides, dailyRotation, rotationDay } from '@/game/dungeons/rotation';
 import type { PlaceSpawn } from '@/game/places/generate';
 import type { SanctumSpawn } from '@/game/sanctums/sanctums';
+import type { TavernSpawn } from '@/game/taverns/taverns';
 import type { Briefing, MainRewardKind, Quality } from '@/game/types';
 
 type DebugSettings = {
@@ -26,7 +27,7 @@ type DebugSettings = {
   /** Quality the next forged gear piece gets, then cleared. */
   forcedQuality: Quality | null;
   /** A tavern placed by hand next to the player. */
-  debugTavern: { id: string; name: string; position: LatLng; expiresAt: number } | null;
+  debugTavern: TavernSpawn | null;
   /** Places put by hand next to the player. */
   debugPlaces: PlaceSpawn[];
   /** Changes every tavern's offers, to reroll them. */

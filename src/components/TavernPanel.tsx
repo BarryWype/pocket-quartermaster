@@ -9,6 +9,7 @@ import { tavernRules } from '@/content/taverns';
 import { traitById } from '@/content/traits';
 import { distanceMeters } from '@/game/generation/geo';
 import { rosterCap } from '@/game/guild/guild';
+import { buyProblem, placeStock, stockLeft } from '@/game/places/shops';
 import type { LatLng } from '@/game/generation/types';
 import {
   buySupplyProblem,
@@ -25,6 +26,7 @@ import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
+import { lineName } from './PlacePanel';
 import { RecruitGrade } from './RecruitGrade';
 import { Text } from './Text';
 
@@ -44,6 +46,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
   const save = useGameStore((state) => state.save);
   const recruit = useGameStore((state) => state.recruit);
   const buySupply = useGameStore((state) => state.buySupply);
+  const buyAtPlace = useGameStore((state) => state.buyAtPlace);
   const offerSeed = useDebugStore((state) => (debugEnabled(state) ? state.offerSeed : ''));
   const [openedAt] = useState(() => Date.now());
   const offers = tavernOffers(save, tavern.id, openedAt, offerSeed);
@@ -99,6 +102,22 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
                 />
               </View>
             </View>
+            {placeStock(save, tavern).map((line) => (
+              <View key={line.key} style={styles.offer}>
+                <Text style={styles.name}>{lineName(line)}</Text>
+                <View style={styles.actions}>
+                  <Text style={styles.price}>🪙 {line.price}</Text>
+                  <Text style={styles.muted}>
+                    {stockLeft(save, tavern, line) > 0 ? t('places.left', { count: stockLeft(save, tavern, line) }) : t('places.soldOut')}
+                  </Text>
+                  <Button
+                    title={t('tavern.buy')}
+                    disabled={buyProblem(save, tavern, line.key, 1, player, openedAt) !== null}
+                    onPress={() => buyAtPlace(tavern, line.key, 1, player)}
+                  />
+                </View>
+              </View>
+            ))}
           </ScrollView>
           <Button title={t('common.close')} onPress={onClose} />
         </View>

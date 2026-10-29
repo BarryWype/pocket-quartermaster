@@ -257,6 +257,7 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
           heroId={picking}
           slot="consumable"
           briefing={briefing}
+          bossId={dungeon.boss.id}
           onPick={(id) => {
             equip(picking, 'consumable', id);
             setPicking(null);

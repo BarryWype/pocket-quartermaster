@@ -23,6 +23,8 @@ type Props = {
   slot: EquipmentSlot;
   /** With a briefing, consumables that answer today's threats or opportunity come first, marked. */
   briefing?: Briefing;
+  /** The dungeon's boss: its weakness item comes first, marked. */
+  bossId?: string;
   onPick: (id: string | null) => void;
   onClose: () => void;
 };
@@ -40,7 +42,7 @@ type Option = {
 
 const DELTA_KEYS: (keyof Stats)[] = ['hp', 'power', 'magic', 'armour', 'resistance', 'evasion', 'speed', 'crit', 'luck'];
 
-function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, briefing?: Briefing): Option[] {
+function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, briefing?: Briefing, bossId?: string): Option[] {
   if (slot === 'consumable') {
     // Potions, elixirs and charms; food and kits are for the whole party.
     return Object.entries(save.consumables)
@@ -48,6 +50,7 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, briefin
       .map(([itemId, count]) => {
         const item = itemById[itemId];
         const answers = briefing ? kitAnswers(itemId, briefing) : false;
+        const weakens = item.slot === 'consumable' && bossId !== undefined && item.weakness === bossId;
         return {
           id: itemId,
           emoji: item.emoji,
@@ -56,14 +59,15 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, briefin
           subtitle: [
             t('equip.inStock', { count }),
             answers ? t('equip.answersToday') : null,
+            weakens ? t('equip.weakensBoss') : null,
             item.description ? tr(item.description) : null,
           ]
             .filter(Boolean)
             .join(' · '),
-          color: answers ? colors.success : undefined,
+          color: answers || weakens ? colors.success : undefined,
         };
       })
-      // Kits and salves that answer the briefing come first.
+      // Kits and salves that answer the briefing, and the boss's weakness item, come first.
       .sort((a, b) => Number(b.color !== undefined) - Number(a.color !== undefined));
   }
   const hero = save.heroes.find((h) => h.id === heroId);
@@ -140,8 +144,8 @@ function deltaText({ before, after }: { before: Stats; after: Stats }) {
   }).join(' ');
 }
 
-export function EquipPicker({ save, heroId, slot, briefing, onPick, onClose }: Props) {
-  const options = optionsFor(save, heroId, slot, briefing);
+export function EquipPicker({ save, heroId, slot, briefing, bossId, onPick, onClose }: Props) {
+  const options = optionsFor(save, heroId, slot, briefing, bossId);
 
   return (
     <Modal animationType="slide" transparent onRequestClose={onClose}>

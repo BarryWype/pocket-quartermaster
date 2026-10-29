@@ -12,7 +12,7 @@ import { guildTrackById, guildTracks, type GuildTrackId } from '@/content/guild'
 import { heroClasses, xpRules } from '@/content/heroes';
 import { traits } from '@/content/traits';
 import { items } from '@/content/items';
-import { threatById, restrictionById, opportunityById, recipeById, recipeOutput } from '@/content/lookup';
+import { itemById, threatById, restrictionById, opportunityById, recipeById, recipeOutput } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
 import { dungeonThreats, opportunityDefs, restrictionDefs, surges, threatDefs } from '@/content/threats';
 import { notificationCategories, notificationTexts as texts } from '@/content/notifications';
@@ -23,6 +23,7 @@ import { placeInfo, type PlaceKind } from '@/content/places';
 import { PANEL_KINDS } from '@/components/PlacePanel';
 import { placeFightRules } from '@/content/placeFights';
 import { sanctums } from '@/content/sanctums';
+import { bossWeaknesses } from '@/content/weaknesses';
 import { ELEMENTS, type Element } from '@/game/elements';
 import { highestUnlockedTier } from '@/game/expeditions/expeditions';
 import { briefingFor, openDungeonIds } from '@/game/dungeons/rotation';
@@ -134,10 +135,12 @@ export default function DebugScreen() {
   const [placeKind, setPlaceKind] = useState<PlaceKind>('sawmill');
   const [nearest, setNearest] = useState('');
   const game = useGameStore();
-  const startWalkItem = (itemId: string) => {
+  const grantItem = (itemId: string) =>
     useGameStore.setState(({ save }) => ({
       save: { ...save, consumables: { ...save.consumables, [itemId]: (save.consumables[itemId] ?? 0) + 1 } },
     }));
+  const startWalkItem = (itemId: string) => {
+    grantItem(itemId);
     game.startWalkEffect(itemId, debug.mockLocation ?? useWorldStore.getState().player ?? FALLBACK_LOCATION);
   };
   const autoMode = useWorldStore((state) => state.autoGather);
@@ -231,7 +234,19 @@ export default function DebugScreen() {
 
   const placeTavern = async () => {
     const position = offsetPosition(await currentPosition(), 20, 0);
-    debug.set({ debugTavern: { id: 'tavern:debug', name: 'The Debug Tankard', position, expiresAt: Number.MAX_SAFE_INTEGER } });
+    debug.set({
+      debugTavern: {
+        id: 'tavern:debug',
+        kind: 'tavern',
+        group: 'tavern',
+        tile: 'debug',
+        name: 'The Debug Tankard',
+        position,
+        startsAt: 0,
+        expiresAt: Number.MAX_SAFE_INTEGER,
+        roll: 0,
+      },
+    });
   };
 
   /** A hand-placed place next to the player, live for its kind's whole window. */
@@ -699,6 +714,12 @@ export default function DebugScreen() {
       <Button title="+5 of every food, kit and charm" onPress={() => game.addProvisions(5)} />
       <Button title="Grant one of each kit" onPress={game.addKits} />
       <Button title="Grant one of each elixir, meal, walking and home care item" onPress={game.addConsumables} />
+      <Text>Boss weakness items</Text>
+      <View style={styles.row}>
+        {bossWeaknesses.map((weakness) => (
+          <Button key={weakness.itemId} title={itemById[weakness.itemId].emoji} onPress={() => grantItem(weakness.itemId)} />
+        ))}
+      </View>
       <Text>Walking effects (start grants one and uses it here)</Text>
       {WALK_ITEMS.map((item) => (
         <View key={item.id} style={styles.row}>
