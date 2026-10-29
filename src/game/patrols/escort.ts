@@ -5,6 +5,7 @@ import { estimatePartyOdds } from '../expeditions/odds';
 import { highestUnlockedTier, untriggeredSalvage } from '../expeditions/expeditions';
 import { prepareParty, simulateRun, type PartyMember } from '../expeditions/simulate';
 import { pickaxeTier } from '../gathering/gathering';
+import { patrolRulesAt, trackWindows } from '../gathering/walkEffects';
 import { guildBonus } from '../guild/guild';
 import { createRng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
@@ -88,6 +89,8 @@ export type BackgroundState = {
   alerted: Record<string, number>;
   /** Patrol id → when it was first seen. */
   firstSeen: Record<string, number>;
+  /** Tracker's eye windows: patrols show from further inside them. */
+  trackWindows: { startedAt: number; endsAt: number }[];
   /** Patrols beaten or travellers helped (from the save, and by the escort since) → window end. */
   beaten: Record<string, number>;
   lastAlertAt: number | null;
@@ -134,6 +137,7 @@ export function snapshotBackground(
     escortAlerts: settings.escortAlerts,
     alerted: pruneByWindow(previous?.alerted ?? {}, now, rules),
     firstSeen: pruneByWindow(previous?.firstSeen ?? {}, now, rules),
+    trackWindows: trackWindows(save.walkEffects),
     beaten: pruneByWindow({ ...save.beatenPatrols, ...save.helpedTravellers }, now, rules),
     lastAlertAt: previous?.lastAlertAt ?? null,
     pending: [],
@@ -200,8 +204,10 @@ export function backgroundStep(
     const spawns = patrolsAround(position, at, rules).filter(
       (spawn) => !isGone(spawn, next.beaten, at) && !hasFled(spawn, next.firstSeen[spawn.id], at, rules),
     );
+    // The tracker's eye widens patrol sight per fix, so a window can end mid-walk.
+    const atRules = patrolRulesAt(rules, next.trackWindows, at);
     for (const spawn of spawns) {
-      if (next.firstSeen[spawn.id] === undefined && isVisible(spawn, position, at, rules)) next.firstSeen[spawn.id] = at;
+      if (next.firstSeen[spawn.id] === undefined && isVisible(spawn, position, at, atRules)) next.firstSeen[spawn.id] = at;
     }
 
     const escort = next.escort;
@@ -266,7 +272,7 @@ export function backgroundStep(
       if (!alertAppliesTo(spawn, next.alertFor)) continue;
       if (next.lastAlertAt !== null && at - next.lastAlertAt < rules.alerts.cooldownMinutes * MINUTE) continue;
       const distance = distanceTo(spawn, position, at);
-      if (distance > rules.visibleMeters || willTake(spawn)) continue;
+      if (distance > atRules.visibleMeters || willTake(spawn)) continue;
       alerts.push({ kind: 'patrolSpotted', spawn, distance, tier: patrolTier(spawn, next.highestTier).tier });
       next.alerted[spawn.id] = spawn.endsAt;
       next.lastAlertAt = at;

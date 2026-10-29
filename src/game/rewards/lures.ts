@@ -1,9 +1,9 @@
 import { mainRewardRules } from '@/content/mainRewards';
 import { resources } from '@/content/resources';
 
-import { offsetPosition } from '../generation/geo';
-import { createRng, type Rng } from '../generation/rng';
-import type { AnimalSpawn, LatLng, Spawn, StaticSpawn } from '../generation/types';
+import { createRng } from '../generation/rng';
+import { animalSpawns, pointAround } from '../gathering/walkEffects';
+import type { LatLng, Spawn, StaticSpawn } from '../generation/types';
 import type { SaveData } from '../save';
 import type { ActiveLure } from '../types';
 
@@ -30,13 +30,6 @@ export function activateLure(save: SaveData, position: LatLng, now: number): Sav
   };
 }
 
-/** A random point within `radius` metres, spread evenly over the disc. */
-function pointAround(center: LatLng, radius: number, rng: Rng) {
-  const distance = radius * Math.sqrt(rng.next());
-  const bearing = rng.next() * 2 * Math.PI;
-  return offsetPosition(center, Math.cos(bearing) * distance, Math.sin(bearing) * distance);
-}
-
 /**
  * The private herbs and animals an active lure draws in, fixed by its id and
  * activation time. They vanish when the lure ends.
@@ -57,22 +50,9 @@ export function lureSpawns(lure: ActiveLure | null, now: number): Spawn[] {
     expiresAt,
     position: pointAround(lure.center, lureRules.radiusMeters, rng),
   }));
-  const animals = Array.from({ length: lureRules.animals }, (_, i): AnimalSpawn => {
-    const home = pointAround(lure.center, lureRules.radiusMeters, rng);
-    return {
-      id: `${lure.id}:animal${i}`,
-      kind: 'animal',
-      resourceId: rng.weighted(ofKind('animal'), (r) => r.weight).id,
-      tile: lure.id,
-      quantity: rng.int(1, 2),
-      boosted: false,
-      expiresAt,
-      path: {
-        waypoints: Array.from({ length: 4 }, () => pointAround(home, 40, rng)),
-        loopMs: 20 * 60_000,
-        phaseMs: Math.floor(rng.next() * 20 * 60_000),
-      },
-    };
-  });
+  const animals = animalSpawns(
+    { id: lure.id, center: lure.center, start: lure.activatedAt, end: expiresAt, count: lureRules.animals, radius: lureRules.radiusMeters, seed: lure.id },
+    resources,
+  );
   return [...herbs, ...animals];
 }

@@ -16,11 +16,12 @@ export function visibleSpawns(
   player: LatLng,
   timeMs: number,
   config: SpawnConfig = defaultConfig,
+  rangeMultiplier: (spawn: Spawn) => number = () => 1,
 ): VisibleSpawn[] {
   return spawns
     .map((spawn) => {
       const position = spawnPositionAt(spawn, timeMs);
       return { spawn, position, distance: distanceMeters(player, position) };
     })
-    .filter(({ spawn, distance }) => distance <= config.kinds[spawn.kind].visibilityMeters);
+    .filter(({ spawn, distance }) => distance <= config.kinds[spawn.kind].visibilityMeters * rangeMultiplier(spawn));
 }

@@ -689,6 +689,9 @@ export type ActiveLure = {
   center: { latitude: number; longitude: number };
 };
 
+/** A walking consumable in use; one per item, replaced (timer restarted) when used again. */
+export type WalkEffect = { id: string; itemId: string; startedAt: number; endsAt: number; center: { latitude: number; longitude: number } };
+
 export type SanctumDef = {
   id: string;
   name: string;

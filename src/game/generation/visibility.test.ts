@@ -33,6 +33,13 @@ describe('visibleSpawns', () => {
     expect(ids).toEqual(['ore-250', 'herb-80']);
   });
 
+  it('applies a per-spawn range multiplier', () => {
+    const ids = visibleSpawns([staticSpawn('ore', 400), staticSpawn('herb', 400)], player, now, undefined, (spawn) =>
+      spawn.kind === 'ore' ? 2 : 1,
+    ).map((v) => v.spawn.id);
+    expect(ids).toEqual(['ore-400']);
+  });
+
   it('reports the distance to each visible spawn', () => {
     const [visible] = visibleSpawns([staticSpawn('herb', 30)], player, now);
     expect(visible.distance).toBeCloseTo(30, 0);

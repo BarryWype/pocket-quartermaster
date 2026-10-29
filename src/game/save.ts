@@ -18,6 +18,7 @@ import type {
   MasteryState,
   MasteryType,
   TreasureMap,
+  WalkEffect,
 } from './types';
 
 /** The first-session walkthrough, in order. Each step waits for one player action. */
@@ -69,6 +70,8 @@ export type SaveData = {
   treasureMaps: TreasureMap[];
   lures: number;
   activeLure: ActiveLure | null;
+  /** Walking consumables in use; one entry per item (see gatheringConfig.walkEffects). */
+  walkEffects: WalkEffect[];
   /** Sanctum spawn id → when it refreshes; one attempt per spawn, win or lose. */
   usedSanctums: Record<string, number>;
   /** Forging mastery per weapon type and armour; a type is added when first met. */
@@ -134,6 +137,7 @@ export function createInitialSave(): SaveData {
     treasureMaps: [],
     lures: 0,
     activeLure: null,
+    walkEffects: [],
     usedSanctums: {},
     takenOffers: {},
     tavernHintSeen: false,

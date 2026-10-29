@@ -18,6 +18,7 @@ import type { PatrolKind, TravellerKind } from '../patrols/generate';
 import type { TravellerReward } from '../patrols/travellers';
 import type { MaterialStack } from '../types';
 import { collectSpawn, localDayKey } from './gathering';
+import { walkEffectAt, walkEffectSpawns, walkKind } from './walkEffects';
 
 /** One location reading recorded while auto-gather runs. */
 export type WalkFix = {
@@ -137,7 +138,7 @@ const KINDS: ResourceKind[] = ['wood', 'ore', 'animal', 'herb'];
  * The world's spawns around a point at a moment, plus the active lure's,
  * generated once per tile and window.
  */
-function generatedSpawns(save: SaveData, config: SpawnConfig) {
+function generatedSpawns(save: SaveData, config: SpawnConfig, gather: GatheringConfig) {
   const cache = new Map<string, Spawn[]>();
   return (point: LatLng, timeMs: number): Spawn[] => {
     const world = KINDS.flatMap((kind) => {
@@ -150,12 +151,15 @@ function generatedSpawns(save: SaveData, config: SpawnConfig) {
       });
     });
     const lure = save.activeLure && save.activeLure.activatedAt <= timeMs ? lureSpawns(save.activeLure, timeMs) : [];
-    return [...world, ...lure];
+    const musk = walkEffectSpawns(save.walkEffects, timeMs, gather);
+    return [...world, ...lure, ...musk];
   };
 }
 
-/** When a spawn appeared: its window's start, or when the lure that drew it was used. */
+/** When a spawn appeared: its window's start, or when the lure or musk that drew it was used. */
 function startsAt(spawn: Spawn, save: SaveData, config: SpawnConfig) {
+  const walk = save.walkEffects.find((effect) => effect.id === spawn.tile);
+  if (walk) return walk.startedAt;
   if (save.activeLure && spawn.tile === save.activeLure.id) return save.activeLure.activatedAt;
   return spawn.expiresAt - config.kinds[spawn.kind].windowMinutes * 60_000;
 }
@@ -217,8 +221,13 @@ function closestApproach(piece: Piece, spawn: Spawn, config: AutoConfig) {
  * roam their tile, so they are all kept).
  */
 function rawCandidates(save: SaveData, options: WalkOptions) {
-  const source = options.spawnsAt ?? generatedSpawns(save, options.spawnConfig ?? defaultSpawnConfig);
-  const reach = (options.config ?? gatheringConfig).autoGather.radiusMeters + walkableRules.maxSnapMeters;
+  const config = options.config ?? gatheringConfig;
+  const source = options.spawnsAt ?? generatedSpawns(save, options.spawnConfig ?? defaultSpawnConfig, config);
+  // The forage's wider ring counts too, so nodes in it are considered (animals roam, so they are all kept).
+  const forage = save.walkEffects.some((effect) => walkKind(effect.itemId) === 'forage')
+    ? config.walkEffects.forage.radiusBonusMeters
+    : 0;
+  const reach = config.autoGather.radiusMeters + forage + walkableRules.maxSnapMeters;
   return (piece: Piece) => {
     const around = new Map<string, Spawn>();
     for (const end of [piece.from, piece.to]) {
@@ -267,7 +276,6 @@ export function processWalkPath(
     if (!placed.has(spawn.id)) placed.set(spawn.id, placeSpawns([spawn], options.tiles)[0] ?? null);
     return placed.get(spawn.id) ?? null;
   };
-  const collectConfig = { ...config, collectRadiusMeters: auto.radiusMeters };
 
   let next = save;
   let gained: Record<string, number> = {};
@@ -281,7 +289,12 @@ export function processWalkPath(
       .filter(({ spawn, at }) => startsAt(spawn, next, spawns) <= at.timestamp && at.timestamp < spawn.expiresAt)
       .sort((a, b) => a.at.timestamp - b.at.timestamp);
     for (const { spawn, at } of hits) {
-      const result = collectSpawn(next, spawn, { position: at.position, speed }, at.timestamp, { config: collectConfig });
+      // The forage reaches further only for fixes inside its window, so the radius is decided per hit.
+      const forage = walkEffectAt(next.walkEffects, 'forage', at.timestamp);
+      const radius = auto.radiusMeters + (forage ? config.walkEffects.forage.radiusBonusMeters : 0);
+      const result = collectSpawn(next, spawn, { position: at.position, speed }, at.timestamp, {
+        config: { ...config, collectRadiusMeters: radius },
+      });
       if (!result.ok) continue;
       next = result.save;
       gained = addMaterials(gained, result.gained);

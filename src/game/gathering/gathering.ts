@@ -10,6 +10,7 @@ import type { SaveData } from '../save';
 import { limitsToWood, TUTORIAL_SPAWN_ID } from '../tutorial/tutorial';
 import type { MaterialStack } from '../types';
 import { readSpawn } from './lockedNodes';
+import { walkEffectAt } from './walkEffects';
 
 export type CollectFailure = 'collected' | 'expired' | 'needsTool' | 'tooFar' | 'fled';
 
@@ -116,9 +117,15 @@ export function collectSpawn(
 
   const gained = spawnYield(spawn, resources, read.resourceId);
   const bonus = bonusForGather(save, spawn, timeMs, config);
-  const finalGained: MaterialStack[] = bonus
+  const withWalkingBonus: MaterialStack[] = bonus
     ? gained.map((stack) => ({ materialId: stack.materialId, amount: Math.ceil(stack.amount * config.walkingBonus.multiplier) }))
     : gained;
+  // The prospector's draught: one more per ore, on top of any walking bonus.
+  const oreBonus =
+    spawn.kind === 'ore' && walkEffectAt(save.walkEffects, 'prospect', timeMs) ? config.walkEffects.prospect.oreBonus : 0;
+  const finalGained = oreBonus
+    ? withWalkingBonus.map((stack) => ({ materialId: stack.materialId, amount: stack.amount + oreBonus }))
+    : withWalkingBonus;
   return {
     ok: true,
     gained: finalGained,
