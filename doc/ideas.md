@@ -2,9 +2,39 @@
 
 A place to collect ideas for Pocket Quartermaster. This is not a spec and not a list of features to build: nothing here is committed. Ideas can be added, expanded, reworked, merged or dropped freely.
 
+## Status and roadmap
+
+Design catalogues for what's built or being built live in `doc/design/` (`threats/` and `places/`). This file stays for ideas that aren't designed yet.
+
+**Done**
+- Threats, restrictions, opportunities and kits (phase 1).
+- Stats, growth, recruitment roll and equipment rebuilt (phase 2).
+- Kit recipes using each tier's main material; threats can appear before their kit, rarer and milder.
+- New alchemy and kitchen items (hero consumables, meals, walking consumables, home care); infusion salvage.
+- Places and fight events on the map.
+- Boss weaknesses.
+- 26 classes.
+- Healing potions in three strengths and fish recipes.
+
+**Next**
+1. Loot rework: trinkets, components, relics, charms, blueprints and their sources, exact loot per place, dungeon and patrol, step chests.
+2. Secret places: hidden den, black market, underwater dungeon, their tips, the mysterious key.
+3. Daily contracts and chains.
+4. Balancing with the simulator.
+
+**Parked**
+- Charms: redesign with the loot rework (they should affect what a run finds: Luck, blueprint, component and relic chances, materials).
+- Village fair (weekends at the market, absorbs the circus): contests and special stock.
+- Hidden den tip: how players find it (an NPC on the map or an event).
+- Underwater dungeon: design.
+- Boss weaknesses for non-tier bosses.
+- Friendly merchant and Sealed vault opportunities.
+- Sigil and elemental stone surplus (the simulator showed far too many Sanctum attempts).
+- Global trade between players.
+
 ## Pitch
 
-A location-based mobile game where the player is the blacksmith of a team of adventurers. Walk around your city to gather ores and materials, forge gear for your heroes, and send them on idle expeditions into dungeons. Think Pokémon GO meets an auto-battler.
+A location-based mobile game where the player is the quartermaster of a team of adventurers. Walk around your city to gather ores, herbs and materials, then forge gear, brew potions and cook meals for your heroes, and prepare the team's toolbox for each job before sending them on idle expeditions into dungeons. Think Pokémon GO meets an auto-battler.
 
 ## Core loop
 
@@ -22,6 +52,8 @@ Goal: give players a reason to go out with a destination, not only to wander. Po
 
 ### Daily contracts
 
+*Designed in outline, not built. Contracts won't be tied to taverns.*
+
 - 2–3 new contracts every 24 h, stacking up to 6. A Guild Hall upgrade raises the cap.
 - No board to walk to: contracts arrive automatically and target "the nearest X", so there's always one within reach.
 - Example objectives: deliver 2 potions to a doctor, pray at a chapel, defeat 3 patrols, mine at an iron mine, walk 3 km, clear a goblin lair.
@@ -32,10 +64,14 @@ Goal: give players a reason to go out with a destination, not only to wander. Po
 
 ### Chained contracts
 
+*Designed in outline, not built. Contracts won't be tied to taverns.*
+
 - 3–5 steps over a few hours, at most one per day, with a big reward at the end (a unique named item or a key fragment).
 - Example: a traveller → the ruins → a monster lair → a key. That gives secret places a story arc instead of a plain drop.
 
 ### Exploration places
+
+*Built: see `doc/design/places/`. The final list differs (places were merged and some dropped).*
 
 Standalone places on the map, worth visiting even without a contract. Each has a clear interaction type:
 
@@ -95,11 +131,15 @@ Each resource type has a different discovery range, which makes walks more inter
 
 ### Forging
 
+*Built. Durability is not planned: single-use consumables already create recurring demand.*
+
 - Forge anywhere from stored components.
 - Recipes are unlocked through dungeon loot, scrolls, or the shop.
 - Gear wears down during expeditions (durability), giving a constant reason to go out and gather again.
 
 ### Alchemy
+
+*Built: see `doc/design/threats/consumables.csv`.*
 
 - A second crafting branch alongside forging: potions, food, elixirs, buffs.
 - Alchemy resources spawn on the map too (herbs, mushrooms, flowers, water sources), with their own location affinities (e.g. herbs in parks).
@@ -108,11 +148,15 @@ Each resource type has a different discovery range, which makes walks more inter
 
 ### Item quality and crafting mastery
 
+*Built. Mastery is per item type.*
+
 - Each item has quality levels: Poor, Normal, Rare, Legendary.
 - Each recipe has its own mastery XP bar: crafting the item fills it and raises the chance of better quality.
 - Unwanted items can be salvaged/disenchanted for a bit of mastery XP, so mass-crafting an item to level it up is a valid strategy.
 
 ## Team and mercenaries
+
+*Built: 26 classes, see `doc/design/threats/classes.csv`.*
 
 - The player manages a team of NPC heroes.
 - Choose who to equip first: a strategic resource allocation decision.
@@ -120,6 +164,8 @@ Each resource type has a different discovery range, which makes walks more inter
 - Each class benefits from specific gear (wands for mages, blades for warriors, etc.).
 
 ### Hidden taverns
+
+*Designed as secret places (hidden den, black market), not built.*
 
 - Secret taverns that only appear under specific conditions: time of day, weather, a location type, a step streak, or carrying a certain item.
 - They host rare NPCs that can't be recruited anywhere else (legendary classes, unique heroes).
@@ -135,6 +181,8 @@ Each resource type has a different discovery range, which makes walks more inter
 
 ### Elemental map events
 
+*Built as Sanctums.*
+
 - Rare locked locations on the map, each guarded by one elemental monster: Labyrinth, Abandoned Watchtower, Abandoned Mine, Cave/Grotto.
 - Elements for now: water, fire, lightning, plant (plant is a placeholder).
 - Successful dungeon runs can drop a random elemental key. The player must really walk to find a matching location and use it there, with one attempt only.
@@ -142,6 +190,8 @@ Each resource type has a different discovery range, which makes walks more inter
 - Dungeons (at least tier bosses) are strong against one element and weak against another, so elemental gear becomes a preparation choice.
 
 ## Step counter rewards
+
+*Built; contents to rework with the loot rework.*
 
 - Daily random chest unlocked by reaching step goals.
 - Tiered chests: e.g. wooden chest at 5,000 steps, iron chest at 10,000 steps, with increasingly rare loot.
