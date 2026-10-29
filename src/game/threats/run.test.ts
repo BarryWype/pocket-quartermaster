@@ -192,9 +192,9 @@ describe('run restrictions', () => {
       member('d', [], { concealed: true, maxHp: 1e6, power: 20 }),
       member('u', [], { concealed: true, maxHp: 1e6, power: 20 }),
     ]) {
-      expect(simulateRun([concealed], fights, 's', options('sacredGround'))).toEqual(
-        simulateRun([concealed], fights, 's', options(null)),
-      );
+      const { signed: _with, ...withRestriction } = simulateRun([concealed], fights, 's', options('sacredGround'));
+      const { signed: _without, ...without } = simulateRun([concealed], fights, 's', options(null));
+      expect(withRestriction).toEqual(without);
     }
   });
 

@@ -482,7 +482,40 @@ export type Ability =
   /** Added to this hero's score for one approach (traits). */
   | { kind: 'approach'; approach: Approach; add: number }
   /** This hero counts as having the keyword (traits). */
-  | { kind: 'keyword'; keyword: Keyword };
+  | { kind: 'keyword'; keyword: Keyword }
+  // Class signatures (see threats/signatures.ts and expeditions/simulate.ts).
+  /** The party's missed-threat Delay or Hunger penalties are multiplied by this. */
+  | { kind: 'penaltyReduce'; penalty: 'delay' | 'hunger'; multiplier: number }
+  /** Against this threat (at these levels; all if left out), this hero counts as `count` heroes with its keyword. */
+  | { kind: 'keywordCount'; threat: ThreatId; count: number; levels?: ThreatLevel[] }
+  /** Against this threat, this hero's approach gets `add`, or counts as at least `score`. */
+  | { kind: 'approachFor'; threat: ThreatId; approach: Approach; add?: number; score?: number }
+  /** Added to the approach bonus of this hero's own kit. */
+  | { kind: 'kitBonus'; add: number }
+  /** Unarmed or with knuckles, this hero has Pierce. */
+  | { kind: 'fistsPierce' }
+  /** The kit in this hero's consumable slot counts as carried by the hero they pick (HeroState.kitFor). */
+  | { kind: 'carryKit' }
+  /** A second consumable slot for healing consumables (HeroState.equipment.potion). */
+  | { kind: 'potionSlot' }
+  /** Lowers the party's worst Extreme threat to Strong. */
+  | { kind: 'lowerThreat' }
+  /** Cancels the briefing's restriction: this one only, or any. */
+  | { kind: 'cancelRestriction'; restriction?: RestrictionId }
+  /** The opportunity's reward bonus (above 1, or its chances) is multiplied by this. */
+  | { kind: 'opportunityBoost'; opportunity: OpportunityId; multiplier: number }
+  /** At this threat level, the enemies with the tag of the first fight that has any fight for the party in the next fight. */
+  | { kind: 'raiseAllies'; threat: ThreatId; level: ThreatLevel; tag: Tag; max: number; damage: number }
+  /** This hero's crits deal this multiplier instead in fights that start against a single enemy. */
+  | { kind: 'singleEnemyCrit'; multiplier: number }
+  /** The Thieves threat costs no loot; it pays this share of the dungeon's top gold at levels 1, 2 and 3. */
+  | { kind: 'fence'; shares: [number, number, number] }
+  /** The meal's bonus (above 1, or its amount) is multiplied by this. */
+  | { kind: 'mealBoost'; multiplier: number }
+  /** After every fight, conscious heroes heal this share of max HP. */
+  | { kind: 'fightHeal'; pct: number }
+  /** This hero's own damage ignores these restrictions. */
+  | { kind: 'ignoresRestrictions'; restrictions: RestrictionId[] };
 
 export type TraitDef = {
   id: string;
@@ -537,7 +570,11 @@ export type HeroState = {
     trinket: string | null;
     /** Consumable item id (potion, elixir or charm); equipping one takes it out of the stock. */
     consumable: string | null;
+    /** The Alchemist's second slot: a healing consumable. */
+    potion?: string | null;
   };
+  /** A Porter's pick: the hero the kit in their consumable slot is carried for. */
+  kitFor?: string;
   /** The recruit's 3d6 roll; missing means the average (10.5) everywhere. */
   roll?: HeroRoll;
   /** The approach picks made at levels 5 and 10, in order. */

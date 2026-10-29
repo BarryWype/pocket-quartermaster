@@ -1,6 +1,5 @@
 import { heroClasses } from '@/content/heroes';
 import { itemById, opportunityById, restrictionById } from '@/content/lookup';
-import { approachRules } from '@/content/threats';
 import { traitById } from '@/content/traits';
 
 import { answersMemberOf, prepareParty, type PartyMember } from '../expeditions/simulate';
@@ -15,7 +14,8 @@ import type {
   RestrictionId,
 } from '../types';
 import { heroAnswers, type HeroAnswers, type KeywordSource } from './answers';
-import { scoreBriefing, scoreOpportunity, type ThreatState } from './score';
+import { opportunityApproachScore, scoreBriefing, scoreOpportunity, type ThreatState } from './score';
+import { signatureBriefing } from './signatures';
 
 /** How a threat stands for the UI: covered (met), partial (half) or uncovered (full). */
 export type ThreatDisplay = 'covered' | 'partial' | 'uncovered';
@@ -31,6 +31,8 @@ export type ThreatCoverage = {
   /** Who answers it, and what of theirs does: a class, trait, gear or kit. */
   coveredBy: { heroId: string; heroName: string; source: KeywordSource; sourceName: string }[];
   kitHeroes: string[];
+  /** The hero (a Scout) who lowered it from Extreme to Strong. */
+  loweredBy: string | null;
 };
 
 export type OpportunityCoverage = {
@@ -44,11 +46,9 @@ export type OpportunityCoverage = {
 export type BriefingCoverage = {
   threats: ThreatCoverage[];
   opportunity: OpportunityCoverage | null;
-  restriction: { id: RestrictionId; def: RestrictionDef } | null;
+  /** The briefing's restriction; `cancelledBy` names the hero whose signature lifts it. */
+  restriction: { id: RestrictionId; def: RestrictionDef; cancelledBy: string | null } | null;
 };
-
-const kitOf = (answers: HeroAnswers) =>
-  answers.kitItemId ? ((itemById[answers.kitItemId] as ConsumableDef).kit ?? null) : null;
 
 /** What an answer came from, by name: the class, trait, gear or kit item behind it. */
 function sourceName(member: PartyMember, answers: HeroAnswers, source: KeywordSource): string {
@@ -61,15 +61,14 @@ function sourceName(member: PartyMember, answers: HeroAnswers, source: KeywordSo
       return member.weaponName ?? 'Unarmed';
     case 'kit':
       return member.consumable?.name ?? answers.kitItemId ?? 'Kit';
+    case 'carried':
+      return member.carriedKit?.name ?? answers.carriedKit?.itemId ?? 'Kit';
   }
 }
 
 /** Whether one hero meets one opportunity answer, the kit's +2 included (mirrors scoreOpportunity). */
 function meets(answers: HeroAnswers, answer: OpportunityAnswer) {
-  if ('approach' in answer) {
-    const bonus = kitOf(answers)?.approach === answer.approach ? approachRules.kitBonus : 0;
-    return Math.min(approachRules.max, answers.approaches[answer.approach] + bonus) >= answer.score;
-  }
+  if ('approach' in answer) return opportunityApproachScore(answers, answer.approach) >= answer.score;
   return answers.keywords.some((k) => k.keyword === answer.keyword);
 }
 
@@ -111,8 +110,10 @@ export function briefingCoverage(
   optIn = false,
 ): BriefingCoverage {
   const party = prepareParty(save, heroIds, now);
-  const answers = party.map((member) => heroAnswers(answersMemberOf(member), briefing.restriction));
-  const scored = scoreBriefing(briefing, answers);
+  const signed = signatureBriefing(briefing, party.map(answersMemberOf));
+  const answers = party.map((member) => heroAnswers(answersMemberOf(member), signed.briefing.restriction));
+  const scored = scoreBriefing(signed.briefing, answers);
+  const nameOf = (heroId: string | null) => party.find((m) => m.heroId === heroId)?.name ?? null;
 
   const threats = scored.threats.map<ThreatCoverage>((score) => ({
     threat: score.threat,
@@ -133,6 +134,7 @@ export function briefingCoverage(
       };
     }),
     kitHeroes: score.kitHeroes,
+    loweredBy: signed.lowered?.threatId === score.threat.id ? nameOf(signed.lowered.heroId) : null,
   }));
 
   const def = briefing.opportunity ? opportunityById[briefing.opportunity] : null;
@@ -150,7 +152,7 @@ export function briefingCoverage(
     threats,
     opportunity,
     restriction: briefing.restriction
-      ? { id: briefing.restriction, def: restrictionById[briefing.restriction] }
+      ? { id: briefing.restriction, def: restrictionById[briefing.restriction], cancelledBy: nameOf(signed.cancelledBy) }
       : null,
   };
 }

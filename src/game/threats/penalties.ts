@@ -38,7 +38,7 @@ type Penalty =
 export type AppliedPenalty = Penalty & { threatId: ThreatId };
 
 /** One penalty scaled to how badly the threat was missed: half halves every number. */
-function scaled(penalty: ThreatPenalty, share: number, threatId: ThreatId): AppliedPenalty {
+function scaled(penalty: ThreatPenalty, share: number, threatId: ThreatId, reduce: PenaltyReduction): AppliedPenalty {
   switch (penalty.kind) {
     case 'exposed':
       return penalty.fights === 'all'
@@ -51,10 +51,10 @@ function scaled(penalty: ThreatPenalty, share: number, threatId: ThreatId): Appl
     case 'fightWounds':
       return { kind: 'fightWounds', pct: penalty.pct * share, targets: penalty.targets, threatId };
     case 'delay':
-      return { kind: 'delay', pct: penalty.pct * share, threatId };
+      return { kind: 'delay', pct: penalty.pct * share * reduce.delay, threatId };
     case 'hunger':
       // Half a supply point is not owed: hunger rounds down.
-      return { kind: 'hunger', supply: Math.floor(penalty.supply * share), threatId };
+      return { kind: 'hunger', supply: Math.floor(penalty.supply * share * reduce.hunger), threatId };
     case 'lostLoot':
       return { kind: 'lostLoot', pct: penalty.pct * share, threatId };
     case 'extraFight':
@@ -77,17 +77,21 @@ function scaled(penalty: ThreatPenalty, share: number, threatId: ThreatId): Appl
   }
 }
 
+/** The party's multipliers on Delay and Hunger penalties (see signatures.ts penaltyReduction). */
+export type PenaltyReduction = { delay: number; hunger: number };
+const NO_REDUCTION: PenaltyReduction = { delay: 1, hunger: 1 };
+
 /**
  * The penalties a threat's score inflicts: none when met, except a Locked
  * forced with Might, which still loses `forcedLockLoss` of the loot.
  */
-export function threatPenalties(score: ThreatScore, rules: ThreatRules = threatRules): AppliedPenalty[] {
+export function threatPenalties(score: ThreatScore, rules: ThreatRules = threatRules, reduce: PenaltyReduction = NO_REDUCTION): AppliedPenalty[] {
   if (score.state === 'met') {
     return score.forced ? [{ kind: 'lostLoot', pct: rules.forcedLockLoss, threatId: score.threat.id }] : [];
   }
   const share = score.state === 'half' ? rules.halfShare : 1;
   const def = threatById[score.threat.id];
-  return def.penalties[score.threat.level - 1].map((penalty) => scaled(penalty, share, score.threat.id));
+  return def.penalties[score.threat.level - 1].map((penalty) => scaled(penalty, share, score.threat.id, reduce));
 }
 
 export type LaunchEffects = {
@@ -98,8 +102,8 @@ export type LaunchEffects = {
 };
 
 /** What a briefing's scores cost at launch: the delays stretch the time, the hunger adds supply. */
-export function launchEffects(scores: ThreatScore[], rules: ThreatRules = threatRules): LaunchEffects {
-  const penalties = scores.flatMap((score) => threatPenalties(score, rules));
+export function launchEffects(scores: ThreatScore[], rules: ThreatRules = threatRules, reduce: PenaltyReduction = NO_REDUCTION): LaunchEffects {
+  const penalties = scores.flatMap((score) => threatPenalties(score, rules, reduce));
   return {
     timeMultiplier: penalties.reduce((m, p) => m * (p.kind === 'delay' ? 1 + p.pct : 1), 1),
     extraSupply: penalties.reduce((sum, p) => sum + (p.kind === 'hunger' ? p.supply : 0), 0),

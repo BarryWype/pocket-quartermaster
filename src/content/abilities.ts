@@ -58,6 +58,23 @@ export function abilityText(ability: Ability): string {
     // never by this ability list.
     case 'approach':
     case 'keyword':
+    // Class signatures are shown by the class's signature line.
+    case 'penaltyReduce':
+    case 'keywordCount':
+    case 'approachFor':
+    case 'kitBonus':
+    case 'fistsPierce':
+    case 'carryKit':
+    case 'potionSlot':
+    case 'lowerThreat':
+    case 'cancelRestriction':
+    case 'opportunityBoost':
+    case 'raiseAllies':
+    case 'singleEnemyCrit':
+    case 'fence':
+    case 'mealBoost':
+    case 'fightHeal':
+    case 'ignoresRestrictions':
       return '';
   }
 }

@@ -35,6 +35,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     abilities: [
       { kind: 'trapReduce', multiplier: 0.5 },
       { kind: 'damageVsTag', tag: 'beast', multiplier: 1.5 },
+      { kind: 'penaltyReduce', penalty: 'delay', multiplier: 0.5 },
     ],
   },
   fireMage: {
@@ -184,7 +185,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     approaches: { might: 0, finesse: 1, wits: 4, faith: 2, presence: 1 },
     keywords: [],
     threat: 1,
-    abilities: [],
+    abilities: [{ kind: 'opportunityBoost', opportunity: 'oldInscriptions', multiplier: 2 }],
   },
   exorcist: {
     name: 'Exorcist',
@@ -198,7 +199,10 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     approaches: { might: 2, finesse: 1, wits: 1, faith: 3, presence: 1 },
     keywords: ['blessed'],
     threat: 1.5,
-    abilities: [],
+    abilities: [
+      { kind: 'keywordCount', threat: 'undead', count: 2 },
+      { kind: 'approachFor', threat: 'desecrated', approach: 'faith', add: 1 },
+    ],
   },
   duelist: {
     name: 'Duelist',
@@ -212,7 +216,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     approaches: { might: 2, finesse: 3, wits: 1, faith: 1, presence: 1 },
     keywords: ['pierce'],
     threat: 1.5,
-    abilities: [],
+    abilities: [{ kind: 'singleEnemyCrit', multiplier: 2.25 }],
   },
   smuggler: {
     name: 'Smuggler',
@@ -227,7 +231,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     approaches: { might: 0, finesse: 4, wits: 1, faith: 0, presence: 3 },
     keywords: [],
     threat: 1,
-    abilities: [],
+    abilities: [{ kind: 'fence', shares: [0.05, 0.08, 0.12] }],
   },
   diplomat: {
     name: 'Diplomat',
@@ -242,7 +246,10 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     approaches: { might: 0, finesse: 1, wits: 2, faith: 1, presence: 4 },
     keywords: [],
     threat: 0.8,
-    abilities: [],
+    abilities: [
+      { kind: 'approachFor', threat: 'locals', approach: 'presence', score: 5 },
+      { kind: 'opportunityBoost', opportunity: 'bounty', multiplier: 5 / 3 },
+    ],
   },
   necromancer: {
     name: 'Necromancer',
@@ -256,7 +263,10 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     approaches: { might: 1, finesse: 1, wits: 3, faith: 0, presence: 3 },
     keywords: [],
     threat: 1,
-    abilities: [],
+    abilities: [
+      { kind: 'raiseAllies', threat: 'undead', level: 1, tag: 'undead', max: 3, damage: 1 },
+      { kind: 'keywordCount', threat: 'undead', count: 1, levels: [2, 3] },
+    ],
   },
   beastmaster: {
     name: 'Beastmaster',
@@ -270,7 +280,10 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     approaches: { might: 2, finesse: 2, wits: 2, faith: 1, presence: 1 },
     keywords: ['calm'],
     threat: 2,
-    abilities: [],
+    abilities: [
+      { kind: 'raiseAllies', threat: 'beasts', level: 1, tag: 'beast', max: 3, damage: 1 },
+      { kind: 'keywordCount', threat: 'beasts', count: 2, levels: [2, 3] },
+    ],
   },
   engineer: {
     name: 'Engineer',
@@ -284,7 +297,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     approaches: { might: 3, finesse: 1, wits: 3, faith: 0, presence: 1 },
     keywords: [],
     threat: 2,
-    abilities: [],
+    abilities: [{ kind: 'kitBonus', add: 1 }],
   },
   alchemist: {
     name: 'Alchemist',
@@ -298,7 +311,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     approaches: { might: 0, finesse: 2, wits: 3, faith: 1, presence: 2 },
     keywords: [],
     threat: 1,
-    abilities: [],
+    abilities: [{ kind: 'potionSlot' }],
   },
   porter: {
     name: 'Porter',
@@ -313,7 +326,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     approaches: { might: 3, finesse: 2, wits: 1, faith: 1, presence: 1 },
     keywords: [],
     threat: 2,
-    abilities: [],
+    abilities: [{ kind: 'carryKit' }],
   },
   scout: {
     name: 'Scout',
@@ -327,7 +340,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     approaches: { might: 1, finesse: 3, wits: 2, faith: 0, presence: 2 },
     keywords: ['watchful'],
     threat: 1,
-    abilities: [],
+    abilities: [{ kind: 'lowerThreat' }],
   },
   curseBreaker: {
     name: 'Curse-breaker',
@@ -341,7 +354,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     approaches: { might: 1, finesse: 1, wits: 2, faith: 4, presence: 0 },
     keywords: [],
     threat: 1,
-    abilities: [],
+    abilities: [{ kind: 'cancelRestriction' }],
   },
   cook: {
     name: 'Cook',
@@ -356,7 +369,12 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     approaches: { might: 1, finesse: 1, wits: 1, faith: 2, presence: 3 },
     keywords: [],
     threat: 1,
-    abilities: [],
+    abilities: [
+      { kind: 'mealBoost', multiplier: 2 },
+      { kind: 'penaltyReduce', penalty: 'hunger', multiplier: 0.5 },
+      { kind: 'cancelRestriction', restriction: 'spoiledStores' },
+      { kind: 'fightHeal', pct: 0.03 },
+    ],
   },
   monk: {
     name: 'Monk',
@@ -370,7 +388,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     approaches: { might: 3, finesse: 1, wits: 1, faith: 3, presence: 0 },
     keywords: [],
     threat: 1.5,
-    abilities: [],
+    abilities: [{ kind: 'fistsPierce' }, { kind: 'ignoresRestrictions', restrictions: ['sacredGround', 'antiMagic'] }],
   },
   gambler: {
     name: 'Gambler',

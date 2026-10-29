@@ -20,6 +20,7 @@ import { classApproaches, gearApproachBonus, heroApproachBonus } from '../team/s
 import { heroAnswers, type AnswersMember, type HeroAnswers } from '../threats/answers';
 import { threatPenalties, type AppliedPenalty } from '../threats/penalties';
 import { scoreBriefing, scoreOpportunity, type ThreatScore } from '../threats/score';
+import { partyMeal, penaltyReduction, signatureBriefing, type SignatureBriefing } from '../threats/signatures';
 import type {
   Ability,
   Approach,
@@ -32,6 +33,7 @@ import type {
   ExpeditionOutcome,
   GearDef,
   HeroClassId,
+  HeroState as Hero,
   Hunger,
   Keyword,
   MaterialStack,
@@ -92,6 +94,13 @@ export type PartyMember = {
   armourElement?: Element;
   /** Potion, kit, ward salve or charm. */
   consumable: ConsumableDef | null;
+  /** The class's keywords for this hero: a Monk's fists add Pierce. */
+  classKeywords?: Keyword[];
+  /** A Porter's kit, carried for this hero, and that Porter: it counts as theirs. */
+  carriedKit?: ConsumableDef | null;
+  carriedBy?: string | null;
+  /** A Porter carrying their kit for another hero of the party. */
+  carriesFor?: string | null;
 };
 
 /** An ability that changed an encounter, for the log. `heroId` is null for a local's tip. */
@@ -192,11 +201,16 @@ export type RunResult = {
   lostLoot: number;
   /** Share of expedition time the missed threats add (paid at launch). */
   delay: number;
+  /** The briefing as the party's signatures left it. */
+  signed: SignatureBriefing;
+  /** The meal the party got: none under Spoiled stores, more with a Cook. */
+  meal: MealEffect | null;
 };
 
 /** What the party ate and signed up for: the same for the odds preview and the real run. */
 export type RunProvisions = {
   hunger?: Hunger;
+  /** The meal taken; the run decides what it does (Spoiled stores, a Cook). */
   meal?: MealEffect | null;
   /** The dungeon's briefing: what the run plays against. Empty when left out. */
   briefing?: Briefing | null;
@@ -234,8 +248,19 @@ export function answersMemberOf(member: PartyMember): AnswersMember {
     classId: member.classId,
     traitId: member.traitId,
     gearKeywords: member.gearKeywords,
-    kit: member.consumable?.kit ? { itemId: member.consumable.id, effect: member.consumable.kit } : null,
-    salveElement: member.consumable?.protectsAgainst ?? null,
+    // A Porter's kit counts for the hero they carry it for, not for them.
+    kit: member.consumable?.kit && !member.carriesFor ? { itemId: member.consumable.id, effect: member.consumable.kit } : null,
+    salveElement: member.carriesFor ? null : (member.consumable?.protectsAgainst ?? null),
+    classKeywords: member.classKeywords,
+    carriedKit:
+      member.carriedKit?.kit && member.carriedBy
+        ? {
+            itemId: member.carriedKit.id,
+            effect: member.carriedKit.kit,
+            porterId: member.carriedBy,
+            salveElement: member.carriedKit.protectsAgainst ?? null,
+          }
+        : null,
     classResists: heroClasses[member.classId].resists ?? [],
     approachBonus: member.approachBonus,
     classApproaches: member.classApproaches,
@@ -256,8 +281,18 @@ function mergeApproachBonus(...sources: Partial<Record<Approach, number>>[]): Pa
  * they left with; left out, HP as stored).
  */
 export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs = false): PartyMember[] {
-  return save.heroes
-    .filter((hero) => heroIds.includes(hero.id))
+  const heroes = save.heroes.filter((hero) => heroIds.includes(hero.id));
+  /** A Porter's kit and the hero of the party it is carried for. */
+  const carrierFor = (hero: Hero) =>
+    heroClasses[hero.classId].abilities.some((a) => a.kind === 'carryKit') &&
+    hero.kitFor &&
+    hero.kitFor !== hero.id &&
+    heroes.some((h) => h.id === hero.kitFor) &&
+    hero.equipment.consumable &&
+    (itemById[hero.equipment.consumable] as ConsumableDef | undefined)?.kit
+      ? hero.kitFor
+      : null;
+  return heroes
     .map((hero) => {
       const heroClass = heroClasses[hero.classId];
       const stats = heroStats(save, hero);
@@ -272,6 +307,10 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs
       );
       const item = hero.equipment.consumable ? itemById[hero.equipment.consumable] : null;
       const consumable = item?.slot === 'consumable' ? item : null;
+      const carriesFor = carrierFor(hero);
+      const porter = heroes.find((h) => carrierFor(h) === hero.id);
+      // A Monk's fists (no weapon, or knuckles) pierce armour.
+      const fists = heroClass.abilities.some((a) => a.kind === 'fistsPierce') && (!weaponItem || weaponItem.gearType === 'knuckles');
       const charm = consumable?.charm;
       // The hero's hits roll with their damage stat; only the Magic part is halved in an anti-magic zone.
       const damageStat = heroDamageStat(save, hero);
@@ -302,7 +341,11 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs
         approachBonus: mergeApproachBonus(heroApproachBonus(hero), gearApproachBonus(save, hero)),
         classApproaches: classApproaches(hero),
         threat: heroClass.threat,
-        resists: [...(heroClass.resists ?? []), ...(consumable?.protectsAgainst ? [consumable.protectsAgainst] : [])],
+        resists: [
+          ...(heroClass.resists ?? []),
+          ...(consumable?.protectsAgainst && !carriesFor ? [consumable.protectsAgainst] : []),
+          ...(porter ? [itemById[porter.equipment.consumable!] as ConsumableDef].flatMap((kit) => (kit.protectsAgainst ? [kit.protectsAgainst] : [])) : []),
+        ],
         abilities: [
           ...heroAbilities(hero),
           ...(charm?.kind === 'crit' ? [{ kind: 'critBonus', chance: charm.chance } satisfies Ability] : []),
@@ -311,6 +354,10 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs
           elixir?.kind === 'oil' && weapon ? elixir.element : (weapon?.element ?? heroClass.element),
         armourElement: armour?.element,
         consumable,
+        classKeywords: fists ? [...new Set([...heroClass.keywords, 'pierce' as const])] : heroClass.keywords,
+        carriedKit: porter ? (itemById[porter.equipment.consumable!] as ConsumableDef) : null,
+        carriedBy: porter?.id ?? null,
+        carriesFor,
       };
     });
 }
@@ -359,10 +406,14 @@ export function simulateRun(
   party: PartyMember[],
   dungeon: DungeonDef,
   seed: string,
-  { rules = expeditionRules, guaranteed = false, hunger = 'fed', meal = null, briefing = null, optIn = false, elixirs = false, blessed = false }: RunOptions = {},
+  { rules = expeditionRules, guaranteed = false, hunger = 'fed', meal: eaten = null, briefing = null, optIn = false, elixirs = false, blessed = false }: RunOptions = {},
 ): RunResult {
-  const activeBriefing: Briefing = briefing ?? EMPTY_BRIEFING;
+  // The party's signatures first: a cancelled restriction, a lowered threat, a Cook's meal.
+  const classIds = party.map((member) => member.classId);
+  const signed = signatureBriefing(briefing ?? EMPTY_BRIEFING, party.map(answersMemberOf));
+  const activeBriefing: Briefing = signed.briefing;
   const restriction = activeBriefing.restriction;
+  const meal = partyMeal(eaten, activeBriefing, classIds);
   const rng = createRng(seed);
   // How the day goes for the whole party: a good day hits harder and gets hurt less.
   // Unlike per-hit variance this doesn't average out, so weaker teams keep a real chance.
@@ -387,7 +438,7 @@ export function simulateRun(
   const alive = () => heroes.filter((h) => !h.out);
 
   const scores = scoreBriefing(activeBriefing, answers);
-  const penalties: AppliedPenalty[] = scores.threats.flatMap((score) => threatPenalties(score));
+  const penalties: AppliedPenalty[] = scores.threats.flatMap((score) => threatPenalties(score, undefined, penaltyReduction(classIds)));
   const ofKind = <K extends AppliedPenalty['kind']>(kind: K) =>
     penalties.filter((p): p is Extract<AppliedPenalty, { kind: K }> => p.kind === kind);
   const weakenedAgainst = ofKind('weakenedAgainst').reduce((m, p) => m * (1 - p.pct), 1);
@@ -1062,5 +1113,7 @@ export function simulateRun(
     opportunity,
     lostLoot,
     delay,
+    signed,
+    meal,
   };
 }

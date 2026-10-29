@@ -1,7 +1,7 @@
 import { itemById, threatById } from '@/content/lookup';
 import { approachRules, threatRules, type ThreatRules } from '@/content/threats';
 
-import type { ActiveThreat, Approach, Briefing, ConsumableDef, OpportunityDef, ThreatId } from '../types';
+import type { ActiveThreat, Approach, Briefing, ConsumableDef, Keyword, KitEffect, OpportunityDef, ThreatId } from '../types';
 import type { HeroAnswers, KeywordSource } from './answers';
 
 /** Met: no penalty. Half (one short): half of every number. Full (two or more short): everything. */
@@ -25,6 +25,22 @@ export type ThreatScore = {
 
 const kitOf = (kitItemId: string | null) => (kitItemId ? ((itemById[kitItemId] as ConsumableDef).kit ?? null) : null);
 
+/** A kit a hero brings: their own, or one a Porter carries for them (`ownerId` is the Porter). */
+type HeroKit = { itemId: string; kit: KitEffect; ownerId: string; source: 'kit' | 'carried'; bonus: number };
+
+/** The hero's kits with the approach bonus each gives them: an Engineer's own kit gives more. */
+function kitsOf(answers: HeroAnswers): HeroKit[] {
+  const extra = answers.signatures.reduce((sum, s) => sum + (s.kind === 'kitBonus' ? s.add : 0), 0);
+  const kits: HeroKit[] = [];
+  const own = kitOf(answers.kitItemId);
+  if (own) kits.push({ itemId: answers.kitItemId!, kit: own, ownerId: answers.heroId, source: 'kit', bonus: (own.bonus ?? approachRules.kitBonus) + extra });
+  const carried = answers.carriedKit && kitOf(answers.carriedKit.itemId);
+  if (carried) {
+    kits.push({ itemId: answers.carriedKit!.itemId, kit: carried, ownerId: answers.carriedKit!.porterId, source: 'carried', bonus: carried.bonus ?? approachRules.kitBonus });
+  }
+  return kits;
+}
+
 /** Whether a kit's +2 counts for this threat answered by this approach: kits lift only the threats they cover. */
 export function kitApplies(kitItemId: string | null, threatId: ThreatId, approach: Approach) {
   const kit = kitOf(kitItemId);
@@ -32,21 +48,47 @@ export function kitApplies(kitItemId: string | null, threatId: ThreatId, approac
   return kit.approach === 'threat' || kit.approach === approach;
 }
 
-/** A hero's score for an approach threat, with their kit's bonus when it covers the threat, capped at 5. */
+/** The hero's best kit for this threat and approach, if any covers it. */
+function bestKit(answers: HeroAnswers, threatId: ThreatId, approach: Approach) {
+  return kitsOf(answers)
+    .filter((k) => kitApplies(k.itemId, threatId, approach))
+    .sort((a, b) => b.bonus - a.bonus)[0];
+}
+
+/**
+ * A hero's score for an approach threat: their approach with their class
+ * signature for this threat (Exorcist +1 Faith on Desecrated ground, Diplomat
+ * Presence 5 for Locals) and their best kit's bonus when it covers the threat,
+ * capped at 5.
+ */
 export function approachScore(answers: HeroAnswers, threatId: ThreatId, approach: Approach, withKit: boolean) {
-  const kit = kitOf(answers.kitItemId);
-  const bonus = withKit && kit && kitApplies(answers.kitItemId, threatId, approach) ? kit.bonus ?? approachRules.kitBonus : 0;
+  const signatures = answers.signatures.filter(
+    (s): s is Extract<HeroAnswers['signatures'][number], { kind: 'approachFor' }> =>
+      s.kind === 'approachFor' && s.threat === threatId && s.approach === approach,
+  );
+  const add = signatures.reduce((sum, s) => sum + (s.add ?? 0), 0);
+  const floor = Math.max(0, ...signatures.map((s) => s.score ?? 0));
+  const kit = withKit ? bestKit(answers, threatId, approach) : undefined;
+  return Math.min(approachRules.max, Math.max(floor, answers.approaches[approach] + add + (kit?.bonus ?? 0)));
+}
+
+/** A hero's score for an opportunity's approach: a kit lifts its own approach here too (a Rogue's roll helps find a cache). */
+export function opportunityApproachScore(answers: HeroAnswers, approach: Approach) {
+  const bonus = Math.max(0, ...kitsOf(answers).filter((k) => k.kit.approach === approach).map((k) => k.bonus));
   return Math.min(approachRules.max, answers.approaches[approach] + bonus);
 }
 
-/** The hero's answers without their kit: its keywords and its salve's resist are gone, and no more kit +2. */
-function withoutKit(answers: HeroAnswers): HeroAnswers {
-  const salve = answers.kitItemId ? (itemById[answers.kitItemId] as ConsumableDef).protectsAgainst : undefined;
+/** The hero's answers without one of their kits: its keywords and its salve's resist are gone, and no more kit bonus. */
+function withoutKit(answers: HeroAnswers, source: 'kit' | 'carried'): HeroAnswers {
+  const itemId = source === 'kit' ? answers.kitItemId : answers.carriedKit?.itemId;
+  const salve = itemId ? (itemById[itemId] as ConsumableDef).protectsAgainst : undefined;
+  const otherId = source === 'kit' ? answers.carriedKit?.itemId : answers.kitItemId;
+  const otherSalve = otherId ? (itemById[otherId] as ConsumableDef).protectsAgainst : undefined;
   return {
     ...answers,
-    kitItemId: null,
-    keywords: answers.keywords.filter((k) => k.source !== 'kit'),
-    resists: salve ? answers.resists.filter((e) => e !== salve) : answers.resists,
+    ...(source === 'kit' ? { kitItemId: null } : { carriedKit: null }),
+    keywords: answers.keywords.filter((k) => k.source !== source),
+    resists: salve && salve !== otherSalve ? answers.resists.filter((e) => e !== salve) : answers.resists,
   };
 }
 
@@ -55,7 +97,7 @@ const stateOf = (have: number, needed: number): ThreatState => {
   return shortfall === 0 ? 'met' : shortfall === 1 ? 'half' : 'full';
 };
 
-/** The best hero for an approach, with their kit's +2 when it covers the threat: at most one entry. */
+/** The best hero for an approach, with their kit's bonus when it covers the threat: at most one entry. */
 function coverOf(party: HeroAnswers[], threatId: ThreatId, approach: Approach): ThreatScore['coveredBy'] {
   let best: HeroAnswers | null = null;
   let score = -1;
@@ -67,7 +109,16 @@ function coverOf(party: HeroAnswers[], threatId: ThreatId, approach: Approach): 
     }
   }
   if (!best) return [];
-  return [{ heroId: best.heroId, source: kitApplies(best.kitItemId, threatId, approach) ? 'kit' : 'class' }];
+  return [{ heroId: best.heroId, source: bestKit(best, threatId, approach)?.source ?? 'class' }];
+}
+
+/** How many heroes this one counts as for a keyword threat: 1 with the keyword, or their class signature's count. */
+function holderCount(answers: HeroAnswers, threat: ActiveThreat, keyword: Keyword) {
+  const has = answers.keywords.some((k) => k.keyword === keyword) ? 1 : 0;
+  const counts = answers.signatures.map((s) =>
+    s.kind === 'keywordCount' && s.threat === threat.id && (!s.levels || s.levels.includes(threat.level)) ? s.count : 0,
+  );
+  return Math.max(has, ...counts);
 }
 
 /** One threat against a party, before kit impact. */
@@ -97,15 +148,20 @@ function scoreOnce(threat: ActiveThreat, party: HeroAnswers[], rules: ThreatRule
 
   const needed = rules.levels.keyword[threat.level - 1];
   if (answer.kind === 'keyword') {
-    const holders = party.filter((a) => a.keywords.some((k) => k.keyword === answer.keyword));
+    const holders = party.filter((a) => holderCount(a, threat, answer.keyword) > 0);
+    const have = holders.reduce((sum, a) => sum + holderCount(a, threat, answer.keyword), 0);
     return {
       threat,
-      have: holders.length,
+      have,
       needed,
-      state: stateOf(holders.length, needed),
+      state: stateOf(have, needed),
       coveredBy: holders.map((a) => ({
         heroId: a.heroId,
-        source: a.keywords.find((k) => k.keyword === answer.keyword)!.source,
+        // A signature that counts for more than the keyword is the class's doing.
+        source:
+          holderCount(a, threat, answer.keyword) > 1
+            ? ('class' as const)
+            : (a.keywords.find((k) => k.keyword === answer.keyword)?.source ?? ('class' as const)),
       })),
     };
   }
@@ -122,7 +178,9 @@ function scoreOnce(threat: ActiveThreat, party: HeroAnswers[], rules: ThreatRule
       source:
         a.kitItemId && (itemById[a.kitItemId] as ConsumableDef).protectsAgainst === threat.element
           ? ('kit' as const)
-          : ('class' as const),
+          : a.carriedKit && (itemById[a.carriedKit.itemId] as ConsumableDef).protectsAgainst === threat.element
+            ? ('carried' as const)
+            : ('class' as const),
     })),
   };
 }
@@ -130,15 +188,17 @@ function scoreOnce(threat: ActiveThreat, party: HeroAnswers[], rules: ThreatRule
 /** One threat of a briefing against a party: its state, who answered it, and the kits it hinged on. */
 export function scoreThreat(threat: ActiveThreat, party: HeroAnswers[], rules: ThreatRules = threatRules): ThreatScore {
   const base = scoreOnce(threat, party, rules);
-  const without = (hero: HeroAnswers) => party.map((a) => (a === hero ? withoutKit(a) : a));
-  const kitHeroes = party
-    .filter((a) => a.kitItemId)
-    .filter((hero) => {
-      const rescored = scoreOnce(threat, without(hero), rules);
-      return rescored.state !== base.state || rescored.forced !== base.forced || rescored.intimidated !== base.intimidated;
-    })
-    .map((a) => a.heroId);
-  return { ...base, kitHeroes };
+  const changes = (without: HeroAnswers[]) => {
+    const rescored = scoreOnce(threat, without, rules);
+    return rescored.state !== base.state || rescored.forced !== base.forced || rescored.intimidated !== base.intimidated;
+  };
+  // A carried kit's impact is its Porter's: it is their slot that is salvaged or spent.
+  const kitHeroes = party.flatMap((hero) =>
+    kitsOf(hero)
+      .filter((k) => changes(party.map((a) => (a === hero ? withoutKit(a, k.source) : a))))
+      .map((k) => k.ownerId),
+  );
+  return { ...base, kitHeroes: [...new Set(kitHeroes)] };
 }
 
 export type BriefingScore = {
@@ -162,20 +222,17 @@ export type OpportunityScore = {
 /** Whether a party takes an opportunity: free ones always, costly ones (Refugees) only when opted in. */
 export function scoreOpportunity(opportunity: OpportunityDef, party: HeroAnswers[], optIn = false): OpportunityScore {
   if (opportunity.cost && !optIn) return { answered: false, kitHeroId: null };
-  // A kit lifts its own approach here too (a Rogue's roll helps find a cache); Explorer's kit only lifts its threats.
-  const score = (a: HeroAnswers, approach: Approach) =>
-    Math.min(
-      approachRules.max,
-      a.approaches[approach] + (kitOf(a.kitItemId)?.approach === approach ? kitOf(a.kitItemId)!.bonus ?? approachRules.kitBonus : 0),
-    );
   const met = (heroes: HeroAnswers[]) =>
     opportunity.answers.length === 0 ||
     opportunity.answers.some((answer) =>
       'approach' in answer
-        ? heroes.some((a) => score(a, answer.approach) >= answer.score)
+        ? heroes.some((a) => opportunityApproachScore(a, answer.approach) >= answer.score)
         : heroes.some((a) => a.keywords.some((k) => k.keyword === answer.keyword)),
     );
   if (!met(party)) return { answered: false, kitHeroId: null };
-  const helper = party.find((hero) => hero.kitItemId && !met(party.map((a) => (a === hero ? withoutKit(a) : a))));
-  return { answered: true, kitHeroId: helper?.heroId ?? null };
+  for (const hero of party) {
+    const kit = kitsOf(hero).find((k) => !met(party.map((a) => (a === hero ? withoutKit(a, k.source) : a))));
+    if (kit) return { answered: true, kitHeroId: kit.ownerId };
+  }
+  return { answered: true, kitHeroId: null };
 }

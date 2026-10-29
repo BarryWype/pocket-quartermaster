@@ -26,6 +26,7 @@ import { heroAnswers } from '../threats/answers';
 import { launchEffects } from '../threats/penalties';
 import { salvage } from '../threats/salvage';
 import { scoreBriefing } from '../threats/score';
+import { partyMeal, penaltyReduction, signatureBriefing } from '../threats/signatures';
 import { pickRecruitClass } from '../taverns/taverns';
 import { isTutorialExpedition } from '../tutorial/tutorial';
 import type { ActiveExpedition, Briefing, DungeonDef, ExpeditionReport, HeroState, Hunger, OpportunityOutcome, ProvisionDef } from '../types';
@@ -125,13 +126,17 @@ const provision = (id: string | null | undefined) => {
   return item?.slot === 'provision' ? (item as ProvisionDef) : null;
 };
 
-/** The meal's effect, if any: Spoiled stores means meals do nothing. */
-export const mealOf = (briefing: Briefing, mealId?: string | null) =>
-  briefing.restriction === 'spoiledStores' ? null : provision(mealId)?.meal ?? null;
+/** The meal's effect for this party, if any: none under Spoiled stores (unless a Cook cancels it), more with a Cook. */
+export function mealOf(briefing: Briefing, mealId: string | null | undefined, party: PartyMember[]) {
+  const signed = signatureBriefing(briefing, party.map(answersMemberOf)).briefing;
+  return partyMeal(provision(mealId)?.meal, signed, party.map((member) => member.classId));
+}
 
-/** The briefing's scores against these heroes as equipped. */
-const threatScores = (briefing: Briefing, party: PartyMember[]) =>
-  scoreBriefing(briefing, party.map((member) => heroAnswers(answersMemberOf(member), briefing.restriction))).threats;
+/** The briefing's scores against these heroes as equipped, after their signatures. */
+const threatScores = (briefing: Briefing, party: PartyMember[]) => {
+  const signed = signatureBriefing(briefing, party.map(answersMemberOf)).briefing;
+  return scoreBriefing(signed, party.map((member) => heroAnswers(answersMemberOf(member), signed.restriction))).threats;
+};
 
 /**
  * Supply and duration for sending these heroes with this loadout now. The
@@ -146,7 +151,8 @@ export function launchPlan(
   briefing: Briefing = EMPTY_BRIEFING,
 ): LaunchPlan {
   const base = expeditionMinutes(save, dungeon);
-  const effects = launchEffects(threatScores(briefing, prepareParty(save, heroIds)));
+  const party = prepareParty(save, heroIds);
+  const effects = launchEffects(threatScores(briefing, party), undefined, penaltyReduction(party.map((m) => m.classId)));
   const opportunity = briefing.opportunity ? opportunityById[briefing.opportunity] : null;
   const need =
     save.heroes
@@ -155,7 +161,7 @@ export function launchPlan(
     effects.extraSupply +
     (loadout.optIn && opportunity?.cost ? opportunity.cost.supply : 0);
   const supply = pickSupply(save.consumables, need);
-  const meal = mealOf(briefing, loadout.mealId);
+  const meal = mealOf(briefing, loadout.mealId, party);
   return {
     minutes: base * (meal?.kind === 'duration' ? meal.multiplier : 1) * effects.timeMultiplier,
     need,
@@ -168,7 +174,7 @@ export function launchPlan(
 /** The run's provisions from what the party took: the odds preview and the real run use this. */
 export const runProvisions = (hunger: Hunger, loadout: Loadout = {}, briefing: Briefing = EMPTY_BRIEFING): RunOptions => ({
   hunger,
-  meal: mealOf(briefing, loadout.mealId),
+  meal: provision(loadout.mealId)?.meal ?? null,
   briefing,
   optIn: loadout.optIn ?? false,
   elixirs: true,
@@ -201,8 +207,9 @@ export function startExpedition(
   if (heroIds.length === 0) throw new Error('Pick at least one hero');
   if (heroIds.length > partySize(save)) throw new Error(`At most ${partySize(save)} heroes per expedition`);
   const briefing = expeditionBriefing(save, dungeon, rotation, now);
-  // Narrow passages: no more than the restriction's party size fits through.
-  if (briefing.restriction === 'narrowPassages' && heroIds.length > restrictionRules.narrowPartySize) {
+  // Narrow passages: no more than the restriction's party size fits through, unless a Curse-breaker lifts it.
+  const restriction = signatureBriefing(briefing, prepareParty(save, heroIds).map(answersMemberOf)).briefing.restriction;
+  if (restriction === 'narrowPassages' && heroIds.length > restrictionRules.narrowPartySize) {
     throw new Error(`At most ${restrictionRules.narrowPartySize} heroes fit the narrow passages`);
   }
   for (const heroId of heroIds) {
@@ -358,8 +365,8 @@ export function resolveExpedition(
     ...(expedition.blessed ? { blessed: true } : {}),
     ...runProvisions(expedition.hunger ?? 'fed', { mealId: expedition.mealId, optIn: expedition.optIn }, briefing),
   });
-  const meal = mealOf(briefing, expedition.mealId);
-  const barren = briefing.restriction === 'barren';
+  const meal = run.meal;
+  const barren = run.signed.briefing.restriction === 'barren';
   // Separate streams so a change to the run doesn't reshuffle the rewards, and vice versa.
   const rng = createRng(expedition.seed);
   const success = run.bossDefeated;
