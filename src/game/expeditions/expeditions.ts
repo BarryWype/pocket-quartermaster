@@ -313,6 +313,7 @@ export function untriggeredSalvage(
       return (
         run.threats.some((t) => t.kitHeroes.includes(member.heroId)) ||
         run.opportunity?.kitHeroId === member.heroId ||
+        run.carriedHealed.includes(member.heroId) ||
         (item.kit.heal !== undefined && run.consumed.includes(member.heroId)) ||
         (item.protectsAgainst !== undefined && (run.damageElements[member.heroId]?.includes(item.protectsAgainst) ?? false))
       );
@@ -336,9 +337,15 @@ export function untriggeredSalvage(
     if (charm.kind === 'crit') return run.attacked.includes(member.heroId);
     return !barren && gold > 0 && countedCharm === member.heroId;
   };
-  return party
-    .filter((m) => m.consumable && !triggered(m))
-    .map((m) => ({ heroId: m.heroId, itemId: m.consumable!.id, ...salvage(m.consumable!.id) }));
+  return [
+    ...party
+      .filter((m) => m.consumable && !triggered(m))
+      .map((m) => ({ heroId: m.heroId, itemId: m.consumable!.id, ...salvage(m.consumable!.id) })),
+    // The Alchemist's second potion, if it was never drunk.
+    ...party
+      .filter((m) => m.potion && !run.potionsDrunk.includes(m.heroId))
+      .map((m) => ({ heroId: m.heroId, itemId: m.potion!.id, ...salvage(m.potion!.id) })),
+  ];
 }
 
 /**
@@ -433,7 +440,7 @@ export function resolveExpedition(
   // Everything in a consumable slot is gone after the run; what never triggered
   // is broken back down instead (see threats/salvage.ts).
   const salvaged = untriggeredSalvage(party, run, { barren, gold });
-  const consumablesUsed = party.flatMap((m) => (m.consumable ? [m.consumable.id] : []));
+  const consumablesUsed = party.flatMap((m) => [...(m.consumable ? [m.consumable.id] : []), ...(m.potion ? [m.potion.id] : [])]);
   const consumables = { ...save.consumables };
   const salvageGold = salvaged.reduce((sum, s) => sum + s.gold, 0);
   const salvageMaterials = salvaged.flatMap((s) => s.materials);
@@ -443,7 +450,7 @@ export function resolveExpedition(
     if (!expedition.heroIds.includes(hero.id)) return hero;
     const xpBonus = (traitById[hero.trait]?.effects ?? []).reduce((m, e) => m * (e.kind === 'xpMultiplier' ? e.multiplier : 1), 1);
     return addXp(
-      { ...hero, equipment: { ...hero.equipment, consumable: null } },
+      { ...hero, equipment: { ...hero.equipment, consumable: null, ...(hero.equipment.potion ? { potion: null } : {}) } },
       Math.round((xp + (firstClear?.xp ?? 0)) * xpBonus * mealXp * (1 + guildBonus(save, 'heroXp'))),
     );
   });

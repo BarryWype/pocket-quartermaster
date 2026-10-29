@@ -101,6 +101,12 @@ export const logTemplates = {
   revive: ' {hero} drank a revival draught and got back up.',
   /** Appended to a fight line when a smoke bomb ended the run. */
   smokeBomb: ' {hero} threw a smoke bomb and the party escaped.',
+  /** Appended to a fight line: a Necromancer or Beastmaster binds the fallen {tag}, who fight for the party in the next fight. */
+  raise: ' {hero} bound the fallen {tag} to the party’s cause.',
+  allies: ' The raised {tag} fought alongside the party.',
+  duel: ' {hero} found the gap in a lone foe’s guard.',
+  fightHeal: ' {hero} shared a bite to eat.',
+  secondPotion: ' {hero} drank a second potion.',
   /** The opening lines for the party's stat, speed and oil elixirs. */
   elixirDrank: ' {hero} drank their {item} before setting out.',
   elixirOil: ' {hero} coated their weapon with {item}.',

@@ -42,6 +42,7 @@ import type {
   MobGroup,
   NpcHelp,
   OpportunityOutcome,
+  RestrictionId,
   Tag,
 } from '../types';
 import { hungerEffect } from './provisions';
@@ -101,6 +102,8 @@ export type PartyMember = {
   carriedBy?: string | null;
   /** A Porter carrying their kit for another hero of the party. */
   carriesFor?: string | null;
+  /** The Alchemist's second slot: a healing consumable. */
+  potion?: ConsumableDef | null;
 };
 
 /** An ability that changed an encounter, for the log. `heroId` is null for a local's tip. */
@@ -133,7 +136,17 @@ export type AbilityEffect = {
     /** A revival draught got a knocked-out carrier back up. */
     | 'revive'
     /** A smoke bomb ended the run in an escape. */
-    | 'smokeBomb';
+    | 'smokeBomb'
+    /** A Necromancer or Beastmaster bound this fight's fallen (`tag`) to the party. */
+    | 'raise'
+    /** Raised enemies (`tag`) fought for the party in this fight. */
+    | 'allies'
+    /** A Duelist's crit against a lone enemy. */
+    | 'duel'
+    /** A Cook's bite to eat after the fight. */
+    | 'fightHeal'
+    /** An Alchemist drank the potion in their second slot. */
+    | 'secondPotion';
   tag?: Tag;
   /** The ally a `protect` shielded. */
   allyId?: string;
@@ -203,6 +216,12 @@ export type RunResult = {
   delay: number;
   /** The briefing as the party's signatures left it. */
   signed: SignatureBriefing;
+  /** Alchemists who drank the potion in their second slot. */
+  potionsDrunk: string[];
+  /** Porters whose carried kit healed the hero they carried it for. */
+  carriedHealed: string[];
+  /** Gold a Smuggler fenced from the Thieves threat (part of the bonus gold). */
+  fenceGold: number;
   /** The meal the party got: none under Spoiled stores, more with a Cook. */
   meal: MealEffect | null;
 };
@@ -233,6 +252,9 @@ type HeroState = {
   hp: number;
   out: boolean;
   consumableLeft: boolean;
+  /** The Alchemist's second potion, and a Porter's kit heal, still to use. */
+  potionLeft: boolean;
+  carriedLeft: boolean;
   /** Damage multiplier from the supply status. */
   fed: number;
   /** The hero's keywords after the restriction, whatever their source. */
@@ -358,8 +380,15 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs
         carriedKit: porter ? (itemById[porter.equipment.consumable!] as ConsumableDef) : null,
         carriedBy: porter?.id ?? null,
         carriesFor,
+        potion: heroClass.abilities.some((a) => a.kind === 'potionSlot') && hero.equipment.potion ? healingPotion(hero.equipment.potion) : null,
       };
     });
+}
+
+/** A healing consumable by id, or null: only these go in the Alchemist's second slot. */
+export function healingPotion(itemId: string): ConsumableDef | null {
+  const item = itemById[itemId];
+  return item?.slot === 'consumable' && item.when === 'lowHp' && item.heal !== undefined ? item : null;
 }
 
 /** The party after the meal they ate: max HP, speed and resistance last the run. */
@@ -431,6 +460,8 @@ export function simulateRun(
       // A hero with no HP to start with can't act at all.
       out: hp <= 0,
       consumableLeft: member.consumable !== null,
+      potionLeft: !!member.potion,
+      carriedLeft: member.carriedKit?.kit?.heal !== undefined,
       fed: damage,
       keywords: new Set(answers[i].keywords.map((k) => k.keyword)),
     };
@@ -438,7 +469,13 @@ export function simulateRun(
   const alive = () => heroes.filter((h) => !h.out);
 
   const scores = scoreBriefing(activeBriefing, answers);
-  const penalties: AppliedPenalty[] = scores.threats.flatMap((score) => threatPenalties(score, undefined, penaltyReduction(classIds)));
+  // A Smuggler fences what the thieves would take: no loot lost, a little gold instead.
+  const fence = party.flatMap((m) => m.abilities).find((a): a is Extract<Ability, { kind: 'fence' }> => a.kind === 'fence');
+  const thieves = activeBriefing.threats.find((t) => t.id === 'thieves');
+  const fenceGold = fence && thieves ? Math.round(fence.shares[thieves.level - 1] * dungeon.gold[1]) : 0;
+  const penalties: AppliedPenalty[] = scores.threats
+    .flatMap((score) => threatPenalties(score, undefined, penaltyReduction(classIds)))
+    .filter((p) => !(fence && p.threatId === 'thieves' && p.kind === 'lostLoot'));
   const ofKind = <K extends AppliedPenalty['kind']>(kind: K) =>
     penalties.filter((p): p is Extract<AppliedPenalty, { kind: K }> => p.kind === kind);
   const weakenedAgainst = ofKind('weakenedAgainst').reduce((m, p) => m * (1 - p.pct), 1);
@@ -489,11 +526,11 @@ export function simulateRun(
   };
 
   /** ±variance, sometimes a crit; cursed luck means there are no crits. */
-  const roll = (value: number, critChance = rules.enemyCritChance, onCrit?: () => void) => {
+  const roll = (value: number, critChance = rules.enemyCritChance, onCrit?: () => void, critMultiplier = rules.critMultiplier) => {
     const varied = value * (1 + (rng.next() * 2 - 1) * rules.damageVariance);
     if (restriction === 'cursedLuck' || !rng.chance(critChance)) return varied;
     onCrit?.();
-    return varied * rules.critMultiplier;
+    return varied * critMultiplier;
   };
   const elementFactor = (hero: HeroState, attack?: Element) =>
     incomingMultiplier(attack, { armour: hero.member.armourElement, resists: hero.member.resists });
@@ -508,6 +545,13 @@ export function simulateRun(
   let firebombThrown = false;
   /** A smoke bomb ended the run: no knock-out, the party slipped away. */
   let escaped = false;
+  const potionsDrunk: string[] = [];
+  const carriedHealed: string[] = [];
+  /** A Monk's own damage ignores some restrictions. */
+  const ignores = (hero: HeroState, id: RestrictionId) => own(hero, 'ignoresRestrictions')?.restrictions.includes(id) ?? false;
+  /** Raised enemies who fight for the party in the next fight, and the threats whose fallen were already raised. */
+  let raised: { def: MobDef | BossDef; damage: number; heroId: string; tag: Tag }[] = [];
+  const raisedFor = new Set<string>();
   const tookDamage = (hero: HeroState, element: Element | undefined) => {
     const salve = hero.member.consumable?.protectsAgainst;
     if (!element || salve !== element) return;
@@ -556,13 +600,27 @@ export function simulateRun(
         }
       }
     }
-    const potion = hero.member.consumable;
+    // A Porter's kit heals the hero it is carried for, not the Porter.
+    const potion = hero.member.carriesFor ? null : hero.member.consumable;
     const threshold = rules.potionThreshold + (own(hero, 'potionThreshold')?.add ?? 0);
+    const low = () => hero.hp < threshold * hero.member.maxHp;
     const healShare = potion?.when === 'lowHp' ? potion.heal : potion?.kit?.heal;
-    if (hero.consumableLeft && healShare !== undefined && hero.hp < threshold * hero.member.maxHp) {
+    if (hero.consumableLeft && healShare !== undefined && low()) {
       hero.consumableLeft = false;
       heal(hero, healShare, result);
       result.consumed.push(hero.member.heroId);
+    }
+    if (hero.carriedLeft && low()) {
+      hero.carriedLeft = false;
+      heal(hero, hero.member.carriedKit!.kit!.heal!, result);
+      carriedHealed.push(hero.member.carriedBy!);
+    }
+    // The Alchemist's second potion, once the first is gone or isn't one.
+    if (hero.potionLeft && low()) {
+      hero.potionLeft = false;
+      heal(hero, hero.member.potion!.heal!, result);
+      potionsDrunk.push(hero.member.heroId);
+      result.effects.push({ heroId: hero.member.heroId, key: 'secondPotion' });
     }
   };
 
@@ -579,6 +637,7 @@ export function simulateRun(
     enemiesFirst: boolean,
     isBoss = false,
     weakness?: WeaknessEffect,
+    allies: typeof raised = [],
   ) => {
     // Swarm: every big fight gets copies of its weakest mob.
     const weakest = [...enemyDefs].sort((a, b) => a.hp - b.hp)[0];
@@ -648,7 +707,7 @@ export function simulateRun(
             note(id, 'tagBonus', { tag: ability.tag });
           }
           // Sacred ground dulls every weapon it can see.
-          if (restriction === 'sacredGround' && !hero.member.concealed) {
+          if (restriction === 'sacredGround' && !hero.member.concealed && !ignores(hero, 'sacredGround')) {
             bonus *= restrictionRules.sacredGround;
           }
           const rage = own(hero, 'rage');
@@ -665,14 +724,14 @@ export function simulateRun(
             if (element && targetElement && beats(element, targetElement) && (advantage || channel > 1)) {
               // Channel lifts the wheel's advantage; Anti-magic cuts the bonus above 1 in half.
               const bonus = Math.max(advantage?.multiplier ?? multiplier, channel);
-              multiplier = restriction === 'antiMagic' ? 1 + (bonus - 1) * restrictionRules.antiMagic : bonus;
+              multiplier = restriction === 'antiMagic' && !ignores(hero, 'antiMagic') ? 1 + (bonus - 1) * restrictionRules.antiMagic : bonus;
               if (advantage) note(id, 'advantage');
             }
             return multiplier;
           };
           // Anti-magic halves Magic; Power only turns elemental through an infused weapon.
           const magic = hero.member.damageStat === 'magic';
-          const base = magic ? hero.member.magic * magicFactor : hero.member.power;
+          const base = magic ? hero.member.magic * (ignores(hero, 'antiMagic') ? 1 : magicFactor) : hero.member.power;
           const element = hero.member.weaponElement;
           const physical = magic ? 0 : base * (element ? infusionRules.physicalShare : 1);
           const elemental = magic
@@ -681,7 +740,10 @@ export function simulateRun(
               ? (base * infusionRules.elementalShare + hero.member.power * infusionRules.bonusShare) * wheel(element)
               : 0;
           const critBonus = hero.member.abilities.reduce((sum, a) => sum + (a.kind === 'critBonus' ? a.chance : 0), 0);
-          const hit = roll(physical + elemental, hero.member.crit / 100 + critBonus, critBonus > 0 ? () => note(id, 'crit') : undefined);
+          // A Duelist's crits hit harder in a fight against a lone enemy.
+          const duel = enemies.length === 1 ? own(hero, 'singleEnemyCrit') : undefined;
+          const onCrit = duel ? () => note(id, 'duel') : critBonus > 0 ? () => note(id, 'crit') : undefined;
+          const hit = roll(physical + elemental, hero.member.crit / 100 + critBonus, onCrit, duel?.multiplier);
           const damage = hit * fortune * bonus * hero.fed;
           target.hp -= damage;
           add(result.dealt, id, damage);
@@ -810,6 +872,13 @@ export function simulateRun(
       const slow = ambushed ? [] : rest.filter((h) => h.member.speed < fastest);
       if (ambushed) enemiesAttack(round);
       if (escaped || alive().length === 0) return;
+      // Raised enemies strike every round and are never targeted.
+      for (const ally of allies) {
+        const target = enemies.find((e) => e.hp > 0);
+        if (!target) break;
+        target.hp -= ally.def.damage * ally.damage;
+        note(ally.heroId, 'allies', { tag: ally.tag });
+      }
       heroesAttack(quick);
       if (enemies.every((e) => e.hp <= 0)) {
         result.cleared = true;
@@ -842,11 +911,32 @@ export function simulateRun(
       result.effects.push({ heroId: victim.member.heroId, key: 'casters' });
       hurt(victim, penalty.pct * victim.member.maxHp, result);
     }
-    fight(enemyDefs, result, enemiesFirst, isBoss, weakness);
+    const allies = raised;
+    raised = [];
+    fight(enemyDefs, result, enemiesFirst, isBoss, weakness, allies);
+    // The first fight with the tag, at the signature's threat level: its fallen fight for the party next.
+    for (const hero of heroes) {
+      for (const ability of hero.member.abilities) {
+        if (ability.kind !== 'raiseAllies' || raisedFor.has(ability.threat)) continue;
+        if (!activeBriefing.threats.some((t) => t.id === ability.threat && t.level === ability.level)) continue;
+        const fallen = enemyDefs.filter((def) => enemyTags(def).includes(ability.tag));
+        if (fallen.length === 0) continue;
+        raisedFor.add(ability.threat);
+        if (!result.cleared || hero.out) continue;
+        raised = fallen.slice(0, ability.max).map((def) => ({ def, damage: ability.damage, heroId: hero.member.heroId, tag: ability.tag }));
+        result.effects.push({ heroId: hero.member.heroId, key: 'raise', tag: ability.tag });
+      }
+    }
     // Poison wears at everyone after every fight.
     for (const penalty of poisonWounds) {
       for (const hero of alive()) hurt(hero, penalty.pct * hero.member.maxHp, result);
       result.effects.push({ heroId: null, key: 'poison' });
+    }
+    // A conscious Cook feeds everyone a bite after every fight.
+    const cook = withAbility('fightHeal');
+    if (cook && alive().some((h) => h.hp < h.member.maxHp)) {
+      alive().forEach((hero) => heal(hero, cook.ability.pct, result));
+      result.effects.push({ heroId: cook.hero.member.heroId, key: 'fightHeal' });
     }
     // A conscious Mender patches up the most wounded hero after every fight.
     if (alive().some((h) => h.keywords.has('mend'))) {
@@ -894,6 +984,9 @@ export function simulateRun(
       return taken;
     }
     const { reward } = def;
+    // A Scholar's inscriptions, a Diplomat's bounty: the reward's bonus grows.
+    const boost = withAbility('opportunityBoost', (a) => a.opportunity === id)?.ability.multiplier ?? 1;
+    const boosted = (multiplier: number) => 1 + (excess(multiplier) - 1) * boost;
     switch (reward.kind) {
       case 'heal':
         alive().forEach((hero) => heal(hero, reward.pct * mealBonus, at));
@@ -912,7 +1005,7 @@ export function simulateRun(
         ];
         break;
       case 'goldMultiplier':
-        taken.goldMultiplier = excess(reward.multiplier);
+        taken.goldMultiplier = boosted(reward.multiplier);
         break;
       case 'prisoners':
         taken.gold = Math.round(reward.share * dungeon.gold[1] * mealBonus);
@@ -926,8 +1019,8 @@ export function simulateRun(
         taken.damageMultiplier = excess(reward.multiplier);
         break;
       case 'xp':
-        taken.xpMultiplier = excess(reward.multiplier);
-        taken.recipe = rng.chance(reward.recipeChance);
+        taken.xpMultiplier = boosted(reward.multiplier);
+        taken.recipe = rng.chance(Math.min(1, reward.recipeChance * boost));
         break;
       case 'trophy': {
         const materials: MaterialStack[] = [
@@ -1101,7 +1194,7 @@ export function simulateRun(
     encountersCleared,
     bossDefeated,
     outcome,
-    bonusGold: encounters.reduce((sum, e) => sum + e.gold, 0) + (opportunity?.gold ?? 0),
+    bonusGold: encounters.reduce((sum, e) => sum + e.gold, 0) + (opportunity?.gold ?? 0) + fenceGold,
     hp: heroes.map((h) => ({ heroId: h.member.heroId, hp: Math.round(h.hp), maxHp: h.member.maxHp })),
     consumed: encounters.flatMap((e) => e.consumed),
     attacked: [...attacked],
@@ -1115,5 +1208,8 @@ export function simulateRun(
     delay,
     signed,
     meal,
+    potionsDrunk,
+    carriedHealed,
+    fenceGold,
   };
 }

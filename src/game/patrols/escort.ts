@@ -264,7 +264,7 @@ export function backgroundStep(
       if (knockedOut && next.escortAlerts) alerts.push({ kind: 'escortKnockedOut' });
       next.escort = {
         ...escort,
-        member: { ...escort.member, consumable: null },
+        member: { ...escort.member, consumable: null, potion: null },
         hp: hpAfter,
         hpAt: end,
         busyUntil: end,

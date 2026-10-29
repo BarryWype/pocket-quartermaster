@@ -273,8 +273,8 @@ export function settleConsumables(save: SaveData, heroIds: string[], salvaged: E
   const salvageGold = salvaged.reduce((sum, s) => sum + s.gold, 0);
   const salvageMaterials = salvaged.flatMap((s) => s.materials);
   const heroes = save.heroes.map((hero) => {
-    if (!heroIds.includes(hero.id) || !hero.equipment.consumable) return hero;
-    return { ...hero, equipment: { ...hero.equipment, consumable: null } };
+    if (!heroIds.includes(hero.id) || (!hero.equipment.consumable && !hero.equipment.potion)) return hero;
+    return { ...hero, equipment: { ...hero.equipment, consumable: null, ...(hero.equipment.potion ? { potion: null } : {}) } };
   });
   return {
     ...save,

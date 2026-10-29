@@ -110,6 +110,13 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
           case 'revive':
           case 'smokeBomb':
             return [fill(logTemplates[e.key], { hero })];
+          case 'duel':
+          case 'fightHeal':
+          case 'secondPotion':
+            return [fill(logTemplates[e.key], { hero })];
+          case 'raise':
+          case 'allies':
+            return [fill(logTemplates[e.key], { hero, tag: logTemplates.tagNames[e.tag!] ?? `${e.tag}` })];
           case 'protect':
             return [fill(logTemplates.protect, { hero, ally: nameOf(e.allyId!) })];
           case 'exposed':
