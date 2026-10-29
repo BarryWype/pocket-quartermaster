@@ -105,7 +105,7 @@ export const salvageRules = {
   /** Share of each recipe input returned, rounded down; the first input always returns at least 1. */
   returned: { crappy: 0.25, normal: 0.4, rare: 0.6, legendary: 1 } satisfies Record<Quality, number>,
   /** Shards of its element an infused piece gives back. */
-  infusedShards: 5,
+  infusedShards: 8,
   /** A Legendary piece also gives this many shards per material tier, of an element picked from its uid. */
   legendaryShardsPerTier: 1,
 };

@@ -229,7 +229,7 @@ describe('salvage', () => {
     const save: SaveData = { ...createInitialSave(), gear: [piece('sword1', 'normal', { element: 'fire' })], materials: { fireShard: 5 } };
     const after = salvage(save, 'g1');
     expect(after.gear).toEqual([]);
-    expect(after.materials).toEqual({ wood: 1, fireStone: 1 });
+    expect(after.materials).toEqual({ wood: 1, fireStone: 1, fireShard: 3 });
   });
 
   it('refuses gear that is worn, including on an expedition', () => {
