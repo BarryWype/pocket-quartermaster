@@ -78,10 +78,10 @@ describe('threat penalties', () => {
   });
 
   it('rolls a halved extra fight at half', () => {
-    expect(threatPenalties(scored(threat('locals', 1), { classId: 'thief' }))).toEqual([
+    expect(threatPenalties(scored(threat('locals', 1), { classId: 'ranger' }))).toEqual([
       { kind: 'extraFight', chance: 0.5, threatId: 'locals' },
     ]);
-    expect(threatPenalties(scored(threat('locals', 3), { classId: 'thief' }))).toEqual([
+    expect(threatPenalties(scored(threat('locals', 3), { classId: 'ranger' }))).toEqual([
       { kind: 'extraFight', chance: 1, threatId: 'locals' },
     ]);
   });
@@ -101,7 +101,7 @@ describe('threat penalties', () => {
     expect(threatPenalties(scored(threat('locked', 2), { classId: 'warrior' }))).toEqual([
       { kind: 'lostLoot', pct: 0.1, threatId: 'locked' },
     ]);
-    expect(threatPenalties(scored(threat('locked', 1), { classId: 'ranger' }))).toEqual([
+    expect(threatPenalties(scored(threat('locked', 1), { classId: 'cleric' }))).toEqual([
       { kind: 'lostLoot', pct: 0.075, threatId: 'locked' },
     ]);
     expect(threatPenalties(scored(threat('locked', 3), { classId: 'warrior' }))).toEqual([

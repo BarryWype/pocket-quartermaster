@@ -411,9 +411,27 @@ export type HeroClassId =
   | 'paladin'
   | 'druid'
   | 'troubadour'
-  | 'sorcerer';
+  | 'sorcerer'
+  | 'scholar'
+  | 'exorcist'
+  | 'duelist'
+  | 'smuggler'
+  | 'diplomat'
+  | 'necromancer'
+  | 'beastmaster'
+  | 'engineer'
+  | 'alchemist'
+  | 'porter'
+  | 'scout'
+  | 'curseBreaker'
+  | 'cook'
+  | 'monk'
+  | 'gambler';
 
-export type ClassRarity = 'common' | 'uncommon';
+export type ClassRarity = 'common' | 'uncommon' | 'rare';
+
+/** How a class plays its role against threats (see doc/design/threats/classes.csv). */
+export type ClassFamily = 'answerer' | 'fighter' | 'converter' | 'ruleBender';
 
 /** The tags encounters and mobs carry; threats and abilities play on them. */
 export type Tag = 'undead' | 'beast' | 'trap' | 'obstacle' | 'locals' | Element;
@@ -477,18 +495,22 @@ export type HeroClassDef = {
   name: string;
   emoji: string;
   rarity: ClassRarity;
+  /** How the class plays its role against threats. */
+  family: ClassFamily;
+  /** Highest unlocked tier from which taverns offer the class; null = never (rare classes). */
+  poolTier: number | null;
   /** Its attacks use this element unless its weapon is infused. */
   element?: Element;
   /** The stats the class starts with at level 1 (Luck is not class-based). */
   baseStats: Omit<Stats, 'luck'>;
-  /** The three stats that grow every level; the others only at milestones. */
-  primary: [StatKey, StatKey, StatKey];
-  /** A stat that grows at half the usual rate (data only, currently unused). */
+  /** The stats that grow every level; the others only at milestones. */
+  primary: StatKey[];
+  /** A stat that grows at half a primary step per level. */
   halfRate?: StatKey;
   /** The stat its unarmed attacks roll with; weapons decide their own. */
   damageStat: DamageStat;
-  /** Approach scores; missing approaches are the default (see approachRules). */
-  approaches: Partial<Record<Approach, number>>;
+  /** Approach scores; the Gambler's are rolled at the daily reset. */
+  approaches: Record<Approach, number>;
   keywords: Keyword[];
   /** Elements this class takes no extra damage from. */
   resists?: Element[];

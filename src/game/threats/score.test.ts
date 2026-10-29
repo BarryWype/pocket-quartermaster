@@ -163,11 +163,11 @@ describe('scoring locked and locals with an alternative', () => {
     const charmed = scoreThreat(threat('locals', 1), party({ classId: 'troubadour' }));
     expect(charmed).toMatchObject({ state: 'met' });
     expect(charmed).not.toHaveProperty('intimidated');
-    expect(scoreThreat(threat('locals', 1), party({ classId: 'warrior' }))).toMatchObject({
+    expect(scoreThreat(threat('locals', 2), party({ classId: 'barbarian' }))).toMatchObject({
       state: 'met',
       intimidated: true,
     });
-    const shrugged = scoreThreat(threat('locals', 1), party({ classId: 'thief' }));
+    const shrugged = scoreThreat(threat('locals', 1), party({ classId: 'ranger' }));
     expect(shrugged).toMatchObject({ state: 'half' });
     expect(shrugged).not.toHaveProperty('intimidated');
   });
@@ -212,7 +212,7 @@ describe('scoring opportunities', () => {
   });
 
   it('counts a kit’s approach bonus for opportunities, except Explorer’s kit', () => {
-    expect(scoreOpportunity(opportunityById.bounty, party({ classId: 'cleric', kit: kit('giftBasket') }))).toMatchObject({ answered: true, kitHeroId: expect.any(String) });
+    expect(scoreOpportunity(opportunityById.bounty, party({ classId: 'scholar', kit: kit('giftBasket') }))).toMatchObject({ answered: true, kitHeroId: expect.any(String) });
     expect(scoreOpportunity(opportunityById.richVein, party({ classId: 'cleric', kit: kit('explorersKit') })).answered).toBe(false);
     expect(scoreOpportunity(opportunityById.bounty, party({ classId: 'troubadour' })).answered).toBe(true);
   });

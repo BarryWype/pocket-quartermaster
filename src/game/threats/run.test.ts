@@ -487,8 +487,8 @@ describe('salvage and consumables', () => {
 describe('locked forced with Might', () => {
   it('loses 10% of the loot, and nothing else', () => {
     const save = healAll(geared());
-    // Warriors have Might 3: level 1 Locked (needs 2) is forced open, at the cost of some loot.
-    const rotation = forcedRotation('ratCellar', threat('locked', 1));
+    // Warriors have Might 3: level 2 Locked (needs 3, Finesse falls short) is forced open, at the cost of some loot.
+    const rotation = forcedRotation('ratCellar', threat('locked', 2));
     for (let i = 0; i < 30; i++) {
       const forcedStart = startExpedition({ ...save, nextUid: 200 + i }, 'ratCellar', ALL, 0, 1, rotation);
       const forced = resolveExpedition(forcedStart, forcedStart.expeditions[0]).report;
@@ -542,7 +542,8 @@ describe('patrol threats', () => {
 
   it('thieves\' lost loot costs the run, but never the patrol\'s rewards', () => {
     const save = tierTeam();
-    const party = prepareParty(save, ALL);
+    // Bram alone: Finesse 1 half-misses the level 1 thieves.
+    const party = prepareParty(save, ['bram']);
     const { spawn } = findSpawn((s) => s.kind === 'bandits' && s.tierRoll === 'current');
     const dungeon = patrolDungeon(spawn, 1, false);
     const run = simulateRun(party, dungeon, 's', patrolRunOptions('bandits'));

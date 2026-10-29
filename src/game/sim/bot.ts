@@ -374,6 +374,21 @@ const classApproach: Record<HeroClassId, Approach> = {
   cleric: 'faith',
   druid: 'might',
   troubadour: 'presence',
+  scholar: 'wits',
+  exorcist: 'faith',
+  duelist: 'finesse',
+  smuggler: 'finesse',
+  diplomat: 'presence',
+  necromancer: 'wits',
+  beastmaster: 'might',
+  engineer: 'might',
+  alchemist: 'wits',
+  porter: 'might',
+  scout: 'finesse',
+  curseBreaker: 'faith',
+  cook: 'presence',
+  monk: 'might',
+  gambler: 'finesse',
 };
 
 /** Spends every pending pick: the class's marked approach, then the next one below the cap. */

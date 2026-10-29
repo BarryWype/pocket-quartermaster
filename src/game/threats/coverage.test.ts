@@ -48,8 +48,8 @@ describe('briefingCoverage', () => {
 
   it('marks a threat one short as partial and a far miss as uncovered', () => {
     const data = save();
-    // Finesse 1 against level 1 traps (needs 2): half; against level 3 (needs 4): full.
-    const { threats } = briefingCoverage(data, ALL, briefing([{ id: 'traps', level: 1 }, { id: 'traps', level: 3 }]));
+    // Faith 1 against level 1 desecrated ground (needs 2): half; against level 3 (needs 4): full.
+    const { threats } = briefingCoverage(data, ALL, briefing([{ id: 'desecrated', level: 1 }, { id: 'desecrated', level: 3 }]));
     expect(threats[0]).toMatchObject({ state: 'half', display: 'partial', have: 1, needed: 2 });
     expect(threats[1]).toMatchObject({ state: 'full', display: 'uncovered', have: 1, needed: 4 });
     expect(threats[1].coveredBy).toEqual([
@@ -58,8 +58,8 @@ describe('briefingCoverage', () => {
   });
 
   it('forwards the forced and intimidated flags', () => {
-    // Finesse falls short of level 1 locked and locals, but Might 3 stands in for both.
-    const { threats } = briefingCoverage(save(), ALL, briefing([{ id: 'locked', level: 1 }, { id: 'locals', level: 1 }]));
+    // Finesse falls short of level 2 locked and locals, but Might 3 stands in for both.
+    const { threats } = briefingCoverage(save(), ALL, briefing([{ id: 'locked', level: 2 }, { id: 'locals', level: 2 }]));
     expect(threats[0]).toMatchObject({ state: 'met', display: 'covered', forced: true, intimidated: false });
     expect(threats[1]).toMatchObject({ state: 'met', display: 'covered', forced: false, intimidated: true });
   });
@@ -94,11 +94,11 @@ describe('briefingCoverage', () => {
   });
 
   it('answers an opportunity with who and what answers it, or not at all', () => {
-    // Bram's Might 3 works the rich vein; nobody has Presence 2 for the bounty.
+    // Bram's Might 3 works the rich vein; nobody has Faith 3 for the shrine.
     const vein = briefingCoverage(save(), ALL, briefing([], { opportunity: 'richVein' }));
     expect(vein.opportunity).toMatchObject({ answered: true, cost: null, answers: [{ heroName: 'Bram', via: 'might' }] });
-    const bounty = briefingCoverage(save(), ALL, briefing([], { opportunity: 'bounty' }));
-    expect(bounty.opportunity).toMatchObject({ answered: false, cost: null, answers: [] });
+    const shrine = briefingCoverage(save(), ALL, briefing([], { opportunity: 'forgottenShrine' }));
+    expect(shrine.opportunity).toMatchObject({ answered: false, cost: null, answers: [] });
     expect(briefingCoverage(save(), ALL, briefing()).opportunity).toBeNull();
   });
 

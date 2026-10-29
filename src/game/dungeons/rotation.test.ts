@@ -216,6 +216,8 @@ describe('first-clear bonus', () => {
 describe('class answers', () => {
   it('gives every class something to answer threats with: an approach above the base, or a keyword', () => {
     for (const heroClass of Object.values(heroClasses)) {
+      // The Gambler's approaches are rolled at the daily reset.
+      if (heroClass.name === 'Gambler') continue;
       const approaches = Object.values(heroClass.approaches).some((score) => score > 1);
       expect(approaches || heroClass.keywords.length > 0).toBe(true);
     }

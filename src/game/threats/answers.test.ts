@@ -35,22 +35,22 @@ describe('heroAnswers', () => {
       finesse: approachRules.base,
       wits: approachRules.base,
       faith: approachRules.base,
-      presence: approachRules.base,
+      presence: 2,
     });
     expect(heroAnswers(member({ classId: 'thief' })).approaches.finesse).toBe(4);
     expect(heroAnswers(member({ classId: 'fireMage' })).approaches).toEqual({
       might: 1,
       finesse: 1,
-      wits: 1,
+      wits: 3,
       faith: 1,
-      presence: 1,
+      presence: 2,
     });
   });
 
   it('applies trait approach modifiers, clamped at the rules', () => {
     expect(heroAnswers(member({ classId: 'thief', traitId: 'clumsy' })).approaches.finesse).toBe(3);
     expect(heroAnswers(member({ classId: 'warrior', traitId: 'clumsy' })).approaches.finesse).toBe(0);
-    expect(heroAnswers(member({ classId: 'troubadour', traitId: 'loud' })).approaches.presence).toBe(2);
+    expect(heroAnswers(member({ classId: 'troubadour', traitId: 'loud' })).approaches.presence).toBe(3);
   });
 
   it('collects class, trait, gear and kit keywords once each', () => {

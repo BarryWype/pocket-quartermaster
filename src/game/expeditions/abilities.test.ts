@@ -120,8 +120,8 @@ describe('locals', () => {
   });
 
   it('lose some gold to a pickpocket when the party only half meets them, and sometimes notice', () => {
-    // A fire mage (Presence 1, Might 1) half-misses level 1: the thief works.
-    const thief = member('a', [{ kind: 'pickpocket' }], { classId: 'fireMage', maxHp: 1e6, magic: 100, damageStat: 'magic' });
+    // A frost mage (Presence 1, Might 1) half-misses level 1: the thief works.
+    const thief = member('a', [{ kind: 'pickpocket' }], { classId: 'frostMage', maxHp: 1e6, magic: 100, damageStat: 'magic' });
     const results = Array.from({ length: 60 }, (_, i) => withLocals([thief], 'pedlar', 1, `p${i}`));
     results.forEach((r) => expect(r).toMatchObject({ reaction: 'steal', gold: Math.round(localsRules.pickpocketGoldShare * 12) }));
     const noticed = results.filter((r) => r.noticed).length / results.length;
@@ -138,7 +138,7 @@ describe('locals', () => {
 
   it('still lose a purse to a thief when the party intimidates them', () => {
     const barbarian = member('a', [], { classId: 'barbarian' });
-    const thief = member('t', [{ kind: 'pickpocket' }]);
+    const thief = member('t', [{ kind: 'pickpocket' }], { classId: 'ranger' });
     const picks = Array.from({ length: 20 }, (_, i) => withLocals([barbarian, thief], 'hermit', 1, `i${i}`));
     expect(picks.every((p) => p.reaction === 'steal' && p.gold > 0)).toBe(true);
     // Not every lift gets noticed: some end without a fight.
@@ -146,8 +146,8 @@ describe('locals', () => {
   });
 
   it('sometimes turn hostile when the party misses them, and fight with their hostile group', () => {
-    // A fire mage alone: level 1 is one short (half), so the extra fight is a coin flip.
-    const loner = member('a', [], { classId: 'fireMage', maxHp: 1e6, magic: 100, damageStat: 'magic' });
+    // A frost mage alone: level 1 is one short (half), so the extra fight is a coin flip.
+    const loner = member('a', [], { classId: 'frostMage', maxHp: 1e6, magic: 100, damageStat: 'magic' });
     const met = Array.from({ length: 40 }, (_, i) => withLocals([loner], 'poachers', 1, `h${i}`));
     const hostile = met.filter((r) => r.reaction === 'fight');
     expect(hostile.length).toBeGreaterThan(0);
