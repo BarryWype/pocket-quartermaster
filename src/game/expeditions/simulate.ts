@@ -9,6 +9,7 @@ import { infusionRules } from '@/content/sanctums';
 import { travellerRules } from '@/content/patrols';
 import { gearName, itemById, opportunityById } from '@/content/lookup';
 import { serviceRules } from '@/content/services';
+import { weaknessByBoss, type WeaknessEffect } from '@/content/weaknesses';
 
 import { ELEMENTS, beats, incomingMultiplier, shardId, weaponMultiplier, type Element } from '../elements';
 import { createRng } from '../generation/rng';
@@ -114,6 +115,8 @@ export type AbilityEffect = {
     | 'casters'
     /** Hunter's stew before the boss (`heroId` null). */
     | 'stew'
+    /** A weakness item's carrier weakened this boss fight. */
+    | 'weakness'
     /** A firebomb carrier opened the run's first fight. */
     | 'firebomb'
     /** A revival draught got a knocked-out carrier back up. */
@@ -175,6 +178,8 @@ export type RunResult = {
   damageElements: Record<string, Element[]>;
   /** Heroes whose elixir (bomb, draught) triggered during the run; stat, speed and oil elixirs always count as used. */
   elixirsUsed: string[];
+  /** The hero whose weakness item weakened the boss fight, if one did. */
+  weaknessUsedBy: string | null;
   /** The run ended in a smoke bomb escape, with nobody knocked out. */
   escaped?: boolean;
   /** The briefing's threats scored against this party. */
@@ -441,6 +446,8 @@ export function simulateRun(
   const damageElements: Record<string, Element[]> = {};
   /** Heroes whose elixir (bomb, draught) triggered, for salvage. */
   const elixirsUsed: string[] = [];
+  /** The hero whose weakness item weakened the boss fight, if one did. */
+  let weaknessUsedBy: string | null = null;
   /** The run's first fight is where a firebomb lands; later fights see none. */
   let firebombThrown = false;
   /** A smoke bomb ended the run: no knock-out, the party slipped away. */
@@ -510,7 +517,13 @@ export function simulateRun(
   /** Heroes who attacked at least once. */
   const attacked = new Set<string>();
 
-  const fight = (enemyDefs: (MobDef | BossDef)[], result: EncounterResult, enemiesFirst: boolean, isBoss = false) => {
+  const fight = (
+    enemyDefs: (MobDef | BossDef)[],
+    result: EncounterResult,
+    enemiesFirst: boolean,
+    isBoss = false,
+    weakness?: WeaknessEffect,
+  ) => {
     // Swarm: every big fight gets copies of its weakest mob.
     const weakest = [...enemyDefs].sort((a, b) => a.hp - b.hp)[0];
     const copies =
@@ -523,8 +536,8 @@ export function simulateRun(
         : [];
     const enemies: EnemyState[] = [...enemyDefs, ...copies].map((def) => ({
       def,
-      // The dead walk here: undead are harder to put down.
-      hp: def.hp * (enemyTags(def).includes('undead') ? undeadHp : 1),
+      // The dead walk here: undead are harder to put down; a weakness item cuts the boss's HP up front.
+      hp: def.hp * (isBoss && weakness?.hpCut ? 1 - weakness.hpCut : 1) * (enemyTags(def).includes('undead') ? undeadHp : 1),
       staggered: false,
     }));
     if (escaped) return;
@@ -657,24 +670,28 @@ export function simulateRun(
       hurt(protector, moved, result);
       return amount - moved;
     };
-    const enemiesAttack = () => {
+    const enemiesAttack = (round: number) => {
       for (const enemy of enemies.filter((e) => e.hp > 0)) {
         // A staggered enemy loses this attack.
         if (enemy.staggered) {
           enemy.staggered = false;
           continue;
         }
+        // A drugged boss sleeps through the fight's first rounds.
+        if (weakness?.freeRounds && round <= weakness.freeRounds) continue;
         // The boss encounter takes the brute's extra damage, effect or not.
         const boss: BossDef | null = isBoss || 'effect' in enemy.def ? (enemy.def as BossDef) : null;
-        const enraged = boss?.effect === 'enrage' && enemy.hp < enemy.def.hp / 2;
+        const enraged = boss?.effect === 'enrage' && !weakness?.noEnrage && enemy.hp < enemy.def.hp / 2;
         const beast = enemyTags(enemy.def).includes('beast');
         const base =
           enemy.def.damage *
           (enraged ? rules.enrageMultiplier : 1) *
           (boss ? bruteDamage : 1) *
-          (beast ? beastDamage : 1);
+          (beast ? beastDamage : 1) *
+          (weakness?.damageCut ? 1 - weakness.damageCut : 1);
+        const sweeping = boss?.effect === 'sweep' && !weakness?.noSweep;
         const targets =
-          boss?.effect === 'sweep'
+          sweeping
             ? alive()
             : alive().length
               ? [
@@ -692,7 +709,7 @@ export function simulateRun(
             continue;
           }
           const element = enemyElement(enemy.def);
-          let incoming = roll(boss?.effect === 'sweep' ? base * rules.sweepShare : base) * elementFactor(hero, element);
+          let incoming = roll(sweeping ? base * rules.sweepShare : base) * elementFactor(hero, element);
           // The Element threat bites heroes without Resist.
           if (element !== undefined && element === elementThreat?.element && !hero.member.resists.includes(element)) {
             incoming *= elementalDamage;
@@ -735,14 +752,14 @@ export function simulateRun(
       const fastest = Math.max(...enemies.filter((e) => e.hp > 0).map((e) => e.def.speed));
       const quick = ambushed ? rest : rest.filter((h) => h.member.speed >= fastest);
       const slow = ambushed ? [] : rest.filter((h) => h.member.speed < fastest);
-      if (ambushed) enemiesAttack();
+      if (ambushed) enemiesAttack(round);
       if (escaped || alive().length === 0) return;
       heroesAttack(quick);
       if (enemies.every((e) => e.hp <= 0)) {
         result.cleared = true;
         return;
       }
-      if (!ambushed) enemiesAttack();
+      if (!ambushed) enemiesAttack(round);
       if (escaped || alive().length === 0) return;
       heroesAttack(slow);
       if (enemies.every((e) => e.hp <= 0)) {
@@ -753,7 +770,13 @@ export function simulateRun(
   };
 
   /** A fight with the wounds the briefing's missed threats inflict around it. */
-  const runFight = (enemyDefs: (MobDef | BossDef)[], result: EncounterResult, enemiesFirst: boolean, isBoss = false) => {
+  const runFight = (
+    enemyDefs: (MobDef | BossDef)[],
+    result: EncounterResult,
+    enemiesFirst: boolean,
+    isBoss = false,
+    weakness?: WeaknessEffect,
+  ) => {
     if (enemiesFirst) result.effects.push({ heroId: null, key: 'exposed' });
     // Enemy casters wound one hero before every fight.
     for (const penalty of casterWounds) {
@@ -763,7 +786,7 @@ export function simulateRun(
       result.effects.push({ heroId: victim.member.heroId, key: 'casters' });
       hurt(victim, penalty.pct * victim.member.maxHp, result);
     }
-    fight(enemyDefs, result, enemiesFirst, isBoss);
+    fight(enemyDefs, result, enemiesFirst, isBoss, weakness);
     // Poison wears at everyone after every fight.
     for (const penalty of poisonWounds) {
       for (const hero of alive()) hurt(hero, penalty.pct * hero.member.maxHp, result);
@@ -989,7 +1012,15 @@ export function simulateRun(
       for (const hero of alive()) heal(hero, meal.pct * (own(hero, 'stewBoost')?.multiplier ?? 1), result);
       result.effects.push({ heroId: null, key: 'stew' });
     }
-    runFight([dungeon.boss], result, exposedAt(fightsSeen), true);
+    // A conscious carrier's weakness item weakens its boss, used up on the spot; other copies never trigger.
+    const weakness = weaknessByBoss[dungeon.boss.id];
+    const carrier = weakness && alive().find((h) => h.consumableLeft && h.member.consumable?.weakness === dungeon.boss.id);
+    if (carrier) {
+      carrier.consumableLeft = false;
+      weaknessUsedBy = carrier.member.heroId;
+      result.effects.push({ heroId: carrier.member.heroId, key: 'weakness' });
+    }
+    runFight([dungeon.boss], result, exposedAt(fightsSeen), true, carrier ? weakness.effect : undefined);
     fightsSeen++;
     encounters.push(result);
   }
@@ -1020,6 +1051,7 @@ export function simulateRun(
     attacked: [...attacked],
     damageElements,
     elixirsUsed,
+    weaknessUsedBy,
     ...(escaped ? { escaped: true } : {}),
     threats: scores.threats,
     opportunity,

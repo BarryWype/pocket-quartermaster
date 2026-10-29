@@ -156,11 +156,12 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
         if (encounter.kind === 'boss') {
           const star = top(party, encounter.dealt);
           const stew = effect(encounter, 'stew') ? logTemplates.stew : '';
+          const weakness = effect(encounter, 'weakness') ? (logTemplates.weakness[dungeon.boss.id] ?? '') : '';
           const sentence =
             encounter.cleared && star
               ? fill(pick(rng, logTemplates.bossWon), { hero: star.name, boss: tr(encounter.name), weapon: weaponOf(star) })
               : fill(pick(rng, logTemplates.bossLost), { boss: tr(encounter.name) });
-          return stew + sentence + aftermath(encounter);
+          return weakness + stew + sentence + aftermath(encounter);
         }
         return capitalised(fightSentence(encounter)) + aftermath(encounter);
       }

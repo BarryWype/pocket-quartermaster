@@ -1,5 +1,14 @@
 import type { ExpeditionOutcome, HeroClassId, MainReward, NpcHelp } from '@/game/types';
 
+/** Before the boss line, keyed by boss id: the weakness item at work. */
+const weaknessLines: Record<string, string> = {
+  banditCaptain: 'The bandit captain’s men read the poster and slip away. ',
+  ogreChieftain: 'The ogre chieftain downed the strong ale and fights drunk. ',
+  lichOfTheDeep: 'Font water burned the lich of the deep. ',
+  giantKing: 'The giant king slept through the first blows. ',
+  elderDragon: 'The elder dragon stayed coiled around the decoy hoard. ',
+};
+
 // Placeholders: {hero} {weapon} {mobs} {boss} {trap} {event} {damage} {gold}
 // {cleared} {total} {gear} {item} {obstacle} {npc} {tag} {threat} {answerer}
 // {opportunity}. One line per encounter, then a summary. Abilities add a
@@ -26,6 +35,8 @@ export const logTemplates = {
   tookDamage: ' {hero} took {damage} damage.',
   /** Before the boss line. */
   stew: 'The party shared a Hunter’s stew before the fight. ',
+  /** Before the boss line, keyed by boss id: the weakness item at work. */
+  weakness: weaknessLines,
   /** The first lines when the party sets out short of food. */
   hunger: {
     underfed: 'Short on food, the party set out hungry.',

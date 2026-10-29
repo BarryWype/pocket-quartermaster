@@ -324,6 +324,7 @@ export function untriggeredSalvage(
       if (elixir.kind === 'oil') return member.weaponName !== null && run.attacked.includes(member.heroId);
       return run.elixirsUsed.includes(member.heroId);
     }
+    if (item.weakness) return run.weaknessUsedBy === member.heroId;
     const charm = item.charm!;
     if (charm.kind === 'crit') return run.attacked.includes(member.heroId);
     return !barren && gold > 0 && countedCharm === member.heroId;

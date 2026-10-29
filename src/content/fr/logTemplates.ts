@@ -22,6 +22,13 @@ export const frLogTemplates: typeof logTemplates = {
   bossLost: ['{le:boss} a repoussé le groupe.', 'Le groupe n’a pas fait le poids face {au:boss}.'],
   tookDamage: ' {hero} a subi {damage} dégâts.',
   stew: 'Le groupe a partagé un ragoût du chasseur avant le combat. ',
+  weakness: {
+    banditCaptain: 'Les hommes du capitaine bandit ont lu l’avis et se sont éclipsés. ',
+    ogreChieftain: 'Le chef ogre a vidé la bière forte et combat ivre. ',
+    lichOfTheDeep: 'L’eau du bénitier a brûlé le liche des profondeurs. ',
+    giantKing: 'Le roi géant a dormi pendant les premiers coups. ',
+    elderDragon: 'Le dragon ancien est resté lové autour du trésor-leurre. ',
+  },
   hunger: {
     underfed: 'À court de vivres, le groupe est parti le ventre creux.',
     starving: 'Sans rien à manger, le groupe est parti affamé.',
