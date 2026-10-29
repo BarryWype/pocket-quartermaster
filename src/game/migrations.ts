@@ -274,3 +274,8 @@ export function migrateV18Save(old: Partial<SaveData>): SaveData {
 export function migrateV19Save(old: Partial<SaveData>): SaveData {
   return { ...createInitialSave(), ...old };
 }
+
+/** Version 20 → 21: fight events, heists and ruins; nothing under way or dug yet. */
+export function migrateV20Save(old: Partial<SaveData>): SaveData {
+  return { ...createInitialSave(), ...old };
+}

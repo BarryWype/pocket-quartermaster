@@ -11,7 +11,7 @@ describe('gameStore', () => {
     useGameStore.getState().addGold(25);
 
     const raw = await AsyncStorage.getItem('pocket-quartermaster-save');
-    expect(JSON.parse(raw ?? '{}')).toMatchObject({ state: { save: { gold: 25 } }, version: 20 });
+    expect(JSON.parse(raw ?? '{}')).toMatchObject({ state: { save: { gold: 25 } }, version: 21 });
   });
 
   it('resets save data', () => {

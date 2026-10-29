@@ -1,4 +1,5 @@
 import type { Element } from '@/game/elements';
+import { frPlaceNames } from './placeNames';
 
 // French for every content name and description, keyed by the English text
 // (see `contentTexts.ts`; a test checks nothing is missing). Names used with
@@ -918,4 +919,5 @@ export const frNames: Record<string, string> = {
   'Something took it; supplies are left.': 'Quelque chose l’a prise ; il reste des provisions.',
   'Wanted outlaw': 'Hors-la-loi recherché',
   'A bounty on a brute’s head.': 'Une prime sur la tête d’une brute.',
+  ...frPlaceNames,
 };

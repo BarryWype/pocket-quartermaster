@@ -1,6 +1,9 @@
 import type { ImageSourcePropType } from 'react-native';
 
+import type { PlaceKind } from '@/content/places';
+
 import type { Element } from './elements';
+import type { LatLng } from './generation/types';
 
 export type MaterialStack = {
   materialId: string;
@@ -757,3 +760,48 @@ export type ChestDef = {
   /** Chance to teach one Provisions recipe the player does not know yet. */
   recipeChance: number;
 };
+
+/** What a place pays out (fight win, dig, heist): placeholder tables until the loot rework (see content/placeRewards.ts). */
+export type PlaceReward = {
+  gold: number;
+  /** XP per hero who took part. */
+  xp: number;
+  materials: MaterialStack[];
+  consumables: { itemId: string; amount: number }[];
+  /** Gear pieces; their uids are given when granted. */
+  gear: GearInstance[];
+  /** A recipe the player doesn't know yet. */
+  recipeId?: string;
+  keyFragments: number;
+};
+
+/** A fight at a fight event or monster lair, played out at the start and settled when its time is up. */
+export type PlaceFight = {
+  id: string;
+  placeId: string;
+  kind: PlaceKind;
+  tier: number;
+  heroIds: string[];
+  startedAt: number;
+  endsAt: number;
+  /** A win hides the place until then. */
+  placeExpiresAt: number;
+  won: boolean;
+  hp: { heroId: string; hp: number; maxHp: number }[];
+  salvaged: ExpeditionReport['salvaged'];
+  reward: PlaceReward;
+};
+
+/** One hero away on a thieves' guild heist; the outcome is rolled when they set out. */
+export type Heist = {
+  id: string;
+  placeId: string;
+  heroId: string;
+  startedAt: number;
+  endsAt: number;
+  success: boolean;
+  reward: PlaceReward;
+};
+
+/** A dug ruin: a new one shows elsewhere a day later, for this player. */
+export type DugRuin = { dugAt: number; position: LatLng };

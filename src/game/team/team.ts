@@ -19,9 +19,14 @@ export function isOnExpedition(save: SaveData, heroId: string) {
   return save.expeditions.some((e) => e.heroIds.includes(heroId));
 }
 
-/** Whether a hero is out at all: on an expedition, or in a patrol fight not yet resolved. */
+/** Whether a hero is out at all: on an expedition, a heist, or in a patrol or place fight not yet resolved. */
 export function isAway(save: SaveData, heroId: string) {
-  return isOnExpedition(save, heroId) || save.patrolFights.some((f) => f.heroIds.includes(heroId));
+  return (
+    isOnExpedition(save, heroId) ||
+    save.patrolFights.some((f) => f.heroIds.includes(heroId)) ||
+    save.placeFights.some((f) => f.heroIds.includes(heroId)) ||
+    save.heists.some((h) => h.heroId === heroId)
+  );
 }
 
 export function equippedGear(save: SaveData, hero: HeroState) {

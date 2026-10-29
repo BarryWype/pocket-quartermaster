@@ -12,11 +12,14 @@ import type { PatrolFight } from './patrols/fight';
 import type {
   ActiveExpedition,
   ActiveLure,
+  DugRuin,
   ExpeditionReport,
   GearInstance,
   HeroState,
+  Heist,
   MasteryState,
   MasteryType,
+  PlaceFight,
   TreasureMap,
   WalkEffect,
 } from './types';
@@ -116,6 +119,14 @@ export type SaveData = {
   chapelVisits: Record<string, number>;
   /** A chapel's blessing, waiting for the next expedition. */
   expeditionBlessing: boolean;
+  /** Fights at fight events and monster lairs under way. */
+  placeFights: PlaceFight[];
+  /** Thieves' guild heists under way. */
+  heists: Heist[];
+  /** Ruins dug towards the relic, 0–4; the 5th dig pays it and starts again. */
+  ruinsProgress: number;
+  /** Ruin id → when and where it was dug; a replacement ruin shows elsewhere 24 h later. */
+  dugRuins: Record<string, DugRuin>;
   /** Background fight result id → when it was applied; idempotence and pruning. */
   appliedBackgroundResults: Record<string, number>;
   /** Counter for unique ids (gear, maps, lures, fights, heroes). */
@@ -168,6 +179,10 @@ export function createInitialSave(): SaveData {
     placePurchases: {},
     chapelVisits: {},
     expeditionBlessing: false,
+    placeFights: [],
+    heists: [],
+    ruinsProgress: 0,
+    dugRuins: {},
     // Mastery starts with the starting recipes' types (their ids are `<type><tier>`), level 1.
     mastery: Object.fromEntries(startingRecipes.map((id) => [id.replace(/\d+$/, '') as MasteryType, startingMastery(1)])),
     nextUid: 1,
