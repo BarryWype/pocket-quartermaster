@@ -7,10 +7,10 @@ import { newHero, xpRules } from '@/content/heroes';
 import { items } from '@/content/items';
 import { recipeById } from '@/content/lookup';
 import { materials } from '@/content/materials';
-import { craft, craftMany, forgeResult, unlockRecipe, type ForgeResult } from '@/game/crafting/crafting';
+import { craft, craftMany, forgetRecipe, forgeResult, learnAllRecipes, unlockRecipe, type ForgeResult } from '@/game/crafting/crafting';
 import { infuse } from '@/game/crafting/infusion';
 import { salvage } from '@/game/forging/salvage';
-import { migrateV10Save, migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV15Save, migrateV5Save, migrateV6Save, migrateV7Save, migrateV8Save, migrateV9Save } from '@/game/migrations';
+import { migrateV10Save, migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV15Save, migrateV16Save, migrateV5Save, migrateV6Save, migrateV7Save, migrateV8Save, migrateV9Save } from '@/game/migrations';
 import { convertShards, shardId, stoneId, type Element } from '@/game/elements';
 import { fastForward, resolveExpedition, startExpedition, type Loadout } from '@/game/expeditions/expeditions';
 import { markWalksSeen, processWalkPath, recordWalk, type WalkFix, type WalkOptions, type WalkPatrols, type WalkSummary } from '@/game/gathering/autoGather';
@@ -118,7 +118,14 @@ type GameState = {
   setGuildRank: (trackId: GuildTrackId, rank: number) => void;
   resetGuild: () => void;
   setMastery: (type: MasteryType, level: number) => void;
+  /** Debug: adds a GearInstance, roll 1, no luck. */
   addGear: (itemId: string, quality: Quality, element: Element | null) => void;
+  /** Debug: teaches a recipe, mastery starting where unlockRecipe puts it. */
+  learnRecipe: (recipeId: string) => void;
+  /** Debug: removes a recipe from the known list. */
+  forgetRecipe: (recipeId: string) => void;
+  /** Debug: teaches every recipe. */
+  learnAllRecipes: () => void;
   addLure: () => void;
   /** Forgets used Sanctums and the Sigil pity counter. */
   resetSanctums: () => void;
@@ -318,10 +325,13 @@ export const useGameStore = create<GameState>()(
         set(({ save }) => ({
           save: {
             ...save,
-            gear: [...save.gear, { uid: `g${save.nextUid}`, itemId, quality, ...(element ? { element } : {}) }],
+            gear: [...save.gear, { uid: `g${save.nextUid}`, itemId, quality, roll: 1, ...(element ? { element } : {}) }],
             nextUid: save.nextUid + 1,
           },
         })),
+      learnRecipe: (recipeId) => set(({ save }) => ({ save: unlockRecipe(save, recipeId) })),
+      forgetRecipe: (recipeId) => set(({ save }) => ({ save: forgetRecipe(save, recipeId) })),
+      learnAllRecipes: () => set(({ save }) => ({ save: learnAllRecipes(save) })),
       resetFirstClears: () => set(({ save }) => ({ save: { ...save, firstClears: [] } })),
       addCharters: (amount) => set(({ save }) => ({ save: { ...save, charters: save.charters + amount } })),
       setGuildRank: (trackId, rank) => set(({ save }) => ({ save: { ...save, guild: { ...save.guild, [trackId]: rank } } })),
@@ -385,7 +395,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 16,
+      version: 17,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
       // Saves from version 5 on are converted step by step; older ones start fresh. New fields get their defaults.
@@ -403,6 +413,7 @@ export const useGameStore = create<GameState>()(
         if (version <= 13) save = migrateV13Save(save);
         if (version <= 14) save = migrateV14Save(save);
         if (version <= 15) save = migrateV15Save(save);
+        if (version <= 16) save = migrateV16Save(save);
         return { save };
       },
       merge: (persisted, current) => ({

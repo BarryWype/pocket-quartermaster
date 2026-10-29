@@ -29,8 +29,8 @@ function save(): SaveData {
     consumables: { ...createInitialSave().consumables, trailMix: 30 },
     heroes: createInitialSave().heroes.map((h) => ({ ...h, level: 30 })),
     gear: [
-      { uid: 'g1', itemId: 'steelSword', quality: 'normal' },
-      { uid: 'g2', itemId: 'steelBow', quality: 'normal' },
+      { uid: 'g1', itemId: 'sword5', quality: 'normal' },
+      { uid: 'g2', itemId: 'bow5', quality: 'normal' },
     ],
   };
   data = equip(data, 'bram', 'weapon', 'g1');
@@ -65,14 +65,14 @@ describe('briefingCoverage', () => {
   });
 
   it('names a weapon behind a keyword answer', () => {
-    // Lyra's Steel bow carries pierce: level 1 armoured (needs 1) is met.
+    // Lyra's Steel-banded bow carries pierce: level 1 armoured (needs 1) is met.
     const { threats } = briefingCoverage(save(), ALL, briefing([{ id: 'armoured', level: 1 }]));
     expect(threats[0]).toMatchObject({ state: 'met', display: 'covered' });
     expect(threats[0].coveredBy).toContainEqual({
       heroId: 'lyra',
       heroName: 'Lyra',
-      source: 'weapon',
-      sourceName: 'Steel bow',
+      source: 'gear',
+      sourceName: 'Steel-banded bow',
     });
   });
 
@@ -129,7 +129,7 @@ describe('kitAnswers', () => {
   });
 
   it('is false for non-consumables and plain consumables', () => {
-    expect(kitAnswers('steelSword', briefing([{ id: 'traps', level: 1 }]))).toBe(false);
+    expect(kitAnswers('sword5', briefing([{ id: 'traps', level: 1 }]))).toBe(false);
     expect(kitAnswers('healingPotion', briefing([{ id: 'traps', level: 1 }]))).toBe(false);
   });
 

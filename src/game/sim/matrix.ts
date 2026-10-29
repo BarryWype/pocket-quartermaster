@@ -1,4 +1,5 @@
 import { dungeons } from '@/content/dungeons';
+import { classAffinities, gearProfiles } from '@/content/equipment';
 import { heroClasses, newHero, startingHeroes } from '@/content/heroes';
 import { items } from '@/content/items';
 import type { DungeonDef, GearDef, HeroClassId, HeroState, Quality } from '@/game/types';
@@ -26,24 +27,30 @@ export type MatrixRow = {
   counter: { classId: HeroClassId; odds: Record<string, number> } | null;
 };
 
-/** The class's best weapon of a tier: its highest-affinity type. */
+/** The class's best weapon of a tier: a favoured type, first one found. */
 function weaponFor(classId: HeroClassId, tier: number) {
-  const affinities = heroClasses[classId].affinities;
-  return items
-    .filter((i): i is GearDef => i.slot === 'weapon' && i.tier === tier && !!i.weaponType && i.weaponType in affinities)
-    .sort((a, b) => (affinities[b.weaponType!] ?? 0) - (affinities[a.weaponType!] ?? 0))[0];
+  return items.find(
+    (i): i is GearDef =>
+      i.slot === 'weapon' && i.tier === tier && !!i.gearType && classAffinities[classId][i.gearType as keyof (typeof classAffinities)[HeroClassId]] === 'favoured',
+  );
 }
 
 /** A reference member of a class, as threat scoring sees them. */
-const memberOf = (classId: HeroClassId, tier: number): AnswersMember => ({
-  heroId: classId,
-  classId,
-  traitId: 'none',
-  weaponType: weaponFor(classId, tier)?.weaponType ?? null,
-  kit: null,
-  salveElement: null,
-  classResists: heroClasses[classId].resists ?? [],
-});
+const memberOf = (classId: HeroClassId, tier: number): AnswersMember => {
+  const gearType = weaponFor(classId, tier)?.gearType;
+  const profile = gearType ? gearProfiles[gearType] : null;
+  return {
+    heroId: classId,
+    classId,
+    traitId: 'none',
+    gearKeywords: profile
+      ? profile.keywords.map((keyword) => ({ keyword, magic: profile.damageStat === 'magic' }))
+      : [],
+    kit: null,
+    salveElement: null,
+    classResists: heroClasses[classId].resists ?? [],
+  };
+};
 
 /**
  * The classes whose answers turn one of the dungeon's drawn threats from

@@ -11,7 +11,7 @@ export type TutorialScreen = 'map' | 'forge' | 'provisions' | 'inventory' | 'tea
 export type MenuTarget = 'forge' | 'team' | 'expeditions';
 
 export const TUTORIAL_SPAWN_ID = 'tutorial:wood';
-const FIRST_RECIPE = 'woodSword';
+const FIRST_RECIPE = 'sword1';
 
 /** Steps during which only wood shows on the map; animals and herbs appear once the sword is forged. */
 const WOOD_ONLY: TutorialStep[] = ['collectWood', 'forgeSword'];

@@ -63,7 +63,6 @@ describe('baseHeroStats', () => {
       primary: ['hp', 'power', 'armour'],
       halfRate: 'resistance',
       damageStat: 'power',
-      affinities: {},
       approaches: {},
       keywords: [],
       threat: 1,

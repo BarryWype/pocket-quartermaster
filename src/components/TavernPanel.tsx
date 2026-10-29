@@ -3,13 +3,13 @@ import { Modal, ScrollView, StyleSheet, View } from 'react-native';
 
 import { abilityText } from '@/content/abilities';
 import { masteryTypeNames } from '@/content/forging';
+import { classAffinities } from '@/content/equipment';
 import { heroClasses } from '@/content/heroes';
 import { tavernRules } from '@/content/taverns';
 import { traitById } from '@/content/traits';
 import { distanceMeters } from '@/game/generation/geo';
 import { rosterCap } from '@/game/guild/guild';
 import type { LatLng } from '@/game/generation/types';
-import type { WeaponType } from '@/game/types';
 import {
   buySupplyProblem,
   recruitProblem,
@@ -53,7 +53,9 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
     const heroClass = heroClasses[offer.classId];
     const trait = traitById[offer.trait];
     const problem = recruitProblem(save, offer, tavern.position, player);
-    const weapons = (Object.keys(heroClass.affinities) as WeaponType[]).map((w) => tr(masteryTypeNames[w].name).toLowerCase());
+    const weapons = (Object.entries(classAffinities[offer.classId]) as [keyof typeof masteryTypeNames, string][])
+      .filter(([, affinity]) => affinity === 'favoured')
+      .map(([type]) => tr(masteryTypeNames[type].name).toLowerCase());
     return (
       <View key={offer.id} style={styles.offer}>
         <Text style={styles.name}>

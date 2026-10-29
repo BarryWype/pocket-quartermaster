@@ -6,6 +6,7 @@ import { Button } from '@/components/Button';
 import { EquipPicker } from '@/components/EquipPicker';
 import { PlaceholderScreen } from '@/components/PlaceholderScreen';
 import { gearStatsText, statIcons } from '@/components/GearRow';
+import { GearMarks } from '@/components/GearMarks';
 import { HpBar } from '@/components/HpBar';
 import { Panel } from '@/components/Panel';
 import { PixelBar } from '@/components/PixelBar';
@@ -18,22 +19,23 @@ import { elementInfo } from '@/content/elements';
 import { expeditionRules } from '@/content/dungeons';
 import { approachRules } from '@/content/threats';
 import { masteryTypeNames, qualities } from '@/content/forging';
+import { classAffinities } from '@/content/equipment';
+import { gearApproachBonus, approachScore, pendingApproachPicks } from '@/game/team/stats';
 import { heroClasses, xpToNextLevel } from '@/content/heroes';
 import { traitById } from '@/content/traits';
 import { gearName, itemById } from '@/content/lookup';
 import { answersMemberOf, prepareParty } from '@/game/expeditions/simulate';
 import { drinkProblem } from '@/game/team/health';
-import { approachScore, pendingApproachPicks } from '@/game/team/stats';
-import { canDismiss, heroDamageStat, heroStats, isOnExpedition } from '@/game/team/team';
+import { affinityOf, canDismiss, heroDamageStat, heroStats, isOnExpedition } from '@/game/team/team';
 import { APPROACHES, heroAnswers } from '@/game/threats/answers';
-import type { EquipmentSlot, WeaponType } from '@/game/types';
+import type { EquipmentSlot, GearDef, WeaponType } from '@/game/types';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useNow } from '@/hooks/useNow';
 import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
 
-const SLOTS: EquipmentSlot[] = ['weapon', 'armor', 'consumable'];
+const SLOTS: EquipmentSlot[] = ['weapon', 'armor', 'offhand', 'trinket', 'consumable'];
 
 export default function CharacterSheetScreen() {
   useLanguage();
@@ -63,7 +65,9 @@ export default function CharacterSheetScreen() {
   const member = prepareParty(save, [hero.id], now)[0];
   const answers = member ? heroAnswers(answersMemberOf(member), null) : null;
   const keywords = (answers?.keywords ?? []).filter((k) => k.source !== 'kit');
-  const weapons = (Object.keys(heroClass.affinities) as WeaponType[]).map((w) => tr(masteryTypeNames[w].name).toLowerCase());
+  const weapons = (Object.entries(classAffinities[hero.classId]) as [WeaponType, string][])
+    .filter(([, affinity]) => affinity === 'favoured')
+    .map(([type]) => tr(masteryTypeNames[type].name).toLowerCase());
   const element = heroClass.element ? elementInfo[heroClass.element] : null;
   const next = xpToNextLevel(hero.level);
   const confirmDismiss = () =>
@@ -79,15 +83,29 @@ export default function CharacterSheetScreen() {
       },
     ]);
 
-  /** What the slot holds: icon, name in its quality colour, and stats for gear. */
+  /**
+   * What the slot holds: icon, name in its quality colour, tier badge with the
+   * hero's ▲/▼ marker for gear, and stats. The off-hand is locked under a
+   * two-handed weapon.
+   */
   const slotContent = (slot: EquipmentSlot) => {
     const id = hero.equipment[slot];
     if (id && slot === 'consumable') return { emoji: itemById[id].emoji, icon: itemById[id].icon, name: tr(itemById[id].name) };
     const gear = id ? save.gear.find((g) => g.uid === id) : undefined;
     if (!gear) return { emoji: '·', name: t('hero.empty') };
-    const item = itemById[gear.itemId];
-    return { emoji: item.emoji, icon: item.icon, name: gearName(gear), color: qualities[gear.quality].color, stats: gearStatsText(gear) };
+    const item = itemById[gear.itemId] as GearDef;
+    return {
+      emoji: item.emoji,
+      icon: item.icon,
+      name: gearName(gear),
+      color: qualities[gear.quality].color,
+      stats: gearStatsText(gear),
+      marks: <GearMarks tier={item.tier} affinity={affinityOf(hero.classId, item.gearType)} />,
+    };
   };
+
+  const weaponGear = hero.equipment.weapon ? save.gear.find((g) => g.uid === hero.equipment.weapon) : undefined;
+  const offhandLocked = !!weaponGear && (itemById[weaponGear.itemId] as GearDef).twoHanded;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -151,7 +169,7 @@ export default function CharacterSheetScreen() {
       </SectionTitle>
       <View style={styles.approaches}>
         {APPROACHES.map((approach) => {
-          const value = approachScore(hero, approach);
+          const value = approachScore(hero, approach, gearApproachBonus(save, hero));
           return (
             <View key={approach} style={styles.approach}>
               <Text style={styles.approachName}>{t(`threats.approach.${approach}`)}</Text>
@@ -164,7 +182,7 @@ export default function CharacterSheetScreen() {
         <>
           <Text style={styles.muted}>{t('hero.pickApproach')}</Text>
           {APPROACHES.map((approach) => {
-            const value = approachScore(hero, approach);
+            const value = approachScore(hero, approach, gearApproachBonus(save, hero));
             const disabled = value >= approachRules.max;
             return (
               <Pressable
@@ -198,21 +216,27 @@ export default function CharacterSheetScreen() {
       <SectionTitle>{t('hero.equipment')}</SectionTitle>
       {SLOTS.map((slot) => {
         const content = slotContent(slot);
+        const locked = slot === 'offhand' && offhandLocked;
         return (
           <Pressable
             key={slot}
             accessibilityRole="button"
-            disabled={away}
+            disabled={away || locked}
             onPress={() => setPicking(slot)}
             style={({ pressed }) => [styles.slot, pressed && styles.pressed]}
           >
-            <IconSlot emoji={content.emoji} icon={content.icon} size={40} />
+            <IconSlot emoji={locked ? '🔒' : content.emoji} icon={locked ? undefined : content.icon} size={40} />
             <View style={styles.slotBody}>
               <Text style={styles.slotName}>{t(`hero.slots.${slot}`)}</Text>
-              <Text style={[styles.slotValue, content.color ? { color: content.color } : null]}>{content.name}</Text>
+              <View style={styles.slotValueRow}>
+                <Text style={[styles.slotValue, content.color ? { color: content.color } : null, locked && styles.locked]}>
+                  {locked ? t('hero.twoHanded') : content.name}
+                </Text>
+                {content.marks}
+              </View>
               {content.stats ? <Text style={styles.muted}>{content.stats}</Text> : null}
             </View>
-            {!away && <Text style={styles.chevron}>›</Text>}
+            {!away && !locked && <Text style={styles.chevron}>›</Text>}
           </Pressable>
         );
       })}
@@ -318,6 +342,8 @@ const styles = StyleSheet.create({
   slotBody: { flex: 1 },
   slotName: { fontSize: 16, color: colors.muted, textTransform: 'uppercase' },
   slotValue: { fontSize: 20 },
+  slotValueRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  locked: { color: colors.muted },
   chevron: { fontSize: 28, color: colors.muted },
   muted: { color: colors.muted, paddingVertical: 4 },
   traitName: { fontSize: 20 },

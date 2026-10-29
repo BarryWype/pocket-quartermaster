@@ -6,12 +6,13 @@ import { patrolIcons } from '@/components/PatrolMarker';
 import { Text } from '@/components/Text';
 import { elementInfo } from '@/content/elements';
 import { MASTERY_TYPES, masteryTypeNames, QUALITIES, qualities } from '@/content/forging';
+import { gearId, gearProfiles } from '@/content/equipment';
 import { dungeons } from '@/content/dungeons';
 import { guildTrackById, guildTracks, type GuildTrackId } from '@/content/guild';
 import { heroClasses, xpRules } from '@/content/heroes';
 import { traits } from '@/content/traits';
-import { items } from '@/content/items';
-import { threatById, restrictionById, opportunityById } from '@/content/lookup';
+import { threatById, restrictionById, opportunityById, recipeById, recipeOutput } from '@/content/lookup';
+import { recipes } from '@/content/recipes';
 import { dungeonThreats, opportunityDefs, restrictionDefs, surges, threatDefs } from '@/content/threats';
 import { notificationCategories, notificationTexts as texts } from '@/content/notifications';
 import { patrolRules, patrolTexts } from '@/content/patrols';
@@ -44,7 +45,8 @@ import { distanceTo } from '@/game/patrols/visibility';
 import { masteryCap, masteryOf } from '@/game/forging/mastery';
 import { guildRank } from '@/game/guild/guild';
 import { currentHp, isExhausted, maxHp } from '@/game/team/health';
-import type { ActiveThreat, Briefing, HeroClassId, MainRewardKind, Quality, ThreatId, ThreatLevel } from '@/game/types';
+import type { ActiveThreat, Briefing, HeroClassId, MainRewardKind, MasteryType, Quality, ThreatId, ThreatLevel } from '@/game/types';
+import { forgedItem, isKnown } from '@/game/crafting/crafting';
 import { playBack, syncBackground } from '@/hooks/useAutoGather';
 import { deviceLocation } from '@/services/location';
 import { readBackground, readBuffer, stepPatrols, updateBackground, updateBuffer, type StoredBuffer } from '@/services/walkTracking';
@@ -65,7 +67,8 @@ const TIERS = [1, 2, 3, 4, 5];
 const HP_SHARES = [0, 0.25, 0.5, 0.75];
 const MAIN_REWARDS: (MainRewardKind | null)[] = [null, 'goldPouch', 'sigil', 'treasureMap', 'lure'];
 const THREAT_LEVELS: ThreatLevel[] = [1, 2, 3];
-const GEAR_ITEMS = items.filter((item) => item.slot === 'weapon' || item.slot === 'armor');
+/** Every recipe that is not a gear recipe (pickaxes, smelting, provisions). */
+const NON_GEAR_RECIPES = recipes.filter((recipe) => !forgedItem(recipe));
 const MAX_MASTERY = masteryCap(5);
 const SAMPLE_NOTIFICATIONS: Record<NotificationCategory, { title: string; body: string }> = {
   expeditionFinished: {
@@ -148,9 +151,21 @@ export default function DebugScreen() {
     `${walk.autoStopped ? ' · auto-stopped' : ''}\nIgnored: ${Object.entries(walk.ignored).map(([reason, count]) => `${reason} ${count}`).join(', ') || 'none'}`;
 
   const [element, setElement] = useState<Element>('fire');
-  const [gearItem, setGearItem] = useState(GEAR_ITEMS[0].id);
+  const [gearType, setGearType] = useState<MasteryType>('sword');
+  const [gearTier, setGearTier] = useState(1);
   const [gearQuality, setGearQuality] = useState<Quality>('normal');
   const [gearElement, setGearElement] = useState<Element | null>(null);
+  const [recipeType, setRecipeType] = useState<MasteryType>('sword');
+  const [recipeTier, setRecipeTier] = useState(1);
+  const [recipeId, setRecipeId] = useState('sword1');
+  const chooseRecipeType = (type: MasteryType) => {
+    setRecipeType(type);
+    setRecipeId(gearId(type, recipeTier));
+  };
+  const chooseRecipeTier = (tier: number) => {
+    setRecipeTier(tier);
+    setRecipeId(gearId(recipeType, tier));
+  };
   const [rotationTier, setRotationTier] = useState(1);
   const [heroClass, setHeroClass] = useState<HeroClassId>('thief');
   const [heroLevel, setHeroLevel] = useState(1);
@@ -362,8 +377,14 @@ export default function DebugScreen() {
         label={(option) => (option ? qualities[option].name : 'off')}
         onChange={(forcedQuality) => debug.set({ forcedQuality })}
       />
-      <Text>Add a gear piece</Text>
-      <Choice options={GEAR_ITEMS.map((i) => i.id)} value={gearItem} label={(id) => items.find((i) => i.id === id)!.name} onChange={setGearItem} />
+      <Text>{t('debug.grantGear')}</Text>
+      <Choice
+        options={MASTERY_TYPES}
+        value={gearType}
+        label={(type) => `${gearProfiles[type].emoji} ${masteryTypeNames[type].plural}`}
+        onChange={setGearType}
+      />
+      <Choice options={TIERS} value={gearTier} label={(tier) => `T${tier}`} onChange={setGearTier} />
       <Choice options={QUALITIES} value={gearQuality} label={(q) => qualities[q].name} onChange={setGearQuality} />
       <Choice
         options={[null, ...ELEMENTS]}
@@ -371,7 +392,33 @@ export default function DebugScreen() {
         label={(option) => (option ? `${elementInfo[option].emoji} ${option}` : 'plain')}
         onChange={setGearElement}
       />
-      <Button title="Add gear" onPress={() => game.addGear(gearItem, gearQuality, gearElement)} />
+      <View style={styles.row}>
+        <Button title="Add gear" onPress={() => game.addGear(gearId(gearType, gearTier), gearQuality, gearElement)} />
+        <Button title={t('debug.grantCharm')} onPress={() => game.addGear('testCharm', 'normal', null)} />
+      </View>
+
+      <Text>{t('debug.recipes')}</Text>
+      <Choice
+        options={MASTERY_TYPES}
+        value={recipeType}
+        label={(type) => `${gearProfiles[type].emoji} ${masteryTypeNames[type].plural}`}
+        onChange={chooseRecipeType}
+      />
+      <Choice options={TIERS} value={recipeTier} label={(tier) => `T${tier}`} onChange={chooseRecipeTier} />
+      <Choice
+        options={NON_GEAR_RECIPES.map((recipe) => recipe.id)}
+        value={recipeId}
+        label={(id) => recipeOutput(recipeById[id]).name}
+        onChange={setRecipeId}
+      />
+      <Text style={styles.mono}>
+        {recipeId} · {isKnown(game.save, recipeById[recipeId]) ? t('debug.known') : t('debug.unknown')}
+      </Text>
+      <View style={styles.row}>
+        <Button title={t('debug.learn')} onPress={() => game.learnRecipe(recipeId)} />
+        <Button title={t('debug.forget')} onPress={() => game.forgetRecipe(recipeId)} />
+        <Button title={t('debug.learnAll')} onPress={game.learnAllRecipes} />
+      </View>
 
       <Text style={styles.title}>Taverns and heroes</Text>
       <View style={styles.row}>

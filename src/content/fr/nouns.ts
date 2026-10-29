@@ -4,7 +4,7 @@
 
 export const feminine = [
   // Gear and consumables
-  'épée', 'baguette', 'armure', 'hache', 'masse', 'dague', 'pioche', 'potion', 'ration',
+  'épée', 'baguette', 'armure', 'hache', 'masse', 'dague', 'pioche', 'potion', 'ration', 'lance',
   // Places
   'cave', 'garenne', 'crique', 'palissade', 'tanière', 'tour', 'carrière', 'mine', 'grotte', 'crête',
   'forteresse', 'cabane', 'crypte', 'falaises', 'chambre', 'salle', 'île', 'citadelle', 'profondeurs',

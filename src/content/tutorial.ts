@@ -10,7 +10,7 @@ export const tutorialRules = {
     dungeonId: 'ratCellar',
     seconds: 5,
     gold: 10,
-    recipeId: 'woodBow',
+    recipeId: 'leather1',
     /** A lucky Sigil, so the player meets Sanctums early. It doesn't count as the Bandit Stockade's guaranteed one. */
     sigilTier: 1,
   },

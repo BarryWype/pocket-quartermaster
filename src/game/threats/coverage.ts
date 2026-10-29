@@ -28,7 +28,7 @@ export type ThreatCoverage = {
   needed: number;
   forced: boolean;
   intimidated: boolean;
-  /** Who answers it, and what of theirs does: a class, trait, weapon or kit. */
+  /** Who answers it, and what of theirs does: a class, trait, gear or kit. */
   coveredBy: { heroId: string; heroName: string; source: KeywordSource; sourceName: string }[];
   kitHeroes: string[];
 };
@@ -50,14 +50,14 @@ export type BriefingCoverage = {
 const kitOf = (answers: HeroAnswers) =>
   answers.kitItemId ? ((itemById[answers.kitItemId] as ConsumableDef).kit ?? null) : null;
 
-/** What an answer came from, by name: the class, trait, weapon or kit item behind it. */
+/** What an answer came from, by name: the class, trait, gear or kit item behind it. */
 function sourceName(member: PartyMember, answers: HeroAnswers, source: KeywordSource): string {
   switch (source) {
     case 'class':
       return heroClasses[member.classId].name;
     case 'trait':
       return traitById[member.traitId]?.name ?? member.traitId;
-    case 'weapon':
+    case 'gear':
       return member.weaponName ?? 'Unarmed';
     case 'kit':
       return member.consumable?.name ?? answers.kitItemId ?? 'Kit';

@@ -8,8 +8,8 @@ const withGear = (materials: Record<string, number> = { fireStone: 1 }): SaveDat
       ...createInitialSave(),
       materials,
       gear: [
-        { uid: 'g1', itemId: 'woodSword', quality: 'normal' },
-        { uid: 'g2', itemId: 'steelArmour', quality: 'normal' },
+        { uid: 'g1', itemId: 'sword1', quality: 'normal' },
+        { uid: 'g2', itemId: 'mail5', quality: 'normal' },
       ],
     },
     'bram',

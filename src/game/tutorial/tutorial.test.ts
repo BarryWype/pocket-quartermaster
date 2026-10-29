@@ -50,7 +50,7 @@ describe('tutorial wood', () => {
   it('gives exactly the wood for the first sword, then disappears', () => {
     expect(tutorialSpawns(createInitialSave())).toEqual([]);
     const save = gatherTutorialWood(createInitialSave());
-    expect(save.materials.wood).toBe(recipeById.woodSword.inputs[0].amount);
+    expect(save.materials.wood).toBe(recipeById.sword1.inputs[0].amount);
     expect(save.collected).toHaveProperty(TUTORIAL_SPAWN_ID);
     expect(tutorialSpawns(save)).toEqual([]);
   });
@@ -67,7 +67,7 @@ describe('tutorial walkthrough', () => {
     expect(save.tutorial.step).toBe('forgeSword');
     expect(tutorialTarget(save)).toBe('forge');
 
-    save = advanceTutorial(craft(save, recipeById.woodSword));
+    save = advanceTutorial(craft(save, recipeById.sword1));
     expect(save.tutorial.step).toBe('equipSword');
     expect(tutorialTarget(save)).toBe('team');
 
@@ -119,7 +119,7 @@ describe('tutorial walkthrough', () => {
   it('skips steps the player already did out of order', () => {
     const save: SaveData = {
       ...createInitialSave(),
-      gear: [{ uid: 'g1', itemId: 'woodSword', quality: 'normal' }],
+      gear: [{ uid: 'g1', itemId: 'sword1', quality: 'normal' }],
     };
     expect(advanceTutorial(save).tutorial.step).toBe('equipSword');
   });

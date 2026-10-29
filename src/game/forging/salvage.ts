@@ -11,7 +11,9 @@ import type { GearDef, GearInstance, MaterialStack } from '../types';
 type Rules = typeof salvageRules;
 
 export const wornBy = (save: SaveData, gearUid: string) =>
-  save.heroes.find((h) => h.equipment.weapon === gearUid || h.equipment.armor === gearUid);
+  save.heroes.find(
+    (h) => h.equipment.weapon === gearUid || h.equipment.armor === gearUid || h.equipment.offhand === gearUid || h.equipment.trinket === gearUid,
+  );
 
 /** Worn gear (including gear away on an expedition) has to be taken off first. */
 export function canSalvage(save: SaveData, gearUid: string) {

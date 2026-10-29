@@ -29,10 +29,10 @@ function geared(): SaveData {
   let save: SaveData = allTiers({
     ...createInitialSave(),
     gear: [
-      { uid: 'g1', itemId: 'woodSword', quality: 'normal' },
-      { uid: 'g2', itemId: 'woodBow', quality: 'normal' },
-      { uid: 'g3', itemId: 'woodWand', quality: 'normal' },
-      { uid: 'g4', itemId: 'woodArmour', quality: 'normal' },
+      { uid: 'g1', itemId: 'sword1', quality: 'normal' },
+      { uid: 'g2', itemId: 'bow1', quality: 'normal' },
+      { uid: 'g3', itemId: 'wand1', quality: 'normal' },
+      { uid: 'g4', itemId: 'mail1', quality: 'normal' },
     ],
     consumables: { ...createInitialSave().consumables, healingPotion: 1, emberWardSalve: 1 },
     nextUid: 10,
@@ -147,8 +147,9 @@ describe('resolveExpedition', () => {
 
   it('pays in full for the boss and the cleared share on a retreat', () => {
     const dungeon = dungeonById.banditStockade;
-    // Tier 1 is still the highest, so its XP isn't reduced.
-    const results = outcomes({ ...geared(), clearedDungeons: [] }, dungeon.id);
+    // Tier 1 is still the highest, so its XP isn't reduced; levelled heroes, so the boss falls sometimes.
+    const save = { ...geared(), heroes: geared().heroes.map((h) => ({ ...h, level: 3 })), clearedDungeons: [] };
+    const results = outcomes(save, dungeon.id);
     const wins = results.filter((r) => r.report.success);
     const retreats = results.filter((r) => r.report.outcome === 'retreat');
     expect(wins.length).toBeGreaterThan(0);
@@ -180,7 +181,8 @@ describe('resolveExpedition', () => {
   });
 
   it('always hands over the next pickaxe when a boss falls for the first time', () => {
-    const wins = outcomes(geared(), 'banditStockade').filter((r) => r.report.success);
+    const strong = { ...geared(), heroes: geared().heroes.map((h) => ({ ...h, level: 3 })) };
+    const wins = outcomes(strong, 'banditStockade').filter((r) => r.report.success);
     wins.forEach(({ save, report }) => {
       expect(report.recipeId).toBe('woodPickaxe');
       expect(save.knownRecipes).toContain('woodPickaxe');
@@ -234,10 +236,12 @@ describe('resolveExpedition', () => {
   });
 
   it('drops the tier gear recipes in tier 1 dungeons', () => {
+    // Veterans, so the long goblin warren is won often enough to teach both of its recipes.
+    const strong = { ...geared(), heroes: geared().heroes.map((h) => ({ ...h, level: 15 })) };
     const taught = new Set(
-      ['ratCellar', 'goblinWarren'].flatMap((id) => outcomes(geared(), id, 300).map((r) => r.report.recipeId)),
+      ['ratCellar', 'goblinWarren'].flatMap((id) => outcomes(strong, id, 300).map((r) => r.report.recipeId)),
     );
-    expect(taught).toEqual(new Set([null, 'woodArmour', 'woodWand', 'woodBow']));
+    expect(taught).toEqual(new Set([null, 'axe1', 'dagger1', 'staff1', 'mace1', 'lute1']));
   });
 
   it('writes one line per played encounter plus a summary, naming the heroes', () => {
@@ -284,7 +288,7 @@ describe('tutorial expedition', () => {
   const tutorialSave = (): SaveData => {
     const save: SaveData = {
       ...createInitialSave(),
-      gear: [{ uid: 'g1', itemId: 'woodSword', quality: 'normal' }],
+      gear: [{ uid: 'g1', itemId: 'sword1', quality: 'normal' }],
       tutorial: { step: 'sendExpedition', woodSpot: null },
     };
     return equip(save, 'bram', 'weapon', 'g1');
@@ -308,15 +312,15 @@ describe('tutorial expedition', () => {
     }
   });
 
-  it('pays a little gold, the wooden bow blueprint and a tier 1 Sigil', () => {
+  it('pays a little gold, the leather armour blueprint and a tier 1 Sigil', () => {
     const started = startExpedition(tutorialSave(), 'ratCellar', ALL, 0);
     const { save, report } = resolveExpedition(started, started.expeditions[0]);
     expect(report.gold).toBe(10);
-    expect(report.recipeId).toBe('woodBow');
+    expect(report.recipeId).toBe('leather1');
     expect(report.materials).toEqual([]);
     expect(report.mainRewards).toEqual([{ kind: 'sigil', tier: 1 }]);
     expect(save.sigils).toEqual([1]);
-    expect(save.knownRecipes).toContain('woodBow');
+    expect(save.knownRecipes).toContain('leather1');
     // The first Bandit Stockade win still guarantees its own Sigil.
     expect(save.firstSigilGiven).toBe(false);
   });
@@ -357,7 +361,7 @@ describe('daily boss bonus', () => {
     const started = startExpedition({ ...save, nextUid: 100 + i }, boss.id, ALL, endsAt - boss.durationMinutes * MIN);
     return resolveExpedition(started, started.expeditions[0]);
   };
-  const strong = () => ({ ...geared(), heroes: geared().heroes.map((h) => ({ ...h, level: 30 })) });
+  const strong = () => ({ ...geared(), heroes: geared().heroes.map((h) => ({ ...h, level: 15 })) });
 
   it('comes with the first win of each rotation day only', () => {
     const day = Date.UTC(2026, 10, 2, 12);
@@ -385,7 +389,7 @@ describe('daily boss bonus', () => {
 describe('XP by tier', () => {
   it('teaches half one tier below the highest unlocked, a quarter further down', () => {
     const xpAt = (cleared: string[]) => {
-      const save = { ...geared(), heroes: geared().heroes.map((h) => ({ ...h, level: 30 })), clearedDungeons: cleared };
+      const save = { ...geared(), heroes: geared().heroes.map((h) => ({ ...h, level: 15 })), clearedDungeons: cleared };
       const started = startExpedition(save, 'ratCellar', ALL, 0);
       return resolveExpedition(started, started.expeditions[0]).report;
     };

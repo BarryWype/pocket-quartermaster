@@ -60,22 +60,24 @@ describe('guaranteed daily blueprint', () => {
   it('is guaranteed again the next rotation day', () => {
     const day1 = rotationDay(Date.UTC(2026, 5, 10));
     const { result: first } = quietMoment(saveWith([]), ratCellar, day1);
-    // The wand (usable by a roster hero) was taught; the armour is still unknown.
-    expect(first.report.dailyBlueprint).toBe('woodWand');
-    expect(first.save.knownRecipes).not.toContain('woodArmour');
+    // The axe (favoured by a roster hero) was taught; the dagger is still unknown.
+    expect(first.report.dailyBlueprint).toBe('axe1');
+    expect(first.save.knownRecipes).not.toContain('dagger1');
 
     const day2 = day1 + 1;
     const { result: second } = quietMoment(first.save, ratCellar, day2);
-    expect(second.report.dailyBlueprint).toBe('woodArmour');
+    expect(second.report.dailyBlueprint).toBe('dagger1');
   });
 
-  it('prefers blueprints a roster hero can use, then armour', () => {
-    // The mage wields the wand, so it beats the armour despite the drop order.
-    expect(guaranteedBlueprint(saveWith([]), ratCellar)).toBe('woodWand');
-    // Without the wand's mastery met, the armour comes first.
-    const { wand: _wand, ...mastery } = createInitialSave().mastery;
-    const saveWandless = saveWith([], { mastery });
-    expect(guaranteedBlueprint(saveWandless, ratCellar)).toBe('woodArmour');
+  it('prefers blueprints a roster hero favours, then the drop order', () => {
+    // Only Mira favours the staff, so it beats the axe and the dagger despite the drop order.
+    const mage = saveWith([], { heroes: [createInitialSave().heroes.find((h) => h.id === 'mira')!] });
+    expect(guaranteedBlueprint(mage, ratCellar)).toBe('staff1');
+    // No roster hero favours any of the three: the first in the drop order comes.
+    const paladin = saveWith([], {
+      heroes: [{ ...createInitialSave().heroes[0], classId: 'paladin' as const }],
+    });
+    expect(guaranteedBlueprint(paladin, ratCellar)).toBe('axe1');
   });
 
   it('resets with the rotation day', () => {
@@ -86,7 +88,7 @@ describe('guaranteed daily blueprint', () => {
   });
 
   it('gives nothing when every blueprint is already known', () => {
-    const save = saveWith(['woodArmour', 'woodWand', 'woodAxe', 'woodDagger', 'woodStaff']);
+    const save = saveWith(['axe1', 'dagger1', 'staff1']);
     expect(guaranteedBlueprint(save, ratCellar)).toBeNull();
     const result = win(save, ratCellar, rotationDay(Date.UTC(2026, 5, 11)) * DAY);
     expect(result.report.dailyBlueprint).toBeUndefined();
@@ -94,9 +96,9 @@ describe('guaranteed daily blueprint', () => {
 
   it('keeps normal drop chances on every other run', () => {
     const day = rotationDay(Date.UTC(2026, 5, 13));
-    // The armour is known, the wand is not, and ratCellar's daily guarantee is
-    // already claimed: only the normal 50% wand roll can teach it now.
-    const start = saveWith(['woodArmour'], { blueprintBonusDays: { [ratCellar.id]: day } });
+    // The axe and the dagger are known, the staff is not, and ratCellar's daily
+    // guarantee is already claimed: only the normal 15% staff roll can teach it now.
+    const start = saveWith(['axe1', 'dagger1'], { blueprintBonusDays: { [ratCellar.id]: day } });
     let save = start;
     let taught = 0;
     for (let i = 1; i <= 40; i++) {

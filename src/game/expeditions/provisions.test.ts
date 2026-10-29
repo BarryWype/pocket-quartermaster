@@ -24,7 +24,9 @@ const member = (heroId: string, abilities: Ability[] = [], overrides: Partial<Pa
   classId: 'warrior',
   traitId: 'none',
   weaponName: null,
-  weaponType: null,
+  gearKeywords: [],
+  heavy: false,
+  concealed: false,
   maxHp: 100,
   hp: overrides.hp ?? overrides.maxHp ?? 100,
   power: 10,
@@ -61,9 +63,9 @@ function ready(consumables: Record<string, number> = createInitialSave().consuma
     clearedDungeons: ['banditStockade', 'ogreQuarry'],
     consumables,
     gear: [
-      { uid: 'g1', itemId: 'woodSword', quality: 'normal' },
-      { uid: 'g2', itemId: 'woodBow', quality: 'normal' },
-      { uid: 'g3', itemId: 'woodWand', quality: 'normal' },
+      { uid: 'g1', itemId: 'sword1', quality: 'normal' },
+      { uid: 'g2', itemId: 'bow1', quality: 'normal' },
+      { uid: 'g3', itemId: 'wand1', quality: 'normal' },
     ],
   };
   ALL.forEach((id, i) => {

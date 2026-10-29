@@ -29,7 +29,7 @@ function veterans(): SaveData {
   let save: SaveData = {
     ...createInitialSave(),
     heroes: createInitialSave().heroes.map((h) => ({ ...h, level: 9 })),
-    gear: ['Sword', 'Bow', 'Wand', 'Armour', 'Armour', 'Armour'].map((p, i) => ({ uid: `g${i}`, itemId: `steel${p}`, quality: 'normal' })),
+    gear: ['sword5', 'bow5', 'wand5', 'mail5', 'mail5', 'mail5'].map((itemId, i) => ({ uid: `g${i}`, itemId, quality: 'normal' })),
     knownRecipes: recipes.map((r) => r.id),
     clearedDungeons: dungeons.filter((d) => d.isBoss).map((d) => d.id),
     sigils: [1, 1, 1],
@@ -105,7 +105,7 @@ describe('expedition notifications', () => {
     expect(notification.body).toContain('boss defeated');
     const tutorial: SaveData = { ...createInitialSave(), tutorial: { step: 'sendExpedition', woodSpot: null } };
     const first = startExpedition(tutorial, 'ratCellar', ['bram'], now);
-    expect(planNotifications(first, settings(), now)[0].body).toContain('new blueprint (Wooden bow)');
+    expect(planNotifications(first, settings(), now)[0].body).toContain('new blueprint (Hide armour)');
   });
 
   it('respects the expedition categories', () => {

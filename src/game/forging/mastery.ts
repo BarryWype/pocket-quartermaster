@@ -5,7 +5,10 @@ import type { GearDef, MasteryState, MasteryType } from '../types';
 
 type Rules = typeof masteryRules;
 
-export const masteryTypeOf = (item: GearDef): MasteryType => item.weaponType ?? 'armour';
+export const masteryTypeOf = (item: GearDef): MasteryType => {
+  if (!item.gearType) throw new Error(`Gear ${item.id} has no gear type`);
+  return item.gearType;
+};
 
 /** Highest mastery level a material tier allows. */
 export const masteryCap = (tier: number, rules: Rules = masteryRules) => rules.cap.base + rules.cap.perTier * tier;

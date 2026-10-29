@@ -3,7 +3,8 @@ import { mobById, mobTags, npcMobId } from '@/content/enemies';
 import { eventById } from '@/content/events';
 import { localsRules, npcById } from '@/content/npcs';
 import { heroClasses } from '@/content/heroes';
-import { concealedWeapons, restrictionRules } from '@/content/threats';
+import { restrictionRules } from '@/content/threats';
+import { gearKeywordRules } from '@/content/equipment';
 import { infusionRules } from '@/content/sanctums';
 import { travellerRules } from '@/content/patrols';
 import { gearName, itemById, opportunityById } from '@/content/lookup';
@@ -12,8 +13,8 @@ import { ELEMENTS, beats, incomingMultiplier, shardId, weaponMultiplier, type El
 import { createRng } from '../generation/rng';
 import type { SaveData } from '../save';
 import { currentHp } from '../team/health';
-import { heroAbilities, heroDamageStat, heroStats } from '../team/team';
-import { heroApproachBonus } from '../team/stats';
+import { heroAbilities, heroDamageStat, heroStats, gearKeywordsOf } from '../team/team';
+import { gearApproachBonus, heroApproachBonus } from '../team/stats';
 import { heroAnswers, type AnswersMember, type HeroAnswers } from '../threats/answers';
 import { threatPenalties, type AppliedPenalty } from '../threats/penalties';
 import { scoreBriefing, scoreOpportunity, type ThreatScore } from '../threats/score';
@@ -30,6 +31,7 @@ import type {
   GearDef,
   HeroClassId,
   Hunger,
+  Keyword,
   MaterialStack,
   MealEffect,
   MobDef,
@@ -37,7 +39,6 @@ import type {
   NpcHelp,
   OpportunityOutcome,
   Tag,
-  WeaponType,
 } from '../types';
 import { hungerEffect } from './provisions';
 
@@ -54,8 +55,12 @@ export type PartyMember = {
   /** Personal trait id; party-wide trait effects count once per trait. */
   traitId: string;
   weaponName: string | null;
-  /** The weapon's type, or null unarmed; keywords and Sacred ground play on it. */
-  weaponType: WeaponType | null;
+  /** The keywords of the hero's weapon, armour and off-hand; magic pieces marked. */
+  gearKeywords: { keyword: Keyword; magic: boolean }[];
+  /** Any equipped piece is heavy (warhammer, plate). */
+  heavy: boolean;
+  /** Weapon and off-hand are each empty or Concealed; unarmed heroes with a free off-hand count. */
+  concealed: boolean;
   maxHp: number;
   /** HP at the start of the run. */
   hp: number;
@@ -194,8 +199,10 @@ type HeroState = {
   consumableLeft: boolean;
   /** Damage multiplier from the supply status. */
   fed: number;
+  /** The hero's keywords after the restriction, whatever their source. */
+  keywords: Set<Keyword>;
 };
-type EnemyState = { def: MobDef | BossDef; hp: number };
+type EnemyState = { def: MobDef | BossDef; hp: number; staggered: boolean };
 
 /** A party member as `heroAnswers` sees them: weapon, kit and class resists. */
 export function answersMemberOf(member: PartyMember): AnswersMember {
@@ -203,12 +210,21 @@ export function answersMemberOf(member: PartyMember): AnswersMember {
     heroId: member.heroId,
     classId: member.classId,
     traitId: member.traitId,
-    weaponType: member.weaponType,
+    gearKeywords: member.gearKeywords,
     kit: member.consumable?.kit ? { itemId: member.consumable.id, effect: member.consumable.kit } : null,
     salveElement: member.consumable?.protectsAgainst ?? null,
     classResists: heroClasses[member.classId].resists ?? [],
     approachBonus: member.approachBonus,
   };
+}
+
+/** The +1s from a hero's roll, picks and gear, added together. */
+function mergeApproachBonus(...sources: Partial<Record<Approach, number>>[]): Partial<Record<Approach, number>> {
+  const bonus: Partial<Record<Approach, number>> = {};
+  for (const source of sources) {
+    for (const [approach, add] of Object.entries(source)) bonus[approach as Approach] = (bonus[approach as Approach] ?? 0) + add;
+  }
+  return bonus;
 }
 
 /**
@@ -223,6 +239,13 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0): PartyM
       const stats = heroStats(save, hero);
       const weapon = save.gear.find((g) => g.uid === hero.equipment.weapon);
       const armour = save.gear.find((g) => g.uid === hero.equipment.armor);
+      const offhand = save.gear.find((g) => g.uid === hero.equipment.offhand);
+      const weaponItem = weapon ? (itemById[weapon.itemId] as GearDef) : null;
+      const offhandItem = offhand ? (itemById[offhand.itemId] as GearDef) : null;
+      // Heavy and Concealed read the equipped pieces; no pieces count as concealed.
+      const pieces = [weaponItem, armour ? (itemById[armour.itemId] as GearDef) : null, offhandItem].flatMap(
+        (item) => (item ? [item] : []),
+      );
       const item = hero.equipment.consumable ? itemById[hero.equipment.consumable] : null;
       const consumable = item?.slot === 'consumable' ? item : null;
       const charm = consumable?.charm;
@@ -234,7 +257,9 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0): PartyM
         classId: hero.classId,
         traitId: hero.trait,
         weaponName: weapon ? gearName(weapon) : null,
-        weaponType: weapon ? ((itemById[weapon.itemId] as GearDef).weaponType ?? null) : null,
+        gearKeywords: gearKeywordsOf(save, hero),
+        heavy: pieces.some((item) => item.heavy),
+        concealed: [weaponItem, offhandItem].every((item) => !item || item.concealed),
         maxHp: stats.hp,
         hp: currentHp(save, hero, now),
         power: stats.power,
@@ -246,7 +271,7 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0): PartyM
         speed: stats.speed,
         crit: stats.crit,
         luck: stats.luck,
-        approachBonus: heroApproachBonus(hero),
+        approachBonus: mergeApproachBonus(heroApproachBonus(hero), gearApproachBonus(save, hero)),
         threat: heroClass.threat,
         resists: [...(heroClass.resists ?? []), ...(consumable?.protectsAgainst ? [consumable.protectsAgainst] : [])],
         abilities: [
@@ -299,7 +324,9 @@ export function simulateRun(
   // How the day goes for the whole party: a good day hits harder and gets hurt less.
   // Unlike per-hit variance this doesn't average out, so weaker teams keep a real chance.
   const fortune = 1 + (rng.next() * 2 - 1) * rules.fortune;
-  const heroes: HeroState[] = party.map((member) => {
+  // The briefing against this party: what was met, and what it costs.
+  const answers: HeroAnswers[] = party.map((member) => heroAnswers(answersMemberOf(member), restriction));
+  const heroes: HeroState[] = party.map((member, i) => {
     const { damage, hpLoss } = hungerEffect(hunger, member.abilities);
     // Starving costs HP before the first step, but never knocks anyone out.
     const hp = Math.min(member.maxHp, member.hp > 0 ? Math.max(Math.min(member.hp, 1), member.hp - hpLoss * member.maxHp) : 0);
@@ -310,18 +337,25 @@ export function simulateRun(
       out: hp <= 0,
       consumableLeft: member.consumable !== null,
       fed: damage,
+      keywords: new Set(answers[i].keywords.map((k) => k.keyword)),
     };
   });
   const alive = () => heroes.filter((h) => !h.out);
 
-  // The briefing against this party: what was met, and what it costs.
-  const answers: HeroAnswers[] = party.map((member) => heroAnswers(answersMemberOf(member), restriction));
   const scores = scoreBriefing(activeBriefing, answers);
   const penalties: AppliedPenalty[] = scores.threats.flatMap((score) => threatPenalties(score));
   const ofKind = <K extends AppliedPenalty['kind']>(kind: K) =>
     penalties.filter((p): p is Extract<AppliedPenalty, { kind: K }> => p.kind === kind);
-  const weakened = ofKind('weakened').reduce((m, p) => m * (1 - p.pct), 1);
   const weakenedAgainst = ofKind('weakenedAgainst').reduce((m, p) => m * (1 - p.pct), 1);
+  /** Heavy wearers take the Underwater weakened penalty double. */
+  const weakenedOf = (member: PartyMember) =>
+    Math.max(
+      0,
+      ofKind('weakened').reduce(
+        (m, p) => m * (1 - p.pct * (member.heavy && p.threatId === 'underwater' ? gearKeywordRules.heavy.underwaterMultiplier : 1)),
+        1,
+      ),
+    );
   const beastDamage = ofKind('enemyDamage').reduce((m, p) => m * (1 + p.pct), 1);
   const undeadHp = ofKind('enemyHp').reduce((m, p) => m * (1 + p.pct), 1);
   const bruteDamage = ofKind('bruteDamage').reduce((m, p) => m * (1 + p.pct), 1);
@@ -427,7 +461,10 @@ export function simulateRun(
       def,
       // The dead walk here: undead are harder to put down.
       hp: def.hp * (enemyTags(def).includes('undead') ? undeadHp : 1),
+      staggered: false,
     }));
+    /** Heroes whose Brace already softened a hit in this fight. */
+    const braced = new Set<string>();
     /** Logs an effect once per encounter and hero. */
     const note = (heroId: string | null, key: AbilityEffect['key'], extra: Partial<AbilityEffect> = {}) => {
       if (!result.effects.some((e) => e.key === key && e.heroId === heroId)) result.effects.push({ heroId, key, ...extra });
@@ -439,6 +476,8 @@ export function simulateRun(
         .filter((b) => b.buff)
         .sort((a, b) => b.buff!.multiplier - a.buff!.multiplier)[0];
       if (buffer) note(buffer.h.member.heroId, 'buff');
+      // Inspire lifts the whole party while a conscious hero has it, on top of the best buff.
+      const inspired = alive().some((h) => h.keywords.has('inspire')) ? gearKeywordRules.inspire.multiplier : 1;
       for (const hero of attackers) {
         // A hero quicker than the fastest living enemy may land one second blow.
         const heroAttack = (second = false) => {
@@ -446,17 +485,20 @@ export function simulateRun(
           if (!target) return;
           const id = hero.member.heroId;
           const tags = enemyTags(target.def);
-          // An armoured target blunts Power in full and Magic only partly.
-          const armourFactor =
-            hero.member.damageStat === 'power' ? weakenedAgainst : 1 - rules.magicArmourShare * (1 - weakenedAgainst);
-          let bonus = (buffer?.buff?.multiplier ?? 1) * shrine * weakened * armourFactor;
+          // An armoured target blunts Power in full and Magic only partly; Pierce ignores it.
+          const armourFactor = hero.keywords.has('pierce')
+            ? 1
+            : hero.member.damageStat === 'power'
+              ? weakenedAgainst
+              : 1 - rules.magicArmourShare * (1 - weakenedAgainst);
+          let bonus = (buffer?.buff?.multiplier ?? 1) * inspired * shrine * weakenedOf(hero.member) * armourFactor;
           for (const ability of hero.member.abilities) {
             if (ability.kind !== 'damageVsTag' || !tags.includes(ability.tag)) continue;
             bonus *= ability.multiplier;
             note(id, 'tagBonus', { tag: ability.tag });
           }
           // Sacred ground dulls every weapon it can see.
-          if (restriction === 'sacredGround' && hero.member.weaponType && !concealedWeapons.includes(hero.member.weaponType)) {
+          if (restriction === 'sacredGround' && !hero.member.concealed) {
             bonus *= restrictionRules.sacredGround;
           }
           const rage = own(hero, 'rage');
@@ -469,10 +511,12 @@ export function simulateRun(
           // The wheel only touches the elemental part of a hit.
           const wheel = (element: Element | undefined) => {
             let multiplier = weaponMultiplier(element, targetElement);
-            if (advantage && element && targetElement && beats(element, targetElement)) {
-              // Anti-magic cuts the bonus above 1 in half.
-              multiplier = restriction === 'antiMagic' ? 1 + (advantage.multiplier - 1) * restrictionRules.antiMagic : advantage.multiplier;
-              note(id, 'advantage');
+            const channel = hero.keywords.has('channel') ? gearKeywordRules.channel.advantage : 1;
+            if (element && targetElement && beats(element, targetElement) && (advantage || channel > 1)) {
+              // Channel lifts the wheel's advantage; Anti-magic cuts the bonus above 1 in half.
+              const bonus = Math.max(advantage?.multiplier ?? multiplier, channel);
+              multiplier = restriction === 'antiMagic' ? 1 + (bonus - 1) * restrictionRules.antiMagic : bonus;
+              if (advantage) note(id, 'advantage');
             }
             return multiplier;
           };
@@ -492,6 +536,24 @@ export function simulateRun(
           target.hp -= damage;
           add(result.dealt, id, damage);
           attacked.add(id);
+          // Cleave splashes onto the next living enemy after the target.
+          if (hero.keywords.has('cleave')) {
+            const splashTarget = enemies.slice(enemies.indexOf(target) + 1).find((e) => e.hp > 0);
+            if (splashTarget) {
+              const splash = damage * gearKeywordRules.cleave.splash;
+              splashTarget.hp -= splash;
+              add(result.dealt, id, splash);
+            }
+          }
+          // Stagger makes the target lose its next attack, once at a time.
+          if (
+            hero.keywords.has('stagger') &&
+            target.hp > 0 &&
+            !target.staggered &&
+            rng.chance(gearKeywordRules.stagger.chance)
+          ) {
+            target.staggered = true;
+          }
           if (second) return;
           const living = enemies.filter((e) => e.hp > 0);
           const gap = living.length > 0 ? hero.member.speed - Math.max(...living.map((e) => e.def.speed)) : 0;
@@ -516,6 +578,11 @@ export function simulateRun(
     };
     const enemiesAttack = () => {
       for (const enemy of enemies.filter((e) => e.hp > 0)) {
+        // A staggered enemy loses this attack.
+        if (enemy.staggered) {
+          enemy.staggered = false;
+          continue;
+        }
         // The boss encounter takes the brute's extra damage, effect or not.
         const boss: BossDef | null = isBoss || 'effect' in enemy.def ? (enemy.def as BossDef) : null;
         const enraged = boss?.effect === 'enrage' && enemy.hp < enemy.def.hp / 2;
@@ -526,10 +593,23 @@ export function simulateRun(
           (boss ? bruteDamage : 1) *
           (beast ? beastDamage : 1);
         const targets =
-          boss?.effect === 'sweep' ? alive() : alive().length ? [rng.weighted(alive(), (h) => h.member.threat)] : [];
+          boss?.effect === 'sweep'
+            ? alive()
+            : alive().length
+              ? [
+                  rng.weighted(
+                    alive(),
+                    (h) => h.member.threat * (h.keywords.has('guard') ? gearKeywordRules.guard.targetWeight : 1),
+                  ),
+                ]
+              : [];
         for (const hero of targets) {
           // Quick heroes slip out of the way.
           if (rng.chance(Math.min(hero.member.evasion, rules.evasionCap) / 100)) continue;
+          // Parry turns a physical hit away entirely.
+          if (enemy.def.damageType === 'power' && hero.keywords.has('parry') && rng.chance(gearKeywordRules.parry.chance)) {
+            continue;
+          }
           const element = enemyElement(enemy.def);
           let incoming = roll(boss?.effect === 'sweep' ? base * rules.sweepShare : base) * elementFactor(hero, element);
           // The Element threat bites heroes without Resist.
@@ -538,7 +618,16 @@ export function simulateRun(
           }
           // Power hits are blunted by Armour, Magic by Resistance.
           const defence = enemy.def.damageType === 'power' ? hero.member.armour : hero.member.resistance;
-          const taken = (incoming * 100) / (100 + rules.defenseFactor * defence) / fortune;
+          let taken = (incoming * 100) / (100 + rules.defenseFactor * defence) / fortune;
+          // Brace softens the first big hit of the fight.
+          if (
+            hero.keywords.has('brace') &&
+            !braced.has(hero.member.heroId) &&
+            taken > gearKeywordRules.brace.above * hero.member.maxHp
+          ) {
+            braced.add(hero.member.heroId);
+            taken *= gearKeywordRules.brace.multiplier;
+          }
           hurt(hero, shielded(hero, taken), result);
           tookDamage(hero, element);
         }
@@ -550,10 +639,20 @@ export function simulateRun(
       result.rounds = round;
       // An exposed fight gives the enemies the first strike; after that it plays like any fight.
       const ambushed = enemiesFirst && round === 1;
+      // Reach acts before the enemies in round 1 of every fight, exposed or not.
+      const reach = round === 1 ? alive().filter((h) => h.keywords.has('reach')) : [];
+      if (reach.length > 0) {
+        heroesAttack(reach);
+        if (enemies.every((e) => e.hp <= 0)) {
+          result.cleared = true;
+          return;
+        }
+      }
       // Heroes at least as fast as the fastest living enemy strike first; the rest strike after them.
+      const rest = alive().filter((h) => !reach.includes(h));
       const fastest = Math.max(...enemies.filter((e) => e.hp > 0).map((e) => e.def.speed));
-      const quick = ambushed ? alive() : alive().filter((h) => h.member.speed >= fastest);
-      const slow = ambushed ? [] : alive().filter((h) => h.member.speed < fastest);
+      const quick = ambushed ? rest : rest.filter((h) => h.member.speed >= fastest);
+      const slow = ambushed ? [] : rest.filter((h) => h.member.speed < fastest);
       if (ambushed) enemiesAttack();
       if (alive().length === 0) return;
       heroesAttack(quick);
@@ -587,6 +686,14 @@ export function simulateRun(
     for (const penalty of poisonWounds) {
       for (const hero of alive()) hurt(hero, penalty.pct * hero.member.maxHp, result);
       result.effects.push({ heroId: null, key: 'poison' });
+    }
+    // A conscious Mender patches up the most wounded hero after every fight.
+    if (alive().some((h) => h.keywords.has('mend'))) {
+      const wounded = alive().filter((h) => h.hp < h.member.maxHp);
+      if (wounded.length > 0) {
+        const lowest = wounded.reduce((low, h) => (h.hp / h.member.maxHp < low.hp / low.member.maxHp ? h : low));
+        heal(lowest, gearKeywordRules.mend.pct, result);
+      }
     }
   };
 

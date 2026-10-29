@@ -1,11 +1,12 @@
 import { dungeons } from '@/content/dungeons';
+import { affinityRules, classAffinities, gearProfiles, type Affinity } from '@/content/equipment';
 import { mobById } from '@/content/enemies';
 import { guildTrackById, guildTracks } from '@/content/guild';
 import { heroClasses, xpRules } from '@/content/heroes';
 import { dungeonById, itemById, recipeById } from '@/content/lookup';
 import { mainRewardRules } from '@/content/mainRewards';
 import { recipes } from '@/content/recipes';
-import { restrictionRules } from '@/content/threats';
+import { restrictionRules, approachRules } from '@/content/threats';
 import { firstClearRules } from '@/content/rotation';
 import { traitById } from '@/content/traits';
 
@@ -46,10 +47,11 @@ import { challengeSanctum, sanctumById, sanctumDungeon, type SanctumSpawn } from
 import type { SaveData } from '../save';
 import { buySupply, buySupplyProblem, isTavernUnlocked, offerLevel, recruit, recruitPrice, tavernOffers, type TavernSpawn } from '../taverns/taverns';
 import { currentHp, drinkPotion, drinkProblem, maxHp } from '../team/health';
-import { canWield, equip, isOnExpedition, rosterFull } from '../team/team';
+import { affinityOf, equip, equipPreview, heroDamageStat, heroStats, isOnExpedition, rosterFull, unequip } from '../team/team';
+import { gearApproachBonus, approachScore, pendingApproachPicks, pickApproach } from '../team/stats';
 import { heroAnswers, type AnswersMember } from '../threats/answers';
 import { scoreThreat } from '../threats/score';
-import type { ActiveExpedition, Briefing, DungeonDef, GearDef, HeroClassId, HeroState, Quality, RecipeDef, WeaponType } from '../types';
+import type { ActiveExpedition, Approach, ArmourType, Briefing, DungeonDef, GearDef, HeroClassId, HeroState, OffhandType, Quality, RecipeDef, Stats, WeaponType } from '../types';
 import { expectedLevels, type Profile, type SimConfig } from './config';
 import type { PatrolRates } from './patrols';
 import { PICKAXES, type WalkRates } from './walking';
@@ -213,12 +215,10 @@ export type Sim = {
 
 // —— Bookkeeping ——
 
-const TIER_MATERIALS = ['wood', 'stone', 'copper', 'iron', 'steel'];
-
-/** Marks the milestone for each tier whose core kit (sword, bow, wand, armour) is fully known. */
+/** Marks the milestone for each tier whose core kit (sword, bow, wand, mail) is fully known. */
 export function markCoreKit(sim: Sim) {
   for (let tier = 1; tier <= 5; tier++) {
-    const kit = (['Sword', 'Bow', 'Wand', 'Armour'] as const).map((piece) => recipeById[`${TIER_MATERIALS[tier - 1]}${piece}`]?.id);
+    const kit = (['sword', 'bow', 'wand', 'mail'] as const).map((type) => recipeById[`${type}${tier}`]?.id);
     if (kit.every((id) => id && sim.save.knownRecipes.includes(id))) mark(sim, `coreKit:${tier}`);
   }
 }
@@ -259,39 +259,76 @@ export const highestTier = highestUnlockedTier;
 export const homeHeroes = (save: SaveData) => save.heroes.filter((h) => !isOnExpedition(save, h.id));
 const gearOf = (save: SaveData, uid: string | null) => save.gear.find((g) => g.uid === uid);
 
-/** How much a piece adds to a hero: weapon damage after affinity, or armour plus a share of HP. */
+/** How much a piece adds to a hero: their damage stat for weapons and off-hands, armour, resistance and a share of HP otherwise. */
 export function gearScore(hero: HeroState, item: GearDef, gear: GearQualityRoll) {
   const stats = gearStats(item, gear);
-  if (item.slot === 'armor') return (stats.armour ?? 0) + (stats.hp ?? 0) / 8;
-  const affinity = item.weaponType ? (heroClasses[hero.classId].affinities[item.weaponType] ?? 0) : 1;
-  return ((stats.power ?? 0) + (stats.magic ?? 0)) * affinity;
+  if (item.slot === 'armor') return (stats.armour ?? 0) + (stats.resistance ?? 0) + (stats.hp ?? 0) / 8;
+  const damage = heroClasses[hero.classId].damageStat === 'magic' ? (stats.magic ?? 0) : (stats.power ?? 0);
+  const affinity = item.gearType ? affinityRules[affinityOf(hero.classId, item.gearType)] : 1;
+  return (damage + (stats.armour ?? 0) + (stats.resistance ?? 0)) * affinity;
 }
 
-function wornScore(save: SaveData, hero: HeroState, slot: 'weapon' | 'armor') {
-  const gear = gearOf(save, hero.equipment[slot]);
-  return gear ? gearScore(hero, itemById[gear.itemId] as GearDef, gear) : 0;
+/** A hero's stats rolled into one number: their damage stat, armour, resistance and a share of HP. */
+function statScore(save: SaveData, hero: HeroState, stats: Stats = heroStats(save, hero)) {
+  return stats[heroDamageStat(save, hero)] + stats.armour + stats.resistance + stats.hp / 8;
+}
+
+/** How much a hero's worn piece is worth on their real stats, affinity and casting penalty included. */
+function wornScore(save: SaveData, hero: HeroState, slot: 'weapon' | 'armor' | 'offhand') {
+  if (!hero.equipment[slot]) return 0;
+  const bare = unequip(save, hero.id, slot);
+  return statScore(save, hero) - statScore(bare, bare.heroes.find((h) => h.id === hero.id)!);
+}
+
+/** How much equipping a piece would change a hero's real stats; 0 when it cannot go in. */
+function equipGain(save: SaveData, hero: HeroState, slot: 'weapon' | 'armor' | 'offhand', uid: string) {
+  const preview = equipPreview(save, hero.id, slot, uid);
+  return preview ? statScore(save, hero, preview.after) - statScore(save, hero, preview.before) : 0;
 }
 
 /** Whether today's run against this dungeon deals fire damage: a fire element threat, or fire mobs. */
 const dealsFire = (dungeon: DungeonDef, briefing: Briefing) =>
   briefing.threats.some((t) => t.id === 'element' && t.element === 'fire') || (dungeonTagWeights(dungeon).fire ?? 0) > 0;
 
-/** The class's weapon of choice: its highest-affinity type. */
+/** The class's weapon of choice: its first favoured weapon type that rolls with the class's damage stat. */
 const weaponTypeFor = (classId: HeroClassId): WeaponType | null => {
-  const best = Object.entries(heroClasses[classId].affinities).sort((a, b) => b[1] - a[1])[0];
-  return (best?.[0] as WeaponType | undefined) ?? null;
+  const favoured = (Object.entries(classAffinities[classId]) as [WeaponType | ArmourType, Affinity][])
+    .filter(([type, affinity]) => affinity === 'favoured' && gearProfiles[type]?.slot === 'weapon')
+    .map(([type]) => type as WeaponType);
+  return favoured.find((type) => gearProfiles[type].damageStat === heroClasses[classId].damageStat) ?? favoured[0] ?? null;
 };
 
+/** The class's armour of choice: the first favoured armour type. */
+const armourTypeFor = (classId: HeroClassId): ArmourType | null => {
+  const favoured = (['plate', 'mail', 'leather', 'robes'] as ArmourType[]).find((type) => classAffinities[classId][type] === 'favoured');
+  return favoured ?? null;
+};
+
+/** The off-hand that fits the hero's weapon: quiver for a bow, focus for a Magic weapon, shield for a one-handed Power weapon. */
+function offhandTypeFor(save: SaveData, hero: HeroState): OffhandType | null {
+  const weapon = gearOf(save, hero.equipment.weapon);
+  const item = weapon ? (itemById[weapon.itemId] as GearDef) : null;
+  if (!item || item.twoHanded) return null;
+  if (item.gearType === 'bow') return 'quiver';
+  return item.damageStat === 'magic' ? 'focus' : 'shield';
+}
+
 /** A hypothetical member of a class: its best weapon, no kit or salve. */
-const offerMember = (classId: HeroClassId): AnswersMember => ({
-  heroId: `offer:${classId}`,
-  classId,
-  traitId: 'none',
-  weaponType: weaponTypeFor(classId),
-  kit: null,
-  salveElement: null,
-  classResists: heroClasses[classId].resists ?? [],
-});
+const offerMember = (classId: HeroClassId): AnswersMember => {
+  const gearType = weaponTypeFor(classId);
+  const profile = gearType ? gearProfiles[gearType] : null;
+  return {
+    heroId: `offer:${classId}`,
+    classId,
+    traitId: 'none',
+    gearKeywords: profile
+      ? profile.keywords.map((keyword) => ({ keyword, magic: profile.damageStat === 'magic' }))
+      : [],
+    kit: null,
+    salveElement: null,
+    classResists: heroClasses[classId].resists ?? [],
+  };
+};
 
 /** Whether the class's answers turn one of today's open tier threats from missed to met. */
 function answersThreat(sim: Sim, classId: HeroClassId): boolean {
@@ -321,17 +358,54 @@ function recordMissing(sim: Sim, recipe: RecipeDef) {
   }
 }
 
+/** The order picks fall back through when the class's approach is at the cap. */
+const APPROACH_ORDER: Approach[] = ['might', 'finesse', 'wits', 'faith', 'presence'];
+
+/** The approach each class picks first, from the marked columns of classes.csv. */
+const classApproach: Record<HeroClassId, Approach> = {
+  warrior: 'might',
+  barbarian: 'might',
+  paladin: 'faith',
+  ranger: 'wits',
+  thief: 'finesse',
+  fireMage: 'might',
+  frostMage: 'wits',
+  sorcerer: 'wits',
+  cleric: 'faith',
+  druid: 'might',
+  troubadour: 'presence',
+};
+
+/** Spends every pending pick: the class's marked approach, then the next one below the cap. */
+export function spendPicks(sim: Sim) {
+  for (const { id } of sim.save.heroes) {
+    for (;;) {
+      const hero = sim.save.heroes.find((h) => h.id === id)!;
+      if (pendingApproachPicks(hero) < 1) break;
+      const want = classApproach[hero.classId];
+      const order = [want, ...APPROACH_ORDER.filter((approach) => approach !== want)];
+      const approach = order.find((a) => approachScore(hero, a, gearApproachBonus(sim.save, hero)) < approachRules.max);
+      if (!approach) break;
+      act(sim, 'approach', (save) => pickApproach(save, id, approach));
+    }
+  }
+}
+
 // —— Forging ——
 
 const forgeRecipes = recipes.filter((r) => forgedItem(r));
 
-/** The best-tier piece a hero could get for a slot from the known recipes. */
-function bestRecipe(save: SaveData, hero: HeroState, slot: 'weapon' | 'armor') {
+/** The best-tier piece a hero could get for a slot from the known recipes, the class's favoured type first. */
+function bestRecipe(save: SaveData, hero: HeroState, slot: 'weapon' | 'armor' | 'offhand') {
+  const want = slot === 'weapon' ? weaponTypeFor(hero.classId) : slot === 'armor' ? armourTypeFor(hero.classId) : offhandTypeFor(save, hero);
+  const rank = (item: GearDef) => [item.tier, item.gearType === want ? 1 : 0, gearScore(hero, item, NEUTRAL)] as const;
   let best: { recipe: RecipeDef; item: GearDef } | null = null;
   for (const recipe of forgeRecipes) {
     const item = forgedItem(recipe)!;
-    if (item.slot !== slot || !save.knownRecipes.includes(recipe.id) || !canWield(hero, item)) continue;
-    if (!best || item.tier > best.item.tier || (item.tier === best.item.tier && gearScore(hero, item, NEUTRAL) > gearScore(hero, best.item, NEUTRAL))) {
+    if (item.slot !== slot || !save.knownRecipes.includes(recipe.id)) continue;
+    const other = best ? rank(best.item) : null;
+    const mine = rank(item);
+    if (!other || mine[0] > other[0] || (mine[0] === other[0] && (mine[1] > other[1] || (mine[1] === other[1] && mine[2] > other[2])))) {
       best = { recipe, item };
     }
   }
@@ -354,14 +428,15 @@ function recordCraft(sim: Sim, kind: CraftRow['kind'], before: SaveData, materia
 
 /** Gives every spare piece to the home hero it helps most, then salvages what nobody wants. */
 function distribute(sim: Sim) {
+  const slots = ['weapon', 'armor', 'offhand'] as const;
   for (;;) {
-    const worn = new Set(sim.save.heroes.flatMap((h) => [h.equipment.weapon, h.equipment.armor]));
-    let best: { hero: HeroState; uid: string; slot: 'weapon' | 'armor'; gain: number } | null = null;
+    const worn = new Set(sim.save.heroes.flatMap((h) => slots.map((slot) => h.equipment[slot])));
+    let best: { hero: HeroState; uid: string; slot: (typeof slots)[number]; gain: number } | null = null;
     for (const gear of sim.save.gear.filter((g) => !worn.has(g.uid))) {
       const item = itemById[gear.itemId] as GearDef;
+      if (item.slot !== 'weapon' && item.slot !== 'armor' && item.slot !== 'offhand') continue;
       for (const hero of homeHeroes(sim.save)) {
-        if (!canWield(hero, item)) continue;
-        const gain = gearScore(hero, item, gear) - wornScore(sim.save, hero, item.slot);
+        const gain = equipGain(sim.save, hero, item.slot, gear.uid);
         if (gain > 0 && (!best || gain > best.gain)) best = { hero, uid: gear.uid, slot: item.slot, gain };
       }
     }
@@ -369,7 +444,7 @@ function distribute(sim: Sim) {
     const { hero, uid, slot } = best;
     act(sim, 'equip', (save) => equip(save, hero.id, slot, uid));
   }
-  const worn = new Set(sim.save.heroes.flatMap((h) => [h.equipment.weapon, h.equipment.armor]));
+  const worn = new Set(sim.save.heroes.flatMap((h) => slots.map((slot) => h.equipment[slot])));
   for (const gear of sim.save.gear.filter((g) => !worn.has(g.uid))) {
     const item = itemById[gear.itemId] as GearDef;
     const materials = act(sim, 'salvage', (save) => salvage(save, gear.uid));
@@ -417,14 +492,15 @@ export function forge(sim: Sim) {
   // Upgrades: a better tier for a slot, biggest gain first.
   for (let i = 0; i < 30; i++) {
     const upgrades = homeHeroes(sim.save)
-      .flatMap((hero) =>
-        (['weapon', 'armor'] as const).map((slot) => {
+      .flatMap((hero) => {
+        const slots = (['weapon', 'armor', 'offhand'] as const).filter((slot) => slot !== 'offhand' || offhandTypeFor(sim.save, hero));
+        return slots.map((slot) => {
           const best = bestRecipe(sim.save, hero, slot);
           const current = gearOf(sim.save, hero.equipment[slot]);
           if (!best || (current && (itemById[current.itemId] as GearDef).tier >= best.item.tier)) return null;
           return { recipe: best.recipe, gain: gearScore(hero, best.item, NEUTRAL) - wornScore(sim.save, hero, slot) };
-        }),
-      )
+        });
+      })
       .filter((u) => u !== null && u.gain > 0)
       .sort((a, b) => b!.gain - a!.gain);
     const next = upgrades.find((u) => smeltFor(sim, u!.recipe.inputs) && canCraft(sim.save, u!.recipe));
@@ -439,7 +515,7 @@ export function forge(sim: Sim) {
   for (let i = 0; i < sim.config.reforgesPerSession; i++) {
     const candidates = homeHeroes(sim.save)
       .flatMap((hero) =>
-        (['weapon', 'armor'] as const).map((slot) => {
+        (['weapon', 'armor', 'offhand'] as const).map((slot) => {
           const gear = gearOf(sim.save, hero.equipment[slot]);
           const best = bestRecipe(sim.save, hero, slot);
           if (!gear || !best || gear.itemId !== best.item.id) return null;
@@ -787,7 +863,7 @@ export function launch(sim: Sim, dungeon: DungeonDef, heroIds: string[], o: Odds
 function dropsBlueprint(save: SaveData, dungeon: DungeonDef) {
   return dungeon.recipeDrops.some(({ recipeId }) => {
     const item = forgedItem(recipeById[recipeId]);
-    return item && !save.knownRecipes.includes(recipeId) && masteryTypeOf(item) in save.mastery && save.heroes.some((h) => canWield(h, item));
+    return item && !save.knownRecipes.includes(recipeId) && save.heroes.some((h) => affinityOf(h.classId, item.gearType) === 'favoured');
   });
 }
 

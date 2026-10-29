@@ -2,8 +2,8 @@ import type { HeroClassDef, HeroClassId, HeroState } from '@/game/types';
 
 // Heroes keep modest bases and grow mostly through their three primary stats
 // (every level) and milestone steps for the rest (levels 5, 10, 15). Gear
-// still provides most of their power. Damage dealers keep a ×1.5 affinity with
-// their weapons; support classes have less and earn their place with abilities.
+// still provides most of their power; a class's favoured types (see
+// content/equipment.ts) give 1.2× their scaling stats.
 // Max level is 15: level 15 lands on the tier 5 boss under the XP curve below.
 export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   warrior: {
@@ -13,7 +13,6 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     baseStats: { hp: 30, power: 4, magic: 0, armour: 3, resistance: 1, evasion: 0, speed: 5, crit: 5 },
     primary: ['hp', 'power', 'armour'],
     damageStat: 'power',
-    affinities: { sword: 1.5 },
     approaches: { might: 3 },
     keywords: [],
     threat: 3,
@@ -26,7 +25,6 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     baseStats: { hp: 24, power: 5, magic: 0, armour: 1, resistance: 1, evasion: 5, speed: 7, crit: 5 },
     primary: ['power', 'evasion', 'speed'],
     damageStat: 'power',
-    affinities: { bow: 1.5 },
     approaches: { wits: 3 },
     keywords: ['watchful'],
     threat: 1,
@@ -43,7 +41,6 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     baseStats: { hp: 22, power: 0, magic: 6, armour: 0, resistance: 1, evasion: 0, speed: 7, crit: 10 },
     primary: ['magic', 'speed', 'crit'],
     damageStat: 'magic',
-    affinities: { wand: 1.5 },
     approaches: {},
     keywords: ['light', 'cleave'],
     resists: ['fire'],
@@ -58,7 +55,6 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     baseStats: { hp: 22, power: 0, magic: 6, armour: 0, resistance: 3, evasion: 0, speed: 5, crit: 5 },
     primary: ['magic', 'armour', 'resistance'],
     damageStat: 'magic',
-    affinities: { wand: 1.5 },
     approaches: { wits: 3 },
     keywords: [],
     resists: ['water'],
@@ -72,7 +68,6 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     baseStats: { hp: 22, power: 5, magic: 0, armour: 1, resistance: 1, evasion: 5, speed: 5, crit: 10 },
     primary: ['power', 'evasion', 'crit'],
     damageStat: 'power',
-    affinities: { dagger: 1.5 },
     approaches: { finesse: 4 },
     keywords: [],
     threat: 1,
@@ -89,7 +84,6 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     baseStats: { hp: 32, power: 6, magic: 0, armour: 0, resistance: 1, evasion: 0, speed: 5, crit: 10 },
     primary: ['hp', 'power', 'crit'],
     damageStat: 'power',
-    affinities: { axe: 1.5 },
     approaches: { might: 3 },
     keywords: ['cleave'],
     threat: 2,
@@ -102,7 +96,6 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     baseStats: { hp: 26, power: 2, magic: 3, armour: 2, resistance: 3, evasion: 0, speed: 5, crit: 5 },
     primary: ['hp', 'magic', 'resistance'],
     damageStat: 'magic',
-    affinities: { mace: 1.25 },
     approaches: { faith: 3 },
     keywords: ['antidote', 'blessed'],
     threat: 1.5,
@@ -115,7 +108,6 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     baseStats: { hp: 32, power: 3, magic: 0, armour: 4, resistance: 3, evasion: 0, speed: 5, crit: 5 },
     primary: ['hp', 'armour', 'resistance'],
     damageStat: 'power',
-    affinities: { sword: 1.25, mace: 1.25 },
     approaches: { faith: 3 },
     keywords: ['blessed', 'guard'],
     threat: 2.5,
@@ -129,7 +121,6 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     baseStats: { hp: 24, power: 0, magic: 5, armour: 1, resistance: 1, evasion: 5, speed: 5, crit: 5 },
     primary: ['hp', 'magic', 'evasion'],
     damageStat: 'magic',
-    affinities: { staff: 1.5 },
     approaches: {},
     keywords: ['calm', 'antidote'],
     threat: 1,
@@ -142,7 +133,6 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     baseStats: { hp: 22, power: 2, magic: 2, armour: 1, resistance: 1, evasion: 5, speed: 7, crit: 5 },
     primary: ['magic', 'evasion', 'speed'],
     damageStat: 'magic',
-    affinities: { instrument: 1 },
     approaches: { presence: 3 },
     keywords: [],
     threat: 0.8,
@@ -155,7 +145,6 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     baseStats: { hp: 20, power: 0, magic: 6, armour: 0, resistance: 3, evasion: 0, speed: 5, crit: 10 },
     primary: ['magic', 'resistance', 'crit'],
     damageStat: 'magic',
-    affinities: { wand: 1.5 },
     approaches: { wits: 3 },
     keywords: [],
     threat: 1,
@@ -170,7 +159,7 @@ export const newHero = (id: string, name: string, classId: HeroClassId, trait: s
   trait,
   level,
   xp: 0,
-  equipment: { weapon: null, armor: null, consumable: null },
+  equipment: { weapon: null, armor: null, offhand: null, trinket: null, consumable: null },
 });
 
 export const startingHeroes: HeroState[] = [

@@ -29,18 +29,18 @@ describe('stat rolls', () => {
   });
 
   it('rolls on every forged piece, seeded by its uid', () => {
-    const save: SaveData = { ...createInitialSave(), materials: { wood: FORGES * 3 + 3 }, tutorial: { step: 'done', woodSpot: null } };
+    const save: SaveData = { ...createInitialSave(), materials: { wood: FORGES * 4 + 4 }, tutorial: { step: 'done', woodSpot: null } };
     let next = save;
     const rolls: number[] = [];
     for (let i = 0; i < 30; i++) {
-      next = craft(next, recipeById.woodSword);
+      next = craft(next, recipeById.sword1);
       const piece = next.gear.at(-1)!;
       expect(piece.roll).toBeDefined();
       rolls.push(piece.roll!);
     }
     // A uid's roll never changes, and different pieces don't all share one roll.
     expect(new Set(rolls).size).toBeGreaterThan(5);
-    const item = itemById.woodSword;
+    const item = itemById.sword1;
     if (item.slot === 'weapon' || item.slot === 'armor') {
       expect(rolls[0]).toBe(rollStatFactor('g1', 1, item.tier));
     }

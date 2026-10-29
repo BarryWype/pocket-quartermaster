@@ -1,20 +1,20 @@
 import { heroClasses } from '@/content/heroes';
 import { traitById } from '@/content/traits';
-import { approachRules, magicClasses, weaponKeywords } from '@/content/threats';
+import { approachRules } from '@/content/threats';
 
 import type { Element } from '../elements';
-import type { Approach, HeroClassId, KitEffect, Keyword, RestrictionId, WeaponType } from '../types';
+import type { Approach, HeroClassId, KitEffect, Keyword, RestrictionId } from '../types';
 
 /** Where a keyword came from; each keyword counts once per hero whatever its sources. */
-export type KeywordSource = 'class' | 'trait' | 'weapon' | 'kit';
+export type KeywordSource = 'class' | 'trait' | 'gear' | 'kit';
 
 /** What heroAnswers needs: a hero as equipped (a party member, once wired in). */
 export type AnswersMember = {
   heroId: string;
   classId: HeroClassId;
   traitId: string;
-  /** The hero's weapon type; unarmed heroes carry none. */
-  weaponType: WeaponType | null;
+  /** The keywords of the hero's equipped weapon, armour and off-hand; magic pieces marked. */
+  gearKeywords: { keyword: Keyword; magic: boolean }[];
   /** The kit or ward salve in the hero's consumable slot, if any. */
   kit: { itemId: string; effect: KitEffect } | null;
   /** The ward salve's element, when the kit item is one. */
@@ -41,8 +41,8 @@ export const APPROACHES: Approach[] = ['might', 'finesse', 'wits', 'faith', 'pre
  * What a hero brings to bear on threats: approach scores (class value plus
  * trait modifiers, clamped), keywords (each counted once, whatever its
  * sources) and resists. Restrictions cut keywords at the source: Thick fog
- * keeps only Watchful from a kit, and Anti-magic zone drops Light and Cleave
- * coming from a mage class or a staff.
+ * keeps only Watchful from a kit, and Anti-magic zone drops every keyword
+ * coming from a magic source (magic gear or a caster class).
  */
 export function heroAnswers(member: AnswersMember, restriction: RestrictionId | null = null): HeroAnswers {
   const heroClass = heroClasses[member.classId];
@@ -61,26 +61,22 @@ export function heroAnswers(member: AnswersMember, restriction: RestrictionId | 
   ) as Record<Approach, number>;
 
   // Every keyword with every source: each counts once per hero, but survives a
-  // restriction as long as any of its sources does.
-  const raw: { keyword: Keyword; source: KeywordSource }[] = [];
-  const addKeyword = (keyword: Keyword, source: KeywordSource) => {
-    if (!raw.some((k) => k.keyword === keyword && k.source === source)) raw.push({ keyword, source });
+  // restriction as long as any of its sources does. Magic sources (magic gear,
+  // caster classes) carry their keywords alone: they fall together in an
+  // anti-magic zone, while traits, kits and physical gear keep working.
+  const caster = heroClass.damageStat === 'magic';
+  const raw: { keyword: Keyword; source: KeywordSource; magic: boolean }[] = [];
+  const addKeyword = (keyword: Keyword, source: KeywordSource, magic = false) => {
+    if (!raw.some((k) => k.keyword === keyword && k.source === source)) raw.push({ keyword, source, magic });
   };
-  for (const keyword of heroClass.keywords) addKeyword(keyword, 'class');
+  for (const keyword of heroClass.keywords) addKeyword(keyword, 'class', caster);
   for (const effect of traitEffects) if (effect.kind === 'keyword') addKeyword(effect.keyword, 'trait');
-  if (member.weaponType) for (const keyword of weaponKeywords[member.weaponType] ?? []) addKeyword(keyword, 'weapon');
+  for (const entry of member.gearKeywords) addKeyword(entry.keyword, 'gear', entry.magic);
   for (const keyword of member.kit?.effect.keywords ?? []) addKeyword(keyword, 'kit');
 
-  const counted = (entry: { keyword: Keyword; source: KeywordSource }) => {
+  const counted = (entry: { keyword: Keyword; source: KeywordSource; magic: boolean }) => {
     if (restriction === 'thickFog' && entry.keyword === 'watchful') return entry.source === 'kit';
-    if (
-      restriction === 'antiMagic' &&
-      (entry.keyword === 'light' || entry.keyword === 'cleave') &&
-      ((entry.source === 'class' && magicClasses.includes(member.classId)) ||
-        (entry.source === 'weapon' && member.weaponType === 'staff'))
-    ) {
-      return false;
-    }
+    if (restriction === 'antiMagic' && entry.magic) return false;
     return true;
   };
   const keywords: { keyword: Keyword; source: KeywordSource }[] = [];

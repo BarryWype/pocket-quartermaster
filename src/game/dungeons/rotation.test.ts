@@ -167,7 +167,7 @@ describe('availability', () => {
   });
 
   it('lets a running expedition keep its dungeon and briefing after the rotation moves on', () => {
-    const save = done(equip({ ...createInitialSave(), gear: [{ uid: 'g', itemId: 'steelSword', quality: 'normal' }] }, 'bram', 'weapon', 'g'));
+    const save = done(equip({ ...createInitialSave(), gear: [{ uid: 'g', itemId: 'sword5', quality: 'normal' }] }, 'bram', 'weapon', 'g'));
     const started = startExpedition(save, 'spiderBurrow', ['bram'], 0, 1, rotation);
     expect(started.expeditions[0].briefing).toEqual(briefingFor(rotation, dungeonById.spiderBurrow));
     // Tomorrow it may be gone from the rotation; resolving doesn't look at the rotation at all.
@@ -182,7 +182,7 @@ describe('first-clear bonus', () => {
     let save: SaveData = {
       ...createInitialSave(),
       tutorial: { step: 'done', woodSpot: null },
-      gear: ['steelSword', 'steelBow', 'steelWand'].map((itemId, i) => ({ uid: `g${i}`, itemId, quality: 'normal' as const })),
+      gear: ['sword5', 'bow5', 'wand5'].map((itemId, i) => ({ uid: `g${i}`, itemId, quality: 'normal' as const })),
       heroes: createInitialSave().heroes.map((h) => ({ ...h, level: 9 })),
     };
     ['bram', 'lyra', 'mira'].forEach((id, i) => (save = equip(save, id, 'weapon', `g${i}`)));

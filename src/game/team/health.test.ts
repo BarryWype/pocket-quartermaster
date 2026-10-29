@@ -76,7 +76,7 @@ describe('hero HP', () => {
   });
 
   it('keeps the share when armour is put on, and caps it when taken off', () => {
-    let save = hurt(0.5, { gear: [{ uid: 'a', itemId: 'woodArmour', quality: 'normal' }] });
+    let save = hurt(0.5, { gear: [{ uid: 'a', itemId: 'mail1', quality: 'normal' }] });
     save = equip(save, 'bram', 'armor', 'a');
     expect(hero(save).hp! / maxHp(save, hero(save))).toBeCloseTo(0.5);
     save = setHeroHp(save, 'bram', 0.9, 0);
@@ -85,7 +85,7 @@ describe('hero HP', () => {
   });
 
   it('keeps the share through a level up after an expedition', () => {
-    const kit = { gear: [{ uid: 's', itemId: 'steelSword', quality: 'normal' as const }, { uid: 'a', itemId: 'steelArmour', quality: 'normal' as const }] };
+    const kit = { gear: [{ uid: 's', itemId: 'sword5', quality: 'normal' as const }, { uid: 'a', itemId: 'mail5', quality: 'normal' as const }] };
     let save = hurt(0.6, kit);
     save = equip(equip(save, 'bram', 'weapon', 's'), 'bram', 'armor', 'a');
     save = { ...save, heroes: save.heroes.map((h) => ({ ...h, xp: xpToNextLevel(1) - 1 })) };

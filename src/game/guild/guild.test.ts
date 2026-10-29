@@ -41,7 +41,7 @@ const withRanks = (ranks: Partial<Record<GuildTrackId, number>>, base = hall()) 
 function strongTeam(save: SaveData): SaveData {
   let next: SaveData = {
     ...save,
-    gear: ['Sword', 'Bow', 'Wand', 'Armour', 'Armour', 'Armour'].map((p, i) => ({ uid: `g${i}`, itemId: `steel${p}`, quality: 'legendary' })),
+    gear: ['sword5', 'bow5', 'wand5', 'mail5', 'mail5', 'mail5'].map((itemId, i) => ({ uid: `g${i}`, itemId, quality: 'legendary' })),
   };
   ALL.forEach((id, i) => {
     next = equip(equip(next, id, 'weapon', `g${i}`), id, 'armor', `g${i + 3}`);

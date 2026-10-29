@@ -9,7 +9,7 @@ const member = (overrides: Partial<AnswersMember> = {}): AnswersMember => ({
   heroId: 'h',
   classId: 'warrior',
   traitId: 'none',
-  weaponType: null,
+  gearKeywords: [],
   kit: null,
   salveElement: null,
   classResists: [],

@@ -2,13 +2,10 @@ import type { PatrolKind } from '@/game/patrols/generate';
 import type { Element } from '@/game/elements';
 import type {
   ActiveThreat,
-  HeroClassId,
-  Keyword,
   OpportunityDef,
   RestrictionDef,
   ThreatDef,
   ThreatId,
-  WeaponType,
 } from '@/game/types';
 
 // Threats, restrictions and opportunities: what a dungeon shows today, and
@@ -17,21 +14,6 @@ import type {
 
 /** Hero approach scores: every hero's missing approaches are the base, none pass 5, kits add 2. */
 export const approachRules = { base: 1, min: 0, max: 5, kitBonus: 2 };
-
-/** Keywords a weapon type gives its wielder. */
-export const weaponKeywords: Partial<Record<WeaponType, Keyword[]>> = {
-  dagger: ['pierce'],
-  bow: ['pierce'],
-  axe: ['cleave'],
-  staff: ['cleave'],
-  mace: ['blessed'],
-};
-
-/** Classes whose magic Anti-magic zone cuts in half, along with their Light and Cleave. */
-export const magicClasses: HeroClassId[] = ['fireMage', 'frostMage', 'sorcerer'];
-
-/** Weapon types that count as Concealed on Sacred ground; an unarmed hero counts as concealed too. */
-export const concealedWeapons: WeaponType[] = ['dagger', 'wand', 'instrument', 'staff'];
 
 export const threatDefs: ThreatDef[] = [
   {
@@ -331,13 +313,13 @@ export const restrictionDefs: RestrictionDef[] = [
     id: 'antiMagic',
     name: 'Anti-magic zone',
     emoji: '🚫',
-    description: 'Magic damage and abilities −50%; Light and Cleave from mages don’t count.',
+    description: 'Magic damage and abilities −50%; keywords from magic gear and casters don’t count.',
   },
   {
     id: 'sacredGround',
     name: 'Sacred ground',
     emoji: '⛪',
-    description: 'Only Concealed weapons hit at full strength; others −40%.',
+    description: 'Only Concealed gear hits at full strength; others −40%.',
   },
   {
     id: 'noHealing',

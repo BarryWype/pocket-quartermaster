@@ -2,8 +2,10 @@ import { growthRules, heroClasses } from '@/content/heroes';
 import { traitById } from '@/content/traits';
 import { approachRules } from '@/content/threats';
 
+import { itemById } from '@/content/lookup';
+
 import type { SaveData } from '../save';
-import type { Approach, HeroClassDef, HeroClassId, HeroRoll, HeroState, StatKey, Stats } from '../types';
+import type { Approach, GearDef, HeroClassDef, HeroClassId, HeroRoll, HeroState, StatKey, Stats } from '../types';
 
 export const STAT_KEYS: StatKey[] = ['hp', 'power', 'magic', 'armour', 'resistance', 'evasion', 'speed', 'crit'];
 
@@ -59,12 +61,25 @@ export function heroApproachBonus(hero: HeroState): Partial<Record<Approach, num
   return bonus;
 }
 
-/** The hero's score for one approach: class base, trait modifiers and roll/pick bonus, clamped. */
-export function approachScore(hero: HeroState, approach: Approach) {
+/** What a hero's equipped gear adds to their approaches: a lute +1 Presence, a tome +1 Wits. */
+export function gearApproachBonus(save: SaveData, hero: HeroState): Partial<Record<Approach, number>> {
+  const bonus: Partial<Record<Approach, number>> = {};
+  for (const slot of ['weapon', 'armor', 'offhand', 'trinket'] as const) {
+    const gear = save.gear.find((g) => g.uid === hero.equipment[slot]);
+    if (!gear) continue;
+    const type = (itemById[gear.itemId] as GearDef).gearType;
+    if (type === 'lute') bonus.presence = (bonus.presence ?? 0) + 1;
+    if (type === 'tome') bonus.wits = (bonus.wits ?? 0) + 1;
+  }
+  return bonus;
+}
+
+/** The hero's score for one approach: class base, trait modifiers and roll/pick/gear bonus, clamped. */
+export function approachScore(hero: HeroState, approach: Approach, gearBonus: Partial<Record<Approach, number>> = {}) {
   const effects = traitById[hero.trait]?.effects ?? [];
   const add = effects.reduce((sum, e) => sum + (e.kind === 'approach' && e.approach === approach ? e.add : 0), 0);
   const base = heroClasses[hero.classId].approaches[approach] ?? approachRules.base;
-  const score = base + add + (heroApproachBonus(hero)[approach] ?? 0);
+  const score = base + add + (heroApproachBonus(hero)[approach] ?? 0) + (gearBonus[approach] ?? 0);
   return Math.min(approachRules.max, Math.max(approachRules.min, score));
 }
 
@@ -73,7 +88,9 @@ export function pickApproach(save: SaveData, heroId: string, approach: Approach)
   const hero = save.heroes.find((h) => h.id === heroId);
   if (!hero) throw new Error(`Unknown hero ${heroId}`);
   if (pendingApproachPicks(hero) < 1) throw new Error(`${hero.name} has no approach pick pending`);
-  if (approachScore(hero, approach) >= approachRules.max) throw new Error(`${hero.name}'s ${approach} is already at ${approachRules.max}`);
+  if (approachScore(hero, approach, gearApproachBonus(save, hero)) >= approachRules.max) {
+    throw new Error(`${hero.name}'s ${approach} is already at ${approachRules.max}`);
+  }
   return {
     ...save,
     heroes: save.heroes.map((h) => (h.id === heroId ? { ...h, approachPicks: [...(h.approachPicks ?? []), approach] } : h)),

@@ -1,21 +1,22 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { masteryTypeNames, QUALITIES, qualities, TIER_NAMES } from '@/content/forging';
-import { gearName, itemById, materialById, recipeOutput } from '@/content/lookup';
+import { MASTERY_TYPES, masteryTypeNames, qualities } from '@/content/forging';
+import { gearId, gearProfiles } from '@/content/equipment';
+import { gearName, itemById, materialById, recipeById, recipeOutput } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
 import { canCraft, craftableCount, forgedItem, isKnown, ownsTool, type ForgeResult } from '@/game/crafting/crafting';
-import { forgesForNextLevel, masteryCap, masteryOf, masteryTypeOf } from '@/game/forging/mastery';
-import { qualityOdds } from '@/game/forging/quality';
+import { masteryOf } from '@/game/forging/mastery';
 import { rollToScale } from '@/game/forging/roll';
 import type { SaveData } from '@/game/save';
 import type { GearDef, RecipeDef } from '@/game/types';
-import { formatPercent, t, tr } from '@/i18n';
+import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
 import { GameIcon } from './GameIcon';
+import { GearMarks } from './GearMarks';
 import { Row } from './Row';
 import { Text } from './Text';
 import { TutorialHint } from './TutorialHint';
@@ -30,38 +31,9 @@ type Tab = NonNullable<RecipeDef['tab']>;
 const TABS: Tab[] = ['kitchen', 'alchemy'];
 /** Batch sizes for Provisions recipes. */
 const BATCHES = [1, 5, 10];
+const TIERS = [1, 2, 3, 4, 5];
 
-/** Mastery level and progress for the item's type, and the quality odds of forging it now. */
-function MasteryLine({ save, item }: { save: SaveData; item: GearDef }) {
-  const type = masteryTypeOf(item);
-  const { level, progress } = masteryOf(save, type);
-  const odds = qualityOdds(level, item.tier);
-  const needed = forgesForNextLevel(level);
-  const maxed = level >= masteryCap(item.tier);
-  const next = TIER_NAMES[item.tier];
-  return (
-    <View>
-      <Text style={styles.mastery}>
-        {t('crafting.mastery', { type: tr(masteryTypeNames[type].name), level })}
-        {maxed
-          ? `${t('crafting.maxed', { tier: tr(TIER_NAMES[item.tier - 1]) })}${
-              next ? t('crafting.keepImproving', { tier: tr(next).toLowerCase(), weapons: tr(masteryTypeNames[type].plural) }) : ''
-            }`
-          : needed
-            ? t('crafting.toLevel', { progress, needed, level: level + 1 })
-            : ''}
-      </Text>
-      <Text style={styles.mastery}>
-        {QUALITIES.filter((q) => odds[q] > 0).map((q, i) => (
-          <Text key={q} style={{ color: qualities[q].color }}>
-            {i > 0 ? ' · ' : ''}
-            {tr(qualities[q].name)} {formatPercent(odds[q] / 100)}
-          </Text>
-        ))}
-      </Text>
-    </View>
-  );
-}
+/** The forged piece in its quality colour, bigger for Legendary, and any mastery level-up. */
 
 /** The forged piece in its quality colour, bigger for Legendary, and any mastery level-up. */
 function ForgeBanner({ result, onClose }: { result: ForgeResult; onClose: () => void }) {
@@ -72,10 +44,13 @@ function ForgeBanner({ result, onClose }: { result: ForgeResult; onClose: () => 
       onPress={onClose}
       style={[styles.banner, (quality === 'rare' || legendary) && { borderColor: qualities[quality].color }, legendary && styles.legendary]}
     >
-      <Text style={[styles.bannerTitle, legendary && styles.legendaryTitle, { color: qualities[quality].color }]}>
-        {legendary ? '🌟 ' : quality === 'rare' ? '✨ ' : ''}
-        {gearName(result.gear)}
-      </Text>
+      <View style={styles.bannerTitleRow}>
+        <Text style={[styles.bannerTitle, legendary && styles.legendaryTitle, { color: qualities[quality].color }]}>
+          {legendary ? '🌟 ' : quality === 'rare' ? '✨ ' : ''}
+          {gearName(result.gear)}
+        </Text>
+        <GearMarks tier={(itemById[result.gear.itemId] as GearDef).tier} />
+      </View>
       <Text>
         {t('crafting.quality', { quality: tr(qualities[quality].name) })}
         {roll !== undefined ? ` · ${t('gear.roll', { roll: rollToScale(roll), max: 7 })}` : ''}
@@ -85,13 +60,14 @@ function ForgeBanner({ result, onClose }: { result: ForgeResult; onClose: () => 
   );
 }
 
-/** The known recipes of one crafting station; locked ones stay hidden. Provisions come in two tabs and batches. */
+/** The known recipes of one crafting station; locked ones stay hidden. The forge shows its gear recipes as a grid below. Provisions come in two tabs and batches. */
 export function CraftingStation({ station, action }: Props) {
   const save = useGameStore((state) => state.save);
   const craft = useGameStore((state) => state.craft);
   const [result, setResult] = useState<ForgeResult | null>(null);
   const [tab, setTab] = useState<Tab>('kitchen');
   const tabbed = station === 'provisions';
+  const grid = station === 'forge';
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -105,10 +81,12 @@ export function CraftingStation({ station, action }: Props) {
         </View>
       )}
       {recipes
-        .filter((recipe) => recipe.station === station && isKnown(save, recipe) && (!tabbed || recipe.tab === tab))
+        .filter((recipe) => recipe.station === station && (!tabbed || recipe.tab === tab))
+        // At the forge, gear recipes move into the tier grid below.
+        .filter((recipe) => !grid || !forgedItem(recipe))
+        .filter((recipe) => isKnown(save, recipe))
         .map((recipe) => {
           const output = recipeOutput(recipe);
-          const item = forgedItem(recipe);
           const description = 'itemId' in recipe.output ? itemById[recipe.output.itemId].description : undefined;
           const inputs = (
             <View>
@@ -125,7 +103,6 @@ export function CraftingStation({ station, action }: Props) {
                   );
                 })}
               </View>
-              {item && <MasteryLine save={save} item={item} />}
               {description ? <Text style={styles.mastery}>{tr(description)}</Text> : null}
               {tabbed && <Text style={styles.mastery}>{t('equip.inStock', { count: save.consumables[output.id] ?? 0 })}</Text>}
             </View>
@@ -162,7 +139,58 @@ export function CraftingStation({ station, action }: Props) {
             />
           );
         })}
+      {grid && <GearGrid save={save} action={action} onCraft={(recipeId) => setResult(craft(recipeId))} />}
     </ScrollView>
+  );
+}
+
+/** The forge's gear recipes: one row per type, its five tiers side by side, unknown ones greyed with their inputs. */
+function GearGrid({ save, action, onCraft }: { save: SaveData; action: string; onCraft: (recipeId: string) => void }) {
+  return (
+    <View style={styles.grid}>
+      {MASTERY_TYPES.map((type) => {
+        const { level } = masteryOf(save, type);
+        return (
+          <View key={type} style={styles.gridRow}>
+            <View style={styles.gridHead}>
+              <Text>{gearProfiles[type].emoji}</Text>
+              <Text style={styles.gridHeadText}>
+                {tr(masteryTypeNames[type].plural)} · {t('crafting.mastery', { type: tr(masteryTypeNames[type].name), level })}
+              </Text>
+            </View>
+            <View style={styles.gridCells}>
+              {TIERS.map((tier) => {
+                const recipe = recipeById[gearId(type, tier)];
+                const known = isKnown(save, recipe);
+                return (
+                  <View key={tier} style={[styles.cell, !known && styles.cellUnknown]}>
+                    <GearMarks tier={tier} />
+                    <View style={styles.cellInputs}>
+                      {recipe.inputs.map(({ materialId, amount }) => {
+                        const material = materialById[materialId];
+                        return (
+                          <View key={materialId} style={styles.input}>
+                            <GameIcon emoji={material.emoji} icon={material.icon} size={14} />
+                            <Text style={styles.cellInputText}>
+                              {save.materials[materialId] ?? 0}/{amount}
+                            </Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                    {known ? (
+                      <Button title={action} disabled={!canCraft(save, recipe)} onPress={() => onCraft(recipe.id)} />
+                    ) : (
+                      <Text style={styles.cellInputText}>{t('crafting.unknown')}</Text>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        );
+      })}
+    </View>
   );
 }
 
@@ -173,8 +201,23 @@ const styles = StyleSheet.create({
   inputs: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   input: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   inputText: { fontSize: 17, color: colors.muted },
-  short: { color: colors.danger },
   mastery: { fontSize: 16, color: colors.muted },
+  grid: { gap: 10, marginTop: 12 },
+  gridRow: { gap: 4 },
+  gridHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  gridHeadText: { fontSize: 16, color: colors.ink },
+  gridCells: { flexDirection: 'row', gap: 4 },
+  cell: {
+    flex: 1,
+    gap: 4,
+    padding: 4,
+    borderWidth: pixel.outline,
+    borderColor: colors.ink,
+    backgroundColor: colors.parchmentDark,
+  },
+  cellUnknown: { opacity: 0.55 },
+  cellInputs: { gap: 2 },
+  cellInputText: { fontSize: 12, color: colors.muted },
   banner: {
     gap: 2,
     padding: 12,
@@ -184,6 +227,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.parchmentDark,
   },
   legendary: { borderWidth: 4, padding: 16, backgroundColor: colors.highlight },
+  bannerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   bannerTitle: { fontSize: 22 },
   legendaryTitle: { fontSize: 26 },
 });

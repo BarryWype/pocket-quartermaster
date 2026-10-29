@@ -29,7 +29,7 @@ import { generateSanctumsAround } from '../sanctums/sanctums';
 import { createInitialSave, type SaveData } from '../save';
 import { generateTavernsAround } from '../taverns/taverns';
 import { currentHp, isExhausted } from '../team/health';
-import { canWield, equip } from '../team/team';
+import { equip } from '../team/team';
 import { advanceTutorial, finishTutorial } from '../tutorial/tutorial';
 import { addMaterials } from '../inventory';
 import { pruneExpired } from '../upkeep';
@@ -48,6 +48,7 @@ import {
   reachChance,
   recruitHeroes,
   sendExpeditions,
+  spendPicks,
   stockProvisions,
   type RunLog,
   type Sim,
@@ -80,18 +81,18 @@ export function checkSave(save: SaveData) {
   if (save.heroes.length > rosterCap(save)) throw new Error('Roster over its cap');
   for (const hero of save.heroes) {
     const weapon = save.gear.find((g) => g.uid === hero.equipment.weapon);
-    if (weapon && !canWield(hero, itemById[weapon.itemId])) throw new Error(`${hero.id} wields ${weapon.itemId}`);
+    if (weapon && (itemById[weapon.itemId] as { slot?: string }).slot !== 'weapon') throw new Error(`${hero.id} wields ${weapon.itemId}`);
     if (save.expeditions.filter((e) => e.heroIds.includes(hero.id)).length > 1) throw new Error(`${hero.id} is on two expeditions`);
   }
 }
 
 /** The tutorial, through the same functions the screens call, then skipped to the end. */
 function playTutorial(sim: Sim) {
-  const wood = recipeById.woodSword.inputs[0].amount;
+  const wood = recipeById.sword1.inputs[0].amount;
   // The guaranteed tutorial node gives exactly the sword's wood.
   if ((sim.save.materials.wood ?? 0) < wood) act(sim, 'walk', (save) => ({ ...save, materials: { ...save.materials, wood } }));
   sim.save = advanceTutorial(sim.save);
-  act(sim, 'forge', (save) => craft(save, recipeById.woodSword));
+  act(sim, 'forge', (save) => craft(save, recipeById.sword1));
   const sword = sim.save.gear[sim.save.gear.length - 1];
   sim.log.crafts.push({ day: sim.day, kind: 'tutorial', itemId: sword.itemId, tier: 1, quality: sword.quality, roll: rollToScale(sword.roll ?? 1), mastery: masteryOf(sim.save, 'sword').level, materials: { wood: -wood } });
   sim.save = advanceTutorial(equip(sim.save, sim.save.heroes[0].id, 'weapon', sword.uid));
@@ -281,6 +282,7 @@ function session(sim: Sim, walkMinutes: number, steps: number, dayKey: string, f
 
   if (sim.save.tutorial.step !== 'done') playTutorial(sim);
   forge(sim);
+  spendPicks(sim);
   stockProvisions(sim);
   infuseWeapons(sim);
   recruitHeroes(sim);

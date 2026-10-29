@@ -1,3 +1,4 @@
+import { gearProfiles } from '@/content/equipment';
 import { heroClasses } from '@/content/heroes';
 import { items } from '@/content/items';
 import { itemById, opportunityById, restrictionById, threatById } from '@/content/lookup';
@@ -11,18 +12,16 @@ import type {
   Briefing,
   ConsumableDef,
   DungeonDef,
+  GearType,
   HeroClassId,
   KitEffect,
   OpportunityId,
   RestrictionId,
   ThreatId,
   ThreatLevel,
-  WeaponType,
 } from '../types';
 import { heroAnswers, type AnswersMember, type HeroAnswers } from './answers';
 import { approachScore } from './score';
-
-const weaponTypes: WeaponType[] = ['sword', 'wand', 'bow', 'axe', 'mace', 'dagger', 'staff', 'instrument'];
 
 const kitItems: { itemId: string; effect: KitEffect }[] = items.flatMap((item) =>
   item.slot === 'consumable' && item.kit ? [{ itemId: item.id, effect: item.kit }] : [],
@@ -109,9 +108,11 @@ export function composeBriefing(dungeon: DungeonDef, day: number, rules: ThreatR
 let possibleMembersCache: AnswersMember[] | null = null;
 
 /**
- * Every hero shape that could be fielded: class, weapon and kit combinations,
- * with the traits that add a keyword or a positive approach. Restrictions then
- * play against each through `heroAnswers`.
+ * Every hero shape that could be fielded: class, gear and kit combinations,
+ * with the traits that add a keyword or a positive approach. Gear enters one
+ * piece at a time (a keyword counts once per hero, gear only adds), so every
+ * answer stays within reach. Restrictions then play against each shape
+ * through `heroAnswers`.
  */
 export function possibleMembers(): AnswersMember[] {
   if (possibleMembersCache) return possibleMembersCache;
@@ -121,18 +122,24 @@ export function possibleMembers(): AnswersMember[] {
       .filter((t) => t.effects.some((e) => e.kind === 'keyword' || (e.kind === 'approach' && e.add > 0)))
       .map((t) => t.id),
   ];
+  const gearTypes = [...Object.keys(gearProfiles) as GearType[], null];
   const members: AnswersMember[] = [];
   for (const classId of Object.keys(heroClasses) as HeroClassId[]) {
     const classResists = heroClasses[classId].resists ?? [];
-    for (const weaponType of [...weaponTypes, null]) {
+    for (const gearType of gearTypes) {
+      // One piece of this type: its keywords, marked when the piece rolls with Magic.
+      const profile = gearType ? gearProfiles[gearType] : null;
+      const gearKeywords = profile
+        ? profile.keywords.map((keyword) => ({ keyword, magic: profile.damageStat === 'magic' }))
+        : [];
       for (const kit of [null, ...kitItems]) {
         const salveElement = kit ? ((itemById[kit.itemId] as ConsumableDef).protectsAgainst ?? null) : null;
         for (const traitId of usefulTraits) {
           members.push({
-            heroId: `${classId}:${weaponType ?? 'unarmed'}:${kit?.itemId ?? 'noKit'}:${traitId}`,
+            heroId: `${classId}:${gearType ?? 'unarmed'}:${kit?.itemId ?? 'noKit'}:${traitId}`,
             classId,
             traitId,
-            weaponType,
+            gearKeywords,
             kit,
             salveElement,
             classResists,
@@ -147,7 +154,7 @@ export function possibleMembers(): AnswersMember[] {
 
 /**
  * Whether a restriction leaves every drawn threat answerable: some class,
- * trait, weapon or kit must still answer each one. Narrow passages also
+ * trait, gear or kit must still answer each one. Narrow passages also
  * rejects a keyword threat that needs more heroes than the party may hold.
  */
 export function restrictionKeepsAnswers(

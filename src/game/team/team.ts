@@ -1,17 +1,19 @@
 import { heroClasses, xpRules, xpToNextLevel } from '@/content/heroes';
+import { affinityRules, castingPenalty, classAffinities, type Affinity } from '@/content/equipment';
 import { itemById } from '@/content/lookup';
+import { qualities } from '@/content/forging';
 import { traitById } from '@/content/traits';
 
-import { gearStats } from '../forging/quality';
+import { slotProblem } from '../equipment/slots';
 import { rosterCap } from '../guild/guild';
 import type { SaveData } from '../save';
-import type { Ability, DamageStat, EquipmentSlot, GearDef, HeroState, ItemDef, StatKey, Stats, WeaponType } from '../types';
+import type { Ability, ArmourType, DamageStat, EquipmentSlot, GearDef, GearType, HeroState, Keyword, StatKey, Stats, WeaponType } from '../types';
 import { baseHeroStats } from './stats';
 
 const STAT_KEYS: StatKey[] = ['hp', 'power', 'magic', 'armour', 'resistance', 'evasion', 'speed', 'crit'];
 
-/** Weapon types that roll with Magic; every other weapon rolls with Power. */
-const MAGIC_WEAPONS: WeaponType[] = ['wand', 'staff', 'instrument'];
+/** The stats quality, roll and affinity multiply; the extras stay flat. */
+const SCALING_KEYS: StatKey[] = ['hp', 'power', 'magic', 'armour', 'resistance'];
 
 export function isOnExpedition(save: SaveData, heroId: string) {
   return save.expeditions.some((e) => e.heroIds.includes(heroId));
@@ -23,9 +25,19 @@ export function isAway(save: SaveData, heroId: string) {
 }
 
 export function equippedGear(save: SaveData, hero: HeroState) {
-  return (['weapon', 'armor'] as const)
+  return (['weapon', 'armor', 'offhand', 'trinket'] as const)
     .map((slot) => save.gear.find((g) => g.uid === hero.equipment[slot]))
     .filter((g) => g !== undefined);
+}
+
+/** The keywords of the hero's weapon, armour and off-hand; pieces that roll with Magic marked. */
+export function gearKeywordsOf(save: SaveData, hero: HeroState): { keyword: Keyword; magic: boolean }[] {
+  return (['weapon', 'armor', 'offhand'] as const).flatMap((slot) => {
+    const gear = save.gear.find((g) => g.uid === hero.equipment[slot]);
+    if (!gear) return [];
+    const item = itemById[gear.itemId] as GearDef;
+    return item.keywords.map((keyword) => ({ keyword, magic: item.damageStat === 'magic' }));
+  });
 }
 
 /** The hero's class abilities and the effects of their personal trait. */
@@ -34,22 +46,41 @@ export const heroAbilities = (hero: HeroState): Ability[] => [
   ...(traitById[hero.trait]?.effects ?? []),
 ];
 
-/** Classes only wield their own weapon types; armour and anything else is open to all. */
-export const canWield = (hero: HeroState, item: ItemDef) =>
-  item.slot !== 'weapon' || !item.weaponType || item.weaponType in heroClasses[hero.classId].affinities;
+/** Favoured, usable or unfit: weapons and armour by class, off-hands and trinkets always usable. */
+export function affinityOf(classId: HeroState['classId'], gearType: GearType | undefined): Affinity {
+  if (!gearType) return 'usable';
+  const table = classAffinities[classId] as Partial<Record<WeaponType | ArmourType, Affinity>>;
+  return table[gearType as WeaponType | ArmourType] ?? 'usable';
+}
 
-/** Base stats (class, level, roll) + gear (after quality), with class affinity boosting weapon stats, then traits. */
+/** What a hero's equipped gear adds to their approaches: a lute +1 Presence, a tome +1 Wits. */
+export { gearApproachBonus } from './stats';
+
+/**
+ * Base stats (class, level, roll) + gear: quality, roll and affinity multiply
+ * the scaling stats only, the extras stay flat; mail and plate cast a penalty
+ * on Magic unless favoured. Then traits.
+ */
 export function heroStats(save: SaveData, hero: HeroState): Stats {
-  const heroClass = heroClasses[hero.classId];
   const stats = baseHeroStats(hero.classId, hero.level, hero.roll);
+  let penalty = 0;
 
   for (const gear of equippedGear(save, hero)) {
-    const item = itemById[gear.itemId];
-    if (item.slot !== 'weapon' && item.slot !== 'armor') continue;
-    const affinity = item.weaponType ? (heroClass.affinities[item.weaponType] ?? 1) : 1;
-    const itemStats = gearStats(item, gear);
-    for (const key of STAT_KEYS) stats[key] += (itemStats[key] ?? 0) * affinity;
+    const item = itemById[gear.itemId] as GearDef;
+    const affinity = affinityOf(hero.classId, item.gearType);
+    const multiplier = qualities[gear.quality].multiplier * (gear.roll ?? 1) * affinityRules[affinity];
+    for (const key of STAT_KEYS) {
+      const value = item.stats[key];
+      if (!value) continue;
+      stats[key] += SCALING_KEYS.includes(key) ? value * multiplier : value;
+    }
+    if (gear.luck) stats.luck += gear.luck;
+    if (item.slot === 'armor' && affinityOf(hero.classId, item.gearType) !== 'favoured') {
+      penalty = Math.max(penalty, castingPenalty[item.gearType as ArmourType] ?? 0);
+    }
   }
+  stats.magic *= 1 - penalty;
+
   for (const effect of heroAbilities(hero)) {
     if (effect.kind === 'statMultiplier') stats[effect.stat] *= effect.multiplier;
   }
@@ -60,9 +91,8 @@ export function heroStats(save: SaveData, hero: HeroState): Stats {
 /** The stat the hero's hits roll with: the weapon's, or the class's when unarmed. */
 export function heroDamageStat(save: SaveData, hero: HeroState): DamageStat {
   const weapon = save.gear.find((g) => g.uid === hero.equipment.weapon);
-  const weaponType = weapon ? (itemById[weapon.itemId] as GearDef).weaponType : undefined;
-  if (!weaponType) return heroClasses[hero.classId].damageStat;
-  return MAGIC_WEAPONS.includes(weaponType) ? 'magic' : 'power';
+  const item = weapon ? (itemById[weapon.itemId] as GearDef) : null;
+  return item?.damageStat ?? heroClasses[hero.classId].damageStat;
 }
 
 function updateHero(save: SaveData, heroId: string, update: (hero: HeroState) => HeroState): SaveData {
@@ -116,11 +146,40 @@ export function equip(save: SaveData, heroId: string, slot: EquipmentSlot, id: s
     const gear = next.gear.find((g) => g.uid === id);
     if (!gear || itemById[gear.itemId].slot !== slot) throw new Error(`Cannot equip ${id} as ${slot}`);
     const hero = next.heroes.find((h) => h.id === heroId);
-    if (hero && !canWield(hero, itemById[gear.itemId])) throw new Error(`${hero.name} cannot use ${gear.itemId}`);
+    if (!hero) throw new Error(`Unknown hero ${heroId}`);
+    if (slot !== 'weapon' && slotProblem(next, hero, slot, gear)) {
+      throw new Error(`Cannot equip ${gear.itemId} as ${slot} for ${hero.name}`);
+    }
     const holder = next.heroes.find((h) => h.id !== heroId && h.equipment[slot] === id);
     if (holder) next = unequip(next, holder.id, slot);
   }
-  return keepingHp(next, updateHero(next, heroId, (h) => ({ ...h, equipment: { ...h.equipment, [slot]: id } })), heroId);
+  next = keepingHp(next, updateHero(next, heroId, (h) => ({ ...h, equipment: { ...h.equipment, [slot]: id } })), heroId);
+  // A two-handed weapon takes the off-hand; a weapon change can strand one.
+  if (slot === 'weapon') {
+    const hero = next.heroes.find((h) => h.id === heroId)!;
+    const offhandUid = hero.equipment.offhand;
+    const offhand = offhandUid ? next.gear.find((g) => g.uid === offhandUid) : undefined;
+    if (offhand && slotProblem(next, hero, 'offhand', offhand)) next = unequip(next, heroId, 'offhand');
+  }
+  return next;
+}
+
+/** What equipping a piece would do to the hero's stats, or null if it cannot go in. */
+export function equipPreview(
+  save: SaveData,
+  heroId: string,
+  slot: EquipmentSlot,
+  uid: string,
+): { before: Stats; after: Stats } | null {
+  const hero = save.heroes.find((h) => h.id === heroId);
+  if (!hero) return null;
+  const before = heroStats(save, hero);
+  try {
+    const next = equip(save, heroId, slot, uid);
+    return { before, after: heroStats(next, next.heroes.find((h) => h.id === heroId)!) };
+  } catch {
+    return null;
+  }
 }
 
 /** Heroes can be dismissed at home, keeping at least one; their gear and consumable go back to the stock. */
@@ -131,7 +190,7 @@ export function canDismiss(save: SaveData, heroId: string) {
 export function dismissHero(save: SaveData, heroId: string): SaveData {
   if (!canDismiss(save, heroId)) throw new Error(`Cannot dismiss ${heroId}`);
   let next = save;
-  for (const slot of ['weapon', 'armor', 'consumable'] as const) next = unequip(next, heroId, slot);
+  for (const slot of ['weapon', 'armor', 'offhand', 'trinket', 'consumable'] as const) next = unequip(next, heroId, slot);
   return {
     ...next,
     heroes: next.heroes.filter((h) => h.id !== heroId),

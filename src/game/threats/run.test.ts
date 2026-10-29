@@ -37,7 +37,9 @@ function member(heroId: string, abilities: PartyMember['abilities'] = [], overri
     classId: 'warrior',
     traitId: 'none',
     weaponName: null,
-    weaponType: null,
+    gearKeywords: [],
+    heavy: false,
+    concealed: false,
     maxHp: 100,
     hp: overrides.hp ?? overrides.maxHp ?? 100,
     power: 10,
@@ -175,15 +177,40 @@ describe('run restrictions', () => {
     expect(trapRun('antiMagic').encounters[0].healed.h).toBeCloseTo(trapRun(null).encounters[0].healed.h * restrictionRules.antiMagic);
   });
 
-  it('sacredGround: dulls weapons it can see; concealed ones are untouched', () => {
-    const sword = member('a', [], { weaponType: 'sword', maxHp: 1e6, power: 20 });
-    const dagger = member('d', [], { weaponType: 'dagger', maxHp: 1e6, power: 20 });
+  it('sacredGround: dulls gear it can see; Concealed gear is untouched', () => {
+    // A sword, or a dagger with a shield, is not Concealed.
+    const sword = member('a', [], { concealed: false, maxHp: 1e6, power: 20 });
+    const shielded = member('ds', [], { concealed: false, maxHp: 1e6, power: 20 });
     const options = (restriction: RestrictionId | null): RunOptions => ({ rules: steady, briefing: briefing({ restriction }) });
-    expect(simulateRun([sword], fights, 's', options('sacredGround')).encounters[0].rounds).toBeGreaterThan(
-      simulateRun([sword], fights, 's', options(null)).encounters[0].rounds,
-    );
-    // A concealed weapon fights exactly the same fight as without the restriction.
-    expect(simulateRun([dagger], fights, 's', options('sacredGround'))).toEqual(simulateRun([dagger], fights, 's', options(null)));
+    for (const exposed of [sword, shielded]) {
+      expect(simulateRun([exposed], fights, 's', options('sacredGround')).encounters[0].rounds).toBeGreaterThan(
+        simulateRun([exposed], fights, 's', options(null)).encounters[0].rounds,
+      );
+    }
+    // A dagger with a parrying dagger, or an unarmed hero, fights the same fight as without the restriction.
+    for (const concealed of [
+      member('d', [], { concealed: true, maxHp: 1e6, power: 20 }),
+      member('u', [], { concealed: true, maxHp: 1e6, power: 20 }),
+    ]) {
+      expect(simulateRun([concealed], fights, 's', options('sacredGround'))).toEqual(
+        simulateRun([concealed], fights, 's', options(null)),
+      );
+    }
+  });
+
+  it('underwater weakened: counts double for heavy wearers', () => {
+    // A boss they cannot kill, so the damage dealt tracks the multiplier alone.
+    const meatShield = bossOnly({ hp: 1e9 });
+    const options = { rules: steady, briefing: threat('underwater', 3) };
+    const dealt = (party: PartyMember[]) =>
+      simulateRun(party, meatShield, 's', options).encounters.reduce(
+        (sum, e) => sum + Object.values(e.dealt).reduce((a, b) => a + b, 0),
+        0,
+      );
+    const light = member('l', [], { maxHp: 1e6, power: 20 });
+    const heavy = member('h', [], { heavy: true, maxHp: 1e6, power: 20 });
+    // Level 3 weakened is 0.4; the heavy wearer takes it doubled, to 0.8.
+    expect(dealt([heavy])).toBeCloseTo((dealt([light]) * (1 - 0.8)) / (1 - 0.4));
   });
 
   it('noHealing: halves every heal in the run', () => {
@@ -535,9 +562,9 @@ function geared(consumables: Record<string, number> = {}): SaveData {
     consumables: { ...createInitialSave().consumables, trailMix: 30, ...consumables },
     heroes: createInitialSave().heroes.map((h) => ({ ...h, level: 30 })),
     gear: [
-      { uid: 'g1', itemId: 'steelSword', quality: 'normal' },
-      { uid: 'g2', itemId: 'steelBow', quality: 'normal' },
-      { uid: 'g3', itemId: 'steelWand', quality: 'normal' },
+      { uid: 'g1', itemId: 'sword5', quality: 'normal' },
+      { uid: 'g2', itemId: 'bow5', quality: 'normal' },
+      { uid: 'g3', itemId: 'wand5', quality: 'normal' },
     ],
     nextUid: 10,
   };

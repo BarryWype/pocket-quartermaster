@@ -33,7 +33,7 @@ function party(sigils: number[], strong = false): SaveData {
     save = {
       ...save,
       heroes: save.heroes.map((h) => ({ ...h, level: 9 })),
-      gear: ['Sword', 'Bow', 'Wand', 'Armour', 'Armour', 'Armour'].map((p, i) => ({ uid: `g${i}`, itemId: `steel${p}`, quality: 'normal' })),
+      gear: ['sword5', 'bow5', 'wand5', 'mail5', 'mail5', 'mail5'].map((itemId, i) => ({ uid: `g${i}`, itemId, quality: 'normal' })),
     };
     ALL.forEach((id, i) => {
       save = equip(save, id, 'weapon', `g${i}`);

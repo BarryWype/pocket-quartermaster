@@ -1,20 +1,21 @@
+import type { ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 
-import { heroClasses } from '@/content/heroes';
 import { qualities } from '@/content/forging';
 import { gearName, itemById } from '@/content/lookup';
-import { gearStats } from '@/game/forging/quality';
-import { rollToScale } from '@/game/forging/roll';
-import { canWield } from '@/game/team/team';
+import { slotProblem } from '@/game/equipment/slots';
+import { affinityOf, equipPreview } from '@/game/team/team';
 import { kitAnswers } from '@/game/threats/coverage';
 import type { SaveData } from '@/game/save';
-import type { Briefing, EquipmentSlot } from '@/game/types';
+import type { Briefing, EquipmentSlot, GearDef, StatKey, Stats } from '@/game/types';
 import { t, tr } from '@/i18n';
 import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
+import { GearMarks } from './GearMarks';
 import { Row } from './Row';
 import { Text } from './Text';
+import { statIcons } from './GearRow';
 
 type Props = {
   save: SaveData;
@@ -26,7 +27,18 @@ type Props = {
   onClose: () => void;
 };
 
-type Option = { id: string; emoji: string; icon?: ImageSourcePropType; title: string; subtitle?: string; color?: string };
+type Option = {
+  id: string;
+  emoji: string;
+  icon?: ImageSourcePropType;
+  title: string;
+  subtitle?: string;
+  color?: string;
+  disabled?: boolean;
+  marks?: ReactNode;
+};
+
+const DELTA_KEYS: (keyof Stats)[] = ['hp', 'power', 'magic', 'armour', 'resistance', 'evasion', 'speed', 'crit', 'luck'];
 
 function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, briefing?: Briefing): Option[] {
   if (slot === 'consumable') {
@@ -55,30 +67,77 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, briefin
       .sort((a, b) => Number(b.color !== undefined) - Number(a.color !== undefined));
   }
   const hero = save.heroes.find((h) => h.id === heroId);
-  const affinities = hero ? heroClasses[hero.classId].affinities : {};
+  if (!hero) return [];
+  const offhandGear = hero.equipment.offhand ? save.gear.find((g) => g.uid === hero.equipment.offhand) : undefined;
+
   return save.gear
     .flatMap((gear) => {
-      const item = itemById[gear.itemId];
-      if (item.slot !== slot || (item.slot !== 'weapon' && item.slot !== 'armor')) return [];
-      if (hero && !canWield(hero, item)) return [];
+      const item = itemById[gear.itemId] as GearDef;
+      if (item.slot !== slot) return [];
       const holder = save.heroes.find((h) => h.id !== heroId && h.equipment[slot] === gear.uid);
       const away = holder && save.expeditions.some((e) => e.heroIds.includes(holder.id));
       if (away) return [];
-      // The main stat this hero would actually get: power or magic with class affinity, or armour.
-      const stats = gearStats(item, gear);
-      const affinity = item.weaponType ? (affinities[item.weaponType] ?? 1) : 1;
-      const power = item.slot === 'weapon' ? ((stats.power ?? 0) + (stats.magic ?? 0)) * affinity : (stats.armour ?? 0);
-      return [{ gear, item, holder, power }];
+      const problem = slot !== 'weapon' ? slotProblem(save, hero, slot, gear) : null;
+      const preview = problem ? null : equipPreview(save, heroId, slot, gear.uid);
+      // A weapon change can strand the off-hand (a two-handed one always does).
+      let unequipsOffhand = false;
+      if (item.slot === 'weapon' && offhandGear) {
+        const withWeapon = { ...hero, equipment: { ...hero.equipment, weapon: gear.uid } };
+        unequipsOffhand = !!slotProblem(
+          { ...save, heroes: save.heroes.map((h) => (h.id === heroId ? withWeapon : h)) },
+          withWeapon,
+          'offhand',
+          offhandGear,
+        );
+      }
+      return [{ gear, item, holder, problem, preview, unequipsOffhand }];
     })
-    .sort((a, b) => b.power - a.power)
-    .map(({ gear, item, holder, power }) => ({
-      id: gear.uid,
-      emoji: item.emoji,
-      icon: item.icon,
-      title: gearName(gear),
-      subtitle: `${item.slot === 'weapon' ? '⚔️' : '🛡️'} ${Math.round(power)} · ${t('gear.roll', { roll: rollToScale(gear.roll ?? 1), max: 7 })}${holder ? t('equip.usedBy', { name: holder.name }) : ''}`,
-      color: qualities[gear.quality].color,
-    }));
+    .sort((a, b) => {
+      const greyedDiff = Number(a.problem !== null || a.preview === null) - Number(b.problem !== null || b.preview === null);
+      if (greyedDiff) return greyedDiff;
+      return gainOf(b) - gainOf(a);
+    })
+    .map(({ gear, item, holder, problem, preview, unequipsOffhand }) => {
+      const greyed = problem !== null || preview === null;
+      const subtitle = greyed
+        ? problem
+          ? t(`equip.problem.${problem}`)
+          : ''
+        : [
+            deltaText(preview!),
+            unequipsOffhand ? t('equip.unequipsOffhand') : null,
+            holder ? t('equip.usedBy', { name: holder.name }) : null,
+          ]
+            .filter(Boolean)
+            .join(' · ');
+      return {
+        id: gear.uid,
+        emoji: item.emoji,
+        icon: item.icon,
+        title: gearName(gear),
+        subtitle,
+        color: greyed ? colors.muted : qualities[gear.quality].color,
+        disabled: greyed,
+        marks: <GearMarks tier={item.tier} affinity={affinityOf(hero.classId, item.gearType)} />,
+      };
+    });
+}
+
+/** The main stat the piece would gain the hero: its damage stat, or armour and resistance. */
+function gainOf({ item, preview }: { item: GearDef; preview: { before: Stats; after: Stats } | null }): number {
+  if (!preview) return 0;
+  const delta = (key: StatKey) => preview.after[key] - preview.before[key];
+  if (item.slot === 'weapon') return delta(item.damageStat ?? 'power');
+  if (item.slot === 'armor' || item.slot === 'offhand') return delta('armour') + delta('resistance');
+  return 0;
+}
+
+/** "+3 ⚔️ −1 💨": the non-zero stat changes equipping the piece would make. */
+function deltaText({ before, after }: { before: Stats; after: Stats }) {
+  return DELTA_KEYS.flatMap((key) => {
+    const delta = after[key] - before[key];
+    return delta ? [`${delta > 0 ? '+' : '−'}${Math.abs(delta)} ${statIcons[key]}`] : [];
+  }).join(' ');
 }
 
 export function EquipPicker({ save, heroId, slot, briefing, onPick, onClose }: Props) {
@@ -94,13 +153,14 @@ export function EquipPicker({ save, heroId, slot, briefing, onPick, onClose }: P
               <Row emoji="🚫" title={t('equip.nothing')} />
             </Pressable>
             {options.map((option) => (
-              <Pressable key={option.id} onPress={() => onPick(option.id)}>
+              <Pressable key={option.id} disabled={option.disabled} onPress={() => onPick(option.id)}>
                 <Row
                   emoji={option.emoji}
                   icon={option.icon}
                   title={option.title}
                   subtitle={option.subtitle}
                   titleColor={option.color}
+                  right={option.marks}
                 />
               </Pressable>
             ))}

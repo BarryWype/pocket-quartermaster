@@ -70,7 +70,7 @@ describe('engaging a patrol', () => {
   it('empties the consumable slot and salvages an unused healing potion into herb', () => {
     let save = tierTeam();
     save = { ...save, heroes: save.heroes.map((h) => (h.id === 'bram' ? { ...h, equipment: { ...h.equipment, consumable: 'healingPotion' } } : h)) };
-    const done = resolvePatrolFights(startPatrolFight(save, goblins, ['bram'], player, at), at + 2 * MINUTE);
+    const done = resolvePatrolFights(startPatrolFight(save, goblins, ['bram', 'lyra', 'mira'], player, at), at + 2 * MINUTE);
     const bram = done.save.heroes.find((h) => h.id === 'bram')!;
     expect(bram.equipment.consumable).toBeNull();
     expect(done.save.consumables.healingPotion ?? 0).toBe(0);

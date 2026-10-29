@@ -1,8 +1,10 @@
-import { MASTERY_TYPES } from '@/content/forging';
 import type { GuildTrackId } from '@/content/guild';
 import { startingHeroes } from '@/content/heroes';
 import { provisionRules } from '@/content/provisions';
 import { recipes } from '@/content/recipes';
+
+import { startingRecipes } from './crafting/recipeUnlocks';
+import { startingMastery } from './forging/mastery';
 
 import type { AutoGatherSave } from './gathering/autoGather';
 import type { LatLng } from './generation/types';
@@ -121,7 +123,7 @@ export function createInitialSave(): SaveData {
     reports: [],
     clearedDungeons: [],
     firstClears: [],
-    knownRecipes: recipes.filter((r) => r.unlockedByDefault).map((r) => r.id),
+    knownRecipes: [...new Set([...recipes.filter((r) => r.unlockedByDefault).map((r) => r.id), ...startingRecipes])],
     collected: {},
     tutorial: { step: 'collectWood', woodSpot: null },
     steps: { day: '', count: 0 },
@@ -150,7 +152,8 @@ export function createInitialSave(): SaveData {
     traderUses: {},
     keyFragments: 0,
     appliedBackgroundResults: {},
-    mastery: Object.fromEntries(MASTERY_TYPES.map((type) => [type, { level: 1, progress: 0 }])),
+    // Mastery starts with the starting recipes' types (their ids are `<type><tier>`), level 1.
+    mastery: Object.fromEntries(startingRecipes.map((id) => [id.replace(/\d+$/, '') as MasteryType, startingMastery(1)])),
     nextUid: 1,
   };
 }

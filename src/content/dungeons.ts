@@ -46,10 +46,10 @@ const obstacle = (kind: ObstacleKind, name: string, weight = 2): EncounterDef =>
 
 const locals = (npcId: string, weight = 1): EncounterDef => ({ type: 'locals', weight, npcId });
 
-/** Blueprints of the newer weapon types; they only drop for types the player has met (see expeditions.ts). */
-const extraDrops = (material: string, slot: 'short' | 'long') =>
-  (slot === 'short' ? ['Axe', 'Dagger', 'Staff'] : ['Mace', 'Lute']).map((suffix) => ({
-    recipeId: `${material}${suffix}`,
+/** Blueprints of the newer weapon types; any of them can drop and first meeting a type starts its mastery. */
+const extraDrops = (tier: number, slot: 'short' | 'long') =>
+  (slot === 'short' ? ['axe', 'dagger', 'staff'] : ['mace', 'lute']).map((type) => ({
+    recipeId: `${type}${tier}`,
     chance: 0.15,
   }));
 
@@ -85,9 +85,9 @@ const ratCellar: DungeonDef = {
   xp: 30,
   loot: [],
   recipeDrops: [
-    { recipeId: 'woodArmour', chance: 0.6 },
-    { recipeId: 'woodWand', chance: 0.5 },
-    ...extraDrops('wood', 'short'),
+    { recipeId: 'mail1', chance: 0.6 },
+    { recipeId: 'wand1', chance: 0.5 },
+    ...extraDrops(1, 'short'),
   ],
 };
 const goblinWarren: DungeonDef = {
@@ -109,9 +109,9 @@ const goblinWarren: DungeonDef = {
   xp: 50,
   loot: [],
   recipeDrops: [
-    { recipeId: 'woodBow', chance: 0.6 },
-    { recipeId: 'woodWand', chance: 0.5 },
-    ...extraDrops('wood', 'long'),
+    { recipeId: 'bow1', chance: 0.6 },
+    { recipeId: 'wand1', chance: 0.5 },
+    ...extraDrops(1, 'long'),
   ],
 };
 // Tier 2: stone
@@ -133,9 +133,9 @@ const wolfDen: DungeonDef = {
   xp: 80,
   loot: [],
   recipeDrops: [
-    { recipeId: 'stoneArmour', chance: 0.6 },
-    { recipeId: 'stoneWand', chance: 0.5 },
-    ...extraDrops('stone', 'short'),
+    { recipeId: 'mail2', chance: 0.6 },
+    { recipeId: 'wand2', chance: 0.5 },
+    ...extraDrops(2, 'short'),
   ],
 };
 const trollBridge: DungeonDef = {
@@ -157,10 +157,10 @@ const trollBridge: DungeonDef = {
   xp: 120,
   loot: [],
   recipeDrops: [
-    { recipeId: 'stoneBow', chance: 0.6 },
+    { recipeId: 'bow2', chance: 0.6 },
     { recipeId: 'emberWardSalve', chance: 0.3 },
-    { recipeId: 'stoneWand', chance: 0.5 },
-    ...extraDrops('stone', 'long'),
+    { recipeId: 'wand2', chance: 0.5 },
+    ...extraDrops(2, 'long'),
   ],
 };
 // Tier 3: copper
@@ -183,9 +183,9 @@ const hauntedMine: DungeonDef = {
   xp: 150,
   loot: [],
   recipeDrops: [
-    { recipeId: 'copperArmour', chance: 0.6 },
-    { recipeId: 'copperWand', chance: 0.5 },
-    ...extraDrops('copper', 'short'),
+    { recipeId: 'mail3', chance: 0.6 },
+    { recipeId: 'wand3', chance: 0.5 },
+    ...extraDrops(3, 'short'),
   ],
 };
 const cinderHollow: DungeonDef = {
@@ -207,9 +207,9 @@ const cinderHollow: DungeonDef = {
   xp: 220,
   loot: [],
   recipeDrops: [
-    { recipeId: 'copperBow', chance: 0.6 },
-    { recipeId: 'copperWand', chance: 0.5 },
-    ...extraDrops('copper', 'long'),
+    { recipeId: 'bow3', chance: 0.6 },
+    { recipeId: 'wand3', chance: 0.5 },
+    ...extraDrops(3, 'long'),
   ],
 };
 // Tier 4: iron
@@ -232,9 +232,9 @@ const harpyCliffs: DungeonDef = {
   xp: 250,
   loot: [],
   recipeDrops: [
-    { recipeId: 'ironArmour', chance: 0.6 },
-    { recipeId: 'ironWand', chance: 0.5 },
-    ...extraDrops('iron', 'short'),
+    { recipeId: 'mail4', chance: 0.6 },
+    { recipeId: 'wand4', chance: 0.5 },
+    ...extraDrops(4, 'short'),
   ],
 };
 const orcWarcamp: DungeonDef = {
@@ -256,9 +256,9 @@ const orcWarcamp: DungeonDef = {
   xp: 350,
   loot: [],
   recipeDrops: [
-    { recipeId: 'ironBow', chance: 0.6 },
-    { recipeId: 'ironWand', chance: 0.5 },
-    ...extraDrops('iron', 'long'),
+    { recipeId: 'bow4', chance: 0.6 },
+    { recipeId: 'wand4', chance: 0.5 },
+    ...extraDrops(4, 'long'),
   ],
 };
 // Tier 5: steel
@@ -281,9 +281,9 @@ const wyvernPeaks: DungeonDef = {
   xp: 400,
   loot: [],
   recipeDrops: [
-    { recipeId: 'steelArmour', chance: 0.6 },
-    { recipeId: 'steelWand', chance: 0.5 },
-    ...extraDrops('steel', 'short'),
+    { recipeId: 'mail5', chance: 0.6 },
+    { recipeId: 'wand5', chance: 0.5 },
+    ...extraDrops(5, 'short'),
   ],
 };
 const ashenCitadel: DungeonDef = {
@@ -305,9 +305,9 @@ const ashenCitadel: DungeonDef = {
   xp: 550,
   loot: [],
   recipeDrops: [
-    { recipeId: 'steelBow', chance: 0.6 },
-    { recipeId: 'steelWand', chance: 0.5 },
-    ...extraDrops('steel', 'long'),
+    { recipeId: 'bow5', chance: 0.6 },
+    { recipeId: 'wand5', chance: 0.5 },
+    ...extraDrops(5, 'long'),
   ],
 };
 
@@ -482,7 +482,7 @@ export const dungeons: DungeonDef[] = [
     loot: [],
     recipeDrops: [
       { recipeId: 'woodPickaxe', chance: 1 },
-      { recipeId: 'woodArmour', chance: 0.3 },
+      { recipeId: 'mail1', chance: 0.3 },
     ],
   },
 
@@ -559,7 +559,7 @@ export const dungeons: DungeonDef[] = [
     recipeDrops: [
       { recipeId: 'stonePickaxe', chance: 1 },
       { recipeId: 'emberWardSalve', chance: 0.2 },
-      { recipeId: 'stoneArmour', chance: 0.3 },
+      { recipeId: 'mail2', chance: 0.3 },
     ],
   },
 
@@ -634,7 +634,7 @@ export const dungeons: DungeonDef[] = [
     loot: [],
     recipeDrops: [
       { recipeId: 'copperPickaxe', chance: 1 },
-      { recipeId: 'copperArmour', chance: 0.3 },
+      { recipeId: 'mail3', chance: 0.3 },
     ],
   },
 
@@ -713,7 +713,7 @@ export const dungeons: DungeonDef[] = [
     loot: [],
     recipeDrops: [
       { recipeId: 'ironPickaxe', chance: 1 },
-      { recipeId: 'ironArmour', chance: 0.3 },
+      { recipeId: 'mail4', chance: 0.3 },
     ],
   },
 
@@ -788,7 +788,7 @@ export const dungeons: DungeonDef[] = [
     loot: [],
     recipeDrops: [
       { recipeId: 'steelPickaxe', chance: 1 },
-      { recipeId: 'steelArmour', chance: 0.3 },
+      { recipeId: 'mail5', chance: 0.3 },
     ],
   },
 

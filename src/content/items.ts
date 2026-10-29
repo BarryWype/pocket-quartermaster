@@ -1,5 +1,8 @@
-import type { GearDef, ItemDef, WeaponType } from '@/game/types';
+import type { GearDef, ItemDef } from '@/game/types';
 
+import { gearItemStats } from '@/game/equipment/budget';
+
+import { GEAR_SLOTS, gearId, gearNames, gearProfiles, testCharm } from './equipment';
 import { healthRules } from './health';
 import { provisionRules } from './provisions';
 
@@ -13,65 +16,63 @@ export const MATERIAL_TIERS = [
   { id: 'steel', name: 'Steel' },
 ];
 
-/** Weapon types the newer classes use; one per material tier, with the same main stat as the other weapons. */
-export const extraWeaponTypes: { type: WeaponType; suffix: string; name: string; emoji: string; stat: 'power' | 'magic' }[] = [
-  { type: 'axe', suffix: 'Axe', name: 'axe', emoji: '🪓', stat: 'power' },
-  { type: 'mace', suffix: 'Mace', name: 'mace', emoji: '🔨', stat: 'power' },
-  { type: 'dagger', suffix: 'Dagger', name: 'dagger', emoji: '🔪', stat: 'power' },
-  { type: 'staff', suffix: 'Staff', name: 'staff', emoji: '🦯', stat: 'magic' },
-  { type: 'instrument', suffix: 'Lute', name: 'lute', emoji: '🪕', stat: 'magic' },
-];
+/** Types that keep their drawn icons (sword, bow, wand), one per material tier. */
+const GEAR_ICONS: Partial<Record<keyof typeof gearProfiles, GearDef['icon'][]>> = {
+  sword: [
+    require('../../assets/icons/scaled/sword-wood.png'),
+    require('../../assets/icons/scaled/sword-stone.png'),
+    require('../../assets/icons/scaled/sword-copper.png'),
+    require('../../assets/icons/scaled/sword-iron.png'),
+    require('../../assets/icons/scaled/sword-steel.png'),
+  ],
+  bow: [
+    require('../../assets/icons/scaled/bow-wood.png'),
+    require('../../assets/icons/scaled/bow-stone.png'),
+    require('../../assets/icons/scaled/bow-copper.png'),
+    require('../../assets/icons/scaled/bow-iron.png'),
+    require('../../assets/icons/scaled/bow-steel.png'),
+  ],
+  wand: [
+    require('../../assets/icons/scaled/wand-wood.png'),
+    require('../../assets/icons/scaled/wand-stone.png'),
+    require('../../assets/icons/scaled/wand-copper.png'),
+    require('../../assets/icons/scaled/wand-iron.png'),
+    require('../../assets/icons/scaled/wand-steel.png'),
+  ],
+};
 
-const WEAPON_POWER = [6, 12, 17, 24, 32];
-
-const extraWeapons: GearDef[] = extraWeaponTypes.flatMap(({ type, suffix, name, emoji, stat }) =>
-  MATERIAL_TIERS.map((material, i) => ({
-    id: `${material.id}${suffix}`,
-    name: `${material.name} ${name}`,
-    emoji,
-    slot: 'weapon' as const,
-    weaponType: type,
-    stats: { [stat]: WEAPON_POWER[i] },
-    tier: i + 1,
-  })),
-);
+/** One item per gear type and tier (110 pieces), stats from the budget maths. */
+const gear: GearDef[] = (Object.keys(gearProfiles) as (keyof typeof gearProfiles)[]).flatMap((type) => {
+  const profile = gearProfiles[type];
+  return [1, 2, 3, 4, 5].map((tier): GearDef => ({
+    id: gearId(type, tier),
+    name: gearNames[type][tier - 1],
+    emoji: profile.emoji,
+    ...(GEAR_ICONS[type] ? { icon: GEAR_ICONS[type]![tier - 1] } : {}),
+    slot: GEAR_SLOTS[type],
+    gearType: type,
+    stats: gearItemStats(profile, tier),
+    tier,
+    ...(profile.twoHanded ? { twoHanded: true } : {}),
+    keywords: profile.keywords,
+    ...(profile.heavy ? { heavy: true } : {}),
+    ...(profile.concealed ? { concealed: true } : {}),
+    ...(profile.damageStat ? { damageStat: profile.damageStat } : {}),
+  }));
+});
 
 // One gear set per material tier: wood → stone → copper → iron → steel.
 export const items: ItemDef[] = [
   // Tier 1: wood
   { id: 'woodPickaxe', name: 'Wooden pickaxe', emoji: '⛏️', icon: require('../../assets/icons/scaled/pickaxe-wood.png'), slot: 'tool', toolType: 'pickaxe', tier: 1 },
-  { id: 'woodSword', name: 'Wooden sword', emoji: '🗡️', icon: require('../../assets/icons/scaled/sword-wood.png'), slot: 'weapon', weaponType: 'sword', stats: { power: 6 }, tier: 1 },
-  { id: 'woodBow', name: 'Wooden bow', emoji: '🏹', icon: require('../../assets/icons/scaled/bow-wood.png'), slot: 'weapon', weaponType: 'bow', stats: { power: 6 }, tier: 1 },
-  { id: 'woodWand', name: 'Wooden wand', emoji: '🪄', icon: require('../../assets/icons/scaled/wand-wood.png'), slot: 'weapon', weaponType: 'wand', stats: { magic: 6 }, tier: 1 },
-  { id: 'woodArmour', name: 'Wooden armour', emoji: '🦺', slot: 'armor', stats: { armour: 4, hp: 30 }, tier: 1 },
-
   // Tier 2: stone
   { id: 'stonePickaxe', name: 'Stone pickaxe', emoji: '⛏️', icon: require('../../assets/icons/scaled/pickaxe-stone.png'), slot: 'tool', toolType: 'pickaxe', tier: 2 },
-  { id: 'stoneSword', name: 'Stone sword', emoji: '🗡️', icon: require('../../assets/icons/scaled/sword-stone.png'), slot: 'weapon', weaponType: 'sword', stats: { power: 12 }, tier: 2 },
-  { id: 'stoneBow', name: 'Stone bow', emoji: '🏹', icon: require('../../assets/icons/scaled/bow-stone.png'), slot: 'weapon', weaponType: 'bow', stats: { power: 12 }, tier: 2 },
-  { id: 'stoneWand', name: 'Stone wand', emoji: '🪄', icon: require('../../assets/icons/scaled/wand-stone.png'), slot: 'weapon', weaponType: 'wand', stats: { magic: 12 }, tier: 2 },
-  { id: 'stoneArmour', name: 'Stone armour', emoji: '🦺', slot: 'armor', stats: { armour: 8, hp: 55 }, tier: 2 },
-
   // Tier 3: copper
   { id: 'copperPickaxe', name: 'Copper pickaxe', emoji: '⛏️', icon: require('../../assets/icons/scaled/pickaxe-copper.png'), slot: 'tool', toolType: 'pickaxe', tier: 3 },
-  { id: 'copperSword', name: 'Copper sword', emoji: '🗡️', icon: require('../../assets/icons/scaled/sword-copper.png'), slot: 'weapon', weaponType: 'sword', stats: { power: 17 }, tier: 3 },
-  { id: 'copperBow', name: 'Copper bow', emoji: '🏹', icon: require('../../assets/icons/scaled/bow-copper.png'), slot: 'weapon', weaponType: 'bow', stats: { power: 17 }, tier: 3 },
-  { id: 'copperWand', name: 'Copper wand', emoji: '🪄', icon: require('../../assets/icons/scaled/wand-copper.png'), slot: 'weapon', weaponType: 'wand', stats: { magic: 17 }, tier: 3 },
-  { id: 'copperArmour', name: 'Copper armour', emoji: '🦺', slot: 'armor', stats: { armour: 11, hp: 85 }, tier: 3 },
-
   // Tier 4: iron
   { id: 'ironPickaxe', name: 'Iron pickaxe', emoji: '⛏️', icon: require('../../assets/icons/scaled/pickaxe-iron.png'), slot: 'tool', toolType: 'pickaxe', tier: 4 },
-  { id: 'ironSword', name: 'Iron sword', emoji: '🗡️', icon: require('../../assets/icons/scaled/sword-iron.png'), slot: 'weapon', weaponType: 'sword', stats: { power: 24 }, tier: 4 },
-  { id: 'ironBow', name: 'Iron bow', emoji: '🏹', icon: require('../../assets/icons/scaled/bow-iron.png'), slot: 'weapon', weaponType: 'bow', stats: { power: 24 }, tier: 4 },
-  { id: 'ironWand', name: 'Iron wand', emoji: '🪄', icon: require('../../assets/icons/scaled/wand-iron.png'), slot: 'weapon', weaponType: 'wand', stats: { magic: 24 }, tier: 4 },
-  { id: 'ironArmour', name: 'Iron armour', emoji: '🦺', slot: 'armor', stats: { armour: 16, hp: 120 }, tier: 4 },
-
   // Tier 5: steel
   { id: 'steelPickaxe', name: 'Steel pickaxe', emoji: '⛏️', icon: require('../../assets/icons/scaled/pickaxe-steel.png'), slot: 'tool', toolType: 'pickaxe', tier: 5 },
-  { id: 'steelSword', name: 'Steel sword', emoji: '🗡️', icon: require('../../assets/icons/scaled/sword-steel.png'), slot: 'weapon', weaponType: 'sword', stats: { power: 32 }, tier: 5 },
-  { id: 'steelBow', name: 'Steel bow', emoji: '🏹', icon: require('../../assets/icons/scaled/bow-steel.png'), slot: 'weapon', weaponType: 'bow', stats: { power: 32 }, tier: 5 },
-  { id: 'steelWand', name: 'Steel wand', emoji: '🪄', icon: require('../../assets/icons/scaled/wand-steel.png'), slot: 'weapon', weaponType: 'wand', stats: { magic: 32 }, tier: 5 },
-  { id: 'steelArmour', name: 'Steel armour', emoji: '🦺', slot: 'armor', stats: { armour: 22, hp: 160 }, tier: 5 },
 
   // Consumables, in a hero's slot, all gone after the run: potions are drunk
   // below the HP threshold, charms help for the whole run, and what never
@@ -106,5 +107,8 @@ export const items: ItemDef[] = [
   { id: 'quickBites', name: 'Quick bites', emoji: '🥪', description: '−10% expedition time.', slot: 'provision', meal: { kind: 'duration', multiplier: meals.quickBitesDuration } },
   { id: 'comfortBroth', name: 'Comfort broth', emoji: '🍵', description: 'Better rewards after a retreat or defeat.', slot: 'provision', meal: { kind: 'retreat', bonus: meals.brothRetreat } },
 
-  ...extraWeapons,
+  // Debug trinket: never crafted or dropped.
+  testCharm,
+
+  ...gear,
 ];

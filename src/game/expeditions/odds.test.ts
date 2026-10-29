@@ -1,5 +1,4 @@
 import { startingHeroes } from '@/content/heroes';
-import { items } from '@/content/items';
 import { dungeonById } from '@/content/lookup';
 
 import { composeBriefing } from '../threats/compose';
@@ -11,12 +10,11 @@ import { resolveExpedition, startExpedition, type Loadout } from './expeditions'
 import { estimateOdds } from './odds';
 
 const ALL = startingHeroes.map((h) => h.id);
-const WEAPONS = ['Sword', 'Bow', 'Wand'];
+const WEAPONS = ['sword', 'bow', 'wand'];
 const DAY = rotationDay(0);
 
 /** The starting heroes at a level, in a tier's weapons and armour (Normal), each with a healing potion. */
 function team(tier: number, level: number): SaveData {
-  const material = items.find((i) => i.slot === 'armor' && i.tier === tier)!.id.replace('Armour', '');
   let save: SaveData = {
     ...createInitialSave(),
     tutorial: { step: 'done', woodSpot: null },
@@ -24,8 +22,8 @@ function team(tier: number, level: number): SaveData {
     heroes: createInitialSave().heroes.map((h) => ({ ...h, level })),
     consumables: { ...createInitialSave().consumables, healingPotion: 3 },
     gear: ALL.flatMap((_, i) => [
-      { uid: `w${i}`, itemId: `${material}${WEAPONS[i]}`, quality: 'normal' as const },
-      { uid: `a${i}`, itemId: `${material}Armour`, quality: 'normal' as const },
+      { uid: `w${i}`, itemId: `${WEAPONS[i]}${tier}`, quality: 'normal' as const },
+      { uid: `a${i}`, itemId: `mail${tier}`, quality: 'normal' as const },
     ]),
   };
   ALL.forEach((id, i) => {
@@ -60,7 +58,7 @@ describe('odds preview', () => {
 
   /** The same check with hurt heroes, short supply and a meal. */
   const prepared = (): SaveData => {
-    let save = team(2, 3);
+    let save = team(3, 3);
     save = setHeroHp(save, 'bram', 0.5, 0);
     save = setHeroHp(save, 'mira', 0.7, 0);
     save = { ...save, consumables: { ...save.consumables, trailMix: 1, huntersStew: N, roguesRoll: 1 } };
@@ -98,7 +96,7 @@ describe('odds preview', () => {
   });
 
   it('includes the supply status', () => {
-    const save = team(2, 3);
+    const save = team(3, 3);
     const dungeon = dungeonById.ogreQuarry;
     const briefing = composeBriefing(dungeon, DAY);
     const fed = estimateOdds(save, ALL, dungeon, 300, { briefing }).success;

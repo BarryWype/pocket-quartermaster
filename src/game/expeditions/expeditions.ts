@@ -11,7 +11,6 @@ import { travellerRules } from '@/content/patrols';
 import { tutorialRules } from '@/content/tutorial';
 
 import { forgedItem, unlockRecipe } from '../crafting/crafting';
-import { masteryTypeOf } from '../forging/mastery';
 import { guildBonus, partySize, rosterCap, sigilCap } from '../guild/guild';
 import { highestUnlockedTier, isDungeonUnlocked } from '../dungeons/unlock';
 import { briefingFor, openDungeonIds, rotationDay, type Rotation } from '../dungeons/rotation';
@@ -21,7 +20,7 @@ import { rollLoot } from '../rewards/loot';
 import { grantMainRewards, type MainRewardOptions } from '../rewards/mainRewards';
 import type { SaveData } from '../save';
 import { applyRunHp, settleHp } from '../team/health';
-import { addXp, canWield, heroAbilities, heroStats, isAway } from '../team/team';
+import { addXp, affinityOf, heroAbilities, heroStats, isAway } from '../team/team';
 import { composeBriefing } from '../threats/compose';
 import { heroAnswers } from '../threats/answers';
 import { launchEffects } from '../threats/penalties';
@@ -68,23 +67,20 @@ export const bossBonusAvailable = (save: SaveData, dungeonId: string, now: numbe
 
 /**
  * The blueprint the day's first win in a pool dungeon would teach: one of its
- * unknown drops, preferring weapon types a roster hero can use, then armour.
- * Bosses are excluded (they have their own daily bonus); nothing when the
- * player knows them all.
+ * unknown drops, preferring gear types a roster hero favours. Bosses are
+ * excluded (they have their own daily bonus); nothing when the player knows
+ * them all.
  */
 export function guaranteedBlueprint(save: SaveData, dungeon: DungeonDef): string | null {
   if (!dungeon.slot) return null;
-  const learnable = (recipeId: string) => {
-    const item = forgedItem(recipeById[recipeId]);
-    return !item || masteryTypeOf(item) in save.mastery ? item : null;
-  };
+  const learnable = (recipeId: string) => forgedItem(recipeById[recipeId]);
   let pick: string | null = null;
   let best = 3;
   for (const { recipeId } of dungeon.recipeDrops) {
     const item = learnable(recipeId);
     if (!item || save.knownRecipes.includes(recipeId)) continue;
-    // Weapon types a roster hero can use, then armour, then the rest.
-    const rank = item.slot === 'weapon' ? (save.heroes.some((h) => canWield(h, item)) ? 0 : 2) : 1;
+    // Favoured types for a roster hero first, then the rest.
+    const rank = save.heroes.some((h) => affinityOf(h.classId, item.gearType) === 'favoured') ? 0 : 1;
     if (rank < best) {
       best = rank;
       pick = recipeId;
@@ -386,14 +382,9 @@ export function resolveExpedition(
     .map((stack) => ({ ...stack, amount: Math.floor(stack.amount * lootShare * kept * luckGold) }))
     .filter((stack) => stack.amount > 0);
   let recipeId: string | null = null;
-  // Blueprints only drop for weapon types the player has met (by recruiting someone who uses them).
-  const metType = (id: string) => {
-    const item = forgedItem(recipeById[id]);
-    return !item || masteryTypeOf(item) in save.mastery;
-  };
   for (const drop of dungeon.recipeDrops) {
     const dropped = rng.chance(drop.chance * luckRoll);
-    if (success && dropped && !recipeId && !save.knownRecipes.includes(drop.recipeId) && metType(drop.recipeId)) {
+    if (success && dropped && !recipeId && !save.knownRecipes.includes(drop.recipeId)) {
       recipeId = drop.recipeId;
     }
   }

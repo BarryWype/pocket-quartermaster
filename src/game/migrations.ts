@@ -1,12 +1,15 @@
 import { dungeons } from '@/content/dungeons';
-import { itemById } from '@/content/lookup';
+import { MASTERY_TYPES } from '@/content/forging';
+import { itemById, recipeById } from '@/content/lookup';
 import { mainRewardRules } from '@/content/mainRewards';
 import { provisionRules } from '@/content/provisions';
 import { xpRules, xpToNextLevel } from '@/content/heroes';
 
+import { forgedItem } from './crafting/crafting';
+import { legacyRecipeId, startingRecipes, tierRecipes } from './crafting/recipeUnlocks';
+import { masteryTypeOf, startingMastery } from './forging/mastery';
 import { createInitialSave, type SaveData } from './save';
-import { canWield } from './team/team';
-import type { ActiveExpedition, ExpeditionReport, GearInstance, HeroClassId, HeroState } from './types';
+import type { ActiveExpedition, ExpeditionReport, GearInstance, HeroClassId, HeroState, MasteryState, MasteryType } from './types';
 import type { PatrolFight } from './patrols/fight';
 
 const KEY = 'mysteriousKey';
@@ -46,13 +49,10 @@ export function migrateV7Save(old: Partial<SaveData>): SaveData {
   const save: SaveData = { ...createInitialSave(), ...old };
   const heroes = save.heroes.map((hero): HeroState => {
     const classId = ((hero.classId as string) === 'archer' ? 'ranger' : hero.classId) as HeroClassId;
-    const weapon = save.gear.find((g) => g.uid === hero.equipment.weapon);
-    const allowed = !weapon || canWield({ ...hero, classId }, itemById[weapon.itemId]);
     return {
       ...hero,
       classId,
       trait: hero.trait ?? STARTING_TRAITS[hero.id] ?? 'tough',
-      equipment: { ...hero.equipment, weapon: allowed ? hero.equipment.weapon : null },
     };
   });
   return { ...save, heroes };
@@ -188,4 +188,70 @@ export function migrateV15Save(old: Partial<SaveData>): SaveData {
     return { ...hero, xp: Math.min(hero.xp, xpToNextLevel(hero.level) - 1) };
   });
   return { ...save, heroes };
+}
+
+/** Old mastery keys → their new gear types. */
+const MASTERY_RENAMES: Record<string, MasteryType> = { instrument: 'lute', armour: 'mail' };
+
+/**
+ * Version 16 → 17: the equipment rework. Every owned or equipped piece keeps
+ * its quality, roll and infusion under the new type-and-tier ids
+ * (`*Armour` → mail, `*Lute` → lute); known recipes map one to one, each
+ * owned pickaxe opens the next tier's recipes, and the tier 1 starting set is
+ * added. Mastery keys carry over, and heroes get empty off-hand and trinket
+ * slots. Running expeditions need nothing: the party is recomputed at resolve.
+ */
+export function migrateV16Save(old: Partial<SaveData>): SaveData {
+  const save: SaveData = { ...createInitialSave(), ...old };
+
+  const gear = save.gear.flatMap((gear): GearInstance[] => {
+    const itemId = legacyRecipeId(gear.itemId);
+    return itemId && itemById[itemId] ? [{ ...gear, itemId }] : [];
+  });
+  const kept = new Set(gear.map((g) => g.uid));
+  const heroes = save.heroes.map((hero): HeroState => ({
+    ...hero,
+    equipment: {
+      weapon: hero.equipment.weapon && kept.has(hero.equipment.weapon) ? hero.equipment.weapon : null,
+      armor: hero.equipment.armor && kept.has(hero.equipment.armor) ? hero.equipment.armor : null,
+      offhand: null,
+      trinket: null,
+      consumable: hero.equipment.consumable ?? null,
+    },
+  }));
+
+  const knownRecipes = [
+    ...new Set([
+      ...save.knownRecipes.flatMap((id) => {
+        if (recipeById[id]) return [id];
+        const mapped = legacyRecipeId(id);
+        return mapped && recipeById[mapped] ? [mapped] : [];
+      }),
+      // Each owned pickaxe opens the tier its recipe teaches; the iron one also smelts steel.
+      ...save.tools.flatMap((toolId) => {
+        const tool = itemById[toolId];
+        if (tool?.slot !== 'tool') return [];
+        return tool.tier === 4 ? ['smeltSteel', ...tierRecipes(5)] : tierRecipes(tool.tier + 1);
+      }),
+      ...startingRecipes,
+    ]),
+  ];
+
+  const mastery: Partial<Record<MasteryType, MasteryState>> = {};
+  for (const [key, state] of Object.entries((old.mastery ?? {}) as Record<string, MasteryState>)) {
+    const type = (MASTERY_RENAMES[key] ?? key) as MasteryType;
+    if (MASTERY_TYPES.includes(type)) mastery[type] = state;
+  }
+  // A type first met through a recipe (pickaxe-taught or starting) starts at that tier's start.
+  for (const item of knownRecipes
+    .flatMap((id) => {
+      const item = forgedItem(recipeById[id]);
+      return item ? [item] : [];
+    })
+    .sort((a, b) => a.tier - b.tier)) {
+    const type = masteryTypeOf(item);
+    if (!mastery[type]) mastery[type] = startingMastery(item.tier);
+  }
+
+  return { ...save, gear, heroes, knownRecipes, mastery };
 }

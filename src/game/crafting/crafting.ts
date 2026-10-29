@@ -1,3 +1,4 @@
+import { gearLuckRules } from '@/content/equipment';
 import { itemById, recipeById } from '@/content/lookup';
 
 import { highestUnlockedTier } from '../dungeons/unlock';
@@ -26,11 +27,11 @@ export function canCraft(save: SaveData, recipe: RecipeDef) {
   return isKnown(save, recipe) && !ownsTool(save, recipe) && hasMaterials(save.materials, recipe.inputs);
 }
 
-/** The gear a recipe forges, if it makes a weapon or armour piece. */
+/** The gear a recipe forges, if it makes a weapon, armour or off-hand piece. */
 export function forgedItem(recipe: RecipeDef) {
   if (!('itemId' in recipe.output)) return null;
   const item = itemById[recipe.output.itemId];
-  return item.slot === 'weapon' || item.slot === 'armor' ? item : null;
+  return item.slot === 'weapon' || item.slot === 'armor' || item.slot === 'offhand' ? item : null;
 }
 
 /** Learns a recipe; a weapon type met for the first time gets its starting mastery. */
@@ -40,6 +41,16 @@ export function unlockRecipe(save: SaveData, recipeId: string): SaveData {
   const item = forgedItem(recipeById[recipeId]);
   if (!item || next.mastery[masteryTypeOf(item)]) return next;
   return { ...next, mastery: { ...next.mastery, [masteryTypeOf(item)]: startingMastery(item.tier) } };
+}
+
+/** Removes a recipe from the known list, mastery untouched (debug). */
+export function forgetRecipe(save: SaveData, recipeId: string): SaveData {
+  return { ...save, knownRecipes: save.knownRecipes.filter((id) => id !== recipeId) };
+}
+
+/** Teaches every recipe, each new type starting its mastery as `unlockRecipe` does (debug). */
+export function learnAllRecipes(save: SaveData): SaveData {
+  return Object.keys(recipeById).reduce<SaveData>((next, id) => unlockRecipe(next, id), save);
 }
 
 /**
@@ -61,9 +72,14 @@ export function craft(save: SaveData, recipe: RecipeDef, forceQuality?: Quality)
     const mastery = masteryOf(next, type);
     const quality =
       forceQuality ?? rollQuality(qualityOdds(mastery.level, gearItem.tier), createRng(`${uid}|${recipe.id}`));
+    // A Legendary forge also rolls +1 Luck, seeded by the piece's uid.
+    const luck = quality === 'legendary' && createRng(`${uid}|luck`).chance(gearLuckRules.chance) ? 1 : undefined;
     next = {
       ...next,
-      gear: [...next.gear, { uid, itemId: gearItem.id, quality, roll: rollStatFactor(uid, mastery.level, gearItem.tier) }],
+      gear: [
+        ...next.gear,
+        { uid, itemId: gearItem.id, quality, roll: rollStatFactor(uid, mastery.level, gearItem.tier), ...(luck ? { luck } : {}) },
+      ],
       mastery: { ...next.mastery, [type]: gainMastery(mastery, gearItem.tier) },
       nextUid: next.nextUid + 1,
     };
@@ -100,7 +116,7 @@ export function forgeResult(before: SaveData, after: SaveData): ForgeResult | nu
   const gear = after.gear.find((g) => !before.gear.some((b) => b.uid === g.uid));
   if (!gear) return null;
   const item = itemById[gear.itemId];
-  if (item.slot !== 'weapon' && item.slot !== 'armor') return null;
+  if (item.slot !== 'weapon' && item.slot !== 'armor' && item.slot !== 'offhand') return null;
   const type = masteryTypeOf(item);
   const mastery = masteryOf(after, type);
   return { gear, type, mastery, levelUp: mastery.level > masteryOf(before, type).level };

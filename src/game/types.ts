@@ -34,16 +34,33 @@ export type HeroRoll = {
   approach?: Approach;
 };
 
-export type WeaponType = 'sword' | 'wand' | 'bow' | 'axe' | 'mace' | 'dagger' | 'staff' | 'instrument';
+export type WeaponType =
+  | 'sword'
+  | 'axe'
+  | 'mace'
+  | 'dagger'
+  | 'bow'
+  | 'spear'
+  | 'warhammer'
+  | 'wand'
+  | 'staff'
+  | 'lute'
+  | 'censer'
+  | 'knuckles';
+export type ArmourType = 'plate' | 'mail' | 'leather' | 'robes';
+export type OffhandType = 'shield' | 'buckler' | 'offhandBlade' | 'quiver' | 'tome' | 'focus';
+
+/** Every gear type; also the mastery key. */
+export type GearType = WeaponType | ArmourType | OffhandType;
 
 export type Quality = 'crappy' | 'normal' | 'rare' | 'legendary';
 
-/** What forging mastery is tracked by: each weapon type, plus armour. */
-export type MasteryType = WeaponType | 'armour';
+/** What forging mastery is tracked by: each gear type. */
+export type MasteryType = GearType;
 
 export type MasteryState = { level: number; progress: number };
 
-export type EquipmentSlot = 'weapon' | 'armor' | 'consumable';
+export type EquipmentSlot = 'weapon' | 'armor' | 'offhand' | 'trinket' | 'consumable';
 
 type ItemBase = {
   id: string;
@@ -54,11 +71,22 @@ type ItemBase = {
 };
 
 export type GearDef = ItemBase & {
-  slot: 'weapon' | 'armor';
-  weaponType?: WeaponType;
+  slot: 'weapon' | 'armor' | 'offhand' | 'trinket';
+  /** The gear type (also the mastery key); trinkets have none. */
+  gearType?: GearType;
   stats: Partial<Stats>;
   /** Material tier: wood 1 … steel 5. */
   tier: number;
+  /** A weapon that takes the off-hand slot: warhammer, staff. */
+  twoHanded?: boolean;
+  /** Combat keywords the piece carries (see gear-keywords.csv). */
+  keywords: Keyword[];
+  /** The Speed malus is in the profile; threat penalties count double. */
+  heavy?: boolean;
+  /** Counts as concealed on Sacred ground. */
+  concealed?: boolean;
+  /** The stat the piece's damage rolls with, for weapons and damage off-hands. */
+  damageStat?: DamageStat;
 };
 
 /** A charm in a hero's consumable slot: lasts one expedition. */
@@ -93,8 +121,23 @@ export type MealEffect =
 /** What a hero can bring to bear on a threat. */
 export type Approach = 'might' | 'finesse' | 'wits' | 'faith' | 'presence';
 
-/** Keywords answer keyword threats; classes, traits, weapons and kits give them. */
-export type Keyword = 'light' | 'watchful' | 'calm' | 'antidote' | 'pierce' | 'cleave' | 'blessed' | 'guard';
+/** Keywords answer keyword threats; classes, traits, gear and kits give them. */
+export type Keyword =
+  | 'light'
+  | 'watchful'
+  | 'calm'
+  | 'antidote'
+  | 'pierce'
+  | 'cleave'
+  | 'blessed'
+  | 'guard'
+  | 'parry'
+  | 'reach'
+  | 'stagger'
+  | 'brace'
+  | 'channel'
+  | 'inspire'
+  | 'mend';
 
 export type ThreatId =
   | 'traps'
@@ -407,8 +450,6 @@ export type HeroClassDef = {
   halfRate?: StatKey;
   /** The stat its unarmed attacks roll with; weapons decide their own. */
   damageStat: DamageStat;
-  /** The weapon types this class can use, with the multiplier on their stats. Armour is open to all. */
-  affinities: Partial<Record<WeaponType, number>>;
   /** Approach scores; missing approaches are the default (see approachRules). */
   approaches: Partial<Record<Approach, number>>;
   keywords: Keyword[];
@@ -431,6 +472,8 @@ export type HeroState = {
   equipment: {
     weapon: string | null;
     armor: string | null;
+    offhand: string | null;
+    trinket: string | null;
     /** Consumable item id (potion, elixir or charm); equipping one takes it out of the stock. */
     consumable: string | null;
   };
@@ -460,6 +503,8 @@ export type GearInstance = {
   roll?: number;
   /** Infused element; a piece can only be infused once. */
   element?: Element;
+  /** A Legendary forge's +1 Luck roll (see gearLuckRules). */
+  luck?: number;
 };
 
 export type ActiveExpedition = {

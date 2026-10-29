@@ -5,6 +5,7 @@ import { traitById } from '@/content/traits';
 import { nextRotationAt } from '../dungeons/rotation';
 import { resolveExpedition, startExpedition } from '../expeditions/expeditions';
 import { prepareParty } from '../expeditions/simulate';
+import { unlockRecipe } from '../crafting/crafting';
 import { migrateV7Save } from '../migrations';
 import { createInitialSave, type SaveData } from '../save';
 import { equip } from '../team/team';
@@ -112,17 +113,18 @@ describe('recruiting', () => {
     expect(after.mastery).toEqual(save.mastery);
   });
 
-  it('only drops blueprints for weapon types the player has met', () => {
+  it('drops blueprints for the newer weapon types, and meeting one starts its mastery', () => {
     const save = unlocked({ tutorial: { step: 'done', woodSpot: null } });
-    const strong = equip({ ...save, gear: [{ uid: 'g', itemId: 'steelSword', quality: 'legendary' }] }, 'bram', 'weapon', 'g');
+    const strong = equip({ ...save, gear: [{ uid: 'g', itemId: 'sword5', quality: 'legendary' }] }, 'bram', 'weapon', 'g');
     const drops = (s: SaveData) =>
       Array.from({ length: 80 }, (_, i) => {
         const started = startExpedition({ ...s, nextUid: i + 10 }, 'ratCellar', ['bram'], 0);
         return resolveExpedition(started, started.expeditions[0]).report.recipeId;
       });
-    expect(drops(strong).filter((id) => id?.endsWith('Axe') || id?.endsWith('Dagger') || id?.endsWith('Staff'))).toEqual([]);
-    const met = { ...strong, mastery: { ...strong.mastery, dagger: { level: 1, progress: 0 } } };
-    expect(drops({ ...met, knownRecipes: met.knownRecipes.filter((id) => id !== 'woodDagger') })).toContain('woodDagger');
+    const fresh = drops(strong).filter((id) => id && ['axe', 'dagger', 'staff'].some((type) => id.startsWith(type)));
+    expect(fresh.length).toBeGreaterThan(0);
+    const taught = unlockRecipe(strong, fresh[0]!);
+    expect(Object.keys(taught.mastery)).toContain(fresh[0]!.replace(/\d+$/, ''));
   });
 });
 
@@ -138,7 +140,7 @@ describe('innate elements', () => {
     const save: SaveData = {
       ...createInitialSave(),
       heroes: [...createInitialSave().heroes, newHero('f', 'Neve', 'frostMage', 'tough')],
-      gear: [{ uid: 'w', itemId: 'woodWand', quality: 'normal', element: 'electric' }],
+      gear: [{ uid: 'w', itemId: 'wand1', quality: 'normal', element: 'electric' }],
     };
     const element = (s: SaveData, id: string) => prepareParty(s, [id])[0].weaponElement;
     expect(element(save, 'mira')).toBe('fire');
@@ -153,7 +155,7 @@ describe('trait rewards', () => {
     const save = {
       ...createInitialSave(),
       heroes: createInitialSave().heroes.map((h) => (h.id === 'bram' ? { ...h, trait } : h)),
-      gear: [{ uid: 'g', itemId: 'steelSword', quality: 'legendary' as const }],
+      gear: [{ uid: 'g', itemId: 'sword5', quality: 'legendary' as const }],
     };
     const started = startExpedition(equip(save, 'bram', 'weapon', 'g'), 'ratCellar', ['bram'], 0);
     return resolveExpedition(started, started.expeditions[0]);
@@ -171,7 +173,7 @@ describe('trait rewards', () => {
 });
 
 describe('save migration v7 → v8', () => {
-  it('renames archers to rangers, gives traits and unequips weapons the class cannot use', () => {
+  it('renames archers to rangers and gives traits, keeping the gear on', () => {
     const old = {
       ...createInitialSave(),
       heroes: createInitialSave().heroes.map((h) => {
@@ -182,7 +184,7 @@ describe('save migration v7 → v8', () => {
     } as unknown as SaveData;
     const save = migrateV7Save(old);
     const lyra = save.heroes.find((h) => h.id === 'lyra')!;
-    expect(lyra).toMatchObject({ classId: 'ranger', trait: 'lucky', equipment: { weapon: null } });
+    expect(lyra).toMatchObject({ classId: 'ranger', trait: 'lucky', equipment: { weapon: 'g' } });
     expect(save.heroes.map((h) => h.trait)).toEqual(['tough', 'lucky', 'quickLearner']);
     expect(save.gear).toHaveLength(1);
   });

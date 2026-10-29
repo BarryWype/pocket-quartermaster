@@ -1,6 +1,7 @@
 import { createInitialSave, type SaveData } from './save';
 import { resolveExpedition } from './expeditions/expeditions';
-import { migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV15Save } from './migrations';
+import { migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV15Save, migrateV16Save } from './migrations';
+import { startingMastery } from './forging/mastery';
 import { xpToNextLevel } from '@/content/heroes';
 import type { ActiveExpedition, ExpeditionReport } from './types';
 
@@ -153,5 +154,59 @@ describe('migrateV15Save', () => {
       [7, xpToNextLevel(7) - 1],
       [15, 0],
     ]);
+  });
+});
+
+describe('migrateV16Save', () => {
+  const before = (): Partial<SaveData> => ({
+    ...createInitialSave(),
+    gear: [
+      { uid: 'g1', itemId: 'woodSword', quality: 'rare', roll: 2 },
+      { uid: 'g2', itemId: 'ironArmour', quality: 'normal', roll: 3, element: 'fire' },
+      { uid: 'g3', itemId: 'ghostCloak', quality: 'normal', roll: 1 },
+    ],
+    heroes: createInitialSave().heroes.map((h) =>
+      // A version 16 save has no off-hand or trinket slots yet.
+      h.id === 'bram' ? ({ ...h, equipment: { ...h.equipment, weapon: 'g1', armor: 'g3' } } as unknown as SaveData['heroes'][number]) : h,
+    ),
+    knownRecipes: ['woodSword', 'copperWand', 'goneRecipe'],
+    tools: ['woodPickaxe', 'ironPickaxe'],
+  });
+
+  it('maps gear to the new type-and-tier ids and drops what does not map, clearing the slot', () => {
+    const after = migrateV16Save(before());
+    expect(after.gear).toEqual([
+      { uid: 'g1', itemId: 'sword1', quality: 'rare', roll: 2 },
+      { uid: 'g2', itemId: 'mail4', quality: 'normal', roll: 3, element: 'fire' },
+    ]);
+    const bram = after.heroes.find((h) => h.id === 'bram')!;
+    expect(bram.equipment.weapon).toBe('g1');
+    expect(bram.equipment.armor).toBeNull();
+    expect(bram.equipment.offhand).toBeNull();
+    expect(bram.equipment.trinket).toBeNull();
+  });
+
+  it('maps known recipes, opens each owned pickaxe tier and adds the starting set', () => {
+    const after = migrateV16Save(before());
+    expect(after.knownRecipes).toEqual(expect.arrayContaining(['sword1', 'wand3', 'bow1', 'quiver1', 'wand1', 'mail1', 'shield1']));
+    // The wooden pickaxe opens tier 2, the iron one steel smelting and tier 5.
+    expect(after.knownRecipes).toEqual(expect.arrayContaining(['sword2', 'smeltSteel', 'sword5']));
+    expect(after.knownRecipes).not.toContain('woodSword');
+    expect(after.knownRecipes).not.toContain('goneRecipe');
+  });
+
+  it('renames the old mastery keys and drops the unknown ones', () => {
+    const kept = { level: 3, progress: 1 };
+    const old = { ...before(), mastery: { ...createInitialSave().mastery, instrument: kept, armour: kept, nonsense: kept } };
+    const after = migrateV16Save(old);
+    expect(after.mastery.lute).toEqual(kept);
+    expect(after.mastery.mail).toEqual(kept);
+    expect('nonsense' in after.mastery).toBe(false);
+  });
+
+  it('starts a type first met through a pickaxe tier at that tier’s starting mastery', () => {
+    const after = migrateV16Save(before());
+    // The wooden pickaxe teaches tier 2, so axe is first met by axe2.
+    expect(after.mastery.axe).toEqual(startingMastery(2));
   });
 });

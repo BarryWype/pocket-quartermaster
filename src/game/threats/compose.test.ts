@@ -143,7 +143,7 @@ describe('restrictions and answers', () => {
     heroId: 'h',
     classId: 'warrior',
     traitId: 'none',
-    weaponType: null,
+    gearKeywords: [],
     kit: null,
     salveElement: null,
     classResists: [],
@@ -165,6 +165,20 @@ describe('restrictions and answers', () => {
     expect(restrictionKeepsAnswers([{ id: 'darkness', level: 1 }], 'antiMagic', [member({ classId: 'fireMage' })])).toBe(
       false,
     );
+  });
+
+  it('refuses anti-magic when the only answers come from magic sources', () => {
+    const undead = [{ id: 'undead' as const, level: 1 as const }];
+    // Only a censer's Blessed answers the undead, and a censer is magic.
+    const censer = [member({ gearKeywords: [{ keyword: 'blessed', magic: true }] })];
+    expect(restrictionKeepsAnswers(undead, 'antiMagic', censer)).toBe(false);
+    expect(restrictionKeepsAnswers(undead, null, censer)).toBe(true);
+    // A mace's Blessed is physical gear; a kit's keyword is never magic.
+    const mace = [member({ gearKeywords: [{ keyword: 'blessed', magic: false }] })];
+    expect(restrictionKeepsAnswers(undead, 'antiMagic', mace)).toBe(true);
+    const darkness = [{ id: 'darkness' as const, level: 1 as const }];
+    expect(restrictionKeepsAnswers(darkness, 'antiMagic', [member({ classId: 'fireMage' })])).toBe(false);
+    expect(restrictionKeepsAnswers(darkness, 'antiMagic', [member({ kit: kit('lantern') })])).toBe(true);
   });
 
   it('rejects narrow passages for a keyword threat needing more heroes than fit', () => {
