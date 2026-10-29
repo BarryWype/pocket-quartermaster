@@ -83,7 +83,7 @@ describe('engaging a patrol', () => {
 });
 
 describe('patrol rewards', () => {
-  const context = { goldMultiplier: 1, pickaxeTier: 0 };
+  const context = { goldMultiplier: 1, luck: 0, pickaxeTier: 0 };
 
   it('pays the Guild Hall gold track and XP from the tier', () => {
     const plain = patrolRewards(context, goblins, 2, false, createRng('r'));
@@ -105,7 +105,7 @@ describe('patrol rewards', () => {
   it('fills a bandit cache from the gathering table, never with ore above the pickaxe', () => {
     const bandits = asKind(goblins, 'bandits');
     const held = (pickaxeTier: number) =>
-      new Set(Array.from({ length: 300 }, (_, i) => patrolRewards({ goldMultiplier: 1, pickaxeTier }, bandits, 2, false, createRng(`c${i}`)).materials.map((m) => m.materialId)).flat());
+      new Set(Array.from({ length: 300 }, (_, i) => patrolRewards({ goldMultiplier: 1, luck: 0, pickaxeTier }, bandits, 2, false, createRng(`c${i}`)).materials.map((m) => m.materialId)).flat());
     const none = held(0);
     expect(none.has('wood')).toBe(true);
     for (const ore of ['stone', 'copper', 'iron', 'coal', 'steel']) expect(none.has(ore)).toBe(false);

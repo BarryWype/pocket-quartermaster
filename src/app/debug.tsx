@@ -8,7 +8,7 @@ import { elementInfo } from '@/content/elements';
 import { MASTERY_TYPES, masteryTypeNames, QUALITIES, qualities } from '@/content/forging';
 import { dungeons } from '@/content/dungeons';
 import { guildTrackById, guildTracks, type GuildTrackId } from '@/content/guild';
-import { heroClasses } from '@/content/heroes';
+import { heroClasses, xpRules } from '@/content/heroes';
 import { traits } from '@/content/traits';
 import { items } from '@/content/items';
 import { threatById, restrictionById, opportunityById } from '@/content/lookup';
@@ -50,6 +50,8 @@ import { deviceLocation } from '@/services/location';
 import { readBackground, readBuffer, stepPatrols, updateBackground, updateBuffer, type StoredBuffer } from '@/services/walkTracking';
 import { deviceNotifications } from '@/services/notifications';
 import { useNow } from '@/hooks/useNow';
+import { useLanguage } from '@/hooks/useLanguage';
+import { t } from '@/i18n';
 import { currentRotation, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -111,6 +113,7 @@ function Choice<T>({
 }
 
 export default function DebugScreen() {
+  useLanguage();
   const debug = useDebugStore();
   const game = useGameStore();
   const autoMode = useWorldStore((state) => state.autoGather);
@@ -153,8 +156,11 @@ export default function DebugScreen() {
   const [heroLevel, setHeroLevel] = useState(1);
   const [heroTrait, setHeroTrait] = useState(traits[0].id);
   const [hpHero, setHpHero] = useState(game.save.heroes[0]?.id ?? '');
+  const [levelHero, setLevelHero] = useState(game.save.heroes[0]?.id ?? '');
   const now = useNow();
   const hpHeroState = game.save.heroes.find((h) => h.id === hpHero);
+  const levelHeroState = game.save.heroes.find((h) => h.id === levelHero);
+  const levelHeroLevel = levelHeroState?.level ?? 1;
   const hpShareNow = hpHeroState ? currentHp(game.save, hpHeroState, now) / maxHp(game.save, hpHeroState) : 1;
   const [guildTrack, setGuildTrack] = useState<GuildTrackId>('gold');
   const [rotationSlot, setRotationSlot] = useState<'short' | 'long'>('short');
@@ -392,6 +398,30 @@ export default function DebugScreen() {
         </View>
       </View>
       <Text style={styles.hint}>Debug heroes skip the roster cap and teach their weapon types like recruits.</Text>
+
+      <Text>{t('debug.setLevel')}</Text>
+      <Text>{t('autoGather.pickHero')}</Text>
+      <Choice
+        options={game.save.heroes.map((h) => h.id)}
+        value={levelHero}
+        label={(id) => game.save.heroes.find((h) => h.id === id)!.name}
+        onChange={setLevelHero}
+      />
+      <View style={styles.row}>
+        <Text>{t('common.level', { level: levelHeroLevel })}</Text>
+        <View style={styles.choices}>
+          <Button
+            title={t('debug.minus')}
+            disabled={levelHeroLevel <= 1}
+            onPress={() => game.debugSetHeroLevel(levelHero, levelHeroLevel - 1)}
+          />
+          <Button
+            title={t('debug.plus')}
+            disabled={levelHeroLevel >= xpRules.maxLevel}
+            onPress={() => game.debugSetHeroLevel(levelHero, levelHeroLevel + 1)}
+          />
+        </View>
+      </View>
 
       <Text style={styles.title}>Guild Hall</Text>
       <Text>Charters: {game.save.charters}</Text>

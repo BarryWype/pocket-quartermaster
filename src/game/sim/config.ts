@@ -119,7 +119,7 @@ export type SimConfig = typeof simConfig;
  * profile. The balance tests and the odds matrix use it; update it when the
  * report's "Party level at the first attempt" moves.
  */
-export const expectedLevels = [2, 4, 6, 8, 10];
+export const expectedLevels = [3, 6, 9, 12, 15];
 
 /** The bot's rules, printed at the top of the report. Keep in step with `bot.ts`. */
 export const BOT_RULES = [

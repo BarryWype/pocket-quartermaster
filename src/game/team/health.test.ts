@@ -1,5 +1,5 @@
 import { healthRules } from '@/content/health';
-import { newHero } from '@/content/heroes';
+import { newHero, xpToNextLevel } from '@/content/heroes';
 
 import { resolveExpedition, startExpedition } from '../expeditions/expeditions';
 import { prepareParty } from '../expeditions/simulate';
@@ -88,7 +88,7 @@ describe('hero HP', () => {
     const kit = { gear: [{ uid: 's', itemId: 'steelSword', quality: 'normal' as const }, { uid: 'a', itemId: 'steelArmour', quality: 'normal' as const }] };
     let save = hurt(0.6, kit);
     save = equip(equip(save, 'bram', 'weapon', 's'), 'bram', 'armor', 'a');
-    save = { ...save, heroes: save.heroes.map((h) => ({ ...h, xp: 99 })) };
+    save = { ...save, heroes: save.heroes.map((h) => ({ ...h, xp: xpToNextLevel(1) - 1 })) };
     const started = startExpedition(save, 'ratCellar', ['bram'], 0);
     const { save: after, report } = resolveExpedition(started, started.expeditions[0]);
     const back = report.heroHp[0];

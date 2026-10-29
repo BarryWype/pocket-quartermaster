@@ -339,6 +339,10 @@ export function resolveExpedition(
   const dungeon = dungeonById[expedition.dungeonId];
   const briefing = expedition.briefing ?? EMPTY_BRIEFING;
   const party = prepareParty(save, expedition.heroIds);
+  // Lucky parties bring more home: gold and materials directly, rolls with a better chance.
+  const luck = party.reduce((sum, m) => sum + m.luck, 0);
+  const luckGold = 1 + rules.luck.goldPerPoint * luck;
+  const luckRoll = 1 + rules.luck.rollPerPoint * luck;
   const run = simulateRun(party, dungeon, `${expedition.seed}|run`, {
     rules,
     guaranteed: expedition.guaranteed,
@@ -371,10 +375,15 @@ export function resolveExpedition(
   const bounty = run.opportunity?.answered && run.opportunity.goldMultiplier ? run.opportunity.goldMultiplier : 1;
   const kept = 1 - run.lostLoot;
   let gold = Math.round(
-    (rng.int(dungeon.gold[0], dungeon.gold[1]) * lootShare * kept * bounty + run.bonusGold) * guildGold * traitGold * charmGold * mealGold,
+    (rng.int(dungeon.gold[0], dungeon.gold[1]) * lootShare * kept * bounty + run.bonusGold) *
+      guildGold *
+      traitGold *
+      charmGold *
+      mealGold *
+      luckGold,
   );
   let materials = rollLoot(rng, dungeon.loot)
-    .map((stack) => ({ ...stack, amount: Math.floor(stack.amount * lootShare * kept) }))
+    .map((stack) => ({ ...stack, amount: Math.floor(stack.amount * lootShare * kept * luckGold) }))
     .filter((stack) => stack.amount > 0);
   let recipeId: string | null = null;
   // Blueprints only drop for weapon types the player has met (by recruiting someone who uses them).
@@ -383,7 +392,7 @@ export function resolveExpedition(
     return !item || masteryTypeOf(item) in save.mastery;
   };
   for (const drop of dungeon.recipeDrops) {
-    const dropped = rng.chance(drop.chance);
+    const dropped = rng.chance(drop.chance * luckRoll);
     if (success && dropped && !recipeId && !save.knownRecipes.includes(drop.recipeId) && metType(drop.recipeId)) {
       recipeId = drop.recipeId;
     }
@@ -508,8 +517,8 @@ export function resolveExpedition(
   } else if (success) {
     const granted = grantMainRewards(next, rewardDungeon, createRng(`${expedition.seed}|main`), expedition.endsAt, {
       ...mainReward,
-      goldMultiplier: guildGold,
-      chanceMultiplier: 1 + guildBonus(save, 'mainRewards'),
+      goldMultiplier: guildGold * luckGold,
+      chanceMultiplier: (1 + guildBonus(save, 'mainRewards')) * luckRoll,
     });
     next = granted.save;
     mainRewards = granted.rewards;

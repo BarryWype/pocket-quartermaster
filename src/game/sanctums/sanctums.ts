@@ -3,6 +3,7 @@ import { frLogTemplates } from '@/content/fr/logTemplates';
 import { logTemplates } from '@/content/logTemplates';
 import { fill, localized, tr } from '@/i18n';
 import { guildRules } from '@/content/guild';
+import { expeditionRules } from '@/content/dungeons';
 import { sanctumRules, sanctums } from '@/content/sanctums';
 
 import { convertShards, shardId, stoneId } from '../elements';
@@ -132,12 +133,14 @@ export function challengeSanctum(
   const party = prepareParty(save, heroIds, now);
   const run = simulateRun(party, dungeon, seed);
   const win = run.bossDefeated;
+  // Lucky parties carry more shards and stones home.
+  const luckGold = 1 + expeditionRules.luck.goldPerPoint * party.reduce((sum, m) => sum + m.luck, 0);
   const amounts = rules.rewards[tier - 1][win ? 'win' : 'loss'];
   // Wins also get the Guild Hall's extra shards, and sometimes a charter.
   const reward = {
     element: sanctum.element,
-    shards: amounts.shards + (win ? guildBonus(save, 'shards') : 0),
-    stones: amounts.stones,
+    shards: Math.round((amounts.shards + (win ? guildBonus(save, 'shards') : 0)) * luckGold),
+    stones: Math.round(amounts.stones * luckGold),
     charter: win && createRng(`${seed}|charter`).chance(guildRules.charters.sanctumWinChance),
   };
 

@@ -810,8 +810,17 @@ export const expeditionRules = {
    * takes the inverse. Keeps odds gradual between weak and strong teams.
    */
   fortune: 0.25,
-  critChance: 0.1,
   critMultiplier: 1.5,
+  /** Enemies' flat crit chance; heroes use their Crit stat instead. */
+  enemyCritChance: 0.1,
+  /** Enemy hits are avoided with chance min(Evasion, cap) %. */
+  evasionCap: 40,
+  /** An armoured threat's penalty on Magic hits: that share of the Power penalty. */
+  magicArmourShare: 0.5,
+  /** A hero faster than their target may strike twice: this chance per Speed point of the gap, capped. */
+  speed: { secondAttackPerPoint: 0.1, max: 0.5 },
+  /** Party Luck (sum of the heroes'): rewards per point of it. */
+  luck: { goldPerPoint: 0.05, rollPerPoint: 0.1 },
   /** Potions are drunk when their hero falls below this share of max HP. */
   potionThreshold: 0.35,
   /** Enraged bosses hit this much harder below half HP. */

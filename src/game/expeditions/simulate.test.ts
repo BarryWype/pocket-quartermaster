@@ -9,7 +9,7 @@ import { simulateRun, type PartyMember } from './simulate';
 /** No mishaps or run-wide luck, so each test sees the mechanic it targets. */
 const calm = { ...expeditionRules, mishapChance: 0, fortune: 0 };
 /** Also no variance or crits, so numbers can be checked exactly. */
-const steady = { ...calm, damageVariance: 0, critChance: 0 };
+const steady = { ...calm, damageVariance: 0, enemyCritChance: 0 };
 
 function member(heroId: string, overrides: Partial<PartyMember> = {}): PartyMember {
   return {
@@ -21,9 +21,15 @@ function member(heroId: string, overrides: Partial<PartyMember> = {}): PartyMemb
     weaponType: null,
     maxHp: 100,
     hp: overrides.hp ?? overrides.maxHp ?? 100,
-    damage: 10,
+    power: 10,
     magic: 0,
-    defense: 0,
+    damageStat: 'power',
+    armour: 0,
+    resistance: 0,
+    evasion: 0,
+    speed: 5,
+    crit: 0,
+    luck: 0,
     threat: 1,
     resists: [],
     abilities: [],
@@ -37,7 +43,7 @@ function dungeon(encounters: EncounterDef[], boss: Partial<BossDef> = {}, count:
     ...dungeonById.ratCellar,
     encounterCount: count,
     encounters,
-    boss: { id: 'testBoss', name: 'test boss', hp: 100, damage: 5, tags: [], ...boss },
+    boss: { id: 'testBoss', name: 'test boss', hp: 100, damage: 5, damageType: 'power', speed: 5, tags: [], ...boss },
   };
 }
 
@@ -73,7 +79,7 @@ describe('simulateRun', () => {
   });
 
   it('ends with the boss', () => {
-    const run = simulateRun([member('a', { damage: 1000, maxHp: 1e6 })], dungeonById.banditStockade, 'x', { rules: calm });
+    const run = simulateRun([member('a', { power: 1000, maxHp: 1e6 })], dungeonById.banditStockade, 'x', { rules: calm });
     expect(run.encounters[run.encounters.length - 1].kind).toBe('boss');
     expect(run.encounters).toHaveLength(run.encounterCount);
   });
@@ -95,21 +101,21 @@ describe('fights', () => {
     simulateRun(party, boss, 's', { rules: steady }).encounters.find((e) => e.kind === 'boss')!;
 
   it('takes fewer rounds with more attack', () => {
-    const strong = bossFight([member('a', { ...tough, damage: 30 })]);
-    const weak = bossFight([member('a', { ...tough, damage: 10 })]);
+    const strong = bossFight([member('a', { ...tough, power: 30 })]);
+    const weak = bossFight([member('a', { ...tough, power: 10 })]);
     expect(strong.rounds).toBeLessThan(weak.rounds);
   });
 
-  it('takes less damage with more defense', () => {
-    const exposed = bossFight([member('a', { ...tough, damage: 30 })]).taken.a;
-    const armoured = bossFight([member('a', { ...tough, damage: 30, defense: 25 })]).taken.a;
+  it('takes less damage with more armour', () => {
+    const exposed = bossFight([member('a', { ...tough, power: 30 })]).taken.a;
+    const armoured = bossFight([member('a', { ...tough, power: 30, armour: 25 })]).taken.a;
     expect(armoured).toBeCloseTo(exposed * (100 / (100 + steady.defenseFactor * 25)));
   });
 
   it('hurts heroes unprotected from the element more', () => {
     const fire = bossOnly({ hp: 300, damage: 10, element: 'fire' });
     const taken = (resists: Element[]) =>
-      simulateRun([member('a', { ...tough, damage: 30, resists })], fire, 's', { rules: steady }).encounters.find(
+      simulateRun([member('a', { ...tough, power: 30, resists })], fire, 's', { rules: steady }).encounters.find(
         (e) => e.kind === 'boss',
       )!.taken.a;
     expect(taken([])).toBeCloseTo(taken(['fire']) * elementRules.unprotectedMultiplier);
@@ -186,7 +192,7 @@ describe('obstacles and events are quiet steps', () => {
       { type: 'event', weight: 1, eventId: 'cache' },
       { type: 'event', weight: 1, eventId: 'ambush' },
     ];
-    const run = simulateRun([member('a', { damage: 1000 })], dungeon(pool, {}, [5, 5]), 's', { rules: steady });
+    const run = simulateRun([member('a', { power: 1000 })], dungeon(pool, {}, [5, 5]), 's', { rules: steady });
     for (const encounter of run.encounters.slice(0, 4)) {
       expect(encounter).toMatchObject({ kind: 'quiet', cleared: true, taken: {}, dealt: {}, rounds: 0 });
     }
@@ -228,20 +234,20 @@ describe('consumables', () => {
 
 describe('knock-outs and outcomes', () => {
   it('is flawless when nobody is knocked out', () => {
-    const run = simulateRun([member('a', { damage: 1000 })], bossOnly(), 's', { rules: calm });
+    const run = simulateRun([member('a', { power: 1000 })], bossOnly(), 's', { rules: calm });
     expect(run.outcome).toBe('flawless');
     expect(run.encountersCleared).toBe(2);
   });
 
   it('still succeeds when someone falls but the boss is beaten', () => {
-    const party = [member('weak', { maxHp: 1, threat: 100 }), member('strong', { maxHp: 1e6, damage: 20 })];
+    const party = [member('weak', { maxHp: 1, threat: 100 }), member('strong', { maxHp: 1e6, power: 20 })];
     const run = simulateRun(party, bossOnly({ hp: 200, damage: 10 }), 's', { rules: steady });
     expect(run.bossDefeated).toBe(true);
     expect(run.outcome).toBe('success');
   });
 
   it('retreats when everyone is knocked out, keeping what was cleared', () => {
-    const run = simulateRun([member('a', { damage: 1 })], bossOnly({ hp: 1e6, damage: 50 }), 's', { rules: calm });
+    const run = simulateRun([member('a', { power: 1 })], bossOnly({ hp: 1e6, damage: 50 }), 's', { rules: calm });
     expect(run.outcome).toBe('retreat');
     expect(run.bossDefeated).toBe(false);
     expect(run.encountersCleared).toBe(1);
@@ -250,18 +256,18 @@ describe('knock-outs and outcomes', () => {
 
   it('is a defeat when the team falls at the first encounter', () => {
     const slaughter: EncounterDef = { type: 'fight', weight: 1, mobs: [{ mobId: 'goblinSlinger', count: 20 }] };
-    const run = simulateRun([member('a', { damage: 1 })], dungeon([slaughter]), 's', { rules: calm });
+    const run = simulateRun([member('a', { power: 1 })], dungeon([slaughter]), 's', { rules: calm });
     expect(run.outcome).toBe('defeat');
     expect(run.encountersCleared).toBe(0);
   });
 
   it('can end any run early with a mishap, but never a guaranteed one', () => {
     const unlucky = { ...calm, mishapChance: 1 };
-    const run = simulateRun([member('a', { damage: 1000, maxHp: 1e6 })], dungeonById.ratCellar, 's', { rules: unlucky });
+    const run = simulateRun([member('a', { power: 1000, maxHp: 1e6 })], dungeonById.ratCellar, 's', { rules: unlucky });
     expect(run.encounters[run.encounters.length - 1].kind).toBe('mishap');
     expect(run.bossDefeated).toBe(false);
     expect(['retreat', 'defeat']).toContain(run.outcome);
-    const tutorial = simulateRun([member('a', { damage: 1000 })], dungeonById.ratCellar, 's', {
+    const tutorial = simulateRun([member('a', { power: 1000 })], dungeonById.ratCellar, 's', {
       rules: unlucky,
       guaranteed: true,
     });
@@ -269,7 +275,7 @@ describe('knock-outs and outcomes', () => {
   });
 
   it('never knocks anyone out on a guaranteed run, so the boss always falls', () => {
-    const run = simulateRun([member('a', { damage: 1, maxHp: 5 })], bossOnly({ hp: 200, damage: 50 }), 's', {
+    const run = simulateRun([member('a', { power: 1, maxHp: 5 })], bossOnly({ hp: 200, damage: 50 }), 's', {
       guaranteed: true,
     });
     expect(run.bossDefeated).toBe(true);

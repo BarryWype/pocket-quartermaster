@@ -21,7 +21,7 @@ import type { Briefing, ConsumableDef, DungeonDef, EncounterDef, MobGroup, Oppor
 // nothing (Might 3 aside), so keyword threats at level 1 are half-missed.
 
 const ALL = ['bram', 'lyra', 'mira'];
-const steady = { ...expeditionRules, mishapChance: 0, fortune: 0, damageVariance: 0, critChance: 0 };
+const steady = { ...expeditionRules, mishapChance: 0, fortune: 0, damageVariance: 0, enemyCritChance: 0 };
 /** No threats, just the restriction or opportunity under test. */
 const briefing = (extra: Partial<Briefing> = {}): Briefing => ({ threats: [], restriction: null, opportunity: null, ...extra });
 const threat = (id: ThreatId, level: 1 | 2 | 3 = 1, element?: Briefing['threats'][number]['element']): Briefing => ({
@@ -40,9 +40,15 @@ function member(heroId: string, abilities: PartyMember['abilities'] = [], overri
     weaponType: null,
     maxHp: 100,
     hp: overrides.hp ?? overrides.maxHp ?? 100,
-    damage: 10,
+    power: 10,
     magic: 0,
-    defense: 0,
+    damageStat: 'power',
+    armour: 0,
+    resistance: 0,
+    evasion: 0,
+    speed: 5,
+    crit: 0,
+    luck: 0,
     threat: 1,
     resists: [],
     abilities,
@@ -60,7 +66,7 @@ const pool = (
   ...dungeonById.ratCellar,
   encounterCount: count,
   encounters,
-  boss: { id: 'testBoss', name: 'test boss', hp: 40, damage: 4, tags: [], ...boss },
+  boss: { id: 'testBoss', name: 'test boss', hp: 40, damage: 4, damageType: 'power', speed: 5, tags: [], ...boss },
 });
 const fight = (mobs: MobGroup[] = [{ mobId: 'wolfPup', count: 2 }]): EncounterDef => ({ type: 'fight', weight: 1, mobs });
 const trap = (): EncounterDef => ({ type: 'trap', weight: 1, name: 'test trap', targets: 'all' });
@@ -71,7 +77,7 @@ const bossOnly = (boss: Partial<DungeonDef['boss']>, count: [number, number] = [
 describe('run penalties', () => {
   it('expose the first fights: the enemies strike first, and it shows in the results', () => {
     // Watchful 0 against level 2 (needs 2): a full miss, the first two fights exposed.
-    const run = simulateRun([member('a', [], { maxHp: 1e6, damage: 1000 })], fights, 's', {
+    const run = simulateRun([member('a', [], { maxHp: 1e6, power: 1000 })], fights, 's', {
       rules: steady,
       briefing: threat('ambush', 2),
     });
@@ -83,7 +89,7 @@ describe('run penalties', () => {
 
   it('expose every other fight when "all" is halved by a half miss', () => {
     // Darkness level 3 exposes every fight; two light holders halve that to every other one.
-    const carriers = [member('a', [], { classId: 'fireMage', maxHp: 1e6, damage: 1000 }), member('b', [], { classId: 'fireMage', maxHp: 1e6, damage: 1000 })];
+    const carriers = [member('a', [], { classId: 'fireMage', maxHp: 1e6, power: 1000 }), member('b', [], { classId: 'fireMage', maxHp: 1e6, power: 1000 })];
     const runs = Array.from({ length: 8 }, (_, i) =>
       simulateRun(carriers, fights, `d${i}`, { rules: steady, briefing: threat('darkness', 3) }),
     );
@@ -96,7 +102,7 @@ describe('run penalties', () => {
   });
 
   it('weaken the party when missed', () => {
-    const strong = [member('a', [], { maxHp: 1e6, damage: 20 })];
+    const strong = [member('a', [], { maxHp: 1e6, power: 20 })];
     const none = simulateRun(strong, fights, 's', { rules: steady });
     // Wits 1 against level 1 (needs 2): a half miss, ×0.925 damage.
     const weakened = simulateRun(strong, fights, 's', { rules: steady, briefing: threat('underwater', 1) });
@@ -107,7 +113,7 @@ describe('run penalties', () => {
 
   it('poison everyone after each fight, and it shows in the results', () => {
     // No antidote in the party: level 1 is half-missed at 2.5% of max HP per fight.
-    const hero = [member('a', [], { maxHp: 1000, damage: 1000 })];
+    const hero = [member('a', [], { maxHp: 1000, power: 1000 })];
     const plain = simulateRun(hero, fights, 's', { rules: steady });
     const poisoned = simulateRun(hero, fights, 's', { rules: steady, briefing: threat('poison', 1) });
     expect(poisoned.encounters[0].effects).toContainEqual({ heroId: null, key: 'poison' });
@@ -117,7 +123,7 @@ describe('run penalties', () => {
 
   it('let enemy casters wound one hero before each fight', () => {
     const run = simulateRun(
-      [member('a', [], { maxHp: 1000, damage: 1000 }), member('b', [], { maxHp: 1000, damage: 1000 })],
+      [member('a', [], { maxHp: 1000, power: 1000 }), member('b', [], { maxHp: 1000, power: 1000 })],
       fights,
       's',
       { rules: steady, briefing: threat('casters', 2) },
@@ -128,33 +134,33 @@ describe('run penalties', () => {
   it('make the brute hit harder on the boss', () => {
     const dungeon = bossOnly({ hp: 5000, damage: 4 });
     const run = (briefingOf?: Briefing) =>
-      simulateRun([member('a', [], { maxHp: 1e6, damage: 1000 })], dungeon, 's', { rules: steady, ...(briefingOf ? { briefing: briefingOf } : {}) });
+      simulateRun([member('a', [], { maxHp: 1e6, power: 1000 })], dungeon, 's', { rules: steady, ...(briefingOf ? { briefing: briefingOf } : {}) });
     expect(run(threat('brute', 2)).encounters[0].taken.a).toBeGreaterThan(run().encounters[0].taken.a);
   });
 
   it('beef up undead enemies when missed', () => {
     const dungeon = bossOnly({ hp: 100, damage: 0, tags: ['undead'] });
     const run = (briefingOf: Briefing) =>
-      simulateRun([member('a', [], { maxHp: 1e6, damage: 25 })], dungeon, 's', { rules: steady, briefing: briefingOf });
+      simulateRun([member('a', [], { maxHp: 1e6, power: 25 })], dungeon, 's', { rules: steady, briefing: briefingOf });
     // Blessed 0 against level 1 (needs 1): half-missed, +10% HP: 5 rounds instead of 4.
     expect(run(threat('undead', 1)).encounters[0].rounds).toBe(run(briefing()).encounters[0].rounds + 1);
   });
 
   it('report lost loot and delay from missed threats', () => {
     // Finesse 1 and Might 3 both fall short of level 3 Locked (needs 4): a full miss.
-    const locked = simulateRun([member('a', [], { maxHp: 1e6, damage: 1000 })], fights, 's', { rules: steady, briefing: threat('locked', 3) });
+    const locked = simulateRun([member('a', [], { maxHp: 1e6, power: 1000 })], fights, 's', { rules: steady, briefing: threat('locked', 3) });
     expect(locked.threats[0].state).toBe('full');
     expect(locked.lostLoot).toBeCloseTo(0.4);
     expect(locked.delay).toBe(0);
     // Wits 1 against level 2 Puzzle (needs 3): a full miss, 30% longer.
-    const puzzled = simulateRun([member('a', [], { maxHp: 1e6, damage: 1000 })], fights, 's', { rules: steady, briefing: threat('puzzle', 2) });
+    const puzzled = simulateRun([member('a', [], { maxHp: 1e6, power: 1000 })], fights, 's', { rules: steady, briefing: threat('puzzle', 2) });
     expect(puzzled.delay).toBeCloseTo(0.3);
   });
 });
 
 describe('run restrictions', () => {
   it('antiMagic: halves the magic part of damage and party heals', () => {
-    const mage = member('a', [], { classId: 'fireMage', maxHp: 1e6, damage: 12, magic: 12 });
+    const mage = member('a', [], { classId: 'fireMage', maxHp: 1e6, magic: 12, damageStat: 'magic' });
     const options = (restriction: RestrictionId | null): RunOptions => ({ rules: steady, briefing: briefing({ restriction }) });
     expect(simulateRun([mage], fights, 's', options(null)).encounters[0].rounds).toBeLessThan(
       simulateRun([mage], fights, 's', options('antiMagic')).encounters[0].rounds,
@@ -170,8 +176,8 @@ describe('run restrictions', () => {
   });
 
   it('sacredGround: dulls weapons it can see; concealed ones are untouched', () => {
-    const sword = member('a', [], { weaponType: 'sword', maxHp: 1e6, damage: 20 });
-    const dagger = member('d', [], { weaponType: 'dagger', maxHp: 1e6, damage: 20 });
+    const sword = member('a', [], { weaponType: 'sword', maxHp: 1e6, power: 20 });
+    const dagger = member('d', [], { weaponType: 'dagger', maxHp: 1e6, power: 20 });
     const options = (restriction: RestrictionId | null): RunOptions => ({ rules: steady, briefing: briefing({ restriction }) });
     expect(simulateRun([sword], fights, 's', options('sacredGround')).encounters[0].rounds).toBeGreaterThan(
       simulateRun([sword], fights, 's', options(null)).encounters[0].rounds,
@@ -182,7 +188,7 @@ describe('run restrictions', () => {
 
   it('noHealing: halves every heal in the run', () => {
     const potion = itemById.healingPotion as ConsumableDef;
-    const party = [member('a', [], { consumable: potion, maxHp: 1000, damage: 1000 })];
+    const party = [member('a', [], { consumable: potion, maxHp: 1000, power: 1000 })];
     const run = (restriction: RestrictionId | null) =>
       simulateRun(party, pool([trap()], [4, 4]), 's', { rules: steady, briefing: { ...threat('traps', 3), restriction } });
     const healed = (restriction: RestrictionId | null) =>
@@ -191,10 +197,9 @@ describe('run restrictions', () => {
   });
 
   it('cursedLuck: no critical hits', () => {
-    const crits = { ...steady, critChance: 1 };
-    const lucky = [member('a', [{ kind: 'critBonus', chance: 0.05 }], { maxHp: 1e6, damage: 10 })];
+    const lucky = [member('a', [{ kind: 'critBonus', chance: 0.05 }], { maxHp: 1e6, power: 10, crit: 100 })];
     const dungeon = bossOnly({ hp: 40, damage: 4 });
-    const options = (restriction: RestrictionId | null): RunOptions => ({ rules: crits, briefing: briefing({ restriction }) });
+    const options = (restriction: RestrictionId | null): RunOptions => ({ rules: steady, briefing: briefing({ restriction }) });
     const plain = simulateRun(lucky, dungeon, 's', options(null));
     const cursed = simulateRun(lucky, dungeon, 's', options('cursedLuck'));
     expect(plain.encounters[0].effects).toContainEqual({ heroId: 'a', key: 'crit' });
@@ -239,7 +244,7 @@ describe('opportunities', () => {
     simulateRun(party, springs, 's', { rules: steady, briefing: briefing({ opportunity }), ...options });
 
   it('healingSpring: free, heals every conscious hero at the midpoint', () => {
-    const hurt = [member('a', [], { hp: 40, damage: 1000 })];
+    const hurt = [member('a', [], { hp: 40, power: 1000 })];
     const result = run('healingSpring', hurt);
     expect(result.opportunity).toMatchObject({ id: 'healingSpring', answered: true });
     // The heal landed on the midpoint encounter: 30% of max HP.
@@ -247,23 +252,23 @@ describe('opportunities', () => {
   });
 
   it('hiddenCache: pays a share of the top gold, doubled by the Thief\'s cache bonus, and nothing when missed', () => {
-    const thief = run('hiddenCache', [member('a', [], { classId: 'thief', damage: 1000 })]);
+    const thief = run('hiddenCache', [member('a', [], { classId: 'thief', power: 1000 })]);
     expect(thief.opportunity).toMatchObject({ id: 'hiddenCache', answered: true, gold: Math.round(0.25 * dungeonById.ratCellar.gold[1]) });
     expect(thief.bonusGold).toBe(thief.opportunity?.gold);
-    const finder = run('hiddenCache', [member('a', [{ kind: 'cacheBonus', multiplier: 2 }], { classId: 'thief', damage: 1000 })]);
+    const finder = run('hiddenCache', [member('a', [{ kind: 'cacheBonus', multiplier: 2 }], { classId: 'thief', power: 1000 })]);
     expect(finder.opportunity?.gold).toBe(Math.round(0.25 * dungeonById.ratCellar.gold[1] * 2));
-    const clumsy = run('hiddenCache', [member('a', [], { classId: 'fireMage', damage: 1000 })]);
+    const clumsy = run('hiddenCache', [member('a', [], { classId: 'fireMage', power: 1000 })]);
     expect(clumsy.opportunity).toMatchObject({ id: 'hiddenCache', answered: false });
     expect(clumsy.bonusGold).toBe(0);
   });
 
   it('richVein: gives the tier\'s ore', () => {
-    const result = run('richVein', [member('a', [], { damage: 1000 })]);
+    const result = run('richVein', [member('a', [], { power: 1000 })]);
     expect(result.opportunity).toMatchObject({ id: 'richVein', answered: true, materials: [{ materialId: 'wood', amount: 4 }] });
   });
 
   it('bounty: multiplies the dungeon\'s rolled gold', () => {
-    expect(run('bounty', [member('a', [], { classId: 'troubadour', damage: 1000 })]).opportunity).toMatchObject({
+    expect(run('bounty', [member('a', [], { classId: 'troubadour', power: 1000 })]).opportunity).toMatchObject({
       id: 'bounty',
       answered: true,
       goldMultiplier: 1.3,
@@ -296,14 +301,14 @@ describe('opportunities', () => {
     const plain = launchPlan(save, dungeonById.ratCellar, ALL, {}, refugees);
     const optedIn = launchPlan(save, dungeonById.ratCellar, ALL, { optIn: true }, refugees);
     expect(optedIn.need).toBe(plain.need + travellerRules.pilgrimSupplyPoints);
-    expect(run('refugees', [member('a', [], { damage: 1000 })]).opportunity).toMatchObject({ id: 'refugees', answered: false });
-    const helped = run('refugees', [member('a', [], { damage: 1000 })], { optIn: true });
+    expect(run('refugees', [member('a', [], { power: 1000 })]).opportunity).toMatchObject({ id: 'refugees', answered: false });
+    const helped = run('refugees', [member('a', [], { power: 1000 })], { optIn: true });
     expect(helped.opportunity?.answered).toBe(true);
     expect(['blessing', 'gold', 'keyFragment']).toContain(helped.opportunity?.pilgrim);
   });
 
   it('forgottenShrine: steels the party for the rest of the run', () => {
-    const result = run('forgottenShrine', [member('a', [], { classId: 'cleric', damage: 1000 })]);
+    const result = run('forgottenShrine', [member('a', [], { classId: 'cleric', power: 1000 })]);
     expect(result.opportunity).toMatchObject({ id: 'forgottenShrine', answered: true, damageMultiplier: 1.1 });
   });
 
@@ -330,7 +335,7 @@ describe('opportunities', () => {
   });
 
   it('trophyBeast: gives hide and bone for a calm hand', () => {
-    const druid = member('a', [], { classId: 'druid', damage: 1000 });
+    const druid = member('a', [], { classId: 'druid', power: 1000 });
     const result = run('trophyBeast', [druid]);
     expect(result.opportunity?.answered).toBe(true);
     const materials = result.opportunity?.materials ?? [];
@@ -341,7 +346,7 @@ describe('opportunities', () => {
   });
 
   it('trophyBeast: needs a calm hand or a strong arm, and costs nothing when missed', () => {
-    const result = run('trophyBeast', [member('a', [], { classId: 'fireMage', damage: 1000 })]);
+    const result = run('trophyBeast', [member('a', [], { classId: 'fireMage', power: 1000 })]);
     expect(result.opportunity).toMatchObject({ id: 'trophyBeast', answered: false });
     expect(result.opportunity?.materials).toBeUndefined();
   });

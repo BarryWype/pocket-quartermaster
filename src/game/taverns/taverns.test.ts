@@ -12,7 +12,6 @@ import { pruneExpired } from '../upkeep';
 import {
   generateTavernsAround,
   isTavernUnlocked,
-  learnWeaponTypes,
   offerLevel,
   recruit,
   recruitPrice,
@@ -73,7 +72,7 @@ describe('offers', () => {
     // Taverns open with tier 2, so offers already carry one tier step.
     const offer = firstOffer(unlocked());
     const positive = traitById[offer.trait].positive;
-    expect(offer.price).toBe(recruitPrice(heroClasses[offer.classId].rarity, offer.level, 3, positive, 2));
+    expect(offer.price).toBe(recruitPrice(heroClasses[offer.classId].rarity, offer.level, 3, positive, 2, offer.grade));
   });
 });
 
@@ -105,14 +104,12 @@ describe('recruiting', () => {
     expect(pruneExpired(after, offer.expiresAt + 1).takenOffers).toEqual({});
   });
 
-  it('teaches a new weapon type up to the highest tier reached, with mastery at the previous cap', () => {
-    const tier3 = unlocked({ clearedDungeons: ['banditStockade', 'ogreQuarry'] });
-    const learned = learnWeaponTypes(tier3, 'barbarian');
-    expect(learned.knownRecipes).toEqual(expect.arrayContaining(['woodAxe', 'stoneAxe', 'copperAxe']));
-    expect(learned.knownRecipes).not.toContain('ironAxe');
-    expect(learned.mastery.axe).toEqual({ level: 6, progress: 0 });
-    // Known types are left alone.
-    expect(learnWeaponTypes(tier3, 'warrior')).toEqual(tier3);
+  it('teaches no recipe and grants no mastery', () => {
+    const save = unlocked();
+    const offer = firstOffer(save);
+    const after = recruit(save, offer, here, here);
+    expect(after.knownRecipes).toEqual(save.knownRecipes);
+    expect(after.mastery).toEqual(save.mastery);
   });
 
   it('only drops blueprints for weapon types the player has met', () => {
@@ -124,7 +121,7 @@ describe('recruiting', () => {
         return resolveExpedition(started, started.expeditions[0]).report.recipeId;
       });
     expect(drops(strong).filter((id) => id?.endsWith('Axe') || id?.endsWith('Dagger') || id?.endsWith('Staff'))).toEqual([]);
-    const met = learnWeaponTypes({ ...strong, clearedDungeons: [] }, 'thief');
+    const met = { ...strong, mastery: { ...strong.mastery, dagger: { level: 1, progress: 0 } } };
     expect(drops({ ...met, knownRecipes: met.knownRecipes.filter((id) => id !== 'woodDagger') })).toContain('woodDagger');
   });
 });

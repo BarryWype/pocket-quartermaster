@@ -10,7 +10,17 @@ import { t, tr } from '@/i18n';
 
 import { Row } from './Row';
 
-export const statIcons = { attack: '⚔️', defense: '🛡️', magic: '✨', hp: '❤️' } as const;
+export const statIcons = {
+  power: '⚔️',
+  armour: '🛡️',
+  magic: '✨',
+  hp: '❤️',
+  resistance: '🔰',
+  evasion: '💨',
+  speed: '👟',
+  crit: '🎯',
+  luck: '🍀',
+} as const;
 export const STATS = Object.keys(statIcons) as (keyof typeof statIcons)[];
 
 /** "⚔️ 14 · ❤️ 30 · roll 6/7": a piece's stats after its quality and roll. */

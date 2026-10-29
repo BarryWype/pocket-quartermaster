@@ -5,7 +5,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Button } from '@/components/Button';
 import { EquipPicker } from '@/components/EquipPicker';
 import { PlaceholderScreen } from '@/components/PlaceholderScreen';
-import { gearStatsText, STATS, statIcons } from '@/components/GearRow';
+import { gearStatsText, statIcons } from '@/components/GearRow';
 import { HpBar } from '@/components/HpBar';
 import { Panel } from '@/components/Panel';
 import { PixelBar } from '@/components/PixelBar';
@@ -15,13 +15,16 @@ import { Tip } from '@/components/Tip';
 import { TutorialHint } from '@/components/TutorialHint';
 import { abilityText } from '@/content/abilities';
 import { elementInfo } from '@/content/elements';
+import { expeditionRules } from '@/content/dungeons';
+import { approachRules } from '@/content/threats';
 import { masteryTypeNames, qualities } from '@/content/forging';
 import { heroClasses, xpToNextLevel } from '@/content/heroes';
 import { traitById } from '@/content/traits';
 import { gearName, itemById } from '@/content/lookup';
 import { answersMemberOf, prepareParty } from '@/game/expeditions/simulate';
 import { drinkProblem } from '@/game/team/health';
-import { canDismiss, heroStats, isOnExpedition } from '@/game/team/team';
+import { approachScore, pendingApproachPicks } from '@/game/team/stats';
+import { canDismiss, heroDamageStat, heroStats, isOnExpedition } from '@/game/team/team';
 import { APPROACHES, heroAnswers } from '@/game/threats/answers';
 import type { EquipmentSlot, WeaponType } from '@/game/types';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -39,6 +42,7 @@ export default function CharacterSheetScreen() {
   const equip = useGameStore((state) => state.equip);
   const dismiss = useGameStore((state) => state.dismissHero);
   const drinkPotion = useGameStore((state) => state.drinkPotion);
+  const pickApproach = useGameStore((state) => state.pickApproach);
   const now = useNow();
   const [picking, setPicking] = useState<EquipmentSlot | null>(null);
 
@@ -47,7 +51,11 @@ export default function CharacterSheetScreen() {
 
   const heroClass = heroClasses[hero.classId];
   const stats = heroStats(save, hero);
+  const damageStat = heroDamageStat(save, hero);
   const away = isOnExpedition(save, hero.id);
+  const pending = pendingApproachPicks(hero);
+  const largeStats = ['hp', damageStat, 'armour', 'speed'] as const;
+  const smallStats = ['resistance', 'evasion', 'crit', 'luck'] as const;
 
   const trait = traitById[hero.trait];
   // The hero as equipped, seen through the threats rules; the kit keyword is
@@ -119,7 +127,7 @@ export default function CharacterSheetScreen() {
 
       <SectionTitle>{t('hero.stats')}</SectionTitle>
       <View style={styles.stats}>
-        {STATS.map((stat) => (
+        {largeStats.map((stat) => (
           <Tip key={stat} title={t(`hero.statNames.${stat}`)} text={t(`hero.statTips.${stat}`)} style={styles.stat}>
             <Text style={styles.statIcon}>{statIcons[stat]}</Text>
             <View>
@@ -129,19 +137,50 @@ export default function CharacterSheetScreen() {
           </Tip>
         ))}
       </View>
+      <Text style={styles.smallStats}>
+        {smallStats
+          .map((stat) => {
+            const capped = stat === 'evasion' && stats.evasion >= expeditionRules.evasionCap;
+            return `${statIcons[stat]} ${stats[stat]}${capped ? ` (${t('hero.capped')})` : ''}`;
+          })
+          .join(' · ')}
+      </Text>
 
-      <SectionTitle>{t('hero.approaches')}</SectionTitle>
+      <SectionTitle>
+        {`${t('hero.approaches')}${pending > 0 ? ` · ${t('hero.pendingPicks', { count: pending })}` : ''}`}
+      </SectionTitle>
       <View style={styles.approaches}>
         {APPROACHES.map((approach) => {
-          const value = answers?.approaches[approach] ?? 0;
+          const value = approachScore(hero, approach);
           return (
             <View key={approach} style={styles.approach}>
               <Text style={styles.approachName}>{t(`threats.approach.${approach}`)}</Text>
-              <Text style={styles.approachPips}>{'●'.repeat(value) + '○'.repeat(5 - value)}</Text>
+              <Text style={styles.approachPips}>{'●'.repeat(value) + '○'.repeat(approachRules.max - value)}</Text>
             </View>
           );
         })}
       </View>
+      {pending > 0 && (
+        <>
+          <Text style={styles.muted}>{t('hero.pickApproach')}</Text>
+          {APPROACHES.map((approach) => {
+            const value = approachScore(hero, approach);
+            const disabled = value >= approachRules.max;
+            return (
+              <Pressable
+                key={approach}
+                accessibilityRole="button"
+                disabled={disabled}
+                onPress={() => pickApproach(hero.id, approach)}
+                style={({ pressed }) => [styles.pickRow, pressed && styles.pressed, disabled && styles.pickDisabled]}
+              >
+                <Text style={[styles.approachName, disabled && styles.pickDisabled]}>{t(`threats.approach.${approach}`)}</Text>
+                <Text style={styles.approachPips}>{'●'.repeat(value) + '○'.repeat(approachRules.max - value)}</Text>
+              </Pressable>
+            );
+          })}
+        </>
+      )}
 
       {keywords.length > 0 && (
         <>
@@ -254,6 +293,18 @@ const styles = StyleSheet.create({
   },
   approachName: { fontSize: 17, flexShrink: 1 },
   approachPips: { fontSize: 15, color: colors.muted },
+  smallStats: { color: colors.muted, paddingVertical: 4 },
+  pickRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    padding: 8,
+    borderWidth: pixel.outline,
+    borderColor: colors.ink,
+    backgroundColor: colors.parchmentDark,
+  },
+  pickDisabled: { opacity: 0.4 },
   keywords: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   keywordChip: {
     paddingHorizontal: 8,

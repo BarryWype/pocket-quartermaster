@@ -11,7 +11,7 @@ describe('gameStore', () => {
     useGameStore.getState().addGold(25);
 
     const raw = await AsyncStorage.getItem('pocket-quartermaster-save');
-    expect(JSON.parse(raw ?? '{}')).toMatchObject({ state: { save: { gold: 25 } }, version: 15 });
+    expect(JSON.parse(raw ?? '{}')).toMatchObject({ state: { save: { gold: 25 } }, version: 16 });
   });
 
   it('resets save data', () => {
@@ -19,5 +19,28 @@ describe('gameStore', () => {
     useGameStore.getState().resetSave();
 
     expect(useGameStore.getState().save.gold).toBe(0);
+  });
+
+  it('spends a pending approach pick', () => {
+    const { debugSetHeroLevel, pickApproach } = useGameStore.getState();
+    const hero = useGameStore.getState().save.heroes[0];
+    debugSetHeroLevel(hero.id, 5);
+    pickApproach(hero.id, 'might');
+
+    const updated = useGameStore.getState().save.heroes.find((h) => h.id === hero.id)!;
+    expect(updated.level).toBe(5);
+    expect(updated.xp).toBe(0);
+    expect(updated.approachPicks).toEqual(['might']);
+  });
+
+  it('clamps the debug hero level between 1 and 15', () => {
+    const { debugSetHeroLevel } = useGameStore.getState();
+    const hero = useGameStore.getState().save.heroes[0];
+    debugSetHeroLevel(hero.id, 99);
+
+    expect(useGameStore.getState().save.heroes.find((h) => h.id === hero.id)!.level).toBe(15);
+
+    debugSetHeroLevel(hero.id, 0);
+    expect(useGameStore.getState().save.heroes.find((h) => h.id === hero.id)!.level).toBe(1);
   });
 });

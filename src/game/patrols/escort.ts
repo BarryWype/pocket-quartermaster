@@ -221,7 +221,14 @@ export function backgroundStep(
       const end = at + dungeon.durationMinutes * MINUTE;
       const hpAfter = run.hp[0]?.hp ?? 0;
       const rewards: PatrolRewards = run.bossDefeated
-        ? patrolRewards({ goldMultiplier: next.goldMultiplier, pickaxeTier: next.pickaxeTier }, target, tier, false, createRng(`${id}|rewards`), rules)
+        ? patrolRewards(
+            { goldMultiplier: next.goldMultiplier, pickaxeTier: next.pickaxeTier, luck: escort.member.luck },
+            target,
+            tier,
+            false,
+            createRng(`${id}|rewards`),
+            rules,
+          )
         : { gold: 0, xp: 0, materials: [] };
       next.pending.push({
         id,

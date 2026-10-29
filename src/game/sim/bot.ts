@@ -259,12 +259,12 @@ export const highestTier = highestUnlockedTier;
 export const homeHeroes = (save: SaveData) => save.heroes.filter((h) => !isOnExpedition(save, h.id));
 const gearOf = (save: SaveData, uid: string | null) => save.gear.find((g) => g.uid === uid);
 
-/** How much a piece adds to a hero: weapon damage after affinity, or armour defense plus a share of HP. */
+/** How much a piece adds to a hero: weapon damage after affinity, or armour plus a share of HP. */
 export function gearScore(hero: HeroState, item: GearDef, gear: GearQualityRoll) {
   const stats = gearStats(item, gear);
-  if (item.slot === 'armor') return (stats.defense ?? 0) + (stats.hp ?? 0) / 8;
+  if (item.slot === 'armor') return (stats.armour ?? 0) + (stats.hp ?? 0) / 8;
   const affinity = item.weaponType ? (heroClasses[hero.classId].affinities[item.weaponType] ?? 0) : 1;
-  return ((stats.attack ?? 0) + (stats.magic ?? 0)) * affinity;
+  return ((stats.power ?? 0) + (stats.magic ?? 0)) * affinity;
 }
 
 function wornScore(save: SaveData, hero: HeroState, slot: 'weapon' | 'armor') {

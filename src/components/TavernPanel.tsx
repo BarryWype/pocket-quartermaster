@@ -9,6 +9,7 @@ import { traitById } from '@/content/traits';
 import { distanceMeters } from '@/game/generation/geo';
 import { rosterCap } from '@/game/guild/guild';
 import type { LatLng } from '@/game/generation/types';
+import type { WeaponType } from '@/game/types';
 import {
   buySupplyProblem,
   recruitProblem,
@@ -18,13 +19,13 @@ import {
   type RecruitProblem,
   type TavernSpawn,
 } from '@/game/taverns/taverns';
-import type { WeaponType } from '@/game/types';
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
 import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
+import { RecruitGrade } from './RecruitGrade';
 import { Text } from './Text';
 
 const problemText: Record<RecruitProblem, (distance: number, cap: number) => string> = {
@@ -58,6 +59,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
         <Text style={styles.name}>
           {heroClass.emoji} {t('tavern.offer', { name: offer.name, className: tr(heroClass.name), level: offer.level })}
         </Text>
+        <RecruitGrade grade={offer.grade} roll={offer.roll} />
         <Text style={[styles.trait, { color: trait.positive ? colors.ink : colors.danger }]}>
           {tr(trait.name)}: {tr(trait.description)}
         </Text>

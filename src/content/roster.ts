@@ -28,6 +28,20 @@ export const recruitRules = {
     /** × this per tier above 1 (highest unlocked tier), so recruits keep pace with income. */
     perTier: 1.5,
   },
+  /**
+   * The recruit roll (see game/taverns/roll.ts): 3d6 sums per stat, a chance of
+   * an approach bonus, and grades by the 16 sums' total that scale the price.
+   */
+  roll: {
+    /** Chance of +1 on a random approach. */
+    approachChance: 0.1,
+    /** Grade thresholds: total of the 16 sums minus 168 (16 × the 10.5 average). */
+    grade: { S: 18, A: 6, B: -6 },
+    /** Price multiplier per grade, on top of today's factors. */
+    gradePrice: { C: 0.85, B: 1, A: 1.2, S: 1.5 },
+    /** A stat's base + growth sums this far from 21 (the pair's average) get an arrow. */
+    arrowThreshold: 3,
+  },
 };
 
 /** Recruit names by class. */

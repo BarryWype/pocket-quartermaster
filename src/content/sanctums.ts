@@ -68,6 +68,14 @@ export const sanctums: SanctumDef[] = [
   },
 ];
 
+export const infusionRules = {
+  /** A physical weapon's infused hit: this share stays physical, the rest turns elemental. */
+  physicalShare: 0.7,
+  elementalShare: 0.3,
+  /** Extra elemental damage, as a share of Power, on top of the split. */
+  bonusShare: 0.1,
+};
+
 export const sanctumRules = {
   /** Geohash precision 5 ≈ 4.9 × 4.9 km; a tile and its neighbours are generated around the player. */
   precision: 5,

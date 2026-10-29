@@ -106,6 +106,18 @@ describe('traveller recruits', () => {
     expect(joined.heroes).toHaveLength(save.heroes.length + 1);
   });
 
+  it('roll the recruit from the spawn alone and keep the roll when they join', () => {
+    const save = withRoster(6);
+    const { reward } = helpTraveller(save, wounded, here(wounded, at), at, undefined, always);
+    if (reward.kind !== 'recruit') throw new Error('expected a recruit');
+    const again = helpTraveller(save, wounded, here(wounded, at), at, undefined, always);
+    if (again.reward.kind !== 'recruit') throw new Error('expected a recruit');
+    expect(again.reward.offer.roll).toEqual(reward.offer.roll);
+    expect(again.reward.offer.grade).toBe(reward.offer.grade);
+    const joined = acceptRecruit(save, reward.offer);
+    expect(joined.heroes.at(-1)!.roll).toEqual(reward.offer.roll);
+  });
+
   it('pay the normal reward instead with a full roster, and say so', () => {
     let save = stocked();
     while (save.heroes.length < rosterCap(save)) save = { ...save, heroes: [...save.heroes, newHero(`x${save.heroes.length}`, 'X', 'warrior', 'resilient')] };

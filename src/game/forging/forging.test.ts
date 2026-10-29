@@ -156,21 +156,21 @@ describe('forging quality', () => {
 describe('quality stats', () => {
   it('multiplies every stat of the piece', () => {
     const armour = items.find((i) => i.id === 'ironArmour') as GearDef;
-    expect(gearStats(armour, { quality: 'crappy' })).toEqual({ defense: 16 * 0.85, hp: 120 * 0.85 });
-    expect(gearStats(armour, { quality: 'legendary' })).toEqual({ defense: 16 * 1.3, hp: 120 * 1.3 });
+    expect(gearStats(armour, { quality: 'crappy' })).toEqual({ armour: 16 * 0.85, hp: 120 * 0.85 });
+    expect(gearStats(armour, { quality: 'legendary' })).toEqual({ armour: 16 * 1.3, hp: 120 * 1.3 });
   });
 
   it('applies class affinity on top', () => {
     const save = (quality: GearInstance['quality']) =>
       equip({ ...createInitialSave(), gear: [piece('ironSword', quality)] }, 'bram', 'weapon', 'g1');
     const bram = (s: SaveData) => heroStats(s, s.heroes.find((h) => h.id === 'bram')!);
-    const base = heroClasses.warrior.baseStats.attack;
-    expect(bram(save('normal')).attack).toBe(Math.round(base + 24 * 1.5));
-    expect(bram(save('rare')).attack).toBe(Math.round(base + 24 * 1.15 * 1.5));
+    const base = heroClasses.warrior.baseStats.power;
+    expect(bram(save('normal')).power).toBe(Math.round(base + 24 * 1.5));
+    expect(bram(save('rare')).power).toBe(Math.round(base + 24 * 1.15 * 1.5));
   });
 
   it('keeps Crappy of the next tier below Legendary, and Legendary below Normal of the next tier', () => {
-    const mainStat = (item: GearDef) => (item.slot === 'armor' ? 'defense' : item.weaponType === 'wand' ? 'magic' : 'attack');
+    const mainStat = (item: GearDef) => (item.slot === 'armor' ? 'armour' : item.weaponType === 'wand' ? 'magic' : 'power');
     const lines: (MasteryType | 'armour')[] = ['sword', 'bow', 'wand', 'armour'];
     for (const line of lines) {
       const byTier = gearItems

@@ -14,11 +14,24 @@ export type MaterialDef = {
   icon?: ImageSourcePropType;
 };
 
-export type Stats = {
-  attack: number;
-  defense: number;
-  magic: number;
-  hp: number;
+/** The eight combat stats; evasion and crit are % points. */
+export type StatKey = 'hp' | 'power' | 'magic' | 'armour' | 'resistance' | 'evasion' | 'speed' | 'crit';
+export type Stats = Record<StatKey, number> & { luck: number };
+/** The stat a hero's hits roll with: Power for weapons, Magic for wands, staves and lutes. */
+export type DamageStat = 'power' | 'magic';
+/** An enemy's pace, turned into a Speed by its tier (see enemySpeedRules). */
+export type SpeedClass = 'slow' | 'normal' | 'fast';
+
+/**
+ * A recruit's 3d6 roll (sums 3–18; a missing roll means 10.5 everywhere, the
+ * average): each sum pulls the stat's base value and growth up or down (see
+ * team/stats.ts).
+ */
+export type HeroRoll = {
+  base: Record<StatKey, number>;
+  growth: Record<StatKey, number>;
+  /** The 10% chance of +1 on a random approach. */
+  approach?: Approach;
 };
 
 export type WeaponType = 'sword' | 'wand' | 'bow' | 'axe' | 'mace' | 'dagger' | 'staff' | 'instrument';
@@ -386,9 +399,14 @@ export type HeroClassDef = {
   rarity: ClassRarity;
   /** Its attacks use this element unless its weapon is infused. */
   element?: Element;
-  baseStats: Stats;
-  /** Added per level above 1. */
-  growth: Stats;
+  /** The stats the class starts with at level 1 (Luck is not class-based). */
+  baseStats: Omit<Stats, 'luck'>;
+  /** The three stats that grow every level; the others only at milestones. */
+  primary: [StatKey, StatKey, StatKey];
+  /** A stat that grows at half the usual rate (data only, currently unused). */
+  halfRate?: StatKey;
+  /** The stat its unarmed attacks roll with; weapons decide their own. */
+  damageStat: DamageStat;
   /** The weapon types this class can use, with the multiplier on their stats. Armour is open to all. */
   affinities: Partial<Record<WeaponType, number>>;
   /** Approach scores; missing approaches are the default (see approachRules). */
@@ -416,6 +434,10 @@ export type HeroState = {
     /** Consumable item id (potion, elixir or charm); equipping one takes it out of the stock. */
     consumable: string | null;
   };
+  /** The recruit's 3d6 roll; missing means the average (10.5) everywhere. */
+  roll?: HeroRoll;
+  /** The approach picks made at levels 5 and 10, in order. */
+  approachPicks?: Approach[];
   /** HP at `hpAt`; missing means full. Heroes at home heal from then on (see team/health.ts). */
   hp?: number;
   hpAt?: number;
@@ -474,8 +496,12 @@ export type MobDef = {
   id: string;
   name: string;
   hp: number;
-  /** Damage per round before the target's defense. */
+  /** Damage per round before the target's defence. */
   damage: number;
+  /** The stat this enemy's hits roll against: Armour for Power, Resistance for Magic. */
+  damageType: DamageStat;
+  /** Turn order and extra attacks, from its speed class and tier. */
+  speed: number;
   element?: Element;
   /** E.g. undead or beast; the element is a tag too, added by `mobTags`. */
   tags: Tag[];

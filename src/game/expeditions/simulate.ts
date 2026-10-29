@@ -4,6 +4,7 @@ import { eventById } from '@/content/events';
 import { localsRules, npcById } from '@/content/npcs';
 import { heroClasses } from '@/content/heroes';
 import { concealedWeapons, restrictionRules } from '@/content/threats';
+import { infusionRules } from '@/content/sanctums';
 import { travellerRules } from '@/content/patrols';
 import { gearName, itemById, opportunityById } from '@/content/lookup';
 
@@ -11,15 +12,18 @@ import { ELEMENTS, beats, incomingMultiplier, shardId, weaponMultiplier, type El
 import { createRng } from '../generation/rng';
 import type { SaveData } from '../save';
 import { currentHp } from '../team/health';
-import { heroAbilities, heroStats } from '../team/team';
+import { heroAbilities, heroDamageStat, heroStats } from '../team/team';
+import { heroApproachBonus } from '../team/stats';
 import { heroAnswers, type AnswersMember, type HeroAnswers } from '../threats/answers';
 import { threatPenalties, type AppliedPenalty } from '../threats/penalties';
 import { scoreBriefing, scoreOpportunity, type ThreatScore } from '../threats/score';
 import type {
   Ability,
+  Approach,
   BossDef,
   Briefing,
   ConsumableDef,
+  DamageStat,
   DungeonDef,
   EncounterDef,
   ExpeditionOutcome,
@@ -55,11 +59,20 @@ export type PartyMember = {
   maxHp: number;
   /** HP at the start of the run. */
   hp: number;
-  /** Damage per round: attack + magic. */
-  damage: number;
-  /** The magic part of `damage`. */
+  /** The hero's stats; their hits roll with `damageStat` (see team/team.ts). */
+  power: number;
   magic: number;
-  defense: number;
+  damageStat: DamageStat;
+  armour: number;
+  resistance: number;
+  /** % points: enemy hits are avoided with chance min(Evasion, evasionCap) %. */
+  evasion: number;
+  speed: number;
+  /** % points: the hero's crit chance. */
+  crit: number;
+  luck: number;
+  /** The hero's recruit roll and approach picks, as +1s on their approaches. */
+  approachBonus?: Partial<Record<Approach, number>>;
   threat: number;
   /** Elements this hero takes no extra damage from (class resist, protective consumable). */
   resists: Element[];
@@ -194,6 +207,7 @@ export function answersMemberOf(member: PartyMember): AnswersMember {
     kit: member.consumable?.kit ? { itemId: member.consumable.id, effect: member.consumable.kit } : null,
     salveElement: member.consumable?.protectsAgainst ?? null,
     classResists: heroClasses[member.classId].resists ?? [],
+    approachBonus: member.approachBonus,
   };
 }
 
@@ -212,6 +226,8 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0): PartyM
       const item = hero.equipment.consumable ? itemById[hero.equipment.consumable] : null;
       const consumable = item?.slot === 'consumable' ? item : null;
       const charm = consumable?.charm;
+      // The hero's hits roll with their damage stat; only the Magic part is halved in an anti-magic zone.
+      const damageStat = heroDamageStat(save, hero);
       return {
         heroId: hero.id,
         name: hero.name,
@@ -221,9 +237,16 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0): PartyM
         weaponType: weapon ? ((itemById[weapon.itemId] as GearDef).weaponType ?? null) : null,
         maxHp: stats.hp,
         hp: currentHp(save, hero, now),
-        damage: stats.attack + stats.magic,
+        power: stats.power,
         magic: stats.magic,
-        defense: stats.defense,
+        damageStat,
+        armour: stats.armour,
+        resistance: stats.resistance,
+        evasion: stats.evasion,
+        speed: stats.speed,
+        crit: stats.crit,
+        luck: stats.luck,
+        approachBonus: heroApproachBonus(hero),
         threat: heroClass.threat,
         resists: [...(heroClass.resists ?? []), ...(consumable?.protectsAgainst ? [consumable.protectsAgainst] : [])],
         abilities: [
@@ -337,9 +360,9 @@ export function simulateRun(
   };
 
   /** ±variance, sometimes a crit; cursed luck means there are no crits. */
-  const roll = (value: number, critBonus = 0, onCrit?: () => void) => {
+  const roll = (value: number, critChance = rules.enemyCritChance, onCrit?: () => void) => {
     const varied = value * (1 + (rng.next() * 2 - 1) * rules.damageVariance);
-    if (restriction === 'cursedLuck' || !rng.chance(rules.critChance + critBonus)) return varied;
+    if (restriction === 'cursedLuck' || !rng.chance(critChance)) return varied;
     onCrit?.();
     return varied * rules.critMultiplier;
   };
@@ -409,49 +432,72 @@ export function simulateRun(
     const note = (heroId: string | null, key: AbilityEffect['key'], extra: Partial<AbilityEffect> = {}) => {
       if (!result.effects.some((e) => e.key === key && e.heroId === heroId)) result.effects.push({ heroId, key, ...extra });
     };
-    const heroesAttack = () => {
+    const heroesAttack = (attackers: HeroState[]) => {
       // The best buff of a conscious hero lifts everyone; buffs don't stack.
       const buffer = alive()
         .map((h) => ({ h, buff: own(h, 'partyDamageBuff') }))
         .filter((b) => b.buff)
         .sort((a, b) => b.buff!.multiplier - a.buff!.multiplier)[0];
       if (buffer) note(buffer.h.member.heroId, 'buff');
-      for (const hero of alive()) {
-        const target = enemies.find((e) => e.hp > 0);
-        if (!target) return;
-        const id = hero.member.heroId;
-        const tags = enemyTags(target.def);
-        let bonus = (buffer?.buff?.multiplier ?? 1) * shrine * weakened * weakenedAgainst;
-        for (const ability of hero.member.abilities) {
-          if (ability.kind !== 'damageVsTag' || !tags.includes(ability.tag)) continue;
-          bonus *= ability.multiplier;
-          note(id, 'tagBonus', { tag: ability.tag });
-        }
-        // Sacred ground dulls every weapon it can see.
-        if (restriction === 'sacredGround' && hero.member.weaponType && !concealedWeapons.includes(hero.member.weaponType)) {
-          bonus *= restrictionRules.sacredGround;
-        }
-        const rage = own(hero, 'rage');
-        if (rage && hero.hp < rage.belowPct * hero.member.maxHp) {
-          bonus *= rage.multiplier;
-          note(id, 'rage');
-        }
-        const targetElement = enemyElement(target.def);
-        const advantage = own(hero, 'elementalAdvantage');
-        let elemental = weaponMultiplier(hero.member.weaponElement, targetElement);
-        if (advantage && hero.member.weaponElement && targetElement && beats(hero.member.weaponElement, targetElement)) {
-          // Anti-magic cuts the bonus above 1 in half.
-          elemental = restriction === 'antiMagic' ? 1 + (advantage.multiplier - 1) * restrictionRules.antiMagic : advantage.multiplier;
-          note(id, 'advantage');
-        }
-        const critBonus = hero.member.abilities.reduce((sum, a) => sum + (a.kind === 'critBonus' ? a.chance : 0), 0);
-        // Anti-magic halves the magic part of every hero's damage.
-        const base = hero.member.damage - hero.member.magic + hero.member.magic * magicFactor;
-        const hit = roll(base, critBonus, critBonus > 0 ? () => note(id, 'crit') : undefined);
-        const damage = hit * fortune * bonus * elemental * hero.fed;
-        target.hp -= damage;
-        add(result.dealt, id, damage);
-        attacked.add(id);
+      for (const hero of attackers) {
+        // A hero quicker than the fastest living enemy may land one second blow.
+        const heroAttack = (second = false) => {
+          const target = enemies.find((e) => e.hp > 0);
+          if (!target) return;
+          const id = hero.member.heroId;
+          const tags = enemyTags(target.def);
+          // An armoured target blunts Power in full and Magic only partly.
+          const armourFactor =
+            hero.member.damageStat === 'power' ? weakenedAgainst : 1 - rules.magicArmourShare * (1 - weakenedAgainst);
+          let bonus = (buffer?.buff?.multiplier ?? 1) * shrine * weakened * armourFactor;
+          for (const ability of hero.member.abilities) {
+            if (ability.kind !== 'damageVsTag' || !tags.includes(ability.tag)) continue;
+            bonus *= ability.multiplier;
+            note(id, 'tagBonus', { tag: ability.tag });
+          }
+          // Sacred ground dulls every weapon it can see.
+          if (restriction === 'sacredGround' && hero.member.weaponType && !concealedWeapons.includes(hero.member.weaponType)) {
+            bonus *= restrictionRules.sacredGround;
+          }
+          const rage = own(hero, 'rage');
+          if (rage && hero.hp < rage.belowPct * hero.member.maxHp) {
+            bonus *= rage.multiplier;
+            note(id, 'rage');
+          }
+          const targetElement = enemyElement(target.def);
+          const advantage = own(hero, 'elementalAdvantage');
+          // The wheel only touches the elemental part of a hit.
+          const wheel = (element: Element | undefined) => {
+            let multiplier = weaponMultiplier(element, targetElement);
+            if (advantage && element && targetElement && beats(element, targetElement)) {
+              // Anti-magic cuts the bonus above 1 in half.
+              multiplier = restriction === 'antiMagic' ? 1 + (advantage.multiplier - 1) * restrictionRules.antiMagic : advantage.multiplier;
+              note(id, 'advantage');
+            }
+            return multiplier;
+          };
+          // Anti-magic halves Magic; Power only turns elemental through an infused weapon.
+          const magic = hero.member.damageStat === 'magic';
+          const base = magic ? hero.member.magic * magicFactor : hero.member.power;
+          const element = hero.member.weaponElement;
+          const physical = magic ? 0 : base * (element ? infusionRules.physicalShare : 1);
+          const elemental = magic
+            ? base * wheel(element)
+            : element
+              ? (base * infusionRules.elementalShare + hero.member.power * infusionRules.bonusShare) * wheel(element)
+              : 0;
+          const critBonus = hero.member.abilities.reduce((sum, a) => sum + (a.kind === 'critBonus' ? a.chance : 0), 0);
+          const hit = roll(physical + elemental, hero.member.crit / 100 + critBonus, critBonus > 0 ? () => note(id, 'crit') : undefined);
+          const damage = hit * fortune * bonus * hero.fed;
+          target.hp -= damage;
+          add(result.dealt, id, damage);
+          attacked.add(id);
+          if (second) return;
+          const living = enemies.filter((e) => e.hp > 0);
+          const gap = living.length > 0 ? hero.member.speed - Math.max(...living.map((e) => e.def.speed)) : 0;
+          if (gap > 0 && rng.chance(Math.min(rules.speed.secondAttackPerPoint * gap, rules.speed.max))) heroAttack(true);
+        };
+        heroAttack();
       }
     };
     /** A protector takes a share of the hits aimed at the most hurt ally. */
@@ -482,13 +528,17 @@ export function simulateRun(
         const targets =
           boss?.effect === 'sweep' ? alive() : alive().length ? [rng.weighted(alive(), (h) => h.member.threat)] : [];
         for (const hero of targets) {
+          // Quick heroes slip out of the way.
+          if (rng.chance(Math.min(hero.member.evasion, rules.evasionCap) / 100)) continue;
           const element = enemyElement(enemy.def);
           let incoming = roll(boss?.effect === 'sweep' ? base * rules.sweepShare : base) * elementFactor(hero, element);
           // The Element threat bites heroes without Resist.
           if (element !== undefined && element === elementThreat?.element && !hero.member.resists.includes(element)) {
             incoming *= elementalDamage;
           }
-          const taken = (incoming * 100) / (100 + rules.defenseFactor * hero.member.defense) / fortune;
+          // Power hits are blunted by Armour, Magic by Resistance.
+          const defence = enemy.def.damageType === 'power' ? hero.member.armour : hero.member.resistance;
+          const taken = (incoming * 100) / (100 + rules.defenseFactor * defence) / fortune;
           hurt(hero, shielded(hero, taken), result);
           tookDamage(hero, element);
         }
@@ -500,15 +550,24 @@ export function simulateRun(
       result.rounds = round;
       // An exposed fight gives the enemies the first strike; after that it plays like any fight.
       const ambushed = enemiesFirst && round === 1;
+      // Heroes at least as fast as the fastest living enemy strike first; the rest strike after them.
+      const fastest = Math.max(...enemies.filter((e) => e.hp > 0).map((e) => e.def.speed));
+      const quick = ambushed ? alive() : alive().filter((h) => h.member.speed >= fastest);
+      const slow = ambushed ? [] : alive().filter((h) => h.member.speed < fastest);
       if (ambushed) enemiesAttack();
       if (alive().length === 0) return;
-      heroesAttack();
+      heroesAttack(quick);
       if (enemies.every((e) => e.hp <= 0)) {
         result.cleared = true;
         return;
       }
       if (!ambushed) enemiesAttack();
       if (alive().length === 0) return;
+      heroesAttack(slow);
+      if (enemies.every((e) => e.hp <= 0)) {
+        result.cleared = true;
+        return;
+      }
     }
   };
 

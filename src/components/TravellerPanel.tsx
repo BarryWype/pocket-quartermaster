@@ -25,6 +25,7 @@ import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
 import { patrolIcons } from './PatrolMarker';
+import { RecruitGrade } from './RecruitGrade';
 import { Text } from './Text';
 
 const helpProblemText: Record<'tooFar' | 'gone' | 'noStock', (distance: number) => string> = {
@@ -163,6 +164,7 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
                         level: recruit.level,
                       })}
                     </Text>
+                    <RecruitGrade grade={recruit.grade} roll={recruit.roll} />
                     <Text style={[styles.trait, { color: traitById[recruit.trait].positive ? colors.ink : colors.danger }]}>
                       {tr(traitById[recruit.trait].name)}: {tr(traitById[recruit.trait].description)}
                     </Text>

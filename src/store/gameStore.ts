@@ -3,14 +3,14 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { dungeons } from '@/content/dungeons';
-import { newHero } from '@/content/heroes';
+import { newHero, xpRules } from '@/content/heroes';
 import { items } from '@/content/items';
 import { recipeById } from '@/content/lookup';
 import { materials } from '@/content/materials';
 import { craft, craftMany, forgeResult, unlockRecipe, type ForgeResult } from '@/game/crafting/crafting';
 import { infuse } from '@/game/crafting/infusion';
 import { salvage } from '@/game/forging/salvage';
-import { migrateV10Save, migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV5Save, migrateV6Save, migrateV7Save, migrateV8Save, migrateV9Save } from '@/game/migrations';
+import { migrateV10Save, migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV15Save, migrateV5Save, migrateV6Save, migrateV7Save, migrateV8Save, migrateV9Save } from '@/game/migrations';
 import { convertShards, shardId, stoneId, type Element } from '@/game/elements';
 import { fastForward, resolveExpedition, startExpedition, type Loadout } from '@/game/expeditions/expeditions';
 import { markWalksSeen, processWalkPath, recordWalk, type WalkFix, type WalkOptions, type WalkPatrols, type WalkSummary } from '@/game/gathering/autoGather';
@@ -28,14 +28,15 @@ import { addPatrolsToWalks, escortHpChange, walkPatrolsFrom } from '@/game/patro
 import { challengeSanctum, type SanctumResult, type SanctumSpawn } from '@/game/sanctums/sanctums';
 import { createInitialSave, type SaveData, type TutorialStep } from '@/game/save';
 import { drinkPotion, fastForwardHealing, healAll, setHeroHp, settleHp } from '@/game/team/health';
-import { dismissHero, equip, isAway, unequip } from '@/game/team/team';
-import { buySupply, learnWeaponTypes, recruit, type RecruitOffer } from '@/game/taverns/taverns';
+import { pickApproach } from '@/game/team/stats';
+import { dismissHero, equip, heroStats, isAway, keepHpShare, unequip } from '@/game/team/team';
+import { buySupply, recruit, type RecruitOffer } from '@/game/taverns/taverns';
 import { buyRank } from '@/game/guild/guild';
 import { applyTraining } from '@/game/guild/training';
 import type { GuildTrackId } from '@/content/guild';
 import { advanceTutorial, finishTutorial, nextTutorialStep, placeTutorialWood } from '@/game/tutorial/tutorial';
 import { pruneExpired } from '@/game/upkeep';
-import type { EquipmentSlot, ExpeditionReport, HeroClassId, MasteryType, Quality } from '@/game/types';
+import type { Approach, EquipmentSlot, ExpeditionReport, HeroClassId, MasteryType, Quality } from '@/game/types';
 
 import { currentRotation, debugEnabled, useDebugStore } from './debugStore';
 
@@ -75,6 +76,8 @@ type GameState = {
   closeCookingHint: () => void;
   /** Drinks a healing potion at home. */
   drinkPotion: (heroId: string) => void;
+  /** Spends one of the hero's pending approach picks. */
+  pickApproach: (heroId: string, approach: Approach) => void;
   buySupply: (count: number, tavern: LatLng, player: LatLng) => void;
   buyRank: (trackId: GuildTrackId) => void;
   /** Credits Guild Hall training XP since the last check. */
@@ -109,6 +112,8 @@ type GameState = {
   addTreasureMap: () => void;
   resetFirstClears: () => void;
   addHero: (classId: HeroClassId, level: number, trait: string) => void;
+  /** Debug: sets a hero's level (1–15), XP to 0; pending approach picks follow. */
+  debugSetHeroLevel: (heroId: string, level: number) => void;
   addCharters: (amount: number) => void;
   setGuildRank: (trackId: GuildTrackId, rank: number) => void;
   resetGuild: () => void;
@@ -212,6 +217,7 @@ export const useGameStore = create<GameState>()(
       closeTavernHint: () => set(({ save }) => ({ save: { ...save, tavernHintSeen: true } })),
       closeCookingHint: () => set(({ save }) => ({ save: { ...save, cookingHintSeen: true } })),
       drinkPotion: (heroId) => set(({ save }) => ({ save: drinkPotion(save, heroId, Date.now()) })),
+      pickApproach: (heroId, approach) => set(({ save }) => ({ save: pickApproach(save, heroId, approach) })),
       buySupply: (count, tavern, player) => set(({ save }) => ({ save: buySupply(save, count, tavern, player) })),
       buyRank: (trackId) => set(({ save }) => ({ save: buyRank(save, trackId) })),
       train: () => set(({ save }) => ({ save: applyTraining(save, Date.now()) })),
@@ -322,15 +328,33 @@ export const useGameStore = create<GameState>()(
       resetGuild: () => set(({ save }) => ({ save: { ...save, guild: {} } })),
       addHero: (classId, level, trait) =>
         set(({ save }) => ({
-          save: learnWeaponTypes(
-            {
-              ...save,
-              heroes: [...save.heroes, newHero(`h${save.nextUid}`, `Debug ${classId}`, classId, trait, level)],
-              nextUid: save.nextUid + 1,
-            },
-            classId,
-          ),
+          save: {
+            ...save,
+            heroes: [...save.heroes, newHero(`h${save.nextUid}`, `Debug ${classId}`, classId, trait, level)],
+            nextUid: save.nextUid + 1,
+          },
         })),
+      debugSetHeroLevel: (heroId, level) =>
+        set(({ save }) => {
+          // The hero's HP keeps its share of the new max HP.
+          const settled = settleHp(save, Date.now());
+          const hero = settled.heroes.find((h) => h.id === heroId);
+          if (!hero) return { save: settled };
+          const clamped = Math.min(xpRules.maxLevel, Math.max(1, level));
+          const next = {
+            ...settled,
+            heroes: settled.heroes.map((h) => (h.id === heroId ? { ...h, level: clamped, xp: 0 } : h)),
+          };
+          const updated = next.heroes.find((h) => h.id === heroId)!;
+          return {
+            save: {
+              ...next,
+              heroes: next.heroes.map((h) =>
+                h.id === heroId ? keepHpShare(updated, heroStats(settled, hero).hp, heroStats(next, updated).hp) : h,
+              ),
+            },
+          };
+        }),
       addLure: () => set(({ save }) => ({ save: { ...save, lures: save.lures + 1 } })),
       resetSanctums: () => set(({ save }) => ({ save: { ...save, usedSanctums: {}, sigilPity: 0 } })),
       resetPatrols: () =>
@@ -361,7 +385,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 15,
+      version: 16,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
       // Saves from version 5 on are converted step by step; older ones start fresh. New fields get their defaults.
@@ -378,6 +402,7 @@ export const useGameStore = create<GameState>()(
         if (version <= 12) save = migrateV12Save(save);
         if (version <= 13) save = migrateV13Save(save);
         if (version <= 14) save = migrateV14Save(save);
+        if (version <= 15) save = migrateV15Save(save);
         return { save };
       },
       merge: (persisted, current) => ({

@@ -1,6 +1,7 @@
 import { createInitialSave, type SaveData } from './save';
 import { resolveExpedition } from './expeditions/expeditions';
-import { migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save } from './migrations';
+import { migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV15Save } from './migrations';
+import { xpToNextLevel } from '@/content/heroes';
 import type { ActiveExpedition, ExpeditionReport } from './types';
 
 describe('migrateV11Save', () => {
@@ -132,5 +133,25 @@ describe('migrateV14Save', () => {
     expect('kitId' in migrated).toBe(false);
     expect('kitUsed' in migrated).toBe(false);
     expect(migrated.consumablesUsed).toEqual(['emberWardSalve', 'healingPotion']);
+  });
+});
+
+describe('migrateV15Save', () => {
+  it('brings heroes above the cap down to 15 with no XP, and clamps the rest below the new next-level need', () => {
+    const base = createInitialSave();
+    const before: Partial<SaveData> = {
+      ...base,
+      heroes: [
+        { ...base.heroes[0], level: 18, xp: 500 },
+        { ...base.heroes[1], level: 7, xp: 999 },
+        { ...base.heroes[2], level: 15, xp: 999999 },
+      ],
+    };
+    const after = migrateV15Save(before);
+    expect(after.heroes.map((h) => [h.level, h.xp])).toEqual([
+      [15, 0],
+      [7, xpToNextLevel(7) - 1],
+      [15, 0],
+    ]);
   });
 });

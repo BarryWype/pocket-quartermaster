@@ -10,6 +10,7 @@ import { TutorialHint } from '@/components/TutorialHint';
 import { heroClasses } from '@/content/heroes';
 import { traitById } from '@/content/traits';
 import { heroStats, isOnExpedition } from '@/game/team/team';
+import { pendingApproachPicks } from '@/game/team/stats';
 import { partySize, rosterCap } from '@/game/guild/guild';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useNow } from '@/hooks/useNow';
@@ -32,6 +33,7 @@ export default function TeamScreen() {
         const heroClass = heroClasses[hero.classId];
         const away = isOnExpedition(save, hero.id);
         const stats = heroStats(save, hero);
+        const pending = pendingApproachPicks(hero);
         return (
           <Pressable
             key={hero.id}
@@ -44,6 +46,7 @@ export default function TeamScreen() {
                 <View style={styles.titleLine}>
                   <Text style={styles.name}>{hero.name}</Text>
                   <Text style={styles.level}>{t('common.levelShort', { level: hero.level })}</Text>
+                  {pending > 0 && <Text style={styles.pending}>{t('hero.pendingPicks', { count: pending })}</Text>}
                 </View>
                 <Text style={styles.muted}>
                   {tr(heroClass.name)} · {tr(traitById[hero.trait]?.name ?? '')}
@@ -72,6 +75,7 @@ const styles = StyleSheet.create({
   titleLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   name: { fontSize: 22 },
   level: { paddingHorizontal: 6, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.highlight, fontSize: 16 },
+  pending: { paddingHorizontal: 6, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.highlight, fontSize: 12 },
   muted: { color: colors.muted },
   stats: { fontSize: 17 },
   chevron: { fontSize: 28, color: colors.muted },

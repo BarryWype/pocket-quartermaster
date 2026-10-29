@@ -2,6 +2,7 @@ import { dungeons } from '@/content/dungeons';
 import { itemById } from '@/content/lookup';
 import { mainRewardRules } from '@/content/mainRewards';
 import { provisionRules } from '@/content/provisions';
+import { xpRules, xpToNextLevel } from '@/content/heroes';
 
 import { createInitialSave, type SaveData } from './save';
 import { canWield } from './team/team';
@@ -172,4 +173,19 @@ export function migrateV14Save(old: Partial<SaveData>): SaveData {
   });
 
   return { ...save, consumables, heroes, knownRecipes, expeditions, reports, patrolFights };
+}
+
+/**
+ * Version 15 → 16: the level cap and new XP curve. Heroes above 15 come down
+ * to 15 with no XP; others keep their level with XP clamped below the new
+ * next-level need. The new hero fields (roll, approach picks) are optional, so
+ * heroes without them read as an average roll with pending picks derived.
+ */
+export function migrateV15Save(old: Partial<SaveData>): SaveData {
+  const save: SaveData = { ...createInitialSave(), ...old };
+  const heroes = save.heroes.map((hero): HeroState => {
+    if (hero.level >= xpRules.maxLevel) return { ...hero, level: xpRules.maxLevel, xp: 0 };
+    return { ...hero, xp: Math.min(hero.xp, xpToNextLevel(hero.level) - 1) };
+  });
+  return { ...save, heroes };
 }

@@ -1,6 +1,6 @@
 import { chests } from '@/content/chests';
 import { guildRules, guildTrackById, type GuildTrackId } from '@/content/guild';
-import { newHero } from '@/content/heroes';
+import { newHero, xpToNextLevel } from '@/content/heroes';
 import { dungeonById } from '@/content/lookup';
 import { mainRewardRules } from '@/content/mainRewards';
 
@@ -19,6 +19,9 @@ import { applyTraining } from './training';
 const HOUR = 3_600_000;
 const ALL = ['bram', 'lyra', 'mira'];
 const BOSSES = ['banditStockade', 'ogreQuarry', 'drownedCrypt', 'giantsHall', 'dragonLair'];
+/** Total XP a hero has ever earned, from their level and XP within it. */
+const totalXp = (h: { level: number; xp: number }) =>
+  h.xp + Array.from({ length: h.level - 1 }, (_, i) => xpToNextLevel(i + 1)).reduce((sum, need) => sum + need, 0);
 
 /** The Guild Hall open, with bosses beaten up to `tier` and plenty to spend. */
 function hall(tier = 1, extra: Partial<SaveData> = {}): SaveData {
@@ -110,7 +113,7 @@ describe('effects', () => {
     const plain = run(strongTeam(hall()));
     const trained = run(strongTeam(withRanks({ heroXp: 2 })));
     const bram = (s: SaveData) => s.heroes.find((h) => h.id === 'bram')!;
-    expect(bram(trained.save).xp + (bram(trained.save).level - 1) * 100).toBe(
+    expect(totalXp(bram(trained.save))).toBe(
       Math.round((plain.report.xp + (plain.report.firstClear?.xp ?? 0)) * 1.2),
     );
   });
@@ -224,7 +227,7 @@ describe('training', () => {
     expect(after.heroes.every((h) => h.xp === 15)).toBe(true);
     expect(after.trainedAt).toBe(2 * HOUR + HOUR / 2);
     const long = applyTraining(trained, 100 * HOUR);
-    expect(long.heroes[0].xp + (long.heroes[0].level - 1) * 100).toBe(6 * guildRules.trainingMaxHours);
+    expect(totalXp(long.heroes[0])).toBe(6 * guildRules.trainingMaxHours);
     const short = applyTraining(trained, HOUR / 12);
     expect(short).toEqual(trained);
     expect(applyTraining(short, HOUR / 6).heroes[0].xp).toBe(1);

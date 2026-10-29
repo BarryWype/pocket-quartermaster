@@ -1,4 +1,4 @@
-import { dungeons } from '@/content/dungeons';
+import { dungeons, expeditionRules } from '@/content/dungeons';
 import { xpRules } from '@/content/heroes';
 import { dungeonById } from '@/content/lookup';
 import { mainRewardRules } from '@/content/mainRewards';
@@ -371,8 +371,10 @@ describe('daily boss bonus', () => {
     const repeats = Array.from({ length: 200 }, (_, i) => win(healAll(first.save), i, day)).filter((r) => r.report.success);
     const rolled = repeats.filter((r) => r.report.mainRewards.length > 0).length / repeats.length;
     expect(Math.max(...repeats.map((r) => r.report.mainRewards.length))).toBeLessThanOrEqual(1);
-    expect(rolled).toBeGreaterThan(mainRewardRules.repeatMainRewardChance - 0.12);
-    expect(rolled).toBeLessThan(mainRewardRules.repeatMainRewardChance + 0.12);
+    // Level 15 heroes bring 1 Luck each, which raises the chance.
+    const chance = mainRewardRules.repeatMainRewardChance * (1 + expeditionRules.luck.rollPerPoint * ALL.length);
+    expect(rolled).toBeGreaterThan(chance - 0.12);
+    expect(rolled).toBeLessThan(chance + 0.12);
     expect(repeats.every((r) => r.save.bossBonusDays[boss.id] === first.save.bossBonusDays[boss.id])).toBe(true);
     // Next day, the bonus is back.
     const tomorrow = win(first.save, 0, day + DAY);

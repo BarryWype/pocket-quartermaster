@@ -1,15 +1,12 @@
 import { heroClasses, newHero } from '@/content/heroes';
-import { recipes } from '@/content/recipes';
 import { provisionRules } from '@/content/provisions';
 import { heroNames, recruitRules } from '@/content/roster';
 import { tavernName, tavernNames, tavernRules } from '@/content/taverns';
 import { traits } from '@/content/traits';
 
-import { forgedItem, unlockRecipe } from '../crafting/crafting';
 import { nextRotationAt, rotationDay } from '../dungeons/rotation';
 import { highestUnlockedTier } from '../expeditions/expeditions';
 import { emergencyPrice } from '../expeditions/provisions';
-import { masteryTypeOf, startingMastery } from '../forging/mastery';
 import { guildBonus, tavernOfferCount } from '../guild/guild';
 import { distanceMeters } from '../generation/geo';
 import { createRng } from '../generation/rng';
@@ -17,7 +14,8 @@ import { randomPointInTile, tilesAround } from '../generation/tiles';
 import type { LatLng } from '../generation/types';
 import type { SaveData } from '../save';
 import { rosterFull } from '../team/team';
-import type { ClassRarity, HeroClassId, WeaponType } from '../types';
+import type { ClassRarity, HeroClassId, HeroRoll } from '../types';
+import { gradePriceMultiplier, recruitGrade, rollRecruit, type Grade } from './roll';
 
 type TavernRules = typeof tavernRules;
 type RecruitRules = typeof recruitRules;
@@ -30,6 +28,10 @@ export type RecruitOffer = {
   name: string;
   level: number;
   trait: string;
+  /** The recruit's 3d6 roll (see roll.ts). */
+  roll: HeroRoll;
+  /** The roll's grade, which scales the price. */
+  grade: Grade;
   price: number;
   /** When the tavern's offers refresh. */
   expiresAt: number;
@@ -58,20 +60,23 @@ export function offerLevel(save: SaveData, rules: RecruitRules = recruitRules) {
   return Math.max(1, Math.round(average - rules.levelsBelowAverage));
 }
 
-/** base by rarity × level factor × roster factor × trait factor × tier factor. */
+/** base by rarity × level factor × roster factor × trait factor × tier factor × grade factor. */
 export function recruitPrice(
   rarity: ClassRarity,
   level: number,
   rosterSize: number,
   positiveTrait: boolean,
   tier = 1,
+  grade: Grade = 'B',
   rules: RecruitRules = recruitRules,
 ) {
   const { base, perLevel, freeHeroes, perExtraHero, trait, perTier } = rules.price;
   const levelFactor = 1 + perLevel * (level - 1);
   const rosterFactor = 1 + perExtraHero * Math.max(0, rosterSize - freeHeroes);
   const tierFactor = perTier ** (tier - 1);
-  return Math.round(base[rarity] * levelFactor * rosterFactor * tierFactor * (positiveTrait ? trait.positive : trait.negative));
+  return Math.round(
+    base[rarity] * levelFactor * rosterFactor * tierFactor * (positiveTrait ? trait.positive : trait.negative) * gradePriceMultiplier(grade, rules),
+  );
 }
 
 /**
@@ -95,13 +100,21 @@ export function tavernOffers(save: SaveData, tavernId: string, now: number, seed
     const names = heroNames[classId];
     const positive = rng.chance(rules.positiveTraitChance);
     const pool = traits.filter((t) => t.positive === positive);
+    // The id comes first: the roll and the offer are both keyed on it.
+    const id = `${tavernId}:${day}${seed}:${i}`;
+    const roll = rollRecruit(id, rules);
+    const grade = recruitGrade(roll, rules);
     return {
-      id: `${tavernId}:${day}${seed}:${i}`,
+      id,
       classId,
       name: names[rng.int(0, names.length - 1)],
       level,
       trait: pool[rng.int(0, pool.length - 1)].id,
-      price: Math.round(recruitPrice(rarity, level, save.heroes.length, positive, highestUnlockedTier(save), rules) * discount),
+      roll,
+      grade,
+      price: Math.round(
+        recruitPrice(rarity, level, save.heroes.length, positive, highestUnlockedTier(save), grade, rules) * discount,
+      ),
       expiresAt: nextRotationAt(now),
     };
   });
@@ -122,39 +135,18 @@ export function recruitProblem(
   return null;
 }
 
-/**
- * The first hero who uses a weapon type teaches its recipes up to the highest
- * tier reached; its mastery starts at the cap of the tier before.
- */
-export function learnWeaponTypes(save: SaveData, classId: HeroClassId): SaveData {
-  const tier = highestUnlockedTier(save);
-  let next = save;
-  for (const type of Object.keys(heroClasses[classId].affinities) as WeaponType[]) {
-    if (next.mastery[type]) continue;
-    next = { ...next, mastery: { ...next.mastery, [type]: startingMastery(tier) } };
-    for (const recipe of recipes) {
-      const item = forgedItem(recipe);
-      if (item && masteryTypeOf(item) === type && item.tier <= tier) next = unlockRecipe(next, recipe.id);
-    }
-  }
-  return next;
-}
-
-/** Pays for a recruit, adds them to the roster, marks the offer taken and teaches their weapon types. */
+/** Pays for a recruit, adds them to the roster with their roll, and marks the offer taken. */
 export function recruit(save: SaveData, offer: RecruitOffer, tavern: LatLng, player: LatLng): SaveData {
   const problem = recruitProblem(save, offer, tavern, player);
   if (problem) throw new Error(`Cannot recruit ${offer.name}: ${problem}`);
-  const hero = newHero(`h${save.nextUid}`, offer.name, offer.classId, offer.trait, offer.level);
-  return learnWeaponTypes(
-    {
-      ...save,
-      gold: save.gold - offer.price,
-      heroes: [...save.heroes, hero],
-      takenOffers: { ...save.takenOffers, [offer.id]: offer.expiresAt },
-      nextUid: save.nextUid + 1,
-    },
-    offer.classId,
-  );
+  const hero = { ...newHero(`h${save.nextUid}`, offer.name, offer.classId, offer.trait, offer.level), roll: offer.roll };
+  return {
+    ...save,
+    gold: save.gold - offer.price,
+    heroes: [...save.heroes, hero],
+    takenOffers: { ...save.takenOffers, [offer.id]: offer.expiresAt },
+    nextUid: save.nextUid + 1,
+  };
 }
 
 

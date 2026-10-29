@@ -38,12 +38,15 @@ export function patrolRunOptions(kind: PatrolKind): RunOptions {
 export type RewardContext = {
   /** Guild gold bonus folded in, `1 + guildBonus(save, 'gold')`. */
   goldMultiplier: number;
+  /** The party's Luck, folded into gold and material rewards. */
+  luck: number;
   /** The player's pickaxe tier: caches and trades never hold ore above it. */
   pickaxeTier: number;
 };
 
-export const rewardContextOf = (save: SaveData): RewardContext => ({
+export const rewardContextOf = (save: SaveData, luck = 0): RewardContext => ({
   goldMultiplier: 1 + guildBonus(save, 'gold'),
+  luck,
   pickaxeTier: pickaxeTier(save),
 });
 
@@ -113,17 +116,19 @@ export function patrolRewards(
   const kind = patrolKinds[spawn.kind];
   const short = shortDungeon(tier);
   const eliteMultiplier = elite ? rules.elite.rewardMultiplier : 1;
+  // Lucky parties carry more home.
+  const luckGold = 1 + expeditionRules.luck.goldPerPoint * context.luck;
   const materials = kind.loot
-    ? rollLoot(rng, kind.loot).map((stack) => ({ ...stack, amount: stack.amount * eliteMultiplier }))
+    ? rollLoot(rng, kind.loot).map((stack) => ({ ...stack, amount: Math.round(stack.amount * eliteMultiplier * luckGold) }))
     : kind.cacheNodes
-      ? cacheMaterials(context, rng, kind.cacheNodes).map((stack) => ({ ...stack, amount: stack.amount * eliteMultiplier }))
+      ? cacheMaterials(context, rng, kind.cacheNodes).map((stack) => ({ ...stack, amount: Math.round(stack.amount * eliteMultiplier * luckGold) }))
       : [];
   return {
-    gold: Math.round(((short.gold[0] + short.gold[1]) / 2) * (kind.goldShareOfShort ?? 0) * eliteMultiplier * context.goldMultiplier),
+    gold: Math.round(((short.gold[0] + short.gold[1]) / 2) * (kind.goldShareOfShort ?? 0) * eliteMultiplier * context.goldMultiplier * luckGold),
     xp: Math.round(short.xp * rules.xpShareOfShortDungeon * eliteMultiplier),
     materials,
     ...(kind.shardChance && rng.chance(kind.shardChance)
-      ? { shards: { element: ELEMENTS[rng.int(0, ELEMENTS.length - 1)], amount: eliteMultiplier } }
+      ? { shards: { element: ELEMENTS[rng.int(0, ELEMENTS.length - 1)], amount: Math.round(eliteMultiplier * luckGold) } }
       : {}),
   };
 }
@@ -209,7 +214,7 @@ export function startPatrolFight(
   const id = `p${save.nextUid}`;
   const run = simulateRun(party, dungeon, `${id}|${spawn.id}`, patrolRunOptions(kind));
   const rewards = run.bossDefeated
-    ? patrolRewards(rewardContextOf(save), spawn, tier, elite, createRng(`${id}|rewards`), rules)
+    ? patrolRewards(rewardContextOf(save, party.reduce((sum, m) => sum + m.luck, 0)), spawn, tier, elite, createRng(`${id}|rewards`), rules)
     : { gold: 0, xp: 0, materials: [] };
 
   return {

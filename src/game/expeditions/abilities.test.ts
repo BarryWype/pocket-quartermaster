@@ -7,7 +7,7 @@ import type { Ability, BossDef, Briefing, DungeonDef, EncounterDef, ThreatId } f
 import { simulateRun, type PartyMember } from './simulate';
 
 /** No mishaps, luck, variance or crits, so effects can be checked exactly. */
-const steady = { ...expeditionRules, mishapChance: 0, fortune: 0, damageVariance: 0, critChance: 0 };
+const steady = { ...expeditionRules, mishapChance: 0, fortune: 0, damageVariance: 0, enemyCritChance: 0 };
 
 const member = (heroId: string, abilities: Ability[] = [], overrides: Partial<PartyMember> = {}): PartyMember => ({
   heroId,
@@ -18,9 +18,15 @@ const member = (heroId: string, abilities: Ability[] = [], overrides: Partial<Pa
   weaponType: null,
   maxHp: 100,
   hp: overrides.hp ?? overrides.maxHp ?? 100,
-  damage: 10,
+  power: 10,
   magic: 0,
-  defense: 0,
+  damageStat: 'power',
+  armour: 0,
+  resistance: 0,
+  evasion: 0,
+  speed: 5,
+  crit: 0,
+  luck: 0,
   threat: 1,
   resists: [],
   abilities,
@@ -28,7 +34,7 @@ const member = (heroId: string, abilities: Ability[] = [], overrides: Partial<Pa
   ...overrides,
 });
 
-const weakBoss: BossDef = { id: 'testBoss', name: 'test boss', hp: 1, damage: 0, tags: [] };
+const weakBoss: BossDef = { id: 'testBoss', name: 'test boss', hp: 1, damage: 0, damageType: 'power', speed: 5, tags: [] };
 /** One encounter then a boss that falls at once. */
 const oneEncounter = (encounter: EncounterDef, extra: EncounterDef[] = []): DungeonDef => ({
   ...dungeonById.ratCellar,
@@ -113,7 +119,7 @@ describe('locals', () => {
 
   it('lose some gold to a pickpocket when the party only half meets them, and sometimes notice', () => {
     // A fire mage (Presence 1, Might 1) half-misses level 1: the thief works.
-    const thief = member('a', [{ kind: 'pickpocket' }], { classId: 'fireMage', maxHp: 1e6, damage: 100 });
+    const thief = member('a', [{ kind: 'pickpocket' }], { classId: 'fireMage', maxHp: 1e6, magic: 100, damageStat: 'magic' });
     const results = Array.from({ length: 60 }, (_, i) => withLocals([thief], 'pedlar', 1, `p${i}`));
     results.forEach((r) => expect(r).toMatchObject({ reaction: 'steal', gold: Math.round(localsRules.pickpocketGoldShare * 12) }));
     const noticed = results.filter((r) => r.noticed).length / results.length;
@@ -139,7 +145,7 @@ describe('locals', () => {
 
   it('sometimes turn hostile when the party misses them, and fight with their hostile group', () => {
     // A fire mage alone: level 1 is one short (half), so the extra fight is a coin flip.
-    const loner = member('a', [], { classId: 'fireMage', maxHp: 1e6, damage: 100 });
+    const loner = member('a', [], { classId: 'fireMage', maxHp: 1e6, magic: 100, damageStat: 'magic' });
     const met = Array.from({ length: 40 }, (_, i) => withLocals([loner], 'poachers', 1, `h${i}`));
     const hostile = met.filter((r) => r.reaction === 'fight');
     expect(hostile.length).toBeGreaterThan(0);
@@ -162,7 +168,7 @@ describe('locals', () => {
 });
 
 describe('support and combat primitives', () => {
-  const brute: BossDef = { id: 'brute', name: 'brute', hp: 400, damage: 20, tags: [] };
+  const brute: BossDef = { id: 'brute', name: 'brute', hp: 400, damage: 20, damageType: 'power', speed: 5, tags: [] };
   const bossFight = (party: PartyMember[], boss: BossDef = brute, seed = 's') =>
     simulateRun(party, { ...oneEncounter({ type: 'event', weight: 1, eventId: 'spring' }), encounterCount: [1, 1], boss }, seed, {
       rules: steady,
@@ -179,7 +185,7 @@ describe('support and combat primitives', () => {
   it('protect: takes a share of the hits aimed at the most hurt ally', () => {
     const result = bossFight([
       member('tank', [{ kind: 'protect', share: 0.5 }], { maxHp: 1e6, threat: 0.0001 }),
-      member('frail', [], { maxHp: 1e6, damage: 1 }),
+      member('frail', [], { maxHp: 1e6, power: 1 }),
     ]);
     expect(result.effects).toContainEqual({ heroId: 'tank', key: 'protect', allyId: 'frail' });
     // Half of every hit on the frail hero goes to the tank instead.
@@ -203,7 +209,7 @@ describe('support and combat primitives', () => {
   });
 
   it('critBonus: lands more critical hits, and says so', () => {
-    const critRules = { ...steady, critChance: 0 };
+    const critRules = { ...steady, enemyCritChance: 0 };
     const run = (abilities: Ability[]) =>
       simulateRun([member('a', abilities, { maxHp: 1e6 })], { ...oneEncounter(trap), encounterCount: [1, 1], boss: brute }, 'c', {
         rules: critRules,

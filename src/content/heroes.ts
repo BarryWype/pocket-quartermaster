@@ -1,16 +1,18 @@
 import type { HeroClassDef, HeroClassId, HeroState } from '@/game/types';
 
-// Heroes are deliberately modest: gear provides most of their power, and a
-// level adds only a little, so levelling up never replaces forging better gear.
-// Damage dealers have a ×1.5 affinity with their weapons; support classes
-// (cleric, paladin, troubadour) have less and earn their place with abilities.
+// Heroes keep modest bases and grow mostly through their three primary stats
+// (every level) and milestone steps for the rest (levels 5, 10, 15). Gear
+// still provides most of their power. Damage dealers keep a ×1.5 affinity with
+// their weapons; support classes have less and earn their place with abilities.
+// Max level is 15: level 15 lands on the tier 5 boss under the XP curve below.
 export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   warrior: {
     name: 'Warrior',
     emoji: '🛡️',
     rarity: 'common',
-    baseStats: { attack: 4, defense: 3, magic: 0, hp: 30 },
-    growth: { attack: 0.6, defense: 0.5, magic: 0, hp: 3 },
+    baseStats: { hp: 30, power: 4, magic: 0, armour: 3, resistance: 1, evasion: 0, speed: 5, crit: 5 },
+    primary: ['hp', 'power', 'armour'],
+    damageStat: 'power',
     affinities: { sword: 1.5 },
     approaches: { might: 3 },
     keywords: [],
@@ -21,8 +23,9 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     name: 'Ranger',
     emoji: '🏹',
     rarity: 'common',
-    baseStats: { attack: 5, defense: 1, magic: 0, hp: 24 },
-    growth: { attack: 0.7, defense: 0.3, magic: 0.1, hp: 2.5 },
+    baseStats: { hp: 24, power: 5, magic: 0, armour: 1, resistance: 1, evasion: 5, speed: 7, crit: 5 },
+    primary: ['power', 'evasion', 'speed'],
+    damageStat: 'power',
     affinities: { bow: 1.5 },
     approaches: { wits: 3 },
     keywords: ['watchful'],
@@ -37,8 +40,9 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     emoji: '🔥',
     rarity: 'common',
     element: 'fire',
-    baseStats: { attack: 0, defense: 0, magic: 6, hp: 22 },
-    growth: { attack: 0.1, defense: 0.3, magic: 0.8, hp: 2 },
+    baseStats: { hp: 22, power: 0, magic: 6, armour: 0, resistance: 1, evasion: 0, speed: 7, crit: 10 },
+    primary: ['magic', 'speed', 'crit'],
+    damageStat: 'magic',
     affinities: { wand: 1.5 },
     approaches: {},
     keywords: ['light', 'cleave'],
@@ -51,8 +55,9 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     emoji: '❄️',
     rarity: 'common',
     element: 'water',
-    baseStats: { attack: 0, defense: 0, magic: 6, hp: 22 },
-    growth: { attack: 0.1, defense: 0.3, magic: 0.8, hp: 2 },
+    baseStats: { hp: 22, power: 0, magic: 6, armour: 0, resistance: 3, evasion: 0, speed: 5, crit: 5 },
+    primary: ['magic', 'armour', 'resistance'],
+    damageStat: 'magic',
     affinities: { wand: 1.5 },
     approaches: { wits: 3 },
     keywords: [],
@@ -64,8 +69,9 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     name: 'Thief',
     emoji: '🗝️',
     rarity: 'uncommon',
-    baseStats: { attack: 5, defense: 1, magic: 0, hp: 22 },
-    growth: { attack: 0.7, defense: 0.2, magic: 0, hp: 2 },
+    baseStats: { hp: 22, power: 5, magic: 0, armour: 1, resistance: 1, evasion: 5, speed: 5, crit: 10 },
+    primary: ['power', 'evasion', 'crit'],
+    damageStat: 'power',
     affinities: { dagger: 1.5 },
     approaches: { finesse: 4 },
     keywords: [],
@@ -80,8 +86,9 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     name: 'Barbarian',
     emoji: '🪓',
     rarity: 'uncommon',
-    baseStats: { attack: 6, defense: 0, magic: 0, hp: 32 },
-    growth: { attack: 0.8, defense: 0.2, magic: 0, hp: 3.5 },
+    baseStats: { hp: 32, power: 6, magic: 0, armour: 0, resistance: 1, evasion: 0, speed: 5, crit: 10 },
+    primary: ['hp', 'power', 'crit'],
+    damageStat: 'power',
     affinities: { axe: 1.5 },
     approaches: { might: 3 },
     keywords: ['cleave'],
@@ -92,8 +99,9 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     name: 'Cleric',
     emoji: '✝️',
     rarity: 'uncommon',
-    baseStats: { attack: 2, defense: 2, magic: 3, hp: 26 },
-    growth: { attack: 0.3, defense: 0.4, magic: 0.4, hp: 2.5 },
+    baseStats: { hp: 26, power: 2, magic: 3, armour: 2, resistance: 3, evasion: 0, speed: 5, crit: 5 },
+    primary: ['hp', 'magic', 'resistance'],
+    damageStat: 'magic',
     affinities: { mace: 1.25 },
     approaches: { faith: 3 },
     keywords: ['antidote', 'blessed'],
@@ -104,8 +112,9 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     name: 'Paladin',
     emoji: '⚜️',
     rarity: 'uncommon',
-    baseStats: { attack: 3, defense: 4, magic: 0, hp: 32 },
-    growth: { attack: 0.5, defense: 0.6, magic: 0, hp: 3.5 },
+    baseStats: { hp: 32, power: 3, magic: 0, armour: 4, resistance: 3, evasion: 0, speed: 5, crit: 5 },
+    primary: ['hp', 'armour', 'resistance'],
+    damageStat: 'power',
     affinities: { sword: 1.25, mace: 1.25 },
     approaches: { faith: 3 },
     keywords: ['blessed', 'guard'],
@@ -117,8 +126,9 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     emoji: '🌿',
     rarity: 'uncommon',
     element: 'grass',
-    baseStats: { attack: 0, defense: 1, magic: 5, hp: 24 },
-    growth: { attack: 0.1, defense: 0.3, magic: 0.7, hp: 2.5 },
+    baseStats: { hp: 24, power: 0, magic: 5, armour: 1, resistance: 1, evasion: 5, speed: 5, crit: 5 },
+    primary: ['hp', 'magic', 'evasion'],
+    damageStat: 'magic',
     affinities: { staff: 1.5 },
     approaches: {},
     keywords: ['calm', 'antidote'],
@@ -129,8 +139,9 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     name: 'Troubadour',
     emoji: '🎻',
     rarity: 'uncommon',
-    baseStats: { attack: 2, defense: 1, magic: 2, hp: 22 },
-    growth: { attack: 0.3, defense: 0.3, magic: 0.3, hp: 2 },
+    baseStats: { hp: 22, power: 2, magic: 2, armour: 1, resistance: 1, evasion: 5, speed: 7, crit: 5 },
+    primary: ['magic', 'evasion', 'speed'],
+    damageStat: 'magic',
     affinities: { instrument: 1 },
     approaches: { presence: 3 },
     keywords: [],
@@ -141,8 +152,9 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     name: 'Sorcerer',
     emoji: '🔮',
     rarity: 'uncommon',
-    baseStats: { attack: 0, defense: 0, magic: 6, hp: 20 },
-    growth: { attack: 0.1, defense: 0.2, magic: 0.9, hp: 1.8 },
+    baseStats: { hp: 20, power: 0, magic: 6, armour: 0, resistance: 3, evasion: 0, speed: 5, crit: 10 },
+    primary: ['magic', 'resistance', 'crit'],
+    damageStat: 'magic',
     affinities: { wand: 1.5 },
     approaches: { wits: 3 },
     keywords: [],
@@ -169,11 +181,28 @@ export const startingHeroes: HeroState[] = [
 
 export const xpRules = {
   /** XP to go from level L to L + 1: round(base × L^exponent). */
-  base: 100,
-  exponent: 1.5,
+  base: 25,
+  exponent: 1.65,
+  /** No XP past this level; the curve lands it on the tier 5 boss. */
+  maxLevel: 15,
   /** Share of XP from dungeons 0, 1, and 2 or more tiers below the highest unlocked tier. */
   lowerTierShare: [1, 0.5, 0.25],
 };
 
 /** XP needed to go from `level` to `level + 1`. */
 export const xpToNextLevel = (level: number, rules: typeof xpRules = xpRules) => Math.round(rules.base * level ** rules.exponent);
+
+/** Growth rules (see team/stats.ts): steps per level, milestones, Luck and the recruit roll's pull. */
+export const growthRules = {
+  /** A primary stat gains its step every level; secondaries at the milestones. */
+  steps: { hp: 8, power: 2, magic: 2, armour: 1, resistance: 1, evasion: 1, speed: 1, crit: 1 },
+  /** Levels at which the secondary stats gain a step. */
+  milestones: [5, 10, 15],
+  /** Levels at which a hero picks an approach (see team/stats.ts). */
+  approachMilestones: [5, 10],
+  /** Luck is gained at this level. */
+  luckLevel: 15,
+  luck: 1,
+  /** A 3d6 roll's pull on the stats: the average is 10.5, sums span 3–18. */
+  roll: { average: 10.5, spread: 7.5, base: 0.15, growth: 0.08 },
+};

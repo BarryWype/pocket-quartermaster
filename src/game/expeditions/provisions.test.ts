@@ -14,7 +14,7 @@ import { emergencyPrice, heroSupplyNeed, hungerEffect, hungerFor, pickSupply, su
 import { prepareParty, simulateRun, type PartyMember } from './simulate';
 
 const ALL = ['bram', 'lyra', 'mira'];
-const steady = { ...expeditionRules, mishapChance: 0, fortune: 0, damageVariance: 0, critChance: 0 };
+const steady = { ...expeditionRules, mishapChance: 0, fortune: 0, damageVariance: 0, enemyCritChance: 0 };
 /** A briefing whose missed traps make every trap in the pool bite at 12% of max HP. */
 const traps: Briefing = { threats: [{ id: 'traps', level: 2 }], restriction: null, opportunity: null };
 
@@ -27,9 +27,15 @@ const member = (heroId: string, abilities: Ability[] = [], overrides: Partial<Pa
   weaponType: null,
   maxHp: 100,
   hp: overrides.hp ?? overrides.maxHp ?? 100,
-  damage: 10,
+  power: 10,
   magic: 0,
-  defense: 0,
+  damageStat: 'power',
+  armour: 0,
+  resistance: 0,
+  evasion: 0,
+  speed: 5,
+  crit: 0,
+  luck: 0,
   threat: 1,
   resists: [],
   abilities,
@@ -37,7 +43,7 @@ const member = (heroId: string, abilities: Ability[] = [], overrides: Partial<Pa
   ...overrides,
 });
 
-const weakBoss: BossDef = { id: 'testBoss', name: 'test boss', hp: 1, damage: 0, tags: [] };
+const weakBoss: BossDef = { id: 'testBoss', name: 'test boss', hp: 1, damage: 0, damageType: 'power', speed: 5, tags: [] };
 const oneEncounter = (encounter: EncounterDef): DungeonDef => ({
   ...dungeonById.ratCellar,
   encounterCount: [2, 2],
@@ -184,7 +190,7 @@ describe('meals', () => {
   });
 
   it('Hunter’s stew: heals before the boss', () => {
-    const run = simulateRun([member('a', [], { hp: 50, damage: 1000 })], oneEncounter({ type: 'event', weight: 1, eventId: 'cache' }), 's', {
+    const run = simulateRun([member('a', [], { hp: 50, power: 1000 })], oneEncounter({ type: 'event', weight: 1, eventId: 'cache' }), 's', {
       rules: steady,
       meal: { kind: 'bossHeal', pct: provisionRules.meals.stewHeal },
     });

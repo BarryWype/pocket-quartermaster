@@ -23,28 +23,50 @@ const away = (save: SaveData, heroId: string): SaveData => ({
 });
 
 describe('heroStats', () => {
-  it('starts from class base stats, with the trait on top (Bram is tough: +15% HP)', () => {
+  it('starts from class base stats, with the trait on top (Bram is resilient: +15% HP)', () => {
     const save = createInitialSave();
-    expect(heroStats(save, hero(save, 'bram'))).toEqual({ attack: 4, defense: 3, magic: 0, hp: Math.round(30 * 1.15) });
-    expect(heroStats(save, hero(save, 'lyra'))).toEqual({ attack: 5, defense: 1, magic: 0, hp: 24 });
+    expect(heroStats(save, hero(save, 'bram'))).toEqual({
+      hp: Math.round(30 * 1.15),
+      power: 4,
+      magic: 0,
+      armour: 3,
+      resistance: 1,
+      evasion: 0,
+      speed: 5,
+      crit: 5,
+      luck: 0,
+    });
+    expect(heroStats(save, hero(save, 'lyra'))).toEqual({
+      hp: 24,
+      power: 5,
+      magic: 0,
+      armour: 1,
+      resistance: 1,
+      evasion: 5,
+      speed: 7,
+      crit: 5,
+      luck: 0,
+    });
   });
 
   it('adds gear stats, boosted by class affinity', () => {
     const save = equip(equip(saveWithGear(), 'bram', 'weapon', 'g1'), 'mira', 'weapon', 'g2');
-    expect(heroStats(save, hero(save, 'bram')).attack).toBe(4 + 6 * 1.5);
+    expect(heroStats(save, hero(save, 'bram')).power).toBe(4 + 6 * 1.5);
     expect(heroStats(save, hero(save, 'mira')).magic).toBe(6 + 6 * 1.5);
   });
 
   it('gives support classes a smaller affinity', () => {
     const paladin = newHero('p', 'Pal', 'paladin', 'greedy');
     const save = equip({ ...saveWithGear(), heroes: [...createInitialSave().heroes, paladin] }, 'p', 'weapon', 'g1');
-    expect(heroStats(save, hero(save, 'p')).attack).toBe(Math.round(3 + 6 * 1.25));
+    expect(heroStats(save, hero(save, 'p')).power).toBe(Math.round(3 + 6 * 1.25));
   });
 
-  it('grows with level', () => {
+  it('grows primaries with level and leaves secondaries at their milestones', () => {
     const save = createInitialSave();
     const levelThree = { ...hero(save, 'lyra'), level: 3 };
-    expect(heroStats(save, levelThree).hp).toBe(24 + 2 * 2.5);
+    // Ranger primaries: power every level; HP only at the 5/10/15 milestones.
+    expect(heroStats(save, levelThree).power).toBe(5 + 2 * 2);
+    expect(heroStats(save, levelThree).hp).toBe(24);
   });
 });
 
@@ -118,11 +140,11 @@ describe('addXp', () => {
   it('levels up and carries over the remainder', () => {
     const save = createInitialSave();
     const leveled = addXp(hero(save, 'bram'), 250);
-    expect(leveled.level).toBe(2);
-    expect(leveled.xp).toBe(150);
-    // 100 to level 2, then round(100 × 2^1.5) = 283 to level 3.
-    expect(addXp(hero(save, 'bram'), 382).level).toBe(2);
-    expect(addXp(hero(save, 'bram'), 383).level).toBe(3);
-    expect([1, 2, 3, 4].map((level) => xpToNextLevel(level))).toEqual([100, 283, 520, 800]);
+    expect(leveled.level).toBe(3);
+    expect(leveled.xp).toBe(147);
+    // 25 to level 2, then round(25 × 2^1.65) = 78, then 153 to level 4.
+    expect(addXp(hero(save, 'bram'), 102).level).toBe(2);
+    expect(addXp(hero(save, 'bram'), 103).level).toBe(3);
+    expect([1, 2, 3, 4].map((level) => xpToNextLevel(level))).toEqual([25, 78, 153, 246]);
   });
 });

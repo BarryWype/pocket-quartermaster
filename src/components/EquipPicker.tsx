@@ -64,10 +64,10 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, briefin
       const holder = save.heroes.find((h) => h.id !== heroId && h.equipment[slot] === gear.uid);
       const away = holder && save.expeditions.some((e) => e.heroIds.includes(holder.id));
       if (away) return [];
-      // The main stat this hero would actually get: attack or magic with class affinity, or defense.
+      // The main stat this hero would actually get: power or magic with class affinity, or armour.
       const stats = gearStats(item, gear);
       const affinity = item.weaponType ? (affinities[item.weaponType] ?? 1) : 1;
-      const power = item.slot === 'weapon' ? ((stats.attack ?? 0) + (stats.magic ?? 0)) * affinity : (stats.defense ?? 0);
+      const power = item.slot === 'weapon' ? ((stats.power ?? 0) + (stats.magic ?? 0)) * affinity : (stats.armour ?? 0);
       return [{ gear, item, holder, power }];
     })
     .sort((a, b) => b.power - a.power)

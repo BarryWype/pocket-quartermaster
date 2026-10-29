@@ -13,10 +13,10 @@ import type { LatLng } from '../generation/types';
 import { hasMaterials, removeMaterials, addMaterials } from '../inventory';
 import { pickaxeTier } from '../gathering/gathering';
 import { treasureLocation } from '../rewards/treasure';
+import { recruitGrade, rollRecruit, type Grade } from '../taverns/roll';
 import type { SaveData } from '../save';
 import { isAway } from '../team/team';
-import { learnWeaponTypes } from '../taverns/taverns';
-import type { HeroClassId, MaterialStack, TreasureMap } from '../types';
+import type { HeroClassId, HeroRoll, MaterialStack, TreasureMap } from '../types';
 import { isTravellerKind, pruneByWindow, type PatrolSpawn, type TravellerKind } from './generate';
 import { distanceTo, isGone } from './visibility';
 
@@ -50,6 +50,8 @@ export type TravellerRecruit = {
   name: string;
   trait: string;
   level: number;
+  roll: HeroRoll;
+  grade: Grade;
 };
 
 export type HelpProblem = 'tooFar' | 'gone' | 'noStock' | 'trader' | null;
@@ -101,12 +103,16 @@ function travellerRecruit(save: SaveData, spawn: PatrolSpawn): TravellerRecruit 
   const positive = traits.filter((t) => t.positive);
   const levels = [...save.heroes.map((h) => h.level)].sort((a, b) => a - b);
   const median = levels.length % 2 ? levels[(levels.length - 1) / 2] : (levels[levels.length / 2 - 1] + levels[levels.length / 2]) / 2;
+  const id = `traveller:${spawn.id}`;
+  const roll = rollRecruit(id);
   return {
-    id: `traveller:${spawn.id}`,
+    id,
     classId,
     name: names[rng.int(0, names.length - 1)],
     trait: positive[rng.int(0, positive.length - 1)].id,
     level: Math.max(1, Math.round(median)),
+    roll,
+    grade: recruitGrade(roll),
   };
 }
 
@@ -277,9 +283,9 @@ export function trade(
   };
 }
 
-/** Takes a traveller up on joining the roster, with the weapon types their class brings. */
+/** Takes a traveller up on joining the roster. */
 export function acceptRecruit(save: SaveData, offer: TravellerRecruit): SaveData {
   if (save.heroes.length >= rosterCap(save)) throw new Error('Roster is full');
-  const hero = newHero(`h${save.nextUid}`, offer.name, offer.classId, offer.trait, offer.level);
-  return learnWeaponTypes({ ...save, heroes: [...save.heroes, hero], nextUid: save.nextUid + 1 }, offer.classId);
+  const hero = { ...newHero(`h${save.nextUid}`, offer.name, offer.classId, offer.trait, offer.level), roll: offer.roll };
+  return { ...save, heroes: [...save.heroes, hero], nextUid: save.nextUid + 1 };
 }

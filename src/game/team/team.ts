@@ -1,13 +1,17 @@
-import { heroClasses, xpToNextLevel } from '@/content/heroes';
+import { heroClasses, xpRules, xpToNextLevel } from '@/content/heroes';
 import { itemById } from '@/content/lookup';
 import { traitById } from '@/content/traits';
 
 import { gearStats } from '../forging/quality';
 import { rosterCap } from '../guild/guild';
 import type { SaveData } from '../save';
-import type { Ability, EquipmentSlot, HeroState, ItemDef, Stats } from '../types';
+import type { Ability, DamageStat, EquipmentSlot, GearDef, HeroState, ItemDef, StatKey, Stats, WeaponType } from '../types';
+import { baseHeroStats } from './stats';
 
-const STAT_KEYS: (keyof Stats)[] = ['attack', 'defense', 'magic', 'hp'];
+const STAT_KEYS: StatKey[] = ['hp', 'power', 'magic', 'armour', 'resistance', 'evasion', 'speed', 'crit'];
+
+/** Weapon types that roll with Magic; every other weapon rolls with Power. */
+const MAGIC_WEAPONS: WeaponType[] = ['wand', 'staff', 'instrument'];
 
 export function isOnExpedition(save: SaveData, heroId: string) {
   return save.expeditions.some((e) => e.heroIds.includes(heroId));
@@ -34,11 +38,10 @@ export const heroAbilities = (hero: HeroState): Ability[] => [
 export const canWield = (hero: HeroState, item: ItemDef) =>
   item.slot !== 'weapon' || !item.weaponType || item.weaponType in heroClasses[hero.classId].affinities;
 
-/** Base stats + level growth + gear (after quality), with class affinity boosting weapon stats, then traits. */
+/** Base stats (class, level, roll) + gear (after quality), with class affinity boosting weapon stats, then traits. */
 export function heroStats(save: SaveData, hero: HeroState): Stats {
   const heroClass = heroClasses[hero.classId];
-  const stats = { ...heroClass.baseStats };
-  for (const key of STAT_KEYS) stats[key] += heroClass.growth[key] * (hero.level - 1);
+  const stats = baseHeroStats(hero.classId, hero.level, hero.roll);
 
   for (const gear of equippedGear(save, hero)) {
     const item = itemById[gear.itemId];
@@ -50,8 +53,16 @@ export function heroStats(save: SaveData, hero: HeroState): Stats {
   for (const effect of heroAbilities(hero)) {
     if (effect.kind === 'statMultiplier') stats[effect.stat] *= effect.multiplier;
   }
-  for (const key of STAT_KEYS) stats[key] = Math.round(stats[key]);
+  for (const key of [...STAT_KEYS, 'luck'] as const) stats[key] = Math.round(stats[key]);
   return stats;
+}
+
+/** The stat the hero's hits roll with: the weapon's, or the class's when unarmed. */
+export function heroDamageStat(save: SaveData, hero: HeroState): DamageStat {
+  const weapon = save.gear.find((g) => g.uid === hero.equipment.weapon);
+  const weaponType = weapon ? (itemById[weapon.itemId] as GearDef).weaponType : undefined;
+  if (!weaponType) return heroClasses[hero.classId].damageStat;
+  return MAGIC_WEAPONS.includes(weaponType) ? 'magic' : 'power';
 }
 
 function updateHero(save: SaveData, heroId: string, update: (hero: HeroState) => HeroState): SaveData {
@@ -132,11 +143,16 @@ export function dismissHero(save: SaveData, heroId: string): SaveData {
 export const rosterFull = (save: SaveData) => save.heroes.length >= rosterCap(save);
 
 export function addXp(hero: HeroState, amount: number): HeroState {
+  // At the cap no XP is gained at all.
+  if (hero.level >= xpRules.maxLevel) return hero;
   let { level, xp } = hero;
   xp += amount;
-  while (xp >= xpToNextLevel(level)) {
-    xp -= xpToNextLevel(level);
+  while (level < xpRules.maxLevel) {
+    const need = xpToNextLevel(level);
+    if (xp < need) break;
+    xp -= need;
     level += 1;
   }
+  if (level >= xpRules.maxLevel) xp = 0;
   return { ...hero, level, xp };
 }
