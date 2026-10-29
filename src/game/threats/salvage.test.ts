@@ -17,6 +17,11 @@ describe('salvage', () => {
     expect(salvage('healingPotion')).toEqual({ materials: [{ materialId: 'herb', amount: 1 }], gold: 0 });
   });
 
+  it('breaks the stronger potions down to their tier’s main material', () => {
+    expect(salvage('standardHealingPotion')).toEqual({ materials: [{ materialId: 'copper', amount: 1 }], gold: 0 });
+    expect(salvage('greaterHealingPotion')).toEqual({ materials: [{ materialId: 'coal', amount: 1 }], gold: 0 });
+  });
+
   it.each([
     ['roguesRoll', 'bone'],
     ['huntersPack', 'bone'],

@@ -208,6 +208,12 @@ describe('class slots and picks', () => {
     expect(next.consumables.healingPotion).toBe(2);
   });
 
+  it('takes every strength of healing potion in the Alchemist’s slot', () => {
+    const stocked = { ...save(), consumables: { ...save().consumables, standardHealingPotion: 1, greaterHealingPotion: 1 } };
+    expect(equip(stocked, 'a', 'potion', 'standardHealingPotion').heroes[0].equipment.potion).toBe('standardHealingPotion');
+    expect(equip(stocked, 'a', 'potion', 'greaterHealingPotion').heroes[0].equipment.potion).toBe('greaterHealingPotion');
+  });
+
   it('lets a Porter pick the hero their kit is carried for', () => {
     const next = setKitFor(save(), 'p', 'w');
     expect(next.heroes[1].kitFor).toBe('w');

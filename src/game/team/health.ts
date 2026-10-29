@@ -3,7 +3,7 @@ import { itemById } from '@/content/lookup';
 
 import type { SaveData } from '../save';
 import type { HeroState, HomeCare } from '../types';
-import { heroAbilities, heroStats, isAway } from './team';
+import { heroAbilities, heroStats, healingPotion, isAway } from './team';
 
 type Rules = typeof healthRules;
 
@@ -92,33 +92,58 @@ export function applyRunHp(
 
 export type DrinkProblem = 'away' | 'noPotion' | 'full';
 
-const POTION = 'healingPotion';
+/** The healing potions a hero has on hand: every stocked one, plus the one they carry. */
+function potionsOnHand(save: SaveData, hero: HeroState) {
+  const ids = Object.entries(save.consumables)
+    .filter(([, stock]) => stock > 0)
+    .map(([id]) => id);
+  const carried = hero.equipment.consumable;
+  if (carried && !ids.includes(carried)) ids.push(carried);
+  return ids.flatMap((id) => {
+    const potion = healingPotion(id);
+    return potion ? [potion] : [];
+  });
+}
 
-export function drinkProblem(save: SaveData, heroId: string, now: number): DrinkProblem | null {
+export function drinkProblem(save: SaveData, heroId: string, now: number, itemId?: string): DrinkProblem | null {
   const hero = save.heroes.find((h) => h.id === heroId);
   if (!hero || isAway(save, heroId)) return 'away';
-  if ((save.consumables[POTION] ?? 0) < 1 && hero.equipment.consumable !== POTION) return 'noPotion';
+  const onHand = potionsOnHand(save, hero);
+  if (itemId ? !onHand.some((potion) => potion.id === itemId) : onHand.length === 0) return 'noPotion';
   if (currentHp(save, hero, now) >= maxHp(save, hero) && !isExhausted(hero, now)) return 'full';
   return null;
 }
 
 /**
- * Drinks a healing potion at home: +30% of max HP at once, and the end of any
- * exhaustion. Takes it from the stock, or else the one the hero carries.
+ * Drinks a healing potion at home, choosing one when no itemId is given: the
+ * weakest on hand that heals the hero to full, or else the strongest. The heal
+ * is the potion's own share of max HP, and it ends any exhaustion. Taken from
+ * the stock first, or else the hero's slot when they carry that potion.
  */
-export function drinkPotion(save: SaveData, heroId: string, now: number, rules: Rules = healthRules): SaveData {
-  const problem = drinkProblem(save, heroId, now);
+export function drinkPotion(save: SaveData, heroId: string, now: number, itemId?: string, rules: Rules = healthRules): SaveData {
+  const problem = drinkProblem(save, heroId, now, itemId);
   if (problem) throw new Error(`Cannot drink a potion: ${problem}`);
+  const drinking = save.heroes.find((h) => h.id === heroId)!;
+  const max = maxHp(save, drinking);
+  const onHand = potionsOnHand(save, drinking);
+  const filling = onHand.filter((potion) => potion.heal! * max >= max - currentHp(save, drinking, now, rules));
+  const potion = itemId
+    ? onHand.find((potion) => potion.id === itemId)!
+    : filling.length > 0
+      ? filling.reduce((a, b) => (b.heal! < a.heal! ? b : a))
+      : onHand.reduce((a, b) => (b.heal! > a.heal! ? b : a));
   const settled = settleHp(save, now, rules);
-  const fromStock = (settled.consumables[POTION] ?? 0) > 0;
+  const fromStock = (settled.consumables[potion.id] ?? 0) > 0;
   return {
     ...settled,
-    consumables: fromStock ? { ...settled.consumables, [POTION]: settled.consumables[POTION] - 1 } : settled.consumables,
+    consumables: fromStock ? { ...settled.consumables, [potion.id]: settled.consumables[potion.id] - 1 } : settled.consumables,
     heroes: settled.heroes.map((hero) => {
       if (hero.id !== heroId) return hero;
-      const max = maxHp(settled, hero);
-      const carried = fromStock ? hero : { ...hero, equipment: { ...hero.equipment, consumable: null } };
-      return withHp(carried, currentHp(settled, hero, now, rules) + rules.potionHeal.minor * max, max, now, undefined);
+      const carried =
+        fromStock || hero.equipment.consumable !== potion.id
+          ? hero
+          : { ...hero, equipment: { ...hero.equipment, consumable: null } };
+      return withHp(carried, currentHp(settled, hero, now, rules) + potion.heal! * max, max, now, undefined);
     }),
   };
 }

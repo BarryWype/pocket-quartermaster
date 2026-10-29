@@ -77,8 +77,8 @@ function scaled(penalty: ThreatPenalty, share: number, threatId: ThreatId, reduc
   }
 }
 
-/** The party's multipliers on Delay and Hunger penalties (see signatures.ts penaltyReduction). */
-export type PenaltyReduction = { delay: number; hunger: number };
+/** The party's multipliers on Delay and Hunger penalties, and on the penalties of listed threats (see signatures.ts). */
+export type PenaltyReduction = { delay: number; hunger: number; threats?: Partial<Record<ThreatId, number>> };
 const NO_REDUCTION: PenaltyReduction = { delay: 1, hunger: 1 };
 
 /**
@@ -89,7 +89,7 @@ export function threatPenalties(score: ThreatScore, rules: ThreatRules = threatR
   if (score.state === 'met') {
     return score.forced ? [{ kind: 'lostLoot', pct: rules.forcedLockLoss, threatId: score.threat.id }] : [];
   }
-  const share = score.state === 'half' ? rules.halfShare : 1;
+  const share = (score.state === 'half' ? rules.halfShare : 1) * (reduce.threats?.[score.threat.id] ?? 1);
   const def = threatById[score.threat.id];
   return def.penalties[score.threat.level - 1].map((penalty) => scaled(penalty, share, score.threat.id, reduce));
 }

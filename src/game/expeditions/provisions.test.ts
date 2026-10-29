@@ -284,6 +284,15 @@ describe('party meals', () => {
     expect(started.consumables.pemmican).toBe(0);
   });
 
+  it('Salted fish counts as 4 supply points', () => {
+    const plan = launchPlan(ready({ saltedFish: 1 }), dungeonById.ratCellar, ALL);
+    expect(plan.held).toBe(4);
+    expect(plan.need).toBe(3);
+    expect(plan.hunger).toBe('fed');
+    const started = startExpedition(ready({ saltedFish: 1 }), 'ratCellar', ALL, 0, 1);
+    expect(started.consumables.saltedFish).toBe(0);
+  });
+
   it('estimates better odds with a hearty roast on a marginal party', () => {
     let frail = ready({ trailMix: 10, heartyRoast: 1 });
     for (const id of ALL) frail = setHeroHp(frail, id, 0.5, 0);

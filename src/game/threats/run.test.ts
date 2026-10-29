@@ -406,6 +406,15 @@ describe('salvage and consumables', () => {
     expect(report.salvaged.map((s) => s.itemId)).not.toContain('luckyTooth');
   });
 
+  it('salvages an undrunk standard or greater healing potion', () => {
+    for (const itemId of ['standardHealingPotion', 'greaterHealingPotion']) {
+      let save = geared({ [itemId]: 1 });
+      save = equip(save, 'bram', 'consumable', itemId);
+      const { report } = resolve(save);
+      expect(report.salvaged.map((s) => s.itemId)).toContain(itemId);
+    }
+  });
+
   it('salvages an untriggered kit into half its recipe, and adds it to the stock', () => {
     let save = geared({ roguesRoll: 1 });
     save = equip(save, 'bram', 'consumable', 'roguesRoll');

@@ -18,7 +18,7 @@ import { currentHp } from '../team/health';
 import { heroAbilities, heroDamageStat, heroStats, gearKeywordsOf, healingPotion } from '../team/team';
 import { classApproaches, gearApproachBonus, heroApproachBonus } from '../team/stats';
 import { heroAnswers, type AnswersMember, type HeroAnswers } from '../threats/answers';
-import { threatPenalties, type AppliedPenalty } from '../threats/penalties';
+import { threatPenalties, type AppliedPenalty, type PenaltyReduction } from '../threats/penalties';
 import { scoreBriefing, scoreOpportunity, type ThreatScore } from '../threats/score';
 import { partyMeal, penaltyReduction, signatureBriefing, type SignatureBriefing } from '../threats/signatures';
 import type {
@@ -393,6 +393,7 @@ export function mealParty(party: PartyMember[], meal: MealEffect | null | undefi
       return { ...member, maxHp, hp: Math.min(maxHp, Math.round(member.hp * meal.multiplier)) };
     }
     if (meal?.kind === 'speed') return { ...member, speed: member.speed + meal.add };
+    if (meal?.kind === 'crit') return { ...member, crit: member.crit + meal.add };
     if (meal?.kind === 'resistance') return { ...member, resistance: Math.round(member.resistance * meal.multiplier) };
     return member;
   });
@@ -467,8 +468,14 @@ export function simulateRun(
   const fence = party.flatMap((m) => m.abilities).find((a): a is Extract<Ability, { kind: 'fence' }> => a.kind === 'fence');
   const thieves = activeBriefing.threats.find((t) => t.id === 'thieves');
   const fenceGold = fence && thieves ? Math.round(fence.shares[thieves.level - 1] * dungeon.gold[1]) : 0;
+  // The chowder multiplies the penalties of the threats it lists.
+  const classReduction = penaltyReduction(classIds);
+  const reduction: PenaltyReduction =
+    meal?.kind === 'penaltyCut'
+      ? { ...classReduction, threats: Object.fromEntries(meal.threats.map((id) => [id, meal.multiplier])) }
+      : classReduction;
   const penalties: AppliedPenalty[] = scores.threats
-    .flatMap((score) => threatPenalties(score, undefined, penaltyReduction(classIds)))
+    .flatMap((score) => threatPenalties(score, undefined, reduction))
     .filter((p) => !(fence && p.threatId === 'thieves' && p.kind === 'lostLoot'));
   const ofKind = <K extends AppliedPenalty['kind']>(kind: K) =>
     penalties.filter((p): p is Extract<AppliedPenalty, { kind: K }> => p.kind === kind);

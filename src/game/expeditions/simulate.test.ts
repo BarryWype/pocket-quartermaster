@@ -4,7 +4,7 @@ import { dungeonById, itemById } from '@/content/lookup';
 
 import type { Element } from '../elements';
 import type { BossDef, Briefing, ConsumableDef, DungeonDef, EncounterDef, ThreatId } from '../types';
-import { simulateRun, type PartyMember } from './simulate';
+import { mealParty, simulateRun, type PartyMember } from './simulate';
 
 /** No mishaps or run-wide luck, so each test sees the mechanic it targets. */
 const calm = { ...expeditionRules, mishapChance: 0, fortune: 0 };
@@ -217,6 +217,19 @@ describe('consumables', () => {
     const drank = run.encounters.find((e) => e.consumed.includes('a'))!;
     expect(run.consumed).toEqual(['a']);
     expect(drank.healed.a).toBeCloseTo(30);
+  });
+
+  it('drinks each potion its own share of max HP', () => {
+    for (const [id, share] of [['standardHealingPotion', 50], ['greaterHealingPotion', 70]] as const) {
+      const run = wounded({ consumable: itemById[id] as ConsumableDef });
+      const drank = run.encounters.find((e) => e.consumed.includes('a'))!;
+      expect(drank.healed.a).toBeCloseTo(share);
+    }
+  });
+
+  it('adds the grilled trout’s crit to every member of the meal party', () => {
+    const eaten = mealParty([member('a'), member('b')], { kind: 'crit', add: 10 });
+    expect(eaten.map((m) => m.crit)).toEqual([10, 10]);
   });
 
   it('keeps the potion when HP never drops that low', () => {

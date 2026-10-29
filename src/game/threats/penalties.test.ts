@@ -1,7 +1,7 @@
 import { heroClasses } from '@/content/heroes';
 
 import { heroAnswers, type AnswersMember } from './answers';
-import { launchEffects, threatPenalties } from './penalties';
+import { launchEffects, threatPenalties, type PenaltyReduction } from './penalties';
 import { scoreThreat, type ThreatScore } from './score';
 
 const member = (overrides: Partial<AnswersMember> = {}): AnswersMember => ({
@@ -107,6 +107,23 @@ describe('threat penalties', () => {
     expect(threatPenalties(scored(threat('locked', 3), { classId: 'warrior' }))).toEqual([
       { kind: 'lostLoot', pct: 0.4, threatId: 'locked' },
     ]);
+  });
+
+  it('multiplies the listed threats’ penalties and leaves the others alone', () => {
+    const cut: PenaltyReduction = { delay: 1, hunger: 1, threats: { underwater: 0.5, poison: 0.5 } };
+    // Fully missed level 3 Underwater: 0.4 weakened halved.
+    expect(threatPenalties(scored(threat('underwater', 3), { classId: 'warrior' }), undefined, cut)).toEqual([
+      { kind: 'weakened', pct: 0.2, threatId: 'underwater' },
+    ]);
+    // Half-missed level 3 Poison (two antidote holders, three needed): a quarter of 0.15 fight wounds.
+    const antidotes = { gearKeywords: [{ keyword: 'antidote' as const, magic: false }] };
+    expect(
+      threatPenalties(scored(threat('poison', 3), antidotes, antidotes), undefined, cut),
+    ).toEqual([{ kind: 'fightWounds', pct: 0.0375, targets: 'all', threatId: 'poison' }]);
+    // Threats the meal does not list keep their full penalties.
+    expect(threatPenalties(scored(threat('darkness', 2), { classId: 'warrior' }), undefined, cut)).toEqual(
+      threatPenalties(scored(threat('darkness', 2), { classId: 'warrior' })),
+    );
   });
 });
 

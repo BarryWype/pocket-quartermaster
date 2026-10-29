@@ -148,5 +148,9 @@ describe('penalty and meal signatures', () => {
     expect(partyMeal({ kind: 'speed', add: 1 }, briefing([]), ['cook', 'warrior'])).toEqual({ kind: 'speed', add: 2 });
     expect(partyMeal(stew, briefing([]), ['warrior'])).toBe(stew);
     expect(partyMeal(stew, briefing([], { restriction: 'spoiledStores' }), ['warrior'])).toBeNull();
+    // The trout doubles like any add; the chowder is a plain cut, not a bonus.
+    expect(partyMeal({ kind: 'crit', add: 10 }, briefing([]), ['cook'])).toEqual({ kind: 'crit', add: 20 });
+    const chowder: MealEffect = { kind: 'penaltyCut', threats: ['underwater', 'poison'], multiplier: 0.5 };
+    expect(partyMeal(chowder, briefing([]), ['cook'])).toBe(chowder);
   });
 });

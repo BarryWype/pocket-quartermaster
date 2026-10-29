@@ -208,8 +208,13 @@ describe('consumable recipes', () => {
     ['herbalPoultice', 1, { herb: 2, hide: 1 }],
     ['restorativeTonic', 3, { copper: 1, herb: 1, mushroom: 1 }],
     ['calmingTea', 3, { copper: 1, herb: 1, berries: 1 }],
+    ['standardHealingPotion', 3, { copper: 1, herb: 1, mushroom: 1 }],
+    ['greaterHealingPotion', 5, { coal: 1, herb: 1, mushroom: 1 }],
+    ['grilledTrout', 1, { fish: 2, herb: 1 }],
+    ['saltedFish', 2, { fish: 2, stone: 1 }],
+    ['fishermansChowder', 2, { fish: 2, herb: 1, mushroom: 1 }],
   ];
-  const kitchen = new Set(['heartyRoast', 'honeyCakes', 'pemmican', 'spicedSkewers', 'mushroomRisotto']);
+  const kitchen = new Set(['heartyRoast', 'honeyCakes', 'pemmican', 'spicedSkewers', 'mushroomRisotto', 'grilledTrout', 'saltedFish', 'fishermansChowder']);
 
   it.each(table)('%s opens at tier %i, made from its inputs, in its tab', (id, tier, inputs) => {
     const recipe = recipeById[id];
@@ -223,16 +228,26 @@ describe('consumable recipes', () => {
     const save = withMaterials({});
     expect(isKnown(save, recipeById.foragersTonic)).toBe(true);
     expect(isKnown(save, recipeById.herbalPoultice)).toBe(true);
+    expect(isKnown(save, recipeById.grilledTrout)).toBe(true);
+    expect(isKnown(save, recipeById.saltedFish)).toBe(false);
+    expect(isKnown(save, recipeById.fishermansChowder)).toBe(false);
     expect(isKnown(save, recipeById.strengthDraught)).toBe(false);
     expect(isKnown(save, recipeById.heartyRoast)).toBe(false);
     const tier2 = { ...save, clearedDungeons: ['banditStockade'] };
     expect(isKnown(tier2, recipeById.heartyRoast)).toBe(true);
     expect(isKnown(tier2, recipeById.strengthDraught)).toBe(true);
+    expect(isKnown(tier2, recipeById.saltedFish)).toBe(true);
+    expect(isKnown(tier2, recipeById.fishermansChowder)).toBe(true);
+    expect(isKnown(tier2, recipeById.standardHealingPotion)).toBe(false);
+    const tier3 = { ...tier2, clearedDungeons: [...tier2.clearedDungeons, 'ogreQuarry'] };
+    expect(isKnown(tier3, recipeById.standardHealingPotion)).toBe(true);
     const tier4 = { ...save, clearedDungeons: ['banditStockade', 'ogreQuarry', 'drownedCrypt'] };
     expect(isKnown(tier4, recipeById.emberOil)).toBe(true);
     expect(isKnown(tier4, recipeById.revivalDraught)).toBe(false);
     const tier5 = { ...tier4, clearedDungeons: [...tier4.clearedDungeons, 'giantsHall'] };
     expect(isKnown(tier5, recipeById.revivalDraught)).toBe(true);
+    expect(isKnown(tier5, recipeById.greaterHealingPotion)).toBe(true);
+    expect(isKnown(tier4, recipeById.greaterHealingPotion)).toBe(false);
   });
 });
 

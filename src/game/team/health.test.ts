@@ -146,6 +146,36 @@ describe('healing potions', () => {
     expect(save.consumables.healingPotion).toBe(0);
   });
 
+  it('heal each strength its own share of max HP at home', () => {
+    const save = (itemId: string, share: number) => {
+      const drunk = drinkPotion(hurt(0.2, { consumables: { [itemId]: 1 } }), 'bram', 0, itemId);
+      expect(hero(drunk).hp! / maxHp(drunk, hero(drunk))).toBeCloseTo(0.2 + share);
+      expect(drunk.consumables[itemId]).toBe(0);
+    };
+    save('healingPotion', 0.3);
+    save('standardHealingPotion', 0.5);
+    save('greaterHealingPotion', 0.7);
+  });
+
+  it('without an itemId pick the weakest potion that fills, else the strongest', () => {
+    const all = { healingPotion: 1, standardHealingPotion: 1, greaterHealingPotion: 1 };
+    // Hurt to 80%: the Minor (30%) already fills.
+    expect(drinkPotion(hurt(0.8, { consumables: { ...all } }), 'bram', 0).consumables.healingPotion).toBe(0);
+    // Hurt to 60%: the Minor is not enough, the Standard fills.
+    expect(drinkPotion(hurt(0.6, { consumables: { ...all } }), 'bram', 0).consumables.standardHealingPotion).toBe(0);
+    // Hurt to 20%: none fills, so the strongest is drunk.
+    expect(drinkPotion(hurt(0.2, { consumables: { ...all } }), 'bram', 0).consumables.greaterHealingPotion).toBe(0);
+  });
+
+  it('still drink an old save’s healingPotion as the Minor potion', () => {
+    const save = drinkPotion(hurt(0.2, { consumables: { healingPotion: 1 } }), 'bram', 0);
+    expect(hero(save).hp! / maxHp(save, hero(save))).toBeCloseTo(0.5);
+  });
+
+  it('are refused for an asked potion the hero does not hold', () => {
+    expect(drinkProblem(hurt(0.2, { consumables: { healingPotion: 1 } }), 'bram', 0, 'greaterHealingPotion')).toBe('noPotion');
+  });
+
   it('use the carried potion when the stock is empty', () => {
     const carrying = equip(hurt(0.2, { consumables: { healingPotion: 1 } }), 'bram', 'consumable', 'healingPotion');
     const save = drinkPotion(carrying, 'bram', 0);
