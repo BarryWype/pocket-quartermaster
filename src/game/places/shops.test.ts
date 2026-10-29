@@ -137,6 +137,18 @@ describe('buy', () => {
     expect(next.usedPlaces).toEqual({});
   });
 
+  it('sells the healing potion of the player’s tier at the apothecary, or the one below', () => {
+    const potionsSold = (clearedDungeons: string[]) =>
+      new Set(
+        Array.from({ length: 40 }, (_, i) => placeStock(withGold(100, { clearedDungeons }), spawnOf('apothecary', `0:${i}`))[0].id),
+      );
+    expect(potionsSold([])).toEqual(new Set(['healingPotion']));
+    expect(potionsSold(['banditStockade', 'ogreQuarry'])).toEqual(new Set(['standardHealingPotion', 'healingPotion']));
+    expect(potionsSold(['banditStockade', 'ogreQuarry', 'drownedCrypt', 'giantsHall'])).toEqual(
+      new Set(['greaterHealingPotion', 'standardHealingPotion']),
+    );
+  });
+
   it('sells the decoy hoard only once tier 5 is unlocked', () => {
     const market = spawnOf('market');
     const fresh = placeStock(withGold(1000), market);

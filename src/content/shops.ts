@@ -50,6 +50,11 @@ export const shopRules = {
   recipePrice: [30, 60, 120, 240, 480],
   smithy: { gearLines: [2, 3] as [min: number, max: number], rareChance: 0.2 },
   market: { lines: 4, amount: [3, 8] as [min: number, max: number] },
+  /**
+   * Healing potions, weakest first. A stock line naming any of them sells the
+   * strongest the player can brew, or with `weakerChance` the one below.
+   */
+  potions: { ladder: ['healingPotion', 'standardHealingPotion', 'greaterHealingPotion'], weakerChance: 0.5 },
 };
 
 /** One stock line of a place kind; `pool` picks the id at random instead of `id`. */

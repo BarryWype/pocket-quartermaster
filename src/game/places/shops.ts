@@ -64,6 +64,16 @@ export function gearPool(save: SaveData): RecipeDef[] {
   });
 }
 
+/** The healing potion a shop sells: the strongest the player can brew, sometimes the one below. */
+export function potionForSale(save: SaveData, rng: Rng): string {
+  const { ladder, weakerChance } = shopRules.potions;
+  const strongest = ladder.reduce((best, id, i) => (isKnown(save, recipeById[id]) ? i : best), 0);
+  return ladder[Math.max(0, strongest - (rng.chance(weakerChance) ? 1 : 0))];
+}
+
+/** A stocked item id, with a healing potion swapped for the player's tier. */
+const stockedId = (save: SaveData, id: string, rng: Rng) => (shopRules.potions.ladder.includes(id) ? potionForSale(save, rng) : id);
+
 /** Draw `count` items without repeat, with the rng. */
 function draw<T>(pool: T[], count: number, rng: Rng): T[] {
   const rest = [...pool];
@@ -80,7 +90,7 @@ export function placeStock(save: SaveData, spawn: PlaceSpawn): StockLine[] {
     const stock = shopStock[spawn.kind];
     if (stock) {
       return stock.map((line) => {
-        const id = line.pool ? line.pool[rng.int(0, line.pool.length - 1)] : line.id!;
+        const id = line.pool ? line.pool[rng.int(0, line.pool.length - 1)] : stockedId(save, line.id!, rng);
         const amount = rng.int(line.amount[0], line.amount[1]);
         const price = line.kind === 'material' ? materialPrices[id] : itemPrices[id];
         return { key: `${line.kind}:${id}`, kind: line.kind, id, amount, price };
@@ -113,8 +123,9 @@ export function placeStock(save: SaveData, spawn: PlaceSpawn): StockLine[] {
     if (spawn.kind === 'market') {
       const pool = marketPool.filter((entry) => entry.kind !== 'material' || (oreTier[entry.id] ?? 0) <= pickaxeTier(save));
       return draw(pool, shopRules.market.lines, rng).map((entry) => {
-        const price = entry.kind === 'material' ? materialPrices[entry.id] : itemPrices[entry.id];
-        return { key: `${entry.kind}:${entry.id}`, kind: entry.kind, id: entry.id, amount: rng.int(...shopRules.market.amount), price };
+        const id = entry.kind === 'item' ? stockedId(save, entry.id, rng) : entry.id;
+        const price = entry.kind === 'material' ? materialPrices[id] : itemPrices[id];
+        return { key: `${entry.kind}:${id}`, kind: entry.kind, id, amount: rng.int(...shopRules.market.amount), price };
       });
     }
     return [];
