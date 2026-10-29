@@ -21,6 +21,7 @@ import { placeGroupOf, placesAround } from '@/game/places/generate';
 import { nearestByKind } from '@/game/places/density';
 import { placeInfo, type PlaceKind } from '@/content/places';
 import { PANEL_KINDS } from '@/components/PlacePanel';
+import { placeFightRules } from '@/content/placeFights';
 import { sanctums } from '@/content/sanctums';
 import { ELEMENTS, type Element } from '@/game/elements';
 import { highestUnlockedTier } from '@/game/expeditions/expeditions';
@@ -63,6 +64,8 @@ import { currentRotation, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useWorldStore } from '@/store/worldStore';
+
+const FIGHT_KINDS = Object.keys(placeFightRules.kinds) as PlaceKind[];
 
 const FALLBACK_LOCATION = { latitude: -41.2865, longitude: 174.7762 };
 const STEP_METERS = [10, 50];
@@ -462,11 +465,17 @@ export default function DebugScreen() {
       </View>
 
       <Text style={styles.title}>Places</Text>
-      <Choice options={PANEL_KINDS} value={placeKind} label={(kind) => `${placeInfo[kind].emoji} ${placeInfo[kind].name}`} onChange={setPlaceKind} />
+      <Choice options={[...PANEL_KINDS, ...FIGHT_KINDS]} value={placeKind} label={(kind) => `${placeInfo[kind].emoji} ${placeInfo[kind].name}`} onChange={setPlaceKind} />
       <View style={styles.row}>
         <Button title="Place it next to me" onPress={placePlace} />
         <Button title="Clear placed" onPress={() => debug.set({ debugPlaces: [] })} />
         <Button title="Refill shops" onPress={game.refillPlaces} />
+      </View>
+      <Text>Ruins dug: {game.save.ruinsProgress} / 5</Text>
+      <View style={styles.row}>
+        {[0, 1, 2, 3, 4].map((progress) => (
+          <Button key={progress} title={String(progress)} onPress={() => game.setRuinsProgress(progress)} />
+        ))}
       </View>
       <Button title="Nearest by kind (before snapping)" onPress={measureNearest} />
       {nearest !== '' && <Text>{nearest}</Text>}

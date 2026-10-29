@@ -32,6 +32,10 @@ import { drinkPotion, fastForwardHealing, giveHomeCare, healAll, setHeroHp, sett
 import { buy, sellGear, sellMaterial } from '@/game/places/shops';
 import { apothecaryCare, blessRelics, chapelCare, takeChapelBlessing, trainHero, type CareKind } from '@/game/places/services';
 import type { PlaceSpawn } from '@/game/places/generate';
+import { fish } from '@/game/places/dock';
+import { resolvePlaceFights, startPlaceFight } from '@/game/places/fights';
+import { resolveHeists, startHeist } from '@/game/places/heists';
+import { digRuin } from '@/game/places/ruins';
 import { pickApproach } from '@/game/team/stats';
 import { dismissHero, equip, heroStats, isAway, keepHpShare, unequip } from '@/game/team/team';
 import { buySupply, recruit, type RecruitOffer } from '@/game/taverns/taverns';
@@ -40,7 +44,7 @@ import { applyTraining } from '@/game/guild/training';
 import type { GuildTrackId } from '@/content/guild';
 import { advanceTutorial, finishTutorial, nextTutorialStep, placeTutorialWood } from '@/game/tutorial/tutorial';
 import { pruneExpired } from '@/game/upkeep';
-import type { Approach, EquipmentSlot, ExpeditionReport, HeroClassId, MasteryType, Quality } from '@/game/types';
+import type { Approach, EquipmentSlot, ExpeditionReport, Heist, HeroClassId, MasteryType, PlaceFight, PlaceReward, Quality } from '@/game/types';
 
 import { currentRotation, debugEnabled, useDebugStore } from './debugStore';
 
@@ -95,6 +99,15 @@ type GameState = {
   takeChapelBlessing: (spawn: PlaceSpawn, player: LatLng) => void;
   apothecaryCare: (spawn: PlaceSpawn, heroId: string, care: CareKind, player: LatLng) => void;
   trainHero: (spawn: PlaceSpawn, heroId: string, player: LatLng) => void;
+  /** Sends home heroes at a fight event or monster lair; the fight settles when its time is up. */
+  engagePlaceFight: (spawn: PlaceSpawn, heroIds: string[], player: LatLng) => void;
+  /** Sends one hero on a thieves' guild heist. */
+  startHeist: (spawn: PlaceSpawn, heroId: string, player: LatLng) => void;
+  /** Settles place fights and heists whose time is up. */
+  resolvePlaces: () => { fights: PlaceFight[]; heists: Heist[] };
+  digRuin: (spawn: PlaceSpawn, player: LatLng) => { reward: PlaceReward; relic: boolean };
+  /** Fishes at a dock; returns the fish caught. */
+  fish: (spawn: PlaceSpawn, player: LatLng) => number;
   buyRank: (trackId: GuildTrackId) => void;
   /** Credits Guild Hall training XP since the last check. */
   train: () => void;
@@ -126,6 +139,7 @@ type GameState = {
   addGold: (amount: number) => void;
   /** Debug: forgets every purchase and used-up place, refilling shops. */
   refillPlaces: () => void;
+  setRuinsProgress: (progress: number) => void;
   addAllMaterials: (amount: number) => void;
   addSigil: (tier: number) => void;
   addElemental: (element: Element, kind: 'shard' | 'stone', amount: number) => void;
@@ -261,6 +275,25 @@ export const useGameStore = create<GameState>()(
       apothecaryCare: (spawn, heroId, care, player) =>
         set(({ save }) => ({ save: apothecaryCare(save, spawn, heroId, care, player, Date.now()) })),
       trainHero: (spawn, heroId, player) => set(({ save }) => ({ save: trainHero(save, spawn, heroId, player, Date.now()) })),
+      engagePlaceFight: (spawn, heroIds, player) => set(({ save }) => ({ save: startPlaceFight(save, spawn, heroIds, player, Date.now()) })),
+      startHeist: (spawn, heroId, player) => set(({ save }) => ({ save: startHeist(save, spawn, heroId, player, Date.now()) })),
+      resolvePlaces: () => {
+        const now = Date.now();
+        const fights = resolvePlaceFights(get().save, now);
+        const heists = resolveHeists(fights.save, now);
+        if (heists.save !== get().save) set({ save: heists.save });
+        return { fights: fights.resolved, heists: heists.resolved };
+      },
+      digRuin: (spawn, player) => {
+        const { save, reward, relic } = digRuin(get().save, spawn, player, Date.now());
+        set({ save });
+        return { reward, relic };
+      },
+      fish: (spawn, player) => {
+        const { save, amount } = fish(get().save, spawn, player, Date.now());
+        set({ save });
+        return amount;
+      },
       buyRank: (trackId) => set(({ save }) => ({ save: buyRank(save, trackId) })),
       train: () => set(({ save }) => ({ save: applyTraining(save, Date.now()) })),
       startExpedition: (dungeonId, heroIds, durationScale, loadout) =>
@@ -328,6 +361,7 @@ export const useGameStore = create<GameState>()(
         }),
       addGold: (amount) => set(({ save }) => ({ save: { ...save, gold: save.gold + amount } })),
       refillPlaces: () => set(({ save }) => ({ save: { ...save, placePurchases: {}, usedPlaces: {} } })),
+      setRuinsProgress: (progress) => set(({ save }) => ({ save: { ...save, ruinsProgress: progress } })),
       addAllMaterials: (amount) =>
         set(({ save }) => ({
           save: {

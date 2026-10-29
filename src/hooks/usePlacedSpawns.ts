@@ -1,7 +1,15 @@
 import { useMemo } from 'react';
 
 import type { LatLng, Spawn } from '@/game/generation/types';
-import { mapTileAt, mapTileKey, mapTileKeysFor, placementCandidates, placePoint, placeSpawns } from '@/game/generation/walkable';
+import {
+  mapTileAt,
+  mapTileKey,
+  mapTileKeysFor,
+  placementCandidates,
+  placePoint,
+  placeSpawns,
+  type WalkableTile,
+} from '@/game/generation/walkable';
 import type { WalkableRules } from '@/content/walkable';
 
 import { useWalkableTiles } from './useWalkableTiles';
@@ -37,9 +45,14 @@ export function usePlacedSpawns(spawns: Spawn[], position: LatLng | null): Spawn
 /**
  * Any points with an id (Sanctums, treasure) moved onto walkable places with
  * the given rules; items whose tile is still loading or with nowhere walkable
- * near are left out.
+ * near are left out, and so are those `keep` turns down given their map tile
+ * (null when it could not be loaded) and placed position.
  */
-export function usePlacedPoints<T extends { id: string; position: LatLng }>(items: T[], rules: WalkableRules): T[] {
+export function usePlacedPoints<T extends { id: string; position: LatLng }>(
+  items: T[],
+  rules: WalkableRules,
+  keep?: (item: T, tile: WalkableTile | null, position: LatLng) => boolean,
+): T[] {
   const keys = useMemo(
     () => [...new Set(items.map((item) => mapTileKey(mapTileAt(item.position, rules.mapZoom))))].sort().join(','),
     [items, rules.mapZoom],
@@ -49,8 +62,10 @@ export function usePlacedPoints<T extends { id: string; position: LatLng }>(item
     () =>
       items.flatMap((item) => {
         const position = placePoint(item.position, tiles, rules);
-        return position ? [{ ...item, position }] : [];
+        if (!position) return [];
+        if (keep && !keep(item, tiles[mapTileKey(mapTileAt(item.position, rules.mapZoom))], position)) return [];
+        return [{ ...item, position }];
       }),
-    [items, tiles, rules],
+    [items, tiles, rules, keep],
   );
 }

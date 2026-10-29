@@ -10,6 +10,7 @@ import { TutorialHint } from '@/components/TutorialHint';
 import { gearName, itemById, materialById } from '@/content/lookup';
 import { materials } from '@/content/materials';
 import { canSalvage, salvageNeedsConfirmation, salvageReturns, wornBy } from '@/game/forging/salvage';
+import { ruinsDots } from '@/game/places/ruins';
 import { isLureActive, lureEndsAt } from '@/game/rewards/lures';
 import { liveTreasureMaps } from '@/game/rewards/treasure';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -96,6 +97,12 @@ export default function InventoryScreen() {
             onPress={() => position && activateLure(position)}
           />
         }
+      />
+      <Row
+        emoji="🗝️"
+        title={t('inventory.keyFragments')}
+        subtitle={t('places.digProgress', { dots: ruinsDots(save.ruinsProgress) })}
+        right={save.keyFragments}
       />
 
       <SectionTitle>{t('inventory.materials')}</SectionTitle>

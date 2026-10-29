@@ -1,14 +1,18 @@
 import { useState } from 'react';
 import { Modal, ScrollView, StyleSheet, View } from 'react-native';
 
-import { gearName, itemById, materialById, recipeById, recipeOutput } from '@/content/lookup';
+import { gearName, itemById, materialById, recipeById, recipeOutput, threatById } from '@/content/lookup';
+import { heistRules } from '@/content/placeActivities';
 import { placeInfo, placeRules, type PlaceKind } from '@/content/places';
 import { serviceRules } from '@/content/services';
 import { wornBy } from '@/game/forging/salvage';
 import { pickaxeTier } from '@/game/gathering/gathering';
 import { distanceMeters } from '@/game/generation/geo';
 import type { LatLng } from '@/game/generation/types';
+import { fishProblem } from '@/game/places/dock';
 import { isLockedMine, type PlaceSpawn } from '@/game/places/generate';
+import { heistLevel, heistOdds, heistProblem } from '@/game/places/heists';
+import { digProblem, ruinsDots } from '@/game/places/ruins';
 import {
   apothecaryCarePrice,
   apothecaryCareProblem,
@@ -23,7 +27,8 @@ import {
 import { buyProblem, gearSellPrice, materialSellPrice, placeStock, sellGearProblem, sellMaterialProblem, stockLeft, type StockLine } from '@/game/places/shops';
 import { currentHp, isExhausted, maxHp } from '@/game/team/health';
 import { isAway } from '@/game/team/team';
-import { t, tr } from '@/i18n';
+import { placeRewardText } from '@/hooks/usePatrols';
+import { formatPercent, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
 
@@ -43,6 +48,9 @@ export const PANEL_KINDS: PlaceKind[] = [
   'chapel',
   'market',
   'library',
+  'ruins',
+  'thievesGuild',
+  'fishingDock',
 ];
 
 const HOUR = 3_600_000;
@@ -66,6 +74,8 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
   const save = useGameStore((state) => state.save);
   const actions = useGameStore.getState();
   const [tab, setTab] = useState<'buy' | 'sell'>('buy');
+  /** What the last dig or catch brought, shown until the sheet closes. */
+  const [result, setResult] = useState<string | null>(null);
   const info = placeInfo[place.kind];
   const distance = distanceMeters(player, place.position);
   const locked = isLockedMine(place.kind, pickaxeTier(save));
@@ -225,6 +235,65 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
               </>
             )}
 
+            {place.kind === 'ruins' && (
+              <View style={styles.section}>
+                <Text style={styles.name}>{t('places.digProgress', { dots: ruinsDots(save.ruinsProgress) })}</Text>
+                <Text style={styles.muted}>{t('places.digHint')}</Text>
+                <Button
+                  title={t('places.dig')}
+                  disabled={digProblem(save, place, player, now) !== null}
+                  onPress={() => {
+                    const { reward, relic } = actions.digRuin(place, player);
+                    setResult(t(relic ? 'places.relicFound' : 'places.dug', { gains: placeRewardText(reward) }));
+                  }}
+                />
+              </View>
+            )}
+
+            {place.kind === 'fishingDock' && (
+              <View style={styles.section}>
+                <Text style={styles.muted}>{t('places.fishHint')}</Text>
+                <Button
+                  title={t('places.fishAction')}
+                  disabled={fishProblem(save, place, player, now) !== null}
+                  onPress={() => setResult(t('places.caught', { count: actions.fish(place, player) }))}
+                />
+              </View>
+            )}
+
+            {place.kind === 'thievesGuild' && (
+              <View style={styles.section}>
+                <Text style={styles.name}>🗝️ {t('places.heist')}</Text>
+                <Text style={styles.muted}>
+                  {t('places.heistHint', {
+                    min: heistRules.minutes[0],
+                    max: heistRules.minutes[1],
+                    threat: tr(threatById[heistRules.threat].name),
+                    level: heistLevel(save),
+                  })}
+                </Text>
+                {save.heists.some((h) => h.placeId === place.id) && <Text style={styles.problem}>{t('places.heistAway')}</Text>}
+                {homeHeroes.length === 0 && <Text style={styles.muted}>{t('places.noHeroes')}</Text>}
+                {homeHeroes.map((hero) => (
+                  <View key={hero.id} style={[styles.row, styles.actions]}>
+                    <Text style={styles.name}>
+                      {hero.name} · {t('places.heistOdds', { percent: formatPercent(heistOdds(save, hero.id)) })}
+                    </Text>
+                    <Button
+                      title={t('places.heist')}
+                      disabled={heistProblem(save, place, hero.id, player, now) !== null}
+                      onPress={() => {
+                        actions.startHeist(place, hero.id, player);
+                        onClose();
+                      }}
+                    />
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {result && <Text style={styles.result}>{result}</Text>}
+
             {place.kind === 'library' && (
               <View style={styles.section}>
                 <Text style={styles.name}>📖 {t('places.train')}</Text>
@@ -277,4 +346,5 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   tabs: { flexDirection: 'row', gap: 8 },
   problem: { color: colors.muted, fontStyle: 'italic' },
+  result: { fontSize: 21 },
 });

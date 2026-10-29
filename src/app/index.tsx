@@ -13,6 +13,7 @@ import { MapSky, useSkyPan } from '@/components/MapSky';
 import { MapRanges, type RangeCircle } from '@/components/MapRanges';
 import { PatrolMarker } from '@/components/PatrolMarker';
 import { PatrolPanel } from '@/components/PatrolPanel';
+import { PlaceFightPanel } from '@/components/PlaceFightPanel';
 import { PANEL_KINDS, PlacePanel } from '@/components/PlacePanel';
 import { PlaceholderScreen } from '@/components/PlaceholderScreen';
 import { SanctumMarker } from '@/components/SanctumMarker';
@@ -27,6 +28,7 @@ import { items } from '@/content/items';
 import { materialById, resourceById } from '@/content/lookup';
 import { mapStyle } from '@/content/mapStyle';
 import { patrolRules } from '@/content/patrols';
+import { dockRules } from '@/content/placeActivities';
 import { placeGroups, placeInfo, placeRules } from '@/content/places';
 import { sanctumRules } from '@/content/sanctums';
 import { spawnConfig } from '@/content/spawnConfig';
@@ -44,7 +46,10 @@ import { visibleSpawns } from '@/game/generation/visibility';
 import { patrolRulesAt, trackedRange, trackWindows, walkEffectAt, walkEffectSpawns } from '@/game/gathering/walkEffects';
 import { isPatrolKind, isTravellerKind, patrolPositionAt, patrolTier, patrolsAround, pruneByWindow, type PatrolSpawn } from '@/game/patrols/generate';
 import { pocketTracking } from '@/game/patrols/pocketMode';
+import { activeLairs, isFightPlace } from '@/game/places/fights';
 import { isLockedMine, isPlaceVisible, placeGroupOf, placesAround, showsForPlayer, type PlaceSpawn } from '@/game/places/generate';
+import { ruinReplacements } from '@/game/places/ruins';
+import { nearWater, type WalkableTile } from '@/game/generation/walkable';
 import { fleesAt, hasFled, isGone, isVisible } from '@/game/patrols/visibility';
 import { isLureActive, lureEndsAt, lureSpawns } from '@/game/rewards/lures';
 import { liveTreasureMaps } from '@/game/rewards/treasure';
@@ -84,7 +89,11 @@ const sanctumPlacement = { ...walkableRules, ...sanctumRules.placement };
 const tavernPlacement = { ...walkableRules, ...tavernRules.placement };
 const placePlacement = { ...walkableRules, ...placeRules.placement };
 /** Groups whose places the map shows; taverns have their own markers. */
-const shownPlaceGroups = placeGroups.filter((group) => Object.keys(group.kinds).some((kind) => (PANEL_KINDS as string[]).includes(kind)));
+const shownPlaceGroups = placeGroups.filter((group) => group.id !== 'tavern');
+const isShownKind = (kind: PlaceSpawn['kind']) => PANEL_KINDS.includes(kind) || isFightPlace(kind);
+/** Fishing docks only stay where there is water nearby; with no map tile, there's no telling, so they're left out. */
+const keepPlace = (place: PlaceSpawn, tile: WalkableTile | null, position: LatLng) =>
+  place.kind !== 'fishingDock' || (tile !== null && nearWater(tile, position, dockRules.waterMeters));
 
 const minutesLeft = (ms: number) => `${Math.floor(ms / 60_000)}:${String(Math.floor((ms % 60_000) / 1000)).padStart(2, '0')}`;
 const failureMessages: Record<CollectFailure, (distance: number) => string> = {
@@ -211,16 +220,16 @@ export default function MapScreen() {
   );
   const tavernsOpen = isTavernUnlocked(save);
 
-  // Shops and services within sight (plus snapping room), placed on walkable places.
+  // Places and fight events within sight (plus snapping room), and this player's replacement ruins, placed on walkable places.
   const placeCandidates = useMemo(() => {
     if (!position) return [];
-    return placesAround(position, minute * 60_000, shownPlaceGroups).filter(
+    return [...placesAround(position, minute * 60_000, shownPlaceGroups), ...ruinReplacements(save, minute * 60_000)].filter(
       (place) =>
-        PANEL_KINDS.includes(place.kind) &&
+        isShownKind(place.kind) &&
         distanceMeters(position, place.position) <= placeGroupOf(place.kind).visibilityMeters + placeRules.placement.maxSnapMeters,
     );
-  }, [position, minute]);
-  const placedPlaces = usePlacedPoints(placeCandidates, placePlacement);
+  }, [position, minute, save.dugRuins]); // eslint-disable-line react-hooks/exhaustive-deps
+  const placedPlaces = usePlacedPoints(placeCandidates, placePlacement, keepPlace);
   const playerPickaxe = pickaxeTier(save);
   const placesInSight = [...placedPlaces, ...debugPlaces].filter(
     (place) =>
@@ -256,9 +265,18 @@ export default function MapScreen() {
   const patrolSpawns = useMemo(
     () =>
       position
-        ? [...patrolsAround(position, patrolWindow * patrolRules.windowMinutes * 60_000), ...debugPatrols]
+        ? [
+            ...patrolsAround(
+              position,
+              patrolWindow * patrolRules.windowMinutes * 60_000,
+              patrolRules,
+              // More patrols swarm around a live monster lair.
+              activeLairs(position, patrolWindow * patrolRules.windowMinutes * 60_000, save.usedPlaces),
+            ),
+            ...debugPatrols,
+          ]
         : [],
-    [position, patrolWindow, debugPatrols],
+    [position, patrolWindow, debugPatrols, save.usedPlaces],
   );
   const patrolsSeen = useWorldStore((state) => state.patrolsSeen);
   const visiblePatrols = useMemo(
@@ -532,7 +550,12 @@ export default function MapScreen() {
         </Text>
       )}
       {openSanctum && <SanctumPanel spawn={openSanctum} player={position} onClose={() => setOpenSanctum(null)} />}
-      {openPlace && <PlacePanel place={openPlace} player={position} now={now} onClose={() => setOpenPlace(null)} />}
+      {openPlace && isFightPlace(openPlace.kind) && (
+        <PlaceFightPanel place={openPlace} player={position} now={now} onClose={() => setOpenPlace(null)} />
+      )}
+      {openPlace && !isFightPlace(openPlace.kind) && (
+        <PlacePanel place={openPlace} player={position} now={now} onClose={() => setOpenPlace(null)} />
+      )}
       {openTavern && <TavernPanel tavern={openTavern} player={position} onClose={() => setOpenTavern(null)} />}
       {selectedPatrol && isPatrolKind(selectedPatrol.kind) && (
         <PatrolPanel spawn={selectedPatrol} player={position} now={now} onClose={closePatrol} />

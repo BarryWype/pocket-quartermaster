@@ -19,7 +19,7 @@ import { colors, fonts } from '@/theme';
 configureNotifications();
 
 /**
- * Drops expired maps, lures and Sanctums, settles due patrol fights and
+ * Drops expired maps, lures and Sanctums, settles due patrol and place fights and heists, and
  * credits Guild Hall training on launch and on return to the app. Finished
  * expeditions wait for the player to collect their loot on the Quests page.
  */
@@ -28,6 +28,7 @@ function useUpkeep() {
     const upkeep = () => {
       useGameStore.getState().prune();
       useGameStore.getState().resolvePatrolFights();
+      useGameStore.getState().resolvePlaces();
       useGameStore.getState().train();
     };
     const unsubscribeHydration = useGameStore.persist.onFinishHydration(upkeep);
