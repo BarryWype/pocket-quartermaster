@@ -226,6 +226,20 @@ export const frNames: Record<string, string> = {
   'Revival draught': 'Potion de résurrection',
   'Once per run, gets back up at 30% HP when knocked out.':
     'Une fois par expédition, se relève à 30 % de PV après un évanouissement.',
+  // Boss weakness items
+  'His own wanted poster': 'Son propre avis de recherche',
+  'Half the bandit captain’s men desert: −25% HP.':
+    'La moitié des hommes du capitaine bandit déserte : −25 % de PV.',
+  'A cask of strong ale': 'Un tonneau de bière forte',
+  'The ogre chieftain fights drunk: −30% damage.': 'Le chef ogre combat ivre : −30 % de dégâts.',
+  'Water from a chapel font': 'De l’eau d’un bénitier de chapelle',
+  'The lich of the deep loses 25% HP and never enrages.':
+    'Le liche des profondeurs perd 25 % de PV et n’entre jamais en rage.',
+  'A sleeping draught': 'Un somnifère',
+  'The giant king starts asleep: two free rounds.': 'Le roi géant commence endormi : deux tours gratuits.',
+  'A decoy hoard': 'Un trésor-leurre',
+  'The elder dragon guards it instead of sweeping the party.':
+    'Le dragon ancien garde le trésor-leurre au lieu de balayer le groupe.',
 
   // Provisions
   'Trail mix': 'Mélange du randonneur',

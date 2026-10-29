@@ -123,6 +123,8 @@ export type ConsumableDef = ItemBase & {
   kit?: KitEffect;
   charm?: Charm;
   elixir?: Elixir;
+  /** The boss id this weakness item weakens when its carrier meets that boss. */
+  weakness?: string;
 };
 
 /** What a meal does for the run; one meal per expedition. */

@@ -113,6 +113,14 @@ export const items: ItemDef[] = [
   { id: 'smokeBomb', name: 'Smoke bomb', emoji: '💨', description: 'Instead of a knock-out, the party escapes with more loot.', slot: 'consumable', elixir: { kind: 'smokeBomb', retreatBonus: elixirs.smokeBombRetreat } },
   { id: 'revivalDraught', name: 'Revival draught', emoji: '✨', description: 'Once per run, gets back up at 30% HP when knocked out.', slot: 'consumable', elixir: { kind: 'revive', hp: elixirs.reviveHp } },
 
+  // Boss weakness items, bought at map places and used up when the run meets
+  // their boss.
+  { id: 'wantedPoster', name: 'His own wanted poster', emoji: '📜', description: 'Half the bandit captain’s men desert: −25% HP.', slot: 'consumable', weakness: 'banditCaptain' },
+  { id: 'strongAle', name: 'A cask of strong ale', emoji: '🍺', description: 'The ogre chieftain fights drunk: −30% damage.', slot: 'consumable', weakness: 'ogreChieftain' },
+  { id: 'fontWater', name: 'Water from a chapel font', emoji: '⛲', description: 'The lich of the deep loses 25% HP and never enrages.', slot: 'consumable', weakness: 'lichOfTheDeep' },
+  { id: 'sleepingDraught', name: 'A sleeping draught', emoji: '💤', description: 'The giant king starts asleep: two free rounds.', slot: 'consumable', weakness: 'giantKing' },
+  { id: 'decoyHoard', name: 'A decoy hoard', emoji: '💰', description: 'The elder dragon guards it instead of sweeping the party.', slot: 'consumable', weakness: 'elderDragon' },
+
   // Provisions, taken by the whole party. Supply is needed for every
   // expedition; a meal is optional.
   { id: 'trailMix', name: 'Trail mix', emoji: '🥜', description: '2 supply points.', slot: 'provision', supply: 2 },
