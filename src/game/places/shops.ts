@@ -1,7 +1,9 @@
 import { placeRules } from '@/content/places';
+import { dungeons } from '@/content/dungeons';
 import { itemById, recipeById } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
 import { itemPrices, marketPool, materialPrices, oreTier, shopRules, shopStock } from '@/content/shops';
+import { bossWeaknesses, weaknessByItem } from '@/content/weaknesses';
 
 import { forgedItem, isKnown, unlockRecipe } from '../crafting/crafting';
 import { highestUnlockedTier } from '../dungeons/unlock';
@@ -74,47 +76,56 @@ function draw<T>(pool: T[], count: number, rng: Rng): T[] {
  */
 export function placeStock(save: SaveData, spawn: PlaceSpawn): StockLine[] {
   const rng = createRng(`stock|${spawn.id}`);
-  const stock = shopStock[spawn.kind];
-  if (stock) {
-    return stock.map((line) => {
-      const id = line.pool ? line.pool[rng.int(0, line.pool.length - 1)] : line.id!;
-      const amount = rng.int(line.amount[0], line.amount[1]);
-      const price = line.kind === 'material' ? materialPrices[id] : itemPrices[id];
-      return { key: `${line.kind}:${id}`, kind: line.kind, id, amount, price };
-    });
-  }
-  if (spawn.kind === 'smithy') {
-    const pool = gearPool(save);
-    const count = rng.int(shopRules.smithy.gearLines[0], shopRules.smithy.gearLines[1]);
-    const recipe = recipeForSale(save, spawn, 'forge');
-    return [
-      ...draw(pool, count, rng).map((recipe, i) => {
-        const item = forgedItem(recipe)!;
-        const quality: Quality = rng.chance(shopRules.smithy.rareChance) ? 'rare' : 'normal';
-        return {
-          key: `gear:${item.id}`,
-          kind: 'gear' as const,
-          id: item.id,
-          amount: 1,
-          price: gearPrice(item, quality),
-          gear: { uid: `shop:${spawn.id}:${i}`, itemId: item.id, quality, roll: 1 },
-        };
-      }),
-      ...(recipe ? [recipe] : []),
-    ];
-  }
-  if (spawn.kind === 'library') {
-    const recipe = recipeForSale(save, spawn, 'provisions');
-    return recipe ? [recipe] : [];
-  }
-  if (spawn.kind === 'market') {
-    const pool = marketPool.filter((entry) => entry.kind !== 'material' || (oreTier[entry.id] ?? 0) <= pickaxeTier(save));
-    return draw(pool, shopRules.market.lines, rng).map((entry) => {
-      const price = entry.kind === 'material' ? materialPrices[entry.id] : itemPrices[entry.id];
-      return { key: `${entry.kind}:${entry.id}`, kind: entry.kind, id: entry.id, amount: rng.int(...shopRules.market.amount), price };
-    });
-  }
-  return [];
+  const stocked = (): StockLine[] => {
+    const stock = shopStock[spawn.kind];
+    if (stock) {
+      return stock.map((line) => {
+        const id = line.pool ? line.pool[rng.int(0, line.pool.length - 1)] : line.id!;
+        const amount = rng.int(line.amount[0], line.amount[1]);
+        const price = line.kind === 'material' ? materialPrices[id] : itemPrices[id];
+        return { key: `${line.kind}:${id}`, kind: line.kind, id, amount, price };
+      });
+    }
+    if (spawn.kind === 'smithy') {
+      const pool = gearPool(save);
+      const count = rng.int(shopRules.smithy.gearLines[0], shopRules.smithy.gearLines[1]);
+      const recipe = recipeForSale(save, spawn, 'forge');
+      return [
+        ...draw(pool, count, rng).map((recipe, i) => {
+          const item = forgedItem(recipe)!;
+          const quality: Quality = rng.chance(shopRules.smithy.rareChance) ? 'rare' : 'normal';
+          return {
+            key: `gear:${item.id}`,
+            kind: 'gear' as const,
+            id: item.id,
+            amount: 1,
+            price: gearPrice(item, quality),
+            gear: { uid: `shop:${spawn.id}:${i}`, itemId: item.id, quality, roll: 1 },
+          };
+        }),
+        ...(recipe ? [recipe] : []),
+      ];
+    }
+    if (spawn.kind === 'library') {
+      const recipe = recipeForSale(save, spawn, 'provisions');
+      return recipe ? [recipe] : [];
+    }
+    if (spawn.kind === 'market') {
+      const pool = marketPool.filter((entry) => entry.kind !== 'material' || (oreTier[entry.id] ?? 0) <= pickaxeTier(save));
+      return draw(pool, shopRules.market.lines, rng).map((entry) => {
+        const price = entry.kind === 'material' ? materialPrices[entry.id] : itemPrices[entry.id];
+        return { key: `${entry.kind}:${entry.id}`, kind: entry.kind, id: entry.id, amount: rng.int(...shopRules.market.amount), price };
+      });
+    }
+    return [];
+  };
+  // Boss weakness items for bosses within the player's reach, one per place; drawn
+  // without the rng so the normal stock stays exactly what it was.
+  const weaknesses = bossWeaknesses
+    .filter((w) => w.place === spawn.kind)
+    .filter((w) => (dungeons.find((d) => d.boss.id === w.bossId)?.tier ?? Infinity) <= highestUnlockedTier(save))
+    .map((w) => ({ key: `item:${w.itemId}`, kind: 'item' as const, id: w.itemId, amount: 1, price: w.price }));
+  return [...stocked(), ...weaknesses];
 }
 
 /** How many of a line are still on the shelf, after this player's purchases. */
@@ -122,9 +133,9 @@ export function stockLeft(save: SaveData, spawn: PlaceSpawn, line: StockLine) {
   return line.amount - (save.placePurchases[spawn.id]?.bought[line.key] ?? 0);
 }
 
-/** Whether every line of the place has been bought out. */
+/** Whether every line of the place has been bought out; weakness lines never sell a place out. */
 export function isSoldOut(save: SaveData, spawn: PlaceSpawn, now: number) {
-  const lines = placeStock(save, spawn);
+  const lines = placeStock(save, spawn).filter((line) => !(line.id in weaknessByItem));
   if (lines.length === 0) return false;
   const bought = save.placePurchases[spawn.id];
   const counts = bought && bought.expiresAt > now ? bought.bought : {};

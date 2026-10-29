@@ -123,6 +123,49 @@ describe('buy', () => {
     expect(isKnown(next, recipeById[line.id])).toBe(true);
     expect(buyProblem(next, spawn, line.key, 1, position, now)).toBe('known');
   });
+  it('sells the wanted poster at the tavern once tier 1 is unlocked', () => {
+    const spawn = spawnOf('tavern');
+    const lines = placeStock(withGold(100), spawn);
+    expect(lines).toEqual([{ key: 'item:wantedPoster', kind: 'item', id: 'wantedPoster', amount: 1, price: 15 }]);
+
+    const next = buy(withGold(100), spawn, 'item:wantedPoster', 1, position, now);
+    expect(next.consumables.wantedPoster).toBe(1);
+    expect(next.gold).toBe(85);
+    expect(buyProblem(next, spawn, 'item:wantedPoster', 1, position, now)).toBe('soldOut');
+    // A tavern with only a weakness line is never sold out, so it stays usable.
+    expect(isSoldOut(next, spawn, now)).toBe(false);
+    expect(next.usedPlaces).toEqual({});
+  });
+
+  it('sells the decoy hoard only once tier 5 is unlocked', () => {
+    const market = spawnOf('market');
+    const fresh = placeStock(withGold(1000), market);
+    expect(fresh.map((l) => l.id)).not.toContain('decoyHoard');
+
+    const save = withGold(1000, { clearedDungeons: ['banditStockade', 'ogreQuarry', 'drownedCrypt', 'giantsHall'] });
+    const lines = placeStock(save, market);
+    expect(lines[lines.length - 1]).toEqual({ key: 'item:decoyHoard', kind: 'item', id: 'decoyHoard', amount: 1, price: 300 });
+    // The normal market lines stay exactly what they were before the unlock.
+    expect(lines.slice(0, -1)).toEqual(placeStock(withGold(1000), market));
+  });
+
+  it('leaves the chapel empty until the lich’s tier opens, and keeps it usable', () => {
+    const chapel = spawnOf('chapel');
+    expect(placeStock(withGold(100), chapel)).toEqual([]);
+    const save = withGold(100, { clearedDungeons: ['banditStockade', 'ogreQuarry'] });
+    const next = buy(save, chapel, 'item:fontWater', 1, position, now);
+    expect(next.consumables.fontWater).toBe(1);
+    expect(isSoldOut(next, chapel, now)).toBe(false);
+    expect(next.usedPlaces).toEqual({});
+  });
+
+  it('appends the weakness line after the apothecary’s normal stock', () => {
+    const save = withGold(1000, { clearedDungeons: ['banditStockade', 'ogreQuarry', 'drownedCrypt'] });
+    const lines = placeStock(save, spawnOf('apothecary'));
+    expect(lines.map((l) => l.id).lastIndexOf('sleepingDraught')).toBe(lines.length - 1);
+    expect(lines[lines.length - 1].price).toBe(120);
+    expect(lines.length).toBe(4);
+  });
 });
 
 describe('selling', () => {
