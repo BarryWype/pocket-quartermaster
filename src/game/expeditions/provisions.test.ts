@@ -10,12 +10,12 @@ import { migrateV10Save } from '../migrations';
 import { createInitialSave, type SaveData } from '../save';
 import { buySupply, buySupplyProblem, supplyPrice } from '../taverns/taverns';
 import { setHeroHp } from '../team/health';
-import { equip } from '../team/team';
-import type { Ability, BossDef, Briefing, ConsumableDef, DungeonDef, EncounterDef, HeroState } from '../types';
+import { equip, heroStats } from '../team/team';
+import type { Ability, BossDef, Briefing, ConsumableDef, DungeonDef, EncounterDef, HeroState, MealEffect } from '../types';
 import { launchPlan, resolveExpedition, startExpedition, untriggeredSalvage } from './expeditions';
 import { emergencyPrice, heroSupplyNeed, hungerEffect, hungerFor, pickSupply, supplyHeld } from './provisions';
 import { estimateOdds } from './odds';
-import { prepareParty, simulateRun, type PartyMember, type RunResult } from './simulate';
+import { EMPTY_BRIEFING, prepareParty, simulateRun, type PartyMember, type RunResult } from './simulate';
 
 const ALL = ['bram', 'lyra', 'mira'];
 const steady = { ...expeditionRules, mishapChance: 0, fortune: 0, damageVariance: 0, enemyCritChance: 0 };
@@ -218,6 +218,78 @@ describe('meals', () => {
       expect(broth[i].xp).toBe(Math.round(dungeonById.banditStockade.xp * Math.min(1, share * 1.25)));
     });
     expect(plain.some((r) => r.outcome === 'retreat')).toBe(true);
+  });
+});
+
+describe('party meals', () => {
+  const mealRun = (meal: MealEffect | null, boss: BossDef = weakBoss, briefing: Briefing = EMPTY_BRIEFING) =>
+    simulateRun(
+      [member('a', [], { resistance: 10, approachBonus: { finesse: 1, wits: 2, presence: 1 } })],
+      { ...oneEncounter(trap), encounterCount: [3, 3], boss },
+      's',
+      { rules: steady, meal, briefing },
+    );
+
+  it('Hearty roast: +10% max HP, the HP share kept, full heroes start full', () => {
+    const roast: MealEffect = { kind: 'maxHp', multiplier: provisionRules.meals.roastHp };
+    const hurt = simulateRun([member('a', [], { hp: 50 })], oneEncounter(trap), 's', { rules: steady, meal: roast });
+    expect(hurt.hp[0]).toEqual({ heroId: 'a', hp: 55, maxHp: 110 });
+    const full = simulateRun([member('a')], oneEncounter(trap), 's', { rules: steady, meal: roast });
+    expect(full.hp[0]).toEqual({ heroId: 'a', hp: 110, maxHp: 110 });
+  });
+
+  it('Spiced skewers: +1 Speed, quick heroes strike first', () => {
+    const quick = { ...weakBoss, speed: 6, damage: 40 };
+    const plain = mealRun(null, quick);
+    const fed = mealRun({ kind: 'speed', add: provisionRules.meals.skewersSpeed }, quick);
+    expect(plain.hp[0].hp).toBe(60);
+    expect(fed.hp[0].hp).toBe(100);
+  });
+
+  it('Mushroom risotto: +10% Resistance blunts magic hits', () => {
+    const caster: BossDef = { ...weakBoss, speed: 10, damage: 40, damageType: 'magic' };
+    const defence = (resistance: number) => Math.round(100 - (40 * 100) / (100 + expeditionRules.defenseFactor * resistance));
+    expect(mealRun(null, caster, undefined).hp[0].hp).toBe(defence(10));
+    expect(mealRun({ kind: 'resistance', multiplier: provisionRules.meals.risottoResistance }, caster, undefined).hp[0].hp).toBe(defence(11));
+  });
+
+  it('Honey cakes: opportunity gold and materials ×1.25, multipliers only their excess', () => {
+    const honey: MealEffect = { kind: 'opportunity', multiplier: provisionRules.meals.honeyOpportunity };
+    const withOpportunity = (id: Briefing['opportunity'], meal: MealEffect | null) =>
+      mealRun(meal, weakBoss, { threats: [], restriction: null, opportunity: id });
+    const top = dungeonById.ratCellar.gold[1];
+    expect(withOpportunity('hiddenCache', null).opportunity?.gold).toBe(Math.round(0.25 * top));
+    expect(withOpportunity('hiddenCache', honey).opportunity?.gold).toBe(Math.round(0.25 * top * 1.25));
+    expect(withOpportunity('richVein', null).opportunity?.materials).toEqual([{ materialId: 'wood', amount: 4 }]);
+    expect(withOpportunity('richVein', honey).opportunity?.materials).toEqual([{ materialId: 'wood', amount: 5 }]);
+    expect(withOpportunity('oldInscriptions', null).opportunity?.xpMultiplier).toBe(1.25);
+    expect(withOpportunity('oldInscriptions', honey).opportunity?.xpMultiplier).toBe(1 + 0.25 * 1.25);
+    expect(withOpportunity('bounty', honey).opportunity?.goldMultiplier).toBe(1 + 0.3 * 1.25);
+  });
+
+  it('Hearty roast: nobody comes home above their real max HP', () => {
+    const after = resolve(startExpedition({ ...ready({ trailMix: 10, heartyRoast: 1 }), nextUid: 7 }, 'ratCellar', ALL, 0, 1, undefined, { mealId: 'heartyRoast' })).save;
+    for (const id of ALL) {
+      const hero = after.heroes.find((h) => h.id === id)!;
+      expect(hero.hp === undefined || hero.hp <= heroStats(after, hero).hp).toBe(true);
+    }
+  });
+
+  it('Pemmican counts as 5 supply points', () => {
+    const plan = launchPlan(ready({ pemmican: 1 }), dungeonById.ratCellar, ALL);
+    expect(plan.held).toBe(5);
+    expect(plan.need).toBe(3);
+    expect(plan.hunger).toBe('fed');
+    const started = startExpedition(ready({ pemmican: 1 }), 'ratCellar', ALL, 0, 1);
+    expect(started.consumables.pemmican).toBe(0);
+  });
+
+  it('estimates better odds with a hearty roast on a marginal party', () => {
+    let frail = ready({ trailMix: 10, heartyRoast: 1 });
+    for (const id of ALL) frail = setHeroHp(frail, id, 0.5, 0);
+    const pair = ['bram', 'lyra'];
+    const fed = estimateOdds(frail, pair, dungeonById.ratCellar, 300, { loadout: { mealId: 'heartyRoast' } }).success;
+    expect(fed).toBeGreaterThan(estimateOdds(frail, pair, dungeonById.ratCellar, 300).success);
   });
 });
 

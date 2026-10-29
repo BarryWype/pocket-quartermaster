@@ -302,6 +302,19 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs
     });
 }
 
+/** The party after the meal they ate: max HP, speed and resistance last the run. */
+export function mealParty(party: PartyMember[], meal: MealEffect | null | undefined): PartyMember[] {
+  return party.map((member) => {
+    if (meal?.kind === 'maxHp') {
+      const maxHp = Math.round(member.maxHp * meal.multiplier);
+      return { ...member, maxHp, hp: Math.min(maxHp, Math.round(member.hp * meal.multiplier)) };
+    }
+    if (meal?.kind === 'speed') return { ...member, speed: member.speed + meal.add };
+    if (meal?.kind === 'resistance') return { ...member, resistance: Math.round(member.resistance * meal.multiplier) };
+    return member;
+  });
+}
+
 function emptyResult(kind: EncounterResult['kind'], name: string, mobs: MobGroup[] = []): EncounterResult {
   return {
     kind,
@@ -342,8 +355,9 @@ export function simulateRun(
   // Unlike per-hit variance this doesn't average out, so weaker teams keep a real chance.
   const fortune = 1 + (rng.next() * 2 - 1) * rules.fortune;
   // The briefing against this party: what was met, and what it costs.
-  const answers: HeroAnswers[] = party.map((member) => heroAnswers(answersMemberOf(member), restriction));
-  const heroes: HeroState[] = party.map((member, i) => {
+  const members = mealParty(party, meal);
+  const answers: HeroAnswers[] = members.map((member) => heroAnswers(answersMemberOf(member), restriction));
+  const heroes: HeroState[] = members.map((member, i) => {
     const { damage, hpLoss } = hungerEffect(hunger, member.abilities);
     // Starving costs HP before the first step, but never knocks anyone out.
     const hp = Math.min(member.maxHp, member.hp > 0 ? Math.max(Math.min(member.hp, 1), member.hp - hpLoss * member.maxHp) : 0);
@@ -781,6 +795,9 @@ export function simulateRun(
   /** A local's tip: the next trap is skipped. */
   let tipped = false;
 
+  // Honey cakes: the opportunity pays this much more; a multiplier only grows by its excess.
+  const mealBonus = meal?.kind === 'opportunity' ? meal.multiplier : 1;
+  const excess = (multiplier: number) => 1 + (multiplier - 1) * mealBonus;
   /** The midpoint opportunity: what the party took, and what it gave. */
   const resolveOpportunity = (at: EncounterResult): RunOpportunity | null => {
     const id = activeBriefing.opportunity;
@@ -795,40 +812,43 @@ export function simulateRun(
     const { reward } = def;
     switch (reward.kind) {
       case 'heal':
-        alive().forEach((hero) => heal(hero, reward.pct, at));
+        alive().forEach((hero) => heal(hero, reward.pct * mealBonus, at));
         break;
       case 'goldShare': {
         const finder = withAbility('cacheBonus');
-        taken.gold = Math.round(reward.share * dungeon.gold[1] * (finder?.ability.multiplier ?? 1));
+        taken.gold = Math.round(reward.share * dungeon.gold[1] * mealBonus * (finder?.ability.multiplier ?? 1));
         break;
       }
       case 'ore':
         taken.materials = [
-          { materialId: reward.materials[Math.min(reward.materials.length, dungeon.tier) - 1], amount: reward.base + dungeon.tier },
+          {
+            materialId: reward.materials[Math.min(reward.materials.length, dungeon.tier) - 1],
+            amount: Math.ceil((reward.base + dungeon.tier) * mealBonus),
+          },
         ];
         break;
       case 'goldMultiplier':
-        taken.goldMultiplier = reward.multiplier;
+        taken.goldMultiplier = excess(reward.multiplier);
         break;
       case 'prisoners':
-        taken.gold = Math.round(reward.share * dungeon.gold[1]);
+        taken.gold = Math.round(reward.share * dungeon.gold[1] * mealBonus);
         taken.recruit = rng.chance(reward.recruitChance);
         break;
       case 'pilgrimReward':
         taken.pilgrim = rng.weighted([...travellerRules.pilgrimRewards], (entry) => entry.weight).kind;
         break;
       case 'partyDamage':
-        shrine = reward.multiplier;
-        taken.damageMultiplier = reward.multiplier;
+        shrine = excess(reward.multiplier);
+        taken.damageMultiplier = excess(reward.multiplier);
         break;
       case 'xp':
-        taken.xpMultiplier = reward.multiplier;
+        taken.xpMultiplier = excess(reward.multiplier);
         taken.recipe = rng.chance(reward.recipeChance);
         break;
       case 'trophy': {
         const materials: MaterialStack[] = [
-          { materialId: 'hide', amount: rng.int(reward.hide[0], reward.hide[1]) },
-          { materialId: 'bone', amount: reward.bone },
+          { materialId: 'hide', amount: Math.ceil(rng.int(reward.hide[0], reward.hide[1]) * mealBonus) },
+          { materialId: 'bone', amount: Math.ceil(reward.bone * mealBonus) },
         ];
         if (rng.chance(reward.shardChance)) {
           const element = ELEMENTS[rng.int(0, ELEMENTS.length - 1)];
