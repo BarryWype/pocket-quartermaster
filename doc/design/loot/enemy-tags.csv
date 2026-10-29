@@ -1,0 +1,326 @@
+Enemy,Source,Tags
+giant rat,dungeon,beast
+cellar spider,dungeon,vermin beast
+rat swarm,dungeon,vermin beast
+webling,dungeon,vermin beast
+burrow spider,dungeon,vermin beast
+brood guard,dungeon,vermin beast
+restless bones,dungeon,undead
+grave robber,dungeon,humanoid
+ghoul,dungeon,undead
+goblin runt,dungeon,goblinoid
+goblin,dungeon,goblinoid
+goblin slinger,dungeon,goblinoid
+mill rat,dungeon,beast
+squatter,dungeon,humanoid
+mill brute,dungeon,humanoid
+cutpurse,dungeon,humanoid
+smuggler,dungeon,humanoid
+cove enforcer,dungeon,humanoid
+guard dog,dungeon,beast
+bandit,dungeon,humanoid
+bandit archer,dungeon,humanoid
+wolf pup,dungeon,beast
+grey wolf,dungeon,beast
+dire wolf,dungeon,beast
+barrow rat,dungeon,beast
+barrow wight,dungeon,spirit undead
+mould knight,dungeon,undead
+thorn piglet,dungeon,beast
+wild boar,dungeon,beast
+briar tusker,dungeon,beast
+bog hound,dungeon,beast
+river troll,dungeon,brute
+ford leech,dungeon,vermin beast
+river sprite,dungeon,elemental
+drowned soldier,dungeon,undead
+tower crow,dungeon,bird beast
+deserter,dungeon,humanoid
+tower sergeant,dungeon,humanoid
+ogre brute,dungeon,brute
+rock golem,dungeon,construct
+quarry ogre,dungeon,brute
+ghost bat,dungeon,spirit bird beast undead
+skeleton miner,dungeon,undead
+mine ghost,dungeon,spirit undead
+sporeling,dungeon,vermin beast
+cap crawler,dungeon,carapace beast
+mycel troll,dungeon,brute
+spark moth,dungeon,vermin beast
+storm hawk,dungeon,bird beast
+bolt elemental,dungeon,elemental
+fire imp,dungeon,elemental
+magma slug,dungeon,vermin beast
+ember hound,dungeon,beast
+tunnel beetle,dungeon,carapace beast
+stone warden,dungeon,construct
+rune golem,dungeon,construct
+marsh toad,dungeon,vermin beast
+bogling,dungeon,goblinoid
+hexed hunter,dungeon,humanoid
+crypt eel,dungeon,beast
+drowned dead,dungeon,undead
+bone knight,dungeon,undead
+rock lizard,dungeon,dragon beast
+cliff eagle,dungeon,bird beast
+harpy,dungeon,bird beast
+storm ram,dungeon,beast
+thunderbird,dungeon,bird beast
+skyfall golem,dungeon,construct
+bone crawler,dungeon,undead carapace
+fallen legionary,dungeon,undead
+death captain,dungeon,undead
+orc grunt,dungeon,goblinoid
+orc raider,dungeon,goblinoid
+orc shaman,dungeon,goblinoid caster
+brass beetle,dungeon,construct carapace
+clockwork guard,dungeon,construct
+vault automaton,dungeon,construct
+ice seal,dungeon,beast
+frost nymph,dungeon,elemental
+lake serpent,dungeon,dragon beast
+giant hound,dungeon,beast
+stone sentinel,dungeon,construct
+hill giant,dungeon,brute
+frost wolf,dungeon,beast
+mountain troll,dungeon,brute
+wyvern,dungeon,dragon beast
+crypt guard,dungeon,undead
+bone lord,dungeon,undead
+death knight,dungeon,undead
+storm eel,dungeon,beast
+tempest caller,dungeon,caster
+thunder drake,dungeon,dragon beast
+flame cultist,dungeon,caster humanoid
+cinder golem,dungeon,construct
+ash knight,dungeon,undead
+deep angler,dungeon,beast
+abyssal priest,dungeon,caster
+kraken spawn,dungeon,beast
+ruin crawler,dungeon,carapace beast
+titan shard,dungeon,construct
+colossus arm,dungeon,construct
+dragon cultist,dungeon,caster humanoid
+drake,dungeon,dragon beast
+fire elemental,dungeon,elemental
+rat king,boss,vermin beast
+brood mother,boss,vermin beast
+grave lord,boss,undead caster
+goblin chief,boss,goblinoid
+mill ogre,boss,brute
+smuggler queen,boss,humanoid
+bandit captain,boss,humanoid
+alpha wolf,boss,beast
+barrow king,boss,spirit undead
+great thicket boar,boss,beast
+bridge troll,boss,brute
+ford hag,boss,caster
+turncoat knight,boss,humanoid
+ogre chieftain,boss,brute
+mine wraith,boss,spirit undead
+spore queen,boss,vermin
+storm roc,boss,bird beast
+ash wyrm,boss,dragon beast
+forge guardian,boss,construct
+marsh witch,boss,caster
+lich of the deep,boss,undead caster
+harpy matriarch,boss,bird beast
+thunder titan,boss,brute
+bone general,boss,undead
+orc warlord,boss,goblinoid
+clockwork warden,boss,construct
+ice wyrm,boss,dragon beast
+giant king,boss,brute
+wyvern queen,boss,dragon beast
+ossuary king,boss,undead
+stormcaller,boss,caster
+ash lord,boss,caster
+abyssal horror,boss,beast
+titan heart,boss,construct
+elder dragon,boss,dragon beast
+night prowler,overnight,beast
+road stalker,overnight,beast
+shaft haunt,overnight,spirit undead
+camp raider,overnight,humanoid
+ash stalker,overnight,spirit
+toll troll,npc,brute locals
+angry hermit,npc,humanoid locals
+pedlar’s guard,npc,humanoid locals
+frantic miner,npc,humanoid locals
+poacher,npc,humanoid locals
+goblin runt,patrol:goblins,goblinoid locals
+goblin,patrol:goblins,goblinoid locals
+goblin slinger,patrol:goblins,goblinoid locals
+squatter,patrol:goblins,humanoid locals
+smuggler,patrol:goblins,humanoid locals
+turncoat knight,patrol:goblins,humanoid locals
+fire imp,patrol:goblins,elemental locals
+hexed hunter,patrol:goblins,humanoid locals
+stone warden,patrol:goblins,construct locals
+orc grunt,patrol:goblins,goblinoid locals
+brass beetle,patrol:goblins,construct carapace locals
+vault automaton,patrol:goblins,construct locals
+ruin crawler,patrol:goblins,carapace locals
+mountain troll,patrol:goblins,brute locals
+ash knight,patrol:goblins,humanoid locals
+giant rat,patrol:herd,beast
+cellar spider,patrol:herd,vermin beast
+rat swarm,patrol:herd,vermin beast
+wolf pup,patrol:herd,beast
+grey wolf,patrol:herd,beast
+dire wolf,patrol:herd,beast
+ghost bat,patrol:herd,spirit bird beast
+spark moth,patrol:herd,vermin beast
+ember hound,patrol:herd,beast
+rock lizard,patrol:herd,dragon beast
+storm ram,patrol:herd,beast
+thunderbird,patrol:herd,bird beast
+frost wolf,patrol:herd,beast
+storm eel,patrol:herd,beast
+wyvern,patrol:herd,dragon beast
+cutpurse,patrol:bandits,humanoid locals
+bandit,patrol:bandits,humanoid locals
+bandit archer,patrol:bandits,humanoid locals
+deserter,patrol:bandits,humanoid locals
+tower sergeant,patrol:bandits,humanoid locals
+bogling,patrol:bandits,goblinoid locals
+hexed hunter,patrol:bandits,humanoid locals
+bone knight,patrol:bandits,humanoid locals
+fallen legionary,patrol:bandits,humanoid locals
+orc raider,patrol:bandits,goblinoid locals
+death captain,patrol:bandits,humanoid locals
+flame cultist,patrol:bandits,caster humanoid locals
+abyssal priest,patrol:bandits,caster locals
+death knight,patrol:bandits,humanoid locals
+cutpurse,place:banditCamp,humanoid locals
+bandit,place:banditCamp,humanoid locals
+bandit archer,place:banditCamp,humanoid locals
+deserter,place:banditCamp,humanoid locals
+tower sergeant,place:banditCamp,humanoid locals
+bogling,place:banditCamp,goblinoid locals
+hexed hunter,place:banditCamp,humanoid locals
+bone knight,place:banditCamp,humanoid locals
+fallen legionary,place:banditCamp,humanoid locals
+orc raider,place:banditCamp,goblinoid locals
+death captain,place:banditCamp,humanoid locals
+flame cultist,place:banditCamp,caster humanoid locals
+abyssal priest,place:banditCamp,caster locals
+death knight,place:banditCamp,humanoid locals
+goblin runt,place:goblinRaid,goblinoid locals
+goblin,place:goblinRaid,goblinoid locals
+goblin slinger,place:goblinRaid,goblinoid locals
+squatter,place:goblinRaid,humanoid locals
+smuggler,place:goblinRaid,humanoid locals
+turncoat knight,place:goblinRaid,humanoid locals
+fire imp,place:goblinRaid,elemental locals
+hexed hunter,place:goblinRaid,humanoid locals
+stone warden,place:goblinRaid,construct locals
+orc grunt,place:goblinRaid,goblinoid locals
+brass beetle,place:goblinRaid,construct carapace locals
+vault automaton,place:goblinRaid,construct locals
+ruin crawler,place:goblinRaid,carapace locals
+mountain troll,place:goblinRaid,brute locals
+ash knight,place:goblinRaid,humanoid locals
+giant rat,place:beastDen,beast
+cellar spider,place:beastDen,vermin beast
+rat swarm,place:beastDen,vermin beast
+wolf pup,place:beastDen,beast
+grey wolf,place:beastDen,beast
+dire wolf,place:beastDen,beast
+ghost bat,place:beastDen,spirit bird beast
+spark moth,place:beastDen,vermin beast
+ember hound,place:beastDen,beast
+rock lizard,place:beastDen,dragon beast
+storm ram,place:beastDen,beast
+thunderbird,place:beastDen,bird beast
+frost wolf,place:beastDen,beast
+storm eel,place:beastDen,beast
+wyvern,place:beastDen,dragon beast
+restless bones,place:hauntedCrypt,undead
+grave robber,place:hauntedCrypt,humanoid undead
+ghoul,place:hauntedCrypt,undead
+barrow wight,place:hauntedCrypt,spirit undead
+drowned soldier,place:hauntedCrypt,undead
+mould knight,place:hauntedCrypt,undead
+skeleton miner,place:hauntedCrypt,undead
+drowned dead,place:hauntedCrypt,undead
+bone knight,place:hauntedCrypt,undead
+bone crawler,place:hauntedCrypt,undead carapace
+fallen legionary,place:hauntedCrypt,undead
+death captain,place:hauntedCrypt,undead
+crypt guard,place:hauntedCrypt,undead
+bone lord,place:hauntedCrypt,undead
+death knight,place:hauntedCrypt,undead
+ember whelp,place:elementalRift,dragon
+ember sprite,place:elementalRift,elemental
+rift spawn,place:elementalRift,elemental
+mud mephit,place:elementalRift,elemental
+mud brute,place:elementalRift,brute
+rift horror,place:elementalRift,elemental
+spark imp,place:elementalRift,elemental
+spark elemental,place:elementalRift,elemental
+rift caller,place:elementalRift,caster
+gale wisp,place:elementalRift,elemental
+gale elemental,place:elementalRift,elemental
+rift warden,place:elementalRift,construct
+void whelp,place:elementalRift,dragon
+void elemental,place:elementalRift,elemental
+rift tyrant,place:elementalRift,brute
+cutpurse,place:abandonedCaravan,humanoid locals
+bandit,place:abandonedCaravan,humanoid locals
+bandit archer,place:abandonedCaravan,humanoid locals
+deserter,place:abandonedCaravan,humanoid locals
+tower sergeant,place:abandonedCaravan,humanoid locals
+bogling,place:abandonedCaravan,goblinoid locals
+hexed hunter,place:abandonedCaravan,humanoid locals
+bone knight,place:abandonedCaravan,humanoid locals
+fallen legionary,place:abandonedCaravan,humanoid locals
+orc raider,place:abandonedCaravan,goblinoid locals
+death captain,place:abandonedCaravan,humanoid locals
+flame cultist,place:abandonedCaravan,caster humanoid locals
+abyssal priest,place:abandonedCaravan,caster locals
+death knight,place:abandonedCaravan,humanoid locals
+cutpurse,place:wantedOutlaw,humanoid locals
+bandit,place:wantedOutlaw,humanoid locals
+bandit archer,place:wantedOutlaw,humanoid locals
+deserter,place:wantedOutlaw,humanoid locals
+tower sergeant,place:wantedOutlaw,humanoid locals
+bogling,place:wantedOutlaw,goblinoid locals
+hexed hunter,place:wantedOutlaw,humanoid locals
+bone knight,place:wantedOutlaw,humanoid locals
+fallen legionary,place:wantedOutlaw,humanoid locals
+orc raider,place:wantedOutlaw,goblinoid locals
+death captain,place:wantedOutlaw,humanoid locals
+flame cultist,place:wantedOutlaw,caster humanoid locals
+abyssal priest,place:wantedOutlaw,caster locals
+death knight,place:wantedOutlaw,humanoid locals
+giant rat,place:monsterLair,beast
+ghoul,place:monsterLair,beast
+rat king,place:monsterLair,vermin beast
+bog hound,place:monsterLair,beast
+river troll,place:monsterLair,brute beast
+barrow king,place:monsterLair,spirit beast
+ember hound,place:monsterLair,beast
+mycel troll,place:monsterLair,brute beast
+ash wyrm,place:monsterLair,dragon beast
+giant hound,place:monsterLair,beast
+hill giant,place:monsterLair,brute beast
+harpy matriarch,place:monsterLair,bird beast
+frost wolf,place:monsterLair,beast
+mountain troll,place:monsterLair,brute beast
+wyvern queen,place:monsterLair,dragon beast
+briar hound,sanctum:overgrownLabyrinth,beast
+vine lasher,sanctum:overgrownLabyrinth,elemental
+Thornmother,sanctum:overgrownLabyrinth,elemental
+cave crab,sanctum:sunkenGrotto,carapace
+drowned eel,sanctum:sunkenGrotto,beast
+Tidewarden,sanctum:sunkenGrotto,construct
+spark sprite,sanctum:stormSpire,elemental
+storm hound,sanctum:stormSpire,beast
+Voltwing,sanctum:stormSpire,bird
+pebble golem,sanctum:deepQuarry,construct
+quarry mole,sanctum:deepQuarry,vermin
+Granite Colossus,sanctum:deepQuarry,construct
+ember imp,sanctum:emberForge,elemental
+slag hound,sanctum:emberForge,beast
+Cinder Smith,sanctum:emberForge,elemental
