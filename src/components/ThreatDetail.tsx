@@ -5,11 +5,14 @@ import { elementInfo } from '@/content/elements';
 import { items } from '@/content/items';
 import { threatById } from '@/content/lookup';
 import { threatRules } from '@/content/threats';
+import { highestUnlockedTier } from '@/game/dungeons/unlock';
+import { kitTier } from '@/game/threats/compose';
 import type { BriefingCoverage, ThreatCoverage } from '@/game/threats/coverage';
 import { threatPenalties, type AppliedPenalty } from '@/game/threats/penalties';
 import type { ThreatScore } from '@/game/threats/score';
 import type { ConsumableDef, ThreatId } from '@/game/types';
 import { formatPercent, t, tr } from '@/i18n';
+import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
 
 import { ThreatChip } from './ThreatChip';
@@ -72,6 +75,7 @@ function kitNames(threatId: ThreatId): string[] {
 
 /** One line per answer, alternative, kit and miss penalty of a threat, in order. */
 function DetailLines({ coverage }: { coverage: ThreatCoverage }) {
+  const playerTier = useGameStore((state) => highestUnlockedTier(state.save));
   const threat = coverage.threat;
   const def = threatById[threat.id];
   const element = threat.id === 'element' && threat.element ? tr(elementInfo[threat.element].name) : null;
@@ -87,6 +91,9 @@ function DetailLines({ coverage }: { coverage: ThreatCoverage }) {
   if (threat.id === 'locals') lines.push(t('threats.intimidated'));
   const kits = kitNames(threat.id);
   if (kits.length > 0) lines.push(t('threats.kits', { names: kits.join(', ') }));
+  // The player's highest tier, not the dungeon's: a kit opened elsewhere can be brought along.
+  const tier = kitTier(threat.id);
+  if (tier !== null && tier > playerTier) lines.push(t('threats.noKitYet'));
 
   const scoreOf = (state: 'half' | 'full'): ThreatScore => ({
     threat, state, have: coverage.have, needed: coverage.needed, coveredBy: [], kitHeroes: [],

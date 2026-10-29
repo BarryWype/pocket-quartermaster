@@ -188,6 +188,7 @@ export const en = {
     forced: 'Or Might forces it: no fight, but loot −{pct}.',
     intimidated: 'Or Might intimidates them: no help, no fight.',
     kits: 'Kits: {names}',
+    noKitYet: 'No kit for this yet. A class or an approach can still answer it.',
     coveredBy: 'covered by {names}',
     missHalf: 'If half-covered:',
     missFull: 'If missed:',

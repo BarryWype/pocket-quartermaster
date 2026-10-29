@@ -193,6 +193,7 @@ export const fr: Dictionary = {
     forced: 'Ou la Might force le passage : pas de combat, mais butin −{pct}.',
     intimidated: 'Ou la Might les intimide : pas d’aide, pas de combat.',
     kits: 'Kits : {names}',
+    noKitYet: 'Pas encore de kit pour cela. Une classe ou une approche peut quand même y répondre.',
     coveredBy: 'couvert par {names}',
     missHalf: 'À moitié couvert :',
     missFull: 'Manqué :',
