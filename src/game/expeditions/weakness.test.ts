@@ -93,6 +93,15 @@ describe('boss weaknesses', () => {
     expect(Object.values(without.taken).reduce((s, t) => s + t, 0)).toBeGreaterThan(10 * (without.rounds - 1));
   });
 
+  it('enrages the bandit captain below half of his cut max HP', () => {
+    const def = dungeon({ id: 'banditCaptain', hp: 400, damage: 10, effect: 'enrage' });
+    const carrier = member('a', { maxHp: 1e6, power: 20, consumable: weaknessItem('wantedPoster') });
+    const fight = bossFight([carrier], def);
+    // 300 HP at 20 a round: 15 rounds, and he enrages from round 8 (140 < 150), not round 6 (180 < 200).
+    expect(fight.rounds).toBe(15);
+    expect(Object.values(fight.taken).reduce((s, t) => s + t, 0)).toBeCloseTo(10 * 7 + 10 * expeditionRules.enrageMultiplier * 7);
+  });
+
   it('puts the giant king to sleep for two free rounds', () => {
     const def = dungeon({ id: 'giantKing', hp: 300, damage: 50, effect: 'sweep' });
     const carrier = member('a', { maxHp: 1e6, power: 150, consumable: weaknessItem('sleepingDraught') });

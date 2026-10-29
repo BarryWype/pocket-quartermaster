@@ -222,7 +222,8 @@ type HeroState = {
   /** The hero's keywords after the restriction, whatever their source. */
   keywords: Set<Keyword>;
 };
-type EnemyState = { def: MobDef | BossDef; hp: number; staggered: boolean };
+/** `maxHp` is the def's HP after a weakness cut; thresholds like enrage use it. */
+type EnemyState = { def: MobDef | BossDef; hp: number; maxHp: number; staggered: boolean };
 
 /** A party member as `heroAnswers` sees them: weapon, kit and class resists. */
 export function answersMemberOf(member: PartyMember): AnswersMember {
@@ -534,12 +535,12 @@ export function simulateRun(
             return Array< MobDef | BossDef >(whole + extra).fill(weakest);
           })
         : [];
-    const enemies: EnemyState[] = [...enemyDefs, ...copies].map((def) => ({
-      def,
-      // The dead walk here: undead are harder to put down; a weakness item cuts the boss's HP up front.
-      hp: def.hp * (isBoss && weakness?.hpCut ? 1 - weakness.hpCut : 1) * (enemyTags(def).includes('undead') ? undeadHp : 1),
-      staggered: false,
-    }));
+    const enemies: EnemyState[] = [...enemyDefs, ...copies].map((def) => {
+      // A weakness item cuts the boss's max HP up front.
+      const maxHp = def.hp * (isBoss && weakness?.hpCut ? 1 - weakness.hpCut : 1);
+      // The dead walk here: undead are harder to put down.
+      return { def, hp: maxHp * (enemyTags(def).includes('undead') ? undeadHp : 1), maxHp, staggered: false };
+    });
     if (escaped) return;
     // The run's first fight opens with every conscious carrier's firebomb.
     if (elixirs && !firebombThrown) {
@@ -681,7 +682,7 @@ export function simulateRun(
         if (weakness?.freeRounds && round <= weakness.freeRounds) continue;
         // The boss encounter takes the brute's extra damage, effect or not.
         const boss: BossDef | null = isBoss || 'effect' in enemy.def ? (enemy.def as BossDef) : null;
-        const enraged = boss?.effect === 'enrage' && !weakness?.noEnrage && enemy.hp < enemy.def.hp / 2;
+        const enraged = boss?.effect === 'enrage' && !weakness?.noEnrage && enemy.hp < enemy.maxHp / 2;
         const beast = enemyTags(enemy.def).includes('beast');
         const base =
           enemy.def.damage *
