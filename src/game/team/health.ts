@@ -44,8 +44,11 @@ export function timeToFull(save: SaveData, hero: HeroState, now: number, rules: 
   return Math.max(0, (hero.exhaustedUntil ?? 0) - now) + healing;
 }
 
-/** The hero with HP stored as of `now`: full HP is left out, finished exhaustion cleared. */
-function withHp(hero: HeroState, hp: number, max: number, now: number, exhaustedUntil: number | undefined): HeroState {
+/**
+ * The hero with HP stored as of `now`: full HP is left out, finished exhaustion
+ * cleared. Shared by every path that writes a hero's HP at home.
+ */
+export function withHp(hero: HeroState, hp: number, max: number, now: number, exhaustedUntil: number | undefined): HeroState {
   const { hp: _hp, hpAt: _at, exhaustedUntil: _ex, ...rest } = hero;
   return {
     ...rest,

@@ -14,7 +14,8 @@ export type Salvage = {
  * inputs (the main one at least 1), or a little gold without a recipe.
  */
 export function salvage(itemId: string, rules: ThreatRules = threatRules): Salvage {
-  const recipe = recipes.find((r) => 'itemId' in r.output && r.output.itemId === itemId);
+  // Blessed relics are only made by a chapel, but break down like the relics they came from.
+  const recipe = recipes.find((r) => 'itemId' in r.output && r.output.itemId === (itemId === 'blessedRelics' ? 'holyRelics' : itemId));
   if (!recipe) return { materials: [], gold: rules.salvageGold };
   const materials = recipe.inputs
     .map((input, i) => ({ materialId: input.materialId, amount: Math.max(i === 0 ? 1 : 0, Math.floor(input.amount / 2)) }))

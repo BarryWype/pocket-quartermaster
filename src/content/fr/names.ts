@@ -189,6 +189,8 @@ export const frNames: Record<string, string> = {
   'A shuttered tallow lantern and bells.': 'Une lanterne à suif à volets et des clochettes.',
   'Holy relics': 'Reliques saintes',
   'Holy water in a copper vial and warding salt.': 'De l’eau bénite dans une fiole de cuivre et du sel de protection.',
+  'Blessed relics': 'Reliques bénies',
+  'Holy relics blessed at a chapel: +3 Faith.': 'Reliques saintes bénies dans une chapelle : +3 Foi.',
   'Scholar’s satchel': 'Sac de l’érudit',
   'A cipher wheel, lampblack ink, thread and chalk.':
     'Une roue de chiffrement, de l’encre de noir de fumée, du fil et de la craie.',

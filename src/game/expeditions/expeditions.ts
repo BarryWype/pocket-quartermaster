@@ -224,6 +224,8 @@ export function startExpedition(
   for (const [itemId, count] of Object.entries(plan.supply.items)) take(itemId, count);
 
   const id = `x${save.nextUid}`;
+  // A chapel's blessing is spent by the next expedition; patrol fights leave it waiting.
+  const blessed = save.expeditionBlessing;
   const expedition: ActiveExpedition = {
     id,
     dungeonId,
@@ -233,6 +235,7 @@ export function startExpedition(
     endsAt: now + Math.round(plan.minutes * 60 * durationScale) * 1000,
     seed: `${id}:${now}`,
     guaranteed: isTutorialExpedition(save),
+    ...(blessed ? { blessed: true } : {}),
     briefing,
     optIn: loadout.optIn ?? false,
     hunger: plan.hunger,
@@ -244,6 +247,7 @@ export function startExpedition(
     ...settled,
     consumables,
     expeditions: [...save.expeditions, expedition],
+    expeditionBlessing: blessed ? false : save.expeditionBlessing,
     // The escort hero set out with the player instead: the background task stands down.
     escort: save.escort && heroIds.includes(save.escort.heroId) ? null : save.escort,
     nextUid: save.nextUid + 1,
@@ -350,6 +354,7 @@ export function resolveExpedition(
   const run = simulateRun(party, dungeon, `${expedition.seed}|run`, {
     rules,
     guaranteed: expedition.guaranteed,
+    ...(expedition.blessed ? { blessed: true } : {}),
     ...runProvisions(expedition.hunger ?? 'fed', { mealId: expedition.mealId, optIn: expedition.optIn }, briefing),
   });
   const meal = mealOf(briefing, expedition.mealId);

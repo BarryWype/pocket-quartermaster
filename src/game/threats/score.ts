@@ -32,9 +32,10 @@ export function kitApplies(kitItemId: string | null, threatId: ThreatId, approac
   return kit.approach === 'threat' || kit.approach === approach;
 }
 
-/** A hero's score for an approach threat, with their kit's +2 when it covers the threat, capped at 5. */
+/** A hero's score for an approach threat, with their kit's bonus when it covers the threat, capped at 5. */
 export function approachScore(answers: HeroAnswers, threatId: ThreatId, approach: Approach, withKit: boolean) {
-  const bonus = withKit && kitApplies(answers.kitItemId, threatId, approach) ? approachRules.kitBonus : 0;
+  const kit = kitOf(answers.kitItemId);
+  const bonus = withKit && kit && kitApplies(answers.kitItemId, threatId, approach) ? kit.bonus ?? approachRules.kitBonus : 0;
   return Math.min(approachRules.max, answers.approaches[approach] + bonus);
 }
 
@@ -163,7 +164,10 @@ export function scoreOpportunity(opportunity: OpportunityDef, party: HeroAnswers
   if (opportunity.cost && !optIn) return { answered: false, kitHeroId: null };
   // A kit lifts its own approach here too (a Rogue's roll helps find a cache); Explorer's kit only lifts its threats.
   const score = (a: HeroAnswers, approach: Approach) =>
-    Math.min(approachRules.max, a.approaches[approach] + (kitOf(a.kitItemId)?.approach === approach ? approachRules.kitBonus : 0));
+    Math.min(
+      approachRules.max,
+      a.approaches[approach] + (kitOf(a.kitItemId)?.approach === approach ? kitOf(a.kitItemId)!.bonus ?? approachRules.kitBonus : 0),
+    );
   const met = (heroes: HeroAnswers[]) =>
     opportunity.answers.length === 0 ||
     opportunity.answers.some((answer) =>

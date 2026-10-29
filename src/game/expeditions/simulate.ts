@@ -8,6 +8,7 @@ import { gearKeywordRules } from '@/content/equipment';
 import { infusionRules } from '@/content/sanctums';
 import { travellerRules } from '@/content/patrols';
 import { gearName, itemById, opportunityById } from '@/content/lookup';
+import { serviceRules } from '@/content/services';
 
 import { ELEMENTS, beats, incomingMultiplier, shardId, weaponMultiplier, type Element } from '../elements';
 import { createRng } from '../generation/rng';
@@ -202,6 +203,8 @@ export type RunOptions = RunProvisions & {
   guaranteed?: boolean;
   /** Hero consumable elixirs take effect; Sanctum fights, which keep the slot, leave them out. */
   elixirs?: boolean;
+  /** A chapel's blessing: the party hits harder (see serviceRules.chapel). */
+  blessed?: boolean;
 };
 
 type HeroState = {
@@ -346,7 +349,7 @@ export function simulateRun(
   party: PartyMember[],
   dungeon: DungeonDef,
   seed: string,
-  { rules = expeditionRules, guaranteed = false, hunger = 'fed', meal = null, briefing = null, optIn = false, elixirs = false }: RunOptions = {},
+  { rules = expeditionRules, guaranteed = false, hunger = 'fed', meal = null, briefing = null, optIn = false, elixirs = false, blessed = false }: RunOptions = {},
 ): RunResult {
   const activeBriefing: Briefing = briefing ?? EMPTY_BRIEFING;
   const restriction = activeBriefing.restriction;
@@ -502,6 +505,8 @@ export function simulateRun(
 
   /** The Forgotten shrine's multiplier, set at the midpoint. */
   let shrine = 1;
+  /** A chapel's blessing lifts every hit for the whole run. */
+  const blessing = blessed ? 1 + serviceRules.chapel.blessingDamage : 1;
   /** Heroes who attacked at least once. */
   const attacked = new Set<string>();
 
@@ -567,7 +572,7 @@ export function simulateRun(
             : hero.member.damageStat === 'power'
               ? weakenedAgainst
               : 1 - rules.magicArmourShare * (1 - weakenedAgainst);
-          let bonus = (buffer?.buff?.multiplier ?? 1) * inspired * shrine * weakenedOf(hero.member) * armourFactor;
+          let bonus = blessing * (buffer?.buff?.multiplier ?? 1) * inspired * shrine * weakenedOf(hero.member) * armourFactor;
           for (const ability of hero.member.abilities) {
             if (ability.kind !== 'damageVsTag' || !tags.includes(ability.tag)) continue;
             bonus *= ability.multiplier;

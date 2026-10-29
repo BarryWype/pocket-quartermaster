@@ -55,7 +55,8 @@ export function estimateOdds(save: SaveData, heroIds: string[], dungeon: Dungeon
   const { now, loadout = {}, fullHp = false, briefing = EMPTY_BRIEFING } = options;
   const party = prepareParty(save, heroIds, now, true).map((m) => (fullHp ? { ...m, hp: m.maxHp } : m));
   const { hunger } = launchPlan(save, dungeon, heroIds, loadout, briefing);
-  return estimatePartyOdds(party, dungeon, runs, runProvisions(hunger, loadout, briefing));
+  // The waiting chapel blessing, if this run would spend it.
+  return estimatePartyOdds(party, dungeon, runs, { ...runProvisions(hunger, loadout, briefing), blessed: save.expeditionBlessing });
 }
 
 export function oddsBand(success: number): OddsBand {

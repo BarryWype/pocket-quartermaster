@@ -95,6 +95,7 @@ export const items: ItemDef[] = [
   { id: 'giftBasket', name: 'Gift basket', emoji: '🎁', description: 'Honey cakes, smoked meat and a carved stone trinket.', slot: 'consumable', kit: { threats: ['locals'], approach: 'presence' } },
   { id: 'lantern', name: 'Lantern', emoji: '🏮', description: 'A shuttered tallow lantern and bells.', slot: 'consumable', kit: { threats: ['darkness', 'ambush'], keywords: ['light', 'watchful'] } },
   { id: 'holyRelics', name: 'Holy relics', emoji: '🕯️', description: 'Holy water in a copper vial and warding salt.', slot: 'consumable', kit: { threats: ['desecrated', 'casters'], approach: 'faith' } },
+  { id: 'blessedRelics', name: 'Blessed relics', emoji: '✨', description: 'Holy relics blessed at a chapel: +3 Faith.', slot: 'consumable', kit: { threats: ['desecrated', 'casters'], approach: 'faith', bonus: 3 } },
   { id: 'scholarsSatchel', name: 'Scholar’s satchel', emoji: '📚', description: 'A cipher wheel, lampblack ink, thread and chalk.', slot: 'consumable', kit: { threats: ['puzzle', 'maze'], approach: 'wits' } },
 
   // Hero consumables, gone after the run like every one in a hero's slot.

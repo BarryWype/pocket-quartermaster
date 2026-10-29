@@ -344,6 +344,8 @@ export type KitEffect = {
   threats: ThreatId[];
   /** Adds to the answer approach of these threats (the carrier's own approach for 'threat'). */
   approach?: Approach | 'threat';
+  /** Added to the approach instead of approachRules.kitBonus. */
+  bonus?: number;
   keywords?: Keyword[];
   /** Heals its carrier once, like a potion. */
   heal?: number;
@@ -547,6 +549,8 @@ export type ActiveExpedition = {
   seed: string;
   /** The tutorial's first expedition always succeeds. */
   guaranteed?: boolean;
+  /** A chapel's blessing was spent on this run (see serviceRules.chapel). */
+  blessed?: boolean;
   /** The dungeon's briefing at launch, kept for the whole run (empty when none). */
   briefing?: Briefing;
   /** The party opted into the briefing's opportunity cost. */
