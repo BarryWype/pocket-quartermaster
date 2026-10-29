@@ -143,7 +143,11 @@ export type MealEffect =
   /** Opportunity rewards are multiplied by this. */
   | { kind: 'opportunity'; multiplier: number }
   | { kind: 'speed'; add: number }
-  | { kind: 'resistance'; multiplier: number };
+  | { kind: 'resistance'; multiplier: number }
+  /** Crit chance in % points added to every hero. */
+  | { kind: 'crit'; add: number }
+  /** The penalties of these threats are multiplied by this. */
+  | { kind: 'penaltyCut'; threats: ThreatId[]; multiplier: number };
 
 /** What a hero can bring to bear on a threat. */
 export type Approach = 'might' | 'finesse' | 'wits' | 'faith' | 'presence';

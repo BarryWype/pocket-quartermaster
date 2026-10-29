@@ -77,7 +77,9 @@ export const items: ItemDef[] = [
   // Consumables, in a hero's slot, all gone after the run: potions are drunk
   // below the HP threshold, charms help for the whole run, and what never
   // triggered is broken back down (see threats/salvage.ts).
-  { id: 'healingPotion', name: 'Healing potion', emoji: '🧪', description: 'Heals 30% of max HP when badly hurt.', slot: 'consumable', heal: healthRules.potionHeal, when: 'lowHp' },
+  { id: 'healingPotion', name: 'Minor healing potion', emoji: '🧪', description: 'Heals 30% of max HP when badly hurt.', slot: 'consumable', heal: healthRules.potionHeal.minor, when: 'lowHp' },
+  { id: 'standardHealingPotion', name: 'Healing potion', emoji: '🧪', description: 'Heals 50% of max HP when badly hurt.', slot: 'consumable', heal: healthRules.potionHeal.standard, when: 'lowHp' },
+  { id: 'greaterHealingPotion', name: 'Greater healing potion', emoji: '🧪', description: 'Heals 70% of max HP when badly hurt.', slot: 'consumable', heal: healthRules.potionHeal.greater, when: 'lowHp' },
   { id: 'rabbitsFoot', name: 'Rabbit’s foot', emoji: '🐇', description: '+5% critical hit chance for this hero.', slot: 'consumable', charm: { kind: 'crit', chance: charms.rabbitsFoot } },
   { id: 'luckyTooth', name: 'Lucky tooth', emoji: '🦷', description: '+5% gold for the party (one per party counts).', slot: 'consumable', charm: { kind: 'gold', multiplier: charms.luckyTooth } },
 
@@ -126,6 +128,7 @@ export const items: ItemDef[] = [
   { id: 'trailMix', name: 'Trail mix', emoji: '🥜', description: '2 supply points.', slot: 'provision', supply: 2 },
   { id: 'jerky', name: 'Jerky', emoji: '🥓', description: '3 supply points.', slot: 'provision', supply: 3 },
   { id: 'smokedFish', name: 'Smoked fish', emoji: '🐟', description: '3 supply points.', slot: 'provision', supply: 3 },
+  { id: 'saltedFish', name: 'Salted fish', emoji: '🧂', description: '4 supply points.', slot: 'provision', supply: 4 },
   { id: 'pemmican', name: 'Pemmican', emoji: '🥩', description: '5 supply points.', slot: 'provision', supply: 5 },
   { id: 'huntersStew', name: 'Hunter’s stew', emoji: '🍲', description: 'Heals 15% of max HP before the boss.', slot: 'provision', meal: { kind: 'bossHeal', pct: meals.stewHeal } },
   { id: 'scholarsPorridge', name: 'Scholar’s porridge', emoji: '🥣', description: '+15% XP.', slot: 'provision', meal: { kind: 'xp', multiplier: meals.porridgeXp } },
@@ -136,6 +139,8 @@ export const items: ItemDef[] = [
   { id: 'honeyCakes', name: 'Honey cakes', emoji: '🍯', description: '+25% from opportunities.', slot: 'provision', meal: { kind: 'opportunity', multiplier: meals.honeyOpportunity } },
   { id: 'spicedSkewers', name: 'Spiced skewers', emoji: '🍢', description: '+1 Speed for the party.', slot: 'provision', meal: { kind: 'speed', add: meals.skewersSpeed } },
   { id: 'mushroomRisotto', name: 'Mushroom risotto', emoji: '🍚', description: '+10% Resistance for the party.', slot: 'provision', meal: { kind: 'resistance', multiplier: meals.risottoResistance } },
+  { id: 'grilledTrout', name: 'Grilled trout', emoji: '🍤', description: '+10% critical hit chance for the party.', slot: 'provision', meal: { kind: 'crit', add: meals.troutCrit } },
+  { id: 'fishermansChowder', name: 'Fisherman’s chowder', emoji: '🥘', description: 'Halves the Underwater and Poison penalties.', slot: 'provision', meal: { kind: 'penaltyCut', threats: ['underwater', 'poison'], multiplier: meals.chowderCut } },
 
   // Utilities: used by the player from the stock, on the map or at home.
   { id: 'foragersTonic', name: 'Forager’s tonic', emoji: '🍃', description: 'Auto-gather reaches 10 m further for 30 minutes.', slot: 'utility', walk: 'forage' },

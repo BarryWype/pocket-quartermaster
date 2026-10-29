@@ -68,6 +68,10 @@ export function partyMeal(meal: MealEffect | null | undefined, briefing: Briefin
       return { ...meal, bonus: meal.bonus * boost };
     case 'speed':
       return { ...meal, add: meal.add * boost };
+    case 'crit':
+      return { ...meal, add: meal.add * boost };
+    case 'penaltyCut':
+      return meal;
     default:
       return { ...meal, multiplier: excess(meal.multiplier) };
   }

@@ -13,7 +13,7 @@ export const provisionRules = {
   startingStock: { trailMix: 8 } as Record<string, number>,
   /** The cooking tip shows once held supply drops below this. */
   lowStockPoints: 6,
-  meals: { stewHeal: 0.15, porridgeXp: 1.15, pieGold: 1.15, quickBitesDuration: 0.9, brothRetreat: 0.25, roastHp: 1.1, honeyOpportunity: 1.25, skewersSpeed: 1, risottoResistance: 1.1 },
+  meals: { stewHeal: 0.15, porridgeXp: 1.15, pieGold: 1.15, quickBitesDuration: 0.9, brothRetreat: 0.25, roastHp: 1.1, honeyOpportunity: 1.25, skewersSpeed: 1, risottoResistance: 1.1, troutCrit: 10, chowderCut: 0.5 },
   charms: { rabbitsFoot: 0.05, luckyTooth: 1.05 },
   /** Hero consumables (elixirs, bombs, oils): one per hero, for one run. */
   elixirs: { power: 1.15, magic: 1.15, armour: 1.2, resistance: 1.2, quicksilverSpeed: 2, firebombDamage: 4, smokeBombRetreat: 0.25, reviveHp: 0.3 },

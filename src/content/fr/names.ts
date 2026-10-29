@@ -163,7 +163,9 @@ export const frNames: Record<string, string> = {
   'Water stone': 'Gemme d’eau',
 
   // Consumables
+  'Minor healing potion': 'Potion de soin mineure',
   'Healing potion': 'Potion de soin',
+  'Greater healing potion': 'Potion de soin supérieure',
   'Rabbit’s foot': 'Patte de lapin',
   '+5% critical hit chance for this hero.': '+5 % de chances de coup critique pour ce héros.',
   'Lucky tooth': 'Dent porte-bonheur',
@@ -196,6 +198,8 @@ export const frNames: Record<string, string> = {
   'A cipher wheel, lampblack ink, thread and chalk.':
     'Une roue de chiffrement, de l’encre de noir de fumée, du fil et de la craie.',
   'Heals 30% of max HP when badly hurt.': 'Soigne 30 % des PV max quand on va mal.',
+  'Heals 50% of max HP when badly hurt.': 'Soigne 50 % des PV max quand on va mal.',
+  'Heals 70% of max HP when badly hurt.': 'Soigne 70 % des PV max quand on va mal.',
   // Elixirs, bombs and oils
   'Strength draught': 'Potion de force',
   '+15% Power for the run.': '+15 % de Puissance pour l’expédition.',
@@ -247,6 +251,12 @@ export const frNames: Record<string, string> = {
   Jerky: 'Viande séchée',
   '3 supply points.': '3 points de vivres.',
   'Smoked fish': 'Poisson fumé',
+  'Salted fish': 'Poisson salé',
+  'Grilled trout': 'Truite grillée',
+  'Fisherman’s chowder': 'Chaudrée du pêcheur',
+  '4 supply points.': '4 points de vivres.',
+  '+10% critical hit chance for the party.': '+10 % de chances de coup critique pour le groupe.',
+  'Halves the Underwater and Poison penalties.': 'Divise par deux les malus Sous l’eau et Poison.',
   Fish: 'Poisson',
   'Hunter’s stew': 'Ragoût du chasseur',
   'Heals 15% of max HP before the boss.': 'Soigne 15 % des PV max avant le boss.',

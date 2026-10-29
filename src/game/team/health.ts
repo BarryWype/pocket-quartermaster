@@ -118,7 +118,7 @@ export function drinkPotion(save: SaveData, heroId: string, now: number, rules: 
       if (hero.id !== heroId) return hero;
       const max = maxHp(settled, hero);
       const carried = fromStock ? hero : { ...hero, equipment: { ...hero.equipment, consumable: null } };
-      return withHp(carried, currentHp(settled, hero, now, rules) + rules.potionHeal * max, max, now, undefined);
+      return withHp(carried, currentHp(settled, hero, now, rules) + rules.potionHeal.minor * max, max, now, undefined);
     }),
   };
 }

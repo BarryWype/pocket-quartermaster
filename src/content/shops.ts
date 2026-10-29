@@ -24,6 +24,8 @@ export const materialPrices: Record<string, number> = {
 
 export const itemPrices: Record<string, number> = {
   healingPotion: 8,
+  standardHealingPotion: 16,
+  greaterHealingPotion: 32,
   emberWardSalve: 10,
   tideWardSalve: 10,
   stormWardSalve: 10,
