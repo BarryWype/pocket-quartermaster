@@ -6,6 +6,8 @@ export const healthRules = {
   exhaustionMinutes: 20,
   /** Share of max HP a healing potion restores, in the dungeon or at home. */
   potionHeal: 0.3,
+  /** Share of max HP a herbal poultice restores at home. */
+  poulticeHeal: 0.25,
   /** Below this share of max HP a hero shows as badly hurt. */
   hurtShare: 0.3,
 };

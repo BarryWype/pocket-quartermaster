@@ -172,6 +172,62 @@ describe('kit recipes', () => {
   });
 });
 
+describe('consumable recipes', () => {
+  // available from tier, and what one item is made from; kitchen food, alchemy the rest.
+  const table: [string, number, Record<string, number>][] = [
+    ['heartyRoast', 2, { meat: 2, herb: 1 }],
+    ['honeyCakes', 2, { berries: 2, herb: 1 }],
+    ['pemmican', 2, { meat: 2, berries: 1 }],
+    ['spicedSkewers', 3, { meat: 1, herb: 1, mushroom: 1 }],
+    ['mushroomRisotto', 3, { mushroom: 2, herb: 1 }],
+    ['strengthDraught', 2, { stone: 1, meat: 1, herb: 1 }],
+    ['arcaneTonic', 2, { stone: 1, mushroom: 1, berries: 1 }],
+    ['ironskinBrew', 2, { stone: 1, bone: 1, herb: 1 }],
+    ['firebomb', 2, { stone: 1, wood: 1, meat: 1 }],
+    ['nullrootTincture', 3, { copper: 1, mushroom: 1, herb: 1 }],
+    ['quicksilver', 3, { copper: 1, berries: 1, mushroom: 1 }],
+    ['emberOil', 3, { copper: 1, fireShard: 2, herb: 1 }],
+    ['tideOil', 3, { copper: 1, waterShard: 2, herb: 1 }],
+    ['stormOil', 3, { copper: 1, electricShard: 2, herb: 1 }],
+    ['stoneOil', 3, { copper: 1, stoneShard: 2, herb: 1 }],
+    ['thornOil', 3, { copper: 1, grassShard: 2, herb: 1 }],
+    ['smokeBomb', 3, { copper: 1, wood: 1, mushroom: 1 }],
+    ['revivalDraught', 5, { coal: 1, fireShard: 1, herb: 1 }],
+    ['foragersTonic', 1, { herb: 1, berries: 1, wood: 1 }],
+    ['huntersMusk', 2, { stone: 1, meat: 1, hide: 1 }],
+    ['prospectorsDraught', 3, { copper: 1, mushroom: 1, herb: 1 }],
+    ['trackersEye', 3, { copper: 1, berries: 1, bone: 1 }],
+    ['herbalPoultice', 1, { herb: 2, hide: 1 }],
+    ['restorativeTonic', 3, { copper: 1, herb: 1, mushroom: 1 }],
+    ['calmingTea', 3, { copper: 1, herb: 1, berries: 1 }],
+  ];
+  const kitchen = new Set(['heartyRoast', 'honeyCakes', 'pemmican', 'spicedSkewers', 'mushroomRisotto']);
+
+  it.each(table)('%s opens at tier %i, made from its inputs, in its tab', (id, tier, inputs) => {
+    const recipe = recipeById[id];
+    expect(recipe.availableFromTier).toBe(tier);
+    expect(recipe.output).toEqual({ itemId: id });
+    expect(Object.fromEntries(recipe.inputs.map((i) => [i.materialId, i.amount]))).toEqual(inputs);
+    expect(recipe.tab).toBe(kitchen.has(id) ? 'kitchen' : 'alchemy');
+  });
+
+  it('knows them once the highest unlocked tier reaches them', () => {
+    const save = withMaterials({});
+    expect(isKnown(save, recipeById.foragersTonic)).toBe(true);
+    expect(isKnown(save, recipeById.herbalPoultice)).toBe(true);
+    expect(isKnown(save, recipeById.strengthDraught)).toBe(false);
+    expect(isKnown(save, recipeById.heartyRoast)).toBe(false);
+    const tier2 = { ...save, clearedDungeons: ['banditStockade'] };
+    expect(isKnown(tier2, recipeById.heartyRoast)).toBe(true);
+    expect(isKnown(tier2, recipeById.strengthDraught)).toBe(true);
+    const tier4 = { ...save, clearedDungeons: ['banditStockade', 'ogreQuarry', 'drownedCrypt'] };
+    expect(isKnown(tier4, recipeById.emberOil)).toBe(true);
+    expect(isKnown(tier4, recipeById.revivalDraught)).toBe(false);
+    const tier5 = { ...tier4, clearedDungeons: [...tier4.clearedDungeons, 'giantsHall'] };
+    expect(isKnown(tier5, recipeById.revivalDraught)).toBe(true);
+  });
+});
+
 describe('debug recipe tools', () => {
   it('forgets only the asked recipe', () => {
     const save = forgetRecipe(createInitialSave(), 'sword1');

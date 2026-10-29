@@ -95,6 +95,19 @@ export type Charm =
   /** Party gold multiplier; several Lucky teeth count once. */
   | { kind: 'gold'; multiplier: number };
 
+/** What a hero consumable does for the run (see expeditions/simulate.ts). */
+export type Elixir =
+  | { kind: 'stat'; stat: 'power' | 'magic' | 'armour' | 'resistance'; multiplier: number }
+  | { kind: 'speed'; add: number }
+  /** Before the run's first fight, fire damage to every enemy (tier-1 strength, scaled like enemies). */
+  | { kind: 'firebomb'; damage: number }
+  /** Infuses the hero's weapon for the run, replacing a permanent infusion. */
+  | { kind: 'oil'; element: Element }
+  /** Instead of a knock-out, the party escapes: the run ends as a retreat with this loot bonus. */
+  | { kind: 'smokeBomb'; retreatBonus: number }
+  /** Once per run, a knocked-out carrier gets back up with this share of max HP. */
+  | { kind: 'revive'; hp: number };
+
 export type ConsumableDef = ItemBase & {
   slot: 'consumable';
   /** Share of max HP restored when used. */
@@ -106,6 +119,7 @@ export type ConsumableDef = ItemBase & {
   /** A kit: what it gives its carrier against threats. */
   kit?: KitEffect;
   charm?: Charm;
+  elixir?: Elixir;
 };
 
 /** What a meal does for the run; one meal per expedition. */
@@ -116,7 +130,12 @@ export type MealEffect =
   | { kind: 'gold'; multiplier: number }
   | { kind: 'duration'; multiplier: number }
   /** Added to the retreat multiplier of a failed run's rewards, up to a full clear. */
-  | { kind: 'retreat'; bonus: number };
+  | { kind: 'retreat'; bonus: number }
+  | { kind: 'maxHp'; multiplier: number }
+  /** Opportunity rewards are multiplied by this. */
+  | { kind: 'opportunity'; multiplier: number }
+  | { kind: 'speed'; add: number }
+  | { kind: 'resistance'; multiplier: number };
 
 /** What a hero can bring to bear on a threat. */
 export type Approach = 'might' | 'finesse' | 'wits' | 'faith' | 'presence';
@@ -338,6 +357,17 @@ export type ProvisionDef = ItemBase & {
   meal?: MealEffect;
 };
 
+/** Walking consumables, used from the map for a while (see gatheringConfig.walkEffects). */
+export type WalkEffectKind = 'forage' | 'musk' | 'prospect' | 'track';
+/** Care given to a hero at home. */
+export type HomeCare = { kind: 'heal'; share: number } | { kind: 'rest' };
+/** Held in the stock and used by the player, never carried by a hero. */
+export type UtilityDef = ItemBase & {
+  slot: 'utility';
+  walk?: WalkEffectKind;
+  homeCare?: HomeCare;
+};
+
 /** Owned by the player rather than a hero; never wears out. */
 export type ToolDef = ItemBase & {
   slot: 'tool';
@@ -346,7 +376,7 @@ export type ToolDef = ItemBase & {
   tier: number;
 };
 
-export type ItemDef = GearDef | ConsumableDef | ToolDef | ProvisionDef;
+export type ItemDef = GearDef | ConsumableDef | ToolDef | ProvisionDef | UtilityDef;
 
 export type RecipeDef = {
   id: string;

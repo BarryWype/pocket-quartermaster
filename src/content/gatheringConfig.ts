@@ -51,6 +51,13 @@ export const gatheringConfig = {
       iosDistanceIntervalMeters: 12,
     },
   },
+  /** Walking consumables: minutes each lasts and what it does. */
+  walkEffects: {
+    forage: { minutes: 30, radiusBonusMeters: 10 },
+    musk: { minutes: 15, animals: 3, radiusMeters: 200 },
+    prospect: { minutes: 30, oreBonus: 1 },
+    track: { minutes: 30, rangeMultiplier: 2 },
+  },
 };
 
 export type GatheringConfig = typeof gatheringConfig;

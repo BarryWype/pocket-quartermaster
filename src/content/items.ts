@@ -6,7 +6,7 @@ import { GEAR_SLOTS, gearId, gearNames, gearProfiles, testCharm } from './equipm
 import { healthRules } from './health';
 import { provisionRules } from './provisions';
 
-const { meals, charms } = provisionRules;
+const { meals, charms, elixirs } = provisionRules;
 
 export const MATERIAL_TIERS = [
   { id: 'wood', name: 'Wooden' },
@@ -77,7 +77,7 @@ export const items: ItemDef[] = [
   // Consumables, in a hero's slot, all gone after the run: potions are drunk
   // below the HP threshold, charms help for the whole run, and what never
   // triggered is broken back down (see threats/salvage.ts).
-  { id: 'healingPotion', name: 'Healing potion', emoji: '🧪', slot: 'consumable', heal: healthRules.potionHeal, when: 'lowHp' },
+  { id: 'healingPotion', name: 'Healing potion', emoji: '🧪', description: 'Heals 30% of max HP when badly hurt.', slot: 'consumable', heal: healthRules.potionHeal, when: 'lowHp' },
   { id: 'rabbitsFoot', name: 'Rabbit’s foot', emoji: '🐇', description: '+5% critical hit chance for this hero.', slot: 'consumable', charm: { kind: 'crit', chance: charms.rabbitsFoot } },
   { id: 'luckyTooth', name: 'Lucky tooth', emoji: '🦷', description: '+5% gold for the party (one per party counts).', slot: 'consumable', charm: { kind: 'gold', multiplier: charms.luckyTooth } },
 
@@ -97,15 +97,44 @@ export const items: ItemDef[] = [
   { id: 'holyRelics', name: 'Holy relics', emoji: '🕯️', description: 'Holy water in a copper vial and warding salt.', slot: 'consumable', kit: { threats: ['desecrated', 'casters'], approach: 'faith' } },
   { id: 'scholarsSatchel', name: 'Scholar’s satchel', emoji: '📚', description: 'A cipher wheel, lampblack ink, thread and chalk.', slot: 'consumable', kit: { threats: ['puzzle', 'maze'], approach: 'wits' } },
 
+  // Hero consumables, gone after the run like every one in a hero's slot.
+  { id: 'strengthDraught', name: 'Strength draught', emoji: '💪', description: '+15% Power for the run.', slot: 'consumable', elixir: { kind: 'stat', stat: 'power', multiplier: elixirs.power } },
+  { id: 'arcaneTonic', name: 'Arcane tonic', emoji: '🔮', description: '+15% Magic for the run.', slot: 'consumable', elixir: { kind: 'stat', stat: 'magic', multiplier: elixirs.magic } },
+  { id: 'ironskinBrew', name: 'Ironskin brew', emoji: '🛡️', description: '+20% Armour for the run.', slot: 'consumable', elixir: { kind: 'stat', stat: 'armour', multiplier: elixirs.armour } },
+  { id: 'nullrootTincture', name: 'Nullroot tincture', emoji: '🌿', description: '+20% Resistance for the run.', slot: 'consumable', elixir: { kind: 'stat', stat: 'resistance', multiplier: elixirs.resistance } },
+  { id: 'quicksilver', name: 'Quicksilver', emoji: '🌀', description: '+2 Speed for the run.', slot: 'consumable', elixir: { kind: 'speed', add: elixirs.quicksilverSpeed } },
+  { id: 'firebomb', name: 'Firebomb', emoji: '💣', description: 'Opens the first fight with fire damage to every enemy.', slot: 'consumable', elixir: { kind: 'firebomb', damage: elixirs.firebombDamage } },
+  { id: 'emberOil', name: 'Ember oil', emoji: '🔥', description: 'Infuses the weapon with fire for one run.', slot: 'consumable', elixir: { kind: 'oil', element: 'fire' } },
+  { id: 'tideOil', name: 'Tide oil', emoji: '💧', description: 'Infuses the weapon with water for one run.', slot: 'consumable', elixir: { kind: 'oil', element: 'water' } },
+  { id: 'stormOil', name: 'Storm oil', emoji: '⚡', description: 'Infuses the weapon with lightning for one run.', slot: 'consumable', elixir: { kind: 'oil', element: 'electric' } },
+  { id: 'stoneOil', name: 'Stone oil', emoji: '🪨', description: 'Infuses the weapon with stone for one run.', slot: 'consumable', elixir: { kind: 'oil', element: 'stone' } },
+  { id: 'thornOil', name: 'Thorn oil', emoji: '🌵', description: 'Infuses the weapon with thorns for one run.', slot: 'consumable', elixir: { kind: 'oil', element: 'grass' } },
+  { id: 'smokeBomb', name: 'Smoke bomb', emoji: '💨', description: 'Instead of a knock-out, the party escapes with more loot.', slot: 'consumable', elixir: { kind: 'smokeBomb', retreatBonus: elixirs.smokeBombRetreat } },
+  { id: 'revivalDraught', name: 'Revival draught', emoji: '✨', description: 'Once per run, gets back up at 30% HP when knocked out.', slot: 'consumable', elixir: { kind: 'revive', hp: elixirs.reviveHp } },
+
   // Provisions, taken by the whole party. Supply is needed for every
   // expedition; a meal is optional.
   { id: 'trailMix', name: 'Trail mix', emoji: '🥜', description: '2 supply points.', slot: 'provision', supply: 2 },
   { id: 'jerky', name: 'Jerky', emoji: '🥓', description: '3 supply points.', slot: 'provision', supply: 3 },
+  { id: 'pemmican', name: 'Pemmican', emoji: '🥩', description: '5 supply points.', slot: 'provision', supply: 5 },
   { id: 'huntersStew', name: 'Hunter’s stew', emoji: '🍲', description: 'Heals 15% of max HP before the boss.', slot: 'provision', meal: { kind: 'bossHeal', pct: meals.stewHeal } },
   { id: 'scholarsPorridge', name: 'Scholar’s porridge', emoji: '🥣', description: '+15% XP.', slot: 'provision', meal: { kind: 'xp', multiplier: meals.porridgeXp } },
   { id: 'merchantsPie', name: 'Merchant’s pie', emoji: '🥧', description: '+15% gold.', slot: 'provision', meal: { kind: 'gold', multiplier: meals.pieGold } },
   { id: 'quickBites', name: 'Quick bites', emoji: '🥪', description: '−10% expedition time.', slot: 'provision', meal: { kind: 'duration', multiplier: meals.quickBitesDuration } },
   { id: 'comfortBroth', name: 'Comfort broth', emoji: '🍵', description: 'Better rewards after a retreat or defeat.', slot: 'provision', meal: { kind: 'retreat', bonus: meals.brothRetreat } },
+  { id: 'heartyRoast', name: 'Hearty roast', emoji: '🍖', description: '+10% max HP for the party.', slot: 'provision', meal: { kind: 'maxHp', multiplier: meals.roastHp } },
+  { id: 'honeyCakes', name: 'Honey cakes', emoji: '🍯', description: '+25% from opportunities.', slot: 'provision', meal: { kind: 'opportunity', multiplier: meals.honeyOpportunity } },
+  { id: 'spicedSkewers', name: 'Spiced skewers', emoji: '🍢', description: '+1 Speed for the party.', slot: 'provision', meal: { kind: 'speed', add: meals.skewersSpeed } },
+  { id: 'mushroomRisotto', name: 'Mushroom risotto', emoji: '🍚', description: '+10% Resistance for the party.', slot: 'provision', meal: { kind: 'resistance', multiplier: meals.risottoResistance } },
+
+  // Utilities: used by the player from the stock, on the map or at home.
+  { id: 'foragersTonic', name: 'Forager’s tonic', emoji: '🍃', description: 'Auto-gather reaches 10 m further for 30 minutes.', slot: 'utility', walk: 'forage' },
+  { id: 'huntersMusk', name: 'Hunter’s musk', emoji: '🦌', description: 'Animals gather around you for 15 minutes.', slot: 'utility', walk: 'musk' },
+  { id: 'prospectorsDraught', name: 'Prospector’s draught', emoji: '🪙', description: 'Ore nodes give 1 more for 30 minutes.', slot: 'utility', walk: 'prospect' },
+  { id: 'trackersEye', name: 'Tracker’s eye', emoji: '👁️', description: 'Patrols and rare ore show from twice as far for 30 minutes.', slot: 'utility', walk: 'track' },
+  { id: 'herbalPoultice', name: 'Herbal poultice', emoji: '🌱', description: 'Heals 25% of max HP at home.', slot: 'utility', homeCare: { kind: 'heal', share: healthRules.poulticeHeal } },
+  { id: 'restorativeTonic', name: 'Restorative tonic', emoji: '💖', description: 'Heals fully at home.', slot: 'utility', homeCare: { kind: 'heal', share: 1 } },
+  { id: 'calmingTea', name: 'Calming tea', emoji: '🫖', description: 'Ends exhaustion at home.', slot: 'utility', homeCare: { kind: 'rest' } },
 
   // Debug trinket: never crafted or dropped.
   testCharm,

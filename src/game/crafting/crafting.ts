@@ -83,7 +83,7 @@ export function craft(save: SaveData, recipe: RecipeDef, forceQuality?: Quality)
     };
   } else {
     const item = itemById[recipe.output.itemId];
-    if (item.slot === 'consumable' || item.slot === 'provision') {
+    if (item.slot === 'consumable' || item.slot === 'provision' || item.slot === 'utility') {
       next = { ...next, consumables: { ...next.consumables, [item.id]: (next.consumables[item.id] ?? 0) + 1 } };
     } else if (item.slot === 'tool') {
       next = { ...next, tools: [...next.tools, item.id] };
