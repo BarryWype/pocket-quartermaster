@@ -36,16 +36,12 @@ function encounterPool(
   ];
 }
 
-const TRAP = { triggerChance: 0.6 };
-
-/** A blocked way: solved by a hero who can, otherwise it tires everyone and may force a detour fight. */
+/** A blocked way: a quiet step now, there for the look of the dungeon. */
 const obstacle = (kind: ObstacleKind, name: string, weight = 2): EncounterDef => ({
   type: 'obstacle',
   weight,
   name,
   kind,
-  hpCostPct: 0.06,
-  detourChance: 0.35,
 });
 
 const locals = (npcId: string, weight = 1): EncounterDef => ({ type: 'locals', weight, npcId });
@@ -80,10 +76,8 @@ const ratCellar: DungeonDef = {
   durationMinutes: 5,
   encounterCount: [4, 5],
   encounters: encounterPool(['giantRat', 'cellarSpider', 'ratSwarm'], {
-    ...TRAP,
     name: 'rusty snare',
     targets: 'one',
-    damagePct: 0.15,
   }),
   boss: bossById.ratKing,
   mainRewardChance: 0.3,
@@ -106,7 +100,7 @@ const goblinWarren: DungeonDef = {
   encounterCount: [5, 6],
   encounters: encounterPool(
     ['goblinRunt', 'goblin', 'goblinSlinger'],
-    { ...TRAP, name: 'spike pit', targets: 'one', damagePct: 0.15 },
+    { name: 'spike pit', targets: 'one' },
     [obstacle('barricade', 'junk barricade', 3), obstacle('rubble', 'caved-in tunnel')],
   ),
   boss: bossById.goblinChief,
@@ -130,10 +124,8 @@ const wolfDen: DungeonDef = {
   durationMinutes: 10,
   encounterCount: [4, 5],
   encounters: encounterPool(['wolfPup', 'greyWolf', 'direWolf'], {
-    ...TRAP,
     name: 'rockslide',
     targets: 'all',
-    damagePct: 0.08,
   }),
   boss: bossById.alphaWolf,
   mainRewardChance: 0.3,
@@ -156,7 +148,7 @@ const trollBridge: DungeonDef = {
   encounterCount: [5, 6],
   encounters: encounterPool(
     ['bogHound', 'highwayBandit', 'riverTroll'],
-    { ...TRAP, name: 'rotten plank', targets: 'one', damagePct: 0.15 },
+    { name: 'rotten plank', targets: 'one' },
     [locals('tollTroll', 2), locals('hermit', 3), locals('pedlar', 2), obstacle('rubble', 'collapsed arch', 1)],
   ),
   boss: bossById.bridgeTroll,
@@ -166,7 +158,7 @@ const trollBridge: DungeonDef = {
   loot: [],
   recipeDrops: [
     { recipeId: 'stoneBow', chance: 0.6 },
-    { recipeId: 'fireResistanceElixir', chance: 0.3 },
+    { recipeId: 'emberWardSalve', chance: 0.3 },
     { recipeId: 'stoneWand', chance: 0.5 },
     ...extraDrops('stone', 'long'),
   ],
@@ -182,7 +174,7 @@ const hauntedMine: DungeonDef = {
   encounterCount: [4, 5],
   encounters: encounterPool(
     ['ghostBat', 'skeletonMiner', 'mineGhost'],
-    { ...TRAP, name: 'collapsing tunnel', targets: 'all', damagePct: 0.1 },
+    { name: 'collapsing tunnel', targets: 'all' },
     [locals('lostMiner')],
   ),
   boss: bossById.mineWraith,
@@ -205,10 +197,8 @@ const cinderHollow: DungeonDef = {
   durationMinutes: 45,
   encounterCount: [5, 6],
   encounters: encounterPool(['fireImp', 'magmaSlug', 'emberHound'], {
-    ...TRAP,
     name: 'lava vent',
     targets: 'all',
-    damagePct: 0.08,
     element: 'fire',
   }),
   boss: bossById.ashWyrm,
@@ -233,7 +223,7 @@ const harpyCliffs: DungeonDef = {
   encounterCount: [4, 5],
   encounters: encounterPool(
     ['rockLizard', 'cliffEagle', 'harpy'],
-    { ...TRAP, name: 'crumbling ledge', targets: 'one', damagePct: 0.15 },
+    { name: 'crumbling ledge', targets: 'one' },
     [obstacle('rubble', 'fallen boulders', 1)],
   ),
   boss: bossById.harpyMatriarch,
@@ -257,7 +247,7 @@ const orcWarcamp: DungeonDef = {
   encounterCount: [5, 6],
   encounters: encounterPool(
     ['orcGrunt', 'orcRaider', 'orcShaman'],
-    { ...TRAP, name: 'bear trap', targets: 'one', damagePct: 0.15 },
+    { name: 'bear trap', targets: 'one' },
     [obstacle('barricade', 'spiked barricade', 3), obstacle('locked', 'chained gate', 1)],
   ),
   boss: bossById.orcWarlord,
@@ -282,7 +272,7 @@ const wyvernPeaks: DungeonDef = {
   encounterCount: [4, 5],
   encounters: encounterPool(
     ['frostWolf', 'mountainTroll', 'wyvern'],
-    { ...TRAP, name: 'avalanche', targets: 'all', damagePct: 0.1 },
+    { name: 'avalanche', targets: 'all' },
     [obstacle('rubble', 'snowed-in pass', 1)],
   ),
   boss: bossById.wyvernQueen,
@@ -306,7 +296,7 @@ const ashenCitadel: DungeonDef = {
   encounterCount: [5, 6],
   encounters: encounterPool(
     ['flameCultist', 'cinderGolem', 'ashKnight'],
-    { ...TRAP, name: 'flame jet', targets: 'all', damagePct: 0.08, element: 'fire' },
+    { name: 'flame jet', targets: 'all', element: 'fire' },
     [obstacle('barricade', 'smouldering barricade', 1), obstacle('locked', 'sealed citadel door', 1)],
   ),
   boss: bossById.ashLord,
@@ -379,7 +369,7 @@ const nightWatch1 = nightQuest(
   '🏮',
   ratCellar,
   ['giantRat', 'cellarSpider'],
-  { ...TRAP, name: 'loose slates', targets: 'one', damagePct: 0.08 },
+  { name: 'loose slates', targets: 'one' },
   'nightProwler',
 );
 const nightWatch2 = nightQuest(
@@ -388,7 +378,7 @@ const nightWatch2 = nightQuest(
   '🌉',
   wolfDen,
   ['wolfPup', 'greyWolf'],
-  { ...TRAP, name: 'washed-out ford', targets: 'one', damagePct: 0.08 },
+  { name: 'washed-out ford', targets: 'one' },
   'roadStalker',
 );
 const nightWatch3 = nightQuest(
@@ -397,7 +387,7 @@ const nightWatch3 = nightQuest(
   '⛏️',
   hauntedMine,
   ['ghostBat', 'skeletonMiner'],
-  { ...TRAP, name: 'creaking beam', targets: 'one', damagePct: 0.08 },
+  { name: 'creaking beam', targets: 'one' },
   'shaftHaunt',
 );
 const nightWatch4 = nightQuest(
@@ -406,7 +396,7 @@ const nightWatch4 = nightQuest(
   '🗼',
   harpyCliffs,
   ['rockLizard', 'cliffEagle'],
-  { ...TRAP, name: 'loose scree', targets: 'one', damagePct: 0.08 },
+  { name: 'loose scree', targets: 'one' },
   'campRaider',
 );
 const nightWatch5 = nightQuest(
@@ -415,7 +405,7 @@ const nightWatch5 = nightQuest(
   '🏰',
   wyvernPeaks,
   ['frostWolf', 'mountainTroll'],
-  { ...TRAP, name: 'toppled masonry', targets: 'one', damagePct: 0.08 },
+  { name: 'toppled masonry', targets: 'one' },
   'ashStalker',
 );
 
@@ -429,8 +419,8 @@ export const dungeons: DungeonDef[] = [
     emoji: '🕷️',
     encounters: encounterPool(
       ['webling', 'burrowSpider', 'broodGuard'],
-      { ...TRAP, name: 'sticky web', targets: 'one', damagePct: 0.12 },
-      [{ type: 'trap', weight: 4, ...TRAP, name: 'web snare', targets: 'all', damagePct: 0.06 }],
+      { name: 'sticky web', targets: 'one' },
+      [{ type: 'trap', weight: 4, name: 'web snare', targets: 'all' }],
     ),
     boss: bossById.broodMother,
   },
@@ -441,7 +431,7 @@ export const dungeons: DungeonDef[] = [
     emoji: '🪦',
     encounters: encounterPool(
       ['restlessBones', 'ghoul', 'ghoul'],
-      { ...TRAP, name: 'open grave', targets: 'one', damagePct: 0.12 },
+      { name: 'open grave', targets: 'one' },
       [locals('hermit')],
     ),
     boss: bossById.graveLord,
@@ -454,7 +444,7 @@ export const dungeons: DungeonDef[] = [
     emoji: '🏚️',
     encounters: encounterPool(
       ['millRat', 'squatter', 'millBrute'],
-      { ...TRAP, name: 'loose millstone', targets: 'one', damagePct: 0.15 },
+      { name: 'loose millstone', targets: 'one' },
       [obstacle('rubble', 'fallen beams', 3), obstacle('rubble', 'grain-choked stairs', 2), locals('pedlar')],
     ),
     boss: bossById.millOgre,
@@ -466,7 +456,7 @@ export const dungeons: DungeonDef[] = [
     emoji: '🏴‍☠️',
     encounters: encounterPool(
       ['cutpurse', 'smuggler', 'coveEnforcer'],
-      { ...TRAP, name: 'tripwire bell', targets: 'one', damagePct: 0.12 },
+      { name: 'tripwire bell', targets: 'one' },
       [locals('pedlar', 4), locals('poachers', 3), obstacle('locked', 'smugglers’ hatch', 1)],
     ),
     boss: bossById.smugglerQueen,
@@ -481,7 +471,7 @@ export const dungeons: DungeonDef[] = [
     encounterCount: [6, 8],
     encounters: encounterPool(
       ['guardDog', 'bandit', 'banditArcher'],
-      { ...TRAP, name: 'tripwire volley', targets: 'all', damagePct: 0.08 },
+      { name: 'tripwire volley', targets: 'all' },
       [obstacle('barricade', 'palisade gate', 1)],
     ),
     boss: bossById.banditCaptain,
@@ -505,7 +495,7 @@ export const dungeons: DungeonDef[] = [
     emoji: '⚱️',
     encounters: encounterPool(
       ['barrowWight', 'barrowRat', 'mouldKnight'],
-      { ...TRAP, name: 'sinking barrow', targets: 'one', damagePct: 0.15 },
+      { name: 'sinking barrow', targets: 'one' },
       [{ type: 'fight', weight: 3, mobs: [{ mobId: 'barrowWight', count: 2 }, { mobId: 'mouldKnight', count: 1 }] }],
     ),
     boss: bossById.barrowKing,
@@ -517,7 +507,7 @@ export const dungeons: DungeonDef[] = [
     emoji: '🐗',
     encounters: encounterPool(
       ['thornPiglet', 'wildBoar', 'briarTusker'],
-      { ...TRAP, name: 'bramble snare', targets: 'one', damagePct: 0.12, element: 'grass' },
+      { name: 'bramble snare', targets: 'one', element: 'grass' },
       [locals('poachers')],
     ),
     boss: bossById.thicketBoar,
@@ -530,7 +520,7 @@ export const dungeons: DungeonDef[] = [
     emoji: '🌊',
     encounters: encounterPool(
       ['fordLeech', 'riverSprite', 'drownedSoldier'],
-      { ...TRAP, name: 'sudden current', targets: 'all', damagePct: 0.08, element: 'water' },
+      { name: 'sudden current', targets: 'all', element: 'water' },
       [obstacle('rubble', 'silted crossing', 2)],
     ),
     boss: bossById.fordHag,
@@ -542,7 +532,7 @@ export const dungeons: DungeonDef[] = [
     emoji: '🗼',
     encounters: encounterPool(
       ['towerCrow', 'deserter', 'towerSergeant'],
-      { ...TRAP, name: 'murder hole', targets: 'one', damagePct: 0.15 },
+      { name: 'murder hole', targets: 'one' },
       [obstacle('barricade', 'barred stairwell', 3), obstacle('locked', 'armoury door', 2)],
     ),
     boss: bossById.turncoatKnight,
@@ -557,7 +547,7 @@ export const dungeons: DungeonDef[] = [
     encounterCount: [6, 8],
     encounters: encounterPool(
       ['ogreBrute', 'rockGolem', 'quarryOgre'],
-      { ...TRAP, name: 'falling boulders', targets: 'all', damagePct: 0.15 },
+      { name: 'falling boulders', targets: 'all' },
       [obstacle('rubble', 'quarry rockfall', 3)],
     ),
     boss: bossById.ogreChieftain,
@@ -568,7 +558,7 @@ export const dungeons: DungeonDef[] = [
     loot: [],
     recipeDrops: [
       { recipeId: 'stonePickaxe', chance: 1 },
-      { recipeId: 'fireResistanceElixir', chance: 0.2 },
+      { recipeId: 'emberWardSalve', chance: 0.2 },
       { recipeId: 'stoneArmour', chance: 0.3 },
     ],
   },
@@ -582,7 +572,7 @@ export const dungeons: DungeonDef[] = [
     emoji: '🍄',
     encounters: encounterPool(
       ['sporeling', 'capCrawler', 'mycelTroll'],
-      { ...TRAP, name: 'spore burst', targets: 'all', damagePct: 0.08, element: 'grass' },
+      { name: 'spore burst', targets: 'all', element: 'grass' },
     ),
     boss: bossById.sporeQueen,
   },
@@ -593,7 +583,7 @@ export const dungeons: DungeonDef[] = [
     emoji: '⚡',
     encounters: encounterPool(
       ['sparkMoth', 'stormHawk', 'boltElemental'],
-      { ...TRAP, name: 'lightning rod', targets: 'one', damagePct: 0.15, element: 'electric' },
+      { name: 'lightning rod', targets: 'one', element: 'electric' },
       [{ type: 'fight', weight: 2, mobs: [{ mobId: 'boltElemental', count: 2 }] }],
     ),
     boss: bossById.stormRoc,
@@ -606,7 +596,7 @@ export const dungeons: DungeonDef[] = [
     emoji: '⛏️',
     encounters: encounterPool(
       ['tunnelBeetle', 'stoneWarden', 'runeGolem'],
-      { ...TRAP, name: 'rune ward', targets: 'all', damagePct: 0.08 },
+      { name: 'rune ward', targets: 'all' },
       [obstacle('rubble', 'collapsed gallery', 3), obstacle('locked', 'dwarven vault door', 2), locals('lostMiner')],
     ),
     boss: bossById.forgeGuardian,
@@ -618,7 +608,7 @@ export const dungeons: DungeonDef[] = [
     emoji: '🧙',
     encounters: encounterPool(
       ['marshToad', 'bogling', 'hexedHunter'],
-      { ...TRAP, name: 'sucking bog', targets: 'one', damagePct: 0.15 },
+      { name: 'sucking bog', targets: 'one' },
       [locals('hermit', 3), locals('poachers', 2)],
     ),
     boss: bossById.marshWitch,
@@ -633,7 +623,7 @@ export const dungeons: DungeonDef[] = [
     encounterCount: [6, 8],
     encounters: encounterPool(
       ['cryptEel', 'drownedDead', 'boneKnight'],
-      { ...TRAP, name: 'poison dart trap', targets: 'one', damagePct: 0.15 },
+      { name: 'poison dart trap', targets: 'one' },
       [obstacle('locked', 'sealed crypt door', 1)],
     ),
     boss: bossById.lichOfTheDeep,
@@ -657,7 +647,7 @@ export const dungeons: DungeonDef[] = [
     emoji: '🌩️',
     encounters: encounterPool(
       ['stormRam', 'thunderbird', 'skyfallGolem'],
-      { ...TRAP, name: 'charged stones', targets: 'all', damagePct: 0.08, element: 'electric' },
+      { name: 'charged stones', targets: 'all', element: 'electric' },
     ),
     boss: bossById.thunderTitan,
   },
@@ -668,7 +658,7 @@ export const dungeons: DungeonDef[] = [
     emoji: '💀',
     encounters: encounterPool(
       ['boneCrawler', 'fallenLegionary', 'deathCaptain'],
-      { ...TRAP, name: 'grasping bones', targets: 'one', damagePct: 0.15 },
+      { name: 'grasping bones', targets: 'one' },
       [locals('hermit')],
     ),
     boss: bossById.boneGeneral,
@@ -681,10 +671,10 @@ export const dungeons: DungeonDef[] = [
     emoji: '⚙️',
     encounters: encounterPool(
       ['brassBeetle', 'clockworkGuard', 'vaultAutomaton'],
-      { ...TRAP, name: 'swinging blade', targets: 'one', damagePct: 0.3 },
+      { name: 'swinging blade', targets: 'one' },
       [
-        { type: 'trap', weight: 4, ...TRAP, name: 'gear crusher', targets: 'all', damagePct: 0.2 },
-        { type: 'trap', weight: 3, ...TRAP, name: 'dart wall', targets: 'one', damagePct: 0.25 },
+        { type: 'trap', weight: 4, name: 'gear crusher', targets: 'all' },
+        { type: 'trap', weight: 3, name: 'dart wall', targets: 'one' },
         obstacle('locked', 'tumbler door', 2),
       ],
     ),
@@ -697,7 +687,7 @@ export const dungeons: DungeonDef[] = [
     emoji: '🧊',
     encounters: encounterPool(
       ['iceSeal', 'frostNymph', 'lakeSerpent'],
-      { ...TRAP, name: 'thin ice', targets: 'one', damagePct: 0.15, element: 'water' },
+      { name: 'thin ice', targets: 'one', element: 'water' },
       [{ type: 'fight', weight: 2, mobs: [{ mobId: 'frostNymph', count: 3 }] }],
     ),
     boss: bossById.iceWyrm,
@@ -712,7 +702,7 @@ export const dungeons: DungeonDef[] = [
     encounterCount: [6, 8],
     encounters: encounterPool(
       ['giantHound', 'stoneSentinel', 'hillGiant'],
-      { ...TRAP, name: 'rolling boulder', targets: 'all', damagePct: 0.1 },
+      { name: 'rolling boulder', targets: 'all' },
       [obstacle('locked', 'giant-sized door', 1), obstacle('rubble', 'toppled pillar', 4)],
     ),
     boss: bossById.giantKing,
@@ -736,7 +726,7 @@ export const dungeons: DungeonDef[] = [
     emoji: '👑',
     encounters: encounterPool(
       ['cryptGuard', 'boneLord', 'deathKnight'],
-      { ...TRAP, name: 'collapsing reliquary', targets: 'all', damagePct: 0.08 },
+      { name: 'collapsing reliquary', targets: 'all' },
       [obstacle('locked', 'royal tomb seal', 1)],
     ),
     boss: bossById.ossuaryKing,
@@ -748,7 +738,7 @@ export const dungeons: DungeonDef[] = [
     emoji: '🌀',
     encounters: encounterPool(
       ['stormEel', 'tempestCaller', 'thunderDrake'],
-      { ...TRAP, name: 'lightning strike', targets: 'one', damagePct: 0.15, element: 'electric' },
+      { name: 'lightning strike', targets: 'one', element: 'electric' },
     ),
     boss: bossById.stormcaller,
   },
@@ -760,7 +750,7 @@ export const dungeons: DungeonDef[] = [
     emoji: '🐙',
     encounters: encounterPool(
       ['deepAngler', 'abyssalPriest', 'krakenSpawn'],
-      { ...TRAP, name: 'crushing pressure', targets: 'all', damagePct: 0.08, element: 'water' },
+      { name: 'crushing pressure', targets: 'all', element: 'water' },
       [{ type: 'fight', weight: 2, mobs: [{ mobId: 'abyssalPriest', count: 2 }] }],
     ),
     boss: bossById.abyssalHorror,
@@ -772,7 +762,7 @@ export const dungeons: DungeonDef[] = [
     emoji: '🗿',
     encounters: encounterPool(
       ['ruinCrawler', 'titanShard', 'colossusArm'],
-      { ...TRAP, name: 'toppling statue', targets: 'all', damagePct: 0.1 },
+      { name: 'toppling statue', targets: 'all' },
       [obstacle('rubble', 'titan’s fallen hand', 3), obstacle('rubble', 'buried causeway', 2), locals('lostMiner')],
     ),
     boss: bossById.titanHeart,
@@ -787,7 +777,7 @@ export const dungeons: DungeonDef[] = [
     encounterCount: [6, 8],
     encounters: encounterPool(
       ['dragonCultist', 'drake', 'fireElemental'],
-      { ...TRAP, name: 'dragonfire vent', targets: 'all', damagePct: 0.1, element: 'fire' },
+      { name: 'dragonfire vent', targets: 'all', element: 'fire' },
       [obstacle('locked', 'hoard vault door', 1)],
     ),
     boss: bossById.elderDragon,

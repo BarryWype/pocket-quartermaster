@@ -3,7 +3,7 @@ import type { GearDef, ItemDef, WeaponType } from '@/game/types';
 import { healthRules } from './health';
 import { provisionRules } from './provisions';
 
-const { meals, kits, charms } = provisionRules;
+const { meals, charms } = provisionRules;
 
 export const MATERIAL_TIERS = [
   { id: 'wood', name: 'Wooden' },
@@ -73,17 +73,31 @@ export const items: ItemDef[] = [
   { id: 'steelWand', name: 'Steel wand', emoji: '🪄', icon: require('../../assets/icons/scaled/wand-steel.png'), slot: 'weapon', weaponType: 'wand', stats: { magic: 32 }, tier: 5 },
   { id: 'steelArmour', name: 'Steel armour', emoji: '🦺', slot: 'armor', stats: { defense: 22, hp: 160 }, tier: 5 },
 
-  // Consumables, in a hero's slot. Potions are drunk below the HP threshold
-  // (and returned if never needed); elixirs protect and charms help for the
-  // whole run.
+  // Consumables, in a hero's slot, all gone after the run: potions are drunk
+  // below the HP threshold, charms help for the whole run, and what never
+  // triggered is broken back down (see threats/salvage.ts).
   { id: 'healingPotion', name: 'Healing potion', emoji: '🧪', slot: 'consumable', heal: healthRules.potionHeal, when: 'lowHp' },
-  { id: 'fireResistanceElixir', name: 'Fire resistance elixir', emoji: '🧯', slot: 'consumable', protectsAgainst: 'fire' },
   { id: 'rabbitsFoot', name: 'Rabbit’s foot', emoji: '🐇', description: '+5% critical hit chance for this hero.', slot: 'consumable', charm: { kind: 'crit', chance: charms.rabbitsFoot } },
   { id: 'luckyTooth', name: 'Lucky tooth', emoji: '🦷', description: '+5% gold for the party (one per party counts).', slot: 'consumable', charm: { kind: 'gold', multiplier: charms.luckyTooth } },
-  { id: 'wardBone', name: 'Ward bone', emoji: '🦴', description: 'This hero ignores the first trap that would hit them.', slot: 'consumable', charm: { kind: 'wardTrap' } },
+
+  // Kits and ward salves: single-use answers to threats, in a hero's slot and
+  // gone after the run, like every consumable.
+  { id: 'roguesRoll', name: 'Rogue’s roll', emoji: '🗝️', description: 'Picks, a probe, wire and a decoy purse.', slot: 'consumable', kit: { threats: ['traps', 'locked', 'thieves'], approach: 'finesse' } },
+  { id: 'huntersPack', name: 'Hunter’s pack', emoji: '🎒', description: 'Sleepweed bait and a snare.', slot: 'consumable', kit: { threats: ['beasts'], keywords: ['calm'] } },
+  { id: 'emberWardSalve', name: 'Ember ward salve', emoji: '🔥', description: 'Rubbed on skin and armour.', slot: 'consumable', protectsAgainst: 'fire', kit: { threats: ['element'] } },
+  { id: 'tideWardSalve', name: 'Tide ward salve', emoji: '💧', description: 'Rubbed on skin and armour.', slot: 'consumable', protectsAgainst: 'water', kit: { threats: ['element'] } },
+  { id: 'stormWardSalve', name: 'Storm ward salve', emoji: '⚡', description: 'Rubbed on skin and armour.', slot: 'consumable', protectsAgainst: 'electric', kit: { threats: ['element'] } },
+  { id: 'stoneWardSalve', name: 'Stone ward salve', emoji: '🪨', description: 'Rubbed on skin and armour.', slot: 'consumable', protectsAgainst: 'stone', kit: { threats: ['element'] } },
+  { id: 'thornWardSalve', name: 'Thorn ward salve', emoji: '🌵', description: 'Rubbed on skin and armour.', slot: 'consumable', protectsAgainst: 'grass', kit: { threats: ['element'] } },
+  { id: 'explorersKit', name: 'Explorer’s kit', emoji: '🧭', description: 'Rope, a pry bar, an air bladder and seabreath tonic.', slot: 'consumable', kit: { threats: ['rubble', 'underwater'], approach: 'threat' } },
+  { id: 'healersSatchel', name: 'Healer’s satchel', emoji: '🩹', description: 'Theriac and bandages.', slot: 'consumable', kit: { threats: ['poison'], keywords: ['antidote'], heal: 0.1 } },
+  { id: 'giftBasket', name: 'Gift basket', emoji: '🎁', description: 'Honey cakes, smoked meat and a carved trinket.', slot: 'consumable', kit: { threats: ['locals'], approach: 'presence' } },
+  { id: 'lantern', name: 'Lantern', emoji: '🏮', description: 'A shuttered tallow lantern and copper bells.', slot: 'consumable', kit: { threats: ['darkness', 'ambush'], keywords: ['light', 'watchful'] } },
+  { id: 'holyRelics', name: 'Holy relics', emoji: '🕯️', description: 'Holy water and warding salt.', slot: 'consumable', kit: { threats: ['desecrated', 'casters'], approach: 'faith' } },
+  { id: 'scholarsSatchel', name: 'Scholar’s satchel', emoji: '📚', description: 'A copper cipher wheel, berry ink, thread and chalk.', slot: 'consumable', kit: { threats: ['puzzle', 'maze'], approach: 'wits' } },
 
   // Provisions, taken by the whole party. Supply is needed for every
-  // expedition; a meal and a kit are optional.
+  // expedition; a meal is optional.
   { id: 'trailMix', name: 'Trail mix', emoji: '🥜', description: '2 supply points.', slot: 'provision', supply: 2 },
   { id: 'jerky', name: 'Jerky', emoji: '🥓', description: '3 supply points.', slot: 'provision', supply: 3 },
   { id: 'huntersStew', name: 'Hunter’s stew', emoji: '🍲', description: 'Heals 15% of max HP before the boss.', slot: 'provision', meal: { kind: 'bossHeal', pct: meals.stewHeal } },
@@ -91,12 +105,6 @@ export const items: ItemDef[] = [
   { id: 'merchantsPie', name: 'Merchant’s pie', emoji: '🥧', description: '+15% gold.', slot: 'provision', meal: { kind: 'gold', multiplier: meals.pieGold } },
   { id: 'quickBites', name: 'Quick bites', emoji: '🥪', description: '−10% expedition time.', slot: 'provision', meal: { kind: 'duration', multiplier: meals.quickBitesDuration } },
   { id: 'comfortBroth', name: 'Comfort broth', emoji: '🍵', description: 'Better rewards after a retreat or defeat.', slot: 'provision', meal: { kind: 'retreat', bonus: meals.brothRetreat } },
-  { id: 'lockpicks', name: 'Lockpicks', emoji: '🗝️', description: 'Opens one locked way.', slot: 'provision', kit: { kind: 'obstacle', obstacle: 'locked' } },
-  { id: 'ropeAndPitons', name: 'Rope and pitons', emoji: '🪢', description: 'Gets past one rubble.', slot: 'provision', kit: { kind: 'obstacle', obstacle: 'rubble' } },
-  { id: 'torches', name: 'Torches', emoji: '🔥', description: 'Burns through one barricade.', slot: 'provision', kit: { kind: 'obstacle', obstacle: 'barricade' } },
-  { id: 'bait', name: 'Bait', emoji: '🪱', description: '50% chance to calm the first beast fight.', slot: 'provision', kit: { kind: 'calmBeasts', chance: kits.baitCalm } },
-  { id: 'gifts', name: 'Gifts', emoji: '🎁', description: 'The first locals react as if charmed.', slot: 'provision', kit: { kind: 'charmLocals' } },
-  { id: 'holyWater', name: 'Holy water', emoji: '💧', description: '+25% damage against undead in the first undead fight.', slot: 'provision', kit: { kind: 'undeadDamage', multiplier: kits.holyWater } },
 
   ...extraWeapons,
 ];

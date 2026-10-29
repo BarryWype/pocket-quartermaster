@@ -1,0 +1,6 @@
+Slot,Contents,Role,Source
+Weapon,12 types,"Damage, combat keywords",Mostly crafted; relics
+Armour,"Plate, mail, leather, robes",Defence,Mostly crafted; relics
+Off-hand,"Shield, quiver, tome, focus, lantern",Completes the weapon; the shield gives Guard,Basic ones crafted; special ones from components or relics
+Trinket,"Rings, amulets, talismans, charms","Small varied effects: +1 approach, elemental resistance, a rare keyword, Luck on legendaries","Loot only, never crafted"
+Consumable,Kit or potion,Single-use,Crafted or looted

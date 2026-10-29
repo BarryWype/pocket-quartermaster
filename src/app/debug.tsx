@@ -11,12 +11,15 @@ import { guildTrackById, guildTracks, type GuildTrackId } from '@/content/guild'
 import { heroClasses } from '@/content/heroes';
 import { traits } from '@/content/traits';
 import { items } from '@/content/items';
-import { dungeonModifiers, modifierById } from '@/content/modifiers';
+import { threatById, restrictionById, opportunityById } from '@/content/lookup';
+import { dungeonThreats, opportunityDefs, restrictionDefs, surges, threatDefs } from '@/content/threats';
 import { notificationCategories, notificationTexts as texts } from '@/content/notifications';
 import { patrolRules, patrolTexts } from '@/content/patrols';
 import { sanctums } from '@/content/sanctums';
 import { ELEMENTS, type Element } from '@/game/elements';
 import { highestUnlockedTier } from '@/game/expeditions/expeditions';
+import { briefingFor, openDungeonIds } from '@/game/dungeons/rotation';
+import { maxThreatLevel } from '@/game/threats/compose';
 import { playbackRoute, type WalkSummary } from '@/game/gathering/autoGather';
 import { offsetPosition } from '@/game/generation/geo';
 import { windowIndex, windowRange } from '@/game/generation/time';
@@ -41,7 +44,7 @@ import { distanceTo } from '@/game/patrols/visibility';
 import { masteryCap, masteryOf } from '@/game/forging/mastery';
 import { guildRank } from '@/game/guild/guild';
 import { currentHp, isExhausted, maxHp } from '@/game/team/health';
-import type { HeroClassId, MainRewardKind, Quality } from '@/game/types';
+import type { ActiveThreat, Briefing, HeroClassId, MainRewardKind, Quality, ThreatId, ThreatLevel } from '@/game/types';
 import { playBack, syncBackground } from '@/hooks/useAutoGather';
 import { deviceLocation } from '@/services/location';
 import { readBackground, readBuffer, stepPatrols, updateBackground, updateBuffer, type StoredBuffer } from '@/services/walkTracking';
@@ -59,6 +62,7 @@ const WINDOWS: (number | null)[] = [null, 1, 5, 15];
 const TIERS = [1, 2, 3, 4, 5];
 const HP_SHARES = [0, 0.25, 0.5, 0.75];
 const MAIN_REWARDS: (MainRewardKind | null)[] = [null, 'goldPouch', 'sigil', 'treasureMap', 'lure'];
+const THREAT_LEVELS: ThreatLevel[] = [1, 2, 3];
 const GEAR_ITEMS = items.filter((item) => item.slot === 'weapon' || item.slot === 'armor');
 const MAX_MASTERY = masteryCap(5);
 const SAMPLE_NOTIFICATIONS: Record<NotificationCategory, { title: string; body: string }> = {
@@ -154,14 +158,19 @@ export default function DebugScreen() {
   const hpShareNow = hpHeroState ? currentHp(game.save, hpHeroState, now) / maxHp(game.save, hpHeroState) : 1;
   const [guildTrack, setGuildTrack] = useState<GuildTrackId>('gold');
   const [rotationSlot, setRotationSlot] = useState<'short' | 'long'>('short');
-  const rotation = currentRotation();
   const slotKey = `${rotationTier}:${rotationSlot}`;
-  const inSlot = rotation.tiers[rotationTier][rotationSlot];
-  const tierModifier = rotation.tiers[rotationTier].modifier;
-  const forceModifier = (modifierId: string | null | 'auto') => {
-    const { [rotationTier]: _, ...others } = debug.forcedModifiers;
-    if (modifierId === 'auto') debug.set({ forcedModifiers: others });
-    else debug.set({ forcedModifiers: { ...others, [rotationTier]: modifierId ? { dungeonId: inSlot, modifierId } : null } });
+  const [threatPick, setThreatPick] = useState<ThreatId>('traps');
+  const [threatLevel, setThreatLevel] = useState<ThreatLevel>(1);
+  const [threatElement, setThreatElement] = useState<Element>('fire');
+
+  /** Today's rotation with the debug overrides applied, as the quests screen sees it. */
+  const rotation = currentRotation(now);
+  const openDungeons = openDungeonIds(rotation).map((id) => dungeons.find((d) => d.id === id)!);
+  const setBriefing = (dungeonId: string, briefing: Briefing) =>
+    debug.set({ forcedBriefings: { ...debug.forcedBriefings, [dungeonId]: briefing } });
+  const clearBriefing = (dungeonId: string) => {
+    const { [dungeonId]: _, ...others } = debug.forcedBriefings;
+    debug.set({ forcedBriefings: others });
   };
 
   /** The mock location if set, else the device's, else a fallback. */
@@ -436,17 +445,97 @@ export default function DebugScreen() {
           debug.set({ forcedSlots: id ? { ...others, [slotKey]: id } : others });
         }}
       />
-      <Text>
-        Tier modifier: {tierModifier ? `${modifierById[tierModifier.modifierId].name} on ${tierModifier.dungeonId}` : 'none'}
-      </Text>
-      <Choice
-        options={['auto', null, ...dungeonModifiers.map((m) => m.id)] as (string | null)[]}
-        value={rotationTier in debug.forcedModifiers ? (debug.forcedModifiers[rotationTier]?.modifierId ?? null) : 'auto'}
-        label={(id) => (id === 'auto' ? 'auto' : id ? `${modifierById[id].emoji} ${modifierById[id].name}` : 'none')}
-        onChange={forceModifier}
-      />
-      <Text style={styles.hint}>A forced modifier goes on the dungeon in the selected slot, whatever its tags.</Text>
       <Button title="Reset first-clear bonuses" onPress={game.resetFirstClears} />
+
+      <Text style={styles.title}>Threats</Text>
+      {openDungeons.map((dungeon) => {
+        const forced = debug.forcedBriefings[dungeon.id] ?? null;
+        const editing = forced ?? briefingFor(rotation, dungeon);
+        const surge = rotation.tiers[dungeon.tier].surge;
+        const weights = (Object.entries(dungeonThreats[dungeon.id]?.weights ?? {}) as [ThreatId, number][]).filter(
+          ([id]) => threatById[id].firstTier <= dungeon.tier,
+        );
+        const setThreats = (threats: ActiveThreat[]) => setBriefing(dungeon.id, { ...editing, threats });
+        return (
+          <View key={dungeon.id} style={styles.group}>
+            <Text>
+              {dungeon.name} (T{dungeon.tier}){forced ? ' · forced' : ''}
+            </Text>
+            <Text style={styles.mono}>
+              Weights:{' '}
+              {weights
+                .map(
+                  ([id, weight]) =>
+                    `${threatById[id].emoji} ${threatById[id].name} ×${weight} (max L${maxThreatLevel(dungeon.tier, threatById[id].firstTier)})`,
+                )
+                .join(' · ') || 'none'}
+            </Text>
+            <Text style={styles.mono}>
+              Roll:{' '}
+              {editing.threats
+                .map((t) => `${threatById[t.id].emoji} ${threatById[t.id].name} L${t.level}${t.surge ? ` (${t.surge})` : ''}`)
+                .join(', ') || 'no threats'}
+              {` · ${editing.restriction ? restrictionById[editing.restriction].name : 'no restriction'}`}
+              {` · ${editing.opportunity ? opportunityById[editing.opportunity].name : 'no opportunity'}`}
+            </Text>
+            <Text style={styles.mono}>
+              Surge:{' '}
+              {surge
+                ? `${surges[surge.threatId]} on ${dungeons.find((d) => d.id === surge.dungeonId)?.name ?? surge.dungeonId}`
+                : 'none'}
+            </Text>
+            {editing.threats.map((threat) => (
+              <View key={threat.id} style={styles.row}>
+                <Text>
+                  {threatById[threat.id].emoji} {threatById[threat.id].name} L{threat.level}
+                  {threat.element ? ` ${elementInfo[threat.element].emoji}` : ''}
+                </Text>
+                <Button title="Remove" onPress={() => setThreats(editing.threats.filter((t) => t.id !== threat.id))} />
+              </View>
+            ))}
+            <Text>Add a threat</Text>
+            <Choice
+              options={threatDefs.map((t) => t.id)}
+              value={threatPick}
+              label={(id) => `${threatById[id].emoji} ${threatById[id].name}`}
+              onChange={setThreatPick}
+            />
+            <Choice options={THREAT_LEVELS} value={threatLevel} label={(level) => `L${level}`} onChange={setThreatLevel} />
+            {threatPick === 'element' && (
+              <Choice
+                options={[...ELEMENTS]}
+                value={threatElement}
+                label={(element) => `${elementInfo[element].emoji} ${element}`}
+                onChange={setThreatElement}
+              />
+            )}
+            <Button
+              title="Add threat"
+              onPress={() =>
+                setThreats([
+                  ...editing.threats.filter((t) => t.id !== threatPick),
+                  { id: threatPick, level: threatLevel, ...(threatPick === 'element' ? { element: threatElement } : {}) },
+                ])
+              }
+            />
+            <Text>Restriction</Text>
+            <Choice
+              options={[null, ...restrictionDefs.map((r) => r.id)]}
+              value={editing.restriction}
+              label={(id) => (id ? restrictionById[id].name : 'none')}
+              onChange={(restriction) => setBriefing(dungeon.id, { ...editing, restriction })}
+            />
+            <Text>Opportunity</Text>
+            <Choice
+              options={[null, ...opportunityDefs.map((o) => o.id)]}
+              value={editing.opportunity}
+              label={(id) => (id ? opportunityById[id].name : 'none')}
+              onChange={(opportunity) => setBriefing(dungeon.id, { ...editing, opportunity })}
+            />
+            {forced && <Button title="Clear override" color="#c0392b" onPress={() => clearBriefing(dungeon.id)} />}
+          </View>
+        );
+      })}
 
       <Text style={styles.title}>Hero HP and provisions</Text>
       <Choice
@@ -471,6 +560,7 @@ export default function DebugScreen() {
         <Button title="+1 h healing" onPress={() => game.fastForwardHealing(60)} />
       </View>
       <Button title="+5 of every food, kit and charm" onPress={() => game.addProvisions(5)} />
+      <Button title="Grant one of each kit" onPress={game.addKits} />
 
       <Text style={styles.title}>Expeditions</Text>
       <View style={styles.row}>
@@ -634,6 +724,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   mono: { fontFamily: 'monospace' },
   hint: { color: '#666' },
+  group: { gap: 4 },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   choice: { borderWidth: 2, borderColor: '#3b2a1a', paddingHorizontal: 10, paddingVertical: 6 },
   choiceActive: { backgroundColor: '#fff6a8' },

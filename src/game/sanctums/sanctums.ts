@@ -147,8 +147,9 @@ export function challengeSanctum(
       party,
       run,
       gold: 0,
-      recipeItemName: null,
+      recipeItemNames: [],
       mainRewards: [],
+      salvaged: [],
       summary: fill(localized({ en: logTemplates, fr: frLogTemplates })[win ? 'sanctumWon' : 'sanctumLost'][0], {
         guardian: tr(dungeon.boss.name),
       }),

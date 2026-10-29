@@ -2,16 +2,17 @@ import { healthRules } from '@/content/health';
 import { patrolRules, type PatrolRules } from '@/content/patrols';
 
 import { estimatePartyOdds } from '../expeditions/odds';
-import { highestUnlockedTier } from '../expeditions/expeditions';
+import { highestUnlockedTier, untriggeredSalvage } from '../expeditions/expeditions';
 import { prepareParty, simulateRun, type PartyMember } from '../expeditions/simulate';
 import { pickaxeTier } from '../gathering/gathering';
 import { guildBonus } from '../guild/guild';
 import { createRng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
+import type { ExpeditionReport } from '../types';
 import type { SaveData } from '../save';
 import { applyRunHp } from '../team/health';
 import { isAway } from '../team/team';
-import { grantPatrolWin, patrolDungeon, patrolRewards, patrolRunRules, settleConsumables, type PatrolRewards } from './fight';
+import { grantPatrolWin, patrolDungeon, patrolRewards, patrolRunOptions, settleConsumables, type PatrolRewards } from './fight';
 import { isPatrolKind, patrolTier, patrolsAround, pruneByWindow, type PatrolKind, type PatrolSpawn } from './generate';
 import { distanceTo, hasFled, inEngageRange, isGone, isVisible } from './visibility';
 
@@ -63,8 +64,8 @@ export type BackgroundResult = {
   hpBefore: number;
   hpAfter: number;
   maxHp: number;
-  /** Heroes whose healing consumable the run used up. */
-  consumed: string[];
+  /** Consumables that never triggered, broken back down (see threats/salvage.ts). */
+  salvaged: ExpeditionReport['salvaged'];
   rewards: PatrolRewards;
 };
 
@@ -160,7 +161,12 @@ function escortTakes(spawn: PatrolSpawn, escort: EscortState | null, hp: number,
   const kind = spawn.kind;
   if (!escort || escort.paused || !isPatrolKind(kind) || !rules.escort.types.includes(kind) || spawn.tierRoll === 'elite') return false;
   const { tier } = patrolTier(spawn, state.highestTier);
-  const odds = estimatePartyOdds([{ ...escort.member, hp }], patrolDungeon(spawn, tier, false, rules), rules.escort.oddsRuns, patrolRunRules);
+  const odds = estimatePartyOdds(
+    [{ ...escort.member, hp }],
+    patrolDungeon(spawn, tier, false, rules),
+    rules.escort.oddsRuns,
+    patrolRunOptions(kind),
+  );
   return odds.success >= rules.escort.minOdds;
 }
 
@@ -211,7 +217,7 @@ export function backgroundStep(
       const { tier } = patrolTier(target, next.highestTier);
       const dungeon = patrolDungeon(target, tier, false, rules);
       const id = `escort|${target.id}|${escort.heroId}|${at}`;
-      const run = simulateRun([{ ...escort.member, hp }], dungeon, id, patrolRunRules);
+      const run = simulateRun([{ ...escort.member, hp }], dungeon, id, patrolRunOptions(target.kind));
       const end = at + dungeon.durationMinutes * MINUTE;
       const hpAfter = run.hp[0]?.hp ?? 0;
       const rewards: PatrolRewards = run.bossDefeated
@@ -229,7 +235,7 @@ export function backgroundStep(
         hpBefore: hp,
         hpAfter,
         maxHp: escort.maxHp,
-        consumed: run.consumed,
+        salvaged: untriggeredSalvage([{ ...escort.member, hp }], run, { barren: false, gold: 0 }),
         rewards,
       });
       if (run.bossDefeated) next.beaten[target.id] = target.endsAt;
@@ -286,7 +292,7 @@ export function applyBackgroundResults(save: SaveData, results: BackgroundResult
     if (!next.heroes.some((h) => h.id === result.heroId)) continue;
     if (result.won) next = grantPatrolWin(next, [result.heroId], result.rewards, result.patrolId, result.windowEndsAt);
     if (isAway(next, result.heroId)) continue;
-    next = settleConsumables(next, [result.heroId], result.consumed);
+    next = settleConsumables(next, [result.heroId], result.salvaged);
     next = applyRunHp(next, [{ heroId: result.heroId, hp: result.hpAfter, maxHp: result.maxHp }], result.at);
   }
   const cutoff = now - rules.appliedResultDays * DAY;

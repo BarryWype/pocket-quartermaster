@@ -8,7 +8,6 @@ type Rules = typeof provisionRules;
 const provisions = items.filter((i): i is ProvisionDef => i.slot === 'provision');
 export const supplyItems = provisions.filter((i) => i.supply);
 export const mealItems = provisions.filter((i) => i.meal);
-export const kitItems = provisions.filter((i) => i.kit);
 export const charmItems = items.filter((i): i is ConsumableDef => i.slot === 'consumable' && !!i.charm);
 
 /** Supply points one hero needs: per started hour of the run, plus their trait's change, never below 0. */

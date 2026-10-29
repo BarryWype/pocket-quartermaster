@@ -1,0 +1,23 @@
+Slot,Type,Damage stat,Hands,Budget spent on extras,Speed,Crit %,Evasion %,Approach,Keywords,Heavy,Concealed,Scaling split,Note
+Weapon,Sword,Power,One,12%,,5,,,Parry,0,0,Power 100%,
+Weapon,Axe,Power,One,1%,-1,,,,Cleave,0,0,Power 100%,
+Weapon,Mace,Power,One,6%,-1,,,,"Blessed, Stagger",0,0,Power 100%,
+Weapon,Dagger,Power,One,46%,2,10,,,Pierce,0,1,Power 100%,
+Weapon,Bow,Power,One,15%,,,,,"Pierce, Reach",0,0,Power 100%,Needs a quiver in the off-hand
+Weapon,Spear,Power,One,10%,,,,,"Reach, Brace",0,0,Power 100%,
+Weapon,Warhammer,Power,Two,-13%,-2,,,,"Pierce, Stagger",1,0,Power 100%,
+Weapon,Wand,Magic,One,17%,1,,,,Channel,0,1,Magic 100%,
+Weapon,Staff,Magic,Two,10%,,,,,Cleave,0,0,Magic 100%,
+Weapon,Lute,Magic,One,18%,,,,1,Inspire,0,1,Magic 100%,+1 Presence
+Weapon,Censer,Magic,One,15%,,,,,"Blessed, Mend",0,0,Magic 100%,
+Weapon,Knuckles,Power,One,17%,1,,,,Stagger,0,1,Power 100%,
+Armour,Plate,,,-18%,-2,,,,Guard,1,0,"Armour 75%, HP 20%, Resistance 5%",
+Armour,Mail,,,5%,,,,,Brace,0,0,"Armour 50%, Resistance 30%, HP 20%",
+Armour,Leather,,,49%,1,,8,,,0,0,"Armour 45%, HP 40%, Resistance 15%",
+Armour,Robes,,,0%,,,,,,0,0,"Magic 20%, Resistance 65%, HP 15%",Part of the budget goes into Magic
+Offhand,Shield,,,1%,-1,,,,Guard,0,0,"Armour 75%, HP 25%",One-handed weapons only
+Offhand,Buckler,,,35%,,,6,,Parry,0,0,Armour 100%,Small Evasion for heroes below the cap
+Offhand,Off-hand blade,Power,,10%,,5,,,,0,1,Power 100%,Damage for heroes already at the Evasion cap
+Offhand,Quiver,Power,,5%,,,,,Reach,0,0,Power 100%,Bow only
+Offhand,Tome,Magic,,10%,,,,1,,0,0,Magic 100%,+1 Wits or +1 Faith (holy book)
+Offhand,Focus,Magic,,5%,,,,,Channel,0,0,"Magic 70%, Resistance 30%",

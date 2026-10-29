@@ -3,32 +3,44 @@ import { mobById, mobTags, npcMobId } from '@/content/enemies';
 import { eventById } from '@/content/events';
 import { localsRules, npcById } from '@/content/npcs';
 import { heroClasses } from '@/content/heroes';
-import { gearName, itemById } from '@/content/lookup';
+import { concealedWeapons, restrictionRules } from '@/content/threats';
+import { travellerRules } from '@/content/patrols';
+import { gearName, itemById, opportunityById } from '@/content/lookup';
 
-import { beats, incomingMultiplier, weaponMultiplier, type Element } from '../elements';
+import { ELEMENTS, beats, incomingMultiplier, shardId, weaponMultiplier, type Element } from '../elements';
 import { createRng } from '../generation/rng';
 import type { SaveData } from '../save';
 import { currentHp } from '../team/health';
 import { heroAbilities, heroStats } from '../team/team';
+import { heroAnswers, type AnswersMember, type HeroAnswers } from '../threats/answers';
+import { threatPenalties, type AppliedPenalty } from '../threats/penalties';
+import { scoreBriefing, scoreOpportunity, type ThreatScore } from '../threats/score';
 import type {
   Ability,
   BossDef,
+  Briefing,
   ConsumableDef,
   DungeonDef,
   EncounterDef,
   ExpeditionOutcome,
+  GearDef,
   HeroClassId,
   Hunger,
-  KitEffect,
+  MaterialStack,
   MealEffect,
   MobDef,
   MobGroup,
   NpcHelp,
+  OpportunityOutcome,
   Tag,
+  WeaponType,
 } from '../types';
 import { hungerEffect } from './provisions';
 
 export type ExpeditionRules = typeof expeditionRules;
+
+/** A briefing with nothing in it: expeditions launched before briefings existed play this. */
+export const EMPTY_BRIEFING: Briefing = { threats: [], restriction: null, opportunity: null };
 
 /** A hero as they set out; stats stay fixed for the whole run. */
 export type PartyMember = {
@@ -38,21 +50,25 @@ export type PartyMember = {
   /** Personal trait id; party-wide trait effects count once per trait. */
   traitId: string;
   weaponName: string | null;
+  /** The weapon's type, or null unarmed; keywords and Sacred ground play on it. */
+  weaponType: WeaponType | null;
   maxHp: number;
   /** HP at the start of the run. */
   hp: number;
   /** Damage per round: attack + magic. */
   damage: number;
+  /** The magic part of `damage`. */
+  magic: number;
   defense: number;
   threat: number;
   /** Elements this hero takes no extra damage from (class resist, protective consumable). */
   resists: Element[];
-  /** Class abilities and trait effects, plus any the gear gives (a fire weapon burns barricades). */
+  /** Class abilities and trait effects. */
   abilities: Ability[];
   /** The infused weapon's element, or the class's innate one. */
   weaponElement?: Element;
   armourElement?: Element;
-  /** Potion, elixir or charm. */
+  /** Potion, kit, ward salve or charm. */
   consumable: ConsumableDef | null;
 };
 
@@ -61,13 +77,8 @@ export type AbilityEffect = {
   heroId: string | null;
   key:
     | 'tagBonus'
-    | 'disarm'
     | 'tip'
     | 'trapReduce'
-    | 'solve'
-    | 'calm'
-    | 'charm'
-    | 'provoke'
     | 'pickpocket'
     | 'rage'
     | 'buff'
@@ -76,17 +87,15 @@ export type AbilityEffect = {
     | 'crit'
     | 'cacheBonus'
     | 'advantage'
-    | 'alert'
-    | 'loud'
-    /** The party's kit triggered (`heroId` null). */
-    | 'kit'
-    /** A ward bone turned a trap away. */
-    | 'ward'
+    /** The enemies struck first in this fight (an exposed fight). */
+    | 'exposed'
+    /** Poison wounds after the fight. */
+    | 'poison'
+    /** An enemy caster wounded this hero before the fight. */
+    | 'casters'
     /** Hunter's stew before the boss (`heroId` null). */
     | 'stew';
   tag?: Tag;
-  /** A kit that was used up without working (bait the beasts ignored). */
-  failed?: boolean;
   /** The ally a `protect` shielded. */
   allyId?: string;
 };
@@ -95,10 +104,10 @@ export type LocalsReaction = 'help' | 'fight' | 'steal' | 'neutral';
 
 /** What happened in one encounter, for rewards and the log. Per-hero maps are keyed by hero id. */
 export type EncounterResult = {
-  kind: 'fight' | 'ambush' | 'boss' | 'trap' | 'spring' | 'cache' | 'mishap' | 'obstacle' | 'locals';
-  /** Trap, event, obstacle, NPC or boss name. */
+  kind: 'fight' | 'boss' | 'trap' | 'locals' | 'quiet' | 'mishap';
+  /** Trap, NPC, event or boss name. */
   name: string;
-  /** The enemies of a fight or ambush. */
+  /** The enemies of a fight. */
   mobs: MobGroup[];
   cleared: boolean;
   rounds: number;
@@ -108,13 +117,10 @@ export type EncounterResult = {
   /** Heroes who drank a potion or ate a ration here. */
   consumed: string[];
   knockedOut: string[];
+  /** A live trap went off (a met threat's trap never catches anyone). */
   trapTriggered: boolean;
   gold: number;
   effects: AbilityEffect[];
-  /** A beast fight skipped by calming them: cleared, but it brings no loot. */
-  calmed: boolean;
-  /** An unsolved obstacle sent the party round a fight. */
-  detour: boolean;
   reaction?: LocalsReaction;
   /** What the locals did to help. */
   help?: NpcHelp;
@@ -122,27 +128,44 @@ export type EncounterResult = {
   noticed?: boolean;
 };
 
+/** The briefing's opportunity at the run's midpoint, and what it gave. */
+export type RunOpportunity = OpportunityOutcome & {
+  /** The hero whose kit answered it, when one did (see salvage). */
+  kitHeroId?: string | null;
+};
+
 export type RunResult = {
   encounters: EncounterResult[];
   encounterCount: number;
   encountersCleared: number;
-  /** Cleared by calming beasts, so left out of the loot share. */
-  encountersCalmed: number;
   bossDefeated: boolean;
   outcome: ExpeditionOutcome;
   bonusGold: number;
   hp: { heroId: string; hp: number; maxHp: number }[];
-  /** Heroes whose healing consumable was used up during the run. */
+  /** Heroes whose healing consumable (potion or kit heal) was used up during the run. */
   consumed: string[];
-  /** The kit triggered and is used up. */
-  kitUsed: boolean;
+  /** Heroes who attacked at least once (a crit charm that never did is salvaged). */
+  attacked: string[];
+  /** Elements whose damage each ward salve holder took (salvage decides on them). */
+  damageElements: Record<string, Element[]>;
+  /** The briefing's threats scored against this party. */
+  threats: ThreatScore[];
+  /** The midpoint opportunity and what it gave, or null when there was none. */
+  opportunity: RunOpportunity | null;
+  /** Share of the dungeon's gold and materials lost to missed threats (0-1). */
+  lostLoot: number;
+  /** Share of expedition time the missed threats add (paid at launch). */
+  delay: number;
 };
 
-/** What the party ate and carried: the same for the odds preview and the real run. */
+/** What the party ate and signed up for: the same for the odds preview and the real run. */
 export type RunProvisions = {
   hunger?: Hunger;
   meal?: MealEffect | null;
-  kit?: KitEffect | null;
+  /** The dungeon's briefing: what the run plays against. Empty when left out. */
+  briefing?: Briefing | null;
+  /** The party opted into the briefing's opportunity cost. */
+  optIn?: boolean;
 };
 
 export type RunOptions = RunProvisions & {
@@ -158,10 +181,21 @@ type HeroState = {
   consumableLeft: boolean;
   /** Damage multiplier from the supply status. */
   fed: number;
-  /** A ward bone not used yet. */
-  ward: boolean;
 };
 type EnemyState = { def: MobDef | BossDef; hp: number };
+
+/** A party member as `heroAnswers` sees them: weapon, kit and class resists. */
+export function answersMemberOf(member: PartyMember): AnswersMember {
+  return {
+    heroId: member.heroId,
+    classId: member.classId,
+    traitId: member.traitId,
+    weaponType: member.weaponType,
+    kit: member.consumable?.kit ? { itemId: member.consumable.id, effect: member.consumable.kit } : null,
+    salveElement: member.consumable?.protectsAgainst ?? null,
+    classResists: heroClasses[member.classId].resists ?? [],
+  };
+}
 
 /**
  * The heroes as they set out, with their HP at `now` (heroes away keep the HP
@@ -184,15 +218,16 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0): PartyM
         classId: hero.classId,
         traitId: hero.trait,
         weaponName: weapon ? gearName(weapon) : null,
+        weaponType: weapon ? ((itemById[weapon.itemId] as GearDef).weaponType ?? null) : null,
         maxHp: stats.hp,
         hp: currentHp(save, hero, now),
         damage: stats.attack + stats.magic,
+        magic: stats.magic,
         defense: stats.defense,
         threat: heroClass.threat,
         resists: [...(heroClass.resists ?? []), ...(consumable?.protectsAgainst ? [consumable.protectsAgainst] : [])],
         abilities: [
           ...heroAbilities(hero),
-          ...(weapon?.element === 'fire' ? [{ kind: 'obstacleSolve', kinds: ['barricade'] } satisfies Ability] : []),
           ...(charm?.kind === 'crit' ? [{ kind: 'critBonus', chance: charm.chance } satisfies Ability] : []),
         ],
         weaponElement: weapon?.element ?? heroClass.element,
@@ -217,8 +252,6 @@ function emptyResult(kind: EncounterResult['kind'], name: string, mobs: MobGroup
     trapTriggered: false,
     gold: 0,
     effects: [],
-    calmed: false,
-    detour: false,
   };
 }
 
@@ -228,14 +261,17 @@ const add = (map: Record<string, number>, key: string, amount: number) => {
 
 /**
  * Runs a party through a dungeon: encounters drawn from the seed, fought round
- * by round, ending at the boss or when every hero is knocked out.
+ * by round, ending at the boss or when every hero is knocked out. The briefing
+ * is scored against the party first: what it missed shapes the run.
  */
 export function simulateRun(
   party: PartyMember[],
   dungeon: DungeonDef,
   seed: string,
-  { rules = expeditionRules, guaranteed = false, hunger = 'fed', meal = null, kit = null }: RunOptions = {},
+  { rules = expeditionRules, guaranteed = false, hunger = 'fed', meal = null, briefing = null, optIn = false }: RunOptions = {},
 ): RunResult {
+  const activeBriefing: Briefing = briefing ?? EMPTY_BRIEFING;
+  const restriction = activeBriefing.restriction;
   const rng = createRng(seed);
   // How the day goes for the whole party: a good day hits harder and gets hurt less.
   // Unlike per-hit variance this doesn't average out, so weaker teams keep a real chance.
@@ -251,19 +287,35 @@ export function simulateRun(
       out: hp <= 0,
       consumableLeft: member.consumable !== null,
       fed: damage,
-      ward: member.consumable?.charm?.kind === 'wardTrap',
     };
   });
-  /** The kit stands in once for a missing ability. */
-  let kitLeft = kit !== null;
-  const spendKit = (result: EncounterResult, failed = false) => {
-    kitLeft = false;
-    result.effects.push({ heroId: null, key: 'kit', ...(failed ? { failed } : {}) });
-  };
   const alive = () => heroes.filter((h) => !h.out);
-  const fights = dungeon.encounters.flatMap((e) => (e.type === 'fight' ? [e] : []));
-  /** A local's tip: the next trap is skipped. */
-  let tipped = false;
+
+  // The briefing against this party: what was met, and what it costs.
+  const answers: HeroAnswers[] = party.map((member) => heroAnswers(answersMemberOf(member), restriction));
+  const scores = scoreBriefing(activeBriefing, answers);
+  const penalties: AppliedPenalty[] = scores.threats.flatMap((score) => threatPenalties(score));
+  const ofKind = <K extends AppliedPenalty['kind']>(kind: K) =>
+    penalties.filter((p): p is Extract<AppliedPenalty, { kind: K }> => p.kind === kind);
+  const weakened = ofKind('weakened').reduce((m, p) => m * (1 - p.pct), 1);
+  const weakenedAgainst = ofKind('weakenedAgainst').reduce((m, p) => m * (1 - p.pct), 1);
+  const beastDamage = ofKind('enemyDamage').reduce((m, p) => m * (1 + p.pct), 1);
+  const undeadHp = ofKind('enemyHp').reduce((m, p) => m * (1 + p.pct), 1);
+  const bruteDamage = ofKind('bruteDamage').reduce((m, p) => m * (1 + p.pct), 1);
+  const extraEnemies = ofKind('extraEnemies');
+  const exposedPenalties = ofKind('exposed');
+  const poisonWounds = ofKind('fightWounds').filter((p) => p.targets === 'all');
+  const casterWounds = ofKind('fightWounds').filter((p) => p.targets === 'one');
+  const trapWounds = ofKind('trapWounds')[0]?.pct ?? 0;
+  const extraFight = ofKind('extraFight')[0]?.chance ?? 0;
+  const elementThreat = activeBriefing.threats.find((t) => t.id === 'element' && t.element) ?? null;
+  const elementalDamage = ofKind('elementalDamage')[0]?.multiplier ?? 1;
+  const magicFactor = restriction === 'antiMagic' ? restrictionRules.antiMagic : 1;
+  const partyHealFactor = restriction === 'antiMagic' ? restrictionRules.antiMagic : 1;
+  const healing =
+    ofKind('healingHalved').reduce((m, p) => m * p.multiplier, 1) * (restriction === 'noHealing' ? restrictionRules.noHealing : 1);
+  const lostLoot = 1 - ofKind('lostLoot').reduce((m, p) => m * (1 - p.pct), 1);
+  const delay = ofKind('delay').reduce((m, p) => m * (1 + p.pct), 1) - 1;
 
   /** The first conscious hero with an ability of this kind that passes `test`. */
   const withAbility = <K extends Ability['kind']>(kind: K, test: (ability: Extract<Ability, { kind: K }>) => boolean = () => true) => {
@@ -278,24 +330,32 @@ export function simulateRun(
   /** A hero's own ability of this kind (not the party's). */
   const own = <K extends Ability['kind']>(hero: HeroState, kind: K) =>
     hero.member.abilities.find((a): a is Extract<Ability, { kind: K }> => a.kind === kind);
-  const enemyElement = (def: MobDef | BossDef) => dungeon.enemyElement ?? def.element;
+  const enemyElement = (def: MobDef | BossDef): Element | undefined => elementThreat?.element ?? def.element;
   const enemyTags = (def: MobDef | BossDef): Tag[] => {
     const element = enemyElement(def);
     return element ? [...def.tags, element] : mobTags(def);
   };
 
-  /** ±variance, sometimes a crit. */
+  /** ±variance, sometimes a crit; cursed luck means there are no crits. */
   const roll = (value: number, critBonus = 0, onCrit?: () => void) => {
     const varied = value * (1 + (rng.next() * 2 - 1) * rules.damageVariance);
-    if (!rng.chance(rules.critChance + critBonus)) return varied;
+    if (restriction === 'cursedLuck' || !rng.chance(rules.critChance + critBonus)) return varied;
     onCrit?.();
     return varied * rules.critMultiplier;
   };
   const elementFactor = (hero: HeroState, attack?: Element) =>
     incomingMultiplier(attack, { armour: hero.member.armourElement, resists: hero.member.resists });
 
+  /** Elements whose damage a ward salve holder has taken, for salvage. */
+  const damageElements: Record<string, Element[]> = {};
+  const tookDamage = (hero: HeroState, element: Element | undefined) => {
+    const salve = hero.member.consumable?.protectsAgainst;
+    if (!element || salve !== element) return;
+    damageElements[hero.member.heroId] = [...(damageElements[hero.member.heroId] ?? []), element];
+  };
+
   const heal = (hero: HeroState, share: number, result: EncounterResult) => {
-    const amount = Math.min(hero.member.maxHp - hero.hp, share * hero.member.maxHp);
+    const amount = Math.min(hero.member.maxHp - hero.hp, share * hero.member.maxHp * healing);
     hero.hp += amount;
     add(result.healed, hero.member.heroId, amount);
   };
@@ -316,28 +376,37 @@ export function simulateRun(
     }
     const potion = hero.member.consumable;
     const threshold = rules.potionThreshold + (own(hero, 'potionThreshold')?.add ?? 0);
-    if (hero.consumableLeft && potion?.when === 'lowHp' && hero.hp < threshold * hero.member.maxHp) {
+    const healShare = potion?.when === 'lowHp' ? potion.heal : potion?.kit?.heal;
+    if (hero.consumableLeft && healShare !== undefined && hero.hp < threshold * hero.member.maxHp) {
       hero.consumableLeft = false;
-      heal(hero, potion.heal ?? 0, result);
+      heal(hero, healShare, result);
       result.consumed.push(hero.member.heroId);
     }
   };
 
-  const fight = (enemyDefs: (MobDef | BossDef)[], result: EncounterResult, enemiesFirst: boolean) => {
-    const enemies: EnemyState[] = enemyDefs.map((def) => ({ def, hp: def.hp }));
-    // Holy water: the first undead fight, unless a hero already hits undead harder.
-    let holy = 1;
-    if (
-      kitLeft &&
-      kit?.kind === 'undeadDamage' &&
-      enemyDefs.some((def) => enemyTags(def).includes('undead')) &&
-      !withAbility('damageVsTag', (a) => a.tag === 'undead')
-    ) {
-      holy = kit.multiplier;
-      spendKit(result);
-    }
+  /** The Forgotten shrine's multiplier, set at the midpoint. */
+  let shrine = 1;
+  /** Heroes who attacked at least once. */
+  const attacked = new Set<string>();
+
+  const fight = (enemyDefs: (MobDef | BossDef)[], result: EncounterResult, enemiesFirst: boolean, isBoss = false) => {
+    // Swarm: every big fight gets copies of its weakest mob.
+    const weakest = [...enemyDefs].sort((a, b) => a.hp - b.hp)[0];
+    const copies =
+      enemyDefs.length >= 3
+        ? extraEnemies.flatMap((penalty) => {
+            const whole = Math.floor(penalty.count);
+            const extra = penalty.count > whole && rng.chance(penalty.count - whole) ? 1 : 0;
+            return Array< MobDef | BossDef >(whole + extra).fill(weakest);
+          })
+        : [];
+    const enemies: EnemyState[] = [...enemyDefs, ...copies].map((def) => ({
+      def,
+      // The dead walk here: undead are harder to put down.
+      hp: def.hp * (enemyTags(def).includes('undead') ? undeadHp : 1),
+    }));
     /** Logs an effect once per encounter and hero. */
-    const note = (heroId: string, key: AbilityEffect['key'], extra: Partial<AbilityEffect> = {}) => {
+    const note = (heroId: string | null, key: AbilityEffect['key'], extra: Partial<AbilityEffect> = {}) => {
       if (!result.effects.some((e) => e.key === key && e.heroId === heroId)) result.effects.push({ heroId, key, ...extra });
     };
     const heroesAttack = () => {
@@ -352,11 +421,15 @@ export function simulateRun(
         if (!target) return;
         const id = hero.member.heroId;
         const tags = enemyTags(target.def);
-        let bonus = (buffer?.buff?.multiplier ?? 1) * (tags.includes('undead') ? holy : 1);
+        let bonus = (buffer?.buff?.multiplier ?? 1) * shrine * weakened * weakenedAgainst;
         for (const ability of hero.member.abilities) {
           if (ability.kind !== 'damageVsTag' || !tags.includes(ability.tag)) continue;
           bonus *= ability.multiplier;
           note(id, 'tagBonus', { tag: ability.tag });
+        }
+        // Sacred ground dulls every weapon it can see.
+        if (restriction === 'sacredGround' && hero.member.weaponType && !concealedWeapons.includes(hero.member.weaponType)) {
+          bonus *= restrictionRules.sacredGround;
         }
         const rage = own(hero, 'rage');
         if (rage && hero.hp < rage.belowPct * hero.member.maxHp) {
@@ -367,14 +440,18 @@ export function simulateRun(
         const advantage = own(hero, 'elementalAdvantage');
         let elemental = weaponMultiplier(hero.member.weaponElement, targetElement);
         if (advantage && hero.member.weaponElement && targetElement && beats(hero.member.weaponElement, targetElement)) {
-          elemental = advantage.multiplier;
+          // Anti-magic cuts the bonus above 1 in half.
+          elemental = restriction === 'antiMagic' ? 1 + (advantage.multiplier - 1) * restrictionRules.antiMagic : advantage.multiplier;
           note(id, 'advantage');
         }
         const critBonus = hero.member.abilities.reduce((sum, a) => sum + (a.kind === 'critBonus' ? a.chance : 0), 0);
-        const hit = roll(hero.member.damage, critBonus, critBonus > 0 ? () => note(id, 'crit') : undefined);
+        // Anti-magic halves the magic part of every hero's damage.
+        const base = hero.member.damage - hero.member.magic + hero.member.magic * magicFactor;
+        const hit = roll(base, critBonus, critBonus > 0 ? () => note(id, 'crit') : undefined);
         const damage = hit * fortune * bonus * elemental * hero.fed;
         target.hp -= damage;
         add(result.dealt, id, damage);
+        attacked.add(id);
       }
     };
     /** A protector takes a share of the hits aimed at the most hurt ally. */
@@ -393,16 +470,27 @@ export function simulateRun(
     };
     const enemiesAttack = () => {
       for (const enemy of enemies.filter((e) => e.hp > 0)) {
-        const boss = 'effect' in enemy.def ? enemy.def : null;
+        // The boss encounter takes the brute's extra damage, effect or not.
+        const boss: BossDef | null = isBoss || 'effect' in enemy.def ? (enemy.def as BossDef) : null;
         const enraged = boss?.effect === 'enrage' && enemy.hp < enemy.def.hp / 2;
-        const base = enemy.def.damage * (enraged ? rules.enrageMultiplier : 1);
+        const beast = enemyTags(enemy.def).includes('beast');
+        const base =
+          enemy.def.damage *
+          (enraged ? rules.enrageMultiplier : 1) *
+          (boss ? bruteDamage : 1) *
+          (beast ? beastDamage : 1);
         const targets =
           boss?.effect === 'sweep' ? alive() : alive().length ? [rng.weighted(alive(), (h) => h.member.threat)] : [];
         for (const hero of targets) {
-          const incoming =
-            roll(boss?.effect === 'sweep' ? base * rules.sweepShare : base) * elementFactor(hero, enemyElement(enemy.def));
+          const element = enemyElement(enemy.def);
+          let incoming = roll(boss?.effect === 'sweep' ? base * rules.sweepShare : base) * elementFactor(hero, element);
+          // The Element threat bites heroes without Resist.
+          if (element !== undefined && element === elementThreat?.element && !hero.member.resists.includes(element)) {
+            incoming *= elementalDamage;
+          }
           const taken = (incoming * 100) / (100 + rules.defenseFactor * hero.member.defense) / fortune;
           hurt(hero, shielded(hero, taken), result);
+          tookDamage(hero, element);
         }
       }
     };
@@ -410,7 +498,7 @@ export function simulateRun(
     const maxRounds = guaranteed ? rules.maxRounds * 10 : rules.maxRounds;
     for (let round = 1; round <= maxRounds; round++) {
       result.rounds = round;
-      // An ambush gives the enemies the first strike; after that it plays like any fight.
+      // An exposed fight gives the enemies the first strike; after that it plays like any fight.
       const ambushed = enemiesFirst && round === 1;
       if (ambushed) enemiesAttack();
       if (alive().length === 0) return;
@@ -424,158 +512,205 @@ export function simulateRun(
     }
   };
 
+  /** A fight with the wounds the briefing's missed threats inflict around it. */
+  const runFight = (enemyDefs: (MobDef | BossDef)[], result: EncounterResult, enemiesFirst: boolean, isBoss = false) => {
+    if (enemiesFirst) result.effects.push({ heroId: null, key: 'exposed' });
+    // Enemy casters wound one hero before every fight.
+    for (const penalty of casterWounds) {
+      const victims = alive();
+      if (victims.length === 0) break;
+      const victim = rng.weighted(victims, () => 1);
+      result.effects.push({ heroId: victim.member.heroId, key: 'casters' });
+      hurt(victim, penalty.pct * victim.member.maxHp, result);
+    }
+    fight(enemyDefs, result, enemiesFirst, isBoss);
+    // Poison wears at everyone after every fight.
+    for (const penalty of poisonWounds) {
+      for (const hero of alive()) hurt(hero, penalty.pct * hero.member.maxHp, result);
+      result.effects.push({ heroId: null, key: 'poison' });
+    }
+  };
+
+  /** Whether the fight at `index` (bosses included) is exposed by a missed threat. */
+  let fightsSeen = 0;
+  const exposedAt = (index: number) =>
+    exposedPenalties.some((penalty) => {
+      if (penalty.fights === 'all') return penalty.everyOther ? index % 2 === 0 : true;
+      const whole = Math.floor(penalty.fights);
+      return index < whole || (penalty.fights > whole && index === whole && rng.chance(penalty.fights - whole));
+    });
+
   const expand = (groups: MobGroup[]) => groups.flatMap(({ mobId, count }) => Array(count).fill(mobById[mobId]));
+
+  /** A quiet step: cleared, nothing happens, no log line. */
+  const quietResult = (name: string): EncounterResult => {
+    const result = emptyResult('quiet', name);
+    result.cleared = true;
+    return result;
+  };
+
+  /** A local's tip: the next trap is skipped. */
+  let tipped = false;
+
+  /** The midpoint opportunity: what the party took, and what it gave. */
+  const resolveOpportunity = (at: EncounterResult): RunOpportunity | null => {
+    const id = activeBriefing.opportunity;
+    if (!id || alive().length === 0) return null;
+    const def = opportunityById[id];
+    const scored = scoreOpportunity(def, answers, optIn);
+    const taken: RunOpportunity = { id, answered: scored.answered };
+    if (scored.kitHeroId) taken.kitHeroId = scored.kitHeroId;
+    if (!scored.answered) {
+      return taken;
+    }
+    const { reward } = def;
+    switch (reward.kind) {
+      case 'heal':
+        alive().forEach((hero) => heal(hero, reward.pct, at));
+        break;
+      case 'goldShare': {
+        const finder = withAbility('cacheBonus');
+        taken.gold = Math.round(reward.share * dungeon.gold[1] * (finder?.ability.multiplier ?? 1));
+        break;
+      }
+      case 'ore':
+        taken.materials = [
+          { materialId: reward.materials[Math.min(reward.materials.length, dungeon.tier) - 1], amount: reward.base + dungeon.tier },
+        ];
+        break;
+      case 'goldMultiplier':
+        taken.goldMultiplier = reward.multiplier;
+        break;
+      case 'prisoners':
+        taken.gold = Math.round(reward.share * dungeon.gold[1]);
+        taken.recruit = rng.chance(reward.recruitChance);
+        break;
+      case 'pilgrimReward':
+        taken.pilgrim = rng.weighted([...travellerRules.pilgrimRewards], (entry) => entry.weight).kind;
+        break;
+      case 'partyDamage':
+        shrine = reward.multiplier;
+        taken.damageMultiplier = reward.multiplier;
+        break;
+      case 'xp':
+        taken.xpMultiplier = reward.multiplier;
+        taken.recipe = rng.chance(reward.recipeChance);
+        break;
+      case 'trophy': {
+        const materials: MaterialStack[] = [
+          { materialId: 'hide', amount: rng.int(reward.hide[0], reward.hide[1]) },
+          { materialId: 'bone', amount: reward.bone },
+        ];
+        if (rng.chance(reward.shardChance)) {
+          const element = ELEMENTS[rng.int(0, ELEMENTS.length - 1)];
+          materials.push({ materialId: shardId(element), amount: 1 });
+        }
+        taken.materials = materials;
+        break;
+      }
+    }
+    return taken;
+  };
 
   const runEncounter = (encounter: EncounterDef): EncounterResult => {
     if (encounter.type === 'fight') {
       const result = emptyResult('fight', '', encounter.mobs);
-      const beasts = expand(encounter.mobs).every((mob) => enemyTags(mob).includes('beast'));
-      const calmer = beasts ? withAbility('calmBeasts') : null;
-      if (calmer && rng.chance(calmer.ability.chance)) {
-        result.effects.push({ heroId: calmer.hero.member.heroId, key: 'calm' });
-        result.calmed = true;
-        result.cleared = true;
-        return result;
-      }
-      // Bait: the first beast fight a calming hero didn't take.
-      if (!calmer && beasts && kitLeft && kit?.kind === 'calmBeasts') {
-        const calmed = rng.chance(kit.chance);
-        spendKit(result, !calmed);
-        if (calmed) {
-          result.calmed = true;
-          result.cleared = true;
-          return result;
-        }
-      }
-      fight(expand(encounter.mobs), result, false);
+      runFight(expand(encounter.mobs), result, exposedAt(fightsSeen));
+      fightsSeen++;
       return result;
     }
     if (encounter.type === 'trap') {
+      // A trap is live only when the briefing has the traps threat; otherwise it is a quiet step.
+      if (!activeBriefing.threats.some((t) => t.id === 'traps')) return quietResult(encounter.name);
       const result = emptyResult('trap', encounter.name);
       result.cleared = true;
+      // A local's tip: the next trap is skipped.
       if (tipped) {
         tipped = false;
         result.effects.push({ heroId: null, key: 'tip' });
         return result;
       }
-      const disarmer = withAbility('trapDisarm');
-      if (disarmer && rng.chance(disarmer.ability.chance)) {
-        result.effects.push({ heroId: disarmer.hero.member.heroId, key: 'disarm' });
-        return result;
-      }
-      // Clumsy heroes set traps off more often (once per party, whoever it is).
-      const clumsy = withAbility('trapTrigger');
-      result.trapTriggered = rng.chance(Math.min(1, encounter.triggerChance * (clumsy?.ability.multiplier ?? 1)));
-      if (result.trapTriggered) {
+      // A met threat's trap never catches anyone; the worse it was missed, the harder it bites.
+      result.trapTriggered = trapWounds > 0;
+      if (trapWounds > 0) {
         const reducer = withAbility('trapReduce');
         if (reducer) result.effects.push({ heroId: reducer.hero.member.heroId, key: 'trapReduce' });
         const reduce = reducer?.ability.multiplier ?? 1;
         const caught = encounter.targets === 'all' ? alive() : [rng.weighted(alive(), () => 1)];
         for (const hero of caught) {
-          if (hero.ward) {
-            hero.ward = false;
-            result.effects.push({ heroId: hero.member.heroId, key: 'ward' });
-            continue;
-          }
-          hurt(hero, encounter.damagePct * hero.member.maxHp * reduce * elementFactor(hero, encounter.element), result);
+          const raw = trapWounds * hero.member.maxHp * reduce * elementFactor(hero, encounter.element);
+          hurt(hero, raw, result);
+          tookDamage(hero, encounter.element);
         }
       }
       result.cleared = alive().length > 0;
       return result;
     }
-    if (encounter.type === 'obstacle') {
-      const result = emptyResult('obstacle', encounter.name);
-      const solver = withAbility('obstacleSolve', (a) => a.kinds.includes(encounter.kind));
-      if (solver) {
-        result.effects.push({ heroId: solver.hero.member.heroId, key: 'solve' });
-        result.cleared = true;
-        return result;
-      }
-      if (kitLeft && kit?.kind === 'obstacle' && kit.obstacle === encounter.kind) {
-        spendKit(result);
-        result.cleared = true;
-        return result;
-      }
-      for (const hero of alive()) hurt(hero, encounter.hpCostPct * hero.member.maxHp, result);
-      if (alive().length > 0 && fights.length > 0 && rng.chance(encounter.detourChance)) {
-        const { mobs } = rng.weighted(fights, (f) => f.weight);
-        result.detour = true;
-        result.mobs = mobs;
-        fight(expand(mobs), result, false);
-        return result;
-      }
-      result.cleared = alive().length > 0;
-      return result;
-    }
     if (encounter.type === 'locals') {
+      // Locals are live only when the briefing has the locals threat.
+      const score = scores.threats.find((t) => t.threat.id === 'locals');
+      if (!score) return quietResult(npcById[encounter.npcId].name);
       const npc = npcById[encounter.npcId];
       const result = emptyResult('locals', npc.name);
       const hostile = [{ mobId: npcMobId(npc.id, dungeon.tier), count: npc.hostile.count }];
-      const reacts = (key: 'charm' | 'provoke' | 'pickpocket') => withAbility('localsReaction', (a) => a.key === key);
-      const charmer = reacts('charm');
-      // Gifts win over the first locals nobody charms.
-      const gifts = !charmer && kitLeft && kit?.kind === 'charmLocals';
-      if (gifts) spendKit(result);
-      const provoker = charmer || gifts ? null : reacts('provoke');
-      const thief = charmer || gifts || provoker ? null : reacts('pickpocket');
-      const loud = withAbility('hostileLocals');
-      const by = charmer ?? provoker ?? thief;
-      if (by) result.effects.push({ heroId: by.hero.member.heroId, key: by.ability.key });
+      const thief = withAbility('pickpocket');
       result.cleared = true;
-      if (charmer || gifts) {
+      if (thief && (score.intimidated || score.state !== 'met')) {
+        result.effects.push({ heroId: thief.hero.member.heroId, key: 'pickpocket' });
+      }
+      const fightThem = () => {
+        result.reaction = 'fight';
+        result.mobs = hostile;
+        result.cleared = false;
+        runFight(expand(hostile), result, false);
+      };
+      if (score.state === 'met' && !score.intimidated) {
         result.reaction = 'help';
         result.help = npc.help;
         const { help } = npc;
         if (help.kind === 'heal') alive().forEach((hero) => heal(hero, help.pct, result));
         if (help.kind === 'gold') result.gold = Math.round(help.share * dungeon.gold[1]);
         if (help.kind === 'tip') tipped = true;
-      } else if (provoker) {
-        result.reaction = 'fight';
-        result.mobs = hostile;
-        fight(expand(hostile), result, false);
-      } else if (thief) {
+      } else if (thief && (score.intimidated || score.state !== 'met')) {
+        // Intimidated locals keep their distance; unfriendly ones lose their purse first.
         result.reaction = 'steal';
         result.gold = Math.round(localsRules.pickpocketGoldShare * dungeon.gold[1]);
-        if (rng.chance(localsRules.noticeChance + (loud?.ability.noticeBonus ?? 0))) {
+        if (rng.chance(localsRules.noticeChance)) {
           result.noticed = true;
           result.mobs = hostile;
           result.cleared = false;
-          fight(expand(hostile), result, false);
+          runFight(expand(hostile), result, false);
         }
-      } else if (loud && rng.chance(loud.ability.chance)) {
-        // A loud hero turns indifferent locals hostile.
-        result.reaction = 'fight';
-        result.effects.push({ heroId: loud.hero.member.heroId, key: 'loud' });
-        result.mobs = hostile;
-        fight(expand(hostile), result, false);
+      } else if (!score.intimidated && score.state !== 'met' && rng.chance(extraFight)) {
+        fightThem();
       } else {
         result.reaction = 'neutral';
       }
       return result;
     }
-    const event = eventById[encounter.eventId];
-    if (event.kind === 'ambush') {
-      const { mobs } = rng.weighted(fights, (f) => f.weight);
-      const result = emptyResult('ambush', event.name, mobs);
-      const alert = withAbility('ambushAlert');
-      if (alert) result.effects.push({ heroId: alert.hero.member.heroId, key: 'alert' });
-      fight(expand(mobs), result, !alert);
-      return result;
-    }
-    const result = emptyResult(event.kind, event.name);
-    if (event.kind === 'spring') alive().forEach((hero) => heal(hero, event.healPct, result));
-    if (event.kind === 'cache') {
-      const finder = withAbility('cacheBonus');
-      if (finder) result.effects.push({ heroId: finder.hero.member.heroId, key: 'cacheBonus' });
-      result.gold = Math.round(event.goldShare * dungeon.gold[1] * (finder?.ability.multiplier ?? 1));
-    }
-    result.cleared = true;
-    return result;
+    // Every other non-fight encounter is a quiet step.
+    return quietResult(encounter.type === 'obstacle' ? encounter.name : eventById[encounter.eventId].name);
   };
 
   const encounterCount = rng.int(dungeon.encounterCount[0], dungeon.encounterCount[1]);
   // A small chance of bad luck no stats can prevent, so no run is ever certain (except the tutorial's).
   const mishapAt = !guaranteed && rng.chance(rules.mishapChance) ? rng.int(0, encounterCount - 1) : -1;
+  // The steps before the boss, drawn up front so a drawn threat can be guaranteed its encounter.
+  const steps: EncounterDef[] = Array.from({ length: encounterCount - 1 }, () => rng.weighted(dungeon.encounters, (e) => e.weight));
+  const drawn = (type: EncounterDef['type']) => steps.some((e) => e.type === type);
+  // A drawn threat that never came up takes the last free step before the boss.
+  let lastFree = steps.length - 1;
+  const guarantee = (threatId: 'traps' | 'locals', type: 'trap' | 'locals') => {
+    if (!activeBriefing.threats.some((t) => t.id === threatId) || drawn(type)) return;
+    const entry = dungeon.encounters.find((e) => e.type === type);
+    if (entry && lastFree >= 0) steps[lastFree--] = entry;
+  };
+  guarantee('traps', 'trap');
+  guarantee('locals', 'locals');
+  const midpoint = Math.floor((encounterCount - 1) / 2);
+  /** The midpoint opportunity's outcome, once the party reaches it. */
+  let opportunity: RunOpportunity | null = null;
+
   const encounters: EncounterResult[] = [];
   for (let i = 0; i < encounterCount && alive().length > 0; i++) {
     if (i === mishapAt) {
@@ -583,13 +718,14 @@ export function simulateRun(
       break;
     }
     if (i < encounterCount - 1) {
-      const result = runEncounter(rng.weighted(dungeon.encounters, (e) => e.weight));
+      const result = runEncounter(steps[i]);
       encounters.push(result);
       if (!result.cleared) break;
+      if (i === midpoint && i < encounterCount - 1) opportunity = resolveOpportunity(result);
       // A healer tends the party between encounters.
       const healer = withAbility('partyHeal');
       if (healer && alive().some((h) => h.hp < h.member.maxHp)) {
-        alive().forEach((hero) => heal(hero, healer.ability.pct, result));
+        alive().forEach((hero) => heal(hero, healer.ability.pct * partyHealFactor, result));
         result.effects.push({ heroId: healer.hero.member.heroId, key: 'partyHeal' });
       }
       continue;
@@ -599,7 +735,8 @@ export function simulateRun(
       for (const hero of alive()) heal(hero, meal.pct * (own(hero, 'stewBoost')?.multiplier ?? 1), result);
       result.effects.push({ heroId: null, key: 'stew' });
     }
-    fight([dungeon.boss], result, false);
+    runFight([dungeon.boss], result, exposedAt(fightsSeen), true);
+    fightsSeen++;
     encounters.push(result);
   }
 
@@ -618,13 +755,16 @@ export function simulateRun(
     encounters,
     encounterCount,
     encountersCleared,
-    encountersCalmed: encounters.filter((e) => e.calmed).length,
     bossDefeated,
     outcome,
-    bonusGold: encounters.reduce((sum, e) => sum + e.gold, 0),
+    bonusGold: encounters.reduce((sum, e) => sum + e.gold, 0) + (opportunity?.gold ?? 0),
     hp: heroes.map((h) => ({ heroId: h.member.heroId, hp: Math.round(h.hp), maxHp: h.member.maxHp })),
     consumed: encounters.flatMap((e) => e.consumed),
-    kitUsed: kit !== null && !kitLeft,
+    attacked: [...attacked],
+    damageElements,
+    threats: scores.threats,
+    opportunity,
+    lostLoot,
+    delay,
   };
 }
-

@@ -1,7 +1,7 @@
 import type { SaveData } from '../save';
-import type { DungeonDef } from '../types';
+import type { Briefing, DungeonDef } from '../types';
 import { launchPlan, runProvisions, type Loadout } from './expeditions';
-import { prepareParty, simulateRun, type PartyMember, type RunOptions } from './simulate';
+import { EMPTY_BRIEFING, prepareParty, simulateRun, type PartyMember, type RunOptions } from './simulate';
 
 export type Odds = {
   /** Share of runs that beat the boss (0-1). */
@@ -27,6 +27,8 @@ export type OddsOptions = {
   loadout?: Loadout;
   /** Every hero at full HP, for comparison. */
   fullHp?: boolean;
+  /** The dungeon's briefing; left out, the odds are for no threats at all. */
+  briefing?: Briefing;
 };
 
 /** Runs a prepared party through the dungeon with many seeds. */
@@ -46,14 +48,14 @@ export function estimatePartyOdds(party: PartyMember[], dungeon: DungeonDef, run
 
 /**
  * Estimates a party's chances by running the dungeon with many seeds, with
- * their current HP and the supply, meal and kit they would take. The real
+ * their current HP and the supply, meal and briefing they would take. The real
  * expedition uses its own seed, so this is a preview, not a promise.
  */
 export function estimateOdds(save: SaveData, heroIds: string[], dungeon: DungeonDef, runs = ODDS_RUNS, options: OddsOptions = {}): Odds {
-  const { now, loadout = {}, fullHp = false } = options;
+  const { now, loadout = {}, fullHp = false, briefing = EMPTY_BRIEFING } = options;
   const party = prepareParty(save, heroIds, now).map((m) => (fullHp ? { ...m, hp: m.maxHp } : m));
-  const { hunger } = launchPlan(save, dungeon, heroIds, loadout);
-  return estimatePartyOdds(party, dungeon, runs, runProvisions(hunger, loadout));
+  const { hunger } = launchPlan(save, dungeon, heroIds, loadout, briefing);
+  return estimatePartyOdds(party, dungeon, runs, runProvisions(hunger, loadout, briefing));
 }
 
 export function oddsBand(success: number): OddsBand {

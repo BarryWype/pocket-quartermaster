@@ -1,8 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { tagInfo } from '@/content/rotation';
-import { modifierFor, type Rotation } from '@/game/dungeons/rotation';
-import { dungeonTags } from '@/game/dungeons/tags';
+import { briefingFor, type Rotation } from '@/game/dungeons/rotation';
 import { bossBonusAvailable, blueprintBonusAvailable, guaranteedBlueprint, isDungeonAvailable } from '@/game/expeditions/expeditions';
 import { oddsBand } from '@/game/expeditions/odds';
 import type { SaveData } from '@/game/save';
@@ -10,11 +8,11 @@ import type { DungeonDef } from '@/game/types';
 import { formatDuration, formatPercent, t, tr } from '@/i18n';
 import { colors, pixel } from '@/theme';
 
+import { BriefingChips } from './BriefingChips';
 import { Button } from './Button';
 import { IconSlot } from './Row';
 import { ODDS_COLORS } from './SendDialog';
 import { Text } from './Text';
-import { Tip } from './Tip';
 
 type Props = {
   save: SaveData;
@@ -24,18 +22,15 @@ type Props = {
   durationMs: number;
   /** Success chance with the selected party, or null without one. */
   chance: number | null;
-  /** Party heroes with an ability that counters this dungeon. */
-  goodHere: string[];
   expanded: boolean;
   onToggle: () => void;
   onSend: () => void;
 };
 
 /** A dungeon at a glance (name, kind, time, odds); tapped, its details and the Send button. */
-export function DungeonCard({ save, dungeon, rotation, now, durationMs, chance, goodHere, expanded, onToggle, onSend }: Props) {
+export function DungeonCard({ save, dungeon, rotation, now, durationMs, chance, expanded, onToggle, onSend }: Props) {
   const band = chance === null ? null : oddsBand(chance);
   const available = isDungeonAvailable(save, dungeon, rotation);
-  const modifier = modifierFor(rotation, dungeon.id);
   const fresh = dungeon.slot && !save.firstClears.includes(dungeon.id);
   const bonus = dungeon.isBoss && bossBonusAvailable(save, dungeon.id, now);
   const blueprint =
@@ -55,7 +50,6 @@ export function DungeonCard({ save, dungeon, rotation, now, durationMs, chance, 
           <Text style={styles.name} numberOfLines={1}>
             {tr(dungeon.name)}
             {fresh ? ' ✨' : ''}
-            {modifier ? ` ${modifier.emoji}` : ''}
           </Text>
           <Text style={styles.muted}>
             {t(`expeditions.kind.${kind}`)} · ⏳ {formatDuration(durationMs)}
@@ -72,26 +66,10 @@ export function DungeonCard({ save, dungeon, rotation, now, durationMs, chance, 
       {expanded && (
         <View style={styles.details}>
           {band && <Text style={styles.muted}>{t(`odds.${band}`)} · {t('expeditions.tips.odds')}</Text>}
-          <View style={styles.chips}>
-            {dungeonTags(dungeon).map((tag) => (
-              <Tip key={tag} title={tr(tagInfo[tag].name)} text={t('expeditions.tips.tag')} style={styles.chip}>
-                <Text style={styles.chipText}>
-                  {tagInfo[tag].emoji} {tr(tagInfo[tag].name)}
-                </Text>
-              </Tip>
-            ))}
-            {modifier && (
-              <Tip title={tr(modifier.name)} text={tr(modifier.description)} style={[styles.chip, styles.chipModifier]}>
-                <Text style={styles.chipText}>
-                  {modifier.emoji} {tr(modifier.name)}
-                </Text>
-              </Tip>
-            )}
-          </View>
+          <BriefingChips briefing={briefingFor(rotation, dungeon)} />
           {fresh && <Text style={styles.line}>{t('expeditions.neverCleared')}</Text>}
           {blueprint && <Text style={styles.line}>📜 {t('expeditions.blueprintToday')}</Text>}
           {dungeon.isBoss && <Text style={styles.line}>{t(bonus ? 'expeditions.bossBonusAvailable' : 'expeditions.bossBonusClaimed')}</Text>}
-          {goodHere.length > 0 && <Text style={styles.line}>★ {goodHere.map((name) => t('expeditions.goodHereTitle', { name })).join(' · ')}</Text>}
           <View style={styles.footer}>
             {!available && <Text style={styles.muted}>{t('expeditions.afterTutorial')}</Text>}
             <Button title={t('expeditions.send')} disabled={!available || chance === null} onPress={onSend} />
@@ -114,10 +92,6 @@ const styles = StyleSheet.create({
   oddsText: { color: colors.parchment, fontSize: 18 },
   chevron: { fontSize: 22, color: colors.muted, width: 16 },
   details: { gap: 6 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  chip: { paddingHorizontal: 6, paddingVertical: 2, borderWidth: 2, borderColor: colors.woodDark, backgroundColor: colors.parchmentDark },
-  chipModifier: { borderColor: colors.danger },
-  chipText: { fontSize: 17 },
   line: { fontSize: 17 },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10 },
 });

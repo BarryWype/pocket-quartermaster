@@ -8,6 +8,18 @@ The game is moving to a "problems first" model: dungeons, patrols and exploratio
 
 | File | One row per | Notes |
 | --- | --- | --- |
+| `stats.csv` | Combat stat | What it does, what it was, one growth step |
+| `growth.csv` | Growth rule | What grows every level, at milestones, and the recruitment roll |
+| `infusion.csv` | Weapon damage type | How elemental infusion works |
+| `slots.csv` | Equipment slot | Contents, role, where items come from |
+| `loot-types.csv` | Loot type | What it is, how it feeds crafting, quality rule |
+| `equipment-profiles.csv` | Weapon, armour or off-hand type | Hands, extras (Speed, Crit, Evasion, approach, keywords) and how the rest of the budget is split |
+| `equipment-tiers.csv` | Type × tier | The resulting stats at each of the 5 tiers |
+| `equipment-check-offence.csv`, `equipment-check-defence.csv` | Loadout | Quick check of damage and effective HP at tier 3 (not the simulator) |
+| `affinities.csv` | Class | Favoured, usable or unfit for each weapon and armour type |
+| `equipment-check-caster.csv` | Hero × armour | Magic and effective HP for casters in each armour (casting penalty) |
+| `equipment-recipes.csv` | Type × tier | Recipe inputs |
+| `item-names.csv` | Type | Item name at each tier |
 | `levels.csv` | Threat level | Score needed to meet a threat at each level |
 | `threats.csv` | Threat | Answer, kit or gear, penalty per level, where it appears |
 | `restrictions.csv` | Restriction | What it removes or weakens |
@@ -30,6 +42,9 @@ The game is moving to a "problems first" model: dungeons, patrols and exploratio
 
 ## Core rules
 
+- **Combat stats**: HP, Power, Magic, Armour, Resistance, Evasion (cap 40%), Speed, Crit, plus Luck (born with, rare heroes only). The weapon decides whether a hero deals Power (physical) or Magic (elemental) damage.
+- **Growth**: the class's 3 primary stats grow every level; utility classes also grow their damage stat at half rate; every secondary stat grows at levels 5, 10 and 15; the player picks +1 approach at levels 5 and 10; +1 Luck at level 15.
+- **Recruitment roll**: 3d6 per stat (base ±15%, growth ±8%), shown as a C / B / A / S grade, seeded by tavern and day.
 - **Approaches** (0–5 per hero): Might, Finesse, Wits, Faith, Presence.
 - **Threat levels**: 1 Light, 2 Strong, 3 Extreme. An approach threat needs the best hero's score at 2 / 3 / 4; a keyword threat needs 1 / 2 / 3 heroes with the keyword.
 - A **kit** adds +2 to its carrier's approach score, or gives its carrier the keyword.
@@ -37,12 +52,25 @@ The game is moving to a "problems first" model: dungeons, patrols and exploratio
 - **Kits** and consumables share the hero's single consumable slot, are single-use and gone after the run, even if unused.
 - **Combat threats** (Undead, Armoured, Swarm, Brute) are answered by gear keywords, not kits.
 - **Composition**: early tiers 1 threat; mid tiers 2 threats + 1 opportunity; high tiers the same + sometimes 1 restriction; bosses 3 threats. Patrols 1 threat. Exploration places 1 threat or 1 opportunity.
-- Never two threats from the same family or answered by the same kit in one dungeon. A restriction never removes the last answer to a threat in the same dungeon.
+- In one dungeon: at most one Obstacle threat (rubble, locked, puzzle), and never two threats answered by the same kit. Two threats of the same category (for example Undead + Swarm) are fine.
+- **Progression:** each threat has a first tier (`First tier` in `threats.csv`). It appears at level 1 in that tier, can reach level 2 one tier later and level 3 two tiers later. Its kit is craftable from that tier or earlier (`Available from tier` in `kits.csv`). Materials: tier 1 wood, herbs, berries, mushrooms, meat, hide, bone; tier 2 stone; tier 3 copper; tier 4 iron; tier 5 coal. A restriction never removes the last answer to a threat in the same dungeon.
 - Content is balanced for common classes. A rare class makes a dungeon easier, but is never required.
+
+- **Equipment**: 4 equipment slots (weapon, armour, off-hand, trinket) + the consumable slot; two-handed weapons also take the off-hand. Crafting gives the stats, loot gives the effects: a looted item never beats the best craftable item of its tier on stats. Trinkets are never crafted.
+- **Quality**: regular crafting follows mastery; recipes with a component and restored relics are at least Rare with a much better Legendary chance. Luck only appears on Legendary items.
+
+- **Equipment budget**: every item of a tier gets the same budget (tier 1: weapon 5, armour 6, off-hand 3 points; 1 point = 1 Power, Magic, Armour or Resistance, or 10 HP), scaled by enemy strength per tier (×1, ×1.9, ×3, ×4.2, ×5.6). Extras (Speed, Crit, Evasion, approach, keywords) cost a share of the budget; Heavy refunds some. Two-handed weapons (warhammer, staff) absorb 90% of the off-hand budget. `tools/gear-budget.py` regenerates the equipment CSVs: `python3 tools/gear-budget.py <output folder>`.
+
+- **Affinities**: each weapon and armour type is Favoured (item stats ×1.2), Usable (×1.0) or Unfit (×0.6) for a class. Keywords always work, even on an unfit item. Nothing is restricted. Off-hands and trinkets are open to every class (off-hands keep their mechanical constraints). Shown as a green ▲ (favoured) or a red ▼ (unfit).
+- **Casting in metal**: mail gives −15% Magic and plate −30% Magic, unless that armour is favoured for the hero's class. Robes put part of their budget into Magic.
+
+- **Recipes**: every type has one recipe pattern; the tier only swaps the main material (tier 1 wood or bone, tier 2 stone, tier 3 copper, tier 4 iron, tier 5 steel). Weapons and off-hands cost about 3–4 units, armour and two-handed weapons 6. Each type and tier is its own blueprint (110 in total), looted one at a time: the first dungeon cleared in a new tier drops a blueprint of that tier, and the first dungeon of each day drops one of that dungeon's tier (an unknown one, weighted towards types the roster favours; mastery XP or a component once all are known). Recruits, events, travellers and shops are other sources. A component recipe is the type's recipe with one secondary material replaced by the component.
 
 ## Known gaps
 
-- Guard (against Brute) only comes from plate. It needs a second gear source.
-- Approach scores per class aren't set.
+- Guard comes from plate, the shield (off-hand) and the Paladin class.
+- Approach scores per class aren't set; `classes.csv` only marks strengths.
 - Porter and Alchemist both add a slot: keep both, or keep one.
-- Today's 11 classes still need re-cutting to fit the class grid.
+- The re-cut of today's 11 classes in `classes.csv` is a first draft.
+- Hide is in demand (gear, leather, kits) while animals are rarer than plants: check gathering yields during balancing.
+- The equipment check doesn't model support value (Inspire, Mend, approaches) or defensive keywords on weapons (Parry, Reach, Brace), so support and defensive loadouts look weaker than they are.

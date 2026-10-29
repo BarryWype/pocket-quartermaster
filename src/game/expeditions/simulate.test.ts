@@ -3,7 +3,7 @@ import { elementRules } from '@/content/elements';
 import { dungeonById, itemById } from '@/content/lookup';
 
 import type { Element } from '../elements';
-import type { BossDef, ConsumableDef, DungeonDef, EncounterDef } from '../types';
+import type { BossDef, Briefing, ConsumableDef, DungeonDef, EncounterDef, ThreatId } from '../types';
 import { simulateRun, type PartyMember } from './simulate';
 
 /** No mishaps or run-wide luck, so each test sees the mechanic it targets. */
@@ -18,9 +18,11 @@ function member(heroId: string, overrides: Partial<PartyMember> = {}): PartyMemb
     classId: 'warrior',
     traitId: 'none',
     weaponName: null,
+    weaponType: null,
     maxHp: 100,
     hp: overrides.hp ?? overrides.maxHp ?? 100,
     damage: 10,
+    magic: 0,
     defense: 0,
     threat: 1,
     resists: [],
@@ -44,25 +46,44 @@ const trap = (overrides: Partial<Extract<EncounterDef, { type: 'trap' }>> = {}):
   type: 'trap',
   weight: 1,
   name: 'test trap',
-  damagePct: 0.2,
   targets: 'all',
-  triggerChance: 1,
   ...overrides,
 });
 const potion = itemById.healingPotion as ConsumableDef;
+
+/** A briefing with one threat at `level`; a party of finesse-1 warriors misses level 2 and up. */
+const briefingOf = (id: ThreatId, level: 1 | 2 | 3 = 1, extra: Partial<Briefing> = {}): Briefing => ({
+  threats: [{ id, level }],
+  restriction: null,
+  opportunity: null,
+  ...extra,
+});
 
 describe('simulateRun', () => {
   it('gives the same result for the same party, dungeon and seed', () => {
     const party = [member('a'), member('b', { classId: 'ranger' })];
     const real = dungeonById.goblinWarren;
-    expect(simulateRun(party, real, 'seed', { rules: calm })).toEqual(simulateRun(party, real, 'seed', { rules: calm }));
-    expect(simulateRun(party, real, 'seed', { rules: calm })).not.toEqual(simulateRun(party, real, 'other', { rules: calm }));
+    const briefing = briefingOf('traps');
+    expect(simulateRun(party, real, 'seed', { rules: calm, briefing })).toEqual(
+      simulateRun(party, real, 'seed', { rules: calm, briefing }),
+    );
+    expect(simulateRun(party, real, 'seed', { rules: calm, briefing })).not.toEqual(
+      simulateRun(party, real, 'other', { rules: calm, briefing }),
+    );
   });
 
   it('ends with the boss', () => {
     const run = simulateRun([member('a', { damage: 1000, maxHp: 1e6 })], dungeonById.banditStockade, 'x', { rules: calm });
     expect(run.encounters[run.encounters.length - 1].kind).toBe('boss');
     expect(run.encounters).toHaveLength(run.encounterCount);
+  });
+
+  it('plays no threats at all without a briefing', () => {
+    const run = simulateRun([member('a')], dungeon([trap()]), 's', { rules: steady });
+    expect(run.threats).toEqual([]);
+    expect(run.encounters[0]).toMatchObject({ kind: 'quiet', cleared: true, taken: {} });
+    expect(run.lostLoot).toBe(0);
+    expect(run.delay).toBe(0);
   });
 });
 
@@ -98,7 +119,9 @@ describe('fights', () => {
     const party = [member('tank', { threat: 3, maxHp: 1e6 }), member('mage', { maxHp: 1e6 })];
     const taken = { tank: 0, mage: 0 };
     for (let i = 0; i < 50; i++) {
-      const fight = simulateRun(party, bossOnly({ hp: 300 }), `t${i}`, { rules: calm }).encounters.find((e) => e.kind === 'boss')!;
+      const fight = simulateRun(party, bossOnly({ hp: 300 }), `t${i}`, { rules: calm }).encounters.find(
+        (e) => e.kind === 'boss',
+      )!;
       taken.tank += fight.taken.tank ?? 0;
       taken.mage += fight.taken.mage ?? 0;
     }
@@ -106,58 +129,97 @@ describe('fights', () => {
   });
 });
 
-describe('traps and events', () => {
-  it('takes a share of max HP from everyone it catches', () => {
-    const run = simulateRun([member('a'), member('b', { maxHp: 50 })], dungeon([trap()]), 's', { rules: steady });
+describe('traps', () => {
+  it('wound each hero it catches by the missed threat\'s share of max HP', () => {
+    // Finesse 1 against level 2 (needs 3): a full miss, trapWounds 12%.
+    const briefing = briefingOf('traps', 2);
+    const run = simulateRun([member('a'), member('b', { maxHp: 50 })], dungeon([trap()]), 's', { rules: steady, briefing });
     const caught = run.encounters[0];
     expect(caught.trapTriggered).toBe(true);
-    expect(caught.taken).toEqual({ a: 20, b: 10 });
+    expect(caught.taken).toEqual({ a: 12, b: 6 });
   });
 
-  it('does nothing when it does not trigger', () => {
-    const run = simulateRun([member('a')], dungeon([trap({ triggerChance: 0 })]), 's', { rules: calm });
-    expect(run.encounters[0]).toMatchObject({ trapTriggered: false, taken: {} });
+  it('catch nobody when the threat is met', () => {
+    const briefing = briefingOf('traps');
+    const run = simulateRun([member('a', { classId: 'thief' })], dungeon([trap()]), 's', { rules: steady, briefing });
+    expect(run.encounters[0]).toMatchObject({ trapTriggered: false, taken: {}, cleared: true });
   });
 
-  it('heals at a spring, up to max HP', () => {
-    const pool: EncounterDef[] = [trap({ damagePct: 0.5, targets: 'all' }), { type: 'event', weight: 1, eventId: 'spring' }];
-    const runs = Array.from({ length: 40 }, (_, i) => simulateRun([member('a')], dungeon(pool, {}, [6, 6]), `s${i}`, { rules: calm }));
-    const springsAfterDamage = runs
-      .flatMap((run) => run.encounters)
-      .filter((e) => e.kind === 'spring' && (e.healed.a ?? 0) > 0);
-    expect(springsAfterDamage.length).toBeGreaterThan(0);
-    springsAfterDamage.forEach((spring) => expect(spring.healed.a).toBeLessThanOrEqual(30 + 1e-9));
+  it('wound half as much on a half miss', () => {
+    // Finesse 1 against level 1 (needs 2): one short, so half of the 8%.
+    const briefing = briefingOf('traps');
+    const run = simulateRun([member('a')], dungeon([trap()]), 's', { rules: steady, briefing });
+    expect(run.encounters[0].taken).toEqual({ a: 4 });
   });
 
-  it('adds bonus gold from a cache', () => {
-    const run = simulateRun([member('a', { damage: 1000 })], bossOnly(), 's', { rules: calm });
-    expect(run.bonusGold).toBe(Math.round(0.25 * dungeonById.ratCellar.gold[1]));
+  it('are quiet steps without the traps threat in the briefing', () => {
+    const run = simulateRun([member('a')], dungeon([trap()]), 's', { rules: steady, briefing: briefingOf('beasts') });
+    expect(run.encounters[0]).toMatchObject({ kind: 'quiet', cleared: true, taken: {} });
+  });
+
+  it('wound through the element rules for elemental traps', () => {
+    const briefing = briefingOf('traps', 2);
+    const fire = trap({ element: 'fire' });
+    const taken = simulateRun([member('a')], dungeon([fire]), 's', { rules: steady, briefing }).encounters[0].taken.a;
+    expect(taken).toBeCloseTo(12 * elementRules.unprotectedMultiplier);
+  });
+
+  it('are guaranteed an encounter when the threat is drawn but none was rolled', () => {
+    const briefing = briefingOf('traps');
+    // A pool where the trap can be missed by the draw: it still shows up before the boss.
+    const pool: EncounterDef[] = [
+      { type: 'event', weight: 1, eventId: 'spring' },
+      { type: 'trap', weight: 1e-9, name: 'hidden trap', targets: 'all' },
+    ];
+    const runs = Array.from({ length: 10 }, (_, i) =>
+      simulateRun([member('a', { maxHp: 1e6 })], dungeon(pool, {}, [3, 3]), `g${i}`, { rules: steady, briefing }),
+    );
+    runs.forEach((run) => expect(run.encounters.some((e) => e.kind === 'trap')).toBe(true));
+  });
+});
+
+describe('obstacles and events are quiet steps', () => {
+  it('clears them without a scratch, and pay no gold', () => {
+    const pool: EncounterDef[] = [
+      { type: 'obstacle', weight: 1, name: 'rubble pile', kind: 'rubble' },
+      { type: 'event', weight: 1, eventId: 'spring' },
+      { type: 'event', weight: 1, eventId: 'cache' },
+      { type: 'event', weight: 1, eventId: 'ambush' },
+    ];
+    const run = simulateRun([member('a', { damage: 1000 })], dungeon(pool, {}, [5, 5]), 's', { rules: steady });
+    for (const encounter of run.encounters.slice(0, 4)) {
+      expect(encounter).toMatchObject({ kind: 'quiet', cleared: true, taken: {}, dealt: {}, rounds: 0 });
+    }
+    expect(run.bonusGold).toBe(0);
   });
 });
 
 describe('consumables', () => {
+  /** Four live traps at level 3: 72% of max HP in wounds, enough to reach the potion threshold. */
+  const wounded = (overrides: { consumable?: ConsumableDef | null; meal?: { kind: 'bossHeal'; pct: number } } = {}) =>
+    simulateRun(
+      [member('a', { consumable: overrides.consumable ?? null })],
+      dungeon([trap(), trap(), trap(), trap()], { damage: 1 }, [5, 5]),
+      's',
+      { rules: steady, briefing: briefingOf('traps', 3), ...(overrides.meal ? { meal: overrides.meal } : {}) },
+    );
+
   it('drinks a potion once below the threshold', () => {
-    const run = simulateRun([member('a', { consumable: potion })], dungeon([trap({ damagePct: 0.7 })]), 's', {
-      rules: steady,
-    });
-    const caught = run.encounters[0];
-    expect(caught.consumed).toEqual(['a']);
-    // Down to 30 HP, then a potion heals 30% of max HP.
-    expect(caught.healed.a).toBeCloseTo(30);
+    const run = wounded({ consumable: potion });
+    const drank = run.encounters.find((e) => e.consumed.includes('a'))!;
     expect(run.consumed).toEqual(['a']);
+    expect(drank.healed.a).toBeCloseTo(30);
   });
 
   it('keeps the potion when HP never drops that low', () => {
-    const gentleBoss = dungeon([trap({ damagePct: 0.2 })], { damage: 1 });
-    const run = simulateRun([member('a', { consumable: potion })], gentleBoss, 's', { rules: calm });
+    const briefing = briefingOf('traps');
+    const gentleBoss = dungeon([trap()], { damage: 1 });
+    const run = simulateRun([member('a', { consumable: potion })], gentleBoss, 's', { rules: calm, briefing });
     expect(run.consumed).toEqual([]);
   });
 
   it('shares a Hunter’s stew before the boss', () => {
-    const run = simulateRun([member('a', { damage: 1000 })], dungeon([trap({ damagePct: 0.5 })]), 's', {
-      rules: steady,
-      meal: { kind: 'bossHeal', pct: 0.15 },
-    });
+    const run = wounded({ meal: { kind: 'bossHeal', pct: 0.15 } });
     const bossFight = run.encounters.find((e) => e.kind === 'boss')!;
     expect(bossFight.effects).toContainEqual({ heroId: null, key: 'stew' });
     expect(bossFight.healed.a).toBeCloseTo(15);
@@ -187,7 +249,8 @@ describe('knock-outs and outcomes', () => {
   });
 
   it('is a defeat when the team falls at the first encounter', () => {
-    const run = simulateRun([member('a', { maxHp: 1 })], dungeon([trap({ damagePct: 1 })]), 's', { rules: calm });
+    const slaughter: EncounterDef = { type: 'fight', weight: 1, mobs: [{ mobId: 'goblinSlinger', count: 20 }] };
+    const run = simulateRun([member('a', { damage: 1 })], dungeon([slaughter]), 's', { rules: calm });
     expect(run.outcome).toBe('defeat');
     expect(run.encountersCleared).toBe(0);
   });

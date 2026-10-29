@@ -1,0 +1,27 @@
+Class,Damage stat,Sword,Axe,Mace,Dagger,Bow,Spear,Warhammer,Wand,Staff,Lute,Censer,Knuckles,Plate,Mail,Leather,Robes
+Warrior,Power,Favoured,Favoured,Usable,Usable,Usable,Favoured,Usable,Unfit,Unfit,Unfit,Usable,Usable,Favoured,Favoured,Usable,Unfit
+Barbarian,Power,Usable,Favoured,Usable,Usable,Usable,Usable,Favoured,Unfit,Usable,Unfit,Unfit,Favoured,Usable,Favoured,Favoured,Unfit
+Paladin,Power,Favoured,Usable,Favoured,Unfit,Unfit,Usable,Favoured,Unfit,Usable,Usable,Usable,Usable,Favoured,Favoured,Usable,Unfit
+Ranger,Power,Usable,Usable,Unfit,Favoured,Favoured,Favoured,Usable,Usable,Unfit,Usable,Unfit,Usable,Usable,Usable,Favoured,Usable
+Thief,Power,Favoured,Usable,Unfit,Favoured,Usable,Usable,Usable,Usable,Unfit,Usable,Unfit,Favoured,Usable,Usable,Favoured,Usable
+Fire mage,Magic,Usable,Unfit,Unfit,Usable,Usable,Usable,Unfit,Favoured,Favoured,Usable,Usable,Usable,Unfit,Usable,Usable,Favoured
+Frost mage,Magic,Usable,Unfit,Usable,Usable,Usable,Usable,Unfit,Favoured,Favoured,Usable,Usable,Unfit,Unfit,Favoured,Usable,Favoured
+Sorcerer,Magic,Usable,Usable,Unfit,Usable,Usable,Unfit,Unfit,Favoured,Favoured,Usable,Usable,Usable,Unfit,Usable,Usable,Favoured
+Cleric,Magic,Usable,Usable,Usable,Unfit,Unfit,Usable,Usable,Usable,Favoured,Usable,Favoured,Unfit,Usable,Favoured,Usable,Usable
+Druid,Magic,Unfit,Unfit,Usable,Unfit,Usable,Usable,Usable,Favoured,Favoured,Usable,Usable,Usable,Unfit,Usable,Favoured,Favoured
+Troubadour,Magic,Usable,Unfit,Unfit,Usable,Usable,Unfit,Usable,Favoured,Usable,Favoured,Usable,Usable,Usable,Usable,Favoured,Usable
+Scholar,Magic,Usable,Unfit,Usable,Usable,Usable,Usable,Unfit,Favoured,Favoured,Usable,Usable,Unfit,Unfit,Unfit,Usable,Favoured
+Exorcist,Power,Usable,Usable,Favoured,Unfit,Unfit,Usable,Favoured,Usable,Usable,Unfit,Usable,Usable,Usable,Favoured,Usable,Usable
+Duelist,Power,Favoured,Usable,Usable,Favoured,Usable,Favoured,Usable,Usable,Unfit,Usable,Unfit,Unfit,Usable,Usable,Favoured,Usable
+Smuggler,Power,Usable,Usable,Unfit,Favoured,Favoured,Usable,Usable,Usable,Unfit,Usable,Unfit,Usable,Usable,Usable,Favoured,Usable
+Diplomat,Magic,Usable,Unfit,Usable,Usable,Usable,Usable,Unfit,Favoured,Usable,Favoured,Usable,Unfit,Unfit,Usable,Favoured,Favoured
+Necromancer,Magic,Unfit,Usable,Unfit,Usable,Usable,Unfit,Usable,Favoured,Favoured,Usable,Favoured,Usable,Unfit,Usable,Usable,Favoured
+Beastmaster,Power,Usable,Favoured,Usable,Usable,Favoured,Favoured,Usable,Unfit,Usable,Unfit,Unfit,Usable,Usable,Usable,Favoured,Unfit
+Engineer,Power,Usable,Favoured,Usable,Usable,Favoured,Usable,Favoured,Unfit,Usable,Unfit,Unfit,Usable,Favoured,Favoured,Usable,Unfit
+Alchemist,Magic,Usable,Unfit,Usable,Usable,Usable,Unfit,Unfit,Favoured,Usable,Usable,Favoured,Usable,Unfit,Usable,Favoured,Favoured
+Porter,Power,Usable,Favoured,Usable,Usable,Usable,Favoured,Favoured,Unfit,Unfit,Unfit,Usable,Usable,Usable,Favoured,Usable,Unfit
+Scout,Power,Usable,Usable,Unfit,Favoured,Favoured,Favoured,Usable,Usable,Unfit,Usable,Unfit,Usable,Usable,Usable,Favoured,Usable
+Curse-breaker,Magic,Usable,Usable,Usable,Unfit,Unfit,Usable,Usable,Favoured,Favoured,Usable,Favoured,Unfit,Usable,Favoured,Usable,Favoured
+Cook,Power,Usable,Favoured,Favoured,Favoured,Usable,Usable,Usable,Unfit,Unfit,Unfit,Usable,Usable,Usable,Favoured,Favoured,Usable
+Monk,Power,Unfit,Unfit,Usable,Usable,Unfit,Favoured,Usable,Usable,Usable,Usable,Usable,Favoured,Unfit,Unfit,Favoured,Favoured
+Gambler,Varies,Usable,Usable,Usable,Favoured,Usable,Unfit,Usable,Usable,Unfit,Favoured,Unfit,Usable,Usable,Usable,Favoured,Usable

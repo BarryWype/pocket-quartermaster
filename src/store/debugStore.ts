@@ -4,9 +4,9 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { offsetPosition } from '@/game/generation/geo';
 import type { LatLng, TimeOfDay } from '@/game/generation/types';
-import { applyOverrides, dailyRotation, rotationDay, type TierRotation } from '@/game/dungeons/rotation';
+import { applyOverrides, dailyRotation, rotationDay } from '@/game/dungeons/rotation';
 import type { SanctumSpawn } from '@/game/sanctums/sanctums';
-import type { MainRewardKind, Quality } from '@/game/types';
+import type { Briefing, MainRewardKind, Quality } from '@/game/types';
 
 type DebugSettings = {
   /** When set, replaces the device GPS position. */
@@ -32,8 +32,8 @@ type DebugSettings = {
   rotationDayOffset: number;
   /** Dungeons forced into a `tier:slot`, e.g. `2:short`. */
   forcedSlots: Record<string, string>;
-  /** Modifier forced per tier; null clears that tier's modifier. */
-  forcedModifiers: Record<number, TierRotation['modifier']>;
+  /** Briefings forced on dungeons, keyed by dungeon id. */
+  forcedBriefings: Record<string, Briefing>;
   /** Shows auto-gather's radius around the player even while it is off. */
   showAutoRadius: boolean;
   /** Shows the tap range around the player and the auto radius around each node. */
@@ -63,7 +63,7 @@ const DEBUG_DEFAULTS: DebugSettings = {
   debugTavern: null,
   offerSeed: '',
   forcedSlots: {},
-  forcedModifiers: {},
+  forcedBriefings: {},
   showAutoRadius: false,
   showNodeRanges: false,
 };
@@ -84,7 +84,7 @@ export const useDebugStore = create<DebugState>()(
     }),
     {
       name: 'pocket-quartermaster-debug',
-      version: 1,
+      version: 3,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: ({ set, setEnabled, moveMockLocation, ...settings }) => settings,
     },
@@ -97,6 +97,6 @@ export const debugEnabled = (state: Pick<DebugState, 'enabled'>) => __DEV__ || s
 /** Today's dungeon rotation, with the debug day shift and overrides when debug tools are on. */
 export function currentRotation(now = Date.now()) {
   if (!debugEnabled(useDebugStore.getState())) return dailyRotation(rotationDay(now));
-  const { rotationDayOffset, forcedSlots, forcedModifiers } = useDebugStore.getState();
-  return applyOverrides(dailyRotation(rotationDay(now) + rotationDayOffset), { slots: forcedSlots, modifiers: forcedModifiers });
+  const { rotationDayOffset, forcedSlots, forcedBriefings } = useDebugStore.getState();
+  return applyOverrides(dailyRotation(rotationDay(now) + rotationDayOffset), { slots: forcedSlots, briefings: forcedBriefings });
 }

@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
 import { overnightQuestRules } from '@/content/dungeons';
+import { briefingFor, type Rotation } from '@/game/dungeons/rotation';
 import { isDungeonAvailable, expeditionMinutes, overnightUnderWay } from '@/game/expeditions/expeditions';
 import { oddsBand } from '@/game/expeditions/odds';
 import type { SaveData } from '@/game/save';
@@ -8,6 +9,7 @@ import type { DungeonDef } from '@/game/types';
 import { formatDuration, formatPercent, t, tr } from '@/i18n';
 import { colors, pixel } from '@/theme';
 
+import { BriefingChips } from './BriefingChips';
 import { Button } from './Button';
 import { IconSlot } from './Row';
 import { Text } from './Text';
@@ -16,6 +18,7 @@ import { ODDS_COLORS } from './SendDialog';
 type Props = {
   save: SaveData;
   dungeon: DungeonDef;
+  rotation: Rotation;
   now: number;
   /** Success chance with the selected party, or null without one. */
   chance: number | null;
@@ -26,7 +29,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
 const clockTime = (ms: number) => `${pad(new Date(ms).getHours())}:${pad(new Date(ms).getMinutes())}`;
 
 /** The tier's overnight quest: a long, safe patrol for heroes with a long night ahead. */
-export function OvernightCard({ save, dungeon, now, chance, onSend }: Props) {
+export function OvernightCard({ save, dungeon, rotation, now, chance, onSend }: Props) {
   const durationMs = expeditionMinutes(save, dungeon) * 60_000;
   const band = chance === null ? null : oddsBand(chance);
   const available = isDungeonAvailable(save, dungeon) && !overnightUnderWay(save);
@@ -55,6 +58,7 @@ export function OvernightCard({ save, dungeon, now, chance, onSend }: Props) {
           percent: formatPercent(dungeon.mainRewardChance),
         })}
       </Text>
+      <BriefingChips briefing={briefingFor(rotation, dungeon)} />
       <Text style={styles.muted}>{t('expeditions.overnight.hint', { runs: overnightQuestRules.goldRunsWorth })}</Text>
       {underWay && <Text style={styles.muted}>{t('expeditions.overnight.underWay')}</Text>}
       <View style={styles.footer}>

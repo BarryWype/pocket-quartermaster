@@ -32,7 +32,7 @@ const result = (overrides: Partial<BackgroundResult> = {}): BackgroundResult => 
   hpBefore: 90,
   hpAfter: 40,
   maxHp: 100,
-  consumed: [],
+  salvaged: [],
   rewards: { gold: 10, xp: 7, materials: [{ materialId: 'wood', amount: 2 }], shards: { element: 'fire', amount: 1 } },
   ...overrides,
 });
@@ -49,7 +49,7 @@ const fight = (overrides: Partial<PatrolFight> = {}): PatrolFight => ({
   windowEndsAt: 10 * MINUTE,
   won: true,
   hp: [],
-  consumed: [],
+  salvaged: [],
   rewards: { gold: 5, xp: 3, materials: [{ materialId: 'hide', amount: 1 }] },
   ...overrides,
 });

@@ -13,22 +13,20 @@ import { IconSlot, Row, SectionTitle } from '@/components/Row';
 import { ReportCard } from '@/components/ReportCard';
 import { SendDialog } from '@/components/SendDialog';
 import { Text } from '@/components/Text';
-import { Tip } from '@/components/Tip';
+import { ThreatCoverageChips } from '@/components/ThreatDetail';
 import { TutorialHint } from '@/components/TutorialHint';
-import { abilityText } from '@/content/abilities';
 import { dungeons } from '@/content/dungeons';
 import { heroClasses } from '@/content/heroes';
 import { dungeonById } from '@/content/lookup';
-import { modifierById } from '@/content/modifiers';
 import { provisionRules } from '@/content/provisions';
+import { restrictionRules } from '@/content/threats';
 import { tutorialRules } from '@/content/tutorial';
-import { countersFor } from '@/game/dungeons/counters';
-import { modifierFor, nextRotationAt, rotationDay, withModifier } from '@/game/dungeons/rotation';
+import { briefingFor, nextRotationAt, rotationDay } from '@/game/dungeons/rotation';
 import { expeditionMinutes, isDungeonUnlocked, readyExpeditions, type Loadout } from '@/game/expeditions/expeditions';
 import { estimateOdds } from '@/game/expeditions/odds';
 import { supplyHeld } from '@/game/expeditions/provisions';
-import { prepareParty } from '@/game/expeditions/simulate';
 import { guildRank, partySize } from '@/game/guild/guild';
+import { briefingCoverage } from '@/game/threats/coverage';
 import { isOnExpedition } from '@/game/team/team';
 import type { ExpeditionReport, HeroState } from '@/game/types';
 import { syncBackground } from '@/hooks/useAutoGather';
@@ -90,11 +88,11 @@ export default function QuestsScreen() {
   const day = rotationDay(now);
   const dayOffset = useDebugStore((state) => state.rotationDayOffset);
   const forcedSlots = useDebugStore((state) => state.forcedSlots);
-  const forcedModifiers = useDebugStore((state) => state.forcedModifiers);
+  const forcedBriefings = useDebugStore((state) => state.forcedBriefings);
   const rotation = useMemo(
     () => currentRotation(now),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [day, dayOffset, forcedSlots, forcedModifiers],
+    [day, dayOffset, forcedSlots, forcedBriefings],
   );
 
   /** The first launch asks, in game, before the OS permission prompt. */
@@ -131,14 +129,14 @@ export default function QuestsScreen() {
     [selected, save],
   );
 
-  // Today's open dungeons per unlocked tier, with their modifier; the tutorial's stays until it's done.
+  // Today's open dungeons per unlocked tier; the tutorial's stays until it's done.
   const open = useMemo(() => {
     const ids = Object.values(rotation.tiers).flatMap((t) => [t.short, t.long, t.boss]);
     if (save.tutorial.step !== 'done' && !ids.includes(tutorialRules.firstExpedition.dungeonId)) {
       ids.unshift(tutorialRules.firstExpedition.dungeonId);
     }
     return ids
-      .map((id) => withModifier(dungeonById[id], modifierFor(rotation, id)))
+      .map((id) => dungeonById[id])
       .filter((d) => isDungeonUnlocked(save, d))
       .sort((a, b) => a.tier - b.tier);
   }, [rotation, save]);
@@ -161,21 +159,33 @@ export default function QuestsScreen() {
       Object.fromEntries(
         [...shown, ...(shownOvernight ? [shownOvernight] : [])].map((d) => [
           d.id,
-          estimateOdds(save, party, d, undefined, { now: minute * 60_000 }),
+          estimateOdds(save, party, d, undefined, { now: minute * 60_000, briefing: briefingFor(rotation, d) }),
         ]),
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [save, party, shownTier, rotation, minute],
   );
 
-  const focusedDungeon = open.find((d) => d.id === focused);
   const confirmingDungeon = party.length > 0 ? [...open, ...overnight].find((d) => d.id === confirming) : undefined;
-  const counters = (heroId: string) => (focusedDungeon ? countersFor(prepareParty(save, [heroId])[0].abilities, focusedDungeon) : []);
+
+  // The focused dungeon's briefing, when its card is open: what the party faces there today.
+  const focusedDungeon = open.find((d) => d.id === focused);
+  const focusedBriefing = useMemo(
+    () => (focusedDungeon ? briefingFor(rotation, focusedDungeon) : null),
+    [rotation, focusedDungeon],
+  );
+  // Narrow passages cut the party down for that dungeon.
+  const cap =
+    focusedBriefing?.restriction === 'narrowPassages' ? restrictionRules.narrowPartySize : partySize(save);
+  const coverage = useMemo(
+    () => (focusedBriefing && party.length > 0 ? briefingCoverage(save, party, focusedBriefing, minute * 60_000) : null),
+    [save, party, focusedBriefing, minute],
+  );
 
   /** Parties are capped: a hero can only join while there's room. */
   const toggle = (heroId: string) => {
     if (party.includes(heroId)) return setSelected((current) => current.filter((id) => id !== heroId));
-    if (party.length >= partySize(save)) return;
+    if (party.length >= cap) return;
     setSelected([...party, heroId]);
   };
 
@@ -193,12 +203,14 @@ export default function QuestsScreen() {
           <Text style={styles.hintText}>{t('map.cookingHint')}</Text>
         </Pressable>
       )}
-      <SectionTitle>{t('expeditions.party', { count: party.length, max: partySize(save) })}</SectionTitle>
+      <SectionTitle>{t('expeditions.party', { count: party.length, max: cap })}</SectionTitle>
+      {focusedBriefing?.restriction === 'narrowPassages' && (
+        <Text style={styles.muted}>{t('threats.narrowCap', { count: restrictionRules.narrowPartySize })}</Text>
+      )}
       <View style={styles.party}>
         {save.heroes.map((hero) => {
           const away = isOnExpedition(save, hero.id);
           const active = party.includes(hero.id);
-          const good = counters(hero.id);
           return (
             <Pressable
               key={hero.id}
@@ -215,17 +227,13 @@ export default function QuestsScreen() {
                 </Text>
                 <Text style={styles.muted}>{away ? t('expeditions.away') : t('common.levelShort', { level: hero.level })}</Text>
                 {!away && <HpBar save={save} hero={hero} now={now} />}
-                {good.length > 0 && (
-                  <Tip title={t('expeditions.goodHereTitle', { name: hero.name })} text={good.map(abilityText).join('\n')} style={styles.goodHere}>
-                    <Text style={styles.goodHereText}>★ {t('expeditions.goodHere')}</Text>
-                  </Tip>
-                )}
               </View>
               {active && <Text style={styles.check}>✓</Text>}
             </Pressable>
           );
         })}
       </View>
+      {coverage && <ThreatCoverageChips coverage={coverage} />}
 
       <View style={styles.tiers}>
         {tiers.map((n) => (
@@ -244,7 +252,6 @@ export default function QuestsScreen() {
           now={now}
           durationMs={expeditionMinutes(save, dungeon) * 60_000 * durationScale}
           chance={party.length > 0 ? odds[dungeon.id]?.success ?? null : null}
-          goodHere={save.heroes.filter((h) => party.includes(h.id) && countersFor(prepareParty(save, [h.id])[0].abilities, dungeon).length > 0).map((h) => h.name)}
           expanded={focused === dungeon.id}
           onToggle={() => setFocused(focused === dungeon.id ? null : dungeon.id)}
           onSend={() => setConfirming(dungeon.id)}
@@ -254,6 +261,7 @@ export default function QuestsScreen() {
         <OvernightCard
           save={save}
           dungeon={shownOvernight}
+          rotation={rotation}
           now={now}
           chance={party.length > 0 ? odds[shownOvernight.id]?.success ?? null : null}
           onSend={() => setConfirming(shownOvernight.id)}
@@ -269,17 +277,10 @@ export default function QuestsScreen() {
         Object.entries(currentRotation(nextRotationAt(now)).tiers)
           .filter(([, slots]) => isDungeonUnlocked(save, dungeonById[slots.boss]))
           .map(([n, slots]) => {
-            const modifier = slots.modifier ? modifierById[slots.modifier.modifierId] : null;
             const name = (id: string) => `${dungeonById[id].emoji} ${tr(dungeonById[id].name)}`;
             return (
               <Text key={n} style={styles.muted}>
                 {t('expeditions.tomorrowLine', { tier: n, short: name(slots.short), long: name(slots.long) })}
-                {modifier
-                  ? t('expeditions.tomorrowModifier', {
-                      modifier: `${modifier.emoji} ${tr(modifier.name)}`,
-                      dungeon: tr(dungeonById[slots.modifier!.dungeonId].name),
-                    })
-                  : ''}
               </Text>
             );
           })}

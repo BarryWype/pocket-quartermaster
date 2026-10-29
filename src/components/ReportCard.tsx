@@ -1,7 +1,8 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { dungeonById, itemById } from '@/content/lookup';
-import type { ExpeditionReport, HeroState } from '@/game/types';
+import { elementInfo } from '@/content/elements';
+import { dungeonById, itemById, materialById, opportunityById, threatById } from '@/content/lookup';
+import type { ExpeditionReport, HeroState, OpportunityOutcome } from '@/game/types';
 import { formatDuration, t, tr } from '@/i18n';
 import { colors, pixel } from '@/theme';
 
@@ -18,6 +19,22 @@ type Props = {
   onToggle: () => void;
 };
 
+/** What an answered opportunity handed over, one short label per effect. */
+function opportunityGave(outcome: OpportunityOutcome): string {
+  return [
+    outcome.gold ? `🪙 +${outcome.gold}` : null,
+    ...(outcome.materials ?? []).map((m) => `${materialById[m.materialId].emoji} ${m.amount}`),
+    outcome.goldMultiplier ? `🪙 ×${outcome.goldMultiplier}` : null,
+    outcome.damageMultiplier ? `⚔️ ×${outcome.damageMultiplier}` : null,
+    outcome.xpMultiplier ? `✨ ×${outcome.xpMultiplier}` : null,
+    outcome.recipe ? t('expeditions.report.recipe') : null,
+    outcome.recruit ? t('expeditions.report.recruit') : null,
+    outcome.pilgrim ? t(`expeditions.report.pilgrim.${outcome.pilgrim}`) : null,
+  ]
+    .filter((item): item is string => item !== null)
+    .join(' · ');
+}
+
 /** A finished expedition: outcome and loot at a glance; tapped, the full log and how the heroes came back. */
 export function ReportCard({ report, heroes, now, expanded, onToggle }: Props) {
   const dungeon = dungeonById[report.dungeonId];
@@ -25,9 +42,6 @@ export function ReportCard({ report, heroes, now, expanded, onToggle }: Props) {
   const extras = [
     report.hunger && report.hunger !== 'fed' ? t(`expeditions.hunger.${report.hunger}`) : null,
     report.mealId ? `${itemById[report.mealId].emoji} ${tr(itemById[report.mealId].name)}` : null,
-    report.kitId
-      ? `${itemById[report.kitId].emoji} ${t(report.kitUsed ? 'expeditions.kitUsed' : 'expeditions.kitBack', { kit: tr(itemById[report.kitId].name) })}`
-      : null,
   ].filter((item): item is string => item !== null);
   const loot = [...lootItems(report), `+${report.xp} XP`];
 
@@ -63,6 +77,45 @@ export function ReportCard({ report, heroes, now, expanded, onToggle }: Props) {
 
       {expanded && (
         <View style={styles.details}>
+          {(report.threats ?? []).map((threat, i) => {
+            const def = threatById[threat.id];
+            const element = threat.id === 'element' && threat.element ? elementInfo[threat.element] : null;
+            const pips = '●'.repeat(threat.level) + '○'.repeat(3 - threat.level);
+            return (
+              <Text key={i} style={styles.logLine}>
+                {def.emoji} {element ? `${element.emoji} ` : ''}
+                {tr(def.name)} {pips} · {t(`expeditions.report.state.${threat.state}`)}
+                {threat.forced ? t('expeditions.report.forced') : ''}
+                {threat.intimidated ? t('expeditions.report.intimidated') : ''}
+              </Text>
+            );
+          })}
+          {report.opportunity && (
+            <Text style={styles.logLine}>
+              {opportunityById[report.opportunity.id].emoji} {tr(opportunityById[report.opportunity.id].name)} ·{' '}
+              {report.opportunity.answered
+                ? opportunityGave(report.opportunity)
+                : t('expeditions.report.opportunityMissed')}
+            </Text>
+          )}
+          {(report.salvaged ?? []).map((entry, i) => {
+            const item = itemById[entry.itemId];
+            const returns = [
+              ...entry.materials.map((m) => `${materialById[m.materialId].emoji} ${m.amount}`),
+              entry.gold ? `🪙 +${entry.gold}` : null,
+            ]
+              .filter((part): part is string => part !== null)
+              .join(' · ');
+            return (
+              <Text key={i} style={styles.logLine}>
+                {t('expeditions.report.salvaged', {
+                  hero: heroes.find((h) => h.id === entry.heroId)?.name ?? entry.heroId,
+                  item: `${item.emoji} ${tr(item.name)}`,
+                  returns,
+                })}
+              </Text>
+            );
+          })}
           {report.log.map((line, i) => (
             <Text key={i} style={styles.logLine}>
               {line}

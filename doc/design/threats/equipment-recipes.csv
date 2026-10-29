@@ -1,0 +1,111 @@
+Slot,Type,Tier,Inputs,Total units
+Weapon,Sword,1,4 wood,4
+Weapon,Sword,2,"1 wood, 3 stone",4
+Weapon,Sword,3,"1 wood, 3 copper",4
+Weapon,Sword,4,"1 wood, 3 iron",4
+Weapon,Sword,5,"1 wood, 3 steel",4
+Weapon,Axe,1,"2 wood, 2 bone",4
+Weapon,Axe,2,"2 wood, 2 stone",4
+Weapon,Axe,3,"2 wood, 2 copper",4
+Weapon,Axe,4,"2 wood, 2 iron",4
+Weapon,Axe,5,"2 wood, 2 steel",4
+Weapon,Mace,1,"3 wood, 1 bone",4
+Weapon,Mace,2,"1 bone, 3 stone",4
+Weapon,Mace,3,"1 bone, 3 copper",4
+Weapon,Mace,4,"1 bone, 3 iron",4
+Weapon,Mace,5,"1 bone, 3 steel",4
+Weapon,Dagger,1,"3 bone, 1 hide",4
+Weapon,Dagger,2,"1 bone, 1 hide, 2 stone",4
+Weapon,Dagger,3,"1 bone, 1 hide, 2 copper",4
+Weapon,Dagger,4,"1 bone, 1 hide, 2 iron",4
+Weapon,Dagger,5,"1 bone, 1 hide, 2 steel",4
+Weapon,Bow,1,"3 wood, 1 hide",4
+Weapon,Bow,2,"2 wood, 1 hide, 1 stone",4
+Weapon,Bow,3,"2 wood, 1 hide, 1 copper",4
+Weapon,Bow,4,"2 wood, 1 hide, 1 iron",4
+Weapon,Bow,5,"2 wood, 1 hide, 1 steel",4
+Weapon,Spear,1,4 wood,4
+Weapon,Spear,2,"2 wood, 2 stone",4
+Weapon,Spear,3,"2 wood, 2 copper",4
+Weapon,Spear,4,"2 wood, 2 iron",4
+Weapon,Spear,5,"2 wood, 2 steel",4
+Weapon,Warhammer,1,6 wood,6
+Weapon,Warhammer,2,"2 wood, 4 stone",6
+Weapon,Warhammer,3,"2 wood, 4 copper",6
+Weapon,Warhammer,4,"2 wood, 4 iron",6
+Weapon,Warhammer,5,"2 wood, 4 steel",6
+Weapon,Wand,1,"3 wood, 1 bone",4
+Weapon,Wand,2,"2 wood, 1 bone, 1 stone",4
+Weapon,Wand,3,"2 wood, 1 bone, 1 copper",4
+Weapon,Wand,4,"2 wood, 1 bone, 1 iron",4
+Weapon,Wand,5,"2 wood, 1 bone, 1 steel",4
+Weapon,Staff,1,"5 wood, 1 herb",6
+Weapon,Staff,2,"4 wood, 1 herb, 1 stone",6
+Weapon,Staff,3,"4 wood, 1 herb, 1 copper",6
+Weapon,Staff,4,"4 wood, 1 herb, 1 iron",6
+Weapon,Staff,5,"4 wood, 1 herb, 1 steel",6
+Weapon,Lute,1,"3 wood, 1 hide",4
+Weapon,Lute,2,"2 wood, 1 hide, 1 stone",4
+Weapon,Lute,3,"2 wood, 1 hide, 1 copper",4
+Weapon,Lute,4,"2 wood, 1 hide, 1 iron",4
+Weapon,Lute,5,"2 wood, 1 hide, 1 steel",4
+Weapon,Censer,1,"3 bone, 1 herb",4
+Weapon,Censer,2,"1 bone, 1 herb, 2 stone",4
+Weapon,Censer,3,"1 bone, 1 herb, 2 copper",4
+Weapon,Censer,4,"1 bone, 1 herb, 2 iron",4
+Weapon,Censer,5,"1 bone, 1 herb, 2 steel",4
+Weapon,Knuckles,1,"2 bone, 2 hide",4
+Weapon,Knuckles,2,"2 hide, 2 stone",4
+Weapon,Knuckles,3,"2 hide, 2 copper",4
+Weapon,Knuckles,4,"2 hide, 2 iron",4
+Weapon,Knuckles,5,"2 hide, 2 steel",4
+Armour,Plate,1,"5 wood, 1 hide",6
+Armour,Plate,2,"1 hide, 5 stone",6
+Armour,Plate,3,"1 hide, 5 copper",6
+Armour,Plate,4,"1 hide, 5 iron",6
+Armour,Plate,5,"1 hide, 5 steel",6
+Armour,Mail,1,"4 bone, 2 hide",6
+Armour,Mail,2,"1 bone, 1 hide, 4 stone",6
+Armour,Mail,3,"1 bone, 1 hide, 4 copper",6
+Armour,Mail,4,"1 bone, 1 hide, 4 iron",6
+Armour,Mail,5,"1 bone, 1 hide, 4 steel",6
+Armour,Leather,1,"1 bone, 5 hide",6
+Armour,Leather,2,"4 hide, 2 stone",6
+Armour,Leather,3,"4 hide, 2 copper",6
+Armour,Leather,4,"4 hide, 2 iron",6
+Armour,Leather,5,"4 hide, 2 steel",6
+Armour,Robes,1,"4 herb, 2 berries",6
+Armour,Robes,2,"4 herb, 1 berries, 1 stone",6
+Armour,Robes,3,"4 herb, 1 berries, 1 copper",6
+Armour,Robes,4,"4 herb, 1 berries, 1 iron",6
+Armour,Robes,5,"4 herb, 1 berries, 1 steel",6
+Off-hand,Shield,1,3 wood,3
+Off-hand,Shield,2,"1 wood, 2 stone",3
+Off-hand,Shield,3,"1 wood, 2 copper",3
+Off-hand,Shield,4,"1 wood, 2 iron",3
+Off-hand,Shield,5,"1 wood, 2 steel",3
+Off-hand,Buckler,1,"2 wood, 1 hide",3
+Off-hand,Buckler,2,"1 hide, 2 stone",3
+Off-hand,Buckler,3,"1 hide, 2 copper",3
+Off-hand,Buckler,4,"1 hide, 2 iron",3
+Off-hand,Buckler,5,"1 hide, 2 steel",3
+Off-hand,Off-hand blade,1,"2 bone, 1 hide",3
+Off-hand,Off-hand blade,2,"1 hide, 2 stone",3
+Off-hand,Off-hand blade,3,"1 hide, 2 copper",3
+Off-hand,Off-hand blade,4,"1 hide, 2 iron",3
+Off-hand,Off-hand blade,5,"1 hide, 2 steel",3
+Off-hand,Quiver,1,"2 wood, 1 hide",3
+Off-hand,Quiver,2,"1 hide, 2 stone",3
+Off-hand,Quiver,3,"1 hide, 2 copper",3
+Off-hand,Quiver,4,"1 hide, 2 iron",3
+Off-hand,Quiver,5,"1 hide, 2 steel",3
+Off-hand,Tome,1,"1 wood, 1 hide, 1 berries",3
+Off-hand,Tome,2,"1 hide, 1 berries, 1 stone",3
+Off-hand,Tome,3,"1 hide, 1 berries, 1 copper",3
+Off-hand,Tome,4,"1 hide, 1 berries, 1 iron",3
+Off-hand,Tome,5,"1 hide, 1 berries, 1 steel",3
+Off-hand,Focus,1,"2 bone, 1 mushroom",3
+Off-hand,Focus,2,"1 mushroom, 2 stone",3
+Off-hand,Focus,3,"1 mushroom, 2 copper",3
+Off-hand,Focus,4,"1 mushroom, 2 iron",3
+Off-hand,Focus,5,"1 mushroom, 2 steel",3

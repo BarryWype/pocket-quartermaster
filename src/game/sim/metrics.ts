@@ -147,8 +147,6 @@ export type ProfileSummary = {
     emergencySupply: number;
     /** Expeditions per run (median) that took each meal. */
     meals: Record<string, number>;
-    /** Expeditions per run (median) that took each kit, and that used it up. */
-    kits: Record<string, { taken: number; triggered: number }>;
     /** Meat and berries gathered and used by the kitchen (median per run), and the share used. */
     food: { gathered: number; used: number; share: number };
   };
@@ -327,8 +325,6 @@ export function summarize(logs: RunLog[], targets: Targets = defaultTargets, wit
   const perRun = (value: (log: RunLog) => number) => round(median(logs.map(value)), 1);
   const count = (pick: (e: (typeof all)[number]) => string | null, test: (e: (typeof all)[number]) => boolean = () => true) =>
     medianTotals(logs.map((log) => sumBy(log.expeditions.filter((e) => pick(e) && test(e)), (e) => pick(e)!, () => 1)));
-  const kitsTaken = count((e) => e.kit);
-  const kitsUsed = count((e) => e.kit, (e) => e.kitUsed);
   const FOOD = ['meat', 'berries'];
   const foodGathered = perRun((log) => FOOD.reduce((s, m) => s + Object.values(log.gathered[m] ?? {}).reduce((a, b) => a + b, 0), 0));
   const foodUsed = perRun((log) => FOOD.reduce((s, m) => s + (log.used[m]?.kitchen ?? 0), 0));
@@ -417,7 +413,6 @@ export function summarize(logs: RunLog[], targets: Targets = defaultTargets, wit
       starving: share((e) => e.hunger === 'starving'),
       emergencySupply: perRun((log) => log.emergencySupply),
       meals: count((e) => e.meal),
-      kits: Object.fromEntries(Object.keys(kitsTaken).map((k) => [k, { taken: kitsTaken[k], triggered: kitsUsed[k] ?? 0 }])),
       food: { gathered: foodGathered, used: foodUsed, share: round(foodUsed / Math.max(1, foodGathered)) },
     },
     guild: {

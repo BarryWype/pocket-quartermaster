@@ -91,7 +91,7 @@ describe('background results', () => {
   });
 
   it('keep the reward but not the HP of a hero sent away since', () => {
-    const away = { ...save, patrolFights: [{ ...result, id: 'f', tier: 1, elite: false, heroIds: ['bram'], startedAt: at, endsAt: at + 99 * MINUTE, hp: [], consumed: [] }] };
+    const away = { ...save, patrolFights: [{ ...result, id: 'f', tier: 1, elite: false, heroIds: ['bram'], startedAt: at, endsAt: at + 99 * MINUTE, hp: [], salvaged: [] }] };
     const merged = applyBackgroundResults(away, [{ ...result, won: true }], at + 5 * MINUTE);
     expect(merged.gold).toBe(save.gold + result.rewards.gold);
     expect(merged.heroes.find((h) => h.id === 'bram')!.hp).toBeUndefined();

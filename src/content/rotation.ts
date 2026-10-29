@@ -7,8 +7,6 @@ export const rotationRules = {
   resetHourUtc: 0,
   /** Rotations are worked out day by day from here, so "not the same as yesterday" holds exactly. */
   startDay: Date.UTC(2026, 0, 1),
-  /** Chance a tier has a modified dungeon on a given day. */
-  modifierChance: 0.6,
 };
 
 /** One-time bonus for the first win in each pool dungeon, as shares of its top gold and its XP. */

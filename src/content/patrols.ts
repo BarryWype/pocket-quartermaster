@@ -18,8 +18,6 @@ export type PatrolKindRules = {
   loot?: LootEntry[];
   /** The stolen cache holds about this many nodes' worth of materials. */
   cacheNodes?: number;
-  /** A trap left on the path, with its weight in the encounter pool. */
-  trap?: { name: string; damagePct: number; triggerChance: number; weight: number };
 };
 
 export const patrolKinds: Record<PatrolKind, PatrolKindRules> = {
@@ -55,7 +53,6 @@ export const patrolKinds: Record<PatrolKind, PatrolKindRules> = {
     ],
     goldShareOfShort: 1.5,
     cacheNodes: 3,
-    trap: { name: 'snare', damagePct: 0.1, triggerChance: 0.5, weight: 2 },
   },
 };
 

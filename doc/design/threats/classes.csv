@@ -1,19 +1,27 @@
-Class,Family,Rarity,Might,Finesse,Wits,Faith,Presence,Light,Watchful,Calm,Pierce,Cleave,Blessed,Guard,Score note,Signature
-Scholar,Answerer,Common,0,0,1,0,0,0,0,0,0,0,0,0,Wits 4,Old inscriptions give double
-Pathfinder,Answerer,Common,0,0,1,0,0,0,1,0,0,0,0,0,Watchful 2,Delay penalties halved for every threat
-Exorcist,Answerer,Uncommon,0,0,0,1,0,0,0,0,0,0,1,0,,Answers Desecrated ground and Undead at once
-Bulwark,Fighter,Common,1,0,0,0,0,0,0,0,0,0,0,1,,Takes the Brute's hits
-Duelist,Fighter,Common,0,0,0,0,0,0,0,0,1,0,0,0,,Big crits on single enemies
-Berserker,Fighter,Common,1,0,0,0,0,0,0,0,0,1,0,0,,Gets stronger as their HP drops
-Smuggler,Converter,Uncommon,0,1,0,0,1,0,0,0,0,0,0,0,Finesse 4,Thieves become a fence: gold instead of losses
-Diplomat,Converter,Uncommon,0,0,0,0,1,0,0,0,0,0,0,0,,Answers Locals at any level; better Bounty and Merchant
-Necromancer,Converter,Rare: secret tavern,0,0,1,0,0,0,0,0,0,0,0,0,,Undead become allies for the run
-Beastmaster,Converter,Rare: secret tavern,0,0,0,0,0,0,0,1,0,0,0,0,,Beasts join the fight on the party's side
-Engineer,Rule-bender,Uncommon,1,0,1,0,0,0,0,0,0,0,0,0,,Their kit gives +3 instead of +2
-Alchemist,Rule-bender,Uncommon,0,0,1,0,0,0,0,0,0,0,0,0,,"A second slot, for healing consumables only"
-Porter,Rule-bender,Uncommon,1,0,0,0,0,0,0,0,0,0,0,0,,Carries a kit for another hero
-Scout,Rule-bender,Uncommon,0,1,0,0,0,0,1,0,0,0,0,0,,Lowers one Extreme threat to Strong
-Curse-breaker,Rule-bender,Rare: high tiers,0,0,0,1,0,0,0,0,0,0,0,0,Faith 4,Cancels the day's restriction
-Cook,Rule-bender,Uncommon,0,0,0,0,1,0,0,0,0,0,0,0,,"Meals count double, Hunger halved, cancels Spoiled stores, light heal between fights"
-Monk,Rule-bender,Uncommon,1,0,0,1,0,0,0,0,0,0,0,0,,Fists count as Pierce; immune to Sacred ground and Anti-magic zone
-Gambler,Rule-bender,Uncommon,0,0,0,0,0,0,0,0,0,0,0,0,Random scores,Scores rolled at the daily reset and shown; +crit
+Class,Family,Rarity,Primary HP,Primary Power,Primary Magic,Primary Armour,Primary Resistance,Primary Evasion,Primary Speed,Primary Crit,Half-rate stat,Might,Finesse,Wits,Faith,Presence,Light,Watchful,Calm,Antidote,Pierce,Cleave,Blessed,Guard,Inspire,Note,Signature
+Warrior,Fighter,As today,1,1,0,1,0,0,0,0,,1,0,0,0,0,0,0,0,0,0,0,0,0,0,,Solid front line
+Barbarian,Fighter,As today,1,1,0,0,0,0,0,1,,1,0,0,0,0,0,0,0,0,0,1,0,0,0,Merged with Berserker,Gets stronger as their HP drops; intimidates locals
+Paladin,Fighter,As today,1,0,0,1,1,0,0,0,,0,0,0,1,0,0,0,0,0,0,0,1,1,0,Merged with Bulwark,Takes the Brute's hits
+Ranger,Answerer,As today,0,1,0,0,0,1,1,0,,0,0,1,0,0,0,1,0,0,0,0,0,0,0,Merged with Pathfinder,Delay penalties halved; strong against beasts
+Thief,Answerer,As today,0,1,0,0,0,1,0,1,,0,1,0,0,0,0,0,0,0,0,0,0,0,0,Finesse 4,Pickpockets locals; double hidden cache
+Fire mage,Answerer,As today,0,0,1,0,0,0,1,1,,0,0,0,0,0,1,0,0,0,0,1,0,0,0,,Fire lights the way
+Frost mage,Answerer,As today,0,0,1,1,1,0,0,0,,0,0,1,0,0,0,0,0,0,0,0,0,0,0,,Ice armour; good against puzzles and Underwater
+Sorcerer,Answerer,As today,0,0,1,0,1,0,0,1,,0,0,1,0,0,0,0,0,0,0,0,0,0,0,,Much stronger elemental advantage
+Cleric,Answerer,As today,1,0,1,0,1,0,0,0,,0,0,0,1,0,0,0,0,1,0,0,1,0,0,,Heals the party each fight
+Druid,Answerer,As today,1,0,1,0,0,1,0,0,,0,0,0,0,0,0,0,1,1,0,0,0,0,0,,Calms beasts
+Troubadour,Answerer,As today,0,0,1,0,0,1,1,0,,0,0,0,0,1,0,0,0,0,0,0,0,0,1,,Charms locals; Inspire
+Scholar,Answerer,Common,0,0,1,0,1,0,1,0,,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Wits 4,Old inscriptions give double
+Exorcist,Answerer,Uncommon,0,1,0,0,1,0,0,1,,0,0,0,1,0,0,0,0,0,0,0,1,0,0,,Answers Desecrated ground and Undead at once
+Duelist,Fighter,Common,0,1,0,0,0,0,1,1,,0,0,0,0,0,0,0,0,0,1,0,0,0,0,,Big crits on single enemies
+Smuggler,Converter,Uncommon,0,0,0,0,0,1,1,1,Power,0,1,0,0,1,0,0,0,0,0,0,0,0,0,Finesse 4,Thieves become a fence: gold instead of losses
+Diplomat,Converter,Uncommon,1,0,0,0,1,1,0,0,Magic,0,0,0,0,1,0,0,0,0,0,0,0,0,0,,Answers Locals at any level; better Bounty and Merchant
+Necromancer,Converter,Rare: secret tavern,1,0,1,0,0,0,0,1,,0,0,1,0,0,0,0,0,0,0,0,0,0,0,,Undead become allies for the run
+Beastmaster,Converter,Rare: secret tavern,1,1,0,0,0,1,0,0,,0,0,0,0,0,0,0,1,0,0,0,0,0,0,,Beasts join the fight on the party's side
+Engineer,Rule-bender,Uncommon,0,1,0,1,0,0,0,1,,1,0,1,0,0,0,0,0,0,0,0,0,0,0,,Their kit gives +3 instead of +2
+Alchemist,Rule-bender,Uncommon,1,0,1,0,0,0,1,0,,0,0,1,0,0,0,0,0,0,0,0,0,0,0,,"A second slot, for healing consumables only"
+Porter,Rule-bender,Uncommon,1,0,0,1,0,1,0,0,Power,1,0,0,0,0,0,0,0,0,0,0,0,0,0,,Carries a kit for another hero
+Scout,Rule-bender,Uncommon,0,1,0,0,0,1,1,0,,0,1,0,0,0,0,1,0,0,0,0,0,0,0,Same primary stats as Ranger,Lowers one Extreme threat to Strong
+Curse-breaker,Rule-bender,Rare: high tiers,0,0,1,0,1,1,0,0,,0,0,0,1,0,0,0,0,0,0,0,0,0,0,Faith 4,Cancels the day's restriction
+Cook,Rule-bender,Uncommon,1,0,0,0,1,0,1,0,Power,0,0,0,0,1,0,0,0,0,0,0,0,0,0,,"Meals count double, Hunger halved, cancels Spoiled stores, light heal between fights"
+Monk,Rule-bender,Uncommon,0,1,0,0,1,1,0,0,,1,0,0,1,0,0,0,0,0,0,0,0,0,0,,Fists count as Pierce; immune to Sacred ground and Anti-magic zone
+Gambler,Rule-bender,Uncommon,0,0,0,0,0,0,1,1,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"Random approach scores, rolled at the daily reset",+crit

@@ -1,0 +1,10 @@
+Stat,What it does,Today,Growth step,Notes
+HP,Max health,Exists,+8,
+Power,Physical damage; fully reduced by Armour; no element,Was attack,+2,Used when the weapon deals physical damage
+Magic,Elemental damage; follows the wheel (x1.5 / x0.75); partly ignores Armour,Was magic (added to attack),+2,Used when the weapon deals magic damage
+Armour,Cuts physical damage taken,Was defense,+1,
+Resistance,Cuts magic damage taken,New,+1,"Enemies get a damage type: physical, or magic"
+Evasion,Chance to avoid a hit,New; replaces the Swift keyword,+1%,Cap 40%
+Speed,"Faster than the enemy: acts first, and a chance of a second attack each round",New,+1,
+Crit,Chance of a critical hit,Was only a bonus,+1%,
+Luck,"More gold and materials, better rare drops",New,Born with only,Rare heroes only; very rarely on legendary items; +1 for every hero at level 15

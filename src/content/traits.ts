@@ -63,9 +63,9 @@ export const traits: TraitDef[] = [
   {
     id: 'lightSleeper',
     name: 'Light sleeper',
-    description: 'Ambushes don’t get the first strike.',
+    description: 'Counts as Watchful.',
     positive: true,
-    effects: [{ kind: 'ambushAlert' }],
+    effects: [{ kind: 'keyword', keyword: 'watchful' }],
   },
   {
     id: 'ironStomach',
@@ -77,9 +77,9 @@ export const traits: TraitDef[] = [
   {
     id: 'clumsy',
     name: 'Clumsy',
-    description: 'Traps trigger more often.',
+    description: '−1 Finesse.',
     positive: false,
-    effects: [{ kind: 'trapTrigger', multiplier: 1.4 }],
+    effects: [{ kind: 'approach', approach: 'finesse', add: -1 }],
   },
   {
     id: 'greedy',
@@ -98,9 +98,9 @@ export const traits: TraitDef[] = [
   {
     id: 'loud',
     name: 'Loud',
-    description: 'Locals are more likely to turn on the party.',
+    description: '−1 Presence.',
     positive: false,
-    effects: [{ kind: 'hostileLocals', chance: 0.3, noticeBonus: 0.2 }],
+    effects: [{ kind: 'approach', approach: 'presence', add: -1 }],
   },
   {
     id: 'frail',

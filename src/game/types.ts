@@ -52,9 +52,7 @@ export type GearDef = ItemBase & {
 export type Charm =
   | { kind: 'crit'; chance: number }
   /** Party gold multiplier; several Lucky teeth count once. */
-  | { kind: 'gold'; multiplier: number }
-  /** The hero ignores the first trap that would hit them. */
-  | { kind: 'wardTrap' };
+  | { kind: 'gold'; multiplier: number };
 
 export type ConsumableDef = ItemBase & {
   slot: 'consumable';
@@ -64,6 +62,8 @@ export type ConsumableDef = ItemBase & {
   when?: 'lowHp';
   /** Element this consumable protects its hero against for the whole run. */
   protectsAgainst?: Element;
+  /** A kit: what it gives its carrier against threats. */
+  kit?: KitEffect;
   charm?: Charm;
 };
 
@@ -77,23 +77,209 @@ export type MealEffect =
   /** Added to the retreat multiplier of a failed run's rewards, up to a full clear. */
   | { kind: 'retreat'; bonus: number };
 
-/** A party-wide kit: stands in once for a missing class counter. */
-export type KitEffect =
-  | { kind: 'obstacle'; obstacle: ObstacleKind }
-  /** Chance to calm the first all-beast fight. */
-  | { kind: 'calmBeasts'; chance: number }
-  /** The first locals react as if charmed. */
-  | { kind: 'charmLocals' }
-  /** Damage multiplier against undead in the first undead fight. */
-  | { kind: 'undeadDamage'; multiplier: number };
+/** What a hero can bring to bear on a threat. */
+export type Approach = 'might' | 'finesse' | 'wits' | 'faith' | 'presence';
 
-/** Food and kits: held in the stock, taken by the whole party. */
+/** Keywords answer keyword threats; classes, traits, weapons and kits give them. */
+export type Keyword = 'light' | 'watchful' | 'calm' | 'antidote' | 'pierce' | 'cleave' | 'blessed' | 'guard';
+
+export type ThreatId =
+  | 'traps'
+  | 'element'
+  | 'beasts'
+  | 'undead'
+  | 'brute'
+  | 'rubble'
+  | 'poison'
+  | 'locals'
+  | 'swarm'
+  | 'darkness'
+  | 'locked'
+  | 'desecrated'
+  | 'casters'
+  | 'ambush'
+  | 'thieves'
+  | 'armoured'
+  | 'puzzle'
+  | 'maze'
+  | 'underwater';
+
+export type ThreatCategory = 'environment' | 'obstacle' | 'holy' | 'enemy' | 'social';
+
+/** Light, strong or extreme: higher levels need better answers and bite harder when missed. */
+export type ThreatLevel = 1 | 2 | 3;
+
+export type RestrictionId =
+  | 'antiMagic'
+  | 'sacredGround'
+  | 'noHealing'
+  | 'cursedLuck'
+  | 'thickFog'
+  | 'barren'
+  | 'narrowPassages'
+  | 'spoiledStores';
+
+export type OpportunityId =
+  | 'healingSpring'
+  | 'hiddenCache'
+  | 'richVein'
+  | 'bounty'
+  | 'prisoners'
+  | 'refugees'
+  | 'forgottenShrine'
+  | 'oldInscriptions'
+  | 'trophyBeast';
+
+/** What meets a threat: the best hero's approach score, the number of heroes with a keyword, or with Resist(element). */
+export type ThreatAnswer =
+  | { kind: 'approach'; approach: Approach }
+  | { kind: 'keyword'; keyword: Keyword }
+  | { kind: 'resist' };
+
+/** One effect of a missed threat. A half penalty halves every number (see "Half penalties"). */
+export type ThreatPenalty =
+  /** Enemies strike first in the first `fights` fights, or in all of them. */
+  | { kind: 'exposed'; fights: number | 'all' }
+  /** Party damage × (1 − pct). */
+  | { kind: 'weakened'; pct: number }
+  /** Share of max HP lost by each hero a trap catches. */
+  | { kind: 'trapWounds'; pct: number }
+  /** After (poison: all) or before (casters: one) each fight, % of max HP, ignores armour. */
+  | { kind: 'fightWounds'; pct: number; targets: 'all' | 'one' }
+  /** Expedition time × (1 + pct). */
+  | { kind: 'delay'; pct: number }
+  /** Extra supply points needed at launch. */
+  | { kind: 'hunger'; supply: number }
+  /** Gold and materials × (1 − pct). */
+  | { kind: 'lostLoot'; pct: number }
+  /** The locals turn hostile. */
+  | { kind: 'extraFight' }
+  /** Damage of the threat's element taken by heroes without Resist. */
+  | { kind: 'elementalDamage'; multiplier: number }
+  | { kind: 'enemyDamage'; tag: 'beast'; pct: number }
+  | { kind: 'enemyHp'; tag: 'undead'; pct: number }
+  /** Armoured: party damage against every enemy × (1 − pct). */
+  | { kind: 'weakenedAgainst'; pct: number }
+  /** Per fight of 3+ enemies, copies of its weakest mob. */
+  | { kind: 'extraEnemies'; count: number }
+  /** The boss deals × (1 + pct). */
+  | { kind: 'bruteDamage'; pct: number }
+  | { kind: 'healingHalved' };
+
+export type ThreatDef = {
+  id: ThreatId;
+  name: string;
+  emoji: string;
+  category: ThreatCategory;
+  /** The first tier the threat appears in, at level 1. */
+  firstTier: number;
+  answer: ThreatAnswer;
+  /** Locked: Might forces it (loses some loot). Locals: Might intimidates them (no help, no fight). */
+  alternative?: Approach;
+  /** Penalties at levels 1, 2 and 3. */
+  penalties: [ThreatPenalty[], ThreatPenalty[], ThreatPenalty[]];
+  /** One short line: what it is and what happens if missed. */
+  description: string;
+};
+
+/** A threat as it stands in one dungeon today. */
+export type ActiveThreat = {
+  id: ThreatId;
+  level: ThreatLevel;
+  /** The Element threat's element, from the dungeon. */
+  element?: Element;
+  /** The daily surge name, when it raised the level. */
+  surge?: 'restlessDead' | 'boobyTrapped' | 'packHunt';
+};
+
+/** What a dungeon shows today, kept by an expedition for its whole run. */
+export type Briefing = {
+  threats: ActiveThreat[];
+  restriction: RestrictionId | null;
+  opportunity: OpportunityId | null;
+};
+
+/** A rule the whole briefing plays under, that cuts some answers short. */
+export type RestrictionDef = {
+  id: RestrictionId;
+  name: string;
+  emoji: string;
+  description: string;
+};
+
+/** What answers an opportunity: any one of them (empty = free). */
+export type OpportunityAnswer = { approach: Approach; score: number } | { keyword: Keyword };
+
+/** What an answered opportunity pays; one kind per opportunity. */
+export type OpportunityReward =
+  /** Healing spring: every conscious hero heals this share of max HP. */
+  | { kind: 'heal'; pct: number }
+  /** Hidden cache: this share of the dungeon's top gold. */
+  | { kind: 'goldShare'; share: number }
+  /** Rich vein: `base + tier` of the tier's ore material. */
+  | { kind: 'ore'; base: number; materials: string[] }
+  /** Bounty: gold × this for the run. */
+  | { kind: 'goldMultiplier'; multiplier: number }
+  /** Prisoners: this share of the top gold, plus a chance a prisoner joins the roster. */
+  | { kind: 'prisoners'; share: number; recruitChance: number }
+  /** Refugees: one roll of the pilgrim traveller's reward table (see travellerRules.pilgrimRewards). */
+  | { kind: 'pilgrimReward' }
+  /** Forgotten shrine: party damage × this for the rest of the run. */
+  | { kind: 'partyDamage'; multiplier: number }
+  /** Old inscriptions: XP × this, plus a chance to teach one unknown Provisions recipe. */
+  | { kind: 'xp'; multiplier: number; recipeChance: number }
+  /** Trophy beast: materials, plus a chance of one shard of a random element. */
+  | { kind: 'trophy'; hide: [min: number, max: number]; bone: number; shardChance: number };
+
+export type OpportunityDef = {
+  id: OpportunityId;
+  name: string;
+  emoji: string;
+  description: string;
+  /** Empty = free; any one answer answers it. */
+  answers: OpportunityAnswer[];
+  /** Supply points it costs; the party must opt in to pay them. */
+  cost?: { supply: number };
+  reward: OpportunityReward;
+};
+
+/** What an answered opportunity gave a run; one kind per opportunity. */
+export type OpportunityOutcome = {
+  id: OpportunityId;
+  answered: boolean;
+  /** Gold it handed over on the spot (part of the run's bonus gold). */
+  gold?: number;
+  /** Materials it gave: ore, trophies, shards. */
+  materials?: MaterialStack[];
+  /** Bounty: the dungeon's rolled gold is multiplied by this. */
+  goldMultiplier?: number;
+  /** Forgotten shrine: party damage multiplier for the rest of the run. */
+  damageMultiplier?: number;
+  /** Old inscriptions: XP multiplier, and whether it taught a recipe. */
+  xpMultiplier?: number;
+  recipe?: boolean;
+  /** Prisoners: whether a prisoner joins the roster. */
+  recruit?: boolean;
+  /** Refugees: the pilgrim traveller's reward rolled. */
+  pilgrim?: 'blessing' | 'gold' | 'keyFragment';
+};
+
+/** What a kit gives its carrier against the threats it covers. */
+export type KitEffect = {
+  threats: ThreatId[];
+  /** Adds to the answer approach of these threats (the carrier's own approach for 'threat'). */
+  approach?: Approach | 'threat';
+  keywords?: Keyword[];
+  /** Heals its carrier once, like a potion. */
+  heal?: number;
+};
+
+/** Food: held in the stock, taken by the whole party. */
 export type ProvisionDef = ItemBase & {
   slot: 'provision';
   /** Supply points it covers. */
   supply?: number;
   meal?: MealEffect;
-  kit?: KitEffect;
 };
 
 /** Owned by the player rather than a hero; never wears out. */
@@ -115,6 +301,8 @@ export type RecipeDef = {
   output: { itemId: string } | { materialId: string; amount: number };
   inputs: MaterialStack[];
   unlockedByDefault: boolean;
+  /** Counted as known once the player's highest unlocked tier reaches this. */
+  availableFromTier?: number;
   /** Recipes learned the first time this one is crafted. */
   unlocks?: string[];
 };
@@ -134,27 +322,21 @@ export type HeroClassId =
 
 export type ClassRarity = 'common' | 'uncommon';
 
-/** What a dungeon's encounters are made of; heroes with matching abilities counter them. */
+/** The tags encounters and mobs carry; threats and abilities play on them. */
 export type Tag = 'undead' | 'beast' | 'trap' | 'obstacle' | 'locals' | Element;
 
 export type ObstacleKind = 'rubble' | 'locked' | 'barricade';
 
-export type LocalsReactionKey = 'charm' | 'provoke' | 'pickpocket';
-
 /**
  * A class ability: one of a few effects the simulation knows. Party-wide ones
- * (disarm, calm, obstacles, locals) work if any conscious hero has them.
+ * (beast damage, traps, pickpocket) work if any conscious hero has them.
  */
 export type Ability =
   | { kind: 'damageVsTag'; tag: Tag; multiplier: number }
-  /** Chance per trap to skip it for the whole party. */
-  | { kind: 'trapDisarm'; chance: number }
   /** Trap damage to the party is multiplied by this. */
   | { kind: 'trapReduce'; multiplier: number }
-  | { kind: 'obstacleSolve'; kinds: ObstacleKind[] }
-  /** Chance per all-beast fight to skip it. */
-  | { kind: 'calmBeasts'; chance: number }
-  | { kind: 'localsReaction'; key: LocalsReactionKey }
+  /** A thief lifts some gold from locals who don't help. */
+  | { kind: 'pickpocket' }
   /** After each encounter, conscious heroes regain this share of max HP. */
   | { kind: 'partyHeal'; pct: number }
   /** This share of the damage aimed at the most hurt ally is taken by this hero instead. */
@@ -164,7 +346,7 @@ export type Ability =
   /** Damage multiplier for the whole party while this hero is conscious; the best one applies. */
   | { kind: 'partyDamageBuff'; multiplier: number }
   | { kind: 'critBonus'; chance: number }
-  /** Gold from cache events is multiplied by this. */
+  /** Gold from cache events and the hidden cache opportunity is multiplied by this. */
   | { kind: 'cacheBonus'; multiplier: number }
   /** Replaces the elemental advantage multiplier for this hero's attacks. */
   | { kind: 'elementalAdvantage'; multiplier: number }
@@ -172,8 +354,6 @@ export type Ability =
   | { kind: 'statMultiplier'; stat: keyof Stats; multiplier: number }
   | { kind: 'goldMultiplier'; multiplier: number }
   | { kind: 'xpMultiplier'; multiplier: number }
-  /** Ambushes don't get the first strike. */
-  | { kind: 'ambushAlert' }
   /** Hunter's stew heals this hero this much more. */
   | { kind: 'stewBoost'; multiplier: number }
   /** Damage this hero takes is multiplied by this. */
@@ -184,12 +364,12 @@ export type Ability =
   | { kind: 'supplyNeed'; add: number }
   /** Underfed and Starving penalties are multiplied by this for this hero. */
   | { kind: 'hungerResist'; multiplier: number }
-  /** Trap trigger chance multiplier. */
-  | { kind: 'trapTrigger'; multiplier: number }
   /** Added to the share of max HP below which this hero drinks a potion. */
   | { kind: 'potionThreshold'; add: number }
-  /** Locals who would ignore the party attack with this chance; pickpockets get noticed more. */
-  | { kind: 'hostileLocals'; chance: number; noticeBonus: number };
+  /** Added to this hero's score for one approach (traits). */
+  | { kind: 'approach'; approach: Approach; add: number }
+  /** This hero counts as having the keyword (traits). */
+  | { kind: 'keyword'; keyword: Keyword };
 
 export type TraitDef = {
   id: string;
@@ -211,6 +391,9 @@ export type HeroClassDef = {
   growth: Stats;
   /** The weapon types this class can use, with the multiplier on their stats. Armour is open to all. */
   affinities: Partial<Record<WeaponType, number>>;
+  /** Approach scores; missing approaches are the default (see approachRules). */
+  approaches: Partial<Record<Approach, number>>;
+  keywords: Keyword[];
   /** Elements this class takes no extra damage from. */
   resists?: Element[];
   /** Relative chance of being the one enemies attack; tanks have more. */
@@ -267,16 +450,16 @@ export type ActiveExpedition = {
   seed: string;
   /** The tutorial's first expedition always succeeds. */
   guaranteed?: boolean;
-  /** The daily modifier the dungeon had at launch, kept if the rotation changes. */
-  modifierId?: string | null;
+  /** The dungeon's briefing at launch, kept for the whole run (empty when none). */
+  briefing?: Briefing;
+  /** The party opted into the briefing's opportunity cost. */
+  optIn?: boolean;
   /** Supply status at launch. */
   hunger?: Hunger;
   /** Supply points taken. */
   supplyUsed?: number;
   /** Meal eaten (provision item id). */
   mealId?: string | null;
-  /** Kit taken; it comes back if it never triggers. */
-  kitId?: string | null;
   notificationId: string | null;
 };
 
@@ -308,17 +491,15 @@ export type MobGroup = { mobId: string; count: number };
 export type EncounterDef = { weight: number } & (
   | { type: 'fight'; mobs: MobGroup[] }
   | {
+      /** Live only when the briefing has the traps threat; it wounds whoever it catches. */
       type: 'trap';
       name: string;
-      /** Share of max HP lost by each hero it catches. */
-      damagePct: number;
       targets: 'one' | 'all';
-      triggerChance: number;
       element?: Element;
     }
+  /** A quiet step unless the briefing has the locals threat: help, intimidation or a hostile fight. */
   | { type: 'event'; eventId: string }
-  /** Solved for free by a hero with the ability; otherwise costs HP and maybe a detour fight. */
-  | { type: 'obstacle'; name: string; kind: ObstacleKind; hpCostPct: number; detourChance: number }
+  | { type: 'obstacle'; name: string; kind: ObstacleKind }
   | { type: 'locals'; npcId: string }
 );
 
@@ -337,21 +518,6 @@ export type NpcDef = {
   help: NpcHelp;
   /** What they turn into when provoked or caught: scaled to the dungeon's tier in `enemies.ts`. */
   hostile: { name: string; count: number; hp: number; damage: number };
-};
-
-/** A daily twist on one dungeon. Only adjusts data; needs every tag in `requires`. */
-export type DungeonModifier = {
-  id: string;
-  name: string;
-  emoji: string;
-  description: string;
-  requires: Tag[];
-  /** Encounters with this tag get their weight multiplied. */
-  boost?: { tag: Tag; multiplier: number };
-  /** Every enemy takes this element. */
-  enemyElement?: Element;
-  gold?: number;
-  materials?: number;
 };
 
 export type EventDef = { id: string; name: string } & (
@@ -376,10 +542,6 @@ export type DungeonDef = {
   slot?: 'short' | 'long';
   /** An overnight quest: open every day alongside the rotation, not part of it. */
   overnight?: boolean;
-  /** Set by a daily modifier. */
-  enemyElement?: Element;
-  rewardMultipliers?: { gold: number; materials: number };
-  modifierId?: string;
   durationMinutes: number;
   /** Number of encounters, boss included. */
   encounterCount: [min: number, max: number];
@@ -452,9 +614,14 @@ export type ExpeditionReport = {
   hunger?: Hunger;
   supplyUsed?: number;
   mealId?: string | null;
-  kitId?: string | null;
-  /** The kit triggered and was used up. */
-  kitUsed?: boolean;
+  /** The briefing the expedition played under (empty when it had none). */
+  briefing?: Briefing;
+  /** Each drawn threat, its level and how the party fared against it. */
+  threats: { id: ThreatId; level: ThreatLevel; element?: Element; state: 'met' | 'half' | 'full'; forced?: boolean; intimidated?: boolean }[];
+  /** The briefing's opportunity at the midpoint and what it gave, or null when there was none. */
+  opportunity: OpportunityOutcome | null;
+  /** Consumables that never triggered, broken back down (see threats/salvage.ts). */
+  salvaged: { heroId: string; itemId: string; materials: MaterialStack[]; gold: number }[];
   /** Extra rewards rolled on success, besides gold, loot and recipes. */
   mainRewards: MainReward[];
   gold: number;

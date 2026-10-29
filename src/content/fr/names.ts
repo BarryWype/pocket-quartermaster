@@ -61,13 +61,35 @@ export const frNames: Record<string, string> = {
 
   // Consumables
   'Healing potion': 'Potion de soin',
-  'Fire resistance elixir': 'Élixir de résistance au feu',
   'Rabbit’s foot': 'Patte de lapin',
   '+5% critical hit chance for this hero.': '+5 % de chances de coup critique pour ce héros.',
   'Lucky tooth': 'Dent porte-bonheur',
   '+5% gold for the party (one per party counts).': '+5 % d’or pour le groupe (une seule compte par groupe).',
-  'Ward bone': 'Os de garde',
-  'This hero ignores the first trap that would hit them.': 'Ce héros ignore le premier piège qui le toucherait.',
+  // Kits and ward salves
+  'Rogue’s roll': 'Trousse du voleur',
+  'Picks, a probe, wire and a decoy purse.': 'Crochets, une sonde, du fil et une bourse leurre.',
+  'Hunter’s pack': 'Paquetage du chasseur',
+  'Sleepweed bait and a snare.': 'Un appât d’herbe à sommeil et un collet.',
+  'Ember ward salve': 'Onguent aux braises',
+  'Rubbed on skin and armour.': 'Frotté sur la peau et l’armure.',
+  'Tide ward salve': 'Onguent des marées',
+  'Storm ward salve': 'Onguent des orages',
+  'Stone ward salve': 'Onguent de pierre',
+  'Thorn ward salve': 'Onguent aux ronces',
+  'Explorer’s kit': 'Kit de l’explorateur',
+  'Rope, a pry bar, an air bladder and seabreath tonic.':
+    'Une corde, un pied-de-biche, une vessie d’air et un tonique de souffle marin.',
+  'Healer’s satchel': 'Sac du soigneur',
+  'Theriac and bandages.': 'De la thériaque et des bandages.',
+  'Gift basket': 'Panier de cadeaux',
+  'Honey cakes, smoked meat and a carved trinket.': 'Des pains au miel, de la viande fumée et un bibelot sculpté.',
+  Lantern: 'Lanterne',
+  'A shuttered tallow lantern and copper bells.': 'Une lanterne à suif à volets et des clochettes de cuivre.',
+  'Holy relics': 'Reliques saintes',
+  'Holy water and warding salt.': 'De l’eau bénite et du sel de protection.',
+  'Scholar’s satchel': 'Sac de l’érudit',
+  'A copper cipher wheel, berry ink, thread and chalk.':
+    'Une roue de chiffre en cuivre, de l’encre de baies, du fil et de la craie.',
 
   // Provisions
   'Trail mix': 'Mélange du randonneur',
@@ -474,17 +496,17 @@ export const frNames: Record<string, string> = {
   'Quick learner': 'Vif d’esprit',
   '+20% XP.': '+20 % d’XP.',
   'Light sleeper': 'Sommeil léger',
-  'Ambushes don’t get the first strike.': 'Les embuscades ne frappent pas en premier.',
+  'Counts as Watchful.': 'Compte comme Vigilant.',
   'Iron stomach': 'Estomac d’acier',
   'Hunter’s stew heals them twice as much.': 'Le ragoût du chasseur le soigne deux fois plus.',
   Clumsy: 'Maladroit',
-  'Traps trigger more often.': 'Les pièges se déclenchent plus souvent.',
+  '−1 Finesse.': '−1 Finesse.',
   Greedy: 'Avide',
   '−10% gold from their expeditions.': '−10 % d’or sur ses expéditions.',
   Coward: 'Lâche',
   'Drinks their potion early, below 60% HP.': 'Boit sa potion tôt, sous 60 % de PV.',
   Loud: 'Bruyant',
-  'Locals are more likely to turn on the party.': 'Les habitants se retournent plus souvent contre le groupe.',
+  '−1 Presence.': '−1 Présence.',
 
   // Guild Hall
   'War room': 'Salle de guerre',
@@ -519,6 +541,107 @@ export const frNames: Record<string, string> = {
   '+30% gold.': '+30 % d’or.',
   'Pack hunt': 'Chasse en meute',
   'More beast fights.': 'Plus de combats contre des bêtes.',
+
+  // Threats. Traps, Beasts, Undead and Locals already sit with the dungeon tags.
+  Element: 'Élément',
+  'The dungeon’s element everywhere; without Resist, its damage is worse.':
+    'L’élément du donjon est partout ; sans Résistance, ses dégâts sont pires.',
+  Brute: 'Brute',
+  'A brute of a boss; missed, it hits harder.': 'Un boss brutal ; sans réponse, il frappe plus fort.',
+  Rubble: 'Éboulis',
+  'Caved-in ways; missed, the party loses time and supply.':
+    'Des passages effondrés ; sans réponse, le groupe perd du temps et des vivres.',
+  Poison: 'Poison',
+  'Venom in every fight; missed, it wounds the party each time.':
+    'Du poison à chaque combat ; sans réponse, il blesse le groupe à chaque fois.',
+  Swarm: 'Nuée',
+  'Enemies in swarms; missed, every big fight has more of them.':
+    'Des ennemis en nuée ; sans réponse, chaque gros combat en compte davantage.',
+  Darkness: 'Obscurité',
+  'Pitch dark; missed, enemies strike first and the party hits softer.':
+    'Noir complet ; sans réponse, les ennemis frappent en premier et le groupe tape plus faible.',
+  Locked: 'Verrouillé',
+  'Locked ways; missed, some loot stays behind.':
+    'Des passages verrouillés ; sans réponse, une partie du butin reste derrière.',
+  'Desecrated ground': 'Sol profané',
+  'Profaned ground; missed, the party is weakened and heals half as well.':
+    'Un sol profané ; sans réponse, le groupe est affaibli et soigne deux fois moins bien.',
+  Casters: 'Lanceurs de sorts',
+  'Enemy casters; missed, they wound a hero before every fight.':
+    'Des lanceurs de sorts ennemis ; sans réponse, ils blessent un héros avant chaque combat.',
+  Ambush: 'Embuscade',
+  'Ambushers on the paths; missed, enemies strike first.':
+    'Des embusqués sur les chemins ; sans réponse, les ennemis frappent en premier.',
+  Thieves: 'Voleurs',
+  'Thieves on the paths; missed, they make off with loot.':
+    'Des voleurs sur les chemins ; sans réponse, ils s’enfuient avec du butin.',
+  Armoured: 'Cuirassés',
+  'Armoured enemies; missed, the party’s blows glance off.':
+    'Des ennemis cuirassés ; sans réponse, les coups du groupe glissent dessus.',
+  Puzzle: 'Énigme',
+  'An old puzzle; missed, the party loses time and supply.':
+    'Une vieille énigme ; sans réponse, le groupe perd du temps et des vivres.',
+  Maze: 'Dédale',
+  'Twisting passages; missed, the party loses time and supply.':
+    'Des passages enchevêtrés ; sans réponse, le groupe perd du temps et des vivres.',
+  Underwater: 'Immergé',
+  'Flooded ways; missed, the party fights out of its depth, weakened.':
+    'Des passages inondés ; sans réponse, le groupe combat hors de son élément, affaibli.',
+  'Snare pits and tripwires; missed, they wound whoever they catch.':
+    'Fosses à pieux et fils de détente ; sans réponse, elles blessent quiconque les déclenche.',
+  'Beasts prowl here; missed, they hit harder.': 'Des bêtes rôdent ici ; sans réponse, elles frappent plus fort.',
+  'The dead walk here; missed, they are harder to put down.':
+    'Les morts marchent ici ; sans réponse, ils sont plus durs à abattre.',
+  'Locals live here; missed, they turn hostile.': 'Des habitants vivent ici ; sans réponse, ils deviennent hostiles.',
+
+  // Restrictions
+  'Anti-magic zone': 'Zone antimagique',
+  'Magic damage and abilities −50%; Light and Cleave from mages don’t count.':
+    'Dégâts et capacités magiques −50 % ; la Lumière et le Fauchage des mages ne comptent pas.',
+  'Sacred ground': 'Sol sacré',
+  'Only Concealed weapons hit at full strength; others −40%.':
+    'Seules les armes dissimulées frappent à pleine force ; les autres −40 %.',
+  'No healing': 'Aucun soin',
+  'Potions, party heals and springs heal half as much.':
+    'Potions, soins de groupe et sources soignent à moitié.',
+  'Cursed luck': 'Chance maudite',
+  'No critical hits.': 'Aucun coup critique.',
+  'Thick fog': 'Brouillard épais',
+  'Watchful doesn’t count; Ambush can only be answered by a kit.':
+    'La Vigilance ne compte pas ; l’Embuscade ne se répond que par un kit.',
+  Barren: 'Terres stériles',
+  'Gold bonuses from traits, charms and meals don’t apply.':
+    'Les bonus d’or des traits, charmes et repas ne s’appliquent pas.',
+  'Narrow passages': 'Passages étroits',
+  'At most 3 heroes per expedition.': '3 héros au maximum par expédition.',
+  'Spoiled stores': 'Réserves avariées',
+  'Meals have no effect; supply still counts.':
+    'Les repas n’ont aucun effet ; les vivres comptent toujours.',
+
+  // Opportunities
+  'Healing spring': 'Source de soin',
+  'A clear spring; it heals the whole party.': 'Une source limpide ; elle soigne tout le groupe.',
+  'Hidden cache': 'Cachette secrète',
+  'A hidden cache; a deft hand finds the best of it.':
+    'Une cachette ; une main adroite en tire le meilleur.',
+  'Rich vein': 'Filon riche',
+  'A rich vein of ore; a strong arm works it.': 'Un filon de minerai ; un bras fort l’exploite.',
+  'A bounty on this place; a silver tongue claims it.': 'Une prime sur ce lieu ; une belle langue la réclame.',
+  Prisoners: 'Prisonniers',
+  'Prisoners in chains; freeing them earns their thanks.':
+    'Des prisonniers enchaînés ; les libérer vaut leur gratitude.',
+  Refugees: 'Réfugiés',
+  'Refugees on the road; shared supply earns a pilgrim’s reward.':
+    'Des réfugiés sur la route ; partager ses vivres vaut la récompense d’un pèlerin.',
+  'Forgotten shrine': 'Sanctuaire oublié',
+  'A forgotten shrine; a prayer here steels the party.':
+    'Un sanctuaire oublié ; une prière ici aguerrit le groupe.',
+  'Old inscriptions': 'Vieilles inscriptions',
+  'Old inscriptions; a sharp mind learns from them.':
+    'De vieilles inscriptions ; un esprit vif en tire des leçons.',
+  'Trophy beast': 'Bête trophée',
+  'A trophy beast; a calm hand or a strong arm takes it.':
+    'Une bête trophée ; une main calme ou un bras fort l’abat.',
 
   // Forging
   Crappy: 'Médiocre',

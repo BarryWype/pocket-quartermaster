@@ -8,12 +8,12 @@ import { guildBuildings, guildTracks } from '../guild';
 import { heroClasses } from '../heroes';
 import { items } from '../items';
 import { materials } from '../materials';
-import { dungeonModifiers } from '../modifiers';
 import { npcs } from '../npcs';
 import { resources } from '../resources';
 import { tagInfo } from '../rotation';
 import { sanctums } from '../sanctums';
 import { traits } from '../traits';
+import { opportunityDefs, restrictionDefs, threatDefs } from '../threats';
 
 /** Every content name and description shown to players, in English: each needs an entry in `frNames`. */
 export function contentTexts(): string[] {
@@ -34,9 +34,11 @@ export function contentTexts(): string[] {
     ...sanctums.flatMap((s) => [s.name, s.description, s.guardian.name, s.guardian.description, ...s.minions]),
     ...Object.values(heroClasses).map((c) => c.name),
     ...traits.flatMap((t) => [t.name, t.description]),
+    ...threatDefs.flatMap((t) => [t.name, t.description]),
+    ...restrictionDefs.flatMap((r) => [r.name, r.description]),
+    ...opportunityDefs.flatMap((o) => [o.name, o.description]),
     ...Object.values(guildBuildings).map((b) => b.name),
     ...guildTracks.map((t) => t.name),
-    ...dungeonModifiers.flatMap((m) => [m.name, m.description]),
     ...Object.values(qualities).map((q) => q.name),
     ...Object.values(masteryTypeNames).flatMap((m) => [m.name, m.plural]),
     ...TIER_NAMES,

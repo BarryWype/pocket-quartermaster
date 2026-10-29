@@ -1,0 +1,13 @@
+Hero,Armour (tier 3),Total Magic,vs robes,Effective HP vs physical,Effective HP vs magic
+Mage (robes favoured),Plate,22.8,-37%,329,230
+Mage (robes favoured),Mail,27.7,-23%,291,267
+Mage (robes favoured),Leather,32.5,-10%,271,251
+Mage (robes favoured),Robes,36.1,+0%,207,280
+Cleric (mail favoured),Plate,22.8,-37%,329,230
+Cleric (mail favoured),Mail,32.5,-10%,291,267
+Cleric (mail favoured),Leather,32.5,-10%,271,251
+Cleric (mail favoured),Robes,36.1,+0%,207,280
+"Paladin (mail, plate favoured)",Plate,32.5,-10%,329,230
+"Paladin (mail, plate favoured)",Mail,32.5,-10%,291,267
+"Paladin (mail, plate favoured)",Leather,32.5,-10%,271,251
+"Paladin (mail, plate favoured)",Robes,36.1,+0%,207,280

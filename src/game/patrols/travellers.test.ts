@@ -66,7 +66,7 @@ describe('travellers', () => {
   it('can bless every hero at home back to full, but not those away', () => {
     const { spawn, at: time } = withReward('pilgrim', 'blessing');
     let save = stocked(setHeroHp(setHeroHp(tierTeam(), 'bram', 0, time, true), 'lyra', 0.3, time));
-    save = { ...save, patrolFights: [{ id: 'f', patrolId: 'x', kind: 'goblins', tier: 1, elite: false, heroIds: ['lyra'], startedAt: time, endsAt: time + 5 * MINUTE, windowEndsAt: time, won: true, hp: [], consumed: [], rewards: { gold: 0, xp: 0, materials: [] } }] };
+    save = { ...save, patrolFights: [{ id: 'f', patrolId: 'x', kind: 'goblins', tier: 1, elite: false, heroIds: ['lyra'], startedAt: time, endsAt: time + 5 * MINUTE, windowEndsAt: time, won: true, hp: [], salvaged: [], rewards: { gold: 0, xp: 0, materials: [] } }] };
     const blessed = helpTraveller(save, spawn, here(spawn, time), time).save;
     const bram = blessed.heroes.find((h) => h.id === 'bram')!;
     expect(isExhausted(bram, time)).toBe(false);

@@ -1,5 +1,6 @@
 import { itemById, recipeById } from '@/content/lookup';
 
+import { highestUnlockedTier } from '../dungeons/unlock';
 import { gainMastery, masteryOf, masteryTypeOf, startingMastery } from '../forging/mastery';
 import { qualityOdds, rollQuality } from '../forging/quality';
 import { rollStatFactor } from '../forging/roll';
@@ -9,7 +10,11 @@ import type { SaveData } from '../save';
 import type { GearInstance, MasteryState, MasteryType, Quality, RecipeDef } from '../types';
 
 export function isKnown(save: SaveData, recipe: RecipeDef) {
-  return save.knownRecipes.includes(recipe.id);
+  // Kit recipes come with the tiers: known once the player reaches their tier.
+  return (
+    save.knownRecipes.includes(recipe.id) ||
+    (recipe.availableFromTier !== undefined && highestUnlockedTier(save) >= recipe.availableFromTier)
+  );
 }
 
 /** Tools are crafted once; afterwards their recipe has nothing left to make. */

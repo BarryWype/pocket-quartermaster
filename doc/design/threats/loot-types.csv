@@ -1,0 +1,7 @@
+Type,What it is,How it feeds crafting,Quality rule
+Trinket,"Rings, amulets, talismans from patrols, events, bosses, travellers, places",Never crafted; no big stats,
+Component,"A special ingredient (a troll hide, a wyvern scale, a runed hilt)",Used in a recipe with walking materials,At least Rare; about 10% Legendary (to tune)
+Relic,A damaged unique item (a rusted runed blade),Restored at the forge with walking materials,At least Rare; about 10% Legendary (to tune)
+Recipe,A blueprint,Unlocks a recipe,
+Kit or consumable,A ready-made kit or potion,"Single-use, so generous drops are fine",
+Salvage,Any looted item,Broken down into materials and mastery,

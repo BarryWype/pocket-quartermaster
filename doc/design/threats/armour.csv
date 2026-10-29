@@ -1,5 +1,5 @@
-Armour,Status,Pierce,Cleave,Blessed,Guard,Parry,Reach,Keen,Stagger,Brace,Channel,Inspire,Mend,Swift,Warded,Concealed,Heavy
-Robes,New,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0
-Leather,New,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0
-Mail,New; today's armour line becomes mail,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0
-Plate,New,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1
+Armour,Status,Armour stat,Evasion,Resistance,Speed,Note,Guard,Brace,Heavy
+Plate,New,High,None,Low,-,,1,0,1
+Mail,New; today's single armour line becomes mail,Medium,Low,Medium,,,0,1,0
+Leather,New,Low,High,Low,+,,0,0,0
+Robes,New,Low,Low,High,,Part of the budget goes into Magic,0,0,0

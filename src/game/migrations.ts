@@ -5,7 +5,8 @@ import { provisionRules } from '@/content/provisions';
 
 import { createInitialSave, type SaveData } from './save';
 import { canWield } from './team/team';
-import type { GearInstance, HeroClassId, HeroState } from './types';
+import type { ActiveExpedition, ExpeditionReport, GearInstance, HeroClassId, HeroState } from './types';
+import type { PatrolFight } from './patrols/fight';
 
 const KEY = 'mysteriousKey';
 
@@ -113,4 +114,62 @@ export function migrateV12Save(old: Partial<SaveData>): SaveData {
 /** v13 → v14: patrols, travellers and the escort; everything starts empty. */
 export function migrateV13Save(old: Partial<SaveData>): SaveData {
   return { ...createInitialSave(), ...old };
+}
+
+/** Old consumable and provision ids → the kit or salve that replaced them. */
+const CONSUMABLE_REPLACEMENTS: Record<string, string> = {
+  lockpicks: 'roguesRoll',
+  ropeAndPitons: 'explorersKit',
+  torches: 'lantern',
+  bait: 'huntersPack',
+  gifts: 'giftBasket',
+  holyWater: 'holyRelics',
+  fireResistanceElixir: 'emberWardSalve',
+  wardBone: 'roguesRoll',
+};
+
+/**
+ * Version 14 → 15: kits and ward salves replace the old provisions,
+ * consumables and recipes. Stock counts add up under the new ids, an
+ * equipped consumable becomes its replacement, the old recipes are
+ * forgotten, a running expedition's kit is refunded as its new one and the
+ * expedition left without a briefing (so it resolves with no threats), and
+ * old reports lose their kit fields with their consumables remapped.
+ */
+export function migrateV14Save(old: Partial<SaveData>): SaveData {
+  const save: SaveData = { ...createInitialSave(), ...old };
+  const remap = (id: string) => CONSUMABLE_REPLACEMENTS[id] ?? id;
+
+  const consumables: Record<string, number> = {};
+  for (const [id, count] of Object.entries(save.consumables)) {
+    const mapped = remap(id);
+    consumables[mapped] = (consumables[mapped] ?? 0) + count;
+  }
+
+  const heroes = save.heroes.map((hero) => ({
+    ...hero,
+    equipment: { ...hero.equipment, consumable: hero.equipment.consumable ? remap(hero.equipment.consumable) : null },
+  }));
+  const knownRecipes = save.knownRecipes.filter((id) => !(id in CONSUMABLE_REPLACEMENTS));
+
+  const expeditions = save.expeditions.map((expedition) => {
+    const { kitId, modifierId: _modifierId, briefing: _briefing, ...rest } = expedition as ActiveExpedition & {
+      kitId?: string;
+      modifierId?: string;
+    };
+    if (kitId !== undefined) consumables[remap(kitId)] = (consumables[remap(kitId)] ?? 0) + 1;
+    return rest;
+  });
+  const reports = save.reports.map((report) => {
+    const { kitId: _kitId, kitUsed: _kitUsed, ...rest } = report as ExpeditionReport & { kitId?: string; kitUsed?: boolean };
+    return { ...rest, consumablesUsed: rest.consumablesUsed.map(remap) };
+  });
+  // Fights started before the update settle without salvage: the run they
+  // were played out with is gone.
+  const patrolFights = save.patrolFights.map((fight) => {
+    const { consumed: _consumed, ...rest } = fight as PatrolFight & { consumed?: string[] };
+    return { ...rest, salvaged: [] as ExpeditionReport['salvaged'] };
+  });
+
+  return { ...save, consumables, heroes, knownRecipes, expeditions, reports, patrolFights };
 }

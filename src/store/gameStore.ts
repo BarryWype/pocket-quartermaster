@@ -10,7 +10,7 @@ import { materials } from '@/content/materials';
 import { craft, craftMany, forgeResult, unlockRecipe, type ForgeResult } from '@/game/crafting/crafting';
 import { infuse } from '@/game/crafting/infusion';
 import { salvage } from '@/game/forging/salvage';
-import { migrateV10Save, migrateV11Save, migrateV12Save, migrateV13Save, migrateV5Save, migrateV6Save, migrateV7Save, migrateV8Save, migrateV9Save } from '@/game/migrations';
+import { migrateV10Save, migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV5Save, migrateV6Save, migrateV7Save, migrateV8Save, migrateV9Save } from '@/game/migrations';
 import { convertShards, shardId, stoneId, type Element } from '@/game/elements';
 import { fastForward, resolveExpedition, startExpedition, type Loadout } from '@/game/expeditions/expeditions';
 import { markWalksSeen, processWalkPath, recordWalk, type WalkFix, type WalkOptions, type WalkPatrols, type WalkSummary } from '@/game/gathering/autoGather';
@@ -125,6 +125,8 @@ type GameState = {
   healAll: () => void;
   /** Adds this many of every provision and charm. */
   addProvisions: (amount: number) => void;
+  /** Adds one of every kit and ward salve (debug only). */
+  addKits: () => void;
   fastForwardHealing: (minutes: number) => void;
   resetSave: () => void;
 };
@@ -344,6 +346,14 @@ export const useGameStore = create<GameState>()(
           }
           return { save: { ...save, consumables } };
         }),
+      addKits: () =>
+        set(({ save }) => {
+          const consumables = { ...save.consumables };
+          for (const item of items.filter((i) => i.slot === 'consumable' && (i.kit || i.protectsAgainst))) {
+            consumables[item.id] = (consumables[item.id] ?? 0) + 1;
+          }
+          return { save: { ...save, consumables } };
+        }),
       fastForwardHealing: (minutes) => set(({ save }) => ({ save: fastForwardHealing(save, minutes) })),
       resetSave: () => {
         set({ save: createInitialSave() });
@@ -351,7 +361,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 14,
+      version: 15,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
       // Saves from version 5 on are converted step by step; older ones start fresh. New fields get their defaults.
@@ -367,6 +377,7 @@ export const useGameStore = create<GameState>()(
         if (version <= 11) save = migrateV11Save(save);
         if (version <= 12) save = migrateV12Save(save);
         if (version <= 13) save = migrateV13Save(save);
+        if (version <= 14) save = migrateV14Save(save);
         return { save };
       },
       merge: (persisted, current) => ({

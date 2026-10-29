@@ -6,7 +6,7 @@ import { QUALITIES } from '@/content/forging';
 import { recipes } from '@/content/recipes';
 
 import { createInitialSave, type SaveData } from '../save';
-import { canCraft, craft, ownsTool, unlockRecipe } from './crafting';
+import { canCraft, craft, isKnown, ownsTool, unlockRecipe } from './crafting';
 
 const withMaterials = (counts: Record<string, number>, extra: Partial<SaveData> = {}): SaveData => ({
   ...createInitialSave(),
@@ -40,6 +40,10 @@ describe('content', () => {
     const reachable = new Set(createInitialSave().knownRecipes);
     recipes.forEach((r) => r.unlocks?.forEach((id) => reachable.add(id)));
     dungeons.forEach((d) => d.recipeDrops.forEach((drop) => reachable.add(drop.recipeId)));
+    // Kit recipes open with the tiers instead (see isKnown).
+    recipes.forEach((r) => {
+      if (r.availableFromTier !== undefined) reachable.add(r.id);
+    });
     recipes.forEach((r) => expect(reachable.has(r.id)).toBe(true));
   });
 });
@@ -111,6 +115,21 @@ describe('crafting', () => {
     expect(canCraft(save, recipeById.woodBow)).toBe(false);
     expect(() => craft(save, recipeById.woodBow)).toThrow();
     expect(canCraft(unlockRecipe(save, 'woodBow'), recipeById.woodBow)).toBe(true);
+  });
+
+  it('knows kit recipes once the highest unlocked tier reaches them', () => {
+    const save = withMaterials({ bone: 2, hide: 1, copper: 2, wood: 1, berries: 2 });
+    // Tier 1 is open from the start, so its kits are known right away.
+    expect(isKnown(save, recipeById.roguesRoll)).toBe(true);
+    expect(canCraft(save, recipeById.roguesRoll)).toBe(true);
+    expect(isKnown(save, recipeById.scholarsSatchel)).toBe(false);
+    expect(canCraft(save, recipeById.scholarsSatchel)).toBe(false);
+    // Clearing each tier boss opens the next tier's kits.
+    const cleared = { ...save, clearedDungeons: ['banditStockade', 'ogreQuarry', 'drownedCrypt'] };
+    expect(isKnown(cleared, recipeById.explorersKit)).toBe(true);
+    expect(isKnown(cleared, recipeById.lantern)).toBe(true);
+    expect(isKnown(cleared, recipeById.scholarsSatchel)).toBe(true);
+    expect(canCraft(cleared, recipeById.scholarsSatchel)).toBe(true);
   });
 });
 

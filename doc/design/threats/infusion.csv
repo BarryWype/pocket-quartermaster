@@ -1,0 +1,3 @@
+Weapon,Rule,Against weak element,Neutral,Against strong element
+Physical,"Converts 30% of damage to the element, adds +10% of Power as elemental damage",+30%,+10%,0%
+Magic,Changes the weapon element,x1.5,x1,x0.75

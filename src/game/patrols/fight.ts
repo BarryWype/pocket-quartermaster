@@ -2,12 +2,12 @@ import { dungeons, expeditionRules } from '@/content/dungeons';
 import { mobById, patrolMobId } from '@/content/enemies';
 import { resources } from '@/content/resources';
 import { patrolKinds, patrolRules, patrolTexts, type PatrolRules } from '@/content/patrols';
-import { itemById } from '@/content/lookup';
+import { patrolThreats } from '@/content/threats';
 import { traitById } from '@/content/traits';
 
 import { ELEMENTS, shardId, type Element } from '../elements';
 import { estimatePartyOdds, ODDS_RUNS, type Odds } from '../expeditions/odds';
-import { highestUnlockedTier } from '../expeditions/expeditions';
+import { highestUnlockedTier, untriggeredSalvage } from '../expeditions/expeditions';
 import { prepareParty, simulateRun, type RunOptions, type RunResult } from '../expeditions/simulate';
 import { pickaxeTier } from '../gathering/gathering';
 import { guildBonus, partySize } from '../guild/guild';
@@ -18,14 +18,21 @@ import { rollLoot } from '../rewards/loot';
 import type { SaveData } from '../save';
 import { applyRunHp, isExhausted } from '../team/health';
 import { addXp, isAway } from '../team/team';
-import type { BossDef, DungeonDef, EncounterDef, MaterialStack } from '../types';
+import type { BossDef, Briefing, DungeonDef, EncounterDef, ExpeditionReport, MaterialStack } from '../types';
 import { isPatrolKind, patrolTier, pruneByWindow, type PatrolKind, type PatrolSpawn } from './generate';
 import { distanceTo, isGone } from './visibility';
 
 const MINUTE = 60_000;
 
-/** Patrol fights are short skirmishes: no mishap ends them early. */
-export const patrolRunRules: RunOptions = { rules: { ...expeditionRules, mishapChance: 0 } };
+/** The threat each patrol kind carries: only its run-level effects apply. */
+export function patrolBriefing(kind: PatrolKind): Briefing {
+  return { threats: [patrolThreats[kind]], restriction: null, opportunity: null };
+}
+
+/** The run options a patrol fight uses: no mishaps, with the patrol's threat. */
+export function patrolRunOptions(kind: PatrolKind): RunOptions {
+  return { rules: { ...expeditionRules, mishapChance: 0 }, briefing: patrolBriefing(kind) };
+}
 
 /** What the game state knows when rewards are rolled: the save does not have to be at hand. */
 export type RewardContext = {
@@ -70,16 +77,6 @@ export function patrolDungeon(spawn: PatrolSpawn, tier: number, elite: boolean, 
     weight: group.weight,
     mobs: [{ mobId: patrolMobId(patrolKind, tier, group.role, elite), count: group.count }],
   }));
-  if (kind.trap) {
-    encounters.push({
-      type: 'trap',
-      weight: kind.trap.weight,
-      name: kind.trap.name,
-      damagePct: kind.trap.damagePct,
-      targets: 'one',
-      triggerChance: kind.trap.triggerChance,
-    });
-  }
   const short = shortDungeon(tier);
   const gold = Math.round(((short.gold[0] + short.gold[1]) / 2) * (kind.goldShareOfShort ?? 0));
   return {
@@ -161,8 +158,8 @@ export type PatrolFight = {
   windowEndsAt: number;
   won: boolean;
   hp: RunResult['hp'];
-  /** Heroes whose healing consumable the run used up. */
-  consumed: string[];
+  /** Consumables that never triggered, broken back down at resolution (see threats/salvage.ts). */
+  salvaged: ExpeditionReport['salvaged'];
   rewards: PatrolRewards;
 };
 
@@ -210,7 +207,7 @@ export function startPatrolFight(
   const dungeon = patrolDungeon(spawn, tier, elite, rules);
   const party = prepareParty(save, heroIds, now);
   const id = `p${save.nextUid}`;
-  const run = simulateRun(party, dungeon, `${id}|${spawn.id}`, patrolRunRules);
+  const run = simulateRun(party, dungeon, `${id}|${spawn.id}`, patrolRunOptions(kind));
   const rewards = run.bossDefeated
     ? patrolRewards(rewardContextOf(save), spawn, tier, elite, createRng(`${id}|rewards`), rules)
     : { gold: 0, xp: 0, materials: [] };
@@ -231,7 +228,7 @@ export function startPatrolFight(
         windowEndsAt: spawn.endsAt,
         won: run.bossDefeated,
         hp: run.hp,
-        consumed: run.consumed,
+        salvaged: untriggeredSalvage(party, run, { barren: false, gold: 0 }),
         rewards,
       },
     ],
@@ -251,25 +248,35 @@ export function patrolOdds(
   runs = ODDS_RUNS,
   rules: PatrolRules = patrolRules,
 ): Odds {
+  const kind = spawn.kind;
+  if (!isPatrolKind(kind)) throw new Error(`No fight with a ${kind}`);
   const { tier, elite } = patrolTier(spawn, highestUnlockedTier(save));
-  return estimatePartyOdds(prepareParty(save, heroIds, now), patrolDungeon(spawn, tier, elite, rules), runs, patrolRunRules);
+  return estimatePartyOdds(
+    prepareParty(save, heroIds, now),
+    patrolDungeon(spawn, tier, elite, rules),
+    runs,
+    patrolRunOptions(kind),
+  );
 }
 
 /**
  * Settles the consumables of heroes back from a patrol fight, as expeditions
- * do: the slot is emptied, and a healing potion nobody needed goes back to the stock.
+ * do: the slot is emptied, and what never triggered is broken back down into
+ * materials and gold (never back into the stock).
  */
-export function settleConsumables(save: SaveData, heroIds: string[], consumed: string[]): SaveData {
-  const consumables = { ...save.consumables };
+export function settleConsumables(save: SaveData, heroIds: string[], salvaged: ExpeditionReport['salvaged']): SaveData {
+  const salvageGold = salvaged.reduce((sum, s) => sum + s.gold, 0);
+  const salvageMaterials = salvaged.flatMap((s) => s.materials);
   const heroes = save.heroes.map((hero) => {
-    const itemId = hero.equipment.consumable;
-    if (!heroIds.includes(hero.id) || !itemId) return hero;
-    if (itemById[itemId]?.slot === 'consumable' && itemById[itemId].when === 'lowHp' && !consumed.includes(hero.id)) {
-      consumables[itemId] = (consumables[itemId] ?? 0) + 1;
-    }
+    if (!heroIds.includes(hero.id) || !hero.equipment.consumable) return hero;
     return { ...hero, equipment: { ...hero.equipment, consumable: null } };
   });
-  return { ...save, consumables, heroes };
+  return {
+    ...save,
+    gold: save.gold + salvageGold,
+    materials: addMaterials(save.materials, salvageMaterials),
+    heroes,
+  };
 }
 
 /** Pays a won patrol fight: gold, materials, XP per hero (trait and Guild Hall bonuses) and the patrol hidden for its window. */
@@ -303,7 +310,7 @@ export function resolvePatrolFights(
 
   let next: SaveData = { ...save, patrolFights: save.patrolFights.filter((fight) => fight.endsAt > now) };
   for (const fight of due) {
-    next = settleConsumables(next, fight.heroIds, fight.consumed);
+    next = settleConsumables(next, fight.heroIds, fight.salvaged);
     if (fight.won) next = grantPatrolWin(next, fight.heroIds, fight.rewards, fight.patrolId, fight.windowEndsAt);
     next = applyRunHp(next, fight.hp, fight.endsAt);
   }

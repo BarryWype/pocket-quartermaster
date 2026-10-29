@@ -3,13 +3,18 @@ import { heroClasses, newHero, startingHeroes } from '@/content/heroes';
 import { items } from '@/content/items';
 import type { DungeonDef, GearDef, HeroClassId, HeroState, Quality } from '@/game/types';
 
-import { countersFor } from '../dungeons/counters';
 import { estimateOdds } from '../expeditions/odds';
+import { heroAnswers, type AnswersMember } from '../threats/answers';
+import { composeBriefing } from '../threats/compose';
+import { scoreThreat } from '../threats/score';
 import { createInitialSave, type SaveData } from '../save';
 import { equip } from '../team/team';
 import { expectedLevels, simConfig, type SimConfig } from './config';
 
 const MATRIX_QUALITIES: Quality[] = ['crappy', 'normal', 'rare'];
+
+/** The day the matrix composes its briefings on: fixed, so the table is deterministic. */
+const MATRIX_DAY = 0;
 
 export type MatrixRow = {
   dungeonId: string;
@@ -17,7 +22,7 @@ export type MatrixRow = {
   boss: boolean;
   /** Success with the starting classes, by gear quality. */
   base: Record<string, number>;
-  /** The same with the best countering class swapped in, or null when no class counters it. */
+  /** The same with the best threat-covering class swapped in, or null when none covers a drawn threat. */
   counter: { classId: HeroClassId; odds: Record<string, number> } | null;
 };
 
@@ -27,6 +32,33 @@ function weaponFor(classId: HeroClassId, tier: number) {
   return items
     .filter((i): i is GearDef => i.slot === 'weapon' && i.tier === tier && !!i.weaponType && i.weaponType in affinities)
     .sort((a, b) => (affinities[b.weaponType!] ?? 0) - (affinities[a.weaponType!] ?? 0))[0];
+}
+
+/** A reference member of a class, as threat scoring sees them. */
+const memberOf = (classId: HeroClassId, tier: number): AnswersMember => ({
+  heroId: classId,
+  classId,
+  traitId: 'none',
+  weaponType: weaponFor(classId, tier)?.weaponType ?? null,
+  kit: null,
+  salveElement: null,
+  classResists: heroClasses[classId].resists ?? [],
+});
+
+/**
+ * The classes whose answers turn one of the dungeon's drawn threats from
+ * missed to met, that the starting trio misses (see threats/score.ts).
+ */
+function coveringClasses(dungeon: DungeonDef, base: HeroClassId[]): HeroClassId[] {
+  const briefing = composeBriefing(dungeon, MATRIX_DAY);
+  if (briefing.threats.length === 0) return [];
+  const trio = base.map((classId) => heroAnswers(memberOf(classId, dungeon.tier), briefing.restriction));
+  const missed = briefing.threats.filter((threat) => scoreThreat(threat, trio).state !== 'met');
+  if (missed.length === 0) return [];
+  return (Object.keys(heroClasses) as HeroClassId[]).filter((classId) => !base.includes(classId)).filter((classId) => {
+    const offer = heroAnswers(memberOf(classId, dungeon.tier), briefing.restriction);
+    return missed.some((threat) => scoreThreat(threat, [...trio, offer]).state === 'met');
+  });
 }
 
 /**
@@ -42,7 +74,7 @@ export function referenceTeam(classes: HeroClassId[], tier: number, quality: Qua
     heroes,
     consumables: { ...createInitialSave().consumables, healingPotion: classes.length },
     gear: classes.flatMap((classId, i) => [
-      { uid: `w${i}`, itemId: weaponFor(classId, tier).id, quality },
+      { uid: `w${i}`, itemId: weaponFor(classId, tier)!.id, quality },
       { uid: `a${i}`, itemId: armour.id, quality },
     ]),
   };
@@ -61,16 +93,14 @@ function oddsByQuality(classes: HeroClassId[], dungeon: DungeonDef, level: numbe
   );
 }
 
-/** Every dungeon against the starting classes in its tier's gear, with and without a countering class. */
+/** Every dungeon against the starting classes in its tier's gear, with and without a threat-covering class. */
 export function oddsMatrix(config: SimConfig = simConfig): MatrixRow[] {
   const base = startingHeroes.map((h) => h.classId);
   const { runs } = config.matrix;
   return dungeons.map((dungeon) => {
     const level = expectedLevels[dungeon.tier - 1];
-    const counters = (Object.keys(heroClasses) as HeroClassId[]).filter(
-      (c) => !base.includes(c) && countersFor(heroClasses[c].abilities, dungeon).length > 0,
-    );
-    // The countering class and the starting hero it replaces that do best at Normal (quick estimate).
+    const counters = coveringClasses(dungeon, base);
+    // The covering class and the starting hero it replaces that do best at Normal (quick estimate).
     let best: { classes: HeroClassId[]; odds: number } | null = null;
     for (const classId of counters) {
       for (let i = 0; i < base.length; i++) {

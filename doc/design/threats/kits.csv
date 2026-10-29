@@ -1,14 +1,14 @@
-Kit,Threats,Effect,Made from,Contents,Notes
-Lantern,"Darkness, Ambush",Gives Light and Watchful,"Copper, coal",A shuttered oil lantern and tripwire bells,
-Rogue's roll,"Traps, Locked, Thieves",+2 Finesse,"Iron, hide","Picks, a probe, wire and a decoy purse",Sold at the thieves' guild
-Scholar's satchel,"Puzzle, Maze",+2 Wits,"Copper, wood, stone","A cipher wheel, thread and chalk",
-Explorer's kit,"Rubble, Underwater",+2 to the threat's approach,"Iron, hide, herb","Rope, a pry bar, an air bladder and seabreath tonic",
-Healer's satchel,Poison,Gives Antidote; heals 10% once,"Herb, berries, mushroom",Theriac and bandages,Sold at the alchemist
-Holy relics,"Desecrated ground, Casters",+2 Faith,"Herb, stone",Holy water and warding salt,Must be blessed at a chapel
-Hunter's pack,Beasts,Gives Calm,"Meat, herb, hide",Sleepweed bait and a snare,
-Gift basket,Locals,+2 Presence,"Berries, meat, copper","Honey cakes, smoked meat and a trinket",
-Ember ward salve,Element: fire,Resist fire,"Herb, fire shard",Rubbed on skin and armour,Sold at the alchemist
-Tide ward salve,Element: water,Resist water,"Herb, water shard",Rubbed on skin and armour,Sold at the alchemist
-Storm ward salve,Element: electric,Resist electric,"Herb, electric shard",Rubbed on skin and armour,Sold at the alchemist
-Stone ward salve,Element: stone,Resist stone,"Herb, stone shard",Rubbed on skin and armour,Sold at the alchemist
-Thorn ward salve,Element: grass,Resist grass,"Herb, grass shard",Rubbed on skin and armour,Sold at the alchemist
+Kit,Threats,Available from tier,Effect,Made from,Contents,Notes
+Lantern,"Darkness, Ambush",3,Gives Light and Watchful,"Copper, wood, meat",A shuttered tallow lantern and copper bells,
+Rogue's roll,"Traps, Locked, Thieves",1,+2 Finesse,"Bone, hide","Picks, a probe, wire and a decoy purse",Sold at the thieves' guild
+Scholar's satchel,"Puzzle, Maze",4,+2 Wits,"Copper, wood, berries","A copper cipher wheel, berry ink, thread and chalk",
+Explorer's kit,"Rubble, Underwater",2,+2 to the threat's approach,"Wood, hide, stone","Rope, a pry bar, an air bladder and seabreath tonic",
+Healer's satchel,Poison,2,Gives Antidote; heals 10% once,"Herb, berries, mushroom",Theriac and bandages,Sold at the alchemist
+Holy relics,"Desecrated ground, Casters",3,+2 Faith,"Herb, stone",Holy water and warding salt,Must be blessed at a chapel
+Hunter's pack,Beasts,1,Gives Calm,"Meat, herb, hide",Sleepweed bait and a snare,
+Gift basket,Locals,2,+2 Presence,"Berries, meat, bone","Honey cakes, smoked meat and a carved trinket",
+Ember ward salve,Element: fire,1,Resist fire,"Herb, fire shard",Rubbed on skin and armour,Sold at the alchemist
+Tide ward salve,Element: water,1,Resist water,"Herb, water shard",Rubbed on skin and armour,Sold at the alchemist
+Storm ward salve,Element: electric,1,Resist electric,"Herb, electric shard",Rubbed on skin and armour,Sold at the alchemist
+Stone ward salve,Element: stone,1,Resist stone,"Herb, stone shard",Rubbed on skin and armour,Sold at the alchemist
+Thorn ward salve,Element: grass,1,Resist grass,"Herb, grass shard",Rubbed on skin and armour,Sold at the alchemist

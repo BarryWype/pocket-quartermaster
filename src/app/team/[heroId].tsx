@@ -19,8 +19,10 @@ import { masteryTypeNames, qualities } from '@/content/forging';
 import { heroClasses, xpToNextLevel } from '@/content/heroes';
 import { traitById } from '@/content/traits';
 import { gearName, itemById } from '@/content/lookup';
+import { answersMemberOf, prepareParty } from '@/game/expeditions/simulate';
 import { drinkProblem } from '@/game/team/health';
 import { canDismiss, heroStats, isOnExpedition } from '@/game/team/team';
+import { APPROACHES, heroAnswers } from '@/game/threats/answers';
 import type { EquipmentSlot, WeaponType } from '@/game/types';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useNow } from '@/hooks/useNow';
@@ -48,6 +50,11 @@ export default function CharacterSheetScreen() {
   const away = isOnExpedition(save, hero.id);
 
   const trait = traitById[hero.trait];
+  // The hero as equipped, seen through the threats rules; the kit keyword is
+  // left out here because it only counts on the threats the kit covers.
+  const member = prepareParty(save, [hero.id], now)[0];
+  const answers = member ? heroAnswers(answersMemberOf(member), null) : null;
+  const keywords = (answers?.keywords ?? []).filter((k) => k.source !== 'kit');
   const weapons = (Object.keys(heroClass.affinities) as WeaponType[]).map((w) => tr(masteryTypeNames[w].name).toLowerCase());
   const element = heroClass.element ? elementInfo[heroClass.element] : null;
   const next = xpToNextLevel(hero.level);
@@ -122,6 +129,32 @@ export default function CharacterSheetScreen() {
           </Tip>
         ))}
       </View>
+
+      <SectionTitle>{t('hero.approaches')}</SectionTitle>
+      <View style={styles.approaches}>
+        {APPROACHES.map((approach) => {
+          const value = answers?.approaches[approach] ?? 0;
+          return (
+            <View key={approach} style={styles.approach}>
+              <Text style={styles.approachName}>{t(`threats.approach.${approach}`)}</Text>
+              <Text style={styles.approachPips}>{'●'.repeat(value) + '○'.repeat(5 - value)}</Text>
+            </View>
+          );
+        })}
+      </View>
+
+      {keywords.length > 0 && (
+        <>
+          <SectionTitle>{t('hero.keywords')}</SectionTitle>
+          <View style={styles.keywords}>
+            {keywords.map(({ keyword }) => (
+              <View key={keyword} style={styles.keywordChip}>
+                <Text>{t(`threats.keyword.${keyword}`)}</Text>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
 
       <SectionTitle>{t('hero.equipment')}</SectionTitle>
       {SLOTS.map((slot) => {
@@ -206,6 +239,29 @@ const styles = StyleSheet.create({
   statIcon: { fontSize: 26 },
   statName: { fontSize: 16, color: colors.muted, textTransform: 'uppercase' },
   statValue: { fontSize: 26 },
+  approaches: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  approach: {
+    width: '48%',
+    flexGrow: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    padding: 8,
+    borderWidth: pixel.outline,
+    borderColor: colors.ink,
+    backgroundColor: colors.parchmentDark,
+  },
+  approachName: { fontSize: 17, flexShrink: 1 },
+  approachPips: { fontSize: 15, color: colors.muted },
+  keywords: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  keywordChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: pixel.outline,
+    borderColor: colors.woodDark,
+    backgroundColor: colors.parchmentDark,
+  },
   slot: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6, borderBottomWidth: 2, borderBottomColor: colors.parchmentDark },
   pressed: { opacity: 0.6 },
   slotBody: { flex: 1 },

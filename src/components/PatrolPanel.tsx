@@ -4,6 +4,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { frPatrolTexts } from '@/content/fr/patrols';
 import { heroClasses } from '@/content/heroes';
 import { patrolKinds, patrolTexts } from '@/content/patrols';
+import { patrolThreats } from '@/content/threats';
 import { tagInfo } from '@/content/rotation';
 import { highestUnlockedTier } from '@/game/expeditions/expeditions';
 import { oddsBand } from '@/game/expeditions/odds';
@@ -23,6 +24,7 @@ import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
 import { Text } from './Text';
+import { ThreatChip } from './ThreatChip';
 
 const problemText: Record<Exclude<PatrolFightProblem, null>, (distance: number) => string> = {
   tooFar: (distance) => t('patrols.walkCloser', { distance: Math.round(distance) }),
@@ -92,6 +94,7 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
               {t('patrols.recommended', { count: patrolKinds[kind].party })}
             </Text>
             <Text style={styles.muted}>{t(`patrols.rewards.${kind}`)}</Text>
+            <ThreatChip threat={patrolThreats[kind]} />
             <Text style={styles.muted}>
               {dungeonTags(dungeon)
                 .map((tag) => `${tagInfo[tag].emoji} ${tr(tagInfo[tag].name)}`)

@@ -8,13 +8,15 @@ import { migrateV10Save } from '../migrations';
 import { createInitialSave, type SaveData } from '../save';
 import { buySupply, buySupplyProblem, supplyPrice } from '../taverns/taverns';
 import { equip } from '../team/team';
-import type { Ability, BossDef, DungeonDef, EncounterDef, HeroState, KitEffect } from '../types';
+import type { Ability, BossDef, Briefing, DungeonDef, EncounterDef, HeroState } from '../types';
 import { launchPlan, resolveExpedition, startExpedition } from './expeditions';
 import { emergencyPrice, heroSupplyNeed, hungerEffect, hungerFor, pickSupply, supplyHeld } from './provisions';
 import { prepareParty, simulateRun, type PartyMember } from './simulate';
 
 const ALL = ['bram', 'lyra', 'mira'];
 const steady = { ...expeditionRules, mishapChance: 0, fortune: 0, damageVariance: 0, critChance: 0 };
+/** A briefing whose missed traps make every trap in the pool bite at 12% of max HP. */
+const traps: Briefing = { threats: [{ id: 'traps', level: 2 }], restriction: null, opportunity: null };
 
 const member = (heroId: string, abilities: Ability[] = [], overrides: Partial<PartyMember> = {}): PartyMember => ({
   heroId,
@@ -22,9 +24,11 @@ const member = (heroId: string, abilities: Ability[] = [], overrides: Partial<Pa
   classId: 'warrior',
   traitId: 'none',
   weaponName: null,
+  weaponType: null,
   maxHp: 100,
   hp: overrides.hp ?? overrides.maxHp ?? 100,
   damage: 10,
+  magic: 0,
   defense: 0,
   threat: 1,
   resists: [],
@@ -40,20 +44,8 @@ const oneEncounter = (encounter: EncounterDef): DungeonDef => ({
   encounters: [encounter],
   boss: weakBoss,
 });
-const withKit = (party: PartyMember[], encounter: EncounterDef, kit: KitEffect, seed = 's') =>
-  simulateRun(party, oneEncounter(encounter), seed, { rules: steady, kit });
 
-const trap: EncounterDef = { type: 'trap', weight: 1, name: 'test trap', damagePct: 0.2, targets: 'all', triggerChance: 1 };
-const obstacle = (kind: 'rubble' | 'locked' | 'barricade'): EncounterDef => ({
-  type: 'obstacle',
-  weight: 1,
-  name: 'way',
-  kind,
-  hpCostPct: 0.1,
-  detourChance: 0,
-});
-const beasts: EncounterDef = { type: 'fight', weight: 1, mobs: [{ mobId: 'wolfPup', count: 2 }] };
-const undead: EncounterDef = { type: 'fight', weight: 1, mobs: [{ mobId: 'ghoul', count: 1 }] };
+const trap: EncounterDef = { type: 'trap', weight: 1, name: 'test trap', targets: 'all' };
 
 /** A started tutorial-free save with the starting heroes in wooden kit. */
 function ready(consumables: Record<string, number> = createInitialSave().consumables): SaveData {
@@ -217,77 +209,10 @@ describe('meals', () => {
   });
 });
 
-describe('kits', () => {
-  it('Lockpicks, rope and torches each solve one matching obstacle', () => {
-    for (const kind of ['locked', 'rubble', 'barricade'] as const) {
-      const run = withKit([member('a')], obstacle(kind), { kind: 'obstacle', obstacle: kind });
-      expect(run.encounters[0]).toMatchObject({ cleared: true, taken: {} });
-      expect(run.encounters[0].effects).toContainEqual({ heroId: null, key: 'kit' });
-      expect(run.kitUsed).toBe(true);
-      expect(withKit([member('a')], obstacle(kind === 'rubble' ? 'locked' : 'rubble'), { kind: 'obstacle', obstacle: kind }).kitUsed).toBe(false);
-    }
-  });
-
-  it('stays unused when a hero has the class ability', () => {
-    const solver = member('a', [{ kind: 'obstacleSolve', kinds: ['rubble'] }]);
-    expect(withKit([solver], obstacle('rubble'), { kind: 'obstacle', obstacle: 'rubble' }).kitUsed).toBe(false);
-    const cleric = member('a', [{ kind: 'damageVsTag', tag: 'undead', multiplier: 1.5 }], { maxHp: 1e6 });
-    expect(withKit([cleric], undead, { kind: 'undeadDamage', multiplier: 1.25 }).kitUsed).toBe(false);
-    const druid = member('a', [{ kind: 'calmBeasts', chance: 0.5 }], { maxHp: 1e6 });
-    expect(withKit([druid], beasts, { kind: 'calmBeasts', chance: 0.5 }).kitUsed).toBe(false);
-  });
-
-  it('Bait: about half the time, the first beast fight is calmed; used up either way', () => {
-    const runs = Array.from({ length: 200 }, (_, i) => withKit([member('a', [], { maxHp: 1e6 })], beasts, { kind: 'calmBeasts', chance: 0.5 }, `b${i}`));
-    const calmed = runs.filter((r) => r.encounters[0].calmed).length / runs.length;
-    expect(calmed).toBeGreaterThan(0.4);
-    expect(calmed).toBeLessThan(0.6);
-    expect(runs.every((r) => r.kitUsed)).toBe(true);
-    expect(runs.find((r) => !r.encounters[0].calmed)!.encounters[0].effects).toContainEqual({ heroId: null, key: 'kit', failed: true });
-  });
-
-  it('Gifts: the first locals react as if charmed', () => {
-    const run = withKit([member('a', [{ kind: 'localsReaction', key: 'provoke' }])], { type: 'locals', weight: 1, npcId: 'hermit' }, { kind: 'charmLocals' });
-    expect(run.encounters[0]).toMatchObject({ reaction: 'help' });
-    expect(run.kitUsed).toBe(true);
-    const troubadour = member('a', [{ kind: 'localsReaction', key: 'charm' }]);
-    expect(withKit([troubadour], { type: 'locals', weight: 1, npcId: 'hermit' }, { kind: 'charmLocals' }).kitUsed).toBe(false);
-  });
-
-  it('Holy water: ×1.25 damage in the first undead fight only', () => {
-    const fight = (kit: KitEffect | null) =>
-      simulateRun([member('a', [], { maxHp: 1e6, damage: 7 })], oneEncounter(undead), 's', { rules: steady, kit }).encounters[0];
-    expect(fight({ kind: 'undeadDamage', multiplier: 1.25 }).rounds).toBeLessThan(fight(null).rounds);
-    expect(fight({ kind: 'undeadDamage', multiplier: 1.25 }).effects).toContainEqual({ heroId: null, key: 'kit' });
-  });
-
-  it('comes back from the expedition when it never triggered, and is used up when it did', () => {
-    const save = ready({ trailMix: 5, lockpicks: 1 });
-    const unused = resolve(startExpedition(save, 'ratCellar', ALL, 0, 1, undefined, { kitId: 'lockpicks' }));
-    expect(unused.save.consumables.lockpicks).toBe(1);
-    expect(unused.report).toMatchObject({ kitId: 'lockpicks', kitUsed: false });
-    const vault = Array.from({ length: 30 }, (_, i) =>
-      resolve(startExpedition({ ...ready({ trailMix: 30, lockpicks: 1 }), clearedDungeons: ['banditStockade', 'ogreQuarry', 'drownedCrypt'], nextUid: i }, 'clockworkVault', ALL, 0, 1, undefined, { kitId: 'lockpicks' })),
-    );
-    const used = vault.filter((r) => r.report.kitUsed);
-    expect(used.length).toBeGreaterThan(0);
-    used.forEach((r) => expect(r.save.consumables.lockpicks ?? 0).toBe(0));
-    used.forEach((r) => expect(r.report.log.join(' ')).toMatch(/lockpicks/));
-  });
-});
-
 describe('charms', () => {
   it('Rabbit’s foot: +5% crit chance for the hero', () => {
     const save = equip(ready({ trailMix: 5, rabbitsFoot: 1 }), 'bram', 'consumable', 'rabbitsFoot');
     expect(prepareParty(save, ['bram'])[0].abilities).toContainEqual({ kind: 'critBonus', chance: provisionRules.charms.rabbitsFoot });
-  });
-
-  it('Ward bone: the hero ignores the first trap that would hit them', () => {
-    const ward = { id: 'wardBone', name: 'Ward bone', emoji: '', slot: 'consumable' as const, charm: { kind: 'wardTrap' as const } };
-    const run = simulateRun([member('a', [], { consumable: ward }), member('b')], { ...oneEncounter(trap), encounterCount: [3, 3] }, 's', { rules: steady });
-    expect(run.encounters[0].taken).toEqual({ b: 20 });
-    expect(run.encounters[0].effects).toContainEqual({ heroId: 'a', key: 'ward' });
-    expect(run.encounters[1].taken.a).toBe(20);
   });
 
   it('Lucky tooth: +5% party gold, once however many heroes carry one', () => {
@@ -308,7 +233,8 @@ describe('charms', () => {
 
 describe('traits', () => {
   it('Tough: −10% damage taken', () => {
-    const taken = (abilities: Ability[]) => simulateRun([member('a', abilities)], oneEncounter(trap), 's', { rules: steady }).encounters[0].taken.a;
+    const taken = (abilities: Ability[]) =>
+      simulateRun([member('a', abilities)], oneEncounter(trap), 's', { rules: steady, briefing: traps }).encounters[0].taken.a;
     expect(taken([{ kind: 'damageTaken', multiplier: 0.9 }])).toBeCloseTo(taken([]) * 0.9);
   });
 

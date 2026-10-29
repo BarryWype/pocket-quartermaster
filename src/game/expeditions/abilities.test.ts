@@ -3,7 +3,7 @@ import { npcMobId } from '@/content/enemies';
 import { dungeonById } from '@/content/lookup';
 import { localsRules, npcById } from '@/content/npcs';
 
-import type { Ability, BossDef, DungeonDef, EncounterDef } from '../types';
+import type { Ability, BossDef, Briefing, DungeonDef, EncounterDef, ThreatId } from '../types';
 import { simulateRun, type PartyMember } from './simulate';
 
 /** No mishaps, luck, variance or crits, so effects can be checked exactly. */
@@ -15,9 +15,11 @@ const member = (heroId: string, abilities: Ability[] = [], overrides: Partial<Pa
   classId: 'warrior',
   traitId: 'none',
   weaponName: null,
+  weaponType: null,
   maxHp: 100,
   hp: overrides.hp ?? overrides.maxHp ?? 100,
   damage: 10,
+  magic: 0,
   defense: 0,
   threat: 1,
   resists: [],
@@ -34,11 +36,12 @@ const oneEncounter = (encounter: EncounterDef, extra: EncounterDef[] = []): Dung
   encounters: [encounter, ...extra],
   boss: weakBoss,
 });
-const first = (party: PartyMember[], encounter: EncounterDef, seed = 's', extra: EncounterDef[] = []) =>
-  simulateRun(party, oneEncounter(encounter, extra), seed, { rules: steady }).encounters[0];
+/** A briefing with one threat; a plain warrior (might 3, presence 1) meets level 1-2 with Might. */
+const briefingOf = (id: ThreatId, level: 1 | 2 | 3 = 1): Briefing => ({ threats: [{ id, level }], restriction: null, opportunity: null });
+const first = (party: PartyMember[], encounter: EncounterDef, seed = 's', briefing?: Briefing, extra: EncounterDef[] = []) =>
+  simulateRun(party, oneEncounter(encounter, extra), seed, { rules: steady, ...(briefing ? { briefing } : {}) }).encounters[0];
 
-const trap: EncounterDef = { type: 'trap', weight: 1, name: 'test trap', damagePct: 0.2, targets: 'all', triggerChance: 1 };
-const rubble: EncounterDef = { type: 'obstacle', weight: 1, name: 'rubble pile', kind: 'rubble', hpCostPct: 0.1, detourChance: 0 };
+const trap: EncounterDef = { type: 'trap', weight: 1, name: 'test trap', targets: 'all' };
 const beasts: EncounterDef = { type: 'fight', weight: 1, mobs: [{ mobId: 'wolfPup', count: 2 }] };
 const locals = (npcId: string): EncounterDef => ({ type: 'locals', weight: 1, npcId });
 
@@ -58,119 +61,103 @@ describe('damageVsTag', () => {
 });
 
 describe('traps', () => {
-  it('can be disarmed for the whole party', () => {
-    const result = first([member('a', [{ kind: 'trapDisarm', chance: 1 }]), member('b')], trap);
-    expect(result).toMatchObject({ trapTriggered: false, taken: {}, cleared: true });
-    expect(result.effects).toEqual([{ heroId: 'a', key: 'disarm' }]);
-  });
-
-  it('can have its damage reduced for the whole party', () => {
-    const result = first([member('a', [{ kind: 'trapReduce', multiplier: 0.5 }]), member('b')], trap);
-    expect(result.taken).toEqual({ a: 10, b: 10 });
+  it('can have their damage reduced for the whole party', () => {
+    const briefing = briefingOf('traps', 2);
+    const result = first([member('a', [{ kind: 'trapReduce', multiplier: 0.5 }]), member('b')], trap, 's', briefing);
+    expect(result.taken).toEqual({ a: 6, b: 6 });
     expect(result.effects).toEqual([{ heroId: 'a', key: 'trapReduce' }]);
   });
 
-  it('ignores knocked-out heroes', () => {
-    const result = first([knockedOut(member('a', [{ kind: 'trapDisarm', chance: 1 }])), member('b')], trap);
-    expect(result.trapTriggered).toBe(true);
-  });
-});
-
-describe('calmBeasts', () => {
-  it('skips an all-beast fight: cleared, no HP lost, counted as calmed', () => {
-    const run = simulateRun([member('a', [{ kind: 'calmBeasts', chance: 1 }])], oneEncounter(beasts), 's', { rules: steady });
-    expect(run.encounters[0]).toMatchObject({ calmed: true, cleared: true, taken: {}, rounds: 0 });
-    expect(run.encountersCalmed).toBe(1);
-  });
-
-  it('only works when every mob is a beast', () => {
-    const mixed: EncounterDef = { type: 'fight', weight: 1, mobs: [{ mobId: 'wolfPup', count: 1 }, { mobId: 'goblin', count: 1 }] };
-    expect(first([member('a', [{ kind: 'calmBeasts', chance: 1 }], { maxHp: 1e6 })], mixed).calmed).toBe(false);
-  });
-});
-
-describe('obstacles', () => {
-  it('are cleared for free by a hero who can solve them', () => {
-    const result = first([member('a', [{ kind: 'obstacleSolve', kinds: ['rubble'] }]), member('b')], rubble);
-    expect(result).toMatchObject({ cleared: true, taken: {} });
-    expect(result.effects).toEqual([{ heroId: 'a', key: 'solve' }]);
-  });
-
-  it('cost everyone HP otherwise', () => {
-    const result = first([member('a', [{ kind: 'obstacleSolve', kinds: ['barricade'] }]), member('b')], rubble);
-    expect(result).toMatchObject({ cleared: true, taken: { a: 10, b: 10 }, detour: false });
-  });
-
-  it('can force a detour fight from the dungeon pool', () => {
-    const detour = { ...rubble, detourChance: 1 } as EncounterDef;
-    const result = first([member('a', [], { maxHp: 1e6 })], detour, 's', [{ ...beasts, weight: 0.0001 }]);
-    expect(result.detour).toBe(true);
-    expect(result.mobs).toEqual([{ mobId: 'wolfPup', count: 2 }]);
-    expect(result.rounds).toBeGreaterThan(0);
-  });
-
-  it("don't count knocked-out solvers", () => {
-    const result = first([knockedOut(member('a', [{ kind: 'obstacleSolve', kinds: ['rubble'] }])), member('b')], rubble);
-    expect(result.effects).toEqual([]);
+  it('ignore knocked-out heroes', () => {
+    const briefing = briefingOf('traps', 2);
+    const result = first([knockedOut(member('a')), member('b')], trap, 's', briefing);
+    expect(result.taken).toEqual({ b: 12 });
   });
 });
 
 describe('locals', () => {
-  const charm: Ability = { kind: 'localsReaction', key: 'charm' };
-  const provoke: Ability = { kind: 'localsReaction', key: 'provoke' };
-  const pickpocket: Ability = { kind: 'localsReaction', key: 'pickpocket' };
+  /** Locals are live only with the locals threat in the briefing. */
+  const withLocals = (party: PartyMember[], npcId: string, level: 1 | 2 | 3 = 1, seed = 's') =>
+    first(party, locals(npcId), seed, briefingOf('locals', level));
 
-  it('help a charming party, as their NPC says', () => {
-    const hermit = first([member('a', [charm])], locals('hermit'));
+  it('help a party that meets them with Presence, as their NPC says', () => {
+    // Presence 3 from a troubadour meets level 1 (needs 2).
+    const charming = member('a', [], { classId: 'troubadour' });
+    const hermit = withLocals([charming], 'hermit');
     expect(hermit).toMatchObject({ reaction: 'help', help: npcById.hermit.help, cleared: true });
-    const troll = first([member('a', [charm])], locals('tollTroll'));
+    const troll = withLocals([charming], 'tollTroll');
     expect(troll.gold).toBe(Math.round(0.3 * dungeonById.ratCellar.gold[1]));
   });
 
   it('give a tip that skips the next trap', () => {
-    const party = [member('a', [charm])];
-    const run = simulateRun(party, { ...oneEncounter(locals('lostMiner')), encounterCount: [3, 3], encounters: [locals('lostMiner')] }, 's', {
-      rules: steady,
-    });
-    expect(run.encounters[0].reaction).toBe('help');
-    const withTrap = simulateRun(
-      party,
-      { ...oneEncounter(locals('lostMiner')), encounterCount: [3, 3], encounters: [{ ...locals('lostMiner'), weight: 1e-9 }, trap] },
+    const charming = member('a', [], { classId: 'troubadour' });
+    const run = simulateRun(
+      [charming],
+      {
+        ...oneEncounter(locals('lostMiner')),
+        encounterCount: [3, 3],
+        // The trap never comes up in the draw: the guarantee gives it the step after the locals.
+        encounters: [locals('lostMiner'), { ...trap, weight: 1e-9 }],
+      },
       's',
-      { rules: steady },
+      {
+        rules: steady,
+        briefing: { threats: [{ id: 'locals', level: 1 }, { id: 'traps', level: 1 }], restriction: null, opportunity: null },
+      },
     );
-    // Whatever order they come in, a trap right after a tip is skipped.
-    const tipIndex = withTrap.encounters.findIndex((e) => e.kind === 'locals');
-    const next = withTrap.encounters[tipIndex + 1];
-    if (tipIndex >= 0 && next?.kind === 'trap') expect(next.effects).toEqual([{ heroId: null, key: 'tip' }]);
+    expect(run.encounters[0]).toMatchObject({ kind: 'locals', reaction: 'help' });
+    expect(run.encounters[1].kind).toBe('trap');
+    expect(run.encounters[1].effects).toEqual([{ heroId: null, key: 'tip' }]);
+    expect(run.encounters[1].taken).toEqual({});
   });
 
-  it('fight a provoking party with their hostile group', () => {
-    const result = first([member('a', [provoke], { maxHp: 1e6, damage: 100 })], locals('poachers'));
-    expect(result.reaction).toBe('fight');
-    expect(result.mobs).toEqual([{ mobId: npcMobId('poachers', 1), count: 3 }]);
-    expect(result.rounds).toBeGreaterThan(0);
-  });
-
-  it('lose some gold to a pickpocket, and sometimes notice', () => {
-    const results = Array.from({ length: 60 }, (_, i) => first([member('a', [pickpocket], { maxHp: 1e6, damage: 100 })], locals('pedlar'), `p${i}`));
+  it('lose some gold to a pickpocket when the party only half meets them, and sometimes notice', () => {
+    // A fire mage (Presence 1, Might 1) half-misses level 1: the thief works.
+    const thief = member('a', [{ kind: 'pickpocket' }], { classId: 'fireMage', maxHp: 1e6, damage: 100 });
+    const results = Array.from({ length: 60 }, (_, i) => withLocals([thief], 'pedlar', 1, `p${i}`));
     results.forEach((r) => expect(r).toMatchObject({ reaction: 'steal', gold: Math.round(localsRules.pickpocketGoldShare * 12) }));
     const noticed = results.filter((r) => r.noticed).length / results.length;
     expect(noticed).toBeGreaterThan(0.1);
     expect(noticed).toBeLessThan(0.55);
   });
 
-  it('ignore a party with no way with people', () => {
-    expect(first([member('a')], locals('hermit'))).toMatchObject({ reaction: 'neutral', cleared: true, effects: [] });
+  it('turn neutral when the party merely intimidates them: no help, no fight', () => {
+    // Might 3 from a barbarian meets level 1 (needs 2), but that only scares them.
+    const barbarian = member('a', [], { classId: 'barbarian' });
+    expect(withLocals([barbarian], 'hermit')).toMatchObject({ reaction: 'neutral', cleared: true, gold: 0 });
+    expect(withLocals([barbarian], 'hermit', 2)).toMatchObject({ reaction: 'neutral', cleared: true });
   });
 
-  it('react in priority order: charm, then provoke, then pickpocket', () => {
-    expect(first([member('a', [pickpocket]), member('b', [provoke]), member('c', [charm])], locals('hermit')).reaction).toBe('help');
-    expect(first([member('a', [pickpocket]), member('b', [provoke], { damage: 100 })], locals('hermit')).reaction).toBe('fight');
+  it('still lose a purse to a thief when the party intimidates them', () => {
+    const barbarian = member('a', [], { classId: 'barbarian' });
+    const thief = member('t', [{ kind: 'pickpocket' }]);
+    const picks = Array.from({ length: 20 }, (_, i) => withLocals([barbarian, thief], 'hermit', 1, `i${i}`));
+    expect(picks.every((p) => p.reaction === 'steal' && p.gold > 0)).toBe(true);
+    // Not every lift gets noticed: some end without a fight.
+    expect(picks.some((p) => !p.noticed && p.cleared)).toBe(true);
   });
 
-  it("don't count knocked-out heroes", () => {
-    expect(first([knockedOut(member('a', [charm])), member('b')], locals('hermit')).reaction).toBe('neutral');
+  it('sometimes turn hostile when the party misses them, and fight with their hostile group', () => {
+    // A fire mage alone: level 1 is one short (half), so the extra fight is a coin flip.
+    const loner = member('a', [], { classId: 'fireMage', maxHp: 1e6, damage: 100 });
+    const met = Array.from({ length: 40 }, (_, i) => withLocals([loner], 'poachers', 1, `h${i}`));
+    const hostile = met.filter((r) => r.reaction === 'fight');
+    expect(hostile.length).toBeGreaterThan(0);
+    expect(hostile.length).toBeLessThan(40);
+    hostile.forEach((result) => {
+      expect(result.mobs).toEqual([{ mobId: npcMobId('poachers', 1), count: 3 }]);
+      expect(result.rounds).toBeGreaterThan(0);
+    });
+  });
+
+  it('are a quiet step without the locals threat in the briefing', () => {
+    expect(first([member('a')], locals('hermit'))).toMatchObject({ kind: 'quiet', cleared: true, effects: [] });
+  });
+
+  it("don't count knocked-out pickpockets", () => {
+    const thief = knockedOut(member('a', [{ kind: 'pickpocket' }], { classId: 'fireMage' }));
+    const result = withLocals([thief, member('b')], 'pedlar');
+    expect(result.reaction).not.toBe('steal');
   });
 });
 
@@ -182,13 +169,18 @@ describe('support and combat primitives', () => {
     }).encounters[0];
 
   it('partyHeal: heals conscious heroes after each encounter', () => {
-    const run = simulateRun([member('a', [{ kind: 'partyHeal', pct: 0.1 }])], oneEncounter(trap), 's', { rules: steady });
+    const briefing = briefingOf('traps', 2);
+    const run = simulateRun([member('a', [{ kind: 'partyHeal', pct: 0.1 }])], oneEncounter(trap), 's', { rules: steady, briefing });
     expect(run.encounters[0].effects).toContainEqual({ heroId: 'a', key: 'partyHeal' });
+    // The trap took 12%; the healer gives back 10% of max HP.
     expect(run.encounters[0].healed.a).toBeCloseTo(10);
   });
 
   it('protect: takes a share of the hits aimed at the most hurt ally', () => {
-    const result = bossFight([member('tank', [{ kind: 'protect', share: 0.5 }], { maxHp: 1e6, threat: 0.0001 }), member('frail', [], { maxHp: 1e6, damage: 1 })]);
+    const result = bossFight([
+      member('tank', [{ kind: 'protect', share: 0.5 }], { maxHp: 1e6, threat: 0.0001 }),
+      member('frail', [], { maxHp: 1e6, damage: 1 }),
+    ]);
     expect(result.effects).toContainEqual({ heroId: 'tank', key: 'protect', allyId: 'frail' });
     // Half of every hit on the frail hero goes to the tank instead.
     expect(result.taken.tank).toBeGreaterThan(result.taken.frail * 0.8);
@@ -196,8 +188,8 @@ describe('support and combat primitives', () => {
 
   it('rage: hits harder below the HP threshold', () => {
     const angry = [member('a', [{ kind: 'rage', belowPct: 2, multiplier: 2 }], { maxHp: 1e6 })];
-    const calm = [member('a', [], { maxHp: 1e6 })];
-    expect(bossFight(angry).rounds).toBeLessThan(bossFight(calm).rounds);
+    const calmHero = [member('a', [], { maxHp: 1e6 })];
+    expect(bossFight(angry).rounds).toBeLessThan(bossFight(calmHero).rounds);
     expect(bossFight(angry).effects).toContainEqual({ heroId: 'a', key: 'rage' });
   });
 
@@ -220,12 +212,6 @@ describe('support and combat primitives', () => {
     expect(run([{ kind: 'critBonus', chance: 1 }]).effects).toContainEqual({ heroId: 'a', key: 'crit' });
   });
 
-  it('cacheBonus: finds more gold in caches', () => {
-    const cache: EncounterDef = { type: 'event', weight: 1, eventId: 'cache' };
-    const gold = (abilities: Ability[]) => first([member('a', abilities)], cache).gold;
-    expect(gold([{ kind: 'cacheBonus', multiplier: 2 }])).toBe(gold([]) * 2);
-  });
-
   it('elementalAdvantage: replaces the advantage multiplier, only when the element wins', () => {
     const grassBoss: BossDef = { ...brute, element: 'grass' };
     const fire = (abilities: Ability[]) => bossFight([member('a', abilities, { maxHp: 1e6, weaponElement: 'fire' })], grassBoss);
@@ -238,45 +224,27 @@ describe('support and combat primitives', () => {
 });
 
 describe('trait effects', () => {
-  const ambush: EncounterDef = { type: 'event', weight: 1, eventId: 'ambush' };
-
-  it('ambushAlert: ambushes lose the first strike', () => {
-    const lone: EncounterDef = { type: 'fight', weight: 1e-9, mobs: [{ mobId: 'wolfPup', count: 1 }] };
-    const hit = (abilities: Ability[]) => first([member('a', abilities, { maxHp: 1e6, damage: 1000 })], ambush, 's', [lone]);
-    expect(hit([]).taken.a).toBeGreaterThan(0);
-    expect(hit([{ kind: 'ambushAlert' }]).taken).toEqual({});
-    expect(hit([{ kind: 'ambushAlert' }]).effects).toContainEqual({ heroId: 'a', key: 'alert' });
-  });
-
-  it('trapTrigger: sets traps off more often', () => {
-    const half = { ...trap, triggerChance: 0.5 } as EncounterDef;
-    const rate = (abilities: Ability[]) =>
-      Array.from({ length: 200 }, (_, i) => first([member('a', abilities)], half, `t${i}`)).filter((r) => r.trapTriggered).length / 200;
-    expect(rate([{ kind: 'trapTrigger', multiplier: 2 }])).toBeGreaterThan(rate([]) + 0.3);
-  });
+  /** Three live traps at level 3: 54% of max HP in wounds, before the boss. */
+  const wounded = (): DungeonDef => ({ ...oneEncounter(trap, [trap, trap]), encounterCount: [4, 4] });
 
   it('potionThreshold: drinks earlier', () => {
     const potion = { id: 'p', name: 'potion', emoji: '', slot: 'consumable' as const, heal: 1, when: 'lowHp' as const };
-    const half = { ...trap, damagePct: 0.5 } as EncounterDef;
-    expect(first([member('a', [], { consumable: potion })], half).consumed).toEqual([]);
-    expect(first([member('a', [{ kind: 'potionThreshold', add: 0.3 }], { consumable: potion })], half).consumed).toEqual(['a']);
+    const briefing = briefingOf('traps', 3);
+    const run = (abilities: Ability[]) =>
+      simulateRun([member('a', abilities, { consumable: potion })], wounded(), 's', { rules: steady, briefing });
+    // Down to 46% of max HP: below the raised threshold (65%), above the normal one (35%).
+    expect(run([{ kind: 'potionThreshold', add: 0.3 }]).consumed).toEqual(['a']);
+    expect(run([]).consumed).toEqual([]);
   });
 
   it('stewBoost: Hunter’s stew heals more before the boss', () => {
+    const briefing = briefingOf('traps', 3);
     const run = (abilities: Ability[]) =>
-      simulateRun([member('a', abilities)], oneEncounter({ ...trap, damagePct: 0.5 } as EncounterDef), 's', {
+      simulateRun([member('a', abilities)], wounded(), 's', {
         rules: steady,
+        briefing,
         meal: { kind: 'bossHeal', pct: 0.1 },
-      }).encounters[1].healed.a;
+      }).encounters.at(-1)!.healed.a;
     expect(run([{ kind: 'stewBoost', multiplier: 2 }])).toBeCloseTo(run([]) * 2);
-  });
-
-  it('hostileLocals: indifferent locals sometimes attack, and pickpockets get noticed more', () => {
-    const loud: Ability = { kind: 'hostileLocals', chance: 1, noticeBonus: 0.7 };
-    const result = first([member('a', [loud], { maxHp: 1e6, damage: 100 })], locals('hermit'));
-    expect(result).toMatchObject({ reaction: 'fight' });
-    expect(result.effects).toContainEqual({ heroId: 'a', key: 'loud' });
-    const pickpocket: Ability = { kind: 'localsReaction', key: 'pickpocket' };
-    expect(first([member('a', [pickpocket, loud], { maxHp: 1e6, damage: 100 })], locals('hermit')).noticed).toBe(true);
   });
 });

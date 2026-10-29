@@ -470,9 +470,9 @@ export function renderReport({ summary, comparison, elapsed, rules, compareWith 
   const cell = (v: number | undefined) =>
     v === undefined ? '—' : `<span class="heat" style="--v:${v.toFixed(2)}">${pct(v)}</span>`;
   const matrix = summary.oddsMatrix.length
-    ? `<p class="muted">The three starting classes at the tier's expected level, every hero in the tier's weapon and armour at one quality, with a healing potion each, no traits. “Counter” swaps in the class that counters the dungeon best.</p>` +
+    ? `<p class="muted">The three starting classes at the tier's expected level, every hero in the tier's weapon and armour at one quality, with a healing potion each, no traits. “Threat cover” swaps in the class whose answers turn one of the dungeon's drawn threats met.</p>` +
       table(
-        ['Dungeon', 'Tier', 'Crappy', 'Normal', 'Rare', 'Counter class', 'Crappy', 'Normal', 'Rare', 'Counter at Normal'],
+        ['Dungeon', 'Tier', 'Crappy', 'Normal', 'Rare', 'Threat cover', 'Crappy', 'Normal', 'Rare', 'Cover at Normal'],
         summary.oddsMatrix.map((r) => {
           const delta = r.counter ? Math.round((r.counter.odds.normal - r.base.normal) * 100) : null;
           return [
@@ -492,7 +492,6 @@ export function renderReport({ summary, comparison, elapsed, rules, compareWith 
   const prov = (pick: (p: ProfileSummary['provisions']) => string) => ps.map((p) => pick(p.provisions));
   const foodTarget = targets.foodUse;
   const mealIds = [...new Set(ps.flatMap((p) => Object.keys(p.provisions.meals)))];
-  const kitIds = [...new Set(ps.flatMap((p) => Object.keys(p.provisions.kits)))];
   const itemName = (id: string) => esc(itemById[id]?.name ?? id);
   const spam = summary.spam;
   const provisions =
@@ -512,16 +511,10 @@ export function renderReport({ summary, comparison, elapsed, rules, compareWith 
         ],
       ],
     ) +
-    `<h3>Meals and kits (expeditions per run)</h3>` +
+    `<h3>Meals (expeditions per run)</h3>` +
     table(
       ['Item', ...names],
-      [
-        ...mealIds.map((id) => [itemName(id), ...ps.map((p) => fmt(p.provisions.meals[id] ?? 0, 1))]),
-        ...kitIds.map((id) => [
-          `${itemName(id)} <span class="muted">taken / triggered</span>`,
-          ...ps.map((p) => `${fmt(p.provisions.kits[id]?.taken ?? 0, 1)} / ${fmt(p.provisions.kits[id]?.triggered ?? 0, 1)}`),
-        ]),
-      ],
+      [...mealIds.map((id) => [itemName(id), ...ps.map((p) => fmt(p.provisions.meals[id] ?? 0, 1))])],
     ) +
     `<h3>Spam check</h3><p class="muted">One party at a time on ${esc(dungeonById[spam.dungeonId]?.name ?? spam.dungeonId)} for ${spam.hours} h, relaunched as soon as it is back, without potions: always the same 3 heroes, or the 3 healthiest of 6 (see spam.ts).</p>` +
     table(

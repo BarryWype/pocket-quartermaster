@@ -34,7 +34,7 @@ function geared(): SaveData {
       { uid: 'g3', itemId: 'woodWand', quality: 'normal' },
       { uid: 'g4', itemId: 'woodArmour', quality: 'normal' },
     ],
-    consumables: { ...createInitialSave().consumables, healingPotion: 1, fireResistanceElixir: 1 },
+    consumables: { ...createInitialSave().consumables, healingPotion: 1, emberWardSalve: 1 },
     nextUid: 10,
   });
   save = equip(save, 'bram', 'weapon', 'g1');
@@ -202,21 +202,29 @@ describe('resolveExpedition', () => {
     expect(save.gear).toEqual(started.gear);
   });
 
-  it('returns potions nobody needed and uses up the ones drunk', () => {
+  it('uses up every equipped consumable, salvaging the ones that never triggered', () => {
     const results = outcomes(geared(), 'banditStockade', 100);
-    const drunk = results.filter((r) => r.report.consumablesUsed.includes('healingPotion'));
-    const spared = results.filter((r) => !r.report.consumablesUsed.includes('healingPotion'));
+    const drunk = results.filter((r) => !r.report.salvaged.some((s) => s.itemId === 'healingPotion'));
+    const spared = results.filter((r) => r.report.salvaged.some((s) => s.itemId === 'healingPotion'));
     expect(drunk.length).toBeGreaterThan(0);
     expect(spared.length).toBeGreaterThan(0);
-    drunk.forEach(({ save }) => expect(save.consumables.healingPotion ?? 0).toBe(0));
-    spared.forEach(({ save }) => expect(save.consumables.healingPotion).toBe(1));
-    results.forEach(({ save }) => expect(save.heroes.find((h) => h.id === 'bram')!.equipment.consumable).toBeNull());
+    // The potion is gone from the slot and the stock either way: nothing comes back.
+    results.forEach(({ save }) => {
+      expect(save.consumables.healingPotion ?? 0).toBe(0);
+      expect(save.heroes.find((h) => h.id === 'bram')!.equipment.consumable).toBeNull();
+    });
+    // A potion nobody needed is broken back down, not returned.
+    spared.forEach(({ report }) => {
+      const entry = report.salvaged.find((s) => s.itemId === 'healingPotion')!;
+      expect(entry.materials.length > 0 || entry.gold > 0).toBe(true);
+    });
+    results.forEach(({ report }) => expect(report.log.join(' ')).not.toMatch(/\{\w+\}/));
   });
 
-  it('always uses up elixirs', () => {
-    const save = equip(geared(), 'lyra', 'consumable', 'fireResistanceElixir');
+  it('always uses up ward salves', () => {
+    const save = equip(geared(), 'lyra', 'consumable', 'emberWardSalve');
     const started = startExpedition(save, 'cinderHollow', ALL, 0);
-    expect(resolveExpedition(started, started.expeditions[0]).report.consumablesUsed).toContain('fireResistanceElixir');
+    expect(resolveExpedition(started, started.expeditions[0]).report.consumablesUsed).toContain('emberWardSalve');
   });
 
   it('keeps gear equipped whatever the outcome', () => {
@@ -232,14 +240,15 @@ describe('resolveExpedition', () => {
     expect(taught).toEqual(new Set([null, 'woodArmour', 'woodWand', 'woodBow']));
   });
 
-  it('writes one line per encounter plus a summary, naming the heroes', () => {
+  it('writes one line per played encounter plus a summary, naming the heroes', () => {
     for (const dungeon of dungeons) {
       for (const { report } of outcomes(geared(), dungeon.id, 20)) {
-        // Every encounter played gets a line: all cleared ones, plus the one the team fell in.
+        // Every encounter played gets at most one line (quiet steps none), plus a summary
+        // and any recipe, first-clear, charter, main-reward or salvage lines.
         const played = report.encountersCleared + (report.success ? 0 : 1);
         const extras = report.recipeId ? 1 : 0;
-        expect(report.log.length).toBeGreaterThanOrEqual(played + 1 + extras);
-        expect(report.log.length).toBeLessThanOrEqual(played + 1 + extras + 4);
+        expect(report.log.length).toBeGreaterThanOrEqual(2);
+        expect(report.log.length).toBeLessThanOrEqual(played + 1 + extras + 5);
         expect(report.log.join(' ')).not.toMatch(/\{\w+\}/);
       }
     }

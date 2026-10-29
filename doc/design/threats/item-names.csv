@@ -1,0 +1,23 @@
+Slot,Type,Tier 1,Tier 2,Tier 3,Tier 4,Tier 5,Note
+Weapon,Sword,Wooden sword,Flint sword,Copper sword,Iron sword,Steel sword,Flint instead of stone
+Weapon,Axe,Bone axe,Flint axe,Copper axe,Iron axe,Steel axe,
+Weapon,Mace,Wooden mace,Stone mace,Copper mace,Iron mace,Steel mace,
+Weapon,Dagger,Bone dagger,Flint dagger,Copper dagger,Iron dagger,Steel dagger,
+Weapon,Bow,Wooden bow,Flint-tipped bow,Copper-banded bow,Iron-banded bow,Steel-banded bow,Needs a quiver
+Weapon,Spear,Wooden spear,Flint spear,Copper spear,Iron spear,Steel spear,
+Weapon,Warhammer,Hardwood warhammer,Stone warhammer,Copper warhammer,Iron warhammer,Steel warhammer,Two-handed
+Weapon,Wand,Wooden wand,Stone wand,Copper wand,Iron wand,Steel wand,
+Weapon,Staff,Wooden staff,Stone-tipped staff,Copper-shod staff,Iron-shod staff,Steel-shod staff,Two-handed
+Weapon,Lute,Wooden lute,Stone-inlaid lute,Copper-strung lute,Iron-strung lute,Steel-strung lute,
+Weapon,Censer,Bone censer,Stone censer,Copper censer,Iron censer,Steel censer,Bone instead of wood
+Weapon,Knuckles,Bone knuckles,Stone knuckles,Copper knuckles,Iron knuckles,Steel knuckles,
+Armour,Plate,Hardwood plate,Slate plate,Copper plate,Iron plate,Steel plate,Hardwood and slate instead of wood and stone
+Armour,Mail,Bone mail,Stone-scale mail,Copper mail,Iron mail,Steel mail,
+Armour,Leather,Hide armour,Stone-studded leather,Copper-studded leather,Iron-studded leather,Steel-studded leather,
+Armour,Robes,Linen robes,Stone-beaded robes,Copper-threaded robes,Iron-threaded robes,Steel-threaded robes,Linen from herbs
+Off-hand,Shield,Wooden shield,Stone-rimmed shield,Copper shield,Iron shield,Steel shield,One-handed weapons only
+Off-hand,Buckler,Wooden buckler,Stone buckler,Copper buckler,Iron buckler,Steel buckler,
+Off-hand,Off-hand blade,Bone parrying dagger,Flint parrying dagger,Copper parrying dagger,Iron parrying dagger,Steel parrying dagger,Shown as parrying dagger
+Off-hand,Quiver,Hide quiver,Flint-arrow quiver,Copper-arrow quiver,Iron-arrow quiver,Steel-arrow quiver,Bow only; the arrows carry the tier
+Off-hand,Tome,Bark tome,Stone-clasped tome,Copper-clasped tome,Iron-clasped tome,Steel-clasped tome,
+Off-hand,Focus,Bone focus,Stone focus,Copper focus,Iron focus,Steel focus,

@@ -1,0 +1,7 @@
+When,What grows
+Every level,"The class primary stats, one step each"
+Every level (utility classes only),"Their half-rate damage stat, half a step"
+"Levels 5, 10, 15",One step on every secondary stat
+"Levels 5, 10",The player chooses +1 on one approach (cap 5)
+Level 15,+1 Luck
+Recruitment,"3d6 per stat: base -15% to +15%, growth -8% to +8%; about 1 in 10 gets +1 on a random approach; grade C / B / A / S; seeded by tavern and day"

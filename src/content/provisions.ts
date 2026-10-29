@@ -1,4 +1,4 @@
-/** Supply, meals, kits and charms. Items are in `items.ts`, recipes in `recipes.ts`. */
+/** Supply, meals and charms. Items are in `items.ts`, recipes in `recipes.ts`. */
 export const provisionRules = {
   /** Each hero needs this many supply points per started hour of the expedition. */
   pointsPerHeroHour: 1,
@@ -14,6 +14,5 @@ export const provisionRules = {
   /** The cooking tip shows once held supply drops below this. */
   lowStockPoints: 6,
   meals: { stewHeal: 0.15, porridgeXp: 1.15, pieGold: 1.15, quickBitesDuration: 0.9, brothRetreat: 0.25 },
-  kits: { baitCalm: 0.5, holyWater: 1.25 },
   charms: { rabbitsFoot: 0.05, luckyTooth: 1.05 },
 };

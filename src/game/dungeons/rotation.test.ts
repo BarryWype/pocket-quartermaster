@@ -1,25 +1,25 @@
 import { dungeons } from '@/content/dungeons';
 import { heroClasses } from '@/content/heroes';
 import { dungeonById } from '@/content/lookup';
-import { dungeonModifiers, modifierById } from '@/content/modifiers';
+import { surges } from '@/content/threats';
 import { rotationRules } from '@/content/rotation';
 
+import { composeBriefing } from '../threats/compose';
 import { isDungeonAvailable, resolveExpedition, startExpedition } from '../expeditions/expeditions';
 import { migrateV6Save } from '../migrations';
 import { createInitialSave, type SaveData } from '../save';
 import { equip } from '../team/team';
-import { countersFor } from './counters';
+import type { Briefing } from '../types';
 import {
-  allowedModifiers,
   applyOverrides,
+  briefingFor,
   dailyRotation,
   nextRotationAt,
   openDungeonIds,
   rotationDay,
-  withModifier,
   type Rotation,
 } from './rotation';
-import { dungeonTags, mainTag } from './tags';
+import { mainTag } from './tags';
 
 const START = rotationDay(rotationRules.startDay);
 const days = (count: number, from = START + 100) => Array.from({ length: count }, (_, i) => dailyRotation(from + i));
@@ -71,24 +71,71 @@ describe('daily rotation', () => {
     for (const dungeon of pool) expect(seen).toContain(dungeon.id);
   });
 
-  it('gives about 60% of tiers a modifier, always one their dungeon allows', () => {
+  it('can be overridden from debug', () => {
+    const forced: Briefing = { threats: [{ id: 'traps', level: 3 }], restriction: 'barren', opportunity: 'bounty' };
+    const rotation = applyOverrides(dailyRotation(START + 5), {
+      slots: { '1:short': 'oldGraveyard' },
+      briefings: { oldGraveyard: forced },
+    });
+    expect(rotation.tiers[1]).toMatchObject({ short: 'oldGraveyard' });
+    expect(briefingFor(rotation, dungeonById.oldGraveyard)).toEqual(forced);
+  });
+});
+
+describe('daily surge', () => {
+  it('hits about 30% of tiers, always one of the tier\'s three dungeons, raising an undead, traps or beasts threat', () => {
     const tiers = days(100).flatMap((r) => Object.values(r.tiers));
-    const modified = tiers.filter((t) => t.modifier);
-    expect(modified.length / tiers.length).toBeGreaterThan(0.45);
-    expect(modified.length / tiers.length).toBeLessThan(0.75);
-    for (const t of modified) {
-      expect([t.boss, t.short, t.long]).toContain(t.modifier!.dungeonId);
-      expect(allowedModifiers(dungeonById[t.modifier!.dungeonId]).map((m) => m.id)).toContain(t.modifier!.modifierId);
+    const surged = tiers.filter((t) => t.surge);
+    expect(surged.length / tiers.length).toBeGreaterThan(0.15);
+    expect(surged.length / tiers.length).toBeLessThan(0.45);
+    for (const t of surged) {
+      expect([t.boss, t.short, t.long]).toContain(t.surge!.dungeonId);
+      expect(Object.keys(surges)).toContain(t.surge!.threatId);
     }
   });
 
-  it('can be overridden from debug', () => {
-    const rotation = applyOverrides(dailyRotation(START + 5), {
-      slots: { '1:short': 'oldGraveyard' },
-      modifiers: { 1: { dungeonId: 'oldGraveyard', modifierId: 'bounty' }, 2: null },
-    });
-    expect(rotation.tiers[1]).toMatchObject({ short: 'oldGraveyard', modifier: { modifierId: 'bounty' } });
-    expect(rotation.tiers[2].modifier).toBeNull();
+  it('raises the targeted dungeon\'s threat by one level, capped at 3, and marks the surge', () => {
+    for (let i = 0; i < 200; i++) {
+      const day = START + i;
+      const rotation = dailyRotation(day);
+      for (const tier of Object.values(rotation.tiers)) {
+        const surge = tier.surge;
+        if (!surge) continue;
+        const plain = composeBriefing(dungeonById[surge.dungeonId], day);
+        const surged = briefingFor(rotation, dungeonById[surge.dungeonId]);
+        const plainThreat = plain.threats.find((t) => t.id === surge.threatId)!;
+        const surgedThreat = surged.threats.find((t) => t.id === surge.threatId)!;
+        expect(surgedThreat.level).toBe(Math.min(3, plainThreat.level + 1));
+        expect(surgedThreat.surge).toBeDefined();
+      }
+    }
+  });
+
+  it('leaves the other two dungeons of the tier alone', () => {
+    for (let i = 0; i < 100; i++) {
+      const day = START + i;
+      const rotation = dailyRotation(day);
+      for (const tier of Object.values(rotation.tiers)) {
+        const surge = tier.surge;
+        if (!surge) continue;
+        for (const id of [tier.boss, tier.short, tier.long]) {
+          if (id === surge.dungeonId) continue;
+          expect(briefingFor(rotation, dungeonById[id]).threats).toEqual(composeBriefing(dungeonById[id], day).threats);
+        }
+      }
+    }
+  });
+});
+
+describe('briefingFor', () => {
+  it('composes the day\'s briefing: same day, same briefing for everyone', () => {
+    const day = START + 10;
+    const rotation = dailyRotation(day);
+    for (const dungeon of pool) {
+      expect(briefingFor(rotation, dungeon)).toEqual(composeBriefing(dungeon, day));
+    }
+    // And it is the same whatever rotation instance is at hand.
+    expect(briefingFor(dailyRotation(day), dungeonById.wolfDen)).toEqual(briefingFor(rotation, dungeonById.wolfDen));
   });
 });
 
@@ -119,42 +166,14 @@ describe('availability', () => {
     expect(isDungeonAvailable(done(during), dungeonById.ratCellar, rotation)).toBe(false);
   });
 
-  it('lets a running expedition keep its dungeon and modifier after the rotation moves on', () => {
+  it('lets a running expedition keep its dungeon and briefing after the rotation moves on', () => {
     const save = done(equip({ ...createInitialSave(), gear: [{ uid: 'g', itemId: 'steelSword', quality: 'normal' }] }, 'bram', 'weapon', 'g'));
-    const bounty = applyOverrides(rotation, { modifiers: { 1: { dungeonId: 'spiderBurrow', modifierId: 'bounty' } } });
-    const started = startExpedition(save, 'spiderBurrow', ['bram'], 0, 1, bounty);
-    expect(started.expeditions[0]).toMatchObject({ dungeonId: 'spiderBurrow', modifierId: 'bounty' });
+    const started = startExpedition(save, 'spiderBurrow', ['bram'], 0, 1, rotation);
+    expect(started.expeditions[0].briefing).toEqual(briefingFor(rotation, dungeonById.spiderBurrow));
     // Tomorrow it may be gone from the rotation; resolving doesn't look at the rotation at all.
     const { report } = resolveExpedition(started, started.expeditions[0]);
     expect(report.dungeonId).toBe('spiderBurrow');
-  });
-});
-
-describe('modifiers', () => {
-  it('are only allowed on dungeons with the tags they need', () => {
-    const restless = modifierById.restlessDead;
-    expect(allowedModifiers(dungeonById.oldGraveyard)).toContain(restless);
-    expect(allowedModifiers(dungeonById.millRuins)).not.toContain(restless);
-    for (const dungeon of dungeons) {
-      for (const modifier of allowedModifiers(dungeon)) {
-        const tags = dungeonTags(dungeon, { bossWeight: 3, minShare: 0, maxShown: Infinity });
-        modifier.requires.forEach((tag) => expect(tags).toContain(tag));
-      }
-    }
-    expect(dungeonModifiers.length).toBeGreaterThanOrEqual(5);
-  });
-
-  it('boost the weight of encounters with their tag', () => {
-    const boosted = withModifier(dungeonById.clockworkVault, modifierById.boobyTrapped);
-    dungeonById.clockworkVault.encounters.forEach((e, i) =>
-      expect(boosted.encounters[i].weight).toBe(e.type === 'trap' ? e.weight * 2.5 : e.weight),
-    );
-  });
-
-  it('change the enemy element and the rewards', () => {
-    expect(withModifier(dungeonById.wolfDen, modifierById.flooded).enemyElement).toBe('water');
-    expect(withModifier(dungeonById.wolfDen, modifierById.bounty).rewardMultipliers).toEqual({ gold: 1.3, materials: 1 });
-    expect(withModifier(dungeonById.wolfDen, modifierById.richVeins).rewardMultipliers).toEqual({ gold: 1, materials: 1.3 });
+    expect(report.briefing).toEqual(started.expeditions[0].briefing);
   });
 });
 
@@ -194,11 +213,11 @@ describe('first-clear bonus', () => {
   });
 });
 
-describe('counters', () => {
-  it('flags heroes whose abilities match the dungeon', () => {
-    expect(countersFor(heroClasses.warrior.abilities, dungeonById.millRuins)).toEqual(heroClasses.warrior.abilities);
-    expect(countersFor(heroClasses.fireMage.abilities, dungeonById.goblinWarren)).toEqual(heroClasses.fireMage.abilities);
-    expect(countersFor(heroClasses.ranger.abilities, dungeonById.wolfDen).map((a) => a.kind)).toEqual(['trapReduce', 'damageVsTag']);
-    expect(countersFor(heroClasses.warrior.abilities, dungeonById.wolfDen)).toEqual([]);
+describe('class answers', () => {
+  it('gives every class something to answer threats with: an approach above the base, or a keyword', () => {
+    for (const heroClass of Object.values(heroClasses)) {
+      const approaches = Object.values(heroClass.approaches).some((score) => score > 1);
+      expect(approaches || heroClass.keywords.length > 0).toBe(true);
+    }
   });
 });

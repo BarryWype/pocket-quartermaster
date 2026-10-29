@@ -8,16 +8,10 @@ export function abilityText(ability: Ability): string {
   switch (ability.kind) {
     case 'damageVsTag':
       return t('abilities.damageVsTag', { percent: percent(ability.multiplier - 1), tag: tr(tagInfo[ability.tag].name).toLowerCase() });
-    case 'trapDisarm':
-      return t('abilities.trapDisarm', { percent: percent(ability.chance) });
     case 'trapReduce':
       return t('abilities.trapReduce', { multiplier: formatNumber(ability.multiplier) });
-    case 'obstacleSolve':
-      return t('abilities.obstacleSolve', { kinds: ability.kinds.map((kind) => t(`abilities.obstacles.${kind}`)).join(t('common.and')) });
-    case 'calmBeasts':
-      return t('abilities.calmBeasts', { percent: percent(ability.chance) });
-    case 'localsReaction':
-      return t(`abilities.${ability.key}`);
+    case 'pickpocket':
+      return t('abilities.pickpocket');
     case 'partyHeal':
       return t('abilities.partyHeal', { percent: percent(ability.pct) });
     case 'protect':
@@ -45,8 +39,6 @@ export function abilityText(ability: Ability): string {
       });
     case 'xpMultiplier':
       return t('abilities.xpMultiplier', { percent: percent(ability.multiplier - 1) });
-    case 'ambushAlert':
-      return t('abilities.ambushAlert');
     case 'stewBoost':
       return t('abilities.stewBoost', { multiplier: formatNumber(ability.multiplier) });
     case 'damageTaken':
@@ -60,11 +52,12 @@ export function abilityText(ability: Ability): string {
       return t('abilities.supplyNeed', { sign: ability.add >= 0 ? '+' : '−', count: Math.abs(ability.add) });
     case 'hungerResist':
       return t('abilities.hungerResist', { multiplier: formatNumber(ability.multiplier) });
-    case 'trapTrigger':
-      return t('abilities.trapTrigger');
     case 'potionThreshold':
       return t('abilities.potionThreshold');
-    case 'hostileLocals':
-      return t('abilities.hostileLocals');
+    // Trait approach and keyword effects are shown by the trait's description,
+    // never by this ability list.
+    case 'approach':
+    case 'keyword':
+      return '';
   }
 }

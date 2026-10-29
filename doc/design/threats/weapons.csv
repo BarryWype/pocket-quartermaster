@@ -1,13 +1,13 @@
-Weapon,Status,Pierce,Cleave,Blessed,Guard,Parry,Reach,Keen,Stagger,Brace,Channel,Inspire,Mend,Swift,Warded,Concealed,Heavy
-Sword,Existing,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0
-Axe,Existing,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-Mace,Existing,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0
-Dagger,Existing,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0
-Bow,Existing,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
-Wand,Existing,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0
-Staff,Existing,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0
-Lute,Existing,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0
-Spear,New,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0
-Warhammer,New,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1
-Censer,New,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0
-Knuckles,New,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0
+Weapon,Status,Damage type,Hands,Pierce,Cleave,Blessed,Guard,Parry,Reach,Stagger,Brace,Channel,Inspire,Mend,Concealed,Heavy
+Sword,Existing,Power,One,0,0,0,0,1,0,0,0,0,0,0,0,0
+Axe,Existing,Power,One,0,1,0,0,0,0,0,0,0,0,0,0,0
+Mace,Existing,Power,One,0,0,1,0,0,0,1,0,0,0,0,0,0
+Dagger,Existing,Power,One,1,0,0,0,0,0,0,0,0,0,0,1,0
+Bow,Existing,Power,One,1,0,0,0,0,1,0,0,0,0,0,0,0
+Wand,Existing,Magic,One,0,0,0,0,0,0,0,0,1,0,0,1,0
+Staff,Existing,Magic,Two,0,1,0,0,0,0,0,0,0,0,0,0,0
+Lute,Existing,Magic,One,0,0,0,0,0,0,0,0,0,1,0,1,0
+Spear,New,Power,One,0,0,0,0,0,1,0,1,0,0,0,0,0
+Warhammer,New,Power,Two,1,0,0,0,0,0,1,0,0,0,0,0,1
+Censer,New,Magic,One,0,0,1,0,0,0,0,0,0,0,1,0,0
+Knuckles,New,Power,One,0,0,0,0,0,0,1,0,0,0,0,1,0

@@ -1,8 +1,9 @@
-import type { ExpeditionOutcome, HeroClassId, MainReward, NpcHelp, ObstacleKind } from '@/game/types';
+import type { ExpeditionOutcome, HeroClassId, MainReward, NpcHelp } from '@/game/types';
 
 // Placeholders: {hero} {weapon} {mobs} {boss} {trap} {event} {damage} {gold}
-// {cleared} {total} {gear} {item} {obstacle} {npc} {tag}. One line per
-// encounter, then a summary. Abilities add a sentence to their encounter's line.
+// {cleared} {total} {gear} {item} {obstacle} {npc} {tag} {threat} {answerer}
+// {opportunity}. One line per encounter, then a summary. Abilities add a
+// sentence to their encounter's line; threats add a line each at the start.
 export const logTemplates = {
   /** {hero} is whoever dealt the most damage. */
   fightWon: {
@@ -19,63 +20,38 @@ export const logTemplates = {
     sorcerer: ['{hero} unmade {mobs} with {weapon}.', '{hero} hurled raw power at {mobs} with {weapon}.'],
   } satisfies Record<HeroClassId, string[]>,
   fightLost: ['{mobs} overwhelmed the party.', 'The party fell back before {mobs}.'],
-  ambush: 'Ambush! ',
   bossWon: ['{hero} landed the final blow on the {boss} with {weapon}.', 'The {boss} fell to {hero} and {weapon}.'],
   bossLost: ['The {boss} drove the party back.', 'The {boss} was too strong.'],
   /** Appended to a fight line for whoever took the most damage. */
   tookDamage: ' {hero} took {damage} damage.',
   /** Before the boss line. */
   stew: 'The party shared a Hunter’s stew before the fight. ',
-  /** The first line when the party set out short of food. */
+  /** The first lines when the party sets out short of food. */
   hunger: {
     underfed: 'Short on food, the party set out hungry.',
     starving: 'With nothing to eat, the party set out starving.',
   },
-  /** A kit standing in for a missing ability. */
-  kits: {
-    lockpicks: 'With the lockpicks, the party opened the {obstacle}.',
-    ropeAndPitons: 'With rope and pitons, the party climbed over the {obstacle}.',
-    torches: 'The party’s torches burned through the {obstacle}.',
-    bait: 'The party threw out bait, and {mobs} slunk away after it.',
-    /** Before the fight line. */
-    baitIgnored: '{mobs} ignored the bait. ',
-    /** Appended to the fight line. */
-    holyWater: ' Holy water made the undead burn.',
-  },
-  giftsHelp: {
-    heal: 'The party’s gifts won over the {npc}, who patched everyone up.',
-    gold: 'The party’s gifts won over the {npc}, who paid {gold} gold for the company.',
-    tip: 'The party’s gifts won over the {npc}, who pointed out a trap ahead.',
-  } satisfies Record<NpcHelp['kind'], string>,
-  /** Appended to a trap line, or the whole line when nobody else was caught. */
-  ward: ' {hero}’s ward bone turned the {trap} away.',
+  /** One line per drawn threat: who or what answered it, and how it went. */
+  threatMet: ['{answerer} kept the {threat} at bay.'],
+  threatHalf: ['Facing the {threat}, {answerer} only did half the work; the party paid for it.'],
+  threatMissed: ['Nobody could answer the {threat}.'],
   potion: ' {hero} drank a healing potion.',
   knockedOut: ' {hero} was knocked out.',
   knockedOutMany: ' {heroes} were knocked out.',
   trapHit: ['A {trap} caught {hero} ({damage} damage).', '{hero} stumbled into a {trap} ({damage} damage).'],
   trapAll: ['A {trap} hit the whole party.'],
   trapMissed: ['The party slipped past a {trap}.'],
-  trapDisarmed: ['{hero} disarmed a {trap}.', '{hero} spotted a {trap} and jammed it.'],
   trapTip: ['Thanks to a local’s tip, the party stepped around a {trap}.'],
   /** Appended to a trap line. */
   trapReduced: ' {hero} shouted a warning, softening the blow.',
   /** Appended to a fight line; {tag} is e.g. "beasts". */
   tagBonus: ' {hero} knew just where to strike the {tag}.',
-  calmed: ['{hero} calmed {mobs}, and they slunk away.'],
-  obstacleSolved: {
-    rubble: '{hero} shouldered the {obstacle} aside.',
-    barricade: '{hero} burned through the {obstacle}.',
-    locked: '{hero} picked the lock of the {obstacle}.',
-  } satisfies Record<ObstacleKind, string>,
-  obstacleCost: ['Getting past the {obstacle} wore everyone out.', 'The {obstacle} cost the party a lot of sweat.'],
-  /** Appended when an unsolved obstacle forces a detour fight. */
-  detour: ' The way round led into {mobs}.',
   localsHelp: {
-    heal: '{hero} charmed the {npc}, who patched everyone up.',
-    gold: '{hero} charmed the {npc}, who paid {gold} gold for the company.',
-    tip: '{hero} charmed the {npc}, who pointed out a trap ahead.',
+    heal: '{hero} won over the {npc}, who patched everyone up.',
+    gold: '{hero} won over the {npc}, who paid {gold} gold for the company.',
+    tip: '{hero} won over the {npc}, who pointed out a trap ahead.',
   } satisfies Record<NpcHelp['kind'], string>,
-  localsProvoked: '{hero} provoked the {npc} into a fight.',
+  localsHostile: ['The {npc} turned on the party.'],
   localsStolen: '{hero} lifted {gold} gold from the {npc}.',
   localsNoticed: ' They noticed, and attacked!',
   localsNeutral: ['The party passed a {npc}, who paid them no mind.', 'A {npc} watched the party go by.'],
@@ -85,18 +61,22 @@ export const logTemplates = {
   protect: ' {hero} shielded {ally}.',
   crit: ' {hero} struck a lucky blow.',
   advantage: ' {hero}’s magic found the weak element.',
+  /** Appended to an exposed fight's line. */
+  exposed: ' The enemies struck first.',
+  /** Appended to a fight's line when poison wounded the party. */
+  poison: ' Poison wore at everyone.',
+  /** Appended to a fight's line when an enemy caster struck first. */
+  casters: ' An enemy caster struck {hero} before the fight.',
   /** Appended to the encounter after which the party was healed. */
   partyHeal: ' {hero} tended the party’s wounds.',
-  ambushAlert: '{hero} heard them coming. ',
-  cacheBonus: ' {hero} found the false bottom too.',
-  loudLocals: '{hero} was too loud: the {npc} took offence.',
   /** Names for {tag} in `tagBonus`. */
   tagNames: { undead: 'undead', beast: 'beasts', trap: 'traps', obstacle: 'obstacles', locals: 'locals' } as Record<string, string>,
   firstClear: ['First time through! A bonus of {gold} gold and {xp} XP.'],
   charter: ['The guild sent a charter to mark the victory.'],
-  spring: ['A {event} restored the party.', 'The party rested by a {event}.'],
-  cache: ['A {event} held {gold} gold.'],
   mishap: ['A {event} forced the party to turn back.', 'Bad luck: a {event} cut the expedition short.'],
+  /** The midpoint opportunity, right after the encounter it followed. */
+  opportunityTaken: ['Halfway, the party made the most of the {opportunity}.'],
+  opportunityMissed: ['Halfway, the party passed the {opportunity} by.'],
   outcome: {
     flawless: ['Flawless! Everyone came home standing, with {gold} gold.'],
     success: ['The {boss} fell. The team came home with {gold} gold.'],
@@ -114,6 +94,8 @@ export const logTemplates = {
     shards: ['With no room for another Sigil, it crumbled into {amount} {shards}.'],
     mapGold: ['With no room for another map, they sold it for {gold} gold.'],
   } satisfies Record<MainReward['kind'], string[]>,
+  /** What a consumable that never triggered was broken back down into. */
+  salvage: 'The {item} came back unused and was salvaged.',
   /** Used for {weapon} when a hero has none. */
   noWeapon: 'bare hands',
 };

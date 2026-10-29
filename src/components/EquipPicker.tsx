@@ -6,8 +6,9 @@ import { gearName, itemById } from '@/content/lookup';
 import { gearStats } from '@/game/forging/quality';
 import { rollToScale } from '@/game/forging/roll';
 import { canWield } from '@/game/team/team';
+import { kitAnswers } from '@/game/threats/coverage';
 import type { SaveData } from '@/game/save';
-import type { EquipmentSlot } from '@/game/types';
+import type { Briefing, EquipmentSlot } from '@/game/types';
 import { t, tr } from '@/i18n';
 import { colors, pixel } from '@/theme';
 
@@ -19,27 +20,39 @@ type Props = {
   save: SaveData;
   heroId: string;
   slot: EquipmentSlot;
+  /** With a briefing, consumables that answer today's threats or opportunity come first, marked. */
+  briefing?: Briefing;
   onPick: (id: string | null) => void;
   onClose: () => void;
 };
 
 type Option = { id: string; emoji: string; icon?: ImageSourcePropType; title: string; subtitle?: string; color?: string };
 
-function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot): Option[] {
+function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, briefing?: Briefing): Option[] {
   if (slot === 'consumable') {
     // Potions, elixirs and charms; food and kits are for the whole party.
     return Object.entries(save.consumables)
       .filter(([itemId, count]) => count > 0 && itemById[itemId]?.slot === 'consumable')
       .map(([itemId, count]) => {
         const item = itemById[itemId];
+        const answers = briefing ? kitAnswers(itemId, briefing) : false;
         return {
           id: itemId,
           emoji: item.emoji,
           icon: item.icon,
           title: tr(item.name),
-          subtitle: [t('equip.inStock', { count }), item.description ? tr(item.description) : null].filter(Boolean).join(' · '),
+          subtitle: [
+            t('equip.inStock', { count }),
+            answers ? t('equip.answersToday') : null,
+            item.description ? tr(item.description) : null,
+          ]
+            .filter(Boolean)
+            .join(' · '),
+          color: answers ? colors.success : undefined,
         };
-      });
+      })
+      // Kits and salves that answer the briefing come first.
+      .sort((a, b) => Number(b.color !== undefined) - Number(a.color !== undefined));
   }
   const hero = save.heroes.find((h) => h.id === heroId);
   const affinities = hero ? heroClasses[hero.classId].affinities : {};
@@ -68,8 +81,8 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot): Option
     }));
 }
 
-export function EquipPicker({ save, heroId, slot, onPick, onClose }: Props) {
-  const options = optionsFor(save, heroId, slot);
+export function EquipPicker({ save, heroId, slot, briefing, onPick, onClose }: Props) {
+  const options = optionsFor(save, heroId, slot, briefing);
 
   return (
     <Modal animationType="slide" transparent onRequestClose={onClose}>

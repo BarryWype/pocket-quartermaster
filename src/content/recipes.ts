@@ -14,15 +14,18 @@ const extraWeaponInputs: Record<string, (material: string) => MaterialStack[]> =
       : [{ materialId: m, amount: 1 }, { materialId: 'wood', amount: 2 }, { materialId: 'hide', amount: 2 }],
 };
 
-/** Provisions recipes: [item id, tab, inputs, known from the start (default yes)]. */
-function provisionRecipes(list: [string, 'kitchen' | 'alchemy', Record<string, number>, boolean?][]): RecipeDef[] {
-  return list.map(([itemId, tab, inputs, unlockedByDefault = true]) => ({
+/** Provisions recipes: [item id, tab, inputs, known from the start (default yes), known from tier]. */
+function provisionRecipes(
+  list: [string, 'kitchen' | 'alchemy', Record<string, number>, boolean?, number?][],
+): RecipeDef[] {
+  return list.map(([itemId, tab, inputs, unlockedByDefault = true, availableFromTier]) => ({
     id: itemId,
-    station: 'provisions',
+    station: 'provisions' as const,
     tab,
     output: { itemId },
     inputs: Object.entries(inputs).map(([materialId, amount]) => ({ materialId, amount })),
     unlockedByDefault,
+    ...(availableFromTier !== undefined ? { availableFromTier } : {}),
   }));
 }
 
@@ -247,16 +250,23 @@ export const recipes: RecipeDef[] = [
     ['quickBites', 'kitchen', { meat: 1, berries: 1 }],
     ['comfortBroth', 'kitchen', { meat: 1, herb: 2 }],
     ['healingPotion', 'alchemy', { herb: 2, mushroom: 1 }],
-    ['fireResistanceElixir', 'alchemy', { mushroom: 2, herb: 2 }, false],
-    ['lockpicks', 'alchemy', { bone: 2, hide: 1 }],
-    ['ropeAndPitons', 'alchemy', { hide: 3, bone: 1 }],
-    ['torches', 'alchemy', { wood: 2, hide: 1 }],
-    ['bait', 'alchemy', { meat: 2, berries: 1 }],
-    ['gifts', 'alchemy', { berries: 2, hide: 1 }],
-    ['holyWater', 'alchemy', { herb: 2, bone: 1 }],
     ['rabbitsFoot', 'alchemy', { bone: 2, hide: 1 }],
     ['luckyTooth', 'alchemy', { bone: 2, wood: 1 }],
-    ['wardBone', 'alchemy', { bone: 3 }],
+    // Kits and ward salves: never learned by drops, but known once the player's
+    // highest unlocked tier reaches the kit's (see isKnown in crafting.ts).
+    ['roguesRoll', 'alchemy', { bone: 2, hide: 1 }, false, 1],
+    ['huntersPack', 'alchemy', { meat: 2, herb: 1, hide: 1 }, false, 1],
+    ['emberWardSalve', 'alchemy', { fireShard: 1, herb: 2 }, false, 1],
+    ['tideWardSalve', 'alchemy', { waterShard: 1, herb: 2 }, false, 1],
+    ['stormWardSalve', 'alchemy', { electricShard: 1, herb: 2 }, false, 1],
+    ['stoneWardSalve', 'alchemy', { stoneShard: 1, herb: 2 }, false, 1],
+    ['thornWardSalve', 'alchemy', { grassShard: 1, herb: 2 }, false, 1],
+    ['explorersKit', 'alchemy', { stone: 1, wood: 2, hide: 2 }, false, 2],
+    ['healersSatchel', 'alchemy', { herb: 2, berries: 1, mushroom: 1 }, false, 2],
+    ['giftBasket', 'alchemy', { berries: 2, meat: 1, bone: 1 }, false, 2],
+    ['lantern', 'alchemy', { copper: 1, wood: 2, meat: 1 }, false, 3],
+    ['holyRelics', 'alchemy', { stone: 2, herb: 2 }, false, 3],
+    ['scholarsSatchel', 'alchemy', { copper: 2, wood: 1, berries: 2 }, false, 4],
   ]),
 
   ...extraWeaponRecipes,
