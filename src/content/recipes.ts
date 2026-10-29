@@ -85,7 +85,8 @@ export const recipes: RecipeDef[] = [
   ),
 
   // Provisions: food from meat and berries in the kitchen; potions from herbs
-  // and mushrooms, kits and charms from tier 1 materials in alchemy.
+  // and mushrooms, charms from tier 1 materials and kits from their tier's
+  // main material in alchemy.
   ...provisionRecipes([
     ['trailMix', 'kitchen', { berries: 2 }],
     ['jerky', 'kitchen', { meat: 2 }],
@@ -98,19 +99,20 @@ export const recipes: RecipeDef[] = [
     ['rabbitsFoot', 'alchemy', { bone: 2, hide: 1 }],
     ['luckyTooth', 'alchemy', { bone: 2, wood: 1 }],
     // Kits and ward salves: never learned by drops, but known once the player's
-    // highest unlocked tier reaches the kit's (see isKnown in crafting.ts).
+    // highest unlocked tier reaches the kit's (see isKnown in crafting.ts). The
+    // tier's main material comes first: salvage gives back at least 1 of it.
     ['roguesRoll', 'alchemy', { bone: 2, hide: 1 }, false, 1],
-    ['huntersPack', 'alchemy', { meat: 2, herb: 1, hide: 1 }, false, 1],
-    ['emberWardSalve', 'alchemy', { fireShard: 1, herb: 2 }, false, 1],
-    ['tideWardSalve', 'alchemy', { waterShard: 1, herb: 2 }, false, 1],
-    ['stormWardSalve', 'alchemy', { electricShard: 1, herb: 2 }, false, 1],
-    ['stoneWardSalve', 'alchemy', { stoneShard: 1, herb: 2 }, false, 1],
-    ['thornWardSalve', 'alchemy', { grassShard: 1, herb: 2 }, false, 1],
-    ['explorersKit', 'alchemy', { stone: 1, wood: 2, hide: 2 }, false, 2],
-    ['healersSatchel', 'alchemy', { herb: 2, berries: 1, mushroom: 1 }, false, 2],
-    ['giftBasket', 'alchemy', { berries: 2, meat: 1, bone: 1 }, false, 2],
-    ['lantern', 'alchemy', { copper: 1, wood: 2, meat: 1 }, false, 3],
-    ['holyRelics', 'alchemy', { stone: 2, herb: 2 }, false, 3],
-    ['scholarsSatchel', 'alchemy', { copper: 2, wood: 1, berries: 2 }, false, 4],
+    ['huntersPack', 'alchemy', { bone: 1, meat: 1, hide: 1 }, false, 1],
+    ['explorersKit', 'alchemy', { stone: 1, wood: 1, hide: 2 }, false, 2],
+    ['giftBasket', 'alchemy', { stone: 1, berries: 1, meat: 1 }, false, 2],
+    ['healersSatchel', 'alchemy', { stone: 1, herb: 1, mushroom: 1 }, false, 2],
+    ['lantern', 'alchemy', { copper: 1, wood: 1, meat: 1 }, false, 3],
+    ['holyRelics', 'alchemy', { copper: 1, herb: 1, stone: 1 }, false, 3],
+    ['emberWardSalve', 'alchemy', { iron: 1, fireShard: 1, herb: 1 }, false, 4],
+    ['tideWardSalve', 'alchemy', { iron: 1, waterShard: 1, herb: 1 }, false, 4],
+    ['stormWardSalve', 'alchemy', { iron: 1, electricShard: 1, herb: 1 }, false, 4],
+    ['stoneWardSalve', 'alchemy', { iron: 1, stoneShard: 1, herb: 1 }, false, 4],
+    ['thornWardSalve', 'alchemy', { iron: 1, grassShard: 1, herb: 1 }, false, 4],
+    ['scholarsSatchel', 'alchemy', { coal: 1, wood: 1, berries: 1 }, false, 5],
   ]),
 ];

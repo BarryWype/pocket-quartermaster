@@ -182,16 +182,16 @@ export const frNames: Record<string, string> = {
   'Rope, a pry bar, an air bladder and seabreath tonic.':
     'Une corde, un pied-de-biche, une vessie d’air et un tonique de souffle marin.',
   'Healer’s satchel': 'Sac du soigneur',
-  'Theriac and bandages.': 'De la thériaque et des bandages.',
+  'Theriac, bandages and a stone mortar.': 'De la thériaque, des bandages et un mortier de pierre.',
   'Gift basket': 'Panier de cadeaux',
-  'Honey cakes, smoked meat and a carved trinket.': 'Des pains au miel, de la viande fumée et un bibelot sculpté.',
+  'Honey cakes, smoked meat and a carved stone trinket.': 'Des pains au miel, de la viande fumée et un bibelot de pierre sculpté.',
   Lantern: 'Lanterne',
-  'A shuttered tallow lantern and copper bells.': 'Une lanterne à suif à volets et des clochettes de cuivre.',
+  'A shuttered tallow lantern and bells.': 'Une lanterne à suif à volets et des clochettes.',
   'Holy relics': 'Reliques saintes',
-  'Holy water and warding salt.': 'De l’eau bénite et du sel de protection.',
+  'Holy water in a copper vial and warding salt.': 'De l’eau bénite dans une fiole de cuivre et du sel de protection.',
   'Scholar’s satchel': 'Sac de l’érudit',
-  'A copper cipher wheel, berry ink, thread and chalk.':
-    'Une roue de chiffre en cuivre, de l’encre de baies, du fil et de la craie.',
+  'A cipher wheel, lampblack ink, thread and chalk.':
+    'Une roue de chiffrement, de l’encre de noir de fumée, du fil et de la craie.',
 
   // Provisions
   'Trail mix': 'Mélange du randonneur',

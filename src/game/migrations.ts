@@ -255,3 +255,12 @@ export function migrateV16Save(old: Partial<SaveData>): SaveData {
 
   return { ...save, gear, heroes, knownRecipes, mastery };
 }
+
+/**
+ * Version 17 → 18: kit and ward salve recipes open with the tiers alone, so
+ * their ids leave `knownRecipes`. Kits and salves already owned stay.
+ */
+export function migrateV17Save(old: Partial<SaveData>): SaveData {
+  const save: SaveData = { ...createInitialSave(), ...old };
+  return { ...save, knownRecipes: save.knownRecipes.filter((id) => recipeById[id]?.availableFromTier === undefined) };
+}

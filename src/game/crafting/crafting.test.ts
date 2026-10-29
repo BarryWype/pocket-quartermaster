@@ -125,18 +125,50 @@ describe('crafting', () => {
   });
 
   it('knows kit recipes once the highest unlocked tier reaches them', () => {
-    const save = withMaterials({ bone: 2, hide: 1, copper: 2, wood: 1, berries: 2 });
+    const save = withMaterials({ bone: 2, hide: 1, iron: 1, fireShard: 1, herb: 1, coal: 1, wood: 1, berries: 1 });
     // Tier 1 is open from the start, so its kits are known right away.
     expect(isKnown(save, recipeById.roguesRoll)).toBe(true);
     expect(canCraft(save, recipeById.roguesRoll)).toBe(true);
-    expect(isKnown(save, recipeById.scholarsSatchel)).toBe(false);
-    expect(canCraft(save, recipeById.scholarsSatchel)).toBe(false);
+    expect(canCraft(save, recipeById.emberWardSalve)).toBe(false);
     // Clearing each tier boss opens the next tier's kits.
-    const cleared = { ...save, clearedDungeons: ['banditStockade', 'ogreQuarry', 'drownedCrypt'] };
-    expect(isKnown(cleared, recipeById.explorersKit)).toBe(true);
-    expect(isKnown(cleared, recipeById.lantern)).toBe(true);
-    expect(isKnown(cleared, recipeById.scholarsSatchel)).toBe(true);
-    expect(canCraft(cleared, recipeById.scholarsSatchel)).toBe(true);
+    const tier4 = { ...save, clearedDungeons: ['banditStockade', 'ogreQuarry', 'drownedCrypt'] };
+    expect(isKnown(tier4, recipeById.explorersKit)).toBe(true);
+    expect(isKnown(tier4, recipeById.lantern)).toBe(true);
+    expect(canCraft(tier4, recipeById.emberWardSalve)).toBe(true);
+    expect(isKnown(tier4, recipeById.scholarsSatchel)).toBe(false);
+    const tier5 = { ...tier4, clearedDungeons: [...tier4.clearedDungeons, 'giantsHall'] };
+    expect(canCraft(tier5, recipeById.scholarsSatchel)).toBe(true);
+  });
+
+  it('ignores a kit recipe in knownRecipes before its tier', () => {
+    const save = withMaterials({ iron: 1, fireShard: 1, herb: 1 }, { knownRecipes: [...createInitialSave().knownRecipes, 'emberWardSalve'] });
+    expect(canCraft(save, recipeById.emberWardSalve)).toBe(false);
+  });
+});
+
+describe('kit recipes', () => {
+  // kits.csv: available from tier, and what one kit is made from.
+  const table: [string, number, Record<string, number>][] = [
+    ['roguesRoll', 1, { bone: 2, hide: 1 }],
+    ['huntersPack', 1, { meat: 1, hide: 1, bone: 1 }],
+    ['explorersKit', 2, { stone: 1, wood: 1, hide: 2 }],
+    ['giftBasket', 2, { stone: 1, berries: 1, meat: 1 }],
+    ['healersSatchel', 2, { stone: 1, herb: 1, mushroom: 1 }],
+    ['lantern', 3, { copper: 1, wood: 1, meat: 1 }],
+    ['holyRelics', 3, { copper: 1, herb: 1, stone: 1 }],
+    ['emberWardSalve', 4, { iron: 1, fireShard: 1, herb: 1 }],
+    ['tideWardSalve', 4, { iron: 1, waterShard: 1, herb: 1 }],
+    ['stormWardSalve', 4, { iron: 1, electricShard: 1, herb: 1 }],
+    ['stoneWardSalve', 4, { iron: 1, stoneShard: 1, herb: 1 }],
+    ['thornWardSalve', 4, { iron: 1, grassShard: 1, herb: 1 }],
+    ['scholarsSatchel', 5, { coal: 1, wood: 1, berries: 1 }],
+  ];
+
+  it.each(table)('%s opens at tier %i and is made from its kits.csv inputs', (id, tier, inputs) => {
+    const recipe = recipeById[id];
+    expect(recipe.availableFromTier).toBe(tier);
+    expect(recipe.output).toEqual({ itemId: id });
+    expect(Object.fromEntries(recipe.inputs.map((i) => [i.materialId, i.amount]))).toEqual(inputs);
   });
 });
 

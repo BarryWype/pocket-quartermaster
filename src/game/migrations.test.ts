@@ -1,6 +1,6 @@
 import { createInitialSave, type SaveData } from './save';
 import { resolveExpedition } from './expeditions/expeditions';
-import { migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV15Save, migrateV16Save } from './migrations';
+import { migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV15Save, migrateV16Save, migrateV17Save } from './migrations';
 import { startingMastery } from './forging/mastery';
 import { xpToNextLevel } from '@/content/heroes';
 import type { ActiveExpedition, ExpeditionReport } from './types';
@@ -208,5 +208,19 @@ describe('migrateV16Save', () => {
     const after = migrateV16Save(before());
     // The wooden pickaxe teaches tier 2, so axe is first met by axe2.
     expect(after.mastery.axe).toEqual(startingMastery(2));
+  });
+});
+
+describe('migrateV17Save', () => {
+  it('drops kit and salve recipes from knownRecipes and keeps the owned ones', () => {
+    const initial = createInitialSave();
+    const after = migrateV17Save({
+      ...initial,
+      knownRecipes: [...initial.knownRecipes, 'emberWardSalve', 'scholarsSatchel'],
+      consumables: { ...initial.consumables, emberWardSalve: 2, scholarsSatchel: 1 },
+    });
+    expect(after.knownRecipes).toEqual(initial.knownRecipes);
+    expect(after.consumables.emberWardSalve).toBe(2);
+    expect(after.consumables.scholarsSatchel).toBe(1);
   });
 });

@@ -9,19 +9,29 @@ describe('salvage', () => {
     expect(salvage('explorersKit')).toEqual({
       materials: [
         { materialId: 'stone', amount: 1 },
-        { materialId: 'wood', amount: 1 },
         { materialId: 'hide', amount: 1 },
       ],
       gold: 0,
     });
-    expect(salvage('emberWardSalve')).toEqual({
-      materials: [
-        { materialId: 'fireShard', amount: 1 },
-        { materialId: 'herb', amount: 1 },
-      ],
-      gold: 0,
-    });
+    expect(salvage('emberWardSalve')).toEqual({ materials: [{ materialId: 'iron', amount: 1 }], gold: 0 });
     expect(salvage('healingPotion')).toEqual({ materials: [{ materialId: 'herb', amount: 1 }], gold: 0 });
+  });
+
+  it.each([
+    ['roguesRoll', 'bone'],
+    ['huntersPack', 'bone'],
+    ['giftBasket', 'stone'],
+    ['healersSatchel', 'stone'],
+    ['lantern', 'copper'],
+    ['holyRelics', 'copper'],
+    ['emberWardSalve', 'iron'],
+    ['tideWardSalve', 'iron'],
+    ['stormWardSalve', 'iron'],
+    ['stoneWardSalve', 'iron'],
+    ['thornWardSalve', 'iron'],
+    ['scholarsSatchel', 'coal'],
+  ])('breaks the 3-unit %s down to 1 %s, its tier\'s main material', (itemId, materialId) => {
+    expect(salvage(itemId)).toEqual({ materials: [{ materialId, amount: 1 }], gold: 0 });
   });
 
   it('pays a little gold without a recipe', () => {

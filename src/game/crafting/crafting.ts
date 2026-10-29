@@ -11,11 +11,9 @@ import type { SaveData } from '../save';
 import type { GearInstance, MasteryState, MasteryType, Quality, RecipeDef } from '../types';
 
 export function isKnown(save: SaveData, recipe: RecipeDef) {
-  // Kit recipes come with the tiers: known once the player reaches their tier.
-  return (
-    save.knownRecipes.includes(recipe.id) ||
-    (recipe.availableFromTier !== undefined && highestUnlockedTier(save) >= recipe.availableFromTier)
-  );
+  // Kit recipes come with the tiers alone: known once the player reaches their tier.
+  if (recipe.availableFromTier !== undefined) return highestUnlockedTier(save) >= recipe.availableFromTier;
+  return save.knownRecipes.includes(recipe.id);
 }
 
 /** Tools are crafted once; afterwards their recipe has nothing left to make. */

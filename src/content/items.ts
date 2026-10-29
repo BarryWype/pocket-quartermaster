@@ -91,11 +91,11 @@ export const items: ItemDef[] = [
   { id: 'stoneWardSalve', name: 'Stone ward salve', emoji: '🪨', description: 'Rubbed on skin and armour.', slot: 'consumable', protectsAgainst: 'stone', kit: { threats: ['element'] } },
   { id: 'thornWardSalve', name: 'Thorn ward salve', emoji: '🌵', description: 'Rubbed on skin and armour.', slot: 'consumable', protectsAgainst: 'grass', kit: { threats: ['element'] } },
   { id: 'explorersKit', name: 'Explorer’s kit', emoji: '🧭', description: 'Rope, a pry bar, an air bladder and seabreath tonic.', slot: 'consumable', kit: { threats: ['rubble', 'underwater'], approach: 'threat' } },
-  { id: 'healersSatchel', name: 'Healer’s satchel', emoji: '🩹', description: 'Theriac and bandages.', slot: 'consumable', kit: { threats: ['poison'], keywords: ['antidote'], heal: 0.1 } },
-  { id: 'giftBasket', name: 'Gift basket', emoji: '🎁', description: 'Honey cakes, smoked meat and a carved trinket.', slot: 'consumable', kit: { threats: ['locals'], approach: 'presence' } },
-  { id: 'lantern', name: 'Lantern', emoji: '🏮', description: 'A shuttered tallow lantern and copper bells.', slot: 'consumable', kit: { threats: ['darkness', 'ambush'], keywords: ['light', 'watchful'] } },
-  { id: 'holyRelics', name: 'Holy relics', emoji: '🕯️', description: 'Holy water and warding salt.', slot: 'consumable', kit: { threats: ['desecrated', 'casters'], approach: 'faith' } },
-  { id: 'scholarsSatchel', name: 'Scholar’s satchel', emoji: '📚', description: 'A copper cipher wheel, berry ink, thread and chalk.', slot: 'consumable', kit: { threats: ['puzzle', 'maze'], approach: 'wits' } },
+  { id: 'healersSatchel', name: 'Healer’s satchel', emoji: '🩹', description: 'Theriac, bandages and a stone mortar.', slot: 'consumable', kit: { threats: ['poison'], keywords: ['antidote'], heal: 0.1 } },
+  { id: 'giftBasket', name: 'Gift basket', emoji: '🎁', description: 'Honey cakes, smoked meat and a carved stone trinket.', slot: 'consumable', kit: { threats: ['locals'], approach: 'presence' } },
+  { id: 'lantern', name: 'Lantern', emoji: '🏮', description: 'A shuttered tallow lantern and bells.', slot: 'consumable', kit: { threats: ['darkness', 'ambush'], keywords: ['light', 'watchful'] } },
+  { id: 'holyRelics', name: 'Holy relics', emoji: '🕯️', description: 'Holy water in a copper vial and warding salt.', slot: 'consumable', kit: { threats: ['desecrated', 'casters'], approach: 'faith' } },
+  { id: 'scholarsSatchel', name: 'Scholar’s satchel', emoji: '📚', description: 'A cipher wheel, lampblack ink, thread and chalk.', slot: 'consumable', kit: { threats: ['puzzle', 'maze'], approach: 'wits' } },
 
   // Provisions, taken by the whole party. Supply is needed for every
   // expedition; a meal is optional.

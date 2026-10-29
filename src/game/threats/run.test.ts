@@ -467,14 +467,11 @@ describe('salvage and consumables', () => {
     let save = geared({ emberWardSalve: 1 });
     save = equip(save, 'bram', 'consumable', 'emberWardSalve');
     const { report } = resolve(save);
-    // The Ember ward salve is fire shard 1, herb 2: half is one herb, the main input at least 1.
+    // The Ember ward salve is iron 1, fire shard 1, herb 1: halves round down, the main input at least 1.
     expect(report.salvaged).toContainEqual({
       heroId: 'bram',
       itemId: 'emberWardSalve',
-      materials: [
-        { materialId: 'fireShard', amount: 1 },
-        { materialId: 'herb', amount: 1 },
-      ],
+      materials: [{ materialId: 'iron', amount: 1 }],
       gold: 0,
     });
   });
