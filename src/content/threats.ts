@@ -299,6 +299,8 @@ export const threatRules = {
     /** Restrictions appear from this tier, on this share of days. */
     restrictionFromTier: 4,
     restrictionChance: 0.35,
+    /** Weight multiplier for a threat drawn before its kit's tier. */
+    beforeKitWeight: 0.5,
     /** Level weights by rank from the top: the highest level first. */
     levelWeights: [50, 35, 15],
     /** Chance per day and tier that one open dungeon's threat surges. */

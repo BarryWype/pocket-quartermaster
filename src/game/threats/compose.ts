@@ -1,7 +1,7 @@
 import { gearProfiles } from '@/content/equipment';
 import { heroClasses } from '@/content/heroes';
 import { items } from '@/content/items';
-import { itemById, opportunityById, restrictionById, threatById } from '@/content/lookup';
+import { itemById, opportunityById, recipeById, restrictionById, threatById } from '@/content/lookup';
 import { dungeonThreats, restrictionRules, surges, threatRules, type ThreatRules } from '@/content/threats';
 import { traits } from '@/content/traits';
 import { mobById, mobTags } from '@/content/enemies';
@@ -26,6 +26,15 @@ import { approachScore } from './score';
 const kitItems: { itemId: string; effect: KitEffect }[] = items.flatMap((item) =>
   item.slot === 'consumable' && item.kit ? [{ itemId: item.id, effect: item.kit }] : [],
 );
+
+/** The tier a kit's recipe becomes available at (unlocked recipes count as tier 1). */
+const kitFromTier = (itemId: string) => recipeById[itemId]?.availableFromTier ?? 1;
+
+/** The lowest tier at which some kit answers the threat; null when no kit does. */
+export function kitTier(id: ThreatId): number | null {
+  const tiers = kitItems.filter((kit) => kit.effect.threats.includes(id)).map((kit) => kitFromTier(kit.itemId));
+  return tiers.length > 0 ? Math.min(...tiers) : null;
+}
 
 /** Whether two threats are answered by the same kit: never both in one briefing. */
 const sharesKit = (a: ThreatId, b: ThreatId) =>
@@ -63,7 +72,12 @@ export function composeBriefing(dungeon: DungeonDef, day: number, rules: ThreatR
 
   let eligible = (Object.entries(table.weights) as [ThreatId, number][])
     .filter(([id]) => threatById[id].firstTier <= dungeon.tier && (id !== 'locals' || hasLocals))
-    .map(([id, weight]) => ({ id, weight }));
+    .map(([id, weight]) => {
+      const kit = kitTier(id);
+      // A threat drawn before its kit's tier is rarer and capped at level 1.
+      const beforeKit = kit !== null && kit > dungeon.tier;
+      return { id, weight: beforeKit ? weight * rules.compose.beforeKitWeight : weight, beforeKit };
+    });
 
   const threats: ActiveThreat[] = [];
   while (threats.length < count && eligible.length > 0) {
@@ -73,7 +87,7 @@ export function composeBriefing(dungeon: DungeonDef, day: number, rules: ThreatR
     const def = threatById[pick.id];
     const secondObstacle = def.category === 'obstacle' && threats.some((t) => threatById[t.id].category === 'obstacle');
     if (secondObstacle || threats.some((t) => sharesKit(t.id, pick.id))) continue;
-    const max = maxThreatLevel(dungeon.tier, def.firstTier);
+    const max = pick.beforeKit ? 1 : maxThreatLevel(dungeon.tier, def.firstTier);
     threats.push({
       id: pick.id,
       level: rollLevel(rng, max, rules),
@@ -95,7 +109,7 @@ export function composeBriefing(dungeon: DungeonDef, day: number, rules: ThreatR
     while (candidates.length > 0) {
       const pick = rng.weighted(candidates, () => 1);
       candidates.splice(candidates.indexOf(pick), 1);
-      if (restrictionKeepsAnswers(threats, pick, possibleMembers(), rules)) {
+      if (restrictionKeepsAnswers(threats, pick, possibleMembers(dungeon.tier), rules)) {
         restriction = pick;
         break;
       }
@@ -105,17 +119,19 @@ export function composeBriefing(dungeon: DungeonDef, day: number, rules: ThreatR
   return { threats, restriction, opportunity };
 }
 
-let possibleMembersCache: AnswersMember[] | null = null;
+const possibleMembersCache = new Map<number, AnswersMember[]>();
+const kitTopTier = Math.max(...kitItems.map((kit) => kitFromTier(kit.itemId)));
 
 /**
  * Every hero shape that could be fielded: class, gear and kit combinations,
  * with the traits that add a keyword or a positive approach. Gear enters one
  * piece at a time (a keyword counts once per hero, gear only adds), so every
- * answer stays within reach. Restrictions then play against each shape
- * through `heroAnswers`.
+ * answer stays within reach. Only kits craftable at the tier can be held.
+ * Restrictions then play against each shape through `heroAnswers`.
  */
-export function possibleMembers(): AnswersMember[] {
-  if (possibleMembersCache) return possibleMembersCache;
+export function possibleMembers(tier: number): AnswersMember[] {
+  const cached = possibleMembersCache.get(tier);
+  if (cached) return cached;
   const usefulTraits = [
     'none',
     ...traits
@@ -132,7 +148,7 @@ export function possibleMembers(): AnswersMember[] {
       const gearKeywords = profile
         ? profile.keywords.map((keyword) => ({ keyword, magic: profile.damageStat === 'magic' }))
         : [];
-      for (const kit of [null, ...kitItems]) {
+      for (const kit of [null, ...kitItems.filter((k) => kitFromTier(k.itemId) <= tier)]) {
         const salveElement = kit ? ((itemById[kit.itemId] as ConsumableDef).protectsAgainst ?? null) : null;
         for (const traitId of usefulTraits) {
           members.push({
@@ -148,7 +164,7 @@ export function possibleMembers(): AnswersMember[] {
       }
     }
   }
-  possibleMembersCache = members;
+  possibleMembersCache.set(tier, members);
   return members;
 }
 
@@ -160,7 +176,7 @@ export function possibleMembers(): AnswersMember[] {
 export function restrictionKeepsAnswers(
   threats: ActiveThreat[],
   restriction: RestrictionId | null,
-  members: AnswersMember[] = possibleMembers(),
+  members: AnswersMember[] = possibleMembers(kitTopTier),
   rules: ThreatRules = threatRules,
 ) {
   if (
@@ -176,13 +192,15 @@ export function restrictionKeepsAnswers(
   return threats.every((threat) => answerable(threat, answers, rules));
 }
 
-const answersCache = new Map<RestrictionId | null, HeroAnswers[]>();
+const answersCache = new WeakMap<AnswersMember[], Map<RestrictionId | null, HeroAnswers[]>>();
 
-/** Every possible hero's answers under a restriction; the full set is worked out once per restriction. */
+/** Every possible hero's answers under a restriction; each tier's full set is worked out once per restriction. */
 function answersUnder(members: AnswersMember[], restriction: RestrictionId | null) {
-  if (members !== possibleMembersCache) return members.map((member) => heroAnswers(member, restriction));
-  if (!answersCache.has(restriction)) answersCache.set(restriction, members.map((member) => heroAnswers(member, restriction)));
-  return answersCache.get(restriction)!;
+  if (![...possibleMembersCache.values()].includes(members)) return members.map((member) => heroAnswers(member, restriction));
+  const byRestriction = answersCache.get(members) ?? new Map<RestrictionId | null, HeroAnswers[]>();
+  answersCache.set(members, byRestriction);
+  if (!byRestriction.has(restriction)) byRestriction.set(restriction, members.map((member) => heroAnswers(member, restriction)));
+  return byRestriction.get(restriction)!;
 }
 
 /** Whether some possible hero answers the threat, kit bonuses included. */

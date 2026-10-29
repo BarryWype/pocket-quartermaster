@@ -4,7 +4,7 @@ import { dungeonThreats, patrolThreats, threatRules } from '@/content/threats';
 
 import type { ConsumableDef, DungeonDef, ThreatId } from '../types';
 import { heroAnswers, type AnswersMember } from './answers';
-import { composeBriefing, maxThreatLevel, restrictionKeepsAnswers, rollSurge, withSurge } from './compose';
+import { composeBriefing, kitTier, maxThreatLevel, possibleMembers, restrictionKeepsAnswers, rollSurge, withSurge } from './compose';
 
 const byId = Object.fromEntries(dungeons.map((d) => [d.id, d]));
 const days = (count: number) => Array.from({ length: count }, (_, i) => i + 1);
@@ -191,6 +191,60 @@ describe('restrictions and answers', () => {
   it('answers through heroAnswers with the restriction applied', () => {
     const foggy = heroAnswers(member({ classId: 'ranger' }), 'thickFog');
     expect(foggy.keywords).toEqual([]);
+  });
+});
+
+describe('threats before their kit', () => {
+  it('knows the tier each threat’s kit first appears at', () => {
+    expect(kitTier('element')).toBe(4);
+    expect(kitTier('puzzle')).toBe(5);
+    expect(kitTier('maze')).toBe(5);
+    expect(kitTier('traps')).toBe(1);
+    expect(kitTier('undead')).toBeNull();
+    expect(kitTier('brute')).toBeNull();
+    expect(kitTier('swarm')).toBeNull();
+    expect(kitTier('armoured')).toBeNull();
+  });
+
+  it('caps a pre-kit threat at level 1, and lets it grow once its kit arrives', () => {
+    for (const day of days(40)) {
+      // Ward salves only from tier 4: Element stays at level 1 below it.
+      for (const id of ['sunkenFord', 'cinderHollow', 'fungalGrotto'] as const) {
+        expect(compose(id, day).threats.filter((t) => t.id === 'element').every((t) => t.level === 1)).toBe(true);
+      }
+      // The Scholar’s satchel only from tier 5: Puzzle and Maze stay at level 1 in tier 4.
+      expect(compose('clockworkVault', day).threats.filter((t) => t.id === 'puzzle' || t.id === 'maze').every((t) => t.level === 1)).toBe(true);
+    }
+    expect(days(60).some((day) => compose('thunderPlateau', day).threats.some((t) => t.id === 'element' && t.level > 1))).toBe(true);
+  });
+
+  it('halves the draw weight of a pre-kit threat', () => {
+    const noEarlyKit = { ...threatRules, compose: { ...threatRules.compose, beforeKitWeight: 0 } };
+    for (const day of days(40)) {
+      for (const id of ['sunkenFord', 'boarThicket', 'fungalGrotto', 'cinderHollow'] as const) {
+        expect(composeBriefing(byId[id], day, noEarlyKit).threats.some((t) => t.id === 'element')).toBe(false);
+      }
+    }
+    // At the salves’ tier the threat draws at full weight again.
+    expect(days(40).some((day) => composeBriefing(byId.thunderPlateau, day, noEarlyKit).threats.some((t) => t.id === 'element'))).toBe(true);
+    // Halved, not removed: Element still shows up below its kit’s tier.
+    expect(days(40).some((day) => compose('sunkenFord', day).threats.some((t) => t.id === 'element'))).toBe(true);
+  });
+
+  it('keeps the old level reach for gear-answered threats', () => {
+    // No kit answers these, so their levels do not depend on kit tiers.
+    expect(days(60).some((day) => compose('barrowMounds', day).threats.some((t) => t.id === 'undead' && t.level === 2))).toBe(true);
+    expect(days(60).some((day) => compose('ogreQuarry', day).threats.some((t) => t.id === 'brute' && t.level === 2))).toBe(true);
+    expect(days(60).some((day) => compose('harpyCliffs', day).threats.some((t) => t.id === 'swarm' && t.level === 2))).toBe(true);
+    expect(days(60).some((day) => compose('clockworkVault', day).threats.some((t) => t.id === 'armoured' && t.level === 2))).toBe(true);
+  });
+
+  it('counts only kits craftable at the tier when keeping answers', () => {
+    // A Puzzle at tier 4 cannot be answered by the tier 5 Scholar’s satchel.
+    expect(possibleMembers(4).some((m) => m.kit?.itemId === 'scholarsSatchel')).toBe(false);
+    expect(possibleMembers(5).some((m) => m.kit?.itemId === 'scholarsSatchel')).toBe(true);
+    expect(possibleMembers(4).some((m) => m.kit?.itemId === 'emberWardSalve')).toBe(true);
+    expect(possibleMembers(3).some((m) => m.kit?.itemId === 'emberWardSalve')).toBe(false);
   });
 });
 
