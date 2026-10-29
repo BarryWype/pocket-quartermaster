@@ -12,7 +12,7 @@ const ORE = ['stone', 'copper', 'iron', 'coal', 'steel'];
 const withMap = (extra: Partial<SaveData> = {}): SaveData => ({ ...createInitialSave(), treasureMaps: [map], ...extra });
 
 describe('treasure maps', () => {
-  it('hides the treasure 300–1,500 m away, fixed by the map id', () => {
+  it('hides the treasure 200–800 m away, fixed by the map id', () => {
     const spot = treasureLocation('map7', here);
     const d = distanceMeters(here, spot);
     expect(d).toBeGreaterThanOrEqual(treasureRules.distanceMeters[0] - 1);

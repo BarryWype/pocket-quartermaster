@@ -300,7 +300,7 @@ export function runSim({ profile: name, days, seed, rates, patrolRates, config =
   const rng = createRng(`sim|${seed}|${name}`);
   const startedAt = config.startDay + rng.int(0, config.startOffsetDays) * DAY;
   const location = config.location;
-  const tavern = generateTavernsAround(location).sort((a, b) => distanceMeters(location, a.position) - distanceMeters(location, b.position))[0];
+  const tavern = generateTavernsAround(location, startedAt).sort((a, b) => distanceMeters(location, a.position) - distanceMeters(location, b.position))[0];
   const hours = [...profile.sessionHours].sort((a, b) => a - b);
   const sessionTimes = (day: number) => hours.map((h) => startedAt + day * DAY + h * HOUR);
 

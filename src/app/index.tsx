@@ -191,12 +191,12 @@ export default function MapScreen() {
       distanceMeters(position, s.position) <= sanctumRules.visibilityMeters,
   );
 
-  // Taverns never move, so they only need placing again when the player moves.
+  // Tavern windows last 72 h, so regenerating once a minute is enough.
   const tavernCandidates = useMemo(() => {
     if (!position) return [];
     const reach = tavernRules.visibilityMeters + tavernRules.placement.maxSnapMeters;
-    return generateTavernsAround(position).filter((t) => distanceMeters(position, t.position) <= reach);
-  }, [position]);
+    return generateTavernsAround(position, minute * 60_000).filter((t) => distanceMeters(position, t.position) <= reach);
+  }, [position, minute]);
   const placedTaverns = usePlacedPoints(tavernCandidates, tavernPlacement);
   const tavernsInSight = [...placedTaverns, ...(debugTavern ? [debugTavern] : [])].filter(
     (t) => position !== null && distanceMeters(position, t.position) <= tavernRules.visibilityMeters,

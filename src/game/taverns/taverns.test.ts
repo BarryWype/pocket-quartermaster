@@ -32,11 +32,22 @@ const unlocked = (extra: Partial<SaveData> = {}): SaveData => ({
 const firstOffer = (save: SaveData, at = now) => tavernOffers(save, 'tavern:test:0', at)[0];
 
 describe('tavern spawning', () => {
-  it('puts the same taverns in the same places every day', () => {
-    const taverns = generateTavernsAround(here);
+  it('is deterministic and keeps each tavern until its own window ends', () => {
+    const taverns = generateTavernsAround(here, now);
     expect(taverns.length).toBeGreaterThan(0);
-    expect(generateTavernsAround(here)).toEqual(taverns);
-    for (const t of taverns) expect(t.name).toMatch(/^The \w+ \w+$/);
+    expect(generateTavernsAround(here, now)).toEqual(taverns);
+    for (const t of taverns) {
+      expect(t.name).toMatch(/^The \w+ \w+$/);
+      expect(t.expiresAt).toBeGreaterThan(now);
+      // The window is staggered per tavern, but no tavern moves before it expires.
+      expect(generateTavernsAround(here, t.expiresAt - 1).find((later) => later.id === t.id)).toEqual(t);
+    }
+  });
+
+  it('moves taverns after their 72 h window', () => {
+    const before = generateTavernsAround(here, now);
+    const after = generateTavernsAround(here, now + 72 * 3_600_000 + 1);
+    expect(after.map((t) => t.id)).not.toEqual(before.map((t) => t.id));
   });
 });
 

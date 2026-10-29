@@ -10,8 +10,8 @@ import { emergencyPrice } from '../expeditions/provisions';
 import { guildBonus, tavernOfferCount } from '../guild/guild';
 import { distanceMeters } from '../generation/geo';
 import { createRng } from '../generation/rng';
-import { randomPointInTile, tilesAround } from '../generation/tiles';
 import type { LatLng } from '../generation/types';
+import { placeGroupOf, placesAround } from '../places/generate';
 import type { SaveData } from '../save';
 import { rosterFull } from '../team/team';
 import type { ClassRarity, HeroClassId, HeroRoll } from '../types';
@@ -20,7 +20,7 @@ import { gradePriceMultiplier, recruitGrade, rollRecruit, type Grade } from './r
 type TavernRules = typeof tavernRules;
 type RecruitRules = typeof recruitRules;
 
-export type TavernSpawn = { id: string; name: string; position: LatLng };
+export type TavernSpawn = { id: string; name: string; position: LatLng; expiresAt: number };
 
 export type RecruitOffer = {
   id: string;
@@ -39,16 +39,22 @@ export type RecruitOffer = {
 
 export type RecruitProblem = 'locked' | 'tooFar' | 'taken' | 'rosterFull' | 'gold';
 
-/** Taverns stay put: the same places for every player, every day. Only their recruits change. */
-export function generateTavernsAround(position: LatLng, rules: TavernRules = tavernRules): TavernSpawn[] {
-  return tilesAround(position, rules.precision).flatMap((tile) => {
-    const rng = createRng(`tavern|${tile}`);
-    return Array.from({ length: rng.int(rules.perTile[0], rules.perTile[1]) }, (_, i) => ({
-      id: `tavern:${tile}:${i}`,
-      name: tavernName(rng.int(0, tavernNames.adjectives.length - 1), rng.int(0, tavernNames.nouns.length - 1)),
-      position: randomPointInTile(tile, rng),
-    }));
-  });
+/**
+ * Taverns are map places now: the same for everyone while their 72 h window
+ * lasts, then they move. Only their recruits change every rotation day.
+ */
+export function generateTavernsAround(position: LatLng, timeMs: number): TavernSpawn[] {
+  return placesAround(position, timeMs, [placeGroupOf('tavern')])
+    .filter((spawn) => spawn.kind === 'tavern')
+    .map((spawn) => {
+      const rng = createRng(`tavern-name|${spawn.id}`);
+      return {
+        id: spawn.id,
+        name: tavernName(rng.int(0, tavernNames.adjectives.length - 1), rng.int(0, tavernNames.nouns.length - 1)),
+        position: spawn.position,
+        expiresAt: spawn.expiresAt,
+      };
+    });
 }
 
 export const isTavernUnlocked = (save: SaveData, rules: TavernRules = tavernRules) =>

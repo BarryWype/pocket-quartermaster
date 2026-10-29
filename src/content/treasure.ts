@@ -10,7 +10,7 @@ type TreasureTier = {
 
 export const treasureRules = {
   /** Where the treasure lies, measured from the player when the map is first read. */
-  distanceMeters: [300, 1500] as [min: number, max: number],
+  distanceMeters: [200, 800] as [min: number, max: number],
   /** Chance of a special find on top: a Sanctum Sigil, a gold jackpot or a Guild Hall charter. */
   specialChance: 0.25,
   /** Special finds by weight. A Sigil found at the cap becomes the jackpot. */

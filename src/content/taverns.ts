@@ -2,12 +2,9 @@ import { localized } from '@/i18n/locale';
 
 import { frTavernName } from './fr/taverns';
 
-/** Taverns sit in fixed places on the map; their recruits change every rotation day. */
+/** Taverns are temporary map places (72 h); their recruits change every rotation day. */
 export const tavernRules = {
-  /** Geohash precision 5 ≈ 4.9 × 4.9 km, like Sanctums. */
-  precision: 5,
-  perTile: [1, 2] as [min: number, max: number],
-  visibilityMeters: 4500,
+  visibilityMeters: 1200,
   interactionMeters: 50,
   /** Snapped to walkable places with coarse map tiles, like Sanctums. */
   placement: { mapZoom: 12, maxSnapMeters: 150 },

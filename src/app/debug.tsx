@@ -218,7 +218,7 @@ export default function DebugScreen() {
 
   const placeTavern = async () => {
     const position = offsetPosition(await currentPosition(), 20, 0);
-    debug.set({ debugTavern: { id: 'tavern:debug', name: 'The Debug Tankard', position } });
+    debug.set({ debugTavern: { id: 'tavern:debug', name: 'The Debug Tankard', position, expiresAt: Number.MAX_SAFE_INTEGER } });
   };
 
   const placeSanctum = async (sanctumId: string) => {

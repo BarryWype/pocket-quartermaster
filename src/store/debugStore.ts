@@ -25,7 +25,7 @@ type DebugSettings = {
   /** Quality the next forged gear piece gets, then cleared. */
   forcedQuality: Quality | null;
   /** A tavern placed by hand next to the player. */
-  debugTavern: { id: string; name: string; position: LatLng } | null;
+  debugTavern: { id: string; name: string; position: LatLng; expiresAt: number } | null;
   /** Changes every tavern's offers, to reroll them. */
   offerSeed: string;
   /** Days added to today's rotation day. */

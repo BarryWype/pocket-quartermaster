@@ -21,7 +21,7 @@ export type TreasureContents = {
 export const liveTreasureMaps = (save: SaveData, now: number) => save.treasureMaps.filter((m) => m.expiresAt > now);
 
 /**
- * Where a map's treasure lies, fixed by the map's id: 300–1,500 m from where
+ * Where a map's treasure lies, fixed by the map's id: 200–800 m from where
  * the player stood when first reading it.
  */
 export function treasureLocation(mapId: string, from: LatLng): LatLng {
