@@ -43,7 +43,7 @@ import { buyRank } from '@/game/guild/guild';
 import { applyTraining } from '@/game/guild/training';
 import type { GuildTrackId } from '@/content/guild';
 import { advanceTutorial, finishTutorial, nextTutorialStep, placeTutorialWood } from '@/game/tutorial/tutorial';
-import { pruneExpired } from '@/game/upkeep';
+import { pruneExpired, rollDailyApproaches } from '@/game/upkeep';
 import type { Approach, EquipmentSlot, ExpeditionReport, Heist, HeroClassId, MasteryType, PlaceFight, PlaceReward, Quality } from '@/game/types';
 
 import { currentRotation, debugEnabled, useDebugStore } from './debugStore';
@@ -229,7 +229,7 @@ export const useGameStore = create<GameState>()(
       },
       tradeWithTrader: (spawn, tradeIndex, player) =>
         set(({ save }) => ({ save: trade(save, spawn, tradeIndex, player, Date.now()) })),
-      acceptTravellerRecruit: (offer) => set(({ save }) => ({ save: acceptRecruit(save, offer) })),
+      acceptTravellerRecruit: (offer) => set(({ save }) => ({ save: rollDailyApproaches(acceptRecruit(save, offer), Date.now()) })),
       setEscort: (heroId) => {
         const save = get().save;
         if (heroId && !save.heroes.some((h) => h.id === heroId)) throw new Error(`Unknown hero ${heroId}`);
@@ -258,7 +258,7 @@ export const useGameStore = create<GameState>()(
         })),
       // Notifications follow the save: see `useNotifications`.
       dismissHero: (heroId) => set(({ save }) => ({ save: dismissHero(save, heroId) })),
-      recruit: (offer, tavern, player) => set(({ save }) => ({ save: recruit(save, offer, tavern, player) })),
+      recruit: (offer, tavern, player) => set(({ save }) => ({ save: rollDailyApproaches(recruit(save, offer, tavern, player), Date.now()) })),
       closeTavernHint: () => set(({ save }) => ({ save: { ...save, tavernHintSeen: true } })),
       closeCookingHint: () => set(({ save }) => ({ save: { ...save, cookingHintSeen: true } })),
       drinkPotion: (heroId) => set(({ save }) => ({ save: drinkPotion(save, heroId, Date.now()) })),
@@ -301,7 +301,7 @@ export const useGameStore = create<GameState>()(
           save: advanceTutorial(startExpedition(save, dungeonId, heroIds, Date.now(), durationScale, currentRotation(), loadout)),
         })),
       prune: () => {
-        const pruned = pruneExpired(get().save, Date.now());
+        const pruned = rollDailyApproaches(pruneExpired(get().save, Date.now()), Date.now());
         if (pruned !== get().save) set({ save: pruned });
       },
       collectLoot: (expeditionId) => {
@@ -312,7 +312,7 @@ export const useGameStore = create<GameState>()(
         const force = debug.forcedMainReward ?? undefined;
         const { save, report } = resolveExpedition(get().save, expedition, { mainReward: { force } });
         if (force && report.success) debug.set({ forcedMainReward: null });
-        set({ save: advanceTutorial(pruneExpired(save, now)) });
+        set({ save: advanceTutorial(rollDailyApproaches(pruneExpired(save, now), now)) });
         return report;
       },
       markReportsSeen: () =>

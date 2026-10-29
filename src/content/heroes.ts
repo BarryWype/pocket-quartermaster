@@ -1,4 +1,4 @@
-import type { HeroClassDef, HeroClassId, HeroState } from '@/game/types';
+import type { HeroClassDef, HeroClassId, HeroState, StatKey } from '@/game/types';
 
 // Heroes keep modest bases and grow mostly through their three primary stats
 // (every level) and milestone steps for the rest (levels 5, 10, 15). Gear
@@ -417,6 +417,12 @@ export const xpRules = {
 
 /** XP needed to go from `level` to `level + 1`. */
 export const xpToNextLevel = (level: number, rules: typeof xpRules = xpRules) => Math.round(rules.base * level ** rules.exponent);
+
+/** The Gambler's dice (see team/stats.ts): approach points dealt at each daily reset, and the stats a third primary is rolled from. */
+export const gamblerRules = {
+  approachPoints: 8,
+  primaryChoices: ['hp', 'power', 'magic', 'armour', 'resistance', 'evasion'] satisfies StatKey[],
+};
 
 /** Growth rules (see team/stats.ts): steps per level, milestones, Luck and the recruit roll's pull. */
 export const growthRules = {

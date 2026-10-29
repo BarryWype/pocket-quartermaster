@@ -16,7 +16,7 @@ import { createRng } from '../generation/rng';
 import type { SaveData } from '../save';
 import { currentHp } from '../team/health';
 import { heroAbilities, heroDamageStat, heroStats, gearKeywordsOf } from '../team/team';
-import { gearApproachBonus, heroApproachBonus } from '../team/stats';
+import { classApproaches, gearApproachBonus, heroApproachBonus } from '../team/stats';
 import { heroAnswers, type AnswersMember, type HeroAnswers } from '../threats/answers';
 import { threatPenalties, type AppliedPenalty } from '../threats/penalties';
 import { scoreBriefing, scoreOpportunity, type ThreatScore } from '../threats/score';
@@ -80,6 +80,8 @@ export type PartyMember = {
   luck: number;
   /** The hero's recruit roll and approach picks, as +1s on their approaches. */
   approachBonus?: Partial<Record<Approach, number>>;
+  /** The class's approach scores for this hero (a Gambler's roll of the day). */
+  classApproaches?: Record<Approach, number>;
   threat: number;
   /** Elements this hero takes no extra damage from (class resist, protective consumable). */
   resists: Element[];
@@ -236,6 +238,7 @@ export function answersMemberOf(member: PartyMember): AnswersMember {
     salveElement: member.consumable?.protectsAgainst ?? null,
     classResists: heroClasses[member.classId].resists ?? [],
     approachBonus: member.approachBonus,
+    classApproaches: member.classApproaches,
   };
 }
 
@@ -297,6 +300,7 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs
         crit: stats.crit,
         luck: stats.luck,
         approachBonus: mergeApproachBonus(heroApproachBonus(hero), gearApproachBonus(save, hero)),
+        classApproaches: classApproaches(hero),
         threat: heroClass.threat,
         resists: [...(heroClass.resists ?? []), ...(consumable?.protectsAgainst ? [consumable.protectsAgainst] : [])],
         abilities: [

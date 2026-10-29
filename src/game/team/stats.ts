@@ -1,13 +1,15 @@
-import { growthRules, heroClasses } from '@/content/heroes';
+import { gamblerRules, growthRules, heroClasses } from '@/content/heroes';
 import { traitById } from '@/content/traits';
 import { approachRules } from '@/content/threats';
 
 import { itemById } from '@/content/lookup';
 
+import { createRng } from '../generation/rng';
 import type { SaveData } from '../save';
 import type { Approach, GearDef, HeroClassDef, HeroClassId, HeroRoll, HeroState, StatKey, Stats } from '../types';
 
 export const STAT_KEYS: StatKey[] = ['hp', 'power', 'magic', 'armour', 'resistance', 'evasion', 'speed', 'crit'];
+const APPROACHES: Approach[] = ['might', 'finesse', 'wits', 'faith', 'presence'];
 
 type GrowthRules = typeof growthRules;
 
@@ -29,9 +31,11 @@ export function classBaseStats(
 ): Stats {
   const { base, growth } = rollFactors(roll, rules);
   const milestones = rules.milestones.filter((milestone) => milestone <= level).length;
+  // The Gambler's third primary comes from their roll.
+  const primary = roll?.primary ? [...def.primary, roll.primary] : def.primary;
   const stats = {} as Stats;
   for (const stat of STAT_KEYS) {
-    const steps = def.primary.includes(stat)
+    const steps = primary.includes(stat)
       ? rules.steps[stat] * (level - 1)
       : def.halfRate === stat
         ? (rules.steps[stat] / 2) * (level - 1)
@@ -46,6 +50,27 @@ export function classBaseStats(
 export function baseHeroStats(classId: HeroClassId, level: number, roll?: HeroRoll, rules: GrowthRules = growthRules) {
   return classBaseStats(heroClasses[classId], level, roll, rules);
 }
+
+/** A Gambler's third primary stat, drawn from the recruit's seed. */
+export function rollGamblerPrimary(seed: string): StatKey {
+  const rng = createRng(`gamblerPrimary|${seed}`);
+  return gamblerRules.primaryChoices[rng.int(0, gamblerRules.primaryChoices.length - 1)];
+}
+
+/** A Gambler's approach scores for one rotation day: the points dealt one at a time to random approaches, none past the cap. */
+export function rollGamble(heroId: string, day: number): Record<Approach, number> {
+  const rng = createRng(`gamble|${heroId}|${day}`);
+  const scores: Record<Approach, number> = { might: 0, finesse: 0, wits: 0, faith: 0, presence: 0 };
+  for (let i = 0; i < gamblerRules.approachPoints; i++) {
+    const open = APPROACHES.filter((approach) => scores[approach] < approachRules.max);
+    scores[open[rng.int(0, open.length - 1)]] += 1;
+  }
+  return scores;
+}
+
+/** The hero's class approach scores: the class's, or a Gambler's roll of the day. */
+export const classApproaches = (hero: HeroState): Record<Approach, number> =>
+  hero.gamble?.approaches ?? heroClasses[hero.classId].approaches;
 
 /** How many approach picks the hero still owes: milestones reached minus picks made. */
 export function pendingApproachPicks(hero: HeroState, rules: GrowthRules = growthRules) {
@@ -78,7 +103,7 @@ export function gearApproachBonus(save: SaveData, hero: HeroState): Partial<Reco
 export function approachScore(hero: HeroState, approach: Approach, gearBonus: Partial<Record<Approach, number>> = {}) {
   const effects = traitById[hero.trait]?.effects ?? [];
   const add = effects.reduce((sum, e) => sum + (e.kind === 'approach' && e.approach === approach ? e.add : 0), 0);
-  const base = heroClasses[hero.classId].approaches[approach] ?? approachRules.base;
+  const base = classApproaches(hero)[approach];
   const score = base + add + (heroApproachBonus(hero)[approach] ?? 0) + (gearBonus[approach] ?? 0);
   return Math.min(approachRules.max, Math.max(approachRules.min, score));
 }

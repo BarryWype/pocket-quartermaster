@@ -32,7 +32,7 @@ import { currentHp, isExhausted } from '../team/health';
 import { equip } from '../team/team';
 import { advanceTutorial, finishTutorial } from '../tutorial/tutorial';
 import { addMaterials } from '../inventory';
-import { pruneExpired } from '../upkeep';
+import { pruneExpired, rollDailyApproaches } from '../upkeep';
 import {
   act,
   buyGuildRanks,
@@ -244,14 +244,14 @@ function helpTravellerSpawn(sim: Sim, spawn: PatrolSpawn, at: number, player: La
   log.rewards[reward.kind]++;
   if (reward.kind === 'keyFragment') log.keyFragments++;
   if (reward.kind === 'recruit' && sim.config.patrols.travellerRecruits && save.heroes.length < rosterCap(save)) {
-    act(sim, 'traveller', (next) => acceptRecruit(next, reward.offer));
+    act(sim, 'traveller', (next) => rollDailyApproaches(acceptRecruit(next, reward.offer), sim.now));
     log.recruits.push(sim.day);
     mark(sim, `recruit:${sim.save.heroes.length}`);
   }
 }
 
 function session(sim: Sim, walkMinutes: number, steps: number, dayKey: string, first: boolean) {
-  sim.save = pruneExpired(sim.save, sim.now);
+  sim.save = rollDailyApproaches(pruneExpired(sim.save, sim.now), sim.now);
   sim.rotation = dailyRotation(rotationDay(sim.now));
 
   // Walking, with a lure on the first walk of the day. The day's first gathers

@@ -30,6 +30,7 @@ import {
 } from '../expeditions/expeditions';
 import { estimateOdds, type Odds } from '../expeditions/odds';
 import { charmItems, mealItems, supplyHeld, supplyItems } from '../expeditions/provisions';
+import { rollDailyApproaches } from '../upkeep';
 import { answersMemberOf, EMPTY_BRIEFING, prepareParty, simulateRun } from '../expeditions/simulate';
 import { masteryCap, masteryOf, masteryTypeOf } from '../forging/mastery';
 import { gearStats, qualityOdds, type GearQualityRoll } from '../forging/quality';
@@ -685,7 +686,7 @@ export function recruitHeroes(sim: Sim) {
       .sort((a, b) => b.score - a.score || b.positive - a.positive || a.offer.price - b.offer.price);
     const pick = offers[0]?.offer;
     if (!pick) return;
-    act(sim, 'recruit', (save) => recruit(save, pick, sim.tavern.position, sim.tavern.position));
+    act(sim, 'recruit', (save) => rollDailyApproaches(recruit(save, pick, sim.tavern.position, sim.tavern.position), sim.now));
     sim.log.recruits.push({ day: sim.day, classId: pick.classId, price: pick.price, trait: pick.trait });
     mark(sim, `recruit:${sim.save.heroes.length}`);
   }

@@ -23,6 +23,8 @@ export type AnswersMember = {
   classResists: Element[];
   /** The +1s from the hero's recruit roll and approach picks. */
   approachBonus?: Partial<Record<Approach, number>>;
+  /** The class's approach scores for this hero (a Gambler's roll of the day); left out, the class's. */
+  classApproaches?: Record<Approach, number>;
 };
 
 /** One hero's answers, with the restriction's rules already applied. */
@@ -50,7 +52,7 @@ export function heroAnswers(member: AnswersMember, restriction: RestrictionId | 
 
   const approaches = Object.fromEntries(
     APPROACHES.map((approach) => {
-      const base = heroClass.approaches[approach] ?? approachRules.base;
+      const base = (member.classApproaches ?? heroClass.approaches)[approach];
       const add = traitEffects.reduce((sum, e) => sum + (e.kind === 'approach' && e.approach === approach ? e.add : 0), 0);
       const score = Math.min(
         approachRules.max,

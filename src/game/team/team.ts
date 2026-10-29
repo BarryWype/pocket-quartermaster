@@ -97,6 +97,8 @@ export function heroStats(save: SaveData, hero: HeroState): Stats {
 export function heroDamageStat(save: SaveData, hero: HeroState): DamageStat {
   const weapon = save.gear.find((g) => g.uid === hero.equipment.weapon);
   const item = weapon ? (itemById[weapon.itemId] as GearDef) : null;
+  // An unarmed Gambler rolls with Magic when Magic is their third primary.
+  if (!item && hero.roll?.primary === 'magic') return 'magic';
   return item?.damageStat ?? heroClasses[hero.classId].damageStat;
 }
 

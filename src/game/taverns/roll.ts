@@ -2,8 +2,8 @@ import { growthRules } from '@/content/heroes';
 import { recruitRules } from '@/content/roster';
 
 import { createRng } from '../generation/rng';
-import { STAT_KEYS } from '../team/stats';
-import type { Approach, HeroRoll, StatKey } from '../types';
+import { rollGamblerPrimary, STAT_KEYS } from '../team/stats';
+import type { Approach, HeroClassId, HeroRoll, StatKey } from '../types';
 
 type RecruitRules = typeof recruitRules;
 
@@ -18,13 +18,15 @@ const d6x3 = (rng: ReturnType<typeof createRng>) => rng.int(1, 6) + rng.int(1, 6
 /**
  * A recruit's roll, drawn from the offer id alone: base 3d6 sums per stat in
  * STAT_KEYS order, then growth sums in the same order, then a chance of +1 on
- * a random approach. Luck isn't rolled.
+ * a random approach. Luck isn't rolled. A Gambler also gets their third
+ * primary stat, from its own seed.
  */
-export function rollRecruit(offerId: string, rules: RecruitRules = recruitRules): HeroRoll {
+export function rollRecruit(offerId: string, rules: RecruitRules = recruitRules, classId?: HeroClassId): HeroRoll {
   const rng = createRng(`recruitRoll|${offerId}`);
   const draw = () => Object.fromEntries(STAT_KEYS.map((stat) => [stat, d6x3(rng)])) as Record<StatKey, number>;
   const roll: HeroRoll = { base: draw(), growth: draw() };
   if (rng.chance(rules.roll.approachChance)) roll.approach = APPROACHES[rng.int(0, APPROACHES.length - 1)];
+  if (classId === 'gambler') roll.primary = rollGamblerPrimary(offerId);
   return roll;
 }
 

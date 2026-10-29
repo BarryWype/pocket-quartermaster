@@ -35,6 +35,8 @@ export type HeroRoll = {
   growth: Record<StatKey, number>;
   /** The 10% chance of +1 on a random approach. */
   approach?: Approach;
+  /** The Gambler's third primary stat, rolled at recruitment. */
+  primary?: StatKey;
 };
 
 export type WeaponType =
@@ -540,6 +542,8 @@ export type HeroState = {
   roll?: HeroRoll;
   /** The approach picks made at levels 5 and 10, in order. */
   approachPicks?: Approach[];
+  /** The Gambler's approach scores, rolled at the daily reset (`day` is the rotation day). */
+  gamble?: { day: number; approaches: Record<Approach, number> };
   /** HP at `hpAt`; missing means full. Heroes at home heal from then on (see team/health.ts). */
   hp?: number;
   hpAt?: number;
