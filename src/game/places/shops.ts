@@ -30,7 +30,7 @@ export type StockLine = {
 const gearPrice = (item: GearDef, quality: Quality) => Math.round(shopRules.gearPrice[item.tier - 1] * shopRules.qualityPrice[quality]);
 
 /** A recipe a shop can teach: unknown, not given by default or tier, and within the player's tier. */
-function recipeCandidates(save: SaveData): { recipe: RecipeDef; tier: number }[] {
+export function recipeCandidates(save: SaveData): { recipe: RecipeDef; tier: number }[] {
   const tier = highestUnlockedTier(save);
   return recipes
     .filter((recipe) => {
@@ -51,6 +51,15 @@ export function recipeForSale(save: SaveData, spawn: PlaceSpawn, prefer: 'forge'
   const rng = createRng(`recipe|${spawn.id}`);
   const chosen = pool[rng.int(0, pool.length - 1)];
   return { key: `recipe:${chosen.recipe.id}`, kind: 'recipe', id: chosen.recipe.id, amount: 1, price: shopRules.recipePrice[chosen.tier - 1] };
+}
+
+/** Forge recipes whose gear is within the player's tier and usable by at least one roster hero: what smithies sell and places pay out. */
+export function gearPool(save: SaveData): RecipeDef[] {
+  const tier = highestUnlockedTier(save);
+  return recipes.filter((recipe) => {
+    const item = forgedItem(recipe);
+    return item !== null && item.tier <= tier && save.heroes.some((hero) => affinityOf(hero.classId, item.gearType) !== 'unfit');
+  });
 }
 
 /** Draw `count` items without repeat, with the rng. */
@@ -75,15 +84,7 @@ export function placeStock(save: SaveData, spawn: PlaceSpawn): StockLine[] {
     });
   }
   if (spawn.kind === 'smithy') {
-    const tier = highestUnlockedTier(save);
-    const pool = recipes.filter((recipe) => {
-      const item = forgedItem(recipe);
-      return (
-        item !== null &&
-        item.tier <= tier &&
-        save.heroes.some((hero) => affinityOf(hero.classId, item.gearType) !== 'unfit')
-      );
-    });
+    const pool = gearPool(save);
     const count = rng.int(shopRules.smithy.gearLines[0], shopRules.smithy.gearLines[1]);
     const recipe = recipeForSale(save, spawn, 'forge');
     return [

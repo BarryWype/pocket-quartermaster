@@ -134,7 +134,7 @@ export function patrolRewards(
 }
 
 /** Materials worth a few nodes, drawn from the resource table the player's pickaxe covers. */
-function cacheMaterials(context: RewardContext, rng: Rng, nodes: number): MaterialStack[] {
+export function cacheMaterials(context: RewardContext, rng: Rng, nodes: number): MaterialStack[] {
   const pool = resources.filter((resource) => (resource.pickaxeTier ?? 0) <= context.pickaxeTier);
   const gained: MaterialStack[] = [];
   for (let node = 0; node < nodes; node++) {

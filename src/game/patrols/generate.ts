@@ -1,9 +1,10 @@
 import { patrolRules, travellerRules, type PatrolRules } from '@/content/patrols';
+import { placeFightRules } from '@/content/placeFights';
 
 import { createAnimalPath, animalPositionAt } from '../generation/animalPaths';
 import { distanceMeters } from '../generation/geo';
 import { createRng, type Rng } from '../generation/rng';
-import { tilesAround } from '../generation/tiles';
+import { tileCenter, tilesAround } from '../generation/tiles';
 import { windowIndex, windowRange } from '../generation/time';
 import type { AnimalPath, LatLng } from '../generation/types';
 
@@ -60,11 +61,14 @@ function patrolPath(tile: string, rng: Rng, rules: PatrolRules): AnimalPath {
 /**
  * The patrols and travellers of one tile in one window, rolled from the tile
  * and the window alone, so every player at the same place sees the same spawns.
+ * A tile boosted by a nearby monster lair draws its count from the lair's
+ * weights instead; the draw order is unchanged, so other tiles keep their spawns.
  */
-export function generateTilePatrols(tile: string, window: number, rules: PatrolRules = patrolRules): PatrolSpawn[] {
+export function generateTilePatrols(tile: string, window: number, rules: PatrolRules = patrolRules, boosted = false): PatrolSpawn[] {
   const rng = createRng(`patrol|${tile}|${window}`);
   const { start, end } = windowRange(window, rules.windowMinutes);
-  const count = rng.weighted([0, 1, 2], (n) => rules.patrolCountWeights[n]);
+  const countWeights = boosted ? placeFightRules.lair.patrolCountWeights : rules.patrolCountWeights;
+  const count = rng.weighted([0, 1, 2], (n) => countWeights[n]);
   return Array.from({ length: count }, (_, i): PatrolSpawn => {
     const traveller = rng.chance(1 / rules.travellerEvery);
     const kind = traveller
@@ -83,10 +87,12 @@ export function generateTilePatrols(tile: string, window: number, rules: PatrolR
   });
 }
 
-/** Every spawn in the tiles around a position, for the window the time falls in. */
-export function patrolsAround(position: LatLng, timeMs: number, rules: PatrolRules = patrolRules): PatrolSpawn[] {
+/** Every spawn in the tiles around a position, for the window the time falls in; tiles near a live lair spawn more. */
+export function patrolsAround(position: LatLng, timeMs: number, rules: PatrolRules = patrolRules, lairs: LatLng[] = []): PatrolSpawn[] {
   const window = windowIndex(timeMs, rules.windowMinutes);
-  return tilesAround(position, rules.precision).flatMap((tile) => generateTilePatrols(tile, window, rules));
+  return tilesAround(position, rules.precision).flatMap((tile) =>
+    generateTilePatrols(tile, window, rules, lairs.some((lair) => distanceMeters(tileCenter(tile), lair) <= placeFightRules.lair.radiusMeters)),
+  );
 }
 
 /** The tier and elite flag a spawn fights at, given the highest unlocked tier. */

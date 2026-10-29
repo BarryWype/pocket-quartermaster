@@ -1,5 +1,6 @@
 import type { PatrolKind } from '@/game/patrols/generate';
-import type { Element } from '@/game/elements';
+import type { FightPlaceKind } from '@/content/placeFights';
+import { ELEMENTS, type Element } from '@/game/elements';
 import type { BossDef, DamageStat, MobDef, SanctumDef, SpeedClass, Tag } from '@/game/types';
 
 import { npcs } from './npcs';
@@ -380,6 +381,171 @@ const patrolMobs: MobDef[] = (Object.keys(patrolTemplates) as PatrolKind[]).flat
   );
 });
 
+// Fight events and the monster lair: the fixed enemies home heroes fight at
+// map places (see content/placeFights.ts). Templates work like patrol ones;
+// the factors are the bandit and goblin/herd patrol factors, since place
+// fights are tuned like patrols with a full party.
+type PlaceTemplate = {
+  /** Stats for [weak, normal, boss] at tier-1 strength. */
+  hp: [number, number, number];
+  damage: [number, number, number];
+  tags: Tag[];
+  factors: [number, number, number, number, number];
+  /** Names for [weak, normal, boss], one row per tier. */
+  names: string[][];
+  /** One mob set per element instead of a single set. */
+  elemental?: boolean;
+};
+
+const BANDIT_FACTORS: [number, number, number, number, number] = [4.88, 4.36, 4.16, 4.1, 4.29];
+const GOBLIN_FACTORS: [number, number, number, number, number] = [3.03, 2.75, 2.57, 2.58, 2.69];
+const HERD_FACTORS: [number, number, number, number, number] = [2.81, 2.46, 2.33, 2.41, 2.39];
+
+const placeTemplates: Record<FightPlaceKind, PlaceTemplate> = {
+  banditCamp: {
+    hp: [10, 14, 22],
+    damage: [3, 4, 6],
+    tags: ['locals'],
+    factors: BANDIT_FACTORS,
+    names: [
+      ['cutpurse', 'bandit', 'bandit archer'],
+      ['deserter', 'bandit', 'tower sergeant'],
+      ['bogling', 'hexed hunter', 'bone knight'],
+      ['fallen legionary', 'orc raider', 'death captain'],
+      ['flame cultist', 'abyssal priest', 'death knight'],
+    ],
+  },
+  goblinRaid: {
+    hp: [7, 10, 14],
+    damage: [2, 3, 4],
+    tags: ['locals'],
+    factors: GOBLIN_FACTORS,
+    names: [
+      ['goblin runt', 'goblin', 'goblin slinger'],
+      ['squatter', 'smuggler', 'turncoat knight'],
+      ['fire imp', 'hexed hunter', 'stone warden'],
+      ['orc grunt', 'brass beetle', 'vault automaton'],
+      ['ruin crawler', 'mountain troll', 'ash knight'],
+    ],
+  },
+  beastDen: {
+    hp: [8, 12, 16],
+    damage: [2, 3, 4],
+    tags: ['beast'],
+    factors: HERD_FACTORS,
+    names: [
+      ['giant rat', 'cellar spider', 'rat swarm'],
+      ['wolf pup', 'grey wolf', 'dire wolf'],
+      ['ghost bat', 'spark moth', 'ember hound'],
+      ['rock lizard', 'storm ram', 'thunderbird'],
+      ['frost wolf', 'storm eel', 'wyvern'],
+    ],
+  },
+  hauntedCrypt: {
+    hp: [8, 12, 16],
+    damage: [2, 3, 4],
+    tags: ['undead'],
+    factors: HERD_FACTORS,
+    names: [
+      ['restless bones', 'grave robber', 'ghoul'],
+      ['barrow wight', 'drowned soldier', 'mould knight'],
+      ['skeleton miner', 'drowned dead', 'bone knight'],
+      ['bone crawler', 'fallen legionary', 'death captain'],
+      ['crypt guard', 'bone lord', 'death knight'],
+    ],
+  },
+  elementalRift: {
+    hp: [8, 12, 16],
+    damage: [2, 3, 4],
+    tags: [],
+    factors: HERD_FACTORS,
+    elemental: true,
+    names: [
+      ['ember whelp', 'ember sprite', 'rift spawn'],
+      ['mud mephit', 'mud brute', 'rift horror'],
+      ['spark imp', 'spark elemental', 'rift caller'],
+      ['gale wisp', 'gale elemental', 'rift warden'],
+      ['void whelp', 'void elemental', 'rift tyrant'],
+    ],
+  },
+  abandonedCaravan: {
+    hp: [10, 14, 22],
+    damage: [3, 4, 6],
+    tags: ['locals'],
+    factors: BANDIT_FACTORS,
+    names: [
+      ['cutpurse', 'bandit', 'bandit archer'],
+      ['deserter', 'bandit', 'tower sergeant'],
+      ['bogling', 'hexed hunter', 'bone knight'],
+      ['fallen legionary', 'orc raider', 'death captain'],
+      ['flame cultist', 'abyssal priest', 'death knight'],
+    ],
+  },
+  wantedOutlaw: {
+    hp: [10, 14, 22],
+    damage: [3, 4, 6],
+    tags: ['locals'],
+    factors: BANDIT_FACTORS,
+    names: [
+      ['cutpurse', 'bandit', 'bandit archer'],
+      ['deserter', 'bandit', 'tower sergeant'],
+      ['bogling', 'hexed hunter', 'bone knight'],
+      ['fallen legionary', 'orc raider', 'death captain'],
+      ['flame cultist', 'abyssal priest', 'death knight'],
+    ],
+  },
+  monsterLair: {
+    hp: [10, 14, 22],
+    damage: [3, 4, 6],
+    tags: ['beast'],
+    factors: BANDIT_FACTORS,
+    names: [
+      ['giant rat', 'ghoul', 'rat king'],
+      ['bog hound', 'river troll', 'barrow king'],
+      ['ember hound', 'mycel troll', 'ash wyrm'],
+      ['giant hound', 'hill giant', 'harpy matriarch'],
+      ['frost wolf', 'mountain troll', 'wyvern queen'],
+    ],
+  },
+};
+
+/** A place fight mob, or its elite variant, by kind, tier, role and element. */
+export const placeMobId = (kind: FightPlaceKind, tier: number, role: 'weak' | 'normal' | 'boss', elite = false, element?: Element) =>
+  `place:${kind}:${tier}:${role}${elite ? ':elite' : ''}${element ? `:${element}` : ''}`;
+
+const placeMobs: MobDef[] = (Object.keys(placeTemplates) as FightPlaceKind[]).flatMap((kind) => {
+  const { hp, damage, tags, factors, names, elemental } = placeTemplates[kind];
+  // Beasts charge; everyone else keeps pace with heroes.
+  const speedClass: SpeedClass = tags.includes('beast') ? 'fast' : 'normal';
+  const elements = elemental ? [...ELEMENTS] : [undefined];
+  return names.flatMap((tierNames, i) =>
+    tierNames.flatMap((name, role) =>
+      elements.flatMap((element) => [
+        mob(
+          placeMobId(kind, i + 1, PATROL_ROLES[role], false, element),
+          name,
+          strength(i + 1, factors[i]),
+          hp[role],
+          damage[role],
+          tags,
+          element,
+          speedClass,
+        ),
+        mob(
+          placeMobId(kind, i + 1, PATROL_ROLES[role], true, element),
+          name,
+          strength(i + 1, factors[i]),
+          hp[role] * PATROL_ELITE.hp,
+          damage[role] * PATROL_ELITE.damage,
+          tags,
+          element,
+          speedClass,
+        ),
+      ]),
+    ),
+  );
+});
+
 // Sanctum enemies: one set per Sigil tier, scaled like dungeon enemies.
 const sanctumScale = (tier: number) => strength(tier, sanctumRules.tierStrength[tier - 1]);
 
@@ -401,5 +567,5 @@ export function sanctumGuardian(sanctum: SanctumDef, tier: number): BossDef {
   return boss(`${sanctum.id}:guardian:${tier}`, sanctum.guardian.name, sanctumScale(tier), hp, damage, [], sanctum.guardian.effect, sanctum.element);
 }
 
-export const mobById = Object.fromEntries([...mobs, ...npcMobs, ...sanctumMinions, ...patrolMobs].map((m) => [m.id, m]));
+export const mobById = Object.fromEntries([...mobs, ...npcMobs, ...sanctumMinions, ...patrolMobs, ...placeMobs].map((m) => [m.id, m]));
 export const bossById = Object.fromEntries(bosses.map((b) => [b.id, b]));
