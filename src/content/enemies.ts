@@ -120,158 +120,158 @@ const S = {
 export const mobs: MobDef[] = [
   // Tier 1
   mob('giantRat', 'giant rat', S.ratCellar, 8, 3, ['beast'], undefined, 'fast'),
-  mob('cellarSpider', 'cellar spider', S.ratCellar, 12, 4, ['beast']),
-  mob('ratSwarm', 'rat swarm', S.ratCellar, 18, 5, ['beast'], undefined, 'slow'),
-  mob('webling', 'webling', S.spiderBurrow, 8, 3, ['beast'], undefined, 'fast'),
-  mob('burrowSpider', 'burrow spider', S.spiderBurrow, 12, 4, ['beast']),
-  mob('broodGuard', 'brood guard', S.spiderBurrow, 18, 5, ['beast']),
+  mob('cellarSpider', 'cellar spider', S.ratCellar, 12, 4, ['vermin', 'beast']),
+  mob('ratSwarm', 'rat swarm', S.ratCellar, 18, 5, ['vermin', 'beast'], undefined, 'slow'),
+  mob('webling', 'webling', S.spiderBurrow, 8, 3, ['vermin', 'beast'], undefined, 'fast'),
+  mob('burrowSpider', 'burrow spider', S.spiderBurrow, 12, 4, ['vermin', 'beast']),
+  mob('broodGuard', 'brood guard', S.spiderBurrow, 18, 5, ['vermin', 'beast']),
   mob('restlessBones', 'restless bones', S.oldGraveyard, 8, 3, ['undead']),
-  mob('graveRobber', 'grave robber', S.oldGraveyard, 12, 4),
+  mob('graveRobber', 'grave robber', S.oldGraveyard, 12, 4, ['humanoid']),
   mob('ghoul', 'ghoul', S.oldGraveyard, 18, 5, ['undead']),
-  mob('goblinRunt', 'goblin runt', S.goblinWarren, 8, 3, [], undefined, 'fast'),
-  mob('goblin', 'goblin', S.goblinWarren, 14, 4),
-  mob('goblinSlinger', 'goblin slinger', S.goblinWarren, 14, 5),
+  mob('goblinRunt', 'goblin runt', S.goblinWarren, 8, 3, ['goblinoid'], undefined, 'fast'),
+  mob('goblin', 'goblin', S.goblinWarren, 14, 4, ['goblinoid']),
+  mob('goblinSlinger', 'goblin slinger', S.goblinWarren, 14, 5, ['goblinoid']),
   mob('millRat', 'mill rat', S.millRuins, 8, 3, ['beast'], undefined, 'fast'),
-  mob('squatter', 'squatter', S.millRuins, 14, 4),
-  mob('millBrute', 'mill brute', S.millRuins, 16, 5, [], undefined, 'slow'),
-  mob('cutpurse', 'cutpurse', S.smugglersCove, 8, 3, [], undefined, 'fast'),
-  mob('smuggler', 'smuggler', S.smugglersCove, 14, 4),
-  mob('coveEnforcer', 'cove enforcer', S.smugglersCove, 16, 5),
+  mob('squatter', 'squatter', S.millRuins, 14, 4, ['humanoid']),
+  mob('millBrute', 'mill brute', S.millRuins, 16, 5, ['humanoid'], undefined, 'slow'),
+  mob('cutpurse', 'cutpurse', S.smugglersCove, 8, 3, ['humanoid'], undefined, 'fast'),
+  mob('smuggler', 'smuggler', S.smugglersCove, 14, 4, ['humanoid']),
+  mob('coveEnforcer', 'cove enforcer', S.smugglersCove, 16, 5, ['humanoid']),
   mob('guardDog', 'guard dog', S.banditStockade, 10, 4, ['beast'], undefined, 'fast'),
-  mob('bandit', 'bandit', S.banditStockade, 16, 5),
-  mob('banditArcher', 'bandit archer', S.banditStockade, 16, 6),
+  mob('bandit', 'bandit', S.banditStockade, 16, 5, ['humanoid']),
+  mob('banditArcher', 'bandit archer', S.banditStockade, 16, 6, ['humanoid']),
   // Tier 2
   mob('wolfPup', 'wolf pup', S.wolfDen, 8, 3, ['beast'], undefined, 'fast'),
   mob('greyWolf', 'grey wolf', S.wolfDen, 14, 4, ['beast'], undefined, 'fast'),
   mob('direWolf', 'dire wolf', S.wolfDen, 20, 5, ['beast'], undefined, 'fast'),
   mob('barrowRat', 'barrow rat', S.barrowMounds, 8, 3, ['beast'], undefined, 'fast'),
-  mob('barrowWight', 'barrow wight', S.barrowMounds, 14, 4, ['undead'], undefined, 'normal', 'magic'),
+  mob('barrowWight', 'barrow wight', S.barrowMounds, 14, 4, ['spirit', 'undead'], undefined, 'normal', 'magic'),
   mob('mouldKnight', 'mould knight', S.barrowMounds, 20, 5, ['undead'], undefined, 'slow'),
   mob('thornPiglet', 'thorn piglet', S.boarThicket, 8, 3, ['beast'], 'grass'),
   mob('wildBoar', 'wild boar', S.boarThicket, 14, 4, ['beast'], 'grass', 'slow'),
   mob('briarTusker', 'briar tusker', S.boarThicket, 20, 5, ['beast'], 'grass', 'slow'),
   mob('bogHound', 'bog hound', S.trollBridge, 10, 4, ['beast'], undefined, 'fast'),
-  mob('highwayBandit', 'bandit', S.trollBridge, 16, 5),
-  mob('riverTroll', 'river troll', S.trollBridge, 24, 6, [], undefined, 'slow'),
-  mob('fordLeech', 'ford leech', S.sunkenFord, 8, 3, ['beast'], 'water', 'slow'),
-  mob('riverSprite', 'river sprite', S.sunkenFord, 14, 4, [], 'water'),
+  mob('highwayBandit', 'bandit', S.trollBridge, 16, 5, ['humanoid']),
+  mob('riverTroll', 'river troll', S.trollBridge, 24, 6, ['brute'], undefined, 'slow'),
+  mob('fordLeech', 'ford leech', S.sunkenFord, 8, 3, ['vermin', 'beast'], 'water', 'slow'),
+  mob('riverSprite', 'river sprite', S.sunkenFord, 14, 4, ['elemental'], 'water'),
   mob('drownedSoldier', 'drowned soldier', S.sunkenFord, 20, 5, ['undead'], 'water'),
-  mob('towerCrow', 'tower crow', S.watchtower, 8, 3, ['beast'], undefined, 'fast'),
-  mob('deserter', 'deserter', S.watchtower, 16, 5),
-  mob('towerSergeant', 'tower sergeant', S.watchtower, 22, 6),
-  mob('ogreBrute', 'ogre brute', S.ogreQuarry, 12, 4),
-  mob('rockGolem', 'rock golem', S.ogreQuarry, 20, 5),
-  mob('quarryOgre', 'quarry ogre', S.ogreQuarry, 24, 6),
+  mob('towerCrow', 'tower crow', S.watchtower, 8, 3, ['bird', 'beast'], undefined, 'fast'),
+  mob('deserter', 'deserter', S.watchtower, 16, 5, ['humanoid']),
+  mob('towerSergeant', 'tower sergeant', S.watchtower, 22, 6, ['humanoid']),
+  mob('ogreBrute', 'ogre brute', S.ogreQuarry, 12, 4, ['brute']),
+  mob('rockGolem', 'rock golem', S.ogreQuarry, 20, 5, ['construct']),
+  mob('quarryOgre', 'quarry ogre', S.ogreQuarry, 24, 6, ['brute']),
   // Tier 3
-  mob('ghostBat', 'ghost bat', S.hauntedMine, 8, 3, ['beast', 'undead'], undefined, 'fast'),
+  mob('ghostBat', 'ghost bat', S.hauntedMine, 8, 3, ['spirit', 'bird', 'beast', 'undead'], undefined, 'fast'),
   mob('skeletonMiner', 'skeleton miner', S.hauntedMine, 14, 4, ['undead']),
-  mob('mineGhost', 'mine ghost', S.hauntedMine, 20, 5, ['undead'], undefined, 'normal', 'magic'),
-  mob('sporeling', 'sporeling', S.fungalGrotto, 8, 3, ['beast'], 'grass', 'fast'),
-  mob('capCrawler', 'cap crawler', S.fungalGrotto, 14, 4, ['beast'], 'grass'),
-  mob('mycelTroll', 'mycel troll', S.fungalGrotto, 22, 5, [], 'grass', 'slow'),
-  mob('sparkMoth', 'spark moth', S.stormRidge, 8, 3, ['beast'], 'electric', 'fast'),
-  mob('stormHawk', 'storm hawk', S.stormRidge, 14, 4, ['beast'], 'electric', 'fast'),
-  mob('boltElemental', 'bolt elemental', S.stormRidge, 20, 5, [], 'electric'),
-  mob('fireImp', 'fire imp', S.cinderHollow, 8, 3, [], 'fire', 'fast'),
-  mob('magmaSlug', 'magma slug', S.cinderHollow, 16, 4, ['beast'], 'fire', 'slow'),
+  mob('mineGhost', 'mine ghost', S.hauntedMine, 20, 5, ['spirit', 'undead'], undefined, 'normal', 'magic'),
+  mob('sporeling', 'sporeling', S.fungalGrotto, 8, 3, ['vermin', 'beast'], 'grass', 'fast'),
+  mob('capCrawler', 'cap crawler', S.fungalGrotto, 14, 4, ['carapace', 'beast'], 'grass'),
+  mob('mycelTroll', 'mycel troll', S.fungalGrotto, 22, 5, ['brute'], 'grass', 'slow'),
+  mob('sparkMoth', 'spark moth', S.stormRidge, 8, 3, ['vermin', 'beast'], 'electric', 'fast'),
+  mob('stormHawk', 'storm hawk', S.stormRidge, 14, 4, ['bird', 'beast'], 'electric', 'fast'),
+  mob('boltElemental', 'bolt elemental', S.stormRidge, 20, 5, ['elemental'], 'electric'),
+  mob('fireImp', 'fire imp', S.cinderHollow, 8, 3, ['elemental'], 'fire', 'fast'),
+  mob('magmaSlug', 'magma slug', S.cinderHollow, 16, 4, ['vermin', 'beast'], 'fire', 'slow'),
   mob('emberHound', 'ember hound', S.cinderHollow, 18, 5, ['beast'], 'fire', 'fast'),
-  mob('tunnelBeetle', 'tunnel beetle', S.dwarfhold, 10, 3, ['beast']),
-  mob('stoneWarden', 'stone warden', S.dwarfhold, 16, 4, [], 'stone', 'slow'),
-  mob('runeGolem', 'rune golem', S.dwarfhold, 24, 5, [], 'stone', 'slow'),
-  mob('marshToad', 'marsh toad', S.witchMarsh, 8, 3, ['beast'], 'grass'),
-  mob('bogling', 'bogling', S.witchMarsh, 14, 4, [], 'grass'),
-  mob('hexedHunter', 'hexed hunter', S.witchMarsh, 18, 5),
+  mob('tunnelBeetle', 'tunnel beetle', S.dwarfhold, 10, 3, ['carapace', 'beast']),
+  mob('stoneWarden', 'stone warden', S.dwarfhold, 16, 4, ['construct'], 'stone', 'slow'),
+  mob('runeGolem', 'rune golem', S.dwarfhold, 24, 5, ['construct'], 'stone', 'slow'),
+  mob('marshToad', 'marsh toad', S.witchMarsh, 8, 3, ['vermin', 'beast'], 'grass'),
+  mob('bogling', 'bogling', S.witchMarsh, 14, 4, ['goblinoid'], 'grass'),
+  mob('hexedHunter', 'hexed hunter', S.witchMarsh, 18, 5, ['humanoid']),
   mob('cryptEel', 'crypt eel', S.drownedCrypt, 10, 4, ['beast']),
   mob('drownedDead', 'drowned dead', S.drownedCrypt, 16, 5, ['undead']),
   mob('boneKnight', 'bone knight', S.drownedCrypt, 22, 6, ['undead']),
   // Tier 4
-  mob('rockLizard', 'rock lizard', S.harpyCliffs, 8, 3, ['beast'], undefined, 'fast'),
-  mob('cliffEagle', 'cliff eagle', S.harpyCliffs, 12, 4, ['beast'], undefined, 'fast'),
-  mob('harpy', 'harpy', S.harpyCliffs, 18, 5, ['beast'], undefined, 'fast'),
+  mob('rockLizard', 'rock lizard', S.harpyCliffs, 8, 3, ['dragon', 'beast'], undefined, 'fast'),
+  mob('cliffEagle', 'cliff eagle', S.harpyCliffs, 12, 4, ['bird', 'beast'], undefined, 'fast'),
+  mob('harpy', 'harpy', S.harpyCliffs, 18, 5, ['bird', 'beast'], undefined, 'fast'),
   mob('stormRam', 'storm ram', S.thunderPlateau, 10, 3, ['beast'], 'electric'),
-  mob('thunderbird', 'thunderbird', S.thunderPlateau, 14, 4, ['beast'], 'electric', 'fast'),
-  mob('skyfallGolem', 'skyfall golem', S.thunderPlateau, 22, 5, [], 'electric', 'slow'),
-  mob('boneCrawler', 'bone crawler', S.boneField, 8, 3, ['undead']),
+  mob('thunderbird', 'thunderbird', S.thunderPlateau, 14, 4, ['bird', 'beast'], 'electric', 'fast'),
+  mob('skyfallGolem', 'skyfall golem', S.thunderPlateau, 22, 5, ['construct'], 'electric', 'slow'),
+  mob('boneCrawler', 'bone crawler', S.boneField, 8, 3, ['undead', 'carapace']),
   mob('fallenLegionary', 'fallen legionary', S.boneField, 16, 5, ['undead']),
   mob('deathCaptain', 'death captain', S.boneField, 22, 6, ['undead']),
-  mob('orcGrunt', 'orc grunt', S.orcWarcamp, 12, 4),
-  mob('orcRaider', 'orc raider', S.orcWarcamp, 16, 5),
-  mob('orcShaman', 'orc shaman', S.orcWarcamp, 16, 6, [], undefined, 'normal', 'magic'),
-  mob('brassBeetle', 'brass beetle', S.clockworkVault, 10, 3),
-  mob('clockworkGuard', 'clockwork guard', S.clockworkVault, 16, 5),
-  mob('vaultAutomaton', 'vault automaton', S.clockworkVault, 24, 6, [], undefined, 'slow'),
+  mob('orcGrunt', 'orc grunt', S.orcWarcamp, 12, 4, ['goblinoid']),
+  mob('orcRaider', 'orc raider', S.orcWarcamp, 16, 5, ['goblinoid']),
+  mob('orcShaman', 'orc shaman', S.orcWarcamp, 16, 6, ['goblinoid', 'caster'], undefined, 'normal', 'magic'),
+  mob('brassBeetle', 'brass beetle', S.clockworkVault, 10, 3, ['construct', 'carapace']),
+  mob('clockworkGuard', 'clockwork guard', S.clockworkVault, 16, 5, ['construct']),
+  mob('vaultAutomaton', 'vault automaton', S.clockworkVault, 24, 6, ['construct'], undefined, 'slow'),
   mob('iceSeal', 'ice seal', S.frozenLake, 10, 3, ['beast'], 'water', 'slow'),
-  mob('frostNymph', 'frost nymph', S.frozenLake, 14, 4, [], 'water'),
-  mob('lakeSerpent', 'lake serpent', S.frozenLake, 22, 6, ['beast'], 'water'),
+  mob('frostNymph', 'frost nymph', S.frozenLake, 14, 4, ['elemental'], 'water'),
+  mob('lakeSerpent', 'lake serpent', S.frozenLake, 22, 6, ['dragon', 'beast'], 'water'),
   mob('giantHound', 'giant hound', S.giantsHall, 12, 4, ['beast'], undefined, 'fast'),
-  mob('stoneSentinel', 'stone sentinel', S.giantsHall, 20, 5, [], undefined, 'slow'),
-  mob('hillGiant', 'hill giant', S.giantsHall, 26, 7, [], undefined, 'slow'),
+  mob('stoneSentinel', 'stone sentinel', S.giantsHall, 20, 5, ['construct'], undefined, 'slow'),
+  mob('hillGiant', 'hill giant', S.giantsHall, 26, 7, ['brute'], undefined, 'slow'),
   // Tier 5
   mob('frostWolf', 'frost wolf', S.wyvernPeaks, 10, 4, ['beast'], undefined, 'fast'),
-  mob('mountainTroll', 'mountain troll', S.wyvernPeaks, 20, 5, [], undefined, 'slow'),
-  mob('wyvern', 'wyvern', S.wyvernPeaks, 22, 6, ['beast'], undefined, 'fast'),
+  mob('mountainTroll', 'mountain troll', S.wyvernPeaks, 20, 5, ['brute'], undefined, 'slow'),
+  mob('wyvern', 'wyvern', S.wyvernPeaks, 22, 6, ['dragon', 'beast'], undefined, 'fast'),
   mob('cryptGuard', 'crypt guard', S.ossuary, 10, 4, ['undead']),
   mob('boneLord', 'bone lord', S.ossuary, 18, 5, ['undead']),
   mob('deathKnight', 'death knight', S.ossuary, 24, 6, ['undead'], undefined, 'slow'),
   mob('stormEel', 'storm eel', S.stormIsle, 10, 4, ['beast'], 'electric', 'fast'),
-  mob('tempestCaller', 'tempest caller', S.stormIsle, 18, 5, [], 'electric'),
-  mob('thunderDrake', 'thunder drake', S.stormIsle, 22, 6, ['beast'], 'electric', 'fast'),
-  mob('flameCultist', 'flame cultist', S.ashenCitadel, 10, 4, [], 'fire'),
-  mob('cinderGolem', 'cinder golem', S.ashenCitadel, 20, 5, [], 'fire', 'slow'),
+  mob('tempestCaller', 'tempest caller', S.stormIsle, 18, 5, ['caster'], 'electric'),
+  mob('thunderDrake', 'thunder drake', S.stormIsle, 22, 6, ['dragon', 'beast'], 'electric', 'fast'),
+  mob('flameCultist', 'flame cultist', S.ashenCitadel, 10, 4, ['caster', 'humanoid'], 'fire'),
+  mob('cinderGolem', 'cinder golem', S.ashenCitadel, 20, 5, ['construct'], 'fire', 'slow'),
   mob('ashKnight', 'ash knight', S.ashenCitadel, 22, 6, ['undead'], 'fire'),
   mob('deepAngler', 'deep angler', S.abyssalDepths, 10, 4, ['beast'], 'water'),
-  mob('abyssalPriest', 'abyssal priest', S.abyssalDepths, 18, 5, [], 'water'),
+  mob('abyssalPriest', 'abyssal priest', S.abyssalDepths, 18, 5, ['caster'], 'water'),
   mob('krakenSpawn', 'kraken spawn', S.abyssalDepths, 24, 6, ['beast'], 'water', 'slow'),
-  mob('ruinCrawler', 'ruin crawler', S.titanRuins, 10, 4, ['beast']),
-  mob('titanShard', 'titan shard', S.titanRuins, 18, 5, [], 'stone', 'slow'),
-  mob('colossusArm', 'colossus arm', S.titanRuins, 24, 6, [], 'stone', 'slow'),
-  mob('dragonCultist', 'dragon cultist', S.dragonLair, 12, 4, [], 'fire'),
-  mob('drake', 'drake', S.dragonLair, 20, 6, ['beast'], 'fire', 'fast'),
-  mob('fireElemental', 'fire elemental', S.dragonLair, 22, 6, [], 'fire'),
+  mob('ruinCrawler', 'ruin crawler', S.titanRuins, 10, 4, ['carapace', 'beast']),
+  mob('titanShard', 'titan shard', S.titanRuins, 18, 5, ['construct'], 'stone', 'slow'),
+  mob('colossusArm', 'colossus arm', S.titanRuins, 24, 6, ['construct'], 'stone', 'slow'),
+  mob('dragonCultist', 'dragon cultist', S.dragonLair, 12, 4, ['caster', 'humanoid'], 'fire'),
+  mob('drake', 'drake', S.dragonLair, 20, 6, ['dragon', 'beast'], 'fire', 'fast'),
+  mob('fireElemental', 'fire elemental', S.dragonLair, 22, 6, ['elemental'], 'fire'),
 ];
 
 export const bosses: BossDef[] = [
-  boss('ratKing', 'rat king', S.ratCellar, 45, 6, ['beast']),
-  boss('broodMother', 'brood mother', S.spiderBurrow, 45, 6, ['beast'], undefined, undefined, 'slow'),
-  boss('graveLord', 'grave lord', S.oldGraveyard, 45, 6, ['undead'], undefined, undefined, 'normal', 'magic'),
-  boss('goblinChief', 'goblin chief', S.goblinWarren, 60, 7),
-  boss('millOgre', 'mill ogre', S.millRuins, 60, 7, [], undefined, undefined, 'slow'),
-  boss('smugglerQueen', 'smuggler queen', S.smugglersCove, 60, 7),
-  boss('banditCaptain', 'bandit captain', S.banditStockade, 110, 9, [], 'enrage'),
+  boss('ratKing', 'rat king', S.ratCellar, 45, 6, ['vermin', 'beast']),
+  boss('broodMother', 'brood mother', S.spiderBurrow, 45, 6, ['vermin', 'beast'], undefined, undefined, 'slow'),
+  boss('graveLord', 'grave lord', S.oldGraveyard, 45, 6, ['undead', 'caster'], undefined, undefined, 'normal', 'magic'),
+  boss('goblinChief', 'goblin chief', S.goblinWarren, 60, 7, ['goblinoid']),
+  boss('millOgre', 'mill ogre', S.millRuins, 60, 7, ['brute'], undefined, undefined, 'slow'),
+  boss('smugglerQueen', 'smuggler queen', S.smugglersCove, 60, 7, ['humanoid']),
+  boss('banditCaptain', 'bandit captain', S.banditStockade, 110, 9, ['humanoid'], 'enrage'),
   boss('alphaWolf', 'alpha wolf', S.wolfDen, 55, 7, ['beast'], undefined, undefined, 'fast'),
-  boss('barrowKing', 'barrow king', S.barrowMounds, 55, 7, ['undead']),
+  boss('barrowKing', 'barrow king', S.barrowMounds, 55, 7, ['spirit', 'undead']),
   boss('thicketBoar', 'great thicket boar', S.boarThicket, 55, 7, ['beast'], undefined, 'grass', 'slow'),
-  boss('bridgeTroll', 'bridge troll', S.trollBridge, 70, 8, [], undefined, undefined, 'slow'),
-  boss('fordHag', 'ford hag', S.sunkenFord, 70, 8, [], undefined, 'water'),
-  boss('turncoatKnight', 'turncoat knight', S.watchtower, 70, 8),
-  boss('ogreChieftain', 'ogre chieftain', S.ogreQuarry, 120, 10, [], 'sweep', undefined, 'slow'),
-  boss('mineWraith', 'mine wraith', S.hauntedMine, 55, 7, ['undead'], undefined, undefined, 'normal', 'magic'),
-  boss('sporeQueen', 'spore queen', S.fungalGrotto, 55, 7, [], undefined, 'grass'),
-  boss('stormRoc', 'storm roc', S.stormRidge, 55, 7, ['beast'], undefined, 'electric', 'fast'),
-  boss('ashWyrm', 'ash wyrm', S.cinderHollow, 70, 8, ['beast'], undefined, 'fire'),
-  boss('forgeGuardian', 'forge guardian', S.dwarfhold, 70, 8, [], undefined, 'stone', 'slow'),
-  boss('marshWitch', 'marsh witch', S.witchMarsh, 70, 8, [], 'enrage', 'grass'),
-  boss('lichOfTheDeep', 'lich of the deep', S.drownedCrypt, 125, 10, ['undead'], 'enrage', undefined, 'normal', 'magic'),
-  boss('harpyMatriarch', 'harpy matriarch', S.harpyCliffs, 55, 7, ['beast'], 'sweep', undefined, 'fast'),
-  boss('thunderTitan', 'thunder titan', S.thunderPlateau, 55, 7, [], 'sweep', 'electric', 'slow'),
+  boss('bridgeTroll', 'bridge troll', S.trollBridge, 70, 8, ['brute'], undefined, undefined, 'slow'),
+  boss('fordHag', 'ford hag', S.sunkenFord, 70, 8, ['caster'], undefined, 'water'),
+  boss('turncoatKnight', 'turncoat knight', S.watchtower, 70, 8, ['humanoid']),
+  boss('ogreChieftain', 'ogre chieftain', S.ogreQuarry, 120, 10, ['brute'], 'sweep', undefined, 'slow'),
+  boss('mineWraith', 'mine wraith', S.hauntedMine, 55, 7, ['spirit', 'undead'], undefined, undefined, 'normal', 'magic'),
+  boss('sporeQueen', 'spore queen', S.fungalGrotto, 55, 7, ['vermin'], undefined, 'grass'),
+  boss('stormRoc', 'storm roc', S.stormRidge, 55, 7, ['bird', 'beast'], undefined, 'electric', 'fast'),
+  boss('ashWyrm', 'ash wyrm', S.cinderHollow, 70, 8, ['dragon', 'beast'], undefined, 'fire'),
+  boss('forgeGuardian', 'forge guardian', S.dwarfhold, 70, 8, ['construct'], undefined, 'stone', 'slow'),
+  boss('marshWitch', 'marsh witch', S.witchMarsh, 70, 8, ['caster'], 'enrage', 'grass'),
+  boss('lichOfTheDeep', 'lich of the deep', S.drownedCrypt, 125, 10, ['undead', 'caster'], 'enrage', undefined, 'normal', 'magic'),
+  boss('harpyMatriarch', 'harpy matriarch', S.harpyCliffs, 55, 7, ['bird', 'beast'], 'sweep', undefined, 'fast'),
+  boss('thunderTitan', 'thunder titan', S.thunderPlateau, 55, 7, ['brute'], 'sweep', 'electric', 'slow'),
   boss('boneGeneral', 'bone general', S.boneField, 55, 7, ['undead'], 'enrage'),
-  boss('orcWarlord', 'orc warlord', S.orcWarcamp, 75, 8, [], 'enrage'),
-  boss('clockworkWarden', 'clockwork warden', S.clockworkVault, 75, 8, [], 'sweep', undefined, 'slow'),
-  boss('iceWyrm', 'ice wyrm', S.frozenLake, 75, 8, ['beast'], undefined, 'water'),
-  boss('giantKing', 'giant king', S.giantsHall, 130, 11, [], 'sweep', undefined, 'slow'),
-  boss('wyvernQueen', 'wyvern queen', S.wyvernPeaks, 60, 8, ['beast'], 'sweep', undefined, 'fast'),
+  boss('orcWarlord', 'orc warlord', S.orcWarcamp, 75, 8, ['goblinoid'], 'enrage'),
+  boss('clockworkWarden', 'clockwork warden', S.clockworkVault, 75, 8, ['construct'], 'sweep', undefined, 'slow'),
+  boss('iceWyrm', 'ice wyrm', S.frozenLake, 75, 8, ['dragon', 'beast'], undefined, 'water'),
+  boss('giantKing', 'giant king', S.giantsHall, 130, 11, ['brute'], 'sweep', undefined, 'slow'),
+  boss('wyvernQueen', 'wyvern queen', S.wyvernPeaks, 60, 8, ['dragon', 'beast'], 'sweep', undefined, 'fast'),
   boss('ossuaryKing', 'ossuary king', S.ossuary, 60, 8, ['undead'], 'enrage'),
-  boss('stormcaller', 'stormcaller', S.stormIsle, 60, 8, [], 'sweep', 'electric'),
-  boss('ashLord', 'ash lord', S.ashenCitadel, 80, 9, [], 'enrage', 'fire'),
+  boss('stormcaller', 'stormcaller', S.stormIsle, 60, 8, ['caster'], 'sweep', 'electric'),
+  boss('ashLord', 'ash lord', S.ashenCitadel, 80, 9, ['caster'], 'enrage', 'fire'),
   boss('abyssalHorror', 'abyssal horror', S.abyssalDepths, 80, 9, ['beast'], 'sweep', 'water', 'slow'),
-  boss('titanHeart', 'titan heart', S.titanRuins, 80, 9, [], 'enrage', 'stone', 'slow'),
-  boss('elderDragon', 'elder dragon', S.dragonLair, 140, 12, ['beast'], 'sweep', 'fire'),
+  boss('titanHeart', 'titan heart', S.titanRuins, 80, 9, ['construct'], 'enrage', 'stone', 'slow'),
+  boss('elderDragon', 'elder dragon', S.dragonLair, 140, 12, ['dragon', 'beast'], 'sweep', 'fire'),
   // The overnight quests' patrol leaders: the run's only real threat.
   boss('nightProwler', 'night prowler', S.nightWatch1, 120, 20, ['beast'], undefined, undefined, 'fast'),
   boss('roadStalker', 'road stalker', S.nightWatch2, 65, 12, ['beast'], undefined, undefined, 'fast'),
-  boss('shaftHaunt', 'shaft haunt', S.nightWatch3, 65, 12, ['undead'], undefined, undefined, 'normal', 'magic'),
-  boss('campRaider', 'camp raider', S.nightWatch4, 65, 12),
-  boss('ashStalker', 'ash stalker', S.nightWatch5, 65, 12, [], undefined, 'fire', 'fast'),
+  boss('shaftHaunt', 'shaft haunt', S.nightWatch3, 65, 12, ['spirit', 'undead'], undefined, undefined, 'normal', 'magic'),
+  boss('campRaider', 'camp raider', S.nightWatch4, 65, 12, ['humanoid']),
+  boss('ashStalker', 'ash stalker', S.nightWatch5, 65, 12, ['spirit'], undefined, 'fire', 'fast'),
 ];
 
 /** The mob an NPC turns into when the party fights them, at a dungeon tier. */
@@ -283,6 +283,7 @@ const NPC_STRENGTH = 1.6;
 const npcMobs: MobDef[] = npcs.flatMap((npc) =>
   TIER_SCALE.map((_, i) =>
     mob(npcMobId(npc.id, i + 1), npc.hostile.name, strength(i + 1, NPC_STRENGTH), npc.hostile.hp, npc.hostile.damage, [
+      ...npc.hostile.tags,
       'locals',
     ]),
   ),
@@ -300,6 +301,38 @@ type PatrolRole = (typeof PATROL_ROLES)[number];
 /** Elite patrols, the rarer tougher roll; their rewards are in content/patrols.ts. */
 const PATROL_ELITE = { hp: 1.25, damage: 1.12 };
 
+/** A named foe in a patrol or place template, with the tags the template's own tags don't supply. */
+type Foe = { name: string; tags: Tag[] };
+
+const foe = (name: string, ...tags: Tag[]): Foe => ({ name, tags });
+
+/** A foe's tags: its own, then the template's, in an order that keeps the CSV's. */
+const foeTags = (f: Foe, templateTags: Tag[]) => [...f.tags, ...templateTags.filter((t) => !f.tags.includes(t))];
+
+const BANDIT_FOES: Foe[][] = [
+  [foe('cutpurse', 'humanoid'), foe('bandit', 'humanoid'), foe('bandit archer', 'humanoid')],
+  [foe('deserter', 'humanoid'), foe('bandit', 'humanoid'), foe('tower sergeant', 'humanoid')],
+  [foe('bogling', 'goblinoid'), foe('hexed hunter', 'humanoid'), foe('bone knight', 'humanoid')],
+  [foe('fallen legionary', 'humanoid'), foe('orc raider', 'goblinoid'), foe('death captain', 'humanoid')],
+  [foe('flame cultist', 'caster', 'humanoid'), foe('abyssal priest', 'caster'), foe('death knight', 'humanoid')],
+];
+
+const GOBLIN_FOES: Foe[][] = [
+  [foe('goblin runt', 'goblinoid'), foe('goblin', 'goblinoid'), foe('goblin slinger', 'goblinoid')],
+  [foe('squatter', 'humanoid'), foe('smuggler', 'humanoid'), foe('turncoat knight', 'humanoid')],
+  [foe('fire imp', 'elemental'), foe('hexed hunter', 'humanoid'), foe('stone warden', 'construct')],
+  [foe('orc grunt', 'goblinoid'), foe('brass beetle', 'construct', 'carapace'), foe('vault automaton', 'construct')],
+  [foe('ruin crawler', 'carapace'), foe('mountain troll', 'brute'), foe('ash knight', 'humanoid')],
+];
+
+const HERD_FOES: Foe[][] = [
+  [foe('giant rat'), foe('cellar spider', 'vermin'), foe('rat swarm', 'vermin')],
+  [foe('wolf pup'), foe('grey wolf'), foe('dire wolf')],
+  [foe('ghost bat', 'spirit', 'bird'), foe('spark moth', 'vermin'), foe('ember hound')],
+  [foe('rock lizard', 'dragon'), foe('storm ram'), foe('thunderbird', 'bird')],
+  [foe('frost wolf'), foe('storm eel'), foe('wyvern', 'dragon')],
+];
+
 type PatrolTemplate = {
   /** Stats for [weak, normal, boss] at tier-1 strength. */
   hp: [number, number, number];
@@ -307,8 +340,8 @@ type PatrolTemplate = {
   tags: Tag[];
   /** Like a dungeon's factor, per tier: tuned against the odds targets in the comment above. */
   factors: [number, number, number, number, number];
-  /** Names for [weak, normal, boss], one per tier. */
-  names: string[][];
+  /** Foes for [weak, normal, boss], one per tier. */
+  foes: Foe[][];
 };
 
 const patrolTemplates: Record<PatrolKind, PatrolTemplate> = {
@@ -317,39 +350,21 @@ const patrolTemplates: Record<PatrolKind, PatrolTemplate> = {
     damage: [2, 3, 4],
     tags: ['locals'],
     factors: [3.03, 2.75, 2.57, 2.58, 2.69],
-    names: [
-      ['goblin runt', 'goblin', 'goblin slinger'],
-      ['squatter', 'smuggler', 'turncoat knight'],
-      ['fire imp', 'hexed hunter', 'stone warden'],
-      ['orc grunt', 'brass beetle', 'vault automaton'],
-      ['ruin crawler', 'mountain troll', 'ash knight'],
-    ],
+    foes: GOBLIN_FOES,
   },
   herd: {
     hp: [8, 12, 16],
     damage: [2, 3, 4],
     tags: ['beast'],
     factors: [2.81, 2.46, 2.33, 2.41, 2.39],
-    names: [
-      ['giant rat', 'cellar spider', 'rat swarm'],
-      ['wolf pup', 'grey wolf', 'dire wolf'],
-      ['ghost bat', 'spark moth', 'ember hound'],
-      ['rock lizard', 'storm ram', 'thunderbird'],
-      ['frost wolf', 'storm eel', 'wyvern'],
-    ],
+    foes: HERD_FOES,
   },
   bandits: {
     hp: [10, 14, 22],
     damage: [3, 4, 6],
     tags: ['locals'],
     factors: [4.88, 4.36, 4.16, 4.1, 4.29],
-    names: [
-      ['cutpurse', 'bandit', 'bandit archer'],
-      ['deserter', 'bandit', 'tower sergeant'],
-      ['bogling', 'hexed hunter', 'bone knight'],
-      ['fallen legionary', 'orc raider', 'death captain'],
-      ['flame cultist', 'abyssal priest', 'death knight'],
-    ],
+    foes: BANDIT_FOES,
   },
 };
 
@@ -358,19 +373,19 @@ export const patrolMobId = (kind: PatrolKind, tier: number, role: PatrolRole, el
   `patrol:${kind}:${tier}:${role}${elite ? ':elite' : ''}`;
 
 const patrolMobs: MobDef[] = (Object.keys(patrolTemplates) as PatrolKind[]).flatMap((kind) => {
-  const { hp, damage, tags, factors, names } = patrolTemplates[kind];
+  const { hp, damage, tags, factors, foes } = patrolTemplates[kind];
   // Herds charge; goblins and bandits keep pace with heroes.
   const speedClass: SpeedClass = kind === 'herd' ? 'fast' : 'normal';
-  return names.flatMap((tierNames, i) =>
-    tierNames.flatMap((name, role) => [
-      mob(patrolMobId(kind, i + 1, PATROL_ROLES[role]), name, strength(i + 1, factors[i]), hp[role], damage[role], tags, undefined, speedClass),
+  return foes.flatMap((tierFoes, i) =>
+    tierFoes.flatMap((f, role) => [
+      mob(patrolMobId(kind, i + 1, PATROL_ROLES[role]), f.name, strength(i + 1, factors[i]), hp[role], damage[role], foeTags(f, tags), undefined, speedClass),
       mob(
         patrolMobId(kind, i + 1, PATROL_ROLES[role], true),
-        name,
+        f.name,
         strength(i + 1, factors[i]),
         hp[role] * PATROL_ELITE.hp,
         damage[role] * PATROL_ELITE.damage,
-        tags,
+        foeTags(f, tags),
         undefined,
         speedClass,
       ),
@@ -388,8 +403,8 @@ type PlaceTemplate = {
   damage: [number, number, number];
   tags: Tag[];
   factors: [number, number, number, number, number];
-  /** Names for [weak, normal, boss], one row per tier. */
-  names: string[][];
+  /** Foes for [weak, normal, boss], one row per tier. */
+  foes: Foe[][];
   /** One mob set per element instead of a single set. */
   elemental?: boolean;
 };
@@ -404,51 +419,33 @@ const placeTemplates: Record<FightPlaceKind, PlaceTemplate> = {
     damage: [3, 4, 6],
     tags: ['locals'],
     factors: BANDIT_FACTORS,
-    names: [
-      ['cutpurse', 'bandit', 'bandit archer'],
-      ['deserter', 'bandit', 'tower sergeant'],
-      ['bogling', 'hexed hunter', 'bone knight'],
-      ['fallen legionary', 'orc raider', 'death captain'],
-      ['flame cultist', 'abyssal priest', 'death knight'],
-    ],
+    foes: BANDIT_FOES,
   },
   goblinRaid: {
     hp: [7, 10, 14],
     damage: [2, 3, 4],
     tags: ['locals'],
     factors: GOBLIN_FACTORS,
-    names: [
-      ['goblin runt', 'goblin', 'goblin slinger'],
-      ['squatter', 'smuggler', 'turncoat knight'],
-      ['fire imp', 'hexed hunter', 'stone warden'],
-      ['orc grunt', 'brass beetle', 'vault automaton'],
-      ['ruin crawler', 'mountain troll', 'ash knight'],
-    ],
+    foes: GOBLIN_FOES,
   },
   beastDen: {
     hp: [8, 12, 16],
     damage: [2, 3, 4],
     tags: ['beast'],
     factors: HERD_FACTORS,
-    names: [
-      ['giant rat', 'cellar spider', 'rat swarm'],
-      ['wolf pup', 'grey wolf', 'dire wolf'],
-      ['ghost bat', 'spark moth', 'ember hound'],
-      ['rock lizard', 'storm ram', 'thunderbird'],
-      ['frost wolf', 'storm eel', 'wyvern'],
-    ],
+    foes: HERD_FOES,
   },
   hauntedCrypt: {
     hp: [8, 12, 16],
     damage: [2, 3, 4],
     tags: ['undead'],
     factors: HERD_FACTORS,
-    names: [
-      ['restless bones', 'grave robber', 'ghoul'],
-      ['barrow wight', 'drowned soldier', 'mould knight'],
-      ['skeleton miner', 'drowned dead', 'bone knight'],
-      ['bone crawler', 'fallen legionary', 'death captain'],
-      ['crypt guard', 'bone lord', 'death knight'],
+    foes: [
+      [foe('restless bones'), foe('grave robber', 'humanoid'), foe('ghoul')],
+      [foe('barrow wight', 'spirit'), foe('drowned soldier'), foe('mould knight')],
+      [foe('skeleton miner'), foe('drowned dead'), foe('bone knight')],
+      [foe('bone crawler', 'undead', 'carapace'), foe('fallen legionary'), foe('death captain')],
+      [foe('crypt guard'), foe('bone lord'), foe('death knight')],
     ],
   },
   elementalRift: {
@@ -457,12 +454,12 @@ const placeTemplates: Record<FightPlaceKind, PlaceTemplate> = {
     tags: [],
     factors: HERD_FACTORS,
     elemental: true,
-    names: [
-      ['ember whelp', 'ember sprite', 'rift spawn'],
-      ['mud mephit', 'mud brute', 'rift horror'],
-      ['spark imp', 'spark elemental', 'rift caller'],
-      ['gale wisp', 'gale elemental', 'rift warden'],
-      ['void whelp', 'void elemental', 'rift tyrant'],
+    foes: [
+      [foe('ember whelp', 'dragon'), foe('ember sprite', 'elemental'), foe('rift spawn', 'elemental')],
+      [foe('mud mephit', 'elemental'), foe('mud brute', 'brute'), foe('rift horror', 'elemental')],
+      [foe('spark imp', 'elemental'), foe('spark elemental', 'elemental'), foe('rift caller', 'caster')],
+      [foe('gale wisp', 'elemental'), foe('gale elemental', 'elemental'), foe('rift warden', 'construct')],
+      [foe('void whelp', 'dragon'), foe('void elemental', 'elemental'), foe('rift tyrant', 'brute')],
     ],
   },
   abandonedCaravan: {
@@ -470,38 +467,26 @@ const placeTemplates: Record<FightPlaceKind, PlaceTemplate> = {
     damage: [3, 4, 6],
     tags: ['locals'],
     factors: BANDIT_FACTORS,
-    names: [
-      ['cutpurse', 'bandit', 'bandit archer'],
-      ['deserter', 'bandit', 'tower sergeant'],
-      ['bogling', 'hexed hunter', 'bone knight'],
-      ['fallen legionary', 'orc raider', 'death captain'],
-      ['flame cultist', 'abyssal priest', 'death knight'],
-    ],
+    foes: BANDIT_FOES,
   },
   wantedOutlaw: {
     hp: [10, 14, 22],
     damage: [3, 4, 6],
     tags: ['locals'],
     factors: BANDIT_FACTORS,
-    names: [
-      ['cutpurse', 'bandit', 'bandit archer'],
-      ['deserter', 'bandit', 'tower sergeant'],
-      ['bogling', 'hexed hunter', 'bone knight'],
-      ['fallen legionary', 'orc raider', 'death captain'],
-      ['flame cultist', 'abyssal priest', 'death knight'],
-    ],
+    foes: BANDIT_FOES,
   },
   monsterLair: {
     hp: [10, 14, 22],
     damage: [3, 4, 6],
     tags: ['beast'],
     factors: BANDIT_FACTORS,
-    names: [
-      ['giant rat', 'ghoul', 'rat king'],
-      ['bog hound', 'river troll', 'barrow king'],
-      ['ember hound', 'mycel troll', 'ash wyrm'],
-      ['giant hound', 'hill giant', 'harpy matriarch'],
-      ['frost wolf', 'mountain troll', 'wyvern queen'],
+    foes: [
+      [foe('giant rat'), foe('ghoul'), foe('rat king', 'vermin')],
+      [foe('bog hound'), foe('river troll', 'brute'), foe('barrow king', 'spirit')],
+      [foe('ember hound'), foe('mycel troll', 'brute'), foe('ash wyrm', 'dragon')],
+      [foe('giant hound'), foe('hill giant', 'brute'), foe('harpy matriarch', 'bird')],
+      [foe('frost wolf'), foe('mountain troll', 'brute'), foe('wyvern queen', 'dragon')],
     ],
   },
 };
@@ -511,30 +496,30 @@ export const placeMobId = (kind: FightPlaceKind, tier: number, role: 'weak' | 'n
   `place:${kind}:${tier}:${role}${elite ? ':elite' : ''}${element ? `:${element}` : ''}`;
 
 const placeMobs: MobDef[] = (Object.keys(placeTemplates) as FightPlaceKind[]).flatMap((kind) => {
-  const { hp, damage, tags, factors, names, elemental } = placeTemplates[kind];
+  const { hp, damage, tags, factors, foes, elemental } = placeTemplates[kind];
   // Beasts charge; everyone else keeps pace with heroes.
   const speedClass: SpeedClass = tags.includes('beast') ? 'fast' : 'normal';
   const elements = elemental ? [...ELEMENTS] : [undefined];
-  return names.flatMap((tierNames, i) =>
-    tierNames.flatMap((name, role) =>
+  return foes.flatMap((tierFoes, i) =>
+    tierFoes.flatMap((f, role) =>
       elements.flatMap((element) => [
         mob(
           placeMobId(kind, i + 1, PATROL_ROLES[role], false, element),
-          name,
+          f.name,
           strength(i + 1, factors[i]),
           hp[role],
           damage[role],
-          tags,
+          foeTags(f, tags),
           element,
           speedClass,
         ),
         mob(
           placeMobId(kind, i + 1, PATROL_ROLES[role], true, element),
-          name,
+          f.name,
           strength(i + 1, factors[i]),
           hp[role] * PATROL_ELITE.hp,
           damage[role] * PATROL_ELITE.damage,
-          tags,
+          foeTags(f, tags),
           element,
           speedClass,
         ),
@@ -553,7 +538,7 @@ const sanctumMinions: MobDef[] = sanctums.flatMap((sanctum) =>
   sanctumRules.tierStrength.flatMap((_, i) =>
     (['weak', 'strong'] as const).map((which, j) => {
       const { hp, damage } = sanctumRules.minionBase[which];
-      return mob(sanctumMinionId(sanctum.id, which, i + 1), sanctum.minions[j], sanctumScale(i + 1), hp, damage, [], sanctum.element);
+      return mob(sanctumMinionId(sanctum.id, which, i + 1), sanctum.minions[j].name, sanctumScale(i + 1), hp, damage, sanctum.minions[j].tags, sanctum.element);
     }),
   ),
 );
@@ -561,7 +546,7 @@ const sanctumMinions: MobDef[] = sanctums.flatMap((sanctum) =>
 /** A Sanctum's guardian at a Sigil tier. */
 export function sanctumGuardian(sanctum: SanctumDef, tier: number): BossDef {
   const { hp, damage } = sanctumRules.guardianBase;
-  return boss(`${sanctum.id}:guardian:${tier}`, sanctum.guardian.name, sanctumScale(tier), hp, damage, [], sanctum.guardian.effect, sanctum.element);
+  return boss(`${sanctum.id}:guardian:${tier}`, sanctum.guardian.name, sanctumScale(tier), hp, damage, sanctum.guardian.tags, sanctum.guardian.effect, sanctum.element);
 }
 
 export const mobById = Object.fromEntries([...mobs, ...npcMobs, ...sanctumMinions, ...patrolMobs, ...placeMobs].map((m) => [m.id, m]));

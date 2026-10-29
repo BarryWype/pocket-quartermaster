@@ -32,7 +32,7 @@ export function contentTexts(): string[] {
     ...bosses.map((b) => b.name),
     ...events.map((e) => e.name),
     ...npcs.flatMap((n) => [n.name, n.description, n.hostile.name]),
-    ...sanctums.flatMap((s) => [s.name, s.description, s.guardian.name, s.guardian.description, ...s.minions]),
+    ...sanctums.flatMap((s) => [s.name, s.description, s.guardian.name, s.guardian.description, ...s.minions.map((m) => m.name)]),
     ...Object.values(heroClasses).map((c) => c.name),
     ...traits.flatMap((t) => [t.name, t.description]),
     ...threatDefs.flatMap((t) => [t.name, t.description]),

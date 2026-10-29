@@ -709,7 +709,7 @@ export type NpcDef = {
   description: string;
   help: NpcHelp;
   /** What they turn into when provoked or caught: scaled to the dungeon's tier in `enemies.ts`. */
-  hostile: { name: string; count: number; hp: number; damage: number };
+  hostile: { name: string; count: number; hp: number; damage: number; tags: Tag[] };
 };
 
 export type EventDef = { id: string; name: string } & (
@@ -789,10 +789,13 @@ export type SanctumDef = {
   element: Element;
   emoji: string;
   description: string;
-  guardian: { name: string; description: string; effect?: BossDef['effect'] };
-  /** Names of the guardian's minions, weakest first. */
-  minions: [string, string];
+  guardian: { name: string; description: string; effect?: BossDef['effect']; tags: Tag[] };
+  /** The guardian's minions, weakest first. */
+  minions: [SanctumFoe, SanctumFoe];
 };
+
+/** A Sanctum fighter with its family tags. */
+export type SanctumFoe = { name: string; tags: Tag[] };
 
 export type ExpeditionReport = {
   id: string;

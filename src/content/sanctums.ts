@@ -11,8 +11,12 @@ export const sanctums: SanctumDef[] = [
       name: 'Thornmother',
       description: 'An ancient tangle of briars that grows a new thorn for every intruder.',
       effect: 'sweep',
+      tags: ['elemental'],
     },
-    minions: ['briar hound', 'vine lasher'],
+    minions: [
+      { name: 'briar hound', tags: ['beast'] },
+      { name: 'vine lasher', tags: ['elemental'] },
+    ],
   },
   {
     id: 'sunkenGrotto',
@@ -24,8 +28,12 @@ export const sanctums: SanctumDef[] = [
       name: 'Tidewarden',
       description: 'A coral-armoured sentinel that drags anyone who disturbs the grotto beneath the waves.',
       effect: 'enrage',
+      tags: ['construct'],
     },
-    minions: ['cave crab', 'drowned eel'],
+    minions: [
+      { name: 'cave crab', tags: ['carapace'] },
+      { name: 'drowned eel', tags: ['beast'] },
+    ],
   },
   {
     id: 'stormSpire',
@@ -37,8 +45,12 @@ export const sanctums: SanctumDef[] = [
       name: 'Voltwing',
       description: 'A great hawk whose feathers crackle with every storm it has ever swallowed.',
       effect: 'sweep',
+      tags: ['bird'],
     },
-    minions: ['spark sprite', 'storm hound'],
+    minions: [
+      { name: 'spark sprite', tags: ['elemental'] },
+      { name: 'storm hound', tags: ['beast'] },
+    ],
   },
   {
     id: 'deepQuarry',
@@ -50,8 +62,12 @@ export const sanctums: SanctumDef[] = [
       name: 'Granite Colossus',
       description: 'A walking cliff face: slow to anger, and nearly impossible to crack.',
       effect: 'enrage',
+      tags: ['construct'],
     },
-    minions: ['pebble golem', 'quarry mole'],
+    minions: [
+      { name: 'pebble golem', tags: ['construct'] },
+      { name: 'quarry mole', tags: ['vermin'] },
+    ],
   },
   {
     id: 'emberForge',
@@ -63,8 +79,12 @@ export const sanctums: SanctumDef[] = [
       name: 'Cinder Smith',
       description: "The forge's last master, now more flame than man, still hammering at something nobody can see.",
       effect: 'enrage',
+      tags: ['elemental'],
     },
-    minions: ['ember imp', 'slag hound'],
+    minions: [
+      { name: 'ember imp', tags: ['elemental'] },
+      { name: 'slag hound', tags: ['beast'] },
+    ],
   },
 ];
 
