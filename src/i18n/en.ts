@@ -285,7 +285,7 @@ export const en = {
     unknown: 'Unknown',
   },
   equip: {
-    choose: { weapon: 'Choose weapon', armor: 'Choose armor', offhand: 'Choose off-hand', trinket: 'Choose trinket', consumable: 'Choose consumable' },
+    choose: { weapon: 'Choose weapon', armor: 'Choose armor', offhand: 'Choose off-hand', trinket: 'Choose trinket', consumable: 'Choose consumable', potion: 'Choose potion' },
     nothing: 'Nothing',
     inStock: '{count} in stock',
     usedBy: ' · used by {name}',
@@ -310,7 +310,7 @@ export const en = {
   hero: {
     unknown: 'Unknown hero',
     unknownHint: 'This hero is not in your team.',
-    slots: { weapon: 'Weapon', armor: 'Armor', offhand: 'Off-hand', trinket: 'Trinket', consumable: 'Consumable' },
+    slots: { weapon: 'Weapon', armor: 'Armor', offhand: 'Off-hand', trinket: 'Trinket', consumable: 'Consumable', potion: 'Potion' },
     empty: 'Empty',
     twoHanded: 'Two-handed weapon',
     dismissTitle: 'Dismiss {name}?',

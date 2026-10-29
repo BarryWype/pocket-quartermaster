@@ -15,6 +15,7 @@ import type {
   DugRuin,
   ExpeditionReport,
   GearInstance,
+  HeroClassId,
   HeroState,
   Heist,
   MasteryState,
@@ -123,6 +124,8 @@ export type SaveData = {
   placeFights: PlaceFight[];
   /** Thieves' guild heists under way. */
   heists: Heist[];
+  /** Classes the player has met (offered or recruited); the class list shows the others as not met yet. */
+  seenClasses: HeroClassId[];
   /** Ruins dug towards the relic, 0–4; the 5th dig pays it and starts again. */
   ruinsProgress: number;
   /** Ruin id → when and where it was dug; a replacement ruin shows elsewhere 24 h later. */
@@ -181,6 +184,7 @@ export function createInitialSave(): SaveData {
     expeditionBlessing: false,
     placeFights: [],
     heists: [],
+    seenClasses: [...new Set(startingHeroes.map((h) => h.classId))],
     ruinsProgress: 0,
     dugRuins: {},
     // Mastery starts with the starting recipes' types (their ids are `<type><tier>`), level 1.

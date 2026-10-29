@@ -65,7 +65,8 @@ export type MasteryType = GearType;
 
 export type MasteryState = { level: number; progress: number };
 
-export type EquipmentSlot = 'weapon' | 'armor' | 'offhand' | 'trinket' | 'consumable';
+/** `potion` is the Alchemist's second slot, for healing consumables only. */
+export type EquipmentSlot = 'weapon' | 'armor' | 'offhand' | 'trinket' | 'consumable' | 'potion';
 
 type ItemBase = {
   id: string;

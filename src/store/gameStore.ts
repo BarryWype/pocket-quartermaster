@@ -10,7 +10,7 @@ import { materials } from '@/content/materials';
 import { craft, craftMany, forgetRecipe, forgeResult, learnAllRecipes, unlockRecipe, type ForgeResult } from '@/game/crafting/crafting';
 import { infuse } from '@/game/crafting/infusion';
 import { salvage } from '@/game/forging/salvage';
-import { migrateV10Save, migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV15Save, migrateV16Save, migrateV17Save, migrateV18Save, migrateV19Save, migrateV20Save, migrateV5Save, migrateV6Save, migrateV7Save, migrateV8Save, migrateV9Save } from '@/game/migrations';
+import { migrateV10Save, migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV15Save, migrateV16Save, migrateV17Save, migrateV18Save, migrateV19Save, migrateV20Save, migrateV21Save, migrateV5Save, migrateV6Save, migrateV7Save, migrateV8Save, migrateV9Save } from '@/game/migrations';
 import { convertShards, shardId, stoneId, type Element } from '@/game/elements';
 import { fastForward, resolveExpedition, startExpedition, type Loadout } from '@/game/expeditions/expeditions';
 import { markWalksSeen, processWalkPath, recordWalk, type WalkFix, type WalkOptions, type WalkPatrols, type WalkSummary } from '@/game/gathering/autoGather';
@@ -37,7 +37,7 @@ import { resolvePlaceFights, startPlaceFight } from '@/game/places/fights';
 import { resolveHeists, startHeist } from '@/game/places/heists';
 import { digRuin } from '@/game/places/ruins';
 import { pickApproach } from '@/game/team/stats';
-import { dismissHero, equip, heroStats, isAway, keepHpShare, unequip } from '@/game/team/team';
+import { dismissHero, equip, heroStats, isAway, keepHpShare, markClassesSeen, setKitFor, unequip } from '@/game/team/team';
 import { buySupply, recruit, type RecruitOffer } from '@/game/taverns/taverns';
 import { buyRank } from '@/game/guild/guild';
 import { applyTraining } from '@/game/guild/training';
@@ -79,6 +79,10 @@ type GameState = {
   /** Pass null to empty the slot. */
   equip: (heroId: string, slot: EquipmentSlot, id: string | null) => void;
   dismissHero: (heroId: string) => void;
+  /** A Porter's pick of the hero their kit is carried for. */
+  setKitFor: (porterId: string, heroId: string | null) => void;
+  /** Classes shown to the player (tavern or traveller offers) count as met. */
+  seeClasses: (classIds: HeroClassId[]) => void;
   recruit: (offer: RecruitOffer, tavern: LatLng, player: LatLng) => void;
   closeTavernHint: () => void;
   closeCookingHint: () => void;
@@ -258,6 +262,11 @@ export const useGameStore = create<GameState>()(
         })),
       // Notifications follow the save: see `useNotifications`.
       dismissHero: (heroId) => set(({ save }) => ({ save: dismissHero(save, heroId) })),
+      setKitFor: (porterId, heroId) => set(({ save }) => ({ save: setKitFor(save, porterId, heroId) })),
+      seeClasses: (classIds) => {
+        const next = markClassesSeen(get().save, classIds);
+        if (next !== get().save) set({ save: next });
+      },
       recruit: (offer, tavern, player) => set(({ save }) => ({ save: rollDailyApproaches(recruit(save, offer, tavern, player), Date.now()) })),
       closeTavernHint: () => set(({ save }) => ({ save: { ...save, tavernHintSeen: true } })),
       closeCookingHint: () => set(({ save }) => ({ save: { ...save, cookingHintSeen: true } })),
@@ -475,7 +484,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 21,
+      version: 22,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
       // Saves from version 5 on are converted step by step; older ones start fresh. New fields get their defaults.
@@ -498,6 +507,7 @@ export const useGameStore = create<GameState>()(
         if (version <= 18) save = migrateV18Save(save);
         if (version <= 19) save = migrateV19Save(save);
         if (version <= 20) save = migrateV20Save(save);
+        if (version <= 21) save = migrateV21Save(save);
         return { save };
       },
       merge: (persisted, current) => ({

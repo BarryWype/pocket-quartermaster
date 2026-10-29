@@ -4,7 +4,7 @@ import { itemById } from '@/content/lookup';
 
 import { createInitialSave, type SaveData } from '../save';
 import type { GearDef } from '../types';
-import { addXp, canDismiss, dismissHero, equip, equipPreview, heroStats, rosterFull, unequip } from './team';
+import { addXp, canDismiss, dismissHero, equip, equipPreview, heroStats, markClassesSeen, rosterFull, setKitFor, unequip } from './team';
 
 function saveWithGear(): SaveData {
   return {
@@ -188,5 +188,37 @@ describe('addXp', () => {
     expect(addXp(hero(save, 'bram'), 102).level).toBe(2);
     expect(addXp(hero(save, 'bram'), 103).level).toBe(3);
     expect([1, 2, 3, 4].map((level) => xpToNextLevel(level))).toEqual([25, 78, 153, 246]);
+  });
+});
+
+describe('class slots and picks', () => {
+  const save = (): SaveData => ({
+    ...createInitialSave(),
+    heroes: [newHero('a', 'A', 'alchemist', 'none'), newHero('p', 'P', 'porter', 'none'), newHero('w', 'W', 'warrior', 'none')],
+    consumables: { healingPotion: 2, roguesRoll: 1 },
+  });
+
+  it('gives the Alchemist a second slot for healing consumables only, back to the stock on dismissal', () => {
+    let next = equip(save(), 'a', 'potion', 'healingPotion');
+    expect(next.heroes[0].equipment.potion).toBe('healingPotion');
+    expect(next.consumables.healingPotion).toBe(1);
+    expect(() => equip(save(), 'a', 'potion', 'roguesRoll')).toThrow();
+    expect(() => equip(save(), 'w', 'potion', 'healingPotion')).toThrow();
+    next = dismissHero(next, 'a');
+    expect(next.consumables.healingPotion).toBe(2);
+  });
+
+  it('lets a Porter pick the hero their kit is carried for', () => {
+    const next = setKitFor(save(), 'p', 'w');
+    expect(next.heroes[1].kitFor).toBe('w');
+    expect(setKitFor(next, 'p', null).heroes[1].kitFor).toBeUndefined();
+    expect(() => setKitFor(save(), 'w', 'a')).toThrow();
+    expect(() => setKitFor(save(), 'p', 'p')).toThrow();
+  });
+
+  it('marks classes as met once', () => {
+    const next = markClassesSeen(save(), ['scholar', 'scholar', 'warrior']);
+    expect(next.seenClasses).toEqual([...createInitialSave().seenClasses, 'scholar']);
+    expect(markClassesSeen(next, ['scholar'])).toBe(next);
   });
 });

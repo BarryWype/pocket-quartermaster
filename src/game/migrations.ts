@@ -279,3 +279,13 @@ export function migrateV19Save(old: Partial<SaveData>): SaveData {
 export function migrateV20Save(old: Partial<SaveData>): SaveData {
   return { ...createInitialSave(), ...old };
 }
+
+/**
+ * Version 21 → 22: 26 classes. Heroes keep their class, level, picks and
+ * roll; approach scores come from the class data. The roster's classes count
+ * as met.
+ */
+export function migrateV21Save(old: Partial<SaveData>): SaveData {
+  const heroes = old.heroes ?? createInitialSave().heroes;
+  return { ...createInitialSave(), ...old, seenClasses: [...new Set(heroes.map((h) => h.classId))] };
+}

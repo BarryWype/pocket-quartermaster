@@ -1,6 +1,6 @@
 import { createInitialSave, type SaveData } from './save';
 import { resolveExpedition } from './expeditions/expeditions';
-import { migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV15Save, migrateV16Save, migrateV17Save, migrateV18Save, migrateV19Save, migrateV20Save } from './migrations';
+import { migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV15Save, migrateV16Save, migrateV17Save, migrateV18Save, migrateV19Save, migrateV20Save, migrateV21Save } from './migrations';
 import { startingMastery } from './forging/mastery';
 import { xpToNextLevel } from '@/content/heroes';
 import type { ActiveExpedition, ExpeditionReport } from './types';
@@ -244,5 +244,15 @@ describe('migrateV20Save', () => {
   it('starts with no fight, heist or dig', () => {
     const { placeFights: _f, heists: _h, ruinsProgress: _r, dugRuins: _d, ...old } = createInitialSave();
     expect(migrateV20Save(old)).toMatchObject({ placeFights: [], heists: [], ruinsProgress: 0, dugRuins: {} });
+  });
+});
+
+describe('migrateV21Save', () => {
+  it('keeps heroes as they are and counts their classes as met', () => {
+    const { seenClasses: _s, ...old } = createInitialSave();
+    const heroes = [{ ...old.heroes[0], classId: 'paladin' as const, level: 7, approachPicks: ['faith' as const] }, old.heroes[1], old.heroes[1]];
+    const migrated = migrateV21Save({ ...old, heroes });
+    expect(migrated.heroes).toEqual(heroes);
+    expect(migrated.seenClasses).toEqual(['paladin', 'ranger']);
   });
 });

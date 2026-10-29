@@ -7,7 +7,7 @@ import { traitById } from '@/content/traits';
 import { slotProblem } from '../equipment/slots';
 import { rosterCap } from '../guild/guild';
 import type { SaveData } from '../save';
-import type { Ability, ArmourType, DamageStat, EquipmentSlot, GearDef, GearType, HeroState, Keyword, StatKey, Stats, WeaponType } from '../types';
+import type { Ability, ArmourType, ConsumableDef, DamageStat, EquipmentSlot, GearDef, GearType, HeroClassId, HeroState, Keyword, StatKey, Stats, WeaponType } from '../types';
 import { baseHeroStats } from './stats';
 
 const STAT_KEYS: StatKey[] = ['hp', 'power', 'magic', 'armour', 'resistance', 'evasion', 'speed', 'crit'];
@@ -50,6 +50,18 @@ export const heroAbilities = (hero: HeroState): Ability[] => [
   ...heroClasses[hero.classId].abilities,
   ...(traitById[hero.trait]?.effects ?? []),
 ];
+
+/** A healing consumable by id, or null: only these go in the Alchemist's second slot. */
+export function healingPotion(itemId: string): ConsumableDef | null {
+  const item = itemById[itemId];
+  return item?.slot === 'consumable' && item.when === 'lowHp' && item.heal !== undefined ? item : null;
+}
+
+/** Whether the hero's class has the second, potion-only slot (the Alchemist). */
+export const hasPotionSlot = (hero: HeroState) => heroClasses[hero.classId].abilities.some((a) => a.kind === 'potionSlot');
+
+/** Whether the hero's class carries its kit for another hero (the Porter). */
+export const carriesKit = (hero: HeroState) => heroClasses[hero.classId].abilities.some((a) => a.kind === 'carryKit');
 
 /** Favoured, usable or unfit: weapons and armour by class, off-hands and trinkets always usable. */
 export function affinityOf(classId: HeroState['classId'], gearType: GearType | undefined): Affinity {
@@ -133,7 +145,7 @@ export function unequip(save: SaveData, heroId: string, slot: EquipmentSlot): Sa
   if (!hero || !current) return save;
 
   const next = updateHero(save, heroId, (h) => ({ ...h, equipment: { ...h.equipment, [slot]: null } }));
-  if (slot !== 'consumable') return keepingHp(save, next, heroId);
+  if (slot !== 'consumable' && slot !== 'potion') return keepingHp(save, next, heroId);
   return { ...next, consumables: { ...next.consumables, [current]: (next.consumables[current] ?? 0) + 1 } };
 }
 
@@ -145,8 +157,12 @@ export function equip(save: SaveData, heroId: string, slot: EquipmentSlot, id: s
   if (isAway(save, heroId)) throw new Error('Hero is away');
   let next = unequip(save, heroId, slot);
 
-  if (slot === 'consumable') {
+  if (slot === 'consumable' || slot === 'potion') {
     if (itemById[id]?.slot !== 'consumable') throw new Error(`${id} is not a consumable`);
+    if (slot === 'potion') {
+      const hero = next.heroes.find((h) => h.id === heroId);
+      if (!hero || !hasPotionSlot(hero) || !healingPotion(id)) throw new Error(`${id} cannot go in a potion slot`);
+    }
     if ((next.consumables[id] ?? 0) < 1) throw new Error(`No ${id} left`);
     next = { ...next, consumables: { ...next.consumables, [id]: next.consumables[id] - 1 } };
   } else {
@@ -197,13 +213,30 @@ export function canDismiss(save: SaveData, heroId: string) {
 export function dismissHero(save: SaveData, heroId: string): SaveData {
   if (!canDismiss(save, heroId)) throw new Error(`Cannot dismiss ${heroId}`);
   let next = save;
-  for (const slot of ['weapon', 'armor', 'offhand', 'trinket', 'consumable'] as const) next = unequip(next, heroId, slot);
+  for (const slot of ['weapon', 'armor', 'offhand', 'trinket', 'consumable', 'potion'] as const) next = unequip(next, heroId, slot);
   return {
     ...next,
     heroes: next.heroes.filter((h) => h.id !== heroId),
     // The escort hero is gone: the background task stands down.
     escort: next.escort && next.escort.heroId === heroId ? null : next.escort,
   };
+}
+
+/** A Porter's pick of the hero their kit is carried for (null: carried for themselves). */
+export function setKitFor(save: SaveData, porterId: string, heroId: string | null): SaveData {
+  const porter = save.heroes.find((h) => h.id === porterId);
+  if (!porter || !carriesKit(porter)) throw new Error(`${porterId} is not a Porter`);
+  if (heroId === porterId || (heroId && !save.heroes.some((h) => h.id === heroId))) throw new Error(`Cannot carry for ${heroId}`);
+  return updateHero(save, porterId, (h) => {
+    const { kitFor: _kitFor, ...rest } = h;
+    return heroId ? { ...rest, kitFor: heroId } : rest;
+  });
+}
+
+/** Adds classes to the ones the player has met. */
+export function markClassesSeen(save: SaveData, classIds: HeroClassId[]): SaveData {
+  const fresh = classIds.filter((id) => !save.seenClasses.includes(id));
+  return fresh.length === 0 ? save : { ...save, seenClasses: [...save.seenClasses, ...new Set(fresh)] };
 }
 
 export const rosterFull = (save: SaveData) => save.heroes.length >= rosterCap(save);

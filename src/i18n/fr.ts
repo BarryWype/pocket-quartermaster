@@ -291,7 +291,7 @@ export const fr: Dictionary = {
     unknown: 'Inconnue',
   },
   equip: {
-    choose: { weapon: 'Choisir une arme', armor: 'Choisir une armure', offhand: 'Choisir une main secondaire', trinket: 'Choisir un bibelot', consumable: 'Choisir un consommable' },
+    choose: { weapon: 'Choisir une arme', armor: 'Choisir une armure', offhand: 'Choisir une main secondaire', trinket: 'Choisir un bibelot', consumable: 'Choisir un consommable', potion: 'Choisir une potion' },
     nothing: 'Rien',
     inStock: '{count} en stock',
     usedBy: ' · utilisé par {name}',
@@ -316,7 +316,7 @@ export const fr: Dictionary = {
   hero: {
     unknown: 'Héros inconnu',
     unknownHint: 'Ce héros ne fait pas partie de votre équipe.',
-    slots: { weapon: 'Arme', armor: 'Armure', offhand: 'Main secondaire', trinket: 'Bibelot', consumable: 'Consommable' },
+    slots: { weapon: 'Arme', armor: 'Armure', offhand: 'Main secondaire', trinket: 'Bibelot', consumable: 'Consommable', potion: 'Potion' },
     empty: 'Vide',
     twoHanded: 'Arme à deux mains',
     dismissTitle: 'Renvoyer {name} ?',

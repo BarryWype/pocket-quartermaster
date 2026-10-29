@@ -5,7 +5,8 @@ import { dungeonById, itemById } from '@/content/lookup';
 import { createInitialSave } from '../save';
 import type { Briefing, ConsumableDef, DungeonDef, EncounterDef, HeroClassId, MobGroup, ThreatId } from '../types';
 import { untriggeredSalvage } from './expeditions';
-import { healingPotion, prepareParty, simulateRun, type PartyMember } from './simulate';
+import { healingPotion } from '../team/team';
+import { prepareParty, simulateRun, type PartyMember } from './simulate';
 
 // Class signatures inside the run: what simulateRun does with them.
 

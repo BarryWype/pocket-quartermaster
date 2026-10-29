@@ -15,7 +15,7 @@ import { ELEMENTS, beats, incomingMultiplier, shardId, weaponMultiplier, type El
 import { createRng } from '../generation/rng';
 import type { SaveData } from '../save';
 import { currentHp } from '../team/health';
-import { heroAbilities, heroDamageStat, heroStats, gearKeywordsOf } from '../team/team';
+import { heroAbilities, heroDamageStat, heroStats, gearKeywordsOf, healingPotion } from '../team/team';
 import { classApproaches, gearApproachBonus, heroApproachBonus } from '../team/stats';
 import { heroAnswers, type AnswersMember, type HeroAnswers } from '../threats/answers';
 import { threatPenalties, type AppliedPenalty } from '../threats/penalties';
@@ -383,12 +383,6 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs
         potion: heroClass.abilities.some((a) => a.kind === 'potionSlot') && hero.equipment.potion ? healingPotion(hero.equipment.potion) : null,
       };
     });
-}
-
-/** A healing consumable by id, or null: only these go in the Alchemist's second slot. */
-export function healingPotion(itemId: string): ConsumableDef | null {
-  const item = itemById[itemId];
-  return item?.slot === 'consumable' && item.when === 'lowHp' && item.heal !== undefined ? item : null;
 }
 
 /** The party after the meal they ate: max HP, speed and resistance last the run. */
