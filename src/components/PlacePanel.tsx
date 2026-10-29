@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Modal, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { heroClasses } from '@/content/heroes';
 import { gearName, itemById, materialById, recipeById, recipeOutput, threatById } from '@/content/lookup';
 import { heistRules } from '@/content/placeActivities';
 import { placeInfo, placeRules, type PlaceKind } from '@/content/places';
@@ -82,6 +83,9 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
   const stock = placeStock(save, place);
   const sells = place.kind === 'smithy' || place.kind === 'market';
   const homeHeroes = save.heroes.filter((hero) => !isAway(save, hero.id));
+  // A heist takes one hero who can go now, picked from chips like a patrol party.
+  const heistCandidates = homeHeroes.filter((hero) => !isExhausted(hero, now));
+  const [heistHeroId, setHeistHeroId] = useState<string | null>(() => heistCandidates[0]?.id ?? null);
 
   const heroLine = (heroId: string) => {
     const hero = save.heroes.find((h) => h.id === heroId)!;
@@ -273,22 +277,32 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
                   })}
                 </Text>
                 {save.heists.some((h) => h.placeId === place.id) && <Text style={styles.problem}>{t('places.heistAway')}</Text>}
-                {homeHeroes.length === 0 && <Text style={styles.muted}>{t('places.noHeroes')}</Text>}
-                {homeHeroes.map((hero) => (
-                  <View key={hero.id} style={[styles.row, styles.actions]}>
-                    <Text style={styles.name}>
-                      {hero.name} · {t('places.heistOdds', { percent: formatPercent(heistOdds(save, hero.id)) })}
-                    </Text>
-                    <Button
-                      title={t('places.heist')}
-                      disabled={heistProblem(save, place, hero.id, player, now) !== null}
-                      onPress={() => {
-                        actions.startHeist(place, hero.id, player);
-                        onClose();
-                      }}
-                    />
-                  </View>
-                ))}
+                {heistCandidates.length === 0 && <Text style={styles.muted}>{t('places.noHeroes')}</Text>}
+                <View style={styles.chips}>
+                  {heistCandidates.map((hero) => (
+                    <Pressable
+                      key={hero.id}
+                      onPress={() => setHeistHeroId(hero.id)}
+                      style={[styles.chip, heistHeroId === hero.id && styles.chipActive]}
+                    >
+                      <Text>
+                        {heroClasses[hero.classId].emoji} {hero.name} · {formatPercent(currentHp(save, hero, now) / maxHp(save, hero))}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+                {heistHeroId && (
+                  <Text style={styles.odds}>{t('places.heistOdds', { percent: formatPercent(heistOdds(save, heistHeroId)) })}</Text>
+                )}
+                <Button
+                  title={t('places.heist')}
+                  disabled={!heistHeroId || heistProblem(save, place, heistHeroId, player, now) !== null}
+                  onPress={() => {
+                    if (!heistHeroId) return;
+                    actions.startHeist(place, heistHeroId, player);
+                    onClose();
+                  }}
+                />
               </View>
             )}
 
@@ -347,4 +361,8 @@ const styles = StyleSheet.create({
   tabs: { flexDirection: 'row', gap: 8 },
   problem: { color: colors.muted, fontStyle: 'italic' },
   result: { fontSize: 21 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { borderWidth: pixel.outline, borderColor: colors.woodDark, paddingHorizontal: 10, paddingVertical: 6 },
+  chipActive: { borderColor: colors.ink, backgroundColor: colors.highlight },
+  odds: { fontSize: 21 },
 });
