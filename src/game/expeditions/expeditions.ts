@@ -1,5 +1,5 @@
 import { expeditionRules, overnightQuestRules, dungeons } from '@/content/dungeons';
-import { heroClasses, newHero, xpRules } from '@/content/heroes';
+import { newHero, xpRules } from '@/content/heroes';
 import { dungeonById, itemById, opportunityById, recipeById, recipeOutput } from '@/content/lookup';
 import { mainRewardRules } from '@/content/mainRewards';
 import { heroNames } from '@/content/roster';
@@ -26,8 +26,9 @@ import { heroAnswers } from '../threats/answers';
 import { launchEffects } from '../threats/penalties';
 import { salvage } from '../threats/salvage';
 import { scoreBriefing } from '../threats/score';
+import { pickRecruitClass } from '../taverns/taverns';
 import { isTutorialExpedition } from '../tutorial/tutorial';
-import type { ActiveExpedition, Briefing, DungeonDef, ExpeditionReport, HeroClassId, HeroState, Hunger, OpportunityOutcome, ProvisionDef } from '../types';
+import type { ActiveExpedition, Briefing, DungeonDef, ExpeditionReport, HeroState, Hunger, OpportunityOutcome, ProvisionDef } from '../types';
 import { buildLog } from './log';
 import { heroSupplyNeed, hungerFor, pickSupply, supplyHeld, type SupplyPick } from './provisions';
 import {
@@ -260,10 +261,9 @@ function unknownProvisionRecipe(save: SaveData, rng: Rng): string | null {
   return unknown.length > 0 ? unknown[rng.int(0, unknown.length - 1)].id : null;
 }
 
-/** A prisoner freed by the party joins the roster: any class, a positive trait, near the roster's middle level. */
+/** A prisoner freed by the party joins the roster: a pool class for the tier, a positive trait, near the roster's middle level. */
 function prisonerRecruit(save: SaveData, rng: Rng): HeroState {
-  const classIds = Object.keys(heroClasses) as HeroClassId[];
-  const classId = classIds[rng.int(0, classIds.length - 1)];
+  const classId = pickRecruitClass(rng, highestUnlockedTier(save));
   const positive = traits.filter((t) => t.positive);
   const levels = [...save.heroes.map((h) => h.level)].sort((a, b) => a - b);
   const median = levels.length % 2 ? levels[(levels.length - 1) / 2] : (levels[levels.length / 2 - 1] + levels[levels.length / 2]) / 2;

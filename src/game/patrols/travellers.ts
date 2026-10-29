@@ -2,7 +2,7 @@ import { heroClasses, newHero } from '@/content/heroes';
 import { dungeons } from '@/content/dungeons';
 import { mainRewardRules } from '@/content/mainRewards';
 import { patrolRules, travellerRules, type PatrolRules } from '@/content/patrols';
-import { heroNames, recruitRules } from '@/content/roster';
+import { heroNames } from '@/content/roster';
 import { traits } from '@/content/traits';
 import { ELEMENTS, shardId, type Element } from '../elements';
 import { mealItems, pickSupply, supplyHeld } from '../expeditions/provisions';
@@ -14,6 +14,7 @@ import { hasMaterials, removeMaterials, addMaterials } from '../inventory';
 import { pickaxeTier } from '../gathering/gathering';
 import { treasureLocation } from '../rewards/treasure';
 import { recruitGrade, rollRecruit, type Grade } from '../taverns/roll';
+import { pickRecruitClass } from '../taverns/taverns';
 import type { SaveData } from '../save';
 import { isAway } from '../team/team';
 import type { HeroClassId, HeroRoll, MaterialStack, TreasureMap } from '../types';
@@ -52,6 +53,8 @@ export type TravellerRecruit = {
   level: number;
   roll: HeroRoll;
   grade: Grade;
+  /** A rare class, offered as "A hooded stranger offers to join you." */
+  hooded?: boolean;
 };
 
 export type HelpProblem = 'tooFar' | 'gone' | 'noStock' | 'trader' | null;
@@ -88,23 +91,22 @@ export function helpProblem(
   return null;
 }
 
-/** A recruit offer from a traveller: any class, a positive trait, near the roster's middle. */
-function travellerRecruit(save: SaveData, spawn: PatrolSpawn): TravellerRecruit {
+/** A recruit offer from a traveller: mostly a pool class for the player's tier, rarely a hooded rare. */
+function travellerRecruit(save: SaveData, spawn: PatrolSpawn, forceRare = false): TravellerRecruit {
   const rng = createRng(`traveller-recruit|${spawn.id}`);
-  const rarity = rng.weighted(
-    Object.keys(recruitRules.rarityWeights) as (keyof typeof recruitRules.rarityWeights)[],
-    (r) => recruitRules.rarityWeights[r],
-  );
-  const classId = rng.weighted(
-    (Object.keys(heroClasses) as HeroClassId[]).filter((id) => heroClasses[id].rarity === rarity),
-    () => 1,
-  );
+  const rare = forceRare || rng.chance(travellerRules.rareRecruitChance);
+  const classId = rare
+    ? rng.weighted(
+        (Object.keys(heroClasses) as HeroClassId[]).filter((id) => heroClasses[id].rarity === 'rare'),
+        () => 1,
+      )
+    : pickRecruitClass(rng, highestUnlockedTier(save));
   const names = heroNames[classId];
   const positive = traits.filter((t) => t.positive);
   const levels = [...save.heroes.map((h) => h.level)].sort((a, b) => a - b);
   const median = levels.length % 2 ? levels[(levels.length - 1) / 2] : (levels[levels.length / 2 - 1] + levels[levels.length / 2]) / 2;
   const id = `traveller:${spawn.id}`;
-  const roll = rollRecruit(id);
+  const roll = rollRecruit(id, undefined, classId);
   return {
     id,
     classId,
@@ -113,6 +115,7 @@ function travellerRecruit(save: SaveData, spawn: PatrolSpawn): TravellerRecruit 
     level: Math.max(1, Math.round(median)),
     roll,
     grade: recruitGrade(roll),
+    ...(rare ? { hooded: true } : {}),
   };
 }
 
@@ -142,6 +145,7 @@ export function helpTraveller(
   now: number,
   choice: 'meal' | 'supply' | undefined = undefined,
   rules: PatrolRules = patrolRules,
+  forceRare = false,
 ): { save: SaveData; reward: TravellerReward; rosterFull: boolean } {
   const problem = helpProblem(save, spawn, player, now, rules);
   const kind = spawn.kind;
@@ -171,7 +175,7 @@ export function helpTraveller(
   let reward = rollReward(save, spawn, kind);
   let rosterFull = false;
   if (recruit && room) {
-    reward = { kind: 'recruit', offer: travellerRecruit(save, spawn) };
+    reward = { kind: 'recruit', offer: travellerRecruit(save, spawn, forceRare) };
   } else if (recruit) {
     rosterFull = true;
   }

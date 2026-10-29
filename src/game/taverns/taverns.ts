@@ -9,7 +9,7 @@ import { highestUnlockedTier } from '../expeditions/expeditions';
 import { emergencyPrice } from '../expeditions/provisions';
 import { guildBonus, tavernOfferCount } from '../guild/guild';
 import { distanceMeters } from '../generation/geo';
-import { createRng } from '../generation/rng';
+import { createRng, type Rng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { placeGroupOf, placesAround, type PlaceSpawn } from '../places/generate';
 import type { SaveData } from '../save';
@@ -84,6 +84,28 @@ export function recruitPrice(
   );
 }
 
+/** The classes a tier's taverns can offer, with their pick weights: the tier's newcomers weigh more. */
+export function recruitPool(tier: number, rules: RecruitRules = recruitRules): { classId: HeroClassId; weight: number }[] {
+  return (Object.keys(heroClasses) as HeroClassId[]).flatMap((classId) => {
+    const { rarity, poolTier } = heroClasses[classId];
+    if (rarity === 'rare' || poolTier === null || poolTier > tier) return [];
+    return [{ classId, weight: poolTier === tier ? rules.newClassWeight : 1 }];
+  });
+}
+
+/** Draws a tavern class: the rarity first, then a class of it from the tier's pool. */
+export function pickRecruitClass(rng: Rng, tier: number, rules: RecruitRules = recruitRules): HeroClassId {
+  const pool = recruitPool(tier, rules);
+  const rarities = (Object.keys(rules.rarityWeights) as ClassRarity[]).filter((rarity) =>
+    pool.some(({ classId }) => heroClasses[classId].rarity === rarity),
+  );
+  const rarity = rng.weighted(rarities, (r) => rules.rarityWeights[r]);
+  return rng.weighted(
+    pool.filter(({ classId }) => heroClasses[classId].rarity === rarity),
+    ({ weight }) => weight,
+  ).classId;
+}
+
 /**
  * Today's recruits at a tavern. Class, name and trait are the same for every
  * player on a rotation day; level and price follow the player's roster.
@@ -92,22 +114,19 @@ export function recruitPrice(
 export function tavernOffers(save: SaveData, tavernId: string, now: number, seed = '', rules: RecruitRules = recruitRules): RecruitOffer[] {
   const day = rotationDay(now);
   const rng = createRng(`offers|${tavernId}|${day}|${seed}`);
-  const classIds = Object.keys(heroClasses) as HeroClassId[];
+  const tier = highestUnlockedTier(save);
   const level = offerLevel(save, rules);
   // Offers are drawn one after another from the seed, so a 4th one leaves the first 3 unchanged.
   const discount = 1 - guildBonus(save, 'tavernDiscount');
   return Array.from({ length: tavernOfferCount(save) }, (_, i) => {
-    const rarity = rng.weighted(Object.keys(rules.rarityWeights) as ClassRarity[], (r) => rules.rarityWeights[r]);
-    const classId = rng.weighted(
-      classIds.filter((id) => heroClasses[id].rarity === rarity),
-      () => 1,
-    );
+    const classId = pickRecruitClass(rng, tier, rules);
+    const rarity = heroClasses[classId].rarity;
     const names = heroNames[classId];
     const positive = rng.chance(rules.positiveTraitChance);
     const pool = traits.filter((t) => t.positive === positive);
     // The id comes first: the roll and the offer are both keyed on it.
     const id = `${tavernId}:${day}${seed}:${i}`;
-    const roll = rollRecruit(id, rules);
+    const roll = rollRecruit(id, rules, classId);
     const grade = recruitGrade(roll, rules);
     return {
       id,
@@ -118,7 +137,7 @@ export function tavernOffers(save: SaveData, tavernId: string, now: number, seed
       roll,
       grade,
       price: Math.round(
-        recruitPrice(rarity, level, save.heroes.length, positive, highestUnlockedTier(save), grade, rules) * discount,
+        recruitPrice(rarity, level, save.heroes.length, positive, tier, grade, rules) * discount,
       ),
       expiresAt: nextRotationAt(now),
     };

@@ -106,6 +106,8 @@ export const travellerRules = {
   goldShareOfShort: 1,
   /** The pilgrim takes a meal, or this many supply points instead. */
   pilgrimSupplyPoints: 3,
+  /** Until secret places exist, about 1 in 20 traveller recruits is a rare class. */
+  rareRecruitChance: 0.05,
   /** The wounded traveller's rewards by weight. */
   woundedRewards: [
     { kind: 'gold', weight: 2 },

@@ -1,4 +1,4 @@
-import { newHero } from '@/content/heroes';
+import { heroClasses, newHero } from '@/content/heroes';
 import { patrolRules, travellerRules } from '@/content/patrols';
 import { treasureRules } from '@/content/treasure';
 import { traits } from '@/content/traits';
@@ -135,6 +135,27 @@ describe('traveller recruits', () => {
     const share = helped.filter((k) => k === 'recruit').length / helped.length;
     expect(share).toBeGreaterThan(0.02);
     expect(share).toBeLessThan(0.09);
+  });
+
+  it('are a hooded rare class about 5% of the time, or always with forceRare', () => {
+    const save = withRoster(6);
+    let hooded = 0;
+    for (let i = 0; i < 400; i++) {
+      const spawn = { ...wounded, id: `${wounded.id}:${i}` };
+      const { reward } = helpTraveller(save, spawn, here(spawn, at), at, undefined, always);
+      if (reward.kind !== 'recruit') throw new Error('expected a recruit');
+      expect(reward.offer.hooded ?? false).toBe(heroClasses[reward.offer.classId].rarity === 'rare');
+      if (reward.offer.hooded) hooded++;
+    }
+    expect(hooded / 400).toBeGreaterThan(0.03);
+    expect(hooded / 400).toBeLessThan(0.07);
+    for (let i = 0; i < 20; i++) {
+      const spawn = { ...wounded, id: `${wounded.id}:force:${i}` };
+      const { reward } = helpTraveller(save, spawn, here(spawn, at), at, undefined, always, true);
+      if (reward.kind !== 'recruit') throw new Error('expected a recruit');
+      expect(heroClasses[reward.offer.classId].rarity).toBe('rare');
+      expect(reward.offer.hooded).toBe(true);
+    }
   });
 });
 

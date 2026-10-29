@@ -11,6 +11,8 @@ export const rosterRules = {
 export const recruitRules = {
   offersPerTavern: 3,
   rarityWeights: { common: 0.6, uncommon: 0.4, rare: 0 } satisfies Record<ClassRarity, number>,
+  /** A class that just joined the pool is easier to find during its tier. */
+  newClassWeight: 2,
   /** Chance an offer has a positive trait rather than a negative one. */
   positiveTraitChance: 0.6,
   /** Offers are this many levels below the roster's average level (at least level 1). */

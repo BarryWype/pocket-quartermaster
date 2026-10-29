@@ -6,15 +6,19 @@ import { nextRotationAt } from '../dungeons/rotation';
 import { resolveExpedition, startExpedition } from '../expeditions/expeditions';
 import { prepareParty } from '../expeditions/simulate';
 import { unlockRecipe } from '../crafting/crafting';
+import { createRng } from '../generation/rng';
 import { migrateV7Save } from '../migrations';
 import { createInitialSave, type SaveData } from '../save';
 import { equip } from '../team/team';
 import { pruneExpired } from '../upkeep';
+import type { HeroClassId } from '../types';
 import {
   generateTavernsAround,
   isTavernUnlocked,
   offerLevel,
+  pickRecruitClass,
   recruit,
+  recruitPool,
   recruitPrice,
   recruitProblem,
   tavernOffers,
@@ -85,6 +89,66 @@ describe('offers', () => {
     const offer = firstOffer(unlocked());
     const positive = traitById[offer.trait].positive;
     expect(offer.price).toBe(recruitPrice(heroClasses[offer.classId].rarity, offer.level, 3, positive, 2, offer.grade));
+  });
+});
+
+describe('recruit classes', () => {
+  const inPool = (tier: number): HeroClassId[] =>
+    (Object.keys(heroClasses) as HeroClassId[]).filter((id) => {
+      const { rarity, poolTier } = heroClasses[id];
+      return rarity !== 'rare' && poolTier !== null && poolTier <= tier;
+    });
+  const draws = (tier: number, count: number) =>
+    Array.from({ length: count }, (_, i) => pickRecruitClass(createRng(`pick-test|${i}`), tier));
+
+  it('pool exactly the classes up to the tier, doubling its newcomers', () => {
+    for (let tier = 1; tier <= 5; tier++) {
+      const pool = recruitPool(tier);
+      expect(pool.map((p) => p.classId).sort()).toEqual(inPool(tier).sort());
+      for (const { classId, weight } of pool) {
+        expect(heroClasses[classId].rarity).not.toBe('rare');
+        expect(weight).toBe(heroClasses[classId].poolTier === tier ? recruitRules.newClassWeight : 1);
+      }
+    }
+  });
+
+  it('never draw a rare class or one from above the tier, and keep the rarity split', () => {
+    const tier = 3;
+    const picked = draws(tier, 2000);
+    for (const classId of picked) {
+      expect(heroClasses[classId].rarity).not.toBe('rare');
+      expect(heroClasses[classId].poolTier!).toBeLessThanOrEqual(tier);
+    }
+    const common = picked.filter((id) => heroClasses[id].rarity === 'common').length / picked.length;
+    expect(common).toBeGreaterThan(0.55);
+    expect(common).toBeLessThan(0.65);
+  });
+
+  it('draw the tier\'s newcomers about twice as often as an older class of the same rarity', () => {
+    const tier = 3;
+    const counts = new Map<HeroClassId, number>();
+    for (const classId of draws(tier, 2000)) counts.set(classId, (counts.get(classId) ?? 0) + 1);
+    const perClass = (filter: (id: HeroClassId) => boolean) => {
+      const picked = [...counts].filter(([id]) => filter(id));
+      return picked.reduce((sum, [, count]) => sum + count, 0) / picked.length;
+    };
+    const newcomer = perClass((id) => heroClasses[id].poolTier === tier);
+    const older = perClass((id) => heroClasses[id].poolTier! < tier && heroClasses[id].rarity === 'uncommon');
+    expect(newcomer / older).toBeGreaterThan(1.6);
+    expect(newcomer / older).toBeLessThan(2.4);
+  });
+
+  it('never offer a class from above the player\'s tier', () => {
+    const save = unlocked();
+    const offered = Array.from({ length: 500 }, (_, i) => tavernOffers(save, 'tavern:test:0', now, `s${i}`)).flat();
+    for (const offer of offered) {
+      expect(heroClasses[offer.classId].rarity).not.toBe('rare');
+      expect(heroClasses[offer.classId].poolTier!).toBeLessThanOrEqual(2);
+    }
+  });
+
+  it('price rare recruits well above uncommon ones', () => {
+    expect(recruitPrice('rare', 1, 3, true)).toBeGreaterThan(recruitPrice('uncommon', 1, 3, true) * 2);
   });
 });
 
