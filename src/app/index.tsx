@@ -83,6 +83,11 @@ const MAP_TEXTURES = {
 };
 /** How long a patrol just come into view pulses on the map. */
 const SEEN_HIGHLIGHT_MS = 5000;
+/**
+ * How often the map screen refreshes the time. Each refresh re-renders every
+ * marker, and patrols walk 1-2 km/h, so they only step a pixel or two between ticks.
+ */
+const TICK_MS = 3000;
 
 /** Sanctums and taverns snap with coarse map tiles so they can be shown from kilometres away. */
 const sanctumPlacement = { ...walkableRules, ...sanctumRules.placement };
@@ -156,7 +161,7 @@ export default function MapScreen() {
   }, [autoMode, fixAt]);
 
   useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
+    const timer = setInterval(() => setNow(Date.now()), TICK_MS);
     return () => clearInterval(timer);
   }, []);
 
@@ -540,7 +545,6 @@ export default function MapScreen() {
       )}
       <WalkEffects
         player={position}
-        now={now}
         buttonStyle={{ bottom: insets.bottom + ISLAND_HEIGHT + 68 }}
         chipsStyle={{ top: insets.top + 48 }}
       />

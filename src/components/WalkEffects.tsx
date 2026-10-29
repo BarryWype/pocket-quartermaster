@@ -5,6 +5,7 @@ import { items } from '@/content/items';
 import { itemById } from '@/content/lookup';
 import { activeWalkEffects, replacesActive } from '@/game/gathering/walkEffects';
 import type { LatLng } from '@/game/generation/types';
+import { useNow } from '@/hooks/useNow';
 import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
@@ -19,12 +20,13 @@ const walkItems = items.filter((item) => item.slot === 'utility' && item.walk);
 const timeLeft = (ms: number) => `${Math.floor(ms / 60_000)}:${String(Math.floor((ms % 60_000) / 1000)).padStart(2, '0')}`;
 
 /** The map's walking consumables: a round button opening the ones in stock, and a countdown chip per running effect. */
-export function WalkEffects({ player, now, buttonStyle, chipsStyle }: {
+export function WalkEffects({ player, buttonStyle, chipsStyle }: {
   player: LatLng;
-  now: number;
   buttonStyle: StyleProp<ViewStyle>;
   chipsStyle: StyleProp<ViewStyle>;
 }) {
+  // Its own clock, so the seconds tick without re-rendering the whole map.
+  const now = useNow();
   const save = useGameStore((state) => state.save);
   const startWalkEffect = useGameStore((state) => state.startWalkEffect);
   const [open, setOpen] = useState(false);
