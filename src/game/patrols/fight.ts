@@ -31,7 +31,7 @@ export function patrolBriefing(kind: PatrolKind): Briefing {
 
 /** The run options a patrol fight uses: no mishaps, with the patrol's threat. */
 export function patrolRunOptions(kind: PatrolKind): RunOptions {
-  return { rules: { ...expeditionRules, mishapChance: 0 }, briefing: patrolBriefing(kind) };
+  return { rules: { ...expeditionRules, mishapChance: 0 }, briefing: patrolBriefing(kind), elixirs: true };
 }
 
 /** What the game state knows when rewards are rolled: the save does not have to be at hand. */
@@ -210,7 +210,7 @@ export function startPatrolFight(
 
   const { tier, elite } = patrolTier(spawn, highestUnlockedTier(save));
   const dungeon = patrolDungeon(spawn, tier, elite, rules);
-  const party = prepareParty(save, heroIds, now);
+  const party = prepareParty(save, heroIds, now, true);
   const id = `p${save.nextUid}`;
   const run = simulateRun(party, dungeon, `${id}|${spawn.id}`, patrolRunOptions(kind));
   const rewards = run.bossDefeated
@@ -257,7 +257,7 @@ export function patrolOdds(
   if (!isPatrolKind(kind)) throw new Error(`No fight with a ${kind}`);
   const { tier, elite } = patrolTier(spawn, highestUnlockedTier(save));
   return estimatePartyOdds(
-    prepareParty(save, heroIds, now),
+    prepareParty(save, heroIds, now, true),
     patrolDungeon(spawn, tier, elite, rules),
     runs,
     patrolRunOptions(kind),

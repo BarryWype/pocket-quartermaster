@@ -110,7 +110,7 @@ export function snapshotBackground(
   rules: PatrolRules = patrolRules,
 ): BackgroundState {
   const hero = save.heroes.find((h) => h.id === settings.escortHeroId && !isAway(save, h.id));
-  const member = hero ? prepareParty(save, [hero.id], now)[0] : undefined;
+  const member = hero ? prepareParty(save, [hero.id], now, true)[0] : undefined;
   const healRate = member?.abilities.find((a) => a.kind === 'healRate');
   const rate = healRate?.kind === 'healRate' ? healRate : { multiplier: 1, exhaustion: 1 };
   return {

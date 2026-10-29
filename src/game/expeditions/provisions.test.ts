@@ -1,17 +1,21 @@
 import { expeditionRules } from '@/content/dungeons';
-import { dungeonById } from '@/content/lookup';
+import { TIER_SCALE } from '@/content/enemies';
+import { dungeonById, itemById } from '@/content/lookup';
 import { provisionRules } from '@/content/provisions';
 import { tavernRules } from '@/content/taverns';
 import { traits } from '@/content/traits';
 
+import type { Element } from '../elements';
 import { migrateV10Save } from '../migrations';
 import { createInitialSave, type SaveData } from '../save';
 import { buySupply, buySupplyProblem, supplyPrice } from '../taverns/taverns';
+import { setHeroHp } from '../team/health';
 import { equip } from '../team/team';
-import type { Ability, BossDef, Briefing, DungeonDef, EncounterDef, HeroState } from '../types';
-import { launchPlan, resolveExpedition, startExpedition } from './expeditions';
+import type { Ability, BossDef, Briefing, ConsumableDef, DungeonDef, EncounterDef, HeroState } from '../types';
+import { launchPlan, resolveExpedition, startExpedition, untriggeredSalvage } from './expeditions';
 import { emergencyPrice, heroSupplyNeed, hungerEffect, hungerFor, pickSupply, supplyHeld } from './provisions';
-import { prepareParty, simulateRun, type PartyMember } from './simulate';
+import { estimateOdds } from './odds';
+import { prepareParty, simulateRun, type PartyMember, type RunResult } from './simulate';
 
 const ALL = ['bram', 'lyra', 'mira'];
 const steady = { ...expeditionRules, mishapChance: 0, fortune: 0, damageVariance: 0, enemyCritChance: 0 };
@@ -255,6 +259,182 @@ describe('traits', () => {
   it('are all in the tavern pool', () => {
     const ids = traits.map((t) => t.id);
     for (const id of ['resilient', 'tough', 'quickHealer', 'lightEater', 'hardy', 'frail', 'slowHealer', 'glutton']) expect(ids).toContain(id);
+  });
+});
+
+const elixirOf = (id: string) => itemById[id] as ConsumableDef;
+
+describe('elixirs', () => {
+  /** A one-step dungeon: an event, then a configurable boss. */
+  const bossRun = (boss: Partial<BossDef>): DungeonDef => ({
+    ...dungeonById.drownedCrypt,
+    tier: 3,
+    encounterCount: [2, 2],
+    encounters: [{ type: 'event', weight: 1, eventId: 'cache' }],
+    boss: { id: 'testBoss', name: 'test boss', hp: 100, damage: 10, damageType: 'power', speed: 5, tags: [], ...boss },
+  });
+  const fights = (mobs: { mobId: string; count: number }[], count: [number, number] = [2, 2]): DungeonDef => ({
+    ...bossRun({}),
+    encounters: [{ type: 'fight', weight: 1, mobs }],
+  });
+
+  it('multiplies the stat the elixir names, and quicksilver adds speed, only when the run takes elixirs', () => {
+    const base = prepareParty(ready(), ['bram'])[0];
+    const saveWith = (id: string) => equip(ready({ ...createInitialSave().consumables, [id]: 1 }), 'bram', 'consumable', id);
+    const taken = (id: string) => prepareParty(saveWith(id), ['bram'], 0, true)[0];
+    const leftOut = (id: string) => prepareParty(saveWith(id), ['bram'])[0];
+    const cases: [string, 'power' | 'magic' | 'armour' | 'resistance', number][] = [
+      ['strengthDraught', 'power', provisionRules.elixirs.power],
+      ['arcaneTonic', 'magic', provisionRules.elixirs.magic],
+      ['ironskinBrew', 'armour', provisionRules.elixirs.armour],
+      ['nullrootTincture', 'resistance', provisionRules.elixirs.resistance],
+    ];
+    for (const [id, stat, multiplier] of cases) {
+      expect(taken(id)[stat]).toBe(Math.round(base[stat] * multiplier));
+      expect(leftOut(id)[stat]).toBe(base[stat]);
+    }
+    expect(taken('quicksilver').speed).toBe(base.speed + provisionRules.elixirs.quicksilverSpeed);
+    expect(leftOut('quicksilver').speed).toBe(base.speed);
+  });
+
+  it('coats the weapon in the oil’s element, replacing a permanent infusion', () => {
+    const oiled = (permanent?: Element) => {
+      let save = ready({ ...createInitialSave().consumables, emberOil: 1 });
+      save = { ...save, gear: save.gear.map((g) => (g.uid === 'g1' ? { ...g, ...(permanent ? { element: permanent } : {}) } : g)) };
+      return equip(save, 'bram', 'consumable', 'emberOil');
+    };
+    expect(prepareParty(oiled(), ['bram'], 0, true)[0].weaponElement).toBe('fire');
+    expect(prepareParty(oiled('water'), ['bram'], 0, true)[0].weaponElement).toBe('fire');
+    // Left out of the run, the permanent infusion stands.
+    expect(prepareParty(oiled('water'), ['bram'])[0].weaponElement).toBe('water');
+  });
+
+  it('hits like a permanently infused weapon of the same element', () => {
+    const permanent = () => {
+      let save = ready();
+      return { ...save, gear: save.gear.map((g) => (g.uid === 'g1' ? { ...g, element: 'fire' as const } : g)) };
+    };
+    const oiled = prepareParty(equip(ready({ ...createInitialSave().consumables, emberOil: 1 }), 'bram', 'consumable', 'emberOil'), ['bram'], 0, true);
+    const infused = prepareParty(permanent(), ['bram'], 0, true);
+    const run = (party: PartyMember[]) => simulateRun(party, fights([{ mobId: 'goblinSlinger', count: 2 }]), 's', { rules: steady, elixirs: true });
+    expect(run(oiled).encounters[0].dealt).toEqual(run(infused).encounters[0].dealt);
+  });
+
+  it('does nothing for an unarmed hero', () => {
+    const unarmed = (consumable: boolean) => {
+      let save = ready(consumable ? { ...createInitialSave().consumables, emberOil: 1 } : createInitialSave().consumables);
+      save = { ...save, heroes: save.heroes.map((h) => (h.id === 'bram' ? { ...h, equipment: { ...h.equipment, weapon: null } } : h)) };
+      return consumable ? equip(save, 'bram', 'consumable', 'emberOil') : save;
+    };
+    const withOil = simulateRun(prepareParty(unarmed(true), ['bram'], 0, true), bossRun({ damage: 0 }), 's', { rules: steady, elixirs: true });
+    const bare = simulateRun(prepareParty(unarmed(false), ['bram'], 0, true), bossRun({ damage: 0 }), 's', { rules: steady, elixirs: true });
+    expect(withOil.encounters[0].dealt).toEqual(bare.encounters[0].dealt);
+  });
+
+  it('opens the run’s first fight with fire on every enemy, and no later one', () => {
+    const bomb = () => [member('a', [], { consumable: elixirOf('firebomb'), power: 0, maxHp: 1e6 })];
+    const first = simulateRun(bomb(), { ...fights([{ mobId: 'giantRat', count: 2 }]), tier: 5 }, 's', { rules: steady, elixirs: true });
+    expect(first.encounters[0].effects).toContainEqual({ heroId: 'a', key: 'firebomb' });
+    // Tier-5 strength against element-less rats: the bomb alone clears the fight.
+    expect(first.encounters[0].dealt.a).toBe(2 * Math.round(provisionRules.elixirs.firebombDamage * TIER_SCALE[4]));
+    expect(first.encounters[0].cleared).toBe(true);
+    expect(first.elixirsUsed).toEqual(['a']);
+    const later = simulateRun([member('a', [], { consumable: elixirOf('firebomb'), power: 1000 })], fights([{ mobId: 'giantRat', count: 1 }], [3, 3]), 's', {
+      rules: steady,
+      elixirs: true,
+    });
+    expect(later.encounters[0].effects.some((e) => e.key === 'firebomb')).toBe(true);
+    expect(later.encounters.slice(1).every((e) => !e.effects.some((x) => x.key === 'firebomb'))).toBe(true);
+  });
+
+  it('gets a knocked-out carrier back up once, without a flawless outcome', () => {
+    const run = simulateRun([member('a', [], { consumable: elixirOf('revivalDraught'), power: 20, maxHp: 100 })], bossRun({ hp: 30, damage: 100 }), 's', {
+      rules: steady,
+      elixirs: true,
+    });
+    expect(run.encounters[1].effects).toContainEqual({ heroId: 'a', key: 'revive' });
+    expect(run.elixirsUsed).toEqual(['a']);
+    expect(run.bossDefeated).toBe(true);
+    expect(run.outcome).toBe('success');
+    expect(run.hp[0].hp).toBeCloseTo(provisionRules.elixirs.reviveHp * 100);
+  });
+
+  it('turns a knock-out into an escape that ends the run as a retreat, nobody out', () => {
+    const party = [
+      member('weak', [], { threat: 100, maxHp: 100 }),
+      member('bomber', [], { consumable: elixirOf('smokeBomb'), threat: 1, maxHp: 100 }),
+    ];
+    const run = simulateRun(party, bossRun({ hp: 1e9, damage: 500 }), 's', { rules: steady, elixirs: true });
+    expect(run.escaped).toBe(true);
+    expect(run.outcome).toBe('retreat');
+    expect(run.encounters.flatMap((e) => e.knockedOut)).toEqual([]);
+    expect(run.elixirsUsed).toEqual(['bomber']);
+    expect(run.hp.find((h) => h.heroId === 'weak')!.hp).toBe(1);
+    expect(run.encountersCleared).toBe(1);
+    // A fight that merely times out never reaches for the bomb.
+    const timeout = simulateRun([member('a', [], { consumable: elixirOf('smokeBomb'), power: 0 })], bossRun({ hp: 1e9, damage: 0 }), 's', {
+      rules: steady,
+      elixirs: true,
+    });
+    expect(timeout.elixirsUsed).toEqual([]);
+  });
+
+  it('salvages the elixirs that never triggered, keeping the used ones', () => {
+    const run = simulateRun([member('x', [], { power: 1000 })], bossRun({ damage: 0 }), 's', { rules: steady });
+    const holders = [
+      member('stat', [], { consumable: elixirOf('strengthDraught') }),
+      member('speed', [], { consumable: elixirOf('quicksilver') }),
+      member('oil', [], { consumable: elixirOf('emberOil'), weaponName: 'sword' }),
+      member('oilUnarmed', [], { consumable: elixirOf('emberOil') }),
+      member('bomb', [], { consumable: elixirOf('firebomb') }),
+      member('revive', [], { consumable: elixirOf('revivalDraught') }),
+      member('smoke', [], { consumable: elixirOf('smokeBomb') }),
+    ];
+    const salvaged = untriggeredSalvage(holders, run, { barren: false, gold: 0 });
+    expect(salvaged.map((s) => s.heroId).sort()).toEqual(['bomb', 'oil', 'oilUnarmed', 'revive', 'smoke']);
+    // Triggered: a thrown bomb, a draught that revived, a bomb that escaped, an oil that struck.
+    const triggered: [PartyMember, RunResult, RunResult][] = [
+      [holders[4], run, { ...run, elixirsUsed: ['bomb'] }],
+      [holders[5], run, { ...run, elixirsUsed: ['revive'] }],
+      [holders[6], run, { ...run, elixirsUsed: ['smoke'] }],
+      [holders[2], run, { ...run, attacked: [...run.attacked, 'oil'] }],
+    ];
+    for (const [holder, base, tweaked] of triggered) {
+      expect(untriggeredSalvage([holder], tweaked, { barren: false, gold: 0 })).toEqual([]);
+      expect(untriggeredSalvage([holder], base, { barren: false, gold: 0 }).length).toBe(1);
+    }
+  });
+
+  it('estimates better odds with a strength draught on a marginal party', () => {
+    let frail = ready({ ...createInitialSave().consumables, strengthDraught: 1 });
+    for (const id of ALL) frail = setHeroHp(frail, id, 1, 0);
+    const pair = ['bram', 'lyra'];
+    const drunk = estimateOdds(equip(frail, 'bram', 'consumable', 'strengthDraught'), pair, dungeonById.ratCellar, 300).success;
+    expect(drunk).toBeGreaterThan(estimateOdds(frail, pair, dungeonById.ratCellar, 300).success);
+  });
+
+  it('pays the smoke bomb’s retreat bonus on the loot of an escape', () => {
+    // Heroes at a sliver of HP fall to the first blow: the bomb turns the wipe into an escape.
+    const frail = (consumableId: string | null): SaveData => {
+      let save = { ...ready({ trailMix: 10, ...(consumableId ? { [consumableId]: 1 } : {}) }), nextUid: 7 };
+      for (const id of ALL) save = setHeroHp(save, id, 0.01, 0);
+      return consumableId ? equip(save, 'bram', 'consumable', consumableId) : save;
+    };
+    const report = (consumableId: string | null, i: number) =>
+      resolve(startExpedition({ ...frail(consumableId), nextUid: 500 + i }, 'ratCellar', ALL, 0)).report;
+    let compared = false;
+    for (let i = 0; i < 60 && !compared; i++) {
+      const plain = report(null, i);
+      const escaped = report('smokeBomb', i);
+      // The bomb only triggers on an escape; runs that never reached for it are left alone.
+      if (escaped.salvaged.some((s) => s.itemId === 'smokeBomb')) continue;
+      // Same fights cleared: the escape and the wipe it averted differ only in the retreat bonus.
+      if (escaped.success || plain.success || escaped.encountersCleared === 0 || escaped.encountersCleared !== plain.encountersCleared) continue;
+      expect(escaped.outcome).toBe('retreat');
+      expect(escaped.gold).toBeGreaterThan(plain.gold);
+      compared = true;
+    }
+    expect(compared).toBe(true);
   });
 });
 

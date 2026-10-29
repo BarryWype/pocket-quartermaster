@@ -18,7 +18,7 @@ export const enemySpeedRules: Record<SpeedClass, number> & { speedPerTier: numbe
 // that, with the tier's full kit at the expected level, short dungeons succeed
 // well over 65% of the time, long ones over 45% and bosses 30–60% (see
 // src/game/balance/balance.test.ts).
-const TIER_SCALE = [1, 1.9, 3, 4.2, 5.6];
+export const TIER_SCALE = [1, 1.9, 3, 4.2, 5.6];
 
 /** A dungeon's scaling, with its tier for enemy Speed. */
 type Strength = { tier: number; scale: number };

@@ -26,6 +26,8 @@ export type LogInput = {
   hunger?: Hunger;
   /** Consumables that never triggered and were broken back down. */
   salvaged: { heroId: string; itemId: string; materials: { materialId: string; amount: number }[]; gold: number }[];
+  /** The party's elixirs took effect: the opening lines say so. */
+  elixirs?: boolean;
 };
 
 const pick = <T>(rng: Rng, list: readonly T[]) => list[rng.int(0, list.length - 1)];
@@ -83,7 +85,10 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
   const potions = (encounter: EncounterResult) => encounter.consumed.map((id) => fill(logTemplates.potion, { hero: nameOf(id) }));
 
   const knockedOut = (encounter: EncounterResult) => {
-    const names = encounter.knockedOut.map(nameOf);
+    // A revived hero got back up instead: their line is the revive sentence.
+    const names = encounter.knockedOut
+      .filter((id) => !encounter.effects.some((e) => e.key === 'revive' && e.heroId === id))
+      .map(nameOf);
     if (names.length === 0) return '';
     if (names.length === 1) return fill(logTemplates.knockedOut, { hero: names[0] });
     return fill(logTemplates.knockedOutMany, { heroes: `${names.slice(0, -1).join(', ')}${t('common.and')}${names[names.length - 1]}` });
@@ -101,6 +106,9 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
           case 'buff':
           case 'crit':
           case 'advantage':
+          case 'firebomb':
+          case 'revive':
+          case 'smokeBomb':
             return [fill(logTemplates[e.key], { hero })];
           case 'protect':
             return [fill(logTemplates.protect, { hero, ally: nameOf(e.allyId!) })];
@@ -242,14 +250,27 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
 
   const summary =
     input.summary ??
-    fill(pick(rng, logTemplates.outcome[run.outcome]), {
-    boss: tr(dungeon.boss.name),
-    gold: input.gold,
-    cleared: run.encountersCleared,
-    total: run.encounterCount,
-  });
+    (run.escaped
+      ? fill(pick(rng, logTemplates.escaped), { gold: input.gold })
+      : fill(pick(rng, logTemplates.outcome[run.outcome]), {
+        boss: tr(dungeon.boss.name),
+        gold: input.gold,
+        cleared: run.encountersCleared,
+        total: run.encounterCount,
+      }));
+  // The elixirs the party drank or coated with before setting out.
+  const elixirLines = input.elixirs
+    ? party.flatMap((member) => {
+        const elixir = member.consumable?.elixir;
+        if (!elixir || elixir.kind === 'firebomb' || elixir.kind === 'revive' || elixir.kind === 'smokeBomb') return [];
+        const item = tr(member.consumable!.name).toLowerCase();
+        const template = elixir.kind === 'oil' ? logTemplates.elixirOil : logTemplates.elixirDrank;
+        return [capitalised(fill(template, { hero: member.name, item }).trim())];
+      })
+    : [];
   return [
     ...(input.hunger && input.hunger !== 'fed' ? [logTemplates.hunger[input.hunger]] : []),
+    ...elixirLines,
     ...threatLines,
     ...encounterLines,
     capitalised(summary),

@@ -69,6 +69,17 @@ export const logTemplates = {
   casters: ' An enemy caster struck {hero} before the fight.',
   /** Appended to the encounter after which the party was healed. */
   partyHeal: ' {hero} tended the party’s wounds.',
+  /** Appended to the run's first fight when a firebomb opened it. */
+  firebomb: ' {hero} threw a firebomb.',
+  /** Appended to a fight line when a revival draught brought its carrier back. */
+  revive: ' {hero} drank a revival draught and got back up.',
+  /** Appended to a fight line when a smoke bomb ended the run. */
+  smokeBomb: ' {hero} threw a smoke bomb and the party escaped.',
+  /** The opening lines for the party's stat, speed and oil elixirs. */
+  elixirDrank: ' {hero} drank their {item} before setting out.',
+  elixirOil: ' {hero} coated their weapon with {item}.',
+  /** The summary after a smoke bomb escape. */
+  escaped: ['The team slipped away under cover of smoke, with {gold} gold.'],
   /** Names for {tag} in `tagBonus`. */
   tagNames: { undead: 'undead', beast: 'beasts', trap: 'traps', obstacle: 'obstacles', locals: 'locals' } as Record<string, string>,
   firstClear: ['First time through! A bonus of {gold} gold and {xp} XP.'],

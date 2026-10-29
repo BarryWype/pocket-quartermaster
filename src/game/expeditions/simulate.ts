@@ -1,5 +1,5 @@
 import { expeditionRules } from '@/content/dungeons';
-import { mobById, mobTags, npcMobId } from '@/content/enemies';
+import { mobById, mobTags, npcMobId, TIER_SCALE } from '@/content/enemies';
 import { eventById } from '@/content/events';
 import { localsRules, npcById } from '@/content/npcs';
 import { heroClasses } from '@/content/heroes';
@@ -112,7 +112,13 @@ export type AbilityEffect = {
     /** An enemy caster wounded this hero before the fight. */
     | 'casters'
     /** Hunter's stew before the boss (`heroId` null). */
-    | 'stew';
+    | 'stew'
+    /** A firebomb carrier opened the run's first fight. */
+    | 'firebomb'
+    /** A revival draught got a knocked-out carrier back up. */
+    | 'revive'
+    /** A smoke bomb ended the run in an escape. */
+    | 'smokeBomb';
   tag?: Tag;
   /** The ally a `protect` shielded. */
   allyId?: string;
@@ -166,6 +172,10 @@ export type RunResult = {
   attacked: string[];
   /** Elements whose damage each ward salve holder took (salvage decides on them). */
   damageElements: Record<string, Element[]>;
+  /** Heroes whose elixir (bomb, draught) triggered during the run; stat, speed and oil elixirs always count as used. */
+  elixirsUsed: string[];
+  /** The run ended in a smoke bomb escape, with nobody knocked out. */
+  escaped?: boolean;
   /** The briefing's threats scored against this party. */
   threats: ThreatScore[];
   /** The midpoint opportunity and what it gave, or null when there was none. */
@@ -190,6 +200,8 @@ export type RunOptions = RunProvisions & {
   rules?: ExpeditionRules;
   /** The tutorial run: heroes can't drop below 1 HP, so the boss always falls eventually. */
   guaranteed?: boolean;
+  /** Hero consumable elixirs take effect; Sanctum fights, which keep the slot, leave them out. */
+  elixirs?: boolean;
 };
 
 type HeroState = {
@@ -231,7 +243,7 @@ function mergeApproachBonus(...sources: Partial<Record<Approach, number>>[]): Pa
  * The heroes as they set out, with their HP at `now` (heroes away keep the HP
  * they left with; left out, HP as stored).
  */
-export function prepareParty(save: SaveData, heroIds: string[], now = 0): PartyMember[] {
+export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs = false): PartyMember[] {
   return save.heroes
     .filter((hero) => heroIds.includes(hero.id))
     .map((hero) => {
@@ -251,6 +263,10 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0): PartyM
       const charm = consumable?.charm;
       // The hero's hits roll with their damage stat; only the Magic part is halved in an anti-magic zone.
       const damageStat = heroDamageStat(save, hero);
+      const elixir = elixirs ? consumable?.elixir : undefined;
+      // A stat elixir multiplies its stat, rounded like heroStats; an oil infuses the weapon.
+      const statOf = (key: 'power' | 'magic' | 'armour' | 'resistance') =>
+        elixir?.kind === 'stat' && elixir.stat === key ? Math.round(stats[key] * elixir.multiplier) : stats[key];
       return {
         heroId: hero.id,
         name: hero.name,
@@ -262,13 +278,13 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0): PartyM
         concealed: [weaponItem, offhandItem].every((item) => !item || item.concealed),
         maxHp: stats.hp,
         hp: currentHp(save, hero, now),
-        power: stats.power,
-        magic: stats.magic,
+        power: statOf('power'),
+        magic: statOf('magic'),
         damageStat,
-        armour: stats.armour,
-        resistance: stats.resistance,
+        armour: statOf('armour'),
+        resistance: statOf('resistance'),
         evasion: stats.evasion,
-        speed: stats.speed,
+        speed: stats.speed + (elixir?.kind === 'speed' ? elixir.add : 0),
         crit: stats.crit,
         luck: stats.luck,
         approachBonus: mergeApproachBonus(heroApproachBonus(hero), gearApproachBonus(save, hero)),
@@ -278,7 +294,8 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0): PartyM
           ...heroAbilities(hero),
           ...(charm?.kind === 'crit' ? [{ kind: 'critBonus', chance: charm.chance } satisfies Ability] : []),
         ],
-        weaponElement: weapon?.element ?? heroClass.element,
+        weaponElement:
+          elixir?.kind === 'oil' && weapon ? elixir.element : (weapon?.element ?? heroClass.element),
         armourElement: armour?.element,
         consumable,
       };
@@ -316,7 +333,7 @@ export function simulateRun(
   party: PartyMember[],
   dungeon: DungeonDef,
   seed: string,
-  { rules = expeditionRules, guaranteed = false, hunger = 'fed', meal = null, briefing = null, optIn = false }: RunOptions = {},
+  { rules = expeditionRules, guaranteed = false, hunger = 'fed', meal = null, briefing = null, optIn = false, elixirs = false }: RunOptions = {},
 ): RunResult {
   const activeBriefing: Briefing = briefing ?? EMPTY_BRIEFING;
   const restriction = activeBriefing.restriction;
@@ -405,6 +422,12 @@ export function simulateRun(
 
   /** Elements whose damage a ward salve holder has taken, for salvage. */
   const damageElements: Record<string, Element[]> = {};
+  /** Heroes whose elixir (bomb, draught) triggered, for salvage. */
+  const elixirsUsed: string[] = [];
+  /** The run's first fight is where a firebomb lands; later fights see none. */
+  let firebombThrown = false;
+  /** A smoke bomb ended the run: no knock-out, the party slipped away. */
+  let escaped = false;
   const tookDamage = (hero: HeroState, element: Element | undefined) => {
     const salve = hero.member.consumable?.protectsAgainst;
     if (!element || salve !== element) return;
@@ -425,10 +448,32 @@ export function simulateRun(
       if (guaranteed) {
         hero.hp = 1;
       } else {
-        hero.hp = 0;
-        hero.out = true;
-        result.knockedOut.push(hero.member.heroId);
-        return;
+        const elixir = hero.member.consumable?.elixir;
+        // A revival draught gets the carrier back up once; the run still counts them as knocked out.
+        if (elixirs && elixir?.kind === 'revive' && hero.consumableLeft) {
+          hero.hp = Math.max(1, Math.round(elixir.hp * hero.member.maxHp));
+          hero.consumableLeft = false;
+          elixirsUsed.push(hero.member.heroId);
+          result.effects.push({ heroId: hero.member.heroId, key: 'revive' });
+          result.knockedOut.push(hero.member.heroId);
+        } else {
+          // A conscious holder's smoke bomb leaves the hero at 1 HP and ends the run in an escape.
+          const bomber = elixirs
+            ? alive().find((h) => h.consumableLeft && h.member.consumable?.elixir?.kind === 'smokeBomb')
+            : undefined;
+          if (bomber) {
+            hero.hp = 1;
+            bomber.consumableLeft = false;
+            elixirsUsed.push(bomber.member.heroId);
+            escaped = true;
+            result.effects.push({ heroId: bomber.member.heroId, key: 'smokeBomb' });
+          } else {
+            hero.hp = 0;
+            hero.out = true;
+            result.knockedOut.push(hero.member.heroId);
+            return;
+          }
+        }
       }
     }
     const potion = hero.member.consumable;
@@ -463,6 +508,23 @@ export function simulateRun(
       hp: def.hp * (enemyTags(def).includes('undead') ? undeadHp : 1),
       staggered: false,
     }));
+    if (escaped) return;
+    // The run's first fight opens with every conscious carrier's firebomb.
+    if (elixirs && !firebombThrown) {
+      firebombThrown = true;
+      for (const hero of alive()) {
+        const elixir = hero.member.consumable?.elixir;
+        if (elixir?.kind !== 'firebomb' || !hero.consumableLeft) continue;
+        hero.consumableLeft = false;
+        elixirsUsed.push(hero.member.heroId);
+        result.effects.push({ heroId: hero.member.heroId, key: 'firebomb' });
+        for (const enemy of enemies) {
+          const damage = Math.round(elixir.damage * TIER_SCALE[dungeon.tier - 1] * weaponMultiplier('fire', enemyElement(enemy.def)));
+          enemy.hp -= damage;
+          add(result.dealt, hero.member.heroId, damage);
+        }
+      }
+    }
     /** Heroes whose Brace already softened a hit in this fight. */
     const braced = new Set<string>();
     /** Logs an effect once per encounter and hero. */
@@ -630,6 +692,7 @@ export function simulateRun(
           }
           hurt(hero, shielded(hero, taken), result);
           tookDamage(hero, element);
+          if (escaped) return;
         }
       }
     };
@@ -654,14 +717,14 @@ export function simulateRun(
       const quick = ambushed ? rest : rest.filter((h) => h.member.speed >= fastest);
       const slow = ambushed ? [] : rest.filter((h) => h.member.speed < fastest);
       if (ambushed) enemiesAttack();
-      if (alive().length === 0) return;
+      if (escaped || alive().length === 0) return;
       heroesAttack(quick);
       if (enemies.every((e) => e.hp <= 0)) {
         result.cleared = true;
         return;
       }
       if (!ambushed) enemiesAttack();
-      if (alive().length === 0) return;
+      if (escaped || alive().length === 0) return;
       heroesAttack(slow);
       if (enemies.every((e) => e.hp <= 0)) {
         result.cleared = true;
@@ -878,7 +941,7 @@ export function simulateRun(
   let opportunity: RunOpportunity | null = null;
 
   const encounters: EncounterResult[] = [];
-  for (let i = 0; i < encounterCount && alive().length > 0; i++) {
+  for (let i = 0; i < encounterCount && alive().length > 0 && !escaped; i++) {
     if (i === mishapAt) {
       encounters.push(emptyResult('mishap', rules.mishaps[rng.int(0, rules.mishaps.length - 1)]));
       break;
@@ -909,13 +972,16 @@ export function simulateRun(
   const encountersCleared = encounters.filter((e) => e.cleared).length;
   const bossDefeated = encounters.some((e) => e.kind === 'boss' && e.cleared);
   const anyKnockedOut = encounters.some((e) => e.knockedOut.length > 0);
-  const outcome: ExpeditionOutcome = bossDefeated
-    ? anyKnockedOut
-      ? 'success'
-      : 'flawless'
-    : encountersCleared > 0
-      ? 'retreat'
-      : 'defeat';
+  // A smoke bomb escape is a retreat however little was cleared, with nobody out.
+  const outcome: ExpeditionOutcome = escaped
+    ? 'retreat'
+    : bossDefeated
+      ? anyKnockedOut
+        ? 'success'
+        : 'flawless'
+      : encountersCleared > 0
+        ? 'retreat'
+        : 'defeat';
 
   return {
     encounters,
@@ -928,6 +994,8 @@ export function simulateRun(
     consumed: encounters.flatMap((e) => e.consumed),
     attacked: [...attacked],
     damageElements,
+    elixirsUsed,
+    ...(escaped ? { escaped: true } : {}),
     threats: scores.threats,
     opportunity,
     lostLoot,

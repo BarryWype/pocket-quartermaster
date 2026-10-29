@@ -170,6 +170,7 @@ export const runProvisions = (hunger: Hunger, loadout: Loadout = {}, briefing: B
   meal: mealOf(briefing, loadout.mealId),
   briefing,
   optIn: loadout.optIn ?? false,
+  elixirs: true,
 });
 
 /** Whether a patrol is out right now: only one overnight quest runs at a time. */
@@ -312,6 +313,13 @@ export function untriggeredSalvage(
         (run.damageElements[member.heroId]?.includes(item.protectsAgainst) ?? false)
       );
     }
+    const elixir = item.elixir;
+    if (elixir) {
+      // Stat and speed elixirs are drunk before the run; an oil needs a weapon that struck; the rest need their trigger.
+      if (elixir.kind === 'stat' || elixir.kind === 'speed') return true;
+      if (elixir.kind === 'oil') return member.weaponName !== null && run.attacked.includes(member.heroId);
+      return run.elixirsUsed.includes(member.heroId);
+    }
     const charm = item.charm!;
     if (charm.kind === 'crit') return run.attacked.includes(member.heroId);
     return !barren && gold > 0 && countedCharm === member.heroId;
@@ -334,7 +342,7 @@ export function resolveExpedition(
 ): { save: SaveData; report: ExpeditionReport } {
   const dungeon = dungeonById[expedition.dungeonId];
   const briefing = expedition.briefing ?? EMPTY_BRIEFING;
-  const party = prepareParty(save, expedition.heroIds);
+  const party = prepareParty(save, expedition.heroIds, 0, true);
   // Lucky parties bring more home: gold and materials directly, rolls with a better chance.
   const luck = party.reduce((sum, m) => sum + m.luck, 0);
   const luckGold = 1 + rules.luck.goldPerPoint * luck;
@@ -351,8 +359,11 @@ export function resolveExpedition(
   const success = run.bossDefeated;
   const progress = run.encountersCleared / run.encounterCount;
   // Better retreats (Guild Hall) raise what a failed run brings back, up to a full clear.
-  // Comfort broth adds to it.
-  const retreat = success ? 1 : 1 + guildBonus(save, 'betterRetreats') + (meal?.kind === 'retreat' ? meal.bonus : 0);
+  // Comfort broth adds to it, and so does the smoke bomb an escape was built on.
+  const bomber = run.escaped
+    ? party.find((m) => m.consumable?.elixir?.kind === 'smokeBomb' && run.elixirsUsed.includes(m.heroId))?.consumable?.elixir
+    : undefined;
+  const retreat = success ? 1 : 1 + guildBonus(save, 'betterRetreats') + (meal?.kind === 'retreat' ? meal.bonus : 0) + (bomber?.kind === 'smokeBomb' ? bomber.retreatBonus : 0);
   const lootShare = Math.min(1, (run.encountersCleared / run.encounterCount) * retreat);
   const guildGold = 1 + guildBonus(save, 'gold');
   // Barren leaves gold bonuses from traits, charms and meals out; the others only apply above 1.
@@ -532,6 +543,7 @@ export function resolveExpedition(
       charter,
       hunger: expedition.hunger,
       salvaged,
+      elixirs: true,
     },
     createRng(`${expedition.seed}|log`),
   );

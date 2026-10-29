@@ -53,7 +53,7 @@ export function estimatePartyOdds(party: PartyMember[], dungeon: DungeonDef, run
  */
 export function estimateOdds(save: SaveData, heroIds: string[], dungeon: DungeonDef, runs = ODDS_RUNS, options: OddsOptions = {}): Odds {
   const { now, loadout = {}, fullHp = false, briefing = EMPTY_BRIEFING } = options;
-  const party = prepareParty(save, heroIds, now).map((m) => (fullHp ? { ...m, hp: m.maxHp } : m));
+  const party = prepareParty(save, heroIds, now, true).map((m) => (fullHp ? { ...m, hp: m.maxHp } : m));
   const { hunger } = launchPlan(save, dungeon, heroIds, loadout, briefing);
   return estimatePartyOdds(party, dungeon, runs, runProvisions(hunger, loadout, briefing));
 }
