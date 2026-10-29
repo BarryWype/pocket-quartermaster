@@ -75,6 +75,7 @@ export default function RootLayout() {
       <Stack.Screen name="inventory" options={{ title: t('screens.inventory') }} />
       <Stack.Screen name="team/index" options={{ title: t('screens.team') }} />
       <Stack.Screen name="team/[heroId]" options={{ title: t('screens.hero') }} />
+      <Stack.Screen name="team/classes" options={{ title: t('classes.title') }} />
       <Stack.Screen name="quests" options={{ title: t('screens.quests') }} />
       <Stack.Screen name="guild" options={{ title: t('screens.guild') }} />
       <Stack.Screen name="settings" options={{ title: t('screens.settings') }} />

@@ -42,6 +42,8 @@ type DebugSettings = {
   showAutoRadius: boolean;
   /** Shows the tap range around the player and the auto radius around each node. */
   showNodeRanges: boolean;
+  /** The next traveller helped offers to join as a rare class (a hooded stranger). */
+  forceRareRecruit: boolean;
 };
 
 type DebugState = DebugSettings & {
@@ -71,6 +73,7 @@ const DEBUG_DEFAULTS: DebugSettings = {
   forcedBriefings: {},
   showAutoRadius: false,
   showNodeRanges: false,
+  forceRareRecruit: false,
 };
 
 export const useDebugStore = create<DebugState>()(

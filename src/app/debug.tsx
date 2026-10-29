@@ -9,7 +9,7 @@ import { MASTERY_TYPES, masteryTypeNames, QUALITIES, qualities } from '@/content
 import { gearId, gearProfiles } from '@/content/equipment';
 import { dungeons } from '@/content/dungeons';
 import { guildTrackById, guildTracks, type GuildTrackId } from '@/content/guild';
-import { heroClasses, xpRules } from '@/content/heroes';
+import { gamblerRules, heroClasses, xpRules } from '@/content/heroes';
 import { traits } from '@/content/traits';
 import { items } from '@/content/items';
 import { itemById, threatById, restrictionById, opportunityById, recipeById, recipeOutput } from '@/content/lookup';
@@ -52,7 +52,8 @@ import { distanceTo } from '@/game/patrols/visibility';
 import { masteryCap, masteryOf } from '@/game/forging/mastery';
 import { guildRank } from '@/game/guild/guild';
 import { currentHp, isExhausted, maxHp } from '@/game/team/health';
-import type { ActiveThreat, Briefing, HeroClassId, MainRewardKind, MasteryType, Quality, ThreatId, ThreatLevel } from '@/game/types';
+import { gradeRoll, type Grade } from '@/game/taverns/roll';
+import type { ActiveThreat, Briefing, HeroClassId, MainRewardKind, MasteryType, Quality, StatKey, ThreatId, ThreatLevel } from '@/game/types';
 import { forgedItem, isKnown } from '@/game/crafting/crafting';
 import { playBack, syncBackground } from '@/hooks/useAutoGather';
 import { deviceLocation } from '@/services/location';
@@ -194,6 +195,8 @@ export default function DebugScreen() {
   const [heroClass, setHeroClass] = useState<HeroClassId>('thief');
   const [heroLevel, setHeroLevel] = useState(1);
   const [heroTrait, setHeroTrait] = useState(traits[0].id);
+  const [heroGrade, setHeroGrade] = useState<Grade | 'average'>('average');
+  const [heroPrimary, setHeroPrimary] = useState<StatKey>(gamblerRules.primaryChoices[0]);
   const [hpHero, setHpHero] = useState(game.save.heroes[0]?.id ?? '');
   const [levelHero, setLevelHero] = useState(game.save.heroes[0]?.id ?? '');
   const now = useNow();
@@ -511,15 +514,43 @@ export default function DebugScreen() {
         onChange={setHeroClass}
       />
       <Choice options={traits.map((t) => t.id)} value={heroTrait} label={(id) => traits.find((t) => t.id === id)!.name} onChange={setHeroTrait} />
+      <Choice
+        options={['average', 'C', 'B', 'A', 'S'] as (Grade | 'average')[]}
+        value={heroGrade}
+        label={(grade) => (grade === 'average' ? 'Average roll' : `Grade ${grade}`)}
+        onChange={setHeroGrade}
+      />
+      {heroClass === 'gambler' && (
+        <Choice options={gamblerRules.primaryChoices} value={heroPrimary} label={(stat) => `3rd primary: ${stat}`} onChange={setHeroPrimary} />
+      )}
       <View style={styles.row}>
         <Text>Level {heroLevel}</Text>
         <View style={styles.choices}>
           <Button title="−" disabled={heroLevel <= 1} onPress={() => setHeroLevel(heroLevel - 1)} />
           <Button title="+" onPress={() => setHeroLevel(heroLevel + 1)} />
-          <Button title="Add hero" onPress={() => game.addHero(heroClass, heroLevel, heroTrait)} />
+          <Button
+            title="Add hero"
+            onPress={() =>
+              game.addHero(
+                heroClass,
+                heroLevel,
+                heroTrait,
+                heroGrade === 'average' && heroClass !== 'gambler'
+                  ? undefined
+                  : gradeRoll(heroGrade === 'average' ? 'B' : heroGrade, heroClass === 'gambler' ? heroPrimary : undefined),
+              )
+            }
+          />
         </View>
       </View>
       <Text style={styles.hint}>Debug heroes skip the roster cap and teach their weapon types like recruits.</Text>
+      <View style={styles.row}>
+        <Text>Next helped traveller offers a rare class</Text>
+        <Button
+          title={debug.forceRareRecruit ? 'On' : 'Off'}
+          onPress={() => debug.set({ forceRareRecruit: !debug.forceRareRecruit })}
+        />
+      </View>
 
       <Text>{t('debug.setLevel')}</Text>
       <Text>{t('autoGather.pickHero')}</Text>

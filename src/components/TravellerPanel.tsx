@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, View } from 'react-native';
 
 import { elementInfo } from '@/content/elements';
@@ -24,6 +24,7 @@ import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
+import { ClassSummary } from './ClassSummary';
 import { patrolIcons } from './PatrolMarker';
 import { RecruitGrade } from './RecruitGrade';
 import { Text } from './Text';
@@ -57,6 +58,11 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
   const [helped, setHelped] = useState<{ reward: TravellerReward; rosterFull: boolean } | null>(null);
   const kind = isTravellerKind(spawn.kind) ? spawn.kind : null;
   const texts = localized({ en: patrolTexts, fr: frPatrolTexts });
+  const seeClasses = useGameStore((state) => state.seeClasses);
+  const recruitClass = helped?.reward.kind === 'recruit' ? helped.reward.offer.classId : null;
+  useEffect(() => {
+    if (recruitClass) seeClasses([recruitClass]);
+  }, [recruitClass, seeClasses]);
 
   if (!kind) return null;
 
@@ -155,7 +161,8 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
                   </Text>
                 )}
                 {recruit && (
-                  <>
+                  <View style={[styles.recruit, recruit.hooded && styles.hooded]}>
+                    {recruit.hooded && <Text style={styles.name}>🧥 {t('classes.hooded')}</Text>}
                     <Text style={styles.name}>{t('patrols.recruitOffer', { name: recruit.name })}</Text>
                     <Text style={styles.muted}>
                       {t('tavern.offer', {
@@ -164,6 +171,7 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
                         level: recruit.level,
                       })}
                     </Text>
+                    <ClassSummary classId={recruit.classId} />
                     <RecruitGrade grade={recruit.grade} roll={recruit.roll} />
                     <Text style={[styles.trait, { color: traitById[recruit.trait].positive ? colors.ink : colors.danger }]}>
                       {tr(traitById[recruit.trait].name)}: {tr(traitById[recruit.trait].description)}
@@ -172,7 +180,7 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
                       <Button title={t('patrols.accept')} onPress={() => { acceptTravellerRecruit(recruit); onClose(); }} />
                       <Button title={t('patrols.decline')} color={colors.muted} onPress={onClose} />
                     </View>
-                  </>
+                  </View>
                 )}
                 {helped?.rosterFull && <Text style={styles.muted}>{t('patrols.rosterFull')}</Text>}
               </View>
@@ -217,6 +225,8 @@ const styles = StyleSheet.create({
   title: { fontSize: 26 },
   muted: { color: colors.muted },
   offer: { gap: 4, paddingVertical: 10, borderTopWidth: 2, borderTopColor: colors.parchmentDark },
+  recruit: { gap: 4 },
+  hooded: { padding: 8, borderWidth: pixel.outline, borderColor: colors.gold, backgroundColor: colors.parchmentDark },
   name: { fontSize: 21 },
   trait: { fontSize: 19 },
   problem: { color: colors.muted, fontStyle: 'italic' },

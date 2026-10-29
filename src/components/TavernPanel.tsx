@@ -1,9 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, View } from 'react-native';
 
-import { abilityText } from '@/content/abilities';
-import { masteryTypeNames } from '@/content/forging';
-import { classAffinities } from '@/content/equipment';
 import { heroClasses } from '@/content/heroes';
 import { tavernRules } from '@/content/taverns';
 import { traitById } from '@/content/traits';
@@ -26,6 +23,7 @@ import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
+import { ClassSummary } from './ClassSummary';
 import { lineName } from './PlacePanel';
 import { RecruitGrade } from './RecruitGrade';
 import { Text } from './Text';
@@ -51,14 +49,14 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
   const [openedAt] = useState(() => Date.now());
   const offers = tavernOffers(save, tavern.id, openedAt, offerSeed);
   const distance = distanceMeters(player, tavern.position);
+  const seeClasses = useGameStore((state) => state.seeClasses);
+  const offeredClasses = offers.map((o) => o.classId).join(',');
+  useEffect(() => seeClasses(offeredClasses.split(',') as RecruitOffer['classId'][]), [offeredClasses, seeClasses]);
 
   const offerRow = (offer: RecruitOffer) => {
     const heroClass = heroClasses[offer.classId];
     const trait = traitById[offer.trait];
     const problem = recruitProblem(save, offer, tavern.position, player);
-    const weapons = (Object.entries(classAffinities[offer.classId]) as [keyof typeof masteryTypeNames, string][])
-      .filter(([, affinity]) => affinity === 'favoured')
-      .map(([type]) => tr(masteryTypeNames[type].name).toLowerCase());
     return (
       <View key={offer.id} style={styles.offer}>
         <Text style={styles.name}>
@@ -68,9 +66,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
         <Text style={[styles.trait, { color: trait.positive ? colors.ink : colors.danger }]}>
           {tr(trait.name)}: {tr(trait.description)}
         </Text>
-        <Text style={styles.muted}>
-          {[t('tavern.uses', { weapons: weapons.join(', ') }), ...heroClass.abilities.map(abilityText)].join(' · ')}
-        </Text>
+        <ClassSummary classId={offer.classId} />
         <View style={styles.actions}>
           <Text style={styles.price}>🪙 {offer.price}</Text>
           <Button title={t('tavern.recruit')} disabled={problem !== null} onPress={() => recruit(offer, tavern.position, player)} />

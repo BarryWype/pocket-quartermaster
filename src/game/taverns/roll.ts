@@ -61,3 +61,10 @@ export function statArrows(roll: HeroRoll, rules: RecruitRules = recruitRules): 
   }
   return arrows;
 }
+
+/** Debug: a roll with every sum the same, picked to land on a grade (B is the average). */
+export function gradeRoll(grade: Grade, primary?: StatKey): HeroRoll {
+  const sum = { S: 12, A: 11, B: growthRules.roll.average, C: 9 }[grade];
+  const all = Object.fromEntries(STAT_KEYS.map((stat) => [stat, sum])) as Record<StatKey, number>;
+  return { base: all, growth: { ...all }, ...(primary ? { primary } : {}) };
+}

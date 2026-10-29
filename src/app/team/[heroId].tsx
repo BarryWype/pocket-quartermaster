@@ -18,8 +18,7 @@ import { abilityText } from '@/content/abilities';
 import { elementInfo } from '@/content/elements';
 import { expeditionRules } from '@/content/dungeons';
 import { approachRules } from '@/content/threats';
-import { masteryTypeNames, qualities } from '@/content/forging';
-import { classAffinities } from '@/content/equipment';
+import { qualities } from '@/content/forging';
 import { gearApproachBonus, approachScore, pendingApproachPicks } from '@/game/team/stats';
 import { heroClasses, xpToNextLevel } from '@/content/heroes';
 import { traitById } from '@/content/traits';
@@ -27,16 +26,16 @@ import { items } from '@/content/items';
 import { gearName, itemById } from '@/content/lookup';
 import { answersMemberOf, prepareParty } from '@/game/expeditions/simulate';
 import { careProblem, drinkProblem } from '@/game/team/health';
-import { affinityOf, canDismiss, heroDamageStat, heroStats, isOnExpedition } from '@/game/team/team';
+import { affinityOf, canDismiss, hasPotionSlot, heroDamageStat, heroStats, isOnExpedition } from '@/game/team/team';
+import { ClassSummary } from '@/components/ClassSummary';
 import { APPROACHES, heroAnswers } from '@/game/threats/answers';
-import type { EquipmentSlot, GearDef, WeaponType } from '@/game/types';
+import type { EquipmentSlot, GearDef } from '@/game/types';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useNow } from '@/hooks/useNow';
 import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
 
-const SLOTS: EquipmentSlot[] = ['weapon', 'armor', 'offhand', 'trinket', 'consumable'];
 
 export default function CharacterSheetScreen() {
   useLanguage();
@@ -61,15 +60,13 @@ export default function CharacterSheetScreen() {
   const largeStats = ['hp', damageStat, 'armour', 'speed'] as const;
   const smallStats = ['resistance', 'evasion', 'crit', 'luck'] as const;
 
+  const slots: EquipmentSlot[] = ['weapon', 'armor', 'offhand', 'trinket', 'consumable', ...(hasPotionSlot(hero) ? ['potion' as const] : [])];
   const trait = traitById[hero.trait];
   // The hero as equipped, seen through the threats rules; the kit keyword is
   // left out here because it only counts on the threats the kit covers.
   const member = prepareParty(save, [hero.id], now)[0];
   const answers = member ? heroAnswers(answersMemberOf(member), null) : null;
   const keywords = (answers?.keywords ?? []).filter((k) => k.source !== 'kit');
-  const weapons = (Object.entries(classAffinities[hero.classId]) as [WeaponType, string][])
-    .filter(([, affinity]) => affinity === 'favoured')
-    .map(([type]) => tr(masteryTypeNames[type].name).toLowerCase());
   const element = heroClass.element ? elementInfo[heroClass.element] : null;
   const next = xpToNextLevel(hero.level);
   const confirmDismiss = () =>
@@ -92,7 +89,7 @@ export default function CharacterSheetScreen() {
    */
   const slotContent = (slot: EquipmentSlot) => {
     const id = hero.equipment[slot];
-    if (id && slot === 'consumable') return { emoji: itemById[id].emoji, icon: itemById[id].icon, name: tr(itemById[id].name) };
+    if (id && (slot === 'consumable' || slot === 'potion')) return { emoji: itemById[id].emoji, icon: itemById[id].icon, name: tr(itemById[id].name) };
     const gear = id ? save.gear.find((g) => g.uid === id) : undefined;
     if (!gear) return { emoji: '·', name: t('hero.empty') };
     const item = itemById[gear.itemId] as GearDef;
@@ -125,6 +122,7 @@ export default function CharacterSheetScreen() {
             <Text style={styles.level}>{t('common.level', { level: hero.level })}</Text>
           </View>
         </View>
+        <ClassSummary classId={hero.classId} light />
         <PixelBar value={next ? hero.xp / next : 1} color={colors.highlight} />
         <Text style={styles.xp}>
           {t('hero.xp', { xp: hero.xp, next })}
@@ -177,7 +175,7 @@ export default function CharacterSheetScreen() {
       </Text>
 
       <SectionTitle>
-        {`${t('hero.approaches')}${pending > 0 ? ` · ${t('hero.pendingPicks', { count: pending })}` : ''}`}
+        {`${t('hero.approaches')}${hero.gamble ? ` · 🎲 ${t('classes.rolledToday')}` : ''}${pending > 0 ? ` · ${t('hero.pendingPicks', { count: pending })}` : ''}`}
       </SectionTitle>
       <View style={styles.approaches}>
         {APPROACHES.map((approach) => {
@@ -226,7 +224,7 @@ export default function CharacterSheetScreen() {
       )}
 
       <SectionTitle>{t('hero.equipment')}</SectionTitle>
-      {SLOTS.map((slot) => {
+      {slots.map((slot) => {
         const content = slotContent(slot);
         const locked = slot === 'offhand' && offhandLocked;
         return (
@@ -261,12 +259,14 @@ export default function CharacterSheetScreen() {
           <Text>{tr(trait.description)}</Text>
         </Panel>
       )}
-      <Text>{t('hero.weapons', { weapons: weapons.join(', ') })}</Text>
-      {heroClass.abilities.map((ability, i) => (
-        <Text key={i} style={styles.ability}>
-          ◆ {abilityText(ability)}
-        </Text>
-      ))}
+      {heroClass.abilities
+        .map(abilityText)
+        .filter(Boolean)
+        .map((text, i) => (
+          <Text key={i} style={styles.ability}>
+            ◆ {text}
+          </Text>
+        ))}
 
       <View style={styles.dismiss}>
         <Button title={t('hero.dismiss')} color={colors.danger} disabled={!canDismiss(save, hero.id)} onPress={confirmDismiss} />

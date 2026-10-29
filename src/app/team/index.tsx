@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { STATS, statIcons } from '@/components/GearRow';
+import { Button } from '@/components/Button';
 import { HpBar } from '@/components/HpBar';
 import { Panel } from '@/components/Panel';
 import { IconSlot } from '@/components/Row';
@@ -29,6 +30,9 @@ export default function TeamScreen() {
       <Text style={styles.roster}>
         {t('team.roster', { count: save.heroes.length, cap: rosterCap(save), party: partySize(save) })}
       </Text>
+      <View style={styles.classes}>
+        <Button title={`📜 ${t('classes.link')}`} onPress={() => router.push('/team/classes')} />
+      </View>
       {save.heroes.map((hero) => {
         const heroClass = heroClasses[hero.classId];
         const away = isOnExpedition(save, hero.id);
@@ -70,6 +74,7 @@ const styles = StyleSheet.create({
   container: { padding: 16 },
   pressed: { opacity: 0.6 },
   roster: { color: colors.muted, paddingBottom: 8 },
+  classes: { alignItems: 'flex-start', paddingBottom: 8 },
   card: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   body: { flex: 1 },
   titleLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },

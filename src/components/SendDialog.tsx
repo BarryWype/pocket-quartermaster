@@ -12,7 +12,7 @@ import type { SaveData } from '@/game/save';
 import { briefingCoverage } from '@/game/threats/coverage';
 import { buySupplyProblem, supplyPrice } from '@/game/taverns/taverns';
 import { currentHp, drinkProblem, isExhausted, maxHp, timeToFull } from '@/game/team/health';
-import { isOnExpedition } from '@/game/team/team';
+import { carriesKit, hasPotionSlot, isOnExpedition } from '@/game/team/team';
 import type { DungeonDef, ProvisionDef } from '@/game/types';
 import { formatDuration, formatPercent, t, tr } from '@/i18n';
 import { currentRotation } from '@/store/debugStore';
@@ -111,8 +111,9 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
   /** Whether the party takes the briefing's opportunity and pays its supply. */
   const [optIn, setOptIn] = useState(false);
   const [swapping, setSwapping] = useState<string | null>(null);
-  /** Whose consumable slot is open in the picker. */
-  const [picking, setPicking] = useState<string | null>(null);
+  /** Whose consumable (or Alchemist's potion) slot is open in the picker. */
+  const [picking, setPicking] = useState<{ heroId: string; slot: 'consumable' | 'potion' } | null>(null);
+  const setKitFor = useGameStore((state) => state.setKitFor);
   const loadout = useMemo(() => ({ mealId, optIn }), [mealId, optIn]);
   const heroes = save.heroes.filter((h) => party.includes(h.id));
   const idle = save.heroes.filter((h) => !party.includes(h.id) && !isOnExpedition(save, h.id));
@@ -132,7 +133,8 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
   const opportunity = coverage.opportunity?.cost
     ? (briefing.opportunity ? opportunityById[briefing.opportunity] : null)
     : null;
-  const spoiled = briefing.restriction === 'spoiledStores';
+  // A Cook in the party lifts Spoiled stores.
+  const spoiled = coverage.restriction?.id === 'spoiledStores' && !coverage.restriction.cancelledBy;
   const durationMs = plan.minutes * 60_000 * durationScale;
   const odds = useMemo(
     () => ({
@@ -164,17 +166,31 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
                   {idle.length > 0 && <Button title={t('expeditions.confirm.swap')} color={colors.muted} onPress={() => setSwapping(swapping === hero.id ? null : hero.id)} />}
                 </View>
                 <HpBar save={save} hero={hero} now={now} />
-                <Pressable
-                  accessibilityLabel={t('hero.slots.consumable')}
-                  onPress={() => setPicking(hero.id)}
-                  style={styles.slot}
-                >
-                  <Text style={styles.slotText}>
-                    {hero.equipment.consumable
-                      ? `${itemById[hero.equipment.consumable].emoji} ${tr(itemById[hero.equipment.consumable].name)}`
-                      : `🎒 ${t('expeditions.confirm.none')}`}
-                  </Text>
-                </Pressable>
+                <View style={styles.options}>
+                  {(['consumable', ...(hasPotionSlot(hero) ? ['potion' as const] : [])] as const).map((slot) => {
+                    const id = hero.equipment[slot];
+                    return (
+                      <Pressable key={slot} accessibilityLabel={t(`hero.slots.${slot}`)} onPress={() => setPicking({ heroId: hero.id, slot })} style={styles.slot}>
+                        <Text style={styles.slotText}>
+                          {id ? `${itemById[id].emoji} ${tr(itemById[id].name)}` : `${slot === 'potion' ? '⚗️' : '🎒'} ${t('expeditions.confirm.none')}`}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                {carriesKit(hero) && heroes.length > 1 && (
+                  <View style={styles.options}>
+                    <Text style={styles.muted}>{t('classes.carriesFor')}</Text>
+                    {[null, ...heroes.filter((other) => other.id !== hero.id).map((other) => other.id)].map((id) => {
+                      const active = (hero.kitFor && party.includes(hero.kitFor) ? hero.kitFor : null) === id;
+                      return (
+                        <Pressable key={id ?? 'self'} onPress={() => setKitFor(hero.id, id)} style={[styles.option, active && styles.optionActive]}>
+                          <Text style={styles.optionText}>{id ? save.heroes.find((h) => h.id === id)!.name : t('classes.carriesSelf')}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                )}
                 {swapping === hero.id && (
                   <View style={styles.options}>
                     <Text style={styles.muted}>{t('expeditions.confirm.swapTitle', { name: hero.name })}</Text>
@@ -254,12 +270,12 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
       {picking && (
         <EquipPicker
           save={save}
-          heroId={picking}
-          slot="consumable"
+          heroId={picking.heroId}
+          slot={picking.slot}
           briefing={briefing}
           bossId={dungeon.boss.id}
           onPick={(id) => {
-            equip(picking, 'consumable', id);
+            equip(picking.heroId, picking.slot, id);
             setPicking(null);
           }}
           onClose={() => setPicking(null)}

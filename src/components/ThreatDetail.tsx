@@ -132,12 +132,28 @@ export function ThreatCoverageChips({ coverage }: { coverage: BriefingCoverage }
           {threat.coveredBy.length > 0 && (
             <Text style={styles.names} numberOfLines={1}>
               {t('threats.coveredBy', {
-                names: threat.coveredBy.map((hero) => `${hero.heroName} (${tr(hero.sourceName)})`).join(', '),
+                names: threat.coveredBy
+                  .map(
+                    (hero) =>
+                      `${hero.heroName} (${hero.porterName ? t('classes.carried', { item: tr(hero.sourceName), name: hero.porterName }) : tr(hero.sourceName)})`,
+                  )
+                  .join(', '),
               })}
             </Text>
           )}
+          {threat.loweredBy && <Text style={styles.signature}>🔭 {t('classes.lowered', { name: threat.loweredBy })}</Text>}
         </View>
       ))}
+      {coverage.restriction && (
+        <View style={styles.one}>
+          <Text style={coverage.restriction.cancelledBy ? styles.cancelled : undefined}>
+            {coverage.restriction.def.emoji} {tr(coverage.restriction.def.name)}
+          </Text>
+          {coverage.restriction.cancelledBy && (
+            <Text style={styles.signature}>{t('classes.cancelled', { name: coverage.restriction.cancelledBy })}</Text>
+          )}
+        </View>
+      )}
       {detail && (
         <Modal animationType="slide" transparent onRequestClose={() => setDetail(null)}>
           <Pressable style={styles.backdrop} onPress={() => setDetail(null)}>
@@ -159,6 +175,8 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'flex-start' },
   one: { gap: 2 },
   names: { fontSize: 14, color: colors.muted, maxWidth: 220 },
+  signature: { fontSize: 14, color: colors.success, maxWidth: 220 },
+  cancelled: { textDecorationLine: 'line-through', color: colors.muted },
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
   sheet: {
     backgroundColor: colors.parchment,

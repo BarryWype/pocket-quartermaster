@@ -44,8 +44,9 @@ import { applyTraining } from '@/game/guild/training';
 import type { GuildTrackId } from '@/content/guild';
 import { advanceTutorial, finishTutorial, nextTutorialStep, placeTutorialWood } from '@/game/tutorial/tutorial';
 import { pruneExpired, rollDailyApproaches } from '@/game/upkeep';
-import type { Approach, EquipmentSlot, ExpeditionReport, Heist, HeroClassId, MasteryType, PlaceFight, PlaceReward, Quality } from '@/game/types';
+import type { Approach, EquipmentSlot, ExpeditionReport, Heist, HeroClassId, HeroRoll, MasteryType, PlaceFight, PlaceReward, Quality } from '@/game/types';
 
+import { patrolRules } from '@/content/patrols';
 import { currentRotation, debugEnabled, useDebugStore } from './debugStore';
 
 type GameState = {
@@ -149,7 +150,8 @@ type GameState = {
   addElemental: (element: Element, kind: 'shard' | 'stone', amount: number) => void;
   addTreasureMap: () => void;
   resetFirstClears: () => void;
-  addHero: (classId: HeroClassId, level: number, trait: string) => void;
+  /** Debug: a hero of any class and level, with an average roll or one landing on a grade. */
+  addHero: (classId: HeroClassId, level: number, trait: string, roll?: HeroRoll) => void;
   /** Debug: sets a hero's level (1–15), XP to 0; pending approach picks follow. */
   debugSetHeroLevel: (heroId: string, level: number) => void;
   addCharters: (amount: number) => void;
@@ -218,7 +220,12 @@ export const useGameStore = create<GameState>()(
       helpTraveller: (spawn, player, choice) => {
         if (!isTravellerKind(spawn.kind)) throw new Error(`Nothing to ask of a ${spawn.kind}`);
         const now = Date.now();
-        const { save, reward, rosterFull } = helpTravellerRule(get().save, spawn, player, now, choice);
+        // Debug: the next traveller helped offers to join as a hooded rare.
+        const debug = useDebugStore.getState();
+        const forceRare = debugEnabled(debug) && debug.forceRareRecruit;
+        const rules = forceRare ? { ...patrolRules, recruitChance: 1, recruitMinRoster: 0 } : patrolRules;
+        const { save, reward, rosterFull } = helpTravellerRule(get().save, spawn, player, now, choice, rules, forceRare);
+        if (forceRare && reward.kind === 'recruit') debug.set({ forceRareRecruit: false });
         const kind: TravellerKind = spawn.kind;
         const patrols: WalkPatrols = {
           fights: [],
@@ -416,13 +423,16 @@ export const useGameStore = create<GameState>()(
       addCharters: (amount) => set(({ save }) => ({ save: { ...save, charters: save.charters + amount } })),
       setGuildRank: (trackId, rank) => set(({ save }) => ({ save: { ...save, guild: { ...save.guild, [trackId]: rank } } })),
       resetGuild: () => set(({ save }) => ({ save: { ...save, guild: {} } })),
-      addHero: (classId, level, trait) =>
+      addHero: (classId, level, trait, roll) =>
         set(({ save }) => ({
-          save: {
-            ...save,
-            heroes: [...save.heroes, newHero(`h${save.nextUid}`, `Debug ${classId}`, classId, trait, level)],
-            nextUid: save.nextUid + 1,
-          },
+          save: rollDailyApproaches(
+            {
+              ...save,
+              heroes: [...save.heroes, { ...newHero(`h${save.nextUid}`, `Debug ${classId}`, classId, trait, level), ...(roll ? { roll } : {}) }],
+              nextUid: save.nextUid + 1,
+            },
+            Date.now(),
+          ),
         })),
       debugSetHeroLevel: (heroId, level) =>
         set(({ save }) => {

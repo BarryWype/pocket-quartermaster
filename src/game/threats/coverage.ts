@@ -29,7 +29,7 @@ export type ThreatCoverage = {
   forced: boolean;
   intimidated: boolean;
   /** Who answers it, and what of theirs does: a class, trait, gear or kit. */
-  coveredBy: { heroId: string; heroName: string; source: KeywordSource; sourceName: string }[];
+  coveredBy: { heroId: string; heroName: string; source: KeywordSource; sourceName: string; porterName?: string }[];
   kitHeroes: string[];
   /** The hero (a Scout) who lowered it from Extreme to Strong. */
   loweredBy: string | null;
@@ -131,6 +131,7 @@ export function briefingCoverage(
         heroName: member.name,
         source: cover.source,
         sourceName: sourceName(member, heroAnswersOf, cover.source),
+        ...(cover.source === 'carried' && member.carriedBy ? { porterName: nameOf(member.carriedBy) ?? undefined } : {}),
       };
     }),
     kitHeroes: score.kitHeroes,

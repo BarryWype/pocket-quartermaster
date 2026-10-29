@@ -1,5 +1,9 @@
-import type { Ability } from '@/game/types';
+import type { Ability, HeroClassId } from '@/game/types';
 import { formatNumber, formatPercent as percent, t, tr } from '@/i18n';
+
+import { heroClasses } from './heroes';
+import { opportunityById } from './lookup';
+import { approachRules } from './threats';
 
 import { tagInfo } from './rotation';
 
@@ -77,4 +81,65 @@ export function abilityText(ability: Ability): string {
     case 'ignoresRestrictions':
       return '';
   }
+}
+
+/** A class's signature in one line, its numbers read from the class's abilities. */
+export function signatureText(classId: HeroClassId): string {
+  const vars: Record<string, string | number> = {};
+  for (const a of heroClasses[classId].abilities) {
+    switch (a.kind) {
+      case 'rage':
+        Object.assign(vars, { rage: percent(a.multiplier - 1), below: percent(a.belowPct) });
+        break;
+      case 'protect':
+        vars.protect = percent(a.share);
+        break;
+      case 'damageVsTag':
+        vars.tagBonus = percent(a.multiplier - 1);
+        break;
+      case 'penaltyReduce':
+        vars[a.penalty] = formatNumber(a.multiplier);
+        break;
+      case 'cacheBonus':
+        vars.cache = formatNumber(a.multiplier);
+        break;
+      case 'elementalAdvantage':
+        vars.advantage = formatNumber(a.multiplier);
+        break;
+      case 'partyHeal':
+        vars.partyHeal = percent(a.pct);
+        break;
+      case 'opportunityBoost': {
+        const reward = opportunityById[a.opportunity].reward;
+        vars.boost = formatNumber(a.multiplier);
+        if (reward.kind === 'goldMultiplier') vars.bounty = percent((reward.multiplier - 1) * a.multiplier);
+        break;
+      }
+      case 'keywordCount':
+        vars.count = a.count;
+        break;
+      case 'approachFor':
+        if (a.add) vars.add = a.add;
+        break;
+      case 'singleEnemyCrit':
+        vars.crit = formatNumber(a.multiplier);
+        break;
+      case 'fence':
+        Object.assign(vars, { fenceMin: percent(a.shares[0]), fenceMax: percent(a.shares[2]) });
+        break;
+      case 'kitBonus':
+        Object.assign(vars, { kit: approachRules.kitBonus + a.add, baseKit: approachRules.kitBonus });
+        break;
+      case 'mealBoost':
+        vars.meal = formatNumber(a.multiplier);
+        break;
+      case 'fightHeal':
+        vars.fightHeal = percent(a.pct);
+        break;
+      case 'critBonus':
+        vars.critBonus = percent(a.chance);
+        break;
+    }
+  }
+  return t(`classes.signature.${classId}`, vars);
 }

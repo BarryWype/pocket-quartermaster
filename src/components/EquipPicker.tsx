@@ -4,7 +4,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, View, type ImageSourcePropTyp
 import { qualities } from '@/content/forging';
 import { gearName, itemById } from '@/content/lookup';
 import { slotProblem } from '@/game/equipment/slots';
-import { affinityOf, equipPreview } from '@/game/team/team';
+import { affinityOf, equipPreview, healingPotion } from '@/game/team/team';
 import { kitAnswers } from '@/game/threats/coverage';
 import type { SaveData } from '@/game/save';
 import type { Briefing, EquipmentSlot, GearDef, StatKey, Stats } from '@/game/types';
@@ -43,10 +43,10 @@ type Option = {
 const DELTA_KEYS: (keyof Stats)[] = ['hp', 'power', 'magic', 'armour', 'resistance', 'evasion', 'speed', 'crit', 'luck'];
 
 function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, briefing?: Briefing, bossId?: string): Option[] {
-  if (slot === 'consumable') {
-    // Potions, elixirs and charms; food and kits are for the whole party.
+  if (slot === 'consumable' || slot === 'potion') {
+    // Potions, elixirs and charms; food and kits are for the whole party. The Alchemist's second slot takes healing potions only.
     return Object.entries(save.consumables)
-      .filter(([itemId, count]) => count > 0 && itemById[itemId]?.slot === 'consumable')
+      .filter(([itemId, count]) => count > 0 && itemById[itemId]?.slot === 'consumable' && (slot === 'consumable' || healingPotion(itemId)))
       .map(([itemId, count]) => {
         const item = itemById[itemId];
         const answers = briefing ? kitAnswers(itemId, briefing) : false;

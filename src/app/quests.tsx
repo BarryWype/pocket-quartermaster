@@ -174,13 +174,13 @@ export default function QuestsScreen() {
     () => (focusedDungeon ? briefingFor(rotation, focusedDungeon) : null),
     [rotation, focusedDungeon],
   );
-  // Narrow passages cut the party down for that dungeon.
-  const cap =
-    focusedBriefing?.restriction === 'narrowPassages' ? restrictionRules.narrowPartySize : partySize(save);
   const coverage = useMemo(
     () => (focusedBriefing && party.length > 0 ? briefingCoverage(save, party, focusedBriefing, minute * 60_000) : null),
     [save, party, focusedBriefing, minute],
   );
+  // Narrow passages cut the party down for that dungeon, unless a Curse-breaker in it lifts them.
+  const narrow = focusedBriefing?.restriction === 'narrowPassages' && !coverage?.restriction?.cancelledBy;
+  const cap = narrow ? restrictionRules.narrowPartySize : partySize(save);
 
   /** Parties are capped: a hero can only join while there's room. */
   const toggle = (heroId: string) => {
@@ -204,7 +204,7 @@ export default function QuestsScreen() {
         </Pressable>
       )}
       <SectionTitle>{t('expeditions.party', { count: party.length, max: cap })}</SectionTitle>
-      {focusedBriefing?.restriction === 'narrowPassages' && (
+      {narrow && (
         <Text style={styles.muted}>{t('threats.narrowCap', { count: restrictionRules.narrowPartySize })}</Text>
       )}
       <View style={styles.party}>
