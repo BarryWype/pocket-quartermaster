@@ -745,6 +745,12 @@ export default function DebugScreen() {
       <Button title="+5 of every food, kit and charm" onPress={() => game.addProvisions(5)} />
       <Button title="Grant one of each kit" onPress={game.addKits} />
       <Button title="Grant one of each elixir, meal, walking and home care item" onPress={game.addConsumables} />
+      <Text>Healing potions and fish dishes</Text>
+      <View style={styles.row}>
+        {['healingPotion', 'standardHealingPotion', 'greaterHealingPotion', 'grilledTrout', 'saltedFish', 'fishermansChowder'].map((itemId) => (
+          <Button key={itemId} title={itemById[itemId].name} onPress={() => grantItem(itemId)} />
+        ))}
+      </View>
       <Text>Boss weakness items</Text>
       <View style={styles.row}>
         {bossWeaknesses.map((weakness) => (

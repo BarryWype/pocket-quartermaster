@@ -87,8 +87,8 @@ type GameState = {
   recruit: (offer: RecruitOffer, tavern: LatLng, player: LatLng) => void;
   closeTavernHint: () => void;
   closeCookingHint: () => void;
-  /** Drinks a healing potion at home. */
-  drinkPotion: (heroId: string) => void;
+  /** Drinks a healing potion at home: the one asked for, or else the best fit. */
+  drinkPotion: (heroId: string, itemId?: string) => void;
   /** Uses a home care item from the stock on a hero at home. */
   giveHomeCare: (heroId: string, itemId: string) => void;
   /** Spends one of the hero's pending approach picks. */
@@ -277,7 +277,7 @@ export const useGameStore = create<GameState>()(
       recruit: (offer, tavern, player) => set(({ save }) => ({ save: rollDailyApproaches(recruit(save, offer, tavern, player), Date.now()) })),
       closeTavernHint: () => set(({ save }) => ({ save: { ...save, tavernHintSeen: true } })),
       closeCookingHint: () => set(({ save }) => ({ save: { ...save, cookingHintSeen: true } })),
-      drinkPotion: (heroId) => set(({ save }) => ({ save: drinkPotion(save, heroId, Date.now()) })),
+      drinkPotion: (heroId, itemId) => set(({ save }) => ({ save: drinkPotion(save, heroId, Date.now(), itemId) })),
       giveHomeCare: (heroId, itemId) => set(({ save }) => ({ save: giveHomeCare(save, heroId, itemId, Date.now()) })),
       pickApproach: (heroId, approach) => set(({ save }) => ({ save: pickApproach(save, heroId, approach) })),
       buySupply: (count, tavern, player) => set(({ save }) => ({ save: buySupply(save, count, tavern, player) })),

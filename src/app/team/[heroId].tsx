@@ -26,7 +26,7 @@ import { items } from '@/content/items';
 import { gearName, itemById } from '@/content/lookup';
 import { answersMemberOf, prepareParty } from '@/game/expeditions/simulate';
 import { careProblem, drinkProblem } from '@/game/team/health';
-import { affinityOf, canDismiss, hasPotionSlot, heroDamageStat, heroStats, isOnExpedition } from '@/game/team/team';
+import { affinityOf, canDismiss, hasPotionSlot, healingPotion, heroDamageStat, heroStats, isOnExpedition } from '@/game/team/team';
 import { ClassSummary } from '@/components/ClassSummary';
 import { APPROACHES, heroAnswers } from '@/game/threats/answers';
 import type { EquipmentSlot, GearDef } from '@/game/types';
@@ -58,6 +58,10 @@ export default function CharacterSheetScreen() {
   const away = isOnExpedition(save, hero.id);
   const pending = pendingApproachPicks(hero);
   const largeStats = ['hp', damageStat, 'armour', 'speed'] as const;
+  const potionsHeld = items
+    .filter((item) => healingPotion(item.id))
+    .map((item) => ({ item, count: (save.consumables[item.id] ?? 0) + (hero.equipment.consumable === item.id ? 1 : 0) }))
+    .filter(({ count }) => count > 0);
   const smallStats = ['resistance', 'evasion', 'crit', 'luck'] as const;
 
   const slots: EquipmentSlot[] = ['weapon', 'armor', 'offhand', 'trinket', 'consumable', ...(hasPotionSlot(hero) ? ['potion' as const] : [])];
@@ -133,11 +137,15 @@ export default function CharacterSheetScreen() {
         <HpBar save={save} hero={hero} now={now} light />
         {!away && (
           <View style={styles.drink}>
-            <Button
-              title={t('health.drink', { count: (save.consumables.healingPotion ?? 0) + (hero.equipment.consumable === 'healingPotion' ? 1 : 0) })}
-              disabled={drinkProblem(save, hero.id, now) !== null}
-              onPress={() => drinkPotion(hero.id)}
-            />
+            {potionsHeld.length === 0 && <Button title={t('health.drink', { count: 0 })} disabled onPress={() => {}} />}
+            {potionsHeld.map(({ item, count }) => (
+              <Button
+                key={item.id}
+                title={t('health.use', { item: `${item.emoji} ${tr(item.name)}`, count })}
+                disabled={drinkProblem(save, hero.id, now, item.id) !== null}
+                onPress={() => drinkPotion(hero.id, item.id)}
+              />
+            ))}
             <Text style={styles.xp}>{t('health.drinkHint')}</Text>
             {items
               .filter((item) => item.slot === 'utility' && item.homeCare && (save.consumables[item.id] ?? 0) > 0)

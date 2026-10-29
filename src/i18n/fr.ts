@@ -180,7 +180,7 @@ export const fr: Dictionary = {
     fullIn: 'rétabli dans {time}',
     exhausted: 'épuisé pour {time}',
     drink: 'Boire une potion ({count})',
-    drinkHint: 'Une potion de soin rend 30 % des PV d’un coup et met fin à l’épuisement.',
+    drinkHint: 'Une potion de soin rend sa part des PV d’un coup (30 %, 50 % ou 70 %) et met fin à l’épuisement.',
     use: 'Utiliser {item} ({count})',
   },
   odds: { Risky: 'Risqué', Fair: 'Correct', Safe: 'Sûr' },

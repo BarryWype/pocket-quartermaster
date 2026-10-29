@@ -175,7 +175,7 @@ export const en = {
     fullIn: 'full in {time}',
     exhausted: 'exhausted for {time}',
     drink: 'Drink potion ({count})',
-    drinkHint: 'A healing potion restores 30% HP at once and ends exhaustion.',
+    drinkHint: 'A healing potion restores its share of HP at once (30%, 50% or 70%) and ends exhaustion.',
     use: 'Use {item} ({count})',
   },
   odds: { Risky: 'Risky', Fair: 'Fair', Safe: 'Safe' },
