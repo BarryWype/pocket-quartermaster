@@ -23,9 +23,10 @@ import { classAffinities } from '@/content/equipment';
 import { gearApproachBonus, approachScore, pendingApproachPicks } from '@/game/team/stats';
 import { heroClasses, xpToNextLevel } from '@/content/heroes';
 import { traitById } from '@/content/traits';
+import { items } from '@/content/items';
 import { gearName, itemById } from '@/content/lookup';
 import { answersMemberOf, prepareParty } from '@/game/expeditions/simulate';
-import { drinkProblem } from '@/game/team/health';
+import { careProblem, drinkProblem } from '@/game/team/health';
 import { affinityOf, canDismiss, heroDamageStat, heroStats, isOnExpedition } from '@/game/team/team';
 import { APPROACHES, heroAnswers } from '@/game/threats/answers';
 import type { EquipmentSlot, GearDef, WeaponType } from '@/game/types';
@@ -44,6 +45,7 @@ export default function CharacterSheetScreen() {
   const equip = useGameStore((state) => state.equip);
   const dismiss = useGameStore((state) => state.dismissHero);
   const drinkPotion = useGameStore((state) => state.drinkPotion);
+  const giveHomeCare = useGameStore((state) => state.giveHomeCare);
   const pickApproach = useGameStore((state) => state.pickApproach);
   const now = useNow();
   const [picking, setPicking] = useState<EquipmentSlot | null>(null);
@@ -139,6 +141,16 @@ export default function CharacterSheetScreen() {
               onPress={() => drinkPotion(hero.id)}
             />
             <Text style={styles.xp}>{t('health.drinkHint')}</Text>
+            {items
+              .filter((item) => item.slot === 'utility' && item.homeCare && (save.consumables[item.id] ?? 0) > 0)
+              .map((item) => (
+                <Button
+                  key={item.id}
+                  title={t('health.use', { item: `${item.emoji} ${tr(item.name)}`, count: save.consumables[item.id] })}
+                  disabled={careProblem(save, hero.id, item.id, now) !== null}
+                  onPress={() => giveHomeCare(hero.id, item.id)}
+                />
+              ))}
           </View>
         )}
       </Panel>

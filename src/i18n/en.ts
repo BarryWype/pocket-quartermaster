@@ -33,6 +33,13 @@ export const en = {
     guild: 'Guild',
     expeditions: 'Quests',
   },
+  walkEffects: {
+    title: 'Walking items',
+    use: 'Use',
+    replace: 'Replace',
+    replaceTitle: 'Already active',
+    replaceBody: '{item} is still running. Using another restarts its timer from now; the time left is lost.',
+  },
   map: {
     findingYou: 'Finding you…',
     waitingGps: 'Waiting for an accurate GPS position.',
@@ -167,6 +174,7 @@ export const en = {
     exhausted: 'exhausted for {time}',
     drink: 'Drink potion ({count})',
     drinkHint: 'A healing potion restores 30% HP at once and ends exhaustion.',
+    use: 'Use {item} ({count})',
   },
   odds: { Risky: 'Risky', Fair: 'Fair', Safe: 'Safe' },
   threats: {
@@ -258,6 +266,7 @@ export const en = {
     brew: 'Brew',
     cook: 'Cook',
     tabs: { kitchen: 'Kitchen', alchemy: 'Alchemy' },
+    families: { meals: 'Meals', supply: 'Supply', kits: 'Kits', hero: 'Hero consumables', walking: 'Walking', homeCare: 'Home care' },
     batch: '×{count}',
     infuse: 'Infuse',
     owned: 'Owned',

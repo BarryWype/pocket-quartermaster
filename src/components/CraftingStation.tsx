@@ -33,6 +33,18 @@ const TABS: Tab[] = ['kitchen', 'alchemy'];
 const BATCHES = [1, 5, 10];
 const TIERS = [1, 2, 3, 4, 5];
 
+type Family = 'meals' | 'supply' | 'kits' | 'hero' | 'walking' | 'homeCare';
+/** Provisions rows are grouped by family, in this order within each tab. */
+const FAMILIES: Family[] = ['meals', 'supply', 'kits', 'hero', 'walking', 'homeCare'];
+
+function familyOf(recipe: RecipeDef): Family {
+  const item = 'itemId' in recipe.output ? itemById[recipe.output.itemId] : null;
+  if (item?.slot === 'provision') return item.meal ? 'meals' : 'supply';
+  if (item?.slot === 'utility') return item.walk ? 'walking' : 'homeCare';
+  if (item?.slot === 'consumable' && (item.kit || item.protectsAgainst)) return 'kits';
+  return 'hero';
+}
+
 /** The forged piece in its quality colour, bigger for Legendary, and any mastery level-up. */
 
 /** The forged piece in its quality colour, bigger for Legendary, and any mastery level-up. */
@@ -80,12 +92,18 @@ export function CraftingStation({ station, action }: Props) {
           ))}
         </View>
       )}
-      {recipes
-        .filter((recipe) => recipe.station === station && (!tabbed || recipe.tab === tab))
-        // At the forge, gear recipes move into the tier grid below.
-        .filter((recipe) => !grid || !forgedItem(recipe))
-        .filter((recipe) => isKnown(save, recipe))
-        .map((recipe) => {
+      {(tabbed ? FAMILIES : [null]).map((family) => {
+        const rows = recipes
+          .filter((recipe) => recipe.station === station && (!tabbed || recipe.tab === tab))
+          // At the forge, gear recipes move into the tier grid below.
+          .filter((recipe) => !grid || !forgedItem(recipe))
+          .filter((recipe) => isKnown(save, recipe))
+          .filter((recipe) => family === null || familyOf(recipe) === family);
+        if (rows.length === 0) return null;
+        return (
+          <View key={family ?? 'all'}>
+            {family && <Text style={styles.family}>{t(`crafting.families.${family}`)}</Text>}
+            {rows.map((recipe) => {
           const output = recipeOutput(recipe);
           const description = 'itemId' in recipe.output ? itemById[recipe.output.itemId].description : undefined;
           const inputs = (
@@ -138,7 +156,10 @@ export function CraftingStation({ station, action }: Props) {
               }
             />
           );
-        })}
+            })}
+          </View>
+        );
+      })}
       {grid && <GearGrid save={save} action={action} onCraft={(recipeId) => setResult(craft(recipeId))} />}
     </ScrollView>
   );
@@ -202,6 +223,7 @@ const styles = StyleSheet.create({
   input: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   inputText: { fontSize: 17, color: colors.muted },
   mastery: { fontSize: 16, color: colors.muted },
+  family: { fontSize: 18, color: colors.ink, marginTop: 8, marginBottom: 2 },
   grid: { gap: 10, marginTop: 12 },
   gridRow: { gap: 4 },
   gridHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },

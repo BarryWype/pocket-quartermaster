@@ -11,6 +11,7 @@ import { dungeons } from '@/content/dungeons';
 import { guildTrackById, guildTracks, type GuildTrackId } from '@/content/guild';
 import { heroClasses, xpRules } from '@/content/heroes';
 import { traits } from '@/content/traits';
+import { items } from '@/content/items';
 import { threatById, restrictionById, opportunityById, recipeById, recipeOutput } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
 import { dungeonThreats, opportunityDefs, restrictionDefs, surges, threatDefs } from '@/content/threats';
@@ -64,6 +65,7 @@ const STEP_METERS = [10, 50];
 const TIMES_OF_DAY: (TimeOfDay | null)[] = [null, 'dawn', 'day', 'dusk', 'night'];
 const WINDOWS: (number | null)[] = [null, 1, 5, 15];
 const TIERS = [1, 2, 3, 4, 5];
+const WALK_ITEMS = items.filter((item) => item.slot === 'utility' && item.walk);
 const HP_SHARES = [0, 0.25, 0.5, 0.75];
 const MAIN_REWARDS: (MainRewardKind | null)[] = [null, 'goldPouch', 'sigil', 'treasureMap', 'lure'];
 const THREAT_LEVELS: ThreatLevel[] = [1, 2, 3];
@@ -119,6 +121,12 @@ export default function DebugScreen() {
   useLanguage();
   const debug = useDebugStore();
   const game = useGameStore();
+  const startWalkItem = (itemId: string) => {
+    useGameStore.setState(({ save }) => ({
+      save: { ...save, consumables: { ...save.consumables, [itemId]: (save.consumables[itemId] ?? 0) + 1 } },
+    }));
+    game.startWalkEffect(itemId, debug.mockLocation ?? useWorldStore.getState().player ?? FALLBACK_LOCATION);
+  };
   const autoMode = useWorldStore((state) => state.autoGather);
   const [buffer, setBuffer] = useState<StoredBuffer | null>(null);
   const [playback, setPlayback] = useState<WalkSummary | null>(null);
@@ -638,6 +646,17 @@ export default function DebugScreen() {
       </View>
       <Button title="+5 of every food, kit and charm" onPress={() => game.addProvisions(5)} />
       <Button title="Grant one of each kit" onPress={game.addKits} />
+      <Button title="Grant one of each elixir, meal, walking and home care item" onPress={game.addConsumables} />
+      <Text>Walking effects (start grants one and uses it here)</Text>
+      {WALK_ITEMS.map((item) => (
+        <View key={item.id} style={styles.row}>
+          <Text>
+            {item.emoji} {item.name}
+          </Text>
+          <Button title="Start" onPress={() => startWalkItem(item.id)} />
+          <Button title="End" onPress={() => game.endWalkEffect(item.id)} />
+        </View>
+      ))}
 
       <Text style={styles.title}>Expeditions</Text>
       <View style={styles.row}>

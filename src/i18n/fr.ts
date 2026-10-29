@@ -35,6 +35,13 @@ export const fr: Dictionary = {
     guild: 'Guilde',
     expeditions: 'Quêtes',
   },
+  walkEffects: {
+    title: 'Objets de promenade',
+    use: 'Utiliser',
+    replace: 'Remplacer',
+    replaceTitle: 'Déjà actif',
+    replaceBody: '{item} est encore actif. En utiliser un autre relance le minuteur ; le temps restant est perdu.',
+  },
   map: {
     findingYou: 'Localisation…',
     waitingGps: 'En attente d’une position GPS précise.',
@@ -172,6 +179,7 @@ export const fr: Dictionary = {
     exhausted: 'épuisé pour {time}',
     drink: 'Boire une potion ({count})',
     drinkHint: 'Une potion de soin rend 30 % des PV d’un coup et met fin à l’épuisement.',
+    use: 'Utiliser {item} ({count})',
   },
   odds: { Risky: 'Risqué', Fair: 'Correct', Safe: 'Sûr' },
   threats: {
@@ -264,6 +272,7 @@ export const fr: Dictionary = {
     brew: 'Préparer',
     cook: 'Cuisiner',
     tabs: { kitchen: 'Cuisine', alchemy: 'Alchimie' },
+    families: { meals: 'Repas', supply: 'Vivres', kits: 'Trousses', hero: 'Consommables de héros', walking: 'Promenade', homeCare: 'Soins à la maison' },
     batch: '×{count}',
     infuse: 'Imprégner',
     owned: 'Possédé',

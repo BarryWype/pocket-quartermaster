@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AutoGatherPill, WalkCard } from '@/components/AutoGather';
+import { WalkEffects } from '@/components/WalkEffects';
 import { IslandMenu, ISLAND_HEIGHT } from '@/components/IslandMenu';
 import { MapFoliage, useFoliage } from '@/components/MapFoliage';
 import { MapTrail, MapWater } from '@/components/MapAmbience';
@@ -38,6 +39,7 @@ import { distanceMeters } from '@/game/generation/geo';
 import { generateSpawnsAround } from '@/game/generation/spawns';
 import type { LatLng, Spawn, SpawnConfig } from '@/game/generation/types';
 import { visibleSpawns } from '@/game/generation/visibility';
+import { patrolRulesAt, trackedRange, trackWindows, walkEffectAt, walkEffectSpawns } from '@/game/gathering/walkEffects';
 import { isPatrolKind, isTravellerKind, patrolPositionAt, patrolTier, patrolsAround, pruneByWindow, type PatrolSpawn } from '@/game/patrols/generate';
 import { pocketTracking } from '@/game/patrols/pocketMode';
 import { fleesAt, hasFled, isGone, isVisible } from '@/game/patrols/visibility';
@@ -165,7 +167,11 @@ export default function MapScreen() {
     return generateSpawnsAround(position, minute * 60_000, { config, timeOfDay: timeOfDay ?? undefined });
   }, [position?.latitude, position?.longitude, minute, timeOfDay, windowMinutes]);
   // A lure adds private herbs and animals for a while.
-  const lured = useMemo(() => lureSpawns(save.activeLure, minute * 60_000), [save.activeLure, minute]);
+  // Hunter's musk draws animals the same way.
+  const lured = useMemo(
+    () => [...lureSpawns(save.activeLure, minute * 60_000), ...walkEffectSpawns(save.walkEffects, minute * 60_000)],
+    [save.activeLure, save.walkEffects, minute],
+  );
   const allSpawns = useMemo(() => [...spawns, ...lured], [spawns, lured]);
   // On paths and in public areas; the tutorial's first tree stays where it was put.
   const placedSpawns = usePlacedSpawns(allSpawns, position);
@@ -212,7 +218,7 @@ export default function MapScreen() {
   );
   const placedTreasure = usePlacedPoints(treasureSpots, walkableRules);
   const visible = position
-    ? visibleSpawns([...placedSpawns, ...tutorialSpawns(save)], position, now).filter(
+    ? visibleSpawns([...placedSpawns, ...tutorialSpawns(save)], position, now, undefined, trackedRange(save, now)).filter(
         ({ spawn }) => !(spawn.id in save.collected) && showsOnMap(save, spawn),
       )
     : [];
@@ -233,12 +239,12 @@ export default function MapScreen() {
       position
         ? patrolSpawns.filter(
             (spawn) =>
-              isVisible(spawn, position, now) &&
+              isVisible(spawn, position, now, patrolRulesAt(patrolRules, trackWindows(save.walkEffects), now)) &&
               !isGone(spawn, { ...save.beatenPatrols, ...save.helpedTravellers }, now) &&
               !hasFled(spawn, patrolsSeen[spawn.id], now),
           )
         : [],
-    [patrolSpawns, position, now, save.beatenPatrols, save.helpedTravellers, patrolsSeen],
+    [patrolSpawns, position, now, save.beatenPatrols, save.helpedTravellers, save.walkEffects, patrolsSeen],
   );
 
   // First sighting of a spawn: starts the goblins' flee timer and the "just seen" pulse.
@@ -289,12 +295,15 @@ export default function MapScreen() {
   }
 
   const autoOn = autoEnabled && autoMode !== 'off';
+  const autoRadius =
+    gatheringConfig.autoGather.radiusMeters +
+    (walkEffectAt(save.walkEffects, 'forage', now) ? gatheringConfig.walkEffects.forage.radiusBonusMeters : 0);
   const ranges: RangeCircle[] = [
     // The selected patrol's engage range, so the player can see how close to get.
     ...(selectedPatrol
       ? [{ id: 'patrol', center: patrolPositionAt(selectedPatrol, now), radius: patrolRules.engageMeters, kind: 'patrol' as const }]
       : []),
-    ...(autoOn || showAutoRadius ? [{ id: 'auto', center: position, radius: gatheringConfig.autoGather.radiusMeters, kind: 'auto' as const }] : []),
+    ...(autoOn || showAutoRadius ? [{ id: 'auto', center: position, radius: autoRadius, kind: 'auto' as const }] : []),
     ...(showNodeRanges
       ? [
           { id: 'tap', center: position, radius: gatheringConfig.collectRadiusMeters, kind: 'tap' as const },
@@ -475,6 +484,12 @@ export default function MapScreen() {
           {t('map.lure', { time: minutesLeft(lureEndsAt(save) - now) })}
         </Text>
       )}
+      <WalkEffects
+        player={position}
+        now={now}
+        buttonStyle={{ bottom: insets.bottom + ISLAND_HEIGHT + 68 }}
+        chipsStyle={{ top: insets.top + 48 }}
+      />
       {save.tutorial.step === 'done' && freshGathersLeft(save, now) > 0 && (
         <Text style={[styles.banner, styles.freshLegs, { top: insets.top + 8 }]}>
           {t('map.freshLegs', { count: freshGathersLeft(save, now) })}
