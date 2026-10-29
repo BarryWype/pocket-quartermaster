@@ -5,6 +5,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { offsetPosition } from '@/game/generation/geo';
 import type { LatLng, TimeOfDay } from '@/game/generation/types';
 import { applyOverrides, dailyRotation, rotationDay } from '@/game/dungeons/rotation';
+import type { PlaceSpawn } from '@/game/places/generate';
 import type { SanctumSpawn } from '@/game/sanctums/sanctums';
 import type { Briefing, MainRewardKind, Quality } from '@/game/types';
 
@@ -26,6 +27,8 @@ type DebugSettings = {
   forcedQuality: Quality | null;
   /** A tavern placed by hand next to the player. */
   debugTavern: { id: string; name: string; position: LatLng; expiresAt: number } | null;
+  /** Places put by hand next to the player. */
+  debugPlaces: PlaceSpawn[];
   /** Changes every tavern's offers, to reroll them. */
   offerSeed: string;
   /** Days added to today's rotation day. */
@@ -61,6 +64,7 @@ const DEBUG_DEFAULTS: DebugSettings = {
   forcedQuality: null,
   rotationDayOffset: 0,
   debugTavern: null,
+  debugPlaces: [],
   offerSeed: '',
   forcedSlots: {},
   forcedBriefings: {},

@@ -29,6 +29,9 @@ import { addPatrolsToWalks, escortHpChange, walkPatrolsFrom } from '@/game/patro
 import { challengeSanctum, type SanctumResult, type SanctumSpawn } from '@/game/sanctums/sanctums';
 import { createInitialSave, type SaveData, type TutorialStep } from '@/game/save';
 import { drinkPotion, fastForwardHealing, giveHomeCare, healAll, setHeroHp, settleHp } from '@/game/team/health';
+import { buy, sellGear, sellMaterial } from '@/game/places/shops';
+import { apothecaryCare, blessRelics, chapelCare, takeChapelBlessing, trainHero, type CareKind } from '@/game/places/services';
+import type { PlaceSpawn } from '@/game/places/generate';
 import { pickApproach } from '@/game/team/stats';
 import { dismissHero, equip, heroStats, isAway, keepHpShare, unequip } from '@/game/team/team';
 import { buySupply, recruit, type RecruitOffer } from '@/game/taverns/taverns';
@@ -82,6 +85,16 @@ type GameState = {
   /** Spends one of the hero's pending approach picks. */
   pickApproach: (heroId: string, approach: Approach) => void;
   buySupply: (count: number, tavern: LatLng, player: LatLng) => void;
+  /** Buys from a place's stock; a sold-out place leaves the map for this player. */
+  buyAtPlace: (spawn: PlaceSpawn, lineKey: string, count: number, player: LatLng) => void;
+  sellGearAtPlace: (spawn: PlaceSpawn, gearUid: string, player: LatLng) => void;
+  sellMaterialAtPlace: (spawn: PlaceSpawn, materialId: string, count: number, player: LatLng) => void;
+  /** The chapel's free care, once per visit. */
+  chapelCare: (spawn: PlaceSpawn, heroId: string, care: CareKind, player: LatLng) => void;
+  blessRelics: (spawn: PlaceSpawn, player: LatLng) => void;
+  takeChapelBlessing: (spawn: PlaceSpawn, player: LatLng) => void;
+  apothecaryCare: (spawn: PlaceSpawn, heroId: string, care: CareKind, player: LatLng) => void;
+  trainHero: (spawn: PlaceSpawn, heroId: string, player: LatLng) => void;
   buyRank: (trackId: GuildTrackId) => void;
   /** Credits Guild Hall training XP since the last check. */
   train: () => void;
@@ -111,6 +124,8 @@ type GameState = {
   /** Marks the lowest unbeaten boss as beaten, revealing the next dungeon tier. */
   beatNextBoss: () => void;
   addGold: (amount: number) => void;
+  /** Debug: forgets every purchase and used-up place, refilling shops. */
+  refillPlaces: () => void;
   addAllMaterials: (amount: number) => void;
   addSigil: (tier: number) => void;
   addElemental: (element: Element, kind: 'shard' | 'stone', amount: number) => void;
@@ -236,6 +251,16 @@ export const useGameStore = create<GameState>()(
       giveHomeCare: (heroId, itemId) => set(({ save }) => ({ save: giveHomeCare(save, heroId, itemId, Date.now()) })),
       pickApproach: (heroId, approach) => set(({ save }) => ({ save: pickApproach(save, heroId, approach) })),
       buySupply: (count, tavern, player) => set(({ save }) => ({ save: buySupply(save, count, tavern, player) })),
+      buyAtPlace: (spawn, lineKey, count, player) => set(({ save }) => ({ save: buy(save, spawn, lineKey, count, player, Date.now()) })),
+      sellGearAtPlace: (spawn, gearUid, player) => set(({ save }) => ({ save: sellGear(save, spawn, gearUid, player, Date.now()) })),
+      sellMaterialAtPlace: (spawn, materialId, count, player) =>
+        set(({ save }) => ({ save: sellMaterial(save, spawn, materialId, count, player, Date.now()) })),
+      chapelCare: (spawn, heroId, care, player) => set(({ save }) => ({ save: chapelCare(save, spawn, heroId, care, player, Date.now()) })),
+      blessRelics: (spawn, player) => set(({ save }) => ({ save: blessRelics(save, spawn, player, Date.now()) })),
+      takeChapelBlessing: (spawn, player) => set(({ save }) => ({ save: takeChapelBlessing(save, spawn, player, Date.now()) })),
+      apothecaryCare: (spawn, heroId, care, player) =>
+        set(({ save }) => ({ save: apothecaryCare(save, spawn, heroId, care, player, Date.now()) })),
+      trainHero: (spawn, heroId, player) => set(({ save }) => ({ save: trainHero(save, spawn, heroId, player, Date.now()) })),
       buyRank: (trackId) => set(({ save }) => ({ save: buyRank(save, trackId) })),
       train: () => set(({ save }) => ({ save: applyTraining(save, Date.now()) })),
       startExpedition: (dungeonId, heroIds, durationScale, loadout) =>
@@ -302,6 +327,7 @@ export const useGameStore = create<GameState>()(
           return boss ? { save: { ...save, clearedDungeons: [...save.clearedDungeons, boss.id] } } : { save };
         }),
       addGold: (amount) => set(({ save }) => ({ save: { ...save, gold: save.gold + amount } })),
+      refillPlaces: () => set(({ save }) => ({ save: { ...save, placePurchases: {}, usedPlaces: {} } })),
       addAllMaterials: (amount) =>
         set(({ save }) => ({
           save: {

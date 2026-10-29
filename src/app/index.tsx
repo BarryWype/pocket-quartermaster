@@ -13,6 +13,7 @@ import { MapSky, useSkyPan } from '@/components/MapSky';
 import { MapRanges, type RangeCircle } from '@/components/MapRanges';
 import { PatrolMarker } from '@/components/PatrolMarker';
 import { PatrolPanel } from '@/components/PatrolPanel';
+import { PANEL_KINDS, PlacePanel } from '@/components/PlacePanel';
 import { PlaceholderScreen } from '@/components/PlaceholderScreen';
 import { SanctumMarker } from '@/components/SanctumMarker';
 import { SanctumPanel } from '@/components/SanctumPanel';
@@ -26,12 +27,13 @@ import { items } from '@/content/items';
 import { materialById, resourceById } from '@/content/lookup';
 import { mapStyle } from '@/content/mapStyle';
 import { patrolRules } from '@/content/patrols';
+import { placeGroups, placeInfo, placeRules } from '@/content/places';
 import { sanctumRules } from '@/content/sanctums';
 import { spawnConfig } from '@/content/spawnConfig';
 import { tavernRules } from '@/content/taverns';
 import { walkableRules } from '@/content/walkable';
 import { highestUnlockedTier } from '@/game/expeditions/expeditions';
-import { freshGathersLeft, isFleeing, showsOnMap, type CollectFailure } from '@/game/gathering/gathering';
+import { freshGathersLeft, isFleeing, pickaxeTier, showsOnMap, type CollectFailure } from '@/game/gathering/gathering';
 import { readSpawn, requiredPickaxeTier } from '@/game/gathering/lockedNodes';
 import { shardId } from '@/game/elements';
 import { ambienceConfig, inSpan } from '@/game/generation/ambience';
@@ -42,6 +44,7 @@ import { visibleSpawns } from '@/game/generation/visibility';
 import { patrolRulesAt, trackedRange, trackWindows, walkEffectAt, walkEffectSpawns } from '@/game/gathering/walkEffects';
 import { isPatrolKind, isTravellerKind, patrolPositionAt, patrolTier, patrolsAround, pruneByWindow, type PatrolSpawn } from '@/game/patrols/generate';
 import { pocketTracking } from '@/game/patrols/pocketMode';
+import { isLockedMine, isPlaceVisible, placeGroupOf, placesAround, showsForPlayer, type PlaceSpawn } from '@/game/places/generate';
 import { fleesAt, hasFled, isGone, isVisible } from '@/game/patrols/visibility';
 import { isLureActive, lureEndsAt, lureSpawns } from '@/game/rewards/lures';
 import { liveTreasureMaps } from '@/game/rewards/treasure';
@@ -79,6 +82,9 @@ const SEEN_HIGHLIGHT_MS = 5000;
 /** Sanctums and taverns snap with coarse map tiles so they can be shown from kilometres away. */
 const sanctumPlacement = { ...walkableRules, ...sanctumRules.placement };
 const tavernPlacement = { ...walkableRules, ...tavernRules.placement };
+const placePlacement = { ...walkableRules, ...placeRules.placement };
+/** Groups whose places the map shows; taverns have their own markers. */
+const shownPlaceGroups = placeGroups.filter((group) => Object.keys(group.kinds).some((kind) => (PANEL_KINDS as string[]).includes(kind)));
 
 const minutesLeft = (ms: number) => `${Math.floor(ms / 60_000)}:${String(Math.floor((ms % 60_000) / 1000)).padStart(2, '0')}`;
 const failureMessages: Record<CollectFailure, (distance: number) => string> = {
@@ -106,6 +112,8 @@ export default function MapScreen() {
   const debugTavern = useDebugStore((state) => state.debugTavern);
   const closeTavernHint = useGameStore((state) => state.closeTavernHint);
   const [openTavern, setOpenTavern] = useState<TavernSpawn | null>(null);
+  const debugPlaces = useDebugStore((state) => state.debugPlaces);
+  const [openPlace, setOpenPlace] = useState<PlaceSpawn | null>(null);
   const [openPatrol, setOpenPatrol] = useState<PatrolSpawn | null>(null);
   const cameraRef = useRef<CameraRef>(null);
   const mapRef = useRef<MapRef>(null);
@@ -202,6 +210,25 @@ export default function MapScreen() {
     (t) => position !== null && distanceMeters(position, t.position) <= tavernRules.visibilityMeters,
   );
   const tavernsOpen = isTavernUnlocked(save);
+
+  // Shops and services within sight (plus snapping room), placed on walkable places.
+  const placeCandidates = useMemo(() => {
+    if (!position) return [];
+    return placesAround(position, minute * 60_000, shownPlaceGroups).filter(
+      (place) =>
+        PANEL_KINDS.includes(place.kind) &&
+        distanceMeters(position, place.position) <= placeGroupOf(place.kind).visibilityMeters + placeRules.placement.maxSnapMeters,
+    );
+  }, [position, minute]);
+  const placedPlaces = usePlacedPoints(placeCandidates, placePlacement);
+  const playerPickaxe = pickaxeTier(save);
+  const placesInSight = [...placedPlaces, ...debugPlaces].filter(
+    (place) =>
+      position !== null &&
+      isPlaceVisible(place, position, now) &&
+      !(place.id in save.usedPlaces) &&
+      showsForPlayer(place, playerPickaxe),
+  );
   // Other screens (the launch dialog) can sell emergency supply while a tavern is in reach.
   const nearbyTavern = tavernsInSight.find((t) => position !== null && distanceMeters(position, t.position) <= tavernRules.interactionMeters) ?? null;
   const setWorld = useWorldStore((state) => state.set);
@@ -410,7 +437,16 @@ export default function MapScreen() {
         ))}
         {tavernsInSight.map((tavern) => (
           <Marker key={tavern.id} id={tavern.id} lngLat={toLngLat(tavern.position)} onPress={() => setOpenTavern(tavern)}>
-            <SanctumMarker emoji="🍺" locked={!tavernsOpen} />
+            <SanctumMarker emoji="🍺" locked={!tavernsOpen} label={tr(placeInfo.tavern.name)} />
+          </Marker>
+        ))}
+        {placesInSight.map((place) => (
+          <Marker key={place.id} id={place.id} lngLat={toLngLat(place.position)} onPress={() => setOpenPlace(place)}>
+            <SanctumMarker
+              emoji={placeInfo[place.kind].emoji}
+              locked={isLockedMine(place.kind, playerPickaxe)}
+              label={tr(placeInfo[place.kind].name)}
+            />
           </Marker>
         ))}
         {visiblePatrols.map((spawn) => {
@@ -496,6 +532,7 @@ export default function MapScreen() {
         </Text>
       )}
       {openSanctum && <SanctumPanel spawn={openSanctum} player={position} onClose={() => setOpenSanctum(null)} />}
+      {openPlace && <PlacePanel place={openPlace} player={position} now={now} onClose={() => setOpenPlace(null)} />}
       {openTavern && <TavernPanel tavern={openTavern} player={position} onClose={() => setOpenTavern(null)} />}
       {selectedPatrol && isPatrolKind(selectedPatrol.kind) && (
         <PatrolPanel spawn={selectedPatrol} player={position} now={now} onClose={closePatrol} />

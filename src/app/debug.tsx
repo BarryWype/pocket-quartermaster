@@ -17,6 +17,10 @@ import { recipes } from '@/content/recipes';
 import { dungeonThreats, opportunityDefs, restrictionDefs, surges, threatDefs } from '@/content/threats';
 import { notificationCategories, notificationTexts as texts } from '@/content/notifications';
 import { patrolRules, patrolTexts } from '@/content/patrols';
+import { placeGroupOf, placesAround } from '@/game/places/generate';
+import { nearestByKind } from '@/game/places/density';
+import { placeInfo, type PlaceKind } from '@/content/places';
+import { PANEL_KINDS } from '@/components/PlacePanel';
 import { sanctums } from '@/content/sanctums';
 import { ELEMENTS, type Element } from '@/game/elements';
 import { highestUnlockedTier } from '@/game/expeditions/expeditions';
@@ -120,6 +124,8 @@ function Choice<T>({
 export default function DebugScreen() {
   useLanguage();
   const debug = useDebugStore();
+  const [placeKind, setPlaceKind] = useState<PlaceKind>('sawmill');
+  const [nearest, setNearest] = useState('');
   const game = useGameStore();
   const startWalkItem = (itemId: string) => {
     useGameStore.setState(({ save }) => ({
@@ -219,6 +225,29 @@ export default function DebugScreen() {
   const placeTavern = async () => {
     const position = offsetPosition(await currentPosition(), 20, 0);
     debug.set({ debugTavern: { id: 'tavern:debug', name: 'The Debug Tankard', position, expiresAt: Number.MAX_SAFE_INTEGER } });
+  };
+
+  /** A hand-placed place next to the player, live for its kind's whole window. */
+  const placePlace = async () => {
+    const now = Date.now();
+    const group = placeGroupOf(placeKind);
+    const position = offsetPosition(await currentPosition(), 20, 0);
+    debug.set({
+      debugPlaces: [
+        ...debug.debugPlaces,
+        { id: `place:${placeKind}:debug:${now}`, kind: placeKind, group: group.id, tile: 'debug', position, startsAt: now, expiresAt: now + group.windowHours * 3_600_000, roll: 0 },
+      ],
+    });
+  };
+
+  const measureNearest = async () => {
+    const position = await currentPosition();
+    const nearest = nearestByKind(placesAround(position, Date.now()), position);
+    setNearest(
+      (Object.keys(placeInfo) as PlaceKind[])
+        .map((kind) => `${placeInfo[kind].emoji} ${placeInfo[kind].name}: ${nearest[kind] === undefined ? '—' : `${Math.round(nearest[kind])} m`}`)
+        .join('\n'),
+    );
   };
 
   const placeSanctum = async (sanctumId: string) => {
@@ -427,6 +456,16 @@ export default function DebugScreen() {
         <Button title={t('debug.forget')} onPress={() => game.forgetRecipe(recipeId)} />
         <Button title={t('debug.learnAll')} onPress={game.learnAllRecipes} />
       </View>
+
+      <Text style={styles.title}>Places</Text>
+      <Choice options={PANEL_KINDS} value={placeKind} label={(kind) => `${placeInfo[kind].emoji} ${placeInfo[kind].name}`} onChange={setPlaceKind} />
+      <View style={styles.row}>
+        <Button title="Place it next to me" onPress={placePlace} />
+        <Button title="Clear placed" onPress={() => debug.set({ debugPlaces: [] })} />
+        <Button title="Refill shops" onPress={game.refillPlaces} />
+      </View>
+      <Button title="Nearest by kind (before snapping)" onPress={measureNearest} />
+      {nearest !== '' && <Text>{nearest}</Text>}
 
       <Text style={styles.title}>Taverns and heroes</Text>
       <View style={styles.row}>

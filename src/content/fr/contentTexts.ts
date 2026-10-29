@@ -13,6 +13,7 @@ import { resources } from '../resources';
 import { tagInfo } from '../rotation';
 import { sanctums } from '../sanctums';
 import { traits } from '../traits';
+import { placeInfo } from '../places';
 import { opportunityDefs, restrictionDefs, threatDefs } from '../threats';
 
 /** Every content name and description shown to players, in English: each needs an entry in `frNames`. */
@@ -44,6 +45,7 @@ export function contentTexts(): string[] {
     ...TIER_NAMES,
     ...Object.values(elementInfo).map((e) => e.name),
     ...Object.values(tagInfo).map((t) => t.name),
+    ...Object.values(placeInfo).flatMap((p) => [p.name, p.description]),
   ];
   return [...new Set(texts)];
 }
