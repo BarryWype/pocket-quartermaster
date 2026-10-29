@@ -1,7 +1,8 @@
 import { healthRules } from '@/content/health';
+import { itemById } from '@/content/lookup';
 
 import type { SaveData } from '../save';
-import type { HeroState } from '../types';
+import type { HeroState, HomeCare } from '../types';
 import { heroAbilities, heroStats, isAway } from './team';
 
 type Rules = typeof healthRules;
@@ -115,6 +116,47 @@ export function drinkPotion(save: SaveData, heroId: string, now: number, rules: 
       const max = maxHp(settled, hero);
       const carried = fromStock ? hero : { ...hero, equipment: { ...hero.equipment, consumable: null } };
       return withHp(carried, currentHp(settled, hero, now, rules) + rules.potionHeal * max, max, now, undefined);
+    }),
+  };
+}
+
+export type CareProblem = 'away' | 'noItem' | 'nothingToDo';
+
+/** The home care a utility item gives, or null when it is not one. */
+function homeCareOf(itemId: string): HomeCare | null {
+  const item = itemById[itemId];
+  return item?.slot === 'utility' ? item.homeCare ?? null : null;
+}
+
+export function careProblem(save: SaveData, heroId: string, itemId: string, now: number): CareProblem | null {
+  const hero = save.heroes.find((h) => h.id === heroId);
+  const care = homeCareOf(itemId);
+  if (!hero || isAway(save, heroId)) return 'away';
+  if (!care || (save.consumables[itemId] ?? 0) < 1) return 'noItem';
+  const useful = care.kind === 'heal' ? currentHp(save, hero, now) < maxHp(save, hero) : isExhausted(hero, now);
+  return useful ? null : 'nothingToDo';
+}
+
+/**
+ * Uses a home care item on a hero: a heal adds its share of max HP (exhaustion
+ * keeps pausing healing); a rest clears exhaustion, restarting healing from
+ * `now`. Always taken from the stock, never the hero's slot.
+ */
+export function giveHomeCare(save: SaveData, heroId: string, itemId: string, now: number, rules: Rules = healthRules): SaveData {
+  const problem = careProblem(save, heroId, itemId, now);
+  if (problem) throw new Error(`Cannot use ${itemId}: ${problem}`);
+  const care = homeCareOf(itemId)!;
+  const settled = settleHp(save, now, rules);
+  return {
+    ...settled,
+    consumables: { ...settled.consumables, [itemId]: settled.consumables[itemId] - 1 },
+    heroes: settled.heroes.map((hero) => {
+      if (hero.id !== heroId) return hero;
+      const max = maxHp(settled, hero);
+      const hp = currentHp(settled, hero, now, rules);
+      return care.kind === 'heal'
+        ? withHp(hero, hp + care.share * max, max, now, hero.exhaustedUntil)
+        : withHp(hero, hp, max, now, undefined);
     }),
   };
 }

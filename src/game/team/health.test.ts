@@ -7,6 +7,7 @@ import { challengeSanctum, generateSanctumsAround } from '../sanctums/sanctums';
 import { createInitialSave, type SaveData } from '../save';
 import {
   applyRunHp,
+  careProblem,
   currentHp,
   drinkPotion,
   drinkProblem,
@@ -16,6 +17,7 @@ import {
   setHeroHp,
   settleHp,
   timeToFull,
+  giveHomeCare,
 } from './health';
 import { addXp, equip, heroStats, keepHpShare, unequip } from './team';
 
@@ -164,6 +166,56 @@ describe('healing potions', () => {
     expect(() => drinkPotion(away, 'bram', 0)).toThrow();
     expect(drinkProblem({ ...createInitialSave(), consumables: { healingPotion: 1 } }, 'bram', 0)).toBe('full');
     expect(drinkProblem(hurt(0.2), 'bram', 0)).toBe('noPotion');
+  });
+});
+
+describe('home care', () => {
+  const tired = (share = 0, itemId = 'herbalPoultice') =>
+    setHeroHp({ ...createInitialSave(), consumables: { [itemId]: 1 } }, 'bram', share, 0, true);
+
+  it('heals 25% of max HP with a poultice, capped at max', () => {
+    const save = giveHomeCare(hurt(0.2, { consumables: { herbalPoultice: 1 } }), 'bram', 'herbalPoultice', 0);
+    expect(hero(save).hp! / maxHp(save, hero(save))).toBeCloseTo(0.45);
+    const full = giveHomeCare(hurt(0.9, { consumables: { herbalPoultice: 1 } }), 'bram', 'herbalPoultice', 0);
+    expect(hero(full).hp).toBeUndefined();
+  });
+
+  it('heals to full with a restorative tonic', () => {
+    const save = giveHomeCare(hurt(0.2, { consumables: { restorativeTonic: 1 } }), 'bram', 'restorativeTonic', 0);
+    expect(hero(save).hp).toBeUndefined();
+    expect(currentHp(save, hero(save), 0)).toBe(maxHp(save, hero(save)));
+  });
+
+  it('ends exhaustion with a calming tea, restarting healing from now', () => {
+    const save = giveHomeCare(tired(0, 'calmingTea'), 'bram', 'calmingTea', 0);
+    expect(isExhausted(hero(save), 0)).toBe(false);
+    expect(hero(save).hp).toBe(0);
+    expect(currentHp(save, hero(save), 5 * MIN)).toBeCloseTo((5 / 60) * maxHp(save, hero(save)));
+  });
+
+  it('keeps the exhaustion timer with a heal item', () => {
+    const save = giveHomeCare(tired(0.3), 'bram', 'herbalPoultice', 0);
+    expect(isExhausted(hero(save), 0)).toBe(true);
+    expect(hero(save).hp! / maxHp(save, hero(save))).toBeCloseTo(0.55);
+    expect(currentHp(save, hero(save), 10 * MIN)).toBeCloseTo(0.55 * maxHp(save, hero(save)));
+  });
+
+  it('is refused for a hero away, without stock, at full HP, or when not exhausted', () => {
+    const away = startExpedition(hurt(0.2, { consumables: { herbalPoultice: 1, calmingTea: 1 } }), 'ratCellar', ['bram'], 0);
+    expect(careProblem(away, 'bram', 'herbalPoultice', 0)).toBe('away');
+    expect(() => giveHomeCare(away, 'bram', 'herbalPoultice', 0)).toThrow();
+    expect(careProblem(hurt(0.2), 'bram', 'herbalPoultice', 0)).toBe('noItem');
+    expect(careProblem(hurt(0.2, { consumables: { herbalPoultice: 1 } }), 'bram', 'healingPotion', 0)).toBe('noItem');
+    const full = { ...createInitialSave(), consumables: { herbalPoultice: 1, calmingTea: 1 } };
+    expect(careProblem(full, 'bram', 'herbalPoultice', 0)).toBe('nothingToDo');
+    expect(() => giveHomeCare(full, 'bram', 'herbalPoultice', 0)).toThrow();
+    expect(careProblem(full, 'bram', 'calmingTea', 0)).toBe('nothingToDo');
+    expect(() => giveHomeCare(full, 'bram', 'calmingTea', 0)).toThrow();
+  });
+
+  it('takes exactly one item from the stock', () => {
+    const save = giveHomeCare(hurt(0.2, { consumables: { herbalPoultice: 3 } }), 'bram', 'herbalPoultice', 0);
+    expect(save.consumables.herbalPoultice).toBe(2);
   });
 });
 
