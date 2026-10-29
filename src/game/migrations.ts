@@ -264,3 +264,8 @@ export function migrateV17Save(old: Partial<SaveData>): SaveData {
   const save: SaveData = { ...createInitialSave(), ...old };
   return { ...save, knownRecipes: save.knownRecipes.filter((id) => recipeById[id]?.availableFromTier === undefined) };
 }
+
+/** Version 18 → 19: walking consumables in use, none yet. */
+export function migrateV18Save(old: Partial<SaveData>): SaveData {
+  return { ...createInitialSave(), ...old, walkEffects: old.walkEffects ?? [] };
+}

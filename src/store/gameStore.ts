@@ -10,11 +10,12 @@ import { materials } from '@/content/materials';
 import { craft, craftMany, forgetRecipe, forgeResult, learnAllRecipes, unlockRecipe, type ForgeResult } from '@/game/crafting/crafting';
 import { infuse } from '@/game/crafting/infusion';
 import { salvage } from '@/game/forging/salvage';
-import { migrateV10Save, migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV15Save, migrateV16Save, migrateV17Save, migrateV5Save, migrateV6Save, migrateV7Save, migrateV8Save, migrateV9Save } from '@/game/migrations';
+import { migrateV10Save, migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV15Save, migrateV16Save, migrateV17Save, migrateV18Save, migrateV5Save, migrateV6Save, migrateV7Save, migrateV8Save, migrateV9Save } from '@/game/migrations';
 import { convertShards, shardId, stoneId, type Element } from '@/game/elements';
 import { fastForward, resolveExpedition, startExpedition, type Loadout } from '@/game/expeditions/expeditions';
 import { markWalksSeen, processWalkPath, recordWalk, type WalkFix, type WalkOptions, type WalkPatrols, type WalkSummary } from '@/game/gathering/autoGather';
 import { collectSpawn, type CollectResult, type Gatherer } from '@/game/gathering/gathering';
+import { endWalkEffect, startWalkEffect } from '@/game/gathering/walkEffects';
 import type { LatLng, Spawn } from '@/game/generation/types';
 import { addMaterials } from '@/game/inventory';
 import { dayKey, openChest, recordSteps, syncSteps, type ChestReward } from '@/game/rewards/chests';
@@ -27,7 +28,7 @@ import { acceptRecruit, helpTraveller as helpTravellerRule, trade, type Travelle
 import { addPatrolsToWalks, escortHpChange, walkPatrolsFrom } from '@/game/patrols/walkPatrols';
 import { challengeSanctum, type SanctumResult, type SanctumSpawn } from '@/game/sanctums/sanctums';
 import { createInitialSave, type SaveData, type TutorialStep } from '@/game/save';
-import { drinkPotion, fastForwardHealing, healAll, setHeroHp, settleHp } from '@/game/team/health';
+import { drinkPotion, fastForwardHealing, giveHomeCare, healAll, setHeroHp, settleHp } from '@/game/team/health';
 import { pickApproach } from '@/game/team/stats';
 import { dismissHero, equip, heroStats, isAway, keepHpShare, unequip } from '@/game/team/team';
 import { buySupply, recruit, type RecruitOffer } from '@/game/taverns/taverns';
@@ -76,6 +77,8 @@ type GameState = {
   closeCookingHint: () => void;
   /** Drinks a healing potion at home. */
   drinkPotion: (heroId: string) => void;
+  /** Uses a home care item from the stock on a hero at home. */
+  giveHomeCare: (heroId: string, itemId: string) => void;
   /** Spends one of the hero's pending approach picks. */
   pickApproach: (heroId: string, approach: Approach) => void;
   buySupply: (count: number, tavern: LatLng, player: LatLng) => void;
@@ -96,6 +99,8 @@ type GameState = {
   readTreasureMap: (mapId: string, position: LatLng) => void;
   collectTreasure: (mapId: string, player: LatLng, treasureAt: LatLng) => TreasureContents;
   activateLure: (position: LatLng) => void;
+  /** Uses a walking consumable where the player stands, replacing one of the same item. */
+  startWalkEffect: (itemId: string, position: LatLng) => void;
   /** Moves the tutorial past `step` if it is the current one, e.g. when a tip is closed. */
   nextTutorialStep: (step: TutorialStep) => void;
   /** Debug: skips the whole tutorial. */
@@ -139,6 +144,10 @@ type GameState = {
   addProvisions: (amount: number) => void;
   /** Adds one of every kit and ward salve (debug only). */
   addKits: () => void;
+  /** Adds one of every elixir, provision, walking and home care item (debug only). */
+  addConsumables: () => void;
+  /** Ends a walking effect now (debug only). */
+  endWalkEffect: (itemId: string) => void;
   fastForwardHealing: (minutes: number) => void;
   resetSave: () => void;
 };
@@ -224,6 +233,7 @@ export const useGameStore = create<GameState>()(
       closeTavernHint: () => set(({ save }) => ({ save: { ...save, tavernHintSeen: true } })),
       closeCookingHint: () => set(({ save }) => ({ save: { ...save, cookingHintSeen: true } })),
       drinkPotion: (heroId) => set(({ save }) => ({ save: drinkPotion(save, heroId, Date.now()) })),
+      giveHomeCare: (heroId, itemId) => set(({ save }) => ({ save: giveHomeCare(save, heroId, itemId, Date.now()) })),
       pickApproach: (heroId, approach) => set(({ save }) => ({ save: pickApproach(save, heroId, approach) })),
       buySupply: (count, tavern, player) => set(({ save }) => ({ save: buySupply(save, count, tavern, player) })),
       buyRank: (trackId) => set(({ save }) => ({ save: buyRank(save, trackId) })),
@@ -272,6 +282,7 @@ export const useGameStore = create<GameState>()(
         return contents;
       },
       activateLure: (position) => set(({ save }) => ({ save: activateLure(save, position, Date.now()) })),
+      startWalkEffect: (itemId, position) => set(({ save }) => ({ save: startWalkEffect(save, itemId, position, Date.now()) })),
       nextTutorialStep: (step) => set(({ save }) => ({ save: nextTutorialStep(save, step) })),
       finishTutorial: () => set(({ save }) => ({ save: finishTutorial(save) })),
       grantNextPickaxe: () =>
@@ -388,6 +399,15 @@ export const useGameStore = create<GameState>()(
           }
           return { save: { ...save, consumables } };
         }),
+      addConsumables: () =>
+        set(({ save }) => {
+          const consumables = { ...save.consumables };
+          for (const item of items.filter((i) => (i.slot === 'consumable' && i.elixir) || i.slot === 'provision' || i.slot === 'utility')) {
+            consumables[item.id] = (consumables[item.id] ?? 0) + 1;
+          }
+          return { save: { ...save, consumables } };
+        }),
+      endWalkEffect: (itemId) => set(({ save }) => ({ save: endWalkEffect(save, itemId, Date.now()) })),
       fastForwardHealing: (minutes) => set(({ save }) => ({ save: fastForwardHealing(save, minutes) })),
       resetSave: () => {
         set({ save: createInitialSave() });
@@ -395,7 +415,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 18,
+      version: 19,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
       // Saves from version 5 on are converted step by step; older ones start fresh. New fields get their defaults.
@@ -415,6 +435,7 @@ export const useGameStore = create<GameState>()(
         if (version <= 15) save = migrateV15Save(save);
         if (version <= 16) save = migrateV16Save(save);
         if (version <= 17) save = migrateV17Save(save);
+        if (version <= 18) save = migrateV18Save(save);
         return { save };
       },
       merge: (persisted, current) => ({

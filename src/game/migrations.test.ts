@@ -1,6 +1,6 @@
 import { createInitialSave, type SaveData } from './save';
 import { resolveExpedition } from './expeditions/expeditions';
-import { migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV15Save, migrateV16Save, migrateV17Save } from './migrations';
+import { migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV15Save, migrateV16Save, migrateV17Save, migrateV18Save } from './migrations';
 import { startingMastery } from './forging/mastery';
 import { xpToNextLevel } from '@/content/heroes';
 import type { ActiveExpedition, ExpeditionReport } from './types';
@@ -222,5 +222,12 @@ describe('migrateV17Save', () => {
     expect(after.knownRecipes).toEqual(initial.knownRecipes);
     expect(after.consumables.emberWardSalve).toBe(2);
     expect(after.consumables.scholarsSatchel).toBe(1);
+  });
+});
+
+describe('migrateV18Save', () => {
+  it('starts with no walking effect in use', () => {
+    const { walkEffects: _, ...old } = createInitialSave();
+    expect(migrateV18Save(old).walkEffects).toEqual([]);
   });
 });
