@@ -1,6 +1,6 @@
 import { createInitialSave, type SaveData } from './save';
 import { resolveExpedition } from './expeditions/expeditions';
-import { migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV15Save, migrateV16Save, migrateV17Save, migrateV18Save } from './migrations';
+import { migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV15Save, migrateV16Save, migrateV17Save, migrateV18Save, migrateV19Save } from './migrations';
 import { startingMastery } from './forging/mastery';
 import { xpToNextLevel } from '@/content/heroes';
 import type { ActiveExpedition, ExpeditionReport } from './types';
@@ -229,5 +229,13 @@ describe('migrateV18Save', () => {
   it('starts with no walking effect in use', () => {
     const { walkEffects: _, ...old } = createInitialSave();
     expect(migrateV18Save(old).walkEffects).toEqual([]);
+  });
+});
+
+describe('migrateV19Save', () => {
+  it('starts with no place used, bought or blessed', () => {
+    const { usedPlaces: _u, placePurchases: _p, chapelVisits: _c, expeditionBlessing: _b, ...old } = createInitialSave();
+    const save = migrateV19Save({ ...old, gold: 42 });
+    expect(save).toMatchObject({ gold: 42, usedPlaces: {}, placePurchases: {}, chapelVisits: {}, expeditionBlessing: false });
   });
 });

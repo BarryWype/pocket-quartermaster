@@ -10,7 +10,7 @@ import { materials } from '@/content/materials';
 import { craft, craftMany, forgetRecipe, forgeResult, learnAllRecipes, unlockRecipe, type ForgeResult } from '@/game/crafting/crafting';
 import { infuse } from '@/game/crafting/infusion';
 import { salvage } from '@/game/forging/salvage';
-import { migrateV10Save, migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV15Save, migrateV16Save, migrateV17Save, migrateV18Save, migrateV5Save, migrateV6Save, migrateV7Save, migrateV8Save, migrateV9Save } from '@/game/migrations';
+import { migrateV10Save, migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV15Save, migrateV16Save, migrateV17Save, migrateV18Save, migrateV19Save, migrateV5Save, migrateV6Save, migrateV7Save, migrateV8Save, migrateV9Save } from '@/game/migrations';
 import { convertShards, shardId, stoneId, type Element } from '@/game/elements';
 import { fastForward, resolveExpedition, startExpedition, type Loadout } from '@/game/expeditions/expeditions';
 import { markWalksSeen, processWalkPath, recordWalk, type WalkFix, type WalkOptions, type WalkPatrols, type WalkSummary } from '@/game/gathering/autoGather';
@@ -415,7 +415,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 19,
+      version: 20,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
       // Saves from version 5 on are converted step by step; older ones start fresh. New fields get their defaults.
@@ -436,6 +436,7 @@ export const useGameStore = create<GameState>()(
         if (version <= 16) save = migrateV16Save(save);
         if (version <= 17) save = migrateV17Save(save);
         if (version <= 18) save = migrateV18Save(save);
+        if (version <= 19) save = migrateV19Save(save);
         return { save };
       },
       merge: (persisted, current) => ({

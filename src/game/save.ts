@@ -108,6 +108,14 @@ export type SaveData = {
   traderUses: Record<string, number>;
   /** Key fragments gathered from travellers, until they form a whole key. */
   keyFragments: number;
+  /** Place id → when it expires; places used up by this player (sold out, dug, won) hide until then. */
+  usedPlaces: Record<string, number>;
+  /** Shop stock bought per place, by stock line; dropped once the place expires, so stock resets. */
+  placePurchases: Record<string, { expiresAt: number; bought: Record<string, number> }>;
+  /** Chapel id → when it expires; its free care was taken on this visit. */
+  chapelVisits: Record<string, number>;
+  /** A chapel's blessing, waiting for the next expedition. */
+  expeditionBlessing: boolean;
   /** Background fight result id → when it was applied; idempotence and pruning. */
   appliedBackgroundResults: Record<string, number>;
   /** Counter for unique ids (gear, maps, lures, fights, heroes). */
@@ -156,6 +164,10 @@ export function createInitialSave(): SaveData {
     traderUses: {},
     keyFragments: 0,
     appliedBackgroundResults: {},
+    usedPlaces: {},
+    placePurchases: {},
+    chapelVisits: {},
+    expeditionBlessing: false,
     // Mastery starts with the starting recipes' types (their ids are `<type><tier>`), level 1.
     mastery: Object.fromEntries(startingRecipes.map((id) => [id.replace(/\d+$/, '') as MasteryType, startingMastery(1)])),
     nextUid: 1,

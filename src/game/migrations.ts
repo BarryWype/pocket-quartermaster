@@ -269,3 +269,8 @@ export function migrateV17Save(old: Partial<SaveData>): SaveData {
 export function migrateV18Save(old: Partial<SaveData>): SaveData {
   return { ...createInitialSave(), ...old, walkEffects: old.walkEffects ?? [] };
 }
+
+/** Version 19 → 20: map places; nothing used, bought or blessed yet. */
+export function migrateV19Save(old: Partial<SaveData>): SaveData {
+  return { ...createInitialSave(), ...old };
+}
