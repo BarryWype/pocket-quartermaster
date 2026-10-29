@@ -13,6 +13,7 @@ import type { ExpeditionReport } from '../types';
 import type { SaveData } from '../save';
 import { applyRunHp } from '../team/health';
 import { isAway } from '../team/team';
+import { activeLairs } from '../places/fights';
 import { grantPatrolWin, patrolDungeon, patrolRewards, patrolRunOptions, settleConsumables, type PatrolRewards } from './fight';
 import { isPatrolKind, patrolTier, patrolsAround, pruneByWindow, type PatrolKind, type PatrolSpawn } from './generate';
 import { distanceTo, hasFled, inEngageRange, isGone, isVisible } from './visibility';
@@ -93,6 +94,8 @@ export type BackgroundState = {
   trackWindows: { startedAt: number; endsAt: number }[];
   /** Patrols beaten or travellers helped (from the save, and by the escort since) → window end. */
   beaten: Record<string, number>;
+  /** Monster lairs the player defeated → when they expire; live lairs are worked out from tile and time, these left out. */
+  defeatedLairs: Record<string, number>;
   lastAlertAt: number | null;
   pending: BackgroundResult[];
 };
@@ -139,6 +142,9 @@ export function snapshotBackground(
     firstSeen: pruneByWindow(previous?.firstSeen ?? {}, now, rules),
     trackWindows: trackWindows(save.walkEffects),
     beaten: pruneByWindow({ ...save.beatenPatrols, ...save.helpedTravellers }, now, rules),
+    defeatedLairs: Object.fromEntries(
+      Object.entries(save.usedPlaces).filter(([id, expiresAt]) => id.startsWith('place:monsterLair:') && expiresAt > now),
+    ),
     lastAlertAt: previous?.lastAlertAt ?? null,
     pending: [],
   };
@@ -201,7 +207,9 @@ export function backgroundStep(
       }
     }
 
-    const spawns = patrolsAround(position, at, rules).filter(
+    // More patrols around live lairs, as on the map; states stored before lairs existed have no defeated ones.
+    const lairs = activeLairs(position, at, next.defeatedLairs ?? {});
+    const spawns = patrolsAround(position, at, rules, lairs).filter(
       (spawn) => !isGone(spawn, next.beaten, at) && !hasFled(spawn, next.firstSeen[spawn.id], at, rules),
     );
     // The tracker's eye widens patrol sight per fix, so a window can end mid-walk.

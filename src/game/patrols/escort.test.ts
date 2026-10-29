@@ -5,7 +5,8 @@ import type { SaveData } from '../save';
 import { currentHp, setHeroHp } from '../team/health';
 import { alertAppliesTo, applyBackgroundResults, backgroundStep, snapshotBackground, type BackgroundState, type PatrolSettings } from './escort';
 import { patrolPositionAt, type PatrolSpawn } from './generate';
-import { findSpawn, fixOn, tierTeam } from './testHelpers';
+import { placeGroupOf, placesAround } from '../places/generate';
+import { findSpawn, fixOn, HOME, tierTeam } from './testHelpers';
 
 const MINUTE = 60_000;
 const settings: PatrolSettings = { escortHeroId: 'bram', alertFor: 'all', patrolAlerts: true, escortAlerts: true };
@@ -133,5 +134,27 @@ describe('patrol alerts', () => {
   it('stay quiet for goblins that already fled', () => {
     const seen: BackgroundState = { ...state(tierTeam(), quiet), firstSeen: { [goblins.id]: at - 11 * MINUTE } };
     expect(spotted(backgroundStep(seen, [near(goblins, at, 200)], at).alerts)).toHaveLength(0);
+  });
+});
+
+describe('monster lairs in the background', () => {
+  it('takes defeated lairs from the save', () => {
+    const save = { ...tierTeam(), usedPlaces: { 'place:monsterLair:r3gx2:0:7': at + MINUTE, 'place:sawmill:r3gx2:0:7': at + MINUTE } };
+    expect(state(save).defeatedLairs).toEqual({ 'place:monsterLair:r3gx2:0:7': at + MINUTE });
+  });
+
+  it('sees more patrols around a live lair than around a defeated one', () => {
+    let live = 0;
+    let defeated = 0;
+    for (let i = 0; i < 48; i++) {
+      const time = at + i * patrolRules.windowMinutes * MINUTE;
+      const lair = placesAround(HOME, time, [placeGroupOf('monsterLair')]).find((p) => p.kind === 'monsterLair' && p.startsAt <= time);
+      if (!lair) continue;
+      const fix = [{ position: lair.position, timestamp: time }];
+      const base = { ...state(tierTeam(), settings, time), escort: null };
+      live += Object.keys(backgroundStep(base, fix, time).state.firstSeen).length;
+      defeated += Object.keys(backgroundStep({ ...base, defeatedLairs: { [lair.id]: lair.expiresAt } }, fix, time).state.firstSeen).length;
+    }
+    expect(live).toBeGreaterThan(defeated);
   });
 });
