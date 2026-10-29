@@ -48,11 +48,12 @@ import { challengeSanctum, sanctumById, sanctumDungeon, type SanctumSpawn } from
 import type { SaveData } from '../save';
 import { buySupply, buySupplyProblem, isTavernUnlocked, offerLevel, recruit, recruitPrice, tavernOffers, type TavernSpawn } from '../taverns/taverns';
 import { currentHp, drinkPotion, drinkProblem, maxHp } from '../team/health';
-import { affinityOf, equip, equipPreview, heroDamageStat, heroStats, isOnExpedition, rosterFull, unequip } from '../team/team';
+import { affinityOf, carriesKit, equip, equipPreview, hasPotionSlot, heroDamageStat, heroStats, isOnExpedition, rosterFull, setKitFor, unequip } from '../team/team';
+import { briefingCoverage } from '../threats/coverage';
 import { gearApproachBonus, approachScore, pendingApproachPicks, pickApproach } from '../team/stats';
 import { heroAnswers, type AnswersMember } from '../threats/answers';
 import { scoreThreat } from '../threats/score';
-import type { ActiveExpedition, Approach, ArmourType, Briefing, DungeonDef, GearDef, HeroClassId, HeroState, OffhandType, Quality, RecipeDef, Stats, WeaponType } from '../types';
+import type { ActiveExpedition, Approach, ArmourType, Briefing, ConsumableDef, DungeonDef, GearDef, HeroClassId, HeroState, OffhandType, Quality, RecipeDef, Stats, WeaponType } from '../types';
 import { expectedLevels, type Profile, type SimConfig } from './config';
 import type { PatrolRates } from './patrols';
 import { PICKAXES, type WalkRates } from './walking';
@@ -768,7 +769,16 @@ function restUp(sim: Sim, dungeon: DungeonDef, heroIds: string[]) {
   return true;
 }
 
-/** Each hero takes a potion; an ember ward salve for fire runs if they don't resist fire. */
+/** The threat points a party still misses on a briefing: each threat's shortfall, summed. */
+const uncovered = (save: SaveData, heroIds: string[], briefing: Briefing) =>
+  briefingCoverage(save, heroIds, briefing).threats.reduce((sum, t) => sum + Math.max(0, t.needed - t.have), 0);
+
+/**
+ * Each hero takes a potion; an ember ward salve for fire runs if they don't
+ * resist fire. An Alchemist fills their second slot with a potion too, and a
+ * Porter carries their kit for the hero it leaves the fewest threat points
+ * uncovered with.
+ */
 function withLoadout(save: SaveData, heroIds: string[], dungeon: DungeonDef, briefing: Briefing): SaveData {
   let next = save;
   const fire = dealsFire(dungeon, briefing);
@@ -778,6 +788,19 @@ function withLoadout(save: SaveData, heroIds: string[], dungeon: DungeonDef, bri
     const wantsFire = fire && !(heroClasses[hero.classId].resists ?? []).includes('fire');
     const want = [wantsFire ? 'emberWardSalve' : null, 'healingPotion'].find((item) => item && stock(item) > 0);
     if (want && hero.equipment.consumable !== want) next = equip(next, id, 'consumable', want);
+    if (hasPotionSlot(hero) && !hero.equipment.potion && (next.consumables.healingPotion ?? 0) > 0) {
+      next = equip(next, id, 'potion', 'healingPotion');
+    }
+  }
+  for (const porter of next.heroes.filter((h) => heroIds.includes(h.id) && carriesKit(h))) {
+    const kit = porter.equipment.consumable ? (itemById[porter.equipment.consumable] as ConsumableDef).kit : undefined;
+    if (!kit || heroIds.length < 2) continue;
+    let best: { id: string | null; points: number } = { id: null, points: uncovered(setKitFor(next, porter.id, null), heroIds, briefing) };
+    for (const id of heroIds.filter((h) => h !== porter.id)) {
+      const points = uncovered(setKitFor(next, porter.id, id), heroIds, briefing);
+      if (points < best.points) best = { id, points };
+    }
+    next = setKitFor(next, porter.id, best.id);
   }
   return next;
 }
@@ -988,6 +1011,17 @@ export function collectExpedition(sim: Sim, expedition: ActiveExpedition) {
     const byClass = `${classId}|${effect.key}`;
     classEffects[byClass] = (classEffects[byClass] ?? 0) + 1;
   }
+  // Signatures that work on the briefing or the loot rather than in an encounter.
+  const classOf = (heroId: string) => sim.save.heroes.find((h) => h.id === heroId)?.classId;
+  const tally = (heroId: string | null | undefined, key: string) => {
+    if (!heroId) return;
+    const byClass = `${classOf(heroId)}|${key}`;
+    classEffects[byClass] = (classEffects[byClass] ?? 0) + 1;
+  };
+  tally(run.signed.lowered?.heroId, 'lowerThreat');
+  tally(run.signed.cancelledBy, 'cancelRestriction');
+  if (run.fenceGold > 0) tally(expedition.heroIds.find((id) => classOf(id) === 'smuggler'), 'fence');
+  for (const porterId of run.carriedHealed) tally(porterId, 'carriedHeal');
   const launched = sim.launched.get(expedition.id);
   sim.log.expeditions.push({
     day: launched?.day ?? sim.day,

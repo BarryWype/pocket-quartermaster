@@ -125,6 +125,8 @@ export type ProfileSummary = {
     classEffects: Record<string, Record<string, number>>;
     /** Share of expeditions each class took part in. */
     classShare: Record<string, number>;
+    /** Tavern recruits of each class, mean per run. */
+    classRecruits: Record<string, number>;
     /** Boss runs per day, daily bonuses claimed per run, and the party's median level at the first attempt, by tier. */
     bosses: Record<number, { perDay: number; bonuses: number; firstLevel: number }>;
     sanctums: { attempts: number; wins: number };
@@ -284,6 +286,9 @@ export function summarize(logs: RunLog[], targets: Targets = defaultTargets, wit
     const [classId, effect] = key.split('|');
     (classEffects[classId] ??= {})[effect] = n;
   }
+  const classRecruits: Record<string, number> = {};
+  for (const log of logs) for (const r of log.recruits) classRecruits[r.classId] = (classRecruits[r.classId] ?? 0) + 1;
+  for (const c of Object.keys(classRecruits)) classRecruits[c] = round(classRecruits[c] / logs.length, 1);
   const bosses: ProfileSummary['expeditions']['bosses'] = {};
   for (let tier = 1; tier <= 5; tier++) {
     const runs = all.filter((e) => e.boss && e.tier === tier);
@@ -398,6 +403,7 @@ export function summarize(logs: RunLog[], targets: Targets = defaultTargets, wit
       effects,
       classEffects,
       classShare,
+      classRecruits,
       bosses,
       sanctums: { attempts: round(sanctumRuns.length / logs.length, 1), wins: round(sanctumRuns.filter((s) => s.win).length / logs.length, 1) },
       overnight,

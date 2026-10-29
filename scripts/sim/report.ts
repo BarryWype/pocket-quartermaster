@@ -428,17 +428,21 @@ export function renderReport({ summary, comparison, elapsed, rules, compareWith 
 
   const className = (id: string) => (id in heroClasses ? heroClasses[id as HeroClassId].name : id === 'local' ? 'Locals’ tips' : id);
   const classes =
-    `<p class="muted">Share of expeditions each class took part in, and what their abilities did (median times per run).</p>` +
+    `<p class="muted">Every class with its family and tavern pool tier: tavern recruits (mean per run), share of expeditions it took part in, and what its abilities and signatures did (median times per run).</p>` +
     ps
       .map(
         (p) =>
           `<h3>${p.profile}</h3>` +
           table(
-            ['Class', 'Share of expeditions', 'Ability triggers per run'],
-            [...new Set([...Object.keys(p.expeditions.classShare), ...Object.keys(p.expeditions.classEffects)])]
+            ['Class', 'Family · pool tier', 'Recruited per run', 'Share of expeditions', 'Ability triggers per run'],
+            [...new Set([...Object.keys(heroClasses), ...Object.keys(p.expeditions.classShare), ...Object.keys(p.expeditions.classEffects)])]
               .sort((a, b) => (p.expeditions.classShare[b] ?? 0) - (p.expeditions.classShare[a] ?? 0))
               .map((c) => [
                 esc(className(c)),
+                c in heroClasses
+                  ? `${heroClasses[c as HeroClassId].family} · ${heroClasses[c as HeroClassId].poolTier ?? 'rare'}`
+                  : '—',
+                fmt(p.expeditions.classRecruits[c] ?? 0, 1),
                 pct(p.expeditions.classShare[c] ?? 0),
                 Object.entries(p.expeditions.classEffects[c] ?? {})
                   .sort((a, b) => b[1] - a[1])
