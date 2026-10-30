@@ -28,6 +28,8 @@ describe('loot chances', () => {
     expect(runLengthMultiplier('dungeonRun', 45)).toBe(1);
     expect(runLengthMultiplier('overnightQuest', 480)).toBe(2);
     expect(runLengthMultiplier('overnightQuest', 90)).toBe(2);
+    expect(runLengthMultiplier('tierBoss', 5)).toBe(1);
+    expect(runLengthMultiplier('tierBoss', 480)).toBe(1);
     expect(runLengthMultiplier('firstWin', 5)).toBe(1);
     expect(runLengthMultiplier('patrolGoblins', 5)).toBe(1);
     const gear = categoryChance('gear', input('dungeonRun', { minutes: 5 }));

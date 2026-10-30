@@ -73,7 +73,7 @@ describe('what’s next', () => {
 
   it('prices a valuable at the market, at its tier', () => {
     expect(nextSteps(save(), { kind: 'valuable', id: 'oldCoins' })).toEqual([{ kind: 'sell', place: 'market', price: 5 }]);
-    expect(nextSteps(save(), { kind: 'valuable', id: 'oldCoins', tier: 3 })).toEqual([{ kind: 'sell', place: 'market', price: 20 }]);
+    expect(nextSteps(save(), { kind: 'valuable', id: 'oldCoins', tier: 3 })).toEqual([{ kind: 'sell', place: 'market', price: 15 }]);
   });
 
   it('points a weakness item at its boss', () => {

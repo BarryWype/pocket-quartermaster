@@ -52,8 +52,8 @@ export const lootConfig = {
   } as Record<LootSourceId, number>,
   /** No chance, however stacked, goes above this. */
   maxChance: 0.95,
-  /** Run-scaled sources: minutes ÷ 45, clamped. */
-  runLength: { sources: ['dungeonRun', 'tierBoss', 'overnightQuest'] as LootSourceId[], baseMinutes: 45, min: 0.25, max: 2 },
+  /** Run-scaled sources: minutes ÷ 45, clamped. Tier bosses and the first win of the day are never scaled. */
+  runLength: { sources: ['dungeonRun', 'overnightQuest'] as LootSourceId[], baseMinutes: 45, min: 0.25, max: 2 },
   /** Luck raises non-A chances and gold amounts, never materials or other amounts. */
   luck: { chancePerPoint: 0.01, maxChanceBonus: 0.3, pointsPerQualityStep: 10, goldPerPoint: 0.05 },
   /** Amounts per drop; everything not listed is 1. */
@@ -196,8 +196,8 @@ export const lootConfig = {
   eliteMultiplier: 2,
   /** Treasure maps last this long once found. */
   treasureMapHours: 48,
-  /** A valuable's price is its base price times this, by the source's tier. */
-  valuablePriceByTier: [1, 2, 4, 8, 16] as number[],
+  /** A valuable's price is its base price times this, by the source's tier: the enemy strength curve. */
+  valuablePriceByTier: [1, 1.9, 3, 4.2, 5.6] as number[],
   /** Key fragments needed for one mysterious key. */
   keyFragmentsPerKey: 4,
   /** Sigil drops by slot, with a pity counter and a shard cap per tier. */
