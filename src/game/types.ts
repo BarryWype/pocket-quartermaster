@@ -1,7 +1,8 @@
 import type { Loot, LootModifier, MapRarity } from './loot/types';
 import type { ImageSourcePropType } from 'react-native';
 
-import type { PlaceKind } from '@/content/places';
+import type { PlaceKind, SecretKind } from '@/content/places';
+import type { TipSource } from '@/content/secrets';
 
 import type { Element } from './elements';
 import type { LatLng } from './generation/types';
@@ -890,3 +891,19 @@ export type Heist = {
 
 /** A dug ruin: a new one shows elsewhere a day later, for this player. */
 export type DugRuin = { dugAt: number; position: LatLng };
+
+/** A tip for a secret place, this player's own: where it was found and how long the place stays. */
+export type SecretTip = {
+  /** `${secret}|${sourceId}` */
+  id: string;
+  secret: SecretKind;
+  source: TipSource;
+  /** The spawn, place or run that gave the tip; seeds its marker. */
+  sourceId: string;
+  /** Where the tip was found; the marker sits 500 m – 1.5 km from it. */
+  anchor: LatLng;
+  foundAt: number;
+  expiresAt: number;
+  /** Den and black market: the key was spent on entering; the offer stays open until used up or the place resets. */
+  entered?: boolean;
+};

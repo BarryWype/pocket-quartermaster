@@ -22,6 +22,7 @@ import type {
   MasteryState,
   MasteryType,
   PlaceFight,
+  SecretTip,
   TreasureMap,
   WalkEffect,
 } from './types';
@@ -109,6 +110,8 @@ export type SaveData = {
   traderUses: Record<string, number>;
   /** Key fragments gathered from travellers, until they form a whole key. */
   keyFragments: number;
+  /** Tips for secret places, active or expired (pruned on new tips). */
+  secretTips: SecretTip[];
   /** Place id → when it expires; places used up by this player (sold out, dug, won) hide until then. */
   usedPlaces: Record<string, number>;
   /** Shop stock bought per place, by stock line; dropped once the place expires, so stock resets. */
@@ -185,6 +188,7 @@ export function createInitialSave(): SaveData {
     traderUses: {},
     keyFragments: 0,
     appliedBackgroundResults: {},
+    secretTips: [],
     usedPlaces: {},
     placePurchases: {},
     chapelVisits: {},
