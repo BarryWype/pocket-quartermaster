@@ -8,7 +8,7 @@ Pocket mode **never makes a choice for the player**. It does what already happen
 ## What it does
 | Does | Details |
 | --- | --- |
-| Auto-gather | Collects resources within its radius (existing) |
+| Auto-gather | Collects resources within **30 m** of the path, the same as the tap range (was 20 m). The attentive player still gets more by changing their route to reach nodes. Background fixes up to **35 m** accuracy are kept (was 25 m), so city walks don't lose their path |
 | Escort | The escort hero fights patrols on the way (existing) |
 | Counts walking | Distance and steps count for quests (walk objectives) and step chests |
 | Counts passive wins and gathering | Patrols beaten by the escort and resources auto-gathered count towards quests ("beat N patrols", "gather N herbs") |
