@@ -41,7 +41,6 @@ function wornMember(itemId: string, relicId: string | null, overrides: Partial<P
   };
 }
 
-/** The slot a gear item goes in, from its id (`axe3` → weapon). */
 /** A hero wearing the piece their relic restores into. */
 function relicMember(relicId: string, overrides: Partial<PartyMember> = {}, heroId = 'bram'): PartyMember {
   const relic = relicById[relicId];
