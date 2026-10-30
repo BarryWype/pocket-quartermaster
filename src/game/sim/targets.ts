@@ -4,7 +4,7 @@ export const targets = {
   bossDays: { 1: [1, 2], 2: [3, 5], 3: [7, 10], 4: [12, 18], 5: [21, 30] } as Record<number, [number, number]>,
   /** Day the roster reaches this many heroes: [earliest, latest]. */
   recruitDays: { 4: [3, 5], 6: [7, 12] } as Record<number, [number, number]>,
-  profileScale: { casual: 1.8, regular: 1, dedicated: 0.6 } as Record<string, number>,
+  profileScale: { casual: 1.8, regular: 1, heavy: 0.6 } as Record<string, number>,
   /** Gold held above this many days of income… */
   goldPileDays: 5,
   /** …for more days in a row than this. */

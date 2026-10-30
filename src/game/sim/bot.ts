@@ -55,7 +55,6 @@ import { heroAnswers, type AnswersMember } from '../threats/answers';
 import { scoreThreat } from '../threats/score';
 import type { ActiveExpedition, Approach, ArmourType, Briefing, ConsumableDef, DungeonDef, GearDef, GearInstance, HeroClassId, HeroState, OffhandType, Quality, RecipeDef, Stats, WeaponType } from '../types';
 import { expectedLevels, type Profile, type SimConfig } from './config';
-import type { PatrolRates } from './patrols';
 import { PICKAXES, type WalkRates } from './walking';
 import { questRules } from '@/content/quests';
 import { questUpkeep } from '../quests/arrival';
@@ -170,21 +169,20 @@ export type RunLog = {
   emergencySupply: number;
   /** Daily quests claimed, by band, and the secret place tips their strange marks gave. */
   quests: { claimed: Record<Quest['band'], number>; tips: number };
+  /** Visits the profile planned that couldn't happen (nothing there, odds too low), by activity. */
+  skipped: Record<string, number>;
+  /** The tier 5 boss was beaten before the profile's day cap. */
+  finished: boolean;
 };
 
 /** Everything met on a walk, at the tier it would have fought at. */
 export type PatrolSeenRow = { kind: PatrolSubject; tier: number; elite: boolean };
 /** A patrol fight the player's party took on; xp is the win's XP summed over the party. */
 export type PatrolFightRow = { kind: PatrolKind; tier: number; elite: boolean; won: boolean; xp: number };
-/** A fight the background escort hero took on by itself. */
-export type EscortFightRow = { kind: PatrolKind; tier: number; won: boolean; knockout: boolean; xp: number };
 
 export type PatrolLog = {
   seen: PatrolSeenRow[];
   fights: PatrolFightRow[];
-  escortFights: EscortFightRow[];
-  /** Spawns the escort skipped because its HP was under 50%. */
-  escortPauses: number;
   /** Travellers helped, and the rewards they rolled. */
   travellers: Record<TravellerKind, number>;
   rewards: Record<TravellerReward['kind'], number>;
@@ -204,9 +202,13 @@ export type Sim = {
   profile: Profile;
   config: SimConfig;
   rates: WalkRates;
-  patrolRates: PatrolRates;
-  /** Patrol spawns placed so far, for their unique ids. */
-  patrolSpawns: number;
+  /**
+   * Visits still owed by activity ('expeditions', 'quests' or a loot source):
+   * each day adds the profile's visits, each visit takes 1.
+   */
+  due: Record<string, number>;
+  /** Patrols and travellers already met this run. */
+  met: Set<string>;
   rng: Rng;
   rotation: Rotation;
   location: LatLng;
@@ -913,6 +915,8 @@ export function launch(sim: Sim, dungeon: DungeonDef, heroIds: string[], o: Odds
     }
   }
   const id = `x${sim.save.nextUid}`;
+  if (dungeon.overnight) sim.due.overnightExpedition -= 1;
+  else sim.due.expeditions -= 1;
   sim.save = startExpedition(sim.save, dungeon.id, heroIds, sim.now, 1, sim.rotation, loadout);
   const level = heroIds.reduce((s, h) => s + sim.save.heroes.find((x) => x.id === h)!.level, 0) / heroIds.length;
   sim.launched.set(id, { odds: final.success, qualities, day: sim.day, hour: (sim.now - sim.startedAt) / 3_600_000, level });
@@ -955,6 +959,7 @@ export function sendExpeditions(sim: Sim) {
   const overnight = dungeons.filter(
     (d) =>
       d.overnight &&
+      (sim.due.overnightExpedition ?? 0) >= 1 &&
       d.tier >= top - 1 &&
       !overnightUnderWay(sim.save) &&
       isDungeonAvailable(sim.save, d) &&
@@ -963,7 +968,7 @@ export function sendExpeditions(sim: Sim) {
   const unbeatenBoss = open.find((d) => d.isBoss && d.tier === top && !sim.save.clearedDungeons.includes(d.id));
   const idle = () => homeHeroes(sim.save).map((h) => h.id);
 
-  if (unbeatenBoss && idle().length) {
+  if (unbeatenBoss && idle().length && sim.due.expeditions >= 1) {
     const party = bestParty(sim, unbeatenBoss, idle());
     if (party.odds.success >= sim.config.odds.boss && restUp(sim, unbeatenBoss, party.heroIds)) {
       launch(sim, unbeatenBoss, party.heroIds, odds(sim, sim.save, party.heroIds, unbeatenBoss));
@@ -972,7 +977,7 @@ export function sendExpeditions(sim: Sim) {
   sim.waiting = new Set();
   while (idle().length) {
     const options = [...open, ...overnight]
-      .filter((d) => d !== unbeatenBoss && !sim.waiting.has(d.id) && !(d.overnight && overnightUnderWay(sim.save)))
+      .filter((d) => d !== unbeatenBoss && !sim.waiting.has(d.id) && (d.overnight ? !overnightUnderWay(sim.save) : sim.due.expeditions >= 1))
       .map((d) => {
         const party = bestParty(sim, d, idle());
         const hours = (sim.collectionAt(sim.now + d.durationMinutes * (1 - guildBonus(sim.save, 'fasterExpeditions')) * 60_000) - sim.now) / 3_600_000;
@@ -1082,12 +1087,12 @@ export function noteQuestGathers(sim: Sim, changes: Record<string, number>) {
 
 /**
  * Daily quests, each session: the day's arrive and the list is opened (every
- * new quest accepted, a place target at the middle of its band); a target is
- * reached with the walk's reach chance, split over the day's sessions, and
- * done there; finished quests are claimed. Walks, patrols and gathering count
+ * new quest accepted, a place target at the middle of its band); on walks,
+ * the oldest targets are reached and done, as many as the profile's quests
+ * owed; finished quests are claimed. Walks, patrols and gathering count
  * through the game's own events.
  */
-export function doQuests(sim: Sim) {
+export function doQuests(sim: Sim, walking: boolean) {
   sim.save = questUpkeep(sim.save, sim.now);
   const accept = (quest: Quest): Quest => {
     if (quest.acceptedAt !== null) return quest;
@@ -1103,9 +1108,9 @@ export function doQuests(sim: Sim) {
   };
   sim.save = { ...sim.save, quests: { ...sim.save.quests, list: sim.save.quests.list.map(accept) } };
 
-  const sessions = sim.profile.sessionHours.length;
   for (const quest of sim.save.quests.list) {
-    if (quest.doneAt !== null || !quest.target || !sim.rng.chance(reachChance(sim, questDistance(quest)) / sessions)) continue;
+    if (!walking || sim.due.quests < 1 || quest.doneAt !== null || !quest.target) continue;
+    sim.due.quests -= 1;
     if (quest.objective === 'mark') {
       const reached = reachMark(sim.save, quest.id, sim.now, () => false);
       sim.save = reached.save;

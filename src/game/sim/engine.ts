@@ -3,7 +3,6 @@ import { rosterRules } from '@/content/roster';
 import { MASTERY_TYPES } from '@/content/forging';
 import { guildTracks } from '@/content/guild';
 import { itemById, recipeById } from '@/content/lookup';
-import { patrolRules } from '@/content/patrols';
 import { tutorialRules } from '@/content/tutorial';
 
 import { craft } from '../crafting/crafting';
@@ -12,15 +11,13 @@ import { startExpedition } from '../expeditions/expeditions';
 import { mealItems, supplyHeld } from '../expeditions/provisions';
 import { masteryOf } from '../forging/mastery';
 import { rollToScale } from '../forging/roll';
-import { distanceMeters } from '../generation/geo';
+import { distanceMeters, offsetPosition } from '../generation/geo';
 import { createRng } from '../generation/rng';
-import { windowIndex, windowRange } from '../generation/time';
 import type { LatLng } from '../generation/types';
 import { rosterCap } from '../guild/guild';
 import { applyTraining } from '../guild/training';
-import { applyBackgroundResults, backgroundStep, snapshotBackground, type PatrolSettings } from '../patrols/escort';
-import { PATROL_KINDS, TRAVELLER_KINDS, isTravellerKind, patrolsAround, patrolPositionAt, patrolTier, type PatrolSpawn, type PatrolSubject, type TierRoll } from '../patrols/generate';
-import { patrolOdds, resolvePatrolFights, startPatrolFight } from '../patrols/fight';
+import { TRAVELLER_KINDS, isTravellerKind, patrolsAround, patrolPositionAt, patrolTier, type PatrolKind, type PatrolSpawn, type PatrolSubject } from '../patrols/generate';
+import { PATROL_SOURCES, patrolOdds, resolvePatrolFights, startPatrolFight } from '../patrols/fight';
 import { isGone } from '../patrols/visibility';
 import { acceptRecruit, helpProblem, helpTraveller, trade, traderOffers } from '../patrols/travellers';
 import { activateLure, isLureActive } from '../rewards/lures';
@@ -32,6 +29,7 @@ import { currentHp, isExhausted } from '../team/health';
 import { equip } from '../team/team';
 import { advanceTutorial, finishTutorial } from '../tutorial/tutorial';
 import { addMaterials } from '../inventory';
+import type { LootSourceId } from '../loot/types';
 import { pruneExpired, rollDailyApproaches } from '../upkeep';
 import {
   act,
@@ -56,21 +54,19 @@ import {
   type Sim,
   countLoot,
 } from './bot';
-import { profiles, simConfig, type SimConfig } from './config';
-import type { PatrolRates } from './patrols';
+import { profiles, simConfig, type Profile, type SimConfig } from './config';
 import { targets } from './targets';
-import { PICKAXES, bonusScaled, roundRandom, walkYield, type WalkRates } from './walking';
+import { PICKAXES, bonusScaled, walkYield, type WalkRates } from './walking';
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
-const MINUTE = 60_000;
 
 export type RunOptions = {
   profile: string;
-  days: number;
   seed: string;
   rates: WalkRates;
-  patrolRates: PatrolRates;
+  /** Stops earlier than the profile's day cap. */
+  maxDays?: number;
   config?: SimConfig;
   /** Called after every session, e.g. to check the save. */
   afterSession?: (save: SaveData) => void;
@@ -128,76 +124,61 @@ function walk(sim: Sim, source: string, perMinute: Record<string, number>, gathe
 const ENGAGE_ODDS = 0.75;
 /** A pilgrim is paid from the supply stock while this many points are held, else with a meal. */
 const PILGRIM_SUPPLY_STOCK = 8;
+/** Places the walk looks for a patrol or traveller: around home, then this far along each of 8 bearings. */
+const SEARCH_METERS = [0, 500, 1000];
 
-/** Keeps the save's escort hero set: the home hero with the most current HP, as the game's setEscort screen does. */
-function setEscort(sim: Sim, at: number) {
-  const home = homeHeroes(sim.save)
-    .filter((h) => !isExhausted(h, at))
-    .sort((a, b) => currentHp(sim.save, b, at) - currentHp(sim.save, a, at))[0];
-  if (home) sim.save = { ...sim.save, escort: { heroId: home.id } };
+const PATROL_VISITS: [LootSourceId, PatrolKind][] = (Object.entries(PATROL_SOURCES) as [PatrolKind, LootSourceId][]).map(([kind, source]) => [source, kind]);
+
+/** Takes one visit owed for an activity, if a whole one is due. */
+function takeVisit(sim: Sim, key: string) {
+  if ((sim.due[key] ?? 0) < 1) return false;
+  sim.due[key] -= 1;
+  return true;
 }
 
-/** Patrols and travellers met on this session's walk, at the measured sighting rate. */
-function patrolSession(sim: Sim, minutes: number) {
-  const log = sim.log.patrols;
-  if (sim.profile.pocketEscort) setEscort(sim, sim.now);
+const skip = (sim: Sim, key: string) => {
+  sim.log.skipped[key] = (sim.log.skipped[key] ?? 0) + 1;
+};
 
-  const drawn: { kind: PatrolSubject; tierRoll: TierRoll; at: number; example: PatrolSpawn }[] = [];
-  for (const kind of [...PATROL_KINDS, ...TRAVELLER_KINDS]) {
-    for (const tierRoll of ['current', 'below', 'elite'] as TierRoll[]) {
-      const examples = (sim.patrolRates.examples[kind] ?? {})[tierRoll] ?? [];
-      if (!examples.length) continue;
-      const seen = roundRandom((sim.patrolRates.perKindRoll[kind] ?? {})[tierRoll] * minutes, sim.rng);
-      for (let n = 0; n < seen; n++) {
-        drawn.push({ kind, tierRoll, at: sim.now + sim.rng.next() * minutes * MINUTE, example: examples[n % examples.length] });
-      }
+/** A live spawn of one of these kinds the walk can meet now, not beaten or helped yet. */
+function findSpawn(sim: Sim, kinds: PatrolSubject[]): PatrolSpawn | null {
+  const gone = { ...sim.save.beatenPatrols, ...sim.save.helpedTravellers };
+  for (const meters of SEARCH_METERS) {
+    for (let bearing = 0; bearing < (meters ? 8 : 1); bearing++) {
+      const angle = (bearing / 8) * 2 * Math.PI;
+      const at = offsetPosition(sim.location, Math.cos(angle) * meters, Math.sin(angle) * meters);
+      const live = patrolsAround(at, sim.now).filter((s) => kinds.includes(s.kind) && !sim.met.has(s.id) && !isGone(s, gone, sim.now));
+      if (live.length) return live[sim.rng.int(0, live.length - 1)];
     }
   }
-  drawn.sort((a, b) => a.at - b.at);
+  return null;
+}
 
-  const placed = new Set<string>();
-  for (const { kind, tierRoll, at, example } of drawn) {
-    // What the walk met: a spawn the game itself has around the player right
-    // now, so the background rules can find it too — else a live copy of the
-    // example, with this window and a fresh id, so its window covers `at`.
-    const live = patrolsAround(sim.location, at).filter(
-      (s) => s.kind === kind && s.tierRoll === tierRoll && !placed.has(s.id) && !isGone(s, { ...sim.save.beatenPatrols, ...sim.save.helpedTravellers }, at),
-    );
-    let spawn: PatrolSpawn;
-    if (live.length) {
-      spawn = live[sim.rng.int(0, live.length - 1)];
-    } else {
-      const window = windowIndex(at, patrolRules.windowMinutes);
-      const { start, end } = windowRange(window, patrolRules.windowMinutes);
-      spawn = { ...example, id: `sim:${sim.patrolSpawns++}:${window}`, window, startsAt: start, endsAt: end };
+/** The patrols and travellers the profile meets on this walk. */
+function meetPatrols(sim: Sim) {
+  for (const [source, kind] of PATROL_VISITS) {
+    while (takeVisit(sim, source)) {
+      const spawn = findSpawn(sim, [kind]);
+      if (!spawn) {
+        skip(sim, source);
+        continue;
+      }
+      sim.met.add(spawn.id);
+      const { tier, elite } = patrolTier(spawn, highestTier(sim.save));
+      sim.log.patrols.seen.push({ kind, tier, elite });
+      if (!engagePatrol(sim, spawn, sim.now, patrolPositionAt(spawn, sim.now))) skip(sim, source);
     }
-    placed.add(spawn.id);
-    const player = patrolPositionAt(spawn, at);
-    const { tier, elite } = patrolTier(spawn, highestTier(sim.save));
-    log.seen.push({ kind, tier, elite });
-
-    if (isTravellerKind(kind)) {
-      helpTravellerSpawn(sim, spawn, at, player);
+  }
+  while (takeVisit(sim, 'traveller')) {
+    const spawn = findSpawn(sim, TRAVELLER_KINDS);
+    if (!spawn) {
+      skip(sim, 'traveller');
       continue;
     }
-    const pocket = at - sim.now >= minutes * (1 - sim.profile.autoShare) * MINUTE;
-    if (pocket && sim.profile.pocketEscort && patrolRules.escort.types.includes(kind) && !elite) escortFight(sim, spawn, at, player);
-    else if (sim.rng.chance(sim.profile.patrolEngageShare)) engagePatrol(sim, spawn, at, player);
-  }
-}
-
-/** The escort hero takes the spawn on alone, through the game's own background rules. */
-function escortFight(sim: Sim, spawn: PatrolSpawn, at: number, player: LatLng) {
-  setEscort(sim, at); // a fight may have stood the escort down; point it at the healthiest hero again
-  const settings: PatrolSettings = { escortHeroId: sim.save.escort?.heroId ?? null, alertFor: 'off', patrolAlerts: false, escortAlerts: false };
-  const stepped = backgroundStep(snapshotBackground(sim.save, settings, at), [{ position: player, timestamp: at }], at);
-  const result = stepped.state.pending[0];
-  if (result) {
-    act(sim, 'escortPatrol', (save) => applyBackgroundResults(save, stepped.state.pending, at));
-    sim.log.patrols.escortFights.push({ kind: result.kind, tier: result.tier, won: result.won, knockout: result.hpAfter <= 0, xp: result.won ? result.rewards.xp : 0 });
-    if (result.won) countLoot(sim, result.rewards);
-  } else if (stepped.state.escort?.paused) {
-    sim.log.patrols.escortPauses++;
+    sim.met.add(spawn.id);
+    const { tier, elite } = patrolTier(spawn, highestTier(sim.save));
+    sim.log.patrols.seen.push({ kind: spawn.kind, tier, elite });
+    helpTravellerSpawn(sim, spawn, sim.now, patrolPositionAt(spawn, sim.now));
   }
 }
 
@@ -217,8 +198,9 @@ function engagePatrol(sim: Sim, spawn: PatrolSpawn, at: number, player: LatLng) 
     act(sim, 'patrol', () => save);
     sim.log.patrols.fights.push({ kind: fight.kind, tier: fight.tier, elite: fight.elite, won: fight.won, xp: fight.won ? fight.rewards.xp * heroIds.length : 0 });
     if (fight.won) countLoot(sim, fight.rewards);
-    return;
+    return true;
   }
+  return false;
 }
 
 /** Wounded travellers get a potion, pilgrims a meal (supply while the stock is deep), traders are traded with. */
@@ -253,35 +235,38 @@ function helpTravellerSpawn(sim: Sim, spawn: PatrolSpawn, at: number, player: La
     log.keyFragments += reward.loot.keyFragments;
     countLoot(sim, reward.loot);
   }
-  if (reward.kind === 'recruit' && sim.config.patrols.travellerRecruits && save.heroes.length < rosterCap(save)) {
+  if (reward.kind === 'recruit' && save.heroes.length < rosterCap(save)) {
     act(sim, 'traveller', (next) => rollDailyApproaches(acceptRecruit(next, reward.offer), sim.now));
     log.recruits.push(sim.day);
     mark(sim, `recruit:${sim.save.heroes.length}`);
   }
 }
 
-function session(sim: Sim, walkMinutes: number, steps: number, dayKey: string, first: boolean) {
+function session(sim: Sim, walking: boolean, firstWalk: boolean, steps: number, dayKey: string) {
   sim.save = rollDailyApproaches(pruneExpired(sim.save, sim.now), sim.now);
   sim.rotation = dailyRotation(rotationDay(sim.now));
 
-  // Walking, with a lure on the first walk of the day. The day's first gathers
+  // Walking, with a lure on the day's first walk. The day's first gathers
   // (the lure's, then the walk's) get the daily walking bonus.
-  const pickaxes = PICKAXES.filter((id) => sim.save.tools.includes(id)).length;
-  if (first && sim.save.lures > 0 && !isLureActive(sim.save, sim.now)) {
-    const spent = Math.min(sim.bonusGathers, sim.rates.lureSpawns);
-    const lureYield = spent > 0 ? bonusScaled(walkYield(sim.rates.lure, 1, sim.rng, sim.config)) : walkYield(sim.rates.lure, 1, sim.rng, sim.config);
-    sim.save = activateLure(sim.save, sim.location, sim.now);
-    act(sim, spent > 0 ? 'walkBonus' : 'lure', (save) => ({ ...save, materials: addMaterials(save.materials, lureYield) }));
-    sim.bonusGathers -= spent;
+  if (walking) {
+    const pickaxes = PICKAXES.filter((id) => sim.save.tools.includes(id)).length;
+    if (firstWalk && sim.save.lures > 0 && !isLureActive(sim.save, sim.now)) {
+      const spent = Math.min(sim.bonusGathers, sim.rates.lureSpawns);
+      const lureYield = spent > 0 ? bonusScaled(walkYield(sim.rates.lure, 1, sim.rng, sim.config)) : walkYield(sim.rates.lure, 1, sim.rng, sim.config);
+      sim.save = activateLure(sim.save, sim.location, sim.now);
+      act(sim, spent > 0 ? 'walkBonus' : 'lure', (save) => ({ ...save, materials: addMaterials(save.materials, lureYield) }));
+      sim.bonusGathers -= spent;
+    }
+    const minutes = sim.profile.walkMinutes;
+    const autoMinutes = minutes * sim.profile.autoShare;
+    walk(sim, 'walk', sim.rates.perMinute[pickaxes], sim.rates.gathersPerMinute[pickaxes], minutes - autoMinutes);
+    walk(sim, 'autoGather', sim.rates.autoPerMinute[pickaxes], sim.rates.autoGathersPerMinute[pickaxes], autoMinutes);
   }
-  const autoMinutes = walkMinutes * sim.profile.autoShare;
-  walk(sim, 'walk', sim.rates.perMinute[pickaxes], sim.rates.gathersPerMinute[pickaxes], walkMinutes - autoMinutes);
-  walk(sim, 'autoGather', sim.rates.autoPerMinute[pickaxes], sim.rates.autoGathersPerMinute[pickaxes], autoMinutes);
 
   // Collect. Heroes back from an expedition are collected first, so they are home for the walk's patrols.
   const due = sim.save.expeditions.filter((e) => e.endsAt <= sim.now).sort((a, b) => a.endsAt - b.endsAt);
   for (const expedition of due) collectExpedition(sim, expedition);
-  if (sim.config.patrols.enabled) patrolSession(sim, walkMinutes);
+  if (walking) meetPatrols(sim);
   sim.save = applyTraining(sim.save, sim.now);
   sim.save = recordSteps(sim.save, dayKey, steps);
   for (const chest of stepChests) {
@@ -293,7 +278,7 @@ function session(sim: Sim, walkMinutes: number, steps: number, dayKey: string, f
   }
 
   if (sim.save.tutorial.step !== 'done') playTutorial(sim);
-  doQuests(sim);
+  doQuests(sim, walking);
   forge(sim);
   spendPicks(sim);
   stockProvisions(sim);
@@ -306,16 +291,26 @@ function session(sim: Sim, walkMinutes: number, steps: number, dayKey: string, f
   markCoreKit(sim);
 }
 
-/** Plays `days` days of a profile with the bot and returns everything that happened. */
-export function runSim({ profile: name, days, seed, rates, patrolRates, config = simConfig, afterSession }: RunOptions): RunLog {
+/** Activities whose visits are counted per day; the others (first clears, bosses) are outcomes. */
+const OUTCOMES: LootSourceId[] = ['firstTierClear', 'tierBoss', 'stepChest'];
+
+/** The day's steps: just enough to open the profile's step chests. */
+const stepsPerDay = (profile: Profile) => stepChests[Math.max(0, Math.min(stepChests.length, Math.round(profile.visits.stepChest ?? 0)) - 1)].steps;
+
+/** Plays a profile with the bot until the tier 5 boss falls or the profile's day cap, and returns everything that happened. */
+export function runSim({ profile: name, seed, rates, maxDays, config = simConfig, afterSession }: RunOptions): RunLog {
   const profile = profiles[name];
   if (!profile) throw new Error(`Unknown profile ${name}`);
+  const days = maxDays ?? profile.maxDays;
   const rng = createRng(`sim|${seed}|${name}`);
   const startedAt = config.startDay + rng.int(0, config.startOffsetDays) * DAY;
   const location = config.location;
   const tavern = generateTavernsAround(location, startedAt).sort((a, b) => distanceMeters(location, a.position) - distanceMeters(location, b.position))[0];
   const hours = [...profile.sessionHours].sort((a, b) => a - b);
   const sessionTimes = (day: number) => hours.map((h) => startedAt + day * DAY + h * HOUR);
+  const visits = { ...profile.visits, expeditions: (profile.visits.dungeonRun ?? 0) + (profile.visits.firstWin ?? 0), dungeonRun: 0, firstWin: 0 };
+  for (const source of OUTCOMES) delete visits[source];
+  const steps = stepsPerDay(profile);
 
   const sim: Sim = {
     save: createInitialSave(),
@@ -325,8 +320,8 @@ export function runSim({ profile: name, days, seed, rates, patrolRates, config =
     profile,
     config,
     rates,
-    patrolRates,
-    patrolSpawns: 0,
+    due: { quests: 0, expeditions: 0 },
+    met: new Set(),
     rng,
     rotation: dailyRotation(rotationDay(startedAt)),
     location,
@@ -343,7 +338,7 @@ export function runSim({ profile: name, days, seed, rates, patrolRates, config =
     log: {
       profile: name,
       seed,
-      days,
+      days: 0,
       milestones: {},
       daily: [],
       expeditions: [],
@@ -360,8 +355,6 @@ export function runSim({ profile: name, days, seed, rates, patrolRates, config =
       patrols: {
         seen: [],
         fights: [],
-        escortFights: [],
-        escortPauses: 0,
         travellers: { wounded: 0, pilgrim: 0, trader: 0 },
         rewards: { loot: 0, recruit: 0 },
         recruits: [],
@@ -371,15 +364,22 @@ export function runSim({ profile: name, days, seed, rates, patrolRates, config =
       potionsAtHome: 0,
       emergencySupply: 0,
       quests: { claimed: { short: 0, medium: 0, long: 0, secret: 0 }, tips: 0 },
+      skipped: {},
+      finished: false,
     },
   };
 
-  for (let day = 0; day < days; day++) {
+  for (let day = 0; day < days && !sim.log.finished; day++) {
     sim.day = day + 1;
     sim.bonusGathers = gatheringConfig.walkingBonus.gathers;
     const dayStart = startedAt + day * DAY;
     const dayKey = new Date(dayStart).toISOString().slice(0, 10);
-    const meters = profile.walkMinutes * 60 * config.walk.speed;
+    // Quests and expeditions owed carry over a day at most; place visits keep their fractions.
+    for (const [key, perDay] of Object.entries(visits)) {
+      const owed = sim.due[key] ?? 0;
+      sim.due[key] = (key === 'quests' || key === 'expeditions' ? owed % 1 : owed) + (perDay ?? 0);
+    }
+    const meters = profile.walkHours.length * profile.walkMinutes * 60 * config.walk.speed;
     sim.reach = { meters, tavern: false, sanctums: [], maps: new Map() };
     sim.reach.tavern = rng.chance(reachChance(sim, distanceMeters(location, tavern.position)));
     // The nearest Sanctum of each kind today.
@@ -393,12 +393,14 @@ export function runSim({ profile: name, days, seed, rates, patrolRates, config =
     let idle = 0;
     sessionTimes(day).forEach((time, i) => {
       sim.now = time;
-      session(sim, profile.walkMinutes / hours.length, profile.stepsPerDay / hours.length, dayKey, i === 0);
+      session(sim, profile.walkHours.includes(hours[i]), hours[i] === Math.min(...profile.walkHours), steps / hours.length, dayKey);
       idle += homeHeroes(sim.save).length / sim.save.heroes.length;
       afterSession?.(sim.save);
     });
 
     const save = sim.save;
+    sim.log.days = sim.day;
+    sim.log.finished = 'boss:5' in sim.log.milestones;
     sim.log.daily.push({
       day: sim.day,
       gold: save.gold,

@@ -1,3 +1,6 @@
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+
 import { guildTrackById } from '@/content/guild';
 import { dungeonById, recipeById } from '@/content/lookup';
 
@@ -5,47 +8,93 @@ import { craft } from '../crafting/crafting';
 import { startExpedition } from '../expeditions/expeditions';
 import { PATROL_KINDS, TRAVELLER_KINDS } from '../patrols/generate';
 import { rankCost } from '../guild/guild';
+import { parseMatrixCsv } from '../loot/matrixCsv';
+import type { LootSourceId } from '../loot/types';
 import { createInitialSave } from '../save';
-import { simConfig } from './config';
+import { profiles, simConfig } from './config';
 import { checkSave, runSim } from './engine';
-import { summarize } from './metrics';
 import { applyOverrides, parseOverride } from './overrides';
-import { measurePatrolRates } from './patrols';
 import { spamCheck } from './spam';
 import { measureWalkRates } from './walking';
 
 // One 15-minute walk per pickaxe set keeps the tests quick; the CLI measures the full set.
 const rates = measureWalkRates({ ...simConfig, walk: { ...simConfig.walk, samples: simConfig.walk.samples.slice(0, 1), sampleHours: [12], sampleMinutes: 15 } });
-const patrolRates = measurePatrolRates({ ...simConfig, walk: { ...simConfig.walk, samples: simConfig.walk.samples.slice(0, 1), sampleHours: [12], sampleMinutes: 15 } });
+
+const csv = parseMatrixCsv(fs.readFileSync(path.resolve(__dirname, '../../../doc/design/loot/matrix.csv'), 'utf8'));
+const total = (visits: Partial<Record<LootSourceId, number>>, sources: LootSourceId[]) => sources.reduce((sum, s) => sum + (visits[s] ?? 0), 0);
+const FIGHT_EVENTS: LootSourceId[] = ['banditCamp', 'goblinRaid', 'beastDen', 'hauntedCrypt', 'elementalRift', 'abandonedCaravan', 'wantedOutlaw'];
+const PATROLS: LootSourceId[] = ['patrolGoblins', 'patrolHerd', 'patrolBandits'];
+const QUESTS: LootSourceId[] = ['questShort', 'questMedium', 'questLong'];
+
+describe('profiles', () => {
+  it('gives the regular player the visits column of matrix.csv', () => {
+    for (const [source, row] of Object.entries(csv)) expect(profiles.regular.visits[source as LootSourceId]).toBe(row.visitsPerDay);
+  });
+
+  it('gives casual and heavy players the spec’s daily activity', () => {
+    const { casual, heavy } = profiles;
+    expect(total(casual.visits, ['dungeonRun', 'firstWin'])).toBe(3);
+    expect(casual.visits.overnightExpedition).toBe(0);
+    expect(total(casual.visits, QUESTS)).toBeCloseTo(2);
+    expect(total(casual.visits, PATROLS)).toBeCloseTo(1);
+    expect(total(casual.visits, FIGHT_EVENTS)).toBeCloseTo(1);
+    expect(casual.visits.ruinsDig).toBe(0.5);
+    expect(casual.walkHours).toHaveLength(1);
+    expect(total(heavy.visits, ['dungeonRun', 'firstWin'])).toBe(12);
+    expect(heavy.visits.overnightExpedition).toBe(1);
+    expect(total(heavy.visits, QUESTS)).toBeCloseTo(3);
+    expect(heavy.visits.secretQuest).toBe(0.5);
+    expect(total(heavy.visits, PATROLS)).toBeCloseTo(6);
+    expect(total(heavy.visits, FIGHT_EVENTS)).toBeCloseTo(5);
+    expect(heavy.visits.ruinsDig).toBe(2);
+    expect(heavy.visits.stepChest).toBe(4);
+    expect(heavy.walkHours).toHaveLength(3);
+    // Sources the spec leaves out follow the regular player's, halved or ×1.5.
+    expect(casual.visits.heist).toBeCloseTo(csv.heist.visitsPerDay * 0.5);
+    expect(heavy.visits.heist).toBeCloseTo(csv.heist.visitsPerDay * 1.5);
+  });
+
+  it('launches no more expeditions a day than the profile plans', () => {
+    const log = runSim({ profile: 'casual', maxDays: 5, seed: 'cap', rates });
+    for (let day = 2; day <= 5; day++) expect(log.expeditions.filter((e) => e.day === day && !e.overnight).length).toBeLessThanOrEqual(3);
+    expect(log.expeditions.some((e) => e.overnight)).toBe(false);
+  });
+
+  it('stops at the day cap when the tier 5 boss still stands', () => {
+    const log = runSim({ profile: 'regular', maxDays: 4, seed: 'cap', rates });
+    expect(log.days).toBe(4);
+    expect(log.finished).toBe(false);
+  });
+});
 
 describe('balance lab', () => {
   it('gives the same summary for the same seed, profile and overrides', () => {
-    const run = () => summarize([runSim({ profile: 'regular', days: 6, seed: 'same', rates, patrolRates })]);
+    const run = () => runSim({ profile: 'regular', maxDays: 6, seed: 'same', rates });
     expect(JSON.stringify(run())).toBe(JSON.stringify(run()));
   });
 
   it('plays through the tutorial and the first tier', () => {
-    const log = runSim({ profile: 'regular', days: 8, seed: 'progress', rates, patrolRates });
+    const log = runSim({ profile: 'regular', maxDays: 8, seed: 'progress', rates });
     expect(log.milestones['boss:1']).toBeDefined();
     expect(log.expeditions.length).toBeGreaterThan(5);
     expect(log.crafts.some((c) => c.kind === 'upgrade')).toBe(true);
   });
 
   it('never leaves the save in a state the game forbids', () => {
-    for (const profile of ['casual', 'dedicated']) {
-      runSim({ profile, days: 8, seed: 'legal', rates, patrolRates, afterSession: checkSave });
+    for (const profile of ['casual', 'heavy']) {
+      runSim({ profile, maxDays: 8, seed: 'legal', rates, afterSession: checkSave });
     }
   });
 
   it('meets patrols and travellers while keeping the save valid', () => {
-    const log = runSim({ profile: 'regular', days: 3, seed: 'patrols', rates, patrolRates, afterSession: checkSave });
+    const log = runSim({ profile: 'regular', maxDays: 3, seed: 'patrols', rates, afterSession: checkSave });
     expect(log.patrols.seen.length).toBeGreaterThan(0);
     const kinds = [...PATROL_KINDS, ...TRAVELLER_KINDS];
     for (const row of log.patrols.seen) {
       expect(kinds).toContain(row.kind);
       expect(row.tier).toBeGreaterThanOrEqual(1);
     }
-    for (const fight of [...log.patrols.fights, ...log.patrols.escortFights]) {
+    for (const fight of log.patrols.fights) {
       expect(PATROL_KINDS).toContain(fight.kind);
       expect(fight.tier).toBeGreaterThanOrEqual(1);
     }

@@ -12,25 +12,20 @@ const rates = measureWalkRates({ ...simConfig, walk: { ...simConfig.walk, sample
 
 describe('balance lab CLI', () => {
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sim-'));
-  const options = { profiles: ['casual'], days: 3, runs: 1, seed: 'smoke', overrides: [], outDir, matrix: false, rates, print: () => {} };
+  const options = { profiles: ['casual'], seeds: 1, seed: 'smoke', maxDays: 3, overrides: [], outDir, rates, print: () => {} };
 
   it('runs a short casual game and writes every output', () => {
     runLab(options);
-    for (const file of ['report.html', 'summary.json', 'daily.csv', 'expeditions.csv', 'crafts.csv']) {
+    for (const file of ['daily.csv', 'expeditions.csv', 'crafts.csv']) {
       expect(fs.statSync(path.join(outDir, file)).size).toBeGreaterThan(0);
     }
     const daily = fs.readFileSync(path.join(outDir, 'daily.csv'), 'utf8').trim().split('\n');
     expect(daily).toHaveLength(1 + 3);
   });
 
-  it('compares with a previous summary and puts overrides back afterwards', () => {
-    const before = path.join(outDir, 'before.json');
-    fs.copyFileSync(path.join(outDir, 'summary.json'), before);
+  it('puts overrides back afterwards', () => {
     const cost = guildTrackById.gold.baseCost;
-    const { comparison, summary } = runLab({ ...options, overrides: ['dungeons.ratCellar.gold.1=200'], compareWith: before });
-    expect(summary.settings.overrides).toEqual(['dungeons.ratCellar.gold.1=200']);
-    expect(comparison).not.toBeNull();
+    runLab({ ...options, overrides: ['guild.gold.baseCost=1'] });
     expect(guildTrackById.gold.baseCost).toBe(cost);
-    expect(fs.readFileSync(path.join(outDir, 'report.html'), 'utf8')).toContain('Changes since');
   });
 });
