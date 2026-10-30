@@ -50,8 +50,6 @@ function familyOf(recipe: RecipeDef): Family {
 }
 
 /** The forged piece in its quality colour, bigger for Legendary, and any mastery level-up. */
-
-/** The forged piece in its quality colour, bigger for Legendary, and any mastery level-up. */
 function ForgeBanner({ result, onClose }: { result: ForgeResult; onClose: () => void }) {
   const { quality, roll } = result.gear;
   const legendary = quality === 'legendary';
