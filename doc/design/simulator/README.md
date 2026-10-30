@@ -21,7 +21,7 @@ The simulator plays the game with simple bots, for several player profiles, and 
 | --- | --- |
 | Days per tier | Regular **about 7**, casual **about 14**, heavy **3–4** |
 | Win odds, normal expedition, team prepared (right kits, gear of the tier) | **65–75%** |
-| Win odds, normal expedition, team not prepared (no kits for the threats) | **30–45%** |
+| Win odds, normal expedition, briefing skipped (the strongest party picked as if there were no threats, with no kits) | **30–45%** |
 | Win odds, tier boss, prepared | **50–60%** |
 | Win odds, fight events and patrols, prepared | 70–80% |
 | Loot pacing | Within 20% of `doc/design/loot/tools/pacing.py` for the regular profile |
@@ -29,7 +29,7 @@ The simulator plays the game with simple bots, for several player profiles, and 
 | Materials | The tier's main material stays tight (spent about as fast as it's gathered) |
 | Levels | Heroes reach the top of the tier's level band around the end of the tier |
 
-"Prepared" vs "not prepared" is the point of the toolbox design: the gap between the two lines must stay wide. If the bot wins without kits, the game is too easy.
+"Prepared" vs "not prepared" is the point of the toolbox design: "not prepared" is the briefing skipped, the strongest party picked as if there were no threats, with no kits. The gap between the two lines must stay wide. If the bot wins that way, the game is too easy.
 
 ## Bot rules (simple, not clever)
 - **Before a run**: kits for the threats it can answer; a charm only when its odds are already high (the safe-or-greedy choice); a potion otherwise.

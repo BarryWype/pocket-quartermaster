@@ -80,8 +80,8 @@ describe('gear keywords', () => {
     const options = { rules: steady, briefing: briefingOf('armoured', 3) };
     const plain = bossFight([member('a', [], { maxHp: 1e6 })], {}, options).fight.dealt.a;
     const pierce = bossFight([member('a', ['pierce'], { maxHp: 1e6 })], {}, options).fight.dealt.a;
-    expect(plain).toBeCloseTo(10 * 0.5 * 40, 5);
-    expect(pierce).toBeCloseTo(plain / 0.5, 5);
+    expect(plain).toBeCloseTo(10 * (1 - 0.52) * 40, 5);
+    expect(pierce).toBeCloseTo(plain / (1 - 0.52), 5);
   });
 
   it('Cleave splashes onto a second enemy', () => {
@@ -117,7 +117,7 @@ describe('gear keywords', () => {
   });
 
   it('Reach strikes first in an exposed fight', () => {
-    const hero = (keywords: Keyword[]) => [member('a', keywords, { power: 60, speed: 5 })];
+    const hero = (keywords: Keyword[]) => [member('a', keywords, { power: 70, speed: 5 })];
     const options = { rules: steady, briefing: briefingOf('darkness', 2) };
     const reach = simulateRun(hero(['reach']), bossOnly({ hp: 50, damage: 100, speed: 7 }), 'seed', options);
     expect(reach.bossDefeated).toBe(true);

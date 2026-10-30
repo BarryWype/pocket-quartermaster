@@ -181,13 +181,15 @@ describe('roster', () => {
 describe('addXp', () => {
   it('levels up and carries over the remainder', () => {
     const save = createInitialSave();
-    const leveled = addXp(hero(save, 'bram'), 250);
+    const leveled = addXp(hero(save, 'bram'), 320);
     expect(leveled.level).toBe(3);
-    expect(leveled.xp).toBe(147);
-    // 25 to level 2, then round(25 × 2^1.65) = 78, then 153 to level 4.
-    expect(addXp(hero(save, 'bram'), 102).level).toBe(2);
-    expect(addXp(hero(save, 'bram'), 103).level).toBe(3);
-    expect([1, 2, 3, 4].map((level) => xpToNextLevel(level))).toEqual([25, 78, 153, 246]);
+    expect(leveled.xp).toBe(10);
+    // 75 to level 2, then round(75 × 2^1.65) = 235, then 460 to level 4.
+    expect(addXp(hero(save, 'bram'), 74).level).toBe(1);
+    expect(addXp(hero(save, 'bram'), 75).level).toBe(2);
+    expect(addXp(hero(save, 'bram'), 309).level).toBe(2);
+    expect(addXp(hero(save, 'bram'), 310).level).toBe(3);
+    expect([1, 2, 3, 4].map((level) => xpToNextLevel(level))).toEqual([75, 235, 460, 739]);
   });
 });
 

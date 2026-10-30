@@ -161,7 +161,7 @@ describe('the Sealed vault', () => {
   });
 
   it('adds the prize to a won run, and none to a lost run with the key spent', () => {
-    const save = strong(veteran(), 3);
+    const save = strong(veteran(), 10);
     const results = vaultRuns(save, true);
     const wins = results.filter((r) => r.report.success);
     const losses = results.filter((r) => !r.report.success);
@@ -178,7 +178,7 @@ describe('the Sealed vault', () => {
   });
 
   it('adds no prize without opting in', () => {
-    const results = vaultRuns(strong(veteran(), 3), false).filter((r) => r.report.success);
+    const results = vaultRuns(strong(veteran(), 10), false).filter((r) => r.report.success);
     expect(results.length).toBeGreaterThan(0);
     for (const { report } of results) expect(report.prize).toBeUndefined();
   });

@@ -6,7 +6,6 @@ import type { DungeonDef, Quality } from '@/game/types';
 import { estimateOdds } from '../expeditions/odds';
 import { createInitialSave, type SaveData } from '../save';
 import { baseWalkConfig } from '../sim/walking';
-import { expectedLevels } from '../sim/config';
 import { equip } from '../team/team';
 import { simulateWalk } from './simulateWalk';
 
@@ -122,8 +121,9 @@ describe('tier 1 opens up as the team gears up', () => {
   });
 
   it('does not let levels replace gear', () => {
-    const levelled = swordOnly(3);
-    const kit = team(expectedLevels[0], 'wood');
+    // The boss is tuned past the reference kit at the band's top: compare two levels up.
+    const levelled = swordOnly(5);
+    const kit = team(5, 'wood');
     expect(chance(levelled, dungeonById.goblinWarren)).toBeLessThan(chance(kit, dungeonById.goblinWarren) - 0.3);
     expect(chance(levelled, dungeonById.banditStockade)).toBeLessThan(chance(kit, dungeonById.banditStockade) - 0.2);
   });

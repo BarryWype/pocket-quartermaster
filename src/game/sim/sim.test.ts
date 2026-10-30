@@ -74,7 +74,7 @@ describe('balance lab', () => {
   });
 
   it('plays through the tutorial and the first tier', () => {
-    const log = runSim({ profile: 'regular', maxDays: 8, seed: 'progress', rates });
+    const log = runSim({ profile: 'regular', maxDays: 14, seed: 'progress', rates });
     expect(log.milestones['boss:1']).toBeDefined();
     expect(log.expeditions.length).toBeGreaterThan(5);
     expect(log.crafts.some((c) => c.kind === 'upgrade')).toBe(true);

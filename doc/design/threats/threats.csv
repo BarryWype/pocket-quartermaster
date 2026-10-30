@@ -1,20 +1,20 @@
 Threat,Category,First tier,Answer type,Answer,Alternative answer,Kit or gear,Penalty type,Level 1,Level 2,Level 3,Dungeon,Patrol,Exploration,Status
-Traps,Environment,1,Approach,Finesse,,Rogue's roll,Wounds,8% per trap,12% per trap,18% per trap,1,0,1,Exists
-Element (any of 5),Environment,1,Keyword,Resist (element),,Ward salve,Elemental damage,×1.25,×1.5,×1.75,1,1,1,Exists
-Beasts,Enemy,1,Keyword,Calm,,Hunter's pack,Enemy damage,+20%,+35%,+50%,1,1,0,Exists
-Undead,Enemy,1,Keyword,Blessed,,"Gear: mace, censer",Enemy HP,+20%,+40%,+60%,1,1,1,Exists
-Brute,Enemy,1,Keyword,Guard,,Gear: plate,Brute damage on one hero,+25%,+50%,+75%,1,1,0,Rework of enrage
+Traps,Environment,1,Approach,Finesse,,Rogue's roll,Wounds,25% per trap,35% per trap,45% per trap,1,0,1,Exists
+Element (any of 5),Environment,1,Keyword,Resist (element),,Ward salve,Elemental damage,×1.75,×1.9,×2.1,1,1,1,Exists
+Beasts,Enemy,1,Keyword,Calm,,Hunter's pack,Enemy damage,+120%,+130%,+140%,1,1,0,Exists
+Undead,Enemy,1,Keyword,Blessed,,"Gear: mace, censer",Enemy HP,+70%,+80%,+90%,1,1,1,Exists
+Brute,Enemy,1,Keyword,Guard,,Gear: plate,Brute damage on one hero,+130%,+150%,+175%,1,1,0,Rework of enrage
 Obstacle: rubble,Obstacle,2,Approach,Might,,Explorer's kit,Delay + Hunger,"+10% time, +1 supply","+20% time, +1 supply","+30% time, +2 supply",1,0,1,Exists; absorbs barricade
-Poison,Environment,2,Keyword,Antidote,,Healer's satchel,Wounds,5% per fight,10% per fight,15% per fight,1,1,1,New
+Poison,Environment,2,Keyword,Antidote,,Healer's satchel,Wounds,15% per fight,20% per fight,25% per fight,1,1,1,New
 Locals,Social,2,Approach,Presence (they help),"Might (intimidate, no help)",Gift basket,Extra fight,Extra fight,Extra fight,Extra fight,1,1,1,Rework of locals
-Swarm,Enemy,2,Keyword,Cleave,,"Gear: axe, staff",Extra enemies,+1 per swarm fight,+2 per swarm fight,+3 per swarm fight,1,1,0,New
-Darkness,Environment,3,Keyword,Light,,Lantern,Exposed + Weakened,Exposed 1 fight,Exposed 2 fights + Weakened 10%,Exposed all fights + Weakened 20%,1,0,1,New
+Swarm,Enemy,2,Keyword,Cleave,,"Gear: axe, staff",Extra enemies,+2.5 per swarm fight,+3 per swarm fight,+3.5 per swarm fight,1,1,0,New
+Darkness,Environment,3,Keyword,Light,,Lantern,Exposed + Weakened,Exposed 2 fights + Weakened 20%,Exposed 3 fights + Weakened 22%,Exposed all fights + Weakened 25%,1,0,1,New
 Obstacle: locked,Obstacle,3,Approach,Finesse,"Might (forces it, loses 10% loot)",Rogue's roll,Lost loot,15%,25%,40%,1,0,1,Exists
-Desecrated ground,Holy,3,Approach,Faith,,Holy symbols,Weakened,10%,20%,30% + healing halved,1,0,1,New
-Casters,Enemy,3,Approach,Faith,,Holy symbols,Wounds (ignores armour),6% per fight,10% per fight,15% per fight,1,0,0,New
-Ambush,Enemy,3,Keyword,Watchful,,Lantern,Exposed,1 fight,2 fights,All fights,1,1,0,Rework of the ambush event
+Desecrated ground,Holy,3,Approach,Faith,,Holy symbols,Weakened,30%,35%,40% + healing halved,1,0,1,New
+Casters,Enemy,3,Approach,Faith,,Holy symbols,Wounds (ignores armour),30% per fight,36% per fight,44% per fight,1,0,0,New
+Ambush,Enemy,3,Keyword,Watchful,,Lantern,Exposed,1 fight + Weakened 20%,2 fights + Weakened 25%,All fights + Weakened 25%,1,1,0,Rework of the ambush event
 Thieves,Enemy,3,Approach,Finesse,,Rogue's roll,Lost loot,10%,20%,30%,1,1,0,New
-Armoured,Enemy,3,Keyword,Pierce,,"Gear: dagger, bow, warhammer",Weakened against them,20%,35%,50%,1,1,0,New
+Armoured,Enemy,3,Keyword,Pierce,,"Gear: dagger, bow, warhammer",Weakened against them,45%,48%,52%,1,1,0,New
 Obstacle: puzzle,Obstacle,4,Approach,Wits,,Scholar's satchel,Delay + Hunger,"+15% time, +1 supply","+30% time, +2 supply","+45% time, +2 supply",1,0,1,New
 Maze,Environment,4,Approach,Wits,,Scholar's satchel,Delay + Hunger,"+20% time, +1 supply","+35% time, +2 supply","+50% time, +3 supply",1,0,0,New
-Underwater,Environment,4,Approach,Wits,,Explorer's kit,Weakened,15%,25%,40%,1,0,1,New; Heavy gear doubles it
+Underwater,Environment,4,Approach,Wits,,Explorer's kit,Weakened,20%,25%,32%,1,0,1,New; Heavy gear doubles it

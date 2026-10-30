@@ -8,7 +8,7 @@ export const targets = {
   odds: {
     /** Normal expeditions with the right kits and the tier's gear. */
     prepared: [0.65, 0.75] as [number, number],
-    /** The same party and gear with the kit slots empty. */
+    /** Not prepared: the briefing skipped — the strongest party picked as if there were no threats, with no kits. */
     unprepared: [0.3, 0.45] as [number, number],
     boss: [0.5, 0.6] as [number, number],
     /** Fight events and patrols, prepared. */

@@ -15,10 +15,13 @@ export const enemySpeedRules: Record<SpeedClass, number> & { speedPerTier: numbe
 };
 
 // Enemies are written at tier 1 strength, then scaled by their tier and by how
-// tough their dungeon should be within it. Per-dungeon strengths are tuned so
-// that, with the tier's full kit at the expected level, short dungeons succeed
-// well over 65% of the time, long ones over 45% and bosses 30–60% (see
-// src/game/balance/balance.test.ts).
+// tough their dungeon should be within it. Per-dungeon factors are fitted to a
+// reference team (the starting trio in the tier's sword, bow and wand plus
+// mail, Normal quality, at the top of the tier's level band, no threats):
+// short dungeons about 72%, long about 68%, bosses about 38% before a further
+// ×1.3. Real rosters do much better (trinkets, better qualities, meals, the
+// boss's weakness item). Tier 1 short dungeons are kept softer for onboarding
+// (Rat Cellar is the tutorial dungeon).
 export const TIER_SCALE = [1, 1.9, 3, 4.2, 5.6];
 
 /** A dungeon's scaling, with its tier for enemy Speed. */
@@ -70,45 +73,45 @@ function boss(
 
 const S = {
   // Tier 1
-  ratCellar: strength(1, 1.58),
-  spiderBurrow: strength(1, 1.68),
-  oldGraveyard: strength(1, 1.34),
-  goblinWarren: strength(1, 3.50),
-  millRuins: strength(1, 3.57),
-  smugglersCove: strength(1, 3.51),
-  banditStockade: strength(1, 2.25),
+  ratCellar: strength(1, 2.50),
+  spiderBurrow: strength(1, 2.70),
+  oldGraveyard: strength(1, 2.15),
+  goblinWarren: strength(1, 4.22),
+  millRuins: strength(1, 4.37),
+  smugglersCove: strength(1, 4.29),
+  banditStockade: strength(1, 3.95),
   // Tier 2
-  wolfDen: strength(2, 3.08),
-  barrowMounds: strength(2, 2.49),
-  boarThicket: strength(2, 2.80),
-  trollBridge: strength(2, 2.79),
-  sunkenFord: strength(2, 2.09),
-  watchtower: strength(2, 2.71),
-  ogreQuarry: strength(2, 1.85),
+  wolfDen: strength(2, 4.14),
+  barrowMounds: strength(2, 3.32),
+  boarThicket: strength(2, 3.97),
+  trollBridge: strength(2, 3.61),
+  sunkenFord: strength(2, 2.67),
+  watchtower: strength(2, 3.72),
+  ogreQuarry: strength(2, 3.17),
   // Tier 3
-  hauntedMine: strength(3, 2.67),
-  fungalGrotto: strength(3, 2.35),
-  stormRidge: strength(3, 2.15),
-  cinderHollow: strength(3, 2.23),
-  dwarfhold: strength(3, 2.11),
-  witchMarsh: strength(3, 2.15),
-  drownedCrypt: strength(3, 1.68),
+  hauntedMine: strength(3, 3.49),
+  fungalGrotto: strength(3, 3.04),
+  stormRidge: strength(3, 2.68),
+  cinderHollow: strength(3, 2.60),
+  dwarfhold: strength(3, 2.63),
+  witchMarsh: strength(3, 2.65),
+  drownedCrypt: strength(3, 2.93),
   // Tier 4
-  harpyCliffs: strength(4, 2.81),
-  thunderPlateau: strength(4, 2.09),
-  boneField: strength(4, 2.44),
-  orcWarcamp: strength(4, 2.15),
-  clockworkVault: strength(4, 2.23),
-  frozenLake: strength(4, 1.94),
-  giantsHall: strength(4, 1.59),
+  harpyCliffs: strength(4, 3.42),
+  thunderPlateau: strength(4, 2.28),
+  boneField: strength(4, 3.39),
+  orcWarcamp: strength(4, 2.81),
+  clockworkVault: strength(4, 2.79),
+  frozenLake: strength(4, 2.27),
+  giantsHall: strength(4, 2.81),
   // Tier 5
-  wyvernPeaks: strength(5, 2.44),
-  ossuary: strength(5, 2.19),
-  stormIsle: strength(5, 1.86),
-  ashenCitadel: strength(5, 1.76),
-  abyssalDepths: strength(5, 1.69),
-  titanRuins: strength(5, 1.74),
-  dragonLair: strength(5, 1.37),
+  wyvernPeaks: strength(5, 3.10),
+  ossuary: strength(5, 3.11),
+  stormIsle: strength(5, 2.05),
+  ashenCitadel: strength(5, 2.07),
+  abyssalDepths: strength(5, 1.74),
+  titanRuins: strength(5, 2.13),
+  dragonLair: strength(5, 1.94),
   // Overnight expeditions: a long, safe patrol at low strength (see overnightExpeditionRules).
   nightWatch1: strength(1, 1.7),
   nightWatch2: strength(2, 2.5),
@@ -355,21 +358,21 @@ const patrolTemplates: Record<PatrolKind, PatrolTemplate> = {
     hp: [7, 10, 14],
     damage: [2, 3, 4],
     tags: ['locals'],
-    factors: [3.03, 2.75, 2.57, 2.58, 2.69],
+    factors: [3.79, 3.44, 3.21, 3.23, 3.36],
     foes: GOBLIN_FOES,
   },
   herd: {
     hp: [8, 12, 16],
     damage: [2, 3, 4],
     tags: ['beast'],
-    factors: [2.81, 2.46, 2.33, 2.41, 2.39],
+    factors: [3.51, 3.08, 2.91, 3.01, 2.99],
     foes: HERD_FOES,
   },
   bandits: {
     hp: [10, 14, 22],
     damage: [3, 4, 6],
     tags: ['locals'],
-    factors: [4.88, 4.36, 4.16, 4.1, 4.29],
+    factors: [6.1, 5.45, 5.2, 5.12, 5.36],
     foes: BANDIT_FOES,
   },
 };
@@ -415,9 +418,9 @@ type PlaceTemplate = {
   elemental?: boolean;
 };
 
-const BANDIT_FACTORS: [number, number, number, number, number] = [4.88, 4.36, 4.16, 4.1, 4.29];
-const GOBLIN_FACTORS: [number, number, number, number, number] = [3.03, 2.75, 2.57, 2.58, 2.69];
-const HERD_FACTORS: [number, number, number, number, number] = [2.81, 2.46, 2.33, 2.41, 2.39];
+const BANDIT_FACTORS: [number, number, number, number, number] = [6.1, 5.45, 5.2, 5.12, 5.36];
+const GOBLIN_FACTORS: [number, number, number, number, number] = [3.79, 3.44, 3.21, 3.23, 3.36];
+const HERD_FACTORS: [number, number, number, number, number] = [3.51, 3.08, 2.91, 3.01, 2.99];
 
 const placeTemplates: Record<FightPlaceKind, PlaceTemplate> = {
   banditCamp: {

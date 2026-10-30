@@ -52,6 +52,9 @@ function geared(): SaveData {
   return equip(save, 'bram', 'consumable', 'healingPotion');
 }
 
+/** The same save with every gear id's tier digit replaced. */
+const atTier = (save: SaveData, tier: number): SaveData => ({ ...save, gear: save.gear.map((g) => ({ ...g, itemId: g.itemId.replace(/\d$/, String(tier)) })) });
+
 /** Runs the same expedition with many seeds; resolution is deterministic per seed. */
 function outcomes(save: SaveData, dungeonId: string, runs = 200) {
   return Array.from({ length: runs }, (_, i) => {
@@ -158,7 +161,7 @@ describe('resolveExpedition', () => {
     // Rat Cellar counts as the tier's clear and the day's first win, so only the run's own XP shows.
     const save = {
       ...geared(),
-      heroes: geared().heroes.map((h) => ({ ...h, level: 3 })),
+      heroes: geared().heroes.map((h) => ({ ...h, level: 4 })),
       clearedDungeons: ['ratCellar'],
       firstWinDay: rotationDay(dungeon.durationMinutes * MIN),
     };
@@ -392,7 +395,7 @@ describe('first win of the day', () => {
     const started = startExpedition({ ...save, nextUid: 100 + i }, dungeonId, ALL, endsAt - dungeon.durationMinutes * MIN);
     return resolveExpedition(started, started.expeditions[0]);
   };
-  const strong = () => ({ ...geared(), heroes: geared().heroes.map((h) => ({ ...h, level: 15 })) });
+  const strong = () => ({ ...atTier(geared(), 2), heroes: geared().heroes.map((h) => ({ ...h, level: 15 })) });
   const day = Date.UTC(2026, 10, 2, 12);
 
   it('is rolled once per rotation day, for dungeons and tier bosses alike', () => {
@@ -448,7 +451,13 @@ describe('first tier clear', () => {
   });
 
   it('is paid again for the next tier', () => {
-    const save: SaveData = { ...strong(), clearedDungeons: ['banditStockade'] };
+    // That day's Wolf Den has Beasts 2: a Hunter's pack on Lyra answers it.
+    const base: SaveData = {
+      ...atTier(strong(), 2),
+      clearedDungeons: ['banditStockade'],
+      consumables: { ...strong().consumables, huntersPack: 1 },
+    };
+    const save = equip(base, 'lyra', 'consumable', 'huntersPack');
     const result = win(save, 'wolfDen');
     expect(result.report.success).toBe(true);
     expect(result.report.firstTierClear).toBe(true);

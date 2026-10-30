@@ -189,7 +189,7 @@ describe('recruiting', () => {
 
   it('drops blueprints for the newer weapon types, and meeting one starts its mastery', () => {
     const save = unlocked({ tutorial: { ...createInitialSave().tutorial, step: 'done' } });
-    const strong = equip({ ...save, gear: [{ uid: 'g', itemId: 'sword5', quality: 'legendary' }] }, 'bram', 'weapon', 'g');
+    const strong = equip({ ...save, heroes: save.heroes.map((h) => ({ ...h, level: 5 })), gear: [{ uid: 'g', itemId: 'sword5', quality: 'legendary' }] }, 'bram', 'weapon', 'g');
     const drops = (s: SaveData) =>
       Array.from({ length: 80 }, (_, i) => {
         const started = startExpedition({ ...s, nextUid: i + 10 }, 'ratCellar', ['bram'], 0);

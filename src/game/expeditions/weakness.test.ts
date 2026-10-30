@@ -157,7 +157,7 @@ describe('boss weaknesses', () => {
   });
 
   it('lifts the party’s odds against the matching boss', () => {
-    const base = ['a', 'b', 'c'].map((id) => member(id, { maxHp: 70, power: 15 }));
+    const base = ['a', 'b', 'c'].map((id) => member(id, { maxHp: 120, power: 25 }));
     const def = dungeonById.banditStockade;
     const without = estimatePartyOdds(base, def, 100, { rules: calm });
     const withItem = estimatePartyOdds(

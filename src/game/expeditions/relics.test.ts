@@ -107,7 +107,7 @@ describe('relic keyword effects', () => {
     const options = { rules: steady, briefing: briefingOf('armoured', 3) };
     const dealt = (tags: Tag[]) => bossFight([relicMember('dwarfLordsAxe', { maxHp: 1e6, hp: 1e6 })], { tags }, options).fight.dealt.bram;
     expect(dealt(['construct'])).toBeCloseTo(10 * 40, 5);
-    expect(dealt(['beast'])).toBeCloseTo(10 * 0.5 * 40, 5);
+    expect(dealt(['beast'])).toBeCloseTo(10 * (1 - 0.52) * 40, 5);
   });
 
   it("the Sexton's mace staggers undead strongly, beasts not at all beyond the mace itself", () => {
@@ -137,7 +137,7 @@ describe('relic keyword effects', () => {
   });
 
   it("the Thief-taker's quiver reaches through Ambush briefings only", () => {
-    const hero = (relic: boolean) => [relic ? relicMember('thiefTakersQuiver', { power: 60, speed: 5 }) : wornMember('quiver3', null, { power: 60, speed: 5 })];
+    const hero = (relic: boolean) => [relic ? relicMember('thiefTakersQuiver', { power: 80, speed: 5 }) : wornMember('quiver3', null, { power: 80, speed: 5 })];
     const boss = { hp: 120, damage: 60, speed: 7 };
     // Ambushed: the relic's strong reach strikes first in rounds 1 and 2, felling the boss before its second blow.
     const ambushed = simulateRun(hero(true), bossOnly(boss), 'seed', { rules: steady, briefing: briefingOf('ambush', 3) });
@@ -176,8 +176,8 @@ describe('relic combat effects', () => {
       briefing: briefingOf('poison', 3),
     });
     const boss = run.encounters.find((e) => e.kind === 'boss')!;
-    expect(boss.taken.bram).toBeCloseTo(0.15 * 100 * 0.5, 5);
-    expect(boss.taken.lyra).toBeCloseTo(15, 5);
+    expect(boss.taken.bram).toBeCloseTo(0.25 * 100 * 0.5, 5);
+    expect(boss.taken.lyra).toBeCloseTo(25, 5);
   });
 
   it("the Smuggler's coat removes the Thieves' lost loot", () => {
@@ -201,7 +201,7 @@ describe('relic combat effects', () => {
       options,
     );
     const boss = run.encounters.find((e) => e.kind === 'boss')!;
-    expect(boss.dealt.bram).toBeCloseTo(10 * 0.6 * 40, 5);
+    expect(boss.dealt.bram).toBeCloseTo(10 * (1 - 0.32) * 40, 5);
   });
 
   it("the Dragonbone plate resists fire and halves its hits", () => {
