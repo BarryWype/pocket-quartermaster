@@ -98,11 +98,11 @@ async function readSettings(): Promise<NotificationSettings | undefined> {
  * mode's counting and places nearby: steps the stored background state
  * through them, and sends the alerts only when the app is not open to show
  * them itself. Nothing here changes the save; the app folds the walk in when
- * it opens.
+ * it opens. Returns what was sent (for the debug walk).
  */
 export async function stepPatrols(fixes: WalkFix[], appActive: boolean) {
   const kept = fixes.filter((fix) => fix.accuracy === null || fix.accuracy <= config.maxAccuracyMeters);
-  if (fixes.length === 0 || !(await readBackground())) return;
+  if (fixes.length === 0 || !(await readBackground())) return [];
   const settings = appActive ? undefined : await readSettings().catch(() => undefined);
   const now = Date.now();
   const sent: PlannedNotification[] = [];
@@ -119,11 +119,12 @@ export async function stepPatrols(fixes: WalkFix[], appActive: boolean) {
     sent.push(...notified.notifications);
     return { ...pocket.state, pocket: { ...pocket.state.pocket, log: notified.log } };
   });
-  if (!state) return;
+  if (!state) return [];
   for (const notification of sent) {
     // A notification failure never breaks the task.
     await deviceNotifications.send(notification).catch(() => {});
   }
+  return sent;
 }
 
 /** Appends fixes from the app's own location watch (auto-gather limited to the app being open). */

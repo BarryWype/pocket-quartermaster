@@ -310,6 +310,7 @@ export default function DebugScreen() {
   const [tierRoll, setTierRoll] = useState<TierRoll>('current');
   const [around, setAround] = useState<{ position: LatLng; spawns: PatrolSpawn[] } | null>(null);
   const [escortMerged, setEscortMerged] = useState<number | null>(null);
+  const [pocketReport, setPocketReport] = useState<string | null>(null);
   const refreshBuffer = () => readBuffer().then(setBuffer, () => setBuffer(null));
   // A loop around the mock location (or the map's last position) that ends now.
   const playRoute = async (stepsCounted: boolean) => {
@@ -318,15 +319,22 @@ export default function DebugScreen() {
     setPlayback(await playBack(playbackRoute(center, Date.now(), { stepsCounted })));
     refreshBuffer();
   };
-  /** Feeds the same loop, but through the background task's patrol stepping first, escort fights and alerts included. */
+  /** Feeds the same loop through the background task first (patrols, escort, counting and notifications), then processes it as on opening. */
   const playRouteWithPatrols = async () => {
     const center = debug.mockLocation ?? useWorldStore.getState().player ?? FALLBACK_LOCATION;
     const fixes = playbackRoute(center, Date.now());
-    await stepPatrols(fixes, false);
+    const before = useGameStore.getState().save.quests.list.filter((quest) => quest.doneAt !== null).length;
+    // In batches like the task gets them, as if the app were closed: counting and notifications included.
+    const sent: Awaited<ReturnType<typeof stepPatrols>> = [];
+    for (let i = 0; i < fixes.length; i += 20) sent.push(...(await stepPatrols(fixes.slice(i, i + 20), false)));
     const merged = (await readBackground())?.pending.length ?? 0;
     setPlayback(await playBack(fixes));
     await syncBackground();
+    const after = useGameStore.getState().save.quests.list.filter((quest) => quest.doneAt !== null).length;
     setEscortMerged(merged);
+    setPocketReport(
+      `Notified: ${sent.map((n) => `${n.category} "${n.title}"`).join(' · ') || 'nothing'}\nQuests done on opening: ${after - before}`,
+    );
     refreshBuffer();
   };
   const lastWalk = game.save.autoGather.history[0] ?? null;
@@ -1036,13 +1044,14 @@ export default function DebugScreen() {
       <View style={styles.row}>
         <Button title="Play 30 min loop (steps estimated)" onPress={() => playRoute(false)} />
         <Button title="Play (pedometer counted)" onPress={() => playRoute(true)} />
-        <Button title="Play back with patrols & escort" onPress={playRouteWithPatrols} />
+        <Button title="Background walk (Pocket mode on)" onPress={playRouteWithPatrols} />
       </View>
       <Text style={styles.hint}>
         Feeds a loop at walking pace, ending now, around the mock location (or where the map last saw you), then processes it as if the app came back. Fixes older than the last processed one are ignored as stale.
       </Text>
       {playback && <Text style={styles.mono}>Playback: {describeWalk(playback)}</Text>}
       {escortMerged !== null && <Text style={styles.mono}>Escort fights merged: {escortMerged}</Text>}
+      {pocketReport && <Text style={styles.mono}>{pocketReport}</Text>}
       <View style={styles.row}>
         <Button title="Read buffer" onPress={refreshBuffer} />
         <Button title="Clear buffer" onPress={() => updateBuffer((b) => ({ ...b, fixes: [], autoStopped: false })).then(setBuffer)} />

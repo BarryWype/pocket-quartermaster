@@ -30,6 +30,9 @@ function InfoDialog({ confirm, onTurnOn, onClose }: { confirm: boolean; onTurnOn
     t('autoGather.infoAutoGather', { radius: gatheringConfig.autoGather.radiusMeters, tapRadius: gatheringConfig.collectRadiusMeters }),
     t('autoGather.infoPatrolAlerts'),
     t('autoGather.infoEscort'),
+    t('autoGather.infoCounting'),
+    t('autoGather.infoNotify'),
+    t('autoGather.infoPassive'),
     t('autoGather.infoBattery'),
   ];
   return (

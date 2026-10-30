@@ -1,14 +1,18 @@
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
+import { frNotificationCategories } from '@/content/fr/notifications';
 import { heroClasses } from '@/content/heroes';
+import { notificationCategories } from '@/content/notifications';
 import { patrolRules } from '@/content/patrols';
+import { nearbyKinds } from '@/content/pocketMode';
+import type { NotificationCategory } from '@/game/notifications/types';
 import type { AlertFor } from '@/game/patrols/escort';
 import { pocketTracking } from '@/game/patrols/pocketMode';
 import type { SaveData } from '@/game/save';
 import { currentHp, drinkProblem, isExhausted, maxHp } from '@/game/team/health';
 import { isAway } from '@/game/team/team';
-import { formatPercent, t } from '@/i18n';
+import { formatPercent, localized, t } from '@/i18n';
 import { disableAutoGather, enableAutoGather, syncBackground } from '@/hooks/useAutoGather';
 import { useNow } from '@/hooks/useNow';
 import { useGameStore } from '@/store/gameStore';
@@ -73,6 +77,68 @@ export function AlertForPicker() {
           </Pressable>
         ))}
       </View>
+    </View>
+  );
+}
+
+/** Pocket mode's own notification kinds, switched here next to its options. */
+export const POCKET_CATEGORIES: NotificationCategory[] = ['questReady', 'questTarget', 'chestUnlocked', 'nearbyPlaces', 'secretPlace'];
+
+/** Which places nearby a notification is wanted for. */
+function NearbyKindsPicker() {
+  const wanted = useSettingsStore((state) => state.notifications.nearbyKinds);
+  const updateNotifications = useSettingsStore((state) => state.updateNotifications);
+  return (
+    <View style={styles.picker}>
+      <Text style={styles.pickerLabel}>{t('autoGather.nearbyFor')}</Text>
+      <View style={styles.options}>
+        {nearbyKinds.map((kind) => {
+          const on = wanted.includes(kind);
+          return (
+            <Pressable
+              key={kind}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: on }}
+              onPress={() => {
+                updateNotifications({ nearbyKinds: on ? wanted.filter((k) => k !== kind) : [...wanted, kind] });
+                syncBackground();
+              }}
+              style={[styles.option, on && styles.optionActive]}
+            >
+              <Text style={styles.optionText}>{t(`autoGather.nearbyChoices.${kind}`)}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+/** The notifications Pocket mode sends, each with its switch, and the places nearby to watch. */
+export function PocketNotificationRows() {
+  const notifications = useSettingsStore((state) => state.notifications);
+  const setCategory = useSettingsStore((state) => state.setCategory);
+  const texts = localized({ en: notificationCategories, fr: frNotificationCategories });
+  return (
+    <View style={styles.section}>
+      <Text style={styles.pickerLabel}>{t('autoGather.notifyTitle')}</Text>
+      {POCKET_CATEGORIES.map((category) => (
+        <View key={category} style={styles.optionRow}>
+          <Text style={styles.optionLabel}>{texts[category].title}</Text>
+          <Switch
+            value={notifications.categories[category]}
+            disabled={!notifications.enabled}
+            onValueChange={(on) => {
+              setCategory(category, on);
+              syncBackground();
+            }}
+            trackColor={{ false: colors.parchmentDark, true: colors.success }}
+            thumbColor={colors.parchment}
+            ios_backgroundColor={colors.parchmentDark}
+          />
+        </View>
+      ))}
+      {notifications.categories.nearbyPlaces && <NearbyKindsPicker />}
     </View>
   );
 }
@@ -174,12 +240,14 @@ export function PocketModePanel() {
         <Panel style={styles.dialog}>
           <ScrollView contentContainerStyle={styles.content}>
             <Text style={styles.title}>{t('autoGather.label')}</Text>
+            <Text style={styles.hint}>{t('autoGather.does')}</Text>
             <PocketOptionRow option="autoGather" />
             <PocketOptionRow option="patrolAlerts" />
             <AlertForPicker />
             <PocketOptionRow option="escort" />
             <EscortSection save={save} now={now} />
             <PocketOptionsHint />
+            <PocketNotificationRows />
           </ScrollView>
           <View style={styles.actions}>
             <Button title={t('common.close')} onPress={close} />
