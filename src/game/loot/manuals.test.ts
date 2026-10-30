@@ -1,6 +1,7 @@
 import { xpToNextLevel } from '@/content/heroes';
 
-import { manualXp } from './manuals';
+import { createInitialSave } from '../save';
+import { manualXp, readManual } from './manuals';
 
 describe('training manuals', () => {
   it('gives the manual XP below the tier band cap', () => {
@@ -21,5 +22,19 @@ describe('training manuals', () => {
     expect(manualXp({ level: 3, xp: 0 }, 'legendary', 1)).toBe(0);
     expect(manualXp({ level: 3, xp: 50 }, 'common', 1)).toBe(0);
     expect(manualXp({ level: 15, xp: 0 }, 'legendary', 5)).toBe(0);
+  });
+});
+
+describe('readManual', () => {
+  it('raises the hero by the capped XP and uses the manual up', () => {
+    const base = createInitialSave();
+    const save = { ...base, manuals: { common: 1 }, heroes: base.heroes.map((h) => ({ ...h, level: 1, xp: 0 })) };
+    const hero = save.heroes[0];
+    const next = readManual(save, hero.id, 'common');
+    expect(next.manuals.common).toBe(0);
+    const after = next.heroes[0];
+    expect(after.level > hero.level || after.xp > hero.xp).toBe(true);
+    expect(after.level).toBeLessThanOrEqual(3);
+    expect(() => readManual(next, hero.id, 'common')).toThrow();
   });
 });

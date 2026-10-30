@@ -1,0 +1,113 @@
+import { Modal, StyleSheet, View } from 'react-native';
+
+import { bossById } from '@/content/enemies';
+import { lootConfig } from '@/content/loot/config';
+import { purposeInfo } from '@/content/loot/purposes';
+import { materialById, recipeById, recipeOutput } from '@/content/lookup';
+import { highestUnlockedTier } from '@/game/dungeons/unlock';
+import { nextSteps, purposesOf, type BaseItemRef, type NextStep } from '@/game/loot/purposes';
+import type { ManualRarity } from '@/game/loot/types';
+import { ruinsDots } from '@/game/places/ruins';
+import type { SaveData } from '@/game/save';
+import { isAway } from '@/game/team/team';
+import { t, tr } from '@/i18n';
+import { useGameStore } from '@/store/gameStore';
+import { colors } from '@/theme';
+
+import { Button } from './Button';
+import { Panel } from './Panel';
+import { Text } from './Text';
+
+/** A base item as the inventory lists it. */
+export type InventoryItem = {
+  key: string;
+  ref: BaseItemRef;
+  emoji: string;
+  name: string;
+  count: number;
+  /** A line about the item itself: a relic's effect, a part's uses. */
+  about?: string;
+  /** Set for a training manual, so it can be read. */
+  manual?: ManualRarity;
+};
+
+/** The purpose icons shown in the corner of an item's tile. */
+export const purposeBadge = (ref: BaseItemRef) =>
+  purposesOf(ref)
+    .map((p) => purposeInfo[p].icon)
+    .join('');
+
+function stepText(step: NextStep): string {
+  switch (step.kind) {
+    case 'recipes': {
+      const known = step.known.map((id) => tr(recipeOutput(recipeById[id]).name));
+      return known.length > 0 ? t('inventory.next.recipes', { recipes: known.join(', ') }) : t('inventory.next.unknownRecipe');
+    }
+    case 'sell':
+      return t('inventory.next.sell', { price: step.price });
+    case 'boss':
+      return t('inventory.next.boss', { boss: tr(bossById[step.bossId]?.name ?? step.bossId) });
+    case 'set':
+      return t('inventory.next.set', { dots: ruinsDots(step.have, step.need) });
+    case 'restore':
+      return t('inventory.next.restore', {
+        cost: step.cost.map((s) => `${s.amount} ${tr(materialById[s.materialId].name).toLowerCase()}`).join(', '),
+      });
+    case 'action':
+      return t(`inventory.next.${step.action}`);
+  }
+}
+
+/** What an item is for and what to do with it next; manuals are read to a hero from here. */
+export function ItemSheet({ item, save, onClose }: { item: InventoryItem; save: SaveData; onClose: () => void }) {
+  const readManual = useGameStore((state) => state.readManual);
+  const top = lootConfig.manuals.topLevelByTier;
+  return (
+    <Modal transparent statusBarTranslucent navigationBarTranslucent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.backdrop}>
+        <Panel style={styles.dialog}>
+          <Text style={styles.title}>
+            {item.emoji} {item.name}
+          </Text>
+          {item.about ? <Text style={styles.muted}>{item.about}</Text> : null}
+          <Text style={styles.line}>
+            {purposesOf(item.ref)
+              .map((p) => `${purposeInfo[p].icon} ${tr(purposeInfo[p].name)}`)
+              .join('   ')}
+          </Text>
+          {nextSteps(save, item.ref).map((step, i) => (
+            <Text key={i} style={styles.line}>
+              • {stepText(step)}
+            </Text>
+          ))}
+          {item.manual && item.count > 0 && (
+            <>
+              <Text style={styles.muted}>{t('inventory.manualHint', { level: top[highestUnlockedTier(save) - 1] })}</Text>
+              {save.heroes
+                .filter((hero) => !isAway(save, hero.id))
+                .map((hero) => (
+                  <Button
+                    key={hero.id}
+                    title={t('inventory.readTo', { name: hero.name, level: hero.level })}
+                    onPress={() => {
+                      readManual(hero.id, item.manual!);
+                      onClose();
+                    }}
+                  />
+                ))}
+            </>
+          )}
+          <Button title={t('common.close')} color={colors.muted} onPress={onClose} />
+        </Panel>
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  backdrop: { flex: 1, justifyContent: 'center', padding: 16, backgroundColor: 'rgba(0,0,0,0.5)' },
+  dialog: { gap: 10, padding: 14 },
+  title: { fontSize: 24 },
+  line: { fontSize: 19 },
+  muted: { fontSize: 18, color: colors.muted },
+});

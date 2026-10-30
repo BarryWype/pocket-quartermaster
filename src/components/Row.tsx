@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, View, type ImageSourcePropType } from 'react-native';
+import { Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 
 import { colors, pixel } from '@/theme';
 
@@ -14,18 +14,24 @@ type Props = {
   right?: ReactNode;
   /** E.g. a gear piece's quality colour. */
   titleColor?: string;
+  /** Small icons in the slot's corner, e.g. an item's purpose tags. */
+  badge?: string;
+  onPress?: () => void;
 };
 
-export function Row({ emoji, icon, title, subtitle, right, titleColor }: Props) {
+export function Row({ emoji, icon, title, subtitle, right, titleColor, badge, onPress }: Props) {
   return (
-    <View style={styles.row}>
-      <IconSlot emoji={emoji} icon={icon} />
+    <Pressable style={styles.row} onPress={onPress} disabled={!onPress} accessibilityRole={onPress ? 'button' : undefined}>
+      <View>
+        <IconSlot emoji={emoji} icon={icon} />
+        {badge ? <Text style={styles.badge}>{badge}</Text> : null}
+      </View>
       <View style={styles.body}>
         <Text style={[styles.title, titleColor ? { color: titleColor } : null]}>{title}</Text>
         {typeof subtitle === 'string' ? <Text style={styles.subtitle}>{subtitle}</Text> : subtitle}
       </View>
       {typeof right === 'string' || typeof right === 'number' ? <Text style={styles.right}>{right}</Text> : right}
-    </View>
+    </Pressable>
   );
 }
 
@@ -68,6 +74,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 20 },
   subtitle: { fontSize: 17, color: colors.muted },
   right: { fontSize: 20 },
+  badge: { position: 'absolute', right: -6, bottom: -6, fontSize: 13 },
   banner: {
     alignSelf: 'flex-start',
     marginTop: 16,

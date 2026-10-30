@@ -21,7 +21,8 @@ import { addMaterials } from '@/game/inventory';
 import { dayKey, openChest, recordSteps, syncSteps } from '@/game/rewards/chests';
 import { activateLure } from '@/game/rewards/lures';
 import { collectTreasure, readTreasureMap } from '@/game/rewards/treasure';
-import type { Loot } from '@/game/loot/types';
+import { readManual } from '@/game/loot/manuals';
+import type { Loot, ManualRarity } from '@/game/loot/types';
 import { applyBackgroundResults, type BackgroundResult } from '@/game/patrols/escort';
 import { isTravellerKind, type PatrolSpawn, type TravellerKind } from '@/game/patrols/generate';
 import { resolvePatrolFights as resolveDueFights, startPatrolFight, type PatrolFight } from '@/game/patrols/fight';
@@ -129,6 +130,7 @@ type GameState = {
   placeTutorialWood: (position: LatLng) => void;
   challengeSanctum: (spawn: SanctumSpawn, tier: number, heroIds: string[], player: LatLng) => SanctumResult;
   readTreasureMap: (mapId: string, position: LatLng) => void;
+  readManual: (heroId: string, rarity: ManualRarity) => void;
   collectTreasure: (mapId: string, player: LatLng, treasureAt: LatLng) => Loot;
   activateLure: (position: LatLng) => void;
   /** Uses a walking consumable where the player stands, replacing one of the same item. */
@@ -349,6 +351,7 @@ export const useGameStore = create<GameState>()(
         set({ save });
         return result;
       },
+      readManual: (heroId, rarity) => set(({ save }) => ({ save: readManual(save, heroId, rarity) })),
       readTreasureMap: (mapId, position) =>
         set(({ save }) => ({ save: readTreasureMap(save, mapId, position, Date.now()) })),
       collectTreasure: (mapId, player, treasureAt) => {
