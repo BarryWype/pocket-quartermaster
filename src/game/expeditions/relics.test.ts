@@ -294,3 +294,20 @@ describe('relic odds', () => {
 function launchNeed(save: SaveData, dungeon: DungeonDef, heroIds: string[]) {
   return launchPlan(save, dungeon, heroIds, {}, { threats: [], restriction: null, opportunity: null }).need;
 }
+
+describe('every relic', () => {
+  it.each(Object.keys(relicById))('%s reaches its wearer with every effect', (relicId) => {
+    const relic = relicById[relicId];
+    const member = relicMember(relicId);
+    const own = relic.effects.filter((effect) => effect.kind !== 'keyword');
+    expect((member.relicEffects ?? []).map((worn) => worn.effect)).toEqual(own);
+    for (const effect of relic.effects) {
+      if (effect.kind !== 'keyword') continue;
+      const entry = member.gearKeywords.find((k) => k.keyword === effect.keyword && (effect.when ? k.when === effect.when : !k.when));
+      expect(entry).toBeDefined();
+      // A situational keyword never answers a threat; a plain one does.
+      const answered = heroAnswers(answersMemberOf(member)).keywords.some((k) => k.keyword === effect.keyword);
+      if (!effect.when) expect(answered).toBe(true);
+    }
+  });
+});
