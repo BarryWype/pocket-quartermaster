@@ -14,10 +14,19 @@
 - A place or event can carry 1 threat or 1 opportunity from the threat catalogue (`doc/design/threats/`).
 - Shops sell small stocks (5-10 of a material).
 - 4 key fragments make a mysterious key, which opens secret places and the Sealed vault.
+- **Secret places**: a tip places a marker on the map; the place stays until it resets; entering uses up a mysterious key. Two tip sources each, never a place that sells a boss weakness item (tavern, hunting lodge, chapel, apothecary, market). Daily quests can become a third source later.
+
+| Secret place | Tip sources | Gives |
+| --- | --- | --- |
+| Hidden den | Library (an old ledger), traveller | One random rare class, expensive |
+| Black market | Thieves' guild heist, bandit camp (a fence's note) | One random rare class, expensive; 2-3 components or trinkets for gold |
+| Underwater dungeon | Fishing dock, monster lair (a drowned captain's log) | A Rare item (Legendary ~5%) or a relic |
+| Sealed vault | None: a dungeon opportunity | A Rare item (Legendary ~5%) or a relic |
+
+- Once the hidden den exists, travellers stop offering rare classes and give the den tip instead.
 - Exact loot comes with the loot rework.
 
 ## Open
-- How the hidden den's tip is found.
 - Spawn frequency of each place and event.
 - Daily contracts and chains (later, not tied to taverns).
 - Fish recipes.
