@@ -162,7 +162,6 @@ type GameState = {
   addAllMaterials: (amount: number) => void;
   addSigil: (tier: number) => void;
   addElemental: (element: Element, kind: 'shard' | 'stone', amount: number) => void;
-  addTreasureMap: () => void;
   /** Debug: pays any loot as if a source had dropped it. */
   debugGrantLoot: (loot: Loot) => void;
   resetFirstWin: () => void;
@@ -435,17 +434,6 @@ export const useGameStore = create<GameState>()(
           },
         })),
       debugGrantLoot: (loot) => set(({ save }) => ({ save: grantLoot(save, save.heroes.map((h) => h.id), loot, Date.now()) })),
-      addTreasureMap: () =>
-        set(({ save }) => ({
-          save: {
-            ...save,
-            treasureMaps: [
-              ...save.treasureMaps,
-              { id: `map${save.nextUid}`, tier: 1, rarity: 'common', expiresAt: Date.now() + 48 * 3_600_000, location: null },
-            ],
-            nextUid: save.nextUid + 1,
-          },
-        })),
       setMastery: (type, level) =>
         set(({ save }) => ({ save: { ...save, mastery: { ...save.mastery, [type]: { level, progress: 0 } } } })),
       addGear: (itemId, quality, element) =>

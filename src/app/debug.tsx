@@ -926,7 +926,6 @@ export default function DebugScreen() {
       <View style={styles.row}>
         <Button title="+5 shards" onPress={() => game.addElemental(element, 'shard', 5)} />
         <Button title="+1 stone" onPress={() => game.addElemental(element, 'stone', 1)} />
-        <Button title="+ Map" onPress={game.addTreasureMap} />
         <Button title="+ Lure" onPress={game.addLure} />
       </View>
       <Text>Place a Sanctum next to you</Text>
