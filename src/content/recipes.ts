@@ -1,6 +1,8 @@
 import type { MaterialStack, RecipeDef } from '@/game/types';
 
 import { gearId, gearRecipes } from './equipment';
+import { charms } from './loot/charms';
+import { monsterParts } from './loot/monsterParts';
 
 /** Provisions recipes: [item id, tab, inputs, known from the start (default yes), known from tier]. */
 function provisionRecipes(
@@ -14,6 +16,25 @@ function provisionRecipes(
     inputs: Object.entries(inputs).map(([materialId, amount]) => ({ materialId, amount })),
     unlockedByDefault,
     ...(availableFromTier !== undefined ? { availableFromTier } : {}),
+  }));
+}
+
+const partIds = new Set(monsterParts.map((part) => part.id));
+
+/**
+ * Alchemy recipes made with monster parts: [recipe id, item id, inputs, known
+ * from tier]. Each is known once its parts have been seen (see loot/unlocks.ts).
+ */
+function partRecipes(list: [string, string, Record<string, number>, number][]): RecipeDef[] {
+  return list.map(([id, itemId, inputs, availableFromTier]) => ({
+    id,
+    station: 'provisions' as const,
+    tab: 'alchemy' as const,
+    output: { itemId },
+    inputs: Object.entries(inputs).map(([materialId, amount]) => ({ materialId, amount })),
+    unlockedByDefault: false,
+    availableFromTier,
+    unlockedBy: Object.keys(inputs).filter((materialId) => partIds.has(materialId)),
   }));
 }
 
@@ -109,13 +130,10 @@ export const recipes: RecipeDef[] = [
     ['strengthDraught', 'alchemy', { stone: 1, meat: 1, herb: 1 }, false, 2],
     ['arcaneTonic', 'alchemy', { stone: 1, mushroom: 1, berries: 1 }, false, 2],
     ['ironskinBrew', 'alchemy', { stone: 1, bone: 1, herb: 1 }, false, 2],
-    ['firebomb', 'alchemy', { stone: 1, wood: 1, meat: 1 }, false, 2],
     ['huntersMusk', 'alchemy', { stone: 1, meat: 1, hide: 1 }, false, 2],
     ['explorersKit', 'alchemy', { stone: 1, wood: 1, hide: 2 }, false, 2],
     ['giftBasket', 'alchemy', { stone: 1, berries: 1, meat: 1 }, false, 2],
     ['healersSatchel', 'alchemy', { stone: 1, herb: 1, mushroom: 1 }, false, 2],
-    ['nullrootTincture', 'alchemy', { copper: 1, mushroom: 1, herb: 1 }, false, 3],
-    ['quicksilver', 'alchemy', { copper: 1, berries: 1, mushroom: 1 }, false, 3],
     ['emberOil', 'alchemy', { copper: 1, fireShard: 2, herb: 1 }, false, 3],
     ['tideOil', 'alchemy', { copper: 1, waterShard: 2, herb: 1 }, false, 3],
     ['stormOil', 'alchemy', { copper: 1, electricShard: 2, herb: 1 }, false, 3],
@@ -136,8 +154,38 @@ export const recipes: RecipeDef[] = [
     ['stormWardSalve', 'alchemy', { iron: 1, electricShard: 1, herb: 1 }, false, 4],
     ['stoneWardSalve', 'alchemy', { iron: 1, stoneShard: 1, herb: 1 }, false, 4],
     ['thornWardSalve', 'alchemy', { iron: 1, grassShard: 1, herb: 1 }, false, 4],
-    ['revivalDraught', 'alchemy', { coal: 1, fireShard: 1, herb: 1 }, false, 5],
     ['scholarsSatchel', 'alchemy', { coal: 1, wood: 1, berries: 1 }, false, 5],
     ['greaterHealingPotion', 'alchemy', { coal: 1, herb: 1, mushroom: 1 }, false, 5],
   ]),
+
+  // Part recipes (doc/design/loot/part-recipes.csv): a second recipe for the
+  // common potions (same item, `<item>Part`), the only one for the others.
+  ...partRecipes([
+    ['healingPotionPart', 'healingPotion', { herb: 1, bruteBlood: 1 }, 1],
+    ['standardHealingPotionPart', 'standardHealingPotion', { copper: 1, herb: 1, bruteBlood: 1 }, 3],
+    ['greaterHealingPotionPart', 'greaterHealingPotion', { coal: 1, herb: 1, bruteBlood: 1 }, 5],
+    ['strengthDraughtPart', 'strengthDraught', { stone: 1, fangOrHorn: 1, herb: 1 }, 2],
+    ['arcaneTonicPart', 'arcaneTonic', { stone: 1, ectoplasm: 1, berries: 1 }, 2],
+    ['ironskinBrewPart', 'ironskinBrew', { stone: 1, chitin: 1, herb: 1 }, 2],
+    ['firebomb', 'firebomb', { stone: 1, wood: 1, scale: 1 }, 2],
+    ['quicksilver', 'quicksilver', { copper: 1, feather: 1, mushroom: 1 }, 3],
+    ['nullrootTincture', 'nullrootTincture', { copper: 1, ritualCandle: 1, herb: 1 }, 3],
+    ['revivalDraught', 'revivalDraught', { coal: 1, fireShard: 1, bruteBlood: 1 }, 5],
+    ['viperOil', 'viperOil', { venomSac: 2 }, 2],
+  ]),
+
+  // Charms, known once their parts (or gems) have been seen.
+  ...charms.map((charm): RecipeDef => ({
+    id: charm.id,
+    station: 'provisions',
+    tab: 'alchemy',
+    output: { itemId: charm.id },
+    inputs: Object.entries(charm.inputs).map(([materialId, amount]) => ({ materialId, amount })),
+    unlockedByDefault: false,
+    ...(charm.valuables
+      ? { valuables: Object.entries(charm.valuables).map(([valuableId, amount]) => ({ valuableId, amount })) }
+      : {}),
+    ...(charm.anyShards ? { anyShards: charm.anyShards } : {}),
+    unlockedBy: charm.unlockedBy,
+  })),
 ];

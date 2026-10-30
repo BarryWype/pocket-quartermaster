@@ -2,6 +2,7 @@ import { gearLuckRules } from '@/content/equipment';
 import { itemById, recipeById } from '@/content/lookup';
 
 import { highestUnlockedTier } from '../dungeons/unlock';
+import { ELEMENTS, shardId, type Element } from '../elements';
 import { gainMastery, masteryOf, masteryTypeOf, startingMastery } from '../forging/mastery';
 import { qualityOdds, rollQuality } from '../forging/quality';
 import { rollStatFactor } from '../forging/roll';
@@ -9,9 +10,11 @@ import { createRng } from '../generation/rng';
 import { tierRecipes } from './recipeUnlocks';
 import { addMaterials, hasMaterials, removeMaterials } from '../inventory';
 import type { SaveData } from '../save';
-import type { GearInstance, MasteryState, MasteryType, Quality, RecipeDef } from '../types';
+import type { GearInstance, MasteryState, MasteryType, MaterialStack, Quality, RecipeDef } from '../types';
 
 export function isKnown(save: SaveData, recipe: RecipeDef) {
+  // Part recipes need their parts seen as well as their tier.
+  if (recipe.unlockedBy) return save.partRecipes.includes(recipe.id) && highestUnlockedTier(save) >= (recipe.availableFromTier ?? 1);
   // Kit recipes come with the tiers alone: known once the player reaches their tier.
   if (recipe.availableFromTier !== undefined) return highestUnlockedTier(save) >= recipe.availableFromTier;
   return save.knownRecipes.includes(recipe.id);
@@ -22,8 +25,43 @@ export function ownsTool(save: SaveData, recipe: RecipeDef) {
   return 'itemId' in recipe.output && save.tools.includes(recipe.output.itemId);
 }
 
+const valuableTier = (key: string) => Number(key.split(':')[1]);
+
+/** The element a recipe's `anyShards` takes: the one held most, if there are enough. */
+export function shardElementFor(save: SaveData, recipe: RecipeDef): Element | null {
+  if (!recipe.anyShards) return null;
+  const element = [...ELEMENTS].sort((a, b) => (save.materials[shardId(b)] ?? 0) - (save.materials[shardId(a)] ?? 0))[0];
+  return (save.materials[shardId(element)] ?? 0) >= recipe.anyShards ? element : null;
+}
+
+/** What one craft spends: materials (shards included) and valuables, lowest tier first; null when short. */
+function recipeCost(save: SaveData, recipe: RecipeDef): { materials: MaterialStack[]; valuables: Record<string, number> } | null {
+  const materials = [...recipe.inputs];
+  if (recipe.anyShards) {
+    const element = shardElementFor(save, recipe);
+    if (!element) return null;
+    materials.push({ materialId: shardId(element), amount: recipe.anyShards });
+  }
+  if (!hasMaterials(save.materials, materials)) return null;
+  const valuables = { ...save.valuables };
+  for (const { valuableId, amount } of recipe.valuables ?? []) {
+    let left = amount;
+    const keys = Object.keys(valuables)
+      .filter((key) => key.startsWith(`${valuableId}:`))
+      .sort((a, b) => valuableTier(a) - valuableTier(b));
+    for (const key of keys) {
+      const take = Math.min(left, valuables[key]);
+      valuables[key] -= take;
+      left -= take;
+      if (valuables[key] === 0) delete valuables[key];
+    }
+    if (left > 0) return null;
+  }
+  return { materials, valuables };
+}
+
 export function canCraft(save: SaveData, recipe: RecipeDef) {
-  return isKnown(save, recipe) && !ownsTool(save, recipe) && hasMaterials(save.materials, recipe.inputs);
+  return isKnown(save, recipe) && !ownsTool(save, recipe) && recipeCost(save, recipe) !== null;
 }
 
 /** The gear a recipe forges, if it makes a weapon, armour or off-hand piece. */
@@ -62,8 +100,9 @@ export function learnAllRecipes(save: SaveData): SaveData {
  * recipes this one unlocks.
  */
 export function craft(save: SaveData, recipe: RecipeDef, forceQuality?: Quality): SaveData {
-  if (!canCraft(save, recipe)) throw new Error(`Cannot craft ${recipe.id}`);
-  let next: SaveData = { ...save, materials: removeMaterials(save.materials, recipe.inputs) };
+  const cost = canCraft(save, recipe) ? recipeCost(save, recipe) : null;
+  if (!cost) throw new Error(`Cannot craft ${recipe.id}`);
+  let next: SaveData = { ...save, materials: removeMaterials(save.materials, cost.materials), valuables: cost.valuables };
 
   const gearItem = forgedItem(recipe);
   if ('materialId' in recipe.output) {
@@ -99,7 +138,16 @@ export function craft(save: SaveData, recipe: RecipeDef, forceQuality?: Quality)
 /** How many of a recipe the materials cover right now. */
 export function craftableCount(save: SaveData, recipe: RecipeDef) {
   if (!canCraft(save, recipe)) return 0;
-  return Math.min(...recipe.inputs.map((input) => Math.floor((save.materials[input.materialId] ?? 0) / input.amount)));
+  const { anyShards } = recipe;
+  return Math.min(
+    ...recipe.inputs.map((input) => Math.floor((save.materials[input.materialId] ?? 0) / input.amount)),
+    ...(recipe.valuables ?? []).map(({ valuableId, amount }) => {
+      const held = Object.entries(save.valuables).reduce((sum, [key, n]) => (key.startsWith(`${valuableId}:`) ? sum + n : sum), 0);
+      return Math.floor(held / amount);
+    }),
+    // Each craft takes the element held most, so every element's shards count.
+    ...(anyShards ? [ELEMENTS.reduce((sum, element) => sum + Math.floor((save.materials[shardId(element)] ?? 0) / anyShards), 0)] : []),
+  );
 }
 
 /** Crafts a Provisions recipe `count` times in one go. */

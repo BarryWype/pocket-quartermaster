@@ -56,6 +56,8 @@ export const lootConfig = {
   runLength: { sources: ['dungeonRun', 'overnightQuest'] as LootSourceId[], baseMinutes: 45, min: 0.25, max: 2 },
   /** Luck raises non-A chances and gold amounts, never materials or other amounts. */
   luck: { chancePerPoint: 0.01, maxChanceBonus: 0.3, pointsPerQualityStep: 10, goldPerPoint: 0.05 },
+  /** Charm effects for the run (see content/loot/charms.ts). */
+  charms: { chanceMultiplier: 1.5, luck: 3, goldPercent: 20, xpPercent: 15, qualitySteps: 1 },
   /** Amounts per drop; everything not listed is 1. */
   quantities: {
     materials: [2, 4] as [number, number],

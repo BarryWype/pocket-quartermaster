@@ -1,10 +1,13 @@
-import type { GearDef, ItemDef } from '@/game/types';
+import type { ConsumableDef, GearDef, ItemDef } from '@/game/types';
 
 import { gearItemStats } from '@/game/equipment/budget';
 
 import { GEAR_SLOTS, gearId, gearNames, gearProfiles, testCharm } from './equipment';
 import { healthRules } from './health';
+import { charms } from './loot/charms';
 import { provisionRules } from './provisions';
+
+import { trinkets } from './trinkets';
 
 const { meals, elixirs } = provisionRules;
 
@@ -112,6 +115,16 @@ export const items: ItemDef[] = [
   { id: 'thornOil', name: 'Thorn oil', emoji: '🌵', description: 'Infuses the weapon with thorns for one run.', slot: 'consumable', elixir: { kind: 'oil', element: 'grass' } },
   { id: 'smokeBomb', name: 'Smoke bomb', emoji: '💨', description: 'Instead of a knock-out, the party escapes with more loot.', slot: 'consumable', elixir: { kind: 'smokeBomb', retreatBonus: elixirs.smokeBombRetreat } },
   { id: 'revivalDraught', name: 'Revival draught', emoji: '✨', description: 'Once per run, gets back up at 30% HP when knocked out.', slot: 'consumable', elixir: { kind: 'revive', hp: elixirs.reviveHp } },
+  { id: 'viperOil', name: 'Viper oil', emoji: '🐍', description: `+${elixirs.viperCrit}% critical hit chance for the run.`, slot: 'consumable', elixir: { kind: 'crit', add: elixirs.viperCrit } },
+  // Charms: raise what the run finds (see content/loot/charms.ts).
+  ...charms.map((charm): ConsumableDef => ({
+    id: charm.id,
+    name: charm.name,
+    emoji: charm.emoji,
+    description: charm.description,
+    slot: 'consumable',
+    charm: charm.modifier,
+  })),
 
   // Boss weakness items, bought at map places and used up when the run meets
   // their boss.
@@ -153,4 +166,5 @@ export const items: ItemDef[] = [
   testCharm,
 
   ...gear,
+  ...trinkets,
 ];

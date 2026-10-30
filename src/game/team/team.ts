@@ -6,6 +6,7 @@ import { traitById } from '@/content/traits';
 
 import { slotProblem } from '../equipment/slots';
 import { rosterCap } from '../guild/guild';
+import { trinketEffect } from '../loot/trinkets';
 import type { SaveData } from '../save';
 import type { Ability, ArmourType, ConsumableDef, DamageStat, EquipmentSlot, GearDef, GearType, HeroClassId, HeroState, Keyword, StatKey, Stats, WeaponType } from '../types';
 import { baseHeroStats } from './stats';
@@ -84,6 +85,12 @@ export function heroStats(save: SaveData, hero: HeroState): Stats {
 
   for (const gear of equippedGear(save, hero)) {
     const item = itemById[gear.itemId] as GearDef;
+    if (item.slot === 'trinket') {
+      for (const [key, value] of Object.entries(trinketEffect(item, gear.quality).stats) as [keyof Stats, number][]) {
+        stats[key] += value;
+      }
+      continue;
+    }
     const affinity = affinityOf(hero.classId, item.gearType);
     const multiplier = qualities[gear.quality].multiplier * (gear.roll ?? 1) * affinityRules[affinity];
     for (const key of STAT_KEYS) {
@@ -92,6 +99,7 @@ export function heroStats(save: SaveData, hero: HeroState): Stats {
       stats[key] += SCALING_KEYS.includes(key) ? value * multiplier : value;
     }
     if (gear.luck) stats.luck += gear.luck;
+    if (item.stats.luck) stats.luck += item.stats.luck;
     if (item.slot === 'armor' && affinityOf(hero.classId, item.gearType) !== 'favoured') {
       penalty = Math.max(penalty, castingPenalty[item.gearType as ArmourType] ?? 0);
     }

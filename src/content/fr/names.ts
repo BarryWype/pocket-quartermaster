@@ -1036,6 +1036,22 @@ export const frNames: Record<string, string> = {
   'Water heart': 'Cœur d’eau',
   'Elemental rift, Sanctum guardians': 'Faille élémentaire, gardiens des Sanctuaires',
   'Permanent infusion of that element': 'Infusion permanente de cet élément',
+  // Trinkets
+  'Hawk-eye ring': 'Bague d’œil de faucon',
+  'Quicksilver anklet': 'Chaîne de cheville de vif-argent',
+  'Shadow pin': 'Broche de l’ombre',
+  'Fire amulet': 'Amulette de feu',
+  'Grass amulet': 'Amulette d’herbe',
+  'Stone amulet': 'Amulette de pierre',
+  'Electric amulet': 'Amulette électrique',
+  'Water amulet': 'Amulette d’eau',
+  'Ox talisman': 'Talisman du bœuf',
+  'Fox talisman': 'Talisman du renard',
+  'Owl talisman': 'Talisman du hibou',
+  'Dove talisman': 'Talisman de la colombe',
+  'Lion talisman': 'Talisman du lion',
+  'Ring of fortune': 'Anneau de fortune',
+
   // Valuables
   'Old coins': 'Pièces anciennes',
   'Silver ring': 'Bague en argent',

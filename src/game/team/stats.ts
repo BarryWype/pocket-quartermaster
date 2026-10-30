@@ -92,9 +92,11 @@ export function gearApproachBonus(save: SaveData, hero: HeroState): Partial<Reco
   for (const slot of ['weapon', 'armor', 'offhand', 'trinket'] as const) {
     const gear = save.gear.find((g) => g.uid === hero.equipment[slot]);
     if (!gear) continue;
-    const type = (itemById[gear.itemId] as GearDef).gearType;
+    const item = itemById[gear.itemId] as GearDef;
+    const type = item.gearType;
     if (type === 'lute') bonus.presence = (bonus.presence ?? 0) + 1;
     if (type === 'tome') bonus.wits = (bonus.wits ?? 0) + 1;
+    if (item.approach) bonus[item.approach] = (bonus[item.approach] ?? 0) + 1;
   }
   return bonus;
 }

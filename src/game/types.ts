@@ -1,4 +1,4 @@
-import type { Loot, MapRarity } from './loot/types';
+import type { Loot, LootModifier, MapRarity } from './loot/types';
 import type { ImageSourcePropType } from 'react-native';
 
 import type { PlaceKind } from '@/content/places';
@@ -94,6 +94,10 @@ export type GearDef = ItemBase & {
   concealed?: boolean;
   /** The stat the piece's damage rolls with, for weapons and damage off-hands. */
   damageStat?: DamageStat;
+  /** A talisman's +1 approach. */
+  approach?: Approach;
+  /** An amulet's Resistance against one element (Normal-quality value, unrounded). */
+  elementResist?: { element: Element; amount: number };
 };
 
 /** What a hero consumable does for the run (see expeditions/simulate.ts). */
@@ -107,7 +111,9 @@ export type Elixir =
   /** Instead of a knock-out, the party escapes: the run ends as a retreat with this loot bonus. */
   | { kind: 'smokeBomb'; retreatBonus: number }
   /** Once per run, a knocked-out carrier gets back up with this share of max HP. */
-  | { kind: 'revive'; hp: number };
+  | { kind: 'revive'; hp: number }
+  /** % points of crit chance for the run. */
+  | { kind: 'crit'; add: number };
 
 export type ConsumableDef = ItemBase & {
   slot: 'consumable';
@@ -122,6 +128,8 @@ export type ConsumableDef = ItemBase & {
   elixir?: Elixir;
   /** The boss id this weakness item weakens when its carrier meets that boss. */
   weakness?: string;
+  /** A charm: what it raises in the run's loot (see loot/charms.ts). */
+  charm?: LootModifier;
 };
 
 /** What a meal does for the run; one meal per expedition. */
@@ -399,6 +407,12 @@ export type RecipeDef = {
   availableFromTier?: number;
   /** Recipes learned the first time this one is crafted. */
   unlocks?: string[];
+  /** Valuables spent by id, any tier (lowest first). */
+  valuables?: { valuableId: string; amount: number }[];
+  /** Shards of any one element spent (the one held most). */
+  anyShards?: number;
+  /** A part recipe: known once every part (or gem) here has been seen, and its tier reached. */
+  unlockedBy?: string[];
 };
 
 export type HeroClassId =

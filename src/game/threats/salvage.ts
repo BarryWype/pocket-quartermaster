@@ -20,5 +20,6 @@ export function salvage(itemId: string, rules: ThreatRules = threatRules): Salva
   const materials = recipe.inputs
     .map((input, i) => ({ materialId: input.materialId, amount: Math.max(i === 0 ? 1 : 0, Math.floor(input.amount / 2)) }))
     .filter((stack) => stack.amount > 0);
-  return { materials, gold: 0 };
+  // Recipes of shards and gems alone (the Prism charm) break into gold.
+  return materials.length > 0 ? { materials, gold: 0 } : { materials: [], gold: rules.salvageGold };
 }

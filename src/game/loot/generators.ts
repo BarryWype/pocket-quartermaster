@@ -8,6 +8,7 @@ import { masteryCap } from '../forging/mastery';
 import type { Rng } from '../generation/rng';
 import { dedupeModifiers, partyLuck } from './chances';
 import { rollLootGear } from './gear';
+import { rollLootTrinket } from './trinkets';
 import type { LootRequest } from './roll';
 import type { Loot, LootCategory, MapRarity } from './types';
 
@@ -101,7 +102,7 @@ function rarityByWeight(rng: Rng, weights: Record<MapRarity, number>): MapRarity
   return rng.weighted(['common', 'rare', 'legendary'] as MapRarity[], (rarity) => weights[rarity]);
 }
 
-// Trinkets, components, relics, monster parts and valuables: filled by later prompts.
+// Components, relics, monster parts and valuables: filled by later prompts.
 const later: Generator = () => {};
 
 export const generators: Record<LootCategory, Generator> = {
@@ -120,7 +121,9 @@ export const generators: Record<LootCategory, Generator> = {
   gear: (req, loot) => {
     loot.gear.push(rollLootGear(req));
   },
-  trinkets: later,
+  trinkets: (req, loot) => {
+    loot.gear.push(rollLootTrinket(req));
+  },
   components: later,
   relics: later,
   monsterParts: later,
