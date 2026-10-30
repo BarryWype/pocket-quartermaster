@@ -124,6 +124,13 @@ export const simConfig = {
     /** When nothing reaches the profile's threshold and nobody is out, the best option still goes if it reaches this. */
     fallback: 0.3,
   },
+  /** The quick probe (npm run sim:quick): odds only, no full game. */
+  quick: {
+    /** Rotation days sampled, one look per day at noon. */
+    days: 7,
+    /** Odds runs per estimate. */
+    runs: 300,
+  },
   /** Consumables kept in stock. */
   stock: { healingPotion: 3 } as Record<string, number>,
   provisions: {

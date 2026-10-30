@@ -7,8 +7,12 @@ import { build } from 'esbuild';
 const root = path.resolve(import.meta.dirname, '../..');
 
 await build({
-  entryPoints: [path.join(root, 'scripts/sim/index.ts')],
-  outfile: path.join(root, 'sim-output/.build/sim.cjs'),
+  entryPoints: {
+    sim: path.join(root, 'scripts/sim/index.ts'),
+    quick: path.join(root, 'scripts/sim/quick.ts'),
+  },
+  outdir: path.join(root, 'sim-output/.build'),
+  outExtension: { '.js': '.cjs' },
   bundle: true,
   platform: 'node',
   format: 'cjs',

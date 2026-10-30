@@ -51,6 +51,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
     "sim": "node scripts/sim/build.mjs && node sim-output/.build/sim.cjs",
+    "sim:quick": "node scripts/sim/build.mjs && node sim-output/.build/quick.cjs",
     "sim:check": "npm run sim && SIM_CHECK=1 jest src/game/sim/bands.test.ts",
     "loot:matrix": "tsx scripts/loot/genMatrix.ts"
   },
