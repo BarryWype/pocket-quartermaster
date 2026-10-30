@@ -20,11 +20,19 @@ import { materials } from './materials';
 import { recipes } from './recipes';
 import { resources } from './resources';
 import { opportunityDefs, restrictionDefs, threatDefs } from './threats';
+import { components } from './loot/components';
+import { monsterParts } from './loot/monsterParts';
+import { relics } from './loot/relics';
+import { valuables } from './loot/valuables';
 
 export const materialById = Object.fromEntries(materials.map((m) => [m.id, m]));
 export const resourceById = Object.fromEntries(resources.map((r) => [r.id, r]));
 export const itemById = Object.fromEntries(items.map((i) => [i.id, i]));
 export const recipeById = Object.fromEntries(recipes.map((r) => [r.id, r]));
+export const monsterPartById = Object.fromEntries(monsterParts.map((p) => [p.id, p]));
+export const componentById = Object.fromEntries(components.map((c) => [c.id, c]));
+export const valuableById = Object.fromEntries(valuables.map((v) => [v.id, v]));
+export const relicById = Object.fromEntries(relics.map((r) => [r.id, r]));
 export const dungeonById = Object.fromEntries(dungeons.map((d) => [d.id, d]));
 export const threatById = Object.fromEntries(threatDefs.map((t) => [t.id, t])) as Record<ThreatId, ThreatDef>;
 export const restrictionById = Object.fromEntries(restrictionDefs.map((r) => [r.id, r])) as Record<

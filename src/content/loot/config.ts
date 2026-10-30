@@ -196,6 +196,10 @@ export const lootConfig = {
   eliteMultiplier: 2,
   /** Treasure maps last this long once found. */
   treasureMapHours: 48,
+  /** A valuable's price is its base price times this, by the source's tier. */
+  valuablePriceByTier: [1, 2, 4, 8, 16] as number[],
+  /** Key fragments needed for one mysterious key. */
+  keyFragmentsPerKey: 4,
   /** Sigil drops by slot, with a pity counter and a shard cap per tier. */
   sigils: { chanceBySlot: { short: 0.09, long: 0.23, boss: 0.46 }, pityAfter: 10, cap: 3, capShardsPerTier: 2 },
 };

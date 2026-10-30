@@ -2,6 +2,8 @@ import { ELEMENTS, shardId, stoneId } from '@/game/elements';
 import type { MaterialDef } from '@/game/types';
 
 import { elementInfo } from './elements';
+import { components } from './loot/components';
+import { monsterParts } from './loot/monsterParts';
 
 export const materials: MaterialDef[] = [
   { id: 'wood', name: 'Wood', emoji: '🪵', icon: require('../../assets/icons/scaled/wood.png') },
@@ -23,4 +25,7 @@ export const materials: MaterialDef[] = [
     { id: shardId(element), name: `${elementInfo[element].name} shard`, emoji: elementInfo[element].emoji },
     { id: stoneId(element), name: `${elementInfo[element].name} stone`, emoji: '💠' },
   ]),
+  // Monster parts and forge components (inventory counts like any material).
+  ...monsterParts.map((part): MaterialDef => ({ id: part.id, name: part.name, emoji: part.emoji })),
+  ...components.map((component): MaterialDef => ({ id: component.id, name: component.name, emoji: component.emoji })),
 ];

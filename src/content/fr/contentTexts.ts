@@ -14,6 +14,12 @@ import { sanctums } from '../sanctums';
 import { traits } from '../traits';
 import { placeInfo } from '../places';
 import { opportunityDefs, restrictionDefs, threatDefs } from '../threats';
+import { baseItems } from '../loot/baseItems';
+import { components } from '../loot/components';
+import { monsterParts } from '../loot/monsterParts';
+import { PURPOSES, purposeInfo } from '../loot/purposes';
+import { relics } from '../loot/relics';
+import { valuables } from '../loot/valuables';
 
 /** Every content name and description shown to players, in English: each needs an entry in `frNames`. */
 export function contentTexts(): string[] {
@@ -44,6 +50,12 @@ export function contentTexts(): string[] {
     ...Object.values(elementInfo).map((e) => e.name),
     ...Object.values(tagInfo).map((t) => t.name),
     ...Object.values(placeInfo).flatMap((p) => [p.name, p.description]),
+    ...monsterParts.flatMap((p) => [p.name, p.uses]),
+    ...components.flatMap((c) => [c.name, c.from, c.adds]),
+    ...valuables.flatMap((v) => [v.name, ...(v.uses ? [v.uses] : [])]),
+    ...relics.flatMap((r) => [r.name, r.effect]),
+    ...Object.values(baseItems).flatMap((b) => [b.name, ...(b.description ? [b.description] : [])]),
+    ...PURPOSES.map((purpose) => purposeInfo[purpose].name),
   ];
   return [...new Set(texts)];
 }
