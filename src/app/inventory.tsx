@@ -12,7 +12,7 @@ import { componentById, gearName, itemById, materialById, monsterPartById, relic
 import { baseItems } from '@/content/loot/baseItems';
 import { PURPOSES, purposeInfo, type Purpose } from '@/content/loot/purposes';
 import { materials } from '@/content/materials';
-import { canSalvage, salvageNeedsConfirmation, salvageReturns, wornBy } from '@/game/forging/salvage';
+import { canSalvage, salvageGold, salvageNeedsConfirmation, salvageReturns, wornBy } from '@/game/forging/salvage';
 import { ruinsDots } from '@/game/places/ruins';
 import { isLureActive, lureEndsAt } from '@/game/rewards/lures';
 import { purposesOf } from '@/game/loot/purposes';
@@ -100,6 +100,7 @@ export default function InventoryScreen() {
     if (!salvageNeedsConfirmation(gear)) return salvage(gear.uid);
     const returns = salvageReturns(gear)
       .map(({ materialId, amount }) => `${amount} ${tr(materialById[materialId].name).toLowerCase()}`)
+      .concat(salvageGold(gear) > 0 ? [`🪙 ${salvageGold(gear)}`] : [])
       .join(', ');
     Alert.alert(t('inventory.salvageTitle', { item: gearName(gear) }), t('inventory.salvageBody', { returns }), [
       { text: t('common.cancel'), style: 'cancel' },

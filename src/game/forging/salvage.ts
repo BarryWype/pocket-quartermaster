@@ -1,6 +1,7 @@
 import { salvageRules } from '@/content/forging';
 import { itemById } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
+import { shopRules } from '@/content/shops';
 
 import { convertShards, ELEMENTS, shardId, type Element } from '../elements';
 import { createRng } from '../generation/rng';
@@ -51,12 +52,20 @@ export function salvageReturns(gear: GearInstance, rules: Rules = salvageRules):
     .map(([materialId, amount]) => ({ materialId, amount }));
 }
 
-/** Destroys a gear piece and gives back `salvageReturns`; shards merge into stones as usual. */
+/** Gold for a piece without a recipe (trinkets): what a smithy would pay for it. */
+export function salvageGold(gear: GearInstance): number {
+  const item = itemById[gear.itemId] as GearDef;
+  if (recipes.some((r) => 'itemId' in r.output && r.output.itemId === gear.itemId)) return 0;
+  return Math.round(shopRules.gearPrice[item.tier - 1] * shopRules.qualityPrice[gear.quality] * shopRules.gearSellShare);
+}
+
+/** Destroys a gear piece and gives back `salvageReturns` and `salvageGold`; shards merge into stones as usual. */
 export function salvage(save: SaveData, gearUid: string): SaveData {
   const gear = save.gear.find((g) => g.uid === gearUid);
   if (!gear || !canSalvage(save, gearUid)) throw new Error(`Cannot salvage ${gearUid}`);
   return {
     ...save,
+    gold: save.gold + salvageGold(gear),
     materials: convertShards(addMaterials(save.materials, salvageReturns(gear))),
     gear: save.gear.filter((g) => g.uid !== gearUid),
   };

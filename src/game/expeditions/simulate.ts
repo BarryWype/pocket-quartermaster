@@ -15,6 +15,7 @@ import { ELEMENTS, beats, incomingMultiplier, shardId, weaponMultiplier, type El
 import { createRng } from '../generation/rng';
 import { mobTags } from '../enemies/tags';
 import type { SaveData } from '../save';
+import { trinketEffect } from '../loot/trinkets';
 import { currentHp } from '../team/health';
 import { heroAbilities, heroDamageStat, heroStats, gearKeywordsOf, healingPotion } from '../team/team';
 import { classApproaches, gearApproachBonus, heroApproachBonus } from '../team/stats';
@@ -76,6 +77,8 @@ export type PartyMember = {
   damageStat: DamageStat;
   armour: number;
   resistance: number;
+  /** An amulet's extra Resistance against magic hits of one element. */
+  elementResist?: { element: Element; amount: number };
   /** % points: enemy hits are avoided with chance min(Evasion, evasionCap) %. */
   evasion: number;
   speed: number;
@@ -324,6 +327,8 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs
       const offhand = save.gear.find((g) => g.uid === hero.equipment.offhand);
       const weaponItem = weapon ? (itemById[weapon.itemId] as GearDef) : null;
       const offhandItem = offhand ? (itemById[offhand.itemId] as GearDef) : null;
+      const trinket = save.gear.find((g) => g.uid === hero.equipment.trinket);
+      const elementResist = trinket ? trinketEffect(itemById[trinket.itemId] as GearDef, trinket.quality).elementResist : undefined;
       // Heavy and Concealed read the equipped pieces; no pieces count as concealed.
       const pieces = [weaponItem, armour ? (itemById[armour.itemId] as GearDef) : null, offhandItem].flatMap(
         (item) => (item ? [item] : []),
@@ -356,6 +361,7 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs
         damageStat,
         armour: statOf('armour'),
         resistance: statOf('resistance'),
+        ...(elementResist ? { elementResist } : {}),
         evasion: stats.evasion,
         speed: stats.speed + (elixir?.kind === 'speed' ? elixir.add : 0),
         crit: stats.crit,
@@ -833,7 +839,9 @@ export function simulateRun(
             incoming *= elementalDamage;
           }
           // Power hits are blunted by Armour, Magic by Resistance.
-          const defence = enemy.def.damageType === 'power' ? hero.member.armour : hero.member.resistance;
+          const { elementResist } = hero.member;
+          const amulet = elementResist && elementResist.element === element ? elementResist.amount : 0;
+          const defence = enemy.def.damageType === 'power' ? hero.member.armour : hero.member.resistance + amulet;
           let taken = (incoming * 100) / (100 + rules.defenseFactor * defence) / fortune;
           // Brace softens the first big hit of the fight.
           if (

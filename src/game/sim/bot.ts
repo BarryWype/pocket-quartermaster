@@ -33,6 +33,7 @@ import { masteryCap, masteryOf, masteryTypeOf } from '../forging/mastery';
 import { gearStats, qualityOdds, type GearQualityRoll } from '../forging/quality';
 import { rollToScale } from '../forging/roll';
 import { salvage } from '../forging/salvage';
+import { trinketEffect } from '../loot/trinkets';
 import { distanceMeters } from '../generation/geo';
 import type { Rng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
@@ -51,7 +52,7 @@ import { briefingCoverage } from '../threats/coverage';
 import { gearApproachBonus, approachScore, pendingApproachPicks, pickApproach } from '../team/stats';
 import { heroAnswers, type AnswersMember } from '../threats/answers';
 import { scoreThreat } from '../threats/score';
-import type { ActiveExpedition, Approach, ArmourType, Briefing, ConsumableDef, DungeonDef, GearDef, HeroClassId, HeroState, OffhandType, Quality, RecipeDef, Stats, WeaponType } from '../types';
+import type { ActiveExpedition, Approach, ArmourType, Briefing, ConsumableDef, DungeonDef, GearDef, GearInstance, HeroClassId, HeroState, OffhandType, Quality, RecipeDef, Stats, WeaponType } from '../types';
 import { expectedLevels, type Profile, type SimConfig } from './config';
 import type { PatrolRates } from './patrols';
 import { PICKAXES, type WalkRates } from './walking';
@@ -443,12 +444,34 @@ function recordCraft(sim: Sim, kind: CraftRow['kind'], before: SaveData, materia
   return gear;
 }
 
+/** A trinket's worth as one number: Crit and Evasion points, Speed and Luck count triple, an amulet half its Resistance, a talisman 3. */
+function trinketScore(gear: GearInstance) {
+  const effect = trinketEffect(itemById[gear.itemId] as GearDef, gear.quality);
+  const { crit = 0, evasion = 0, speed = 0, luck = 0 } = effect.stats;
+  return crit + evasion + 3 * (speed + luck) + (effect.elementResist?.amount ?? 0) / 2 + (effect.approach ? 3 : 0);
+}
+
+/** Gives each home hero, in turn, the best spare trinket that beats the one they wear. */
+function distributeTrinkets(sim: Sim) {
+  for (const hero of homeHeroes(sim.save)) {
+    const worn = new Set(sim.save.heroes.map((h) => h.equipment.trinket));
+    const current = gearOf(sim.save, hero.equipment.trinket);
+    const spare = sim.save.gear
+      .filter((g) => !worn.has(g.uid) && (itemById[g.itemId] as GearDef).slot === 'trinket')
+      .sort((a, b) => trinketScore(b) - trinketScore(a))[0];
+    if (spare && trinketScore(spare) > (current ? trinketScore(current) : 0)) {
+      act(sim, 'equip', (save) => equip(save, hero.id, 'trinket', spare.uid));
+    }
+  }
+}
+
 /** Gives every spare piece to the home hero it helps most, then salvages what nobody wants. */
 function distribute(sim: Sim) {
-  const slots = ['weapon', 'armor', 'offhand'] as const;
+  distributeTrinkets(sim);
+  const slots = ['weapon', 'armor', 'offhand', 'trinket'] as const;
   for (;;) {
     const worn = new Set(sim.save.heroes.flatMap((h) => slots.map((slot) => h.equipment[slot])));
-    let best: { hero: HeroState; uid: string; slot: (typeof slots)[number]; gain: number } | null = null;
+    let best: { hero: HeroState; uid: string; slot: 'weapon' | 'armor' | 'offhand'; gain: number } | null = null;
     for (const gear of sim.save.gear.filter((g) => !worn.has(g.uid))) {
       const item = itemById[gear.itemId] as GearDef;
       if (item.slot !== 'weapon' && item.slot !== 'armor' && item.slot !== 'offhand') continue;
