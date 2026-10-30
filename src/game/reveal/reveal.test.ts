@@ -146,11 +146,22 @@ describe('tips', () => {
 
   it('closes a tip into seen and shows the oldest first', () => {
     const save = noteTips(opened(), ['ruins', 'charms']);
-    expect(nextTip(save)).toBe('ruins');
+    expect(nextTip(save, true)).toBe('ruins');
     const closed = closeTip(save, 'ruins');
-    expect(nextTip(closed)).toBe('charms');
+    expect(nextTip(closed, true)).toBe('charms');
     expect(closed.tips.seen).toEqual(['ruins']);
     expect(closeTip(closed, 'ruins').tips.seen).toEqual(['ruins']);
+  });
+
+  it('shows tips only on the map, keeping them queued elsewhere', () => {
+    const save = noteTips(opened(), ['ruins']);
+    expect(nextTip(save, false)).toBeNull();
+    expect(save.tips.pending).toEqual(['ruins']);
+    expect(nextTip(save, true)).toBe('ruins');
+    const two = noteTips(save, ['charms']);
+    expect(nextTip(two, true)).toBe('ruins');
+    const afterFirst = closeTip(two, 'ruins');
+    expect(nextTip(afterFirst, true)).toBe('charms');
   });
 });
 

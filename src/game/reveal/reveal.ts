@@ -82,8 +82,9 @@ export function closeTip(save: SaveData, id: TipId): SaveData {
   return { ...save, tips: { pending, seen: [...save.tips.seen, id] } };
 }
 
-/** The tip waiting to show, oldest first. */
-export function nextTip(save: SaveData): TipId | null {
+/** The tip to show: the oldest waiting, only while the map is on screen; elsewhere it keeps waiting. */
+export function nextTip(save: SaveData, onMap: boolean): TipId | null {
+  if (!onMap) return null;
   return save.tips.pending[0] ?? null;
 }
 
