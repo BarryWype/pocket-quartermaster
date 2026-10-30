@@ -1,5 +1,6 @@
 import { gearId, gearRecipes } from '@/content/equipment';
 import { LURE_ID, lootConfig } from '@/content/loot/config';
+import { lootMatrix } from '@/content/loot/matrix';
 import { resources } from '@/content/resources';
 import { ELEMENTS, shardId, type Element } from '@/game/elements';
 import type { GearType } from '@/game/types';
@@ -9,6 +10,7 @@ import type { Rng } from '../generation/rng';
 import { dedupeModifiers, partyLuck } from './chances';
 import { componentPool } from './components';
 import { rollLootGear } from './gear';
+import { partWeights } from './parts';
 import { rollLootTrinket } from './trinkets';
 import type { LootRequest } from './roll';
 import { rollValuable } from './valuables';
@@ -104,8 +106,17 @@ function rarityByWeight(rng: Rng, weights: Record<MapRarity, number>): MapRarity
   return rng.weighted(['common', 'rare', 'legendary'] as MapRarity[], (rarity) => weights[rarity]);
 }
 
-// Relics and monster parts: filled by later prompts.
+// Relics: filled by a later prompt.
 const later: Generator = () => {};
+
+function monsterParts(req: LootRequest, loot: Loot): void {
+  const pick = req.rng.weighted(partWeights(req.enemies, req.element), (entry) => entry.weight);
+  const [min, max] =
+    lootMatrix[req.source].marks.monsterParts === 'A'
+      ? lootConfig.quantities.monsterPartsOnA
+      : lootConfig.quantities.monsterParts;
+  loot.materials.push({ materialId: pick.materialId, amount: req.rng.int(min, max) });
+}
 
 function components(req: LootRequest, loot: Loot, viaBlueprints = false): void {
   const pool = componentPool(req.source, req.enemies, req.element, req.rng, viaBlueprints);
@@ -127,6 +138,7 @@ export const generators: Record<LootCategory, Generator> = {
     loot.xp = Math.round(req.base.xp * (1 + percentBonus(req, 'xp') / 100));
   },
   materials,
+  monsterParts,
   shards,
   blueprints,
   gear: (req, loot) => {
@@ -137,7 +149,6 @@ export const generators: Record<LootCategory, Generator> = {
   },
   components,
   relics: later,
-  monsterParts: later,
   valuables: (req, loot) => {
     loot.valuables.push(rollValuable(req));
   },

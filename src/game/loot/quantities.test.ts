@@ -1,5 +1,6 @@
 import { lootConfig } from '@/content/loot/config';
 import { components } from '@/content/loot/components';
+import { monsterParts } from '@/content/loot/monsterParts';
 import { ELEMENTS, shardId } from '@/game/elements';
 
 import { createRng } from '../generation/rng';
@@ -21,25 +22,31 @@ const request = (source: LootSourceId, seed: string, overrides: Partial<LootRequ
   ...overrides,
 });
 
+const partIds = new Set(monsterParts.map((p) => p.id));
+/** A forced roll's stacks other than monster parts, which every source with an A or O mark drops too. */
+const withoutParts = (loot: Loot) => loot.materials.filter((stack) => !partIds.has(stack.materialId));
+
 const forced = (source: LootSourceId, category: 'materials' | 'shards' | 'treasureMaps' | 'manuals' | 'keyFragments' | 'gold' | 'xp' | 'consumables', seeds = 60): Loot[] =>
   Array.from({ length: seeds }, (_, i) => rollSourceLoot(request(source, `${source}${i}`, { force: category })));
 
 describe('loot quantities', () => {
   it('gives 2-4 of one themed material', () => {
     for (const loot of forced('stepChest', 'materials')) {
-      expect(loot.materials.length).toBe(1);
-      expect(loot.materials[0].amount).toBeGreaterThanOrEqual(2);
-      expect(loot.materials[0].amount).toBeLessThanOrEqual(4);
+      const [stack, ...rest] = withoutParts(loot);
+      expect(rest).toEqual([]);
+      expect(stack.amount).toBeGreaterThanOrEqual(2);
+      expect(stack.amount).toBeLessThanOrEqual(4);
     }
   });
 
   it('draws caches from the pickaxe-covered resources', () => {
     const pool = ['stone', 'copper', 'iron', 'coal', 'wood'];
     for (const loot of forced('patrolBandits', 'materials')) {
-      expect(loot.materials.length).toBe(1);
-      expect(pool).toContain(loot.materials[0].materialId);
-      expect(loot.materials[0].amount).toBeGreaterThanOrEqual(2);
-      expect(loot.materials[0].amount).toBeLessThanOrEqual(4);
+      const [stack, ...rest] = withoutParts(loot);
+      expect(rest).toEqual([]);
+      expect(pool).toContain(stack.materialId);
+      expect(stack.amount).toBeGreaterThanOrEqual(2);
+      expect(stack.amount).toBeLessThanOrEqual(4);
     }
   });
 

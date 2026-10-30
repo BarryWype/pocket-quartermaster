@@ -1,5 +1,6 @@
 import { lootMatrix } from '@/content/loot/matrix';
 import { components } from '@/content/loot/components';
+import { monsterParts } from '@/content/loot/monsterParts';
 import { ELEMENTS, shardId } from '@/game/elements';
 
 import { createRng } from '../generation/rng';
@@ -39,7 +40,8 @@ describe('rollSourceLoot', () => {
   it('forces a category that would never roll', () => {
     const loot = rollSourceLoot(request('dungeonRun', 'f', { force: 'materials', luck: 0 }));
     expect(loot.dropped).toContain('materials');
-    expect(loot.materials).toEqual([]);
+    // dungeonRun has no material theme; monster parts (O) still land in `materials`.
+    expect(loot.materials.filter((stack) => !monsterParts.some((p) => p.id === stack.materialId))).toEqual([]);
   });
 
   it('gives the same loot for the same seed', () => {
@@ -55,10 +57,10 @@ describe('rollSourceLoot', () => {
     const themed: LootSourceId[] = ['patrolGoblins', 'patrolHerd', 'patrolBandits', 'traveller', 'banditCamp', 'goblinRaid', 'beastDen', 'hauntedCrypt', 'abandonedCaravan', 'monsterLair', 'ruinsDig', 'fishingDock', 'treasureSpot', 'stepChest'];
     expect(foot).toEqual(themed);
     const shardIds = ELEMENTS.map((element) => shardId(element));
-    // Components live in `materials` too; they drop wherever their mark allows.
-    const componentIds = components.map((c) => c.id);
+    // Components and monster parts live in `materials` too; they drop wherever their mark allows.
+    const otherIds = [...components.map((c) => c.id), ...monsterParts.map((p) => p.id)];
     const notComponent = (stack: { materialId: string }) =>
-      !shardIds.includes(stack.materialId) && !componentIds.includes(stack.materialId);
+      !shardIds.includes(stack.materialId) && !otherIds.includes(stack.materialId);
     for (const source of LOOT_SOURCES) {
       const withMaterials = rolls(source).some((loot) => loot.materials.some(notComponent));
       expect(withMaterials).toBe(foot.includes(source));
