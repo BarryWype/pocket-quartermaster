@@ -15,7 +15,7 @@ Permissions (location, motion and steps) are asked when the app first starts, be
 6. **Kit materials**: meat, hide and bone spawn close to the player (same rules as the wood). The player picks them up.
 7. **Craft the kit**: a Hunter's pack. Give it to a hero: the threat turns green, "answered".
 8. **Expedition**: send the team. It lasts a few seconds and always succeeds. A line says real ones take longer ("Most expeditions take 15–45 minutes").
-9. **Loot**: the normal first-win-of-the-day roll, including the third blueprint, with the line "Expeditions are where new blueprints come from".
+9. **Loot**: the normal first-win-of-the-day roll, except the third blueprint is always the tier 1 bow (the ranger favours it; if the bow is somehow already known, the normal rule applies), with the line "Expeditions are where new blueprints come from".
 10. **Back to the map**: zoom out a little, start the gradual reveal (below) and give the **first quest**: a short (500 m) quest to the nearest place, so the player knows what to do next.
 
 ## Walking fallback
@@ -26,7 +26,7 @@ A **Skip tutorial** button, available at every step. Skipping gives everything t
 - The tier 1 sword, equipped on the warrior.
 - A Hunter's pack in the inventory.
 - The materials left over from the steps (the tutorial's wood, meat, hide and bone minus what the crafts used).
-- The tutorial expedition's rewards: the same first-win roll, including the third blueprint.
+- The tutorial expedition's rewards: the same first-win roll, including the bow blueprint.
 - The tutorial marked done, the first quest given and the gradual reveal started, exactly as at step 10.
 
 ## Gradual reveal
@@ -46,7 +46,7 @@ Not all 14 place kinds at once. Each kind appears when its condition is met, wit
 New item kinds (charms, components, relics, trinkets, valuables, key fragments) also get a one-line tip the first time one is obtained.
 
 ## Implementation notes
-- The tutorial run pays only the first-win roll (no fixed gold, no Sigil: Sanctums show from tier 2). The roll is seeded apart, so skipping gives the same loot.
+- The tutorial run pays only the first-win roll (no fixed gold, no Sigil: Sanctums show from tier 2). The roll is seeded apart, so skipping gives the same loot; the bow blueprint is set after it.
 - "Collect from here" waits a minute after the phase spawned or after the last pickup, whichever is later; each tap picks up one node.
 - If no common place is within 500 m, the first quest points at the nearest one within 2 km, in that distance's band.
 - Travellers show with patrols. Mines above the player's tier still show greyed out once common places are revealed. The monster lair isn't drawn on the map; its tip comes with the rarer places.

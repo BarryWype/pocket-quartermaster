@@ -2,6 +2,7 @@ import { dungeons } from '@/content/dungeons';
 import { xpRules, xpToNextLevel } from '@/content/heroes';
 import { MATERIAL_TIERS } from '@/content/items';
 import { dungeonById, monsterPartById, recipeById } from '@/content/lookup';
+import { tutorialRules } from '@/content/tutorial';
 
 import { rotationDay } from '../dungeons/rotation';
 import { forgedItem } from '../crafting/crafting';
@@ -357,13 +358,20 @@ describe('tutorial expedition', () => {
     expect(report.firstWin).toBe(true);
     expect(save.firstWinDay).toBe(rotationDay(5000));
     expect(report.loot).toEqual(tutorialLoot(before, 5000));
-    expect(report.loot.recipeIds).toHaveLength(1);
-    const [blueprint] = report.loot.recipeIds;
-    expect(before.knownRecipes).not.toContain(blueprint);
-    expect(blueprint).toMatch(/1$/);
+    expect(report.loot.recipeIds).toEqual([tutorialRules.blueprintRecipe]);
+    expect(before.knownRecipes).not.toContain(tutorialRules.blueprintRecipe);
+    expect(save.knownRecipes).toContain(tutorialRules.blueprintRecipe);
     expect(save.knownRecipes.filter((id) => forgedItem(recipeById[id])?.tier === 1)).toHaveLength(3);
     expect(report.sigil).toBeUndefined();
     expect(save.sigils).toEqual([]);
+  });
+
+  it('drops the tier 1 bow blueprint only when it is not known yet', () => {
+    const knows = { ...tutorialSave(), knownRecipes: [...tutorialSave().knownRecipes, tutorialRules.blueprintRecipe] };
+    const loot = tutorialLoot(knows, 5000);
+    expect(loot.recipeIds).toHaveLength(1);
+    expect(loot.recipeIds).not.toContain(tutorialRules.blueprintRecipe);
+    expect(knows.knownRecipes).not.toContain(loot.recipeIds[0]);
   });
 
   it('only applies to the tutorial expedition', () => {

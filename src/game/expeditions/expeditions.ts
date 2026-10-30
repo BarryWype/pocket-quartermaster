@@ -275,11 +275,12 @@ export const dungeonLootSource = (dungeon: DungeonDef): LootSourceId =>
 /**
  * The tutorial expedition's loot: the day's first-win row, seeded apart from
  * everything else so the run and skipping give the same, whatever the party.
+ * The blueprint it drops is the tier 1 bow, unless that one is already known.
  */
 export function tutorialLoot(save: SaveData, now: number): Loot {
   const dungeon = dungeonById[tutorialRules.dungeonId];
   const row = lootConfig.bonusRows.firstWin;
-  return rollSourceLoot({
+  const loot = rollSourceLoot({
     source: 'firstWin',
     tier: dungeon.tier,
     minutes: dungeon.durationMinutes,
@@ -290,6 +291,10 @@ export function tutorialLoot(save: SaveData, now: number): Loot {
     context: lootContextOf(save),
     rng: createRng(tutorialRules.lootSeed),
   });
+  if (loot.recipeIds.length > 0 && !save.knownRecipes.includes(tutorialRules.blueprintRecipe)) {
+    return { ...loot, recipeIds: [tutorialRules.blueprintRecipe, ...loot.recipeIds.slice(1)] };
+  }
+  return loot;
 }
 
 /** Pays the tutorial expedition's loot out to these heroes (a skip collects it without a run). */

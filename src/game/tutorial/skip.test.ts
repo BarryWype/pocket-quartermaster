@@ -157,6 +157,11 @@ describe('skipping the tutorial', () => {
     expect(skipTutorial(playTo('gatherWood'), at).knownRecipes).toEqual(playThrough(playTo('gatherWood')).knownRecipes);
   });
 
+  it('pays the tier 1 bow blueprint, played or skipped', () => {
+    expect(playThrough(playTo('gatherWood')).knownRecipes).toContain(tutorialRules.blueprintRecipe);
+    expect(skipTutorial(playTo('gatherWood'), at).knownRecipes).toContain(tutorialRules.blueprintRecipe);
+  });
+
   it('leaves a done tutorial alone', () => {
     const done = playThrough(playTo('readReport'));
     expect(skipTutorial(done, at)).toBe(done);
