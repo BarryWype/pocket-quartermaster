@@ -88,12 +88,12 @@ export function OpportunityChip({ opportunity, onPress }: { opportunity: Opportu
     <Chip
       emoji={opportunity.emoji}
       title={name}
-      label={[name, opportunity.cost ? t('threats.cost', { count: opportunity.cost.supply }) : null]
+      label={[name, opportunity.cost?.supply ? t('threats.cost', { count: opportunity.cost.supply }) : null]
         .filter(Boolean)
         .join(', ')}
       onPress={onPress}
     >
-      {opportunity.cost && (
+      {!!opportunity.cost?.supply && (
         <View style={styles.pill}>
           <Text style={styles.pillText}>🍖 {opportunity.cost.supply}</Text>
         </View>

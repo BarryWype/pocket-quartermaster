@@ -14,7 +14,7 @@ import { elementInfo } from './elements';
 import { qualities } from './forging';
 import { frElementQualifiers } from './fr/names';
 
-import { dungeons } from './dungeons';
+import { dungeons, underwaterDungeons } from './dungeons';
 import { items } from './items';
 import { materials } from './materials';
 import { recipes } from './recipes';
@@ -33,7 +33,7 @@ export const monsterPartById = Object.fromEntries(monsterParts.map((p) => [p.id,
 export const componentById = Object.fromEntries(components.map((c) => [c.id, c]));
 export const valuableById = Object.fromEntries(valuables.map((v) => [v.id, v]));
 export const relicById = Object.fromEntries(relics.map((r) => [r.id, r]));
-export const dungeonById = Object.fromEntries(dungeons.map((d) => [d.id, d]));
+export const dungeonById = Object.fromEntries([...dungeons, ...underwaterDungeons].map((d) => [d.id, d]));
 export const threatById = Object.fromEntries(threatDefs.map((t) => [t.id, t])) as Record<ThreatId, ThreatDef>;
 export const restrictionById = Object.fromEntries(restrictionDefs.map((r) => [r.id, r])) as Record<
   RestrictionId,

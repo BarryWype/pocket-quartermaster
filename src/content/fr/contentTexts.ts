@@ -1,4 +1,4 @@
-import { dungeons } from '../dungeons';
+import { dungeons, underwaterDungeons } from '../dungeons';
 import { elementInfo } from '../elements';
 import { bosses, mobs } from '../enemies';
 import { events } from '../events';
@@ -27,7 +27,7 @@ export function contentTexts(): string[] {
     ...materials.map((m) => m.name),
     ...items.flatMap((i) => [i.name, ...(i.description ? [i.description] : [])]),
     ...resources.map((r) => r.name),
-    ...dungeons.flatMap((d) => [
+    ...[...dungeons, ...underwaterDungeons].flatMap((d) => [
       d.name,
       d.boss.name,
       ...d.encounters.flatMap((e) => (e.type === 'trap' || e.type === 'obstacle' ? [e.name] : [])),

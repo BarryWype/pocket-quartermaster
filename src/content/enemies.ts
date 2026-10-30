@@ -266,6 +266,12 @@ export const bosses: BossDef[] = [
   boss('abyssalHorror', 'abyssal horror', S.abyssalDepths, 80, 9, ['beast'], 'sweep', 'water', 'slow'),
   boss('titanHeart', 'titan heart', S.titanRuins, 80, 9, ['construct'], 'enrage', 'stone', 'slow'),
   boss('elderDragon', 'elder dragon', S.dragonLair, 140, 12, ['dragon', 'beast'], 'sweep', 'fire'),
+  // Underwater dungeons' elites (secret places): water and drowned foes, never a tier boss.
+  boss('drownedEnforcer', 'drowned enforcer', S.smugglersCove, 50, 6, ['undead', 'humanoid'], undefined, 'water'),
+  boss('drownedSergeant', 'drowned sergeant', S.sunkenFord, 60, 7, ['undead'], undefined, 'water'),
+  boss('barnacledKnight', 'barnacled knight', S.drownedCrypt, 70, 8, ['undead'], undefined, 'water'),
+  boss('elderSerpent', 'elder lake serpent', S.frozenLake, 70, 8, ['dragon', 'beast'], undefined, 'water'),
+  boss('krakenBrood', 'kraken brood', S.abyssalDepths, 75, 9, ['beast'], 'sweep', 'water', 'slow'),
   // The overnight quests' patrol leaders: the run's only real threat.
   boss('nightProwler', 'night prowler', S.nightWatch1, 120, 20, ['beast'], undefined, undefined, 'fast'),
   boss('roadStalker', 'road stalker', S.nightWatch2, 65, 12, ['beast'], undefined, undefined, 'fast'),

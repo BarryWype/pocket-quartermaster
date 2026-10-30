@@ -132,7 +132,7 @@ export function launchPlan(
       .filter((h) => heroIds.includes(h.id))
       .reduce((sum, hero) => sum + heroSupplyNeed(heroAbilities(hero), supplyMinutes(save, dungeon)), 0) +
     effects.extraSupply +
-    (loadout.optIn && opportunity?.cost ? opportunity.cost.supply : 0);
+    (loadout.optIn ? opportunity?.cost?.supply ?? 0 : 0);
   const supply = pickSupply(save.consumables, need);
   const meal = mealOf(briefing, loadout.mealId, party);
   return {

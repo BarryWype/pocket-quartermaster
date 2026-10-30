@@ -678,6 +678,47 @@ export const dungeons: DungeonDef[] = [
   nightWatch5,
 ];
 
+/**
+ * Secret underwater dungeons (see content/secrets.ts), one per tier: a water
+ * dungeon's enemies and trap with an elite water foe instead of its boss, and
+ * the rewards and length of the tier's long dungeon. Launched from a tipped
+ * place, never in the rotation.
+ */
+const underwaterBases = [
+  { base: 'smugglersCove', name: 'Flooded Cove', bossId: 'drownedEnforcer' },
+  { base: 'sunkenFord', name: 'Drowned Barracks', bossId: 'drownedSergeant' },
+  { base: 'drownedCrypt', name: 'Sunken Crypt', bossId: 'barnacledKnight' },
+  { base: 'frozenLake', name: 'Frozen Deep', bossId: 'elderSerpent' },
+  { base: 'abyssalDepths', name: 'Abyssal Trench', bossId: 'krakenBrood' },
+];
+
+export const underwaterDungeons: DungeonDef[] = underwaterBases.map(({ base, name, bossId }) => {
+  const from = dungeons.find((d) => d.id === base)!;
+  const long = dungeons.find((d) => d.tier === from.tier && d.slot === 'long')!;
+  return {
+    id: underwaterDungeonId(from.tier),
+    name,
+    emoji: '🫧',
+    secret: true,
+    tier: from.tier,
+    durationMinutes: long.durationMinutes,
+    encounterCount: long.encounterCount,
+    encounters: from.encounters,
+    boss: bossById[bossId],
+    gold: long.gold,
+    xp: long.xp,
+  };
+});
+
+/** The underwater dungeon of a tier, and the water dungeon its threats come from. */
+export function underwaterDungeonId(tier: number) {
+  return `underwater${tier}`;
+}
+
+export const underwaterThreatBase: Record<string, string> = Object.fromEntries(
+  underwaterBases.map(({ base }, i) => [underwaterDungeonId(i + 1), base]),
+);
+
 export const expeditionRules = {
   /** Defense divisor: damage taken = incoming × 100 / (100 + defenseFactor × defense). */
   defenseFactor: 4,

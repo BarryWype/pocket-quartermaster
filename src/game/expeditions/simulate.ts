@@ -1177,6 +1177,8 @@ export function simulateRun(
         taken.materials = materials;
         break;
       }
+      case 'vault':
+        break;
     }
     return taken;
   };

@@ -17,7 +17,7 @@ export const feminine = [
   // Creatures and people
   'mère', 'reine', 'sorcière', 'liche', 'matriarche', 'horreur', 'araignée', 'nuée', 'goule', 'brute',
   'sangsue', 'chauve-souris', 'limace', 'phalène', 'anguille', 'harpie', 'nymphe', 'sentinelle',
-  'vouivre', 'baudroie', 'mère-ronce', 'fouetteuse', 'aile-foudre', 'taupe',
+  'vouivre', 'baudroie', 'mère-ronce', 'fouetteuse', 'aile-foudre', 'taupe', 'couvée', 'caserne',
   // Events
   'source', 'cachette', 'embuscade',
 ];
@@ -33,4 +33,8 @@ export const plurals: Record<string, string> = {
   'chauve-souris fantôme': 'chauves-souris fantômes',
   'oiseau-tonnerre': 'oiseaux-tonnerre',
   'homme de main de la crique': 'hommes de main de la crique',
+  'homme de main noyé': 'hommes de main noyés',
+  'couvée de kraken': 'couvées de kraken',
+  'vieux serpent du lac': 'vieux serpents du lac',
+  'chevalier aux bernacles': 'chevaliers aux bernacles',
 };

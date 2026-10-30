@@ -217,7 +217,8 @@ export type OpportunityId =
   | 'refugees'
   | 'forgottenShrine'
   | 'oldInscriptions'
-  | 'trophyBeast';
+  | 'trophyBeast'
+  | 'sealedVault';
 
 /** What meets a threat: the best hero's approach score, the number of heroes with a keyword, or with Resist(element). */
 export type ThreatAnswer =
@@ -318,7 +319,9 @@ export type OpportunityReward =
   /** Old inscriptions: XP × this, plus a chance to teach one unknown Provisions recipe. */
   | { kind: 'xp'; multiplier: number; recipeChance: number }
   /** Trophy beast: materials, plus a chance of one shard of a random element. */
-  | { kind: 'trophy'; hide: [min: number, max: number]; bone: number; shardChance: number };
+  | { kind: 'trophy'; hide: [min: number, max: number]; bone: number; shardChance: number }
+  /** Sealed vault: a won run opens it (see game/secrets/rewards.ts). */
+  | { kind: 'vault' };
 
 export type OpportunityDef = {
   id: OpportunityId;
@@ -327,8 +330,10 @@ export type OpportunityDef = {
   description: string;
   /** Empty = free; any one answer answers it. */
   answers: OpportunityAnswer[];
-  /** Supply points it costs; the party must opt in to pay them. */
-  cost?: { supply: number };
+  /** What it costs, supply points or mysterious keys; the party must opt in to pay. */
+  cost?: { supply?: number; key?: number };
+  /** Draw weight among a briefing's opportunities (1 when absent). */
+  weight?: number;
   reward: OpportunityReward;
 };
 
@@ -765,6 +770,8 @@ export type DungeonDef = {
   slot?: 'short' | 'long';
   /** An overnight quest: open every day alongside the rotation, not part of it. */
   overnight?: boolean;
+  /** A secret dungeon, launched from a tipped place: never in the rotation, no first-win or first-clear rows. */
+  secret?: boolean;
   durationMinutes: number;
   /** Number of encounters, boss included. */
   encounterCount: [min: number, max: number];

@@ -102,7 +102,7 @@ export function composeBriefing(dungeon: DungeonDef, day: number, rules: ThreatR
     const options = (Object.keys(opportunityById) as OpportunityId[]).filter(
       (id) => id !== 'trophyBeast' || hasBeasts(dungeon),
     );
-    opportunity = options.length > 0 ? rng.weighted(options, () => 1) : null;
+    opportunity = options.length > 0 ? rng.weighted(options, (id) => opportunityById[id].weight ?? 1) : null;
   }
 
   let restriction: RestrictionId | null = null;

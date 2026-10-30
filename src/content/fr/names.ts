@@ -445,6 +445,17 @@ export const frNames: Record<string, string> = {
   'sealed citadel door': 'porte scellée de la citadelle',
   'Abyssal Depths': 'Profondeurs abyssales',
   'abyssal horror': 'horreur abyssale',
+  // Underwater dungeons (secret places)
+  'Flooded Cove': 'Crique inondée',
+  'Drowned Barracks': 'Caserne noyée',
+  'Sunken Crypt': 'Crypte engloutie',
+  'Frozen Deep': 'Abysse gelé',
+  'Abyssal Trench': 'Fosse abyssale',
+  'drowned enforcer': 'homme de main noyé',
+  'drowned sergeant': 'sergent noyé',
+  'barnacled knight': 'chevalier aux bernacles',
+  'elder lake serpent': 'vieux serpent du lac',
+  'kraken brood': 'couvée de kraken',
   'crushing pressure': 'pression écrasante',
   'Titan Ruins': 'Ruines du titan',
   'titan heart': 'cœur de titan',
@@ -843,6 +854,9 @@ export const frNames: Record<string, string> = {
   'Trophy beast': 'Bête trophée',
   'A trophy beast; a calm hand or a strong arm takes it.':
     'Une bête trophée ; une main calme ou un bras fort l’abat.',
+  'Sealed vault': 'Caveau scellé',
+  'A sealed vault; a mysterious key opens it, and a won run claims what lies inside.':
+    'Un caveau scellé ; une clé mystérieuse l’ouvre, et une expédition victorieuse en emporte le contenu.',
 
   // Forging
   Crappy: 'Médiocre',
@@ -967,6 +981,12 @@ export const frNames: Record<string, string> = {
   'Something took it; supplies are left.': 'Quelque chose l’a prise ; il reste des provisions.',
   'Wanted outlaw': 'Hors-la-loi recherché',
   'A bounty on a brute’s head.': 'Une prime sur la tête d’une brute.',
+  'Hidden den': 'Repaire caché',
+  'A rare hero waits here, for a price.': 'Un héros rare attend ici, contre paiement.',
+  'Black market': 'Marché noir',
+  'A rare hero and goods no shop sells.': 'Un héros rare et des marchandises qu’aucune boutique ne vend.',
+  'Underwater dungeon': 'Donjon englouti',
+  'A drowned dungeon with a treasure at its end.': 'Un donjon noyé, avec un trésor au bout.',
 
   // Base item catalogue (see content/loot/)
   // Monster parts

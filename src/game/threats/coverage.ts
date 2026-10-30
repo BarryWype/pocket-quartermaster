@@ -38,7 +38,7 @@ export type ThreatCoverage = {
 export type OpportunityCoverage = {
   answered: boolean;
   /** The supply it costs when taken, or null when it is free. */
-  cost: { supply: number } | null;
+  cost: { supply?: number; key?: number } | null;
   /** Each hero who answers it, with the approach, keyword or kit that does; null when free. */
   answers: { heroName: string; via: string }[] | null;
 };

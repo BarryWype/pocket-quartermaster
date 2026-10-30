@@ -17,6 +17,9 @@
   "bandit": [],
   "banditArcher": [],
   "banditCaptain": [],
+  "barnacledKnight": [
+    "undead"
+  ],
   "barrowKing": [
     "undead"
   ],
@@ -114,10 +117,19 @@
   "drownedDead": [
     "undead"
   ],
+  "drownedEnforcer": [
+    "undead"
+  ],
+  "drownedSergeant": [
+    "undead"
+  ],
   "drownedSoldier": [
     "undead"
   ],
   "elderDragon": [
+    "beast"
+  ],
+  "elderSerpent": [
     "beast"
   ],
   "emberForge:guardian:1": [],
@@ -194,6 +206,9 @@
     "beast"
   ],
   "iceWyrm": [
+    "beast"
+  ],
+  "krakenBrood": [
     "beast"
   ],
   "krakenSpawn": [

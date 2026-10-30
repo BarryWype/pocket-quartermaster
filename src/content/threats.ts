@@ -428,6 +428,16 @@ export const opportunityDefs: OpportunityDef[] = [
     answers: [{ keyword: 'calm' }, { approach: 'might', score: 3 }],
     reward: { kind: 'trophy', hide: [2, 3], bone: 2, shardChance: 0.15 },
   },
+  {
+    id: 'sealedVault',
+    name: 'Sealed vault',
+    emoji: '🔐',
+    description: 'A sealed vault; a mysterious key opens it, and a won run claims what lies inside.',
+    answers: [],
+    cost: { key: 1 },
+    reward: { kind: 'vault' },
+    weight: 0.5,
+  },
 ];
 
 /** Threats a daily surge can raise, and the surge name it sets on them. */

@@ -31,7 +31,11 @@ export type PlaceKind =
   | 'hauntedCrypt'
   | 'elementalRift'
   | 'abandonedCaravan'
-  | 'wantedOutlaw';
+  | 'wantedOutlaw'
+  | SecretKind;
+
+/** Places a tip reveals, one player's own (see content/secrets.ts). */
+export type SecretKind = 'hiddenDen' | 'blackMarket' | 'underwaterDungeon';
 
 export type PlaceGroup = {
   id: string;
@@ -125,4 +129,7 @@ export const placeInfo: Record<PlaceKind, { name: string; emoji: string; descrip
   elementalRift: { name: 'Elemental rift', emoji: '🌀', description: 'A tear full of elemental shards.' },
   abandonedCaravan: { name: 'Abandoned caravan', emoji: '🛒', description: 'Something took it; supplies are left.' },
   wantedOutlaw: { name: 'Wanted outlaw', emoji: '🤠', description: 'A bounty on a brute’s head.' },
+  hiddenDen: { name: 'Hidden den', emoji: '🕯️', description: 'A rare hero waits here, for a price.' },
+  blackMarket: { name: 'Black market', emoji: '🎭', description: 'A rare hero and goods no shop sells.' },
+  underwaterDungeon: { name: 'Underwater dungeon', emoji: '🫧', description: 'A drowned dungeon with a treasure at its end.' },
 };
