@@ -53,6 +53,14 @@ import { applyTraining } from '@/game/guild/training';
 import type { GuildTrackId } from '@/content/guild';
 import { advanceTutorial, finishTutorial, nextTutorialStep, placeTutorialWood } from '@/game/tutorial/tutorial';
 import { pruneExpired, rollDailyApproaches } from '@/game/upkeep';
+import { questRules, type QuestBand, type QuestObjective } from '@/content/quests';
+import { placeRules, type PlaceKind } from '@/content/places';
+import { newQuest, questUpkeep, rerollQuest } from '@/game/quests/arrival';
+import { complete, deliver, maybeSecretQuest, markSeen, questEvent, refreshWalks } from '@/game/quests/progress';
+import { claimQuest, reachMark } from '@/game/quests/rewards';
+import { acceptQuests, retargetQuests } from '@/game/quests/targets';
+import { createRng } from '@/game/generation/rng';
+import { distanceMeters } from '@/game/generation/geo';
 import type { Approach, EquipmentSlot, ExpeditionReport, Heist, HeroClassId, HeroRoll, MasteryType, PlaceFight, Quality } from '@/game/types';
 
 import { t } from '@/i18n';
@@ -158,6 +166,26 @@ type GameState = {
   recordSteps: (day: string, newSteps: number) => void;
   syncSteps: (day: string, total: number) => void;
   openChest: (chestId: string, steps: number) => Loot;
+  /** Place kinds now in sight; quest objectives unlock from these. */
+  notePlacesSeen: (kinds: PlaceKind[]) => void;
+  /** Opening a place's panel in reach (the library quest counts it). */
+  visitPlace: (place: PlaceSpawn, player: LatLng) => void;
+  /** The quests list opened: new quests are accepted and get their target, lost targets are replaced. */
+  fixQuestTargets: (candidates: PlaceSpawn[], player: LatLng) => void;
+  markQuestsSeen: () => void;
+  rerollQuest: (questId: string) => void;
+  claimQuest: (questId: string) => Loot;
+  deliverQuest: (questId: string, place: PlaceSpawn, player: LatLng) => void;
+  /** At the secret quest's strange mark: done, and a secret place tipped off (`isNearWater` once map tiles are in). */
+  reachMark: (questId: string, isNearWater?: (point: LatLng) => boolean) => void;
+  /** Debug: a quest of any objective and band, arrived now. */
+  grantQuest: (objective: QuestObjective, band: QuestBand) => void;
+  /** Debug: completes a quest on the spot. */
+  completeQuest: (questId: string) => void;
+  /** Debug: pops today's secret quest. */
+  triggerSecretQuest: () => void;
+  /** Debug: frees the day's reroll again. */
+  resetQuestReroll: () => void;
   placeTutorialWood: (position: LatLng) => void;
   challengeSanctum: (spawn: SanctumSpawn, tier: number, heroIds: string[], player: LatLng) => SanctumResult;
   readTreasureMap: (mapId: string, position: LatLng) => void;
@@ -237,7 +265,8 @@ export const useGameStore = create<GameState>()(
       },
       processWalk: (fixes, options, record) => {
         const { save, summary } = processWalkPath(get().save, fixes, options);
-        set({ save: record ? recordWalk(save, summary) : save });
+        const walked = refreshWalks(save, Date.now());
+        set({ save: record ? recordWalk(walked, summary) : walked });
         return summary;
       },
       markWalksSeen: () => set(({ save }) => ({ save: markWalksSeen(save) })),
@@ -389,7 +418,7 @@ export const useGameStore = create<GameState>()(
           save: advanceTutorial(startExpedition(save, dungeonId, heroIds, Date.now(), durationScale, currentRotation(), loadout)),
         })),
       prune: () => {
-        const pruned = rollDailyApproaches(pruneExpired(get().save, Date.now()), Date.now());
+        const pruned = questUpkeep(rollDailyApproaches(pruneExpired(get().save, Date.now()), Date.now()), Date.now());
         if (pruned !== get().save) set({ save: pruned });
       },
       collectLoot: (expeditionId) => {
@@ -407,8 +436,59 @@ export const useGameStore = create<GameState>()(
         set(({ save }) => ({
           save: advanceTutorial({ ...save, reports: save.reports.map((r) => ({ ...r, seen: true })) }),
         })),
-      recordSteps: (day, newSteps) => set(({ save }) => ({ save: recordSteps(save, day, newSteps) })),
-      syncSteps: (day, total) => set(({ save }) => ({ save: syncSteps(save, day, total) })),
+      recordSteps: (day, newSteps) => set(({ save }) => ({ save: refreshWalks(recordSteps(save, day, newSteps), Date.now()) })),
+      syncSteps: (day, total) => set(({ save }) => ({ save: refreshWalks(syncSteps(save, day, total), Date.now()) })),
+      notePlacesSeen: (kinds) => {
+        const save = get().save;
+        const fresh = kinds.filter((kind) => !save.seenPlaceKinds.includes(kind));
+        if (fresh.length > 0) set({ save: { ...save, seenPlaceKinds: [...new Set([...save.seenPlaceKinds, ...fresh])] } });
+      },
+      visitPlace: (place, player) => {
+        if (distanceMeters(player, place.position) > placeRules.interactionMeters) return;
+        const next = questEvent(get().save, { kind: 'placeUsed', placeId: place.id }, Date.now());
+        if (next !== get().save) set({ save: next });
+      },
+      fixQuestTargets: (candidates, player) => {
+        const now = Date.now();
+        const next = retargetQuests(acceptQuests(get().save, candidates, player, now), candidates, now);
+        if (JSON.stringify(next.quests) !== JSON.stringify(get().save.quests)) set({ save: next });
+      },
+      markQuestsSeen: () => {
+        const next = markSeen(get().save);
+        if (next !== get().save) set({ save: next });
+      },
+      rerollQuest: (questId) => set(({ save }) => ({ save: rerollQuest(save, questId, Date.now()) })),
+      claimQuest: (questId) => {
+        const { save, loot } = claimQuest(get().save, questId, Date.now());
+        set({ save });
+        return loot;
+      },
+      deliverQuest: (questId, place, player) => set(({ save }) => ({ save: deliver(save, questId, place, player, Date.now()) })),
+      reachMark: (questId, isNearWater) => {
+        const { save, tip } = reachMark(get().save, questId, Date.now(), isNearWater);
+        if (save === get().save) return;
+        set({ save });
+        noteTips(tip ? [tip] : []);
+      },
+      grantQuest: (objective, band) => {
+        const now = Date.now();
+        const save = get().save;
+        const quest = newQuest(`debug|${now}`, band, objective, save, createRng(`debug|${now}`), now);
+        set({ save: { ...save, quests: { ...save.quests, list: [...save.quests.list, quest] } } });
+      },
+      completeQuest: (questId) => {
+        const save = get().save;
+        const quest = save.quests.list.find((q) => q.id === questId);
+        if (!quest || quest.doneAt !== null) return;
+        set({ save: complete(save, { ...quest, progress: quest.amount, acceptedAt: quest.acceptedAt ?? Date.now() }, Date.now()) });
+      },
+      triggerSecretQuest: () => {
+        const now = Date.now();
+        const save = get().save;
+        const completions = Array.from({ length: questRules.secret.completions }, () => now);
+        set({ save: maybeSecretQuest({ ...save, quests: { ...save.quests, secretDay: null, completions } }, now) });
+      },
+      resetQuestReroll: () => set(({ save }) => ({ save: { ...save, quests: { ...save.quests, rerollDay: null } } })),
       openChest: (chestId, steps) => {
         const { save, reward } = openChest(get().save, chestId, steps, dayKey(new Date()), Date.now());
         set({ save });
@@ -559,13 +639,13 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 25,
+      version: 26,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
-      // Until release, a save change starts fresh: saves before version 25 (secret tips) are reset.
+      // Until release, a save change starts fresh: saves before version 26 (daily quests) are reset.
       migrate: (persisted, version) => {
         const old = (persisted as { save?: SaveData } | undefined)?.save;
-        if (!old || version < 25) return { save: createInitialSave() };
+        if (!old || version < 26) return { save: createInitialSave() };
         return { save: old };
       },
       merge: (persisted, current) => ({

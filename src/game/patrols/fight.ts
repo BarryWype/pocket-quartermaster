@@ -23,6 +23,7 @@ import { isAway } from '../team/team';
 import type { BossDef, Briefing, DungeonDef, EncounterDef, ExpeditionReport } from '../types';
 import { isPatrolKind, patrolTier, pruneByWindow, type PatrolKind, type PatrolSpawn } from './generate';
 import { distanceTo, isGone } from './visibility';
+import { questEvent } from '../quests/progress';
 
 const MINUTE = 60_000;
 
@@ -270,7 +271,7 @@ export function settleConsumables(save: SaveData, heroIds: string[], salvaged: E
  */
 export function grantPatrolWin(save: SaveData, heroIds: string[], rewards: Loot, patrolId: string, windowEndsAt: number, now: number): SaveData {
   const granted = grantLoot(save, heroIds, { ...emptyLoot(), ...rewards }, now);
-  return { ...granted, beatenPatrols: { ...granted.beatenPatrols, [patrolId]: windowEndsAt } };
+  return questEvent({ ...granted, beatenPatrols: { ...granted.beatenPatrols, [patrolId]: windowEndsAt } }, { kind: 'patrolWon' }, now);
 }
 
 /**

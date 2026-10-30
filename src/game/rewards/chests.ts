@@ -24,14 +24,16 @@ export function dayKey(date: Date) {
   return `${date.getFullYear()}-${month}-${day}`;
 }
 
+/** Adds steps to the day's count and the lifetime total (walk quests read that). */
 export function recordSteps(save: SaveData, day: string, newSteps: number): SaveData {
   const count = save.steps.day === day ? save.steps.count : 0;
-  return { ...save, steps: { day, count: count + newSteps } };
+  return { ...save, steps: { day, count: count + newSteps }, stepsTotal: save.stepsTotal + newSteps };
 }
 
 /** Raises today's count to an OS-reported total (iOS keeps step history). */
 export function syncSteps(save: SaveData, day: string, total: number): SaveData {
-  return { ...save, steps: { day, count: Math.max(stepsRecorded(save, day), total) } };
+  const recorded = stepsRecorded(save, day);
+  return { ...save, steps: { day, count: Math.max(recorded, total) }, stepsTotal: save.stepsTotal + Math.max(0, total - recorded) };
 }
 
 export function stepsRecorded(save: SaveData, day: string) {

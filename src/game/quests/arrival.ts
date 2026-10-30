@@ -4,6 +4,7 @@ import { rotationRules } from '@/content/rotation';
 import { rotationDay } from '../dungeons/rotation';
 import { createRng, type Rng } from '../generation/rng';
 import type { SaveData } from '../save';
+import { refreshWalks } from './progress';
 import { availableObjectives, deliverItems, objectiveAmount, questsOpen } from './unlocks';
 import type { Quest, QuestsState } from './types';
 
@@ -71,6 +72,7 @@ export function newQuest(
 export function receiveQuests(save: SaveData, now: number): SaveData {
   if (!questsOpen(save)) return save;
   const today = rotationDay(now);
+  if (save.quests.lastArrivalDay === today) return save;
   const first = save.quests.lastArrivalDay === null ? today : save.quests.lastArrivalDay + 1;
   let list = save.quests.list;
   let capped = false;
@@ -121,8 +123,13 @@ export function rerollQuest(save: SaveData, questId: string, now: number): SaveD
 /** Drops quests that lapsed unfinished (done ones wait to be claimed) and old completions. */
 export function pruneQuests(save: SaveData, now: number): SaveData {
   const windowMs = questRules.secret.windowHours * HOUR_MS;
-  return questsState(save, {
-    list: save.quests.list.filter((quest) => quest.doneAt !== null || quest.expiresAt > now),
-    completions: save.quests.completions.filter((at) => at > now - windowMs),
-  });
+  const list = save.quests.list.filter((quest) => quest.doneAt !== null || quest.expiresAt > now);
+  const completions = save.quests.completions.filter((at) => at > now - windowMs);
+  if (list.length === save.quests.list.length && completions.length === save.quests.completions.length) return save;
+  return questsState(save, { list, completions });
+}
+
+/** Keeps the quests current on app open and return: lapsed ones go, the day's arrive, walks catch up. */
+export function questUpkeep(save: SaveData, now: number): SaveData {
+  return refreshWalks(receiveQuests(pruneQuests(save, now), now), now);
 }

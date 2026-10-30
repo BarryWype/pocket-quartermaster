@@ -1,11 +1,12 @@
+import { placeRules } from '@/content/places';
 import { objectives, questRules } from '@/content/quests';
 import { gatheringConfig } from '@/content/gatheringConfig';
 
 import { rotationDay } from '../dungeons/rotation';
+import { distanceMeters } from '../generation/geo';
 import type { LatLng } from '../generation/types';
 import type { PlaceSpawn } from '../places/generate';
 import type { SaveData } from '../save';
-import { withinInteraction } from './targets';
 import type { Quest, QuestsState } from './types';
 
 const HOUR_MS = 3_600_000;
@@ -28,7 +29,7 @@ const counts = (quest: Quest, at: number) =>
   quest.acceptedAt !== null && quest.acceptedAt <= at && quest.doneAt === null && quest.expiresAt > at;
 
 /** Records the completion and pops the secret quest when the window fills up. */
-function complete(save: SaveData, quest: Quest, at: number): SaveData {
+export function complete(save: SaveData, quest: Quest, at: number): SaveData {
   const done: Quest = { ...quest, doneAt: at, seen: false };
   let next = questsState(save, {
     list: save.quests.list.map((q) => (q.id === quest.id ? done : q)),
@@ -115,7 +116,7 @@ export function deliverProblem(
   if (!quest) return 'notHere';
   if (quest.doneAt !== null) return 'done';
   if (quest.target?.placeId !== place.id) return 'notHere';
-  if (!withinInteraction(player, place)) return 'tooFar';
+  if (distanceMeters(player, place.position) > placeRules.interactionMeters) return 'tooFar';
   if ((save.consumables[quest.itemId ?? ''] ?? 0) < quest.amount) return 'missing';
   return null;
 }

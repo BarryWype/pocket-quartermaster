@@ -11,6 +11,7 @@ import { currentHp, isExhausted, maxHp, settleHp, withHp } from '../team/health'
 import { addXp, isAway } from '../team/team';
 import type { HeroState } from '../types';
 import type { PlaceSpawn } from './generate';
+import { questEvent } from '../quests/progress';
 
 export type CareKind = 'heal' | 'rest';
 
@@ -68,7 +69,8 @@ export function chapelCareProblem(
 export function chapelCare(save: SaveData, spawn: PlaceSpawn, heroId: string, care: CareKind, player: LatLng, now: number): SaveData {
   const problem = chapelCareProblem(save, spawn, heroId, care, player, now);
   if (problem) throw new Error(`Cannot give chapel care: ${problem}`);
-  return { ...careForHero(save, heroId, care, now), chapelVisits: { ...save.chapelVisits, [spawn.id]: spawn.expiresAt } };
+  const cared = { ...careForHero(save, heroId, care, now), chapelVisits: { ...save.chapelVisits, [spawn.id]: spawn.expiresAt } };
+  return questEvent(cared, { kind: 'placeUsed', placeId: spawn.id }, now);
 }
 
 export type BlessRelicsProblem = PlaceProblem | 'noRelics';
@@ -83,7 +85,7 @@ export function blessRelics(save: SaveData, spawn: PlaceSpawn, player: LatLng, n
   const problem = blessRelicsProblem(save, spawn, player, now);
   if (problem) throw new Error(`Cannot bless holy symbols: ${problem}`);
   const held = save.consumables.holyRelics ?? 0;
-  return {
+  const blessed = {
     ...save,
     consumables: {
       ...save.consumables,
@@ -91,6 +93,7 @@ export function blessRelics(save: SaveData, spawn: PlaceSpawn, player: LatLng, n
       blessedRelics: (save.consumables.blessedRelics ?? 0) + held,
     },
   };
+  return questEvent(blessed, { kind: 'placeUsed', placeId: spawn.id }, now);
 }
 
 export type ChapelBlessingProblem = PlaceProblem | 'alreadyBlessed';
@@ -103,7 +106,7 @@ export function chapelBlessingProblem(save: SaveData, spawn: PlaceSpawn, player:
 export function takeChapelBlessing(save: SaveData, spawn: PlaceSpawn, player: LatLng, now: number): SaveData {
   const problem = chapelBlessingProblem(save, spawn, player, now);
   if (problem) throw new Error(`Cannot take the blessing: ${problem}`);
-  return { ...save, expeditionBlessing: true };
+  return questEvent({ ...save, expeditionBlessing: true }, { kind: 'placeUsed', placeId: spawn.id }, now);
 }
 
 export type ApothecaryCareProblem = PlaceProblem | HeroCareProblem | 'gold';

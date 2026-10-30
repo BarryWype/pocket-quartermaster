@@ -21,6 +21,7 @@ import { applyRunHp, isExhausted } from '../team/health';
 import { isAway } from '../team/team';
 import type { ActiveThreat, Briefing, BossDef, DungeonDef, EncounterDef, PlaceFight } from '../types';
 import { placeGroupOf, placesAround, type PlaceSpawn } from './generate';
+import { questEvent } from '../quests/progress';
 
 const MINUTE = 60_000;
 
@@ -203,6 +204,7 @@ export function resolvePlaceFights(save: SaveData, now: number): { save: SaveDat
     if (fight.won) {
       next = grantLoot(next, fight.heroIds, fight.reward, fight.endsAt);
       next = { ...next, usedPlaces: { ...next.usedPlaces, [fight.placeId]: fight.placeExpiresAt } };
+      next = questEvent(next, { kind: 'placeUsed', placeId: fight.placeId }, fight.endsAt);
       if (fight.tip) {
         const granted = grantTip(next, fight.tip, fight.endsAt);
         next = granted.save;

@@ -9,6 +9,7 @@ import { grantTip, rollTip, type TipOutcome } from '../secrets/tips';
 import type { PlaceSpawn } from './generate';
 import type { SaveData } from '../save';
 import type { LatLng } from '../generation/types';
+import { questEvent } from '../quests/progress';
 
 export type FishProblem = 'gone' | 'tooFar';
 
@@ -30,7 +31,11 @@ export function fish(save: SaveData, spawn: PlaceSpawn, player: LatLng, now: num
   if (problem) throw new Error(`Cannot fish here: ${problem}`);
   const loot = rollForSave(save, 'fishingDock', createRng(`fish|${spawn.id}`));
   const granted = grantLoot(save, [], loot, now);
-  const next: SaveData = { ...granted, usedPlaces: { ...granted.usedPlaces, [spawn.id]: spawn.expiresAt } };
+  const next = questEvent(
+    { ...granted, usedPlaces: { ...granted.usedPlaces, [spawn.id]: spawn.expiresAt } },
+    { kind: 'placeUsed', placeId: spawn.id },
+    now,
+  );
   const tipped = rollTip('fishingDock', spawn.id)
     ? grantTip(next, { source: 'fishingDock', sourceId: spawn.id, anchor: spawn.position }, now)
     : null;

@@ -11,6 +11,7 @@ import { limitsToWood, TUTORIAL_SPAWN_ID } from '../tutorial/tutorial';
 import type { MaterialStack } from '../types';
 import { readSpawn } from './lockedNodes';
 import { walkEffectAt } from './walkEffects';
+import { questEvent } from '../quests/progress';
 
 export type CollectFailure = 'collected' | 'expired' | 'needsTool' | 'tooFar' | 'fled';
 
@@ -126,14 +127,15 @@ export function collectSpawn(
   const finalGained = oreBonus
     ? withWalkingBonus.map((stack) => ({ materialId: stack.materialId, amount: stack.amount + oreBonus }))
     : withWalkingBonus;
+  const collected: SaveData = {
+    ...save,
+    materials: addMaterials(save.materials, finalGained),
+    collected: { ...pruneCollected(save.collected, timeMs), [spawn.id]: spawn.expiresAt },
+    ...(bonus ? { freshGathers: bonus } : {}),
+  };
   return {
     ok: true,
     gained: finalGained,
-    save: {
-      ...save,
-      materials: addMaterials(save.materials, finalGained),
-      collected: { ...pruneCollected(save.collected, timeMs), [spawn.id]: spawn.expiresAt },
-      ...(bonus ? { freshGathers: bonus } : {}),
-    },
+    save: finalGained.reduce((next, { materialId, amount }) => questEvent(next, { kind: 'gathered', materialId, amount }, timeMs), collected),
   };
 }

@@ -23,6 +23,7 @@ import type { GearDef, GearInstance, Quality, RecipeDef } from '../types';
 import type { LatLng } from '../generation/types';
 import type { PlaceSpawn } from './generate';
 import { isLockedMine } from './generate';
+import { questEvent } from '../quests/progress';
 
 export type StockLine = {
   key: string;
@@ -222,6 +223,7 @@ export function buy(save: SaveData, spawn: PlaceSpawn, lineKey: string, count: n
       [spawn.id]: { expiresAt: spawn.expiresAt, bought: { ...bought, [lineKey]: (bought[lineKey] ?? 0) + count } },
     },
   };
+  if (line.kind === 'material') next = questEvent(next, { kind: 'bought', placeId: spawn.id, amount: count }, now);
   if (isSoldOut(next, spawn, now)) next = { ...next, usedPlaces: { ...next.usedPlaces, [spawn.id]: spawn.expiresAt } };
   return next;
 }
@@ -335,5 +337,7 @@ export function sellValuable(save: SaveData, spawn: PlaceSpawn, key: string, cou
   const left = (valuables[key] ?? 0) - count;
   if (left > 0) valuables[key] = left;
   else delete valuables[key];
-  return { ...save, gold: save.gold + placeValuablePrice(save, spawn, key, now) * count, valuables };
+  const sold = { ...save, gold: save.gold + placeValuablePrice(save, spawn, key, now) * count, valuables };
+  const wanted = spawn.kind === 'market' && key.slice(0, key.lastIndexOf(':')) === todaysCollector(save, spawn.id, now);
+  return wanted ? questEvent(sold, { kind: 'soldToCollector', placeId: spawn.id }, now) : sold;
 }

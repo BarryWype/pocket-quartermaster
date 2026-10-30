@@ -11,6 +11,7 @@ import type { Loot } from '../loot/types';
 import type { PlaceSpawn } from './generate';
 import type { SaveData } from '../save';
 import type { DugRuin } from '../types';
+import { questEvent } from '../quests/progress';
 
 const HOUR_MS = 3_600_000;
 
@@ -77,12 +78,12 @@ export function digRuin(
   const { reward, relic } = ruinDig(save, spawn);
   const granted = grantLoot(save, [], reward, now);
   return {
-    save: {
+    save: questEvent({
       ...granted,
       ruinsProgress: relic ? 0 : save.ruinsProgress + 1,
       usedPlaces: { ...granted.usedPlaces, [spawn.id]: spawn.expiresAt },
       dugRuins: { ...granted.dugRuins, [spawn.id]: { dugAt: now, position: spawn.position } satisfies DugRuin },
-    },
+    }, { kind: 'placeUsed', placeId: spawn.id }, now),
     reward,
     relic,
   };
