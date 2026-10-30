@@ -2,6 +2,7 @@ import { lootConfig } from '@/content/loot/config';
 
 import type { LatLng } from '../generation/types';
 import { createInitialSave, type SaveData } from '../save';
+import { rollTip } from '../secrets/tips';
 import { fish, fishProblem } from './dock';
 import type { PlaceSpawn } from './generate';
 
@@ -44,5 +45,22 @@ describe('fish', () => {
     expect(fishProblem(save, { ...spawnOf('1:2'), startsAt: 100 }, position, now)).toBe('gone');
     expect(fishProblem(save, { ...spawnOf('1:3'), expiresAt: -1 }, position, now)).toBe('gone');
     expect(fishProblem(save, spawnOf('1:4'), far, now)).toBe('tooFar');
+  });
+
+  it('tips the player off about an underwater dungeon when the roll comes up', () => {
+    let tipped = false;
+    for (let i = 0; i < 200; i++) {
+      const spawn = spawnOf(`${i}:1`);
+      const caught = fish(createInitialSave(), spawn, position, now);
+      if (rollTip('fishingDock', spawn.id)) {
+        expect(caught.tip).toMatchObject({ kind: 'tip', tip: expect.objectContaining({ secret: 'underwaterDungeon', source: 'fishingDock', sourceId: spawn.id }) });
+        expect(caught.save.secretTips).toHaveLength(1);
+        tipped = true;
+      } else {
+        expect(caught.tip).toBeUndefined();
+        expect(caught.save.secretTips).toEqual([]);
+      }
+    }
+    expect(tipped).toBe(true);
   });
 });

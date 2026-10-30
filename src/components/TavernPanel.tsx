@@ -98,7 +98,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
                 />
               </View>
             </View>
-            {placeStock(save, tavern).map((line) => (
+            {placeStock(save, tavern, openedAt).map((line) => (
               <View key={line.key} style={styles.offer}>
                 <Text style={styles.name}>{lineName(line)}</Text>
                 <View style={styles.actions}>

@@ -7,6 +7,7 @@ import { createRng } from '../generation/rng';
 import { rollForSave } from '../loot/context';
 import { grantLoot } from '../loot/grant';
 import { emptyLoot } from '../loot/types';
+import { grantTip, rollTip, type TipOutcome } from '../secrets/tips';
 import type { PlaceSpawn } from './generate';
 import type { SaveData } from '../save';
 import { isExhausted } from '../team/health';
@@ -66,11 +67,12 @@ export function startHeist(save: SaveData, spawn: PlaceSpawn, heroId: string, pl
   const success = rng.chance(heistRules.successChance[heistScore(save, heroId)]);
   // A success pays the heist row of the loot matrix, rolled now and paid at the end.
   const reward = success ? rollForSave(save, 'heist', rng) : emptyLoot();
+  const tip = success && rollTip('heist', id) ? { source: 'heist' as const, sourceId: id, anchor: spawn.position } : undefined;
   return {
     ...save,
     heists: [
       ...save.heists,
-      { id, placeId: spawn.id, heroId, startedAt: now, endsAt: now + minutes * MINUTE, success, reward } satisfies Heist,
+      { id, placeId: spawn.id, heroId, startedAt: now, endsAt: now + minutes * MINUTE, success, reward, ...(tip ? { tip } : {}) } satisfies Heist,
     ],
     nextUid: save.nextUid + 1,
   };
@@ -80,14 +82,22 @@ export function startHeist(save: SaveData, spawn: PlaceSpawn, heroId: string, pl
  * Settles the heists whose time is up: a success pays its reward, the hero is
  * free to go again. A failure pays nothing.
  */
-export function resolveHeists(save: SaveData, now: number): { save: SaveData; resolved: Heist[] } {
+export function resolveHeists(save: SaveData, now: number): { save: SaveData; resolved: Heist[]; tips: TipOutcome[] } {
   const due = save.heists.filter((heist) => heist.endsAt <= now).sort((a, b) => a.endsAt - b.endsAt);
-  if (due.length === 0) return { save, resolved: [] };
+  if (due.length === 0) return { save, resolved: [], tips: [] };
   let next: SaveData = { ...save, heists: save.heists.filter((heist) => heist.endsAt > now) };
+  const tips: TipOutcome[] = [];
   for (const heist of due) {
-    if (heist.success) next = grantLoot(next, [], heist.reward, heist.endsAt);
+    if (heist.success) {
+      next = grantLoot(next, [], heist.reward, heist.endsAt);
+      if (heist.tip) {
+        const granted = grantTip(next, heist.tip, heist.endsAt);
+        next = granted.save;
+        tips.push(granted.outcome);
+      }
+    }
   }
-  return { save: next, resolved: due };
+  return { save: next, resolved: due, tips };
 }
 
 /** The hero's chance of pulling the heist off, for display. */

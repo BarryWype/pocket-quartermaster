@@ -9,6 +9,7 @@ import { mapDistanceRange } from '../loot/treasure';
 import { valuableSellPrice } from '../loot/valuables';
 import { readTreasureMap } from '../rewards/treasure';
 import type { SaveData } from '../save';
+import { duplicateTipGold, rollTip } from '../secrets/tips';
 import { currentHp, isExhausted, setHeroHp } from '../team/health';
 import type { PatrolSpawn } from './generate';
 import { findSpawn, fixOn, tierTeam } from './testHelpers';
@@ -86,6 +87,41 @@ describe('travellers', () => {
     const { help } = withReward('pilgrim', (r) => r.kind === 'loot' && r.loot.keyFragments > 0);
     expect(help.save.keyFragments).toBe(1);
   });
+
+  it('tip the player off about a hidden den when the roll comes up', () => {
+    let tipped = false;
+    for (let i = 0; i < 200; i++) {
+      const spawn = { ...wounded, id: `${wounded.id}:${i}` };
+      const help = helpTraveller(stocked(), spawn, here(spawn, at), at);
+      if (rollTip('traveller', spawn.id)) {
+        expect(help.tip).toMatchObject({ kind: 'tip', tip: expect.objectContaining({ secret: 'hiddenDen', source: 'traveller', sourceId: spawn.id }) });
+        expect(help.save.secretTips).toHaveLength(1);
+        tipped = true;
+      } else {
+        expect(help.tip).toBeUndefined();
+        expect(help.save.secretTips).toEqual([]);
+      }
+    }
+    expect(tipped).toBe(true);
+  });
+
+  it('pay gold for a tip while the hidden den is already tipped', () => {
+    const rolling = (from: number) => {
+      for (let i = from; i < 300; i++) {
+        const spawn = { ...wounded, id: `${wounded.id}:${i}` };
+        if (rollTip('traveller', spawn.id)) return { spawn, i };
+      }
+      throw new Error('No traveller tipping the player off');
+    };
+    const firstRoll = rolling(0);
+    const first = helpTraveller(stocked(), firstRoll.spawn, here(firstRoll.spawn, at), at);
+    expect(first.tip?.kind).toBe('tip');
+    const secondRoll = rolling(firstRoll.i + 1);
+    const second = helpTraveller(first.save, secondRoll.spawn, here(secondRoll.spawn, at), at);
+    expect(second.tip).toEqual({ kind: 'gold', gold: duplicateTipGold(first.save) });
+    expect(second.save.gold).toBe(first.save.gold + duplicateTipGold(first.save));
+    expect(second.save.secretTips).toHaveLength(1);
+  });
 });
 
 describe('traveller recruits', () => {
@@ -144,24 +180,13 @@ describe('traveller recruits', () => {
     expect(share).toBeLessThan(0.09);
   });
 
-  it('are a hooded rare class about 5% of the time, or always with forceRare', () => {
+  it('are never a rare-rarity class', () => {
     const save = withRoster(6);
-    let hooded = 0;
     for (let i = 0; i < 400; i++) {
       const spawn = { ...wounded, id: `${wounded.id}:${i}` };
       const { reward } = helpTraveller(save, spawn, here(spawn, at), at, undefined, always);
       if (reward.kind !== 'recruit') throw new Error('expected a recruit');
-      expect(reward.offer.hooded ?? false).toBe(heroClasses[reward.offer.classId].rarity === 'rare');
-      if (reward.offer.hooded) hooded++;
-    }
-    expect(hooded / 400).toBeGreaterThan(0.03);
-    expect(hooded / 400).toBeLessThan(0.07);
-    for (let i = 0; i < 20; i++) {
-      const spawn = { ...wounded, id: `${wounded.id}:force:${i}` };
-      const { reward } = helpTraveller(save, spawn, here(spawn, at), at, undefined, always, true);
-      if (reward.kind !== 'recruit') throw new Error('expected a recruit');
-      expect(heroClasses[reward.offer.classId].rarity).toBe('rare');
-      expect(reward.offer.hooded).toBe(true);
+      expect(heroClasses[reward.offer.classId].rarity).not.toBe('rare');
     }
   });
 });

@@ -876,6 +876,8 @@ export type PlaceFight = {
   hp: { heroId: string; hp: number; maxHp: number }[];
   salvaged: ExpeditionReport['salvaged'];
   reward: Loot;
+  /** A won fight's secret tip, granted when it ends. */
+  tip?: { source: TipSource; sourceId: string; anchor: LatLng };
 };
 
 /** One hero away on a thieves' guild heist; the outcome is rolled when they set out. */
@@ -887,6 +889,8 @@ export type Heist = {
   endsAt: number;
   success: boolean;
   reward: Loot;
+  /** A successful heist's secret tip, granted when it ends. */
+  tip?: { source: TipSource; sourceId: string; anchor: LatLng };
 };
 
 /** A dug ruin: a new one shows elsewhere a day later, for this player. */

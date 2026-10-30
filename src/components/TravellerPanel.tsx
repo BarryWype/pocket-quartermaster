@@ -159,8 +159,7 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
                   </Text>
                 )}
                 {recruit && (
-                  <View style={[styles.recruit, recruit.hooded && styles.hooded]}>
-                    {recruit.hooded && <Text style={styles.name}>🧥 {t('classes.hooded')}</Text>}
+                  <View style={styles.recruit}>
                     <Text style={styles.name}>{t('patrols.recruitOffer', { name: recruit.name })}</Text>
                     <Text style={styles.muted}>
                       {t('tavern.offer', {
@@ -224,7 +223,6 @@ const styles = StyleSheet.create({
   muted: { color: colors.muted },
   offer: { gap: 4, paddingVertical: 10, borderTopWidth: 2, borderTopColor: colors.parchmentDark },
   recruit: { gap: 4 },
-  hooded: { padding: 8, borderWidth: pixel.outline, borderColor: colors.gold, backgroundColor: colors.parchmentDark },
   name: { fontSize: 21 },
   trait: { fontSize: 19 },
   problem: { color: colors.muted, fontStyle: 'italic' },

@@ -1,8 +1,10 @@
 import { dungeons } from '@/content/dungeons';
 import { heistRules } from '@/content/placeActivities';
+import { secretRules } from '@/content/secrets';
 
 import type { LatLng } from '../generation/types';
 import { createInitialSave, type SaveData } from '../save';
+import { rollTip } from '../secrets/tips';
 import { isAway } from '../team/team';
 import { emptyLoot } from '../loot/types';
 import type { PlaceSpawn } from './generate';
@@ -107,5 +109,38 @@ describe('startHeist', () => {
     expect(heistProblem(away, spawnOf(), 'lyra', position, now)).toBe('gone');
     const exhausted = { ...saveOf('thief'), heroes: [{ ...saveOf('thief').heroes[0], exhaustedUntil: 60_000 }] };
     expect(heistProblem(exhausted, spawnOf('1:6'), 'bram', position, now)).toBe('exhausted');
+  });
+});
+
+describe('heist tips', () => {
+  it('grants a successful heist its tip on resolve', () => {
+    let started: SaveData | null = null;
+    let heist: Heist | undefined;
+    for (let i = 1; i < 300; i++) {
+      const candidate = startHeist({ ...saveOf('thief'), nextUid: i }, spawnOf(), 'bram', position, now);
+      const run = candidate.heists[0];
+      if (run.success && run.tip) {
+        started = candidate;
+        heist = run;
+        break;
+      }
+    }
+    if (!started || !heist) throw new Error('No heist both succeeding and tipping');
+    expect(rollTip('heist', heist.id)).toBe(true);
+    const { save: done, tips } = resolveHeists(started, heist.endsAt);
+    expect(tips).toEqual([{ kind: 'tip', tip: expect.objectContaining({ secret: secretRules.tips.heist.secret, source: 'heist', sourceId: heist.id }) }]);
+    expect(done.secretTips[0].source).toBe('heist');
+  });
+
+  it('never tips a failed heist', () => {
+    for (let i = 1; i < 300; i++) {
+      const started = startHeist({ ...saveOf('warrior', 5), nextUid: i }, spawnOf(), 'bram', position, now);
+      const heist = started.heists[0];
+      if (heist.success) continue;
+      expect(heist.tip).toBeUndefined();
+      expect(resolveHeists(started, heist.endsAt).tips).toEqual([]);
+      return;
+    }
+    throw new Error('No failing heist found');
   });
 });

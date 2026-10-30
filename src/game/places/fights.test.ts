@@ -1,6 +1,7 @@
 import { monsterPartById } from '@/content/lookup';
 import { placeFightRules } from '@/content/placeFights';
 import { patrolRules } from '@/content/patrols';
+import { secretRules } from '@/content/secrets';
 import type { PlaceKind } from '@/content/places';
 
 import { offsetPosition } from '../generation/geo';
@@ -8,9 +9,11 @@ import { createRng } from '../generation/rng';
 import { tileAt } from '../generation/tiles';
 import { grantLoot } from '../loot/grant';
 import { emptyLoot } from '../loot/types';
+import { rollTip } from '../secrets/tips';
 import { setHeroHp } from '../team/health';
 import { isAway } from '../team/team';
 import type { LatLng } from '../generation/types';
+import type { PlaceFight } from '../types';
 import type { PlaceSpawn } from './generate';
 import { generateTilePatrols, patrolsAround } from '../patrols/generate';
 import { HOME, tierTeam } from '../patrols/testHelpers';
@@ -106,6 +109,41 @@ describe('fighting at a place', () => {
     expect(rewarded.gear.at(-1)).toMatchObject({ uid: `g${save.nextUid}`, itemId: 'sword1' });
     expect(rewarded.nextUid).toBe(save.nextUid + 1);
     expect(rewarded.keyFragments).toBe(1);
+  });
+
+  it('grants a won camp or lair its tip on resolve, never a lost fight', () => {
+    for (const kind of ['banditCamp', 'monsterLair'] as const) {
+      let started: ReturnType<typeof startPlaceFight> | null = null;
+      let fight: PlaceFight | undefined;
+      for (let i = 0; i < 200; i++) {
+        const spawn = { ...spawnOf(kind), id: `place:${kind}:t:${i}:0` };
+        const run = startPlaceFight(tierTeam(), spawn, ['bram', 'lyra', 'mira'], HOME, now);
+        const current = run.placeFights[0];
+        if (current.won && current.tip) {
+          started = run;
+          fight = current;
+          break;
+        }
+      }
+      if (!started || !fight) throw new Error(`No won ${kind} tipping the player off`);
+      expect(rollTip(kind, fight.placeId)).toBe(true);
+      const { save: done, tips } = resolvePlaceFights(started, fight.endsAt);
+      expect(tips).toEqual([{ kind: 'tip', tip: expect.objectContaining({ secret: secretRules.tips[kind].secret, source: kind, sourceId: fight.placeId }) }]);
+      expect(done.secretTips[0].source).toBe(kind);
+    }
+
+    const weak = setHeroHp(tierTeam(), 'mira', 0.02, now, false);
+    let lost = false;
+    for (let i = 0; i < 200 && !lost; i++) {
+      const spawn = { ...spawnOf('banditCamp'), id: `place:banditCamp:t:${i}:0` };
+      if (!rollTip('banditCamp', spawn.id)) continue;
+      const started = startPlaceFight(weak, spawn, ['mira'], HOME, now);
+      const fight = started.placeFights[0];
+      expect(fight.tip).toBeUndefined();
+      expect(resolvePlaceFights(started, fight.endsAt).tips).toEqual([]);
+      lost = true;
+    }
+    expect(lost).toBe(true);
   });
 });
 

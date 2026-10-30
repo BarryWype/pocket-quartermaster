@@ -1,7 +1,9 @@
 import { itemById, monsterPartById, recipeById } from '@/content/lookup';
+import { secretRules } from '@/content/secrets';
 import { materialPrices, shopRules } from '@/content/shops';
 
 import { forgedItem, isKnown } from '../crafting/crafting';
+import { rollTip } from '../secrets/tips';
 import { valuableSellPrice, todaysCollector } from '../loot/valuables';
 import { createInitialSave, type SaveData } from '../save';
 import type { GearDef, GearInstance } from '../types';
@@ -49,13 +51,13 @@ describe('placeStock', () => {
   it('is deterministic for the same spawn, and rotates for a new place id', () => {
     const save = withGold(100);
     const spawn = spawnOf('sawmill');
-    expect(placeStock(save, spawn)).toEqual(placeStock(save, spawn));
-    const fresh = placeStock(save, spawnOf('sawmill', '0:2'));
+    expect(placeStock(save, spawn, now)).toEqual(placeStock(save, spawn, now));
+    const fresh = placeStock(save, spawnOf('sawmill', '0:2'), now);
     expect(fresh[0].key).toBe('material:wood');
   });
 
   it('stocks the sawmill with wood at the config price', () => {
-    const line = placeStock(withGold(100), spawnOf('sawmill'))[0];
+    const line = placeStock(withGold(100), spawnOf('sawmill'), now)[0];
     expect(line.kind).toBe('material');
     expect(line.id).toBe('wood');
     expect(line.amount).toBeGreaterThanOrEqual(5);
@@ -65,7 +67,7 @@ describe('placeStock', () => {
 
   it('sells only gear within the unlocked tier at the smithy, and only unknown recipes', () => {
     const save = withGold(1000);
-    const lines = placeStock(save, spawnOf('smithy'));
+    const lines = placeStock(save, spawnOf('smithy'), now);
     const gearLines = lines.filter((l) => l.kind === 'gear');
     expect(gearLines.length).toBeGreaterThanOrEqual(shopRules.smithy.gearLines[0]);
     expect(gearLines.length).toBeLessThanOrEqual(shopRules.smithy.gearLines[1]);
@@ -88,7 +90,7 @@ describe('placeStock', () => {
     const save = withGold(1000, { knownRecipes: [...createInitialSave().knownRecipes, ...tier1.filter((r) => r !== unknown).map((r) => r.id)] });
     for (let i = 0; i < 40; i++) {
       for (const kind of ['smithy', 'library'] as const) {
-        for (const line of placeStock(save, spawnOf(kind, `${i}:1`)).filter((l) => l.kind === 'recipe')) {
+        for (const line of placeStock(save, spawnOf(kind, `${i}:1`), now).filter((l) => l.kind === 'recipe')) {
           expect(isKnown(save, recipeById[line.id])).toBe(false);
         }
       }
@@ -100,7 +102,7 @@ describe('buy', () => {
   it('deducts gold, adds the material and reduces the stock left', () => {
     const spawn = spawnOf('sawmill');
     const save = withGold(100);
-    const line = placeStock(save, spawn)[0];
+    const line = placeStock(save, spawn, now)[0];
     const next = buy(save, spawn, line.key, 3, position, now);
     expect(next.gold).toBe(100 - materialPrices.wood * 3);
     expect(next.materials.wood).toBe(3);
@@ -111,21 +113,21 @@ describe('buy', () => {
   it('refuses the same problems the other place actions have', () => {
     const spawn = spawnOf('sawmill');
     const save = withGold(100);
-    const line = placeStock(save, spawn)[0];
+    const line = placeStock(save, spawn, now)[0];
     expect(buyProblem(save, spawn, line.key, 1, far, now)).toBe('tooFar');
     expect(buyProblem(withGold(0), spawn, line.key, 1, position, now)).toBe('gold');
     expect(buyProblem(save, spawn, line.key, line.amount + 1, position, now)).toBe('soldOut');
     expect(buyProblem(save, spawn, 'material:none', 1, position, now)).toBe('gone');
     // A mine above the pickaxe tier never opens its shop.
     const mine = spawnOf('copperMine');
-    const copper = placeStock(save, mine)[0];
+    const copper = placeStock(save, mine, now)[0];
     expect(buyProblem(save, mine, copper.key, 1, position, now)).toBe('locked');
   });
 
   it('marks the place used once the last unit is bought', () => {
     const spawn = spawnOf('sawmill');
     const save = withGold(100);
-    const line = placeStock(save, spawn)[0];
+    const line = placeStock(save, spawn, now)[0];
     const next = buy(save, spawn, line.key, line.amount, position, now);
     expect(isSoldOut(next, spawn, now)).toBe(true);
     expect(next.usedPlaces[spawn.id]).toBe(spawn.expiresAt);
@@ -135,14 +137,14 @@ describe('buy', () => {
   it('teaches a bought recipe, and refuses a second buy of it', () => {
     const spawn = spawnOf('smithy');
     const save = withGold(1000);
-    const line = placeStock(save, spawn).find((l) => l.kind === 'recipe')!;
+    const line = placeStock(save, spawn, now).find((l) => l.kind === 'recipe')!;
     const next = buy(save, spawn, line.key, 1, position, now);
     expect(isKnown(next, recipeById[line.id])).toBe(true);
     expect(buyProblem(next, spawn, line.key, 1, position, now)).toBe('known');
   });
   it('sells the wanted poster at the tavern once tier 1 is unlocked', () => {
     const spawn = spawnOf('tavern');
-    const lines = placeStock(withGold(100), spawn);
+    const lines = placeStock(withGold(100), spawn, now);
     expect(lines).toEqual([{ key: 'item:wantedPoster', kind: 'item', id: 'wantedPoster', amount: 1, price: 15 }]);
 
     const next = buy(withGold(100), spawn, 'item:wantedPoster', 1, position, now);
@@ -157,7 +159,7 @@ describe('buy', () => {
   it('sells the healing potion of the player’s tier at the apothecary, or the one below', () => {
     const potionsSold = (clearedDungeons: string[]) =>
       new Set(
-        Array.from({ length: 40 }, (_, i) => placeStock(withGold(100, { clearedDungeons }), spawnOf('apothecary', `0:${i}`))[0].id),
+        Array.from({ length: 40 }, (_, i) => placeStock(withGold(100, { clearedDungeons }), spawnOf('apothecary', `0:${i}`), now)[0].id),
       );
     expect(potionsSold([])).toEqual(new Set(['healingPotion']));
     expect(potionsSold(['banditStockade', 'ogreQuarry'])).toEqual(new Set(['standardHealingPotion', 'healingPotion']));
@@ -168,19 +170,19 @@ describe('buy', () => {
 
   it('sells the decoy hoard only once tier 5 is unlocked', () => {
     const market = spawnOf('market');
-    const fresh = placeStock(withGold(1000), market);
+    const fresh = placeStock(withGold(1000), market, now);
     expect(fresh.map((l) => l.id)).not.toContain('decoyHoard');
 
     const save = withGold(1000, { clearedDungeons: ['banditStockade', 'ogreQuarry', 'drownedCrypt', 'giantsHall'] });
-    const lines = placeStock(save, market);
+    const lines = placeStock(save, market, now);
     expect(lines[lines.length - 1]).toEqual({ key: 'item:decoyHoard', kind: 'item', id: 'decoyHoard', amount: 1, price: 300 });
     // The normal market lines stay exactly what they were before the unlock.
-    expect(lines.slice(0, -1)).toEqual(placeStock(withGold(1000), market));
+    expect(lines.slice(0, -1)).toEqual(placeStock(withGold(1000), market, now));
   });
 
   it('leaves the chapel empty until the lich’s tier opens, and keeps it usable', () => {
     const chapel = spawnOf('chapel');
-    expect(placeStock(withGold(100), chapel)).toEqual([]);
+    expect(placeStock(withGold(100), chapel, now)).toEqual([]);
     const save = withGold(100, { clearedDungeons: ['banditStockade', 'ogreQuarry'] });
     const next = buy(save, chapel, 'item:fontWater', 1, position, now);
     expect(next.consumables.fontWater).toBe(1);
@@ -190,10 +192,47 @@ describe('buy', () => {
 
   it('appends the weakness line after the apothecary’s normal stock', () => {
     const save = withGold(1000, { clearedDungeons: ['banditStockade', 'ogreQuarry', 'drownedCrypt'] });
-    const lines = placeStock(save, spawnOf('apothecary'));
+    const lines = placeStock(save, spawnOf('apothecary'), now);
     expect(lines.map((l) => l.id).lastIndexOf('sleepingDraught')).toBe(lines.length - 1);
     expect(lines[lines.length - 1].price).toBe(120);
     expect(lines.length).toBe(4);
+  });
+});
+
+describe('the library ledger', () => {
+  const spawnWithTip = (rolls: boolean) => {
+    for (let i = 0; i < 200; i++) {
+      const spawn = spawnOf('library', `${i}:1`);
+      if (rollTip('library', spawn.id) === rolls) return spawn;
+    }
+    throw new Error(`No library ${rolls ? 'rolling' : 'not rolling'} a tip`);
+  };
+
+  it('sells the ledger naming a hidden den only where the roll tips one, at the tier price', () => {
+    const save = withGold(1000);
+    expect(placeStock(save, spawnWithTip(true), now)).toContainEqual({
+      key: 'tip:hiddenDen',
+      kind: 'tip',
+      id: 'hiddenDen',
+      amount: 1,
+      price: secretRules.ledgerPrice[0],
+    });
+    expect(placeStock(save, spawnWithTip(false), now).map((l) => l.key)).not.toContain('tip:hiddenDen');
+  });
+
+  it('hides the ledger while a hidden den tip is live', () => {
+    const save = withGold(1000, {
+      secretTips: [{ id: 'hiddenDen|x', secret: 'hiddenDen', source: 'traveller', sourceId: 'x', anchor: position, foundAt: 0, expiresAt: now + 3_600_000 }],
+    });
+    expect(placeStock(save, spawnWithTip(true), now).map((l) => l.key)).not.toContain('tip:hiddenDen');
+  });
+
+  it('buying the ledger grants the hidden den tip and charges the price', () => {
+    const spawn = spawnWithTip(true);
+    const next = buy(withGold(1000), spawn, 'tip:hiddenDen', 1, position, now);
+    expect(next.gold).toBe(1000 - secretRules.ledgerPrice[0]);
+    expect(next.secretTips).toHaveLength(1);
+    expect(next.secretTips[0]).toMatchObject({ secret: 'hiddenDen', source: 'library', sourceId: spawn.id });
   });
 });
 

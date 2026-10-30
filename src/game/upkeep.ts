@@ -3,6 +3,7 @@ import { gatheringConfig, type GatheringConfig } from '@/content/gatheringConfig
 import { pruneCollected } from './gathering/gathering';
 import { pruneDugRuins } from './places/ruins';
 import { lureEndsAt } from './rewards/lures';
+import { pruneTips } from './secrets/tips';
 import { rotationDay } from './dungeons/rotation';
 import type { SaveData } from './save';
 import { rollGamble } from './team/stats';
@@ -28,6 +29,7 @@ export function pruneExpired(save: SaveData, now: number, config: GatheringConfi
   const walkEffects = save.walkEffects.filter(
     (effect) => effect.endsAt > now || (save.autoGather.processedUntil < effect.endsAt && effect.endsAt >= buffer),
   );
+  const secretTips = pruneTips(save.secretTips, now);
   const unchanged =
     treasureMaps.length === save.treasureMaps.length &&
     activeLure === save.activeLure &&
@@ -38,10 +40,11 @@ export function pruneExpired(save: SaveData, now: number, config: GatheringConfi
     Object.keys(usedPlaces).length === Object.keys(save.usedPlaces).length &&
     Object.keys(chapelVisits).length === Object.keys(save.chapelVisits).length &&
     Object.keys(placePurchases).length === Object.keys(save.placePurchases).length &&
-    Object.keys(dugRuins).length === Object.keys(save.dugRuins).length;
+    Object.keys(dugRuins).length === Object.keys(save.dugRuins).length &&
+    secretTips.length === save.secretTips.length;
   return unchanged
     ? save
-    : { ...save, treasureMaps, activeLure, walkEffects, usedSanctums, collected, takenOffers, usedPlaces, chapelVisits, placePurchases, dugRuins };
+    : { ...save, treasureMaps, activeLure, walkEffects, usedSanctums, collected, takenOffers, usedPlaces, chapelVisits, placePurchases, dugRuins, secretTips };
 }
 
 /** At each daily reset, Gamblers at home roll their approach scores; heroes away keep theirs until they are back. */

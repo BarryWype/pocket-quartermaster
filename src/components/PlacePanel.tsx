@@ -5,7 +5,7 @@ import { bossById } from '@/content/enemies';
 import { heroClasses } from '@/content/heroes';
 import { gearName, itemById, materialById, recipeById, recipeOutput, threatById, valuableById } from '@/content/lookup';
 import { heistRules } from '@/content/placeActivities';
-import { placeInfo, placeRules, type PlaceKind } from '@/content/places';
+import { placeInfo, placeRules, type PlaceKind, type SecretKind } from '@/content/places';
 import { serviceRules } from '@/content/services';
 import { weaknessByItem } from '@/content/weaknesses';
 import { wornBy } from '@/game/forging/salvage';
@@ -86,6 +86,10 @@ export function lineName(line: StockLine) {
     return weakness ? `${name} · ${t('places.weaknessFor', { boss: tr(bossById[weakness.bossId].name) })}` : name;
   }
   if (line.kind === 'gear') return `${itemById[line.id].emoji} ${gearName(line.gear!)}`;
+  if (line.kind === 'tip') {
+    const info = placeInfo[line.id as SecretKind];
+    return `${info.emoji} ${t('places.tip', { name: tr(info.name) })}`;
+  }
   return `📜 ${t('places.recipe', { name: tr(recipeOutput(recipeById[line.id]).name) })}`;
 }
 
@@ -101,7 +105,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
   const info = placeInfo[place.kind];
   const distance = distanceMeters(player, place.position);
   const locked = isLockedMine(place.kind, pickaxeTier(save));
-  const stock = placeStock(save, place);
+  const stock = placeStock(save, place, now);
   const buysValuables = (lootConfig.valuables.buyers as readonly string[]).includes(place.kind);
   const sells = place.kind === 'smithy' || buysMaterials(place.kind) || buysValuables;
   const wanted = place.kind === 'market' ? todaysCollector(save, place.id, now) : null;

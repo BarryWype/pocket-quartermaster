@@ -15,6 +15,7 @@ import { partyCharms } from '../loot/charms';
 import { rollForSave, sourceAmounts } from '../loot/context';
 import { grantLoot } from '../loot/grant';
 import { emptyLoot, type Loot, type LootModifier } from '../loot/types';
+import { grantTip, rollTip, type TipOutcome } from '../secrets/tips';
 import type { SaveData } from '../save';
 import { applyRunHp, isExhausted } from '../team/health';
 import { isAway } from '../team/team';
@@ -148,6 +149,10 @@ export function startPlaceFight(save: SaveData, spawn: PlaceSpawn, heroIds: stri
         partyCharms(party),
       )
     : emptyLoot();
+  const tip =
+    run.bossDefeated && (kind === 'banditCamp' || kind === 'monsterLair') && rollTip(kind, spawn.id)
+      ? { source: kind, sourceId: spawn.id, anchor: spawn.position }
+      : undefined;
 
   return {
     ...save,
@@ -166,6 +171,7 @@ export function startPlaceFight(save: SaveData, spawn: PlaceSpawn, heroIds: stri
         hp: run.hp,
         salvaged: untriggeredSalvage(party, run, kind),
         reward,
+        ...(tip ? { tip } : {}),
       },
     ],
     // The escort hero set out with the player instead: the background task stands down.
@@ -186,20 +192,26 @@ export function placeFightOdds(save: SaveData, spawn: PlaceSpawn, heroIds: strin
  * left them, and a win pays its rewards and hides the place until it expires.
  * A lost fight leaves the place on the map.
  */
-export function resolvePlaceFights(save: SaveData, now: number): { save: SaveData; resolved: PlaceFight[] } {
+export function resolvePlaceFights(save: SaveData, now: number): { save: SaveData; resolved: PlaceFight[]; tips: TipOutcome[] } {
   const due = save.placeFights.filter((fight) => fight.endsAt <= now).sort((a, b) => a.endsAt - b.endsAt);
-  if (due.length === 0) return { save, resolved: [] };
+  if (due.length === 0) return { save, resolved: [], tips: [] };
 
   let next: SaveData = { ...save, placeFights: save.placeFights.filter((fight) => fight.endsAt > now) };
+  const tips: TipOutcome[] = [];
   for (const fight of due) {
     next = settleConsumables(next, fight.heroIds, fight.salvaged);
     if (fight.won) {
       next = grantLoot(next, fight.heroIds, fight.reward, fight.endsAt);
       next = { ...next, usedPlaces: { ...next.usedPlaces, [fight.placeId]: fight.placeExpiresAt } };
+      if (fight.tip) {
+        const granted = grantTip(next, fight.tip, fight.endsAt);
+        next = granted.save;
+        tips.push(granted.outcome);
+      }
     }
     next = applyRunHp(next, fight.hp, fight.endsAt);
   }
-  return { save: next, resolved: due };
+  return { save: next, resolved: due, tips };
 }
 
 /** Live monster lairs around a position: each one boosts nearby patrol spawns. */

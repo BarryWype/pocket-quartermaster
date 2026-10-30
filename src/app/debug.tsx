@@ -674,13 +674,6 @@ export default function DebugScreen() {
         </View>
       </View>
       <Text style={styles.hint}>Debug heroes skip the roster cap and teach their weapon types like recruits.</Text>
-      <View style={styles.row}>
-        <Text>Next helped traveller offers a rare class</Text>
-        <Button
-          title={debug.forceRareRecruit ? 'On' : 'Off'}
-          onPress={() => debug.set({ forceRareRecruit: !debug.forceRareRecruit })}
-        />
-      </View>
 
       <Text>{t('debug.setLevel')}</Text>
       <Text>{t('autoGather.pickHero')}</Text>

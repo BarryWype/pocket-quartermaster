@@ -83,8 +83,6 @@ export const travellerRules = {
   goldShareOfShort: 1,
   /** The pilgrim takes a meal, or this many supply points instead. */
   pilgrimSupplyPoints: 3,
-  /** Until secret places exist, about 1 in 20 traveller recruits is a rare class. */
-  rareRecruitChance: 0.05,
   /** A helped pilgrim also blesses the heroes at home this often (the loot is the Traveller row of the matrix). */
   pilgrimBlessingChance: 0.45,
   /** The pilgrim opportunity in a dungeon: what the pilgrim gives back, by weight. */

@@ -4,6 +4,7 @@ import type { ValuableBuyer } from '@/content/loot/valuables';
 import { dungeons } from '@/content/dungeons';
 import { itemById, monsterPartById, recipeById } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
+import { secretRules } from '@/content/secrets';
 import { itemPrices, marketPool, materialPrices, oreTier, shopRules, shopStock } from '@/content/shops';
 import { bossWeaknesses, weaknessByItem } from '@/content/weaknesses';
 
@@ -15,6 +16,7 @@ import { wornBy } from '../forging/salvage';
 import { pickaxeTier } from '../gathering/gathering';
 import { addMaterials, removeMaterials } from '../inventory';
 import { valuableSellPrice, todaysCollector } from '../loot/valuables';
+import { activeTip, grantTip, rollTip } from '../secrets/tips';
 import type { SaveData } from '../save';
 import { affinityOf } from '../team/team';
 import type { GearDef, GearInstance, Quality, RecipeDef } from '../types';
@@ -24,7 +26,7 @@ import { isLockedMine } from './generate';
 
 export type StockLine = {
   key: string;
-  kind: 'material' | 'item' | 'gear' | 'recipe';
+  kind: 'material' | 'item' | 'gear' | 'recipe' | 'tip';
   id: string;
   amount: number;
   price: number;
@@ -87,7 +89,7 @@ function draw<T>(pool: T[], count: number, rng: Rng): T[] {
  * A place's stock: deterministic from its spawn id and the player's state, so
  * the same place shows the same wares until it moves.
  */
-export function placeStock(save: SaveData, spawn: PlaceSpawn): StockLine[] {
+export function placeStock(save: SaveData, spawn: PlaceSpawn, now: number): StockLine[] {
   const rng = createRng(`stock|${spawn.id}`);
   const stocked = (): StockLine[] => {
     const stock = shopStock[spawn.kind];
@@ -121,7 +123,21 @@ export function placeStock(save: SaveData, spawn: PlaceSpawn): StockLine[] {
     }
     if (spawn.kind === 'library') {
       const recipe = recipeForSale(save, spawn, 'provisions');
-      return recipe ? [recipe] : [];
+      const tier = highestUnlockedTier(save);
+      // The old ledger names a hidden den, drawn without the rng so the other stock stays what it was.
+      const tip =
+        rollTip('library', spawn.id) && !activeTip(save, 'hiddenDen', now)
+          ? [
+              {
+                key: 'tip:hiddenDen',
+                kind: 'tip' as const,
+                id: 'hiddenDen',
+                amount: 1,
+                price: secretRules.ledgerPrice[Math.min(tier, secretRules.ledgerPrice.length) - 1],
+              },
+            ]
+          : [];
+      return [...(recipe ? [recipe] : []), ...tip];
     }
     if (spawn.kind === 'market') {
       const pool = marketPool.filter((entry) => entry.kind !== 'material' || (oreTier[entry.id] ?? 0) <= pickaxeTier(save));
@@ -149,7 +165,7 @@ export function stockLeft(save: SaveData, spawn: PlaceSpawn, line: StockLine) {
 
 /** Whether every line of the place has been bought out; weakness lines never sell a place out. */
 export function isSoldOut(save: SaveData, spawn: PlaceSpawn, now: number) {
-  const lines = placeStock(save, spawn).filter((line) => !(line.id in weaknessByItem));
+  const lines = placeStock(save, spawn, now).filter((line) => !(line.id in weaknessByItem));
   if (lines.length === 0) return false;
   const bought = save.placePurchases[spawn.id];
   const counts = bought && bought.expiresAt > now ? bought.bought : {};
@@ -169,7 +185,7 @@ export function buyProblem(
   if (spawn.expiresAt <= now || spawn.id in save.usedPlaces) return 'gone';
   // A recipe already learned drops out of the stock, so it is checked from the key.
   if (lineKey.startsWith('recipe:') && isKnown(save, recipeById[lineKey.slice('recipe:'.length)])) return 'known';
-  const line = placeStock(save, spawn).find((l) => l.key === lineKey);
+  const line = placeStock(save, spawn, now).find((l) => l.key === lineKey);
   if (!line) return 'gone';
   if (distanceMeters(player, spawn.position) > placeRules.interactionMeters) return 'tooFar';
   if (isLockedMine(spawn.kind, pickaxeTier(save))) return 'locked';
@@ -182,7 +198,7 @@ export function buyProblem(
 export function buy(save: SaveData, spawn: PlaceSpawn, lineKey: string, count: number, player: LatLng, now: number): SaveData {
   const problem = buyProblem(save, spawn, lineKey, count, player, now);
   if (problem) throw new Error(`Cannot buy ${lineKey}: ${problem}`);
-  const line = placeStock(save, spawn).find((l) => l.key === lineKey)!;
+  const line = placeStock(save, spawn, now).find((l) => l.key === lineKey)!;
 
   let next: SaveData = { ...save, gold: save.gold - line.price * count };
   if (line.kind === 'material') {
@@ -192,6 +208,8 @@ export function buy(save: SaveData, spawn: PlaceSpawn, lineKey: string, count: n
   } else if (line.kind === 'gear') {
     const uid = `g${next.nextUid}`;
     next = { ...next, gear: [...next.gear, { ...line.gear!, uid }], nextUid: next.nextUid + 1 };
+  } else if (line.kind === 'tip') {
+    next = grantTip(next, { source: 'library', sourceId: spawn.id, anchor: spawn.position }, now).save;
   } else {
     next = unlockRecipe(next, line.id);
   }

@@ -41,6 +41,7 @@ import { fish } from '@/game/places/dock';
 import { resolvePlaceFights, startPlaceFight } from '@/game/places/fights';
 import { resolveHeists, startHeist } from '@/game/places/heists';
 import { digRuin } from '@/game/places/ruins';
+import type { TipOutcome } from '@/game/secrets/tips';
 import { pickApproach } from '@/game/team/stats';
 import { dismissHero, equip, heroStats, isAway, keepHpShare, markClassesSeen, setKitFor, unequip } from '@/game/team/team';
 import { buySupply, recruit, type RecruitOffer } from '@/game/taverns/taverns';
@@ -51,7 +52,6 @@ import { advanceTutorial, finishTutorial, nextTutorialStep, placeTutorialWood } 
 import { pruneExpired, rollDailyApproaches } from '@/game/upkeep';
 import type { Approach, EquipmentSlot, ExpeditionReport, Heist, HeroClassId, HeroRoll, MasteryType, PlaceFight, Quality } from '@/game/types';
 
-import { patrolRules } from '@/content/patrols';
 import { currentRotation, debugEnabled, useDebugStore } from './debugStore';
 
 type GameState = {
@@ -71,7 +71,7 @@ type GameState = {
     spawn: PatrolSpawn,
     player: LatLng,
     choice?: 'meal' | 'supply',
-  ) => { reward: TravellerReward; rosterFull: boolean };
+  ) => { reward: TravellerReward; rosterFull: boolean; tip?: TipOutcome };
   /** Makes one of a trader's deals. */
   tradeWithTrader: (spawn: PatrolSpawn, tradeIndex: number, player: LatLng) => void;
   /** Takes a traveller up on joining the roster. */
@@ -239,12 +239,7 @@ export const useGameStore = create<GameState>()(
       helpTraveller: (spawn, player, choice) => {
         if (!isTravellerKind(spawn.kind)) throw new Error(`Nothing to ask of a ${spawn.kind}`);
         const now = Date.now();
-        // Debug: the next traveller helped offers to join as a hooded rare.
-        const debug = useDebugStore.getState();
-        const forceRare = debugEnabled(debug) && debug.forceRareRecruit;
-        const rules = forceRare ? { ...patrolRules, recruitChance: 1, recruitMinRoster: 0 } : patrolRules;
-        const { save, reward, rosterFull } = helpTravellerRule(get().save, spawn, player, now, choice, rules, forceRare);
-        if (forceRare && reward.kind === 'recruit') debug.set({ forceRareRecruit: false });
+        const { save, reward, rosterFull, tip } = helpTravellerRule(get().save, spawn, player, now, choice);
         const kind: TravellerKind = spawn.kind;
         const patrols: WalkPatrols = {
           fights: [],
@@ -255,7 +250,7 @@ export const useGameStore = create<GameState>()(
           materials: reward.kind === 'loot' ? reward.loot.materials : [],
         };
         set({ save: addPatrolsToWalks(save, patrols, now) });
-        return { reward, rosterFull };
+        return { reward, rosterFull, ...(tip ? { tip } : {}) };
       },
       tradeWithTrader: (spawn, tradeIndex, player) =>
         set(({ save }) => ({ save: trade(save, spawn, tradeIndex, player, Date.now()) })),

@@ -5,6 +5,7 @@ import { createRng } from '../generation/rng';
 import { rollForSave } from '../loot/context';
 import { grantLoot } from '../loot/grant';
 import type { Loot } from '../loot/types';
+import { grantTip, rollTip, type TipOutcome } from '../secrets/tips';
 import type { PlaceSpawn } from './generate';
 import type { SaveData } from '../save';
 import type { LatLng } from '../generation/types';
@@ -24,10 +25,14 @@ export function fishProblem(save: SaveData, spawn: PlaceSpawn, player: LatLng, n
  * Fishes at a dock: its row of the loot matrix (fish, rarely a sunken find).
  * One catch per dock per player, so the place hides for its window once fished.
  */
-export function fish(save: SaveData, spawn: PlaceSpawn, player: LatLng, now: number): { save: SaveData; loot: Loot } {
+export function fish(save: SaveData, spawn: PlaceSpawn, player: LatLng, now: number): { save: SaveData; loot: Loot; tip?: TipOutcome } {
   const problem = fishProblem(save, spawn, player, now);
   if (problem) throw new Error(`Cannot fish here: ${problem}`);
   const loot = rollForSave(save, 'fishingDock', createRng(`fish|${spawn.id}`));
   const granted = grantLoot(save, [], loot, now);
-  return { save: { ...granted, usedPlaces: { ...granted.usedPlaces, [spawn.id]: spawn.expiresAt } }, loot };
+  const next: SaveData = { ...granted, usedPlaces: { ...granted.usedPlaces, [spawn.id]: spawn.expiresAt } };
+  const tipped = rollTip('fishingDock', spawn.id)
+    ? grantTip(next, { source: 'fishingDock', sourceId: spawn.id, anchor: spawn.position }, now)
+    : null;
+  return tipped ? { save: tipped.save, loot, tip: tipped.outcome } : { save: next, loot };
 }
