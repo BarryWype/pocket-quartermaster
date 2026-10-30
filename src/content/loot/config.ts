@@ -198,6 +198,8 @@ export const lootConfig = {
   treasureMapHours: 48,
   /** A valuable's price is its base price times this, by the source's tier: the enemy strength curve. */
   valuablePriceByTier: [1, 1.9, 3, 4.2, 5.6] as number[],
+  /** Blueprint drops: weight by how many roster heroes favour the type; a complete tier gives mastery progress, or a component with `componentShare`. */
+  blueprints: { favourWeights: [1, 2, 3], tierCompleteForges: 2, componentShare: 0 },
   /** Key fragments needed for one mysterious key. */
   keyFragmentsPerKey: 4,
   /** Sigil drops by slot, with a pity counter and a shard cap per tier. */

@@ -4,6 +4,7 @@ import { resources } from '@/content/resources';
 import { ELEMENTS, shardId, type Element } from '@/game/elements';
 import type { GearType } from '@/game/types';
 
+import { masteryCap } from '../forging/mastery';
 import type { Rng } from '../generation/rng';
 import { dedupeModifiers, partyLuck } from './chances';
 import { rollLootGear } from './gear';
@@ -60,17 +61,31 @@ function shards(req: LootRequest, loot: Loot): void {
 }
 
 function blueprints(req: LootRequest, loot: Loot): void {
-  const unknown = (Object.keys(gearRecipes) as GearType[])
-    .filter((type) => gearRecipes[type][req.tier - 1].length > 0)
-    .map((type) => gearId(type, req.tier))
-    .filter((id) => !req.context.knownRecipes.includes(id));
-  const favoured = unknown.filter((id) => {
-    const type = id.replace(/\d+$/, '') as GearType;
-    return req.context.favouredTypes.includes(type);
-  });
-  const pool = favoured.length > 0 ? favoured : unknown;
-  if (pool.length === 0) return;
-  loot.recipeIds.push(pool[req.rng.int(0, pool.length - 1)]);
+  const { favourWeights, tierCompleteForges, componentShare } = lootConfig.blueprints;
+  const forgeable = (Object.keys(gearRecipes) as GearType[]).filter(
+    (type) => gearRecipes[type][req.tier - 1].length > 0,
+  );
+  const pool = forgeable
+    .map((type) => ({ type, id: gearId(type, req.tier) }))
+    .filter(({ id }) => !req.context.knownRecipes.includes(id));
+  if (pool.length > 0) {
+    const last = favourWeights.length - 1;
+    const pick = req.rng.weighted(
+      pool,
+      ({ type }) => favourWeights[Math.min(req.context.favourCounts[type] ?? 0, last)],
+    );
+    loot.recipeIds.push(pick.id);
+    return;
+  }
+  if (componentShare > 0 && req.rng.chance(componentShare)) {
+    generators.components(req, loot);
+    return;
+  }
+  const cap = masteryCap(req.tier);
+  const belowCap = forgeable.filter((type) => (req.context.mastery[type]?.level ?? 1) < cap);
+  const types = belowCap.length > 0 ? belowCap : forgeable;
+  const type = types[req.rng.int(0, types.length - 1)];
+  loot.mastery.push({ type, tier: req.tier, forges: tierCompleteForges });
 }
 
 function consumables(req: LootRequest, loot: Loot): void {

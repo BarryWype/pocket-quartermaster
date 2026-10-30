@@ -1,4 +1,4 @@
-import type { GearInstance, MaterialStack } from '@/game/types';
+import type { GearInstance, MasteryType, MaterialStack } from '@/game/types';
 
 export const LOOT_CATEGORIES = [
   'gold',
@@ -76,6 +76,7 @@ export type Loot = {
   lures: number;
   gear: GearInstance[]; // uid '' until granted
   recipeIds: string[];
+  mastery: { type: MasteryType; tier: number; forges: number }[];
   keyFragments: number;
   treasureMaps: { rarity: MapRarity; tier: number }[];
   manuals: ManualRarity[];
@@ -93,6 +94,7 @@ export const emptyLoot = (): Loot => ({
   lures: 0,
   gear: [],
   recipeIds: [],
+  mastery: [],
   keyFragments: 0,
   treasureMaps: [],
   manuals: [],

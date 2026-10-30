@@ -1,5 +1,5 @@
 import { QUALITIES } from '@/content/forging';
-import type { GearType, Quality } from '@/game/types';
+import type { Quality } from '@/game/types';
 
 import { createRng, type Rng } from '../generation/rng';
 import { lootGearQuality, lootGearTier, rollLootGear } from './gear';
@@ -10,7 +10,8 @@ const context = (playerTier: number) => ({
   playerTier,
   pickaxeTier: 3,
   knownRecipes: [] as string[],
-  favouredTypes: [] as GearType[],
+  favourCounts: {},
+  mastery: {},
 });
 
 const request = (source: LootSourceId, seed: string, overrides: Partial<LootRequest> = {}): LootRequest => ({

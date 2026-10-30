@@ -49,11 +49,23 @@ describe('the day’s first win', () => {
     expect(tomorrow.report.loot.recipeIds.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('gives nothing when every blueprint of the tier is already known', () => {
+  it('is one per day across all dungeons', () => {
+    const at = rotationDay(Date.UTC(2026, 5, 12)) * DAY;
+    const first = win(saveWith([]), ratCellar, at);
+    expect(first.report.firstWin).toBe(true);
+    const other = dungeons.find((d) => d.tier === 1 && d.id !== ratCellar.id && !d.overnight && !d.isBoss)!;
+    const second = win(first.save, other, at + 60 * 60_000);
+    expect(second.report.success).toBe(true);
+    expect(second.report.firstWin).toBeUndefined();
+  });
+
+  it('turns into mastery progress when every blueprint of the tier is already known', () => {
     const at = rotationDay(Date.UTC(2026, 5, 11)) * DAY;
     const save = saveWith(tier1Blueprints.filter((id) => !createInitialSave().knownRecipes.includes(id)));
     const result = win(save, ratCellar, at);
     expect(result.report.firstWin).toBe(true);
     expect(result.report.loot.recipeIds).toEqual([]);
+    expect(result.report.loot.mastery.length).toBeGreaterThanOrEqual(1);
+    for (const entry of result.report.loot.mastery) expect(entry).toMatchObject({ tier: 1, forges: 2 });
   });
 });

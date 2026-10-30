@@ -1,13 +1,12 @@
 import { lootConfig } from '@/content/loot/config';
 import { ELEMENTS, shardId } from '@/game/elements';
-import type { GearType } from '@/game/types';
 
 import { createRng } from '../generation/rng';
 import { rollSourceLoot } from './roll';
 import type { LootRequest } from './roll';
 import type { Loot, LootSourceId } from './types';
 
-const context = { playerTier: 3, pickaxeTier: 3, knownRecipes: [] as string[], favouredTypes: [] as GearType[] };
+const context = { playerTier: 3, pickaxeTier: 3, knownRecipes: [] as string[], favourCounts: {}, mastery: {} };
 
 const request = (source: LootSourceId, seed: string, overrides: Partial<LootRequest> = {}): LootRequest => ({
   source,
