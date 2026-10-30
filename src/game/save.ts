@@ -1,5 +1,6 @@
 import type { GuildTrackId } from '@/content/guild';
 import { startingHeroes } from '@/content/heroes';
+import type { PlaceKind } from '@/content/places';
 import { provisionRules } from '@/content/provisions';
 import { recipes } from '@/content/recipes';
 
@@ -10,6 +11,7 @@ import type { ManualRarity } from './loot/types';
 import type { AutoGatherSave } from './gathering/autoGather';
 import type { LatLng } from './generation/types';
 import type { PatrolFight } from './patrols/fight';
+import type { QuestsState } from './quests/types';
 import type {
   ActiveExpedition,
   ActiveLure,
@@ -144,6 +146,12 @@ export type SaveData = {
   seenParts: string[];
   /** Debug: the collector every market uses on that day. */
   collectorOverride?: { dayKey: string; valuableId: string };
+  /** Daily quests: the list plus arrival, reroll and secret bookkeeping. */
+  quests: QuestsState;
+  /** Place kinds the player has seen; quest objectives unlock from these. */
+  seenPlaceKinds: PlaceKind[];
+  /** Lifetime steps; the walk quest measures progress with this. */
+  stepsTotal: number;
   /** Counter for unique ids (gear, maps, lures, fights, heroes). */
   nextUid: number;
 };
@@ -205,6 +213,9 @@ export function createInitialSave(): SaveData {
     manuals: {},
     partRecipes: [],
     seenParts: [],
+    quests: { list: [], lastArrivalDay: null, rerollDay: null, secretDay: null, completions: [] },
+    seenPlaceKinds: [],
+    stepsTotal: 0,
     nextUid: 1,
   };
 }
