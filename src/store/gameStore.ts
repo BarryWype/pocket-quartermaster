@@ -7,7 +7,7 @@ import { newHero, xpRules } from '@/content/heroes';
 import { items } from '@/content/items';
 import { recipeById } from '@/content/lookup';
 import { materials } from '@/content/materials';
-import { craft, craftMany, forgetRecipe, forgeResult, learnAllRecipes, unlockRecipe, type ForgeResult } from '@/game/crafting/crafting';
+import { craft, craftMany, forgetRecipe, forgeResult, learnAllRecipes, learnTier, unlockRecipe, type ForgeResult } from '@/game/crafting/crafting';
 import { infuse } from '@/game/crafting/infusion';
 import { salvage } from '@/game/forging/salvage';
 import { migrateV10Save, migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV15Save, migrateV16Save, migrateV17Save, migrateV18Save, migrateV19Save, migrateV20Save, migrateV21Save, migrateV22Save, migrateV5Save, migrateV6Save, migrateV7Save, migrateV8Save, migrateV9Save } from '@/game/migrations';
@@ -172,6 +172,8 @@ type GameState = {
   forgetRecipe: (recipeId: string) => void;
   /** Debug: teaches every recipe. */
   learnAllRecipes: () => void;
+  /** Debug: teaches every gear blueprint of a tier. */
+  learnTier: (tier: number) => void;
   addLure: () => void;
   /** Forgets used Sanctums and the Sigil pity counter. */
   resetSanctums: () => void;
@@ -427,6 +429,7 @@ export const useGameStore = create<GameState>()(
       learnRecipe: (recipeId) => set(({ save }) => ({ save: unlockRecipe(save, recipeId) })),
       forgetRecipe: (recipeId) => set(({ save }) => ({ save: forgetRecipe(save, recipeId) })),
       learnAllRecipes: () => set(({ save }) => ({ save: learnAllRecipes(save) })),
+      learnTier: (tier) => set(({ save }) => ({ save: learnTier(save, tier) })),
       resetFirstWin: () => set(({ save }) => ({ save: { ...save, firstWinDay: null } })),
       addCharters: (amount) => set(({ save }) => ({ save: { ...save, charters: save.charters + amount } })),
       setGuildRank: (trackId, rank) => set(({ save }) => ({ save: { ...save, guild: { ...save.guild, [trackId]: rank } } })),

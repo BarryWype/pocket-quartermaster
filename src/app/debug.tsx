@@ -579,6 +579,7 @@ export default function DebugScreen() {
         <Button title={t('debug.learn')} onPress={() => game.learnRecipe(recipeId)} />
         <Button title={t('debug.forget')} onPress={() => game.forgetRecipe(recipeId)} />
         <Button title={t('debug.learnAll')} onPress={game.learnAllRecipes} />
+        <Button title={t('debug.completeTier', { tier: recipeTier })} onPress={() => game.learnTier(recipeTier)} />
       </View>
 
       <Text style={styles.title}>Places</Text>

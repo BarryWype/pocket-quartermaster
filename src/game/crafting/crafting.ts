@@ -6,6 +6,7 @@ import { gainMastery, masteryOf, masteryTypeOf, startingMastery } from '../forgi
 import { qualityOdds, rollQuality } from '../forging/quality';
 import { rollStatFactor } from '../forging/roll';
 import { createRng } from '../generation/rng';
+import { tierRecipes } from './recipeUnlocks';
 import { addMaterials, hasMaterials, removeMaterials } from '../inventory';
 import type { SaveData } from '../save';
 import type { GearInstance, MasteryState, MasteryType, Quality, RecipeDef } from '../types';
@@ -45,6 +46,9 @@ export function unlockRecipe(save: SaveData, recipeId: string): SaveData {
 export function forgetRecipe(save: SaveData, recipeId: string): SaveData {
   return { ...save, knownRecipes: save.knownRecipes.filter((id) => id !== recipeId) };
 }
+
+/** Teaches every gear blueprint of a tier (debug). */
+export const learnTier = (save: SaveData, tier: number): SaveData => tierRecipes(tier).reduce(unlockRecipe, save);
 
 /** Teaches every recipe, each new type starting its mastery as `unlockRecipe` does (debug). */
 export function learnAllRecipes(save: SaveData): SaveData {

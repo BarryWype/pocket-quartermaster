@@ -6,6 +6,7 @@ import { gearId, gearProfiles } from '@/content/equipment';
 import { gearName, itemById, materialById, recipeById, recipeOutput } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
 import { canCraft, craftableCount, forgedItem, isKnown, ownsTool, type ForgeResult } from '@/game/crafting/crafting';
+import { tierRecipes } from '@/game/crafting/recipeUnlocks';
 import { masteryOf } from '@/game/forging/mastery';
 import { rollToScale } from '@/game/forging/roll';
 import type { SaveData } from '@/game/save';
@@ -169,6 +170,17 @@ export function CraftingStation({ station, action }: Props) {
 function GearGrid({ save, action, onCraft }: { save: SaveData; action: string; onCraft: (recipeId: string) => void }) {
   return (
     <View style={styles.grid}>
+      <View style={styles.progress}>
+        {TIERS.map((tier) => {
+          const ids = tierRecipes(tier);
+          const known = ids.filter((id) => save.knownRecipes.includes(id)).length;
+          return (
+            <Text key={tier} style={styles.mastery}>
+              {t('crafting.tierProgress', { tier, known, total: ids.length })}
+            </Text>
+          );
+        })}
+      </View>
       {MASTERY_TYPES.map((type) => {
         const { level } = masteryOf(save, type);
         return (
@@ -225,6 +237,7 @@ const styles = StyleSheet.create({
   mastery: { fontSize: 16, color: colors.muted },
   family: { fontSize: 18, color: colors.ink, marginTop: 8, marginBottom: 2 },
   grid: { gap: 10, marginTop: 12 },
+  progress: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 12 },
   gridRow: { gap: 4 },
   gridHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   gridHeadText: { fontSize: 16, color: colors.ink },
