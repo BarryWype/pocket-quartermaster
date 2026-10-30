@@ -40,6 +40,7 @@ import type { Rng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { buyRank, guildBonus, isGuildUnlocked, rankPrice, rankProblem } from '../guild/guild';
 import { hasMaterials } from '../inventory';
+import { isRevealed } from '../reveal/reveal';
 import type { PatrolKind, PatrolSubject, TravellerKind } from '../patrols/generate';
 import type { TravellerReward } from '../patrols/travellers';
 import { collectTreasure, liveTreasureMaps, readTreasureMap } from '../rewards/treasure';
@@ -705,7 +706,7 @@ function mealFor(sim: Sim, dungeon: DungeonDef, heroIds: string[], o: Odds): str
 /** Buys the missing supply at a tavern reachable today, if the stock falls short. */
 function topUpSupply(sim: Sim, dungeon: DungeonDef, heroIds: string[], loadout: Loadout, briefing: Briefing) {
   const plan = launchPlan(sim.save, dungeon, heroIds, loadout, briefing);
-  if (plan.hunger === 'fed' || !sim.reach.tavern) return;
+  if (plan.hunger === 'fed' || !sim.reach.tavern || !isRevealed(sim.save, 'taverns')) return;
   const jerky = supplyItems.find((i) => i.id === 'jerky')!;
   const count = Math.ceil((plan.need - plan.held) / jerky.supply!);
   const at = sim.tavern.position;
@@ -756,7 +757,7 @@ function nextRecruitPrice(save: SaveData) {
 }
 
 export function recruitHeroes(sim: Sim) {
-  if (!sim.reach.tavern || !isTavernUnlocked(sim.save)) return;
+  if (!sim.reach.tavern || !isTavernUnlocked(sim.save) || !isRevealed(sim.save, 'taverns')) return;
   for (;;) {
     if (rosterFull(sim.save)) return;
     const owned = new Set(sim.save.heroes.map((h) => h.classId));
@@ -777,7 +778,7 @@ export function recruitHeroes(sim: Sim) {
 }
 
 export function buyGuildRanks(sim: Sim) {
-  if (!isGuildUnlocked(sim.save)) return;
+  if (!isGuildUnlocked(sim.save) || !isRevealed(sim.save, 'guildHall')) return;
   for (let bought = true; bought; ) {
     bought = false;
     const reserve = rosterFull(sim.save) ? 0 : nextRecruitPrice(sim.save) + sim.config.recruitReserve;
@@ -915,6 +916,7 @@ export function bestParty(sim: Sim, dungeon: DungeonDef, candidates: string[], b
 // —— Sanctums and treasure ——
 
 export function challengeSanctums(sim: Sim) {
+  if (!isRevealed(sim.save, 'sanctums')) return;
   for (;;) {
     const home = homeHeroes(sim.save).map((h) => h.id);
     const spawns = sim.reach.sanctums.filter((s) => !(s.id in sim.save.usedSanctums));
@@ -946,6 +948,7 @@ export function challengeSanctums(sim: Sim) {
 export const reachChance = (sim: Sim, distance: number) => Math.min(1, (sim.config.reach.scale * sim.reach.meters) / (2 * Math.max(1, distance)));
 
 export function digTreasure(sim: Sim) {
+  if (!isRevealed(sim.save, 'treasure')) return;
   for (const map of liveTreasureMaps(sim.save, sim.now)) {
     if (!map.location) act(sim, 'treasure', (save) => readTreasureMap(save, map.id, sim.location, sim.now));
     const spot = sim.save.treasureMaps.find((m) => m.id === map.id)!.location!;
@@ -1169,6 +1172,7 @@ export function noteQuestGathers(sim: Sim, changes: Record<string, number>) {
  */
 export function doQuests(sim: Sim, walking: boolean) {
   sim.save = questUpkeep(sim.save, sim.now);
+  if (!isRevealed(sim.save, 'quests')) return;
   const accept = (quest: Quest): Quest => {
     if (quest.acceptedAt !== null) return quest;
     const bearing = sim.rng.next() * 2 * Math.PI;

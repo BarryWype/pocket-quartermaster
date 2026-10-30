@@ -86,6 +86,8 @@ describe('map rules', () => {
     const save: SaveData = {
       ...createInitialSave(),
       gold: 10_000,
+      // A tipped den only shows once the tutorial is done and the tip marked it.
+      tutorial: { step: 'done', spawns: [], lastPickupAt: null, rewarded: true },
       keyFragments: 4,
       secretTips: [{ id: 'hiddenDen|test', secret: 'hiddenDen', source: 'quest', sourceId: 'q', anchor, foundAt: now - 1, expiresAt: now + DAY, position: anchor }],
     };

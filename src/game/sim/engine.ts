@@ -2,6 +2,7 @@ import { gatheringConfig } from '@/content/gatheringConfig';
 import { rosterRules } from '@/content/roster';
 import { MASTERY_TYPES } from '@/content/forging';
 import { guildTracks } from '@/content/guild';
+import { REVEAL_KINDS } from '@/content/reveal';
 import { itemById, recipeById } from '@/content/lookup';
 import { components } from '@/content/loot/components';
 import { tutorialRules } from '@/content/tutorial';
@@ -25,6 +26,7 @@ import { activateLure, isLureActive } from '../rewards/lures';
 import { chestState, openChest, recordSteps, stepChests, stepsRecorded } from '../rewards/chests';
 import { generateSanctumsAround } from '../sanctums/sanctums';
 import { hasKey } from '../secrets/keys';
+import { isRevealed } from '../reveal/reveal';
 import { createInitialSave, type SaveData } from '../save';
 import { generateTavernsAround } from '../taverns/taverns';
 import { currentHp, isExhausted } from '../team/health';
@@ -169,8 +171,9 @@ function findSpawn(sim: Sim, kinds: PatrolSubject[]): PatrolSpawn | null {
   return null;
 }
 
-/** The patrols and travellers the profile meets on this walk. */
+/** The patrols and travellers the profile meets on this walk, once the map shows them. */
 function meetPatrols(sim: Sim) {
+  if (!isRevealed(sim.save, 'patrols')) return;
   for (const [source, kind] of PATROL_VISITS) {
     while (takeVisit(sim, source)) {
       const spawn = findSpawn(sim, [kind]);
@@ -324,6 +327,11 @@ function markHoldings(sim: Sim) {
   if (sim.save.secretTips.length) mark(sim, 'firstTip');
 }
 
+/** The day each map kind first shows (`reveal:${kind}`), checked once per session. */
+function markReveals(sim: Sim) {
+  for (const kind of REVEAL_KINDS) if (isRevealed(sim.save, kind)) mark(sim, `reveal:${kind}`);
+}
+
 /** Activities whose visits are counted per day; the others (first clears, bosses) are outcomes. */
 const OUTCOMES: LootSourceId[] = ['firstTierClear', 'tierBoss', 'stepChest'];
 
@@ -398,6 +406,7 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
       session(sim, profile.walkHours.includes(hours[i]), hours[i] === Math.min(...profile.walkHours), steps / hours.length, dayKey);
       idle += homeHeroes(sim.save).length / sim.save.heroes.length;
       markHoldings(sim);
+      markReveals(sim);
       sim.log.probes.push(...probe(sim));
       afterSession?.(sim.save);
     });

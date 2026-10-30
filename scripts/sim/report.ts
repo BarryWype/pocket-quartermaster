@@ -1,4 +1,5 @@
 import { materialById } from '@/content/lookup';
+import { REVEAL_KINDS } from '@/content/reveal';
 
 import { misses, type ProfileSummary, type Stat } from '@/game/sim/metrics';
 import { inRange, targets } from '@/game/sim/targets';
@@ -94,6 +95,12 @@ function materials(s: ProfileSummary) {
   return table(['Tier', 'Main material', 'Gathered', 'Spent', `Spent share (min ${pct(targets.materialSpent)})`], rows);
 }
 
+/** The median day each map kind first shows, per profile; no target. */
+function reveals(summaries: ProfileSummary[]) {
+  const rows = REVEAL_KINDS.map((kind) => [kind, ...summaries.map((s) => n(s.reveals[kind].median))]);
+  return table(['Kind', ...summaries.map((s) => s.profile)], rows);
+}
+
 function levels(s: ProfileSummary) {
   const rows = s.tiers.map((t) => {
     const band: [number, number] = [t.level.target - targets.levelSlack, t.level.target + targets.levelSlack];
@@ -166,6 +173,7 @@ export function renderReport({ summaries, rules, settings }: ReportInput) {
   for (const s of summaries) out.push(`### ${s.profile}`, '', materials(s));
   out.push('## Hero levels at the end of each tier', '');
   for (const s of summaries) out.push(`### ${s.profile}`, '', levels(s));
+  out.push('## Reveal days', '', 'The median day each map kind first shows (the gradual reveal); no target.', '', reveals(summaries));
   out.push('## Health', '');
   for (const s of summaries) out.push(`### ${s.profile}`, '', health(s), '');
   out.push('## Bot rules', '', ...rules.map((r) => `- ${r}`), '');

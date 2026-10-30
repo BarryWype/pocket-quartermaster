@@ -18,10 +18,17 @@ function toPlayerLocation(location: Location.LocationObject): PlayerLocation {
   return { position: { latitude, longitude }, accuracy, speed: knownSpeed, timestamp: location.timestamp };
 }
 
+/** The request under way, shared so the first start shows one location prompt before the motion one. */
+let asking: Promise<boolean> | null = null;
+
 export const deviceLocation: LocationService = {
-  requestPermission: async () => {
-    const { granted } = await Location.requestForegroundPermissionsAsync();
-    return granted;
+  requestPermission: () => {
+    asking ??= Location.requestForegroundPermissionsAsync()
+      .then(({ granted }) => granted)
+      .finally(() => {
+        asking = null;
+      });
+    return asking;
   },
   getCurrent: async () =>
     toPlayerLocation(await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High })),

@@ -3,6 +3,7 @@ import { heroClasses } from '@/content/heroes';
 import { items } from '@/content/items';
 import { tierMaterials } from '@/content/materials';
 import { placeInfo } from '@/content/places';
+import { REVEAL_KINDS, type RevealKind } from '@/content/reveal';
 
 import type { LootCategory } from '../loot/types';
 import type { ProbeRow, RunLog } from './bot';
@@ -52,6 +53,8 @@ export type ProfileSummary = {
   finished: number;
   totalDays: Stat;
   tiers: TierSummary[];
+  /** The day each map kind first showed, median over seeds; no target. */
+  reveals: Record<RevealKind, Stat>;
   /** Regular profile only: designed vs observed weekly drops. */
   loot: { category: LootCategory; column: string; designed: number; observed: number; off: number }[];
   health: {
@@ -188,6 +191,7 @@ export function summarize(logs: RunLog[], t: Targets = defaultTargets): ProfileS
     finished: logs.filter((l) => l.finished).length,
     totalDays: stat(logs.map((l) => (l.finished ? l.days : null))),
     tiers,
+    reveals: Object.fromEntries(REVEAL_KINDS.map((kind) => [kind, stat(logs.map((l) => l.milestones[`reveal:${kind}`]))])) as Record<RevealKind, Stat>,
     loot,
     health: {
       pileUps: pileList,

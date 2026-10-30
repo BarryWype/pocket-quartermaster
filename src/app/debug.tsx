@@ -58,6 +58,7 @@ import { LOOT_CATEGORIES, LOOT_SOURCES, emptyLoot, type Loot, type LootCategory,
 import { lootChances } from '@/game/loot/chances';
 import { createRng } from '@/game/generation/rng';
 import { rollForSave, sourceAmounts } from '@/game/loot/context';
+import { tutorialStepOrder } from '@/game/tutorial/tutorial';
 import { lootConfig } from '@/content/loot/config';
 import { secretRules, type PlaceTipSource } from '@/content/secrets';
 import { objectives, type QuestBand, type QuestObjective } from '@/content/quests';
@@ -562,13 +563,25 @@ export default function DebugScreen() {
         onChange={(windowMinutes) => debug.set({ windowMinutes })}
       />
 
+      <Text style={styles.title}>Tutorial and reveal</Text>
+      <Text>Step: {game.save.tutorial.step} · Tips seen: {game.save.tips.seen.length}, waiting: {game.save.tips.pending.length}</Text>
+      <Choice options={tutorialStepOrder} value={game.save.tutorial.step} label={(step) => step} onChange={game.jumpToStep} />
+      <View style={styles.row}>
+        <Button title="Restart tutorial" onPress={game.restartTutorial} />
+        <Button title="Skip tutorial" onPress={game.skipTutorial} />
+      </View>
+      <View style={styles.row}>
+        <Button title={game.save.revealAll ? 'Hide unrevealed kinds' : 'Reveal everything'} onPress={() => game.setRevealAll(!game.save.revealAll)} />
+        <Button title="Reset tips" onPress={game.resetTips} />
+      </View>
+      <Text style={styles.hint}>Jumping ahead plays the steps in between (items included); jumping back restarts first. Restarting keeps items.</Text>
+
       <Text style={styles.title}>Progression</Text>
       <Text>
-        Tutorial: {game.save.tutorial.step} · Pickaxes: {game.save.tools.length} · Bosses beaten:{' '}
+        Pickaxes: {game.save.tools.length} · Bosses beaten:{' '}
         {game.save.clearedDungeons.length}
       </Text>
       <View style={styles.row}>
-        <Button title="Skip tutorial" onPress={game.finishTutorial} />
         <Button title="Grant next pickaxe" onPress={game.grantNextPickaxe} />
         <Button title="Beat next boss" onPress={game.beatNextBoss} />
       </View>

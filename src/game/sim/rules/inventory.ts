@@ -10,6 +10,7 @@ import { distanceMeters } from '../../generation/geo';
 import { manualXp, readManual } from '../../loot/manuals';
 import type { ManualRarity } from '../../loot/types';
 import { placesWithin } from '../../places/generate';
+import { isPlaceRevealed } from '../../reveal/reveal';
 import { sellValuable, sellValuableProblem } from '../../places/shops';
 import type { SaveData } from '../../save';
 import type { RecipeDef } from '../../types';
@@ -49,6 +50,7 @@ export function valuablesToSell(save: SaveData): { key: string; count: number }[
 
 /** Sells everything from `valuablesToSell` at the nearest market within 1500 m, the collector included through the market's price. */
 export function sellValuables(sim: Sim) {
+  if (!isPlaceRevealed(sim.save, 'market')) return;
   const market = placesWithin(sim.location, 1500, sim.now)
     .filter((spawn) => spawn.kind === 'market' && spawn.startsAt <= sim.now && spawn.expiresAt > sim.now)
     .sort((a, b) => distanceMeters(sim.location, a.position) - distanceMeters(sim.location, b.position))[0];

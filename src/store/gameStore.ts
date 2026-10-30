@@ -56,7 +56,7 @@ import { applyTraining } from '@/game/guild/training';
 import { guildRules, type GuildTrackId } from '@/content/guild';
 import { advanceTutorial, finishTutorial, nextTutorialStep } from '@/game/tutorial/tutorial';
 import { collectFromHere, collectTutorialSpawn, placeTutorialSpawns, type TutorialCollectResult } from '@/game/tutorial/spawns';
-import { skipTutorial } from '@/game/tutorial/skip';
+import { skipTutorial, restartTutorial, jumpToStep } from '@/game/tutorial/skip';
 import { pruneExpired, rollDailyApproaches } from '@/game/upkeep';
 import { questRules, type QuestBand, type QuestObjective } from '@/content/quests';
 import { placeRules, type PlaceKind } from '@/content/places';
@@ -217,6 +217,14 @@ type GameState = {
   nextTutorialStep: (step: TutorialStep) => void;
   /** Debug: skips the whole tutorial. */
   finishTutorial: () => void;
+  /** Debug: the tutorial starts over, the first quest dropped. */
+  restartTutorial: () => void;
+  /** Debug: the tutorial jumps to `step`, playing out everything in between. */
+  jumpToStep: (step: TutorialStep) => void;
+  /** Debug: every map kind shows; off removes the flag. */
+  setRevealAll: (on: boolean) => void;
+  /** Debug: tips back to never seen. */
+  resetTips: () => void;
   // Debug
   /** Crafts the next pickaxe for free. */
   grantNextPickaxe: () => void;
@@ -556,6 +564,14 @@ export const useGameStore = create<GameState>()(
       startWalkEffect: (itemId, position) => set(({ save }) => ({ save: startWalkEffect(save, itemId, position, Date.now()) })),
       nextTutorialStep: (step) => set(({ save }) => ({ save: nextTutorialStep(save, step, Date.now()) })),
       finishTutorial: () => set(({ save }) => ({ save: finishTutorial(save, Date.now()) })),
+      restartTutorial: () => set(({ save }) => ({ save: restartTutorial(save) })),
+      jumpToStep: (step) => set(({ save }) => ({ save: jumpToStep(save, step, Date.now()) })),
+      setRevealAll: (on) =>
+        set(({ save }) => {
+          const { revealAll, ...rest } = save;
+          return { save: on ? { ...save, revealAll: true } : rest };
+        }),
+      resetTips: () => set(({ save }) => ({ save: { ...save, tips: { seen: [], pending: [] } } })),
       grantNextPickaxe: () =>
         set(({ save }) => {
           const pickaxe = items

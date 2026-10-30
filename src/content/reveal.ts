@@ -49,6 +49,9 @@ export const revealRules: Record<RevealKind, RevealCondition> = {
   secrets: { kind: 'secretTip' },
 };
 
+/** Every kind, in the order the rules table lists them. */
+export const REVEAL_KINDS: RevealKind[] = Object.keys(revealRules) as RevealKind[];
+
 /** The reveal kind each place kind belongs to. */
 export const placeRevealKinds: Record<PlaceKind, RevealKind> = {
   tavern: 'taverns',

@@ -5,7 +5,7 @@ import { craft } from '../crafting/crafting';
 import { resolveExpedition, startExpedition } from '../expeditions/expeditions';
 import { createInitialSave, type SaveData, type TutorialStep } from '../save';
 import { equip } from '../team/team';
-import { skipTutorial } from './skip';
+import { skipTutorial, restartTutorial, jumpToStep } from './skip';
 import { collectTutorialSpawn, placeTutorialSpawns, shownTutorialSpawns } from './spawns';
 import { advanceTutorial, nextTutorialStep } from './tutorial';
 
@@ -160,5 +160,40 @@ describe('skipping the tutorial', () => {
   it('leaves a done tutorial alone', () => {
     const done = playThrough(playTo('readReport'));
     expect(skipTutorial(done, at)).toBe(done);
+  });
+});
+
+describe('debug tutorial tools', () => {
+  it('restarting from done gives the fresh tutorial back, keeping the sword', () => {
+    const restarted = restartTutorial(playThrough(playTo('gatherWood')));
+    expect(restarted.tutorial.step).toBe('gatherWood');
+    expect(restarted.tutorial.spawns).toEqual([]);
+    expect(restarted.tutorial.rewarded).toBe(false);
+    expect(restarted.quests.list.filter((q) => q.id.startsWith('first|'))).toHaveLength(0);
+    expect(swordGear(restarted)).toHaveLength(1);
+  });
+
+  it.each([...STEPS, 'done'] as TutorialStep[])('jumps to %s and lands on it', (step) => {
+    expect(jumpToStep(playTo('gatherWood'), step, at).tutorial.step).toBe(step);
+  });
+
+  it('jumping to an earlier step restarts the tutorial first', () => {
+    const base = playTo('craftKit');
+    const jumped = jumpToStep(base, 'gatherKit', at);
+    // The kept wood, sword and pack meet the earlier goals, so the play runs on to done.
+    expect(jumped.tutorial.step).toBe('done');
+    expect(swordGear(jumped)).toHaveLength(1);
+    expect(jumped.quests.list.filter((q) => q.id.startsWith('first|'))).toHaveLength(1);
+    expect(jumped).toEqual(jumpToStep(restartTutorial(base), 'gatherKit', at));
+  });
+
+  it('jumping to done matches a tutorial played through', () => {
+    const base = playTo('gatherWood');
+    const jumped = jumpToStep(base, 'done', at);
+    const played = playThrough(base);
+    expect(jumped.materials).toEqual(played.materials);
+    expect(jumped.gear).toHaveLength(played.gear.length);
+    expect(jumped.knownRecipes).toEqual(played.knownRecipes);
+    expect(jumped.tutorial.rewarded).toBe(true);
   });
 });

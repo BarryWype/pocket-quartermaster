@@ -1,6 +1,6 @@
 # Tutorial: design
 
-**Status: designed, not implemented.** Runs after the simulator rework.
+**Status: implemented.** Rules in `src/game/tutorial/` and `src/game/reveal/`, numbers and texts in `src/content/tutorial.ts` and `src/content/reveal.ts`.
 
 The tutorial teaches the core loop in a few minutes, on the real map: walk and gather, forge, equip, answer a threat with a kit, run an expedition, collect loot. Then it hands over to a first quest and reveals the map gradually.
 
@@ -44,3 +44,10 @@ Not all 14 place kinds at once. Each kind appears when its condition is met, wit
 | Secret place markers | When the player has a tip |
 
 New item kinds (charms, components, relics, trinkets, valuables, key fragments) also get a one-line tip the first time one is obtained.
+
+## Implementation notes
+- The tutorial run pays only the first-win roll (no fixed gold, no Sigil: Sanctums show from tier 2). The roll is seeded apart, so skipping gives the same loot.
+- "Collect from here" waits a minute after the phase spawned or after the last pickup, whichever is later; each tap picks up one node.
+- If no common place is within 500 m, the first quest points at the nearest one within 2 km, in that distance's band.
+- Travellers show with patrols. Mines above the player's tier still show greyed out once common places are revealed. The monster lair isn't drawn on the map; its tip comes with the rarer places.
+- Tips are reread in Settings → Tips.

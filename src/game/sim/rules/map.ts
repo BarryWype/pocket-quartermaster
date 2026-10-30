@@ -14,6 +14,7 @@ import { digProblem, digRuin } from '../../places/ruins';
 import { buy, buyProblem, placeStock } from '../../places/shops';
 import { underwaterBriefing, underwaterDungeonFor, underwaterLaunchProblem, launchUnderwater } from '../../secrets/dungeon';
 import { hasKey } from '../../secrets/keys';
+import { isPlaceRevealed, isRevealed } from '../../reveal/reveal';
 import { enterProblem, enterSecret, recruitAtSecret, secretRecruit, secretRecruitProblem } from '../../secrets/places';
 import { secretPlaces } from '../../secrets/tips';
 import { isExhausted } from '../../team/health';
@@ -145,11 +146,13 @@ const SOURCES: { source: LootSourceId; kind: PlaceKind }[] = [
 
 /**
  * The places each walk session visits: every fight event, the lair, a ruin, a
- * heist and the dock, one per visit owed. A visit that finds nothing (or odds
- * too low) is logged as skipped.
+ * heist and the dock, one per visit owed — only once the gradual reveal shows
+ * the kind, the owed visit kept back until then. A visit that finds nothing
+ * (or odds too low) is logged as skipped.
  */
 export function visitPlaces(sim: Sim) {
   for (const { source, kind } of SOURCES) {
+    if (!isPlaceRevealed(sim.save, kind)) continue;
     while (takeVisit(sim, source)) {
       const visited =
         kind === 'ruins' ? digAt(sim) : kind === 'thievesGuild' ? heistAt(sim) : kind === 'fishingDock' ? fishAt(sim) : fightAt(sim, kind as FightPlaceKind);
@@ -164,6 +167,7 @@ export function buyWeakness(sim: Sim) {
   const boss = dungeons.find((d) => d.isBoss && d.tier === tier && !sim.save.clearedDungeons.includes(d.id));
   const weakness = boss ? weaknessByBoss[boss.boss.id] : undefined;
   if (!weakness || (sim.save.consumables[weakness.itemId] ?? 0) > 0) return;
+  if (!isPlaceRevealed(sim.save, weakness.place)) return;
   const spawn = nearestSpawn(placesWithin(sim.location, BUY_METERS, sim.now), weakness.place, sim.location, (s) =>
     placeStock(sim.save, s, sim.now).some((line) => line.id === weakness.itemId),
   );
@@ -190,6 +194,7 @@ function underwaterAt(sim: Sim, place: PlaceSpawn): boolean {
 
 /** Opens every tipped secret place the player can: dens and markets are entered and their rare class hired. */
 export function openSecrets(sim: Sim) {
+  if (!isRevealed(sim.save, 'secrets')) return;
   for (const place of secretPlaces(sim.save, sim.now)) {
     if (place.kind === 'underwaterDungeon') {
       underwaterAt(sim, place);
