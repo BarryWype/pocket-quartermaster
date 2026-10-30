@@ -632,6 +632,8 @@ export type GearInstance = {
   element?: Element;
   /** A Legendary forge's +1 Luck roll (see gearLuckRules). */
   luck?: number;
+  /** The component forged into the piece, if any; one per piece. */
+  component?: string;
 };
 
 export type ActiveExpedition = {

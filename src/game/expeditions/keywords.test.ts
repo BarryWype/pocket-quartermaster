@@ -1,7 +1,9 @@
 import { expeditionRules } from '@/content/dungeons';
 import { dungeonById } from '@/content/lookup';
 
-import type { BossDef, Briefing, DungeonDef, EncounterDef, Keyword, ThreatId } from '../types';
+import type { BossDef, Briefing, DungeonDef, EncounterDef, GearInstance, Keyword, ThreatId } from '../types';
+import { createInitialSave, type SaveData } from '../save';
+import { gearKeywordsOf } from '../team/team';
 import { simulateRun, type PartyMember } from './simulate';
 
 /** No mishaps or run-wide luck, so each test sees the mechanic it targets. */
@@ -192,5 +194,67 @@ describe('gear keywords', () => {
       .fight.dealt.a;
     expect(dealt).toBeCloseTo(plain, 5);
     expect(bossFight(wand, { element: 'grass' }).fight.dealt.a).toBeGreaterThan(dealt);
+  });
+});
+
+describe('strong keywords', () => {
+  /** A hero wearing one piece of gear, optionally forged with a component. */
+  const heroWith = (itemId: string, component?: string) => {
+    const gear: GearInstance = { uid: 'g1', itemId, quality: 'normal', ...(component ? { component } : {}) };
+    const save: SaveData = { ...createInitialSave(), gear: [gear] };
+    const hero = { ...save.heroes[0], equipment: { ...save.heroes[0].equipment, weapon: 'g1' } };
+    return gearKeywordsOf({ ...save, heroes: [hero] }, hero);
+  };
+
+  it("adds the component's keyword, or strengthens the piece's own", () => {
+    // A mace is Blessed and Stagger: an ogre knucklebone doubles Stagger.
+    expect(heroWith('mace3', 'ogreKnucklebone')).toEqual([
+      { keyword: 'blessed', magic: false },
+      { keyword: 'stagger', magic: false, strong: true },
+    ]);
+    expect(heroWith('mace3')).toEqual([
+      { keyword: 'blessed', magic: false },
+      { keyword: 'stagger', magic: false },
+    ]);
+    // A parrying dagger has no keywords: an escapement adds Parry.
+    expect(heroWith('offhandBlade1', 'clockworkEscapement')).toEqual([{ keyword: 'parry', magic: false }]);
+  });
+
+  it('uses the strong Stagger and Parry chances', () => {
+    const taken = (keyword: 'stagger' | 'parry', strong: boolean) =>
+      Array.from({ length: 60 }, (_, i) =>
+        seededFight(
+          [
+            member('a', [keyword], {
+              ...(strong ? { gearKeywords: [{ keyword, magic: false, strong: true as const }] } : {}),
+            }),
+          ],
+          { damage: 5 },
+          `s${i}`,
+          { ...steady, maxRounds: 10 },
+        ).taken.a ?? 0,
+      ).reduce((sum, t) => sum + t, 0);
+    expect(taken('stagger', true)).toBeLessThan(taken('stagger', false) * 0.95);
+    expect(taken('parry', true)).toBeLessThan(taken('parry', false) * 0.95);
+  });
+
+  it('strong Brace softens the first two big hits', () => {
+    const rules = { ...steady, maxRounds: 2 };
+    const taken = (strong: boolean) => {
+      const boss = simulateRun(
+        [
+          member('a', ['brace'], {
+            ...(strong ? { gearKeywords: [{ keyword: 'brace', magic: false, strong: true as const }] } : {}),
+          }),
+        ],
+        bossOnly({ damage: 50 }),
+        'seed',
+        { rules },
+      ).encounters.find((e) => e.kind === 'boss');
+      if (!boss) throw new Error('no boss fight');
+      return boss.taken.a;
+    };
+    expect(taken(false)).toBeCloseTo(25 + 50, 5);
+    expect(taken(true)).toBeCloseTo(25 + 25, 5);
   });
 });

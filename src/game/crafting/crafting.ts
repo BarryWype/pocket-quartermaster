@@ -10,7 +10,7 @@ import { createRng } from '../generation/rng';
 import { tierRecipes } from './recipeUnlocks';
 import { addMaterials, hasMaterials, removeMaterials } from '../inventory';
 import type { SaveData } from '../save';
-import type { GearInstance, MasteryState, MasteryType, MaterialStack, Quality, RecipeDef } from '../types';
+import type { GearDef, GearInstance, MasteryState, MasteryType, MaterialStack, Quality, RecipeDef } from '../types';
 
 export function isKnown(save: SaveData, recipe: RecipeDef) {
   // Part recipes need their parts seen as well as their tier.
@@ -35,7 +35,7 @@ export function shardElementFor(save: SaveData, recipe: RecipeDef): Element | nu
 }
 
 /** What one craft spends: materials (shards included) and valuables, lowest tier first; null when short. */
-function recipeCost(save: SaveData, recipe: RecipeDef): { materials: MaterialStack[]; valuables: Record<string, number> } | null {
+export function recipeCost(save: SaveData, recipe: RecipeDef): { materials: MaterialStack[]; valuables: Record<string, number> } | null {
   const materials = [...recipe.inputs];
   if (recipe.anyShards) {
     const element = shardElementFor(save, recipe);
@@ -94,6 +94,37 @@ export function learnAllRecipes(save: SaveData): SaveData {
 }
 
 /**
+ * The gear branch of a forge: a new piece with its quality rolled from
+ * `oddsOf` (seeded by its uid, so it can't be rerolled), a Legendary luck
+ * roll, a stat roll that climbs with mastery, and the mastery gained.
+ * `extra` rides along on the piece.
+ */
+export function forgeGearPiece(
+  next: SaveData,
+  recipe: RecipeDef,
+  gearItem: GearDef,
+  oddsOf: (masteryLevel: number) => Record<Quality, number>,
+  extra: Partial<GearInstance> = {},
+  forceQuality?: Quality,
+): SaveData {
+  const uid = `g${next.nextUid}`;
+  const type = masteryTypeOf(gearItem);
+  const mastery = masteryOf(next, type);
+  const quality = forceQuality ?? rollQuality(oddsOf(mastery.level), createRng(`${uid}|${recipe.id}`));
+  // A Legendary forge also rolls +1 Luck, seeded by the piece's uid.
+  const luck = quality === 'legendary' && createRng(`${uid}|luck`).chance(gearLuckRules.chance) ? 1 : undefined;
+  return {
+    ...next,
+    gear: [
+      ...next.gear,
+      { uid, itemId: gearItem.id, quality, roll: rollStatFactor(uid, mastery.level, gearItem.tier), ...(luck ? { luck } : {}), ...extra },
+    ],
+    mastery: { ...next.mastery, [type]: gainMastery(mastery, gearItem.tier) },
+    nextUid: next.nextUid + 1,
+  };
+}
+
+/**
  * Consumes the inputs and adds the output: a material, a consumable, a tool or
  * a new gear piece. Gear rolls its quality from the player's mastery (seeded by
  * its uid, so it can't be rerolled) and raises that mastery. Also teaches the
@@ -108,22 +139,7 @@ export function craft(save: SaveData, recipe: RecipeDef, forceQuality?: Quality)
   if ('materialId' in recipe.output) {
     next = { ...next, materials: addMaterials(next.materials, [recipe.output]) };
   } else if (gearItem) {
-    const uid = `g${next.nextUid}`;
-    const type = masteryTypeOf(gearItem);
-    const mastery = masteryOf(next, type);
-    const quality =
-      forceQuality ?? rollQuality(qualityOdds(mastery.level, gearItem.tier), createRng(`${uid}|${recipe.id}`));
-    // A Legendary forge also rolls +1 Luck, seeded by the piece's uid.
-    const luck = quality === 'legendary' && createRng(`${uid}|luck`).chance(gearLuckRules.chance) ? 1 : undefined;
-    next = {
-      ...next,
-      gear: [
-        ...next.gear,
-        { uid, itemId: gearItem.id, quality, roll: rollStatFactor(uid, mastery.level, gearItem.tier), ...(luck ? { luck } : {}) },
-      ],
-      mastery: { ...next.mastery, [type]: gainMastery(mastery, gearItem.tier) },
-      nextUid: next.nextUid + 1,
-    };
+    next = forgeGearPiece(next, recipe, gearItem, (level) => qualityOdds(level, gearItem.tier), {}, forceQuality);
   } else {
     const item = itemById[recipe.output.itemId];
     if (item.slot === 'consumable' || item.slot === 'provision' || item.slot === 'utility') {

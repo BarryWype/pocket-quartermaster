@@ -1,6 +1,6 @@
 import { heroClasses, xpRules, xpToNextLevel } from '@/content/heroes';
 import { affinityRules, castingPenalty, classAffinities, type Affinity } from '@/content/equipment';
-import { itemById } from '@/content/lookup';
+import { componentById, itemById } from '@/content/lookup';
 import { qualities } from '@/content/forging';
 import { traitById } from '@/content/traits';
 
@@ -36,13 +36,28 @@ export function equippedGear(save: SaveData, hero: HeroState) {
     .filter((g) => g !== undefined);
 }
 
-/** The keywords of the hero's weapon, armour and off-hand; pieces that roll with Magic marked. */
-export function gearKeywordsOf(save: SaveData, hero: HeroState): { keyword: Keyword; magic: boolean }[] {
+/**
+ * The keywords of the hero's weapon, armour and off-hand; magic pieces marked.
+ * A component's keyword doubles the piece's own keyword (strong), or adds one
+ * more entry.
+ */
+export function gearKeywordsOf(save: SaveData, hero: HeroState): { keyword: Keyword; magic: boolean; strong?: true }[] {
   return (['weapon', 'armor', 'offhand'] as const).flatMap((slot) => {
     const gear = save.gear.find((g) => g.uid === hero.equipment[slot]);
     if (!gear) return [];
     const item = itemById[gear.itemId] as GearDef;
-    return item.keywords.map((keyword) => ({ keyword, magic: item.damageStat === 'magic' }));
+    const magic = item.damageStat === 'magic';
+    const keywords: { keyword: Keyword; magic: boolean; strong?: true }[] = item.keywords.map((keyword) => ({
+      keyword,
+      magic,
+    }));
+    const effect = gear.component ? componentById[gear.component]?.effect : undefined;
+    if (effect?.kind === 'keyword') {
+      const own = keywords.find((k) => k.keyword === effect.keyword);
+      if (own) own.strong = true;
+      else keywords.push({ keyword: effect.keyword, magic });
+    }
+    return keywords;
   });
 }
 
@@ -100,6 +115,9 @@ export function heroStats(save: SaveData, hero: HeroState): Stats {
     }
     if (gear.luck) stats.luck += gear.luck;
     if (item.stats.luck) stats.luck += item.stats.luck;
+    // A component's flat stat rides on top, untouched by quality and affinity.
+    const effect = gear.component ? componentById[gear.component]?.effect : undefined;
+    if (effect?.kind === 'stat') stats[effect.stat] += effect.add;
     if (item.slot === 'armor' && affinityOf(hero.classId, item.gearType) !== 'favoured') {
       penalty = Math.max(penalty, castingPenalty[item.gearType as ArmourType] ?? 0);
     }

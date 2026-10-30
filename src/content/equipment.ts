@@ -326,6 +326,23 @@ export const gearKeywordRules = {
   channel: { advantage: 1.7 },
   inspire: { multiplier: 1.05 },
   mend: { pct: 0.05 },
+  /**
+   * The "strong" numbers: a keyword an item already has, given again by a
+   * component, doubles its effect (Pierce and Blessed have no strong form).
+   */
+  strong: {
+    stagger: { chance: 0.3 },
+    parry: { chance: 0.3 },
+    cleave: { splash: 0.6 },
+    guard: { targetWeight: 2.25 },
+    channel: { advantage: 2.0 },
+    inspire: { multiplier: 1.1 },
+    mend: { pct: 0.1 },
+    /** Brace softens this many big hits of each fight instead of one. */
+    brace: { hits: 2 },
+    /** Reach also strikes before the enemies in round 2. */
+    reach: { rounds: 2 },
+  },
   /** Heavy wearers take the Underwater weakened penalty this many times over. */
   heavy: { underwaterMultiplier: 2 },
 };

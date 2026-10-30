@@ -13,8 +13,8 @@ export type AnswersMember = {
   heroId: string;
   classId: HeroClassId;
   traitId: string;
-  /** The keywords of the hero's equipped weapon, armour and off-hand; magic pieces marked. */
-  gearKeywords: { keyword: Keyword; magic: boolean }[];
+  /** The keywords of the hero's equipped weapon, armour and off-hand; magic pieces marked, strong ones doubled. */
+  gearKeywords: { keyword: Keyword; magic: boolean; strong?: true }[];
   /** The kit or ward salve in the hero's consumable slot, if any. */
   kit: { itemId: string; effect: KitEffect } | null;
   /** The ward salve's element, when the kit item is one. */

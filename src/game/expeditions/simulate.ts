@@ -62,8 +62,8 @@ export type PartyMember = {
   /** Personal trait id; party-wide trait effects count once per trait. */
   traitId: string;
   weaponName: string | null;
-  /** The keywords of the hero's weapon, armour and off-hand; magic pieces marked. */
-  gearKeywords: { keyword: Keyword; magic: boolean }[];
+  /** The keywords of the hero's weapon, armour and off-hand; magic pieces marked, strong ones doubled. */
+  gearKeywords: { keyword: Keyword; magic: boolean; strong?: true }[];
   /** Any equipped piece is heavy (warhammer, plate). */
   heavy: boolean;
   /** Weapon and off-hand are each empty or Concealed; unarmed heroes with a free off-hand count. */
@@ -263,6 +263,8 @@ type HeroState = {
   fed: number;
   /** The hero's keywords after the restriction, whatever their source. */
   keywords: Set<Keyword>;
+  /** The hero's strong keywords the restriction left standing (see gearKeywordsOf). */
+  strong: Set<Keyword>;
 };
 /** `maxHp` is the def's HP after a weakness cut; thresholds like enrage use it. */
 type EnemyState = { def: MobDef | BossDef; hp: number; maxHp: number; staggered: boolean };
@@ -454,6 +456,7 @@ export function simulateRun(
     const { damage, hpLoss } = hungerEffect(hunger, member.abilities);
     // Starving costs HP before the first step, but never knocks anyone out.
     const hp = Math.min(member.maxHp, member.hp > 0 ? Math.max(Math.min(member.hp, 1), member.hp - hpLoss * member.maxHp) : 0);
+    const keywords = new Set(answers[i].keywords.map((k) => k.keyword));
     return {
       member,
       hp,
@@ -463,7 +466,8 @@ export function simulateRun(
       potionLeft: !!member.potion,
       carriedLeft: member.carriedKit?.kit?.heal !== undefined,
       fed: damage,
-      keywords: new Set(answers[i].keywords.map((k) => k.keyword)),
+      keywords,
+      strong: new Set(member.gearKeywords.filter((k) => k.strong && keywords.has(k.keyword)).map((k) => k.keyword)),
     };
   });
   const alive = () => heroes.filter((h) => !h.out);
@@ -678,8 +682,8 @@ export function simulateRun(
         }
       }
     }
-    /** Heroes whose Brace already softened a hit in this fight. */
-    const braced = new Set<string>();
+    /** How many big hits each hero's Brace has softened in this fight. */
+    const braced = new Map<string, number>();
     /** Logs an effect once per encounter and hero. */
     const note = (heroId: string | null, key: AbilityEffect['key'], extra: Partial<AbilityEffect> = {}) => {
       if (!result.effects.some((e) => e.key === key && e.heroId === heroId)) result.effects.push({ heroId, key, ...extra });
@@ -692,7 +696,11 @@ export function simulateRun(
         .sort((a, b) => b.buff!.multiplier - a.buff!.multiplier)[0];
       if (buffer) note(buffer.h.member.heroId, 'buff');
       // Inspire lifts the whole party while a conscious hero has it, on top of the best buff.
-      const inspired = alive().some((h) => h.keywords.has('inspire')) ? gearKeywordRules.inspire.multiplier : 1;
+      const inspired = alive().some((h) => h.keywords.has('inspire'))
+        ? alive().some((h) => h.strong.has('inspire'))
+          ? gearKeywordRules.strong.inspire.multiplier
+          : gearKeywordRules.inspire.multiplier
+        : 1;
       for (const hero of attackers) {
         // A hero quicker than the fastest living enemy may land one second blow.
         const heroAttack = (second = false) => {
@@ -726,7 +734,11 @@ export function simulateRun(
           // The wheel only touches the elemental part of a hit.
           const wheel = (element: Element | undefined) => {
             let multiplier = weaponMultiplier(element, targetElement);
-            const channel = hero.keywords.has('channel') ? gearKeywordRules.channel.advantage : 1;
+            const channel = hero.keywords.has('channel')
+              ? hero.strong.has('channel')
+                ? gearKeywordRules.strong.channel.advantage
+                : gearKeywordRules.channel.advantage
+              : 1;
             if (element && targetElement && beats(element, targetElement) && (advantage || channel > 1)) {
               // Channel lifts the wheel's advantage; Anti-magic cuts the bonus above 1 in half.
               const bonus = Math.max(advantage?.multiplier ?? multiplier, channel);
@@ -758,7 +770,7 @@ export function simulateRun(
           if (hero.keywords.has('cleave')) {
             const splashTarget = enemies.slice(enemies.indexOf(target) + 1).find((e) => e.hp > 0);
             if (splashTarget) {
-              const splash = damage * gearKeywordRules.cleave.splash;
+              const splash = damage * (hero.strong.has('cleave') ? gearKeywordRules.strong.cleave.splash : gearKeywordRules.cleave.splash);
               splashTarget.hp -= splash;
               add(result.dealt, id, splash);
             }
@@ -768,7 +780,7 @@ export function simulateRun(
             hero.keywords.has('stagger') &&
             target.hp > 0 &&
             !target.staggered &&
-            rng.chance(gearKeywordRules.stagger.chance)
+            rng.chance(hero.strong.has('stagger') ? gearKeywordRules.strong.stagger.chance : gearKeywordRules.stagger.chance)
           ) {
             target.staggered = true;
           }
@@ -819,9 +831,13 @@ export function simulateRun(
             ? alive()
             : alive().length
               ? [
-                  rng.weighted(
-                    alive(),
-                    (h) => h.member.threat * (h.keywords.has('guard') ? gearKeywordRules.guard.targetWeight : 1),
+                  rng.weighted(alive(), (h) =>
+                    h.member.threat *
+                    (h.keywords.has('guard')
+                      ? h.strong.has('guard')
+                        ? gearKeywordRules.strong.guard.targetWeight
+                        : gearKeywordRules.guard.targetWeight
+                      : 1),
                   ),
                 ]
               : [];
@@ -829,7 +845,11 @@ export function simulateRun(
           // Quick heroes slip out of the way.
           if (rng.chance(Math.min(hero.member.evasion, rules.evasionCap) / 100)) continue;
           // Parry turns a physical hit away entirely.
-          if (enemy.def.damageType === 'power' && hero.keywords.has('parry') && rng.chance(gearKeywordRules.parry.chance)) {
+          if (
+            enemy.def.damageType === 'power' &&
+            hero.keywords.has('parry') &&
+            rng.chance(hero.strong.has('parry') ? gearKeywordRules.strong.parry.chance : gearKeywordRules.parry.chance)
+          ) {
             continue;
           }
           const element = enemyElement(enemy.def);
@@ -843,13 +863,15 @@ export function simulateRun(
           const amulet = elementResist && elementResist.element === element ? elementResist.amount : 0;
           const defence = enemy.def.damageType === 'power' ? hero.member.armour : hero.member.resistance + amulet;
           let taken = (incoming * 100) / (100 + rules.defenseFactor * defence) / fortune;
-          // Brace softens the first big hit of the fight.
+          // Brace softens the first big hits of the fight (one, two when strong).
+          const bracedSoFar = braced.get(hero.member.heroId) ?? 0;
+          const braceHits = hero.strong.has('brace') ? gearKeywordRules.strong.brace.hits : 1;
           if (
             hero.keywords.has('brace') &&
-            !braced.has(hero.member.heroId) &&
+            bracedSoFar < braceHits &&
             taken > gearKeywordRules.brace.above * hero.member.maxHp
           ) {
-            braced.add(hero.member.heroId);
+            braced.set(hero.member.heroId, bracedSoFar + 1);
             taken *= gearKeywordRules.brace.multiplier;
           }
           hurt(hero, shielded(hero, taken), result);
@@ -864,8 +886,8 @@ export function simulateRun(
       result.rounds = round;
       // An exposed fight gives the enemies the first strike; after that it plays like any fight.
       const ambushed = enemiesFirst && round === 1;
-      // Reach acts before the enemies in round 1 of every fight, exposed or not.
-      const reach = round === 1 ? alive().filter((h) => h.keywords.has('reach')) : [];
+      // Reach acts before the enemies in round 1 of every fight (rounds 1-2 when strong).
+      const reach = alive().filter((h) => h.keywords.has('reach') && round <= (h.strong.has('reach') ? gearKeywordRules.strong.reach.rounds : 1));
       if (reach.length > 0) {
         heroesAttack(reach);
         if (enemies.every((e) => e.hp <= 0)) {
@@ -951,7 +973,11 @@ export function simulateRun(
       const wounded = alive().filter((h) => h.hp < h.member.maxHp);
       if (wounded.length > 0) {
         const lowest = wounded.reduce((low, h) => (h.hp / h.member.maxHp < low.hp / low.member.maxHp ? h : low));
-        heal(lowest, gearKeywordRules.mend.pct, result);
+        heal(
+          lowest,
+          alive().some((h) => h.strong.has('mend')) ? gearKeywordRules.strong.mend.pct : gearKeywordRules.mend.pct,
+          result,
+        );
       }
     }
   };

@@ -104,6 +104,15 @@ export const rollRules = {
   masteryShift: 3,
 };
 
+/** Quality odds (%) for a forge with a component: at least Rare, a much better Legendary chance. */
+export const componentForgeOdds: Record<Quality, number> = {
+  crappy: 0,
+  normal: 0,
+  uncommon: 0,
+  rare: 80,
+  legendary: 20,
+};
+
 export const salvageRules = {
   /** Share of each recipe input returned, rounded down; the first input always returns at least 1. */
   returned: { crappy: 0.25, normal: 0.4, uncommon: 0.5, rare: 0.6, legendary: 1 } satisfies Record<Quality, number>,
