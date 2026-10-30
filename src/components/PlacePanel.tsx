@@ -3,7 +3,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { bossById } from '@/content/enemies';
 import { heroClasses } from '@/content/heroes';
-import { gearName, itemById, materialById, recipeById, recipeOutput, threatById } from '@/content/lookup';
+import { gearName, itemById, materialById, recipeById, recipeOutput, threatById, valuableById } from '@/content/lookup';
 import { heistRules } from '@/content/placeActivities';
 import { placeInfo, placeRules, type PlaceKind } from '@/content/places';
 import { serviceRules } from '@/content/services';
@@ -27,7 +27,20 @@ import {
   trainXp,
   type CareKind,
 } from '@/game/places/services';
-import { buyProblem, gearSellPrice, materialSellPrice, placeStock, sellGearProblem, sellMaterialProblem, stockLeft, type StockLine } from '@/game/places/shops';
+import {
+  buyProblem,
+  gearSellPrice,
+  materialSellPrice,
+  placeStock,
+  placeValuablePrice,
+  sellGearProblem,
+  sellMaterialProblem,
+  sellValuableProblem,
+  stockLeft,
+  type StockLine,
+} from '@/game/places/shops';
+import { todaysCollector } from '@/game/loot/valuables';
+import { lootConfig } from '@/content/loot/config';
 import { currentHp, isExhausted, maxHp } from '@/game/team/health';
 import { isAway } from '@/game/team/team';
 import { lootText } from '@/hooks/usePatrols';
@@ -37,6 +50,7 @@ import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
 import { Text } from './Text';
+import { ValuableRows } from './ValuableRows';
 
 /** Kinds this sheet knows how to open; other kinds stay off the map until their rules exist. */
 export const PANEL_KINDS: PlaceKind[] = [
@@ -87,7 +101,9 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
   const distance = distanceMeters(player, place.position);
   const locked = isLockedMine(place.kind, pickaxeTier(save));
   const stock = placeStock(save, place);
-  const sells = place.kind === 'smithy' || place.kind === 'market';
+  const buysValuables = (lootConfig.valuables.buyers as readonly string[]).includes(place.kind);
+  const sells = place.kind === 'smithy' || place.kind === 'market' || buysValuables;
+  const wanted = place.kind === 'market' ? todaysCollector(save, place.id, now) : null;
   const homeHeroes = save.heroes.filter((hero) => !isAway(save, hero.id));
   // A heist takes one hero who can go now, picked from chips like a patrol party.
   const heistCandidates = homeHeroes.filter((hero) => !isExhausted(hero, now));
@@ -119,6 +135,26 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
   };
 
   const sellRows = () => {
+    const goods = place.kind === 'smithy' || place.kind === 'market' ? goodsRows() : null;
+    const hasValuables = buysValuables && Object.values(save.valuables).some((count) => count > 0);
+    if (!goods && !hasValuables) return <Text style={styles.muted}>{t('places.nothingToSell')}</Text>;
+    return (
+      <>
+        {goods}
+        {hasValuables && (
+          <ValuableRows
+            valuables={save.valuables}
+            wanted={wanted}
+            price={(key) => placeValuablePrice(save, place, key, now)}
+            canSell={(key, count) => sellValuableProblem(save, place, key, count, player, now) === null}
+            onSell={(key, count) => actions.sellValuableAtPlace(place, key, count, player)}
+          />
+        )}
+      </>
+    );
+  };
+
+  const goodsRows = () => {
     if (place.kind === 'smithy') {
       const gear = save.gear.filter((g) => !wornBy(save, g.uid));
       if (gear.length === 0) return <Text style={styles.muted}>{t('places.nothingToSell')}</Text>;
@@ -195,6 +231,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
               {info.emoji} {tr(info.name)}
             </Text>
             <Text style={styles.muted}>{tr(info.description)}</Text>
+            {wanted && <Text style={styles.wanted}>{t('places.collector', { name: tr(valuableById[wanted].name).toLowerCase() })}</Text>}
             <Text style={styles.muted}>
               {leavesIn(place.expiresAt - now)} · {t('places.gold', { gold: save.gold })}
             </Text>
@@ -371,4 +408,5 @@ const styles = StyleSheet.create({
   chip: { borderWidth: pixel.outline, borderColor: colors.woodDark, paddingHorizontal: 10, paddingVertical: 6 },
   chipActive: { borderColor: colors.ink, backgroundColor: colors.highlight },
   odds: { fontSize: 21 },
+  wanted: { color: colors.success },
 });

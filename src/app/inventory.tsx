@@ -12,6 +12,7 @@ import { componentById, gearName, itemById, materialById, monsterPartById, relic
 import { baseItems } from '@/content/loot/baseItems';
 import { PURPOSES, purposeInfo, type Purpose } from '@/content/loot/purposes';
 import { materials } from '@/content/materials';
+import { valuablePrice } from '@/game/loot/catalogue';
 import { canSalvage, salvageGold, salvageNeedsConfirmation, salvageReturns, wornBy } from '@/game/forging/salvage';
 import { ruinsDots } from '@/game/places/ruins';
 import { isLureActive, lureEndsAt } from '@/game/rewards/lures';
@@ -45,7 +46,7 @@ function inventoryItems(save: SaveData): InventoryItem[] {
     const [id, tier] = key.split(':');
     if (count > 0 && valuableById[id]) {
       const def = valuableById[id];
-      held.push({ key: `v:${key}`, ref: { kind: 'valuable', id, tier: Number(tier) }, emoji: def.emoji, name: t('inventory.valuable', { name: tr(def.name), tier }), count });
+      held.push({ key: `v:${key}`, ref: { kind: 'valuable', id, tier: Number(tier) }, emoji: def.emoji, name: t('inventory.valuable', { name: tr(def.name), tier }), count, about: t('inventory.valuablePrice', { price: valuablePrice(id, Number(tier)) }) });
     }
   }
   for (const { uid, relicId } of save.relics) {

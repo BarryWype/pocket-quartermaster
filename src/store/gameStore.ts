@@ -14,7 +14,7 @@ import { migrateV10Save, migrateV11Save, migrateV12Save, migrateV13Save, migrate
 import { convertShards, shardId, stoneId, type Element } from '@/game/elements';
 import { fastForward, resolveExpedition, startExpedition, type Loadout } from '@/game/expeditions/expeditions';
 import { markWalksSeen, processWalkPath, recordWalk, type WalkFix, type WalkOptions, type WalkPatrols, type WalkSummary } from '@/game/gathering/autoGather';
-import { collectSpawn, type CollectResult, type Gatherer } from '@/game/gathering/gathering';
+import { collectSpawn, localDayKey, type CollectResult, type Gatherer } from '@/game/gathering/gathering';
 import { endWalkEffect, startWalkEffect } from '@/game/gathering/walkEffects';
 import type { LatLng, Spawn } from '@/game/generation/types';
 import { addMaterials } from '@/game/inventory';
@@ -27,12 +27,12 @@ import type { Loot, ManualRarity } from '@/game/loot/types';
 import { applyBackgroundResults, type BackgroundResult } from '@/game/patrols/escort';
 import { isTravellerKind, type PatrolSpawn, type TravellerKind } from '@/game/patrols/generate';
 import { resolvePatrolFights as resolveDueFights, startPatrolFight, type PatrolFight } from '@/game/patrols/fight';
-import { acceptRecruit, helpTraveller as helpTravellerRule, trade, type TravellerRecruit, type TravellerReward } from '@/game/patrols/travellers';
+import { acceptRecruit, helpTraveller as helpTravellerRule, sellValuableToTrader, trade, type TravellerRecruit, type TravellerReward } from '@/game/patrols/travellers';
 import { addPatrolsToWalks, escortHpChange, walkPatrolsFrom } from '@/game/patrols/walkPatrols';
 import { challengeSanctum, type SanctumResult, type SanctumSpawn } from '@/game/sanctums/sanctums';
 import { createInitialSave, type SaveData, type TutorialStep } from '@/game/save';
 import { drinkPotion, fastForwardHealing, giveHomeCare, healAll, setHeroHp, settleHp } from '@/game/team/health';
-import { buy, sellGear, sellMaterial } from '@/game/places/shops';
+import { buy, sellGear, sellMaterial, sellValuable } from '@/game/places/shops';
 import { apothecaryCare, blessRelics, chapelCare, takeChapelBlessing, trainHero, type CareKind } from '@/game/places/services';
 import type { PlaceSpawn } from '@/game/places/generate';
 import { fish } from '@/game/places/dock';
@@ -101,6 +101,11 @@ type GameState = {
   buyAtPlace: (spawn: PlaceSpawn, lineKey: string, count: number, player: LatLng) => void;
   sellGearAtPlace: (spawn: PlaceSpawn, gearUid: string, player: LatLng) => void;
   sellMaterialAtPlace: (spawn: PlaceSpawn, materialId: string, count: number, player: LatLng) => void;
+  /** Sells valuables of one `valuableId:tier` stack to a place that buys them. */
+  sellValuableAtPlace: (spawn: PlaceSpawn, key: string, count: number, player: LatLng) => void;
+  sellValuableToTrader: (spawn: PatrolSpawn, key: string, count: number, player: LatLng) => void;
+  /** Debug: every market's collector wants this valuable today. */
+  setCollector: (valuableId: string) => void;
   /** The chapel's free care, once per visit. */
   chapelCare: (spawn: PlaceSpawn, heroId: string, care: CareKind, player: LatLng) => void;
   blessRelics: (spawn: PlaceSpawn, player: LatLng) => void;
@@ -293,6 +298,12 @@ export const useGameStore = create<GameState>()(
       sellGearAtPlace: (spawn, gearUid, player) => set(({ save }) => ({ save: sellGear(save, spawn, gearUid, player, Date.now()) })),
       sellMaterialAtPlace: (spawn, materialId, count, player) =>
         set(({ save }) => ({ save: sellMaterial(save, spawn, materialId, count, player, Date.now()) })),
+      sellValuableAtPlace: (spawn, key, count, player) =>
+        set(({ save }) => ({ save: sellValuable(save, spawn, key, count, player, Date.now()) })),
+      sellValuableToTrader: (spawn, key, count, player) =>
+        set(({ save }) => ({ save: sellValuableToTrader(save, spawn, key, count, player, Date.now()) })),
+      setCollector: (valuableId) =>
+        set(({ save }) => ({ save: { ...save, collectorOverride: { dayKey: localDayKey(Date.now()), valuableId } } })),
       chapelCare: (spawn, heroId, care, player) => set(({ save }) => ({ save: chapelCare(save, spawn, heroId, care, player, Date.now()) })),
       blessRelics: (spawn, player) => set(({ save }) => ({ save: blessRelics(save, spawn, player, Date.now()) })),
       takeChapelBlessing: (spawn, player) => set(({ save }) => ({ save: takeChapelBlessing(save, spawn, player, Date.now()) })),

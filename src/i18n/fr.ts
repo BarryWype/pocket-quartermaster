@@ -257,6 +257,7 @@ export const fr: Dictionary = {
     filterAll: 'Tout',
     ruins: 'Ruines fouillées',
     valuable: '{name} (palier {tier})',
+    valuablePrice: '🪙 {price} au marché, moitié prix ailleurs',
     manualHint: 'Fait progresser un héros, jusqu’au niveau {level} à votre palier.',
     readTo: 'Lire à {name} (niveau {level})',
     next: {
@@ -440,6 +441,8 @@ export const fr: Dictionary = {
     noGold: 'Pas assez d’or.',
     gold: 'Or : {gold}',
     nothingToSell: 'Rien qui les intéresse.',
+    collector: 'Un collectionneur paie le double aujourd’hui : {name}.',
+    collectorWants: 'le collectionneur paie double',
     heal: 'Soigner entièrement',
     rest: 'Finir l’épuisement',
     free: 'Gratuit',

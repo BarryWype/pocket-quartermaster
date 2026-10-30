@@ -252,6 +252,7 @@ export const en = {
     filterAll: 'All',
     ruins: 'Ruins dug',
     valuable: '{name} (tier {tier})',
+    valuablePrice: '🪙 {price} at the market, half elsewhere',
     manualHint: 'Raises one hero, up to level {level} at your tier.',
     readTo: 'Read to {name} (level {level})',
     next: {
@@ -431,6 +432,8 @@ export const en = {
     noGold: 'Not enough gold.',
     gold: 'Gold: {gold}',
     nothingToSell: 'Nothing they want.',
+    collector: 'A collector pays double for {name} today.',
+    collectorWants: 'the collector pays double',
     heal: 'Heal fully',
     rest: 'End exhaustion',
     free: 'Free',
