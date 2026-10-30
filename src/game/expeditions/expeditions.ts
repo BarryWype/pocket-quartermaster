@@ -16,6 +16,7 @@ import { highestUnlockedTier, isDungeonUnlocked } from '../dungeons/unlock';
 import { briefingFor, openDungeonIds, rotationDay, type Rotation } from '../dungeons/rotation';
 import { createRng, type Rng } from '../generation/rng';
 import { addMaterials } from '../inventory';
+import { charmApplies, partyCharms } from '../loot/charms';
 import { lootContextOf } from '../loot/context';
 import { grantLoot } from '../loot/grant';
 import { mergeLoot, rollSourceLoot } from '../loot/roll';
@@ -262,9 +263,11 @@ function prisonerRecruit(save: SaveData, rng: Rng): HeroState {
  * threat and never healed, salves whose element never came, elixirs and
  * weakness items never used.
  */
-export function untriggeredSalvage(party: PartyMember[], run: RunResult): ExpeditionReport['salvaged'] {
+export function untriggeredSalvage(party: PartyMember[], run: RunResult, source: LootSourceId): ExpeditionReport['salvaged'] {
   const triggered = (member: PartyMember): boolean => {
     const item = member.consumable!;
+    // A charm is spent by any run at a source where it can apply, won or lost.
+    if (item.charm) return charmApplies(item.charm, source);
     if (item.when === 'lowHp') return run.consumed.includes(member.heroId);
     if (item.kit) {
       // A ward salve is a kit too: it also counts when its carrier took damage of its element.
@@ -285,8 +288,8 @@ export function untriggeredSalvage(party: PartyMember[], run: RunResult): Expedi
     }
     const elixir = item.elixir;
     if (elixir) {
-      // Stat and speed elixirs are drunk before the run; an oil needs a weapon that struck; the rest need their trigger.
-      if (elixir.kind === 'stat' || elixir.kind === 'speed') return true;
+      // Stat, speed and crit elixirs are drunk before the run; an oil needs a weapon that struck; the rest need their trigger.
+      if (elixir.kind === 'stat' || elixir.kind === 'speed' || elixir.kind === 'crit') return true;
       if (elixir.kind === 'oil') return member.weaponName !== null && run.attacked.includes(member.heroId);
       return run.elixirsUsed.includes(member.heroId);
     }
@@ -371,13 +374,16 @@ export function resolveExpedition(
     success && !tutorialReward && !save.clearedDungeons.some((id) => dungeonById[id]?.tier === dungeon.tier);
   const context = lootContextOf(save);
   const enemies = run.encounters.flatMap((e) => e.mobs.map((m) => m.mobId));
+  const source: LootSourceId = dungeon.isBoss ? 'tierBoss' : dungeon.overnight ? 'overnightQuest' : 'dungeonRun';
+  // Barren runs take no gold bonus from charms.
+  const modifiers = partyCharms(party).filter((mod) => !barren || mod.kind !== 'gold');
   const roll = (source: LootSourceId, base: { gold: number; xp: number }) =>
     rollSourceLoot({
       source,
       tier: dungeon.tier,
       minutes: dungeon.durationMinutes,
       luck,
-      modifiers: [],
+      modifiers,
       enemies,
       base,
       context,
@@ -393,7 +399,7 @@ export function resolveExpedition(
     loot = { ...emptyLoot(), gold: tutorialReward.gold, xp: Math.round(xp * mealXp) };
     if (firstWin) loot = mergeLoot(loot, roll('firstWin', bonus('firstWin')));
   } else if (success) {
-    loot = roll(dungeon.isBoss ? 'tierBoss' : dungeon.overnight ? 'overnightQuest' : 'dungeonRun', { gold: baseGold, xp: Math.round(xp * mealXp) });
+    loot = roll(source, { gold: baseGold, xp: Math.round(xp * mealXp) });
     if (firstWin) loot = mergeLoot(loot, roll('firstWin', bonus('firstWin')));
     if (firstTierClear) loot = mergeLoot(loot, roll('firstTierClear', bonus('firstTierClear')));
   } else {
@@ -402,7 +408,7 @@ export function resolveExpedition(
 
   // Everything in a consumable slot is gone after the run; what never triggered
   // is broken back down instead (see threats/salvage.ts).
-  const salvaged = untriggeredSalvage(party, run);
+  const salvaged = untriggeredSalvage(party, run, source);
   const consumablesUsed = party.flatMap((m) => [...(m.consumable ? [m.consumable.id] : []), ...(m.potion ? [m.potion.id] : [])]);
   const salvageGold = salvaged.reduce((sum, s) => sum + s.gold, 0);
   const salvageMaterials = salvaged.flatMap((s) => s.materials);

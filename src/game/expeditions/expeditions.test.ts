@@ -1,7 +1,7 @@
 import { dungeons } from '@/content/dungeons';
 import { xpRules, xpToNextLevel } from '@/content/heroes';
 import { MATERIAL_TIERS } from '@/content/items';
-import { dungeonById, recipeById } from '@/content/lookup';
+import { dungeonById, monsterPartById, recipeById } from '@/content/lookup';
 
 import { rotationDay } from '../dungeons/rotation';
 import { forgedItem } from '../crafting/crafting';
@@ -484,7 +484,7 @@ describe('materials come from walking', () => {
   it('leaves gathering materials out of every dungeon, wins and retreats alike', () => {
     const SHARDS = ['fireShard', 'waterShard', 'electricShard', 'earthShard', 'airShard'];
     for (const { report } of outcomes(geared(), 'banditStockade', 60)) {
-      expect(report.loot.materials.filter((m) => !SHARDS.includes(m.materialId))).toEqual([]);
+      expect(report.loot.materials.filter((m) => !SHARDS.includes(m.materialId) && !monsterPartById[m.materialId])).toEqual([]);
     }
   });
 });

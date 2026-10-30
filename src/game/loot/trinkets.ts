@@ -3,7 +3,7 @@ import { qualities } from '@/content/forging';
 import { ELEMENTS, type Element } from '@/game/elements';
 import type { Approach, GearDef, GearInstance, Quality, Stats } from '@/game/types';
 
-import { lootGearQuality, lootGearTier, qualityBonus } from './gear';
+import { lootGearQuality, lootGearTier, qualityBonus, qualitySteps } from './gear';
 import type { LootRequest } from './roll';
 
 /** What a trinket does at one quality: rounded stats, its approach, its resistance. */
@@ -34,7 +34,7 @@ const amuletKind = trinketKinds.find((kind) => kind.group === 'amulet')!;
 /** A random looted trinket; its tier and quality follow the gear rules, its kind the group weights. */
 export function rollLootTrinket(req: LootRequest): GearInstance {
   const tier = lootGearTier(req.source, req.tier, req.context.playerTier, req.rng);
-  const quality = lootGearQuality(req.source, req.rng, qualityBonus(req), req.mapRarity);
+  const quality = lootGearQuality(req.source, req.rng, qualityBonus(req), req.mapRarity, qualitySteps(req));
   const pool = trinketKinds.filter(
     (kind) => kind.group === 'stat' || kind.group === 'talisman' || kind === amuletKind || (kind.group === 'fortune' && quality === 'legendary'),
   );

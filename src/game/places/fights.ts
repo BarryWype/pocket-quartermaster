@@ -11,9 +11,10 @@ import { distanceMeters } from '../generation/geo';
 import { createRng, type Rng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { foughtEnemies, settleConsumables } from '../patrols/fight';
+import { partyCharms } from '../loot/charms';
 import { rollForSave, sourceAmounts } from '../loot/context';
 import { grantLoot } from '../loot/grant';
-import { emptyLoot, type Loot } from '../loot/types';
+import { emptyLoot, type Loot, type LootModifier } from '../loot/types';
 import type { SaveData } from '../save';
 import { applyRunHp, isExhausted } from '../team/health';
 import { isAway } from '../team/team';
@@ -80,8 +81,16 @@ export function placeFightDungeon(spawn: PlaceSpawn, tier: number): DungeonDef {
  * What a win at a place pays: its row of the loot matrix, at the player's
  * tier. A rift's shards are its element; the lair's are rolled.
  */
-export function placeLoot(kind: FightPlaceKind, save: SaveData, luck: number, enemies: string[], rng: Rng, element?: Element): Loot {
-  return rollForSave(save, kind, rng, { luck, enemies, ...(element ? { element } : {}) });
+export function placeLoot(
+  kind: FightPlaceKind,
+  save: SaveData,
+  luck: number,
+  enemies: string[],
+  rng: Rng,
+  element?: Element,
+  modifiers: LootModifier[] = [],
+): Loot {
+  return rollForSave(save, kind, rng, { luck, modifiers, enemies, ...(element ? { element } : {}) });
 }
 
 export type PlaceFightProblem = 'gone' | 'tooFar' | 'empty' | 'partySize' | 'away' | 'exhausted' | null;
@@ -136,6 +145,7 @@ export function startPlaceFight(save: SaveData, spawn: PlaceSpawn, heroIds: stri
         foughtEnemies(run),
         createRng(`${id}|rewards`),
         kind === 'elementalRift' ? riftElement(spawn) : undefined,
+        partyCharms(party),
       )
     : emptyLoot();
 
@@ -154,7 +164,7 @@ export function startPlaceFight(save: SaveData, spawn: PlaceSpawn, heroIds: stri
         placeExpiresAt: spawn.expiresAt,
         won: run.bossDefeated,
         hp: run.hp,
-        salvaged: untriggeredSalvage(party, run),
+        salvaged: untriggeredSalvage(party, run, kind),
         reward,
       },
     ],

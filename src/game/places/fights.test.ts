@@ -1,3 +1,4 @@
+import { monsterPartById } from '@/content/lookup';
 import { placeFightRules } from '@/content/placeFights';
 import { patrolRules } from '@/content/patrols';
 import type { PlaceKind } from '@/content/places';
@@ -124,9 +125,10 @@ describe('place rewards', () => {
 
   it('gives a rift its element in shards', () => {
     const reward = placeLoot('elementalRift', tierTeam(), 0, [], createRng('r'), 'fire');
-    expect(reward.materials).toEqual([{ materialId: 'fireShard', amount: expect.any(Number) }]);
-    expect(reward.materials[0].amount).toBeGreaterThanOrEqual(2);
-    expect(reward.materials[0].amount).toBeLessThanOrEqual(4);
+    const shards = reward.materials.filter((m) => !monsterPartById[m.materialId]);
+    expect(shards).toEqual([{ materialId: 'fireShard', amount: expect.any(Number) }]);
+    expect(shards[0].amount).toBeGreaterThanOrEqual(2);
+    expect(shards[0].amount).toBeLessThanOrEqual(4);
   });
 });
 

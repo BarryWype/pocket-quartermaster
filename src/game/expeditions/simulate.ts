@@ -366,7 +366,7 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs
         ...(elementResist ? { elementResist } : {}),
         evasion: stats.evasion,
         speed: stats.speed + (elixir?.kind === 'speed' ? elixir.add : 0),
-        crit: stats.crit,
+        crit: stats.crit + (elixir?.kind === 'crit' ? elixir.add : 0),
         luck: stats.luck,
         approachBonus: mergeApproachBonus(heroApproachBonus(hero), gearApproachBonus(save, hero)),
         classApproaches: classApproaches(hero),

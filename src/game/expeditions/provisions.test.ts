@@ -338,7 +338,7 @@ describe('elixirs', () => {
     encounters: [{ type: 'fight', weight: 1, mobs }],
   });
 
-  it('multiplies the stat the elixir names, and quicksilver adds speed, only when the run takes elixirs', () => {
+  it('multiplies the stat the elixir names, quicksilver adds speed and Viper oil crit, only when the run takes elixirs', () => {
     const base = prepareParty(ready(), ['bram'])[0];
     const saveWith = (id: string) => equip(ready({ ...createInitialSave().consumables, [id]: 1 }), 'bram', 'consumable', id);
     const taken = (id: string) => prepareParty(saveWith(id), ['bram'], 0, true)[0];
@@ -355,6 +355,8 @@ describe('elixirs', () => {
     }
     expect(taken('quicksilver').speed).toBe(base.speed + provisionRules.elixirs.quicksilverSpeed);
     expect(leftOut('quicksilver').speed).toBe(base.speed);
+    expect(taken('viperOil').crit).toBe(base.crit + provisionRules.elixirs.viperCrit);
+    expect(leftOut('viperOil').crit).toBe(base.crit);
   });
 
   it('coats the weapon in the oil’s element, replacing a permanent infusion', () => {
@@ -450,7 +452,7 @@ describe('elixirs', () => {
       member('revive', [], { consumable: elixirOf('revivalDraught') }),
       member('smoke', [], { consumable: elixirOf('smokeBomb') }),
     ];
-    const salvaged = untriggeredSalvage(holders, run);
+    const salvaged = untriggeredSalvage(holders, run, 'dungeonRun');
     expect(salvaged.map((s) => s.heroId).sort()).toEqual(['bomb', 'oil', 'oilUnarmed', 'revive', 'smoke']);
     // Triggered: a thrown bomb, a draught that revived, a bomb that escaped, an oil that struck.
     const triggered: [PartyMember, RunResult, RunResult][] = [
@@ -460,8 +462,8 @@ describe('elixirs', () => {
       [holders[2], run, { ...run, attacked: [...run.attacked, 'oil'] }],
     ];
     for (const [holder, base, tweaked] of triggered) {
-      expect(untriggeredSalvage([holder], tweaked)).toEqual([]);
-      expect(untriggeredSalvage([holder], base).length).toBe(1);
+      expect(untriggeredSalvage([holder], tweaked, 'dungeonRun')).toEqual([]);
+      expect(untriggeredSalvage([holder], base, 'dungeonRun').length).toBe(1);
     }
   });
 

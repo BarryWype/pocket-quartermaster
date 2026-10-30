@@ -12,10 +12,11 @@ import { guildBonus, partySize } from '../guild/guild';
 import { createRng, type Rng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { addMaterials } from '../inventory';
+import { partyCharms } from '../loot/charms';
 import { sourceAmounts } from '../loot/context';
 import { grantLoot } from '../loot/grant';
 import { rollSourceLoot } from '../loot/roll';
-import { emptyLoot, type Loot, type LootSourceId } from '../loot/types';
+import { emptyLoot, type Loot, type LootModifier, type LootSourceId } from '../loot/types';
 import type { SaveData } from '../save';
 import { applyRunHp, isExhausted } from '../team/health';
 import { isAway } from '../team/team';
@@ -41,15 +42,18 @@ export type RewardContext = {
   goldMultiplier: number;
   /** The party's Luck. */
   luck: number;
+  /** The party's charms. */
+  modifiers?: LootModifier[];
   /** The player's pickaxe tier: caches never hold ore above it. */
   pickaxeTier: number;
   /** The highest unlocked tier, for looted gear. */
   playerTier: number;
 };
 
-export const rewardContextOf = (save: SaveData, luck = 0): RewardContext => ({
+export const rewardContextOf = (save: SaveData, luck = 0, modifiers: LootModifier[] = []): RewardContext => ({
   goldMultiplier: 1 + guildBonus(save, 'gold'),
   luck,
+  modifiers,
   pickaxeTier: pickaxeTier(save),
   playerTier: highestUnlockedTier(save),
 });
@@ -106,7 +110,7 @@ export function patrolRewards(
     source,
     tier,
     luck: context.luck,
-    modifiers: [],
+    modifiers: context.modifiers ?? [],
     enemies,
     base: { gold: Math.round(amounts.gold * elites * context.goldMultiplier), xp: Math.round(amounts.xp * elites) },
     context: { playerTier: context.playerTier, pickaxeTier: context.pickaxeTier, knownRecipes: [], favourCounts: {}, mastery: {} },
@@ -182,7 +186,14 @@ export function startPatrolFight(
   const id = `p${save.nextUid}`;
   const run = simulateRun(party, dungeon, `${id}|${spawn.id}`, patrolRunOptions(kind));
   const rewards = run.bossDefeated
-    ? patrolRewards(rewardContextOf(save, party.reduce((sum, m) => sum + m.luck, 0)), spawn, tier, elite, foughtEnemies(run), createRng(`${id}|rewards`))
+    ? patrolRewards(
+        rewardContextOf(save, party.reduce((sum, m) => sum + m.luck, 0), partyCharms(party)),
+        spawn,
+        tier,
+        elite,
+        foughtEnemies(run),
+        createRng(`${id}|rewards`),
+      )
     : emptyLoot();
 
   return {
@@ -201,7 +212,7 @@ export function startPatrolFight(
         windowEndsAt: spawn.endsAt,
         won: run.bossDefeated,
         hp: run.hp,
-        salvaged: untriggeredSalvage(party, run),
+        salvaged: untriggeredSalvage(party, run, PATROL_SOURCES[kind]),
         rewards,
       },
     ],

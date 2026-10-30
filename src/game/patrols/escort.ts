@@ -14,8 +14,9 @@ import type { SaveData } from '../save';
 import { applyRunHp } from '../team/health';
 import { isAway } from '../team/team';
 import { activeLairs } from '../places/fights';
+import { partyCharms } from '../loot/charms';
 import { emptyLoot, type Loot } from '../loot/types';
-import { foughtEnemies, grantPatrolWin, patrolDungeon, patrolRewards, patrolRunOptions, settleConsumables } from './fight';
+import { PATROL_SOURCES, foughtEnemies, grantPatrolWin, patrolDungeon, patrolRewards, patrolRunOptions, settleConsumables } from './fight';
 import { isPatrolKind, patrolTier, patrolsAround, pruneByWindow, type PatrolKind, type PatrolSpawn } from './generate';
 import { distanceTo, hasFled, inEngageRange, isGone, isVisible } from './visibility';
 
@@ -237,7 +238,13 @@ export function backgroundStep(
       const hpAfter = run.hp[0]?.hp ?? 0;
       const rewards: Loot = run.bossDefeated
         ? patrolRewards(
-            { goldMultiplier: next.goldMultiplier, pickaxeTier: next.pickaxeTier, playerTier: next.highestTier, luck: escort.member.luck },
+            {
+              goldMultiplier: next.goldMultiplier,
+              pickaxeTier: next.pickaxeTier,
+              playerTier: next.highestTier,
+              luck: escort.member.luck,
+              modifiers: partyCharms([escort.member]),
+            },
             target,
             tier,
             false,
@@ -257,7 +264,7 @@ export function backgroundStep(
         hpBefore: hp,
         hpAfter,
         maxHp: escort.maxHp,
-        salvaged: untriggeredSalvage([{ ...escort.member, hp }], run),
+        salvaged: untriggeredSalvage([{ ...escort.member, hp }], run, PATROL_SOURCES[target.kind]),
         rewards,
       });
       if (run.bossDefeated) next.beaten[target.id] = target.endsAt;
