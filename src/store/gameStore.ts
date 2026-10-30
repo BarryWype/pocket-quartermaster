@@ -21,6 +21,7 @@ import { addMaterials } from '@/game/inventory';
 import { dayKey, openChest, recordSteps, syncSteps } from '@/game/rewards/chests';
 import { activateLure } from '@/game/rewards/lures';
 import { collectTreasure, readTreasureMap } from '@/game/rewards/treasure';
+import { grantLoot } from '@/game/loot/grant';
 import { readManual } from '@/game/loot/manuals';
 import type { Loot, ManualRarity } from '@/game/loot/types';
 import { applyBackgroundResults, type BackgroundResult } from '@/game/patrols/escort';
@@ -152,6 +153,8 @@ type GameState = {
   addSigil: (tier: number) => void;
   addElemental: (element: Element, kind: 'shard' | 'stone', amount: number) => void;
   addTreasureMap: () => void;
+  /** Debug: pays any loot as if a source had dropped it. */
+  debugGrantLoot: (loot: Loot) => void;
   resetFirstWin: () => void;
   /** Debug: a hero of any class and level, with an average roll or one landing on a grade. */
   addHero: (classId: HeroClassId, level: number, trait: string, roll?: HeroRoll) => void;
@@ -399,6 +402,7 @@ export const useGameStore = create<GameState>()(
             ),
           },
         })),
+      debugGrantLoot: (loot) => set(({ save }) => ({ save: grantLoot(save, save.heroes.map((h) => h.id), loot, Date.now()) })),
       addTreasureMap: () =>
         set(({ save }) => ({
           save: {

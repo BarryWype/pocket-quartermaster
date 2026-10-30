@@ -1,7 +1,7 @@
 import type { LootCategory, LootMark, LootSourceId, LootSourceRow } from './types';
 
 /** CSV column names, in matrix.csv order, mapped to loot categories. */
-const CATEGORY_COLUMNS: Record<string, LootCategory> = {
+export const CATEGORY_COLUMNS: Record<string, LootCategory> = {
   Gold: 'gold',
   XP: 'xp',
   Materials: 'materials',

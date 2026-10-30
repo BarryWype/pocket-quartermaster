@@ -1,6 +1,7 @@
 import * as path from 'node:path';
 
 import { profiles } from '@/game/sim/config';
+import { pacingLines } from '@/game/sim/pacing';
 
 import { runLab } from './lab';
 
@@ -12,10 +13,11 @@ const USAGE = `npm run sim -- [options]
   --set path=value   override a number for this run, repeatable (e.g. guild.gold.baseCost=80)
   --out dir       (default sim-output/<timestamp>)
   --compare path/to/summary.json
-  --skip-matrix   leave out the odds matrix`;
+  --skip-matrix   leave out the odds matrix
+  --pacing        print weekly loot drops per category (as doc/design/loot/tools/pacing.py) and stop`;
 
 function parse(argv: string[]) {
-  const options = { profile: 'regular', days: 30, runs: 5, seed: '1', overrides: [] as string[], out: '', compareWith: undefined as string | undefined, matrix: true };
+  const options = { profile: 'regular', days: 30, runs: 5, seed: '1', overrides: [] as string[], out: '', compareWith: undefined as string | undefined, matrix: true, pacing: false };
   for (let i = 0; i < argv.length; i++) {
     const value = () => {
       const next = argv[++i];
@@ -31,6 +33,7 @@ function parse(argv: string[]) {
       case '--out': options.out = value(); break;
       case '--compare': options.compareWith = value(); break;
       case '--skip-matrix': options.matrix = false; break;
+      case '--pacing': options.pacing = true; break;
       case '--help': console.log(USAGE); process.exit(0);
       default: throw new Error(`Unknown option ${argv[i]}\n${USAGE}`);
     }
@@ -39,6 +42,10 @@ function parse(argv: string[]) {
 }
 
 const options = parse(process.argv.slice(2));
+if (options.pacing) {
+  console.log(pacingLines().join('\n'));
+  process.exit(0);
+}
 const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
 runLab({
   profiles: options.profile === 'all' ? Object.keys(profiles) : [options.profile],

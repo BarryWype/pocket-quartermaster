@@ -5,6 +5,7 @@ import type { RunLog } from '@/game/sim/bot';
 import { BOT_RULES, profiles, simConfig } from '@/game/sim/config';
 import { runSim } from '@/game/sim/engine';
 import { oddsMatrix, type MatrixRow } from '@/game/sim/matrix';
+import { lootPacing } from '@/game/sim/pacing';
 import { milestoneMisses, summarize, type ProfileSummary } from '@/game/sim/metrics';
 import { applyOverrides, parseOverride } from '@/game/sim/overrides';
 import { measurePatrolRates, patrolCacheKey, type PatrolRates } from '@/game/sim/patrols';
@@ -82,6 +83,11 @@ export function runLab(options: LabOptions) {
         runSim({ profile, days: options.days, seed: `${options.seed}-${i + 1}`, rates, patrolRates }),
       );
       logs.push(...runs);
+      print(`\nLoot drops per week (${profile}), designed (matrix) / observed (bot):`);
+      for (const row of lootPacing()) {
+        const observed = (runs.reduce((sum, run) => sum + (run.loot[row.category] ?? 0), 0) / runs.length / options.days) * 7;
+        print(`  ${row.column.padEnd(15)} ${row.perWeek.toFixed(1).padStart(6)} / ${observed.toFixed(1).padStart(6)}`);
+      }
       // The same seeds without traveller recruits, to measure how far they move the roster milestones.
       const withoutRecruits = simConfig.patrols.enabled
         ? Array.from({ length: options.runs }, (_, i) =>

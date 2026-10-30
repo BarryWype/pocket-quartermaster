@@ -53,7 +53,17 @@ import { masteryCap, masteryOf } from '@/game/forging/mastery';
 import { guildRank } from '@/game/guild/guild';
 import { currentHp, isExhausted, maxHp } from '@/game/team/health';
 import { gradeRoll, type Grade } from '@/game/taverns/roll';
-import { LOOT_CATEGORIES, type LootCategory } from '@/game/loot/types';
+import { LOOT_CATEGORIES, LOOT_SOURCES, emptyLoot, type Loot, type LootCategory, type LootSourceId, type MapRarity } from '@/game/loot/types';
+import { lootChances } from '@/game/loot/chances';
+import { createRng } from '@/game/generation/rng';
+import { rollForSave, sourceAmounts } from '@/game/loot/context';
+import { lootConfig } from '@/content/loot/config';
+import { lootMatrix } from '@/content/loot/matrix';
+import { components } from '@/content/loot/components';
+import { monsterParts } from '@/content/loot/monsterParts';
+import { relics } from '@/content/loot/relics';
+import { valuables } from '@/content/loot/valuables';
+import { lootText } from '@/hooks/usePatrols';
 import type { ActiveThreat, Briefing, HeroClassId, MasteryType, Quality, StatKey, ThreatId, ThreatLevel } from '@/game/types';
 import { forgedItem, isKnown } from '@/game/crafting/crafting';
 import { playBack, syncBackground } from '@/hooks/useAutoGather';
@@ -62,7 +72,7 @@ import { readBackground, readBuffer, stepPatrols, updateBackground, updateBuffer
 import { deviceNotifications } from '@/services/notifications';
 import { useNow } from '@/hooks/useNow';
 import { useLanguage } from '@/hooks/useLanguage';
-import { t } from '@/i18n';
+import { formatPercent, t } from '@/i18n';
 import { currentRotation, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -78,6 +88,94 @@ const TIERS = [1, 2, 3, 4, 5];
 const WALK_ITEMS = items.filter((item) => item.slot === 'utility' && item.walk);
 const HP_SHARES = [0, 0.25, 0.5, 0.75];
 const LOOT_FORCES: (LootCategory | null)[] = [null, ...LOOT_CATEGORIES];
+const RUN_MINUTES: (number | null)[] = [null, 5, 45, 120, 480];
+const LUCK_POINTS = [0, 10, 30, 100];
+const MAP_RARITIES: MapRarity[] = ['common', 'rare', 'legendary'];
+
+/**
+ * A source's roll table with its final chances (after Luck, a ×1.5 charm on
+ * one category, run length and map rarity), a roll paid into the save, an
+ * optional forced category, and grants of every new item.
+ */
+function LootDebug() {
+  const game = useGameStore();
+  const [source, setSource] = useState<LootSourceId>('dungeonRun');
+  const [tier, setTier] = useState(1);
+  const [luck, setLuck] = useState(0);
+  const [minutes, setMinutes] = useState<number | null>(null);
+  const [charm, setCharm] = useState<LootCategory | null>(null);
+  const [force, setForce] = useState<LootCategory | null>(null);
+  const [mapRarity, setMapRarity] = useState<MapRarity>('common');
+  const [last, setLast] = useState('');
+  const [rolls, setRolls] = useState(0);
+  const input = {
+    source,
+    luck,
+    modifiers: charm ? [{ id: 'debugCharm', kind: 'chance' as const, category: charm, multiplier: 1.5 }] : [],
+    ...(minutes ? { minutes } : {}),
+    ...(source === 'treasureSpot' ? { mapRarity } : {}),
+  };
+  const chances = lootChances(input);
+  const short = dungeons.find((d) => d.tier === tier && d.slot === 'short')!;
+  const base = lootConfig.amounts[source] ? sourceAmounts(source, tier) : { gold: Math.round((short.gold[0] + short.gold[1]) / 2), xp: short.xp };
+  const roll = () => {
+    const loot = rollForSave(game.save, source, createRng(`debug|${game.save.nextUid}|${rolls}`), { ...input, tier, base, ...(force ? { force } : {}) });
+    setRolls(rolls + 1);
+    game.debugGrantLoot(loot);
+    setLast(lootText(loot) || 'nothing');
+  };
+  const grant = (extra: Partial<Loot>) => game.debugGrantLoot({ ...emptyLoot(), ...extra });
+  return (
+    <>
+      <Text style={styles.title}>Loot</Text>
+      <Choice options={[...LOOT_SOURCES]} value={source} label={(s) => s} onChange={setSource} />
+      <Choice options={TIERS} value={tier} label={(t) => `T${t}`} onChange={setTier} />
+      <Choice options={LUCK_POINTS} value={luck} label={(l) => `${l} Luck`} onChange={setLuck} />
+      <Choice options={RUN_MINUTES} value={minutes} label={(m) => (m ? `${m} min` : 'no run length')} onChange={setMinutes} />
+      <Text>×1.5 charm on</Text>
+      <Choice options={LOOT_FORCES} value={charm} label={(c) => c ?? 'none'} onChange={setCharm} />
+      {source === 'treasureSpot' && <Choice options={MAP_RARITIES} value={mapRarity} label={(r) => r} onChange={setMapRarity} />}
+      {LOOT_CATEGORIES.filter((c) => chances[c] > 0).map((c) => (
+        <Text key={c}>
+          {c} · {lootMatrix[source].marks[c]} · {formatPercent(chances[c])}
+        </Text>
+      ))}
+      <Text>Force a category on this roll</Text>
+      <Choice options={LOOT_FORCES} value={force} label={(c) => c ?? 'off'} onChange={setForce} />
+      <Button title="Roll and grant" onPress={roll} />
+      {last ? <Text>{last}</Text> : null}
+      <Text>Grant new items</Text>
+      <View style={styles.row}>
+        {MAP_RARITIES.map((rarity) => (
+          <Button key={`map${rarity}`} title={`+ ${rarity} map`} onPress={() => grant({ treasureMaps: [{ rarity, tier }] })} />
+        ))}
+        {MAP_RARITIES.map((rarity) => (
+          <Button key={`manual${rarity}`} title={`+ ${rarity} manual`} onPress={() => grant({ manuals: [rarity] })} />
+        ))}
+        <Button title="+ key fragment" onPress={() => grant({ keyFragments: 1 })} />
+      </View>
+      <View style={styles.row}>
+        {monsterParts.map((part) => (
+          <Button key={part.id} title={part.emoji} onPress={() => grant({ materials: [{ materialId: part.id, amount: 3 }] })} />
+        ))}
+        {components.map((component) => (
+          <Button key={component.id} title={component.emoji} onPress={() => grant({ materials: [{ materialId: component.id, amount: 1 }] })} />
+        ))}
+      </View>
+      <View style={styles.row}>
+        {valuables.map((valuable) => (
+          <Button key={valuable.id} title={valuable.emoji} onPress={() => grant({ valuables: [{ valuableId: valuable.id, tier, amount: 1 }] })} />
+        ))}
+      </View>
+      <Choice
+        options={relics.filter((relic) => relic.tier === tier).map((relic) => relic.id)}
+        value=""
+        label={(id) => `+ ${relics.find((r) => r.id === id)!.name}`}
+        onChange={(id) => grant({ relics: [id] })}
+      />
+    </>
+  );
+}
 const THREAT_LEVELS: ThreatLevel[] = [1, 2, 3];
 /** Every recipe that is not a gear recipe (pickaxes, smelting, provisions). */
 const NON_GEAR_RECIPES = recipes.filter((recipe) => !forgedItem(recipe));
@@ -818,6 +916,7 @@ export default function DebugScreen() {
         label={(option) => option ?? 'off'}
         onChange={(forcedLootCategory) => debug.set({ forcedLootCategory })}
       />
+      <LootDebug />
 
       <Text style={styles.title}>Auto-gather</Text>
       <Text>Mode: {autoMode} · processed until {game.save.autoGather.processedUntil ? new Date(game.save.autoGather.processedUntil).toLocaleTimeString() : 'never'}</Text>
