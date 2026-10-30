@@ -93,10 +93,10 @@ describe('patrolSettingsFrom', () => {
 });
 
 describe('needsBackgroundState', () => {
-  it('wants the state only while tracking, and only for patrol alerts or the escort', () => {
+  it('wants the state whenever tracking runs: quest targets are watched even without patrols or the escort', () => {
     expect(needsBackgroundState(settings({ enabled: false }))).toBe(false);
     expect(needsBackgroundState(settings({ autoGather: false, patrolAlerts: false, escort: false }))).toBe(false);
-    expect(needsBackgroundState(settings({ autoGather: true, patrolAlerts: false, escort: false }))).toBe(false);
+    expect(needsBackgroundState(settings({ autoGather: true, patrolAlerts: false, escort: false }))).toBe(true);
     expect(needsBackgroundState(settings({ autoGather: false }))).toBe(true);
     expect(needsBackgroundState(settings({ autoGather: false, patrolAlerts: false }))).toBe(true);
   });

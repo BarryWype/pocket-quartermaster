@@ -113,6 +113,7 @@ let running: Promise<void> | null = null;
 export async function syncBackground() {
   await updateBackground((current) => {
     if (current?.pending.length) useGameStore.getState().mergeBackground(current.pending);
+    if (current?.questArrivals?.length) useGameStore.getState().noteMarksReached(current.questArrivals);
     const { pocketMode, notifications } = useSettingsStore.getState();
     if (!needsBackgroundState(pocketMode)) return null;
     const save = useGameStore.getState().save;

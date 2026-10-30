@@ -30,6 +30,8 @@ export type Quest = {
   stepsAtAccept?: number;
   target: QuestTarget | null;
   doneAt: number | null;
+  /** A strange mark reached while the app was closed: it resolves when the app opens. */
+  reachedAt?: number;
   /** Shown in the list since it arrived or finished (badge). */
   seen: boolean;
 };

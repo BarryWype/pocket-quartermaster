@@ -1,5 +1,6 @@
 import { healthRules } from '@/content/health';
 import { patrolRules, type PatrolRules } from '@/content/patrols';
+import { questRules } from '@/content/quests';
 
 import { estimatePartyOdds } from '../expeditions/odds';
 import { highestUnlockedTier, untriggeredSalvage } from '../expeditions/expeditions';
@@ -7,6 +8,7 @@ import { prepareParty, simulateRun, type PartyMember } from '../expeditions/simu
 import { pickaxeTier } from '../gathering/gathering';
 import { patrolRulesAt, trackWindows } from '../gathering/walkEffects';
 import { guildBonus } from '../guild/guild';
+import { distanceMeters } from '../generation/geo';
 import { createRng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import type { ExpeditionReport } from '../types';
@@ -16,6 +18,7 @@ import { isAway } from '../team/team';
 import { activeLairs } from '../places/fights';
 import { partyCharms } from '../loot/charms';
 import { emptyLoot, type Loot } from '../loot/types';
+import type { QuestTarget } from '../quests/types';
 import { PATROL_SOURCES, foughtEnemies, grantPatrolWin, patrolDungeon, patrolRewards, patrolRunOptions, settleConsumables } from './fight';
 import { isPatrolKind, patrolTier, patrolsAround, pruneByWindow, type PatrolKind, type PatrolSpawn } from './generate';
 import { distanceTo, hasFled, inEngageRange, isGone, isVisible } from './visibility';
@@ -76,7 +79,11 @@ export type BackgroundResult = {
 export type BackgroundAlert =
   | { kind: 'patrolSpotted'; spawn: PatrolSpawn; distance: number; tier: number }
   | { kind: 'escortPaused'; hpShare: number }
-  | { kind: 'escortKnockedOut' };
+  | { kind: 'escortKnockedOut' }
+  | { kind: 'questTarget'; questId: string; target: QuestTarget };
+
+/** A quest's target the background task watches for. */
+export type WatchedTarget = { questId: string; target: QuestTarget };
 
 /** Everything the background task keeps between runs, built from the save. */
 export type BackgroundState = {
@@ -100,6 +107,12 @@ export type BackgroundState = {
   defeatedLairs: Record<string, number>;
   lastAlertAt: number | null;
   pending: BackgroundResult[];
+  /** Active quests' targets: one alert each on arrival. */
+  questTargets: WatchedTarget[];
+  /** Quest ids already alerted for. */
+  questAlerted: string[];
+  /** Strange marks reached since the last hand-off; the app resolves them. */
+  questArrivals: { questId: string; at: number }[];
 };
 
 /**
@@ -149,7 +162,17 @@ export function snapshotBackground(
     ),
     lastAlertAt: previous?.lastAlertAt ?? null,
     pending: [],
+    questTargets: watchedTargets(save),
+    questAlerted: (previous?.questAlerted ?? []).filter((id) => save.quests.list.some((quest) => quest.id === id && quest.doneAt === null)),
+    questArrivals: [],
   };
+}
+
+/** Accepted quests still to do whose target is fixed. */
+function watchedTargets(save: SaveData): WatchedTarget[] {
+  return save.quests.list.flatMap((quest) =>
+    quest.acceptedAt !== null && quest.doneAt === null && quest.target ? [{ questId: quest.id, target: quest.target }] : [],
+  );
 }
 
 /** The escort's HP at a time: healed from `hpAt` once any exhaustion is over. */
@@ -194,11 +217,31 @@ export function backgroundStep(
   now: number,
   rules: PatrolRules = patrolRules,
 ): { state: BackgroundState; alerts: BackgroundAlert[] } {
-  let next: BackgroundState = { ...state, alerted: { ...state.alerted }, firstSeen: { ...state.firstSeen }, beaten: { ...state.beaten }, pending: [...state.pending] };
+  let next: BackgroundState = {
+    ...state,
+    alerted: { ...state.alerted },
+    firstSeen: { ...state.firstSeen },
+    beaten: { ...state.beaten },
+    pending: [...state.pending],
+    // States stored before quests have no targets.
+    questTargets: state.questTargets ?? [],
+    questAlerted: [...(state.questAlerted ?? [])],
+    questArrivals: [...(state.questArrivals ?? [])],
+  };
   const alerts: BackgroundAlert[] = [];
   const minShare = rules.escort.minHpShare;
 
   for (const { position, timestamp: at } of [...fixes].sort((a, b) => a.timestamp - b.timestamp)) {
+    for (const { questId, target } of next.questTargets) {
+      if (next.questAlerted.includes(questId) || target.expiresAt <= at) continue;
+      if (distanceMeters(position, target.position) > questRules.arrivalMeters) continue;
+      next.questAlerted.push(questId);
+      alerts.push({ kind: 'questTarget', questId, target });
+      if (target.kind === 'mark') next.questArrivals.push({ questId, at });
+    }
+    // Nothing below matters without patrol alerts or an escort.
+    if (!next.patrolAlerts && !next.escort) continue;
+
     if (next.escort) {
       const share = escortHpAt(next.escort, at) / Math.max(1, next.escort.maxHp);
       if (!next.escort.paused && share < minShare) {

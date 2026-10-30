@@ -35,6 +35,8 @@ export function IslandMenu() {
   // The tutorial points at the button its current step is waiting for.
   const target = useGameStore((state) => tutorialTarget(state.save));
   const guildOpen = useGameStore((state) => isGuildUnlocked(state.save));
+  // Quests new since the list was last open, and finished ones waiting to be claimed.
+  const questNews = useGameStore(({ save }) => save.quests.list.filter((quest) => !quest.seen || quest.doneAt !== null).length);
   // Badly hurt heroes, as of the last change to the save.
   const hurt = useGameStore(
     ({ save }) => save.heroes.filter((h) => currentHp(save, h, Date.now()) < healthRules.hurtShare * maxHp(save, h)).length,
@@ -83,6 +85,7 @@ export function IslandMenu() {
             onPress={() => go('/team')}
           />
           <MenuButton emoji={guildOpen ? '🏛️' : '🔒'} label={t('menu.guild')} onPress={() => go('/guild')} />
+          <MenuButton emoji="📜" label={t('menu.quests')} compact badge={questNews} onPress={() => go('/quests')} />
           <MenuButton
             icon={require('../../assets/icons/scaled/menu-expeditions.png')}
             label={t('menu.expeditions')}
@@ -106,9 +109,11 @@ type MenuButtonProps = {
   /** Draws attention to the button, e.g. for the tutorial. */
   highlight?: boolean;
   badge?: number;
+  /** Icon only: the label is read out but not shown. */
+  compact?: boolean;
 };
 
-function MenuButton({ icon, emoji, label, onPress, active, highlight, badge }: MenuButtonProps) {
+function MenuButton({ icon, emoji, label, onPress, active, highlight, badge, compact }: MenuButtonProps) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -116,15 +121,16 @@ function MenuButton({ icon, emoji, label, onPress, active, highlight, badge }: M
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
+        compact && styles.compact,
         active && styles.buttonActive,
         highlight && styles.buttonHighlight,
         pressed && styles.pressed,
       ]}
     >
       {icon ? <Image source={icon} style={styles.buttonIcon} /> : <Text style={styles.buttonEmoji}>{emoji}</Text>}
-      <Text style={styles.buttonLabel}>{label}</Text>
+      {!compact && <Text style={styles.buttonLabel}>{label}</Text>}
       {badge ? (
-        <View style={styles.badge}>
+        <View style={[styles.badge, compact && styles.compactBadge]}>
           <Text style={styles.badgeText}>{badge}</Text>
         </View>
       ) : null}
@@ -151,6 +157,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   button: { flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 26 },
+  compact: { flex: 0, width: 56 },
   buttonActive: { backgroundColor: colors.woodLight },
   buttonHighlight: { backgroundColor: colors.woodLight, borderWidth: 3, borderColor: colors.highlight },
   pressed: { opacity: 0.7 },
@@ -170,6 +177,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.danger,
   },
   badgeText: { color: '#fff', fontSize: 16 },
+  compactBadge: { right: 0 },
   dropdown: {
     alignSelf: 'flex-start',
     minWidth: 170,

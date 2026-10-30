@@ -2,7 +2,7 @@ import { placeGroups, placeRules, type PlaceGroup, type PlaceKind } from '@/cont
 
 import { distanceMeters } from '../generation/geo';
 import { createRng } from '../generation/rng';
-import { randomPointInTile, tileAreaKm2, tilesAround } from '../generation/tiles';
+import { randomPointInTile, tileAreaKm2, tilesAround, tilesWithin } from '../generation/tiles';
 import type { LatLng } from '../generation/types';
 
 const HOUR_MS = 3_600_000;
@@ -55,6 +55,13 @@ export function placesAround(position: LatLng, timeMs: number, groups: PlaceGrou
   return groups.flatMap((group) =>
     tilesAround(position, group.precision).flatMap((tile) => generateTilePlaces(group, tile, timeMs)),
   );
+}
+
+/** Every place of the given groups within `meters` of a position (quest targets look further than the map shows). */
+export function placesWithin(position: LatLng, meters: number, timeMs: number, groups: PlaceGroup[] = placeGroups): PlaceSpawn[] {
+  return groups
+    .flatMap((group) => tilesWithin(position, meters, group.precision).flatMap((tile) => generateTilePlaces(group, tile, timeMs)))
+    .filter((spawn) => distanceMeters(position, spawn.position) <= meters);
 }
 
 /** The group a kind belongs to. */

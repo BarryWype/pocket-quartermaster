@@ -12,6 +12,7 @@ export type NotificationCategory =
   | 'chestClose'
   | 'dailyReset'
   | 'walkSummary'
+  | 'questTarget'
   | 'patrolSpotted'
   | 'escort';
 

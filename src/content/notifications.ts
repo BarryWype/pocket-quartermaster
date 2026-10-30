@@ -4,7 +4,7 @@ import type { ExpeditionOutcome } from '@/game/types';
 /** Android channels, one per settings group, so players can also manage them in system settings. */
 export const notificationGroups: Record<NotificationGroup, { title: string; description: string }> = {
   expeditions: { title: 'Expeditions & heroes', description: 'Expedition results, rested heroes and idle hero reminders.' },
-  steps: { title: 'Steps & daily goals', description: 'Step chests and the daily reset.' },
+  steps: { title: 'Steps & daily goals', description: 'Step chests, the daily reset and quest targets.' },
   patrols: { title: 'Patrols', description: 'Patrols and travellers spotted nearby, and your escort.' },
 };
 
@@ -66,6 +66,12 @@ export const notificationCategories: Record<
     description: 'When auto-gather stops by itself after a while without movement.',
     defaultOn: false,
   },
+  questTarget: {
+    group: 'steps',
+    title: 'Quest target reached',
+    description: 'When you reach a quest’s target while the app is closed.',
+    defaultOn: true,
+  },
   patrolSpotted: {
     group: 'patrols',
     title: 'Patrol spotted',
@@ -116,4 +122,6 @@ export const notificationTexts = {
   travellerSpotted: { title: '{traveller} nearby', body: '{line}' },
   escortPaused: { title: 'Escort paused', body: '{hero} is at {percent}% HP.' },
   escortKnockedOut: { title: 'Escort knocked out', body: '{hero} needs rest.' },
+  questTarget: { title: 'Quest: {place} reached', body: 'Open the game to finish your quest here.' },
+  questMark: { title: 'The strange mark', body: 'You found it. Open the game to see what it hides.' },
 };

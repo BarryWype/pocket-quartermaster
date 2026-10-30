@@ -23,6 +23,8 @@ function openFrom(data: Record<string, unknown> | undefined) {
       focusPatrol: { id: String(data.patrolId), latitude: Number(data.latitude), longitude: Number(data.longitude) },
     });
     router.navigate('/');
+  } else if (data?.route === 'quests') {
+    router.navigate('/quests');
   } else if (data?.route === 'pocketMode') {
     useWorldStore.getState().set({ pocketPanel: 'escort' });
     router.navigate('/');

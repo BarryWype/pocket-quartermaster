@@ -152,6 +152,18 @@ export function maybeSecretQuest(save: SaveData, at: number): SaveData {
   return questsState(save, { list: [...save.quests.list, quest], secretDay: day });
 }
 
+/** Strange marks reached in the background, kept until the app resolves them with its map tiles. */
+export function noteMarksReached(save: SaveData, arrivals: { questId: string; at: number }[]): SaveData {
+  if (arrivals.length === 0) return save;
+  const list = save.quests.list.map((quest) => {
+    const arrival = arrivals.find((a) => a.questId === quest.id);
+    return arrival && quest.objective === 'mark' && quest.doneAt === null && quest.reachedAt === undefined
+      ? { ...quest, reachedAt: arrival.at }
+      : quest;
+  });
+  return questsState(save, { list });
+}
+
 export function isClaimable(quest: Quest): boolean {
   return quest.doneAt !== null;
 }

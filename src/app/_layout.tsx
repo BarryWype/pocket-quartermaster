@@ -80,6 +80,7 @@ export default function RootLayout() {
         <Stack.Screen name="team/[heroId]" options={{ title: t('screens.hero') }} />
         <Stack.Screen name="team/classes" options={{ title: t('classes.title') }} />
         <Stack.Screen name="expeditions" options={{ title: t('screens.expeditions') }} />
+        <Stack.Screen name="quests" options={{ title: t('screens.quests') }} />
         <Stack.Screen name="guild" options={{ title: t('screens.guild') }} />
         <Stack.Screen name="settings" options={{ title: t('screens.settings') }} />
         <Stack.Screen name="debug" options={{ title: t('screens.debug') }} />

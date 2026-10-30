@@ -56,7 +56,7 @@ import { pruneExpired, rollDailyApproaches } from '@/game/upkeep';
 import { questRules, type QuestBand, type QuestObjective } from '@/content/quests';
 import { placeRules, type PlaceKind } from '@/content/places';
 import { newQuest, questUpkeep, rerollQuest } from '@/game/quests/arrival';
-import { complete, deliver, maybeSecretQuest, markSeen, questEvent, refreshWalks } from '@/game/quests/progress';
+import { complete, deliver, maybeSecretQuest, markSeen, noteMarksReached, questEvent, refreshWalks } from '@/game/quests/progress';
 import { claimQuest, reachMark } from '@/game/quests/rewards';
 import { acceptQuests, retargetQuests } from '@/game/quests/targets';
 import { createRng } from '@/game/generation/rng';
@@ -166,6 +166,8 @@ type GameState = {
   recordSteps: (day: string, newSteps: number) => void;
   syncSteps: (day: string, total: number) => void;
   openChest: (chestId: string, steps: number) => Loot;
+  /** Strange marks the background task saw the player reach; they resolve once the map is up. */
+  noteMarksReached: (arrivals: { questId: string; at: number }[]) => void;
   /** Place kinds now in sight; quest objectives unlock from these. */
   notePlacesSeen: (kinds: PlaceKind[]) => void;
   /** Opening a place's panel in reach (the library quest counts it). */
@@ -438,6 +440,10 @@ export const useGameStore = create<GameState>()(
         })),
       recordSteps: (day, newSteps) => set(({ save }) => ({ save: refreshWalks(recordSteps(save, day, newSteps), Date.now()) })),
       syncSteps: (day, total) => set(({ save }) => ({ save: refreshWalks(syncSteps(save, day, total), Date.now()) })),
+      noteMarksReached: (arrivals) => {
+        const next = noteMarksReached(get().save, arrivals);
+        if (next !== get().save) set({ save: next });
+      },
       notePlacesSeen: (kinds) => {
         const save = get().save;
         const fresh = kinds.filter((kind) => !save.seenPlaceKinds.includes(kind));

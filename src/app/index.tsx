@@ -60,6 +60,7 @@ import { useLanguage } from '@/hooks/useLanguage';
 import { usePlacedPoints, usePlacedSpawns } from '@/hooks/usePlacedSpawns';
 import { useAmbience } from '@/hooks/useAmbience';
 import { usePlayerLocation } from '@/hooks/usePlayerLocation';
+import { useQuestMarks } from '@/hooks/useQuestMarks';
 import { useSecretPlaces } from '@/hooks/useSecretPlaces';
 import { hasKey } from '@/game/secrets/keys';
 import { isEntered } from '@/game/secrets/places';
@@ -252,6 +253,22 @@ export default function MapScreen() {
   // This player's tipped secret places: shown at any distance until they move on.
   const secretsInSight = useSecretPlaces(save, now);
   const keyHeld = hasKey(save);
+  // Quest objectives unlock from the place kinds the player has seen.
+  const notePlacesSeen = useGameStore((state) => state.notePlacesSeen);
+  const kindsInSight = [...new Set([...placesInSight.map((place) => place.kind), ...(tavernsInSight.length > 0 ? (['tavern'] as const) : [])])].sort().join(',');
+  useEffect(() => {
+    if (kindsInSight) notePlacesSeen(kindsInSight.split(',') as PlaceSpawn['kind'][]);
+  }, [kindsInSight, notePlacesSeen]);
+  // Active quests' targets, within 2 km by construction.
+  const questTargets = save.quests.list.flatMap((quest) =>
+    quest.acceptedAt !== null && quest.doneAt === null && quest.target ? [{ id: quest.id, target: quest.target }] : [],
+  );
+  useQuestMarks(save, position);
+  const visitPlace = useGameStore((state) => state.visitPlace);
+  const openPlaceAt = (place: PlaceSpawn) => {
+    setOpenPlace(place);
+    if (position) visitPlace(place, position);
+  };
   // Other screens (the launch dialog) can sell emergency supply while a tavern is in reach.
   const nearbyTavern = tavernsInSight.find((t) => position !== null && distanceMeters(position, t.position) <= tavernRules.interactionMeters) ?? null;
   const setWorld = useWorldStore((state) => state.set);
@@ -459,7 +476,7 @@ export default function MapScreen() {
           </Marker>
         ))}
         {placesInSight.map((place) => (
-          <Marker key={place.id} id={place.id} lngLat={toLngLat(place.position)} onPress={() => setOpenPlace(place)}>
+          <Marker key={place.id} id={place.id} lngLat={toLngLat(place.position)} onPress={() => openPlaceAt(place)}>
             <SanctumMarker
               emoji={placeInfo[place.kind].emoji}
               locked={isLockedMine(place.kind, playerPickaxe)}
@@ -501,6 +518,11 @@ export default function MapScreen() {
             </Marker>
           );
         })}
+        {questTargets.map(({ id, target }) => (
+          <Marker key={`quest:${id}`} id={`quest:${id}`} lngLat={toLngLat(target.position)} onPress={() => router.push('/quests')}>
+            <Text style={target.kind === 'mark' ? styles.questMark : styles.questTarget}>{target.kind === 'mark' ? '❓' : '📜'}</Text>
+          </Marker>
+        ))}
         {placedTreasure.map((spot) => (
           <Marker key={spot.id} id={spot.id} lngLat={toLngLat(spot.position)} onPress={() => digUp(spot.id, spot.position)}>
             <Text style={styles.treasure}>💰</Text>
@@ -595,6 +617,9 @@ const styles = StyleSheet.create({
   map: { flex: 1 },
   player: { fontSize: 28 },
   treasure: { fontSize: 30 },
+  // Sits above the target's own marker.
+  questTarget: { fontSize: 18, transform: [{ translateY: -34 }] },
+  questMark: { fontSize: 26 },
   lure: { right: 56, alignSelf: 'auto' },
   freshLegs: { left: 56, alignSelf: 'auto' },
   banner: {

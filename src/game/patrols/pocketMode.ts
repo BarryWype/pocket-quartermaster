@@ -27,9 +27,8 @@ export const patrolSettingsFrom = (pocketMode: PocketModeSettings, save: SaveDat
   escortAlerts: true,
 });
 
-/** Whether the background task's patrol state is wanted at all: tracking on, with patrol alerts or the escort. */
-export const needsBackgroundState = (pocketMode: PocketModeSettings): boolean =>
-  pocketTracking(pocketMode) && (pocketMode.patrolAlerts || pocketMode.escort);
+/** Whether the background task's state is wanted at all: whenever tracking runs, for patrols, the escort and quest targets. */
+export const needsBackgroundState = (pocketMode: PocketModeSettings): boolean => pocketTracking(pocketMode);
 
 /** The persisted settings as version 2 kept them, before Pocket mode. */
 type PersistedV2 = Record<string, unknown> & {

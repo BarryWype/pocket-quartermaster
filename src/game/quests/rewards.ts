@@ -62,14 +62,15 @@ export function reachMark(
 ): { save: SaveData; tip: TipOutcome | null } {
   const quest = save.quests.list.find((q) => q.id === questId);
   if (!quest?.target || quest.objective !== 'mark' || quest.doneAt !== null) return { save, tip: null };
-  const done = questEvent(save, { kind: 'arrived', placeId: quest.target.placeId }, at);
+  const reachedAt = quest.reachedAt ?? at;
+  const done = questEvent(save, { kind: 'arrived', placeId: quest.target.placeId }, reachedAt);
   if (done === save) return { save, tip: null };
   const anchor = quest.target.position;
-  const secret = questTipSecret(done, quest.id, anchor, at, isNearWater);
+  const secret = questTipSecret(done, quest.id, anchor, reachedAt, isNearWater);
   if (!secret) {
     const gold = duplicateTipGold(done);
     return { save: { ...done, gold: done.gold + gold }, tip: { kind: 'gold', gold } };
   }
-  const granted = grantTip(done, { source: 'quest', sourceId: quest.id, anchor, secret }, at);
+  const granted = grantTip(done, { source: 'quest', sourceId: quest.id, anchor, secret }, reachedAt);
   return { save: granted.save, tip: granted.outcome };
 }

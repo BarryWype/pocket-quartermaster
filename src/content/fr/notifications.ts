@@ -4,7 +4,7 @@ type Texts = { title: string; description: string };
 
 export const frNotificationGroups: Record<keyof typeof notificationGroups, Texts> = {
   expeditions: { title: 'Expéditions et héros', description: 'Résultats des expéditions, héros reposés et rappels quand les héros attendent.' },
-  steps: { title: 'Pas et objectifs du jour', description: 'Coffres de pas et remise à zéro quotidienne.' },
+  steps: { title: 'Pas et objectifs du jour', description: 'Coffres de pas, remise à zéro quotidienne et cibles de quête.' },
   patrols: { title: 'Patrouilles', description: 'Patrouilles et voyageurs repérés à proximité, et votre escorte.' },
 };
 
@@ -21,6 +21,7 @@ export const frNotificationCategories: Record<keyof typeof notificationCategorie
   chestClose: { title: 'Prochain coffre tout proche', description: 'Quand le prochain coffre n’est plus qu’à une petite marche.' },
   dailyReset: { title: 'Nouvelle journée', description: 'À minuit, quand les coffres de pas se remettent à zéro.' },
   walkSummary: { title: 'Résumé de marche', description: 'Quand la récolte auto s’arrête d’elle-même après un moment sans bouger.' },
+  questTarget: { title: 'Cible de quête atteinte', description: 'Quand vous atteignez la cible d’une quête pendant que l’app est fermée.' },
   patrolSpotted: { title: 'Patrouille repérée', description: 'Quand une patrouille ou un voyageur entre dans votre champ de vision pendant que l’app est fermée.' },
   escort: { title: 'Escorte', description: 'Quand votre escorte fait une pause pour se reposer ou est mise KO.' },
 };
@@ -49,4 +50,6 @@ export const frNotificationTexts: typeof notificationTexts = {
   travellerSpotted: { title: '{traveller} à proximité', body: '{line}' },
   escortPaused: { title: 'Escorte en pause', body: '{hero} est à {percent} % de PV.' },
   escortKnockedOut: { title: 'Escorte KO', body: '{hero} a besoin de repos.' },
+  questTarget: { title: 'Quête : {place} atteint', body: 'Ouvrez le jeu pour terminer votre quête ici.' },
+  questMark: { title: 'L’étrange marque', body: 'Vous l’avez trouvée. Ouvrez le jeu pour voir ce qu’elle cache.' },
 };

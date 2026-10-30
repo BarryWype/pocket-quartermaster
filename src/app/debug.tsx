@@ -60,6 +60,7 @@ import { createRng } from '@/game/generation/rng';
 import { rollForSave, sourceAmounts } from '@/game/loot/context';
 import { lootConfig } from '@/content/loot/config';
 import { secretRules, type PlaceTipSource } from '@/content/secrets';
+import { objectives, type QuestBand, type QuestObjective } from '@/content/quests';
 import { lootMatrix } from '@/content/loot/matrix';
 import { components } from '@/content/loot/components';
 import { charms } from '@/content/loot/charms';
@@ -96,6 +97,37 @@ const LUCK_POINTS = [0, 10, 30, 100];
 const MAP_RARITIES: MapRarity[] = ['common', 'rare', 'legendary'];
 /** One tip source per secret place, for the debug buttons. */
 const SECRET_SOURCES: PlaceTipSource[] = ['library', 'heist', 'fishingDock'];
+
+const QUEST_OBJECTIVES = Object.keys(objectives) as QuestObjective[];
+const QUEST_BANDS: QuestBand[] = ['short', 'medium', 'long'];
+
+/** Daily quests: grant any objective and band, finish one, pop the secret quest, free the reroll. */
+function QuestDebug() {
+  const game = useGameStore();
+  const [objective, setObjective] = useState<QuestObjective>('chapel');
+  const [band, setBand] = useState<QuestBand>('short');
+  const open = game.save.quests.list.filter((quest) => quest.doneAt === null);
+  return (
+    <>
+      <Text style={styles.title}>Quests</Text>
+      <Choice options={QUEST_OBJECTIVES} value={objective} label={(o) => `${objectives[o].emoji} ${o}`} onChange={setObjective} />
+      <Choice options={QUEST_BANDS} value={band} label={(b) => b} onChange={setBand} />
+      <View style={styles.row}>
+        <Button title="Grant quest" onPress={() => game.grantQuest(objective, band)} />
+        <Button title="Trigger secret quest" onPress={game.triggerSecretQuest} />
+        <Button title="Reset reroll" onPress={game.resetQuestReroll} />
+      </View>
+      {open.length > 0 && (
+        <Choice
+          options={open.map((quest) => quest.id)}
+          value=""
+          label={(id) => `Complete ${open.find((quest) => quest.id === id)!.objective} (${id})`}
+          onChange={game.completeQuest}
+        />
+      )}
+    </>
+  );
+}
 
 /**
  * A source's roll table with its final chances (after Luck, a ×1.5 charm on
@@ -223,6 +255,7 @@ const SAMPLE_NOTIFICATIONS: Record<NotificationCategory, { title: string; body: 
   chestClose: { ...texts.chestClose, body: fill(texts.chestClose.body, { steps: 600, chest: 'iron chest' }) },
   dailyReset: texts.dailyReset,
   walkSummary: { ...texts.walkSummary, body: fill(texts.walkSummary.body, { distance: '2.4 km' }) },
+  questTarget: { ...texts.questTarget, title: fill(texts.questTarget.title, { place: 'Chapel' }) },
   patrolSpotted: { ...texts.patrolSpotted, body: fill(texts.patrolSpotted.body, { patrol: 'Goblin patrol', distance: '180 m', tier: 2 }) },
   escort: { ...texts.escortPaused, body: fill(texts.escortPaused.body, { hero: 'Bram', percent: 45 }) },
 };
@@ -964,6 +997,7 @@ export default function DebugScreen() {
         onChange={(forcedLootCategory) => debug.set({ forcedLootCategory })}
       />
       <LootDebug />
+      <QuestDebug />
 
       <Text style={styles.title}>Auto-gather</Text>
       <Text>Mode: {autoMode} · processed until {game.save.autoGather.processedUntil ? new Date(game.save.autoGather.processedUntil).toLocaleTimeString() : 'never'}</Text>
