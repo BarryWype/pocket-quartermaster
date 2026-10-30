@@ -62,6 +62,7 @@ export const fr: Dictionary = {
     recentre: 'Centrer sur moi',
     lure: '🪤 Leurre {time}',
     freshLegs: '🦵 Jambes fraîches : {count} récoltes bonus restantes',
+    freshLegsShow: 'Afficher Jambes fraîches',
     cookingHint: '🍳 Les vivres s’épuisent. Chaque expédition a besoin de vivres : préparez du mélange du randonneur et de la viande séchée avec des baies et de la viande dans Artisanat → Provisions. Touchez pour fermer.',
   },
   expeditions: {

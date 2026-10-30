@@ -150,6 +150,7 @@ export default function MapScreen() {
   const [decor, setDecor] = useState(true);
   const [now, setNow] = useState(Date.now());
   const [message, setMessage] = useState<string | null>(null);
+  const [freshLegsOpen, setFreshLegsOpen] = useState(true);
   const autoMode = useWorldStore((state) => state.autoGather);
   const autoEnabled = useSettingsStore((state) => pocketTracking(state.pocketMode));
   const showAutoRadius = useDebugStore((state) => debugOn && state.showAutoRadius);
@@ -673,7 +674,7 @@ export default function MapScreen() {
       <Pressable
         accessibilityLabel={t('screens.settings')}
         onPress={() => router.push('/settings')}
-        style={[styles.roundButton, styles.settingsButton, { marginLeft: debugOn ? 20 : -16, top: insets.top + 8 }]}
+        style={[styles.roundButton, styles.settingsButton, { top: insets.top + 8 }]}
       >
         <Text style={styles.buttonEmoji}>⚙️</Text>
       </Pressable>
@@ -701,11 +702,24 @@ export default function MapScreen() {
         buttonStyle={{ bottom: insets.bottom + ISLAND_HEIGHT + 68 }}
         chipsStyle={{ top: insets.top + 48 }}
       />
-      {save.tutorial.step === 'done' && freshGathersLeft(save, now) > 0 && (
-        <Text style={[styles.banner, styles.freshLegs, { top: insets.top + 8 }]}>
-          {t('map.freshLegs', { count: freshGathersLeft(save, now) })}
+      {save.tutorial.step === 'done' && freshGathersLeft(save, now) > 0 && (freshLegsOpen ? (
+        <Text
+          accessibilityRole="button"
+          accessibilityHint={t('common.close')}
+          onPress={() => setFreshLegsOpen(false)}
+          style={[styles.banner, styles.freshLegs, { top: insets.top + 48 }]}
+        >
+          {t('map.freshLegs', { count: freshGathersLeft(save, now) })}  ✕
         </Text>
-      )}
+      ) : (
+        <Pressable
+          accessibilityLabel={t('map.freshLegsShow')}
+          onPress={() => setFreshLegsOpen(true)}
+          style={[styles.roundButton, styles.freshLegsButton, { top: insets.top + 48 }]}
+        >
+          <Text style={styles.buttonEmoji}>🦵</Text>
+        </Pressable>
+      ))}
       {openSanctum && <SanctumPanel spawn={openSanctum} player={position} onClose={() => setOpenSanctum(null)} />}
       {openPlace && isFightPlace(openPlace.kind) && (
         <PlaceFightPanel place={openPlace} player={position} now={now} onClose={() => setOpenPlace(null)} />
@@ -743,7 +757,9 @@ const styles = StyleSheet.create({
   questTarget: { fontSize: 18, transform: [{ translateY: -34 }] },
   questMark: { fontSize: 26 },
   lure: { right: 56, alignSelf: 'auto' },
-  freshLegs: { left: 56, alignSelf: 'auto' },
+  // Below the map attribution; leaves the right side to the walk effect chips.
+  freshLegs: { left: 16, maxWidth: '60%', alignSelf: 'auto', fontSize: 15 },
+  freshLegsButton: { left: 16 },
   banner: {
     position: 'absolute',
     alignSelf: 'center',
@@ -761,8 +777,7 @@ const styles = StyleSheet.create({
   pointer: { fontSize: 24 },
   autoGather: { position: 'absolute', left: 16 },
   debugButton: { alignSelf: 'center' },
-  // Next to 🐞 when debug tools are on; the top-right corner is taken by the dev menu button.
-  settingsButton: { left: '50%' },
+  settingsButton: { right: 16 },
   roundButton: {
     position: 'absolute',
     width: 32,

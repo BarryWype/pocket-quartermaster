@@ -60,6 +60,7 @@ export const en = {
     recentre: 'Centre on me',
     lure: '🪤 Lure {time}',
     freshLegs: '🦵 Fresh legs: {count} bonus gathers left',
+    freshLegsShow: 'Show Fresh legs',
     cookingHint: '🍳 Food is running low. Every expedition needs supply: cook trail mix and jerky from berries and meat in Craft → Provisions. Tap to close.',
   },
   expeditions: {
