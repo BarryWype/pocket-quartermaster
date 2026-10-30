@@ -65,7 +65,7 @@ Goal: give players a reason to go out with a destination, not only to wander. Po
 - 2–3 new contracts every 24 h, stacking up to 6. A Guild Hall upgrade raises the cap.
 - No board to walk to: contracts arrive automatically and target "the nearest X", so there's always one within reach.
 - Example objectives: deliver 2 potions to a doctor, pray at a chapel, defeat 3 patrols, mine at an iron mine, walk 3 km, clear a goblin lair.
-- Distance tiers (short ~500 m, medium ~1–1.5 km, long ~2–3 km), with rewards growing with distance.
+- Distance tiers (short ~500 m, medium ~1–1.5 km, long ~1.5–2 km), with rewards growing with distance.
 - While a contract is active, patrols are more likely along the route, so the walk becomes a small adventure.
 - No pressure: contracts last 24–48 h, ignoring them costs nothing, and one free reroll per day.
 - Arriving in Pocket mode sends a notification, and the encounter is resolved when the app opens (consistent with patrols).

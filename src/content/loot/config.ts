@@ -123,7 +123,7 @@ export const lootConfig = {
   },
   treasureMaps: {
     rarityWeights: { common: 70, rare: 25, legendary: 5 } as Record<MapRarity, number>,
-    distanceMeters: { common: [200, 800], rare: [800, 1500], legendary: [1500, 3000] } as Record<MapRarity, [number, number]>,
+    distanceMeters: { common: [200, 800], rare: [800, 1500], legendary: [1500, 2000] } as Record<MapRarity, [number, number]>,
     /** Applies to non-A chances and gold at the treasure spot. */
     lootMultiplier: { common: 1, rare: 1.5, legendary: 2.5 } as Record<MapRarity, number>,
     legendaryOnly: ['relics', 'components'] as LootCategory[],
