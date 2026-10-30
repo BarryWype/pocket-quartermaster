@@ -1,11 +1,6 @@
 import { dungeons, overnightExpeditionRules } from '@/content/dungeons';
-import { startingHeroes } from '@/content/heroes';
 import { dailyRotation, openDungeonIds } from '@/game/dungeons/rotation';
 import { isDungeonAvailable, launchPlan, overnightUnderWay, resolveExpedition, startExpedition } from '@/game/expeditions/expeditions';
-import { estimateOdds } from '@/game/expeditions/odds';
-import type { HeroClassId } from '@/game/types';
-import { expectedLevels } from '@/game/sim/config';
-import { referenceTeam } from '@/game/sim/matrix';
 import { createInitialSave, type SaveData } from '@/game/save';
 
 const runs = dungeons.filter((d) => d.overnight);
@@ -62,16 +57,5 @@ describe('overnight expeditions', () => {
     // Once collected, the patrol can go out again.
     const resolved = resolveExpedition(away, away.expeditions[0]);
     expect(overnightUnderWay(resolved.save)).toBe(false);
-  });
-
-  // Skipped until the class and gear rework rebalances dungeons around threats.
-  it.skip('sits in its odds band with the tier’s Normal gear at the expected level', () => {
-    for (const run of runs) {
-      const base = startingHeroes.map((h) => h.classId) as HeroClassId[];
-      const save = referenceTeam(base, run.tier, 'normal', expectedLevels[run.tier - 1]);
-      const odds = estimateOdds(save, save.heroes.map((h) => h.id), run, 300);
-      expect(odds.success).toBeGreaterThan(0.82);
-      expect(odds.success).toBeLessThan(0.93);
-    }
   });
 });

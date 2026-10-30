@@ -1,6 +1,6 @@
 # Simulator: design spec
 
-**Status: designed, not implemented.** The simulator rework comes after the Guild Hall rework (the Guild Hall changes rates and caps).
+**Status: implemented.** `npm run sim` writes `report.md` and `summary.json` next to this file; `npm run sim:check` runs the balance band tests on them.
 
 The simulator plays the game with simple bots, for several player profiles, and checks the results against targets. It's the balancing tool for the release.
 
@@ -49,4 +49,4 @@ These catch design problems, not just balance:
 ## Notes for the design
 - With about 7 days per tier, a regular player finds about 12 of a tier's 22 blueprints before moving on. That's acceptable (types the roster favours come first), but the loot pacing table's target ("a tier's 22 in about 2 weeks") is now a stretch goal, not a requirement.
 - 5 tiers at about a week each is about 5 weeks to the last tier for a regular player. Play after that relies on the tier 5 loop (relics, components, secret places, quests).
-- The balance band tests (`targets.ts`) are turned back on with these targets once the rework is done.
+- The balance band tests (`src/game/sim/bands.test.ts`, targets in `targets.ts`) stay skipped until tuning brings the numbers in range; `npm run sim:check` runs them on demand.

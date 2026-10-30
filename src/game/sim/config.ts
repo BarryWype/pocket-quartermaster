@@ -167,17 +167,14 @@ export const simConfig = {
     'sigilCap',
     'rosterSlot8',
   ] as GuildTrackId[],
-  /** Odds matrix: runs per cell. */
-  matrix: { runs: 200 },
 };
 
 export type SimConfig = typeof simConfig;
 
 /**
- * Hero level expected while playing each tier: the median level of the party
- * at each boss's first attempt, as `npm run sim` measures it for the regular
- * profile. The balance tests and the odds matrix use it; update it when the
- * report's "Party level at the first attempt" moves.
+ * The top of each tier's hero level band: heroes should reach it around the
+ * end of the tier (the report's "Hero levels" section checks it). The balance
+ * tests use it as the level a tier is played at.
  */
 export const expectedLevels = [3, 6, 9, 12, 15];
 

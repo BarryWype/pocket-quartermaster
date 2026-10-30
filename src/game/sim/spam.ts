@@ -4,7 +4,7 @@ import { resolveExpedition, startExpedition } from '../expeditions/expeditions';
 import type { SaveData } from '../save';
 import { currentHp, maxHp } from '../team/health';
 import { expectedLevels } from './config';
-import { referenceTeam } from './matrix';
+import { referenceTeam } from './reference';
 import { targets, type Targets } from './targets';
 
 export type SpamResult = { xpPerHour: number; goldPerHour: number };

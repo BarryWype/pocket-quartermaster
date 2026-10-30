@@ -62,6 +62,12 @@ export type ProfileSummary = {
   };
 };
 
+/** What `npm run sim` writes to doc/design/simulator/summary.json, and the balance band tests read. */
+export type Summary = {
+  settings: { profiles: string[]; seeds: number; seed: string; overrides: string[]; maxDays: number | null };
+  profiles: Record<string, ProfileSummary>;
+};
+
 /** Median of each key over seeds, of per-seed totals. */
 function medianTotals(perSeed: Record<string, number>[]): Record<string, number> {
   const keys = [...new Set(perSeed.flatMap((r) => Object.keys(r)))];

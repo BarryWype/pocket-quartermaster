@@ -4,11 +4,9 @@ import { monsterParts } from '@/content/loot/monsterParts';
 
 import { offsetPosition } from '../generation/geo';
 import { createRng } from '../generation/rng';
-import { prepareParty } from '../expeditions/simulate';
-import { estimatePartyOdds } from '../expeditions/odds';
 import { currentHp, isExhausted, setHeroHp } from '../team/health';
 import { isAway } from '../team/team';
-import { patrolDungeon, patrolFightProblem, patrolRewards, patrolRunOptions, resolvePatrolFights, rewardContextOf, startPatrolFight } from './fight';
+import { patrolDungeon, patrolFightProblem, patrolRewards, resolvePatrolFights, rewardContextOf, startPatrolFight } from './fight';
 import { isPatrolKind, type PatrolKind, type PatrolSpawn } from './generate';
 import { findSpawn, fixOn, tierTeam } from './testHelpers';
 import { isGone } from './visibility';
@@ -134,28 +132,7 @@ describe('patrol rewards', () => {
   });
 });
 
-// Skipped until the class and gear rework rebalances dungeons around threats.
-describe.skip('patrol odds (tier gear, Normal, full HP)', () => {
-  const kinds: [PatrolKind, string[][], number][] = [
-    ['goblins', [['bram'], ['lyra'], ['mira']], 0.9],
-    ['herd', [['bram'], ['lyra'], ['mira']], 0.9],
-    ['bandits', [['bram', 'lyra'], ['bram', 'mira'], ['lyra', 'mira']], 0.75],
-  ];
-  for (const tier of [1, 3, 5]) {
-    for (const [kind, parties, target] of kinds) {
-      it(`tier ${tier} ${kind} is about ${target * 100}% at the recommended party size, elites harder`, () => {
-        const save = tierTeam(tier);
-        const odds = (elite: boolean) =>
-          parties
-            .map((p) => estimatePartyOdds(prepareParty(save, p), patrolDungeon(asKind(goblins, kind), tier, elite), 300, patrolRunOptions(kind)).success)
-            .reduce((a, b) => a + b) / parties.length;
-        const normal = odds(false);
-        expect(Math.abs(normal - target)).toBeLessThan(0.08);
-        expect(odds(true)).toBeLessThan(normal - 0.05);
-      });
-    }
-  }
-
+describe('patrol fights', () => {
   it('only builds fights for patrols', () => {
     const traveller = findSpawn((s) => !isPatrolKind(s.kind)).spawn;
     expect(() => patrolDungeon(traveller, 1, false)).toThrow();

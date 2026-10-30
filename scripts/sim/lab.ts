@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import type { RunLog } from '@/game/sim/bot';
 import { BOT_RULES, profiles } from '@/game/sim/config';
 import { runSim } from '@/game/sim/engine';
-import { summarize, type ProfileSummary } from '@/game/sim/metrics';
+import { summarize, type ProfileSummary, type Summary } from '@/game/sim/metrics';
 import { applyOverrides, parseOverride } from '@/game/sim/overrides';
 import { measureWalkRates, walkCacheKey, type WalkRates } from '@/game/sim/walking';
 import { craftsCsv, dailyCsv, expeditionsCsv } from './csv';
@@ -40,11 +40,6 @@ function walkRates(cacheDir: string, print: (line: string) => void): WalkRates {
 
 /** Day each tier ended (its boss first beaten), or null. */
 const tierDays = (log: RunLog) => [1, 2, 3, 4, 5].map((tier) => log.milestones[`boss:${tier}`] ?? null);
-
-export type Summary = {
-  settings: { profiles: string[]; seeds: number; seed: string; overrides: string[]; maxDays: number | null };
-  profiles: Record<string, ProfileSummary>;
-};
 
 /** Plays every profile with every seed to the end of tier 5, writes the report, the summary and the CSVs, and prints the days per tier. */
 export function runLab(options: LabOptions) {
