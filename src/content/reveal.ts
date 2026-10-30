@@ -42,7 +42,7 @@ export const revealRules: Record<RevealKind, RevealCondition> = {
   fightEvents: { kind: 'patrolsWon', count: 1 },
   ruins: { kind: 'questsDone', count: 1 },
   treasure: { kind: 'questsDone', count: 1 },
-  taverns: { kind: 'guildOpen' },
+  taverns: { kind: 'questsDone', count: 1 },
   guildHall: { kind: 'guildOpen' },
   rarePlaces: { kind: 'tier', tier: 2 },
   sanctums: { kind: 'tier', tier: 2 },

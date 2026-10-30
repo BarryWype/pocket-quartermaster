@@ -26,7 +26,7 @@ import { activateLure, isLureActive } from '../rewards/lures';
 import { chestState, openChest, recordSteps, stepChests, stepsRecorded } from '../rewards/chests';
 import { generateSanctumsAround } from '../sanctums/sanctums';
 import { hasKey } from '../secrets/keys';
-import { isRevealed } from '../reveal/reveal';
+import { isPlaceRevealed, isRevealed } from '../reveal/reveal';
 import { createInitialSave, type SaveData } from '../save';
 import { generateTavernsAround } from '../taverns/taverns';
 import { currentHp, isExhausted } from '../team/health';
@@ -64,8 +64,8 @@ import {
 } from './bot';
 import { probe } from './probe';
 import { forgeComponents, restoreRelics } from './rules/forge';
-import { craftCharms, craftOils, craftStatPotions, readManuals, sellMaterials, sellValuables } from './rules/inventory';
-import { buyWeakness, blessSymbols, buyForgeMaterials, openSecrets, visitPlaces } from './rules/map';
+import { craftCharms, craftCombatElixirs, craftOils, craftStatPotions, readManuals, sellMaterials, sellParts, sellValuables } from './rules/inventory';
+import { buyWeakness, blessSymbols, buyForgeMaterials, openSecrets, visitPlaces, SOURCES } from './rules/map';
 import { profiles, simConfig, type Profile, type SimConfig } from './config';
 import { targets } from './targets';
 import { PICKAXES, bonusScaled, walkYield, type WalkRates } from './walking';
@@ -293,6 +293,7 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, steps: number, 
     visitPlaces(sim);
     sellValuables(sim);
     sellMaterials(sim);
+    sellParts(sim);
     buyWeakness(sim);
     buyForgeMaterials(sim);
     blessSymbols(sim);
@@ -317,6 +318,7 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, steps: number, 
   craftCharms(sim);
   craftStatPotions(sim);
   craftOils(sim);
+  craftCombatElixirs(sim);
   readManuals(sim);
   infuseWeapons(sim);
   openSecrets(sim);
@@ -385,6 +387,7 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
     oddsCache: new Map(),
     launched: new Map(),
     waiting: new Set(),
+    expeditionStop: { reason: null, launched: false },
     log: emptyLog(name, seed),
   };
 
@@ -395,6 +398,19 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
     const dayStart = startedAt + day * DAY;
     const dayKey = new Date(dayStart).toISOString().slice(0, 10);
     // Quests and expeditions owed carry over a day at most; place visits keep their fractions.
+    // Expeditions still owed whole are lost: the last session's stop says why.
+    if (day > 0) {
+      const leftover = Math.floor(sim.due.expeditions ?? 0);
+      if (leftover > 0) {
+        const { reason, launched } = sim.expeditionStop;
+        const why = !reason || (reason === 'noParty' && launched) ? 'noSession' : reason;
+        sim.log.notLaunched[why] = (sim.log.notLaunched[why] ?? 0) + leftover;
+      }
+    }
+    for (const { source, kind } of SOURCES) {
+      if (isPlaceRevealed(sim.save, kind)) continue;
+      sim.log.placesNotDone.hidden = (sim.log.placesNotDone.hidden ?? 0) + (visits[source] ?? 0);
+    }
     for (const [key, perDay] of Object.entries(visits)) {
       const owed = sim.due[key] ?? 0;
       sim.due[key] = (key === 'quests' || key === 'expeditions' ? owed % 1 : owed) + (perDay ?? 0);

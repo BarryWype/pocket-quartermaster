@@ -34,6 +34,8 @@ export type QuickTier = {
   events: number | null;
   /** Patrols around, potions only. */
   patrols: number | null;
+  /** Each fight event kind and patrol kind on its own, null where it never spawned. */
+  byKind: Record<string, number | null>;
   /** Samples behind each mean (`notPrepared` counts as `normal`). */
   samples: { normal: number; boss: number; events: number; patrols: number };
 };
@@ -89,6 +91,7 @@ export function quickProbe(config: SimConfig = simConfig): QuickTier[] {
     const boss: number[] = [];
     const events: number[] = [];
     const patrols: number[] = [];
+    const byKind: Record<string, number[]> = Object.fromEntries([...Object.keys(placeFightRules.kinds), ...PATROL_KINDS].map((k) => [k, []]));
     for (let day = 0; day < config.quick.days; day++) {
       const t = config.startDay + day * DAY + NOON;
       const rotation = dailyRotation(rotationDay(t));
@@ -111,14 +114,18 @@ export function quickProbe(config: SimConfig = simConfig): QuickTier[] {
         if (!spawn) continue;
         const dungeon = placeFightDungeon(spawn, tier);
         const briefing = placeFightBriefing(save, spawn);
-        events.push(estimateOdds(withLoadout(save, ids, dungeon, briefing), ids, dungeon, runs, { now: t, briefing }).success);
+        const odds = estimateOdds(withLoadout(save, ids, dungeon, briefing), ids, dungeon, runs, { now: t, briefing }).success;
+        events.push(odds);
+        byKind[kind].push(odds);
       }
 
       const armed = fillPotions(save, ids);
       for (const kind of PATROL_KINDS) {
         const spawn = patrolsAround(config.location, t).find((p) => p.kind === kind && p.tierRoll === 'current');
         if (!spawn) continue;
-        patrols.push(patrolOdds(armed, spawn, ids, t, runs).success);
+        const odds = patrolOdds(armed, spawn, ids, t, runs).success;
+        patrols.push(odds);
+        byKind[kind].push(odds);
       }
     }
     return {
@@ -128,6 +135,7 @@ export function quickProbe(config: SimConfig = simConfig): QuickTier[] {
       boss: mean(boss),
       events: mean(events),
       patrols: mean(patrols),
+      byKind: Object.fromEntries(Object.entries(byKind).map(([k, v]) => [k, mean(v)])),
       samples: { normal: prepared.length, boss: boss.length, events: events.length, patrols: patrols.length },
     };
   });

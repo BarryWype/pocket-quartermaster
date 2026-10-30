@@ -3,7 +3,7 @@ import { createRng } from '../../generation/rng';
 import { dungeonById } from '@/content/lookup';
 import { emptyLog, stockProvisions, type Sim } from '../bot';
 import { profiles, simConfig } from '../config';
-import { craftCharms, craftOils, craftStatPotions, partRecipeFor, valuablesToSell } from './inventory';
+import { craftCharms, craftOils, craftStatPotions, partRecipeFor, partsToSell, valuablesToSell } from './inventory';
 
 
 /** A Sim with just the fields the inventory rules touch: a real day 1 save, an empty log. */
@@ -28,6 +28,7 @@ function simOf(save: SaveData): Sim {
     oddsCache: new Map(),
     launched: new Map(),
     waiting: new Set(),
+    expeditionStop: { reason: null, launched: false },
     log: emptyLog('regular', 'test'),
   };
 }
@@ -45,6 +46,24 @@ describe('valuablesToSell', () => {
     save.valuables = { 'roughGem:1': 2 };
     save.partRecipes = ['prismCharm'];
     expect(valuablesToSell(save)).toEqual([{ key: 'roughGem:1', count: 1 }]);
+  });
+});
+
+describe('partsToSell', () => {
+  it('sells the parts above the cap, keeping a known recipe’s input', () => {
+    const save = createInitialSave();
+    save.partRecipes = ['luckyEar'];
+    save.materials = { ...save.materials, goblinEar: 25, fangOrHorn: 30, scale: 20 };
+    expect(partsToSell(save, 20)).toEqual([
+      { id: 'fangOrHorn', count: 10 },
+      { id: 'goblinEar', count: 5 },
+    ]);
+    // Lucky ear (known) keeps 3 goblin ears; the firebomb's scale recipe isn't known, so nothing holds scales back.
+    expect(partsToSell(save, 2)).toEqual([
+      { id: 'fangOrHorn', count: 28 },
+      { id: 'goblinEar', count: 22 },
+      { id: 'scale', count: 18 },
+    ]);
   });
 });
 

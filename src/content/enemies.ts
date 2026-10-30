@@ -346,13 +346,24 @@ const HERD_FOES: Foe[][] = [
   [foe('frost wolf'), foe('storm eel'), foe('wyvern', 'dragon')],
 ];
 
+type Factors = [number, number, number, number, number];
+
+const BANDIT_FACTORS: Factors = [7.93, 7.09, 6.76, 6.66, 6.97];
+const GOBLIN_FACTORS: Factors = [4.93, 4.47, 4.17, 4.2, 4.37];
+const HERD_FACTORS: Factors = [4.56, 4, 3.78, 3.91, 3.89];
+
+/** A fight event kind's own fit on top of the shared per-tier factors (the quick check's per-kind odds, ~75%). */
+const kindFit = { goblinRaid: 1.85, beastDen: 1.85, hauntedCrypt: 1.85, elementalRift: 1.85 };
+
+const fitted = (factors: Factors, fit: number) => factors.map((f) => Math.round(f * fit * 100) / 100) as Factors;
+
 type PatrolTemplate = {
   /** Stats for [weak, normal, boss] at tier-1 strength. */
   hp: [number, number, number];
   damage: [number, number, number];
   tags: Tag[];
   /** Like a dungeon's factor, per tier: tuned against the odds targets in the comment above. */
-  factors: [number, number, number, number, number];
+  factors: Factors;
   /** Foes for [weak, normal, boss], one per tier. */
   foes: Foe[][];
 };
@@ -362,21 +373,21 @@ const patrolTemplates: Record<PatrolKind, PatrolTemplate> = {
     hp: [7, 10, 14],
     damage: [2, 3, 4],
     tags: ['locals'],
-    factors: [4.93, 4.47, 4.17, 4.2, 4.37],
+    factors: GOBLIN_FACTORS,
     foes: GOBLIN_FOES,
   },
   herd: {
     hp: [8, 12, 16],
     damage: [2, 3, 4],
     tags: ['beast'],
-    factors: [4.56, 4, 3.78, 3.91, 3.89],
+    factors: HERD_FACTORS,
     foes: HERD_FOES,
   },
   bandits: {
     hp: [10, 14, 22],
     damage: [3, 4, 6],
     tags: ['locals'],
-    factors: [7.93, 7.09, 6.76, 6.66, 6.97],
+    factors: BANDIT_FACTORS,
     foes: BANDIT_FOES,
   },
 };
@@ -409,22 +420,19 @@ const patrolMobs: MobDef[] = (Object.keys(patrolTemplates) as PatrolKind[]).flat
 // Fight events and the monster lair: the fixed enemies home heroes fight at
 // map places (see content/placeFights.ts). Templates work like patrol ones;
 // the factors are the bandit and goblin/herd patrol factors, since place
-// fights are tuned like patrols with a full party.
+// fights are tuned like patrols with a full party, with the goblin raid, beast
+// den, haunted crypt and elemental rift scaled by their own `kindFit`.
 type PlaceTemplate = {
   /** Stats for [weak, normal, boss] at tier-1 strength. */
   hp: [number, number, number];
   damage: [number, number, number];
   tags: Tag[];
-  factors: [number, number, number, number, number];
+  factors: Factors;
   /** Foes for [weak, normal, boss], one row per tier. */
   foes: Foe[][];
   /** One mob set per element instead of a single set. */
   elemental?: boolean;
 };
-
-const BANDIT_FACTORS: [number, number, number, number, number] = [7.93, 7.09, 6.76, 6.66, 6.97];
-const GOBLIN_FACTORS: [number, number, number, number, number] = [4.93, 4.47, 4.17, 4.2, 4.37];
-const HERD_FACTORS: [number, number, number, number, number] = [4.56, 4, 3.78, 3.91, 3.89];
 
 const placeTemplates: Record<FightPlaceKind, PlaceTemplate> = {
   banditCamp: {
@@ -438,21 +446,21 @@ const placeTemplates: Record<FightPlaceKind, PlaceTemplate> = {
     hp: [7, 10, 14],
     damage: [2, 3, 4],
     tags: ['locals'],
-    factors: GOBLIN_FACTORS,
+    factors: fitted(GOBLIN_FACTORS, kindFit.goblinRaid),
     foes: GOBLIN_FOES,
   },
   beastDen: {
     hp: [8, 12, 16],
     damage: [2, 3, 4],
     tags: ['beast'],
-    factors: HERD_FACTORS,
+    factors: fitted(HERD_FACTORS, kindFit.beastDen),
     foes: HERD_FOES,
   },
   hauntedCrypt: {
     hp: [8, 12, 16],
     damage: [2, 3, 4],
     tags: ['undead'],
-    factors: HERD_FACTORS,
+    factors: fitted(HERD_FACTORS, kindFit.hauntedCrypt),
     foes: [
       [foe('restless bones'), foe('grave robber', 'humanoid'), foe('ghoul')],
       [foe('barrow wight', 'spirit'), foe('drowned soldier'), foe('mould knight')],
@@ -465,7 +473,7 @@ const placeTemplates: Record<FightPlaceKind, PlaceTemplate> = {
     hp: [8, 12, 16],
     damage: [2, 3, 4],
     tags: [],
-    factors: HERD_FACTORS,
+    factors: fitted(HERD_FACTORS, kindFit.elementalRift),
     elemental: true,
     foes: [
       [foe('ember whelp', 'dragon'), foe('ember sprite', 'elemental'), foe('rift spawn', 'elemental')],

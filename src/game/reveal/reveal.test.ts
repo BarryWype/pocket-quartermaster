@@ -67,21 +67,21 @@ describe('isRevealed', () => {
     expect(isRevealed(won, 'fightEvents')).toBe(true);
   });
 
-  it('reveals ruins and treasure once a quest has been completed', () => {
+  it('reveals ruins, treasure and taverns once a quest has been completed', () => {
     const save = opened();
     save.quests.list = [quest('q1')];
+    expect(isRevealed(save, 'taverns')).toBe(false);
     const done = complete(save, save.quests.list[0], 0);
     expect(done.stats.questsDone).toBe(1);
     expect(isRevealed(done, 'ruins')).toBe(true);
     expect(isRevealed(done, 'treasure')).toBe(true);
+    expect(isRevealed(done, 'taverns')).toBe(true);
   });
 
-  it('reveals taverns and the Guild Hall when the Guild Hall opens', () => {
+  it('reveals the Guild Hall when it opens', () => {
     const save = opened();
-    expect(isRevealed(save, 'taverns')).toBe(false);
     expect(isRevealed(save, 'guildHall')).toBe(false);
     save.clearedDungeons = [guildRules.unlockedBy];
-    expect(isRevealed(save, 'taverns')).toBe(true);
     expect(isRevealed(save, 'guildHall')).toBe(true);
   });
 

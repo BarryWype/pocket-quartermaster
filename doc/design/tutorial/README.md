@@ -38,8 +38,8 @@ Not all 14 place kinds at once. Each kind appears when its condition is met, wit
 | Common places (smithy, apothecary, sawmill, hunting lodge, mine of the tier, market, chapel) | End of the tutorial |
 | Patrols | End of the tutorial |
 | Fight events | First patrol won |
-| Ruins, treasure spots | First quest completed |
-| Taverns and the Guild Hall | When the Guild Hall opens today (the tier 1 boss) |
+| Ruins, treasure spots, taverns | First quest completed |
+| The Guild Hall | When the Guild Hall opens today (the tier 1 boss) |
 | Rarer places (library, thieves' guild, monster lair, fishing dock), Sanctums | Tier 2 |
 | Secret place markers | When the player has a tip |
 

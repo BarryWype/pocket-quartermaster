@@ -29,6 +29,7 @@ const now = Date.UTC(2026, 9, 26, 12);
 const unlocked = (extra: Partial<SaveData> = {}): SaveData => ({
   ...createInitialSave(),
   clearedDungeons: ['banditStockade'],
+  stats: { patrolsWon: 0, questsDone: 1 },
   gold: 1000,
   ...extra,
 });
@@ -153,7 +154,7 @@ describe('recruit classes', () => {
 });
 
 describe('recruiting', () => {
-  it('is locked until the Bandit Stockade falls', () => {
+  it('is locked until the first quest is done', () => {
     const fresh = { ...createInitialSave(), gold: 1000 };
     expect(isTavernUnlocked(fresh)).toBe(false);
     expect(recruitProblem(fresh, firstOffer(fresh), here, here)).toBe('locked');

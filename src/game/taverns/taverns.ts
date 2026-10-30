@@ -57,7 +57,7 @@ export function generateTavernsAround(position: LatLng, timeMs: number): TavernS
 }
 
 export const isTavernUnlocked = (save: SaveData, rules: TavernRules = tavernRules) =>
-  save.clearedDungeons.includes(rules.unlockedBy);
+  save.stats.questsDone >= rules.unlockedAfterQuests;
 
 /** Recruits join at the bottom of the player's current tier band. */
 export function offerLevel(save: SaveData, rules: RecruitRules = recruitRules) {

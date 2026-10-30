@@ -75,6 +75,10 @@ export type ProfileSummary = {
   };
   /** The profile's planned visits per day next to the median over seeds of visits done per day. */
   visits: { activity: string; planned: number; done: Stat }[];
+  /** Expeditions still owed at a day's start, per day median over seeds, by why the last session stopped. */
+  notLaunched: Record<string, Stat>;
+  /** Owed place visits that couldn't happen, per day median over seeds, by reason. */
+  placesNotDone: Record<string, Stat>;
 };
 
 /** What `npm run sim` writes to doc/design/simulator/summary.json, and the balance band tests read. */
@@ -275,6 +279,11 @@ export function summarize(logs: RunLog[], t: Targets = defaultTargets): ProfileS
     ] as [string, (v: (typeof profiles)[string]['visits']) => number, (log: RunLog) => number][]
   ).map(([activity, planned, done]) => ({ activity, planned: planned(profiles[profile].visits), done: stat(logs.map((log) => perDay(log, done))) }));
 
+  const byReason = (keys: string[], total: (log: RunLog, key: string) => number) =>
+    Object.fromEntries(keys.map((key) => [key, stat(logs.map((log) => perDay(log, (l) => total(l, key))))]));
+  const notLaunched = byReason(['noParty', 'hp', 'odds', 'noSession'], (log, key) => log.notLaunched[key] ?? 0);
+  const placesNotDone = byReason(['nothing', 'odds', 'noParty', 'hidden'], (log, key) => log.placesNotDone[key] ?? 0);
+
   return {
     profile,
     seeds: logs.length,
@@ -298,6 +307,8 @@ export function summarize(logs: RunLog[], t: Targets = defaultTargets): ProfileS
       skipped: medianTotals(logs.map((l) => l.skipped)),
     },
     visits,
+    notLaunched,
+    placesNotDone,
   };
 }
 

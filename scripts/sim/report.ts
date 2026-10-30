@@ -166,6 +166,25 @@ function visitsTable(s: ProfileSummary) {
   );
 }
 
+const NOT_LAUNCHED_LABELS: Record<string, string> = {
+  noParty: 'No free party (heroes away or resting)',
+  hp: 'HP too low',
+  odds: 'Odds below the threshold',
+  noSession: 'No session left',
+};
+
+const NOT_DONE_LABELS: Record<string, string> = {
+  nothing: 'Nothing there',
+  odds: 'Odds too low',
+  noParty: 'No free party',
+  hidden: 'Hidden by the reveal',
+};
+
+/** One reason table: every reason in its fixed order, even at 0. */
+function reasonsTable(labels: Record<string, string>, stats: Record<string, Stat>) {
+  return table(['Reason', 'Per day'], Object.entries(labels).map(([key, label]) => [label, n(stats[key]?.median ?? null, 2)]));
+}
+
 /** The markdown report: targets next to results, ⚠ on anything out of range. */
 export function renderReport({ summaries, rules, settings }: ReportInput) {
   const regular = summaries.find((s) => s.profile === 'regular');
@@ -196,8 +215,27 @@ export function renderReport({ summaries, rules, settings }: ReportInput) {
     '',
   );
   for (const s of summaries) out.push(`### ${s.profile}`, '', kindOdds(s));
-  out.push('## Visits planned vs done', '', 'Each activity: the profile’s planned visits per day next to the median over seeds of visits done per day.', '');
-  for (const s of summaries) out.push(`### ${s.profile}`, '', visitsTable(s));
+  out.push(
+    '## Visits planned vs done',
+    '',
+    'Each activity: the profile’s planned visits per day next to the median over seeds of visits done per day. Below each, why expeditions went unlaunched and places undone: "No session left" is the day’s whole planned expeditions still owed after its last session, which had just sent a party out. A visit owed for a kind the reveal still hides is kept back and made once the kind shows, not lost.',
+    '',
+  );
+  for (const s of summaries)
+    out.push(
+      `### ${s.profile}`,
+      '',
+      visitsTable(s),
+      '',
+      '**Expeditions not launched (per day, median)**',
+      '',
+      reasonsTable(NOT_LAUNCHED_LABELS, s.notLaunched),
+      '',
+      '**Places not done (per day, median)**',
+      '',
+      reasonsTable(NOT_DONE_LABELS, s.placesNotDone),
+      '',
+    );
   if (regular) out.push('## Loot pacing (regular)', '', loot(regular));
   out.push('## Gold per tier', '');
   for (const s of summaries) out.push(`### ${s.profile}`, '', gold(s));

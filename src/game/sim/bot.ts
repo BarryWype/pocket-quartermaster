@@ -58,7 +58,7 @@ import { scoreThreat } from '../threats/score';
 import type { ActiveExpedition, Approach, ArmourType, Briefing, ConsumableDef, DungeonDef, GearDef, GearInstance, HeroClassId, HeroState, OffhandType, Quality, RecipeDef, Stats, WeaponType } from '../types';
 import { expectedLevels, type Profile, type SimConfig } from './config';
 import { partRecipeFor } from './rules/inventory';
-import { emptySlots, fillPotions, heldPotion, isKit, oilIds, pickCharm, pickKits, pickWeakness, statPotionIds, uncovered, withCharm, withOil, withStatPotion } from './rules/loadout';
+import { emptySlots, fillPotions, heldPotion, isKit, oilIds, pickCharm, pickKits, pickWeakness, statPotionIds, uncovered, withCharm, withElixir, withOil, withStatPotion } from './rules/loadout';
 import { PICKAXES, type WalkRates } from './walking';
 import { questRules } from '@/content/quests';
 import { questUpkeep } from '../quests/arrival';
@@ -191,6 +191,10 @@ export type RunLog = {
   places: PlaceRow[];
   /** Visits the profile planned that couldn't happen (nothing there, odds too low), by activity. */
   skipped: Record<string, number>;
+  /** Whole expeditions still owed at a day's start, by why the last session stopped. */
+  notLaunched: Record<string, number>;
+  /** Place visits owed that couldn't happen, by reason; 'hidden' is the kind still behind the reveal. */
+  placesNotDone: Record<string, number>;
   /** The tier 5 boss was beaten before the profile's day cap. */
   finished: boolean;
 };
@@ -229,6 +233,8 @@ export const emptyLog = (profile: string, seed: string): RunLog => ({
   knownRecipes: [],
   places: [],
   skipped: {},
+  notLaunched: {},
+  placesNotDone: {},
   finished: false,
 });
 
@@ -280,6 +286,8 @@ export type Sim = {
   launched: Map<string, Pick<ExpeditionRow, 'odds' | 'qualities' | 'day' | 'hour' | 'level' | 'consumables'>>;
   /** Dungeons left for a later session this one, waiting for the heroes to heal. */
   waiting: Set<string>;
+  /** How this session's expedition search ended while expeditions were owed, and whether one launched. */
+  expeditionStop: { reason: 'noParty' | 'hp' | 'odds' | null; launched: boolean };
   log: RunLog;
 };
 
@@ -1029,7 +1037,14 @@ export function launch(sim: Sim, dungeon: DungeonDef, heroIds: string[], o: Odds
   sim.save = withLoadout(emptySlots(sim.save, homeHeroes(sim.save).map((h) => h.id)), heroIds, dungeon, briefing);
   const loadout = { mealId: mealFor(sim, dungeon, heroIds, o) };
   topUpSupply(sim, dungeon, heroIds, loadout, briefing);
+  // A revival draught on a tier boss run, a firebomb while the swarm threat is missed.
+  if (dungeon.isBoss && !dungeon.overnight) sim.save = withElixir(sim.save, heroIds, 'revivalDraught');
+  const swarm = briefingCoverage(sim.save, heroIds, briefing).threats.find((t) => t.threat.id === 'swarm');
+  if (swarm && swarm.have < swarm.needed) sim.save = withElixir(sim.save, heroIds, 'firebomb');
   applyElixirs(sim, dungeon, heroIds, loadout, briefing);
+  // A smoke bomb in place of a healing potion when the odds stay low.
+  const lowOdds = estimateOdds(sim.save, heroIds, dungeon, sim.config.odds.searchRuns, { now: sim.now, loadout, briefing });
+  if (lowOdds.success < sim.config.smokeBombBelowOdds) sim.save = withElixir(sim.save, heroIds, 'smokeBomb');
   // The prediction logged is for the party exactly as it leaves.
   let final = estimateOdds(sim.save, heroIds, dungeon, sim.config.odds.runs, { now: sim.now, loadout, briefing });
   const charm = final.success >= sim.config.odds.charm ? pickCharm(sim.save, runSource(dungeon)) : null;
@@ -1094,6 +1109,8 @@ function expectedValue(sim: Sim, dungeon: DungeonDef, o: Odds, heroIds: string[]
 }
 
 export function sendExpeditions(sim: Sim) {
+  sim.expeditionStop = { reason: null, launched: false };
+  const dueExpeditions = () => (sim.due.expeditions ?? 0) >= 1;
   const top = highestTier(sim.save);
   const open = dungeons.filter((d) => !d.overnight && d.tier >= top - 1 && isDungeonAvailable(sim.save, d, sim.rotation));
   // The overnight expedition of the top two tiers joins the ranking when the next
@@ -1116,6 +1133,7 @@ export function sendExpeditions(sim: Sim) {
     const party = bestParty(sim, unbeatenBoss, idle());
     if (party.odds.success >= sim.config.odds.boss && restUp(sim, unbeatenBoss, party.heroIds)) {
       launch(sim, unbeatenBoss, party.heroIds, odds(sim, sim.save, party.heroIds, unbeatenBoss));
+      sim.expeditionStop.launched = true;
     }
   }
   sim.waiting = new Set();
@@ -1133,13 +1151,20 @@ export function sendExpeditions(sim: Sim) {
     if (!pick && sim.save.expeditions.length === 0) {
       pick = options.filter((o) => o.party.odds.success >= sim.config.odds.fallback).sort((a, b) => b.party.odds.success - a.party.odds.success)[0];
     }
-    if (!pick) return;
+    if (!pick) {
+      // Idle heroes that form no party at all are as good as none.
+      const formed = options.some((o) => o.party.heroIds.length > 0);
+      if (dueExpeditions()) sim.expeditionStop.reason = formed ? (sim.waiting.size > 0 ? 'hp' : 'odds') : 'noParty';
+      return;
+    }
     if (!restUp(sim, pick.d, pick.party.heroIds)) {
       sim.waiting.add(pick.d.id);
       continue;
     }
     launch(sim, pick.d, pick.party.heroIds, odds(sim, sim.save, pick.party.heroIds, pick.d));
+    sim.expeditionStop.launched = true;
   }
+  if (dueExpeditions() && !idle().length) sim.expeditionStop.reason = 'noParty';
 }
 
 /** Counts every category a roll dropped, for the observed pacing. */

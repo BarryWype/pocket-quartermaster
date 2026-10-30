@@ -5,7 +5,7 @@ import { weaknessByBoss } from '@/content/weaknesses';
 import { charmApplies } from '../../loot/charms';
 import { createInitialSave, type SaveData } from '../../save';
 import type { Briefing } from '../../types';
-import { emptySlots, fillPotions, isKit, pickCharm, pickKits, pickWeakness, uncovered, unprepared, withCharm, withOil, withStatPotion } from './loadout';
+import { emptySlots, fillPotions, isKit, pickCharm, pickKits, pickWeakness, uncovered, unprepared, withCharm, withElixir, withOil, withStatPotion } from './loadout';
 
 const PARTY = ['bram', 'lyra', 'mira'];
 const TRAPS: Briefing = { threats: [{ id: 'traps', level: 3 }], restriction: null, opportunity: null };
@@ -89,6 +89,16 @@ describe('loadout rules', () => {
     const kitted = pickKits(save, PARTY, DESECRATED);
     expect(slots(kitted)).toContain('blessedRelics');
     expect(uncovered(kitted, PARTY, DESECRATED)).toBeLessThan(uncovered(save, PARTY, DESECRATED));
+  });
+
+  it('puts a held elixir on the first hero with a free slot or a healing potion, never a kit', () => {
+    const kitted = pickKits(stocked({ roguesRoll: 1, healingPotion: 3, firebomb: 1 }), PARTY, TRAPS);
+    const potions = fillPotions(kitted, PARTY);
+    const carrier = slots(potions).findIndex((s) => s === 'healingPotion');
+    const withElixirSave = withElixir(potions, PARTY, 'firebomb');
+    expect(slots(withElixirSave)[carrier]).toBe('firebomb');
+    expect(withElixirSave.consumables.firebomb).toBe(0);
+    expect(withElixir(potions, PARTY, 'smokeBomb')).toBe(potions);
   });
 
   it('puts an oil in a healing potion slot only for a hero with a plain weapon', () => {

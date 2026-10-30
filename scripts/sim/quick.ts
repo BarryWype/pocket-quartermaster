@@ -50,4 +50,13 @@ for (const tier of tiers) {
     `| ${tier.tier} | ${cell(tier.prepared, targets.odds.prepared)} | ${cell(tier.notPrepared, targets.odds.unprepared)} | ${gap} | ${cell(tier.boss, targets.odds.boss)} | ${cell(tier.events, targets.odds.events)} | ${cell(tier.patrols, targets.odds.events)} |`,
   );
 }
+const kinds = Object.keys(tiers[0].byKind);
+const averages = kinds.map((kind) => {
+  const values = tiers.map((t) => t.byKind[kind]).filter((v): v is number => v !== null);
+  return values.length ? values.reduce((sum, v) => sum + v, 0) / values.length : null;
+});
+console.log(`\n| tier | ${kinds.join(' | ')} |`);
+console.log(`| --- |${kinds.map(() => ' --- |').join('')}`);
+for (const tier of tiers) console.log(`| ${tier.tier} | ${kinds.map((k) => cell(tier.byKind[k], targets.odds.events)).join(' | ')} |`);
+console.log(`| mean | ${averages.map((v) => cell(v, targets.odds.events)).join(' | ')} |`);
 console.log(`\n${((performance.now() - started) / 1000).toFixed(1)} s`);

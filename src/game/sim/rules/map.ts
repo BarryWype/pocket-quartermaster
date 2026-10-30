@@ -45,21 +45,30 @@ const row = (sim: Sim, kind: string, tier: number, odds: number | null, won: boo
   sim.log.places.push(visit);
 };
 
+/** Why a place visit didn't happen; null when it was made. */
+export type PlaceMiss = 'nothing' | 'odds' | 'noParty';
+
+/** Logs a place visit that couldn't happen, under its reason. */
+const miss = (sim: Sim, reason: PlaceMiss) => {
+  sim.log.placesNotDone[reason] = (sim.log.placesNotDone[reason] ?? 0) + 1;
+};
+
 /** A fight event or the monster lair: the best party, started and resolved at once. */
-function fightAt(sim: Sim, kind: FightPlaceKind): boolean {
+function fightAt(sim: Sim, kind: FightPlaceKind): PlaceMiss | null {
   const tier = highestTier(sim.save);
   const candidates = homeHeroes(sim.save)
     .filter((h) => !isExhausted(h, sim.now))
     .map((h) => h.id);
   const probe = candidates.slice(0, placeFightRules.kinds[kind].party);
+  if (!candidates.length) return 'noParty';
   const spawn = spawnFor(sim, kind, (s) => placeFightProblem(sim.save, s, probe, s.position, sim.now) === null);
-  if (!spawn) return false;
+  if (!spawn) return 'nothing';
   const dungeon = placeFightDungeon(spawn, tier);
   const briefing = placeFightBriefing(sim.save, spawn);
   const party = bestParty(sim, dungeon, candidates, briefing);
-  if (party.heroIds.length === 0 || party.odds.success < sim.config.odds.place) return false;
+  if (party.heroIds.length === 0 || party.odds.success < sim.config.odds.place) return 'odds';
   sim.save = withLoadout(emptySlots(sim.save, party.heroIds), party.heroIds, dungeon, briefing);
-  if (placeFightProblem(sim.save, spawn, party.heroIds, spawn.position, sim.now) !== null) return false;
+  if (placeFightProblem(sim.save, spawn, party.heroIds, spawn.position, sim.now) !== null) return 'odds';
   const endsAt = sim.now + dungeon.durationMinutes * MINUTE;
   let won = false;
   act(sim, 'place', (save) => startPlaceFight(save, spawn, party.heroIds, spawn.position, sim.now));
@@ -72,13 +81,13 @@ function fightAt(sim: Sim, kind: FightPlaceKind): boolean {
     return done.save;
   });
   row(sim, spawn.kind, tier, party.odds.success, won);
-  return true;
+  return null;
 }
 
 /** Digs the nearest ruin: its loot row, and a relic on the dig that completes the set. */
-function digAt(sim: Sim): boolean {
+function digAt(sim: Sim): PlaceMiss | null {
   const spawn = spawnFor(sim, 'ruins', (s) => digProblem(sim.save, s, s.position, sim.now) === null);
-  if (!spawn) return false;
+  if (!spawn) return 'nothing';
   let relic = false;
   let loot: Loot | null = null;
   act(sim, 'ruinsDig', (save) => {
@@ -93,19 +102,19 @@ function digAt(sim: Sim): boolean {
     sim.log.loot.relics = (sim.log.loot.relics ?? 0) + 1;
   }
   row(sim, spawn.kind, highestTier(sim.save), null, null);
-  return true;
+  return null;
 }
 
 /** Robs the nearest thieves' guild with the home hero best at its locks. */
-function heistAt(sim: Sim): boolean {
+function heistAt(sim: Sim): PlaceMiss | null {
   const hero = homeHeroes(sim.save)
     .filter((h) => !isExhausted(h, sim.now))
     .sort((a, b) => heistOdds(sim.save, b.id) - heistOdds(sim.save, a.id))[0];
-  if (!hero) return false;
+  if (!hero) return 'noParty';
   const odds = heistOdds(sim.save, hero.id);
-  if (odds < sim.config.odds.heist) return false;
+  if (odds < sim.config.odds.heist) return 'odds';
   const spawn = spawnFor(sim, 'thievesGuild', (s) => heistProblem(sim.save, s, hero.id, s.position, sim.now) === null);
-  if (!spawn) return false;
+  if (!spawn) return 'nothing';
   let won = false;
   act(sim, 'heist', (save) => startHeist(save, spawn, hero.id, spawn.position, sim.now));
   const endsAt = sim.save.heists.find((h) => h.placeId === spawn.id)!.endsAt;
@@ -118,13 +127,13 @@ function heistAt(sim: Sim): boolean {
     return done.save;
   });
   row(sim, spawn.kind, highestTier(sim.save), odds, won);
-  return true;
+  return null;
 }
 
 /** One catch at the nearest dock. */
-function fishAt(sim: Sim): boolean {
+function fishAt(sim: Sim): PlaceMiss | null {
   const spawn = spawnFor(sim, 'fishingDock', (s) => fishProblem(sim.save, s, s.position, sim.now) === null);
-  if (!spawn) return false;
+  if (!spawn) return 'nothing';
   let loot: Loot | null = null;
   act(sim, 'fishingDock', (save) => {
     const caught = fish(save, spawn, spawn.position, sim.now);
@@ -133,10 +142,10 @@ function fishAt(sim: Sim): boolean {
   });
   if (loot) countLoot(sim, loot);
   row(sim, spawn.kind, highestTier(sim.save), null, null);
-  return true;
+  return null;
 }
 
-const SOURCES: { source: LootSourceId; kind: PlaceKind }[] = [
+export const SOURCES: { source: LootSourceId; kind: PlaceKind }[] = [
   ...(['banditCamp', 'goblinRaid', 'beastDen', 'hauntedCrypt', 'elementalRift', 'abandonedCaravan', 'wantedOutlaw', 'monsterLair'] as FightPlaceKind[]).map(
     (kind) => ({ source: kind as LootSourceId, kind: kind as PlaceKind }),
   ),
@@ -155,9 +164,12 @@ export function visitPlaces(sim: Sim) {
   for (const { source, kind } of SOURCES) {
     if (!isPlaceRevealed(sim.save, kind)) continue;
     while (takeVisit(sim, source)) {
-      const visited =
+      const why =
         kind === 'ruins' ? digAt(sim) : kind === 'thievesGuild' ? heistAt(sim) : kind === 'fishingDock' ? fishAt(sim) : fightAt(sim, kind as FightPlaceKind);
-      if (!visited) skip(sim, source);
+      if (why) {
+        skip(sim, source);
+        miss(sim, why);
+      }
     }
   }
 }

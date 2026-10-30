@@ -40,6 +40,7 @@ const makeSim = (save: SaveData = createInitialSave(), now = simConfig.startDay)
   oddsCache: new Map(),
   launched: new Map(),
   waiting: new Set(),
+  expeditionStop: { reason: null, launched: false },
   log: makeLog(),
 });
 

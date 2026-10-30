@@ -111,6 +111,19 @@ export function withOil(save: SaveData, heroId: string, itemId: string): SaveDat
   return equip(save, heroId, 'consumable', itemId);
 }
 
+/**
+ * Puts a held consumable on the first party hero whose slot is free or holds a
+ * healing potion; never a kit or the weakness item.
+ */
+export function withElixir(save: SaveData, heroIds: string[], itemId: string): SaveData {
+  const carrier = heroIds.find((id) => {
+    const slot = save.heroes.find((h) => h.id === id)?.equipment.consumable ?? null;
+    return slot === null || isHealingPotion(slot);
+  });
+  if (!carrier || (save.consumables[itemId] ?? 0) < 1) return save;
+  return equip(save, carrier, 'consumable', itemId);
+}
+
 /** Every hero still without a consumable takes the strongest healing potion held while the stock lasts. */
 export function fillPotions(save: SaveData, heroIds: string[]): SaveData {
   return heroIds.reduce((next, id) => {
