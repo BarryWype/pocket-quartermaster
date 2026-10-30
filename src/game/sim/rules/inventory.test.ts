@@ -1,34 +1,9 @@
 import { createInitialSave, type SaveData } from '../../save';
 import { createRng } from '../../generation/rng';
-import type { RunLog, Sim } from '../bot';
+import { emptyLog, type Sim } from '../bot';
 import { profiles, simConfig } from '../config';
 import { craftCharms, partRecipeFor, valuablesToSell } from './inventory';
 
-const emptyLog = (): RunLog => ({
-  profile: 'regular',
-  seed: 'test',
-  days: 0,
-  milestones: {},
-  daily: [],
-  expeditions: [],
-  crafts: [],
-  goldIn: [],
-  loot: {},
-  goldOut: [],
-  gathered: {},
-  used: {},
-  missing: {},
-  sanctums: [],
-  recruits: [],
-  guildBuys: [],
-  patrols: { seen: [], fights: [], travellers: { wounded: 0, pilgrim: 0, trader: 0 }, rewards: { loot: 0, recruit: 0 }, recruits: [], keyFragments: 0, trades: 0 },
-  potionsAtHome: 0,
-  emergencySupply: 0,
-  quests: { claimed: { short: 0, medium: 0, long: 0, secret: 0 }, tips: 0 },
-  places: [],
-  skipped: {},
-  finished: false,
-});
 
 /** A Sim with just the fields the inventory rules touch: a real day 1 save, an empty log. */
 function simOf(save: SaveData): Sim {
@@ -52,7 +27,7 @@ function simOf(save: SaveData): Sim {
     oddsCache: new Map(),
     launched: new Map(),
     waiting: new Set(),
-    log: emptyLog(),
+    log: emptyLog('regular', 'test'),
   };
 }
 

@@ -53,10 +53,13 @@ export function sellValuables(sim: Sim) {
     .filter((spawn) => spawn.kind === 'market' && spawn.startsAt <= sim.now && spawn.expiresAt > sim.now)
     .sort((a, b) => distanceMeters(sim.location, a.position) - distanceMeters(sim.location, b.position))[0];
   if (!market) return;
+  let sold = false;
   for (const { key, count } of valuablesToSell(sim.save)) {
     if (sellValuableProblem(sim.save, market, key, count, market.position, sim.now) !== null) continue;
     act(sim, 'valuables', (save) => sellValuable(save, market, key, count, market.position, sim.now));
+    sold = true;
   }
+  if (sold) sim.log.places.push({ day: sim.day, kind: 'market', tier: highestUnlockedTier(sim.save), odds: null, won: null });
 }
 
 /** A known part recipe that makes this item and can be crafted now (parts held), else null. */

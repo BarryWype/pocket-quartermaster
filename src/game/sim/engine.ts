@@ -3,6 +3,7 @@ import { rosterRules } from '@/content/roster';
 import { MASTERY_TYPES } from '@/content/forging';
 import { guildTracks } from '@/content/guild';
 import { itemById, recipeById } from '@/content/lookup';
+import { components } from '@/content/loot/components';
 import { tutorialRules } from '@/content/tutorial';
 
 import { craft } from '../crafting/crafting';
@@ -23,6 +24,7 @@ import { acceptRecruit, helpProblem, helpTraveller, trade, traderOffers } from '
 import { activateLure, isLureActive } from '../rewards/lures';
 import { chestState, openChest, recordSteps, stepChests, stepsRecorded } from '../rewards/chests';
 import { generateSanctumsAround } from '../sanctums/sanctums';
+import { hasKey } from '../secrets/keys';
 import { createInitialSave, type SaveData } from '../save';
 import { generateTavernsAround } from '../taverns/taverns';
 import { currentHp, isExhausted } from '../team/health';
@@ -55,7 +57,9 @@ import {
   type RunLog,
   type Sim,
   countLoot,
+  emptyLog,
 } from './bot';
+import { probe } from './probe';
 import { forgeComponents, restoreRelics } from './rules/forge';
 import { craftCharms, readManuals, sellValuables } from './rules/inventory';
 import { buyWeakness, openSecrets, visitPlaces } from './rules/map';
@@ -295,6 +299,13 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, steps: number, 
   markCoreKit(sim);
 }
 
+/** Milestones for what the day ends with: a component, a relic, a mysterious key. */
+function markHoldings(sim: Sim) {
+  if (components.some((c) => (sim.save.materials[c.id] ?? 0) > 0)) mark(sim, 'componentFound');
+  if (sim.save.relics.length) mark(sim, 'relicFound');
+  if (hasKey(sim.save)) mark(sim, 'firstKey');
+}
+
 /** Activities whose visits are counted per day; the others (first clears, bosses) are outcomes. */
 const OUTCOMES: LootSourceId[] = ['firstTierClear', 'tierBoss', 'stepChest'];
 
@@ -339,39 +350,7 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
     oddsCache: new Map(),
     launched: new Map(),
     waiting: new Set(),
-    log: {
-      profile: name,
-      seed,
-      days: 0,
-      milestones: {},
-      daily: [],
-      expeditions: [],
-      crafts: [],
-      goldIn: [],
-      loot: {},
-      goldOut: [],
-      gathered: {},
-      used: {},
-      missing: {},
-      sanctums: [],
-      recruits: [],
-      guildBuys: [],
-      patrols: {
-        seen: [],
-        fights: [],
-        travellers: { wounded: 0, pilgrim: 0, trader: 0 },
-        rewards: { loot: 0, recruit: 0 },
-        recruits: [],
-        keyFragments: 0,
-        trades: 0,
-      },
-      potionsAtHome: 0,
-      emergencySupply: 0,
-      quests: { claimed: { short: 0, medium: 0, long: 0, secret: 0 }, tips: 0 },
-      places: [],
-      skipped: {},
-      finished: false,
-    },
+    log: emptyLog(name, seed),
   };
 
   for (let day = 0; day < days && !sim.log.finished; day++) {
@@ -403,6 +382,8 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
       afterSession?.(sim.save);
     });
 
+    sim.log.probes.push(...probe(sim));
+    markHoldings(sim);
     const save = sim.save;
     sim.log.days = sim.day;
     sim.log.finished = 'boss:5' in sim.log.milestones;
@@ -419,7 +400,11 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
       guildRanks: guildTracks.reduce((s, t) => s + (save.guild[t.id] ?? 0), 0),
       mastery: Object.fromEntries(MASTERY_TYPES.map((t) => [t, masteryOf(save, t).level])),
       stock: { ...save.materials },
+      consumables: { ...save.consumables },
+      valuables: { ...save.valuables },
+      topLevel: [...save.heroes.map((h) => h.level)].sort((a, b) => b - a).slice(0, 3).reduce((a, b, _, all) => a + b / all.length, 0),
     });
   }
+  sim.log.knownRecipes = [...sim.save.knownRecipes];
   return sim.log;
 }

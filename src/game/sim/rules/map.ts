@@ -86,7 +86,10 @@ function digAt(sim: Sim): boolean {
     return dug.save;
   });
   if (loot) countLoot(sim, loot);
-  if (relic) mark(sim, 'relicFound');
+  if (relic) {
+    mark(sim, 'relicFound');
+    sim.log.loot.relics = (sim.log.loot.relics ?? 0) + 1;
+  }
   row(sim, spawn.kind, highestTier(sim.save), null, null);
   return true;
 }
@@ -170,6 +173,7 @@ export function buyWeakness(sim: Sim) {
   const line = placeStock(sim.save, spawn, sim.now).find((l) => l.id === weakness.itemId)!;
   if (buyProblem(sim.save, spawn, line.key, 1, spawn.position, sim.now) !== null) return;
   act(sim, 'weakness', (save) => buy(save, spawn, line.key, 1, spawn.position, sim.now));
+  row(sim, spawn.kind, tier, null, null);
 }
 
 /** The tipped underwater dungeon, launched with the best party when its odds reach the place threshold. */

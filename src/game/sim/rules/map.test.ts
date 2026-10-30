@@ -8,7 +8,7 @@ import type { PlaceSpawn } from '../../places/generate';
 import { createInitialSave, type SaveData } from '../../save';
 import type { HeroClassId } from '../../types';
 import { generateTavernsAround } from '../../taverns/taverns';
-import type { RunLog, Sim } from '../bot';
+import { emptyLog, type Sim } from '../bot';
 import { profiles, simConfig } from '../config';
 import type { WalkRates } from '../walking';
 import { nearestSpawn, openSecrets, visitPlaces } from './map';
@@ -18,31 +18,7 @@ const LOCATION = simConfig.location;
 
 const RATES: WalkRates = { perMinute: [], lure: {}, lureSpawns: 0, gathersPerMinute: [], autoPerMinute: [], autoGathersPerMinute: [], nodes: [] };
 
-const makeLog = (): RunLog => ({
-  profile: 'regular',
-  seed: 'map-test',
-  days: 0,
-  milestones: {},
-  daily: [],
-  expeditions: [],
-  crafts: [],
-  goldIn: [],
-  loot: {},
-  goldOut: [],
-  gathered: {},
-  used: {},
-  missing: {},
-  sanctums: [],
-  recruits: [],
-  guildBuys: [],
-  patrols: { seen: [], fights: [], travellers: { wounded: 0, pilgrim: 0, trader: 0 }, rewards: { loot: 0, recruit: 0 }, recruits: [], keyFragments: 0, trades: 0 },
-  potionsAtHome: 0,
-  emergencySupply: 0,
-  quests: { claimed: { short: 0, medium: 0, long: 0, secret: 0 }, tips: 0 },
-  places: [],
-  skipped: {},
-  finished: false,
-});
+const makeLog = () => emptyLog('regular', 'map-test');
 
 const makeSim = (save: SaveData = createInitialSave(), now = simConfig.startDay): Sim => ({
   save,

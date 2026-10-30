@@ -109,6 +109,8 @@ export type ExpeditionRow = {
   meal: string | null;
   /** Healing potions drunk in the dungeon. */
   potions: number;
+  /** Consumables the party carried (kits, charms, potions, weakness items). */
+  consumables: string[];
 };
 
 export type CraftRow = {
@@ -141,6 +143,10 @@ export type DayRow = {
   guildRanks: number;
   mastery: Record<string, number>;
   stock: Record<string, number>;
+  consumables: Record<string, number>;
+  valuables: Record<string, number>;
+  /** Average level of the three highest-level heroes. */
+  topLevel: number;
 };
 
 export type RunLog = {
@@ -171,6 +177,12 @@ export type RunLog = {
   emergencySupply: number;
   /** Daily quests claimed, by band, and the secret place tips their strange marks gave. */
   quests: { claimed: Record<Quest['band'], number>; tips: number };
+  /** The daily win odds probe (see probe.ts). */
+  probes: ProbeRow[];
+  /** Day → material → [gathered, used]. */
+  materialFlow: Record<number, Record<string, [number, number]>>;
+  /** Recipes known at the end. */
+  knownRecipes: string[];
   /** Map places visited: fight events, the lair, ruins, heists, the dock, secret places. */
   places: PlaceRow[];
   /** Visits the profile planned that couldn't happen (nothing there, odds too low), by activity. */
@@ -179,8 +191,41 @@ export type RunLog = {
   finished: boolean;
 };
 
+/** One probe measurement: the best prepared party's odds, and for normal dungeons the same party with its kit slots empty. */
+export type ProbeRow = { day: number; tier: number; kind: 'normal' | 'boss' | 'event' | 'patrol'; id: string; prepared: number; unprepared: number | null };
+
 /** A map place visit; odds and won only for fights and heists. */
 export type PlaceRow = { day: number; kind: string; tier: number; odds: number | null; won: boolean | null };
+
+/** A run's log before anything happened. */
+export const emptyLog = (profile: string, seed: string): RunLog => ({
+  profile,
+  seed,
+  days: 0,
+  milestones: {},
+  daily: [],
+  expeditions: [],
+  crafts: [],
+  goldIn: [],
+  loot: {},
+  goldOut: [],
+  gathered: {},
+  used: {},
+  missing: {},
+  sanctums: [],
+  recruits: [],
+  guildBuys: [],
+  patrols: { seen: [], fights: [], travellers: { wounded: 0, pilgrim: 0, trader: 0 }, rewards: { loot: 0, recruit: 0 }, recruits: [], keyFragments: 0, trades: 0 },
+  potionsAtHome: 0,
+  emergencySupply: 0,
+  quests: { claimed: { short: 0, medium: 0, long: 0, secret: 0 }, tips: 0 },
+  probes: [],
+  materialFlow: {},
+  knownRecipes: [],
+  places: [],
+  skipped: {},
+  finished: false,
+});
 
 /** Everything met on a walk, at the tier it would have fought at. */
 export type PatrolSeenRow = { kind: PatrolSubject; tier: number; elite: boolean };
@@ -227,7 +272,7 @@ export type Sim = {
   /** When the first session at or after a time happens. */
   collectionAt: (time: number) => number;
   oddsCache: Map<string, Odds>;
-  launched: Map<string, Pick<ExpeditionRow, 'odds' | 'qualities' | 'day' | 'hour' | 'level'>>;
+  launched: Map<string, Pick<ExpeditionRow, 'odds' | 'qualities' | 'day' | 'hour' | 'level' | 'consumables'>>;
   /** Dungeons left for a later session this one, waiting for the heroes to heal. */
   waiting: Set<string>;
   log: RunLog;
@@ -280,6 +325,8 @@ export function act(sim: Sim, source: string, action: (save: SaveData) => SaveDa
     if (delta === 0) continue;
     changes[id] = delta;
     add(delta > 0 ? sim.log.gathered : sim.log.used, id, source, Math.abs(delta));
+    const flow = ((sim.log.materialFlow[sim.day] ??= {})[id] ??= [0, 0]);
+    flow[delta > 0 ? 0 : 1] += Math.abs(delta);
     if (delta > 0 && id.endsWith('Stone')) mark(sim, 'firstStone');
   }
   return changes;
@@ -723,6 +770,7 @@ export function recruitHeroes(sim: Sim) {
     const pick = offers[0]?.offer;
     if (!pick) return;
     act(sim, 'recruit', (save) => rollDailyApproaches(recruit(save, pick, sim.tavern.position, sim.tavern.position), sim.now));
+    sim.log.places.push({ day: sim.day, kind: 'tavern', tier: highestTier(sim.save), odds: null, won: null });
     sim.log.recruits.push({ day: sim.day, classId: pick.classId, price: pick.price, trait: pick.trait });
     mark(sim, `recruit:${sim.save.heroes.length}`);
   }
@@ -937,7 +985,11 @@ export function launch(sim: Sim, dungeon: DungeonDef, heroIds: string[], o: Odds
   else sim.due.expeditions -= 1;
   sim.save = startExpedition(sim.save, dungeon.id, heroIds, sim.now, 1, sim.rotation, loadout);
   const level = heroIds.reduce((s, h) => s + sim.save.heroes.find((x) => x.id === h)!.level, 0) / heroIds.length;
-  sim.launched.set(id, { odds: final.success, qualities, day: sim.day, hour: (sim.now - sim.startedAt) / 3_600_000, level });
+  const consumables = heroIds.flatMap((h) => {
+    const { consumable, potion } = sim.save.heroes.find((x) => x.id === h)!.equipment;
+    return [consumable, potion].filter((c): c is string => !!c);
+  });
+  sim.launched.set(id, { odds: final.success, qualities, day: sim.day, hour: (sim.now - sim.startedAt) / 3_600_000, level, consumables });
 }
 
 /** The loot row a run of this dungeon rolls, for charms. */
@@ -1091,6 +1143,7 @@ export function collectExpedition(sim: Sim, expedition: ActiveExpedition) {
     supplyUsed: report.supplyUsed ?? 0,
     meal: report.mealId ?? null,
     potions: report.consumablesUsed.filter((id) => id === 'healingPotion').length,
+    consumables: launched?.consumables ?? [],
   });
   if (report.success && dungeon.isBoss) mark(sim, `boss:${dungeon.tier}`);
 }

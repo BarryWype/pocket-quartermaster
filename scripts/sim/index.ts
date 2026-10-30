@@ -12,10 +12,11 @@ const USAGE = `npm run sim -- [options]
   --max-days N    stop every game by then (default: each profile's cap)
   --set path=value   override a number for this run, repeatable (e.g. guild.gold.baseCost=80)
   --out dir       where the CSVs go (default sim-output/<timestamp>)
+  --report dir    where report.md and summary.json go (default doc/design/simulator)
   --pacing        print weekly loot drops per category (as doc/design/loot/tools/pacing.py) and stop`;
 
 function parse(argv: string[]) {
-  const options = { profile: 'all', seeds: 4, seed: '1', maxDays: undefined as number | undefined, overrides: [] as string[], out: '', pacing: false };
+  const options = { profile: 'all', seeds: 4, seed: '1', maxDays: undefined as number | undefined, overrides: [] as string[], out: '', report: 'doc/design/simulator', pacing: false };
   for (let i = 0; i < argv.length; i++) {
     const value = () => {
       const next = argv[++i];
@@ -29,6 +30,7 @@ function parse(argv: string[]) {
       case '--max-days': options.maxDays = Number(value()); break;
       case '--set': options.overrides.push(value()); break;
       case '--out': options.out = value(); break;
+      case '--report': options.report = value(); break;
       case '--pacing': options.pacing = true; break;
       case '--help': console.log(USAGE); process.exit(0);
       default: throw new Error(`Unknown option ${argv[i]}\n${USAGE}`);
@@ -50,4 +52,5 @@ runLab({
   maxDays: options.maxDays,
   overrides: options.overrides,
   outDir: options.out || path.join('sim-output', stamp),
+  reportDir: options.report,
 });
