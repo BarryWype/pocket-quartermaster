@@ -1,25 +1,32 @@
 import { createInitialSave, type SaveData } from '../save';
 import { expectedLevels } from '../sim/config';
 import { equip } from '../team/team';
+import type { Quality } from '../types';
 import type { LatLng } from '../generation/types';
 import { patrolPositionAt, patrolsAround, type PatrolSpawn } from './generate';
 
 export const HOME: LatLng = { latitude: -41.2865, longitude: 174.7762 };
 export const T0 = Date.UTC(2026, 9, 20, 9);
 
-/** The starting heroes at the tier's expected level, in its Normal weapons and mail, with the tutorial done. */
-export function tierTeam(tier = 1): SaveData {
+/** The starting heroes at the tier's expected level, in its weapons and mail (Normal unless given), with the tutorial done. */
+export function tierTeam(tier = 1, quality: Quality = 'normal'): SaveData {
   let save: SaveData = {
     ...createInitialSave(),
     tutorial: { ...createInitialSave().tutorial, step: 'done' },
     heroes: createInitialSave().heroes.map((h) => ({ ...h, level: expectedLevels[tier - 1] })),
-    gear: ['sword', 'bow', 'wand', 'mail', 'mail', 'mail'].map((type, i) => ({ uid: `g${i}`, itemId: `${type}${tier}`, quality: 'normal' as const })),
+    gear: ['sword', 'bow', 'wand', 'mail', 'mail', 'mail'].map((type, i) => ({ uid: `g${i}`, itemId: `${type}${tier}`, quality })),
   };
   ['bram', 'lyra', 'mira'].forEach((heroId, i) => {
     save = equip(save, heroId, 'weapon', `g${i}`);
     save = equip(save, heroId, 'armor', `g${i + 3}`);
   });
   return save;
+}
+
+/** A tier 1 team strong enough for the escort to take on goblins alone (70% odds): Rare gear, a level above the band. */
+export function escortTeam(): SaveData {
+  const save = tierTeam(1, 'rare');
+  return { ...save, heroes: save.heroes.map((h) => ({ ...h, level: expectedLevels[0] + 1 })) };
 }
 
 /** The first spawn around HOME, window after window from T0, that matches; with a time inside its window. */

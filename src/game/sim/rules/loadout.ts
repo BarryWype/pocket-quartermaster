@@ -77,6 +77,17 @@ export function withCharm(save: SaveData, heroIds: string[], charmId: string): S
   return equip(save, carrier, 'consumable', charmId);
 }
 
+/** The six stat potions: they take a healing potion's slot when the prepared odds are low. */
+export const statPotionIds = ['strengthDraught', 'arcaneTonic', 'ironskinBrew', 'nullrootTincture', 'quicksilver', 'viperOil'];
+
+/** Swaps the hero's healing potion (or empty consumable slot) for this held stat potion; never a kit or weakness item. */
+export function withStatPotion(save: SaveData, heroId: string, itemId: string): SaveData {
+  const hero = save.heroes.find((h) => h.id === heroId);
+  const slot = hero?.equipment.consumable;
+  if (!hero || !statPotionIds.includes(itemId) || (slot !== null && slot !== 'healingPotion') || (save.consumables[itemId] ?? 0) < 1) return save;
+  return equip(save, heroId, 'consumable', itemId);
+}
+
 /** Every hero still without a consumable takes a healing potion while the stock lasts. */
 export function fillPotions(save: SaveData, heroIds: string[]): SaveData {
   return heroIds.reduce(

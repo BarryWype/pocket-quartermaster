@@ -57,7 +57,7 @@ import { scoreThreat } from '../threats/score';
 import type { ActiveExpedition, Approach, ArmourType, Briefing, ConsumableDef, DungeonDef, GearDef, GearInstance, HeroClassId, HeroState, OffhandType, Quality, RecipeDef, Stats, WeaponType } from '../types';
 import { expectedLevels, type Profile, type SimConfig } from './config';
 import { partRecipeFor } from './rules/inventory';
-import { emptySlots, fillPotions, isKit, pickCharm, pickKits, pickWeakness, uncovered, withCharm } from './rules/loadout';
+import { emptySlots, fillPotions, isKit, pickCharm, pickKits, pickWeakness, statPotionIds, uncovered, withCharm, withStatPotion } from './rules/loadout';
 import { PICKAXES, type WalkRates } from './walking';
 import { questRules } from '@/content/quests';
 import { questUpkeep } from '../quests/arrival';
@@ -591,6 +591,26 @@ function betterChance(save: SaveData, item: GearDef, quality: Quality) {
   return QUALITY_ORDER.slice(QUALITY_ORDER.indexOf(quality) + 1).reduce((sum, q) => sum + odds[q], 0) / 100;
 }
 
+/** The recipe the forge rule would pick now: the next pickaxe, else the biggest upgrade. */
+export function nextForgeRecipe(save: SaveData): RecipeDef | null {
+  const owned = PICKAXES.filter((id) => save.tools.includes(id)).length;
+  const pickaxe = recipeById[PICKAXES[owned]];
+  if (pickaxe && save.knownRecipes.includes(pickaxe.id)) return pickaxe;
+  const upgrades = homeHeroes(save)
+    .flatMap((hero) => {
+      const slots = (['weapon', 'armor', 'offhand'] as const).filter((slot) => slot !== 'offhand' || offhandTypeFor(save, hero));
+      return slots.map((slot) => {
+        const best = bestRecipe(save, hero, slot);
+        const current = gearOf(save, hero.equipment[slot]);
+        if (!best || (current && (itemById[current.itemId] as GearDef).tier >= best.item.tier)) return null;
+        return { recipe: best.recipe, gain: gearScore(hero, best.item, NEUTRAL) - wornScore(save, hero, slot) };
+      });
+    })
+    .filter((u): u is { recipe: RecipeDef; gain: number } => u !== null && u.gain > 0)
+    .sort((a, b) => b.gain - a.gain);
+  return upgrades[0]?.recipe ?? null;
+}
+
 export function forge(sim: Sim) {
   const owned = PICKAXES.filter((id) => sim.save.tools.includes(id)).length;
   const pickaxe = recipeById[PICKAXES[owned]];
@@ -963,11 +983,36 @@ export function digTreasure(sim: Sim) {
 
 // —— Expeditions ——
 
+/**
+ * While the prepared party's odds are below `statPotionBelowOdds`, one hero
+ * at a time takes the held stat potion that raises the cheap odds estimate
+ * the most, in a slot that would otherwise get a healing potion; stops when
+ * no potion helps.
+ */
+function applyStatPotions(sim: Sim, dungeon: DungeonDef, heroIds: string[], loadout: Loadout, briefing: Briefing) {
+  const estimate = (save: SaveData) => estimateOdds(save, heroIds, dungeon, sim.config.odds.searchRuns, { now: sim.now, loadout, briefing });
+  for (;;) {
+    if (!statPotionIds.some((id) => (sim.save.consumables[id] ?? 0) > 0)) return;
+    const current = estimate(sim.save).success;
+    if (current >= sim.config.statPotionBelowOdds) return;
+    let best: { heroId: string; itemId: string; odds: number } | null = null;
+    for (const heroId of heroIds) {
+      for (const itemId of statPotionIds.filter((id) => (sim.save.consumables[id] ?? 0) > 0)) {
+        const odds = estimate(withStatPotion(sim.save, heroId, itemId)).success;
+        if (!best || odds > best.odds) best = { heroId, itemId, odds };
+      }
+    }
+    if (!best || best.odds <= current) return;
+    sim.save = withStatPotion(sim.save, best.heroId, best.itemId);
+  }
+}
+
 export function launch(sim: Sim, dungeon: DungeonDef, heroIds: string[], o: Odds) {
   const briefing = briefingFor(sim.rotation, dungeon);
   sim.save = withLoadout(emptySlots(sim.save, homeHeroes(sim.save).map((h) => h.id)), heroIds, dungeon, briefing);
   const loadout = { mealId: mealFor(sim, dungeon, heroIds, o) };
   topUpSupply(sim, dungeon, heroIds, loadout, briefing);
+  applyStatPotions(sim, dungeon, heroIds, loadout, briefing);
   // The prediction logged is for the party exactly as it leaves.
   let final = estimateOdds(sim.save, heroIds, dungeon, sim.config.odds.runs, { now: sim.now, loadout, briefing });
   const charm = final.success >= sim.config.odds.charm ? pickCharm(sim.save, runSource(dungeon)) : null;
@@ -1015,14 +1060,20 @@ function dropsBlueprint(save: SaveData, dungeon: DungeonDef) {
  * and a new tier's first clear (their rows' gold) and XP. The loot categories
  * beyond gold are not valued.
  */
-function expectedValue(sim: Sim, dungeon: DungeonDef, o: Odds, heroes: number) {
+function expectedValue(sim: Sim, dungeon: DungeonDef, o: Odds, heroIds: string[]) {
   const mid = ((dungeon.gold[0] + dungeon.gold[1]) / 2) * (1 + guildBonus(sim.save, 'gold'));
   const { firstWin, firstTierClear } = lootConfig.bonusRows;
   const newTier = !sim.save.clearedDungeons.some((id) => dungeonById[id]?.tier === dungeon.tier);
   const bonus =
     (firstWinAvailable(sim.save, dungeon, sim.now) ? dungeon.gold[1] * firstWin.gold : 0) + (newTier ? dungeon.gold[1] * firstTierClear.gold : 0);
   const tierShare = xpRules.lowerTierShare[Math.min(xpRules.lowerTierShare.length - 1, highestTier(sim.save) - dungeon.tier)];
-  return mid * o.progress + o.success * bonus + dungeon.xp * tierShare * o.progress * heroes * sim.config.xpGoldValue;
+  // Heroes at or above the tier band's top earn the soft-cap share of that XP.
+  const bandTop = lootConfig.manuals.topLevelByTier[highestTier(sim.save) - 1];
+  const xpShares = heroIds.reduce(
+    (sum, id) => sum + ((sim.save.heroes.find((h) => h.id === id)?.level ?? 0) >= bandTop ? xpRules.aboveBandShare : 1),
+    0,
+  );
+  return mid * o.progress + o.success * bonus + dungeon.xp * tierShare * o.progress * xpShares * sim.config.xpGoldValue;
 }
 
 export function sendExpeditions(sim: Sim) {
@@ -1057,7 +1108,7 @@ export function sendExpeditions(sim: Sim) {
       .map((d) => {
         const party = bestParty(sim, d, idle());
         const hours = (sim.collectionAt(sim.now + d.durationMinutes * (1 - guildBonus(sim.save, 'fasterExpeditions')) * 60_000) - sim.now) / 3_600_000;
-        return { d, party, score: expectedValue(sim, d, party.odds, party.heroIds.length) / Math.max(0.1, hours) };
+        return { d, party, score: expectedValue(sim, d, party.odds, party.heroIds) / Math.max(0.1, hours) };
       });
     const threshold = (d: DungeonDef) => (d.tier === top && dropsBlueprint(sim.save, d) ? sim.config.odds.blueprint : sim.profile.oddsThreshold);
     const good = options.filter((o) => o.party.odds.success >= threshold(o.d)).sort((a, b) => b.score - a.score);

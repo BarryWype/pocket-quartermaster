@@ -1,3 +1,4 @@
+import { lootConfig } from './loot/config';
 import type { SecretKind } from './places';
 
 /** The places and runs that can tip the player off about a secret place, each always the same one. */
@@ -28,8 +29,8 @@ export const secretRules = {
   lifetimeHours: 72,
   /** Seeded spots tried for the underwater dungeon; the map shows the first one near water. */
   waterSpots: 8,
-  /** A tip for a place already tipped pays this much gold instead, by highest unlocked tier. */
-  duplicateGold: [10, 20, 35, 60, 100],
+  /** A tip for a place already tipped pays this much gold instead, by highest unlocked tier: 10 × the gold curve. */
+  duplicateGold: lootConfig.goldByTier.map((multiplier) => Math.round(10 * multiplier)),
   /** The library's old ledger, by highest unlocked tier. */
   ledgerPrice: [40, 80, 150, 280, 500],
   blackMarket: {

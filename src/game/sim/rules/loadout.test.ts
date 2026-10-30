@@ -5,7 +5,7 @@ import { weaknessByBoss } from '@/content/weaknesses';
 import { charmApplies } from '../../loot/charms';
 import { createInitialSave, type SaveData } from '../../save';
 import type { Briefing } from '../../types';
-import { emptySlots, fillPotions, isKit, pickCharm, pickKits, pickWeakness, uncovered, unprepared, withCharm } from './loadout';
+import { emptySlots, fillPotions, isKit, pickCharm, pickKits, pickWeakness, uncovered, unprepared, withCharm, withStatPotion } from './loadout';
 
 const PARTY = ['bram', 'lyra', 'mira'];
 const TRAPS: Briefing = { threats: [{ id: 'traps', level: 3 }], restriction: null, opportunity: null };
@@ -60,5 +60,17 @@ describe('loadout rules', () => {
   it('puts carried consumables back in the stock', () => {
     const save = fillPotions(stocked({ healingPotion: 3 }), PARTY);
     expect(emptySlots(save, PARTY).consumables.healingPotion).toBe(3);
+  });
+
+  it('puts a stat potion over a healing potion or in a free slot, never over a kit', () => {
+    const kitted = pickKits(stocked({ roguesRoll: 1, strengthDraught: 1, healingPotion: 3 }), PARTY, TRAPS);
+    const carrier = slots(kitted).findIndex((s) => s === 'roguesRoll');
+    expect(slots(withStatPotion(kitted, PARTY[carrier], 'strengthDraught'))[carrier]).toBe('roguesRoll');
+    const potion = fillPotions(kitted, PARTY);
+    const free = slots(potion).findIndex((s) => s === 'healingPotion');
+    const withStat = withStatPotion(potion, PARTY[free], 'strengthDraught');
+    expect(slots(withStat)[free]).toBe('strengthDraught');
+    expect(withStat.consumables).toEqual({ roguesRoll: 0, strengthDraught: 0, healingPotion: 2 });
+    expect(withStatPotion(potion, PARTY[free], 'quicksilver')).toBe(potion);
   });
 });

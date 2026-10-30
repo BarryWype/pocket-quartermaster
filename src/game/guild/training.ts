@@ -1,5 +1,6 @@
 import { guildRules } from '@/content/guild';
 
+import { highestUnlockedTier } from '../dungeons/unlock';
 import type { SaveData } from '../save';
 import { addXp, isAway } from '../team/team';
 import { guildBonus } from './guild';
@@ -20,9 +21,10 @@ export function applyTraining(save: SaveData, now: number, rules: Rules = guildR
   const xp = Math.floor((rate * elapsed) / HOUR);
   if (xp === 0) return save;
   const used = (xp / rate) * HOUR;
+  const playerTier = highestUnlockedTier(save);
   return {
     ...save,
     trainedAt: now - (elapsed - used),
-    heroes: save.heroes.map((hero) => (isAway(save, hero.id) ? hero : addXp(hero, xp))),
+    heroes: save.heroes.map((hero) => (isAway(save, hero.id) ? hero : addXp(hero, xp, playerTier))),
   };
 }

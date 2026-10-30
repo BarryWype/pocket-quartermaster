@@ -431,6 +431,8 @@ export const xpRules = {
   maxLevel: 15,
   /** Share of XP from dungeons 0, 1, and 2 or more tiers below the highest unlocked tier. */
   lowerTierShare: [1, 0.5, 0.25],
+  /** A hero at or above the top of the player's tier band gets this share of XP. */
+  aboveBandShare: 0.25,
 };
 
 /** XP needed to go from `level` to `level + 1`. */

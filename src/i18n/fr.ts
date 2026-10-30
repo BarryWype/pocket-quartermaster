@@ -358,6 +358,7 @@ export const fr: Dictionary = {
     dismissBody: 'Son équipement et son consommable retournent dans votre inventaire. Action irréversible.',
     dismiss: 'Renvoyer',
     xp: 'XP {xp}/{next}',
+    xpAboveBand: 'Au-dessus du niveau du palier : XP réduite',
     stats: 'Caractéristiques',
     approaches: 'Approches',
     keywords: 'Mots-clés',

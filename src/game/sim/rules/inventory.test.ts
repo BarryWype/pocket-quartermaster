@@ -1,8 +1,9 @@
 import { createInitialSave, type SaveData } from '../../save';
 import { createRng } from '../../generation/rng';
+import { dungeonById } from '@/content/lookup';
 import { emptyLog, type Sim } from '../bot';
 import { profiles, simConfig } from '../config';
-import { craftCharms, partRecipeFor, valuablesToSell } from './inventory';
+import { craftCharms, craftStatPotions, partRecipeFor, valuablesToSell } from './inventory';
 
 
 /** A Sim with just the fields the inventory rules touch: a real day 1 save, an empty log. */
@@ -71,5 +72,38 @@ describe('craftCharms', () => {
     craftCharms(sim);
     expect(sim.save.consumables.luckyEar).toBe(1);
     expect(sim.log.crafts).toHaveLength(1);
+  });
+});
+
+describe('craftStatPotions', () => {
+  const tier2 = (save: SaveData): SaveData => ({
+    ...save,
+    clearedDungeons: Object.values(dungeonById).filter((d) => d.tier === 1 && d.isBoss).map((d) => d.id),
+  });
+
+  it('crafts a stat potion from its parts up to the stock', () => {
+    const sim = simOf(tier2(createInitialSave()));
+    sim.save.partRecipes = ['strengthDraughtPart'];
+    sim.save.materials = { ...sim.save.materials, stone: 5, fangOrHorn: 2, herb: 5 };
+    craftStatPotions(sim);
+    expect(sim.save.consumables.strengthDraught).toBe(2);
+    expect(sim.save.materials.fangOrHorn ?? 0).toBe(0);
+    expect(sim.log.crafts.filter((c) => c.kind === 'consumable')).toHaveLength(2);
+    craftStatPotions(sim);
+    expect(sim.save.consumables.strengthDraught).toBe(2);
+    expect(sim.log.crafts).toHaveLength(2);
+  });
+
+  it('uses the base recipe when the parts are not held, and nothing while the tier is locked', () => {
+    const save = tier2(createInitialSave());
+    const sim = simOf(save);
+    sim.save.materials = { ...sim.save.materials, stone: 1, meat: 1, herb: 1 };
+    craftStatPotions(sim);
+    expect(sim.save.consumables.strengthDraught).toBe(1);
+    const locked = simOf(createInitialSave());
+    locked.save.materials = { stone: 1, meat: 1, herb: 1 };
+    craftStatPotions(locked);
+    expect(locked.save.consumables.strengthDraught).toBeUndefined();
+    expect(locked.log.crafts).toHaveLength(0);
   });
 });

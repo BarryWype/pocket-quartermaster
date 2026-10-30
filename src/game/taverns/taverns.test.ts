@@ -72,10 +72,11 @@ describe('offers', () => {
     expect(common).toBeLessThan(0.7);
   });
 
-  it('come in a level below the roster average, at least level 1', () => {
-    expect(offerLevel(createInitialSave())).toBe(1);
+  it('come in at the bottom of the player tier band, whatever the roster level', () => {
+    expect(offerLevel(createInitialSave())).toBe(recruitRules.levelByTier[0]);
     const veterans = { ...createInitialSave(), heroes: createInitialSave().heroes.map((h, i) => ({ ...h, level: 4 + i })) };
-    expect(offerLevel(veterans)).toBe(4);
+    expect(offerLevel(veterans)).toBe(recruitRules.levelByTier[0]);
+    expect(offerLevel({ ...veterans, clearedDungeons: ['banditStockade'] })).toBe(recruitRules.levelByTier[1]);
   });
 
   it('cost base × level × roster × trait × tier', () => {

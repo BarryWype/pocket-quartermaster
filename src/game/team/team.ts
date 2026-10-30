@@ -3,6 +3,7 @@ import { affinityRules, castingPenalty, classAffinities, type Affinity } from '@
 import { componentById, itemById, relicById } from '@/content/lookup';
 import { qualities } from '@/content/forging';
 import { traitById } from '@/content/traits';
+import { lootConfig } from '@/content/loot/config';
 
 import { slotProblem } from '../equipment/slots';
 import { pieceBaseStats } from '../forging/quality';
@@ -302,11 +303,13 @@ export function markClassesSeen(save: SaveData, classIds: HeroClassId[]): SaveDa
 
 export const rosterFull = (save: SaveData) => save.heroes.length >= rosterCap(save);
 
-export function addXp(hero: HeroState, amount: number): HeroState {
+export function addXp(hero: HeroState, amount: number, playerTier?: number): HeroState {
   // At the cap no XP is gained at all.
   if (hero.level >= xpRules.maxLevel) return hero;
+  // At or above the player's tier band top, a hero earns the soft-cap share.
+  const aboveBand = playerTier !== undefined && hero.level >= lootConfig.manuals.topLevelByTier[playerTier - 1];
   let { level, xp } = hero;
-  xp += amount;
+  xp += Math.round(amount * (aboveBand ? xpRules.aboveBandShare : 1));
   while (level < xpRules.maxLevel) {
     const need = xpToNextLevel(level);
     if (xp < need) break;

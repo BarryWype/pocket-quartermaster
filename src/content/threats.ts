@@ -301,6 +301,8 @@ export const threatRules = {
     restrictionChance: 0.35,
     /** Weight multiplier for a threat drawn before its kit's tier. */
     beforeKitWeight: 0.5,
+    /** Weight multipliers by dungeon tier, for tiers that need their own. */
+    tierWeights: { 1: { traps: 0.4, beasts: 1.5, undead: 1.5, brute: 1.5 } } as Partial<Record<number, Partial<Record<ThreatId, number>>>>,
     /** Level weights by rank from the top: the highest level first. */
     levelWeights: [50, 35, 15],
     /** Chance per day and tier that one open dungeon's threat surges. */

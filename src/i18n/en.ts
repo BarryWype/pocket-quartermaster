@@ -352,6 +352,7 @@ export const en = {
     dismissBody: 'Their gear and consumable go back to your inventory. This cannot be undone.',
     dismiss: 'Dismiss',
     xp: 'XP {xp}/{next}',
+    xpAboveBand: "Above the tier's level: XP reduced",
     stats: 'Stats',
     approaches: 'Approaches',
     keywords: 'Keywords',

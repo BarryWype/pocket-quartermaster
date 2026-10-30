@@ -7,6 +7,7 @@ import { seeParts } from '../crafting/partRecipes';
 import { convertShards } from '../elements';
 import { gainMastery, masteryOf } from '../forging/mastery';
 import { guildBonus } from '../guild/guild';
+import { highestUnlockedTier } from '../dungeons/unlock';
 import { addMaterials } from '../inventory';
 import type { SaveData } from '../save';
 import { addXp } from '../team/team';
@@ -22,6 +23,7 @@ import type { Loot } from './types';
  */
 export function grantLoot(save: SaveData, heroIds: string[], loot: Loot, now: number): SaveData {
   const guildXp = 1 + guildBonus(save, 'heroXp');
+  const playerTier = highestUnlockedTier(save);
   const consumables = { ...save.consumables };
   for (const { itemId, amount } of loot.consumables) consumables[itemId] = (consumables[itemId] ?? 0) + amount;
   const valuables = { ...save.valuables };
@@ -41,7 +43,7 @@ export function grantLoot(save: SaveData, heroIds: string[], loot: Loot, now: nu
   const heroes = save.heroes.map((hero) => {
     if (!heroIds.includes(hero.id) || loot.xp <= 0) return hero;
     const xpBonus = (traitById[hero.trait]?.effects ?? []).reduce((m, e) => m * (e.kind === 'xpMultiplier' ? e.multiplier : 1), 1);
-    return addXp(hero, Math.round(loot.xp * xpBonus * guildXp));
+    return addXp(hero, Math.round(loot.xp * xpBonus * guildXp), playerTier);
   });
   let next: SaveData = {
     ...save,

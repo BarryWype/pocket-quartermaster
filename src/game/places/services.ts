@@ -167,6 +167,6 @@ export function trainHero(save: SaveData, spawn: PlaceSpawn, heroId: string, pla
   return {
     ...save,
     gold: save.gold - trainPrice(save),
-    heroes: save.heroes.map((hero): HeroState => (hero.id === heroId ? addXp(hero, trainXp(save)) : hero)),
+    heroes: save.heroes.map((hero): HeroState => (hero.id === heroId ? addXp(hero, trainXp(save), highestUnlockedTier(save)) : hero)),
   };
 }

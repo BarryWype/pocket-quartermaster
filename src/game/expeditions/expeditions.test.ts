@@ -75,7 +75,8 @@ describe('dungeon tiers', () => {
       for (const s of short) for (const l of long) expect(s.encounterCount[0]).toBeLessThan(l.encounterCount[0]);
       for (const l of long) {
         expect(l.encounterCount[0]).toBeLessThan(boss.encounterCount[0]);
-        expect(boss.boss.hp).toBeGreaterThan(l.boss.hp);
+        // The elder dragon is eased below its lair's strength (see dragonLairBoss in content/enemies.ts).
+        if (tier < 5) expect(boss.boss.hp).toBeGreaterThan(l.boss.hp);
       }
     }
   });

@@ -1,6 +1,6 @@
 import { charms } from '@/content/loot/charms';
 import { xpRules } from '@/content/heroes';
-import { relicById } from '@/content/lookup';
+import { recipeById, relicById } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
 
 import { canCraft, craftableCount, craftMany, isKnown } from '../../crafting/crafting';
@@ -10,11 +10,12 @@ import { distanceMeters } from '../../generation/geo';
 import { manualXp, readManual } from '../../loot/manuals';
 import type { ManualRarity } from '../../loot/types';
 import { placesWithin } from '../../places/generate';
+import { sellMaterial, sellMaterialProblem, sellValuable, sellValuableProblem } from '../../places/shops';
 import { isPlaceRevealed } from '../../reveal/reveal';
-import { sellValuable, sellValuableProblem } from '../../places/shops';
 import type { SaveData } from '../../save';
 import type { RecipeDef } from '../../types';
-import { act, homeHeroes, mark, type Sim } from '../bot';
+import { act, homeHeroes, mark, nextForgeRecipe, type Sim } from '../bot';
+import { statPotionIds } from './loadout';
 
 /** A recipe whose output is an item, with the output narrowed to its itemId. */
 type ItemRecipe = RecipeDef & { output: { itemId: string } };
@@ -48,17 +49,39 @@ export function valuablesToSell(save: SaveData): { key: string; count: number }[
     .filter((line) => line.count > 0);
 }
 
+/** The nearest open, revealed market within 1500 m, else null. */
+export function nearestMarket(sim: Sim) {
+  if (!isPlaceRevealed(sim.save, 'market')) return null;
+  return (
+    placesWithin(sim.location, 1500, sim.now)
+      .filter((spawn) => spawn.kind === 'market' && spawn.startsAt <= sim.now && spawn.expiresAt > sim.now)
+      .sort((a, b) => distanceMeters(sim.location, a.position) - distanceMeters(sim.location, b.position))[0] ?? null
+  );
+}
+
 /** Sells everything from `valuablesToSell` at the nearest market within 1500 m, the collector included through the market's price. */
 export function sellValuables(sim: Sim) {
-  if (!isPlaceRevealed(sim.save, 'market')) return;
-  const market = placesWithin(sim.location, 1500, sim.now)
-    .filter((spawn) => spawn.kind === 'market' && spawn.startsAt <= sim.now && spawn.expiresAt > sim.now)
-    .sort((a, b) => distanceMeters(sim.location, a.position) - distanceMeters(sim.location, b.position))[0];
+  const market = nearestMarket(sim);
   if (!market) return;
   let sold = false;
   for (const { key, count } of valuablesToSell(sim.save)) {
     if (sellValuableProblem(sim.save, market, key, count, market.position, sim.now) !== null) continue;
     act(sim, 'valuables', (save) => sellValuable(save, market, key, count, market.position, sim.now));
+    sold = true;
+  }
+  if (sold) sim.log.places.push({ day: sim.day, kind: 'market', tier: highestUnlockedTier(sim.save), odds: null, won: null });
+}
+
+/** Sells every material held above the cap, down to it, never below what the next planned forge needs. */
+export function sellMaterials(sim: Sim) {
+  const market = nearestMarket(sim);
+  if (!market) return;
+  const reserved = Object.fromEntries((nextForgeRecipe(sim.save)?.inputs ?? []).map((i) => [i.materialId, i.amount]));
+  let sold = false;
+  for (const [id, held] of Object.entries(sim.save.materials)) {
+    const count = Math.min(held - sim.config.sellMaterialsAbove, held - (reserved[id] ?? 0));
+    if (count <= 0 || sellMaterialProblem(sim.save, market, id, count, market.position, sim.now) !== null) continue;
+    act(sim, 'materials', (save) => sellMaterial(save, market, id, count, market.position, sim.now));
     sold = true;
   }
   if (sold) sim.log.places.push({ day: sim.day, kind: 'market', tier: highestUnlockedTier(sim.save), odds: null, won: null });
@@ -84,6 +107,21 @@ export function craftCharms(sim: Sim) {
       sim.log.crafts.push({ day: sim.day, kind: 'consumable', itemId: recipe.output.itemId, tier: 0, quality: null, roll: null, mastery: null, materials: {} });
     }
     mark(sim, 'charmCrafted');
+  }
+}
+
+/** Crafts each stat potion (its part recipe when the parts are held) up to the stat-potions-per-kind stock. */
+export function craftStatPotions(sim: Sim) {
+  for (const itemId of statPotionIds) {
+    const base = recipeById[itemId];
+    const recipe = partRecipeFor(sim.save, itemId) ?? (base && isKnown(sim.save, base) ? base : null);
+    if (!recipe) continue;
+    const n = Math.min(sim.config.provisions.statPotions - (sim.save.consumables[itemId] ?? 0), craftableCount(sim.save, recipe));
+    if (n <= 0) continue;
+    act(sim, 'alchemy', (save) => craftMany(save, recipe, n));
+    for (let i = 0; i < n; i++) {
+      sim.log.crafts.push({ day: sim.day, kind: 'consumable', itemId, tier: 0, quality: null, roll: null, mastery: null, materials: {} });
+    }
   }
 }
 

@@ -5,6 +5,9 @@ import type { Quality } from '@/game/types';
 /** A consumable pick of this id is a lure (herbs and animals near the player), added to `loot.lures`. */
 export const LURE_ID = 'lure';
 
+/** Gold at each tier relative to tier 1: the enemy strength curve (see content/enemies.ts TIER_SCALE). */
+const goldByTier = [1, 1.9, 3, 4.2, 5.6] as number[];
+
 export const lootConfig = {
   /** Base drop chance of each matrix mark; '—' never drops and 'A' always does. */
   markChances: { '—': 0, 'R/2': 0.035, R: 0.07, S: 0.25, O: 0.6, A: 1 } as Record<string, number>,
@@ -221,8 +224,10 @@ export const lootConfig = {
     /** Weight of each valuable in the collector's daily pick; others weigh 1. */
     collectorWeights: { oldCoins: 2 } as Record<string, number>,
   },
+  /** Gold at each tier relative to tier 1; rewards follow it (see `slotGold` in content/dungeons.ts). */
+  goldByTier,
   /** A valuable's price is its base price times this, by the source's tier: the enemy strength curve. */
-  valuablePriceByTier: [1, 1.9, 3, 4.2, 5.6] as number[],
+  valuablePriceByTier: goldByTier,
   /** Blueprint drops: weight by how many roster heroes favour the type; a complete tier gives mastery progress, or a component with `componentShare` half the time. */
   blueprints: { favourWeights: [1, 2, 3], tierCompleteForges: 2, componentShare: 0.5 },
   /** Key fragments needed for one mysterious key. */

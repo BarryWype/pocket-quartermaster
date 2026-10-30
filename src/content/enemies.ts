@@ -112,6 +112,8 @@ const S = {
   abyssalDepths: strength(5, 1.74),
   titanRuins: strength(5, 2.13),
   dragonLair: strength(5, 1.94),
+  // The elder dragon alone: eased so the reference team beats it about 55% of the time.
+  dragonLairBoss: strength(5, 1.16),
   // Overnight expeditions: a long, safe patrol at low strength (see overnightExpeditionRules).
   nightWatch1: strength(1, 1.7),
   nightWatch2: strength(2, 2.5),
@@ -268,7 +270,7 @@ export const bosses: BossDef[] = [
   boss('ashLord', 'ash lord', S.ashenCitadel, 80, 9, ['caster'], 'enrage', 'fire'),
   boss('abyssalHorror', 'abyssal horror', S.abyssalDepths, 80, 9, ['beast'], 'sweep', 'water', 'slow'),
   boss('titanHeart', 'titan heart', S.titanRuins, 80, 9, ['construct'], 'enrage', 'stone', 'slow'),
-  boss('elderDragon', 'elder dragon', S.dragonLair, 140, 12, ['dragon', 'beast'], 'sweep', 'fire'),
+  boss('elderDragon', 'elder dragon', S.dragonLairBoss, 140, 12, ['dragon', 'beast'], 'sweep', 'fire'),
   // Underwater dungeons' elites (secret places): water and drowned foes, never a tier boss.
   boss('drownedEnforcer', 'drowned enforcer', S.smugglersCove, 50, 6, ['undead', 'humanoid'], undefined, 'water'),
   boss('drownedSergeant', 'drowned sergeant', S.sunkenFord, 60, 7, ['undead'], undefined, 'water'),
@@ -358,21 +360,21 @@ const patrolTemplates: Record<PatrolKind, PatrolTemplate> = {
     hp: [7, 10, 14],
     damage: [2, 3, 4],
     tags: ['locals'],
-    factors: [3.79, 3.44, 3.21, 3.23, 3.36],
+    factors: [4.93, 4.47, 4.17, 4.2, 4.37],
     foes: GOBLIN_FOES,
   },
   herd: {
     hp: [8, 12, 16],
     damage: [2, 3, 4],
     tags: ['beast'],
-    factors: [3.51, 3.08, 2.91, 3.01, 2.99],
+    factors: [4.56, 4, 3.78, 3.91, 3.89],
     foes: HERD_FOES,
   },
   bandits: {
     hp: [10, 14, 22],
     damage: [3, 4, 6],
     tags: ['locals'],
-    factors: [6.1, 5.45, 5.2, 5.12, 5.36],
+    factors: [7.93, 7.09, 6.76, 6.66, 6.97],
     foes: BANDIT_FOES,
   },
 };
@@ -418,9 +420,9 @@ type PlaceTemplate = {
   elemental?: boolean;
 };
 
-const BANDIT_FACTORS: [number, number, number, number, number] = [6.1, 5.45, 5.2, 5.12, 5.36];
-const GOBLIN_FACTORS: [number, number, number, number, number] = [3.79, 3.44, 3.21, 3.23, 3.36];
-const HERD_FACTORS: [number, number, number, number, number] = [3.51, 3.08, 2.91, 3.01, 2.99];
+const BANDIT_FACTORS: [number, number, number, number, number] = [7.93, 7.09, 6.76, 6.66, 6.97];
+const GOBLIN_FACTORS: [number, number, number, number, number] = [4.93, 4.47, 4.17, 4.2, 4.37];
+const HERD_FACTORS: [number, number, number, number, number] = [4.56, 4, 3.78, 3.91, 3.89];
 
 const placeTemplates: Record<FightPlaceKind, PlaceTemplate> = {
   banditCamp: {

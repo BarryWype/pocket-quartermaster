@@ -78,7 +78,8 @@ export function composeBriefing(dungeon: DungeonDef, day: number, rules: ThreatR
       const kit = kitTier(id);
       // A threat drawn before its kit's tier is rarer and capped at level 1.
       const beforeKit = kit !== null && kit > dungeon.tier;
-      return { id, weight: beforeKit ? weight * rules.compose.beforeKitWeight : weight, beforeKit };
+      const tierWeight = rules.compose.tierWeights[dungeon.tier]?.[id] ?? 1;
+      return { id, weight: weight * tierWeight * (beforeKit ? rules.compose.beforeKitWeight : 1), beforeKit };
     });
 
   const threats: ActiveThreat[] = [];

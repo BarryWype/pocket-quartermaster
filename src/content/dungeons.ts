@@ -1,6 +1,7 @@
 import type { DungeonDef, EncounterDef, ObstacleKind } from '@/game/types';
 
 import { bossById } from './enemies';
+import { lootConfig } from './loot/config';
 
 // Five tiers, one per gear tier (wood → steel). Each tier has a fixed boss
 // dungeon, which drops the pickaxe that opens the next tier's material, and a
@@ -9,7 +10,8 @@ import { bossById } from './enemies';
 // previous tier's boss has been beaten.
 // A run is a series of encounters drawn from the dungeon's pool, then its boss.
 // Regular dungeons of a slot share their tier's gold and XP. Gold per run
-// doubles each tier: players collect once a session, so runs, not hours, set
+// follows the tier curve (lootConfig.goldByTier, the enemy strength curve):
+// players collect once a session, so runs, not hours, set
 // daily income. Everything else a win pays is rolled from the loot matrix
 // (content/loot/matrix.ts).
 // Tuned against src/game/balance/balance.test.ts.
@@ -44,6 +46,15 @@ const obstacle = (kind: ObstacleKind, name: string, weight = 2): EncounterDef =>
 
 const locals = (npcId: string, weight = 1): EncounterDef => ({ type: 'locals', weight, npcId });
 
+/** Tier 1's gold per slot; every tier's gold comes from these times its curve multiplier. */
+const tier1Gold = { short: [5, 12], long: [8, 18], boss: [20, 40] } as { short: [number, number]; long: [number, number]; boss: [number, number] };
+
+/** A slot's gold at a tier: tier 1's amounts times the tier's multiplier (lootConfig.goldByTier), rounded. */
+const slotGold = (tier: number, slot: keyof typeof tier1Gold): [number, number] => [
+  Math.round(tier1Gold[slot][0] * lootConfig.goldByTier[tier - 1]),
+  Math.round(tier1Gold[slot][1] * lootConfig.goldByTier[tier - 1]),
+];
+
 /** A new pool dungeon with the rewards of an existing one of the same tier and slot. */
 const sameRewards = (base: DungeonDef) => ({
   tier: base.tier,
@@ -68,7 +79,7 @@ const ratCellar: DungeonDef = {
     targets: 'one',
   }),
   boss: bossById.ratKing,
-  gold: [5, 12],
+  gold: slotGold(1, 'short'),
   xp: 30,
 };
 const goblinWarren: DungeonDef = {
@@ -85,7 +96,7 @@ const goblinWarren: DungeonDef = {
     [obstacle('barricade', 'junk barricade', 3), obstacle('rubble', 'caved-in tunnel')],
   ),
   boss: bossById.goblinChief,
-  gold: [8, 18],
+  gold: slotGold(1, 'long'),
   xp: 50,
 };
 // Tier 2: stone
@@ -102,7 +113,7 @@ const wolfDen: DungeonDef = {
     targets: 'all',
   }),
   boss: bossById.alphaWolf,
-  gold: [10, 24],
+  gold: slotGold(2, 'short'),
   xp: 80,
 };
 const trollBridge: DungeonDef = {
@@ -119,7 +130,7 @@ const trollBridge: DungeonDef = {
     [locals('tollTroll', 2), locals('hermit', 3), locals('pedlar', 2), obstacle('rubble', 'collapsed arch', 1)],
   ),
   boss: bossById.bridgeTroll,
-  gold: [16, 36],
+  gold: slotGold(2, 'long'),
   xp: 120,
 };
 // Tier 3: copper
@@ -137,7 +148,7 @@ const hauntedMine: DungeonDef = {
     [locals('lostMiner')],
   ),
   boss: bossById.mineWraith,
-  gold: [20, 48],
+  gold: slotGold(3, 'short'),
   xp: 150,
 };
 const cinderHollow: DungeonDef = {
@@ -154,7 +165,7 @@ const cinderHollow: DungeonDef = {
     element: 'fire',
   }),
   boss: bossById.ashWyrm,
-  gold: [32, 72],
+  gold: slotGold(3, 'long'),
   xp: 220,
 };
 // Tier 4: iron
@@ -172,7 +183,7 @@ const harpyCliffs: DungeonDef = {
     [obstacle('rubble', 'fallen boulders', 1)],
   ),
   boss: bossById.harpyMatriarch,
-  gold: [40, 96],
+  gold: slotGold(4, 'short'),
   xp: 250,
 };
 const orcWarcamp: DungeonDef = {
@@ -189,7 +200,7 @@ const orcWarcamp: DungeonDef = {
     [obstacle('barricade', 'spiked barricade', 3), obstacle('locked', 'chained gate', 1)],
   ),
   boss: bossById.orcWarlord,
-  gold: [64, 144],
+  gold: slotGold(4, 'long'),
   xp: 350,
 };
 // Tier 5: steel
@@ -207,7 +218,7 @@ const wyvernPeaks: DungeonDef = {
     [obstacle('rubble', 'snowed-in pass', 1)],
   ),
   boss: bossById.wyvernQueen,
-  gold: [80, 192],
+  gold: slotGold(5, 'short'),
   xp: 400,
 };
 const ashenCitadel: DungeonDef = {
@@ -224,7 +235,7 @@ const ashenCitadel: DungeonDef = {
     [obstacle('barricade', 'smouldering barricade', 1), obstacle('locked', 'sealed citadel door', 1)],
   ),
   boss: bossById.ashLord,
-  gold: [128, 288],
+  gold: slotGold(5, 'long'),
   xp: 550,
 };
 
@@ -389,7 +400,7 @@ export const dungeons: DungeonDef[] = [
       [obstacle('barricade', 'palisade gate', 1)],
     ),
     boss: bossById.banditCaptain,
-    gold: [20, 40],
+    gold: slotGold(1, 'boss'),
     xp: 100,
   },
 
@@ -458,7 +469,7 @@ export const dungeons: DungeonDef[] = [
       [obstacle('rubble', 'quarry rockfall', 3)],
     ),
     boss: bossById.ogreChieftain,
-    gold: [40, 80],
+    gold: slotGold(2, 'boss'),
     xp: 220,
   },
 
@@ -526,7 +537,7 @@ export const dungeons: DungeonDef[] = [
       [obstacle('locked', 'sealed crypt door', 1)],
     ),
     boss: bossById.lichOfTheDeep,
-    gold: [80, 160],
+    gold: slotGold(3, 'boss'),
     xp: 400,
   },
 
@@ -598,7 +609,7 @@ export const dungeons: DungeonDef[] = [
       [obstacle('locked', 'giant-sized door', 1), obstacle('rubble', 'toppled pillar', 4)],
     ),
     boss: bossById.giantKing,
-    gold: [160, 320],
+    gold: slotGold(4, 'boss'),
     xp: 600,
   },
 
@@ -666,7 +677,7 @@ export const dungeons: DungeonDef[] = [
       [obstacle('locked', 'hoard vault door', 1)],
     ),
     boss: bossById.elderDragon,
-    gold: [320, 640],
+    gold: slotGold(5, 'boss'),
     xp: 900,
   },
 

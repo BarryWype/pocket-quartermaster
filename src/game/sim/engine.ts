@@ -64,7 +64,7 @@ import {
 } from './bot';
 import { probe } from './probe';
 import { forgeComponents, restoreRelics } from './rules/forge';
-import { craftCharms, readManuals, sellValuables } from './rules/inventory';
+import { craftCharms, craftStatPotions, readManuals, sellMaterials, sellValuables } from './rules/inventory';
 import { buyWeakness, openSecrets, visitPlaces } from './rules/map';
 import { profiles, simConfig, type Profile, type SimConfig } from './config';
 import { targets } from './targets';
@@ -290,6 +290,7 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, steps: number, 
     meetPatrols(sim);
     visitPlaces(sim);
     sellValuables(sim);
+    sellMaterials(sim);
     buyWeakness(sim);
   }
   sim.save = applyTraining(sim.save, sim.now);
@@ -310,6 +311,7 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, steps: number, 
   spendPicks(sim);
   stockProvisions(sim);
   craftCharms(sim);
+  craftStatPotions(sim);
   readManuals(sim);
   infuseWeapons(sim);
   openSecrets(sim);

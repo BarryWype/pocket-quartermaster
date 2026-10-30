@@ -59,10 +59,9 @@ export function generateTavernsAround(position: LatLng, timeMs: number): TavernS
 export const isTavernUnlocked = (save: SaveData, rules: TavernRules = tavernRules) =>
   save.clearedDungeons.includes(rules.unlockedBy);
 
-/** Recruits come in a level below the roster's average. */
+/** Recruits join at the bottom of the player's current tier band. */
 export function offerLevel(save: SaveData, rules: RecruitRules = recruitRules) {
-  const average = save.heroes.reduce((sum, h) => sum + h.level, 0) / Math.max(1, save.heroes.length);
-  return Math.max(1, Math.round(average - rules.levelsBelowAverage));
+  return rules.levelByTier[highestUnlockedTier(save) - 1];
 }
 
 /** base by rarity × level factor × roster factor × trait factor × tier factor × grade factor. */

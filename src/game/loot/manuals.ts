@@ -22,10 +22,11 @@ export function readManual(save: SaveData, heroId: string, rarity: ManualRarity)
   if ((save.manuals[rarity] ?? 0) < 1) throw new Error(`No ${rarity} manual`);
   const hero = save.heroes.find((h) => h.id === heroId);
   if (!hero) throw new Error(`No hero ${heroId}`);
-  const xp = manualXp(hero, rarity, highestUnlockedTier(save));
+  const playerTier = highestUnlockedTier(save);
+  const xp = manualXp(hero, rarity, playerTier);
   return {
     ...save,
     manuals: { ...save.manuals, [rarity]: (save.manuals[rarity] ?? 0) - 1 },
-    heroes: save.heroes.map((h) => (h.id === heroId ? addXp(h, xp) : h)),
+    heroes: save.heroes.map((h) => (h.id === heroId ? addXp(h, xp, playerTier) : h)),
   };
 }

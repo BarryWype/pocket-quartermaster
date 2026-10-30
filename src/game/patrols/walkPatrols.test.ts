@@ -5,7 +5,7 @@ import { emptyLoot } from '../loot/types';
 import { createInitialSave, type SaveData } from '../save';
 import { applyBackgroundResults, backgroundStep, snapshotBackground, type BackgroundResult, type PatrolSettings } from './escort';
 import { resolvePatrolFights, startPatrolFight, type PatrolFight } from './fight';
-import { findSpawn, fixOn, tierTeam } from './testHelpers';
+import { escortTeam, findSpawn, fixOn, tierTeam } from './testHelpers';
 import { addPatrolsToWalks, escortHpChange, walkPatrolsFrom } from './walkPatrols';
 
 const MINUTE = 60_000;
@@ -16,7 +16,7 @@ const player = fixOn(goblins, at).position;
 
 /** The escort's real fight with the goblins under test, as the background task plays it out. */
 const escortResult = () =>
-  backgroundStep(snapshotBackground(tierTeam(), escortSettings, escortAt - MINUTE), [fixOn(escortSpawn, escortAt)], escortAt).state.pending[0];
+  backgroundStep(snapshotBackground(escortTeam(), escortSettings, escortAt - MINUTE), [fixOn(escortSpawn, escortAt)], escortAt).state.pending[0];
 
 /** The player's own fight with the full team, resolved once its time is up. */
 const wonFight = () => resolvePatrolFights(startPatrolFight(tierTeam(), goblins, ['bram', 'lyra', 'mira'], player, at), at + 2 * MINUTE).resolved;

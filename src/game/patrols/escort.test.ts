@@ -6,7 +6,7 @@ import { currentHp, setHeroHp } from '../team/health';
 import { alertAppliesTo, applyBackgroundResults, backgroundStep, snapshotBackground, type BackgroundState, type PatrolSettings } from './escort';
 import { patrolPositionAt, type PatrolSpawn } from './generate';
 import { placeGroupOf, placesAround } from '../places/generate';
-import { findSpawn, fixOn, HOME, tierTeam } from './testHelpers';
+import { escortTeam, findSpawn, fixOn, HOME, tierTeam } from './testHelpers';
 
 const MINUTE = 60_000;
 const settings: PatrolSettings = { escortHeroId: 'bram', alertFor: 'all', patrolAlerts: true, escortAlerts: true };
@@ -14,7 +14,7 @@ const { spawn: goblins, at } = findSpawn((s) => s.kind === 'goblins' && s.tierRo
 
 /** A fix this far east of the spawn. */
 const near = (spawn: PatrolSpawn, time: number, meters: number) => ({ position: offsetPosition(patrolPositionAt(spawn, time), 0, meters), timestamp: time });
-const state = (save: SaveData = tierTeam(), s: PatrolSettings = settings, time = at - MINUTE) => snapshotBackground(save, s, time);
+const state = (save: SaveData = escortTeam(), s: PatrolSettings = settings, time = at - MINUTE) => snapshotBackground(save, s, time);
 /** Alerts for the goblins under test (other spawns may be in view too). */
 const spotted = (alerts: ReturnType<typeof backgroundStep>['alerts']) => alerts.filter((a) => a.kind === 'patrolSpotted' && a.spawn.id === goblins.id);
 
