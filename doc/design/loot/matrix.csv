@@ -20,5 +20,5 @@ Monster lair,0.15,A,A,O,O,—,A,O,O,R,A,O,S,S,S,S,Gear at least Rare; Legendary 
 Thieves' guild heist,0.3,A,O,—,—,—,—,R,—,—,—,O,—,S,—,—,Sometimes the black market tip
 Fishing dock,0.3,—,—,A,—,R,—,—,R,R,—,R,—,R,—,—,Fish; rarely a sunken chest (under 10%) with one rare item; sometimes the underwater dungeon tip
 Treasure spot,0.4,A,—,O,—,—,S,S,R,R,—,O,S,—,—,—,Scales with the map's rarity
-Sanctum,0.3,—,O,—,A,—,—,—,—,—,—,—,—,—,—,—,Also elemental stones
+Sanctum,0.3,—,O,—,A,—,—,—,R,—,—,—,—,—,—,—,Also elemental stones
 Step chest,2,A,—,O,—,—,R,—,—,—,S,S,S,S,R,—,Rewards walking

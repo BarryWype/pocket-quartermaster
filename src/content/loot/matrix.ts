@@ -496,7 +496,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       blueprints: '—',
       gear: '—',
       trinkets: '—',
-      components: '—',
+      components: 'R',
       relics: '—',
       monsterParts: '—',
       valuables: '—',

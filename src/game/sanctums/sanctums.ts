@@ -1,4 +1,5 @@
 import { sanctumGuardian, sanctumMinionId } from '@/content/enemies';
+import { componentById } from '@/content/lookup';
 import { frLogTemplates } from '@/content/fr/logTemplates';
 import { logTemplates } from '@/content/logTemplates';
 import { fill, localized, tr } from '@/i18n';
@@ -146,9 +147,11 @@ export function challengeSanctum(
     xp: 0,
   };
   // A win rolls the Sanctum row for the rest; its shards are the ones above.
-  const loot = win
-    ? { ...rollForSave(save, 'sanctum', createRng(`${seed}|loot`), { tier, luck, base: sourceAmounts('sanctum', tier) }), materials: [] }
+  // Components survive, the heart of the Sanctum's element among them.
+  const rolled = win
+    ? rollForSave(save, 'sanctum', createRng(`${seed}|loot`), { tier, luck, base: sourceAmounts('sanctum', tier), element: sanctum.element })
     : emptyLoot();
+  const loot = { ...rolled, materials: rolled.materials.filter((stack) => componentById[stack.materialId] !== undefined) };
   reward.xp = loot.xp;
 
   const log = buildLog(

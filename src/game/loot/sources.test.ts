@@ -1,4 +1,5 @@
 import { lootMatrix } from '@/content/loot/matrix';
+import { components } from '@/content/loot/components';
 
 import { ELEMENTS, shardId } from '../elements';
 import { createRng } from '../generation/rng';
@@ -9,13 +10,15 @@ import { LOOT_CATEGORIES, LOOT_SOURCES, type LootCategory, type LootSourceId } f
 const SEEDS = 200;
 const LUCK = 100;
 const SHARD_IDS = new Set(ELEMENTS.map(shardId));
+const COMPONENT_IDS = new Set(components.map((c) => c.id));
 
 /** The categories a source may drop: every mark except '—'. */
 const droppable = (source: LootSourceId): LootCategory[] =>
   LOOT_CATEGORIES.filter((category) => lootMatrix[source].marks[category] !== '—');
 
-/** Stacks that are not element shards: shards live in `materials` too. */
-const gathered = (materials: { materialId: string }[]) => materials.filter((m) => !SHARD_IDS.has(m.materialId));
+/** Stacks that are neither element shards nor components: both live in `materials` too. */
+const gathered = (materials: { materialId: string }[]) =>
+  materials.filter((m) => !SHARD_IDS.has(m.materialId) && !COMPONENT_IDS.has(m.materialId));
 
 describe('rollForSave', () => {
   for (const source of LOOT_SOURCES) {

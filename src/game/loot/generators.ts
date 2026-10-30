@@ -7,14 +7,15 @@ import type { GearType } from '@/game/types';
 import { masteryCap } from '../forging/mastery';
 import type { Rng } from '../generation/rng';
 import { dedupeModifiers, partyLuck } from './chances';
+import { componentPool } from './components';
 import { rollLootGear } from './gear';
 import { rollLootTrinket } from './trinkets';
 import type { LootRequest } from './roll';
 import { rollValuable } from './valuables';
 import type { Loot, LootCategory, MapRarity } from './types';
 
-/** Fills one category's drop into the loot being built. */
-export type Generator = (req: LootRequest, loot: Loot) => void;
+/** Fills one category's drop into the loot being built. `viaBlueprints` marks the handoff from the blueprints generator on a complete tier. */
+export type Generator = (req: LootRequest, loot: Loot, viaBlueprints?: boolean) => void;
 
 /** The map's loot multiplier applies to gold at the treasure spot only. */
 function mapMultiplier(req: LootRequest): number {
@@ -80,7 +81,7 @@ function blueprints(req: LootRequest, loot: Loot): void {
     return;
   }
   if (componentShare > 0 && req.rng.chance(componentShare)) {
-    generators.components(req, loot);
+    generators.components(req, loot, true);
     return;
   }
   const cap = masteryCap(req.tier);
@@ -103,8 +104,17 @@ function rarityByWeight(rng: Rng, weights: Record<MapRarity, number>): MapRarity
   return rng.weighted(['common', 'rare', 'legendary'] as MapRarity[], (rarity) => weights[rarity]);
 }
 
-// Components, relics and monster parts: filled by later prompts.
+// Relics and monster parts: filled by later prompts.
 const later: Generator = () => {};
+
+function components(req: LootRequest, loot: Loot, viaBlueprints = false): void {
+  const pool = componentPool(req.source, req.enemies, req.element, req.rng, viaBlueprints);
+  if (pool.length === 0) return;
+  const componentId = pool[req.rng.int(0, pool.length - 1)];
+  const held = loot.materials.find((stack) => stack.materialId === componentId);
+  if (held) held.amount += 1;
+  else loot.materials.push({ materialId: componentId, amount: 1 });
+}
 
 export const generators: Record<LootCategory, Generator> = {
   gold: (req, loot) => {
@@ -125,7 +135,7 @@ export const generators: Record<LootCategory, Generator> = {
   trinkets: (req, loot) => {
     loot.gear.push(rollLootTrinket(req));
   },
-  components: later,
+  components,
   relics: later,
   monsterParts: later,
   valuables: (req, loot) => {

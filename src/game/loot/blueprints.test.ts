@@ -76,23 +76,30 @@ describe('blueprints', () => {
     const tier = 2;
     const types = forgeableAt(tier);
     const known = types.map((type) => gearId(type, tier));
-    const loot = blueprint(request('complete', tier, { knownRecipes: known }));
-    expect(loot.recipeIds).toEqual([]);
-    expect(loot.mastery).toEqual([{ type: expect.any(String), tier, forges: 2 }]);
+    // With the component share at 0, the complete tier always gives mastery.
+    const share = lootConfig.blueprints.componentShare;
+    lootConfig.blueprints.componentShare = 0;
+    try {
+      const loot = blueprint(request('complete', tier, { knownRecipes: known }));
+      expect(loot.recipeIds).toEqual([]);
+      expect(loot.mastery).toEqual([{ type: expect.any(String), tier, forges: 2 }]);
 
-    const cap = masteryCap(tier);
-    const uncapped = types[0];
-    const mastery = Object.fromEntries(
-      types.filter((type) => type !== uncapped).map((type) => [type, { level: cap, progress: 0 }]),
-    ) as Partial<Record<MasteryType, { level: number; progress: number }>>;
-    const preferred = blueprint(request('preferred', tier, { knownRecipes: known, mastery }));
-    expect(preferred.mastery).toEqual([{ type: uncapped, tier, forges: 2 }]);
+      const cap = masteryCap(tier);
+      const uncapped = types[0];
+      const mastery = Object.fromEntries(
+        types.filter((type) => type !== uncapped).map((type) => [type, { level: cap, progress: 0 }]),
+      ) as Partial<Record<MasteryType, { level: number; progress: number }>>;
+      const preferred = blueprint(request('preferred', tier, { knownRecipes: known, mastery }));
+      expect(preferred.mastery).toEqual([{ type: uncapped, tier, forges: 2 }]);
 
-    const capped = Object.fromEntries(types.map((type) => [type, { level: cap, progress: 0 }])) as Partial<
-      Record<MasteryType, { level: number; progress: number }>
-    >;
-    const fallback = blueprint(request('fallback', tier, { knownRecipes: known, mastery: capped }));
-    expect(types).toContain(fallback.mastery[0].type);
+      const capped = Object.fromEntries(types.map((type) => [type, { level: cap, progress: 0 }])) as Partial<
+        Record<MasteryType, { level: number; progress: number }>
+      >;
+      const fallback = blueprint(request('fallback', tier, { knownRecipes: known, mastery: capped }));
+      expect(types).toContain(fallback.mastery[0].type);
+    } finally {
+      lootConfig.blueprints.componentShare = share;
+    }
   });
 
   it('hands over to the components generator when componentShare pays out', () => {
@@ -104,7 +111,7 @@ describe('blueprints', () => {
     generators.components = jest.fn();
     try {
       const loot = blueprint(request('component', tier, { knownRecipes: known }));
-      expect(generators.components).toHaveBeenCalledWith(expect.anything(), loot);
+      expect(generators.components).toHaveBeenCalledWith(expect.anything(), loot, true);
       expect(loot.mastery).toEqual([]);
     } finally {
       lootConfig.blueprints.componentShare = share;

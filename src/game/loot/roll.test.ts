@@ -1,4 +1,5 @@
 import { lootMatrix } from '@/content/loot/matrix';
+import { components } from '@/content/loot/components';
 import { ELEMENTS, shardId } from '@/game/elements';
 
 import { createRng } from '../generation/rng';
@@ -54,10 +55,12 @@ describe('rollSourceLoot', () => {
     const themed: LootSourceId[] = ['patrolGoblins', 'patrolHerd', 'patrolBandits', 'traveller', 'banditCamp', 'goblinRaid', 'beastDen', 'hauntedCrypt', 'abandonedCaravan', 'monsterLair', 'ruinsDig', 'fishingDock', 'treasureSpot', 'stepChest'];
     expect(foot).toEqual(themed);
     const shardIds = ELEMENTS.map((element) => shardId(element));
+    // Components live in `materials` too; they drop wherever their mark allows.
+    const componentIds = components.map((c) => c.id);
+    const notComponent = (stack: { materialId: string }) =>
+      !shardIds.includes(stack.materialId) && !componentIds.includes(stack.materialId);
     for (const source of LOOT_SOURCES) {
-      const withMaterials = rolls(source).some(
-        (loot) => loot.materials.some((stack) => !shardIds.includes(stack.materialId)),
-      );
+      const withMaterials = rolls(source).some((loot) => loot.materials.some(notComponent));
       expect(withMaterials).toBe(foot.includes(source));
       if (foot.includes(source)) {
         expect(rolls(source).some((loot) => loot.dropped.includes('materials'))).toBe(true);

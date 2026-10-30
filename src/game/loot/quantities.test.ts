@@ -1,4 +1,5 @@
 import { lootConfig } from '@/content/loot/config';
+import { components } from '@/content/loot/components';
 import { ELEMENTS, shardId } from '@/game/elements';
 
 import { createRng } from '../generation/rng';
@@ -43,9 +44,11 @@ describe('loot quantities', () => {
   });
 
   it('gives 2-4 shards of one element', () => {
+    const componentIds = new Set(components.map((c) => c.id));
     for (const loot of forced('sanctum', 'shards')) {
-      expect(loot.materials.length).toBe(1);
-      const [stack] = loot.materials;
+      const stacks = loot.materials.filter((stack) => !componentIds.has(stack.materialId));
+      expect(stacks.length).toBe(1);
+      const [stack] = stacks;
       expect(Object.values(ELEMENTS).map((element) => shardId(element))).toContain(stack.materialId);
       expect(stack.amount).toBeGreaterThanOrEqual(2);
       expect(stack.amount).toBeLessThanOrEqual(4);

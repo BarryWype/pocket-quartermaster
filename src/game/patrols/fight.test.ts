@@ -1,4 +1,5 @@
 import { patrolRules } from '@/content/patrols';
+import { components } from '@/content/loot/components';
 
 import { offsetPosition } from '../generation/geo';
 import { createRng } from '../generation/rng';
@@ -123,8 +124,10 @@ describe('patrol rewards', () => {
   });
 
   it('gives herds meat and hide', () => {
+    // Components land in `materials` too; the herd's themed drops are these.
+    const componentIds = new Set(components.map((c) => c.id));
     const materials = Array.from({ length: 200 }, (_, i) =>
-      rewards(context, asKind(goblins, 'herd'), 1, false, `h${i}`).materials.map((m) => m.materialId),
+      rewards(context, asKind(goblins, 'herd'), 1, false, `h${i}`).materials.filter((m) => !componentIds.has(m.materialId)).map((m) => m.materialId),
     ).flat();
     expect(new Set(materials)).toEqual(new Set(['meat', 'hide', 'bone']));
   });
