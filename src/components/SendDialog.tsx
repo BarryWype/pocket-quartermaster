@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { rosterRules } from '@/content/roster';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { heroClasses } from '@/content/heroes';
@@ -7,7 +8,7 @@ import { briefingFor } from '@/game/dungeons/rotation';
 import { dungeonLootSource, launchPlan, type Loadout } from '@/game/expeditions/expeditions';
 import { estimateOdds, oddsBand, type OddsBand } from '@/game/expeditions/odds';
 import { mealItems } from '@/game/expeditions/provisions';
-import { partySize } from '@/game/guild/guild';
+
 import { charmApplies } from '@/game/loot/charms';
 import type { SaveData } from '@/game/save';
 import { briefingCoverage } from '@/game/threats/coverage';
@@ -63,7 +64,7 @@ function warningsFor(save: SaveData, dungeon: DungeonDef, party: string[], chanc
   return [
     oddsBand(chance) === 'Risky' ? t('expeditions.confirm.risky', { percent: formatPercent(chance) }) : null,
     ...hurt,
-    party.length < partySize(save) && idle.length > 0
+    party.length < rosterRules.partySize && idle.length > 0
       ? t('expeditions.confirm.roomLeft', { count: idle.length, names: idle.map((h) => h.name).join(', ') })
       : null,
     without('weapon') ? t('expeditions.confirm.noWeapon', { names: without('weapon') }) : null,

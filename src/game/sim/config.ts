@@ -86,7 +86,6 @@ export const simConfig = {
   xpGoldValue: 0.5,
   /** Guild Hall ranks are bought in this order. */
   guildPriority: [
-    'mainRewards',
     'gold',
     'betterRetreats',
     'stepChests',
@@ -96,9 +95,7 @@ export const simConfig = {
     'fasterExpeditions',
     'shards',
     'tavernOffer',
-    'scouting',
     'rosterSlot7',
-    'partySlot',
     'sigilCap',
     'rosterSlot8',
   ] as GuildTrackId[],

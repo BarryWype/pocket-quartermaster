@@ -1,4 +1,4 @@
-import { guildRules, guildTrackById, type GuildTrackId } from '@/content/guild';
+import { guildRules, guildTrackById, guildTracks, type GuildTrackId } from '@/content/guild';
 import { newHero, xpToNextLevel } from '@/content/heroes';
 import { dungeonById } from '@/content/lookup';
 import { lootConfig } from '@/content/loot/config';
@@ -11,7 +11,7 @@ import { challengeSanctum, type SanctumSpawn } from '../sanctums/sanctums';
 import { createInitialSave, type SaveData } from '../save';
 import { tavernOffers } from '../taverns/taverns';
 import { equip, rosterFull } from '../team/team';
-import { buyRank, guildBonus, partySize, rankCost, rankPrice, rankProblem, rosterCap, sigilCap } from './guild';
+import { buyRank, guildBonus, rankCost, rankGate, rankPrice, rankProblem, rosterCap, sigilCap } from './guild';
 import { applyTraining } from './training';
 
 const HOUR = 3_600_000;
@@ -28,8 +28,7 @@ function hall(tier = 1, extra: Partial<SaveData> = {}): SaveData {
     tutorial: { step: 'done', woodSpot: null },
     clearedDungeons: BOSSES.slice(0, tier),
     gold: 100_000,
-    charters: 5,
-    materials: { stone: 100, copper: 100 },
+    materials: { wood: 100, stone: 100, copper: 100, iron: 100, steel: 100 },
     ...extra,
   };
 }
@@ -54,18 +53,68 @@ const run = (save: SaveData, dungeonId = 'ratCellar', seed = 0) => {
 describe('costs and gates', () => {
   it('cost baseCost × 1.8^(rank − 1), rounded to clean numbers, unless a track lists its own', () => {
     expect([1, 2, 3].map((r) => rankCost(guildTrackById.heroXp, r))).toEqual([150, 270, 490]);
-    expect(rankCost(guildTrackById.partySlot, 1)).toBe(3000);
+    expect(rankCost(guildTrackById.rosterSlot8, 1)).toBe(4000);
     expect(rankCost({ ...guildTrackById.heroXp, baseCost: 700 }, 2)).toBe(1250);
     expect([1, 2, 3, 4].map((r) => rankCost(guildTrackById.gold, r))).toEqual(guildTrackById.gold.costs);
   });
 
-  it('add stone at rank 3, copper at rank 4 and a charter for milestones', () => {
-    expect(rankPrice(guildTrackById.gold, 3).materials).toEqual([{ materialId: 'stone', amount: 15 }]);
-    expect(rankPrice(guildTrackById.gold, 4).materials).toEqual([{ materialId: 'copper', amount: 10 }]);
-    expect(rankPrice(guildTrackById.rosterSlot7, 1)).toEqual({ gold: 1200, materials: [], charters: 1 });
+  it('use the new tracks\' base costs', () => {
+    const base = { collector: 150, questCap: 200, questReroll: 300, relicRestore: 300, salvage: 150, mastery: 200 };
+    for (const [id, cost] of Object.entries(base)) expect(rankCost(guildTrackById[id as GuildTrackId], 1)).toBe(cost);
+    expect(rankCost(guildTrackById.relicRestore, 2)).toBe(540);
   });
 
-  it('opens with the taverns, and gates ranks behind tier bosses', () => {
+  it('add the main material of the rank\'s gate tier at ranks 3 and 4, nothing below or for milestones', () => {
+    expect(rankPrice(guildTrackById.gold, 2).materials).toEqual([]);
+    expect(rankPrice(guildTrackById.gold, 3).materials).toEqual([{ materialId: 'stone', amount: 15 }]);
+    expect(rankPrice(guildTrackById.gold, 4).materials).toEqual([{ materialId: 'copper', amount: 10 }]);
+    expect(rankPrice(guildTrackById.mastery, 3).materials).toEqual([{ materialId: 'iron', amount: 15 }]);
+    expect(rankPrice(guildTrackById.relicRestore, 3).materials).toEqual([{ materialId: 'iron', amount: 15 }]);
+    expect(rankPrice(guildTrackById.betterRetreats, 3).materials).toEqual([{ materialId: 'stone', amount: 15 }]);
+    expect(rankPrice(guildTrackById.rosterSlot7, 1)).toEqual({ gold: 1200, materials: [] });
+  });
+
+  it('follow tracks.csv: five buildings, ranks and gates from data, everything open by tier 5', () => {
+    const table = Object.fromEntries(guildTracks.map((t) => [t.id, `${t.building} ${t.gates.join(',')}`]));
+    expect(table).toEqual({
+      heroXp: 'warRoom 0,1,2,3',
+      fasterExpeditions: 'warRoom 1,2,3',
+      betterRetreats: 'warRoom 0,1,2',
+      gold: 'treasury 0,1,2,3',
+      shards: 'treasury 1,2,3',
+      sigilCap: 'treasury 3',
+      collector: 'treasury 1,2,3',
+      tavernDiscount: 'barracks 0,1,2',
+      tavernOffer: 'barracks 1',
+      training: 'barracks 0,1,2',
+      rosterSlot7: 'barracks 2',
+      rosterSlot8: 'barracks 4',
+      questCap: 'questBoard 1,3',
+      questReroll: 'questBoard 2',
+      stepChests: 'questBoard 0,1,2',
+      relicRestore: 'workshop 2,3,4',
+      salvage: 'workshop 1,2,3',
+      mastery: 'workshop 0,2,4',
+    });
+    for (const track of guildTracks) {
+      expect(track.ranks).toBe(track.gates.length);
+      track.gates.forEach((gate, i) => expect(rankGate(track, i + 1)).toBe(gate));
+    }
+    expect(Math.max(...guildTracks.flatMap((t) => t.gates))).toBe(4);
+  });
+
+  it('have no party slot, main rewards, scouting or charters', () => {
+    const ids: string[] = guildTracks.map((t) => t.id);
+    for (const gone of ['partySlot', 'mainRewards', 'scouting']) expect(ids).not.toContain(gone);
+    expect(createInitialSave()).not.toHaveProperty('charters');
+    expect(rankPrice(guildTrackById.sigilCap, 1)).not.toHaveProperty('charters');
+  });
+
+  it('opens with the taverns, and gates ranks behind tier bosses unless the debug unlock is on', () => {
+    expect(rankProblem(hall(1), 'mastery')).toBeNull();
+    expect(rankProblem(withRanks({ mastery: 1 }, hall(1)), 'mastery')).toMatchObject({ kind: 'gate', tier: 2 });
+    expect(rankProblem(withRanks({ mastery: 1 }, hall(1)), 'mastery', undefined, true)).toBeNull();
+    expect(buyRank(withRanks({ mastery: 1 }, hall(1)), 'mastery', undefined, true).guild.mastery).toBe(2);
     expect(rankProblem({ ...hall(), clearedDungeons: [] }, 'gold')).toEqual({ kind: 'hallLocked' });
     expect(rankProblem(withRanks({ gold: 1 }), 'gold')).toBeNull();
     expect(rankProblem(withRanks({ gold: 2 }), 'gold')).toEqual({ kind: 'gate', tier: 2, boss: 'Ogre Quarry' });
@@ -80,28 +129,27 @@ describe('costs and gates', () => {
   });
 
   it('says what is missing when unaffordable', () => {
-    const poor = { ...withRanks({ gold: 2 }, hall(2)), gold: 50, materials: { stone: 5 }, charters: 0 };
+    const poor = { ...withRanks({ gold: 2 }, hall(2)), gold: 50, materials: { stone: 5 } };
     expect(rankProblem(poor, 'gold')).toEqual({
       kind: 'missing',
       gold: rankCost(guildTrackById.gold, 3) - 50,
       materials: [{ materialId: 'stone', amount: 10 }],
-      charters: 0,
     });
-    expect(rankProblem({ ...hall(2), charters: 0 }, 'rosterSlot7')).toMatchObject({ kind: 'missing', charters: 1 });
+    expect(rankProblem({ ...hall(2), gold: 0 }, 'rosterSlot7')).toEqual({ kind: 'missing', gold: 1200, materials: [] });
   });
 });
 
 describe('buying', () => {
-  it('spends gold, materials and charters, and raises the rank', () => {
+  it('spends gold and materials, and raises the rank', () => {
     const save = buyRank(withRanks({ gold: 2 }, hall(2)), 'gold');
     expect(save).toMatchObject({ gold: 100_000 - rankCost(guildTrackById.gold, 3), materials: { stone: 85, copper: 100 }, guild: { gold: 3 } });
     const roster = buyRank(hall(2), 'rosterSlot7');
-    expect(roster.charters).toBe(4);
+    expect(roster).toMatchObject({ gold: 100_000 - 1200, guild: { rosterSlot7: 1 } });
   });
 
   it('refuses past the max rank, when locked or when unaffordable', () => {
     expect(() => buyRank(withRanks({ gold: 4 }, hall(4)), 'gold')).toThrow();
-    expect(() => buyRank(hall(1), 'partySlot')).toThrow();
+    expect(() => buyRank(hall(1), 'rosterSlot7')).toThrow();
     expect(() => buyRank({ ...hall(), gold: 0 }, 'gold')).toThrow();
   });
 });
@@ -159,16 +207,15 @@ describe('effects', () => {
     expect(loss.result.reward.shards).toBe(1);
   });
 
-  it('Sigil cap, party size and roster cap add to their base values', () => {
+  it('Sigil cap and roster cap add to their base values; the party is always 3', () => {
     expect(sigilCap(hall())).toBe(lootConfig.sigils.cap);
     expect(sigilCap(withRanks({ sigilCap: 1 }))).toBe(lootConfig.sigils.cap + 1);
-    expect(partySize(withRanks({ partySlot: 1 }))).toBe(4);
     expect(rosterCap(withRanks({ rosterSlot7: 1, rosterSlot8: 1 }))).toBe(8);
     const six = { ...hall(), heroes: Array.from({ length: 6 }, (_, i) => newHero(`h${i}`, 'X', 'warrior', 'tough')) };
     expect(rosterFull(six)).toBe(true);
     expect(rosterFull(withRanks({ rosterSlot7: 1 }, six))).toBe(false);
-    const four = { ...withRanks({ partySlot: 1 }), heroes: [...hall().heroes, newHero('h9', 'Nim', 'thief', 'lucky')] };
-    expect(startExpedition(four, 'ratCellar', [...ALL, 'h9'], 0).expeditions[0].heroIds).toHaveLength(4);
+    const four = { ...withRanks(Object.fromEntries(guildTracks.map((t) => [t.id, t.ranks]))), heroes: [...hall().heroes, newHero('h9', 'Nim', 'thief', 'lucky')] };
+    expect(() => startExpedition(four, 'ratCellar', [...ALL, 'h9'], 0)).toThrow(/At most 3 heroes/);
   });
 
   it('shards replace a Sigil only at the raised cap', () => {
@@ -212,26 +259,5 @@ describe('training', () => {
     expect(applyTraining({ ...trained, tutorial: { step: 'awaitReport', woodSpot: null } }, 2 * HOUR).heroes[0].xp).toBe(0);
     expect(applyTraining({ ...trained, guild: {} }, 2 * HOUR).trainedAt).toBe(2 * HOUR);
     expect(guildBonus(trained, 'training')).toBe(6);
-  });
-});
-
-describe('charters', () => {
-  it('come with the first win against each tier boss, once', () => {
-    const save = strongTeam({ ...hall(0), charters: 0, tutorial: { step: 'done', woodSpot: null } });
-    const first = run(save, 'banditStockade');
-    expect(first.report.success).toBe(true);
-    expect(first.save.charters).toBe(1);
-    expect(first.report.charter).toBe(true);
-    expect(run(first.save, 'banditStockade').save.charters).toBe(1);
-  });
-
-  it('sometimes come with a Sanctum win', () => {
-    const wins = Array.from({ length: 200 }, (_, i) => {
-      const spawn: SanctumSpawn = { id: `sanctum:emberForge:c:${i}:0`, sanctumId: 'emberForge', position: { latitude: 0, longitude: 0 }, expiresAt: 1e15 };
-      return challengeSanctum(strongTeam({ ...hall(), sigils: [1], charters: 0 }), spawn, 1, ALL, spawn.position, 0);
-    });
-    const rate = wins.filter((w) => w.save.charters === 1).length / wins.length;
-    expect(rate).toBeGreaterThan(0.04);
-    expect(rate).toBeLessThan(0.18);
   });
 });

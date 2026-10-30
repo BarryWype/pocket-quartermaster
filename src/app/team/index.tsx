@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { rosterRules } from '@/content/roster';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { STATS, statIcons } from '@/components/GearRow';
@@ -12,7 +13,7 @@ import { heroClasses } from '@/content/heroes';
 import { traitById } from '@/content/traits';
 import { heroStats, isOnExpedition } from '@/game/team/team';
 import { pendingApproachPicks } from '@/game/team/stats';
-import { partySize, rosterCap } from '@/game/guild/guild';
+import { rosterCap } from '@/game/guild/guild';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useNow } from '@/hooks/useNow';
 import { t, tr } from '@/i18n';
@@ -28,7 +29,7 @@ export default function TeamScreen() {
     <ScrollView contentContainerStyle={styles.container}>
       <TutorialHint screen="team" />
       <Text style={styles.roster}>
-        {t('team.roster', { count: save.heroes.length, cap: rosterCap(save), party: partySize(save) })}
+        {t('team.roster', { count: save.heroes.length, cap: rosterCap(save), party: rosterRules.partySize })}
       </Text>
       <View style={styles.classes}>
         <Button title={`📜 ${t('classes.link')}`} onPress={() => router.push('/team/classes')} />

@@ -5,6 +5,7 @@ import { sanctums } from '@/content/sanctums';
 import { heroClasses, newHero } from '@/content/heroes';
 import { items } from '@/content/items';
 import { dungeonById } from '@/content/lookup';
+import { tierMaterials } from '@/content/materials';
 import type { Ability, DungeonDef, HeroClassId, Quality, WeaponType } from '@/game/types';
 
 import type { Element } from '../elements';
@@ -23,7 +24,6 @@ import { simulateWalk } from './simulateWalk';
 // roughly half of these numbers.
 
 const ALL = ['bram', 'lyra', 'mira'];
-const TIER_MATERIALS = ['wood', 'stone', 'copper', 'iron', 'steel'];
 /** Level the team is expected to reach while playing each tier (measured by the balance lab). */
 const TIER_LEVELS = expectedLevels;
 
@@ -58,7 +58,7 @@ function team(level: number, material: string | null, elixirs = false, quality: 
     consumables: { ...createInitialSave().consumables, emberWardSalve: 2 },
   };
   if (material) {
-    const gearTier = TIER_MATERIALS.indexOf(material) + 1;
+    const gearTier = tierMaterials.indexOf(material) + 1;
     const pieces = [`sword${gearTier}`, `bow${gearTier}`, `wand${gearTier}`, `mail${gearTier}`, `mail${gearTier}`, `mail${gearTier}`];
     save = { ...save, gear: pieces.map((piece, i) => ({ uid: `g${i}`, itemId: piece, quality })) };
     ALL.forEach((heroId, i) => {
@@ -215,7 +215,7 @@ describe.skip('expedition progression', () => {
   for (const dungeon of dungeons.filter((d) => dealsFire(d) && !d.overnight)) {
     it(`makes ember ward salves worth at least 10 points in ${dungeon.name}`, () => {
       const level = TIER_LEVELS[dungeon.tier - 1];
-      const material = TIER_MATERIALS[dungeon.tier - 1];
+      const material = tierMaterials[dungeon.tier - 1];
       expect(chance(team(level, material, true), dungeon)).toBeGreaterThan(chance(team(level, material), dungeon) + 0.1);
     });
   }
@@ -229,7 +229,7 @@ describe('Sanctum guardians', () => {
   /** Full tier kit and a potion each; optionally every weapon of one element. */
   function prepared(tier: number, weaponElement?: Element): SaveData {
     let save: SaveData = {
-      ...team(TIER_LEVELS[tier - 1], TIER_MATERIALS[tier - 1]),
+      ...team(TIER_LEVELS[tier - 1], tierMaterials[tier - 1]),
       consumables: { ...createInitialSave().consumables, healingPotion: 3 },
     };
     save = { ...save, gear: save.gear.map((g, i) => (i < 3 ? { ...g, element: weaponElement } : g)) };
@@ -284,9 +284,9 @@ describe.skip('class counters', () => {
 
   /** Teams a player might bring, from the tier's full kit down to a lone wooden sword. */
   const candidates = (tier: number): SaveData[] => [
-    team(TIER_LEVELS[tier - 1], TIER_MATERIALS[tier - 1]),
-    team(TIER_LEVELS[tier - 1], TIER_MATERIALS[tier - 1], false, 'crappy'),
-    tier > 1 ? team(TIER_LEVELS[tier - 1], TIER_MATERIALS[tier - 2]) : swordOnly(),
+    team(TIER_LEVELS[tier - 1], tierMaterials[tier - 1]),
+    team(TIER_LEVELS[tier - 1], tierMaterials[tier - 1], false, 'crappy'),
+    tier > 1 ? team(TIER_LEVELS[tier - 1], tierMaterials[tier - 2]) : swordOnly(),
   ];
 
   // Overnight expeditions are near-certain without counters, so they are left out here.
@@ -367,9 +367,9 @@ describe.skip('new classes', () => {
       const dungeon = dungeonById[dungeonId];
       const plainParty = (save: SaveData) => prepareParty(save, ALL).map((m) => ({ ...m, abilities: [] as Ability[] }));
       const options = [
-        team(TIER_LEVELS[dungeon.tier - 1], TIER_MATERIALS[dungeon.tier - 1]),
-        team(TIER_LEVELS[dungeon.tier - 1], TIER_MATERIALS[dungeon.tier - 1], false, 'crappy'),
-        dungeon.tier > 1 ? team(TIER_LEVELS[dungeon.tier - 1], TIER_MATERIALS[dungeon.tier - 2]) : swordOnly(),
+        team(TIER_LEVELS[dungeon.tier - 1], tierMaterials[dungeon.tier - 1]),
+        team(TIER_LEVELS[dungeon.tier - 1], tierMaterials[dungeon.tier - 1], false, 'crappy'),
+        dungeon.tier > 1 ? team(TIER_LEVELS[dungeon.tier - 1], tierMaterials[dungeon.tier - 2]) : swordOnly(),
       ];
       const [base, plain] = options
         .map((save) => [plainParty(save), memberChance(plainParty(save), dungeon)] as const)

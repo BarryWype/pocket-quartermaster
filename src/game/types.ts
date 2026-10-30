@@ -857,8 +857,6 @@ export type ExpeditionReport = {
   firstWin?: boolean;
   firstTierClear?: boolean;
   consumablesUsed: string[];
-  /** A Guild Hall charter, for the first win against a tier boss. */
-  charter?: boolean;
   log: string[];
   seen: boolean;
 };

@@ -28,7 +28,6 @@ export function lootItems(report: ExpeditionReport): string[] {
     report.sigilShards
       ? t('expeditions.sigilShards', { emoji: materialById[shardId(report.sigilShards.element)].emoji, amount: report.sigilShards.amount })
       : null,
-    report.charter ? t('expeditions.loot.charter') : null,
     ...lootLabels(report.loot),
   ].filter((item): item is string => item !== null);
 }

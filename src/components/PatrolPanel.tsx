@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { rosterRules } from '@/content/roster';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { frPatrolTexts } from '@/content/fr/patrols';
@@ -10,7 +11,7 @@ import { highestUnlockedTier } from '@/game/expeditions/expeditions';
 import { oddsBand } from '@/game/expeditions/odds';
 import { dungeonTags } from '@/game/dungeons/tags';
 import { dungeonFoes } from '@/game/enemies/tags';
-import { partySize } from '@/game/guild/guild';
+
 import type { LatLng } from '@/game/generation/types';
 import { isPatrolKind, patrolTier, type PatrolSpawn } from '@/game/patrols/generate';
 import { patrolDungeon, patrolFightProblem, patrolOdds, type PatrolFightProblem } from '@/game/patrols/fight';
@@ -70,7 +71,7 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
   const escortId = save.escort?.heroId;
   const toggle = (heroId: string) =>
     setHeroIds((ids) =>
-      ids.includes(heroId) ? ids.filter((id) => id !== heroId) : ids.length < partySize(save) ? [...ids, heroId] : ids,
+      ids.includes(heroId) ? ids.filter((id) => id !== heroId) : ids.length < rosterRules.partySize ? [...ids, heroId] : ids,
     );
 
   const fight = () => {

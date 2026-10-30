@@ -22,7 +22,6 @@ export type LogInput = {
   sigilShards?: { element: Element; amount: number };
   firstWin?: boolean;
   firstTierClear?: boolean;
-  charter?: boolean;
   /** Replaces the usual outcome line, e.g. for Sanctum fights. */
   summary?: string;
   hunger?: Hunger;
@@ -288,7 +287,6 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
     capitalised(summary),
     ...input.recipeItemNames.map((item) => fill(pick(rng, logTemplates.recipe), { item: tr(item).toLowerCase() })),
     ...(input.firstTierClear ? [pick(rng, logTemplates.firstTierClear)] : input.firstWin ? [pick(rng, logTemplates.firstWin)] : []),
-    ...(input.charter ? [pick(rng, logTemplates.charter)] : []),
     ...(input.sigil ? [fill(pick(rng, logTemplates.sigil), { tier: input.sigil })] : []),
     ...(input.sigilShards
       ? [

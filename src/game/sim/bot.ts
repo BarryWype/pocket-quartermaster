@@ -1,4 +1,5 @@
 import { dungeons } from '@/content/dungeons';
+import { rosterRules } from '@/content/roster';
 import { affinityRules, classAffinities, gearProfiles, type Affinity } from '@/content/equipment';
 import { mobById } from '@/content/enemies';
 import { guildTrackById, guildTracks } from '@/content/guild';
@@ -37,7 +38,7 @@ import { trinketEffect } from '../loot/trinkets';
 import { distanceMeters, offsetPosition } from '../generation/geo';
 import type { Rng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
-import { buyRank, guildBonus, isGuildUnlocked, partySize, rankPrice, rankProblem } from '../guild/guild';
+import { buyRank, guildBonus, isGuildUnlocked, rankPrice, rankProblem } from '../guild/guild';
 import { hasMaterials } from '../inventory';
 import type { PatrolKind, PatrolSubject, TravellerKind } from '../patrols/generate';
 import type { TravellerReward } from '../patrols/travellers';
@@ -136,7 +137,6 @@ export type DayRow = {
   idle: number;
   pickaxes: number;
   sigils: number;
-  charters: number;
   guildRanks: number;
   mastery: Record<string, number>;
   stock: Record<string, number>;
@@ -721,7 +721,7 @@ export function buyGuildRanks(sim: Sim) {
       if (sim.save.gold - price < reserve) continue;
       act(sim, 'guild', (save) => buyRank(save, id));
       sim.log.guildBuys.push({ day: sim.day, track: id, rank, gold: price });
-      if (guildTrackById[id].milestone) mark(sim, `guild:${id}`);
+      if (guildTrackById[id].ranks === 1) mark(sim, `guild:${id}`);
       const building = guildTrackById[id].building;
       if (guildTracks.filter((t) => t.building === building).every((t) => (sim.save.guild[t.id] ?? 0) >= t.ranks)) {
         mark(sim, `building:${building}`);
@@ -832,11 +832,11 @@ export function bestParty(sim: Sim, dungeon: DungeonDef, candidates: string[], b
   // Narrow passages cap the party at launch (one hero fewer), unless a Curse-breaker in it lifts them.
   const fits = (ids: string[]) =>
     briefing.restriction !== 'narrowPassages' ||
-    ids.length <= narrowPartySize(partySize(save)) ||
+    ids.length <= narrowPartySize(rosterRules.partySize) ||
     briefingCoverage(save, ids, briefing).restriction?.cancelledBy != null;
   const party: string[] = [];
   let best: Odds = { success: 0, flawless: 0, progress: 0 };
-  while (party.length < partySize(save) && candidates.some((c) => !party.includes(c) && fits([...party, c]))) {
+  while (party.length < rosterRules.partySize && candidates.some((c) => !party.includes(c) && fits([...party, c]))) {
     let pick: { id: string; odds: Odds } | null = null;
     for (const id of candidates.filter((c) => !party.includes(c) && fits([...party, c]))) {
       const o = odds(sim, save, [...party, id], dungeon, sim.config.odds.searchRuns, false, briefing);

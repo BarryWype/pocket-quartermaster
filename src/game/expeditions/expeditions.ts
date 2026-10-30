@@ -3,7 +3,7 @@ import { newHero, xpRules } from '@/content/heroes';
 import { dungeonById, itemById, opportunityById, recipeById, recipeOutput } from '@/content/lookup';
 import { lootConfig } from '@/content/loot/config';
 import { MATERIAL_TIERS } from '@/content/items';
-import { heroNames } from '@/content/roster';
+import { heroNames, rosterRules } from '@/content/roster';
 import { recipes } from '@/content/recipes';
 import { narrowPartySize } from '@/content/threats';
 import { traitById, traits } from '@/content/traits';
@@ -11,7 +11,7 @@ import { travellerRules } from '@/content/patrols';
 import { tutorialRules } from '@/content/tutorial';
 
 import { unlockRecipe } from '../crafting/crafting';
-import { guildBonus, partySize, rosterCap, sigilCap } from '../guild/guild';
+import { guildBonus, rosterCap, sigilCap } from '../guild/guild';
 import { highestUnlockedTier, isDungeonUnlocked } from '../dungeons/unlock';
 import { briefingFor, openDungeonIds, rotationDay, type Rotation } from '../dungeons/rotation';
 import { createRng, type Rng } from '../generation/rng';
@@ -184,12 +184,12 @@ export function startExpedition(
   // Overnight expeditions are patrols: only one is out at a time.
   if (dungeon.overnight && overnightUnderWay(save)) throw new Error(`${dungeon.name} is already under way`);
   if (heroIds.length === 0) throw new Error('Pick at least one hero');
-  if (heroIds.length > partySize(save)) throw new Error(`At most ${partySize(save)} heroes per expedition`);
+  if (heroIds.length > rosterRules.partySize) throw new Error(`At most ${rosterRules.partySize} heroes per expedition`);
   const run = briefing ?? expeditionBriefing(save, dungeon, rotation, now);
   // Narrow passages: one hero fewer than usual fits through, unless a Curse-breaker in the party lifts them.
   const restriction = signatureBriefing(run, prepareParty(save, heroIds).map(answersMemberOf)).briefing.restriction;
-  if (restriction === 'narrowPassages' && heroIds.length > narrowPartySize(partySize(save))) {
-    throw new Error(`At most ${narrowPartySize(partySize(save))} heroes fit the narrow passages`);
+  if (restriction === 'narrowPassages' && heroIds.length > narrowPartySize(rosterRules.partySize)) {
+    throw new Error(`At most ${narrowPartySize(rosterRules.partySize)} heroes fit the narrow passages`);
   }
   for (const heroId of heroIds) {
     if (!save.heroes.some((h) => h.id === heroId)) throw new Error(`Unknown hero ${heroId}`);
@@ -442,12 +442,9 @@ export function resolveExpedition(
       : hero,
   );
 
-  // The first win against each tier boss earns a Guild Hall charter.
-  const charter = success && !!dungeon.isBoss && !save.clearedDungeons.includes(dungeon.id);
   let next: SaveData = grantLoot(
     {
       ...save,
-      charters: save.charters + (charter ? 1 : 0),
       gold: save.gold + salvageGold,
       materials: addMaterials(save.materials, [...salvageMaterials, ...(run.opportunity?.materials ?? [])]),
       heroes,
@@ -532,7 +529,6 @@ export function resolveExpedition(
       ...sigil,
       firstWin,
       firstTierClear,
-      charter,
       hunger: expedition.hunger,
       salvaged,
       elixirs: true,
@@ -572,7 +568,6 @@ export function resolveExpedition(
     ...(firstWin ? { firstWin } : {}),
     ...(firstTierClear ? { firstTierClear } : {}),
     consumablesUsed,
-    charter: charter || undefined,
     log,
     seen: false,
   };

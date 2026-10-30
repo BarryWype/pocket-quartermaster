@@ -93,7 +93,6 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
     ? [
         result.reward.shards > 0 && t('sanctum.shards', { count: result.reward.shards, element: tr(element.name).toLowerCase() }),
         result.reward.stones > 0 && t('sanctum.stones', { count: result.reward.stones, element: tr(element.name).toLowerCase() }),
-        result.reward.charter && t('sanctum.charter'),
       ]
         .filter(Boolean)
         .join(t('common.and'))

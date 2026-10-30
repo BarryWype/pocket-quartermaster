@@ -1,14 +1,12 @@
 import { componentForgeOdds } from '@/content/forging';
 import { components } from '@/content/loot/components';
 import { componentById } from '@/content/lookup';
+import { tierMaterials } from '@/content/materials';
 
 import { forgedItem, forgeGearPiece, isKnown, recipeCost, unlockRecipe } from '../crafting/crafting';
 import { removeMaterials } from '../inventory';
 import type { SaveData } from '../save';
 import type { GearType, MaterialStack, Quality, RecipeDef } from '../types';
-
-/** The tier's main material: stone from tier 2 on, wood at tier 1. */
-const TIER_MATERIALS = ['wood', 'stone', 'copper', 'iron', 'steel'];
 
 /**
  * The recipe's inputs with one unit of a secondary material swapped for the
@@ -19,7 +17,7 @@ const TIER_MATERIALS = ['wood', 'stone', 'copper', 'iron', 'steel'];
 export function componentRecipe(recipe: RecipeDef, componentId: string): MaterialStack[] {
   const item = forgedItem(recipe);
   if (!item) throw new Error(`${recipe.id} forges no gear`);
-  const tierMaterial = TIER_MATERIALS[item.tier - 1];
+  const tierMaterial = tierMaterials[item.tier - 1];
   const mainId =
     item.tier >= 2 && recipe.inputs.some((input) => input.materialId === tierMaterial)
       ? tierMaterial

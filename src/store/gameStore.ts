@@ -50,7 +50,7 @@ import { dismissHero, equip, heroStats, isAway, keepHpShare, markClassesSeen, se
 import { buySupply, recruit, type RecruitOffer } from '@/game/taverns/taverns';
 import { buyRank } from '@/game/guild/guild';
 import { applyTraining } from '@/game/guild/training';
-import type { GuildTrackId } from '@/content/guild';
+import { guildRules, type GuildTrackId } from '@/content/guild';
 import { advanceTutorial, finishTutorial, nextTutorialStep, placeTutorialWood } from '@/game/tutorial/tutorial';
 import { pruneExpired, rollDailyApproaches } from '@/game/upkeep';
 import { questRules, type QuestBand, type QuestObjective } from '@/content/quests';
@@ -219,7 +219,6 @@ type GameState = {
   addHero: (classId: HeroClassId, level: number, trait: string, roll?: HeroRoll) => void;
   /** Debug: sets a hero's level (1–15), XP to 0; pending approach picks follow. */
   debugSetHeroLevel: (heroId: string, level: number) => void;
-  addCharters: (amount: number) => void;
   setGuildRank: (trackId: GuildTrackId, rank: number) => void;
   resetGuild: () => void;
   setMastery: (type: MasteryType, level: number) => void;
@@ -413,7 +412,7 @@ export const useGameStore = create<GameState>()(
         set({ save: placed });
         noteTips([outcome]);
       },
-      buyRank: (trackId) => set(({ save }) => ({ save: buyRank(save, trackId) })),
+      buyRank: (trackId) => set(({ save }) => ({ save: buyRank(save, trackId, guildRules, useDebugStore.getState().guildGatesOpen) })),
       train: () => set(({ save }) => ({ save: applyTraining(save, Date.now()) })),
       startExpedition: (dungeonId, heroIds, durationScale, loadout) =>
         set(({ save }) => ({
@@ -571,7 +570,6 @@ export const useGameStore = create<GameState>()(
       unlockAllPartRecipes: () => set(({ save }) => ({ save: unlockAllPartRecipes(save) })),
       learnTier: (tier) => set(({ save }) => ({ save: learnTier(save, tier) })),
       resetFirstWin: () => set(({ save }) => ({ save: { ...save, firstWinDay: null } })),
-      addCharters: (amount) => set(({ save }) => ({ save: { ...save, charters: save.charters + amount } })),
       setGuildRank: (trackId, rank) => set(({ save }) => ({ save: { ...save, guild: { ...save.guild, [trackId]: rank } } })),
       resetGuild: () => set(({ save }) => ({ save: { ...save, guild: {} } })),
       addHero: (classId, level, trait, roll) =>
@@ -645,13 +643,13 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 26,
+      version: 27,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
-      // Until release, a save change starts fresh: saves before version 26 (daily quests) are reset.
+      // Until release, a save change starts fresh: saves before version 27 (Guild Hall rework) are reset.
       migrate: (persisted, version) => {
         const old = (persisted as { save?: SaveData } | undefined)?.save;
-        if (!old || version < 26) return { save: createInitialSave() };
+        if (!old || version < 27) return { save: createInitialSave() };
         return { save: old };
       },
       merge: (persisted, current) => ({

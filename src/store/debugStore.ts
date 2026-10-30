@@ -43,6 +43,8 @@ type DebugSettings = {
   showAutoRadius: boolean;
   /** Shows the tap range around the player and the auto radius around each node. */
   showNodeRanges: boolean;
+  /** Guild Hall ranks ignore their tier boss gates. */
+  guildGatesOpen: boolean;
 };
 
 type DebugState = DebugSettings & {
@@ -72,6 +74,7 @@ const DEBUG_DEFAULTS: DebugSettings = {
   forcedBriefings: {},
   showAutoRadius: false,
   showNodeRanges: false,
+  guildGatesOpen: false,
 };
 
 export const useDebugStore = create<DebugState>()(

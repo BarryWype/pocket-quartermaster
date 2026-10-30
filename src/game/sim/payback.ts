@@ -1,4 +1,4 @@
-import { guildRules, guildTracks, type GuildTrackId } from '@/content/guild';
+import { guildTracks, type GuildTrackId } from '@/content/guild';
 
 import { rankCost, rankGate } from '../guild/guild';
 
@@ -10,7 +10,6 @@ export type Payback = { track: GuildTrackId; rank: number; cost: number; tier: n
 /** The gold per day each economic track scales; a rank adds its `perRank` share of it. Sigils and lures aren't counted. */
 const scaledGold: Partial<Record<GuildTrackId, (income: Record<string, number>) => number>> = {
   gold: (i) => (i.dungeon ?? 0) + (i.pouch ?? 0) + (i.mapGold ?? 0),
-  mainRewards: (i) => (i.pouch ?? 0) + (i.mapGold ?? 0) + (i.treasure ?? 0),
 };
 
 /**
@@ -23,7 +22,7 @@ export function paybacks(income: IncomeByTier): Payback[] {
     if (!scaled) return [];
     return Array.from({ length: track.ranks }, (_, i) => {
       const rank = i + 1;
-      const tier = Math.min(5, Math.max(1, rankGate(track, rank, guildRules)) + 1);
+      const tier = Math.min(5, Math.max(1, rankGate(track, rank)) + 1);
       const cost = rankCost(track, rank);
       const daily = income[tier] ? scaled(income[tier]) * track.perRank : 0;
       return { track: track.id, rank, cost, tier, days: daily > 0 ? Math.round((cost / daily) * 10) / 10 : null };

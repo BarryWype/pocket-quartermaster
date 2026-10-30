@@ -1,25 +1,21 @@
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { SectionTitle } from '@/components/Row';
 import { Text } from '@/components/Text';
 import { guildBuildings, guildTrackById, guildTracks, type GuildBuildingId, type GuildTrack } from '@/content/guild';
 import { materialById } from '@/content/lookup';
-import { guildRank, isGuildUnlocked, rankPrice, rankProblem, type RankPrice, type RankProblem } from '@/game/guild/guild';
+import { bossBeaten, guildRank, isGuildUnlocked, rankGate, rankPrice, rankProblem, type RankPrice, type RankProblem } from '@/game/guild/guild';
 import type { MaterialStack } from '@/game/types';
 import { useLanguage } from '@/hooks/useLanguage';
 import { t, tr } from '@/i18n';
+import { useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
 
 const materialsText = (materials: MaterialStack[]) =>
   materials.map(({ materialId, amount }) => `${amount} ${tr(materialById[materialId].name).toLowerCase()}`);
-
-const priceText = (price: RankPrice) =>
-  [`🪙 ${price.gold}`, ...materialsText(price.materials), price.charters ? `📜 ${t('common.charters', { count: price.charters })}` : null]
-    .filter(Boolean)
-    .join(' · ');
 
 function problemText(problem: RankProblem) {
   switch (problem.kind) {
@@ -28,14 +24,13 @@ function problemText(problem: RankProblem) {
     case 'maxed':
       return t('guild.maxed');
     case 'gate':
-      return t('guild.gate', { boss: tr(problem.boss) });
+      return null;
     case 'requires':
       return t('guild.requires', { track: tr(guildTrackById[problem.track].name) });
     case 'missing': {
       const parts = [
         problem.gold ? t('guild.missingGold', { gold: problem.gold }) : null,
         ...materialsText(problem.materials),
-        problem.charters ? t('common.charters', { count: problem.charters }) : null,
       ].filter(Boolean);
       return t('guild.missing', { parts: parts.join(', ') });
     }
@@ -52,7 +47,6 @@ function PriceLine({ price }: { price: RankPrice }) {
       text: `${materialById[materialId].emoji} ${amount} ${tr(materialById[materialId].name).toLowerCase()}`,
       short: (save.materials[materialId] ?? 0) < amount,
     })),
-    ...(price.charters ? [{ key: 'charter', text: `📜 ${t('common.charters', { count: price.charters })}`, short: save.charters < price.charters }] : []),
   ];
   return (
     <Text style={[styles.price, styles.priceLine]}>
@@ -66,11 +60,12 @@ function PriceLine({ price }: { price: RankPrice }) {
   );
 }
 
-/** Gold upgrades: three buildings, each with a few tracks bought rank by rank. */
+/** Gold upgrades: five buildings, each with a few tracks bought rank by rank, gated by tier bosses. */
 export default function GuildScreen() {
   useLanguage();
   const save = useGameStore((state) => state.save);
   const buy = useGameStore((state) => state.buyRank);
+  const gatesOpen = useDebugStore((state) => state.guildGatesOpen);
   const [justBought, setJustBought] = useState<string | null>(null);
 
   useEffect(() => {
@@ -80,29 +75,19 @@ export default function GuildScreen() {
   }, [justBought]);
 
   const purchase = (track: GuildTrack) => {
-    const done = () => {
-      buy(track.id);
-      setJustBought(track.id);
-    };
-    if (!track.milestone) return done();
-    const price = rankPrice(track, guildRank(save, track.id) + 1);
-    Alert.alert(t('guild.buyTitle', { track: tr(track.name) }), t('guild.buyBody', { effect: track.describe(1), price: priceText(price) }), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('guild.buy'), onPress: done },
-    ]);
+    buy(track.id);
+    setJustBought(track.id);
   };
 
   const row = (track: GuildTrack) => {
     const rank = guildRank(save, track.id);
     const maxed = rank >= track.ranks;
-    const problem = rankProblem(save, track.id);
+    const problem = rankProblem(save, track.id, undefined, gatesOpen);
+    const gated = Array.from({ length: track.ranks - rank }, (_, i) => rank + i + 1).filter((r) => !bossBeaten(save, rankGate(track, r)));
     return (
       <View key={track.id} style={[styles.track, justBought === track.id && styles.bought]}>
         <View style={styles.header}>
-          <Text style={styles.name}>
-            {track.milestone ? '⭐ ' : ''}
-            {tr(track.name)}
-          </Text>
+          <Text style={styles.name}>{tr(track.name)}</Text>
           <Text style={styles.dots}>{'■'.repeat(rank) + '□'.repeat(track.ranks - rank)}</Text>
         </View>
         <Text>{maxed ? track.describe(rank) : `${track.describe(rank)} → ${track.describe(rank + 1)}`}</Text>
@@ -114,18 +99,22 @@ export default function GuildScreen() {
             <Button title={t('guild.buy')} disabled={problem !== null} onPress={() => purchase(track)} />
           </View>
         )}
-        {problem && problem.kind !== 'maxed' && problem.kind !== 'missing' && <Text style={styles.problem}>{problemText(problem)}</Text>}
+        {problem && problem.kind !== 'maxed' && problem.kind !== 'missing' && problem.kind !== 'gate' && (
+          <Text style={styles.problem}>{problemText(problem)}</Text>
+        )}
+        {gated.map((r) => (
+          <Text key={r} style={styles.problem}>
+            {t('guild.rankGate', { rank: r, tier: rankGate(track, r) })}
+          </Text>
+        ))}
       </View>
     );
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.wallet}>
-        {t('guild.wallet', { gold: save.gold, charters: t('common.charters', { count: save.charters }) })}
-      </Text>
+      <Text style={styles.wallet}>{t('guild.wallet', { gold: save.gold })}</Text>
       {!isGuildUnlocked(save) && <Text style={styles.problem}>{t('guild.hallLocked')}</Text>}
-      <Text style={styles.muted}>{t('guild.chartersHint')}</Text>
       {(Object.keys(guildBuildings) as GuildBuildingId[]).map((building) => (
         <View key={building}>
           <SectionTitle>{`${guildBuildings[building].emoji} ${tr(guildBuildings[building].name)}`}</SectionTitle>

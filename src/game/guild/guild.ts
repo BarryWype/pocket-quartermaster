@@ -1,6 +1,7 @@
 import { dungeons } from '@/content/dungeons';
 import { guildRules, guildTrackById, type GuildTrack, type GuildTrackId } from '@/content/guild';
 import { lootConfig } from '@/content/loot/config';
+import { tierMaterials } from '@/content/materials';
 import { recruitRules, rosterRules } from '@/content/roster';
 
 import { hasMaterials, removeMaterials } from '../inventory';
@@ -26,7 +27,6 @@ export const guildRank = (save: SaveData, id: GuildTrackId) => save.guild[id] ??
 export const guildBonus = (save: SaveData, id: GuildTrackId) => guildRank(save, id) * guildTrackById[id].perRank;
 
 export const sigilCap = (save: SaveData) => lootConfig.sigils.cap + guildBonus(save, 'sigilCap');
-export const partySize = (save: SaveData) => rosterRules.partySize + guildBonus(save, 'partySlot');
 export const rosterCap = (save: SaveData) =>
   rosterRules.rosterCap + guildBonus(save, 'rosterSlot7') + guildBonus(save, 'rosterSlot8');
 export const tavernOfferCount = (save: SaveData) => recruitRules.offersPerTavern + guildBonus(save, 'tavernOffer');
@@ -36,21 +36,18 @@ export const isGuildUnlocked = (save: SaveData, rules: Rules = guildRules) => sa
 /** The boss dungeon of a tier. */
 export const tierBoss = (tier: number) => dungeons.find((d) => d.tier === tier && d.isBoss)!;
 
-const bossBeaten = (save: SaveData, tier: number) => tier <= 0 || save.clearedDungeons.includes(tierBoss(tier).id);
+export const bossBeaten = (save: SaveData, tier: number) => tier <= 0 || save.clearedDungeons.includes(tierBoss(tier).id);
 
 /** Tier whose boss must be beaten before a rank can be bought (0 = as soon as the hall opens). */
-export function rankGate(track: GuildTrack, rank: number, rules: Rules = guildRules) {
-  return track.ranks === 1 ? (track.gate ?? 0) : rules.rankGates[rank - 1];
-}
+export const rankGate = (track: GuildTrack, rank: number) => track.gates[rank - 1];
 
-export type RankPrice = { gold: number; materials: MaterialStack[]; charters: number };
+export type RankPrice = { gold: number; materials: MaterialStack[] };
 
+/** Gold, plus on high ranks the main material of the rank's gate tier (wood for a gate of 0). */
 export function rankPrice(track: GuildTrack, rank: number, rules: Rules = guildRules): RankPrice {
-  return {
-    gold: rankCost(track, rank, rules),
-    materials: rules.rankMaterials[rank] ?? [],
-    charters: track.milestone ? rules.charters.perMilestone : 0,
-  };
+  const amount = rules.rankMaterials[rank];
+  const materialId = tierMaterials[Math.max(1, rankGate(track, rank)) - 1];
+  return { gold: rankCost(track, rank, rules), materials: amount ? [{ materialId, amount }] : [] };
 }
 
 export type RankProblem =
@@ -58,16 +55,16 @@ export type RankProblem =
   | { kind: 'maxed' }
   | { kind: 'gate'; tier: number; boss: string }
   | { kind: 'requires'; track: GuildTrackId }
-  | { kind: 'missing'; gold: number; materials: MaterialStack[]; charters: number };
+  | { kind: 'missing'; gold: number; materials: MaterialStack[] };
 
-/** Why the next rank of a track can't be bought now, or null. */
-export function rankProblem(save: SaveData, id: GuildTrackId, rules: Rules = guildRules): RankProblem | null {
+/** Why the next rank of a track can't be bought now, or null. `ignoreGates` is the debug unlock. */
+export function rankProblem(save: SaveData, id: GuildTrackId, rules: Rules = guildRules, ignoreGates = false): RankProblem | null {
   const track = guildTrackById[id];
   const rank = guildRank(save, id) + 1;
   if (!isGuildUnlocked(save, rules)) return { kind: 'hallLocked' };
   if (rank > track.ranks) return { kind: 'maxed' };
-  const gate = rankGate(track, rank, rules);
-  if (!bossBeaten(save, gate)) return { kind: 'gate', tier: gate, boss: tierBoss(gate).name };
+  const gate = rankGate(track, rank);
+  if (!ignoreGates && !bossBeaten(save, gate)) return { kind: 'gate', tier: gate, boss: tierBoss(gate).name };
   if (track.requires && guildRank(save, track.requires) < guildTrackById[track.requires].ranks) {
     return { kind: 'requires', track: track.requires };
   }
@@ -75,18 +72,14 @@ export function rankProblem(save: SaveData, id: GuildTrackId, rules: Rules = gui
   const missingMaterials = price.materials
     .map(({ materialId, amount }) => ({ materialId, amount: amount - (save.materials[materialId] ?? 0) }))
     .filter((m) => m.amount > 0);
-  const missing = {
-    gold: Math.max(0, price.gold - save.gold),
-    materials: missingMaterials,
-    charters: Math.max(0, price.charters - save.charters),
-  };
-  if (missing.gold || missing.materials.length || missing.charters) return { kind: 'missing', ...missing };
+  const missing = { gold: Math.max(0, price.gold - save.gold), materials: missingMaterials };
+  if (missing.gold || missing.materials.length) return { kind: 'missing', ...missing };
   return null;
 }
 
-/** Buys the next rank: pays gold, materials and charters. Permanent. */
-export function buyRank(save: SaveData, id: GuildTrackId, rules: Rules = guildRules): SaveData {
-  const problem = rankProblem(save, id, rules);
+/** Buys the next rank: pays gold and materials. Permanent. */
+export function buyRank(save: SaveData, id: GuildTrackId, rules: Rules = guildRules, ignoreGates = false): SaveData {
+  const problem = rankProblem(save, id, rules, ignoreGates);
   if (problem) throw new Error(`Cannot buy ${id}: ${problem.kind}`);
   const rank = guildRank(save, id) + 1;
   const price = rankPrice(guildTrackById[id], rank, rules);
@@ -95,7 +88,6 @@ export function buyRank(save: SaveData, id: GuildTrackId, rules: Rules = guildRu
     ...save,
     gold: save.gold - price.gold,
     materials: removeMaterials(save.materials, price.materials),
-    charters: save.charters - price.charters,
     guild: { ...save.guild, [id]: rank },
   };
 }

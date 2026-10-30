@@ -1,4 +1,5 @@
 import { useFocusEffect } from 'expo-router';
+import { rosterRules } from '@/content/roster';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -25,7 +26,6 @@ import { briefingFor, nextRotationAt, rotationDay } from '@/game/dungeons/rotati
 import { expeditionMinutes, isDungeonUnlocked, readyExpeditions, type Loadout } from '@/game/expeditions/expeditions';
 import { estimateOdds } from '@/game/expeditions/odds';
 import { supplyHeld } from '@/game/expeditions/provisions';
-import { guildRank, partySize } from '@/game/guild/guild';
 import { briefingCoverage } from '@/game/threats/coverage';
 import { isOnExpedition } from '@/game/team/team';
 import type { ExpeditionReport, HeroState } from '@/game/types';
@@ -63,7 +63,7 @@ export default function ExpeditionsScreen() {
   // Open on the teams when one is back, so the loot is the first thing to see.
   const [tab, setTabState] = useState<Tab>(() => (readyExpeditions(save, Date.now()).length > 0 ? 'teams' : 'dungeons'));
   const [selected, setSelected] = useState<string[]>(() =>
-    save.heroes.filter((h) => !isOnExpedition(save, h.id)).slice(0, partySize(save)).map((h) => h.id),
+    save.heroes.filter((h) => !isOnExpedition(save, h.id)).slice(0, rosterRules.partySize).map((h) => h.id),
   );
   /** The dungeon card opened: its details show, and heroes good there get a badge. */
   const [focused, setFocused] = useState<string | null>(null);
@@ -73,7 +73,6 @@ export default function ExpeditionsScreen() {
   const [openReport, setOpenReport] = useState<string | null>(null);
   const [collected, setCollected] = useState<Collected | null>(null);
   /** Scouting report (Guild Hall): tomorrow's rotation. */
-  const [showTomorrow, setShowTomorrow] = useState(false);
 
   // Reports count as read once the player leaves their tab or the screen.
   const tabRef = useRef(tab);
@@ -125,7 +124,7 @@ export default function ExpeditionsScreen() {
   };
 
   const party = useMemo(
-    () => selected.filter((id) => !isOnExpedition(save, id)).slice(0, partySize(save)),
+    () => selected.filter((id) => !isOnExpedition(save, id)).slice(0, rosterRules.partySize),
     [selected, save],
   );
 
@@ -180,7 +179,7 @@ export default function ExpeditionsScreen() {
   );
   // Narrow passages cut the party down for that dungeon, unless a Curse-breaker in it lifts them.
   const narrow = focusedBriefing?.restriction === 'narrowPassages' && !coverage?.restriction?.cancelledBy;
-  const cap = narrow ? narrowPartySize(partySize(save)) : partySize(save);
+  const cap = narrow ? narrowPartySize(rosterRules.partySize) : rosterRules.partySize;
 
   /** Parties are capped: a hero can only join while there's room. */
   const toggle = (heroId: string) => {
@@ -267,23 +266,6 @@ export default function ExpeditionsScreen() {
           onSend={() => setConfirming(shownOvernight.id)}
         />
       )}
-
-      {guildRank(save, 'scouting') > 0 && (
-        <View style={styles.tomorrow}>
-          <Button title={showTomorrow ? t('expeditions.hideTomorrow') : t('expeditions.tomorrow')} onPress={() => setShowTomorrow(!showTomorrow)} />
-        </View>
-      )}
-      {showTomorrow &&
-        Object.entries(currentRotation(nextRotationAt(now)).tiers)
-          .filter(([, slots]) => isDungeonUnlocked(save, dungeonById[slots.boss]))
-          .map(([n, slots]) => {
-            const name = (id: string) => `${dungeonById[id].emoji} ${tr(dungeonById[id].name)}`;
-            return (
-              <Text key={n} style={styles.muted}>
-                {t('expeditions.tomorrowLine', { tier: n, short: name(slots.short), long: name(slots.long) })}
-              </Text>
-            );
-          })}
     </>
   );
 
@@ -424,7 +406,6 @@ const styles = StyleSheet.create({
   pill: { paddingHorizontal: 10, paddingVertical: 4, borderWidth: 2, borderColor: colors.woodDark, backgroundColor: colors.parchment },
   pillActive: { borderColor: colors.ink, backgroundColor: colors.highlight },
   pillText: { fontSize: 18 },
-  tomorrow: { alignSelf: 'flex-start', marginVertical: 4 },
   hint: { padding: 10, marginBottom: 8, borderWidth: pixel.outline, borderColor: colors.ink, backgroundColor: colors.wood },
   hintText: { color: colors.parchment, fontSize: 18 },
 });

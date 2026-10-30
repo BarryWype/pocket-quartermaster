@@ -1,4 +1,5 @@
 import { expeditionRules } from '@/content/dungeons';
+import { rosterRules } from '@/content/roster';
 import { lootConfig } from '@/content/loot/config';
 import { mobById, patrolMobId } from '@/content/enemies';
 import { patrolKinds, patrolRules, patrolTexts, type PatrolRules } from '@/content/patrols';
@@ -8,7 +9,7 @@ import { estimatePartyOdds, ODDS_RUNS, type Odds } from '../expeditions/odds';
 import { highestUnlockedTier, untriggeredSalvage } from '../expeditions/expeditions';
 import { prepareParty, simulateRun, type RunOptions, type RunResult } from '../expeditions/simulate';
 import { pickaxeTier } from '../gathering/gathering';
-import { guildBonus, partySize } from '../guild/guild';
+import { guildBonus } from '../guild/guild';
 import { createRng, type Rng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { addMaterials } from '../inventory';
@@ -155,7 +156,7 @@ export function patrolFightProblem(
   if (!isPatrolKind(spawn.kind) || isGone(spawn, { ...save.beatenPatrols, ...save.helpedTravellers }, now)) return 'gone';
   if (distanceTo(spawn, player, now) > rules.engageMeters) return 'tooFar';
   if (heroIds.length === 0) return 'empty';
-  if (heroIds.length > partySize(save)) return 'partySize';
+  if (heroIds.length > rosterRules.partySize) return 'partySize';
   for (const heroId of heroIds) {
     const hero = save.heroes.find((h) => h.id === heroId);
     if (!hero || isAway(save, heroId)) return 'away';

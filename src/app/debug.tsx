@@ -757,9 +757,11 @@ export default function DebugScreen() {
       </View>
 
       <Text style={styles.title}>Guild Hall</Text>
-      <Text>Charters: {game.save.charters}</Text>
       <View style={styles.row}>
-        <Button title="+1 charter" onPress={() => game.addCharters(1)} />
+        <Button
+          title={debug.guildGatesOpen ? 'Gates: open' : 'Gates: from tier bosses'}
+          onPress={() => debug.set({ guildGatesOpen: !debug.guildGatesOpen })}
+        />
         <Button title="Reset the Guild Hall" color="#c0392b" onPress={game.resetGuild} />
       </View>
       <Choice

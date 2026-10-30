@@ -90,8 +90,6 @@ export type SaveData = {
   cookingHintSeen: boolean;
   /** Guild Hall ranks bought, by track. */
   guild: Partial<Record<GuildTrackId, number>>;
-  /** Needed for ⭐ Guild Hall milestones. */
-  charters: number;
   /** Rotation day of the last first win of the day (dungeons and tier bosses); null before the first. */
   firstWinDay: number | null;
   /** Local day (ISO date) → bonus gathers used today (see `walkingBonus`). */
@@ -184,7 +182,6 @@ export function createInitialSave(): SaveData {
     tavernHintSeen: false,
     cookingHintSeen: false,
     guild: {},
-    charters: 0,
     trainedAt: null,
     firstWinDay: null,
     freshGathers: { day: '', used: 0 },

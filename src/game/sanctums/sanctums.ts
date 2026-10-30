@@ -3,7 +3,6 @@ import { componentById } from '@/content/lookup';
 import { frLogTemplates } from '@/content/fr/logTemplates';
 import { logTemplates } from '@/content/logTemplates';
 import { fill, localized, tr } from '@/i18n';
-import { guildRules } from '@/content/guild';
 import { lootConfig } from '@/content/loot/config';
 import { sanctumRules, sanctums } from '@/content/sanctums';
 
@@ -35,7 +34,7 @@ export type SanctumSpawn = {
   expiresAt: number;
 };
 
-export type SanctumReward = { element: SanctumDef['element']; shards: number; stones: number; charter: boolean; xp: number };
+export type SanctumReward = { element: SanctumDef['element']; shards: number; stones: number; xp: number };
 
 export type SanctumResult = {
   win: boolean;
@@ -138,12 +137,11 @@ export function challengeSanctum(
   const luck = party.reduce((sum, m) => sum + m.luck, 0);
   const luckGold = 1 + lootConfig.luck.goldPerPoint * luck;
   const amounts = rules.rewards[tier - 1][win ? 'win' : 'loss'];
-  // Wins also get the Guild Hall's extra shards, and sometimes a charter.
+  // Wins also get the Guild Hall's extra shards.
   const reward = {
     element: sanctum.element,
     shards: Math.round((amounts.shards + (win ? guildBonus(save, 'shards') : 0)) * luckGold),
     stones: Math.round(amounts.stones * luckGold),
-    charter: win && createRng(`${seed}|charter`).chance(guildRules.charters.sanctumWinChance),
     xp: 0,
   };
   // A win rolls the Sanctum row for the rest; its shards are the ones above.
@@ -176,7 +174,6 @@ export function challengeSanctum(
       ...applyRunHp(grantLoot(save, heroIds, loot, now), run.hp, now),
       sigils: save.sigils.filter((_, i) => i !== sigilIndex),
       gold: save.gold + loot.gold,
-      charters: save.charters + (reward.charter ? 1 : 0),
       materials: convertShards(
         addMaterials(
           save.materials,

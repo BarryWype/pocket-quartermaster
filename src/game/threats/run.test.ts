@@ -260,8 +260,6 @@ describe('run restrictions', () => {
     expect(() => startExpedition(save, 'ratCellar', ['bram', 'lyra'], 0, 1, rotation)).not.toThrow();
     expect(() => startExpedition(save, 'ratCellar', ALL, 0, 1, rotation)).toThrow(/At most 2 heroes fit the narrow passages/);
     expect(() => startExpedition(save, 'ratCellar', ['bram', 'lyra', 'cb'], 0, 1, rotation)).not.toThrow();
-    // A fourth party slot (Guild Hall) lets three through.
-    expect(() => startExpedition({ ...save, guild: { partySlot: 1 } }, 'ratCellar', ALL, 0, 1, rotation)).not.toThrow();
   });
 
   it('spoiledStores: the meal is eaten but does nothing', () => {

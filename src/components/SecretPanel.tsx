@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { rosterRules } from '@/content/roster';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { heroClasses } from '@/content/heroes';
@@ -9,7 +10,7 @@ import { traitById } from '@/content/traits';
 import { dungeonFoes } from '@/game/enemies/tags';
 import { distanceMeters } from '@/game/generation/geo';
 import type { LatLng } from '@/game/generation/types';
-import { partySize, rosterCap } from '@/game/guild/guild';
+import { rosterCap } from '@/game/guild/guild';
 import type { PlaceSpawn } from '@/game/places/generate';
 import { underwaterBriefing, underwaterDungeonFor, underwaterLaunchProblem } from '@/game/secrets/dungeon';
 import { hasKey, keyDots, keysHeld } from '@/game/secrets/keys';
@@ -78,7 +79,7 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
   const entered = isEntered(save, place);
   const underwater = place.kind === 'underwaterDungeon';
   const candidates = save.heroes.filter((hero) => !isAway(save, hero.id) && !isExhausted(hero, now));
-  const [heroIds, setHeroIds] = useState<string[]>(() => candidates.slice(0, partySize(save)).map((hero) => hero.id));
+  const [heroIds, setHeroIds] = useState<string[]>(() => candidates.slice(0, rosterRules.partySize).map((hero) => hero.id));
   const [confirming, setConfirming] = useState(false);
   const offer = !underwater && entered ? secretRecruit(save, place) : null;
   const offeredClass = offer?.classId;
@@ -95,7 +96,7 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
   );
 
   const toggle = (heroId: string) =>
-    setHeroIds((ids) => (ids.includes(heroId) ? ids.filter((id) => id !== heroId) : ids.length < partySize(save) ? [...ids, heroId] : ids));
+    setHeroIds((ids) => (ids.includes(heroId) ? ids.filter((id) => id !== heroId) : ids.length < rosterRules.partySize ? [...ids, heroId] : ids));
 
   const underwaterBody = () => {
     const dungeon = underwaterDungeonFor(save);

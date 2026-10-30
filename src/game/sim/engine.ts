@@ -1,4 +1,5 @@
 import { gatheringConfig } from '@/content/gatheringConfig';
+import { rosterRules } from '@/content/roster';
 import { MASTERY_TYPES } from '@/content/forging';
 import { guildTracks } from '@/content/guild';
 import { itemById, recipeById } from '@/content/lookup';
@@ -15,7 +16,7 @@ import { distanceMeters } from '../generation/geo';
 import { createRng } from '../generation/rng';
 import { windowIndex, windowRange } from '../generation/time';
 import type { LatLng } from '../generation/types';
-import { partySize, rosterCap } from '../guild/guild';
+import { rosterCap } from '../guild/guild';
 import { applyTraining } from '../guild/training';
 import { applyBackgroundResults, backgroundStep, snapshotBackground, type PatrolSettings } from '../patrols/escort';
 import { PATROL_KINDS, TRAVELLER_KINDS, isTravellerKind, patrolsAround, patrolPositionAt, patrolTier, type PatrolSpawn, type PatrolSubject, type TierRoll } from '../patrols/generate';
@@ -205,7 +206,7 @@ function engagePatrol(sim: Sim, spawn: PatrolSpawn, at: number, player: LatLng) 
   const candidates = homeHeroes(sim.save)
     .filter((h) => !isExhausted(h, at))
     .sort((a, b) => currentHp(sim.save, b, at) - currentHp(sim.save, a, at));
-  const full = Math.min(partySize(sim.save), candidates.length);
+  const full = Math.min(rosterRules.partySize, candidates.length);
   for (let size = 1; size <= full; size++) {
     const heroIds = candidates.slice(0, size).map((h) => h.id);
     if (patrolOdds(sim.save, spawn, heroIds, at, sim.config.odds.runs).success < ENGAGE_ODDS) continue;
@@ -408,7 +409,6 @@ export function runSim({ profile: name, days, seed, rates, patrolRates, config =
       idle: idle / hours.length,
       pickaxes: PICKAXES.filter((id) => save.tools.includes(id)).length,
       sigils: save.sigils.length,
-      charters: save.charters,
       guildRanks: guildTracks.reduce((s, t) => s + (save.guild[t.id] ?? 0), 0),
       mastery: Object.fromEntries(MASTERY_TYPES.map((t) => [t, masteryOf(save, t).level])),
       stock: { ...save.materials },

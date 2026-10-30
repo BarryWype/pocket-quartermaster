@@ -5,6 +5,9 @@ import { elementInfo } from './elements';
 import { components } from './loot/components';
 import { monsterParts } from './loot/monsterParts';
 
+/** Each tier's main material, tier 1 first. */
+export const tierMaterials = ['wood', 'stone', 'copper', 'iron', 'steel'];
+
 export const materials: MaterialDef[] = [
   { id: 'wood', name: 'Wood', emoji: '🪵', icon: require('../../assets/icons/scaled/wood.png') },
   { id: 'stone', name: 'Stone', emoji: '🪨', icon: require('../../assets/icons/scaled/stone.png') },
