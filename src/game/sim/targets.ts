@@ -1,51 +1,39 @@
-/** What the balance lab flags. Boss days are for the regular profile; others scale them. */
+/**
+ * The targets of doc/design/simulator/README.md, which the report puts next to
+ * each result and the balance band tests check. Ranges are [min, max].
+ */
 export const targets = {
-  /** Day (1 = first day) of each tier boss's first win: [earliest, latest]. */
-  bossDays: { 1: [1, 2], 2: [3, 5], 3: [7, 10], 4: [12, 18], 5: [21, 30] } as Record<number, [number, number]>,
-  /** Day the roster reaches this many heroes: [earliest, latest]. */
-  recruitDays: { 4: [3, 5], 6: [7, 12] } as Record<number, [number, number]>,
-  profileScale: { casual: 1.8, regular: 1, heavy: 0.6 } as Record<string, number>,
-  /** Gold held above this many days of income… */
-  goldPileDays: 5,
-  /** …for more days in a row than this. */
-  goldPileStreak: 3,
-  /** Share of sessions heroes are left at home. */
-  idleShare: 0.4,
-  /** Days for a Guild Hall rank to earn back its cost. */
-  paybackDays: [3, 7] as [number, number],
-  /** A material gathered at least this much and never used. */
+  /** Days from one tier boss's first win to the next ("about 7" reads 6–8, "about 14" 12–16). */
+  daysPerTier: { casual: [12, 16], regular: [6, 8], heavy: [3, 4] } as Record<string, [number, number]>,
+  odds: {
+    /** Normal expeditions with the right kits and the tier's gear. */
+    prepared: [0.65, 0.75] as [number, number],
+    /** The same party and gear with the kit slots empty. */
+    unprepared: [0.3, 0.45] as [number, number],
+    boss: [0.5, 0.6] as [number, number],
+    /** Fight events and patrols, prepared. */
+    events: [0.7, 0.8] as [number, number],
+  },
+  /** Weekly drops per category for the regular profile, at most this share off doc/design/loot/tools/pacing.py. */
+  lootPacing: 0.2,
+  /** Gold held may not grow over a tier by more than this many days of the tier's income. */
+  goldSurplusDays: 3,
+  /** The tier's main material: spent at least this share of what was gathered. */
+  materialSpent: 0.75,
+  /** Heroes end each tier within this many levels of the top of its band (expectedLevels). */
+  levelSlack: 1,
+  /** A stock that grows at every tier end and ends above this is a pile-up. */
+  pileUp: 20,
+  /** Traders are traded with while more than this much of the material is held. */
   unusedStockpile: 20,
-  /** Share of Crappy pieces at a boss attempt. */
-  crappyAtBoss: 0.5,
-  /** Share of the meat and berries the regular profile gathers that food (the kitchen) uses: [min, max]. */
-  foodUse: [0.6, 0.8] as [number, number],
-  /** Most runs that may start Starving. */
-  starvingShare: 0.1,
   /**
    * Rotating the roster must earn at least this many times the XP and gold per
    * hour of sending the same 3 heroes to the shortest tier 1 dungeon over and over.
    */
   spamAdvantage: 1.2,
-  /** Changes larger than this are highlighted by compare mode. */
-  compareThreshold: 0.1,
-  /** Share of the regular profile's gold earned that came from patrols and travellers: [min, max]. */
-  patrolGoldShare: [0.15, 0.25] as [number, number],
-  /** Most of a material's walked amount that patrols may bring, per material with at least 10 walked. */
-  patrolMaterialShareMax: 0.2,
-  /** Most traveller recruits may move the day the roster reaches its 4th or 6th hero. */
-  travellerRecruitShiftDays: 1,
 };
 
 export type Targets = typeof targets;
 
-/** A regular-profile day range scaled for another profile. */
-function scaled([min, max]: [number, number], profile: string, t: Targets): [number, number] {
-  const scale = t.profileScale[profile] ?? 1;
-  return [Math.max(1, Math.floor(min * scale)), Math.ceil(max * scale)];
-}
-
-/** A boss's target days for a profile. */
-export const bossTarget = (tier: number, profile: string, t: Targets = targets) => scaled(t.bossDays[tier], profile, t);
-
-/** The day range for the roster's Nth hero, for a profile. */
-export const recruitTarget = (heroes: number, profile: string, t: Targets = targets) => scaled(t.recruitDays[heroes], profile, t);
+/** Whether a value sits inside a target range. */
+export const inRange = (value: number, [min, max]: [number, number]) => value >= min && value <= max;

@@ -56,6 +56,9 @@ import {
   type Sim,
   countLoot,
 } from './bot';
+import { forgeComponents, restoreRelics } from './rules/forge';
+import { craftCharms, readManuals, sellValuables } from './rules/inventory';
+import { buyWeakness, openSecrets, visitPlaces } from './rules/map';
 import { profiles, simConfig, type Profile, type SimConfig } from './config';
 import { targets } from './targets';
 import { PICKAXES, bonusScaled, walkYield, type WalkRates } from './walking';
@@ -257,7 +260,12 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, steps: number, 
   // Collect. Heroes back from an expedition are collected first, so they are home for the walk's patrols.
   const due = sim.save.expeditions.filter((e) => e.endsAt <= sim.now).sort((a, b) => a.endsAt - b.endsAt);
   for (const expedition of due) collectExpedition(sim, expedition);
-  if (walking) meetPatrols(sim);
+  if (walking) {
+    meetPatrols(sim);
+    visitPlaces(sim);
+    sellValuables(sim);
+    buyWeakness(sim);
+  }
   sim.save = applyTraining(sim.save, sim.now);
   sim.save = recordSteps(sim.save, dayKey, steps);
   for (const chest of stepChests) {
@@ -271,9 +279,14 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, steps: number, 
   if (sim.save.tutorial.step !== 'done') playTutorial(sim);
   doQuests(sim, walking);
   forge(sim);
+  forgeComponents(sim);
+  restoreRelics(sim);
   spendPicks(sim);
   stockProvisions(sim);
+  craftCharms(sim);
+  readManuals(sim);
   infuseWeapons(sim);
+  openSecrets(sim);
   recruitHeroes(sim);
   buyGuildRanks(sim);
   challengeSanctums(sim);

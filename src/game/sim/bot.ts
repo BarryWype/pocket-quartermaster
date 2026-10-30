@@ -55,6 +55,7 @@ import { heroAnswers, type AnswersMember } from '../threats/answers';
 import { scoreThreat } from '../threats/score';
 import type { ActiveExpedition, Approach, ArmourType, Briefing, ConsumableDef, DungeonDef, GearDef, GearInstance, HeroClassId, HeroState, OffhandType, Quality, RecipeDef, Stats, WeaponType } from '../types';
 import { expectedLevels, type Profile, type SimConfig } from './config';
+import { partRecipeFor } from './rules/inventory';
 import { emptySlots, fillPotions, isKit, pickCharm, pickKits, pickWeakness, uncovered, withCharm } from './rules/loadout';
 import { PICKAXES, type WalkRates } from './walking';
 import { questRules } from '@/content/quests';
@@ -598,9 +599,9 @@ export function forge(sim: Sim) {
 
 // —— Provisions ——
 
-/** Crafts up to `count` of a Provisions recipe at once, logged under its tab (kitchen or alchemy). */
+/** Crafts up to `count` of a Provisions recipe at once (its part recipe when the parts are held), logged under its tab (kitchen or alchemy). */
 function cook(sim: Sim, itemId: string, count: number) {
-  const recipe = recipeById[itemId];
+  const recipe = partRecipeFor(sim.save, itemId) ?? recipeById[itemId];
   const n = Math.min(count, craftableCount(sim.save, recipe));
   if (n <= 0) return 0;
   act(sim, recipe.tab ?? 'alchemy', (save) => craftMany(save, recipe, n));
@@ -1109,8 +1110,9 @@ export function noteQuestGathers(sim: Sim, changes: Record<string, number>) {
  * Daily quests, each session: the day's arrive and the list is opened (every
  * new quest accepted, a place target at the middle of its band); on walks,
  * the oldest targets are reached and done, as many as the profile's quests
- * owed; finished quests are claimed. Walks, patrols and gathering count
- * through the game's own events.
+ * owed (four at once on a walk with a secret quest owed, so it pops; its
+ * strange mark is always reached); finished quests are claimed. Walks,
+ * patrols and gathering count through the game's own events.
  */
 export function doQuests(sim: Sim, walking: boolean) {
   sim.save = questUpkeep(sim.save, sim.now);
@@ -1128,9 +1130,17 @@ export function doQuests(sim: Sim, walking: boolean) {
   };
   sim.save = { ...sim.save, quests: { ...sim.save.quests, list: sim.save.quests.list.map(accept) } };
 
+  // A secret quest owed: four targets done on this walk, so the secret quest pops (four within 5 hours).
+  const open = sim.save.quests.list.filter((q) => q.doneAt === null && q.target && q.band !== 'secret');
+  let outing = walking && open.length >= questRules.secret.completions && takeVisit(sim, 'secretQuest') ? questRules.secret.completions : 0;
   for (const quest of sim.save.quests.list) {
-    if (!walking || sim.due.quests < 1 || quest.doneAt !== null || !quest.target) continue;
-    sim.due.quests -= 1;
+    if (!walking || quest.doneAt !== null || !quest.target) continue;
+    // The strange mark is close by: always reached on the walk it shows.
+    if (quest.band !== 'secret') {
+      if (outing > 0) outing -= 1;
+      else if (sim.due.quests >= 1) sim.due.quests -= 1;
+      else continue;
+    }
     if (quest.objective === 'mark') {
       const reached = reachMark(sim.save, quest.id, sim.now, () => false);
       sim.save = reached.save;
