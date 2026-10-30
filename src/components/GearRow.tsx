@@ -38,7 +38,7 @@ export function trinketText(gear: GearInstance) {
 export function gearStatsText(gear: GearInstance) {
   const item = itemById[gear.itemId];
   if (item.slot === 'trinket') return trinketText(gear);
-  if (item.slot !== 'weapon' && item.slot !== 'armor') return '';
+  if (item.slot !== 'weapon' && item.slot !== 'armor' && item.slot !== 'offhand') return '';
   const stats = gearStats(item, gear);
   return STATS.filter((key) => stats[key])
     .map((key) => `${statIcons[key]} ${Math.round(stats[key]!)}`)
