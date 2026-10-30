@@ -6,12 +6,13 @@ import { distanceMeters } from '../generation/geo';
 import { rosterCap } from '../guild/guild';
 import { emptyLoot } from '../loot/types';
 import { mapDistanceRange } from '../loot/treasure';
+import { valuableSellPrice } from '../loot/valuables';
 import { readTreasureMap } from '../rewards/treasure';
 import type { SaveData } from '../save';
 import { currentHp, isExhausted, setHeroHp } from '../team/health';
 import type { PatrolSpawn } from './generate';
 import { findSpawn, fixOn, tierTeam } from './testHelpers';
-import { acceptRecruit, helpProblem, helpTraveller, trade, tradeProblem, traderOffers, travellerOffer, type TravellerReward } from './travellers';
+import { acceptRecruit, helpProblem, helpTraveller, sellValuableToTrader, trade, tradeProblem, traderOffers, traderValuableProblem, travellerOffer, type TravellerReward } from './travellers';
 import { isGone } from './visibility';
 
 const MINUTE = 60_000;
@@ -190,5 +191,16 @@ describe('traders', () => {
     expect(traderOffers(trader, next).find((o) => o.index === offer.index)!.usesLeft).toBe(0);
     expect(isGone(trader, next.helpedTravellers, time)).toBe(true);
     expect(tradeProblem({ ...save, materials: {} }, trader, offer.index, player, time)).toBe('noMaterials');
+  });
+
+  it('buy valuables at half price without counting as helped', () => {
+    const save = { ...tierTeam(), valuables: { 'jadeIdol:2': 2 } };
+    const player = here(trader, time);
+    const sold = sellValuableToTrader(save, trader, 'jadeIdol:2', 1, player, time);
+    expect(sold.gold).toBe(Math.max(1, Math.round(valuableSellPrice('jadeIdol', 2, 'market') * 0.5)));
+    expect(sold.valuables['jadeIdol:2']).toBe(1);
+    expect(sold.helpedTravellers).toEqual(save.helpedTravellers);
+    expect(traderValuableProblem(save, trader, 'jadeIdol:2', 3, player, time)).toBe('notEnough');
+    expect(traderValuableProblem(save, { ...trader, endsAt: time - 1 }, 'jadeIdol:2', 1, player, time)).toBe('gone');
   });
 });

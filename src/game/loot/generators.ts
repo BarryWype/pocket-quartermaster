@@ -10,6 +10,7 @@ import { dedupeModifiers, partyLuck } from './chances';
 import { rollLootGear } from './gear';
 import { rollLootTrinket } from './trinkets';
 import type { LootRequest } from './roll';
+import { rollValuable } from './valuables';
 import type { Loot, LootCategory, MapRarity } from './types';
 
 /** Fills one category's drop into the loot being built. */
@@ -102,7 +103,7 @@ function rarityByWeight(rng: Rng, weights: Record<MapRarity, number>): MapRarity
   return rng.weighted(['common', 'rare', 'legendary'] as MapRarity[], (rarity) => weights[rarity]);
 }
 
-// Components, relics, monster parts and valuables: filled by later prompts.
+// Components, relics and monster parts: filled by later prompts.
 const later: Generator = () => {};
 
 export const generators: Record<LootCategory, Generator> = {
@@ -127,7 +128,9 @@ export const generators: Record<LootCategory, Generator> = {
   components: later,
   relics: later,
   monsterParts: later,
-  valuables: later,
+  valuables: (req, loot) => {
+    loot.valuables.push(rollValuable(req));
+  },
   consumables,
   treasureMaps: (req, loot) => {
     loot.treasureMaps.push({ rarity: rarityByWeight(req.rng, lootConfig.treasureMaps.rarityWeights), tier: req.tier });

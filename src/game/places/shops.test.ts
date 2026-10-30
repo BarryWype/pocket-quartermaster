@@ -2,6 +2,7 @@ import { itemById, recipeById } from '@/content/lookup';
 import { materialPrices, shopRules } from '@/content/shops';
 
 import { forgedItem, isKnown } from '../crafting/crafting';
+import { valuableSellPrice, todaysCollector } from '../loot/valuables';
 import { createInitialSave, type SaveData } from '../save';
 import type { GearDef, GearInstance } from '../types';
 import type { LatLng } from '../generation/types';
@@ -15,8 +16,11 @@ import {
   placeStock,
   sellGear,
   sellGearProblem,
+  placeValuablePrice,
   sellMaterial,
   sellMaterialProblem,
+  sellValuable,
+  sellValuableProblem,
   stockLeft,
 } from './shops';
 
@@ -224,5 +228,36 @@ describe('selling', () => {
     expect(next.gold).toBe(materialSellPrice('wood') * 4);
     expect(next.materials.wood).toBe(6);
     expect(() => sellMaterial(save, market, 'wood', 11, position, now)).toThrow();
+  });
+
+  it('buys valuables at the collector price, full price elsewhere and refuses non-buyers', () => {
+    const market = spawnOf('market');
+    const save = withGold(0, { valuables: { 'oldCoins:2': 2, 'jadeIdol:2': 2 } });
+    const wanted = todaysCollector(save, market.id, now);
+    const key = wanted === 'oldCoins' ? 'oldCoins:2' : 'jadeIdol:2';
+    const other = wanted === 'oldCoins' ? 'jadeIdol:2' : 'oldCoins:2';
+    expect(placeValuablePrice(save, market, key, now)).toBe(
+      valuableSellPrice(key.slice(0, key.lastIndexOf(':')), 2, 'market', wanted),
+    );
+    expect(placeValuablePrice(save, market, other, now)).toBe(valuableSellPrice(other.slice(0, other.lastIndexOf(':')), 2, 'market'));
+
+    const next = sellValuable(save, market, key, 1, position, now);
+    expect(next.gold).toBe(placeValuablePrice(save, market, key, now));
+    expect(next.valuables[key]).toBe(1);
+    const last = sellValuable(next, market, other, 2, position, now);
+    expect(last.valuables[other]).toBeUndefined();
+    expect(() => sellValuable(last, market, other, 1, position, now)).toThrow();
+
+    const chapel = spawnOf('chapel');
+    expect(sellValuableProblem(save, chapel, 'oldCoins:2', 1, position, now)).toBe('notBuyer');
+    expect(() => sellValuable(save, chapel, 'oldCoins:2', 1, position, now)).toThrow();
+    expect(sellValuableProblem(save, spawnOf('sawmill'), 'oldCoins:2', 1, position, now)).toBe('notBuyer');
+    expect(sellValuableProblem(save, market, 'oldCoins:2', 4, position, now)).toBe('notEnough');
+
+    const smithy = spawnOf('smithy');
+    expect(placeValuablePrice(save, smithy, 'oldCoins:2', now)).toBe(Math.round(valuableSellPrice('oldCoins', 2, 'market') * 0.5));
+    expect(placeValuablePrice(save, market, 'oldCoins:2', now)).toBe(
+      wanted === 'oldCoins' ? valuableSellPrice('oldCoins', 2, 'market') * 2 : valuableSellPrice('oldCoins', 2, 'market'),
+    );
   });
 });

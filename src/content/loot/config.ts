@@ -1,3 +1,4 @@
+import type { ValuableBuyer, ValuableRarity } from '@/content/loot/valuables';
 import type { LootCategory, LootSourceId, MapRarity } from '@/game/loot/types';
 import type { Quality } from '@/game/types';
 
@@ -198,6 +199,17 @@ export const lootConfig = {
   eliteMultiplier: 2,
   /** Treasure maps last this long once found. */
   treasureMapHours: 48,
+  /** Valuables: rarity weights of a drop, where they sell and the market's daily collector. */
+  valuables: {
+    rarityWeights: { common: 70, uncommon: 25, rare: 5 } as Record<ValuableRarity, number>,
+    /** Full price here, `elsewhereShare` at every other buyer. */
+    fullPriceAt: ['market', 'thievesGuild'] as ValuableBuyer[],
+    elsewhereShare: 0.5,
+    buyers: ['market', 'thievesGuild', 'smithy', 'huntingLodge', 'apothecary', 'trader'] as ValuableBuyer[],
+    collectorMultiplier: 2,
+    /** Weight of each valuable in the collector's daily pick; others weigh 1. */
+    collectorWeights: { oldCoins: 2 } as Record<string, number>,
+  },
   /** A valuable's price is its base price times this, by the source's tier: the enemy strength curve. */
   valuablePriceByTier: [1, 1.9, 3, 4.2, 5.6] as number[],
   /** Blueprint drops: weight by how many roster heroes favour the type; a complete tier gives mastery progress, or a component with `componentShare`. */

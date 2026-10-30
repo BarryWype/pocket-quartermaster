@@ -1,6 +1,11 @@
 // The 9 valuables of doc/design/loot/valuables.csv. Sold at full price at the
 // market; gems are also ingredients. Value rises with the source's tier.
 
+import type { PlaceKind } from '@/content/places';
+
+/** Where a valuable sells: a place, or the travelling trader. */
+export type ValuableBuyer = PlaceKind | 'trader';
+
 export type ValuableRarity = 'common' | 'uncommon' | 'rare';
 
 export type ValuableDef = {

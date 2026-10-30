@@ -137,6 +137,8 @@ export type SaveData = {
   manuals: Partial<Record<ManualRarity, number>>;
   /** Monster-part recipes unlocked (a part's first find). */
   partRecipes: string[];
+  /** Debug: the collector every market uses on that day. */
+  collectorOverride?: { dayKey: string; valuableId: string };
   /** Counter for unique ids (gear, maps, lures, fights, heroes). */
   nextUid: number;
 };

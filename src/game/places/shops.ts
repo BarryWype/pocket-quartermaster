@@ -1,4 +1,6 @@
 import { placeRules } from '@/content/places';
+import { lootConfig } from '@/content/loot/config';
+import type { ValuableBuyer } from '@/content/loot/valuables';
 import { dungeons } from '@/content/dungeons';
 import { itemById, recipeById } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
@@ -12,6 +14,7 @@ import { createRng, type Rng } from '../generation/rng';
 import { wornBy } from '../forging/salvage';
 import { pickaxeTier } from '../gathering/gathering';
 import { addMaterials, removeMaterials } from '../inventory';
+import { valuableSellPrice, todaysCollector } from '../loot/valuables';
 import type { SaveData } from '../save';
 import { affinityOf } from '../team/team';
 import type { GearDef, GearInstance, Quality, RecipeDef } from '../types';
@@ -268,4 +271,43 @@ export function sellMaterial(save: SaveData, spawn: PlaceSpawn, materialId: stri
     gold: save.gold + materialSellPrice(materialId) * count,
     materials: removeMaterials(save.materials, [{ materialId, amount: count }]),
   };
+}
+
+export type SellValuableProblem = 'gone' | 'tooFar' | 'notBuyer' | 'notEnough';
+
+export function sellValuableProblem(
+  save: SaveData,
+  spawn: PlaceSpawn,
+  key: string,
+  count: number,
+  player: LatLng,
+  now: number,
+): SellValuableProblem | null {
+  if (spawn.expiresAt <= now || spawn.id in save.usedPlaces) return 'gone';
+  if (distanceMeters(player, spawn.position) > placeRules.interactionMeters) return 'tooFar';
+  if (!(lootConfig.valuables.buyers as readonly string[]).includes(spawn.kind)) return 'notBuyer';
+  if ((save.valuables[key] ?? 0) < count) return 'notEnough';
+  return null;
+}
+
+/** What this place pays per unit of the `valuableId:tier` key; the market uses today's collector. */
+export function placeValuablePrice(save: SaveData, spawn: PlaceSpawn, key: string, now: number) {
+  const separator = key.lastIndexOf(':');
+  return valuableSellPrice(
+    key.slice(0, separator),
+    Number(key.slice(separator + 1)),
+    spawn.kind as ValuableBuyer,
+    spawn.kind === 'market' ? todaysCollector(save, spawn.id, now) : null,
+  );
+}
+
+/** Sells a valuable stack to a buyer: removes it and pays the price. */
+export function sellValuable(save: SaveData, spawn: PlaceSpawn, key: string, count: number, player: LatLng, now: number): SaveData {
+  const problem = sellValuableProblem(save, spawn, key, count, player, now);
+  if (problem) throw new Error(`Cannot sell ${key}: ${problem}`);
+  const valuables = { ...save.valuables };
+  const left = (valuables[key] ?? 0) - count;
+  if (left > 0) valuables[key] = left;
+  else delete valuables[key];
+  return { ...save, gold: save.gold + placeValuablePrice(save, spawn, key, now) * count, valuables };
 }

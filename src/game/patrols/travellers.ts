@@ -12,6 +12,7 @@ import { pickaxeTier } from '../gathering/gathering';
 import { rollForSave } from '../loot/context';
 import { grantLoot } from '../loot/grant';
 import type { Loot } from '../loot/types';
+import { valuableSellPrice } from '../loot/valuables';
 import { recruitGrade, rollRecruit, type Grade } from '../taverns/roll';
 import { pickRecruitClass } from '../taverns/taverns';
 import type { SaveData } from '../save';
@@ -209,6 +210,43 @@ export function traderOffers(spawn: PatrolSpawn, save: SaveData, rules: PatrolRu
 }
 
 const tradeKey = (spawn: PatrolSpawn, index: number) => `${spawn.id}:${index}`;
+
+/** Why this valuable cannot be sold to the trader now, or null. */
+export function traderValuableProblem(
+  save: SaveData,
+  spawn: PatrolSpawn,
+  key: string,
+  count: number,
+  player: LatLng,
+  now: number,
+  rules: PatrolRules = patrolRules,
+): 'gone' | 'tooFar' | 'notEnough' | null {
+  if (spawn.kind !== 'trader' || spawn.endsAt <= now) return 'gone';
+  if (distanceTo(spawn, player, now) > rules.engageMeters) return 'tooFar';
+  if ((save.valuables[key] ?? 0) < count) return 'notEnough';
+  return null;
+}
+
+/** Sells a valuable stack to the trader at the elsewhere share; the trader stays unhelped. */
+export function sellValuableToTrader(
+  save: SaveData,
+  spawn: PatrolSpawn,
+  key: string,
+  count: number,
+  player: LatLng,
+  now: number,
+  rules: PatrolRules = patrolRules,
+): SaveData {
+  const problem = traderValuableProblem(save, spawn, key, count, player, now, rules);
+  if (problem) throw new Error(`Cannot sell ${key}: ${problem}`);
+  const separator = key.lastIndexOf(':');
+  const price = valuableSellPrice(key.slice(0, separator), Number(key.slice(separator + 1)), 'trader') * count;
+  const valuables = { ...save.valuables };
+  const left = (valuables[key] ?? 0) - count;
+  if (left > 0) valuables[key] = left;
+  else delete valuables[key];
+  return { ...save, gold: save.gold + price, valuables };
+}
 
 /** Why this trade cannot be made now, or null. */
 export function tradeProblem(
