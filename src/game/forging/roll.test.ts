@@ -20,11 +20,11 @@ describe('stat rolls', () => {
     }
   });
 
-  it('keeps the quality order intact across the whole roll range', () => {
+  it('keeps Crappy below Normal and Rare below Legendary across the roll range', () => {
+    expect(qualities.crappy.multiplier * max).toBeLessThan(qualities.normal.multiplier * min);
+    expect(qualities.rare.multiplier * max).toBeLessThan(qualities.legendary.multiplier * min);
     for (let q = 0; q < QUALITIES.length - 1; q++) {
-      const lower = qualities[QUALITIES[q]].multiplier;
-      const higher = qualities[QUALITIES[q + 1]].multiplier;
-      expect(lower * max).toBeLessThan(higher * min);
+      expect(qualities[QUALITIES[q]].multiplier).toBeLessThan(qualities[QUALITIES[q + 1]].multiplier);
     }
   });
 
@@ -46,21 +46,27 @@ describe('stat rolls', () => {
     }
   });
 
-  it('tilts towards the top with mastery, so about two thirds of rolls at the cap land in the upper half', () => {
-    const count = (level: number) => {
-      let upper = 0;
-      for (let i = 0; i < FORGES; i++) {
-        const roll = rollStatFactor(`tilt${level}|${i}`, level, 1);
-        if (roll > (min + max) / 2) upper++;
-      }
-      return upper / FORGES;
+  it('centres the bell at low mastery and lifts the mean at the cap', () => {
+    const mean = (level: number, tier: number) => {
+      let sum = 0;
+      for (let i = 0; i < 2000; i++) sum += rollStatFactor(`mean${level}|${i}`, level, tier);
+      return sum / 2000;
     };
-    // At the tier's mastery cap the tilt is at its full strength.
-    expect(count(masteryCap(1, masteryRules))).toBeGreaterThan(0.6);
-    expect(count(masteryCap(1, masteryRules))).toBeLessThan(0.75);
-    // At level 1 the tilt barely moves the rolls away from even.
-    expect(count(1)).toBeGreaterThan(0.42);
-    expect(count(1)).toBeLessThan(0.58);
+    // Steel's high cap leaves a new smith's rolls centred on the range's middle.
+    expect(mean(1, 5)).toBeGreaterThan(0.995);
+    expect(mean(1, 5)).toBeLessThan(1.005);
+    expect(mean(masteryCap(1, masteryRules), 1)).toBeGreaterThan(1.02);
+  });
+
+  it('lands more rolls near the middle of the range than at the extremes', () => {
+    let middle = 0;
+    let extremes = 0;
+    for (let i = 0; i < 2000; i++) {
+      const roll = rollStatFactor(`bell|${i}`, 1, 1);
+      if (roll >= 0.98 && roll <= 1.02) middle++;
+      if ((roll >= 0.94 && roll <= 0.96) || (roll >= 1.04 && roll <= 1.06)) extremes++;
+    }
+    expect(middle).toBeGreaterThan(extremes);
   });
 
   it('shows the roll on the 1–7 scale, 4 about neutral', () => {

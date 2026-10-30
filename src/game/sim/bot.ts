@@ -58,7 +58,7 @@ import { expectedLevels, type Profile, type SimConfig } from './config';
 import type { PatrolRates } from './patrols';
 import { PICKAXES, type WalkRates } from './walking';
 
-export const QUALITY_ORDER: Quality[] = ['crappy', 'normal', 'rare', 'legendary'];
+export const QUALITY_ORDER: Quality[] = ['crappy', 'normal', 'uncommon', 'rare', 'legendary'];
 
 /** A hypothetical forged piece at Normal quality with a neutral roll, for ranking recipes. */
 const NEUTRAL = { quality: 'normal' as const, roll: 1 };
@@ -1041,7 +1041,7 @@ export function collectExpedition(sim: Sim, expedition: ActiveExpedition) {
     outcome: report.outcome,
     gold: report.gold + (report.firstClear?.gold ?? 0) + pouches + mapGold,
     xp: report.xp,
-    qualities: launched?.qualities ?? { crappy: 0, normal: 0, rare: 0, legendary: 0 },
+    qualities: launched?.qualities ?? { crappy: 0, normal: 0, uncommon: 0, rare: 0, legendary: 0 },
     effects,
     classEffects,
     hours: (expedition.endsAt - expedition.startedAt) / 3_600_000,

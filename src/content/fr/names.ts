@@ -851,6 +851,7 @@ export const frNames: Record<string, string> = {
   // Forging
   Crappy: 'Médiocre',
   Normal: 'Normale',
+  Uncommon: 'Peu commun',
   Rare: 'Rare',
   Legendary: 'Légendaire',
   Sword: 'Épée',

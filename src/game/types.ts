@@ -58,7 +58,7 @@ export type OffhandType = 'shield' | 'buckler' | 'offhandBlade' | 'quiver' | 'to
 /** Every gear type; also the mastery key. */
 export type GearType = WeaponType | ArmourType | OffhandType;
 
-export type Quality = 'crappy' | 'normal' | 'rare' | 'legendary';
+export type Quality = 'crappy' | 'normal' | 'uncommon' | 'rare' | 'legendary';
 
 /** What forging mastery is tracked by: each gear type. */
 export type MasteryType = GearType;

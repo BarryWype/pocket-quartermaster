@@ -29,18 +29,18 @@ describe('mastery caps and odds', () => {
 
   it('gives odds by levels below the cap', () => {
     // Copper (cap 8), so the maxed row is the general one.
-    expect(qualityOdds(5, 3)).toEqual({ crappy: 80, normal: 20, rare: 0, legendary: 0 });
-    expect(qualityOdds(1, 3)).toEqual({ crappy: 80, normal: 20, rare: 0, legendary: 0 });
-    expect(qualityOdds(6, 3)).toEqual({ crappy: 58, normal: 40, rare: 2, legendary: 0 });
-    expect(qualityOdds(7, 3)).toEqual({ crappy: 30, normal: 65, rare: 5, legendary: 0 });
-    expect(qualityOdds(8, 3)).toEqual({ crappy: 10, normal: 75, rare: 12, legendary: 3 });
+    expect(qualityOdds(5, 3)).toEqual({ crappy: 80, normal: 20, uncommon: 0, rare: 0, legendary: 0 });
+    expect(qualityOdds(1, 3)).toEqual({ crappy: 80, normal: 20, uncommon: 0, rare: 0, legendary: 0 });
+    expect(qualityOdds(6, 3)).toEqual({ crappy: 58, normal: 40, uncommon: 0, rare: 2, legendary: 0 });
+    expect(qualityOdds(7, 3)).toEqual({ crappy: 30, normal: 65, uncommon: 0, rare: 5, legendary: 0 });
+    expect(qualityOdds(8, 3)).toEqual({ crappy: 10, normal: 75, uncommon: 0, rare: 12, legendary: 3 });
   });
 
   it('makes Legendary rarer on cheap tiers once maxed', () => {
-    expect(qualityOdds(4, 1)).toEqual({ crappy: 12, normal: 75, rare: 12, legendary: 1 });
-    expect(qualityOdds(6, 2)).toEqual({ crappy: 11, normal: 75, rare: 12, legendary: 2 });
-    expect(qualityOdds(10, 4)).toEqual({ crappy: 10, normal: 75, rare: 12, legendary: 3 });
-    expect(qualityOdds(12, 5)).toEqual({ crappy: 10, normal: 75, rare: 12, legendary: 3 });
+    expect(qualityOdds(4, 1)).toEqual({ crappy: 12, normal: 75, uncommon: 0, rare: 12, legendary: 1 });
+    expect(qualityOdds(6, 2)).toEqual({ crappy: 11, normal: 75, uncommon: 0, rare: 12, legendary: 2 });
+    expect(qualityOdds(10, 4)).toEqual({ crappy: 10, normal: 75, uncommon: 0, rare: 12, legendary: 3 });
+    expect(qualityOdds(12, 5)).toEqual({ crappy: 10, normal: 75, uncommon: 0, rare: 12, legendary: 3 });
   });
 
   it("uses an older tier's maxed odds above its cap", () => {
@@ -150,7 +150,7 @@ describe('forging quality', () => {
 
   it('rolls with the weighted odds', () => {
     const rng = createRng('x');
-    for (let i = 0; i < 50; i++) expect(rollQuality({ crappy: 0, normal: 0, rare: 100, legendary: 0 }, rng)).toBe('rare');
+    for (let i = 0; i < 50; i++) expect(rollQuality({ crappy: 0, normal: 0, uncommon: 0, rare: 100, legendary: 0 }, rng)).toBe('rare');
   });
 });
 

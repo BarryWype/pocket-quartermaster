@@ -1,12 +1,13 @@
 import type { MasteryType, Quality } from '@/game/types';
 
-export const QUALITIES: Quality[] = ['crappy', 'normal', 'rare', 'legendary'];
+export const QUALITIES: Quality[] = ['crappy', 'normal', 'uncommon', 'rare', 'legendary'];
 
 /** Every stat of a forged piece is multiplied by its quality; Normal is the item's listed stats. */
 export const qualities: Record<Quality, { name: string; multiplier: number; color: string }> = {
   crappy: { name: 'Crappy', multiplier: 0.85, color: '#8a8278' },
   // The usual ink: white would not show on parchment.
   normal: { name: 'Normal', multiplier: 1, color: '#3b2a1a' },
+  uncommon: { name: 'Uncommon', multiplier: 1.07, color: '#3f8f3a' },
   rare: { name: 'Rare', multiplier: 1.15, color: '#2f6fd6' },
   legendary: { name: 'Legendary', multiplier: 1.3, color: '#c99a1a' },
 };
@@ -77,33 +78,35 @@ export const masteryRules = {
   ],
   /** Quality odds (%) by levels below the item's cap: index 0 is maxed, the last row is 3 or more. */
   odds: [
-    { crappy: 10, normal: 75, rare: 12, legendary: 3 },
-    { crappy: 30, normal: 65, rare: 5, legendary: 0 },
-    { crappy: 58, normal: 40, rare: 2, legendary: 0 },
-    { crappy: 80, normal: 20, rare: 0, legendary: 0 },
+    { crappy: 10, normal: 75, uncommon: 0, rare: 12, legendary: 3 },
+    { crappy: 30, normal: 65, uncommon: 0, rare: 5, legendary: 0 },
+    { crappy: 58, normal: 40, uncommon: 0, rare: 2, legendary: 0 },
+    { crappy: 80, normal: 20, uncommon: 0, rare: 0, legendary: 0 },
   ] satisfies Record<Quality, number>[],
   /** Maxed odds for cheap tiers, where Legendary is rarer. Higher tiers use `odds[0]`. */
   maxedOddsByTier: {
-    1: { crappy: 12, normal: 75, rare: 12, legendary: 1 },
-    2: { crappy: 11, normal: 75, rare: 12, legendary: 2 },
+    1: { crappy: 12, normal: 75, uncommon: 0, rare: 12, legendary: 1 },
+    2: { crappy: 11, normal: 75, uncommon: 0, rare: 12, legendary: 2 },
   } as Partial<Record<number, Record<Quality, number>>>,
 };
 
 /** Every forged piece also rolls a stat factor on top of its quality, seeded by its uid. */
 export const rollRules = {
   /**
-   * Multiplier range. ±6% keeps the quality order intact: the lowest roll of
-   * a quality still beats the highest roll of the quality below (0.85×1.06 < 1×0.94,
-   * 1×1.06 < 1.15×0.94, 1.15×1.06 < 1.3×0.94).
+   * Multiplier range. ±6% keeps Crappy below Normal and Rare below Legendary
+   * at any roll (0.85×1.06 < 1×0.94, 1.15×1.06 < 1.3×0.94); Uncommon overlaps
+   * its neighbours at the extremes.
    */
   range: { min: 0.94, max: 1.06 },
-  /** Share of rolls that land in the upper half when mastery is at the item tier's cap; lower mastery tilts less. */
-  tilt: { capUpperHalf: 2 / 3 },
+  /** Dice rolled for a forged piece's stat factor; 3d6 gives a bell curve centred on Normal. */
+  dice: { count: 3, sides: 6 },
+  /** How far the dice total is raised at most, at the item tier's mastery cap. */
+  masteryShift: 3,
 };
 
 export const salvageRules = {
   /** Share of each recipe input returned, rounded down; the first input always returns at least 1. */
-  returned: { crappy: 0.25, normal: 0.4, rare: 0.6, legendary: 1 } satisfies Record<Quality, number>,
+  returned: { crappy: 0.25, normal: 0.4, uncommon: 0.5, rare: 0.6, legendary: 1 } satisfies Record<Quality, number>,
   /** Shards of its element an infused piece gives back. */
   infusedShards: 8,
   /** A Legendary piece also gives this many shards per material tier, of an element picked from its uid. */

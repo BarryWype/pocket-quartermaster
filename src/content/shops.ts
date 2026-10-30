@@ -41,7 +41,7 @@ export const itemPrices: Record<string, number> = {
 export const shopRules = {
   /** Base price of a Normal gear piece, by item tier. */
   gearPrice: [10, 20, 40, 80, 160],
-  qualityPrice: { crappy: 0.5, normal: 1, rare: 2, legendary: 4 } as Record<Quality, number>,
+  qualityPrice: { crappy: 0.5, normal: 1, uncommon: 1.5, rare: 2, legendary: 4 } as Record<Quality, number>,
   /** Share of the buy price a smithy pays for a piece. */
   gearSellShare: 0.3,
   /** Share of the unit price the market pays for a material. */

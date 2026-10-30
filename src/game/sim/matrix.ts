@@ -12,7 +12,7 @@ import { createInitialSave, type SaveData } from '../save';
 import { equip } from '../team/team';
 import { expectedLevels, simConfig, type SimConfig } from './config';
 
-const MATRIX_QUALITIES: Quality[] = ['crappy', 'normal', 'rare'];
+const MATRIX_QUALITIES: Quality[] = ['crappy', 'normal', 'uncommon', 'rare'];
 
 /** The day the matrix composes its briefings on: fixed, so the table is deterministic. */
 const MATRIX_DAY = 0;
