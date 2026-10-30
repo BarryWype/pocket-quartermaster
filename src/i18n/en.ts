@@ -135,6 +135,9 @@ export const en = {
       optIn: '🍖 {count} supply',
       optInAnswers: 'Answered by {names}',
       spoiledStores: 'Spoiled stores: the meal has no effect today.',
+      rewards: 'Rewards',
+      charmNoEffect: ' No effect here: it will be salvaged.',
+      charmOnce: ' Carried twice: counts once.',
       kit: 'Kit',
       none: 'None',
       oddsFull: 'At full HP: {percent}',
@@ -304,6 +307,8 @@ export const en = {
     noGear: 'Forge some gear first.',
     unknown: 'Unknown',
     tierProgress: 'Tier {tier}: {known} / {total}',
+    anyShards: '✨ any shards {held}/{amount}',
+    newRecipe: '🧪 New recipe: {names}',
   },
   equip: {
     choose: { weapon: 'Choose weapon', armor: 'Choose armor', offhand: 'Choose off-hand', trinket: 'Choose trinket', consumable: 'Choose consumable', potion: 'Choose potion' },

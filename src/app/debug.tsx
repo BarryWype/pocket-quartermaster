@@ -61,6 +61,7 @@ import { rollForSave, sourceAmounts } from '@/game/loot/context';
 import { lootConfig } from '@/content/loot/config';
 import { lootMatrix } from '@/content/loot/matrix';
 import { components } from '@/content/loot/components';
+import { charms } from '@/content/loot/charms';
 import { monsterParts } from '@/content/loot/monsterParts';
 import { relics } from '@/content/loot/relics';
 import { valuables } from '@/content/loot/valuables';
@@ -158,6 +159,9 @@ function LootDebug() {
       <View style={styles.row}>
         {monsterParts.map((part) => (
           <Button key={part.id} title={part.emoji} onPress={() => grant({ materials: [{ materialId: part.id, amount: 3 }] })} />
+        ))}
+        {charms.map((charm) => (
+          <Button key={charm.id} title={`${charm.emoji}+`} onPress={() => grant({ consumables: [{ itemId: charm.id, amount: 1 }] })} />
         ))}
         {components.map((component) => (
           <Button key={component.id} title={component.emoji} onPress={() => grant({ materials: [{ materialId: component.id, amount: 1 }] })} />
@@ -596,6 +600,7 @@ export default function DebugScreen() {
         <Button title={t('debug.learn')} onPress={() => game.learnRecipe(recipeId)} />
         <Button title={t('debug.forget')} onPress={() => game.forgetRecipe(recipeId)} />
         <Button title={t('debug.learnAll')} onPress={game.learnAllRecipes} />
+        <Button title="Unlock all part recipes" onPress={game.unlockAllPartRecipes} />
         <Button title={t('debug.completeTier', { tier: recipeTier })} onPress={() => game.learnTier(recipeTier)} />
       </View>
 

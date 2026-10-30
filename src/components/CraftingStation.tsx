@@ -3,10 +3,11 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { MASTERY_TYPES, masteryTypeNames, qualities } from '@/content/forging';
 import { gearId, gearProfiles } from '@/content/equipment';
-import { gearName, itemById, materialById, recipeById, recipeOutput } from '@/content/lookup';
+import { gearName, itemById, materialById, recipeById, recipeOutput, valuableById } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
 import { canCraft, craftableCount, forgedItem, isKnown, ownsTool, type ForgeResult } from '@/game/crafting/crafting';
 import { tierRecipes } from '@/game/crafting/recipeUnlocks';
+import { ELEMENTS, shardId } from '@/game/elements';
 import { masteryOf } from '@/game/forging/mastery';
 import { rollToScale } from '@/game/forging/roll';
 import type { SaveData } from '@/game/save';
@@ -73,12 +74,49 @@ function ForgeBanner({ result, onClose }: { result: ForgeResult; onClose: () => 
   );
 }
 
+/** One recipe's ingredients, held / needed: materials, then gems (any tier) and shards (any one element). */
+function RecipeInputs({ save, recipe }: { save: SaveData; recipe: RecipeDef }) {
+  const held = (valuableId: string) =>
+    Object.entries(save.valuables).reduce((sum, [key, n]) => (key.startsWith(`${valuableId}:`) ? sum + n : sum), 0);
+  const shards = Math.max(...ELEMENTS.map((element) => save.materials[shardId(element)] ?? 0));
+  return (
+    <>
+      {recipe.inputs.map(({ materialId, amount }) => {
+        const material = materialById[materialId];
+        return (
+          <View key={materialId} style={styles.input}>
+            <GameIcon emoji={material.emoji} icon={material.icon} size={18} />
+            <Text style={styles.inputText}>
+              {save.materials[materialId] ?? 0}/{amount}
+            </Text>
+          </View>
+        );
+      })}
+      {(recipe.valuables ?? []).map(({ valuableId, amount }) => (
+        <View key={valuableId} style={styles.input}>
+          <GameIcon emoji={valuableById[valuableId].emoji} size={18} />
+          <Text style={styles.inputText}>
+            {held(valuableId)}/{amount}
+          </Text>
+        </View>
+      ))}
+      {recipe.anyShards ? (
+        <View style={styles.input}>
+          <Text style={styles.inputText}>{t('crafting.anyShards', { held: shards, amount: recipe.anyShards })}</Text>
+        </View>
+      ) : null}
+    </>
+  );
+}
+
 /** The known recipes of one crafting station; locked ones stay hidden. The forge shows its gear recipes as a grid below. Provisions come in two tabs and batches. */
 export function CraftingStation({ station, action }: Props) {
   const save = useGameStore((state) => state.save);
   const craft = useGameStore((state) => state.craft);
   const [result, setResult] = useState<ForgeResult | null>(null);
   const [tab, setTab] = useState<Tab>('kitchen');
+  /** The recipe picked for an item that has two, by item id. */
+  const [picked, setPicked] = useState<Record<string, string>>({});
   const tabbed = station === 'provisions';
   const grid = station === 'forge';
 
@@ -101,34 +139,38 @@ export function CraftingStation({ station, action }: Props) {
           .filter((recipe) => isKnown(save, recipe))
           .filter((recipe) => family === null || familyOf(recipe) === family);
         if (rows.length === 0) return null;
+        // An item with a material and a part recipe gets one row showing both.
+        const groups = [...new Set(rows.map((recipe) => recipeOutput(recipe).id))].map((id) =>
+          rows.filter((recipe) => recipeOutput(recipe).id === id),
+        );
         return (
           <View key={family ?? 'all'}>
             {family && <Text style={styles.family}>{t(`crafting.families.${family}`)}</Text>}
-            {rows.map((recipe) => {
-          const output = recipeOutput(recipe);
+            {groups.map((group) => {
+          const output = recipeOutput(group[0]);
+          // The recipe the player can afford, or their pick when both are.
+          const affordable = group.filter((r) => canCraft(save, r));
+          const recipe = affordable.find((r) => r.id === picked[output.id]) ?? affordable[0] ?? group[0];
           const description = 'itemId' in recipe.output ? itemById[recipe.output.itemId].description : undefined;
           const inputs = (
             <View>
-              <View style={styles.inputs}>
-                {recipe.inputs.map(({ materialId, amount }) => {
-                  const material = materialById[materialId];
-                  return (
-                    <View key={materialId} style={styles.input}>
-                      <GameIcon emoji={material.emoji} icon={material.icon} size={18} />
-                      <Text style={styles.inputText}>
-                        {save.materials[materialId] ?? 0}/{amount}
-                      </Text>
-                    </View>
-                  );
-                })}
-              </View>
+              {group.map((variant) => (
+                <Pressable
+                  key={variant.id}
+                  disabled={affordable.length < 2 || !affordable.includes(variant)}
+                  onPress={() => setPicked({ ...picked, [output.id]: variant.id })}
+                  style={[styles.inputs, group.length > 1 && variant !== recipe && styles.otherRecipe]}
+                >
+                  <RecipeInputs save={save} recipe={variant} />
+                </Pressable>
+              ))}
               {description ? <Text style={styles.mastery}>{tr(description)}</Text> : null}
               {tabbed && <Text style={styles.mastery}>{t('equip.inStock', { count: save.consumables[output.id] ?? 0 })}</Text>}
             </View>
           );
           return (
             <Row
-              key={recipe.id}
+              key={output.id}
               emoji={output.emoji}
               icon={output.icon}
               title={tr(output.name)}
@@ -232,6 +274,7 @@ const styles = StyleSheet.create({
   tabs: { flexDirection: 'row', gap: 8, marginBottom: 8 },
   batches: { gap: 4 },
   inputs: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  otherRecipe: { opacity: 0.45 },
   input: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   inputText: { fontSize: 17, color: colors.muted },
   mastery: { fontSize: 16, color: colors.muted },

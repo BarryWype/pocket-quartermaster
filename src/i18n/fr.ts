@@ -140,6 +140,9 @@ export const fr: Dictionary = {
       optIn: '🍖 {count} provisions',
       optInAnswers: 'Répondu par {names}',
       spoiledStores: 'Provisions avariées : le repas n’a aucun effet aujourd’hui.',
+      rewards: 'Récompenses',
+      charmNoEffect: ' Aucun effet ici : il sera recyclé.',
+      charmOnce: ' Porté deux fois : ne compte qu’une fois.',
       kit: 'Équipement',
       none: 'Aucun',
       oddsFull: 'PV au maximum : {percent}',
@@ -310,6 +313,8 @@ export const fr: Dictionary = {
     noGear: 'Forgez d’abord un peu d’équipement.',
     unknown: 'Inconnue',
     tierProgress: 'Palier {tier} : {known} / {total}',
+    anyShards: '✨ éclats au choix {held}/{amount}',
+    newRecipe: '🧪 Nouvelle recette : {names}',
   },
   equip: {
     choose: { weapon: 'Choisir une arme', armor: 'Choisir une armure', offhand: 'Choisir une main secondaire', trinket: 'Choisir un bibelot', consumable: 'Choisir un consommable', potion: 'Choisir une potion' },

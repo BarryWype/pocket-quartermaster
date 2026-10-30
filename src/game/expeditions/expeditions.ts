@@ -257,6 +257,10 @@ function prisonerRecruit(save: SaveData, rng: Rng): HeroState {
   );
 }
 
+/** The loot matrix row a dungeon's win rolls (the first win of the day and a new tier's first clear come on top). */
+export const dungeonLootSource = (dungeon: DungeonDef): LootSourceId =>
+  dungeon.isBoss ? 'tierBoss' : dungeon.overnight ? 'overnightQuest' : 'dungeonRun';
+
 /**
  * The party's consumables that never triggered during the run, broken back
  * down (see threats/salvage.ts): potions nobody needed, kits that changed no
@@ -374,7 +378,7 @@ export function resolveExpedition(
     success && !tutorialReward && !save.clearedDungeons.some((id) => dungeonById[id]?.tier === dungeon.tier);
   const context = lootContextOf(save);
   const enemies = run.encounters.flatMap((e) => e.mobs.map((m) => m.mobId));
-  const source: LootSourceId = dungeon.isBoss ? 'tierBoss' : dungeon.overnight ? 'overnightQuest' : 'dungeonRun';
+  const source = dungeonLootSource(dungeon);
   // Barren runs take no gold bonus from charms.
   const modifiers = partyCharms(party).filter((mod) => !barren || mod.kind !== 'gold');
   const roll = (source: LootSourceId, base: { gold: number; xp: number }) =>

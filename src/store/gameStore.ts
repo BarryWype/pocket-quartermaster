@@ -8,6 +8,7 @@ import { items } from '@/content/items';
 import { recipeById } from '@/content/lookup';
 import { materials } from '@/content/materials';
 import { craft, craftMany, forgetRecipe, forgeResult, learnAllRecipes, learnTier, unlockRecipe, type ForgeResult } from '@/game/crafting/crafting';
+import { unlockAllPartRecipes } from '@/game/crafting/partRecipes';
 import { infuse } from '@/game/crafting/infusion';
 import { salvage } from '@/game/forging/salvage';
 import { convertShards, shardId, stoneId, type Element } from '@/game/elements';
@@ -176,6 +177,8 @@ type GameState = {
   forgetRecipe: (recipeId: string) => void;
   /** Debug: teaches every recipe. */
   learnAllRecipes: () => void;
+  /** Debug: sees every part and gem, unlocking every part recipe. */
+  unlockAllPartRecipes: () => void;
   /** Debug: teaches every gear blueprint of a tier. */
   learnTier: (tier: number) => void;
   addLure: () => void;
@@ -439,6 +442,7 @@ export const useGameStore = create<GameState>()(
       learnRecipe: (recipeId) => set(({ save }) => ({ save: unlockRecipe(save, recipeId) })),
       forgetRecipe: (recipeId) => set(({ save }) => ({ save: forgetRecipe(save, recipeId) })),
       learnAllRecipes: () => set(({ save }) => ({ save: learnAllRecipes(save) })),
+      unlockAllPartRecipes: () => set(({ save }) => ({ save: unlockAllPartRecipes(save) })),
       learnTier: (tier) => set(({ save }) => ({ save: learnTier(save, tier) })),
       resetFirstWin: () => set(({ save }) => ({ save: { ...save, firstWinDay: null } })),
       addCharters: (amount) => set(({ save }) => ({ save: { ...save, charters: save.charters + amount } })),
@@ -502,7 +506,7 @@ export const useGameStore = create<GameState>()(
       addConsumables: () =>
         set(({ save }) => {
           const consumables = { ...save.consumables };
-          for (const item of items.filter((i) => (i.slot === 'consumable' && i.elixir) || i.slot === 'provision' || i.slot === 'utility')) {
+          for (const item of items.filter((i) => (i.slot === 'consumable' && (i.elixir || i.charm)) || i.slot === 'provision' || i.slot === 'utility')) {
             consumables[item.id] = (consumables[item.id] ?? 0) + 1;
           }
           return { save: { ...save, consumables } };

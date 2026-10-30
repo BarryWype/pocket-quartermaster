@@ -4,16 +4,17 @@ import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { heroClasses } from '@/content/heroes';
 import { itemById, opportunityById } from '@/content/lookup';
 import { briefingFor } from '@/game/dungeons/rotation';
-import { launchPlan, type Loadout } from '@/game/expeditions/expeditions';
+import { dungeonLootSource, launchPlan, type Loadout } from '@/game/expeditions/expeditions';
 import { estimateOdds, oddsBand, type OddsBand } from '@/game/expeditions/odds';
 import { mealItems } from '@/game/expeditions/provisions';
 import { partySize } from '@/game/guild/guild';
+import { charmApplies } from '@/game/loot/charms';
 import type { SaveData } from '@/game/save';
 import { briefingCoverage } from '@/game/threats/coverage';
 import { buySupplyProblem, supplyPrice } from '@/game/taverns/taverns';
 import { currentHp, drinkProblem, isExhausted, maxHp, timeToFull } from '@/game/team/health';
 import { carriesKit, hasPotionSlot, isOnExpedition } from '@/game/team/team';
-import type { DungeonDef, ProvisionDef } from '@/game/types';
+import type { ConsumableDef, DungeonDef, ProvisionDef } from '@/game/types';
 import { formatDuration, formatPercent, t, tr } from '@/i18n';
 import { currentRotation } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
@@ -135,6 +136,17 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
   // A Cook in the party lifts Spoiled stores.
   const spoiled = coverage.restriction?.id === 'spoiledStores' && !coverage.restriction.cancelledBy;
   const durationMs = plan.minutes * 60_000 * durationScale;
+  // The run's reward modifiers: each charm carried, once however many heroes carry it.
+  const charms = heroes
+    .map((h) => (h.equipment.consumable ? (itemById[h.equipment.consumable] as ConsumableDef) : null))
+    .filter((item): item is ConsumableDef => !!item?.charm);
+  const barren = coverage.restriction?.id === 'barren' && !coverage.restriction.cancelledBy;
+  const charmLines = [...new Set(charms.map((c) => c.id))].map((id) => {
+    const item = itemById[id] as ConsumableDef;
+    const applies = charmApplies(item.charm!, dungeonLootSource(dungeon)) && !(barren && item.charm!.kind === 'gold');
+    const twice = charms.filter((c) => c.id === id).length > 1;
+    return { id, text: `${item.emoji} ${tr(item.name)}: ${tr(item.description!)}`, applies, twice };
+  });
   const odds = useMemo(
     () => ({
       now: estimateOdds(save, party, dungeon, undefined, { now: minute * 60_000, loadout, briefing }).success,
@@ -246,6 +258,14 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
             )}
             <Picker label={t('expeditions.confirm.meal')} items={mealItems} stock={save.consumables} value={mealId} onChange={setMealId} disabled={spoiled} />
             {spoiled && <Text style={styles.muted}>{t('expeditions.confirm.spoiledStores')}</Text>}
+            {charmLines.length > 0 && <Text style={styles.label}>{t('expeditions.confirm.rewards')}</Text>}
+            {charmLines.map((line) => (
+              <Text key={line.id} style={line.applies ? styles.summary : styles.muted}>
+                {line.text}
+                {line.applies ? '' : t('expeditions.confirm.charmNoEffect')}
+                {line.twice ? t('expeditions.confirm.charmOnce') : ''}
+              </Text>
+            ))}
 
             <Text style={styles.summary}>
               ⏳ {formatDuration(durationMs)} ·{' '}
