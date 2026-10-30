@@ -1,8 +1,8 @@
-import { placeRules } from '@/content/places';
+import { placeRules, type PlaceKind } from '@/content/places';
 import { lootConfig } from '@/content/loot/config';
 import type { ValuableBuyer } from '@/content/loot/valuables';
 import { dungeons } from '@/content/dungeons';
-import { itemById, recipeById } from '@/content/lookup';
+import { itemById, monsterPartById, recipeById } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
 import { itemPrices, marketPool, materialPrices, oreTier, shopRules, shopStock } from '@/content/shops';
 import { bossWeaknesses, weaknessByItem } from '@/content/weaknesses';
@@ -238,11 +238,19 @@ export function sellGear(save: SaveData, spawn: PlaceSpawn, gearUid: string, pla
   return { ...save, gold: save.gold + gearSellPrice(gear), gear: save.gear.filter((g) => g.uid !== gearUid) };
 }
 
-/** The market's price per material unit; 0 when the market doesn't trade it. */
-export function materialSellPrice(materialId: string) {
+/**
+ * What a place pays per material unit: the market a share of its price, the
+ * hunting lodge and apothecary a monster part's price; 0 when it doesn't trade it.
+ */
+export function materialSellPrice(materialId: string, kind: PlaceKind = 'market') {
+  if (shopRules.partBuyers.includes(kind)) return monsterPartById[materialId]?.sellPrice ?? 0;
+  if (kind !== 'market') return 0;
   const price = materialPrices[materialId];
   return price === undefined ? 0 : Math.max(1, Math.floor(price * shopRules.materialSellShare));
 }
+
+/** Whether a place buys materials at all: the market, and the part buyers. */
+export const buysMaterials = (kind: PlaceKind) => kind === 'market' || shopRules.partBuyers.includes(kind);
 
 export type SellMaterialProblem = 'gone' | 'tooFar' | 'notMarket' | 'unsellable' | 'notEnough';
 
@@ -256,19 +264,19 @@ export function sellMaterialProblem(
 ): SellMaterialProblem | null {
   if (spawn.expiresAt <= now || spawn.id in save.usedPlaces) return 'gone';
   if (distanceMeters(player, spawn.position) > placeRules.interactionMeters) return 'tooFar';
-  if (spawn.kind !== 'market') return 'notMarket';
-  if (materialSellPrice(materialId) === 0) return 'unsellable';
+  if (!buysMaterials(spawn.kind)) return 'notMarket';
+  if (materialSellPrice(materialId, spawn.kind) === 0) return 'unsellable';
   if ((save.materials[materialId] ?? 0) < count) return 'notEnough';
   return null;
 }
 
-/** Sells surplus materials to the market: removes them and pays the share. */
+/** Sells surplus materials (or monster parts) to a buyer: removes them and pays its price. */
 export function sellMaterial(save: SaveData, spawn: PlaceSpawn, materialId: string, count: number, player: LatLng, now: number): SaveData {
   const problem = sellMaterialProblem(save, spawn, materialId, count, player, now);
   if (problem) throw new Error(`Cannot sell ${materialId}: ${problem}`);
   return {
     ...save,
-    gold: save.gold + materialSellPrice(materialId) * count,
+    gold: save.gold + materialSellPrice(materialId, spawn.kind) * count,
     materials: removeMaterials(save.materials, [{ materialId, amount: count }]),
   };
 }

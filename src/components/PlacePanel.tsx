@@ -29,6 +29,7 @@ import {
 } from '@/game/places/services';
 import {
   buyProblem,
+  buysMaterials,
   gearSellPrice,
   materialSellPrice,
   placeStock,
@@ -102,7 +103,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
   const locked = isLockedMine(place.kind, pickaxeTier(save));
   const stock = placeStock(save, place);
   const buysValuables = (lootConfig.valuables.buyers as readonly string[]).includes(place.kind);
-  const sells = place.kind === 'smithy' || place.kind === 'market' || buysValuables;
+  const sells = place.kind === 'smithy' || buysMaterials(place.kind) || buysValuables;
   const wanted = place.kind === 'market' ? todaysCollector(save, place.id, now) : null;
   const homeHeroes = save.heroes.filter((hero) => !isAway(save, hero.id));
   // A heist takes one hero who can go now, picked from chips like a patrol party.
@@ -135,7 +136,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
   };
 
   const sellRows = () => {
-    const goods = place.kind === 'smithy' || place.kind === 'market' ? goodsRows() : null;
+    const goods = place.kind === 'smithy' || buysMaterials(place.kind) ? goodsRows() : null;
     const hasValuables = buysValuables && Object.values(save.valuables).some((count) => count > 0);
     if (!goods && !hasValuables) return <Text style={styles.muted}>{t('places.nothingToSell')}</Text>;
     return (
@@ -172,15 +173,15 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
         </View>
       ));
     }
-    const held = Object.entries(save.materials).filter(([id, count]) => count > 0 && materialSellPrice(id) > 0);
-    if (held.length === 0) return <Text style={styles.muted}>{t('places.nothingToSell')}</Text>;
+    const held = Object.entries(save.materials).filter(([id, count]) => count > 0 && materialSellPrice(id, place.kind) > 0);
+    if (held.length === 0) return place.kind === 'market' ? <Text style={styles.muted}>{t('places.nothingToSell')}</Text> : null;
     return held.map(([id, count]) => (
       <View key={id} style={styles.row}>
         <Text style={styles.name}>
           {materialById[id].emoji} {tr(materialById[id].name)} ×{count}
         </Text>
         <View style={styles.actions}>
-          <Text style={styles.price}>🪙 {materialSellPrice(id)}</Text>
+          <Text style={styles.price}>🪙 {materialSellPrice(id, place.kind)}</Text>
           <Button
             title={t('places.sell')}
             disabled={sellMaterialProblem(save, place, id, 1, player, now) !== null}

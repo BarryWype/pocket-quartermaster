@@ -46,6 +46,8 @@ export const shopRules = {
   gearSellShare: 0.3,
   /** Share of the unit price the market pays for a material. */
   materialSellShare: 0.4,
+  /** Places that buy monster parts, at the part's own price. */
+  partBuyers: ['huntingLodge', 'apothecary'] as PlaceKind[],
   /** Base price of a recipe, by its tier. */
   recipePrice: [30, 60, 120, 240, 480],
   smithy: { gearLines: [2, 3] as [min: number, max: number], rareChance: 0.2 },

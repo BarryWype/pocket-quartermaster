@@ -1,4 +1,4 @@
-import { itemById, recipeById } from '@/content/lookup';
+import { itemById, monsterPartById, recipeById } from '@/content/lookup';
 import { materialPrices, shopRules } from '@/content/shops';
 
 import { forgedItem, isKnown } from '../crafting/crafting';
@@ -223,6 +223,14 @@ describe('selling', () => {
     expect(sellMaterialProblem(save, market, 'steel', 1, position, now)).toBe('unsellable');
     expect(sellMaterialProblem(save, market, 'wood', 11, position, now)).toBe('notEnough');
     expect(sellMaterialProblem(save, spawnOf('sawmill'), 'wood', 1, position, now)).toBe('notMarket');
+    // The hunting lodge and apothecary buy monster parts only, at the part's price.
+    const parts = { ...save, materials: { ...save.materials, goblinEar: 2 } };
+    for (const kind of ['huntingLodge', 'apothecary'] as const) {
+      expect(materialSellPrice('goblinEar', kind)).toBe(monsterPartById.goblinEar.sellPrice);
+      expect(sellMaterialProblem(parts, spawnOf(kind), 'wood', 1, position, now)).toBe('unsellable');
+      expect(sellMaterial(parts, spawnOf(kind), 'goblinEar', 2, position, now).gold).toBe(parts.gold + monsterPartById.goblinEar.sellPrice * 2);
+    }
+    expect(materialSellPrice('goblinEar')).toBe(0);
 
     const next = sellMaterial(save, market, 'wood', 4, position, now);
     expect(next.gold).toBe(materialSellPrice('wood') * 4);
