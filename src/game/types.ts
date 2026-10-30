@@ -851,6 +851,8 @@ export type ExpeditionReport = {
   /** A Sanctum Sigil of this tier; at the cap it crumbled into `sigilShards` instead. */
   sigil?: number;
   sigilShards?: { element: Element; amount: number };
+  /** The secret prize rolled on top of the run's loot (see game/secrets/prize.ts). */
+  prize?: Loot;
   /** The day's first win, a new tier's first clear: their rows were rolled on top. */
   firstWin?: boolean;
   firstTierClear?: boolean;

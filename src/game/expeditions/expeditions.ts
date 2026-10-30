@@ -22,6 +22,8 @@ import { grantLoot } from '../loot/grant';
 import { mergeLoot, rollSourceLoot } from '../loot/roll';
 import { rollSigil, type SigilDrop } from '../loot/sigils';
 import { emptyLoot, type Loot, type LootCategory, type LootSourceId } from '../loot/types';
+import { secretPrize } from '../secrets/prize';
+import { spendKey } from '../secrets/keys';
 import type { SaveData } from '../save';
 import { applyRunHp, settleHp } from '../team/health';
 import { heroAbilities, heroStats, isAway } from '../team/team';
@@ -171,17 +173,21 @@ export function startExpedition(
   /** Today's rotation: the dungeon must be open, and its briefing is kept for the run. */
   rotation?: Rotation,
   loadout: Loadout = {},
+  /** A secret dungeon's own briefing. */
+  briefing?: Briefing,
 ): SaveData {
   const dungeon = dungeonById[dungeonId];
   if (!dungeon) throw new Error(`Unknown dungeon ${dungeonId}`);
-  if (!isDungeonAvailable(save, dungeon, rotation)) throw new Error(`${dungeon.name} is not available`);
+  // Secret dungeons launch from a tipped place, never through the rotation.
+  if (dungeon.secret && !briefing) throw new Error(`${dungeon.name} is not available`);
+  if (!dungeon.secret && !isDungeonAvailable(save, dungeon, rotation)) throw new Error(`${dungeon.name} is not available`);
   // Overnight quests are patrols: only one is out at a time.
   if (dungeon.overnight && overnightUnderWay(save)) throw new Error(`${dungeon.name} is already under way`);
   if (heroIds.length === 0) throw new Error('Pick at least one hero');
   if (heroIds.length > partySize(save)) throw new Error(`At most ${partySize(save)} heroes per expedition`);
-  const briefing = expeditionBriefing(save, dungeon, rotation, now);
+  const run = briefing ?? expeditionBriefing(save, dungeon, rotation, now);
   // Narrow passages: one hero fewer than usual fits through, unless a Curse-breaker in the party lifts them.
-  const restriction = signatureBriefing(briefing, prepareParty(save, heroIds).map(answersMemberOf)).briefing.restriction;
+  const restriction = signatureBriefing(run, prepareParty(save, heroIds).map(answersMemberOf)).briefing.restriction;
   if (restriction === 'narrowPassages' && heroIds.length > narrowPartySize(partySize(save))) {
     throw new Error(`At most ${narrowPartySize(partySize(save))} heroes fit the narrow passages`);
   }
@@ -201,7 +207,7 @@ export function startExpedition(
 
   // Heroes set out with the HP they have now, and keep it until they come back.
   const settled = settleHp(save, now);
-  const plan = launchPlan(settled, dungeon, heroIds, loadout, briefing);
+  const plan = launchPlan(settled, dungeon, heroIds, loadout, run);
   for (const [itemId, count] of Object.entries(plan.supply.items)) take(itemId, count);
 
   const id = `x${save.nextUid}`;
@@ -217,14 +223,14 @@ export function startExpedition(
     seed: `${id}:${now}`,
     guaranteed: isTutorialExpedition(save),
     ...(blessed ? { blessed: true } : {}),
-    briefing,
+    briefing: run,
     optIn: loadout.optIn ?? false,
     hunger: plan.hunger,
     supplyUsed: plan.supply.points,
     mealId: loadout.mealId ?? null,
     notificationId: null,
   };
-  return {
+  let next: SaveData = {
     ...settled,
     consumables,
     expeditions: [...save.expeditions, expedition],
@@ -233,6 +239,9 @@ export function startExpedition(
     escort: save.escort && heroIds.includes(save.escort.heroId) ? null : save.escort,
     nextUid: save.nextUid + 1,
   };
+  // An opted-in Sealed vault costs its mysterious key at launch.
+  if (loadout.optIn && run.opportunity && opportunityById[run.opportunity].cost?.key) next = spendKey(next);
+  return next;
 }
 
 /** One unknown Provisions recipe, like a step chest teaches (Old inscriptions). */
@@ -373,9 +382,12 @@ export function resolveExpedition(
   // and tier bosses, never quests) and a new tier's first clear on top. A
   // loss keeps its share of gold and XP and rolls nothing. The tutorial run
   // pays its fixed reward and counts as the day's first win.
-  const firstWin = success && !dungeon.overnight && save.firstWinDay !== rotationDay(expedition.endsAt);
+  const firstWin = success && !dungeon.overnight && !dungeon.secret && save.firstWinDay !== rotationDay(expedition.endsAt);
   const firstTierClear =
-    success && !tutorialReward && !save.clearedDungeons.some((id) => dungeonById[id]?.tier === dungeon.tier);
+    success &&
+    !tutorialReward &&
+    !dungeon.secret &&
+    !save.clearedDungeons.some((id) => dungeonById[id]?.tier === dungeon.tier);
   const context = lootContextOf(save);
   const enemies = run.encounters.flatMap((e) => e.mobs.map((m) => m.mobId));
   const source = dungeonLootSource(dungeon);
@@ -410,6 +422,13 @@ export function resolveExpedition(
     loot = { ...emptyLoot(), gold: Math.round(baseGold * (1 + lootConfig.luck.goldPerPoint * luck)), xp: Math.round(xp * mealXp) };
   }
 
+  // A secret dungeon's prize, or the Sealed vault's the party paid a key for: only a win claims either.
+  const prize =
+    success && (dungeon.secret || (briefing.opportunity === 'sealedVault' && expedition.optIn))
+      ? secretPrize(dungeon.tier, createRng(`${expedition.seed}|prize`))
+      : null;
+  if (prize) loot = mergeLoot(loot, prize);
+
   // Everything in a consumable slot is gone after the run; what never triggered
   // is broken back down instead (see threats/salvage.ts).
   const salvaged = untriggeredSalvage(party, run, source);
@@ -434,7 +453,9 @@ export function resolveExpedition(
       heroes,
       expeditions: save.expeditions.filter((e) => e.id !== expedition.id),
       clearedDungeons:
-        success && !save.clearedDungeons.includes(dungeon.id) ? [...save.clearedDungeons, dungeon.id] : save.clearedDungeons,
+        success && !dungeon.secret && !save.clearedDungeons.includes(dungeon.id)
+          ? [...save.clearedDungeons, dungeon.id]
+          : save.clearedDungeons,
       firstWinDay: firstWin ? rotationDay(expedition.endsAt) : save.firstWinDay,
     },
     expedition.heroIds,
@@ -547,6 +568,7 @@ export function resolveExpedition(
     gold: loot.gold,
     xp: loot.xp,
     ...sigil,
+    ...(prize ? { prize } : {}),
     ...(firstWin ? { firstWin } : {}),
     ...(firstTierClear ? { firstTierClear } : {}),
     consumablesUsed,
