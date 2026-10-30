@@ -273,7 +273,7 @@ export const fr: Dictionary = {
       set: 'Collection : {dots}',
       restore: 'À restaurer à la forge : {cost}',
       read: 'À lire',
-      open: 'Ouvre un lieu scellé',
+      open: 'Ouvre : repaire caché, marché noir, donjon englouti, caveau scellé',
       learn: 'Appris à la forge',
     },
     noMaterials: 'Promenez-vous pour récolter des matériaux.',

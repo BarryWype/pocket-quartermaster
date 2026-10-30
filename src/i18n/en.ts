@@ -268,7 +268,7 @@ export const en = {
       set: 'Set: {dots}',
       restore: 'Restore at the forge: {cost}',
       read: 'Read it',
-      open: 'Opens a sealed place',
+      open: 'Opens: hidden den, black market, underwater dungeon, Sealed vault',
       learn: 'Learned at the forge',
     },
     noMaterials: 'Walk around to gather materials.',

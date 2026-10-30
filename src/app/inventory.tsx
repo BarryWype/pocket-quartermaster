@@ -16,6 +16,10 @@ import { materials } from '@/content/materials';
 import { valuablePrice } from '@/game/loot/catalogue';
 import { canSalvage, salvageGold, salvageNeedsConfirmation, salvageReturns, wornBy } from '@/game/forging/salvage';
 import { ruinsDots } from '@/game/places/ruins';
+import { fragmentsTowardKey, hasKey, keyDots, keysHeld } from '@/game/secrets/keys';
+import { activeTip, tipPosition } from '@/game/secrets/tips';
+import { distanceMeters } from '@/game/generation/geo';
+import { placeInfo } from '@/content/places';
 import { isLureActive, lureEndsAt } from '@/game/rewards/lures';
 import { purposesOf } from '@/game/loot/purposes';
 import type { ManualRarity } from '@/game/loot/types';
@@ -23,7 +27,7 @@ import { liveTreasureMaps } from '@/game/rewards/treasure';
 import type { SaveData } from '@/game/save';
 import { useLanguage } from '@/hooks/useLanguage';
 import { usePlayerLocation } from '@/hooks/usePlayerLocation';
-import { t, tr } from '@/i18n';
+import { formatDistance, formatDuration, t, tr } from '@/i18n';
 import type { GearInstance } from '@/game/types';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
@@ -74,8 +78,12 @@ function inventoryItems(save: SaveData): InventoryItem[] {
       held.push({ key: `manual:${rarity}`, ref: { kind: 'manual' }, emoji: baseItems.trainingManual.emoji, name: t('expeditions.manual', { rarity: t(`expeditions.rarity.${rarity}`) }).replace(/^📖 /, ''), count, manual: rarity });
     }
   }
-  if (save.keyFragments > 0) {
-    held.push({ key: 'keyFragments', ref: { kind: 'keyFragment' }, emoji: baseItems.keyFragment.emoji, name: tr(baseItems.keyFragment.name), count: save.keyFragments, about: tr(baseItems.keyFragment.description ?? '') });
+  // Every four fragments are a key; the fragments tile shows the progress to the next one.
+  if (keysHeld(save) > 0) {
+    held.push({ key: 'mysteriousKey', ref: { kind: 'mysteriousKey' }, emoji: baseItems.mysteriousKey.emoji, name: tr(baseItems.mysteriousKey.name), count: keysHeld(save), about: t('secrets.opens') });
+  }
+  if (fragmentsTowardKey(save) > 0) {
+    held.push({ key: 'keyFragments', ref: { kind: 'keyFragment' }, emoji: baseItems.keyFragment.emoji, name: tr(baseItems.keyFragment.name), count: fragmentsTowardKey(save), about: `${tr(baseItems.keyFragment.description ?? '')} ${keyDots(save)} · ${t('secrets.opens')}` });
   }
   for (const [id, count] of Object.entries(save.consumables)) {
     const item = itemById[id];
@@ -100,6 +108,7 @@ export default function InventoryScreen() {
     return () => clearInterval(timer);
   }, []);
   const maps = liveTreasureMaps(save, now);
+  const tips = (['hiddenDen', 'blackMarket', 'underwaterDungeon'] as const).flatMap((secret) => activeTip(save, secret, now) ?? []);
   const sigilTiers = [...new Set(save.sigils)].sort((a, b) => a - b);
   const [filter, setFilter] = useState<Purpose | null>(null);
   const [opened, setOpened] = useState<InventoryItem | null>(null);
@@ -130,6 +139,25 @@ export default function InventoryScreen() {
       <Row emoji="🪙" title={t('common.gold')} right={save.gold} />
 
       <StepChests />
+
+      <SectionTitle>{t('secrets.title')}</SectionTitle>
+      {tips.length === 0 && <Text style={styles.empty}>{t('secrets.none')}</Text>}
+      {tips.map((tip) => {
+        const spot = tipPosition(tip, () => false);
+        return (
+          <Row
+            key={tip.id}
+            emoji={placeInfo[tip.secret].emoji}
+            title={tr(placeInfo[tip.secret].name)}
+            subtitle={t('secrets.where', {
+              distance: position && spot ? formatDistance(distanceMeters(position, spot)) : '?',
+              time: formatDuration(tip.expiresAt - now),
+            })}
+            right={tip.entered || hasKey(save) ? '🔓' : '🔒'}
+          />
+        );
+      })}
+      {tips.length > 0 && !hasKey(save) && <Text style={styles.empty}>{t('secrets.needKey', { dots: keyDots(save) })}</Text>}
 
       <SectionTitle>{t('inventory.expeditionFinds')}</SectionTitle>
       <Row
