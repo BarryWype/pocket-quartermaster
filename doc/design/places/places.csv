@@ -9,7 +9,7 @@ Place,Coal pit,Buy coal (small stock); locked above the player's tier,72 h or so
 Place,Hunting lodge,"Buy a little hide, meat and bone",72 h or sold out,
 Place,Smithy,Buy and sell gear; one blueprint for sale per rotation; iron horseshoe (boss weakness),72 h,
 Place,Apothecary,"Potions, salves, herbs; heal a hero fully or remove exhaustion for gold; sleeping draught (boss weakness)",72 h,
-Place,Chapel,Free once per visit: heal a hero fully or remove exhaustion; bless holy relics (+3 Faith); blessing for the next expedition (+5% party damage); font water (boss weakness); sells no holy relics,72 h,
+Place,Chapel,Free once per visit: heal a hero fully or remove exhaustion; bless holy symbols (+3 Faith); blessing for the next expedition (+5% party damage); font water (boss weakness); sells no holy symbols,72 h,
 Place,Market,"Rotating stock, sell surplus, sometimes components; decoy hoard (boss weakness)",72 h,
 Place,Thieves' guild,"Small heists: one hero, 15-30 min, Finesse threat; success pays gold or an item and sometimes the black market tip",72 h,
 Place,Monster lair,"More patrols around it while active; the lair is a big fight (elite, 2-3 heroes) with a large reward; sometimes the underwater dungeon tip (a drowned captain's log)","Until defeated, max 72 h",

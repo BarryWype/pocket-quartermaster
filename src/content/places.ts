@@ -111,7 +111,7 @@ export const placeInfo: Record<PlaceKind, { name: string; emoji: string; descrip
   huntingLodge: { name: 'Hunting lodge', emoji: '🏹', description: 'Sells a little hide, meat and bone.' },
   smithy: { name: 'Smithy', emoji: '⚒️', description: 'Sells and buys gear, and one blueprint.' },
   apothecary: { name: 'Apothecary', emoji: '⚗️', description: 'Potions, salves and herbs; heals heroes for gold.' },
-  chapel: { name: 'Chapel', emoji: '⛪', description: 'Free care once per visit, blessings for relics and the next expedition.' },
+  chapel: { name: 'Chapel', emoji: '⛪', description: 'Free care once per visit, blessings for holy symbols and the next expedition.' },
   market: { name: 'Market', emoji: '🏪', description: 'Rotating stock; buys surplus materials.' },
   ruins: { name: 'Ruins', emoji: '🏛️', description: 'One dig for materials, maybe a key fragment.' },
   library: { name: 'Library', emoji: '📜', description: 'Trains heroes for gold, and sells one recipe.' },

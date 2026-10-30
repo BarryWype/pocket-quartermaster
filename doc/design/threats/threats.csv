@@ -10,8 +10,8 @@ Locals,Social,2,Approach,Presence (they help),"Might (intimidate, no help)",Gift
 Swarm,Enemy,2,Keyword,Cleave,,"Gear: axe, staff",Extra enemies,+1 per swarm fight,+2 per swarm fight,+3 per swarm fight,1,1,0,New
 Darkness,Environment,3,Keyword,Light,,Lantern,Exposed + Weakened,Exposed 1 fight,Exposed 2 fights + Weakened 10%,Exposed all fights + Weakened 20%,1,0,1,New
 Obstacle: locked,Obstacle,3,Approach,Finesse,"Might (forces it, loses 10% loot)",Rogue's roll,Lost loot,15%,25%,40%,1,0,1,Exists
-Desecrated ground,Holy,3,Approach,Faith,,Holy relics,Weakened,10%,20%,30% + healing halved,1,0,1,New
-Casters,Enemy,3,Approach,Faith,,Holy relics,Wounds (ignores armour),6% per fight,10% per fight,15% per fight,1,0,0,New
+Desecrated ground,Holy,3,Approach,Faith,,Holy symbols,Weakened,10%,20%,30% + healing halved,1,0,1,New
+Casters,Enemy,3,Approach,Faith,,Holy symbols,Wounds (ignores armour),6% per fight,10% per fight,15% per fight,1,0,0,New
 Ambush,Enemy,3,Keyword,Watchful,,Lantern,Exposed,1 fight,2 fights,All fights,1,1,0,Rework of the ambush event
 Thieves,Enemy,3,Approach,Finesse,,Rogue's roll,Lost loot,10%,20%,30%,1,1,0,New
 Armoured,Enemy,3,Keyword,Pierce,,"Gear: dagger, bow, warhammer",Weakened against them,20%,35%,50%,1,1,0,New

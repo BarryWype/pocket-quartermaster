@@ -1,4 +1,7 @@
+import { frNames } from '@/content/fr/names';
 import { dungeonById, itemById } from '@/content/lookup';
+import { en } from '@/i18n/en';
+import { fr } from '@/i18n/fr';
 import { serviceRules } from '@/content/services';
 import { expeditionRules } from '@/content/dungeons';
 
@@ -65,14 +68,14 @@ describe('map place services', () => {
     expect(isExhausted(hero(out), 0)).toBe(false);
   });
 
-  it('turns held holy relics into blessed ones, leaving a carried set alone', () => {
+  it('turns held holy symbols into blessed ones, leaving a carried set alone', () => {
     const save = { ...base(), consumables: { holyRelics: 2 }, heroes: base().heroes.map((h) => (h.id === 'bram' ? { ...h, equipment: { ...h.equipment, consumable: 'holyRelics' } } : h)) };
     const out = blessRelics(save, spawnOf('chapel'), at, 0);
     expect(out.consumables).toMatchObject({ holyRelics: 0, blessedRelics: 2 });
     expect(hero(out).equipment.consumable).toBe('holyRelics');
   });
 
-  it('refuses blessing without relics, from afar, or once the place is gone', () => {
+  it('refuses blessing without holy symbols, from afar, or once the place is gone', () => {
     expect(blessRelicsProblem(base(), spawnOf('chapel'), at, 0)).toBe('noRelics');
     expect(blessRelicsProblem({ ...base(), consumables: { holyRelics: 1 } }, spawnOf('chapel'), { latitude: 48.9, longitude: 2.35 }, 0)).toBe('tooFar');
     expect(blessRelicsProblem({ ...base(), consumables: { holyRelics: 1 } }, spawnOf('chapel'), at, 20 * 60_000)).toBe('gone');
@@ -87,7 +90,16 @@ describe('map place services', () => {
     expect(chapelBlessingProblem(blessed, spawnOf('chapel'), at, 0)).toBe('alreadyBlessed');
   });
 
-  it('scores Faith +3 with blessed relics, against +2 with plain ones', () => {
+  it('names the holy kit Holy symbols in English and French', () => {
+    expect(itemById.holyRelics.name).toBe('Holy symbols');
+    expect(itemById.blessedRelics.name).toBe('Blessed symbols');
+    expect(frNames['Holy symbols']).toBe('Symboles sacrés');
+    expect(frNames['Blessed symbols']).toBe('Symboles bénis');
+    expect(en.places.bless).toBe('Bless holy symbols');
+    expect(fr.places.bless).toBe('Bénir les symboles sacrés');
+  });
+
+  it('scores Faith +3 with blessed symbols, against +2 with plain ones', () => {
     const carrier = (itemId: string): AnswersMember => ({
       heroId: 'bram',
       classId: 'warrior',

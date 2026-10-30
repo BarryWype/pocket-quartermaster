@@ -71,7 +71,7 @@ Loot is designed from scratch on top of the new dungeons, bosses, places, events
 - A relic is a one-off item in the inventory. Restoring it at the forge costs its type's recipe at its tier ×1.5 (plus gems, see valuables) and turns it into the finished item: at least Rare, with its fixed effect. It teaches no blueprint and never shows in the craftable list; two relics make two items.
 - The effect is paid from the item's stat budget (like other extras), so a relic has slightly lower stats than the best forged item of its tier.
 - Every effect is situational (an enemy family, a threat, an element, the first fight), never two keywords at once.
-- The "Holy relics" kit is renamed **Holy symbols**.
+- The holy kit is **Holy symbols** (it was "Holy relics"; the ids `holyRelics` and `blessedRelics` stay).
 
 ### Trinkets
 - Loot only, never crafted. They carry what's rare elsewhere: Luck, Crit, Speed, Evasion, +1 to an approach (uncommon drops), elemental resistance. Stat trinkets scale with tier and quality.
