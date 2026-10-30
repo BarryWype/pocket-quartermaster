@@ -8,7 +8,8 @@ import { applyOverrides, dailyRotation, rotationDay } from '@/game/dungeons/rota
 import type { PlaceSpawn } from '@/game/places/generate';
 import type { SanctumSpawn } from '@/game/sanctums/sanctums';
 import type { TavernSpawn } from '@/game/taverns/taverns';
-import type { Briefing, MainRewardKind, Quality } from '@/game/types';
+import type { LootCategory } from '@/game/loot/types';
+import type { Briefing, Quality } from '@/game/types';
 
 type DebugSettings = {
   /** When set, replaces the device GPS position. */
@@ -20,8 +21,8 @@ type DebugSettings = {
   fastExpeditions: boolean;
   /** Added to today's pedometer count. */
   extraSteps: number;
-  /** Main reward the next successful expedition gets, then cleared. */
-  forcedMainReward: MainRewardKind | null;
+  /** Loot category the next successful expedition is sure to drop, then cleared. */
+  forcedLootCategory: LootCategory | null;
   /** A Sanctum placed by hand next to the player. */
   debugSanctum: SanctumSpawn | null;
   /** Quality the next forged gear piece gets, then cleared. */
@@ -62,7 +63,7 @@ const DEBUG_DEFAULTS: DebugSettings = {
   windowMinutes: null,
   fastExpeditions: false,
   extraSteps: 0,
-  forcedMainReward: null,
+  forcedLootCategory: null,
   debugSanctum: null,
   forcedQuality: null,
   rotationDayOffset: 0,

@@ -1,6 +1,7 @@
 import { gatheringConfig } from '@/content/gatheringConfig';
 
 import { walkToShow, type WalkPatrols } from '../gathering/autoGather';
+import { emptyLoot } from '../loot/types';
 import { createInitialSave, type SaveData } from '../save';
 import { applyBackgroundResults, backgroundStep, snapshotBackground, type BackgroundResult, type PatrolSettings } from './escort';
 import { resolvePatrolFights, startPatrolFight, type PatrolFight } from './fight';
@@ -33,7 +34,7 @@ const result = (overrides: Partial<BackgroundResult> = {}): BackgroundResult => 
   hpAfter: 40,
   maxHp: 100,
   salvaged: [],
-  rewards: { gold: 10, xp: 7, materials: [{ materialId: 'wood', amount: 2 }], shards: { element: 'fire', amount: 1 } },
+  rewards: { ...emptyLoot(), gold: 10, xp: 7, materials: [{ materialId: 'wood', amount: 2 }] },
   ...overrides,
 });
 
@@ -50,7 +51,7 @@ const fight = (overrides: Partial<PatrolFight> = {}): PatrolFight => ({
   won: true,
   hp: [],
   salvaged: [],
-  rewards: { gold: 5, xp: 3, materials: [{ materialId: 'hide', amount: 1 }] },
+  rewards: { ...emptyLoot(), gold: 5, xp: 3, materials: [{ materialId: 'hide', amount: 1 }] },
   ...overrides,
 });
 
@@ -88,7 +89,7 @@ const withHistory = (walks: { seen: boolean; nodes?: number; patrols?: WalkPatro
 
 describe('walkPatrolsFrom', () => {
   it('sums gold, materials and XP per hero from won fights only', () => {
-    const lost = { gold: 50, xp: 50, materials: [{ materialId: 'wood', amount: 99 }] };
+    const lost = { ...emptyLoot(), gold: 50, xp: 50, materials: [{ materialId: 'wood', amount: 99 }] };
     const summary = walkPatrolsFrom([result(), result({ id: 'lost', won: false, rewards: lost })], [fight(), fight({ id: 'lostToo', won: false, rewards: lost })], {
       heroId: 'bram',
       before: 90,
@@ -108,7 +109,6 @@ describe('walkPatrolsFrom', () => {
       xp: 7 + 3 * 2,
       materials: [
         { materialId: 'wood', amount: 2 },
-        { materialId: 'fireShard', amount: 1 },
         { materialId: 'hide', amount: 1 },
       ],
     });

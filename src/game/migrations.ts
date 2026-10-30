@@ -1,15 +1,17 @@
 import { dungeons } from '@/content/dungeons';
 import { MASTERY_TYPES } from '@/content/forging';
 import { itemById, recipeById } from '@/content/lookup';
-import { mainRewardRules } from '@/content/mainRewards';
+import { lootConfig } from '@/content/loot/config';
 import { provisionRules } from '@/content/provisions';
 import { xpRules, xpToNextLevel } from '@/content/heroes';
 
 import { forgedItem } from './crafting/crafting';
 import { legacyRecipeId, startingRecipes, tierRecipes } from './crafting/recipeUnlocks';
 import { masteryTypeOf, startingMastery } from './forging/mastery';
+import { shardId, type Element } from './elements';
+import { emptyLoot, type Loot } from './loot/types';
 import { createInitialSave, type SaveData } from './save';
-import type { ActiveExpedition, ExpeditionReport, GearInstance, HeroClassId, HeroState, MasteryState, MasteryType } from './types';
+import type { ActiveExpedition, ExpeditionReport, GearInstance, HeroClassId, HeroState, MasteryState, MasteryType, MaterialStack } from './types';
 import type { PatrolFight } from './patrols/fight';
 
 const KEY = 'mysteriousKey';
@@ -28,14 +30,13 @@ export function migrateV5Save(old: Partial<SaveData> & Record<string, unknown>):
   }));
   const { [KEY]: keys = 0, ...materials } = save.materials;
   const sigils = [...save.sigils];
-  for (let i = 0; i < keys && sigils.length < mainRewardRules.sigilCap; i++) sigils.push(1);
+  for (let i = 0; i < keys && sigils.length < lootConfig.sigils.cap; i++) sigils.push(1);
   return { ...save, gear, materials, sigils, mastery: createInitialSave().mastery };
 }
 
 /** Version 6 → 7: pool dungeons already cleared count as having paid their first-clear bonus. */
 export function migrateV6Save(old: Partial<SaveData>): SaveData {
-  const save: SaveData = { ...createInitialSave(), ...old };
-  return { ...save, firstClears: [...save.clearedDungeons] };
+  return { ...createInitialSave(), ...old };
 }
 
 /** The starting heroes' traits, for saves from before traits. */
@@ -67,7 +68,7 @@ export function migrateV8Save(old: Partial<SaveData>): SaveData {
 
 /** Version 9 → 10: daily boss bonuses start unclaimed; gold, materials and levels stay as they are. */
 export function migrateV9Save(old: Partial<SaveData>): SaveData {
-  return { ...createInitialSave(), ...old, bossBonusDays: {} };
+  return { ...createInitialSave(), ...old };
 }
 
 const RATION = 'ration';
@@ -102,7 +103,6 @@ export function migrateV11Save(old: Partial<SaveData>): SaveData {
   return {
     ...save,
     gear: save.gear.map((g) => ({ ...g, roll: g.roll ?? 1 })),
-    blueprintBonusDays: {},
     freshGathers: { day: '', used: 0 },
   };
 }
@@ -288,4 +288,62 @@ export function migrateV20Save(old: Partial<SaveData>): SaveData {
 export function migrateV21Save(old: Partial<SaveData>): SaveData {
   const heroes = old.heroes ?? createInitialSave().heroes;
   return { ...createInitialSave(), ...old, seenClasses: [...new Set(heroes.map((h) => h.classId))] };
+}
+
+/** Old charms: the loot charms that replace them are made from monster parts. Each one owned is paid back. */
+const OLD_CHARMS = ['rabbitsFoot', 'luckyTooth'];
+const OLD_CHARM_GOLD = 10;
+
+type OldReport = Omit<ExpeditionReport, 'loot'> & { loot?: Loot; materials?: MaterialStack[]; recipeId?: string | null };
+type OldReward = Partial<Loot> & { recipeId?: string; shards?: { element: Element; amount: number } };
+
+/** A reward rolled before the loot matrix, as loot: its gold, XP, materials (shards folded in), items, gear, recipe and key fragments. */
+function oldRewardLoot(old: OldReward): Loot {
+  const { recipeId, shards, ...rest } = old;
+  return {
+    ...emptyLoot(),
+    ...rest,
+    materials: [...(old.materials ?? []), ...(shards ? [{ materialId: shardId(shards.element), amount: shards.amount }] : [])],
+    recipeIds: [...(old.recipeIds ?? []), ...(recipeId ? [recipeId] : [])],
+  };
+}
+
+/**
+ * Version 22 → 23: the loot matrix. Treasure maps become common. Rewards
+ * waiting on fights, heists and reports become loot. Old charms, in stock or
+ * in a slot, become gold. Per-dungeon first clears and daily bonuses go; step
+ * chests start the day unopened. The new inventories start empty.
+ */
+export function migrateV22Save(old: Partial<SaveData> & Record<string, unknown>): SaveData {
+  const { firstClears: _fc, bossBonusDays: _bb, blueprintBonusDays: _bp, ...rest } = old;
+  const save: SaveData = { ...createInitialSave(), ...rest };
+  const consumables = { ...save.consumables };
+  let charms = 0;
+  for (const id of OLD_CHARMS) {
+    charms += consumables[id] ?? 0;
+    delete consumables[id];
+  }
+  const heroes = save.heroes.map((hero): HeroState => {
+    if (!hero.equipment.consumable || !OLD_CHARMS.includes(hero.equipment.consumable)) return hero;
+    charms += 1;
+    return { ...hero, equipment: { ...hero.equipment, consumable: null } };
+  });
+  const reports = (save.reports as OldReport[]).map(
+    ({ materials, recipeId, loot, mainRewards: _m, firstClear: _f, dailyBlueprint: _d, ...report }: OldReport & Record<string, unknown>) => ({
+      ...report,
+      loot: loot ?? oldRewardLoot({ gold: report.gold, xp: report.xp, materials: materials ?? [], ...(recipeId ? { recipeId } : {}) }),
+    }),
+  ) as ExpeditionReport[];
+  return {
+    ...save,
+    gold: save.gold + charms * OLD_CHARM_GOLD,
+    consumables,
+    heroes,
+    reports,
+    treasureMaps: save.treasureMaps.map((map) => ({ ...map, rarity: map.rarity ?? 'common' })),
+    placeFights: save.placeFights.map((fight) => ({ ...fight, reward: oldRewardLoot(fight.reward as OldReward) })),
+    heists: save.heists.map((heist) => ({ ...heist, reward: oldRewardLoot(heist.reward as OldReward) })),
+    patrolFights: save.patrolFights.map((fight) => ({ ...fight, rewards: oldRewardLoot(fight.rewards as OldReward) })),
+    chests: { day: '', opened: [] },
+  };
 }

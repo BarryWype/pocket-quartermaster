@@ -37,7 +37,6 @@ import { walkableRules } from '@/content/walkable';
 import { highestUnlockedTier } from '@/game/expeditions/expeditions';
 import { freshGathersLeft, isFleeing, pickaxeTier, showsOnMap, type CollectFailure } from '@/game/gathering/gathering';
 import { readSpawn, requiredPickaxeTier } from '@/game/gathering/lockedNodes';
-import { shardId } from '@/game/elements';
 import { ambienceConfig, inSpan } from '@/game/generation/ambience';
 import { distanceMeters } from '@/game/generation/geo';
 import { generateSpawnsAround } from '@/game/generation/spawns';
@@ -60,6 +59,7 @@ import { useLanguage } from '@/hooks/useLanguage';
 import { usePlacedPoints, usePlacedSpawns } from '@/hooks/usePlacedSpawns';
 import { useAmbience } from '@/hooks/useAmbience';
 import { usePlayerLocation } from '@/hooks/usePlayerLocation';
+import { lootText } from '@/hooks/usePatrols';
 import { t, tr } from '@/i18n';
 import { appendFixesNow } from '@/services/walkTracking';
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
@@ -369,21 +369,7 @@ export default function MapScreen() {
       setMessage(t('map.treasureTooFar', { distance: Math.round(distance), radius: gatheringConfig.collectRadiusMeters }));
       return;
     }
-    const contents = collectTreasure(mapId, position, treasureAt);
-    const special = contents.special
-      ? contents.special.kind === 'sigil'
-        ? t('map.treasureSigil', { tier: contents.special.tier })
-        : contents.special.kind === 'charter'
-          ? t('map.treasureCharter')
-          : t('map.treasureJackpot', { gold: contents.special.gold })
-      : '';
-    setMessage(
-      t('map.treasureFound', {
-        gold: contents.gold,
-        shards: `${contents.shards.amount} ${tr(materialById[shardId(contents.shards.element)].name).toLowerCase()}`,
-        special,
-      }),
-    );
+    setMessage(t('map.treasureFound', { gains: lootText(collectTreasure(mapId, position, treasureAt)) }));
   };
 
   const gather = (spawn: Spawn) => {

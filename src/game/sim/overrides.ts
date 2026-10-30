@@ -1,4 +1,3 @@
-import { chests } from '@/content/chests';
 import { expeditionRules, overnightQuestRules } from '@/content/dungeons';
 import { elementRules } from '@/content/elements';
 import { masteryRules, salvageRules } from '@/content/forging';
@@ -6,13 +5,12 @@ import { guildRules, guildTrackById } from '@/content/guild';
 import { healthRules } from '@/content/health';
 import { heroClasses, xpRules } from '@/content/heroes';
 import { dungeonById, itemById, recipeById } from '@/content/lookup';
-import { mainRewardRules } from '@/content/mainRewards';
+import { lootConfig } from '@/content/loot/config';
 import { provisionRules } from '@/content/provisions';
 import { recruitRules, rosterRules } from '@/content/roster';
-import { firstClearRules, rotationRules } from '@/content/rotation';
+import { rotationRules } from '@/content/rotation';
 import { sanctumRules } from '@/content/sanctums';
 import { tavernRules } from '@/content/taverns';
-import { treasureRules } from '@/content/treasure';
 
 import { profiles, simConfig } from './config';
 import { targets } from './targets';
@@ -35,12 +33,9 @@ const roots: Record<string, unknown> = {
   taverns: tavernRules,
   mastery: masteryRules,
   salvage: salvageRules,
-  mainRewards: mainRewardRules,
-  chests: Object.fromEntries(chests.map((c) => [c.id, c])),
-  treasure: treasureRules,
+  loot: lootConfig,
   sanctums: sanctumRules,
   rotation: rotationRules,
-  firstClear: firstClearRules,
   elements: elementRules,
   sim: simConfig,
   profiles,

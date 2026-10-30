@@ -1,19 +1,19 @@
 import { placeFightRules } from '@/content/placeFights';
-import { placeRewardTables } from '@/content/placeRewards';
 import { patrolRules } from '@/content/patrols';
 import type { PlaceKind } from '@/content/places';
 
 import { offsetPosition } from '../generation/geo';
 import { createRng } from '../generation/rng';
 import { tileAt } from '../generation/tiles';
+import { grantLoot } from '../loot/grant';
+import { emptyLoot } from '../loot/types';
 import { setHeroHp } from '../team/health';
 import { isAway } from '../team/team';
 import type { LatLng } from '../generation/types';
 import type { PlaceSpawn } from './generate';
 import { generateTilePatrols, patrolsAround } from '../patrols/generate';
 import { HOME, tierTeam } from '../patrols/testHelpers';
-import { grantPlaceReward } from './grant';
-import { placeFightBriefing, placeFightDungeon, placeFightProblem, resolvePlaceFights, rollPlaceReward, riftElement, startPlaceFight } from './fights';
+import { placeFightBriefing, placeFightDungeon, placeFightProblem, placeLoot, resolvePlaceFights, riftElement, startPlaceFight } from './fights';
 
 const HOUR_MS = 3_600_000;
 const now = Date.UTC(2026, 9, 26, 12);
@@ -28,8 +28,6 @@ const spawnOf = (kind: PlaceKind, position: LatLng = HOME): PlaceSpawn => ({
   expiresAt: now + 12 * HOUR_MS,
   roll: 0,
 });
-
-const context = { goldMultiplier: 1, luck: 0, pickaxeTier: 0 };
 
 describe('place fight briefings', () => {
   it('carries the configured threat, and a caravan picks one per spawn', () => {
@@ -80,7 +78,7 @@ describe('fighting at a place', () => {
     expect(resolved).toHaveLength(1);
     expect(resolved[0].won).toBe(true);
     expect(done.placeFights).toHaveLength(0);
-    expect(done.gold).toBeGreaterThan(save.gold);
+    expect(done.gold).toBe(save.gold + fight.reward.gold);
     expect(done.usedPlaces[crypt.id]).toBe(crypt.expiresAt);
     expect(isAway(done, 'bram')).toBe(false);
     expect(placeFightProblem(done, crypt, ['bram'], HOME, now)).toBe('gone');
@@ -95,40 +93,37 @@ describe('fighting at a place', () => {
     expect(done.gold).toBe(weak.gold);
   });
 
-  it('grants reward gear with fresh uids and recipe unlocks', () => {
+  it('grants reward gear with fresh uids', () => {
     const save = tierTeam();
-    const rewarded = grantPlaceReward(save, [], {
+    const rewarded = grantLoot(save, [], {
+      ...emptyLoot(),
       gold: 10,
-      xp: 0,
-      materials: [{ materialId: 'fireShard', amount: 2 }],
-      consumables: [{ itemId: 'healingPotion', amount: 2 }],
-      gear: [{ uid: 'reward', itemId: 'sword1', quality: 'rare', roll: 1 }],
+      gear: [{ uid: '', itemId: 'sword1', quality: 'rare', roll: 1 }],
       keyFragments: 1,
-    });
+    }, now);
     expect(rewarded.gold).toBe(save.gold + 10);
     expect(rewarded.gear.at(-1)).toMatchObject({ uid: `g${save.nextUid}`, itemId: 'sword1' });
     expect(rewarded.nextUid).toBe(save.nextUid + 1);
-    expect(rewarded.consumables.healingPotion).toBe((save.consumables.healingPotion ?? 0) + 2);
     expect(rewarded.keyFragments).toBe(1);
   });
 });
 
 describe('place rewards', () => {
   it('is deterministic for a given rng', () => {
-    const table = placeRewardTables.monsterLair!;
-    const once = rollPlaceReward(table, context, 2, createRng('r'), tierTeam());
-    expect(rollPlaceReward(table, context, 2, createRng('r'), tierTeam())).toEqual(once);
+    const once = placeLoot('monsterLair', tierTeam(), 0, [], createRng('r'));
+    expect(placeLoot('monsterLair', tierTeam(), 0, [], createRng('r'))).toEqual(once);
   });
 
   it('sometimes gives a key fragment at a crypt', () => {
-    const table = placeRewardTables.hauntedCrypt!;
-    const fragments = Array.from({ length: 200 }, (_, i) => rollPlaceReward(table, context, 1, createRng(`k${i}`), tierTeam()).keyFragments);
+    const fragments = Array.from({ length: 200 }, (_, i) =>
+      placeLoot('hauntedCrypt', tierTeam(), 0, [], createRng(`k${i}`)).keyFragments,
+    );
     expect(fragments.some((f) => f === 1)).toBe(true);
     expect(fragments.some((f) => f === 0)).toBe(true);
   });
 
   it('gives a rift its element in shards', () => {
-    const reward = rollPlaceReward(placeRewardTables.elementalRift!, context, 1, createRng('r'), tierTeam(), 'fire');
+    const reward = placeLoot('elementalRift', tierTeam(), 0, [], createRng('r'), 'fire');
     expect(reward.materials).toEqual([{ materialId: 'fireShard', amount: expect.any(Number) }]);
     expect(reward.materials[0].amount).toBeGreaterThanOrEqual(2);
     expect(reward.materials[0].amount).toBeLessThanOrEqual(4);

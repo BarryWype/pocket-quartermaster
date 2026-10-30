@@ -30,7 +30,7 @@ import {
 import { buyProblem, gearSellPrice, materialSellPrice, placeStock, sellGearProblem, sellMaterialProblem, stockLeft, type StockLine } from '@/game/places/shops';
 import { currentHp, isExhausted, maxHp } from '@/game/team/health';
 import { isAway } from '@/game/team/team';
-import { placeRewardText } from '@/hooks/usePatrols';
+import { lootText } from '@/hooks/usePatrols';
 import { formatPercent, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
@@ -254,7 +254,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
                   disabled={digProblem(save, place, player, now) !== null}
                   onPress={() => {
                     const { reward, relic } = actions.digRuin(place, player);
-                    setResult(t(relic ? 'places.relicFound' : 'places.dug', { gains: placeRewardText(reward) }));
+                    setResult(t(relic ? 'places.relicFound' : 'places.dug', { gains: lootText(reward) }));
                   }}
                 />
               </View>
@@ -266,7 +266,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
                 <Button
                   title={t('places.fishAction')}
                   disabled={fishProblem(save, place, player, now) !== null}
-                  onPress={() => setResult(t('places.caught', { count: actions.fish(place, player) }))}
+                  onPress={() => setResult(t('places.caught', { gains: lootText(actions.fish(place, player)) }))}
                 />
               </View>
             )}

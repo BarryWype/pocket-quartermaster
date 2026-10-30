@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { Animated, Easing, Modal, StyleSheet, View } from 'react-native';
 
 import { heroClasses, xpToNextLevel } from '@/content/heroes';
-import { dungeonById, materialById, recipeById, recipeOutput } from '@/content/lookup';
+import { dungeonById, materialById } from '@/content/lookup';
 import { shardId } from '@/game/elements';
 import type { ExpeditionOutcome, ExpeditionReport, HeroState } from '@/game/types';
 import { t, tr } from '@/i18n';
 import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
+import { lootLabels } from './lootText';
 import { Panel } from './Panel';
 import { Text } from './Text';
 
@@ -22,20 +23,13 @@ export const OUTCOME_COLORS: Record<ExpeditionOutcome, string> = {
 /** Everything a report brought back, one short label each: gold first, then the rarer finds, then materials. */
 export function lootItems(report: ExpeditionReport): string[] {
   return [
-    report.gold > 0 ? `🪙 +${report.gold}` : null,
-    report.firstClear ? t('expeditions.firstClear', { gold: report.firstClear.gold }) : null,
-    ...(report.mainRewards ?? []).map((reward) => {
-      if (reward.kind === 'goldPouch') return `👛 +${reward.gold}`;
-      if (reward.kind === 'sigil') return t('expeditions.sigil', { tier: reward.tier });
-      if (reward.kind === 'treasureMap') return t('expeditions.treasureMap');
-      if (reward.kind === 'mapGold') return `🗺️ +${reward.gold}`;
-      if (reward.kind === 'shards') return `${materialById[shardId(reward.element)].emoji} ${reward.amount}`;
-      return t('expeditions.lure');
-    }),
-    report.recipeId ? `📜 ${tr(recipeOutput(recipeById[report.recipeId]).name)}` : null,
-    report.dailyBlueprint ? `📜 ${tr(recipeOutput(recipeById[report.dailyBlueprint]).name)}` : null,
+    report.firstTierClear ? t('expeditions.firstTierClear') : report.firstWin ? t('expeditions.firstWin') : null,
+    report.sigil ? t('expeditions.sigil', { tier: report.sigil }) : null,
+    report.sigilShards
+      ? t('expeditions.sigilShards', { emoji: materialById[shardId(report.sigilShards.element)].emoji, amount: report.sigilShards.amount })
+      : null,
     report.charter ? t('expeditions.loot.charter') : null,
-    ...report.materials.map((m) => `${materialById[m.materialId].emoji} ${m.amount}`),
+    ...lootLabels(report.loot),
   ].filter((item): item is string => item !== null);
 }
 

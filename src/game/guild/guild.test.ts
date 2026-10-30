@@ -1,14 +1,13 @@
-import { chests } from '@/content/chests';
 import { guildRules, guildTrackById, type GuildTrackId } from '@/content/guild';
 import { newHero, xpToNextLevel } from '@/content/heroes';
 import { dungeonById } from '@/content/lookup';
-import { mainRewardRules } from '@/content/mainRewards';
+import { lootConfig } from '@/content/loot/config';
+import { dungeons } from '@/content/dungeons';
 
 import { expeditionMinutes, resolveExpedition, startExpedition } from '../expeditions/expeditions';
 import { migrateV8Save } from '../migrations';
 import { createRng } from '../generation/rng';
-import { openChest } from '../rewards/chests';
-import { grantMainRewards } from '../rewards/mainRewards';
+import { rollSigil } from '../loot/sigils';
 import { challengeSanctum, type SanctumSpawn } from '../sanctums/sanctums';
 import { createInitialSave, type SaveData } from '../save';
 import { tavernOffers } from '../taverns/taverns';
@@ -113,9 +112,7 @@ describe('effects', () => {
     const plain = run(strongTeam(hall()));
     const trained = run(strongTeam(withRanks({ heroXp: 2 })));
     const bram = (s: SaveData) => s.heroes.find((h) => h.id === 'bram')!;
-    expect(totalXp(bram(trained.save))).toBe(
-      Math.round((plain.report.xp + (plain.report.firstClear?.xp ?? 0)) * 1.2),
-    );
+    expect(totalXp(bram(trained.save))).toBe(Math.round(plain.report.xp * 1.2));
   });
 
   it('Faster expeditions shortens new runs only, in whole seconds, but not the tutorial run', () => {
@@ -129,16 +126,11 @@ describe('effects', () => {
     expect(expeditionMinutes(tutorial, dungeonById.ratCellar) * 60).toBe(5);
   });
 
-  it('Gold multiplies all dungeon gold: boss rolls, caches and pouches', () => {
+  it('Gold multiplies all dungeon gold: the run, its rolls and the bonus rows', () => {
     const reports = (save: SaveData) => Array.from({ length: 30 }, (_, i) => run(save, 'banditStockade', i).report);
     const plain = reports(strongTeam(hall()));
     const rich = reports(strongTeam(withRanks({ gold: 4 })));
-    const pouches = (r: (typeof plain)[number]) => r.mainRewards.reduce((s, m) => s + (m.kind === 'goldPouch' ? m.gold : 0), 0);
-    expect(plain.some((r) => pouches(r) > 0)).toBe(true);
-    plain.forEach((r, i) => {
-      expect(Math.abs(rich[i].gold - r.gold * 1.4)).toBeLessThanOrEqual(1);
-      expect(Math.abs(pouches(rich[i]) - pouches(r) * 1.4)).toBeLessThanOrEqual(2);
-    });
+    plain.forEach((r, i) => expect(Math.abs(rich[i].gold - r.gold * 1.4)).toBeLessThanOrEqual(2));
   });
 
   it('Better retreats raises failed runs, never above a full clear', () => {
@@ -158,18 +150,6 @@ describe('effects', () => {
     expect(rich.report.gold).toBeGreaterThan(plain.report.gold);
   });
 
-  it('Main rewards raises both roll chances, capped at 100%', () => {
-    const count = (multiplier: number) =>
-      Array.from({ length: 300 }, (_, i) =>
-        grantMainRewards(hall(), dungeonById.goblinWarren, createRng(`m${i}`), 0, { chanceMultiplier: multiplier }).rewards.length,
-      ).reduce((s, n) => s + n, 0);
-    expect(count(1.3)).toBeGreaterThan(count(1));
-    // The boss already rolls at 100%: only its extra roll can grow.
-    const boss = (multiplier: number) =>
-      grantMainRewards(hall(), dungeonById.banditStockade, createRng('b'), 0, { chanceMultiplier: multiplier }).rewards.length;
-    expect(boss(10)).toBe(2);
-  });
-
   it('Shards adds shards to Sanctum wins only', () => {
     const spawn: SanctumSpawn = { id: 'sanctum:emberForge:t:1:0', sanctumId: 'emberForge', position: { latitude: 0, longitude: 0 }, expiresAt: 1e15 };
     const fight = (save: SaveData) => challengeSanctum({ ...save, sigils: [1] }, spawn, 1, ALL, spawn.position, 0);
@@ -180,17 +160,9 @@ describe('effects', () => {
     expect(loss.result.reward.shards).toBe(1);
   });
 
-  it('Step chests rolls the loot table again, the same way each day', () => {
-    const steps = 99_999;
-    const open = (save: SaveData) => openChest(save, chests[1].id, steps, '2026-10-26').reward.materials;
-    const total = (stacks: { amount: number }[]) => stacks.reduce((s, m) => s + m.amount, 0);
-    expect(total(open(withRanks({ stepChests: 3 })))).toBeGreaterThan(total(open(hall())));
-    expect(open(withRanks({ stepChests: 3 }))).toEqual(open(withRanks({ stepChests: 3 })));
-  });
-
   it('Sigil cap, party size and roster cap add to their base values', () => {
-    expect(sigilCap(hall())).toBe(mainRewardRules.sigilCap);
-    expect(sigilCap(withRanks({ sigilCap: 1 }))).toBe(4);
+    expect(sigilCap(hall())).toBe(lootConfig.sigils.cap);
+    expect(sigilCap(withRanks({ sigilCap: 1 }))).toBe(lootConfig.sigils.cap + 1);
     expect(partySize(withRanks({ partySlot: 1 }))).toBe(4);
     expect(rosterCap(withRanks({ rosterSlot7: 1, rosterSlot8: 1 }))).toBe(8);
     const six = { ...hall(), heroes: Array.from({ length: 6 }, (_, i) => newHero(`h${i}`, 'X', 'warrior', 'tough')) };
@@ -201,11 +173,11 @@ describe('effects', () => {
   });
 
   it('shards replace a Sigil only at the raised cap', () => {
-    const full = { ...hall(), sigils: [1, 1, 1] };
-    const sigil = (save: SaveData) =>
-      grantMainRewards(save, dungeonById.goblinWarren, createRng('s'), 0, { force: 'sigil' }).rewards[0].kind;
-    expect(sigil(full)).toBe('shards');
-    expect(sigil(withRanks({ sigilCap: 1 }, full))).toBe('sigil');
+    const boss = dungeons.find((d) => d.tier === 1 && d.isBoss)!;
+    const full = { ...hall(), sigils: [1, 1, 1], sigilPity: lootConfig.sigils.pityAfter };
+    const drop = (save: SaveData) => rollSigil(save, boss, createRng('s')).drop;
+    expect(drop(full).sigilShards).toBeDefined();
+    expect(drop(withRanks({ sigilCap: 1 }, full)).sigil).toBe(1);
   });
 
   it('Tavern discount cuts prices; the extra offer leaves the first three unchanged', () => {

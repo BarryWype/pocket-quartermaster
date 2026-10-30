@@ -53,7 +53,8 @@ import { masteryCap, masteryOf } from '@/game/forging/mastery';
 import { guildRank } from '@/game/guild/guild';
 import { currentHp, isExhausted, maxHp } from '@/game/team/health';
 import { gradeRoll, type Grade } from '@/game/taverns/roll';
-import type { ActiveThreat, Briefing, HeroClassId, MainRewardKind, MasteryType, Quality, StatKey, ThreatId, ThreatLevel } from '@/game/types';
+import { LOOT_CATEGORIES, type LootCategory } from '@/game/loot/types';
+import type { ActiveThreat, Briefing, HeroClassId, MasteryType, Quality, StatKey, ThreatId, ThreatLevel } from '@/game/types';
 import { forgedItem, isKnown } from '@/game/crafting/crafting';
 import { playBack, syncBackground } from '@/hooks/useAutoGather';
 import { deviceLocation } from '@/services/location';
@@ -76,7 +77,7 @@ const WINDOWS: (number | null)[] = [null, 1, 5, 15];
 const TIERS = [1, 2, 3, 4, 5];
 const WALK_ITEMS = items.filter((item) => item.slot === 'utility' && item.walk);
 const HP_SHARES = [0, 0.25, 0.5, 0.75];
-const MAIN_REWARDS: (MainRewardKind | null)[] = [null, 'goldPouch', 'sigil', 'treasureMap', 'lure'];
+const LOOT_FORCES: (LootCategory | null)[] = [null, ...LOOT_CATEGORIES];
 const THREAT_LEVELS: ThreatLevel[] = [1, 2, 3];
 /** Every recipe that is not a gear recipe (pickaxes, smelting, provisions). */
 const NON_GEAR_RECIPES = recipes.filter((recipe) => !forgedItem(recipe));
@@ -628,7 +629,7 @@ export default function DebugScreen() {
           debug.set({ forcedSlots: id ? { ...others, [slotKey]: id } : others });
         }}
       />
-      <Button title="Reset first-clear bonuses" onPress={game.resetFirstClears} />
+      <Button title="Reset the first win of the day" onPress={game.resetFirstWin} />
 
       <Text style={styles.title}>Threats</Text>
       {openDungeons.map((dungeon) => {
@@ -810,12 +811,12 @@ export default function DebugScreen() {
         onChange={placeSanctum}
       />
       <Button title="Reset used Sanctums and Sigil pity" onPress={game.resetSanctums} />
-      <Text>Force the next main reward</Text>
+      <Text>Force a loot category on the next successful expedition</Text>
       <Choice
-        options={MAIN_REWARDS}
-        value={debug.forcedMainReward}
+        options={LOOT_FORCES}
+        value={debug.forcedLootCategory}
         label={(option) => option ?? 'off'}
-        onChange={(forcedMainReward) => debug.set({ forcedMainReward })}
+        onChange={(forcedLootCategory) => debug.set({ forcedLootCategory })}
       />
 
       <Text style={styles.title}>Auto-gather</Text>

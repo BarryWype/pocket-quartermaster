@@ -334,7 +334,6 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs
       const porter = heroes.find((h) => carrierFor(h) === hero.id);
       // A Monk's fists (no weapon, or knuckles) pierce armour.
       const fists = heroClass.abilities.some((a) => a.kind === 'fistsPierce') && (!weaponItem || weaponItem.gearType === 'knuckles');
-      const charm = consumable?.charm;
       // The hero's hits roll with their damage stat; only the Magic part is halved in an anti-magic zone.
       const damageStat = heroDamageStat(save, hero);
       const elixir = elixirs ? consumable?.elixir : undefined;
@@ -371,7 +370,6 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs
         ],
         abilities: [
           ...heroAbilities(hero),
-          ...(charm?.kind === 'crit' ? [{ kind: 'critBonus', chance: charm.chance } satisfies Ability] : []),
         ],
         weaponElement:
           elixir?.kind === 'oil' && weapon ? elixir.element : (weapon?.element ?? heroClass.element),

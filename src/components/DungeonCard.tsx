@@ -1,10 +1,10 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { itemById } from '@/content/lookup';
+import { dungeonById, itemById } from '@/content/lookup';
 import { placeInfo } from '@/content/places';
 import { weaknessByBoss } from '@/content/weaknesses';
 import { briefingFor, type Rotation } from '@/game/dungeons/rotation';
-import { bossBonusAvailable, blueprintBonusAvailable, guaranteedBlueprint, isDungeonAvailable } from '@/game/expeditions/expeditions';
+import { firstWinAvailable, isDungeonAvailable } from '@/game/expeditions/expeditions';
 import { oddsBand } from '@/game/expeditions/odds';
 import type { SaveData } from '@/game/save';
 import type { DungeonDef } from '@/game/types';
@@ -35,10 +35,8 @@ type Props = {
 export function DungeonCard({ save, dungeon, rotation, now, durationMs, chance, expanded, onToggle, onSend }: Props) {
   const band = chance === null ? null : oddsBand(chance);
   const available = isDungeonAvailable(save, dungeon, rotation);
-  const fresh = dungeon.slot && !save.firstClears.includes(dungeon.id);
-  const bonus = dungeon.isBoss && bossBonusAvailable(save, dungeon.id, now);
-  const blueprint =
-    !!dungeon.slot && blueprintBonusAvailable(save, dungeon.id, now) && guaranteedBlueprint(save, dungeon) !== null;
+  const newTier = !save.clearedDungeons.some((id) => dungeonById[id]?.tier === dungeon.tier);
+  const firstWin = firstWinAvailable(save, dungeon, now);
   const kind = dungeon.isBoss ? 'boss' : dungeon.slot === 'short' ? 'short' : 'long';
   const weakness = dungeon.isBoss ? weaknessByBoss[dungeon.boss.id] : undefined;
   const weaknessHeld =
@@ -57,7 +55,7 @@ export function DungeonCard({ save, dungeon, rotation, now, durationMs, chance, 
         <View style={styles.title}>
           <Text style={styles.name} numberOfLines={1}>
             {tr(dungeon.name)}
-            {fresh ? ' ✨' : ''}
+            {newTier ? ' ✨' : ''}
           </Text>
           <Text style={styles.muted}>
             {t(`expeditions.kind.${kind}`)} · ⏳ {formatDuration(durationMs)}
@@ -79,8 +77,8 @@ export function DungeonCard({ save, dungeon, rotation, now, durationMs, chance, 
             <Text style={[styles.line, styles.muted]}>{t('expeditions.boss')}</Text>
             <EnemyTags mob={dungeon.boss} />
           </View>
-          {fresh && <Text style={styles.line}>{t('expeditions.neverCleared')}</Text>}
-          {blueprint && <Text style={styles.line}>📜 {t('expeditions.blueprintToday')}</Text>}
+          {newTier && <Text style={styles.line}>{t('expeditions.newTierBonus')}</Text>}
+          {firstWin && <Text style={styles.line}>{t('expeditions.firstWinToday')}</Text>}
           {weakness && (
             <Text style={[styles.line, { color: weaknessHeld ? colors.success : colors.muted }]}>
               {itemById[weakness.itemId].emoji}{' '}
@@ -91,7 +89,6 @@ export function DungeonCard({ save, dungeon, rotation, now, durationMs, chance, 
               {weaknessHeld ? t('expeditions.weaknessHeld') : ''}
             </Text>
           )}
-          {dungeon.isBoss && <Text style={styles.line}>{t(bonus ? 'expeditions.bossBonusAvailable' : 'expeditions.bossBonusClaimed')}</Text>}
           <View style={styles.footer}>
             {!available && <Text style={styles.muted}>{t('expeditions.afterTutorial')}</Text>}
             <Button title={t('expeditions.send')} disabled={!available || chance === null} onPress={onSend} />

@@ -1,13 +1,14 @@
-import { chests } from '@/content/chests';
 import { dungeons } from '@/content/dungeons';
 import { notificationTexts } from '@/content/notifications';
 import { recipes } from '@/content/recipes';
 
 import { resolveExpedition, startExpedition } from '../expeditions/expeditions';
+import { emptyLoot } from '../loot/types';
 import type { Heist } from '../types';
 import { createInitialSave, type SaveData } from '../save';
 import { timeToFull } from '../team/health';
 import { equip } from '../team/team';
+import { stepChests } from '../rewards/chests';
 import { defaultNotificationSettings, planNotifications, previewExpedition } from './plan';
 import { deliveryTime, inQuietHours, quietHoursEnd } from './quietHours';
 import { stepAlerts } from './steps';
@@ -198,7 +199,7 @@ describe('daily reset', () => {
 });
 
 describe('step alerts', () => {
-  const [wooden, iron] = [...chests].sort((a, b) => a.steps - b.steps);
+  const [wooden, iron] = [...stepChests].sort((a, b) => a.steps - b.steps);
   const day = '2026-10-26';
   const fresh = { day, sent: [] };
 
@@ -246,7 +247,7 @@ describe('heist notifications', () => {
     startedAt: now,
     endsAt: now + 20 * MIN,
     success: true,
-    reward: { gold: 100, xp: 0, materials: [], consumables: [], gear: [], keyFragments: 0 },
+    reward: { ...emptyLoot(), gold: 100 },
     ...over,
   });
 

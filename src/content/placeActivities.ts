@@ -1,7 +1,4 @@
-/**
- * PLACEHOLDER reward tables, replaced by the loot rework: rules for digging
- * ruins, thieves' guild heists and fishing docks.
- */
+/** Rules for digging ruins, thieves' guild heists and fishing docks; what they pay is their loot matrix row. */
 import type { Quality, ThreatId } from '@/game/types';
 import type { ThreatState } from '@/game/threats/score';
 
@@ -14,9 +11,7 @@ export const ruinRules = {
   replacementMeters: [300, 900] as [min: number, max: number],
   /** Digs between relics; the dig that reaches it pays one and resets. */
   relicEvery: 5,
-  keyFragmentChance: 0.25,
-  /** Stone every dig, plus this many nodes of ore the player's pickaxe covers. */
-  loot: { stone: [2, 4] as [min: number, max: number], oreNodes: 1 },
+  /** Until relics exist, the relic dig pays a gear piece of the player's tier at this quality, sometimes Legendary. */
   relicQuality: 'rare' as Quality,
   legendaryChance: 0.1,
 };
@@ -27,15 +22,9 @@ export const heistRules = {
   /** The Locked threat's level at each dungeon tier, 1-indexed by tier. */
   levelByTier: [1, 1, 2, 2, 3],
   successChance: { met: 0.9, half: 0.5, full: 0.1 } as Record<ThreatState, number>,
-  reward: {
-    /** Share of the tier's short dungeon gold; a gear piece comes instead at `gearChance`. */
-    goldShareOfShort: 2.0,
-    gearChance: 0.3,
-  },
 };
 
 export const dockRules = {
-  fish: [3, 5] as [min: number, max: number],
   /** A dock only works while water is within this many metres. */
   waterMeters: 250,
 };

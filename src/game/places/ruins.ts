@@ -1,16 +1,16 @@
 import { gearId, gearRecipes } from '@/content/equipment';
 import { placeRules } from '@/content/places';
 import { ruinRules } from '@/content/placeActivities';
-import { resources } from '@/content/resources';
 
 import { highestUnlockedTier } from '../dungeons/unlock';
 import { distanceMeters, offsetPosition } from '../generation/geo';
 import { createRng, type Rng } from '../generation/rng';
-import { pickaxeTier } from '../gathering/gathering';
-import { grantPlaceReward } from './grant';
+import { rollForSave } from '../loot/context';
+import { grantLoot } from '../loot/grant';
+import type { Loot } from '../loot/types';
 import type { PlaceSpawn } from './generate';
 import type { SaveData } from '../save';
-import type { DugRuin, GearInstance, GearType, MaterialStack, PlaceReward, Quality } from '../types';
+import type { DugRuin, GearInstance, GearType, Quality } from '../types';
 
 const HOUR_MS = 3_600_000;
 
@@ -60,29 +60,12 @@ function relicPiece(save: SaveData, rng: Rng): GearInstance {
   return { uid: '', itemId: gearId(types[rng.int(0, types.length - 1)], highestUnlockedTier(save)), quality, roll: 1 };
 }
 
-/** What a dig pays: stone, ore the player's pickaxe covers, sometimes a key fragment, a relic every `relicEvery` digs. */
-export function ruinDig(save: SaveData, spawn: PlaceSpawn): { reward: PlaceReward; relic: boolean } {
+/** What a dig pays: the ruins row of the loot matrix, plus the relic on the dig that completes the set. */
+export function ruinDig(save: SaveData, spawn: PlaceSpawn): { reward: Loot; relic: boolean } {
   const rng = createRng(`dig|${spawn.id}`);
   const relic = save.ruinsProgress + 1 >= ruinRules.relicEvery;
-  const materials: MaterialStack[] = [{ materialId: 'stone', amount: rng.int(...ruinRules.loot.stone) }];
-  const pool = resources.filter((r) => r.kind === 'ore' && (r.pickaxeTier ?? 0) <= pickaxeTier(save));
-  for (let node = 0; node < ruinRules.loot.oreNodes && pool.length > 0; node++) {
-    const resource = rng.weighted(pool, (r) => r.weight);
-    for (const { materialId, amount } of resource.yields) {
-      materials.push({ materialId, amount: amount * rng.int(1, 2) });
-    }
-  }
-  return {
-    reward: {
-      gold: 0,
-      xp: 0,
-      materials,
-      consumables: [],
-      gear: relic ? [relicPiece(save, rng)] : [],
-      keyFragments: rng.chance(ruinRules.keyFragmentChance) ? 1 : 0,
-    },
-    relic,
-  };
+  const loot = rollForSave(save, 'ruinsDig', rng);
+  return { reward: relic ? { ...loot, gear: [...loot.gear, relicPiece(save, rng)] } : loot, relic };
 }
 
 /**
@@ -95,11 +78,11 @@ export function digRuin(
   spawn: PlaceSpawn,
   player: { latitude: number; longitude: number },
   now: number,
-): { save: SaveData; reward: PlaceReward; relic: boolean } {
+): { save: SaveData; reward: Loot; relic: boolean } {
   const problem = digProblem(save, spawn, player, now);
   if (problem) throw new Error(`Cannot dig this ruin: ${problem}`);
   const { reward, relic } = ruinDig(save, spawn);
-  const granted = grantPlaceReward(save, [], reward);
+  const granted = grantLoot(save, [], reward, now);
   return {
     save: {
       ...granted,

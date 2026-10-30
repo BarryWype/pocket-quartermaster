@@ -4,7 +4,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { heroClasses } from '@/content/heroes';
 import { itemById, opportunityById } from '@/content/lookup';
 import { briefingFor } from '@/game/dungeons/rotation';
-import { bossBonusAvailable, launchPlan, type Loadout } from '@/game/expeditions/expeditions';
+import { launchPlan, type Loadout } from '@/game/expeditions/expeditions';
 import { estimateOdds, oddsBand, type OddsBand } from '@/game/expeditions/odds';
 import { mealItems } from '@/game/expeditions/provisions';
 import { partySize } from '@/game/guild/guild';
@@ -64,7 +64,6 @@ function warningsFor(save: SaveData, dungeon: DungeonDef, party: string[], chanc
       : null,
     without('weapon') ? t('expeditions.confirm.noWeapon', { names: without('weapon') }) : null,
     without('armor') ? t('expeditions.confirm.noArmor', { names: without('armor') }) : null,
-    dungeon.isBoss && !bossBonusAvailable(save, dungeon.id, now + durationMs) ? t('expeditions.confirm.bonusClaimed') : null,
   ].filter((warning): warning is string => warning !== null);
 }
 

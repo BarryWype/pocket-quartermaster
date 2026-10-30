@@ -1,11 +1,9 @@
-import { dungeons, expeditionRules } from '@/content/dungeons';
+import { expeditionRules } from '@/content/dungeons';
+import { lootConfig } from '@/content/loot/config';
 import { mobById, patrolMobId } from '@/content/enemies';
-import { resources } from '@/content/resources';
 import { patrolKinds, patrolRules, patrolTexts, type PatrolRules } from '@/content/patrols';
 import { patrolThreats } from '@/content/threats';
-import { traitById } from '@/content/traits';
 
-import { ELEMENTS, shardId, type Element } from '../elements';
 import { estimatePartyOdds, ODDS_RUNS, type Odds } from '../expeditions/odds';
 import { highestUnlockedTier, untriggeredSalvage } from '../expeditions/expeditions';
 import { prepareParty, simulateRun, type RunOptions, type RunResult } from '../expeditions/simulate';
@@ -14,11 +12,14 @@ import { guildBonus, partySize } from '../guild/guild';
 import { createRng, type Rng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { addMaterials } from '../inventory';
-import { rollLoot } from '../rewards/loot';
+import { sourceAmounts } from '../loot/context';
+import { grantLoot } from '../loot/grant';
+import { rollSourceLoot } from '../loot/roll';
+import { emptyLoot, type Loot, type LootSourceId } from '../loot/types';
 import type { SaveData } from '../save';
 import { applyRunHp, isExhausted } from '../team/health';
-import { addXp, isAway } from '../team/team';
-import type { BossDef, Briefing, DungeonDef, EncounterDef, ExpeditionReport, MaterialStack } from '../types';
+import { isAway } from '../team/team';
+import type { BossDef, Briefing, DungeonDef, EncounterDef, ExpeditionReport } from '../types';
 import { isPatrolKind, patrolTier, pruneByWindow, type PatrolKind, type PatrolSpawn } from './generate';
 import { distanceTo, isGone } from './visibility';
 
@@ -38,33 +39,22 @@ export function patrolRunOptions(kind: PatrolKind): RunOptions {
 export type RewardContext = {
   /** Guild gold bonus folded in, `1 + guildBonus(save, 'gold')`. */
   goldMultiplier: number;
-  /** The party's Luck, folded into gold and material rewards. */
+  /** The party's Luck. */
   luck: number;
-  /** The player's pickaxe tier: caches and trades never hold ore above it. */
+  /** The player's pickaxe tier: caches never hold ore above it. */
   pickaxeTier: number;
+  /** The highest unlocked tier, for looted gear. */
+  playerTier: number;
 };
 
 export const rewardContextOf = (save: SaveData, luck = 0): RewardContext => ({
   goldMultiplier: 1 + guildBonus(save, 'gold'),
   luck,
   pickaxeTier: pickaxeTier(save),
+  playerTier: highestUnlockedTier(save),
 });
 
-export type PatrolRewards = {
-  gold: number;
-  /** XP per hero. */
-  xp: number;
-  materials: MaterialStack[];
-  /** One shard of an element, goblin patrols sometimes carry. */
-  shards?: { element: Element; amount: number };
-};
-
-/** The shard stack of a reward, folded in with the materials when granted. */
-export const rewardMaterials = (rewards: PatrolRewards): MaterialStack[] =>
-  rewards.shards ? [...rewards.materials, { materialId: shardId(rewards.shards.element), amount: rewards.shards.amount }] : rewards.materials;
-
-/** The tier's short dungeon: patrols pay a share of what it gives. */
-const shortDungeon = (tier: number) => dungeons.find((d) => d.tier === tier && d.slot === 'short')!;
+export const PATROL_SOURCES: Record<PatrolKind, LootSourceId> = { goblins: 'patrolGoblins', herd: 'patrolHerd', bandits: 'patrolBandits' };
 
 /**
  * The fight itself, as a mini dungeon: one or two encounters, the last group a
@@ -80,8 +70,7 @@ export function patrolDungeon(spawn: PatrolSpawn, tier: number, elite: boolean, 
     weight: group.weight,
     mobs: [{ mobId: patrolMobId(patrolKind, tier, group.role, elite), count: group.count }],
   }));
-  const short = shortDungeon(tier);
-  const gold = Math.round(((short.gold[0] + short.gold[1]) / 2) * (kind.goldShareOfShort ?? 0));
+  const { gold, xp } = sourceAmounts(PATROL_SOURCES[patrolKind], tier);
   return {
     id: `patrol:${patrolKind}:${tier}${elite ? ':elite' : ''}`,
     name: patrolTexts.kinds[patrolKind],
@@ -92,62 +81,41 @@ export function patrolDungeon(spawn: PatrolSpawn, tier: number, elite: boolean, 
     encounters,
     boss: mobById[patrolMobId(patrolKind, tier, 'boss', elite)] as BossDef,
     gold: [gold, gold],
-    xp: Math.round(short.xp * rules.xpShareOfShortDungeon),
-    loot: [],
-    recipeDrops: [],
-    mainRewardChance: 0,
+    xp,
   };
 }
 
 /**
- * What a win over the spawn pays: goblins carry a little gold and sometimes a
- * shard, herds meat and hide, bandits a stolen cache of the materials the
- * player's own pickaxe could gather. Elites pay twice as much.
+ * What a win over the spawn pays: its kind's row of the loot matrix. Elites
+ * pay more gold and XP. Patrol rows never drop blueprints, so the context
+ * needs no known recipes (the background escort rolls without the save).
  */
 export function patrolRewards(
   context: RewardContext,
   spawn: PatrolSpawn,
   tier: number,
   elite: boolean,
+  enemies: string[],
   rng: Rng,
-  rules: PatrolRules = patrolRules,
-): PatrolRewards {
+): Loot {
   if (!isPatrolKind(spawn.kind)) throw new Error(`No rewards from a ${spawn.kind}`);
-  const kind = patrolKinds[spawn.kind];
-  const short = shortDungeon(tier);
-  const eliteMultiplier = elite ? rules.elite.rewardMultiplier : 1;
-  // Lucky parties carry more home.
-  const luckGold = 1 + expeditionRules.luck.goldPerPoint * context.luck;
-  const materials = kind.loot
-    ? rollLoot(rng, kind.loot).map((stack) => ({ ...stack, amount: Math.round(stack.amount * eliteMultiplier * luckGold) }))
-    : kind.cacheNodes
-      ? cacheMaterials(context, rng, kind.cacheNodes).map((stack) => ({ ...stack, amount: Math.round(stack.amount * eliteMultiplier * luckGold) }))
-      : [];
-  return {
-    gold: Math.round(((short.gold[0] + short.gold[1]) / 2) * (kind.goldShareOfShort ?? 0) * eliteMultiplier * context.goldMultiplier * luckGold),
-    xp: Math.round(short.xp * rules.xpShareOfShortDungeon * eliteMultiplier),
-    materials,
-    ...(kind.shardChance && rng.chance(kind.shardChance)
-      ? { shards: { element: ELEMENTS[rng.int(0, ELEMENTS.length - 1)], amount: Math.round(eliteMultiplier * luckGold) } }
-      : {}),
-  };
+  const source = PATROL_SOURCES[spawn.kind];
+  const amounts = sourceAmounts(source, tier);
+  const elites = elite ? lootConfig.eliteMultiplier : 1;
+  return rollSourceLoot({
+    source,
+    tier,
+    luck: context.luck,
+    modifiers: [],
+    enemies,
+    base: { gold: Math.round(amounts.gold * elites * context.goldMultiplier), xp: Math.round(amounts.xp * elites) },
+    context: { playerTier: context.playerTier, pickaxeTier: context.pickaxeTier, knownRecipes: [], favouredTypes: [] },
+    rng,
+  });
 }
 
-/** Materials worth a few nodes, drawn from the resource table the player's pickaxe covers. */
-export function cacheMaterials(context: RewardContext, rng: Rng, nodes: number): MaterialStack[] {
-  const pool = resources.filter((resource) => (resource.pickaxeTier ?? 0) <= context.pickaxeTier);
-  const gained: MaterialStack[] = [];
-  for (let node = 0; node < nodes; node++) {
-    const resource = rng.weighted(pool, (r) => r.weight);
-    for (const { materialId, amount } of resource.yields) {
-      gained.push({ materialId, amount: amount * rng.int(1, 2) });
-    }
-  }
-  return gained.reduce<MaterialStack[]>((stacks, stack) => {
-    const held = stacks.find((s) => s.materialId === stack.materialId);
-    return held ? stacks.map((s) => (s === held ? { ...s, amount: s.amount + stack.amount } : s)) : [...stacks, stack];
-  }, []);
-}
+/** The mob ids a run fought, for monster parts. */
+export const foughtEnemies = (run: RunResult) => run.encounters.flatMap((e) => e.mobs.map((m) => m.mobId));
 
 /** A fight under way, resolved when its time is up: the run has already been played out. */
 export type PatrolFight = {
@@ -165,7 +133,7 @@ export type PatrolFight = {
   hp: RunResult['hp'];
   /** Consumables that never triggered, broken back down at resolution (see threats/salvage.ts). */
   salvaged: ExpeditionReport['salvaged'];
-  rewards: PatrolRewards;
+  rewards: Loot;
 };
 
 export type PatrolFightProblem = 'tooFar' | 'gone' | 'away' | 'exhausted' | 'partySize' | 'empty' | null;
@@ -214,8 +182,8 @@ export function startPatrolFight(
   const id = `p${save.nextUid}`;
   const run = simulateRun(party, dungeon, `${id}|${spawn.id}`, patrolRunOptions(kind));
   const rewards = run.bossDefeated
-    ? patrolRewards(rewardContextOf(save, party.reduce((sum, m) => sum + m.luck, 0)), spawn, tier, elite, createRng(`${id}|rewards`), rules)
-    : { gold: 0, xp: 0, materials: [] };
+    ? patrolRewards(rewardContextOf(save, party.reduce((sum, m) => sum + m.luck, 0)), spawn, tier, elite, foughtEnemies(run), createRng(`${id}|rewards`))
+    : emptyLoot();
 
   return {
     ...save,
@@ -233,7 +201,7 @@ export function startPatrolFight(
         windowEndsAt: spawn.endsAt,
         won: run.bossDefeated,
         hp: run.hp,
-        salvaged: untriggeredSalvage(party, run, { barren: false, gold: 0 }),
+        salvaged: untriggeredSalvage(party, run),
         rewards,
       },
     ],
@@ -284,20 +252,14 @@ export function settleConsumables(save: SaveData, heroIds: string[], salvaged: E
   };
 }
 
-/** Pays a won patrol fight: gold, materials, XP per hero (trait and Guild Hall bonuses) and the patrol hidden for its window. */
-export function grantPatrolWin(save: SaveData, heroIds: string[], rewards: PatrolRewards, patrolId: string, windowEndsAt: number): SaveData {
-  const guildXp = 1 + guildBonus(save, 'heroXp');
-  return {
-    ...save,
-    gold: save.gold + rewards.gold,
-    materials: addMaterials(save.materials, rewardMaterials(rewards)),
-    heroes: save.heroes.map((hero) => {
-      if (!heroIds.includes(hero.id)) return hero;
-      const xpBonus = (traitById[hero.trait]?.effects ?? []).reduce((m, e) => m * (e.kind === 'xpMultiplier' ? e.multiplier : 1), 1);
-      return addXp(hero, Math.round(rewards.xp * xpBonus * guildXp));
-    }),
-    beatenPatrols: { ...save.beatenPatrols, [patrolId]: windowEndsAt },
-  };
+/**
+ * Pays a won patrol fight (see `grantLoot`) and hides the patrol for its
+ * window. Rewards rolled before the loot matrix lack the newer fields, so
+ * they are filled in first.
+ */
+export function grantPatrolWin(save: SaveData, heroIds: string[], rewards: Loot, patrolId: string, windowEndsAt: number, now: number): SaveData {
+  const granted = grantLoot(save, heroIds, { ...emptyLoot(), ...rewards }, now);
+  return { ...granted, beatenPatrols: { ...granted.beatenPatrols, [patrolId]: windowEndsAt } };
 }
 
 /**
@@ -316,7 +278,7 @@ export function resolvePatrolFights(
   let next: SaveData = { ...save, patrolFights: save.patrolFights.filter((fight) => fight.endsAt > now) };
   for (const fight of due) {
     next = settleConsumables(next, fight.heroIds, fight.salvaged);
-    if (fight.won) next = grantPatrolWin(next, fight.heroIds, fight.rewards, fight.patrolId, fight.windowEndsAt);
+    if (fight.won) next = grantPatrolWin(next, fight.heroIds, fight.rewards, fight.patrolId, fight.windowEndsAt, fight.endsAt);
     next = applyRunHp(next, fight.hp, fight.endsAt);
   }
   return { save: { ...next, beatenPatrols: pruneByWindow(next.beatenPatrols, now, rules) }, resolved: due };

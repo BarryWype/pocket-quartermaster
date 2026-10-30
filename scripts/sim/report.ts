@@ -414,10 +414,10 @@ export function renderReport({ summary, comparison, elapsed, rules, compareWith 
             }),
         ) +
         table(
-          ['Boss tier', 'Runs per day', 'Daily bonuses claimed per run', 'Party level at the first attempt'],
+          ['Boss tier', 'Runs per day', 'First wins of the day per run', 'Party level at the first attempt'],
           Object.entries(p.expeditions.bosses).map(([tier, b]) => [tier, fmt(b.perDay, 1), fmt(b.bonuses, 1), fmt(b.firstLevel, 1)]),
         ) +
-        `<p>Overnight quests: ${fmt(p.expeditions.overnight.runsPerDay, 2)} runs per day, bringing ${pct(p.expeditions.overnight.goldShare)} of the gold and ${pct(p.expeditions.overnight.xpShare)} of the XP. Daily guaranteed blueprints claimed: ${fmt(p.expeditions.blueprints, 1)} per run.</p>` +
+        `<p>Overnight quests: ${fmt(p.expeditions.overnight.runsPerDay, 2)} runs per day, bringing ${pct(p.expeditions.overnight.goldShare)} of the gold and ${pct(p.expeditions.overnight.xpShare)} of the XP. Blueprints dropped by expeditions: ${fmt(p.expeditions.blueprints, 1)} per run.</p>` +
         `<p>Sanctums per run: ${fmt(p.expeditions.sanctums.attempts, 1)} attempts, ${fmt(p.expeditions.sanctums.wins, 1)} wins.</p>` +
         table(
           ['Ability effect', 'Times per run (median)'],

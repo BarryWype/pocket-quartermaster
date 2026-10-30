@@ -6,6 +6,7 @@ import { recipes } from '@/content/recipes';
 import { startingRecipes } from './crafting/recipeUnlocks';
 import { startingMastery } from './forging/mastery';
 
+import type { ManualRarity } from './loot/types';
 import type { AutoGatherSave } from './gathering/autoGather';
 import type { LatLng } from './generation/types';
 import type { PatrolFight } from './patrols/fight';
@@ -52,8 +53,6 @@ export type SaveData = {
   reports: ExpeditionReport[];
   /** Dungeons won at least once; unlocks tiers. */
   clearedDungeons: string[];
-  /** Pool dungeons whose first-clear bonus was paid. */
-  firstClears: string[];
   /** Spawn id → time the spawn expires; collected spawns stay hidden until then. */
   collected: Record<string, number>;
   tutorial: {
@@ -63,7 +62,7 @@ export type SaveData = {
   };
   /** Steps counted while the app was open today (Android has no step history). */
   steps: { day: string; count: number };
-  /** Chests opened on `day`. */
+  /** Step chests opened on `day`, by id. */
   chests: { day: string; opened: string[] };
   /** Sanctum Sigils held, by tier (capped). */
   sigils: number[];
@@ -90,10 +89,8 @@ export type SaveData = {
   guild: Partial<Record<GuildTrackId, number>>;
   /** Needed for ⭐ Guild Hall milestones. */
   charters: number;
-  /** Boss dungeon id → rotation day its daily bonus (guaranteed reward and extra roll) was last claimed. */
-  bossBonusDays: Record<string, number>;
-  /** Pool dungeon id → rotation day its guaranteed daily blueprint was last claimed. */
-  blueprintBonusDays: Record<string, number>;
+  /** Rotation day of the last first win of the day (dungeons and tier bosses); null before the first. */
+  firstWinDay: number | null;
   /** Local day (ISO date) → bonus gathers used today (see `walkingBonus`). */
   freshGathers: { day: string; used: number };
   /** When home heroes last got their training XP (null before the first check). */
@@ -132,6 +129,14 @@ export type SaveData = {
   dugRuins: Record<string, DugRuin>;
   /** Background fight result id → when it was applied; idempotence and pruning. */
   appliedBackgroundResults: Record<string, number>;
+  /** Valuables held, by `valuableId:tier` (their value rises with the tier). */
+  valuables: Record<string, number>;
+  /** Relics found but not restored yet. */
+  relics: { uid: string; relicId: string }[];
+  /** Training manuals held, by rarity. */
+  manuals: Partial<Record<ManualRarity, number>>;
+  /** Monster-part recipes unlocked (a part's first find). */
+  partRecipes: string[];
   /** Counter for unique ids (gear, maps, lures, fights, heroes). */
   nextUid: number;
 };
@@ -147,7 +152,6 @@ export function createInitialSave(): SaveData {
     expeditions: [],
     reports: [],
     clearedDungeons: [],
-    firstClears: [],
     knownRecipes: [...new Set([...recipes.filter((r) => r.unlockedByDefault).map((r) => r.id), ...startingRecipes])],
     collected: {},
     tutorial: { step: 'collectWood', woodSpot: null },
@@ -167,8 +171,7 @@ export function createInitialSave(): SaveData {
     guild: {},
     charters: 0,
     trainedAt: null,
-    bossBonusDays: {},
-    blueprintBonusDays: {},
+    firstWinDay: null,
     freshGathers: { day: '', used: 0 },
     autoGather: { processedUntil: 0, anchor: null, history: [] },
     escort: null,
@@ -189,6 +192,10 @@ export function createInitialSave(): SaveData {
     dugRuins: {},
     // Mastery starts with the starting recipes' types (their ids are `<type><tier>`), level 1.
     mastery: Object.fromEntries(startingRecipes.map((id) => [id.replace(/\d+$/, '') as MasteryType, startingMastery(1)])),
+    valuables: {},
+    relics: [],
+    manuals: {},
+    partRecipes: [],
     nextUid: 1,
   };
 }

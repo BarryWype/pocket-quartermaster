@@ -61,3 +61,12 @@ export const gatheringConfig = {
 };
 
 export type GatheringConfig = typeof gatheringConfig;
+
+/** A lure draws private herbs and animals around where it was used. */
+export const lureRules = {
+  durationMinutes: 30,
+  /** Extra spawns appear within this distance of where the lure was used. */
+  radiusMeters: 200,
+  herbs: 6,
+  animals: 3,
+};

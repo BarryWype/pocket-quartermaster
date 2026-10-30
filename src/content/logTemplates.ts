@@ -1,4 +1,4 @@
-import type { ExpeditionOutcome, HeroClassId, MainReward, NpcHelp } from '@/game/types';
+import type { ExpeditionOutcome, HeroClassId, NpcHelp } from '@/game/types';
 
 /** Before the boss line, keyed by boss id: the weakness item at work. */
 const weaknessLines: Record<string, string> = {
@@ -114,7 +114,8 @@ export const logTemplates = {
   escaped: ['The team slipped away under cover of smoke, with {gold} gold.'],
   /** Names for {tag} in `tagBonus`. */
   tagNames: { undead: 'undead', beast: 'beasts', trap: 'traps', obstacle: 'obstacles', locals: 'locals' } as Record<string, string>,
-  firstClear: ['First time through! A bonus of {gold} gold and {xp} XP.'],
+  firstWin: ['The first win of the day brought a little extra.'],
+  firstTierClear: ['A new tier conquered! The spoils were richer for it.'],
   charter: ['The guild sent a charter to mark the victory.'],
   mishap: ['A {event} forced the party to turn back.', 'Bad luck: a {event} cut the expedition short.'],
   /** The midpoint opportunity, right after the encounter it followed. */
@@ -129,14 +130,8 @@ export const logTemplates = {
   recipe: ['Among the spoils: the recipe for {item}!'],
   sanctumWon: ['The {guardian} yields. The Sanctum grants its power.'],
   sanctumLost: ['The {guardian} drives the party out, but a little power lingers on them.'],
-  mainReward: {
-    goldPouch: ['A heavy pouch held {gold} extra gold.'],
-    sigil: ['They brought back a tier {tier} Sanctum Sigil.'],
-    treasureMap: ['They found an old treasure map.'],
-    lure: ['They found a lure.'],
-    shards: ['With no room for another Sigil, it crumbled into {amount} {shards}.'],
-    mapGold: ['With no room for another map, they sold it for {gold} gold.'],
-  } satisfies Record<MainReward['kind'], string[]>,
+  sigil: ['They brought back a tier {tier} Sanctum Sigil.'],
+  sigilShards: ['With no room for another Sigil, it crumbled into {amount} {shards}.'],
   /** What a consumable that never triggered was broken back down into. */
   salvage: 'The {item} came back unused and was salvaged.',
   /** Used for {weapon} when a hero has none. */

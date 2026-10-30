@@ -37,14 +37,14 @@ export function previewExpedition(save: SaveData, expedition: ActiveExpedition):
   return resolveExpedition(save, expedition).report;
 }
 
-/** What makes a result worth highlighting. Sigils come from the main reward roll. */
+/** What makes a result worth highlighting: a boss, a blueprint, a Sigil. */
 export function highlightsOf(report: ExpeditionReport): string[] {
   if (!report.success) return [];
   const { highlights } = notificationTexts();
   return [
     dungeonById[report.dungeonId].isBoss ? highlights.boss : null,
-    report.recipeId ? fill(highlights.blueprint, { item: tr(recipeOutput(recipeById[report.recipeId]).name) }) : null,
-    report.mainRewards.some((r) => r.kind === 'sigil') ? highlights.sigil : null,
+    ...report.loot.recipeIds.map((id) => fill(highlights.blueprint, { item: tr(recipeOutput(recipeById[id]).name) })),
+    report.sigil ? highlights.sigil : null,
   ].filter((line): line is string => line !== null);
 }
 

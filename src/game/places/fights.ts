@@ -1,26 +1,24 @@
-import { dungeons, expeditionRules } from '@/content/dungeons';
+import { expeditionRules } from '@/content/dungeons';
 import { mobById, placeMobId } from '@/content/enemies';
 import { placeFightRules, type FightPlaceKind } from '@/content/placeFights';
-import { placeRewardTables, type PlaceRewardTable } from '@/content/placeRewards';
 import { placeInfo, placeRules, type PlaceKind } from '@/content/places';
 
-import { ELEMENTS, shardId, type Element } from '../elements';
+import { ELEMENTS, type Element } from '../elements';
 import { estimatePartyOdds, ODDS_RUNS, type Odds } from '../expeditions/odds';
 import { highestUnlockedTier, untriggeredSalvage } from '../expeditions/expeditions';
 import { prepareParty, simulateRun, type RunOptions } from '../expeditions/simulate';
-import { forgedItem } from '../crafting/crafting';
 import { distanceMeters } from '../generation/geo';
 import { createRng, type Rng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
-import { cacheMaterials, rewardContextOf, settleConsumables, type RewardContext } from '../patrols/fight';
-import { rollLoot } from '../rewards/loot';
+import { foughtEnemies, settleConsumables } from '../patrols/fight';
+import { rollForSave, sourceAmounts } from '../loot/context';
+import { grantLoot } from '../loot/grant';
+import { emptyLoot, type Loot } from '../loot/types';
 import type { SaveData } from '../save';
 import { applyRunHp, isExhausted } from '../team/health';
 import { isAway } from '../team/team';
-import type { ActiveThreat, Briefing, BossDef, DungeonDef, EncounterDef, PlaceFight, PlaceReward } from '../types';
+import type { ActiveThreat, Briefing, BossDef, DungeonDef, EncounterDef, PlaceFight } from '../types';
 import { placeGroupOf, placesAround, type PlaceSpawn } from './generate';
-import { grantPlaceReward } from './grant';
-import { gearPool, recipeCandidates } from './shops';
 
 const MINUTE = 60_000;
 
@@ -28,9 +26,6 @@ const MINUTE = 60_000;
 export const isFightPlace = (kind: PlaceKind): kind is FightPlaceKind => kind in placeFightRules.kinds;
 
 const rulesOf = (kind: FightPlaceKind) => placeFightRules.kinds[kind];
-
-/** The tier's short dungeon: place fights pay a share of what it gives. */
-const shortDungeon = (tier: number) => dungeons.find((d) => d.tier === tier && d.slot === 'short')!;
 
 /** The element a rift shows, fixed for as long as the rift stands. */
 export function riftElement(spawn: PlaceSpawn): Element {
@@ -66,8 +61,7 @@ export function placeFightDungeon(spawn: PlaceSpawn, tier: number): DungeonDef {
     weight: group.weight,
     mobs: [{ mobId: placeMobId(kind, tier, group.role, elite, element), count: group.count }],
   }));
-  const short = shortDungeon(tier);
-  const gold = Math.round(((short.gold[0] + short.gold[1]) / 2) * (placeRewardTables[kind]?.goldShareOfShort ?? 0));
+  const { gold, xp } = sourceAmounts(kind, tier);
   return {
     id: `place:${kind}:${tier}${elite ? ':elite' : ''}`,
     name: placeInfo[kind].name,
@@ -78,63 +72,16 @@ export function placeFightDungeon(spawn: PlaceSpawn, tier: number): DungeonDef {
     encounters,
     boss: mobById[placeMobId(kind, tier, 'boss', elite, element)] as BossDef,
     gold: [gold, gold],
-    xp: Math.round(short.xp * placeFightRules.xpShareOfShortDungeon),
-    loot: [],
-    recipeDrops: [],
-    mainRewardChance: 0,
+    xp,
   };
 }
 
 /**
- * What a win at a place pays, rolled from its placeholder table. The element
- * is the rift's spawn-chosen one, or rolled here when absent (the lair's).
- * Deterministic for a given rng.
+ * What a win at a place pays: its row of the loot matrix, at the player's
+ * tier. A rift's shards are its element; the lair's are rolled.
  */
-export function rollPlaceReward(
-  table: PlaceRewardTable,
-  context: RewardContext,
-  tier: number,
-  rng: Rng,
-  save: SaveData,
-  element?: Element,
-): PlaceReward {
-  const short = shortDungeon(tier);
-  // Lucky parties carry more home.
-  const luckGold = 1 + expeditionRules.luck.goldPerPoint * context.luck;
-  const rolled = table.cacheNodes ? cacheMaterials(context, rng, table.cacheNodes) : table.loot ? rollLoot(rng, table.loot) : [];
-  const materials = rolled.map((stack) => ({ ...stack, amount: Math.round(stack.amount * luckGold) }));
-  const shards = table.shards
-    ? [
-        {
-          materialId: shardId(element ?? ELEMENTS[rng.int(0, ELEMENTS.length - 1)]),
-          amount: rng.int(table.shards[0], table.shards[1]),
-        },
-      ]
-    : [];
-  const consumables =
-    table.consumableChance && table.consumablePool && rng.chance(table.consumableChance)
-      ? [{ itemId: table.consumablePool[rng.int(0, table.consumablePool.length - 1)], amount: 1 }]
-      : [];
-  const keyFragments = table.keyFragmentChance && rng.chance(table.keyFragmentChance) ? 1 : 0;
-  const pool = gearPool(save);
-  const gear =
-    table.gearChance && rng.chance(table.gearChance) && pool.length > 0
-      ? [{ uid: 'reward', itemId: forgedItem(pool[rng.int(0, pool.length - 1)])!.id, quality: table.gearQuality ?? 'normal', roll: 1 }]
-      : [];
-  const recipePool = recipeCandidates(save).filter((candidate) => candidate.recipe.station === 'forge');
-  const recipeId =
-    table.recipeChance && rng.chance(table.recipeChance) && recipePool.length > 0
-      ? recipePool[rng.int(0, recipePool.length - 1)].recipe.id
-      : undefined;
-  return {
-    gold: Math.round(((short.gold[0] + short.gold[1]) / 2) * table.goldShareOfShort * context.goldMultiplier * luckGold),
-    xp: Math.round(short.xp * placeFightRules.xpShareOfShortDungeon),
-    materials: [...materials, ...shards],
-    consumables,
-    gear,
-    ...(recipeId ? { recipeId } : {}),
-    keyFragments,
-  };
+export function placeLoot(kind: FightPlaceKind, save: SaveData, luck: number, enemies: string[], rng: Rng, element?: Element): Loot {
+  return rollForSave(save, kind, rng, { luck, enemies, ...(element ? { element } : {}) });
 }
 
 export type PlaceFightProblem = 'gone' | 'tooFar' | 'empty' | 'partySize' | 'away' | 'exhausted' | null;
@@ -181,16 +128,16 @@ export function startPlaceFight(save: SaveData, spawn: PlaceSpawn, heroIds: stri
   const party = prepareParty(save, heroIds, now, true);
   const id = `f${save.nextUid}`;
   const run = simulateRun(party, dungeon, `${id}|${spawn.id}`, placeRunOptions(save, spawn));
-  const reward: PlaceReward = run.bossDefeated
-    ? rollPlaceReward(
-        placeRewardTables[kind]!,
-        rewardContextOf(save, party.reduce((sum, m) => sum + m.luck, 0)),
-        tier,
-        createRng(`${id}|rewards`),
+  const reward: Loot = run.bossDefeated
+    ? placeLoot(
+        kind,
         save,
+        party.reduce((sum, m) => sum + m.luck, 0),
+        foughtEnemies(run),
+        createRng(`${id}|rewards`),
         kind === 'elementalRift' ? riftElement(spawn) : undefined,
       )
-    : { gold: 0, xp: 0, materials: [], consumables: [], gear: [], keyFragments: 0 };
+    : emptyLoot();
 
   return {
     ...save,
@@ -207,7 +154,7 @@ export function startPlaceFight(save: SaveData, spawn: PlaceSpawn, heroIds: stri
         placeExpiresAt: spawn.expiresAt,
         won: run.bossDefeated,
         hp: run.hp,
-        salvaged: untriggeredSalvage(party, run, { barren: false, gold: 0 }),
+        salvaged: untriggeredSalvage(party, run),
         reward,
       },
     ],
@@ -237,7 +184,7 @@ export function resolvePlaceFights(save: SaveData, now: number): { save: SaveDat
   for (const fight of due) {
     next = settleConsumables(next, fight.heroIds, fight.salvaged);
     if (fight.won) {
-      next = grantPlaceReward(next, fight.heroIds, fight.reward);
+      next = grantLoot(next, fight.heroIds, fight.reward, fight.endsAt);
       next = { ...next, usedPlaces: { ...next.usedPlaces, [fight.placeId]: fight.placeExpiresAt } };
     }
     next = applyRunHp(next, fight.hp, fight.endsAt);

@@ -14,6 +14,13 @@ import { healAll } from '../team/health';
 import { equip } from '../team/team';
 import type { Briefing, ConsumableDef, DungeonDef, EncounterDef, MobGroup, OpportunityId, RestrictionId, ThreatId } from '../types';
 
+/** No first win of the day or first tier clear on top, so a run pays its own row only. */
+const noBonusRows = (save: SaveData): SaveData => ({
+  ...save,
+  firstWinDay: rotationDay(0),
+  clearedDungeons: [...new Set([...save.clearedDungeons, 'ratCellar'])],
+});
+
 // The threats rework wired into the run: what each briefing does to a party
 // through simulateRun, launchPlan and resolveExpedition.
 //
@@ -345,7 +352,7 @@ describe('opportunities', () => {
   });
 
   it('oldInscriptions: teach XP, and sometimes an unknown Provisions recipe', () => {
-    const save = geared();
+    const save = noBonusRows(geared());
     const rotation = forcedRotation('ratCellar', briefing({ opportunity: 'oldInscriptions' }));
     let taught = 0;
     let xp = 0;
@@ -358,7 +365,7 @@ describe('opportunities', () => {
         taught++;
         // The opportunity's Provisions recipe is one more than the run's other teaching.
         expect(next.knownRecipes.length).toBe(
-          save.knownRecipes.length + 1 + (report.recipeId ? 1 : 0) + (report.dailyBlueprint ? 1 : 0),
+          save.knownRecipes.length + 1 + new Set(report.loot.recipeIds).size,
         );
       }
     }
@@ -393,17 +400,16 @@ describe('salvage and consumables', () => {
   };
 
   it('uses up every equipped consumable: gone from the slot, never back to the stock', () => {
-    let save = geared({ healingPotion: 1, luckyTooth: 2 });
+    let save = geared({ healingPotion: 1, standardHealingPotion: 2 });
     save = equip(save, 'bram', 'consumable', 'healingPotion');
-    save = equip(save, 'mira', 'consumable', 'luckyTooth');
+    save = equip(save, 'mira', 'consumable', 'standardHealingPotion');
     const { save: after, report } = resolve(save);
     for (const id of ALL) expect(after.heroes.find((h) => h.id === id)!.equipment.consumable).toBeNull();
-    expect(report.consumablesUsed.sort()).toEqual(['healingPotion', 'luckyTooth'].sort());
-    // Veterans rarely need a potion in tier 1: it comes back as salvage, not to the stock.
+    expect(report.consumablesUsed.sort()).toEqual(['healingPotion', 'standardHealingPotion'].sort());
+    // Veterans rarely need a potion in tier 1: both come back as salvage, not to the stock.
     expect(after.consumables.healingPotion).toBe(0);
     expect(report.salvaged.map((s) => s.itemId)).toContain('healingPotion');
-    // The counted gold charm did its job, so it is not salvaged.
-    expect(report.salvaged.map((s) => s.itemId)).not.toContain('luckyTooth');
+    expect(report.salvaged.map((s) => s.itemId)).toContain('standardHealingPotion');
   });
 
   it('salvages an undrunk standard or greater healing potion', () => {
@@ -470,13 +476,6 @@ describe('salvage and consumables', () => {
     expect(kept).toBeGreaterThan(0);
   });
 
-  it('keeps a crit charm that attacked', () => {
-    let save = geared({ rabbitsFoot: 1 });
-    save = equip(save, 'bram', 'consumable', 'rabbitsFoot');
-    const { report } = resolve(save);
-    expect(report.salvaged).toEqual([]);
-  });
-
   it('salvages a ward salve that never faced its element', () => {
     let save = geared({ emberWardSalve: 1 });
     save = equip(save, 'bram', 'consumable', 'emberWardSalve');
@@ -489,18 +488,12 @@ describe('salvage and consumables', () => {
       gold: 0,
     });
   });
-
-  it('salvages the gold charm under Barren, where its bonus does not apply', () => {
-    let save = geared({ luckyTooth: 1 });
-    save = equip(save, 'bram', 'consumable', 'luckyTooth');
-    const { report } = resolve(save, {}, briefing({ restriction: 'barren' }));
-    expect(report.salvaged.map((s) => s.itemId)).toContain('luckyTooth');
-  });
 });
 
 describe('locked forced with Might', () => {
-  it('loses 10% of the loot, and nothing else', () => {
-    const save = healAll(geared());
+  it('cuts only the rolled gold, and nothing else', () => {
+    const save = noBonusRows(healAll(geared()));
+    let cut = 0;
     // Warriors have Might 3: level 2 Locked (needs 3, Finesse falls short) is forced open, at the cost of some loot.
     const rotation = forcedRotation('ratCellar', threat('locked', 2));
     for (let i = 0; i < 30; i++) {
@@ -510,9 +503,17 @@ describe('locked forced with Might', () => {
       const plain = resolveExpedition(plainStart, plainStart.expeditions[0]).report;
       expect(forced.threats[0]).toMatchObject({ id: 'locked', state: 'met', forced: true });
       expect(forced.success).toBe(plain.success);
-      // The same run otherwise: only the rolled gold is cut by the forced loss.
-      expect(Math.abs(forced.gold - plain.gold * (1 - threatRules.forcedLockLoss))).toBeLessThanOrEqual(1);
+      // The same loot rolls either way: only the dungeon's rolled gold is cut.
+      expect(forced.loot.dropped).toEqual(plain.loot.dropped);
+      expect(forced.xp).toBe(plain.xp);
+      expect(forced.loot.recipeIds).toEqual(plain.loot.recipeIds);
+      expect(forced.loot.gear).toEqual(plain.loot.gear);
+      expect(forced.gold).toBeLessThanOrEqual(plain.gold);
+      if (forced.gold < plain.gold) cut++;
+      // The forced loss takes its share of the rolled gold, never more than the whole.
+      expect(plain.gold - forced.gold).toBeLessThanOrEqual(1 + threatRules.forcedLockLoss * plain.gold);
     }
+    expect(cut).toBeGreaterThan(0);
   });
 });
 

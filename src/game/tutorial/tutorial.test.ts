@@ -84,7 +84,7 @@ describe('tutorial walkthrough', () => {
     expect(advanceTutorial(save).tutorial.step).toBe('awaitReport');
     const { save: back, report } = resolveExpedition(save, save.expeditions[0]);
     expect(report.success).toBe(true);
-    expect(report.mainRewards).toEqual([{ kind: 'sigil', tier: 1 }]);
+    expect(report.sigil).toBe(1);
     expect(back.sigils).toEqual([1]);
     expect(back.firstSigilGiven).toBe(false);
     save = advanceTutorial(back);

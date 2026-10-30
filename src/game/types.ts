@@ -1,3 +1,4 @@
+import type { Loot, MapRarity } from './loot/types';
 import type { ImageSourcePropType } from 'react-native';
 
 import type { PlaceKind } from '@/content/places';
@@ -95,12 +96,6 @@ export type GearDef = ItemBase & {
   damageStat?: DamageStat;
 };
 
-/** A charm in a hero's consumable slot: lasts one expedition. */
-export type Charm =
-  | { kind: 'crit'; chance: number }
-  /** Party gold multiplier; several Lucky teeth count once. */
-  | { kind: 'gold'; multiplier: number };
-
 /** What a hero consumable does for the run (see expeditions/simulate.ts). */
 export type Elixir =
   | { kind: 'stat'; stat: 'power' | 'magic' | 'armour' | 'resistance'; multiplier: number }
@@ -124,7 +119,6 @@ export type ConsumableDef = ItemBase & {
   protectsAgainst?: Element;
   /** A kit: what it gives its carrier against threats. */
   kit?: KitEffect;
-  charm?: Charm;
   elixir?: Elixir;
   /** The boss id this weakness item weakens when its carrier meets that boss. */
   weakness?: string;
@@ -651,13 +645,6 @@ export type ActiveExpedition = {
   notificationId: string | null;
 };
 
-export type LootEntry = {
-  materialId: string;
-  min: number;
-  max: number;
-  chance: number;
-};
-
 export type MobDef = {
   id: string;
   name: string;
@@ -744,31 +731,14 @@ export type DungeonDef = {
   gold: [min: number, max: number];
   /** XP per hero for beating the boss; retreats get the cleared share. */
   xp: number;
-  /** Rolled once; amounts are scaled by the share of encounters cleared. */
-  loot: LootEntry[];
-  /** Only dropped when the boss is beaten. */
-  recipeDrops: { recipeId: string; chance: number }[];
-  /** Chance a successful run rolls one main reward from the pool. */
-  mainRewardChance: number;
-  /** Chance of a second main reward on top (boss dungeons). */
-  mainRewardExtraRollChance?: number;
 };
-
-export type MainRewardKind = 'goldPouch' | 'sigil' | 'treasureMap' | 'lure';
-
-/** A main reward as granted; a Sigil at its cap turns into shards, a map at its cap into a little gold. */
-export type MainReward =
-  | { kind: 'goldPouch'; gold: number }
-  | { kind: 'sigil'; tier: number }
-  | { kind: 'treasureMap'; mapId: string; tier: number }
-  | { kind: 'lure' }
-  | { kind: 'shards'; element: Element; amount: number }
-  | { kind: 'mapGold'; gold: number };
 
 export type TreasureMap = {
   id: string;
-  /** Tier of the dungeon that dropped it; sets the loot. */
+  /** Tier of the source that dropped it; sets the loot. */
   tier: number;
+  /** Sets the treasure's distance and how much it holds. */
+  rarity: MapRarity;
   expiresAt: number;
   /** Set when the map is first read, from where the player stood. */
   location: { latitude: number; longitude: number } | null;
@@ -820,46 +790,23 @@ export type ExpeditionReport = {
   opportunity: OpportunityOutcome | null;
   /** Consumables that never triggered, broken back down (see threats/salvage.ts). */
   salvaged: { heroId: string; itemId: string; materials: MaterialStack[]; gold: number }[];
-  /** Extra rewards rolled on success, besides gold, loot and recipes. */
-  mainRewards: MainReward[];
+  /** Everything paid: gold, XP per hero and the drops (see game/loot). */
+  loot: Loot;
+  /** Total gold, `loot.gold` plus salvage. */
   gold: number;
-  materials: MaterialStack[];
-  recipeId: string | null;
+  /** XP per hero before trait, meal and Guild Hall bonuses. */
   xp: number;
+  /** A Sanctum Sigil of this tier; at the cap it crumbled into `sigilShards` instead. */
+  sigil?: number;
+  sigilShards?: { element: Element; amount: number };
+  /** The day's first win, a new tier's first clear: their rows were rolled on top. */
+  firstWin?: boolean;
+  firstTierClear?: boolean;
   consumablesUsed: string[];
-  /** Bonus for the first win in a pool dungeon. */
-  firstClear?: { gold: number; xp: number };
-  /** The blueprint taught by the day's first win in a pool dungeon. */
-  dailyBlueprint?: string;
   /** A Guild Hall charter, for the first win against a tier boss. */
   charter?: boolean;
   log: string[];
   seen: boolean;
-};
-
-export type ChestDef = {
-  id: string;
-  name: string;
-  emoji: string;
-  steps: number;
-  gold: [min: number, max: number];
-  loot: LootEntry[];
-  /** Chance to teach one Provisions recipe the player does not know yet. */
-  recipeChance: number;
-};
-
-/** What a place pays out (fight win, dig, heist): placeholder tables until the loot rework (see content/placeRewards.ts). */
-export type PlaceReward = {
-  gold: number;
-  /** XP per hero who took part. */
-  xp: number;
-  materials: MaterialStack[];
-  consumables: { itemId: string; amount: number }[];
-  /** Gear pieces; their uids are given when granted. */
-  gear: GearInstance[];
-  /** A recipe the player doesn't know yet. */
-  recipeId?: string;
-  keyFragments: number;
 };
 
 /** A fight at a fight event or monster lair, played out at the start and settled when its time is up. */
@@ -876,7 +823,7 @@ export type PlaceFight = {
   won: boolean;
   hp: { heroId: string; hp: number; maxHp: number }[];
   salvaged: ExpeditionReport['salvaged'];
-  reward: PlaceReward;
+  reward: Loot;
 };
 
 /** One hero away on a thieves' guild heist; the outcome is rolled when they set out. */
@@ -887,7 +834,7 @@ export type Heist = {
   startedAt: number;
   endsAt: number;
   success: boolean;
-  reward: PlaceReward;
+  reward: Loot;
 };
 
 /** A dug ruin: a new one shows elsewhere a day later, for this player. */

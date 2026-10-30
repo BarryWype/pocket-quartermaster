@@ -1,26 +1,29 @@
 import { expeditionRules, overnightQuestRules, dungeons } from '@/content/dungeons';
 import { newHero, xpRules } from '@/content/heroes';
 import { dungeonById, itemById, opportunityById, recipeById, recipeOutput } from '@/content/lookup';
-import { mainRewardRules } from '@/content/mainRewards';
+import { lootConfig } from '@/content/loot/config';
+import { MATERIAL_TIERS } from '@/content/items';
 import { heroNames } from '@/content/roster';
 import { recipes } from '@/content/recipes';
-import { firstClearRules } from '@/content/rotation';
 import { narrowPartySize } from '@/content/threats';
 import { traitById, traits } from '@/content/traits';
 import { travellerRules } from '@/content/patrols';
 import { tutorialRules } from '@/content/tutorial';
 
-import { forgedItem, unlockRecipe } from '../crafting/crafting';
+import { unlockRecipe } from '../crafting/crafting';
 import { guildBonus, partySize, rosterCap, sigilCap } from '../guild/guild';
 import { highestUnlockedTier, isDungeonUnlocked } from '../dungeons/unlock';
 import { briefingFor, openDungeonIds, rotationDay, type Rotation } from '../dungeons/rotation';
 import { createRng, type Rng } from '../generation/rng';
 import { addMaterials } from '../inventory';
-import { rollLoot } from '../rewards/loot';
-import { grantMainRewards, type MainRewardOptions } from '../rewards/mainRewards';
+import { lootContextOf } from '../loot/context';
+import { grantLoot } from '../loot/grant';
+import { mergeLoot, rollSourceLoot } from '../loot/roll';
+import { rollSigil, type SigilDrop } from '../loot/sigils';
+import { emptyLoot, type Loot, type LootCategory, type LootSourceId } from '../loot/types';
 import type { SaveData } from '../save';
 import { applyRunHp, settleHp } from '../team/health';
-import { addXp, affinityOf, heroAbilities, heroStats, isAway } from '../team/team';
+import { heroAbilities, heroStats, isAway } from '../team/team';
 import { composeBriefing } from '../threats/compose';
 import { heroAnswers } from '../threats/answers';
 import { launchEffects } from '../threats/penalties';
@@ -60,40 +63,9 @@ export function isDungeonAvailable(save: SaveData, dungeon: DungeonDef, rotation
   return isDungeonUnlocked(save, dungeon) && (!rotation || openDungeonIds(rotation).includes(dungeon.id));
 }
 
-/**
- * Whether a boss's daily bonus is still there today: its guaranteed main reward
- * and extra roll come with the first win each rotation day.
- */
-export const bossBonusAvailable = (save: SaveData, dungeonId: string, now: number) =>
-  save.bossBonusDays[dungeonId] !== rotationDay(now);
-
-/**
- * The blueprint the day's first win in a pool dungeon would teach: one of its
- * unknown drops, preferring gear types a roster hero favours. Bosses are
- * excluded (they have their own daily bonus); nothing when the player knows
- * them all.
- */
-export function guaranteedBlueprint(save: SaveData, dungeon: DungeonDef): string | null {
-  if (!dungeon.slot) return null;
-  const learnable = (recipeId: string) => forgedItem(recipeById[recipeId]);
-  let pick: string | null = null;
-  let best = 3;
-  for (const { recipeId } of dungeon.recipeDrops) {
-    const item = learnable(recipeId);
-    if (!item || save.knownRecipes.includes(recipeId)) continue;
-    // Favoured types for a roster hero first, then the rest.
-    const rank = save.heroes.some((h) => affinityOf(h.classId, item.gearType) === 'favoured') ? 0 : 1;
-    if (rank < best) {
-      best = rank;
-      pick = recipeId;
-    }
-  }
-  return pick;
-}
-
-/** Whether the pool dungeon's guaranteed daily blueprint is still there today. */
-export const blueprintBonusAvailable = (save: SaveData, dungeonId: string, now: number) =>
-  save.blueprintBonusDays[dungeonId] !== rotationDay(now);
+/** Whether a win in this dungeon now would be the day's first (dungeons and tier bosses, never overnight quests). */
+export const firstWinAvailable = (save: SaveData, dungeon: DungeonDef, now: number) =>
+  !dungeon.overnight && save.firstWinDay !== rotationDay(now);
 
 /** Minutes an expedition to this dungeon would take now: Guild Hall time cuts apply; the tutorial's first one takes seconds. */
 export function expeditionMinutes(save: SaveData, dungeon: DungeonDef) {
@@ -287,24 +259,10 @@ function prisonerRecruit(save: SaveData, rng: Rng): HeroState {
 /**
  * The party's consumables that never triggered during the run, broken back
  * down (see threats/salvage.ts): potions nobody needed, kits that changed no
- * threat and never healed, salves whose element never came, charms that never
- * attacked or paid. One Lucky tooth counts however many there are: the best
- * multiplier's first holder, and only when the run paid gold (Barren aside).
+ * threat and never healed, salves whose element never came, elixirs and
+ * weakness items never used.
  */
-export function untriggeredSalvage(
-  party: PartyMember[],
-  run: RunResult,
-  { barren, gold }: { barren: boolean; gold: number },
-): ExpeditionReport['salvaged'] {
-  let countedCharm: string | null = null;
-  let bestCharm = 0;
-  for (const member of party) {
-    const multiplier = member.consumable?.charm?.kind === 'gold' ? member.consumable.charm.multiplier : 0;
-    if (multiplier > bestCharm) {
-      bestCharm = multiplier;
-      countedCharm = member.heroId;
-    }
-  }
+export function untriggeredSalvage(party: PartyMember[], run: RunResult): ExpeditionReport['salvaged'] {
   const triggered = (member: PartyMember): boolean => {
     const item = member.consumable!;
     if (item.when === 'lowHp') return run.consumed.includes(member.heroId);
@@ -332,10 +290,7 @@ export function untriggeredSalvage(
       if (elixir.kind === 'oil') return member.weaponName !== null && run.attacked.includes(member.heroId);
       return run.elixirsUsed.includes(member.heroId);
     }
-    if (item.weakness) return run.weaknessUsedBy === member.heroId;
-    const charm = item.charm!;
-    if (charm.kind === 'crit') return run.attacked.includes(member.heroId);
-    return !barren && gold > 0 && countedCharm === member.heroId;
+    return !!item.weakness && run.weaknessUsedBy === member.heroId;
   };
   return [
     ...party
@@ -357,15 +312,12 @@ export function untriggeredSalvage(
 export function resolveExpedition(
   save: SaveData,
   expedition: ActiveExpedition,
-  { rules = expeditionRules, mainReward }: { rules?: ExpeditionRules; mainReward?: MainRewardOptions } = {},
+  { rules = expeditionRules, loot: lootOptions = {} }: { rules?: ExpeditionRules; loot?: { force?: LootCategory } } = {},
 ): { save: SaveData; report: ExpeditionReport } {
   const dungeon = dungeonById[expedition.dungeonId];
   const briefing = expedition.briefing ?? EMPTY_BRIEFING;
   const party = prepareParty(save, expedition.heroIds, 0, true);
-  // Lucky parties bring more home: gold and materials directly, rolls with a better chance.
   const luck = party.reduce((sum, m) => sum + m.luck, 0);
-  const luckGold = 1 + rules.luck.goldPerPoint * luck;
-  const luckRoll = 1 + rules.luck.rollPerPoint * luck;
   const run = simulateRun(party, dungeon, `${expedition.seed}|run`, {
     rules,
     guaranteed: expedition.guaranteed,
@@ -395,88 +347,96 @@ export function resolveExpedition(
       .flatMap((id) => traitById[id]?.effects ?? [])
       .reduce((product, e) => product * (e.kind === 'goldMultiplier' ? e.multiplier : 1), 1),
   );
-  // Merchant's pie, and one Lucky tooth for the party however many there are.
-  const charmGold = cut(Math.max(1, ...party.map((m) => (m.consumable?.charm?.kind === 'gold' ? m.consumable.charm.multiplier : 1))));
   const mealGold = cut(meal?.kind === 'gold' ? meal.multiplier : 1);
-  // Lost loot cuts the dungeon's rolled gold and materials; the run's bonus gold is unaffected.
+  // Lost loot cuts the dungeon's rolled gold; the run's bonus gold is unaffected.
   const bounty = run.opportunity?.answered && run.opportunity.goldMultiplier ? run.opportunity.goldMultiplier : 1;
   const kept = 1 - run.lostLoot;
-  let gold = Math.round(
-    (rng.int(dungeon.gold[0], dungeon.gold[1]) * lootShare * kept * bounty + run.bonusGold) *
-      guildGold *
-      traitGold *
-      charmGold *
-      mealGold *
-      luckGold,
-  );
-  let materials = rollLoot(rng, dungeon.loot)
-    .map((stack) => ({ ...stack, amount: Math.floor(stack.amount * lootShare * kept * luckGold) }))
-    .filter((stack) => stack.amount > 0);
-  let recipeId: string | null = null;
-  for (const drop of dungeon.recipeDrops) {
-    const dropped = rng.chance(drop.chance * luckRoll);
-    if (success && dropped && !recipeId && !save.knownRecipes.includes(drop.recipeId)) {
-      recipeId = drop.recipeId;
-    }
-  }
+  const goldScale = guildGold * traitGold * mealGold;
+  const baseGold = Math.round((rng.int(dungeon.gold[0], dungeon.gold[1]) * lootShare * kept * bounty + run.bonusGold) * goldScale);
   // The tutorial's first expedition pays a fixed reward instead.
   const tutorialReward = expedition.guaranteed ? tutorialRules.firstExpedition : null;
-  if (tutorialReward) {
-    gold = tutorialReward.gold;
-    materials = [];
-    recipeId = save.knownRecipes.includes(tutorialReward.recipeId) ? null : tutorialReward.recipeId;
-  }
   // Dungeons below the highest unlocked tier teach less.
   const tierShare = xpRules.lowerTierShare[Math.min(xpRules.lowerTierShare.length - 1, highestUnlockedTier(save) - dungeon.tier)];
+  const mealXp = meal?.kind === 'xp' ? meal.multiplier : 1;
   const xp = Math.round(
     dungeon.xp * Math.min(1, progress * retreat) * tierShare * (run.opportunity?.answered && run.opportunity.xpMultiplier ? run.opportunity.xpMultiplier : 1),
   );
-  // The first win in each pool dungeon pays a one-time bonus.
-  const firstClear =
-    success && dungeon.slot && !tutorialReward && !save.firstClears.includes(dungeon.id)
-      ? { gold: Math.round(dungeon.gold[1] * firstClearRules.goldShare), xp: Math.round(dungeon.xp * firstClearRules.xpShare * tierShare) }
-      : undefined;
+
+  // A win rolls its row of the loot matrix, plus the day's first win (dungeons
+  // and tier bosses, never quests) and a new tier's first clear on top. A
+  // loss keeps its share of gold and XP and rolls nothing.
+  const firstWin = success && !tutorialReward && !dungeon.overnight && save.firstWinDay !== rotationDay(expedition.endsAt);
+  const firstTierClear =
+    success && !tutorialReward && !save.clearedDungeons.some((id) => dungeonById[id]?.tier === dungeon.tier);
+  const context = lootContextOf(save);
+  const enemies = run.encounters.flatMap((e) => e.mobs.map((m) => m.mobId));
+  const roll = (source: LootSourceId, base: { gold: number; xp: number }) =>
+    rollSourceLoot({
+      source,
+      tier: dungeon.tier,
+      minutes: dungeon.durationMinutes,
+      luck,
+      modifiers: [],
+      enemies,
+      base,
+      context,
+      rng: createRng(`${expedition.seed}|${source}`),
+      ...(lootOptions.force ? { force: lootOptions.force } : {}),
+    });
+  const bonus = (row: keyof typeof lootConfig.bonusRows) => ({
+    gold: Math.round(dungeon.gold[1] * lootConfig.bonusRows[row].gold * goldScale),
+    xp: Math.round(dungeon.xp * lootConfig.bonusRows[row].xp * tierShare * mealXp),
+  });
+  let loot: Loot;
+  if (tutorialReward) {
+    loot = {
+      ...emptyLoot(),
+      gold: tutorialReward.gold,
+      xp: Math.round(xp * mealXp),
+      recipeIds: save.knownRecipes.includes(tutorialReward.recipeId) ? [] : [tutorialReward.recipeId],
+    };
+  } else if (success) {
+    loot = roll(dungeon.isBoss ? 'tierBoss' : dungeon.overnight ? 'overnightQuest' : 'dungeonRun', { gold: baseGold, xp: Math.round(xp * mealXp) });
+    if (firstWin) loot = mergeLoot(loot, roll('firstWin', bonus('firstWin')));
+    if (firstTierClear) loot = mergeLoot(loot, roll('firstTierClear', bonus('firstTierClear')));
+  } else {
+    loot = { ...emptyLoot(), gold: Math.round(baseGold * (1 + lootConfig.luck.goldPerPoint * luck)), xp: Math.round(xp * mealXp) };
+  }
 
   // Everything in a consumable slot is gone after the run; what never triggered
   // is broken back down instead (see threats/salvage.ts).
-  const salvaged = untriggeredSalvage(party, run, { barren, gold });
+  const salvaged = untriggeredSalvage(party, run);
   const consumablesUsed = party.flatMap((m) => [...(m.consumable ? [m.consumable.id] : []), ...(m.potion ? [m.potion.id] : [])]);
-  const consumables = { ...save.consumables };
   const salvageGold = salvaged.reduce((sum, s) => sum + s.gold, 0);
   const salvageMaterials = salvaged.flatMap((s) => s.materials);
-  const mealXp = meal?.kind === 'xp' ? meal.multiplier : 1;
 
-  const heroes = save.heroes.map((hero) => {
-    if (!expedition.heroIds.includes(hero.id)) return hero;
-    const xpBonus = (traitById[hero.trait]?.effects ?? []).reduce((m, e) => m * (e.kind === 'xpMultiplier' ? e.multiplier : 1), 1);
-    return addXp(
-      { ...hero, equipment: { ...hero.equipment, consumable: null, ...(hero.equipment.potion ? { potion: null } : {}) } },
-      Math.round((xp + (firstClear?.xp ?? 0)) * xpBonus * mealXp * (1 + guildBonus(save, 'heroXp'))),
-    );
-  });
+  const heroes = save.heroes.map((hero) =>
+    expedition.heroIds.includes(hero.id)
+      ? { ...hero, equipment: { ...hero.equipment, consumable: null, ...(hero.equipment.potion ? { potion: null } : {}) } }
+      : hero,
+  );
 
   // The first win against each tier boss earns a Guild Hall charter.
   const charter = success && !!dungeon.isBoss && !save.clearedDungeons.includes(dungeon.id);
-  // Later boss wins on the same rotation day roll a lower chance once.
-  const dailyBonus = !dungeon.isBoss || bossBonusAvailable(save, dungeon.id, expedition.endsAt);
-  const rewardDungeon = dailyBonus
-    ? dungeon
-    : { ...dungeon, mainRewardChance: mainRewardRules.repeatMainRewardChance, mainRewardExtraRollChance: 0 };
-  let next: SaveData = {
-    ...save,
-    charters: save.charters + (charter ? 1 : 0),
-    gold: save.gold + gold + (firstClear?.gold ?? 0) + salvageGold,
-    materials: addMaterials(save.materials, [...materials, ...salvageMaterials, ...(run.opportunity?.materials ?? [])]),
-    consumables,
-    heroes,
-    firstClears: firstClear ? [...save.firstClears, dungeon.id] : save.firstClears,
-    expeditions: save.expeditions.filter((e) => e.id !== expedition.id),
-    clearedDungeons:
-      success && !save.clearedDungeons.includes(dungeon.id) ? [...save.clearedDungeons, dungeon.id] : save.clearedDungeons,
-    bossBonusDays:
-      success && dungeon.isBoss && dailyBonus ? { ...save.bossBonusDays, [dungeon.id]: rotationDay(expedition.endsAt) } : save.bossBonusDays,
-  };
-  if (recipeId) next = unlockRecipe(next, recipeId);
+  let next: SaveData = grantLoot(
+    {
+      ...save,
+      charters: save.charters + (charter ? 1 : 0),
+      gold: save.gold + salvageGold,
+      materials: addMaterials(save.materials, [...salvageMaterials, ...(run.opportunity?.materials ?? [])]),
+      heroes,
+      expeditions: save.expeditions.filter((e) => e.id !== expedition.id),
+      clearedDungeons:
+        success && !save.clearedDungeons.includes(dungeon.id) ? [...save.clearedDungeons, dungeon.id] : save.clearedDungeons,
+      firstWinDay: firstWin ? rotationDay(expedition.endsAt) : save.firstWinDay,
+    },
+    expedition.heroIds,
+    loot,
+    expedition.endsAt,
+  );
+  // A tier boss teaches the pickaxe that opens the next tier.
+  const pickaxe = success && dungeon.isBoss ? recipeById[`${MATERIAL_TIERS[dungeon.tier - 1].id}Pickaxe`] : undefined;
+  if (pickaxe) next = unlockRecipe(next, pickaxe.id);
   // The opportunity's save-side rewards: a taught recipe, a prisoner recruit.
   const opportunityRecipe =
     run.opportunity?.answered && run.opportunity.recipe ? unknownProvisionRecipe(next, rng) : null;
@@ -484,19 +444,6 @@ export function resolveExpedition(
   if (run.opportunity?.answered && run.opportunity.recruit && next.heroes.length < rosterCap(next)) {
     const recruit = prisonerRecruit(next, rng);
     next = { ...next, heroes: [...next.heroes, recruit], nextUid: next.nextUid + 1 };
-  }
-  // The first win in each pool dungeon on a rotation day teaches one of its
-  // blueprints, on top of the normal rolls (see guaranteedBlueprint). The
-  // player's known recipes are read after the normal drop, so it never repeats it.
-  const dailyBlueprint =
-    success && dungeon.slot && !tutorialReward && blueprintBonusAvailable(save, dungeon.id, expedition.endsAt)
-      ? guaranteedBlueprint(next, dungeon)
-      : null;
-  if (dailyBlueprint) {
-    next = {
-      ...unlockRecipe(next, dailyBlueprint),
-      blueprintBonusDays: { ...save.blueprintBonusDays, [dungeon.id]: rotationDay(expedition.endsAt) },
-    };
   }
   // Heroes come back with the HP the run left them, as a share of their max after any level up.
   next = applyRunHp(
@@ -529,21 +476,17 @@ export function resolveExpedition(
     }
   }
 
-  // Main rewards: only for successes. The tutorial run always brings back a Sigil.
-  let mainRewards: ExpeditionReport['mainRewards'] = [];
+  // Sigils: only for wins. The tutorial run always brings one back.
+  let sigil: SigilDrop = {};
   if (tutorialReward) {
     if (next.sigils.length < sigilCap(next)) {
       next = { ...next, sigils: [...next.sigils, tutorialReward.sigilTier] };
-      mainRewards = [{ kind: 'sigil', tier: tutorialReward.sigilTier }];
+      sigil = { sigil: tutorialReward.sigilTier };
     }
   } else if (success) {
-    const granted = grantMainRewards(next, rewardDungeon, createRng(`${expedition.seed}|main`), expedition.endsAt, {
-      ...mainReward,
-      goldMultiplier: guildGold * luckGold,
-      chanceMultiplier: (1 + guildBonus(save, 'mainRewards')) * luckRoll,
-    });
-    next = granted.save;
-    mainRewards = granted.rewards;
+    const rolled = rollSigil(next, dungeon, createRng(`${expedition.seed}|sigil`));
+    next = rolled.save;
+    sigil = rolled.drop;
   }
 
   const opportunity: OpportunityOutcome | null = run.opportunity
@@ -554,12 +497,13 @@ export function resolveExpedition(
       dungeon,
       party,
       run,
-      gold,
-      recipeItemNames: [recipeId, opportunityRecipe]
-        .filter((id): id is string => id !== null)
-        .map((id) => recipeOutput(recipeById[id]).name),
-      mainRewards,
-      firstClear,
+      gold: loot.gold,
+      recipeItemNames: [...loot.recipeIds, ...(pickaxe ? [pickaxe.id] : []), ...(opportunityRecipe ? [opportunityRecipe] : [])].map(
+        (id) => recipeOutput(recipeById[id]).name,
+      ),
+      ...sigil,
+      firstWin,
+      firstTierClear,
       charter,
       hunger: expedition.hunger,
       salvaged,
@@ -592,14 +536,13 @@ export function resolveExpedition(
     })),
     opportunity,
     salvaged,
-    mainRewards,
-    gold,
-    materials,
-    recipeId,
-    xp,
+    loot,
+    gold: loot.gold,
+    xp: loot.xp,
+    ...sigil,
+    ...(firstWin ? { firstWin } : {}),
+    ...(firstTierClear ? { firstTierClear } : {}),
     consumablesUsed,
-    firstClear,
-    dailyBlueprint: dailyBlueprint ?? undefined,
     charter: charter || undefined,
     log,
     seen: false,

@@ -4,10 +4,9 @@ import { mobById } from '@/content/enemies';
 import { guildTrackById, guildTracks } from '@/content/guild';
 import { heroClasses, xpRules } from '@/content/heroes';
 import { dungeonById, itemById, recipeById } from '@/content/lookup';
-import { mainRewardRules } from '@/content/mainRewards';
+import { lootConfig } from '@/content/loot/config';
 import { recipes } from '@/content/recipes';
 import { approachRules, narrowPartySize } from '@/content/threats';
-import { firstClearRules } from '@/content/rotation';
 import { traitById } from '@/content/traits';
 
 import { canCraft, craft, craftableCount, craftMany, forgedItem, isKnown } from '../crafting/crafting';
@@ -16,9 +15,7 @@ import { briefingFor, type Rotation } from '../dungeons/rotation';
 import { dungeonTagWeights } from '../dungeons/tags';
 import { ELEMENTS, stoneId, weaponMultiplier, type Element } from '../elements';
 import {
-  blueprintBonusAvailable,
-  bossBonusAvailable,
-  guaranteedBlueprint,
+  firstWinAvailable,
   highestUnlockedTier,
   isDungeonAvailable,
   launchPlan,
@@ -29,7 +26,7 @@ import {
   type Loadout,
 } from '../expeditions/expeditions';
 import { estimateOdds, type Odds } from '../expeditions/odds';
-import { charmItems, mealItems, supplyHeld, supplyItems } from '../expeditions/provisions';
+import { mealItems, supplyHeld, supplyItems } from '../expeditions/provisions';
 import { rollDailyApproaches } from '../upkeep';
 import { answersMemberOf, EMPTY_BRIEFING, prepareParty, simulateRun } from '../expeditions/simulate';
 import { masteryCap, masteryOf, masteryTypeOf } from '../forging/mastery';
@@ -45,6 +42,7 @@ import type { PatrolKind, PatrolSubject, TravellerKind } from '../patrols/genera
 import type { TravellerReward } from '../patrols/travellers';
 import { collectTreasure, liveTreasureMaps, readTreasureMap } from '../rewards/treasure';
 import { challengeSanctum, sanctumById, sanctumDungeon, type SanctumSpawn } from '../sanctums/sanctums';
+import type { Loot, LootCategory } from '../loot/types';
 import type { SaveData } from '../save';
 import { buySupply, buySupplyProblem, isTavernUnlocked, offerLevel, recruit, recruitPrice, tavernOffers, type TavernSpawn } from '../taverns/taverns';
 import { currentHp, drinkPotion, drinkProblem, maxHp } from '../team/health';
@@ -91,9 +89,9 @@ export type ExpeditionRow = {
   hours: number;
   /** The party's average level at launch. */
   level: number;
-  /** A boss win that claimed the daily bonus. */
-  bossBonus: boolean;
-  /** A blueprint taught by the day's first win in a pool dungeon. */
+  /** The day's first win, its loot row rolled on top. */
+  firstWin: boolean;
+  /** A blueprint dropped. */
   blueprint: boolean;
   /** The party's average share of max HP at launch. */
   startHp: number;
@@ -146,6 +144,8 @@ export type RunLog = {
   expeditions: ExpeditionRow[];
   crafts: CraftRow[];
   goldIn: { day: number; source: string; amount: number }[];
+  /** Times each loot category dropped, over every source. */
+  loot: Partial<Record<LootCategory, number>>;
   goldOut: { day: number; sink: string; amount: number }[];
   /** Material → source → amount gathered (or sink → amount used). */
   gathered: Record<string, Record<string, number>>;
@@ -563,7 +563,7 @@ function cook(sim: Sim, itemId: string, count: number) {
 
 /**
  * Supply first, cooked in batches (jerky while meat lasts, then trail mix);
- * then potions, meals and charms up to their stock. The bot equips no kits
+ * then potions and meals up to their stock. The bot equips no kits
  * and never opts into an opportunity.
  */
 export function stockProvisions(sim: Sim) {
@@ -578,7 +578,6 @@ export function stockProvisions(sim: Sim) {
   const targets: [string, number][] = [
     ...Object.entries(sim.config.stock).filter(([id]) => id !== 'emberWardSalve' || fireToday),
     ...mealItems.map((i): [string, number] => [i.id, provisions.meals]),
-    ...charmItems.map((i): [string, number] => [i.id, provisions.charms]),
   ];
   for (const [id, target] of targets) {
     const missing = target - (sim.save.consumables[id] ?? 0);
@@ -604,20 +603,6 @@ function mealFor(sim: Sim, dungeon: DungeonDef, heroIds: string[], o: Odds): str
           ? 'scholarsPorridge'
           : 'merchantsPie';
   return (sim.save.consumables[goal] ?? 0) > 0 ? goal : null;
-}
-
-/** On safe short runs, potions give way to charms. */
-function withCharms(sim: Sim, dungeon: DungeonDef, heroIds: string[], o: Odds) {
-  if (dungeon.isBoss || dungeon.slot !== 'short' || o.success < sim.config.provisions.charmOdds) return;
-  let tooth = false;
-  for (const id of heroIds) {
-    if (sim.save.heroes.find((h) => h.id === id)!.equipment.consumable !== 'healingPotion') continue;
-    const held = (item: string) => (sim.save.consumables[item] ?? 0) > 0;
-    const charm: string | null = !tooth && held('luckyTooth') ? 'luckyTooth' : held('rabbitsFoot') ? 'rabbitsFoot' : null;
-    if (!charm) continue;
-    tooth ||= charm === 'luckyTooth';
-    sim.save = equip(sim.save, id, 'consumable', charm);
-  }
 }
 
 /** Buys the missing supply at a tavern reachable today, if the stock falls short. */
@@ -872,7 +857,9 @@ export function digTreasure(sim: Sim) {
     const spot = sim.save.treasureMaps.find((m) => m.id === map.id)!.location!;
     if (!sim.reach.maps.has(map.id)) sim.reach.maps.set(map.id, sim.rng.chance(reachChance(sim, distanceMeters(sim.location, spot))));
     if (sim.reach.maps.get(map.id)) {
-      act(sim, 'treasure', (save) => collectTreasure(save, map.id, spot, spot, sim.now).save);
+      const dug = collectTreasure(sim.save, map.id, spot, spot, sim.now);
+      countLoot(sim, dug.contents);
+      act(sim, 'treasure', () => dug.save);
     }
   }
 }
@@ -882,7 +869,6 @@ export function digTreasure(sim: Sim) {
 export function launch(sim: Sim, dungeon: DungeonDef, heroIds: string[], o: Odds) {
   const briefing = briefingFor(sim.rotation, dungeon);
   sim.save = withLoadout(sim.save, heroIds, dungeon, briefing);
-  withCharms(sim, dungeon, heroIds, o);
   const loadout = { mealId: mealFor(sim, dungeon, heroIds, o) };
   topUpSupply(sim, dungeon, heroIds, loadout, briefing);
   // The prediction logged is for the party exactly as it leaves.
@@ -901,31 +887,31 @@ export function launch(sim: Sim, dungeon: DungeonDef, heroIds: string[], o: Odds
   sim.launched.set(id, { odds: final.success, qualities, day: sim.day, hour: (sim.now - sim.startedAt) / 3_600_000, level });
 }
 
-/** Whether a win here could teach a weapon or armour blueprint the roster can use and doesn't know yet. */
+/** Whether a win here could drop a weapon or armour blueprint of the dungeon's tier the roster favours and doesn't know yet. */
 function dropsBlueprint(save: SaveData, dungeon: DungeonDef) {
-  return dungeon.recipeDrops.some(({ recipeId }) => {
-    const item = forgedItem(recipeById[recipeId]);
-    return item && !save.knownRecipes.includes(recipeId) && save.heroes.some((h) => affinityOf(h.classId, item.gearType) === 'favoured');
+  return recipes.some((recipe) => {
+    const item = forgedItem(recipe);
+    return (
+      item?.tier === dungeon.tier &&
+      !save.knownRecipes.includes(recipe.id) &&
+      save.heroes.some((h) => affinityOf(h.classId, item.gearType) === 'favoured')
+    );
   });
 }
 
 /**
- * Gold-equivalent of a run: gold for the share cleared, first-clear bonus,
- * main rewards (about a gold roll each) and XP. A boss whose daily bonus is
- * gone today only rolls the repeat chance. The day's first win also values
- * the guaranteed blueprint, at `blueprintValueRuns` of the dungeon's top gold.
+ * Gold-equivalent of a run: gold for the share cleared, the day's first win
+ * and a new tier's first clear (their rows' gold) and XP. The loot categories
+ * beyond gold are not valued.
  */
 function expectedValue(sim: Sim, dungeon: DungeonDef, o: Odds, heroes: number) {
   const mid = ((dungeon.gold[0] + dungeon.gold[1]) / 2) * (1 + guildBonus(sim.save, 'gold'));
-  const firstClear = dungeon.slot && !sim.save.firstClears.includes(dungeon.id) ? dungeon.gold[1] * firstClearRules.goldShare : 0;
-  const bonus = !dungeon.isBoss || bossBonusAvailable(sim.save, dungeon.id, sim.now);
-  const rolls = bonus ? dungeon.mainRewardChance + (dungeon.mainRewardExtraRollChance ?? 0) : mainRewardRules.repeatMainRewardChance;
-  const blueprint =
-    dungeon.slot && blueprintBonusAvailable(sim.save, dungeon.id, sim.now) && guaranteedBlueprint(sim.save, dungeon)
-      ? dungeon.gold[1] * sim.config.odds.blueprintValueRuns
-      : 0;
+  const { firstWin, firstTierClear } = lootConfig.bonusRows;
+  const newTier = !sim.save.clearedDungeons.some((id) => dungeonById[id]?.tier === dungeon.tier);
+  const bonus =
+    (firstWinAvailable(sim.save, dungeon, sim.now) ? dungeon.gold[1] * firstWin.gold : 0) + (newTier ? dungeon.gold[1] * firstTierClear.gold : 0);
   const tierShare = xpRules.lowerTierShare[Math.min(xpRules.lowerTierShare.length - 1, highestTier(sim.save) - dungeon.tier)];
-  return mid * o.progress + o.success * (firstClear + blueprint + rolls * mid) + dungeon.xp * tierShare * o.progress * heroes * sim.config.xpGoldValue;
+  return mid * o.progress + o.success * bonus + dungeon.xp * tierShare * o.progress * heroes * sim.config.xpGoldValue;
 }
 
 export function sendExpeditions(sim: Sim) {
@@ -977,6 +963,11 @@ export function sendExpeditions(sim: Sim) {
 }
 
 /** Resolves one expedition through the game, and logs it with the abilities that fired in its run. */
+/** Counts every category a roll dropped, for the observed pacing. */
+export function countLoot(sim: Sim, loot: Loot) {
+  for (const category of loot.dropped) sim.log.loot[category] = (sim.log.loot[category] ?? 0) + 1;
+}
+
 export function collectExpedition(sim: Sim, expedition: ActiveExpedition) {
   const dungeon = dungeonById[expedition.dungeonId];
   const briefing = expedition.briefing ?? EMPTY_BRIEFING;
@@ -987,23 +978,13 @@ export function collectExpedition(sim: Sim, expedition: ActiveExpedition) {
   const classes = expedition.heroIds.map((id) => sim.save.heroes.find((h) => h.id === id)!.classId);
 
   const before = sim.save;
-  const bossBonus = !!dungeon.isBoss && bossBonusAvailable(before, dungeon.id, expedition.endsAt);
   const { save, report } = resolveExpedition(before, expedition);
-  // Gold by source; everything else through `act` so materials are counted.
-  const pouches = report.mainRewards.reduce((sum, r) => sum + (r.kind === 'goldPouch' ? r.gold : 0), 0);
-  const mapGold = report.mainRewards.reduce((sum, r) => sum + (r.kind === 'mapGold' ? r.gold : 0), 0);
+  countLoot(sim, report.loot);
   const source = expedition.guaranteed ? 'tutorial' : 'dungeon';
   // Materials through `act` (with the gold held back), then the gold split by source.
   act(sim, source, () => ({ ...save, gold: before.gold }));
   sim.save = save;
-  for (const [kind, amount] of [
-    [source, report.gold],
-    ['firstClear', report.firstClear?.gold ?? 0],
-    ['pouch', pouches],
-    ['mapGold', mapGold],
-  ] as const) {
-    if (amount > 0) sim.log.goldIn.push({ day: sim.day, source: kind, amount });
-  }
+  if (report.gold > 0) sim.log.goldIn.push({ day: sim.day, source, amount: report.gold });
 
   const effects: Record<string, number> = {};
   const classEffects: Record<string, number> = {};
@@ -1039,15 +1020,15 @@ export function collectExpedition(sim: Sim, expedition: ActiveExpedition) {
     odds: launched?.odds ?? 1,
     success: report.success,
     outcome: report.outcome,
-    gold: report.gold + (report.firstClear?.gold ?? 0) + pouches + mapGold,
+    gold: report.gold,
     xp: report.xp,
     qualities: launched?.qualities ?? { crappy: 0, normal: 0, uncommon: 0, rare: 0, legendary: 0 },
     effects,
     classEffects,
     hours: (expedition.endsAt - expedition.startedAt) / 3_600_000,
     level: launched?.level ?? 1,
-    bossBonus,
-    blueprint: !!report.dailyBlueprint,
+    firstWin: !!report.firstWin,
+    blueprint: report.loot.recipeIds.length > 0,
     startHp: report.heroHp.reduce((s, h) => s + (h.before ?? h.maxHp) / Math.max(1, h.maxHp), 0) / report.heroHp.length,
     hunger: report.hunger ?? 'fed',
     supplyUsed: report.supplyUsed ?? 0,

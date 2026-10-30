@@ -194,8 +194,8 @@ describe('recruiting', () => {
     const drops = (s: SaveData) =>
       Array.from({ length: 80 }, (_, i) => {
         const started = startExpedition({ ...s, nextUid: i + 10 }, 'ratCellar', ['bram'], 0);
-        return resolveExpedition(started, started.expeditions[0]).report.recipeId;
-      });
+        return resolveExpedition(started, started.expeditions[0]).report.loot.recipeIds;
+      }).flat();
     const fresh = drops(strong).filter((id) => id && ['axe', 'dagger', 'staff'].some((type) => id.startsWith(type)));
     expect(fresh.length).toBeGreaterThan(0);
     const taught = unlockRecipe(strong, fresh[0]!);

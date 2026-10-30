@@ -1,7 +1,9 @@
+import { lootConfig } from '@/content/loot/config';
 import { ruinRules } from '@/content/placeActivities';
 import { itemById } from '@/content/lookup';
 
 import { distanceMeters } from '../generation/geo';
+import { lootChances } from '../loot/chances';
 import type { LatLng } from '../generation/types';
 import { createInitialSave, type SaveData } from '../save';
 import type { GearDef } from '../types';
@@ -35,14 +37,18 @@ describe('digRuin', () => {
     expect(save.usedPlaces[spawn.id]).toBe(spawn.expiresAt);
   });
 
-  it('pays stone and ore the player can mine, and keeps progress across digs', () => {
+  it('pays stone or wood the player can mine, and keeps progress across digs', () => {
     let save = digger();
+    const [min, max] = lootConfig.quantities.materials;
     for (let i = 0; i < ruinRules.relicEvery - 1; i++) {
-      const { save: dug, relic } = digRuin(save, spawnOf(`2:${i}`), position, now);
+      const { save: dug, relic, reward } = digRuin(save, spawnOf(`2:${i}`), position, now);
       expect(relic).toBe(false);
       expect(dug.ruinsProgress).toBe(i + 1);
-      const stone = dug.materials.stone ?? 0;
-      expect(stone).toBeGreaterThanOrEqual(ruinRules.loot.stone[0] * (i + 1));
+      for (const { materialId, amount } of reward.materials) {
+        expect(['stone', 'wood']).toContain(materialId);
+        expect(amount).toBeGreaterThanOrEqual(min);
+        expect(amount).toBeLessThanOrEqual(max);
+      }
       save = dug;
     }
     expect(save.ruinsProgress).toBe(ruinRules.relicEvery - 1);
@@ -70,14 +76,15 @@ describe('digRuin', () => {
     expect(dug.gear.at(-1)!.quality).toBe(item.quality);
   });
 
-  it('gives a key fragment about a quarter of the time over many ruins', () => {
+  it('gives a key fragment at the matrix chance over many ruins', () => {
     const save = digger();
+    const chance = lootChances({ source: 'ruinsDig', luck: 0, modifiers: [] }).keyFragments;
     const fragments = Array.from({ length: 1000 }, (_, i) => ruinDig(save, spawnOf(`5:${i}`)).reward.keyFragments).reduce(
       (sum, n) => sum + n,
       0,
     );
-    expect(fragments / 1000).toBeGreaterThan(ruinRules.keyFragmentChance - 0.08);
-    expect(fragments / 1000).toBeLessThan(ruinRules.keyFragmentChance + 0.08);
+    expect(fragments / 1000).toBeGreaterThan(chance - 0.08);
+    expect(fragments / 1000).toBeLessThan(chance + 0.08);
   });
 });
 

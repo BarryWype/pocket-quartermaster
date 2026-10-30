@@ -151,10 +151,13 @@ describe('combat stats', () => {
 
   it('pays Luck out in patrol gold', () => {
     const { spawn } = findSpawn((s) => s.kind === 'goblins');
-    const context = { goldMultiplier: 1, pickaxeTier: 0 };
-    const plain = patrolRewards({ ...context, luck: 0 }, spawn, 2, false, createRng('r'));
-    const lucky = patrolRewards({ ...context, luck: 10 }, spawn, 2, false, createRng('r'));
+    const context = { goldMultiplier: 1, luck: 0, pickaxeTier: 0, playerTier: 1 };
+    const rewards = (luck: number, seed: string) => patrolRewards({ ...context, luck }, spawn, 2, false, [], createRng(seed));
+    // A seed whose gold roll lands, so the Luck bonus has something to scale.
+    const seed = Array.from({ length: 50 }, (_, i) => `r${i}`).find((s) => rewards(0, s).gold > 0)!;
+    const plain = rewards(0, seed);
+    const lucky = rewards(10, seed);
     expect(plain.gold).toBeGreaterThan(0);
-    expect(lucky.gold).toBe(Math.round(plain.gold * 1.5));
+    expect(lucky.gold).toBe(Math.round(plain.gold * (1 + 10 * 0.05)));
   });
 });

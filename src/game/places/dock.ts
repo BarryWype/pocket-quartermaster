@@ -1,8 +1,10 @@
 import { placeRules } from '@/content/places';
-import { dockRules } from '@/content/placeActivities';
 
 import { distanceMeters } from '../generation/geo';
 import { createRng } from '../generation/rng';
+import { rollForSave } from '../loot/context';
+import { grantLoot } from '../loot/grant';
+import type { Loot } from '../loot/types';
 import type { PlaceSpawn } from './generate';
 import type { SaveData } from '../save';
 import type { LatLng } from '../generation/types';
@@ -19,19 +21,13 @@ export function fishProblem(save: SaveData, spawn: PlaceSpawn, player: LatLng, n
 }
 
 /**
- * Catches fish at a dock: one catch per dock per player, so the place hides
- * for its window once fished.
+ * Fishes at a dock: its row of the loot matrix (fish, rarely a sunken find).
+ * One catch per dock per player, so the place hides for its window once fished.
  */
-export function fish(save: SaveData, spawn: PlaceSpawn, player: LatLng, now: number): { save: SaveData; amount: number } {
+export function fish(save: SaveData, spawn: PlaceSpawn, player: LatLng, now: number): { save: SaveData; loot: Loot } {
   const problem = fishProblem(save, spawn, player, now);
   if (problem) throw new Error(`Cannot fish here: ${problem}`);
-  const amount = createRng(`fish|${spawn.id}`).int(...dockRules.fish);
-  return {
-    save: {
-      ...save,
-      materials: { ...save.materials, fish: (save.materials.fish ?? 0) + amount },
-      usedPlaces: { ...save.usedPlaces, [spawn.id]: spawn.expiresAt },
-    },
-    amount,
-  };
+  const loot = rollForSave(save, 'fishingDock', createRng(`fish|${spawn.id}`));
+  const granted = grantLoot(save, [], loot, now);
+  return { save: { ...granted, usedPlaces: { ...granted.usedPlaces, [spawn.id]: spawn.expiresAt } }, loot };
 }

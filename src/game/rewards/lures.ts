@@ -1,4 +1,4 @@
-import { mainRewardRules } from '@/content/mainRewards';
+import { lureRules } from '@/content/gatheringConfig';
 import { resources } from '@/content/resources';
 
 import { createRng } from '../generation/rng';
@@ -7,7 +7,6 @@ import type { LatLng, Spawn, StaticSpawn } from '../generation/types';
 import type { SaveData } from '../save';
 import type { ActiveLure } from '../types';
 
-const lureRules = mainRewardRules.lure;
 const DURATION_MS = lureRules.durationMinutes * 60_000;
 
 export function lureEndsAt(save: SaveData) {

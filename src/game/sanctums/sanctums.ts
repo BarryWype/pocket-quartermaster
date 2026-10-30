@@ -3,7 +3,7 @@ import { frLogTemplates } from '@/content/fr/logTemplates';
 import { logTemplates } from '@/content/logTemplates';
 import { fill, localized, tr } from '@/i18n';
 import { guildRules } from '@/content/guild';
-import { expeditionRules } from '@/content/dungeons';
+import { lootConfig } from '@/content/loot/config';
 import { sanctumRules, sanctums } from '@/content/sanctums';
 
 import { convertShards, shardId, stoneId } from '../elements';
@@ -12,6 +12,9 @@ import { estimatePartyOdds, ODDS_RUNS } from '../expeditions/odds';
 import { prepareParty, simulateRun } from '../expeditions/simulate';
 import { distanceMeters } from '../generation/geo';
 import { guildBonus } from '../guild/guild';
+import { rollForSave, sourceAmounts } from '../loot/context';
+import { grantLoot } from '../loot/grant';
+import { emptyLoot } from '../loot/types';
 import { createRng } from '../generation/rng';
 import { randomPointInTile, tilesAround } from '../generation/tiles';
 import { windowIndex, windowRange } from '../generation/time';
@@ -31,7 +34,7 @@ export type SanctumSpawn = {
   expiresAt: number;
 };
 
-export type SanctumReward = { element: SanctumDef['element']; shards: number; stones: number; charter: boolean };
+export type SanctumReward = { element: SanctumDef['element']; shards: number; stones: number; charter: boolean; xp: number };
 
 export type SanctumResult = {
   win: boolean;
@@ -77,9 +80,6 @@ export function sanctumDungeon(sanctum: SanctumDef, tier: number, rules: Rules =
     boss: sanctumGuardian(sanctum, tier),
     gold: [0, 0],
     xp: 0,
-    loot: [],
-    recipeDrops: [],
-    mainRewardChance: 0,
   };
 }
 
@@ -134,7 +134,8 @@ export function challengeSanctum(
   const run = simulateRun(party, dungeon, seed);
   const win = run.bossDefeated;
   // Lucky parties carry more shards and stones home.
-  const luckGold = 1 + expeditionRules.luck.goldPerPoint * party.reduce((sum, m) => sum + m.luck, 0);
+  const luck = party.reduce((sum, m) => sum + m.luck, 0);
+  const luckGold = 1 + lootConfig.luck.goldPerPoint * luck;
   const amounts = rules.rewards[tier - 1][win ? 'win' : 'loss'];
   // Wins also get the Guild Hall's extra shards, and sometimes a charter.
   const reward = {
@@ -142,7 +143,13 @@ export function challengeSanctum(
     shards: Math.round((amounts.shards + (win ? guildBonus(save, 'shards') : 0)) * luckGold),
     stones: Math.round(amounts.stones * luckGold),
     charter: win && createRng(`${seed}|charter`).chance(guildRules.charters.sanctumWinChance),
+    xp: 0,
   };
+  // A win rolls the Sanctum row for the rest; its shards are the ones above.
+  const loot = win
+    ? { ...rollForSave(save, 'sanctum', createRng(`${seed}|loot`), { tier, luck, base: sourceAmounts('sanctum', tier) }), materials: [] }
+    : emptyLoot();
+  reward.xp = loot.xp;
 
   const log = buildLog(
     {
@@ -151,7 +158,6 @@ export function challengeSanctum(
       run,
       gold: 0,
       recipeItemNames: [],
-      mainRewards: [],
       salvaged: [],
       summary: fill(localized({ en: logTemplates, fr: frLogTemplates })[win ? 'sanctumWon' : 'sanctumLost'][0], {
         guardian: tr(dungeon.boss.name),
@@ -164,8 +170,9 @@ export function challengeSanctum(
   return {
     result: { win, log, reward },
     save: {
-      ...applyRunHp(save, run.hp, now),
+      ...applyRunHp(grantLoot(save, heroIds, loot, now), run.hp, now),
       sigils: save.sigils.filter((_, i) => i !== sigilIndex),
+      gold: save.gold + loot.gold,
       charters: save.charters + (reward.charter ? 1 : 0),
       materials: convertShards(
         addMaterials(

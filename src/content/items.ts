@@ -6,7 +6,7 @@ import { GEAR_SLOTS, gearId, gearNames, gearProfiles, testCharm } from './equipm
 import { healthRules } from './health';
 import { provisionRules } from './provisions';
 
-const { meals, charms, elixirs } = provisionRules;
+const { meals, elixirs } = provisionRules;
 
 export const MATERIAL_TIERS = [
   { id: 'wood', name: 'Wooden' },
@@ -75,13 +75,11 @@ export const items: ItemDef[] = [
   { id: 'steelPickaxe', name: 'Steel pickaxe', emoji: '⛏️', icon: require('../../assets/icons/scaled/pickaxe-steel.png'), slot: 'tool', toolType: 'pickaxe', tier: 5 },
 
   // Consumables, in a hero's slot, all gone after the run: potions are drunk
-  // below the HP threshold, charms help for the whole run, and what never
+  // below the HP threshold, and what never
   // triggered is broken back down (see threats/salvage.ts).
   { id: 'healingPotion', name: 'Minor healing potion', emoji: '🧪', description: 'Heals 30% of max HP when badly hurt.', slot: 'consumable', heal: healthRules.potionHeal.minor, when: 'lowHp' },
   { id: 'standardHealingPotion', name: 'Healing potion', emoji: '🧪', description: 'Heals 50% of max HP when badly hurt.', slot: 'consumable', heal: healthRules.potionHeal.standard, when: 'lowHp' },
   { id: 'greaterHealingPotion', name: 'Greater healing potion', emoji: '🧪', description: 'Heals 70% of max HP when badly hurt.', slot: 'consumable', heal: healthRules.potionHeal.greater, when: 'lowHp' },
-  { id: 'rabbitsFoot', name: 'Rabbit’s foot', emoji: '🐇', description: '+5% critical hit chance for this hero.', slot: 'consumable', charm: { kind: 'crit', chance: charms.rabbitsFoot } },
-  { id: 'luckyTooth', name: 'Lucky tooth', emoji: '🦷', description: '+5% gold for the party (one per party counts).', slot: 'consumable', charm: { kind: 'gold', multiplier: charms.luckyTooth } },
 
   // Kits and ward salves: single-use answers to threats, in a hero's slot and
   // gone after the run, like every consumable.

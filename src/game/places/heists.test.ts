@@ -4,9 +4,10 @@ import { heistRules } from '@/content/placeActivities';
 import type { LatLng } from '../generation/types';
 import { createInitialSave, type SaveData } from '../save';
 import { isAway } from '../team/team';
-import type { Heist, PlaceReward } from '../types';
-import { heistLevel, heistOdds, heistProblem, heistScore, resolveHeists, startHeist } from './heists';
+import { emptyLoot } from '../loot/types';
 import type { PlaceSpawn } from './generate';
+import { heistLevel, heistOdds, heistProblem, heistScore, resolveHeists, startHeist } from './heists';
+import type { Heist } from '../types';
 
 const position: LatLng = { latitude: -41.2865, longitude: 174.7762 };
 const far: LatLng = { latitude: -41.29, longitude: 174.7762 };
@@ -30,7 +31,7 @@ const saveOf = (classId: string, tier = 1): SaveData => ({
   clearedDungeons: tier > 1 ? dungeons.filter((d) => d.isBoss && d.tier < tier).map((d) => d.id) : [],
 });
 
-const reward: PlaceReward = { gold: 120, xp: 0, materials: [], consumables: [], gear: [], keyFragments: 0 };
+const reward = { ...emptyLoot(), gold: 120 };
 
 const heistOf = (over: Partial<Heist> = {}): Heist => ({
   id: 'heist9',

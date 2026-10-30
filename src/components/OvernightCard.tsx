@@ -55,7 +55,6 @@ export function OvernightCard({ save, dungeon, rotation, now, chance, onSend }: 
         {t('expeditions.overnight.rewards', {
           gold: `${dungeon.gold[0]}–${dungeon.gold[1]}`,
           xp: dungeon.xp,
-          percent: formatPercent(dungeon.mainRewardChance),
         })}
       </Text>
       <BriefingChips briefing={briefingFor(rotation, dungeon)} />

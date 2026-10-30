@@ -1,5 +1,5 @@
-import { dungeons } from '@/content/dungeons';
-import { items } from '@/content/items';
+import { gearId, gearRecipes } from '@/content/equipment';
+import { items, MATERIAL_TIERS } from '@/content/items';
 import { itemById, recipeById } from '@/content/lookup';
 import { materials } from '@/content/materials';
 import { QUALITIES } from '@/content/forging';
@@ -7,7 +7,7 @@ import { recipes } from '@/content/recipes';
 
 import { createInitialSave, type SaveData } from '../save';
 import { startingMastery } from '../forging/mastery';
-import type { ProvisionDef } from '../types';
+import type { GearType, ProvisionDef } from '../types';
 import { canCraft, craft, forgetRecipe, isKnown, learnAllRecipes, ownsTool, unlockRecipe } from './crafting';
 
 const withMaterials = (counts: Record<string, number>, extra: Partial<SaveData> = {}): SaveData => ({
@@ -27,10 +27,6 @@ describe('content', () => {
       recipe.inputs.forEach((input) => expect(materialIds.has(input.materialId)).toBe(true));
       recipe.unlocks?.forEach((id) => expect(recipeIds.has(id)).toBe(true));
     }
-    for (const dungeon of dungeons) {
-      dungeon.recipeDrops.forEach((drop) => expect(recipeIds.has(drop.recipeId)).toBe(true));
-      dungeon.loot.forEach((entry) => expect(materialIds.has(entry.materialId)).toBe(true));
-    }
   });
 
   it('starts with the tier 1 core kit at the forge', () => {
@@ -38,21 +34,21 @@ describe('content', () => {
     expect(known).toEqual(['sword1', 'bow1', 'quiver1', 'wand1', 'mail1', 'shield1']);
   });
 
-  it('makes every forge recipe reachable through the starting kit, pickaxes or dungeon drops', () => {
+  it('makes every forge recipe reachable through the starting kit, pickaxes or loot matrix blueprints', () => {
     const reachable = new Set(createInitialSave().knownRecipes);
     recipes.forEach((r) => r.unlocks?.forEach((id) => reachable.add(id)));
-    dungeons.forEach((d) => d.recipeDrops.forEach((drop) => reachable.add(drop.recipeId)));
+    // Every gear blueprint of every tier can drop from the loot matrix.
+    for (const type of Object.keys(gearRecipes) as GearType[]) {
+      for (let tier = 1; tier <= 5; tier++) reachable.add(gearId(type, tier));
+    }
+    // Tier bosses teach the pickaxe that opens the next tier's material.
+    for (const tier of MATERIAL_TIERS) reachable.add(`${tier.id}Pickaxe`);
     // Kit recipes open with the tiers instead (see isKnown).
     recipes.forEach((r) => {
       if (r.availableFromTier !== undefined) reachable.add(r.id);
     });
     const missing = recipes.filter((r) => !reachable.has(r.id));
-    // Only the tier 1 recipes of the types no hero starts with are left; the
-    // blueprints (a later slice) open them, so no pickaxe or drop teaches them.
-    expect(missing.map((r) => r.id).sort()).toEqual([
-      'buckler1', 'censer1', 'focus1', 'knuckles1', 'leather1',
-      'offhandBlade1', 'plate1', 'robes1', 'spear1', 'tome1', 'warhammer1',
-    ].sort());
+    expect(missing).toEqual([]);
   });
 });
 

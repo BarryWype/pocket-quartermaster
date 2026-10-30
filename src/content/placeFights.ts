@@ -112,8 +112,6 @@ export const placeFightRules = {
   /** Chance a place's briefing carries one opportunity. */
   opportunityChance: 0.2,
   opportunities: ['hiddenCache', 'bounty', 'forgottenShrine', 'healingSpring'] as OpportunityId[],
-  /** XP per hero, a share of the tier's short dungeon. */
-  xpShareOfShortDungeon: 0.3,
   /** Briefing threats rise to level 2 once the player's highest tier reaches this. */
   levelTwoFromTier: 3,
   lair: {

@@ -166,10 +166,6 @@ export const frNames: Record<string, string> = {
   'Minor healing potion': 'Potion de soin mineure',
   'Healing potion': 'Potion de soin',
   'Greater healing potion': 'Potion de soin supérieure',
-  'Rabbit’s foot': 'Patte de lapin',
-  '+5% critical hit chance for this hero.': '+5 % de chances de coup critique pour ce héros.',
-  'Lucky tooth': 'Dent porte-bonheur',
-  '+5% gold for the party (one per party counts).': '+5 % d’or pour le groupe (une seule compte par groupe).',
   // Kits and ward salves
   'Rogue’s roll': 'Trousse du voleur',
   'Picks, a probe, wire and a decoy purse.': 'Crochets, une sonde, du fil et une bourse leurre.',

@@ -14,7 +14,8 @@ import type { SaveData } from '../save';
 import { applyRunHp } from '../team/health';
 import { isAway } from '../team/team';
 import { activeLairs } from '../places/fights';
-import { grantPatrolWin, patrolDungeon, patrolRewards, patrolRunOptions, settleConsumables, type PatrolRewards } from './fight';
+import { emptyLoot, type Loot } from '../loot/types';
+import { foughtEnemies, grantPatrolWin, patrolDungeon, patrolRewards, patrolRunOptions, settleConsumables } from './fight';
 import { isPatrolKind, patrolTier, patrolsAround, pruneByWindow, type PatrolKind, type PatrolSpawn } from './generate';
 import { distanceTo, hasFled, inEngageRange, isGone, isVisible } from './visibility';
 
@@ -68,7 +69,7 @@ export type BackgroundResult = {
   maxHp: number;
   /** Consumables that never triggered, broken back down (see threats/salvage.ts). */
   salvaged: ExpeditionReport['salvaged'];
-  rewards: PatrolRewards;
+  rewards: Loot;
 };
 
 export type BackgroundAlert =
@@ -234,16 +235,16 @@ export function backgroundStep(
       const run = simulateRun([{ ...escort.member, hp }], dungeon, id, patrolRunOptions(target.kind));
       const end = at + dungeon.durationMinutes * MINUTE;
       const hpAfter = run.hp[0]?.hp ?? 0;
-      const rewards: PatrolRewards = run.bossDefeated
+      const rewards: Loot = run.bossDefeated
         ? patrolRewards(
-            { goldMultiplier: next.goldMultiplier, pickaxeTier: next.pickaxeTier, luck: escort.member.luck },
+            { goldMultiplier: next.goldMultiplier, pickaxeTier: next.pickaxeTier, playerTier: next.highestTier, luck: escort.member.luck },
             target,
             tier,
             false,
+            foughtEnemies(run),
             createRng(`${id}|rewards`),
-            rules,
           )
-        : { gold: 0, xp: 0, materials: [] };
+        : emptyLoot();
       next.pending.push({
         id,
         at: end,
@@ -256,7 +257,7 @@ export function backgroundStep(
         hpBefore: hp,
         hpAfter,
         maxHp: escort.maxHp,
-        salvaged: untriggeredSalvage([{ ...escort.member, hp }], run, { barren: false, gold: 0 }),
+        salvaged: untriggeredSalvage([{ ...escort.member, hp }], run),
         rewards,
       });
       if (run.bossDefeated) next.beaten[target.id] = target.endsAt;
@@ -311,7 +312,7 @@ export function applyBackgroundResults(save: SaveData, results: BackgroundResult
     next = { ...next, appliedBackgroundResults: { ...next.appliedBackgroundResults, [result.id]: result.at } };
     // A hero dismissed since still counts the fight as done; one sent away since keeps the HP they left with.
     if (!next.heroes.some((h) => h.id === result.heroId)) continue;
-    if (result.won) next = grantPatrolWin(next, [result.heroId], result.rewards, result.patrolId, result.windowEndsAt);
+    if (result.won) next = grantPatrolWin(next, [result.heroId], result.rewards, result.patrolId, result.windowEndsAt, result.at);
     if (isAway(next, result.heroId)) continue;
     next = settleConsumables(next, [result.heroId], result.salvaged);
     next = applyRunHp(next, [{ heroId: result.heroId, hp: result.hpAfter, maxHp: result.maxHp }], result.at);

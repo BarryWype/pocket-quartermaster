@@ -83,29 +83,37 @@ describe('engaging a patrol', () => {
 });
 
 describe('patrol rewards', () => {
-  const context = { goldMultiplier: 1, luck: 0, pickaxeTier: 0 };
+  const context = { goldMultiplier: 1, luck: 0, pickaxeTier: 0, playerTier: 1 };
+  const rewards = (ctx: typeof context, spawn: PatrolSpawn, tier: number, elite: boolean, seed: string) =>
+    patrolRewards(ctx, spawn, tier, elite, [], createRng(seed));
 
   it('pays the Guild Hall gold track and XP from the tier', () => {
-    const plain = patrolRewards(context, goblins, 2, false, createRng('r'));
-    const guild = patrolRewards({ ...context, goldMultiplier: 1.2 }, goblins, 2, false, createRng('r'));
+    // Goblin gold and XP drop often, not always: take the first seed where both did.
+    const seed = Array.from({ length: 50 }, (_, i) => `r${i}`).find((s) => {
+      const loot = rewards(context, goblins, 2, false, s);
+      return loot.gold > 0 && loot.xp > 0;
+    })!;
+    const plain = rewards(context, goblins, 2, false, seed);
+    const guild = rewards({ ...context, goldMultiplier: 1.2 }, goblins, 2, false, seed);
     expect(plain.gold).toBeGreaterThan(0);
     expect(guild.gold).toBe(Math.round(plain.gold * 1.2));
     expect(plain.xp).toBeGreaterThan(0);
     expect(rewardContextOf({ ...tierTeam(), guild: { gold: 2 } }).goldMultiplier).toBeGreaterThan(1);
   });
 
-  it('pays elites twice', () => {
+  it('pays elites twice the gold and XP, with the same rolls otherwise', () => {
     const herd = asKind(goblins, 'herd');
-    const normal = patrolRewards(context, herd, 2, false, createRng('r'));
-    const elite = patrolRewards(context, herd, 2, true, createRng('r'));
+    const normal = rewards(context, herd, 2, false, 'r');
+    const elite = rewards(context, herd, 2, true, 'r');
+    expect(elite.gold).toBe(normal.gold * 2);
     expect(elite.xp).toBe(normal.xp * 2);
-    expect(elite.materials).toEqual(normal.materials.map((m) => ({ ...m, amount: m.amount * 2 })));
+    expect(elite.materials).toEqual(normal.materials);
   });
 
   it('fills a bandit cache from the gathering table, never with ore above the pickaxe', () => {
     const bandits = asKind(goblins, 'bandits');
     const held = (pickaxeTier: number) =>
-      new Set(Array.from({ length: 300 }, (_, i) => patrolRewards({ goldMultiplier: 1, luck: 0, pickaxeTier }, bandits, 2, false, createRng(`c${i}`)).materials.map((m) => m.materialId)).flat());
+      new Set(Array.from({ length: 300 }, (_, i) => rewards({ ...context, pickaxeTier }, bandits, 2, false, `c${i}`).materials.map((m) => m.materialId)).flat());
     const none = held(0);
     expect(none.has('wood')).toBe(true);
     for (const ore of ['stone', 'copper', 'iron', 'coal', 'steel']) expect(none.has(ore)).toBe(false);
@@ -115,8 +123,10 @@ describe('patrol rewards', () => {
   });
 
   it('gives herds meat and hide', () => {
-    const materials = patrolRewards(context, asKind(goblins, 'herd'), 1, false, createRng('h')).materials.map((m) => m.materialId);
-    expect(materials).toEqual(expect.arrayContaining(['meat', 'hide']));
+    const materials = Array.from({ length: 200 }, (_, i) =>
+      rewards(context, asKind(goblins, 'herd'), 1, false, `h${i}`).materials.map((m) => m.materialId),
+    ).flat();
+    expect(new Set(materials)).toEqual(new Set(['meat', 'hide', 'bone']));
   });
 });
 

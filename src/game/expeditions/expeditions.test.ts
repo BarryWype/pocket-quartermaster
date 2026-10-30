@@ -1,15 +1,16 @@
-import { dungeons, expeditionRules } from '@/content/dungeons';
-import { xpRules } from '@/content/heroes';
-import { dungeonById } from '@/content/lookup';
-import { mainRewardRules } from '@/content/mainRewards';
+import { dungeons } from '@/content/dungeons';
+import { xpRules, xpToNextLevel } from '@/content/heroes';
+import { MATERIAL_TIERS } from '@/content/items';
+import { dungeonById, recipeById } from '@/content/lookup';
 
+import { rotationDay } from '../dungeons/rotation';
 import { createInitialSave, type SaveData } from '../save';
 import { healAll } from '../team/health';
 import { equip } from '../team/team';
 import {
-  bossBonusAvailable,
   expeditionMinutes,
   fastForward,
+  firstWinAvailable,
   isDungeonAvailable,
   isDungeonUnlocked,
   readyExpeditions,
@@ -81,11 +82,10 @@ describe('dungeon tiers', () => {
     expect(isDungeonUnlocked(save, dungeonById.hauntedMine)).toBe(false);
   });
 
-  it('has each boss drop the pickaxe that opens the next tier material', () => {
-    const pickaxes = ['woodPickaxe', 'stonePickaxe', 'copperPickaxe', 'ironPickaxe', 'steelPickaxe'];
+  it('has each boss teach the pickaxe that opens the next tier material', () => {
     dungeons
       .filter((d) => d.isBoss)
-      .forEach((boss, i) => expect(boss.recipeDrops[0]).toEqual({ recipeId: pickaxes[i], chance: 1 }));
+      .forEach((boss) => expect(recipeById[`${MATERIAL_TIERS[boss.tier - 1].id}Pickaxe`]).toBeDefined());
   });
 });
 
@@ -148,7 +148,13 @@ describe('resolveExpedition', () => {
   it('pays in full for the boss and the cleared share on a retreat', () => {
     const dungeon = dungeonById.banditStockade;
     // Tier 1 is still the highest, so its XP isn't reduced; levelled heroes, so the boss falls sometimes.
-    const save = { ...geared(), heroes: geared().heroes.map((h) => ({ ...h, level: 3 })), clearedDungeons: [] };
+    // Rat Cellar counts as the tier's clear and the day's first win, so only the run's own XP shows.
+    const save = {
+      ...geared(),
+      heroes: geared().heroes.map((h) => ({ ...h, level: 3 })),
+      clearedDungeons: ['ratCellar'],
+      firstWinDay: rotationDay(dungeon.durationMinutes * MIN),
+    };
     const results = outcomes(save, dungeon.id);
     const wins = results.filter((r) => r.report.success);
     const retreats = results.filter((r) => r.report.outcome === 'retreat');
@@ -160,7 +166,8 @@ describe('resolveExpedition', () => {
       expect(share).toBeGreaterThan(0);
       expect(share).toBeLessThan(1);
       expect(report.xp).toBe(Math.round(dungeon.xp * share));
-      expect(report.recipeId).toBeNull();
+      expect(report.loot.recipeIds).toEqual([]);
+      expect(report.loot.dropped).toEqual([]);
     });
   });
 
@@ -180,13 +187,10 @@ describe('resolveExpedition', () => {
     );
   });
 
-  it('always hands over the next pickaxe when a boss falls for the first time', () => {
+  it('always hands over the next pickaxe when a boss falls', () => {
     const strong = { ...geared(), heroes: geared().heroes.map((h) => ({ ...h, level: 3 })) };
     const wins = outcomes(strong, 'banditStockade').filter((r) => r.report.success);
-    wins.forEach(({ save, report }) => {
-      expect(report.recipeId).toBe('woodPickaxe');
-      expect(save.knownRecipes).toContain('woodPickaxe');
-    });
+    wins.forEach(({ save }) => expect(save.knownRecipes).toContain('woodPickaxe'));
   });
 
   it('applies rewards and XP to the save, and never wears gear down', () => {
@@ -194,12 +198,13 @@ describe('resolveExpedition', () => {
     const { save, report } = resolveExpedition(started, started.expeditions[0]);
     expect(save.expeditions).toEqual([]);
     expect(save.reports[0]).toEqual(report);
-    expect(save.gold).toBe(report.gold + (report.firstClear?.gold ?? 0));
+    const salvageGold = report.salvaged.reduce((sum, s) => sum + s.gold, 0);
+    expect(save.gold).toBe(report.gold + salvageGold);
     // Mira is a quick learner: +20% XP.
+    const total = (h: { level: number; xp: number }) =>
+      h.xp + Array.from({ length: h.level - 1 }, (_, i) => xpToNextLevel(i + 1)).reduce((sum, need) => sum + need, 0);
     save.heroes.forEach((hero) =>
-      expect(hero.xp + (hero.level - 1) * 100).toBe(
-        Math.round((report.xp + (report.firstClear?.xp ?? 0)) * (hero.trait === 'quickLearner' ? 1.2 : 1)),
-      ),
+      expect(total(hero)).toBe(Math.round(report.xp * (hero.trait === 'quickLearner' ? 1.2 : 1))),
     );
     expect(save.gear).toEqual(started.gear);
   });
@@ -235,24 +240,28 @@ describe('resolveExpedition', () => {
     }
   });
 
-  it('drops the tier gear recipes in tier 1 dungeons', () => {
-    // Veterans, so the long goblin warren is won often enough to teach both of its recipes.
+  it('drops the tier gear blueprints in tier 1 dungeons', () => {
+    // Veterans, so the long goblin warren is won often enough to teach its blueprints.
     const strong = { ...geared(), heroes: geared().heroes.map((h) => ({ ...h, level: 15 })) };
     const taught = new Set(
-      ['ratCellar', 'goblinWarren'].flatMap((id) => outcomes(strong, id, 300).map((r) => r.report.recipeId)),
+      ['ratCellar', 'goblinWarren'].flatMap((id) => outcomes(strong, id, 300).flatMap((r) => r.report.loot.recipeIds)),
     );
-    expect(taught).toEqual(new Set([null, 'axe1', 'dagger1', 'staff1', 'mace1', 'lute1']));
+    expect(taught.size).toBeGreaterThan(0);
+    const known = createInitialSave().knownRecipes;
+    for (const id of taught) {
+      expect(id).toMatch(/1$/);
+      expect(known).not.toContain(id);
+    }
   });
 
   it('writes one line per played encounter plus a summary, naming the heroes', () => {
     for (const dungeon of dungeons) {
       for (const { report } of outcomes(geared(), dungeon.id, 20)) {
         // Every encounter played gets at most one line (quiet steps none), plus a summary
-        // and any recipe, first-clear, charter, main-reward or salvage lines.
+        // and any recipe, first-win, charter or salvage lines.
         const played = report.encountersCleared + (report.success ? 0 : 1);
-        const extras = report.recipeId ? 1 : 0;
         expect(report.log.length).toBeGreaterThanOrEqual(2);
-        expect(report.log.length).toBeLessThanOrEqual(played + 1 + extras + 5);
+        expect(report.log.length).toBeLessThanOrEqual(played + 7);
         expect(report.log.join(' ')).not.toMatch(/\{\w+\}/);
       }
     }
@@ -261,24 +270,32 @@ describe('resolveExpedition', () => {
   });
 });
 
-describe('main rewards', () => {
-  it('only rolls on a successful expedition', () => {
-    for (const { report } of outcomes(geared(), 'banditStockade', 60)) {
-      if (!report.success) expect(report.mainRewards).toEqual([]);
-      else expect(report.mainRewards.length).toBeGreaterThanOrEqual(1);
-    }
-  });
-
-  it('can be forced from debug, and shows in the log', () => {
+describe('forced loot', () => {
+  it('force-drops a category from debug', () => {
     const wins = Array.from({ length: 20 }, (_, i) => {
       const run = startExpedition({ ...geared(), nextUid: i }, 'ratCellar', ALL, 0);
-      return resolveExpedition(run, run.expeditions[0], { mainReward: { force: 'lure' } });
+      return resolveExpedition(run, run.expeditions[0], { loot: { force: 'keyFragments' } });
     }).filter((r) => r.report.success);
     expect(wins.length).toBeGreaterThan(0);
     wins.forEach(({ save, report }) => {
-      expect(report.mainRewards).toEqual([{ kind: 'lure' }]);
-      expect(save.lures).toBe(1);
-      expect(report.log.join(' ')).toMatch(/lure/);
+      expect(report.loot.keyFragments).toBeGreaterThanOrEqual(1);
+      expect(report.loot.dropped).toContain('keyFragments');
+      expect(save.keyFragments).toBe(report.loot.keyFragments);
+    });
+  });
+
+  it('force-drops treasure maps, granted unread with a rarity', () => {
+    const wins = Array.from({ length: 20 }, (_, i) => {
+      const run = startExpedition({ ...geared(), nextUid: i }, 'ratCellar', ALL, 0);
+      return resolveExpedition(run, run.expeditions[0], { loot: { force: 'treasureMaps' } });
+    }).filter((r) => r.report.success);
+    expect(wins.length).toBeGreaterThan(0);
+    wins.forEach(({ save, report }) => {
+      expect(report.loot.treasureMaps.length).toBeGreaterThanOrEqual(1);
+      for (const map of report.loot.treasureMaps) expect(map.rarity).toEqual(expect.stringMatching(/common|rare|legendary/));
+      expect(report.loot.dropped).toContain('treasureMaps');
+      expect(save.treasureMaps).toHaveLength(report.loot.treasureMaps.length);
+      for (const map of save.treasureMaps) expect(map.location).toBeNull();
     });
   });
 });
@@ -316,9 +333,9 @@ describe('tutorial expedition', () => {
     const started = startExpedition(tutorialSave(), 'ratCellar', ALL, 0);
     const { save, report } = resolveExpedition(started, started.expeditions[0]);
     expect(report.gold).toBe(10);
-    expect(report.recipeId).toBe('leather1');
-    expect(report.materials).toEqual([]);
-    expect(report.mainRewards).toEqual([{ kind: 'sigil', tier: 1 }]);
+    expect(report.loot.recipeIds).toEqual(['leather1']);
+    expect(report.loot.materials).toEqual([]);
+    expect(report.sigil).toBe(1);
     expect(save.sigils).toEqual([1]);
     expect(save.knownRecipes).toContain('leather1');
     // The first Bandit Stockade win still guarantees its own Sigil.
@@ -329,7 +346,7 @@ describe('tutorial expedition', () => {
     const full = { ...tutorialSave(), sigils: [1, 1, 1] };
     const started = startExpedition(full, 'ratCellar', ALL, 0);
     const { save, report } = resolveExpedition(started, started.expeditions[0]);
-    expect(report.mainRewards).toEqual([]);
+    expect(report.sigil).toBeUndefined();
     expect(save.sigils).toEqual([1, 1, 1]);
   });
 
@@ -353,43 +370,89 @@ describe('readyExpeditions', () => {
   });
 });
 
-describe('daily boss bonus', () => {
+describe('first win of the day', () => {
   const boss = dungeonById.ogreQuarry;
   const DAY = 86_400_000;
   /** A strong team so the boss falls; runs finishing at `endsAt`. */
-  const win = (save: SaveData, i: number, endsAt: number) => {
-    const started = startExpedition({ ...save, nextUid: 100 + i }, boss.id, ALL, endsAt - boss.durationMinutes * MIN);
+  const win = (save: SaveData, i: number, endsAt: number, dungeonId = boss.id) => {
+    const dungeon = dungeonById[dungeonId];
+    const started = startExpedition({ ...save, nextUid: 100 + i }, dungeonId, ALL, endsAt - dungeon.durationMinutes * MIN);
     return resolveExpedition(started, started.expeditions[0]);
   };
   const strong = () => ({ ...geared(), heroes: geared().heroes.map((h) => ({ ...h, level: 15 })) });
+  const day = Date.UTC(2026, 10, 2, 12);
 
-  it('comes with the first win of each rotation day only', () => {
-    const day = Date.UTC(2026, 10, 2, 12);
-    const wins = Array.from({ length: 40 }, (_, i) => win(strong(), i, day)).filter((r) => r.report.success);
-    expect(wins.length).toBeGreaterThan(20);
-    const first = wins[0];
-    expect(bossBonusAvailable(first.save, boss.id, day)).toBe(false);
-    expect(bossBonusAvailable(first.save, boss.id, day + DAY)).toBe(true);
-    // The first win of the day always rolls; a repeat rolls the lower chance once.
-    for (const r of wins) expect(r.report.mainRewards.length).toBeGreaterThanOrEqual(1);
-    const repeats = Array.from({ length: 200 }, (_, i) => win(healAll(first.save), i, day)).filter((r) => r.report.success);
-    const rolled = repeats.filter((r) => r.report.mainRewards.length > 0).length / repeats.length;
-    expect(Math.max(...repeats.map((r) => r.report.mainRewards.length))).toBeLessThanOrEqual(1);
-    // Level 15 heroes bring 1 Luck each, which raises the chance.
-    const chance = mainRewardRules.repeatMainRewardChance * (1 + expeditionRules.luck.rollPerPoint * ALL.length);
-    expect(rolled).toBeGreaterThan(chance - 0.12);
-    expect(rolled).toBeLessThan(chance + 0.12);
-    expect(repeats.every((r) => r.save.bossBonusDays[boss.id] === first.save.bossBonusDays[boss.id])).toBe(true);
-    // Next day, the bonus is back.
+  it('is rolled once per rotation day, for dungeons and tier bosses alike', () => {
+    const first = win(strong(), 0, day);
+    expect(first.report.success).toBe(true);
+    expect(first.report.firstWin).toBe(true);
+    expect(first.save.firstWinDay).toBe(rotationDay(day));
+    expect(firstWinAvailable(first.save, boss, day)).toBe(false);
+    expect(firstWinAvailable(first.save, boss, day + DAY)).toBe(true);
+
+    // A repeat win of the same day rolls no first win.
+    const repeats = Array.from({ length: 40 }, (_, i) => win(healAll(first.save), i, day + 30_000 + i)).filter((r) => r.report.success);
+    expect(repeats.length).toBeGreaterThan(0);
+    repeats.forEach(({ report, save }) => {
+      expect(report.firstWin).toBeUndefined();
+      expect(save.firstWinDay).toBe(first.save.firstWinDay);
+    });
+
+    // The next rotation day, the bonus is back.
     const tomorrow = win(first.save, 0, day + DAY);
-    if (tomorrow.report.success) expect(tomorrow.save.bossBonusDays[boss.id]).toBe(first.save.bossBonusDays[boss.id] + 1);
+    if (tomorrow.report.success) {
+      expect(tomorrow.report.firstWin).toBe(true);
+      expect(tomorrow.save.firstWinDay).toBe(rotationDay(day + DAY));
+    }
+  });
+
+  it('is never rolled for overnight quests', () => {
+    const quest = dungeons.find((d) => d.overnight && d.tier === 1)!;
+    const before = strong();
+    const result = win(before, 0, day, quest.id);
+    expect(result.report.success).toBe(true);
+    expect(result.report.firstWin).toBeUndefined();
+    expect(result.save.firstWinDay).toBe(before.firstWinDay);
+  });
+});
+
+describe('first tier clear', () => {
+  const win = (save: SaveData, dungeonId: string, endsAt = 0) => {
+    const dungeon = dungeonById[dungeonId];
+    const started = startExpedition({ ...save, nextUid: 100 }, dungeonId, ALL, endsAt - dungeon.durationMinutes * MIN);
+    return resolveExpedition(started, started.expeditions[0]);
+  };
+  const strong = () => ({ ...geared(), heroes: geared().heroes.map((h) => ({ ...h, level: 15 })), clearedDungeons: [] });
+
+  it('is paid the first time a tier is won, whatever the dungeon', () => {
+    const first = win(strong(), 'spiderBurrow');
+    expect(first.report.success).toBe(true);
+    expect(first.report.firstTierClear).toBe(true);
+    // The tier is cleared now: no other tier 1 dungeon pays it again.
+    const second = win(first.save, 'ratCellar');
+    expect(second.report.success).toBe(true);
+    expect(second.report.firstTierClear).toBeUndefined();
+  });
+
+  it('is paid again for the next tier', () => {
+    const save: SaveData = { ...strong(), clearedDungeons: ['banditStockade'] };
+    const result = win(save, 'wolfDen');
+    expect(result.report.success).toBe(true);
+    expect(result.report.firstTierClear).toBe(true);
   });
 });
 
 describe('XP by tier', () => {
   it('teaches half one tier below the highest unlocked, a quarter further down', () => {
+    const T = 30 * MIN;
+    // Rat Cellar already cleared and the day's first win claimed, so only the run's XP shows.
     const xpAt = (cleared: string[]) => {
-      const save = { ...geared(), heroes: geared().heroes.map((h) => ({ ...h, level: 15 })), clearedDungeons: cleared };
+      const save = {
+        ...geared(),
+        heroes: geared().heroes.map((h) => ({ ...h, level: 15 })),
+        clearedDungeons: ['ratCellar', ...cleared],
+        firstWinDay: rotationDay(T),
+      };
       const started = startExpedition(save, 'ratCellar', ALL, 0);
       return resolveExpedition(started, started.expeditions[0]).report;
     };
@@ -403,7 +466,9 @@ describe('XP by tier', () => {
 
 describe('materials come from walking', () => {
   it('leaves gathering materials out of every dungeon, wins and retreats alike', () => {
-    for (const dungeon of dungeons) expect(dungeon.loot).toEqual([]);
-    for (const { report } of outcomes(geared(), 'banditStockade', 60)) expect(report.materials).toEqual([]);
+    const SHARDS = ['fireShard', 'waterShard', 'electricShard', 'earthShard', 'airShard'];
+    for (const { report } of outcomes(geared(), 'banditStockade', 60)) {
+      expect(report.loot.materials.filter((m) => !SHARDS.includes(m.materialId))).toEqual([]);
+    }
   });
 });

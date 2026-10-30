@@ -127,12 +127,12 @@ export type ProfileSummary = {
     classShare: Record<string, number>;
     /** Tavern recruits of each class, mean per run. */
     classRecruits: Record<string, number>;
-    /** Boss runs per day, daily bonuses claimed per run, and the party's median level at the first attempt, by tier. */
+    /** Boss runs per day, first wins of the day taken by a boss per run, and the party's median level at the first attempt, by tier. */
     bosses: Record<number, { perDay: number; bonuses: number; firstLevel: number }>;
     sanctums: { attempts: number; wins: number };
     /** Overnight quests: runs per day, and their share of all gold earned and XP earned. */
     overnight: { runsPerDay: number; goldShare: number; xpShare: number };
-    /** Daily guaranteed blueprints claimed per run. */
+    /** Blueprints dropped by expeditions per run. */
     blueprints: number;
   };
   provisions: {
@@ -296,7 +296,7 @@ export function summarize(logs: RunLog[], targets: Targets = defaultTargets, wit
     const firsts = logs.flatMap((log) => log.expeditions.find((e) => e.boss && e.tier === tier) ?? []);
     bosses[tier] = {
       perDay: round(runs.length / logs.length / days, 1),
-      bonuses: round(runs.filter((e) => e.bossBonus).length / logs.length, 1),
+      bonuses: round(runs.filter((e) => e.firstWin).length / logs.length, 1),
       firstLevel: round(median(firsts.map((e) => e.level)), 1),
     };
   }
@@ -306,7 +306,7 @@ export function summarize(logs: RunLog[], targets: Targets = defaultTargets, wit
     return totals;
   }));
   const sanctumRuns = logs.flatMap((log) => log.sanctums);
-  // Overnight quests and daily blueprints.
+  // Overnight quests and blueprints.
   const overnightRuns = all.filter((e) => e.overnight);
   const goldEarned = logs.reduce((sum, log) => sum + log.goldIn.reduce((s, g) => s + g.amount, 0), 0);
   const xpEarned = all.reduce((sum, e) => sum + e.xp, 0);

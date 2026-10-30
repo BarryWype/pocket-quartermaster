@@ -1,6 +1,6 @@
 import { dungeons } from '@/content/dungeons';
 import { guildRules, guildTrackById, type GuildTrack, type GuildTrackId } from '@/content/guild';
-import { mainRewardRules } from '@/content/mainRewards';
+import { lootConfig } from '@/content/loot/config';
 import { recruitRules, rosterRules } from '@/content/roster';
 
 import { hasMaterials, removeMaterials } from '../inventory';
@@ -25,7 +25,7 @@ export const guildRank = (save: SaveData, id: GuildTrackId) => save.guild[id] ??
  */
 export const guildBonus = (save: SaveData, id: GuildTrackId) => guildRank(save, id) * guildTrackById[id].perRank;
 
-export const sigilCap = (save: SaveData) => mainRewardRules.sigilCap + guildBonus(save, 'sigilCap');
+export const sigilCap = (save: SaveData) => lootConfig.sigils.cap + guildBonus(save, 'sigilCap');
 export const partySize = (save: SaveData) => rosterRules.partySize + guildBonus(save, 'partySlot');
 export const rosterCap = (save: SaveData) =>
   rosterRules.rosterCap + guildBonus(save, 'rosterSlot7') + guildBonus(save, 'rosterSlot8');

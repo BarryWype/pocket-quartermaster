@@ -1,10 +1,7 @@
 import { heroClasses, newHero } from '@/content/heroes';
-import { dungeons } from '@/content/dungeons';
-import { mainRewardRules } from '@/content/mainRewards';
 import { patrolRules, travellerRules, type PatrolRules } from '@/content/patrols';
 import { heroNames } from '@/content/roster';
 import { traits } from '@/content/traits';
-import { ELEMENTS, shardId, type Element } from '../elements';
 import { mealItems, pickSupply, supplyHeld } from '../expeditions/provisions';
 import { highestUnlockedTier } from '../expeditions/expeditions';
 import { rosterCap } from '../guild/guild';
@@ -12,12 +9,14 @@ import { createRng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { hasMaterials, removeMaterials, addMaterials } from '../inventory';
 import { pickaxeTier } from '../gathering/gathering';
-import { treasureLocation } from '../rewards/treasure';
+import { rollForSave } from '../loot/context';
+import { grantLoot } from '../loot/grant';
+import type { Loot } from '../loot/types';
 import { recruitGrade, rollRecruit, type Grade } from '../taverns/roll';
 import { pickRecruitClass } from '../taverns/taverns';
 import type { SaveData } from '../save';
 import { isAway } from '../team/team';
-import type { HeroClassId, HeroRoll, MaterialStack, TreasureMap } from '../types';
+import type { HeroClassId, HeroRoll, MaterialStack } from '../types';
 import { isTravellerKind, pruneByWindow, type PatrolSpawn, type TravellerKind } from './generate';
 import { distanceTo, isGone } from './visibility';
 
@@ -37,13 +36,8 @@ export type TravellerAsk =
   | { kind: 'mealOrSupply'; supplyPoints: number; mealItemIds: string[] }
   | { kind: 'trades'; trades: TradeOffer[] };
 
-export type TravellerReward =
-  | { kind: 'gold'; gold: number }
-  | { kind: 'shards'; element: Element; amount: number }
-  | { kind: 'treasureSpot'; mapId: string; tier: number }
-  | { kind: 'blessing' }
-  | { kind: 'keyFragment' }
-  | { kind: 'recruit'; offer: TravellerRecruit };
+/** A helped traveller's loot (a pilgrim may also bless the heroes at home), or a recruit offer instead. */
+export type TravellerReward = { kind: 'loot'; loot: Loot; blessing: boolean } | { kind: 'recruit'; offer: TravellerRecruit };
 
 export type TravellerRecruit = {
   id: string;
@@ -119,17 +113,11 @@ function travellerRecruit(save: SaveData, spawn: PatrolSpawn, forceRare = false)
   };
 }
 
-/** The reward a traveller gives, rolled from its spawn alone so it never changes. */
+/** The reward a traveller gives: the Traveller row of the loot matrix, seeded on the spawn so it never changes. */
 function rollReward(save: SaveData, spawn: PatrolSpawn, kind: TravellerKind): TravellerReward {
   const rng = createRng(`traveller-reward|${spawn.id}`);
-  const tier = highestUnlockedTier(save);
-  const table = kind === 'wounded' ? travellerRules.woundedRewards : travellerRules.pilgrimRewards;
-  const reward = rng.weighted<{ kind: string; weight: number }>([...table], (entry) => entry.weight).kind;
-  if (reward === 'blessing' || reward === 'keyFragment') return { kind: reward };
-  if (reward === 'shards') return { kind: reward, element: ELEMENTS[rng.int(0, ELEMENTS.length - 1)], amount: tier };
-  if (reward === 'treasureSpot') return { kind: reward, mapId: `map${save.nextUid}`, tier };
-  const short = dungeons.find((d) => d.tier === tier && d.slot === 'short')!;
-  return { kind: 'gold', gold: Math.round(((short.gold[0] + short.gold[1]) / 2) * travellerRules.goldShareOfShort) };
+  const loot = rollForSave(save, 'traveller', rng);
+  return { kind: 'loot', loot, blessing: kind === 'pilgrim' && rng.chance(travellerRules.pilgrimBlessingChance) };
 }
 
 /**
@@ -185,43 +173,21 @@ export function helpTraveller(
     consumables,
     helpedTravellers: { ...pruneByWindow(save.helpedTravellers, now, rules), [spawn.id]: spawn.endsAt },
   };
-  next = grantReward(next, reward, player, now);
+  next = grantReward(next, reward, now);
   return { save: next, reward, rosterFull };
 }
 
-/** Writes a reward into the save: gold, shards, a treasure map, a blessing or a key fragment. */
-function grantReward(save: SaveData, reward: TravellerReward, player: LatLng, now: number): SaveData {
-  switch (reward.kind) {
-    case 'gold':
-      return { ...save, gold: save.gold + reward.gold };
-    case 'shards': {
-      return { ...save, materials: addMaterials(save.materials, [{ materialId: shardId(reward.element), amount: reward.amount }]) };
-    }
-    case 'treasureSpot': {
-      const map: TreasureMap = {
-        id: reward.mapId,
-        tier: reward.tier,
-        expiresAt: now + mainRewardRules.treasureMapLifetimeHours * 3_600_000,
-        // Read right away: pinned to where the player stands, like any read map.
-        location: treasureLocation(reward.mapId, player),
-      };
-      return { ...save, treasureMaps: [...save.treasureMaps, map], nextUid: save.nextUid + 1 };
-    }
-    case 'blessing':
-      // Every home hero healed to full, exhaustion over; heroes away keep what they have.
-      return {
-        ...save,
-        heroes: save.heroes.map((hero) =>
-          isAway(save, hero.id)
-            ? hero
-            : (({ hp: _hp, hpAt: _at, exhaustedUntil: _ex, ...rest }) => rest)(hero),
-        ),
-      };
-    case 'keyFragment':
-      return { ...save, keyFragments: save.keyFragments + 1 };
-    default:
-      return save;
-  }
+/** Writes a reward into the save: the loot, and a blessing that rests every home hero (heroes away keep what they have). */
+function grantReward(save: SaveData, reward: TravellerReward, now: number): SaveData {
+  if (reward.kind !== 'loot') return save;
+  const granted = grantLoot(save, [], reward.loot, now);
+  if (!reward.blessing) return granted;
+  return {
+    ...granted,
+    heroes: granted.heroes.map((hero) =>
+      isAway(granted, hero.id) ? hero : (({ hp: _hp, hpAt: _at, exhaustedUntil: _ex, ...rest }) => rest)(hero),
+    ),
+  };
 }
 
 /** The trader's deals for this spawn: 2–3 of the fixed trades, drawn from the seed and cut to the pickaxe's tier. */

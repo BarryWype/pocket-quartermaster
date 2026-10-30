@@ -1,14 +1,12 @@
-import { dungeons } from '@/content/dungeons';
 import { placeRules } from '@/content/places';
 import { heistRules } from '@/content/placeActivities';
 
-import { forgedItem } from '../crafting/crafting';
 import { highestUnlockedTier } from '../dungeons/unlock';
 import { distanceMeters } from '../generation/geo';
-import { createRng, type Rng } from '../generation/rng';
-import { guildBonus } from '../guild/guild';
-import { grantPlaceReward } from './grant';
-import { gearPool } from './shops';
+import { createRng } from '../generation/rng';
+import { rollForSave } from '../loot/context';
+import { grantLoot } from '../loot/grant';
+import { emptyLoot } from '../loot/types';
 import type { PlaceSpawn } from './generate';
 import type { SaveData } from '../save';
 import { isExhausted } from '../team/health';
@@ -16,7 +14,7 @@ import { isAway } from '../team/team';
 import { answersMemberOf, prepareParty } from '../expeditions/simulate';
 import { heroAnswers } from '../threats/answers';
 import { scoreThreat, type ThreatState } from '../threats/score';
-import type { ActiveThreat, Heist, PlaceReward } from '../types';
+import type { ActiveThreat, Heist } from '../types';
 import type { LatLng } from '../generation/types';
 
 const MINUTE = 60_000;
@@ -55,24 +53,6 @@ export function heistProblem(save: SaveData, spawn: PlaceSpawn, heroId: string, 
   return null;
 }
 
-/** What a successful heist carries home: gold worth two short dungeon runs, or a Normal piece instead. */
-function heistReward(save: SaveData, rng: Rng): PlaceReward {
-  const pool = gearPool(save);
-  if (rng.chance(heistRules.reward.gearChance) && pool.length > 0) {
-    return {
-      gold: 0,
-      xp: 0,
-      materials: [],
-      consumables: [],
-      gear: [{ uid: '', itemId: forgedItem(pool[rng.int(0, pool.length - 1)])!.id, quality: 'normal', roll: 1 }],
-      keyFragments: 0,
-    };
-  }
-  const short = dungeons.find((d) => d.tier === highestUnlockedTier(save) && d.slot === 'short')!;
-  const gold = Math.round(((short.gold[0] + short.gold[1]) / 2) * heistRules.reward.goldShareOfShort * (1 + guildBonus(save, 'gold')));
-  return { gold, xp: 0, materials: [], consumables: [], gear: [], keyFragments: 0 };
-}
-
 /**
  * Sends one hero on a heist: the minutes and the outcome are rolled now, the
  * pay waits for the heist's end. The hero counts as away until then.
@@ -84,7 +64,8 @@ export function startHeist(save: SaveData, spawn: PlaceSpawn, heroId: string, pl
   const rng = createRng(`${id}|${spawn.id}`);
   const minutes = rng.int(...heistRules.minutes);
   const success = rng.chance(heistRules.successChance[heistScore(save, heroId)]);
-  const reward = success ? heistReward(save, rng) : { gold: 0, xp: 0, materials: [], consumables: [], gear: [], keyFragments: 0 };
+  // A success pays the heist row of the loot matrix, rolled now and paid at the end.
+  const reward = success ? rollForSave(save, 'heist', rng) : emptyLoot();
   return {
     ...save,
     heists: [
@@ -104,7 +85,7 @@ export function resolveHeists(save: SaveData, now: number): { save: SaveData; re
   if (due.length === 0) return { save, resolved: [] };
   let next: SaveData = { ...save, heists: save.heists.filter((heist) => heist.endsAt > now) };
   for (const heist of due) {
-    if (heist.success) next = grantPlaceReward(next, [], heist.reward);
+    if (heist.success) next = grantLoot(next, [], heist.reward, heist.endsAt);
   }
   return { save: next, resolved: due };
 }

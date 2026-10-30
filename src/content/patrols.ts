@@ -1,8 +1,6 @@
-import type { LootEntry } from '@/game/types';
-
 import type { PatrolKind, TravellerKind } from '@/game/patrols/generate';
 
-/** Recommended fight setup and rewards for one kind of patrol. */
+/** Recommended fight setup for one kind of patrol; what a win pays is its loot matrix row. */
 export type PatrolKindRules = {
   /** The party size its odds are tuned for. */
   party: number;
@@ -10,14 +8,6 @@ export type PatrolKindRules = {
   fightMinutes: number;
   /** Fight groups before the boss, as patrol mob roles (see enemies.ts). */
   groups: { role: 'weak' | 'normal'; count: number; weight: number }[];
-  /** Share of the tier's short-dungeon average gold paid on a win. */
-  goldShareOfShort?: number;
-  /** Chance of carrying one shard. */
-  shardChance?: number;
-  /** Loot rolled on a win. */
-  loot?: LootEntry[];
-  /** The stolen cache holds about this many nodes' worth of materials. */
-  cacheNodes?: number;
 };
 
 export const patrolKinds: Record<PatrolKind, PatrolKindRules> = {
@@ -28,8 +18,6 @@ export const patrolKinds: Record<PatrolKind, PatrolKindRules> = {
       { role: 'weak', count: 1, weight: 2 },
       { role: 'normal', count: 1, weight: 1 },
     ],
-    goldShareOfShort: 1,
-    shardChance: 0.2,
   },
   herd: {
     party: 1,
@@ -37,11 +25,6 @@ export const patrolKinds: Record<PatrolKind, PatrolKindRules> = {
     groups: [
       { role: 'weak', count: 2, weight: 2 },
       { role: 'normal', count: 1, weight: 1 },
-    ],
-    goldShareOfShort: 0.5,
-    loot: [
-      { materialId: 'meat', min: 3, max: 5, chance: 1 },
-      { materialId: 'hide', min: 1, max: 2, chance: 1 },
     ],
   },
   bandits: {
@@ -51,8 +34,6 @@ export const patrolKinds: Record<PatrolKind, PatrolKindRules> = {
       { role: 'weak', count: 2, weight: 2 },
       { role: 'normal', count: 1, weight: 2 },
     ],
-    goldShareOfShort: 1.5,
-    cacheNodes: 3,
   },
 };
 
@@ -80,10 +61,6 @@ export const patrolRules = {
   goblinFleeMinutes: 10,
   /** The tier a patrol fights at, relative to the highest unlocked. */
   tierWeights: { current: 0.6, below: 0.3, elite: 0.1 },
-  /** Elite patrols: their mobs' extra strength is in enemies.ts; rewards multiply by this. */
-  elite: { rewardMultiplier: 2 },
-  /** XP per hero, a share of the tier's short dungeon. */
-  xpShareOfShortDungeon: 0.25,
   /** What the background task's escort hero may take on by itself. */
   escort: { types: ['goblins', 'herd'] as PatrolKind[], minOdds: 0.7, minHpShare: 0.5, oddsRuns: 60 },
   /** Patrol alerts: one per patrol, none closer together than this. */
@@ -102,19 +79,15 @@ export type PatrolRules = typeof patrolRules;
 export const travellerRules = {
   /** Traveller kinds by weight. */
   kinds: { wounded: 0.4, pilgrim: 0.35, trader: 0.25 } satisfies Record<TravellerKind, number>,
-  /** Gold handed over, as a share of the tier's short-dungeon average. */
+  /** Gold the pilgrim opportunity in a dungeon hands over, as a share of the tier's short-dungeon average. */
   goldShareOfShort: 1,
   /** The pilgrim takes a meal, or this many supply points instead. */
   pilgrimSupplyPoints: 3,
   /** Until secret places exist, about 1 in 20 traveller recruits is a rare class. */
   rareRecruitChance: 0.05,
-  /** The wounded traveller's rewards by weight. */
-  woundedRewards: [
-    { kind: 'gold', weight: 2 },
-    { kind: 'shards', weight: 1 },
-    { kind: 'treasureSpot', weight: 1 },
-  ] as const,
-  /** The pilgrim's rewards by weight. */
+  /** A helped pilgrim also blesses the heroes at home this often (the loot is the Traveller row of the matrix). */
+  pilgrimBlessingChance: 0.45,
+  /** The pilgrim opportunity in a dungeon: what the pilgrim gives back, by weight. */
   pilgrimRewards: [
     { kind: 'blessing', weight: 2 },
     { kind: 'gold', weight: 2 },

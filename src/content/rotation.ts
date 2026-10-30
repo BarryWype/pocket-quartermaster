@@ -9,9 +9,6 @@ export const rotationRules = {
   startDay: Date.UTC(2026, 0, 1),
 };
 
-/** One-time bonus for the first win in each pool dungeon, as shares of its top gold and its XP. */
-export const firstClearRules = { goldShare: 1, xpShare: 0.5 };
-
 /** How a dungeon's tag summary is worked out from its encounters (see game/dungeons/tags.ts). */
 export const tagRules = {
   /** The boss counts like this many encounters' worth. */

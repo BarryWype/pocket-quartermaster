@@ -5,7 +5,7 @@ import { addMaterials } from '../inventory';
 import type { SaveData } from '../save';
 import type { MaterialStack } from '../types';
 import type { BackgroundResult } from './escort';
-import { rewardMaterials, type PatrolFight } from './fight';
+import type { PatrolFight } from './fight';
 
 /** Material stacks merged into one per id. */
 const mergeStacks = (stacks: MaterialStack[]): MaterialStack[] =>
@@ -51,7 +51,7 @@ export function walkPatrolsFrom(
     travellers: [],
     gold: wins.reduce((sum, { rewards }) => sum + rewards.gold, 0),
     xp: wins.reduce((sum, { heroes, rewards }) => sum + rewards.xp * heroes, 0),
-    materials: mergeStacks(wins.flatMap(({ rewards }) => rewardMaterials(rewards))),
+    materials: mergeStacks(wins.flatMap(({ rewards }) => rewards.materials)),
   };
 }
 

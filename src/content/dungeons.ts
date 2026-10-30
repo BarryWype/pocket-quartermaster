@@ -8,12 +8,10 @@ import { bossById } from './enemies';
 // one of each is open (see game/dungeons/rotation.ts). A tier shows up once the
 // previous tier's boss has been beaten.
 // A run is a series of encounters drawn from the dungeon's pool, then its boss.
-// Regular dungeons of a slot share their tier's rewards: main reward chance 30%
-// for short, 75% for long; 100% plus a 50% second roll for the boss.
-// Gold per run doubles each tier: players collect once a session, so runs,
-// not hours, set daily income. Dungeons pay gold, XP, main rewards and
-// blueprints; materials come from walking, so `loot` stays empty for
-// dungeon-only items later.
+// Regular dungeons of a slot share their tier's gold and XP. Gold per run
+// doubles each tier: players collect once a session, so runs, not hours, set
+// daily income. Everything else a win pays is rolled from the loot matrix
+// (content/loot/matrix.ts).
 // Tuned against src/game/balance/balance.test.ts.
 
 type Trap = Extract<EncounterDef, { type: 'trap' }>;
@@ -46,24 +44,14 @@ const obstacle = (kind: ObstacleKind, name: string, weight = 2): EncounterDef =>
 
 const locals = (npcId: string, weight = 1): EncounterDef => ({ type: 'locals', weight, npcId });
 
-/** Blueprints of the newer weapon types; any of them can drop and first meeting a type starts its mastery. */
-const extraDrops = (tier: number, slot: 'short' | 'long') =>
-  (slot === 'short' ? ['axe', 'dagger', 'staff'] : ['mace', 'lute']).map((type) => ({
-    recipeId: `${type}${tier}`,
-    chance: 0.15,
-  }));
-
 /** A new pool dungeon with the rewards of an existing one of the same tier and slot. */
 const sameRewards = (base: DungeonDef) => ({
   tier: base.tier,
   slot: base.slot,
   durationMinutes: base.durationMinutes,
   encounterCount: base.encounterCount,
-  mainRewardChance: base.mainRewardChance,
   gold: base.gold,
   xp: base.xp,
-  loot: base.loot,
-  recipeDrops: base.recipeDrops,
 });
 
 // Tier 1: wood
@@ -80,15 +68,8 @@ const ratCellar: DungeonDef = {
     targets: 'one',
   }),
   boss: bossById.ratKing,
-  mainRewardChance: 0.3,
   gold: [5, 12],
   xp: 30,
-  loot: [],
-  recipeDrops: [
-    { recipeId: 'mail1', chance: 0.6 },
-    { recipeId: 'wand1', chance: 0.5 },
-    ...extraDrops(1, 'short'),
-  ],
 };
 const goblinWarren: DungeonDef = {
   id: 'goblinWarren',
@@ -104,15 +85,8 @@ const goblinWarren: DungeonDef = {
     [obstacle('barricade', 'junk barricade', 3), obstacle('rubble', 'caved-in tunnel')],
   ),
   boss: bossById.goblinChief,
-  mainRewardChance: 0.75,
   gold: [8, 18],
   xp: 50,
-  loot: [],
-  recipeDrops: [
-    { recipeId: 'bow1', chance: 0.6 },
-    { recipeId: 'wand1', chance: 0.5 },
-    ...extraDrops(1, 'long'),
-  ],
 };
 // Tier 2: stone
 const wolfDen: DungeonDef = {
@@ -128,15 +102,8 @@ const wolfDen: DungeonDef = {
     targets: 'all',
   }),
   boss: bossById.alphaWolf,
-  mainRewardChance: 0.3,
   gold: [10, 24],
   xp: 80,
-  loot: [],
-  recipeDrops: [
-    { recipeId: 'mail2', chance: 0.6 },
-    { recipeId: 'wand2', chance: 0.5 },
-    ...extraDrops(2, 'short'),
-  ],
 };
 const trollBridge: DungeonDef = {
   id: 'trollBridge',
@@ -152,16 +119,8 @@ const trollBridge: DungeonDef = {
     [locals('tollTroll', 2), locals('hermit', 3), locals('pedlar', 2), obstacle('rubble', 'collapsed arch', 1)],
   ),
   boss: bossById.bridgeTroll,
-  mainRewardChance: 0.75,
   gold: [16, 36],
   xp: 120,
-  loot: [],
-  recipeDrops: [
-    { recipeId: 'bow2', chance: 0.6 },
-    { recipeId: 'emberWardSalve', chance: 0.3 },
-    { recipeId: 'wand2', chance: 0.5 },
-    ...extraDrops(2, 'long'),
-  ],
 };
 // Tier 3: copper
 const hauntedMine: DungeonDef = {
@@ -178,15 +137,8 @@ const hauntedMine: DungeonDef = {
     [locals('lostMiner')],
   ),
   boss: bossById.mineWraith,
-  mainRewardChance: 0.3,
   gold: [20, 48],
   xp: 150,
-  loot: [],
-  recipeDrops: [
-    { recipeId: 'mail3', chance: 0.6 },
-    { recipeId: 'wand3', chance: 0.5 },
-    ...extraDrops(3, 'short'),
-  ],
 };
 const cinderHollow: DungeonDef = {
   id: 'cinderHollow',
@@ -202,15 +154,8 @@ const cinderHollow: DungeonDef = {
     element: 'fire',
   }),
   boss: bossById.ashWyrm,
-  mainRewardChance: 0.75,
   gold: [32, 72],
   xp: 220,
-  loot: [],
-  recipeDrops: [
-    { recipeId: 'bow3', chance: 0.6 },
-    { recipeId: 'wand3', chance: 0.5 },
-    ...extraDrops(3, 'long'),
-  ],
 };
 // Tier 4: iron
 const harpyCliffs: DungeonDef = {
@@ -227,15 +172,8 @@ const harpyCliffs: DungeonDef = {
     [obstacle('rubble', 'fallen boulders', 1)],
   ),
   boss: bossById.harpyMatriarch,
-  mainRewardChance: 0.3,
   gold: [40, 96],
   xp: 250,
-  loot: [],
-  recipeDrops: [
-    { recipeId: 'mail4', chance: 0.6 },
-    { recipeId: 'wand4', chance: 0.5 },
-    ...extraDrops(4, 'short'),
-  ],
 };
 const orcWarcamp: DungeonDef = {
   id: 'orcWarcamp',
@@ -251,15 +189,8 @@ const orcWarcamp: DungeonDef = {
     [obstacle('barricade', 'spiked barricade', 3), obstacle('locked', 'chained gate', 1)],
   ),
   boss: bossById.orcWarlord,
-  mainRewardChance: 0.75,
   gold: [64, 144],
   xp: 350,
-  loot: [],
-  recipeDrops: [
-    { recipeId: 'bow4', chance: 0.6 },
-    { recipeId: 'wand4', chance: 0.5 },
-    ...extraDrops(4, 'long'),
-  ],
 };
 // Tier 5: steel
 const wyvernPeaks: DungeonDef = {
@@ -276,15 +207,8 @@ const wyvernPeaks: DungeonDef = {
     [obstacle('rubble', 'snowed-in pass', 1)],
   ),
   boss: bossById.wyvernQueen,
-  mainRewardChance: 0.3,
   gold: [80, 192],
   xp: 400,
-  loot: [],
-  recipeDrops: [
-    { recipeId: 'mail5', chance: 0.6 },
-    { recipeId: 'wand5', chance: 0.5 },
-    ...extraDrops(5, 'short'),
-  ],
 };
 const ashenCitadel: DungeonDef = {
   id: 'ashenCitadel',
@@ -300,15 +224,8 @@ const ashenCitadel: DungeonDef = {
     [obstacle('barricade', 'smouldering barricade', 1), obstacle('locked', 'sealed citadel door', 1)],
   ),
   boss: bossById.ashLord,
-  mainRewardChance: 0.75,
   gold: [128, 288],
   xp: 550,
-  loot: [],
-  recipeDrops: [
-    { recipeId: 'bow5', chance: 0.6 },
-    { recipeId: 'wand5', chance: 0.5 },
-    ...extraDrops(5, 'long'),
-  ],
 };
 
 /**
@@ -355,11 +272,8 @@ function nightQuest(
       { type: 'event', weight: 1, eventId: 'cache' },
     ],
     boss: bossById[bossId],
-    mainRewardChance: base.mainRewardChance,
     gold: [base.gold[0] * goldRunsWorth, base.gold[1] * goldRunsWorth],
     xp: base.xp * xpRunsWorth,
-    loot: [],
-    recipeDrops: [],
   };
 }
 
@@ -475,15 +389,8 @@ export const dungeons: DungeonDef[] = [
       [obstacle('barricade', 'palisade gate', 1)],
     ),
     boss: bossById.banditCaptain,
-    mainRewardChance: 1,
-    mainRewardExtraRollChance: 0.5,
     gold: [20, 40],
     xp: 100,
-    loot: [],
-    recipeDrops: [
-      { recipeId: 'woodPickaxe', chance: 1 },
-      { recipeId: 'mail1', chance: 0.3 },
-    ],
   },
 
   // Tier 2: stone
@@ -551,16 +458,8 @@ export const dungeons: DungeonDef[] = [
       [obstacle('rubble', 'quarry rockfall', 3)],
     ),
     boss: bossById.ogreChieftain,
-    mainRewardChance: 1,
-    mainRewardExtraRollChance: 0.5,
     gold: [40, 80],
     xp: 220,
-    loot: [],
-    recipeDrops: [
-      { recipeId: 'stonePickaxe', chance: 1 },
-      { recipeId: 'emberWardSalve', chance: 0.2 },
-      { recipeId: 'mail2', chance: 0.3 },
-    ],
   },
 
   // Tier 3: copper
@@ -627,15 +526,8 @@ export const dungeons: DungeonDef[] = [
       [obstacle('locked', 'sealed crypt door', 1)],
     ),
     boss: bossById.lichOfTheDeep,
-    mainRewardChance: 1,
-    mainRewardExtraRollChance: 0.5,
     gold: [80, 160],
     xp: 400,
-    loot: [],
-    recipeDrops: [
-      { recipeId: 'copperPickaxe', chance: 1 },
-      { recipeId: 'mail3', chance: 0.3 },
-    ],
   },
 
   // Tier 4: iron
@@ -706,15 +598,8 @@ export const dungeons: DungeonDef[] = [
       [obstacle('locked', 'giant-sized door', 1), obstacle('rubble', 'toppled pillar', 4)],
     ),
     boss: bossById.giantKing,
-    mainRewardChance: 1,
-    mainRewardExtraRollChance: 0.5,
     gold: [160, 320],
     xp: 600,
-    loot: [],
-    recipeDrops: [
-      { recipeId: 'ironPickaxe', chance: 1 },
-      { recipeId: 'mail4', chance: 0.3 },
-    ],
   },
 
   // Tier 5: steel
@@ -781,15 +666,8 @@ export const dungeons: DungeonDef[] = [
       [obstacle('locked', 'hoard vault door', 1)],
     ),
     boss: bossById.elderDragon,
-    mainRewardChance: 1,
-    mainRewardExtraRollChance: 0.5,
     gold: [320, 640],
     xp: 900,
-    loot: [],
-    recipeDrops: [
-      { recipeId: 'steelPickaxe', chance: 1 },
-      { recipeId: 'mail5', chance: 0.3 },
-    ],
   },
 
   // Overnight quests: open every day, unlocked with their tier.

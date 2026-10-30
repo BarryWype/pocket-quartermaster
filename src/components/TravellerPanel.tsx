@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, View } from 'react-native';
 
-import { elementInfo } from '@/content/elements';
 import { frPatrolTexts } from '@/content/fr/patrols';
 import { heroClasses } from '@/content/heroes';
 import { materialById } from '@/content/lookup';
@@ -19,7 +18,8 @@ import {
   type TravellerReward,
 } from '@/game/patrols/travellers';
 import { distanceTo } from '@/game/patrols/visibility';
-import { formatNumber, localized, t, tr } from '@/i18n';
+import { lootText } from '@/hooks/usePatrols';
+import { localized, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
 
@@ -142,22 +142,10 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
 
             {reward && (
               <View style={styles.offer}>
-                {reward.kind === 'keyFragment' ? (
+                {reward.kind === 'loot' && (
                   <Text style={styles.name}>
-                    {texts.keyFragment.name} — {texts.keyFragment.description}
-                  </Text>
-                ) : reward.kind === 'recruit' ? null : (
-                  <Text style={styles.name}>
-                    {reward.kind === 'gold'
-                      ? t('patrols.rewardGold', { gold: formatNumber(reward.gold) })
-                      : reward.kind === 'shards'
-                        ? t('patrols.rewardShards', {
-                            count: reward.amount,
-                            element: tr(elementInfo[reward.element].name).toLowerCase(),
-                          })
-                        : reward.kind === 'treasureSpot'
-                          ? t('patrols.rewardTreasure')
-                          : t('patrols.rewardBlessing')}
+                    {[lootText(reward.loot), reward.blessing ? t('patrols.rewardBlessing') : null].filter(Boolean).join(' ') ||
+                      t('chests.nothing')}
                   </Text>
                 )}
                 {recruit && (

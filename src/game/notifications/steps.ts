@@ -1,10 +1,8 @@
-import { chests as allChests } from '@/content/chests';
 import { notificationRules } from '@/content/notifications';
-import { formatNumber, tr } from '@/i18n';
+import { formatNumber, t } from '@/i18n';
 
-import { chestState } from '../rewards/chests';
+import { chestState, stepChests, type StepChest } from '../rewards/chests';
 import type { SaveData } from '../save';
-import type { ChestDef } from '../types';
 import { fill, notificationTexts } from './plan';
 import type { NotificationSettings, PlannedNotification } from './types';
 
@@ -21,7 +19,7 @@ export function stepAlerts(
   day: string,
   log: StepAlertLog,
   settings: NotificationSettings,
-  { chests = allChests, closeToChestSteps = notificationRules.closeToChestSteps }: { chests?: ChestDef[]; closeToChestSteps?: number } = {},
+  { chests = stepChests, closeToChestSteps = notificationRules.closeToChestSteps }: { chests?: StepChest[]; closeToChestSteps?: number } = {},
 ): { alerts: PlannedNotification[]; log: StepAlertLog } {
   const sent = log.day === day ? log.sent : [];
   if (!settings.enabled) return { alerts: [], log: { day, sent } };
@@ -39,7 +37,7 @@ export function stepAlerts(
         group: 'steps',
         at: null,
         title: texts.chestUnlocked.title,
-        body: fill(texts.chestUnlocked.body, { chest: tr(chest.name).toLowerCase() }),
+        body: fill(texts.chestUnlocked.body, { chest: t('chests.name', { steps: formatNumber(chest.steps) }) }),
       });
     }
   }
@@ -54,7 +52,7 @@ export function stepAlerts(
         title: texts.chestClose.title,
         body: fill(texts.chestClose.body, {
           steps: formatNumber(nextLocked.steps - steps),
-          chest: tr(nextLocked.name).toLowerCase(),
+          chest: t('chests.name', { steps: formatNumber(nextLocked.steps) }),
         }),
       });
     }

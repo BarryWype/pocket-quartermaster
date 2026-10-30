@@ -148,7 +148,7 @@ function printSummary(summary: Summary, comparison: Comparison | null, print: (l
     print(
       `  Overnight quests: ${p.expeditions.overnight.runsPerDay}/day, ${Math.round(p.expeditions.overnight.goldShare * 100)}% of gold, ${Math.round(
         p.expeditions.overnight.xpShare * 100,
-      )}% of XP · daily blueprints: ${p.expeditions.blueprints}/run · walking bonus: ${Math.round(p.materials.bonusShare * 100)}% of materials`,
+      )}% of XP · blueprints: ${p.expeditions.blueprints}/run · walking bonus: ${Math.round(p.materials.bonusShare * 100)}% of materials`,
     );
     const misses = milestoneMisses(p);
     print(

@@ -5,9 +5,9 @@ import { itemById, materialById, opportunityById, threatById } from '@/content/l
 import { article, plural } from '@/i18n/french';
 import { fill, getLocale, localized, t, tr } from '@/i18n';
 
-import { shardId } from '../elements';
+import { shardId, type Element } from '../elements';
 import type { Rng } from '../generation/rng';
-import type { DungeonDef, Hunger, MainReward, MobGroup } from '../types';
+import type { DungeonDef, Hunger, MobGroup } from '../types';
 import type { AbilityEffect, EncounterResult, PartyMember, RunResult } from './simulate';
 import type { ThreatScore } from '../threats/score';
 
@@ -18,8 +18,10 @@ export type LogInput = {
   gold: number;
   /** Recipes the run taught: the boss's drop and the opportunity's, by item name. */
   recipeItemNames: string[];
-  mainRewards: MainReward[];
-  firstClear?: { gold: number; xp: number };
+  sigil?: number;
+  sigilShards?: { element: Element; amount: number };
+  firstWin?: boolean;
+  firstTierClear?: boolean;
   charter?: boolean;
   /** Replaces the usual outcome line, e.g. for Sanctum fights. */
   summary?: string;
@@ -283,16 +285,17 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
     ...encounterLines,
     capitalised(summary),
     ...input.recipeItemNames.map((item) => fill(pick(rng, logTemplates.recipe), { item: tr(item).toLowerCase() })),
-    ...(input.firstClear ? [fill(pick(rng, logTemplates.firstClear), input.firstClear)] : []),
+    ...(input.firstTierClear ? [pick(rng, logTemplates.firstTierClear)] : input.firstWin ? [pick(rng, logTemplates.firstWin)] : []),
     ...(input.charter ? [pick(rng, logTemplates.charter)] : []),
-    ...input.mainRewards.map((reward) =>
-      fill(pick(rng, logTemplates.mainReward[reward.kind]), {
-        gold: reward.kind === 'goldPouch' || reward.kind === 'mapGold' ? reward.gold : 0,
-        tier: reward.kind === 'sigil' || reward.kind === 'treasureMap' ? reward.tier : 0,
-        amount: reward.kind === 'shards' ? reward.amount : 0,
-        shards: reward.kind === 'shards' ? tr(materialById[shardId(reward.element)].name).toLowerCase() : '',
-      }),
-    ),
+    ...(input.sigil ? [fill(pick(rng, logTemplates.sigil), { tier: input.sigil })] : []),
+    ...(input.sigilShards
+      ? [
+          fill(pick(rng, logTemplates.sigilShards), {
+            amount: input.sigilShards.amount,
+            shards: tr(materialById[shardId(input.sigilShards.element)].name).toLowerCase(),
+          }),
+        ]
+      : []),
     ...input.salvaged.map((s) => {
       const name = tr(itemById[s.itemId].name);
       return fill(logTemplates.salvage, { item: french ? name : name.toLowerCase() });

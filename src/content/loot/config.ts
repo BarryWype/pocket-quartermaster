@@ -165,6 +165,37 @@ export const lootConfig = {
     { itemId: 'trackersEye', weight: 0.5, tiers: [1, 5] },
     { itemId: LURE_ID, weight: 1, tiers: [1, 5] },
   ],
+  /**
+   * Gold and XP a drop is worth, as shares of the tier's short dungeon (gold
+   * average, XP per hero). Dungeon runs, bosses and quests pay their own
+   * dungeon's gold and XP instead; the two bonus rows use `bonusRows`.
+   */
+  amounts: {
+    patrolGoblins: { gold: 1, xp: 0.25 },
+    patrolHerd: { gold: 0.5, xp: 0.25 },
+    patrolBandits: { gold: 1.5, xp: 0.25 },
+    traveller: { gold: 1, xp: 0 },
+    banditCamp: { gold: 2, xp: 0.3 },
+    goblinRaid: { gold: 0.5, xp: 0.3 },
+    beastDen: { gold: 0.5, xp: 0.3 },
+    hauntedCrypt: { gold: 0.5, xp: 0.3 },
+    elementalRift: { gold: 0, xp: 0.3 },
+    abandonedCaravan: { gold: 1, xp: 0.3 },
+    wantedOutlaw: { gold: 3, xp: 0.3 },
+    monsterLair: { gold: 6, xp: 0.3 },
+    ruinsDig: { gold: 0, xp: 0 },
+    heist: { gold: 2, xp: 0 },
+    fishingDock: { gold: 0, xp: 0 },
+    treasureSpot: { gold: 2.5, xp: 0 },
+    sanctum: { gold: 0, xp: 0.5 },
+    stepChest: { gold: 2, xp: 0 },
+  } as Partial<Record<LootSourceId, { gold: number; xp: number }>>,
+  /** The day's first win and a new tier's first clear: shares of the dungeon's top gold and its XP. */
+  bonusRows: { firstWin: { gold: 1, xp: 0.5 }, firstTierClear: { gold: 1, xp: 0.5 } },
+  /** Elite patrols pay this many times the gold and XP. */
+  eliteMultiplier: 2,
+  /** Treasure maps last this long once found. */
+  treasureMapHours: 48,
   /** Sigil drops by slot, with a pity counter and a shard cap per tier. */
   sigils: { chanceBySlot: { short: 0.09, long: 0.23, boss: 0.46 }, pityAfter: 10, cap: 3, capShardsPerTier: 2 },
 };

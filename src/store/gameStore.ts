@@ -10,7 +10,7 @@ import { materials } from '@/content/materials';
 import { craft, craftMany, forgetRecipe, forgeResult, learnAllRecipes, unlockRecipe, type ForgeResult } from '@/game/crafting/crafting';
 import { infuse } from '@/game/crafting/infusion';
 import { salvage } from '@/game/forging/salvage';
-import { migrateV10Save, migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV15Save, migrateV16Save, migrateV17Save, migrateV18Save, migrateV19Save, migrateV20Save, migrateV21Save, migrateV5Save, migrateV6Save, migrateV7Save, migrateV8Save, migrateV9Save } from '@/game/migrations';
+import { migrateV10Save, migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV15Save, migrateV16Save, migrateV17Save, migrateV18Save, migrateV19Save, migrateV20Save, migrateV21Save, migrateV22Save, migrateV5Save, migrateV6Save, migrateV7Save, migrateV8Save, migrateV9Save } from '@/game/migrations';
 import { convertShards, shardId, stoneId, type Element } from '@/game/elements';
 import { fastForward, resolveExpedition, startExpedition, type Loadout } from '@/game/expeditions/expeditions';
 import { markWalksSeen, processWalkPath, recordWalk, type WalkFix, type WalkOptions, type WalkPatrols, type WalkSummary } from '@/game/gathering/autoGather';
@@ -18,9 +18,10 @@ import { collectSpawn, type CollectResult, type Gatherer } from '@/game/gatherin
 import { endWalkEffect, startWalkEffect } from '@/game/gathering/walkEffects';
 import type { LatLng, Spawn } from '@/game/generation/types';
 import { addMaterials } from '@/game/inventory';
-import { dayKey, openChest, recordSteps, syncSteps, type ChestReward } from '@/game/rewards/chests';
+import { dayKey, openChest, recordSteps, syncSteps } from '@/game/rewards/chests';
 import { activateLure } from '@/game/rewards/lures';
-import { collectTreasure, readTreasureMap, type TreasureContents } from '@/game/rewards/treasure';
+import { collectTreasure, readTreasureMap } from '@/game/rewards/treasure';
+import type { Loot } from '@/game/loot/types';
 import { applyBackgroundResults, type BackgroundResult } from '@/game/patrols/escort';
 import { isTravellerKind, type PatrolSpawn, type TravellerKind } from '@/game/patrols/generate';
 import { resolvePatrolFights as resolveDueFights, startPatrolFight, type PatrolFight } from '@/game/patrols/fight';
@@ -44,7 +45,7 @@ import { applyTraining } from '@/game/guild/training';
 import type { GuildTrackId } from '@/content/guild';
 import { advanceTutorial, finishTutorial, nextTutorialStep, placeTutorialWood } from '@/game/tutorial/tutorial';
 import { pruneExpired, rollDailyApproaches } from '@/game/upkeep';
-import type { Approach, EquipmentSlot, ExpeditionReport, Heist, HeroClassId, HeroRoll, MasteryType, PlaceFight, PlaceReward, Quality } from '@/game/types';
+import type { Approach, EquipmentSlot, ExpeditionReport, Heist, HeroClassId, HeroRoll, MasteryType, PlaceFight, Quality } from '@/game/types';
 
 import { patrolRules } from '@/content/patrols';
 import { currentRotation, debugEnabled, useDebugStore } from './debugStore';
@@ -110,9 +111,9 @@ type GameState = {
   startHeist: (spawn: PlaceSpawn, heroId: string, player: LatLng) => void;
   /** Settles place fights and heists whose time is up. */
   resolvePlaces: () => { fights: PlaceFight[]; heists: Heist[] };
-  digRuin: (spawn: PlaceSpawn, player: LatLng) => { reward: PlaceReward; relic: boolean };
+  digRuin: (spawn: PlaceSpawn, player: LatLng) => { reward: Loot; relic: boolean };
   /** Fishes at a dock; returns the fish caught. */
-  fish: (spawn: PlaceSpawn, player: LatLng) => number;
+  fish: (spawn: PlaceSpawn, player: LatLng) => Loot;
   buyRank: (trackId: GuildTrackId) => void;
   /** Credits Guild Hall training XP since the last check. */
   train: () => void;
@@ -124,11 +125,11 @@ type GameState = {
   markReportsSeen: () => void;
   recordSteps: (day: string, newSteps: number) => void;
   syncSteps: (day: string, total: number) => void;
-  openChest: (chestId: string, steps: number) => ChestReward;
+  openChest: (chestId: string, steps: number) => Loot;
   placeTutorialWood: (position: LatLng) => void;
   challengeSanctum: (spawn: SanctumSpawn, tier: number, heroIds: string[], player: LatLng) => SanctumResult;
   readTreasureMap: (mapId: string, position: LatLng) => void;
-  collectTreasure: (mapId: string, player: LatLng, treasureAt: LatLng) => TreasureContents;
+  collectTreasure: (mapId: string, player: LatLng, treasureAt: LatLng) => Loot;
   activateLure: (position: LatLng) => void;
   /** Uses a walking consumable where the player stands, replacing one of the same item. */
   startWalkEffect: (itemId: string, position: LatLng) => void;
@@ -149,7 +150,7 @@ type GameState = {
   addSigil: (tier: number) => void;
   addElemental: (element: Element, kind: 'shard' | 'stone', amount: number) => void;
   addTreasureMap: () => void;
-  resetFirstClears: () => void;
+  resetFirstWin: () => void;
   /** Debug: a hero of any class and level, with an average roll or one landing on a grade. */
   addHero: (classId: HeroClassId, level: number, trait: string, roll?: HeroRoll) => void;
   /** Debug: sets a hero's level (1–15), XP to 0; pending approach picks follow. */
@@ -231,9 +232,9 @@ export const useGameStore = create<GameState>()(
           fights: [],
           escortHp: null,
           travellers: [{ kind, reward: reward.kind }],
-          gold: reward.kind === 'gold' ? reward.gold : 0,
+          gold: reward.kind === 'loot' ? reward.loot.gold : 0,
           xp: 0,
-          materials: reward.kind === 'shards' ? [{ materialId: shardId(reward.element), amount: reward.amount }] : [],
+          materials: reward.kind === 'loot' ? reward.loot.materials : [],
         };
         set({ save: addPatrolsToWalks(save, patrols, now) });
         return { reward, rosterFull };
@@ -306,9 +307,9 @@ export const useGameStore = create<GameState>()(
         return { reward, relic };
       },
       fish: (spawn, player) => {
-        const { save, amount } = fish(get().save, spawn, player, Date.now());
+        const { save, loot } = fish(get().save, spawn, player, Date.now());
         set({ save });
-        return amount;
+        return loot;
       },
       buyRank: (trackId) => set(({ save }) => ({ save: buyRank(save, trackId) })),
       train: () => set(({ save }) => ({ save: applyTraining(save, Date.now()) })),
@@ -325,9 +326,9 @@ export const useGameStore = create<GameState>()(
         const expedition = get().save.expeditions.find((e) => e.id === expeditionId);
         if (!expedition || expedition.endsAt > now) return null;
         const debug = useDebugStore.getState();
-        const force = debug.forcedMainReward ?? undefined;
-        const { save, report } = resolveExpedition(get().save, expedition, { mainReward: { force } });
-        if (force && report.success) debug.set({ forcedMainReward: null });
+        const force = debug.forcedLootCategory ?? undefined;
+        const { save, report } = resolveExpedition(get().save, expedition, { loot: { force } });
+        if (force && report.success) debug.set({ forcedLootCategory: null });
         set({ save: advanceTutorial(rollDailyApproaches(pruneExpired(save, now), now)) });
         return report;
       },
@@ -338,7 +339,7 @@ export const useGameStore = create<GameState>()(
       recordSteps: (day, newSteps) => set(({ save }) => ({ save: recordSteps(save, day, newSteps) })),
       syncSteps: (day, total) => set(({ save }) => ({ save: syncSteps(save, day, total) })),
       openChest: (chestId, steps) => {
-        const { save, reward } = openChest(get().save, chestId, steps, dayKey(new Date()));
+        const { save, reward } = openChest(get().save, chestId, steps, dayKey(new Date()), Date.now());
         set({ save });
         return reward;
       },
@@ -401,7 +402,7 @@ export const useGameStore = create<GameState>()(
             ...save,
             treasureMaps: [
               ...save.treasureMaps,
-              { id: `map${save.nextUid}`, tier: 1, expiresAt: Date.now() + 48 * 3_600_000, location: null },
+              { id: `map${save.nextUid}`, tier: 1, rarity: 'common', expiresAt: Date.now() + 48 * 3_600_000, location: null },
             ],
             nextUid: save.nextUid + 1,
           },
@@ -419,7 +420,7 @@ export const useGameStore = create<GameState>()(
       learnRecipe: (recipeId) => set(({ save }) => ({ save: unlockRecipe(save, recipeId) })),
       forgetRecipe: (recipeId) => set(({ save }) => ({ save: forgetRecipe(save, recipeId) })),
       learnAllRecipes: () => set(({ save }) => ({ save: learnAllRecipes(save) })),
-      resetFirstClears: () => set(({ save }) => ({ save: { ...save, firstClears: [] } })),
+      resetFirstWin: () => set(({ save }) => ({ save: { ...save, firstWinDay: null } })),
       addCharters: (amount) => set(({ save }) => ({ save: { ...save, charters: save.charters + amount } })),
       setGuildRank: (trackId, rank) => set(({ save }) => ({ save: { ...save, guild: { ...save.guild, [trackId]: rank } } })),
       resetGuild: () => set(({ save }) => ({ save: { ...save, guild: {} } })),
@@ -465,7 +466,7 @@ export const useGameStore = create<GameState>()(
       addProvisions: (amount) =>
         set(({ save }) => {
           const consumables = { ...save.consumables };
-          for (const item of items.filter((i) => i.slot === 'provision' || (i.slot === 'consumable' && i.charm))) {
+          for (const item of items.filter((i) => i.slot === 'provision')) {
             consumables[item.id] = (consumables[item.id] ?? 0) + amount;
           }
           return { save: { ...save, consumables } };
@@ -494,7 +495,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 22,
+      version: 23,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
       // Saves from version 5 on are converted step by step; older ones start fresh. New fields get their defaults.
@@ -506,7 +507,7 @@ export const useGameStore = create<GameState>()(
         if (version <= 7) save = migrateV7Save(save);
         if (version <= 8) save = migrateV8Save(save);
         if (version <= 9) save = migrateV9Save(save);
-        save = migrateV10Save(save);
+        if (version <= 10) save = migrateV10Save(save);
         if (version <= 11) save = migrateV11Save(save);
         if (version <= 12) save = migrateV12Save(save);
         if (version <= 13) save = migrateV13Save(save);
@@ -518,6 +519,7 @@ export const useGameStore = create<GameState>()(
         if (version <= 19) save = migrateV19Save(save);
         if (version <= 20) save = migrateV20Save(save);
         if (version <= 21) save = migrateV21Save(save);
+        if (version <= 22) save = migrateV22Save(save);
         return { save };
       },
       merge: (persisted, current) => ({

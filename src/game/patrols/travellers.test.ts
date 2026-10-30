@@ -1,10 +1,12 @@
 import { heroClasses, newHero } from '@/content/heroes';
 import { patrolRules, travellerRules } from '@/content/patrols';
-import { treasureRules } from '@/content/treasure';
 import { traits } from '@/content/traits';
 
 import { distanceMeters } from '../generation/geo';
 import { rosterCap } from '../guild/guild';
+import { emptyLoot } from '../loot/types';
+import { mapDistanceRange } from '../loot/treasure';
+import { readTreasureMap } from '../rewards/treasure';
 import type { SaveData } from '../save';
 import { currentHp, isExhausted, setHeroHp } from '../team/health';
 import type { PatrolSpawn } from './generate';
@@ -17,15 +19,15 @@ const stocked = (save: SaveData = tierTeam()): SaveData => ({ ...save, consumabl
 const { spawn: wounded, at } = findSpawn((s) => s.kind === 'wounded');
 const here = (spawn: PatrolSpawn, time: number) => fixOn(spawn, time).position;
 
-/** A traveller of a kind whose help pays this reward (rewards are seeded on the spawn id). */
-function withReward(kind: 'wounded' | 'pilgrim', reward: TravellerReward['kind']) {
+/** A traveller of a kind whose help pays a matching reward (rewards are seeded on the spawn id). */
+function withReward(kind: 'wounded' | 'pilgrim', matches: (reward: TravellerReward) => boolean) {
   const found = findSpawn((s) => s.kind === kind);
   for (let i = 0; i < 300; i++) {
     const spawn = { ...found.spawn, id: `${found.spawn.id}:${i}` };
     const help = helpTraveller(stocked(), spawn, here(spawn, found.at), found.at);
-    if (help.reward.kind === reward) return { spawn, at: found.at, help };
+    if (matches(help.reward)) return { spawn, at: found.at, help };
   }
-  throw new Error(`No ${kind} paying ${reward}`);
+  throw new Error(`No ${kind} paying a matching reward`);
 }
 
 describe('travellers', () => {
@@ -51,22 +53,26 @@ describe('travellers', () => {
   it('pay the same seeded reward every time', () => {
     const one = helpTraveller(stocked(), wounded, here(wounded, at), at).reward;
     expect(helpTraveller(stocked(), wounded, here(wounded, at), at).reward).toEqual(one);
-    expect(['gold', 'shards', 'treasureSpot', 'recruit']).toContain(one.kind);
+    expect(['loot', 'recruit']).toContain(one.kind);
   });
 
-  it('can leave a treasure spot within walking distance', () => {
-    const { spawn, at: time, help } = withReward('wounded', 'treasureSpot');
+  it('can leave a treasure map, read like any other', () => {
+    const { spawn, at: time, help } = withReward('wounded', (r) => r.kind === 'loot' && r.loot.treasureMaps.length > 0);
+    if (help.reward.kind !== 'loot') throw new Error('expected loot');
     const map = help.save.treasureMaps[help.save.treasureMaps.length - 1];
-    const meters = distanceMeters(here(spawn, time), map.location!);
-    expect(meters).toBeGreaterThanOrEqual(treasureRules.distanceMeters[0] - 1);
-    expect(meters).toBeLessThanOrEqual(treasureRules.distanceMeters[1] + 1);
+    const read = readTreasureMap(help.save, map.id, here(spawn, time), time);
+    const spot = read.treasureMaps[read.treasureMaps.length - 1].location!;
+    const [min, max] = mapDistanceRange(map.rarity);
+    const meters = distanceMeters(here(spawn, time), spot);
+    expect(meters).toBeGreaterThanOrEqual(min - 1);
+    expect(meters).toBeLessThanOrEqual(max + 1);
     expect(map.expiresAt).toBeGreaterThan(time);
   });
 
   it('can bless every hero at home back to full, but not those away', () => {
-    const { spawn, at: time } = withReward('pilgrim', 'blessing');
+    const { spawn, at: time } = withReward('pilgrim', (r) => r.kind === 'loot' && r.blessing);
     let save = stocked(setHeroHp(setHeroHp(tierTeam(), 'bram', 0, time, true), 'lyra', 0.3, time));
-    save = { ...save, patrolFights: [{ id: 'f', patrolId: 'x', kind: 'goblins', tier: 1, elite: false, heroIds: ['lyra'], startedAt: time, endsAt: time + 5 * MINUTE, windowEndsAt: time, won: true, hp: [], salvaged: [], rewards: { gold: 0, xp: 0, materials: [] } }] };
+    save = { ...save, patrolFights: [{ id: 'f', patrolId: 'x', kind: 'goblins', tier: 1, elite: false, heroIds: ['lyra'], startedAt: time, endsAt: time + 5 * MINUTE, windowEndsAt: time, won: true, hp: [], salvaged: [], rewards: emptyLoot() }] };
     const blessed = helpTraveller(save, spawn, here(spawn, time), time).save;
     const bram = blessed.heroes.find((h) => h.id === 'bram')!;
     expect(isExhausted(bram, time)).toBe(false);
@@ -76,7 +82,7 @@ describe('travellers', () => {
   });
 
   it('can hand over a key fragment, which is kept', () => {
-    const { help } = withReward('pilgrim', 'keyFragment');
+    const { help } = withReward('pilgrim', (r) => r.kind === 'loot' && r.loot.keyFragments > 0);
     expect(help.save.keyFragments).toBe(1);
   });
 });

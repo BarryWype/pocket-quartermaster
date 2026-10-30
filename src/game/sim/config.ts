@@ -63,8 +63,6 @@ export const simConfig = {
     enough: 0.9,
     /** A dungeon of the highest tier that can drop a blueprint the team lacks is worth trying at these odds. */
     blueprint: 0.35,
-    /** A guaranteed daily blueprint is worth this many of the dungeon's top gold in the expected-value ranking. */
-    blueprintValueRuns: 2,
     /** When nothing reaches the profile's threshold and nobody is out, the best option still goes if it reaches this. */
     fallback: 0.3,
   },
@@ -74,11 +72,8 @@ export const simConfig = {
     /** Supply points kept in stock, cooked `batch` at a time. */
     supplyBuffer: 18,
     batch: 5,
-    /** Meals and charms kept in stock, of each kind. The bot equips no kits. */
+    /** Meals kept in stock, of each kind. The bot equips no kits. */
     meals: 2,
-    charms: 2,
-    /** Short runs at least this safe take charms instead of potions. */
-    charmOdds: 0.85,
     /** Potions are drunk at home when current HP costs the party more than this much success chance. */
     potionGain: 0.15,
   },
@@ -130,7 +125,7 @@ export const BOT_RULES = [
   'Re-forge a worn piece of the best known tier while the chance of a better quality is at least 20% and the materials for one more forge remain; keep the better piece, salvage the other.',
   'Cook supply in batches of 5 (jerky while meat lasts, else trail mix) to keep 18 points in stock; then keep 3 healing potions, 2 of each meal and 2 of each charm; brew ember ward salves only when one of today’s dungeons deals fire (a fire element threat, or fire mobs).',
   'Meal: Hunter’s stew for a boss; Comfort broth when the odds are below 50%; Quick bites when they bring the party back a session earlier; Scholar’s porridge while the party is below the tier’s expected level; Merchant’s pie otherwise.',
-  'Charms: on short dungeons with odds ≥ 85%, potions give way to charms: one lucky tooth per party, else a rabbit’s foot. The bot equips no kits and never opts into an opportunity; an ember ward salve takes the place of a potion on runs that deal fire.',
+  'Consumables: the bot equips no kits and never opts into an opportunity; an ember ward salve takes the place of a potion on runs that deal fire.',
   'HP: odds use current HP, so parties favour rested heroes. When current HP costs the chosen party more than 15 points against full HP, it drinks potions at home (most hurt first); if that is not enough, the dungeon waits for a later session.',
   'Patrols: finished expeditions are collected before the walk, so those heroes are home for it; patrols and travellers are met on walks at the measured sighting rate (by kind and tier roll), and new expeditions are sent after. During the profile’s pocket (auto-gather) share, the escort hero — the home hero with the most current HP — takes goblin and herd patrols through the game’s own background rules (70% odds, stands down under 50% HP). Anything else is engaged with probability patrolEngageShare by the cheapest party of home, non-exhausted heroes whose odds reach 0.75. Wounded travellers get a healing potion, pilgrims a meal (or supply points when 8+ are held), traders are traded with while more than 20 of the material is held; traveller recruits (offered from 6 heroes) join when the roster has room.',
   'Supply: when the stock is short for a launch and a tavern is reachable today, buy the missing points as emergency jerky.',
@@ -139,5 +134,5 @@ export const BOT_RULES = [
   'Guild Hall: buy ranks in priority order, keeping the next recruit’s price while the roster has room.',
   'Sanctums: with a Sigil, a reachable Sanctum and odds ≥ 0.5 with the best heroes at home, use the highest Sigil tier that passes.',
   'Treasure: read every map; dig it up on a day its spot is reachable.',
-  'Expeditions: the unbeaten boss of the highest tier first when its odds are ≥ 0.45. Then, while heroes are idle, the open dungeon of the top two tiers with the best expected value per hour among those with odds ≥ the profile threshold; a boss whose daily bonus is already claimed is valued at the repeat reward chance. A dungeon of the highest tier that can drop a gear blueprint the team lacks only needs odds ≥ 0.35, and a pool dungeon whose daily blueprint is still unclaimed ranks a little higher (blueprintValueRuns of its top gold). When the gap to the next session is at least the overnight quest’s duration, the overnight quests of the top two tiers join the ranking at their full value over that gap — but only one overnight quest can be out at a time. Parties are built greedily (add the hero who raises the odds most) and each hero takes a potion (an ember ward salve for fire runs).',
+  'Expeditions: the unbeaten boss of the highest tier first when its odds are ≥ 0.45. Then, while heroes are idle, the open dungeon of the top two tiers with the best expected value per hour among those with odds ≥ the profile threshold; the day’s first win and a new tier’s first clear add their rows’ gold. A dungeon of the highest tier whose tier still has a favoured gear blueprint the team lacks only needs odds ≥ 0.35. When the gap to the next session is at least the overnight quest’s duration, the overnight quests of the top two tiers join the ranking at their full value over that gap — but only one overnight quest can be out at a time. Parties are built greedily (add the hero who raises the odds most) and each hero takes a potion (an ember ward salve for fire runs).',
 ];

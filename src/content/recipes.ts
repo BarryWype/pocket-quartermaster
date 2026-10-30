@@ -99,8 +99,6 @@ export const recipes: RecipeDef[] = [
     ['quickBites', 'kitchen', { meat: 1, berries: 1 }],
     ['comfortBroth', 'kitchen', { meat: 1, herb: 2 }],
     ['healingPotion', 'alchemy', { herb: 2, mushroom: 1 }],
-    ['rabbitsFoot', 'alchemy', { bone: 2, hide: 1 }],
-    ['luckyTooth', 'alchemy', { bone: 2, wood: 1 }],
     ['roguesRoll', 'alchemy', { bone: 2, hide: 1 }, false, 1],
     ['huntersPack', 'alchemy', { bone: 1, meat: 1, hide: 1 }, false, 1],
     // The tier's main material comes first: salvage gives back at least 1 of it.

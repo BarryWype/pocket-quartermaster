@@ -6,7 +6,6 @@ import { rotationRules } from '@/content/rotation';
 
 import { composeBriefing } from '../threats/compose';
 import { isDungeonAvailable, resolveExpedition, startExpedition } from '../expeditions/expeditions';
-import { migrateV6Save } from '../migrations';
 import { createInitialSave, type SaveData } from '../save';
 import { equip } from '../team/team';
 import type { Briefing } from '../types';
@@ -174,42 +173,6 @@ describe('availability', () => {
     const { report } = resolveExpedition(started, started.expeditions[0]);
     expect(report.dungeonId).toBe('spiderBurrow');
     expect(report.briefing).toEqual(started.expeditions[0].briefing);
-  });
-});
-
-describe('first-clear bonus', () => {
-  const geared = (): SaveData => {
-    let save: SaveData = {
-      ...createInitialSave(),
-      tutorial: { step: 'done', woodSpot: null },
-      gear: ['sword5', 'bow5', 'wand5'].map((itemId, i) => ({ uid: `g${i}`, itemId, quality: 'normal' as const })),
-      heroes: createInitialSave().heroes.map((h) => ({ ...h, level: 9 })),
-    };
-    ['bram', 'lyra', 'mira'].forEach((id, i) => (save = equip(save, id, 'weapon', `g${i}`)));
-    return save;
-  };
-  const win = (save: SaveData) => {
-    const started = startExpedition(save, 'spiderBurrow', ['bram', 'lyra', 'mira'], 0);
-    return resolveExpedition(started, started.expeditions[0]);
-  };
-
-  it('is paid once per pool dungeon', () => {
-    const firstRun = win(geared());
-    expect(firstRun.report.success).toBe(true);
-    expect(firstRun.report.firstClear).toEqual({ gold: 12, xp: 15 });
-    expect(firstRun.save.firstClears).toEqual(['spiderBurrow']);
-    expect(win(firstRun.save).report.firstClear).toBeUndefined();
-  });
-
-  it('is not paid for bosses', () => {
-    const started = startExpedition(geared(), 'banditStockade', ['bram', 'lyra', 'mira'], 0);
-    expect(resolveExpedition(started, started.expeditions[0]).report.firstClear).toBeUndefined();
-  });
-
-  it('counts dungeons cleared before the update as claimed', () => {
-    const old = { ...createInitialSave(), clearedDungeons: ['ratCellar', 'banditStockade'] } as Partial<SaveData>;
-    delete old.firstClears;
-    expect(migrateV6Save(old).firstClears).toEqual(['ratCellar', 'banditStockade']);
   });
 });
 

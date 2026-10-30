@@ -1,4 +1,4 @@
-import { dockRules } from '@/content/placeActivities';
+import { lootConfig } from '@/content/loot/config';
 
 import type { LatLng } from '../generation/types';
 import { createInitialSave, type SaveData } from '../save';
@@ -22,10 +22,12 @@ const spawnOf = (suffix = '0:1'): PlaceSpawn => ({
 
 describe('fish', () => {
   it('catches fish within the rules once, then the dock is used up', () => {
-    const { save, amount } = fish(createInitialSave(), spawnOf(), position, now);
-    expect(amount).toBeGreaterThanOrEqual(dockRules.fish[0]);
-    expect(amount).toBeLessThanOrEqual(dockRules.fish[1]);
-    expect(save.materials.fish).toBe(amount);
+    const { save, loot } = fish(createInitialSave(), spawnOf(), position, now);
+    const amount = save.materials.fish ?? 0;
+    const [min, max] = lootConfig.quantities.materials;
+    expect(loot.materials).toEqual([{ materialId: 'fish', amount: expect.any(Number) }]);
+    expect(amount).toBeGreaterThanOrEqual(min);
+    expect(amount).toBeLessThanOrEqual(max);
     expect(fishProblem(save, spawnOf(), position, now)).toBe('gone');
     expect(() => fish(save, spawnOf(), position, now)).toThrow();
   });
@@ -33,7 +35,7 @@ describe('fish', () => {
   it('always catches the same amount at the same dock', () => {
     const first = fish(createInitialSave(), spawnOf(), position, now);
     const second = fish(createInitialSave(), spawnOf(), position, now);
-    expect(second.amount).toBe(first.amount);
+    expect(second.save.materials.fish).toBe(first.save.materials.fish);
   });
 
   it('refuses docks that are not there or too far', () => {

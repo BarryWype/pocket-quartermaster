@@ -1,4 +1,3 @@
-import { chests } from '../chests';
 import { dungeons } from '../dungeons';
 import { elementInfo } from '../elements';
 import { bosses, mobs } from '../enemies';
@@ -22,7 +21,6 @@ export function contentTexts(): string[] {
     ...materials.map((m) => m.name),
     ...items.flatMap((i) => [i.name, ...(i.description ? [i.description] : [])]),
     ...resources.map((r) => r.name),
-    ...chests.map((c) => c.name),
     ...dungeons.flatMap((d) => [
       d.name,
       d.boss.name,

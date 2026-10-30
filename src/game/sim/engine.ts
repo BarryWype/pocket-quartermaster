@@ -1,4 +1,3 @@
-import { chests } from '@/content/chests';
 import { gatheringConfig } from '@/content/gatheringConfig';
 import { MASTERY_TYPES } from '@/content/forging';
 import { guildTracks } from '@/content/guild';
@@ -24,7 +23,7 @@ import { patrolOdds, resolvePatrolFights, startPatrolFight } from '../patrols/fi
 import { isGone } from '../patrols/visibility';
 import { acceptRecruit, helpProblem, helpTraveller, trade, traderOffers } from '../patrols/travellers';
 import { activateLure, isLureActive } from '../rewards/lures';
-import { chestState, openChest, recordSteps, stepsRecorded } from '../rewards/chests';
+import { chestState, openChest, recordSteps, stepChests, stepsRecorded } from '../rewards/chests';
 import { generateSanctumsAround } from '../sanctums/sanctums';
 import { createInitialSave, type SaveData } from '../save';
 import { generateTavernsAround } from '../taverns/taverns';
@@ -52,6 +51,7 @@ import {
   stockProvisions,
   type RunLog,
   type Sim,
+  countLoot,
 } from './bot';
 import { profiles, simConfig, type SimConfig } from './config';
 import type { PatrolRates } from './patrols';
@@ -190,6 +190,7 @@ function escortFight(sim: Sim, spawn: PatrolSpawn, at: number, player: LatLng) {
   if (result) {
     act(sim, 'escortPatrol', (save) => applyBackgroundResults(save, stepped.state.pending, at));
     sim.log.patrols.escortFights.push({ kind: result.kind, tier: result.tier, won: result.won, knockout: result.hpAfter <= 0, xp: result.won ? result.rewards.xp : 0 });
+    if (result.won) countLoot(sim, result.rewards);
   } else if (stepped.state.escort?.paused) {
     sim.log.patrols.escortPauses++;
   }
@@ -210,6 +211,7 @@ function engagePatrol(sim: Sim, spawn: PatrolSpawn, at: number, player: LatLng) 
     const { save } = resolvePatrolFights(fighting, fight.endsAt);
     act(sim, 'patrol', () => save);
     sim.log.patrols.fights.push({ kind: fight.kind, tier: fight.tier, elite: fight.elite, won: fight.won, xp: fight.won ? fight.rewards.xp * heroIds.length : 0 });
+    if (fight.won) countLoot(sim, fight.rewards);
     return;
   }
 }
@@ -242,7 +244,10 @@ function helpTravellerSpawn(sim: Sim, spawn: PatrolSpawn, at: number, player: La
   act(sim, 'traveller', () => save);
   log.travellers[kind]++;
   log.rewards[reward.kind]++;
-  if (reward.kind === 'keyFragment') log.keyFragments++;
+  if (reward.kind === 'loot') {
+    log.keyFragments += reward.loot.keyFragments;
+    countLoot(sim, reward.loot);
+  }
   if (reward.kind === 'recruit' && sim.config.patrols.travellerRecruits && save.heroes.length < rosterCap(save)) {
     act(sim, 'traveller', (next) => rollDailyApproaches(acceptRecruit(next, reward.offer), sim.now));
     log.recruits.push(sim.day);
@@ -274,9 +279,11 @@ function session(sim: Sim, walkMinutes: number, steps: number, dayKey: string, f
   if (sim.config.patrols.enabled) patrolSession(sim, walkMinutes);
   sim.save = applyTraining(sim.save, sim.now);
   sim.save = recordSteps(sim.save, dayKey, steps);
-  for (const chest of chests) {
+  for (const chest of stepChests) {
     if (chestState(sim.save, chest, stepsRecorded(sim.save, dayKey), dayKey) === 'ready') {
-      act(sim, 'chest', (save) => openChest(save, chest.id, stepsRecorded(save, dayKey), dayKey).save);
+      const opened = openChest(sim.save, chest.id, stepsRecorded(sim.save, dayKey), dayKey, sim.now);
+      countLoot(sim, opened.reward);
+      act(sim, 'chest', () => opened.save);
     }
   }
 
@@ -336,6 +343,7 @@ export function runSim({ profile: name, days, seed, rates, patrolRates, config =
       expeditions: [],
       crafts: [],
       goldIn: [],
+      loot: {},
       goldOut: [],
       gathered: {},
       used: {},
@@ -349,7 +357,7 @@ export function runSim({ profile: name, days, seed, rates, patrolRates, config =
         escortFights: [],
         escortPauses: 0,
         travellers: { wounded: 0, pilgrim: 0, trader: 0 },
-        rewards: { gold: 0, shards: 0, treasureSpot: 0, blessing: 0, keyFragment: 0, recruit: 0 },
+        rewards: { loot: 0, recruit: 0 },
         recruits: [],
         keyFragments: 0,
         trades: 0,

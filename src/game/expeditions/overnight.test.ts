@@ -21,7 +21,6 @@ describe('overnight quests', () => {
     for (const quest of quests) {
       expect(quest.slot).toBeUndefined();
       expect(quest.isBoss).toBeUndefined();
-      expect(quest.recipeDrops).toEqual([]);
       for (const day of [10, 11, 12, 13]) {
         expect(openDungeonIds(dailyRotation(day))).not.toContain(quest.id);
         expect(isDungeonAvailable(cleared(quest.tier), quest, dailyRotation(day))).toBe(true);
@@ -38,7 +37,6 @@ describe('overnight quests', () => {
       const short = dungeons.find((d) => d.tier === quest.tier && d.slot === 'short')!;
       expect(quest.gold).toEqual([short.gold[0] * goldRunsWorth, short.gold[1] * goldRunsWorth]);
       expect(quest.xp).toBe(short.xp * xpRunsWorth);
-      expect(quest.mainRewardChance).toBe(short.mainRewardChance);
     }
   });
 

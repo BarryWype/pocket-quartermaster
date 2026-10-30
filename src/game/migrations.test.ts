@@ -1,6 +1,6 @@
 import { createInitialSave, type SaveData } from './save';
 import { resolveExpedition } from './expeditions/expeditions';
-import { migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV15Save, migrateV16Save, migrateV17Save, migrateV18Save, migrateV19Save, migrateV20Save, migrateV21Save } from './migrations';
+import { migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV15Save, migrateV16Save, migrateV17Save, migrateV18Save, migrateV19Save, migrateV20Save, migrateV21Save, migrateV22Save } from './migrations';
 import { startingMastery } from './forging/mastery';
 import { xpToNextLevel } from '@/content/heroes';
 import type { ActiveExpedition, ExpeditionReport } from './types';
@@ -20,7 +20,6 @@ describe('migrateV11Save', () => {
       { uid: 'g1', itemId: 'woodSword', quality: 'rare', roll: 1 },
       { uid: 'g2', itemId: 'ironArmour', quality: 'crappy', roll: 1, element: 'fire' },
     ]);
-    expect(after.blueprintBonusDays).toEqual({});
     expect(after.freshGathers).toEqual({ day: '', used: 0 });
     expect(after.gold).toBe(123);
   });
@@ -97,7 +96,7 @@ describe('migrateV14Save', () => {
     heroes: createInitialSave().heroes.map((h) => (h.id === 'bram' ? { ...h, equipment: { ...h.equipment, consumable: 'fireResistanceElixir' } } : h)),
     knownRecipes: [...createInitialSave().knownRecipes, 'fireResistanceElixir', 'lockpicks', 'wardBone'],
     expeditions: [expedition],
-    reports: [report],
+    reports: [report as unknown as SaveData['reports'][number]],
   });
 
   it('maps stock and equipped ids, counts adding up', () => {
@@ -244,6 +243,58 @@ describe('migrateV20Save', () => {
   it('starts with no fight, heist or dig', () => {
     const { placeFights: _f, heists: _h, ruinsProgress: _r, dugRuins: _d, ...old } = createInitialSave();
     expect(migrateV20Save(old)).toMatchObject({ placeFights: [], heists: [], ruinsProgress: 0, dugRuins: {} });
+  });
+});
+
+describe('migrateV22Save', () => {
+  it('turns old charms into gold, in the stock and in a slot', () => {
+    const before: Partial<SaveData> = {
+      ...createInitialSave(),
+      gold: 100,
+      consumables: { ...createInitialSave().consumables, luckyTooth: 2 },
+      heroes: createInitialSave().heroes.map((h) =>
+        h.id === 'bram' ? { ...h, equipment: { ...h.equipment, consumable: 'rabbitsFoot' } } : h,
+      ),
+    };
+    const after = migrateV22Save(before);
+    expect(after.consumables.luckyTooth).toBeUndefined();
+    expect(after.heroes.find((h) => h.id === 'bram')!.equipment.consumable).toBeNull();
+    // Two in stock and one equipped: 30 gold at 10 each.
+    expect(after.gold).toBe(130);
+  });
+
+  it('gives old reports loot and old treasure maps a rarity', () => {
+    const oldReport = {
+      id: 'r1',
+      dungeonId: 'ratCellar',
+      heroIds: ['bram'],
+      finishedAt: 0,
+      outcome: 'success' as const,
+      success: true,
+      encountersCleared: 1,
+      encounterCount: 1,
+      heroHp: [],
+      threats: [],
+      opportunity: null,
+      salvaged: [],
+      gold: 12,
+      xp: 3,
+      materials: [{ materialId: 'wood', amount: 2 }],
+      recipeId: 'sword1',
+      consumablesUsed: [],
+      log: [],
+      seen: true,
+    };
+    const after = migrateV22Save({
+      ...createInitialSave(),
+      reports: [oldReport as unknown as SaveData['reports'][number]],
+      treasureMaps: [{ id: 'map1', tier: 1, expiresAt: 1, location: null } as unknown as SaveData['treasureMaps'][number]],
+    });
+    const [report] = after.reports;
+    expect(report.loot).toMatchObject({ gold: 12, xp: 3 });
+    expect(report.loot.recipeIds).toEqual(['sword1']);
+    expect(report.loot.materials).toEqual([{ materialId: 'wood', amount: 2 }]);
+    expect(after.treasureMaps[0].rarity).toBe('common');
   });
 });
 
