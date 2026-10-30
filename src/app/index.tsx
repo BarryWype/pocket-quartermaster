@@ -41,7 +41,7 @@ import { walkableRules } from '@/content/walkable';
 import { highestUnlockedTier } from '@/game/expeditions/expeditions';
 import { freshGathersLeft, isFleeing, pickaxeTier, showsOnMap, type CollectFailure } from '@/game/gathering/gathering';
 import { readSpawn, requiredPickaxeTier } from '@/game/gathering/lockedNodes';
-import { ambienceConfig, inSpan } from '@/game/generation/ambience';
+import { ambienceConfig, inSpan, showsDecoration } from '@/game/generation/ambience';
 import { distanceMeters } from '@/game/generation/geo';
 import { generateSpawnsAround } from '@/game/generation/spawns';
 import type { LatLng, Spawn, SpawnConfig } from '@/game/generation/types';
@@ -147,6 +147,7 @@ export default function MapScreen() {
   const skyPan = useSkyPan();
   const foliage = useFoliage(mapRef, inSpan(ambience.hour, ambienceConfig.smoke));
   const [following, setFollowing] = useState(true);
+  const [decor, setDecor] = useState(true);
   const [now, setNow] = useState(Date.now());
   const [message, setMessage] = useState<string | null>(null);
   const autoMode = useWorldStore((state) => state.autoGather);
@@ -517,9 +518,13 @@ export default function MapScreen() {
         touchPitch={false}
         logo={false}
         attributionPosition={{ top: insets.top + 8, left: 8 }}
-        onRegionIsChanging={(event) => skyPan.update(event.nativeEvent.center, event.nativeEvent.zoom)}
+        onRegionIsChanging={(event) => {
+          skyPan.update(event.nativeEvent.center, event.nativeEvent.zoom);
+          setDecor(showsDecoration(event.nativeEvent.zoom));
+        }}
         onRegionDidChange={(event) => {
           skyPan.update(event.nativeEvent.center, event.nativeEvent.zoom);
+          setDecor(showsDecoration(event.nativeEvent.zoom));
           foliage.refresh();
           const { userInteraction, center } = event.nativeEvent;
           const away = distanceMeters(position, { longitude: center[0], latitude: center[1] }) > FOLLOW_SLACK_METERS;
@@ -646,7 +651,7 @@ export default function MapScreen() {
           <Text style={styles.player}>🧙</Text>
         </Marker>
       </Map>
-      <MapSky pan={skyPan} hour={ambience.hour} raining={ambience.raining} />
+      <MapSky pan={skyPan} hour={ambience.hour} raining={ambience.raining} decor={decor} />
       {player.mocked && (
         <Text style={[styles.banner, { top: insets.top + 48 }]}>{t('map.mockBanner')}</Text>
       )}

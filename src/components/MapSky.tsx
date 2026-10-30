@@ -140,7 +140,7 @@ function worldPoint([lng, lat]: number[], zoom: number) {
  * and the odd shower. Layers move with the map at their own depth and wrap
  * around the screen. Everything moves on one slow shared clock (see `fps`), computed natively.
  */
-export function MapSky({ pan, hour, raining }: { pan: Pan; hour: number; raining: boolean }) {
+export function MapSky({ pan, hour, raining, decor }: { pan: Pan; hour: number; raining: boolean; decor: boolean }) {
   const enabled = useAnimationsEnabled();
   const clock = useSkyClock(enabled);
   const { width, height } = useWindowDimensions();
@@ -149,6 +149,7 @@ export function MapSky({ pan, hour, raining }: { pan: Pan; hour: number; raining
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       {enabled &&
+        decor &&
         inSpan(hour, ambienceConfig.butterflies) &&
         Array.from({ length: skyConfig.butterflies }, (_, i) => (
           <Wanderer key={i} clock={clock} pan={pan} area={area} size={BUTTERFLY}>
@@ -158,7 +159,8 @@ export function MapSky({ pan, hour, raining }: { pan: Pan; hour: number; raining
       {tint.opacity > 0 && <View style={[StyleSheet.absoluteFill, { backgroundColor: tint.color, opacity: tint.opacity }]} />}
       {enabled && (
         <>
-          {inSpan(hour, ambienceConfig.fireflies) &&
+          {decor &&
+            inSpan(hour, ambienceConfig.fireflies) &&
             Array.from({ length: skyConfig.fireflies }, (_, i) => (
               <Wanderer key={i} clock={clock} pan={pan} area={area} size={{ width: FIREFLY.size, height: FIREFLY.size }} glow>
                 <Animated.Image source={FIREFLY.source} style={StyleSheet.absoluteFill} />

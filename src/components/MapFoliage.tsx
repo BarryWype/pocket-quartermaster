@@ -16,6 +16,7 @@ import {
   placeFoliage,
   type FoliageObstacles,
 } from '@/game/generation/foliage';
+import { ambienceConfig } from '@/game/generation/ambience';
 import { useAnimationFrame } from '@/hooks/useAnimationFrame';
 
 // Frames are drawn by scripts/generate-foliage-sprites.py; swap in real art with the same names.
@@ -154,7 +155,7 @@ export function MapFoliage({ data }: { data: GeoJSON.FeatureCollection }) {
             key={`${phase}-${shown}`}
             type="symbol"
             id={`foliage-${phase}-${shown}`}
-            minzoom={15}
+            minzoom={ambienceConfig.decorationMinZoom}
             filter={['all', ['!=', ['get', 'kind'], 'post'], ['==', ['get', 'phase'], phase]]}
             layout={{
               'icon-image': ['concat', ['get', 'kind'], `-${shown}`],
