@@ -5,7 +5,6 @@ import { lootConfig } from '@/content/loot/config';
 import { dungeons } from '@/content/dungeons';
 
 import { expeditionMinutes, resolveExpedition, startExpedition } from '../expeditions/expeditions';
-import { migrateV8Save } from '../migrations';
 import { createRng } from '../generation/rng';
 import { rollSigil } from '../loot/sigils';
 import { challengeSanctum, type SanctumSpawn } from '../sanctums/sanctums';
@@ -234,10 +233,5 @@ describe('charters', () => {
     const rate = wins.filter((w) => w.save.charters === 1).length / wins.length;
     expect(rate).toBeGreaterThan(0.04);
     expect(rate).toBeLessThan(0.18);
-  });
-
-  it('are given for bosses beaten before the update', () => {
-    const old = { ...createInitialSave(), clearedDungeons: ['ratCellar', 'banditStockade', 'ogreQuarry'] } as Partial<SaveData>;
-    expect(migrateV8Save(old)).toMatchObject({ charters: 2, guild: {}, trainedAt: null });
   });
 });

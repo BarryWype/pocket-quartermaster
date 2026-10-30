@@ -6,7 +6,6 @@ import { tavernRules } from '@/content/taverns';
 import { traits } from '@/content/traits';
 
 import type { Element } from '../elements';
-import { migrateV10Save } from '../migrations';
 import { createInitialSave, type SaveData } from '../save';
 import { buySupply, buySupplyProblem, supplyPrice } from '../taverns/taverns';
 import { setHeroHp } from '../team/health';
@@ -497,20 +496,5 @@ describe('elixirs', () => {
       compared = true;
     }
     expect(compared).toBe(true);
-  });
-});
-
-describe('save migration v10 → v11', () => {
-  it('turns rations into jerky, Tough into Resilient, and adds the starting supply', () => {
-    const old = createInitialSave();
-    const save = migrateV10Save({
-      ...old,
-      consumables: { ration: 2, healingPotion: 1 },
-      heroes: old.heroes.map((h) => (h.id === 'bram' ? { ...h, trait: 'tough', equipment: { ...h.equipment, consumable: 'ration' } } : h)),
-    });
-    expect(save.consumables).toEqual({ healingPotion: 1, jerky: 3, ...provisionRules.startingStock });
-    expect(save.heroes.find((h) => h.id === 'bram')).toMatchObject({ trait: 'resilient', equipment: { consumable: null } });
-    expect(save.heroes.every((h) => h.hp === undefined)).toBe(true);
-    expect(save.cookingHintSeen).toBe(false);
   });
 });

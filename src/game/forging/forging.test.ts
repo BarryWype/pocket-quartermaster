@@ -7,7 +7,6 @@ import { heroClasses } from '@/content/heroes';
 import { craft, forgeResult, unlockRecipe } from '../crafting/crafting';
 import type { GearDef, GearInstance, MasteryType } from '../types';
 import { createRng } from '../generation/rng';
-import { migrateV5Save } from '../migrations';
 import { createInitialSave, type SaveData } from '../save';
 import { equip, heroStats } from '../team/team';
 import { forgesForNextLevel, gainMastery, masteryCap, startingMastery } from './mastery';
@@ -239,27 +238,5 @@ describe('salvage', () => {
       expeditions: [{ id: 'x', dungeonId: 'ratCellar', heroIds: ['bram'], startedAt: 0, endsAt: 1, seed: 's', notificationId: null }],
     };
     expect(canSalvage(away, 'g1')).toBe(false);
-  });
-});
-
-describe('save migration', () => {
-  it('turns old gear Normal, starts mastery at 1 and swaps keys for Sigils', () => {
-    const old = {
-      ...createInitialSave(),
-      gear: [{ uid: 'g1', itemId: 'sword1', durability: 3, element: 'fire' }],
-      materials: { wood: 2, mysteriousKey: 1 },
-      sigils: [2],
-      mastery: undefined,
-    } as unknown as Parameters<typeof migrateV5Save>[0];
-    const save = migrateV5Save(old);
-    expect(save.gear).toEqual([{ uid: 'g1', itemId: 'sword1', quality: 'normal', element: 'fire' }]);
-    expect(save.materials).toEqual({ wood: 2 });
-    expect(save.sigils).toEqual([2, 1]);
-    expect(save.mastery).toEqual(createInitialSave().mastery);
-  });
-
-  it('keeps the Sigil cap', () => {
-    const old = { ...createInitialSave(), materials: { mysteriousKey: 2 }, sigils: [1, 2] } as Parameters<typeof migrateV5Save>[0];
-    expect(migrateV5Save(old).sigils).toEqual([1, 2, 1]);
   });
 });

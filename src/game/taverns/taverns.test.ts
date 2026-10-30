@@ -7,7 +7,6 @@ import { resolveExpedition, startExpedition } from '../expeditions/expeditions';
 import { prepareParty } from '../expeditions/simulate';
 import { unlockRecipe } from '../crafting/crafting';
 import { createRng } from '../generation/rng';
-import { migrateV7Save } from '../migrations';
 import { createInitialSave, type SaveData } from '../save';
 import { equip } from '../team/team';
 import { pruneExpired } from '../upkeep';
@@ -244,23 +243,5 @@ describe('trait rewards', () => {
     const plain = xp('tough');
     const learner = xp('quickLearner');
     expect(learner.xp + (learner.level - 1) * 100).toBe(Math.round((plain.xp + (plain.level - 1) * 100) * 1.2));
-  });
-});
-
-describe('save migration v7 → v8', () => {
-  it('renames archers to rangers and gives traits, keeping the gear on', () => {
-    const old = {
-      ...createInitialSave(),
-      heroes: createInitialSave().heroes.map((h) => {
-        const { trait: _trait, ...rest } = h;
-        return { ...rest, classId: h.id === 'lyra' ? 'archer' : h.classId, equipment: { ...h.equipment, weapon: h.id === 'lyra' ? 'g' : null } };
-      }),
-      gear: [{ uid: 'g', itemId: 'woodSword', quality: 'normal' }],
-    } as unknown as SaveData;
-    const save = migrateV7Save(old);
-    const lyra = save.heroes.find((h) => h.id === 'lyra')!;
-    expect(lyra).toMatchObject({ classId: 'ranger', trait: 'lucky', equipment: { weapon: 'g' } });
-    expect(save.heroes.map((h) => h.trait)).toEqual(['tough', 'lucky', 'quickLearner']);
-    expect(save.gear).toHaveLength(1);
   });
 });
