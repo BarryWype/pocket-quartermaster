@@ -5,3 +5,4 @@ Every level (utility classes only),"Their half-rate damage stat, half a step"
 "Levels 5, 10",The player chooses +1 on one approach (cap 5)
 Level 15,+1 Luck
 Recruitment,"3d6 per stat: base -15% to +15%, growth -8% to +8%; about 1 in 10 gets +1 on a random approach; grade C / B / A / S; seeded by tavern and day"
+Max level,15; no XP is gained at level 15

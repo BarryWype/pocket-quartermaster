@@ -1,0 +1,24 @@
+Source,Visits per day (regular player),Gold,XP,Materials,Shards,Blueprints,Gear,Trinkets,Components,Relics,Monster parts,Valuables,Consumables,Treasure maps,Manuals,Key fragments,Notes
+Dungeon run,6,A,A,—,—,R,S,R/2,—,—,O,S,S,R,R,R/2,Launched from the phone: no materials
+"Dungeon, first win of the day",1,A,A,—,R,A,S,S,—,—,O,S,S,R,S,R,One blueprint per dungeon per day
+First clear of a new tier,0.03,A,A,—,—,A,A,—,—,—,O,S,S,—,S,A,Gear at least Uncommon
+Tier boss,0.2,A,A,—,R,R,O,S,S,R,A,O,S,S,S,R,Components are the boss's own; Legendary gear possible
+Overnight quest,1,A,A,—,—,R,S,R,—,—,O,O,S,S,R,—,
+Patrol: goblin scouts,1.33,O,O,S,—,—,R,—,—,—,O,S,S,—,—,—,
+Patrol: game herd,1.33,S,O,A,—,—,—,—,R,—,A,—,—,—,—,—,"Meat, hide, bone; components from elites"
+Patrol: bandits,1.33,A,O,O,—,—,S,—,—,—,S,O,S,R,—,—,
+Traveller,0.3,S,—,S,S,—,—,R,—,—,—,S,S,R,—,R,"Also a blessing, trades, a rare recruit"
+Bandit camp,0.43,A,O,S,—,R,S,—,—,—,S,O,S,R,—,—,
+Goblin raiding party,0.43,O,O,O,—,—,R,R,—,—,O,S,O,—,—,—,
+Beast den,0.43,S,O,A,—,—,—,—,S,—,A,—,—,—,—,—,
+Haunted crypt,0.43,S,O,S,—,—,R,—,—,R,O,S,—,—,—,S,Bone
+Elemental rift,0.43,—,O,—,A,—,—,R,R,—,S,—,—,—,—,—,Elemental components
+Abandoned caravan,0.43,O,O,O,—,S,S,—,—,—,—,S,O,—,—,—,
+Wanted outlaw,0.43,A,O,—,—,—,O,S,—,—,S,S,—,—,—,—,Gold bounty; Rare gear possible
+Monster lair,0.15,A,A,O,O,—,A,O,O,R,A,O,S,S,S,S,Gear at least Rare; Legendary possible
+"Ruins, a dig",1,—,—,O,—,—,—,—,—,—,—,S,—,—,—,S,The 5th dig gives a relic
+Thieves' guild heist,0.3,A,O,—,—,—,—,R,—,—,—,O,—,S,—,—,Sometimes the black market tip
+Fishing dock,0.3,—,—,A,—,R,—,—,R,R,—,R,—,R,—,—,Fish; rarely a sunken chest (under 10%) with one rare item; sometimes the underwater dungeon tip
+Treasure spot,0.4,A,—,O,—,—,S,S,R,R,—,O,S,—,—,—,Scales with the map's rarity
+Sanctum,0.3,—,O,—,A,—,—,—,—,—,—,—,—,—,—,—,Also elemental stones
+Step chest,2,A,—,O,—,—,R,—,—,—,S,S,S,S,R,—,Rewards walking

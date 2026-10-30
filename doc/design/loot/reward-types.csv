@@ -1,0 +1,20 @@
+Reward,What it's for,Rule
+Gold,"Shops, recruits, healing, training, weakness items",From almost everywhere; the main currency
+XP,Hero levels,Mainly from dungeons and fights
+Materials,Crafting,"Only from sources reached on foot; loot gives small, themed amounts"
+Elemental shards,"Infusion (10 = a stone), ward salves, oils",Elemental sources
+Blueprints,Crafting a type at a tier (110 in total),"One unknown blueprint at a time, weighted by the roster"
+Gear,Equipment,"Random type, usually average; feeds the forge through salvage"
+Trinkets,The trinket slot: small effects,"Loot only, never crafted"
+Components,"Variants of an item type, at least Rare","Loot only, rare, themed by the enemy"
+Relics,One-off unique items restored at the forge,"Loot only, rare"
+Monster parts,Charm and consumable ingredients; sold to the hunting lodge or apothecary,"Common, after most fights"
+Valuables,Sold for gold (better at the market or the thieves' guild fence),Common to uncommon
+Kits and consumables,Single-use,Can be generous
+Treasure maps,Send you walking to a treasure spot,Rare; their rarity sets loot and distance
+Training manuals,"XP for one hero, as a catch-up",Have a rarity; capped by the player's tier band
+Key fragments,"4 make a mysterious key (secret places, Sealed vault)","Rare, a few sources"
+Tips,Reveal a secret place,"Specific sources (heists, fishing dock)"
+Recruits,New heroes,"Taverns, travellers, prisoners"
+Charms,Raise what a run finds; consumable slot,Crafted from monster parts
+Sigils,Sanctum entry,Kept

@@ -1,0 +1,30 @@
+Kind,Name,What it does,Lifetime,Note
+Place,Tavern,"Recruit heroes (with the roll), emergency supply. Frequent. No contracts, no tips",72 h,
+Place,Sanctum,Elemental challenges with a Sigil; shards and stones (unchanged),72 h,
+Place,Sawmill,Buy wood (small stock); pitch for the troll's weakness,72 h or sold out,
+Place,Quarry,Buy stone (small stock); locked above the player's tier,72 h or sold out,"Mine mechanic, own spawn frequency"
+Place,Copper mine,Buy copper (small stock); locked above the player's tier,72 h or sold out,"Mine mechanic, own spawn frequency"
+Place,Iron mine,Buy iron (small stock); locked above the player's tier,72 h or sold out,"Mine mechanic, own spawn frequency"
+Place,Coal pit,Buy coal (small stock); locked above the player's tier,72 h or sold out,"Mine mechanic, own spawn frequency"
+Place,Hunting lodge,"Buy a little hide, meat and bone",72 h or sold out,
+Place,Smithy,Buy and sell gear; one blueprint for sale per rotation; iron horseshoe (boss weakness),72 h,
+Place,Apothecary,"Potions, salves, herbs; heal a hero fully or remove exhaustion for gold; sleeping draught (boss weakness)",72 h,
+Place,Chapel,Free once per visit: heal a hero fully or remove exhaustion; bless holy relics (+3 Faith); blessing for the next expedition (+5% party damage); font water (boss weakness); sells no holy relics,72 h,
+Place,Market,"Rotating stock, sell surplus, sometimes components; decoy hoard (boss weakness)",72 h,
+Place,Thieves' guild,"Small heists: one hero, 15-30 min, Finesse threat; success pays gold or an item and sometimes the black market tip",72 h,
+Place,Monster lair,"More patrols around it while active; the lair is a big fight (elite, 2-3 heroes) with a large reward","Until defeated, max 72 h",
+Place,Ruins,One dig per ruin: the dug ruin disappears and a new one spawns elsewhere 24 h later; other ruins stay diggable. Each dig gives materials and ~25% key fragment; 5 digs in total give a relic,72 h,
+Place,Library,"Train a hero (XP for gold), scrolls, some blueprints",72 h,
+Place,Fishing dock,Fish (new kitchen ingredient); sometimes the tip for the underwater dungeon,72 h,
+Event,Village fair,"At the market on weekends: contests, special stock, unusual recruits, strong ale (boss weakness)",Weekly (weekends),Absorbs the circus. Left out for now
+Event,Treasure spot,One-off reward from a treasure map or a traveller,Unchanged,
+Fight event,Bandit camp,"Threat: Thieves. Loot: gold, stolen items","Until won, max 24 h",
+Fight event,Goblin raiding party,"Threat: Ambush. Loot: materials, sometimes a trinket","Until won, max 24 h",
+Fight event,Beast den,"Threat: Beasts. Loot: hide, bone, meat, sometimes a component","Until won, max 24 h",
+Fight event,Haunted crypt,"Threat: Undead. Loot: bone, relics, key fragments","Until won, max 24 h",
+Fight event,Elemental rift,Threat: Element. Loot: shards,"Until won, max 24 h",
+Fight event,Abandoned caravan,"Threat: varies. Loot: materials, consumables, a blueprint","Until won, max 24 h",
+Fight event,Wanted outlaw,"Threat: Brute. Loot: gold bounty, sometimes a rare item","Until won, max 24 h",
+Secret,Hidden den,"One rare class, expensive. Needs a mysterious key; tip source open",Hidden,
+Secret,Black market,"One rare class, expensive; rare items. Needs a mysterious key; tip from a thieves' guild heist",Hidden,
+Secret,Underwater dungeon,Secret dungeon near water. Tip from the fishing dock,Hidden,

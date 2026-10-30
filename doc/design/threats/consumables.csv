@@ -1,0 +1,23 @@
+Panel,Category,Item,Use,Effect,Tier,Recipe (proposal),Status
+Alchemy,Hero consumable,Strength draught,Consumable slot,+15% Power for the run,2,"1 stone, 1 meat, 1 herb",New
+Alchemy,Hero consumable,Arcane tonic,Consumable slot,+15% Magic for the run,2,"1 stone, 1 mushroom, 1 berries",New
+Alchemy,Hero consumable,Ironskin brew,Consumable slot,+20% Armour for the run,2,"1 stone, 1 bone, 1 herb",New
+Alchemy,Hero consumable,Firebomb,Consumable slot,Opens the first fight with damage to every enemy,2,"1 stone, 1 wood, 1 meat",New
+Alchemy,Hero consumable,Nullroot tincture,Consumable slot,+20% Resistance for the run,3,"1 copper, 1 mushroom, 1 herb",New
+Alchemy,Hero consumable,Quicksilver,Consumable slot,+2 Speed for the run,3,"1 copper, 1 berries, 1 mushroom",New
+Alchemy,Hero consumable,Elemental oil (one per element),Consumable slot,Infuses the weapon for one run at full strength (as a permanent infusion); takes the consumable slot,3,"2 shards of the element, 1 copper, 1 herb",New
+Alchemy,Hero consumable,Smoke bomb,Consumable slot,Retreat from a lost fight and keep more loot,3,"1 copper, 1 wood, 1 mushroom",New
+Alchemy,Hero consumable,Revival draught,Consumable slot,A knocked-out hero gets back up once at 30% HP,5,"1 coal, 1 fire shard, 1 herb",New
+Alchemy,Hero consumable,Healing potion,Consumable slot,Existing; to review separately,1,Unchanged,Existing
+Kitchen,Meal,Hearty roast,Party meal,+10% max HP for the party,2,"2 meat, 1 herb",New
+Kitchen,Meal,Honey cakes,Party meal,Opportunities give +25%,2,"2 berries, 1 herb",New
+Kitchen,Supply,Pemmican,Supply,5 supply points,2,"2 meat, 1 berries",New
+Kitchen,Meal,Spiced skewers,Party meal,+1 Speed for the party,3,"1 meat, 1 herb, 1 mushroom",New
+Kitchen,Meal,Mushroom risotto,Party meal,+10% Resistance for the party,3,"2 mushroom, 1 herb",New
+Alchemy,Walking,Forager's tonic,Used on the map,Auto-gather radius +10 m for 30 minutes,1,"1 herb, 1 berries, 1 wood",New
+Alchemy,Walking,Hunter's musk,Used on the map,Animals appear around you for 15 minutes,2,"1 stone, 1 meat, 1 hide",New
+Alchemy,Walking,Prospector's draught,Used on the map,Ore nodes give +1 for 30 minutes,3,"1 copper, 1 mushroom, 1 herb",New
+Alchemy,Walking,Tracker's eye,Used on the map,Patrols and rare nodes visible from twice as far for 30 minutes,3,"1 copper, 1 berries, 1 bone",New
+Alchemy,Home care,Herbal poultice,Hero at home,Heals 25% of max HP,1,"2 herb, 1 hide",New
+Alchemy,Home care,Restorative tonic,Hero at home,Heals to full,3,"1 copper, 1 herb, 1 mushroom",New
+Alchemy,Home care,Calming tea,Hero at home,Removes exhaustion,3,"1 copper, 1 herb, 1 berries",New

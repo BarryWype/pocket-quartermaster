@@ -57,9 +57,9 @@ HEAVY = {"Warhammer", "Plate"}
 CASTING_PENALTY = {"Mail": 0.15, "Plate": 0.30}
 CONCEALED = {"Dagger", "Wand", "Lute", "Knuckles", "Off-hand blade"}
 NOTES = {
- "Bow": "Needs a quiver in the off-hand", "Quiver": "Bow only", "Shield": "One-handed weapons only",
+ "Bow": "Fully functional alone; a quiver adds its bonus on top", "Quiver": "Bow only", "Shield": "One-handed weapons only",
  "Buckler": "Small Evasion for heroes below the cap", "Off-hand blade": "Damage for heroes already at the Evasion cap",
- "Lute": "+1 Presence", "Robes": "Part of the budget goes into Magic", "Tome": "+1 Wits or +1 Faith (holy book)",
+ "Lute": "+1 Presence", "Robes": "Part of the budget goes into Magic", "Tome": "+1 Wits",
 }
 
 def extras_cost(name, flat, kws):

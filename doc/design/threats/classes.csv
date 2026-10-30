@@ -1,27 +1,27 @@
-Class,Family,Rarity,Primary HP,Primary Power,Primary Magic,Primary Armour,Primary Resistance,Primary Evasion,Primary Speed,Primary Crit,Half-rate stat,Might,Finesse,Wits,Faith,Presence,Light,Watchful,Calm,Antidote,Pierce,Cleave,Blessed,Guard,Inspire,Note,Signature
-Warrior,Fighter,As today,1,1,0,1,0,0,0,0,,1,0,0,0,0,0,0,0,0,0,0,0,0,0,,Solid front line
-Barbarian,Fighter,As today,1,1,0,0,0,0,0,1,,1,0,0,0,0,0,0,0,0,0,1,0,0,0,Merged with Berserker,Gets stronger as their HP drops; intimidates locals
-Paladin,Fighter,As today,1,0,0,1,1,0,0,0,,0,0,0,1,0,0,0,0,0,0,0,1,1,0,Merged with Bulwark,Takes the Brute's hits
-Ranger,Answerer,As today,0,1,0,0,0,1,1,0,,0,0,1,0,0,0,1,0,0,0,0,0,0,0,Merged with Pathfinder,Delay penalties halved; strong against beasts
-Thief,Answerer,As today,0,1,0,0,0,1,0,1,,0,1,0,0,0,0,0,0,0,0,0,0,0,0,Finesse 4,Pickpockets locals; double hidden cache
-Fire mage,Answerer,As today,0,0,1,0,0,0,1,1,,0,0,0,0,0,1,0,0,0,0,1,0,0,0,,Fire lights the way
-Frost mage,Answerer,As today,0,0,1,1,1,0,0,0,,0,0,1,0,0,0,0,0,0,0,0,0,0,0,,Ice armour; good against puzzles and Underwater
-Sorcerer,Answerer,As today,0,0,1,0,1,0,0,1,,0,0,1,0,0,0,0,0,0,0,0,0,0,0,,Much stronger elemental advantage
-Cleric,Answerer,As today,1,0,1,0,1,0,0,0,,0,0,0,1,0,0,0,0,1,0,0,1,0,0,,Heals the party each fight
-Druid,Answerer,As today,1,0,1,0,0,1,0,0,,0,0,0,0,0,0,0,1,1,0,0,0,0,0,,Calms beasts
-Troubadour,Answerer,As today,0,0,1,0,0,1,1,0,,0,0,0,0,1,0,0,0,0,0,0,0,0,1,,Charms locals; Inspire
-Scholar,Answerer,Common,0,0,1,0,1,0,1,0,,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Wits 4,Old inscriptions give double
-Exorcist,Answerer,Uncommon,0,1,0,0,1,0,0,1,,0,0,0,1,0,0,0,0,0,0,0,1,0,0,,Answers Desecrated ground and Undead at once
-Duelist,Fighter,Common,0,1,0,0,0,0,1,1,,0,0,0,0,0,0,0,0,0,1,0,0,0,0,,Big crits on single enemies
-Smuggler,Converter,Uncommon,0,0,0,0,0,1,1,1,Power,0,1,0,0,1,0,0,0,0,0,0,0,0,0,Finesse 4,Thieves become a fence: gold instead of losses
-Diplomat,Converter,Uncommon,1,0,0,0,1,1,0,0,Magic,0,0,0,0,1,0,0,0,0,0,0,0,0,0,,Answers Locals at any level; better Bounty and Merchant
-Necromancer,Converter,Rare: secret tavern,1,0,1,0,0,0,0,1,,0,0,1,0,0,0,0,0,0,0,0,0,0,0,,Undead become allies for the run
-Beastmaster,Converter,Rare: secret tavern,1,1,0,0,0,1,0,0,,0,0,0,0,0,0,0,1,0,0,0,0,0,0,,Beasts join the fight on the party's side
-Engineer,Rule-bender,Uncommon,0,1,0,1,0,0,0,1,,1,0,1,0,0,0,0,0,0,0,0,0,0,0,,Their kit gives +3 instead of +2
-Alchemist,Rule-bender,Uncommon,1,0,1,0,0,0,1,0,,0,0,1,0,0,0,0,0,0,0,0,0,0,0,,"A second slot, for healing consumables only"
-Porter,Rule-bender,Uncommon,1,0,0,1,0,1,0,0,Power,1,0,0,0,0,0,0,0,0,0,0,0,0,0,,Carries a kit for another hero
-Scout,Rule-bender,Uncommon,0,1,0,0,0,1,1,0,,0,1,0,0,0,0,1,0,0,0,0,0,0,0,Same primary stats as Ranger,Lowers one Extreme threat to Strong
-Curse-breaker,Rule-bender,Rare: high tiers,0,0,1,0,1,1,0,0,,0,0,0,1,0,0,0,0,0,0,0,0,0,0,Faith 4,Cancels the day's restriction
-Cook,Rule-bender,Uncommon,1,0,0,0,1,0,1,0,Power,0,0,0,0,1,0,0,0,0,0,0,0,0,0,,"Meals count double, Hunger halved, cancels Spoiled stores, light heal between fights"
-Monk,Rule-bender,Uncommon,0,1,0,0,1,1,0,0,,1,0,0,1,0,0,0,0,0,0,0,0,0,0,,Fists count as Pierce; immune to Sacred ground and Anti-magic zone
-Gambler,Rule-bender,Uncommon,0,0,0,0,0,0,1,1,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"Random approach scores, rolled at the daily reset",+crit
+Class,Family,Rarity,Primary HP,Primary Power,Primary Magic,Primary Armour,Primary Resistance,Primary Evasion,Primary Speed,Primary Crit,Half-rate stat,Might,Finesse,Wits,Faith,Presence,Light,Watchful,Calm,Antidote,Pierce,Cleave,Blessed,Guard,Inspire,Note,Signature,Might score,Finesse score,Wits score,Faith score,Presence score,Base HP,Base Power,Base Magic,Base Armour,Base Resistance,Base Evasion,Base Speed,Base Crit,Threat (aggro),Tavern pool from tier
+Warrior,Fighter,Common,1,1,0,1,0,0,0,0,,1,0,0,0,0,0,0,0,0,0,0,0,0,0,,Solid front line,3,1,1,1,2,30,4,0,3,1,0,5,5,3,1
+Barbarian,Fighter,Uncommon,1,1,0,0,0,0,0,1,,1,0,0,0,0,0,0,0,0,0,1,0,0,0,Merged with Berserker,Gets stronger as their HP drops; intimidates locals,4,1,1,1,1,32,6,0,0,1,0,5,10,2,1
+Paladin,Fighter,Uncommon,1,0,0,1,1,0,0,0,,0,0,0,1,0,0,0,0,0,0,0,1,1,0,Merged with Bulwark,Takes the Brute's hits,2,1,1,3,1,32,3,0,4,3,0,5,5,2.5,1
+Ranger,Answerer,Common,0,1,0,0,0,1,1,0,,0,0,1,0,0,0,1,0,0,0,0,0,0,0,Merged with Pathfinder,Delay penalties halved; strong against beasts,1,2,3,1,1,24,5,0,1,1,5,7,5,1,1
+Thief,Answerer,Uncommon,0,1,0,0,0,1,0,1,,0,1,0,0,0,0,0,0,0,0,0,0,0,0,Finesse 4,Pickpockets locals; double hidden cache,1,4,1,0,2,22,5,0,1,1,5,5,10,1,1
+Fire mage,Answerer,Common,0,0,1,0,0,0,1,1,,0,0,0,0,0,1,0,0,0,0,1,0,0,0,,Fire lights the way,1,1,3,1,2,22,0,6,0,1,0,7,10,1,1
+Frost mage,Answerer,Common,0,0,1,1,1,0,0,0,,0,0,1,0,0,0,0,0,0,0,0,0,0,0,,Ice armour; good against puzzles and Underwater,1,1,3,2,1,22,0,6,0,3,0,5,5,1,1
+Sorcerer,Answerer,Uncommon,0,0,1,0,1,0,0,1,,0,0,1,0,0,0,0,0,0,0,0,0,0,0,,Much stronger elemental advantage,0,1,4,1,2,20,0,6,0,3,0,5,10,1,2
+Cleric,Answerer,Uncommon,1,0,1,0,1,0,0,0,,0,0,0,1,0,0,0,0,1,0,0,1,0,0,,Heals the party each fight,1,1,1,3,2,26,2,3,2,3,0,5,5,1.5,1
+Druid,Answerer,Uncommon,1,0,1,0,0,1,0,0,,0,0,0,0,0,0,0,1,1,0,0,0,0,0,,Calms beasts,1,2,2,2,1,24,0,5,1,1,5,5,5,1,2
+Troubadour,Answerer,Uncommon,0,0,1,0,0,1,1,0,,0,0,0,0,1,0,0,0,0,0,0,0,0,1,,Charms locals; Inspire,0,2,1,1,4,22,2,2,1,1,5,7,5,0.8,2
+Scholar,Answerer,Common,0,0,1,0,1,0,1,0,,0,0,1,0,0,0,0,0,0,0,0,0,0,0,Wits 4,Old inscriptions give double,0,1,4,2,1,22,0,6,0,3,0,7,5,1,2
+Exorcist,Answerer,Uncommon,0,1,0,0,1,0,0,1,,0,0,0,1,0,0,0,0,0,0,0,1,0,0,,Counts as two heroes with Blessed against Undead; +1 Faith against Desecrated ground,2,1,1,3,1,26,5,0,2,3,0,5,10,1.5,3
+Duelist,Fighter,Common,0,1,0,0,0,0,1,1,,0,0,0,0,0,0,0,0,0,1,0,0,0,0,,Big crits on single enemies,2,3,1,1,1,24,6,0,1,1,0,7,10,1.5,2
+Smuggler,Converter,Uncommon,0,0,0,0,0,1,1,1,Power,0,1,0,0,1,0,0,0,0,0,0,0,0,0,Finesse 4,Thieves become a fence: gold instead of losses,0,4,1,0,3,22,3,0,1,1,5,7,10,1,3
+Diplomat,Converter,Uncommon,1,0,0,0,1,1,0,0,Magic,0,0,0,0,1,0,0,0,0,0,0,0,0,0,,Answers Locals at any level (as Presence 5 for Locals only); Bounty gives more (better Merchant once it exists),0,1,2,1,4,26,0,3,1,3,5,5,5,0.8,3
+Necromancer,Converter,Rare: secret tavern,1,0,1,0,0,0,0,1,,0,0,1,0,0,0,0,0,0,0,0,0,0,0,,Undead become allies for the run,1,1,3,0,3,26,0,6,0,1,0,5,10,1,Secret (travellers until then)
+Beastmaster,Converter,Rare: secret tavern,1,1,0,0,0,1,0,0,,0,0,0,0,0,0,0,1,0,0,0,0,0,0,,"Beasts at level 1: the first beast fight's enemies fight for the party in the next fight; at levels 2-3, counts as 2 heroes with Calm",2,2,2,1,1,28,5,0,1,1,5,5,5,2,Secret (travellers until then)
+Engineer,Rule-bender,Uncommon,0,1,0,1,0,0,0,1,,1,0,1,0,0,0,0,0,0,0,0,0,0,0,,Their kit gives +3 instead of +2,3,1,3,0,1,26,5,0,3,1,0,5,10,2,4
+Alchemist,Rule-bender,Uncommon,1,0,1,0,0,0,1,0,,0,0,1,0,0,0,0,0,0,0,0,0,0,0,,"A second slot, for healing consumables only",0,2,3,1,2,26,0,5,0,1,0,7,5,1,4
+Porter,Rule-bender,Uncommon,1,0,0,1,0,1,0,0,Power,1,0,0,0,0,0,0,0,0,0,0,0,0,0,,Carries a kit for another hero; the carried kit takes the Porter's own consumable slot,3,2,1,1,1,30,3,0,3,1,5,5,5,2,3
+Scout,Rule-bender,Uncommon,0,1,0,0,0,1,1,0,,0,1,0,0,0,0,1,0,0,0,0,0,0,0,Same primary stats as Ranger,Lowers one Extreme threat to Strong,1,3,2,0,2,22,5,0,1,1,5,7,5,1,3
+Curse-breaker,Rule-bender,Rare: high tiers,0,0,1,0,1,1,0,0,,0,0,0,1,0,0,0,0,0,0,0,0,0,0,Faith 4,Cancels the day's restriction,1,1,2,4,0,22,0,5,0,3,5,5,5,1,Secret (travellers until then)
+Cook,Rule-bender,Uncommon,1,0,0,0,1,0,1,0,Power,0,0,0,0,1,0,0,0,0,0,0,0,0,0,,Meals count double; the Hunger threat penalty (extra supply) is halved; cancels Spoiled stores; light heal between fights,1,1,1,2,3,28,3,0,1,3,0,7,5,1,2
+Monk,Rule-bender,Uncommon,0,1,0,0,1,1,0,0,,1,0,0,1,0,0,0,0,0,0,0,0,0,0,,Fists count as Pierce; immune to Sacred ground and Anti-magic zone,3,1,1,3,0,24,5,0,1,3,5,5,5,1.5,3
+Gambler,Rule-bender,Uncommon,0,0,0,0,0,0,1,1,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"Random approach scores, rolled at the daily reset",Approach scores (8 points) rolled at each daily reset and shown; third primary stat rolled at recruitment; +crit,Random,Random,Random,Random,Random,22,3,3,0,1,0,7,10,1,4

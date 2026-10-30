@@ -1,7 +1,7 @@
-Type,What it is,How it feeds crafting,Quality rule
-Trinket,"Rings, amulets, talismans from patrols, events, bosses, travellers, places",Never crafted; no big stats,
-Component,"A special ingredient (a troll hide, a wyvern scale, a runed hilt)",Used in a recipe with walking materials,At least Rare; about 10% Legendary (to tune)
-Relic,A damaged unique item (a rusted runed blade),Restored at the forge with walking materials,At least Rare; about 10% Legendary (to tune)
-Recipe,A blueprint,Unlocks a recipe,
-Kit or consumable,A ready-made kit or potion,"Single-use, so generous drops are fine",
-Salvage,Any looted item,Broken down into materials and mastery,
+Type,What it is,How it feeds crafting,Quality rule,Blueprint
+Trinket,"Rings, amulets, talismans from patrols, events, bosses, travellers, places",Never crafted; no big stats,,
+Component,"A special ingredient (a troll hide, a wyvern scale, a runed hilt)",Used in a recipe with walking materials,At least Rare; about 10% Legendary (to tune),Needs the base blueprint (type + chosen tier); gives none. Lists 1-3 types it can go into; works at any known tier; replaces one secondary material
+Relic,A damaged unique item (a rusted runed blade),Restored at the forge with walking materials,At least Rare; about 10% Legendary (to tune),Needs none; restoring costs its type recipe at its tier x1.5 and teaches that blueprint if unknown
+Recipe,A blueprint,Unlocks a recipe,,Is a blueprint (type + tier)
+Kit or consumable,A ready-made kit or potion,"Single-use, so generous drops are fine",,
+Salvage,Any looted item,Broken down into materials and mastery,,

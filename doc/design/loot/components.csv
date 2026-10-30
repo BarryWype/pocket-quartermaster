@@ -1,0 +1,14 @@
+Component,From,Fits,Adds
+Captain's spurs,Bandit captain (T1 boss),Armour,+Speed
+Ogre knucklebone,Ogre chieftain (T2 boss),"Mace, warhammer, knuckles",Stagger
+Phylactery shard,Lich of the deep (T3 boss),"Focus, wand, staff, tome",Channel
+Giant's heartstone,Giant king (T4 boss),Shield,Guard
+Dragon claw,Elder dragon (T5 boss),"Sword, axe",Cleave
+Drake fang,"Elite beasts, monster lair","Spear, dagger, bow",Pierce
+Harpy flight feather,"Harpies, monster lair","Bow, spear",Reach
+Clockwork escapement,Elite constructs,"Off-hand blade, buckler",Parry
+Golem core,Elite golems,"Armour, shield",Brace
+Troll hide,Elite trolls,Armour,Mend
+Orc war-drum skin,Elite orcs,"Lute, censer, tome",Inspire
+Spider silk,Elite spiders,"Leather, robes",+Evasion
+Elemental heart (one per element),"Elemental rift, Sanctum guardians",Any weapon,Permanent infusion of that element

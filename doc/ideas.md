@@ -31,6 +31,8 @@ Design catalogues for what's built or being built live in `doc/design/` (`threat
 - Friendly merchant and Sealed vault opportunities.
 - Sigil and elemental stone surplus (the simulator showed far too many Sanctum attempts).
 - Global trade between players.
+- Fishing mini game (see below).
+- Enemy tags beyond loot: elite components by tag (a drake fang from any dragon elite), and threat dungeons whose enemies match the threat (a Casters threat dungeon holds caster-tagged enemies).
 
 ## Pitch
 
@@ -119,6 +121,19 @@ Each resource type has a different discovery range, which makes walks more inter
 
 - Herbs, berries, mushrooms, flowers, etc. feed alchemy.
 - Alchemy is a lighter side job next to the main forging activity.
+
+### Fishing mini game
+
+For the fishing dock, later. A short, physical moment instead of a button that just gives fish.
+
+- **Cast**: a "Fish" button starts it. A float bobs slowly on the water.
+- **Bite**: after a random 2–13 s, a big bite: the phone vibrates, a small sound plays and a "!" shows.
+- **Strike**: the player pulls the phone up (or taps "Strike"). Too slow and the fish gets away.
+- **Reel**: a side view of a fly-fishing reel. The player turns it by circling the phone, or by drawing circles on the reel.
+- **Stop**: from time to time a "Stop" shows with a vibration. The player must stop reeling for 1–3 s, then go on. Reeling during a Stop costs progress (or snaps the line). A grace time after "Stop" shows (about 0.5 s, in config) doesn't count, since nobody can stop instantly.
+- **Catch**: a bar fills while reeling; the fight lasts about 5–8 s.
+- **Loot**: a catch usually gives fish. Rarely (under 10%, in config) the line brings up a **sunken chest** instead, which holds one of: a component, a relic, a treasure map or a blueprint (each rare).
+- Open questions: does skill change the catch (size, rare fish, a tip for the underwater dungeon)? A no-motion option for accessibility (the tap and draw controls cover it).
 
 ## Time of day and events
 

@@ -1,0 +1,10 @@
+Category,Nearest one at about,Density per km2,Shown from,Note
+Tavern,600 m,0.7,1.2 km,Today 1-2 per 5x5 km
+Fight events (together),400 m,1.5,500 m,Last 24 h
+"Common destination (each type): mine of the player's tier, sawmill, hunting lodge, smithy, apothecary, chapel, market",1 km per type,0.25 per type,1.2 km,One of them within ~350 m
+Ruins,700 m,0.5,1.2 km,A dug ruin disappears; a new one spawns elsewhere 24 h later
+"Rarer place (each type): library, thieves' guild, monster lair, fishing dock",1.5 km,0.1 per type,1.2 km,Fishing dock near water only
+Sanctum,550 m,0.9 (unchanged),1.2 km (unchanged),
+Treasure spot,200-800 m from where found (today 300-1500 m),,Unchanged,
+Secret place,,,Never; a tip places a marker until the place resets,
+Mine above the player's tier,Half as frequent as mines at or below,,"1.2 km, greyed out",

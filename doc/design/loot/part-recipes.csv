@@ -1,0 +1,12 @@
+Item,Material recipe,Part recipe,Rule
+Minor healing potion,"2 herb, 1 mushroom","1 herb, 1 brute blood",Both recipes
+Healing potion,"1 copper, 1 herb, 1 mushroom","1 copper, 1 herb, 1 brute blood",Both recipes
+Greater healing potion,"1 coal, 1 herb, 1 mushroom","1 coal, 1 herb, 1 brute blood",Both recipes
+Strength draught,"1 stone, 1 meat, 1 herb","1 stone, 1 fang, 1 herb",Both recipes
+Arcane tonic,"1 stone, 1 mushroom, 1 berries","1 stone, 1 ectoplasm, 1 berries",Both recipes
+Ironskin brew,"1 stone, 1 bone, 1 herb","1 stone, 1 chitin, 1 herb",Both recipes
+Firebomb,—,"1 stone, 1 wood, 1 scale",Part recipe only
+Quicksilver,—,"1 copper, 1 feather, 1 mushroom",Part recipe only
+Nullroot tincture,—,"1 copper, 1 ritual candle, 1 herb",Part recipe only
+Revival draught,—,"1 coal, 1 fire shard, 1 brute blood",Part recipe only
+"Viper oil (new, tier 2)",—,2 venom sacs,+10% Crit for the run
