@@ -43,9 +43,9 @@ describe('content', () => {
     }
     // Tier bosses teach the pickaxe that opens the next tier's material.
     for (const tier of MATERIAL_TIERS) reachable.add(`${tier.id}Pickaxe`);
-    // Kit recipes open with the tiers instead (see isKnown).
+    // Kit recipes open with the tiers instead, part recipes with their parts (see isKnown).
     recipes.forEach((r) => {
-      if (r.availableFromTier !== undefined) reachable.add(r.id);
+      if (r.availableFromTier !== undefined || r.unlockedBy) reachable.add(r.id);
     });
     const missing = recipes.filter((r) => !reachable.has(r.id));
     expect(missing).toEqual([]);
@@ -184,16 +184,16 @@ describe('consumable recipes', () => {
     ['strengthDraught', 2, { stone: 1, meat: 1, herb: 1 }],
     ['arcaneTonic', 2, { stone: 1, mushroom: 1, berries: 1 }],
     ['ironskinBrew', 2, { stone: 1, bone: 1, herb: 1 }],
-    ['firebomb', 2, { stone: 1, wood: 1, meat: 1 }],
-    ['nullrootTincture', 3, { copper: 1, mushroom: 1, herb: 1 }],
-    ['quicksilver', 3, { copper: 1, berries: 1, mushroom: 1 }],
+    ['firebomb', 2, { stone: 1, wood: 1, scale: 1 }],
+    ['nullrootTincture', 3, { copper: 1, ritualCandle: 1, herb: 1 }],
+    ['quicksilver', 3, { copper: 1, feather: 1, mushroom: 1 }],
     ['emberOil', 3, { copper: 1, fireShard: 2, herb: 1 }],
     ['tideOil', 3, { copper: 1, waterShard: 2, herb: 1 }],
     ['stormOil', 3, { copper: 1, electricShard: 2, herb: 1 }],
     ['stoneOil', 3, { copper: 1, stoneShard: 2, herb: 1 }],
     ['thornOil', 3, { copper: 1, grassShard: 2, herb: 1 }],
     ['smokeBomb', 3, { copper: 1, wood: 1, mushroom: 1 }],
-    ['revivalDraught', 5, { coal: 1, fireShard: 1, herb: 1 }],
+    ['revivalDraught', 5, { coal: 1, fireShard: 1, bruteBlood: 1 }],
     ['foragersTonic', 1, { herb: 1, berries: 1, wood: 1 }],
     ['huntersMusk', 2, { stone: 1, meat: 1, hide: 1 }],
     ['prospectorsDraught', 3, { copper: 1, mushroom: 1, herb: 1 }],
@@ -238,7 +238,8 @@ describe('consumable recipes', () => {
     expect(isKnown(tier4, recipeById.emberOil)).toBe(true);
     expect(isKnown(tier4, recipeById.revivalDraught)).toBe(false);
     const tier5 = { ...tier4, clearedDungeons: [...tier4.clearedDungeons, 'giantsHall'] };
-    expect(isKnown(tier5, recipeById.revivalDraught)).toBe(true);
+    expect(isKnown(tier5, recipeById.revivalDraught)).toBe(false);
+    expect(isKnown({ ...tier5, partRecipes: ['revivalDraught'] }, recipeById.revivalDraught)).toBe(true);
     expect(isKnown(tier5, recipeById.greaterHealingPotion)).toBe(true);
     expect(isKnown(tier4, recipeById.greaterHealingPotion)).toBe(false);
   });
