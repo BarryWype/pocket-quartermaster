@@ -156,17 +156,6 @@ describe('the black market goods', () => {
     }
   });
 
-  it('sells rare gear of the player’s tier when the goods list is empty', () => {
-    const lines = blackMarketGoods(saveWith(tip), place, []);
-    expect(lines.length).toBeGreaterThanOrEqual(1);
-    for (const line of lines) {
-      expect(line.kind).toBe('gear');
-      expect(line.gear).toMatchObject({ quality: 'rare' });
-      expect(line.gear!.itemId.endsWith('1')).toBe(true);
-      expect(line.gear!.roll).toBeDefined();
-    }
-  });
-
   it('needs entering first, and buying a good charges gold and marks it sold out', () => {
     const save = saveWith(tip);
     const line = blackMarketGoods(save, place)[0];

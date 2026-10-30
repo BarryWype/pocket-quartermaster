@@ -30,7 +30,7 @@ export const secretRules = {
   blackMarket: {
     /** Goods on sale besides the recruit. */
     lines: [2, 3] as [min: number, max: number],
-    /** What the goods are drawn from, evenly; with none, Rare gear. */
+    /** What the goods are drawn from, evenly. */
     goods: ['components', 'trinkets'] as ('components' | 'trinkets')[],
     /** Price: a component's sell price, or the shop gear price for its tier and quality, times this. */
     markup: 3,

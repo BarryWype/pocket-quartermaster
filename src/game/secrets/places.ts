@@ -1,4 +1,3 @@
-import { gearId, gearRecipes } from '@/content/equipment';
 import { heroClasses, newHero } from '@/content/heroes';
 import { components } from '@/content/loot/components';
 import { placeRules } from '@/content/places';
@@ -10,7 +9,6 @@ import { traits } from '@/content/traits';
 
 import { highestUnlockedTier } from '../dungeons/unlock';
 import { ELEMENTS } from '../elements';
-import { statRollFromDice } from '../forging/roll';
 import { distanceMeters } from '../generation/geo';
 import { createRng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
@@ -19,7 +17,7 @@ import type { PlaceSpawn } from '../places/generate';
 import { rosterFull } from '../team/team';
 import { offerLevel, recruitPrice, type RecruitOffer } from '../taverns/taverns';
 import { recruitGrade, rollRecruit } from '../taverns/roll';
-import type { GearInstance, GearType, HeroClassId } from '../types';
+import type { GearInstance, HeroClassId } from '../types';
 import type { SaveData } from '../save';
 import { hasKey, spendKey } from './keys';
 import { secretPlaceId, tipForPlace } from './tips';
@@ -127,21 +125,10 @@ export function blackMarketGoods(
   const tier = highestUnlockedTier(save);
   const count = rng.int(...secretRules.blackMarket.lines);
   const componentPool = components.filter((c) => !c.bossId);
-  const gearTypes = (Object.keys(gearRecipes) as GearType[]).filter((type) => gearRecipes[type][tier - 1].length > 0);
   // The five amulets are one weighted entry, like a looted trinket; the ring never sells here.
   const amulet = trinketKinds.find((kind) => kind.group === 'amulet')!;
   const trinketPool = trinketKinds.filter((kind) => kind.group !== 'fortune' && (kind.group !== 'amulet' || kind === amulet));
   return Array.from({ length: count }, (_, i) => {
-    if (goods.length === 0) {
-      const type = gearTypes[rng.int(0, gearTypes.length - 1)];
-      return {
-        key: `gear:${i}`,
-        kind: 'gear' as const,
-        id: gearId(type, tier),
-        price: Math.round(shopRules.gearPrice[tier - 1] * shopRules.qualityPrice.rare * markup),
-        gear: { uid: `market:${place.id}:${i}`, itemId: gearId(type, tier), quality: 'rare', roll: statRollFromDice(rng, 0) },
-      };
-    }
     const good = goods[rng.int(0, goods.length - 1)];
     if (good === 'components') {
       const pick = componentPool[rng.int(0, componentPool.length - 1)];
