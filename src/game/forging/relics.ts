@@ -5,6 +5,7 @@ import { lootConfig } from '@/content/loot/config';
 import type { RelicDef } from '@/content/loot/relics';
 
 import { recipeCost } from '../crafting/crafting';
+import { guildBonus } from '../guild/guild';
 import { masteryOf } from './mastery';
 import { rollQuality } from './quality';
 import { rollStatFactor } from './roll';
@@ -18,11 +19,11 @@ function gemFor(tier: number) {
   return (lootConfig.restore.gems.find((gem) => tier <= gem.upToTier) ?? lootConfig.restore.gems.at(-1)!).valuableId;
 }
 
-/** The relic's restore recipe: its type's recipe at its tier, each amount ×1.5 rounded up, plus the tier's gem. */
-export function relicRecipe(relic: RelicDef): RecipeDef {
+/** The relic's restore recipe: its type's recipe at its tier, each amount ×1.5 rounded up, plus the tier's gem. `discount` cuts the cost (Guild Hall). */
+export function relicRecipe(relic: RelicDef, discount = 0): RecipeDef {
   const inputs = gearRecipes[relic.gearType][relic.tier - 1].map(({ materialId, amount }) => ({
     materialId,
-    amount: Math.ceil(amount * lootConfig.restore.recipeMultiplier),
+    amount: Math.max(1, Math.ceil(Math.ceil(amount * lootConfig.restore.recipeMultiplier) * (1 - discount))),
   }));
   return {
     id: `restore:${relic.id}`,
@@ -30,7 +31,7 @@ export function relicRecipe(relic: RelicDef): RecipeDef {
     output: { itemId: gearId(relic.gearType, relic.tier) },
     inputs,
     unlockedByDefault: false,
-    valuables: [{ valuableId: gemFor(relic.tier), amount: 1 }],
+    valuables: [{ valuableId: gemFor(relic.tier), amount: Math.max(1, Math.ceil(1 * (1 - discount))) }],
   };
 }
 
@@ -38,7 +39,7 @@ export function relicRecipe(relic: RelicDef): RecipeDef {
 export function canRestore(save: SaveData, relicUid: string) {
   const held = save.relics.find((r) => r.uid === relicUid);
   if (!held) return false;
-  return recipeCost(save, relicRecipe(relicById[held.relicId])) !== null;
+  return recipeCost(save, relicRecipe(relicById[held.relicId], guildBonus(save, 'relicRestore'))) !== null;
 }
 
 /**
@@ -52,7 +53,7 @@ export function restoreRelic(save: SaveData, relicUid: string, free = false): Sa
   const held = save.relics.find((r) => r.uid === relicUid);
   if (!held) throw new Error(`No relic ${relicUid}`);
   const relic = relicById[held.relicId];
-  const recipe = relicRecipe(relic);
+  const recipe = relicRecipe(relic, free ? 0 : guildBonus(save, 'relicRestore'));
   const cost = free ? null : recipeCost(save, recipe);
   if (!free && !cost) throw new Error(`Cannot restore ${relic.id}`);
 

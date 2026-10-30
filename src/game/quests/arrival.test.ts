@@ -58,6 +58,13 @@ describe('quest arrivals', () => {
     expect(next.quests.list).toHaveLength(6);
   });
 
+  it('raises the cap by the Quest cap track', () => {
+    const save = opened();
+    save.guild = { questCap: 2 };
+    save.quests.list = [regular('a'), regular('b'), regular('c'), regular('d'), regular('e'), regular('f')];
+    expect(receiveQuests(save, 10 * DAY).quests.list).toHaveLength(8);
+  });
+
   it('only hands out days whose quests are still alive, and prunes the rest', () => {
     const save = opened();
     save.quests.lastArrivalDay = 7;
@@ -103,21 +110,36 @@ describe('quest reroll', () => {
     expect(rerollProblem(save, quest.id, 10 * DAY)).toBe(null);
     save = rerollQuest(save, quest.id, 10 * DAY);
     const rerolled = save.quests.list[1];
-    expect(rerolled.id).toBe('q|10|reroll');
+    expect(rerolled.id).toBe('q|10|reroll0');
     expect(rerolled.arrivedAt).toBe(quest.arrivedAt);
     expect(rerolled.expiresAt).toBe(quest.expiresAt);
     expect(rerolled.acceptedAt).toBe(null);
     expect(save.quests.rerollDay).toBe(10);
+    expect(save.quests.rerolls).toBe(1);
 
     expect(rerollProblem(save, rerolled.id, 10 * DAY + HOUR)).toBe('used');
-    expect(rerollQuest(save, rerolled.id, 10 * DAY + HOUR).quests.list[1].id).toBe('q|10|reroll');
+    expect(rerollQuest(save, rerolled.id, 10 * DAY + HOUR).quests.list[1].id).toBe('q|10|reroll0');
     expect(rerollProblem(save, rerolled.id, 11 * DAY)).toBe(null);
-    expect(rerollQuest(save, rerolled.id, 11 * DAY).quests.list[1].id).toBe('q|11|reroll');
+    expect(rerollQuest(save, rerolled.id, 11 * DAY).quests.list[1].id).toBe('q|11|reroll0');
 
     const done = { ...save.quests.list[2], doneAt: 10 * DAY };
     save.quests.list[2] = done;
     expect(rerollProblem(save, done.id, 12 * DAY)).toBe('done');
     expect(rerollProblem(save, 'missing', 12 * DAY)).toBe('gone');
+  });
+
+  it('gives a second reroll with the Extra reroll track, with its own id', () => {
+    let save = receiveQuests(opened(), 10 * DAY);
+    save = { ...save, guild: { questReroll: 1 } };
+    const quest = save.quests.list[1];
+    const first = rerollQuest(save, quest.id, 10 * DAY);
+    expect(first.quests.list[1].id).toBe('q|10|reroll0');
+    const second = rerollQuest(first, first.quests.list[1].id, 10 * DAY + HOUR);
+    expect(second.quests.list[1].id).toBe('q|10|reroll1');
+    expect(second.quests.rerolls).toBe(2);
+    expect(rerollProblem(second, second.quests.list[1].id, 10 * DAY + 2 * HOUR)).toBe('used');
+    // The allowance resets on the next rotation day.
+    expect(rerollProblem(second, second.quests.list[1].id, 11 * DAY)).toBe(null);
   });
 });
 

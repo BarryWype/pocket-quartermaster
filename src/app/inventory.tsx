@@ -11,10 +11,11 @@ import { TutorialHint } from '@/components/TutorialHint';
 import { componentById, gearName, itemById, materialById, monsterPartById, relicById, valuableById } from '@/content/lookup';
 import { baseItems } from '@/content/loot/baseItems';
 import { PURPOSES, purposeInfo, type Purpose } from '@/content/loot/purposes';
-import { masteryTypeNames } from '@/content/forging';
+import { masteryTypeNames, salvageRules } from '@/content/forging';
 import { materials } from '@/content/materials';
 import { valuablePrice } from '@/game/loot/catalogue';
 import { canSalvage, salvageGold, salvageNeedsConfirmation, salvageReturns, wornBy } from '@/game/forging/salvage';
+import { guildBonus } from '@/game/guild/guild';
 import { ruinsDots } from '@/game/places/ruins';
 import { fragmentsTowardKey, hasKey, keyDots, keysHeld } from '@/game/secrets/keys';
 import { activeTip, tipPosition } from '@/game/secrets/tips';
@@ -123,7 +124,7 @@ export default function InventoryScreen() {
   /** Rare, Legendary and infused pieces ask first, showing what comes back. */
   const confirmSalvage = (gear: GearInstance) => {
     if (!salvageNeedsConfirmation(gear)) return salvage(gear.uid);
-    const returns = salvageReturns(gear)
+    const returns = salvageReturns(gear, salvageRules, guildBonus(save, 'salvage'))
       .map(({ materialId, amount }) => `${amount} ${tr(materialById[materialId].name).toLowerCase()}`)
       .concat(salvageGold(gear) > 0 ? [`🪙 ${salvageGold(gear)}`] : [])
       .join(', ');

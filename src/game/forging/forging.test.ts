@@ -73,6 +73,16 @@ describe('mastery gain', () => {
     expect(gainMastery({ level: 7, progress: 2 }, 2)).toEqual({ level: 7, progress: 2 });
   });
 
+  it('gains the given amount per forge, carrying the excess on level up', () => {
+    let state = { level: 1, progress: 0 };
+    state = gainMastery(state, 1, masteryRules, 1.2);
+    expect(state).toEqual({ level: 1, progress: 1.2 });
+    state = gainMastery(gainMastery(state, 1, masteryRules, 1.2), 1, masteryRules, 1.2);
+    expect(state.level).toBe(2);
+    expect(state.progress).toBeCloseTo(0.6);
+    expect(gainMastery({ level: 4, progress: 0 }, 1, masteryRules, 1.2)).toEqual({ level: 4, progress: 0 });
+  });
+
   it('still counts higher-tier forges far below their cap, at the current band cost', () => {
     expect(gainMastery({ level: 1, progress: 2 }, 5)).toEqual({ level: 2, progress: 0 });
   });
@@ -206,6 +216,23 @@ describe('salvage', () => {
 
   it('always gives back at least 1 of the first input', () => {
     expect(salvageReturns(piece('sword1', 'crappy'))).toEqual([{ materialId: 'wood', amount: 1 }]);
+  });
+
+  it('raises the recipe share with the Salvage track, never the shards', () => {
+    const bonus = 0.15 * 2;
+    expect(salvageReturns(piece('mail2', 'rare'), salvageRules, bonus)).toEqual([
+      { materialId: 'bone', amount: 1 },
+      { materialId: 'stone', amount: 3 },
+    ]);
+    expect(salvageReturns(piece('sword1', 'normal', { element: 'fire' }), salvageRules, bonus)).toEqual([
+      { materialId: 'wood', amount: 2 },
+      { materialId: 'fireShard', amount: salvageRules.infusedShards },
+    ]);
+  });
+
+  it('applies the Salvage track rank when salvaging', () => {
+    const save: SaveData = { ...createInitialSave(), gear: [piece('mail2', 'rare')], guild: { salvage: 2 } };
+    expect(salvage(save, 'g1').materials).toEqual({ bone: 1, stone: 3 });
   });
 
   it('gives shards back for infused and Legendary pieces', () => {

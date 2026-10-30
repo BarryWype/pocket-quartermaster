@@ -3,6 +3,7 @@ import { rotationRules } from '@/content/rotation';
 
 import { rotationDay } from '../dungeons/rotation';
 import { createRng, type Rng } from '../generation/rng';
+import { questCap, guildBonus } from '../guild/guild';
 import type { SaveData } from '../save';
 import { refreshWalks } from './progress';
 import { availableObjectives, deliverItems, objectiveAmount, questsOpen } from './unlocks';
@@ -82,7 +83,7 @@ export function receiveQuests(save: SaveData, now: number): SaveData {
     const count = createRng(`quests|${day}`).int(...questRules.arrivalsPerDay);
     const fresh: Quest[] = [];
     for (let i = 0; i < count; i++) {
-      if (activeCount({ ...save, quests: { ...save.quests, list } }) >= questRules.cap) {
+      if (activeCount({ ...save, quests: { ...save.quests, list: [...list, ...fresh] } }) >= questCap(save)) {
         capped = true;
         break;
       }
@@ -96,10 +97,16 @@ export function receiveQuests(save: SaveData, now: number): SaveData {
   return questsState(save, { list, lastArrivalDay: today });
 }
 
+/** Rerolls left today: the daily ones plus the Guild Hall's, less those used. */
+export function rerollsLeft(save: SaveData, now: number) {
+  const used = save.quests.rerollDay === rotationDay(now) ? save.quests.rerolls : 0;
+  return Math.max(0, questRules.rerollsPerDay + guildBonus(save, 'questReroll') - used);
+}
+
 /** Why a quest can't be rerolled, or null when it can. */
 export function rerollProblem(save: SaveData, questId: string, now: number): 'used' | 'done' | 'gone' | null {
   const quest = save.quests.list.find((q) => q.id === questId);
-  if (save.quests.rerollDay === rotationDay(now)) return 'used';
+  if (rerollsLeft(save, now) === 0) return 'used';
   if (!quest) return 'gone';
   if (quest.doneAt !== null) return 'done';
   return null;
@@ -111,13 +118,14 @@ export function rerollQuest(save: SaveData, questId: string, now: number): SaveD
   const day = rotationDay(now);
   const index = save.quests.list.findIndex((q) => q.id === questId);
   const old = save.quests.list[index];
-  const rng = createRng(`quest|${day}|reroll`);
+  const n = save.quests.rerollDay === day ? save.quests.rerolls : 0;
+  const rng = createRng(`quest|${day}|reroll${n}`);
   const bands = Object.keys(questRules.bandWeights) as QuestBand[];
   const band = rng.weighted(bands, (b) => questRules.bandWeights[b]);
-  const fresh = rollQuest(`q|${day}|reroll`, band, save, rng, old.arrivedAt);
+  const fresh = rollQuest(`q|${day}|reroll${n}`, band, save, rng, old.arrivedAt);
   const rerolled: Quest = { ...fresh, arrivedAt: old.arrivedAt, expiresAt: old.expiresAt };
   const list = save.quests.list.map((q, i) => (i === index ? rerolled : q));
-  return questsState(save, { list, rerollDay: day });
+  return questsState(save, { list, rerollDay: day, rerolls: n + 1 });
 }
 
 /** Drops quests that lapsed unfinished (done ones wait to be claimed) and old completions. */

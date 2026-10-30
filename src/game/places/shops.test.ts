@@ -307,4 +307,17 @@ describe('selling', () => {
       wanted === 'oldCoins' ? valuableSellPrice('oldCoins', 2, 'market') * 2 : valuableSellPrice('oldCoins', 2, 'market'),
     );
   });
+
+  it('pays the Collector’s contacts bonus on top of the rules', () => {
+    const market = spawnOf('market');
+    const smithy = spawnOf('smithy');
+    const save = withGold(0, { valuables: { 'oldCoins:2': 1 }, guild: { collector: 2 } });
+    const wanted = todaysCollector(save, market.id, now);
+    expect(placeValuablePrice(save, market, 'oldCoins:2', now)).toBe(
+      Math.max(1, Math.round(valuableSellPrice('oldCoins', 2, 'market', wanted === 'oldCoins' ? 'oldCoins' : null) * 1.2)),
+    );
+    expect(placeValuablePrice(save, smithy, 'oldCoins:2', now)).toBe(
+      Math.max(1, Math.round(valuableSellPrice('oldCoins', 2, 'market') * 0.5 * 1.2)),
+    );
+  });
 });

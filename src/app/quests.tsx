@@ -8,10 +8,9 @@ import { itemById } from '@/content/lookup';
 import { lootMatrix } from '@/content/loot/matrix';
 import { placeInfo } from '@/content/places';
 import { objectives, questRules } from '@/content/quests';
-import { rotationDay } from '@/game/dungeons/rotation';
 import { LOOT_CATEGORIES, type LootCategory } from '@/game/loot/types';
 import type { PlaceSpawn } from '@/game/places/generate';
-import { rerollProblem } from '@/game/quests/arrival';
+import { rerollProblem, rerollsLeft } from '@/game/quests/arrival';
 import { deliverProblem } from '@/game/quests/progress';
 import { QUEST_SOURCES } from '@/game/quests/rewards';
 import { compassDirection, targetDistance } from '@/game/quests/targets';
@@ -116,7 +115,7 @@ export default function QuestsScreen() {
     );
   }
 
-  const rerollUsed = save.quests.rerollDay === rotationDay(now);
+  const rerolls = rerollsLeft(save, now);
   const quests = [...save.quests.list].sort((a, b) => order(a) - order(b) || a.expiresAt - b.expiresAt);
 
   const claim = (quest: Quest) => {
@@ -148,7 +147,7 @@ export default function QuestsScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.muted}>{rerollUsed ? t('quests.rerollUsed') : t('quests.rerollFree')}</Text>
+      <Text style={styles.muted}>{rerolls === 0 ? t('quests.rerollUsed') : t('quests.rerollFree', { count: rerolls })}</Text>
       {quests.length === 0 && Object.keys(claimed).length === 0 && <Text style={styles.muted}>{t('quests.empty')}</Text>}
       {Object.entries(claimed)
         .filter(([id]) => !quests.some((q) => q.id === id))

@@ -425,7 +425,7 @@ export const en = {
   quests: {
     locked: 'Quests arrive once the tutorial is done.',
     empty: 'No quests right now. New ones arrive every day.',
-    rerollFree: '🎲 One free reroll today.',
+    rerollFree: { one: '🎲 One free reroll left today.', other: '🎲 {count} free rerolls left today.' },
     rerollUsed: '🎲 Today’s reroll is used.',
     reroll: 'Reroll',
     claim: 'Claim',

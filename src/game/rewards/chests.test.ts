@@ -1,12 +1,16 @@
 import { recipes } from '@/content/recipes';
 
+import { createRng } from '../generation/rng';
 import { lootChances } from '../loot/chances';
+import { rollForSave } from '../loot/context';
+import { mergeLoot } from '../loot/roll';
 
 import { createInitialSave, type SaveData } from '../save';
 import { chestState, dayKey, openChest, recordSteps, stepChests, stepsRecorded, syncSteps } from './chests';
 
 const wooden = stepChests[0];
 const iron = stepChests[1];
+const top = stepChests[stepChests.length - 1];
 const today = '2026-10-24';
 
 describe('daily steps', () => {
@@ -63,6 +67,21 @@ describe('chests', () => {
 
   it('refuse chests that are still locked', () => {
     expect(() => openChest(createInitialSave(), iron.id, iron.steps - 1, today, 0)).toThrow();
+  });
+
+  it('roll the top chest once more per Step chests rank, merged; other chests ignore the track', () => {
+    const save: SaveData = { ...createInitialSave(), guild: { stepChests: 2 } };
+    const rolls = [0, 1, 2].map((i) =>
+      rollForSave(save, 'stepChest', createRng(i === 0 ? `chest|${top.id}|${today}` : `chest|${top.id}|${today}|${i}`), {
+        chanceMultiplier: top.chanceMultiplier,
+      }),
+    );
+    let merged = rolls[0];
+    for (const roll of rolls.slice(1)) merged = mergeLoot(merged, roll);
+    expect(openChest(save, top.id, top.steps, today, 0).reward).toEqual(merged);
+    expect(openChest(save, wooden.id, wooden.steps, today, 0).reward).toEqual(
+      openChest(createInitialSave(), wooden.id, wooden.steps, today, 0).reward,
+    );
   });
 
   it('give the same reward for the same day', () => {

@@ -2,6 +2,7 @@ import { dungeons } from '@/content/dungeons';
 import { guildRules, guildTrackById, type GuildTrack, type GuildTrackId } from '@/content/guild';
 import { lootConfig } from '@/content/loot/config';
 import { tierMaterials } from '@/content/materials';
+import { questRules } from '@/content/quests';
 import { recruitRules, rosterRules } from '@/content/roster';
 
 import { hasMaterials, removeMaterials } from '../inventory';
@@ -30,6 +31,7 @@ export const sigilCap = (save: SaveData) => lootConfig.sigils.cap + guildBonus(s
 export const rosterCap = (save: SaveData) =>
   rosterRules.rosterCap + guildBonus(save, 'rosterSlot7') + guildBonus(save, 'rosterSlot8');
 export const tavernOfferCount = (save: SaveData) => recruitRules.offersPerTavern + guildBonus(save, 'tavernOffer');
+export const questCap = (save: SaveData) => questRules.cap + guildBonus(save, 'questCap');
 
 export const isGuildUnlocked = (save: SaveData, rules: Rules = guildRules) => save.clearedDungeons.includes(rules.unlockedBy);
 

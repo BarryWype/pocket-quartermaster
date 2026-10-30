@@ -433,7 +433,7 @@ export const fr: Dictionary = {
   quests: {
     locked: 'Les quêtes arrivent une fois le tutoriel terminé.',
     empty: 'Aucune quête pour l’instant. De nouvelles arrivent chaque jour.',
-    rerollFree: '🎲 Un changement gratuit aujourd’hui.',
+    rerollFree: { one: '🎲 Un changement gratuit restant aujourd’hui.', other: '🎲 {count} changements gratuits restants aujourd’hui.' },
     rerollUsed: '🎲 Le changement du jour est utilisé.',
     reroll: 'Changer',
     claim: 'Réclamer',

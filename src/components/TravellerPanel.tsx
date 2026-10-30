@@ -7,6 +7,7 @@ import { materialById } from '@/content/lookup';
 import { patrolTexts } from '@/content/patrols';
 import { traitById } from '@/content/traits';
 import { mealItems, supplyHeld } from '@/game/expeditions/provisions';
+import { guildBonus } from '@/game/guild/guild';
 import { valuableSellPrice } from '@/game/loot/valuables';
 import type { LatLng } from '@/game/generation/types';
 import { isTravellerKind, type PatrolSpawn } from '@/game/patrols/generate';
@@ -120,7 +121,7 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
                 })}
                 <ValuableRows
                   valuables={save.valuables}
-                  price={(key) => valuableSellPrice(key.split(':')[0], Number(key.split(':')[1]), 'trader')}
+                  price={(key) => valuableSellPrice(key.split(':')[0], Number(key.split(':')[1]), 'trader', null, guildBonus(save, 'collector'))}
                   canSell={(key, count) => traderValuableProblem(save, spawn, key, count, player, now) === null}
                   onSell={(key, count) => sellValuableToTrader(spawn, key, count, player)}
                 />

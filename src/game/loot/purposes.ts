@@ -7,6 +7,7 @@ import { recipes } from '@/content/recipes';
 import { isKnown } from '@/game/crafting/crafting';
 import { ELEMENTS, shardId, stoneId } from '@/game/elements';
 import { relicRecipe } from '@/game/forging/relics';
+import { guildBonus } from '@/game/guild/guild';
 import type { ConsumableDef, MaterialStack, RecipeDef } from '@/game/types';
 import type { SaveData } from '@/game/save';
 
@@ -107,10 +108,10 @@ export function nextSteps(save: SaveData, ref: BaseItemRef, recipeList: RecipeDe
         return { kind: 'set', have: save.keyFragments, need: lootConfig.keyFragmentsPerKey };
       case 'restore': {
         const relic = relicById[id!];
-        const recipe = relicRecipe(relic);
+        const recipe = relicRecipe(relic, guildBonus(save, 'relicRestore'));
         return {
           kind: 'restore',
-          cost: [...recipe.inputs, { materialId: recipe.valuables![0].valuableId, amount: 1 }],
+          cost: [...recipe.inputs, { materialId: recipe.valuables![0].valuableId, amount: recipe.valuables![0].amount }],
         };
       }
       case 'use':

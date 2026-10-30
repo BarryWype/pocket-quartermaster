@@ -22,12 +22,12 @@ export function forgesForNextLevel(level: number, rules: Rules = masteryRules) {
   return rules.bands.find((band) => level < band.upTo)?.forges ?? null;
 }
 
-/** One forge of an item of `itemTier`: progress only counts while below that tier's cap. */
-export function gainMastery(state: MasteryState, itemTier: number, rules: Rules = masteryRules): MasteryState {
+/** One forge of an item of `itemTier`: progress (raised by `amount`, Guild Hall) only counts while below that tier's cap. */
+export function gainMastery(state: MasteryState, itemTier: number, rules: Rules = masteryRules, amount = 1): MasteryState {
   const needed = forgesForNextLevel(state.level, rules);
   if (state.level >= masteryCap(itemTier, rules) || needed === null) return state;
-  const progress = state.progress + 1;
-  return progress >= needed ? { level: state.level + 1, progress: 0 } : { level: state.level, progress };
+  const progress = state.progress + amount;
+  return progress >= needed ? { level: state.level + 1, progress: progress - needed } : { level: state.level, progress };
 }
 
 /** A weapon type first met through a later blueprint starts at the cap of the tier before it. */

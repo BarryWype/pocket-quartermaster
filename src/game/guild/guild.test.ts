@@ -4,6 +4,8 @@ import { dungeonById } from '@/content/lookup';
 import { lootConfig } from '@/content/loot/config';
 import { dungeons } from '@/content/dungeons';
 
+import { questRules } from '@/content/quests';
+
 import { expeditionMinutes, resolveExpedition, startExpedition } from '../expeditions/expeditions';
 import { createRng } from '../generation/rng';
 import { rollSigil } from '../loot/sigils';
@@ -11,7 +13,7 @@ import { challengeSanctum, type SanctumSpawn } from '../sanctums/sanctums';
 import { createInitialSave, type SaveData } from '../save';
 import { tavernOffers } from '../taverns/taverns';
 import { equip, rosterFull } from '../team/team';
-import { buyRank, guildBonus, rankCost, rankGate, rankPrice, rankProblem, rosterCap, sigilCap } from './guild';
+import { buyRank, guildBonus, questCap, rankCost, rankGate, rankPrice, rankProblem, rosterCap, sigilCap } from './guild';
 import { applyTraining } from './training';
 
 const HOUR = 3_600_000;
@@ -171,6 +173,22 @@ describe('effects', () => {
     expect(withRanks({ fasterExpeditions: 3 }, { ...started, guild: {} }).expeditions[0]).toEqual(started.expeditions[0]);
     const tutorial = { ...save, tutorial: { step: 'sendExpedition' as const, woodSpot: null } };
     expect(expeditionMinutes(tutorial, dungeonById.ratCellar) * 60).toBe(5);
+  });
+
+  it('Faster expeditions leaves the loot roll on the dungeon\'s base minutes', () => {
+    for (const seed of [0, 1, 2, 3, 4]) {
+      const fast = run(strongTeam(withRanks({ fasterExpeditions: 3 })), 'goblinWarren', seed).report;
+      const plain = run(strongTeam(hall()), 'goblinWarren', seed).report;
+      expect(fast.loot).toEqual(plain.loot);
+      expect(fast.gold).toBe(plain.gold);
+      expect(fast.xp).toBe(plain.xp);
+    }
+  });
+
+  it('caps quests at the base cap plus the Quest cap rank', () => {
+    for (const rank of [0, 1, 2]) {
+      expect(questCap(withRanks({ questCap: rank }))).toBe(questRules.cap + rank);
+    }
   });
 
   it('Gold multiplies all dungeon gold: the run, its rolls and the bonus rows', () => {

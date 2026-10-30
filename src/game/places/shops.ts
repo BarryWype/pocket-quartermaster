@@ -13,6 +13,7 @@ import { highestUnlockedTier } from '../dungeons/unlock';
 import { distanceMeters } from '../generation/geo';
 import { createRng, type Rng } from '../generation/rng';
 import { wornBy } from '../forging/salvage';
+import { guildBonus } from '../guild/guild';
 import { pickaxeTier } from '../gathering/gathering';
 import { addMaterials, removeMaterials } from '../inventory';
 import { valuableSellPrice, todaysCollector } from '../loot/valuables';
@@ -326,6 +327,7 @@ export function placeValuablePrice(save: SaveData, spawn: PlaceSpawn, key: strin
     Number(key.slice(separator + 1)),
     spawn.kind as ValuableBuyer,
     spawn.kind === 'market' ? todaysCollector(save, spawn.id, now) : null,
+    guildBonus(save, 'collector'),
   );
 }
 

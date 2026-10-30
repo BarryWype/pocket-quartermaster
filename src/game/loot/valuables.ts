@@ -32,13 +32,14 @@ export function todaysCollector(save: SaveData, spawnId: string, now: number): s
   return collectorWants(spawnId, day);
 }
 
-/** What a buyer pays per valuable unit: 0 for non-buyers, full at some, half elsewhere, doubled when the market's collector wants it. */
-export function valuableSellPrice(id: string, tier: number, buyer: ValuableBuyer, wanted?: string | null): number {
+/** What a buyer pays per valuable unit: 0 for non-buyers, full at some, half elsewhere, doubled when the market's collector wants it; `bonus` raises the price (Guild Hall). */
+export function valuableSellPrice(id: string, tier: number, buyer: ValuableBuyer, wanted?: string | null, bonus = 0): number {
   const { fullPriceAt, elsewhereShare, buyers, collectorMultiplier } = lootConfig.valuables;
   if (!buyers.includes(buyer)) return 0;
   const price =
     valuablePrice(id, tier) *
     (fullPriceAt.includes(buyer) ? 1 : elsewhereShare) *
-    (buyer === 'market' && wanted === id ? collectorMultiplier : 1);
+    (buyer === 'market' && wanted === id ? collectorMultiplier : 1) *
+    (1 + bonus);
   return Math.max(1, Math.round(price));
 }

@@ -228,4 +228,10 @@ describe('traders', () => {
     expect(traderValuableProblem(save, trader, 'jadeIdol:2', 3, player, time)).toBe('notEnough');
     expect(traderValuableProblem(save, { ...trader, endsAt: time - 1 }, 'jadeIdol:2', 1, player, time)).toBe('gone');
   });
+
+  it('pay the Collector’s contacts bonus on top of the half price', () => {
+    const save = { ...tierTeam(), valuables: { 'jadeIdol:2': 2 }, guild: { collector: 2 } };
+    const sold = sellValuableToTrader(save, trader, 'jadeIdol:2', 1, here(trader, time), time);
+    expect(sold.gold).toBe(Math.max(1, Math.round(valuableSellPrice('jadeIdol', 2, 'market') * 0.5 * 1.2)));
+  });
 });

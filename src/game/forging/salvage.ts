@@ -5,6 +5,7 @@ import { shopRules } from '@/content/shops';
 
 import { convertShards, ELEMENTS, shardId, type Element } from '../elements';
 import { createRng } from '../generation/rng';
+import { guildBonus } from '../guild/guild';
 import { addMaterials } from '../inventory';
 import type { SaveData } from '../save';
 import type { GearDef, GearInstance, MaterialStack } from '../types';
@@ -29,14 +30,15 @@ export const salvageNeedsConfirmation = (gear: GearInstance) =>
  * What salvaging a piece gives back: a share of its recipe by quality (at
  * least 1 of the first input), 5 shards of its element if infused, and for a
  * Legendary piece shards of an element picked from its uid, one per tier.
+ * `bonus` raises the recipe share (Guild Hall).
  */
-export function salvageReturns(gear: GearInstance, rules: Rules = salvageRules): MaterialStack[] {
+export function salvageReturns(gear: GearInstance, rules: Rules = salvageRules, bonus = 0): MaterialStack[] {
   const item = itemById[gear.itemId] as GearDef;
   const recipe = recipes.find((r) => 'itemId' in r.output && r.output.itemId === gear.itemId);
   const share = rules.returned[gear.quality];
   const returned = (recipe?.inputs ?? []).map(({ materialId, amount }, i) => ({
     materialId,
-    amount: Math.max(i === 0 ? 1 : 0, Math.floor(amount * share)),
+    amount: Math.max(i === 0 ? 1 : 0, Math.floor(amount * share * (1 + bonus))),
   }));
 
   const shards: [Element, number][] = [];
@@ -66,7 +68,7 @@ export function salvage(save: SaveData, gearUid: string): SaveData {
   return {
     ...save,
     gold: save.gold + salvageGold(gear),
-    materials: convertShards(addMaterials(save.materials, salvageReturns(gear))),
+    materials: convertShards(addMaterials(save.materials, salvageReturns(gear, salvageRules, guildBonus(save, 'salvage')))),
     gear: save.gear.filter((g) => g.uid !== gearUid),
   };
 }

@@ -36,6 +36,20 @@ describe('relicRecipe', () => {
       expect(recipe.valuables).toEqual([{ valuableId: gem, amount: 1 }]);
     }
   });
+
+  it('cuts every amount by the discount, at least 1 each', () => {
+    const discount = 0.15 * 3;
+    for (const relic of relics) {
+      const recipe = relicRecipe(relic, discount);
+      expect(recipe.inputs).toEqual(
+        gearRecipes[relic.gearType][relic.tier - 1].map(({ materialId, amount }) => ({
+          materialId,
+          amount: Math.max(1, Math.ceil(Math.ceil(amount * lootConfig.restore.recipeMultiplier) * (1 - discount))),
+        })),
+      );
+      expect(recipe.valuables).toEqual([{ valuableId: relic.tier <= 3 ? 'roughGem' : 'cutGem', amount: 1 }]);
+    }
+  });
 });
 
 describe('restoreRelic', () => {
@@ -67,6 +81,16 @@ describe('restoreRelic', () => {
     const relic = relicById.wyrmSlayersSword;
     const next = restoreRelic(holding(relic, { materials: {}, valuables: {} }), 'r1', true);
     expect(next.gear[0].relicId).toBe(relic.id);
+  });
+
+  it('restores for the discounted recipe with the Relic restoring track', () => {
+    const relic = relicById.sextonsMace;
+    const recipe = relicRecipe(relic, 0.15 * 3);
+    const materials: Record<string, number> = {};
+    for (const { materialId, amount } of recipe.inputs) materials[materialId] = (materials[materialId] ?? 0) + amount;
+    const save: SaveData = { ...holding(relic), materials, guild: { relicRestore: 3 } };
+    expect(canRestore(save, 'r1')).toBe(true);
+    expect(restoreRelic(save, 'r1').materials).toEqual({});
   });
 
   it('rolls at least Rare over many seeds', () => {

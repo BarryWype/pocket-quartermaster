@@ -11,6 +11,7 @@ import { ELEMENTS, shardId } from '@/game/elements';
 import { canForgeWithComponent, componentRecipe, fittingComponents } from '@/game/forging/components';
 import { masteryOf } from '@/game/forging/mastery';
 import { canRestore, relicRecipe } from '@/game/forging/relics';
+import { guildBonus } from '@/game/guild/guild';
 import { rollToScale } from '@/game/forging/roll';
 import type { SaveData } from '@/game/save';
 import type { GearDef, RecipeDef } from '@/game/types';
@@ -239,7 +240,7 @@ function RelicList({ save, onRestore }: { save: SaveData; onRestore: (relicUid: 
                 </View>
                 <Text style={styles.mastery}>✦ {tr(relic.effect)}</Text>
                 <View style={styles.inputs}>
-                  <RecipeInputs save={save} recipe={relicRecipe(relic)} />
+                  <RecipeInputs save={save} recipe={relicRecipe(relic, guildBonus(save, 'relicRestore'))} />
                 </View>
               </View>
             }

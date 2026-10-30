@@ -58,6 +58,11 @@ describe('crafting', () => {
     expect(canCraft(withMaterials({ wood: 3 }), recipeById.sword1)).toBe(false);
   });
 
+  it('raises mastery progress by the Mastery track', () => {
+    const save = withMaterials({ wood: 4 }, { guild: { mastery: 1 } });
+    expect(craft(save, recipeById.sword1).mastery.sword).toEqual({ level: 1, progress: 1.2 });
+  });
+
   it('crafts a pickaxe once, teaching no blueprints', () => {
     const save = craft(withMaterials({ wood: 5 }, { knownRecipes: ['woodPickaxe'] }), recipeById.woodPickaxe);
     expect(save.tools).toEqual(['woodPickaxe']);

@@ -1,4 +1,5 @@
 import { lootConfig } from '@/content/loot/config';
+import { masteryRules } from '@/content/forging';
 import { traitById } from '@/content/traits';
 
 import { unlockRecipe } from '../crafting/crafting';
@@ -61,7 +62,7 @@ export function grantLoot(save: SaveData, heroIds: string[], loot: Loot, now: nu
   next = seeParts(next, [...loot.materials.map((stack) => stack.materialId), ...loot.valuables.map((v) => v.valuableId)]);
   for (const { type, tier, forges } of loot.mastery) {
     let state = masteryOf(next, type);
-    for (let i = 0; i < forges; i++) state = gainMastery(state, tier);
+    for (let i = 0; i < forges; i++) state = gainMastery(state, tier, masteryRules, 1 + guildBonus(save, 'mastery'));
     next = { ...next, mastery: { ...next.mastery, [type]: state } };
   }
   return next;

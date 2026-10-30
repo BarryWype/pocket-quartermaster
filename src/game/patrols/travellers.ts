@@ -4,7 +4,7 @@ import { heroNames } from '@/content/roster';
 import { traits } from '@/content/traits';
 import { mealItems, pickSupply, supplyHeld } from '../expeditions/provisions';
 import { highestUnlockedTier } from '../expeditions/expeditions';
-import { rosterCap } from '../guild/guild';
+import { guildBonus, rosterCap } from '../guild/guild';
 import { createRng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { hasMaterials, removeMaterials, addMaterials } from '../inventory';
@@ -232,7 +232,8 @@ export function sellValuableToTrader(
   const problem = traderValuableProblem(save, spawn, key, count, player, now, rules);
   if (problem) throw new Error(`Cannot sell ${key}: ${problem}`);
   const separator = key.lastIndexOf(':');
-  const price = valuableSellPrice(key.slice(0, separator), Number(key.slice(separator + 1)), 'trader') * count;
+  const price =
+    valuableSellPrice(key.slice(0, separator), Number(key.slice(separator + 1)), 'trader', null, guildBonus(save, 'collector')) * count;
   const valuables = { ...save.valuables };
   const left = (valuables[key] ?? 0) - count;
   if (left > 0) valuables[key] = left;

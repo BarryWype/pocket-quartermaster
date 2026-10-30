@@ -75,6 +75,13 @@ describe('valuable prices', () => {
     expect(valuableSellPrice('painting', 3, 'market', 'jadeIdol')).toBe(valuableSellPrice('painting', 3, 'market'));
     expect(valuableSellPrice('jadeIdol', 3, 'smithy', 'jadeIdol')).toBe(valuableSellPrice('jadeIdol', 3, 'smithy'));
   });
+
+  it('raises the price by the Collector’s contacts bonus, on top of the rules', () => {
+    const plain = valuableSellPrice('jadeIdol', 3, 'market');
+    expect(valuableSellPrice('jadeIdol', 3, 'market', null, 0.2)).toBe(Math.max(1, Math.round(plain * 1.2)));
+    const doubled = valuableSellPrice('jadeIdol', 3, 'market', 'jadeIdol', 0.2);
+    expect(doubled).toBe(Math.max(1, Math.round(plain * lootConfig.valuables.collectorMultiplier * 1.2)));
+  });
 });
 
 describe("the market's collector", () => {

@@ -1,4 +1,5 @@
 import { gearLuckRules } from '@/content/equipment';
+import { masteryRules } from '@/content/forging';
 import { itemById, recipeById } from '@/content/lookup';
 
 import { highestUnlockedTier } from '../dungeons/unlock';
@@ -7,6 +8,7 @@ import { gainMastery, masteryOf, masteryTypeOf, startingMastery } from '../forgi
 import { qualityOdds, rollQuality } from '../forging/quality';
 import { rollStatFactor } from '../forging/roll';
 import { createRng } from '../generation/rng';
+import { guildBonus } from '../guild/guild';
 import { tierRecipes } from './recipeUnlocks';
 import { addMaterials, hasMaterials, removeMaterials } from '../inventory';
 import type { SaveData } from '../save';
@@ -119,7 +121,7 @@ export function forgeGearPiece(
       ...next.gear,
       { uid, itemId: gearItem.id, quality, roll: rollStatFactor(uid, mastery.level, gearItem.tier), ...(luck ? { luck } : {}), ...extra },
     ],
-    mastery: { ...next.mastery, [type]: gainMastery(mastery, gearItem.tier) },
+    mastery: { ...next.mastery, [type]: gainMastery(mastery, gearItem.tier, masteryRules, 1 + guildBonus(next, 'mastery')) },
     nextUid: next.nextUid + 1,
   };
 }

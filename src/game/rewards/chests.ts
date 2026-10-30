@@ -1,8 +1,10 @@
 import { lootConfig } from '@/content/loot/config';
 
 import { createRng } from '../generation/rng';
+import { guildBonus } from '../guild/guild';
 import { rollForSave } from '../loot/context';
 import { grantLoot } from '../loot/grant';
+import { mergeLoot } from '../loot/roll';
 import type { Loot } from '../loot/types';
 import type { SaveData } from '../save';
 
@@ -45,12 +47,16 @@ export function chestState(save: SaveData, chest: StepChest, steps: number, day:
   return steps >= chest.steps ? 'ready' : 'locked';
 }
 
-/** Opens a chest once per day; the roll is seeded by day so it can't be rerolled. */
+/** Opens a chest once per day; the roll is seeded by day so it can't be rerolled. The highest chest rolls once per Step chests rank, merged. */
 export function openChest(save: SaveData, chestId: string, steps: number, day: string, now: number): { save: SaveData; reward: Loot } {
   const chest = stepChests.find((c) => c.id === chestId);
   if (!chest) throw new Error(`Unknown chest ${chestId}`);
   if (chestState(save, chest, steps, day) !== 'ready') throw new Error(`The ${chest.steps} steps chest is not ready`);
-  const reward = rollForSave(save, 'stepChest', createRng(`chest|${chest.id}|${day}`), { chanceMultiplier: chest.chanceMultiplier });
+  const rolls = chest.steps === stepChests[stepChests.length - 1].steps ? 1 + guildBonus(save, 'stepChests') : 1;
+  let reward = rollForSave(save, 'stepChest', createRng(`chest|${chest.id}|${day}`), { chanceMultiplier: chest.chanceMultiplier });
+  for (let i = 1; i < rolls; i++) {
+    reward = mergeLoot(reward, rollForSave(save, 'stepChest', createRng(`chest|${chest.id}|${day}|${i}`), { chanceMultiplier: chest.chanceMultiplier }));
+  }
   const opened = save.chests.day === day ? save.chests.opened : [];
   return { save: grantLoot({ ...save, chests: { day, opened: [...opened, chest.id] } }, [], reward, now), reward };
 }

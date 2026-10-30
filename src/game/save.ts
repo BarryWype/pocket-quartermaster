@@ -210,7 +210,7 @@ export function createInitialSave(): SaveData {
     manuals: {},
     partRecipes: [],
     seenParts: [],
-    quests: { list: [], lastArrivalDay: null, rerollDay: null, secretDay: null, completions: [] },
+    quests: { list: [], lastArrivalDay: null, rerollDay: null, rerolls: 0, secretDay: null, completions: [] },
     seenPlaceKinds: [],
     stepsTotal: 0,
     nextUid: 1,

@@ -493,7 +493,7 @@ export const useGameStore = create<GameState>()(
         const completions = Array.from({ length: questRules.secret.completions }, () => now);
         set({ save: maybeSecretQuest({ ...save, quests: { ...save.quests, secretDay: null, completions } }, now) });
       },
-      resetQuestReroll: () => set(({ save }) => ({ save: { ...save, quests: { ...save.quests, rerollDay: null } } })),
+      resetQuestReroll: () => set(({ save }) => ({ save: { ...save, quests: { ...save.quests, rerollDay: null, rerolls: 0 } } })),
       openChest: (chestId, steps) => {
         const { save, reward } = openChest(get().save, chestId, steps, dayKey(new Date()), Date.now());
         set({ save });

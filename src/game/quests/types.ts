@@ -42,6 +42,8 @@ export type QuestsState = {
   lastArrivalDay: number | null;
   /** Rotation day of the last reroll. */
   rerollDay: number | null;
+  /** Rerolls used on `rerollDay`. */
+  rerolls: number;
   /** Rotation day of the last secret quest. */
   secretDay: number | null;
   /** When regular quests were completed, newest last (pruned to the secret window). */
