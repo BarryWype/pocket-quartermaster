@@ -111,6 +111,12 @@ export const simConfig = {
     /** Boss attempts need at least these odds. */
     boss: 0.45,
     sanctum: 0.5,
+    /** Fight events and the monster lair are fought when the best prepared party's odds reach this. */
+    place: 0.6,
+    /** A heist is tried when the best hero's odds reach this. */
+    heist: 0.5,
+    /** A charm goes in instead of a potion when the prepared party's odds reach this. */
+    charm: 0.8,
     /** Stop adding heroes to a party once its odds reach this. */
     enough: 0.9,
     /** A dungeon of the highest tier that can drop a blueprint the team lacks is worth trying at these odds. */
@@ -119,13 +125,17 @@ export const simConfig = {
     fallback: 0.3,
   },
   /** Consumables kept in stock. */
-  stock: { healingPotion: 3, emberWardSalve: 2 } as Record<string, number>,
+  stock: { healingPotion: 3 } as Record<string, number>,
   provisions: {
     /** Supply points kept in stock, cooked `batch` at a time. */
     supplyBuffer: 18,
     batch: 5,
-    /** Meals kept in stock, of each kind. The bot equips no kits. */
+    /** Meals kept in stock, of each kind. */
     meals: 2,
+    /** Kits kept in stock, of each kind today's briefings call for. */
+    kits: 2,
+    /** Charms kept in stock, of each kind whose recipe is known. */
+    charms: 1,
     /** Potions are drunk at home when current HP costs the party more than this much success chance. */
     potionGain: 0.15,
   },

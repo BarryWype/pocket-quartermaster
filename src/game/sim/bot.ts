@@ -5,6 +5,7 @@ import { mobById } from '@/content/enemies';
 import { guildTrackById, guildTracks } from '@/content/guild';
 import { heroClasses, xpRules } from '@/content/heroes';
 import { dungeonById, itemById, recipeById } from '@/content/lookup';
+import { items } from '@/content/items';
 import { lootConfig } from '@/content/loot/config';
 import { recipes } from '@/content/recipes';
 import { approachRules, narrowPartySize } from '@/content/threats';
@@ -13,7 +14,6 @@ import { traitById } from '@/content/traits';
 import { canCraft, craft, craftableCount, craftMany, forgedItem, isKnown } from '../crafting/crafting';
 import { canInfuse, infuse } from '../crafting/infusion';
 import { briefingFor, type Rotation } from '../dungeons/rotation';
-import { dungeonTagWeights } from '../dungeons/tags';
 import { ELEMENTS, stoneId, weaponMultiplier, type Element } from '../elements';
 import {
   firstWinAvailable,
@@ -44,17 +44,18 @@ import type { PatrolKind, PatrolSubject, TravellerKind } from '../patrols/genera
 import type { TravellerReward } from '../patrols/travellers';
 import { collectTreasure, liveTreasureMaps, readTreasureMap } from '../rewards/treasure';
 import { challengeSanctum, sanctumById, sanctumDungeon, type SanctumSpawn } from '../sanctums/sanctums';
-import type { Loot, LootCategory } from '../loot/types';
+import type { Loot, LootCategory, LootSourceId } from '../loot/types';
 import type { SaveData } from '../save';
 import { buySupply, buySupplyProblem, isTavernUnlocked, offerLevel, recruit, recruitPrice, tavernOffers, type TavernSpawn } from '../taverns/taverns';
 import { currentHp, drinkPotion, drinkProblem, maxHp } from '../team/health';
 import { affinityOf, carriesKit, equip, equipPreview, hasPotionSlot, heroDamageStat, heroStats, isOnExpedition, rosterFull, setKitFor, unequip } from '../team/team';
-import { briefingCoverage } from '../threats/coverage';
+import { briefingCoverage, kitAnswers } from '../threats/coverage';
 import { gearApproachBonus, approachScore, pendingApproachPicks, pickApproach } from '../team/stats';
 import { heroAnswers, type AnswersMember } from '../threats/answers';
 import { scoreThreat } from '../threats/score';
 import type { ActiveExpedition, Approach, ArmourType, Briefing, ConsumableDef, DungeonDef, GearDef, GearInstance, HeroClassId, HeroState, OffhandType, Quality, RecipeDef, Stats, WeaponType } from '../types';
 import { expectedLevels, type Profile, type SimConfig } from './config';
+import { emptySlots, fillPotions, isKit, pickCharm, pickKits, pickWeakness, uncovered, withCharm } from './rules/loadout';
 import { PICKAXES, type WalkRates } from './walking';
 import { questRules } from '@/content/quests';
 import { questUpkeep } from '../quests/arrival';
@@ -111,7 +112,7 @@ export type ExpeditionRow = {
 
 export type CraftRow = {
   day: number;
-  kind: 'pickaxe' | 'upgrade' | 'reforge' | 'consumable' | 'provision' | 'salvage' | 'tutorial';
+  kind: 'pickaxe' | 'upgrade' | 'reforge' | 'component' | 'relic' | 'consumable' | 'provision' | 'salvage' | 'tutorial';
   itemId: string;
   tier: number;
   quality: Quality | null;
@@ -169,11 +170,16 @@ export type RunLog = {
   emergencySupply: number;
   /** Daily quests claimed, by band, and the secret place tips their strange marks gave. */
   quests: { claimed: Record<Quest['band'], number>; tips: number };
+  /** Map places visited: fight events, the lair, ruins, heists, the dock, secret places. */
+  places: PlaceRow[];
   /** Visits the profile planned that couldn't happen (nothing there, odds too low), by activity. */
   skipped: Record<string, number>;
   /** The tier 5 boss was beaten before the profile's day cap. */
   finished: boolean;
 };
+
+/** A map place visit; odds and won only for fights and heists. */
+export type PlaceRow = { day: number; kind: string; tier: number; odds: number | null; won: boolean | null };
 
 /** Everything met on a walk, at the tier it would have fought at. */
 export type PatrolSeenRow = { kind: PatrolSubject; tier: number; elite: boolean };
@@ -234,6 +240,18 @@ export function markCoreKit(sim: Sim) {
     const kit = (['sword', 'bow', 'wand', 'mail'] as const).map((type) => recipeById[`${type}${tier}`]?.id);
     if (kit.every((id) => id && sim.save.knownRecipes.includes(id))) mark(sim, `coreKit:${tier}`);
   }
+}
+
+/** Takes one visit owed for an activity, if a whole one is due. */
+export function takeVisit(sim: Sim, key: string) {
+  if ((sim.due[key] ?? 0) < 1) return false;
+  sim.due[key] -= 1;
+  return true;
+}
+
+/** Logs a planned visit that couldn't happen. */
+export function skip(sim: Sim, key: string) {
+  sim.log.skipped[key] = (sim.log.skipped[key] ?? 0) + 1;
 }
 
 export function mark(sim: Sim, key: string) {
@@ -298,10 +316,6 @@ function equipGain(save: SaveData, hero: HeroState, slot: 'weapon' | 'armor' | '
   const preview = equipPreview(save, hero.id, slot, uid);
   return preview ? statScore(save, hero, preview.after) - statScore(save, hero, preview.before) : 0;
 }
-
-/** Whether today's run against this dungeon deals fire damage: a fire element threat, or fire mobs. */
-const dealsFire = (dungeon: DungeonDef, briefing: Briefing) =>
-  briefing.threats.some((t) => t.id === 'element' && t.element === 'fire') || (dungeonTagWeights(dungeon).fire ?? 0) > 0;
 
 /** The class's weapon of choice: its first favoured weapon type that rolls with the class's damage stat. */
 const weaponTypeFor = (classId: HeroClassId): WeaponType | null => {
@@ -596,8 +610,8 @@ function cook(sim: Sim, itemId: string, count: number) {
 
 /**
  * Supply first, cooked in batches (jerky while meat lasts, then trail mix);
- * then potions and meals up to their stock. The bot equips no kits
- * and never opts into an opportunity.
+ * then potions, the kits today's briefings call for and meals up to their
+ * stock. The bot never opts into an opportunity.
  */
 export function stockProvisions(sim: Sim) {
   const { provisions } = sim.config;
@@ -605,11 +619,13 @@ export function stockProvisions(sim: Sim) {
   while (supplyHeld(sim.save.consumables) < provisions.supplyBuffer) {
     if (!bySupply.some((item) => cook(sim, item.id, provisions.batch) > 0)) break;
   }
-  const fireToday = dungeons.some(
-    (d) => isDungeonAvailable(sim.save, d, sim.rotation) && dealsFire(d, briefingFor(sim.rotation, d)),
-  );
+  // Kits that answer something in today's briefings of the top two tiers.
+  const top = highestTier(sim.save);
+  const briefings = dungeons.filter((d) => d.tier >= top - 1 && isDungeonAvailable(sim.save, d, sim.rotation)).map((d) => briefingFor(sim.rotation, d));
+  const kits = items.filter((i) => isKit(i.id) && briefings.some((b) => kitAnswers(i.id, b)));
   const targets: [string, number][] = [
-    ...Object.entries(sim.config.stock).filter(([id]) => id !== 'emberWardSalve' || fireToday),
+    ...Object.entries(sim.config.stock),
+    ...kits.map((i): [string, number] => [i.id, provisions.kits]),
     ...mealItems.map((i): [string, number] => [i.id, provisions.meals]),
   ];
   for (const [id, target] of targets) {
@@ -787,25 +803,16 @@ function restUp(sim: Sim, dungeon: DungeonDef, heroIds: string[]) {
   return true;
 }
 
-/** The threat points a party still misses on a briefing: each threat's shortfall, summed. */
-const uncovered = (save: SaveData, heroIds: string[], briefing: Briefing) =>
-  briefingCoverage(save, heroIds, briefing).threats.reduce((sum, t) => sum + Math.max(0, t.needed - t.have), 0);
-
 /**
- * Each hero takes a potion; an ember ward salve for fire runs if they don't
- * resist fire. An Alchemist fills their second slot with a potion too, and a
- * Porter carries their kit for the hero it leaves the fewest threat points
- * uncovered with.
+ * The party's loadout (see rules/loadout.ts): kits for the threats, the boss's
+ * weakness item, then a healing potion each. An Alchemist fills their second
+ * slot with a potion too, and a Porter carries their kit for the hero it
+ * leaves the fewest threat points uncovered with.
  */
-function withLoadout(save: SaveData, heroIds: string[], dungeon: DungeonDef, briefing: Briefing): SaveData {
-  let next = save;
-  const fire = dealsFire(dungeon, briefing);
+export function withLoadout(save: SaveData, heroIds: string[], dungeon: DungeonDef, briefing: Briefing): SaveData {
+  let next = fillPotions(pickWeakness(pickKits(emptySlots(save, heroIds), heroIds, briefing), heroIds, dungeon), heroIds);
   for (const id of heroIds) {
     const hero = next.heroes.find((h) => h.id === id)!;
-    const stock = (item: string) => (next.consumables[item] ?? 0) + (hero.equipment.consumable === item ? 1 : 0);
-    const wantsFire = fire && !(heroClasses[hero.classId].resists ?? []).includes('fire');
-    const want = [wantsFire ? 'emberWardSalve' : null, 'healingPotion'].find((item) => item && stock(item) > 0);
-    if (want && hero.equipment.consumable !== want) next = equip(next, id, 'consumable', want);
     if (hasPotionSlot(hero) && !hero.equipment.potion && (next.consumables.healingPotion ?? 0) > 0) {
       next = equip(next, id, 'potion', 'healingPotion');
     }
@@ -824,31 +831,36 @@ function withLoadout(save: SaveData, heroIds: string[], dungeon: DungeonDef, bri
 }
 
 /**
- * Adds the hero who raises the odds most, until the party is full or safe
- * enough. Candidates are compared with a quick estimate on the same seeds;
- * the party found gets the full one.
+ * The heroes with the best answers to the threats: adds the hero who leaves
+ * the fewest threat points uncovered (by class, trait and gear; kits fill the
+ * gaps afterwards), ties broken by a quick estimate of the prepared party's
+ * odds, until the party is full, or covers everything and is safe enough.
+ * The party found gets the full estimate.
  */
 export function bestParty(sim: Sim, dungeon: DungeonDef, candidates: string[], briefingOf: Briefing | null = null) {
   const briefing = briefingOf ?? briefingFor(sim.rotation, dungeon);
-  const save = withLoadout(sim.save, candidates, dungeon, briefing);
+  const bare = emptySlots(sim.save, candidates);
   // Narrow passages cap the party at launch (one hero fewer), unless a Curse-breaker in it lifts them.
   const fits = (ids: string[]) =>
     briefing.restriction !== 'narrowPassages' ||
     ids.length <= narrowPartySize(rosterRules.partySize) ||
-    briefingCoverage(save, ids, briefing).restriction?.cancelledBy != null;
+    briefingCoverage(bare, ids, briefing).restriction?.cancelledBy != null;
+  const quick = (ids: string[]) => odds(sim, withLoadout(bare, ids, dungeon, briefing), ids, dungeon, sim.config.odds.searchRuns, false, briefing);
   const party: string[] = [];
-  let best: Odds = { success: 0, flawless: 0, progress: 0 };
-  while (party.length < rosterRules.partySize && candidates.some((c) => !party.includes(c) && fits([...party, c]))) {
+  while (party.length < rosterRules.partySize) {
+    const options = candidates.filter((c) => !party.includes(c) && fits([...party, c])).map((id) => ({ id, missing: uncovered(bare, [...party, id], briefing) }));
+    if (!options.length) break;
+    const fewest = Math.min(...options.map((o) => o.missing));
     let pick: { id: string; odds: Odds } | null = null;
-    for (const id of candidates.filter((c) => !party.includes(c) && fits([...party, c]))) {
-      const o = odds(sim, save, [...party, id], dungeon, sim.config.odds.searchRuns, false, briefing);
+    for (const { id } of options.filter((o) => o.missing === fewest)) {
+      const o = quick([...party, id]);
       if (!pick || o.success > pick.odds.success || (o.success === pick.odds.success && o.progress > pick.odds.progress)) pick = { id, odds: o };
     }
     party.push(pick!.id);
-    best = pick!.odds;
-    if (best.success >= sim.config.odds.enough) break;
+    if (fewest === 0 && pick!.odds.success >= sim.config.odds.enough) break;
   }
-  return { heroIds: party, odds: party.length ? odds(sim, save, party, dungeon, sim.config.odds.runs, false, briefing) : best };
+  const save = withLoadout(bare, party, dungeon, briefing);
+  return { heroIds: party, odds: party.length ? odds(sim, save, party, dungeon, sim.config.odds.runs, false, briefing) : { success: 0, flawless: 0, progress: 0 } };
 }
 
 // —— Sanctums and treasure ——
@@ -901,11 +913,16 @@ export function digTreasure(sim: Sim) {
 
 export function launch(sim: Sim, dungeon: DungeonDef, heroIds: string[], o: Odds) {
   const briefing = briefingFor(sim.rotation, dungeon);
-  sim.save = withLoadout(sim.save, heroIds, dungeon, briefing);
+  sim.save = withLoadout(emptySlots(sim.save, homeHeroes(sim.save).map((h) => h.id)), heroIds, dungeon, briefing);
   const loadout = { mealId: mealFor(sim, dungeon, heroIds, o) };
   topUpSupply(sim, dungeon, heroIds, loadout, briefing);
   // The prediction logged is for the party exactly as it leaves.
-  const final = estimateOdds(sim.save, heroIds, dungeon, sim.config.odds.runs, { now: sim.now, loadout, briefing });
+  let final = estimateOdds(sim.save, heroIds, dungeon, sim.config.odds.runs, { now: sim.now, loadout, briefing });
+  const charm = final.success >= sim.config.odds.charm ? pickCharm(sim.save, runSource(dungeon)) : null;
+  if (charm) {
+    sim.save = withCharm(sim.save, heroIds, charm);
+    final = estimateOdds(sim.save, heroIds, dungeon, sim.config.odds.runs, { now: sim.now, loadout, briefing });
+  }
   const qualities = Object.fromEntries(QUALITY_ORDER.map((q) => [q, 0])) as Record<Quality, number>;
   for (const id of heroIds) {
     const hero = sim.save.heroes.find((h) => h.id === id)!;
@@ -921,6 +938,9 @@ export function launch(sim: Sim, dungeon: DungeonDef, heroIds: string[], o: Odds
   const level = heroIds.reduce((s, h) => s + sim.save.heroes.find((x) => x.id === h)!.level, 0) / heroIds.length;
   sim.launched.set(id, { odds: final.success, qualities, day: sim.day, hour: (sim.now - sim.startedAt) / 3_600_000, level });
 }
+
+/** The loot row a run of this dungeon rolls, for charms. */
+const runSource = (dungeon: DungeonDef): LootSourceId => (dungeon.overnight ? 'overnightExpedition' : dungeon.isBoss ? 'tierBoss' : 'dungeonRun');
 
 /** Whether a win here could drop a weapon or armour blueprint of the dungeon's tier the roster favours and doesn't know yet. */
 function dropsBlueprint(save: SaveData, dungeon: DungeonDef) {

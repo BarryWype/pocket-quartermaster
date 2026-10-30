@@ -34,6 +34,8 @@ import { pruneExpired, rollDailyApproaches } from '../upkeep';
 import {
   act,
   buyGuildRanks,
+  skip,
+  takeVisit,
   challengeSanctums,
   collectExpedition,
   digTreasure,
@@ -128,17 +130,6 @@ const PILGRIM_SUPPLY_STOCK = 8;
 const SEARCH_METERS = [0, 500, 1000];
 
 const PATROL_VISITS: [LootSourceId, PatrolKind][] = (Object.entries(PATROL_SOURCES) as [PatrolKind, LootSourceId][]).map(([kind, source]) => [source, kind]);
-
-/** Takes one visit owed for an activity, if a whole one is due. */
-function takeVisit(sim: Sim, key: string) {
-  if ((sim.due[key] ?? 0) < 1) return false;
-  sim.due[key] -= 1;
-  return true;
-}
-
-const skip = (sim: Sim, key: string) => {
-  sim.log.skipped[key] = (sim.log.skipped[key] ?? 0) + 1;
-};
 
 /** A live spawn of one of these kinds the walk can meet now, not beaten or helped yet. */
 function findSpawn(sim: Sim, kinds: PatrolSubject[]): PatrolSpawn | null {
@@ -364,6 +355,7 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
       potionsAtHome: 0,
       emergencySupply: 0,
       quests: { claimed: { short: 0, medium: 0, long: 0, secret: 0 }, tips: 0 },
+      places: [],
       skipped: {},
       finished: false,
     },
