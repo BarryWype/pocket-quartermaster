@@ -519,13 +519,13 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 24,
+      version: 25,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
-      // Until release, a save change starts fresh: saves before version 24 (seen parts) are reset.
+      // Until release, a save change starts fresh: saves before version 25 (secret tips) are reset.
       migrate: (persisted, version) => {
         const old = (persisted as { save?: SaveData } | undefined)?.save;
-        if (!old || version < 24) return { save: createInitialSave() };
+        if (!old || version < 25) return { save: createInitialSave() };
         return { save: old };
       },
       merge: (persisted, current) => ({
