@@ -50,6 +50,10 @@ export const lootConfig = {
     treasureSpot: 1,
     sanctum: 1,
     stepChest: 1,
+    questShort: 1,
+    questMedium: 1,
+    questLong: 1,
+    secretQuest: 1,
   } as Record<LootSourceId, number>,
   /** No chance, however stacked, goes above this. */
   maxChance: 0.95,
@@ -89,6 +93,9 @@ export const lootConfig = {
     ruinsDig: { materials: ['stone'], cache: true },
     fishingDock: { materials: ['fish'] },
     stepChest: { materials: ['wood', 'hide', 'herb', 'berries', 'bone', 'meat', 'mushroom'] },
+    questShort: { materials: ['wood', 'hide', 'herb', 'berries', 'bone', 'meat', 'mushroom'] },
+    questMedium: { materials: ['wood', 'hide', 'herb', 'berries', 'bone', 'meat', 'mushroom'], cache: true },
+    questLong: { materials: ['hide', 'bone', 'meat'], cache: true },
   } as Partial<Record<LootSourceId, { materials?: string[]; cache?: boolean }>>,
   /** Quality ladders, read with d20 + bonus; floors then lift a source's minimum. */
   gearQuality: {
@@ -192,6 +199,10 @@ export const lootConfig = {
     treasureSpot: { gold: 2.5, xp: 0 },
     sanctum: { gold: 0, xp: 0.5 },
     stepChest: { gold: 2, xp: 0 },
+    questShort: { gold: 1, xp: 0 },
+    questMedium: { gold: 2, xp: 0 },
+    questLong: { gold: 4, xp: 0 },
+    secretQuest: { gold: 2, xp: 0 },
   } as Partial<Record<LootSourceId, { gold: number; xp: number }>>,
   /** The day's first win and a new tier's first clear: shares of the dungeon's top gold and its XP. */
   bonusRows: { firstWin: { gold: 1, xp: 0.5 }, firstTierClear: { gold: 1, xp: 0.5 } },

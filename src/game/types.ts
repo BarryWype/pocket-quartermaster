@@ -2,7 +2,7 @@ import type { Loot, LootModifier, MapRarity } from './loot/types';
 import type { ImageSourcePropType } from 'react-native';
 
 import type { PlaceKind, SecretKind } from '@/content/places';
-import type { TipSource } from '@/content/secrets';
+import type { PlaceTipSource, TipSource } from '@/content/secrets';
 
 import type { Element } from './elements';
 import type { LatLng } from './generation/types';
@@ -879,7 +879,7 @@ export type PlaceFight = {
   salvaged: ExpeditionReport['salvaged'];
   reward: Loot;
   /** A won fight's secret tip, granted when it ends. */
-  tip?: { source: TipSource; sourceId: string; anchor: LatLng };
+  tip?: { source: PlaceTipSource; sourceId: string; anchor: LatLng };
 };
 
 /** One hero away on a thieves' guild heist; the outcome is rolled when they set out. */
@@ -892,7 +892,7 @@ export type Heist = {
   success: boolean;
   reward: Loot;
   /** A successful heist's secret tip, granted when it ends. */
-  tip?: { source: TipSource; sourceId: string; anchor: LatLng };
+  tip?: { source: PlaceTipSource; sourceId: string; anchor: LatLng };
 };
 
 /** A dug ruin: a new one shows elsewhere a day later, for this player. */
@@ -906,7 +906,7 @@ export type SecretTip = {
   source: TipSource;
   /** The spawn, place or run that gave the tip; seeds its marker. */
   sourceId: string;
-  /** Where the tip was found; the marker sits 500 m – 1.5 km from it. */
+  /** Where the tip was found; the marker sits 500 m – 1.5 km from it (300 m – 1 km for a secret quest). */
   anchor: LatLng;
   foundAt: number;
   expiresAt: number;

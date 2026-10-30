@@ -8,6 +8,7 @@ import {
   activeTip,
   duplicateTipGold,
   grantTip,
+  questTipSecret,
   rollTip,
   secretPlaceId,
   secretPlaces,
@@ -150,5 +151,36 @@ describe('secret tips', () => {
       expiresAt: live.expiresAt,
       roll: 0,
     });
+  });
+});
+
+describe('secret quest tips', () => {
+  const tipped = (secrets: ('hiddenDen' | 'blackMarket')[]) =>
+    secrets.reduce(
+      (save, secret) => grantTip(save, { source: secret === 'hiddenDen' ? 'library' : 'heist', sourceId: secret, anchor }, now).save,
+      createInitialSave(),
+    );
+
+  it('marks the place 300 m – 1 km from the mark', () => {
+    for (let i = 0; i < 50; i++) {
+      const { outcome } = grantTip(createInitialSave(), { source: 'quest', sourceId: `s|${i}`, anchor, secret: 'hiddenDen' }, now);
+      if (outcome.kind !== 'tip') throw new Error('expected a tip');
+      const distance = distanceMeters(anchor, tipPosition(outcome.tip)!);
+      expect(distance).toBeGreaterThanOrEqual(secretRules.questDistanceMeters[0] - 1);
+      expect(distance).toBeLessThanOrEqual(secretRules.questDistanceMeters[1] + 1);
+    }
+  });
+
+  it('picks a place without an active tip, the underwater dungeon only near water', () => {
+    expect(questTipSecret(tipped(['hiddenDen']), 's|1', anchor, now)).toBe('blackMarket');
+    expect(questTipSecret(tipped(['hiddenDen', 'blackMarket']), 's|1', anchor, now)).toBeNull();
+    expect(questTipSecret(tipped(['hiddenDen', 'blackMarket']), 's|1', anchor, now, () => true)).toBe('underwaterDungeon');
+    const picks = new Set(Array.from({ length: 40 }, (_, i) => questTipSecret(createInitialSave(), `s|${i}`, anchor, now, () => false)));
+    expect([...picks].sort()).toEqual(['blackMarket', 'hiddenDen']);
+  });
+
+  it('gives nothing to pick when all three are tipped', () => {
+    const all = grantTip(tipped(['hiddenDen', 'blackMarket']), { source: 'fishingDock', sourceId: 'dock', anchor }, now).save;
+    expect(questTipSecret(all, 's|1', anchor, now, () => true)).toBeNull();
   });
 });

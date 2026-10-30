@@ -44,6 +44,10 @@ const SOURCE_BY_NAME: Record<string, LootSourceId> = {
   'Treasure spot': 'treasureSpot',
   Sanctum: 'sanctum',
   'Step chest': 'stepChest',
+  'Quest: short (500 m)': 'questShort',
+  'Quest: medium (1 km)': 'questMedium',
+  'Quest: long (2 km)': 'questLong',
+  'Secret quest': 'secretQuest',
 };
 
 /** One CSV line, splitting on commas outside quoted fields. */

@@ -46,6 +46,10 @@ export const LOOT_SOURCES = [
   'treasureSpot',
   'sanctum',
   'stepChest',
+  'questShort',
+  'questMedium',
+  'questLong',
+  'secretQuest',
 ] as const;
 export type LootSourceId = (typeof LOOT_SOURCES)[number];
 

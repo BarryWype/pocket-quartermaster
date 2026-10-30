@@ -59,7 +59,7 @@ import { lootChances } from '@/game/loot/chances';
 import { createRng } from '@/game/generation/rng';
 import { rollForSave, sourceAmounts } from '@/game/loot/context';
 import { lootConfig } from '@/content/loot/config';
-import { secretRules, type TipSource } from '@/content/secrets';
+import { secretRules, type PlaceTipSource } from '@/content/secrets';
 import { lootMatrix } from '@/content/loot/matrix';
 import { components } from '@/content/loot/components';
 import { charms } from '@/content/loot/charms';
@@ -95,7 +95,7 @@ const RUN_MINUTES: (number | null)[] = [null, 5, 45, 120, 480];
 const LUCK_POINTS = [0, 10, 30, 100];
 const MAP_RARITIES: MapRarity[] = ['common', 'rare', 'legendary'];
 /** One tip source per secret place, for the debug buttons. */
-const SECRET_SOURCES: TipSource[] = ['library', 'heist', 'fishingDock'];
+const SECRET_SOURCES: PlaceTipSource[] = ['library', 'heist', 'fishingDock'];
 
 /**
  * A source's roll table with its final chances (after Luck, a ×1.5 charm on

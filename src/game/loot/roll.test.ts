@@ -54,7 +54,7 @@ describe('rollSourceLoot', () => {
     const foot: LootSourceId[] = LOOT_SOURCES.filter(
       (source) => lootMatrix[source].marks.materials !== '—',
     );
-    const themed: LootSourceId[] = ['patrolGoblins', 'patrolHerd', 'patrolBandits', 'traveller', 'banditCamp', 'goblinRaid', 'beastDen', 'hauntedCrypt', 'abandonedCaravan', 'monsterLair', 'ruinsDig', 'fishingDock', 'treasureSpot', 'stepChest'];
+    const themed: LootSourceId[] = ['patrolGoblins', 'patrolHerd', 'patrolBandits', 'traveller', 'banditCamp', 'goblinRaid', 'beastDen', 'hauntedCrypt', 'abandonedCaravan', 'monsterLair', 'ruinsDig', 'fishingDock', 'treasureSpot', 'stepChest', 'questShort', 'questMedium', 'questLong'];
     expect(foot).toEqual(themed);
     const shardIds = ELEMENTS.map((element) => shardId(element));
     // Components and monster parts live in `materials` too; they drop wherever their mark allows.

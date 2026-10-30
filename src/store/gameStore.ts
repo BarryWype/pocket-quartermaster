@@ -44,7 +44,7 @@ import { digRuin } from '@/game/places/ruins';
 import { launchUnderwater } from '@/game/secrets/dungeon';
 import { grantTip, type TipOutcome } from '@/game/secrets/tips';
 import { buyAtBlackMarket, enterSecret, recruitAtSecret } from '@/game/secrets/places';
-import { secretRules, type TipSource } from '@/content/secrets';
+import { secretRules, type PlaceTipSource } from '@/content/secrets';
 import { pickApproach } from '@/game/team/stats';
 import { dismissHero, equip, heroStats, isAway, keepHpShare, markClassesSeen, setKitFor, unequip } from '@/game/team/team';
 import { buySupply, recruit, type RecruitOffer } from '@/game/taverns/taverns';
@@ -145,7 +145,7 @@ type GameState = {
   /** Spends a mysterious key and sends the party into the tipped underwater dungeon. */
   launchUnderwater: (place: PlaceSpawn, heroIds: string[], player: LatLng, loadout?: Loadout) => void;
   /** Debug: a tip for any secret place, found here; with `spot`, the place sits there (replacing an active one). */
-  giveTip: (source: TipSource, position: LatLng, spot?: LatLng) => void;
+  giveTip: (source: PlaceTipSource, position: LatLng, spot?: LatLng) => void;
   buyRank: (trackId: GuildTrackId) => void;
   /** Credits Guild Hall training XP since the last check. */
   train: () => void;

@@ -29,6 +29,8 @@ export const questRules = {
   } as Partial<Record<QuestObjective, Record<QuestBand, number>>>,
   /** Herbs, berries and mushrooms count for "gather on the way". */
   gatherOnWayMaterials: ['herb', 'berries', 'mushroom'],
+  /** Rewards read the Luck of this many of the luckiest heroes, like a party's. */
+  luckHeroes: 3,
   secret: {
     /** Completions within the window that pop the day's secret quest. */
     completions: 4,

@@ -1,5 +1,5 @@
 import { secretRules } from '@/content/secrets';
-import type { TipSource } from '@/content/secrets';
+import type { PlaceTipSource } from '@/content/secrets';
 import type { SecretKind } from '@/content/places';
 
 import { highestUnlockedTier } from '../dungeons/unlock';
@@ -18,7 +18,7 @@ export function secretPlaceId(tip: SecretTip): string {
 }
 
 /** Whether this source run tips the player off; deterministic per source and id. */
-export function rollTip(source: TipSource, sourceId: string, chance = secretRules.tips[source].chance): boolean {
+export function rollTip(source: PlaceTipSource, sourceId: string, chance = secretRules.tips[source].chance): boolean {
   return createRng(`tip|${source}|${sourceId}`).chance(chance);
 }
 
@@ -47,13 +47,14 @@ export function duplicateTipGold(save: SaveData): number {
 
 export type TipOutcome = { kind: 'tip'; tip: SecretTip } | { kind: 'gold'; gold: number };
 
+/** What a tip came from: a place or run, always tipping the same secret place, or a secret quest naming its own. */
+export type FoundTip =
+  | { source: PlaceTipSource; sourceId: string; anchor: LatLng }
+  | { source: 'quest'; sourceId: string; anchor: LatLng; secret: SecretKind };
+
 /** Records a tip: a new marker, or duplicate gold when the same place is already tipped. */
-export function grantTip(
-  save: SaveData,
-  found: { source: TipSource; sourceId: string; anchor: LatLng },
-  now: number,
-): { save: SaveData; outcome: TipOutcome } {
-  const secret = secretRules.tips[found.source].secret;
+export function grantTip(save: SaveData, found: FoundTip, now: number): { save: SaveData; outcome: TipOutcome } {
+  const secret = found.source === 'quest' ? found.secret : secretRules.tips[found.source].secret;
   const existing = activeTip(save, secret, now);
   if (existing) {
     const gold = duplicateTipGold(save);
@@ -72,11 +73,11 @@ export function grantTip(
 }
 
 /** The marker spots a tip may sit at, seeded by its id. */
-export function tipSpots(tip: SecretTip): LatLng[] {
+export function tipSpots(tip: Pick<SecretTip, 'id' | 'secret' | 'source' | 'anchor'>): LatLng[] {
   const rng = createRng(`tip-spot|${tip.id}`);
   const count = tip.secret === 'underwaterDungeon' ? secretRules.waterSpots : 1;
   return Array.from({ length: count }, () => {
-    const distance = rng.int(...secretRules.distanceMeters);
+    const distance = rng.int(...(tip.source === 'quest' ? secretRules.questDistanceMeters : secretRules.distanceMeters));
     const bearing = rng.next() * 2 * Math.PI;
     return offsetPosition(tip.anchor, Math.cos(bearing) * distance, Math.sin(bearing) * distance);
   });
@@ -116,4 +117,28 @@ export function secretPlaces(save: SaveData, now: number, isNearWater?: (point: 
 /** The tip a secret place came from, or undefined. */
 export function tipForPlace(save: SaveData, placeId: string): SecretTip | undefined {
   return save.secretTips.find((tip) => secretPlaceId(tip) === placeId);
+}
+
+/**
+ * The secret place a secret quest tips off from its mark: one with no active
+ * tip, picked by the quest's seed; the underwater dungeon only when one of its
+ * spots is near water (so never without the water check). Null when every
+ * candidate is already tipped: the quest pays duplicate gold instead.
+ */
+export function questTipSecret(
+  save: SaveData,
+  sourceId: string,
+  anchor: LatLng,
+  now: number,
+  isNearWater?: (point: LatLng) => boolean,
+): SecretKind | null {
+  const secrets: SecretKind[] = ['hiddenDen', 'blackMarket', 'underwaterDungeon'];
+  const open = secrets.filter((secret) => {
+    if (activeTip(save, secret, now)) return false;
+    if (secret !== 'underwaterDungeon') return true;
+    const spots = tipSpots({ id: `${secret}|${sourceId}`, secret, source: 'quest', anchor });
+    return isNearWater !== undefined && spots.some(isNearWater);
+  });
+  if (open.length === 0) return null;
+  return open[createRng(`quest-tip|${sourceId}`).int(0, open.length - 1)];
 }

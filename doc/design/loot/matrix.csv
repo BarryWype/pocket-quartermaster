@@ -22,3 +22,7 @@ Fishing dock,0.3,—,—,A,—,R,—,—,R,R,—,R,—,R,—,—,Fish; rarely a 
 Treasure spot,0.4,A,—,O,—,—,S,S,R,R,—,O,S,—,—,—,Scales with the map's rarity
 Sanctum,0.3,—,O,—,A,—,—,—,R,—,—,—,—,—,—,—,Also elemental stones
 Step chest,2,A,—,O,—,—,R,—,—,—,S,S,S,S,R,—,Rewards walking
+Quest: short (500 m),1.2,A,—,O,—,—,R,—,—,—,S,S,S,R,—,R/2,
+Quest: medium (1 km),0.9,A,—,O,R,R,S,R,—,—,S,S,S,R,R,R,
+Quest: long (2 km),0.4,A,—,A,S,S,S,S,R,R,O,O,S,S,S,R,
+Secret quest,0.15,A,—,—,—,—,—,—,—,—,—,S,—,—,—,—,Gives a secret place tip within ~1 km
