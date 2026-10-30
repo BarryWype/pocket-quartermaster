@@ -178,7 +178,7 @@ export type RunLog = {
   emergencySupply: number;
   /** Daily quests claimed, by band, and the secret place tips their strange marks gave. */
   quests: { claimed: Record<Quest['band'], number>; tips: number };
-  /** The win odds probe after every session (see probe.ts). */
+  /** The win odds probe, every `probeEveryDays` days and at each new tier (see probe.ts). */
   probes: ProbeRow[];
   /** Day → material → [gathered, used]. */
   materialFlow: Record<number, Record<string, [number, number]>>;

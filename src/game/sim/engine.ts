@@ -3,7 +3,7 @@ import { rosterRules } from '@/content/roster';
 import { MASTERY_TYPES } from '@/content/forging';
 import { guildTracks } from '@/content/guild';
 import { REVEAL_KINDS } from '@/content/reveal';
-import { itemById, recipeById } from '@/content/lookup';
+import { dungeonById, itemById, recipeById } from '@/content/lookup';
 import { components } from '@/content/loot/components';
 import { tutorialRules } from '@/content/tutorial';
 
@@ -379,6 +379,7 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
     log: emptyLog(name, seed),
   };
 
+  let probedTier = 0;
   for (let day = 0; day < days && !sim.log.finished; day++) {
     sim.day = day + 1;
     sim.bonusGathers = gatheringConfig.walkingBonus.gathers;
@@ -407,7 +408,11 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
       idle += homeHeroes(sim.save).length / sim.save.heroes.length;
       markHoldings(sim);
       markReveals(sim);
-      sim.log.probes.push(...probe(sim));
+      const bossOut = sim.save.expeditions.some((x) => dungeonById[x.dungeonId].isBoss && dungeonById[x.dungeonId].tier === highestTier(sim.save));
+      if (bossOut || highestTier(sim.save) !== probedTier || (sim.day % config.probeEveryDays === 0 && i === hours.length - 1)) {
+        probedTier = highestTier(sim.save);
+        sim.log.probes.push(...probe(sim));
+      }
       afterSession?.(sim.save);
     });
 

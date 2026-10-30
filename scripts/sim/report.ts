@@ -162,7 +162,7 @@ export function renderReport({ summaries, rules, settings }: ReportInput) {
     pace(summaries),
     '## Win odds per tier',
     '',
-    'Probe: after every session, the best prepared party from the whole roster at full HP against every open normal dungeon of the tier, the tier boss, and the fight events and patrols around; "not prepared" is the briefing skipped: the strongest party picked as if there were no threats, with no kits. Each probe cell reads "at the tier\u2019s first probe → at its last" (gear of the tier); the last is checked against the target. The column after each probe is what the bot actually launched.',
+    'Probe: after the day\u2019s last session every `probeEveryDays` days (and after the first session of a new tier and every session the tier boss is out), the best prepared party from the whole roster at full HP against every open normal dungeon of the tier, the tier boss, and the fight events and patrols around; "not prepared" is the briefing skipped: the strongest party picked as if there were no threats, with no kits. Each probe cell reads "at the tier\u2019s first probe → at its last" (gear of the tier); the last is checked against the target. The column after each probe is what the bot actually launched.',
     '',
   ];
   for (const s of summaries) out.push(`### ${s.profile}`, '', odds(s));

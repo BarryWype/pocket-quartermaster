@@ -124,6 +124,8 @@ export const simConfig = {
     /** When nothing reaches the profile's threshold and nobody is out, the best option still goes if it reaches this. */
     fallback: 0.3,
   },
+  /** The full game's probe runs after the day's last session every this many days, after the first session of a new tier, and while the tier boss is fought. */
+  probeEveryDays: 1,
   /** The quick probe (npm run sim:quick): odds only, no full game. */
   quick: {
     /** Rotation days sampled, one look per day at noon. */
