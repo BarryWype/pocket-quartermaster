@@ -985,12 +985,12 @@ export function sendExpeditions(sim: Sim) {
   }
 }
 
-/** Resolves one expedition through the game, and logs it with the abilities that fired in its run. */
 /** Counts every category a roll dropped, for the observed pacing. */
 export function countLoot(sim: Sim, loot: Loot) {
   for (const category of loot.dropped) sim.log.loot[category] = (sim.log.loot[category] ?? 0) + 1;
 }
 
+/** Resolves one expedition through the game, and logs it with the abilities that fired in its run. */
 export function collectExpedition(sim: Sim, expedition: ActiveExpedition) {
   const dungeon = dungeonById[expedition.dungeonId];
   const briefing = expedition.briefing ?? EMPTY_BRIEFING;
