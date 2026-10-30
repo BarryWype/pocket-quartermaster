@@ -5,7 +5,7 @@ import { tierMaterials } from '@/content/materials';
 import { placeInfo } from '@/content/places';
 
 import type { LootCategory } from '../loot/types';
-import type { RunLog } from './bot';
+import type { ProbeRow, RunLog } from './bot';
 import { expectedLevels } from './config';
 import { lootPacing } from './pacing';
 import { inRange, targets as defaultTargets, type Targets } from './targets';
@@ -34,7 +34,8 @@ export function tierWindow(log: RunLog, tier: number): [number, number] | null {
 
 const within = (day: number, window: [number, number] | null) => !!window && day >= window[0] && day <= window[1];
 
-export type OddsLine = { probe: Stat; actual: number | null; runs: number; target: [number, number] };
+/** Probed odds at the tier's last probe (gear of the tier) and at its first, the launched runs' win rate, and the target. */
+export type OddsLine = { probe: Stat; start: Stat; actual: number | null; runs: number; target: [number, number] };
 
 export type TierSummary = {
   tier: number;
@@ -78,8 +79,17 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
   const windows = logs.map((log) => tierWindow(log, tier));
   const days = stat(logs.map((log, i) => (log.milestones[`boss:${tier}`] !== undefined && windows[i] ? windows[i]![1] - windows[i]![0] + 1 : null)));
 
-  const probeStat = (kind: string, value: (p: RunLog['probes'][number]) => number | null) =>
-    stat(logs.map((log) => mean(log.probes.filter((p) => p.tier === tier && p.kind === kind).map(value).filter((v): v is number => v !== null))));
+  /** The mean of one probe snapshot (the tier's first or last) in each game, over seeds. */
+  const snapshot = (kinds: string[], value: (p: ProbeRow) => number | null, last: boolean) =>
+    stat(
+      logs.map((log) => {
+        const rows = log.probes.filter((p) => p.tier === tier && kinds.includes(p.kind));
+        if (!rows.length) return null;
+        const at = last ? Math.max(...rows.map((p) => p.at)) : Math.min(...rows.map((p) => p.at));
+        return mean(rows.filter((p) => p.at === at).map(value).filter((v): v is number => v !== null));
+      }),
+    );
+  const line = (kinds: string[], value: (p: ProbeRow) => number | null) => ({ probe: snapshot(kinds, value, true), start: snapshot(kinds, value, false) });
   const rate = (rows: { won: boolean }[]) => (rows.length ? rows.filter((r) => r.won).length / rows.length : null);
   const normalRuns = logs.flatMap((log) => log.expeditions.filter((e) => e.tier === tier && !e.boss && !e.overnight).map((e) => ({ won: e.success })));
   const bossRuns = logs.flatMap((log) => log.expeditions.filter((e) => e.tier === tier && e.boss).map((e) => ({ won: e.success })));
@@ -87,7 +97,7 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
     ...log.places.filter((p) => p.tier === tier && p.won !== null && p.kind !== 'thievesGuild').map((p) => ({ won: !!p.won })),
     ...log.patrols.fights.filter((f) => f.tier === tier).map((f) => ({ won: f.won })),
   ]);
-  const gap = stat(logs.map((log) => mean(log.probes.filter((p) => p.tier === tier && p.kind === 'normal' && p.unprepared !== null).map((p) => p.prepared - p.unprepared!))));
+  const gap = snapshot(['normal'], (p) => (p.unprepared === null ? null : p.prepared - p.unprepared), true);
 
   const income = medianTotals(logs.map((log, i) => sumBy(log.goldIn.filter((g) => within(g.day, windows[i])), (g) => g.source, (g) => g.amount)));
   const spend = medianTotals(logs.map((log, i) => sumBy(log.goldOut.filter((g) => within(g.day, windows[i])), (g) => g.sink, (g) => g.amount)));
@@ -116,11 +126,11 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
     tier,
     days,
     odds: {
-      prepared: { probe: probeStat('normal', (p) => p.prepared), actual: rate(normalRuns), runs: normalRuns.length, target: t.odds.prepared },
-      unprepared: { probe: probeStat('normal', (p) => p.unprepared), actual: null, runs: 0, target: t.odds.unprepared },
+      prepared: { ...line(['normal'], (p) => p.prepared), actual: rate(normalRuns), runs: normalRuns.length, target: t.odds.prepared },
+      unprepared: { ...line(['normal'], (p) => p.unprepared), actual: null, runs: 0, target: t.odds.unprepared },
       gap,
-      boss: { probe: probeStat('boss', (p) => p.prepared), actual: rate(bossRuns), runs: bossRuns.length, target: t.odds.boss },
-      events: { probe: stat(logs.map((log) => mean(log.probes.filter((p) => p.tier === tier && (p.kind === 'event' || p.kind === 'patrol')).map((p) => p.prepared)))), actual: rate(eventRuns), runs: eventRuns.length, target: t.odds.events },
+      boss: { ...line(['boss'], (p) => p.prepared), actual: rate(bossRuns), runs: bossRuns.length, target: t.odds.boss },
+      events: { ...line(['event', 'patrol'], (p) => p.prepared), actual: rate(eventRuns), runs: eventRuns.length, target: t.odds.events },
     },
     gold: { income, spend, growth, incomePerDay, surplus },
     material: { id, gathered, spent, share },

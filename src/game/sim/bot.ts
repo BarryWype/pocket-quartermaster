@@ -177,7 +177,7 @@ export type RunLog = {
   emergencySupply: number;
   /** Daily quests claimed, by band, and the secret place tips their strange marks gave. */
   quests: { claimed: Record<Quest['band'], number>; tips: number };
-  /** The daily win odds probe (see probe.ts). */
+  /** The win odds probe after every session (see probe.ts). */
   probes: ProbeRow[];
   /** Day → material → [gathered, used]. */
   materialFlow: Record<number, Record<string, [number, number]>>;
@@ -192,7 +192,7 @@ export type RunLog = {
 };
 
 /** One probe measurement: the best prepared party's odds, and for normal dungeons the same party with its kit slots empty. */
-export type ProbeRow = { day: number; tier: number; kind: 'normal' | 'boss' | 'event' | 'patrol'; id: string; prepared: number; unprepared: number | null };
+export type ProbeRow = { day: number; /** Hours since the game started. */ at: number; tier: number; kind: 'normal' | 'boss' | 'event' | 'patrol'; id: string; prepared: number; unprepared: number | null };
 
 /** A map place visit; odds and won only for fights and heists. */
 export type PlaceRow = { day: number; kind: string; tier: number; odds: number | null; won: boolean | null };

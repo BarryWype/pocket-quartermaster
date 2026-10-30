@@ -1,0 +1,3305 @@
+{
+  "settings": {
+    "profiles": [
+      "casual",
+      "regular",
+      "heavy"
+    ],
+    "seeds": 4,
+    "seed": "1",
+    "overrides": [],
+    "maxDays": null
+  },
+  "profiles": {
+    "casual": {
+      "profile": "casual",
+      "seeds": 4,
+      "finished": 4,
+      "totalDays": {
+        "median": 17,
+        "min": 17,
+        "max": 23,
+        "reached": 4,
+        "seeds": 4
+      },
+      "tiers": [
+        {
+          "tier": 1,
+          "days": {
+            "median": 4.5,
+            "min": 3,
+            "max": 5,
+            "reached": 4,
+            "seeds": 4
+          },
+          "odds": {
+            "prepared": {
+              "probe": {
+                "median": 0.96,
+                "min": 0.875,
+                "max": 0.965,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.475,
+                "min": 0.455,
+                "max": 0.495,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 1,
+              "runs": 23,
+              "target": [
+                0.65,
+                0.75
+              ]
+            },
+            "unprepared": {
+              "probe": {
+                "median": 0.9575,
+                "min": 0.875,
+                "max": 0.965,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.475,
+                "min": 0.455,
+                "max": 0.495,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": null,
+              "runs": 0,
+              "target": [
+                0.3,
+                0.45
+              ]
+            },
+            "gap": {
+              "median": 0,
+              "min": 0,
+              "max": 0.0050000000000000044,
+              "reached": 4,
+              "seeds": 4
+            },
+            "boss": {
+              "probe": {
+                "median": 0.99,
+                "min": 0.85,
+                "max": 0.99,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0,
+                "min": 0,
+                "max": 0,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.5384615384615384,
+              "runs": 13,
+              "target": [
+                0.5,
+                0.6
+              ]
+            },
+            "events": {
+              "probe": {
+                "median": 0.9470454545454545,
+                "min": 0.9375,
+                "max": 0.9633333333333332,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.6689999999999999,
+                "min": 0.6489999999999999,
+                "max": 0.689,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 1,
+              "runs": 9,
+              "target": [
+                0.7,
+                0.8
+              ]
+            }
+          },
+          "gold": {
+            "income": {
+              "tutorial": 22,
+              "chest": 95,
+              "quest": 81.5,
+              "dungeon": 204,
+              "valuables": 56,
+              "treasure": 100.5,
+              "patrol": 26,
+              "salvage": 2.5
+            },
+            "spend": {
+              "weakness": 67.5,
+              "recruit": 225,
+              "guild": 55
+            },
+            "growth": {
+              "median": 249,
+              "min": 38,
+              "max": 355,
+              "reached": 4,
+              "seeds": 4
+            },
+            "incomePerDay": {
+              "median": 130.45,
+              "min": 114,
+              "max": 146.8,
+              "reached": 4,
+              "seeds": 4
+            },
+            "surplus": false
+          },
+          "material": {
+            "id": "wood",
+            "gathered": {
+              "median": 74,
+              "min": 44,
+              "max": 88,
+              "reached": 4,
+              "seeds": 4
+            },
+            "spent": {
+              "median": 34,
+              "min": 30,
+              "max": 42,
+              "reached": 4,
+              "seeds": 4
+            },
+            "share": {
+              "median": 0.5128299120234604,
+              "min": 0.3953488372093023,
+              "max": 0.6818181818181818,
+              "reached": 4,
+              "seeds": 4
+            }
+          },
+          "level": {
+            "end": {
+              "median": 4.666666666666666,
+              "min": 4.333333333333333,
+              "max": 5,
+              "reached": 4,
+              "seeds": 4
+            },
+            "target": 3
+          }
+        },
+        {
+          "tier": 2,
+          "days": {
+            "median": 1.5,
+            "min": 1,
+            "max": 2,
+            "reached": 4,
+            "seeds": 4
+          },
+          "odds": {
+            "prepared": {
+              "probe": {
+                "median": 0.675,
+                "min": 0.51,
+                "max": 0.73,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.4,
+                "min": 0.27,
+                "max": 0.42000000000000004,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.8333333333333334,
+              "runs": 6,
+              "target": [
+                0.65,
+                0.75
+              ]
+            },
+            "unprepared": {
+              "probe": {
+                "median": 0.6025,
+                "min": 0.505,
+                "max": 0.73,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.33749999999999997,
+                "min": 0.27,
+                "max": 0.42000000000000004,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": null,
+              "runs": 0,
+              "target": [
+                0.3,
+                0.45
+              ]
+            },
+            "gap": {
+              "median": 0.03749999999999998,
+              "min": 0,
+              "max": 0.07499999999999996,
+              "reached": 4,
+              "seeds": 4
+            },
+            "boss": {
+              "probe": {
+                "median": 0.655,
+                "min": 0.63,
+                "max": 0.83,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.23,
+                "min": 0.18,
+                "max": 0.23,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 1,
+              "runs": 9,
+              "target": [
+                0.5,
+                0.6
+              ]
+            },
+            "events": {
+              "probe": {
+                "median": 0.9336363636363636,
+                "min": 0.8779999999999999,
+                "max": 0.9560000000000001,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.8975454545454544,
+                "min": 0.858,
+                "max": 0.929090909090909,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 1,
+              "runs": 9,
+              "target": [
+                0.7,
+                0.8
+              ]
+            }
+          },
+          "gold": {
+            "income": {
+              "dungeon": 216,
+              "patrol": 20,
+              "valuables": 15,
+              "chest": 92,
+              "quest": 286,
+              "treasure": 52
+            },
+            "spend": {
+              "weakness": 60,
+              "guild": 180,
+              "recruit": 0
+            },
+            "growth": {
+              "median": 314,
+              "min": 204,
+              "max": 455,
+              "reached": 4,
+              "seeds": 4
+            },
+            "incomePerDay": {
+              "median": 505.5,
+              "min": 238,
+              "max": 664,
+              "reached": 4,
+              "seeds": 4
+            },
+            "surplus": false
+          },
+          "material": {
+            "id": "stone",
+            "gathered": {
+              "median": 14,
+              "min": 9,
+              "max": 23,
+              "reached": 4,
+              "seeds": 4
+            },
+            "spent": {
+              "median": 15.5,
+              "min": 10,
+              "max": 27,
+              "reached": 4,
+              "seeds": 4
+            },
+            "share": {
+              "median": 1.1425120772946862,
+              "min": 1,
+              "max": 1.2142857142857142,
+              "reached": 4,
+              "seeds": 4
+            }
+          },
+          "level": {
+            "end": {
+              "median": 6,
+              "min": 5.333333333333334,
+              "max": 6.333333333333334,
+              "reached": 4,
+              "seeds": 4
+            },
+            "target": 6
+          }
+        },
+        {
+          "tier": 3,
+          "days": {
+            "median": 3,
+            "min": 1,
+            "max": 4,
+            "reached": 4,
+            "seeds": 4
+          },
+          "odds": {
+            "prepared": {
+              "probe": {
+                "median": 0.5,
+                "min": 0.165,
+                "max": 0.77,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.3325,
+                "min": 0.12,
+                "max": 0.705,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.75,
+              "runs": 20,
+              "target": [
+                0.65,
+                0.75
+              ]
+            },
+            "unprepared": {
+              "probe": {
+                "median": 0.455,
+                "min": 0.10500000000000001,
+                "max": 0.76,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.3275,
+                "min": 0.1,
+                "max": 0.705,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": null,
+              "runs": 0,
+              "target": [
+                0.3,
+                0.45
+              ]
+            },
+            "gap": {
+              "median": 0.04250000000000001,
+              "min": 0.010000000000000009,
+              "max": 0.065,
+              "reached": 4,
+              "seeds": 4
+            },
+            "boss": {
+              "probe": {
+                "median": 0.725,
+                "min": 0.68,
+                "max": 0.93,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.4,
+                "min": 0.04,
+                "max": 0.59,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.4666666666666667,
+              "runs": 15,
+              "target": [
+                0.5,
+                0.6
+              ]
+            },
+            "events": {
+              "probe": {
+                "median": 0.9445,
+                "min": 0.8554545454545455,
+                "max": 0.978,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.8644999999999999,
+                "min": 0.7822222222222223,
+                "max": 0.9599999999999999,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.9565217391304348,
+              "runs": 23,
+              "target": [
+                0.7,
+                0.8
+              ]
+            }
+          },
+          "gold": {
+            "income": {
+              "dungeon": 912,
+              "heist": 75,
+              "chest": 320,
+              "quest": 647,
+              "treasure": 285,
+              "place": 91.5,
+              "valuables": 143,
+              "salvage": 0,
+              "patrol": 61,
+              "traveller": 0
+            },
+            "spend": {
+              "recruit": 1209,
+              "guild": 1225,
+              "weakness": 150
+            },
+            "growth": {
+              "median": -408,
+              "min": -447,
+              "max": 753,
+              "reached": 4,
+              "seeds": 4
+            },
+            "incomePerDay": {
+              "median": 902.25,
+              "min": 783.75,
+              "max": 1677,
+              "reached": 4,
+              "seeds": 4
+            },
+            "surplus": false
+          },
+          "material": {
+            "id": "copper",
+            "gathered": {
+              "median": 15,
+              "min": 10,
+              "max": 28,
+              "reached": 4,
+              "seeds": 4
+            },
+            "spent": {
+              "median": 16,
+              "min": 12,
+              "max": 26,
+              "reached": 4,
+              "seeds": 4
+            },
+            "share": {
+              "median": 1.0833333333333335,
+              "min": 0.9285714285714286,
+              "max": 1.2,
+              "reached": 4,
+              "seeds": 4
+            }
+          },
+          "level": {
+            "end": {
+              "median": 8,
+              "min": 7,
+              "max": 9.333333333333334,
+              "reached": 4,
+              "seeds": 4
+            },
+            "target": 9
+          }
+        },
+        {
+          "tier": 4,
+          "days": {
+            "median": 3.5,
+            "min": 2,
+            "max": 5,
+            "reached": 4,
+            "seeds": 4
+          },
+          "odds": {
+            "prepared": {
+              "probe": {
+                "median": 0.5125,
+                "min": 0.395,
+                "max": 0.79,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.1475,
+                "min": 0.015,
+                "max": 0.565,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.9090909090909091,
+              "runs": 11,
+              "target": [
+                0.65,
+                0.75
+              ]
+            },
+            "unprepared": {
+              "probe": {
+                "median": 0.4775,
+                "min": 0.36,
+                "max": 0.755,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.0975,
+                "min": 0.01,
+                "max": 0.51,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": null,
+              "runs": 0,
+              "target": [
+                0.3,
+                0.45
+              ]
+            },
+            "gap": {
+              "median": 0.035,
+              "min": 0.02,
+              "max": 0.04999999999999999,
+              "reached": 4,
+              "seeds": 4
+            },
+            "boss": {
+              "probe": {
+                "median": 0.7450000000000001,
+                "min": 0.56,
+                "max": 0.9,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.27,
+                "min": 0,
+                "max": 0.87,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.725,
+              "runs": 40,
+              "target": [
+                0.5,
+                0.6
+              ]
+            },
+            "events": {
+              "probe": {
+                "median": 0.9469444444444444,
+                "min": 0.9299999999999999,
+                "max": 0.9677777777777776,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.859,
+                "min": 0.7130000000000001,
+                "max": 0.937,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 1,
+              "runs": 19,
+              "target": [
+                0.7,
+                0.8
+              ]
+            }
+          },
+          "gold": {
+            "income": {
+              "dungeon": 2285.5,
+              "chest": 775.5,
+              "quest": 1347.5,
+              "salvage": 5.5,
+              "treasure": 387,
+              "patrol": 165.5,
+              "valuables": 516,
+              "place": 221,
+              "heist": 88.5
+            },
+            "spend": {
+              "guild": 5047.5,
+              "weakness": 300,
+              "recruit": 0
+            },
+            "growth": {
+              "median": 61,
+              "min": -881,
+              "max": 2379,
+              "reached": 4,
+              "seeds": 4
+            },
+            "incomePerDay": {
+              "median": 1692.85,
+              "min": 1528.6,
+              "max": 2234.5,
+              "reached": 4,
+              "seeds": 4
+            },
+            "surplus": false
+          },
+          "material": {
+            "id": "iron",
+            "gathered": {
+              "median": 13,
+              "min": 6,
+              "max": 28,
+              "reached": 4,
+              "seeds": 4
+            },
+            "spent": {
+              "median": 12.5,
+              "min": 6,
+              "max": 28,
+              "reached": 4,
+              "seeds": 4
+            },
+            "share": {
+              "median": 1,
+              "min": 0.9166666666666666,
+              "max": 1,
+              "reached": 4,
+              "seeds": 4
+            }
+          },
+          "level": {
+            "end": {
+              "median": 11.5,
+              "min": 9.666666666666668,
+              "max": 12.333333333333332,
+              "reached": 4,
+              "seeds": 4
+            },
+            "target": 12
+          }
+        },
+        {
+          "tier": 5,
+          "days": {
+            "median": 6.5,
+            "min": 4,
+            "max": 9,
+            "reached": 4,
+            "seeds": 4
+          },
+          "odds": {
+            "prepared": {
+              "probe": {
+                "median": 0.6799999999999999,
+                "min": 0.515,
+                "max": 0.89,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.21750000000000003,
+                "min": 0.04,
+                "max": 0.515,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.6875,
+              "runs": 16,
+              "target": [
+                0.65,
+                0.75
+              ]
+            },
+            "unprepared": {
+              "probe": {
+                "median": 0.6799999999999999,
+                "min": 0.28,
+                "max": 0.89,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.1875,
+                "min": 0.03,
+                "max": 0.46499999999999997,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": null,
+              "runs": 0,
+              "target": [
+                0.3,
+                0.45
+              ]
+            },
+            "gap": {
+              "median": 0,
+              "min": 0,
+              "max": 0.235,
+              "reached": 4,
+              "seeds": 4
+            },
+            "boss": {
+              "probe": {
+                "median": 0.6799999999999999,
+                "min": 0.13,
+                "max": 0.8,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.07,
+                "min": 0,
+                "max": 0.21,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.42857142857142855,
+              "runs": 14,
+              "target": [
+                0.5,
+                0.6
+              ]
+            },
+            "events": {
+              "probe": {
+                "median": 0.9609027777777778,
+                "min": 0.9533333333333334,
+                "max": 0.9700000000000001,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.8903030303030304,
+                "min": 0.8055555555555556,
+                "max": 0.9600000000000002,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.9807692307692307,
+              "runs": 52,
+              "target": [
+                0.7,
+                0.8
+              ]
+            }
+          },
+          "gold": {
+            "income": {
+              "dungeon": 8594.5,
+              "valuables": 621.5,
+              "chest": 2313,
+              "treasure": 1385.5,
+              "quest": 3177.5,
+              "patrol": 586.5,
+              "salvage": 105,
+              "heist": 367.5,
+              "place": 771,
+              "traveller": 0
+            },
+            "spend": {
+              "recruit": 4610,
+              "guild": 8275,
+              "weakness": 300,
+              "emergencySupply": 480
+            },
+            "growth": {
+              "median": 2873,
+              "min": 1710,
+              "max": 13430,
+              "reached": 4,
+              "seeds": 4
+            },
+            "incomePerDay": {
+              "median": 3002.875,
+              "min": 2372.1111111111113,
+              "max": 3766.75,
+              "reached": 4,
+              "seeds": 4
+            },
+            "surplus": false
+          },
+          "material": {
+            "id": "steel",
+            "gathered": {
+              "median": 8,
+              "min": 2,
+              "max": 14,
+              "reached": 4,
+              "seeds": 4
+            },
+            "spent": {
+              "median": 7.5,
+              "min": 0,
+              "max": 14,
+              "reached": 4,
+              "seeds": 4
+            },
+            "share": {
+              "median": 0.9285714285714286,
+              "min": 0,
+              "max": 1,
+              "reached": 4,
+              "seeds": 4
+            }
+          },
+          "level": {
+            "end": {
+              "median": 14.666666666666668,
+              "min": 14,
+              "max": 15,
+              "reached": 4,
+              "seeds": 4
+            },
+            "target": 15
+          }
+        }
+      ],
+      "loot": [],
+      "health": {
+        "pileUps": [
+          {
+            "id": "wood",
+            "final": 174
+          },
+          {
+            "id": "mushroom",
+            "final": 40
+          }
+        ],
+        "dead": {
+          "items": [
+            "standardHealingPotion",
+            "greaterHealingPotion",
+            "blessedRelics",
+            "strengthDraught",
+            "arcaneTonic",
+            "ironskinBrew",
+            "nullrootTincture",
+            "quicksilver",
+            "firebomb",
+            "emberOil",
+            "tideOil",
+            "stormOil",
+            "stoneOil",
+            "thornOil",
+            "smokeBomb",
+            "revivalDraught",
+            "viperOil"
+          ],
+          "recipes": [
+            "smokedFish",
+            "spear1",
+            "robes2",
+            "warhammer2",
+            "dagger3",
+            "axe3",
+            "smeltSteel",
+            "plate5",
+            "robes5",
+            "leather5",
+            "spear5",
+            "steelPickaxe",
+            "mail5",
+            "prospectorsDraught",
+            "greaterHealingPotion",
+            "buckler5",
+            "dagger1",
+            "wand1",
+            "staff3",
+            "warhammer4",
+            "censer4",
+            "buckler4"
+          ],
+          "classes": [
+            "thief",
+            "barbarian",
+            "cleric",
+            "paladin",
+            "druid",
+            "troubadour",
+            "sorcerer",
+            "exorcist",
+            "smuggler",
+            "diplomat",
+            "necromancer",
+            "beastmaster",
+            "engineer",
+            "alchemist",
+            "porter",
+            "scout",
+            "curseBreaker",
+            "cook",
+            "monk",
+            "gambler"
+          ],
+          "places": [
+            "sawmill",
+            "quarry",
+            "copperMine",
+            "ironMine",
+            "coalPit",
+            "smithy",
+            "library",
+            "underwaterDungeon"
+          ],
+          "dungeons": [
+            "goblinWarren",
+            "millRuins",
+            "wolfDen",
+            "barrowMounds",
+            "boarThicket",
+            "hauntedMine",
+            "thunderPlateau",
+            "wyvernPeaks",
+            "ossuary",
+            "nightWatch1",
+            "nightWatch2",
+            "nightWatch3",
+            "nightWatch4",
+            "nightWatch5"
+          ]
+        },
+        "classSpread": {
+          "warrior": 0.242914979757085,
+          "ranger": 0.3522267206477733,
+          "fireMage": 0.23076923076923078,
+          "duelist": 0.1396761133603239,
+          "scholar": 0.01417004048582996,
+          "frostMage": 0.020242914979757085
+        },
+        "milestones": {
+          "componentFound": {
+            "median": 5.5,
+            "min": 3,
+            "max": 15,
+            "reached": 4,
+            "seeds": 4
+          },
+          "componentForged": {
+            "median": 11,
+            "min": 5,
+            "max": 16,
+            "reached": 4,
+            "seeds": 4
+          },
+          "relicFound": {
+            "median": 10,
+            "min": 7,
+            "max": 10,
+            "reached": 4,
+            "seeds": 4
+          },
+          "relicRestored": {
+            "median": 10,
+            "min": 8,
+            "max": 11,
+            "reached": 3,
+            "seeds": 4
+          },
+          "firstKey": {
+            "median": 7,
+            "min": 6,
+            "max": 13,
+            "reached": 4,
+            "seeds": 4
+          },
+          "firstTip": {
+            "median": 10.5,
+            "min": 7,
+            "max": 14,
+            "reached": 4,
+            "seeds": 4
+          },
+          "secretPlace": {
+            "median": 14,
+            "min": 9,
+            "max": 19,
+            "reached": 4,
+            "seeds": 4
+          },
+          "charmCrafted": {
+            "median": 3,
+            "min": 3,
+            "max": 4,
+            "reached": 4,
+            "seeds": 4
+          }
+        },
+        "skipped": {
+          "patrolBandits": 1.5,
+          "elementalRift": 0,
+          "abandonedCaravan": 1,
+          "wantedOutlaw": 2,
+          "goblinRaid": 0,
+          "fishingDock": 0.5,
+          "hauntedCrypt": 0.5,
+          "monsterLair": 0
+        }
+      }
+    },
+    "regular": {
+      "profile": "regular",
+      "seeds": 4,
+      "finished": 4,
+      "totalDays": {
+        "median": 11,
+        "min": 9,
+        "max": 11,
+        "reached": 4,
+        "seeds": 4
+      },
+      "tiers": [
+        {
+          "tier": 1,
+          "days": {
+            "median": 2,
+            "min": 2,
+            "max": 3,
+            "reached": 4,
+            "seeds": 4
+          },
+          "odds": {
+            "prepared": {
+              "probe": {
+                "median": 0.8825000000000001,
+                "min": 0.7849999999999999,
+                "max": 0.905,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.44499999999999995,
+                "min": 0.36,
+                "max": 0.48,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.9629629629629629,
+              "runs": 27,
+              "target": [
+                0.65,
+                0.75
+              ]
+            },
+            "unprepared": {
+              "probe": {
+                "median": 0.88,
+                "min": 0.7849999999999999,
+                "max": 0.905,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.44499999999999995,
+                "min": 0.36,
+                "max": 0.48,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": null,
+              "runs": 0,
+              "target": [
+                0.3,
+                0.45
+              ]
+            },
+            "gap": {
+              "median": 0,
+              "min": 0,
+              "max": 0.0050000000000000044,
+              "reached": 4,
+              "seeds": 4
+            },
+            "boss": {
+              "probe": {
+                "median": 0.7949999999999999,
+                "min": 0.68,
+                "max": 0.96,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0,
+                "min": 0,
+                "max": 0,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.875,
+              "runs": 8,
+              "target": [
+                0.5,
+                0.6
+              ]
+            },
+            "events": {
+              "probe": {
+                "median": 0.9394545454545454,
+                "min": 0.9322222222222223,
+                "max": 0.954,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.6368181818181817,
+                "min": 0.6218181818181817,
+                "max": 0.6809999999999998,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 1,
+              "runs": 19,
+              "target": [
+                0.7,
+                0.8
+              ]
+            }
+          },
+          "gold": {
+            "income": {
+              "tutorial": 22,
+              "dungeon": 102,
+              "valuables": 35.5,
+              "chest": 102,
+              "quest": 85.5,
+              "treasure": 85,
+              "patrol": 30
+            },
+            "spend": {
+              "weakness": 45,
+              "recruit": 181.5,
+              "guild": 0
+            },
+            "growth": {
+              "median": 132,
+              "min": 45,
+              "max": 349,
+              "reached": 4,
+              "seeds": 4
+            },
+            "incomePerDay": {
+              "median": 185.41666666666669,
+              "min": 178,
+              "max": 293.5,
+              "reached": 4,
+              "seeds": 4
+            },
+            "surplus": false
+          },
+          "material": {
+            "id": "wood",
+            "gathered": {
+              "median": 81,
+              "min": 61,
+              "max": 139,
+              "reached": 4,
+              "seeds": 4
+            },
+            "spent": {
+              "median": 32,
+              "min": 20,
+              "max": 98,
+              "reached": 4,
+              "seeds": 4
+            },
+            "share": {
+              "median": 0.44025021570319245,
+              "min": 0.2558139534883721,
+              "max": 0.7050359712230215,
+              "reached": 4,
+              "seeds": 4
+            }
+          },
+          "level": {
+            "end": {
+              "median": 4.166666666666666,
+              "min": 4,
+              "max": 4.333333333333333,
+              "reached": 4,
+              "seeds": 4
+            },
+            "target": 3
+          }
+        },
+        {
+          "tier": 2,
+          "days": {
+            "median": 2,
+            "min": 1,
+            "max": 2,
+            "reached": 4,
+            "seeds": 4
+          },
+          "odds": {
+            "prepared": {
+              "probe": {
+                "median": 0.77,
+                "min": 0.55,
+                "max": 0.8200000000000001,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.2325,
+                "min": 0.15000000000000002,
+                "max": 0.39,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.625,
+              "runs": 8,
+              "target": [
+                0.65,
+                0.75
+              ]
+            },
+            "unprepared": {
+              "probe": {
+                "median": 0.765,
+                "min": 0.55,
+                "max": 0.8,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.23750000000000002,
+                "min": 0.045,
+                "max": 0.39,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": null,
+              "runs": 0,
+              "target": [
+                0.3,
+                0.45
+              ]
+            },
+            "gap": {
+              "median": 0,
+              "min": 0,
+              "max": 0.030000000000000027,
+              "reached": 4,
+              "seeds": 4
+            },
+            "boss": {
+              "probe": {
+                "median": 0.7150000000000001,
+                "min": 0.55,
+                "max": 0.85,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0,
+                "min": 0,
+                "max": 0.01,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.9,
+              "runs": 10,
+              "target": [
+                0.5,
+                0.6
+              ]
+            },
+            "events": {
+              "probe": {
+                "median": 0.9409090909090908,
+                "min": 0.9339999999999999,
+                "max": 0.9672727272727273,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.8225,
+                "min": 0.733,
+                "max": 0.8277777777777778,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.9705882352941176,
+              "runs": 34,
+              "target": [
+                0.7,
+                0.8
+              ]
+            }
+          },
+          "gold": {
+            "income": {
+              "dungeon": 291,
+              "patrol": 75.5,
+              "place": 43,
+              "chest": 230,
+              "quest": 147.5,
+              "treasure": 156.5,
+              "traveller": 0,
+              "heist": 78.5,
+              "valuables": 207.5
+            },
+            "spend": {
+              "recruit": 342.5,
+              "weakness": 60,
+              "guild": 505
+            },
+            "growth": {
+              "median": 288,
+              "min": -298,
+              "max": 501,
+              "reached": 4,
+              "seeds": 4
+            },
+            "incomePerDay": {
+              "median": 709.75,
+              "min": 515.5,
+              "max": 1031,
+              "reached": 4,
+              "seeds": 4
+            },
+            "surplus": false
+          },
+          "material": {
+            "id": "stone",
+            "gathered": {
+              "median": 31,
+              "min": 15,
+              "max": 35,
+              "reached": 4,
+              "seeds": 4
+            },
+            "spent": {
+              "median": 33.5,
+              "min": 18,
+              "max": 45,
+              "reached": 4,
+              "seeds": 4
+            },
+            "share": {
+              "median": 1.3357142857142859,
+              "min": 0.5625,
+              "max": 1.7333333333333334,
+              "reached": 4,
+              "seeds": 4
+            }
+          },
+          "level": {
+            "end": {
+              "median": 6.666666666666666,
+              "min": 6,
+              "max": 6.666666666666667,
+              "reached": 4,
+              "seeds": 4
+            },
+            "target": 6
+          }
+        },
+        {
+          "tier": 3,
+          "days": {
+            "median": 2,
+            "min": 1,
+            "max": 4,
+            "reached": 4,
+            "seeds": 4
+          },
+          "odds": {
+            "prepared": {
+              "probe": {
+                "median": 0.5874999999999999,
+                "min": 0.29,
+                "max": 0.915,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.20500000000000002,
+                "min": 0.14500000000000002,
+                "max": 0.515,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.8181818181818182,
+              "runs": 11,
+              "target": [
+                0.65,
+                0.75
+              ]
+            },
+            "unprepared": {
+              "probe": {
+                "median": 0.5575,
+                "min": 0.235,
+                "max": 0.8899999999999999,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.1725,
+                "min": 0.14500000000000002,
+                "max": 0.345,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": null,
+              "runs": 0,
+              "target": [
+                0.3,
+                0.45
+              ]
+            },
+            "gap": {
+              "median": 0.03,
+              "min": 0.024999999999999994,
+              "max": 0.05499999999999999,
+              "reached": 4,
+              "seeds": 4
+            },
+            "boss": {
+              "probe": {
+                "median": 0.63,
+                "min": 0.47,
+                "max": 0.74,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.26,
+                "min": 0.03,
+                "max": 0.52,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.7692307692307693,
+              "runs": 13,
+              "target": [
+                0.5,
+                0.6
+              ]
+            },
+            "events": {
+              "probe": {
+                "median": 0.9385454545454546,
+                "min": 0.9199999999999999,
+                "max": 0.97,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.8599999999999999,
+                "min": 0.833,
+                "max": 0.8788888888888889,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.8979591836734694,
+              "runs": 49,
+              "target": [
+                0.7,
+                0.8
+              ]
+            }
+          },
+          "gold": {
+            "income": {
+              "dungeon": 883.5,
+              "patrol": 122.5,
+              "place": 51,
+              "valuables": 300.5,
+              "chest": 490,
+              "quest": 429.5,
+              "treasure": 560.5,
+              "salvage": 2.5
+            },
+            "spend": {
+              "guild": 2495,
+              "weakness": 120,
+              "recruit": 272.5
+            },
+            "growth": {
+              "median": -248,
+              "min": -539,
+              "max": 426,
+              "reached": 4,
+              "seeds": 4
+            },
+            "incomePerDay": {
+              "median": 1414.75,
+              "min": 1309.25,
+              "max": 1625,
+              "reached": 4,
+              "seeds": 4
+            },
+            "surplus": false
+          },
+          "material": {
+            "id": "copper",
+            "gathered": {
+              "median": 21,
+              "min": 16,
+              "max": 52,
+              "reached": 4,
+              "seeds": 4
+            },
+            "spent": {
+              "median": 18,
+              "min": 16,
+              "max": 50,
+              "reached": 4,
+              "seeds": 4
+            },
+            "share": {
+              "median": 0.9807692307692308,
+              "min": 0.6666666666666666,
+              "max": 1.125,
+              "reached": 4,
+              "seeds": 4
+            }
+          },
+          "level": {
+            "end": {
+              "median": 8.333333333333332,
+              "min": 7.666666666666666,
+              "max": 11,
+              "reached": 4,
+              "seeds": 4
+            },
+            "target": 9
+          }
+        },
+        {
+          "tier": 4,
+          "days": {
+            "median": 2,
+            "min": 1,
+            "max": 3,
+            "reached": 4,
+            "seeds": 4
+          },
+          "odds": {
+            "prepared": {
+              "probe": {
+                "median": 0.3575,
+                "min": 0.125,
+                "max": 0.6,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.16249999999999998,
+                "min": 0.03,
+                "max": 0.34500000000000003,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.8888888888888888,
+              "runs": 9,
+              "target": [
+                0.65,
+                0.75
+              ]
+            },
+            "unprepared": {
+              "probe": {
+                "median": 0.3275,
+                "min": 0.08,
+                "max": 0.6,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.1475,
+                "min": 0.03,
+                "max": 0.28500000000000003,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": null,
+              "runs": 0,
+              "target": [
+                0.3,
+                0.45
+              ]
+            },
+            "gap": {
+              "median": 0.0225,
+              "min": 0,
+              "max": 0.06,
+              "reached": 4,
+              "seeds": 4
+            },
+            "boss": {
+              "probe": {
+                "median": 0.745,
+                "min": 0.37,
+                "max": 0.86,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.03,
+                "min": 0,
+                "max": 0.24,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.8,
+              "runs": 10,
+              "target": [
+                0.5,
+                0.6
+              ]
+            },
+            "events": {
+              "probe": {
+                "median": 0.9222777777777778,
+                "min": 0.8666666666666667,
+                "max": 0.9610000000000001,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.8367777777777778,
+                "min": 0.777,
+                "max": 0.921111111111111,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.9069767441860465,
+              "runs": 43,
+              "target": [
+                0.7,
+                0.8
+              ]
+            }
+          },
+          "gold": {
+            "income": {
+              "dungeon": 2767,
+              "patrol": 395.5,
+              "valuables": 387.5,
+              "chest": 1075,
+              "quest": 1564.5,
+              "treasure": 1097,
+              "place": 20.5,
+              "heist": 0,
+              "salvage": 5.5,
+              "traveller": 0
+            },
+            "spend": {
+              "guild": 5610,
+              "weakness": 420,
+              "recruit": 0
+            },
+            "growth": {
+              "median": 960,
+              "min": -63,
+              "max": 2188,
+              "reached": 4,
+              "seeds": 4
+            },
+            "incomePerDay": {
+              "median": 3498.333333333333,
+              "min": 2367,
+              "max": 4361.5,
+              "reached": 4,
+              "seeds": 4
+            },
+            "surplus": false
+          },
+          "material": {
+            "id": "iron",
+            "gathered": {
+              "median": 20,
+              "min": 8,
+              "max": 25,
+              "reached": 4,
+              "seeds": 4
+            },
+            "spent": {
+              "median": 16,
+              "min": 5,
+              "max": 26,
+              "reached": 4,
+              "seeds": 4
+            },
+            "share": {
+              "median": 0.8419117647058824,
+              "min": 0.56,
+              "max": 1.1304347826086956,
+              "reached": 4,
+              "seeds": 4
+            }
+          },
+          "level": {
+            "end": {
+              "median": 12.166666666666666,
+              "min": 11.666666666666666,
+              "max": 13,
+              "reached": 4,
+              "seeds": 4
+            },
+            "target": 12
+          }
+        },
+        {
+          "tier": 5,
+          "days": {
+            "median": 2,
+            "min": 2,
+            "max": 3,
+            "reached": 4,
+            "seeds": 4
+          },
+          "odds": {
+            "prepared": {
+              "probe": {
+                "median": 0.7050000000000001,
+                "min": 0.145,
+                "max": 0.92,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.2975,
+                "min": 0.034999999999999996,
+                "max": 0.345,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.2,
+              "runs": 5,
+              "target": [
+                0.65,
+                0.75
+              ]
+            },
+            "unprepared": {
+              "probe": {
+                "median": 0.655,
+                "min": 0.14,
+                "max": 0.9,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.19,
+                "min": 0.015,
+                "max": 0.31,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": null,
+              "runs": 0,
+              "target": [
+                0.3,
+                0.45
+              ]
+            },
+            "gap": {
+              "median": 0.022499999999999992,
+              "min": 0.0049999999999999975,
+              "max": 0.07499999999999998,
+              "reached": 4,
+              "seeds": 4
+            },
+            "boss": {
+              "probe": {
+                "median": 0.505,
+                "min": 0.24,
+                "max": 0.61,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.055,
+                "min": 0,
+                "max": 0.12,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.5,
+              "runs": 8,
+              "target": [
+                0.5,
+                0.6
+              ]
+            },
+            "events": {
+              "probe": {
+                "median": 0.96,
+                "min": 0.9120000000000001,
+                "max": 0.9774999999999999,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.8776111111111111,
+                "min": 0.87,
+                "max": 0.9122222222222223,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.8636363636363636,
+              "runs": 44,
+              "target": [
+                0.7,
+                0.8
+              ]
+            }
+          },
+          "gold": {
+            "income": {
+              "dungeon": 4519,
+              "patrol": 539,
+              "chest": 1524,
+              "quest": 1815,
+              "treasure": 3094,
+              "valuables": 691.5,
+              "salvage": 10,
+              "place": 471,
+              "heist": 381,
+              "traveller": 0
+            },
+            "spend": {
+              "recruit": 2507,
+              "guild": 8075,
+              "weakness": 150
+            },
+            "growth": {
+              "median": 1783,
+              "min": -1236,
+              "max": 3737,
+              "reached": 4,
+              "seeds": 4
+            },
+            "incomePerDay": {
+              "median": 6021.25,
+              "min": 5068.5,
+              "max": 6370.333333333333,
+              "reached": 4,
+              "seeds": 4
+            },
+            "surplus": false
+          },
+          "material": {
+            "id": "steel",
+            "gathered": {
+              "median": 11,
+              "min": 4,
+              "max": 12,
+              "reached": 4,
+              "seeds": 4
+            },
+            "spent": {
+              "median": 10,
+              "min": 4,
+              "max": 14,
+              "reached": 4,
+              "seeds": 4
+            },
+            "share": {
+              "median": 0.9583333333333333,
+              "min": 0.9,
+              "max": 1.1666666666666667,
+              "reached": 4,
+              "seeds": 4
+            }
+          },
+          "level": {
+            "end": {
+              "median": 15,
+              "min": 13.333333333333332,
+              "max": 15,
+              "reached": 4,
+              "seeds": 4
+            },
+            "target": 15
+          }
+        }
+      ],
+      "loot": [
+        {
+          "category": "gold",
+          "column": "Gold",
+          "designed": 124.99549999999995,
+          "observed": 73.09343434343434,
+          "off": -0.4152314735855741
+        },
+        {
+          "category": "xp",
+          "column": "XP",
+          "designed": 90.57999999999997,
+          "observed": 35.98989898989899,
+          "off": -0.6026727865985979
+        },
+        {
+          "category": "materials",
+          "column": "Materials",
+          "designed": 54.7645,
+          "observed": 49.406565656565654,
+          "off": -0.09783590361336891
+        },
+        {
+          "category": "shards",
+          "column": "Shards",
+          "designed": 7.994,
+          "observed": 3.871212121212121,
+          "off": -0.5157352863132197
+        },
+        {
+          "category": "blueprints",
+          "column": "Blueprints",
+          "designed": 12.9892,
+          "observed": 10.04040404040404,
+          "off": -0.22701905887937368
+        },
+        {
+          "category": "gear",
+          "column": "Gear",
+          "designed": 27.494600000000002,
+          "observed": 17.60606060606061,
+          "off": -0.35965387363116363
+        },
+        {
+          "category": "trinkets",
+          "column": "Trinkets",
+          "designed": 8.138900000000001,
+          "observed": 8.095959595959595,
+          "off": -0.005275946877392079
+        },
+        {
+          "category": "components",
+          "column": "Components",
+          "designed": 3.109400000000001,
+          "observed": 3.6767676767676774,
+          "off": 0.18246853951491482
+        },
+        {
+          "category": "relics",
+          "column": "Relics",
+          "designed": 2.1497,
+          "observed": 1.148989898989899,
+          "off": -0.4655115137042848
+        },
+        {
+          "category": "monsterParts",
+          "column": "Monster parts",
+          "designed": 71.134,
+          "observed": 40.462121212121204,
+          "off": -0.431184507941052
+        },
+        {
+          "category": "valuables",
+          "column": "Valuables",
+          "designed": 45.44049999999999,
+          "observed": 36.484848484848484,
+          "off": -0.19708523267022837
+        },
+        {
+          "category": "consumables",
+          "column": "Consumables",
+          "designed": 32.924499999999995,
+          "observed": 22.52020202020202,
+          "off": -0.3160047374993691
+        },
+        {
+          "category": "treasureMaps",
+          "column": "Treasure maps",
+          "designed": 12.7029,
+          "observed": 11.295454545454547,
+          "off": -0.11079717659317578
+        },
+        {
+          "category": "manuals",
+          "column": "Manuals",
+          "designed": 7.966000000000001,
+          "observed": 8.820707070707071,
+          "off": 0.10729438497452537
+        },
+        {
+          "category": "keyFragments",
+          "column": "Key fragments",
+          "designed": 6.111000000000001,
+          "observed": 6.257575757575758,
+          "off": 0.023985560068034317
+        }
+      ],
+      "health": {
+        "pileUps": [
+          {
+            "id": "hide",
+            "final": 131
+          },
+          {
+            "id": "wood",
+            "final": 191
+          },
+          {
+            "id": "mushroom",
+            "final": 43
+          },
+          {
+            "id": "fangOrHorn",
+            "final": 32
+          },
+          {
+            "id": "bone",
+            "final": 76
+          }
+        ],
+        "dead": {
+          "items": [
+            "standardHealingPotion",
+            "greaterHealingPotion",
+            "thornWardSalve",
+            "blessedRelics",
+            "strengthDraught",
+            "arcaneTonic",
+            "ironskinBrew",
+            "nullrootTincture",
+            "quicksilver",
+            "firebomb",
+            "emberOil",
+            "tideOil",
+            "stormOil",
+            "stoneOil",
+            "thornOil",
+            "smokeBomb",
+            "revivalDraught",
+            "viperOil"
+          ],
+          "recipes": [
+            "smokedFish",
+            "spear1",
+            "staff1",
+            "smeltSteel",
+            "dagger5",
+            "arcaneTonicPart",
+            "herbalPoultice",
+            "lute1",
+            "standardHealingPotion",
+            "axe5",
+            "censer1"
+          ],
+          "classes": [
+            "thief",
+            "barbarian",
+            "cleric",
+            "paladin",
+            "druid",
+            "troubadour",
+            "sorcerer",
+            "exorcist",
+            "smuggler",
+            "diplomat",
+            "necromancer",
+            "beastmaster",
+            "engineer",
+            "alchemist",
+            "porter",
+            "scout",
+            "curseBreaker",
+            "cook",
+            "monk"
+          ],
+          "places": [
+            "sawmill",
+            "quarry",
+            "copperMine",
+            "ironMine",
+            "coalPit",
+            "smithy",
+            "library",
+            "monsterLair",
+            "underwaterDungeon"
+          ],
+          "dungeons": [
+            "goblinWarren",
+            "millRuins",
+            "smugglersCove",
+            "barrowMounds",
+            "fungalGrotto",
+            "harpyCliffs",
+            "thunderPlateau",
+            "boneField",
+            "ossuary",
+            "stormIsle"
+          ]
+        },
+        "classSpread": {
+          "warrior": 0.2536231884057971,
+          "ranger": 0.23671497584541062,
+          "fireMage": 0.1859903381642512,
+          "duelist": 0.09903381642512077,
+          "scholar": 0.12560386473429952,
+          "frostMage": 0.09420289855072464,
+          "gambler": 0.004830917874396135
+        },
+        "milestones": {
+          "componentFound": {
+            "median": 3,
+            "min": 2,
+            "max": 6,
+            "reached": 4,
+            "seeds": 4
+          },
+          "componentForged": {
+            "median": 4,
+            "min": 3,
+            "max": 7,
+            "reached": 4,
+            "seeds": 4
+          },
+          "relicFound": {
+            "median": 5,
+            "min": 5,
+            "max": 5,
+            "reached": 4,
+            "seeds": 4
+          },
+          "relicRestored": {
+            "median": 5,
+            "min": 5,
+            "max": 5,
+            "reached": 3,
+            "seeds": 4
+          },
+          "firstKey": {
+            "median": 4.5,
+            "min": 3,
+            "max": 6,
+            "reached": 4,
+            "seeds": 4
+          },
+          "firstTip": {
+            "median": 7,
+            "min": 7,
+            "max": 7,
+            "reached": 2,
+            "seeds": 4
+          },
+          "secretPlace": {
+            "median": 7,
+            "min": 7,
+            "max": 7,
+            "reached": 2,
+            "seeds": 4
+          },
+          "charmCrafted": {
+            "median": 2,
+            "min": 1,
+            "max": 3,
+            "reached": 4,
+            "seeds": 4
+          }
+        },
+        "skipped": {
+          "patrolBandits": 6,
+          "wantedOutlaw": 3.5,
+          "banditCamp": 1,
+          "abandonedCaravan": 3,
+          "beastDen": 1,
+          "monsterLair": 1,
+          "fishingDock": 1,
+          "hauntedCrypt": 1.5,
+          "elementalRift": 1,
+          "goblinRaid": 0.5,
+          "heist": 0
+        }
+      }
+    },
+    "heavy": {
+      "profile": "heavy",
+      "seeds": 4,
+      "finished": 4,
+      "totalDays": {
+        "median": 7,
+        "min": 6,
+        "max": 8,
+        "reached": 4,
+        "seeds": 4
+      },
+      "tiers": [
+        {
+          "tier": 1,
+          "days": {
+            "median": 1,
+            "min": 1,
+            "max": 2,
+            "reached": 4,
+            "seeds": 4
+          },
+          "odds": {
+            "prepared": {
+              "probe": {
+                "median": 0.7449999999999999,
+                "min": 0.615,
+                "max": 0.925,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.595,
+                "min": 0.48,
+                "max": 0.64,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.9166666666666666,
+              "runs": 24,
+              "target": [
+                0.65,
+                0.75
+              ]
+            },
+            "unprepared": {
+              "probe": {
+                "median": 0.7474999999999999,
+                "min": 0.615,
+                "max": 0.925,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.6074999999999999,
+                "min": 0.48,
+                "max": 0.64,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": null,
+              "runs": 0,
+              "target": [
+                0.3,
+                0.45
+              ]
+            },
+            "gap": {
+              "median": 0,
+              "min": -0.0050000000000000044,
+              "max": 0,
+              "reached": 4,
+              "seeds": 4
+            },
+            "boss": {
+              "probe": {
+                "median": 0.6799999999999999,
+                "min": 0.53,
+                "max": 0.92,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.195,
+                "min": 0.06,
+                "max": 0.33,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.875,
+              "runs": 8,
+              "target": [
+                0.5,
+                0.6
+              ]
+            },
+            "events": {
+              "probe": {
+                "median": 0.9146464646464646,
+                "min": 0.906,
+                "max": 0.9322222222222223,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.8144545454545454,
+                "min": 0.78,
+                "max": 0.8900000000000001,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.9523809523809523,
+              "runs": 21,
+              "target": [
+                0.7,
+                0.8
+              ]
+            }
+          },
+          "gold": {
+            "income": {
+              "patrol": 18,
+              "chest": 93.5,
+              "tutorial": 22,
+              "quest": 17.5,
+              "dungeon": 61.5,
+              "valuables": 14.5,
+              "treasure": 32
+            },
+            "spend": {
+              "weakness": 30,
+              "recruit": 176,
+              "guild": 0
+            },
+            "growth": {
+              "median": 118.5,
+              "min": 20,
+              "max": 286,
+              "reached": 4,
+              "seeds": 4
+            },
+            "incomePerDay": {
+              "median": 240,
+              "min": 204,
+              "max": 401.5,
+              "reached": 4,
+              "seeds": 4
+            },
+            "surplus": false
+          },
+          "material": {
+            "id": "wood",
+            "gathered": {
+              "median": 84,
+              "min": 52,
+              "max": 115,
+              "reached": 4,
+              "seeds": 4
+            },
+            "spent": {
+              "median": 57,
+              "min": 15,
+              "max": 99,
+              "reached": 4,
+              "seeds": 4
+            },
+            "share": {
+              "median": 0.6273097826086956,
+              "min": 0.28846153846153844,
+              "max": 0.9519230769230769,
+              "reached": 4,
+              "seeds": 4
+            }
+          },
+          "level": {
+            "end": {
+              "median": 3.5,
+              "min": 3,
+              "max": 5,
+              "reached": 4,
+              "seeds": 4
+            },
+            "target": 3
+          }
+        },
+        {
+          "tier": 2,
+          "days": {
+            "median": 1.5,
+            "min": 1,
+            "max": 2,
+            "reached": 4,
+            "seeds": 4
+          },
+          "odds": {
+            "prepared": {
+              "probe": {
+                "median": 0.835,
+                "min": 0.62,
+                "max": 0.895,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.07500000000000001,
+                "min": 0.045,
+                "max": 0.11499999999999999,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.75,
+              "runs": 8,
+              "target": [
+                0.65,
+                0.75
+              ]
+            },
+            "unprepared": {
+              "probe": {
+                "median": 0.815,
+                "min": 0.59,
+                "max": 0.855,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.07,
+                "min": 0.045,
+                "max": 0.11,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": null,
+              "runs": 0,
+              "target": [
+                0.3,
+                0.45
+              ]
+            },
+            "gap": {
+              "median": 0.035,
+              "min": 0,
+              "max": 0.040000000000000036,
+              "reached": 4,
+              "seeds": 4
+            },
+            "boss": {
+              "probe": {
+                "median": 0.735,
+                "min": 0.68,
+                "max": 0.78,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0,
+                "min": 0,
+                "max": 0.08,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.9,
+              "runs": 10,
+              "target": [
+                0.5,
+                0.6
+              ]
+            },
+            "events": {
+              "probe": {
+                "median": 0.9329292929292929,
+                "min": 0.93,
+                "max": 0.9437500000000001,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.7700454545454546,
+                "min": 0.7620000000000001,
+                "max": 0.7722222222222223,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.8717948717948718,
+              "runs": 39,
+              "target": [
+                0.7,
+                0.8
+              ]
+            }
+          },
+          "gold": {
+            "income": {
+              "dungeon": 455,
+              "patrol": 55,
+              "place": 14.5,
+              "valuables": 121.5,
+              "chest": 497.5,
+              "treasure": 328.5,
+              "quest": 52.5,
+              "traveller": 0,
+              "heist": 0
+            },
+            "spend": {
+              "weakness": 75,
+              "recruit": 549,
+              "guild": 660
+            },
+            "growth": {
+              "median": 315.5,
+              "min": 151,
+              "max": 718,
+              "reached": 4,
+              "seeds": 4
+            },
+            "incomePerDay": {
+              "median": 973.75,
+              "min": 825.5,
+              "max": 1786,
+              "reached": 4,
+              "seeds": 4
+            },
+            "surplus": false
+          },
+          "material": {
+            "id": "stone",
+            "gathered": {
+              "median": 50.5,
+              "min": 37,
+              "max": 77,
+              "reached": 4,
+              "seeds": 4
+            },
+            "spent": {
+              "median": 39.5,
+              "min": 33,
+              "max": 77,
+              "reached": 4,
+              "seeds": 4
+            },
+            "share": {
+              "median": 0.9230769230769231,
+              "min": 0.6612903225806451,
+              "max": 1.027027027027027,
+              "reached": 4,
+              "seeds": 4
+            }
+          },
+          "level": {
+            "end": {
+              "median": 6,
+              "min": 6,
+              "max": 7.333333333333334,
+              "reached": 4,
+              "seeds": 4
+            },
+            "target": 6
+          }
+        },
+        {
+          "tier": 3,
+          "days": {
+            "median": 1,
+            "min": 1,
+            "max": 1,
+            "reached": 4,
+            "seeds": 4
+          },
+          "odds": {
+            "prepared": {
+              "probe": {
+                "median": 0.47250000000000003,
+                "min": 0.365,
+                "max": 0.735,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.2175,
+                "min": 0.195,
+                "max": 0.28,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.6428571428571429,
+              "runs": 14,
+              "target": [
+                0.65,
+                0.75
+              ]
+            },
+            "unprepared": {
+              "probe": {
+                "median": 0.4225,
+                "min": 0.32,
+                "max": 0.735,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.195,
+                "min": 0.135,
+                "max": 0.215,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": null,
+              "runs": 0,
+              "target": [
+                0.3,
+                0.45
+              ]
+            },
+            "gap": {
+              "median": 0.027499999999999997,
+              "min": 0,
+              "max": 0.09,
+              "reached": 4,
+              "seeds": 4
+            },
+            "boss": {
+              "probe": {
+                "median": 0.595,
+                "min": 0.49,
+                "max": 0.95,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.12000000000000001,
+                "min": 0.01,
+                "max": 0.32,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.8571428571428571,
+              "runs": 14,
+              "target": [
+                0.5,
+                0.6
+              ]
+            },
+            "events": {
+              "probe": {
+                "median": 0.9319999999999999,
+                "min": 0.8969999999999999,
+                "max": 0.959090909090909,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.853,
+                "min": 0.82,
+                "max": 0.8754545454545454,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.9230769230769231,
+              "runs": 26,
+              "target": [
+                0.7,
+                0.8
+              ]
+            }
+          },
+          "gold": {
+            "income": {
+              "dungeon": 721.5,
+              "patrol": 59,
+              "chest": 1036.5,
+              "quest": 340.5,
+              "treasure": 974,
+              "salvage": 1,
+              "valuables": 187
+            },
+            "spend": {
+              "recruit": 1194.5,
+              "guild": 1965,
+              "weakness": 60
+            },
+            "growth": {
+              "median": 222.5,
+              "min": -750,
+              "max": 463,
+              "reached": 4,
+              "seeds": 4
+            },
+            "incomePerDay": {
+              "median": 3258.5,
+              "min": 2867,
+              "max": 3802,
+              "reached": 4,
+              "seeds": 4
+            },
+            "surplus": false
+          },
+          "material": {
+            "id": "copper",
+            "gathered": {
+              "median": 24,
+              "min": 10,
+              "max": 26,
+              "reached": 4,
+              "seeds": 4
+            },
+            "spent": {
+              "median": 20.5,
+              "min": 10,
+              "max": 21,
+              "reached": 4,
+              "seeds": 4
+            },
+            "share": {
+              "median": 0.8547826086956521,
+              "min": 0.8076923076923077,
+              "max": 1,
+              "reached": 4,
+              "seeds": 4
+            }
+          },
+          "level": {
+            "end": {
+              "median": 8,
+              "min": 7.333333333333334,
+              "max": 8.333333333333332,
+              "reached": 4,
+              "seeds": 4
+            },
+            "target": 9
+          }
+        },
+        {
+          "tier": 4,
+          "days": {
+            "median": 1.5,
+            "min": 1,
+            "max": 2,
+            "reached": 4,
+            "seeds": 4
+          },
+          "odds": {
+            "prepared": {
+              "probe": {
+                "median": 0.6725000000000001,
+                "min": 0.515,
+                "max": 0.875,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.1125,
+                "min": 0.045,
+                "max": 0.295,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.75,
+              "runs": 16,
+              "target": [
+                0.65,
+                0.75
+              ]
+            },
+            "unprepared": {
+              "probe": {
+                "median": 0.5875,
+                "min": 0.375,
+                "max": 0.755,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.0975,
+                "min": 0.035,
+                "max": 0.25,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": null,
+              "runs": 0,
+              "target": [
+                0.3,
+                0.45
+              ]
+            },
+            "gap": {
+              "median": 0.14,
+              "min": 0,
+              "max": 0.15,
+              "reached": 4,
+              "seeds": 4
+            },
+            "boss": {
+              "probe": {
+                "median": 0.95,
+                "min": 0.53,
+                "max": 0.97,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.11,
+                "min": 0,
+                "max": 0.5,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.8571428571428571,
+              "runs": 21,
+              "target": [
+                0.5,
+                0.6
+              ]
+            },
+            "events": {
+              "probe": {
+                "median": 0.9512142857142856,
+                "min": 0.9450000000000001,
+                "max": 0.9666666666666666,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.8425,
+                "min": 0.7759999999999999,
+                "max": 0.8988888888888888,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.9183673469387755,
+              "runs": 49,
+              "target": [
+                0.7,
+                0.8
+              ]
+            }
+          },
+          "gold": {
+            "income": {
+              "dungeon": 2233,
+              "patrol": 164,
+              "place": 66,
+              "chest": 2365,
+              "salvage": 9,
+              "quest": 340,
+              "valuables": 531,
+              "treasure": 1555.5,
+              "heist": 81.5
+            },
+            "spend": {
+              "guild": 5625,
+              "weakness": 180,
+              "recruit": 0
+            },
+            "growth": {
+              "median": 389,
+              "min": 92,
+              "max": 3557,
+              "reached": 4,
+              "seeds": 4
+            },
+            "incomePerDay": {
+              "median": 5403,
+              "min": 4518.5,
+              "max": 6474,
+              "reached": 4,
+              "seeds": 4
+            },
+            "surplus": false
+          },
+          "material": {
+            "id": "iron",
+            "gathered": {
+              "median": 24.5,
+              "min": 13,
+              "max": 39,
+              "reached": 4,
+              "seeds": 4
+            },
+            "spent": {
+              "median": 22.5,
+              "min": 10,
+              "max": 29,
+              "reached": 4,
+              "seeds": 4
+            },
+            "share": {
+              "median": 0.8846153846153846,
+              "min": 0.5641025641025641,
+              "max": 1.15,
+              "reached": 4,
+              "seeds": 4
+            }
+          },
+          "level": {
+            "end": {
+              "median": 11.333333333333332,
+              "min": 10.666666666666666,
+              "max": 11.999999999999998,
+              "reached": 4,
+              "seeds": 4
+            },
+            "target": 12
+          }
+        },
+        {
+          "tier": 5,
+          "days": {
+            "median": 2,
+            "min": 1,
+            "max": 3,
+            "reached": 4,
+            "seeds": 4
+          },
+          "odds": {
+            "prepared": {
+              "probe": {
+                "median": 0.59,
+                "min": 0.325,
+                "max": 0.72,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.21500000000000002,
+                "min": 0.185,
+                "max": 0.32,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.5,
+              "runs": 18,
+              "target": [
+                0.65,
+                0.75
+              ]
+            },
+            "unprepared": {
+              "probe": {
+                "median": 0.5375,
+                "min": 0.14,
+                "max": 0.685,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.18,
+                "min": 0.035,
+                "max": 0.245,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": null,
+              "runs": 0,
+              "target": [
+                0.3,
+                0.45
+              ]
+            },
+            "gap": {
+              "median": 0.05999999999999997,
+              "min": 0.019999999999999962,
+              "max": 0.185,
+              "reached": 4,
+              "seeds": 4
+            },
+            "boss": {
+              "probe": {
+                "median": 0.39,
+                "min": 0.13,
+                "max": 0.54,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.05,
+                "min": 0,
+                "max": 0.35,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 1,
+              "runs": 6,
+              "target": [
+                0.5,
+                0.6
+              ]
+            },
+            "events": {
+              "probe": {
+                "median": 0.9652020202020202,
+                "min": 0.9544444444444444,
+                "max": 0.9727272727272727,
+                "reached": 4,
+                "seeds": 4
+              },
+              "start": {
+                "median": 0.9394444444444445,
+                "min": 0.915,
+                "max": 0.96875,
+                "reached": 4,
+                "seeds": 4
+              },
+              "actual": 0.9019607843137255,
+              "runs": 51,
+              "target": [
+                0.7,
+                0.8
+              ]
+            }
+          },
+          "gold": {
+            "income": {
+              "dungeon": 6860,
+              "patrol": 1185.5,
+              "place": 492,
+              "valuables": 1220.5,
+              "chest": 5334,
+              "quest": 1897.5,
+              "salvage": 33,
+              "treasure": 3272.5,
+              "heist": 340
+            },
+            "spend": {
+              "weakness": 300,
+              "guild": 10710,
+              "recruit": 5677.5
+            },
+            "growth": {
+              "median": 3445,
+              "min": -2262,
+              "max": 9286,
+              "reached": 4,
+              "seeds": 4
+            },
+            "incomePerDay": {
+              "median": 10216,
+              "min": 9150.333333333334,
+              "max": 10386.5,
+              "reached": 4,
+              "seeds": 4
+            },
+            "surplus": false
+          },
+          "material": {
+            "id": "steel",
+            "gathered": {
+              "median": 15.5,
+              "min": 5,
+              "max": 37,
+              "reached": 4,
+              "seeds": 4
+            },
+            "spent": {
+              "median": 15,
+              "min": 5,
+              "max": 37,
+              "reached": 4,
+              "seeds": 4
+            },
+            "share": {
+              "median": 1,
+              "min": 0.95,
+              "max": 1,
+              "reached": 4,
+              "seeds": 4
+            }
+          },
+          "level": {
+            "end": {
+              "median": 14.833333333333334,
+              "min": 14.666666666666668,
+              "max": 15,
+              "reached": 4,
+              "seeds": 4
+            },
+            "target": 15
+          }
+        }
+      ],
+      "loot": [],
+      "health": {
+        "pileUps": [
+          {
+            "id": "hide",
+            "final": 155
+          },
+          {
+            "id": "mushroom",
+            "final": 55
+          },
+          {
+            "id": "fangOrHorn",
+            "final": 37
+          }
+        ],
+        "dead": {
+          "items": [
+            "standardHealingPotion",
+            "greaterHealingPotion",
+            "thornWardSalve",
+            "blessedRelics",
+            "strengthDraught",
+            "arcaneTonic",
+            "ironskinBrew",
+            "nullrootTincture",
+            "quicksilver",
+            "firebomb",
+            "emberOil",
+            "tideOil",
+            "stormOil",
+            "stoneOil",
+            "thornOil",
+            "smokeBomb",
+            "revivalDraught",
+            "viperOil"
+          ],
+          "recipes": [
+            "trailMix",
+            "smokedFish",
+            "smeltSteel",
+            "revivalDraught",
+            "saltedFish",
+            "spear5",
+            "warhammer5"
+          ],
+          "classes": [
+            "thief",
+            "barbarian",
+            "cleric",
+            "paladin",
+            "druid",
+            "troubadour",
+            "sorcerer",
+            "exorcist",
+            "smuggler",
+            "diplomat",
+            "necromancer",
+            "beastmaster",
+            "engineer",
+            "alchemist",
+            "porter",
+            "scout",
+            "curseBreaker",
+            "cook",
+            "monk",
+            "gambler"
+          ],
+          "places": [
+            "sawmill",
+            "quarry",
+            "copperMine",
+            "ironMine",
+            "coalPit",
+            "smithy",
+            "library",
+            "monsterLair",
+            "underwaterDungeon"
+          ],
+          "dungeons": [
+            "millRuins",
+            "smugglersCove",
+            "barrowMounds",
+            "boarThicket",
+            "harpyCliffs",
+            "wyvernPeaks",
+            "ossuary",
+            "abyssalDepths"
+          ]
+        },
+        "classSpread": {
+          "warrior": 0.2168141592920354,
+          "ranger": 0.28982300884955753,
+          "fireMage": 0.21238938053097345,
+          "duelist": 0.19911504424778761,
+          "frostMage": 0.06637168141592921,
+          "scholar": 0.015486725663716814
+        },
+        "milestones": {
+          "componentFound": {
+            "median": 5,
+            "min": 4,
+            "max": 6,
+            "reached": 4,
+            "seeds": 4
+          },
+          "componentForged": {
+            "median": 5,
+            "min": 4,
+            "max": 6,
+            "reached": 2,
+            "seeds": 4
+          },
+          "relicFound": {
+            "median": 3,
+            "min": 2,
+            "max": 3,
+            "reached": 4,
+            "seeds": 4
+          },
+          "relicRestored": {
+            "median": 3,
+            "min": 2,
+            "max": 7,
+            "reached": 4,
+            "seeds": 4
+          },
+          "firstKey": {
+            "median": 3.5,
+            "min": 2,
+            "max": 5,
+            "reached": 4,
+            "seeds": 4
+          },
+          "firstTip": {
+            "median": 4,
+            "min": 3,
+            "max": 5,
+            "reached": 2,
+            "seeds": 4
+          },
+          "secretPlace": {
+            "median": 4,
+            "min": 3,
+            "max": 5,
+            "reached": 2,
+            "seeds": 4
+          },
+          "charmCrafted": {
+            "median": 1,
+            "min": 1,
+            "max": 2,
+            "reached": 4,
+            "seeds": 4
+          }
+        },
+        "skipped": {
+          "patrolHerd": 2,
+          "patrolBandits": 7,
+          "banditCamp": 2.5,
+          "goblinRaid": 1,
+          "hauntedCrypt": 1,
+          "elementalRift": 2,
+          "abandonedCaravan": 3,
+          "wantedOutlaw": 4,
+          "beastDen": 1,
+          "heist": 0.5,
+          "monsterLair": 1,
+          "ruinsDig": 0,
+          "fishingDock": 1
+        }
+      }
+    }
+  }
+}

@@ -26,7 +26,7 @@ function restedRoster(save: SaveData): SaveData {
 }
 
 /**
- * The day's win odds for the current tier, measured without changing the
+ * The win odds for the current tier right now, measured without changing the
  * game: the best prepared party from the whole roster at full HP against every
  * open normal dungeon (and the same party with its kit slots empty), the tier
  * boss, the fight events around and each patrol kind.
@@ -38,7 +38,7 @@ export function probe(sim: Sim): ProbeRow[] {
   const all = save.heroes.map((h) => h.id);
   const runs = sim.config.odds.runs;
   const rows: ProbeRow[] = [];
-  const add = (kind: ProbeRow['kind'], id: string, prepared: number, plain: number | null = null) => rows.push({ day: sim.day, tier, kind, id, prepared, unprepared: plain });
+  const add = (kind: ProbeRow['kind'], id: string, prepared: number, plain: number | null = null) => rows.push({ day: sim.day, at: (sim.now - sim.startedAt) / 3_600_000, tier, kind, id, prepared, unprepared: plain });
 
   const prepare = (dungeon: DungeonDef, briefing = briefingFor(sim.rotation, dungeon)) => {
     const party = bestParty(view, dungeon, all, briefing);

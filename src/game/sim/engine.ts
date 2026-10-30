@@ -299,11 +299,12 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, steps: number, 
   markCoreKit(sim);
 }
 
-/** Milestones for what the day ends with: a component, a relic, a mysterious key. */
+/** Milestones for what a session ends with: a component, a relic, a mysterious key, a secret place tip. */
 function markHoldings(sim: Sim) {
   if (components.some((c) => (sim.save.materials[c.id] ?? 0) > 0)) mark(sim, 'componentFound');
   if (sim.save.relics.length) mark(sim, 'relicFound');
   if (hasKey(sim.save)) mark(sim, 'firstKey');
+  if (sim.save.secretTips.length) mark(sim, 'firstTip');
 }
 
 /** Activities whose visits are counted per day; the others (first clears, bosses) are outcomes. */
@@ -379,11 +380,11 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
       sim.now = time;
       session(sim, profile.walkHours.includes(hours[i]), hours[i] === Math.min(...profile.walkHours), steps / hours.length, dayKey);
       idle += homeHeroes(sim.save).length / sim.save.heroes.length;
+      markHoldings(sim);
+      sim.log.probes.push(...probe(sim));
       afterSession?.(sim.save);
     });
 
-    sim.log.probes.push(...probe(sim));
-    markHoldings(sim);
     const save = sim.save;
     sim.log.days = sim.day;
     sim.log.finished = 'boss:5' in sim.log.milestones;

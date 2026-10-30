@@ -127,6 +127,7 @@ export function forgeComponents(sim: Sim) {
     const heroIds = homeHeroes(sim.save).map((h) => h.id);
     const pick = pickComponentForge(sim.save, heroIds);
     if (!pick) return;
+    mark(sim, 'componentFound');
     const before = sim.save;
     const materials = act(sim, 'forge', (save) => forgeWithComponent(save, recipeById[pick.recipeId], pick.componentId));
     const gear = logCraft(sim, 'component', before, materials);
@@ -142,6 +143,7 @@ export function restoreRelics(sim: Sim) {
     const heroIds = homeHeroes(sim.save).map((h) => h.id);
     const pick = pickRelic(sim.save, heroIds);
     if (!pick) return;
+    mark(sim, 'relicFound');
     const before = sim.save;
     const materials = act(sim, 'forge', (save) => restoreRelic(save, pick.relicUid));
     const gear = logCraft(sim, 'relic', before, materials);

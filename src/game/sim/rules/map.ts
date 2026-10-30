@@ -149,7 +149,6 @@ const SOURCES: { source: LootSourceId; kind: PlaceKind }[] = [
  * too low) is logged as skipped.
  */
 export function visitPlaces(sim: Sim) {
-  const tipsBefore = sim.save.secretTips.length;
   for (const { source, kind } of SOURCES) {
     while (takeVisit(sim, source)) {
       const visited =
@@ -157,7 +156,6 @@ export function visitPlaces(sim: Sim) {
       if (!visited) skip(sim, source);
     }
   }
-  if (sim.save.secretTips.length > tipsBefore) mark(sim, 'firstTip');
 }
 
 /** Buys the highest tier's boss its weakness item at the nearest place that stocks it. */

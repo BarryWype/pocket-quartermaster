@@ -39,7 +39,7 @@ function pace(summaries: ProfileSummary[]) {
 function odds(s: ProfileSummary) {
   const rows = s.tiers.map((t) => {
     const o = t.odds;
-    const line = (l: typeof o.prepared) => `${pct(l.probe.median)}${mark(l.probe.median, l.target)}`;
+    const line = (l: typeof o.prepared) => `${pct(l.start.median)} → ${pct(l.probe.median)}${mark(l.probe.median, l.target)}`;
     const actual = (l: typeof o.prepared) => (l.runs ? `${pct(l.actual)} of ${l.runs}` : '—');
     return [String(t.tier), line(o.prepared), actual(o.prepared), line(o.unprepared), pct(o.gap.median), line(o.boss), actual(o.boss), line(o.events), actual(o.events)];
   });
@@ -155,7 +155,7 @@ export function renderReport({ summaries, rules, settings }: ReportInput) {
     pace(summaries),
     '## Win odds per tier',
     '',
-    'Probe: once a day, the best prepared party from the whole roster at full HP against every open normal dungeon of the tier, the tier boss, and the fight events and patrols around; "not prepared" is the same party and gear with the kit slots empty. The second column of each pair is what the bot actually launched.',
+    'Probe: after every session, the best prepared party from the whole roster at full HP against every open normal dungeon of the tier, the tier boss, and the fight events and patrols around; "not prepared" is the same party and gear with the kit slots empty. Each probe cell reads "at the tier\u2019s first probe → at its last" (gear of the tier); the last is checked against the target. The column after each probe is what the bot actually launched.',
     '',
   ];
   for (const s of summaries) out.push(`### ${s.profile}`, '', odds(s));
