@@ -1,6 +1,6 @@
 # Loot: design catalogue
 
-**Status: designed, not implemented.** Implement only what a prompt asks for. The source for discussion is the Loot Design doc; this folder is the version to build from, and `matrix.csv` wins over any table elsewhere.
+**Status: implemented** (loot base, monster parts and charms, blueprints, components and relics, trinkets and valuables). The source for discussion is the Loot Design doc; this folder is the version to build from, and `matrix.csv` wins over any table elsewhere.
 
 Loot is designed from scratch on top of the new dungeons, bosses, places, events and shops, not on the old reward code.
 

@@ -1,6 +1,6 @@
 # Map places and events: design catalogue
 
-**Status: design only, not implemented.** Don't implement anything from this folder unless a prompt asks for it.
+**Status: implemented**, secret places included. Don't implement anything new from this folder unless a prompt asks for it.
 
 `density.csv` sets how far the nearest place of each kind should be, the matching density and visibility. Target: a 20-minute walk passes at least 2 places and 1 fight event, with about 16-18 places within 1.2 km plus fight events within 500 m: players should choose between several close places.
 
@@ -24,7 +24,6 @@
 | Sealed vault | None: a dungeon opportunity | A Rare item (Legendary ~5%) or a relic |
 
 - Once the hidden den exists, travellers stop offering rare classes and give the den tip instead.
-- Exact loot comes with the loot rework.
 
 ## Open
 - Spawn frequency of each place and event.

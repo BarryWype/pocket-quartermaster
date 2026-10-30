@@ -82,7 +82,7 @@ export type Loot = {
   manuals: ManualRarity[];
   valuables: { valuableId: string; tier: number; amount: number }[];
   relics: string[];
-  /** Every category that rolled a drop, even when its generator gave nothing yet. */
+  /** Every category that rolled a drop, even when its generator gave nothing (a tier boss's component without its boss). */
   dropped: LootCategory[];
 };
 
