@@ -1,6 +1,8 @@
 # Simulator: design spec
 
-**Status: implemented.** `npm run sim` writes `report.md` and `summary.json` next to this file; `npm run sim:check` runs the balance band tests on them.
+**Status: implemented.** `npm run sim` writes `report.md` and `summary.json` next to this file; `npm run sim:check` runs the balance band tests on them. Each game runs in its own process (`--workers N`, one per core by default), printing a line per simulated week. `npm run sim:quick` skips the game: it prints the win odds per tier (prepared, not prepared, boss, events, patrols) of the reference team the dungeons are fitted to (the comment above `TIER_SCALE` in `src/content/enemies.ts`), over 7 rotation days at 300 runs (`quick` in `config.ts`). It runs in seconds, for tuning; its team is weaker than a played roster, so its numbers sit below the full game's.
+
+In the full game the probe runs after the day's last session (every `probeEveryDays`), after the first session of a new tier and while the tier boss is out, with its own odds cache so it never changes the game.
 
 The simulator plays the game with simple bots, for several player profiles, and checks the results against targets. It's the balancing tool for the release.
 
