@@ -91,6 +91,22 @@ export const gearBudgetRules = {
   },
   /** Keywords that cost the major share instead of the minor one. */
   major: ['pierce', 'cleave', 'blessed', 'guard'] as Keyword[],
+  /**
+   * Shares of the item's budget a relic's effects cost: a keyword costs its
+   * usual major/minor share, halved when it only works in a situation.
+   */
+  relic: {
+    conditionalShare: 0.5,
+    answers: 0.1,
+    immune: 0.1,
+    critDamage: 0.03,
+    staggerOnCrit: 0.025,
+    healOnKill: 0.025,
+    penaltyCut: 0.03,
+    cancelPenalty: 0.03,
+    ignorePenalty: 0.03,
+    firstSpellAll: 0.025,
+  },
   /** Evasion items gain +1% Evasion per tier above the first. */
   evasionPerTier: 1,
 };

@@ -54,9 +54,11 @@ export const recipeOutput = (recipe: RecipeDef) =>
  */
 export function gearName(gear: GearInstance) {
   const quality = gear.quality === 'normal' ? null : tr(qualities[gear.quality].name);
+  // A restored relic carries the relic's name instead of its item's.
+  const base = gear.relicId ? relicById[gear.relicId].name : itemById[gear.itemId].name;
   const parts =
     getLocale() === 'fr'
-      ? [tr(itemById[gear.itemId].name), gear.element ? frElementQualifiers[gear.element] : null, quality?.toLowerCase()]
-      : [quality, gear.element ? elementInfo[gear.element].name : null, itemById[gear.itemId].name];
+      ? [tr(base), gear.element ? frElementQualifiers[gear.element] : null, quality?.toLowerCase()]
+      : [quality, gear.element ? elementInfo[gear.element].name : null, base];
   return parts.filter(Boolean).join(' ');
 }

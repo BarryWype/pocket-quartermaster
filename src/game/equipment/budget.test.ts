@@ -3,9 +3,10 @@ import { join } from 'path';
 
 import { gearProfiles, GEAR_SLOTS, gearId } from '@/content/equipment';
 import { itemById } from '@/content/lookup';
+import { relics } from '@/content/loot/relics';
 
-import { gearItemStats } from './budget';
-import type { GearDef } from '../types';
+import { gearItemStats, relicCost, relicStats } from './budget';
+import type { GearDef, Stats } from '../types';
 
 /** Type names in the tiers CSV, keyed by the CSV's `Slot,Type` pair. */
 const CSV_TYPES: Record<string, string> = {
@@ -72,6 +73,55 @@ function parseTiersCsv(): Row[] {
     return { type: CSV_TYPES[cells[typeIndex]], tier: Number(cells[tierIndex]), stats };
   });
 }
+
+describe('relicCost', () => {
+  // Every relic's effects, as shares of the item's budget.
+  const expected: Record<string, number> = {
+    rustedSaintsBuckler: 0.1,
+    poachersLongbow: 0.03,
+    sextonsMace: 0.025,
+    ratcatchersKnuckles: 0.05,
+    hedgeWitchsRobes: 0.03,
+    smugglersCoat: 0.03,
+    barrowKingsBlade: 0.025,
+    wolfhoundSpear: 0.025,
+    desertersMail: 0.025,
+    bogWitchsWand: 0.025,
+    minersLampStaff: 0.1,
+    drownedBell: 0.03,
+    dwarfLordsAxe: 0.05,
+    witchHuntersDagger: 0.03,
+    thiefTakersQuiver: 0.025,
+    orcWarlordsHammer: 0.025,
+    clockworkAegis: 0.025,
+    sirensLute: 0.025,
+    cartographersFocus: 0.1,
+    duelistsMainGauche: 0.025,
+    dragonbonePlate: 0.1,
+    archmagesTome: 0.075,
+    wyrmSlayersSword: 0.05,
+    stormcallersRobes: 0.1,
+    titanBreakerGauntlets: 0.025,
+  };
+
+  it('matches the cost table for every relic', () => {
+    expect(new Set(Object.keys(expected))).toEqual(new Set(relics.map((relic) => relic.id)));
+    for (const relic of relics) {
+      expect(relicCost(relic)).toBeCloseTo(expected[relic.id], 5);
+    }
+  });
+
+  it('keeps every scaling stat of a restored relic below its plain item', () => {
+    for (const relic of relics) {
+      const relicPiece = relicStats(relic);
+      const plain = gearItemStats(gearProfiles[relic.gearType], relic.tier);
+      for (const stat of ['power', 'magic', 'armour', 'resistance', 'hp'] as (keyof Stats)[]) {
+        if (!plain[stat]) continue;
+        expect(relicPiece[stat]!).toBeLessThan(plain[stat]!);
+      }
+    }
+  });
+});
 
 describe('gearItemStats', () => {
   const rows = parseTiersCsv();

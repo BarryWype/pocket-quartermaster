@@ -1,4 +1,3 @@
-import { gearRecipes } from '@/content/equipment';
 import { items } from '@/content/items';
 import { componentById, monsterPartById, relicById, valuableById } from '@/content/lookup';
 import { lootConfig } from '@/content/loot/config';
@@ -7,6 +6,7 @@ import { PURPOSES } from '@/content/loot/purposes';
 import { recipes } from '@/content/recipes';
 import { isKnown } from '@/game/crafting/crafting';
 import { ELEMENTS, shardId, stoneId } from '@/game/elements';
+import { relicRecipe } from '@/game/forging/relics';
 import type { ConsumableDef, MaterialStack, RecipeDef } from '@/game/types';
 import type { SaveData } from '@/game/save';
 
@@ -86,7 +86,7 @@ export type NextStep =
   | { kind: 'sell'; place: 'market'; price: number }
   | { kind: 'boss'; bossId: string }
   | { kind: 'set'; have: number; need: number }
-  | { kind: 'restore'; cost: MaterialStack[] } // the relic's gear type recipe at its tier, each amount × 1.5 rounded up
+  | { kind: 'restore'; cost: MaterialStack[] } // the relic's restore cost: its type's recipe at its tier ×1.5 rounded up, plus the tier's gem
   | { kind: 'action'; action: 'read' | 'open' | 'learn' };
 
 /** What tapping the item shows, one step per purpose. */
@@ -107,12 +107,10 @@ export function nextSteps(save: SaveData, ref: BaseItemRef, recipeList: RecipeDe
         return { kind: 'set', have: save.keyFragments, need: lootConfig.keyFragmentsPerKey };
       case 'restore': {
         const relic = relicById[id!];
+        const recipe = relicRecipe(relic);
         return {
           kind: 'restore',
-          cost: gearRecipes[relic.gearType][relic.tier - 1].map((stack) => ({
-            materialId: stack.materialId,
-            amount: Math.ceil(stack.amount * 1.5),
-          })),
+          cost: [...recipe.inputs, { materialId: recipe.valuables![0].valuableId, amount: 1 }],
         };
       }
       case 'use':

@@ -1,6 +1,7 @@
 import { gearId, gearRecipes } from '@/content/equipment';
 import { LURE_ID, lootConfig } from '@/content/loot/config';
 import { lootMatrix } from '@/content/loot/matrix';
+import { relics as relicDefs } from '@/content/loot/relics';
 import { resources } from '@/content/resources';
 import { ELEMENTS, shardId, type Element } from '@/game/elements';
 import type { GearType } from '@/game/types';
@@ -106,8 +107,15 @@ function rarityByWeight(rng: Rng, weights: Record<MapRarity, number>): MapRarity
   return rng.weighted(['common', 'rare', 'legendary'] as MapRarity[], (rarity) => weights[rarity]);
 }
 
-// Relics: filled by a later prompt.
-const later: Generator = () => {};
+/** A random relic of `tier` (clamped 1–5); duplicates are allowed. */
+export function randomRelic(tier: number, rng: Rng): string {
+  const pool = relicDefs.filter((relic) => relic.tier === Math.min(5, Math.max(1, tier)));
+  return pool[rng.int(0, pool.length - 1)].id;
+}
+
+function relicDrops(req: LootRequest, loot: Loot): void {
+  loot.relics.push(randomRelic(req.tier, req.rng));
+}
 
 function monsterParts(req: LootRequest, loot: Loot): void {
   const pick = req.rng.weighted(partWeights(req.enemies, req.element), (entry) => entry.weight);
@@ -148,7 +156,7 @@ export const generators: Record<LootCategory, Generator> = {
     loot.gear.push(rollLootTrinket(req));
   },
   components,
-  relics: later,
+  relics: relicDrops,
   valuables: (req, loot) => {
     loot.valuables.push(rollValuable(req));
   },

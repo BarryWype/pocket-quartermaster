@@ -218,5 +218,16 @@ export const lootConfig = {
   keyFragmentsPerKey: 4,
   /** Sigil drops by slot, with a pity counter and a shard cap per tier. */
   sigils: { chanceBySlot: { short: 0.09, long: 0.23, boss: 0.46 }, pityAfter: 10, cap: 3, capShardsPerTier: 2 },
+  /**
+   * Restoring a relic costs its type's recipe at its tier times 1.5 rounded
+   * up, plus one gem: rough for tiers 1-3, cut for 4-5.
+   */
+  restore: {
+    recipeMultiplier: 1.5,
+    gems: [
+      { upToTier: 3, valuableId: 'roughGem' },
+      { upToTier: 5, valuableId: 'cutGem' },
+    ],
+  },
 };
 

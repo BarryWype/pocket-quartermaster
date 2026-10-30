@@ -1,5 +1,5 @@
 /** Rules for digging ruins, thieves' guild heists and fishing docks; what they pay is their loot matrix row. */
-import type { Quality, ThreatId } from '@/game/types';
+import type { ThreatId } from '@/game/types';
 import type { ThreatState } from '@/game/threats/score';
 
 export const ruinRules = {
@@ -11,9 +11,6 @@ export const ruinRules = {
   replacementMeters: [300, 900] as [min: number, max: number],
   /** Digs between relics; the dig that reaches it pays one and resets. */
   relicEvery: 5,
-  /** Until relics exist, the relic dig pays a gear piece of the player's tier at this quality, sometimes Legendary. */
-  relicQuality: 'rare' as Quality,
-  legendaryChance: 0.1,
 };
 
 export const heistRules = {

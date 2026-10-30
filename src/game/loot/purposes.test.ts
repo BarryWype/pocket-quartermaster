@@ -80,13 +80,16 @@ describe('what’s next', () => {
     expect(nextSteps(save(), { kind: 'weakness', id: 'wantedPoster' })).toEqual([{ kind: 'boss', bossId: 'banditCaptain' }]);
   });
 
-  it('costs a relic its type recipe at its tier, times one and a half rounded up', () => {
+  it('costs a relic its type recipe at its tier, times one and a half rounded up, plus its gem', () => {
     const steps = nextSteps(save(), { kind: 'relic', id: 'sextonsMace' });
     const base = gearRecipes.mace[0];
     expect(steps).toEqual([
       {
         kind: 'restore',
-        cost: base.map((stack) => ({ materialId: stack.materialId, amount: Math.ceil(stack.amount * 1.5) })),
+        cost: [
+          ...base.map((stack) => ({ materialId: stack.materialId, amount: Math.ceil(stack.amount * 1.5) })),
+          { materialId: 'roughGem', amount: 1 },
+        ],
       },
     ]);
   });

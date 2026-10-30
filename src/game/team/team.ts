@@ -5,6 +5,7 @@ import { qualities } from '@/content/forging';
 import { traitById } from '@/content/traits';
 
 import { slotProblem } from '../equipment/slots';
+import { pieceBaseStats } from '../forging/quality';
 import { rosterCap } from '../guild/guild';
 import { trinketEffect } from '../loot/trinkets';
 import type { SaveData } from '../save';
@@ -108,13 +109,14 @@ export function heroStats(save: SaveData, hero: HeroState): Stats {
     }
     const affinity = affinityOf(hero.classId, item.gearType);
     const multiplier = qualities[gear.quality].multiplier * (gear.roll ?? 1) * affinityRules[affinity];
+    const base = pieceBaseStats(gear);
     for (const key of STAT_KEYS) {
-      const value = item.stats[key];
+      const value = base[key];
       if (!value) continue;
       stats[key] += SCALING_KEYS.includes(key) ? value * multiplier : value;
     }
     if (gear.luck) stats.luck += gear.luck;
-    if (item.stats.luck) stats.luck += item.stats.luck;
+    if (base.luck) stats.luck += base.luck;
     // A component's flat stat rides on top, untouched by quality and affinity.
     const effect = gear.component ? componentById[gear.component]?.effect : undefined;
     if (effect?.kind === 'stat') stats[effect.stat] += effect.add;

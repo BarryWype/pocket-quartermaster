@@ -1,16 +1,16 @@
-import { gearId, gearRecipes } from '@/content/equipment';
 import { placeRules } from '@/content/places';
 import { ruinRules } from '@/content/placeActivities';
 
 import { highestUnlockedTier } from '../dungeons/unlock';
 import { distanceMeters, offsetPosition } from '../generation/geo';
-import { createRng, type Rng } from '../generation/rng';
+import { createRng } from '../generation/rng';
 import { rollForSave } from '../loot/context';
+import { randomRelic } from '../loot/generators';
 import { grantLoot } from '../loot/grant';
 import type { Loot } from '../loot/types';
 import type { PlaceSpawn } from './generate';
 import type { SaveData } from '../save';
-import type { DugRuin, GearInstance, GearType, Quality } from '../types';
+import type { DugRuin } from '../types';
 
 const HOUR_MS = 3_600_000;
 
@@ -53,19 +53,12 @@ export function digProblem(save: SaveData, spawn: PlaceSpawn, player: { latitude
   return null;
 }
 
-/** A relic for the dig that completes the set: a random forge type at the player's tier, Rare or Legendary. */
-function relicPiece(save: SaveData, rng: Rng): GearInstance {
-  const types = Object.keys(gearRecipes) as GearType[];
-  const quality: Quality = rng.chance(ruinRules.legendaryChance) ? 'legendary' : ruinRules.relicQuality;
-  return { uid: '', itemId: gearId(types[rng.int(0, types.length - 1)], highestUnlockedTier(save)), quality, roll: 1 };
-}
-
-/** What a dig pays: the ruins row of the loot matrix, plus the relic on the dig that completes the set. */
+/** What a dig pays: the ruins row of the loot matrix, plus a relic on the dig that completes the set. */
 export function ruinDig(save: SaveData, spawn: PlaceSpawn): { reward: Loot; relic: boolean } {
   const rng = createRng(`dig|${spawn.id}`);
   const relic = save.ruinsProgress + 1 >= ruinRules.relicEvery;
   const loot = rollForSave(save, 'ruinsDig', rng);
-  return { reward: relic ? { ...loot, gear: [...loot.gear, relicPiece(save, rng)] } : loot, relic };
+  return { reward: relic ? { ...loot, relics: [...loot.relics, randomRelic(highestUnlockedTier(save), rng)] } : loot, relic };
 }
 
 /**

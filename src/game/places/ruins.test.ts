@@ -1,12 +1,11 @@
 import { lootConfig } from '@/content/loot/config';
 import { ruinRules } from '@/content/placeActivities';
-import { itemById } from '@/content/lookup';
+import { relicById } from '@/content/lookup';
 
 import { distanceMeters } from '../generation/geo';
 import { lootChances } from '../loot/chances';
 import type { LatLng } from '../generation/types';
 import { createInitialSave, type SaveData } from '../save';
-import type { GearDef } from '../types';
 import type { PlaceSpawn } from './generate';
 import { digProblem, digRuin, pruneDugRuins, ruinDig, ruinReplacements, ruinsDots } from './ruins';
 
@@ -63,17 +62,17 @@ describe('digRuin', () => {
     expect(digProblem(used, spawnOf('3:3'), position, now)).toBe('gone');
   });
 
-  it('pays a relic on the 5th dig, of a rare or legendary piece at the highest tier, and resets the count', () => {
+  it('pays a relic of the player’s tier on the 5th dig, and no gear piece, and resets the count', () => {
     let save: SaveData = { ...digger(), ruinsProgress: 0 };
     for (let i = 0; i < ruinRules.relicEvery - 1; i++) save = digRuin(save, spawnOf(`4:${i}`), position, now).save;
     const { save: dug, relic, reward } = digRuin(save, spawnOf('4:last'), position, now);
     expect(relic).toBe(true);
     expect(dug.ruinsProgress).toBe(0);
-    expect(reward.gear).toHaveLength(1);
-    const item = reward.gear[0];
-    expect(['rare', 'legendary']).toContain(item.quality);
-    expect((itemById[item.itemId] as GearDef).tier).toBe(1);
-    expect(dug.gear.at(-1)!.quality).toBe(item.quality);
+    expect(reward.gear).toHaveLength(0);
+    expect(reward.relics).toHaveLength(1);
+    expect(relicById[reward.relics[0]].tier).toBe(1);
+    expect(dug.relics).toHaveLength(1);
+    expect(dug.relics[0].relicId).toBe(reward.relics[0]);
   });
 
   it('gives a key fragment at the matrix chance over many ruins', () => {

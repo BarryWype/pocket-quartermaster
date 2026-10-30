@@ -618,6 +618,32 @@ export type HeroState = {
 /** Supply at launch: enough, some, or none. */
 export type Hunger = 'fed' | 'underfed' | 'starving';
 
+/** When a relic's effect holds: against a tagged foe, in the run's first fight, or against a threat. */
+export type GearCondition = { tag: Tag } | { firstFight: true } | { threat: ThreatId };
+
+/** One effect of a restored relic on the piece's wearer. */
+export type RelicEffect =
+  /** Adds the keyword (or makes it strong when the piece has it), only when `when` holds. */
+  | { kind: 'keyword'; keyword: Keyword; when?: GearCondition }
+  /** Crits deal ×multiplier damage, only when `when` holds. */
+  | { kind: 'critDamage'; multiplier: number; when: GearCondition }
+  /** Every crit staggers the foe, only when `when` holds. */
+  | { kind: 'staggerOnCrit'; when: GearCondition }
+  /** A kill heals the wearer `pct` of their max HP, only when `when` holds. */
+  | { kind: 'healOnKill'; pct: number; when: GearCondition }
+  /** Cuts the wearer's own share of that threat's penalty to ×multiplier. */
+  | { kind: 'penaltyCut'; threat: ThreatId; multiplier: number }
+  /** The whole party takes no penalty from that threat. */
+  | { kind: 'cancelPenalty'; threat: ThreatId }
+  /** The whole party ignores that threat's penalty, only when `when` holds. */
+  | { kind: 'ignorePenalty'; threat: ThreatId; when: GearCondition }
+  /** The carrier meets that approach threat on their own. */
+  | { kind: 'answers'; threat: ThreatId }
+  /** The element counts as resisted and its hits deal ×multiplier damage. */
+  | { kind: 'immune'; element: Element; multiplier: number }
+  /** The first hit of the run's first fight hits every enemy; Magic heroes only. */
+  | { kind: 'firstSpellAll' };
+
 /** A forged piece of gear. */
 export type GearInstance = {
   uid: string;
@@ -634,6 +660,8 @@ export type GearInstance = {
   luck?: number;
   /** The component forged into the piece, if any; one per piece. */
   component?: string;
+  /** A restored relic; its stats come from its budget less its effect's cost. */
+  relicId?: string;
 };
 
 export type ActiveExpedition = {
