@@ -63,7 +63,7 @@ const hasBeasts = (dungeon: DungeonDef) =>
  * What a dungeon shows today: threats drawn from its table (first-tier gated,
  * at most one obstacle, never two sharing a kit, locals only where its pool
  * has a locals encounter), an opportunity from tier 2 on, and from tier 4 a
- * restriction on some days — never on overnight quests, which read their
+ * restriction on some days — never on overnight expeditions, which read their
  * `overnight` flag here. Same day, same briefing for everyone.
  */
 export function composeBriefing(dungeon: DungeonDef, day: number, rules: ThreatRules = threatRules): Briefing {

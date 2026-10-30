@@ -130,7 +130,7 @@ export type ProfileSummary = {
     /** Boss runs per day, first wins of the day taken by a boss per run, and the party's median level at the first attempt, by tier. */
     bosses: Record<number, { perDay: number; bonuses: number; firstLevel: number }>;
     sanctums: { attempts: number; wins: number };
-    /** Overnight quests: runs per day, and their share of all gold earned and XP earned. */
+    /** Overnight expeditions: runs per day, and their share of all gold earned and XP earned. */
     overnight: { runsPerDay: number; goldShare: number; xpShare: number };
     /** Blueprints dropped by expeditions per run. */
     blueprints: number;
@@ -306,7 +306,7 @@ export function summarize(logs: RunLog[], targets: Targets = defaultTargets, wit
     return totals;
   }));
   const sanctumRuns = logs.flatMap((log) => log.sanctums);
-  // Overnight quests and blueprints.
+  // Overnight expeditions and blueprints.
   const overnightRuns = all.filter((e) => e.overnight);
   const goldEarned = logs.reduce((sum, log) => sum + log.goldIn.reduce((s, g) => s + g.amount, 0), 0);
   const xpEarned = all.reduce((sum, e) => sum + e.xp, 0);

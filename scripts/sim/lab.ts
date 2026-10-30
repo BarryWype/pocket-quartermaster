@@ -152,7 +152,7 @@ function printSummary(summary: Summary, comparison: Comparison | null, print: (l
     const recruits = [4, 5, 6].map((n) => `${n}th day ${day(p.milestones[`recruit:${n}`]?.median ?? null)}`).join(', ');
     print(`  Recruits: ${recruits}. Gold held at the end: ${day(p.gold.final.median)}. Idle: ${Math.round(p.heroes.idleShare * 100)}%`);
     print(
-      `  Overnight quests: ${p.expeditions.overnight.runsPerDay}/day, ${Math.round(p.expeditions.overnight.goldShare * 100)}% of gold, ${Math.round(
+      `  Overnight expeditions: ${p.expeditions.overnight.runsPerDay}/day, ${Math.round(p.expeditions.overnight.goldShare * 100)}% of gold, ${Math.round(
         p.expeditions.overnight.xpShare * 100,
       )}% of XP · blueprints: ${p.expeditions.blueprints}/run · walking bonus: ${Math.round(p.materials.bonusShare * 100)}% of materials`,
     );

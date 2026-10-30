@@ -48,7 +48,7 @@ describe('expedition loot', () => {
     expect(second.report.firstWin).toBeUndefined();
   });
 
-  it('never gives an overnight quest the first win of the day', () => {
+  it('never gives an overnight expedition the first win of the day', () => {
     const { report, save } = resolve(veterans(), 'nightWatch1');
     expect(report.success).toBe(true);
     expect(report.firstWin).toBeUndefined();

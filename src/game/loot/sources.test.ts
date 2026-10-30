@@ -42,7 +42,7 @@ describe('rollForSave', () => {
   }
 
   it('never gives materials from a dungeon source', () => {
-    for (const source of ['dungeonRun', 'firstWin', 'firstTierClear', 'tierBoss', 'overnightQuest'] as LootSourceId[]) {
+    for (const source of ['dungeonRun', 'firstWin', 'firstTierClear', 'tierBoss', 'overnightExpedition'] as LootSourceId[]) {
       for (let i = 0; i < SEEDS; i++) {
         expect(gathered(rollForSave(createInitialSave(), source, createRng(`${source}|d|${i}`), { luck: LUCK }).materials)).toEqual([]);
       }

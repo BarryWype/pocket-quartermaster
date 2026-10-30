@@ -467,7 +467,7 @@ export const frNames: Record<string, string> = {
   'dragonfire vent': 'cheminée de feu de dragon',
   'hoard vault door': 'porte de la salle au trésor',
 
-  // Overnight quests
+  // Overnight expeditions
   'Night Watch': 'Ronde de nuit',
   'night prowler': 'rôdeur nocturne',
   'loose slates': 'ardoises délogées',

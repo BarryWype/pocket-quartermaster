@@ -183,7 +183,7 @@ describe.skip('expedition progression', () => {
 
   for (let tier = 1; tier <= 5; tier++) {
     const normal = reference(tier, 'normal');
-    // Overnight quests have their own odds band (see expeditions/overnight.test.ts).
+    // Overnight expeditions have their own odds band (see expeditions/overnight.test.ts).
     for (const dungeon of dungeons.filter((d) => d.tier === tier && !d.overnight && !(tier === 1 && d.slot === 'short'))) {
       const [low, high] = BANDS[dungeon.isBoss ? 'boss' : dungeon.slot!];
       it(`puts ${dungeon.name} (tier ${tier} ${dungeon.isBoss ? 'boss' : dungeon.slot}) at ${low * 100}–${high * 100}% with Normal tier gear`, () => {
@@ -211,7 +211,7 @@ describe.skip('expedition progression', () => {
     });
   }
 
-  // Overnight quests are safe patrols: ward salves matter less there (they have their own band).
+  // Overnight expeditions are safe patrols: ward salves matter less there (they have their own band).
   for (const dungeon of dungeons.filter((d) => dealsFire(d) && !d.overnight)) {
     it(`makes ember ward salves worth at least 10 points in ${dungeon.name}`, () => {
       const level = TIER_LEVELS[dungeon.tier - 1];
@@ -289,7 +289,7 @@ describe.skip('class counters', () => {
     tier > 1 ? team(TIER_LEVELS[tier - 1], TIER_MATERIALS[tier - 2]) : swordOnly(),
   ];
 
-  // Overnight quests are near-certain without counters, so they are left out here.
+  // Overnight expeditions are near-certain without counters, so they are left out here.
   for (const dungeon of dungeons.filter((d) => counterFor(d) && !d.overnight)) {
     it(`gives ${dungeon.name} (${mainTag(dungeon)}) 5 to 25 points for a hero who counters it`, () => {
       // Without abilities, then with the counter on one hero. Measured on the team whose odds are most in doubt.

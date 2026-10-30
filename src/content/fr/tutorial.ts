@@ -14,15 +14,15 @@ export const frTutorialHints: typeof tutorialHints = {
     hero: 'Touchez l’emplacement Arme et choisissez l’épée.',
   },
   sendExpedition: {
-    default: 'Ouvrez Quêtes et envoyez votre équipe.',
+    default: 'Ouvrez Expéditions et envoyez votre équipe.',
     expeditions: 'Envoyez l’équipe à la Cave aux rats. Ce premier voyage ne dure que quelques secondes.',
   },
   awaitReport: {
-    map: 'Votre équipe est partie. Récoltez des animaux et des herbes en attendant, puis récupérez son butin dans Quêtes.',
+    map: 'Votre équipe est partie. Récoltez des animaux et des herbes en attendant, puis récupérez son butin dans Expéditions.',
     expeditions: 'Votre équipe est en route : la barre montre sa progression. À son retour, touchez Récupérer le butin.',
   },
   readReport: {
-    default: 'Vos héros sont de retour ! Ouvrez Quêtes pour lire leur rapport.',
+    default: 'Vos héros sont de retour ! Ouvrez Expéditions pour lire leur rapport.',
     expeditions: 'Leur rapport est dans l’onglet Rapports : ce qui s’est passé, le butin et l’XP gagnée. Les donjons sont la source des nouveaux plans : la première victoire de chaque jour en rapporte toujours un.',
   },
   findSanctum: {

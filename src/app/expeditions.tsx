@@ -46,7 +46,7 @@ const TABS: Tab[] = ['dungeons', 'teams', 'reports'];
 /** What the loot reveal shows: the report, and the heroes before and after for XP and level-ups. */
 type Collected = { report: ExpeditionReport; before: HeroState[]; after: HeroState[] };
 
-export default function QuestsScreen() {
+export default function ExpeditionsScreen() {
   useLanguage();
   const save = useGameStore((state) => state.save);
   const start = useGameStore((state) => state.startExpedition);
@@ -140,7 +140,7 @@ export default function QuestsScreen() {
       .filter((d) => isDungeonUnlocked(save, d))
       .sort((a, b) => a.tier - b.tier);
   }, [rotation, save]);
-  // The overnight quest of each unlocked tier, open every day.
+  // The overnight expedition of each unlocked tier, open every day.
   const overnight = useMemo(
     () => dungeons.filter((d) => d.overnight && isDungeonUnlocked(save, d)).sort((a, b) => a.tier - b.tier),
     [save],

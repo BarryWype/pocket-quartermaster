@@ -422,10 +422,10 @@ describe('first win of the day', () => {
     }
   });
 
-  it('is never rolled for overnight quests', () => {
-    const quest = dungeons.find((d) => d.overnight && d.tier === 1)!;
+  it('is never rolled for overnight expeditions', () => {
+    const overnight = dungeons.find((d) => d.overnight && d.tier === 1)!;
     const before = strong();
-    const result = win(before, 0, day, quest.id);
+    const result = win(before, 0, day, overnight.id);
     expect(result.report.success).toBe(true);
     expect(result.report.firstWin).toBeUndefined();
     expect(result.save.firstWinDay).toBe(before.firstWinDay);

@@ -335,7 +335,7 @@ export default function DebugScreen() {
   const [threatLevel, setThreatLevel] = useState<ThreatLevel>(1);
   const [threatElement, setThreatElement] = useState<Element>('fire');
 
-  /** Today's rotation with the debug overrides applied, as the quests screen sees it. */
+  /** Today's rotation with the debug overrides applied, as the expeditions screen sees it. */
   const rotation = currentRotation(now);
   const openDungeons = openDungeonIds(rotation).map((id) => dungeons.find((d) => d.id === id)!);
   const setBriefing = (dungeonId: string, briefing: Briefing) =>

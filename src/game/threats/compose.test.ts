@@ -115,7 +115,7 @@ describe('composition', () => {
     expect(days(40).some((day) => compose('wolfDen', day).opportunity !== null)).toBe(true);
   });
 
-  it('rolls a restriction only in tiers 4 and 5, never on overnight quests', () => {
+  it('rolls a restriction only in tiers 4 and 5, never on overnight expeditions', () => {
     for (const day of days(60)) {
       for (const id of ['dwarfhold', 'witchMarsh', 'nightWatch1'] as const) {
         expect(compose(id, day).restriction).toBeNull();

@@ -88,7 +88,7 @@ export function IslandMenu() {
             label={t('menu.expeditions')}
             badge={unseenReports}
             highlight={target === 'expeditions'}
-            onPress={() => go('/quests')}
+            onPress={() => go('/expeditions')}
           />
         </View>
       </View>

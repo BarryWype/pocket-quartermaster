@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 
-import { overnightQuestRules } from '@/content/dungeons';
+import { overnightExpeditionRules } from '@/content/dungeons';
 import { briefingFor, type Rotation } from '@/game/dungeons/rotation';
 import { isDungeonAvailable, expeditionMinutes, overnightUnderWay } from '@/game/expeditions/expeditions';
 import { oddsBand } from '@/game/expeditions/odds';
@@ -28,7 +28,7 @@ type Props = {
 const pad = (n: number) => String(n).padStart(2, '0');
 const clockTime = (ms: number) => `${pad(new Date(ms).getHours())}:${pad(new Date(ms).getMinutes())}`;
 
-/** The tier's overnight quest: a long, safe patrol for heroes with a long night ahead. */
+/** The tier's overnight expedition: a long, safe patrol for heroes with a long night ahead. */
 export function OvernightCard({ save, dungeon, rotation, now, chance, onSend }: Props) {
   const durationMs = expeditionMinutes(save, dungeon) * 60_000;
   const band = chance === null ? null : oddsBand(chance);
@@ -58,7 +58,7 @@ export function OvernightCard({ save, dungeon, rotation, now, chance, onSend }: 
         })}
       </Text>
       <BriefingChips briefing={briefingFor(rotation, dungeon)} />
-      <Text style={styles.muted}>{t('expeditions.overnight.hint', { runs: overnightQuestRules.goldRunsWorth })}</Text>
+      <Text style={styles.muted}>{t('expeditions.overnight.hint', { runs: overnightExpeditionRules.goldRunsWorth })}</Text>
       {underWay && <Text style={styles.muted}>{t('expeditions.overnight.underWay')}</Text>}
       <View style={styles.footer}>
         <Button title={t('expeditions.send')} disabled={!available || chance === null} onPress={onSend} />

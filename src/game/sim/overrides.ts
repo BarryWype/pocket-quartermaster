@@ -1,4 +1,4 @@
-import { expeditionRules, overnightQuestRules } from '@/content/dungeons';
+import { expeditionRules, overnightExpeditionRules } from '@/content/dungeons';
 import { elementRules } from '@/content/elements';
 import { masteryRules, salvageRules } from '@/content/forging';
 import { guildRules, guildTrackById } from '@/content/guild';
@@ -21,7 +21,7 @@ const roots: Record<string, unknown> = {
   guildRules,
   dungeons: dungeonById,
   expedition: expeditionRules,
-  overnight: overnightQuestRules,
+  overnight: overnightExpeditionRules,
   recipes: recipeById,
   items: itemById,
   heroes: heroClasses,

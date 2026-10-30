@@ -24,6 +24,7 @@ export const fr: Dictionary = {
     inventory: 'Inventaire',
     team: 'Équipe',
     hero: 'Fiche de personnage',
+    expeditions: 'Expéditions',
     quests: 'Quêtes',
     guild: 'Maison de guilde',
     settings: 'Réglages',
@@ -33,7 +34,7 @@ export const fr: Dictionary = {
     craftOpen: 'Atelier ▾',
     craftClosed: 'Atelier ▴',
     guild: 'Guilde',
-    expeditions: 'Quêtes',
+    expeditions: 'Expéditions',
   },
   walkEffects: {
     title: 'Objets de promenade',
@@ -110,7 +111,7 @@ export const fr: Dictionary = {
     tierDungeons: 'Donjons de palier {tier}',
     kind: { boss: 'Boss', short: 'Court', long: 'Long' },
     overnight: {
-      title: 'Quête de nuit',
+      title: 'Expédition de nuit',
       back: 'retour à {time}',
       rewards: '🪙 {gold} or · ✨ {xp} XP par héros, et une chance de trouvailles',
       hint: 'Une patrouille sûre et lente pour les héros qui partent pour la nuit : elle rapporte environ {runs} expéditions de ce palier.',

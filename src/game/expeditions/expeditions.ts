@@ -1,4 +1,4 @@
-import { expeditionRules, overnightQuestRules, dungeons } from '@/content/dungeons';
+import { expeditionRules, overnightExpeditionRules, dungeons } from '@/content/dungeons';
 import { newHero, xpRules } from '@/content/heroes';
 import { dungeonById, itemById, opportunityById, recipeById, recipeOutput } from '@/content/lookup';
 import { lootConfig } from '@/content/loot/config';
@@ -61,12 +61,12 @@ export function isDungeonAvailable(save: SaveData, dungeon: DungeonDef, rotation
   const tutorialDungeon = dungeon.id === tutorialRules.firstExpedition.dungeonId;
   if (isTutorialExpedition(save)) return tutorialDungeon;
   if (tutorialDungeon && save.tutorial.step !== 'done') return true;
-  // Overnight quests are open every day; they only follow their tier's unlock.
+  // Overnight expeditions are open every day; they only follow their tier's unlock.
   if (dungeon.overnight) return isDungeonUnlocked(save, dungeon);
   return isDungeonUnlocked(save, dungeon) && (!rotation || openDungeonIds(rotation).includes(dungeon.id));
 }
 
-/** Whether a win in this dungeon now would be the day's first (dungeons and tier bosses, never overnight quests). */
+/** Whether a win in this dungeon now would be the day's first (dungeons and tier bosses, never overnight expeditions). */
 export const firstWinAvailable = (save: SaveData, dungeon: DungeonDef, now: number) =>
   !dungeon.overnight && save.firstWinDay !== rotationDay(now);
 
@@ -77,11 +77,11 @@ export function expeditionMinutes(save: SaveData, dungeon: DungeonDef) {
 }
 
 /**
- * Minutes an overnight quest's supply is counted for: a patrol runs for hours
+ * Minutes an overnight expedition's supply is counted for: a patrol runs for hours
  * but is a safe, unhurried round, so it only costs `supplyHours` per hero.
  */
 const supplyMinutes = (save: SaveData, dungeon: DungeonDef) =>
-  dungeon.overnight ? overnightQuestRules.supplyHours * 60 : expeditionMinutes(save, dungeon);
+  dungeon.overnight ? overnightExpeditionRules.supplyHours * 60 : expeditionMinutes(save, dungeon);
 
 /** The optional meal for an expedition (provision item id) and whether the party opts into the opportunity cost. */
 export type Loadout = { mealId?: string | null; optIn?: boolean };
@@ -155,7 +155,7 @@ export const runProvisions = (hunger: Hunger, loadout: Loadout = {}, briefing: B
   elixirs: true,
 });
 
-/** Whether a patrol is out right now: only one overnight quest runs at a time. */
+/** Whether a patrol is out right now: only one overnight expedition runs at a time. */
 export const overnightUnderWay = (save: SaveData) => save.expeditions.some((e) => dungeonById[e.dungeonId]?.overnight);
 
 /** The briefing an expedition sets out with: the rotation's, else the day's composed one; the tutorial's is empty. */
@@ -181,7 +181,7 @@ export function startExpedition(
   // Secret dungeons launch from a tipped place, never through the rotation.
   if (dungeon.secret && !briefing) throw new Error(`${dungeon.name} is not available`);
   if (!dungeon.secret && !isDungeonAvailable(save, dungeon, rotation)) throw new Error(`${dungeon.name} is not available`);
-  // Overnight quests are patrols: only one is out at a time.
+  // Overnight expeditions are patrols: only one is out at a time.
   if (dungeon.overnight && overnightUnderWay(save)) throw new Error(`${dungeon.name} is already under way`);
   if (heroIds.length === 0) throw new Error('Pick at least one hero');
   if (heroIds.length > partySize(save)) throw new Error(`At most ${partySize(save)} heroes per expedition`);
@@ -268,7 +268,7 @@ function prisonerRecruit(save: SaveData, rng: Rng): HeroState {
 
 /** The loot matrix row a dungeon's win rolls (the first win of the day and a new tier's first clear come on top). */
 export const dungeonLootSource = (dungeon: DungeonDef): LootSourceId =>
-  dungeon.isBoss ? 'tierBoss' : dungeon.overnight ? 'overnightQuest' : 'dungeonRun';
+  dungeon.isBoss ? 'tierBoss' : dungeon.overnight ? 'overnightExpedition' : 'dungeonRun';
 
 /**
  * The party's consumables that never triggered during the run, broken back
@@ -379,7 +379,7 @@ export function resolveExpedition(
   );
 
   // A win rolls its row of the loot matrix, plus the day's first win (dungeons
-  // and tier bosses, never quests) and a new tier's first clear on top. A
+  // and tier bosses, never overnight expeditions) and a new tier's first clear on top. A
   // loss keeps its share of gold and XP and rolls nothing. The tutorial run
   // pays its fixed reward and counts as the day's first win.
   const firstWin = success && !dungeon.overnight && !dungeon.secret && save.firstWinDay !== rotationDay(expedition.endsAt);

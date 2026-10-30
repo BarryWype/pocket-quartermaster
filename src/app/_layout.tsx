@@ -23,7 +23,7 @@ configureNotifications();
 /**
  * Drops expired maps, lures and Sanctums, settles due patrol and place fights and heists, and
  * credits Guild Hall training on launch and on return to the app. Finished
- * expeditions wait for the player to collect their loot on the Quests page.
+ * expeditions wait for the player to collect their loot on the Expeditions page.
  */
 function useUpkeep() {
   useEffect(() => {
@@ -79,7 +79,7 @@ export default function RootLayout() {
         <Stack.Screen name="team/index" options={{ title: t('screens.team') }} />
         <Stack.Screen name="team/[heroId]" options={{ title: t('screens.hero') }} />
         <Stack.Screen name="team/classes" options={{ title: t('classes.title') }} />
-        <Stack.Screen name="quests" options={{ title: t('screens.quests') }} />
+        <Stack.Screen name="expeditions" options={{ title: t('screens.expeditions') }} />
         <Stack.Screen name="guild" options={{ title: t('screens.guild') }} />
         <Stack.Screen name="settings" options={{ title: t('screens.settings') }} />
         <Stack.Screen name="debug" options={{ title: t('screens.debug') }} />

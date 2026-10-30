@@ -109,7 +109,7 @@ const S = {
   abyssalDepths: strength(5, 1.69),
   titanRuins: strength(5, 1.74),
   dragonLair: strength(5, 1.37),
-  // Overnight quests: a long, safe patrol at low strength (see overnightQuestRules).
+  // Overnight expeditions: a long, safe patrol at low strength (see overnightExpeditionRules).
   nightWatch1: strength(1, 1.7),
   nightWatch2: strength(2, 2.5),
   nightWatch3: strength(3, 2.3),
@@ -272,7 +272,7 @@ export const bosses: BossDef[] = [
   boss('barnacledKnight', 'barnacled knight', S.drownedCrypt, 70, 8, ['undead'], undefined, 'water'),
   boss('elderSerpent', 'elder lake serpent', S.frozenLake, 70, 8, ['dragon', 'beast'], undefined, 'water'),
   boss('krakenBrood', 'kraken brood', S.abyssalDepths, 75, 9, ['beast'], 'sweep', 'water', 'slow'),
-  // The overnight quests' patrol leaders: the run's only real threat.
+  // The overnight expeditions' patrol leaders: the run's only real threat.
   boss('nightProwler', 'night prowler', S.nightWatch1, 120, 20, ['beast'], undefined, undefined, 'fast'),
   boss('roadStalker', 'road stalker', S.nightWatch2, 65, 12, ['beast'], undefined, undefined, 'fast'),
   boss('shaftHaunt', 'shaft haunt', S.nightWatch3, 65, 12, ['spirit', 'undead'], undefined, undefined, 'normal', 'magic'),

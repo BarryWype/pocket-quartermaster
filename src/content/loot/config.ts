@@ -31,7 +31,7 @@ export const lootConfig = {
     firstWin: 1,
     firstTierClear: 1,
     tierBoss: 1,
-    overnightQuest: 1,
+    overnightExpedition: 1,
     patrolGoblins: 1,
     patrolHerd: 1,
     patrolBandits: 1,
@@ -54,7 +54,7 @@ export const lootConfig = {
   /** No chance, however stacked, goes above this. */
   maxChance: 0.95,
   /** Run-scaled sources: minutes ÷ 45, clamped. Tier bosses and the first win of the day are never scaled. */
-  runLength: { sources: ['dungeonRun', 'overnightQuest'] as LootSourceId[], baseMinutes: 45, min: 0.25, max: 2 },
+  runLength: { sources: ['dungeonRun', 'overnightExpedition'] as LootSourceId[], baseMinutes: 45, min: 0.25, max: 2 },
   /** Luck raises non-A chances and gold amounts, never materials or other amounts. */
   luck: { chancePerPoint: 0.01, maxChanceBonus: 0.3, pointsPerQualityStep: 10, goldPerPoint: 0.05 },
   /** Charm effects for the run (see content/loot/charms.ts). */
@@ -67,7 +67,7 @@ export const lootConfig = {
     monsterPartsOnA: [2, 3] as [number, number],
   },
   /** Gear tier: these sources give the source's tier, all others the player's (70%) or one below (30%). */
-  dungeonSources: ['dungeonRun', 'firstWin', 'firstTierClear', 'tierBoss', 'overnightQuest'] as LootSourceId[],
+  dungeonSources: ['dungeonRun', 'firstWin', 'firstTierClear', 'tierBoss', 'overnightExpedition'] as LootSourceId[],
   gearTier: { playerTierShare: 0.7 },
   /**
    * A materials drop picks one option uniformly: a fixed material list, plus
@@ -170,7 +170,7 @@ export const lootConfig = {
   ],
   /**
    * Gold and XP a drop is worth, as shares of the tier's short dungeon (gold
-   * average, XP per hero). Dungeon runs, bosses and quests pay their own
+   * average, XP per hero). Dungeon runs, bosses and overnight expeditions pay their own
    * dungeon's gold and XP instead; the two bonus rows use `bonusRows`.
    */
   amounts: {

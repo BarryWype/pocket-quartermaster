@@ -94,8 +94,8 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
     notes: "Components are the boss's own; Legendary gear possible",
   },
 
-  overnightQuest: {
-    name: 'Overnight quest',
+  overnightExpedition: {
+    name: 'Overnight expedition',
     visitsPerDay: 1,
     marks: {
       gold: 'A',

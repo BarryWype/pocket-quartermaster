@@ -27,7 +27,7 @@ export const LOOT_SOURCES = [
   'firstWin',
   'firstTierClear',
   'tierBoss',
-  'overnightQuest',
+  'overnightExpedition',
   'patrolGoblins',
   'patrolHerd',
   'patrolBandits',

@@ -22,6 +22,7 @@ export const en = {
     inventory: 'Inventory',
     team: 'Team',
     hero: 'Character sheet',
+    expeditions: 'Expeditions',
     quests: 'Quests',
     guild: 'Guild Hall',
     settings: 'Settings',
@@ -31,7 +32,7 @@ export const en = {
     craftOpen: 'Craft ▾',
     craftClosed: 'Craft ▴',
     guild: 'Guild',
-    expeditions: 'Quests',
+    expeditions: 'Expeditions',
   },
   walkEffects: {
     title: 'Walking items',
@@ -108,7 +109,7 @@ export const en = {
     tierDungeons: 'Tier {tier} dungeons',
     kind: { boss: 'Boss', short: 'Short', long: 'Long' },
     overnight: {
-      title: 'Overnight quest',
+      title: 'Overnight expedition',
       back: 'back at {time}',
       rewards: '🪙 {gold} gold · ✨ {xp} XP per hero, and a chance at finds',
       hint: 'A safe, slow patrol for heroes with a long night ahead: it pays about {runs} runs of this tier.',

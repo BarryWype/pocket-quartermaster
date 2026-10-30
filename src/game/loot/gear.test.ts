@@ -38,7 +38,7 @@ const gearOver = (source: LootSourceId, rolls: number, overrides: Partial<LootRe
 
 describe('looted gear', () => {
   it('gives dungeon sources the source tier', () => {
-    const dungeon: LootSourceId[] = ['dungeonRun', 'firstWin', 'firstTierClear', 'tierBoss', 'overnightQuest'];
+    const dungeon: LootSourceId[] = ['dungeonRun', 'firstWin', 'firstTierClear', 'tierBoss', 'overnightExpedition'];
     for (const source of dungeon) {
       for (const piece of gearOver(source, 20, { tier: 4 })) {
         expect(piece.itemId).toMatch(/4$/);

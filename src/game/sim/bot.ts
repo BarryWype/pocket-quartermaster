@@ -70,7 +70,7 @@ export type ExpeditionRow = {
   dungeonId: string;
   tier: number;
   boss: boolean;
-  /** An overnight quest: rewards follow time away, not taps. */
+  /** An overnight expedition: rewards follow time away, not taps. */
   overnight: boolean;
   /** The briefing's threats, e.g. "ambush L2 met". */
   threats: string;
@@ -940,7 +940,7 @@ function expectedValue(sim: Sim, dungeon: DungeonDef, o: Odds, heroes: number) {
 export function sendExpeditions(sim: Sim) {
   const top = highestTier(sim.save);
   const open = dungeons.filter((d) => !d.overnight && d.tier >= top - 1 && isDungeonAvailable(sim.save, d, sim.rotation));
-  // The overnight quest of the top two tiers joins the ranking when the next
+  // The overnight expedition of the top two tiers joins the ranking when the next
   // session is at least a full patrol away (the day's last session, usually).
   // One patrol can be out at a time.
   const gapToNextSession = sim.collectionAt(sim.now + 1) - sim.now;

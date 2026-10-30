@@ -12,8 +12,8 @@ const input = (source: LootSourceId, overrides: Partial<Parameters<typeof lootCh
 
 describe('loot chances', () => {
   it('gives each mark its base chance', () => {
-    // overnightQuest: gold A, materials —, blueprints R, gear S, monsterParts O
-    const chances = lootChances(input('overnightQuest'));
+    // overnightExpedition: gold A, materials —, blueprints R, gear S, monsterParts O
+    const chances = lootChances(input('overnightExpedition'));
     expect(chances.blueprints).toBeCloseTo(lootConfig.markChances.R);
     expect(chances.gear).toBeCloseTo(lootConfig.markChances.S);
     expect(chances.monsterParts).toBeCloseTo(lootConfig.markChances.O);
@@ -26,8 +26,8 @@ describe('loot chances', () => {
   it('scales run length for run sources only', () => {
     expect(runLengthMultiplier('dungeonRun', 5)).toBe(0.25);
     expect(runLengthMultiplier('dungeonRun', 45)).toBe(1);
-    expect(runLengthMultiplier('overnightQuest', 480)).toBe(2);
-    expect(runLengthMultiplier('overnightQuest', 90)).toBe(2);
+    expect(runLengthMultiplier('overnightExpedition', 480)).toBe(2);
+    expect(runLengthMultiplier('overnightExpedition', 90)).toBe(2);
     expect(runLengthMultiplier('tierBoss', 5)).toBe(1);
     expect(runLengthMultiplier('tierBoss', 480)).toBe(1);
     expect(runLengthMultiplier('firstWin', 5)).toBe(1);
@@ -41,7 +41,7 @@ describe('loot chances', () => {
     const modifiers: LootModifier[] = [{ id: 'c', kind: 'chance', category: 'gear', multiplier: 1.5 }];
     const chance = categoryChance(
       'gear',
-      input('overnightQuest', { minutes: 480, luck: 100, modifiers }),
+      input('overnightExpedition', { minutes: 480, luck: 100, modifiers }),
     );
     expect(chance).toBe(0.95);
   });
@@ -49,15 +49,15 @@ describe('loot chances', () => {
   it('keeps A at 1 whatever multiplies it', () => {
     const modifiers: LootModifier[] = [{ id: 'c', kind: 'chance', category: 'gold', multiplier: 1.5 }];
     expect(
-      categoryChance('gold', input('overnightQuest', { minutes: 480, luck: 100, modifiers })),
+      categoryChance('gold', input('overnightExpedition', { minutes: 480, luck: 100, modifiers })),
     ).toBe(1);
   });
 
   it('raises non-A chances by 1% per Luck point, capped at +30%', () => {
-    const base = categoryChance('gear', input('overnightQuest'));
-    expect(categoryChance('gear', input('overnightQuest', { luck: 10 }))).toBeCloseTo(base * 1.1);
-    const capped = categoryChance('gear', input('overnightQuest', { luck: 30 }));
-    expect(categoryChance('gear', input('overnightQuest', { luck: 100 }))).toBeCloseTo(capped);
+    const base = categoryChance('gear', input('overnightExpedition'));
+    expect(categoryChance('gear', input('overnightExpedition', { luck: 10 }))).toBeCloseTo(base * 1.1);
+    const capped = categoryChance('gear', input('overnightExpedition', { luck: 30 }));
+    expect(categoryChance('gear', input('overnightExpedition', { luck: 100 }))).toBeCloseTo(capped);
   });
 
   it('adds flat Luck modifiers and dedupes by id', () => {
@@ -67,8 +67,8 @@ describe('loot chances', () => {
     ];
     expect(partyLuck(3, [{ id: 'a', kind: 'luck', add: 5 }])).toBe(8);
     expect(partyLuck(3, twice)).toBe(8);
-    const base = categoryChance('gear', input('overnightQuest'));
-    expect(categoryChance('gear', input('overnightQuest', { modifiers: twice }))).toBeCloseTo(
+    const base = categoryChance('gear', input('overnightExpedition'));
+    expect(categoryChance('gear', input('overnightExpedition', { modifiers: twice }))).toBeCloseTo(
       base * 1.05,
     );
   });
@@ -77,10 +77,10 @@ describe('loot chances', () => {
     const modifiers: LootModifier[] = [
       { id: 'charm', kind: 'chance', category: 'gear', multiplier: 1.5 },
     ];
-    const base = categoryChance('gear', input('overnightQuest'));
-    expect(categoryChance('gear', input('overnightQuest', { modifiers }))).toBeCloseTo(base * 1.5);
-    expect(categoryChance('valuables', input('overnightQuest', { modifiers }))).toBeCloseTo(
-      categoryChance('valuables', input('overnightQuest')),
+    const base = categoryChance('gear', input('overnightExpedition'));
+    expect(categoryChance('gear', input('overnightExpedition', { modifiers }))).toBeCloseTo(base * 1.5);
+    expect(categoryChance('valuables', input('overnightExpedition', { modifiers }))).toBeCloseTo(
+      categoryChance('valuables', input('overnightExpedition')),
     );
   });
 

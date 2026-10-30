@@ -5,7 +5,7 @@
 Loot is designed from scratch on top of the new dungeons, bosses, places, events and shops, not on the old reward code.
 
 ## Principles
-1. **Materials only where you walk**: gathering, shops, map events, patrols, ruins, the monster lair. Dungeons and quests launched from the phone give no materials.
+1. **Materials only where you walk**: gathering, shops, map events, patrols, ruins, the monster lair. Expeditions launched from the phone give no materials.
 2. **Loot feeds the forge instead of replacing it**: looted gear is random and usually average; forging gives the chosen type and quality. Most looted gear is salvaged into materials and mastery XP for its type.
 3. **Something after every fight**: monster parts and valuables make every win rewarding without handing out gear every time.
 4. **Tuning is cheap** (see below): no loot numbers in logic.
@@ -32,7 +32,7 @@ Loot is designed from scratch on top of the new dungeons, bosses, places, events
 
 ### Rolls
 - Each category is rolled separately on a win, with the chance of its mark: R 7%, R/2 3.5%, S 25%, O 60%, A 100%.
-- **Run length**: for dungeon runs and overnight quests, every R/2, R, S and O chance is multiplied by run minutes ÷ 45 (between ×0.25 and ×2, never above 95%). The first win of the day isn't scaled.
+- **Run length**: for dungeon runs and overnight expeditions, every R/2, R, S and O chance is multiplied by run minutes ÷ 45 (between ×0.25 and ×2, never above 95%). The first win of the day isn't scaled.
 - **Luck**: the party's total Luck multiplies every non-A chance by 1% per point (up to +30%); every 10 points add +1 to the looted gear quality roll. Never touches A drops or amounts.
 - **Charms**: a "×1.5" charm multiplies that category's chance (with Luck, never above 95%). The same charm doesn't stack across the party.
 - **Quantities per drop**: gold and XP by tier and source (existing scaling); materials 2–4 of the tier's materials; shards 2–4 of one element; monster parts 1–2 (2–3 on A sources); everything else 1.
@@ -49,7 +49,7 @@ Loot is designed from scratch on top of the new dungeons, bosses, places, events
 ### Gear as loot
 - Forged and looted gear both roll on a bell curve (3d6, ±6%). Mastery shifts the forge's curve upwards; looted gear is centred on average.
 - Quality: mostly Crappy to Uncommon; Rare from big fights; Legendary only from bosses and the monster lair. A new **Uncommon** quality (×1.07) sits between Normal and Rare.
-- Tier: dungeons and quests give the dungeon's tier; map events, patrols and the lair give the player's tier 70% of the time, one below 30%, never more than one below.
+- Tier: expeditions give the dungeon's tier; map events, patrols and the lair give the player's tier 70% of the time, one below 30%, never more than one below.
 
 ### Blueprints
 - One per forgeable type and tier (110). Never a duplicate: a drop picks an unknown one of the source's tier, weighted towards types the roster favours, and becomes mastery XP or a component once the tier is complete.

@@ -95,3 +95,23 @@ describe('language switch', () => {
     );
   });
 });
+
+describe('expedition wording', () => {
+  // Runs launched from the phone are expeditions; "quest" means the daily quests.
+  it('never calls an expedition a quest', () => {
+    const texts = {
+      ...strings(en.expeditions, 'en'),
+      ...strings(fr.expeditions, 'fr'),
+      en: en.menu.expeditions,
+      fr: fr.menu.expeditions,
+      enScreen: en.screens.expeditions,
+      frScreen: fr.screens.expeditions,
+      ...strings(tutorialHints, 'tutorial'),
+      ...strings(frTutorialHints, 'frTutorial'),
+      ...strings(logTemplates, 'log'),
+      ...strings(frLogTemplates, 'frLog'),
+    };
+    const quests = Object.entries(texts).filter(([, text]) => /qu[eê]te?s?\b|\bquest/i.test(text));
+    expect(quests).toEqual([]);
+  });
+});

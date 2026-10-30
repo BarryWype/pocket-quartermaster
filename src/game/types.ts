@@ -769,7 +769,7 @@ export type DungeonDef = {
   isBoss?: boolean;
   /** Regular dungeons rotate daily: one `short` (farm) and one `long` slot per tier. */
   slot?: 'short' | 'long';
-  /** An overnight quest: open every day alongside the rotation, not part of it. */
+  /** An overnight expedition: open every day alongside the rotation, not part of it. */
   overnight?: boolean;
   /** A secret dungeon, launched from a tipped place: never in the rotation, no first-win or first-clear rows. */
   secret?: boolean;

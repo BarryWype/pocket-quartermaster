@@ -25,7 +25,7 @@ const SOURCE_BY_NAME: Record<string, LootSourceId> = {
   'Dungeon, first win of the day': 'firstWin',
   'First clear of a new tier': 'firstTierClear',
   'Tier boss': 'tierBoss',
-  'Overnight quest': 'overnightQuest',
+  'Overnight expedition': 'overnightExpedition',
   'Patrol: goblin scouts': 'patrolGoblins',
   'Patrol: game herd': 'patrolHerd',
   'Patrol: bandits': 'patrolBandits',

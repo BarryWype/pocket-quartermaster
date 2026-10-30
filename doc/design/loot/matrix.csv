@@ -3,7 +3,7 @@ Dungeon run,6,A,A,—,—,R,S,R/2,—,—,O,S,S,R,R,R/2,Launched from the phone:
 "Dungeon, first win of the day",1,A,A,—,R,A,S,S,—,—,O,S,S,R,S,R,The first won dungeon of the day (one per day in total)
 First clear of a new tier,0.03,A,A,—,—,A,A,—,—,—,O,S,S,—,S,A,Gear at least Uncommon
 Tier boss,0.2,A,A,—,R,R,O,S,S,R,A,O,S,S,S,R,Components are the boss's own; Legendary gear possible
-Overnight quest,1,A,A,—,—,R,S,R,—,—,O,O,S,S,R,—,
+Overnight expedition,1,A,A,—,—,R,S,R,—,—,O,O,S,S,R,—,
 Patrol: goblin scouts,1.33,O,O,S,—,—,R,—,—,—,O,S,S,—,—,—,
 Patrol: game herd,1.33,S,O,A,—,—,—,—,R,—,A,—,—,—,—,—,"Meat, hide, bone; components from elites"
 Patrol: bandits,1.33,A,O,O,—,—,S,—,—,—,S,O,S,R,—,—,

@@ -50,7 +50,7 @@ A location-based mobile game where the player is the quartermaster of a team of 
 2. Store materials in your inventory.
 3. Forge equipment from anywhere using recipes (no fixed forge location).
 4. Equip your team members with the forged gear.
-5. Send the team on timed expeditions (dungeons, quests).
+5. Send the team on timed expeditions (dungeons, overnight expeditions).
 6. Receive results: gold, new recipes, rare materials, XP.
 7. Use rewards to recruit mercenaries, unlock recipes, and tackle harder dungeons.
 

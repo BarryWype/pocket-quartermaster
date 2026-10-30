@@ -229,12 +229,12 @@ const ashenCitadel: DungeonDef = {
 };
 
 /**
- * Overnight quests: one per tier, open every day alongside the rotation and
+ * Overnight expeditions: one per tier, open every day alongside the rotation and
  * unlocked with its tier. A long, safe patrol for players who won't be back
  * for hours: it pays about `goldRunsWorth`/`xpRunsWorth` short runs of the tier, counted as
  * `supplyHours` of supply per hero, and is the only dungeon with `overnight`.
  */
-export const overnightQuestRules = {
+export const overnightExpeditionRules = {
   /** Hours a patrol takes. */
   durationHours: 8,
   /** Gold for about this many of the tier's short runs. */
@@ -245,8 +245,8 @@ export const overnightQuestRules = {
   supplyHours: 3,
 };
 
-/** The tier's overnight quest: the short dungeon's easiest mobs, a mild trap and a patrol leader. */
-function nightQuest(
+/** The tier's overnight expedition: the short dungeon's easiest mobs, a mild trap and a patrol leader. */
+function nightExpedition(
   id: string,
   name: string,
   emoji: string,
@@ -255,14 +255,14 @@ function nightQuest(
   trap: Omit<Trap, 'type' | 'weight'>,
   bossId: string,
 ): DungeonDef {
-  const { goldRunsWorth, xpRunsWorth } = overnightQuestRules;
+  const { goldRunsWorth, xpRunsWorth } = overnightExpeditionRules;
   return {
     id,
     name,
     emoji,
     tier: base.tier,
     overnight: true,
-    durationMinutes: overnightQuestRules.durationHours * 60,
+    durationMinutes: overnightExpeditionRules.durationHours * 60,
     encounterCount: [4, 5],
     encounters: [
       { type: 'fight', weight: 3, mobs: [{ mobId: weak, count: 2 }] },
@@ -277,7 +277,7 @@ function nightQuest(
   };
 }
 
-const nightWatch1 = nightQuest(
+const nightWatch1 = nightExpedition(
   'nightWatch1',
   'Night Watch',
   '🏮',
@@ -286,7 +286,7 @@ const nightWatch1 = nightQuest(
   { name: 'loose slates', targets: 'one' },
   'nightProwler',
 );
-const nightWatch2 = nightQuest(
+const nightWatch2 = nightExpedition(
   'nightWatch2',
   'Road Watch',
   '🌉',
@@ -295,7 +295,7 @@ const nightWatch2 = nightQuest(
   { name: 'washed-out ford', targets: 'one' },
   'roadStalker',
 );
-const nightWatch3 = nightQuest(
+const nightWatch3 = nightExpedition(
   'nightWatch3',
   'Deep Watch',
   '⛏️',
@@ -304,7 +304,7 @@ const nightWatch3 = nightQuest(
   { name: 'creaking beam', targets: 'one' },
   'shaftHaunt',
 );
-const nightWatch4 = nightQuest(
+const nightWatch4 = nightExpedition(
   'nightWatch4',
   'Border Watch',
   '🗼',
@@ -313,7 +313,7 @@ const nightWatch4 = nightQuest(
   { name: 'loose scree', targets: 'one' },
   'campRaider',
 );
-const nightWatch5 = nightQuest(
+const nightWatch5 = nightExpedition(
   'nightWatch5',
   'Rampart Watch',
   '🏰',
@@ -670,7 +670,7 @@ export const dungeons: DungeonDef[] = [
     xp: 900,
   },
 
-  // Overnight quests: open every day, unlocked with their tier.
+  // Overnight expeditions: open every day, unlocked with their tier.
   nightWatch1,
   nightWatch2,
   nightWatch3,
