@@ -59,6 +59,7 @@ import { lootChances } from '@/game/loot/chances';
 import { createRng } from '@/game/generation/rng';
 import { rollForSave, sourceAmounts } from '@/game/loot/context';
 import { lootConfig } from '@/content/loot/config';
+import { secretRules, type TipSource } from '@/content/secrets';
 import { lootMatrix } from '@/content/loot/matrix';
 import { components } from '@/content/loot/components';
 import { charms } from '@/content/loot/charms';
@@ -93,6 +94,8 @@ const LOOT_FORCES: (LootCategory | null)[] = [null, ...LOOT_CATEGORIES];
 const RUN_MINUTES: (number | null)[] = [null, 5, 45, 120, 480];
 const LUCK_POINTS = [0, 10, 30, 100];
 const MAP_RARITIES: MapRarity[] = ['common', 'rare', 'legendary'];
+/** One tip source per secret place, for the debug buttons. */
+const SECRET_SOURCES: TipSource[] = ['library', 'heist', 'fishingDock'];
 
 /**
  * A source's roll table with its final chances (after Luck, a ×1.5 charm on
@@ -155,6 +158,7 @@ function LootDebug() {
           <Button key={`manual${rarity}`} title={`+ ${rarity} manual`} onPress={() => grant({ manuals: [rarity] })} />
         ))}
         <Button title="+ key fragment" onPress={() => grant({ keyFragments: 1 })} />
+        <Button title="+ mysterious key" onPress={() => grant({ keyFragments: lootConfig.keyFragmentsPerKey })} />
       </View>
       <View style={styles.row}>
         {monsterParts.map((part) => (
@@ -618,6 +622,26 @@ export default function DebugScreen() {
         <Button title="Place it next to me" onPress={placePlace} />
         <Button title="Clear placed" onPress={() => debug.set({ debugPlaces: [] })} />
         <Button title="Refill shops" onPress={game.refillPlaces} />
+      </View>
+      <Text>Secret places (force a Sealed vault: pick it as a dungeon’s opportunity below)</Text>
+      <View style={styles.row}>
+        {SECRET_SOURCES.map((source) => (
+          <Button
+            key={`tip${source}`}
+            title={`Tip: ${placeInfo[secretRules.tips[source].secret].emoji}`}
+            onPress={async () => game.giveTip(source, await currentPosition())}
+          />
+        ))}
+        {SECRET_SOURCES.map((source) => (
+          <Button
+            key={`here${source}`}
+            title={`${placeInfo[secretRules.tips[source].secret].emoji} next to me`}
+            onPress={async () => {
+              const position = await currentPosition();
+              game.giveTip(source, position, offsetPosition(position, 20, 0));
+            }}
+          />
+        ))}
       </View>
       <Text>Ruins dug: {game.save.ruinsProgress} / 5</Text>
       <View style={styles.row}>

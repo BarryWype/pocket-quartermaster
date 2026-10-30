@@ -912,4 +912,6 @@ export type SecretTip = {
   expiresAt: number;
   /** Den and black market: the key was spent on entering; the offer stays open until used up or the place resets. */
   entered?: boolean;
+  /** A fixed marker spot instead of the seeded ones (debug spawns). */
+  position?: LatLng;
 };

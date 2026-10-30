@@ -84,6 +84,7 @@ export function tipSpots(tip: SecretTip): LatLng[] {
 
 /** Where the tip's marker sits: the first underwater spot near water, or the single spot otherwise. */
 export function tipPosition(tip: SecretTip, isNearWater?: (point: LatLng) => boolean): LatLng | null {
+  if (tip.position) return tip.position;
   const spots = tipSpots(tip);
   if (tip.secret !== 'underwaterDungeon') return spots[0];
   if (!isNearWater) return null;

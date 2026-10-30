@@ -44,7 +44,7 @@ import { digRuin } from '@/game/places/ruins';
 import { launchUnderwater } from '@/game/secrets/dungeon';
 import { grantTip, type TipOutcome } from '@/game/secrets/tips';
 import { buyAtBlackMarket, enterSecret, recruitAtSecret } from '@/game/secrets/places';
-import type { TipSource } from '@/content/secrets';
+import { secretRules, type TipSource } from '@/content/secrets';
 import { pickApproach } from '@/game/team/stats';
 import { dismissHero, equip, heroStats, isAway, keepHpShare, markClassesSeen, setKitFor, unequip } from '@/game/team/team';
 import { buySupply, recruit, type RecruitOffer } from '@/game/taverns/taverns';
@@ -144,8 +144,8 @@ type GameState = {
   buyAtBlackMarket: (place: PlaceSpawn, key: string, player: LatLng) => void;
   /** Spends a mysterious key and sends the party into the tipped underwater dungeon. */
   launchUnderwater: (place: PlaceSpawn, heroIds: string[], player: LatLng, loadout?: Loadout) => void;
-  /** Debug: a tip for any secret place, found here. */
-  giveTip: (source: TipSource, position: LatLng) => void;
+  /** Debug: a tip for any secret place, found here; with `spot`, the place sits there (replacing an active one). */
+  giveTip: (source: TipSource, position: LatLng, spot?: LatLng) => void;
   buyRank: (trackId: GuildTrackId) => void;
   /** Credits Guild Hall training XP since the last check. */
   train: () => void;
@@ -371,10 +371,15 @@ export const useGameStore = create<GameState>()(
       buyAtBlackMarket: (place, key, player) => set(({ save }) => ({ save: buyAtBlackMarket(save, place, key, player, Date.now()) })),
       launchUnderwater: (place, heroIds, player, loadout) =>
         set(({ save }) => ({ save: launchUnderwater(save, place, heroIds, player, Date.now(), loadout) })),
-      giveTip: (source, position) => {
+      giveTip: (source, position, spot) => {
         const now = Date.now();
-        const { save, outcome } = grantTip(get().save, { source, sourceId: `debug:${now}`, anchor: position }, now);
-        set({ save });
+        const secret = secretRules.tips[source].secret;
+        const start = spot ? { ...get().save, secretTips: get().save.secretTips.filter((tip) => tip.secret !== secret) } : get().save;
+        const { save, outcome } = grantTip(start, { source, sourceId: `debug:${now}`, anchor: position }, now);
+        const placed = spot && outcome.kind === 'tip'
+          ? { ...save, secretTips: save.secretTips.map((tip) => (tip.id === outcome.tip.id ? { ...tip, position: spot } : tip)) }
+          : save;
+        set({ save: placed });
         noteTips([outcome]);
       },
       buyRank: (trackId) => set(({ save }) => ({ save: buyRank(save, trackId) })),
