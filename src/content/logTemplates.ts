@@ -107,6 +107,7 @@ export const logTemplates = {
   duel: ' {hero} found the gap in a lone foe’s guard.',
   fightHeal: ' {hero} shared a bite to eat.',
   secondPotion: ' {hero} drank a second potion.',
+  relic: ' {hero}’s {relic} answered.',
   /** The opening lines for the party's stat, speed and oil elixirs. */
   elixirDrank: ' {hero} drank their {item} before setting out.',
   elixirOil: ' {hero} coated their weapon with {item}.',

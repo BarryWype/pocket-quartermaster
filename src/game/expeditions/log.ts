@@ -1,7 +1,7 @@
 import { mobById } from '@/content/enemies';
 import { frLogTemplates } from '@/content/fr/logTemplates';
 import { logTemplates as enLogTemplates } from '@/content/logTemplates';
-import { itemById, materialById, opportunityById, threatById } from '@/content/lookup';
+import { itemById, materialById, opportunityById, relicById, threatById } from '@/content/lookup';
 import { article, plural } from '@/i18n/french';
 import { fill, getLocale, localized, t, tr } from '@/i18n';
 
@@ -127,6 +127,8 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
             return [logTemplates.poison];
           case 'casters':
             return [fill(logTemplates.casters, { hero })];
+          case 'relic':
+            return [fill(logTemplates.relic, { hero, relic: tr(relicById[e.relicId!].name) })];
           default:
             return [];
         }

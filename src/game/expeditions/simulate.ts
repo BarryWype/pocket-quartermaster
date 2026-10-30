@@ -17,7 +17,7 @@ import { mobTags } from '../enemies/tags';
 import type { SaveData } from '../save';
 import { trinketEffect } from '../loot/trinkets';
 import { currentHp } from '../team/health';
-import { heroAbilities, heroDamageStat, heroStats, gearKeywordsOf, healingPotion } from '../team/team';
+import { heroAbilities, heroDamageStat, heroStats, gearKeywordsOf, healingPotion, relicEffectsOf, type GearKeywordEntry, type WornRelicEffect } from '../team/team';
 import { classApproaches, gearApproachBonus, heroApproachBonus } from '../team/stats';
 import { heroAnswers, type AnswersMember, type HeroAnswers } from '../threats/answers';
 import { threatPenalties, type AppliedPenalty, type PenaltyReduction } from '../threats/penalties';
@@ -33,6 +33,7 @@ import type {
   DungeonDef,
   EncounterDef,
   ExpeditionOutcome,
+  GearCondition,
   GearDef,
   HeroClassId,
   HeroState as Hero,
@@ -44,6 +45,7 @@ import type {
   MobGroup,
   NpcHelp,
   OpportunityOutcome,
+  RelicEffect,
   RestrictionId,
   Tag,
 } from '../types';
@@ -62,8 +64,10 @@ export type PartyMember = {
   /** Personal trait id; party-wide trait effects count once per trait. */
   traitId: string;
   weaponName: string | null;
-  /** The keywords of the hero's weapon, armour and off-hand; magic pieces marked, strong ones doubled. */
-  gearKeywords: { keyword: Keyword; magic: boolean; strong?: true }[];
+  /** The keywords of the hero's weapon, armour and off-hand; magic pieces marked, strong ones doubled, relic ones behind their condition. */
+  gearKeywords: GearKeywordEntry[];
+  /** The non-keyword effects of the relics restored into the hero's weapon, armour and off-hand. */
+  relicEffects?: WornRelicEffect[];
   /** Any equipped piece is heavy (warhammer, plate). */
   heavy: boolean;
   /** Weapon and off-hand are each empty or Concealed; unarmed heroes with a free off-hand count. */
@@ -149,11 +153,15 @@ export type AbilityEffect = {
     | 'duel'
     /** A Cook's bite to eat after the fight. */
     | 'fightHeal'
+    /** A relic answered for this hero in this encounter. */
+    | 'relic'
     /** An Alchemist drank the potion in their second slot. */
     | 'secondPotion';
   tag?: Tag;
   /** The ally a `protect` shielded. */
   allyId?: string;
+  /** The relic behind a `relic` note. */
+  relicId?: string;
 };
 
 export type LocalsReaction = 'help' | 'fight' | 'steal' | 'neutral';
@@ -276,6 +284,7 @@ export function answersMemberOf(member: PartyMember): AnswersMember {
     classId: member.classId,
     traitId: member.traitId,
     gearKeywords: member.gearKeywords,
+    relicEffects: member.relicEffects,
     // A Porter's kit counts for the hero they carry it for, not for them.
     kit: member.consumable?.kit && !member.carriesFor ? { itemId: member.consumable.id, effect: member.consumable.kit } : null,
     salveElement: member.carriesFor ? null : (member.consumable?.protectsAgainst ?? null),
@@ -341,6 +350,7 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs
       const porter = heroes.find((h) => carrierFor(h) === hero.id);
       // A Monk's fists (no weapon, or knuckles) pierce armour.
       const fists = heroClass.abilities.some((a) => a.kind === 'fistsPierce') && (!weaponItem || weaponItem.gearType === 'knuckles');
+      const relicEffects = relicEffectsOf(save, hero);
       // The hero's hits roll with their damage stat; only the Magic part is halved in an anti-magic zone.
       const damageStat = heroDamageStat(save, hero);
       const elixir = elixirs ? consumable?.elixir : undefined;
@@ -354,6 +364,7 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs
         traitId: hero.trait,
         weaponName: weapon ? gearName(weapon) : null,
         gearKeywords: gearKeywordsOf(save, hero),
+        relicEffects,
         heavy: pieces.some((item) => item.heavy),
         concealed: [weaponItem, offhandItem].every((item) => !item || item.concealed),
         maxHp: stats.hp,
@@ -374,6 +385,7 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs
         resists: [
           ...(heroClass.resists ?? []),
           ...(consumable?.protectsAgainst && !carriesFor ? [consumable.protectsAgainst] : []),
+          ...(relicEffects.filter((e) => e.effect.kind === 'immune').map((e) => (e.effect as Extract<RelicEffect, { kind: 'immune' }>).element)),
           ...(porter ? [itemById[porter.equipment.consumable!] as ConsumableDef].flatMap((kit) => (kit.protectsAgainst ? [kit.protectsAgainst] : [])) : []),
         ],
         abilities: [
@@ -467,7 +479,8 @@ export function simulateRun(
       carriedLeft: member.carriedKit?.kit?.heal !== undefined,
       fed: damage,
       keywords,
-      strong: new Set(member.gearKeywords.filter((k) => k.strong && keywords.has(k.keyword)).map((k) => k.keyword)),
+      // A relic's own keyword doubles only while its condition holds, so conditional entries wait for isStrong.
+      strong: new Set(member.gearKeywords.filter((k) => k.strong && !k.when && keywords.has(k.keyword)).map((k) => k.keyword)),
     };
   });
   const alive = () => heroes.filter((h) => !h.out);
@@ -483,9 +496,14 @@ export function simulateRun(
     meal?.kind === 'penaltyCut'
       ? { ...classReduction, threats: Object.fromEntries(meal.threats.map((id) => [id, meal.multiplier])) }
       : classReduction;
+  // A restored relic cancels a threat's penalties for the whole party (the Smuggler's coat: no stolen loot).
+  const cancelled = new Set(
+    party.flatMap((m) => (m.relicEffects ?? []).flatMap((e) => (e.effect.kind === 'cancelPenalty' ? [e.effect.threat] : []))),
+  );
   const penalties: AppliedPenalty[] = scores.threats
     .flatMap((score) => threatPenalties(score, undefined, reduction))
-    .filter((p) => !(fence && p.threatId === 'thieves' && p.kind === 'lostLoot'));
+    .filter((p) => !(fence && p.threatId === 'thieves' && p.kind === 'lostLoot'))
+    .filter((p) => !cancelled.has(p.threatId));
   const ofKind = <K extends AppliedPenalty['kind']>(kind: K) =>
     penalties.filter((p): p is Extract<AppliedPenalty, { kind: K }> => p.kind === kind);
   const weakenedAgainst = ofKind('weakenedAgainst').reduce((m, p) => m * (1 - p.pct), 1);
@@ -494,7 +512,17 @@ export function simulateRun(
     Math.max(
       0,
       ofKind('weakened').reduce(
-        (m, p) => m * (1 - p.pct * (member.heavy && p.threatId === 'underwater' ? gearKeywordRules.heavy.underwaterMultiplier : 1)),
+        (m, p) =>
+          // A relic ignores a threat's weakened penalty in the run's first fight (the Drowned bell).
+          fightsSeen === 0 &&
+          party.some((m2) =>
+            (m2.relicEffects ?? []).some(
+              (e): e is WornRelicEffect & { effect: Extract<RelicEffect, { kind: 'ignorePenalty' }> } =>
+                e.effect.kind === 'ignorePenalty' && e.effect.threat === p.threatId && holds(e.effect.when),
+            ),
+          )
+            ? m
+            : m * (1 - p.pct * (member.heavy && p.threatId === 'underwater' ? gearKeywordRules.heavy.underwaterMultiplier : 1)),
         1,
       ),
     );
@@ -535,6 +563,32 @@ export function simulateRun(
     return element ? [...def.tags, element] : mobTags(def);
   };
 
+  /** A relic's condition, checked where it applies: the foe's tags, the run's first fight, or the briefing. */
+  const holds = (when: GearCondition, tags?: Tag[]) => {
+    if ('firstFight' in when) return fightsSeen === 0;
+    if ('threat' in when) return activeBriefing.threats.some((t) => t.id === when.threat);
+    return tags !== undefined && tags.includes(when.tag);
+  };
+  /** The hero's conditional gear keywords that hold here; a magic piece's fall in an anti-magic zone. */
+  const conditional = (hero: HeroState, keyword: Keyword, tags?: Tag[]) =>
+    hero.member.gearKeywords.filter(
+      (e) => e.when && e.keyword === keyword && !(restriction === 'antiMagic' && e.magic) && holds(e.when, tags),
+    );
+  /** The keyword the hero has here, plain, strong from gear, or held by a relic's condition. */
+  const has = (hero: HeroState, keyword: Keyword, tags?: Tag[]) =>
+    hero.keywords.has(keyword) || conditional(hero, keyword, tags).length > 0;
+  const isStrong = (hero: HeroState, keyword: Keyword, tags?: Tag[]) =>
+    hero.strong.has(keyword) || conditional(hero, keyword, tags).some((e) => e.strong);
+  /** The hero's relic effects of this kind whose condition holds here. */
+  const relicEffect = <K extends RelicEffect['kind']>(hero: HeroState, kind: K, tags?: Tag[]) =>
+    (hero.member.relicEffects ?? []).find(
+      (e): e is WornRelicEffect & { effect: Extract<RelicEffect, { kind: K }> } => {
+        if (e.effect.kind !== kind) return false;
+        const when = 'when' in e.effect ? e.effect.when : undefined;
+        return when ? holds(when, tags) : true;
+      },
+    );
+
   /** ±variance, sometimes a crit; cursed luck means there are no crits. */
   const roll = (value: number, critChance = rules.enemyCritChance, onCrit?: () => void, critMultiplier = rules.critMultiplier) => {
     const varied = value * (1 + (rng.next() * 2 - 1) * rules.damageVariance);
@@ -567,6 +621,12 @@ export function simulateRun(
     if (!element || salve !== element) return;
     damageElements[hero.member.heroId] = [...(damageElements[hero.member.heroId] ?? []), element];
   };
+  /** A relic effect at work: one note per encounter and hero. */
+  const noteRelic = (result: EncounterResult, heroId: string, relicId: string) => {
+    if (!result.effects.some((e) => e.key === 'relic' && e.heroId === heroId)) result.effects.push({ heroId, key: 'relic', relicId });
+  };
+  /** Heroes whose first spell already struck every enemy of the run's first fight. */
+  const firstSpellUsed = new Set<string>();
 
   const heal = (hero: HeroState, share: number, result: EncounterResult) => {
     const amount = Math.min(hero.member.maxHp - hero.hp, share * hero.member.maxHp * healing);
@@ -688,6 +748,8 @@ export function simulateRun(
     const note = (heroId: string | null, key: AbilityEffect['key'], extra: Partial<AbilityEffect> = {}) => {
       if (!result.effects.some((e) => e.key === key && e.heroId === heroId)) result.effects.push({ heroId, key, ...extra });
     };
+    /** The tags of every enemy of this fight, for the relic conditions that hold against any of them. */
+    const anyTags = [...new Set(enemies.flatMap((e) => enemyTags(e.def)))];
     const heroesAttack = (attackers: HeroState[]) => {
       // The best buff of a conscious hero lifts everyone; buffs don't stack.
       const buffer = alive()
@@ -696,8 +758,8 @@ export function simulateRun(
         .sort((a, b) => b.buff!.multiplier - a.buff!.multiplier)[0];
       if (buffer) note(buffer.h.member.heroId, 'buff');
       // Inspire lifts the whole party while a conscious hero has it, on top of the best buff.
-      const inspired = alive().some((h) => h.keywords.has('inspire'))
-        ? alive().some((h) => h.strong.has('inspire'))
+      const inspired = alive().some((h) => has(h, 'inspire', anyTags))
+        ? alive().some((h) => isStrong(h, 'inspire', anyTags))
           ? gearKeywordRules.strong.inspire.multiplier
           : gearKeywordRules.inspire.multiplier
         : 1;
@@ -709,7 +771,7 @@ export function simulateRun(
           const id = hero.member.heroId;
           const tags = enemyTags(target.def);
           // An armoured target blunts Power in full and Magic only partly; Pierce ignores it.
-          const armourFactor = hero.keywords.has('pierce')
+          const armourFactor = has(hero, 'pierce', tags)
             ? 1
             : hero.member.damageStat === 'power'
               ? weakenedAgainst
@@ -734,8 +796,8 @@ export function simulateRun(
           // The wheel only touches the elemental part of a hit.
           const wheel = (element: Element | undefined) => {
             let multiplier = weaponMultiplier(element, targetElement);
-            const channel = hero.keywords.has('channel')
-              ? hero.strong.has('channel')
+            const channel = has(hero, 'channel', tags)
+              ? isStrong(hero, 'channel', tags)
                 ? gearKeywordRules.strong.channel.advantage
                 : gearKeywordRules.channel.advantage
               : 1;
@@ -760,29 +822,58 @@ export function simulateRun(
           const critBonus = hero.member.abilities.reduce((sum, a) => sum + (a.kind === 'critBonus' ? a.chance : 0), 0);
           // A Duelist's crits hit harder in a fight against a lone enemy.
           const duel = enemies.length === 1 ? own(hero, 'singleEnemyCrit') : undefined;
-          const onCrit = duel ? () => note(id, 'duel') : critBonus > 0 ? () => note(id, 'crit') : undefined;
-          const hit = roll(physical + elemental, hero.member.crit / 100 + critBonus, onCrit, duel?.multiplier);
+          // A relic's crit damage against a matching foe replaces the usual crit multiplier.
+          const critDamage = relicEffect(hero, 'critDamage', tags);
+          const staggerOnCrit = relicEffect(hero, 'staggerOnCrit', tags);
+          let crit = false;
+          const onCrit = () => {
+            crit = true;
+            if (duel) note(id, 'duel');
+            else if (critBonus > 0) note(id, 'crit');
+            if (critDamage) noteRelic(result, id, critDamage.relicId);
+          };
+          const hit = roll(physical + elemental, hero.member.crit / 100 + critBonus, onCrit, duel?.multiplier ?? critDamage?.effect.multiplier);
           const damage = hit * fortune * bonus * hero.fed;
-          target.hp -= damage;
-          add(result.dealt, id, damage);
+          // The first spell of the run's first fight strikes every living enemy instead of one.
+          const firstSpell =
+            fightsSeen === 0 && hero.member.damageStat === 'magic' && !firstSpellUsed.has(id) && relicEffect(hero, 'firstSpellAll');
+          for (const foe of firstSpell ? enemies.filter((e) => e.hp > 0) : [target]) {
+            foe.hp -= damage;
+            add(result.dealt, id, damage);
+          }
+          if (firstSpell) {
+            firstSpellUsed.add(id);
+            noteRelic(result, id, firstSpell.relicId);
+          }
           attacked.add(id);
+          // A relic heals its wearer when their hit kills a matching foe.
+          const healOnKill = relicEffect(hero, 'healOnKill', tags);
+          if (healOnKill && target.hp <= 0) {
+            heal(hero, healOnKill.effect.pct, result);
+            noteRelic(result, id, healOnKill.relicId);
+          }
           // Cleave splashes onto the next living enemy after the target.
-          if (hero.keywords.has('cleave')) {
+          if (has(hero, 'cleave', tags)) {
             const splashTarget = enemies.slice(enemies.indexOf(target) + 1).find((e) => e.hp > 0);
             if (splashTarget) {
-              const splash = damage * (hero.strong.has('cleave') ? gearKeywordRules.strong.cleave.splash : gearKeywordRules.cleave.splash);
+              const splash = damage * (isStrong(hero, 'cleave', tags) ? gearKeywordRules.strong.cleave.splash : gearKeywordRules.cleave.splash);
               splashTarget.hp -= splash;
               add(result.dealt, id, splash);
             }
           }
           // Stagger makes the target lose its next attack, once at a time.
           if (
-            hero.keywords.has('stagger') &&
+            has(hero, 'stagger', tags) &&
             target.hp > 0 &&
             !target.staggered &&
-            rng.chance(hero.strong.has('stagger') ? gearKeywordRules.strong.stagger.chance : gearKeywordRules.stagger.chance)
+            rng.chance(isStrong(hero, 'stagger', tags) ? gearKeywordRules.strong.stagger.chance : gearKeywordRules.stagger.chance)
           ) {
             target.staggered = true;
+          }
+          // A relic staggers a matching foe on every crit.
+          if (crit && staggerOnCrit && target.hp > 0 && !target.staggered) {
+            target.staggered = true;
+            noteRelic(result, id, staggerOnCrit.relicId);
           }
           if (second) return;
           const living = enemies.filter((e) => e.hp > 0);
@@ -818,7 +909,8 @@ export function simulateRun(
         // The boss encounter takes the brute's extra damage, effect or not.
         const boss: BossDef | null = isBoss || 'effect' in enemy.def ? (enemy.def as BossDef) : null;
         const enraged = boss?.effect === 'enrage' && !weakness?.noEnrage && enemy.hp < enemy.maxHp / 2;
-        const beast = enemyTags(enemy.def).includes('beast');
+        const attackerTags = enemyTags(enemy.def);
+        const beast = attackerTags.includes('beast');
         const base =
           enemy.def.damage *
           (enraged ? rules.enrageMultiplier : 1) *
@@ -833,8 +925,8 @@ export function simulateRun(
               ? [
                   rng.weighted(alive(), (h) =>
                     h.member.threat *
-                    (h.keywords.has('guard')
-                      ? h.strong.has('guard')
+                    (has(h, 'guard', attackerTags)
+                      ? isStrong(h, 'guard', attackerTags)
                         ? gearKeywordRules.strong.guard.targetWeight
                         : gearKeywordRules.guard.targetWeight
                       : 1),
@@ -847,8 +939,8 @@ export function simulateRun(
           // Parry turns a physical hit away entirely.
           if (
             enemy.def.damageType === 'power' &&
-            hero.keywords.has('parry') &&
-            rng.chance(hero.strong.has('parry') ? gearKeywordRules.strong.parry.chance : gearKeywordRules.parry.chance)
+            has(hero, 'parry', attackerTags) &&
+            rng.chance(isStrong(hero, 'parry', attackerTags) ? gearKeywordRules.strong.parry.chance : gearKeywordRules.parry.chance)
           ) {
             continue;
           }
@@ -865,14 +957,23 @@ export function simulateRun(
           let taken = (incoming * 100) / (100 + rules.defenseFactor * defence) / fortune;
           // Brace softens the first big hits of the fight (one, two when strong).
           const bracedSoFar = braced.get(hero.member.heroId) ?? 0;
-          const braceHits = hero.strong.has('brace') ? gearKeywordRules.strong.brace.hits : 1;
+          const braceHits = isStrong(hero, 'brace', attackerTags) ? gearKeywordRules.strong.brace.hits : 1;
           if (
-            hero.keywords.has('brace') &&
+            has(hero, 'brace', attackerTags) &&
             bracedSoFar < braceHits &&
             taken > gearKeywordRules.brace.above * hero.member.maxHp
           ) {
             braced.set(hero.member.heroId, bracedSoFar + 1);
             taken *= gearKeywordRules.brace.multiplier;
+          }
+          // A relic's immunity halves the hits of its element.
+          const immune = (hero.member.relicEffects ?? []).find(
+            (e): e is WornRelicEffect & { effect: Extract<RelicEffect, { kind: 'immune' }> } =>
+              e.effect.kind === 'immune' && e.effect.element === element,
+          );
+          if (immune) {
+            taken *= immune.effect.multiplier;
+            noteRelic(result, hero.member.heroId, immune.relicId);
           }
           hurt(hero, shielded(hero, taken), result);
           tookDamage(hero, element);
@@ -887,7 +988,7 @@ export function simulateRun(
       // An exposed fight gives the enemies the first strike; after that it plays like any fight.
       const ambushed = enemiesFirst && round === 1;
       // Reach acts before the enemies in round 1 of every fight (rounds 1-2 when strong).
-      const reach = alive().filter((h) => h.keywords.has('reach') && round <= (h.strong.has('reach') ? gearKeywordRules.strong.reach.rounds : 1));
+      const reach = alive().filter((h) => has(h, 'reach', anyTags) && round <= (isStrong(h, 'reach', anyTags) ? gearKeywordRules.strong.reach.rounds : 1));
       if (reach.length > 0) {
         heroesAttack(reach);
         if (enemies.every((e) => e.hp <= 0)) {
@@ -959,7 +1060,15 @@ export function simulateRun(
     }
     // Poison wears at everyone after every fight.
     for (const penalty of poisonWounds) {
-      for (const hero of alive()) hurt(hero, penalty.pct * hero.member.maxHp, result);
+      for (const hero of alive()) {
+        // A relic cuts its wearer's share of the wounds (the Hedge-witch's robes).
+        const cut = (hero.member.relicEffects ?? []).find(
+          (e): e is WornRelicEffect & { effect: Extract<RelicEffect, { kind: 'penaltyCut' }> } =>
+            e.effect.kind === 'penaltyCut' && e.effect.threat === penalty.threatId,
+        );
+        hurt(hero, penalty.pct * hero.member.maxHp * (cut?.effect.multiplier ?? 1), result);
+        if (cut) noteRelic(result, hero.member.heroId, cut.relicId);
+      }
       result.effects.push({ heroId: null, key: 'poison' });
     }
     // A conscious Cook feeds everyone a bite after every fight.

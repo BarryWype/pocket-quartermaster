@@ -86,6 +86,7 @@ export const frLogTemplates: typeof logTemplates = {
   duel: ' {hero} a trouvé la faille dans la garde d’un adversaire seul.',
   fightHeal: ' {hero} a partagé un morceau à manger.',
   secondPotion: ' {hero} a bu une seconde potion.',
+  relic: ' {relic} a répondu pour {hero}.',
   elixirDrank: ' {hero} a bu {le:item} avant de partir.',
   elixirOil: ' {hero} a enduit son arme avec {du:item}.',
   escaped: ['Le groupe s’est échappé sous couvert de fumée, avec {gold} pièces d’or.'],

@@ -1,9 +1,11 @@
 import { heroClasses } from '@/content/heroes';
 import { traitById } from '@/content/traits';
+import { threatById } from '@/content/lookup';
 import { approachRules } from '@/content/threats';
 
 import type { Element } from '../elements';
-import type { Ability, Approach, HeroClassId, KitEffect, Keyword, RestrictionId } from '../types';
+import type { Ability, Approach, GearCondition, HeroClassId, KitEffect, Keyword, RestrictionId } from '../types';
+import type { WornRelicEffect } from '../team/team';
 
 /** Where a keyword came from; each keyword counts once per hero whatever its sources. 'carried': a kit a Porter carries for them. */
 export type KeywordSource = 'class' | 'trait' | 'gear' | 'kit' | 'carried';
@@ -14,7 +16,9 @@ export type AnswersMember = {
   classId: HeroClassId;
   traitId: string;
   /** The keywords of the hero's equipped weapon, armour and off-hand; magic pieces marked, strong ones doubled. */
-  gearKeywords: { keyword: Keyword; magic: boolean; strong?: true }[];
+  gearKeywords: { keyword: Keyword; magic: boolean; when?: GearCondition; strong?: true }[];
+  /** The non-keyword effects of the relics the hero's pieces carry. */
+  relicEffects?: WornRelicEffect[];
   /** The kit or ward salve in the hero's consumable slot, if any. */
   kit: { itemId: string; effect: KitEffect } | null;
   /** The ward salve's element, when the kit item is one. */
@@ -81,7 +85,10 @@ export function heroAnswers(member: AnswersMember, restriction: RestrictionId | 
   };
   for (const keyword of member.classKeywords ?? heroClass.keywords) addKeyword(keyword, 'class', caster);
   for (const effect of traitEffects) if (effect.kind === 'keyword') addKeyword(effect.keyword, 'trait');
-  for (const entry of member.gearKeywords) addKeyword(entry.keyword, 'gear', entry.magic);
+  // Situational keywords never answer a threat; the simulation plays them out.
+  for (const entry of member.gearKeywords) {
+    if (!entry.when) addKeyword(entry.keyword, 'gear', entry.magic);
+  }
   for (const keyword of member.kit?.effect.keywords ?? []) addKeyword(keyword, 'kit');
   for (const keyword of member.carriedKit?.effect.keywords ?? []) addKeyword(keyword, 'carried');
 
@@ -109,10 +116,20 @@ export function heroAnswers(member: AnswersMember, restriction: RestrictionId | 
     kitItemId: member.kit?.itemId ?? null,
     carriedKit: member.carriedKit ? { itemId: member.carriedKit.itemId, porterId: member.carriedKit.porterId } : null,
     // A caster's signature falls with their class keywords in an anti-magic zone.
-    signatures: heroClass.abilities.filter(
-      (a): a is HeroAnswers['signatures'][number] =>
-        (a.kind === 'keywordCount' || a.kind === 'approachFor' || a.kind === 'kitBonus') &&
-        !(restriction === 'antiMagic' && caster && a.kind === 'keywordCount'),
-    ),
+    signatures: [
+      ...heroClass.abilities.filter(
+        (a): a is HeroAnswers['signatures'][number] =>
+          (a.kind === 'keywordCount' || a.kind === 'approachFor' || a.kind === 'kitBonus') &&
+          !(restriction === 'antiMagic' && caster && a.kind === 'keywordCount'),
+      ),
+      // A restored relic meets an approach threat for its carrier at the top score; a magic piece's falls in an anti-magic zone.
+      ...(member.relicEffects ?? []).flatMap(({ effect, magic }): HeroAnswers['signatures'] => {
+        if (effect.kind !== 'answers' || (restriction === 'antiMagic' && magic)) return [];
+        const answer = threatById[effect.threat].answer;
+        return answer.kind === 'approach'
+          ? [{ kind: 'approachFor', threat: effect.threat, approach: answer.approach, score: approachRules.max }]
+          : [];
+      }),
+    ],
   };
 }

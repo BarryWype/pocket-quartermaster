@@ -1,6 +1,6 @@
 import { heroClasses, xpRules, xpToNextLevel } from '@/content/heroes';
 import { affinityRules, castingPenalty, classAffinities, type Affinity } from '@/content/equipment';
-import { componentById, itemById } from '@/content/lookup';
+import { componentById, itemById, relicById } from '@/content/lookup';
 import { qualities } from '@/content/forging';
 import { traitById } from '@/content/traits';
 
@@ -9,7 +9,7 @@ import { pieceBaseStats } from '../forging/quality';
 import { rosterCap } from '../guild/guild';
 import { trinketEffect } from '../loot/trinkets';
 import type { SaveData } from '../save';
-import type { Ability, ArmourType, ConsumableDef, DamageStat, EquipmentSlot, GearDef, GearType, HeroClassId, HeroState, Keyword, StatKey, Stats, WeaponType } from '../types';
+import type { Ability, ArmourType, ConsumableDef, DamageStat, EquipmentSlot, GearCondition, GearDef, GearType, HeroClassId, HeroState, Keyword, RelicEffect, StatKey, Stats, WeaponType } from '../types';
 import { baseHeroStats } from './stats';
 
 const STAT_KEYS: StatKey[] = ['hp', 'power', 'magic', 'armour', 'resistance', 'evasion', 'speed', 'crit'];
@@ -37,18 +37,21 @@ export function equippedGear(save: SaveData, hero: HeroState) {
     .filter((g) => g !== undefined);
 }
 
+/** A gear keyword: magic pieces marked, strong when doubled, `when` for a relic's situational one. */
+export type GearKeywordEntry = { keyword: Keyword; magic: boolean; when?: GearCondition; strong?: true };
+
 /**
  * The keywords of the hero's weapon, armour and off-hand; magic pieces marked.
  * A component's keyword doubles the piece's own keyword (strong), or adds one
- * more entry.
+ * more entry; a relic's keyword works the same, or rides behind its `when`.
  */
-export function gearKeywordsOf(save: SaveData, hero: HeroState): { keyword: Keyword; magic: boolean; strong?: true }[] {
+export function gearKeywordsOf(save: SaveData, hero: HeroState): GearKeywordEntry[] {
   return (['weapon', 'armor', 'offhand'] as const).flatMap((slot) => {
     const gear = save.gear.find((g) => g.uid === hero.equipment[slot]);
     if (!gear) return [];
     const item = itemById[gear.itemId] as GearDef;
     const magic = item.damageStat === 'magic';
-    const keywords: { keyword: Keyword; magic: boolean; strong?: true }[] = item.keywords.map((keyword) => ({
+    const keywords: GearKeywordEntry[] = item.keywords.map((keyword) => ({
       keyword,
       magic,
     }));
@@ -58,7 +61,37 @@ export function gearKeywordsOf(save: SaveData, hero: HeroState): { keyword: Keyw
       if (own) own.strong = true;
       else keywords.push({ keyword: effect.keyword, magic });
     }
+    for (const relicEffect of gear.relicId ? relicById[gear.relicId].effects : []) {
+      if (relicEffect.kind !== 'keyword') continue;
+      if (relicEffect.when) {
+        keywords.push({
+          keyword: relicEffect.keyword,
+          magic,
+          when: relicEffect.when,
+          ...(item.keywords.includes(relicEffect.keyword) ? { strong: true } : {}),
+        });
+        continue;
+      }
+      const own = keywords.find((k) => k.keyword === relicEffect.keyword);
+      if (own) own.strong = true;
+      else keywords.push({ keyword: relicEffect.keyword, magic });
+    }
     return keywords;
+  });
+}
+
+/** A relic effect on the hero's equipped piece, with the piece's magic mark and the relic it came from. */
+export type WornRelicEffect = { effect: RelicEffect; magic: boolean; relicId: string };
+
+/** The non-keyword effects of the relics restored into the hero's weapon, armour and off-hand. */
+export function relicEffectsOf(save: SaveData, hero: HeroState): WornRelicEffect[] {
+  return (['weapon', 'armor', 'offhand'] as const).flatMap((slot) => {
+    const gear = save.gear.find((g) => g.uid === hero.equipment[slot]);
+    if (!gear?.relicId) return [];
+    const item = itemById[gear.itemId] as GearDef;
+    return relicById[gear.relicId].effects
+      .filter((effect) => effect.kind !== 'keyword')
+      .map((effect) => ({ effect, magic: item.damageStat === 'magic', relicId: gear.relicId! }));
   });
 }
 
