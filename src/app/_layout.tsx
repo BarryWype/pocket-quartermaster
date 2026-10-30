@@ -8,6 +8,7 @@ import { AppState, StyleSheet, View } from 'react-native';
 
 import { RecipeToast } from '@/components/RecipeToast';
 import { SecretToast } from '@/components/SecretToast';
+import { TipBar } from '@/components/TipBar';
 import { useAutoGather } from '@/hooks/useAutoGather';
 import { useLanguage } from '@/hooks/useLanguage';
 import { syncPlan, useNotifications } from '@/hooks/useNotifications';
@@ -83,10 +84,12 @@ export default function RootLayout() {
         <Stack.Screen name="quests" options={{ title: t('screens.quests') }} />
         <Stack.Screen name="guild" options={{ title: t('screens.guild') }} />
         <Stack.Screen name="settings" options={{ title: t('screens.settings') }} />
+        <Stack.Screen name="tips" options={{ title: t('screens.tips') }} />
         <Stack.Screen name="debug" options={{ title: t('screens.debug') }} />
       </Stack>
       <RecipeToast />
       <SecretToast />
+      <TipBar />
     </View>
   );
 }

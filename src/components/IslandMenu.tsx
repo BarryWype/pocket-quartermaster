@@ -4,7 +4,7 @@ import { Image, Pressable, StyleSheet, View, type ImageSourcePropType } from 're
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { healthRules } from '@/content/health';
-import { isGuildUnlocked } from '@/game/guild/guild';
+import { isRevealed } from '@/game/reveal/reveal';
 import { currentHp, maxHp } from '@/game/team/health';
 import { tutorialTarget, type MenuTarget } from '@/game/tutorial/tutorial';
 import { t, type TextKey } from '@/i18n';
@@ -34,7 +34,9 @@ export function IslandMenu() {
   );
   // The tutorial points at the button its current step is waiting for.
   const target = useGameStore((state) => tutorialTarget(state.save));
-  const guildOpen = useGameStore((state) => isGuildUnlocked(state.save));
+  // The Guild Hall and quests appear with the gradual reveal.
+  const guildShown = useGameStore((state) => isRevealed(state.save, 'guildHall'));
+  const questsShown = useGameStore((state) => isRevealed(state.save, 'quests'));
   // Quests new since the list was last open, and finished ones waiting to be claimed.
   const questNews = useGameStore(({ save }) => save.quests.list.filter((quest) => !quest.seen || quest.doneAt !== null).length);
   // Badly hurt heroes, as of the last change to the save.
@@ -84,8 +86,8 @@ export function IslandMenu() {
             highlight={target === 'team'}
             onPress={() => go('/team')}
           />
-          <MenuButton emoji={guildOpen ? '🏛️' : '🔒'} label={t('menu.guild')} onPress={() => go('/guild')} />
-          <MenuButton emoji="📜" label={t('menu.quests')} compact badge={questNews} onPress={() => go('/quests')} />
+          {guildShown && <MenuButton emoji="🏛️" label={t('menu.guild')} onPress={() => go('/guild')} />}
+          {questsShown && <MenuButton emoji="📜" label={t('menu.quests')} compact badge={questNews} onPress={() => go('/quests')} />}
           <MenuButton
             icon={require('../../assets/icons/scaled/menu-expeditions.png')}
             label={t('menu.expeditions')}

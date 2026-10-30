@@ -272,7 +272,12 @@ export function settleConsumables(save: SaveData, heroIds: string[], salvaged: E
  */
 export function grantPatrolWin(save: SaveData, heroIds: string[], rewards: Loot, patrolId: string, windowEndsAt: number, now: number): SaveData {
   const granted = grantLoot(save, heroIds, { ...emptyLoot(), ...rewards }, now);
-  return questEvent({ ...granted, beatenPatrols: { ...granted.beatenPatrols, [patrolId]: windowEndsAt } }, { kind: 'patrolWon' }, now);
+  const counted = { ...granted, stats: { ...granted.stats, patrolsWon: granted.stats.patrolsWon + 1 } };
+  return questEvent(
+    { ...counted, beatenPatrols: { ...counted.beatenPatrols, [patrolId]: windowEndsAt } },
+    { kind: 'patrolWon' },
+    now,
+  );
 }
 
 /**

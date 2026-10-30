@@ -31,6 +31,7 @@ import { mapStyle } from '@/content/mapStyle';
 import { patrolRules } from '@/content/patrols';
 import { dockRules } from '@/content/placeActivities';
 import { placeGroups, placeInfo, placeRules } from '@/content/places';
+import { placeRevealKinds, type TipId } from '@/content/reveal';
 import { sanctumRules } from '@/content/sanctums';
 import { spawnConfig } from '@/content/spawnConfig';
 import { tavernRules } from '@/content/taverns';
@@ -53,6 +54,7 @@ import { nearWater, type WalkableTile } from '@/game/generation/walkable';
 import { fleesAt, hasFled, isGone, isVisible } from '@/game/patrols/visibility';
 import { isLureActive, lureEndsAt, lureSpawns } from '@/game/rewards/lures';
 import { liveTreasureMaps } from '@/game/rewards/treasure';
+import { isPlaceRevealed, isRevealed } from '@/game/reveal/reveal';
 import { generateSanctumsAround, sanctumById, type SanctumSpawn } from '@/game/sanctums/sanctums';
 import { generateTavernsAround, isTavernUnlocked, type TavernSpawn } from '@/game/taverns/taverns';
 import { tutorialSpawns } from '@/game/tutorial/tutorial';
@@ -131,7 +133,6 @@ export default function MapScreen() {
   const debugSanctum = useDebugStore((state) => state.debugSanctum);
   const [openSanctum, setOpenSanctum] = useState<SanctumSpawn | null>(null);
   const debugTavern = useDebugStore((state) => state.debugTavern);
-  const closeTavernHint = useGameStore((state) => state.closeTavernHint);
   const [openTavern, setOpenTavern] = useState<TavernSpawn | null>(null);
   const debugPlaces = useDebugStore((state) => state.debugPlaces);
   const [openPlace, setOpenPlace] = useState<PlaceSpawn | null>(null);
@@ -212,7 +213,7 @@ export default function MapScreen() {
     return generateSanctumsAround(position, minute * 60_000).filter((s) => distanceMeters(position, s.position) <= reach);
   }, [position, minute]);
   const placedSanctums = usePlacedPoints(sanctumCandidates, sanctumPlacement);
-  const sanctumsInSight = [...placedSanctums, ...(debugSanctum ? [debugSanctum] : [])].filter(
+  const sanctumsInSight = [...(isRevealed(save, 'sanctums') ? placedSanctums : []), ...(debugSanctum ? [debugSanctum] : [])].filter(
     (s) =>
       s.expiresAt > now &&
       !(s.id in save.usedSanctums) &&
@@ -227,7 +228,7 @@ export default function MapScreen() {
     return generateTavernsAround(position, minute * 60_000).filter((t) => distanceMeters(position, t.position) <= reach);
   }, [position, minute]);
   const placedTaverns = usePlacedPoints(tavernCandidates, tavernPlacement);
-  const tavernsInSight = [...placedTaverns, ...(debugTavern ? [debugTavern] : [])].filter(
+  const tavernsInSight = [...(isRevealed(save, 'taverns') ? placedTaverns : []), ...(debugTavern ? [debugTavern] : [])].filter(
     (t) => position !== null && distanceMeters(position, t.position) <= tavernRules.visibilityMeters,
   );
   const tavernsOpen = isTavernUnlocked(save);
@@ -243,7 +244,7 @@ export default function MapScreen() {
   }, [position, minute, save.dugRuins]); // eslint-disable-line react-hooks/exhaustive-deps
   const placedPlaces = usePlacedPoints(placeCandidates, placePlacement, keepPlace);
   const playerPickaxe = pickaxeTier(save);
-  const placesInSight = [...placedPlaces, ...debugPlaces].filter(
+  const placesInSight = [...placedPlaces.filter((place) => isPlaceRevealed(save, place.kind)), ...debugPlaces].filter(
     (place) =>
       position !== null &&
       isPlaceVisible(place, position, now) &&
@@ -251,7 +252,8 @@ export default function MapScreen() {
       showsForPlayer(place, playerPickaxe),
   );
   // This player's tipped secret places: shown at any distance until they move on.
-  const secretsInSight = useSecretPlaces(save, now);
+  const tippedSecrets = useSecretPlaces(save, now);
+  const secretsInSight = isRevealed(save, 'secrets') ? tippedSecrets : [];
   const keyHeld = hasKey(save);
   // Quest objectives unlock from the place kinds the player has seen.
   const notePlacesSeen = useGameStore((state) => state.notePlacesSeen);
@@ -261,6 +263,7 @@ export default function MapScreen() {
   }, [kindsInSight, notePlacesSeen]);
   // Active quests' targets, within 2 km by construction.
   const questTargets = save.quests.list.flatMap((quest) =>
+    isRevealed(save, 'quests') &&
     quest.acceptedAt !== null && quest.doneAt === null && quest.target ? [{ id: quest.id, target: quest.target }] : [],
   );
   useQuestMarks(save, position);
@@ -283,9 +286,10 @@ export default function MapScreen() {
       liveTreasureMaps(save, minute * 60_000).flatMap((map) => (map.location ? [{ id: map.id, position: map.location }] : [])),
     [save, minute],
   );
-  const placedTreasure = usePlacedPoints(treasureSpots, walkableRules);
+  const placedTreasure = usePlacedPoints(isRevealed(save, 'treasure') ? treasureSpots : [], walkableRules);
+  const shownSpawns = placedSpawns.filter((spawn) => isRevealed(save, spawn.kind === 'animal' ? 'animals' : 'resources'));
   const visible = position
-    ? visibleSpawns([...placedSpawns, ...tutorialSpawns(save)], position, now, undefined, trackedRange(save, now)).filter(
+    ? visibleSpawns([...shownSpawns, ...tutorialSpawns(save)], position, now, undefined, trackedRange(save, now)).filter(
         ({ spawn }) => !(spawn.id in save.collected) && showsOnMap(save, spawn),
       )
     : [];
@@ -310,6 +314,7 @@ export default function MapScreen() {
     [position, patrolWindow, debugPatrols, save.usedPlaces],
   );
   const patrolsSeen = useWorldStore((state) => state.patrolsSeen);
+  const patrolsShown = isRevealed(save, 'patrols');
   const visiblePatrols = useMemo(
     () =>
       position
@@ -317,11 +322,30 @@ export default function MapScreen() {
             (spawn) =>
               isVisible(spawn, position, now, patrolRulesAt(patrolRules, trackWindows(save.walkEffects), now)) &&
               !isGone(spawn, { ...save.beatenPatrols, ...save.helpedTravellers }, now) &&
-              !hasFled(spawn, patrolsSeen[spawn.id], now),
+              !hasFled(spawn, patrolsSeen[spawn.id], now) &&
+              (patrolsShown || debugPatrols.includes(spawn)),
           )
         : [],
-    [patrolSpawns, position, now, save.beatenPatrols, save.helpedTravellers, save.walkEffects, patrolsSeen],
+    [patrolSpawns, position, now, save.beatenPatrols, save.helpedTravellers, save.walkEffects, patrolsSeen, patrolsShown, debugPatrols],
   );
+
+  // The first time the map draws a kind, its tip comes up.
+  const noteTips = useGameStore((state) => state.noteTips);
+  const kindsDrawn = [
+    ...new Set<TipId>([
+      ...(visible.some(({ spawn }) => spawn.kind !== 'animal' && spawn.tile !== 'tutorial') ? (['resources'] as const) : []),
+      ...(visible.some(({ spawn }) => spawn.kind === 'animal') ? (['animals'] as const) : []),
+      ...placesInSight.map((place) => placeRevealKinds[place.kind]),
+      ...(tavernsInSight.length > 0 ? (['taverns'] as const) : []),
+      ...(sanctumsInSight.length > 0 ? (['sanctums'] as const) : []),
+      ...(secretsInSight.length > 0 ? (['secrets'] as const) : []),
+      ...(visiblePatrols.length > 0 ? (['patrols'] as const) : []),
+      ...(placedTreasure.length > 0 ? (['treasure'] as const) : []),
+    ]),
+  ].join(',');
+  useEffect(() => {
+    if (kindsDrawn) noteTips(kindsDrawn.split(',') as TipId[]);
+  }, [kindsDrawn, noteTips]);
 
   // First sighting of a spawn: starts the goblins' flee timer and the "just seen" pulse.
   useEffect(() => {
@@ -597,11 +621,6 @@ export default function MapScreen() {
       {selectedPatrol && isTravellerKind(selectedPatrol.kind) && (
         <TravellerPanel spawn={selectedPatrol} player={position} now={now} onClose={closePatrol} />
       )}
-      {tavernsOpen && !save.tavernHintSeen && (
-        <Pressable onPress={closeTavernHint} style={[styles.tavernHint, { bottom: insets.bottom + ISLAND_HEIGHT + 56 }]}>
-          <Text style={styles.tavernHintText}>{t('map.tavernsOpen')}</Text>
-        </Pressable>
-      )}
       {showPill && <AutoGatherPill style={[styles.autoGather, { bottom: insets.bottom + ISLAND_HEIGHT + 12 }]} />}
       {message && (
         <Text style={[styles.banner, { bottom: insets.bottom + ISLAND_HEIGHT + (showPill ? 52 : 12) }]}>{message}</Text>
@@ -635,17 +654,6 @@ const styles = StyleSheet.create({
   },
   tutorialHint: { position: 'absolute', left: 16, right: 16 },
   autoGather: { position: 'absolute', left: 16 },
-  tavernHint: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    padding: 12,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: colors.woodDark,
-    backgroundColor: colors.wood,
-  },
-  tavernHintText: { color: colors.parchment, fontSize: 20 },
   debugButton: { alignSelf: 'center' },
   // Next to 🐞 when debug tools are on; the top-right corner is taken by the dev menu button.
   settingsButton: { left: '50%' },

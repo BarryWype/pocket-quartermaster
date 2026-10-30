@@ -5,8 +5,9 @@ import { rotationDay } from '../dungeons/rotation';
 import { createRng, type Rng } from '../generation/rng';
 import { questCap, guildBonus } from '../guild/guild';
 import type { SaveData } from '../save';
+import { isRevealed } from '../reveal/reveal';
 import { refreshWalks } from './progress';
-import { availableObjectives, deliverItems, objectiveAmount, questsOpen } from './unlocks';
+import { availableObjectives, deliverItems, objectiveAmount } from './unlocks';
 import type { Quest, QuestsState } from './types';
 
 const DAY_MS = 86_400_000;
@@ -71,7 +72,7 @@ export function newQuest(
  * tutorial is done.
  */
 export function receiveQuests(save: SaveData, now: number): SaveData {
-  if (!questsOpen(save)) return save;
+  if (!isRevealed(save, 'quests')) return save;
   const today = rotationDay(now);
   if (save.quests.lastArrivalDay === today) return save;
   const first = save.quests.lastArrivalDay === null ? today : save.quests.lastArrivalDay + 1;

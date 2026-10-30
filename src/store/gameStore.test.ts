@@ -11,7 +11,14 @@ describe('gameStore', () => {
     useGameStore.getState().addGold(25);
 
     const raw = await AsyncStorage.getItem('pocket-quartermaster-save');
-    expect(JSON.parse(raw ?? '{}')).toMatchObject({ state: { save: { gold: 25 } }, version: 27 });
+    expect(JSON.parse(raw ?? '{}')).toMatchObject({ state: { save: { gold: 25 } }, version: 28 });
+  });
+
+  it('queues the tip of an item kind as soon as one is held', () => {
+    const { save } = useGameStore.getState();
+    useGameStore.setState({ save: { ...save, keyFragments: 1 } });
+
+    expect(useGameStore.getState().save.tips.pending).toEqual(['keyFragments']);
   });
 
   it('resets save data', () => {

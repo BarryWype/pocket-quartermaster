@@ -25,6 +25,7 @@ export const en = {
     quests: 'Quests',
     guild: 'Guild Hall',
     settings: 'Settings',
+    tips: 'Tips',
     debug: 'Debug',
   },
   menu: {
@@ -59,7 +60,6 @@ export const en = {
     recentre: 'Centre on me',
     lure: '🪤 Lure {time}',
     freshLegs: '🦵 Fresh legs: {count} bonus gathers left',
-    tavernsOpen: '🍺 Taverns are open! Recruit heroes for gold at the 🍺 on the map. Tap to close.',
     cookingHint: '🍳 Food is running low. Every expedition needs supply: cook trail mix and jerky from berries and meat in Craft → Provisions. Tap to close.',
   },
   expeditions: {
@@ -692,6 +692,12 @@ export const en = {
     resetConfirmTitle: 'Reset progression?',
     resetConfirmBody: 'Heroes, gear, inventory, gold, expeditions and chests go back to the start.',
     resetConfirmOk: 'Reset',
+    tips: 'Tips',
+    tipsHint: 'Read again the tips you have already seen.',
+  },
+  tips: {
+    close: 'Tap to close',
+    empty: 'No tips yet. They come as new things show up.',
   },
   debug: {
     setLevel: "Set a hero's level",

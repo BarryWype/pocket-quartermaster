@@ -3,6 +3,7 @@ import { startingHeroes } from '@/content/heroes';
 import type { PlaceKind } from '@/content/places';
 import { provisionRules } from '@/content/provisions';
 import { recipes } from '@/content/recipes';
+import type { TipId } from '@/content/reveal';
 
 import { startingRecipes } from './crafting/recipeUnlocks';
 import { startingMastery } from './forging/mastery';
@@ -84,8 +85,10 @@ export type SaveData = {
   mastery: Partial<Record<MasteryType, MasteryState>>;
   /** Tavern offer id → when the offers refresh; recruited offers stay gone until then. */
   takenOffers: Record<string, number>;
-  /** The "taverns are open" tip was closed. */
-  tavernHintSeen: boolean;
+  /** Lifetime counters the gradual reveal reads; never pruned. */
+  stats: { patrolsWon: number; questsDone: number };
+  /** Tips already closed, and tips waiting to show, oldest first. */
+  tips: { seen: TipId[]; pending: TipId[] };
   /** The cooking tip (shown when supply first runs low) was closed. */
   cookingHintSeen: boolean;
   /** Guild Hall ranks bought, by track. */
@@ -144,6 +147,8 @@ export type SaveData = {
   seenParts: string[];
   /** Debug: the collector every market uses on that day. */
   collectorOverride?: { dayKey: string; valuableId: string };
+  /** Debug: every kind shows, whatever its condition. */
+  revealAll?: boolean;
   /** Daily quests: the list plus arrival, reroll and secret bookkeeping. */
   quests: QuestsState;
   /** Place kinds the player has seen; quest objectives unlock from these. */
@@ -179,7 +184,8 @@ export function createInitialSave(): SaveData {
     walkEffects: [],
     usedSanctums: {},
     takenOffers: {},
-    tavernHintSeen: false,
+    stats: { patrolsWon: 0, questsDone: 0 },
+    tips: { seen: [], pending: [] },
     cookingHintSeen: false,
     guild: {},
     trainedAt: null,

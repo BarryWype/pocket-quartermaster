@@ -3,19 +3,8 @@ import { deliverPlaces, objectives, questRules, type QuestBand, type QuestObject
 import { itemById, recipeById } from '@/content/lookup';
 
 import { pickaxeTier } from '../gathering/gathering';
+import { isPlaceRevealed, isRevealed } from '../reveal/reveal';
 import type { SaveData } from '../save';
-
-/**
- * Whether a fight feature shows for this player; the tutorial rework replaces
- * this with its gradual reveal.
- */
-export function isRevealed(save: SaveData, _feature: 'patrols' | 'fightEvents'): boolean {
-  return save.tutorial.step === 'done';
-}
-
-export function questsOpen(save: SaveData): boolean {
-  return save.tutorial.step === 'done';
-}
 
 export type DeliverItem = { itemId: string; place: PlaceKind };
 
@@ -51,7 +40,6 @@ export function mineKinds(save: SaveData): PlaceKind[] {
 
 /** The objectives this player can roll in this band (objectives.csv, "Unlocked from"). */
 export function availableObjectives(save: SaveData, band: QuestBand): QuestObjective[] {
-  const seenKind = (kind: PlaceKind) => save.seenPlaceKinds.includes(kind);
   const all: QuestObjective[] = [
     'chapel',
     'library',
@@ -69,6 +57,7 @@ export function availableObjectives(save: SaveData, band: QuestBand): QuestObjec
   return all.filter((objective) => {
     const def = objectives[objective];
     if (def.bands && !def.bands.includes(band)) return false;
+    const seenKind = (kind: PlaceKind) => save.seenPlaceKinds.includes(kind) && isPlaceRevealed(save, kind);
     switch (objective) {
       case 'chapel':
       case 'library':

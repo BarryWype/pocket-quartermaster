@@ -25,6 +25,7 @@ import { tutorialRules } from '@/content/tutorial';
 import { briefingFor, nextRotationAt, rotationDay } from '@/game/dungeons/rotation';
 import { expeditionMinutes, isDungeonUnlocked, readyExpeditions, type Loadout } from '@/game/expeditions/expeditions';
 import { estimateOdds } from '@/game/expeditions/odds';
+import { isRevealed } from '@/game/reveal/reveal';
 import { supplyHeld } from '@/game/expeditions/provisions';
 import { briefingCoverage } from '@/game/threats/coverage';
 import { isOnExpedition } from '@/game/team/team';
@@ -128,9 +129,10 @@ export default function ExpeditionsScreen() {
     [selected, save],
   );
 
-  // Today's open dungeons per unlocked tier; the tutorial's stays until it's done.
+  // Today's open dungeons per unlocked tier; until dungeons are revealed, only the tutorial's.
+  const dungeonsShown = isRevealed(save, 'dungeons');
   const open = useMemo(() => {
-    const ids = Object.values(rotation.tiers).flatMap((t) => [t.short, t.long, t.boss]);
+    const ids = dungeonsShown ? Object.values(rotation.tiers).flatMap((t) => [t.short, t.long, t.boss]) : [];
     if (save.tutorial.step !== 'done' && !ids.includes(tutorialRules.firstExpedition.dungeonId)) {
       ids.unshift(tutorialRules.firstExpedition.dungeonId);
     }
@@ -138,11 +140,11 @@ export default function ExpeditionsScreen() {
       .map((id) => dungeonById[id])
       .filter((d) => isDungeonUnlocked(save, d))
       .sort((a, b) => a.tier - b.tier);
-  }, [rotation, save]);
+  }, [rotation, save, dungeonsShown]);
   // The overnight expedition of each unlocked tier, open every day.
   const overnight = useMemo(
-    () => dungeons.filter((d) => d.overnight && isDungeonUnlocked(save, d)).sort((a, b) => a.tier - b.tier),
-    [save],
+    () => dungeons.filter((d) => dungeonsShown && d.overnight && isDungeonUnlocked(save, d)).sort((a, b) => a.tier - b.tier),
+    [save, dungeonsShown],
   );
   const tiers = [...new Set(open.map((d) => d.tier))];
   // The highest tier by default; the first one while the tutorial runs.

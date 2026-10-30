@@ -5,6 +5,7 @@ import { distanceMeters, offsetPosition } from '../generation/geo';
 import { createRng, type Rng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import type { PlaceSpawn } from '../places/generate';
+import { isPlaceRevealed } from '../reveal/reveal';
 import type { SaveData } from '../save';
 import { availableObjectives, deliverItems, mineKinds, objectiveAmount, objectiveNeedsPlace } from './unlocks';
 import type { Quest, QuestTarget } from './types';
@@ -78,7 +79,8 @@ function findTarget(
     itemId = pick.itemId;
   }
   const kinds = targetKinds(save, { ...quest, objective, ...(itemId ? { itemId } : {}) });
-  const spawn = nearestInBand(candidates, kinds, from, bandOf(quest), now, save.usedPlaces);
+  const shown = candidates.filter((spawn) => isPlaceRevealed(save, spawn.kind));
+  const spawn = nearestInBand(shown, kinds, from, bandOf(quest), now, save.usedPlaces);
   if (!spawn) return { target: null, ...(itemId ? { itemId } : {}) };
   return {
     target: {
@@ -165,7 +167,8 @@ export function retargetQuests(save: SaveData, candidates: PlaceSpawn[], now: nu
     const { target } = quest;
     if (quest.acceptedAt === null || quest.doneAt !== null || !target || target.kind === 'mark') return quest;
     if (target.expiresAt > now && !(target.placeId in save.usedPlaces)) return quest;
-    const spawn = nearestInBand(candidates, [target.kind], target.from, bandOf(quest), now, save.usedPlaces);
+    const shown = candidates.filter((spawn) => isPlaceRevealed(save, spawn.kind));
+    const spawn = nearestInBand(shown, [target.kind], target.from, bandOf(quest), now, save.usedPlaces);
     return {
       ...quest,
       target: spawn

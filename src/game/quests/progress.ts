@@ -31,9 +31,11 @@ const counts = (quest: Quest, at: number) =>
 /** Records the completion and pops the secret quest when the window fills up. */
 export function complete(save: SaveData, quest: Quest, at: number): SaveData {
   const done: Quest = { ...quest, doneAt: at, seen: false };
-  let next = questsState(save, {
-    list: save.quests.list.map((q) => (q.id === quest.id ? done : q)),
-  });
+  let next: SaveData = {
+    ...save,
+    stats: { ...save.stats, questsDone: save.stats.questsDone + 1 },
+    quests: { ...save.quests, list: save.quests.list.map((q) => (q.id === quest.id ? done : q)) },
+  };
   if (quest.band !== 'secret') {
     next = questsState(next, { completions: [...next.quests.completions, at] });
   }

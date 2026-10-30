@@ -27,6 +27,7 @@ export const fr: Dictionary = {
     quests: 'Quêtes',
     guild: 'Maison de guilde',
     settings: 'Réglages',
+    tips: 'Astuces',
     debug: 'Débogage',
   },
   menu: {
@@ -62,7 +63,6 @@ export const fr: Dictionary = {
     lure: '🪤 Leurre {time}',
     freshLegs: '🦵 Jambes fraîches : {count} récoltes bonus restantes',
     cookingHint: '🍳 Les vivres s’épuisent. Chaque expédition a besoin de vivres : préparez du mélange du randonneur et de la viande séchée avec des baies et de la viande dans Artisanat → Provisions. Touchez pour fermer.',
-    tavernsOpen: '🍺 Les tavernes ouvrent ! Recrutez des héros contre de l’or au 🍺 sur la carte. Touchez pour fermer.',
   },
   expeditions: {
     boss: 'Boss',
@@ -700,6 +700,12 @@ export const fr: Dictionary = {
     resetConfirmTitle: 'Réinitialiser la progression ?',
     resetConfirmBody: 'Héros, équipement, inventaire, or, expéditions et coffres reviennent au départ.',
     resetConfirmOk: 'Réinitialiser',
+    tips: 'Astuces',
+    tipsHint: 'Relire les astuces déjà vues.',
+  },
+  tips: {
+    close: 'Touchez pour fermer',
+    empty: 'Pas encore d’astuce. Elles viennent quand de nouvelles choses apparaissent.',
   },
   debug: {
     setLevel: 'Régler le niveau d’un héros',

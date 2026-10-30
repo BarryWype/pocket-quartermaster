@@ -15,7 +15,7 @@ import { deliverProblem } from '@/game/quests/progress';
 import { QUEST_SOURCES } from '@/game/quests/rewards';
 import { compassDirection, targetDistance } from '@/game/quests/targets';
 import type { Quest } from '@/game/quests/types';
-import { questsOpen } from '@/game/quests/unlocks';
+import { isRevealed } from '@/game/reveal/reveal';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useNow } from '@/hooks/useNow';
 import { useQuestPlaces } from '@/hooks/useQuestPlaces';
@@ -107,7 +107,7 @@ export default function QuestsScreen() {
     useGameStore.getState().markQuestsSeen();
   }, [save.quests.list]);
 
-  if (!questsOpen(save)) {
+  if (!isRevealed(save, 'quests')) {
     return (
       <View style={styles.container}>
         <Text style={styles.muted}>{t('quests.locked')}</Text>

@@ -1,4 +1,4 @@
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, AppState, Linking, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
@@ -243,6 +243,12 @@ export default function SettingsScreen() {
             />
           </>
         )}
+      </View>
+
+      <View style={styles.section}>
+        <SectionTitle>{t('settings.tips')}</SectionTitle>
+        <Text style={styles.hint}>{t('settings.tipsHint')}</Text>
+        <Button title={t('settings.tips')} onPress={() => router.push('/tips')} />
       </View>
 
       <View style={styles.section}>

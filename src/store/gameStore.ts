@@ -32,6 +32,7 @@ import { resolvePatrolFights as resolveDueFights, startPatrolFight, type PatrolF
 import { acceptRecruit, helpTraveller as helpTravellerRule, sellValuableToTrader, trade, type TravellerRecruit, type TravellerReward } from '@/game/patrols/travellers';
 import { addPatrolsToWalks, escortHpChange, walkPatrolsFrom } from '@/game/patrols/walkPatrols';
 import { challengeSanctum, type SanctumResult, type SanctumSpawn } from '@/game/sanctums/sanctums';
+import { closeTip as closeTipRule, dueTips, noteTips as queueTips } from '@/game/reveal/reveal';
 import { createInitialSave, type SaveData, type TutorialStep } from '@/game/save';
 import { drinkPotion, fastForwardHealing, giveHomeCare, healAll, setHeroHp, settleHp } from '@/game/team/health';
 import { buy, sellGear, sellMaterial, sellValuable } from '@/game/places/shops';
@@ -45,6 +46,7 @@ import { launchUnderwater } from '@/game/secrets/dungeon';
 import { grantTip, type TipOutcome } from '@/game/secrets/tips';
 import { buyAtBlackMarket, enterSecret, recruitAtSecret } from '@/game/secrets/places';
 import { secretRules, type PlaceTipSource } from '@/content/secrets';
+import type { TipId } from '@/content/reveal';
 import { pickApproach } from '@/game/team/stats';
 import { dismissHero, equip, heroStats, isAway, keepHpShare, markClassesSeen, setKitFor, unequip } from '@/game/team/team';
 import { buySupply, recruit, type RecruitOffer } from '@/game/taverns/taverns';
@@ -113,8 +115,11 @@ type GameState = {
   /** Classes shown to the player (tavern or traveller offers) count as met. */
   seeClasses: (classIds: HeroClassId[]) => void;
   recruit: (offer: RecruitOffer, tavern: LatLng, player: LatLng) => void;
-  closeTavernHint: () => void;
   closeCookingHint: () => void;
+  /** Closes a reveal/item tip for good (Settings → Tips keeps the list). */
+  closeTip: (id: TipId) => void;
+  /** Queues the tips of the kinds the map draws for the first time. */
+  noteTips: (ids: TipId[]) => void;
   /** Drinks a healing potion at home: the one asked for, or else the best fit. */
   drinkPotion: (heroId: string, itemId?: string) => void;
   /** Uses a home care item from the stock on a hero at home. */
@@ -352,8 +357,12 @@ export const useGameStore = create<GameState>()(
         if (next !== get().save) set({ save: next });
       },
       recruit: (offer, tavern, player) => set(({ save }) => ({ save: rollDailyApproaches(recruit(save, offer, tavern, player), Date.now()) })),
-      closeTavernHint: () => set(({ save }) => ({ save: { ...save, tavernHintSeen: true } })),
       closeCookingHint: () => set(({ save }) => ({ save: { ...save, cookingHintSeen: true } })),
+      closeTip: (id) => set(({ save }) => ({ save: closeTipRule(save, id) })),
+      noteTips: (ids) => {
+        const next = queueTips(get().save, ids);
+        if (next !== get().save) set({ save: next });
+      },
       drinkPotion: (heroId, itemId) => set(({ save }) => ({ save: drinkPotion(save, heroId, Date.now(), itemId) })),
       giveHomeCare: (heroId, itemId) => set(({ save }) => ({ save: giveHomeCare(save, heroId, itemId, Date.now()) })),
       pickApproach: (heroId, approach) => set(({ save }) => ({ save: pickApproach(save, heroId, approach) })),
@@ -643,13 +652,13 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 27,
+      version: 28,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
-      // Until release, a save change starts fresh: saves before version 27 (Guild Hall rework) are reset.
+      // Until release, a save change starts fresh: saves before version 28 (tutorial rework) are reset.
       migrate: (persisted, version) => {
         const old = (persisted as { save?: SaveData } | undefined)?.save;
-        if (!old || version < 27) return { save: createInitialSave() };
+        if (!old || version < 28) return { save: createInitialSave() };
         return { save: old };
       },
       merge: (persisted, current) => ({
@@ -659,3 +668,9 @@ export const useGameStore = create<GameState>()(
     },
   ),
 );
+
+// Item kinds first held and kinds revealed off the map queue their tip, whatever changed the save.
+useGameStore.subscribe(({ save }) => {
+  const next = queueTips(save, dueTips(save));
+  if (next !== save) useGameStore.setState({ save: next });
+});

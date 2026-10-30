@@ -1,6 +1,7 @@
 import { questRules } from '@/content/quests';
 
 import { createInitialSave, type SaveData } from '../save';
+import { tierBoss } from '../guild/guild';
 import { activeCount, pruneQuests, receiveQuests, rerollProblem, rerollQuest } from './arrival';
 import { availableObjectives, deliverItems, mineKinds } from './unlocks';
 import type { Quest } from './types';
@@ -157,6 +158,7 @@ describe('available objectives', () => {
 
   it('offers the lair only in the long band', () => {
     const save = opened();
+    save.clearedDungeons = [tierBoss(1).id]; // the lair is revealed at tier 2
     save.seenPlaceKinds = ['chapel', 'monsterLair'];
     expect(availableObjectives(save, 'long')).toContain('lair');
     expect(availableObjectives(save, 'short')).not.toContain('lair');
@@ -198,9 +200,11 @@ describe('available objectives', () => {
     expect(availableObjectives(save, 'short')).toContain('collector');
   });
 
-  it('offers patrols and fight events once the tutorial is done', () => {
+  it('offers patrols once the tutorial is done, fight events once a patrol is won', () => {
     const save = opened();
     expect(availableObjectives(save, 'short')).toContain('patrols');
+    expect(availableObjectives(save, 'short')).not.toContain('fightEvent');
+    save.stats.patrolsWon = 1;
     expect(availableObjectives(save, 'short')).toContain('fightEvent');
   });
 });
