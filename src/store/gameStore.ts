@@ -41,7 +41,10 @@ import { fish } from '@/game/places/dock';
 import { resolvePlaceFights, startPlaceFight } from '@/game/places/fights';
 import { resolveHeists, startHeist } from '@/game/places/heists';
 import { digRuin } from '@/game/places/ruins';
-import type { TipOutcome } from '@/game/secrets/tips';
+import { launchUnderwater } from '@/game/secrets/dungeon';
+import { grantTip, type TipOutcome } from '@/game/secrets/tips';
+import { buyAtBlackMarket, enterSecret, recruitAtSecret } from '@/game/secrets/places';
+import type { TipSource } from '@/content/secrets';
 import { pickApproach } from '@/game/team/stats';
 import { dismissHero, equip, heroStats, isAway, keepHpShare, markClassesSeen, setKitFor, unequip } from '@/game/team/team';
 import { buySupply, recruit, type RecruitOffer } from '@/game/taverns/taverns';
@@ -52,7 +55,16 @@ import { advanceTutorial, finishTutorial, nextTutorialStep, placeTutorialWood } 
 import { pruneExpired, rollDailyApproaches } from '@/game/upkeep';
 import type { Approach, EquipmentSlot, ExpeditionReport, Heist, HeroClassId, HeroRoll, MasteryType, PlaceFight, Quality } from '@/game/types';
 
+import { t } from '@/i18n';
+
 import { currentRotation, debugEnabled, useDebugStore } from './debugStore';
+import { useWorldStore } from './worldStore';
+
+/** A tip for a place already tipped pays gold: say so on the map. New tips have their own toast (SecretToast). */
+function noteTips(outcomes: TipOutcome[]) {
+  const gold = outcomes.reduce((sum, outcome) => sum + (outcome.kind === 'gold' ? outcome.gold : 0), 0);
+  if (gold > 0) useWorldStore.getState().set({ patrolMessage: { text: t('secrets.duplicate', { gold }), at: Date.now() } });
+}
 
 type GameState = {
   save: SaveData;
@@ -126,6 +138,14 @@ type GameState = {
   digRuin: (spawn: PlaceSpawn, player: LatLng) => { reward: Loot; relic: boolean };
   /** Fishes at a dock; returns the fish caught. */
   fish: (spawn: PlaceSpawn, player: LatLng) => Loot;
+  /** Spends a mysterious key on a tipped den or black market. */
+  enterSecret: (place: PlaceSpawn, player: LatLng) => void;
+  recruitAtSecret: (place: PlaceSpawn, player: LatLng) => void;
+  buyAtBlackMarket: (place: PlaceSpawn, key: string, player: LatLng) => void;
+  /** Spends a mysterious key and sends the party into the tipped underwater dungeon. */
+  launchUnderwater: (place: PlaceSpawn, heroIds: string[], player: LatLng, loadout?: Loadout) => void;
+  /** Debug: a tip for any secret place, found here. */
+  giveTip: (source: TipSource, position: LatLng) => void;
   buyRank: (trackId: GuildTrackId) => void;
   /** Credits Guild Hall training XP since the last check. */
   train: () => void;
@@ -240,6 +260,7 @@ export const useGameStore = create<GameState>()(
         if (!isTravellerKind(spawn.kind)) throw new Error(`Nothing to ask of a ${spawn.kind}`);
         const now = Date.now();
         const { save, reward, rosterFull, tip } = helpTravellerRule(get().save, spawn, player, now, choice);
+        noteTips(tip ? [tip] : []);
         const kind: TravellerKind = spawn.kind;
         const patrols: WalkPatrols = {
           fights: [],
@@ -330,6 +351,7 @@ export const useGameStore = create<GameState>()(
         const fights = resolvePlaceFights(get().save, now);
         const heists = resolveHeists(fights.save, now);
         if (heists.save !== get().save) set({ save: heists.save });
+        noteTips([...fights.tips, ...heists.tips]);
         return { fights: fights.resolved, heists: heists.resolved };
       },
       digRuin: (spawn, player) => {
@@ -338,9 +360,22 @@ export const useGameStore = create<GameState>()(
         return { reward, relic };
       },
       fish: (spawn, player) => {
-        const { save, loot } = fish(get().save, spawn, player, Date.now());
+        const { save, loot, tip } = fish(get().save, spawn, player, Date.now());
         set({ save });
+        noteTips(tip ? [tip] : []);
         return loot;
+      },
+      enterSecret: (place, player) => set(({ save }) => ({ save: enterSecret(save, place, player, Date.now()) })),
+      recruitAtSecret: (place, player) =>
+        set(({ save }) => ({ save: rollDailyApproaches(recruitAtSecret(save, place, player, Date.now()), Date.now()) })),
+      buyAtBlackMarket: (place, key, player) => set(({ save }) => ({ save: buyAtBlackMarket(save, place, key, player, Date.now()) })),
+      launchUnderwater: (place, heroIds, player, loadout) =>
+        set(({ save }) => ({ save: launchUnderwater(save, place, heroIds, player, Date.now(), loadout) })),
+      giveTip: (source, position) => {
+        const now = Date.now();
+        const { save, outcome } = grantTip(get().save, { source, sourceId: `debug:${now}`, anchor: position }, now);
+        set({ save });
+        noteTips([outcome]);
       },
       buyRank: (trackId) => set(({ save }) => ({ save: buyRank(save, trackId) })),
       train: () => set(({ save }) => ({ save: applyTraining(save, Date.now()) })),

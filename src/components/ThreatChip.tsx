@@ -4,6 +4,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { elementInfo } from '@/content/elements';
 import { threatById } from '@/content/lookup';
 import { t, tr } from '@/i18n';
+import { hasKey } from '@/game/secrets/keys';
+import { useGameStore } from '@/store/gameStore';
 import type { ThreatDisplay } from '@/game/threats/coverage';
 import type { ActiveThreat, OpportunityDef, RestrictionDef } from '@/game/types';
 import { colors, pixel } from '@/theme';
@@ -81,18 +83,25 @@ export function ThreatChip({ threat, state, onPress }: ThreatChipProps) {
   );
 }
 
-/** The briefing's opportunity as a small chip, its supply cost as a pill. */
+/** The briefing's opportunity as a small chip, its supply cost as a pill; a key cost shows locked without a key. */
 export function OpportunityChip({ opportunity, onPress }: { opportunity: OpportunityDef; onPress?: () => void }) {
   const name = tr(opportunity.name);
+  const keyHeld = useGameStore((state) => hasKey(state.save));
+  const locked = !!opportunity.cost?.key && !keyHeld;
   return (
     <Chip
       emoji={opportunity.emoji}
       title={name}
-      label={[name, opportunity.cost?.supply ? t('threats.cost', { count: opportunity.cost.supply }) : null]
+      label={[name, opportunity.cost?.supply ? t('threats.cost', { count: opportunity.cost.supply }) : null, locked ? t('secrets.vaultLocked') : null]
         .filter(Boolean)
         .join(', ')}
       onPress={onPress}
     >
+      {!!opportunity.cost?.key && (
+        <View style={styles.pill}>
+          <Text style={styles.pillText}>{locked ? '🔒' : '🗝️'}</Text>
+        </View>
+      )}
       {!!opportunity.cost?.supply && (
         <View style={styles.pill}>
           <Text style={styles.pillText}>🍖 {opportunity.cost.supply}</Text>

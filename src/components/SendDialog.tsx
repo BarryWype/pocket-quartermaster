@@ -14,7 +14,8 @@ import { briefingCoverage } from '@/game/threats/coverage';
 import { buySupplyProblem, supplyPrice } from '@/game/taverns/taverns';
 import { currentHp, drinkProblem, isExhausted, maxHp, timeToFull } from '@/game/team/health';
 import { carriesKit, hasPotionSlot, isOnExpedition } from '@/game/team/team';
-import type { ConsumableDef, DungeonDef, ProvisionDef } from '@/game/types';
+import { hasKey } from '@/game/secrets/keys';
+import type { Briefing, ConsumableDef, DungeonDef, ProvisionDef } from '@/game/types';
 import { formatDuration, formatPercent, t, tr } from '@/i18n';
 import { currentRotation } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
@@ -38,6 +39,8 @@ type Props = {
   onClose: () => void;
   /** Replaces a hero of the party with one at home. */
   onSwap: (out: string, into: string) => void;
+  /** A secret dungeon's own briefing, instead of the day's. */
+  briefing?: Briefing;
 };
 
 export const ODDS_COLORS: Record<OddsBand, string> = { Risky: colors.danger, Fair: colors.gold, Safe: colors.success };
@@ -102,7 +105,7 @@ function Picker({ label, items, stock, value, onChange, disabled }: {
 }
 
 /** Confirms sending the party: HP, supply, meal, odds now and at full HP, and quick fixes. */
-export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm, onClose, onSwap }: Props) {
+export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm, onClose, onSwap, briefing: fixedBriefing }: Props) {
   const drinkPotion = useGameStore((state) => state.drinkPotion);
   const buySupply = useGameStore((state) => state.buySupply);
   const equip = useGameStore((state) => state.equip);
@@ -121,7 +124,10 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
   // The day's briefing, as the launch will keep it: it stretches the time and shapes the odds.
   // Once a minute is enough, like the odds below.
   const minute = Math.floor(now / 60_000);
-  const briefing = useMemo(() => briefingFor(currentRotation(minute * 60_000), dungeon), [minute, dungeon]);
+  const briefing = useMemo(
+    () => fixedBriefing ?? briefingFor(currentRotation(minute * 60_000), dungeon),
+    [fixedBriefing, minute, dungeon],
+  );
   const coverage = useMemo(
     () => briefingCoverage(save, party, briefing, minute * 60_000, optIn),
     [save, party, briefing, minute, optIn],
@@ -133,6 +139,7 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
   const opportunity = coverage.opportunity?.cost
     ? (briefing.opportunity ? opportunityById[briefing.opportunity] : null)
     : null;
+  const keyCost = !!opportunity?.cost?.key;
   // A Cook in the party lifts Spoiled stores.
   const spoiled = coverage.restriction?.id === 'spoiledStores' && !coverage.restriction.cancelledBy;
   const durationMs = plan.minutes * 60_000 * durationScale;
@@ -240,14 +247,21 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
               <View style={styles.picker}>
                 <Pressable
                   accessibilityRole="checkbox"
-                  accessibilityState={{ checked: optIn }}
+                  accessibilityState={{ checked: optIn, disabled: keyCost && !hasKey(save) }}
+                  disabled={keyCost && !hasKey(save)}
                   onPress={() => setOptIn(!optIn)}
-                  style={[styles.option, optIn && styles.optionActive]}
+                  style={[styles.option, optIn && styles.optionActive, keyCost && !hasKey(save) && styles.optionDisabled]}
                 >
                   <Text style={styles.optionText}>
-                    {opportunity.emoji} {tr(opportunity.name)} · {t('expeditions.confirm.optIn', { count: opportunity.cost?.supply ?? 0 })}
+                    {opportunity.emoji}{' '}
+                    {keyCost
+                      ? hasKey(save)
+                        ? t('secrets.vaultOptIn')
+                        : `${tr(opportunity.name)} · ${t('secrets.vaultLocked')}`
+                      : `${tr(opportunity.name)} · ${t('expeditions.confirm.optIn', { count: opportunity.cost?.supply ?? 0 })}`}
                   </Text>
                 </Pressable>
+                {keyCost && hasKey(save) && <Text style={styles.keyWarning}>{t('secrets.vaultWarning')}</Text>}
               <Text style={styles.muted}>{tr(opportunity.description)}</Text>
               {coverage.opportunity?.answers && (
                 <Text style={styles.muted}>
@@ -332,5 +346,6 @@ const styles = StyleSheet.create({
   optionText: { fontSize: 17 },
   warning: { gap: 6, padding: 8, borderWidth: 2, borderColor: colors.danger, backgroundColor: colors.parchmentDark },
   warningText: { color: colors.ink },
+  keyWarning: { color: colors.danger },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 4 },
 });

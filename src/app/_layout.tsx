@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
 
 import { RecipeToast } from '@/components/RecipeToast';
+import { SecretToast } from '@/components/SecretToast';
 import { useAutoGather } from '@/hooks/useAutoGather';
 import { useLanguage } from '@/hooks/useLanguage';
 import { syncPlan, useNotifications } from '@/hooks/useNotifications';
@@ -84,6 +85,7 @@ export default function RootLayout() {
         <Stack.Screen name="debug" options={{ title: t('screens.debug') }} />
       </Stack>
       <RecipeToast />
+      <SecretToast />
     </View>
   );
 }

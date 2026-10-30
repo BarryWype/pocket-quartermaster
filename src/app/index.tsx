@@ -18,6 +18,7 @@ import { PANEL_KINDS, PlacePanel } from '@/components/PlacePanel';
 import { PlaceholderScreen } from '@/components/PlaceholderScreen';
 import { SanctumMarker } from '@/components/SanctumMarker';
 import { SanctumPanel } from '@/components/SanctumPanel';
+import { SecretPanel } from '@/components/SecretPanel';
 import { SpawnMarker } from '@/components/SpawnMarker';
 import { TavernPanel } from '@/components/TavernPanel';
 import { TravellerPanel } from '@/components/TravellerPanel';
@@ -59,6 +60,9 @@ import { useLanguage } from '@/hooks/useLanguage';
 import { usePlacedPoints, usePlacedSpawns } from '@/hooks/usePlacedSpawns';
 import { useAmbience } from '@/hooks/useAmbience';
 import { usePlayerLocation } from '@/hooks/usePlayerLocation';
+import { useSecretPlaces } from '@/hooks/useSecretPlaces';
+import { hasKey } from '@/game/secrets/keys';
+import { isEntered } from '@/game/secrets/places';
 import { lootText } from '@/hooks/usePatrols';
 import { t, tr } from '@/i18n';
 import { appendFixesNow } from '@/services/walkTracking';
@@ -99,6 +103,8 @@ const isShownKind = (kind: PlaceSpawn['kind']) => PANEL_KINDS.includes(kind) || 
 /** Fishing docks only stay where there is water nearby; with no map tile, there's no telling, so they're left out. */
 const keepPlace = (place: PlaceSpawn, tile: WalkableTile | null, position: LatLng) =>
   place.kind !== 'fishingDock' || (tile !== null && nearWater(tile, position, dockRules.waterMeters));
+
+const isSecretKind = (kind: PlaceSpawn['kind']) => kind === 'hiddenDen' || kind === 'blackMarket' || kind === 'underwaterDungeon';
 
 const minutesLeft = (ms: number) => `${Math.floor(ms / 60_000)}:${String(Math.floor((ms % 60_000) / 1000)).padStart(2, '0')}`;
 const failureMessages: Record<CollectFailure, (distance: number) => string> = {
@@ -243,6 +249,9 @@ export default function MapScreen() {
       !(place.id in save.usedPlaces) &&
       showsForPlayer(place, playerPickaxe),
   );
+  // This player's tipped secret places: shown at any distance until they move on.
+  const secretsInSight = useSecretPlaces(save, now);
+  const keyHeld = hasKey(save);
   // Other screens (the launch dialog) can sell emergency supply while a tavern is in reach.
   const nearbyTavern = tavernsInSight.find((t) => position !== null && distanceMeters(position, t.position) <= tavernRules.interactionMeters) ?? null;
   const setWorld = useWorldStore((state) => state.set);
@@ -458,6 +467,16 @@ export default function MapScreen() {
             />
           </Marker>
         ))}
+        {secretsInSight.map((place) => (
+          <Marker key={place.id} id={place.id} lngLat={toLngLat(place.position)} onPress={() => setOpenPlace(place)}>
+            <SanctumMarker
+              emoji={placeInfo[place.kind].emoji}
+              secret
+              locked={!keyHeld && !isEntered(save, place)}
+              label={tr(placeInfo[place.kind].name)}
+            />
+          </Marker>
+        ))}
         {visiblePatrols.map((spawn) => {
           const seenAt = patrolsSeen[spawn.id];
           const fleesIn = seenAt !== undefined ? fleesAt(spawn, seenAt) : null;
@@ -543,7 +562,10 @@ export default function MapScreen() {
       {openPlace && isFightPlace(openPlace.kind) && (
         <PlaceFightPanel place={openPlace} player={position} now={now} onClose={() => setOpenPlace(null)} />
       )}
-      {openPlace && !isFightPlace(openPlace.kind) && (
+      {openPlace && isSecretKind(openPlace.kind) && (
+        <SecretPanel place={openPlace} player={position} now={now} onClose={() => setOpenPlace(null)} />
+      )}
+      {openPlace && !isFightPlace(openPlace.kind) && !isSecretKind(openPlace.kind) && (
         <PlacePanel place={openPlace} player={position} now={now} onClose={() => setOpenPlace(null)} />
       )}
       {openTavern && <TavernPanel tavern={openTavern} player={position} onClose={() => setOpenTavern(null)} />}
