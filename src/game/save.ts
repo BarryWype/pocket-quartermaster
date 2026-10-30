@@ -137,6 +137,8 @@ export type SaveData = {
   manuals: Partial<Record<ManualRarity, number>>;
   /** Monster-part recipes unlocked (a part's first find). */
   partRecipes: string[];
+  /** Parts and gems found at least once; a part recipe unlocks once all of its have been seen. */
+  seenParts: string[];
   /** Debug: the collector every market uses on that day. */
   collectorOverride?: { dayKey: string; valuableId: string };
   /** Counter for unique ids (gear, maps, lures, fights, heroes). */
@@ -198,6 +200,7 @@ export function createInitialSave(): SaveData {
     relics: [],
     manuals: {},
     partRecipes: [],
+    seenParts: [],
     nextUid: 1,
   };
 }

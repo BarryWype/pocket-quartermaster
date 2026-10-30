@@ -2,6 +2,7 @@ import { lootConfig } from '@/content/loot/config';
 import { traitById } from '@/content/traits';
 
 import { unlockRecipe } from '../crafting/crafting';
+import { seeParts } from '../crafting/partRecipes';
 import { convertShards } from '../elements';
 import { gainMastery, masteryOf } from '../forging/mastery';
 import { guildBonus } from '../guild/guild';
@@ -15,7 +16,8 @@ import type { Loot } from './types';
  * Pays a roll's loot: gold, XP per hero who took part (trait and Guild Hall
  * bonuses on top), materials, consumables, lures, gear (given fresh uids),
  * blueprints, key fragments, treasure maps (found `now`), manuals, valuables,
- * relics and mastery progress. Pure: returns a new save.
+ * relics and mastery progress. Parts and gems found unlock their recipes.
+ * Pure: returns a new save.
  */
 export function grantLoot(save: SaveData, heroIds: string[], loot: Loot, now: number): SaveData {
   const guildXp = 1 + guildBonus(save, 'heroXp');
@@ -56,6 +58,7 @@ export function grantLoot(save: SaveData, heroIds: string[], loot: Loot, now: nu
     nextUid: uid,
   };
   for (const recipeId of loot.recipeIds) next = unlockRecipe(next, recipeId);
+  next = seeParts(next, [...loot.materials.map((stack) => stack.materialId), ...loot.valuables.map((v) => v.valuableId)]);
   for (const { type, tier, forges } of loot.mastery) {
     let state = masteryOf(next, type);
     for (let i = 0; i < forges; i++) state = gainMastery(state, tier);

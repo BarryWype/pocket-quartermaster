@@ -10,7 +10,6 @@ import { materials } from '@/content/materials';
 import { craft, craftMany, forgetRecipe, forgeResult, learnAllRecipes, learnTier, unlockRecipe, type ForgeResult } from '@/game/crafting/crafting';
 import { infuse } from '@/game/crafting/infusion';
 import { salvage } from '@/game/forging/salvage';
-import { migrateV10Save, migrateV11Save, migrateV12Save, migrateV13Save, migrateV14Save, migrateV15Save, migrateV16Save, migrateV17Save, migrateV18Save, migrateV19Save, migrateV20Save, migrateV21Save, migrateV22Save, migrateV5Save, migrateV6Save, migrateV7Save, migrateV8Save, migrateV9Save } from '@/game/migrations';
 import { convertShards, shardId, stoneId, type Element } from '@/game/elements';
 import { fastForward, resolveExpedition, startExpedition, type Loadout } from '@/game/expeditions/expeditions';
 import { markWalksSeen, processWalkPath, recordWalk, type WalkFix, type WalkOptions, type WalkPatrols, type WalkSummary } from '@/game/gathering/autoGather';
@@ -516,32 +515,14 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 23,
+      version: 24,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
-      // Saves from version 5 on are converted step by step; older ones start fresh. New fields get their defaults.
+      // Until release, a save change starts fresh: saves before version 24 (seen parts) are reset.
       migrate: (persisted, version) => {
-        const old = (persisted as { save?: Parameters<typeof migrateV5Save>[0] } | undefined)?.save;
-        if (!old || version < 5) return { save: createInitialSave() };
-        let save: SaveData = version === 5 ? migrateV5Save(old) : (old as SaveData);
-        if (version <= 6) save = migrateV6Save(save);
-        if (version <= 7) save = migrateV7Save(save);
-        if (version <= 8) save = migrateV8Save(save);
-        if (version <= 9) save = migrateV9Save(save);
-        if (version <= 10) save = migrateV10Save(save);
-        if (version <= 11) save = migrateV11Save(save);
-        if (version <= 12) save = migrateV12Save(save);
-        if (version <= 13) save = migrateV13Save(save);
-        if (version <= 14) save = migrateV14Save(save);
-        if (version <= 15) save = migrateV15Save(save);
-        if (version <= 16) save = migrateV16Save(save);
-        if (version <= 17) save = migrateV17Save(save);
-        if (version <= 18) save = migrateV18Save(save);
-        if (version <= 19) save = migrateV19Save(save);
-        if (version <= 20) save = migrateV20Save(save);
-        if (version <= 21) save = migrateV21Save(save);
-        if (version <= 22) save = migrateV22Save(save);
-        return { save };
+        const old = (persisted as { save?: SaveData } | undefined)?.save;
+        if (!old || version < 24) return { save: createInitialSave() };
+        return { save: old };
       },
       merge: (persisted, current) => ({
         ...current,
