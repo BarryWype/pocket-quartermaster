@@ -11,14 +11,15 @@ import { placeFightBriefing, placeFightDungeon, placeFightProblem, resolvePlaceF
 import { placesWithin, type PlaceSpawn } from '../../places/generate';
 import { heistOdds, heistProblem, resolveHeists, startHeist } from '../../places/heists';
 import { digProblem, digRuin } from '../../places/ruins';
-import { buy, buyProblem, placeStock } from '../../places/shops';
+import { buy, buyProblem, placeStock, stockLeft } from '../../places/shops';
+import { blessRelics as blessAtChapel, blessRelicsProblem } from '../../places/services';
 import { underwaterBriefing, underwaterDungeonFor, underwaterLaunchProblem, launchUnderwater } from '../../secrets/dungeon';
 import { hasKey } from '../../secrets/keys';
 import { isPlaceRevealed, isRevealed } from '../../reveal/reveal';
 import { enterProblem, enterSecret, recruitAtSecret, secretRecruit, secretRecruitProblem } from '../../secrets/places';
 import { secretPlaces } from '../../secrets/tips';
 import { isExhausted } from '../../team/health';
-import { act, bestParty, countLoot, highestTier, homeHeroes, mark, skip, takeVisit, withLoadout, type PlaceRow, type Sim } from '../bot';
+import { act, bestParty, countLoot, highestTier, homeHeroes, mark, nextForgeRecipe, skip, takeVisit, withLoadout, type PlaceRow, type Sim } from '../bot';
 import { emptySlots } from './loadout';
 
 const MINUTE = 60_000;
@@ -178,6 +179,37 @@ export function buyWeakness(sim: Sim) {
   row(sim, spawn.kind, tier, null, null);
 }
 
+/** Blesses every held holy symbol at the nearest chapel, turning them into their stronger blessed version. */
+export function blessSymbols(sim: Sim) {
+  if ((sim.save.consumables.holyRelics ?? 0) < 1 || !isPlaceRevealed(sim.save, 'chapel')) return;
+  const spawn = nearestSpawn(placesWithin(sim.location, BUY_METERS, sim.now), 'chapel', sim.location, (s) =>
+    blessRelicsProblem(sim.save, s, s.position, sim.now) === null,
+  );
+  if (!spawn) return;
+  act(sim, 'chapel', (save) => blessAtChapel(save, spawn, spawn.position, sim.now));
+  row(sim, 'chapel', highestTier(sim.save), null, null);
+}
+
+/** Buys what the next wanted forge is short of at the nearest place stocking it, when the gold covers it. */
+export function buyForgeMaterials(sim: Sim) {
+  const recipe = nextForgeRecipe(sim.save);
+  if (!recipe) return;
+  const spawns = placesWithin(sim.location, BUY_METERS, sim.now);
+  for (const { materialId, amount } of recipe.inputs) {
+    const missing = amount - (sim.save.materials[materialId] ?? 0);
+    if (missing <= 0) continue;
+    const stocked = (spawn: PlaceSpawn) => placeStock(sim.save, spawn, sim.now).find((l) => l.kind === 'material' && l.id === materialId);
+    const spawn = spawns
+      .filter((s) => isPlaceRevealed(sim.save, s.kind) && stocked(s))
+      .sort((a, b) => distanceMeters(sim.location, a.position) - distanceMeters(sim.location, b.position))[0];
+    if (!spawn) continue;
+    const line = stocked(spawn)!;
+    const count = Math.min(missing, stockLeft(sim.save, spawn, line));
+    if (count <= 0 || buyProblem(sim.save, spawn, line.key, count, spawn.position, sim.now) !== null) continue;
+    act(sim, 'materials', (save) => buy(save, spawn, line.key, count, spawn.position, sim.now));
+  }
+}
+
 /** The tipped underwater dungeon, launched with the best party when its odds reach the place threshold. */
 function underwaterAt(sim: Sim, place: PlaceSpawn): boolean {
   if (underwaterLaunchProblem(sim.save, place, place.position, sim.now) !== null) return false;
@@ -204,8 +236,9 @@ export function openSecrets(sim: Sim) {
     act(sim, 'secret', (save) => enterSecret(save, place, place.position, sim.now));
     mark(sim, 'secretPlace');
     row(sim, place.kind, highestTier(sim.save), null, null);
+    const offer = secretRecruit(sim.save, place);
+    sim.log.offered[offer.id] = offer.classId;
     if (secretRecruitProblem(sim.save, place, place.position, sim.now) === null) {
-      const offer = secretRecruit(sim.save, place);
       act(sim, 'secret', (save) => recruitAtSecret(save, place, place.position, sim.now));
       sim.log.recruits.push({ day: sim.day, classId: offer.classId, price: offer.price, trait: offer.trait });
       mark(sim, `recruit:${sim.save.heroes.length}`);

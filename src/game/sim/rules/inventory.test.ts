@@ -1,9 +1,9 @@
 import { createInitialSave, type SaveData } from '../../save';
 import { createRng } from '../../generation/rng';
 import { dungeonById } from '@/content/lookup';
-import { emptyLog, type Sim } from '../bot';
+import { emptyLog, stockProvisions, type Sim } from '../bot';
 import { profiles, simConfig } from '../config';
-import { craftCharms, craftStatPotions, partRecipeFor, valuablesToSell } from './inventory';
+import { craftCharms, craftOils, craftStatPotions, partRecipeFor, valuablesToSell } from './inventory';
 
 
 /** A Sim with just the fields the inventory rules touch: a real day 1 save, an empty log. */
@@ -105,5 +105,37 @@ describe('craftStatPotions', () => {
     craftStatPotions(locked);
     expect(locked.save.consumables.strengthDraught).toBeUndefined();
     expect(locked.log.crafts).toHaveLength(0);
+  });
+});
+
+describe('craftOils', () => {
+  it('crafts each elemental oil up to the stock once the tier is reached', () => {
+    const tier3 = (save: SaveData): SaveData => ({
+      ...save,
+      clearedDungeons: Object.values(dungeonById).filter((d) => d.isBoss && d.tier <= 2).map((d) => d.id),
+    });
+    const sim = simOf(tier3(createInitialSave()));
+    sim.save.materials = { ...sim.save.materials, copper: 2, fireShard: 4, herb: 2 };
+    craftOils(sim);
+    expect(sim.save.consumables.emberOil).toBe(2);
+    expect(sim.log.crafts.filter((c) => c.kind === 'consumable')).toHaveLength(2);
+    const locked = simOf(createInitialSave());
+    locked.save.materials = { ...locked.save.materials, copper: 2, fireShard: 4, herb: 2 };
+    craftOils(locked);
+    expect(locked.save.consumables.emberOil).toBeUndefined();
+  });
+});
+
+describe('stockProvisions', () => {
+  it('keeps the strongest healing potion the bot can brew, not always the minor one', () => {
+    const tier3 = (save: SaveData): SaveData => ({
+      ...save,
+      clearedDungeons: Object.values(dungeonById).filter((d) => d.isBoss && d.tier <= 2).map((d) => d.id),
+    });
+    const sim = simOf(tier3(createInitialSave()));
+    sim.save.materials = { ...sim.save.materials, copper: 3, herb: 3, mushroom: 3 };
+    stockProvisions(sim);
+    expect(sim.save.consumables.standardHealingPotion).toBe(3);
+    expect(sim.save.consumables.healingPotion ?? 0).toBe(0);
   });
 });

@@ -58,6 +58,20 @@ function odds(s: ProfileSummary) {
   return table(head, rows);
 }
 
+function kindOdds(s: ProfileSummary) {
+  const head = ['Kind', ...s.tiers.flatMap((t) => [`Tier ${t.tier} probe`, `Tier ${t.tier} fought, won`])];
+  const rows = (s.tiers[0]?.odds.kinds ?? []).map((k) => [
+    k.id,
+    ...s.tiers.flatMap((t) => {
+      const kind = t.odds.kinds.find((x) => x.id === k.id);
+      if (!kind) return ['—', '—'];
+      const probe = `${pct(kind.line.start.median)} → ${pct(kind.line.probe.median)}${mark(kind.line.probe.median, kind.line.target)}`;
+      return [probe, kind.fought ? `${kind.fought}, ${kind.won}` : '—'];
+    }),
+  ]);
+  return table(head, rows);
+}
+
 function loot(s: ProfileSummary) {
   const rows = s.loot.map((r) => [
     r.column,
@@ -119,17 +133,19 @@ function health(s: ProfileSummary) {
     '',
     `- Consumables never carried or made: ${list(h.dead.items)}`,
     `- Recipes known but never crafted: ${list(h.dead.recipes)}`,
-    `- Classes never fielded: ${list(h.dead.classes)}`,
+    `- Classes never offered: ${list(h.classes.neverOffered)}`,
+    `- Classes offered but never recruited: ${list(h.classes.offeredNeverRecruited)}`,
+    `- Classes recruited but never fielded: ${list(h.classes.recruitedNeverFielded)}`,
     `- Places never visited: ${list(h.dead.places)}`,
     `- Dungeons never picked: ${list(h.dead.dungeons)}`,
     '',
-    '**Class spread** (share of party slots)',
+    '**Classes** (offers seen, heroes recruited and party slots fielded, over all seeds; the starting trio is never offered or recruited)',
     '',
     table(
-      ['Class', 'Share'],
-      Object.entries(h.classSpread)
-        .sort((a, b) => b[1] - a[1])
-        .map(([c, v]) => [c, pct(v)]),
+      ['Class', 'Offered', 'Recruited', 'Fielded', 'Share of slots'],
+      Object.entries(h.classCounts)
+        .sort((a, b) => b[1].fielded - a[1].fielded || b[1].offered - a[1].offered)
+        .map(([c, v]) => [c, String(v.offered), String(v.recruited), String(v.fielded), pct(h.classSpread[c] ?? 0)]),
     ),
     '**Milestones** (day, median over seeds that got there)',
     '',
@@ -141,6 +157,13 @@ function health(s: ProfileSummary) {
     '',
     table(['Activity', 'Skipped'], Object.entries(h.skipped).map(([k, v]) => [k, n(v)])),
   ].join('\n');
+}
+
+function visitsTable(s: ProfileSummary) {
+  return table(
+    ['Activity', 'Planned visits/day', 'Done visits/day (median)'],
+    s.visits.map((v) => [v.activity, n(v.planned, 2), n(v.done.median, 2)]),
+  );
 }
 
 /** The markdown report: targets next to results, ⚠ on anything out of range. */
@@ -166,6 +189,15 @@ export function renderReport({ summaries, rules, settings }: ReportInput) {
     '',
   ];
   for (const s of summaries) out.push(`### ${s.profile}`, '', odds(s));
+  out.push(
+    '## Events and patrols by kind',
+    '',
+    'The same probe and fight record split by kind: each patrol kind (goblin scouts, game herd, bandits) and each fight event kind.',
+    '',
+  );
+  for (const s of summaries) out.push(`### ${s.profile}`, '', kindOdds(s));
+  out.push('## Visits planned vs done', '', 'Each activity: the profile’s planned visits per day next to the median over seeds of visits done per day.', '');
+  for (const s of summaries) out.push(`### ${s.profile}`, '', visitsTable(s));
   if (regular) out.push('## Loot pacing (regular)', '', loot(regular));
   out.push('## Gold per tier', '');
   for (const s of summaries) out.push(`### ${s.profile}`, '', gold(s));

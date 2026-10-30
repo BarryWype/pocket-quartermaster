@@ -306,8 +306,9 @@ export const rosterFull = (save: SaveData) => save.heroes.length >= rosterCap(sa
 export function addXp(hero: HeroState, amount: number, playerTier?: number): HeroState {
   // At the cap no XP is gained at all.
   if (hero.level >= xpRules.maxLevel) return hero;
-  // At or above the player's tier band top, a hero earns the soft-cap share.
-  const aboveBand = playerTier !== undefined && hero.level >= lootConfig.manuals.topLevelByTier[playerTier - 1];
+  // Above the player's tier band top plus the margin, a hero earns the soft-cap share.
+  const aboveBand =
+    playerTier !== undefined && hero.level >= lootConfig.manuals.topLevelByTier[playerTier - 1] + xpRules.aboveBandMargin;
   let { level, xp } = hero;
   xp += Math.round(amount * (aboveBand ? xpRules.aboveBandShare : 1));
   while (level < xpRules.maxLevel) {

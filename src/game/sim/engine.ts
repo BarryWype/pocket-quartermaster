@@ -64,8 +64,8 @@ import {
 } from './bot';
 import { probe } from './probe';
 import { forgeComponents, restoreRelics } from './rules/forge';
-import { craftCharms, craftStatPotions, readManuals, sellMaterials, sellValuables } from './rules/inventory';
-import { buyWeakness, openSecrets, visitPlaces } from './rules/map';
+import { craftCharms, craftOils, craftStatPotions, readManuals, sellMaterials, sellValuables } from './rules/inventory';
+import { buyWeakness, blessSymbols, buyForgeMaterials, openSecrets, visitPlaces } from './rules/map';
 import { profiles, simConfig, type Profile, type SimConfig } from './config';
 import { targets } from './targets';
 import { PICKAXES, bonusScaled, walkYield, type WalkRates } from './walking';
@@ -255,9 +255,11 @@ function helpTravellerSpawn(sim: Sim, spawn: PatrolSpawn, at: number, player: La
     log.keyFragments += reward.loot.keyFragments;
     countLoot(sim, reward.loot);
   }
+  if (reward.kind === 'recruit') sim.log.offered[reward.offer.id] = reward.offer.classId;
   if (reward.kind === 'recruit' && save.heroes.length < rosterCap(save)) {
     act(sim, 'traveller', (next) => rollDailyApproaches(acceptRecruit(next, reward.offer), sim.now));
     log.recruits.push(sim.day);
+    sim.log.recruits.push({ day: sim.day, classId: reward.offer.classId, price: 0, trait: reward.offer.trait });
     mark(sim, `recruit:${sim.save.heroes.length}`);
   }
 }
@@ -292,6 +294,8 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, steps: number, 
     sellValuables(sim);
     sellMaterials(sim);
     buyWeakness(sim);
+    buyForgeMaterials(sim);
+    blessSymbols(sim);
   }
   sim.save = applyTraining(sim.save, sim.now);
   sim.save = recordSteps(sim.save, dayKey, steps);
@@ -312,6 +316,7 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, steps: number, 
   stockProvisions(sim);
   craftCharms(sim);
   craftStatPotions(sim);
+  craftOils(sim);
   readManuals(sim);
   infuseWeapons(sim);
   openSecrets(sim);

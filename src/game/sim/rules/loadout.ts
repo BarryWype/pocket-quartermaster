@@ -1,5 +1,7 @@
 import { itemById } from '@/content/lookup';
 import { charms } from '@/content/loot/charms';
+import { shopRules } from '@/content/shops';
+import { items } from '@/content/items';
 import { weaknessByBoss } from '@/content/weaknesses';
 
 import { charmApplies } from '../../loot/charms';
@@ -70,9 +72,20 @@ export function pickCharm(save: SaveData, source: LootSourceId): string | null {
   return held.sort((a, b) => (save.consumables[b.id] ?? 0) - (save.consumables[a.id] ?? 0))[0]?.id ?? null;
 }
 
+/** The healing potions, weakest first (a stock line naming any of them sells the strongest the player can brew). */
+export const healingPotionIds = shopRules.potions.ladder;
+
+/** The elemental oils, which infuse a plain weapon with their element for one run. */
+export const oilIds = items.filter((i): i is ConsumableDef => i.slot === 'consumable' && (i as ConsumableDef).elixir?.kind === 'oil').map((i) => i.id);
+
+export const isHealingPotion = (itemId: string | null | undefined) => !!itemId && healingPotionIds.includes(itemId);
+
+/** The strongest healing potion held, or null when none is. */
+export const heldPotion = (save: SaveData): string | null => [...healingPotionIds].reverse().find((id) => (save.consumables[id] ?? 0) > 0) ?? null;
+
 /** Swaps one hero's potion (or empty slot) for the charm, never a kit or weakness item. */
 export function withCharm(save: SaveData, heroIds: string[], charmId: string): SaveData {
-  const carrier = heroIds.find((id) => !consumableOf(save, id) || consumableOf(save, id) === 'healingPotion');
+  const carrier = heroIds.find((id) => !consumableOf(save, id) || isHealingPotion(consumableOf(save, id)));
   if (!carrier || (save.consumables[charmId] ?? 0) < 1) return save;
   return equip(save, carrier, 'consumable', charmId);
 }
@@ -84,14 +97,24 @@ export const statPotionIds = ['strengthDraught', 'arcaneTonic', 'ironskinBrew', 
 export function withStatPotion(save: SaveData, heroId: string, itemId: string): SaveData {
   const hero = save.heroes.find((h) => h.id === heroId);
   const slot = hero?.equipment.consumable;
-  if (!hero || !statPotionIds.includes(itemId) || (slot !== null && slot !== 'healingPotion') || (save.consumables[itemId] ?? 0) < 1) return save;
+  if (!hero || !statPotionIds.includes(itemId) || (slot !== null && !isHealingPotion(slot)) || (save.consumables[itemId] ?? 0) < 1) return save;
   return equip(save, heroId, 'consumable', itemId);
 }
 
-/** Every hero still without a consumable takes a healing potion while the stock lasts. */
+/** Swaps the hero's healing potion (or empty consumable slot) for this held elemental oil; only a plain weapon takes one. */
+export function withOil(save: SaveData, heroId: string, itemId: string): SaveData {
+  const hero = save.heroes.find((h) => h.id === heroId);
+  const slot = hero?.equipment.consumable;
+  const weapon = hero?.equipment.weapon ? save.gear.find((g) => g.uid === hero.equipment.weapon) : undefined;
+  if (!hero || !oilIds.includes(itemId) || (slot !== null && !isHealingPotion(slot)) || !weapon || weapon.element || (save.consumables[itemId] ?? 0) < 1)
+    return save;
+  return equip(save, heroId, 'consumable', itemId);
+}
+
+/** Every hero still without a consumable takes the strongest healing potion held while the stock lasts. */
 export function fillPotions(save: SaveData, heroIds: string[]): SaveData {
-  return heroIds.reduce(
-    (next, id) => (!consumableOf(next, id) && (next.consumables.healingPotion ?? 0) > 0 ? equip(next, id, 'consumable', 'healingPotion') : next),
-    save,
-  );
+  return heroIds.reduce((next, id) => {
+    const potion = heldPotion(next);
+    return !consumableOf(next, id) && potion ? equip(next, id, 'consumable', potion) : next;
+  }, save);
 }

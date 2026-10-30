@@ -7,6 +7,7 @@ import { heroClasses, xpRules } from '@/content/heroes';
 import { dungeonById, itemById, recipeById } from '@/content/lookup';
 import { items } from '@/content/items';
 import { lootConfig } from '@/content/loot/config';
+import { shopRules } from '@/content/shops';
 import { recipes } from '@/content/recipes';
 import { approachRules, narrowPartySize } from '@/content/threats';
 import { traitById } from '@/content/traits';
@@ -57,7 +58,7 @@ import { scoreThreat } from '../threats/score';
 import type { ActiveExpedition, Approach, ArmourType, Briefing, ConsumableDef, DungeonDef, GearDef, GearInstance, HeroClassId, HeroState, OffhandType, Quality, RecipeDef, Stats, WeaponType } from '../types';
 import { expectedLevels, type Profile, type SimConfig } from './config';
 import { partRecipeFor } from './rules/inventory';
-import { emptySlots, fillPotions, isKit, pickCharm, pickKits, pickWeakness, statPotionIds, uncovered, withCharm, withStatPotion } from './rules/loadout';
+import { emptySlots, fillPotions, heldPotion, isKit, oilIds, pickCharm, pickKits, pickWeakness, statPotionIds, uncovered, withCharm, withOil, withStatPotion } from './rules/loadout';
 import { PICKAXES, type WalkRates } from './walking';
 import { questRules } from '@/content/quests';
 import { questUpkeep } from '../quests/arrival';
@@ -169,6 +170,8 @@ export type RunLog = {
   missing: Record<number, Record<string, number>>;
   sanctums: { day: number; tier: number; odds: number; win: boolean }[];
   recruits: { day: number; classId: string; price: number; trait: string }[];
+  /** Offers seen, by offer id: at the tavern, from a traveller, or at a secret place. */
+  offered: Record<string, string>;
   guildBuys: { day: number; track: string; rank: number; gold: number }[];
   /** Everything the walks met — patrols fought and travellers helped. */
   patrols: PatrolLog;
@@ -215,6 +218,7 @@ export const emptyLog = (profile: string, seed: string): RunLog => ({
   missing: {},
   sanctums: [],
   recruits: [],
+  offered: {},
   guildBuys: [],
   patrols: { seen: [], fights: [], travellers: { wounded: 0, pilgrim: 0, trader: 0 }, rewards: { loot: 0, recruit: 0 }, recruits: [], keyFragments: 0, trades: 0 },
   potionsAtHome: 0,
@@ -692,18 +696,24 @@ export function stockProvisions(sim: Sim) {
   const top = highestTier(sim.save);
   const briefings = dungeons.filter((d) => d.tier >= top - 1 && isDungeonAvailable(sim.save, d, sim.rotation)).map((d) => briefingFor(sim.rotation, d));
   const kits = items.filter((i) => isKit(i.id) && briefings.some((b) => kitAnswers(i.id, b)));
+  // The healing potion stock is the strongest one the bot can brew.
   const targets: [string, number][] = [
-    ...Object.entries(sim.config.stock),
+    ...Object.entries(sim.config.stock).map(([id, target]): [string, number] => [id === 'healingPotion' ? brewablePotion(sim.save) : id, target]),
     ...kits.map((i): [string, number] => [i.id, provisions.kits]),
     ...mealItems.map((i): [string, number] => [i.id, provisions.meals]),
   ];
   for (const [id, target] of targets) {
-    const missing = target - (sim.save.consumables[id] ?? 0);
+    // Holy and blessed symbols are one stock line: the blessed ones count towards it (only the chapel makes them).
+    const held = (sim.save.consumables[id] ?? 0) + (id === 'holyRelics' ? (sim.save.consumables.blessedRelics ?? 0) : 0);
+    const missing = target - held;
     if (missing > 0 && isKnownRecipe(sim.save, id)) cook(sim, id, missing);
   }
 }
 
 const isKnownRecipe = (save: SaveData, id: string) => !!recipeById[id] && isKnown(save, recipeById[id]);
+
+/** The strongest healing potion the bot can brew; the minor one until the better recipes are known. */
+const brewablePotion = (save: SaveData) => [...shopRules.potions.ladder].reverse().find((id) => isKnownRecipe(save, id)) ?? 'healingPotion';
 
 /** The meal for a run's goal (see BOT_RULES). */
 function mealFor(sim: Sim, dungeon: DungeonDef, heroIds: string[], o: Odds): string | null {
@@ -781,8 +791,10 @@ export function recruitHeroes(sim: Sim) {
   for (;;) {
     if (rosterFull(sim.save)) return;
     const owned = new Set(sim.save.heroes.map((h) => h.classId));
-    const offers = tavernOffers(sim.save, sim.tavern.id, sim.now)
-      .filter((o) => !(o.id in sim.save.takenOffers) && sim.save.gold >= o.price + sim.config.recruitReserve)
+    const seen = tavernOffers(sim.save, sim.tavern.id, sim.now).filter((o) => !(o.id in sim.save.takenOffers));
+    for (const o of seen) sim.log.offered[o.id] = o.classId;
+    const offers = seen
+      .filter((o) => sim.save.gold >= o.price + sim.config.recruitReserve)
       .map((offer) => {
         const counters = answersThreat(sim, offer.classId);
         return { offer, score: (counters ? 2 : 0) + (owned.has(offer.classId) ? 0 : 1), positive: traitById[offer.trait]?.positive ? 1 : 0 };
@@ -883,8 +895,9 @@ export function withLoadout(save: SaveData, heroIds: string[], dungeon: DungeonD
   let next = fillPotions(pickWeakness(pickKits(emptySlots(save, heroIds), heroIds, briefing), heroIds, dungeon), heroIds);
   for (const id of heroIds) {
     const hero = next.heroes.find((h) => h.id === id)!;
-    if (hasPotionSlot(hero) && !hero.equipment.potion && (next.consumables.healingPotion ?? 0) > 0) {
-      next = equip(next, id, 'potion', 'healingPotion');
+    const potion = heldPotion(next);
+    if (hasPotionSlot(hero) && !hero.equipment.potion && potion) {
+      next = equip(next, id, 'potion', potion);
     }
   }
   for (const porter of next.heroes.filter((h) => heroIds.includes(h.id) && carriesKit(h))) {
@@ -985,25 +998,29 @@ export function digTreasure(sim: Sim) {
 
 /**
  * While the prepared party's odds are below `statPotionBelowOdds`, one hero
- * at a time takes the held stat potion that raises the cheap odds estimate
- * the most, in a slot that would otherwise get a healing potion; stops when
- * no potion helps.
+ * at a time takes the held stat potion or elemental oil that raises the cheap
+ * odds estimate the most, in a slot that would otherwise get a healing potion
+ * (an oil only when the hero's weapon is still plain); stops when no item
+ * helps.
  */
-function applyStatPotions(sim: Sim, dungeon: DungeonDef, heroIds: string[], loadout: Loadout, briefing: Briefing) {
+function applyElixirs(sim: Sim, dungeon: DungeonDef, heroIds: string[], loadout: Loadout, briefing: Briefing) {
   const estimate = (save: SaveData) => estimateOdds(save, heroIds, dungeon, sim.config.odds.searchRuns, { now: sim.now, loadout, briefing });
+  const ids = [...statPotionIds, ...oilIds];
+  const withOne = (save: SaveData, heroId: string, itemId: string) =>
+    oilIds.includes(itemId) ? withOil(save, heroId, itemId) : withStatPotion(save, heroId, itemId);
   for (;;) {
-    if (!statPotionIds.some((id) => (sim.save.consumables[id] ?? 0) > 0)) return;
+    if (!ids.some((id) => (sim.save.consumables[id] ?? 0) > 0)) return;
     const current = estimate(sim.save).success;
     if (current >= sim.config.statPotionBelowOdds) return;
     let best: { heroId: string; itemId: string; odds: number } | null = null;
     for (const heroId of heroIds) {
-      for (const itemId of statPotionIds.filter((id) => (sim.save.consumables[id] ?? 0) > 0)) {
-        const odds = estimate(withStatPotion(sim.save, heroId, itemId)).success;
+      for (const itemId of ids.filter((id) => (sim.save.consumables[id] ?? 0) > 0)) {
+        const odds = estimate(withOne(sim.save, heroId, itemId)).success;
         if (!best || odds > best.odds) best = { heroId, itemId, odds };
       }
     }
     if (!best || best.odds <= current) return;
-    sim.save = withStatPotion(sim.save, best.heroId, best.itemId);
+    sim.save = withOne(sim.save, best.heroId, best.itemId);
   }
 }
 
@@ -1012,7 +1029,7 @@ export function launch(sim: Sim, dungeon: DungeonDef, heroIds: string[], o: Odds
   sim.save = withLoadout(emptySlots(sim.save, homeHeroes(sim.save).map((h) => h.id)), heroIds, dungeon, briefing);
   const loadout = { mealId: mealFor(sim, dungeon, heroIds, o) };
   topUpSupply(sim, dungeon, heroIds, loadout, briefing);
-  applyStatPotions(sim, dungeon, heroIds, loadout, briefing);
+  applyElixirs(sim, dungeon, heroIds, loadout, briefing);
   // The prediction logged is for the party exactly as it leaves.
   let final = estimateOdds(sim.save, heroIds, dungeon, sim.config.odds.runs, { now: sim.now, loadout, briefing });
   const charm = final.success >= sim.config.odds.charm ? pickCharm(sim.save, runSource(dungeon)) : null;
@@ -1067,8 +1084,8 @@ function expectedValue(sim: Sim, dungeon: DungeonDef, o: Odds, heroIds: string[]
   const bonus =
     (firstWinAvailable(sim.save, dungeon, sim.now) ? dungeon.gold[1] * firstWin.gold : 0) + (newTier ? dungeon.gold[1] * firstTierClear.gold : 0);
   const tierShare = xpRules.lowerTierShare[Math.min(xpRules.lowerTierShare.length - 1, highestTier(sim.save) - dungeon.tier)];
-  // Heroes at or above the tier band's top earn the soft-cap share of that XP.
-  const bandTop = lootConfig.manuals.topLevelByTier[highestTier(sim.save) - 1];
+  // Heroes above the tier band's top plus the margin earn the soft-cap share of that XP.
+  const bandTop = lootConfig.manuals.topLevelByTier[highestTier(sim.save) - 1] + xpRules.aboveBandMargin;
   const xpShares = heroIds.reduce(
     (sum, id) => sum + ((sim.save.heroes.find((h) => h.id === id)?.level ?? 0) >= bandTop ? xpRules.aboveBandShare : 1),
     0,

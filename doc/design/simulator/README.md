@@ -43,14 +43,15 @@ The simulator plays the game with simple bots, for several player profiles, and 
 ## Health reports
 These catch design problems, not just balance:
 - **Pile-ups**: items whose stock keeps growing and never gets used.
-- **Dead content**: items, recipes, classes or places the bot never uses.
-- **Class spread**: how often each class is fielded.
+- **Dead content**: items, recipes or places the bot never uses.
+- **Classes**: never offered, offered but never recruited, recruited but never fielded; and the class spread (how often each class is fielded).
 - **Milestones**: days to the first key, the first secret place, the first relic, the first component.
-- **Win odds per tier**, prepared and not prepared, against the targets above.
+- **Win odds per tier**, prepared and not prepared, against the targets above; each patrol and fight event kind has its own row.
+- **Visits planned vs done**: each activity's planned visits per day next to the visits the bot actually did.
 
 ## Notes for the design
 - With about 7 days per tier, a regular player finds about 12 of a tier's 22 blueprints before moving on. That's acceptable (types the roster favours come first), but the loot pacing table's target ("a tier's 22 in about 2 weeks") is now a stretch goal, not a requirement.
 - 5 tiers at about a week each is about 5 weeks to the last tier for a regular player. Play after that relies on the tier 5 loop (relics, components, secret places, quests).
 - The balance band tests (`src/game/sim/bands.test.ts`, targets in `targets.ts`) stay skipped until tuning brings the numbers in range; `npm run sim:check` runs them on demand.
-- Soft XP cap: a hero at or above the top of the player's tier band (levels 3, 6, 9, 12, 15 for tiers 1–5, as for training manuals) gets 25% of the XP they would earn from any source: expeditions, fights, training and manuals (`xpRules.aboveBandShare`). Heroes stay near their band, so kits keep mattering. The hero card says so.
+- Soft XP cap: a hero one level above the top of the player's tier band (`xpRules.aboveBandMargin`; levels 4, 7, 10, 13 for tiers 1–4, the band tops being 3, 6, 9, 12, 15 as for training manuals; 15 is the max level) gets 25% of the XP they would earn from any source: expeditions, fights, training and manuals (`xpRules.aboveBandShare`). Heroes may reach the band's top + 1 at full XP, matching the design target "the band's top ±1". Heroes stay near their band, so kits keep mattering. The hero card says so.
 - Recruits from every source (taverns, travellers, the hidden den, the black market) join at the bottom of the player's tier band (levels 1, 4, 7, 10, 13; `recruitRules.levelByTier`), with the usual stat roll.

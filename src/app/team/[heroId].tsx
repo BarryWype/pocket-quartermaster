@@ -20,7 +20,7 @@ import { expeditionRules } from '@/content/dungeons';
 import { approachRules } from '@/content/threats';
 import { qualities } from '@/content/forging';
 import { gearApproachBonus, approachScore, pendingApproachPicks } from '@/game/team/stats';
-import { heroClasses, xpToNextLevel } from '@/content/heroes';
+import { heroClasses, xpRules, xpToNextLevel } from '@/content/heroes';
 import { lootConfig } from '@/content/loot/config';
 import { traitById } from '@/content/traits';
 import { items } from '@/content/items';
@@ -75,7 +75,7 @@ export default function CharacterSheetScreen() {
   const keywords = (answers?.keywords ?? []).filter((k) => k.source !== 'kit');
   const element = heroClass.element ? elementInfo[heroClass.element] : null;
   const next = xpToNextLevel(hero.level);
-  const aboveBand = hero.level >= lootConfig.manuals.topLevelByTier[highestUnlockedTier(save) - 1];
+  const aboveBand = hero.level >= lootConfig.manuals.topLevelByTier[highestUnlockedTier(save) - 1] + xpRules.aboveBandMargin;
   const confirmDismiss = () =>
     Alert.alert(t('hero.dismissTitle', { name: hero.name }), t('hero.dismissBody'), [
       { text: t('common.cancel'), style: 'cancel' },

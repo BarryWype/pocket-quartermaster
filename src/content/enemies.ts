@@ -80,6 +80,8 @@ const S = {
   millRuins: strength(1, 4.37),
   smugglersCove: strength(1, 4.29),
   banditStockade: strength(1, 3.95),
+  // The bandit captain alone: ×0.9, aimed at about 55% for the full game's rosters (the reference team is far below).
+  banditStockadeBoss: strength(1, 3.56),
   // Tier 2
   wolfDen: strength(2, 4.14),
   barrowMounds: strength(2, 3.32),
@@ -242,7 +244,7 @@ export const bosses: BossDef[] = [
   boss('goblinChief', 'goblin chief', S.goblinWarren, 60, 7, ['goblinoid']),
   boss('millOgre', 'mill ogre', S.millRuins, 60, 7, ['brute'], undefined, undefined, 'slow'),
   boss('smugglerQueen', 'smuggler queen', S.smugglersCove, 60, 7, ['humanoid']),
-  boss('banditCaptain', 'bandit captain', S.banditStockade, 110, 9, ['humanoid'], 'enrage'),
+  boss('banditCaptain', 'bandit captain', S.banditStockadeBoss, 110, 9, ['humanoid'], 'enrage'),
   boss('alphaWolf', 'alpha wolf', S.wolfDen, 55, 7, ['beast'], undefined, undefined, 'fast'),
   boss('barrowKing', 'barrow king', S.barrowMounds, 55, 7, ['spirit', 'undead']),
   boss('thicketBoar', 'great thicket boar', S.boarThicket, 55, 7, ['beast'], undefined, 'grass', 'slow'),

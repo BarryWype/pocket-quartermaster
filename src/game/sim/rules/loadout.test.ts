@@ -5,10 +5,11 @@ import { weaknessByBoss } from '@/content/weaknesses';
 import { charmApplies } from '../../loot/charms';
 import { createInitialSave, type SaveData } from '../../save';
 import type { Briefing } from '../../types';
-import { emptySlots, fillPotions, isKit, pickCharm, pickKits, pickWeakness, uncovered, unprepared, withCharm, withStatPotion } from './loadout';
+import { emptySlots, fillPotions, isKit, pickCharm, pickKits, pickWeakness, uncovered, unprepared, withCharm, withOil, withStatPotion } from './loadout';
 
 const PARTY = ['bram', 'lyra', 'mira'];
 const TRAPS: Briefing = { threats: [{ id: 'traps', level: 3 }], restriction: null, opportunity: null };
+const DESECRATED: Briefing = { threats: [{ id: 'desecrated', level: 2 }], restriction: null, opportunity: null };
 const NONE: Briefing = { threats: [], restriction: null, opportunity: null };
 
 const stocked = (consumables: Record<string, number>): SaveData => ({ ...createInitialSave(), consumables });
@@ -72,5 +73,36 @@ describe('loadout rules', () => {
     expect(slots(withStat)[free]).toBe('strengthDraught');
     expect(withStat.consumables).toEqual({ roguesRoll: 0, strengthDraught: 0, healingPotion: 2 });
     expect(withStatPotion(potion, PARTY[free], 'quicksilver')).toBe(potion);
+  });
+
+  it('carries the strongest healing potion held, falling back to weaker ones', () => {
+    expect(slots(fillPotions(stocked({ standardHealingPotion: 1, healingPotion: 3 }), PARTY))).toEqual([
+      'standardHealingPotion',
+      'healingPotion',
+      'healingPotion',
+    ]);
+    expect(slots(fillPotions(stocked({ healingPotion: 3 }), PARTY))).toEqual(['healingPotion', 'healingPotion', 'healingPotion']);
+  });
+
+  it('counts blessed holy symbols as the kit for desecrated ground', () => {
+    const save = stocked({ blessedRelics: 1, healingPotion: 3 });
+    const kitted = pickKits(save, PARTY, DESECRATED);
+    expect(slots(kitted)).toContain('blessedRelics');
+    expect(uncovered(kitted, PARTY, DESECRATED)).toBeLessThan(uncovered(save, PARTY, DESECRATED));
+  });
+
+  it('puts an oil in a healing potion slot only for a hero with a plain weapon', () => {
+    const armed: SaveData = {
+      ...stocked({ emberOil: 1, healingPotion: 3 }),
+      gear: [{ uid: 'w1', itemId: 'sword1', quality: 'normal' }],
+    };
+    const equipped = { ...armed, heroes: armed.heroes.map((h) => (h.id === 'bram' ? { ...h, equipment: { ...h.equipment, weapon: 'w1' } } : h)) };
+    const potion = fillPotions(equipped, PARTY);
+    expect(slots(withOil(potion, 'bram', 'emberOil'))[0]).toBe('emberOil');
+    expect(withOil(potion, 'lyra', 'emberOil')).toBe(potion);
+    const infused: SaveData = { ...potion, gear: [{ uid: 'w1', itemId: 'sword1', quality: 'normal', element: 'water' }] };
+    expect(withOil(infused, 'bram', 'emberOil')).toBe(infused);
+    const kitted = pickKits(stocked({ roguesRoll: 1, emberOil: 1 }), ['bram'], TRAPS);
+    expect(withOil(kitted, 'bram', 'emberOil')).toBe(kitted);
   });
 });

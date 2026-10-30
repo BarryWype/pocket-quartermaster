@@ -15,7 +15,7 @@ import { isPlaceRevealed } from '../../reveal/reveal';
 import type { SaveData } from '../../save';
 import type { RecipeDef } from '../../types';
 import { act, homeHeroes, mark, nextForgeRecipe, type Sim } from '../bot';
-import { statPotionIds } from './loadout';
+import { oilIds, statPotionIds } from './loadout';
 
 /** A recipe whose output is an item, with the output narrowed to its itemId. */
 type ItemRecipe = RecipeDef & { output: { itemId: string } };
@@ -117,6 +117,21 @@ export function craftStatPotions(sim: Sim) {
     const recipe = partRecipeFor(sim.save, itemId) ?? (base && isKnown(sim.save, base) ? base : null);
     if (!recipe) continue;
     const n = Math.min(sim.config.provisions.statPotions - (sim.save.consumables[itemId] ?? 0), craftableCount(sim.save, recipe));
+    if (n <= 0) continue;
+    act(sim, 'alchemy', (save) => craftMany(save, recipe, n));
+    for (let i = 0; i < n; i++) {
+      sim.log.crafts.push({ day: sim.day, kind: 'consumable', itemId, tier: 0, quality: null, roll: null, mastery: null, materials: {} });
+    }
+  }
+}
+
+/** Crafts each elemental oil (its part recipe when the parts are held) up to the oils-per-kind stock. */
+export function craftOils(sim: Sim) {
+  for (const itemId of oilIds) {
+    const base = recipeById[itemId];
+    const recipe = partRecipeFor(sim.save, itemId) ?? (base && isKnown(sim.save, base) ? base : null);
+    if (!recipe) continue;
+    const n = Math.min(sim.config.provisions.oils - (sim.save.consumables[itemId] ?? 0), craftableCount(sim.save, recipe));
     if (n <= 0) continue;
     act(sim, 'alchemy', (save) => craftMany(save, recipe, n));
     for (let i = 0; i < n; i++) {
