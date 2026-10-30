@@ -1,0 +1,22 @@
+Building,Track,Status,Ranks,Effect per rank,Tier boss beaten for each rank,Notes
+War room,Hero XP,Kept,4,+10% hero XP,"0, 1, 2, 3",
+War room,Faster expeditions,Kept,3,-10% expedition time,"1, 2, 3",Loot keeps using the dungeon's base minutes
+War room,Better retreats,Kept,3,+15% loot kept on a retreat,"0, 1, 2",
+War room,Scouting report,Removed,,,,Threats are always visible now
+War room,Extra party slot,Removed,,,,The party is 3 heroes
+Treasury,Gold,Kept,4,+10% gold,"0, 1, 2, 3",
+Treasury,Shards,Kept,3,+1 shard per shard drop,"1, 2, 3",
+Treasury,Sigil cap,Changed,1,+1 Sigil cap,3,No longer needs a charter
+Treasury,Collector's contacts,New,3,+10% when selling valuables,"1, 2, 3",Proposed base cost 150
+Treasury,Main rewards,Removed,,,,Loot is tuned in the matrix only
+Barracks,Tavern discount,Kept,3,-10% recruit price,"0, 1, 2",
+Barracks,Extra tavern offer,Kept,1,+1 recruit offer,1,
+Barracks,Training,Kept,3,+2 training (existing effect),"0, 1, 2",
+Barracks,Roster slot 7,Changed,1,7 heroes on the roster,2,No longer needs a charter
+Barracks,Roster slot 8,Changed,1,8 heroes on the roster,4,Requires roster slot 7; no longer needs a charter
+Quest board,Quest cap,New,2,+1 quest cap (6 to 8),"1, 3",Proposed base cost 200
+Quest board,Extra reroll,New,1,+1 daily quest reroll,2,Proposed cost 300
+Quest board,Step chests,Moved,3,One more roll of the 12k-step chest,"0, 1, 2",Moved from the treasury
+Workshop,Relic restoring,New,3,-15% relic restore cost,"2, 3, 4",Proposed base cost 300
+Workshop,Salvage,New,3,+15% materials from salvage,"1, 2, 3",Proposed base cost 150
+Workshop,Mastery,New,3,+20% mastery progress,"0, 2, 4",Proposed base cost 200
