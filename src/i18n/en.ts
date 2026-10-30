@@ -439,7 +439,6 @@ export const en = {
     prize: 'Prize on a win: a relic ({relic}) or a Rare item (Legendary {legendary}), on top of the usual loot.',
     goods: 'Goods',
     opens: 'Opens: hidden den, black market, underwater dungeon, Sealed vault',
-    keys: 'Mysterious keys: {count}',
     gone: 'This place is gone.',
     notEntered: 'Enter first.',
     taken: 'Already recruited.',

@@ -448,7 +448,6 @@ export const fr: Dictionary = {
     prize: 'Butin en cas de victoire : une relique ({relic}) ou un objet rare (légendaire {legendary}), en plus du butin habituel.',
     goods: 'Marchandises',
     opens: 'Ouvre : repaire caché, marché noir, donjon englouti, caveau scellé',
-    keys: 'Clés mystérieuses : {count}',
     gone: 'Ce lieu a disparu.',
     notEntered: 'Entrez d’abord.',
     taken: 'Déjà recruté.',
