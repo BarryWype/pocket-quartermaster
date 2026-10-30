@@ -21,6 +21,8 @@ type WorldState = {
   patrolsSeen: Record<string, number>;
   /** A notification tapped patrol to centre on and select; cleared by the map. */
   focusPatrol: { id: string; latitude: number; longitude: number } | null;
+  /** A notification tapped place to centre on; cleared by the map. */
+  focusPlace: { latitude: number; longitude: number } | null;
   /** Pocket mode's panel, opened from the pill or a notification tap. */
   pocketPanel: 'closed' | 'open' | 'escort';
   /** Patrols placed by hand next to the player by the debug tools. */
@@ -39,6 +41,7 @@ export const useWorldStore = create<WorldState>()((set) => ({
   patrolMessage: null,
   patrolsSeen: {},
   focusPatrol: null,
+  focusPlace: null,
   pocketPanel: 'closed',
   debugPatrols: [],
   addDebugPatrols: (patrols) =>

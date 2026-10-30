@@ -237,7 +237,7 @@ const THREAT_LEVELS: ThreatLevel[] = [1, 2, 3];
 /** Every recipe that is not a gear recipe (pickaxes, smelting, provisions). */
 const NON_GEAR_RECIPES = recipes.filter((recipe) => !forgedItem(recipe));
 const MAX_MASTERY = masteryCap(5);
-const SAMPLE_NOTIFICATIONS: Record<NotificationCategory, { title: string; body: string }> = {
+const SAMPLE_NOTIFICATIONS: Record<NotificationCategory, { title: string; body: string; data?: Record<string, string> }> = {
   expeditionFinished: {
     ...texts.finished,
     body: fill(texts.finished.body, { dungeon: 'Rat Cellar', outcome: texts.outcome.success }),
@@ -252,11 +252,14 @@ const SAMPLE_NOTIFICATIONS: Record<NotificationCategory, { title: string; body: 
   },
   heroesIdle: texts.heroesIdle,
   heroesRested: texts.heroesRested,
-  chestUnlocked: { ...texts.chestUnlocked, body: fill(texts.chestUnlocked.body, { chest: 'wooden chest' }) },
+  chestUnlocked: { ...texts.chestUnlocked, body: fill(texts.chestUnlocked.body, { chest: 'wooden chest' }), data: { route: 'chests' } },
   chestClose: { ...texts.chestClose, body: fill(texts.chestClose.body, { steps: 600, chest: 'iron chest' }) },
   dailyReset: texts.dailyReset,
   walkSummary: { ...texts.walkSummary, body: fill(texts.walkSummary.body, { distance: '2.4 km' }) },
-  questTarget: { ...texts.questTarget, title: fill(texts.questTarget.title, { place: 'Chapel' }) },
+  questReady: { ...texts.questReady, body: fill(texts.questReady.body, { objective: texts.questObjective.walk }), data: { route: 'quests' } },
+  questTarget: { ...texts.questTarget, title: fill(texts.questTarget.title, { place: 'Chapel' }), data: { route: 'quests' } },
+  nearbyPlaces: { title: fill(texts.nearbyPlace.title, { place: 'Ruins' }), body: fill(texts.nearbyPlace.body, { distance: '120 m' }) },
+  secretPlace: { ...texts.secretPlace, body: fill(texts.secretPlace.body, { place: 'Hidden den', distance: '90 m' }) },
   patrolSpotted: { ...texts.patrolSpotted, body: fill(texts.patrolSpotted.body, { patrol: 'Goblin patrol', distance: '180 m', tier: 2 }) },
   escort: { ...texts.escortPaused, body: fill(texts.escortPaused.body, { hero: 'Bram', percent: 45 }) },
 };
@@ -475,7 +478,11 @@ export default function DebugScreen() {
       return;
     }
     const { group } = notificationCategories[category];
-    await deviceNotifications.send({ id: `debug:${category}`, category, group, at: null, ...SAMPLE_NOTIFICATIONS[category] });
+    // Place samples open the map on the player.
+    const player = debug.mockLocation ?? useWorldStore.getState().player ?? FALLBACK_LOCATION;
+    const sample = SAMPLE_NOTIFICATIONS[category];
+    const data = category === 'nearbyPlaces' || category === 'secretPlace' ? { route: 'place', latitude: player.latitude, longitude: player.longitude } : sample.data;
+    await deviceNotifications.send({ id: `debug:${category}`, category, group, at: null, ...sample, data });
   };
 
   /** Sends one of the background task's patrol alerts through the real builder, shown now whatever quiet hours say. */

@@ -280,6 +280,7 @@ export default function MapScreen() {
   // Other screens (the launch dialog) can sell emergency supply while a tavern is in reach.
   const nearbyTavern = tavernsInSight.find((t) => position !== null && distanceMeters(position, t.position) <= tavernRules.interactionMeters) ?? null;
   const setWorld = useWorldStore((state) => state.set);
+  const focusPlace = useWorldStore((state) => state.focusPlace);
   useEffect(() => {
     setWorld({ player: position, nearbyTavern });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -362,8 +363,8 @@ export default function MapScreen() {
   }, [visiblePatrols, patrolsSeen, now, setWorld]);
 
   useEffect(() => {
-    if (position && following) cameraRef.current?.easeTo({ center: toLngLat(position), duration: 500 });
-  }, [position?.latitude, position?.longitude, following]);
+    if (position && following && !focusPlace) cameraRef.current?.easeTo({ center: toLngLat(position), duration: 500 });
+  }, [position?.latitude, position?.longitude, following, focusPlace]);
 
   // The tutorial's own nodes, spawned once per gathering step on walkable ground around the player
   // (without location, they have no spot and only "Collect from here" reaches them).
@@ -415,6 +416,10 @@ export default function MapScreen() {
     // Nothing to select there any more: stop holding the camera there.
     if (!focusedPatrol) setWorld({ focusPatrol: null });
   }, [focusPatrol, position, focusedPatrol, setWorld]);
+  // A tapped place stays in view until the player re-centres or drags the map.
+  useEffect(() => {
+    if (focusPlace) cameraRef.current?.easeTo({ center: toLngLat(focusPlace), duration: 500 });
+  }, [focusPlace]);
   const closePatrol = () => {
     setOpenPatrol(null);
     setWorld({ focusPatrol: null });
@@ -529,6 +534,7 @@ export default function MapScreen() {
           const { userInteraction, center } = event.nativeEvent;
           const away = distanceMeters(position, { longitude: center[0], latitude: center[1] }) > FOLLOW_SLACK_METERS;
           if (userInteraction && away) setFollowing(false);
+          if (userInteraction) setWorld({ focusPlace: null });
         }}
         onPress={(event) => {
           if (debugOn && player.mocked) {
@@ -671,11 +677,12 @@ export default function MapScreen() {
       >
         <Text style={styles.buttonEmoji}>⚙️</Text>
       </Pressable>
-      {!following && (
+      {(!following || focusPlace) && (
         <Pressable
           accessibilityLabel={t('map.recentre')}
           onPress={() => {
             setFollowing(true);
+            setWorld({ focusPlace: null });
             cameraRef.current?.easeTo({ center: toLngLat(position), duration: 500 });
           }}
           style={[styles.roundButton, styles.recentreButton, { bottom: insets.bottom + ISLAND_HEIGHT + 12 }]}
