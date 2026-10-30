@@ -16,11 +16,17 @@ Design catalogues for what's built or being built live in `doc/design/` (`threat
 - 26 classes.
 - Healing potions in three strengths and fish recipes.
 
-**Next**
-1. Loot rework: trinkets, components, relics, charms, blueprints and their sources, exact loot per place, dungeon and patrol, step chests.
-2. Secret places: hidden den, black market, underwater dungeon, their tips, the mysterious key.
-3. Daily contracts and chains.
-4. Balancing with the simulator.
+**Next** (in this order)
+1. Loot rework: five prompts (base, then parts and charms, blueprints, components and relics, trinkets and valuables), designed in `doc/design/loot/`.
+2. Secret places and the mysterious key: hidden den, black market, underwater dungeon and the Sealed vault, all opened by a key; two tip sources per place.
+3. Daily quests (daily contracts and chains).
+4. Guild Hall rework, for the new systems.
+5. Simulator rework and heavy testing of the new content; balancing.
+6. Tutorial rework, with systems unlocked gradually.
+7. Release (a small test group first).
+8. After release: big work on interfaces and assets.
+
+**Rule until release:** old saves don't matter. A save change bumps the version and resets the save; no migrations. Players start fresh at release.
 
 **Parked**
 - Charms: redesign with the loot rework (they should affect what a run finds: Luck, blueprint, component and relic chances, materials).
