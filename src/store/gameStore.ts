@@ -10,6 +10,8 @@ import { materials } from '@/content/materials';
 import { craft, craftMany, forgetRecipe, forgeResult, learnAllRecipes, learnTier, unlockRecipe, type ForgeResult } from '@/game/crafting/crafting';
 import { unlockAllPartRecipes } from '@/game/crafting/partRecipes';
 import { infuse } from '@/game/crafting/infusion';
+import { forgeWithComponent } from '@/game/forging/components';
+import { restoreRelic } from '@/game/forging/relics';
 import { salvage } from '@/game/forging/salvage';
 import { convertShards, shardId, stoneId, type Element } from '@/game/elements';
 import { fastForward, resolveExpedition, startExpedition, type Loadout } from '@/game/expeditions/expeditions';
@@ -78,6 +80,9 @@ type GameState = {
   setEscort: (heroId: string | null) => void;
   /** Returns the forged gear piece and mastery change, for gear recipes. Provisions can be made `count` at a time. */
   craft: (recipeId: string, count?: number) => ForgeResult | null;
+  forgeWithComponent: (recipeId: string, componentId: string) => ForgeResult | null;
+  /** `free` skips the cost (debug only). */
+  restoreRelic: (relicUid: string, free?: boolean) => ForgeResult | null;
   infuse: (gearUid: string, element: Element) => void;
   salvage: (gearUid: string) => void;
   /** Pass null to empty the slot. */
@@ -272,6 +277,18 @@ export const useGameStore = create<GameState>()(
         const result = forgeResult(before, save);
         if (result && quality) debug.set({ forcedQuality: null });
         return result;
+      },
+      forgeWithComponent: (recipeId, componentId) => {
+        const before = get().save;
+        const save = forgeWithComponent(before, recipeById[recipeId], componentId);
+        set({ save });
+        return forgeResult(before, save);
+      },
+      restoreRelic: (relicUid, free = false) => {
+        const before = get().save;
+        const save = restoreRelic(before, relicUid, free);
+        set({ save });
+        return forgeResult(before, save);
       },
       infuse: (gearUid, element) => set(({ save }) => ({ save: infuse(save, gearUid, element) })),
       salvage: (gearUid) => set(({ save }) => ({ save: salvage(save, gearUid) })),

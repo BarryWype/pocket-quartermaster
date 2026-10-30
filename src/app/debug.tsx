@@ -13,7 +13,7 @@ import { guildTrackById, guildTracks, type GuildTrackId } from '@/content/guild'
 import { gamblerRules, heroClasses, xpRules } from '@/content/heroes';
 import { traits } from '@/content/traits';
 import { items } from '@/content/items';
-import { itemById, threatById, restrictionById, opportunityById, recipeById, recipeOutput, valuableById } from '@/content/lookup';
+import { itemById, threatById, restrictionById, opportunityById, recipeById, recipeOutput, relicById, valuableById } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
 import { dungeonThreats, opportunityDefs, restrictionDefs, surges, threatDefs } from '@/content/threats';
 import { notificationCategories, notificationTexts as texts } from '@/content/notifications';
@@ -185,6 +185,14 @@ function LootDebug() {
         label={(id) => `+ ${relics.find((r) => r.id === id)!.name}`}
         onChange={(id) => grant({ relics: [id] })}
       />
+      {game.save.relics.length > 0 && (
+        <Choice
+          options={game.save.relics.map((held) => held.uid)}
+          value=""
+          label={(uid) => `Restore free: ${relicById[game.save.relics.find((held) => held.uid === uid)!.relicId].name}`}
+          onChange={(uid) => game.restoreRelic(uid, true)}
+        />
+      )}
     </>
   );
 }

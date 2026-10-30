@@ -3,12 +3,14 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { MASTERY_TYPES, masteryTypeNames, qualities } from '@/content/forging';
 import { gearId, gearProfiles } from '@/content/equipment';
-import { gearName, itemById, materialById, recipeById, recipeOutput, valuableById } from '@/content/lookup';
+import { componentById, gearName, itemById, materialById, recipeById, recipeOutput, relicById, valuableById } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
 import { canCraft, craftableCount, forgedItem, isKnown, ownsTool, type ForgeResult } from '@/game/crafting/crafting';
 import { tierRecipes } from '@/game/crafting/recipeUnlocks';
 import { ELEMENTS, shardId } from '@/game/elements';
+import { canForgeWithComponent, componentRecipe, fittingComponents } from '@/game/forging/components';
 import { masteryOf } from '@/game/forging/mastery';
+import { canRestore, relicRecipe } from '@/game/forging/relics';
 import { rollToScale } from '@/game/forging/roll';
 import type { SaveData } from '@/game/save';
 import type { GearDef, RecipeDef } from '@/game/types';
@@ -113,6 +115,8 @@ function RecipeInputs({ save, recipe }: { save: SaveData; recipe: RecipeDef }) {
 export function CraftingStation({ station, action }: Props) {
   const save = useGameStore((state) => state.save);
   const craft = useGameStore((state) => state.craft);
+  const forgeWithComponent = useGameStore((state) => state.forgeWithComponent);
+  const restoreRelic = useGameStore((state) => state.restoreRelic);
   const [result, setResult] = useState<ForgeResult | null>(null);
   const [tab, setTab] = useState<Tab>('kitchen');
   /** The recipe picked for an item that has two, by item id. */
@@ -203,13 +207,95 @@ export function CraftingStation({ station, action }: Props) {
           </View>
         );
       })}
-      {grid && <GearGrid save={save} action={action} onCraft={(recipeId) => setResult(craft(recipeId))} />}
+      {grid && <RelicList save={save} onRestore={(uid) => setResult(restoreRelic(uid))} />}
+      {grid && (
+        <GearGrid
+          save={save}
+          action={action}
+          onCraft={(recipeId) => setResult(craft(recipeId))}
+          onForgeWith={(recipeId, componentId) => setResult(forgeWithComponent(recipeId, componentId))}
+        />
+      )}
     </ScrollView>
   );
 }
 
-/** The forge's gear recipes: one row per type, its five tiers side by side, unknown ones greyed with their inputs. */
-function GearGrid({ save, action, onCraft }: { save: SaveData; action: string; onCraft: (recipeId: string) => void }) {
+/** Unrestored relics, each with its effect, its restore cost and a Restore button. */
+function RelicList({ save, onRestore }: { save: SaveData; onRestore: (relicUid: string) => void }) {
+  if (save.relics.length === 0) return null;
+  return (
+    <View>
+      <Text style={styles.family}>{t('crafting.relics')}</Text>
+      {save.relics.map(({ uid, relicId }) => {
+        const relic = relicById[relicId];
+        return (
+          <Row
+            key={uid}
+            emoji={gearProfiles[relic.gearType].emoji}
+            title={tr(relic.name)}
+            subtitle={
+              <View>
+                <View style={styles.relicHead}>
+                  <GearMarks tier={relic.tier} />
+                  <Text style={styles.mastery}>{tr(masteryTypeNames[relic.gearType].name)}</Text>
+                </View>
+                <Text style={styles.mastery}>✦ {tr(relic.effect)}</Text>
+                <View style={styles.inputs}>
+                  <RecipeInputs save={save} recipe={relicRecipe(relic)} />
+                </View>
+              </View>
+            }
+            right={<Button title={t('crafting.restore')} disabled={!canRestore(save, uid)} onPress={() => onRestore(uid)} />}
+          />
+        );
+      })}
+    </View>
+  );
+}
+
+/** The components the player holds that fit a blueprint, each with its swapped recipe and what it adds. */
+function ComponentPicker({ save, recipe, onForge }: { save: SaveData; recipe: RecipeDef; onForge: (componentId: string) => void }) {
+  return (
+    <View style={styles.picker}>
+      <Text style={styles.mastery}>{t('crafting.componentHint', { item: tr(recipeOutput(recipe).name) })}</Text>
+      {fittingComponents(save, recipe).map((componentId) => {
+        const component = componentById[componentId];
+        return (
+          <Row
+            key={componentId}
+            emoji={component.emoji}
+            title={tr(component.name)}
+            subtitle={
+              <View>
+                <Text style={styles.mastery}>✦ {tr(component.adds)}</Text>
+                <View style={styles.inputs}>
+                  <RecipeInputs save={save} recipe={{ ...recipe, inputs: componentRecipe(recipe, componentId) }} />
+                </View>
+              </View>
+            }
+            right={
+              <Button title={t('crafting.forge')} disabled={!canForgeWithComponent(save, recipe, componentId)} onPress={() => onForge(componentId)} />
+            }
+          />
+        );
+      })}
+    </View>
+  );
+}
+
+/** The forge's gear recipes: one row per type, its five tiers side by side, unknown ones greyed with their inputs. A known blueprint with a fitting component held opens a component picker under its row. */
+function GearGrid({
+  save,
+  action,
+  onCraft,
+  onForgeWith,
+}: {
+  save: SaveData;
+  action: string;
+  onCraft: (recipeId: string) => void;
+  onForgeWith: (recipeId: string, componentId: string) => void;
+}) {
+  const [picking, setPicking] = useState<string | null>(null);
   return (
     <View style={styles.grid}>
       <View style={styles.progress}>
@@ -254,7 +340,16 @@ function GearGrid({ save, action, onCraft }: { save: SaveData; action: string; o
                       })}
                     </View>
                     {known ? (
-                      <Button title={action} disabled={!canCraft(save, recipe)} onPress={() => onCraft(recipe.id)} />
+                      <>
+                        <Button title={action} disabled={!canCraft(save, recipe)} onPress={() => onCraft(recipe.id)} />
+                        {fittingComponents(save, recipe).length > 0 && (
+                          <Button
+                            title={t('crafting.withComponent')}
+                            color={picking === recipe.id ? undefined : colors.muted}
+                            onPress={() => setPicking(picking === recipe.id ? null : recipe.id)}
+                          />
+                        )}
+                      </>
                     ) : (
                       <Text style={styles.cellInputText}>{t('crafting.unknown')}</Text>
                     )}
@@ -262,6 +357,16 @@ function GearGrid({ save, action, onCraft }: { save: SaveData; action: string; o
                 );
               })}
             </View>
+            {picking && recipeById[picking] && forgedItem(recipeById[picking])?.gearType === type && (
+              <ComponentPicker
+                save={save}
+                recipe={recipeById[picking]}
+                onForge={(componentId) => {
+                  onForgeWith(picking, componentId);
+                  setPicking(null);
+                }}
+              />
+            )}
           </View>
         );
       })}
@@ -296,6 +401,8 @@ const styles = StyleSheet.create({
   cellUnknown: { opacity: 0.55 },
   cellInputs: { gap: 2 },
   cellInputText: { fontSize: 12, color: colors.muted },
+  picker: { gap: 4, padding: 6, borderWidth: pixel.outline, borderColor: colors.ink },
+  relicHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   banner: {
     gap: 2,
     padding: 12,

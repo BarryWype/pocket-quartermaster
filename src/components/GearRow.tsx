@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 import { elementInfo } from '@/content/elements';
 import { qualities } from '@/content/forging';
-import { gearName, itemById } from '@/content/lookup';
+import { componentById, gearName, itemById, relicById } from '@/content/lookup';
 import { gearStats } from '@/game/forging/quality';
 import { trinketEffect } from '@/game/loot/trinkets';
 import { rollToScale } from '@/game/forging/roll';
@@ -46,6 +46,13 @@ export function gearStatsText(gear: GearInstance) {
     .join(' · ');
 }
 
+/** "🏺 Pierce against constructs" or "🧩 Drake fang: Pierce": a restored relic's or a component's effect in one line. */
+export function gearEffectText(gear: GearInstance) {
+  if (gear.relicId) return `🏺 ${tr(relicById[gear.relicId].effect)}`;
+  if (gear.component) return `${componentById[gear.component].emoji} ${tr(componentById[gear.component].name)}: ${tr(componentById[gear.component].adds)}`;
+  return null;
+}
+
 type Props = { gear: GearInstance; note?: string | null; right?: ReactNode };
 
 /** A gear piece in its quality colour, with its stats, element and an optional note. */
@@ -54,6 +61,7 @@ export function GearRow({ gear, note, right }: Props) {
   const subtitle = [
     gearStatsText(gear),
     gear.element ? `${elementInfo[gear.element].emoji} ${tr(elementInfo[gear.element].name)}` : null,
+    gearEffectText(gear),
     note,
   ]
     .filter(Boolean)

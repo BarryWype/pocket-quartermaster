@@ -3,7 +3,7 @@ import { Modal, StyleSheet, View } from 'react-native';
 import { bossById } from '@/content/enemies';
 import { lootConfig } from '@/content/loot/config';
 import { purposeInfo } from '@/content/loot/purposes';
-import { materialById, recipeById, recipeOutput } from '@/content/lookup';
+import { materialById, recipeById, recipeOutput, valuableById } from '@/content/lookup';
 import { highestUnlockedTier } from '@/game/dungeons/unlock';
 import { nextSteps, purposesOf, type BaseItemRef, type NextStep } from '@/game/loot/purposes';
 import type { ManualRarity } from '@/game/loot/types';
@@ -51,7 +51,8 @@ function stepText(step: NextStep): string {
       return t('inventory.next.set', { dots: ruinsDots(step.have, step.need) });
     case 'restore':
       return t('inventory.next.restore', {
-        cost: step.cost.map((s) => `${s.amount} ${tr(materialById[s.materialId].name).toLowerCase()}`).join(', '),
+        // The gem in a restore cost is a valuable, not a material.
+        cost: step.cost.map((s) => `${s.amount} ${tr((materialById[s.materialId] ?? valuableById[s.materialId]).name).toLowerCase()}`).join(', '),
       });
     case 'action':
       return t(`inventory.next.${step.action}`);

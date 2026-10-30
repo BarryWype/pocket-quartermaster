@@ -235,6 +235,8 @@ export const en = {
     },
   },
   inventory: {
+    componentAbout: 'Fits {fits} · adds {adds}',
+    relicAbout: 'Tier {tier} {type} · {effect}',
     salvageTitle: 'Salvage {item}?',
     salvageBody: 'It is destroyed and you get back {returns}.',
     salvage: 'Salvage',
@@ -309,6 +311,10 @@ export const en = {
     tierProgress: 'Tier {tier}: {known} / {total}',
     anyShards: '✨ any shards {held}/{amount}',
     newRecipe: '🧪 New recipe: {names}',
+    withComponent: '+🧩',
+    componentHint: '{item} with a component: it swaps one secondary material and the piece is at least Rare.',
+    relics: 'Relics to restore',
+    restore: 'Restore',
   },
   equip: {
     choose: { weapon: 'Choose weapon', armor: 'Choose armor', offhand: 'Choose off-hand', trinket: 'Choose trinket', consumable: 'Choose consumable', potion: 'Choose potion' },

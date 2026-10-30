@@ -11,6 +11,7 @@ import { TutorialHint } from '@/components/TutorialHint';
 import { componentById, gearName, itemById, materialById, monsterPartById, relicById, valuableById } from '@/content/lookup';
 import { baseItems } from '@/content/loot/baseItems';
 import { PURPOSES, purposeInfo, type Purpose } from '@/content/loot/purposes';
+import { masteryTypeNames } from '@/content/forging';
 import { materials } from '@/content/materials';
 import { valuablePrice } from '@/game/loot/catalogue';
 import { canSalvage, salvageGold, salvageNeedsConfirmation, salvageReturns, wornBy } from '@/game/forging/salvage';
@@ -30,6 +31,13 @@ import { colors } from '@/theme';
 const HOUR = 3_600_000;
 const RARITIES: ManualRarity[] = ['common', 'rare', 'legendary'];
 
+/** What a component fits and what it adds to a forged piece. */
+function componentAbout(id: string): string {
+  const component = componentById[id];
+  const fits = component.fits.map((type) => tr(masteryTypeNames[type].name)).join(', ');
+  return t('inventory.componentAbout', { fits, adds: tr(component.adds) });
+}
+
 /** Every base item the player holds (not gear or consumables), with what it is for. */
 function inventoryItems(save: SaveData): InventoryItem[] {
   const held: InventoryItem[] = materials
@@ -40,7 +48,7 @@ function inventoryItems(save: SaveData): InventoryItem[] {
       emoji: m.emoji,
       name: tr(m.name),
       count: save.materials[m.id],
-      about: monsterPartById[m.id] ? tr(monsterPartById[m.id].uses) : componentById[m.id] ? tr(componentById[m.id].adds) : undefined,
+      about: monsterPartById[m.id] ? tr(monsterPartById[m.id].uses) : componentById[m.id] ? componentAbout(m.id) : undefined,
     }));
   for (const [key, count] of Object.entries(save.valuables)) {
     const [id, tier] = key.split(':');
@@ -51,7 +59,14 @@ function inventoryItems(save: SaveData): InventoryItem[] {
   }
   for (const { uid, relicId } of save.relics) {
     const def = relicById[relicId];
-    held.push({ key: `r:${uid}`, ref: { kind: 'relic', id: relicId }, emoji: '🏺', name: tr(def.name), count: 1, about: tr(def.effect) });
+    held.push({
+      key: `r:${uid}`,
+      ref: { kind: 'relic', id: relicId },
+      emoji: '🏺',
+      name: tr(def.name),
+      count: 1,
+      about: t('inventory.relicAbout', { tier: def.tier, type: tr(masteryTypeNames[def.gearType].name), effect: tr(def.effect) }),
+    });
   }
   for (const rarity of RARITIES) {
     const count = save.manuals[rarity] ?? 0;

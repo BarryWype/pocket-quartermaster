@@ -15,7 +15,7 @@ import { Button } from './Button';
 import { GearMarks } from './GearMarks';
 import { Row } from './Row';
 import { Text } from './Text';
-import { statIcons, trinketText } from './GearRow';
+import { gearEffectText, statIcons, trinketText } from './GearRow';
 
 type Props = {
   save: SaveData;
@@ -109,6 +109,7 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, briefin
           : ''
         : [
             item.slot === 'trinket' ? trinketText(gear) : deltaText(preview!),
+            gearEffectText(gear),
             unequipsOffhand ? t('equip.unequipsOffhand') : null,
             holder ? t('equip.usedBy', { name: holder.name }) : null,
           ]

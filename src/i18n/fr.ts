@@ -240,6 +240,8 @@ export const fr: Dictionary = {
     },
   },
   inventory: {
+    componentAbout: 'Pour {fits} · ajoute {adds}',
+    relicAbout: '{type}, palier {tier} · {effect}',
     salvageTitle: 'Recycler {item} ?',
     salvageBody: 'L’objet est détruit et vous récupérez {returns}.',
     salvage: 'Recycler',
@@ -315,6 +317,10 @@ export const fr: Dictionary = {
     tierProgress: 'Palier {tier} : {known} / {total}',
     anyShards: '✨ éclats au choix {held}/{amount}',
     newRecipe: '🧪 Nouvelle recette : {names}',
+    withComponent: '+🧩',
+    componentHint: '{item} avec un composant : il remplace un matériau secondaire et la pièce est au moins Rare.',
+    relics: 'Reliques à restaurer',
+    restore: 'Restaurer',
   },
   equip: {
     choose: { weapon: 'Choisir une arme', armor: 'Choisir une armure', offhand: 'Choisir une main secondaire', trinket: 'Choisir un bibelot', consumable: 'Choisir un consommable', potion: 'Choisir une potion' },

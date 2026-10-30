@@ -5,7 +5,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Button } from '@/components/Button';
 import { EquipPicker } from '@/components/EquipPicker';
 import { PlaceholderScreen } from '@/components/PlaceholderScreen';
-import { gearStatsText, statIcons } from '@/components/GearRow';
+import { gearEffectText, gearStatsText, statIcons } from '@/components/GearRow';
 import { GearMarks } from '@/components/GearMarks';
 import { HpBar } from '@/components/HpBar';
 import { Panel } from '@/components/Panel';
@@ -102,7 +102,7 @@ export default function CharacterSheetScreen() {
       icon: item.icon,
       name: gearName(gear),
       color: qualities[gear.quality].color,
-      stats: gearStatsText(gear),
+      stats: [gearStatsText(gear), gearEffectText(gear)].filter(Boolean).join(' · '),
       marks: <GearMarks tier={item.tier} affinity={affinityOf(hero.classId, item.gearType)} />,
     };
   };
