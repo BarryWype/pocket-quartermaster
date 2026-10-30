@@ -1,7 +1,8 @@
 import { gatheringConfig } from '@/content/gatheringConfig';
 
 import { createInitialSave, type SaveData } from '../save';
-import { migrateSettingsV2, needsBackgroundState, patrolSettingsFrom, pocketTracking, type PocketModeSettings } from './pocketMode';
+import { skipTutorial } from '../tutorial/skip';
+import { migrateSettingsV2, needsBackgroundState, patrolSettingsFrom, pocketModeAvailable, pocketTracking, type PocketModeSettings } from './pocketMode';
 
 const settings = (overrides: Partial<PocketModeSettings> = {}): PocketModeSettings => ({
   enabled: true,
@@ -11,6 +12,21 @@ const settings = (overrides: Partial<PocketModeSettings> = {}): PocketModeSettin
   autoStopMinutes: gatheringConfig.autoGather.autoStopMinutes,
   introSeen: false,
   ...overrides,
+});
+
+describe('pocketModeAvailable', () => {
+  it('waits for the tutorial', () => {
+    expect(pocketModeAvailable(createInitialSave())).toBe(false);
+  });
+
+  it('opens once the tutorial is done', () => {
+    const save = createInitialSave();
+    expect(pocketModeAvailable({ ...save, tutorial: { ...save.tutorial, step: 'done' } })).toBe(true);
+  });
+
+  it('opens once the tutorial is skipped', () => {
+    expect(pocketModeAvailable(skipTutorial(createInitialSave(), Date.now()))).toBe(true);
+  });
 });
 
 describe('pocketTracking', () => {

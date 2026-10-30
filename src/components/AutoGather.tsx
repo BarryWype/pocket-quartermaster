@@ -6,6 +6,7 @@ import { frPatrolTexts } from '@/content/fr/patrols';
 import { materialById } from '@/content/lookup';
 import { patrolTexts } from '@/content/patrols';
 import { walkToShow, type WalkFight, type WalkPatrols, type WalkSummary } from '@/game/gathering/autoGather';
+import { pocketModeAvailable } from '@/game/patrols/pocketMode';
 import { formatDistance, formatDuration, formatNumber, formatPercent, localized, t } from '@/i18n';
 import { disableAutoGather, enableAutoGather } from '@/hooks/useAutoGather';
 import { useGameStore } from '@/store/gameStore';
@@ -66,7 +67,7 @@ export function useAutoGatherToggle() {
   const enabled = useSettingsStore((state) => state.pocketMode.enabled);
   const introSeen = useSettingsStore((state) => state.pocketMode.introSeen);
   const mode = useWorldStore((state) => state.autoGather);
-  const available = useGameStore((state) => state.save.tutorial.step === 'done');
+  const available = useGameStore((state) => pocketModeAvailable(state.save));
   const [dialog, setDialog] = useState<'info' | 'confirm' | null>(null);
 
   const turnOn = async () => {

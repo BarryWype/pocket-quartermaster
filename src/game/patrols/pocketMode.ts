@@ -15,6 +15,9 @@ export type PocketModeSettings = {
   introSeen: boolean;
 };
 
+/** Pocket mode is offered once the tutorial is over, finished or skipped (both end at 'done'). */
+export const pocketModeAvailable = (save: SaveData) => save.tutorial.step === 'done';
+
 /** Tracking runs only with Pocket mode on and at least one of its options on. */
 export const pocketTracking = (settings: PocketModeSettings) =>
   settings.enabled && (settings.autoGather || settings.patrolAlerts || settings.escort);

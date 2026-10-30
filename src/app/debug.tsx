@@ -330,7 +330,9 @@ export default function DebugScreen() {
   const describeWalk = (walk: WalkSummary) =>
     `${Math.round((walk.endedAt - walk.startedAt) / 60_000)} min · ${walk.distanceMeters} m · ${walk.nodes} nodes · ` +
     `${walk.gained.map((g) => `${g.amount} ${g.materialId}`).join(', ') || 'nothing'} · ${walk.steps} steps${walk.stepsEstimated ? ' (estimated)' : ''}` +
-    `${walk.autoStopped ? ' · auto-stopped' : ''}\nIgnored: ${Object.entries(walk.ignored).map(([reason, count]) => `${reason} ${count}`).join(', ') || 'none'}`;
+    `${walk.autoStopped ? ' · auto-stopped' : ''}\n` +
+    `${walk.distanceMeters > 0 ? ((walk.gained.reduce((sum, g) => sum + g.amount, 0) * 1000) / walk.distanceMeters).toFixed(1) : '0'} resources/km · ` +
+    `${Object.values(walk.ignored).reduce((sum, count) => sum + count, 0)} fixes dropped (${Object.entries(walk.ignored).map(([reason, count]) => `${reason} ${count}`).join(', ') || 'none'})`;
 
   const [element, setElement] = useState<Element>('fire');
   const [gearType, setGearType] = useState<MasteryType>('sword');

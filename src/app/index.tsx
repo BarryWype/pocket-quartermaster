@@ -48,7 +48,7 @@ import type { LatLng, Spawn, SpawnConfig } from '@/game/generation/types';
 import { visibleSpawns } from '@/game/generation/visibility';
 import { patrolRulesAt, trackedRange, trackWindows, walkEffectAt, walkEffectSpawns } from '@/game/gathering/walkEffects';
 import { isPatrolKind, isTravellerKind, patrolPositionAt, patrolTier, patrolsAround, pruneByWindow, type PatrolSpawn } from '@/game/patrols/generate';
-import { pocketTracking } from '@/game/patrols/pocketMode';
+import { pocketModeAvailable, pocketTracking } from '@/game/patrols/pocketMode';
 import { activeLairs, isFightPlace } from '@/game/places/fights';
 import { isLockedMine, isPlaceVisible, placeGroupOf, placesAround, showsForPlayer, type PlaceSpawn } from '@/game/places/generate';
 import { ruinReplacements } from '@/game/places/ruins';
@@ -470,7 +470,7 @@ export default function MapScreen() {
         ]
       : []),
   ];
-  const showPill = save.tutorial.step === 'done';
+  const showPill = pocketModeAvailable(save);
 
   // The tutorial's nodes on the map, the nearest one pointed at.
   const tutorialNodes = shownTutorialSpawns(save).flatMap((node) => (node.position ? [{ ...node, position: node.position }] : []));
