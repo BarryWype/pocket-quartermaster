@@ -34,7 +34,7 @@ import { gearStats, qualityOdds, type GearQualityRoll } from '../forging/quality
 import { rollToScale } from '../forging/roll';
 import { salvage } from '../forging/salvage';
 import { trinketEffect } from '../loot/trinkets';
-import { distanceMeters } from '../generation/geo';
+import { distanceMeters, offsetPosition } from '../generation/geo';
 import type { Rng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { buyRank, guildBonus, isGuildUnlocked, partySize, rankPrice, rankProblem } from '../guild/guild';
@@ -56,6 +56,12 @@ import type { ActiveExpedition, Approach, ArmourType, Briefing, ConsumableDef, D
 import { expectedLevels, type Profile, type SimConfig } from './config';
 import type { PatrolRates } from './patrols';
 import { PICKAXES, type WalkRates } from './walking';
+import { questRules } from '@/content/quests';
+import { questUpkeep } from '../quests/arrival';
+import { complete, questEvent } from '../quests/progress';
+import { claimQuest, reachMark } from '../quests/rewards';
+import { needsPlace } from '../quests/targets';
+import type { Quest } from '../quests/types';
 
 export const QUALITY_ORDER: Quality[] = ['crappy', 'normal', 'uncommon', 'rare', 'legendary'];
 
@@ -162,6 +168,8 @@ export type RunLog = {
   potionsAtHome: number;
   /** Emergency jerky bought at taverns. */
   emergencySupply: number;
+  /** Daily quests claimed, by band, and the secret place tips their strange marks gave. */
+  quests: { claimed: Record<Quest['band'], number>; tips: number };
 };
 
 /** Everything met on a walk, at the tier it would have fought at. */
@@ -1059,4 +1067,58 @@ export function collectExpedition(sim: Sim, expedition: ActiveExpedition) {
     potions: report.consumablesUsed.filter((id) => id === 'healingPotion').length,
   });
   if (report.success && dungeon.isBoss) mark(sim, `boss:${dungeon.tier}`);
+}
+
+/** How far the bot puts a quest's target: the middle of its band, or the strange mark's distance. */
+const questDistance = (quest: Quest) =>
+  quest.band === 'secret' ? (questRules.secret.markMeters[0] + questRules.secret.markMeters[1]) / 2 : (questRules.bandMeters[quest.band][0] + questRules.bandMeters[quest.band][1]) / 2;
+
+/** Herbs, berries and mushrooms a walk brought in count for "gather on the way" quests. */
+export function noteQuestGathers(sim: Sim, changes: Record<string, number>) {
+  for (const [materialId, amount] of Object.entries(changes)) {
+    if (amount > 0) sim.save = questEvent(sim.save, { kind: 'gathered', materialId, amount }, sim.now);
+  }
+}
+
+/**
+ * Daily quests, each session: the day's arrive and the list is opened (every
+ * new quest accepted, a place target at the middle of its band); a target is
+ * reached with the walk's reach chance, split over the day's sessions, and
+ * done there; finished quests are claimed. Walks, patrols and gathering count
+ * through the game's own events.
+ */
+export function doQuests(sim: Sim) {
+  sim.save = questUpkeep(sim.save, sim.now);
+  const accept = (quest: Quest): Quest => {
+    if (quest.acceptedAt !== null) return quest;
+    const bearing = sim.rng.next() * 2 * Math.PI;
+    const distance = questDistance(quest);
+    const position = offsetPosition(sim.location, Math.cos(bearing) * distance, Math.sin(bearing) * distance);
+    return {
+      ...quest,
+      acceptedAt: sim.now,
+      stepsAtAccept: sim.save.stepsTotal,
+      target: needsPlace(quest) ? { placeId: `sim:${quest.id}`, kind: quest.objective === 'mark' ? 'mark' : 'chapel', position, from: sim.location, expiresAt: quest.expiresAt } : null,
+    };
+  };
+  sim.save = { ...sim.save, quests: { ...sim.save.quests, list: sim.save.quests.list.map(accept) } };
+
+  const sessions = sim.profile.sessionHours.length;
+  for (const quest of sim.save.quests.list) {
+    if (quest.doneAt !== null || !quest.target || !sim.rng.chance(reachChance(sim, questDistance(quest)) / sessions)) continue;
+    if (quest.objective === 'mark') {
+      const reached = reachMark(sim.save, quest.id, sim.now, () => false);
+      sim.save = reached.save;
+      if (reached.tip?.kind === 'tip') sim.log.quests.tips++;
+    } else {
+      sim.save = complete(sim.save, { ...quest, progress: quest.amount }, sim.now);
+    }
+  }
+
+  for (const quest of sim.save.quests.list.filter((q) => q.doneAt !== null)) {
+    const claimed = claimQuest(sim.save, quest.id, sim.now);
+    countLoot(sim, claimed.loot);
+    act(sim, 'quest', () => claimed.save);
+    sim.log.quests.claimed[quest.band]++;
+  }
 }

@@ -156,6 +156,10 @@ function printSummary(summary: Summary, comparison: Comparison | null, print: (l
         p.expeditions.overnight.xpShare * 100,
       )}% of XP · blueprints: ${p.expeditions.blueprints}/run · walking bonus: ${Math.round(p.materials.bonusShare * 100)}% of materials`,
     );
+    const q = p.quests;
+    print(
+      `  Quests: ${q.perDay.short} short, ${q.perDay.medium} medium, ${q.perDay.long} long a day · secret quests ${q.secretPerWeek}/week, ${q.tipsPerWeek} tips/week · ${Math.round(q.goldShare * 100)}% of gold`,
+    );
     const misses = milestoneMisses(p);
     print(
       `  Auto-gather: ${Math.round((profiles[name]?.autoShare ?? 0) * 100)}% of walking time, ${Math.round(p.materials.autoShare * 100)}% of walking materials · milestones ${

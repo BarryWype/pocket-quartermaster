@@ -157,6 +157,8 @@ export type ProfileSummary = {
     paybacks: Payback[];
     buildings: Record<string, Stat>;
   };
+  /** Daily quests claimed per day by band, secret quests and their tips per week, and their share of the gold. */
+  quests: { perDay: Record<string, number>; secretPerWeek: number; tipsPerWeek: number; goldShare: number };
   patrols: {
     /** Median per run: spawns met by kind, and fights engaged, won and lost by kind. */
     seen: Record<string, number>;
@@ -424,6 +426,14 @@ export function summarize(logs: RunLog[], targets: Targets = defaultTargets, wit
     guild: {
       paybacks: paybacks(perDayByTier),
       buildings: Object.fromEntries(['warRoom', 'treasury', 'barracks'].map((b) => [b, stat(logs.map((log) => log.milestones[`building:${b}`]))])),
+    },
+    quests: {
+      perDay: Object.fromEntries(
+        (['short', 'medium', 'long'] as const).map((band) => [band, round(median(logs.map((log) => log.quests.claimed[band])) / days, 2)]),
+      ),
+      secretPerWeek: round((median(logs.map((log) => log.quests.claimed.secret)) / days) * 7, 1),
+      tipsPerWeek: round((median(logs.map((log) => log.quests.tips)) / days) * 7, 1),
+      goldShare: round(logs.reduce((sum, log) => sum + log.goldIn.filter((g) => g.source === 'quest').reduce((s, g) => s + g.amount, 0), 0) / Math.max(1, goldEarned)),
     },
     patrols: {
       seen: patrolCounts((log) => log.patrols.seen.map((row) => ({ key: row.kind }))),

@@ -38,12 +38,14 @@ import {
   challengeSanctums,
   collectExpedition,
   digTreasure,
+  doQuests,
   forge,
   highestTier,
   homeHeroes,
   infuseWeapons,
   mark,
   markCoreKit,
+  noteQuestGathers,
   reachChance,
   recruitHeroes,
   sendExpeditions,
@@ -106,15 +108,17 @@ function walk(sim: Sim, source: string, perMinute: Record<string, number>, gathe
   const gathers = gathersPerMinute * minutes;
   const bonusGathers = Math.min(sim.bonusGathers, gathers);
   const bonusMinutes = gathers > 0 ? (bonusGathers / gathers) * minutes : 0;
-  act(sim, source, (save) => ({
+  const gained = act(sim, source, (save) => ({
     ...save,
     materials: addMaterials(save.materials, walkYield(perMinute, minutes - bonusMinutes, sim.rng, sim.config)),
   }));
+  noteQuestGathers(sim, gained);
   if (bonusMinutes > 0) {
-    act(sim, `${source}Bonus`, (save) => ({
+    const bonus = act(sim, `${source}Bonus`, (save) => ({
       ...save,
       materials: addMaterials(save.materials, bonusScaled(walkYield(perMinute, bonusMinutes, sim.rng, sim.config))),
     }));
+    noteQuestGathers(sim, bonus);
     sim.bonusGathers -= bonusGathers;
   }
 }
@@ -288,6 +292,7 @@ function session(sim: Sim, walkMinutes: number, steps: number, dayKey: string, f
   }
 
   if (sim.save.tutorial.step !== 'done') playTutorial(sim);
+  doQuests(sim);
   forge(sim);
   spendPicks(sim);
   stockProvisions(sim);
@@ -364,6 +369,7 @@ export function runSim({ profile: name, days, seed, rates, patrolRates, config =
       },
       potionsAtHome: 0,
       emergencySupply: 0,
+      quests: { claimed: { short: 0, medium: 0, long: 0, secret: 0 }, tips: 0 },
     },
   };
 

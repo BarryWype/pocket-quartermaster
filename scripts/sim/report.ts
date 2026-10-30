@@ -419,6 +419,7 @@ export function renderReport({ summary, comparison, elapsed, rules, compareWith 
         ) +
         `<p>Overnight expeditions: ${fmt(p.expeditions.overnight.runsPerDay, 2)} runs per day, bringing ${pct(p.expeditions.overnight.goldShare)} of the gold and ${pct(p.expeditions.overnight.xpShare)} of the XP. Blueprints dropped by expeditions: ${fmt(p.expeditions.blueprints, 1)} per run.</p>` +
         `<p>Sanctums per run: ${fmt(p.expeditions.sanctums.attempts, 1)} attempts, ${fmt(p.expeditions.sanctums.wins, 1)} wins.</p>` +
+        `<p>Daily quests claimed per day: ${fmt(p.quests.perDay.short, 2)} short, ${fmt(p.quests.perDay.medium, 2)} medium, ${fmt(p.quests.perDay.long, 2)} long; secret quests ${fmt(p.quests.secretPerWeek, 1)} a week, giving ${fmt(p.quests.tipsPerWeek, 1)} secret place tips; ${pct(p.quests.goldShare)} of the gold.</p>` +
         table(
           ['Ability effect', 'Times per run (median)'],
           Object.entries(p.expeditions.effects).sort((a, b) => b[1] - a[1]).map(([k, n]) => [esc(k), fmt(n)]),
