@@ -20,11 +20,13 @@ import { expeditionRules } from '@/content/dungeons';
 import { approachRules } from '@/content/threats';
 import { qualities } from '@/content/forging';
 import { gearApproachBonus, approachScore, pendingApproachPicks } from '@/game/team/stats';
-import { heroClasses, xpToNextLevel } from '@/content/heroes';
+import { heroClasses, xpRules, xpToNextLevel } from '@/content/heroes';
+import { lootConfig } from '@/content/loot/config';
 import { traitById } from '@/content/traits';
 import { items } from '@/content/items';
 import { gearName, itemById } from '@/content/lookup';
 import { answersMemberOf, prepareParty } from '@/game/expeditions/simulate';
+import { highestUnlockedTier } from '@/game/dungeons/unlock';
 import { careProblem, drinkProblem } from '@/game/team/health';
 import { affinityOf, canDismiss, hasPotionSlot, healingPotion, heroDamageStat, heroStats, isOnExpedition } from '@/game/team/team';
 import { ClassSummary } from '@/components/ClassSummary';
@@ -73,6 +75,7 @@ export default function CharacterSheetScreen() {
   const keywords = (answers?.keywords ?? []).filter((k) => k.source !== 'kit');
   const element = heroClass.element ? elementInfo[heroClass.element] : null;
   const next = xpToNextLevel(hero.level);
+  const aboveBand = hero.level >= lootConfig.manuals.topLevelByTier[highestUnlockedTier(save) - 1] + xpRules.aboveBandMargin;
   const confirmDismiss = () =>
     Alert.alert(t('hero.dismissTitle', { name: hero.name }), t('hero.dismissBody'), [
       { text: t('common.cancel'), style: 'cancel' },
@@ -134,6 +137,7 @@ export default function CharacterSheetScreen() {
           {save.escort?.heroId === hero.id ? t('common.escort') : ''}
           {save.patrolFights.some((fight) => fight.heroIds.includes(hero.id)) ? t('common.patrol') : ''}
         </Text>
+        {aboveBand ? <Text style={styles.xp}>{t('hero.xpAboveBand')}</Text> : null}
         <HpBar save={save} hero={hero} now={now} light />
         {!away && (
           <View style={styles.drink}>

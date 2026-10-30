@@ -139,12 +139,12 @@ describe('fights', () => {
 
 describe('traps', () => {
   it('wound each hero it catches by the missed threat\'s share of max HP', () => {
-    // Finesse 1 against level 2 (needs 3): a full miss, trapWounds 12%.
+    // Finesse 1 against level 2 (needs 3): a full miss, trapWounds 35%.
     const briefing = briefingOf('traps', 2);
     const run = simulateRun([member('a'), member('b', { maxHp: 50 })], dungeon([trap()]), 's', { rules: steady, briefing });
     const caught = run.encounters[0];
     expect(caught.trapTriggered).toBe(true);
-    expect(caught.taken).toEqual({ a: 12, b: 6 });
+    expect(caught.taken).toEqual({ a: 35, b: 17.5 });
   });
 
   it('catch nobody when the threat is met', () => {
@@ -154,10 +154,10 @@ describe('traps', () => {
   });
 
   it('wound half as much on a half miss', () => {
-    // Finesse 1 against level 1 (needs 2): one short, so half of the 8%.
+    // Finesse 1 against level 1 (needs 2): one short, so half of the 25%.
     const briefing = briefingOf('traps');
     const run = simulateRun([member('a')], dungeon([trap()]), 's', { rules: steady, briefing });
-    expect(run.encounters[0].taken).toEqual({ a: 4 });
+    expect(run.encounters[0].taken).toEqual({ a: 12.5 });
   });
 
   it('are quiet steps without the traps threat in the briefing', () => {
@@ -169,7 +169,7 @@ describe('traps', () => {
     const briefing = briefingOf('traps', 2);
     const fire = trap({ element: 'fire' });
     const taken = simulateRun([member('a')], dungeon([fire]), 's', { rules: steady, briefing }).encounters[0].taken.a;
-    expect(taken).toBeCloseTo(12 * elementRules.unprotectedMultiplier);
+    expect(taken).toBeCloseTo(35 * elementRules.unprotectedMultiplier);
   });
 
   it('are guaranteed an encounter when the threat is drawn but none was rolled', () => {
@@ -203,13 +203,13 @@ describe('obstacles and events are quiet steps', () => {
 });
 
 describe('consumables', () => {
-  /** Four live traps at level 3: 72% of max HP in wounds, enough to reach the potion threshold. */
+  /** Two live traps at level 2: 70% of max HP in wounds, enough to reach the potion threshold. */
   const wounded = (overrides: { consumable?: ConsumableDef | null; meal?: { kind: 'bossHeal'; pct: number } } = {}) =>
     simulateRun(
       [member('a', { consumable: overrides.consumable ?? null })],
-      dungeon([trap(), trap(), trap(), trap()], { damage: 1 }, [5, 5]),
+      dungeon([trap(), trap()], { damage: 1 }, [3, 3]),
       's',
-      { rules: steady, briefing: briefingOf('traps', 3), ...(overrides.meal ? { meal: overrides.meal } : {}) },
+      { rules: steady, briefing: briefingOf('traps', 2), ...(overrides.meal ? { meal: overrides.meal } : {}) },
     );
 
   it('drinks a potion once below the threshold', () => {

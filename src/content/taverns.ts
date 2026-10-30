@@ -8,8 +8,8 @@ export const tavernRules = {
   interactionMeters: 50,
   /** Snapped to walkable places with coarse map tiles, like Sanctums. */
   placement: { mapZoom: 12, maxSnapMeters: 150 },
-  /** Taverns open once this boss has been beaten. */
-  unlockedBy: 'banditStockade',
+  /** Taverns open once this many quests have been completed (with their reveal, see content/reveal.ts). */
+  unlockedAfterQuests: 1,
 };
 
 /** Tavern names: "The {adjective} {noun}". */

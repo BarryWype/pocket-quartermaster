@@ -11,13 +11,15 @@ import { placeFightBriefing, placeFightDungeon, placeFightProblem, resolvePlaceF
 import { placesWithin, type PlaceSpawn } from '../../places/generate';
 import { heistOdds, heistProblem, resolveHeists, startHeist } from '../../places/heists';
 import { digProblem, digRuin } from '../../places/ruins';
-import { buy, buyProblem, placeStock } from '../../places/shops';
+import { buy, buyProblem, placeStock, stockLeft } from '../../places/shops';
+import { blessRelics as blessAtChapel, blessRelicsProblem } from '../../places/services';
 import { underwaterBriefing, underwaterDungeonFor, underwaterLaunchProblem, launchUnderwater } from '../../secrets/dungeon';
 import { hasKey } from '../../secrets/keys';
+import { isPlaceRevealed, isRevealed } from '../../reveal/reveal';
 import { enterProblem, enterSecret, recruitAtSecret, secretRecruit, secretRecruitProblem } from '../../secrets/places';
 import { secretPlaces } from '../../secrets/tips';
 import { isExhausted } from '../../team/health';
-import { act, bestParty, countLoot, highestTier, homeHeroes, mark, skip, takeVisit, withLoadout, type PlaceRow, type Sim } from '../bot';
+import { act, bestParty, countLoot, highestTier, homeHeroes, mark, nextForgeRecipe, skip, takeVisit, withLoadout, type PlaceRow, type Sim } from '../bot';
 import { emptySlots } from './loadout';
 
 const MINUTE = 60_000;
@@ -43,21 +45,30 @@ const row = (sim: Sim, kind: string, tier: number, odds: number | null, won: boo
   sim.log.places.push(visit);
 };
 
+/** Why a place visit didn't happen; null when it was made. */
+export type PlaceMiss = 'nothing' | 'odds' | 'noParty';
+
+/** Logs a place visit that couldn't happen, under its reason. */
+const miss = (sim: Sim, reason: PlaceMiss) => {
+  sim.log.placesNotDone[reason] = (sim.log.placesNotDone[reason] ?? 0) + 1;
+};
+
 /** A fight event or the monster lair: the best party, started and resolved at once. */
-function fightAt(sim: Sim, kind: FightPlaceKind): boolean {
+function fightAt(sim: Sim, kind: FightPlaceKind): PlaceMiss | null {
   const tier = highestTier(sim.save);
   const candidates = homeHeroes(sim.save)
     .filter((h) => !isExhausted(h, sim.now))
     .map((h) => h.id);
   const probe = candidates.slice(0, placeFightRules.kinds[kind].party);
+  if (!candidates.length) return 'noParty';
   const spawn = spawnFor(sim, kind, (s) => placeFightProblem(sim.save, s, probe, s.position, sim.now) === null);
-  if (!spawn) return false;
+  if (!spawn) return 'nothing';
   const dungeon = placeFightDungeon(spawn, tier);
   const briefing = placeFightBriefing(sim.save, spawn);
   const party = bestParty(sim, dungeon, candidates, briefing);
-  if (party.heroIds.length === 0 || party.odds.success < sim.config.odds.place) return false;
+  if (party.heroIds.length === 0 || party.odds.success < sim.config.odds.place) return 'odds';
   sim.save = withLoadout(emptySlots(sim.save, party.heroIds), party.heroIds, dungeon, briefing);
-  if (placeFightProblem(sim.save, spawn, party.heroIds, spawn.position, sim.now) !== null) return false;
+  if (placeFightProblem(sim.save, spawn, party.heroIds, spawn.position, sim.now) !== null) return 'odds';
   const endsAt = sim.now + dungeon.durationMinutes * MINUTE;
   let won = false;
   act(sim, 'place', (save) => startPlaceFight(save, spawn, party.heroIds, spawn.position, sim.now));
@@ -70,13 +81,13 @@ function fightAt(sim: Sim, kind: FightPlaceKind): boolean {
     return done.save;
   });
   row(sim, spawn.kind, tier, party.odds.success, won);
-  return true;
+  return null;
 }
 
 /** Digs the nearest ruin: its loot row, and a relic on the dig that completes the set. */
-function digAt(sim: Sim): boolean {
+function digAt(sim: Sim): PlaceMiss | null {
   const spawn = spawnFor(sim, 'ruins', (s) => digProblem(sim.save, s, s.position, sim.now) === null);
-  if (!spawn) return false;
+  if (!spawn) return 'nothing';
   let relic = false;
   let loot: Loot | null = null;
   act(sim, 'ruinsDig', (save) => {
@@ -91,19 +102,19 @@ function digAt(sim: Sim): boolean {
     sim.log.loot.relics = (sim.log.loot.relics ?? 0) + 1;
   }
   row(sim, spawn.kind, highestTier(sim.save), null, null);
-  return true;
+  return null;
 }
 
 /** Robs the nearest thieves' guild with the home hero best at its locks. */
-function heistAt(sim: Sim): boolean {
+function heistAt(sim: Sim): PlaceMiss | null {
   const hero = homeHeroes(sim.save)
     .filter((h) => !isExhausted(h, sim.now))
     .sort((a, b) => heistOdds(sim.save, b.id) - heistOdds(sim.save, a.id))[0];
-  if (!hero) return false;
+  if (!hero) return 'noParty';
   const odds = heistOdds(sim.save, hero.id);
-  if (odds < sim.config.odds.heist) return false;
+  if (odds < sim.config.odds.heist) return 'odds';
   const spawn = spawnFor(sim, 'thievesGuild', (s) => heistProblem(sim.save, s, hero.id, s.position, sim.now) === null);
-  if (!spawn) return false;
+  if (!spawn) return 'nothing';
   let won = false;
   act(sim, 'heist', (save) => startHeist(save, spawn, hero.id, spawn.position, sim.now));
   const endsAt = sim.save.heists.find((h) => h.placeId === spawn.id)!.endsAt;
@@ -116,13 +127,13 @@ function heistAt(sim: Sim): boolean {
     return done.save;
   });
   row(sim, spawn.kind, highestTier(sim.save), odds, won);
-  return true;
+  return null;
 }
 
 /** One catch at the nearest dock. */
-function fishAt(sim: Sim): boolean {
+function fishAt(sim: Sim): PlaceMiss | null {
   const spawn = spawnFor(sim, 'fishingDock', (s) => fishProblem(sim.save, s, s.position, sim.now) === null);
-  if (!spawn) return false;
+  if (!spawn) return 'nothing';
   let loot: Loot | null = null;
   act(sim, 'fishingDock', (save) => {
     const caught = fish(save, spawn, spawn.position, sim.now);
@@ -131,10 +142,10 @@ function fishAt(sim: Sim): boolean {
   });
   if (loot) countLoot(sim, loot);
   row(sim, spawn.kind, highestTier(sim.save), null, null);
-  return true;
+  return null;
 }
 
-const SOURCES: { source: LootSourceId; kind: PlaceKind }[] = [
+export const SOURCES: { source: LootSourceId; kind: PlaceKind }[] = [
   ...(['banditCamp', 'goblinRaid', 'beastDen', 'hauntedCrypt', 'elementalRift', 'abandonedCaravan', 'wantedOutlaw', 'monsterLair'] as FightPlaceKind[]).map(
     (kind) => ({ source: kind as LootSourceId, kind: kind as PlaceKind }),
   ),
@@ -145,15 +156,20 @@ const SOURCES: { source: LootSourceId; kind: PlaceKind }[] = [
 
 /**
  * The places each walk session visits: every fight event, the lair, a ruin, a
- * heist and the dock, one per visit owed. A visit that finds nothing (or odds
- * too low) is logged as skipped.
+ * heist and the dock, one per visit owed — only once the gradual reveal shows
+ * the kind, the owed visit kept back until then. A visit that finds nothing
+ * (or odds too low) is logged as skipped.
  */
 export function visitPlaces(sim: Sim) {
   for (const { source, kind } of SOURCES) {
+    if (!isPlaceRevealed(sim.save, kind)) continue;
     while (takeVisit(sim, source)) {
-      const visited =
+      const why =
         kind === 'ruins' ? digAt(sim) : kind === 'thievesGuild' ? heistAt(sim) : kind === 'fishingDock' ? fishAt(sim) : fightAt(sim, kind as FightPlaceKind);
-      if (!visited) skip(sim, source);
+      if (why) {
+        skip(sim, source);
+        miss(sim, why);
+      }
     }
   }
 }
@@ -164,6 +180,7 @@ export function buyWeakness(sim: Sim) {
   const boss = dungeons.find((d) => d.isBoss && d.tier === tier && !sim.save.clearedDungeons.includes(d.id));
   const weakness = boss ? weaknessByBoss[boss.boss.id] : undefined;
   if (!weakness || (sim.save.consumables[weakness.itemId] ?? 0) > 0) return;
+  if (!isPlaceRevealed(sim.save, weakness.place)) return;
   const spawn = nearestSpawn(placesWithin(sim.location, BUY_METERS, sim.now), weakness.place, sim.location, (s) =>
     placeStock(sim.save, s, sim.now).some((line) => line.id === weakness.itemId),
   );
@@ -172,6 +189,37 @@ export function buyWeakness(sim: Sim) {
   if (buyProblem(sim.save, spawn, line.key, 1, spawn.position, sim.now) !== null) return;
   act(sim, 'weakness', (save) => buy(save, spawn, line.key, 1, spawn.position, sim.now));
   row(sim, spawn.kind, tier, null, null);
+}
+
+/** Blesses every held holy symbol at the nearest chapel, turning them into their stronger blessed version. */
+export function blessSymbols(sim: Sim) {
+  if ((sim.save.consumables.holyRelics ?? 0) < 1 || !isPlaceRevealed(sim.save, 'chapel')) return;
+  const spawn = nearestSpawn(placesWithin(sim.location, BUY_METERS, sim.now), 'chapel', sim.location, (s) =>
+    blessRelicsProblem(sim.save, s, s.position, sim.now) === null,
+  );
+  if (!spawn) return;
+  act(sim, 'chapel', (save) => blessAtChapel(save, spawn, spawn.position, sim.now));
+  row(sim, 'chapel', highestTier(sim.save), null, null);
+}
+
+/** Buys what the next wanted forge is short of at the nearest place stocking it, when the gold covers it. */
+export function buyForgeMaterials(sim: Sim) {
+  const recipe = nextForgeRecipe(sim.save);
+  if (!recipe) return;
+  const spawns = placesWithin(sim.location, BUY_METERS, sim.now);
+  for (const { materialId, amount } of recipe.inputs) {
+    const missing = amount - (sim.save.materials[materialId] ?? 0);
+    if (missing <= 0) continue;
+    const stocked = (spawn: PlaceSpawn) => placeStock(sim.save, spawn, sim.now).find((l) => l.kind === 'material' && l.id === materialId);
+    const spawn = spawns
+      .filter((s) => isPlaceRevealed(sim.save, s.kind) && stocked(s))
+      .sort((a, b) => distanceMeters(sim.location, a.position) - distanceMeters(sim.location, b.position))[0];
+    if (!spawn) continue;
+    const line = stocked(spawn)!;
+    const count = Math.min(missing, stockLeft(sim.save, spawn, line));
+    if (count <= 0 || buyProblem(sim.save, spawn, line.key, count, spawn.position, sim.now) !== null) continue;
+    act(sim, 'materials', (save) => buy(save, spawn, line.key, count, spawn.position, sim.now));
+  }
 }
 
 /** The tipped underwater dungeon, launched with the best party when its odds reach the place threshold. */
@@ -190,6 +238,7 @@ function underwaterAt(sim: Sim, place: PlaceSpawn): boolean {
 
 /** Opens every tipped secret place the player can: dens and markets are entered and their rare class hired. */
 export function openSecrets(sim: Sim) {
+  if (!isRevealed(sim.save, 'secrets')) return;
   for (const place of secretPlaces(sim.save, sim.now)) {
     if (place.kind === 'underwaterDungeon') {
       underwaterAt(sim, place);
@@ -199,8 +248,9 @@ export function openSecrets(sim: Sim) {
     act(sim, 'secret', (save) => enterSecret(save, place, place.position, sim.now));
     mark(sim, 'secretPlace');
     row(sim, place.kind, highestTier(sim.save), null, null);
+    const offer = secretRecruit(sim.save, place);
+    sim.log.offered[offer.id] = offer.classId;
     if (secretRecruitProblem(sim.save, place, place.position, sim.now) === null) {
-      const offer = secretRecruit(sim.save, place);
       act(sim, 'secret', (save) => recruitAtSecret(save, place, place.position, sim.now));
       sim.log.recruits.push({ day: sim.day, classId: offer.classId, price: offer.price, trait: offer.trait });
       mark(sim, `recruit:${sim.save.heroes.length}`);

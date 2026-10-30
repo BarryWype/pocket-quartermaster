@@ -1,6 +1,8 @@
+import type { NearbyKind } from '@/content/pocketMode';
+
 import type { AlertFor } from '../patrols/escort';
 
-export type NotificationGroup = 'expeditions' | 'steps' | 'patrols';
+export type NotificationGroup = 'expeditions' | 'steps' | 'patrols' | 'places';
 
 export type NotificationCategory =
   | 'expeditionFinished'
@@ -12,7 +14,10 @@ export type NotificationCategory =
   | 'chestClose'
   | 'dailyReset'
   | 'walkSummary'
+  | 'questReady'
   | 'questTarget'
+  | 'nearbyPlaces'
+  | 'secretPlace'
   | 'patrolSpotted'
   | 'escort';
 
@@ -30,6 +35,8 @@ export type NotificationSettings = {
   allowResultsInQuietHours: boolean;
   /** Which patrols a notification is wanted for. */
   patrolAlertFor: AlertFor;
+  /** Which places nearby a notification is wanted for. */
+  nearbyKinds: NearbyKind[];
 };
 
 /** A notification to schedule (`at` is a time) or show now (`at` is null). */

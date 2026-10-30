@@ -1,6 +1,7 @@
 import { dungeonById, recipeById, recipeOutput } from '@/content/lookup';
 import { frNotificationTexts } from '@/content/fr/notifications';
 import { notificationCategories, notificationRules, notificationTexts as enNotificationTexts } from '@/content/notifications';
+import { nearbyKinds } from '@/content/pocketMode';
 import { fill, localized, tr } from '@/i18n';
 
 import { resolveExpedition } from '../expeditions/expeditions';
@@ -26,6 +27,7 @@ export function defaultNotificationSettings(): NotificationSettings {
     quietHours: { enabled: true, ...notificationRules.quietHours },
     allowResultsInQuietHours: false,
     patrolAlertFor: 'all',
+    nearbyKinds: [...nearbyKinds],
   };
 }
 

@@ -1,9 +1,10 @@
+import * as os from 'node:os';
 import * as path from 'node:path';
 
 import { profiles } from '@/game/sim/config';
 import { pacingLines } from '@/game/sim/pacing';
 
-import { runLab } from './lab';
+import { runLab, runWorker } from './lab';
 
 const USAGE = `npm run sim -- [options]
   --profile casual|regular|heavy|all   (default all)
@@ -11,12 +12,13 @@ const USAGE = `npm run sim -- [options]
   --seed S        (default 1)
   --max-days N    stop every game by then (default: each profile's cap)
   --set path=value   override a number for this run, repeatable (e.g. guild.gold.baseCost=80)
+  --workers N     games played in parallel, each in its own process (default: one per core)
   --out dir       where the CSVs go (default sim-output/<timestamp>)
   --report dir    where report.md and summary.json go (default doc/design/simulator)
   --pacing        print weekly loot drops per category (as doc/design/loot/tools/pacing.py) and stop`;
 
 function parse(argv: string[]) {
-  const options = { profile: 'all', seeds: 4, seed: '1', maxDays: undefined as number | undefined, overrides: [] as string[], out: '', report: 'doc/design/simulator', pacing: false };
+  const options = { profile: 'all', seeds: 4, seed: '1', maxDays: undefined as number | undefined, overrides: [] as string[], out: '', report: 'doc/design/simulator', pacing: false, workers: os.availableParallelism() };
   for (let i = 0; i < argv.length; i++) {
     const value = () => {
       const next = argv[++i];
@@ -29,6 +31,7 @@ function parse(argv: string[]) {
       case '--seed': options.seed = value(); break;
       case '--max-days': options.maxDays = Number(value()); break;
       case '--set': options.overrides.push(value()); break;
+      case '--workers': options.workers = Number(value()); break;
       case '--out': options.out = value(); break;
       case '--report': options.report = value(); break;
       case '--pacing': options.pacing = true; break;
@@ -39,18 +42,24 @@ function parse(argv: string[]) {
   return options;
 }
 
-const options = parse(process.argv.slice(2));
-if (options.pacing) {
-  console.log(pacingLines().join('\n'));
-  process.exit(0);
+if (process.argv[2] === '--worker') {
+  runWorker();
+} else {
+  const options = parse(process.argv.slice(2));
+  if (options.pacing) {
+    console.log(pacingLines().join('\n'));
+    process.exit(0);
+  }
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+  runLab({
+    profiles: options.profile === 'all' ? Object.keys(profiles) : [options.profile],
+    seeds: options.seeds,
+    seed: options.seed,
+    maxDays: options.maxDays,
+    overrides: options.overrides,
+    outDir: options.out || path.join('sim-output', stamp),
+    reportDir: options.report,
+    workers: options.workers,
+    workerScript: process.argv[1],
+  });
 }
-const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-runLab({
-  profiles: options.profile === 'all' ? Object.keys(profiles) : [options.profile],
-  seeds: options.seeds,
-  seed: options.seed,
-  maxDays: options.maxDays,
-  overrides: options.overrides,
-  outDir: options.out || path.join('sim-output', stamp),
-  reportDir: options.report,
-});

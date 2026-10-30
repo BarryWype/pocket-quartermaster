@@ -1,4 +1,5 @@
 import { materialById } from '@/content/lookup';
+import { REVEAL_KINDS } from '@/content/reveal';
 
 import { misses, type ProfileSummary, type Stat } from '@/game/sim/metrics';
 import { inRange, targets } from '@/game/sim/targets';
@@ -57,6 +58,20 @@ function odds(s: ProfileSummary) {
   return table(head, rows);
 }
 
+function kindOdds(s: ProfileSummary) {
+  const head = ['Kind', ...s.tiers.flatMap((t) => [`Tier ${t.tier} probe`, `Tier ${t.tier} fought, won`])];
+  const rows = (s.tiers[0]?.odds.kinds ?? []).map((k) => [
+    k.id,
+    ...s.tiers.flatMap((t) => {
+      const kind = t.odds.kinds.find((x) => x.id === k.id);
+      if (!kind) return ['—', '—'];
+      const probe = `${pct(kind.line.start.median)} → ${pct(kind.line.probe.median)}${mark(kind.line.probe.median, kind.line.target)}`;
+      return [probe, kind.fought ? `${kind.fought}, ${kind.won}` : '—'];
+    }),
+  ]);
+  return table(head, rows);
+}
+
 function loot(s: ProfileSummary) {
   const rows = s.loot.map((r) => [
     r.column,
@@ -94,6 +109,12 @@ function materials(s: ProfileSummary) {
   return table(['Tier', 'Main material', 'Gathered', 'Spent', `Spent share (min ${pct(targets.materialSpent)})`], rows);
 }
 
+/** The median day each map kind first shows, per profile; no target. */
+function reveals(summaries: ProfileSummary[]) {
+  const rows = REVEAL_KINDS.map((kind) => [kind, ...summaries.map((s) => n(s.reveals[kind].median))]);
+  return table(['Kind', ...summaries.map((s) => s.profile)], rows);
+}
+
 function levels(s: ProfileSummary) {
   const rows = s.tiers.map((t) => {
     const band: [number, number] = [t.level.target - targets.levelSlack, t.level.target + targets.levelSlack];
@@ -112,17 +133,19 @@ function health(s: ProfileSummary) {
     '',
     `- Consumables never carried or made: ${list(h.dead.items)}`,
     `- Recipes known but never crafted: ${list(h.dead.recipes)}`,
-    `- Classes never fielded: ${list(h.dead.classes)}`,
+    `- Classes never offered: ${list(h.classes.neverOffered)}`,
+    `- Classes offered but never recruited: ${list(h.classes.offeredNeverRecruited)}`,
+    `- Classes recruited but never fielded: ${list(h.classes.recruitedNeverFielded)}`,
     `- Places never visited: ${list(h.dead.places)}`,
     `- Dungeons never picked: ${list(h.dead.dungeons)}`,
     '',
-    '**Class spread** (share of party slots)',
+    '**Classes** (offers seen, heroes recruited and party slots fielded, over all seeds; the starting trio is never offered or recruited)',
     '',
     table(
-      ['Class', 'Share'],
-      Object.entries(h.classSpread)
-        .sort((a, b) => b[1] - a[1])
-        .map(([c, v]) => [c, pct(v)]),
+      ['Class', 'Offered', 'Recruited', 'Fielded', 'Share of slots'],
+      Object.entries(h.classCounts)
+        .sort((a, b) => b[1].fielded - a[1].fielded || b[1].offered - a[1].offered)
+        .map(([c, v]) => [c, String(v.offered), String(v.recruited), String(v.fielded), pct(h.classSpread[c] ?? 0)]),
     ),
     '**Milestones** (day, median over seeds that got there)',
     '',
@@ -134,6 +157,32 @@ function health(s: ProfileSummary) {
     '',
     table(['Activity', 'Skipped'], Object.entries(h.skipped).map(([k, v]) => [k, n(v)])),
   ].join('\n');
+}
+
+function visitsTable(s: ProfileSummary) {
+  return table(
+    ['Activity', 'Planned visits/day', 'Done visits/day (median)'],
+    s.visits.map((v) => [v.activity, n(v.planned, 2), n(v.done.median, 2)]),
+  );
+}
+
+const NOT_LAUNCHED_LABELS: Record<string, string> = {
+  noParty: 'No free party (heroes away or resting)',
+  hp: 'HP too low',
+  odds: 'Odds below the threshold',
+  noSession: 'No session left',
+};
+
+const NOT_DONE_LABELS: Record<string, string> = {
+  nothing: 'Nothing there',
+  odds: 'Odds too low',
+  noParty: 'No free party',
+  hidden: 'Hidden by the reveal',
+};
+
+/** One reason table: every reason in its fixed order, even at 0. */
+function reasonsTable(labels: Record<string, string>, stats: Record<string, Stat>) {
+  return table(['Reason', 'Per day'], Object.entries(labels).map(([key, label]) => [label, n(stats[key]?.median ?? null, 2)]));
 }
 
 /** The markdown report: targets next to results, ⚠ on anything out of range. */
@@ -155,10 +204,38 @@ export function renderReport({ summaries, rules, settings }: ReportInput) {
     pace(summaries),
     '## Win odds per tier',
     '',
-    'Probe: after every session, the best prepared party from the whole roster at full HP against every open normal dungeon of the tier, the tier boss, and the fight events and patrols around; "not prepared" is the same party and gear with the kit slots empty. Each probe cell reads "at the tier\u2019s first probe → at its last" (gear of the tier); the last is checked against the target. The column after each probe is what the bot actually launched.',
+    'Probe: after the day\u2019s last session every `probeEveryDays` days (and after the first session of a new tier and every session the tier boss is out), the best prepared party from the whole roster at full HP against every open normal dungeon of the tier, the tier boss, and the fight events and patrols around; "not prepared" is the briefing skipped: the strongest party picked as if there were no threats, with no kits. Each probe cell reads "at the tier\u2019s first probe → at its last" (gear of the tier); the last is checked against the target. The column after each probe is what the bot actually launched.',
     '',
   ];
   for (const s of summaries) out.push(`### ${s.profile}`, '', odds(s));
+  out.push(
+    '## Events and patrols by kind',
+    '',
+    'The same probe and fight record split by kind: each patrol kind (goblin scouts, game herd, bandits) and each fight event kind.',
+    '',
+  );
+  for (const s of summaries) out.push(`### ${s.profile}`, '', kindOdds(s));
+  out.push(
+    '## Visits planned vs done',
+    '',
+    'Each activity: the profile’s planned visits per day next to the median over seeds of visits done per day. Below each, why expeditions went unlaunched and places undone: "No session left" is the day’s whole planned expeditions still owed after its last session, which had just sent a party out. A visit owed for a kind the reveal still hides is kept back and made once the kind shows, not lost.',
+    '',
+  );
+  for (const s of summaries)
+    out.push(
+      `### ${s.profile}`,
+      '',
+      visitsTable(s),
+      '',
+      '**Expeditions not launched (per day, median)**',
+      '',
+      reasonsTable(NOT_LAUNCHED_LABELS, s.notLaunched),
+      '',
+      '**Places not done (per day, median)**',
+      '',
+      reasonsTable(NOT_DONE_LABELS, s.placesNotDone),
+      '',
+    );
   if (regular) out.push('## Loot pacing (regular)', '', loot(regular));
   out.push('## Gold per tier', '');
   for (const s of summaries) out.push(`### ${s.profile}`, '', gold(s));
@@ -166,6 +243,7 @@ export function renderReport({ summaries, rules, settings }: ReportInput) {
   for (const s of summaries) out.push(`### ${s.profile}`, '', materials(s));
   out.push('## Hero levels at the end of each tier', '');
   for (const s of summaries) out.push(`### ${s.profile}`, '', levels(s));
+  out.push('## Reveal days', '', 'The median day each map kind first shows (the gradual reveal); no target.', '', reveals(summaries));
   out.push('## Health', '');
   for (const s of summaries) out.push(`### ${s.profile}`, '', health(s), '');
   out.push('## Bot rules', '', ...rules.map((r) => `- ${r}`), '');

@@ -1,7 +1,7 @@
 import { offsetPosition } from '../generation/geo';
 import type { LatLng } from '../generation/types';
 import { defaultNotificationSettings } from '../notifications/plan';
-import { patrolNotifications } from '../notifications/patrols';
+import { emptyPocketLog, pocketNotifications } from '../notifications/pocket';
 import { backgroundStep, snapshotBackground, type PatrolSettings } from '../patrols/escort';
 import { createInitialSave, type SaveData } from '../save';
 import { noteMarksReached } from './progress';
@@ -62,10 +62,10 @@ describe('quest targets in Pocket mode', () => {
 
   it('sends a notification that opens the quests list', () => {
     const settings = { ...defaultNotificationSettings(), quietHours: { ...defaultNotificationSettings().quietHours, enabled: false } };
-    const [sent] = patrolNotifications([{ kind: 'questTarget', questId: 'q|1', target: target('chapel', 0) }], null, settings, 0);
+    const [sent] = pocketNotifications([{ kind: 'questTarget', questId: 'q|1', target: target('chapel', 0) }], emptyPocketLog(), settings, 0).notifications;
     expect(sent).toMatchObject({ id: 'quest:q|1', category: 'questTarget', data: { route: 'quests' } });
     expect(sent.title).toContain('Chapel');
     const off = { ...settings, categories: { ...settings.categories, questTarget: false } };
-    expect(patrolNotifications([{ kind: 'questTarget', questId: 'q|1', target: target('chapel', 0) }], null, off, 0)).toEqual([]);
+    expect(pocketNotifications([{ kind: 'questTarget', questId: 'q|1', target: target('chapel', 0) }], emptyPocketLog(), off, 0).notifications).toEqual([]);
   });
 });

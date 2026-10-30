@@ -5,7 +5,8 @@ import { gatheringConfig } from '@/content/gatheringConfig';
 import { materialById } from '@/content/lookup';
 import { clearProcessed, shouldAutoStop, walkTileKeys, type WalkFix, type WalkSummary } from '@/game/gathering/autoGather';
 import { snapshotBackground } from '@/game/patrols/escort';
-import { needsBackgroundState, patrolSettingsFrom, pocketTracking } from '@/game/patrols/pocketMode';
+import { needsBackgroundState, patrolSettingsFrom, pocketTracking, snapshotPocket } from '@/game/patrols/pocketMode';
+import type { PocketCounts } from '@/game/patrols/pocketCounts';
 import type { MaterialStack } from '@/game/types';
 import { formatDistance, t, tr } from '@/i18n';
 import { walkableTiles } from '@/services/mapTiles';
@@ -105,6 +106,15 @@ async function processBuffer(away: boolean): Promise<WalkSummary | null> {
 
 let running: Promise<void> | null = null;
 
+/** Step chests the background task already notified, so the app's own step alerts don't send them again. */
+function noteChestsAlerted(counts: PocketCounts | null) {
+  if (!counts?.chestsAlerted.length) return;
+  const { stepAlertLog, set } = useSettingsStore.getState();
+  const sent = stepAlertLog.day === counts.day ? stepAlertLog.sent : [];
+  const keys = counts.chestsAlerted.map((id) => `unlocked:${id}`).filter((key) => !sent.includes(key));
+  if (keys.length > 0) set({ stepAlertLog: { day: counts.day, sent: [...sent, ...keys] } });
+}
+
 /**
  * Folds the background task's fight results into the save, then hands the task
  * a fresh state: its `pending` starts empty, which is the hand-off. Without
@@ -117,7 +127,13 @@ export async function syncBackground() {
     const { pocketMode, notifications } = useSettingsStore.getState();
     if (!needsBackgroundState(pocketMode)) return null;
     const save = useGameStore.getState().save;
-    return snapshotBackground(save, patrolSettingsFrom(pocketMode, save, notifications.patrolAlertFor), Date.now(), current);
+    const now = Date.now();
+    noteChestsAlerted(current?.pocket?.counts ?? null);
+    const nearbyKinds = notifications.categories.nearbyPlaces ? notifications.nearbyKinds : [];
+    return {
+      ...snapshotBackground(save, patrolSettingsFrom(pocketMode, save, notifications.patrolAlertFor), now, current),
+      pocket: snapshotPocket(save, nearbyKinds, now, current?.pocket ?? null),
+    };
   });
 }
 

@@ -58,6 +58,7 @@ import { LOOT_CATEGORIES, LOOT_SOURCES, emptyLoot, type Loot, type LootCategory,
 import { lootChances } from '@/game/loot/chances';
 import { createRng } from '@/game/generation/rng';
 import { rollForSave, sourceAmounts } from '@/game/loot/context';
+import { tutorialStepOrder } from '@/game/tutorial/tutorial';
 import { lootConfig } from '@/content/loot/config';
 import { secretRules, type PlaceTipSource } from '@/content/secrets';
 import { objectives, type QuestBand, type QuestObjective } from '@/content/quests';
@@ -236,7 +237,7 @@ const THREAT_LEVELS: ThreatLevel[] = [1, 2, 3];
 /** Every recipe that is not a gear recipe (pickaxes, smelting, provisions). */
 const NON_GEAR_RECIPES = recipes.filter((recipe) => !forgedItem(recipe));
 const MAX_MASTERY = masteryCap(5);
-const SAMPLE_NOTIFICATIONS: Record<NotificationCategory, { title: string; body: string }> = {
+const SAMPLE_NOTIFICATIONS: Record<NotificationCategory, { title: string; body: string; data?: Record<string, string> }> = {
   expeditionFinished: {
     ...texts.finished,
     body: fill(texts.finished.body, { dungeon: 'Rat Cellar', outcome: texts.outcome.success }),
@@ -251,11 +252,14 @@ const SAMPLE_NOTIFICATIONS: Record<NotificationCategory, { title: string; body: 
   },
   heroesIdle: texts.heroesIdle,
   heroesRested: texts.heroesRested,
-  chestUnlocked: { ...texts.chestUnlocked, body: fill(texts.chestUnlocked.body, { chest: 'wooden chest' }) },
+  chestUnlocked: { ...texts.chestUnlocked, body: fill(texts.chestUnlocked.body, { chest: 'wooden chest' }), data: { route: 'chests' } },
   chestClose: { ...texts.chestClose, body: fill(texts.chestClose.body, { steps: 600, chest: 'iron chest' }) },
   dailyReset: texts.dailyReset,
   walkSummary: { ...texts.walkSummary, body: fill(texts.walkSummary.body, { distance: '2.4 km' }) },
-  questTarget: { ...texts.questTarget, title: fill(texts.questTarget.title, { place: 'Chapel' }) },
+  questReady: { ...texts.questReady, body: fill(texts.questReady.body, { objective: texts.questObjective.walk }), data: { route: 'quests' } },
+  questTarget: { ...texts.questTarget, title: fill(texts.questTarget.title, { place: 'Chapel' }), data: { route: 'quests' } },
+  nearbyPlaces: { title: fill(texts.nearbyPlace.title, { place: 'Ruins' }), body: fill(texts.nearbyPlace.body, { distance: '120 m' }) },
+  secretPlace: { ...texts.secretPlace, body: fill(texts.secretPlace.body, { place: 'Hidden den', distance: '90 m' }) },
   patrolSpotted: { ...texts.patrolSpotted, body: fill(texts.patrolSpotted.body, { patrol: 'Goblin patrol', distance: '180 m', tier: 2 }) },
   escort: { ...texts.escortPaused, body: fill(texts.escortPaused.body, { hero: 'Bram', percent: 45 }) },
 };
@@ -306,6 +310,7 @@ export default function DebugScreen() {
   const [tierRoll, setTierRoll] = useState<TierRoll>('current');
   const [around, setAround] = useState<{ position: LatLng; spawns: PatrolSpawn[] } | null>(null);
   const [escortMerged, setEscortMerged] = useState<number | null>(null);
+  const [pocketReport, setPocketReport] = useState<string | null>(null);
   const refreshBuffer = () => readBuffer().then(setBuffer, () => setBuffer(null));
   // A loop around the mock location (or the map's last position) that ends now.
   const playRoute = async (stepsCounted: boolean) => {
@@ -314,22 +319,31 @@ export default function DebugScreen() {
     setPlayback(await playBack(playbackRoute(center, Date.now(), { stepsCounted })));
     refreshBuffer();
   };
-  /** Feeds the same loop, but through the background task's patrol stepping first, escort fights and alerts included. */
+  /** Feeds the same loop through the background task first (patrols, escort, counting and notifications), then processes it as on opening. */
   const playRouteWithPatrols = async () => {
     const center = debug.mockLocation ?? useWorldStore.getState().player ?? FALLBACK_LOCATION;
     const fixes = playbackRoute(center, Date.now());
-    await stepPatrols(fixes, false);
+    const before = useGameStore.getState().save.quests.list.filter((quest) => quest.doneAt !== null).length;
+    // In batches like the task gets them, as if the app were closed: counting and notifications included.
+    const sent: Awaited<ReturnType<typeof stepPatrols>> = [];
+    for (let i = 0; i < fixes.length; i += 20) sent.push(...(await stepPatrols(fixes.slice(i, i + 20), false)));
     const merged = (await readBackground())?.pending.length ?? 0;
     setPlayback(await playBack(fixes));
     await syncBackground();
+    const after = useGameStore.getState().save.quests.list.filter((quest) => quest.doneAt !== null).length;
     setEscortMerged(merged);
+    setPocketReport(
+      `Notified: ${sent.map((n) => `${n.category} "${n.title}"`).join(' · ') || 'nothing'}\nQuests done on opening: ${after - before}`,
+    );
     refreshBuffer();
   };
   const lastWalk = game.save.autoGather.history[0] ?? null;
   const describeWalk = (walk: WalkSummary) =>
     `${Math.round((walk.endedAt - walk.startedAt) / 60_000)} min · ${walk.distanceMeters} m · ${walk.nodes} nodes · ` +
     `${walk.gained.map((g) => `${g.amount} ${g.materialId}`).join(', ') || 'nothing'} · ${walk.steps} steps${walk.stepsEstimated ? ' (estimated)' : ''}` +
-    `${walk.autoStopped ? ' · auto-stopped' : ''}\nIgnored: ${Object.entries(walk.ignored).map(([reason, count]) => `${reason} ${count}`).join(', ') || 'none'}`;
+    `${walk.autoStopped ? ' · auto-stopped' : ''}\n` +
+    `${walk.distanceMeters > 0 ? ((walk.gained.reduce((sum, g) => sum + g.amount, 0) * 1000) / walk.distanceMeters).toFixed(1) : '0'} resources/km · ` +
+    `${Object.values(walk.ignored).reduce((sum, count) => sum + count, 0)} fixes dropped (${Object.entries(walk.ignored).map(([reason, count]) => `${reason} ${count}`).join(', ') || 'none'})`;
 
   const [element, setElement] = useState<Element>('fire');
   const [gearType, setGearType] = useState<MasteryType>('sword');
@@ -472,7 +486,11 @@ export default function DebugScreen() {
       return;
     }
     const { group } = notificationCategories[category];
-    await deviceNotifications.send({ id: `debug:${category}`, category, group, at: null, ...SAMPLE_NOTIFICATIONS[category] });
+    // Place samples open the map on the player.
+    const player = debug.mockLocation ?? useWorldStore.getState().player ?? FALLBACK_LOCATION;
+    const sample = SAMPLE_NOTIFICATIONS[category];
+    const data = category === 'nearbyPlaces' || category === 'secretPlace' ? { route: 'place', latitude: player.latitude, longitude: player.longitude } : sample.data;
+    await deviceNotifications.send({ id: `debug:${category}`, category, group, at: null, ...sample, data });
   };
 
   /** Sends one of the background task's patrol alerts through the real builder, shown now whatever quiet hours say. */
@@ -562,13 +580,25 @@ export default function DebugScreen() {
         onChange={(windowMinutes) => debug.set({ windowMinutes })}
       />
 
+      <Text style={styles.title}>Tutorial and reveal</Text>
+      <Text>Step: {game.save.tutorial.step} · Tips seen: {game.save.tips.seen.length}, waiting: {game.save.tips.pending.length}</Text>
+      <Choice options={tutorialStepOrder} value={game.save.tutorial.step} label={(step) => step} onChange={game.jumpToStep} />
+      <View style={styles.row}>
+        <Button title="Restart tutorial" onPress={game.restartTutorial} />
+        <Button title="Skip tutorial" onPress={game.skipTutorial} />
+      </View>
+      <View style={styles.row}>
+        <Button title={game.save.revealAll ? 'Hide unrevealed kinds' : 'Reveal everything'} onPress={() => game.setRevealAll(!game.save.revealAll)} />
+        <Button title="Reset tips" onPress={game.resetTips} />
+      </View>
+      <Text style={styles.hint}>Jumping ahead plays the steps in between (items included); jumping back restarts first. Restarting keeps items.</Text>
+
       <Text style={styles.title}>Progression</Text>
       <Text>
-        Tutorial: {game.save.tutorial.step} · Pickaxes: {game.save.tools.length} · Bosses beaten:{' '}
+        Pickaxes: {game.save.tools.length} · Bosses beaten:{' '}
         {game.save.clearedDungeons.length}
       </Text>
       <View style={styles.row}>
-        <Button title="Skip tutorial" onPress={game.finishTutorial} />
         <Button title="Grant next pickaxe" onPress={game.grantNextPickaxe} />
         <Button title="Beat next boss" onPress={game.beatNextBoss} />
       </View>
@@ -1014,13 +1044,14 @@ export default function DebugScreen() {
       <View style={styles.row}>
         <Button title="Play 30 min loop (steps estimated)" onPress={() => playRoute(false)} />
         <Button title="Play (pedometer counted)" onPress={() => playRoute(true)} />
-        <Button title="Play back with patrols & escort" onPress={playRouteWithPatrols} />
+        <Button title="Background walk (Pocket mode on)" onPress={playRouteWithPatrols} />
       </View>
       <Text style={styles.hint}>
         Feeds a loop at walking pace, ending now, around the mock location (or where the map last saw you), then processes it as if the app came back. Fixes older than the last processed one are ignored as stale.
       </Text>
       {playback && <Text style={styles.mono}>Playback: {describeWalk(playback)}</Text>}
       {escortMerged !== null && <Text style={styles.mono}>Escort fights merged: {escortMerged}</Text>}
+      {pocketReport && <Text style={styles.mono}>{pocketReport}</Text>}
       <View style={styles.row}>
         <Button title="Read buffer" onPress={refreshBuffer} />
         <Button title="Clear buffer" onPress={() => updateBuffer((b) => ({ ...b, fixes: [], autoStopped: false })).then(setBuffer)} />

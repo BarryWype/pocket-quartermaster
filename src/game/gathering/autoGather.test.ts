@@ -49,9 +49,9 @@ const only = (spawns: Spawn[]) => () => spawns;
 const eastWalk = [fix(0, 0, 0), fix(0, 200, 150)];
 
 describe('processWalkPath', () => {
-  it('collects a node near the segment between two far-apart fixes, not one 25 m away', () => {
+  it('collects a node near the segment between two far-apart fixes, not one 35 m away', () => {
     const near = node('wood:near', at(15, 100));
-    const far = node('wood:far', at(25, 100));
+    const far = node('wood:far', at(35, 100));
     const { save, summary } = processWalkPath(player(), eastWalk, { spawnsAt: only([near, far]) });
     expect(Object.keys(save.collected)).toEqual(['wood:near']);
     expect(summary.nodes).toBe(1);

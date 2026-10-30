@@ -23,6 +23,8 @@ export const tutorialRules = {
   doneZoom: 16,
   /** The first-win roll is seeded with this, so the run and the skip give the same loot. */
   lootSeed: 'tutorial',
+  /** The first-win roll's blueprint is always this one, unless already known: the ranger favours it. */
+  blueprintRecipe: 'bow1',
 };
 
 /**

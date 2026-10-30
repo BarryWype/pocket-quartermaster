@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet } from 'react-native';
+import { usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { nextTip, tipText } from '@/game/reveal/reveal';
@@ -9,10 +10,11 @@ import { colors } from '@/theme';
 import { ISLAND_HEIGHT } from './IslandMenu';
 import { Text } from './Text';
 
-/** Over any screen: the oldest tip waiting, one at a time; a tap closes it for good (Settings → Tips keeps it). */
+/** Over the map only: the oldest tip waiting, one at a time; a tap closes it for good (Settings → Tips keeps it). */
 export function TipBar() {
   const insets = useSafeAreaInsets();
-  const tip = useGameStore((state) => nextTip(state.save));
+  const onMap = usePathname() === '/';
+  const tip = useGameStore((state) => nextTip(state.save, onMap));
   const closeTip = useGameStore((state) => state.closeTip);
   if (!tip) return null;
 

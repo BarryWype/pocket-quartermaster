@@ -2,7 +2,8 @@ import { gatheringConfig } from '@/content/gatheringConfig';
 import { rosterRules } from '@/content/roster';
 import { MASTERY_TYPES } from '@/content/forging';
 import { guildTracks } from '@/content/guild';
-import { itemById, recipeById } from '@/content/lookup';
+import { REVEAL_KINDS } from '@/content/reveal';
+import { dungeonById, itemById, recipeById } from '@/content/lookup';
 import { components } from '@/content/loot/components';
 import { tutorialRules } from '@/content/tutorial';
 
@@ -25,6 +26,7 @@ import { activateLure, isLureActive } from '../rewards/lures';
 import { chestState, openChest, recordSteps, stepChests, stepsRecorded } from '../rewards/chests';
 import { generateSanctumsAround } from '../sanctums/sanctums';
 import { hasKey } from '../secrets/keys';
+import { isPlaceRevealed, isRevealed } from '../reveal/reveal';
 import { createInitialSave, type SaveData } from '../save';
 import { generateTavernsAround } from '../taverns/taverns';
 import { currentHp, isExhausted } from '../team/health';
@@ -62,8 +64,8 @@ import {
 } from './bot';
 import { probe } from './probe';
 import { forgeComponents, restoreRelics } from './rules/forge';
-import { craftCharms, readManuals, sellValuables } from './rules/inventory';
-import { buyWeakness, openSecrets, visitPlaces } from './rules/map';
+import { craftCharms, craftCombatElixirs, craftOils, craftStatPotions, readManuals, sellMaterials, sellParts, sellValuables } from './rules/inventory';
+import { buyWeakness, blessSymbols, buyForgeMaterials, openSecrets, visitPlaces, SOURCES } from './rules/map';
 import { profiles, simConfig, type Profile, type SimConfig } from './config';
 import { targets } from './targets';
 import { PICKAXES, bonusScaled, walkYield, type WalkRates } from './walking';
@@ -80,6 +82,8 @@ export type RunOptions = {
   config?: SimConfig;
   /** Called after every session, e.g. to check the save. */
   afterSession?: (save: SaveData) => void;
+  /** Called at the end of each simulated day, after the daily row is pushed. */
+  afterDay?: (day: number, save: SaveData) => void;
 };
 
 /** Throws if the save is in a state the game should never allow. */
@@ -169,8 +173,9 @@ function findSpawn(sim: Sim, kinds: PatrolSubject[]): PatrolSpawn | null {
   return null;
 }
 
-/** The patrols and travellers the profile meets on this walk. */
+/** The patrols and travellers the profile meets on this walk, once the map shows them. */
 function meetPatrols(sim: Sim) {
+  if (!isRevealed(sim.save, 'patrols')) return;
   for (const [source, kind] of PATROL_VISITS) {
     while (takeVisit(sim, source)) {
       const spawn = findSpawn(sim, [kind]);
@@ -250,9 +255,11 @@ function helpTravellerSpawn(sim: Sim, spawn: PatrolSpawn, at: number, player: La
     log.keyFragments += reward.loot.keyFragments;
     countLoot(sim, reward.loot);
   }
+  if (reward.kind === 'recruit') sim.log.offered[reward.offer.id] = reward.offer.classId;
   if (reward.kind === 'recruit' && save.heroes.length < rosterCap(save)) {
     act(sim, 'traveller', (next) => rollDailyApproaches(acceptRecruit(next, reward.offer), sim.now));
     log.recruits.push(sim.day);
+    sim.log.recruits.push({ day: sim.day, classId: reward.offer.classId, price: 0, trait: reward.offer.trait });
     mark(sim, `recruit:${sim.save.heroes.length}`);
   }
 }
@@ -285,7 +292,11 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, steps: number, 
     meetPatrols(sim);
     visitPlaces(sim);
     sellValuables(sim);
+    sellMaterials(sim);
+    sellParts(sim);
     buyWeakness(sim);
+    buyForgeMaterials(sim);
+    blessSymbols(sim);
   }
   sim.save = applyTraining(sim.save, sim.now);
   sim.save = recordSteps(sim.save, dayKey, steps);
@@ -305,6 +316,9 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, steps: number, 
   spendPicks(sim);
   stockProvisions(sim);
   craftCharms(sim);
+  craftStatPotions(sim);
+  craftOils(sim);
+  craftCombatElixirs(sim);
   readManuals(sim);
   infuseWeapons(sim);
   openSecrets(sim);
@@ -324,6 +338,11 @@ function markHoldings(sim: Sim) {
   if (sim.save.secretTips.length) mark(sim, 'firstTip');
 }
 
+/** The day each map kind first shows (`reveal:${kind}`), checked once per session. */
+function markReveals(sim: Sim) {
+  for (const kind of REVEAL_KINDS) if (isRevealed(sim.save, kind)) mark(sim, `reveal:${kind}`);
+}
+
 /** Activities whose visits are counted per day; the others (first clears, bosses) are outcomes. */
 const OUTCOMES: LootSourceId[] = ['firstTierClear', 'tierBoss', 'stepChest'];
 
@@ -331,7 +350,7 @@ const OUTCOMES: LootSourceId[] = ['firstTierClear', 'tierBoss', 'stepChest'];
 const stepsPerDay = (profile: Profile) => stepChests[Math.max(0, Math.min(stepChests.length, Math.round(profile.visits.stepChest ?? 0)) - 1)].steps;
 
 /** Plays a profile with the bot until the tier 5 boss falls or the profile's day cap, and returns everything that happened. */
-export function runSim({ profile: name, seed, rates, maxDays, config = simConfig, afterSession }: RunOptions): RunLog {
+export function runSim({ profile: name, seed, rates, maxDays, config = simConfig, afterSession, afterDay }: RunOptions): RunLog {
   const profile = profiles[name];
   if (!profile) throw new Error(`Unknown profile ${name}`);
   const days = maxDays ?? profile.maxDays;
@@ -368,15 +387,30 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
     oddsCache: new Map(),
     launched: new Map(),
     waiting: new Set(),
+    expeditionStop: { reason: null, launched: false },
     log: emptyLog(name, seed),
   };
 
+  let probedTier = 0;
   for (let day = 0; day < days && !sim.log.finished; day++) {
     sim.day = day + 1;
     sim.bonusGathers = gatheringConfig.walkingBonus.gathers;
     const dayStart = startedAt + day * DAY;
     const dayKey = new Date(dayStart).toISOString().slice(0, 10);
     // Quests and expeditions owed carry over a day at most; place visits keep their fractions.
+    // Expeditions still owed whole are lost: the last session's stop says why.
+    if (day > 0) {
+      const leftover = Math.floor(sim.due.expeditions ?? 0);
+      if (leftover > 0) {
+        const { reason, launched } = sim.expeditionStop;
+        const why = !reason || (reason === 'noParty' && launched) ? 'noSession' : reason;
+        sim.log.notLaunched[why] = (sim.log.notLaunched[why] ?? 0) + leftover;
+      }
+    }
+    for (const { source, kind } of SOURCES) {
+      if (isPlaceRevealed(sim.save, kind)) continue;
+      sim.log.placesNotDone.hidden = (sim.log.placesNotDone.hidden ?? 0) + (visits[source] ?? 0);
+    }
     for (const [key, perDay] of Object.entries(visits)) {
       const owed = sim.due[key] ?? 0;
       sim.due[key] = (key === 'quests' || key === 'expeditions' ? owed % 1 : owed) + (perDay ?? 0);
@@ -398,7 +432,12 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
       session(sim, profile.walkHours.includes(hours[i]), hours[i] === Math.min(...profile.walkHours), steps / hours.length, dayKey);
       idle += homeHeroes(sim.save).length / sim.save.heroes.length;
       markHoldings(sim);
-      sim.log.probes.push(...probe(sim));
+      markReveals(sim);
+      const bossOut = sim.save.expeditions.some((x) => dungeonById[x.dungeonId].isBoss && dungeonById[x.dungeonId].tier === highestTier(sim.save));
+      if (bossOut || highestTier(sim.save) !== probedTier || (sim.day % config.probeEveryDays === 0 && i === hours.length - 1)) {
+        probedTier = highestTier(sim.save);
+        sim.log.probes.push(...probe(sim));
+      }
       afterSession?.(sim.save);
     });
 
@@ -422,6 +461,7 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
       valuables: { ...save.valuables },
       topLevel: [...save.heroes.map((h) => h.level)].sort((a, b) => b - a).slice(0, 3).reduce((a, b, _, all) => a + b / all.length, 0),
     });
+    afterDay?.(sim.day, sim.save);
   }
   sim.log.knownRecipes = [...sim.save.knownRecipes];
   return sim.log;

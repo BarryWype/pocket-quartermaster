@@ -122,13 +122,13 @@ describe('run penalties', () => {
   });
 
   it('poison everyone after each fight, and it shows in the results', () => {
-    // No antidote in the party: level 1 is half-missed at 2.5% of max HP per fight.
+    // No antidote in the party: level 1 is half-missed at 7.5% of max HP per fight.
     const hero = [member('a', [], { maxHp: 1000, power: 1000 })];
     const plain = simulateRun(hero, fights, 's', { rules: steady });
     const poisoned = simulateRun(hero, fights, 's', { rules: steady, briefing: threat('poison', 1) });
     expect(poisoned.encounters[0].effects).toContainEqual({ heroId: null, key: 'poison' });
-    // The same fight otherwise: exactly the poison's 2.5% of max HP extra.
-    expect(poisoned.encounters[0].taken.a - plain.encounters[0].taken.a).toBeCloseTo(25);
+    // The same fight otherwise: exactly the poison's 7.5% of max HP extra.
+    expect(poisoned.encounters[0].taken.a - plain.encounters[0].taken.a).toBeCloseTo(75);
   });
 
   it('let enemy casters wound one hero before each fight', () => {
@@ -152,8 +152,8 @@ describe('run penalties', () => {
     const dungeon = bossOnly({ hp: 100, damage: 0, tags: ['undead'] });
     const run = (briefingOf: Briefing) =>
       simulateRun([member('a', [], { maxHp: 1e6, power: 25 })], dungeon, 's', { rules: steady, briefing: briefingOf });
-    // Blessed 0 against level 1 (needs 1): half-missed, +10% HP: 5 rounds instead of 4.
-    expect(run(threat('undead', 1)).encounters[0].rounds).toBe(run(briefing()).encounters[0].rounds + 1);
+    // Blessed 0 against level 1 (needs 1): half-missed, +35% HP: 6 rounds instead of 4.
+    expect(run(threat('undead', 1)).encounters[0].rounds).toBe(run(briefing()).encounters[0].rounds + 2);
   });
 
   it('report lost loot and delay from missed threats', () => {
@@ -217,8 +217,8 @@ describe('run restrictions', () => {
       );
     const light = member('l', [], { maxHp: 1e6, power: 20 });
     const heavy = member('h', [], { heavy: true, maxHp: 1e6, power: 20 });
-    // Level 3 weakened is 0.4; the heavy wearer takes it doubled, to 0.8.
-    expect(dealt([heavy])).toBeCloseTo((dealt([light]) * (1 - 0.8)) / (1 - 0.4));
+    // Level 3 weakened is 0.32; the heavy wearer takes it doubled, to 0.64.
+    expect(dealt([heavy])).toBeCloseTo((dealt([light]) * (1 - 0.64)) / (1 - 0.32));
   });
 
   it('noHealing: halves every heal in the run', () => {

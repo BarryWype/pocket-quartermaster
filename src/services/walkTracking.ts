@@ -7,10 +7,12 @@ import { gatheringConfig } from '@/content/gatheringConfig';
 import { appendFixes, emptyBuffer, shouldAutoStop, type WalkBuffer, type WalkFix } from '@/game/gathering/autoGather';
 import { distanceMeters } from '@/game/generation/geo';
 import { deliveryTime } from '@/game/notifications/quietHours';
-import type { NotificationSettings } from '@/game/notifications/types';
+import { pocketNotifications } from '@/game/notifications/pocket';
+import type { NotificationSettings, PlannedNotification } from '@/game/notifications/types';
 import { notificationTexts } from '@/game/notifications/plan';
 import { patrolNotifications } from '@/game/notifications/patrols';
-import { backgroundStep, type BackgroundAlert, type BackgroundState } from '@/game/patrols/escort';
+import { backgroundStep, type BackgroundState } from '@/game/patrols/escort';
+import { pocketStep } from '@/game/patrols/pocketMode';
 import { fill, formatDistance, t } from '@/i18n';
 import { colors } from '@/theme';
 
@@ -66,7 +68,9 @@ export const toWalkFix = (location: Location.LocationObject, stepsCounted: boole
 
 async function readStoredBackground(): Promise<BackgroundState | null> {
   const raw = await AsyncStorage.getItem(BACKGROUND_KEY);
-  return raw ? (JSON.parse(raw) as BackgroundState) : null;
+  const state = raw ? (JSON.parse(raw) as BackgroundState | null) : null;
+  // States stored before Pocket mode's counting are dropped; the app makes a new one.
+  return state && 'pocket' in state ? state : null;
 }
 
 /** The background patrol state (null when Pocket mode is off), on the buffer's queue. */
@@ -84,33 +88,43 @@ export function updateBackground(change: (state: BackgroundState | null) => Back
   return (queue = queue.then(run, run)) as Promise<BackgroundState | null>;
 }
 
+async function readSettings(): Promise<NotificationSettings | undefined> {
+  const raw = await AsyncStorage.getItem(SETTINGS_KEY).catch(() => null);
+  return raw ? (JSON.parse(raw) as { state?: { notifications?: NotificationSettings } }).state?.notifications : undefined;
+}
+
 /**
- * Patrols, travellers and the escort along a batch of fixes: steps the stored
- * background state through them, and sends the alerts only when the app is
- * not open to show them itself.
+ * Patrols, travellers and the escort along a batch of fixes, then Pocket
+ * mode's counting and places nearby: steps the stored background state
+ * through them, and sends the alerts only when the app is not open to show
+ * them itself. Nothing here changes the save; the app folds the walk in when
+ * it opens. Returns what was sent (for the debug walk).
  */
 export async function stepPatrols(fixes: WalkFix[], appActive: boolean) {
   const kept = fixes.filter((fix) => fix.accuracy === null || fix.accuracy <= config.maxAccuracyMeters);
-  if (kept.length === 0 || !(await readBackground())) return;
-  const alerts: BackgroundAlert[] = [];
+  if (fixes.length === 0 || !(await readBackground())) return [];
+  const settings = appActive ? undefined : await readSettings().catch(() => undefined);
+  const now = Date.now();
+  const sent: PlannedNotification[] = [];
   const state = await updateBackground((current) => {
     if (!current) return current;
-    const step = backgroundStep(current, kept.map((fix) => ({ position: fix.position, timestamp: fix.timestamp })), Date.now());
-    alerts.push(...step.alerts);
-    return step.state;
+    const patrols = backgroundStep(current, kept.map((fix) => ({ position: fix.position, timestamp: fix.timestamp })), now);
+    const pocket = pocketStep(patrols.state, fixes, now);
+    const questTargets = patrols.alerts.filter((alert) => alert.kind === 'questTarget');
+    const others = patrols.alerts.filter((alert) => alert.kind !== 'questTarget');
+    if (!settings) return pocket.state;
+    sent.push(...patrolNotifications(others, pocket.state.escort?.member.name ?? null, settings, now));
+    if (!pocket.state.pocket) return pocket.state;
+    const notified = pocketNotifications([...questTargets, ...pocket.alerts], pocket.state.pocket.log, settings, now);
+    sent.push(...notified.notifications);
+    return { ...pocket.state, pocket: { ...pocket.state.pocket, log: notified.log } };
   });
-  if (appActive || !state || alerts.length === 0) return;
-  try {
-    const raw = await AsyncStorage.getItem(SETTINGS_KEY).catch(() => null);
-    const settings = raw ? (JSON.parse(raw) as { state?: { notifications?: NotificationSettings } }).state?.notifications : undefined;
-    if (!settings) return;
-    const now = Date.now();
-    for (const notification of patrolNotifications(alerts, state.escort?.member.name ?? null, settings, now)) {
-      await deviceNotifications.send(notification);
-    }
-  } catch {
+  if (!state) return [];
+  for (const notification of sent) {
     // A notification failure never breaks the task.
+    await deviceNotifications.send(notification).catch(() => {});
   }
+  return sent;
 }
 
 /** Appends fixes from the app's own location watch (auto-gather limited to the app being open). */
@@ -121,8 +135,7 @@ export const appendFixesNow = async (fixes: WalkFix[]) => {
 
 /** The walk summary notification, when the player turned it on; held for quiet hours. */
 async function notifyAutoStop(buffer: StoredBuffer) {
-  const raw = await AsyncStorage.getItem(SETTINGS_KEY).catch(() => null);
-  const settings = raw ? (JSON.parse(raw) as { state?: { notifications?: NotificationSettings } }).state?.notifications : undefined;
+  const settings = await readSettings();
   if (!settings?.enabled || !settings.categories.walkSummary) return;
   const meters = buffer.fixes.slice(1).reduce((sum, fix, i) => sum + distanceMeters(buffer.fixes[i].position, fix.position), 0);
   const now = Date.now();

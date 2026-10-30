@@ -21,7 +21,12 @@ export const ambienceConfig = {
   mist: [5, 9] as Span,
   /** In each window, a shower of `minutes` happens with this chance, at a seeded time. */
   rain: { windowMinutes: 120, chance: 0.15, minutes: 12 },
+  /** Butterflies, fireflies and plants hide below this zoom (one level out from the default 17). */
+  decorationMinZoom: 16,
 };
+
+/** Whether the map is zoomed in enough to show the butterflies, fireflies and plants. */
+export const showsDecoration = (zoom: number, config = ambienceConfig) => zoom >= config.decorationMinZoom;
 
 export const inSpan = (hour: number, [from, to]: Span) => (from <= to ? hour >= from && hour < to : hour >= from || hour < to);
 

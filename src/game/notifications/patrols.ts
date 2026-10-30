@@ -1,7 +1,6 @@
 import { frPatrolTexts } from '@/content/fr/patrols';
 import { patrolTexts } from '@/content/patrols';
-import { placeInfo } from '@/content/places';
-import { formatDistance, localized, tr } from '@/i18n';
+import { formatDistance, localized } from '@/i18n';
 
 import type { BackgroundAlert } from '../patrols/escort';
 import { isTravellerKind, patrolPositionAt } from '../patrols/generate';
@@ -26,22 +25,8 @@ export function patrolNotifications(
   const planned: PlannedNotification[] = [];
 
   for (const [index, alert] of alerts.entries()) {
-    if (alert.kind === 'questTarget') {
-      if (!settings.categories.questTarget) continue;
-      const { target } = alert;
-      const at = deliveryTime(now, 'questTarget', settings);
-      planned.push({
-        id: `quest:${alert.questId}`,
-        category: 'questTarget',
-        group: 'steps',
-        at: at > now ? at : null,
-        ...(target.kind === 'mark'
-          ? texts.questMark
-          : { title: fill(texts.questTarget.title, { place: tr(placeInfo[target.kind].name) }), body: texts.questTarget.body }),
-        data: { route: 'quests' },
-      });
-      continue;
-    }
+    // Quest targets go through Pocket mode's own notifications (pocket.ts).
+    if (alert.kind === 'questTarget') continue;
     if (alert.kind === 'patrolSpotted') {
       if (!settings.categories.patrolSpotted) continue;
       if (deliveryTime(now, 'patrolSpotted', settings) > now) continue;

@@ -76,7 +76,7 @@ describe('grade price', () => {
 });
 
 describe('offers and recruiting', () => {
-  const save: SaveData = { ...createInitialSave(), clearedDungeons: ['banditStockade'], gold: 10_000 };
+  const save: SaveData = { ...createInitialSave(), clearedDungeons: ['banditStockade'], stats: { patrolsWon: 0, questsDone: 1 }, gold: 10_000 };
 
   it('gives every offer a roll and its grade', () => {
     const offers = tavernOffers(save, 'tavern:t:0', now);

@@ -16,13 +16,18 @@ import { useWorldStore } from '@/store/worldStore';
 
 const hydrated = () => useGameStore.persist.hasHydrated() && useSettingsStore.persist.hasHydrated();
 
-/** Where a tapped notification points: the map with a patrol to focus, or Pocket mode's escort. */
+/** Where a tapped notification points: the map on a patrol or a place, the quests, the step chests, or Pocket mode's escort. */
 function openFrom(data: Record<string, unknown> | undefined) {
   if (data?.route === 'map') {
     useWorldStore.getState().set({
       focusPatrol: { id: String(data.patrolId), latitude: Number(data.latitude), longitude: Number(data.longitude) },
     });
     router.navigate('/');
+  } else if (data?.route === 'place') {
+    useWorldStore.getState().set({ focusPlace: { latitude: Number(data.latitude), longitude: Number(data.longitude) } });
+    router.navigate('/');
+  } else if (data?.route === 'chests') {
+    router.navigate('/inventory');
   } else if (data?.route === 'quests') {
     router.navigate('/quests');
   } else if (data?.route === 'pocketMode') {

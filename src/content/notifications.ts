@@ -6,6 +6,7 @@ export const notificationGroups: Record<NotificationGroup, { title: string; desc
   expeditions: { title: 'Expeditions & heroes', description: 'Expedition results, rested heroes and idle hero reminders.' },
   steps: { title: 'Steps & daily goals', description: 'Step chests, the daily reset and quest targets.' },
   patrols: { title: 'Patrols', description: 'Patrols and travellers spotted nearby, and your escort.' },
+  places: { title: 'Places nearby', description: 'Fight events, ruins, treasure and secret places close to your walk.' },
 };
 
 export const notificationCategories: Record<
@@ -66,10 +67,28 @@ export const notificationCategories: Record<
     description: 'When auto-gather stops by itself after a while without movement.',
     defaultOn: false,
   },
+  questReady: {
+    group: 'steps',
+    title: 'Quest ready',
+    description: 'When a walk or patrol quest is done while the app is closed, ready to claim.',
+    defaultOn: true,
+  },
   questTarget: {
     group: 'steps',
-    title: 'Quest target reached',
-    description: 'When you reach a quest’s target while the app is closed.',
+    title: 'Quest target near',
+    description: 'When you reach a quest’s target that needs you (pray, dig, fight…) while the app is closed.',
+    defaultOn: true,
+  },
+  nearbyPlaces: {
+    group: 'places',
+    title: 'Places nearby',
+    description: 'When a fight event, a ruin or a treasure spot is close to your walk (pick which below).',
+    defaultOn: true,
+  },
+  secretPlace: {
+    group: 'places',
+    title: 'Secret place',
+    description: 'When you pass near a tipped secret place and hold a key.',
     defaultOn: true,
   },
   patrolSpotted: {
@@ -124,4 +143,13 @@ export const notificationTexts = {
   escortKnockedOut: { title: 'Escort knocked out', body: '{hero} needs rest.' },
   questTarget: { title: 'Quest: {place} reached', body: 'Open the game to finish your quest here.' },
   questMark: { title: 'The strange mark', body: 'You found it. Open the game to see what it hides.' },
+  questTargets: { title: '{count} quest targets reached', body: 'Open the game to finish your quests there.' },
+  questReady: { title: 'Quest complete', body: 'Your {objective} quest is done. Open the game to claim it.' },
+  questsReady: { title: '{count} quests complete', body: 'Open the game to claim your rewards.' },
+  questObjective: { walk: 'walking', patrols: 'patrol' },
+  chestsUnlocked: { title: 'Step chests unlocked', body: '{chests} are ready to open.' },
+  nearbyPlace: { title: '{place} nearby', body: '{distance} from your path.' },
+  nearbyPlaces: { title: 'Places nearby', body: '{places}' },
+  treasureSpot: 'Treasure spot',
+  secretPlace: { title: 'A secret place is close', body: '{place}, {distance} away. You have a key.' },
 };

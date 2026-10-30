@@ -45,6 +45,7 @@ Loot is designed from scratch on top of the new dungeons, bosses, places, events
 - A pacing report in the simulator gives the same weekly numbers as `tools/pacing.py`, so design and code can be compared.
 - Debug: show a source's roll table with its final chances (after Luck, charms, run length); force a drop.
 - Pacing balance tests come later, skipped until balancing.
+- Gold follows one curve per tier, ×1, ×1.9, ×3, ×4.2, ×5.6 for tiers 1–5 (the enemy strength curve; `lootConfig.goldByTier`): dungeon and overnight gold, the first-win and first-clear bonuses, every source paid as a share of the tier's short dungeon (quests, step chests, treasure spots, patrols, fight events) and a duplicate secret tip. Valuable prices use the same curve.
 
 ### Gear as loot
 - Forged and looted gear both roll on a bell curve (3d6, ±6%). Mastery shifts the forge's curve upwards; looted gear is centred on average.

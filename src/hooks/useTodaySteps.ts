@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { AppState } from 'react-native';
 
 import { dayKey, stepsRecorded } from '@/game/rewards/chests';
+import { deviceLocation } from '@/services/location';
 import { devicePedometer } from '@/services/pedometer';
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
@@ -22,7 +23,9 @@ export function useStepTracking() {
     };
 
     (async () => {
-      if (!(await devicePedometer.requestPermission().catch(() => false)) || cancelled) return;
+      // On first start, location is asked first (the map needs it), then motion.
+      await deviceLocation.requestPermission().catch(() => false);
+      if (cancelled || !(await devicePedometer.requestPermission().catch(() => false)) || cancelled) return;
       await syncHistory();
       if (cancelled) return;
       stop = devicePedometer.watch((newSteps) => recordSteps(dayKey(new Date()), newSteps));

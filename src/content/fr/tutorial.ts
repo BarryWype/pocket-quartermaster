@@ -5,7 +5,7 @@ export const frTutorialHints: typeof tutorialHints = {
     map: 'Marchez jusqu’aux arbres autour de vous et touchez-les pour récolter 4 bois.',
   },
   forgeSword: {
-    default: 'Ouvrez Artisanat → Forge.',
+    default: 'Ouvrez Atelier → Forge.',
     forge: 'Forgez une épée en bois : vous connaissez déjà son plan.',
   },
   equipSword: {
@@ -22,7 +22,7 @@ export const frTutorialHints: typeof tutorialHints = {
     map: 'Un Paquetage du chasseur répond aux Bêtes. Récoltez la viande, la peau et l’os autour de vous.',
   },
   craftKit: {
-    default: 'Ouvrez Artisanat → Provisions.',
+    default: 'Ouvrez Atelier → Provisions.',
     provisions: 'Fabriquez un Paquetage du chasseur.',
   },
   equipKit: {

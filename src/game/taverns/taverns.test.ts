@@ -29,6 +29,7 @@ const now = Date.UTC(2026, 9, 26, 12);
 const unlocked = (extra: Partial<SaveData> = {}): SaveData => ({
   ...createInitialSave(),
   clearedDungeons: ['banditStockade'],
+  stats: { patrolsWon: 0, questsDone: 1 },
   gold: 1000,
   ...extra,
 });
@@ -72,10 +73,11 @@ describe('offers', () => {
     expect(common).toBeLessThan(0.7);
   });
 
-  it('come in a level below the roster average, at least level 1', () => {
-    expect(offerLevel(createInitialSave())).toBe(1);
+  it('come in at the bottom of the player tier band, whatever the roster level', () => {
+    expect(offerLevel(createInitialSave())).toBe(recruitRules.levelByTier[0]);
     const veterans = { ...createInitialSave(), heroes: createInitialSave().heroes.map((h, i) => ({ ...h, level: 4 + i })) };
-    expect(offerLevel(veterans)).toBe(4);
+    expect(offerLevel(veterans)).toBe(recruitRules.levelByTier[0]);
+    expect(offerLevel({ ...veterans, clearedDungeons: ['banditStockade'] })).toBe(recruitRules.levelByTier[1]);
   });
 
   it('cost base × level × roster × trait × tier', () => {
@@ -152,7 +154,7 @@ describe('recruit classes', () => {
 });
 
 describe('recruiting', () => {
-  it('is locked until the Bandit Stockade falls', () => {
+  it('is locked until the first quest is done', () => {
     const fresh = { ...createInitialSave(), gold: 1000 };
     expect(isTavernUnlocked(fresh)).toBe(false);
     expect(recruitProblem(fresh, firstOffer(fresh), here, here)).toBe('locked');
@@ -189,7 +191,7 @@ describe('recruiting', () => {
 
   it('drops blueprints for the newer weapon types, and meeting one starts its mastery', () => {
     const save = unlocked({ tutorial: { ...createInitialSave().tutorial, step: 'done' } });
-    const strong = equip({ ...save, gear: [{ uid: 'g', itemId: 'sword5', quality: 'legendary' }] }, 'bram', 'weapon', 'g');
+    const strong = equip({ ...save, heroes: save.heroes.map((h) => ({ ...h, level: 5 })), gear: [{ uid: 'g', itemId: 'sword5', quality: 'legendary' }] }, 'bram', 'weapon', 'g');
     const drops = (s: SaveData) =>
       Array.from({ length: 80 }, (_, i) => {
         const started = startExpedition({ ...s, nextUid: i + 10 }, 'ratCellar', ['bram'], 0);

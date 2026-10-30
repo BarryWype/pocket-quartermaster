@@ -60,7 +60,7 @@ describe('odds preview', () => {
 
   /** The same check with hurt heroes, short supply and a meal. */
   const prepared = (): SaveData => {
-    let save = team(3, 3);
+    let save = team(3, 9);
     save = setHeroHp(save, 'bram', 0.5, 0);
     save = setHeroHp(save, 'mira', 0.7, 0);
     save = { ...save, consumables: { ...save.consumables, trailMix: 1, huntersStew: N, roguesRoll: 1 } };
@@ -98,7 +98,7 @@ describe('odds preview', () => {
   });
 
   it('includes the supply status', () => {
-    const save = team(3, 3);
+    const save = team(4, 9);
     const dungeon = dungeonById.ogreQuarry;
     const briefing = composeBriefing(dungeon, DAY);
     const fed = estimateOdds(save, ALL, dungeon, 300, { briefing }).success;

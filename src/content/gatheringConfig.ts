@@ -15,10 +15,10 @@ export const gatheringConfig = {
   },
   /** Auto-gather: regular nodes collected along the path walked, phone in the pocket. */
   autoGather: {
-    /** A node is collected when the path passes this close; smaller than the tap range. */
-    radiusMeters: 20,
-    /** Fixes less accurate than this are ignored (m). */
-    maxAccuracyMeters: 25,
+    /** A node is collected when the path passes this close: the tap range. */
+    radiusMeters: 30,
+    /** Fixes less accurate than this are ignored (m); city walks rarely do better than 30 m. */
+    maxAccuracyMeters: 35,
     /** Segments faster than a run are ignored (m/s, ~15 km/h). */
     maxSpeed: 4.2,
     /** Segments longer than this are GPS jumps (m). */

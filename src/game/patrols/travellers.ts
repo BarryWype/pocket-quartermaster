@@ -1,6 +1,6 @@
 import { newHero } from '@/content/heroes';
 import { patrolRules, travellerRules, type PatrolRules } from '@/content/patrols';
-import { heroNames } from '@/content/roster';
+import { heroNames, recruitRules } from '@/content/roster';
 import { traits } from '@/content/traits';
 import { mealItems, pickSupply, supplyHeld } from '../expeditions/provisions';
 import { highestUnlockedTier } from '../expeditions/expeditions';
@@ -85,14 +85,12 @@ export function helpProblem(
   return null;
 }
 
-/** A recruit offer from a traveller: a pool class for the player's tier. */
+/** A recruit offer from a traveller: a pool class for the player's tier, at the band's bottom level. */
 function travellerRecruit(save: SaveData, spawn: PatrolSpawn): TravellerRecruit {
   const rng = createRng(`traveller-recruit|${spawn.id}`);
   const classId = pickRecruitClass(rng, highestUnlockedTier(save));
   const names = heroNames[classId];
   const positive = traits.filter((t) => t.positive);
-  const levels = [...save.heroes.map((h) => h.level)].sort((a, b) => a - b);
-  const median = levels.length % 2 ? levels[(levels.length - 1) / 2] : (levels[levels.length / 2 - 1] + levels[levels.length / 2]) / 2;
   const id = `traveller:${spawn.id}`;
   const roll = rollRecruit(id, undefined, classId);
   return {
@@ -100,7 +98,7 @@ function travellerRecruit(save: SaveData, spawn: PatrolSpawn): TravellerRecruit 
     classId,
     name: names[rng.int(0, names.length - 1)],
     trait: positive[rng.int(0, positive.length - 1)].id,
-    level: Math.max(1, Math.round(median)),
+    level: recruitRules.levelByTier[highestUnlockedTier(save) - 1],
     roll,
     grade: recruitGrade(roll),
   };

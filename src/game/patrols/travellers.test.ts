@@ -1,7 +1,9 @@
 import { heroClasses, newHero } from '@/content/heroes';
 import { patrolRules, travellerRules } from '@/content/patrols';
+import { recruitRules } from '@/content/roster';
 import { traits } from '@/content/traits';
 
+import { highestUnlockedTier } from '../dungeons/unlock';
 import { distanceMeters } from '../generation/geo';
 import { rosterCap } from '../guild/guild';
 import { emptyLoot } from '../loot/types';
@@ -138,13 +140,13 @@ describe('traveller recruits', () => {
     expect(helpTraveller(withRoster(6), wounded, here(wounded, at), at, undefined, always).reward.kind).toBe('recruit');
   });
 
-  it('offer a hero with a positive trait near the roster median, if the roster has room', () => {
+  it('offer a hero with a positive trait at the bottom of the tier band, if the roster has room', () => {
     const save = withRoster(6);
     const { reward, rosterFull } = helpTraveller(save, wounded, here(wounded, at), at, undefined, always);
     expect(rosterFull).toBe(false);
     if (reward.kind !== 'recruit') throw new Error('expected a recruit');
     expect(traits.find((t) => t.id === reward.offer.trait)!.positive).toBe(true);
-    expect(reward.offer.level).toBe(save.heroes[0].level);
+    expect(reward.offer.level).toBe(recruitRules.levelByTier[highestUnlockedTier(save) - 1]);
     const joined = acceptRecruit(save, reward.offer);
     expect(joined.heroes).toHaveLength(save.heroes.length + 1);
   });

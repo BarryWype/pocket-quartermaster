@@ -72,14 +72,14 @@ describe('traps', () => {
   it('can have their damage reduced for the whole party', () => {
     const briefing = briefingOf('traps', 2);
     const result = first([member('a', [{ kind: 'trapReduce', multiplier: 0.5 }]), member('b')], trap, 's', briefing);
-    expect(result.taken).toEqual({ a: 6, b: 6 });
+    expect(result.taken).toEqual({ a: 17.5, b: 17.5 });
     expect(result.effects).toEqual([{ heroId: 'a', key: 'trapReduce' }]);
   });
 
   it('ignore knocked-out heroes', () => {
     const briefing = briefingOf('traps', 2);
     const result = first([knockedOut(member('a')), member('b')], trap, 's', briefing);
-    expect(result.taken).toEqual({ b: 12 });
+    expect(result.taken).toEqual({ b: 35 });
   });
 });
 
@@ -180,7 +180,7 @@ describe('support and combat primitives', () => {
     const briefing = briefingOf('traps', 2);
     const run = simulateRun([member('a', [{ kind: 'partyHeal', pct: 0.1 }])], oneEncounter(trap), 's', { rules: steady, briefing });
     expect(run.encounters[0].effects).toContainEqual({ heroId: 'a', key: 'partyHeal' });
-    // The trap took 12%; the healer gives back 10% of max HP.
+    // The trap took 35%; the healer gives back 10% of max HP.
     expect(run.encounters[0].healed.a).toBeCloseTo(10);
   });
 
@@ -232,21 +232,21 @@ describe('support and combat primitives', () => {
 });
 
 describe('trait effects', () => {
-  /** Three live traps at level 3: 54% of max HP in wounds, before the boss. */
+  /** Three live traps at level 1, half-missed: 37.5% of max HP in wounds, before the boss. */
   const wounded = (): DungeonDef => ({ ...oneEncounter(trap, [trap, trap]), encounterCount: [4, 4] });
 
   it('potionThreshold: drinks earlier', () => {
     const potion = { id: 'p', name: 'potion', emoji: '', slot: 'consumable' as const, heal: 1, when: 'lowHp' as const };
-    const briefing = briefingOf('traps', 3);
+    const briefing = briefingOf('traps', 1);
     const run = (abilities: Ability[]) =>
       simulateRun([member('a', abilities, { consumable: potion })], wounded(), 's', { rules: steady, briefing });
-    // Down to 46% of max HP: below the raised threshold (65%), above the normal one (35%).
+    // Down to 62.5% of max HP: below the raised threshold (65%), above the normal one (35%).
     expect(run([{ kind: 'potionThreshold', add: 0.3 }]).consumed).toEqual(['a']);
     expect(run([]).consumed).toEqual([]);
   });
 
   it('stewBoost: Hunter’s stew heals more before the boss', () => {
-    const briefing = briefingOf('traps', 3);
+    const briefing = briefingOf('traps', 1);
     const run = (abilities: Ability[]) =>
       simulateRun([member('a', abilities)], wounded(), 's', {
         rules: steady,

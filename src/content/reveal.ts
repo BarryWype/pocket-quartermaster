@@ -42,12 +42,15 @@ export const revealRules: Record<RevealKind, RevealCondition> = {
   fightEvents: { kind: 'patrolsWon', count: 1 },
   ruins: { kind: 'questsDone', count: 1 },
   treasure: { kind: 'questsDone', count: 1 },
-  taverns: { kind: 'guildOpen' },
+  taverns: { kind: 'questsDone', count: 1 },
   guildHall: { kind: 'guildOpen' },
   rarePlaces: { kind: 'tier', tier: 2 },
   sanctums: { kind: 'tier', tier: 2 },
   secrets: { kind: 'secretTip' },
 };
+
+/** Every kind, in the order the rules table lists them. */
+export const REVEAL_KINDS: RevealKind[] = Object.keys(revealRules) as RevealKind[];
 
 /** The reveal kind each place kind belongs to. */
 export const placeRevealKinds: Record<PlaceKind, RevealKind> = {

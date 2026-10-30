@@ -67,21 +67,21 @@ describe('isRevealed', () => {
     expect(isRevealed(won, 'fightEvents')).toBe(true);
   });
 
-  it('reveals ruins and treasure once a quest has been completed', () => {
+  it('reveals ruins, treasure and taverns once a quest has been completed', () => {
     const save = opened();
     save.quests.list = [quest('q1')];
+    expect(isRevealed(save, 'taverns')).toBe(false);
     const done = complete(save, save.quests.list[0], 0);
     expect(done.stats.questsDone).toBe(1);
     expect(isRevealed(done, 'ruins')).toBe(true);
     expect(isRevealed(done, 'treasure')).toBe(true);
+    expect(isRevealed(done, 'taverns')).toBe(true);
   });
 
-  it('reveals taverns and the Guild Hall when the Guild Hall opens', () => {
+  it('reveals the Guild Hall when it opens', () => {
     const save = opened();
-    expect(isRevealed(save, 'taverns')).toBe(false);
     expect(isRevealed(save, 'guildHall')).toBe(false);
     save.clearedDungeons = [guildRules.unlockedBy];
-    expect(isRevealed(save, 'taverns')).toBe(true);
     expect(isRevealed(save, 'guildHall')).toBe(true);
   });
 
@@ -146,11 +146,22 @@ describe('tips', () => {
 
   it('closes a tip into seen and shows the oldest first', () => {
     const save = noteTips(opened(), ['ruins', 'charms']);
-    expect(nextTip(save)).toBe('ruins');
+    expect(nextTip(save, true)).toBe('ruins');
     const closed = closeTip(save, 'ruins');
-    expect(nextTip(closed)).toBe('charms');
+    expect(nextTip(closed, true)).toBe('charms');
     expect(closed.tips.seen).toEqual(['ruins']);
     expect(closeTip(closed, 'ruins').tips.seen).toEqual(['ruins']);
+  });
+
+  it('shows tips only on the map, keeping them queued elsewhere', () => {
+    const save = noteTips(opened(), ['ruins']);
+    expect(nextTip(save, false)).toBeNull();
+    expect(save.tips.pending).toEqual(['ruins']);
+    expect(nextTip(save, true)).toBe('ruins');
+    const two = noteTips(save, ['charms']);
+    expect(nextTip(two, true)).toBe('ruins');
+    const afterFirst = closeTip(two, 'ruins');
+    expect(nextTip(afterFirst, true)).toBe('charms');
   });
 });
 

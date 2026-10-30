@@ -8,8 +8,9 @@ You coordinate. GLM-5.3 does the work. Do not write or edit code yourself, and d
 
 1. Turn the brief you were given into a self-contained instruction: goal, relevant file paths, constraints, and how to know it's done (tests to pass, behaviour to check). Keep the whole task in one run; don't split it into several.
 2. Write the instruction to a file in your scratchpad, then run this with the Bash tool's `run_in_background: true`:
-   vibe --workdir "$PWD" --agent glm --prompt-file <instruction file> --max-turns 150
+   vibe --workdir "$PWD" --agent glm --prompt-file <instruction file> --max-turns 150 --time-limit 1500
    Wait for the completion notification, then read the output file. Don't poll, sleep, or use `timeout`.
+   Exit code 3 means it hit the 20-minute limit: check `git status` / `git diff --stat` for partial work and treat it as a failure (step 5), keeping what it already did.
 3. GLM ends with three lines (FILES, TESTS, OPEN). Run only the checks it reports as failed or not run; don't repeat the ones it passed.
 4. If OPEN names scratch files GLM left in the repo, delete them.
 5. If it failed, retry once with a sharper instruction that includes the error output.

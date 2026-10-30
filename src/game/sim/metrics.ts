@@ -2,11 +2,14 @@ import { dungeons } from '@/content/dungeons';
 import { heroClasses } from '@/content/heroes';
 import { items } from '@/content/items';
 import { tierMaterials } from '@/content/materials';
+import { placeFightRules } from '@/content/placeFights';
 import { placeInfo } from '@/content/places';
+import { REVEAL_KINDS, type RevealKind } from '@/content/reveal';
 
-import type { LootCategory } from '../loot/types';
+import type { LootCategory, LootSourceId } from '../loot/types';
+import { PATROL_KINDS, TRAVELLER_KINDS, type PatrolKind } from '../patrols/generate';
 import type { ProbeRow, RunLog } from './bot';
-import { expectedLevels } from './config';
+import { expectedLevels, profiles } from './config';
 import { lootPacing } from './pacing';
 import { inRange, targets as defaultTargets, type Targets } from './targets';
 
@@ -37,10 +40,13 @@ const within = (day: number, window: [number, number] | null) => !!window && day
 /** Probed odds at the tier's last probe (gear of the tier) and at its first, the launched runs' win rate, and the target. */
 export type OddsLine = { probe: Stat; start: Stat; actual: number | null; runs: number; target: [number, number] };
 
+/** One patrol or fight event kind: its probe line and the fights the bot took on. */
+export type KindOdds = { id: string; line: OddsLine; fought: number; won: number };
+
 export type TierSummary = {
   tier: number;
   days: Stat;
-  odds: { prepared: OddsLine; unprepared: OddsLine; gap: Stat; boss: OddsLine; events: OddsLine };
+  odds: { prepared: OddsLine; unprepared: OddsLine; gap: Stat; boss: OddsLine; events: OddsLine; kinds: KindOdds[] };
   gold: { income: Record<string, number>; spend: Record<string, number>; growth: Stat; incomePerDay: Stat; surplus: boolean };
   material: { id: string; gathered: Stat; spent: Stat; share: Stat };
   level: { end: Stat; target: number };
@@ -52,15 +58,27 @@ export type ProfileSummary = {
   finished: number;
   totalDays: Stat;
   tiers: TierSummary[];
+  /** The day each map kind first showed, median over seeds; no target. */
+  reveals: Record<RevealKind, Stat>;
   /** Regular profile only: designed vs observed weekly drops. */
   loot: { category: LootCategory; column: string; designed: number; observed: number; off: number }[];
   health: {
     pileUps: { id: string; final: number }[];
-    dead: { items: string[]; recipes: string[]; classes: string[]; places: string[]; dungeons: string[] };
+    dead: { items: string[]; recipes: string[]; places: string[]; dungeons: string[] };
+    /** Classes the profile never saw, saw but never recruited, and recruited but never fielded. */
+    classes: { neverOffered: string[]; offeredNeverRecruited: string[]; recruitedNeverFielded: string[] };
+    /** Per class, over all seeds: offers seen, heroes recruited, party slots fielded. */
+    classCounts: Record<string, { offered: number; recruited: number; fielded: number }>;
     classSpread: Record<string, number>;
     milestones: Record<string, Stat>;
     skipped: Record<string, number>;
   };
+  /** The profile's planned visits per day next to the median over seeds of visits done per day. */
+  visits: { activity: string; planned: number; done: Stat }[];
+  /** Expeditions still owed at a day's start, per day median over seeds, by why the last session stopped. */
+  notLaunched: Record<string, Stat>;
+  /** Owed place visits that couldn't happen, per day median over seeds, by reason. */
+  placesNotDone: Record<string, Stat>;
 };
 
 /** What `npm run sim` writes to doc/design/simulator/summary.json, and the balance band tests read. */
@@ -80,16 +98,19 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
   const days = stat(logs.map((log, i) => (log.milestones[`boss:${tier}`] !== undefined && windows[i] ? windows[i]![1] - windows[i]![0] + 1 : null)));
 
   /** The mean of one probe snapshot (the tier's first or last) in each game, over seeds. */
-  const snapshot = (kinds: string[], value: (p: ProbeRow) => number | null, last: boolean) =>
+  const snapshot = (match: (p: ProbeRow) => boolean, value: (p: ProbeRow) => number | null, last: boolean) =>
     stat(
       logs.map((log) => {
-        const rows = log.probes.filter((p) => p.tier === tier && kinds.includes(p.kind));
+        const rows = log.probes.filter((p) => p.tier === tier && match(p));
         if (!rows.length) return null;
         const at = last ? Math.max(...rows.map((p) => p.at)) : Math.min(...rows.map((p) => p.at));
         return mean(rows.filter((p) => p.at === at).map(value).filter((v): v is number => v !== null));
       }),
     );
-  const line = (kinds: string[], value: (p: ProbeRow) => number | null) => ({ probe: snapshot(kinds, value, true), start: snapshot(kinds, value, false) });
+  const line = (match: (p: ProbeRow) => boolean, value: (p: ProbeRow) => number | null) => ({
+    probe: snapshot(match, value, true),
+    start: snapshot(match, value, false),
+  });
   const rate = (rows: { won: boolean }[]) => (rows.length ? rows.filter((r) => r.won).length / rows.length : null);
   const normalRuns = logs.flatMap((log) => log.expeditions.filter((e) => e.tier === tier && !e.boss && !e.overnight).map((e) => ({ won: e.success })));
   const bossRuns = logs.flatMap((log) => log.expeditions.filter((e) => e.tier === tier && e.boss).map((e) => ({ won: e.success })));
@@ -97,7 +118,27 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
     ...log.places.filter((p) => p.tier === tier && p.won !== null && p.kind !== 'thievesGuild').map((p) => ({ won: !!p.won })),
     ...log.patrols.fights.filter((f) => f.tier === tier).map((f) => ({ won: f.won })),
   ]);
-  const gap = snapshot(['normal'], (p) => (p.unprepared === null ? null : p.prepared - p.unprepared), true);
+  const gap = snapshot((p) => p.kind === 'normal', (p) => (p.unprepared === null ? null : p.prepared - p.unprepared), true);
+
+  // Each patrol and fight event kind's own probe line and fight record.
+  const kinds: KindOdds[] = ([...PATROL_KINDS, ...(Object.keys(placeFightRules.kinds) as (keyof typeof placeFightRules.kinds)[])] as string[]).map(
+    (id) => {
+      const patrol = (PATROL_KINDS as string[]).includes(id);
+      const fought = logs.flatMap((log) =>
+        patrol
+          ? log.patrols.fights.filter((f) => f.tier === tier && f.kind === (id as PatrolKind)).map((f) => ({ won: f.won }))
+          : log.places
+              .filter((p) => p.tier === tier && p.kind === id && p.won !== null)
+              .map((p) => ({ won: !!p.won })),
+      );
+      return {
+        id,
+        line: { ...line((p) => p.kind === (patrol ? 'patrol' : 'event') && p.id === id, (p) => p.prepared), actual: rate(fought), runs: fought.length, target: t.odds.events },
+        fought: fought.length,
+        won: fought.filter((f) => f.won).length,
+      };
+    },
+  );
 
   const income = medianTotals(logs.map((log, i) => sumBy(log.goldIn.filter((g) => within(g.day, windows[i])), (g) => g.source, (g) => g.amount)));
   const spend = medianTotals(logs.map((log, i) => sumBy(log.goldOut.filter((g) => within(g.day, windows[i])), (g) => g.sink, (g) => g.amount)));
@@ -126,11 +167,17 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
     tier,
     days,
     odds: {
-      prepared: { ...line(['normal'], (p) => p.prepared), actual: rate(normalRuns), runs: normalRuns.length, target: t.odds.prepared },
-      unprepared: { ...line(['normal'], (p) => p.unprepared), actual: null, runs: 0, target: t.odds.unprepared },
+      prepared: { ...line((p) => p.kind === 'normal', (p) => p.prepared), actual: rate(normalRuns), runs: normalRuns.length, target: t.odds.prepared },
+      unprepared: { ...line((p) => p.kind === 'normal', (p) => p.unprepared), actual: null, runs: 0, target: t.odds.unprepared },
       gap,
-      boss: { ...line(['boss'], (p) => p.prepared), actual: rate(bossRuns), runs: bossRuns.length, target: t.odds.boss },
-      events: { ...line(['event', 'patrol'], (p) => p.prepared), actual: rate(eventRuns), runs: eventRuns.length, target: t.odds.events },
+      boss: { ...line((p) => p.kind === 'boss', (p) => p.prepared), actual: rate(bossRuns), runs: bossRuns.length, target: t.odds.boss },
+      events: {
+        ...line((p) => p.kind === 'event' || p.kind === 'patrol', (p) => p.prepared),
+        actual: rate(eventRuns),
+        runs: eventRuns.length,
+        target: t.odds.events,
+      },
+      kinds,
     },
     gold: { income, spend, growth, incomePerDay, surplus },
     material: { id, gathered, spent, share },
@@ -182,26 +229,86 @@ export function summarize(logs: RunLog[], t: Targets = defaultTargets): ProfileS
   const spread = sumBy(fielded, (c) => c, () => 1);
   const keys = ['componentFound', 'componentForged', 'relicFound', 'relicRestored', 'firstKey', 'firstTip', 'secretPlace', 'charmCrafted'];
 
+  // Classes by how far the profile got with them: offered (tavern, traveller, secret place), recruited, fielded.
+  const allClasses = Object.keys(heroClasses);
+  const offeredList = logs.flatMap((log) => Object.values(log.offered));
+  const recruitedList = logs.flatMap((log) => log.recruits.map((r) => r.classId));
+  const offered = new Set(offeredList);
+  const recruited = new Set(recruitedList);
+  const fieldedSet = new Set(fielded);
+  const count = (list: string[], c: string) => list.filter((x) => x === c).length;
+  const classCounts = Object.fromEntries(
+    allClasses.map((c) => [c, { offered: count(offeredList, c), recruited: count(recruitedList, c), fielded: spread[c] ?? 0 }]),
+  );
+  const classes = {
+    neverOffered: allClasses.filter((c) => !offered.has(c)),
+    offeredNeverRecruited: allClasses.filter((c) => offered.has(c) && !recruited.has(c)),
+    recruitedNeverFielded: allClasses.filter((c) => recruited.has(c) && !fieldedSet.has(c)),
+  };
+
+  // Each activity's planned visits per day against what the bot actually did.
+  const placeSources: LootSourceId[] = [
+    'banditCamp',
+    'goblinRaid',
+    'beastDen',
+    'hauntedCrypt',
+    'elementalRift',
+    'abandonedCaravan',
+    'wantedOutlaw',
+    'monsterLair',
+    'ruinsDig',
+    'heist',
+    'fishingDock',
+  ];
+  const perDay = (log: RunLog, done: (log: RunLog) => number) => (log.days > 0 ? done(log) / log.days : null);
+  const visits = (
+    [
+      ['expeditions', (v) => (v.dungeonRun ?? 0) + (v.firstWin ?? 0) + (v.overnightExpedition ?? 0), (log) => log.expeditions.length],
+      [
+        'quests',
+        (v) => (v.questShort ?? 0) + (v.questMedium ?? 0) + (v.questLong ?? 0),
+        (log) => log.quests.claimed.short + log.quests.claimed.medium + log.quests.claimed.long,
+      ],
+      [
+        'patrols',
+        (v) => (v.patrolGoblins ?? 0) + (v.patrolHerd ?? 0) + (v.patrolBandits ?? 0),
+        (log) => log.patrols.seen.filter((s) => (PATROL_KINDS as string[]).includes(s.kind)).length,
+      ],
+      ['travellers', (v) => v.traveller ?? 0, (log) => log.patrols.seen.filter((s) => (TRAVELLER_KINDS as string[]).includes(s.kind)).length],
+      ['places', (v) => placeSources.reduce((sum, s) => sum + (v[s] ?? 0), 0), (log) => log.places.filter((p) => placeSources.includes(p.kind as LootSourceId)).length],
+    ] as [string, (v: (typeof profiles)[string]['visits']) => number, (log: RunLog) => number][]
+  ).map(([activity, planned, done]) => ({ activity, planned: planned(profiles[profile].visits), done: stat(logs.map((log) => perDay(log, done))) }));
+
+  const byReason = (keys: string[], total: (log: RunLog, key: string) => number) =>
+    Object.fromEntries(keys.map((key) => [key, stat(logs.map((log) => perDay(log, (l) => total(l, key))))]));
+  const notLaunched = byReason(['noParty', 'hp', 'odds', 'noSession'], (log, key) => log.notLaunched[key] ?? 0);
+  const placesNotDone = byReason(['nothing', 'odds', 'noParty', 'hidden'], (log, key) => log.placesNotDone[key] ?? 0);
+
   return {
     profile,
     seeds: logs.length,
     finished: logs.filter((l) => l.finished).length,
     totalDays: stat(logs.map((l) => (l.finished ? l.days : null))),
     tiers,
+    reveals: Object.fromEntries(REVEAL_KINDS.map((kind) => [kind, stat(logs.map((l) => l.milestones[`reveal:${kind}`]))])) as Record<RevealKind, Stat>,
     loot,
     health: {
       pileUps: pileList,
       dead: {
         items: consumables.filter((id) => !carried.has(id) && !crafted.has(id)),
         recipes: [...new Set(logs.flatMap((l) => l.knownRecipes))].filter((id) => !crafted.has(id)),
-        classes: Object.keys(heroClasses).filter((c) => !(c in spread)),
         places: Object.keys(placeInfo).filter((k) => !visited.has(k)),
         dungeons: dungeons.filter((d) => !picked.has(d.id)).map((d) => d.id),
       },
+      classes,
+      classCounts,
       classSpread: Object.fromEntries(Object.entries(spread).map(([c, n]) => [c, n / Math.max(1, fielded.length)])),
       milestones: Object.fromEntries(keys.map((k) => [k, stat(logs.map((l) => l.milestones[k]))])),
       skipped: medianTotals(logs.map((l) => l.skipped)),
     },
+    visits,
+    notLaunched,
+    placesNotDone,
   };
 }
 

@@ -4,7 +4,7 @@ import { Alert, AppState, Linking, ScrollView, StyleSheet, Switch, View } from '
 
 import { useAutoGatherToggle, WalkStats } from '@/components/AutoGather';
 import { Button } from '@/components/Button';
-import { AlertForPicker, PocketOptionRow, PocketOptionsHint } from '@/components/PocketModePanel';
+import { AlertForPicker, POCKET_CATEGORIES, PocketNotificationRows, PocketOptionRow, PocketOptionsHint } from '@/components/PocketModePanel';
 import { SectionTitle } from '@/components/Row';
 import { Text } from '@/components/Text';
 import { frNotificationCategories, frNotificationGroups } from '@/content/fr/notifications';
@@ -151,6 +151,7 @@ export default function SettingsScreen() {
       <AlertForPicker />
       <PocketOptionRow option="escort" />
       <PocketOptionsHint />
+      <PocketNotificationRows />
       <View style={styles.languages}>
         <Button title={t('autoGather.info')} color={colors.muted} onPress={autoToggle.showInfo} />
         {autoToggle.enabled && autoToggle.mode === 'limited' && <Button title={t('autoGather.openSettings')} onPress={() => Linking.openSettings()} />}
@@ -200,12 +201,16 @@ export default function SettingsScreen() {
         onChange={(enabled) => updateNotifications({ enabled })}
       />
 
-      {groups.map((group) => (
-        <View key={group} style={styles.section}>
-          <SectionTitle>{groupTexts[group].title}</SectionTitle>
-          {categories
-            .filter((category) => notificationCategories[category].group === group && category !== AUTO_GATHER_CATEGORY)
-            .map((category) => (
+      {groups.map((group) => {
+        // Pocket mode's own kinds are switched in its section above.
+        const shown = categories.filter(
+          (category) => notificationCategories[category].group === group && category !== AUTO_GATHER_CATEGORY && !POCKET_CATEGORIES.includes(category),
+        );
+        if (shown.length === 0) return null;
+        return (
+          <View key={group} style={styles.section}>
+            <SectionTitle>{groupTexts[group].title}</SectionTitle>
+            {shown.map((category) => (
               <SwitchRow
                 key={category}
                 title={categoryTexts[category].title}
@@ -215,8 +220,9 @@ export default function SettingsScreen() {
                 onChange={(on) => setCategory(category, on)}
               />
             ))}
-        </View>
-      ))}
+          </View>
+        );
+      })}
 
       <View style={styles.section}>
         <SectionTitle>{t('settings.quietHours')}</SectionTitle>

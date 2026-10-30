@@ -15,8 +15,8 @@ export const recruitRules = {
   newClassWeight: 2,
   /** Chance an offer has a positive trait rather than a negative one. */
   positiveTraitChance: 0.6,
-  /** Offers are this many levels below the roster's average level (at least level 1). */
-  levelsBelowAverage: 1,
+  /** The level recruits join at, by highest unlocked tier: the bottom of the tier's band. */
+  levelByTier: [1, 4, 7, 10, 13] as number[],
   price: {
     /** Higher than the old 80/180: the forge fee's removal left more gold for recruits. */
     base: { common: 100, uncommon: 220, rare: 600 } satisfies Record<ClassRarity, number>,

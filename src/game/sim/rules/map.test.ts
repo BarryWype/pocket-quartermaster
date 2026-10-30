@@ -4,14 +4,14 @@ import { dailyRotation, rotationDay } from '../../dungeons/rotation';
 import { offsetPosition } from '../../generation/geo';
 import { createRng } from '../../generation/rng';
 import type { LatLng } from '../../generation/types';
-import type { PlaceSpawn } from '../../places/generate';
+import { placesWithin, type PlaceSpawn } from '../../places/generate';
 import { createInitialSave, type SaveData } from '../../save';
 import type { HeroClassId } from '../../types';
 import { generateTavernsAround } from '../../taverns/taverns';
 import { emptyLog, type Sim } from '../bot';
 import { profiles, simConfig } from '../config';
 import type { WalkRates } from '../walking';
-import { nearestSpawn, openSecrets, visitPlaces } from './map';
+import { blessSymbols, buyForgeMaterials, nearestSpawn, openSecrets, visitPlaces } from './map';
 
 const DAY = 86_400_000;
 const LOCATION = simConfig.location;
@@ -40,6 +40,7 @@ const makeSim = (save: SaveData = createInitialSave(), now = simConfig.startDay)
   oddsCache: new Map(),
   launched: new Map(),
   waiting: new Set(),
+  expeditionStop: { reason: null, launched: false },
   log: makeLog(),
 });
 
@@ -86,6 +87,8 @@ describe('map rules', () => {
     const save: SaveData = {
       ...createInitialSave(),
       gold: 10_000,
+      // A tipped den only shows once the tutorial is done and the tip marked it.
+      tutorial: { step: 'done', spawns: [], lastPickupAt: null, rewarded: true },
       keyFragments: 4,
       secretTips: [{ id: 'hiddenDen|test', secret: 'hiddenDen', source: 'quest', sourceId: 'q', anchor, foundAt: now - 1, expiresAt: now + DAY, position: anchor }],
     };
@@ -96,5 +99,48 @@ describe('map rules', () => {
     expect(sim.save.keyFragments).toBe(0);
     expect(sim.save.heroes.some((h) => heroClasses[h.classId].rarity === 'rare')).toBe(true);
     expect(heroClasses[sim.log.recruits[0].classId as HeroClassId].rarity).toBe('rare');
+  });
+
+  it('blesses held holy symbols at a chapel within 1.5 km', () => {
+    const now = simConfig.startDay;
+    const chapel = placesWithin(LOCATION, 2000, now).find((p) => p.kind === 'chapel');
+    expect(chapel).toBeDefined();
+    const sim = makeSim(
+      {
+        ...createInitialSave(),
+        tutorial: { step: 'done', spawns: [], lastPickupAt: null, rewarded: true },
+        consumables: { ...createInitialSave().consumables, holyRelics: 2 },
+      },
+      now,
+    );
+    sim.location = chapel!.position;
+    blessSymbols(sim);
+    expect(sim.save.consumables.holyRelics).toBe(0);
+    expect(sim.save.consumables.blessedRelics).toBe(2);
+    expect(sim.log.places).toEqual([{ day: 1, kind: 'chapel', tier: 1, odds: null, won: null }]);
+  });
+
+  it('buys the material a wanted forge is short of at the nearest place stocking it', () => {
+    const now = simConfig.startDay;
+    const sawmill = placesWithin(LOCATION, 2000, now).find((p) => p.kind === 'sawmill');
+    expect(sawmill).toBeDefined();
+    const save: SaveData = {
+      ...createInitialSave(),
+      tutorial: { step: 'done', spawns: [], lastPickupAt: null, rewarded: true },
+      tools: [],
+      knownRecipes: [...createInitialSave().knownRecipes, 'woodPickaxe'],
+      materials: { wood: 0 },
+      gold: 10,
+    };
+    const sim = makeSim(save, now);
+    sim.location = sawmill!.position;
+    buyForgeMaterials(sim);
+    expect(sim.save.materials.wood).toBe(2);
+    expect(sim.save.gold).toBe(8);
+    const broke = makeSim({ ...save, gold: 1 }, now);
+    broke.location = sawmill!.position;
+    buyForgeMaterials(broke);
+    expect(broke.save.materials.wood).toBe(0);
+    expect(broke.save.gold).toBe(1);
   });
 });

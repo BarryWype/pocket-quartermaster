@@ -41,14 +41,14 @@ import { walkableRules } from '@/content/walkable';
 import { highestUnlockedTier } from '@/game/expeditions/expeditions';
 import { freshGathersLeft, isFleeing, pickaxeTier, showsOnMap, type CollectFailure } from '@/game/gathering/gathering';
 import { readSpawn, requiredPickaxeTier } from '@/game/gathering/lockedNodes';
-import { ambienceConfig, inSpan } from '@/game/generation/ambience';
+import { ambienceConfig, inSpan, showsDecoration } from '@/game/generation/ambience';
 import { distanceMeters } from '@/game/generation/geo';
 import { generateSpawnsAround } from '@/game/generation/spawns';
 import type { LatLng, Spawn, SpawnConfig } from '@/game/generation/types';
 import { visibleSpawns } from '@/game/generation/visibility';
 import { patrolRulesAt, trackedRange, trackWindows, walkEffectAt, walkEffectSpawns } from '@/game/gathering/walkEffects';
 import { isPatrolKind, isTravellerKind, patrolPositionAt, patrolTier, patrolsAround, pruneByWindow, type PatrolSpawn } from '@/game/patrols/generate';
-import { pocketTracking } from '@/game/patrols/pocketMode';
+import { pocketModeAvailable, pocketTracking } from '@/game/patrols/pocketMode';
 import { activeLairs, isFightPlace } from '@/game/places/fights';
 import { isLockedMine, isPlaceVisible, placeGroupOf, placesAround, showsForPlayer, type PlaceSpawn } from '@/game/places/generate';
 import { ruinReplacements } from '@/game/places/ruins';
@@ -147,6 +147,7 @@ export default function MapScreen() {
   const skyPan = useSkyPan();
   const foliage = useFoliage(mapRef, inSpan(ambience.hour, ambienceConfig.smoke));
   const [following, setFollowing] = useState(true);
+  const [decor, setDecor] = useState(true);
   const [now, setNow] = useState(Date.now());
   const [message, setMessage] = useState<string | null>(null);
   const autoMode = useWorldStore((state) => state.autoGather);
@@ -279,6 +280,7 @@ export default function MapScreen() {
   // Other screens (the launch dialog) can sell emergency supply while a tavern is in reach.
   const nearbyTavern = tavernsInSight.find((t) => position !== null && distanceMeters(position, t.position) <= tavernRules.interactionMeters) ?? null;
   const setWorld = useWorldStore((state) => state.set);
+  const focusPlace = useWorldStore((state) => state.focusPlace);
   useEffect(() => {
     setWorld({ player: position, nearbyTavern });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -361,8 +363,8 @@ export default function MapScreen() {
   }, [visiblePatrols, patrolsSeen, now, setWorld]);
 
   useEffect(() => {
-    if (position && following) cameraRef.current?.easeTo({ center: toLngLat(position), duration: 500 });
-  }, [position?.latitude, position?.longitude, following]);
+    if (position && following && !focusPlace) cameraRef.current?.easeTo({ center: toLngLat(position), duration: 500 });
+  }, [position?.latitude, position?.longitude, following, focusPlace]);
 
   // The tutorial's own nodes, spawned once per gathering step on walkable ground around the player
   // (without location, they have no spot and only "Collect from here" reaches them).
@@ -414,6 +416,10 @@ export default function MapScreen() {
     // Nothing to select there any more: stop holding the camera there.
     if (!focusedPatrol) setWorld({ focusPatrol: null });
   }, [focusPatrol, position, focusedPatrol, setWorld]);
+  // A tapped place stays in view until the player re-centres or drags the map.
+  useEffect(() => {
+    if (focusPlace) cameraRef.current?.easeTo({ center: toLngLat(focusPlace), duration: 500 });
+  }, [focusPlace]);
   const closePatrol = () => {
     setOpenPatrol(null);
     setWorld({ focusPatrol: null });
@@ -470,7 +476,7 @@ export default function MapScreen() {
         ]
       : []),
   ];
-  const showPill = save.tutorial.step === 'done';
+  const showPill = pocketModeAvailable(save);
 
   // The tutorial's nodes on the map, the nearest one pointed at.
   const tutorialNodes = shownTutorialSpawns(save).flatMap((node) => (node.position ? [{ ...node, position: node.position }] : []));
@@ -517,13 +523,18 @@ export default function MapScreen() {
         touchPitch={false}
         logo={false}
         attributionPosition={{ top: insets.top + 8, left: 8 }}
-        onRegionIsChanging={(event) => skyPan.update(event.nativeEvent.center, event.nativeEvent.zoom)}
+        onRegionIsChanging={(event) => {
+          skyPan.update(event.nativeEvent.center, event.nativeEvent.zoom);
+          setDecor(showsDecoration(event.nativeEvent.zoom));
+        }}
         onRegionDidChange={(event) => {
           skyPan.update(event.nativeEvent.center, event.nativeEvent.zoom);
+          setDecor(showsDecoration(event.nativeEvent.zoom));
           foliage.refresh();
           const { userInteraction, center } = event.nativeEvent;
           const away = distanceMeters(position, { longitude: center[0], latitude: center[1] }) > FOLLOW_SLACK_METERS;
           if (userInteraction && away) setFollowing(false);
+          if (userInteraction) setWorld({ focusPlace: null });
         }}
         onPress={(event) => {
           if (debugOn && player.mocked) {
@@ -646,7 +657,7 @@ export default function MapScreen() {
           <Text style={styles.player}>🧙</Text>
         </Marker>
       </Map>
-      <MapSky pan={skyPan} hour={ambience.hour} raining={ambience.raining} />
+      <MapSky pan={skyPan} hour={ambience.hour} raining={ambience.raining} decor={decor} />
       {player.mocked && (
         <Text style={[styles.banner, { top: insets.top + 48 }]}>{t('map.mockBanner')}</Text>
       )}
@@ -666,11 +677,12 @@ export default function MapScreen() {
       >
         <Text style={styles.buttonEmoji}>⚙️</Text>
       </Pressable>
-      {!following && (
+      {(!following || focusPlace) && (
         <Pressable
           accessibilityLabel={t('map.recentre')}
           onPress={() => {
             setFollowing(true);
+            setWorld({ focusPlace: null });
             cameraRef.current?.easeTo({ center: toLngLat(position), duration: 500 });
           }}
           style={[styles.roundButton, styles.recentreButton, { bottom: insets.bottom + ISLAND_HEIGHT + 12 }]}

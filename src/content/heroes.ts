@@ -4,7 +4,7 @@ import type { HeroClassDef, HeroClassId, HeroState, StatKey } from '@/game/types
 // (every level) and milestone steps for the rest (levels 5, 10, 15). Gear
 // still provides most of their power; a class's favoured types (see
 // content/equipment.ts) give 1.2× their scaling stats.
-// Max level is 15: level 15 lands on the tier 5 boss under the XP curve below.
+// Max level is 15: the top of the tier 5 level band.
 export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   warrior: {
     name: 'Warrior',
@@ -425,12 +425,16 @@ export const startingHeroes: HeroState[] = [
 
 export const xpRules = {
   /** XP to go from level L to L + 1: round(base × L^exponent). */
-  base: 25,
+  base: 75,
   exponent: 1.65,
-  /** No XP past this level; the curve lands it on the tier 5 boss. */
+  /** No XP past this level; the top of the tier 5 band. */
   maxLevel: 15,
   /** Share of XP from dungeons 0, 1, and 2 or more tiers below the highest unlocked tier. */
   lowerTierShare: [1, 0.5, 0.25],
+  /** Levels past the band's top still earned at full share; the soft cap starts above them. */
+  aboveBandMargin: 1,
+  /** A hero at or above the top of the player's tier band plus `aboveBandMargin` gets this share of XP. */
+  aboveBandShare: 0.25,
 };
 
 /** XP needed to go from `level` to `level + 1`. */

@@ -1,4 +1,4 @@
-import { ambienceConfig, inSpan, rainingAt, tintAt } from './ambience';
+import { ambienceConfig, inSpan, rainingAt, showsDecoration, tintAt } from './ambience';
 
 describe('ambience', () => {
   it('washes the map blue at night, warm at dusk, and not at all at noon', () => {
@@ -25,5 +25,16 @@ describe('ambience', () => {
     expect(rainyMinutes).toBeGreaterThan(expected * 0.7);
     expect(rainyMinutes).toBeLessThan(expected * 1.3);
     expect(rainingAt(start + 1234567)).toBe(rainingAt(start + 1234567));
+  });
+
+  it('shows the decoration from one level below the default zoom up', () => {
+    expect(showsDecoration(17)).toBe(true);
+    expect(showsDecoration(16)).toBe(true);
+    expect(showsDecoration(15.99)).toBe(false);
+  });
+
+  it('respects a custom decoration threshold', () => {
+    expect(showsDecoration(15, { ...ambienceConfig, decorationMinZoom: 15 })).toBe(true);
+    expect(showsDecoration(14.99, { ...ambienceConfig, decorationMinZoom: 15 })).toBe(false);
   });
 });

@@ -2,6 +2,7 @@ import { dungeons } from '@/content/dungeons';
 import { xpRules, xpToNextLevel } from '@/content/heroes';
 import { MATERIAL_TIERS } from '@/content/items';
 import { dungeonById, monsterPartById, recipeById } from '@/content/lookup';
+import { tutorialRules } from '@/content/tutorial';
 
 import { rotationDay } from '../dungeons/rotation';
 import { forgedItem } from '../crafting/crafting';
@@ -52,6 +53,9 @@ function geared(): SaveData {
   return equip(save, 'bram', 'consumable', 'healingPotion');
 }
 
+/** The same save with every gear id's tier digit replaced. */
+const atTier = (save: SaveData, tier: number): SaveData => ({ ...save, gear: save.gear.map((g) => ({ ...g, itemId: g.itemId.replace(/\d$/, String(tier)) })) });
+
 /** Runs the same expedition with many seeds; resolution is deterministic per seed. */
 function outcomes(save: SaveData, dungeonId: string, runs = 200) {
   return Array.from({ length: runs }, (_, i) => {
@@ -72,7 +76,8 @@ describe('dungeon tiers', () => {
       for (const s of short) for (const l of long) expect(s.encounterCount[0]).toBeLessThan(l.encounterCount[0]);
       for (const l of long) {
         expect(l.encounterCount[0]).toBeLessThan(boss.encounterCount[0]);
-        expect(boss.boss.hp).toBeGreaterThan(l.boss.hp);
+        // The elder dragon is eased below its lair's strength (see dragonLairBoss in content/enemies.ts).
+        if (tier < 5) expect(boss.boss.hp).toBeGreaterThan(l.boss.hp);
       }
     }
   });
@@ -158,7 +163,7 @@ describe('resolveExpedition', () => {
     // Rat Cellar counts as the tier's clear and the day's first win, so only the run's own XP shows.
     const save = {
       ...geared(),
-      heroes: geared().heroes.map((h) => ({ ...h, level: 3 })),
+      heroes: geared().heroes.map((h) => ({ ...h, level: 4 })),
       clearedDungeons: ['ratCellar'],
       firstWinDay: rotationDay(dungeon.durationMinutes * MIN),
     };
@@ -353,13 +358,20 @@ describe('tutorial expedition', () => {
     expect(report.firstWin).toBe(true);
     expect(save.firstWinDay).toBe(rotationDay(5000));
     expect(report.loot).toEqual(tutorialLoot(before, 5000));
-    expect(report.loot.recipeIds).toHaveLength(1);
-    const [blueprint] = report.loot.recipeIds;
-    expect(before.knownRecipes).not.toContain(blueprint);
-    expect(blueprint).toMatch(/1$/);
+    expect(report.loot.recipeIds).toEqual([tutorialRules.blueprintRecipe]);
+    expect(before.knownRecipes).not.toContain(tutorialRules.blueprintRecipe);
+    expect(save.knownRecipes).toContain(tutorialRules.blueprintRecipe);
     expect(save.knownRecipes.filter((id) => forgedItem(recipeById[id])?.tier === 1)).toHaveLength(3);
     expect(report.sigil).toBeUndefined();
     expect(save.sigils).toEqual([]);
+  });
+
+  it('drops the tier 1 bow blueprint only when it is not known yet', () => {
+    const knows = { ...tutorialSave(), knownRecipes: [...tutorialSave().knownRecipes, tutorialRules.blueprintRecipe] };
+    const loot = tutorialLoot(knows, 5000);
+    expect(loot.recipeIds).toHaveLength(1);
+    expect(loot.recipeIds).not.toContain(tutorialRules.blueprintRecipe);
+    expect(knows.knownRecipes).not.toContain(loot.recipeIds[0]);
   });
 
   it('only applies to the tutorial expedition', () => {
@@ -392,7 +404,7 @@ describe('first win of the day', () => {
     const started = startExpedition({ ...save, nextUid: 100 + i }, dungeonId, ALL, endsAt - dungeon.durationMinutes * MIN);
     return resolveExpedition(started, started.expeditions[0]);
   };
-  const strong = () => ({ ...geared(), heroes: geared().heroes.map((h) => ({ ...h, level: 15 })) });
+  const strong = () => ({ ...atTier(geared(), 2), heroes: geared().heroes.map((h) => ({ ...h, level: 15 })) });
   const day = Date.UTC(2026, 10, 2, 12);
 
   it('is rolled once per rotation day, for dungeons and tier bosses alike', () => {
@@ -448,7 +460,13 @@ describe('first tier clear', () => {
   });
 
   it('is paid again for the next tier', () => {
-    const save: SaveData = { ...strong(), clearedDungeons: ['banditStockade'] };
+    // That day's Wolf Den has Beasts 2: a Hunter's pack on Lyra answers it.
+    const base: SaveData = {
+      ...atTier(strong(), 2),
+      clearedDungeons: ['banditStockade'],
+      consumables: { ...strong().consumables, huntersPack: 1 },
+    };
+    const save = equip(base, 'lyra', 'consumable', 'huntersPack');
     const result = win(save, 'wolfDen');
     expect(result.report.success).toBe(true);
     expect(result.report.firstTierClear).toBe(true);

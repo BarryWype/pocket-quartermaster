@@ -8,7 +8,7 @@ describe('training manuals', () => {
     // A common manual at tier 1: 60 XP, a hero from level 1 can take all of it.
     expect(manualXp({ level: 1, xp: 0 }, 'common', 1)).toBe(60);
     // Part-way through level 2: the cap is the XP still needed to reach level 3.
-    expect(manualXp({ level: 2, xp: 25 }, 'common', 1)).toBe(xpToNextLevel(2) - 25);
+    expect(manualXp({ level: 2, xp: 200 }, 'common', 1)).toBe(xpToNextLevel(2) - 200);
   });
 
   it('caps at the top of the tier band', () => {
