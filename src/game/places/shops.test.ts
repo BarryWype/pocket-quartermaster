@@ -1,7 +1,7 @@
 import { itemById, recipeById } from '@/content/lookup';
 import { materialPrices, shopRules } from '@/content/shops';
 
-import { isKnown } from '../crafting/crafting';
+import { forgedItem, isKnown } from '../crafting/crafting';
 import { createInitialSave, type SaveData } from '../save';
 import type { GearDef, GearInstance } from '../types';
 import type { LatLng } from '../generation/types';
@@ -75,6 +75,19 @@ describe('placeStock', () => {
     expect(recipeLines.length).toBeLessThanOrEqual(1);
     for (const line of recipeLines) {
       expect(isKnown(save, recipeById[line.id])).toBe(false);
+    }
+  });
+
+  it('never offers a known blueprint at the smithy or the library, whatever the place', () => {
+    const tier1 = Object.values(recipeById).filter((r) => forgedItem(r)?.tier === 1);
+    const unknown = tier1.find((r) => r.id === 'axe1')!;
+    const save = withGold(1000, { knownRecipes: [...createInitialSave().knownRecipes, ...tier1.filter((r) => r !== unknown).map((r) => r.id)] });
+    for (let i = 0; i < 40; i++) {
+      for (const kind of ['smithy', 'library'] as const) {
+        for (const line of placeStock(save, spawnOf(kind, `${i}:1`)).filter((l) => l.kind === 'recipe')) {
+          expect(isKnown(save, recipeById[line.id])).toBe(false);
+        }
+      }
     }
   });
 });

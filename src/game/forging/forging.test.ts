@@ -81,12 +81,10 @@ describe('mastery gain', () => {
   it('starts a type first met through a later blueprint at the previous tier cap', () => {
     expect(startingMastery(1)).toEqual({ level: 1, progress: 0 });
     expect(startingMastery(3)).toEqual({ level: 6, progress: 0 });
-    const { wand, ...others } = createInitialSave().mastery;
-    expect(wand).toBeDefined();
-    const save: SaveData = { ...createInitialSave(), mastery: others };
-    expect(unlockRecipe(save, 'wand3').mastery.wand).toEqual({ level: 6, progress: 0 });
+    expect(createInitialSave().mastery.wand).toBeUndefined();
+    expect(unlockRecipe(createInitialSave(), 'wand3').mastery.wand).toEqual({ level: 6, progress: 0 });
     // Known types keep their level.
-    expect(unlockRecipe(createInitialSave(), 'wand3').mastery.wand).toEqual({ level: 1, progress: 0 });
+    expect(unlockRecipe(createInitialSave(), 'sword3').mastery.sword).toEqual({ level: 1, progress: 0 });
   });
 
   it('takes the configured number of forges to max each tier', () => {
@@ -140,7 +138,7 @@ describe('forging quality', () => {
     const before = save;
     save = craft(save, recipeById.sword1);
     expect(save.mastery.sword).toEqual({ level: 2, progress: 0 });
-    expect(save.mastery.bow).toEqual({ level: 1, progress: 0 });
+    expect(save.mastery.mail).toEqual({ level: 1, progress: 0 });
     expect(forgeResult(before, save)).toMatchObject({ type: 'sword', levelUp: true, mastery: { level: 2 } });
   });
 

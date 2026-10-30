@@ -23,7 +23,7 @@ export const frTutorialHints: typeof tutorialHints = {
   },
   readReport: {
     default: 'Vos héros sont de retour ! Ouvrez Quêtes pour lire leur rapport.',
-    expeditions: 'Leur rapport est dans l’onglet Rapports : ce qui s’est passé, le butin et l’XP gagnée.',
+    expeditions: 'Leur rapport est dans l’onglet Rapports : ce qui s’est passé, le butin et l’XP gagnée. Les donjons sont la source des nouveaux plans : la première victoire de chaque jour en rapporte toujours un.',
   },
   findSanctum: {
     default: 'Explorez la carte pour trouver un Sanctuaire où utiliser votre Sceau.',

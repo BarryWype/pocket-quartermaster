@@ -364,8 +364,9 @@ export function resolveExpedition(
 
   // A win rolls its row of the loot matrix, plus the day's first win (dungeons
   // and tier bosses, never quests) and a new tier's first clear on top. A
-  // loss keeps its share of gold and XP and rolls nothing.
-  const firstWin = success && !tutorialReward && !dungeon.overnight && save.firstWinDay !== rotationDay(expedition.endsAt);
+  // loss keeps its share of gold and XP and rolls nothing. The tutorial run
+  // pays its fixed reward and counts as the day's first win.
+  const firstWin = success && !dungeon.overnight && save.firstWinDay !== rotationDay(expedition.endsAt);
   const firstTierClear =
     success && !tutorialReward && !save.clearedDungeons.some((id) => dungeonById[id]?.tier === dungeon.tier);
   const context = lootContextOf(save);
@@ -389,12 +390,8 @@ export function resolveExpedition(
   });
   let loot: Loot;
   if (tutorialReward) {
-    loot = {
-      ...emptyLoot(),
-      gold: tutorialReward.gold,
-      xp: Math.round(xp * mealXp),
-      recipeIds: save.knownRecipes.includes(tutorialReward.recipeId) ? [] : [tutorialReward.recipeId],
-    };
+    loot = { ...emptyLoot(), gold: tutorialReward.gold, xp: Math.round(xp * mealXp) };
+    if (firstWin) loot = mergeLoot(loot, roll('firstWin', bonus('firstWin')));
   } else if (success) {
     loot = roll(dungeon.isBoss ? 'tierBoss' : dungeon.overnight ? 'overnightQuest' : 'dungeonRun', { gold: baseGold, xp: Math.round(xp * mealXp) });
     if (firstWin) loot = mergeLoot(loot, roll('firstWin', bonus('firstWin')));

@@ -107,7 +107,7 @@ describe('expedition notifications', () => {
     expect(notification.body).toContain('boss defeated');
     const tutorial: SaveData = { ...createInitialSave(), tutorial: { step: 'sendExpedition', woodSpot: null } };
     const first = startExpedition(tutorial, 'ratCellar', ['bram'], now);
-    expect(planNotifications(first, settings(), now)[0].body).toContain('new blueprint (Hide armour)');
+    expect(planNotifications(first, settings(), now)[0].body).toMatch(/new blueprint \(.+\)/);
   });
 
   it('respects the expedition categories', () => {

@@ -4,6 +4,7 @@ import { MATERIAL_TIERS } from '@/content/items';
 import { dungeonById, recipeById } from '@/content/lookup';
 
 import { rotationDay } from '../dungeons/rotation';
+import { forgedItem } from '../crafting/crafting';
 import { createInitialSave, type SaveData } from '../save';
 import { healAll } from '../team/health';
 import { equip } from '../team/team';
@@ -329,15 +330,30 @@ describe('tutorial expedition', () => {
     }
   });
 
-  it('pays a little gold, the leather armour blueprint and a tier 1 Sigil', () => {
-    const started = startExpedition(tutorialSave(), 'ratCellar', ALL, 0);
+  it('starts a new game with two tier 1 blueprints: a weapon and an armour', () => {
+    const gear = createInitialSave()
+      .knownRecipes.map((id) => forgedItem(recipeById[id]))
+      .filter((item) => item !== null);
+    expect(gear.map((item) => [item.tier, item.slot])).toEqual([
+      [1, 'weapon'],
+      [1, 'armor'],
+    ]);
+  });
+
+  it('pays a little gold, the first win of the day with a third blueprint, and a tier 1 Sigil', () => {
+    const before = tutorialSave();
+    const started = startExpedition(before, 'ratCellar', ALL, 0);
     const { save, report } = resolveExpedition(started, started.expeditions[0]);
-    expect(report.gold).toBe(10);
-    expect(report.loot.recipeIds).toEqual(['leather1']);
-    expect(report.loot.materials).toEqual([]);
+    expect(report.firstWin).toBe(true);
+    expect(save.firstWinDay).toBe(rotationDay(5000));
+    expect(report.gold).toBeGreaterThanOrEqual(10);
+    expect(report.loot.recipeIds).toHaveLength(1);
+    const [blueprint] = report.loot.recipeIds;
+    expect(before.knownRecipes).not.toContain(blueprint);
+    expect(blueprint).toMatch(/1$/);
+    expect(save.knownRecipes.filter((id) => forgedItem(recipeById[id])?.tier === 1)).toHaveLength(3);
     expect(report.sigil).toBe(1);
     expect(save.sigils).toEqual([1]);
-    expect(save.knownRecipes).toContain('leather1');
     // The first Bandit Stockade win still guarantees its own Sigil.
     expect(save.firstSigilGiven).toBe(false);
   });

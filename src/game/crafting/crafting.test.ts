@@ -29,9 +29,9 @@ describe('content', () => {
     }
   });
 
-  it('starts with the tier 1 core kit at the forge', () => {
+  it('starts with a tier 1 sword and mail at the forge', () => {
     const known = createInitialSave().knownRecipes.filter((id) => recipeById[id].station === 'forge');
-    expect(known).toEqual(['sword1', 'bow1', 'quiver1', 'wand1', 'mail1', 'shield1']);
+    expect(known).toEqual(['sword1', 'mail1']);
   });
 
   it('makes every forge recipe reachable through the starting kit, pickaxes or loot matrix blueprints', () => {
@@ -58,14 +58,11 @@ describe('crafting', () => {
     expect(canCraft(withMaterials({ wood: 3 }), recipeById.sword1)).toBe(false);
   });
 
-  it('crafts a pickaxe once and has it teach the next tier of every gear type', () => {
+  it('crafts a pickaxe once, teaching no blueprints', () => {
     const save = craft(withMaterials({ wood: 5 }, { knownRecipes: ['woodPickaxe'] }), recipeById.woodPickaxe);
     expect(save.tools).toEqual(['woodPickaxe']);
     expect(save.materials).toEqual({ wood: 3 });
-    expect(save.knownRecipes).toContain('sword2');
-    expect(save.knownRecipes).toContain('mail2');
-    expect(save.knownRecipes).toContain('focus2');
-    expect(save.knownRecipes).not.toContain('sword3');
+    expect(save.knownRecipes).toEqual(['woodPickaxe']);
     expect(ownsTool(save, recipeById.woodPickaxe)).toBe(true);
     expect(canCraft(save, recipeById.woodPickaxe)).toBe(false);
   });
@@ -104,7 +101,7 @@ describe('crafting', () => {
 
   it('teaches smelting with the iron pickaxe', () => {
     const save = craft(withMaterials({ iron: 3, wood: 2 }, { knownRecipes: ['ironPickaxe'] }), recipeById.ironPickaxe);
-    expect(save.knownRecipes).toEqual(expect.arrayContaining(['smeltSteel', 'sword5']));
+    expect(save.knownRecipes).toEqual(['ironPickaxe', 'smeltSteel']);
   });
 
   it('brews consumables into a stack', () => {
@@ -251,7 +248,7 @@ describe('debug recipe tools', () => {
   it('forgets only the asked recipe', () => {
     const save = forgetRecipe(createInitialSave(), 'sword1');
     expect(save.knownRecipes).not.toContain('sword1');
-    expect(save.knownRecipes).toContain('bow1');
+    expect(save.knownRecipes).toContain('mail1');
     expect(isKnown(save, recipeById.sword1)).toBe(false);
     expect(forgetRecipe(save, 'sword1').knownRecipes).toEqual(save.knownRecipes);
   });

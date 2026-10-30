@@ -1,7 +1,6 @@
 import type { MaterialStack, RecipeDef } from '@/game/types';
 
 import { gearId, gearRecipes } from './equipment';
-import { tierRecipes } from '@/game/crafting/recipeUnlocks';
 
 /** Provisions recipes: [item id, tab, inputs, known from the start (default yes), known from tier]. */
 function provisionRecipes(
@@ -18,9 +17,10 @@ function provisionRecipes(
   }));
 }
 
-// Progression: the tier 1 starting set (see crafting/recipeUnlocks.ts) is known
-// from the start; the tutorial forges the wooden sword. Each tier boss drops a
-// pickaxe that mines the next tier's material and teaches that tier's recipes.
+// Progression: the two starting blueprints (see crafting/recipeUnlocks.ts) are
+// known from the start; the tutorial forges the wooden sword. Other gear
+// blueprints drop as loot. Each tier boss drops a pickaxe that mines the next
+// tier's material.
 export const recipes: RecipeDef[] = [
   // The wooden pickaxe is the tier 1 boss reward and opens tier 2.
   {
@@ -29,7 +29,6 @@ export const recipes: RecipeDef[] = [
     output: { itemId: 'woodPickaxe' },
     inputs: [{ materialId: 'wood', amount: 2 }],
     unlockedByDefault: false,
-    unlocks: tierRecipes(2),
   },
   {
     id: 'stonePickaxe',
@@ -37,7 +36,6 @@ export const recipes: RecipeDef[] = [
     output: { itemId: 'stonePickaxe' },
     inputs: [{ materialId: 'stone', amount: 3 }, { materialId: 'wood', amount: 2 }],
     unlockedByDefault: false,
-    unlocks: tierRecipes(3),
   },
   {
     id: 'copperPickaxe',
@@ -45,7 +43,6 @@ export const recipes: RecipeDef[] = [
     output: { itemId: 'copperPickaxe' },
     inputs: [{ materialId: 'copper', amount: 3 }, { materialId: 'wood', amount: 2 }],
     unlockedByDefault: false,
-    unlocks: tierRecipes(4),
   },
   {
     // The iron pickaxe is the tier 4 boss reward: it mines coal and teaches steel smelting.
@@ -54,7 +51,7 @@ export const recipes: RecipeDef[] = [
     output: { itemId: 'ironPickaxe' },
     inputs: [{ materialId: 'iron', amount: 3 }, { materialId: 'wood', amount: 2 }],
     unlockedByDefault: false,
-    unlocks: ['smeltSteel', ...tierRecipes(5)],
+    unlocks: ['smeltSteel'],
   },
   {
     id: 'steelPickaxe',

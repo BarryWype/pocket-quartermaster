@@ -4,13 +4,13 @@ import type { MenuTarget, TutorialScreen } from '@/game/tutorial/tutorial';
 export const tutorialRules = {
   /**
    * The first expedition: only this dungeon can be picked, it shows its real
-   * odds, but it always succeeds, takes a few seconds and pays fixed rewards.
+   * odds, but it always succeeds, takes a few seconds and pays fixed rewards, plus
+   * the first win of the day (a new blueprint among them).
    */
   firstExpedition: {
     dungeonId: 'ratCellar',
     seconds: 5,
     gold: 10,
-    recipeId: 'leather1',
     /** A lucky Sigil, so the player meets Sanctums early. It doesn't count as the Bandit Stockade's guaranteed one. */
     sigilTier: 1,
   },
@@ -43,7 +43,7 @@ export const tutorialHints: Record<TutorialStep, Partial<Record<TutorialScreen |
   },
   readReport: {
     default: 'Your heroes are back! Open Quests to read their report.',
-    expeditions: 'Their report is in the Reports tab: what happened, the loot and the XP earned.',
+    expeditions: 'Their report is in the Reports tab: what happened, the loot and the XP earned. Dungeons are where new blueprints come from: the first win of each day always brings one.',
   },
   findSanctum: {
     default: 'Explore the map for a Sanctum to use your Sigil.',

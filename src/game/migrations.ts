@@ -6,7 +6,7 @@ import { provisionRules } from '@/content/provisions';
 import { xpRules, xpToNextLevel } from '@/content/heroes';
 
 import { forgedItem } from './crafting/crafting';
-import { legacyRecipeId, startingRecipes, tierRecipes } from './crafting/recipeUnlocks';
+import { legacyRecipeId, tierRecipes } from './crafting/recipeUnlocks';
 import { masteryTypeOf, startingMastery } from './forging/mastery';
 import { shardId, type Element } from './elements';
 import { emptyLoot, type Loot } from './loot/types';
@@ -193,6 +193,9 @@ export function migrateV15Save(old: Partial<SaveData>): SaveData {
 /** Old mastery keys → their new gear types. */
 const MASTERY_RENAMES: Record<string, MasteryType> = { instrument: 'lute', armour: 'mail' };
 
+/** The tier 1 kit every save knew when v16 was current. */
+const LEGACY_STARTING_RECIPES = ['sword1', 'bow1', 'quiver1', 'wand1', 'mail1', 'shield1'];
+
 /**
  * Version 16 → 17: the equipment rework. Every owned or equipped piece keeps
  * its quality, roll and infusion under the new type-and-tier ids
@@ -233,7 +236,7 @@ export function migrateV16Save(old: Partial<SaveData>): SaveData {
         if (tool?.slot !== 'tool') return [];
         return tool.tier === 4 ? ['smeltSteel', ...tierRecipes(5)] : tierRecipes(tool.tier + 1);
       }),
-      ...startingRecipes,
+      ...LEGACY_STARTING_RECIPES,
     ]),
   ];
 
