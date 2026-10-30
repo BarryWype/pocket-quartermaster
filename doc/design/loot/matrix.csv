@@ -1,6 +1,6 @@
 Source,Visits per day (regular player),Gold,XP,Materials,Shards,Blueprints,Gear,Trinkets,Components,Relics,Monster parts,Valuables,Consumables,Treasure maps,Manuals,Key fragments,Notes
 Dungeon run,6,A,A,—,—,R,S,R/2,—,—,O,S,S,R,R,R/2,Launched from the phone: no materials
-"Dungeon, first win of the day",1,A,A,—,R,A,S,S,—,—,O,S,S,R,S,R,One blueprint per dungeon per day
+"Dungeon, first win of the day",1,A,A,—,R,A,S,S,—,—,O,S,S,R,S,R,The first won dungeon of the day (one per day in total)
 First clear of a new tier,0.03,A,A,—,—,A,A,—,—,—,O,S,S,—,S,A,Gear at least Uncommon
 Tier boss,0.2,A,A,—,R,R,O,S,S,R,A,O,S,S,S,R,Components are the boss's own; Legendary gear possible
 Overnight quest,1,A,A,—,—,R,S,R,—,—,O,O,S,S,R,—,
