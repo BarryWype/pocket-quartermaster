@@ -7,12 +7,13 @@ import { Text } from '@/components/Text';
 import { elementInfo } from '@/content/elements';
 import { MASTERY_TYPES, masteryTypeNames, QUALITIES, qualities } from '@/content/forging';
 import { gearId, gearProfiles } from '@/content/equipment';
+import { trinketId, trinketKinds } from '@/content/trinkets';
 import { dungeons } from '@/content/dungeons';
 import { guildTrackById, guildTracks, type GuildTrackId } from '@/content/guild';
 import { gamblerRules, heroClasses, xpRules } from '@/content/heroes';
 import { traits } from '@/content/traits';
 import { items } from '@/content/items';
-import { itemById, threatById, restrictionById, opportunityById, recipeById, recipeOutput } from '@/content/lookup';
+import { itemById, threatById, restrictionById, opportunityById, recipeById, recipeOutput, valuableById } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
 import { dungeonThreats, opportunityDefs, restrictionDefs, surges, threatDefs } from '@/content/threats';
 import { notificationCategories, notificationTexts as texts } from '@/content/notifications';
@@ -167,6 +168,13 @@ function LootDebug() {
           <Button key={valuable.id} title={valuable.emoji} onPress={() => grant({ valuables: [{ valuableId: valuable.id, tier, amount: 1 }] })} />
         ))}
       </View>
+      <Text>Collector today at every market</Text>
+      <Choice
+        options={valuables.map((valuable) => valuable.id)}
+        value={game.save.collectorOverride?.valuableId ?? ''}
+        label={(id) => `${valuableById[id].emoji} ${valuableById[id].name}`}
+        onChange={game.setCollector}
+      />
       <Choice
         options={relics.filter((relic) => relic.tier === tier).map((relic) => relic.id)}
         value=""
@@ -278,6 +286,7 @@ export default function DebugScreen() {
   const [gearType, setGearType] = useState<MasteryType>('sword');
   const [gearTier, setGearTier] = useState(1);
   const [gearQuality, setGearQuality] = useState<Quality>('normal');
+  const [trinketKind, setTrinketKind] = useState(trinketKinds[0].kind);
   const [gearElement, setGearElement] = useState<Element | null>(null);
   const [recipeType, setRecipeType] = useState<MasteryType>('sword');
   const [recipeTier, setRecipeTier] = useState(1);
@@ -557,6 +566,14 @@ export default function DebugScreen() {
         <Button title="Add gear" onPress={() => game.addGear(gearId(gearType, gearTier), gearQuality, gearElement)} />
         <Button title={t('debug.grantCharm')} onPress={() => game.addGear('testCharm', 'normal', null)} />
       </View>
+      <Text>Trinket (tier and quality above)</Text>
+      <Choice
+        options={trinketKinds.map((kind) => kind.kind)}
+        value={trinketKind}
+        label={(kind) => `${trinketKinds.find((k) => k.kind === kind)!.emoji} ${trinketKinds.find((k) => k.kind === kind)!.name}`}
+        onChange={setTrinketKind}
+      />
+      <Button title="Add trinket" onPress={() => game.addGear(trinketId(trinketKind, gearTier), gearQuality, null)} />
 
       <Text>{t('debug.recipes')}</Text>
       <Choice
