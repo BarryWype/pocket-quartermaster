@@ -82,6 +82,8 @@ export type RunOptions = {
   config?: SimConfig;
   /** Called after every session, e.g. to check the save. */
   afterSession?: (save: SaveData) => void;
+  /** Called at the end of each simulated day, after the daily row is pushed. */
+  afterDay?: (day: number, save: SaveData) => void;
 };
 
 /** Throws if the save is in a state the game should never allow. */
@@ -339,7 +341,7 @@ const OUTCOMES: LootSourceId[] = ['firstTierClear', 'tierBoss', 'stepChest'];
 const stepsPerDay = (profile: Profile) => stepChests[Math.max(0, Math.min(stepChests.length, Math.round(profile.visits.stepChest ?? 0)) - 1)].steps;
 
 /** Plays a profile with the bot until the tier 5 boss falls or the profile's day cap, and returns everything that happened. */
-export function runSim({ profile: name, seed, rates, maxDays, config = simConfig, afterSession }: RunOptions): RunLog {
+export function runSim({ profile: name, seed, rates, maxDays, config = simConfig, afterSession, afterDay }: RunOptions): RunLog {
   const profile = profiles[name];
   if (!profile) throw new Error(`Unknown profile ${name}`);
   const days = maxDays ?? profile.maxDays;
@@ -436,6 +438,7 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
       valuables: { ...save.valuables },
       topLevel: [...save.heroes.map((h) => h.level)].sort((a, b) => b - a).slice(0, 3).reduce((a, b, _, all) => a + b / all.length, 0),
     });
+    afterDay?.(sim.day, sim.save);
   }
   sim.log.knownRecipes = [...sim.save.knownRecipes];
   return sim.log;
