@@ -288,7 +288,6 @@ export const fr: Dictionary = {
   },
   chests: {
     title: 'Coffres de pas du jour · {steps} pas aujourd’hui',
-    steps: '{steps} pas',
     opened: 'Ouvert',
     open: 'Ouvrir',
     reward: 'Contenu du coffre : {reward}',

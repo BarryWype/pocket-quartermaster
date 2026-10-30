@@ -282,7 +282,6 @@ export const en = {
   },
   chests: {
     title: 'Daily step chests · {steps} steps today',
-    steps: '{steps} steps',
     opened: 'Opened',
     open: 'Open',
     reward: 'Chest reward: {reward}',
