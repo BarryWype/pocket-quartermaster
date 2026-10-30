@@ -89,6 +89,26 @@ export type TutorialCollectResult =
   | { ok: false; reason: 'tooFar' | 'collected'; distance: number };
 
 /**
+ * Whether the "Collect from here" fallback button shows: the current step has
+ * a node to pick up and nothing was, for a minute, since the last spawn or
+ * pickup — or the player has no location at all.
+ */
+export function fallbackReady(save: SaveData, now: number, locationOff: boolean): boolean {
+  const spawns = stepSpawns(save);
+  if (spawns.length === 0) return false;
+  if (locationOff) return true;
+  const since = Math.max(save.tutorial.lastPickupAt ?? 0, ...spawns.map((s) => s.spawnedAt));
+  return now - since >= tutorialRules.fallbackSeconds * 1000;
+}
+
+/** The fallback: picks up the current step's first node, wherever the player is. */
+export function collectFromHere(save: SaveData, now: number): TutorialCollectResult {
+  const spawn = stepSpawns(save)[0];
+  if (!spawn) return { ok: false, reason: 'collected', distance: Infinity };
+  return collectTutorialSpawn(save, spawn.id, null, now, { anywhere: true });
+}
+
+/**
  * Picks up one of the current step's nodes: the player must stand within the
  * gathering radius unless `anywhere` (the "Collect from here" fallback). Adds
  * the node's material, then moves the tutorial on.

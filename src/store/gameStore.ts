@@ -55,7 +55,8 @@ import { buyRank } from '@/game/guild/guild';
 import { applyTraining } from '@/game/guild/training';
 import { guildRules, type GuildTrackId } from '@/content/guild';
 import { advanceTutorial, finishTutorial, nextTutorialStep } from '@/game/tutorial/tutorial';
-import { collectTutorialSpawn, placeTutorialSpawns, type TutorialCollectResult } from '@/game/tutorial/spawns';
+import { collectFromHere, collectTutorialSpawn, placeTutorialSpawns, type TutorialCollectResult } from '@/game/tutorial/spawns';
+import { skipTutorial } from '@/game/tutorial/skip';
 import { pruneExpired, rollDailyApproaches } from '@/game/upkeep';
 import { questRules, type QuestBand, type QuestObjective } from '@/content/quests';
 import { placeRules, type PlaceKind } from '@/content/places';
@@ -199,6 +200,10 @@ type GameState = {
   placeTutorialSpawns: (player: LatLng | null, tile: WalkableTile | null | undefined) => void;
   /** Picks up a tutorial node; `anywhere` is the "Collect from here" fallback. */
   collectTutorialSpawn: (id: string, player: LatLng | null, anywhere?: boolean) => TutorialCollectResult;
+  /** The walking fallback: collects the current step's first node, wherever the player is. */
+  collectFromHere: () => TutorialCollectResult;
+  /** Skips the tutorial from the current step, giving everything playing it out would have. */
+  skipTutorial: () => void;
   /** Points the tutorial's first quest at the nearest revealed place. */
   targetFirstQuest: (candidates: PlaceSpawn[], player: LatLng) => void;
   challengeSanctum: (spawn: SanctumSpawn, tier: number, heroIds: string[], player: LatLng) => SanctumResult;
@@ -524,6 +529,12 @@ export const useGameStore = create<GameState>()(
         if (result.ok) set({ save: result.save });
         return result;
       },
+      collectFromHere: () => {
+        const result = collectFromHere(get().save, Date.now());
+        if (result.ok) set({ save: result.save });
+        return result;
+      },
+      skipTutorial: () => set(({ save }) => ({ save: skipTutorial(save, Date.now()) })),
       targetFirstQuest: (candidates, player) => {
         const next = targetFirstQuest(get().save, candidates, player, Date.now());
         if (next !== get().save) set({ save: next });

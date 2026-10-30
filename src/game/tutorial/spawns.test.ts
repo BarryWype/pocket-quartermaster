@@ -3,7 +3,7 @@ import { walkableRules } from '@/content/walkable';
 import { distanceMeters, offsetPosition } from '../generation/geo';
 import { snapToWalkable, type WalkableTile } from '../generation/walkable';
 import { createInitialSave, type SaveData } from '../save';
-import { collectTutorialSpawn, placeTutorialSpawns, shownTutorialSpawns } from './spawns';
+import { collectFromHere, collectTutorialSpawn, fallbackReady, placeTutorialSpawns, shownTutorialSpawns } from './spawns';
 
 const player = { latitude: -41.2865, longitude: 174.7762 };
 const now = 1_000_000;
@@ -102,5 +102,45 @@ describe('collecting a tutorial spawn', () => {
     expect(save.materials.wood).toBe(4);
     expect(save.tutorial.step).toBe('forgeSword');
     expect(shownTutorialSpawns(save)).toEqual([]);
+  });
+});
+
+describe('the walking fallback', () => {
+  const placed = () => placeTutorialSpawns(createInitialSave(), player, null, now);
+
+  it('shows a minute after a spawn, and waits a minute again after each pickup', () => {
+    const save = placed();
+    expect(fallbackReady(save, now + 59_999, false)).toBe(false);
+    expect(fallbackReady(save, now + 60_000, false)).toBe(true);
+    const picked = collectFromHere(save, now + 60_000);
+    if (!picked.ok) throw new Error(picked.reason);
+    expect(fallbackReady(picked.save, now + 119_999, false)).toBe(false);
+    expect(fallbackReady(picked.save, now + 120_000, false)).toBe(true);
+  });
+
+  it('shows at once while location is off, never once the step is over', () => {
+    const save = placed();
+    expect(fallbackReady(save, now, true)).toBe(true);
+    let done = save;
+    for (let i = 0; i < save.tutorial.spawns.length; i++) {
+      const picked = collectFromHere(done, now + i);
+      if (!picked.ok) throw new Error(picked.reason);
+      done = picked.save;
+    }
+    expect(done.tutorial.step).toBe('forgeSword');
+    expect(fallbackReady(done, now + 120_000, true)).toBe(false);
+    expect(fallbackReady(done, now + 120_000, false)).toBe(false);
+  });
+
+  it('collects one node per call, and the phase finishes after as many calls as nodes', () => {
+    let save = placed();
+    for (let i = 0; i < save.tutorial.spawns.length; i++) {
+      const picked = collectFromHere(save, now + i);
+      if (!picked.ok) throw new Error(picked.reason);
+      save = picked.save;
+    }
+    expect(save.materials.wood).toBe(4);
+    expect(save.tutorial.step).toBe('forgeSword');
+    expect(collectFromHere(save, now)).toMatchObject({ ok: false, reason: 'collected', distance: Infinity });
   });
 });

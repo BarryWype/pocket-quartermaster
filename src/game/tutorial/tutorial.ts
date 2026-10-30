@@ -21,7 +21,7 @@ const woodForFirstRecipe = () =>
 const warrior = (save: SaveData) => save.heroes.find((h) => h.classId === 'warrior');
 
 /** A Hunter's pack held in the stock or carried by any hero. */
-const kitHeld = (save: SaveData) =>
+export const kitHeld = (save: SaveData) =>
   (save.consumables[tutorialRules.kitRecipe] ?? 0) > 0 ||
   save.heroes.some((h) => h.equipment.consumable === tutorialRules.kitRecipe);
 
@@ -76,7 +76,8 @@ function isComplete(save: SaveData, step: TutorialStep): boolean {
   }
 }
 
-const ORDER: TutorialStep[] = [
+/** The tutorial's steps, in the order they play. */
+export const tutorialStepOrder: TutorialStep[] = [
   'gatherWood',
   'forgeSword',
   'equipSword',
@@ -93,7 +94,7 @@ const ORDER: TutorialStep[] = [
 /** Moves past every step whose goal is already met. */
 export function advanceTutorial(save: SaveData): SaveData {
   let step = save.tutorial.step;
-  while (isComplete(save, step)) step = ORDER[ORDER.indexOf(step) + 1];
+  while (isComplete(save, step)) step = tutorialStepOrder[tutorialStepOrder.indexOf(step) + 1];
   return step === save.tutorial.step ? save : { ...save, tutorial: { ...save.tutorial, step } };
 }
 
@@ -108,7 +109,7 @@ export function isClosableHint(save: SaveData) {
 export function nextTutorialStep(save: SaveData, step: TutorialStep, now: number): SaveData {
   if (save.tutorial.step !== step || step === 'done') return save;
   if (step === 'readReport') return finishTutorial(save, now);
-  return { ...save, tutorial: { ...save.tutorial, step: ORDER[ORDER.indexOf(step) + 1] } };
+  return { ...save, tutorial: { ...save.tutorial, step: tutorialStepOrder[tutorialStepOrder.indexOf(step) + 1] } };
 }
 
 /** Ends the tutorial and hands over: the first quest points at the nearest place. */

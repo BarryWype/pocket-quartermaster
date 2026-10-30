@@ -807,4 +807,12 @@ export const fr: Dictionary = {
     salvage: '+{percent} de matériaux récupérés',
     mastery: '+{percent} de progression de maîtrise',
   },
+  tutorial: {
+    skip: 'Passer le tutoriel',
+    skipConfirmTitle: 'Passer le tutoriel ?',
+    skipConfirmBody: 'Vous recevrez tout ce qu’il donne.',
+    skipConfirmOk: 'Passer',
+    collectFromHere: 'Ramasser d’ici',
+    locationOff: 'La localisation est coupée : rien n’apparaît autour de vous. Touchez Ramasser d’ici pour récolter.',
+  },
 };

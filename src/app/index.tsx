@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AutoGatherPill, WalkCard } from '@/components/AutoGather';
+import { Button } from '@/components/Button';
 import { WalkEffects } from '@/components/WalkEffects';
 import { IslandMenu, ISLAND_HEIGHT } from '@/components/IslandMenu';
 import { MapFoliage, useFoliage } from '@/components/MapFoliage';
@@ -58,7 +59,7 @@ import { liveTreasureMaps } from '@/game/rewards/treasure';
 import { isPlaceRevealed, isRevealed } from '@/game/reveal/reveal';
 import { generateSanctumsAround, sanctumById, type SanctumSpawn } from '@/game/sanctums/sanctums';
 import { generateTavernsAround, isTavernUnlocked, type TavernSpawn } from '@/game/taverns/taverns';
-import { shownTutorialSpawns } from '@/game/tutorial/spawns';
+import { fallbackReady, shownTutorialSpawns } from '@/game/tutorial/spawns';
 import { useLanguage } from '@/hooks/useLanguage';
 import { usePlacedPoints, usePlacedSpawns } from '@/hooks/usePlacedSpawns';
 import { useAmbience } from '@/hooks/useAmbience';
@@ -132,6 +133,7 @@ export default function MapScreen() {
   const collect = useGameStore((state) => state.collect);
   const collectTreasure = useGameStore((state) => state.collectTreasure);
   const collectTutorialSpawn = useGameStore((state) => state.collectTutorialSpawn);
+  const collectFromHere = useGameStore((state) => state.collectFromHere);
   const debugSanctum = useDebugStore((state) => state.debugSanctum);
   const [openSanctum, setOpenSanctum] = useState<SanctumSpawn | null>(null);
   const debugTavern = useDebugStore((state) => state.debugTavern);
@@ -417,6 +419,19 @@ export default function MapScreen() {
     setWorld({ focusPatrol: null });
   };
 
+  // Indoors, with bad GPS or no location: the tutorial's nodes can be picked up from here after a while.
+  const locationOff = player.status === 'denied';
+  const fallback = fallbackReady(save, now, locationOff);
+  const gatherFromHere = () => {
+    const result = collectFromHere();
+    if (result.ok) setMessage(`+ 1 ${tr(materialById[result.materialId]?.name ?? result.materialId)}`);
+  };
+  const fallbackButton = fallback && (
+    <View style={[styles.fallback, { bottom: insets.bottom + ISLAND_HEIGHT + 12 }]}>
+      <Button title={t('tutorial.collectFromHere')} onPress={gatherFromHere} />
+    </View>
+  );
+
   // The menu stays reachable while there is no map to show.
   if (player.status === 'pending' || player.status === 'denied' || !position) {
     return (
@@ -426,6 +441,13 @@ export default function MapScreen() {
         ) : (
           <PlaceholderScreen title={t('map.locationNeeded')} description={t('map.locationHint')} />
         )}
+        <TutorialHint
+          screen="map"
+          text={locationOff && shownTutorialSpawns(save).length > 0 ? t('tutorial.locationOff') : undefined}
+          style={[styles.tutorialHint, { top: insets.top + 48 }]}
+        />
+        {fallbackButton}
+        {message && <Text style={[styles.banner, { bottom: insets.bottom + ISLAND_HEIGHT + 64 }]}>{message}</Text>}
         <IslandMenu />
       </View>
     );
@@ -689,9 +711,10 @@ export default function MapScreen() {
       {selectedPatrol && isTravellerKind(selectedPatrol.kind) && (
         <TravellerPanel spawn={selectedPatrol} player={position} now={now} onClose={closePatrol} />
       )}
+      {fallbackButton}
       {showPill && <AutoGatherPill style={[styles.autoGather, { bottom: insets.bottom + ISLAND_HEIGHT + 12 }]} />}
       {message && (
-        <Text style={[styles.banner, { bottom: insets.bottom + ISLAND_HEIGHT + (showPill ? 52 : 12) }]}>{message}</Text>
+        <Text style={[styles.banner, { bottom: insets.bottom + ISLAND_HEIGHT + (showPill || fallback ? 52 : 12) }]}>{message}</Text>
       )}
       <WalkCard />
       <IslandMenu />
@@ -722,6 +745,7 @@ const styles = StyleSheet.create({
   },
   tutorialHint: { position: 'absolute', left: 16, right: 16 },
   tutorialNode: { alignItems: 'center' },
+  fallback: { position: 'absolute', alignSelf: 'center' },
   pointer: { fontSize: 24 },
   autoGather: { position: 'absolute', left: 16 },
   debugButton: { alignSelf: 'center' },

@@ -17,6 +17,8 @@ export const tutorialRules = {
   spacingMeters: 8,
   /** Random spots tried per node before taking one off the walkable map. */
   spawnTries: 40,
+  /** A "Collect from here" button shows once nothing was picked up for this long after a spawn. */
+  fallbackSeconds: 60,
   /** The map zooms out to this when the tutorial ends. */
   doneZoom: 16,
   /** The first-win roll is seeded with this, so the run and the skip give the same loot. */

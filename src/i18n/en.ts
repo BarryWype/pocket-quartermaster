@@ -799,4 +799,12 @@ export const en = {
     salvage: '+{percent} materials from salvage',
     mastery: '+{percent} mastery progress',
   },
+  tutorial: {
+    skip: 'Skip tutorial',
+    skipConfirmTitle: 'Skip the tutorial?',
+    skipConfirmBody: 'You’ll get everything it gives.',
+    skipConfirmOk: 'Skip',
+    collectFromHere: 'Collect from here',
+    locationOff: 'Location is off, so nothing spawns around you. Tap Collect from here to gather.',
+  },
 };
