@@ -1,6 +1,6 @@
 import { Camera, type CameraRef, Images, Map, type MapRef, Marker } from '@maplibre/maplibre-react-native';
-import { router } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -35,6 +35,7 @@ import { placeRevealKinds, type TipId } from '@/content/reveal';
 import { sanctumRules } from '@/content/sanctums';
 import { spawnConfig } from '@/content/spawnConfig';
 import { tavernRules } from '@/content/taverns';
+import { tutorialRules } from '@/content/tutorial';
 import { walkableRules } from '@/content/walkable';
 import { highestUnlockedTier } from '@/game/expeditions/expeditions';
 import { freshGathersLeft, isFleeing, pickaxeTier, showsOnMap, type CollectFailure } from '@/game/gathering/gathering';
@@ -50,20 +51,21 @@ import { pocketTracking } from '@/game/patrols/pocketMode';
 import { activeLairs, isFightPlace } from '@/game/places/fights';
 import { isLockedMine, isPlaceVisible, placeGroupOf, placesAround, showsForPlayer, type PlaceSpawn } from '@/game/places/generate';
 import { ruinReplacements } from '@/game/places/ruins';
-import { nearWater, type WalkableTile } from '@/game/generation/walkable';
+import { mapTileAt, mapTileKey, nearWater, type WalkableTile } from '@/game/generation/walkable';
 import { fleesAt, hasFled, isGone, isVisible } from '@/game/patrols/visibility';
 import { isLureActive, lureEndsAt, lureSpawns } from '@/game/rewards/lures';
 import { liveTreasureMaps } from '@/game/rewards/treasure';
 import { isPlaceRevealed, isRevealed } from '@/game/reveal/reveal';
 import { generateSanctumsAround, sanctumById, type SanctumSpawn } from '@/game/sanctums/sanctums';
 import { generateTavernsAround, isTavernUnlocked, type TavernSpawn } from '@/game/taverns/taverns';
-import { tutorialSpawns } from '@/game/tutorial/tutorial';
+import { shownTutorialSpawns } from '@/game/tutorial/spawns';
 import { useLanguage } from '@/hooks/useLanguage';
 import { usePlacedPoints, usePlacedSpawns } from '@/hooks/usePlacedSpawns';
 import { useAmbience } from '@/hooks/useAmbience';
 import { usePlayerLocation } from '@/hooks/usePlayerLocation';
 import { useQuestMarks } from '@/hooks/useQuestMarks';
 import { useSecretPlaces } from '@/hooks/useSecretPlaces';
+import { useWalkableTiles } from '@/hooks/useWalkableTiles';
 import { hasKey } from '@/game/secrets/keys';
 import { isEntered } from '@/game/secrets/places';
 import { lootText } from '@/hooks/usePatrols';
@@ -128,8 +130,8 @@ export default function MapScreen() {
   const windowMinutes = useDebugStore((state) => state.windowMinutes);
   const save = useGameStore((state) => state.save);
   const collect = useGameStore((state) => state.collect);
-  const placeTutorialWood = useGameStore((state) => state.placeTutorialWood);
   const collectTreasure = useGameStore((state) => state.collectTreasure);
+  const collectTutorialSpawn = useGameStore((state) => state.collectTutorialSpawn);
   const debugSanctum = useDebugStore((state) => state.debugSanctum);
   const [openSanctum, setOpenSanctum] = useState<SanctumSpawn | null>(null);
   const debugTavern = useDebugStore((state) => state.debugTavern);
@@ -289,7 +291,7 @@ export default function MapScreen() {
   const placedTreasure = usePlacedPoints(isRevealed(save, 'treasure') ? treasureSpots : [], walkableRules);
   const shownSpawns = placedSpawns.filter((spawn) => isRevealed(save, spawn.kind === 'animal' ? 'animals' : 'resources'));
   const visible = position
-    ? visibleSpawns([...shownSpawns, ...tutorialSpawns(save)], position, now, undefined, trackedRange(save, now)).filter(
+    ? visibleSpawns(shownSpawns, position, now, undefined, trackedRange(save, now)).filter(
         ({ spawn }) => !(spawn.id in save.collected) && showsOnMap(save, spawn),
       )
     : [];
@@ -357,12 +359,47 @@ export default function MapScreen() {
   }, [visiblePatrols, patrolsSeen, now, setWorld]);
 
   useEffect(() => {
-    if (position) placeTutorialWood(position);
-  }, [position, placeTutorialWood]);
-
-  useEffect(() => {
     if (position && following) cameraRef.current?.easeTo({ center: toLngLat(position), duration: 500 });
   }, [position?.latitude, position?.longitude, following]);
+
+  // The tutorial's own nodes, spawned once per gathering step on walkable ground around the player
+  // (without location, they have no spot and only "Collect from here" reaches them).
+  const placeTutorialSpawns = useGameStore((state) => state.placeTutorialSpawns);
+  const tutorialDone = save.tutorial.step === 'done';
+  const tutorialTileKey = position && !tutorialDone ? mapTileKey(mapTileAt(position, walkableRules.mapZoom)) : '';
+  const tutorialTiles = useWalkableTiles(tutorialTileKey);
+  const tutorialTile = tutorialTileKey in tutorialTiles ? tutorialTiles[tutorialTileKey] : undefined;
+  useEffect(() => {
+    if (tutorialDone) return;
+    if (player.status === 'denied') placeTutorialSpawns(null, null);
+    else if (position) placeTutorialSpawns(position, tutorialTile);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [player.status, position?.latitude, position?.longitude, tutorialTile, save.tutorial.step, placeTutorialSpawns]);
+
+  // The tutorial ends on another screen: back on the map, it zooms out a little.
+  const zoomOutPending = useRef(false);
+  const wasDone = useRef(tutorialDone);
+  useEffect(() => {
+    if (tutorialDone && !wasDone.current) zoomOutPending.current = true;
+    wasDone.current = tutorialDone;
+  }, [tutorialDone]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!zoomOutPending.current) return;
+      zoomOutPending.current = false;
+      cameraRef.current?.zoomTo(tutorialRules.doneZoom, { duration: 800 });
+    }, []),
+  );
+
+  // The first quest waits for a place in sight to point at.
+  const targetFirstQuest = useGameStore((state) => state.targetFirstQuest);
+  const firstQuestWaiting = save.quests.list.some(
+    (quest) => quest.objective === 'visit' && quest.acceptedAt !== null && quest.doneAt === null && quest.target === null,
+  );
+  useEffect(() => {
+    if (firstQuestWaiting && position && placesInSight.length > 0) targetFirstQuest(placesInSight, position);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firstQuestWaiting, placesInSight.length, position?.latitude, position?.longitude, targetFirstQuest]);
 
   // A notification tapped patrol: the camera goes to where it was seen, and it stays selected while still around.
   // Declared after the follow effect so the focus wins the camera while it lasts.
@@ -412,6 +449,18 @@ export default function MapScreen() {
       : []),
   ];
   const showPill = save.tutorial.step === 'done';
+
+  // The tutorial's nodes on the map, the nearest one pointed at.
+  const tutorialNodes = shownTutorialSpawns(save).flatMap((node) => (node.position ? [{ ...node, position: node.position }] : []));
+  const pointed = tutorialNodes.reduce<(typeof tutorialNodes)[number] | null>(
+    (best, node) => (!best || distanceMeters(position, node.position) < distanceMeters(position, best.position) ? node : best),
+    null,
+  );
+  const gatherTutorial = (id: string) => {
+    const result = collectTutorialSpawn(id, position);
+    if (result.ok) setMessage(`+ 1 ${tr(materialById[result.materialId]?.name ?? result.materialId)}`);
+    else setMessage(failureMessages[result.reason](result.distance));
+  };
 
   const digUp = (mapId: string, treasureAt: LatLng) => {
     const distance = distanceMeters(position, treasureAt);
@@ -481,6 +530,25 @@ export default function MapScreen() {
                 sway={read.resourceId === 'tree'}
                 locked={read.state === 'locked'}
               />
+            </Marker>
+          );
+        })}
+        {tutorialNodes.map((node) => {
+          const wood = node.materialId === 'wood';
+          const material = materialById[node.materialId];
+          return (
+            <Marker key={node.id} id={node.id} lngLat={toLngLat(node.position)} onPress={() => gatherTutorial(node.id)}>
+              <View style={styles.tutorialNode}>
+                {node.id === pointed?.id && <Text style={styles.pointer}>👇</Text>}
+                <SpawnMarker
+                  kind={wood ? 'wood' : 'animal'}
+                  emoji={wood ? resourceById.tree.emoji : material.emoji}
+                  icon={wood ? resourceById.tree.icon : material.icon}
+                  inRange={distanceMeters(position, node.position) <= gatheringConfig.collectRadiusMeters}
+                  fleeing={false}
+                  sway={wood}
+                />
+              </View>
             </Marker>
           );
         })}
@@ -653,6 +721,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   tutorialHint: { position: 'absolute', left: 16, right: 16 },
+  tutorialNode: { alignItems: 'center' },
+  pointer: { fontSize: 24 },
   autoGather: { position: 'absolute', left: 16 },
   debugButton: { alignSelf: 'center' },
   // Next to 🐞 when debug tools are on; the top-right corner is taken by the dev menu button.

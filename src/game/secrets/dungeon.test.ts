@@ -41,6 +41,7 @@ const place: PlaceSpawn = {
 /** The tipped save at tier 1: one key in hand, the party's starting gear. */
 const base = (): SaveData => ({
   ...createInitialSave(),
+  tutorial: { ...createInitialSave().tutorial, step: 'done' },
   secretTips: [tip],
   keyFragments: 4,
   gear: [

@@ -5,7 +5,6 @@ import { offsetPosition } from '../generation/geo';
 import type { AnimalSpawn, LatLng, Spawn, StaticSpawn } from '../generation/types';
 import { lureSpawns } from '../rewards/lures';
 import { createInitialSave, type SaveData } from '../save';
-import { TUTORIAL_SPAWN_ID } from '../tutorial/tutorial';
 import {
   appendFixes,
   clearProcessed,
@@ -29,7 +28,7 @@ const auto = gatheringConfig.autoGather;
 const player = (tools = ['woodPickaxe']): SaveData => ({
   ...createInitialSave(),
   tools,
-  tutorial: { step: 'done', woodSpot: null },
+  tutorial: { ...createInitialSave().tutorial, step: 'done' },
   freshGathers: { day: localDayKey(t0), used: gatheringConfig.walkingBonus.gathers },
 });
 
@@ -116,11 +115,6 @@ describe('processWalkPath', () => {
     expect(summary.ignored).toEqual({ accuracy: 1, speed: 1, jump: 1, gap: 1 });
     expect(Object.keys(save.collected)).toEqual(['wood:slow']);
     expect(summary.distanceMeters).toBe(80);
-  });
-
-  it('only collects regular nodes: not the tutorial’s', () => {
-    const tutorial = node(TUTORIAL_SPAWN_ID, at(5, 100));
-    expect(processWalkPath(player(), eastWalk, { spawnsAt: only([tutorial]) }).summary.nodes).toBe(0);
   });
 
   it('applies the pickaxe rules', () => {

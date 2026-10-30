@@ -29,7 +29,7 @@ describe('stat rolls', () => {
   });
 
   it('rolls on every forged piece, seeded by its uid', () => {
-    const save: SaveData = { ...createInitialSave(), materials: { wood: FORGES * 4 + 4 }, tutorial: { step: 'done', woodSpot: null } };
+    const save: SaveData = { ...createInitialSave(), materials: { wood: FORGES * 4 + 4 }, tutorial: { ...createInitialSave().tutorial, step: 'done' } };
     let next = save;
     const rolls: number[] = [];
     for (let i = 0; i < 30; i++) {

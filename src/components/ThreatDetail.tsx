@@ -15,7 +15,7 @@ import { formatPercent, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
 
-import { ThreatChip } from './ThreatChip';
+import { stateColors, ThreatChip } from './ThreatChip';
 import { Text } from './Text';
 
 /** One penalty as the run applies it, as a short line. */
@@ -122,13 +122,14 @@ function DetailLines({ coverage }: { coverage: ThreatCoverage }) {
 }
 
 /** The briefing's threats against the current party: a chip each, tapping one explains it. */
-export function ThreatCoverageChips({ coverage }: { coverage: BriefingCoverage }) {
+export function ThreatCoverageChips({ coverage, labelled = false }: { coverage: BriefingCoverage; /** Spells out "answered" under each chip (the tutorial). */ labelled?: boolean }) {
   const [detail, setDetail] = useState<ThreatCoverage | null>(null);
   return (
     <View style={styles.chips}>
       {coverage.threats.map((threat) => (
         <View key={threat.threat.id} style={styles.one}>
           <ThreatChip threat={threat.threat} state={threat.display} onPress={() => setDetail(threat)} />
+          {labelled && <Text style={[styles.names, { color: stateColors[threat.display] }]}>{t(`threats.answered.${threat.display}`)}</Text>}
           {threat.coveredBy.length > 0 && (
             <Text style={styles.names} numberOfLines={1}>
               {t('threats.coveredBy', {

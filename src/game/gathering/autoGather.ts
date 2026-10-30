@@ -13,7 +13,6 @@ import { addMaterials } from '../inventory';
 import { recordSteps } from '../rewards/chests';
 import { lureSpawns } from '../rewards/lures';
 import type { SaveData } from '../save';
-import { TUTORIAL_SPAWN_ID } from '../tutorial/tutorial';
 import type { PatrolKind, TravellerKind } from '../patrols/generate';
 import type { TravellerReward } from '../patrols/travellers';
 import type { MaterialStack } from '../types';
@@ -283,7 +282,7 @@ export function processWalkPath(
   for (const piece of pieces(segments, auto)) {
     const speed = piece.to.timestamp > piece.from.timestamp ? piece.meters / ((piece.to.timestamp - piece.from.timestamp) / 1000) : 0;
     const hits = candidates(piece)
-      .filter((spawn) => spawn.id !== TUTORIAL_SPAWN_ID && !(spawn.id in next.collected))
+      .filter((spawn) => !(spawn.id in next.collected))
       .flatMap((spawn) => place(spawn) ?? [])
       .map((spawn) => ({ spawn, at: closestApproach(piece, spawn, auto) }))
       .filter(({ spawn, at }) => startsAt(spawn, next, spawns) <= at.timestamp && at.timestamp < spawn.expiresAt)

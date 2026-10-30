@@ -25,7 +25,7 @@ const briefing = (
 function save(): SaveData {
   let data: SaveData = {
     ...createInitialSave(),
-    tutorial: { step: 'done', woodSpot: null },
+    tutorial: { ...createInitialSave().tutorial, step: 'done' },
     consumables: { ...createInitialSave().consumables, trailMix: 30 },
     heroes: createInitialSave().heroes.map((h) => ({ ...h, level: 30 })),
     gear: [

@@ -2,6 +2,7 @@ import type { PlaceKind } from './places';
 
 export type QuestBand = 'short' | 'medium' | 'long';
 export type QuestObjective =
+  | 'visit'                                       // Visit (the tutorial's first quest; never rolled)
   | 'chapel' | 'library' | 'ruins' | 'dock'        // Visit
   | 'fightEvent' | 'patrols' | 'lair'              // Fight
   | 'deliver'                                      // Deliver
@@ -54,6 +55,13 @@ export type ObjectiveDef = {
 };
 
 export const objectives: Record<QuestObjective, ObjectiveDef> = {
+  visit: {
+    kind: 'visit',
+    emoji: '📍',
+    places: ['sawmill', 'quarry', 'copperMine', 'ironMine', 'coalPit', 'huntingLodge', 'smithy', 'apothecary', 'chapel', 'market'],
+    weight: 0,
+    bands: ['short'],
+  },
   chapel: { kind: 'visit', emoji: '⛪', places: ['chapel'], weight: 1 },
   library: { kind: 'visit', emoji: '📜', places: ['library'], weight: 1 },
   ruins: { kind: 'visit', emoji: '🏛️', places: ['ruins'], weight: 1 },

@@ -62,7 +62,7 @@ const trap: EncounterDef = { type: 'trap', weight: 1, name: 'test trap', targets
 function ready(consumables: Record<string, number> = createInitialSave().consumables): SaveData {
   let save: SaveData = {
     ...createInitialSave(),
-    tutorial: { step: 'done', woodSpot: null },
+    tutorial: { ...createInitialSave().tutorial, step: 'done' },
     clearedDungeons: ['banditStockade', 'ogreQuarry'],
     consumables,
     gear: [

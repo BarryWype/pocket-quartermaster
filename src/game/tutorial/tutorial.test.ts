@@ -1,119 +1,90 @@
+import { tutorialRules } from '@/content/tutorial';
 import { recipeById } from '@/content/lookup';
 
 import { craft } from '../crafting/crafting';
-import { readyExpeditions, resolveExpedition, startExpedition } from '../expeditions/expeditions';
-import { canGather, collectSpawn } from '../gathering/gathering';
-import { distanceMeters } from '../generation/geo';
-import type { StaticSpawn } from '../generation/types';
+import { resolveExpedition, startExpedition, tutorialLoot } from '../expeditions/expeditions';
+import { rotationDay } from '../dungeons/rotation';
+import { offsetPosition } from '../generation/geo';
+import { briefingCoverage } from '../threats/coverage';
+import type { PlaceSpawn } from '../places/generate';
+import { targetFirstQuest } from '../quests/targets';
 import { createInitialSave, type SaveData } from '../save';
 import { equip } from '../team/team';
+import { collectTutorialSpawn, placeTutorialSpawns, shownTutorialSpawns } from './spawns';
 import {
   advanceTutorial,
+  finishTutorial,
+  isClosableHint,
   nextTutorialStep,
-  placeTutorialWood,
-  TUTORIAL_SPAWN_ID,
   tutorialHint,
-  tutorialSpawns,
   tutorialTarget,
 } from './tutorial';
 
 const player = { latitude: -41.2865, longitude: 174.7762 };
 const now = 1_000_000;
 
-const herbSpawn: StaticSpawn = {
-  id: 'herb:x:1:0',
-  kind: 'herb',
-  resourceId: 'herb',
-  tile: 'x',
-  quantity: 1,
-  boosted: false,
-  expiresAt: now + 1,
-  position: player,
-};
-
-function gatherTutorialWood(save: SaveData) {
-  const placed = placeTutorialWood(save, player);
-  const result = collectSpawn(placed, tutorialSpawns(placed)[0], { position: player, speed: 0 }, now);
-  if (!result.ok) throw new Error(result.reason);
-  return advanceTutorial(result.save);
+/** Picks up the current step's nodes standing on them. */
+function gatherStep(save: SaveData, at: number) {
+  let next = placeTutorialSpawns(save, player, null, at);
+  for (const spawn of shownTutorialSpawns(next)) {
+    const result = collectTutorialSpawn(next, spawn.id, player, at);
+    if (!result.ok) throw new Error(result.reason);
+    next = result.save;
+  }
+  return advanceTutorial(next);
 }
 
-describe('tutorial wood', () => {
-  it('places the guaranteed wood about 10 m away, once', () => {
-    const save = placeTutorialWood(createInitialSave(), player);
-    const spot = save.tutorial.woodSpot!;
-    expect(distanceMeters(player, spot)).toBeLessThan(20);
-    const moved = { latitude: player.latitude + 0.01, longitude: player.longitude };
-    expect(placeTutorialWood(save, moved).tutorial.woodSpot).toEqual(spot);
-  });
-
-  it('gives exactly the wood for the first sword, then disappears', () => {
-    expect(tutorialSpawns(createInitialSave())).toEqual([]);
-    const save = gatherTutorialWood(createInitialSave());
-    expect(save.materials.wood).toBe(recipeById.sword1.inputs[0].amount);
-    expect(save.collected).toHaveProperty(TUTORIAL_SPAWN_ID);
-    expect(tutorialSpawns(save)).toEqual([]);
-  });
-
-  it('waits until there is enough wood for the sword', () => {
-    const save = { ...createInitialSave(), materials: { wood: 2 } };
-    expect(advanceTutorial(save).tutorial.step).toBe('collectWood');
-  });
-});
-
 describe('tutorial walkthrough', () => {
-  it('goes gather → forge → equip → send → wait → read → Sanctum → outro → done', () => {
-    let save = gatherTutorialWood(createInitialSave());
+  it('goes gather → forge → equip → threat → kit → send → report → done', () => {
+    let save = gatherStep(createInitialSave(), now);
+    expect(save.materials.wood).toBe(4);
     expect(save.tutorial.step).toBe('forgeSword');
     expect(tutorialTarget(save)).toBe('forge');
 
     save = advanceTutorial(craft(save, recipeById.sword1));
     expect(save.tutorial.step).toBe('equipSword');
     expect(tutorialTarget(save)).toBe('team');
+    expect(tutorialHint(save, 'team')).toMatch(/Bram/);
 
     save = advanceTutorial(equip(save, 'bram', 'weapon', save.gear[0].uid));
-    expect(save.tutorial.step).toBe('sendExpedition');
+    expect(save.tutorial.step).toBe('seeThreat');
+    expect(isClosableHint(save)).toBe(true);
+    expect(tutorialHint(save, 'expeditions')).toMatch(/Beasts/);
     expect(tutorialTarget(save)).toBe('expeditions');
 
-    save = advanceTutorial(startExpedition(save, 'ratCellar', ['bram', 'lyra', 'mira'], now));
-    expect(save.tutorial.step).toBe('awaitReport');
-    expect(save.expeditions[0].endsAt).toBe(now + 5000);
+    save = nextTutorialStep(save, 'seeThreat', now);
+    expect(save.tutorial.step).toBe('gatherKit');
+    expect(tutorialHint(save, 'map')).toMatch(/Hunter/);
 
-    // Back after 5 seconds, waiting for the player to collect the loot.
-    expect(readyExpeditions(save, now + 5000)).toHaveLength(1);
-    expect(advanceTutorial(save).tutorial.step).toBe('awaitReport');
+    save = gatherStep(save, now + 1);
+    expect(save.tutorial.step).toBe('craftKit');
+    expect(tutorialTarget(save)).toBe('provisions');
+
+    save = advanceTutorial(craft(save, recipeById.huntersPack));
+    expect(save.tutorial.step).toBe('equipKit');
+
+    save = advanceTutorial(equip(save, 'bram', 'consumable', tutorialRules.kitRecipe));
+    expect(save.tutorial.step).toBe('sendExpedition');
+
+    save = advanceTutorial(startExpedition(save, tutorialRules.dungeonId, ['bram', 'lyra', 'mira'], now));
+    expect(save.tutorial.step).toBe('awaitReport');
+    expect(save.expeditions[0].endsAt - now).toBe(tutorialRules.seconds * 1000);
+
+    const endsAt = save.expeditions[0].endsAt;
     const { save: back, report } = resolveExpedition(save, save.expeditions[0]);
     expect(report.success).toBe(true);
-    expect(report.sigil).toBe(1);
-    expect(back.sigils).toEqual([1]);
-    expect(back.firstSigilGiven).toBe(false);
+    expect(report.firstWin).toBe(true);
+    expect(back.firstWinDay).toBe(rotationDay(endsAt));
+    expect(back.tutorial.rewarded).toBe(true);
     save = advanceTutorial(back);
     expect(save.tutorial.step).toBe('readReport');
+    expect(isClosableHint(save)).toBe(true);
 
-    save = advanceTutorial({ ...save, reports: save.reports.map((r) => ({ ...r, seen: true })) });
-    expect(save.tutorial.step).toBe('findSanctum');
-    expect(tutorialHint(save, 'map')).toMatch(/Lucky/);
-    expect(nextTutorialStep(save, 'outro')).toBe(save);
-
-    save = nextTutorialStep(save, 'findSanctum');
-    expect(save.tutorial.step).toBe('sanctumIntro');
-    expect(tutorialHint(save, 'sanctum')).toMatch(/Tap to close/);
-    expect(tutorialHint(save, 'map')).toBeNull();
-
-    save = nextTutorialStep(save, 'sanctumIntro');
-    expect(save.tutorial.step).toBe('outro');
-    expect(tutorialHint(save, 'map')).toMatch(/Tap to close/);
-
-    save = nextTutorialStep(save, 'outro');
+    save = nextTutorialStep(save, 'readReport', now);
     expect(save.tutorial.step).toBe('done');
     expect(tutorialHint(save, 'map')).toBeNull();
-  });
-
-  it('shows only wood until the sword is forged', () => {
-    const fresh = createInitialSave();
-    expect(canGather(fresh, herbSpawn)).toBe(false);
-    expect(canGather({ ...fresh, tutorial: { step: 'forgeSword', woodSpot: null } }, herbSpawn)).toBe(false);
-    expect(canGather({ ...fresh, tutorial: { step: 'equipSword', woodSpot: null } }, herbSpawn)).toBe(true);
+    const quest = save.quests.list[0];
+    expect(quest).toMatchObject({ objective: 'visit', band: 'short', acceptedAt: now });
   });
 
   it('skips steps the player already did out of order', () => {
@@ -123,11 +94,80 @@ describe('tutorial walkthrough', () => {
     };
     expect(advanceTutorial(save).tutorial.step).toBe('equipSword');
   });
+});
 
-  it('gives each screen its own hint where it has one', () => {
-    const save = { ...createInitialSave(), tutorial: { step: 'equipSword' as const, woodSpot: null } };
-    expect(tutorialHint(save, 'hero')).toMatch(/Weapon slot/);
-    expect(tutorialHint(save, 'map')).toMatch(/Team/);
-    expect(tutorialHint(createInitialSave(), 'forge')).toBeNull();
+describe('the tutorial threat', () => {
+  it('reads red until a Hunter’s pack covers it', () => {
+    const save = createInitialSave();
+    const party = ['bram', 'lyra', 'mira'];
+    const uncovered = briefingCoverage(save, party, tutorialRules.briefing);
+    expect(uncovered.threats[0].threat.id).toBe('beasts');
+    // A level-1 keyword threat reads gold (partial) with nobody answering it.
+    expect(uncovered.threats[0].display).toBe('partial');
+    const kitted = equip({ ...save, consumables: { ...save.consumables, huntersPack: 1 } }, 'bram', 'consumable', 'huntersPack');
+    expect(briefingCoverage(kitted, party, tutorialRules.briefing).threats[0].display).toBe('covered');
+  });
+});
+
+describe('the tutorial expedition', () => {
+  const ready = (): SaveData => ({
+    ...createInitialSave(),
+    tutorial: { ...createInitialSave().tutorial, step: 'sendExpedition' },
+  });
+
+  it('always wins and pays the same first-win loot whatever the party', () => {
+    for (let i = 0; i < 10; i++) {
+      const started = startExpedition({ ...ready(), nextUid: i }, tutorialRules.dungeonId, ['bram'], now);
+      const expedition = started.expeditions[0];
+      const { save, report } = resolveExpedition(started, expedition);
+      expect(report.success).toBe(true);
+      expect(report.firstWin).toBe(true);
+      expect(save.firstWinDay).toBe(rotationDay(expedition.endsAt));
+      expect(save.tutorial.rewarded).toBe(true);
+      expect(report.loot).toEqual(tutorialLoot(ready(), expedition.endsAt));
+      expect(report.loot.recipeIds).toHaveLength(1);
+      expect(['sword1', 'mail1']).not.toContain(report.loot.recipeIds[0]);
+    }
+    const resolve = (heroIds: string[]) => {
+      const started = startExpedition(ready(), tutorialRules.dungeonId, heroIds, now);
+      return resolveExpedition(started, started.expeditions[0]).report.loot;
+    };
+    expect(resolve(['bram', 'lyra', 'mira'])).toEqual(resolve(['bram']));
+  });
+});
+
+describe('the first quest', () => {
+  const place = (id: string, kind: PlaceSpawn['kind'], meters: number): PlaceSpawn => ({
+    id,
+    kind,
+    group: 'g',
+    tile: 't',
+    position: offsetPosition(player, 0, meters),
+    startsAt: 0,
+    expiresAt: now + 1_000_000,
+    roll: 0,
+  });
+
+  it('is added once, accepted, short', () => {
+    const save = finishTutorial(createInitialSave(), now);
+    expect(save.tutorial.step).toBe('done');
+    expect(save.quests.list).toHaveLength(1);
+    expect(save.quests.list[0]).toMatchObject({ objective: 'visit', band: 'short', acceptedAt: now });
+    expect(finishTutorial(save, now + 1).quests.list).toHaveLength(1);
+  });
+
+  it('targets the nearest revealed place, falls back to a farther band', () => {
+    const save = finishTutorial(createInitialSave(), now);
+    const near = place('p1', 'market', 200);
+    const far = place('p2', 'smithy', 1200);
+    const hidden = place('p3', 'ruins', 100);
+    expect(targetFirstQuest(save, [], player, now)).toBe(save);
+    expect(targetFirstQuest(save, [hidden], player, now)).toBe(save);
+    const targeted = targetFirstQuest(save, [far, near, hidden], player, now);
+    expect(targeted.quests.list[0].target).toMatchObject({ placeId: 'p1', kind: 'market' });
+    expect(targeted.quests.list[0].band).toBe('short');
+    const fallback = targetFirstQuest(save, [far], player, now);
+    expect(fallback.quests.list[0].target).toMatchObject({ placeId: 'p2', kind: 'smithy' });
+    expect(fallback.quests.list[0].band).toBe('long');
   });
 });

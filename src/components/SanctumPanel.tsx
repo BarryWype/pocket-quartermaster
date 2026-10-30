@@ -24,7 +24,6 @@ import { colors, pixel } from '@/theme';
 import { Button } from './Button';
 import { EnemyTags } from './EnemyTags';
 import { Text } from './Text';
-import { TutorialHint } from './TutorialHint';
 
 const LINE_DELAY_MS = 600;
 
@@ -47,7 +46,6 @@ type Props = {
 export function SanctumPanel({ spawn, player, onClose }: Props) {
   const save = useGameStore((state) => state.save);
   const challenge = useGameStore((state) => state.challengeSanctum);
-  const nextTutorialStep = useGameStore((state) => state.nextTutorialStep);
   const sanctum = sanctumById[spawn.sanctumId];
   const element = elementInfo[sanctum.element];
   const tiers = [...new Set(save.sigils)].sort((a, b) => a - b);
@@ -61,10 +59,6 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
     () => (tier && heroIds.length > 0 ? sanctumOdds(save, heroIds, sanctum, tier, undefined, openedAt) : null),
     [save, heroIds, sanctum, tier, openedAt],
   );
-
-  useEffect(() => {
-    nextTutorialStep('findSanctum');
-  }, [nextTutorialStep]);
 
   // Reveal the fight one line at a time.
   useEffect(() => {
@@ -103,7 +97,6 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
       <View style={styles.backdrop}>
         <View style={styles.sheet}>
           <ScrollView contentContainerStyle={styles.content}>
-            <TutorialHint screen="sanctum" />
             <Text style={styles.title}>
               {sanctum.emoji} {tr(sanctum.name)}
             </Text>

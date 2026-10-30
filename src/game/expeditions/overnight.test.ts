@@ -6,7 +6,7 @@ import { createInitialSave, type SaveData } from '@/game/save';
 const runs = dungeons.filter((d) => d.overnight);
 const cleared = (tiers: number): SaveData => ({
   ...createInitialSave(),
-  tutorial: { step: 'done', woodSpot: null },
+  tutorial: { ...createInitialSave().tutorial, step: 'done' },
   clearedDungeons: dungeons.filter((d) => d.isBoss && d.tier < tiers).map((d) => d.id),
 });
 

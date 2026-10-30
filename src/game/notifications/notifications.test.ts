@@ -36,7 +36,7 @@ function veterans(): SaveData {
     clearedDungeons: dungeons.filter((d) => d.isBoss).map((d) => d.id),
     sigils: [1, 1, 1],
     firstSigilGiven: true,
-    tutorial: { step: 'done', woodSpot: null },
+    tutorial: { ...createInitialSave().tutorial, step: 'done' },
   };
   ['bram', 'lyra', 'mira'].forEach((id, i) => {
     save = equip(save, id, 'weapon', `g${i}`);
@@ -105,7 +105,7 @@ describe('expedition notifications', () => {
     const [notification] = planNotifications(save, settings(), now);
     expect(notification.category).toBe('bigResult');
     expect(notification.body).toContain('boss defeated');
-    const tutorial: SaveData = { ...createInitialSave(), tutorial: { step: 'sendExpedition', woodSpot: null } };
+    const tutorial: SaveData = { ...createInitialSave(), tutorial: { ...createInitialSave().tutorial, step: 'sendExpedition' } };
     const first = startExpedition(tutorial, 'ratCellar', ['bram'], now);
     expect(planNotifications(first, settings(), now)[0].body).toMatch(/new blueprint \(.+\)/);
   });
@@ -163,7 +163,7 @@ describe('idle reminder', () => {
 describe('heroes rested', () => {
   const restedOn = withCategories({ heroesRested: true, expeditionFinished: false, bigResult: false });
   /** Bram alone with no gear in the boss dungeon: he comes back hurt. */
-  const hurtRun = () => startExpedition({ ...createInitialSave(), tutorial: { step: 'done', woodSpot: null } }, 'banditStockade', ['bram'], at(12));
+  const hurtRun = () => startExpedition({ ...createInitialSave(), tutorial: { ...createInitialSave().tutorial, step: 'done' } }, 'banditStockade', ['bram'], at(12));
 
   it('is off by default', () => {
     expect(planNotifications(hurtRun(), settings(), at(12)).some((n) => n.category === 'heroesRested')).toBe(false);

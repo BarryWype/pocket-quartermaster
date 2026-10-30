@@ -13,7 +13,7 @@ import { colors, pixel } from '@/theme';
 import { GameIcon } from './GameIcon';
 import { Text } from './Text';
 
-const stateColors: Record<ThreatDisplay, string> = {
+export const stateColors: Record<ThreatDisplay, string> = {
   covered: colors.success,
   partial: colors.gold,
   uncovered: colors.danger,

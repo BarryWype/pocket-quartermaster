@@ -188,7 +188,7 @@ describe('recruiting', () => {
   });
 
   it('drops blueprints for the newer weapon types, and meeting one starts its mastery', () => {
-    const save = unlocked({ tutorial: { step: 'done', woodSpot: null } });
+    const save = unlocked({ tutorial: { ...createInitialSave().tutorial, step: 'done' } });
     const strong = equip({ ...save, gear: [{ uid: 'g', itemId: 'sword5', quality: 'legendary' }] }, 'bram', 'weapon', 'g');
     const drops = (s: SaveData) =>
       Array.from({ length: 80 }, (_, i) => {
@@ -228,6 +228,7 @@ describe('trait rewards', () => {
   const run = (trait: string) => {
     const save = {
       ...createInitialSave(),
+      tutorial: { ...createInitialSave().tutorial, step: 'done' as const },
       heroes: createInitialSave().heroes.map((h) => (h.id === 'bram' ? { ...h, trait } : h)),
       gear: [{ uid: 'g', itemId: 'sword5', quality: 'legendary' as const }],
     };

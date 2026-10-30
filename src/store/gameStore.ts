@@ -19,6 +19,7 @@ import { markWalksSeen, processWalkPath, recordWalk, type WalkFix, type WalkOpti
 import { collectSpawn, localDayKey, type CollectResult, type Gatherer } from '@/game/gathering/gathering';
 import { endWalkEffect, startWalkEffect } from '@/game/gathering/walkEffects';
 import type { LatLng, Spawn } from '@/game/generation/types';
+import type { WalkableTile } from '@/game/generation/walkable';
 import { addMaterials } from '@/game/inventory';
 import { dayKey, openChest, recordSteps, syncSteps } from '@/game/rewards/chests';
 import { activateLure } from '@/game/rewards/lures';
@@ -53,14 +54,15 @@ import { buySupply, recruit, type RecruitOffer } from '@/game/taverns/taverns';
 import { buyRank } from '@/game/guild/guild';
 import { applyTraining } from '@/game/guild/training';
 import { guildRules, type GuildTrackId } from '@/content/guild';
-import { advanceTutorial, finishTutorial, nextTutorialStep, placeTutorialWood } from '@/game/tutorial/tutorial';
+import { advanceTutorial, finishTutorial, nextTutorialStep } from '@/game/tutorial/tutorial';
+import { collectTutorialSpawn, placeTutorialSpawns, type TutorialCollectResult } from '@/game/tutorial/spawns';
 import { pruneExpired, rollDailyApproaches } from '@/game/upkeep';
 import { questRules, type QuestBand, type QuestObjective } from '@/content/quests';
 import { placeRules, type PlaceKind } from '@/content/places';
 import { newQuest, questUpkeep, rerollQuest } from '@/game/quests/arrival';
 import { complete, deliver, maybeSecretQuest, markSeen, noteMarksReached, questEvent, refreshWalks } from '@/game/quests/progress';
 import { claimQuest, reachMark } from '@/game/quests/rewards';
-import { acceptQuests, retargetQuests } from '@/game/quests/targets';
+import { acceptQuests, retargetQuests, targetFirstQuest } from '@/game/quests/targets';
 import { createRng } from '@/game/generation/rng';
 import { distanceMeters } from '@/game/generation/geo';
 import type { Approach, EquipmentSlot, ExpeditionReport, Heist, HeroClassId, HeroRoll, MasteryType, PlaceFight, Quality } from '@/game/types';
@@ -193,7 +195,12 @@ type GameState = {
   triggerSecretQuest: () => void;
   /** Debug: frees the day's reroll again. */
   resetQuestReroll: () => void;
-  placeTutorialWood: (position: LatLng) => void;
+  /** Spawns the current tutorial step's nodes around the player, once per step. */
+  placeTutorialSpawns: (player: LatLng | null, tile: WalkableTile | null | undefined) => void;
+  /** Picks up a tutorial node; `anywhere` is the "Collect from here" fallback. */
+  collectTutorialSpawn: (id: string, player: LatLng | null, anywhere?: boolean) => TutorialCollectResult;
+  /** Points the tutorial's first quest at the nearest revealed place. */
+  targetFirstQuest: (candidates: PlaceSpawn[], player: LatLng) => void;
   challengeSanctum: (spawn: SanctumSpawn, tier: number, heroIds: string[], player: LatLng) => SanctumResult;
   readTreasureMap: (mapId: string, position: LatLng) => void;
   readManual: (heroId: string, rarity: ManualRarity) => void;
@@ -508,7 +515,19 @@ export const useGameStore = create<GameState>()(
         set({ save });
         return reward;
       },
-      placeTutorialWood: (position) => set(({ save }) => ({ save: placeTutorialWood(save, position) })),
+      placeTutorialSpawns: (player, tile) => {
+        const next = placeTutorialSpawns(get().save, player, tile, Date.now());
+        if (next !== get().save) set({ save: next });
+      },
+      collectTutorialSpawn: (id, player, anywhere) => {
+        const result = collectTutorialSpawn(get().save, id, player, Date.now(), { anywhere });
+        if (result.ok) set({ save: result.save });
+        return result;
+      },
+      targetFirstQuest: (candidates, player) => {
+        const next = targetFirstQuest(get().save, candidates, player, Date.now());
+        if (next !== get().save) set({ save: next });
+      },
       challengeSanctum: (spawn, tier, heroIds, player) => {
         const { save, result } = challengeSanctum(get().save, spawn, tier, heroIds, player, Date.now());
         set({ save });
@@ -524,8 +543,8 @@ export const useGameStore = create<GameState>()(
       },
       activateLure: (position) => set(({ save }) => ({ save: activateLure(save, position, Date.now()) })),
       startWalkEffect: (itemId, position) => set(({ save }) => ({ save: startWalkEffect(save, itemId, position, Date.now()) })),
-      nextTutorialStep: (step) => set(({ save }) => ({ save: nextTutorialStep(save, step) })),
-      finishTutorial: () => set(({ save }) => ({ save: finishTutorial(save) })),
+      nextTutorialStep: (step) => set(({ save }) => ({ save: nextTutorialStep(save, step, Date.now()) })),
+      finishTutorial: () => set(({ save }) => ({ save: finishTutorial(save, Date.now()) })),
       grantNextPickaxe: () =>
         set(({ save }) => {
           const pickaxe = items
@@ -652,13 +671,13 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 28,
+      version: 29,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
-      // Until release, a save change starts fresh: saves before version 28 (tutorial rework) are reset.
+      // Until release, a save change starts fresh: saves before version 29 (hands-on tutorial) are reset.
       migrate: (persisted, version) => {
         const old = (persisted as { save?: SaveData } | undefined)?.save;
-        if (!old || version < 28) return { save: createInitialSave() };
+        if (!old || version < 29) return { save: createInitialSave() };
         return { save: old };
       },
       merge: (persisted, current) => ({

@@ -179,6 +179,55 @@ export function retargetQuests(save: SaveData, candidates: PlaceSpawn[], now: nu
   return { ...save, quests: { ...save.quests, list } };
 }
 
+/**
+ * Points the tutorial's first quest (an accepted `visit`, still without a
+ * target) at the nearest live, unused, revealed place of its kinds: in the
+ * short band around the player, else the nearest within 2 km, in whatever
+ * band that distance falls in. Nothing in reach: the quest waits.
+ */
+export function targetFirstQuest(save: SaveData, candidates: PlaceSpawn[], player: LatLng, now: number): SaveData {
+  const quest = save.quests.list.find(
+    (q) => q.objective === 'visit' && q.acceptedAt !== null && q.doneAt === null && q.target === null,
+  );
+  if (!quest) return save;
+  const shown = candidates.filter((spawn) => isPlaceRevealed(save, spawn.kind));
+  const live = (spawn: PlaceSpawn) =>
+    shown.includes(spawn) &&
+    spawn.startsAt <= now &&
+    now < spawn.expiresAt &&
+    !(spawn.id in save.usedPlaces);
+  const nearest = (spawns: PlaceSpawn[]) =>
+    spawns.reduce<PlaceSpawn | null>(
+      (best, spawn) =>
+        best === null || distanceMeters(player, spawn.position) < distanceMeters(player, best.position) ? spawn : best,
+      null,
+    );
+  const kinds = targetKinds(save, quest);
+  const inShort = nearestInBand(shown, kinds, player, 'short', now, save.usedPlaces);
+  const within2Km = nearest(candidates.filter((spawn) => live(spawn) && kinds.includes(spawn.kind) && distanceMeters(player, spawn.position) <= questRules.bandMeters.long[1]));
+  const spawn = inShort ?? within2Km;
+  if (!spawn) return save;
+  const distance = distanceMeters(player, spawn.position);
+  const band = (Object.entries(questRules.bandMeters) as [QuestBand, [number, number]][]).find(
+    ([, [min, max]]) => distance <= max && distance >= min,
+  )![0];
+  return {
+    ...save,
+    quests: {
+      ...save.quests,
+      list: save.quests.list.map((q) =>
+        q.id === quest.id
+          ? {
+              ...q,
+              band,
+              target: { placeId: spawn.id, kind: spawn.kind, position: spawn.position, from: player, expiresAt: spawn.expiresAt },
+            }
+          : q,
+      ),
+    },
+  };
+}
+
 /** Straight-line metres to the quest's target, or null while it waits for one. */
 export function targetDistance(quest: Quest, player: LatLng): number | null {
   return quest.target ? distanceMeters(player, quest.target.position) : null;

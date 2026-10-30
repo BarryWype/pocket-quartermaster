@@ -25,7 +25,7 @@ const MIN = 60_000;
 const hero = (save: SaveData, id = 'bram') => save.heroes.find((h) => h.id === id)!;
 /** Bram (max 35 HP at level 1) at a share of his HP at time 0. */
 const hurt = (share: number, extra: Partial<SaveData> = {}) =>
-  setHeroHp({ ...createInitialSave(), tutorial: { step: 'done', woodSpot: null }, ...extra }, 'bram', share, 0);
+  setHeroHp({ ...createInitialSave(), tutorial: { ...createInitialSave().tutorial, step: 'done' }, ...extra }, 'bram', share, 0);
 
 describe('hero HP', () => {
   it('starts full, with nothing stored', () => {

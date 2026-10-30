@@ -191,6 +191,7 @@ export const fr: Dictionary = {
     covered: 'couvert',
     partial: 'à moitié couvert',
     uncovered: 'non couvert',
+    answered: { covered: 'Réponse trouvée', partial: 'Réponse partielle', uncovered: 'Sans réponse' },
     cost: '{count} vivres',
     approach: { might: 'Might', finesse: 'Finesse', wits: 'Ingéniosité', faith: 'Foi', presence: 'Présence' },
     keyword: {
@@ -464,6 +465,7 @@ export const fr: Dictionary = {
       gatherOnWay: 'Récolter {count} herbes, baies ou champignons en chemin',
       collector: 'Vendre au collectionneur du marché l’objet qu’il recherche',
       walk: 'Marcher {distance}',
+      visit: 'Visiter le lieu marqué sur votre carte',
       mark: 'Trouver l’étrange marque',
     },
   },

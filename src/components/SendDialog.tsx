@@ -4,8 +4,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { heroClasses } from '@/content/heroes';
 import { itemById, opportunityById } from '@/content/lookup';
-import { briefingFor } from '@/game/dungeons/rotation';
-import { dungeonLootSource, launchPlan, type Loadout } from '@/game/expeditions/expeditions';
+import { briefingOf, dungeonLootSource, launchPlan, type Loadout } from '@/game/expeditions/expeditions';
 import { estimateOdds, oddsBand, type OddsBand } from '@/game/expeditions/odds';
 import { mealItems } from '@/game/expeditions/provisions';
 
@@ -126,8 +125,8 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
   // Once a minute is enough, like the odds below.
   const minute = Math.floor(now / 60_000);
   const briefing = useMemo(
-    () => fixedBriefing ?? briefingFor(currentRotation(minute * 60_000), dungeon),
-    [fixedBriefing, minute, dungeon],
+    () => fixedBriefing ?? briefingOf(save, dungeon, currentRotation(minute * 60_000), minute * 60_000),
+    [fixedBriefing, minute, dungeon, save],
   );
   const coverage = useMemo(
     () => briefingCoverage(save, party, briefing, minute * 60_000, optIn),
@@ -172,7 +171,7 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
         <Panel style={styles.dialog}>
           <ScrollView contentContainerStyle={styles.content}>
             <Text style={styles.title}>{t('expeditions.confirm.title', { dungeon: `${dungeon.emoji} ${tr(dungeon.name)}` })}</Text>
-            <ThreatCoverageChips coverage={coverage} />
+            <ThreatCoverageChips coverage={coverage} labelled={save.tutorial.step !== 'done'} />
             {heroes.map((hero) => (
               <View key={hero.id} style={styles.hero}>
                 <View style={styles.heroLine}>

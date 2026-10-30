@@ -1,19 +1,26 @@
 import type { TutorialStep } from '@/game/save';
+import type { Briefing } from '@/game/types';
 import type { MenuTarget, TutorialScreen } from '@/game/tutorial/tutorial';
 
 export const tutorialRules = {
-  /**
-   * The first expedition: only this dungeon can be picked, it shows its real
-   * odds, but it always succeeds, takes a few seconds and pays fixed rewards, plus
-   * the first win of the day (a new blueprint among them).
-   */
-  firstExpedition: {
-    dungeonId: 'ratCellar',
-    seconds: 5,
-    gold: 10,
-    /** A lucky Sigil, so the player meets Sanctums early. It doesn't count as the Bandit Stockade's guaranteed one. */
-    sigilTier: 1,
-  },
+  dungeonId: 'ratCellar',
+  seconds: 5,
+  /** The tutorial expedition's only threat. */
+  briefing: { threats: [{ id: 'beasts', level: 1 }], restriction: null, opportunity: null } satisfies Briefing,
+  swordRecipe: 'sword1',
+  kitRecipe: 'huntersPack',
+  /** Nodes spawned at the start of each gathering step, one material each. */
+  spawns: { gatherWood: ['wood', 'wood', 'wood', 'wood'], gatherKit: ['meat', 'hide', 'bone'] } as Partial<
+    Record<TutorialStep, string[]>
+  >,
+  spawnMeters: [15, 30] as [number, number],
+  spacingMeters: 8,
+  /** Random spots tried per node before taking one off the walkable map. */
+  spawnTries: 40,
+  /** The map zooms out to this when the tutorial ends. */
+  doneZoom: 16,
+  /** The first-win roll is seeded with this, so the run and the skip give the same loot. */
+  lootSeed: 'tutorial',
 };
 
 /**
@@ -21,40 +28,45 @@ export const tutorialRules = {
  * steps without one only show where they name a screen.
  */
 export const tutorialHints: Record<TutorialStep, Partial<Record<TutorialScreen | 'default', string>>> = {
-  collectWood: {
-    map: 'Tap the tree next to you to gather wood.',
+  gatherWood: {
+    map: 'Walk to the trees around you and tap them to gather 4 wood.',
   },
   forgeSword: {
-    default: 'Open Craft → Forge to make a Wooden sword.',
-    forge: 'Tap Forge to make your first Wooden sword.',
+    default: 'Open Craft → Forge.',
+    forge: 'Forge a Wooden sword: you start knowing its blueprint.',
   },
   equipSword: {
-    default: 'Open Team and give the sword to a hero.',
-    team: 'Pick Bram, the warrior: swords suit him best.',
+    default: 'Open Team.',
+    team: 'Bram, warrior: holds the front line. Lyra, ranger: quick and precise. Mira, fire mage: burns whole groups. Give the sword to Bram.',
     hero: 'Tap the Weapon slot and pick the sword.',
   },
+  seeThreat: {
+    default: 'Open Expeditions.',
+    expeditions: 'This expedition faces Beasts. Red: no hero answers it yet. Tap to continue.',
+  },
+  gatherKit: {
+    default: 'Back to the map: gather the meat, hide and bone around you.',
+    map: 'A Hunter’s pack answers Beasts. Gather the meat, hide and bone around you.',
+  },
+  craftKit: {
+    default: 'Open Craft → Provisions.',
+    provisions: 'Craft a Hunter’s pack.',
+  },
+  equipKit: {
+    default: 'Open Expeditions.',
+    expeditions: 'Open the Rat Cellar and give the Hunter’s pack to a hero: the threat turns green.',
+  },
   sendExpedition: {
-    default: 'Open Expeditions and send your team out.',
-    expeditions: 'Send the team to the Rat Cellar. This first trip only takes a few seconds.',
+    default: 'Open Expeditions.',
+    expeditions: 'Send the team. Most expeditions take 15–45 minutes; this one takes a few seconds.',
   },
   awaitReport: {
-    map: 'Your team is away. Gather some animals and herbs while you wait, then collect their loot in Expeditions.',
-    expeditions: 'Your team is under way: the bar shows how far they’ve got. When they’re back, tap Collect loot.',
+    default: 'Your team is on its way. Open Expeditions.',
+    expeditions: 'Your team is on its way. Tap Collect loot when they’re back.',
   },
   readReport: {
-    default: 'Your heroes are back! Open Expeditions to read their report.',
-    expeditions: 'Their report is in the Reports tab: what happened, the loot and the XP earned. Dungeons are where new blueprints come from: the first win of each day always brings one.',
-  },
-  findSanctum: {
-    default: 'Explore the map for a Sanctum to use your Sigil.',
-    map: 'Lucky you: the Rat Cellar gave a Sanctum Sigil! Most expeditions don’t bring one back. Look around for a Sanctum (zoom out to see farther) and tap it.',
-  },
-  sanctumIntro: {
-    sanctum:
-      'Sanctums are elemental shrines with a guardian. Walk within 50 m and spend a Sigil to challenge it with heroes at home: one try, win or lose. A win gives elemental shards to infuse your gear. Guardians are tough: you can come back once your team is stronger. Tap to close.',
-  },
-  outro: {
-    map: 'That’s the loop: gather, forge, equip, send. Beat the Bandit Stockade to earn a pickaxe and mine stone. Tap to close.',
+    default: 'Open Expeditions to read the report.',
+    expeditions: 'Expeditions are where new blueprints come from: the first win of each day always brings one. Tap to close.',
   },
   done: {},
 };
@@ -63,6 +75,9 @@ export const tutorialHints: Record<TutorialStep, Partial<Record<TutorialScreen |
 export const tutorialTargets: Partial<Record<TutorialStep, MenuTarget>> = {
   forgeSword: 'forge',
   equipSword: 'team',
+  seeThreat: 'expeditions',
+  craftKit: 'provisions',
+  equipKit: 'expeditions',
   sendExpedition: 'expeditions',
   awaitReport: 'expeditions',
   readReport: 'expeditions',

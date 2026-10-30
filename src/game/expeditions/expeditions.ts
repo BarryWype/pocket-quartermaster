@@ -11,7 +11,7 @@ import { travellerRules } from '@/content/patrols';
 import { tutorialRules } from '@/content/tutorial';
 
 import { unlockRecipe } from '../crafting/crafting';
-import { guildBonus, rosterCap, sigilCap } from '../guild/guild';
+import { guildBonus, rosterCap } from '../guild/guild';
 import { highestUnlockedTier, isDungeonUnlocked } from '../dungeons/unlock';
 import { briefingFor, openDungeonIds, rotationDay, type Rotation } from '../dungeons/rotation';
 import { createRng, type Rng } from '../generation/rng';
@@ -34,7 +34,7 @@ import { salvage } from '../threats/salvage';
 import { scoreBriefing } from '../threats/score';
 import { partyMeal, penaltyReduction, signatureBriefing } from '../threats/signatures';
 import { pickRecruitClass } from '../taverns/taverns';
-import { isTutorialExpedition } from '../tutorial/tutorial';
+import { isTutorialDungeon, isTutorialExpedition } from '../tutorial/tutorial';
 import type { ActiveExpedition, Briefing, DungeonDef, ExpeditionReport, HeroState, Hunger, OpportunityOutcome, ProvisionDef } from '../types';
 import { buildLog } from './log';
 import { heroSupplyNeed, hungerFor, pickSupply, supplyHeld, type SupplyPick } from './provisions';
@@ -54,13 +54,11 @@ export { highestUnlockedTier, isDungeonUnlocked } from '../dungeons/unlock';
 
 /**
  * Whether the player can send a party there now: unlocked and open in the
- * rotation (if given). The tutorial's dungeon stays open until the tutorial is
- * done, and is the only one for its first expedition.
+ * rotation (if given). During the tutorial only its own dungeon is, until the
+ * tutorial is done.
  */
 export function isDungeonAvailable(save: SaveData, dungeon: DungeonDef, rotation?: Rotation) {
-  const tutorialDungeon = dungeon.id === tutorialRules.firstExpedition.dungeonId;
-  if (isTutorialExpedition(save)) return tutorialDungeon;
-  if (tutorialDungeon && save.tutorial.step !== 'done') return true;
+  if (save.tutorial.step !== 'done') return isTutorialDungeon(dungeon.id);
   // Overnight expeditions are open every day; they only follow their tier's unlock.
   if (dungeon.overnight) return isDungeonUnlocked(save, dungeon);
   return isDungeonUnlocked(save, dungeon) && (!rotation || openDungeonIds(rotation).includes(dungeon.id));
@@ -70,9 +68,9 @@ export function isDungeonAvailable(save: SaveData, dungeon: DungeonDef, rotation
 export const firstWinAvailable = (save: SaveData, dungeon: DungeonDef, now: number) =>
   !dungeon.overnight && save.firstWinDay !== rotationDay(now);
 
-/** Minutes an expedition to this dungeon would take now: Guild Hall time cuts apply; the tutorial's first one takes seconds. */
+/** Minutes an expedition to this dungeon would take now: Guild Hall time cuts apply; the tutorial's takes seconds. */
 export function expeditionMinutes(save: SaveData, dungeon: DungeonDef) {
-  if (isTutorialExpedition(save)) return tutorialRules.firstExpedition.seconds / 60;
+  if (isTutorialExpedition(save)) return tutorialRules.seconds / 60;
   return dungeon.durationMinutes * (1 - guildBonus(save, 'fasterExpeditions'));
 }
 
@@ -158,10 +156,14 @@ export const runProvisions = (hunger: Hunger, loadout: Loadout = {}, briefing: B
 /** Whether a patrol is out right now: only one overnight expedition runs at a time. */
 export const overnightUnderWay = (save: SaveData) => save.expeditions.some((e) => dungeonById[e.dungeonId]?.overnight);
 
-/** The briefing an expedition sets out with: the rotation's, else the day's composed one; the tutorial's is empty. */
-function expeditionBriefing(save: SaveData, dungeon: DungeonDef, rotation: Rotation | undefined, now: number): Briefing {
-  if (isTutorialExpedition(save)) return EMPTY_BRIEFING;
+/** The briefing an expedition sets out with: the rotation's, else the day's composed one; the tutorial's own while it runs. */
+export function briefingOf(save: SaveData, dungeon: DungeonDef, rotation: Rotation | undefined, now: number): Briefing {
+  if (isTutorialDungeon(dungeon.id) && save.tutorial.step !== 'done') return tutorialRules.briefing;
   return rotation ? briefingFor(rotation, dungeon) : composeBriefing(dungeon, rotationDay(now));
+}
+
+function expeditionBriefing(save: SaveData, dungeon: DungeonDef, rotation: Rotation | undefined, now: number): Briefing {
+  return briefingOf(save, dungeon, rotation, now);
 }
 
 export function startExpedition(
@@ -271,6 +273,36 @@ export const dungeonLootSource = (dungeon: DungeonDef): LootSourceId =>
   dungeon.isBoss ? 'tierBoss' : dungeon.overnight ? 'overnightExpedition' : 'dungeonRun';
 
 /**
+ * The tutorial expedition's loot: the day's first-win row, seeded apart from
+ * everything else so the run and skipping give the same, whatever the party.
+ */
+export function tutorialLoot(save: SaveData, now: number): Loot {
+  const dungeon = dungeonById[tutorialRules.dungeonId];
+  const row = lootConfig.bonusRows.firstWin;
+  return rollSourceLoot({
+    source: 'firstWin',
+    tier: dungeon.tier,
+    minutes: dungeon.durationMinutes,
+    luck: 0,
+    modifiers: [],
+    enemies: dungeon.encounters.flatMap((encounter) => (encounter.type === 'fight' ? encounter.mobs.map((m) => m.mobId) : [])),
+    base: { gold: Math.round(dungeon.gold[1] * row.gold), xp: Math.round(dungeon.xp * row.xp) },
+    context: lootContextOf(save),
+    rng: createRng(tutorialRules.lootSeed),
+  });
+}
+
+/** Pays the tutorial expedition's loot out to these heroes (a skip collects it without a run). */
+export function grantTutorialLoot(save: SaveData, heroIds: string[], now: number): SaveData {
+  return grantLoot(
+    { ...save, firstWinDay: rotationDay(now), tutorial: { ...save.tutorial, rewarded: true } },
+    heroIds,
+    tutorialLoot(save, now),
+    now,
+  );
+}
+
+/**
  * The party's consumables that never triggered during the run, broken back
  * down (see threats/salvage.ts): potions nobody needed, kits that changed no
  * threat and never healed, salves whose element never came, elixirs and
@@ -369,8 +401,8 @@ export function resolveExpedition(
   const kept = 1 - run.lostLoot;
   const goldScale = guildGold * traitGold * mealGold;
   const baseGold = Math.round((rng.int(dungeon.gold[0], dungeon.gold[1]) * lootShare * kept * bounty + run.bonusGold) * goldScale);
-  // The tutorial's first expedition pays a fixed reward instead.
-  const tutorialReward = expedition.guaranteed ? tutorialRules.firstExpedition : null;
+  // The tutorial's first expedition pays the day's first-win row instead.
+  const tutorialReward = expedition.guaranteed;
   // Dungeons below the highest unlocked tier teach less.
   const tierShare = xpRules.lowerTierShare[Math.min(xpRules.lowerTierShare.length - 1, highestUnlockedTier(save) - dungeon.tier)];
   const mealXp = meal?.kind === 'xp' ? meal.multiplier : 1;
@@ -381,11 +413,13 @@ export function resolveExpedition(
   // A win rolls its row of the loot matrix, plus the day's first win (dungeons
   // and tier bosses, never overnight expeditions) and a new tier's first clear on top. A
   // loss keeps its share of gold and XP and rolls nothing. The tutorial run
-  // pays its fixed reward and counts as the day's first win.
-  const firstWin = success && !dungeon.overnight && !dungeon.secret && save.firstWinDay !== rotationDay(expedition.endsAt);
+  // pays the first-win row and counts as the day's first win.
+  const firstWin =
+    tutorialReward ||
+    (success && !dungeon.overnight && !dungeon.secret && save.firstWinDay !== rotationDay(expedition.endsAt));
   const firstTierClear =
-    success &&
     !tutorialReward &&
+    success &&
     !dungeon.secret &&
     !save.clearedDungeons.some((id) => dungeonById[id]?.tier === dungeon.tier);
   const context = lootContextOf(save);
@@ -412,8 +446,7 @@ export function resolveExpedition(
   });
   let loot: Loot;
   if (tutorialReward) {
-    loot = { ...emptyLoot(), gold: tutorialReward.gold, xp: Math.round(xp * mealXp) };
-    if (firstWin) loot = mergeLoot(loot, roll('firstWin', bonus('firstWin')));
+    loot = tutorialLoot(save, expedition.endsAt);
   } else if (success) {
     loot = roll(source, { gold: baseGold, xp: Math.round(xp * mealXp) });
     if (firstWin) loot = mergeLoot(loot, roll('firstWin', bonus('firstWin')));
@@ -454,6 +487,7 @@ export function resolveExpedition(
           ? [...save.clearedDungeons, dungeon.id]
           : save.clearedDungeons,
       firstWinDay: firstWin ? rotationDay(expedition.endsAt) : save.firstWinDay,
+      tutorial: { ...save.tutorial, ...(tutorialReward ? { rewarded: true } : {}) },
     },
     expedition.heroIds,
     loot,
@@ -501,14 +535,9 @@ export function resolveExpedition(
     }
   }
 
-  // Sigils: only for wins. The tutorial run always brings one back.
+  // Sigils: only for wins. The tutorial run brings none.
   let sigil: SigilDrop = {};
-  if (tutorialReward) {
-    if (next.sigils.length < sigilCap(next)) {
-      next = { ...next, sigils: [...next.sigils, tutorialReward.sigilTier] };
-      sigil = { sigil: tutorialReward.sigilTier };
-    }
-  } else if (success) {
+  if (!tutorialReward && success) {
     const rolled = rollSigil(next, dungeon, createRng(`${expedition.seed}|sigil`));
     next = rolled.save;
     sigil = rolled.drop;

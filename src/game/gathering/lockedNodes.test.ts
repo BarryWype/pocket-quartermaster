@@ -22,7 +22,7 @@ const oreSpawn = (resourceId: string, i: number): StaticSpawn => ({
 /** Past the tutorial with pickaxes up to `tier`. */
 const withPickaxes = (tier: number): SaveData => {
   const pickaxes = ['woodPickaxe', 'stonePickaxe', 'copperPickaxe', 'ironPickaxe', 'steelPickaxe'].slice(0, tier);
-  return { ...createInitialSave(), tools: pickaxes, tutorial: { step: 'done', woodSpot: null } };
+  return { ...createInitialSave(), tools: pickaxes, tutorial: { ...createInitialSave().tutorial, step: 'done' } };
 };
 
 describe('locked ore nodes', () => {

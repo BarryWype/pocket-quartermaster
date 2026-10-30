@@ -34,7 +34,7 @@ const HOUR = 3_600_000;
 const player = (walkEffects: WalkEffect[] = []): SaveData => ({
   ...createInitialSave(),
   tools: ['woodPickaxe'],
-  tutorial: { step: 'done', woodSpot: null },
+  tutorial: { ...createInitialSave().tutorial, step: 'done' },
   freshGathers: { day: localDayKey(t0), used: gatheringConfig.walkingBonus.gathers },
   walkEffects,
 });

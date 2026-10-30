@@ -7,7 +7,6 @@ import { distanceMeters } from '../generation/geo';
 import type { LatLng, ResourceDef, Spawn } from '../generation/types';
 import { addMaterials } from '../inventory';
 import type { SaveData } from '../save';
-import { limitsToWood, TUTORIAL_SPAWN_ID } from '../tutorial/tutorial';
 import type { MaterialStack } from '../types';
 import { readSpawn } from './lockedNodes';
 import { walkEffectAt } from './walkEffects';
@@ -39,12 +38,10 @@ export function pickaxeTier(save: SaveData) {
 }
 
 /**
- * Whether the player may gather a spawn: only wood early in the tutorial, then
- * anything their pickaxe can handle — including locked ore nodes that read as
- * a minable ore for them (see lockedNodes.ts).
+ * Whether the player may gather a spawn: anything their pickaxe can handle,
+ * including locked ore nodes that read as a minable ore for them (see lockedNodes.ts).
  */
 export function canGather(save: SaveData, spawn: Spawn, resources: ResourceDef[] = defaultResources) {
-  if (limitsToWood(save)) return spawn.kind === 'wood';
   return readSpawn(save, spawn, resources).state !== 'locked';
 }
 
@@ -53,7 +50,6 @@ export function canGather(save: SaveData, spawn: Spawn, resources: ResourceDef[]
  * nodes, which show greyed out with the pickaxe they need.
  */
 export function showsOnMap(save: SaveData, spawn: Spawn) {
-  if (limitsToWood(save)) return spawn.kind === 'wood';
   return true;
 }
 
@@ -87,11 +83,10 @@ export function freshGathersLeft(save: SaveData, timeMs: number, config: Gatheri
 
 /**
  * The walking bonus for one gather: the day's first `gathers` collects yield
- * `multiplier`, rounded up per material. The tutorial's guaranteed wood node
- * never counts. Returns the spend to record, or null when the bonus is out.
+ * `multiplier`, rounded up per material. Returns the spend to record, or null
+ * when the bonus is out.
  */
 export function bonusForGather(save: SaveData, spawn: Spawn, timeMs: number, config: GatheringConfig = gatheringConfig) {
-  if (spawn.id === TUTORIAL_SPAWN_ID) return null;
   if (freshGathersLeft(save, timeMs, config) <= 0) return null;
   return { day: localDayKey(timeMs), used: (save.freshGathers.day === localDayKey(timeMs) ? save.freshGathers.used : 0) + 1 };
 }
@@ -107,7 +102,6 @@ export function collectSpawn(
 
   if (spawn.id in save.collected) return { ok: false, reason: 'collected', distance };
   if (spawn.expiresAt <= timeMs) return { ok: false, reason: 'expired', distance };
-  if (limitsToWood(save) && spawn.kind !== 'wood') return { ok: false, reason: 'needsTool', distance };
   // Locked ore nodes read as the ore the player can mine (converted), or are refused.
   const read = readSpawn(save, spawn, resources);
   if (read.state === 'locked') return { ok: false, reason: 'needsTool', distance };

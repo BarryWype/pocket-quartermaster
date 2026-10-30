@@ -17,6 +17,7 @@ import {
   readyExpeditions,
   resolveExpedition,
   startExpedition,
+  tutorialLoot,
 } from './expeditions';
 import { estimateOdds, oddsBand } from './odds';
 
@@ -24,12 +25,17 @@ const ALL = ['bram', 'lyra', 'mira'];
 const MIN = 60_000;
 const BOSSES = dungeons.filter((d) => d.isBoss).map((d) => d.id);
 
-/** Every tier revealed, so any dungeon can be started. */
-const allTiers = (save: SaveData): SaveData => ({ ...save, clearedDungeons: BOSSES });
+/** Every tier revealed and the tutorial done, so any dungeon can be started. */
+const allTiers = (save: SaveData): SaveData => ({
+  ...save,
+  clearedDungeons: BOSSES,
+  tutorial: { ...save.tutorial, step: 'done' },
+});
 
 function geared(): SaveData {
   let save: SaveData = allTiers({
     ...createInitialSave(),
+    tutorial: { ...createInitialSave().tutorial, step: 'done' },
     gear: [
       { uid: 'g1', itemId: 'sword1', quality: 'normal' },
       { uid: 'g2', itemId: 'bow1', quality: 'normal' },
@@ -102,13 +108,13 @@ describe('startExpedition', () => {
   });
 
   it('rejects busy heroes and empty parties', () => {
-    const save = startExpedition(createInitialSave(), 'goblinWarren', ['bram'], 0);
+    const save = startExpedition(allTiers(createInitialSave()), 'goblinWarren', ['bram'], 0);
     expect(() => startExpedition(save, 'goblinWarren', ['bram', 'lyra'], 0)).toThrow();
     expect(() => startExpedition(save, 'goblinWarren', [], 0)).toThrow();
   });
 
   it('stands the escort down when its hero is sent', () => {
-    const save = { ...createInitialSave(), escort: { heroId: 'bram' } };
+    const save = { ...allTiers(createInitialSave()), escort: { heroId: 'bram' } };
     expect(startExpedition(save, 'goblinWarren', ['bram'], 0).escort).toBeNull();
     expect(startExpedition(save, 'goblinWarren', ['lyra'], 0).escort).toEqual({ heroId: 'bram' });
   });
@@ -307,7 +313,7 @@ describe('tutorial expedition', () => {
     const save: SaveData = {
       ...createInitialSave(),
       gear: [{ uid: 'g1', itemId: 'sword1', quality: 'normal' }],
-      tutorial: { step: 'sendExpedition', woodSpot: null },
+      tutorial: { ...createInitialSave().tutorial, step: 'sendExpedition' },
     };
     return equip(save, 'bram', 'weapon', 'g1');
   };
@@ -340,35 +346,26 @@ describe('tutorial expedition', () => {
     ]);
   });
 
-  it('pays a little gold, the first win of the day with a third blueprint, and a tier 1 Sigil', () => {
+  it('pays the day’s first win: one new tier 1 blueprint, and no Sigil', () => {
     const before = tutorialSave();
     const started = startExpedition(before, 'ratCellar', ALL, 0);
     const { save, report } = resolveExpedition(started, started.expeditions[0]);
     expect(report.firstWin).toBe(true);
     expect(save.firstWinDay).toBe(rotationDay(5000));
-    expect(report.gold).toBeGreaterThanOrEqual(10);
+    expect(report.loot).toEqual(tutorialLoot(before, 5000));
     expect(report.loot.recipeIds).toHaveLength(1);
     const [blueprint] = report.loot.recipeIds;
     expect(before.knownRecipes).not.toContain(blueprint);
     expect(blueprint).toMatch(/1$/);
     expect(save.knownRecipes.filter((id) => forgedItem(recipeById[id])?.tier === 1)).toHaveLength(3);
-    expect(report.sigil).toBe(1);
-    expect(save.sigils).toEqual([1]);
-    // The first Bandit Stockade win still guarantees its own Sigil.
-    expect(save.firstSigilGiven).toBe(false);
-  });
-
-  it('respects the Sigil cap', () => {
-    const full = { ...tutorialSave(), sigils: [1, 1, 1] };
-    const started = startExpedition(full, 'ratCellar', ALL, 0);
-    const { save, report } = resolveExpedition(started, started.expeditions[0]);
     expect(report.sigil).toBeUndefined();
-    expect(save.sigils).toEqual([1, 1, 1]);
+    expect(save.sigils).toEqual([]);
   });
 
-  it('only applies to the first expedition', () => {
-    expect(expeditionMinutes(createInitialSave(), dungeonById.banditStockade)).toBe(30);
-    expect(startExpedition(createInitialSave(), 'ratCellar', ALL, 0).expeditions[0].guaranteed).toBe(false);
+  it('only applies to the tutorial expedition', () => {
+    const done = allTiers(createInitialSave());
+    expect(expeditionMinutes(done, dungeonById.banditStockade)).toBe(30);
+    expect(startExpedition(done, 'ratCellar', ALL, 0).expeditions[0].guaranteed).toBe(false);
   });
 });
 

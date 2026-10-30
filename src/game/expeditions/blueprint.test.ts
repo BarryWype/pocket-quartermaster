@@ -12,7 +12,7 @@ const ratCellar = dungeons.find((d) => d.id === 'ratCellar')!;
 function saveWith(known: string[], extra: Partial<SaveData> = {}): SaveData {
   return {
     ...createInitialSave(),
-    tutorial: { step: 'done', woodSpot: null },
+    tutorial: { ...createInitialSave().tutorial, step: 'done' },
     knownRecipes: [...createInitialSave().knownRecipes, ...known],
     heroes: createInitialSave().heroes.map((h) => ({ ...h, level: 20 })),
     ...extra,

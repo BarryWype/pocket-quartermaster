@@ -143,7 +143,7 @@ describe('availability', () => {
   const rotation: Rotation = applyOverrides(dailyRotation(START), {
     slots: { '1:short': 'spiderBurrow', '1:long': 'millRuins', '2:short': 'wolfDen' },
   });
-  const done = (save: SaveData): SaveData => ({ ...save, tutorial: { step: 'done', woodSpot: null } });
+  const done = (save: SaveData): SaveData => ({ ...save, tutorial: { ...createInitialSave().tutorial, step: 'done' } });
 
   it('opens only today’s dungeons, plus the bosses', () => {
     const save = done(createInitialSave());
@@ -160,7 +160,7 @@ describe('availability', () => {
   });
 
   it('keeps the tutorial dungeon open until the tutorial is done', () => {
-    const during: SaveData = { ...createInitialSave(), tutorial: { step: 'awaitReport', woodSpot: null } };
+    const during: SaveData = { ...createInitialSave(), tutorial: { ...createInitialSave().tutorial, step: 'awaitReport' } };
     expect(isDungeonAvailable(during, dungeonById.ratCellar, rotation)).toBe(true);
     expect(isDungeonAvailable(done(during), dungeonById.ratCellar, rotation)).toBe(false);
   });

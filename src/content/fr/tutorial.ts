@@ -1,40 +1,45 @@
 import type { tutorialHints } from '../tutorial';
 
 export const frTutorialHints: typeof tutorialHints = {
-  collectWood: {
-    map: 'Touchez l’arbre à côté de vous pour récolter du bois.',
+  gatherWood: {
+    map: 'Marchez jusqu’aux arbres autour de vous et touchez-les pour récolter 4 bois.',
   },
   forgeSword: {
-    default: 'Ouvrez Artisanat → Forge pour fabriquer une épée en bois.',
-    forge: 'Touchez Forger pour fabriquer votre première épée en bois.',
+    default: 'Ouvrez Artisanat → Forge.',
+    forge: 'Forgez une épée en bois : vous connaissez déjà son plan.',
   },
   equipSword: {
-    default: 'Ouvrez Équipe et donnez l’épée à un héros.',
-    team: 'Choisissez Bram, le guerrier : les épées lui vont le mieux.',
+    default: 'Ouvrez Équipe.',
+    team: 'Bram, guerrier : tient la première ligne. Lyra, rôdeuse : rapide et précise. Mira, mage de feu : brûle des groupes entiers. Donnez l’épée à Bram.',
     hero: 'Touchez l’emplacement Arme et choisissez l’épée.',
   },
+  seeThreat: {
+    default: 'Ouvrez Expéditions.',
+    expeditions: 'Cette expédition affronte des Bêtes. En rouge : aucun héros n’y répond encore. Touchez pour continuer.',
+  },
+  gatherKit: {
+    default: 'Retournez à la carte : récoltez la viande, la peau et l’os autour de vous.',
+    map: 'Un Paquetage du chasseur répond aux Bêtes. Récoltez la viande, la peau et l’os autour de vous.',
+  },
+  craftKit: {
+    default: 'Ouvrez Artisanat → Provisions.',
+    provisions: 'Fabriquez un Paquetage du chasseur.',
+  },
+  equipKit: {
+    default: 'Ouvrez Expéditions.',
+    expeditions: 'Ouvrez la Cave aux rats et donnez le Paquetage du chasseur à un héros : la menace passe au vert.',
+  },
   sendExpedition: {
-    default: 'Ouvrez Expéditions et envoyez votre équipe.',
-    expeditions: 'Envoyez l’équipe à la Cave aux rats. Ce premier voyage ne dure que quelques secondes.',
+    default: 'Ouvrez Expéditions.',
+    expeditions: 'Envoyez l’équipe. La plupart des expéditions durent 15 à 45 minutes ; celle-ci prend quelques secondes.',
   },
   awaitReport: {
-    map: 'Votre équipe est partie. Récoltez des animaux et des herbes en attendant, puis récupérez son butin dans Expéditions.',
-    expeditions: 'Votre équipe est en route : la barre montre sa progression. À son retour, touchez Récupérer le butin.',
+    default: 'Votre équipe est en route. Ouvrez Expéditions.',
+    expeditions: 'Votre équipe est en route. Touchez Récupérer le butin à son retour.',
   },
   readReport: {
-    default: 'Vos héros sont de retour ! Ouvrez Expéditions pour lire leur rapport.',
-    expeditions: 'Leur rapport est dans l’onglet Rapports : ce qui s’est passé, le butin et l’XP gagnée. Les donjons sont la source des nouveaux plans : la première victoire de chaque jour en rapporte toujours un.',
-  },
-  findSanctum: {
-    default: 'Explorez la carte pour trouver un Sanctuaire où utiliser votre Sceau.',
-    map: 'Quelle chance : la Cave aux rats a donné un Sceau de Sanctuaire ! La plupart des expéditions n’en rapportent pas. Cherchez un Sanctuaire autour de vous (dézoomez pour voir plus loin) et touchez-le.',
-  },
-  sanctumIntro: {
-    sanctum:
-      'Les Sanctuaires sont des autels élémentaires gardés par un gardien. Approchez-vous à moins de 50 m et dépensez un Sceau pour le défier avec les héros présents : un seul essai, victoire ou défaite. Une victoire donne des éclats élémentaires pour imprégner votre équipement. Les gardiens sont coriaces : vous pourrez revenir quand votre équipe sera plus forte. Touchez pour fermer.',
-  },
-  outro: {
-    map: 'Voilà la boucle : récolter, forger, équiper, envoyer. Battez la Palissade des bandits pour gagner une pioche et extraire de la pierre. Touchez pour fermer.',
+    default: 'Ouvrez Expéditions pour lire le rapport.',
+    expeditions: 'Les expéditions sont la source des nouveaux plans : la première victoire de chaque jour en rapporte toujours un. Touchez pour fermer.',
   },
   done: {},
 };

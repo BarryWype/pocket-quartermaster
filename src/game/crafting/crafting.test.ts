@@ -269,7 +269,7 @@ describe('debug recipe tools', () => {
 });
 
 describe('forging without a fee', () => {
-  const done = { tutorial: { step: 'done' as const, woodSpot: null } };
+  const done = { tutorial: { ...createInitialSave().tutorial, step: 'done' as const } };
   const known = (ids: string[]) => [...createInitialSave().knownRecipes, ...ids];
 
   it('only needs known recipes and materials, whatever the gold', () => {

@@ -186,6 +186,7 @@ export const en = {
     covered: 'covered',
     partial: 'partly covered',
     uncovered: 'not covered',
+    answered: { covered: 'Answered', partial: 'Partly answered', uncovered: 'Not answered' },
     cost: '{count} supply',
     approach: { might: 'Might', finesse: 'Finesse', wits: 'Wits', faith: 'Faith', presence: 'Presence' },
     keyword: {
@@ -456,6 +457,7 @@ export const en = {
       gatherOnWay: 'Gather {count} herbs, berries or mushrooms on the way',
       collector: 'Sell the collector’s wanted valuable at the market',
       walk: 'Walk {distance}',
+      visit: 'Visit the place marked on your map',
       mark: 'Find the strange mark',
     },
   },

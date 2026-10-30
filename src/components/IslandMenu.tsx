@@ -17,7 +17,7 @@ type MenuLink = { icon: ImageSourcePropType; label: TextKey; href: Href; target?
 
 const CRAFT_LINKS: MenuLink[] = [
   { icon: require('../../assets/icons/scaled/menu-forge.png'), label: 'screens.forge', href: '/forge', target: 'forge' },
-  { icon: require('../../assets/icons/scaled/menu-alchemy.png'), label: 'screens.provisions', href: '/provisions' },
+  { icon: require('../../assets/icons/scaled/menu-alchemy.png'), label: 'screens.provisions', href: '/provisions', target: 'provisions' },
   { icon: require('../../assets/icons/scaled/menu-inventory.png'), label: 'screens.inventory', href: '/inventory' },
 ];
 

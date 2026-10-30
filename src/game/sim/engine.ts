@@ -29,7 +29,8 @@ import { createInitialSave, type SaveData } from '../save';
 import { generateTavernsAround } from '../taverns/taverns';
 import { currentHp, isExhausted } from '../team/health';
 import { equip } from '../team/team';
-import { advanceTutorial, finishTutorial } from '../tutorial/tutorial';
+import { advanceTutorial, finishTutorial, nextTutorialStep } from '../tutorial/tutorial';
+import { collectTutorialSpawn, placeTutorialSpawns, shownTutorialSpawns } from '../tutorial/spawns';
 import { addMaterials } from '../inventory';
 import type { LootSourceId } from '../loot/types';
 import { pruneExpired, rollDailyApproaches } from '../upkeep';
@@ -94,19 +95,35 @@ export function checkSave(save: SaveData) {
   }
 }
 
-/** The tutorial, through the same functions the screens call, then skipped to the end. */
+/** The tutorial, through the same pure functions the screens call, played out at the sim's spot. */
 function playTutorial(sim: Sim) {
-  const wood = recipeById.sword1.inputs[0].amount;
-  // The guaranteed tutorial node gives exactly the sword's wood.
-  if ((sim.save.materials.wood ?? 0) < wood) act(sim, 'walk', (save) => ({ ...save, materials: { ...save.materials, wood } }));
-  sim.save = advanceTutorial(sim.save);
+  const warrior = sim.save.heroes.find((h) => h.classId === 'warrior')!;
+  const pick = () => {
+    for (const spawn of shownTutorialSpawns(sim.save)) {
+      const result = collectTutorialSpawn(sim.save, spawn.id, sim.location, sim.now, { anywhere: true });
+      if (result.ok) sim.save = result.save;
+    }
+    sim.save = advanceTutorial(sim.save);
+  };
+
+  sim.save = placeTutorialSpawns(sim.save, sim.location, null, sim.now);
+  pick();
   act(sim, 'forge', (save) => craft(save, recipeById.sword1));
   const sword = sim.save.gear[sim.save.gear.length - 1];
+  const wood = recipeById.sword1.inputs[0].amount;
   sim.log.crafts.push({ day: sim.day, kind: 'tutorial', itemId: sword.itemId, tier: 1, quality: sword.quality, roll: rollToScale(sword.roll ?? 1), mastery: masteryOf(sim.save, 'sword').level, materials: { wood: -wood } });
-  sim.save = advanceTutorial(equip(sim.save, sim.save.heroes[0].id, 'weapon', sword.uid));
-  sim.save = startExpedition(sim.save, tutorialRules.firstExpedition.dungeonId, sim.save.heroes.map((h) => h.id), sim.now, 1, sim.rotation);
+  sim.save = advanceTutorial(equip(sim.save, warrior.id, 'weapon', sword.uid));
+  sim.save = nextTutorialStep(sim.save, 'seeThreat', sim.now);
+
+  sim.save = placeTutorialSpawns(sim.save, sim.location, null, sim.now);
+  pick();
+  act(sim, 'provisions', (save) => craft(save, recipeById.huntersPack));
+  sim.save = advanceTutorial(equip(sim.save, sim.save.heroes[0].id, 'consumable', tutorialRules.kitRecipe));
+  sim.save = advanceTutorial(sim.save);
+  sim.save = startExpedition(sim.save, tutorialRules.dungeonId, sim.save.heroes.map((h) => h.id), sim.now, 1, sim.rotation);
   collectExpedition(sim, sim.save.expeditions[0]);
-  sim.save = finishTutorial(sim.save);
+  sim.save = nextTutorialStep(sim.save, 'readReport', sim.now);
+  sim.save = finishTutorial(sim.save, sim.now);
 }
 
 /** A walk's materials at measured rates; its first gathers of the day get the walking bonus (logged as `<source>Bonus`). */

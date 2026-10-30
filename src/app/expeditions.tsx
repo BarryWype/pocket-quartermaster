@@ -22,8 +22,8 @@ import { dungeonById } from '@/content/lookup';
 import { provisionRules } from '@/content/provisions';
 import { narrowPartySize } from '@/content/threats';
 import { tutorialRules } from '@/content/tutorial';
-import { briefingFor, nextRotationAt, rotationDay } from '@/game/dungeons/rotation';
-import { expeditionMinutes, isDungeonUnlocked, readyExpeditions, type Loadout } from '@/game/expeditions/expeditions';
+import { nextRotationAt, rotationDay } from '@/game/dungeons/rotation';
+import { briefingOf, expeditionMinutes, isDungeonUnlocked, readyExpeditions, type Loadout } from '@/game/expeditions/expeditions';
 import { estimateOdds } from '@/game/expeditions/odds';
 import { isRevealed } from '@/game/reveal/reveal';
 import { supplyHeld } from '@/game/expeditions/provisions';
@@ -133,8 +133,8 @@ export default function ExpeditionsScreen() {
   const dungeonsShown = isRevealed(save, 'dungeons');
   const open = useMemo(() => {
     const ids = dungeonsShown ? Object.values(rotation.tiers).flatMap((t) => [t.short, t.long, t.boss]) : [];
-    if (save.tutorial.step !== 'done' && !ids.includes(tutorialRules.firstExpedition.dungeonId)) {
-      ids.unshift(tutorialRules.firstExpedition.dungeonId);
+    if (save.tutorial.step !== 'done' && !ids.includes(tutorialRules.dungeonId)) {
+      ids.unshift(tutorialRules.dungeonId);
     }
     return ids
       .map((id) => dungeonById[id])
@@ -160,7 +160,7 @@ export default function ExpeditionsScreen() {
       Object.fromEntries(
         [...shown, ...(shownOvernight ? [shownOvernight] : [])].map((d) => [
           d.id,
-          estimateOdds(save, party, d, undefined, { now: minute * 60_000, briefing: briefingFor(rotation, d) }),
+          estimateOdds(save, party, d, undefined, { now: minute * 60_000, briefing: briefingOf(save, d, rotation, minute * 60_000) }),
         ]),
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -172,8 +172,10 @@ export default function ExpeditionsScreen() {
   // The focused dungeon's briefing, when its card is open: what the party faces there today.
   const focusedDungeon = open.find((d) => d.id === focused);
   const focusedBriefing = useMemo(
-    () => (focusedDungeon ? briefingFor(rotation, focusedDungeon) : null),
-    [rotation, focusedDungeon],
+    () => (focusedDungeon ? briefingOf(save, focusedDungeon, rotation, minute * 60_000) : null),
+    // The tutorial's briefing ends with the tutorial.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rotation, focusedDungeon, minute, save.tutorial.step],
   );
   const coverage = useMemo(
     () => (focusedBriefing && party.length > 0 ? briefingCoverage(save, party, focusedBriefing, minute * 60_000) : null),

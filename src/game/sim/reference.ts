@@ -23,7 +23,7 @@ export function referenceTeam(classes: HeroClassId[], tier: number, quality: Qua
   const armour = items.find((i) => i.slot === 'armor' && i.tier === tier)!;
   let save: SaveData = {
     ...createInitialSave(),
-    tutorial: { step: 'done', woodSpot: null },
+    tutorial: { ...createInitialSave().tutorial, step: 'done' },
     heroes,
     consumables: { ...createInitialSave().consumables, healingPotion: classes.length },
     gear: classes.flatMap((classId, i) => [

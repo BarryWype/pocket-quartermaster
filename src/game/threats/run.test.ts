@@ -461,7 +461,7 @@ describe('salvage and consumables', () => {
     for (let i = 0; i < 10; i++) {
       let save: SaveData = {
         ...createInitialSave(),
-        tutorial: { step: 'done', woodSpot: null },
+        tutorial: { ...createInitialSave().tutorial, step: 'done' },
         consumables: { ...createInitialSave().consumables, emberWardSalve: 1, trailMix: 30 },
         nextUid: 400 + i,
       };
@@ -569,7 +569,7 @@ describe('patrol threats', () => {
 function geared(consumables: Record<string, number> = {}): SaveData {
   let save: SaveData = {
     ...createInitialSave(),
-    tutorial: { step: 'done', woodSpot: null },
+    tutorial: { ...createInitialSave().tutorial, step: 'done' },
     consumables: { ...createInitialSave().consumables, trailMix: 30, ...consumables },
     heroes: createInitialSave().heroes.map((h) => ({ ...h, level: 30 })),
     gear: [

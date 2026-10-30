@@ -19,7 +19,7 @@ const DAY = rotationDay(0);
 function team(tier: number, level: number): SaveData {
   let save: SaveData = {
     ...createInitialSave(),
-    tutorial: { step: 'done', woodSpot: null },
+    tutorial: { ...createInitialSave().tutorial, step: 'done' },
     clearedDungeons: ['banditStockade', 'ogreQuarry', 'drownedCrypt', 'giantsHall'],
     heroes: createInitialSave().heroes.map((h) => ({ ...h, level })),
     consumables: { ...createInitialSave().consumables, healingPotion: 3 },

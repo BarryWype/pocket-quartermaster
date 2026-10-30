@@ -32,16 +32,27 @@ import type {
 
 /** The first-session walkthrough, in order. Each step waits for one player action. */
 export type TutorialStep =
-  | 'collectWood'
+  | 'gatherWood'
   | 'forgeSword'
   | 'equipSword'
+  | 'seeThreat'
+  | 'gatherKit'
+  | 'craftKit'
+  | 'equipKit'
   | 'sendExpedition'
   | 'awaitReport'
   | 'readReport'
-  | 'findSanctum'
-  | 'sanctumIntro'
-  | 'outro'
   | 'done';
+
+/** One node the tutorial spawned on the map for this player. */
+export type TutorialSpawn = {
+  id: string;
+  materialId: string;
+  /** Null when location is off: only "Collect from here" reaches it. */
+  position: LatLng | null;
+  spawnedAt: number;
+  collected: boolean;
+};
 
 export type SaveData = {
   gold: number;
@@ -61,8 +72,12 @@ export type SaveData = {
   collected: Record<string, number>;
   tutorial: {
     step: TutorialStep;
-    /** Where the guaranteed first wood node sits, set from the first GPS fix. */
-    woodSpot: LatLng | null;
+    /** The nodes spawned for this player, both phases; kept once picked up. */
+    spawns: TutorialSpawn[];
+    /** When a tutorial node was last picked up. */
+    lastPickupAt: number | null;
+    /** The tutorial expedition's loot was given (by the run, or by skipping). */
+    rewarded: boolean;
   };
   /** Steps counted while the app was open today (Android has no step history). */
   steps: { day: string; count: number };
@@ -172,7 +187,7 @@ export function createInitialSave(): SaveData {
     clearedDungeons: [],
     knownRecipes: [...new Set([...recipes.filter((r) => r.unlockedByDefault).map((r) => r.id), ...startingRecipes])],
     collected: {},
-    tutorial: { step: 'collectWood', woodSpot: null },
+    tutorial: { step: 'gatherWood', spawns: [], lastPickupAt: null, rewarded: false },
     steps: { day: '', count: 0 },
     chests: { day: '', opened: [] },
     sigils: [],

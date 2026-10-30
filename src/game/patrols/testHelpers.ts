@@ -11,7 +11,7 @@ export const T0 = Date.UTC(2026, 9, 20, 9);
 export function tierTeam(tier = 1): SaveData {
   let save: SaveData = {
     ...createInitialSave(),
-    tutorial: { step: 'done', woodSpot: null },
+    tutorial: { ...createInitialSave().tutorial, step: 'done' },
     heroes: createInitialSave().heroes.map((h) => ({ ...h, level: expectedLevels[tier - 1] })),
     gear: ['sword', 'bow', 'wand', 'mail', 'mail', 'mail'].map((type, i) => ({ uid: `g${i}`, itemId: `${type}${tier}`, quality: 'normal' as const })),
   };

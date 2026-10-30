@@ -50,7 +50,7 @@ export function walkCacheKey(config: SimConfig = simConfig) {
 export function measureWalkRates(config: SimConfig = simConfig): WalkRates {
   const { samples, sampleHours, sampleMinutes } = config.walk;
   const measure = (tools: string[]) => {
-    const save = { ...createInitialSave(), tools, tutorial: { step: 'done' as const, woodSpot: null } };
+    const save = { ...createInitialSave(), tools, tutorial: { ...createInitialSave().tutorial, step: 'done' as const } };
     const totals: Record<string, number> = {};
     const nodes = { converted: {} as Record<number, number>, greyed: {} as Record<number, number> };
     let gathers = 0;

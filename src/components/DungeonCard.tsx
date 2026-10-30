@@ -3,10 +3,12 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { dungeonById, itemById } from '@/content/lookup';
 import { placeInfo } from '@/content/places';
 import { weaknessByBoss } from '@/content/weaknesses';
-import { briefingFor, type Rotation } from '@/game/dungeons/rotation';
-import { firstWinAvailable, isDungeonAvailable } from '@/game/expeditions/expeditions';
+import type { Rotation } from '@/game/dungeons/rotation';
+import { briefingOf, firstWinAvailable, isDungeonAvailable } from '@/game/expeditions/expeditions';
 import { oddsBand } from '@/game/expeditions/odds';
 import type { SaveData } from '@/game/save';
+import { briefingCoverage } from '@/game/threats/coverage';
+import { isTutorialDungeon } from '@/game/tutorial/tutorial';
 import type { DungeonDef } from '@/game/types';
 import { formatDuration, formatPercent, t, tr } from '@/i18n';
 import { colors, pixel } from '@/theme';
@@ -17,6 +19,7 @@ import { EnemyTags } from './EnemyTags';
 import { IconSlot } from './Row';
 import { ODDS_COLORS } from './SendDialog';
 import { Text } from './Text';
+import { ThreatCoverageChips } from './ThreatDetail';
 
 type Props = {
   save: SaveData;
@@ -37,6 +40,9 @@ export function DungeonCard({ save, dungeon, rotation, now, durationMs, chance, 
   const available = isDungeonAvailable(save, dungeon, rotation);
   const newTier = !save.clearedDungeons.some((id) => dungeonById[id]?.tier === dungeon.tier);
   const firstWin = firstWinAvailable(save, dungeon, now);
+  const briefing = briefingOf(save, dungeon, rotation, now);
+  // The tutorial shows its threat up front, against the whole roster: red until a hero carries the kit.
+  const tutorial = save.tutorial.step !== 'done' && isTutorialDungeon(dungeon.id);
   const kind = dungeon.isBoss ? 'boss' : dungeon.slot === 'short' ? 'short' : 'long';
   const weakness = dungeon.isBoss ? weaknessByBoss[dungeon.boss.id] : undefined;
   const weaknessHeld =
@@ -68,11 +74,17 @@ export function DungeonCard({ save, dungeon, rotation, now, durationMs, chance, 
         )}
         <Text style={styles.chevron}>{expanded ? '▾' : '▸'}</Text>
       </View>
+      {tutorial && (
+        <ThreatCoverageChips
+          coverage={briefingCoverage(save, save.heroes.map((h) => h.id), briefing, now, false)}
+          labelled
+        />
+      )}
 
       {expanded && (
         <View style={styles.details}>
           {band && <Text style={styles.muted}>{t(`odds.${band}`)} · {t('expeditions.tips.odds')}</Text>}
-          <BriefingChips briefing={briefingFor(rotation, dungeon)} />
+          {!tutorial && <BriefingChips briefing={briefing} />}
           <View style={styles.foe}>
             <Text style={[styles.line, styles.muted]}>{t('expeditions.boss')}</Text>
             <EnemyTags mob={dungeon.boss} />

@@ -1,10 +1,9 @@
 import { gatheringConfig } from '@/content/gatheringConfig';
 import { resources } from '@/content/resources';
 
-import type { Spawn, StaticSpawn } from '../generation/types';
+import type { StaticSpawn } from '../generation/types';
 import { createInitialSave, type SaveData } from '../save';
-import { TUTORIAL_SPAWN_ID, tutorialSpawns } from '../tutorial/tutorial';
-import { bonusForGather, collectSpawn, freshGathersLeft, localDayKey } from './gathering';
+import { collectSpawn, freshGathersLeft, localDayKey } from './gathering';
 
 const NOW = Date.UTC(2026, 5, 10, 9);
 const LATER = NOW + 7 * 24 * 3_600_000;
@@ -26,7 +25,7 @@ const spawnOf = (resourceId: string, id: string): StaticSpawn => ({
 /** Past the tutorial, with the day's bonus gathers optionally already spent. */
 const saveSpent = (spent: boolean): SaveData => ({
   ...createInitialSave(),
-  tutorial: { step: 'done', woodSpot: null },
+  tutorial: { ...createInitialSave().tutorial, step: 'done' },
   freshGathers: spent ? { day: localDayKey(NOW), used: bonus.gathers } : { day: '', used: 0 },
 });
 
@@ -61,20 +60,6 @@ describe('daily walking bonus', () => {
     expect(freshGathersLeft(save, tomorrow)).toBe(bonus.gathers);
     const again = collectSpawn(save, spawnOf('tree', 'wood:next'), at, tomorrow);
     expect(again.ok && again.gained).toEqual([{ materialId: 'wood', amount: Math.ceil(bonus.multiplier) }]);
-  });
-
-  it('never counts the tutorial’s guaranteed wood node', () => {
-    const save = { ...createInitialSave(), tutorial: { ...createInitialSave().tutorial, woodSpot: { latitude: 0, longitude: 0 } } };
-    const [tutorial] = tutorialSpawns(save) as Spawn[];
-    expect(tutorial.id).toBe(TUTORIAL_SPAWN_ID);
-    const result = collectSpawn(save, tutorial, at, NOW);
-    if (!result.ok) throw new Error(result.reason);
-    // The yield is not multiplied, and the bonus gather budget is untouched.
-    const wood = result.gained.find((g) => g.materialId === 'wood')!;
-    expect(wood.amount).toBe(result.gained.reduce((s, g) => s + g.amount, 0) / result.gained.length);
-    expect(result.gained.every((g) => g.amount === tutorial.quantity)).toBe(true);
-    expect(freshGathersLeft(result.save, NOW)).toBe(bonus.gathers);
-    expect(bonusForGather(result.save, tutorial, NOW)).toBeNull();
   });
 
   it('keys the day on the player’s local calendar date', () => {

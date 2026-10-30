@@ -13,7 +13,7 @@ const now = 1_000_000;
 const withPickaxe = (tools = ['woodPickaxe']): SaveData => ({
   ...createInitialSave(),
   tools,
-  tutorial: { step: 'done', woodSpot: null },
+  tutorial: { ...createInitialSave().tutorial, step: 'done' },
   freshGathers: { day: localDayKey(now), used: gatheringConfig.walkingBonus.gathers },
 });
 
@@ -101,12 +101,12 @@ describe('collectSpawn', () => {
   });
 });
 
-describe('tool and tutorial gating', () => {
-  it('only allows wood during the tutorial', () => {
+describe('tool gating', () => {
+  it('gathers wood and animals from the start, ores behind the pickaxe', () => {
     const fresh = createInitialSave();
     expect(canGather(fresh, treeSpawn)).toBe(true);
     expect(canGather(fresh, stoneSpawn)).toBe(false);
-    expect(canGather(fresh, deerSpawn)).toBe(false);
+    expect(canGather(fresh, deerSpawn)).toBe(true);
   });
 
   it('opens each ore at its pickaxe tier, locked ones by their spawn id’s hash', () => {

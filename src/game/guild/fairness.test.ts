@@ -17,7 +17,7 @@ const ALL = ['bram', 'lyra', 'mira'];
 const READS_GUILD = /guild\/guild|content\/guild|guildBonus|guildRank|\.guild\b/;
 const BOSSES = ['banditStockade', 'ogreQuarry', 'drownedCrypt', 'giantsHall'];
 
-const plain: SaveData = { ...createInitialSave(), tutorial: { step: 'done', woodSpot: null }, clearedDungeons: BOSSES };
+const plain: SaveData = { ...createInitialSave(), tutorial: { ...createInitialSave().tutorial, step: 'done' }, clearedDungeons: BOSSES };
 const maxed: SaveData = {
   ...plain,
   guild: Object.fromEntries(guildTracks.map((t) => [t.id, t.ranks])) as Partial<Record<GuildTrackId, number>>,

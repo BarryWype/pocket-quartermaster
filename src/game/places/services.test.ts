@@ -47,7 +47,7 @@ const spawnOf = (kind: PlaceKind, id = `${kind}:0`, position = at): PlaceSpawn =
 });
 
 /** A fresh save, tutorial done, with every hero home. */
-const base = (): SaveData => ({ ...createInitialSave(), tutorial: { step: 'done', woodSpot: null } });
+const base = (): SaveData => ({ ...createInitialSave(), tutorial: { ...createInitialSave().tutorial, step: 'done' } });
 const hero = (save: SaveData, id = 'bram') => save.heroes.find((h) => h.id === id)!;
 
 describe('map place services', () => {

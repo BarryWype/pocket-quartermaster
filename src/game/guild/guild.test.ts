@@ -27,7 +27,7 @@ const totalXp = (h: { level: number; xp: number }) =>
 function hall(tier = 1, extra: Partial<SaveData> = {}): SaveData {
   return {
     ...createInitialSave(),
-    tutorial: { step: 'done', woodSpot: null },
+    tutorial: { ...createInitialSave().tutorial, step: 'done' },
     clearedDungeons: BOSSES.slice(0, tier),
     gold: 100_000,
     materials: { wood: 100, stone: 100, copper: 100, iron: 100, steel: 100 },
@@ -171,7 +171,7 @@ describe('effects', () => {
     expect(started.expeditions[0].endsAt - 1234).toBe(Math.round(15 * 60 * 0.7) * 1000);
     // Buying more later doesn't touch an expedition already under way.
     expect(withRanks({ fasterExpeditions: 3 }, { ...started, guild: {} }).expeditions[0]).toEqual(started.expeditions[0]);
-    const tutorial = { ...save, tutorial: { step: 'sendExpedition' as const, woodSpot: null } };
+    const tutorial = { ...save, tutorial: { ...createInitialSave().tutorial, step: 'sendExpedition' as const } };
     expect(expeditionMinutes(tutorial, dungeonById.ratCellar) * 60).toBe(5);
   });
 
@@ -274,7 +274,7 @@ describe('training', () => {
     const after = applyTraining(away, 2 * HOUR);
     expect(after.heroes.find((h) => h.id === 'bram')!.xp).toBe(0);
     expect(after.heroes.find((h) => h.id === 'lyra')!.xp).toBe(12);
-    expect(applyTraining({ ...trained, tutorial: { step: 'awaitReport', woodSpot: null } }, 2 * HOUR).heroes[0].xp).toBe(0);
+    expect(applyTraining({ ...trained, tutorial: { ...createInitialSave().tutorial, step: 'awaitReport' } }, 2 * HOUR).heroes[0].xp).toBe(0);
     expect(applyTraining({ ...trained, guild: {} }, 2 * HOUR).trainedAt).toBe(2 * HOUR);
     expect(guildBonus(trained, 'training')).toBe(6);
   });

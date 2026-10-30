@@ -18,7 +18,7 @@ const ALL = ['bram', 'lyra', 'mira'];
 const withTools = (tools: string[]): SaveData => ({
   ...createInitialSave(),
   tools,
-  tutorial: { step: tools.length ? 'done' : 'collectWood', woodSpot: null },
+  tutorial: { ...createInitialSave().tutorial, step: tools.length ? 'done' : 'gatherWood' },
 });
 
 function averageWalk(save: SaveData, minutes: number) {
@@ -72,12 +72,6 @@ describe('gathering balance (30 minute walk)', () => {
   // ore half the time (see game/gathering/lockedNodes.ts), which adds to the
   // early stone and copper yields. The walking bonus is left out here
   // (baseWalkConfig), so these numbers hold for any walk of the day.
-
-  it('shows only wood during the tutorial', () => {
-    const walk = averageWalk(withTools([]), 30);
-    expect(walk('wood')).toBeGreaterThan(10);
-    expect(walk('stone', 'hide', 'herb')).toBe(0);
-  });
 
   it('gives enough wood and stone for a couple of pieces of gear with the wooden pickaxe', () => {
     const walk = averageWalk(withTools(['woodPickaxe']), 30);

@@ -108,7 +108,7 @@ describe('balance lab', () => {
 
   it('relies on the game functions, which refuse what is not allowed', () => {
     expect(() => craft(createInitialSave(), recipeById.woodSword)).toThrow();
-    const away = startExpedition({ ...createInitialSave(), tutorial: { step: 'done', woodSpot: null } }, 'ratCellar', ['bram'], 0);
+    const away = startExpedition({ ...createInitialSave(), tutorial: { ...createInitialSave().tutorial, step: 'done' } }, 'ratCellar', ['bram'], 0);
     expect(() => startExpedition(away, 'ratCellar', ['bram'], 0)).toThrow(/already away/);
     expect(() => startExpedition(away, dungeonById.ogreQuarry.id, ['lyra'], 0)).toThrow(/not available/);
   });

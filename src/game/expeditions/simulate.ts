@@ -1319,9 +1319,11 @@ export function simulateRun(
     encounters.push(result);
   }
 
-  const encountersCleared = encounters.filter((e) => e.cleared).length;
-  const bossDefeated = encounters.some((e) => e.kind === 'boss' && e.cleared);
-  const anyKnockedOut = encounters.some((e) => e.knockedOut.length > 0);
+  // The tutorial run cannot fail: whatever happened reads as a full clear.
+  const finalEncounters = guaranteed ? encounters.map((e) => ({ ...e, cleared: true })) : encounters;
+  const encountersCleared = guaranteed ? encounterCount : finalEncounters.filter((e) => e.cleared).length;
+  const bossDefeated = guaranteed || finalEncounters.some((e) => e.kind === 'boss' && e.cleared);
+  const anyKnockedOut = finalEncounters.some((e) => e.knockedOut.length > 0);
   // A smoke bomb escape is a retreat however little was cleared, with nobody out.
   const outcome: ExpeditionOutcome = escaped
     ? 'retreat'
@@ -1334,7 +1336,7 @@ export function simulateRun(
         : 'defeat';
 
   return {
-    encounters,
+    encounters: finalEncounters,
     encounterCount,
     encountersCleared,
     bossDefeated,

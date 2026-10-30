@@ -11,7 +11,7 @@ const BOSS_1 = dungeons.find((d) => d.isBoss && d.tier === 1)!.id;
 function veterans(): SaveData {
   let save: SaveData = {
     ...createInitialSave(),
-    tutorial: { step: 'done', woodSpot: null },
+    tutorial: { ...createInitialSave().tutorial, step: 'done' },
     heroes: createInitialSave().heroes.map((h) => ({ ...h, level: 30 })),
     gear: [
       { uid: 'g1', itemId: 'sword5', quality: 'normal' },
@@ -74,7 +74,8 @@ describe('expedition loot', () => {
   });
 
   it('rolls nothing on a loss, keeping only its gold and XP share', () => {
-    const losses = Array.from({ length: 10 }, (_, i) => resolve(createInitialSave(), 'goblinWarren', i).report).filter((r) => !r.success);
+    const losing = (): SaveData => ({ ...createInitialSave(), tutorial: { ...createInitialSave().tutorial, step: 'done' } });
+    const losses = Array.from({ length: 10 }, (_, i) => resolve(losing(), 'goblinWarren', i).report).filter((r) => !r.success);
     expect(losses.length).toBeGreaterThan(0);
     for (const report of losses) {
       expect(report.loot.dropped).toEqual([]);
