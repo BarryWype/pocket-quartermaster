@@ -19,6 +19,7 @@ import { activeLairs } from '../places/fights';
 import { partyCharms } from '../loot/charms';
 import { emptyLoot, type Loot } from '../loot/types';
 import type { QuestTarget } from '../quests/types';
+import type { PocketWatch } from './pocketMode';
 import { PATROL_SOURCES, foughtEnemies, grantPatrolWin, patrolDungeon, patrolRewards, patrolRunOptions, settleConsumables } from './fight';
 import { isPatrolKind, patrolTier, patrolsAround, pruneByWindow, type PatrolKind, type PatrolSpawn } from './generate';
 import { distanceTo, hasFled, inEngageRange, isGone, isVisible } from './visibility';
@@ -113,6 +114,8 @@ export type BackgroundState = {
   questAlerted: string[];
   /** Strange marks reached since the last hand-off; the app resolves them. */
   questArrivals: { questId: string; at: number }[];
+  /** Pocket mode's counting and places nearby (see pocketMode.ts); null until the app adds them. */
+  pocket: PocketWatch | null;
 };
 
 /**
@@ -165,6 +168,7 @@ export function snapshotBackground(
     questTargets: watchedTargets(save),
     questAlerted: (previous?.questAlerted ?? []).filter((id) => save.quests.list.some((quest) => quest.id === id && quest.doneAt === null)),
     questArrivals: [],
+    pocket: null,
   };
 }
 
