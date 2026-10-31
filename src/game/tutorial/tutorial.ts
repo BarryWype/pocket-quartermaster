@@ -8,7 +8,7 @@ import { newQuest } from '../quests/arrival';
 import type { SaveData, TutorialStep } from '../save';
 
 export type TutorialScreen = 'map' | 'forge' | 'provisions' | 'inventory' | 'team' | 'hero' | 'expeditions';
-export type MenuTarget = 'forge' | 'provisions' | 'team' | 'expeditions';
+export type MenuTarget = 'forge' | 'infuse' | 'provisions' | 'team' | 'expeditions';
 
 /** The dungeon the tutorial's expedition goes to. */
 export const isTutorialDungeon = (dungeonId: string) => dungeonId === tutorialRules.dungeonId;

@@ -90,6 +90,7 @@ export default function RootLayout() {
       >
         <Stack.Screen name="index" options={{ title: t('screens.map'), headerShown: false }} />
         <Stack.Screen name="forge" options={{ title: t('screens.forge') }} />
+        <Stack.Screen name="infuse" options={{ title: t('screens.infuse') }} />
         <Stack.Screen name="provisions" options={{ title: t('screens.provisions') }} />
         <Stack.Screen name="inventory" options={{ title: t('screens.inventory') }} />
         <Stack.Screen name="team/index" options={{ title: t('screens.team') }} />

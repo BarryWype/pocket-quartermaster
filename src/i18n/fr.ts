@@ -19,6 +19,7 @@ export const fr: Dictionary = {
   screens: {
     map: 'Carte',
     forge: 'Forge',
+    infuse: 'Imprégner',
     provisions: 'Provisions',
     inventory: 'Inventaire',
     team: 'Équipe',

@@ -17,6 +17,7 @@ export const en = {
   screens: {
     map: 'Map',
     forge: 'Forge',
+    infuse: 'Infuse',
     provisions: 'Provisions',
     inventory: 'Inventory',
     team: 'Team',
