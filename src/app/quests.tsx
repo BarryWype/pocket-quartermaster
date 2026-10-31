@@ -1,7 +1,10 @@
-import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import PagerView from 'react-native-pager-view';
 
 import { Button } from '@/components/Button';
+import { IconLabel } from '@/components/IconLabel';
+import { StepChests } from '@/components/StepChests';
 import { lootLabels } from '@/components/lootText';
 import { Text } from '@/components/Text';
 import { itemById } from '@/content/lookup';
@@ -16,6 +19,8 @@ import { QUEST_SOURCES } from '@/game/quests/rewards';
 import { compassDirection, targetDistance } from '@/game/quests/targets';
 import type { Quest } from '@/game/quests/types';
 import { isRevealed } from '@/game/reveal/reveal';
+import { chestState, dayKey, stepChests } from '@/game/rewards/chests';
+import { useTodaySteps } from '@/hooks/useTodaySteps';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useNow } from '@/hooks/useNow';
 import { useQuestPlaces } from '@/hooks/useQuestPlaces';
@@ -23,7 +28,6 @@ import { formatDistance, formatDuration, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { useWorldStore } from '@/store/worldStore';
 import { colors, pixel } from '@/theme';
-import { IconLabel } from '@/components/IconLabel';
 
 /** One emoji per loot category, for the reward hint. */
 const CATEGORY_EMOJI: Record<LootCategory, string> = {
@@ -85,10 +89,20 @@ function progressText(quest: Quest) {
 
 const order = (quest: Quest) => (quest.band === 'secret' ? 0 : quest.doneAt !== null ? 1 : 2);
 
+/** One tab per page: its emoji and short label. */
+const PAGE_META = {
+  quests: { emoji: '📜', label: () => t('quests.pages.quests') },
+  chests: { emoji: '🎁', label: () => t('quests.pages.chests') },
+} as const;
+
+type QuestsPageId = keyof typeof PAGE_META;
+
+/** The page the player last swiped to, kept for this session only. */
+let lastPage: QuestsPageId | null = null;
+
 /**
- * The daily quests: each one's objective, band, where its target is, time
- * left, what it may pay and how far along it is. Opening the list accepts new
- * quests and fixes their targets from where the player stands.
+ * The daily quests and the step chests, one swipable page each. Opening the
+ * list accepts new quests and fixes their targets from where the player stands.
  */
 export default function QuestsScreen() {
   useLanguage();
@@ -98,6 +112,13 @@ export default function QuestsScreen() {
   const player = useWorldStore((state) => state.player);
   const { places, ready } = useQuestPlaces(save, player, now);
   const [claimed, setClaimed] = useState<Record<string, string>>({});
+  const steps = useTodaySteps();
+  const day = dayKey(new Date());
+  // The tab badges: quests waiting to be seen or claimed, and chests ready to open.
+  const questNews = save.quests.list.filter((quest) => !quest.seen || quest.doneAt !== null).length;
+  const readyChests = stepChests.filter((chest) => chestState(save, chest, steps, day) === 'ready').length;
+  const [index, setIndex] = useState(() => (lastPage === 'chests' ? 1 : 0));
+  const pager = useRef<PagerView>(null);
 
   useEffect(() => {
     if (ready && player) useGameStore.getState().fixQuestTargets(places, player);
@@ -147,46 +168,108 @@ export default function QuestsScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.muted}>{rerolls === 0 ? t('quests.rerollUsed') : t('quests.rerollFree', { count: rerolls })}</Text>
-      {quests.length === 0 && Object.keys(claimed).length === 0 && <Text style={styles.muted}>{t('quests.empty')}</Text>}
-      {Object.entries(claimed)
-        .filter(([id]) => !quests.some((q) => q.id === id))
-        .map(([id, gains]) => (
-          <Text key={id} style={styles.claimed}>
-            {t('quests.claimed', { gains })}
-          </Text>
+    <View style={styles.screen}>
+      <View style={styles.tabs}>
+        {(['quests', 'chests'] as const).map((id, i) => (
+          <Pressable
+            key={id}
+            onPress={() => {
+              pager.current?.setPage(i);
+              lastPage = id;
+            }}
+            style={[styles.tab, i === index && styles.tabActive]}
+          >
+            <IconLabel
+              emoji={PAGE_META[id].emoji}
+              label={PAGE_META[id].label()}
+              labelStyle={[styles.tabLabel, i === index && styles.tabLabelActive]}
+            />
+            {(id === 'quests' ? questNews : readyChests) > 0 && <Text style={styles.badge}>{id === 'quests' ? questNews : readyChests}</Text>}
+          </Pressable>
         ))}
-      {quests.map((quest) => {
-        const secret = quest.band === 'secret';
-        const emoji = quest.objective === 'mark' ? '❓' : objectives[quest.objective].emoji;
-        const progress = progressText(quest);
-        const target = targetLine(quest);
-        return (
-          <View key={quest.id} style={[styles.card, secret && styles.secret, quest.doneAt !== null && styles.done]}>
-            {secret && <Text style={styles.secretTitle}>{t('quests.secretTitle')}</Text>}
-            <View style={styles.header}>
-              <IconLabel emoji={emoji} label={objectiveText(quest)} labelStyle={styles.objective} />
-              <Text style={styles.band}>{t(`quests.band.${quest.band}`)}</Text>
-            </View>
-            {target && <IconLabel emoji="🧭" label={target} />}
-            {progress && <Text style={quest.doneAt !== null && styles.doneText}>{progress}</Text>}
-            <Text style={styles.muted}>{rewardHint(quest)}</Text>
-            {quest.doneAt === null && <Text style={styles.muted}>{t('quests.timeLeft', { time: formatDuration(quest.expiresAt - now) })}</Text>}
-            <View style={styles.actions}>
-              {quest.doneAt !== null ? <Button title={t('quests.claim')} color={colors.success} onPress={() => claim(quest)} /> : deliverButton(quest)}
-              {!secret && quest.doneAt === null && (
-                <Button title={t('quests.reroll')} disabled={rerollProblem(save, quest.id, now) !== null} onPress={() => game.rerollQuest(quest.id)} />
-              )}
-            </View>
-          </View>
-        );
-      })}
-    </ScrollView>
+      </View>
+      <PagerView
+        style={styles.pager}
+        initialPage={index}
+        onPageSelected={({ nativeEvent }) => {
+          setIndex(nativeEvent.position);
+          lastPage = nativeEvent.position === 1 ? 'chests' : 'quests';
+        }}
+      >
+        <View>
+          <ScrollView contentContainerStyle={styles.container}>
+            <Text style={styles.muted}>{rerolls === 0 ? t('quests.rerollUsed') : t('quests.rerollFree', { count: rerolls })}</Text>
+            {quests.length === 0 && Object.keys(claimed).length === 0 && <Text style={styles.muted}>{t('quests.empty')}</Text>}
+            {Object.entries(claimed)
+              .filter(([id]) => !quests.some((q) => q.id === id))
+              .map(([id, gains]) => (
+                <Text key={id} style={styles.claimed}>
+                  {t('quests.claimed', { gains })}
+                </Text>
+              ))}
+            {quests.map((quest) => {
+              const secret = quest.band === 'secret';
+              const emoji = quest.objective === 'mark' ? '❓' : objectives[quest.objective].emoji;
+              const progress = progressText(quest);
+              const target = targetLine(quest);
+              return (
+                <View key={quest.id} style={[styles.card, secret && styles.secret, quest.doneAt !== null && styles.done]}>
+                  {secret && <Text style={styles.secretTitle}>{t('quests.secretTitle')}</Text>}
+                  <View style={styles.header}>
+                    <IconLabel emoji={emoji} label={objectiveText(quest)} labelStyle={styles.objective} />
+                    <Text style={styles.band}>{t(`quests.band.${quest.band}`)}</Text>
+                  </View>
+                  {target && <IconLabel emoji="🧭" label={target} />}
+                  {progress && <Text style={quest.doneAt !== null && styles.doneText}>{progress}</Text>}
+                  <Text style={styles.muted}>{rewardHint(quest)}</Text>
+                  {quest.doneAt === null && <Text style={styles.muted}>{t('quests.timeLeft', { time: formatDuration(quest.expiresAt - now) })}</Text>}
+                  <View style={styles.actions}>
+                    {quest.doneAt !== null ? <Button title={t('quests.claim')} color={colors.success} onPress={() => claim(quest)} /> : deliverButton(quest)}
+                    {!secret && quest.doneAt === null && (
+                      <Button title={t('quests.reroll')} disabled={rerollProblem(save, quest.id, now) !== null} onPress={() => game.rerollQuest(quest.id)} />
+                    )}
+                  </View>
+                </View>
+              );
+            })}
+          </ScrollView>
+        </View>
+        <View>
+          <ScrollView contentContainerStyle={styles.container}>
+            <StepChests />
+          </ScrollView>
+        </View>
+      </PagerView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: { flex: 1 },
+  tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12 },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    borderWidth: pixel.outline,
+    borderColor: colors.ink,
+    backgroundColor: colors.parchmentDark,
+  },
+  tabActive: { backgroundColor: colors.wood, borderBottomColor: colors.highlight },
+  tabLabel: { fontSize: 20, color: colors.ink },
+  tabLabelActive: { color: colors.parchment },
+  badge: {
+    minWidth: 20,
+    textAlign: 'center',
+    fontSize: 14,
+    color: colors.parchment,
+    backgroundColor: colors.danger,
+    paddingHorizontal: 4,
+  },
+  pager: { flex: 1 },
   container: { padding: 16, gap: 8 },
   muted: { color: colors.muted },
   card: { gap: 4, padding: 10, borderWidth: pixel.outline, borderColor: colors.ink, backgroundColor: colors.parchment },

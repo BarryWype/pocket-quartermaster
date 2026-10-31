@@ -470,6 +470,7 @@ export const en = {
     rewardsMaybe: 'Rewards: {likely} · maybe {maybe}',
     secretTitle: '✨ Secret quest',
     band: { short: 'Short · 500 m', medium: 'Medium · 1 km', long: 'Long · 2 km', secret: 'Close by' },
+    pages: { quests: 'Quests', chests: 'Step chests' },
     objective: {
       chapel: 'Pray at the chapel',
       library: 'Read at the library',

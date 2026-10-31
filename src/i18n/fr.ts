@@ -478,6 +478,7 @@ export const fr: Dictionary = {
     rewardsMaybe: 'Récompenses : {likely} · peut-être {maybe}',
     secretTitle: '✨ Quête secrète',
     band: { short: 'Courte · 500 m', medium: 'Moyenne · 1 km', long: 'Longue · 2 km', secret: 'Tout près' },
+    pages: { quests: 'Quêtes', chests: 'Coffres de pas' },
     objective: {
       chapel: 'Prier à la chapelle',
       library: 'Lire à la bibliothèque',

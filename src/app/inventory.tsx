@@ -18,6 +18,7 @@ import { inventoryPages, inventoryRows, type InventoryPageId, type InventoryRow 
 import { canSalvage, wornBy } from '@/game/forging/salvage';
 import { ruinsDots } from '@/game/places/ruins';
 import { isLureActive, lureEndsAt } from '@/game/rewards/lures';
+import { isRevealed } from '@/game/reveal/reveal';
 import type { SaveData } from '@/game/save';
 import { hasKey, keyDots } from '@/game/secrets/keys';
 import { tipPosition } from '@/game/secrets/tips';
@@ -111,7 +112,8 @@ export default function InventoryScreen() {
               {id === 'materials' && rows.filter((row) => row.page === 'materials').length === 0 && (
                 <Text style={styles.empty}>{t('inventory.noMaterials')}</Text>
               )}
-              {id === 'finds' && <StepChests />}
+              {/* While the quests screen is still hidden, the chests stay here. */}
+              {id === 'finds' && !isRevealed(save, 'quests') && <StepChests />}
               {rows
                 .filter((row) => row.page === id)
                 .map((row) => (
