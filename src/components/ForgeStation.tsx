@@ -23,6 +23,7 @@ import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
 import { ForgeBanner } from './ForgeBanner';
+import { ForgeConfirmDialog, type ForgePending } from './ForgeConfirmDialog';
 import { GearMarks } from './GearMarks';
 import { Panel } from './Panel';
 import { RecipeInputs, recipeInputsStyles } from './RecipeInputs';
@@ -49,6 +50,8 @@ export function ForgeStation() {
   const forgeWithComponent = useGameStore((state) => state.forgeWithComponent);
   const restoreRelic = useGameStore((state) => state.restoreRelic);
   const [result, setResult] = useState<ForgeResult | null>(null);
+  /** The forge or restore waiting for its confirmation, if any. */
+  const [pending, setPending] = useState<ForgePending | null>(null);
   const { pages } = forgeList(save);
   // The Weapons page opens first; later visits reopen the page last used this session.
   const [index, setIndex] = useState(() => {
@@ -59,7 +62,13 @@ export function ForgeStation() {
   });
   const pager = useRef<PagerView>(null);
   const active = Math.min(index, pages.length - 1);
-  const setResultFor = (forge: () => ForgeResult | null) => setResult(forge());
+  const confirmPending = () => {
+    if (!pending) return;
+    // A confirmed forge goes straight through; a cancel keeps everything as it is.
+    if (pending.kind === 'restore') setResult(restoreRelic(pending.relicUid));
+    else setResult(pending.componentId ? forgeWithComponent(pending.recipeId, pending.componentId) : craft(pending.recipeId));
+    setPending(null);
+  };
 
   return (
     <View style={styles.screen}>
@@ -101,20 +110,27 @@ export function ForgeStation() {
             {pages.map((one) => (
               <View key={one.type}>
                 {one.type === 'other' ? (
-                  <OtherPage save={save} onRestore={(uid) => setResultFor(() => restoreRelic(uid))} onCraft={(id) => setResultFor(() => craft(id))} />
+                  <OtherPage
+                    save={save}
+                    onRestore={(uid) => setPending({ kind: 'restore', relicUid: uid })}
+                    onCraft={(id) => setResult(craft(id))}
+                  />
                 ) : (
                   <GearPage
                     save={save}
                     page={one}
                     action={t('crafting.forge')}
-                    onCraft={(id) => setResultFor(() => craft(id))}
-                    onForgeWith={(id, componentId) => setResultFor(() => forgeWithComponent(id, componentId))}
+                    onCraft={(id) => setPending({ kind: 'forge', recipeId: id, componentId: null })}
+                    onForgeWith={(id, componentId) => setPending({ kind: 'forge', recipeId: id, componentId })}
                   />
                 )}
               </View>
             ))}
           </PagerView>
         </>
+      )}
+      {pending && (
+        <ForgeConfirmDialog save={save} pending={pending} onConfirm={confirmPending} onClose={() => setPending(null)} />
       )}
     </View>
   );
