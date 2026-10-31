@@ -41,6 +41,7 @@ import { RecruitGrade } from './RecruitGrade';
 import { SendDialog } from './SendDialog';
 import { Text } from './Text';
 import { ThreatChip } from './ThreatChip';
+import { IconLabel, PartsLine, type LabelPart } from './IconLabel';
 
 const problemText = (problem: SecretProblem, distance: number, cap: number): string => {
   switch (problem) {
@@ -63,10 +64,10 @@ const problemText = (problem: SecretProblem, distance: number, cap: number): str
   }
 };
 
-const marketLineName = (line: MarketLine) =>
+const marketLineParts = (line: MarketLine): LabelPart[] =>
   line.kind === 'component'
-    ? `${componentById[line.id].emoji} ${tr(componentById[line.id].name)}`
-    : `${itemById[line.id].emoji} ${gearName(line.gear!)}`;
+    ? [{ emoji: componentById[line.id].emoji, text: tr(componentById[line.id].name) }]
+    : [{ emoji: itemById[line.id].emoji, text: gearName(line.gear!) }];
 
 type Props = { place: PlaceSpawn; player: LatLng; now: number; onClose: () => void };
 
@@ -108,9 +109,14 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
     const problem = underwaterLaunchProblem(save, place, player, now);
     return (
       <>
-        <Text style={styles.subtitle}>
-          {dungeon.emoji} {tr(dungeon.name)} · {t('expeditions.tier', { tier: dungeon.tier })} · ⏳ {formatDuration(dungeon.durationMinutes * 60_000)}
-        </Text>
+        <PartsLine
+          parts={[
+            { emoji: dungeon.emoji, text: tr(dungeon.name) },
+            t('expeditions.tier', { tier: dungeon.tier }),
+            { emoji: '⏳', text: formatDuration(dungeon.durationMinutes * 60_000) },
+          ]}
+          labelStyle={styles.subtitle}
+        />
         {briefing.threats.map((threat) => (
           <ThreatChip key={threat.id} threat={threat} />
         ))}
@@ -172,10 +178,11 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
       <>
         {offer && trait && (
           <View style={styles.offer}>
-            <Text style={styles.name}>
-              {heroClasses[offer.classId].emoji}{' '}
-              {t('tavern.offer', { name: offer.name, className: tr(heroClasses[offer.classId].name), level: offer.level })}
-            </Text>
+            <IconLabel
+              emoji={heroClasses[offer.classId].emoji}
+              label={t('tavern.offer', { name: offer.name, className: tr(heroClasses[offer.classId].name), level: offer.level })}
+              labelStyle={styles.name}
+            />
             <RecruitGrade grade={offer.grade} roll={offer.roll} />
             <Text style={[styles.trait, { color: trait.positive ? colors.ink : colors.danger }]}>
               {tr(trait.name)}: {tr(trait.description)}
@@ -195,7 +202,7 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
               const problem = marketBuyProblem(save, place, line.key, player, now);
               return (
                 <View key={line.key} style={styles.offer}>
-                  <Text style={styles.name}>{marketLineName(line)}</Text>
+                  <PartsLine parts={marketLineParts(line)} labelStyle={styles.name} />
                   <View style={styles.actions}>
                     <PriceTag price={line.price} style={styles.price} />
                     {problem === 'soldOut' && <Text style={styles.muted}>{t('places.soldOut')}</Text>}
@@ -212,7 +219,7 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
 
   return (
     <Overlay onClose={onClose} position="bottom">
-      <Sheet title={`${info.emoji} ${tr(info.name)}`} bodyStyle={styles.content} footer={<Button title={t('common.close')} color={colors.muted} onPress={onClose} />}>
+      <Sheet emoji={info.emoji} title={tr(info.name)} bodyStyle={styles.content} footer={<Button title={t('common.close')} color={colors.muted} onPress={onClose} />}>
         {keyLine}
         <Text style={styles.muted}>{tr(info.description)}</Text>
         <Text style={styles.muted}>

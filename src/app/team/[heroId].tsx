@@ -5,7 +5,8 @@ import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Button } from '@/components/Button';
 import { EquipPicker } from '@/components/EquipPicker';
 import { PlaceholderScreen } from '@/components/PlaceholderScreen';
-import { gearEffectText, gearStatsText, statIcons } from '@/components/GearRow';
+import { gearEffectParts, gearStatsParts, statIcons } from '@/components/GearRow';
+import { IconLabel, PartsLine, type LabelPart } from '@/components/IconLabel';
 import { GearMarks } from '@/components/GearMarks';
 import { HpBar } from '@/components/HpBar';
 import { Panel } from '@/components/Panel';
@@ -105,7 +106,7 @@ export default function CharacterSheetScreen() {
       icon: item.icon,
       name: gearName(gear),
       color: qualities[gear.quality].color,
-      stats: [gearStatsText(gear), gearEffectText(gear)].filter(Boolean).join(' · '),
+      stats: [...gearStatsParts(gear), ...gearEffectParts(gear)] as LabelPart[],
       marks: <GearMarks tier={item.tier} affinity={affinityOf(hero.classId, item.gearType)} />,
     };
   };
@@ -122,10 +123,15 @@ export default function CharacterSheetScreen() {
           <IconSlot emoji={heroClass.emoji} size={64} />
           <View style={styles.identityText}>
             <Text style={styles.name}>{hero.name}</Text>
-            <Text style={styles.className}>
-              {tr(heroClass.name)}
-              {element ? ` · ${element.emoji} ${tr(element.name)}` : ''}
-            </Text>
+            <View style={styles.classNameRow}>
+              <Text style={styles.className}>{tr(heroClass.name)}</Text>
+              {element && (
+                <>
+                  <Text style={styles.className}> · </Text>
+                  <IconLabel emoji={element.emoji} label={tr(element.name)} labelStyle={styles.className} />
+                </>
+              )}
+            </View>
             <Text style={styles.level}>{t('common.level', { level: hero.level })}</Text>
           </View>
         </View>
@@ -145,7 +151,8 @@ export default function CharacterSheetScreen() {
             {potionsHeld.map(({ item, count }) => (
               <Button
                 key={item.id}
-                title={t('health.use', { item: `${item.emoji} ${tr(item.name)}`, count })}
+                emoji={item.emoji}
+                title={t('health.use', { item: tr(item.name), count })}
                 disabled={drinkProblem(save, hero.id, now, item.id) !== null}
                 onPress={() => drinkPotion(hero.id, item.id)}
               />
@@ -156,7 +163,8 @@ export default function CharacterSheetScreen() {
               .map((item) => (
                 <Button
                   key={item.id}
-                  title={t('health.use', { item: `${item.emoji} ${tr(item.name)}`, count: save.consumables[item.id] })}
+                  emoji={item.emoji}
+                  title={t('health.use', { item: tr(item.name), count: save.consumables[item.id] })}
                   disabled={careProblem(save, hero.id, item.id, now) !== null}
                   onPress={() => giveHomeCare(hero.id, item.id)}
                 />
@@ -177,14 +185,13 @@ export default function CharacterSheetScreen() {
           </Tip>
         ))}
       </View>
-      <Text style={styles.smallStats}>
-        {smallStats
-          .map((stat) => {
-            const capped = stat === 'evasion' && stats.evasion >= expeditionRules.evasionCap;
-            return `${statIcons[stat]} ${stats[stat]}${capped ? ` (${t('hero.capped')})` : ''}`;
-          })
-          .join(' · ')}
-      </Text>
+      <PartsLine
+        style={styles.smallStats}
+        parts={smallStats.map((stat) => {
+          const capped = stat === 'evasion' && stats.evasion >= expeditionRules.evasionCap;
+          return { emoji: statIcons[stat], text: `${stats[stat]}${capped ? ` (${t('hero.capped')})` : ''}` };
+        })}
+      />
 
       <SectionTitle>
         {`${t('hero.approaches')}${hero.gamble ? ` · 🎲 ${t('classes.rolledToday')}` : ''}${pending > 0 ? ` · ${t('hero.pendingPicks', { count: pending })}` : ''}`}
@@ -256,7 +263,7 @@ export default function CharacterSheetScreen() {
                 </Text>
                 {content.marks}
               </View>
-              {content.stats ? <Text style={styles.muted}>{content.stats}</Text> : null}
+              {content.stats && content.stats.length > 0 ? <PartsLine parts={content.stats} labelStyle={styles.muted} /> : null}
             </View>
             {!away && !locked && <Text style={styles.chevron}>›</Text>}
           </Pressable>
@@ -302,6 +309,7 @@ export default function CharacterSheetScreen() {
 }
 
 const styles = StyleSheet.create({
+  classNameRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 2 },
   container: { padding: 16, paddingBottom: 32 },
   header: { gap: 8 },
   identity: { flexDirection: 'row', alignItems: 'center', gap: 12 },

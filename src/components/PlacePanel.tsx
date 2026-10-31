@@ -44,12 +44,13 @@ import { todaysCollector } from '@/game/loot/valuables';
 import { lootConfig } from '@/content/loot/config';
 import { currentHp, isExhausted, maxHp } from '@/game/team/health';
 import { isAway } from '@/game/team/team';
-import { lootText } from '@/hooks/usePatrols';
+import { gainsPrefix, lootLabels } from '@/components/lootText';
 import { formatPercent, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
+import { GainsLine, IconLabel, PartsLine, type LabelPart } from './IconLabel';
 import { PriceTag, priceLabel } from './PriceTag';
 import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
@@ -82,19 +83,19 @@ export function leavesIn(ms: number) {
   return t('places.leavesIn', { time });
 }
 
-export function lineName(line: StockLine) {
-  if (line.kind === 'material') return `${materialById[line.id].emoji} ${tr(materialById[line.id].name)}`;
+export function lineParts(line: StockLine): LabelPart[] {
+  if (line.kind === 'material') return [{ emoji: materialById[line.id].emoji, text: tr(materialById[line.id].name) }];
   if (line.kind === 'item') {
     const weakness = weaknessByItem[line.id];
-    const name = `${itemById[line.id].emoji} ${tr(itemById[line.id].name)}`;
-    return weakness ? `${name} · ${t('places.weaknessFor', { boss: tr(bossById[weakness.bossId].name) })}` : name;
+    const parts: LabelPart[] = [{ emoji: itemById[line.id].emoji, text: tr(itemById[line.id].name) }];
+    return weakness ? [...parts, t('places.weaknessFor', { boss: tr(bossById[weakness.bossId].name) })] : parts;
   }
-  if (line.kind === 'gear') return `${itemById[line.id].emoji} ${gearName(line.gear!)}`;
+  if (line.kind === 'gear') return [{ emoji: itemById[line.id].emoji, text: gearName(line.gear!) }];
   if (line.kind === 'tip') {
     const info = placeInfo[line.id as SecretKind];
-    return `${info.emoji} ${t('places.tip', { name: tr(info.name) })}`;
+    return [{ emoji: info.emoji, text: t('places.tip', { name: tr(info.name) }) }];
   }
-  return `📜 ${t('places.recipe', { name: tr(recipeOutput(recipeById[line.id]).name) })}`;
+  return [{ emoji: '📜', text: t('places.recipe', { name: tr(recipeOutput(recipeById[line.id]).name) }) }];
 }
 
 type Props = { place: PlaceSpawn; player: LatLng; now: number; onClose: () => void };
@@ -105,7 +106,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
   const actions = useGameStore.getState();
   const [tab, setTab] = useState<'buy' | 'sell'>('buy');
   /** What the last dig or catch brought, shown until the sheet closes. */
-  const [result, setResult] = useState<string | null>(null);
+  const [result, setResult] = useState<{ text: string; gains: string[] } | null>(null);
   const info = placeInfo[place.kind];
   const distance = distanceMeters(player, place.position);
   const locked = isLockedMine(place.kind, pickaxeTier(save));
@@ -131,7 +132,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
     const problem = buyProblem(save, place, line.key, 1, player, now);
     return (
       <View key={line.key} style={styles.row}>
-        <Text style={styles.name}>{lineName(line)}</Text>
+        <PartsLine parts={lineParts(line)} labelStyle={styles.name} />
         <View style={styles.actions}>
           <Text style={styles.muted}>
             {problem === 'known' ? t('places.known') : left > 0 ? t('places.left', { count: left }) : t('places.soldOut')}
@@ -169,9 +170,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
       if (gear.length === 0) return <Text style={styles.muted}>{t('places.nothingToSell')}</Text>;
       return gear.map((g) => (
         <View key={g.uid} style={[styles.row, styles.actions]}>
-          <Text style={styles.name}>
-            {itemById[g.itemId].emoji} {gearName(g)}
-          </Text>
+          <IconLabel emoji={itemById[g.itemId].emoji} label={gearName(g)} labelStyle={styles.name} />
           <PriceTag price={gearSellPrice(g)} style={styles.price} />
           <Button
             title={t('places.sell')}
@@ -185,9 +184,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
     if (held.length === 0) return place.kind === 'market' ? <Text style={styles.muted}>{t('places.nothingToSell')}</Text> : null;
     return held.map(([id, count]) => (
       <View key={id} style={styles.row}>
-        <Text style={styles.name}>
-          {materialById[id].emoji} {tr(materialById[id].name)} ×{count}
-        </Text>
+        <IconLabel emoji={materialById[id].emoji} label={`${tr(materialById[id].name)} ×${count}`} labelStyle={styles.name} />
         <View style={styles.actions}>
           <PriceTag price={materialSellPrice(id, place.kind)} style={styles.price} />
           <Button
@@ -233,7 +230,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
 
   return (
     <Overlay onClose={onClose} position="bottom">
-      <Sheet title={`${info.emoji} ${tr(info.name)}`} bodyStyle={styles.content} footer={<Button title={t('common.close')} onPress={onClose} />}>
+      <Sheet emoji={info.emoji} title={tr(info.name)} bodyStyle={styles.content} footer={<Button title={t('common.close')} onPress={onClose} />}>
         <Text style={styles.muted}>{tr(info.description)}</Text>
         {wanted && <Text style={styles.wanted}>{t('places.collector', { name: tr(valuableById[wanted].name).toLowerCase() })}</Text>}
         <Text style={styles.muted}>
@@ -262,7 +259,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
         {place.kind === 'chapel' && (
           <>
             <View style={styles.section}>
-              <Text style={styles.name}>🕯️ {t('places.bless')}</Text>
+              <IconLabel emoji="🕯️" label={t('places.bless')} labelStyle={styles.name} />
               <Text style={styles.muted}>{t('places.blessHint', { count: save.consumables.holyRelics ?? 0 })}</Text>
               <Button
                 title={t('places.bless')}
@@ -271,7 +268,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
               />
             </View>
             <View style={styles.section}>
-              <Text style={styles.name}>🙏 {t('places.blessing')}</Text>
+              <IconLabel emoji="🙏" label={t('places.blessing')} labelStyle={styles.name} />
               <Text style={styles.muted}>
                 {save.expeditionBlessing
                   ? t('places.blessingWaiting')
@@ -295,7 +292,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
               disabled={digProblem(save, place, player, now) !== null}
               onPress={() => {
                 const { reward, relic } = actions.digRuin(place, player);
-                setResult(t(relic ? 'places.relicFound' : 'places.dug', { gains: lootText(reward) }));
+                setResult({ text: gainsPrefix(t(relic ? 'places.relicFound' : 'places.dug', { gains: '' })), gains: lootLabels(reward) });
               }}
             />
           </View>
@@ -307,14 +304,14 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
             <Button
               title={t('places.fishAction')}
               disabled={fishProblem(save, place, player, now) !== null}
-              onPress={() => setResult(t('places.caught', { gains: lootText(actions.fish(place, player)) }))}
+              onPress={() => setResult({ text: gainsPrefix(t('places.caught', { gains: '' })), gains: lootLabels(actions.fish(place, player)) })}
             />
           </View>
         )}
 
         {place.kind === 'thievesGuild' && (
           <View style={styles.section}>
-            <Text style={styles.name}>🗝️ {t('places.heist')}</Text>
+            <IconLabel emoji="🗝️" label={t('places.heist')} labelStyle={styles.name} />
             <Text style={styles.muted}>
               {t('places.heistHint', {
                 min: heistRules.minutes[0],
@@ -354,11 +351,16 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
           </View>
         )}
 
-        {result && <Text style={styles.result}>{result}</Text>}
+        {result && (
+          <View style={styles.resultRow}>
+            <Text style={styles.result}>{result.text}</Text>
+            <GainsLine gains={result.gains} labelStyle={styles.result} />
+          </View>
+        )}
 
         {place.kind === 'library' && (
           <View style={styles.section}>
-            <Text style={styles.name}>📖 {t('places.train')}</Text>
+            <IconLabel emoji="📖" label={t('places.train')} labelStyle={styles.name} />
             <Text style={styles.muted}>{t('places.trainHint', { xp: trainXp(save) })}</Text>
             {homeHeroes.map((hero) => {
               const problem = trainProblem(save, place, hero.id, player, now);
@@ -387,6 +389,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
 }
 
 const styles = StyleSheet.create({
+  resultRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   content: { gap: 6, paddingBottom: 12 },
   muted: { color: colors.muted },
   row: { gap: 4, paddingVertical: 8, borderTopWidth: 2, borderTopColor: colors.parchmentDark },

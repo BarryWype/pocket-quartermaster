@@ -21,7 +21,7 @@ import {
   type TravellerReward,
 } from '@/game/patrols/travellers';
 import { distanceTo } from '@/game/patrols/visibility';
-import { lootText } from '@/hooks/usePatrols';
+import { lootLabels } from '@/components/lootText';
 import { localized, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
@@ -34,6 +34,7 @@ import { Sheet } from './Sheet';
 import { RecruitGrade } from './RecruitGrade';
 import { ValuableRows } from './ValuableRows';
 import { Text } from './Text';
+import { GainsLine } from './IconLabel';
 
 const helpProblemText: Record<'tooFar' | 'gone' | 'noStock', (distance: number) => string> = {
   tooFar: (distance) => t('patrols.walkCloser', { distance: Math.round(distance) }),
@@ -173,10 +174,14 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
         {reward && (
           <View style={styles.offer}>
             {reward.kind === 'loot' && (
-              <Text style={styles.name}>
-                {[lootText(reward.loot), reward.blessing ? t('patrols.rewardBlessing') : null].filter(Boolean).join(' ') ||
-                  t('chests.nothing')}
-              </Text>
+              <View style={styles.rewardRow}>
+                {lootLabels(reward.loot).length > 0 ? (
+                  <GainsLine gains={lootLabels(reward.loot)} labelStyle={styles.name} />
+                ) : (
+                  <Text style={styles.name}>{t('chests.nothing')}</Text>
+                )}
+                {reward.blessing && <Text style={styles.name}> {t('patrols.rewardBlessing')}</Text>}
+              </View>
             )}
             {recruit && (
               <View style={styles.recruit}>
@@ -207,6 +212,7 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
   );
 }
 const styles = StyleSheet.create({
+  rewardRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   content: { gap: 6, paddingBottom: 12 },
   muted: { color: colors.muted },
   offer: { gap: 4, paddingVertical: 10, borderTopWidth: 2, borderTopColor: colors.parchmentDark },

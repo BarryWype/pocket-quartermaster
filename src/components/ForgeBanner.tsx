@@ -10,6 +10,7 @@ import { colors, pixel } from '@/theme';
 
 import { GearMarks } from './GearMarks';
 import { Text } from './Text';
+import { IconLabel } from './IconLabel';
 
 /** The forged piece in its quality colour, bigger for Legendary, and any mastery level-up. */
 export function ForgeBanner({ result, onClose }: { result: ForgeResult; onClose: () => void }) {
@@ -21,10 +22,16 @@ export function ForgeBanner({ result, onClose }: { result: ForgeResult; onClose:
       style={[styles.banner, (quality === 'rare' || legendary) && { borderColor: qualities[quality].color }, legendary && styles.legendary]}
     >
       <View style={styles.bannerTitleRow}>
-        <Text style={[styles.bannerTitle, legendary && styles.legendaryTitle, { color: qualities[quality].color }]}>
-          {legendary ? '🌟 ' : quality === 'rare' ? '✨ ' : ''}
-          {gearName(result.gear)}
-        </Text>
+        {legendary || quality === 'rare' ? (
+          <IconLabel
+            emoji={legendary ? '🌟' : '✨'}
+            label={gearName(result.gear)}
+            size={24}
+            labelStyle={[styles.bannerTitle, legendary && styles.legendaryTitle, { color: qualities[quality].color }]}
+          />
+        ) : (
+          <Text style={[styles.bannerTitle, { color: qualities[quality].color }]}>{gearName(result.gear)}</Text>
+        )}
         <GearMarks tier={(itemById[result.gear.itemId] as GearDef).tier} />
       </View>
       <Text>

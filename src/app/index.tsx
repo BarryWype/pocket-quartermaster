@@ -1,7 +1,7 @@
 import { Camera, type CameraRef, Images, Map, type MapRef } from '@maplibre/maplibre-react-native';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AutoGatherPill, WalkCard } from '@/components/AutoGather';
@@ -61,7 +61,8 @@ import { usePlayerLocation } from '@/hooks/usePlayerLocation';
 import { useQuestMarks } from '@/hooks/useQuestMarks';
 import { useSecretPlaces } from '@/hooks/useSecretPlaces';
 import { useWalkableTiles } from '@/hooks/useWalkableTiles';
-import { lootText } from '@/hooks/usePatrols';
+import { gainsPrefix, lootLabels } from '@/components/lootText';
+import { GainsLine } from '@/components/IconLabel';
 import { t, tr } from '@/i18n';
 import { navigate } from '@/services/navigation';
 import { markTap, recordTiming } from '@/services/timings';
@@ -147,7 +148,7 @@ function MapScreen() {
   // Where the map last said it looks; markers outside it plus the culling margin are not drawn.
   const [bounds, setBounds] = useState<Bounds | null>(null);
   const [now, setNow] = useState(Date.now());
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ text: string; gains?: string[] } | null>(null);
   const [freshLegsOpen, setFreshLegsOpen] = useState(true);
   const autoMode = useWorldStore((state) => state.autoGather);
   const autoEnabled = useSettingsStore((state) => pocketTracking(state.pocketMode));
@@ -157,8 +158,8 @@ function MapScreen() {
   useEffect(
     () =>
       useWorldStore.subscribe((state, previous) => {
-        if (state.autoGatherMessage && state.autoGatherMessage !== previous.autoGatherMessage) setMessage(state.autoGatherMessage.text);
-        if (state.patrolMessage && state.patrolMessage !== previous.patrolMessage) setMessage(state.patrolMessage.text);
+        if (state.autoGatherMessage && state.autoGatherMessage !== previous.autoGatherMessage) setMessage({ text: state.autoGatherMessage.text });
+        if (state.patrolMessage && state.patrolMessage !== previous.patrolMessage) setMessage({ text: state.patrolMessage.text, gains: state.patrolMessage.gains });
       }),
     [],
   );
@@ -505,7 +506,7 @@ function MapScreen() {
   const collectRadius = collectRadiusNow(save);
   const gatherFromHere = () => {
     const result = collectFromHere();
-    if (result.ok) setMessage(`+ ${result.gained.map((g) => `${g.amount} ${tr(materialById[g.materialId]?.name ?? g.materialId)}`).join(', ')}`);
+    if (result.ok) setMessage({ text: `+ ${result.gained.map((g) => `${g.amount} ${tr(materialById[g.materialId]?.name ?? g.materialId)}`).join(', ')}` });
   };
   const fallbackButton = fallback && (
     <View style={[styles.fallback, { bottom: insets.bottom + ISLAND_HEIGHT + 12 }]}>
@@ -522,8 +523,8 @@ function MapScreen() {
     (id: string) => {
       if (!position) return;
       const result = collectTutorialSpawn(id, position);
-      if (result.ok) setMessage(`+ 1 ${tr(materialById[result.materialId]?.name ?? result.materialId)}`);
-      else setMessage(failureMessages[result.reason](result.distance, collectRadius));
+      if (result.ok) setMessage({ text: `+ 1 ${tr(materialById[result.materialId]?.name ?? result.materialId)}` });
+      else setMessage({ text: failureMessages[result.reason](result.distance, collectRadius) });
     },
     [collectTutorialSpawn, position, collectRadius],
   );
@@ -533,10 +534,10 @@ function MapScreen() {
       if (!position) return;
       const distance = distanceMeters(position, treasureAt);
       if (distance > gatheringConfig.collectRadiusMeters) {
-        setMessage(t('map.treasureTooFar', { distance: Math.round(distance), radius: gatheringConfig.collectRadiusMeters }));
+        setMessage({ text: t('map.treasureTooFar', { distance: Math.round(distance), radius: gatheringConfig.collectRadiusMeters }) });
         return;
       }
-      setMessage(t('map.treasureFound', { gains: lootText(collectTreasure(mapId, position, treasureAt)) }));
+      setMessage({ text: gainsPrefix(t('map.treasureFound', { gains: '' })), gains: lootLabels(collectTreasure(mapId, position, treasureAt)) });
     },
     [collectTreasure, position],
   );
@@ -546,14 +547,14 @@ function MapScreen() {
       if (!position) return;
       const result = collect(spawn, { position, speed }, Date.now());
       if (result.ok) {
-        setMessage(`+ ${result.gained.map((g) => `${g.amount} ${tr(materialById[g.materialId]?.name ?? g.materialId)}`).join(', ')}`);
+        setMessage({ text: `+ ${result.gained.map((g) => `${g.amount} ${tr(materialById[g.materialId]?.name ?? g.materialId)}`).join(', ')}` });
         return;
       }
       const needs = result.reason === 'needsTool' ? requiredPickaxeTier(spawn) : null;
       const pickaxe = needs
         ? items.find((item) => item.slot === 'tool' && item.toolType === 'pickaxe' && item.tier === needs)
         : undefined;
-      setMessage(needs && pickaxe ? t('map.needsPickaxe', { pickaxe: tr(pickaxe.name) }) : failureMessages[result.reason](result.distance, collectRadius));
+      setMessage({ text: needs && pickaxe ? t('map.needsPickaxe', { pickaxe: tr(pickaxe.name) }) : failureMessages[result.reason](result.distance, collectRadius) });
     },
     [collect, position, speed, collectRadius],
   );
@@ -584,7 +585,7 @@ function MapScreen() {
           style={[styles.tutorialHint, { top: insets.top + 48 }]}
         />
         {fallbackButton}
-        {message && <Text style={[styles.banner, { bottom: insets.bottom + ISLAND_HEIGHT + 64 }]}>{message}</Text>}
+        {message && <ToastBanner message={message} style={{ bottom: insets.bottom + ISLAND_HEIGHT + 64 }} />}
         <IslandMenu />
       </View>
     );
@@ -757,11 +758,19 @@ function MapScreen() {
       <MapPanels player={position} now={now} patrols={visiblePatrols} />
       {fallbackButton}
       {showPill && <AutoGatherPill style={[styles.autoGather, { bottom: insets.bottom + ISLAND_HEIGHT + 12 }]} />}
-      {message && (
-        <Text style={[styles.banner, { bottom: insets.bottom + ISLAND_HEIGHT + (showPill || fallback ? 52 : 12) }]}>{message}</Text>
-      )}
+      {message && <ToastBanner message={message} style={{ bottom: insets.bottom + ISLAND_HEIGHT + (showPill || fallback ? 52 : 12) }} />}
       <WalkCard />
       <IslandMenu />
+    </View>
+  );
+}
+
+/** The map's toast: its words, then each gain with its emoji in its own element beside them. */
+function ToastBanner({ message, style }: { message: { text: string; gains?: string[] }; style: StyleProp<ViewStyle> }) {
+  return (
+    <View style={[styles.bannerView, style]}>
+      <Text style={styles.bannerText}>{message.text}</Text>
+      {message.gains && message.gains.length > 0 && <GainsLine gains={message.gains} size={20} labelStyle={styles.bannerText} />}
     </View>
   );
 }
@@ -784,6 +793,20 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     fontSize: 18,
   },
+  bannerView: {
+    position: 'absolute',
+    alignSelf: 'center',
+    overflow: 'hidden',
+    borderRadius: 12,
+    backgroundColor: colors.ink,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 6,
+  },
+  bannerText: { color: colors.parchment, fontSize: 18 },
   tutorialHint: { position: 'absolute', left: 16, right: 16 },
   fallback: { position: 'absolute', alignSelf: 'center' },
   autoGather: { position: 'absolute', left: 16 },

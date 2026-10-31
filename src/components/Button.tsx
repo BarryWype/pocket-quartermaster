@@ -1,7 +1,8 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 
 import { colors, pixel } from '@/theme';
 
+import { IconLabel } from './IconLabel';
 import { Text } from './Text';
 
 type Props = {
@@ -9,15 +10,22 @@ type Props = {
   onPress: () => void;
   disabled?: boolean;
   color?: string;
+  /** The icon beside the title, in its own element — never bake it into `title`. */
+  emoji?: string;
+  icon?: ImageSourcePropType;
 };
 
 /** A pixel-art button: square, outlined, bevelled; the bevel flips while pressed. */
-export function Button({ title, onPress, disabled, color = colors.wood }: Props) {
+export function Button({ title, onPress, disabled, color = colors.wood, emoji, icon }: Props) {
   return (
     <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={[styles.outline, disabled && styles.disabled]}>
       {({ pressed }) => (
         <View style={[styles.face, { backgroundColor: color }, pressed && styles.pressed]}>
-          <Text style={styles.label}>{title}</Text>
+          {emoji ? (
+            <IconLabel emoji={emoji} icon={icon} label={title} size={22} gap={5} labelStyle={styles.label} />
+          ) : (
+            <Text style={styles.label}>{title}</Text>
+          )}
         </View>
       )}
     </Pressable>

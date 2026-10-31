@@ -17,7 +17,8 @@ import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
 import { Row } from './Row';
 import { Text } from './Text';
-import { gearEffectText, statIcons, trinketText } from './GearRow';
+import { gearEffectParts, statIcons, trinketParts } from './GearRow';
+import { PartsLine, type LabelPart } from './IconLabel';
 
 type Props = {
   save: SaveData;
@@ -36,7 +37,7 @@ type Option = {
   emoji: string;
   icon?: ImageSourcePropType;
   title: string;
-  subtitle?: string;
+  subtitle?: ReactNode;
   color?: string;
   disabled?: boolean;
   marks?: ReactNode;
@@ -105,24 +106,22 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, briefin
     })
     .map(({ gear, item, holder, problem, preview, unequipsOffhand }) => {
       const greyed = problem !== null || preview === null;
-      const subtitle = greyed
+      const parts: LabelPart[] = greyed
         ? problem
-          ? t(`equip.problem.${problem}`)
-          : ''
+          ? [t(`equip.problem.${problem}`)]
+          : []
         : [
-            item.slot === 'trinket' ? trinketText(gear) : deltaText(preview!),
-            gearEffectText(gear),
+            ...(item.slot === 'trinket' ? trinketParts(gear) : deltaParts(preview!)),
+            ...gearEffectParts(gear),
             unequipsOffhand ? t('equip.unequipsOffhand') : null,
             holder ? t('equip.usedBy', { name: holder.name }) : null,
-          ]
-            .filter(Boolean)
-            .join(' · ');
+          ].filter((part): part is LabelPart => part !== null);
       return {
         id: gear.uid,
         emoji: item.emoji,
         icon: item.icon,
         title: gearName(gear),
-        subtitle,
+        subtitle: parts.length > 0 ? <PartsLine parts={parts} labelStyle={styles.subtitle} /> : undefined,
         color: greyed ? colors.muted : qualities[gear.quality].color,
         disabled: greyed,
         marks: <GearMarks tier={item.tier} affinity={affinityOf(hero.classId, item.gearType)} />,
@@ -140,11 +139,11 @@ function gainOf({ item, preview }: { item: GearDef; preview: { before: Stats; af
 }
 
 /** "+3 ⚔️ −1 💨": the non-zero stat changes equipping the piece would make. */
-function deltaText({ before, after }: { before: Stats; after: Stats }) {
+function deltaParts({ before, after }: { before: Stats; after: Stats }): LabelPart[] {
   return DELTA_KEYS.flatMap((key) => {
     const delta = after[key] - before[key];
-    return delta ? [`${delta > 0 ? '+' : '−'}${Math.abs(delta)} ${statIcons[key]}`] : [];
-  }).join(' ');
+    return delta ? [{ emoji: statIcons[key], text: `${delta > 0 ? '+' : '−'}${Math.abs(delta)}` }] : [];
+  });
 }
 
 export function EquipPicker({ save, heroId, slot, briefing, bossId, onPick, onClose }: Props) {
@@ -177,4 +176,5 @@ export function EquipPicker({ save, heroId, slot, briefing, bossId, onPick, onCl
 const styles = StyleSheet.create({
   body: { gap: 4 },
   empty: { color: colors.muted, paddingVertical: 8 },
+  subtitle: { fontSize: 17, color: colors.muted },
 });

@@ -30,6 +30,7 @@ import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
 import { Text } from './Text';
 import { ThreatChip } from './ThreatChip';
+import { IconLabel, PartsLine } from './IconLabel';
 
 const problemText: Record<Exclude<PlaceFightProblem, null>, (distance: number) => string> = {
   tooFar: (distance) => t('patrols.walkCloser', { distance: Math.round(distance) }),
@@ -99,7 +100,8 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
   return (
     <Overlay onClose={onClose} position="bottom">
       <Sheet
-        title={`${info.emoji} ${tr(info.name)}`}
+        emoji={info.emoji}
+        title={tr(info.name)}
         bodyStyle={styles.content}
         footer={
           <View style={styles.actions}>
@@ -109,19 +111,24 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
         }
       >
         <Text style={styles.muted}>{tr(info.description)}</Text>
-        <Text style={styles.muted}>
-          {t('expeditions.tier', { tier: highestUnlockedTier(save) })}
-          {rules.elite ? ' ★' : ''} · ⏳ {formatDuration(rules.minutes * 60_000)} · {t('places.party', { min, max: rules.party })}
-        </Text>
+        <PartsLine
+          parts={[
+            `${t('expeditions.tier', { tier: highestUnlockedTier(save) })}${rules.elite ? ' ★' : ''}`,
+            { emoji: '⏳', text: formatDuration(rules.minutes * 60_000) },
+            t('places.party', { min, max: rules.party }),
+          ]}
+          labelStyle={styles.muted}
+        />
         <Text style={styles.muted}>{leavesIn(place.expiresAt - now)}</Text>
         {briefing.threats.map((threat) => (
           <ThreatChip key={threat.id} threat={threat} />
         ))}
         {briefing.opportunity && (
-          <Text style={styles.muted}>
-            {opportunityById[briefing.opportunity].emoji} {tr(opportunityById[briefing.opportunity].name)}:{' '}
-            {tr(opportunityById[briefing.opportunity].description)}
-          </Text>
+          <IconLabel
+            emoji={opportunityById[briefing.opportunity].emoji}
+            label={`${tr(opportunityById[briefing.opportunity].name)}: ${tr(opportunityById[briefing.opportunity].description)}`}
+            labelStyle={styles.muted}
+          />
         )}
         <Text style={styles.subtitle}>{t('expeditions.foes')}</Text>
         {foes.map((mob) => (

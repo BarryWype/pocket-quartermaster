@@ -24,6 +24,7 @@ import { Panel } from './Panel';
 import { patrolIcons } from './PatrolMarker';
 import { PocketModePanel } from './PocketModePanel';
 import { Text } from './Text';
+import { IconLabel } from './IconLabel';
 
 const openSettings = () => Linking.openSettings().catch(() => {});
 
@@ -295,7 +296,7 @@ export function WalkCard() {
   return (
     <Overlay onClose={markWalksSeen}>
         <Panel style={styles.dialog}>
-          <Text style={styles.title}>🚶 {t('autoGather.whileYouWalked')}</Text>
+          <IconLabel emoji="🚶" label={t('autoGather.whileYouWalked')} labelStyle={styles.title} />
           <WalkStats walk={walk} />
           {walk.patrols && <WalkPatrolsSection patrols={walk.patrols} />}
           {walk.autoStopped && <Text style={styles.muted}>{t('autoGather.autoStopped', { minutes: autoStopMinutes })}</Text>}

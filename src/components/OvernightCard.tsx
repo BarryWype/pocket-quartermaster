@@ -14,6 +14,7 @@ import { Button } from './Button';
 import { IconSlot } from './Row';
 import { Text } from './Text';
 import { ODDS_COLORS } from './SendDialog';
+import { PartsLine } from './IconLabel';
 
 type Props = {
   save: SaveData;
@@ -41,9 +42,14 @@ export function OvernightCard({ save, dungeon, rotation, now, chance, onSend }: 
         <IconSlot emoji={dungeon.emoji} />
         <View style={styles.title}>
           <Text style={styles.name}>{tr(dungeon.name)}</Text>
-          <Text style={styles.muted}>
-            {t('expeditions.overnight.title')} · ⏳ {formatDuration(durationMs)} · {t('expeditions.overnight.back', { time: clockTime(now + durationMs) })}
-          </Text>
+          <PartsLine
+            parts={[
+              t('expeditions.overnight.title'),
+              { emoji: '⏳', text: formatDuration(durationMs) },
+              t('expeditions.overnight.back', { time: clockTime(now + durationMs) }),
+            ]}
+            labelStyle={styles.muted}
+          />
         </View>
         {typeof chance === 'number' && band ? (
           <View style={[styles.odds, { backgroundColor: ODDS_COLORS[band] }]}>

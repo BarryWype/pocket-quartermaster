@@ -31,6 +31,7 @@ import { useSheetMaxHeight } from './Sheet';
 import { Panel } from './Panel';
 import { Text } from './Text';
 import { ThreatCoverageChips } from './ThreatDetail';
+import { IconLabel } from './IconLabel';
 
 type Props = {
   save: SaveData;
@@ -96,9 +97,11 @@ function Picker({ label, items, stock, value, onChange, disabled }: {
             onPress={() => onChange(id)}
             style={[styles.option, value === id && styles.optionActive, disabled && styles.optionDisabled]}
           >
-            <Text style={styles.optionText}>
-              {id ? `${itemById[id].emoji} ${tr(itemById[id].name)} ×${stock[id]}` : t('expeditions.confirm.none')}
-            </Text>
+            {id ? (
+              <IconLabel emoji={itemById[id].emoji} label={`${tr(itemById[id].name)} ×${stock[id]}`} labelStyle={styles.optionText} />
+            ) : (
+              <Text style={styles.optionText}>{t('expeditions.confirm.none')}</Text>
+            )}
           </Pressable>
         ))}
       </View>
@@ -155,7 +158,7 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
     const item = itemById[id] as ConsumableDef;
     const applies = charmApplies(item.charm!, dungeonLootSource(dungeon)) && !(barren && item.charm!.kind === 'gold');
     const twice = charms.filter((c) => c.id === id).length > 1;
-    return { id, text: `${item.emoji} ${tr(item.name)}: ${tr(item.description!)}`, applies, twice };
+    return { id, emoji: item.emoji, text: `${tr(item.name)}: ${tr(item.description!)}`, applies, twice };
   });
   // The odds previews: keys already computed elsewhere show at once, the rest compute
   // in a later tick, and the last known odds stay on screen while they do.
@@ -204,14 +207,17 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
     <Overlay onClose={onClose}>
         <Panel style={[styles.dialog, { maxHeight }]}>
           <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-            <Text style={styles.title}>{t('expeditions.confirm.title', { dungeon: `${dungeon.emoji} ${tr(dungeon.name)}` })}</Text>
+            <IconLabel
+              emoji={dungeon.emoji}
+              label={t('expeditions.confirm.title', { dungeon: tr(dungeon.name) })}
+              size={22}
+              labelStyle={styles.title}
+            />
             <ThreatCoverageChips coverage={coverage} labelled={save.tutorial.step !== 'done'} />
             {heroes.map((hero) => (
               <View key={hero.id} style={styles.hero}>
                 <View style={styles.heroLine}>
-                  <Text style={styles.heroName}>
-                    {heroClasses[hero.classId].emoji} {hero.name}
-                  </Text>
+                  <IconLabel emoji={heroClasses[hero.classId].emoji} label={hero.name} labelStyle={styles.heroName} />
                   {drinkProblem(save, hero.id, now) === null && (
                     <Button title={t('expeditions.confirm.drink')} onPress={() => drinkPotion(hero.id)} />
                   )}
@@ -223,9 +229,11 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
                     const id = hero.equipment[slot];
                     return (
                       <Pressable key={slot} accessibilityLabel={t(`hero.slots.${slot}`)} onPress={() => setPicking({ heroId: hero.id, slot })} style={styles.slot}>
-                        <Text style={styles.slotText}>
-                          {id ? `${itemById[id].emoji} ${tr(itemById[id].name)}` : `${slot === 'potion' ? '⚗️' : '🎒'} ${t('expeditions.confirm.none')}`}
-                        </Text>
+                        <IconLabel
+                          emoji={id ? itemById[id].emoji : slot === 'potion' ? '⚗️' : '🎒'}
+                          label={id ? tr(itemById[id].name) : t('expeditions.confirm.none')}
+                          labelStyle={styles.slotText}
+                        />
                       </Pressable>
                     );
                   })}
@@ -255,9 +263,11 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
                           onSwap(hero.id, other.id);
                         }}
                       >
-                        <Text style={styles.optionText}>
-                          {heroClasses[other.classId].emoji} {other.name} · {formatPercent(currentHp(save, other, now) / maxHp(save, other))}
-                        </Text>
+                        <IconLabel
+                          emoji={heroClasses[other.classId].emoji}
+                          label={`${other.name} · ${formatPercent(currentHp(save, other, now) / maxHp(save, other))}`}
+                          labelStyle={styles.optionText}
+                        />
                       </Pressable>
                     ))}
                   </View>
@@ -268,7 +278,7 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
             <Text style={styles.summary}>{t('expeditions.confirm.supply', { need: plan.need, held: plan.held })}</Text>
             {plan.hunger !== 'fed' && (
               <View style={styles.warning}>
-                <Text style={styles.warningText}>⚠️ {t(`expeditions.confirm.hunger.${plan.hunger}`)}</Text>
+                <IconLabel emoji="⚠️" label={t(`expeditions.confirm.hunger.${plan.hunger}`)} labelStyle={styles.warningText} />
                 {canBuy && (
                   <Button
                     title={t('expeditions.confirm.buySupply', { price: supplyPrice(save) })}
@@ -286,14 +296,17 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
                   onPress={() => setOptIn(!optIn)}
                   style={[styles.option, optIn && styles.optionActive, keyCost && !hasKey(save) && styles.optionDisabled]}
                 >
-                  <Text style={styles.optionText}>
-                    {opportunity.emoji}{' '}
-                    {keyCost
-                      ? hasKey(save)
-                        ? t('secrets.vaultOptIn')
-                        : `${tr(opportunity.name)} · ${t('secrets.vaultLocked')}`
-                      : `${tr(opportunity.name)} · ${t('expeditions.confirm.optIn', { count: opportunity.cost?.supply ?? 0 })}`}
-                  </Text>
+                  <IconLabel
+                    emoji={opportunity.emoji}
+                    label={
+                      keyCost
+                        ? hasKey(save)
+                          ? t('secrets.vaultOptIn')
+                          : `${tr(opportunity.name)} · ${t('secrets.vaultLocked')}`
+                        : `${tr(opportunity.name)} · ${t('expeditions.confirm.optIn', { count: opportunity.cost?.supply ?? 0 })}`
+                    }
+                    labelStyle={styles.optionText}
+                  />
                 </Pressable>
                 {keyCost && hasKey(save) && <Text style={styles.keyWarning}>{t('secrets.vaultWarning')}</Text>}
               <Text style={styles.muted}>{tr(opportunity.description)}</Text>
@@ -308,29 +321,32 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
             {spoiled && <Text style={styles.muted}>{t('expeditions.confirm.spoiledStores')}</Text>}
             {charmLines.length > 0 && <Text style={styles.label}>{t('expeditions.confirm.rewards')}</Text>}
             {charmLines.map((line) => (
-              <Text key={line.id} style={line.applies ? styles.summary : styles.muted}>
-                {line.text}
-                {line.applies ? '' : t('expeditions.confirm.charmNoEffect')}
-                {line.twice ? t('expeditions.confirm.charmOnce') : ''}
-              </Text>
+              <View key={line.id} style={styles.charmRow}>
+                <IconLabel emoji={line.emoji} label={line.text} labelStyle={line.applies ? styles.summary : styles.muted} />
+                {!line.applies && <Text style={styles.muted}> {t('expeditions.confirm.charmNoEffect')}</Text>}
+                {line.twice && <Text style={styles.muted}> {t('expeditions.confirm.charmOnce')}</Text>}
+              </View>
             ))}
 
-            <Text style={styles.summary}>
-              ⏳ {formatDuration(durationMs)} ·{' '}
-              {odds && band ? (
-                <Text style={{ color: ODDS_COLORS[band] }}>
-                  {formatPercent(odds.now)} {t(`odds.${band}`)}
-                </Text>
-              ) : (
-                '…'
-              )}
-            </Text>
+            <View style={styles.summaryRow}>
+              <IconLabel emoji="⏳" label={formatDuration(durationMs)} labelStyle={styles.summary} />
+              <Text style={styles.summary}>
+                {' · '}
+                {odds && band ? (
+                  <Text style={{ color: ODDS_COLORS[band] }}>
+                    {formatPercent(odds.now)} {t(`odds.${band}`)}
+                  </Text>
+                ) : (
+                  '…'
+                )}
+              </Text>
+            </View>
             {odds && odds.full !== odds.now && (
               <Text style={styles.muted}>{t('expeditions.confirm.oddsFull', { percent: formatPercent(odds.full) })}</Text>
             )}
             {warnings.map((warning) => (
               <View key={warning} style={styles.warning}>
-                <Text style={styles.warningText}>⚠️ {warning}</Text>
+                <IconLabel emoji="⚠️" label={warning} labelStyle={styles.warningText} />
               </View>
             ))}
           </ScrollView>
@@ -358,6 +374,8 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
 }
 
 const styles = StyleSheet.create({
+  charmRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
+  summaryRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
   dialog: { gap: 10, padding: 14 },
   scroll: { flexShrink: 1 },
   content: { gap: 10 },

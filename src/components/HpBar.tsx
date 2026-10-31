@@ -10,6 +10,7 @@ import { colors } from '@/theme';
 
 import { PixelBar } from './PixelBar';
 import { Text } from './Text';
+import { IconLabel } from './IconLabel';
 
 type Props = {
   save: SaveData;
@@ -34,15 +35,16 @@ export function HpBar({ save, hero, now, light }: Props) {
   return (
     <View>
       <PixelBar value={share} color={share < healthRules.hurtShare ? colors.danger : colors.success} />
-      <Text style={[styles.text, light && styles.light]}>
-        ❤️ {t('health.hp', { hp: Math.floor(hp), max })}
-        {status ? ` · ${status}` : ''}
-      </Text>
+      <View style={styles.row}>
+        <IconLabel emoji="❤️" label={t('health.hp', { hp: Math.floor(hp), max })} labelStyle={[styles.text, light && styles.light]} />
+        {status ? <Text style={[styles.text, light && styles.light]}> · {status}</Text> : null}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
   text: { fontSize: 16, color: colors.muted },
   light: { color: colors.parchment },
 });

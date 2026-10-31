@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -14,6 +14,7 @@ import { t, tr } from '@/i18n';
 import { useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
+import { IconLabel } from '@/components/IconLabel';
 
 const materialsText = (materials: MaterialStack[]) =>
   materials.map(({ materialId, amount }) => `${amount} ${tr(materialById[materialId].name).toLowerCase()}`);
@@ -42,22 +43,27 @@ function problemText(problem: RankProblem) {
 function PriceLine({ price }: { price: RankPrice }) {
   const save = useGameStore((state) => state.save);
   const parts = [
-    { key: 'gold', text: priceLabel(price.gold), short: save.gold < price.gold },
+    { key: 'gold', emoji: undefined, text: priceLabel(price.gold), short: save.gold < price.gold },
     ...price.materials.map(({ materialId, amount }) => ({
       key: materialId,
-      text: `${materialById[materialId].emoji} ${amount} ${tr(materialById[materialId].name).toLowerCase()}`,
+      emoji: materialById[materialId].emoji,
+      text: `${amount} ${tr(materialById[materialId].name).toLowerCase()}`,
       short: (save.materials[materialId] ?? 0) < amount,
     })),
   ];
   return (
-    <Text style={[styles.price, styles.priceLine]}>
+    <View style={styles.priceLineRow}>
       {parts.map((part, i) => (
-        <Text key={part.key} style={part.short && styles.short}>
-          {i > 0 ? ' · ' : ''}
-          {part.text}
-        </Text>
+        <Fragment key={part.key}>
+          {part.emoji ? (
+            <IconLabel emoji={part.emoji} label={part.text} labelStyle={[styles.price, part.short && styles.short]} />
+          ) : (
+            <Text style={[styles.price, part.short && styles.short]}>{part.text}</Text>
+          )}
+          {i > 0 ? <Text style={styles.price}> · </Text> : null}
+        </Fragment>
       ))}
-    </Text>
+    </View>
   );
 }
 
@@ -118,7 +124,7 @@ export default function GuildScreen() {
       {!isGuildUnlocked(save) && <Text style={styles.problem}>{t('guild.hallLocked')}</Text>}
       {(Object.keys(guildBuildings) as GuildBuildingId[]).map((building) => (
         <View key={building}>
-          <SectionTitle>{`${guildBuildings[building].emoji} ${tr(guildBuildings[building].name)}`}</SectionTitle>
+          <SectionTitle emoji={guildBuildings[building].emoji}>{tr(guildBuildings[building].name)}</SectionTitle>
           {guildTracks.filter((track) => track.building === building).map(row)}
         </View>
       ))}
@@ -127,6 +133,7 @@ export default function GuildScreen() {
 }
 
 const styles = StyleSheet.create({
+  priceLineRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
   container: { padding: 16, gap: 6 },
   wallet: { fontSize: 22 },
   track: { gap: 4, marginBottom: 8, padding: 10, borderWidth: pixel.outline, borderColor: colors.ink, backgroundColor: colors.parchment },

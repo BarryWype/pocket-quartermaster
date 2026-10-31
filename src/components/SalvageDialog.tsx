@@ -13,6 +13,7 @@ import { Overlay } from './Overlay';
 import { useSheetMaxHeight } from './Sheet';
 import { Panel } from './Panel';
 import { Text } from './Text';
+import { IconLabel } from './IconLabel';
 
 const warningKey: Record<SalvageWarning, TextKey> = {
   equipped: 'inventory.salvageWarning.equipped',
@@ -47,7 +48,7 @@ export function SalvageDialog({ gear, save, onConfirm, onClose }: Props) {
           <Text>{t('inventory.salvageBody', { returns: returns })}</Text>
           {dialog.warnings.map((warning) => (
             <View key={warning} style={styles.warning}>
-              <Text style={styles.warningText}>⚠️ {t(warningKey[warning])}</Text>
+              <IconLabel emoji="⚠️" label={t(warningKey[warning])} labelStyle={styles.warningText} />
             </View>
           ))}
         </ScrollView>

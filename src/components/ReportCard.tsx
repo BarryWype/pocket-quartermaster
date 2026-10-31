@@ -7,6 +7,8 @@ import { formatDuration, t, tr } from '@/i18n';
 import { colors, pixel } from '@/theme';
 
 import { lootItems, OUTCOME_COLORS } from './LootReveal';
+import { GainsLine, RewardLabel } from './IconLabel';
+import { GameIcon } from './GameIcon';
 import { PixelBar } from './PixelBar';
 import { IconSlot } from './Row';
 import { Text } from './Text';
@@ -69,7 +71,7 @@ export function ReportCard({ report, heroes, now, expanded, onToggle }: Props) {
       <View style={styles.chips}>
         {(expanded ? [...loot, ...extras] : loot.slice(0, 4)).map((item, i) => (
           <View key={i} style={styles.chip}>
-            <Text style={styles.chipText}>{item}</Text>
+            <RewardLabel text={item} size={16} labelStyle={styles.chipText} />
           </View>
         ))}
         {!expanded && loot.length > 4 && <Text style={styles.muted}>+{loot.length - 4}</Text>}
@@ -82,21 +84,28 @@ export function ReportCard({ report, heroes, now, expanded, onToggle }: Props) {
             const element = threat.id === 'element' && threat.element ? elementInfo[threat.element] : null;
             const pips = '●'.repeat(threat.level) + '○'.repeat(3 - threat.level);
             return (
-              <Text key={i} style={styles.logLine}>
-                {def.emoji} {element ? `${element.emoji} ` : ''}
-                {tr(def.name)} {pips} · {t(`expeditions.report.state.${threat.state}`)}
-                {threat.forced ? t('expeditions.report.forced') : ''}
-                {threat.intimidated ? t('expeditions.report.intimidated') : ''}
-              </Text>
+              <View key={i} style={styles.logRow}>
+                <GameIcon emoji={def.emoji} size={18} />
+                {element ? <GameIcon emoji={element.emoji} size={18} /> : null}
+                <Text style={styles.logLine}>
+                  {tr(def.name)} {pips} · {t(`expeditions.report.state.${threat.state}`)}
+                  {threat.forced ? t('expeditions.report.forced') : ''}
+                  {threat.intimidated ? t('expeditions.report.intimidated') : ''}
+                </Text>
+              </View>
             );
           })}
           {report.opportunity && (
-            <Text style={styles.logLine}>
-              {opportunityById[report.opportunity.id].emoji} {tr(opportunityById[report.opportunity.id].name)} ·{' '}
-              {report.opportunity.answered
-                ? opportunityGave(report.opportunity)
-                : t('expeditions.report.opportunityMissed')}
-            </Text>
+            <View style={styles.logRow}>
+              <GameIcon emoji={opportunityById[report.opportunity.id].emoji} size={18} />
+              {report.opportunity.answered ? (
+                <GainsLine gains={[tr(opportunityById[report.opportunity.id].name), ...opportunityGave(report.opportunity)]} labelStyle={styles.logLine} />
+              ) : (
+                <Text style={styles.logLine}>
+                  {tr(opportunityById[report.opportunity.id].name)} · {t('expeditions.report.opportunityMissed')}
+                </Text>
+              )}
+            </View>
           )}
           {(report.salvaged ?? []).map((entry, i) => {
             const item = itemById[entry.itemId];
@@ -107,7 +116,7 @@ export function ReportCard({ report, heroes, now, expanded, onToggle }: Props) {
               .filter((part): part is string => part !== null)
               .join(' · ');
             return (
-              <Text key={i} style={styles.logLine}>
+              <Text key={i} style={styles.logLine}> {/* mixed-emoji-ok: the salvaged sentence wraps in a full-width paragraph */}
                 {t('expeditions.report.salvaged', {
                   hero: heroes.find((h) => h.id === entry.heroId)?.name ?? entry.heroId,
                   item: `${item.emoji} ${tr(item.name)}`,
@@ -141,6 +150,7 @@ export function ReportCard({ report, heroes, now, expanded, onToggle }: Props) {
 }
 
 const styles = StyleSheet.create({
+  logRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
   card: { marginBottom: 8, padding: 8, gap: 6, borderWidth: pixel.outline, backgroundColor: colors.parchment },
   unseen: { backgroundColor: colors.highlight },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10 },

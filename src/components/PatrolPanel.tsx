@@ -33,6 +33,7 @@ import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
 import { Text } from './Text';
 import { ThreatChip } from './ThreatChip';
+import { PartsLine } from './IconLabel';
 
 const problemText: Record<Exclude<PatrolFightProblem, null>, (distance: number) => string> = {
   tooFar: (distance) => t('patrols.walkCloser', { distance: Math.round(distance) }),
@@ -115,7 +116,8 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
   return (
     <Overlay onClose={onClose} position="bottom">
       <Sheet
-        title={`${dungeon.emoji} ${texts.kinds[kind]}`}
+        emoji={dungeon.emoji}
+        title={texts.kinds[kind]}
         bodyStyle={styles.content}
         footer={
           <View style={styles.actions}>
@@ -124,18 +126,20 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
           </View>
         }
       >
-        <Text style={styles.muted}>
-          {t('expeditions.tier', { tier })}
-          {elite ? ` ★ ${t('patrols.eliteX2')}` : ''} · ⏳ {formatDuration(dungeon.durationMinutes * 60_000)} ·{' '}
-          {t('patrols.recommended', { count: patrolKinds[kind].party })}
-        </Text>
+        <PartsLine
+          parts={[
+            `${t('expeditions.tier', { tier })}${elite ? ` ★ ${t('patrols.eliteX2')}` : ''}`,
+            { emoji: '⏳', text: formatDuration(dungeon.durationMinutes * 60_000) },
+            t('patrols.recommended', { count: patrolKinds[kind].party }),
+          ]}
+          labelStyle={styles.muted}
+        />
         <Text style={styles.muted}>{t(`patrols.rewards.${kind}`)}</Text>
         <ThreatChip threat={patrolThreats[kind]} />
-        <Text style={styles.muted}>
-          {dungeonTags(dungeon)
-            .map((tag) => `${tagInfo[tag].emoji} ${tr(tagInfo[tag].name)}`)
-            .join(' · ')}
-        </Text>
+        <PartsLine
+          parts={dungeonTags(dungeon).map((tag) => ({ emoji: tagInfo[tag].emoji, text: tr(tagInfo[tag].name) }))}
+          labelStyle={styles.muted}
+        />
         <Text style={styles.subtitle}>{t('expeditions.foes')}</Text>
         {dungeonFoes(dungeon).map((mob) => (
           <EnemyTags key={mob.id} mob={mob} />

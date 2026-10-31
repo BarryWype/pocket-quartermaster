@@ -18,7 +18,7 @@ type WorldState = {
   /** A short note from auto-gather for the map (what it just gathered, or why it stopped). */
   autoGatherMessage: { text: string; at: number } | null;
   /** A short note from patrol fights for the map (who came back, and what it paid). */
-  patrolMessage: { text: string; at: number } | null;
+  patrolMessage: { text: string; gains?: string[]; at: number } | null;
   /** Patrol id → when the map first showed it, for goblins' flee timer. */
   patrolsSeen: Record<string, number>;
   /** A notification tapped patrol to centre on and select; cleared by the map. */

@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-nat
 import { colors, pixel } from '@/theme';
 
 import { GameIcon } from './GameIcon';
+import { IconLabel } from './IconLabel';
 import { Text } from './Text';
 
 type Props = {
@@ -44,11 +45,15 @@ export function IconSlot({ emoji, icon, size = 32 }: { emoji: string; icon?: Ima
   );
 }
 
-/** A wooden banner heading a section. */
-export function SectionTitle({ children }: { children: string }) {
+/** A wooden banner heading a section, its icon beside the words when given one. */
+export function SectionTitle({ children, emoji }: { children: string; emoji?: string }) {
   return (
     <View style={styles.banner}>
-      <Text style={styles.section}>◆ {children}</Text>
+      {emoji ? (
+        <IconLabel emoji={emoji} label={children} size={22} gap={6} labelStyle={styles.section} />
+      ) : (
+        <Text style={styles.section}>◆ {children}</Text>
+      )}
     </View>
   );
 }

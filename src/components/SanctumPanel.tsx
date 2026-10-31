@@ -29,6 +29,7 @@ import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
 import { Text } from './Text';
+import { IconLabel } from './IconLabel';
 
 const LINE_DELAY_MS = 600;
 
@@ -120,7 +121,8 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
   return (
     <Overlay onClose={onClose} position="bottom">
       <Sheet
-    title={`${sanctum.emoji} ${tr(sanctum.name)}`}
+    emoji={sanctum.emoji}
+    title={tr(sanctum.name)}
     bodyStyle={styles.content}
     footer={
       <View style={styles.actions}>
@@ -132,9 +134,10 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
       </View>
     }
   >
-        <Text style={styles.muted}>
-          {element.emoji} {tr(element.name)} · {tr(sanctum.description)}
-        </Text>
+        <View style={styles.elementRow}>
+          <IconLabel emoji={element.emoji} label={tr(element.name)} labelStyle={styles.muted} />
+          <Text style={styles.muted}> · {tr(sanctum.description)}</Text>
+        </View>
         <Text style={styles.subtitle}>{t('sanctum.guardian', { name: tr(sanctum.guardian.name) })}</Text>
         <EnemyTags mob={sanctumGuardian(sanctum, tier ?? 1)} named={false} />
         <Text style={styles.muted}>{tr(sanctum.guardian.description)}</Text>
@@ -200,6 +203,7 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
 }
 
 const styles = StyleSheet.create({
+  elementRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
   content: { gap: 6, paddingBottom: 12 },
   subtitle: { fontSize: 21, marginTop: 8 },
   muted: { color: colors.muted },

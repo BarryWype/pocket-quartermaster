@@ -14,6 +14,7 @@ import { Overlay } from './Overlay';
 import { useSheetMaxHeight } from './Sheet';
 import { Panel } from './Panel';
 import { Text } from './Text';
+import { IconLabel, RewardLabel } from './IconLabel';
 
 export const OUTCOME_COLORS: Record<ExpeditionOutcome, string> = {
   flawless: colors.gold,
@@ -71,9 +72,7 @@ export function LootReveal({ report, before, after, onClose, onReadReport }: Pro
     <Overlay onClose={onClose} backdropStyle={styles.backdrop}>
         <Panel style={[styles.dialog, { maxHeight }]}>
           <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-          <Text style={styles.title}>
-            {dungeon.emoji} {tr(dungeon.name)}
-          </Text>
+          <IconLabel emoji={dungeon.emoji} label={tr(dungeon.name)} size={22} labelStyle={styles.title} />
           <Text style={[styles.outcome, { color: OUTCOME_COLORS[report.outcome] }]}>
             {t(`expeditions.outcome.${report.outcome}`)} ({report.encountersCleared}/{report.encounterCount})
           </Text>
@@ -82,7 +81,7 @@ export function LootReveal({ report, before, after, onClose, onReadReport }: Pro
             {items.map((item, i) => (
               <Pop key={i} delay={300 + i * STAGGER_MS}>
                 <View style={[styles.item, i === 0 && report.gold > 0 && styles.itemGold]}>
-                  <Text style={[styles.itemText, i === 0 && report.gold > 0 && styles.itemTextBig]}>{item}</Text>
+                  <RewardLabel text={item} size={20} labelStyle={[styles.itemText, i === 0 && report.gold > 0 && styles.itemTextBig]} />
                 </View>
               </Pop>
             ))}
@@ -90,11 +89,9 @@ export function LootReveal({ report, before, after, onClose, onReadReport }: Pro
           {heroes.map(({ hero, xp, levelUp }, i) => (
             <Pop key={hero.id} delay={300 + (items.length + i) * STAGGER_MS}>
               <View style={styles.hero}>
-                <Text style={styles.heroName}>
-                  {heroClasses[hero.classId].emoji} {hero.name}
-                </Text>
+                <IconLabel emoji={heroClasses[hero.classId].emoji} label={hero.name} labelStyle={styles.heroName} />
                 <Text style={styles.xp}>{t('expeditions.loot.xp', { xp })}</Text>
-                {levelUp && <Text style={styles.levelUp}>⬆ {t('expeditions.loot.levelUp', { level: hero.level })}</Text>}
+                {levelUp && <IconLabel emoji="⬆" label={t('expeditions.loot.levelUp', { level: hero.level })} labelStyle={styles.levelUp} />}
               </View>
             </Pop>
           ))}

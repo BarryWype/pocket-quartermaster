@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { chestState, dayKey, stepChests } from '@/game/rewards/chests';
-import { lootText } from '@/hooks/usePatrols';
+import { gainsPrefix, lootLabels } from '@/components/lootText';
 import { useTodaySteps } from '@/hooks/useTodaySteps';
 import { formatNumber, t } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 
 import { Button } from './Button';
+import { GainsLine } from './IconLabel';
 import { Row, SectionTitle } from './Row';
 import { Text } from './Text';
 
@@ -15,11 +16,12 @@ export function StepChests() {
   const steps = useTodaySteps();
   const save = useGameStore((state) => state.save);
   const openChest = useGameStore((state) => state.openChest);
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ text: string; gains: string[] } | null>(null);
   const day = dayKey(new Date());
 
   const open = (chestId: string) => {
-    setMessage(lootText(openChest(chestId, steps)) || t('chests.nothing'));
+    const gains = lootLabels(openChest(chestId, steps));
+    setMessage(gains.length > 0 ? { text: gainsPrefix(t('chests.reward', { reward: '' })), gains } : { text: t('chests.nothing'), gains: [] });
   };
 
   return (
@@ -42,11 +44,17 @@ export function StepChests() {
           />
         );
       })}
-      {message && <Text style={styles.reward}>{t('chests.reward', { reward: message })}</Text>}
+      {message && (
+        <View style={styles.rewardRow}>
+          <Text style={styles.reward}>{message.text}</Text>
+          {message.gains.length > 0 && <GainsLine gains={message.gains} labelStyle={styles.reward} />}
+        </View>
+      )}
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  rewardRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   reward: { paddingVertical: 8 },
 });

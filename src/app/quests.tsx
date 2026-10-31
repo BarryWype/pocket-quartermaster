@@ -23,6 +23,7 @@ import { formatDistance, formatDuration, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { useWorldStore } from '@/store/worldStore';
 import { colors, pixel } from '@/theme';
+import { IconLabel } from '@/components/IconLabel';
 
 /** One emoji per loot category, for the reward hint. */
 const CATEGORY_EMOJI: Record<LootCategory, string> = {
@@ -165,10 +166,10 @@ export default function QuestsScreen() {
           <View key={quest.id} style={[styles.card, secret && styles.secret, quest.doneAt !== null && styles.done]}>
             {secret && <Text style={styles.secretTitle}>{t('quests.secretTitle')}</Text>}
             <View style={styles.header}>
-              <Text style={styles.objective}>{`${emoji} ${objectiveText(quest)}`}</Text>
+              <IconLabel emoji={emoji} label={objectiveText(quest)} labelStyle={styles.objective} />
               <Text style={styles.band}>{t(`quests.band.${quest.band}`)}</Text>
             </View>
-            {target && <Text>{`🧭 ${target}`}</Text>}
+            {target && <IconLabel emoji="🧭" label={target} />}
             {progress && <Text style={quest.doneAt !== null && styles.doneText}>{progress}</Text>}
             <Text style={styles.muted}>{rewardHint(quest)}</Text>
             {quest.doneAt === null && <Text style={styles.muted}>{t('quests.timeLeft', { time: formatDuration(quest.expiresAt - now) })}</Text>}

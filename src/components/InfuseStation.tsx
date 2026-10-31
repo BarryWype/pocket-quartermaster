@@ -20,7 +20,7 @@ export function InfuseStation() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.intro}>
+      <Text style={styles.intro}> {/* mixed-emoji-ok: the stone counts wrap in a full-width paragraph */}
         {stones.length === 0
           ? t('crafting.noStones')
           : t('crafting.stones', { stones: stones.map((e) => `${elementInfo[e].emoji} ${save.materials[stoneId(e)]}`).join('  ') })}

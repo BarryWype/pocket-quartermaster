@@ -40,6 +40,10 @@ Docs: https://docs.expo.dev/eas/index.md
 - Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
 - Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
 
+## Text and emoji
+
+The game font (Fantaisie Artistique) has no emoji glyphs, so a Text that mixes an emoji with words measures its width wrong and clips the words in anything sized to its content. Never put an emoji and words in one Text element: render the emoji in its own element (`IconLabel`, `src/components/IconLabel.tsx`) beside the label. `src/components/noMixedEmojiText.test.ts` fails on any Text that mixes them; a full-width paragraph that wraps may opt out with `// mixed-emoji-ok: <reason>` on the Text line.
+
 ## Balance lab
 
 `npm run sim` plays the whole game (to the end of tier 5) with simple bots for the casual, regular and heavy profiles (`src/game/sim/`, CLI and report in `scripts/sim/`) and writes `doc/design/simulator/report.md` and `summary.json` (CSVs go to `sim-output/`). `npm run sim:check` also runs the balance band tests on that summary. Each game runs in its own process (`--workers N`) and prints a line per simulated week; a full run takes a few minutes, so agents never run it — the user does, in a terminal. To check odds while tuning, run `npm run sim:quick` (a few seconds): the win odds per tier for the reference team the dungeons are fitted to (see the comment above `TIER_SCALE` in `src/content/enemies.ts`), against the targets. When a change adds or alters a gameplay system, update the simulator bot and the report so the system is covered, and ask the user to run `npm run sim` to check its effect.

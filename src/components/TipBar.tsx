@@ -9,6 +9,7 @@ import { colors } from '@/theme';
 
 import { ISLAND_HEIGHT } from './IslandMenu';
 import { Text } from './Text';
+import { IconLabel } from './IconLabel';
 
 /** Over the map only: the oldest tip waiting, one at a time; a tap closes it for good (Settings → Tips keeps it). */
 export function TipBar() {
@@ -20,7 +21,7 @@ export function TipBar() {
 
   return (
     <Pressable onPress={() => closeTip(tip)} style={[styles.bar, { bottom: insets.bottom + ISLAND_HEIGHT + 56 }]}>
-      <Text style={styles.text}>💡 {tipText(tip)}</Text>
+      <IconLabel emoji="💡" label={tipText(tip)} labelStyle={styles.text} />
       <Text style={styles.close}>{t('tips.close')}</Text>
     </Pressable>
   );

@@ -24,7 +24,8 @@ import { colors } from '@/theme';
 
 import { Button } from './Button';
 import { ClassSummary } from './ClassSummary';
-import { lineName } from './PlacePanel';
+import { lineParts } from './PlacePanel';
+import { IconLabel, PartsLine } from './IconLabel';
 import { PriceTag } from './PriceTag';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
@@ -62,9 +63,11 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
     const problem = recruitProblem(save, offer, tavern.position, player);
     return (
       <View key={offer.id} style={styles.offer}>
-        <Text style={styles.name}>
-          {heroClass.emoji} {t('tavern.offer', { name: offer.name, className: tr(heroClass.name), level: offer.level })}
-        </Text>
+        <IconLabel
+          emoji={heroClass.emoji}
+          label={t('tavern.offer', { name: offer.name, className: tr(heroClass.name), level: offer.level })}
+          labelStyle={styles.name}
+        />
         <RecruitGrade grade={offer.grade} roll={offer.roll} />
         <Text style={[styles.trait, { color: trait.positive ? colors.ink : colors.danger }]}>
           {tr(trait.name)}: {tr(trait.description)}
@@ -81,13 +84,13 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
 
   return (
     <Overlay onClose={onClose} position="bottom">
-      <Sheet title={`🍺 ${tavern.name}`} bodyStyle={styles.content} footer={<Button title={t('common.close')} onPress={onClose} />}>
+      <Sheet emoji="🍺" title={tavern.name} bodyStyle={styles.content} footer={<Button title={t('common.close')} onPress={onClose} />}>
         <Text style={styles.muted}>
           {t('tavern.header', { gold: save.gold, count: save.heroes.length, cap: rosterCap(save) })}
         </Text>
         {offers.map(offerRow)}
         <View style={styles.offer}>
-          <Text style={styles.name}>🥓 {t('tavern.emergency')}</Text>
+          <IconLabel emoji="🥓" label={t('tavern.emergency')} labelStyle={styles.name} />
           <Text style={styles.muted}>{t('tavern.emergencyHint', { held: save.consumables.jerky ?? 0 })}</Text>
           <View style={styles.actions}>
             <PriceTag price={supplyPrice(save)} style={styles.price} />
@@ -100,7 +103,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
         </View>
         {placeStock(save, tavern, openedAt).map((line) => (
           <View key={line.key} style={styles.offer}>
-            <Text style={styles.name}>{lineName(line)}</Text>
+            <PartsLine parts={lineParts(line)} labelStyle={styles.name} />
             <View style={styles.actions}>
               <PriceTag price={line.price} style={styles.price} />
               <Text style={styles.muted}>

@@ -19,6 +19,7 @@ import { Overlay } from './Overlay';
 import { useSheetMaxHeight } from './Sheet';
 import { Panel } from './Panel';
 import { Text } from './Text';
+import { IconLabel, PartsLine } from './IconLabel';
 
 /** A base item as the inventory lists it. */
 export type InventoryItem = {
@@ -70,15 +71,13 @@ export function ItemSheet({ item, save, onClose }: { item: InventoryItem; save: 
     <Overlay onClose={onClose}>
       <Panel style={[styles.dialog, { maxHeight }]}>
         <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-          <Text style={styles.title}>
-            {item.emoji} {item.name}
-          </Text>
+          <IconLabel emoji={item.emoji} label={item.name} size={22} labelStyle={styles.title} />
           {item.about ? <Text style={styles.muted}>{item.about}</Text> : null}
-          <Text style={styles.line}>
-            {purposesOf(item.ref)
-              .map((p) => `${purposeInfo[p].icon} ${tr(purposeInfo[p].name)}`)
-              .join('   ')}
-          </Text>
+          <PartsLine
+            parts={purposesOf(item.ref).map((p) => ({ emoji: purposeInfo[p].icon, text: tr(purposeInfo[p].name) }))}
+            sep="   "
+            labelStyle={styles.line}
+          />
           {nextSteps(save, item.ref).map((step, i) => (
             <Text key={i} style={styles.line}>
               • {stepText(step)}

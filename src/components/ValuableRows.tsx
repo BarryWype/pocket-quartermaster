@@ -6,7 +6,7 @@ import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
 import { PriceTag } from './PriceTag';
-import { Text } from './Text';
+import { IconLabel } from './IconLabel';
 
 type Props = {
   valuables: Record<string, number>;
@@ -26,10 +26,18 @@ export function ValuableRows({ valuables, price, canSell, onSell, wanted }: Prop
     const def = valuableById[id];
     return (
       <View key={key} style={styles.row}>
-        <Text style={[styles.name, id === wanted && styles.wanted]}>
-          {def.emoji} {t('inventory.valuable', { name: tr(def.name), tier })} ×{count}
-          {id === wanted ? ` · ${t('places.collectorWants')}` : ''}
-        </Text>
+        <View style={styles.nameRow}>
+          <IconLabel
+            emoji={def.emoji}
+            label={
+              <>
+                {t('inventory.valuable', { name: tr(def.name), tier })} ×{count}
+                {id === wanted ? ` · ${t('places.collectorWants')}` : ''}
+              </>
+            }
+            labelStyle={[styles.name, id === wanted && styles.wanted]}
+          />
+        </View>
         <View style={styles.actions}>
           <PriceTag price={price(key)} style={styles.name} />
           <Button title={t('places.sell')} disabled={!canSell(key, 1)} onPress={() => onSell(key, 1)} />
@@ -41,6 +49,7 @@ export function ValuableRows({ valuables, price, canSell, onSell, wanted }: Prop
 }
 
 const styles = StyleSheet.create({
+  nameRow: { flex: 1 },
   row: { gap: 4, paddingVertical: 8, borderTopWidth: pixel.outline, borderTopColor: colors.parchmentDark },
   name: { fontSize: 21 },
   wanted: { color: colors.success },

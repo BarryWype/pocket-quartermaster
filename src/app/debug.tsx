@@ -68,7 +68,7 @@ import { charms } from '@/content/loot/charms';
 import { monsterParts } from '@/content/loot/monsterParts';
 import { relics } from '@/content/loot/relics';
 import { valuables } from '@/content/loot/valuables';
-import { lootText } from '@/hooks/usePatrols';
+import { lootText } from '@/components/lootText';
 import type { ActiveThreat, Briefing, HeroClassId, MasteryType, Quality, StatKey, ThreatId, ThreatLevel } from '@/game/types';
 import { forgedItem, isKnown } from '@/game/crafting/crafting';
 import { playBack, syncBackground } from '@/hooks/useAutoGather';
@@ -84,6 +84,7 @@ import { currentRotation, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useWorldStore } from '@/store/worldStore';
+import { IconLabel } from '@/components/IconLabel';
 
 const FIGHT_KINDS = Object.keys(placeFightRules.kinds) as PlaceKind[];
 
@@ -113,7 +114,7 @@ function QuestDebug() {
   return (
     <>
       <Text style={styles.title}>Quests</Text>
-      <Choice options={QUEST_OBJECTIVES} value={objective} label={(o) => `${objectives[o].emoji} ${o}`} onChange={setObjective} />
+      <Choice options={QUEST_OBJECTIVES} value={objective} emojiOf={(o) => objectives[o].emoji} label={(o) => o} onChange={setObjective} />
       <Choice options={QUEST_BANDS} value={band} label={(b) => b} onChange={setBand} />
       <View style={styles.row}>
         <Button title="Grant quest" onPress={() => game.grantQuest(objective, band)} />
@@ -200,7 +201,7 @@ function LootDebug() {
           <Button key={part.id} title={part.emoji} onPress={() => grant({ materials: [{ materialId: part.id, amount: 3 }] })} />
         ))}
         {charms.map((charm) => (
-          <Button key={charm.id} title={`${charm.emoji}+`} onPress={() => grant({ consumables: [{ itemId: charm.id, amount: 1 }] })} />
+          <Button key={charm.id} emoji={charm.emoji} title="+" onPress={() => grant({ consumables: [{ itemId: charm.id, amount: 1 }] })} />
         ))}
         {components.map((component) => (
           <Button key={component.id} title={component.emoji} onPress={() => grant({ materials: [{ materialId: component.id, amount: 1 }] })} />
@@ -215,7 +216,8 @@ function LootDebug() {
       <Choice
         options={valuables.map((valuable) => valuable.id)}
         value={game.save.collectorOverride?.valuableId ?? ''}
-        label={(id) => `${valuableById[id].emoji} ${valuableById[id].name}`}
+        emojiOf={(id) => valuableById[id].emoji}
+        label={(id) => valuableById[id].name}
         onChange={game.setCollector}
       />
       <Choice
@@ -270,11 +272,14 @@ function Choice<T>({
   options,
   value,
   label,
+  emojiOf,
   onChange,
 }: {
   options: T[];
   value: T;
   label: (option: T) => string;
+  /** The option's icon, beside the label in its own element. */
+  emojiOf?: (option: T) => string | undefined;
   onChange: (option: T) => void;
 }) {
   return (
@@ -285,7 +290,10 @@ function Choice<T>({
           onPress={() => onChange(option)}
           style={[styles.choice, option === value && styles.choiceActive]}
         >
-          <Text>{label(option)}</Text>
+          {(() => {
+            const emoji = emojiOf?.(option);
+            return emoji ? <IconLabel emoji={emoji} label={label(option)} /> : <Text>{label(option)}</Text>;
+          })()}
         </Pressable>
       ))}
     </View>
@@ -681,7 +689,8 @@ export default function DebugScreen() {
       <Choice
         options={MASTERY_TYPES}
         value={gearType}
-        label={(type) => `${gearProfiles[type].emoji} ${masteryTypeNames[type].plural}`}
+        emojiOf={(type) => gearProfiles[type].emoji}
+        label={(type) => masteryTypeNames[type].plural}
         onChange={setGearType}
       />
       <Choice options={TIERS} value={gearTier} label={(tier) => `T${tier}`} onChange={setGearTier} />
@@ -689,7 +698,8 @@ export default function DebugScreen() {
       <Choice
         options={[null, ...ELEMENTS]}
         value={gearElement}
-        label={(option) => (option ? `${elementInfo[option].emoji} ${option}` : 'plain')}
+        emojiOf={(option) => (option ? elementInfo[option].emoji : undefined)}
+        label={(option) => (option ?? 'plain')}
         onChange={setGearElement}
       />
       <View style={styles.row}>
@@ -700,7 +710,8 @@ export default function DebugScreen() {
       <Choice
         options={trinketKinds.map((kind) => kind.kind)}
         value={trinketKind}
-        label={(kind) => `${trinketKinds.find((k) => k.kind === kind)!.emoji} ${trinketKinds.find((k) => k.kind === kind)!.name}`}
+        emojiOf={(kind) => trinketKinds.find((k) => k.kind === kind)!.emoji}
+        label={(kind) => trinketKinds.find((k) => k.kind === kind)!.name}
         onChange={setTrinketKind}
       />
       <Button title="Add trinket" onPress={() => game.addGear(trinketId(trinketKind, gearTier), gearQuality, null)} />
@@ -709,7 +720,8 @@ export default function DebugScreen() {
       <Choice
         options={MASTERY_TYPES}
         value={recipeType}
-        label={(type) => `${gearProfiles[type].emoji} ${masteryTypeNames[type].plural}`}
+        emojiOf={(type) => gearProfiles[type].emoji}
+        label={(type) => masteryTypeNames[type].plural}
         onChange={chooseRecipeType}
       />
       <Choice options={TIERS} value={recipeTier} label={(tier) => `T${tier}`} onChange={chooseRecipeTier} />
@@ -731,7 +743,7 @@ export default function DebugScreen() {
       </View>
 
       <Text style={styles.title}>Places</Text>
-      <Choice options={[...PANEL_KINDS, ...FIGHT_KINDS]} value={placeKind} label={(kind) => `${placeInfo[kind].emoji} ${placeInfo[kind].name}`} onChange={setPlaceKind} />
+      <Choice options={[...PANEL_KINDS, ...FIGHT_KINDS]} value={placeKind} emojiOf={(kind) => placeInfo[kind].emoji} label={(kind) => placeInfo[kind].name} onChange={setPlaceKind} />
       <View style={styles.row}>
         <Button title="Place it next to me" onPress={placePlace} />
         <Button title="Clear placed" onPress={() => debug.set({ debugPlaces: [] })} />
@@ -742,14 +754,16 @@ export default function DebugScreen() {
         {SECRET_SOURCES.map((source) => (
           <Button
             key={`tip${source}`}
-            title={`Tip: ${placeInfo[secretRules.tips[source].secret].emoji}`}
+            emoji={placeInfo[secretRules.tips[source].secret].emoji}
+            title="Tip"
             onPress={async () => game.giveTip(source, await currentPosition())}
           />
         ))}
         {SECRET_SOURCES.map((source) => (
           <Button
             key={`here${source}`}
-            title={`${placeInfo[secretRules.tips[source].secret].emoji} next to me`}
+            emoji={placeInfo[secretRules.tips[source].secret].emoji}
+            title="Next to me"
             onPress={async () => {
               const position = await currentPosition();
               game.giveTip(source, position, offsetPosition(position, 20, 0));
@@ -778,7 +792,8 @@ export default function DebugScreen() {
       <Choice
         options={Object.keys(heroClasses) as HeroClassId[]}
         value={heroClass}
-        label={(id) => `${heroClasses[id].emoji} ${heroClasses[id].name}`}
+        emojiOf={(id) => heroClasses[id].emoji}
+        label={(id) => heroClasses[id].name}
         onChange={setHeroClass}
       />
       <Choice options={traits.map((t) => t.id)} value={heroTrait} label={(id) => traits.find((t) => t.id === id)!.name} onChange={setHeroTrait} />
@@ -907,7 +922,7 @@ export default function DebugScreen() {
             <Text>
               {dungeon.name} (T{dungeon.tier}){forced ? ' · forced' : ''}
             </Text>
-            <Text style={styles.mono}>
+            <Text style={styles.mono}> {/* mixed-emoji-ok: debug dump wraps in a full-width paragraph */}
               Weights:{' '}
               {weights
                 .map(
@@ -916,7 +931,7 @@ export default function DebugScreen() {
                 )
                 .join(' · ') || 'none'}
             </Text>
-            <Text style={styles.mono}>
+            <Text style={styles.mono}> {/* mixed-emoji-ok: debug dump wraps in a full-width paragraph */}
               Roll:{' '}
               {editing.threats
                 .map((t) => `${threatById[t.id].emoji} ${threatById[t.id].name} L${t.level}${t.surge ? ` (${t.surge})` : ''}`)
@@ -932,7 +947,7 @@ export default function DebugScreen() {
             </Text>
             {editing.threats.map((threat) => (
               <View key={threat.id} style={styles.row}>
-                <Text>
+                <Text> {/* mixed-emoji-ok: debug dump wraps in a full-width paragraph */}
                   {threatById[threat.id].emoji} {threatById[threat.id].name} L{threat.level}
                   {threat.element ? ` ${elementInfo[threat.element].emoji}` : ''}
                 </Text>
@@ -943,7 +958,8 @@ export default function DebugScreen() {
             <Choice
               options={threatDefs.map((t) => t.id)}
               value={threatPick}
-              label={(id) => `${threatById[id].emoji} ${threatById[id].name}`}
+              emojiOf={(id) => threatById[id].emoji}
+              label={(id) => threatById[id].name}
               onChange={setThreatPick}
             />
             <Choice options={THREAT_LEVELS} value={threatLevel} label={(level) => `L${level}`} onChange={setThreatLevel} />
@@ -951,7 +967,8 @@ export default function DebugScreen() {
               <Choice
                 options={[...ELEMENTS]}
                 value={threatElement}
-                label={(element) => `${elementInfo[element].emoji} ${element}`}
+                emojiOf={(element) => elementInfo[element].emoji}
+                label={(element) => element}
                 onChange={setThreatElement}
               />
             )}
@@ -989,7 +1006,7 @@ export default function DebugScreen() {
         value={hpHero}
         label={(id) => {
           const hero = game.save.heroes.find((h) => h.id === id)!;
-          return `${hero.name} ${Math.floor(currentHp(game.save, hero, now))}/${maxHp(game.save, hero)}${isExhausted(hero, now) ? ' 💤' : ''}`;
+          return `${hero.name} ${Math.floor(currentHp(game.save, hero, now))}/${maxHp(game.save, hero)}${isExhausted(hero, now) ? ` · ${t('places.exhausted')}` : ''}`;
         }}
         onChange={setHpHero}
       />
@@ -1023,9 +1040,7 @@ export default function DebugScreen() {
       <Text>Walking effects (start grants one and uses it here)</Text>
       {WALK_ITEMS.map((item) => (
         <View key={item.id} style={styles.row}>
-          <Text>
-            {item.emoji} {item.name}
-          </Text>
+          <IconLabel emoji={item.emoji} label={item.name} />
           <Button title="Start" onPress={() => startWalkItem(item.id)} />
           <Button title="End" onPress={() => game.endWalkEffect(item.id)} />
         </View>
@@ -1053,7 +1068,8 @@ export default function DebugScreen() {
       <Choice
         options={[...ELEMENTS]}
         value={element}
-        label={(option) => `${elementInfo[option].emoji} ${option}`}
+        emojiOf={(option) => elementInfo[option].emoji}
+        label={(option) => option}
         onChange={setElement}
       />
       <View style={styles.row}>
@@ -1065,10 +1081,8 @@ export default function DebugScreen() {
       <Choice
         options={sanctums.map((s) => s.id)}
         value={debug.debugSanctum?.sanctumId ?? ''}
-        label={(id) => {
-          const sanctum = sanctums.find((s) => s.id === id)!;
-          return `${sanctum.emoji} ${sanctum.name}`;
-        }}
+        emojiOf={(id) => sanctums.find((s) => s.id === id)!.emoji}
+        label={(id) => sanctums.find((s) => s.id === id)!.name}
         onChange={placeSanctum}
       />
       <Button title="Reset used Sanctums and Sigil pity" onPress={game.resetSanctums} />

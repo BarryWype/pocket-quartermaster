@@ -26,6 +26,7 @@ import { Overlay } from './Overlay';
 import { useSheetMaxHeight } from './Sheet';
 import { Panel } from './Panel';
 import { Text } from './Text';
+import { IconLabel } from './IconLabel';
 
 export type PocketOption = 'autoGather' | 'patrolAlerts' | 'escort';
 
@@ -177,9 +178,11 @@ function EscortSection({ save, now }: { save: SaveData; now: number }) {
               }}
               style={styles.option}
             >
-              <Text style={styles.optionText}>
-                {heroClasses[candidate.classId].emoji} {candidate.name} · {formatPercent(currentHp(save, candidate, now) / maxHp(save, candidate))}
-              </Text>
+              <IconLabel
+                emoji={heroClasses[candidate.classId].emoji}
+                label={`${candidate.name} · ${formatPercent(currentHp(save, candidate, now) / maxHp(save, candidate))}`}
+                labelStyle={styles.optionText}
+              />
             </Pressable>
           ))}
         </View>
@@ -202,9 +205,7 @@ function EscortSection({ save, now }: { save: SaveData; now: number }) {
       : t('autoGather.escortReady');
   return (
     <View style={styles.section}>
-      <Text style={styles.escortName}>
-        {heroClasses[hero.classId].emoji} {hero.name} · {status}
-      </Text>
+      <IconLabel emoji={heroClasses[hero.classId].emoji} label={`${hero.name} · ${status}`} labelStyle={styles.escortName} />
       <HpBar save={save} hero={hero} now={now} />
       <View style={styles.buttons}>
         <Button

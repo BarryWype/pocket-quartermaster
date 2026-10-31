@@ -3,6 +3,12 @@ import { gearName, itemById, materialById, recipeById, recipeOutput, relicById, 
 import type { Loot } from '@/game/loot/types';
 import { t, tr } from '@/i18n';
 
+/** A gains sentence with its `{gains}` placeholder emptied: the words that stay beside the gains list. */
+export const gainsPrefix = (sentence: string) => sentence.replace(/[\s:·.!]+$/g, '');
+
+/** What a place, patrol or activity paid, in a short wrapping line. */
+export const lootText = (loot: Loot) => lootLabels(loot).join(', ');
+
 /** Everything a loot roll gave, one short label each: gold first, then the rarer finds, then materials. */
 export function lootLabels(loot: Loot): string[] {
   const rarity = (r: Loot['manuals'][number]) => t(`expeditions.rarity.${r}`);

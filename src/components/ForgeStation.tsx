@@ -25,6 +25,7 @@ import { Button } from './Button';
 import { ForgeBanner } from './ForgeBanner';
 import { ForgeConfirmDialog, type ForgePending } from './ForgeConfirmDialog';
 import { GearMarks } from './GearMarks';
+import { IconLabel } from './IconLabel';
 import { Panel } from './Panel';
 import { RecipeInputs, recipeInputsStyles } from './RecipeInputs';
 import { Row } from './Row';
@@ -92,9 +93,11 @@ export function ForgeStation() {
                 }}
                 style={[styles.tab, i === active && styles.tabActive]}
               >
-                <Text style={[styles.tabLabel, i === active && styles.tabLabelActive]}>
-                  {PAGE_META[type].emoji} {PAGE_META[type].label()}
-                </Text>
+                <IconLabel
+                  emoji={PAGE_META[type].emoji}
+                  label={PAGE_META[type].label()}
+                  labelStyle={[styles.tabLabel, i === active && styles.tabLabelActive]}
+                />
                 {craftable > 0 && <Text style={styles.badge}>{craftable}</Text>}
               </Pressable>
             ))}
@@ -322,17 +325,13 @@ function GearCard({
   return (
     <Panel color={colors.parchmentDark}>
       <View style={styles.cardHead}>
-        <Text style={styles.cardTitle}>
-          {item.emoji} {tr(item.name)}
-        </Text>
+        <IconLabel emoji={item.emoji} label={tr(item.name)} labelStyle={styles.cardTitle} />
         <GearMarks tier={item.tier} />
       </View>
       <Text style={styles.mastery}>{t('crafting.mastery', { type: tr(masteryTypeNames[type].name), level })}</Text>
       <View style={styles.statGrid}>
         {STATS.filter((key) => item.stats[key]).map((key) => (
-          <Text key={key} style={styles.statCell}>
-            {statIcons[key]} {Math.round(item.stats[key]!)}
-          </Text>
+          <IconLabel key={key} emoji={statIcons[key]} label={Math.round(item.stats[key]!)} labelStyle={styles.statCell} />
         ))}
       </View>
       {(favoured.length > 0 || unfit.length > 0) && (

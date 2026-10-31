@@ -20,6 +20,7 @@ import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
 import { stateColors, ThreatChip } from './ThreatChip';
 import { Text } from './Text';
+import { IconLabel } from './IconLabel';
 
 /** One penalty as the run applies it, as a short line. */
 function appliedText(penalty: AppliedPenalty): string {
@@ -145,7 +146,7 @@ export function ThreatCoverageChips({ coverage, labelled = false }: { coverage: 
               })}
             </Text>
           )}
-          {threat.loweredBy && <Text style={styles.signature}>🔭 {t('classes.lowered', { name: threat.loweredBy })}</Text>}
+          {threat.loweredBy && <IconLabel emoji="🔭" label={t('classes.lowered', { name: threat.loweredBy })} labelStyle={styles.signature} />}
         </View>
       ))}
       {coverage.restriction && (
@@ -162,7 +163,8 @@ export function ThreatCoverageChips({ coverage, labelled = false }: { coverage: 
       {detail && (
         <Overlay onClose={() => setDetail(null)} position="bottom">
           <Sheet
-            title={`${threatById[detail.threat.id].emoji} ${tr(threatById[detail.threat.id].name)} · ${t('threats.level', { level: detail.threat.level })}`}
+            emoji={threatById[detail.threat.id].emoji}
+            title={`${tr(threatById[detail.threat.id].name)} · ${t('threats.level', { level: detail.threat.level })}`}
             bodyStyle={styles.body}
           >
             <DetailLines coverage={detail} />

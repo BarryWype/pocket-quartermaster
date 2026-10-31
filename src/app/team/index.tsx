@@ -32,7 +32,7 @@ export default function TeamScreen() {
         {t('team.roster', { count: save.heroes.length, cap: rosterCap(save), party: rosterRules.partySize })}
       </Text>
       <View style={styles.classes}>
-        <Button title={`📜 ${t('classes.link')}`} onPress={() => navigate('/team/classes')} />
+        <Button emoji="📜" title={t('classes.link')} onPress={() => navigate('/team/classes')} />
       </View>
       {save.heroes.map((hero) => {
         const heroClass = heroClasses[hero.classId];

@@ -5,11 +5,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { sheetMaxHeight } from '@/content/overlay';
 import { colors, pixel } from '@/theme';
 
+import { IconLabel } from './IconLabel';
 import { Text } from './Text';
 
 type Props = {
   /** The sheet's fixed header; the title always shows, the subtitle under it. */
   title?: ReactNode;
+  /** The icon beside the title, in its own element — never bake it into `title`. */
+  emoji?: string;
   subtitle?: ReactNode;
   /** Extra style on the scrolling body's content. */
   bodyStyle?: StyleProp<ViewStyle>;
@@ -40,14 +43,19 @@ export function useSheetMaxHeight(): number {
  * of the screen: the overlay's modal spans the whole screen, so only the
  * footer's inset padding lifts the buttons.
  */
-export function Sheet({ title, subtitle, bodyStyle, footer, children }: Props) {
+export function Sheet({ title, emoji, subtitle, bodyStyle, footer, children }: Props) {
   const { bottom } = useSafeAreaInsets();
   const maxHeight = useSheetMaxHeight();
   return (
     <View style={[styles.sheet, { maxHeight }]}>
       {(title !== undefined || subtitle !== undefined) && (
         <View style={styles.header}>
-          {title !== undefined && <Text style={styles.title}>{title}</Text>}
+          {title !== undefined &&
+            (emoji ? (
+              <IconLabel emoji={emoji} label={title} size={24} gap={6} labelStyle={styles.title} />
+            ) : (
+              <Text style={styles.title}>{title}</Text>
+            ))}
           {subtitle !== undefined && <Text style={styles.subtitle}>{subtitle}</Text>}
         </View>
       )}

@@ -20,6 +20,8 @@ import { IconSlot } from './Row';
 import { ODDS_COLORS } from './SendDialog';
 import { Text } from './Text';
 import { ThreatCoverageChips } from './ThreatDetail';
+import { GameIcon } from './GameIcon';
+import { IconLabel, PartsLine } from './IconLabel';
 
 type Props = {
   save: SaveData;
@@ -59,13 +61,16 @@ export function DungeonCard({ save, dungeon, rotation, now, durationMs, chance, 
       <View style={styles.header}>
         <IconSlot emoji={dungeon.emoji} />
         <View style={styles.title}>
-          <Text style={styles.name} numberOfLines={1}>
-            {tr(dungeon.name)}
-            {newTier ? ' ✨' : ''}
-          </Text>
-          <Text style={styles.muted}>
-            {t(`expeditions.kind.${kind}`)} · ⏳ {formatDuration(durationMs)}
-          </Text>
+          <View style={styles.nameRow}>
+            <Text style={styles.name} numberOfLines={1}>
+              {tr(dungeon.name)}
+            </Text>
+            {newTier && <GameIcon emoji="✨" size={18} />}
+          </View>
+          <PartsLine
+            parts={[t(`expeditions.kind.${kind}`), { emoji: '⏳', text: formatDuration(durationMs) }]}
+            labelStyle={styles.muted}
+          />
         </View>
         {typeof chance === 'number' && band ? (
           <View style={[styles.odds, { backgroundColor: ODDS_COLORS[band] }]}>
@@ -98,14 +103,17 @@ export function DungeonCard({ save, dungeon, rotation, now, durationMs, chance, 
           {newTier && <Text style={styles.line}>{t('expeditions.newTierBonus')}</Text>}
           {firstWin && <Text style={styles.line}>{t('expeditions.firstWinToday')}</Text>}
           {weakness && (
-            <Text style={[styles.line, { color: weaknessHeld ? colors.success : colors.muted }]}>
-              {itemById[weakness.itemId].emoji}{' '}
-              {t('expeditions.weakness', {
-                item: tr(itemById[weakness.itemId].name),
-                place: tr(placeInfo[weakness.place].name).toLowerCase(),
-              })}
-              {weaknessHeld ? t('expeditions.weaknessHeld') : ''}
-            </Text>
+            <View style={styles.lineRow}>
+              <IconLabel
+                emoji={itemById[weakness.itemId].emoji}
+                label={t('expeditions.weakness', {
+                  item: tr(itemById[weakness.itemId].name),
+                  place: tr(placeInfo[weakness.place].name).toLowerCase(),
+                })}
+                labelStyle={[styles.line, { color: weaknessHeld ? colors.success : colors.muted }]}
+              />
+              {weaknessHeld ? <Text style={[styles.line, { color: weaknessHeld ? colors.success : colors.muted }]}> {t('expeditions.weaknessHeld')}</Text> : null}
+            </View>
           )}
           <View style={styles.footer}>
             {!available && <Text style={styles.muted}>{t('expeditions.afterTutorial')}</Text>}
@@ -118,6 +126,8 @@ export function DungeonCard({ save, dungeon, rotation, now, durationMs, chance, 
 }
 
 const styles = StyleSheet.create({
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  lineRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' },
   card: { marginBottom: 8, padding: 8, gap: 6, borderWidth: pixel.outline, borderColor: colors.woodDark, backgroundColor: colors.parchment },
   boss: { borderColor: colors.danger },
   expanded: { backgroundColor: colors.highlight, borderColor: colors.ink },
