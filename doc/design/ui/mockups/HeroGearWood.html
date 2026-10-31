@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hero equipment — wood and brass</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Fantaisie';src:url(/_blob/5b1e7bdb2a304b22ed34c8110385ae44) format('truetype');font-display:swap}
+body{margin:0}
+a{color:#C9A04E}a:hover{color:#E8C877}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; overflow: hidden; background: repeating-linear-gradient(0deg, #3A2314 0 23px, #331F11 23px 24px); color: #F2E4C2; font-family: Alegreya, Georgia, serif; display: flex; flex-direction: column">
+
+  <header style="height: 66px; padding: 0 12px; display: flex; align-items: center; gap: 10px; background: repeating-linear-gradient(0deg, #5A3820 0 15px, #4E301B 15px 16px); border-bottom: 3px solid #1E120A">
+    <a href="TeamWood.dc.html" aria-label="Back to the barracks" style="width: 44px; height: 44px; background: #3A2314; border: 2px solid #1E120A; outline: 2px solid #C9A04E; outline-offset: -5px; color: #F6D98E; display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </a>
+    <div style="flex-grow: 1; text-align: center; font-family: Fantaisie, serif; font-size: 30px; color: #F6D98E; text-shadow: 0 2px 0 #1E120A">Bram</div>
+    <button aria-label="Next hero" style="width: 44px; height: 44px; background: #3A2314; border: 2px solid #1E120A; outline: 2px solid #C9A04E; outline-offset: -5px; color: #F6D98E; display: flex; align-items: center; justify-content: center; padding: 0">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+    </button>
+  </header>
+
+  <nav role="tablist" aria-label="Hero" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 8px 12px 0; background: #2A180D; border-bottom: 3px solid #1E120A">
+    <a role="tab" aria-selected="false" href="HeroWood.dc.html" style="min-height: 44px; display: flex; align-items: center; justify-content: center; background: #4E301B; color: #C9B48A; border: 2px solid #1E120A; border-bottom: none; font-family: Fantaisie, serif; font-size: 19px; text-decoration: none">Summary</a>
+    <a role="tab" aria-selected="false" href="HeroStatsWood.dc.html" style="min-height: 44px; display: flex; align-items: center; justify-content: center; background: #4E301B; color: #C9B48A; border: 2px solid #1E120A; border-bottom: none; font-family: Fantaisie, serif; font-size: 19px; text-decoration: none">Stats</a>
+    <a role="tab" aria-selected="true" href="HeroGearWood.dc.html" style="min-height: 44px; display: flex; align-items: center; justify-content: center; background: #5A3820; color: #F6D98E; border: 2px solid #1E120A; border-bottom: none; font-family: Fantaisie, serif; font-size: 19px; text-decoration: none; margin-bottom: -3px">Equipment</a>
+  </nav>
+
+  <section aria-label="Worn equipment" style="position: relative; margin: 0 12px; height: 318px; background: repeating-linear-gradient(0deg, #5A3820 0 19px, #4E301B 19px 20px); border: 3px solid #1E120A; border-top: none; box-shadow: inset 0 0 0 4px #4E301B, inset 0 0 0 6px #C9A04E, 0 4px 0 #1E120A">
+    <svg aria-hidden="true" width="140" height="244" viewBox="0 0 60 104" fill="#3A2314" stroke="#1E120A" stroke-width="2" stroke-linejoin="round" style="position: absolute; left: 112px; top: 40px; opacity: 0.85"><path d="M30 4a9 9 0 1 1 0 18a9 9 0 1 1 0-18z M18 28h24l8 26-7 2-5-16v22l4 38h-8l-4-30-4 30h-8l4-38V40l-5 16-7-2z"/></svg>
+    <sc-for list="{{slots}}" as="s" hint-placeholder-count="5">
+      <div style="{{s.pos}}">
+        <button aria-label="{{s.label}}" style="{{s.style}}">
+          <sc-if value="{{s.filled}}" hint-placeholder-val="{{false}}"><img src="/_blob/0f279c5cf7058afc885afe00c6c6f6fe" alt="" width="46" height="46" style="image-rendering: pixelated"></sc-if>
+          <sc-if value="{{s.emptySlot}}" hint-placeholder-val="{{true}}"><svg width="30" height="30" viewBox="0 0 24 24" fill="#4E301B" stroke="#6A4A2C" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="{{s.path}}"/></svg></sc-if>
+        </button>
+        <span style="padding: 1px 6px; background: #F2E4C2; color: #3A2314; border: 2px solid #1E120A; font-family: Fantaisie, serif; font-size: 14px">{{s.name}}</span>
+      </div>
+    </sc-for>
+  </section>
+
+  <div style="padding: 14px 12px 0; display: flex; flex-direction: column; gap: 8px">
+    <div style="display: flex; justify-content: space-between; align-items: baseline">
+      <span style="font-family: Fantaisie, serif; font-size: 21px; color: #F6D98E">Storeroom</span>
+      <span style="font-size: 13px; color: #C9B48A">Tap to compare · hold to equip</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px">
+      <sc-for list="{{bag}}" as="b" hint-placeholder-count="12">
+        <button aria-label="{{b.label}}" style="{{b.style}}">
+          <sc-if value="{{b.img}}" hint-placeholder-val="{{false}}"><img src="{{b.src}}" alt="" width="34" height="34" style="image-rendering: pixelated; opacity: {{b.op}}"></sc-if>
+          <sc-if value="{{b.svg}}" hint-placeholder-val="{{true}}"><svg width="26" height="26" viewBox="0 0 24 24" fill="{{b.fill}}" stroke="#1E120A" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true" style="opacity: {{b.op}}"><path d="{{b.path}}"/></svg></sc-if>
+          <span style="position: absolute; left: 3px; top: 0; font-size: 11px; font-weight: 700; color: {{b.markColor}}">{{b.mark}}</span>
+          <span style="position: absolute; right: 3px; bottom: 0; font-size: 12px; font-weight: 700; color: #F2E4C2; text-shadow: 0 1px 0 #1E120A">{{b.count}}</span>
+        </button>
+      </sc-for>
+    </div>
+    <div style="padding: 8px 12px; background: #F2E4C2; color: #3A2314; border: 3px solid #1E120A; box-shadow: inset 0 0 0 2px #F2E4C2, inset 0 0 0 4px #C9A04E, 0 4px 0 #1E120A; font-size: 14px; display: flex; flex-direction: column; gap: 2px">
+      <span><b style="font-family: Fantaisie, serif; font-size: 18px; font-weight: 400">Bone Axe</b> <span style="color: #6A4A2C">instead of Wooden Sword</span></span>
+      <span style="font-weight: 700"><span style="color: #2F6B32">Power +1</span> · <span style="color: #8A2E1C">Speed −1</span> · <span style="color: #8A2E1C">Crit −5%</span></span>
+      <span style="font-weight: 700"><span style="color: #2E4E8A">gains Cleave</span> · <span style="color: #8A2E1C">loses Parry</span></span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const P = {
+      armour: 'M8 3h8l3 4-2 3v11H7V10L5 7z',
+      shield: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',
+      ring: 'M12 9a6 6 0 1 0 0 12a6 6 0 1 0 0-12z M9 3h6l-3 6z',
+      flask: 'M10 3h4v5l4 5a5 5 0 0 1-4 8h-4a5 5 0 0 1-4-8l4-5z',
+      axe: 'M5 20 15 10l1 1-10 10z M13 4c4 0 7 3 7 7h-4l-3-3z',
+      pack: 'M6 7h12v13H6z M9 7V4h6v3',
+      ear: 'M15 4a6 6 0 0 0-9 5c0 3 2 4 2 7a3 3 0 0 0 6 0z'
+    };
+    const sb = 'width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; padding: 0; border: 3px solid #1E120A; ';
+    const at = (x, y) => `position: absolute; left: ${x}px; top: ${y}px; display: flex; flex-direction: column; align-items: center; gap: 4px;`;
+    const slots = [
+      { name: 'Weapon', filled: true, path: '', x: 16, y: 108, label: 'Weapon: Wooden sword' },
+      { name: 'Armour', filled: false, path: P.armour, x: 145, y: 14, label: 'Armour: empty' },
+      { name: 'Off-hand', filled: false, path: P.shield, x: 272, y: 108, label: 'Off-hand: empty' },
+      { name: 'Trinket', filled: false, path: P.ring, x: 16, y: 218, label: 'Trinket: empty' },
+      { name: 'Consumable', filled: false, path: P.flask, x: 272, y: 218, label: 'Consumable: empty' }
+    ].map((s) => ({
+      ...s, emptySlot: !s.filled, pos: at(s.x, s.y),
+      style: sb + (s.filled ? 'background: #7A4A26; outline: 2px solid #F6D98E; outline-offset: -7px; box-shadow: 0 0 0 2px #C9A04E;' : 'background: #2A180D; outline: 2px dashed #6A4A2C; outline-offset: -7px; box-shadow: inset 3px 3px 0 #160C06;')
+    }));
+    const b = 'position: relative; aspect-ratio: 1; min-height: 52px; display: flex; align-items: center; justify-content: center; padding: 0; border: 2px solid #1E120A; ';
+    const st = {
+      sel: b + 'background: #7A4A26; outline: 2px solid #F6D98E; outline-offset: -5px;',
+      ready: b + 'background: #2A180D; outline: 2px solid #8A6A34; outline-offset: -5px;',
+      empty: b + 'background: #2A180D; border-style: dashed; border-color: #4E301B;'
+    };
+    const raw = [
+      { k: 'sel', path: P.axe, fill: '#C9A06A', mark: '▲', label: 'Bone axe, favoured, selected' },
+      { k: 'ready', src: '/_blob/03917cbff457694996c5049c2f4c5640', label: 'Wooden bow' },
+      { k: 'ready', src: '/_blob/ec873ec3be250bbc0e3ca1ce6938f5cb', mark: '▼', label: 'Wooden wand, unfit' },
+      { k: 'ready', path: P.pack, fill: '#7A9A4A', count: '2', label: "Hunter's pack, 2" },
+      { k: 'ready', path: P.ear, fill: '#D9A57A', count: '1', label: 'Lucky ear charm' },
+      { k: 'ready', path: P.flask, fill: '#C9473A', count: '0', op: '0.4', label: 'Healing potion, none left' }
+    ];
+    for (let i = 0; i < 6; i++) raw.push({ k: 'empty', label: 'Empty' });
+    const bag = raw.map((x) => ({
+      label: x.label, style: st[x.k], img: !!x.src, src: x.src ?? '', svg: !!x.path, path: x.path ?? '', fill: x.fill ?? 'none',
+      mark: x.mark ?? '', markColor: x.mark === '▲' ? '#8FD18A' : '#F2A08A', count: x.count ?? '', op: x.op ?? '1'
+    }));
+    return { slots, bag };
+  }
+}
+</script>
+</body>
+</html>

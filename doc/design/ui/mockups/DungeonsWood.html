@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Expeditions — wood and brass</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Fantaisie';src:url(/_blob/5b1e7bdb2a304b22ed34c8110385ae44) format('truetype');font-display:swap}
+body{margin:0}
+a{color:#C9A04E}a:hover{color:#E8C877}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; overflow: hidden; background: repeating-linear-gradient(0deg, #3A2314 0 23px, #331F11 23px 24px); color: #F2E4C2; font-family: Alegreya, Georgia, serif; display: flex; flex-direction: column">
+
+  <header style="height: 66px; padding: 0 12px; display: flex; align-items: center; gap: 10px; background: repeating-linear-gradient(0deg, #5A3820 0 15px, #4E301B 15px 16px); border-bottom: 3px solid #1E120A; box-shadow: inset 0 -3px 0 #C9A04E">
+    <a href="MapWood.dc.html" aria-label="Back to the map" style="width: 44px; height: 44px; background: #3A2314; border: 2px solid #1E120A; outline: 2px solid #C9A04E; outline-offset: -5px; color: #F6D98E; display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </a>
+    <div style="flex-grow: 1; text-align: center; font-family: Fantaisie, serif; font-size: 30px; color: #F6D98E; text-shadow: 0 2px 0 #1E120A">Expeditions</div>
+    <div style="width: 44px"></div>
+  </header>
+
+  <div style="display: flex; flex-grow: 1; min-height: 0">
+    <nav aria-label="Expeditions" style="width: 74px; flex-shrink: 0; background: #2A180D; border-right: 3px solid #1E120A; box-shadow: inset -2px 0 0 #5A3820; display: flex; flex-direction: column; align-items: center; gap: 10px; padding-top: 18px">
+      <sc-for list="{{rail}}" as="r" hint-placeholder-count="3">
+        <a href="{{r.href}}" aria-label="{{r.label}}" style="{{r.style}}">
+          <sc-if value="{{r.img}}" hint-placeholder-val="{{true}}"><img src="{{r.src}}" alt="" width="32" height="32" style="transform: rotate(-45deg); image-rendering: pixelated"></sc-if>
+          <sc-if value="{{r.svg}}" hint-placeholder-val="{{false}}"><svg width="26" height="26" viewBox="0 0 24 24" fill="#F2E4C2" stroke="#1E120A" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true" style="transform: rotate(-45deg)"><path d="M6 3h11l2 3v15H6z M9 9h7 M9 13h7 M9 17h4"/></svg></sc-if>
+          <sc-if value="{{r.badge}}" hint-placeholder-val="{{false}}"><span style="position: absolute; right: -10px; top: -10px; width: 20px; height: 20px; transform: rotate(-45deg); background: #B4471C; border: 2px solid #1E120A; color: #FFF1DC; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">1</span></sc-if>
+        </a>
+        <span style="font-family: Fantaisie, serif; font-size: 15px; color: {{r.color}}; margin: 2px 0 6px; text-align: center; line-height: 1">{{r.short}}</span>
+      </sc-for>
+    </nav>
+
+    <div style="flex-grow: 1; padding: 12px; display: flex; flex-direction: column; gap: 10px">
+      <div role="tablist" aria-label="Tier" style="display: flex; gap: 12px; padding: 8px 6px 10px">
+        <sc-for list="{{tiers}}" as="t" hint-placeholder-count="5">
+          <button role="tab" aria-label="{{t.label}}" style="{{t.style}}"><span style="transform: rotate(-45deg); font-family: Fantaisie, serif; font-size: 17px">{{t.n}}</span></button>
+        </sc-for>
+      </div>
+
+      <sc-for list="{{dungeons}}" as="d" hint-placeholder-count="3">
+        <article style="{{d.card}}">
+          <div style="display: flex; align-items: baseline; gap: 8px">
+            <h2 style="margin: 0; flex-grow: 1; font-family: Fantaisie, serif; font-weight: 400; font-size: 22px; line-height: 1">{{d.name}}</h2>
+            <span style="font-size: 12px; font-weight: 700; color: #6A4A2C">{{d.meta}}</span>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 5px">
+            <sc-for list="{{d.threats}}" as="th" hint-placeholder-count="2">
+              <span style="padding: 1px 7px; font-size: 13px; font-weight: 700; background: {{th.bg}}; border: 2px solid {{th.c}}; color: {{th.c}}">{{th.text}}</span>
+            </sc-for>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px">
+            <span style="flex-grow: 1; font-size: 13px; color: #6A4A2C">{{d.reward}}</span>
+            <span style="padding: 2px 6px; font-size: 13px; font-weight: 700; color: #FFF1DC; background: {{d.oddsBg}}; border: 2px solid #1E120A">{{d.odds}}</span>
+            <button style="min-height: 42px; padding: 0 12px; border: 3px solid #1E120A; background: #B4471C; color: #FFF1DC; font-family: Fantaisie, serif; font-size: 19px; box-shadow: inset 2px 2px 0 #E07A3E, inset -2px -3px 0 #6E2A0E">Send</button>
+          </div>
+        </article>
+      </sc-for>
+
+      <div style="padding: 10px; border: 2px dashed #6A4A2C; background: #2A180D; color: #C9B48A; font-size: 14px; text-align: center">Tier II opens when the Bandit Stockade falls</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const rd = 'position: relative; width: 52px; height: 52px; transform: rotate(45deg); display: flex; align-items: center; justify-content: center; border: 2px solid #1E120A; margin-top: 6px; ';
+    const on = rd + 'background: #7A4A26; outline: 2px solid #F6D98E; outline-offset: -6px; box-shadow: 0 0 0 2px #C9A04E;';
+    const off = rd + 'background: #3A2314; outline: 2px solid #8A6A34; outline-offset: -6px;';
+    const rail = [
+      { label: 'Dungeons', short: 'Dungeons', href: 'DungeonsWood.dc.html', img: true, svg: false, src: '/_blob/d2616ec772c39a703efe4b1603eaabfb', style: on, color: '#F6D98E', badge: false },
+      { label: 'Teams out, 1 back', short: 'Teams out', href: 'TeamsOutWood.dc.html', img: true, svg: false, src: '/_blob/9a6033395c4b1de89a1fe7017278bb04', style: off, color: '#C9B48A', badge: true },
+      { label: 'Reports, 1 new', short: 'Reports', href: 'ReportWood.dc.html', img: false, svg: true, src: '', style: off, color: '#C9B48A', badge: true }
+    ];
+    const tb = 'width: 34px; height: 34px; transform: rotate(45deg); display: flex; align-items: center; justify-content: center; padding: 0; border: 2px solid #1E120A; ';
+    const tiers = ['I', 'II', 'III', 'IV', 'V'].map((n, i) => ({ n, label: `Tier ${n}${i ? ', locked' : ''}`, style: tb + (i === 0 ? 'background: #F2E4C2; color: #3A2314; outline: 2px solid #C9A04E; outline-offset: -6px;' : 'background: #2A180D; color: #6A4A2C;') }));
+    const card = 'padding: 10px 12px; background: #F2E4C2; color: #3A2314; border: 3px solid #1E120A; box-shadow: inset 0 0 0 3px #F2E4C2, inset 0 0 0 5px #C9A04E, 0 4px 0 #1E120A; display: flex; flex-direction: column; gap: 7px;';
+    const ok = (text) => ({ text, c: '#2F6B32', bg: '#DDE8C8' });
+    const miss = (text) => ({ text, c: '#8A2E1C', bg: '#F2D3C2' });
+    const dungeons = [
+      { name: 'Rat Cellar', meta: 'Short · 5 min', threats: [ok('Beasts I ✓')], reward: 'Gold, XP · first win today', odds: 'Safe 86%', oddsBg: '#2F6B32', card },
+      { name: 'Goblin Warren', meta: 'Long · 15 min', threats: [ok('Traps I ✓')], reward: 'Gold, XP, a blueprint', odds: 'Fair 58%', oddsBg: '#A8741E', card },
+      { name: 'Bandit Stockade', meta: 'Boss · 30 min', threats: [ok('Traps I ✓'), miss('Brute I · no Guard')], reward: 'Weakness: wanted poster', odds: 'Risky 31%', oddsBg: '#8A2E1C', card: card + ' box-shadow: inset 0 0 0 3px #F2E4C2, inset 0 0 0 6px #B4471C, 0 4px 0 #1E120A;' }
+    ];
+    return { rail, tiers, dungeons };
+  }
+}
+</script>
+</body>
+</html>

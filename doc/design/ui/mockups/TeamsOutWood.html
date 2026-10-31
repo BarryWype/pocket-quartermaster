@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Teams out — wood and brass</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Fantaisie';src:url(/_blob/5b1e7bdb2a304b22ed34c8110385ae44) format('truetype');font-display:swap}
+body{margin:0}
+a{color:#C9A04E}a:hover{color:#E8C877}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; overflow: hidden; background: repeating-linear-gradient(0deg, #3A2314 0 23px, #331F11 23px 24px); color: #F2E4C2; font-family: Alegreya, Georgia, serif; display: flex; flex-direction: column">
+
+  <header style="height: 66px; padding: 0 12px; display: flex; align-items: center; gap: 10px; background: repeating-linear-gradient(0deg, #5A3820 0 15px, #4E301B 15px 16px); border-bottom: 3px solid #1E120A; box-shadow: inset 0 -3px 0 #C9A04E">
+    <a href="MapWood.dc.html" aria-label="Back to the map" style="width: 44px; height: 44px; background: #3A2314; border: 2px solid #1E120A; outline: 2px solid #C9A04E; outline-offset: -5px; color: #F6D98E; display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </a>
+    <div style="flex-grow: 1; text-align: center; font-family: Fantaisie, serif; font-size: 30px; color: #F6D98E; text-shadow: 0 2px 0 #1E120A">Expeditions</div>
+    <div style="width: 44px"></div>
+  </header>
+
+  <div style="display: flex; flex-grow: 1; min-height: 0">
+    <nav aria-label="Expeditions" style="width: 74px; flex-shrink: 0; background: #2A180D; border-right: 3px solid #1E120A; box-shadow: inset -2px 0 0 #5A3820; display: flex; flex-direction: column; align-items: center; gap: 10px; padding-top: 18px">
+      <sc-for list="{{rail}}" as="r" hint-placeholder-count="3">
+        <a href="{{r.href}}" aria-label="{{r.label}}" style="{{r.style}}">
+          <sc-if value="{{r.img}}" hint-placeholder-val="{{true}}"><img src="{{r.src}}" alt="" width="32" height="32" style="transform: rotate(-45deg); image-rendering: pixelated"></sc-if>
+          <sc-if value="{{r.svg}}" hint-placeholder-val="{{false}}"><svg width="26" height="26" viewBox="0 0 24 24" fill="#F2E4C2" stroke="#1E120A" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true" style="transform: rotate(-45deg)"><path d="M6 3h11l2 3v15H6z M9 9h7 M9 13h7 M9 17h4"/></svg></sc-if>
+        </a>
+        <span style="font-family: Fantaisie, serif; font-size: 15px; color: {{r.color}}; margin: 2px 0 6px; text-align: center; line-height: 1">{{r.short}}</span>
+      </sc-for>
+    </nav>
+
+    <div style="flex-grow: 1; padding: 14px 12px; display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; justify-content: space-between; align-items: baseline">
+        <span style="font-family: Fantaisie, serif; font-size: 20px; color: #F6D98E">On the road</span>
+        <span style="font-size: 13px; color: #C9B48A">2 parties</span>
+      </div>
+
+      <sc-for list="{{teams}}" as="t" hint-placeholder-count="2">
+        <article style="{{t.card}}">
+          <div style="display: flex; align-items: baseline; gap: 8px">
+            <h2 style="margin: 0; flex-grow: 1; font-family: Fantaisie, serif; font-weight: 400; font-size: 22px; line-height: 1">{{t.name}}</h2>
+            <span style="font-size: 13px; font-weight: 700; color: {{t.stateColor}}">{{t.state}}</span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center">
+            <sc-for list="{{t.party}}" as="p" hint-placeholder-count="2">
+              <span style="width: 44px; height: 44px; background: repeating-linear-gradient(0deg, #5A3820 0 9px, #4E301B 9px 10px); border: 2px solid #1E120A; outline: 2px solid #C9A04E; outline-offset: -5px; display: flex; align-items: center; justify-content: center"><img src="{{p.src}}" alt="{{p.name}}" width="30" height="30" style="image-rendering: pixelated"></span>
+            </sc-for>
+            <span style="flex-grow: 1; font-size: 14px; color: #6A4A2C; text-align: right">{{t.names}}</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700">
+            <div style="flex-grow: 1; height: 12px; background: #3A2314; border: 2px solid #1E120A"><div style="{{t.bar}}"></div></div>
+            <span>{{t.time}}</span>
+          </div>
+          <sc-if value="{{t.back}}" hint-placeholder-val="{{false}}">
+            <button style="min-height: 50px; border: 3px solid #1E120A; background: #B4471C; color: #FFF1DC; font-family: Fantaisie, serif; font-size: 23px; box-shadow: inset 3px 3px 0 #E07A3E, inset -3px -4px 0 #6E2A0E">Collect the loot</button>
+          </sc-if>
+        </article>
+      </sc-for>
+
+      <div style="padding: 10px 12px; border: 2px dashed #6A4A2C; background: #2A180D; display: flex; align-items: center; gap: 10px">
+        <span style="flex-grow: 1; display: flex; flex-direction: column">
+          <span style="font-family: Fantaisie, serif; font-size: 19px; color: #F6D98E">Night Watch</span>
+          <span style="font-size: 13px; color: #C9B48A">Overnight · send a party before bed</span>
+        </span>
+        <a href="DungeonsWood.dc.html" style="min-height: 42px; padding: 0 12px; display: flex; align-items: center; border: 2px solid #1E120A; background: #3A2314; outline: 2px solid #C9A04E; outline-offset: -5px; color: #F6D98E; font-family: Fantaisie, serif; font-size: 17px; text-decoration: none">Plan</a>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const rd = 'position: relative; width: 52px; height: 52px; transform: rotate(45deg); display: flex; align-items: center; justify-content: center; border: 2px solid #1E120A; margin-top: 6px; ';
+    const on = rd + 'background: #7A4A26; outline: 2px solid #F6D98E; outline-offset: -6px; box-shadow: 0 0 0 2px #C9A04E;';
+    const off = rd + 'background: #3A2314; outline: 2px solid #8A6A34; outline-offset: -6px;';
+    const rail = [
+      { label: 'Dungeons', short: 'Dungeons', href: 'DungeonsWood.dc.html', img: true, svg: false, src: '/_blob/d2616ec772c39a703efe4b1603eaabfb', style: off, color: '#C9B48A' },
+      { label: 'Teams out', short: 'Teams out', href: 'TeamsOutWood.dc.html', img: true, svg: false, src: '/_blob/9a6033395c4b1de89a1fe7017278bb04', style: on, color: '#F6D98E' },
+      { label: 'Reports', short: 'Reports', href: 'ReportWood.dc.html', img: false, svg: true, src: '', style: off, color: '#C9B48A' }
+    ];
+    const H = { Bram: '/_blob/0f279c5cf7058afc885afe00c6c6f6fe', Lyra: '/_blob/03917cbff457694996c5049c2f4c5640', Mira: '/_blob/ec873ec3be250bbc0e3ca1ce6938f5cb' };
+    const card = 'padding: 10px 12px; background: #F2E4C2; color: #3A2314; border: 3px solid #1E120A; box-shadow: inset 0 0 0 3px #F2E4C2, inset 0 0 0 5px #C9A04E, 0 4px 0 #1E120A; display: flex; flex-direction: column; gap: 9px;';
+    const teams = [
+      { name: 'Rat Cellar', state: 'Back home', stateColor: '#2F6B32', party: ['Lyra'], pct: 100, time: 'Done', back: true, card: card + ' box-shadow: inset 0 0 0 3px #F2E4C2, inset 0 0 0 6px #B4471C, 0 4px 0 #1E120A;' },
+      { name: 'Goblin Warren', state: 'Exploring', stateColor: '#A8741E', party: ['Bram', 'Mira'], pct: 40, time: '9 min left', back: false, card }
+    ].map((t) => ({
+      ...t,
+      names: t.party.join(', '),
+      party: t.party.map((name) => ({ name, src: H[name] })),
+      bar: `width: ${t.pct}%; height: 100%; background: ${t.back ? '#E07A3E' : '#C9A04E'}; box-shadow: inset 0 2px 0 rgba(255,255,255,0.3);`
+    }));
+    return { rail, teams };
+  }
+}
+</script>
+</body>
+</html>

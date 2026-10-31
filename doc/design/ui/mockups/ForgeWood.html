@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Forge — wood and brass</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Fantaisie';src:url(/_blob/5b1e7bdb2a304b22ed34c8110385ae44) format('truetype');font-display:swap}
+body{margin:0}
+a{color:#C9A04E}a:hover{color:#E8C877}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; overflow: hidden; position: relative; background: repeating-linear-gradient(0deg, #3A2314 0 23px, #331F11 23px 24px); color: #F2E4C2; font-family: Alegreya, Georgia, serif; display: flex; flex-direction: column">
+
+  <header style="height: 66px; padding: 0 12px; display: flex; align-items: center; gap: 10px; background: repeating-linear-gradient(0deg, #5A3820 0 15px, #4E301B 15px 16px); border-bottom: 3px solid #1E120A; box-shadow: inset 0 -3px 0 #C9A04E">
+    <a href="MapWood.dc.html" aria-label="Back to the map" style="width: 44px; height: 44px; background: #3A2314; border: 2px solid #1E120A; outline: 2px solid #C9A04E; outline-offset: -5px; color: #F6D98E; display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </a>
+    <div style="flex-grow: 1; text-align: center; font-family: Fantaisie, serif; font-size: 30px; color: #F6D98E; text-shadow: 0 2px 0 #1E120A">The Forge</div>
+    <div style="width: 44px"></div>
+  </header>
+
+  <div style="display: flex; flex-grow: 1; min-height: 0">
+    <nav aria-label="Item type" style="width: 74px; flex-shrink: 0; background: #2A180D; border-right: 3px solid #1E120A; box-shadow: inset -2px 0 0 #5A3820; display: flex; flex-direction: column; align-items: center; gap: 10px; padding-top: 18px">
+      <sc-for list="{{rail}}" as="r" hint-placeholder-count="3">
+        <button aria-label="{{r.label}}" style="{{r.style}}">
+          <sc-if value="{{r.img}}" hint-placeholder-val="{{true}}"><img src="{{r.src}}" alt="" width="32" height="32" style="transform: rotate(-45deg); image-rendering: pixelated"></sc-if>
+          <sc-if value="{{r.svg}}" hint-placeholder-val="{{false}}"><svg width="26" height="26" viewBox="0 0 24 24" fill="#B9C3C9" stroke="#1E120A" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true" style="transform: rotate(-45deg)"><path d="{{r.path}}"/></svg></sc-if>
+        </button>
+        <span style="font-family: Fantaisie, serif; font-size: 15px; color: {{r.color}}; margin: 2px 0 6px">{{r.label}}</span>
+      </sc-for>
+    </nav>
+
+    <div style="flex-grow: 1; padding: 14px 12px; display: flex; flex-direction: column; gap: 10px">
+      <div style="display: flex; justify-content: space-between; align-items: baseline">
+        <span style="font-family: Fantaisie, serif; font-size: 19px; color: #F6D98E">Tier I · Wood</span>
+        <span style="font-size: 13px; color: #C9B48A">5 of 22 known</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px">
+        <sc-for list="{{items}}" as="item" hint-placeholder-count="16">
+          <button aria-label="{{item.label}}" style="{{item.slotStyle}}">
+            <sc-if value="{{item.img}}" hint-placeholder-val="{{true}}"><img src="{{item.src}}" alt="" width="40" height="40" style="image-rendering: pixelated; opacity: {{item.op}}"></sc-if>
+            <sc-if value="{{item.svg}}" hint-placeholder-val="{{false}}"><svg width="30" height="30" viewBox="0 0 24 24" fill="#C9A06A" stroke="#1E120A" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true" style="opacity: {{item.op}}"><path d="{{item.path}}"/></svg></sc-if>
+            <sc-if value="{{item.short}}" hint-placeholder-val="{{false}}"><span style="position: absolute; right: 2px; top: 2px; width: 10px; height: 10px; background: #B4471C; border: 2px solid #1E120A"></span></sc-if>
+          </button>
+        </sc-for>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding-top: 4px">
+        <span style="display: flex; align-items: center; gap: 6px; padding: 4px 8px; background: #F2E4C2; color: #3A2314; border: 2px solid #1E120A; font-size: 14px"><img src="/_blob/8c840ef431d52c2916e1cac29e59fe8f" alt="" width="20" height="20" style="image-rendering: pixelated"><span style="flex-grow: 1">Wood</span><b>3</b></span>
+        <span style="display: flex; align-items: center; gap: 6px; padding: 4px 8px; background: #F2E4C2; color: #3A2314; border: 2px solid #1E120A; font-size: 14px"><span style="flex-grow: 1">Bone</span><b>2</b></span>
+        <span style="display: flex; align-items: center; gap: 6px; padding: 4px 8px; background: #F2E4C2; color: #3A2314; border: 2px solid #1E120A; font-size: 14px"><span style="flex-grow: 1">Hide</span><b>1</b></span>
+      </div>
+    </div>
+  </div>
+
+  <section aria-label="Wooden bow details" style="position: absolute; left: 84px; top: 244px; width: 294px; background: #F2E4C2; color: #3A2314; border: 3px solid #1E120A; box-shadow: inset 0 0 0 3px #F2E4C2, inset 0 0 0 5px #C9A04E, 0 6px 0 #1E120A; display: flex; flex-direction: column">
+    <div style="padding: 10px 14px 8px; background: repeating-linear-gradient(0deg, #5A3820 0 13px, #4E301B 13px 14px); border-bottom: 3px solid #1E120A; display: flex; align-items: center; gap: 10px">
+      <img src="/_blob/03917cbff457694996c5049c2f4c5640" alt="" width="40" height="40" style="image-rendering: pixelated; background: #2A180D; border: 2px solid #C9A04E">
+      <span style="display: flex; flex-direction: column">
+        <span style="font-family: Fantaisie, serif; font-size: 23px; color: #F6D98E; line-height: 1">Wooden Bow</span>
+        <span style="font-size: 13px; color: #E2CFA4">Normal · Bow · Tier I</span>
+      </span>
+    </div>
+    <div style="padding: 10px 14px; display: flex; flex-direction: column; gap: 3px; font-size: 15px; text-align: center">
+      <span><span style="font-size: 26px; font-weight: 700">4</span> <span style="color: #6A4A2C">Power</span></span>
+      <span style="color: #6A4A2C; font-size: 13px">One-handed</span>
+      <span style="height: 4px"></span>
+      <span style="color: #2E4E8A; font-weight: 700">Pierce <span style="font-weight: 500; color: #4A5E80">— ignores the Armoured penalty</span></span>
+      <span style="color: #2E4E8A; font-weight: 700">Reach <span style="font-weight: 500; color: #4A5E80">— strikes first in round 1</span></span>
+      <span style="height: 4px"></span>
+      <span style="color: #2F6B32; font-weight: 700">▲ Favoured: Ranger</span>
+    </div>
+    <div style="padding: 8px 14px; border-top: 2px dashed #B9A27A; display: flex; justify-content: center; gap: 8px">
+      <div style="position: relative; width: 54px; height: 54px; background: #3A2314; border: 2px solid #1E120A; outline: 2px solid #C9A04E; outline-offset: -5px; display: flex; align-items: center; justify-content: center">
+        <img src="/_blob/8c840ef431d52c2916e1cac29e59fe8f" alt="" width="32" height="32" style="image-rendering: pixelated">
+        <span style="position: absolute; right: 3px; bottom: 1px; font-size: 13px; font-weight: 700; color: #F2E4C2; text-shadow: 0 1px 0 #1E120A">3/3</span>
+      </div>
+      <div style="position: relative; width: 54px; height: 54px; background: #3A2314; border: 2px solid #1E120A; outline: 2px solid #C9A04E; outline-offset: -5px; display: flex; align-items: center; justify-content: center">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="#B98A5E" stroke="#1E120A" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h12l-2 4 3 4-3 4 2 4H6l2-4-3-4 3-4z"/></svg>
+        <span style="position: absolute; right: 3px; bottom: 1px; font-size: 13px; font-weight: 700; color: #F2E4C2; text-shadow: 0 1px 0 #1E120A">1/1</span>
+      </div>
+    </div>
+    <button style="margin: 4px 14px 14px; min-height: 52px; border: 3px solid #1E120A; background: #B4471C; color: #FFF1DC; font-family: Fantaisie, serif; font-size: 26px; box-shadow: inset 3px 3px 0 #E07A3E, inset -3px -4px 0 #6E2A0E; display: flex; align-items: center; justify-content: center; gap: 10px">
+      <img src="/_blob/0729d7e014a22aa70a3e6f9251d29c3d" alt="" width="30" height="30" style="image-rendering: pixelated">
+      Forge
+    </button>
+  </section>
+  <div aria-hidden="true" style="position: absolute; left: 102px; top: 234px; width: 18px; height: 18px; background: #5A3820; border-left: 3px solid #1E120A; border-top: 3px solid #1E120A; transform: rotate(45deg)"></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const B = {
+      bow: '/_blob/03917cbff457694996c5049c2f4c5640',
+      sword: '/_blob/0f279c5cf7058afc885afe00c6c6f6fe',
+      wand: '/_blob/ec873ec3be250bbc0e3ca1ce6938f5cb',
+      forge: '/_blob/0729d7e014a22aa70a3e6f9251d29c3d'
+    };
+    const P = {
+      axe: 'M5 20 15 10l1 1-10 10z M13 4c4 0 7 3 7 7h-4l-3-3z',
+      dagger: 'M19 5 11 13l1 1 8-8z M9 11l4 4-1 1-4-4z M8 16l-3 3 1 1 3-3z',
+      armour: 'M8 3h8l3 4-2 3v11H7V10L5 7z',
+      shield: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z'
+    };
+    const rd = 'width: 52px; height: 52px; transform: rotate(45deg); display: flex; align-items: center; justify-content: center; padding: 0; border: 2px solid #1E120A; margin-top: 6px; ';
+    const rail = [
+      { label: 'Weapons', img: true, svg: false, src: B.forge, path: '', on: true },
+      { label: 'Armour', img: false, svg: true, src: '', path: P.armour, on: false },
+      { label: 'Off-hand', img: false, svg: true, src: '', path: P.shield, on: false }
+    ].map((r) => ({ ...r, color: r.on ? '#F6D98E' : '#C9B48A', style: rd + (r.on ? 'background: #7A4A26; outline: 2px solid #F6D98E; outline-offset: -6px; box-shadow: 0 0 0 2px #C9A04E;' : 'background: #3A2314; outline: 2px solid #8A6A34; outline-offset: -6px;') }));
+    const base = 'position: relative; aspect-ratio: 1; min-height: 60px; display: flex; align-items: center; justify-content: center; padding: 0; border: 2px solid #1E120A; ';
+    const s = {
+      sel: base + 'background: #7A4A26; outline: 2px solid #F6D98E; outline-offset: -6px; box-shadow: 0 0 0 2px #C9A04E;',
+      ready: base + 'background: #2A180D; outline: 2px solid #8A6A34; outline-offset: -6px; box-shadow: inset 2px 2px 0 #160C06;',
+      short: base + 'background: #2A180D; outline: 2px solid #4E301B; outline-offset: -6px; box-shadow: inset 2px 2px 0 #160C06;',
+      empty: base + 'background: #2A180D; border-style: dashed; border-color: #4E301B;'
+    };
+    const raw = [
+      { k: 'sel', src: B.bow, label: 'Wooden bow, selected' },
+      { k: 'ready', path: P.axe, label: 'Bone axe' },
+      { k: 'ready', src: B.wand, label: 'Wooden wand' },
+      { k: 'short', src: B.sword, label: 'Wooden sword, missing wood' },
+      { k: 'short', path: P.dagger, label: 'Bone dagger, missing bone' }
+    ];
+    for (let i = 0; i < 11; i++) raw.push({ k: 'empty', label: 'Not found yet' });
+    const items = raw.map((x) => ({
+      label: x.label, slotStyle: s[x.k], short: x.k === 'short',
+      img: !!x.src, src: x.src ?? '', svg: !!x.path, path: x.path ?? '',
+      op: x.k === 'short' ? '0.55' : '1'
+    }));
+    return { rail, items };
+  }
+}
+</script>
+</body>
+</html>
