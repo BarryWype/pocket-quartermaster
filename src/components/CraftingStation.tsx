@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { masteryTypeNames, qualities } from '@/content/forging';
+import { heroClasses } from '@/content/heroes';
 import { gearProfiles } from '@/content/equipment';
 import { componentById, gearName, itemById, materialById, recipeById, recipeOutput, relicById, valuableById } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
@@ -10,6 +11,7 @@ import { forgeList } from '@/game/crafting/forgeList';
 import { tierRecipes } from '@/game/crafting/recipeUnlocks';
 import { ELEMENTS, shardId } from '@/game/elements';
 import { canForgeWithComponent, componentRecipe, fittingComponents } from '@/game/forging/components';
+import { affinityOf } from '@/game/team/team';
 import { masteryOf, masteryTypeOf } from '@/game/forging/mastery';
 import { canRestore, relicRecipe } from '@/game/forging/relics';
 import { guildBonus } from '@/game/guild/guild';
@@ -21,8 +23,10 @@ import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
+import { statIcons, STATS } from './GearRow';
 import { GameIcon } from './GameIcon';
 import { GearMarks } from './GearMarks';
+import { Panel } from './Panel';
 import { Row } from './Row';
 import { Text } from './Text';
 import { TutorialHint } from './TutorialHint';
@@ -282,6 +286,70 @@ function ComponentPicker({ save, recipe, onForge }: { save: SaveData; recipe: Re
   );
 }
 
+/** One known blueprint as a full-width card: name and tier, the mastery that sets its quality, its stats, the roster's ▲/▼ affinities, any keywords, the cost held/needed and the craft buttons. */
+function GearCard({
+  save,
+  recipe,
+  action,
+  picking,
+  onTogglePick,
+  onCraft,
+}: {
+  save: SaveData;
+  recipe: RecipeDef;
+  action: string;
+  picking: boolean;
+  onTogglePick: () => void;
+  onCraft: () => void;
+}) {
+  const item = forgedItem(recipe);
+  if (!item) return null;
+  const type = masteryTypeOf(item);
+  const { level } = masteryOf(save, type);
+  const classIds = [...new Set(save.heroes.map((hero) => hero.classId))];
+  const favoured = classIds.filter((classId) => affinityOf(classId, item.gearType) === 'favoured');
+  const unfit = classIds.filter((classId) => affinityOf(classId, item.gearType) === 'unfit');
+  return (
+    <Panel color={colors.parchmentDark}>
+      <View style={styles.cardHead}>
+        <Text style={styles.cardTitle}>
+          {item.emoji} {tr(item.name)}
+        </Text>
+        <GearMarks tier={item.tier} />
+      </View>
+      <Text style={styles.mastery}>{t('crafting.mastery', { type: tr(masteryTypeNames[type].name), level })}</Text>
+      <View style={styles.statGrid}>
+        {STATS.filter((key) => item.stats[key]).map((key) => (
+          <Text key={key} style={styles.statCell}>
+            {statIcons[key]} {Math.round(item.stats[key]!)}
+          </Text>
+        ))}
+      </View>
+      {(favoured.length > 0 || unfit.length > 0) && (
+        <Text style={styles.mastery}>
+          {favoured.length > 0 ? (
+            <Text style={styles.favoured}>{t('classes.favoured', { types: favoured.map((classId) => tr(heroClasses[classId].name)).join(', ') })}</Text>
+          ) : null}
+          {favoured.length > 0 && unfit.length > 0 ? '  ' : ''}
+          {unfit.length > 0 ? (
+            <Text style={styles.unfit}>{t('classes.unfit', { types: unfit.map((classId) => tr(heroClasses[classId].name)).join(', ') })}</Text>
+          ) : null}
+        </Text>
+      )}
+      {item.keywords.length > 0 && (
+        <Text style={styles.mastery}>✦ {item.keywords.map((keyword) => t(`threats.keyword.${keyword}`)).join(', ')}</Text>
+      )}
+      <View style={styles.inputs}>
+        <RecipeInputs save={save} recipe={recipe} />
+      </View>
+      <Button title={action} disabled={!canCraft(save, recipe)} onPress={onCraft} />
+      {fittingComponents(save, recipe).length > 0 && (
+        <Button title={t('crafting.withComponent')} color={picking ? undefined : colors.muted} onPress={onTogglePick} />
+      )}
+    </Panel>
+  );
+}
+
 /** The forge's gear recipes: one section per tier, its known blueprints only — unknown ones stay hidden. A known blueprint with a fitting component held opens a component picker under its section. */
 function GearGrid({
   save,
@@ -306,47 +374,17 @@ function GearGrid({
           {recipeIds.length === 0 ? (
             <Text style={styles.mastery}>{t('crafting.noBlueprints', { tier })}</Text>
           ) : (
-            <View style={styles.gridCells}>
-              {recipeIds.map((id) => {
-                const recipe = recipeById[id];
-                const item = forgedItem(recipe);
-                if (!item) return null;
-                const type = masteryTypeOf(item);
-                return (
-                  <View key={id} style={styles.cell}>
-                    <View style={styles.gridHead}>
-                      <Text>{item.emoji}</Text>
-                      <Text style={styles.cellTitle}>{tr(item.name)}</Text>
-                      <GearMarks tier={tier} />
-                    </View>
-                    <Text style={styles.cellInputText}>
-                      {t('crafting.mastery', { type: tr(masteryTypeNames[type].name), level: masteryOf(save, type).level })}
-                    </Text>
-                    <View style={styles.cellInputs}>
-                      {recipe.inputs.map(({ materialId, amount }) => {
-                        const material = materialById[materialId];
-                        return (
-                          <View key={materialId} style={styles.input}>
-                            <GameIcon emoji={material.emoji} icon={material.icon} size={14} />
-                            <Text style={styles.cellInputText}>
-                              {save.materials[materialId] ?? 0}/{amount}
-                            </Text>
-                          </View>
-                        );
-                      })}
-                    </View>
-                    <Button title={action} disabled={!canCraft(save, recipe)} onPress={() => onCraft(recipe.id)} />
-                    {fittingComponents(save, recipe).length > 0 && (
-                      <Button
-                        title={t('crafting.withComponent')}
-                        color={picking === id ? undefined : colors.muted}
-                        onPress={() => setPicking(picking === id ? null : id)}
-                      />
-                    )}
-                  </View>
-                );
-              })}
-            </View>
+            recipeIds.map((id) => (
+              <GearCard
+                key={id}
+                save={save}
+                recipe={recipeById[id]}
+                action={action}
+                picking={picking === id}
+                onTogglePick={() => setPicking(picking === id ? null : id)}
+                onCraft={() => onCraft(id)}
+              />
+            ))
           )}
           {picking && recipeIds.includes(picking) && (
             <ComponentPicker
@@ -377,18 +415,12 @@ const styles = StyleSheet.create({
   grid: { gap: 10, marginTop: 12 },
   gridRow: { gap: 4 },
   gridHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  gridCells: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
-  cell: {
-    width: '48%',
-    gap: 4,
-    padding: 4,
-    borderWidth: pixel.outline,
-    borderColor: colors.ink,
-    backgroundColor: colors.parchmentDark,
-  },
-  cellInputs: { gap: 2 },
-  cellTitle: { fontSize: 15, color: colors.ink },
-  cellInputText: { fontSize: 12, color: colors.muted },
+  cardHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  cardTitle: { flex: 1, fontSize: 20, color: colors.ink },
+  statGrid: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 2 },
+  statCell: { fontSize: 17 },
+  favoured: { color: colors.success },
+  unfit: { color: colors.danger },
   picker: { gap: 4, padding: 6, borderWidth: pixel.outline, borderColor: colors.ink },
   relicHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   banner: {
