@@ -1,21 +1,21 @@
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { ItemSheet, purposeBadge, type InventoryItem } from '@/components/ItemSheet';
 import { GearRow } from '@/components/GearRow';
+import { SalvageDialog } from '@/components/SalvageDialog';
 import { Row, SectionTitle } from '@/components/Row';
 import { StepChests } from '@/components/StepChests';
 import { Text } from '@/components/Text';
 import { TutorialHint } from '@/components/TutorialHint';
-import { componentById, gearName, itemById, materialById, monsterPartById, relicById, valuableById } from '@/content/lookup';
+import { componentById, itemById, materialById, monsterPartById, relicById, valuableById } from '@/content/lookup';
 import { baseItems } from '@/content/loot/baseItems';
 import { PURPOSES, purposeInfo, type Purpose } from '@/content/loot/purposes';
-import { masteryTypeNames, salvageRules } from '@/content/forging';
+import { masteryTypeNames } from '@/content/forging';
 import { materials } from '@/content/materials';
 import { valuablePrice } from '@/game/loot/catalogue';
-import { canSalvage, salvageGold, salvageNeedsConfirmation, salvageReturns, wornBy } from '@/game/forging/salvage';
-import { guildBonus } from '@/game/guild/guild';
+import { canSalvage, wornBy } from '@/game/forging/salvage';
 import { ruinsDots } from '@/game/places/ruins';
 import { fragmentsTowardKey, hasKey, keyDots, keysHeld } from '@/game/secrets/keys';
 import { activeTip, tipPosition } from '@/game/secrets/tips';
@@ -113,6 +113,7 @@ export default function InventoryScreen() {
   const sigilTiers = [...new Set(save.sigils)].sort((a, b) => a - b);
   const [filter, setFilter] = useState<Purpose | null>(null);
   const [opened, setOpened] = useState<InventoryItem | null>(null);
+  const [salvaging, setSalvaging] = useState<GearInstance | null>(null);
   const held = inventoryItems(save);
   const shown = filter ? held.filter((item) => purposesOf(item.ref).includes(filter)) : held;
   // Weakness items are listed with the other base items.
@@ -120,19 +121,6 @@ export default function InventoryScreen() {
     const item = itemById[id];
     return count > 0 && !(item.slot === 'consumable' && item.weakness);
   });
-
-  /** Rare, Legendary and infused pieces ask first, showing what comes back. */
-  const confirmSalvage = (gear: GearInstance) => {
-    if (!salvageNeedsConfirmation(gear)) return salvage(gear.uid);
-    const returns = salvageReturns(gear, salvageRules, guildBonus(save, 'salvage'))
-      .map(({ materialId, amount }) => `${amount} ${tr(materialById[materialId].name).toLowerCase()}`)
-      .concat(salvageGold(gear) > 0 ? [`🪙 ${salvageGold(gear)}`] : [])
-      .join(', ');
-    Alert.alert(t('inventory.salvageTitle', { item: gearName(gear) }), t('inventory.salvageBody', { returns }), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('inventory.salvage'), style: 'destructive', onPress: () => salvage(gear.uid) },
-    ]);
-  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -245,10 +233,21 @@ export default function InventoryScreen() {
             key={gear.uid}
             gear={gear}
             note={holder ? t('common.wornBy', { name: holder.name }) : null}
-            right={<Button title={t('inventory.salvage')} disabled={!canSalvage(save, gear.uid)} onPress={() => confirmSalvage(gear)} />}
+            right={<Button title={t('inventory.salvage')} disabled={!canSalvage(save, gear.uid)} onPress={() => setSalvaging(gear)} />}
           />
         );
       })}
+      {salvaging && (
+        <SalvageDialog
+          gear={salvaging}
+          save={save}
+          onConfirm={() => {
+            salvage(salvaging.uid);
+            setSalvaging(null);
+          }}
+          onClose={() => setSalvaging(null)}
+        />
+      )}
       {save.gear.length > 0 && (
         <Text style={styles.empty}>{t('inventory.salvageHint')}</Text>
       )}

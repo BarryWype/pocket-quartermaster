@@ -8,7 +8,16 @@ import { createRng } from '../generation/rng';
 import { guildBonus } from '../guild/guild';
 import { addMaterials } from '../inventory';
 import type { SaveData } from '../save';
-import type { GearDef, GearInstance, MaterialStack } from '../types';
+import type { GearDef, GearInstance, MaterialStack, Quality } from '../types';
+
+/** Why a piece deserves a red warning line before it is destroyed. */
+export type SalvageWarning = 'equipped' | 'rareOrBetter' | 'relic' | 'component' | 'infused';
+
+export type SalvageDialogContent = {
+  quality: Quality;
+  returns: { materials: MaterialStack[]; gold: number };
+  warnings: SalvageWarning[];
+};
 
 type Rules = typeof salvageRules;
 
@@ -21,10 +30,6 @@ export const wornBy = (save: SaveData, gearUid: string) =>
 export function canSalvage(save: SaveData, gearUid: string) {
   return save.gear.some((g) => g.uid === gearUid) && !wornBy(save, gearUid);
 }
-
-/** Rare, Legendary and infused pieces ask before they are destroyed. */
-export const salvageNeedsConfirmation = (gear: GearInstance) =>
-  gear.quality === 'rare' || gear.quality === 'legendary' || !!gear.element;
 
 /**
  * What salvaging a piece gives back: a share of its recipe by quality (at
@@ -59,6 +64,29 @@ export function salvageGold(gear: GearInstance): number {
   const item = itemById[gear.itemId] as GearDef;
   if (recipes.some((r) => 'itemId' in r.output && r.output.itemId === gear.itemId)) return 0;
   return Math.round(shopRules.gearPrice[item.tier - 1] * shopRules.qualityPrice[gear.quality] * shopRules.gearSellShare);
+}
+
+/**
+ * Everything the salvage confirmation dialog shows: the piece's quality, what
+ * destroying it gives back (with the Guild Hall Salvage bonus, so the numbers
+ * match the store's `salvage`), and one warning tag per reason to think twice.
+ * Pure — the component translates the tags.
+ */
+export function salvageDialog(save: SaveData, gear: GearInstance): SalvageDialogContent {
+  return {
+    quality: gear.quality,
+    returns: {
+      materials: salvageReturns(gear, salvageRules, guildBonus(save, 'salvage')),
+      gold: salvageGold(gear),
+    },
+    warnings: [
+      wornBy(save, gear.uid) ? 'equipped' : null,
+      gear.quality === 'rare' || gear.quality === 'legendary' ? 'rareOrBetter' : null,
+      gear.relicId ? 'relic' : null,
+      gear.component ? 'component' : null,
+      gear.element ? 'infused' : null,
+    ].filter((warning): warning is SalvageWarning => warning !== null),
+  };
 }
 
 /** Destroys a gear piece and gives back `salvageReturns` and `salvageGold`; shards merge into stones as usual. */

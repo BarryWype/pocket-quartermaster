@@ -15,3 +15,8 @@ Found 2026-10-31. When the app lags, tapping a menu button several times opens t
 
 ## 5. Shop prices not showing (open)
 Found 2026-11-01. In the smithy, and probably other shops, the coin icon shows but the price next to it doesn't. Happened before (fixed only in the Guild Hall, 4eae109), so it's a regression.
+
+## 7. Salvage has no confirmation (fixed)
+Found 2026-10-31. Tapping Salvage destroys the item at once (only Rare, Legendary and infused pieces asked, via a plain system alert with no red warning). It is easy to lose a good item by mistake.
+
+Fixed the same day: every salvage now asks first in an in-app dialog — the item's name and quality, what it gives back (materials with the Guild Hall bonus, gold, shards for an infused or Legendary piece), and a red warning when it is equipped on a hero, Rare or better, a restored relic, forged with a component or infused; Cancel changes nothing. The dialog's content is computed by `salvageDialog` in `src/game/forging/salvage.ts`.
