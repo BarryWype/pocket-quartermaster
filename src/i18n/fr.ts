@@ -4,6 +4,7 @@ import type { Dictionary } from '.';
 export const fr: Dictionary = {
   common: {
     cancel: 'Annuler',
+    back: 'Retour',
     close: 'Fermer',
     gold: 'Or',
     level: 'Niveau {level}',

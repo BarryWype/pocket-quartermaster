@@ -1,6 +1,7 @@
 // Defines the background location task; it must run when the bundle loads, also for a background launch.
 import '@/services/walkTracking';
 
+import { Alegreya_500Medium, Alegreya_700Bold } from '@expo-google-fonts/alegreya';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { useEffect } from 'react';
@@ -57,6 +58,8 @@ export default function RootLayout() {
   usePatrols();
   const [fontsLoaded, fontError] = useFonts({
     [fonts.body]: require('../../assets/fonts/FantaisieArtistique.ttf'),
+    [fonts.serif]: Alegreya_500Medium,
+    [fonts.serifBold]: Alegreya_700Bold,
   });
 
   // On a load error, fall back to the system font rather than a blank screen.

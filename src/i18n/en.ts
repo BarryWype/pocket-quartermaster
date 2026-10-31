@@ -2,6 +2,7 @@
 export const en = {
   common: {
     cancel: 'Cancel',
+    back: 'Back',
     close: 'Close',
     gold: 'Gold',
     level: 'Level {level}',

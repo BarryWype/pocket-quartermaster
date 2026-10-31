@@ -1,0 +1,78 @@
+import { Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-native';
+
+import { GameIcon } from '@/components/GameIcon';
+import { Text } from '@/components/Text';
+import { fonts, ui } from '@/theme';
+
+type Props = {
+  label: string;
+  emoji?: string;
+  icon?: ImageSourcePropType;
+  selected?: boolean;
+  badge?: number | string;
+  /** The rotated square's side; its diagonal is ~1.42 times this. */
+  size?: number;
+  showLabel?: boolean;
+  onPress: () => void;
+  accessibilityLabel?: string;
+};
+
+/** A rail item: a rotated wood square with its icon counter-rotated and a label below. */
+export function DiamondButton({ label, emoji, icon, selected, badge, size = 52, showLabel = true, onPress, accessibilityLabel }: Props) {
+  const iconSize = Math.round(size * 0.6);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      onPress={onPress}
+      style={styles.item}
+      hitSlop={size < 44 ? 6 : undefined}
+    >
+      <View style={[styles.box, { width: size, height: size, marginHorizontal: size * 0.21, marginVertical: size * 0.21 }]}>
+        <View style={[styles.frame, selected && styles.frameSelected]}>
+          <View style={[styles.face, selected ? styles.faceSelected : styles.faceIdle]}>
+            <View style={[styles.inner, { borderColor: selected ? ui.brassLight : ui.brassDim }]} pointerEvents="none" />
+            {emoji !== undefined && (
+              <View style={styles.iconSpin}>
+                <GameIcon emoji={emoji} icon={icon} size={iconSize} />
+              </View>
+            )}
+          </View>
+        </View>
+        {badge !== undefined && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{badge}</Text>
+          </View>
+        )}
+      </View>
+      {showLabel && <Text style={[styles.label, selected && styles.labelSelected]}>{label}</Text>}
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  item: { alignItems: 'center' },
+  box: { position: 'relative' },
+  frame: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderWidth: 2, borderColor: 'transparent', transform: [{ rotate: '45deg' }] },
+  frameSelected: { borderColor: ui.brass },
+  face: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: ui.outline },
+  faceSelected: { backgroundColor: ui.woodSelected },
+  faceIdle: { backgroundColor: ui.woodDark },
+  inner: { position: 'absolute', top: 4, left: 4, right: 4, bottom: 4, borderWidth: 2 },
+  iconSpin: { transform: [{ rotate: '-45deg' }] },
+  badge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    minWidth: 18,
+    paddingHorizontal: 2,
+    paddingVertical: 1,
+    alignItems: 'center',
+    backgroundColor: ui.ember,
+    borderWidth: 2,
+    borderColor: ui.outline,
+  },
+  badgeText: { fontFamily: fonts.serifBold, fontSize: 13, color: ui.onEmber },
+  label: { fontSize: 15, color: ui.onWoodMuted, textAlign: 'center' },
+  labelSelected: { color: ui.brassLight },
+});
