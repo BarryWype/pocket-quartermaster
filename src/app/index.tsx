@@ -66,6 +66,7 @@ import { GainsLine } from '@/components/IconLabel';
 import { t, tr } from '@/i18n';
 import { navigate } from '@/services/navigation';
 import { armOddsWarmup, noteWarmupInteraction, setWarmupMapOnTop } from '@/services/oddsWarmup';
+import { preloadAfterMapShown } from '@/services/preload';
 import { markTap, recordTiming } from '@/services/timings';
 import { appendFixesNow } from '@/services/walkTracking';
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
@@ -181,9 +182,11 @@ function MapScreen() {
 
   // Once the map is shown, the idle warm-up fills the odds keys Expeditions
   // opens on (issue 17); it stops for any interaction, other screen or
-  // background, and resumes when the map is alone and idle again.
+  // background, and resumes when the map is alone and idle again. The drawn
+  // images and the Expeditions route module preload the same way.
   useEffect(() => {
     armOddsWarmup();
+    preloadAfterMapShown();
   }, []);
   useFocusEffect(
     useCallback(() => {

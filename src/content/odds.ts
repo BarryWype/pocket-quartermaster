@@ -9,7 +9,7 @@ export const oddsRules = {
    * a slice loop yields between slices and taps land within a frame or two.
    */
   runsPerSlice: 20,
-  /** The warm-up (see services/oddsWarmup.ts) starts this long after the map shows, in ms. */
+  /** The odds phase of the warm-up (see services/oddsWarmup.ts) starts this long after the map shows, in ms; the rotation history phase starts earlier (`rotationRules.warmStartDelayMs`). */
   warmupStartDelayMs: 5000,
   /** After a player interaction, the warm-up waits this long before resuming, in ms. */
   warmupResumeDelayMs: 2000,
