@@ -27,8 +27,8 @@ type Props = {
   rotation: Rotation;
   now: number;
   durationMs: number;
-  /** Success chance with the selected party, or null without one. */
-  chance: number | null;
+  /** Success chance with the selected party: undefined while it computes, null without one. */
+  chance: number | null | undefined;
   expanded: boolean;
   onToggle: () => void;
   onSend: () => void;
@@ -36,7 +36,7 @@ type Props = {
 
 /** A dungeon at a glance (name, kind, time, odds); tapped, its details and the Send button. */
 export function DungeonCard({ save, dungeon, rotation, now, durationMs, chance, expanded, onToggle, onSend }: Props) {
-  const band = chance === null ? null : oddsBand(chance);
+  const band = typeof chance === 'number' ? oddsBand(chance) : null;
   const available = isDungeonAvailable(save, dungeon, rotation);
   const newTier = !save.clearedDungeons.some((id) => dungeonById[id]?.tier === dungeon.tier);
   const firstWin = firstWinAvailable(save, dungeon, now);
@@ -67,10 +67,16 @@ export function DungeonCard({ save, dungeon, rotation, now, durationMs, chance, 
             {t(`expeditions.kind.${kind}`)} · ⏳ {formatDuration(durationMs)}
           </Text>
         </View>
-        {band && chance !== null && (
+        {typeof chance === 'number' && band ? (
           <View style={[styles.odds, { backgroundColor: ODDS_COLORS[band] }]}>
             <Text style={styles.oddsText}>{formatPercent(chance)}</Text>
           </View>
+        ) : (
+          chance === undefined && (
+            <View style={[styles.odds, styles.oddsPending]}>
+              <Text style={styles.oddsText}>…</Text>
+            </View>
+          )
         )}
         <Text style={styles.chevron}>{expanded ? '▾' : '▸'}</Text>
       </View>
@@ -120,6 +126,7 @@ const styles = StyleSheet.create({
   name: { fontSize: 21 },
   muted: { color: colors.muted },
   odds: { paddingHorizontal: 8, paddingVertical: 2, borderWidth: 2, borderColor: colors.ink },
+  oddsPending: { backgroundColor: colors.parchmentDark },
   oddsText: { color: colors.parchment, fontSize: 18 },
   chevron: { fontSize: 22, color: colors.muted, width: 16 },
   details: { gap: 6 },

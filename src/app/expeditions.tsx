@@ -1,6 +1,6 @@
 import { useFocusEffect } from 'expo-router';
 import { rosterRules } from '@/content/roster';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -24,7 +24,8 @@ import { narrowPartySize } from '@/content/threats';
 import { tutorialRules } from '@/content/tutorial';
 import { nextRotationAt, rotationDay } from '@/game/dungeons/rotation';
 import { briefingOf, expeditionMinutes, isDungeonUnlocked, readyExpeditions, type Loadout } from '@/game/expeditions/expeditions';
-import { estimateOdds } from '@/game/expeditions/odds';
+import type { Odds } from '@/game/expeditions/odds';
+import { cachedEstimateOdds, cachedOdds, oddsKey } from '@/game/expeditions/oddsCache';
 import { isRevealed } from '@/game/reveal/reveal';
 import { supplyHeld } from '@/game/expeditions/provisions';
 import { briefingCoverage } from '@/game/threats/coverage';
@@ -49,6 +50,12 @@ type Collected = { report: ExpeditionReport; before: HeroState[]; after: HeroSta
 
 export default function ExpeditionsScreen() {
   useLanguage();
+  // In development: how long the first render took to reach its effects (no simulation in it any more).
+  const [mountedAt] = useState(() => Date.now());
+  useEffect(() => {
+    if (__DEV__) console.log(`[odds] expeditions first render ${Date.now() - mountedAt}ms`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const save = useGameStore((state) => state.save);
   const start = useGameStore((state) => state.startExpedition);
   const collectLoot = useGameStore((state) => state.collectLoot);
@@ -152,20 +159,70 @@ export default function ExpeditionsScreen() {
   const shown = open.filter((d) => d.tier === shownTier);
   const shownOvernight = overnight.find((d) => d.tier === shownTier) ?? null;
 
-  // Simulated runs for the dungeons shown, with current HP; recomputed when the party, the save or the tier
-  // changes, and once a minute as heroes heal.
+  // Simulated runs for the dungeons shown, with current HP. Nothing runs on the first
+  // render: the odds land from the module cache at once when their key was computed
+  // before, and the rest are computed after the interactions, one dungeon per tick, so
+  // the screen and Back stay responsive. Only the selected tier's dungeons and the
+  // overnight one shown are computed, and only when their key changed (once a minute as
+  // heroes heal, or on a party, gear, supply or briefing change).
+  const shownList = useMemo(() => [...shown, ...(shownOvernight ? [shownOvernight] : [])], [shown, shownOvernight]);
   const minute = Math.floor(now / 60_000);
-  const odds = useMemo(
+  const oddsKeys = useMemo(
     () =>
       Object.fromEntries(
-        [...shown, ...(shownOvernight ? [shownOvernight] : [])].map((d) => [
-          d.id,
-          estimateOdds(save, party, d, undefined, { now: minute * 60_000, briefing: briefingOf(save, d, rotation, minute * 60_000) }),
+        shownList.map((dungeon) => [
+          dungeon.id,
+          oddsKey({
+            save,
+            heroIds: party,
+            dungeon,
+            options: { now: minute * 60_000, briefing: briefingOf(save, dungeon, rotation, minute * 60_000) },
+          }),
         ]),
       ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [save, party, shownTier, rotation, minute],
+    [save, party, shownList, rotation, minute],
   );
+  /** The odds computed so far, by dungeon, with the key they belong to. */
+  const [odds, setOdds] = useState<Record<string, { key: string; odds: Odds }>>({});
+  useEffect(() => {
+    if (party.length === 0) return;
+    let cancelled = false;
+    // The odds not yet held for their key queue up (cache hits resolve inside the tick).
+    const queue = shownList.filter((dungeon) => odds[dungeon.id]?.key !== oddsKeys[dungeon.id]);
+    // One dungeon per tick (InteractionManager is gone from RN core; a timeout chunk
+    // keeps each estimate off the first frames and leaves the thread free between runs).
+    const computeNext = () => {
+      const dungeon = queue.shift();
+      if (cancelled || !dungeon) return;
+      setTimeout(() => {
+        if (cancelled) return;
+        const key = oddsKeys[dungeon.id];
+        const start = Date.now();
+        const value = cachedEstimateOdds(save, party, dungeon, undefined, {
+          now: minute * 60_000,
+          briefing: briefingOf(save, dungeon, rotation, minute * 60_000),
+        });
+        if (__DEV__) console.log(`[odds] ${dungeon.id} ${Date.now() - start}ms`);
+        setOdds((prev) => ({ ...prev, [dungeon.id]: { key, odds: value } }));
+        computeNext();
+      });
+    };
+    computeNext();
+    return () => {
+      cancelled = true;
+    };
+    // The recompute trigger is the key, not the save: this reruns only when the odds inputs change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [oddsKeys, party.length]);
+
+  /** The chance a card shows: the odds for their current key, the cached ones at once, undefined while computing. */
+  const chanceOf = (dungeonId: string): number | null | undefined => {
+    if (party.length === 0) return null;
+    const key = oddsKeys[dungeonId];
+    const entry = odds[dungeonId];
+    if (entry?.key === key) return entry.odds.success;
+    return cachedOdds(key)?.success;
+  };
 
   const confirmingDungeon = party.length > 0 ? [...open, ...overnight].find((d) => d.id === confirming) : undefined;
 
@@ -254,7 +311,7 @@ export default function ExpeditionsScreen() {
           rotation={rotation}
           now={now}
           durationMs={expeditionMinutes(save, dungeon) * 60_000 * durationScale}
-          chance={party.length > 0 ? odds[dungeon.id]?.success ?? null : null}
+          chance={chanceOf(dungeon.id)}
           expanded={focused === dungeon.id}
           onToggle={() => setFocused(focused === dungeon.id ? null : dungeon.id)}
           onSend={() => setConfirming(dungeon.id)}
@@ -266,7 +323,7 @@ export default function ExpeditionsScreen() {
           dungeon={shownOvernight}
           rotation={rotation}
           now={now}
-          chance={party.length > 0 ? odds[shownOvernight.id]?.success ?? null : null}
+          chance={chanceOf(shownOvernight.id)}
           onSend={() => setConfirming(shownOvernight.id)}
         />
       )}

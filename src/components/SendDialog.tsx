@@ -1,11 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { rosterRules } from '@/content/roster';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { heroClasses } from '@/content/heroes';
 import { itemById, opportunityById } from '@/content/lookup';
 import { briefingOf, dungeonLootSource, launchPlan, type Loadout } from '@/game/expeditions/expeditions';
-import { estimateOdds, oddsBand, type OddsBand } from '@/game/expeditions/odds';
+import { oddsBand, type OddsBand } from '@/game/expeditions/odds';
+import { cachedEstimateOdds, cachedOdds, oddsKey } from '@/game/expeditions/oddsCache';
 import { mealItems } from '@/game/expeditions/provisions';
 
 import { charmApplies } from '@/game/loot/charms';
@@ -155,15 +156,46 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
     const twice = charms.filter((c) => c.id === id).length > 1;
     return { id, text: `${item.emoji} ${tr(item.name)}: ${tr(item.description!)}`, applies, twice };
   });
-  const odds = useMemo(
-    () => ({
-      now: estimateOdds(save, party, dungeon, undefined, { now: minute * 60_000, loadout, briefing }).success,
-      full: estimateOdds(save, party, dungeon, undefined, { now: minute * 60_000, loadout, briefing, fullHp: true }).success,
-    }),
+  // The odds previews: keys already computed elsewhere show at once, the rest compute
+  // in a later tick, and the last known odds stay on screen while they do.
+  const keyNow = useMemo(
+    () => oddsKey({ save, heroIds: party, dungeon, options: { now: minute * 60_000, loadout, briefing } }),
     [save, party, dungeon, minute, loadout, briefing],
   );
-  const band = oddsBand(odds.now);
-  const warnings = warningsFor(save, dungeon, party, odds.now, durationMs, now);
+  const keyFull = useMemo(
+    () => oddsKey({ save, heroIds: party, dungeon, options: { now: minute * 60_000, loadout, briefing, fullHp: true } }),
+    [save, party, dungeon, minute, loadout, briefing],
+  );
+  const [computed, setComputed] = useState<{ key: string; now: number; full: number } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setTimeout(() => {
+      if (cancelled) return;
+      const start = Date.now();
+      const value = {
+        now: cachedEstimateOdds(save, party, dungeon, undefined, { now: minute * 60_000, loadout, briefing }).success,
+        full: cachedEstimateOdds(save, party, dungeon, undefined, { now: minute * 60_000, loadout, briefing, fullHp: true }).success,
+      };
+      if (__DEV__) console.log(`[odds] ${dungeon.id} dialog ${Date.now() - start}ms`);
+      setComputed({ key: keyNow, ...value });
+    });
+    return () => {
+      cancelled = true;
+    };
+    // The keys change with everything the estimates read; that is the recompute trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [keyNow, keyFull]);
+  // The fresh estimate when its key is the current one, the cache's at once, else the last known.
+  const heldNow = cachedOdds(keyNow);
+  const heldFull = cachedOdds(keyFull);
+  const odds =
+    computed && computed.key === keyNow
+      ? computed
+      : heldNow && heldFull
+        ? { now: heldNow.success, full: heldFull.success }
+        : computed;
+  const band = odds ? oddsBand(odds.now) : null;
+  const warnings = warningsFor(save, dungeon, party, odds?.now ?? 1, durationMs, now);
   const canBuy = nearbyTavern && player && buySupplyProblem(save, 1, nearbyTavern.position, player) === null;
 
   return (
@@ -283,11 +315,17 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
 
             <Text style={styles.summary}>
               ⏳ {formatDuration(durationMs)} ·{' '}
-              <Text style={{ color: ODDS_COLORS[band] }}>
-                {formatPercent(odds.now)} {t(`odds.${band}`)}
-              </Text>
+              {odds && band ? (
+                <Text style={{ color: ODDS_COLORS[band] }}>
+                  {formatPercent(odds.now)} {t(`odds.${band}`)}
+                </Text>
+              ) : (
+                '…'
+              )}
             </Text>
-            {odds.full !== odds.now && <Text style={styles.muted}>{t('expeditions.confirm.oddsFull', { percent: formatPercent(odds.full) })}</Text>}
+            {odds && odds.full !== odds.now && (
+              <Text style={styles.muted}>{t('expeditions.confirm.oddsFull', { percent: formatPercent(odds.full) })}</Text>
+            )}
             {warnings.map((warning) => (
               <View key={warning} style={styles.warning}>
                 <Text style={styles.warningText}>⚠️ {warning}</Text>

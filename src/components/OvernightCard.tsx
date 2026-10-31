@@ -20,8 +20,8 @@ type Props = {
   dungeon: DungeonDef;
   rotation: Rotation;
   now: number;
-  /** Success chance with the selected party, or null without one. */
-  chance: number | null;
+  /** Success chance with the selected party: undefined while it computes, null without one. */
+  chance: number | null | undefined;
   onSend: () => void;
 };
 
@@ -31,7 +31,7 @@ const clockTime = (ms: number) => `${pad(new Date(ms).getHours())}:${pad(new Dat
 /** The tier's overnight expedition: a long, safe patrol for heroes with a long night ahead. */
 export function OvernightCard({ save, dungeon, rotation, now, chance, onSend }: Props) {
   const durationMs = expeditionMinutes(save, dungeon) * 60_000;
-  const band = chance === null ? null : oddsBand(chance);
+  const band = typeof chance === 'number' ? oddsBand(chance) : null;
   const available = isDungeonAvailable(save, dungeon) && !overnightUnderWay(save);
   const underWay = overnightUnderWay(save);
 
@@ -45,10 +45,16 @@ export function OvernightCard({ save, dungeon, rotation, now, chance, onSend }: 
             {t('expeditions.overnight.title')} · ⏳ {formatDuration(durationMs)} · {t('expeditions.overnight.back', { time: clockTime(now + durationMs) })}
           </Text>
         </View>
-        {band && chance !== null && (
+        {typeof chance === 'number' && band ? (
           <View style={[styles.odds, { backgroundColor: ODDS_COLORS[band] }]}>
             <Text style={styles.oddsText}>{formatPercent(chance)}</Text>
           </View>
+        ) : (
+          chance === undefined && (
+            <View style={[styles.odds, styles.oddsPending]}>
+              <Text style={styles.oddsText}>…</Text>
+            </View>
+          )
         )}
       </View>
       <Text style={styles.line}>
@@ -75,6 +81,7 @@ const styles = StyleSheet.create({
   muted: { color: colors.muted },
   line: { fontSize: 17 },
   odds: { paddingHorizontal: 8, paddingVertical: 2, borderWidth: 2, borderColor: colors.ink },
+  oddsPending: { backgroundColor: colors.parchmentDark },
   oddsText: { color: colors.parchment, fontSize: 18 },
   footer: { flexDirection: 'row', justifyContent: 'flex-end' },
 });
