@@ -25,6 +25,7 @@ import { colors, pixel } from '@/theme';
 import { Button } from './Button';
 import { ClassSummary } from './ClassSummary';
 import { lineName } from './PlacePanel';
+import { PriceTag } from './PriceTag';
 import { RecruitGrade } from './RecruitGrade';
 import { Text } from './Text';
 
@@ -68,7 +69,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
         </Text>
         <ClassSummary classId={offer.classId} />
         <View style={styles.actions}>
-          <Text style={styles.price}>🪙 {offer.price}</Text>
+          <PriceTag price={offer.price} style={styles.price} />
           <Button title={t('tavern.recruit')} disabled={problem !== null} onPress={() => recruit(offer, tavern.position, player)} />
         </View>
         {problem && <Text style={styles.problem}>{problemText[problem](distance, rosterCap(save))}</Text>}
@@ -90,7 +91,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
               <Text style={styles.name}>🥓 {t('tavern.emergency')}</Text>
               <Text style={styles.muted}>{t('tavern.emergencyHint', { held: save.consumables.jerky ?? 0 })}</Text>
               <View style={styles.actions}>
-                <Text style={styles.price}>🪙 {supplyPrice(save)}</Text>
+                <PriceTag price={supplyPrice(save)} style={styles.price} />
                 <Button
                   title={t('tavern.buy')}
                   disabled={buySupplyProblem(save, 1, tavern.position, player) !== null}
@@ -102,7 +103,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
               <View key={line.key} style={styles.offer}>
                 <Text style={styles.name}>{lineName(line)}</Text>
                 <View style={styles.actions}>
-                  <Text style={styles.price}>🪙 {line.price}</Text>
+                  <PriceTag price={line.price} style={styles.price} />
                   <Text style={styles.muted}>
                     {stockLeft(save, tavern, line) > 0 ? t('places.left', { count: stockLeft(save, tavern, line) }) : t('places.soldOut')}
                   </Text>

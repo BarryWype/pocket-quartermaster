@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { priceLabel } from '@/components/PriceTag';
 import { SectionTitle } from '@/components/Row';
 import { Text } from '@/components/Text';
 import { guildBuildings, guildTrackById, guildTracks, type GuildBuildingId, type GuildTrack } from '@/content/guild';
@@ -41,7 +42,7 @@ function problemText(problem: RankProblem) {
 function PriceLine({ price }: { price: RankPrice }) {
   const save = useGameStore((state) => state.save);
   const parts = [
-    { key: 'gold', text: `🪙 ${price.gold}`, short: save.gold < price.gold },
+    { key: 'gold', text: priceLabel(price.gold), short: save.gold < price.gold },
     ...price.materials.map(({ materialId, amount }) => ({
       key: materialId,
       text: `${materialById[materialId].emoji} ${amount} ${tr(materialById[materialId].name).toLowerCase()}`,

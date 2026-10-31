@@ -50,6 +50,7 @@ import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
+import { PriceTag, priceLabel } from './PriceTag';
 import { Text } from './Text';
 import { ValuableRows } from './ValuableRows';
 
@@ -132,7 +133,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
           <Text style={styles.muted}>
             {problem === 'known' ? t('places.known') : left > 0 ? t('places.left', { count: left }) : t('places.soldOut')}
           </Text>
-          <Text style={styles.price}>🪙 {line.price}</Text>
+          <PriceTag price={line.price} style={styles.price} />
           <Button title={t('places.buy')} disabled={problem !== null} onPress={() => actions.buyAtPlace(place, line.key, 1, player)} />
         </View>
       </View>
@@ -168,7 +169,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
           <Text style={styles.name}>
             {itemById[g.itemId].emoji} {gearName(g)}
           </Text>
-          <Text style={styles.price}>🪙 {gearSellPrice(g)}</Text>
+          <PriceTag price={gearSellPrice(g)} style={styles.price} />
           <Button
             title={t('places.sell')}
             disabled={sellGearProblem(save, place, g.uid, player, now) !== null}
@@ -185,7 +186,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
           {materialById[id].emoji} {tr(materialById[id].name)} ×{count}
         </Text>
         <View style={styles.actions}>
-          <Text style={styles.price}>🪙 {materialSellPrice(id, place.kind)}</Text>
+          <PriceTag price={materialSellPrice(id, place.kind)} style={styles.price} />
           <Button
             title={t('places.sell')}
             disabled={sellMaterialProblem(save, place, id, 1, player, now) !== null}
@@ -217,7 +218,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
           {(['heal', 'rest'] as const).map((care) => (
             <Button
               key={care}
-              title={`${t(care === 'heal' ? 'places.heal' : 'places.rest')} · ${paid ? `🪙 ${apothecaryCarePrice(save, care)}` : t('places.free')}`}
+              title={`${t(care === 'heal' ? 'places.heal' : 'places.rest')} · ${paid ? priceLabel(apothecaryCarePrice(save, care)) : t('places.free')}`}
               disabled={problemOf(hero.id, care) !== null}
               onPress={() => give(hero.id, care)}
             />
@@ -371,7 +372,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
                         <Text style={styles.muted}>{t('places.maxLevel')}</Text>
                       ) : (
                         <Button
-                          title={`${t('places.train')} · 🪙 ${trainPrice(save)}`}
+                          title={`${t('places.train')} · ${priceLabel(trainPrice(save))}`}
                           disabled={problem !== null}
                           onPress={() => actions.trainHero(place, hero.id, player)}
                         />

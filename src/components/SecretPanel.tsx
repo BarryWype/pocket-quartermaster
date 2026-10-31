@@ -33,6 +33,7 @@ import { colors, pixel } from '@/theme';
 import { Button } from './Button';
 import { ClassSummary } from './ClassSummary';
 import { EnemyTags } from './EnemyTags';
+import { PriceTag } from './PriceTag';
 import { RecruitGrade } from './RecruitGrade';
 import { SendDialog } from './SendDialog';
 import { Text } from './Text';
@@ -179,7 +180,7 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
             </Text>
             <ClassSummary classId={offer.classId} />
             <View style={styles.actions}>
-              <Text style={styles.price}>🪙 {offer.price}</Text>
+              <PriceTag price={offer.price} style={styles.price} />
               <Button title={t('tavern.recruit')} disabled={recruitProblem !== null} onPress={() => recruit(place, player)} />
             </View>
             {recruitProblem && <Text style={styles.problem}>{problemText(recruitProblem, distance, rosterCap(save))}</Text>}
@@ -194,7 +195,7 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
                 <View key={line.key} style={styles.offer}>
                   <Text style={styles.name}>{marketLineName(line)}</Text>
                   <View style={styles.actions}>
-                    <Text style={styles.price}>🪙 {line.price}</Text>
+                    <PriceTag price={line.price} style={styles.price} />
                     {problem === 'soldOut' && <Text style={styles.muted}>{t('places.soldOut')}</Text>}
                     <Button title={t('tavern.buy')} disabled={problem !== null} onPress={() => buy(place, line.key, player)} />
                   </View>
