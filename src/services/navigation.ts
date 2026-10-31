@@ -3,6 +3,7 @@ import { router, type Href } from 'expo-router';
 import { navigationRules } from '@/content/navigation';
 
 import { markTap } from './timings';
+import { noteWarmupInteraction } from './oddsWarmup';
 
 /** The route name of the last navigation, and when it started; the tap lock is just this. */
 let lastTap: { target: string; at: number } | null = null;
@@ -22,6 +23,8 @@ export function navigate(href: Href) {
   const now = Date.now();
   if (lastTap !== null && lastTap.target === target && now < lastTap.at + navigationRules.tapLockMs) return;
   lastTap = { target, at: now };
+  // A navigation is a player interaction: the idle odds warm-up stands down.
+  noteWarmupInteraction();
   markTap(target);
   router.push(href, { dangerouslySingular: true });
 }
