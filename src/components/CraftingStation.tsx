@@ -9,6 +9,7 @@ import { recipes } from '@/content/recipes';
 import { canCraft, craftableCount, forgedItem, isKnown, ownsTool, type ForgeResult } from '@/game/crafting/crafting';
 import { forgeList } from '@/game/crafting/forgeList';
 import { tierRecipes } from '@/game/crafting/recipeUnlocks';
+import { highestUnlockedTier } from '@/game/dungeons/unlock';
 import { ELEMENTS, shardId } from '@/game/elements';
 import { canForgeWithComponent, componentRecipe, fittingComponents } from '@/game/forging/components';
 import { affinityOf } from '@/game/team/team';
@@ -225,11 +226,13 @@ export function CraftingStation({ station, action }: Props) {
 
 /** Unrestored relics, each with its effect, its restore cost and a Restore button. */
 function RelicList({ save, onRestore }: { save: SaveData; onRestore: (relicUid: string) => void }) {
-  if (save.relics.length === 0) return null;
+  // Relics above the highest unlocked tier stay hidden, like the blueprints.
+  const relics = save.relics.filter(({ relicId }) => relicById[relicId].tier <= highestUnlockedTier(save));
+  if (relics.length === 0) return null;
   return (
     <View>
       <Text style={styles.family}>{t('crafting.relics')}</Text>
-      {save.relics.map(({ uid, relicId }) => {
+      {relics.map(({ uid, relicId }) => {
         const relic = relicById[relicId];
         return (
           <Row
