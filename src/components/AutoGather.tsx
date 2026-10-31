@@ -7,8 +7,11 @@ import { materialById } from '@/content/lookup';
 import { patrolTexts } from '@/content/patrols';
 import { walkToShow, type WalkFight, type WalkPatrols, type WalkSummary } from '@/game/gathering/autoGather';
 import { pocketModeAvailable } from '@/game/patrols/pocketMode';
+import { locationPermissionState, planPocketTurnOn, type LocationPermissionState } from '@/game/patrols/pocketPermission';
 import { formatDistance, formatDuration, formatNumber, formatPercent, localized, t } from '@/i18n';
-import { disableAutoGather, enableAutoGather } from '@/hooks/useAutoGather';
+import { disableAutoGather, startPocketMode } from '@/hooks/useAutoGather';
+import { isExpoGo, pocketPlatform } from '@/services/environment';
+import { getAutoGatherPermission, requestAutoGatherPermission, type AutoGatherPermission } from '@/services/walkTracking';
 import { useGameStore } from '@/store/gameStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useWorldStore } from '@/store/worldStore';
@@ -63,8 +66,10 @@ function InfoDialog({ confirm, onTurnOn, onClose }: { confirm: boolean; onTurnOn
 
 /**
  * The auto-gather switch's behaviour, shared by the map and Settings: the
- * info dialog before the first turn-on, the permission request, and what to
- * say when location is refused.
+ * info dialog before the first turn-on, then what the phone's location
+ * permission allows — full Pocket mode, limited to the app being open (with
+ * how to upgrade), a one-time system request, or an explanation that never
+ * asks in a loop. In Expo Go, Pocket mode needs the installed app.
  */
 export function useAutoGatherToggle() {
   const enabled = useSettingsStore((state) => state.pocketMode.enabled);
@@ -76,11 +81,44 @@ export function useAutoGatherToggle() {
   const turnOn = async () => {
     setDialog(null);
     useSettingsStore.getState().setPocketMode({ introSeen: true });
-    if ((await enableAutoGather()) !== 'denied') return;
-    Alert.alert(t('autoGather.deniedTitle'), t('autoGather.deniedBody'), [
-      { text: t('common.close'), style: 'cancel' },
-      { text: t('autoGather.openSettings'), onPress: openSettings },
-    ]);
+    const environment = { expoGo: isExpoGo(), platform: pocketPlatform() };
+    const toState = (permission: AutoGatherPermission): LocationPermissionState =>
+      locationPermissionState(permission !== 'denied', permission === 'background');
+    let permission = await getAutoGatherPermission().catch((): AutoGatherPermission => 'denied');
+    let plan = planPocketTurnOn(toState(permission), environment, useWorldStore.getState().autoGatherRefused);
+    if (plan.kind === 'ask') {
+      // One system request; if it stays refused, the switch explains from now on instead of asking again.
+      permission = await requestAutoGatherPermission().catch((): AutoGatherPermission => 'denied');
+      const refused = toState(permission) === 'none';
+      if (refused) useWorldStore.getState().set({ autoGatherRefused: true });
+      plan = planPocketTurnOn(toState(permission), environment, refused);
+    }
+    if (plan.kind === 'ask' || plan.kind === 'explain') {
+      if (plan.kind === 'explain' && plan.reason === 'expoGo') {
+        Alert.alert(t('autoGather.expoGoTitle'), t('autoGather.expoGoBody'), [{ text: t('common.close'), style: 'cancel' }]);
+      } else {
+        Alert.alert(t('autoGather.deniedTitle'), t('autoGather.deniedBody'), [
+          { text: t('common.close'), style: 'cancel' },
+          { text: t('autoGather.openSettings'), onPress: openSettings },
+        ]);
+      }
+      return;
+    }
+    const started = await startPocketMode(permission);
+    if (!started) {
+      useWorldStore.getState().set({ autoGatherRefused: true });
+      Alert.alert(t('autoGather.deniedTitle'), t('autoGather.deniedBody'), [
+        { text: t('common.close'), style: 'cancel' },
+        { text: t('autoGather.openSettings'), onPress: openSettings },
+      ]);
+      return;
+    }
+    if (plan.mode === 'limited' && plan.upgrade) {
+      Alert.alert(t('autoGather.limitedTitle'), `${t('autoGather.limitedBody')}\n${t(plan.upgrade.stepsKey)}`, [
+        { text: t('common.close'), style: 'cancel' },
+        { text: t('autoGather.openSettings'), onPress: openSettings },
+      ]);
+    }
   };
   const toggle = (on: boolean) => {
     if (!on) disableAutoGather();
