@@ -8,6 +8,7 @@ import { useEffect } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
 
 import { RecipeToast } from '@/components/RecipeToast';
+import { ScreenHeader } from '@/components/ui';
 import { SecretToast } from '@/components/SecretToast';
 import { TipBar } from '@/components/TipBar';
 import { useAutoGather } from '@/hooks/useAutoGather';
@@ -18,7 +19,7 @@ import { useStepTracking } from '@/hooks/useTodaySteps';
 import { t } from '@/i18n';
 import { configureChannels, configureNotifications } from '@/services/notifications';
 import { useGameStore } from '@/store/gameStore';
-import { colors, fonts } from '@/theme';
+import { colors, fonts, ui } from '@/theme';
 
 configureNotifications();
 
@@ -77,7 +78,7 @@ export default function RootLayout() {
         }}
       >
         <Stack.Screen name="index" dangerouslySingular options={{ title: t('screens.map'), headerShown: false }} />
-        <Stack.Screen name="forge" dangerouslySingular options={{ title: t('screens.forge') }} />
+        <Stack.Screen name="forge" dangerouslySingular options={{ title: t('screens.forge'), header: () => <ScreenHeader title={t('screens.forge')} />, contentStyle: { backgroundColor: ui.woodDark } }} />
         <Stack.Screen name="infuse" dangerouslySingular options={{ title: t('screens.infuse') }} />
         <Stack.Screen name="provisions" dangerouslySingular options={{ title: t('screens.provisions') }} />
         <Stack.Screen name="inventory" dangerouslySingular options={{ title: t('screens.inventory') }} />
