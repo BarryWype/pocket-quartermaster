@@ -43,7 +43,7 @@ type Option = {
   marks?: ReactNode;
 };
 
-const DELTA_KEYS: (keyof Stats)[] = ['hp', 'power', 'magic', 'armour', 'resistance', 'evasion', 'speed', 'crit', 'luck'];
+export const DELTA_KEYS: (keyof Stats)[] = ['hp', 'power', 'magic', 'armour', 'resistance', 'evasion', 'speed', 'crit', 'luck'];
 
 function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, briefing?: Briefing, bossId?: string): Option[] {
   if (slot === 'consumable' || slot === 'potion') {
@@ -130,7 +130,7 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, briefin
 }
 
 /** The main stat the piece would gain the hero: its damage stat, or armour and resistance. */
-function gainOf({ item, preview }: { item: GearDef; preview: { before: Stats; after: Stats } | null }): number {
+export function gainOf({ item, preview }: { item: GearDef; preview: { before: Stats; after: Stats } | null }): number {
   if (!preview) return 0;
   const delta = (key: StatKey) => preview.after[key] - preview.before[key];
   if (item.slot === 'weapon') return delta(item.damageStat ?? 'power');
