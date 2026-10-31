@@ -15,8 +15,12 @@ export const questRules = {
   arrivalsPerDay: [2, 3] as [number, number],
   /** Regular quests held at once (the secret quest doesn't count). */
   cap: 6,
-  /** At most this many active quests share an objective (the variety rule). */
-  maxPerObjective: 1,
+  /**
+   * Variety among the active quests: at most one per objective kind while
+   * other kinds are unlocked; when every unlocked kind is taken a kind may
+   * repeat, but never Walk twice; within a kind, avoid the same objective.
+   */
+  variety: { onePerKind: true, walkNeverRepeats: true },
   lifetimeHours: 48,
   rerollsPerDay: 1,
   bandWeights: { short: 48, medium: 36, long: 16 } as Record<QuestBand, number>,

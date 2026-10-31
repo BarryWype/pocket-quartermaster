@@ -1,4 +1,4 @@
-import { questRules } from '@/content/quests';
+import { objectives, questRules, type QuestBand, type QuestObjective } from '@/content/quests';
 
 import { createInitialSave, type SaveData } from '../save';
 import { tierBoss } from '../guild/guild';
@@ -9,12 +9,14 @@ import type { Quest } from './types';
 const HOUR = 3_600_000;
 const DAY = 86_400_000;
 
-const opened = (): SaveData => {
-  const save = createInitialSave();
+const openedWithSeed = (playerSeed: string): SaveData => {
+  const save = createInitialSave(playerSeed);
   save.tutorial.step = 'done';
   save.seenPlaceKinds = ['chapel', 'library', 'ruins', 'fishingDock', 'market', 'apothecary', 'tavern'];
   return save;
 };
+
+const opened = (): SaveData => openedWithSeed('test-player');
 
 const regular = (id: string): Quest => ({
   id,
@@ -103,19 +105,77 @@ describe('quest arrivals', () => {
     }
   });
 
-  it('never repeats an objective among the active quests (the variety rule)', () => {
+  it('picks a kind not already active while other kinds are unlocked', () => {
+    const save = opened();
+    save.revealAll = true;
+    save.seenPlaceKinds = ['chapel', 'library', 'ruins', 'fishingDock', 'market', 'apothecary', 'tavern', 'sawmill', 'huntingLodge', 'monsterLair', 'banditCamp'];
+    save.valuables = { gem: 1 };
+    // Visit and Fight are already active: the day's new quests come from the other kinds.
+    save.quests.list = [{ ...regular('a'), objective: 'chapel' }, { ...regular('b'), objective: 'patrols' }];
+    save.quests.lastArrivalDay = 9;
+    const next = receiveQuests(save, 10 * DAY);
+    const fresh = next.quests.list.filter((q) => q.arrivedAt === 10 * DAY);
+    expect(fresh.length).toBeGreaterThanOrEqual(2);
+    for (const quest of fresh) {
+      const kind = objectives[quest.objective as QuestObjective].kind;
+      expect(kind).not.toBe('visit');
+      expect(kind).not.toBe('fight');
+    }
+  });
+
+  it('never picks a second Walk quest, even when every unlocked kind is taken', () => {
+    const save = opened();
+    save.revealAll = true;
+    save.seenPlaceKinds = ['chapel', 'library', 'ruins', 'fishingDock', 'market', 'apothecary', 'tavern', 'sawmill', 'huntingLodge', 'monsterLair', 'banditCamp'];
+    save.valuables = { gem: 1 };
+    // One active quest of every unlocked kind, Walk included (cap raised so the day's arrivals still come).
+    const taken: QuestObjective[] = ['chapel', 'patrols', 'deliver', 'mine', 'collector', 'walk'];
+    save.quests.list = taken.map((objective, i) => ({ ...regular(`q${i}`), objective }));
+    save.quests.lastArrivalDay = 9;
+    save.guild = { questCap: 3 };
+    const next = receiveQuests(save, 10 * DAY);
+    const fresh = next.quests.list.filter((q) => q.arrivedAt === 10 * DAY);
+    expect(fresh.length).toBeGreaterThanOrEqual(2);
+    expect(fresh.every((q) => q.objective !== 'walk')).toBe(true);
+    // And within a repeated kind, a different objective than the active one where one exists.
+    const activeObjectives = new Set(next.quests.list.filter((q) => q.arrivedAt !== 10 * DAY).map((q) => q.objective));
+    for (const quest of fresh) {
+      if (activeObjectives.has(quest.objective)) {
+        const kind = objectives[quest.objective as QuestObjective].kind;
+        const alternatives = availableObjectives(save, quest.band as QuestBand).filter((o) => objectives[o].kind === kind && !activeObjectives.has(o));
+        expect(alternatives.length).toBe(0);
+      }
+    }
+  });
+
+  it('keeps at most one active Walk quest over many days', () => {
     let save = opened();
     for (let day = 10; day <= 30; day++) {
       const now = day * DAY;
       save = pruneQuests(save, now);
-      // Done quests are claimed: only the live ones hold a variety slot.
       save = { ...save, quests: { ...save.quests, list: save.quests.list.filter((q) => q.doneAt === null) } };
       save = receiveQuests(save, now);
       const active = save.quests.list.filter((q) => q.band !== 'secret' && q.doneAt === null);
       expect(active.length).toBeGreaterThan(0);
-      const objectives = active.map((q) => q.objective);
-      expect(new Set(objectives).size).toBe(objectives.length);
+      expect(active.filter((q) => q.objective === 'walk').length).toBeLessThanOrEqual(1);
     }
+  });
+
+  it('seeds the picks per player and day: two players get different first quests, the same player gets the same ones', () => {
+    const now = 10 * DAY;
+    const alice = receiveQuests(openedWithSeed('alice'), now);
+    const bob = receiveQuests(openedWithSeed('bob'), now);
+    const aliceAgain = receiveQuests(openedWithSeed('alice'), now);
+    expect(alice.quests.list.map((q) => `${q.objective}/${q.band}`)).toEqual(aliceAgain.quests.list.map((q) => `${q.objective}/${q.band}`));
+    expect(alice.quests.list.map((q) => `${q.objective}/${q.band}`)).not.toEqual(bob.quests.list.map((q) => `${q.objective}/${q.band}`));
+    // And over several days the two players' quest streams differ.
+    let a = openedWithSeed('alice');
+    let b = openedWithSeed('bob');
+    for (let day = 10; day <= 14; day++) {
+      a = receiveQuests(a, day * DAY);
+      b = receiveQuests(b, day * DAY);
+    }
+    expect(a.quests.list.map((q) => q.objective)).not.toEqual(b.quests.list.map((q) => q.objective));
   });
 
   it('gives a walk quest its step baseline at arrival, not at acceptance', () => {

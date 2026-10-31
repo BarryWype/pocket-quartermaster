@@ -96,7 +96,7 @@ function findTarget(
 
 /** The other objectives to try when a quest's own pick has no target, seeded by its id. */
 function swapOrder(save: SaveData, quest: Quest): QuestObjectiveOrMark[] {
-  const rng = createRng(`quest-swap|${quest.id}`);
+  const rng = createRng(`quest-swap|${save.playerSeed}|${quest.id}`);
   let remaining = availableObjectives(save, bandOf(quest)).filter((o) => o !== quest.objective);
   const order: QuestObjectiveOrMark[] = [];
   while (remaining.length > 0) {
@@ -108,8 +108,8 @@ function swapOrder(save: SaveData, quest: Quest): QuestObjectiveOrMark[] {
 }
 
 /** A secret quest's strange mark: a seeded distance and bearing from the player. */
-function markTarget(quest: Quest, player: LatLng): QuestTarget {
-  const rng = createRng(`mark|${quest.id}`);
+function markTarget(save: SaveData, quest: Quest, player: LatLng): QuestTarget {
+  const rng = createRng(`mark|${save.playerSeed}|${quest.id}`);
   const distance = rng.int(...questRules.secret.markMeters);
   const bearing = rng.next() * 2 * Math.PI;
   return {
@@ -130,13 +130,13 @@ export function acceptQuests(save: SaveData, candidates: PlaceSpawn[], player: L
   const list = save.quests.list.map((quest) => {
     if (quest.acceptedAt !== null) return quest;
     const base: Quest = { ...quest, acceptedAt: now };
-    if (quest.objective === 'mark') return { ...base, target: markTarget(quest, player) };
-    const own = findTarget(save, quest, quest.objective, candidates, player, now, createRng(`quest|${quest.id}`));
+    if (quest.objective === 'mark') return { ...base, target: markTarget(save, quest, player) };
+    const own = findTarget(save, quest, quest.objective, candidates, player, now, createRng(`quest|${save.playerSeed}|${quest.id}`));
     if (own.target || !objectiveNeedsPlace(quest.objective)) {
       return { ...base, target: own.target, itemId: own.itemId ?? quest.itemId };
     }
     for (const objective of swapOrder(save, quest)) {
-      const attempt = findTarget(save, quest, objective, candidates, player, now, createRng(`quest-swap|${quest.id}`));
+      const attempt = findTarget(save, quest, objective, candidates, player, now, createRng(`quest-swap|${save.playerSeed}|${quest.id}`));
       if (attempt.target || !objectiveNeedsPlace(objective)) {
         return {
           ...base,

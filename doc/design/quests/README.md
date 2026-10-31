@@ -5,8 +5,8 @@
 Daily **quests** are short walking objectives that arrive on their own. They replace the old "daily contracts" outline in `doc/ideas.md`. Today's quests (dungeon-like runs launched from the phone, including the overnight one) are renamed back to **expeditions** (the overnight quest becomes the **overnight expedition**).
 
 ## Rules
-- **Arrival**: 2–3 new quests every 24 h, stacking up to 6. No board to walk to; they appear in the quests list (the floating menu bar).
-- **Variety**: at most one active quest per objective (`maxPerObjective` in `src/content/quests.ts`); when every objective the player can get is already active, the day's remaining slots stay empty rather than repeat one. A reroll may land on a taken objective, since the player asked for the exchange.
+- **Arrival**: 2–3 new quests every 24 h, stacking up to 6. No board to walk to; they appear in the quests list (the floating menu bar). Picks are seeded per player, day and slot (`playerSeed` on the save), so two players or two new games don't get the same first quests; only the tutorial's hand-over quest is fixed.
+- **Variety**: among the active quests, at most one per objective **kind** (Visit, Fight, Deliver, Gather, Trade, Walk) while other kinds are unlocked (`questRules.variety` in `src/content/quests.ts`). A new quest picks a kind not already active; only when every unlocked kind is taken can a kind repeat — and then never Walk twice. Within a kind, avoid the same objective as an active quest.
 - **Counting from arrival**: walk, gather and patrol objectives count everything from the moment the quest **arrives** — not from when the player first opens the list. Opening the list only fixes a place target; players never lose a walk for not having looked. Every active quest of those kinds counts the same walk, independently, in the app and in Pocket mode.
 - **Lifetime**: 48 h each. Ignoring a quest costs nothing. One free reroll per day.
 - **Distance bands**: short **500 m**, medium **1 km**, long **2 km**. Nothing in a quest is ever more than 2 km away (straight line from where the quest was given). Rewards grow with the band.
