@@ -13,19 +13,22 @@ type Props = {
   /** The rotated square's side; its diagonal is ~1.42 times this. */
   size?: number;
   showLabel?: boolean;
+  disabled?: boolean;
   onPress: () => void;
   accessibilityLabel?: string;
 };
 
 /** A rail item: a rotated wood square with its icon counter-rotated and a label below. */
-export function DiamondButton({ label, emoji, icon, selected, badge, size = 52, showLabel = true, onPress, accessibilityLabel }: Props) {
+export function DiamondButton({ label, emoji, icon, selected, badge, size = 52, showLabel = true, disabled, onPress, accessibilityLabel }: Props) {
   const iconSize = Math.round(size * 0.6);
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={{ disabled: !!disabled }}
+      disabled={disabled}
       onPress={onPress}
-      style={styles.item}
+      style={[styles.item, disabled && styles.itemDisabled]}
       hitSlop={size < 44 ? 6 : undefined}
     >
       <View style={[styles.box, { width: size, height: size, marginHorizontal: size * 0.21, marginVertical: size * 0.21 }]}>
@@ -52,6 +55,7 @@ export function DiamondButton({ label, emoji, icon, selected, badge, size = 52, 
 
 const styles = StyleSheet.create({
   item: { alignItems: 'center' },
+  itemDisabled: { opacity: 0.4 },
   box: { position: 'relative' },
   frame: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderWidth: 2, borderColor: 'transparent', transform: [{ rotate: '45deg' }] },
   frameSelected: { borderColor: ui.brass },
