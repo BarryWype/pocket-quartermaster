@@ -47,14 +47,14 @@ import { isAway } from '@/game/team/team';
 import { gainsPrefix, lootLabels } from '@/components/lootText';
 import { formatPercent, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
-import { colors, pixel } from '@/theme';
+import { colors, pixel, ui } from '@/theme';
 
-import { Button } from './Button';
 import { GainsLine, IconLabel, PartsLine, type LabelPart } from './IconLabel';
 import { PriceTag, priceLabel } from './PriceTag';
 import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
+import { EmberButton, WoodButton } from './ui';
 import { Text } from './Text';
 import { ValuableRows } from './ValuableRows';
 
@@ -138,7 +138,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
             {problem === 'known' ? t('places.known') : left > 0 ? t('places.left', { count: left }) : t('places.soldOut')}
           </Text>
           <PriceTag price={line.price} style={styles.price} />
-          <Button title={t('places.buy')} disabled={problem !== null} onPress={() => actions.buyAtPlace(place, line.key, 1, player)} />
+          <WoodButton title={t('places.buy')} compact disabled={problem !== null} onPress={() => actions.buyAtPlace(place, line.key, 1, player)} />
         </View>
       </View>
     );
@@ -172,8 +172,9 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
         <View key={g.uid} style={[styles.row, styles.actions]}>
           <IconLabel emoji={itemById[g.itemId].emoji} label={gearName(g)} labelStyle={styles.name} />
           <PriceTag price={gearSellPrice(g)} style={styles.price} />
-          <Button
+          <WoodButton
             title={t('places.sell')}
+            compact
             disabled={sellGearProblem(save, place, g.uid, player, now) !== null}
             onPress={() => actions.sellGearAtPlace(place, g.uid, player)}
           />
@@ -187,13 +188,15 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
         <IconLabel emoji={materialById[id].emoji} label={`${tr(materialById[id].name)} ×${count}`} labelStyle={styles.name} />
         <View style={styles.actions}>
           <PriceTag price={materialSellPrice(id, place.kind)} style={styles.price} />
-          <Button
+          <WoodButton
             title={t('places.sell')}
+            compact
             disabled={sellMaterialProblem(save, place, id, 1, player, now) !== null}
             onPress={() => actions.sellMaterialAtPlace(place, id, 1, player)}
           />
-          <Button
+          <WoodButton
             title={t('places.sellAll')}
+            compact
             disabled={sellMaterialProblem(save, place, id, count, player, now) !== null}
             onPress={() => actions.sellMaterialAtPlace(place, id, count, player)}
           />
@@ -216,8 +219,9 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
         <Text style={styles.name}>{heroLine(hero.id)}</Text>
         <View style={styles.actions}>
           {(['heal', 'rest'] as const).map((care) => (
-            <Button
+            <WoodButton
               key={care}
+              compact
               title={`${t(care === 'heal' ? 'places.heal' : 'places.rest')} · ${paid ? priceLabel(apothecaryCarePrice(save, care)) : t('places.free')}`}
               disabled={problemOf(hero.id, care) !== null}
               onPress={() => give(hero.id, care)}
@@ -230,7 +234,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
 
   return (
     <Overlay onClose={onClose} position="bottom">
-      <Sheet emoji={info.emoji} title={tr(info.name)} bodyStyle={styles.content} footer={<Button title={t('common.close')} onPress={onClose} />}>
+      <Sheet variant="wood" emoji={info.emoji} title={tr(info.name)} bodyStyle={styles.content} footer={<WoodButton title={t('common.close')} onPress={onClose} />}>
         <Text style={styles.muted}>{tr(info.description)}</Text>
         {wanted && <Text style={styles.wanted}>{t('places.collector', { name: tr(valuableById[wanted].name).toLowerCase() })}</Text>}
         <Text style={styles.muted}>
@@ -243,8 +247,8 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
 
         {sells && (
           <View style={styles.tabs}>
-            <Button title={t('places.buyTab')} color={tab === 'buy' ? undefined : colors.muted} onPress={() => setTab('buy')} />
-            <Button title={t('places.sellTab')} color={tab === 'sell' ? undefined : colors.muted} onPress={() => setTab('sell')} />
+            <WoodButton title={t('places.buyTab')} compact style={tab === 'buy' ? styles.tabOn : styles.tabOff} onPress={() => setTab('buy')} />
+            <WoodButton title={t('places.sellTab')} compact style={tab === 'sell' ? styles.tabOn : styles.tabOff} onPress={() => setTab('sell')} />
           </View>
         )}
         {sells && tab === 'sell' ? sellRows() : stock.map(stockRow)}
@@ -261,8 +265,9 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
             <View style={styles.section}>
               <IconLabel emoji="🕯️" label={t('places.bless')} labelStyle={styles.name} />
               <Text style={styles.muted}>{t('places.blessHint', { count: save.consumables.holyRelics ?? 0 })}</Text>
-              <Button
+              <EmberButton
                 title={t('places.bless')}
+                compact
                 disabled={blessRelicsProblem(save, place, player, now) !== null}
                 onPress={() => actions.blessRelics(place, player)}
               />
@@ -274,8 +279,9 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
                   ? t('places.blessingWaiting')
                   : t('places.blessingHint', { percent: Math.round(serviceRules.chapel.blessingDamage * 100) })}
               </Text>
-              <Button
+              <EmberButton
                 title={t('places.blessing')}
+                compact
                 disabled={chapelBlessingProblem(save, place, player, now) !== null}
                 onPress={() => actions.takeChapelBlessing(place, player)}
               />
@@ -287,8 +293,9 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
           <View style={styles.section}>
             <Text style={styles.name}>{t('places.digProgress', { dots: ruinsDots(save.ruinsProgress) })}</Text>
             <Text style={styles.muted}>{t('places.digHint')}</Text>
-            <Button
+            <EmberButton
               title={t('places.dig')}
+              compact
               disabled={digProblem(save, place, player, now) !== null}
               onPress={() => {
                 const { reward, relic } = actions.digRuin(place, player);
@@ -301,8 +308,9 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
         {place.kind === 'fishingDock' && (
           <View style={styles.section}>
             <Text style={styles.muted}>{t('places.fishHint')}</Text>
-            <Button
+            <EmberButton
               title={t('places.fishAction')}
+              compact
               disabled={fishProblem(save, place, player, now) !== null}
               onPress={() => setResult({ text: gainsPrefix(t('places.caught', { gains: '' })), gains: lootLabels(actions.fish(place, player)) })}
             />
@@ -339,8 +347,9 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
             {heistHeroId && (
               <Text style={styles.odds}>{t('places.heistOdds', { percent: formatPercent(heistOdds(save, heistHeroId)) })}</Text>
             )}
-            <Button
+            <EmberButton
               title={t('places.heist')}
+              compact
               disabled={!heistHeroId || heistProblem(save, place, heistHeroId, player, now) !== null}
               onPress={() => {
                 if (!heistHeroId) return;
@@ -372,7 +381,8 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
                   {problem === 'maxLevel' ? (
                     <Text style={styles.muted}>{t('places.maxLevel')}</Text>
                   ) : (
-                    <Button
+                    <WoodButton
+                      compact
                       title={`${t('places.train')} · ${priceLabel(trainPrice(save))}`}
                       disabled={problem !== null}
                       onPress={() => actions.trainHero(place, hero.id, player)}
@@ -398,6 +408,8 @@ const styles = StyleSheet.create({
   price: { fontSize: 21 },
   actions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   tabs: { flexDirection: 'row', gap: 8 },
+  tabOn: { backgroundColor: ui.woodSelected },
+  tabOff: { backgroundColor: ui.woodDark, opacity: 0.7 },
   problem: { color: colors.muted, fontStyle: 'italic' },
   result: { fontSize: 21 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

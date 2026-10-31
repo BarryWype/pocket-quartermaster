@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { frNotificationCategories } from '@/content/fr/notifications';
 import { heroClasses } from '@/content/heroes';
@@ -18,7 +18,7 @@ import { useNow } from '@/hooks/useNow';
 import { useGameStore } from '@/store/gameStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useWorldStore } from '@/store/worldStore';
-import { colors, pixel } from '@/theme';
+import { colors, pixel, fonts, ui } from '@/theme';
 
 import { Button } from './Button';
 import { HpBar } from './HpBar';
@@ -42,19 +42,30 @@ function setPocketOption(option: PocketOption, on: boolean) {
   else syncBackground();
 }
 
+/** The wood-and-brass switch: dark wood when off, brass when on. */
+function WoodToggle({ on, disabled, onValueChange }: { on: boolean; disabled?: boolean; onValueChange: (value: boolean) => void }) {
+  return (
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityState={{ checked: on, disabled: !!disabled }}
+      disabled={disabled}
+      onPress={() => onValueChange(!on)}
+      style={styles.toggle}
+    >
+      <View style={[styles.toggleTrack, on && styles.toggleTrackOn]}>
+        <View style={[styles.toggleThumb, on && styles.toggleThumbOn]} />
+      </View>
+    </Pressable>
+  );
+}
+
 /** One of Pocket mode's options, with its switch. */
 export function PocketOptionRow({ option }: { option: PocketOption }) {
   const on = useSettingsStore((state) => state.pocketMode[option]);
   return (
     <View style={styles.optionRow}>
       <Text style={styles.optionLabel}>{t(`autoGather.options.${option}`)}</Text>
-      <Switch
-        value={on}
-        onValueChange={(value) => setPocketOption(option, value)}
-        trackColor={{ false: colors.parchmentDark, true: colors.success }}
-        thumbColor={colors.parchment}
-        ios_backgroundColor={colors.parchmentDark}
-      />
+      <WoodToggle on={on} onValueChange={(value) => setPocketOption(option, value)} />
     </View>
   );
 }
@@ -128,16 +139,13 @@ export function PocketNotificationRows() {
       {POCKET_CATEGORIES.map((category) => (
         <View key={category} style={styles.optionRow}>
           <Text style={styles.optionLabel}>{texts[category].title}</Text>
-          <Switch
-            value={notifications.categories[category]}
+          <WoodToggle
+            on={notifications.categories[category]}
             disabled={!notifications.enabled}
             onValueChange={(on) => {
               setCategory(category, on);
               syncBackground();
             }}
-            trackColor={{ false: colors.parchmentDark, true: colors.success }}
-            thumbColor={colors.parchment}
-            ios_backgroundColor={colors.parchmentDark}
           />
         </View>
       ))}
@@ -266,7 +274,12 @@ const styles = StyleSheet.create({
   content: { gap: 10 },
   title: { fontSize: 24 },
   optionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  optionLabel: { fontSize: 20 },
+  optionLabel: { fontSize: 15, color: ui.ink, fontFamily: fonts.serif },
+  toggle: { width: 56, height: 44, alignItems: 'center', justifyContent: 'center' },
+  toggleTrack: { width: 44, height: 24, padding: 2, borderWidth: 2, borderColor: ui.outline, backgroundColor: ui.woodDark },
+  toggleTrackOn: { backgroundColor: ui.brass, alignItems: 'flex-end' },
+  toggleThumb: { width: 16, height: 16, backgroundColor: ui.parchment, borderWidth: 1, borderColor: ui.outline },
+  toggleThumbOn: { backgroundColor: ui.brassLight },
   picker: { gap: 4 },
   pickerLabel: { fontSize: 16, color: colors.muted, textTransform: 'uppercase' },
   options: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },

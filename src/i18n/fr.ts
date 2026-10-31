@@ -62,6 +62,8 @@ export const fr: Dictionary = {
     treasureFound: 'Trésor ! {gains}',
     mockBanner: 'Position simulée · touchez la carte pour vous téléporter',
     debug: 'Débogage',
+    tier: 'Palier {tier}',
+    nextChest: 'Coffre',
     recentre: 'Centrer sur moi',
     lure: '🪤 Leurre {time}',
     freshLegs: '🦵 Jambes fraîches : {count} récoltes bonus restantes',

@@ -3,8 +3,9 @@ import { ScrollView, StyleSheet, View, useWindowDimensions, type StyleProp, type
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { sheetMaxHeight } from '@/content/overlay';
-import { colors, pixel } from '@/theme';
+import { colors, pixel, fonts, ui } from '@/theme';
 
+import { GameIcon } from './GameIcon';
 import { IconLabel } from './IconLabel';
 import { Text } from './Text';
 
@@ -20,6 +21,8 @@ type Props = {
   footer?: ReactNode;
   /** The sheet's scrolling body. */
   children: ReactNode;
+  /** The map panels' look: parchment with a plank title band. */
+  variant?: 'wood';
 };
 
 /**
@@ -43,22 +46,47 @@ export function useSheetMaxHeight(): number {
  * of the screen: the overlay's modal spans the whole screen, so only the
  * footer's inset padding lifts the buttons.
  */
-export function Sheet({ title, emoji, subtitle, bodyStyle, footer, children }: Props) {
+export function Sheet({ title, emoji, subtitle, bodyStyle, footer, children, variant }: Props) {
   const { bottom } = useSafeAreaInsets();
   const maxHeight = useSheetMaxHeight();
+  const wood = variant === 'wood';
   return (
-    <View style={[styles.sheet, { maxHeight }]}>
-      {(title !== undefined || subtitle !== undefined) && (
-        <View style={styles.header}>
-          {title !== undefined &&
-            (emoji ? (
-              <IconLabel emoji={emoji} label={title} size={24} gap={6} labelStyle={styles.title} />
-            ) : (
-              <Text style={styles.title}>{title}</Text>
-            ))}
-          {subtitle !== undefined && <Text style={styles.subtitle}>{subtitle}</Text>}
-        </View>
+    <View style={[styles.sheet, wood && styles.woodSheet, { maxHeight }]}>
+      {wood && (
+        <>
+          <View style={styles.rimGap} pointerEvents="none" />
+          <View style={styles.rim} pointerEvents="none" />
+        </>
       )}
+      {(title !== undefined || subtitle !== undefined) &&
+        (wood ? (
+          <View style={styles.band}>
+            <View style={styles.bandSeams} pointerEvents="none">
+              {Array.from({ length: 6 }, (_, i) => (
+                <View key={i} style={[styles.bandSeam, { top: (i + 1) * 14 }]} />
+              ))}
+            </View>
+            {emoji !== undefined && (
+              <View style={styles.bandIcon}>
+                <GameIcon emoji={emoji} size={30} />
+              </View>
+            )}
+            <View style={styles.bandText}>
+              {title !== undefined && <Text style={styles.bandTitle}>{title}</Text>}
+              {subtitle !== undefined && <Text style={styles.bandSub}>{subtitle}</Text>}
+            </View>
+          </View>
+        ) : (
+          <View style={styles.header}>
+            {title !== undefined &&
+              (emoji ? (
+                <IconLabel emoji={emoji} label={title} size={24} gap={6} labelStyle={styles.title} />
+              ) : (
+                <Text style={styles.title}>{title}</Text>
+              ))}
+            {subtitle !== undefined && <Text style={styles.subtitle}>{subtitle}</Text>}
+          </View>
+        ))}
       <ScrollView style={styles.scroll} contentContainerStyle={[styles.body, bodyStyle]}>
         {children}
       </ScrollView>
@@ -76,6 +104,33 @@ const styles = StyleSheet.create({
     borderTopWidth: pixel.outline + 1,
     borderColor: colors.ink,
   },
+  woodSheet: { backgroundColor: ui.parchment, borderWidth: 3, borderTopWidth: 3, borderColor: ui.outline },
+  rimGap: { position: 'absolute', top: 3, left: 3, right: 3, bottom: 3, borderWidth: 2, borderColor: ui.parchment },
+  rim: { position: 'absolute', top: 5, left: 5, right: 5, bottom: 5, borderWidth: 2, borderColor: ui.brass },
+  band: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: ui.woodMid,
+    borderBottomWidth: 3,
+    borderBottomColor: ui.outline,
+  },
+  bandSeams: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' },
+  bandSeam: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: ui.woodSeam },
+  bandIcon: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: ui.woodDeep,
+    borderWidth: 2,
+    borderColor: ui.brass,
+  },
+  bandText: { flexDirection: 'column', flexShrink: 1 },
+  bandTitle: { fontSize: 23, color: ui.brassLight, lineHeight: 24 },
+  bandSub: { fontFamily: fonts.serif, fontSize: 13, color: '#E2CFA4' },
   header: { paddingHorizontal: 16, paddingTop: 14, gap: 2 },
   title: { fontSize: 22 },
   subtitle: { fontSize: 16, color: colors.muted },

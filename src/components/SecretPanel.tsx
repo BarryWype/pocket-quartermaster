@@ -30,13 +30,13 @@ import { formatDistance, formatDuration, formatPercent, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
 
-import { Button } from './Button';
 import { ClassSummary } from './ClassSummary';
 import { EnemyTags } from './EnemyTags';
 import { PriceTag } from './PriceTag';
 import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
+import { EmberButton, WoodButton } from './ui';
 import { RecruitGrade } from './RecruitGrade';
 import { SendDialog } from './SendDialog';
 import { Text } from './Text';
@@ -140,7 +140,7 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
           ))}
         </View>
         {problem && problem !== 'noKey' && <Text style={styles.problem}>{problemText(problem, distance, rosterCap(save))}</Text>}
-        <Button title={t('secrets.launch')} disabled={problem !== null || heroIds.length === 0} onPress={() => setConfirming(true)} />
+        <WoodButton title={t('secrets.launch')} compact disabled={problem !== null || heroIds.length === 0} onPress={() => setConfirming(true)} />
         {confirming && (
           <SendDialog
             save={save}
@@ -168,7 +168,7 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
       return (
         <>
           {problem && problem !== 'noKey' && <Text style={styles.problem}>{problemText(problem, distance, rosterCap(save))}</Text>}
-          <Button title={t('secrets.enter')} disabled={problem !== null} onPress={() => enter(place, player)} />
+          <WoodButton title={t('secrets.enter')} compact disabled={problem !== null} onPress={() => enter(place, player)} />
         </>
       );
     }
@@ -190,7 +190,7 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
             <ClassSummary classId={offer.classId} />
             <View style={styles.actions}>
               <PriceTag price={offer.price} style={styles.price} />
-              <Button title={t('tavern.recruit')} disabled={recruitProblem !== null} onPress={() => recruit(place, player)} />
+              <EmberButton title={t('tavern.recruit')} compact disabled={recruitProblem !== null} onPress={() => recruit(place, player)} />
             </View>
             {recruitProblem && <Text style={styles.problem}>{problemText(recruitProblem, distance, rosterCap(save))}</Text>}
           </View>
@@ -206,7 +206,7 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
                   <View style={styles.actions}>
                     <PriceTag price={line.price} style={styles.price} />
                     {problem === 'soldOut' && <Text style={styles.muted}>{t('places.soldOut')}</Text>}
-                    <Button title={t('tavern.buy')} disabled={problem !== null} onPress={() => buy(place, line.key, player)} />
+                    <WoodButton title={t('tavern.buy')} compact disabled={problem !== null} onPress={() => buy(place, line.key, player)} />
                   </View>
                 </View>
               );
@@ -219,7 +219,7 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
 
   return (
     <Overlay onClose={onClose} position="bottom">
-      <Sheet emoji={info.emoji} title={tr(info.name)} bodyStyle={styles.content} footer={<Button title={t('common.close')} color={colors.muted} onPress={onClose} />}>
+      <Sheet variant="wood" emoji={info.emoji} title={tr(info.name)} bodyStyle={styles.content} footer={<WoodButton title={t('common.close')} onPress={onClose} />}>
         {keyLine}
         <Text style={styles.muted}>{tr(info.description)}</Text>
         <Text style={styles.muted}>

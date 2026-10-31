@@ -10,9 +10,10 @@ import { tutorialTarget, type MenuTarget } from '@/game/tutorial/tutorial';
 import { navigate } from '@/services/navigation';
 import { t, type TextKey } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
-import { colors } from '@/theme';
+import { fonts, ui } from '@/theme';
 
 import { Text } from './Text';
+import { DiamondButton } from './ui';
 
 type MenuLink = { icon: ImageSourcePropType; label: TextKey; href: Href; target?: MenuTarget };
 
@@ -23,10 +24,12 @@ const CRAFT_LINKS: MenuLink[] = [
   { icon: require('../../assets/icons/scaled/menu-inventory.png'), label: 'screens.inventory', href: '/inventory' },
 ];
 
-/** Height of the island above the safe area, so overlays can sit above it. */
-export const ISLAND_HEIGHT = 84;
+/** Each diamond's side; the bar fits its diagonal plus its padding. */
+const DIAMOND_SIZE = 40;
+/** Height of the plank bar above the safe area, so overlays can sit above it. */
+export const ISLAND_HEIGHT = Math.ceil(DIAMOND_SIZE * 1.42) + 10;
 
-/** The floating menu at the bottom of the map. */
+/** The plank bar at the bottom of the map. */
 export function IslandMenu() {
   const insets = useSafeAreaInsets();
   const [craftOpen, setCraftOpen] = useState(false);
@@ -54,7 +57,7 @@ export function IslandMenu() {
   return (
     <>
       {craftOpen && <Pressable style={StyleSheet.absoluteFill} onPress={() => setCraftOpen(false)} />}
-      <View style={[styles.wrapper, { bottom: insets.bottom + 12 }]} pointerEvents="box-none">
+      <View style={[styles.wrapper, { paddingBottom: insets.bottom }]} pointerEvents="box-none">
         {craftOpen && (
           <View style={styles.dropdown}>
             {CRAFT_LINKS.map((link) => (
@@ -73,30 +76,50 @@ export function IslandMenu() {
             ))}
           </View>
         )}
-        <View style={styles.island}>
-          <MenuButton
-            icon={require('../../assets/icons/scaled/menu-craft.png')}
+        <View style={styles.bar}>
+          <View style={styles.seams} pointerEvents="none">
+            {Array.from({ length: Math.ceil(ISLAND_HEIGHT / 16) }, (_, i) => (
+              <View key={i} style={[styles.seam, { top: (i + 1) * 16 }]} />
+            ))}
+          </View>
+          <View style={styles.brassLine} pointerEvents="none" />
+          <DiamondButton
             label={craftOpen ? t('menu.craftOpen') : t('menu.craftClosed')}
-            active={craftOpen}
-            highlight={!craftOpen && CRAFT_LINKS.some((link) => link.target === target)}
+            icon={require('../../assets/icons/scaled/menu-craft.png')}
+            size={DIAMOND_SIZE}
+            showLabel={false}
+            selected={craftOpen || (!craftOpen && CRAFT_LINKS.some((link) => link.target === target))}
             onPress={() => setCraftOpen((open) => !open)}
           />
-          <MenuButton
-            icon={require('../../assets/icons/scaled/menu-team.png')}
+          <DiamondButton
             label={t('screens.team')}
-            badge={hurt}
-            highlight={target === 'team'}
+            icon={require('../../assets/icons/scaled/menu-team.png')}
+            badge={hurt || undefined}
+            size={DIAMOND_SIZE}
+            showLabel={false}
+            selected={target === 'team'}
             onPress={() => go('/team')}
           />
-          {guildShown && <MenuButton emoji="🏛️" label={t('menu.guild')} onPress={() => go('/guild')} />}
-          {questsShown && (
-            <MenuButton emoji="📜" label={t('menu.quests')} compact badge={questNews} onPress={() => go('/quests')} />
+          {guildShown && (
+            <DiamondButton label={t('menu.guild')} emoji="🏛️" size={DIAMOND_SIZE} showLabel={false} onPress={() => go('/guild')} />
           )}
-          <MenuButton
-            icon={require('../../assets/icons/scaled/menu-expeditions.png')}
+          {questsShown && (
+            <DiamondButton
+              label={t('menu.quests')}
+              emoji="📜"
+              badge={questNews || undefined}
+              size={DIAMOND_SIZE}
+              showLabel={false}
+              onPress={() => go('/quests')}
+            />
+          )}
+          <DiamondButton
             label={t('menu.expeditions')}
-            badge={unseenReports}
-            highlight={target === 'expeditions'}
+            icon={require('../../assets/icons/scaled/menu-expeditions.png')}
+            badge={unseenReports || undefined}
+            size={DIAMOND_SIZE}
+            showLabel={false}
+            selected={target === 'expeditions'}
             onPress={() => go('/expeditions')}
           />
         </View>
@@ -105,99 +128,36 @@ export function IslandMenu() {
   );
 }
 
-type MenuButtonProps = {
-  /** An image icon, or an emoji until the button has one. */
-  icon?: ImageSourcePropType;
-  emoji?: string;
-  label: string;
-  onPress: () => void;
-  active?: boolean;
-  /** Draws attention to the button, e.g. for the tutorial. */
-  highlight?: boolean;
-  badge?: number;
-  /** Icon only: the label is read out but not shown. */
-  compact?: boolean;
-  /** A navigation is still waiting for its screen: the button stands down. */
-  disabled?: boolean;
-};
-
-function MenuButton({ icon, emoji, label, onPress, active, highlight, badge, compact, disabled }: MenuButtonProps) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.button,
-        compact && styles.compact,
-        active && styles.buttonActive,
-        highlight && styles.buttonHighlight,
-        pressed && styles.pressed,
-      ]}
-    >
-      {icon ? <Image source={icon} style={styles.buttonIcon} /> : <Text style={styles.buttonEmoji}>{emoji}</Text>}
-      {badge ? (
-        <View style={[styles.badge, compact && styles.compactBadge]}>
-          <Text style={styles.badgeText}>{badge}</Text>
-        </View>
-      ) : null}
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
-  wrapper: { position: 'absolute', left: 16, right: 16, alignItems: 'center' },
-  island: {
+  wrapper: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+  bar: {
+    height: ISLAND_HEIGHT,
     flexDirection: 'row',
-    height: ISLAND_HEIGHT - 12,
-    alignSelf: 'stretch',
-    padding: 6,
-    gap: 6,
-    borderRadius: 32,
-    borderWidth: 3,
-    borderColor: colors.woodDark,
-    backgroundColor: colors.wood,
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 8,
-  },
-  button: { flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 26 },
-  compact: { flex: 0, width: 56 },
-  buttonActive: { backgroundColor: colors.woodLight },
-  buttonHighlight: { backgroundColor: colors.woodLight, borderWidth: 3, borderColor: colors.highlight },
-  pressed: { opacity: 0.7 },
-  buttonIcon: { width: 32, height: 32 },
-  buttonEmoji: { fontSize: 24, lineHeight: 32 },
-  badge: {
-    position: 'absolute',
-    top: 2,
-    right: 12,
-    minWidth: 24,
-    height: 24,
-    paddingHorizontal: 5,
-    borderRadius: 12,
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.danger,
+    justifyContent: 'space-evenly',
+    paddingHorizontal: 8,
+    backgroundColor: ui.woodMid,
+    borderTopWidth: 3,
+    borderColor: ui.outline,
   },
-  badgeText: { color: '#fff', fontSize: 16 },
-  compactBadge: { right: 0 },
+  seams: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' },
+  seam: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: ui.woodSeam },
+  brassLine: { position: 'absolute', top: 3, left: 0, right: 0, height: 3, backgroundColor: ui.brass },
+  pressed: { opacity: 0.7 },
+  // A parchment card: a 2 px outline and a 3 px solid drop strip below it.
   dropdown: {
     alignSelf: 'flex-start',
-    minWidth: 170,
+    marginLeft: 8,
     marginBottom: 8,
+    minWidth: 170,
     padding: 6,
-    borderRadius: 20,
-    borderWidth: 3,
-    borderColor: colors.woodDark,
-    backgroundColor: colors.parchment,
-    elevation: 8,
+    borderWidth: 2,
+    borderBottomWidth: 5,
+    borderColor: ui.outline,
+    backgroundColor: ui.parchment,
   },
-  dropdownItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 14 },
-  dropdownHighlight: { backgroundColor: colors.highlight },
+  dropdownItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 10 },
+  dropdownHighlight: { backgroundColor: ui.brass },
   dropdownIcon: { width: 28, height: 28 },
-  dropdownLabel: { fontSize: 21 },
+  dropdownLabel: { fontSize: 15, color: ui.ink, fontFamily: fonts.serifBold },
 });

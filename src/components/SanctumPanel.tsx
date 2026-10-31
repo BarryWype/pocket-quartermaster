@@ -23,8 +23,8 @@ import { formatPercent, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
 
-import { Button } from './Button';
 import { EnemyTags } from './EnemyTags';
+import { EmberButton, WoodButton } from './ui';
 import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
@@ -121,19 +121,20 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
   return (
     <Overlay onClose={onClose} position="bottom">
       <Sheet
-    emoji={sanctum.emoji}
-    title={tr(sanctum.name)}
-    bodyStyle={styles.content}
-    footer={
-      <View style={styles.actions}>
-        {!result && <Button title={t('sanctum.challenge')} disabled={problem !== null} onPress={start} />}
-        <Button
-          title={result && !finished ? t('sanctum.skip') : t('common.close')}
-          onPress={() => (result && !finished ? setShown(result.log.length) : onClose())}
-        />
-      </View>
-    }
-  >
+        variant="wood"
+        emoji={sanctum.emoji}
+        title={tr(sanctum.name)}
+        bodyStyle={styles.content}
+        footer={
+          <View style={styles.actions}>
+            {!result && <EmberButton title={t('sanctum.challenge')} disabled={problem !== null} onPress={start} />}
+            <WoodButton
+              title={result && !finished ? t('sanctum.skip') : t('common.close')}
+              onPress={() => (result && !finished ? setShown(result.log.length) : onClose())}
+            />
+          </View>
+        }
+      >
         <View style={styles.elementRow}>
           <IconLabel emoji={element.emoji} label={tr(element.name)} labelStyle={styles.muted} />
           <Text style={styles.muted}> · {tr(sanctum.description)}</Text>

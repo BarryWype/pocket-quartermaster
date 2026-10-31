@@ -60,6 +60,8 @@ export const en = {
     treasureFound: 'Treasure! {gains}',
     mockBanner: 'Mock location · tap the map to teleport',
     debug: 'Debug',
+    tier: 'Tier {tier}',
+    nextChest: 'Chest',
     recentre: 'Centre on me',
     lure: '🪤 Lure {time}',
     freshLegs: '🦵 Fresh legs: {count} bonus gathers left',

@@ -22,8 +22,8 @@ import { useGameStore } from '@/store/gameStore';
 import { useWorldStore } from '@/store/worldStore';
 import { colors, pixel } from '@/theme';
 
-import { Button } from './Button';
 import { EnemyTags } from './EnemyTags';
+import { EmberButton, WoodButton } from './ui';
 import { leavesIn } from './PlacePanel';
 import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
@@ -100,13 +100,14 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
   return (
     <Overlay onClose={onClose} position="bottom">
       <Sheet
+        variant="wood"
         emoji={info.emoji}
         title={tr(info.name)}
         bodyStyle={styles.content}
         footer={
           <View style={styles.actions}>
-            <Button title={t('places.fight')} disabled={problem !== null} onPress={fight} />
-            <Button title={t('common.close')} color={colors.muted} onPress={onClose} />
+            <EmberButton title={t('places.fight')} disabled={problem !== null} onPress={fight} />
+            <WoodButton title={t('common.close')} onPress={onClose} />
           </View>
         }
       >
