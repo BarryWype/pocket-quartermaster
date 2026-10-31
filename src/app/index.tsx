@@ -34,7 +34,7 @@ import { tutorialRules } from '@/content/tutorial';
 import { walkableRules } from '@/content/walkable';
 import { freshGathersLeft, pickaxeTier, showsOnMap, type CollectFailure } from '@/game/gathering/gathering';
 import { requiredPickaxeTier } from '@/game/gathering/lockedNodes';
-import { ambienceConfig, inSpan, showsDecoration } from '@/game/generation/ambience';
+import { ambienceConfig, decorationMode, inSpan, type DecorationMode } from '@/game/generation/ambience';
 import type { Bounds } from '@/game/generation/foliage';
 import { distanceMeters } from '@/game/generation/geo';
 import { generateSpawnsAround } from '@/game/generation/spawns';
@@ -145,7 +145,8 @@ function MapScreen() {
   const skyPan = useSkyPan();
   const foliage = useFoliage(mapRef, inSpan(ambience.hour, ambienceConfig.smoke));
   const [following, setFollowing] = useState(true);
-  const [decor, setDecor] = useState(true);
+  // What the map draws of its decorations at the current zoom: nothing, one still frame, or the animated frames.
+  const [decor, setDecor] = useState<DecorationMode>('still');
   // Where the map last said it looks; markers outside it plus the culling margin are not drawn.
   const [bounds, setBounds] = useState<Bounds | null>(null);
   const [now, setNow] = useState(Date.now());
@@ -634,14 +635,14 @@ function MapScreen() {
           // Native-driven pan: no state changes here, so panning never re-renders this screen.
           skyPan.update(event.nativeEvent.center, event.nativeEvent.zoom);
           setDecor((current) => {
-            const shown = showsDecoration(event.nativeEvent.zoom);
+            const shown = decorationMode(event.nativeEvent.zoom);
             return current === shown ? current : shown;
           });
         }}
         onRegionDidChange={(event) => {
           skyPan.update(event.nativeEvent.center, event.nativeEvent.zoom);
           setDecor((current) => {
-            const shown = showsDecoration(event.nativeEvent.zoom);
+            const shown = decorationMode(event.nativeEvent.zoom);
             return current === shown ? current : shown;
           });
           foliage.refresh();
@@ -661,9 +662,9 @@ function MapScreen() {
       >
         <Camera ref={cameraRef} initialViewState={{ center: toLngLat(position), zoom: 17 }} />
         <Images images={MAP_TEXTURES} />
-        <MapWater />
+        <MapWater mode={decor} />
         <MapTrail position={position} />
-        <MapFoliage data={foliage.data} />
+        <MapFoliage data={foliage.data} mode={decor} />
         <MapRanges circles={ranges} />
         <MapMarkers
           save={save}
@@ -694,7 +695,7 @@ function MapScreen() {
           onQuest={quest}
         />
       </Map>
-      <MapSky pan={skyPan} hour={ambience.hour} raining={ambience.raining} decor={decor} />
+      <MapSky pan={skyPan} hour={ambience.hour} raining={ambience.raining} decor={decor !== 'hidden'} />
       {player.mocked && (
         <Text style={[styles.banner, { top: insets.top + 48 }]}>{t('map.mockBanner')}</Text>
       )}

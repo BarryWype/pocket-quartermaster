@@ -1,6 +1,7 @@
 import { GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 import { useState } from 'react';
 
+import type { DecorationMode } from '@/game/generation/ambience';
 import { distanceMeters } from '@/game/generation/geo';
 import type { LatLng } from '@/game/generation/types';
 import { useAnimationFrame } from '@/hooks/useAnimationFrame';
@@ -14,11 +15,13 @@ export const trailConfig = {
 };
 
 /**
- * Glints on lakes and rivers, swapped once a second. Drawn over the style's
- * water layer; only this layer's paint changes, so it's cheap.
+ * Glints on lakes and rivers, swapped once a second once the map is zoomed in
+ * to the animation zoom (see `decorationMode`); still below it. Drawn over the
+ * style's water layer; only this layer's paint changes, so it's cheap.
  */
-export function MapWater() {
-  const frame = useAnimationFrame(1) % 2;
+export function MapWater({ mode }: { mode: DecorationMode }) {
+  // Below the animation zoom the glints stand still: no timer, no re-render.
+  const frame = useAnimationFrame(1, mode === 'animated') % 2;
   return (
     <Layer
       type="fill"

@@ -16,8 +16,9 @@ import {
   placeFoliage,
   type FoliageObstacles,
 } from '@/game/generation/foliage';
-import { ambienceConfig } from '@/game/generation/ambience';
+import { ambienceConfig, type DecorationMode } from '@/game/generation/ambience';
 import { useAnimationFrame } from '@/hooks/useAnimationFrame';
+import { useMapPanels } from '@/store/mapPanelsStore';
 
 // Frames are drawn by scripts/generate-foliage-sprites.py; swap in real art with the same names.
 const SPRITES = {
@@ -134,10 +135,21 @@ const SIZE: NonNullable<SymbolLayerSpecification['layout']>['icon-size'] = ['int
  * which layers are opaque. A constant opacity is a cheap paint update, while
  * anything that varies per plant (the image, or an opacity expression) makes
  * MapLibre lay out every symbol again on each frame. Posts get one still layer.
+ *
+ * The layers follow the zoom (see `decorationMode`): nothing below
+ * `decorationMinZoom`, one still frame below `animationMinZoom` — no frame
+ * flipping at all, so no React re-renders — and the swaying frames from
+ * `animationMinZoom` up, paused while a panel is open. The GeoJSON source
+ * stays put across all of it, so crossing a threshold swaps layers, never
+ * re-placing the plants.
  */
-export function MapFoliage({ data }: { data: GeoJSON.FeatureCollection }) {
+export function MapFoliage({ data, mode }: { data: GeoJSON.FeatureCollection; mode: DecorationMode }) {
+  // A panel open stands between the player and the plants anyway: no frames flip, no React re-renders.
+  const panelOpen = useMapPanels(
+    (state) => state.sanctum !== null || state.tavern !== null || state.place !== null || state.patrol !== null,
+  );
   // Only this component re-renders on each frame, not the whole map screen.
-  const frame = useAnimationFrame(FPS) % foliageConfig.frames;
+  const frame = useAnimationFrame(FPS, mode === 'animated' && !panelOpen) % foliageConfig.frames;
 
   return (
     <>
@@ -150,26 +162,43 @@ export function MapFoliage({ data }: { data: GeoJSON.FeatureCollection }) {
           filter={isPost}
           layout={{ 'icon-image': 'post', 'icon-size': SIZE, 'icon-allow-overlap': true, 'icon-ignore-placement': true }}
         />
-        {LAYERS.map(({ phase, frame: shown }) => (
+        {mode === 'animated' ? (
+          LAYERS.map(({ phase, frame: shown }) => (
+            <Layer
+              key={`${phase}-${shown}`}
+              type="symbol"
+              id={`foliage-${phase}-${shown}`}
+              minzoom={ambienceConfig.animationMinZoom}
+              filter={['all', ['!=', ['get', 'kind'], 'post'], ['==', ['get', 'phase'], phase]]}
+              layout={{
+                'icon-image': ['concat', ['get', 'kind'], `-${shown}`],
+                'icon-anchor': 'bottom',
+                'icon-size': SIZE,
+                'icon-allow-overlap': true,
+                'icon-ignore-placement': true,
+                // Plants further south are drawn on top, for a little depth.
+                'symbol-z-order': 'viewport-y',
+              }}
+              // Each phase starts on its own frame so plants don't sway in sync.
+              paint={{ 'icon-opacity': (frame + phase) % foliageConfig.frames === shown ? 1 : 0 }}
+            />
+          ))
+        ) : (
           <Layer
-            key={`${phase}-${shown}`}
             type="symbol"
-            id={`foliage-${phase}-${shown}`}
+            id="foliage-still"
             minzoom={ambienceConfig.decorationMinZoom}
-            filter={['all', ['!=', ['get', 'kind'], 'post'], ['==', ['get', 'phase'], phase]]}
+            filter={['!=', ['get', 'kind'], 'post']}
             layout={{
-              'icon-image': ['concat', ['get', 'kind'], `-${shown}`],
+              'icon-image': ['concat', ['get', 'kind'], '-0'],
               'icon-anchor': 'bottom',
               'icon-size': SIZE,
               'icon-allow-overlap': true,
               'icon-ignore-placement': true,
-              // Plants further south are drawn on top, for a little depth.
               'symbol-z-order': 'viewport-y',
             }}
-            // Each phase starts on its own frame so plants don't sway in sync.
-            paint={{ 'icon-opacity': (frame + phase) % foliageConfig.frames === shown ? 1 : 0 }}
           />
-        ))}
+        )}
       </GeoJSONSource>
     </>
   );

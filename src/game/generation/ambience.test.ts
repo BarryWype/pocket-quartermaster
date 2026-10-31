@@ -1,4 +1,4 @@
-import { ambienceConfig, inSpan, rainingAt, showsDecoration, tintAt } from './ambience';
+import { ambienceConfig, decorationMode, inSpan, rainingAt, showsDecoration, tintAt } from './ambience';
 
 describe('ambience', () => {
   it('washes the map blue at night, warm at dusk, and not at all at noon', () => {
@@ -27,14 +27,25 @@ describe('ambience', () => {
     expect(rainingAt(start + 1234567)).toBe(rainingAt(start + 1234567));
   });
 
-  it('shows the decoration from one level below the default zoom up', () => {
+  it('shows the decoration only from the default zoom up', () => {
     expect(showsDecoration(17)).toBe(true);
-    expect(showsDecoration(16)).toBe(true);
+    expect(showsDecoration(16.99)).toBe(false);
     expect(showsDecoration(15.99)).toBe(false);
   });
 
-  it('respects a custom decoration threshold', () => {
-    expect(showsDecoration(15, { ...ambienceConfig, decorationMinZoom: 15 })).toBe(true);
-    expect(showsDecoration(14.99, { ...ambienceConfig, decorationMinZoom: 15 })).toBe(false);
+  it('hides the decorations below 17, holds them still from 17 to 18, animates them from 18', () => {
+    expect(decorationMode(16.99)).toBe('hidden');
+    expect(decorationMode(17)).toBe('still');
+    expect(decorationMode(17.99)).toBe('still');
+    expect(decorationMode(18)).toBe('animated');
+    expect(decorationMode(19)).toBe('animated');
+  });
+
+  it('respects custom decoration and animation thresholds', () => {
+    const config = { ...ambienceConfig, decorationMinZoom: 15, animationMinZoom: 16 };
+    expect(showsDecoration(15, config)).toBe(true);
+    expect(showsDecoration(14.99, config)).toBe(false);
+    expect(decorationMode(15, config)).toBe('still');
+    expect(decorationMode(16, config)).toBe('animated');
   });
 });

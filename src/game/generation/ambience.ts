@@ -21,9 +21,20 @@ export const ambienceConfig = {
   mist: [5, 9] as Span,
   /** In each window, a shower of `minutes` happens with this chance, at a seeded time. */
   rain: { windowMinutes: 120, chance: 0.15, minutes: 12 },
-  /** Butterflies, fireflies and plants hide below this zoom (one level out from the default 17). */
-  decorationMinZoom: 16,
+  /** Butterflies, fireflies and plants hide below this zoom (one level below the default 17... two, so panning out sheds them sooner). */
+  decorationMinZoom: 17,
+  /** From this zoom the plants sway and the water glints; between it and `decorationMinZoom` they stand still. */
+  animationMinZoom: 18,
 };
+
+/** What the map draws of its decorations at a zoom: nothing, one still frame, or the animated frames. */
+export type DecorationMode = 'hidden' | 'still' | 'animated';
+
+/** The decoration mode at a zoom: hidden below 17, still from 17 to 18, animated from 18. */
+export function decorationMode(zoom: number, config = ambienceConfig): DecorationMode {
+  if (zoom < config.decorationMinZoom) return 'hidden';
+  return zoom < config.animationMinZoom ? 'still' : 'animated';
+}
 
 /** Whether the map is zoomed in enough to show the butterflies, fireflies and plants. */
 export const showsDecoration = (zoom: number, config = ambienceConfig) => zoom >= config.decorationMinZoom;

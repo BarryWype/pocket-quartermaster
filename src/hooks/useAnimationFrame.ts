@@ -24,9 +24,9 @@ export function useAnimationsEnabled() {
   return focused && active && !reduceMotion;
 }
 
-/** A frame counter that ticks `fps` times a second while animations are enabled. */
-export function useAnimationFrame(fps: number) {
-  const enabled = useAnimationsEnabled();
+/** A frame counter that ticks `fps` times a second while animations are enabled and `active`. */
+export function useAnimationFrame(fps: number, active = true) {
+  const enabled = useAnimationsEnabled() && active;
   const [frame, setFrame] = useState(0);
 
   useEffect(() => {

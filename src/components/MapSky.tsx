@@ -53,11 +53,11 @@ export const skyConfig = {
   wander: 30,
   rainFallMs: 450,
   /**
-   * Everything that moves on its own is driven by one clock ticking this many
-   * times a second. A 60 fps animation would keep the whole screen, map
-   * included, redrawing all the time; slow drifting doesn't need it.
+   * Everything that moves on its own is driven by one shared clock. It runs
+   * natively (useNativeDriver), so JS only wakes to re-arm it — once per
+   * `clockStretchSeconds`, and to schedule the next flock.
    */
-  fps: 12,
+  clockStretchSeconds: 600,
 };
 
 /** World size in pixels at zoom 0, as MapLibre counts zoom. */
@@ -110,7 +110,7 @@ function nativeValue() {
 
 function useSkyClock(enabled: boolean): Clock {
   const [clock] = useState(() => {
-    const value = nativeValue();
+    const value = new Animated.Value(0);
     let started: number | null = null;
     return { value, seconds: () => (started === null ? 0 : (Date.now() - started) / 1000), start: (at: number) => (started ??= at) };
   });
@@ -118,8 +118,22 @@ function useSkyClock(enabled: boolean): Clock {
   useEffect(() => {
     if (!enabled) return;
     clock.start(Date.now());
-    const timer = setInterval(() => clock.value.setValue(clock.seconds()), 1000 / skyConfig.fps);
-    return () => clearInterval(timer);
+    // The clock runs natively for a long stretch at a time (no JS waking per
+    // frame): nudge it back onto the wall clock, then let native timing run it
+    // up for the stretch — JS wakes once per stretch to re-arm, that is all.
+    let arm: Animated.CompositeAnimation | null = null;
+    const wind = () => {
+      const seconds = clock.seconds();
+      clock.value.setValue(seconds);
+      arm = Animated.timing(clock.value, {
+        toValue: seconds + skyConfig.clockStretchSeconds,
+        duration: skyConfig.clockStretchSeconds * 1000,
+        useNativeDriver: true,
+      });
+      arm.start(wind);
+    };
+    wind();
+    return () => arm?.stop();
   }, [enabled, clock]);
 
   return clock;
@@ -138,7 +152,8 @@ function worldPoint([lng, lat]: number[], zoom: number) {
  * Life over the map: clouds and their shadows, morning mist, flocks of birds,
  * butterflies by day and fireflies at night, a colour wash for the time of day
  * and the odd shower. Layers move with the map at their own depth and wrap
- * around the screen. Everything moves on one slow shared clock (see `fps`), computed natively.
+ * around the screen. Everything moves on one shared native-driven clock (see
+ * `clockStretchSeconds`).
  */
 export function MapSky({ pan, hour, raining, decor }: { pan: Pan; hour: number; raining: boolean; decor: boolean }) {
   const enabled = useAnimationsEnabled();
