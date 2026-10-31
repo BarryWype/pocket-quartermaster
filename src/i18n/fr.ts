@@ -469,6 +469,7 @@ export const fr: Dictionary = {
   quests: {
     locked: 'Les quêtes arrivent une fois le tutoriel terminé.',
     empty: 'Aucune quête pour l’instant. De nouvelles arrivent chaque jour.',
+    notices: 'Avis du jour',
     rerollFree: { one: '🎲 Un changement gratuit restant aujourd’hui.', other: '🎲 {count} changements gratuits restants aujourd’hui.' },
     rerollUsed: '🎲 Le changement du jour est utilisé.',
     reroll: 'Changer',
@@ -488,6 +489,11 @@ export const fr: Dictionary = {
     secretTitle: '✨ Quête secrète',
     band: { short: 'Courte · 500 m', medium: 'Moyenne · 1 km', long: 'Longue · 2 km', secret: 'Tout près' },
     pages: { quests: 'Quêtes', chests: 'Coffres de pas' },
+    categories: {
+      gold: 'Or', xp: 'XP', materials: 'Matériaux', shards: 'Éclats', blueprints: 'Plans', gear: 'Équipement',
+      trinkets: 'Bibelots', components: 'Composants', relics: 'Reliques', monsterParts: 'Parties de monstre', valuables: 'Objets de valeur',
+      consumables: 'Consommables', treasureMaps: 'Cartes au trésor', manuals: 'Manuels', keyFragments: 'Fragments de clé',
+    },
     objective: {
       chapel: 'Prier à la chapelle',
       library: 'Lire à la bibliothèque',

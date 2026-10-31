@@ -10,11 +10,13 @@ type Props = {
   disabled?: boolean;
   emoji?: string;
   icon?: ImageSourcePropType;
+  /** A smaller block for in-card actions. */
+  compact?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
 /** The screen's main action: an ember block with a bevel that flips while pressed. */
-export function EmberButton({ title, onPress, disabled, emoji, icon, style }: Props) {
+export function EmberButton({ title, onPress, disabled, emoji, icon, compact, style }: Props) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -25,17 +27,17 @@ export function EmberButton({ title, onPress, disabled, emoji, icon, style }: Pr
       style={[styles.outline, disabled && styles.disabledOutline, style]}
     >
       {({ pressed }) => (
-        <View style={[styles.face, !disabled && (pressed ? styles.pressedFace : styles.faceBevel)]}>
+        <View style={[styles.face, compact && styles.compactFace, !disabled && (pressed ? styles.pressedFace : styles.faceBevel)]}>
           {emoji !== undefined ? (
             <IconLabel
               emoji={emoji}
               icon={icon}
               label={title}
               size={30}
-              labelStyle={[styles.label, disabled && styles.disabledLabel]}
+              labelStyle={[styles.label, compact && styles.compactLabel, disabled && styles.disabledLabel]}
             />
           ) : (
-            <Text style={[styles.label, disabled && styles.disabledLabel]}>{title}</Text>
+            <Text style={[styles.label, compact && styles.compactLabel, disabled && styles.disabledLabel]}>{title}</Text>
           )}
         </View>
       )}
@@ -47,6 +49,7 @@ const styles = StyleSheet.create({
   outline: { borderWidth: 3, borderColor: ui.outline, backgroundColor: ui.ember },
   disabledOutline: { backgroundColor: ui.parchmentShade },
   face: { minHeight: 52, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
+  compactFace: { minHeight: 44, paddingHorizontal: 14 },
   faceBevel: {
     borderWidth: 3,
     borderTopColor: ui.emberLight,
@@ -62,5 +65,6 @@ const styles = StyleSheet.create({
     borderRightColor: ui.emberLight,
   },
   label: { fontSize: 26, color: ui.onEmber, fontFamily: fonts.body },
+  compactLabel: { fontSize: 20 },
   disabledLabel: { color: ui.inkMuted },
 });

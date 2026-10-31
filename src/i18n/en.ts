@@ -461,6 +461,7 @@ export const en = {
   quests: {
     locked: 'Quests arrive once the tutorial is done.',
     empty: 'No quests right now. New ones arrive every day.',
+    notices: 'Today’s notices',
     rerollFree: { one: '🎲 One free reroll left today.', other: '🎲 {count} free rerolls left today.' },
     rerollUsed: '🎲 Today’s reroll is used.',
     reroll: 'Reroll',
@@ -480,6 +481,11 @@ export const en = {
     secretTitle: '✨ Secret quest',
     band: { short: 'Short · 500 m', medium: 'Medium · 1 km', long: 'Long · 2 km', secret: 'Close by' },
     pages: { quests: 'Quests', chests: 'Step chests' },
+    categories: {
+      gold: 'Gold', xp: 'XP', materials: 'Materials', shards: 'Shards', blueprints: 'Blueprints', gear: 'Gear',
+      trinkets: 'Trinkets', components: 'Components', relics: 'Relics', monsterParts: 'Monster parts', valuables: 'Valuables',
+      consumables: 'Consumables', treasureMaps: 'Treasure maps', manuals: 'Manuals', keyFragments: 'Key fragments',
+    },
     objective: {
       chapel: 'Pray at the chapel',
       library: 'Read at the library',

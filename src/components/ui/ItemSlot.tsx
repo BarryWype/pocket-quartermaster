@@ -13,13 +13,15 @@ type Props = {
   count?: number | string;
   mark?: 'up' | 'down';
   size?: number;
+  /** A "maybe" reward: dashed brass-dim border and a half-faded icon. */
+  faded?: boolean;
   onPress?: () => void;
   accessibilityLabel: string;
   style?: StyleProp<ViewStyle>;
 };
 
 /** A square item socket: selected, ready, short, empty or locked. */
-export function ItemSlot({ state, emoji, icon, count, mark, size, onPress, accessibilityLabel, style }: Props) {
+export function ItemSlot({ state, emoji, icon, count, mark, size, faded, onPress, accessibilityLabel, style }: Props) {
   const filled = state === 'selected' || state === 'ready' || state === 'short';
   const shown = state === 'locked' ? '🔒' : state === 'empty' ? undefined : emoji;
   const face = (
@@ -29,6 +31,7 @@ export function ItemSlot({ state, emoji, icon, count, mark, size, onPress, acces
         size !== undefined ? { width: size, height: size } : styles.fill,
         state === 'selected' && styles.selected,
         (state === 'empty' || state === 'locked') && styles.emptyish,
+        faded && styles.faded,
         style,
       ]}
     >
@@ -43,7 +46,7 @@ export function ItemSlot({ state, emoji, icon, count, mark, size, onPress, acces
         />
       )}
       {shown !== undefined && (
-        <View style={[styles.icon, state === 'short' && styles.iconShort, state === 'locked' && styles.iconLocked]}>
+        <View style={[styles.icon, state === 'short' && styles.iconShort, state === 'locked' && styles.iconLocked, faded && styles.iconFaded]}>
           <GameIcon emoji={shown} icon={icon} size={size !== undefined ? Math.round(size * 0.6) : 36} />
         </View>
       )}
@@ -77,6 +80,10 @@ const styles = StyleSheet.create({
   fill: { aspectRatio: 1, minHeight: 60 },
   selected: { backgroundColor: ui.woodSelected },
   emptyish: { borderStyle: 'dashed', borderColor: ui.woodSeam },
+  faded: { borderStyle: 'dashed', borderColor: ui.brassDim },
+  iconShort: { opacity: 0.55 },
+  iconLocked: { opacity: 0.5 },
+  iconFaded: { opacity: 0.5 },
   innerShadow: {
     position: 'absolute',
     top: 0,
@@ -93,8 +100,6 @@ const styles = StyleSheet.create({
   readyOutline: { borderColor: ui.brassDim },
   shortOutline: { borderColor: ui.woodSeam },
   icon: {},
-  iconShort: { opacity: 0.55 },
-  iconLocked: { opacity: 0.5 },
   ring: { borderWidth: 2, borderColor: 'transparent' },
   ringSelected: { borderColor: ui.brass },
   shortMark: { position: 'absolute', top: 2, right: 2, width: 10, height: 10, backgroundColor: ui.ember, borderWidth: 2, borderColor: ui.outline },
