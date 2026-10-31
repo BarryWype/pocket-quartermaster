@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { rosterRules } from '@/content/roster';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { heroClasses } from '@/content/heroes';
 import { itemById, opportunityById } from '@/content/lookup';
@@ -25,6 +25,7 @@ import { colors, pixel } from '@/theme';
 import { Button } from './Button';
 import { EquipPicker } from './EquipPicker';
 import { HpBar } from './HpBar';
+import { Overlay } from './Overlay';
 import { Panel } from './Panel';
 import { Text } from './Text';
 import { ThreatCoverageChips } from './ThreatDetail';
@@ -166,8 +167,7 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
   const canBuy = nearbyTavern && player && buySupplyProblem(save, 1, nearbyTavern.position, player) === null;
 
   return (
-    <Modal transparent statusBarTranslucent navigationBarTranslucent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
+    <Overlay onClose={onClose}>
         <Panel style={styles.dialog}>
           <ScrollView contentContainerStyle={styles.content}>
             <Text style={styles.title}>{t('expeditions.confirm.title', { dungeon: `${dungeon.emoji} ${tr(dungeon.name)}` })}</Text>
@@ -299,7 +299,6 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
             <Button title={t('expeditions.send')} disabled={party.length === 0} onPress={() => onConfirm(loadout)} />
           </View>
         </Panel>
-      </View>
       {picking && (
         <EquipPicker
           save={save}
@@ -314,12 +313,11 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
           onClose={() => setPicking(null)}
         />
       )}
-    </Modal>
+    </Overlay>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: 'center', padding: 16, backgroundColor: 'rgba(0,0,0,0.5)' },
   dialog: { gap: 10, padding: 14, maxHeight: '90%' },
   content: { gap: 10 },
   title: { fontSize: 24 },

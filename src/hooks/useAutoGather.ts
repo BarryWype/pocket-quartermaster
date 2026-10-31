@@ -58,6 +58,8 @@ async function reconcile(foregrounded: boolean) {
     return setMode('off');
   }
   const permission = await getAutoGatherPermission().catch((): AutoGatherPermission => 'denied');
+  // Coming back from the settings with location granted: the refusal is over.
+  if (permission !== 'denied') useWorldStore.getState().set({ autoGatherRefused: false });
   if (permission === 'denied') {
     await stopTracking();
     useSettingsStore.getState().setPocketMode({ enabled: false });
@@ -160,22 +162,33 @@ export function refreshAutoGather(foregrounded: boolean) {
   return running;
 }
 
-/** Turns auto-gather on after the info dialog: asks for background location, then tracks. */
-export async function enableAutoGather(): Promise<AutoGatherPermission> {
-  const permission = await requestAutoGatherPermission().catch((): AutoGatherPermission => 'denied');
-  if (permission === 'denied') return permission;
+/**
+ * Starts tracking for a permission already known (no system prompt): full
+ * background Pocket mode, or limited to the app being open. Returns false
+ * when the system refused the service — the caller explains instead.
+ */
+export async function startPocketMode(permission: AutoGatherPermission): Promise<boolean> {
+  if (permission === 'denied') return false;
   const { autoStopMinutes } = useSettingsStore.getState().pocketMode;
   useSettingsStore.getState().setPocketMode({ enabled: true });
   try {
     await startTracking(autoStopMinutes, permission === 'background');
   } catch {
-    // The switch goes back off, with the same advice as a refusal: check location in system settings.
+    // The switch goes back off; the caller shows the same advice as a refusal.
     useSettingsStore.getState().setPocketMode({ enabled: false });
     setMode('off');
-    return 'denied';
+    return false;
   }
   setMode(permission === 'background' ? 'on' : 'limited');
   await syncBackground();
+  return true;
+}
+
+/** Turns auto-gather on after the info dialog: asks for background location, then tracks. */
+export async function enableAutoGather(): Promise<AutoGatherPermission> {
+  const permission = await requestAutoGatherPermission().catch((): AutoGatherPermission => 'denied');
+  if (permission === 'denied') return permission;
+  await startPocketMode(permission);
   return permission;
 }
 

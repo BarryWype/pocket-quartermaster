@@ -13,6 +13,8 @@ type WorldState = {
   /** A tavern placed on the map within reach of the player, if any. */
   nearbyTavern: TavernSpawn | null;
   autoGather: AutoGatherMode;
+  /** The system's location request was refused: the switch explains instead of asking again. */
+  autoGatherRefused: boolean;
   /** A short note from auto-gather for the map (what it just gathered, or why it stopped). */
   autoGatherMessage: { text: string; at: number } | null;
   /** A short note from patrol fights for the map (who came back, and what it paid). */
@@ -37,6 +39,7 @@ export const useWorldStore = create<WorldState>()((set) => ({
   player: null,
   nearbyTavern: null,
   autoGather: 'off',
+  autoGatherRefused: false,
   autoGatherMessage: null,
   patrolMessage: null,
   patrolsSeen: {},

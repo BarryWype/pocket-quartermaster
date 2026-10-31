@@ -1,5 +1,5 @@
 import { Camera, type CameraRef, Images, Map, type MapRef, Marker } from '@maplibre/maplibre-react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -59,7 +59,7 @@ import { liveTreasureMaps } from '@/game/rewards/treasure';
 import { isPlaceRevealed, isRevealed } from '@/game/reveal/reveal';
 import { generateSanctumsAround, sanctumById, type SanctumSpawn } from '@/game/sanctums/sanctums';
 import { generateTavernsAround, isTavernUnlocked, type TavernSpawn } from '@/game/taverns/taverns';
-import { fallbackReady, shownTutorialSpawns } from '@/game/tutorial/spawns';
+import { collectRadiusNow, fallbackReady, shownTutorialSpawns } from '@/game/tutorial/spawns';
 import { useLanguage } from '@/hooks/useLanguage';
 import { usePlacedPoints, usePlacedSpawns } from '@/hooks/usePlacedSpawns';
 import { useAmbience } from '@/hooks/useAmbience';
@@ -71,6 +71,7 @@ import { hasKey } from '@/game/secrets/keys';
 import { isEntered } from '@/game/secrets/places';
 import { lootText } from '@/hooks/usePatrols';
 import { t, tr } from '@/i18n';
+import { navigate } from '@/services/navigation';
 import { appendFixesNow } from '@/services/walkTracking';
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
@@ -113,8 +114,9 @@ const keepPlace = (place: PlaceSpawn, tile: WalkableTile | null, position: LatLn
 const isSecretKind = (kind: PlaceSpawn['kind']) => kind === 'hiddenDen' || kind === 'blackMarket' || kind === 'underwaterDungeon';
 
 const minutesLeft = (ms: number) => `${Math.floor(ms / 60_000)}:${String(Math.floor((ms % 60_000) / 1000)).padStart(2, '0')}`;
-const failureMessages: Record<CollectFailure, (distance: number) => string> = {
-  tooFar: (distance) => t('map.tooFar', { distance: Math.round(distance), radius: gatheringConfig.collectRadiusMeters }),
+const failureMessages: Record<CollectFailure, (distance: number, radius?: number) => string> = {
+  tooFar: (distance, radius = gatheringConfig.collectRadiusMeters) =>
+    t('map.tooFar', { distance: Math.round(distance), radius }),
   fled: () => t('map.fled'),
   collected: () => t('map.collected'),
   expired: () => t('map.expired'),
@@ -150,6 +152,7 @@ export default function MapScreen() {
   const [decor, setDecor] = useState(true);
   const [now, setNow] = useState(Date.now());
   const [message, setMessage] = useState<string | null>(null);
+  const [freshLegsOpen, setFreshLegsOpen] = useState(true);
   const autoMode = useWorldStore((state) => state.autoGather);
   const autoEnabled = useSettingsStore((state) => pocketTracking(state.pocketMode));
   const showAutoRadius = useDebugStore((state) => debugOn && state.showAutoRadius);
@@ -428,9 +431,11 @@ export default function MapScreen() {
   // Indoors, with bad GPS or no location: the tutorial's nodes can be picked up from here after a while.
   const locationOff = player.status === 'denied';
   const fallback = fallbackReady(save, now, locationOff);
+  // While the tutorial runs, the pick-up range is wider, so GPS drift can't strand its nodes.
+  const collectRadius = collectRadiusNow(save);
   const gatherFromHere = () => {
     const result = collectFromHere();
-    if (result.ok) setMessage(`+ 1 ${tr(materialById[result.materialId]?.name ?? result.materialId)}`);
+    if (result.ok) setMessage(`+ ${result.gained.map((g) => `${g.amount} ${tr(materialById[g.materialId]?.name ?? g.materialId)}`).join(', ')}`);
   };
   const fallbackButton = fallback && (
     <View style={[styles.fallback, { bottom: insets.bottom + ISLAND_HEIGHT + 12 }]}>
@@ -471,7 +476,7 @@ export default function MapScreen() {
     ...(autoOn || showAutoRadius ? [{ id: 'auto', center: position, radius: autoRadius, kind: 'auto' as const }] : []),
     ...(showNodeRanges
       ? [
-          { id: 'tap', center: position, radius: gatheringConfig.collectRadiusMeters, kind: 'tap' as const },
+          { id: 'tap', center: position, radius: collectRadius, kind: 'tap' as const },
           ...visible.map(({ spawn, position: at }) => ({ id: spawn.id, center: at, radius: gatheringConfig.autoGather.radiusMeters, kind: 'node' as const })),
         ]
       : []),
@@ -487,7 +492,7 @@ export default function MapScreen() {
   const gatherTutorial = (id: string) => {
     const result = collectTutorialSpawn(id, position);
     if (result.ok) setMessage(`+ 1 ${tr(materialById[result.materialId]?.name ?? result.materialId)}`);
-    else setMessage(failureMessages[result.reason](result.distance));
+    else setMessage(failureMessages[result.reason](result.distance, collectRadius));
   };
 
   const digUp = (mapId: string, treasureAt: LatLng) => {
@@ -509,7 +514,7 @@ export default function MapScreen() {
     const pickaxe = needs
       ? items.find((item) => item.slot === 'tool' && item.toolType === 'pickaxe' && item.tier === needs)
       : undefined;
-    setMessage(needs && pickaxe ? t('map.needsPickaxe', { pickaxe: tr(pickaxe.name) }) : failureMessages[result.reason](result.distance));
+    setMessage(needs && pickaxe ? t('map.needsPickaxe', { pickaxe: tr(pickaxe.name) }) : failureMessages[result.reason](result.distance, collectRadius));
   };
 
   return (
@@ -558,7 +563,7 @@ export default function MapScreen() {
                 kind={spawn.kind}
                 emoji={shown?.emoji ?? '❓'}
                 icon={shown?.icon}
-                inRange={distance <= gatheringConfig.collectRadiusMeters}
+                inRange={distance <= collectRadius}
                 fleeing={spawn.kind === 'animal' && isFleeing(speed)}
                 sway={read.resourceId === 'tree'}
                 locked={read.state === 'locked'}
@@ -577,7 +582,7 @@ export default function MapScreen() {
                   kind={wood ? 'wood' : 'animal'}
                   emoji={wood ? resourceById.tree.emoji : material.emoji}
                   icon={wood ? resourceById.tree.icon : material.icon}
-                  inRange={distanceMeters(position, node.position) <= gatheringConfig.collectRadiusMeters}
+                  inRange={distanceMeters(position, node.position) <= collectRadius}
                   fleeing={false}
                   sway={wood}
                 />
@@ -644,7 +649,7 @@ export default function MapScreen() {
           );
         })}
         {questTargets.map(({ id, target }) => (
-          <Marker key={`quest:${id}`} id={`quest:${id}`} lngLat={toLngLat(target.position)} onPress={() => router.push('/quests')}>
+          <Marker key={`quest:${id}`} id={`quest:${id}`} lngLat={toLngLat(target.position)} onPress={() => navigate('/quests')}>
             <Text style={target.kind === 'mark' ? styles.questMark : styles.questTarget}>{target.kind === 'mark' ? '❓' : '📜'}</Text>
           </Marker>
         ))}
@@ -664,7 +669,7 @@ export default function MapScreen() {
       {debugOn && (
         <Pressable
           accessibilityLabel={t('map.debug')}
-          onPress={() => router.push('/debug')}
+          onPress={() => navigate('/debug')}
           style={[styles.roundButton, styles.debugButton, { top: insets.top + 8 }]}
         >
           <Text style={styles.buttonEmoji}>🐞</Text>
@@ -672,8 +677,8 @@ export default function MapScreen() {
       )}
       <Pressable
         accessibilityLabel={t('screens.settings')}
-        onPress={() => router.push('/settings')}
-        style={[styles.roundButton, styles.settingsButton, { marginLeft: debugOn ? 20 : -16, top: insets.top + 8 }]}
+        onPress={() => navigate('/settings')}
+        style={[styles.roundButton, styles.settingsButton, { top: insets.top + 8 }]}
       >
         <Text style={styles.buttonEmoji}>⚙️</Text>
       </Pressable>
@@ -701,11 +706,24 @@ export default function MapScreen() {
         buttonStyle={{ bottom: insets.bottom + ISLAND_HEIGHT + 68 }}
         chipsStyle={{ top: insets.top + 48 }}
       />
-      {save.tutorial.step === 'done' && freshGathersLeft(save, now) > 0 && (
-        <Text style={[styles.banner, styles.freshLegs, { top: insets.top + 8 }]}>
-          {t('map.freshLegs', { count: freshGathersLeft(save, now) })}
+      {save.tutorial.step === 'done' && freshGathersLeft(save, now) > 0 && (freshLegsOpen ? (
+        <Text
+          accessibilityRole="button"
+          accessibilityHint={t('common.close')}
+          onPress={() => setFreshLegsOpen(false)}
+          style={[styles.banner, styles.freshLegs, { top: insets.top + 48 }]}
+        >
+          {t('map.freshLegs', { count: freshGathersLeft(save, now) })}  ✕
         </Text>
-      )}
+      ) : (
+        <Pressable
+          accessibilityLabel={t('map.freshLegsShow')}
+          onPress={() => setFreshLegsOpen(true)}
+          style={[styles.roundButton, styles.freshLegsButton, { top: insets.top + 48 }]}
+        >
+          <Text style={styles.buttonEmoji}>🦵</Text>
+        </Pressable>
+      ))}
       {openSanctum && <SanctumPanel spawn={openSanctum} player={position} onClose={() => setOpenSanctum(null)} />}
       {openPlace && isFightPlace(openPlace.kind) && (
         <PlaceFightPanel place={openPlace} player={position} now={now} onClose={() => setOpenPlace(null)} />
@@ -743,7 +761,9 @@ const styles = StyleSheet.create({
   questTarget: { fontSize: 18, transform: [{ translateY: -34 }] },
   questMark: { fontSize: 26 },
   lure: { right: 56, alignSelf: 'auto' },
-  freshLegs: { left: 56, alignSelf: 'auto' },
+  // Below the map attribution; leaves the right side to the walk effect chips.
+  freshLegs: { left: 16, maxWidth: '60%', alignSelf: 'auto', fontSize: 15 },
+  freshLegsButton: { left: 16 },
   banner: {
     position: 'absolute',
     alignSelf: 'center',
@@ -761,8 +781,7 @@ const styles = StyleSheet.create({
   pointer: { fontSize: 24 },
   autoGather: { position: 'absolute', left: 16 },
   debugButton: { alignSelf: 'center' },
-  // Next to 🐞 when debug tools are on; the top-right corner is taken by the dev menu button.
-  settingsButton: { left: '50%' },
+  settingsButton: { right: 16 },
   roundButton: {
     position: 'absolute',
     width: 32,

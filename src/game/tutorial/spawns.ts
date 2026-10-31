@@ -8,6 +8,7 @@ import { createRng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { snapToWalkable, type WalkableTile } from '../generation/walkable';
 import type { SaveData, TutorialSpawn } from '../save';
+import type { MaterialStack } from '../types';
 import { advanceTutorial } from './tutorial';
 
 /** The current step's nodes, each still to pick up. */
@@ -21,6 +22,14 @@ export function shownTutorialSpawns(save: SaveData): TutorialSpawn[] {
   return stepSpawns(save);
 }
 
+/**
+ * The pick-up range that applies now: wider while the tutorial runs, so GPS
+ * drift can't leave its nodes out of reach; back to the normal radius after.
+ */
+export function collectRadiusNow(save: SaveData): number {
+  return save.tutorial.step === 'done' ? gatheringConfig.collectRadiusMeters : tutorialRules.collectRadiusMeters;
+}
+
 /** One random spot at tutorial distance from the player. */
 const randomSpot = (rng: ReturnType<typeof createRng>, player: LatLng) => {
   const angle = rng.next() * 2 * Math.PI;
@@ -30,25 +39,16 @@ const randomSpot = (rng: ReturnType<typeof createRng>, player: LatLng) => {
 };
 
 /**
- * Spawns the current step's nodes around the player, once per step: each on a
- * walkable spot when the tile is in, at most `spawnMeters` away and apart from
- * its neighbours. Without a tile (or a player) the spots go out unsnapped —
- * or without position at all, reached only through "Collect from here".
+ * Places one step's nodes around the player: each on a walkable spot when the
+ * tile is in, within `spawnMeters`, and apart from its neighbours. Without a
+ * player the nodes get no position — only "Collect from here" reaches them.
  */
-export function placeTutorialSpawns(
-  save: SaveData,
-  player: LatLng | null,
-  tile: WalkableTile | null | undefined,
-  now: number,
-): SaveData {
-  const step = save.tutorial.step;
+const spawnStepNodes = (step: SaveData['tutorial']['step'], player: LatLng | null, tile: WalkableTile | null, now: number): TutorialSpawn[] => {
   const materials = tutorialRules.spawns[step];
-  if (!materials || save.tutorial.spawns.some((s) => s.id.startsWith(`tutorial:${step}:`))) return save;
-  if (player && tile === undefined) return save;
-
+  if (!materials) return [];
   const placed: LatLng[] = [];
   const rng = createRng(`tutorial|${step}|${now}`);
-  const spawns = materials.map((materialId, i): TutorialSpawn => {
+  return materials.map((materialId, i): TutorialSpawn => {
     const spawn = (position: LatLng | null): TutorialSpawn => {
       const node: TutorialSpawn = {
         id: `tutorial:${step}:${i}`,
@@ -81,17 +81,55 @@ export function placeTutorialSpawns(
     }
     return spawn(fallback);
   });
-  return { ...save, tutorial: { ...save.tutorial, spawns: [...save.tutorial.spawns, ...spawns] } };
+};
+
+/**
+ * Spawns the current step's nodes around the player, once per step: each on a
+ * walkable spot when the tile is in, at most `spawnMeters` away and apart from
+ * its neighbours. Without a tile (or a player) the spots go out unsnapped —
+ * or without position at all, reached only through "Collect from here".
+ *
+ * When the player has drifted more than `respawnMeters` from the step's
+ * remaining nodes (GPS wandered off), they respawn around the player's
+ * current position instead.
+ */
+export function placeTutorialSpawns(
+  save: SaveData,
+  player: LatLng | null,
+  tile: WalkableTile | null | undefined,
+  now: number,
+): SaveData {
+  const step = save.tutorial.step;
+  const materials = tutorialRules.spawns[step];
+  if (!materials) return save;
+  if (player && tile === undefined) return save;
+
+  const prefix = `tutorial:${step}:`;
+  const existing = save.tutorial.spawns.filter((s) => s.id.startsWith(prefix));
+  if (existing.length > 0) {
+    if (!player) return save;
+    const remaining = existing.filter((s) => !s.collected);
+    const outOfReach = remaining.length > 0 && remaining.every((s) => !s.position || distanceMeters(player, s.position) > tutorialRules.respawnMeters);
+    if (!outOfReach) return save;
+    // Respawn the step's nodes around where the player stands now (picked-up ones stay gathered).
+    const fresh = spawnStepNodes(step, player, tile ?? null, now);
+    return { ...save, tutorial: { ...save.tutorial, spawns: [...save.tutorial.spawns.filter((s) => !s.id.startsWith(prefix)), ...fresh] } };
+  }
+  return { ...save, tutorial: { ...save.tutorial, spawns: [...save.tutorial.spawns, ...spawnStepNodes(step, player, tile ?? null, now)] } };
 }
 
 export type TutorialCollectResult =
   | { ok: true; save: SaveData; materialId: string }
   | { ok: false; reason: 'tooFar' | 'collected'; distance: number };
 
+export type TutorialCollectAllResult =
+  | { ok: true; save: SaveData; gained: MaterialStack[] }
+  | { ok: false; reason: 'collected'; distance: number };
+
 /**
  * Whether the "Collect from here" fallback button shows: the current step has
- * a node to pick up and nothing was, for a minute, since the last spawn or
- * pickup — or the player has no location at all.
+ * a node to pick up and nothing was, for `fallbackSeconds`, since the last
+ * spawn or pickup — or the player has no location at all.
  */
 export function fallbackReady(save: SaveData, now: number, locationOff: boolean): boolean {
   const spawns = stepSpawns(save);
@@ -101,17 +139,24 @@ export function fallbackReady(save: SaveData, now: number, locationOff: boolean)
   return now - since >= tutorialRules.fallbackSeconds * 1000;
 }
 
-/** The fallback: picks up the current step's first node, wherever the player is. */
-export function collectFromHere(save: SaveData, now: number): TutorialCollectResult {
-  const spawn = stepSpawns(save)[0];
-  if (!spawn) return { ok: false, reason: 'collected', distance: Infinity };
-  return collectTutorialSpawn(save, spawn.id, null, now, { anywhere: true });
+/** The fallback: picks up every remaining node of the current step at once, wherever the player is. */
+export function collectFromHere(save: SaveData, now: number): TutorialCollectAllResult {
+  let next = save;
+  const gained: MaterialStack[] = [];
+  for (const spawn of stepSpawns(save)) {
+    const result = collectTutorialSpawn(next, spawn.id, null, now, { anywhere: true });
+    if (!result.ok) continue;
+    next = result.save;
+    gained.push({ materialId: result.materialId, amount: 1 });
+  }
+  if (gained.length === 0) return { ok: false, reason: 'collected', distance: Infinity };
+  return { ok: true, save: next, gained };
 }
 
 /**
  * Picks up one of the current step's nodes: the player must stand within the
- * gathering radius unless `anywhere` (the "Collect from here" fallback). Adds
- * the node's material, then moves the tutorial on.
+ * pick-up range (wider during the tutorial) unless `anywhere` (the "Collect
+ * from here" fallback). Adds the node's material, then moves the tutorial on.
  */
 export function collectTutorialSpawn(
   save: SaveData,
@@ -123,7 +168,7 @@ export function collectTutorialSpawn(
   const spawn = stepSpawns(save).find((s) => s.id === id);
   if (!spawn) return { ok: false, reason: 'collected', distance: Infinity };
   const distance = player && spawn.position ? distanceMeters(player, spawn.position) : Infinity;
-  if (!anywhere && distance > gatheringConfig.collectRadiusMeters) return { ok: false, reason: 'tooFar', distance };
+  if (!anywhere && distance > collectRadiusNow(save)) return { ok: false, reason: 'tooFar', distance };
 
   const picked: SaveData = {
     ...save,

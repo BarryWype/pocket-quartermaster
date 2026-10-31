@@ -1274,7 +1274,6 @@ export function doQuests(sim: Sim, walking: boolean) {
     return {
       ...quest,
       acceptedAt: sim.now,
-      stepsAtAccept: sim.save.stepsTotal,
       target: needsPlace(quest) ? { placeId: `sim:${quest.id}`, kind: quest.objective === 'mark' ? 'mark' : 'chapel', position, from: sim.location, expiresAt: quest.expiresAt } : null,
     };
   };

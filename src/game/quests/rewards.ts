@@ -28,9 +28,9 @@ export function questLuck(save: SaveData): number {
     .reduce((sum, luck) => sum + luck, 0);
 }
 
-/** What a quest pays, fixed by its id: its band's row with the roster's Luck, no charms. */
+/** What a quest pays, fixed by its id and this save's seed: its band's row with the roster's Luck, no charms. */
 export function questLoot(save: SaveData, quest: Quest): Loot {
-  return rollForSave(save, QUEST_SOURCES[quest.band], createRng(`quest-loot|${quest.id}`), { luck: questLuck(save) });
+  return rollForSave(save, QUEST_SOURCES[quest.band], createRng(`quest-loot|${save.playerSeed}|${quest.id}`), { luck: questLuck(save) });
 }
 
 export function claimProblem(save: SaveData, questId: string): 'gone' | 'notDone' | null {

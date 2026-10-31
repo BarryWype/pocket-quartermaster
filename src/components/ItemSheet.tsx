@@ -1,4 +1,4 @@
-import { Modal, StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { bossById } from '@/content/enemies';
 import { lootConfig } from '@/content/loot/config';
@@ -15,6 +15,7 @@ import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
 
 import { Button } from './Button';
+import { Overlay } from './Overlay';
 import { Panel } from './Panel';
 import { Text } from './Text';
 
@@ -64,9 +65,8 @@ export function ItemSheet({ item, save, onClose }: { item: InventoryItem; save: 
   const readManual = useGameStore((state) => state.readManual);
   const top = lootConfig.manuals.topLevelByTier;
   return (
-    <Modal transparent statusBarTranslucent navigationBarTranslucent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <Panel style={styles.dialog}>
+    <Overlay onClose={onClose}>
+      <Panel style={styles.dialog}>
           <Text style={styles.title}>
             {item.emoji} {item.name}
           </Text>
@@ -100,13 +100,11 @@ export function ItemSheet({ item, save, onClose }: { item: InventoryItem; save: 
           )}
           <Button title={t('common.close')} color={colors.muted} onPress={onClose} />
         </Panel>
-      </View>
-    </Modal>
+    </Overlay>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: 'center', padding: 16, backgroundColor: 'rgba(0,0,0,0.5)' },
   dialog: { gap: 10, padding: 14 },
   title: { fontSize: 24 },
   line: { fontSize: 19 },

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { elementInfo } from '@/content/elements';
 import { sanctumGuardian } from '@/content/enemies';
@@ -23,6 +23,7 @@ import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
 import { EnemyTags } from './EnemyTags';
+import { Overlay } from './Overlay';
 import { Text } from './Text';
 
 const LINE_DELAY_MS = 600;
@@ -93,8 +94,7 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
     : '';
 
   return (
-    <Modal animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.backdrop}>
+    <Overlay onClose={onClose} position="bottom">
         <View style={styles.sheet}>
           <ScrollView contentContainerStyle={styles.content}>
             <Text style={styles.title}>
@@ -168,13 +168,11 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
               onPress={() => (result && !finished ? setShown(result.log.length) : onClose())} />
           </View>
         </View>
-      </View>
-    </Modal>
+    </Overlay>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
   sheet: {
     backgroundColor: colors.parchment,
     borderTopWidth: pixel.outline + 1,

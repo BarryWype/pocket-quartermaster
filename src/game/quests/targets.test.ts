@@ -76,12 +76,13 @@ describe('quest targets', () => {
     expect(targetDistance(accepted, origin)).toBeCloseTo(150, -1);
   });
 
-  it('records the step count for walk quests and needs no place', () => {
+  it('shows a walk quest without a place and without touching its arrival baseline', () => {
     const save = opened();
     save.stepsTotal = 1234;
-    save.quests.list = [quest('walk', 'medium')];
+    save.quests.list = [{ ...quest('walk', 'medium'), stepsAtArrive: 1000 }];
     const next = acceptQuests(save, [], origin, 100);
-    expect(next.quests.list[0].stepsAtAccept).toBe(1234);
+    expect(next.quests.list[0].acceptedAt).toBe(100);
+    expect(next.quests.list[0].stepsAtArrive).toBe(1000); // set at arrival, not at acceptance
     expect(next.quests.list[0].target).toBe(null);
   });
 

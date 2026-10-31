@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { items } from '@/content/items';
 import { itemById } from '@/content/lookup';
@@ -11,6 +11,7 @@ import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
+import { Overlay } from './Overlay';
 import { Row } from './Row';
 import { Text } from './Text';
 import { Tip } from './Tip';
@@ -67,8 +68,7 @@ export function WalkEffects({ player, buttonStyle, chipsStyle }: {
         </View>
       )}
       {open && (
-        <Modal animationType="slide" transparent onRequestClose={() => setOpen(false)}>
-          <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
+        <Overlay onClose={() => setOpen(false)} position="bottom">
             <Pressable style={styles.sheet}>
               <Text style={styles.title}>{t('walkEffects.title')}</Text>
               <ScrollView>
@@ -83,8 +83,7 @@ export function WalkEffects({ player, buttonStyle, chipsStyle }: {
                 ))}
               </ScrollView>
             </Pressable>
-          </Pressable>
-        </Modal>
+        </Overlay>
       )}
     </>
   );
@@ -113,7 +112,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
   sheet: {
     backgroundColor: colors.parchment,
     borderTopWidth: pixel.outline + 1,

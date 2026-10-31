@@ -2,7 +2,7 @@
 import '@/services/walkTracking';
 
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, useRootNavigationState } from 'expo-router';
 import { useEffect } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
 
@@ -16,6 +16,7 @@ import { usePatrols } from '@/hooks/usePatrols';
 import { useStepTracking } from '@/hooks/useTodaySteps';
 import { t } from '@/i18n';
 import { configureChannels, configureNotifications } from '@/services/notifications';
+import { setNavigationStack } from '@/services/navigation';
 import { useGameStore } from '@/store/gameStore';
 import { colors, fonts } from '@/theme';
 
@@ -46,6 +47,12 @@ function useUpkeep() {
 
 export default function RootLayout() {
   const locale = useLanguage();
+  // The shared navigation helper reads the stack from here, so taps can't stack screens.
+  const navigationState = useRootNavigationState();
+  const routeNames = navigationState?.routes.map((route) => route.name);
+  useEffect(() => {
+    setNavigationStack(routeNames ?? []);
+  }, [routeNames]);
   useEffect(() => {
     configureChannels();
     syncPlan();

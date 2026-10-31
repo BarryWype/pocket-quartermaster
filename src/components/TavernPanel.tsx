@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { heroClasses } from '@/content/heroes';
 import { tavernRules } from '@/content/taverns';
@@ -25,6 +25,8 @@ import { colors, pixel } from '@/theme';
 import { Button } from './Button';
 import { ClassSummary } from './ClassSummary';
 import { lineName } from './PlacePanel';
+import { PriceTag } from './PriceTag';
+import { Overlay } from './Overlay';
 import { RecruitGrade } from './RecruitGrade';
 import { Text } from './Text';
 
@@ -68,7 +70,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
         </Text>
         <ClassSummary classId={offer.classId} />
         <View style={styles.actions}>
-          <Text style={styles.price}>🪙 {offer.price}</Text>
+          <PriceTag price={offer.price} style={styles.price} />
           <Button title={t('tavern.recruit')} disabled={problem !== null} onPress={() => recruit(offer, tavern.position, player)} />
         </View>
         {problem && <Text style={styles.problem}>{problemText[problem](distance, rosterCap(save))}</Text>}
@@ -77,8 +79,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
   };
 
   return (
-    <Modal animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.backdrop}>
+    <Overlay onClose={onClose} position="bottom">
         <View style={styles.sheet}>
           <ScrollView contentContainerStyle={styles.content}>
             <Text style={styles.title}>🍺 {tavern.name}</Text>
@@ -90,7 +91,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
               <Text style={styles.name}>🥓 {t('tavern.emergency')}</Text>
               <Text style={styles.muted}>{t('tavern.emergencyHint', { held: save.consumables.jerky ?? 0 })}</Text>
               <View style={styles.actions}>
-                <Text style={styles.price}>🪙 {supplyPrice(save)}</Text>
+                <PriceTag price={supplyPrice(save)} style={styles.price} />
                 <Button
                   title={t('tavern.buy')}
                   disabled={buySupplyProblem(save, 1, tavern.position, player) !== null}
@@ -102,7 +103,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
               <View key={line.key} style={styles.offer}>
                 <Text style={styles.name}>{lineName(line)}</Text>
                 <View style={styles.actions}>
-                  <Text style={styles.price}>🪙 {line.price}</Text>
+                  <PriceTag price={line.price} style={styles.price} />
                   <Text style={styles.muted}>
                     {stockLeft(save, tavern, line) > 0 ? t('places.left', { count: stockLeft(save, tavern, line) }) : t('places.soldOut')}
                   </Text>
@@ -117,13 +118,11 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
           </ScrollView>
           <Button title={t('common.close')} onPress={onClose} />
         </View>
-      </View>
-    </Modal>
+    </Overlay>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
   sheet: {
     backgroundColor: colors.parchment,
     borderTopWidth: pixel.outline + 1,

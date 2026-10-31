@@ -365,7 +365,7 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
   const steps = stepsPerDay(profile);
 
   const sim: Sim = {
-    save: createInitialSave(),
+    save: createInitialSave(`sim|${seed}|${name}`),
     now: startedAt,
     day: 1,
     startedAt,

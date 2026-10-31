@@ -1,4 +1,4 @@
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, AppState, Linking, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
@@ -14,6 +14,7 @@ import type { NotificationCategory, NotificationGroup } from '@/game/notificatio
 import { useLanguage } from '@/hooks/useLanguage';
 import { syncPlan } from '@/hooks/useNotifications';
 import { localized, t } from '@/i18n';
+import { navigate } from '@/services/navigation';
 import { deviceNotifications, type NotificationPermission } from '@/services/notifications';
 import { updateBuffer } from '@/services/walkTracking';
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
@@ -254,7 +255,7 @@ export default function SettingsScreen() {
       <View style={styles.section}>
         <SectionTitle>{t('settings.tips')}</SectionTitle>
         <Text style={styles.hint}>{t('settings.tipsHint')}</Text>
-        <Button title={t('settings.tips')} onPress={() => router.push('/tips')} />
+        <Button title={t('settings.tips')} onPress={() => navigate('/tips')} />
       </View>
 
       <View style={styles.section}>

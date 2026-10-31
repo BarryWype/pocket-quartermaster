@@ -20,14 +20,14 @@ export type Quest = {
   band: QuestBand | 'secret';
   arrivedAt: number;
   expiresAt: number;
-  /** First shown in the list; only what happens from then on counts. null until then. */
+  /** First shown in the list (fixes its map target); walk, gather and patrol count from `arrivedAt` anyway. */
   acceptedAt: number | null;
   amount: number;
   progress: number;
   /** Deliver: the item to hand over. */
   itemId?: string;
-  /** Walk: lifetime step count when accepted. */
-  stepsAtAccept?: number;
+  /** Walk: lifetime step count when the quest arrived; everything after it counts. */
+  stepsAtArrive?: number;
   target: QuestTarget | null;
   doneAt: number | null;
   /** A strange mark reached while the app was closed: it resolves when the app opens. */

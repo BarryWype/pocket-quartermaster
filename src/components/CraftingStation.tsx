@@ -1,15 +1,18 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { MASTERY_TYPES, masteryTypeNames, qualities } from '@/content/forging';
-import { gearId, gearProfiles } from '@/content/equipment';
+import { masteryTypeNames, qualities } from '@/content/forging';
+import { heroClasses } from '@/content/heroes';
+import { gearProfiles } from '@/content/equipment';
 import { componentById, gearName, itemById, materialById, recipeById, recipeOutput, relicById, valuableById } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
 import { canCraft, craftableCount, forgedItem, isKnown, ownsTool, type ForgeResult } from '@/game/crafting/crafting';
+import { forgeList } from '@/game/crafting/forgeList';
 import { tierRecipes } from '@/game/crafting/recipeUnlocks';
 import { ELEMENTS, shardId } from '@/game/elements';
 import { canForgeWithComponent, componentRecipe, fittingComponents } from '@/game/forging/components';
-import { masteryOf } from '@/game/forging/mastery';
+import { affinityOf } from '@/game/team/team';
+import { masteryOf, masteryTypeOf } from '@/game/forging/mastery';
 import { canRestore, relicRecipe } from '@/game/forging/relics';
 import { guildBonus } from '@/game/guild/guild';
 import { rollToScale } from '@/game/forging/roll';
@@ -20,8 +23,10 @@ import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
+import { statIcons, STATS } from './GearRow';
 import { GameIcon } from './GameIcon';
 import { GearMarks } from './GearMarks';
+import { Panel } from './Panel';
 import { Row } from './Row';
 import { Text } from './Text';
 import { TutorialHint } from './TutorialHint';
@@ -36,7 +41,6 @@ type Tab = NonNullable<RecipeDef['tab']>;
 const TABS: Tab[] = ['kitchen', 'alchemy'];
 /** Batch sizes for Provisions recipes. */
 const BATCHES = [1, 5, 10];
-const TIERS = [1, 2, 3, 4, 5];
 
 type Family = 'meals' | 'supply' | 'kits' | 'hero' | 'walking' | 'homeCare';
 /** Provisions rows are grouped by family, in this order within each tab. */
@@ -282,7 +286,71 @@ function ComponentPicker({ save, recipe, onForge }: { save: SaveData; recipe: Re
   );
 }
 
-/** The forge's gear recipes: one row per type, its five tiers side by side, unknown ones greyed with their inputs. A known blueprint with a fitting component held opens a component picker under its row. */
+/** One known blueprint as a full-width card: name and tier, the mastery that sets its quality, its stats, the roster's ▲/▼ affinities, any keywords, the cost held/needed and the craft buttons. */
+function GearCard({
+  save,
+  recipe,
+  action,
+  picking,
+  onTogglePick,
+  onCraft,
+}: {
+  save: SaveData;
+  recipe: RecipeDef;
+  action: string;
+  picking: boolean;
+  onTogglePick: () => void;
+  onCraft: () => void;
+}) {
+  const item = forgedItem(recipe);
+  if (!item) return null;
+  const type = masteryTypeOf(item);
+  const { level } = masteryOf(save, type);
+  const classIds = [...new Set(save.heroes.map((hero) => hero.classId))];
+  const favoured = classIds.filter((classId) => affinityOf(classId, item.gearType) === 'favoured');
+  const unfit = classIds.filter((classId) => affinityOf(classId, item.gearType) === 'unfit');
+  return (
+    <Panel color={colors.parchmentDark}>
+      <View style={styles.cardHead}>
+        <Text style={styles.cardTitle}>
+          {item.emoji} {tr(item.name)}
+        </Text>
+        <GearMarks tier={item.tier} />
+      </View>
+      <Text style={styles.mastery}>{t('crafting.mastery', { type: tr(masteryTypeNames[type].name), level })}</Text>
+      <View style={styles.statGrid}>
+        {STATS.filter((key) => item.stats[key]).map((key) => (
+          <Text key={key} style={styles.statCell}>
+            {statIcons[key]} {Math.round(item.stats[key]!)}
+          </Text>
+        ))}
+      </View>
+      {(favoured.length > 0 || unfit.length > 0) && (
+        <Text style={styles.mastery}>
+          {favoured.length > 0 ? (
+            <Text style={styles.favoured}>{t('classes.favoured', { types: favoured.map((classId) => tr(heroClasses[classId].name)).join(', ') })}</Text>
+          ) : null}
+          {favoured.length > 0 && unfit.length > 0 ? '  ' : ''}
+          {unfit.length > 0 ? (
+            <Text style={styles.unfit}>{t('classes.unfit', { types: unfit.map((classId) => tr(heroClasses[classId].name)).join(', ') })}</Text>
+          ) : null}
+        </Text>
+      )}
+      {item.keywords.length > 0 && (
+        <Text style={styles.mastery}>✦ {item.keywords.map((keyword) => t(`threats.keyword.${keyword}`)).join(', ')}</Text>
+      )}
+      <View style={styles.inputs}>
+        <RecipeInputs save={save} recipe={recipe} />
+      </View>
+      <Button title={action} disabled={!canCraft(save, recipe)} onPress={onCraft} />
+      {fittingComponents(save, recipe).length > 0 && (
+        <Button title={t('crafting.withComponent')} color={picking ? undefined : colors.muted} onPress={onTogglePick} />
+      )}
+    </Panel>
+  );
+}
+
+/** The forge's gear recipes: one section per tier, its known blueprints only — unknown ones stay hidden. A known blueprint with a fitting component held opens a component picker under its section. */
 function GearGrid({
   save,
   action,
@@ -295,80 +363,41 @@ function GearGrid({
   onForgeWith: (recipeId: string, componentId: string) => void;
 }) {
   const [picking, setPicking] = useState<string | null>(null);
+  const { tiers } = forgeList(save);
   return (
     <View style={styles.grid}>
-      <View style={styles.progress}>
-        {TIERS.map((tier) => {
-          const ids = tierRecipes(tier);
-          const known = ids.filter((id) => save.knownRecipes.includes(id)).length;
-          return (
-            <Text key={tier} style={styles.mastery}>
-              {t('crafting.tierProgress', { tier, known, total: ids.length })}
-            </Text>
-          );
-        })}
-      </View>
-      {MASTERY_TYPES.map((type) => {
-        const { level } = masteryOf(save, type);
-        return (
-          <View key={type} style={styles.gridRow}>
-            <View style={styles.gridHead}>
-              <Text>{gearProfiles[type].emoji}</Text>
-              <Text style={styles.gridHeadText}>
-                {tr(masteryTypeNames[type].plural)} · {t('crafting.mastery', { type: tr(masteryTypeNames[type].name), level })}
-              </Text>
-            </View>
-            <View style={styles.gridCells}>
-              {TIERS.map((tier) => {
-                const recipe = recipeById[gearId(type, tier)];
-                const known = isKnown(save, recipe);
-                return (
-                  <View key={tier} style={[styles.cell, !known && styles.cellUnknown]}>
-                    <GearMarks tier={tier} />
-                    <View style={styles.cellInputs}>
-                      {recipe.inputs.map(({ materialId, amount }) => {
-                        const material = materialById[materialId];
-                        return (
-                          <View key={materialId} style={styles.input}>
-                            <GameIcon emoji={material.emoji} icon={material.icon} size={14} />
-                            <Text style={styles.cellInputText}>
-                              {save.materials[materialId] ?? 0}/{amount}
-                            </Text>
-                          </View>
-                        );
-                      })}
-                    </View>
-                    {known ? (
-                      <>
-                        <Button title={action} disabled={!canCraft(save, recipe)} onPress={() => onCraft(recipe.id)} />
-                        {fittingComponents(save, recipe).length > 0 && (
-                          <Button
-                            title={t('crafting.withComponent')}
-                            color={picking === recipe.id ? undefined : colors.muted}
-                            onPress={() => setPicking(picking === recipe.id ? null : recipe.id)}
-                          />
-                        )}
-                      </>
-                    ) : (
-                      <Text style={styles.cellInputText}>{t('crafting.unknown')}</Text>
-                    )}
-                  </View>
-                );
-              })}
-            </View>
-            {picking && recipeById[picking] && forgedItem(recipeById[picking])?.gearType === type && (
-              <ComponentPicker
+      {tiers.map(({ tier, recipeIds }) => (
+        <View key={tier} style={styles.gridRow}>
+          <Text style={styles.mastery}>
+            {t('crafting.tierProgress', { tier, known: recipeIds.length, total: tierRecipes(tier).length })}
+          </Text>
+          {recipeIds.length === 0 ? (
+            <Text style={styles.mastery}>{t('crafting.noBlueprints', { tier })}</Text>
+          ) : (
+            recipeIds.map((id) => (
+              <GearCard
+                key={id}
                 save={save}
-                recipe={recipeById[picking]}
-                onForge={(componentId) => {
-                  onForgeWith(picking, componentId);
-                  setPicking(null);
-                }}
+                recipe={recipeById[id]}
+                action={action}
+                picking={picking === id}
+                onTogglePick={() => setPicking(picking === id ? null : id)}
+                onCraft={() => onCraft(id)}
               />
-            )}
-          </View>
-        );
-      })}
+            ))
+          )}
+          {picking && recipeIds.includes(picking) && (
+            <ComponentPicker
+              save={save}
+              recipe={recipeById[picking]}
+              onForge={(componentId) => {
+                onForgeWith(picking, componentId);
+                setPicking(null);
+              }}
+            />
+          )}
+        </View>
+      ))}
     </View>
   );
 }
@@ -384,22 +413,14 @@ const styles = StyleSheet.create({
   mastery: { fontSize: 16, color: colors.muted },
   family: { fontSize: 18, color: colors.ink, marginTop: 8, marginBottom: 2 },
   grid: { gap: 10, marginTop: 12 },
-  progress: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 12 },
   gridRow: { gap: 4 },
   gridHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  gridHeadText: { fontSize: 16, color: colors.ink },
-  gridCells: { flexDirection: 'row', gap: 4 },
-  cell: {
-    flex: 1,
-    gap: 4,
-    padding: 4,
-    borderWidth: pixel.outline,
-    borderColor: colors.ink,
-    backgroundColor: colors.parchmentDark,
-  },
-  cellUnknown: { opacity: 0.55 },
-  cellInputs: { gap: 2 },
-  cellInputText: { fontSize: 12, color: colors.muted },
+  cardHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  cardTitle: { flex: 1, fontSize: 20, color: colors.ink },
+  statGrid: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 2 },
+  statCell: { fontSize: 17 },
+  favoured: { color: colors.success },
+  unfit: { color: colors.danger },
   picker: { gap: 4, padding: 6, borderWidth: pixel.outline, borderColor: colors.ink },
   relicHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   banner: {

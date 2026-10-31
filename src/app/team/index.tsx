@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { rosterRules } from '@/content/roster';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -16,6 +15,7 @@ import { pendingApproachPicks } from '@/game/team/stats';
 import { rosterCap } from '@/game/guild/guild';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useNow } from '@/hooks/useNow';
+import { navigate } from '@/services/navigation';
 import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
@@ -32,7 +32,7 @@ export default function TeamScreen() {
         {t('team.roster', { count: save.heroes.length, cap: rosterCap(save), party: rosterRules.partySize })}
       </Text>
       <View style={styles.classes}>
-        <Button title={`📜 ${t('classes.link')}`} onPress={() => router.push('/team/classes')} />
+        <Button title={`📜 ${t('classes.link')}`} onPress={() => navigate('/team/classes')} />
       </View>
       {save.heroes.map((hero) => {
         const heroClass = heroClasses[hero.classId];
@@ -42,7 +42,7 @@ export default function TeamScreen() {
         return (
           <Pressable
             key={hero.id}
-            onPress={() => router.push({ pathname: '/team/[heroId]', params: { heroId: hero.id } })}
+            onPress={() => navigate({ pathname: '/team/[heroId]', params: { heroId: hero.id } })}
             style={({ pressed }) => pressed && styles.pressed}
           >
             <Panel style={styles.card}>

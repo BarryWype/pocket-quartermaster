@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { elementInfo } from '@/content/elements';
 import { items } from '@/content/items';
@@ -15,6 +15,7 @@ import { formatPercent, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
 
+import { Overlay } from './Overlay';
 import { stateColors, ThreatChip } from './ThreatChip';
 import { Text } from './Text';
 
@@ -156,17 +157,15 @@ export function ThreatCoverageChips({ coverage, labelled = false }: { coverage: 
         </View>
       )}
       {detail && (
-        <Modal animationType="slide" transparent onRequestClose={() => setDetail(null)}>
-          <Pressable style={styles.backdrop} onPress={() => setDetail(null)}>
-            <Pressable style={styles.sheet} onPress={() => {}}>
+        <Overlay onClose={() => setDetail(null)} position="bottom">
+            <Pressable style={styles.sheet}>
               <Text style={styles.title}>
                 {threatById[detail.threat.id].emoji} {tr(threatById[detail.threat.id].name)} ·{' '}
                 {t('threats.level', { level: detail.threat.level })}
               </Text>
               <DetailLines coverage={detail} />
             </Pressable>
-          </Pressable>
-        </Modal>
+        </Overlay>
       )}
     </View>
   );
@@ -178,7 +177,6 @@ const styles = StyleSheet.create({
   names: { fontSize: 14, color: colors.muted, maxWidth: 220 },
   signature: { fontSize: 14, color: colors.success, maxWidth: 220 },
   cancelled: { textDecorationLine: 'line-through', color: colors.muted },
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
   sheet: {
     backgroundColor: colors.parchment,
     borderTopWidth: pixel.outline + 1,

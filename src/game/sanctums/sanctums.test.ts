@@ -28,7 +28,7 @@ const spawn = (sanctumId = 'emberForge'): SanctumSpawn => ({
 });
 
 function party(sigils: number[], strong = false): SaveData {
-  let save: SaveData = { ...createInitialSave(), sigils };
+  let save: SaveData = { ...createInitialSave('sanctum-test'), sigils };
   if (strong) {
     save = {
       ...save,

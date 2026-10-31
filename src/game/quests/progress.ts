@@ -24,9 +24,19 @@ const questsState = (save: SaveData, quests: Partial<QuestsState>): SaveData => 
   quests: { ...save.quests, ...quests },
 });
 
-/** A quest counts what happens to it after it was shown, until it is done or lapses. */
+/**
+ * A quest counts what happens to it from the moment it arrives — walk, gather
+ * and patrol objectives, which need no map target — or from when it was shown
+ * and got its target, for the place objectives. Until it is done or lapses.
+ */
+const countsFromArrival = (quest: Quest) =>
+  quest.objective === 'walk' || quest.objective === 'gatherOnWay' || quest.objective === 'patrols';
+
 const counts = (quest: Quest, at: number) =>
-  quest.acceptedAt !== null && quest.acceptedAt <= at && quest.doneAt === null && quest.expiresAt > at;
+  quest.doneAt === null &&
+  quest.expiresAt > at &&
+  quest.arrivedAt <= at &&
+  (countsFromArrival(quest) || (quest.acceptedAt !== null && quest.acceptedAt <= at));
 
 /** Records the completion and pops the secret quest when the window fills up. */
 export function complete(save: SaveData, quest: Quest, at: number): SaveData {
@@ -89,13 +99,13 @@ export function questEvent(save: SaveData, event: QuestEvent, at: number): SaveD
   return next;
 }
 
-/** Walk quests: progress follows the lifetime step count from when they were accepted. */
+/** Walk quests: progress follows the lifetime step count from when the quest arrived. */
 export function refreshWalks(save: SaveData, at: number): SaveData {
   let next = save;
   for (const quest of save.quests.list) {
     if (quest.objective !== 'walk' || !counts(quest, at)) continue;
     const stride = gatheringConfig.autoGather.strideMeters;
-    const walked = Math.max(0, save.stepsTotal - (quest.stepsAtAccept ?? save.stepsTotal));
+    const walked = Math.max(0, save.stepsTotal - (quest.stepsAtArrive ?? save.stepsTotal));
     const progress = Math.min(Math.floor((walked * stride)), quest.amount);
     if (progress === quest.progress) continue;
     next = progress >= quest.amount

@@ -55,6 +55,8 @@ export type TutorialSpawn = {
 };
 
 export type SaveData = {
+  /** This save's own seed: daily rolls mix it in, so two players (or two new games) differ. */
+  playerSeed: string;
   gold: number;
   materials: Record<string, number>;
   consumables: Record<string, number>;
@@ -174,8 +176,9 @@ export type SaveData = {
   nextUid: number;
 };
 
-export function createInitialSave(): SaveData {
+export function createInitialSave(playerSeed?: string): SaveData {
   return {
+    playerSeed: playerSeed ?? `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`,
     gold: 0,
     materials: {},
     consumables: { ...provisionRules.startingStock },
