@@ -321,6 +321,8 @@ export const fr: Dictionary = {
     noGear: 'Forgez d’abord un peu d’équipement.',
     unknown: 'Inconnue',
     noBlueprints: 'Pas encore de plans de palier {tier} : les expéditions en découvrent.',
+    nothingKnown: 'Aucun plan connu pour l’instant : les expéditions en découvrent.',
+    pages: { weapons: 'Armes', offhands: 'Main seconde', armour: 'Armures', other: 'Autre' },
     tierProgress: 'Palier {tier} : {known} / {total}',
     anyShards: '✨ éclats au choix {held}/{amount}',
     newRecipe: '🧪 Nouvelle recette : {names}',

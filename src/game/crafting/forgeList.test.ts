@@ -45,3 +45,56 @@ describe('forgeList', () => {
     expect(plainRecipeIds.every((id) => recipeById[id].station === 'forge')).toBe(true);
   });
 });
+
+describe('forgeList pages', () => {
+  it('groups the blueprints by item type, two-handed weapons with the weapons', () => {
+    const save = { ...saveUpTo(2), knownRecipes: [...startingRecipes, 'warhammer1', 'shield1', 'buckler2'] };
+    const { pages } = forgeList(save);
+    expect(pages.map(({ type }) => type)).toEqual(['weapons', 'offhands', 'armour']);
+    const weapons = pages.find(({ type }) => type === 'weapons');
+    expect(weapons?.tiers).toEqual([{ tier: 1, recipeIds: ['sword1', 'warhammer1'] }]);
+    expect(pages.find(({ type }) => type === 'offhands')?.tiers.flatMap(({ recipeIds }) => recipeIds)).toEqual([
+      'buckler2',
+      'shield1',
+    ]);
+    expect(pages.find(({ type }) => type === 'armour')?.tiers.flatMap(({ recipeIds }) => recipeIds)).toEqual(['mail1']);
+  });
+
+  it('hides a type with nothing known', () => {
+    const save = { ...createInitialSave(), knownRecipes: ['sword1'] };
+    const { pages } = forgeList(save);
+    expect(pages.map(({ type }) => type)).toEqual(['weapons']);
+  });
+
+  it('counts the craftable blueprints per type', () => {
+    const save = { ...createInitialSave(), materials: { wood: 10 } };
+    const { pages } = forgeList(save);
+    const weapons = pages.find(({ type }) => type === 'weapons');
+    // The sword is affordable; the mail stays out of reach (no bone or hide).
+    expect(weapons?.craftable).toEqual(1);
+    expect(pages.find(({ type }) => type === 'armour')?.craftable).toEqual(0);
+  });
+
+  it('gives an empty page list when nothing is known', () => {
+    const save = { ...createInitialSave(), knownRecipes: [] };
+    const { pages } = forgeList(save);
+    expect(pages).toEqual([]);
+  });
+
+  it('counts held relics and plain recipes on the Other page, hidden when there are none', () => {
+    const empty = forgeList(createInitialSave());
+    expect(empty.pages.map(({ type }) => type)).toEqual(['weapons', 'armour']);
+
+    const save = {
+      ...createInitialSave(),
+      knownRecipes: ['woodPickaxe'],
+      materials: { wood: 4 },
+      relics: [{ uid: 'r1', relicId: 'rustedSaintsBuckler' }],
+    };
+    const { pages } = forgeList(save);
+    const other = pages.find(({ type }) => type === 'other');
+    expect(other).toBeDefined();
+    // The pickaxe is craftable; the relic is not (no restore materials).
+    expect(other?.craftable).toEqual(1);
+  });
+});

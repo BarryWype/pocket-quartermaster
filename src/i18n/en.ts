@@ -315,6 +315,8 @@ export const en = {
     noGear: 'Forge some gear first.',
     unknown: 'Unknown',
     noBlueprints: 'No tier {tier} blueprints yet: expeditions find them',
+    nothingKnown: 'No blueprints known yet: expeditions find them',
+    pages: { weapons: 'Weapons', offhands: 'Off-hand', armour: 'Armour', other: 'Other' },
     tierProgress: 'Tier {tier}: {known} / {total}',
     anyShards: '✨ any shards {held}/{amount}',
     newRecipe: '🧪 New recipe: {names}',
