@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 
 import { bossById } from '@/content/enemies';
 import { lootConfig } from '@/content/loot/config';
@@ -16,6 +16,7 @@ import { colors } from '@/theme';
 
 import { Button } from './Button';
 import { Overlay } from './Overlay';
+import { useSheetMaxHeight } from './Sheet';
 import { Panel } from './Panel';
 import { Text } from './Text';
 
@@ -64,9 +65,11 @@ function stepText(step: NextStep): string {
 export function ItemSheet({ item, save, onClose }: { item: InventoryItem; save: SaveData; onClose: () => void }) {
   const readManual = useGameStore((state) => state.readManual);
   const top = lootConfig.manuals.topLevelByTier;
+  const maxHeight = useSheetMaxHeight();
   return (
     <Overlay onClose={onClose}>
-      <Panel style={styles.dialog}>
+      <Panel style={[styles.dialog, { maxHeight }]}>
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
           <Text style={styles.title}>
             {item.emoji} {item.name}
           </Text>
@@ -98,14 +101,17 @@ export function ItemSheet({ item, save, onClose }: { item: InventoryItem; save: 
                 ))}
             </>
           )}
-          <Button title={t('common.close')} color={colors.muted} onPress={onClose} />
-        </Panel>
+        </ScrollView>
+        <Button title={t('common.close')} color={colors.muted} onPress={onClose} />
+      </Panel>
     </Overlay>
   );
 }
 
 const styles = StyleSheet.create({
   dialog: { gap: 10, padding: 14 },
+  scroll: { flexShrink: 1 },
+  content: { gap: 10 },
   title: { fontSize: 24 },
   line: { fontSize: 19 },
   muted: { fontSize: 18, color: colors.muted },

@@ -23,6 +23,7 @@ import { colors, pixel } from '@/theme';
 import { Button } from './Button';
 import { HpBar } from './HpBar';
 import { Overlay } from './Overlay';
+import { useSheetMaxHeight } from './Sheet';
 import { Panel } from './Panel';
 import { Text } from './Text';
 
@@ -234,11 +235,12 @@ export function PocketModePanel() {
   const save = useGameStore((state) => state.save);
   const now = useNow();
   const close = () => useWorldStore.getState().set({ pocketPanel: 'closed' });
+  const maxHeight = useSheetMaxHeight();
   if (!open) return null;
   return (
     <Overlay onClose={close}>
-        <Panel style={styles.dialog}>
-          <ScrollView contentContainerStyle={styles.content}>
+        <Panel style={[styles.dialog, { maxHeight }]}>
+          <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
             <Text style={styles.title}>{t('autoGather.label')}</Text>
             <Text style={styles.hint}>{t('autoGather.does')}</Text>
             <PocketOptionRow option="autoGather" />
@@ -258,7 +260,8 @@ export function PocketModePanel() {
 }
 
 const styles = StyleSheet.create({
-  dialog: { gap: 10, padding: 14, maxHeight: '90%' },
+  dialog: { gap: 10, padding: 14 },
+  scroll: { flexShrink: 1 },
   content: { gap: 10 },
   title: { fontSize: 24 },
   optionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },

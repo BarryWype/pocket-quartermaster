@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, View, type ImageSourcePropType } from 'react-native';
+import { Pressable, StyleSheet, type ImageSourcePropType } from 'react-native';
 
 import { qualities } from '@/content/forging';
 import { gearName, itemById } from '@/content/lookup';
@@ -9,11 +9,12 @@ import { kitAnswers } from '@/game/threats/coverage';
 import type { SaveData } from '@/game/save';
 import type { Briefing, EquipmentSlot, GearDef, StatKey, Stats } from '@/game/types';
 import { t, tr } from '@/i18n';
-import { colors, pixel } from '@/theme';
+import { colors } from '@/theme';
 
 import { Button } from './Button';
 import { GearMarks } from './GearMarks';
 import { Overlay } from './Overlay';
+import { Sheet } from './Sheet';
 import { Row } from './Row';
 import { Text } from './Text';
 import { gearEffectText, statIcons, trinketText } from './GearRow';
@@ -151,41 +152,29 @@ export function EquipPicker({ save, heroId, slot, briefing, bossId, onPick, onCl
 
   return (
     <Overlay onClose={onClose} position="bottom">
-        <View style={styles.sheet}>
-          <Text style={styles.title}>{t(`equip.choose.${slot}`)}</Text>
-          <ScrollView>
-            <Pressable onPress={() => onPick(null)}>
-              <Row emoji="🚫" title={t('equip.nothing')} />
-            </Pressable>
-            {options.map((option) => (
-              <Pressable key={option.id} disabled={option.disabled} onPress={() => onPick(option.id)}>
-                <Row
-                  emoji={option.emoji}
-                  icon={option.icon}
-                  title={option.title}
-                  subtitle={option.subtitle}
-                  titleColor={option.color}
-                  right={option.marks}
-                />
-              </Pressable>
-            ))}
-            {options.length === 0 && <Text style={styles.empty}>{t('equip.empty')}</Text>}
-          </ScrollView>
-          <Button title={t('common.cancel')} onPress={onClose} />
-        </View>
+      <Sheet title={t(`equip.choose.${slot}`)} bodyStyle={styles.body} footer={<Button title={t('common.cancel')} onPress={onClose} />}>
+        <Pressable onPress={() => onPick(null)}>
+          <Row emoji="🚫" title={t('equip.nothing')} />
+        </Pressable>
+        {options.map((option) => (
+          <Pressable key={option.id} disabled={option.disabled} onPress={() => onPick(option.id)}>
+            <Row
+              emoji={option.emoji}
+              icon={option.icon}
+              title={option.title}
+              subtitle={option.subtitle}
+              titleColor={option.color}
+              right={option.marks}
+            />
+          </Pressable>
+        ))}
+        {options.length === 0 && <Text style={styles.empty}>{t('equip.empty')}</Text>}
+      </Sheet>
     </Overlay>
   );
 }
 
 const styles = StyleSheet.create({
-  sheet: {
-    backgroundColor: colors.parchment,
-    borderTopWidth: pixel.outline + 1,
-    borderColor: colors.ink,
-    padding: 16,
-    maxHeight: '70%',
-    gap: 8,
-  },
-  title: { fontSize: 22 },
+  body: { gap: 4 },
   empty: { color: colors.muted, paddingVertical: 8 },
 });

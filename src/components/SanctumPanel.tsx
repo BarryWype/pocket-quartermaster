@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { elementInfo } from '@/content/elements';
 import { sanctumGuardian } from '@/content/enemies';
@@ -26,6 +26,7 @@ import { colors, pixel } from '@/theme';
 import { Button } from './Button';
 import { EnemyTags } from './EnemyTags';
 import { Overlay } from './Overlay';
+import { Sheet } from './Sheet';
 import { Text } from './Text';
 
 const LINE_DELAY_MS = 600;
@@ -117,96 +118,89 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
 
   return (
     <Overlay onClose={onClose} position="bottom">
-        <View style={styles.sheet}>
-          <ScrollView contentContainerStyle={styles.content}>
-            <Text style={styles.title}>
-              {sanctum.emoji} {tr(sanctum.name)}
-            </Text>
-            <Text style={styles.muted}>
-              {element.emoji} {tr(element.name)} · {tr(sanctum.description)}
-            </Text>
-            <Text style={styles.subtitle}>{t('sanctum.guardian', { name: tr(sanctum.guardian.name) })}</Text>
-            <EnemyTags mob={sanctumGuardian(sanctum, tier ?? 1)} named={false} />
-            <Text style={styles.muted}>{tr(sanctum.guardian.description)}</Text>
+      <Sheet
+    title={`${sanctum.emoji} ${tr(sanctum.name)}`}
+    bodyStyle={styles.content}
+    footer={
+      <View style={styles.actions}>
+        {!result && <Button title={t('sanctum.challenge')} disabled={problem !== null} onPress={start} />}
+        <Button
+          title={result && !finished ? t('sanctum.skip') : t('common.close')}
+          onPress={() => (result && !finished ? setShown(result.log.length) : onClose())}
+        />
+      </View>
+    }
+  >
+        <Text style={styles.muted}>
+          {element.emoji} {tr(element.name)} · {tr(sanctum.description)}
+        </Text>
+        <Text style={styles.subtitle}>{t('sanctum.guardian', { name: tr(sanctum.guardian.name) })}</Text>
+        <EnemyTags mob={sanctumGuardian(sanctum, tier ?? 1)} named={false} />
+        <Text style={styles.muted}>{tr(sanctum.guardian.description)}</Text>
 
-            {!result && (
-              <>
-                <Text style={styles.subtitle}>{t('sanctum.sigil')}</Text>
-                <View style={styles.chips}>
-                  {tiers.length === 0 && <Text style={styles.muted}>{t('sanctum.noSigilHeld')}</Text>}
-                  {tiers.map((sigilTier) => (
-                    <Pressable
-                      key={sigilTier}
-                      onPress={() => setTier(sigilTier)}
-                      style={[styles.chip, tier === sigilTier && styles.chipActive]}
-                    >
-                      <Text>{t('sanctum.tier', { tier: sigilTier, count: save.sigils.filter((s) => s === sigilTier).length })}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-                <Text style={styles.subtitle}>{t('sanctum.heroes')}</Text>
-                <View style={styles.chips}>
-                  {availableHeroes(save).map((hero) => (
-                    <Pressable
-                      key={hero.id}
-                      onPress={() => toggle(hero.id)}
-                      style={[styles.chip, heroIds.includes(hero.id) && styles.chipActive]}
-                    >
-                      <Text>
-                        {heroClasses[hero.classId].emoji} {hero.name}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-                {heroIds.length > 0 &&
-                  (odds ? (
-                    <Text style={styles.odds}>
-                      {t('sanctum.estimate', { percent: formatPercent(odds.success), band: t(`odds.${oddsBand(odds.success)}`) })}
-                    </Text>
-                  ) : (
-                    <Text style={styles.odds}>…</Text>
-                  ))}
-                <Text style={styles.warning}>{t('sanctum.warning')}</Text>
-                {problem && <Text style={styles.problem}>{problemText[problem](distance)}</Text>}
-              </>
-            )}
+        {!result && (
+          <>
+            <Text style={styles.subtitle}>{t('sanctum.sigil')}</Text>
+            <View style={styles.chips}>
+              {tiers.length === 0 && <Text style={styles.muted}>{t('sanctum.noSigilHeld')}</Text>}
+              {tiers.map((sigilTier) => (
+                <Pressable
+                  key={sigilTier}
+                  onPress={() => setTier(sigilTier)}
+                  style={[styles.chip, tier === sigilTier && styles.chipActive]}
+                >
+                  <Text>{t('sanctum.tier', { tier: sigilTier, count: save.sigils.filter((s) => s === sigilTier).length })}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Text style={styles.subtitle}>{t('sanctum.heroes')}</Text>
+            <View style={styles.chips}>
+              {availableHeroes(save).map((hero) => (
+                <Pressable
+                  key={hero.id}
+                  onPress={() => toggle(hero.id)}
+                  style={[styles.chip, heroIds.includes(hero.id) && styles.chipActive]}
+                >
+                  <Text>
+                    {heroClasses[hero.classId].emoji} {hero.name}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            {heroIds.length > 0 &&
+              (odds ? (
+                <Text style={styles.odds}>
+                  {t('sanctum.estimate', { percent: formatPercent(odds.success), band: t(`odds.${oddsBand(odds.success)}`) })}
+                </Text>
+              ) : (
+                <Text style={styles.odds}>…</Text>
+              ))}
+            <Text style={styles.warning}>{t('sanctum.warning')}</Text>
+            {problem && <Text style={styles.problem}>{problemText[problem](distance)}</Text>}
+          </>
+        )}
 
-            {result && (
-              <View style={styles.log}>
-                {result.log.slice(0, shown).map((line, i) => (
-                  <Text key={i} style={styles.logLine}>
-                    {line}
-                  </Text>
-                ))}
-                {finished && (
-                  <Text style={[styles.outcome, { color: result.win ? colors.wood : colors.danger }]}>
-                    {t(result.win ? 'sanctum.victory' : 'sanctum.defeat', { reward: rewardText })}
-                  </Text>
-                )}
-              </View>
+        {result && (
+          <View style={styles.log}>
+            {result.log.slice(0, shown).map((line, i) => (
+              <Text key={i} style={styles.logLine}>
+                {line}
+              </Text>
+            ))}
+            {finished && (
+              <Text style={[styles.outcome, { color: result.win ? colors.wood : colors.danger }]}>
+                {t(result.win ? 'sanctum.victory' : 'sanctum.defeat', { reward: rewardText })}
+              </Text>
             )}
-          </ScrollView>
-          <View style={styles.actions}>
-            {!result && <Button title={t('sanctum.challenge')} disabled={problem !== null} onPress={start} />}
-            <Button
-              title={result && !finished ? t('sanctum.skip') : t('common.close')}
-              onPress={() => (result && !finished ? setShown(result.log.length) : onClose())} />
           </View>
-        </View>
+        )}
+      </Sheet>
     </Overlay>
   );
 }
 
 const styles = StyleSheet.create({
-  sheet: {
-    backgroundColor: colors.parchment,
-    borderTopWidth: pixel.outline + 1,
-    borderColor: colors.ink,
-    padding: 16,
-    maxHeight: '85%',
-  },
   content: { gap: 6, paddingBottom: 12 },
-  title: { fontSize: 26 },
   subtitle: { fontSize: 21, marginTop: 8 },
   muted: { color: colors.muted },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

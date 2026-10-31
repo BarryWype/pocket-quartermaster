@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { elementInfo } from '@/content/elements';
 import { items } from '@/content/items';
@@ -13,9 +13,10 @@ import type { ThreatScore } from '@/game/threats/score';
 import type { ConsumableDef, ThreatId } from '@/game/types';
 import { formatPercent, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
-import { colors, pixel } from '@/theme';
+import { colors } from '@/theme';
 
 import { Overlay } from './Overlay';
+import { Sheet } from './Sheet';
 import { stateColors, ThreatChip } from './ThreatChip';
 import { Text } from './Text';
 
@@ -158,13 +159,12 @@ export function ThreatCoverageChips({ coverage, labelled = false }: { coverage: 
       )}
       {detail && (
         <Overlay onClose={() => setDetail(null)} position="bottom">
-            <Pressable style={styles.sheet}>
-              <Text style={styles.title}>
-                {threatById[detail.threat.id].emoji} {tr(threatById[detail.threat.id].name)} ·{' '}
-                {t('threats.level', { level: detail.threat.level })}
-              </Text>
-              <DetailLines coverage={detail} />
-            </Pressable>
+          <Sheet
+            title={`${threatById[detail.threat.id].emoji} ${tr(threatById[detail.threat.id].name)} · ${t('threats.level', { level: detail.threat.level })}`}
+            bodyStyle={styles.body}
+          >
+            <DetailLines coverage={detail} />
+          </Sheet>
         </Overlay>
       )}
     </View>
@@ -177,13 +177,6 @@ const styles = StyleSheet.create({
   names: { fontSize: 14, color: colors.muted, maxWidth: 220 },
   signature: { fontSize: 14, color: colors.success, maxWidth: 220 },
   cancelled: { textDecorationLine: 'line-through', color: colors.muted },
-  sheet: {
-    backgroundColor: colors.parchment,
-    borderTopWidth: pixel.outline + 1,
-    borderColor: colors.ink,
-    padding: 16,
-    gap: 6,
-  },
-  title: { fontSize: 22, marginBottom: 4 },
+  body: { gap: 6 },
   line: { fontSize: 17 },
 });

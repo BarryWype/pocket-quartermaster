@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { masteryTypeNames, qualities } from '@/content/forging';
 import { componentById, itemById, materialById, relicById, valuableById } from '@/content/lookup';
@@ -11,6 +11,7 @@ import { Button } from './Button';
 import { GameIcon } from './GameIcon';
 import { GearMarks } from './GearMarks';
 import { Overlay } from './Overlay';
+import { useSheetMaxHeight } from './Sheet';
 import { Panel } from './Panel';
 import { Text } from './Text';
 
@@ -53,6 +54,7 @@ export function ForgeConfirmDialog({
 }) {
   const confirm =
     pending.kind === 'forge' ? forgeConfirmation(save, pending.recipeId, pending.componentId) : restoreConfirmation(save, pending.relicUid);
+  const maxHeight = useSheetMaxHeight();
   if (!confirm) return null;
   const isRestore = confirm.kind === 'restore';
   const itemName = isRestore ? relicById[confirm.relicId].name : itemById[confirm.itemId].name;
@@ -64,8 +66,9 @@ export function ForgeConfirmDialog({
 
   return (
     <Overlay onClose={onClose}>
-      <Panel style={styles.dialog}>
-        <Text style={styles.title}>{t(isRestore ? 'crafting.restoreTitle' : 'crafting.confirmTitle', { item: tr(itemName) })}</Text>
+      <Panel style={[styles.dialog, { maxHeight }]}>
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+          <Text style={styles.title}>{t(isRestore ? 'crafting.restoreTitle' : 'crafting.confirmTitle', { item: tr(itemName) })}</Text>
         <View style={styles.headRow}>
           <GearMarks tier={confirm.tier} />
           <Text style={styles.type}>{tr(masteryTypeNames[confirm.gearType].name)}</Text>
@@ -78,6 +81,7 @@ export function ForgeConfirmDialog({
         {effect && <Text style={styles.mastery}>✦ {tr(effect)}</Text>}
         <Text style={styles.mastery}>{t('crafting.confirmCost')}</Text>
         <CostLines cost={confirm.cost} />
+        </ScrollView>
         <View style={styles.actions}>
           <Button title={t('common.cancel')} color={colors.muted} onPress={onClose} />
           <Button title={t(isRestore ? 'crafting.restore' : 'crafting.forge')} onPress={onConfirm} />
@@ -89,6 +93,8 @@ export function ForgeConfirmDialog({
 
 const styles = StyleSheet.create({
   dialog: { gap: 10, padding: 14 },
+  scroll: { flexShrink: 1 },
+  content: { gap: 10 },
   title: { fontSize: 24 },
   headRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   type: { fontSize: 18, color: colors.ink },

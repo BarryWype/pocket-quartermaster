@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { frPatrolTexts } from '@/content/fr/patrols';
 import { heroClasses } from '@/content/heroes';
@@ -24,12 +24,13 @@ import { distanceTo } from '@/game/patrols/visibility';
 import { lootText } from '@/hooks/usePatrols';
 import { localized, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
-import { colors, pixel } from '@/theme';
+import { colors } from '@/theme';
 
 import { Button } from './Button';
 import { ClassSummary } from './ClassSummary';
 import { patrolIcons } from './PatrolMarker';
 import { Overlay } from './Overlay';
+import { Sheet } from './Sheet';
 import { RecruitGrade } from './RecruitGrade';
 import { ValuableRows } from './ValuableRows';
 import { Text } from './Text';
@@ -86,139 +87,127 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
 
   return (
     <Overlay onClose={onClose} position="bottom">
-        <View style={styles.sheet}>
-          <ScrollView contentContainerStyle={styles.content}>
-            <Text style={styles.title}>
-              {patrolIcons[kind]} {traveller.name}
-            </Text>
-            <Text style={styles.muted}>{traveller.line}</Text>
-
-            {kind === 'trader' ? (
-              <>
-                <Text style={styles.muted}>{t('patrols.askTrade')}</Text>
-                {traderOffers(spawn, save).map((trade) => {
-                  const issue = tradeProblem(save, spawn, trade.index, player, now);
-                  return (
-                    <View key={trade.index} style={styles.offer}>
-                      <Text style={styles.name}>
-                        {trade.give.amount} {tr(materialById[trade.give.materialId]?.name ?? trade.give.materialId)} →{' '}
-                        {trade.get.amount} {tr(materialById[trade.get.materialId]?.name ?? trade.get.materialId)}
-                      </Text>
-                      <Text style={styles.muted}>
-                        {t('patrols.held', { count: save.materials[trade.give.materialId] ?? 0 })} ·{' '}
-                        {t('patrols.usesLeft', { count: trade.usesLeft })}
-                      </Text>
-                      <View style={styles.actions}>
-                        <Button
-                          title={t('patrols.trade')}
-                          disabled={issue !== null}
-                          onPress={() => tradeWithTrader(spawn, trade.index, player)}
-                        />
-                      </View>
-                      {issue && <Text style={styles.problem}>{tradeProblemText[issue](distanceTo(spawn, player, now))}</Text>}
-                    </View>
-                  );
-                })}
-                <ValuableRows
-                  valuables={save.valuables}
-                  price={(key) => valuableSellPrice(key.split(':')[0], Number(key.split(':')[1]), 'trader', null, guildBonus(save, 'collector'))}
-                  canSell={(key, count) => traderValuableProblem(save, spawn, key, count, player, now) === null}
-                  onSell={(key, count) => sellValuableToTrader(spawn, key, count, player)}
+      <Sheet title={`${patrolIcons[kind]} ${traveller.name}`} bodyStyle={styles.content}
+      footer={
+        <View style={styles.actions}>
+          {!reward && kind !== 'trader' && (
+            <>
+              {kind === 'wounded' && (
+                <Button title={t('patrols.help')} disabled={helpProblemShown !== null} onPress={() => help()} />
+              )}
+              {kind === 'pilgrim' && hasMeal && (
+                <Button title={t('patrols.giveMeal')} disabled={helpProblemShown !== null} onPress={() => help('meal')} />
+              )}
+              {kind === 'pilgrim' && canSupply && (
+                <Button
+                  title={t('patrols.giveSupply', { points: supplyPoints })}
+                  disabled={helpProblemShown !== null}
+                  onPress={() => help('supply')}
                 />
-              </>
-            ) : (
-              !reward && (
-                <>
-                  <Text style={styles.muted}>
-                    {kind === 'wounded'
-                      ? t('patrols.askPotion')
-                      : t('patrols.askMeal', { points: supplyPoints })}
-                  </Text>
-                  <Text style={styles.muted}>
-                    {kind === 'wounded'
-                      ? t('patrols.potionsHeld', {
-                          count: offer.kind === 'potion' ? (save.consumables[offer.itemId] ?? 0) : 0,
-                        })
-                      : t('patrols.provisionsHeld', {
-                          meals: mealItems.reduce((sum, item) => sum + (save.consumables[item.id] ?? 0), 0),
-                          points: supplyHeld(save.consumables),
-                        })}
-                  </Text>
-                  {helpProblemShown && (
-                    <Text style={styles.problem}>{helpProblemText[helpProblemShown](distanceTo(spawn, player, now))}</Text>
-                  )}
-                </>
-              )
-            )}
+              )}
+            </>
+          )}
+          <Button title={t('patrols.walkOn')} color={colors.muted} onPress={onClose} />
+        </View>
+      }>
+        <Text style={styles.muted}>{traveller.line}</Text>
 
-            {reward && (
-              <View style={styles.offer}>
-                {reward.kind === 'loot' && (
+        {kind === 'trader' ? (
+          <>
+            <Text style={styles.muted}>{t('patrols.askTrade')}</Text>
+            {traderOffers(spawn, save).map((trade) => {
+              const issue = tradeProblem(save, spawn, trade.index, player, now);
+              return (
+                <View key={trade.index} style={styles.offer}>
                   <Text style={styles.name}>
-                    {[lootText(reward.loot), reward.blessing ? t('patrols.rewardBlessing') : null].filter(Boolean).join(' ') ||
-                      t('chests.nothing')}
+                    {trade.give.amount} {tr(materialById[trade.give.materialId]?.name ?? trade.give.materialId)} →{' '}
+                    {trade.get.amount} {tr(materialById[trade.get.materialId]?.name ?? trade.get.materialId)}
                   </Text>
-                )}
-                {recruit && (
-                  <View style={styles.recruit}>
-                    <Text style={styles.name}>{t('patrols.recruitOffer', { name: recruit.name })}</Text>
-                    <Text style={styles.muted}>
-                      {t('tavern.offer', {
-                        name: recruit.name,
-                        className: tr(heroClasses[recruit.classId].name),
-                        level: recruit.level,
-                      })}
-                    </Text>
-                    <ClassSummary classId={recruit.classId} />
-                    <RecruitGrade grade={recruit.grade} roll={recruit.roll} />
-                    <Text style={[styles.trait, { color: traitById[recruit.trait].positive ? colors.ink : colors.danger }]}>
-                      {tr(traitById[recruit.trait].name)}: {tr(traitById[recruit.trait].description)}
-                    </Text>
-                    <View style={styles.actions}>
-                      <Button title={t('patrols.accept')} onPress={() => { acceptTravellerRecruit(recruit); onClose(); }} />
-                      <Button title={t('patrols.decline')} color={colors.muted} onPress={onClose} />
-                    </View>
+                  <Text style={styles.muted}>
+                    {t('patrols.held', { count: save.materials[trade.give.materialId] ?? 0 })} ·{' '}
+                    {t('patrols.usesLeft', { count: trade.usesLeft })}
+                  </Text>
+                  <View style={styles.actions}>
+                    <Button
+                      title={t('patrols.trade')}
+                      disabled={issue !== null}
+                      onPress={() => tradeWithTrader(spawn, trade.index, player)}
+                    />
                   </View>
-                )}
-                {helped?.rosterFull && <Text style={styles.muted}>{t('patrols.rosterFull')}</Text>}
+                  {issue && <Text style={styles.problem}>{tradeProblemText[issue](distanceTo(spawn, player, now))}</Text>}
+                </View>
+              );
+            })}
+            <ValuableRows
+              valuables={save.valuables}
+              price={(key) => valuableSellPrice(key.split(':')[0], Number(key.split(':')[1]), 'trader', null, guildBonus(save, 'collector'))}
+              canSell={(key, count) => traderValuableProblem(save, spawn, key, count, player, now) === null}
+              onSell={(key, count) => sellValuableToTrader(spawn, key, count, player)}
+            />
+          </>
+        ) : (
+          !reward && (
+            <>
+              <Text style={styles.muted}>
+                {kind === 'wounded'
+                  ? t('patrols.askPotion')
+                  : t('patrols.askMeal', { points: supplyPoints })}
+              </Text>
+              <Text style={styles.muted}>
+                {kind === 'wounded'
+                  ? t('patrols.potionsHeld', {
+                      count: offer.kind === 'potion' ? (save.consumables[offer.itemId] ?? 0) : 0,
+                    })
+                  : t('patrols.provisionsHeld', {
+                      meals: mealItems.reduce((sum, item) => sum + (save.consumables[item.id] ?? 0), 0),
+                      points: supplyHeld(save.consumables),
+                    })}
+              </Text>
+              {helpProblemShown && (
+                <Text style={styles.problem}>{helpProblemText[helpProblemShown](distanceTo(spawn, player, now))}</Text>
+              )}
+            </>
+          )
+        )}
+
+        {reward && (
+          <View style={styles.offer}>
+            {reward.kind === 'loot' && (
+              <Text style={styles.name}>
+                {[lootText(reward.loot), reward.blessing ? t('patrols.rewardBlessing') : null].filter(Boolean).join(' ') ||
+                  t('chests.nothing')}
+              </Text>
+            )}
+            {recruit && (
+              <View style={styles.recruit}>
+                <Text style={styles.name}>{t('patrols.recruitOffer', { name: recruit.name })}</Text>
+                <Text style={styles.muted}>
+                  {t('tavern.offer', {
+                    name: recruit.name,
+                    className: tr(heroClasses[recruit.classId].name),
+                    level: recruit.level,
+                  })}
+                </Text>
+                <ClassSummary classId={recruit.classId} />
+                <RecruitGrade grade={recruit.grade} roll={recruit.roll} />
+                <Text style={[styles.trait, { color: traitById[recruit.trait].positive ? colors.ink : colors.danger }]}>
+                  {tr(traitById[recruit.trait].name)}: {tr(traitById[recruit.trait].description)}
+                </Text>
+                <View style={styles.actions}>
+                  <Button title={t('patrols.accept')} onPress={() => { acceptTravellerRecruit(recruit); onClose(); }} />
+                  <Button title={t('patrols.decline')} color={colors.muted} onPress={onClose} />
+                </View>
               </View>
             )}
-          </ScrollView>
-          <View style={styles.actions}>
-            {!reward && kind !== 'trader' && (
-              <>
-                {kind === 'wounded' && (
-                  <Button title={t('patrols.help')} disabled={helpProblemShown !== null} onPress={() => help()} />
-                )}
-                {kind === 'pilgrim' && hasMeal && (
-                  <Button title={t('patrols.giveMeal')} disabled={helpProblemShown !== null} onPress={() => help('meal')} />
-                )}
-                {kind === 'pilgrim' && canSupply && (
-                  <Button
-                    title={t('patrols.giveSupply', { points: supplyPoints })}
-                    disabled={helpProblemShown !== null}
-                    onPress={() => help('supply')}
-                  />
-                )}
-              </>
-            )}
-            <Button title={t('patrols.walkOn')} color={colors.muted} onPress={onClose} />
+            {helped?.rosterFull && <Text style={styles.muted}>{t('patrols.rosterFull')}</Text>}
           </View>
-        </View>
+        )}
+      </Sheet>
     </Overlay>
   );
 }
-
 const styles = StyleSheet.create({
-  sheet: {
-    backgroundColor: colors.parchment,
-    borderTopWidth: pixel.outline + 1,
-    borderColor: colors.ink,
-    padding: 16,
-    maxHeight: '85%',
-  },
   content: { gap: 6, paddingBottom: 12 },
-  title: { fontSize: 26 },
   muted: { color: colors.muted },
   offer: { gap: 4, paddingVertical: 10, borderTopWidth: 2, borderTopColor: colors.parchmentDark },
   recruit: { gap: 4 },

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { rosterRules } from '@/content/roster';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { heroClasses } from '@/content/heroes';
 import { componentById, gearName, itemById } from '@/content/lookup';
@@ -35,6 +35,7 @@ import { ClassSummary } from './ClassSummary';
 import { EnemyTags } from './EnemyTags';
 import { PriceTag } from './PriceTag';
 import { Overlay } from './Overlay';
+import { Sheet } from './Sheet';
 import { RecruitGrade } from './RecruitGrade';
 import { SendDialog } from './SendDialog';
 import { Text } from './Text';
@@ -211,36 +212,22 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
 
   return (
     <Overlay onClose={onClose} position="bottom">
-        <View style={styles.sheet}>
-          <ScrollView contentContainerStyle={styles.content}>
-            <Text style={styles.title}>
-              {info.emoji} {tr(info.name)}
-            </Text>
-            {keyLine}
-            <Text style={styles.muted}>{tr(info.description)}</Text>
-            <Text style={styles.muted}>
-              {t('secrets.where', { distance: formatDistance(distance), time: formatDuration(place.expiresAt - now) })}
-              {' · '}
-              {t('places.gold', { gold: save.gold })}
-            </Text>
-            {underwater ? underwaterBody() : offerBody()}
-          </ScrollView>
-          <Button title={t('common.close')} color={colors.muted} onPress={onClose} />
-        </View>
+      <Sheet title={`${info.emoji} ${tr(info.name)}`} bodyStyle={styles.content} footer={<Button title={t('common.close')} color={colors.muted} onPress={onClose} />}>
+        {keyLine}
+        <Text style={styles.muted}>{tr(info.description)}</Text>
+        <Text style={styles.muted}>
+          {t('secrets.where', { distance: formatDistance(distance), time: formatDuration(place.expiresAt - now) })}
+          {' · '}
+          {t('places.gold', { gold: save.gold })}
+        </Text>
+        {underwater ? underwaterBody() : offerBody()}
+      </Sheet>
     </Overlay>
   );
 }
 
 const styles = StyleSheet.create({
-  sheet: {
-    backgroundColor: colors.parchment,
-    borderTopWidth: pixel.outline + 1,
-    borderColor: colors.ink,
-    padding: 16,
-    maxHeight: '85%',
-  },
   content: { gap: 6, paddingBottom: 12 },
-  title: { fontSize: 26 },
   subtitle: { fontSize: 21, marginTop: 8 },
   muted: { color: colors.muted },
   open: { fontSize: 19, color: colors.success },

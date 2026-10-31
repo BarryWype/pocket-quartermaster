@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { heroClasses } from '@/content/heroes';
 import { tavernRules } from '@/content/taverns';
@@ -20,13 +20,14 @@ import {
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
 import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
-import { colors, pixel } from '@/theme';
+import { colors } from '@/theme';
 
 import { Button } from './Button';
 import { ClassSummary } from './ClassSummary';
 import { lineName } from './PlacePanel';
 import { PriceTag } from './PriceTag';
 import { Overlay } from './Overlay';
+import { Sheet } from './Sheet';
 import { RecruitGrade } from './RecruitGrade';
 import { Text } from './Text';
 
@@ -80,58 +81,46 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
 
   return (
     <Overlay onClose={onClose} position="bottom">
-        <View style={styles.sheet}>
-          <ScrollView contentContainerStyle={styles.content}>
-            <Text style={styles.title}>🍺 {tavern.name}</Text>
-            <Text style={styles.muted}>
-              {t('tavern.header', { gold: save.gold, count: save.heroes.length, cap: rosterCap(save) })}
-            </Text>
-            {offers.map(offerRow)}
-            <View style={styles.offer}>
-              <Text style={styles.name}>🥓 {t('tavern.emergency')}</Text>
-              <Text style={styles.muted}>{t('tavern.emergencyHint', { held: save.consumables.jerky ?? 0 })}</Text>
-              <View style={styles.actions}>
-                <PriceTag price={supplyPrice(save)} style={styles.price} />
-                <Button
-                  title={t('tavern.buy')}
-                  disabled={buySupplyProblem(save, 1, tavern.position, player) !== null}
-                  onPress={() => buySupply(1, tavern.position, player)}
-                />
-              </View>
-            </View>
-            {placeStock(save, tavern, openedAt).map((line) => (
-              <View key={line.key} style={styles.offer}>
-                <Text style={styles.name}>{lineName(line)}</Text>
-                <View style={styles.actions}>
-                  <PriceTag price={line.price} style={styles.price} />
-                  <Text style={styles.muted}>
-                    {stockLeft(save, tavern, line) > 0 ? t('places.left', { count: stockLeft(save, tavern, line) }) : t('places.soldOut')}
-                  </Text>
-                  <Button
-                    title={t('tavern.buy')}
-                    disabled={buyProblem(save, tavern, line.key, 1, player, openedAt) !== null}
-                    onPress={() => buyAtPlace(tavern, line.key, 1, player)}
-                  />
-                </View>
-              </View>
-            ))}
-          </ScrollView>
-          <Button title={t('common.close')} onPress={onClose} />
+      <Sheet title={`🍺 ${tavern.name}`} bodyStyle={styles.content} footer={<Button title={t('common.close')} onPress={onClose} />}>
+        <Text style={styles.muted}>
+          {t('tavern.header', { gold: save.gold, count: save.heroes.length, cap: rosterCap(save) })}
+        </Text>
+        {offers.map(offerRow)}
+        <View style={styles.offer}>
+          <Text style={styles.name}>🥓 {t('tavern.emergency')}</Text>
+          <Text style={styles.muted}>{t('tavern.emergencyHint', { held: save.consumables.jerky ?? 0 })}</Text>
+          <View style={styles.actions}>
+            <PriceTag price={supplyPrice(save)} style={styles.price} />
+            <Button
+              title={t('tavern.buy')}
+              disabled={buySupplyProblem(save, 1, tavern.position, player) !== null}
+              onPress={() => buySupply(1, tavern.position, player)}
+            />
+          </View>
         </View>
+        {placeStock(save, tavern, openedAt).map((line) => (
+          <View key={line.key} style={styles.offer}>
+            <Text style={styles.name}>{lineName(line)}</Text>
+            <View style={styles.actions}>
+              <PriceTag price={line.price} style={styles.price} />
+              <Text style={styles.muted}>
+                {stockLeft(save, tavern, line) > 0 ? t('places.left', { count: stockLeft(save, tavern, line) }) : t('places.soldOut')}
+              </Text>
+              <Button
+                title={t('tavern.buy')}
+                disabled={buyProblem(save, tavern, line.key, 1, player, openedAt) !== null}
+                onPress={() => buyAtPlace(tavern, line.key, 1, player)}
+              />
+            </View>
+          </View>
+        ))}
+      </Sheet>
     </Overlay>
   );
 }
 
 const styles = StyleSheet.create({
-  sheet: {
-    backgroundColor: colors.parchment,
-    borderTopWidth: pixel.outline + 1,
-    borderColor: colors.ink,
-    padding: 16,
-    maxHeight: '85%',
-  },
   content: { gap: 6, paddingBottom: 12 },
-  title: { fontSize: 26 },
   muted: { color: colors.muted },
   offer: { gap: 4, paddingVertical: 10, borderTopWidth: 2, borderTopColor: colors.parchmentDark },
   name: { fontSize: 21 },

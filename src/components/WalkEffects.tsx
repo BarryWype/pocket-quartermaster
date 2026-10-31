@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Alert, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { items } from '@/content/items';
 import { itemById } from '@/content/lookup';
@@ -8,10 +8,11 @@ import type { LatLng } from '@/game/generation/types';
 import { useNow } from '@/hooks/useNow';
 import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
-import { colors, pixel } from '@/theme';
+import { colors } from '@/theme';
 
 import { Button } from './Button';
 import { Overlay } from './Overlay';
+import { Sheet } from './Sheet';
 import { Row } from './Row';
 import { Text } from './Text';
 import { Tip } from './Tip';
@@ -69,20 +70,17 @@ export function WalkEffects({ player, buttonStyle, chipsStyle }: {
       )}
       {open && (
         <Overlay onClose={() => setOpen(false)} position="bottom">
-            <Pressable style={styles.sheet}>
-              <Text style={styles.title}>{t('walkEffects.title')}</Text>
-              <ScrollView>
-                {held.map((item) => (
-                  <Row
-                    key={item.id}
-                    emoji={item.emoji}
-                    title={`${tr(item.name)} ×${save.consumables[item.id]}`}
-                    subtitle={tr(item.description ?? '')}
-                    right={<Button title={t('walkEffects.use')} onPress={() => use(item.id)} />}
-                  />
-                ))}
-              </ScrollView>
-            </Pressable>
+          <Sheet title={t('walkEffects.title')} bodyStyle={styles.body}>
+            {held.map((item) => (
+              <Row
+                key={item.id}
+                emoji={item.emoji}
+                title={`${tr(item.name)} ×${save.consumables[item.id]}`}
+                subtitle={tr(item.description ?? '')}
+                right={<Button title={t('walkEffects.use')} onPress={() => use(item.id)} />}
+              />
+            ))}
+          </Sheet>
         </Overlay>
       )}
     </>
@@ -112,13 +110,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  sheet: {
-    backgroundColor: colors.parchment,
-    borderTopWidth: pixel.outline + 1,
-    borderColor: colors.ink,
-    padding: 16,
-    maxHeight: '70%',
-    gap: 8,
-  },
-  title: { fontSize: 22 },
+  body: { gap: 8 },
 });

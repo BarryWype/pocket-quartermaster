@@ -27,6 +27,7 @@ import { Button } from './Button';
 import { EquipPicker } from './EquipPicker';
 import { HpBar } from './HpBar';
 import { Overlay } from './Overlay';
+import { useSheetMaxHeight } from './Sheet';
 import { Panel } from './Panel';
 import { Text } from './Text';
 import { ThreatCoverageChips } from './ThreatDetail';
@@ -198,10 +199,11 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
   const warnings = warningsFor(save, dungeon, party, odds?.now ?? 1, durationMs, now);
   const canBuy = nearbyTavern && player && buySupplyProblem(save, 1, nearbyTavern.position, player) === null;
 
+  const maxHeight = useSheetMaxHeight();
   return (
     <Overlay onClose={onClose}>
-        <Panel style={styles.dialog}>
-          <ScrollView contentContainerStyle={styles.content}>
+        <Panel style={[styles.dialog, { maxHeight }]}>
+          <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
             <Text style={styles.title}>{t('expeditions.confirm.title', { dungeon: `${dungeon.emoji} ${tr(dungeon.name)}` })}</Text>
             <ThreatCoverageChips coverage={coverage} labelled={save.tutorial.step !== 'done'} />
             {heroes.map((hero) => (
@@ -356,7 +358,8 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
 }
 
 const styles = StyleSheet.create({
-  dialog: { gap: 10, padding: 14, maxHeight: '90%' },
+  dialog: { gap: 10, padding: 14 },
+  scroll: { flexShrink: 1 },
   content: { gap: 10 },
   title: { fontSize: 24 },
   hero: { gap: 4 },

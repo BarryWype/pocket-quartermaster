@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { rosterRules } from '@/content/roster';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { frPatrolTexts } from '@/content/fr/patrols';
 import { heroClasses } from '@/content/heroes';
@@ -29,6 +29,7 @@ import { colors, pixel } from '@/theme';
 import { Button } from './Button';
 import { EnemyTags } from './EnemyTags';
 import { Overlay } from './Overlay';
+import { Sheet } from './Sheet';
 import { Text } from './Text';
 import { ThreatChip } from './ThreatChip';
 
@@ -112,73 +113,65 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
 
   return (
     <Overlay onClose={onClose} position="bottom">
-        <View style={styles.sheet}>
-          <ScrollView contentContainerStyle={styles.content}>
-            <Text style={styles.title}>
-              {dungeon.emoji} {texts.kinds[kind]}
-            </Text>
-            <Text style={styles.muted}>
-              {t('expeditions.tier', { tier })}
-              {elite ? ` ★ ${t('patrols.eliteX2')}` : ''} · ⏳ {formatDuration(dungeon.durationMinutes * 60_000)} ·{' '}
-              {t('patrols.recommended', { count: patrolKinds[kind].party })}
-            </Text>
-            <Text style={styles.muted}>{t(`patrols.rewards.${kind}`)}</Text>
-            <ThreatChip threat={patrolThreats[kind]} />
-            <Text style={styles.muted}>
-              {dungeonTags(dungeon)
-                .map((tag) => `${tagInfo[tag].emoji} ${tr(tagInfo[tag].name)}`)
-                .join(' · ')}
-            </Text>
-            <Text style={styles.subtitle}>{t('expeditions.foes')}</Text>
-            {dungeonFoes(dungeon).map((mob) => (
-              <EnemyTags key={mob.id} mob={mob} />
-            ))}
-            <Text style={styles.subtitle}>{t('sanctum.heroes')}</Text>
-            <View style={styles.chips}>
-              {candidates.map((hero) => (
-                <Pressable
-                  key={hero.id}
-                  onPress={() => toggle(hero.id)}
-                  style={[styles.chip, heroIds.includes(hero.id) && styles.chipActive]}
-                >
-                  <Text>
-                    {heroClasses[hero.classId].emoji} {hero.name}
-                    {hero.id === escortId ? t('common.escort') : ''} ·{' '}
-                    {formatPercent(currentHp(save, hero, now) / maxHp(save, hero))}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            {escortId !== undefined && heroIds.includes(escortId) && <Text style={styles.muted}>{t('patrols.escortNote')}</Text>}
-            {heroIds.length > 0 &&
-              (odds ? (
-                <Text style={styles.odds}>
-                  {t('sanctum.estimate', { percent: formatPercent(odds.success), band: t(`odds.${oddsBand(odds.success)}`) })}
-                </Text>
-              ) : (
-                <Text style={styles.odds}>…</Text>
-              ))}
-            {problem && <Text style={styles.problem}>{problemText[problem](distanceTo(spawn, player, now))}</Text>}
-          </ScrollView>
+      <Sheet
+        title={`${dungeon.emoji} ${texts.kinds[kind]}`}
+        bodyStyle={styles.content}
+        footer={
           <View style={styles.actions}>
             <Button title={t('patrols.fight')} disabled={problem !== null} onPress={fight} />
             <Button title={t('common.close')} color={colors.muted} onPress={onClose} />
           </View>
+        }
+      >
+        <Text style={styles.muted}>
+          {t('expeditions.tier', { tier })}
+          {elite ? ` ★ ${t('patrols.eliteX2')}` : ''} · ⏳ {formatDuration(dungeon.durationMinutes * 60_000)} ·{' '}
+          {t('patrols.recommended', { count: patrolKinds[kind].party })}
+        </Text>
+        <Text style={styles.muted}>{t(`patrols.rewards.${kind}`)}</Text>
+        <ThreatChip threat={patrolThreats[kind]} />
+        <Text style={styles.muted}>
+          {dungeonTags(dungeon)
+            .map((tag) => `${tagInfo[tag].emoji} ${tr(tagInfo[tag].name)}`)
+            .join(' · ')}
+        </Text>
+        <Text style={styles.subtitle}>{t('expeditions.foes')}</Text>
+        {dungeonFoes(dungeon).map((mob) => (
+          <EnemyTags key={mob.id} mob={mob} />
+        ))}
+        <Text style={styles.subtitle}>{t('sanctum.heroes')}</Text>
+        <View style={styles.chips}>
+          {candidates.map((hero) => (
+            <Pressable
+              key={hero.id}
+              onPress={() => toggle(hero.id)}
+              style={[styles.chip, heroIds.includes(hero.id) && styles.chipActive]}
+            >
+              <Text>
+                {heroClasses[hero.classId].emoji} {hero.name}
+                {hero.id === escortId ? t('common.escort') : ''} ·{' '}
+                {formatPercent(currentHp(save, hero, now) / maxHp(save, hero))}
+              </Text>
+            </Pressable>
+          ))}
         </View>
+        {escortId !== undefined && heroIds.includes(escortId) && <Text style={styles.muted}>{t('patrols.escortNote')}</Text>}
+        {heroIds.length > 0 &&
+          (odds ? (
+            <Text style={styles.odds}>
+              {t('sanctum.estimate', { percent: formatPercent(odds.success), band: t(`odds.${oddsBand(odds.success)}`) })}
+            </Text>
+          ) : (
+            <Text style={styles.odds}>…</Text>
+          ))}
+        {problem && <Text style={styles.problem}>{problemText[problem](distanceTo(spawn, player, now))}</Text>}
+      </Sheet>
     </Overlay>
   );
 }
 
 const styles = StyleSheet.create({
-  sheet: {
-    backgroundColor: colors.parchment,
-    borderTopWidth: pixel.outline + 1,
-    borderColor: colors.ink,
-    padding: 16,
-    maxHeight: '85%',
-  },
   content: { gap: 6, paddingBottom: 12 },
-  title: { fontSize: 26 },
   subtitle: { fontSize: 21, marginTop: 8 },
   muted: { color: colors.muted },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

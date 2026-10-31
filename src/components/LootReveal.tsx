@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Animated, Easing, StyleSheet, View } from 'react-native';
+import { Animated, Easing, ScrollView, StyleSheet, View } from 'react-native';
 
 import { heroClasses, xpToNextLevel } from '@/content/heroes';
 import { dungeonById, materialById } from '@/content/lookup';
@@ -11,6 +11,7 @@ import { colors, pixel } from '@/theme';
 import { Button } from './Button';
 import { lootLabels } from './lootText';
 import { Overlay } from './Overlay';
+import { useSheetMaxHeight } from './Sheet';
 import { Panel } from './Panel';
 import { Text } from './Text';
 
@@ -65,9 +66,11 @@ export function LootReveal({ report, before, after, onClose, onReadReport }: Pro
     const now = after.find((h) => h.id === id);
     return was && now ? [{ hero: now, xp: totalXp(now) - totalXp(was), levelUp: now.level > was.level }] : [];
   });
+  const maxHeight = useSheetMaxHeight();
   return (
     <Overlay onClose={onClose} backdropStyle={styles.backdrop}>
-        <Panel style={styles.dialog}>
+        <Panel style={[styles.dialog, { maxHeight }]}>
+          <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
           <Text style={styles.title}>
             {dungeon.emoji} {tr(dungeon.name)}
           </Text>
@@ -95,6 +98,7 @@ export function LootReveal({ report, before, after, onClose, onReadReport }: Pro
               </View>
             </Pop>
           ))}
+          </ScrollView>
           <View style={styles.actions}>
             <Button title={t('expeditions.loot.report')} color={colors.muted} onPress={onReadReport} />
             <Button title={t('expeditions.loot.great')} onPress={onClose} />
@@ -105,8 +109,10 @@ export function LootReveal({ report, before, after, onClose, onReadReport }: Pro
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: 'center', padding: 16, backgroundColor: 'rgba(0,0,0,0.6)' },
+  backdrop: { backgroundColor: 'rgba(0,0,0,0.6)' },
   dialog: { gap: 10, padding: 16 },
+  scroll: { flexShrink: 1 },
+  content: { gap: 10 },
   title: { fontSize: 26, textAlign: 'center' },
   outcome: { fontSize: 21, textAlign: 'center' },
   muted: { color: colors.muted, textAlign: 'center' },

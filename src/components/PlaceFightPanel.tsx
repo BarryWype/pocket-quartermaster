@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { heroClasses } from '@/content/heroes';
 import { opportunityById } from '@/content/lookup';
@@ -26,6 +26,7 @@ import { Button } from './Button';
 import { EnemyTags } from './EnemyTags';
 import { leavesIn } from './PlacePanel';
 import { Overlay } from './Overlay';
+import { Sheet } from './Sheet';
 import { Text } from './Text';
 import { ThreatChip } from './ThreatChip';
 
@@ -96,69 +97,61 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
 
   return (
     <Overlay onClose={onClose} position="bottom">
-        <View style={styles.sheet}>
-          <ScrollView contentContainerStyle={styles.content}>
-            <Text style={styles.title}>
-              {info.emoji} {tr(info.name)}
-            </Text>
-            <Text style={styles.muted}>{tr(info.description)}</Text>
-            <Text style={styles.muted}>
-              {t('expeditions.tier', { tier: highestUnlockedTier(save) })}
-              {rules.elite ? ' ★' : ''} · ⏳ {formatDuration(rules.minutes * 60_000)} · {t('places.party', { min, max: rules.party })}
-            </Text>
-            <Text style={styles.muted}>{leavesIn(place.expiresAt - now)}</Text>
-            {briefing.threats.map((threat) => (
-              <ThreatChip key={threat.id} threat={threat} />
-            ))}
-            {briefing.opportunity && (
-              <Text style={styles.muted}>
-                {opportunityById[briefing.opportunity].emoji} {tr(opportunityById[briefing.opportunity].name)}:{' '}
-                {tr(opportunityById[briefing.opportunity].description)}
-              </Text>
-            )}
-            <Text style={styles.subtitle}>{t('expeditions.foes')}</Text>
-            {foes.map((mob) => (
-              <EnemyTags key={mob.id} mob={mob} />
-            ))}
-            <Text style={styles.subtitle}>{t('sanctum.heroes')}</Text>
-            <View style={styles.chips}>
-              {candidates.map((hero) => (
-                <Pressable key={hero.id} onPress={() => toggle(hero.id)} style={[styles.chip, heroIds.includes(hero.id) && styles.chipActive]}>
-                  <Text>
-                    {heroClasses[hero.classId].emoji} {hero.name} · {formatPercent(currentHp(save, hero, now) / maxHp(save, hero))}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            {heroIds.length > 0 &&
-              (odds ? (
-                <Text style={styles.odds}>
-                  {t('sanctum.estimate', { percent: formatPercent(odds.success), band: t(`odds.${oddsBand(odds.success)}`) })}
-                </Text>
-              ) : (
-                <Text style={styles.odds}>…</Text>
-              ))}
-            {problem && <Text style={styles.problem}>{problemText[problem](distanceMeters(player, place.position))}</Text>}
-          </ScrollView>
+      <Sheet
+        title={`${info.emoji} ${tr(info.name)}`}
+        bodyStyle={styles.content}
+        footer={
           <View style={styles.actions}>
             <Button title={t('places.fight')} disabled={problem !== null} onPress={fight} />
             <Button title={t('common.close')} color={colors.muted} onPress={onClose} />
           </View>
+        }
+      >
+        <Text style={styles.muted}>{tr(info.description)}</Text>
+        <Text style={styles.muted}>
+          {t('expeditions.tier', { tier: highestUnlockedTier(save) })}
+          {rules.elite ? ' ★' : ''} · ⏳ {formatDuration(rules.minutes * 60_000)} · {t('places.party', { min, max: rules.party })}
+        </Text>
+        <Text style={styles.muted}>{leavesIn(place.expiresAt - now)}</Text>
+        {briefing.threats.map((threat) => (
+          <ThreatChip key={threat.id} threat={threat} />
+        ))}
+        {briefing.opportunity && (
+          <Text style={styles.muted}>
+            {opportunityById[briefing.opportunity].emoji} {tr(opportunityById[briefing.opportunity].name)}:{' '}
+            {tr(opportunityById[briefing.opportunity].description)}
+          </Text>
+        )}
+        <Text style={styles.subtitle}>{t('expeditions.foes')}</Text>
+        {foes.map((mob) => (
+          <EnemyTags key={mob.id} mob={mob} />
+        ))}
+        <Text style={styles.subtitle}>{t('sanctum.heroes')}</Text>
+        <View style={styles.chips}>
+          {candidates.map((hero) => (
+            <Pressable key={hero.id} onPress={() => toggle(hero.id)} style={[styles.chip, heroIds.includes(hero.id) && styles.chipActive]}>
+              <Text>
+                {heroClasses[hero.classId].emoji} {hero.name} · {formatPercent(currentHp(save, hero, now) / maxHp(save, hero))}
+              </Text>
+            </Pressable>
+          ))}
         </View>
+        {heroIds.length > 0 &&
+          (odds ? (
+            <Text style={styles.odds}>
+              {t('sanctum.estimate', { percent: formatPercent(odds.success), band: t(`odds.${oddsBand(odds.success)}`) })}
+            </Text>
+          ) : (
+            <Text style={styles.odds}>…</Text>
+          ))}
+        {problem && <Text style={styles.problem}>{problemText[problem](distanceMeters(player, place.position))}</Text>}
+      </Sheet>
     </Overlay>
   );
 }
 
 const styles = StyleSheet.create({
-  sheet: {
-    backgroundColor: colors.parchment,
-    borderTopWidth: pixel.outline + 1,
-    borderColor: colors.ink,
-    padding: 16,
-    maxHeight: '85%',
-  },
   content: { gap: 6, paddingBottom: 12 },
-  title: { fontSize: 26 },
   subtitle: { fontSize: 21, marginTop: 8 },
   muted: { color: colors.muted },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
