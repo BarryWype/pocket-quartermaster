@@ -49,3 +49,7 @@ Delegate all hands-on coding to the mistral-implementer agent by default (GLM-5.
 Handle it yourself only for: planning and design, ambiguous requirements, anything involving images,
 final review of security-sensitive changes, or tasks the agent reported failing twice.
 Prefer giving the agent a clear plan over doing the work yourself.
+
+## Saves
+
+Player saves must survive every update. When a change touches the saved state (`src/store/gameStore.ts`, `SaveData`), bump the persisted store version and add a migration step that converts the previous version's save into the new shape: new fields get sensible defaults, renamed or removed ids are mapped or refunded, nothing the player earned is lost. Keep the steps pure, in `src/game/`, applied in order from the save's version, and test each one with a save of the previous version. Never reset a save to handle a change. Saves older than version 30 are the only ones that still reset.

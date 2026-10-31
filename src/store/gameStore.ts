@@ -705,7 +705,8 @@ export const useGameStore = create<GameState>()(
       version: 30,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
-      // Until release, a save change starts fresh: saves before version 30 (quest arrival baselines) are reset.
+      // Saves from version 30 on are kept: every later version bump adds a migration step here (see AGENTS.md, Saves).
+      // Only saves older than version 30 are reset.
       migrate: (persisted, version) => {
         const old = (persisted as { save?: SaveData } | undefined)?.save;
         if (!old || version < 30) return { save: createInitialSave() };

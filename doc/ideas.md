@@ -26,7 +26,7 @@ Design catalogues for what's built or being built live in `doc/design/` (`threat
 7. Release (a small test group first).
 8. After release: big work on interfaces and assets.
 
-**Rule until release:** old saves don't matter. A save change bumps the version and resets the save; no migrations. Players start fresh at release.
+**Saves are kept (from save version 30, 2026-10-31):** a change to the saved state bumps the store version and adds a migration that carries the old save forward. No more resets. Only saves older than version 30 are reset.
 
 **Parked**
 - Charms: redesign with the loot rework (they should affect what a run finds: Luck, blueprint, component and relic chances, materials).
