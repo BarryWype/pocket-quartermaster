@@ -25,7 +25,8 @@ import { tutorialRules } from '@/content/tutorial';
 import { nextRotationAt, rotationDay } from '@/game/dungeons/rotation';
 import { briefingOf, expeditionMinutes, isDungeonUnlocked, readyExpeditions, type Loadout } from '@/game/expeditions/expeditions';
 import type { Odds } from '@/game/expeditions/odds';
-import { cachedEstimateOdds, cachedOdds, oddsKey } from '@/game/expeditions/oddsCache';
+import { cachedOdds, oddsKey, storeOdds } from '@/game/expeditions/oddsCache';
+import { oddsOfTask, oddsTaskDone, runOddsSlice, startOddsTask } from '@/game/expeditions/oddsSlices';
 import { isRevealed } from '@/game/reveal/reveal';
 import { supplyHeld } from '@/game/expeditions/provisions';
 import { briefingCoverage } from '@/game/threats/coverage';
@@ -190,24 +191,36 @@ export function ExpeditionsScreen() {
     if (party.length === 0) return;
     let cancelled = false;
     // The odds not yet held for their key queue up (cache hits resolve inside the tick).
-    const queue = shownList.filter((dungeon) => odds[dungeon.id]?.key !== oddsKeys[dungeon.id]);
-    // One dungeon per tick (InteractionManager is gone from RN core; a timeout chunk
-    // keeps each estimate off the first frames and leaves the thread free between runs).
+    const queue = shownList
+      .filter((dungeon) => odds[dungeon.id]?.key !== oddsKeys[dungeon.id])
+      .map((dungeon) => ({
+        dungeon,
+        key: oddsKeys[dungeon.id],
+        task: startOddsTask(save, party, dungeon, undefined, {
+          now: minute * 60_000,
+          briefing: briefingOf(save, dungeon, rotation, minute * 60_000),
+        }),
+        firstSliceAt: 0,
+      }));
+    // One slice per tick (InteractionManager is gone from RN core; a timeout chunk
+    // keeps each slice off the first frames and leaves the thread free between runs).
     const computeNext = () => {
-      const dungeon = queue.shift();
-      if (cancelled || !dungeon) return;
+      const next = queue[0];
+      if (cancelled || !next) return;
       setTimeout(() => {
         if (cancelled) return;
-        const key = oddsKeys[dungeon.id];
-        const start = Date.now();
-        const value = recordTiming('odds: expedition', () =>
-          cachedEstimateOdds(save, party, dungeon, undefined, {
-            now: minute * 60_000,
-            briefing: briefingOf(save, dungeon, rotation, minute * 60_000),
-          }),
-        );
-        if (__DEV__) console.log(`[odds] ${dungeon.id} ${Date.now() - start}ms`);
-        setOdds((prev) => ({ ...prev, [dungeon.id]: { key, odds: value } }));
+        if (next.task) {
+          next.firstSliceAt ||= Date.now();
+          recordTiming('odds: expedition', () => runOddsSlice(next.task!));
+          // The same dungeon's next slice comes in the next tick; a whole
+          // estimate is 15 slices of 20 runs, each a few ms on a phone.
+          if (!oddsTaskDone(next.task)) return computeNext();
+          const value = oddsOfTask(next.task);
+          storeOdds(next.key, value);
+          setOdds((prev) => ({ ...prev, [next.dungeon.id]: { key: next.key, odds: value } }));
+          if (__DEV__) console.log(`[odds] ${next.dungeon.id} ${Date.now() - next.firstSliceAt}ms`);
+        }
+        queue.shift();
         computeNext();
       });
     };

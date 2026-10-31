@@ -5,7 +5,8 @@ import { mobById, patrolMobId } from '@/content/enemies';
 import { patrolKinds, patrolRules, patrolTexts, type PatrolRules } from '@/content/patrols';
 import { patrolThreats } from '@/content/threats';
 
-import { estimatePartyOdds, ODDS_RUNS, type Odds } from '../expeditions/odds';
+import { ODDS_RUNS, type Odds } from '../expeditions/odds';
+import { EMPTY_ODDS, finishOddsTask, startPartyOddsTask, type OddsTask } from '../expeditions/oddsSlices';
 import { highestUnlockedTier, untriggeredSalvage } from '../expeditions/expeditions';
 import { prepareParty, simulateRun, type RunOptions, type RunResult } from '../expeditions/simulate';
 import { pickaxeTier } from '../gathering/gathering';
@@ -225,6 +226,26 @@ export function startPatrolFight(
   };
 }
 
+/** A resumable estimate of the party's chances at a patrol, for callers that slice it off the first frame. */
+export function patrolOddsTask(
+  save: SaveData,
+  spawn: PatrolSpawn,
+  heroIds: string[],
+  now: number,
+  runs = ODDS_RUNS,
+  rules: PatrolRules = patrolRules,
+): OddsTask | null {
+  const kind = spawn.kind;
+  if (!isPatrolKind(kind)) throw new Error(`No fight with a ${kind}`);
+  const { tier, elite } = patrolTier(spawn, highestUnlockedTier(save));
+  return startPartyOddsTask(
+    prepareParty(save, heroIds, now, true),
+    patrolDungeon(spawn, tier, elite, rules),
+    runs,
+    patrolRunOptions(kind),
+  );
+}
+
 /** The party's chances at a patrol now, with the HP the heroes have. */
 export function patrolOdds(
   save: SaveData,
@@ -234,15 +255,8 @@ export function patrolOdds(
   runs = ODDS_RUNS,
   rules: PatrolRules = patrolRules,
 ): Odds {
-  const kind = spawn.kind;
-  if (!isPatrolKind(kind)) throw new Error(`No fight with a ${kind}`);
-  const { tier, elite } = patrolTier(spawn, highestUnlockedTier(save));
-  return estimatePartyOdds(
-    prepareParty(save, heroIds, now, true),
-    patrolDungeon(spawn, tier, elite, rules),
-    runs,
-    patrolRunOptions(kind),
-  );
+  const task = patrolOddsTask(save, spawn, heroIds, now, runs, rules);
+  return task ? finishOddsTask(task) : EMPTY_ODDS;
 }
 
 /**

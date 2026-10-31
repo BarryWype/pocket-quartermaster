@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { rosterRules } from '@/content/roster';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -8,20 +8,20 @@ import { patrolKinds, patrolTexts } from '@/content/patrols';
 import { patrolThreats } from '@/content/threats';
 import { tagInfo } from '@/content/rotation';
 import { highestUnlockedTier } from '@/game/expeditions/expeditions';
-import { fightOddsKey, cachedOdds, storeOdds } from '@/game/expeditions/oddsCache';
-import { oddsBand, type Odds } from '@/game/expeditions/odds';
+import { fightOddsKey } from '@/game/expeditions/oddsCache';
+import { oddsBand } from '@/game/expeditions/odds';
 import { dungeonTags } from '@/game/dungeons/tags';
 import { dungeonFoes } from '@/game/enemies/tags';
 
 import type { LatLng } from '@/game/generation/types';
 import { isPatrolKind, patrolTier, type PatrolSpawn } from '@/game/patrols/generate';
-import { patrolDungeon, patrolFightProblem, patrolOdds, type PatrolFightProblem } from '@/game/patrols/fight';
+import { patrolDungeon, patrolFightProblem, patrolOddsTask, type PatrolFightProblem } from '@/game/patrols/fight';
 import { distanceTo } from '@/game/patrols/visibility';
 import { currentHp, isExhausted, maxHp } from '@/game/team/health';
 import { isAway } from '@/game/team/team';
 import { formatDuration, formatPercent, localized, t, tr } from '@/i18n';
 import { syncBackground } from '@/hooks/useAutoGather';
-import { recordTiming } from '@/services/timings';
+import { useSlicedOdds } from '@/hooks/useSlicedOdds';
 import { useGameStore } from '@/store/gameStore';
 import { useWorldStore } from '@/store/worldStore';
 import { colors, pixel } from '@/theme';
@@ -64,7 +64,7 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
   );
   const texts = localized({ en: patrolTexts, fr: frPatrolTexts });
 
-  // The odds are computed off the first frame (issue 12's approach): the panel
+  // The odds are computed off the first frame (issue 17's slices): the panel
   // opens at once, shows "…" until they land, and odds already held for exactly
   // these inputs (same patrol, party, minute) show immediately.
   const oddsKey = useMemo(
@@ -75,23 +75,7 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
     },
     [save, spawn, heroIds, openedAt, kind],
   );
-  const [computed, setComputed] = useState<{ key: string; odds: Odds } | null>(() => {
-    if (oddsKey === null) return null;
-    const held = cachedOdds(oddsKey);
-    return held ? { key: oddsKey, odds: held } : null;
-  });
-  useEffect(() => {
-    if (oddsKey === null || computed?.key === oddsKey) return;
-    const timer = setTimeout(() => {
-      const odds = recordTiming('odds: patrol', () => patrolOdds(save, spawn, heroIds, openedAt));
-      storeOdds(oddsKey, odds);
-      setComputed({ key: oddsKey, odds });
-    });
-    return () => clearTimeout(timer);
-    // The key covers the save, the patrol, the party and the minute: rerun only when it moves.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [oddsKey, computed?.key]);
-  const odds = computed?.key === oddsKey ? computed.odds : (oddsKey !== null ? (cachedOdds(oddsKey) ?? null) : null);
+  const odds = useSlicedOdds({ key: oddsKey, build: () => patrolOddsTask(save, spawn, heroIds, openedAt) });
 
   if (!kind) return null;
 

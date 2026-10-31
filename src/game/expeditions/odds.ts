@@ -47,16 +47,30 @@ export function estimatePartyOdds(party: PartyMember[], dungeon: DungeonDef, run
 }
 
 /**
+ * The party and provisions one estimate runs with, shared by the one-shot
+ * `estimateOdds` and the sliced estimator (oddsSlices.ts).
+ */
+export function oddsRunInputs(
+  save: SaveData,
+  heroIds: string[],
+  dungeon: DungeonDef,
+  options: OddsOptions = {},
+): { party: PartyMember[]; provisions: RunOptions } {
+  const { now, loadout = {}, fullHp = false, briefing = EMPTY_BRIEFING } = options;
+  const party = prepareParty(save, heroIds, now, true).map((m) => (fullHp ? { ...m, hp: m.maxHp } : m));
+  const { hunger } = launchPlan(save, dungeon, heroIds, loadout, briefing);
+  // The waiting chapel blessing, if this run would spend it.
+  return { party, provisions: { ...runProvisions(hunger, loadout, briefing), blessed: save.expeditionBlessing } };
+}
+
+/**
  * Estimates a party's chances by running the dungeon with many seeds, with
  * their current HP and the supply, meal and briefing they would take. The real
  * expedition uses its own seed, so this is a preview, not a promise.
  */
 export function estimateOdds(save: SaveData, heroIds: string[], dungeon: DungeonDef, runs = ODDS_RUNS, options: OddsOptions = {}): Odds {
-  const { now, loadout = {}, fullHp = false, briefing = EMPTY_BRIEFING } = options;
-  const party = prepareParty(save, heroIds, now, true).map((m) => (fullHp ? { ...m, hp: m.maxHp } : m));
-  const { hunger } = launchPlan(save, dungeon, heroIds, loadout, briefing);
-  // The waiting chapel blessing, if this run would spend it.
-  return estimatePartyOdds(party, dungeon, runs, { ...runProvisions(hunger, loadout, briefing), blessed: save.expeditionBlessing });
+  const { party, provisions } = oddsRunInputs(save, heroIds, dungeon, options);
+  return estimatePartyOdds(party, dungeon, runs, provisions);
 }
 
 export function oddsBand(success: number): OddsBand {
