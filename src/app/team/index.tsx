@@ -1,88 +1,194 @@
 import { rosterRules } from '@/content/roster';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { STATS, statIcons } from '@/components/GearRow';
-import { Button } from '@/components/Button';
+import { statIcons } from '@/components/GearRow';
+import { GameIcon } from '@/components/GameIcon';
 import { HpBar } from '@/components/HpBar';
-import { Panel } from '@/components/Panel';
-import { IconSlot } from '@/components/Row';
 import { Text } from '@/components/Text';
 import { TutorialHint } from '@/components/TutorialHint';
+import { ParchmentCard, WoodButton } from '@/components/ui';
 import { heroClasses } from '@/content/heroes';
 import { traitById } from '@/content/traits';
-import { heroStats, isOnExpedition } from '@/game/team/team';
+import { heroDamageStat, heroStats, isOnExpedition } from '@/game/team/team';
 import { pendingApproachPicks } from '@/game/team/stats';
 import { rosterCap } from '@/game/guild/guild';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useNow } from '@/hooks/useNow';
 import { navigate } from '@/services/navigation';
-import { t, tr } from '@/i18n';
+import { t, tr, type TextKey } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
-import { colors } from '@/theme';
+import { fonts, ui } from '@/theme';
+
+/** A leading ' · ' separator stripped when the fragment is shown on its own. */
+function alone(key: TextKey): string {
+  return t(key).replace(/^\s*·\s*/, '').trim();
+}
 
 export default function TeamScreen() {
   useLanguage();
   const save = useGameStore((state) => state.save);
   const now = useNow();
+  const freeBunks = Math.max(0, rosterCap(save) - save.heroes.length);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
       <TutorialHint screen="team" />
-      <Text style={styles.roster}>
-        {t('team.roster', { count: save.heroes.length, cap: rosterCap(save), party: rosterRules.partySize })}
-      </Text>
-      <View style={styles.classes}>
-        <Button emoji="📜" title={t('classes.link')} onPress={() => navigate('/team/classes')} />
+      <View style={styles.header}>
+        <Text style={styles.roster}>
+          {t('team.roster', { count: save.heroes.length, cap: rosterCap(save), party: rosterRules.partySize })}
+        </Text>
       </View>
+      <WoodButton emoji="📜" title={t('classes.link')} onPress={() => navigate('/team/classes')} />
       {save.heroes.map((hero) => {
         const heroClass = heroClasses[hero.classId];
         const away = isOnExpedition(save, hero.id);
+        const escort = save.escort?.heroId === hero.id;
+        const patrol = save.patrolFights.some((fight) => fight.heroIds.includes(hero.id));
+        const status = away
+          ? alone('common.onExpedition')
+          : escort
+            ? alone('common.escort')
+            : patrol
+              ? alone('common.patrol')
+              : t('team.ready');
         const stats = heroStats(save, hero);
+        const damageStat = heroDamageStat(save, hero);
         const pending = pendingApproachPicks(hero);
         return (
           <Pressable
             key={hero.id}
+            accessibilityRole="button"
+            accessibilityLabel={`${hero.name}, ${tr(heroClass.name)}, ${t('common.level', { level: hero.level })}`}
             onPress={() => navigate({ pathname: '/team/[heroId]', params: { heroId: hero.id } })}
             style={({ pressed }) => pressed && styles.pressed}
           >
-            <Panel style={styles.card}>
-              <IconSlot emoji={heroClass.emoji} size={44} />
+            <ParchmentCard contentStyle={styles.card}>
+              <View style={styles.portrait}>
+                <View style={styles.portraitSeams} pointerEvents="none">
+                  {Array.from({ length: 6 }, (_, i) => (
+                    <View key={i} style={[styles.portraitSeam, { top: (i + 1) * 10 }]} />
+                  ))}
+                </View>
+                <View style={styles.portraitBrass} pointerEvents="none" />
+                <GameIcon emoji={heroClass.emoji} size={46} />
+                <View style={styles.levelDiamond}>
+                  <View style={styles.levelDiamondFace}>
+                    <Text style={styles.levelText}>{hero.level}</Text>
+                  </View>
+                </View>
+              </View>
               <View style={styles.body}>
                 <View style={styles.titleLine}>
                   <Text style={styles.name}>{hero.name}</Text>
-                  <Text style={styles.level}>{t('common.levelShort', { level: hero.level })}</Text>
+                  <Text style={[styles.status, !away && !escort && !patrol && styles.statusReady]}>{status}</Text>
                   {pending > 0 && <Text style={styles.pending}>{t('hero.pendingPicks', { count: pending })}</Text>}
                 </View>
-                <Text style={styles.muted}>
+                <Text style={styles.classLine}>
                   {tr(heroClass.name)} · {tr(traitById[hero.trait]?.name ?? '')}
-                  {away ? t('common.onExpedition') : ''}
-                  {save.escort?.heroId === hero.id ? t('common.escort') : ''}
-                  {save.patrolFights.some((fight) => fight.heroIds.includes(hero.id)) ? t('common.patrol') : ''}
                 </Text>
-                <Text style={styles.stats}>{STATS.map((stat) => `${statIcons[stat]} ${stats[stat]}`).join('  ')}</Text>
                 <HpBar save={save} hero={hero} now={now} />
+                <View style={styles.statRow}>
+                  {(['hp', damageStat, 'armour', 'speed'] as const).map((stat) => (
+                    <View key={stat} style={styles.statCell}>
+                      <GameIcon emoji={statIcons[stat]} size={12} />
+                      <Text style={styles.statValue}>{stats[stat]}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
-              <Text style={styles.chevron}>›</Text>
-            </Panel>
+            </ParchmentCard>
           </Pressable>
         );
       })}
+      {Array.from({ length: freeBunks }, (_, i) => (
+        <View key={i} style={styles.bunk}>
+          <Text style={styles.bunkPlus}>+</Text>
+          <Text style={styles.bunkText}>{t('team.emptyBunk')}</Text>
+        </View>
+      ))}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16 },
+  scroll: { backgroundColor: ui.woodDark },
+  container: { padding: 14, gap: 12 },
   pressed: { opacity: 0.6 },
-  roster: { color: colors.muted, paddingBottom: 8 },
-  classes: { alignItems: 'flex-start', paddingBottom: 8 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  roster: { fontFamily: fonts.body, fontSize: 20, color: ui.brassLight },
   card: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  body: { flex: 1 },
-  titleLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  name: { fontSize: 22 },
-  level: { paddingHorizontal: 6, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.highlight, fontSize: 16 },
-  pending: { paddingHorizontal: 6, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.highlight, fontSize: 12 },
-  muted: { color: colors.muted },
-  stats: { fontSize: 17 },
-  chevron: { fontSize: 28, color: colors.muted },
+  portrait: {
+    width: 68,
+    height: 68,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: ui.woodMid,
+    borderWidth: 3,
+    borderColor: ui.outline,
+  },
+  portraitSeams: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' },
+  portraitSeam: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: ui.woodSeam },
+  portraitBrass: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    right: 4,
+    bottom: 4,
+    borderWidth: 2,
+    borderColor: ui.brass,
+  },
+  levelDiamond: {
+    position: 'absolute',
+    left: -9,
+    bottom: -9,
+    width: 28,
+    height: 28,
+    transform: [{ rotate: '45deg' }],
+    backgroundColor: ui.ember,
+    borderWidth: 2,
+    borderColor: ui.outline,
+  },
+  levelDiamondFace: { flex: 1, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-45deg' }] },
+  levelText: { fontFamily: fonts.body, fontSize: 16, color: ui.onEmber },
+  body: { flex: 1, gap: 3 },
+  titleLine: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  name: { flex: 1, fontFamily: fonts.body, fontSize: 23, color: ui.ink, lineHeight: 24 },
+  status: { fontFamily: fonts.serifBold, fontSize: 12, color: ui.bad },
+  statusReady: { color: ui.good },
+  pending: {
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: ui.keyword,
+    backgroundColor: ui.keywordBg,
+    fontFamily: fonts.serifBold,
+    fontSize: 12,
+    color: ui.keyword,
+  },
+  classLine: { fontFamily: fonts.serif, fontSize: 13, color: ui.inkMuted },
+  statRow: { flexDirection: 'row', gap: 3 },
+  statCell: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    backgroundColor: ui.parchmentShade,
+    borderWidth: 1,
+    borderColor: ui.parchmentRule,
+  },
+  statValue: { fontFamily: fonts.serifBold, fontSize: 12, color: ui.ink },
+  bunk: {
+    height: 58,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: ui.inkMuted,
+    backgroundColor: ui.woodDeep,
+  },
+  bunkPlus: { fontFamily: fonts.body, fontSize: 19, color: ui.brassDim },
+  bunkText: { fontFamily: fonts.serif, fontSize: 15, color: ui.onWoodMuted },
 });

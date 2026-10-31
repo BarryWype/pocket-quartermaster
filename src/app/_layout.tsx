@@ -82,7 +82,7 @@ export default function RootLayout() {
         <Stack.Screen name="infuse" dangerouslySingular options={{ title: t('screens.infuse') }} />
         <Stack.Screen name="provisions" dangerouslySingular options={{ title: t('screens.provisions'), header: () => <ScreenHeader title={t('screens.provisions')} />, contentStyle: { backgroundColor: ui.woodDark } }} />
         <Stack.Screen name="inventory" dangerouslySingular options={{ title: t('screens.inventory') }} />
-        <Stack.Screen name="team/index" dangerouslySingular options={{ title: t('screens.team') }} />
+        <Stack.Screen name="team/index" dangerouslySingular options={{ title: t('screens.team'), header: () => <ScreenHeader title={t('screens.barracks')} />, contentStyle: { backgroundColor: ui.woodDark } }} />
         <Stack.Screen name="team/[heroId]" dangerouslySingular options={{ title: t('screens.hero') }} />
         <Stack.Screen name="team/classes" dangerouslySingular options={{ title: t('classes.title') }} />
         <Stack.Screen name="expeditions" dangerouslySingular options={{ title: t('screens.expeditions') }} />

@@ -22,6 +22,7 @@ export const en = {
     provisions: 'Provisions',
     inventory: 'Inventory',
     team: 'Team',
+    barracks: 'Barracks',
     hero: 'Character sheet',
     expeditions: 'Expeditions',
     quests: 'Quests',
@@ -369,6 +370,8 @@ export const en = {
   },
   team: {
     roster: 'Roster {count}/{cap} · up to {party} per expedition',
+    ready: 'Ready',
+    emptyBunk: 'Empty bunk · recruit at a tavern',
     collector: '+{percent} when selling valuables',
     questCap: 'Hold {count} quests',
     questReroll: '{count} quest rerolls a day',

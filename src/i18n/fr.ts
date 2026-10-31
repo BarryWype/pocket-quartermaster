@@ -24,6 +24,7 @@ export const fr: Dictionary = {
     provisions: 'Provisions',
     inventory: 'Inventaire',
     team: 'Équipe',
+    barracks: 'Caserne',
     hero: 'Fiche de personnage',
     expeditions: 'Expéditions',
     quests: 'Quêtes',
@@ -375,6 +376,8 @@ export const fr: Dictionary = {
   },
   team: {
     roster: 'Effectif {count}/{cap} · jusqu’à {party} par expédition',
+    ready: 'Prêt',
+    emptyBunk: 'Couchette libre · recrutez à la taverne',
     collector: '+{percent} à la vente d’objets de valeur',
     questCap: 'Garder jusqu’à {count} quêtes',
     questReroll: '{count} relances de quête par jour',
