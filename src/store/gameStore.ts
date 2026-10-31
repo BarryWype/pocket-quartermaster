@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { dungeons } from '@/content/dungeons';
+import { gatheringConfig } from '@/content/gatheringConfig';
 import { newHero, xpRules } from '@/content/heroes';
 import { items } from '@/content/items';
 import { recipeById } from '@/content/lookup';
@@ -55,7 +56,7 @@ import { buyRank } from '@/game/guild/guild';
 import { applyTraining } from '@/game/guild/training';
 import { guildRules, type GuildTrackId } from '@/content/guild';
 import { advanceTutorial, finishTutorial, nextTutorialStep } from '@/game/tutorial/tutorial';
-import { collectFromHere, collectTutorialSpawn, placeTutorialSpawns, type TutorialCollectResult } from '@/game/tutorial/spawns';
+import { collectFromHere, collectRadiusNow, collectTutorialSpawn, placeTutorialSpawns, type TutorialCollectAllResult, type TutorialCollectResult } from '@/game/tutorial/spawns';
 import { skipTutorial, restartTutorial, jumpToStep } from '@/game/tutorial/skip';
 import { pruneExpired, rollDailyApproaches } from '@/game/upkeep';
 import { questRules, type QuestBand, type QuestObjective } from '@/content/quests';
@@ -200,8 +201,8 @@ type GameState = {
   placeTutorialSpawns: (player: LatLng | null, tile: WalkableTile | null | undefined) => void;
   /** Picks up a tutorial node; `anywhere` is the "Collect from here" fallback. */
   collectTutorialSpawn: (id: string, player: LatLng | null, anywhere?: boolean) => TutorialCollectResult;
-  /** The walking fallback: collects the current step's first node, wherever the player is. */
-  collectFromHere: () => TutorialCollectResult;
+  /** The walking fallback: collects every remaining node of the current step, wherever the player is. */
+  collectFromHere: () => TutorialCollectAllResult;
   /** Skips the tutorial from the current step, giving everything playing it out would have. */
   skipTutorial: () => void;
   /** Points the tutorial's first quest at the nearest revealed place. */
@@ -285,7 +286,10 @@ export const useGameStore = create<GameState>()(
     (set, get) => ({
       save: createInitialSave(),
       collect: (spawn, gatherer, timeMs) => {
-        const result = collectSpawn(get().save, spawn, gatherer, timeMs);
+        const save = get().save;
+        // While the tutorial runs, the pick-up range is wider (see collectRadiusNow).
+        const config = { ...gatheringConfig, collectRadiusMeters: collectRadiusNow(save) };
+        const result = collectSpawn(save, spawn, gatherer, timeMs, { config });
         if (result.ok) set({ save: advanceTutorial(result.save) });
         return result;
       },
@@ -698,13 +702,13 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 29,
+      version: 30,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
-      // Until release, a save change starts fresh: saves before version 29 (hands-on tutorial) are reset.
+      // Until release, a save change starts fresh: saves before version 30 (quest arrival baselines) are reset.
       migrate: (persisted, version) => {
         const old = (persisted as { save?: SaveData } | undefined)?.save;
-        if (!old || version < 29) return { save: createInitialSave() };
+        if (!old || version < 30) return { save: createInitialSave() };
         return { save: old };
       },
       merge: (persisted, current) => ({

@@ -13,12 +13,16 @@ export const tutorialRules = {
   spawns: { gatherWood: ['wood', 'wood', 'wood', 'wood'], gatherKit: ['meat', 'hide', 'bone'] } as Partial<
     Record<TutorialStep, string[]>
   >,
-  spawnMeters: [15, 30] as [number, number],
-  spacingMeters: 8,
+  spawnMeters: [8, 15] as [number, number],
+  spacingMeters: 6,
   /** Random spots tried per node before taking one off the walkable map. */
   spawnTries: 40,
   /** A "Collect from here" button shows once nothing was picked up for this long after a spawn. */
-  fallbackSeconds: 60,
+  fallbackSeconds: 30,
+  /** The pick-up range while the tutorial runs (outside it, gatheringConfig.collectRadiusMeters). */
+  collectRadiusMeters: 50,
+  /** When the player ends up this far from the remaining nodes, they respawn around the player. */
+  respawnMeters: 60,
   /** The map zooms out to this when the tutorial ends. */
   doneZoom: 16,
   /** The first-win roll is seeded with this, so the run and the skip give the same loot. */

@@ -59,7 +59,7 @@ import { liveTreasureMaps } from '@/game/rewards/treasure';
 import { isPlaceRevealed, isRevealed } from '@/game/reveal/reveal';
 import { generateSanctumsAround, sanctumById, type SanctumSpawn } from '@/game/sanctums/sanctums';
 import { generateTavernsAround, isTavernUnlocked, type TavernSpawn } from '@/game/taverns/taverns';
-import { fallbackReady, shownTutorialSpawns } from '@/game/tutorial/spawns';
+import { collectRadiusNow, fallbackReady, shownTutorialSpawns } from '@/game/tutorial/spawns';
 import { useLanguage } from '@/hooks/useLanguage';
 import { usePlacedPoints, usePlacedSpawns } from '@/hooks/usePlacedSpawns';
 import { useAmbience } from '@/hooks/useAmbience';
@@ -113,8 +113,9 @@ const keepPlace = (place: PlaceSpawn, tile: WalkableTile | null, position: LatLn
 const isSecretKind = (kind: PlaceSpawn['kind']) => kind === 'hiddenDen' || kind === 'blackMarket' || kind === 'underwaterDungeon';
 
 const minutesLeft = (ms: number) => `${Math.floor(ms / 60_000)}:${String(Math.floor((ms % 60_000) / 1000)).padStart(2, '0')}`;
-const failureMessages: Record<CollectFailure, (distance: number) => string> = {
-  tooFar: (distance) => t('map.tooFar', { distance: Math.round(distance), radius: gatheringConfig.collectRadiusMeters }),
+const failureMessages: Record<CollectFailure, (distance: number, radius?: number) => string> = {
+  tooFar: (distance, radius = gatheringConfig.collectRadiusMeters) =>
+    t('map.tooFar', { distance: Math.round(distance), radius }),
   fled: () => t('map.fled'),
   collected: () => t('map.collected'),
   expired: () => t('map.expired'),
@@ -429,9 +430,11 @@ export default function MapScreen() {
   // Indoors, with bad GPS or no location: the tutorial's nodes can be picked up from here after a while.
   const locationOff = player.status === 'denied';
   const fallback = fallbackReady(save, now, locationOff);
+  // While the tutorial runs, the pick-up range is wider, so GPS drift can't strand its nodes.
+  const collectRadius = collectRadiusNow(save);
   const gatherFromHere = () => {
     const result = collectFromHere();
-    if (result.ok) setMessage(`+ 1 ${tr(materialById[result.materialId]?.name ?? result.materialId)}`);
+    if (result.ok) setMessage(`+ ${result.gained.map((g) => `${g.amount} ${tr(materialById[g.materialId]?.name ?? g.materialId)}`).join(', ')}`);
   };
   const fallbackButton = fallback && (
     <View style={[styles.fallback, { bottom: insets.bottom + ISLAND_HEIGHT + 12 }]}>
@@ -472,7 +475,7 @@ export default function MapScreen() {
     ...(autoOn || showAutoRadius ? [{ id: 'auto', center: position, radius: autoRadius, kind: 'auto' as const }] : []),
     ...(showNodeRanges
       ? [
-          { id: 'tap', center: position, radius: gatheringConfig.collectRadiusMeters, kind: 'tap' as const },
+          { id: 'tap', center: position, radius: collectRadius, kind: 'tap' as const },
           ...visible.map(({ spawn, position: at }) => ({ id: spawn.id, center: at, radius: gatheringConfig.autoGather.radiusMeters, kind: 'node' as const })),
         ]
       : []),
@@ -488,7 +491,7 @@ export default function MapScreen() {
   const gatherTutorial = (id: string) => {
     const result = collectTutorialSpawn(id, position);
     if (result.ok) setMessage(`+ 1 ${tr(materialById[result.materialId]?.name ?? result.materialId)}`);
-    else setMessage(failureMessages[result.reason](result.distance));
+    else setMessage(failureMessages[result.reason](result.distance, collectRadius));
   };
 
   const digUp = (mapId: string, treasureAt: LatLng) => {
@@ -510,7 +513,7 @@ export default function MapScreen() {
     const pickaxe = needs
       ? items.find((item) => item.slot === 'tool' && item.toolType === 'pickaxe' && item.tier === needs)
       : undefined;
-    setMessage(needs && pickaxe ? t('map.needsPickaxe', { pickaxe: tr(pickaxe.name) }) : failureMessages[result.reason](result.distance));
+    setMessage(needs && pickaxe ? t('map.needsPickaxe', { pickaxe: tr(pickaxe.name) }) : failureMessages[result.reason](result.distance, collectRadius));
   };
 
   return (
@@ -559,7 +562,7 @@ export default function MapScreen() {
                 kind={spawn.kind}
                 emoji={shown?.emoji ?? '❓'}
                 icon={shown?.icon}
-                inRange={distance <= gatheringConfig.collectRadiusMeters}
+                inRange={distance <= collectRadius}
                 fleeing={spawn.kind === 'animal' && isFleeing(speed)}
                 sway={read.resourceId === 'tree'}
                 locked={read.state === 'locked'}
@@ -578,7 +581,7 @@ export default function MapScreen() {
                   kind={wood ? 'wood' : 'animal'}
                   emoji={wood ? resourceById.tree.emoji : material.emoji}
                   icon={wood ? resourceById.tree.icon : material.icon}
-                  inRange={distanceMeters(position, node.position) <= gatheringConfig.collectRadiusMeters}
+                  inRange={distanceMeters(position, node.position) <= collectRadius}
                   fleeing={false}
                   sway={wood}
                 />
