@@ -16,12 +16,15 @@ import { rosterCap } from '@/game/guild/guild';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useNow } from '@/hooks/useNow';
 import { navigate } from '@/services/navigation';
+import { useNavigationPending } from '@/hooks/useNavigationPending';
 import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
 
 export default function TeamScreen() {
   useLanguage();
+  // While a navigation is still waiting for its screen, the buttons that open one stand down.
+  const navigationPending = useNavigationPending();
   const save = useGameStore((state) => state.save);
   const now = useNow();
 
@@ -32,7 +35,7 @@ export default function TeamScreen() {
         {t('team.roster', { count: save.heroes.length, cap: rosterCap(save), party: rosterRules.partySize })}
       </Text>
       <View style={styles.classes}>
-        <Button title={`📜 ${t('classes.link')}`} onPress={() => navigate('/team/classes')} />
+        <Button title={`📜 ${t('classes.link')}`} disabled={navigationPending} onPress={() => navigate('/team/classes')} />
       </View>
       {save.heroes.map((hero) => {
         const heroClass = heroClasses[hero.classId];
@@ -42,6 +45,7 @@ export default function TeamScreen() {
         return (
           <Pressable
             key={hero.id}
+            disabled={navigationPending}
             onPress={() => navigate({ pathname: '/team/[heroId]', params: { heroId: hero.id } })}
             style={({ pressed }) => pressed && styles.pressed}
           >

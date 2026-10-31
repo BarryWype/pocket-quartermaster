@@ -8,6 +8,7 @@ import { isRevealed } from '@/game/reveal/reveal';
 import { currentHp, maxHp } from '@/game/team/health';
 import { tutorialTarget, type MenuTarget } from '@/game/tutorial/tutorial';
 import { navigate } from '@/services/navigation';
+import { useNavigationPending } from '@/hooks/useNavigationPending';
 import { t, type TextKey } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
@@ -29,6 +30,8 @@ export const ISLAND_HEIGHT = 84;
 export function IslandMenu() {
   const insets = useSafeAreaInsets();
   const [craftOpen, setCraftOpen] = useState(false);
+  // While a navigation is still waiting for its screen, the buttons stand down.
+  const pending = useNavigationPending();
   // Unread reports and teams back with loot to collect, as of the last change to the save.
   const unseenReports = useGameStore(
     ({ save }) => save.reports.filter((r) => !r.seen).length + save.expeditions.filter((e) => e.endsAt <= Date.now()).length,
@@ -59,6 +62,7 @@ export function IslandMenu() {
             {CRAFT_LINKS.map((link) => (
               <Pressable
                 key={link.label}
+                disabled={pending}
                 onPress={() => go(link.href)}
                 style={({ pressed }) => [
                   styles.dropdownItem,
@@ -85,15 +89,19 @@ export function IslandMenu() {
             label={t('screens.team')}
             badge={hurt}
             highlight={target === 'team'}
+            disabled={pending}
             onPress={() => go('/team')}
           />
-          {guildShown && <MenuButton emoji="🏛️" label={t('menu.guild')} onPress={() => go('/guild')} />}
-          {questsShown && <MenuButton emoji="📜" label={t('menu.quests')} compact badge={questNews} onPress={() => go('/quests')} />}
+          {guildShown && <MenuButton emoji="🏛️" label={t('menu.guild')} disabled={pending} onPress={() => go('/guild')} />}
+          {questsShown && (
+            <MenuButton emoji="📜" label={t('menu.quests')} compact badge={questNews} disabled={pending} onPress={() => go('/quests')} />
+          )}
           <MenuButton
             icon={require('../../assets/icons/scaled/menu-expeditions.png')}
             label={t('menu.expeditions')}
             badge={unseenReports}
             highlight={target === 'expeditions'}
+            disabled={pending}
             onPress={() => go('/expeditions')}
           />
         </View>
@@ -114,13 +122,16 @@ type MenuButtonProps = {
   badge?: number;
   /** Icon only: the label is read out but not shown. */
   compact?: boolean;
+  /** A navigation is still waiting for its screen: the button stands down. */
+  disabled?: boolean;
 };
 
-function MenuButton({ icon, emoji, label, onPress, active, highlight, badge, compact }: MenuButtonProps) {
+function MenuButton({ icon, emoji, label, onPress, active, highlight, badge, compact, disabled }: MenuButtonProps) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
+      disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,

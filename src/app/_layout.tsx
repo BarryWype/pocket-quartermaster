@@ -3,7 +3,7 @@ import '@/services/walkTracking';
 
 import { useFonts } from 'expo-font';
 import { Stack, useRootNavigationState } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
 
 import { RecipeToast } from '@/components/RecipeToast';
@@ -48,11 +48,19 @@ function useUpkeep() {
 export default function RootLayout() {
   const locale = useLanguage();
   // The shared navigation helper reads the stack from here, so taps can't stack screens.
+  // The names arrive as a new array on every render of the root layout: only a
+  // real change is passed on, so a re-render (or a report from before a
+  // navigation finished) never overwrites what the helper holds.
   const navigationState = useRootNavigationState();
-  const routeNames = navigationState?.routes.map((route) => route.name);
+  const lastRouteNames = useRef<string[] | null>(null);
   useEffect(() => {
-    setNavigationStack(routeNames ?? []);
-  }, [routeNames]);
+    const routeNames = navigationState?.routes.map((route) => route.name) ?? [];
+    const last = lastRouteNames.current;
+    const unchanged = last !== null && last.length === routeNames.length && last.every((name, i) => name === routeNames[i]);
+    if (unchanged) return;
+    lastRouteNames.current = routeNames;
+    setNavigationStack(routeNames);
+  }, [navigationState]);
   useEffect(() => {
     configureChannels();
     syncPlan();
