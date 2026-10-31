@@ -317,6 +317,8 @@ export const fr: Dictionary = {
     tabs: { kitchen: 'Cuisine', alchemy: 'Alchimie' },
     families: { meals: 'Repas', supply: 'Vivres', kits: 'Trousses', hero: 'Consommables de héros', walking: 'Promenade', homeCare: 'Soins à la maison' },
     batch: '×{count}',
+    supplies: 'Vivres',
+    otherRecipe: 'Autre recette',
     infuse: 'Imprégner',
     owned: 'Possédé',
     mastery: '{type} : maîtrise {level}',

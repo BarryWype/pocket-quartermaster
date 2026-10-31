@@ -311,6 +311,8 @@ export const en = {
     tabs: { kitchen: 'Kitchen', alchemy: 'Alchemy' },
     families: { meals: 'Meals', supply: 'Supply', kits: 'Kits', hero: 'Hero consumables', walking: 'Walking', homeCare: 'Home care' },
     batch: '×{count}',
+    supplies: 'Supplies',
+    otherRecipe: 'Other recipe',
     infuse: 'Infuse',
     owned: 'Owned',
     mastery: '{type} mastery {level}',

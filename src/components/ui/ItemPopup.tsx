@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, View, type ImageSourcePropType, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type ImageSourcePropType, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Text } from '@/components/Text';
 import { fonts, ui } from '@/theme';
@@ -36,7 +36,6 @@ type Props = {
   /** A pointer sticking out of the card's top or bottom edge, at `x` px from its left. */
   pointer?: { side: 'top' | 'bottom'; x: number };
   style?: StyleProp<ViewStyle>;
-  onLayout?: ViewProps['onLayout'];
 };
 
 /** One keyword, class or muted line of a pop-up. */
@@ -58,9 +57,9 @@ function Line({ line }: { line: PopupLine }) {
 }
 
 /** The selected item's pop-up: parchment card with value, lines, ingredients and the main action. */
-export function ItemPopup({ title, subtitle, emoji, icon, value, valueLabel, note, lines, children, ingredients, action, secondary, pointer, style, onLayout }: Props) {
+export function ItemPopup({ title, subtitle, emoji, icon, value, valueLabel, note, lines, children, ingredients, action, secondary, pointer, style }: Props) {
   return (
-    <View style={style} onLayout={onLayout}>
+    <View style={style}>
       {pointer?.side === 'top' && (
         <View style={[styles.pointer, styles.pointerTop, { left: pointer.x - 9 }]} pointerEvents="none" />
       )}

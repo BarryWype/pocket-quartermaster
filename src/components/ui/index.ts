@@ -1,3 +1,4 @@
+export { AnchoredPopup, type PopupAnchor } from './AnchoredPopup';
 export { Chip, type ChipTone } from './Chip';
 export { DiamondButton } from './DiamondButton';
 export { DiamondRail, RAIL_WIDTH, type RailItem } from './DiamondRail';
