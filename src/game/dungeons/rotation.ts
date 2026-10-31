@@ -23,6 +23,8 @@ export type TierRotation = {
 export type Rotation = {
   day: number;
   tiers: Record<number, TierRotation>;
+  /** The day's composed briefing for each open dungeon (composed once, in `pickDay`). */
+  composed: Record<string, Briefing>;
   /** Debug briefings forced on dungeons, keyed by dungeon id. */
   briefings?: Record<string, Briefing>;
 };
@@ -56,6 +58,7 @@ function pickDay(
   rules: Rules,
 ): Rotation {
   const tiers: Record<number, TierRotation> = {};
+  let composed: Record<string, Briefing> = {};
   for (const tier of tiersOf(dungeons)) {
     const inTier = dungeons.filter((d) => d.tier === tier);
     const boss = inTier.find((d) => d.isBoss)!;
@@ -69,10 +72,15 @@ function pickDay(
     };
     const short = pick('short', null);
     const long = pick('long', mainTag(short));
-    const briefings = Object.fromEntries([boss, short, long].map((d) => [d.id, composeBriefing(d, day)]));
+    const trio = [boss, short, long];
+    const briefings = Object.fromEntries(trio.map((d) => [d.id, composeBriefing(d, day)]));
     tiers[tier] = { boss: boss.id, short: short.id, long: long.id, surge: rollSurge(day, tier, briefings) };
+    // The tier's overnight dungeon's briefing too, so the screens that show it
+    // (Expeditions' odds keys, the Send dialog) read it instead of recomposing.
+    const overnight = Object.fromEntries(inTier.filter((d) => d.overnight).map((d) => [d.id, composeBriefing(d, day)]));
+    composed = { ...composed, ...briefings, ...overnight };
   }
-  return { day, tiers };
+  return { day, tiers, composed };
 }
 
 type History = { startDay: number; rotations: Rotation[]; lastSeen: Map<string, number> };
@@ -224,13 +232,16 @@ export const openDungeonIds = (rotation: Rotation) =>
 
 /**
  * A dungeon's briefing today: a debug-forced one when there is one, else the
- * day's composed briefing with the tier's surge applied when it targets the
- * dungeon. Same day, same briefing for everyone.
+ * day's composed briefing (composed once in `pickDay`, carried on the
+ * rotation) with the tier's surge applied when it targets the dungeon. Same
+ * day, same briefing for everyone. A rotation without a composed briefing
+ * for the dungeon (not one of its open ones, or a hand-built rotation)
+ * composes it on the spot.
  */
 export function briefingFor(rotation: Rotation, dungeon: DungeonDef): Briefing {
   const forced = rotation.briefings?.[dungeon.id];
   if (forced) return forced;
   const surge = Object.values(rotation.tiers).find((t) => t.surge?.dungeonId === dungeon.id)?.surge ?? null;
-  const briefing = composeBriefing(dungeon, rotation.day);
+  const briefing = rotation.composed?.[dungeon.id] ?? composeBriefing(dungeon, rotation.day);
   return surge ? withSurge(briefing, surge.threatId) : briefing;
 }

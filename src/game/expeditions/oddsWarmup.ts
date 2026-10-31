@@ -5,6 +5,7 @@ import { dungeonById } from '@/content/lookup';
 import { tutorialRules } from '@/content/tutorial';
 
 import type { Rotation } from '../dungeons/rotation';
+import type { DungeonDef } from '../types';
 import { briefingOf, isDungeonUnlocked } from './expeditions';
 import { isOnExpedition } from '../team/team';
 import { isRevealed } from '../reveal/reveal';
@@ -19,6 +20,28 @@ export type WarmupJob = {
   /** Null when the odds are already in the cache (nothing to warm) or the party is empty. */
   task: OddsTask | null;
 };
+
+/**
+ * The odds key for each dungeon shown, keyed exactly as the Expeditions screen
+ * keys them on its first render: the party, the healed-HP minute and the day's
+ * briefing. The screen's own key map and the warm-up's jobs come from here,
+ * so what the warm-up fills is what the screen reads from the cache at once.
+ */
+export function expeditionOddsKeys(
+  save: SaveData,
+  heroIds: string[],
+  shown: DungeonDef[],
+  rotation: Rotation,
+  minute: number,
+): Record<string, string> {
+  const now = minute * 60_000;
+  return Object.fromEntries(
+    shown.map((dungeon) => [
+      dungeon.id,
+      oddsKey({ save, heroIds, dungeon, options: { now, briefing: briefingOf(save, dungeon, rotation, now) } }),
+    ]),
+  );
+}
 
 /**
  * The party Expeditions opens on: the first `partySize` heroes at home, in
@@ -52,11 +75,10 @@ export function warmupJobs(save: SaveData, rotation: Rotation, minute: number): 
     ? dungeons.filter((dungeon) => dungeon.overnight && isDungeonUnlocked(save, dungeon) && dungeon.tier === tier)
     : [];
   const shown = [...open.filter((dungeon) => dungeon.tier === tier), ...overnight];
-  const now = minute * 60_000;
+  const keys = expeditionOddsKeys(save, party, shown, rotation, minute);
   return shown.map((dungeon) => {
-    const options = { now, briefing: briefingOf(save, dungeon, rotation, now) };
-    const key = oddsKey({ save, heroIds: party, dungeon, options });
-    return { dungeonId: dungeon.id, key, task: cachedOdds(key) ? null : startOddsTask(save, party, dungeon, undefined, options) };
+    const key = keys[dungeon.id];
+    return { dungeonId: dungeon.id, key, task: cachedOdds(key) ? null : startOddsTask(save, party, dungeon, undefined, { now: minute * 60_000, briefing: briefingOf(save, dungeon, rotation, minute * 60_000) }) };
   });
 }
 

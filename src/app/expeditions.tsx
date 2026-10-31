@@ -26,8 +26,9 @@ import { tutorialRules } from '@/content/tutorial';
 import { nextRotationAt, rotationDay } from '@/game/dungeons/rotation';
 import { briefingOf, expeditionMinutes, isDungeonUnlocked, readyExpeditions, type Loadout } from '@/game/expeditions/expeditions';
 import type { Odds } from '@/game/expeditions/odds';
-import { cachedOdds, oddsKey, storeOdds } from '@/game/expeditions/oddsCache';
+import { cachedOdds, storeOdds } from '@/game/expeditions/oddsCache';
 import { oddsOfTask, oddsTaskDone, runOddsSlice, startOddsTask } from '@/game/expeditions/oddsSlices';
+import { expeditionOddsKeys } from '@/game/expeditions/oddsWarmup';
 import { isRevealed } from '@/game/reveal/reveal';
 import { supplyHeld } from '@/game/expeditions/provisions';
 import { briefingCoverage } from '@/game/threats/coverage';
@@ -180,19 +181,10 @@ export function ExpeditionsScreen() {
   // heroes heal, or on a party, gear, supply or briefing change).
   const shownList = useMemo(() => [...shown, ...(shownOvernight ? [shownOvernight] : [])], [shown, shownOvernight]);
   const minute = Math.floor(now / 60_000);
+  // The screen's first render reads (and keys) the odds through the same pure
+  // function as the warm-up, so a warmed cache always answers its keys (issue 17).
   const oddsKeys = useMemo(
-    () =>
-      Object.fromEntries(
-        shownList.map((dungeon) => [
-          dungeon.id,
-          oddsKey({
-            save,
-            heroIds: party,
-            dungeon,
-            options: { now: minute * 60_000, briefing: briefingOf(save, dungeon, rotation, minute * 60_000) },
-          }),
-        ]),
-      ),
+    () => expeditionOddsKeys(save, party, shownList, rotation, minute),
     [save, party, shownList, rotation, minute],
   );
   /** The odds computed so far, by dungeon, with the key they belong to. */
