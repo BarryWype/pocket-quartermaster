@@ -286,6 +286,14 @@ export const en = {
     salvageHint: 'Salvage gives back part of the materials: more for better quality. Take gear off first.',
     consumables: 'Consumables',
     noConsumables: 'Cook food and brew potions in Provisions.',
+    pages: {
+      materials: 'Materials',
+      gear: 'Gear',
+      consumables: 'Consumables',
+      treasures: 'Treasures',
+      finds: 'Finds',
+      secrets: 'Secrets',
+    },
   },
   chests: {
     title: 'Daily step chests · {steps} steps today',

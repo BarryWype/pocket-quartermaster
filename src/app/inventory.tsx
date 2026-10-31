@@ -1,100 +1,49 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import PagerView from 'react-native-pager-view';
 
 import { Button } from '@/components/Button';
-import { ItemSheet, purposeBadge, type InventoryItem } from '@/components/ItemSheet';
 import { GearRow } from '@/components/GearRow';
+import { IconLabel } from '@/components/IconLabel';
+import { ItemSheet, purposeBadge, type InventoryItem } from '@/components/ItemSheet';
+import { Row } from '@/components/Row';
 import { SalvageDialog } from '@/components/SalvageDialog';
-import { Row, SectionTitle } from '@/components/Row';
 import { StepChests } from '@/components/StepChests';
 import { Text } from '@/components/Text';
 import { TutorialHint } from '@/components/TutorialHint';
-import { componentById, itemById, materialById, monsterPartById, relicById, valuableById } from '@/content/lookup';
-import { baseItems } from '@/content/loot/baseItems';
-import { PURPOSES, purposeInfo, type Purpose } from '@/content/loot/purposes';
-import { masteryTypeNames } from '@/content/forging';
-import { materials } from '@/content/materials';
-import { valuablePrice } from '@/game/loot/catalogue';
+import { itemById, materialById } from '@/content/lookup';
+import { placeInfo } from '@/content/places';
+import { distanceMeters } from '@/game/generation/geo';
+import { inventoryPages, inventoryRows, type InventoryPageId, type InventoryRow } from '@/game/inventory/inventoryPages';
 import { canSalvage, wornBy } from '@/game/forging/salvage';
 import { ruinsDots } from '@/game/places/ruins';
-import { fragmentsTowardKey, hasKey, keyDots, keysHeld } from '@/game/secrets/keys';
-import { activeTip, tipPosition } from '@/game/secrets/tips';
-import { distanceMeters } from '@/game/generation/geo';
-import { placeInfo } from '@/content/places';
 import { isLureActive, lureEndsAt } from '@/game/rewards/lures';
-import { purposesOf } from '@/game/loot/purposes';
-import type { ManualRarity } from '@/game/loot/types';
-import { liveTreasureMaps } from '@/game/rewards/treasure';
 import type { SaveData } from '@/game/save';
+import { hasKey, keyDots } from '@/game/secrets/keys';
+import { tipPosition } from '@/game/secrets/tips';
+import type { GearInstance } from '@/game/types';
 import { useLanguage } from '@/hooks/useLanguage';
 import { usePlayerLocation } from '@/hooks/usePlayerLocation';
 import { formatDistance, formatDuration, t, tr } from '@/i18n';
-import type { GearInstance } from '@/game/types';
 import { useGameStore } from '@/store/gameStore';
-import { colors } from '@/theme';
+import { colors, pixel } from '@/theme';
 
 const HOUR = 3_600_000;
-const RARITIES: ManualRarity[] = ['common', 'rare', 'legendary'];
 
-/** What a component fits and what it adds to a forged piece. */
-function componentAbout(id: string): string {
-  const component = componentById[id];
-  const fits = component.fits.map((type) => tr(masteryTypeNames[type].name)).join(', ');
-  return t('inventory.componentAbout', { fits, adds: tr(component.adds) });
-}
+/** One tab per page: its emoji and short label. */
+const PAGE_META: Record<InventoryPageId, { emoji: string; label: () => string }> = {
+  materials: { emoji: '🪵', label: () => t('inventory.pages.materials') },
+  gear: { emoji: '⚔️', label: () => t('inventory.pages.gear') },
+  consumables: { emoji: '🧪', label: () => t('inventory.pages.consumables') },
+  treasures: { emoji: '💎', label: () => t('inventory.pages.treasures') },
+  finds: { emoji: '🗺️', label: () => t('inventory.pages.finds') },
+  secrets: { emoji: '🗝️', label: () => t('inventory.pages.secrets') },
+};
 
-/** Every base item the player holds (not gear or consumables), with what it is for. */
-function inventoryItems(save: SaveData): InventoryItem[] {
-  const held: InventoryItem[] = materials
-    .filter((m) => (save.materials[m.id] ?? 0) > 0)
-    .map((m) => ({
-      key: `m:${m.id}`,
-      ref: { kind: 'material', id: m.id },
-      emoji: m.emoji,
-      name: tr(m.name),
-      count: save.materials[m.id],
-      about: monsterPartById[m.id] ? tr(monsterPartById[m.id].uses) : componentById[m.id] ? componentAbout(m.id) : undefined,
-    }));
-  for (const [key, count] of Object.entries(save.valuables)) {
-    const [id, tier] = key.split(':');
-    if (count > 0 && valuableById[id]) {
-      const def = valuableById[id];
-      held.push({ key: `v:${key}`, ref: { kind: 'valuable', id, tier: Number(tier) }, emoji: def.emoji, name: t('inventory.valuable', { name: tr(def.name), tier }), count, about: t('inventory.valuablePrice', { price: valuablePrice(id, Number(tier)) }) });
-    }
-  }
-  for (const { uid, relicId } of save.relics) {
-    const def = relicById[relicId];
-    held.push({
-      key: `r:${uid}`,
-      ref: { kind: 'relic', id: relicId },
-      emoji: '🏺',
-      name: tr(def.name),
-      count: 1,
-      about: t('inventory.relicAbout', { tier: def.tier, type: tr(masteryTypeNames[def.gearType].name), effect: tr(def.effect) }),
-    });
-  }
-  for (const rarity of RARITIES) {
-    const count = save.manuals[rarity] ?? 0;
-    if (count > 0) {
-      held.push({ key: `manual:${rarity}`, ref: { kind: 'manual' }, emoji: baseItems.trainingManual.emoji, name: t('expeditions.manual', { rarity: t(`expeditions.rarity.${rarity}`) }).replace(/^📖 /, ''), count, manual: rarity });
-    }
-  }
-  // Every four fragments are a key; the fragments tile shows the progress to the next one.
-  if (keysHeld(save) > 0) {
-    held.push({ key: 'mysteriousKey', ref: { kind: 'mysteriousKey' }, emoji: baseItems.mysteriousKey.emoji, name: tr(baseItems.mysteriousKey.name), count: keysHeld(save), about: t('secrets.opens') });
-  }
-  if (fragmentsTowardKey(save) > 0) {
-    held.push({ key: 'keyFragments', ref: { kind: 'keyFragment' }, emoji: baseItems.keyFragment.emoji, name: tr(baseItems.keyFragment.name), count: fragmentsTowardKey(save), about: `${tr(baseItems.keyFragment.description ?? '')} ${keyDots(save)} · ${t('secrets.opens')}` });
-  }
-  for (const [id, count] of Object.entries(save.consumables)) {
-    const item = itemById[id];
-    if (count > 0 && item.slot === 'consumable' && item.weakness) {
-      held.push({ key: `w:${id}`, ref: { kind: 'weakness', id }, emoji: item.emoji, name: tr(item.name), count, about: item.description ? tr(item.description) : undefined });
-    }
-  }
-  return held;
-}
+/** The page the player last swiped to, kept for this session only. */
+let lastPage: InventoryPageId | null = null;
 
+/** The inventory: gold, then one swipable page per category of what is held. */
 export default function InventoryScreen() {
   useLanguage();
   const save = useGameStore((state) => state.save);
@@ -104,139 +53,88 @@ export default function InventoryScreen() {
   const player = usePlayerLocation();
   const position = player.status === 'ready' ? player.location.position : null;
   const [now, setNow] = useState(() => Date.now());
+  const pages = inventoryPages(save, now);
+  // Materials open first; later visits reopen the page last used this session.
+  const [index, setIndex] = useState(() => {
+    const wanted = pages.findIndex(({ id }) => id === lastPage);
+    return wanted === -1 ? 0 : wanted;
+  });
+  const pager = useRef<PagerView>(null);
+  const activeIndex = Math.min(index, pages.length - 1);
+  const active = pages[activeIndex]?.id;
+  // Only the finds page shows something that ticks: map expiry and the lure's time left.
   useEffect(() => {
+    if (active !== 'finds') return;
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
-  }, []);
-  const maps = liveTreasureMaps(save, now);
-  const tips = (['hiddenDen', 'blackMarket', 'underwaterDungeon'] as const).flatMap((secret) => activeTip(save, secret, now) ?? []);
-  const sigilTiers = [...new Set(save.sigils)].sort((a, b) => a - b);
-  const [filter, setFilter] = useState<Purpose | null>(null);
+  }, [active]);
   const [opened, setOpened] = useState<InventoryItem | null>(null);
   const [salvaging, setSalvaging] = useState<GearInstance | null>(null);
-  const held = inventoryItems(save);
-  const shown = filter ? held.filter((item) => purposesOf(item.ref).includes(filter)) : held;
-  // Weakness items are listed with the other base items.
-  const ownedConsumables = Object.entries(save.consumables).filter(([id, count]) => {
-    const item = itemById[id];
-    return count > 0 && !(item.slot === 'consumable' && item.weakness);
-  });
+  const rows = inventoryRows(save, now);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <TutorialHint screen="inventory" />
-      <Row emoji="🪙" title={t('common.gold')} right={save.gold} />
-
-      <StepChests />
-
-      <SectionTitle>{t('secrets.title')}</SectionTitle>
-      {tips.length === 0 && <Text style={styles.empty}>{t('secrets.none')}</Text>}
-      {tips.map((tip) => {
-        const spot = tipPosition(tip, () => false);
-        return (
-          <Row
-            key={tip.id}
-            emoji={placeInfo[tip.secret].emoji}
-            title={tr(placeInfo[tip.secret].name)}
-            subtitle={t('secrets.where', {
-              distance: position && spot ? formatDistance(distanceMeters(position, spot)) : '?',
-              time: formatDuration(tip.expiresAt - now),
-            })}
-            right={tip.entered || hasKey(save) ? '🔓' : '🔒'}
-          />
-        );
-      })}
-      {tips.length > 0 && !hasKey(save) && <Text style={styles.empty}>{t('secrets.needKey', { dots: keyDots(save) })}</Text>}
-
-      <SectionTitle>{t('inventory.expeditionFinds')}</SectionTitle>
-      <Row
-        emoji="🎟️"
-        title={t('inventory.sigils')}
-        subtitle={save.sigils.length ? t('inventory.sigilsHint') : t('inventory.sigilsEmpty')}
-        right={sigilTiers.map((t) => `T${t}×${save.sigils.filter((s) => s === t).length}`).join(' ') || '0'}
-      />
-      {maps.map((map) => (
-        <Row
-          key={map.id}
-          emoji="🗺️"
-          title={t('inventory.treasureMap', { rarity: t(`expeditions.rarity.${map.rarity}`), tier: map.tier })}
-          badge={purposeBadge({ kind: 'treasureMap' })}
-          subtitle={t('inventory.expiresIn', {
-            state: map.location ? t('inventory.marked') : t('inventory.notRead'),
-            hours: Math.ceil((map.expiresAt - now) / HOUR),
-          })}
-          right={
-            map.location ? undefined : (
-              <Button title={t('inventory.read')} disabled={!position} onPress={() => position && readMap(map.id, position)} />
-            )
-          }
-        />
-      ))}
-      <Row
-        emoji="🪤"
-        title={t('inventory.lures', { count: save.lures })}
-        subtitle={
-          isLureActive(save, now)
-            ? t('inventory.lureActive', { minutes: Math.ceil((lureEndsAt(save) - now) / 60_000) })
-            : t('inventory.lureHint')
-        }
-        right={
-          <Button
-            title={t('inventory.activate')}
-            disabled={!position || save.lures === 0 || isLureActive(save, now)}
-            onPress={() => position && activateLure(position)}
-          />
-        }
-      />
-      <Row emoji="⛏️" title={t('inventory.ruins')} subtitle={t('places.digProgress', { dots: ruinsDots(save.ruinsProgress) })} />
-
-      <SectionTitle>{t('inventory.items')}</SectionTitle>
-      <View style={styles.chips}>
-        {[null, ...PURPOSES].map((purpose) => (
+    <View style={styles.screen}>
+      <View style={styles.hint}>
+        <TutorialHint screen="inventory" />
+        <Row emoji="🪙" title={t('common.gold')} right={save.gold} />
+      </View>
+      <View style={styles.tabs}>
+        {pages.map(({ id, count }, i) => (
           <Pressable
-            key={purpose ?? 'all'}
-            onPress={() => setFilter(purpose)}
-            style={[styles.chip, filter === purpose && styles.chipOn]}
-            accessibilityRole="button"
-            accessibilityState={{ selected: filter === purpose }}
+            key={id}
+            onPress={() => {
+              pager.current?.setPage(i);
+              lastPage = id;
+            }}
+            style={[styles.tab, i === activeIndex && styles.tabActive]}
           >
-            <Text>{purpose ? `${purposeInfo[purpose].icon} ${tr(purposeInfo[purpose].name)}` : t('inventory.filterAll')}</Text>
+            <IconLabel
+              emoji={PAGE_META[id].emoji}
+              label={PAGE_META[id].label()}
+              labelStyle={[styles.tabLabel, i === activeIndex && styles.tabLabelActive]}
+            />
+            {count > 0 && <Text style={styles.badge}>{count}</Text>}
           </Pressable>
         ))}
       </View>
-      {shown.length === 0 && <Text style={styles.empty}>{t('inventory.noMaterials')}</Text>}
-      {shown.map((item) => (
-        <Row
-          key={item.key}
-          emoji={item.emoji}
-          icon={item.ref.kind === 'material' ? materialById[item.ref.id]?.icon : undefined}
-          title={item.name}
-          right={item.count}
-          badge={purposeBadge(item.ref)}
-          onPress={() => setOpened(item)}
-        />
-      ))}
+      <PagerView
+        style={styles.pager}
+        initialPage={Math.min(index, pages.length - 1)}
+        onPageSelected={({ nativeEvent }) => {
+          setIndex(nativeEvent.position);
+          lastPage = pages[nativeEvent.position].id;
+        }}
+      >
+        {pages.map(({ id }) => (
+          <View key={id}>
+            <ScrollView contentContainerStyle={styles.container}>
+              {id === 'materials' && rows.filter((row) => row.page === 'materials').length === 0 && (
+                <Text style={styles.empty}>{t('inventory.noMaterials')}</Text>
+              )}
+              {id === 'finds' && <StepChests />}
+              {rows
+                .filter((row) => row.page === id)
+                .map((row) => (
+                  <InventoryRowView
+                    key={rowKey(row)}
+                    row={row}
+                    save={save}
+                    now={now}
+                    position={position}
+                    onOpen={setOpened}
+                    onSalvage={setSalvaging}
+                    onReadMap={(mapId, at) => readMap(mapId, at)}
+                    onActivateLure={(at) => activateLure(at)}
+                  />
+                ))}
+              {id === 'secrets' && rows.some((row) => row.page === 'secrets' && row.kind === 'tip') && !hasKey(save) && (
+                <Text style={styles.empty}>{t('secrets.needKey', { dots: keyDots(save) })}</Text>
+              )}
+            </ScrollView>
+          </View>
+        ))}
+      </PagerView>
       {opened && <ItemSheet item={opened} save={save} onClose={() => setOpened(null)} />}
-
-      <SectionTitle>{t('inventory.tools')}</SectionTitle>
-      {save.tools.length === 0 && <Text style={styles.empty}>{t('inventory.noTools')}</Text>}
-      {save.tools.map((toolId) => (
-        <Row key={toolId} emoji={itemById[toolId].emoji} icon={itemById[toolId].icon} title={tr(itemById[toolId].name)} />
-      ))}
-
-      <SectionTitle>{t('inventory.gear')}</SectionTitle>
-      {save.gear.length === 0 && <Text style={styles.empty}>{t('inventory.noGear')}</Text>}
-      {save.gear.map((gear) => {
-        const holder = wornBy(save, gear.uid);
-        return (
-          <GearRow
-            key={gear.uid}
-            gear={gear}
-            note={holder ? t('common.wornBy', { name: holder.name }) : null}
-            right={<Button title={t('inventory.salvage')} disabled={!canSalvage(save, gear.uid)} onPress={() => setSalvaging(gear)} />}
-          />
-        );
-      })}
       {salvaging && (
         <SalvageDialog
           gear={salvaging}
@@ -248,23 +146,170 @@ export default function InventoryScreen() {
           onClose={() => setSalvaging(null)}
         />
       )}
-      {save.gear.length > 0 && (
-        <Text style={styles.empty}>{t('inventory.salvageHint')}</Text>
-      )}
-
-      <SectionTitle>{t('inventory.consumables')}</SectionTitle>
-      {ownedConsumables.length === 0 && <Text style={styles.empty}>{t('inventory.noConsumables')}</Text>}
-      {ownedConsumables.map(([itemId, count]) => (
-        <Row key={itemId} emoji={itemById[itemId].emoji} icon={itemById[itemId].icon} title={tr(itemById[itemId].name)} right={count} />
-      ))}
-    </ScrollView>
+    </View>
   );
 }
 
+/** One row of the inventory, whatever its page. */
+function InventoryRowView({
+  row,
+  save,
+  now,
+  position,
+  onOpen,
+  onSalvage,
+  onReadMap,
+  onActivateLure,
+}: {
+  row: InventoryRow;
+  save: SaveData;
+  now: number;
+  position: { latitude: number; longitude: number } | null;
+  onOpen: (item: InventoryItem) => void;
+  onSalvage: (gear: GearInstance) => void;
+  onReadMap: (mapId: string, at: { latitude: number; longitude: number }) => void;
+  onActivateLure: (at: { latitude: number; longitude: number }) => void;
+}) {
+  switch (row.kind) {
+    case 'item': {
+      const { item } = row;
+      return (
+        <Row
+          emoji={item.emoji}
+          icon={item.ref.kind === 'material' ? materialById[item.ref.id]?.icon : undefined}
+          title={item.name}
+          right={item.count}
+          badge={purposeBadge(item.ref)}
+          onPress={() => onOpen(item)}
+        />
+      );
+    }
+    case 'gear': {
+      const holder = wornBy(save, row.gear.uid);
+      return (
+        <GearRow
+          gear={row.gear}
+          note={holder ? t('common.wornBy', { name: holder.name }) : null}
+          right={<Button title={t('inventory.salvage')} disabled={!canSalvage(save, row.gear.uid)} onPress={() => onSalvage(row.gear)} />}
+        />
+      );
+    }
+    case 'consumable':
+      return <Row emoji={itemById[row.itemId].emoji} icon={itemById[row.itemId].icon} title={tr(itemById[row.itemId].name)} right={row.count} />;
+    case 'sigils': {
+      const tiers = [...new Set(save.sigils)].sort((a, b) => a - b);
+      return (
+        <Row
+          emoji="🎟️"
+          title={t('inventory.sigils')}
+          subtitle={save.sigils.length ? t('inventory.sigilsHint') : t('inventory.sigilsEmpty')}
+          right={tiers.map((tier) => `T${tier}×${save.sigils.filter((s) => s === tier).length}`).join(' ') || '0'}
+        />
+      );
+    }
+    case 'map':
+      return (
+        <Row
+          emoji="🗺️"
+          title={t('inventory.treasureMap', { rarity: t(`expeditions.rarity.${row.map.rarity}`), tier: row.map.tier })}
+          badge={purposeBadge({ kind: 'treasureMap' })}
+          subtitle={t('inventory.expiresIn', {
+            state: row.map.location ? t('inventory.marked') : t('inventory.notRead'),
+            hours: Math.ceil((row.map.expiresAt - now) / HOUR),
+          })}
+          right={
+            row.map.location ? undefined : (
+              <Button title={t('inventory.read')} disabled={!position} onPress={() => position && onReadMap(row.map.id, position)} />
+            )
+          }
+        />
+      );
+    case 'lure':
+      return (
+        <Row
+          emoji="🪤"
+          title={t('inventory.lures', { count: save.lures })}
+          subtitle={
+            isLureActive(save, now)
+              ? t('inventory.lureActive', { minutes: Math.ceil((lureEndsAt(save) - now) / 60_000) })
+              : t('inventory.lureHint')
+          }
+          right={
+            <Button
+              title={t('inventory.activate')}
+              disabled={!position || save.lures === 0 || isLureActive(save, now)}
+              onPress={() => position && onActivateLure(position)}
+            />
+          }
+        />
+      );
+    case 'ruins':
+      return <Row emoji="⛏️" title={t('inventory.ruins')} subtitle={t('places.digProgress', { dots: ruinsDots(save.ruinsProgress) })} />;
+    case 'tool':
+      return <Row emoji={itemById[row.toolId].emoji} icon={itemById[row.toolId].icon} title={tr(itemById[row.toolId].name)} />;
+    case 'tip': {
+      const spot = tipPosition(row.tip, () => false);
+      return (
+        <Row
+          emoji={placeInfo[row.tip.secret].emoji}
+          title={tr(placeInfo[row.tip.secret].name)}
+          subtitle={t('secrets.where', {
+            distance: position && spot ? formatDistance(distanceMeters(position, spot)) : '?',
+            time: formatDuration(row.tip.expiresAt - now),
+          })}
+          right={row.tip.entered || hasKey(save) ? '🔓' : '🔒'}
+        />
+      );
+    }
+  }
+}
+
+function rowKey(row: InventoryRow): string {
+  switch (row.kind) {
+    case 'item':
+      return row.item.key;
+    case 'gear':
+      return row.gear.uid;
+    case 'consumable':
+      return row.itemId;
+    case 'map':
+      return row.map.id;
+    case 'tool':
+      return row.toolId;
+    case 'tip':
+      return row.tip.id;
+    default:
+      return row.kind;
+  }
+}
+
 const styles = StyleSheet.create({
+  screen: { flex: 1 },
+  hint: { paddingHorizontal: 16, paddingTop: 12 },
   container: { padding: 16 },
+  tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12 },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    borderWidth: pixel.outline,
+    borderColor: colors.ink,
+    backgroundColor: colors.parchmentDark,
+  },
+  tabActive: { backgroundColor: colors.wood, borderBottomColor: colors.highlight },
+  tabLabel: { fontSize: 20, color: colors.ink },
+  tabLabelActive: { color: colors.parchment },
+  badge: {
+    minWidth: 20,
+    textAlign: 'center',
+    fontSize: 14,
+    color: colors.parchment,
+    backgroundColor: colors.danger,
+    paddingHorizontal: 4,
+  },
+  pager: { flex: 1 },
   empty: { color: colors.muted, paddingVertical: 8 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingVertical: 6 },
-  chip: { paddingHorizontal: 8, paddingVertical: 2, borderWidth: 2, borderColor: colors.parchmentDark },
-  chipOn: { borderColor: colors.ink, backgroundColor: colors.parchmentDark },
 });

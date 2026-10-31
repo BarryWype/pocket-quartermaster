@@ -292,6 +292,14 @@ export const fr: Dictionary = {
       'Recycler rend une partie des matériaux, d’autant plus que la qualité est bonne. Retirez d’abord l’équipement porté.',
     consumables: 'Consommables',
     noConsumables: 'Cuisinez des vivres et préparez des potions dans Provisions.',
+    pages: {
+      materials: 'Matériaux',
+      gear: 'Équipement',
+      consumables: 'Consommables',
+      treasures: 'Trésors',
+      finds: 'Trouvailles',
+      secrets: 'Secrets',
+    },
   },
   chests: {
     title: 'Coffres de pas du jour · {steps} pas aujourd’hui',
