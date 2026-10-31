@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View, type ImageSourcePropType } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 
 import { qualities } from '@/content/forging';
 import { gearName, itemById } from '@/content/lookup';
@@ -13,6 +13,7 @@ import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
 import { GearMarks } from './GearMarks';
+import { Overlay } from './Overlay';
 import { Row } from './Row';
 import { Text } from './Text';
 import { gearEffectText, statIcons, trinketText } from './GearRow';
@@ -149,8 +150,7 @@ export function EquipPicker({ save, heroId, slot, briefing, bossId, onPick, onCl
   const options = optionsFor(save, heroId, slot, briefing, bossId);
 
   return (
-    <Modal animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.backdrop}>
+    <Overlay onClose={onClose} position="bottom">
         <View style={styles.sheet}>
           <Text style={styles.title}>{t(`equip.choose.${slot}`)}</Text>
           <ScrollView>
@@ -173,13 +173,11 @@ export function EquipPicker({ save, heroId, slot, briefing, bossId, onPick, onCl
           </ScrollView>
           <Button title={t('common.cancel')} onPress={onClose} />
         </View>
-      </View>
-    </Modal>
+    </Overlay>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
   sheet: {
     backgroundColor: colors.parchment,
     borderTopWidth: pixel.outline + 1,

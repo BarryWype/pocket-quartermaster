@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { heroClasses } from '@/content/heroes';
 import { tavernRules } from '@/content/taverns';
@@ -26,6 +26,7 @@ import { Button } from './Button';
 import { ClassSummary } from './ClassSummary';
 import { lineName } from './PlacePanel';
 import { PriceTag } from './PriceTag';
+import { Overlay } from './Overlay';
 import { RecruitGrade } from './RecruitGrade';
 import { Text } from './Text';
 
@@ -78,8 +79,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
   };
 
   return (
-    <Modal animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.backdrop}>
+    <Overlay onClose={onClose} position="bottom">
         <View style={styles.sheet}>
           <ScrollView contentContainerStyle={styles.content}>
             <Text style={styles.title}>🍺 {tavern.name}</Text>
@@ -118,13 +118,11 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
           </ScrollView>
           <Button title={t('common.close')} onPress={onClose} />
         </View>
-      </View>
-    </Modal>
+    </Overlay>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
   sheet: {
     backgroundColor: colors.parchment,
     borderTopWidth: pixel.outline + 1,

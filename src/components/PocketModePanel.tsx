@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { frNotificationCategories } from '@/content/fr/notifications';
 import { heroClasses } from '@/content/heroes';
@@ -22,6 +22,7 @@ import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
 import { HpBar } from './HpBar';
+import { Overlay } from './Overlay';
 import { Panel } from './Panel';
 import { Text } from './Text';
 
@@ -235,8 +236,7 @@ export function PocketModePanel() {
   const close = () => useWorldStore.getState().set({ pocketPanel: 'closed' });
   if (!open) return null;
   return (
-    <Modal transparent statusBarTranslucent navigationBarTranslucent animationType="fade" onRequestClose={close}>
-      <View style={styles.backdrop}>
+    <Overlay onClose={close}>
         <Panel style={styles.dialog}>
           <ScrollView contentContainerStyle={styles.content}>
             <Text style={styles.title}>{t('autoGather.label')}</Text>
@@ -253,13 +253,11 @@ export function PocketModePanel() {
             <Button title={t('common.close')} onPress={close} />
           </View>
         </Panel>
-      </View>
-    </Modal>
+    </Overlay>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: 'center', padding: 16, backgroundColor: 'rgba(0,0,0,0.5)' },
   dialog: { gap: 10, padding: 14, maxHeight: '90%' },
   content: { gap: 10 },
   title: { fontSize: 24 },

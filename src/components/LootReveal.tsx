@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Animated, Easing, Modal, StyleSheet, View } from 'react-native';
+import { Animated, Easing, StyleSheet, View } from 'react-native';
 
 import { heroClasses, xpToNextLevel } from '@/content/heroes';
 import { dungeonById, materialById } from '@/content/lookup';
@@ -10,6 +10,7 @@ import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
 import { lootLabels } from './lootText';
+import { Overlay } from './Overlay';
 import { Panel } from './Panel';
 import { Text } from './Text';
 
@@ -65,8 +66,7 @@ export function LootReveal({ report, before, after, onClose, onReadReport }: Pro
     return was && now ? [{ hero: now, xp: totalXp(now) - totalXp(was), levelUp: now.level > was.level }] : [];
   });
   return (
-    <Modal transparent statusBarTranslucent navigationBarTranslucent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
+    <Overlay onClose={onClose} backdropStyle={styles.backdrop}>
         <Panel style={styles.dialog}>
           <Text style={styles.title}>
             {dungeon.emoji} {tr(dungeon.name)}
@@ -100,8 +100,7 @@ export function LootReveal({ report, before, after, onClose, onReadReport }: Pro
             <Button title={t('expeditions.loot.great')} onPress={onClose} />
           </View>
         </Panel>
-      </View>
-    </Modal>
+    </Overlay>
   );
 }
 

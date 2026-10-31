@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Linking, Modal, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Alert, Linking, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { gatheringConfig } from '@/content/gatheringConfig';
 import { frPatrolTexts } from '@/content/fr/patrols';
@@ -19,6 +19,7 @@ import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
 import { GameIcon } from './GameIcon';
+import { Overlay } from './Overlay';
 import { Panel } from './Panel';
 import { patrolIcons } from './PatrolMarker';
 import { PocketModePanel } from './PocketModePanel';
@@ -39,8 +40,7 @@ function InfoDialog({ confirm, onTurnOn, onClose }: { confirm: boolean; onTurnOn
     t('autoGather.infoBattery'),
   ];
   return (
-    <Modal transparent statusBarTranslucent navigationBarTranslucent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
+    <Overlay onClose={onClose}>
         <Panel style={styles.dialog}>
           <Text style={styles.title}>{t('autoGather.label')}</Text>
           {lines.map((line) => (
@@ -59,8 +59,7 @@ function InfoDialog({ confirm, onTurnOn, onClose }: { confirm: boolean; onTurnOn
             {confirm && <Button title={t('autoGather.turnOn')} onPress={onTurnOn} />}
           </View>
         </Panel>
-      </View>
-    </Modal>
+    </Overlay>
   );
 }
 
@@ -292,8 +291,7 @@ export function WalkCard() {
   const autoStopMinutes = useSettingsStore((state) => state.pocketMode.autoStopMinutes);
   if (!walk) return null;
   return (
-    <Modal transparent statusBarTranslucent navigationBarTranslucent animationType="fade" onRequestClose={markWalksSeen}>
-      <View style={styles.backdrop}>
+    <Overlay onClose={markWalksSeen}>
         <Panel style={styles.dialog}>
           <Text style={styles.title}>🚶 {t('autoGather.whileYouWalked')}</Text>
           <WalkStats walk={walk} />
@@ -303,13 +301,11 @@ export function WalkCard() {
             <Button title={t('common.close')} onPress={markWalksSeen} />
           </View>
         </Panel>
-      </View>
-    </Modal>
+    </Overlay>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: 'center', padding: 16, backgroundColor: 'rgba(0,0,0,0.5)' },
   dialog: { gap: 10, padding: 14 },
   title: { fontSize: 24 },
   line: { fontSize: 19 },

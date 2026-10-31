@@ -1,8 +1,9 @@
 import { useRef, useState, type ComponentRef, type ReactNode } from 'react';
-import { Modal, Pressable, StyleSheet, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { colors, pixel } from '@/theme';
 
+import { Overlay } from './Overlay';
 import { Text } from './Text';
 
 type Props = {
@@ -41,14 +42,12 @@ export function Tip({ title, text, children, style }: Props) {
         {children}
       </Pressable>
       {anchor && (
-        <Modal transparent statusBarTranslucent navigationBarTranslucent animationType="fade" onRequestClose={() => setAnchor(null)}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={() => setAnchor(null)}>
+        <Overlay onClose={() => setAnchor(null)} contentStyle={StyleSheet.absoluteFill}>
             <View style={[styles.bubble, position]}>
               {title && <Text style={styles.title}>{title}</Text>}
               <Text style={styles.text}>{text}</Text>
             </View>
-          </Pressable>
-        </Modal>
+        </Overlay>
       )}
     </>
   );
