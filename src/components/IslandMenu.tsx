@@ -1,4 +1,4 @@
-import { router, type Href } from 'expo-router';
+import type { Href } from 'expo-router';
 import { useState } from 'react';
 import { Image, Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,6 +7,7 @@ import { healthRules } from '@/content/health';
 import { isRevealed } from '@/game/reveal/reveal';
 import { currentHp, maxHp } from '@/game/team/health';
 import { tutorialTarget, type MenuTarget } from '@/game/tutorial/tutorial';
+import { navigate } from '@/services/navigation';
 import { t, type TextKey } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
@@ -46,7 +47,7 @@ export function IslandMenu() {
 
   const go = (href: Href) => {
     setCraftOpen(false);
-    router.push(href);
+    navigate(href);
   };
 
   return (

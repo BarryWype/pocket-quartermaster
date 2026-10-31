@@ -1,5 +1,5 @@
 import { Camera, type CameraRef, Images, Map, type MapRef, Marker } from '@maplibre/maplibre-react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -71,6 +71,7 @@ import { hasKey } from '@/game/secrets/keys';
 import { isEntered } from '@/game/secrets/places';
 import { lootText } from '@/hooks/usePatrols';
 import { t, tr } from '@/i18n';
+import { navigate } from '@/services/navigation';
 import { appendFixesNow } from '@/services/walkTracking';
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
@@ -648,7 +649,7 @@ export default function MapScreen() {
           );
         })}
         {questTargets.map(({ id, target }) => (
-          <Marker key={`quest:${id}`} id={`quest:${id}`} lngLat={toLngLat(target.position)} onPress={() => router.push('/quests')}>
+          <Marker key={`quest:${id}`} id={`quest:${id}`} lngLat={toLngLat(target.position)} onPress={() => navigate('/quests')}>
             <Text style={target.kind === 'mark' ? styles.questMark : styles.questTarget}>{target.kind === 'mark' ? '❓' : '📜'}</Text>
           </Marker>
         ))}
@@ -668,7 +669,7 @@ export default function MapScreen() {
       {debugOn && (
         <Pressable
           accessibilityLabel={t('map.debug')}
-          onPress={() => router.push('/debug')}
+          onPress={() => navigate('/debug')}
           style={[styles.roundButton, styles.debugButton, { top: insets.top + 8 }]}
         >
           <Text style={styles.buttonEmoji}>🐞</Text>
@@ -676,7 +677,7 @@ export default function MapScreen() {
       )}
       <Pressable
         accessibilityLabel={t('screens.settings')}
-        onPress={() => router.push('/settings')}
+        onPress={() => navigate('/settings')}
         style={[styles.roundButton, styles.settingsButton, { top: insets.top + 8 }]}
       >
         <Text style={styles.buttonEmoji}>⚙️</Text>

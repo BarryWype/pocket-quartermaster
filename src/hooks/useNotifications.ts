@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 import * as Notifications from 'expo-notifications';
-import { router } from 'expo-router';
+
 
 import { dayKey } from '@/game/rewards/chests';
 import { planNotifications } from '@/game/notifications/plan';
@@ -9,6 +9,7 @@ import { deliveryTime } from '@/game/notifications/quietHours';
 import { stepAlerts } from '@/game/notifications/steps';
 import type { NotificationCategory } from '@/game/notifications/types';
 import { useTodaySteps } from '@/hooks/useTodaySteps';
+import { navigate } from '@/services/navigation';
 import { deviceNotifications } from '@/services/notifications';
 import { useGameStore } from '@/store/gameStore';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -22,17 +23,17 @@ function openFrom(data: Record<string, unknown> | undefined) {
     useWorldStore.getState().set({
       focusPatrol: { id: String(data.patrolId), latitude: Number(data.latitude), longitude: Number(data.longitude) },
     });
-    router.navigate('/');
+    navigate('/');
   } else if (data?.route === 'place') {
     useWorldStore.getState().set({ focusPlace: { latitude: Number(data.latitude), longitude: Number(data.longitude) } });
-    router.navigate('/');
+    navigate('/');
   } else if (data?.route === 'chests') {
-    router.navigate('/inventory');
+    navigate('/inventory');
   } else if (data?.route === 'quests') {
-    router.navigate('/quests');
+    navigate('/quests');
   } else if (data?.route === 'pocketMode') {
     useWorldStore.getState().set({ pocketPanel: 'escort' });
-    router.navigate('/');
+    navigate('/');
   }
 }
 

@@ -12,8 +12,9 @@ Notes: cause on this setup was Expo Go (background location unsupported there, s
 Found 2026-10-31. Two of the three daily quests are walking quests, which feels redundant. Quest picks are seeded by day and slot only, so two new games (or two players) on the same day get the same first quests.
 Notes: variety rule is now kind-based (`questRules.variety` in `src/content/quests.ts`): a new quest picks a kind (Visit, Fight, Deliver, Gather, Trade, Walk) not already active while other kinds are unlocked; only when every unlocked kind is taken can a kind repeat, and then never Walk twice; within a kind it avoids the same objective as an active quest. Picks are seeded per player, day and slot (`playerSeed` on the save, mixed into the arrival, reroll, loot and target seeds), so two players or new games differ; only the tutorial's hand-over quest stays fixed. Rule added to `doc/design/quests/README.md`.
 
-## 4. Repeated taps open the same screen several times (open)
+## 4. Repeated taps open the same screen several times (fixed in f22b128)
 Found 2026-10-31. When the app lags, tapping a menu button several times opens that many copies of the screen, stacked on top of each other.
+Notes: all navigation now goes through one shared helper (`navigate` in `src/services/navigation.ts`, planning in `src/services/navigationPlan.ts`, lock in `src/content/navigation.ts`): a screen already on top of the stack does nothing, a screen lower in the stack is gone back to (`router.dismissTo`) instead of pushed again, and a navigation in progress ignores further taps on it for 500 ms (`tapLockMs`). Used by the island menu, the map's quest/debug/settings buttons, the team list and classes link, the settings tips button and tapped notifications. Hardware back (Android) and swipe back (iOS) are untouched — they use the stack's own back, not the helper.
 
 ## 5. Shop prices not showing (fixed)
 Found 2026-11-01. In the smithy, and probably other shops, the coin icon shows but the price next to it doesn't. Happened before (fixed only in the Guild Hall, 4eae109), so it's a regression.
