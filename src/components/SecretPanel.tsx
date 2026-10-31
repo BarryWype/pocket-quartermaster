@@ -34,6 +34,7 @@ import { Button } from './Button';
 import { ClassSummary } from './ClassSummary';
 import { EnemyTags } from './EnemyTags';
 import { PriceTag } from './PriceTag';
+import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
 import { RecruitGrade } from './RecruitGrade';
@@ -127,9 +128,8 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
         <View style={styles.chips}>
           {candidates.map((hero) => (
             <Pressable key={hero.id} onPress={() => toggle(hero.id)} style={[styles.chip, heroIds.includes(hero.id) && styles.chipActive]}>
-              <Text>
-                {heroClasses[hero.classId].emoji} {hero.name}
-              </Text>
+              <GameIcon emoji={heroClasses[hero.classId].emoji} size={20} />
+              <Text>{hero.name}</Text>
             </Pressable>
           ))}
         </View>
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   price: { fontSize: 21 },
   actions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { borderWidth: pixel.outline, borderColor: colors.woodDark, paddingHorizontal: 10, paddingVertical: 6 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: pixel.outline, borderColor: colors.woodDark, paddingHorizontal: 10, paddingVertical: 6 },
   chipActive: { borderColor: colors.ink, backgroundColor: colors.highlight },
   problem: { color: colors.muted, fontStyle: 'italic' },
 });

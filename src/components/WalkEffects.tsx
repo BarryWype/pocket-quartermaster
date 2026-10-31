@@ -11,6 +11,7 @@ import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
 
 import { Button } from './Button';
+import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
 import { Row } from './Row';
@@ -60,9 +61,12 @@ export function WalkEffects({ player, buttonStyle, chipsStyle }: {
             const item = itemById[effect.itemId];
             return (
               <Tip key={effect.id} title={tr(item.name)} text={tr(item.description ?? '')}>
-                <Text style={styles.chip}>
-                  {item.emoji} {timeLeft(effect.endsAt - now)} ⓘ
-                </Text>
+                <View style={styles.chip}>
+                  <GameIcon emoji={item.emoji} size={18} />
+                  <Text style={styles.chipText}>
+                    {timeLeft(effect.endsAt - now)} ⓘ
+                  </Text>
+                </View>
               </Tip>
             );
           })}
@@ -103,12 +107,15 @@ const styles = StyleSheet.create({
   buttonEmoji: { fontSize: 24 },
   chips: { position: 'absolute', right: 16, gap: 4, alignItems: 'flex-end' },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     overflow: 'hidden',
     borderRadius: 12,
     backgroundColor: colors.ink,
-    color: colors.parchment,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
+  chipText: { color: colors.parchment },
   body: { gap: 8 },
 });

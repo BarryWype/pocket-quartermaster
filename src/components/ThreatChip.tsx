@@ -22,6 +22,8 @@ export const stateColors: Record<ThreatDisplay, string> = {
 type ChipProps = {
   emoji: string;
   title: string;
+  /** A second icon after the label (e.g. the element an elemental threat adds). */
+  titleIcon?: string;
   label: string;
   state?: ThreatDisplay;
   onPress?: () => void;
@@ -29,7 +31,7 @@ type ChipProps = {
 };
 
 /** The shared chip frame: icon, short label, then the chip's own details. */
-function Chip({ emoji, title, label, state, onPress, children }: ChipProps) {
+function Chip({ emoji, title, titleIcon, label, state, onPress, children }: ChipProps) {
   const body = (
     <View
       accessibilityLabel={label}
@@ -39,6 +41,7 @@ function Chip({ emoji, title, label, state, onPress, children }: ChipProps) {
       <Text style={styles.title} numberOfLines={1}>
         {title}
       </Text>
+      {titleIcon && <GameIcon emoji={titleIcon} size={20} />}
       {children}
     </View>
   );
@@ -72,7 +75,7 @@ export function ThreatChip({ threat, state, onPress }: ThreatChipProps) {
     .filter(Boolean)
     .join(', ');
   return (
-    <Chip emoji={def.emoji} title={element ? `${name} ${element.emoji}` : name} label={label} state={state} onPress={onPress}>
+    <Chip emoji={def.emoji} title={name} titleIcon={element?.emoji} label={label} state={state} onPress={onPress}>
       {threat.surge && (
         <View style={styles.surge}>
           <Text style={styles.surgeText}>{t(`threats.surge.${threat.surge}`)}</Text>
@@ -99,12 +102,13 @@ export function OpportunityChip({ opportunity, onPress }: { opportunity: Opportu
     >
       {!!opportunity.cost?.key && (
         <View style={styles.pill}>
-          <Text style={styles.pillText}>{locked ? '🔒' : '🗝️'}</Text>
+          <GameIcon emoji={locked ? '🔒' : '🗝️'} size={16} />
         </View>
       )}
       {!!opportunity.cost?.supply && (
         <View style={styles.pill}>
-          <Text style={styles.pillText}>🍖 {opportunity.cost.supply}</Text>
+          <GameIcon emoji="🍖" size={16} />
+          <Text style={styles.pillText}>{opportunity.cost.supply}</Text>
         </View>
       )}
     </Chip>
@@ -142,6 +146,9 @@ const styles = StyleSheet.create({
   },
   surgeText: { fontSize: 12, color: colors.highlight },
   pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
     paddingHorizontal: 5,
     paddingVertical: 1,
     borderWidth: 1,

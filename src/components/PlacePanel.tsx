@@ -51,6 +51,7 @@ import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
 import { PriceTag, priceLabel } from './PriceTag';
+import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
 import { Text } from './Text';
@@ -331,8 +332,9 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
                   onPress={() => setHeistHeroId(hero.id)}
                   style={[styles.chip, heistHeroId === hero.id && styles.chipActive]}
                 >
+                  <GameIcon emoji={heroClasses[hero.classId].emoji} size={20} />
                   <Text>
-                    {heroClasses[hero.classId].emoji} {hero.name} · {formatPercent(currentHp(save, hero, now) / maxHp(save, hero))}
+                    {hero.name} · {formatPercent(currentHp(save, hero, now) / maxHp(save, hero))}
                   </Text>
                 </Pressable>
               ))}
@@ -396,7 +398,7 @@ const styles = StyleSheet.create({
   problem: { color: colors.muted, fontStyle: 'italic' },
   result: { fontSize: 21 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { borderWidth: pixel.outline, borderColor: colors.woodDark, paddingHorizontal: 10, paddingVertical: 6 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: pixel.outline, borderColor: colors.woodDark, paddingHorizontal: 10, paddingVertical: 6 },
   chipActive: { borderColor: colors.ink, backgroundColor: colors.highlight },
   odds: { fontSize: 21 },
   wanted: { color: colors.success },

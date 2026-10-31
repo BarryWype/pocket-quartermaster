@@ -15,6 +15,7 @@ import { formatPercent, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
 
+import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
 import { stateColors, ThreatChip } from './ThreatChip';
@@ -148,9 +149,10 @@ export function ThreatCoverageChips({ coverage, labelled = false }: { coverage: 
         </View>
       ))}
       {coverage.restriction && (
-        <View style={styles.one}>
+        <View style={[styles.one, styles.restriction]}>
+          <GameIcon emoji={coverage.restriction.def.emoji} size={20} />
           <Text style={coverage.restriction.cancelledBy ? styles.cancelled : undefined}>
-            {coverage.restriction.def.emoji} {tr(coverage.restriction.def.name)}
+            {tr(coverage.restriction.def.name)}
           </Text>
           {coverage.restriction.cancelledBy && (
             <Text style={styles.signature}>{t('classes.cancelled', { name: coverage.restriction.cancelledBy })}</Text>
@@ -174,6 +176,7 @@ export function ThreatCoverageChips({ coverage, labelled = false }: { coverage: 
 const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'flex-start' },
   one: { gap: 2 },
+  restriction: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   names: { fontSize: 14, color: colors.muted, maxWidth: 220 },
   signature: { fontSize: 14, color: colors.success, maxWidth: 220 },
   cancelled: { textDecorationLine: 'line-through', color: colors.muted },

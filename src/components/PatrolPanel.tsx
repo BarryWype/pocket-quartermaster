@@ -28,6 +28,7 @@ import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
 import { EnemyTags } from './EnemyTags';
+import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
 import { Text } from './Text';
@@ -147,8 +148,9 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
               onPress={() => toggle(hero.id)}
               style={[styles.chip, heroIds.includes(hero.id) && styles.chipActive]}
             >
+              <GameIcon emoji={heroClasses[hero.classId].emoji} size={20} />
               <Text>
-                {heroClasses[hero.classId].emoji} {hero.name}
+                {hero.name}
                 {hero.id === escortId ? t('common.escort') : ''} ·{' '}
                 {formatPercent(currentHp(save, hero, now) / maxHp(save, hero))}
               </Text>
@@ -175,7 +177,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 21, marginTop: 8 },
   muted: { color: colors.muted },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { borderWidth: pixel.outline, borderColor: colors.woodDark, paddingHorizontal: 10, paddingVertical: 6 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: pixel.outline, borderColor: colors.woodDark, paddingHorizontal: 10, paddingVertical: 6 },
   chipActive: { borderColor: colors.ink, backgroundColor: colors.highlight },
   odds: { fontSize: 21, marginTop: 8 },
   problem: { color: colors.muted, fontStyle: 'italic' },
