@@ -7,7 +7,7 @@ import { materialById } from '@/content/lookup';
 import { patrolTexts } from '@/content/patrols';
 import { walkToShow, type WalkFight, type WalkPatrols, type WalkSummary } from '@/game/gathering/autoGather';
 import { pocketModeAvailable } from '@/game/patrols/pocketMode';
-import { locationPermissionState, planPocketTurnOn, type LocationPermissionState } from '@/game/patrols/pocketPermission';
+import { clearsRefusal, locationPermissionState, planPocketTurnOn, type LocationPermissionState } from '@/game/patrols/pocketPermission';
 import { formatDistance, formatDuration, formatNumber, formatPercent, localized, t } from '@/i18n';
 import { disableAutoGather, startPocketMode } from '@/hooks/useAutoGather';
 import { isExpoGo, pocketPlatform } from '@/services/environment';
@@ -84,12 +84,14 @@ export function useAutoGatherToggle() {
     const toState = (permission: AutoGatherPermission): LocationPermissionState =>
       locationPermissionState(permission !== 'denied', permission === 'background');
     let permission = await getAutoGatherPermission().catch((): AutoGatherPermission => 'denied');
+    if (clearsRefusal(toState(permission))) useWorldStore.getState().set({ autoGatherRefused: false });
     let plan = planPocketTurnOn(toState(permission), environment, useWorldStore.getState().autoGatherRefused);
     if (plan.kind === 'ask') {
       // One system request; if it stays refused, the switch explains from now on instead of asking again.
       permission = await requestAutoGatherPermission().catch((): AutoGatherPermission => 'denied');
-      const refused = toState(permission) === 'none';
-      if (refused) useWorldStore.getState().set({ autoGatherRefused: true });
+      const refused = !clearsRefusal(toState(permission));
+      // Foreground granted clears an older wrong refusal; a refusal sticks.
+      useWorldStore.getState().set({ autoGatherRefused: refused });
       plan = planPocketTurnOn(toState(permission), environment, refused);
     }
     if (plan.kind === 'ask' || plan.kind === 'explain') {

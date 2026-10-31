@@ -82,7 +82,7 @@ Pick your phone if asked.
 - The first build takes several minutes. It generates the `android/` folder, which is gitignored and must never be edited by hand.
 - When it's done, **Pocket Quartermaster** is installed on the phone and opens connected to the dev server.
 
-**When to rebuild:** only when a native dependency or the native config in `app.json` changes. JavaScript and TypeScript changes never need a rebuild.
+**When to rebuild:** only when a native dependency or the native config in `app.json` changes. JavaScript and TypeScript changes never need a rebuild. After any change to `app.json` plugins or permissions, rebuild with `npm run android:fresh` — it regenerates the gitignored `android/` folder (`prebuild --clean`), which `expo run:android` alone reuses as it is.
 
 ---
 

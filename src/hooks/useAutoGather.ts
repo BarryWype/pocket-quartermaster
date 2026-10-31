@@ -5,6 +5,7 @@ import { gatheringConfig } from '@/content/gatheringConfig';
 import { materialById } from '@/content/lookup';
 import { clearProcessed, shouldAutoStop, walkTileKeys, type WalkFix, type WalkSummary } from '@/game/gathering/autoGather';
 import { snapshotBackground } from '@/game/patrols/escort';
+import { clearsRefusal, locationPermissionState } from '@/game/patrols/pocketPermission';
 import { needsBackgroundState, patrolSettingsFrom, pocketTracking, snapshotPocket } from '@/game/patrols/pocketMode';
 import type { PocketCounts } from '@/game/patrols/pocketCounts';
 import type { MaterialStack } from '@/game/types';
@@ -53,13 +54,16 @@ async function autoStop() {
 async function reconcile(foregrounded: boolean) {
   const { pocketMode } = useSettingsStore.getState();
   const running = await isTracking();
+  const permission = await getAutoGatherPermission().catch((): AutoGatherPermission => 'denied');
+  // Coming back from the settings with location granted: the refusal is over —
+  // cleared even with the switch off, so a wrongly marked player isn't stuck.
+  if (clearsRefusal(locationPermissionState(permission !== 'denied', permission === 'background'))) {
+    useWorldStore.getState().set({ autoGatherRefused: false });
+  }
   if (!pocketTracking(pocketMode)) {
     if (running) await stopTracking();
     return setMode('off');
   }
-  const permission = await getAutoGatherPermission().catch((): AutoGatherPermission => 'denied');
-  // Coming back from the settings with location granted: the refusal is over.
-  if (permission !== 'denied') useWorldStore.getState().set({ autoGatherRefused: false });
   if (permission === 'denied') {
     await stopTracking();
     useSettingsStore.getState().setPocketMode({ enabled: false });

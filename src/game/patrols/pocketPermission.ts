@@ -44,6 +44,11 @@ export function locationPermissionState(foregroundGranted: boolean, backgroundGr
   return backgroundGranted ? 'always' : 'whileUsing';
 }
 
+/** Whether the phone's answer clears an earlier refusal: any location at all and the player is not stuck. */
+export function clearsRefusal(permission: LocationPermissionState): boolean {
+  return permission !== 'none';
+}
+
 /**
  * What tapping Enable should do. Expo Go wins over everything: Pocket mode
  * needs the installed app, so it explains and never asks. "While using only"

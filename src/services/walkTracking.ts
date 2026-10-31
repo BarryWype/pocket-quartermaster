@@ -166,17 +166,38 @@ TaskManager.defineTask<{ locations: Location.LocationObject[] }>(TASK, async ({ 
   await notifyAutoStop(buffer).catch(() => {});
 });
 
+/** Logs the background-permission error once in dev; the caller continues in limited mode. */
+let reportedBackgroundError = false;
+function backgroundPermissionError(error: unknown) {
+  if (__DEV__ && !reportedBackgroundError) {
+    reportedBackgroundError = true;
+    console.warn('Background location permission unavailable', error);
+  }
+}
+
 export async function getAutoGatherPermission(): Promise<AutoGatherPermission> {
   const foreground = await Location.getForegroundPermissionsAsync();
+  // The foreground answer alone decides "denied"; without the background
+  // permission in the manifest (a stale android/ build), the check throws.
   if (!foreground.granted) return 'denied';
-  return (await Location.getBackgroundPermissionsAsync()).granted ? 'background' : 'foreground';
+  try {
+    return (await Location.getBackgroundPermissionsAsync()).granted ? 'background' : 'foreground';
+  } catch (error) {
+    backgroundPermissionError(error);
+    return 'foreground';
+  }
 }
 
 /** Foreground first (the map's own permission, asked again if it was revoked), then background. */
 export async function requestAutoGatherPermission(): Promise<AutoGatherPermission> {
   if (!(await Location.requestForegroundPermissionsAsync()).granted) return 'denied';
   // Android 11+ opens the system settings page here; the app re-checks when it comes back.
-  return (await Location.requestBackgroundPermissionsAsync()).granted ? 'background' : 'foreground';
+  try {
+    return (await Location.requestBackgroundPermissionsAsync()).granted ? 'background' : 'foreground';
+  } catch (error) {
+    backgroundPermissionError(error);
+    return 'foreground';
+  }
 }
 
 export const isTracking = () => Location.hasStartedLocationUpdatesAsync(TASK).catch(() => false);

@@ -1,4 +1,4 @@
-import { locationPermissionState, planPocketTurnOn } from './pocketPermission';
+import { clearsRefusal, locationPermissionState, planPocketTurnOn } from './pocketPermission';
 
 describe('location permission states', () => {
   it('maps the raw grants to none / whileUsing / always', () => {
@@ -43,5 +43,16 @@ describe('planning a tap on Enable', () => {
         askAgain: false,
       });
     }
+  });
+});
+
+describe('clearing a refusal', () => {
+  it('clears the refusal whenever the phone reports foreground location granted', () => {
+    expect(clearsRefusal('whileUsing')).toBe(true);
+    expect(clearsRefusal('always')).toBe(true);
+  });
+
+  it('keeps the refusal when there is no location at all', () => {
+    expect(clearsRefusal('none')).toBe(false);
   });
 });
