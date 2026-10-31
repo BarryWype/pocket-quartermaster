@@ -102,6 +102,31 @@ describe('quest arrivals', () => {
       expect(quest.amount).toBeGreaterThan(0);
     }
   });
+
+  it('never repeats an objective among the active quests (the variety rule)', () => {
+    let save = opened();
+    for (let day = 10; day <= 30; day++) {
+      const now = day * DAY;
+      save = pruneQuests(save, now);
+      // Done quests are claimed: only the live ones hold a variety slot.
+      save = { ...save, quests: { ...save.quests, list: save.quests.list.filter((q) => q.doneAt === null) } };
+      save = receiveQuests(save, now);
+      const active = save.quests.list.filter((q) => q.band !== 'secret' && q.doneAt === null);
+      expect(active.length).toBeGreaterThan(0);
+      const objectives = active.map((q) => q.objective);
+      expect(new Set(objectives).size).toBe(objectives.length);
+    }
+  });
+
+  it('gives a walk quest its step baseline at arrival, not at acceptance', () => {
+    const save = opened();
+    save.stepsTotal = 400;
+    const next = receiveQuests(save, 10 * DAY);
+    for (const quest of next.quests.list) {
+      if (quest.objective === 'walk') expect(quest.stepsAtArrive).toBe(400);
+      else expect(quest.stepsAtArrive).toBeUndefined();
+    }
+  });
 });
 
 describe('quest reroll', () => {

@@ -6,6 +6,8 @@ Daily **quests** are short walking objectives that arrive on their own. They rep
 
 ## Rules
 - **Arrival**: 2–3 new quests every 24 h, stacking up to 6. No board to walk to; they appear in the quests list (the floating menu bar).
+- **Variety**: at most one active quest per objective (`maxPerObjective` in `src/content/quests.ts`); when every objective the player can get is already active, the day's remaining slots stay empty rather than repeat one. A reroll may land on a taken objective, since the player asked for the exchange.
+- **Counting from arrival**: walk, gather and patrol objectives count everything from the moment the quest **arrives** — not from when the player first opens the list. Opening the list only fixes a place target; players never lose a walk for not having looked. Every active quest of those kinds counts the same walk, independently, in the app and in Pocket mode.
 - **Lifetime**: 48 h each. Ignoring a quest costs nothing. One free reroll per day.
 - **Distance bands**: short **500 m**, medium **1 km**, long **2 km**. Nothing in a quest is ever more than 2 km away (straight line from where the quest was given). Rewards grow with the band.
 - **Targets**: "the nearest X" that exists within the band's distance. If no place of that kind is within range (rarer places are often more than 2 km away), pick another objective. Only kinds the player has seen or unlocked, at their tier (`objectives.csv`).

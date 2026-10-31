@@ -29,10 +29,38 @@ const questsState = (save: SaveData, quests: Partial<QuestsState>): SaveData => 
   quests: { ...save.quests, ...quests },
 });
 
-/** Rolls one quest's slot: band, then objective among what this player can get. */
-function rollQuest(id: string, band: QuestBand, save: SaveData, rng: Rng, arrivedAt: number): Quest {
+/** The objectives already at the variety cap among the given quests (done ones don't hold a slot). */
+function variedOut(list: Quest[]): Set<QuestObjective> {
+  const active = list.filter((quest) => quest.band !== 'secret' && quest.doneAt === null);
+  const held: QuestObjective[] = [];
+  for (const quest of active) {
+    if (quest.objective !== 'mark' && active.filter((other) => other.objective === quest.objective).length >= questRules.maxPerObjective) {
+      held.push(quest.objective);
+    }
+  }
+  return new Set(held);
+}
+
+/**
+ * Rolls one quest's slot: band, then objective among what this player can get,
+ * keeping the variety rule. Nothing left to vary: `strict` (a day's arrival)
+ * leaves the slot empty rather than repeat an objective; a reroll falls back
+ * to any available objective, since the player asked for the exchange.
+ */
+function rollQuest(
+  id: string,
+  band: QuestBand,
+  save: SaveData,
+  rng: Rng,
+  arrivedAt: number,
+  existing: Quest[],
+  strict: boolean,
+): Quest | null {
   const available = availableObjectives(save, band);
-  const objective = rng.weighted(available, (o) => objectives[o].weight);
+  const held = variedOut(existing);
+  const varied = available.filter((objective) => !held.has(objective));
+  if (varied.length === 0 && strict) return null;
+  const objective = rng.weighted(varied.length > 0 ? varied : available, (o) => objectives[o].weight);
   return newQuest(id, band, objective, save, rng, arrivedAt);
 }
 
@@ -59,6 +87,7 @@ export function newQuest(
     acceptedAt: null,
     amount: objectiveAmount(objective, band),
     progress: 0,
+    ...(objective === 'walk' ? { stepsAtArrive: save.stepsTotal } : {}),
     ...(itemId !== undefined ? { itemId } : {}),
     target: null,
     doneAt: null,
@@ -91,7 +120,9 @@ export function receiveQuests(save: SaveData, now: number): SaveData {
       const rng = createRng(`quest|${day}|${i}`);
       const bands = Object.keys(questRules.bandWeights) as QuestBand[];
       const band = rng.weighted(bands, (b) => questRules.bandWeights[b]);
-      fresh.push(rollQuest(`q|${day}|${i}`, band, save, rng, arrivedAt));
+      const quest = rollQuest(`q|${day}|${i}`, band, save, rng, arrivedAt, [...list, ...fresh], true);
+      if (!quest) break;
+      fresh.push(quest);
     }
     list = [...list, ...fresh];
   }
@@ -123,8 +154,12 @@ export function rerollQuest(save: SaveData, questId: string, now: number): SaveD
   const rng = createRng(`quest|${day}|reroll${n}`);
   const bands = Object.keys(questRules.bandWeights) as QuestBand[];
   const band = rng.weighted(bands, (b) => questRules.bandWeights[b]);
-  const fresh = rollQuest(`q|${day}|reroll${n}`, band, save, rng, old.arrivedAt);
-  const rerolled: Quest = { ...fresh, arrivedAt: old.arrivedAt, expiresAt: old.expiresAt };
+  const others = save.quests.list.filter((q) => q.id !== questId);
+  const fresh = rollQuest(`q|${day}|reroll${n}`, band, save, rng, old.arrivedAt, others, false);
+  if (!fresh) return save;
+  // A rerolled walk quest keeps its clock: the same baseline, so no walk is lost.
+  const baseline = fresh.objective === 'walk' && old.objective === 'walk' ? old.stepsAtArrive : undefined;
+  const rerolled: Quest = { ...fresh, arrivedAt: old.arrivedAt, expiresAt: old.expiresAt, ...(baseline !== undefined ? { stepsAtArrive: baseline } : {}) };
   const list = save.quests.list.map((q, i) => (i === index ? rerolled : q));
   return questsState(save, { list, rerollDay: day, rerolls: n + 1 });
 }

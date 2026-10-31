@@ -15,6 +15,8 @@ export const questRules = {
   arrivalsPerDay: [2, 3] as [number, number],
   /** Regular quests held at once (the secret quest doesn't count). */
   cap: 6,
+  /** At most this many active quests share an objective (the variety rule). */
+  maxPerObjective: 1,
   lifetimeHours: 48,
   rerollsPerDay: 1,
   bandWeights: { short: 48, medium: 36, long: 16 } as Record<QuestBand, number>,

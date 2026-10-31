@@ -45,7 +45,7 @@ describe('quests follow the game', () => {
   });
 
   it('steps add up to the lifetime total that walk quests read', () => {
-    const save = withQuest({ objective: 'walk', amount: 500, target: null, stepsAtAccept: 0 });
+    const save = withQuest({ objective: 'walk', amount: 500, target: null, stepsAtArrive: 0 });
     const walked = recordSteps(save, '2026-10-30', 400);
     expect(walked.stepsTotal).toBe(400);
     const synced = syncSteps(walked, '2026-10-30', 700);

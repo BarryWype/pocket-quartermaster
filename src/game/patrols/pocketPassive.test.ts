@@ -59,7 +59,7 @@ const walkQuest = (save: SaveData): Quest => ({
   acceptedAt: T0,
   amount: 100,
   progress: 0,
-  stepsAtAccept: save.stepsTotal,
+  stepsAtArrive: save.stepsTotal,
   target: null,
   doneAt: null,
   seen: true,

@@ -129,11 +129,7 @@ function markTarget(quest: Quest, player: LatLng): QuestTarget {
 export function acceptQuests(save: SaveData, candidates: PlaceSpawn[], player: LatLng, now: number): SaveData {
   const list = save.quests.list.map((quest) => {
     if (quest.acceptedAt !== null) return quest;
-    const base: Quest = {
-      ...quest,
-      acceptedAt: now,
-      ...(quest.objective === 'walk' ? { stepsAtAccept: save.stepsTotal } : {}),
-    };
+    const base: Quest = { ...quest, acceptedAt: now };
     if (quest.objective === 'mark') return { ...base, target: markTarget(quest, player) };
     const own = findTarget(save, quest, quest.objective, candidates, player, now, createRng(`quest|${quest.id}`));
     if (own.target || !objectiveNeedsPlace(quest.objective)) {

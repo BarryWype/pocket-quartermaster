@@ -12,7 +12,7 @@ export type WatchedQuest = {
   amount: number;
   /** Progress in the save at hand-off. */
   progress: number;
-  /** Walk: lifetime steps walked since acceptance at hand-off (stepsTotal - stepsAtAccept). */
+  /** Walk: lifetime steps walked since arrival at hand-off (stepsTotal - stepsAtArrive). */
   stepsWalked: number;
   expiresAt: number;
 };
@@ -42,10 +42,10 @@ export type PocketCountAlert =
 
 const stride = gatheringConfig.autoGather.strideMeters;
 
-/** Accepted, unfinished walk / patrol quests that haven't lapsed. */
+/** Walk and patrol quests that haven't lapsed: they count from arrival, shown or not. */
 const watchedQuests = (save: SaveData, now: number): WatchedQuest[] =>
   save.quests.list.flatMap((quest) => {
-    if (quest.acceptedAt === null || quest.doneAt !== null || quest.expiresAt <= now) return [];
+    if (quest.doneAt !== null || quest.expiresAt <= now || quest.arrivedAt > now) return [];
     if (quest.objective !== 'walk' && quest.objective !== 'patrols') return [];
     return [
       {
@@ -53,7 +53,7 @@ const watchedQuests = (save: SaveData, now: number): WatchedQuest[] =>
         objective: quest.objective,
         amount: quest.amount,
         progress: quest.progress,
-        stepsWalked: Math.max(0, save.stepsTotal - (quest.stepsAtAccept ?? save.stepsTotal)),
+        stepsWalked: Math.max(0, save.stepsTotal - (quest.stepsAtArrive ?? save.stepsTotal)),
         expiresAt: quest.expiresAt,
       },
     ];

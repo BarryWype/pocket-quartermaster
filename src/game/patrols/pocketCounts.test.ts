@@ -42,7 +42,7 @@ describe('pocket counts', () => {
   it('matches the app for a walk quest that completes', () => {
     const endAt = noon(20);
     const route = playbackRoute(HOME, endAt);
-    const save = withQuests(createInitialSave(), [quest({ id: 'w', amount: 2000, stepsAtAccept: 0 })]);
+    const save = withQuests(createInitialSave(), [quest({ id: 'w', amount: 2000, stepsAtArrive: 0 })]);
     const prediction = snapshotPocketCounts(save, endAt - 30 * 60_000);
     let alerts: ReturnType<typeof stepPocketCounts>['alerts'] = [];
     let counts = prediction;
@@ -64,10 +64,30 @@ describe('pocket counts', () => {
     );
   });
 
+  it('watches a walk quest that arrived but was never shown, like the app', () => {
+    const endAt = noon(20);
+    const route = playbackRoute(HOME, endAt);
+    const save = withQuests(createInitialSave(), [
+      quest({ id: 'w', amount: 2000, stepsAtArrive: 0, acceptedAt: null, seen: false }),
+    ]);
+    let alerts: ReturnType<typeof stepPocketCounts>['alerts'] = [];
+    let counts = snapshotPocketCounts(save, endAt - 30 * 60_000);
+    expect(counts.quests.map((q) => q.questId)).toEqual(['w']);
+    for (const batch of batches(route, 3)) {
+      const step = stepPocketCounts(counts, batch, [], endAt);
+      counts = step.counts;
+      alerts = [...alerts, ...step.alerts];
+    }
+    expect(alerts).toContainEqual({ kind: 'questReady', questId: 'w', objective: 'walk' });
+    // The app counts the same walk without the quest ever being shown.
+    const app = refreshWalks(processWalkPath(save, route, { estimateSteps: true, spawnsAt: () => [] }).save, endAt);
+    expect(app.quests.list.find((q) => q.id === 'w')!.doneAt).not.toBeNull();
+  });
+
   it('stays quiet for a walk that falls short, like the app', () => {
     const endAt = noon(20);
     const route = playbackRoute(HOME, endAt);
-    const save = withQuests(createInitialSave(), [quest({ id: 'w', amount: 3000, stepsAtAccept: 0 })]);
+    const save = withQuests(createInitialSave(), [quest({ id: 'w', amount: 3000, stepsAtArrive: 0 })]);
     let counts = snapshotPocketCounts(save, endAt - 30 * 60_000);
     let alerts: ReturnType<typeof stepPocketCounts>['alerts'] = [];
     for (const batch of batches(route, 3)) {
@@ -124,7 +144,7 @@ describe('pocket counts', () => {
       playbackRoute(HOME, endAt, { stepsCounted: true }),
       playbackRoute(HOME, endAt).map((fix) => ({ ...fix, accuracy: 50 })),
     ]) {
-      const save = withQuests(createInitialSave(), [quest({ id: 'w', amount: 100, stepsAtAccept: 0 })]);
+      const save = withQuests(createInitialSave(), [quest({ id: 'w', amount: 100, stepsAtArrive: 0 })]);
       const { counts, alerts } = stepPocketCounts(snapshotPocketCounts(save, endAt - 30 * 60_000), route, [], endAt);
       expect(alerts).toEqual([]);
       expect(Object.values(counts.metersByDay)).toEqual([]);

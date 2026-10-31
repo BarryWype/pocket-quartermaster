@@ -5,7 +5,7 @@ import { offsetPosition } from '../generation/geo';
 import type { LatLng } from '../generation/types';
 import type { PlaceSpawn } from '../places/generate';
 import { createInitialSave, type SaveData } from '../save';
-import { activeCount } from './arrival';
+import { activeCount, questUpkeep } from './arrival';
 import {
   deliver,
   deliverProblem,
@@ -96,14 +96,18 @@ describe('quest progress', () => {
     expect(done.quests.list[0].doneAt).toBe(at);
   });
 
-  it('counts only herbs, berries and mushrooms, only after acceptance', () => {
+  it('counts herbs, berries and mushrooms, from arrival and before being shown', () => {
     const save = withQuest(opened(), quest('gatherOnWay', 'short'));
     const wood = feed(save, { kind: 'gathered', materialId: 'wood', amount: 10 });
     expect(wood.quests.list[0].progress).toBe(0);
     const herbs = feed(save, { kind: 'gathered', materialId: 'herb', amount: 2 }, { kind: 'gathered', materialId: 'berries', amount: 2 });
     expect(herbs.quests.list[0].doneAt).toBe(at);
 
-    const early = withQuest(opened(), quest('gatherOnWay', 'short', { acceptedAt: at + 1 }));
+    // Never shown in the list: it still counts, from its arrival.
+    const unseen = withQuest(opened(), quest('gatherOnWay', 'short', { acceptedAt: null, seen: false }));
+    expect(feed(unseen, { kind: 'gathered', materialId: 'mushroom', amount: 4 }).quests.list[0].doneAt).toBe(at);
+
+    const early = withQuest(opened(), quest('gatherOnWay', 'short', { arrivedAt: at + 1 }));
     expect(feed(early, { kind: 'gathered', materialId: 'mushroom', amount: 4 }).quests.list[0].progress).toBe(0);
   });
 
@@ -122,18 +126,56 @@ describe('quest progress', () => {
     expect(feed(save, { kind: 'soldToCollector', placeId: 'market-1' }).quests.list[0].doneAt).toBe(at);
   });
 
-  it('follows the walk from the steps taken since acceptance', () => {
-    const save = withQuest(opened(), quest('walk', 'short', { stepsAtAccept: 100 }));
+  it('follows the walk from the steps taken since arrival, never shown or not', () => {
+    const save = withQuest(opened(), quest('walk', 'short', { stepsAtArrive: 100 }));
     save.stepsTotal = 100 + Math.ceil(500 / 0.75); // just past 500 m of steps
     const done = refreshWalks(save, at);
     expect(done.quests.list[0].doneAt).toBe(at);
     expect(done.quests.list[0].progress).toBe(500);
 
-    const short = withQuest(opened(), quest('walk', 'short', { stepsAtAccept: 100 }));
+    const short = withQuest(opened(), quest('walk', 'short', { stepsAtArrive: 100 }));
     short.stepsTotal = 300;
     const walking = refreshWalks(short, at);
     expect(walking.quests.list[0].doneAt).toBe(null);
     expect(walking.quests.list[0].progress).toBe(Math.floor(200 * 0.75));
+  });
+
+  it('counts the same walk for every active walk quest, independently', () => {
+    const four = ['a', 'b', 'c', 'd'].map((id, i) =>
+      quest('walk', i % 2 === 0 ? 'long' : 'medium', { id, stepsAtArrive: 100 }),
+    );
+    const save = withQuest(opened(), ...four, quest('walk', 'short', { id: 'done', stepsAtArrive: 100, progress: 500, doneAt: 900 }));
+    save.stepsTotal = 100 + 600; // 600 steps: 450 m at the 0.75 m stride
+    const next = refreshWalks(save, at);
+    const byId = new Map(next.quests.list.map((q) => [q.id, q]));
+    expect(byId.get('a')?.progress).toBe(450);
+    expect(byId.get('b')?.progress).toBe(450);
+    expect(byId.get('c')?.progress).toBe(450);
+    expect(byId.get('d')?.progress).toBe(450);
+    expect(byId.get('done')?.progress).toBe(500); // already done: untouched
+    expect(next.quests.list.filter((q) => q.doneAt !== null).map((q) => q.id)).toEqual(['done']);
+  });
+
+  it('counts a walk quest that arrived while the app was closed, never shown', () => {
+    const save = withQuest(opened(), quest('walk', 'medium', { arrivedAt: 0, acceptedAt: null, seen: false, stepsAtArrive: 100 }));
+    save.stepsTotal = 100 + Math.ceil(1000 / 0.75);
+    const next = refreshWalks(save, at);
+    expect(next.quests.list[0].doneAt).toBe(at);
+    expect(next.quests.list[0].progress).toBe(1000);
+  });
+
+  it('keeps walk progress and its baseline across a daily reset and a restart', () => {
+    const save = withQuest(opened(), quest('walk', 'long', { stepsAtArrive: 100 }));
+    save.stepsTotal = 700;
+    const walked = refreshWalks(save, at);
+    expect(walked.quests.list[0].progress).toBe(Math.floor(600 * 0.75));
+    // A restart: the same save comes back, a new rotation day's upkeep runs.
+    const next = questUpkeep(walked, at + DAY);
+    expect(next.quests.list[0].progress).toBe(Math.floor(600 * 0.75));
+    expect(next.quests.list[0].stepsAtArrive).toBe(100);
+    save.stepsTotal = 700 + 400;
+    const more = refreshWalks({ ...next, stepsTotal: 1100 }, at + DAY);
+    expect(more.quests.list[0].progress).toBe(Math.floor(1000 * 0.75));
   });
 
   it('delivers at the target only, using up the items', () => {
