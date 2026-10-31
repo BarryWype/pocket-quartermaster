@@ -37,10 +37,12 @@ import { useNow } from '@/hooks/useNow';
 import { syncPlan } from '@/hooks/useNotifications';
 import { formatDuration, formatPercent, t, tr } from '@/i18n';
 import { deviceNotifications } from '@/services/notifications';
+import { recordTiming } from '@/services/timings';
 import { currentRotation, debugEnabled, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { colors, pixel } from '@/theme';
+import { timed } from '@/components/timed';
 
 type Tab = 'dungeons' | 'teams' | 'reports';
 const TABS: Tab[] = ['dungeons', 'teams', 'reports'];
@@ -48,7 +50,7 @@ const TABS: Tab[] = ['dungeons', 'teams', 'reports'];
 /** What the loot reveal shows: the report, and the heroes before and after for XP and level-ups. */
 type Collected = { report: ExpeditionReport; before: HeroState[]; after: HeroState[] };
 
-export default function ExpeditionsScreen() {
+export function ExpeditionsScreen() {
   useLanguage();
   // In development: how long the first render took to reach its effects (no simulation in it any more).
   const [mountedAt] = useState(() => Date.now());
@@ -198,10 +200,12 @@ export default function ExpeditionsScreen() {
         if (cancelled) return;
         const key = oddsKeys[dungeon.id];
         const start = Date.now();
-        const value = cachedEstimateOdds(save, party, dungeon, undefined, {
-          now: minute * 60_000,
-          briefing: briefingOf(save, dungeon, rotation, minute * 60_000),
-        });
+        const value = recordTiming('odds: expedition', () =>
+          cachedEstimateOdds(save, party, dungeon, undefined, {
+            now: minute * 60_000,
+            briefing: briefingOf(save, dungeon, rotation, minute * 60_000),
+          }),
+        );
         if (__DEV__) console.log(`[odds] ${dungeon.id} ${Date.now() - start}ms`);
         setOdds((prev) => ({ ...prev, [dungeon.id]: { key, odds: value } }));
         computeNext();
@@ -470,3 +474,5 @@ const styles = StyleSheet.create({
   hint: { padding: 10, marginBottom: 8, borderWidth: pixel.outline, borderColor: colors.ink, backgroundColor: colors.wood },
   hintText: { color: colors.parchment, fontSize: 18 },
 });
+
+export default timed('screen: expeditions', ExpeditionsScreen);

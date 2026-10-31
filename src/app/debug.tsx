@@ -77,6 +77,8 @@ import { readBackground, readBuffer, stepPatrols, updateBackground, updateBuffer
 import { deviceNotifications } from '@/services/notifications';
 import { useNow } from '@/hooks/useNow';
 import { useLanguage } from '@/hooks/useLanguage';
+import * as Clipboard from 'expo-clipboard';
+import { clearTimings, timingEntries, timingsAsText } from '@/services/timings';
 import { formatPercent, t } from '@/i18n';
 import { currentRotation, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
@@ -287,6 +289,54 @@ function Choice<T>({
         </Pressable>
       ))}
     </View>
+  );
+}
+
+/** The profiler: turn it on, watch the slowest spans, copy them out of the app. */
+function TimingsDebug() {
+  const recordTimings = useDebugStore((state) => state.recordTimings);
+  const set = useDebugStore((state) => state.set);
+  const [, setTick] = useState(0);
+  const [copied, setCopied] = useState(false);
+  const refresh = () => setTick((tick) => tick + 1);
+  return (
+    <>
+      <Text style={styles.title}>Timings</Text>
+      <View style={styles.row}>
+        <Text>Record timings</Text>
+        <Switch value={recordTimings} onValueChange={(on) => set({ recordTimings: on })} />
+      </View>
+      <View style={styles.row}>
+        <Button title="Refresh" onPress={refresh} />
+        <Button
+          title="Clear"
+          onPress={() => {
+            clearTimings();
+            refresh();
+          }}
+        />
+        <Button
+          title="Copy"
+          onPress={() => {
+            Clipboard.setStringAsync(timingsAsText()).then(() => {
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            });
+          }}
+        />
+      </View>
+      <Text style={styles.hint}>
+        Times the map computations, the marker and panel renders, the panel odds and the wait from a tap to what it
+        opens; anything over one frame is also logged with the tag [perf] (adb logcat). Keeps the slowest 50.
+      </Text>
+      {copied && <Text style={styles.mono}>Copied.</Text>}
+      {timingEntries().length === 0 && <Text style={styles.mono}>Nothing recorded yet.</Text>}
+      {timingEntries().map((entry, index) => (
+        <Text key={index} style={styles.mono}>
+          {new Date(entry.at).toLocaleTimeString()} {entry.durationMs.toFixed(1)}ms {entry.name}
+        </Text>
+      ))}
+    </>
   );
 }
 
@@ -542,6 +592,7 @@ export default function DebugScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      <TimingsDebug />
       <Text style={styles.title}>Location</Text>
       <View style={styles.row}>
         <Text>Mock location</Text>

@@ -16,6 +16,7 @@ import { currentHp, isExhausted, maxHp } from '@/game/team/health';
 import { isAway } from '@/game/team/team';
 import { formatDuration, formatPercent, t, tr } from '@/i18n';
 import { syncBackground } from '@/hooks/useAutoGather';
+import { recordTiming } from '@/services/timings';
 import { useGameStore } from '@/store/gameStore';
 import { useWorldStore } from '@/store/worldStore';
 import { colors, pixel } from '@/theme';
@@ -50,7 +51,10 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
   const [heroIds, setHeroIds] = useState<string[]>(() => candidates.slice(0, rules?.party ?? 0).map((hero) => hero.id));
 
   const odds = useMemo(
-    () => (kind && heroIds.length > 0 ? placeFightOdds(save, place, heroIds, openedAt) : null),
+    () =>
+      kind && heroIds.length > 0
+        ? recordTiming('odds: placeFight', () => placeFightOdds(save, place, heroIds, openedAt))
+        : null,
     [save, place, heroIds, openedAt, kind],
   );
   if (!kind || !rules) return null;

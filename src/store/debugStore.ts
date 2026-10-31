@@ -45,6 +45,8 @@ type DebugSettings = {
   showNodeRanges: boolean;
   /** Guild Hall ranks ignore their tier boss gates. */
   guildGatesOpen: boolean;
+  /** Times the map's and panels' computations and renders; the entries show on the debug screen. */
+  recordTimings: boolean;
 };
 
 type DebugState = DebugSettings & {
@@ -75,6 +77,7 @@ const DEBUG_DEFAULTS: DebugSettings = {
   showAutoRadius: false,
   showNodeRanges: false,
   guildGatesOpen: false,
+  recordTimings: false,
 };
 
 export const useDebugStore = create<DebugState>()(

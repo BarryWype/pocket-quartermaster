@@ -20,6 +20,7 @@ import { currentHp, isExhausted, maxHp } from '@/game/team/health';
 import { isAway } from '@/game/team/team';
 import { formatDuration, formatPercent, localized, t, tr } from '@/i18n';
 import { syncBackground } from '@/hooks/useAutoGather';
+import { recordTiming } from '@/services/timings';
 import { useGameStore } from '@/store/gameStore';
 import { useWorldStore } from '@/store/worldStore';
 import { colors, pixel } from '@/theme';
@@ -60,7 +61,8 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
   const texts = localized({ en: patrolTexts, fr: frPatrolTexts });
 
   const odds = useMemo(
-    () => (kind && heroIds.length > 0 ? patrolOdds(save, spawn, heroIds, openedAt) : null),
+    () =>
+      kind && heroIds.length > 0 ? recordTiming('odds: patrol', () => patrolOdds(save, spawn, heroIds, openedAt)) : null,
     [save, spawn, heroIds, openedAt, kind],
   );
 

@@ -22,6 +22,7 @@ import { SanctumPanel } from '@/components/SanctumPanel';
 import { SecretPanel } from '@/components/SecretPanel';
 import { SpawnMarker } from '@/components/SpawnMarker';
 import { TavernPanel } from '@/components/TavernPanel';
+import { timed } from '@/components/timed';
 import { TravellerPanel } from '@/components/TravellerPanel';
 import { Text } from '@/components/Text';
 import { TutorialHint } from '@/components/TutorialHint';
@@ -72,6 +73,7 @@ import { isEntered } from '@/game/secrets/places';
 import { lootText } from '@/hooks/usePatrols';
 import { t, tr } from '@/i18n';
 import { navigate } from '@/services/navigation';
+import { markTap, recordTiming } from '@/services/timings';
 import { appendFixesNow } from '@/services/walkTracking';
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
@@ -113,6 +115,18 @@ const keepPlace = (place: PlaceSpawn, tile: WalkableTile | null, position: LatLn
 
 const isSecretKind = (kind: PlaceSpawn['kind']) => kind === 'hiddenDen' || kind === 'blackMarket' || kind === 'underwaterDungeon';
 
+// The debug profiler's wrappers: they cost nothing while "Record timings" is off.
+const TimedSpawnMarker = timed('marker: spawn', SpawnMarker);
+const TimedSanctumMarker = timed('marker: sanctum', SanctumMarker);
+const TimedPatrolMarker = timed('marker: patrol', PatrolMarker);
+const TimedSanctumPanel = timed('panel: sanctum', SanctumPanel);
+const TimedPlaceFightPanel = timed('panel: place fight', PlaceFightPanel);
+const TimedPlacePanel = timed('panel: place', PlacePanel);
+const TimedSecretPanel = timed('panel: secret', SecretPanel);
+const TimedTavernPanel = timed('panel: tavern', TavernPanel);
+const TimedTravellerPanel = timed('panel: traveller', TravellerPanel);
+const TimedPatrolPanel = timed('panel: patrol', PatrolPanel);
+
 const minutesLeft = (ms: number) => `${Math.floor(ms / 60_000)}:${String(Math.floor((ms % 60_000) / 1000)).padStart(2, '0')}`;
 const failureMessages: Record<CollectFailure, (distance: number, radius?: number) => string> = {
   tooFar: (distance, radius = gatheringConfig.collectRadiusMeters) =>
@@ -123,7 +137,7 @@ const failureMessages: Record<CollectFailure, (distance: number, radius?: number
   needsTool: () => t('map.needsTool'),
 };
 
-export default function MapScreen() {
+function MapScreen() {
   useLanguage();
   const player = usePlayerLocation();
   const insets = useSafeAreaInsets();
@@ -202,7 +216,7 @@ export default function MapScreen() {
           ) as SpawnConfig['kinds'],
         }
       : spawnConfig;
-    return generateSpawnsAround(position, minute * 60_000, { config, timeOfDay: timeOfDay ?? undefined });
+    return recordTiming('map: generateSpawnsAround', () => generateSpawnsAround(position, minute * 60_000, { config, timeOfDay: timeOfDay ?? undefined }));
   }, [position?.latitude, position?.longitude, minute, timeOfDay, windowMinutes]);
   // A lure adds private herbs and animals for a while.
   // Hunter's musk draws animals the same way.
@@ -221,12 +235,14 @@ export default function MapScreen() {
     return generateSanctumsAround(position, minute * 60_000).filter((s) => distanceMeters(position, s.position) <= reach);
   }, [position, minute]);
   const placedSanctums = usePlacedPoints(sanctumCandidates, sanctumPlacement);
-  const sanctumsInSight = [...(isRevealed(save, 'sanctums') ? placedSanctums : []), ...(debugSanctum ? [debugSanctum] : [])].filter(
-    (s) =>
-      s.expiresAt > now &&
-      !(s.id in save.usedSanctums) &&
-      position !== null &&
-      distanceMeters(position, s.position) <= sanctumRules.visibilityMeters,
+  const sanctumsInSight = recordTiming('map: sanctumsInSight', () =>
+    [...(isRevealed(save, 'sanctums') ? placedSanctums : []), ...(debugSanctum ? [debugSanctum] : [])].filter(
+      (s) =>
+        s.expiresAt > now &&
+        !(s.id in save.usedSanctums) &&
+        position !== null &&
+        distanceMeters(position, s.position) <= sanctumRules.visibilityMeters,
+    ),
   );
 
   // Tavern windows last 72 h, so regenerating once a minute is enough.
@@ -236,28 +252,34 @@ export default function MapScreen() {
     return generateTavernsAround(position, minute * 60_000).filter((t) => distanceMeters(position, t.position) <= reach);
   }, [position, minute]);
   const placedTaverns = usePlacedPoints(tavernCandidates, tavernPlacement);
-  const tavernsInSight = [...(isRevealed(save, 'taverns') ? placedTaverns : []), ...(debugTavern ? [debugTavern] : [])].filter(
-    (t) => position !== null && distanceMeters(position, t.position) <= tavernRules.visibilityMeters,
+  const tavernsInSight = recordTiming('map: tavernsInSight', () =>
+    [...(isRevealed(save, 'taverns') ? placedTaverns : []), ...(debugTavern ? [debugTavern] : [])].filter(
+      (t) => position !== null && distanceMeters(position, t.position) <= tavernRules.visibilityMeters,
+    ),
   );
   const tavernsOpen = isTavernUnlocked(save);
 
   // Places and fight events within sight (plus snapping room), and this player's replacement ruins, placed on walkable places.
   const placeCandidates = useMemo(() => {
     if (!position) return [];
-    return [...placesAround(position, minute * 60_000, shownPlaceGroups), ...ruinReplacements(save, minute * 60_000)].filter(
-      (place) =>
-        isShownKind(place.kind) &&
-        distanceMeters(position, place.position) <= placeGroupOf(place.kind).visibilityMeters + placeRules.placement.maxSnapMeters,
+    return recordTiming('map: placesAround', () =>
+      [...placesAround(position, minute * 60_000, shownPlaceGroups), ...ruinReplacements(save, minute * 60_000)].filter(
+        (place) =>
+          isShownKind(place.kind) &&
+          distanceMeters(position, place.position) <= placeGroupOf(place.kind).visibilityMeters + placeRules.placement.maxSnapMeters,
+      ),
     );
   }, [position, minute, save.dugRuins]); // eslint-disable-line react-hooks/exhaustive-deps
   const placedPlaces = usePlacedPoints(placeCandidates, placePlacement, keepPlace);
   const playerPickaxe = pickaxeTier(save);
-  const placesInSight = [...placedPlaces.filter((place) => isPlaceRevealed(save, place.kind)), ...debugPlaces].filter(
-    (place) =>
-      position !== null &&
-      isPlaceVisible(place, position, now) &&
-      !(place.id in save.usedPlaces) &&
-      showsForPlayer(place, playerPickaxe),
+  const placesInSight = recordTiming('map: placesInSight', () =>
+    [...placedPlaces.filter((place) => isPlaceRevealed(save, place.kind)), ...debugPlaces].filter(
+      (place) =>
+        position !== null &&
+        isPlaceVisible(place, position, now) &&
+        !(place.id in save.usedPlaces) &&
+        showsForPlayer(place, playerPickaxe),
+    ),
   );
   // This player's tipped secret places: shown at any distance until they move on.
   const tippedSecrets = useSecretPlaces(save, now);
@@ -277,6 +299,7 @@ export default function MapScreen() {
   useQuestMarks(save, position);
   const visitPlace = useGameStore((state) => state.visitPlace);
   const openPlaceAt = (place: PlaceSpawn) => {
+    markTap('place marker');
     setOpenPlace(place);
     if (position) visitPlace(place, position);
   };
@@ -296,10 +319,14 @@ export default function MapScreen() {
     [save, minute],
   );
   const placedTreasure = usePlacedPoints(isRevealed(save, 'treasure') ? treasureSpots : [], walkableRules);
-  const shownSpawns = placedSpawns.filter((spawn) => isRevealed(save, spawn.kind === 'animal' ? 'animals' : 'resources'));
+  const shownSpawns = recordTiming('map: shownSpawns', () =>
+    placedSpawns.filter((spawn) => isRevealed(save, spawn.kind === 'animal' ? 'animals' : 'resources')),
+  );
   const visible = position
-    ? visibleSpawns(shownSpawns, position, now, undefined, trackedRange(save, now)).filter(
-        ({ spawn }) => !(spawn.id in save.collected) && showsOnMap(save, spawn),
+    ? recordTiming('map: visibleSpawns', () =>
+        visibleSpawns(shownSpawns, position, now, undefined, trackedRange(save, now)).filter(
+          ({ spawn }) => !(spawn.id in save.collected) && showsOnMap(save, spawn),
+        ),
       )
     : [];
 
@@ -309,16 +336,18 @@ export default function MapScreen() {
   const patrolSpawns = useMemo(
     () =>
       position
-        ? [
-            ...patrolsAround(
-              position,
-              patrolWindow * patrolRules.windowMinutes * 60_000,
-              patrolRules,
-              // More patrols swarm around a live monster lair.
-              activeLairs(position, patrolWindow * patrolRules.windowMinutes * 60_000, save.usedPlaces),
-            ),
-            ...debugPatrols,
-          ]
+        ? recordTiming('map: patrolsAround', () =>
+            [
+              ...patrolsAround(
+                position,
+                patrolWindow * patrolRules.windowMinutes * 60_000,
+                patrolRules,
+                // More patrols swarm around a live monster lair.
+                activeLairs(position, patrolWindow * patrolRules.windowMinutes * 60_000, save.usedPlaces),
+              ),
+              ...debugPatrols,
+            ],
+          )
         : [],
     [position, patrolWindow, debugPatrols, save.usedPlaces],
   );
@@ -327,12 +356,14 @@ export default function MapScreen() {
   const visiblePatrols = useMemo(
     () =>
       position
-        ? patrolSpawns.filter(
-            (spawn) =>
-              isVisible(spawn, position, now, patrolRulesAt(patrolRules, trackWindows(save.walkEffects), now)) &&
-              !isGone(spawn, { ...save.beatenPatrols, ...save.helpedTravellers }, now) &&
-              !hasFled(spawn, patrolsSeen[spawn.id], now) &&
-              (patrolsShown || debugPatrols.includes(spawn)),
+        ? recordTiming('map: visiblePatrols', () =>
+            patrolSpawns.filter(
+              (spawn) =>
+                isVisible(spawn, position, now, patrolRulesAt(patrolRules, trackWindows(save.walkEffects), now)) &&
+                !isGone(spawn, { ...save.beatenPatrols, ...save.helpedTravellers }, now) &&
+                !hasFled(spawn, patrolsSeen[spawn.id], now) &&
+                (patrolsShown || debugPatrols.includes(spawn)),
+            ),
           )
         : [],
     [patrolSpawns, position, now, save.beatenPatrols, save.helpedTravellers, save.walkEffects, patrolsSeen, patrolsShown, debugPatrols],
@@ -559,7 +590,7 @@ export default function MapScreen() {
           const shown = resourceById[read.resourceId];
           return (
             <Marker key={spawn.id} id={spawn.id} lngLat={toLngLat(spawnPosition)} onPress={() => gather(spawn)}>
-              <SpawnMarker
+              <TimedSpawnMarker
                 kind={spawn.kind}
                 emoji={shown?.emoji ?? '❓'}
                 icon={shown?.icon}
@@ -578,7 +609,7 @@ export default function MapScreen() {
             <Marker key={node.id} id={node.id} lngLat={toLngLat(node.position)} onPress={() => gatherTutorial(node.id)}>
               <View style={styles.tutorialNode}>
                 {node.id === pointed?.id && <Text style={styles.pointer}>👇</Text>}
-                <SpawnMarker
+                <TimedSpawnMarker
                   kind={wood ? 'wood' : 'animal'}
                   emoji={wood ? resourceById.tree.emoji : material.emoji}
                   icon={wood ? resourceById.tree.icon : material.icon}
@@ -595,19 +626,30 @@ export default function MapScreen() {
             key={sanctum.id}
             id={sanctum.id}
             lngLat={toLngLat(sanctum.position)}
-            onPress={() => setOpenSanctum(sanctum)}
+            onPress={() => {
+              markTap('sanctum marker');
+              setOpenSanctum(sanctum);
+            }}
           >
-            <SanctumMarker emoji={sanctumById[sanctum.sanctumId].emoji} locked={save.sigils.length === 0} />
+            <TimedSanctumMarker emoji={sanctumById[sanctum.sanctumId].emoji} locked={save.sigils.length === 0} />
           </Marker>
         ))}
         {tavernsInSight.map((tavern) => (
-          <Marker key={tavern.id} id={tavern.id} lngLat={toLngLat(tavern.position)} onPress={() => setOpenTavern(tavern)}>
-            <SanctumMarker emoji="🍺" locked={!tavernsOpen} label={tr(placeInfo.tavern.name)} />
+          <Marker
+            key={tavern.id}
+            id={tavern.id}
+            lngLat={toLngLat(tavern.position)}
+            onPress={() => {
+              markTap('tavern marker');
+              setOpenTavern(tavern);
+            }}
+          >
+            <TimedSanctumMarker emoji="🍺" locked={!tavernsOpen} label={tr(placeInfo.tavern.name)} />
           </Marker>
         ))}
         {placesInSight.map((place) => (
           <Marker key={place.id} id={place.id} lngLat={toLngLat(place.position)} onPress={() => openPlaceAt(place)}>
-            <SanctumMarker
+            <TimedSanctumMarker
               emoji={placeInfo[place.kind].emoji}
               locked={isLockedMine(place.kind, playerPickaxe)}
               label={tr(placeInfo[place.kind].name)}
@@ -615,8 +657,16 @@ export default function MapScreen() {
           </Marker>
         ))}
         {secretsInSight.map((place) => (
-          <Marker key={place.id} id={place.id} lngLat={toLngLat(place.position)} onPress={() => setOpenPlace(place)}>
-            <SanctumMarker
+          <Marker
+            key={place.id}
+            id={place.id}
+            lngLat={toLngLat(place.position)}
+            onPress={() => {
+              markTap('secret marker');
+              setOpenPlace(place);
+            }}
+          >
+            <TimedSanctumMarker
               emoji={placeInfo[place.kind].emoji}
               secret
               locked={!keyHeld && !isEntered(save, place)}
@@ -634,11 +684,12 @@ export default function MapScreen() {
               id={spawn.id}
               lngLat={toLngLat(patrolPositionAt(spawn, now))}
               onPress={() => {
+                markTap('patrol marker');
                 setOpenPatrol(spawn);
                 setWorld({ focusPatrol: null });
               }}
             >
-              <PatrolMarker
+              <TimedPatrolMarker
                 kind={spawn.kind}
                 tier={tier}
                 elite={elite}
@@ -724,22 +775,22 @@ export default function MapScreen() {
           <Text style={styles.buttonEmoji}>🦵</Text>
         </Pressable>
       ))}
-      {openSanctum && <SanctumPanel spawn={openSanctum} player={position} onClose={() => setOpenSanctum(null)} />}
+      {openSanctum && <TimedSanctumPanel spawn={openSanctum} player={position} onClose={() => setOpenSanctum(null)} />}
       {openPlace && isFightPlace(openPlace.kind) && (
-        <PlaceFightPanel place={openPlace} player={position} now={now} onClose={() => setOpenPlace(null)} />
+        <TimedPlaceFightPanel place={openPlace} player={position} now={now} onClose={() => setOpenPlace(null)} />
       )}
       {openPlace && isSecretKind(openPlace.kind) && (
-        <SecretPanel place={openPlace} player={position} now={now} onClose={() => setOpenPlace(null)} />
+        <TimedSecretPanel place={openPlace} player={position} now={now} onClose={() => setOpenPlace(null)} />
       )}
       {openPlace && !isFightPlace(openPlace.kind) && !isSecretKind(openPlace.kind) && (
-        <PlacePanel place={openPlace} player={position} now={now} onClose={() => setOpenPlace(null)} />
+        <TimedPlacePanel place={openPlace} player={position} now={now} onClose={() => setOpenPlace(null)} />
       )}
-      {openTavern && <TavernPanel tavern={openTavern} player={position} onClose={() => setOpenTavern(null)} />}
+      {openTavern && <TimedTavernPanel tavern={openTavern} player={position} onClose={() => setOpenTavern(null)} />}
       {selectedPatrol && isPatrolKind(selectedPatrol.kind) && (
-        <PatrolPanel spawn={selectedPatrol} player={position} now={now} onClose={closePatrol} />
+        <TimedPatrolPanel spawn={selectedPatrol} player={position} now={now} onClose={closePatrol} />
       )}
       {selectedPatrol && isTravellerKind(selectedPatrol.kind) && (
-        <TravellerPanel spawn={selectedPatrol} player={position} now={now} onClose={closePatrol} />
+        <TimedTravellerPanel spawn={selectedPatrol} player={position} now={now} onClose={closePatrol} />
       )}
       {fallbackButton}
       {showPill && <AutoGatherPill style={[styles.autoGather, { bottom: insets.bottom + ISLAND_HEIGHT + 12 }]} />}
@@ -797,3 +848,5 @@ const styles = StyleSheet.create({
   recentreButton: { right: 16, width: 48, height: 48, borderRadius: 24 },
   recentreEmoji: { fontSize: 24 },
 });
+
+export default timed('screen: map', MapScreen);

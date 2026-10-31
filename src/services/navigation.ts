@@ -1,6 +1,7 @@
 import { router, type Href } from 'expo-router';
 
 import { hrefPath, noLock, planNavigation, routeMatches, type NavLock } from './navigationPlan';
+import { markTap } from './timings';
 
 /**
  * The stack's route names (bottom first), as this helper sees them: updated
@@ -32,10 +33,12 @@ export function navigate(href: Href) {
   lock = plan.lock;
   if (plan.action === 'push') {
     stack = [...stack, route];
+    markTap(route);
     router.push(href);
   } else if (plan.action === 'back') {
     const index = stack.findLastIndex((name) => routeMatches(name, route));
     if (index >= 0) stack = stack.slice(0, index + 1);
+    markTap(route);
     router.dismissTo(href);
   }
 }
