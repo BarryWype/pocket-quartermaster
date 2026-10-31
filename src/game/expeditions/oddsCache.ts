@@ -81,6 +81,36 @@ export function oddsKey({ save, heroIds, dungeon, options = {} }: OddsInputs): s
   });
 }
 
+/**
+ * The key for a fight's odds (a place fight or a patrol): the spawn's
+ * identity — its id, its kind and, for a patrol, the tier roll that says how
+ * it fights — the tier it fights at, the minute the party's HP is taken at,
+ * and the party exactly as the run reads it (see `partyProjection`). Unrelated
+ * save writes (gold, materials, steps, the expeditions list, reports) leave it
+ * unchanged.
+ */
+export function fightOddsKey(
+  save: SaveData,
+  heroIds: string[],
+  spawn: { id: string; kind: string; tierRoll?: string },
+  tier: number,
+  elite: boolean,
+  now: number,
+): string {
+  return JSON.stringify({
+    spawnId: spawn.id,
+    kind: spawn.kind,
+    tierRoll: spawn.tierRoll ?? null,
+    tier,
+    elite,
+    // HP is taken at this time, rounded to the minute.
+    minute: Math.floor(now / 60_000),
+    guild: save.guild,
+    consumables: save.consumables,
+    ...partyProjection(save, heroIds),
+  });
+}
+
 /** The module-level cache: the last `cacheMax` keys, oldest dropped first. */
 const cache = new Map<string, Odds>();
 const cacheMax = 64;
@@ -88,6 +118,15 @@ const cacheMax = 64;
 /** The odds already computed for this key, if any — free to show while a recompute runs. */
 export function cachedOdds(key: string): Odds | undefined {
   return cache.get(key);
+}
+
+/** Stores odds for a key, for the callers that compute off the first frame (the fight panels). */
+export function storeOdds(key: string, odds: Odds): void {
+  if (cache.size >= cacheMax) {
+    const oldest = cache.keys().next();
+    if (!oldest.done) cache.delete(oldest.value);
+  }
+  cache.set(key, odds);
 }
 
 /**
@@ -99,10 +138,6 @@ export function cachedEstimateOdds(save: SaveData, heroIds: string[], dungeon: D
   const held = cache.get(key);
   if (held) return held;
   const odds = estimateOdds(save, heroIds, dungeon, runs, options);
-  if (cache.size >= cacheMax) {
-    const oldest = cache.keys().next();
-    if (!oldest.done) cache.delete(oldest.value);
-  }
-  cache.set(key, odds);
+  storeOdds(key, odds);
   return odds;
 }

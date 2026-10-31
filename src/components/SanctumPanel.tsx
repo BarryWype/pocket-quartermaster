@@ -5,7 +5,9 @@ import { elementInfo } from '@/content/elements';
 import { sanctumGuardian } from '@/content/enemies';
 import { heroClasses } from '@/content/heroes';
 import { sanctumRules } from '@/content/sanctums';
-import { oddsBand } from '@/game/expeditions/odds';
+import { oddsBand, type Odds } from '@/game/expeditions/odds';
+import { fightOddsKey, cachedOdds, storeOdds } from '@/game/expeditions/oddsCache';
+import { recordTiming } from '@/services/timings';
 import { distanceMeters } from '@/game/generation/geo';
 import type { LatLng } from '@/game/generation/types';
 import {
@@ -56,10 +58,30 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
   const [shown, setShown] = useState(0);
   const [openedAt] = useState(() => Date.now());
 
-  const odds = useMemo(
-    () => (tier && heroIds.length > 0 ? sanctumOdds(save, heroIds, sanctum, tier, undefined, openedAt) : null),
+  // The odds are computed off the first frame (issue 12's approach): the panel
+  // opens at once, shows "…" until they land, and odds already held for exactly
+  // these inputs (same sanctum, tier, party, minute) show immediately.
+  const oddsKey = useMemo(
+    () => (tier && heroIds.length > 0 ? fightOddsKey(save, heroIds, { id: sanctum.id, kind: `sanctum:${sanctum.id}` }, tier, false, openedAt) : null),
     [save, heroIds, sanctum, tier, openedAt],
   );
+  const [computed, setComputed] = useState<{ key: string; odds: Odds } | null>(() => {
+    if (oddsKey === null) return null;
+    const held = cachedOdds(oddsKey);
+    return held ? { key: oddsKey, odds: held } : null;
+  });
+  useEffect(() => {
+    if (oddsKey === null || computed?.key === oddsKey) return;
+    const timer = setTimeout(() => {
+      const odds = recordTiming('odds: sanctum', () => sanctumOdds(save, heroIds, sanctum, tier!, undefined, openedAt));
+      storeOdds(oddsKey, odds);
+      setComputed({ key: oddsKey, odds });
+    });
+    return () => clearTimeout(timer);
+    // The key covers the save, the sanctum, the tier, the party and the minute: rerun only when it moves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [oddsKey, computed?.key]);
+  const odds = computed?.key === oddsKey ? computed.odds : (oddsKey !== null ? (cachedOdds(oddsKey) ?? null) : null);
 
   // Reveal the fight one line at a time.
   useEffect(() => {
@@ -136,11 +158,14 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
                     </Pressable>
                   ))}
                 </View>
-                {odds && (
-                  <Text style={styles.odds}>
-                    {t('sanctum.estimate', { percent: formatPercent(odds.success), band: t(`odds.${oddsBand(odds.success)}`) })}
-                  </Text>
-                )}
+                {heroIds.length > 0 &&
+                  (odds ? (
+                    <Text style={styles.odds}>
+                      {t('sanctum.estimate', { percent: formatPercent(odds.success), band: t(`odds.${oddsBand(odds.success)}`) })}
+                    </Text>
+                  ) : (
+                    <Text style={styles.odds}>…</Text>
+                  ))}
                 <Text style={styles.warning}>{t('sanctum.warning')}</Text>
                 {problem && <Text style={styles.problem}>{problemText[problem](distance)}</Text>}
               </>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { rosterRules } from '@/content/roster';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -8,7 +8,8 @@ import { patrolKinds, patrolTexts } from '@/content/patrols';
 import { patrolThreats } from '@/content/threats';
 import { tagInfo } from '@/content/rotation';
 import { highestUnlockedTier } from '@/game/expeditions/expeditions';
-import { oddsBand } from '@/game/expeditions/odds';
+import { fightOddsKey, cachedOdds, storeOdds } from '@/game/expeditions/oddsCache';
+import { oddsBand, type Odds } from '@/game/expeditions/odds';
 import { dungeonTags } from '@/game/dungeons/tags';
 import { dungeonFoes } from '@/game/enemies/tags';
 
@@ -60,11 +61,34 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
   );
   const texts = localized({ en: patrolTexts, fr: frPatrolTexts });
 
-  const odds = useMemo(
-    () =>
-      kind && heroIds.length > 0 ? recordTiming('odds: patrol', () => patrolOdds(save, spawn, heroIds, openedAt)) : null,
+  // The odds are computed off the first frame (issue 12's approach): the panel
+  // opens at once, shows "…" until they land, and odds already held for exactly
+  // these inputs (same patrol, party, minute) show immediately.
+  const oddsKey = useMemo(
+    () => {
+      if (!kind || heroIds.length === 0) return null;
+      const { tier, elite } = patrolTier(spawn, highestUnlockedTier(save));
+      return fightOddsKey(save, heroIds, spawn, tier, elite, openedAt);
+    },
     [save, spawn, heroIds, openedAt, kind],
   );
+  const [computed, setComputed] = useState<{ key: string; odds: Odds } | null>(() => {
+    if (oddsKey === null) return null;
+    const held = cachedOdds(oddsKey);
+    return held ? { key: oddsKey, odds: held } : null;
+  });
+  useEffect(() => {
+    if (oddsKey === null || computed?.key === oddsKey) return;
+    const timer = setTimeout(() => {
+      const odds = recordTiming('odds: patrol', () => patrolOdds(save, spawn, heroIds, openedAt));
+      storeOdds(oddsKey, odds);
+      setComputed({ key: oddsKey, odds });
+    });
+    return () => clearTimeout(timer);
+    // The key covers the save, the patrol, the party and the minute: rerun only when it moves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [oddsKey, computed?.key]);
+  const odds = computed?.key === oddsKey ? computed.odds : (oddsKey !== null ? (cachedOdds(oddsKey) ?? null) : null);
 
   if (!kind) return null;
 
@@ -126,11 +150,14 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
               ))}
             </View>
             {escortId !== undefined && heroIds.includes(escortId) && <Text style={styles.muted}>{t('patrols.escortNote')}</Text>}
-            {odds && (
-              <Text style={styles.odds}>
-                {t('sanctum.estimate', { percent: formatPercent(odds.success), band: t(`odds.${oddsBand(odds.success)}`) })}
-              </Text>
-            )}
+            {heroIds.length > 0 &&
+              (odds ? (
+                <Text style={styles.odds}>
+                  {t('sanctum.estimate', { percent: formatPercent(odds.success), band: t(`odds.${oddsBand(odds.success)}`) })}
+                </Text>
+              ) : (
+                <Text style={styles.odds}>…</Text>
+              ))}
             {problem && <Text style={styles.problem}>{problemText[problem](distanceTo(spawn, player, now))}</Text>}
           </ScrollView>
           <View style={styles.actions}>

@@ -9,6 +9,8 @@ import type { LatLng } from '@/game/generation/types';
 import { visibleSpawns } from '@/game/generation/visibility';
 import { isFightPlace, placeFightBriefing, placeFightOdds } from '@/game/places/fights';
 import { isPlaceVisible, placesAround, showsForPlayer, type PlaceSpawn } from '@/game/places/generate';
+import { sanctumOdds } from '@/game/sanctums/sanctums';
+import { sanctums } from '@/content/sanctums';
 import { isPatrolKind, patrolsAround, type PatrolSpawn } from '@/game/patrols/generate';
 import { patrolOdds } from '@/game/patrols/fight';
 import { isVisible } from '@/game/patrols/visibility';
@@ -98,6 +100,9 @@ describe('map and panel timings (logged, not asserted)', () => {
       const odds = perf(`panel: patrolOdds (${spawn.kind})`, () => patrolOdds(save, spawn, PARTY, NOW));
       expect(odds.success).toBeGreaterThanOrEqual(0);
     });
+    // The Sanctum panel's challenge odds are the same kind of simulation.
+    const sanctum = sanctums[0];
+    perf(`panel: sanctumOdds (${sanctum.id})`, () => sanctumOdds(save, PARTY, sanctum, 3, undefined, NOW));
 
     // And the Expeditions screen's first computations, for comparison.
     const tier = highestUnlockedTier(save);

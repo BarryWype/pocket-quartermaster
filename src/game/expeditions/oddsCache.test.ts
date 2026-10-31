@@ -7,7 +7,10 @@ import { createInitialSave, type SaveData } from '../save';
 import { equip } from '../team/team';
 import type { Briefing } from '../types';
 import * as odds from './odds';
-import { cachedEstimateOdds, cachedOdds, oddsKey } from './oddsCache';
+import { isFightPlace, placeFightOdds } from '../places/fights';
+import { placesAround } from '../places/generate';
+import { isPatrolKind, patrolsAround } from '../patrols/generate';
+import { cachedEstimateOdds, cachedOdds, fightOddsKey, oddsKey, storeOdds } from './oddsCache';
 
 const ALL = startingHeroes.map((h) => h.id);
 const DAY = rotationDay(0);
@@ -114,5 +117,65 @@ describe('odds cache', () => {
     }
     cachedEstimateOdds(touched[0], party, dungeon, undefined, { now: 900_000, briefing });
     expect(spy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('fight odds cache (the map panels)', () => {
+  const NOW = 1_800_000_000_000;
+  const POSITION = { latitude: -41.2865, longitude: 174.7762 };
+  const party = ALL.slice(0, 3);
+
+  /** A fight place and a patrol, as the map would show them. */
+  function spawns() {
+    const save = team(3, 5);
+    const place = placesAround(POSITION, NOW).find((spawn) => isFightPlace(spawn.kind))!;
+    const patrol = patrolsAround(POSITION, NOW).find((spawn) => isPatrolKind(spawn.kind))!;
+    return { save, place, patrol };
+  }
+
+  it('keys a place fight by its place, party and minute', () => {
+    const { save, place } = spawns();
+    const first = fightOddsKey(save, party, place, 3, false, NOW);
+    expect(fightOddsKey(save, party, place, 3, false, NOW)).toBe(first);
+    // A later minute: the heroes have healed.
+    expect(fightOddsKey(save, party, place, 3, false, NOW + 60_000)).not.toBe(first);
+    // A different party or tier.
+    expect(fightOddsKey(save, ALL.slice(1), place, 3, false, NOW)).not.toBe(first);
+    expect(fightOddsKey(save, party, place, 4, false, NOW)).not.toBe(first);
+    // A different place of the same kind.
+    const other = { ...place, id: 'other', position: { latitude: -41.2, longitude: 174.8 } };
+    expect(fightOddsKey(save, party, other, 3, false, NOW)).not.toBe(first);
+  });
+
+  it('keys a patrol by its tier roll as well', () => {
+    const { save, patrol } = spawns();
+    const first = fightOddsKey(save, party, patrol, 3, false, NOW);
+    expect(fightOddsKey(save, party, { ...patrol, tierRoll: 'elite' }, 3, true, NOW)).not.toBe(first);
+    expect(fightOddsKey(save, party, { ...patrol, tierRoll: 'below' }, 2, false, NOW)).not.toBe(first);
+  });
+
+  it('does not recompute on unrelated save writes', () => {
+    const { save, place, patrol } = spawns();
+    const placeKey = fightOddsKey(save, party, place, 3, false, NOW);
+    const patrolKey = fightOddsKey(save, party, patrol, 3, false, NOW);
+    const touched: SaveData[] = [
+      { ...save, gold: save.gold + 500 },
+      { ...save, materials: { ...save.materials, ironIngot: (save.materials.ironIngot ?? 0) + 3 } },
+      { ...save, steps: { day: '2026-11-02', count: 4000 } },
+      { ...save, placeFights: [{ ...save.placeFights[0] ?? { id: 'f1', placeId: 'p1', kind: 'beastDen', tier: 3, heroIds: party, startedAt: 0, endsAt: 1, placeExpiresAt: 2, won: true, hp: {}, salvaged: [] } }] },
+    ];
+    for (const next of touched) {
+      expect(fightOddsKey(next, party, place, 3, false, NOW)).toBe(placeKey);
+      expect(fightOddsKey(next, party, patrol, 3, false, NOW)).toBe(patrolKey);
+    }
+  });
+
+  it('stores and returns the odds for a fight key', () => {
+    const { save, place } = spawns();
+    const key = fightOddsKey(save, party, place, 3, false, NOW);
+    expect(cachedOdds(key)).toBeUndefined();
+    const odds = placeFightOdds(save, place, party, NOW);
+    storeOdds(key, odds);
+    expect(cachedOdds(key)).toBe(odds);
   });
 });

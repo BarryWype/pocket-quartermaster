@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { heroClasses } from '@/content/heroes';
@@ -6,7 +6,8 @@ import { opportunityById } from '@/content/lookup';
 import { placeFightRules } from '@/content/placeFights';
 import { placeInfo } from '@/content/places';
 import { highestUnlockedTier } from '@/game/expeditions/expeditions';
-import { oddsBand } from '@/game/expeditions/odds';
+import { fightOddsKey, cachedOdds, storeOdds } from '@/game/expeditions/oddsCache';
+import { oddsBand, type Odds } from '@/game/expeditions/odds';
 import { distanceMeters } from '@/game/generation/geo';
 import type { LatLng } from '@/game/generation/types';
 import type { PlaceSpawn } from '@/game/places/generate';
@@ -50,13 +51,33 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
   const candidates = save.heroes.filter((hero) => !isAway(save, hero.id) && !isExhausted(hero, now));
   const [heroIds, setHeroIds] = useState<string[]>(() => candidates.slice(0, rules?.party ?? 0).map((hero) => hero.id));
 
-  const odds = useMemo(
+  // The odds are computed off the first frame (issue 12's approach): the panel
+  // opens at once, shows "…" until they land, and odds already held for exactly
+  // these inputs (same place, party, minute) show immediately.
+  const oddsKey = useMemo(
     () =>
       kind && heroIds.length > 0
-        ? recordTiming('odds: placeFight', () => placeFightOdds(save, place, heroIds, openedAt))
+        ? fightOddsKey(save, heroIds, place, highestUnlockedTier(save), placeFightRules.kinds[kind].elite, openedAt)
         : null,
     [save, place, heroIds, openedAt, kind],
   );
+  const [computed, setComputed] = useState<{ key: string; odds: Odds } | null>(() => {
+    if (oddsKey === null) return null;
+    const held = cachedOdds(oddsKey);
+    return held ? { key: oddsKey, odds: held } : null;
+  });
+  useEffect(() => {
+    if (oddsKey === null || computed?.key === oddsKey) return;
+    const timer = setTimeout(() => {
+      const odds = recordTiming('odds: placeFight', () => placeFightOdds(save, place, heroIds, openedAt));
+      storeOdds(oddsKey, odds);
+      setComputed({ key: oddsKey, odds });
+    });
+    return () => clearTimeout(timer);
+    // The key covers the save, the place, the party and the minute: rerun only when it moves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [oddsKey, computed?.key]);
+  const odds = computed?.key === oddsKey ? computed.odds : (oddsKey !== null ? (cachedOdds(oddsKey) ?? null) : null);
   if (!kind || !rules) return null;
 
   const briefing = placeFightBriefing(save, place);
@@ -109,11 +130,14 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
                 </Pressable>
               ))}
             </View>
-            {odds && (
-              <Text style={styles.odds}>
-                {t('sanctum.estimate', { percent: formatPercent(odds.success), band: t(`odds.${oddsBand(odds.success)}`) })}
-              </Text>
-            )}
+            {heroIds.length > 0 &&
+              (odds ? (
+                <Text style={styles.odds}>
+                  {t('sanctum.estimate', { percent: formatPercent(odds.success), band: t(`odds.${oddsBand(odds.success)}`) })}
+                </Text>
+              ) : (
+                <Text style={styles.odds}>…</Text>
+              ))}
             {problem && <Text style={styles.problem}>{problemText[problem](distanceMeters(player, place.position))}</Text>}
           </ScrollView>
           <View style={styles.actions}>
