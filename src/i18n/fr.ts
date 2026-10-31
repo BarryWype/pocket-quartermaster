@@ -319,6 +319,7 @@ export const fr: Dictionary = {
     stones: 'Gemmes : {stones}',
     noGear: 'Forgez d’abord un peu d’équipement.',
     unknown: 'Inconnue',
+    noBlueprints: 'Pas encore de plans de palier {tier} : les expéditions en découvrent.',
     tierProgress: 'Palier {tier} : {known} / {total}',
     anyShards: '✨ éclats au choix {held}/{amount}',
     newRecipe: '🧪 Nouvelle recette : {names}',

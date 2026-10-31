@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { MASTERY_TYPES, masteryTypeNames, qualities } from '@/content/forging';
-import { gearId, gearProfiles } from '@/content/equipment';
+import { masteryTypeNames, qualities } from '@/content/forging';
+import { gearProfiles } from '@/content/equipment';
 import { componentById, gearName, itemById, materialById, recipeById, recipeOutput, relicById, valuableById } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
 import { canCraft, craftableCount, forgedItem, isKnown, ownsTool, type ForgeResult } from '@/game/crafting/crafting';
+import { forgeList } from '@/game/crafting/forgeList';
 import { tierRecipes } from '@/game/crafting/recipeUnlocks';
 import { ELEMENTS, shardId } from '@/game/elements';
 import { canForgeWithComponent, componentRecipe, fittingComponents } from '@/game/forging/components';
-import { masteryOf } from '@/game/forging/mastery';
+import { masteryOf, masteryTypeOf } from '@/game/forging/mastery';
 import { canRestore, relicRecipe } from '@/game/forging/relics';
 import { guildBonus } from '@/game/guild/guild';
 import { rollToScale } from '@/game/forging/roll';
@@ -36,7 +37,6 @@ type Tab = NonNullable<RecipeDef['tab']>;
 const TABS: Tab[] = ['kitchen', 'alchemy'];
 /** Batch sizes for Provisions recipes. */
 const BATCHES = [1, 5, 10];
-const TIERS = [1, 2, 3, 4, 5];
 
 type Family = 'meals' | 'supply' | 'kits' | 'hero' | 'walking' | 'homeCare';
 /** Provisions rows are grouped by family, in this order within each tab. */
@@ -282,7 +282,7 @@ function ComponentPicker({ save, recipe, onForge }: { save: SaveData; recipe: Re
   );
 }
 
-/** The forge's gear recipes: one row per type, its five tiers side by side, unknown ones greyed with their inputs. A known blueprint with a fitting component held opens a component picker under its row. */
+/** The forge's gear recipes: one section per tier, its known blueprints only — unknown ones stay hidden. A known blueprint with a fitting component held opens a component picker under its section. */
 function GearGrid({
   save,
   action,
@@ -295,36 +295,33 @@ function GearGrid({
   onForgeWith: (recipeId: string, componentId: string) => void;
 }) {
   const [picking, setPicking] = useState<string | null>(null);
+  const { tiers } = forgeList(save);
   return (
     <View style={styles.grid}>
-      <View style={styles.progress}>
-        {TIERS.map((tier) => {
-          const ids = tierRecipes(tier);
-          const known = ids.filter((id) => save.knownRecipes.includes(id)).length;
-          return (
-            <Text key={tier} style={styles.mastery}>
-              {t('crafting.tierProgress', { tier, known, total: ids.length })}
-            </Text>
-          );
-        })}
-      </View>
-      {MASTERY_TYPES.map((type) => {
-        const { level } = masteryOf(save, type);
-        return (
-          <View key={type} style={styles.gridRow}>
-            <View style={styles.gridHead}>
-              <Text>{gearProfiles[type].emoji}</Text>
-              <Text style={styles.gridHeadText}>
-                {tr(masteryTypeNames[type].plural)} · {t('crafting.mastery', { type: tr(masteryTypeNames[type].name), level })}
-              </Text>
-            </View>
+      {tiers.map(({ tier, recipeIds }) => (
+        <View key={tier} style={styles.gridRow}>
+          <Text style={styles.mastery}>
+            {t('crafting.tierProgress', { tier, known: recipeIds.length, total: tierRecipes(tier).length })}
+          </Text>
+          {recipeIds.length === 0 ? (
+            <Text style={styles.mastery}>{t('crafting.noBlueprints', { tier })}</Text>
+          ) : (
             <View style={styles.gridCells}>
-              {TIERS.map((tier) => {
-                const recipe = recipeById[gearId(type, tier)];
-                const known = isKnown(save, recipe);
+              {recipeIds.map((id) => {
+                const recipe = recipeById[id];
+                const item = forgedItem(recipe);
+                if (!item) return null;
+                const type = masteryTypeOf(item);
                 return (
-                  <View key={tier} style={[styles.cell, !known && styles.cellUnknown]}>
-                    <GearMarks tier={tier} />
+                  <View key={id} style={styles.cell}>
+                    <View style={styles.gridHead}>
+                      <Text>{item.emoji}</Text>
+                      <Text style={styles.cellTitle}>{tr(item.name)}</Text>
+                      <GearMarks tier={tier} />
+                    </View>
+                    <Text style={styles.cellInputText}>
+                      {t('crafting.mastery', { type: tr(masteryTypeNames[type].name), level: masteryOf(save, type).level })}
+                    </Text>
                     <View style={styles.cellInputs}>
                       {recipe.inputs.map(({ materialId, amount }) => {
                         const material = materialById[materialId];
@@ -338,37 +335,31 @@ function GearGrid({
                         );
                       })}
                     </View>
-                    {known ? (
-                      <>
-                        <Button title={action} disabled={!canCraft(save, recipe)} onPress={() => onCraft(recipe.id)} />
-                        {fittingComponents(save, recipe).length > 0 && (
-                          <Button
-                            title={t('crafting.withComponent')}
-                            color={picking === recipe.id ? undefined : colors.muted}
-                            onPress={() => setPicking(picking === recipe.id ? null : recipe.id)}
-                          />
-                        )}
-                      </>
-                    ) : (
-                      <Text style={styles.cellInputText}>{t('crafting.unknown')}</Text>
+                    <Button title={action} disabled={!canCraft(save, recipe)} onPress={() => onCraft(recipe.id)} />
+                    {fittingComponents(save, recipe).length > 0 && (
+                      <Button
+                        title={t('crafting.withComponent')}
+                        color={picking === id ? undefined : colors.muted}
+                        onPress={() => setPicking(picking === id ? null : id)}
+                      />
                     )}
                   </View>
                 );
               })}
             </View>
-            {picking && recipeById[picking] && forgedItem(recipeById[picking])?.gearType === type && (
-              <ComponentPicker
-                save={save}
-                recipe={recipeById[picking]}
-                onForge={(componentId) => {
-                  onForgeWith(picking, componentId);
-                  setPicking(null);
-                }}
-              />
-            )}
-          </View>
-        );
-      })}
+          )}
+          {picking && recipeIds.includes(picking) && (
+            <ComponentPicker
+              save={save}
+              recipe={recipeById[picking]}
+              onForge={(componentId) => {
+                onForgeWith(picking, componentId);
+                setPicking(null);
+              }}
+            />
+          )}
+        </View>
+      ))}
     </View>
   );
 }
@@ -384,21 +375,19 @@ const styles = StyleSheet.create({
   mastery: { fontSize: 16, color: colors.muted },
   family: { fontSize: 18, color: colors.ink, marginTop: 8, marginBottom: 2 },
   grid: { gap: 10, marginTop: 12 },
-  progress: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 12 },
   gridRow: { gap: 4 },
   gridHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  gridHeadText: { fontSize: 16, color: colors.ink },
-  gridCells: { flexDirection: 'row', gap: 4 },
+  gridCells: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
   cell: {
-    flex: 1,
+    width: '48%',
     gap: 4,
     padding: 4,
     borderWidth: pixel.outline,
     borderColor: colors.ink,
     backgroundColor: colors.parchmentDark,
   },
-  cellUnknown: { opacity: 0.55 },
   cellInputs: { gap: 2 },
+  cellTitle: { fontSize: 15, color: colors.ink },
   cellInputText: { fontSize: 12, color: colors.muted },
   picker: { gap: 4, padding: 6, borderWidth: pixel.outline, borderColor: colors.ink },
   relicHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },

@@ -313,6 +313,7 @@ export const en = {
     stones: 'Stones: {stones}',
     noGear: 'Forge some gear first.',
     unknown: 'Unknown',
+    noBlueprints: 'No tier {tier} blueprints yet: expeditions find them',
     tierProgress: 'Tier {tier}: {known} / {total}',
     anyShards: '✨ any shards {held}/{amount}',
     newRecipe: '🧪 New recipe: {names}',
