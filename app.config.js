@@ -3,5 +3,5 @@
 module.exports = ({ config }) => ({
   ...config,
   version: process.env.APP_VERSION ?? config.version,
-  plugins: [...(config.plugins ?? []), './plugins/withReleaseSigning', './plugins/withBuildTimeVersionCode'],
+  plugins: [...(config.plugins ?? []), './plugins/withReleaseSigning', './plugins/withBuildTimeVersionCode', './plugins/withGradleMemory'],
 });
