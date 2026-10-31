@@ -15,7 +15,6 @@ import { useLanguage } from '@/hooks/useLanguage';
 import { syncPlan } from '@/hooks/useNotifications';
 import { localized, t } from '@/i18n';
 import { navigate } from '@/services/navigation';
-import { useNavigationPending } from '@/hooks/useNavigationPending';
 import { deviceNotifications, type NotificationPermission } from '@/services/notifications';
 import { updateBuffer } from '@/services/walkTracking';
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
@@ -77,8 +76,6 @@ function TimeStepper({ label, value, onChange }: { label: string; value: number;
 
 export default function SettingsScreen() {
   useLanguage();
-  // While a navigation is still waiting for its screen, the buttons that open one stand down.
-  const navigationPending = useNavigationPending();
   const { language, notifications, updateNotifications, setCategory, setQuietHours, set, pocketMode, setPocketMode } = useSettingsStore();
   const autoToggle = useAutoGatherToggle();
   const walks = useGameStore((state) => state.save.autoGather.history);
@@ -258,7 +255,7 @@ export default function SettingsScreen() {
       <View style={styles.section}>
         <SectionTitle>{t('settings.tips')}</SectionTitle>
         <Text style={styles.hint}>{t('settings.tipsHint')}</Text>
-        <Button title={t('settings.tips')} disabled={navigationPending} onPress={() => navigate('/tips')} />
+        <Button title={t('settings.tips')} onPress={() => navigate('/tips')} />
       </View>
 
       <View style={styles.section}>

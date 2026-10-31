@@ -55,7 +55,6 @@ import { generateSanctumsAround, type SanctumSpawn } from '@/game/sanctums/sanct
 import { generateTavernsAround, type TavernSpawn } from '@/game/taverns/taverns';
 import { collectRadiusNow, fallbackReady, shownTutorialSpawns } from '@/game/tutorial/spawns';
 import { useLanguage } from '@/hooks/useLanguage';
-import { useNavigationPending } from '@/hooks/useNavigationPending';
 import { usePlacedPoints, usePlacedSpawns } from '@/hooks/usePlacedSpawns';
 import { useAmbience } from '@/hooks/useAmbience';
 import { usePlayerLocation } from '@/hooks/usePlayerLocation';
@@ -117,8 +116,6 @@ const failureMessages: Record<CollectFailure, (distance: number, radius?: number
 
 function MapScreen() {
   useLanguage();
-  // While a navigation is still waiting for its screen, the buttons that open one stand down.
-  const navigationPending = useNavigationPending();
   const player = usePlayerLocation();
   const insets = useSafeAreaInsets();
   const setDebug = useDebugStore((state) => state.set);
@@ -702,7 +699,6 @@ function MapScreen() {
       {debugOn && (
         <Pressable
           accessibilityLabel={t('map.debug')}
-          disabled={navigationPending}
           onPress={() => navigate('/debug')}
           style={[styles.roundButton, styles.debugButton, { top: insets.top + 8 }]}
         >
@@ -711,7 +707,6 @@ function MapScreen() {
       )}
       <Pressable
         accessibilityLabel={t('screens.settings')}
-        disabled={navigationPending}
         onPress={() => navigate('/settings')}
         style={[styles.roundButton, styles.settingsButton, { top: insets.top + 8 }]}
       >

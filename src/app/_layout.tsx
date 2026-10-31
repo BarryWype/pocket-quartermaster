@@ -2,8 +2,8 @@
 import '@/services/walkTracking';
 
 import { useFonts } from 'expo-font';
-import { Stack, useRootNavigationState } from 'expo-router';
-import { useEffect, useRef } from 'react';
+import { Stack } from 'expo-router';
+import { useEffect } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
 
 import { RecipeToast } from '@/components/RecipeToast';
@@ -16,7 +16,6 @@ import { usePatrols } from '@/hooks/usePatrols';
 import { useStepTracking } from '@/hooks/useTodaySteps';
 import { t } from '@/i18n';
 import { configureChannels, configureNotifications } from '@/services/notifications';
-import { setNavigationStack } from '@/services/navigation';
 import { useGameStore } from '@/store/gameStore';
 import { colors, fonts } from '@/theme';
 
@@ -47,20 +46,6 @@ function useUpkeep() {
 
 export default function RootLayout() {
   const locale = useLanguage();
-  // The shared navigation helper reads the stack from here, so taps can't stack screens.
-  // The names arrive as a new array on every render of the root layout: only a
-  // real change is passed on, so a re-render (or a report from before a
-  // navigation finished) never overwrites what the helper holds.
-  const navigationState = useRootNavigationState();
-  const lastRouteNames = useRef<string[] | null>(null);
-  useEffect(() => {
-    const routeNames = navigationState?.routes.map((route) => route.name) ?? [];
-    const last = lastRouteNames.current;
-    const unchanged = last !== null && last.length === routeNames.length && last.every((name, i) => name === routeNames[i]);
-    if (unchanged) return;
-    lastRouteNames.current = routeNames;
-    setNavigationStack(routeNames);
-  }, [navigationState]);
   useEffect(() => {
     configureChannels();
     syncPlan();
@@ -88,20 +73,20 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: colors.parchment },
         }}
       >
-        <Stack.Screen name="index" options={{ title: t('screens.map'), headerShown: false }} />
-        <Stack.Screen name="forge" options={{ title: t('screens.forge') }} />
-        <Stack.Screen name="infuse" options={{ title: t('screens.infuse') }} />
-        <Stack.Screen name="provisions" options={{ title: t('screens.provisions') }} />
-        <Stack.Screen name="inventory" options={{ title: t('screens.inventory') }} />
-        <Stack.Screen name="team/index" options={{ title: t('screens.team') }} />
-        <Stack.Screen name="team/[heroId]" options={{ title: t('screens.hero') }} />
-        <Stack.Screen name="team/classes" options={{ title: t('classes.title') }} />
-        <Stack.Screen name="expeditions" options={{ title: t('screens.expeditions') }} />
-        <Stack.Screen name="quests" options={{ title: t('screens.quests') }} />
-        <Stack.Screen name="guild" options={{ title: t('screens.guild') }} />
-        <Stack.Screen name="settings" options={{ title: t('screens.settings') }} />
-        <Stack.Screen name="tips" options={{ title: t('screens.tips') }} />
-        <Stack.Screen name="debug" options={{ title: t('screens.debug') }} />
+        <Stack.Screen name="index" dangerouslySingular options={{ title: t('screens.map'), headerShown: false }} />
+        <Stack.Screen name="forge" dangerouslySingular options={{ title: t('screens.forge') }} />
+        <Stack.Screen name="infuse" dangerouslySingular options={{ title: t('screens.infuse') }} />
+        <Stack.Screen name="provisions" dangerouslySingular options={{ title: t('screens.provisions') }} />
+        <Stack.Screen name="inventory" dangerouslySingular options={{ title: t('screens.inventory') }} />
+        <Stack.Screen name="team/index" dangerouslySingular options={{ title: t('screens.team') }} />
+        <Stack.Screen name="team/[heroId]" dangerouslySingular options={{ title: t('screens.hero') }} />
+        <Stack.Screen name="team/classes" dangerouslySingular options={{ title: t('classes.title') }} />
+        <Stack.Screen name="expeditions" dangerouslySingular options={{ title: t('screens.expeditions') }} />
+        <Stack.Screen name="quests" dangerouslySingular options={{ title: t('screens.quests') }} />
+        <Stack.Screen name="guild" dangerouslySingular options={{ title: t('screens.guild') }} />
+        <Stack.Screen name="settings" dangerouslySingular options={{ title: t('screens.settings') }} />
+        <Stack.Screen name="tips" dangerouslySingular options={{ title: t('screens.tips') }} />
+        <Stack.Screen name="debug" dangerouslySingular options={{ title: t('screens.debug') }} />
       </Stack>
       <RecipeToast />
       <SecretToast />
