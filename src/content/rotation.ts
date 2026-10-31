@@ -7,15 +7,6 @@ export const rotationRules = {
   resetHourUtc: 0,
   /** Rotations are worked out day by day from here, so "not the same as yesterday" holds exactly. */
   startDay: Date.UTC(2026, 0, 1),
-  /** Days of rotation history the warm-up replays per slice (issue 17; see warmRotationUpTo). */
-  warmDaysPerSlice: 20,
-  /**
-   * The rotation history warm-up starts this long after the map shows, in ms —
-   * ahead of the odds warm-up (`oddsRules.warmupStartDelayMs`), so a screen
-   * asking for today's rotation early in a run pays as little of the replay as
-   * possible (issue 17).
-   */
-  warmStartDelayMs: 1000,
 };
 
 /** How a dungeon's tag summary is worked out from its encounters (see game/dungeons/tags.ts). */

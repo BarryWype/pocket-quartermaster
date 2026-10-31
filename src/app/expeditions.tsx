@@ -1,6 +1,5 @@
-import { useFocusEffect, useNavigation } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { rosterRules } from '@/content/roster';
-import { navigationRules } from '@/content/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -26,9 +25,7 @@ import { tutorialRules } from '@/content/tutorial';
 import { nextRotationAt, rotationDay } from '@/game/dungeons/rotation';
 import { briefingOf, expeditionMinutes, isDungeonUnlocked, readyExpeditions, type Loadout } from '@/game/expeditions/expeditions';
 import type { Odds } from '@/game/expeditions/odds';
-import { cachedOdds, storeOdds } from '@/game/expeditions/oddsCache';
-import { oddsOfTask, oddsTaskDone, runOddsSlice, startOddsTask } from '@/game/expeditions/oddsSlices';
-import { expeditionOddsKeys } from '@/game/expeditions/oddsWarmup';
+import { cachedEstimateOdds, cachedOdds, oddsKey } from '@/game/expeditions/oddsCache';
 import { isRevealed } from '@/game/reveal/reveal';
 import { supplyHeld } from '@/game/expeditions/provisions';
 import { briefingCoverage } from '@/game/threats/coverage';
@@ -49,15 +46,6 @@ import { timed } from '@/components/timed';
 
 type Tab = 'dungeons' | 'teams' | 'reports';
 const TABS: Tab[] = ['dungeons', 'teams', 'reports'];
-
-/**
- * The one navigation event this screen listens for, typed narrowly: the pushed
- * screen's `transitionEnd`. expo-router's `useNavigation` returns the broad
- * `NavigationProp`, whose listener type knows only the core events.
- */
-type TransitionEndNavigation = {
-  addListener: (event: 'transitionEnd', listener: (event: { data: { closing: boolean } }) => void) => () => void;
-};
 
 /** What the loot reveal shows: the report, and the heroes before and after for XP and level-ups. */
 type Collected = { report: ExpeditionReport; before: HeroState[]; after: HeroState[] };
@@ -181,65 +169,45 @@ export function ExpeditionsScreen() {
   // heroes heal, or on a party, gear, supply or briefing change).
   const shownList = useMemo(() => [...shown, ...(shownOvernight ? [shownOvernight] : [])], [shown, shownOvernight]);
   const minute = Math.floor(now / 60_000);
-  // The screen's first render reads (and keys) the odds through the same pure
-  // function as the warm-up, so a warmed cache always answers its keys (issue 17).
   const oddsKeys = useMemo(
-    () => expeditionOddsKeys(save, party, shownList, rotation, minute),
+    () =>
+      Object.fromEntries(
+        shownList.map((dungeon) => [
+          dungeon.id,
+          oddsKey({
+            save,
+            heroIds: party,
+            dungeon,
+            options: { now: minute * 60_000, briefing: briefingOf(save, dungeon, rotation, minute * 60_000) },
+          }),
+        ]),
+      ),
     [save, party, shownList, rotation, minute],
   );
   /** The odds computed so far, by dungeon, with the key they belong to. */
   const [odds, setOdds] = useState<Record<string, { key: string; odds: Odds }>>({});
-  // The odds only start once the push transition has ended: the screen's first
-  // frames (and the back gesture) keep the thread free of every slice. expo-router
-  // 58 over react-native-screens 4.30 fires `transitionEnd` with closing: false on
-  // the screen a push brings in; the fallback timer covers a transition that never
-  // runs (animations off). Cached odds still show at once either way (see chanceOf).
-  const [transitionEnded, setTransitionEnded] = useState(false);
-  const navigation = useNavigation<TransitionEndNavigation>();
   useEffect(() => {
-    const off = navigation.addListener('transitionEnd', (event) => {
-      if (!event.data.closing) setTransitionEnded(true);
-    });
-    const fallback = setTimeout(() => setTransitionEnded(true), navigationRules.transitionFallbackMs);
-    return () => {
-      off();
-      clearTimeout(fallback);
-    };
-  }, [navigation]);
-  useEffect(() => {
-    if (party.length === 0 || !transitionEnded) return;
+    if (party.length === 0) return;
     let cancelled = false;
     // The odds not yet held for their key queue up (cache hits resolve inside the tick).
-    const queue = shownList
-      .filter((dungeon) => odds[dungeon.id]?.key !== oddsKeys[dungeon.id])
-      .map((dungeon) => ({
-        dungeon,
-        key: oddsKeys[dungeon.id],
-        task: startOddsTask(save, party, dungeon, undefined, {
-          now: minute * 60_000,
-          briefing: briefingOf(save, dungeon, rotation, minute * 60_000),
-        }),
-        firstSliceAt: 0,
-      }));
-    // One slice per tick (InteractionManager is gone from RN core; a timeout chunk
-    // keeps each slice off the first frames and leaves the thread free between runs).
+    const queue = shownList.filter((dungeon) => odds[dungeon.id]?.key !== oddsKeys[dungeon.id]);
+    // One dungeon per tick (InteractionManager is gone from RN core; a timeout chunk
+    // keeps each estimate off the first frames and leaves the thread free between runs).
     const computeNext = () => {
-      const next = queue[0];
-      if (cancelled || !next) return;
+      const dungeon = queue.shift();
+      if (cancelled || !dungeon) return;
       setTimeout(() => {
         if (cancelled) return;
-        if (next.task) {
-          next.firstSliceAt ||= Date.now();
-          recordTiming('odds: expedition', () => runOddsSlice(next.task!));
-          // The same dungeon's next slice comes in the next tick; a whole
-          // estimate is 15 slices of 20 runs, each a few ms on a phone.
-          if (!oddsTaskDone(next.task)) return computeNext();
-          const value = oddsOfTask(next.task);
-          storeOdds(next.key, value);
-          setOdds((prev) => ({ ...prev, [next.dungeon.id]: { key: next.key, odds: value } }));
-          if (__DEV__) console.log(`[odds] ${next.dungeon.id} ${Date.now() - next.firstSliceAt}ms`);
-        }
-        queue.shift();
+        const key = oddsKeys[dungeon.id];
+        const start = Date.now();
+        const value = recordTiming('odds: expedition', () =>
+          cachedEstimateOdds(save, party, dungeon, undefined, {
+            now: minute * 60_000,
+            briefing: briefingOf(save, dungeon, rotation, minute * 60_000),
+          }),
+        );
+        if (__DEV__) console.log(`[odds] ${dungeon.id} ${Date.now() - start}ms`);
+        setOdds((prev) => ({ ...prev, [dungeon.id]: { key, odds: value } }));
         computeNext();
       });
     };
@@ -249,7 +217,7 @@ export function ExpeditionsScreen() {
     };
     // The recompute trigger is the key, not the save: this reruns only when the odds inputs change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [oddsKeys, party.length, transitionEnded]);
+  }, [oddsKeys, party.length]);
 
   /** The chance a card shows: the odds for their current key, the cached ones at once, undefined while computing. */
   const chanceOf = (dungeonId: string): number | null | undefined => {

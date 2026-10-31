@@ -4,8 +4,7 @@ import { placeFightRules, type FightPlaceKind } from '@/content/placeFights';
 import { placeInfo, placeRules, type PlaceKind } from '@/content/places';
 
 import { ELEMENTS, type Element } from '../elements';
-import { EMPTY_ODDS, finishOddsTask, startPartyOddsTask, type OddsTask } from '../expeditions/oddsSlices';
-import { ODDS_RUNS, type Odds } from '../expeditions/odds';
+import { estimatePartyOdds, ODDS_RUNS, type Odds } from '../expeditions/odds';
 import { highestUnlockedTier, untriggeredSalvage } from '../expeditions/expeditions';
 import { prepareParty, simulateRun, type RunOptions } from '../expeditions/simulate';
 import { distanceMeters } from '../generation/geo';
@@ -182,17 +181,11 @@ export function startPlaceFight(save: SaveData, spawn: PlaceSpawn, heroIds: stri
   };
 }
 
-/** A resumable estimate of the party's chances at a place, for callers that slice it off the first frame. */
-export function placeFightOddsTask(save: SaveData, spawn: PlaceSpawn, heroIds: string[], now: number, runs = ODDS_RUNS): OddsTask | null {
-  const kind = spawn.kind;
-  if (!isFightPlace(kind)) throw new Error(`No fight at a ${kind}`);
-  return startPartyOddsTask(prepareParty(save, heroIds, now, true), placeFightDungeon(spawn, highestUnlockedTier(save)), runs, placeRunOptions(save, spawn));
-}
-
 /** The party's chances at a place now, with the HP the heroes have. */
 export function placeFightOdds(save: SaveData, spawn: PlaceSpawn, heroIds: string[], now: number, runs = ODDS_RUNS): Odds {
-  const task = placeFightOddsTask(save, spawn, heroIds, now, runs);
-  return task ? finishOddsTask(task) : EMPTY_ODDS;
+  const kind = spawn.kind;
+  if (!isFightPlace(kind)) throw new Error(`No fight at a ${kind}`);
+  return estimatePartyOdds(prepareParty(save, heroIds, now, true), placeFightDungeon(spawn, highestUnlockedTier(save)), runs, placeRunOptions(save, spawn));
 }
 
 /**

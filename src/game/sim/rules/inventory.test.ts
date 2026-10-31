@@ -19,7 +19,7 @@ function simOf(save: SaveData): Sim {
     due: {},
     met: new Set(),
     rng: createRng('test'),
-    rotation: { day: 0, tiers: {}, composed: {} },
+    rotation: { day: 0, tiers: {} },
     location: simConfig.location,
     tavern: { id: 'tavern', kind: 'market', group: '', tile: '', position: simConfig.location, startsAt: 0, expiresAt: Infinity, roll: 0, name: 'Tavern' },
     reach: { meters: 0, tavern: false, sanctums: [], maps: new Map() },

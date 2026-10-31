@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { rosterRules } from '@/content/roster';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -6,8 +6,7 @@ import { heroClasses } from '@/content/heroes';
 import { itemById, opportunityById } from '@/content/lookup';
 import { briefingOf, dungeonLootSource, launchPlan, type Loadout } from '@/game/expeditions/expeditions';
 import { oddsBand, type OddsBand } from '@/game/expeditions/odds';
-import { startOddsTask } from '@/game/expeditions/oddsSlices';
-import { oddsKey } from '@/game/expeditions/oddsCache';
+import { cachedEstimateOdds, cachedOdds, oddsKey } from '@/game/expeditions/oddsCache';
 import { mealItems } from '@/game/expeditions/provisions';
 
 import { charmApplies } from '@/game/loot/charms';
@@ -19,7 +18,6 @@ import { carriesKit, hasPotionSlot, isOnExpedition } from '@/game/team/team';
 import { hasKey } from '@/game/secrets/keys';
 import type { Briefing, ConsumableDef, DungeonDef, ProvisionDef } from '@/game/types';
 import { formatDuration, formatPercent, t, tr } from '@/i18n';
-import { useSlicedOdds } from '@/hooks/useSlicedOdds';
 import { currentRotation } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { useWorldStore } from '@/store/worldStore';
@@ -162,9 +160,8 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
     const twice = charms.filter((c) => c.id === id).length > 1;
     return { id, emoji: item.emoji, text: `${tr(item.name)}: ${tr(item.description!)}`, applies, twice };
   });
-  // The odds previews: keys already computed elsewhere show at once, the rest
-  // compute in slices after the first frame, and the last known odds stay on
-  // screen while they do.
+  // The odds previews: keys already computed elsewhere show at once, the rest compute
+  // in a later tick, and the last known odds stay on screen while they do.
   const keyNow = useMemo(
     () => oddsKey({ save, heroIds: party, dungeon, options: { now: minute * 60_000, loadout, briefing } }),
     [save, party, dungeon, minute, loadout, briefing],
@@ -173,16 +170,34 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
     () => oddsKey({ save, heroIds: party, dungeon, options: { now: minute * 60_000, loadout, briefing, fullHp: true } }),
     [save, party, dungeon, minute, loadout, briefing],
   );
-  const oddsNow = useSlicedOdds({
-    key: keyNow,
-    build: () => startOddsTask(save, party, dungeon, undefined, { now: minute * 60_000, loadout, briefing }),
-  });
-  const oddsFull = useSlicedOdds({
-    key: keyFull,
-    build: () => startOddsTask(save, party, dungeon, undefined, { now: minute * 60_000, loadout, briefing, fullHp: true }),
-  });
+  const [computed, setComputed] = useState<{ key: string; now: number; full: number } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setTimeout(() => {
+      if (cancelled) return;
+      const start = Date.now();
+      const value = {
+        now: cachedEstimateOdds(save, party, dungeon, undefined, { now: minute * 60_000, loadout, briefing }).success,
+        full: cachedEstimateOdds(save, party, dungeon, undefined, { now: minute * 60_000, loadout, briefing, fullHp: true }).success,
+      };
+      if (__DEV__) console.log(`[odds] ${dungeon.id} dialog ${Date.now() - start}ms`);
+      setComputed({ key: keyNow, ...value });
+    });
+    return () => {
+      cancelled = true;
+    };
+    // The keys change with everything the estimates read; that is the recompute trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [keyNow, keyFull]);
   // The fresh estimate when its key is the current one, the cache's at once, else the last known.
-  const odds = oddsNow && oddsFull ? { now: oddsNow.success, full: oddsFull.success } : null;
+  const heldNow = cachedOdds(keyNow);
+  const heldFull = cachedOdds(keyFull);
+  const odds =
+    computed && computed.key === keyNow
+      ? computed
+      : heldNow && heldFull
+        ? { now: heldNow.success, full: heldFull.success }
+        : computed;
   const band = odds ? oddsBand(odds.now) : null;
   const warnings = warningsFor(save, dungeon, party, odds?.now ?? 1, durationMs, now);
   const canBuy = nearbyTavern && player && buySupplyProblem(save, 1, nearbyTavern.position, player) === null;

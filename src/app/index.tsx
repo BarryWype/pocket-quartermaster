@@ -65,8 +65,6 @@ import { gainsPrefix, lootLabels } from '@/components/lootText';
 import { GainsLine } from '@/components/IconLabel';
 import { t, tr } from '@/i18n';
 import { navigate } from '@/services/navigation';
-import { armOddsWarmup, noteWarmupInteraction, setWarmupMapOnTop } from '@/services/oddsWarmup';
-import { preloadAfterMapShown } from '@/services/preload';
 import { markTap, recordTiming } from '@/services/timings';
 import { appendFixesNow } from '@/services/walkTracking';
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
@@ -179,21 +177,6 @@ function MapScreen() {
     const timer = setInterval(() => setNow(Date.now()), TICK_MS);
     return () => clearInterval(timer);
   }, []);
-
-  // Once the map is shown, the idle warm-up fills the odds keys Expeditions
-  // opens on (issue 17); it stops for any interaction, other screen or
-  // background, and resumes when the map is alone and idle again. The drawn
-  // images and the Expeditions route module preload the same way.
-  useEffect(() => {
-    armOddsWarmup();
-    preloadAfterMapShown();
-  }, []);
-  useFocusEffect(
-    useCallback(() => {
-      setWarmupMapOnTop(true);
-      return () => setWarmupMapOnTop(false);
-    }, []),
-  );
 
   useEffect(() => {
     if (!message) return;
@@ -327,7 +310,6 @@ function MapScreen() {
   // memoised marker tree skips renders that change nothing it reads.
   const openPlaceAt = useCallback(
     (place: PlaceSpawn) => {
-      noteWarmupInteraction();
       markTap('place marker');
       openPlaceAtPanel(place);
       if (position) visitPlace(place, position);
@@ -336,7 +318,6 @@ function MapScreen() {
   );
   const openSanctumAt = useCallback(
     (spawn: SanctumSpawn) => {
-      noteWarmupInteraction();
       markTap('sanctum marker');
       useMapPanels.getState().openSanctum(spawn);
     },
@@ -344,7 +325,6 @@ function MapScreen() {
   );
   const openTavernAt = useCallback(
     (tavern: TavernSpawn) => {
-      noteWarmupInteraction();
       markTap('tavern marker');
       useMapPanels.getState().openTavern(tavern);
     },
@@ -352,7 +332,6 @@ function MapScreen() {
   );
   const openPatrolAt = useCallback(
     (spawn: PatrolSpawn) => {
-      noteWarmupInteraction();
       markTap('patrol marker');
       useMapPanels.getState().openPatrol(spawn);
     },
@@ -565,7 +544,6 @@ function MapScreen() {
 
   const gather = useCallback(
     (spawn: Spawn) => {
-      noteWarmupInteraction();
       if (!position) return;
       const result = collect(spawn, { position, speed }, Date.now());
       if (result.ok) {
@@ -588,7 +566,6 @@ function MapScreen() {
     [selectedPatrol?.id, openPlaceId],
   );
   const quest = useCallback(() => {
-    noteWarmupInteraction();
     markTap('quest marker');
     navigate('/quests');
   }, []);
@@ -654,7 +631,6 @@ function MapScreen() {
         attributionPosition={{ top: insets.top + 8, left: 8 }}
         onRegionIsChanging={(event) => {
           // Native-driven pan: no state changes here, so panning never re-renders this screen.
-          noteWarmupInteraction();
           skyPan.update(event.nativeEvent.center, event.nativeEvent.zoom);
           setDecor((current) => {
             const shown = decorationMode(event.nativeEvent.zoom);
@@ -676,7 +652,6 @@ function MapScreen() {
           if (userInteraction) setWorld({ focusPlace: null });
         }}
         onPress={(event) => {
-          noteWarmupInteraction();
           if (debugOn && player.mocked) {
             const [longitude, latitude] = event.nativeEvent.lngLat;
             setDebug({ mockLocation: { latitude, longitude } });
