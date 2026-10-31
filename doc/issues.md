@@ -1,6 +1,6 @@
 # Issues found in play testing
 
-## 1. Tutorial: resources out of reach (fixed in ff18d01)
+## 1. Tutorial: resources out of reach (fixed in eb3b472)
 Found 2026-10-31. The tutorial's wood (and kit materials) spawn 15–30 m away; GPS drifts, so the player's position moves away from a node and it can't be picked up (tap range 30 m). Some nodes stay out of reach and the tutorial can't be finished from where the player stands.
 Notes: nodes now spawn 8–15 m away (6 m apart), the pick-up range is 50 m during the tutorial only, "Collect from here" shows after 30 s and collects every remaining node of the step at once, and the nodes respawn around the player once they are all more than 60 m away.
 
@@ -8,11 +8,11 @@ Notes: nodes now spawn 8–15 m away (6 m apart), the pick-up range is 50 m duri
 Found 2026-10-31. Tapping Enable shows "you need to enable location" although location is allowed for the app in the phone's settings; tapping again asks again, forever. Pocket mode needs background location ("Always" / "Allow all the time"), which the phone only grants in its own settings (and never in Expo Go); the code treats "while using only" as denied and repeats the same message.
 Notes: cause on this setup was Expo Go (background location unsupported there, so the background request errors and reads as denied). Now the switch distinguishes no location / while-using-only / always: while-using turns Pocket mode on in limited mode with the platform upgrade steps and a settings button, no location keeps the message plus the settings button, Expo Go says it needs the installed app and never asks, and after a refusal the switch explains instead of asking again. Not testable without a real device: the actual system prompts and the settings round-trip.
 
-## 3. Daily quests repeat the same kind (fixed in f18b37d)
+## 3. Daily quests repeat the same kind (fixed in 64eaaac)
 Found 2026-10-31. Two of the three daily quests are walking quests, which feels redundant. Quest picks are seeded by day and slot only, so two new games (or two players) on the same day get the same first quests.
 Notes: variety rule is now kind-based (`questRules.variety` in `src/content/quests.ts`): a new quest picks a kind (Visit, Fight, Deliver, Gather, Trade, Walk) not already active while other kinds are unlocked; only when every unlocked kind is taken can a kind repeat, and then never Walk twice; within a kind it avoids the same objective as an active quest. Picks are seeded per player, day and slot (`playerSeed` on the save, mixed into the arrival, reroll, loot and target seeds), so two players or new games differ; only the tutorial's hand-over quest stays fixed. Rule added to `doc/design/quests/README.md`.
 
-## 4. Repeated taps open the same screen several times (fixed in f22b128)
+## 4. Repeated taps open the same screen several times (fixed in 954fbea)
 Found 2026-10-31. When the app lags, tapping a menu button several times opens that many copies of the screen, stacked on top of each other.
 Notes: all navigation now goes through one shared helper (`navigate` in `src/services/navigation.ts`, planning in `src/services/navigationPlan.ts`, lock in `src/content/navigation.ts`): a screen already on top of the stack does nothing, a screen lower in the stack is gone back to (`router.dismissTo`) instead of pushed again, and a navigation in progress ignores further taps on it for 500 ms (`tapLockMs`). Used by the island menu, the map's quest/debug/settings buttons, the team list and classes link, the settings tips button and tapped notifications. Hardware back (Android) and swipe back (iOS) are untouched — they use the stack's own back, not the helper.
 
