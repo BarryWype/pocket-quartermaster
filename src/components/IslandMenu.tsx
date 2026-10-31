@@ -137,7 +137,6 @@ function MenuButton({ icon, emoji, label, onPress, active, highlight, badge, com
       ]}
     >
       {icon ? <Image source={icon} style={styles.buttonIcon} /> : <Text style={styles.buttonEmoji}>{emoji}</Text>}
-      {!compact && <Text style={styles.buttonLabel}>{label}</Text>}
       {badge ? (
         <View style={[styles.badge, compact && styles.compactBadge]}>
           <Text style={styles.badgeText}>{badge}</Text>
@@ -172,7 +171,6 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.7 },
   buttonIcon: { width: 32, height: 32 },
   buttonEmoji: { fontSize: 24, lineHeight: 32 },
-  buttonLabel: { color: colors.parchment, fontSize: 18 },
   badge: {
     position: 'absolute',
     top: 2,
