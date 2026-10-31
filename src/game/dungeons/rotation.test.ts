@@ -4,11 +4,12 @@ import { dungeonById } from '@/content/lookup';
 import { surges } from '@/content/threats';
 import { rotationRules } from '@/content/rotation';
 
-import { composeBriefing } from '../threats/compose';
+import { composeBriefing, rollSurge } from '../threats/compose';
+import { createRng } from '../generation/rng';
 import { isDungeonAvailable, resolveExpedition, startExpedition } from '../expeditions/expeditions';
 import { createInitialSave, type SaveData } from '../save';
 import { equip } from '../team/team';
-import type { Briefing } from '../types';
+import type { Briefing, DungeonDef } from '../types';
 import {
   applyOverrides,
   briefingFor,
@@ -17,6 +18,7 @@ import {
   openDungeonIds,
   rotationDay,
   type Rotation,
+  type TierRotation,
 } from './rotation';
 import { mainTag } from './tags';
 
@@ -39,6 +41,42 @@ describe('daily rotation', () => {
     const day = START + 250;
     // A copy of the content list skips the kept history, so this recomputes from the start.
     expect(dailyRotation(day)).toEqual(dailyRotation(day, [...dungeons]));
+  });
+
+  it('equals a full replay that composes every briefing, every day from startDay to a year ahead', () => {
+    // The kept replay composes only the threats, and only on days the surge
+    // chance passes; this replays the same days the original way — the day's
+    // full briefings composed for the surge — and the results must be equal.
+    const tiersOf = (list: DungeonDef[]) => [...new Set(list.map((d) => d.tier))].sort((a, b) => a - b);
+    const lastSeen = new Map<string, number>();
+    let yesterday: Rotation | null = null;
+    for (let day = START; day <= START + 365; day++) {
+      const tiers: Record<number, TierRotation> = {};
+      for (const tier of tiersOf(dungeons)) {
+        const inTier = dungeons.filter((d) => d.tier === tier);
+        const boss = inTier.find((d) => d.isBoss)!;
+        const pick = (slot: 'short' | 'long', avoidTag: string | null) => {
+          const pool = inTier.filter((d) => d.slot === slot);
+          const fresh = pool.filter((d) => d.id !== yesterday?.tiers[tier]?.[slot]);
+          const varied = fresh.filter((d) => !avoidTag || mainTag(d) !== avoidTag);
+          const candidates = varied.length ? varied : fresh.length ? fresh : pool;
+          const rng = createRng(`rotation|${day}|${tier}|${slot}`);
+          return rng.weighted(candidates, (d) => (day - (lastSeen.get(d.id) ?? day - pool.length - 1)) ** 2);
+        };
+        const short = pick('short', null);
+        const long = pick('long', mainTag(short));
+        const briefings = Object.fromEntries([boss, short, long].map((d) => [d.id, composeBriefing(d, day)]));
+        const surge = rollSurge(
+          day,
+          tier,
+          Object.fromEntries([boss, short, long].map((d) => [d.id, briefings[d.id].threats])),
+        );
+        tiers[tier] = { boss: boss.id, short: short.id, long: long.id, surge };
+      }
+      expect(dailyRotation(day)).toEqual({ day, tiers });
+      for (const t of Object.values(tiers)) [t.short, t.long].forEach((id) => lastSeen.set(id, day));
+      yesterday = { day, tiers };
+    }
   });
 
   it('opens each tier boss plus one short and one long dungeon', () => {

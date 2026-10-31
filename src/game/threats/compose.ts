@@ -60,13 +60,10 @@ const hasBeasts = (dungeon: DungeonDef) =>
   );
 
 /**
- * What a dungeon shows today: threats drawn from its table (first-tier gated,
- * at most one obstacle, never two sharing a kit, locals only where its pool
- * has a locals encounter), an opportunity from tier 2 on, and from tier 4 a
- * restriction on some days — never on overnight expeditions, which read their
- * `overnight` flag here. Same day, same briefing for everyone.
+ * The dungeon's threats for a day, sharing composeBriefing's seeded stream:
+ * the same seed and the same draw order, so the threats are the same.
  */
-export function composeBriefing(dungeon: DungeonDef, day: number, rules: ThreatRules = threatRules): Briefing {
+function rollThreats(dungeon: DungeonDef, day: number, rules: ThreatRules): { threats: ActiveThreat[]; rng: Rng } {
   const rng = createRng(`threats|${day}|${dungeon.id}`);
   const table = dungeonThreats[dungeon.id] ?? { weights: {} };
   const hasLocals = dungeon.encounters.some((e) => e.type === 'locals');
@@ -97,6 +94,28 @@ export function composeBriefing(dungeon: DungeonDef, day: number, rules: ThreatR
       ...(pick.id === 'element' && table.element ? { element: table.element } : {}),
     });
   }
+  return { threats, rng };
+}
+
+/**
+ * The threats a dungeon shows today, without the opportunity and restriction
+ * rolls: for callers that need only the threats (the rotation's surge). The
+ * restriction roll is by far the briefing's most expensive part, and it can be
+ * skipped wherever the rest of the briefing is never read.
+ */
+export function composeThreats(dungeon: DungeonDef, day: number, rules: ThreatRules = threatRules): ActiveThreat[] {
+  return rollThreats(dungeon, day, rules).threats;
+}
+
+/**
+ * What a dungeon shows today: threats drawn from its table (first-tier gated,
+ * at most one obstacle, never two sharing a kit, locals only where its pool
+ * has a locals encounter), an opportunity from tier 2 on, and from tier 4 a
+ * restriction on some days — never on overnight expeditions, which read their
+ * `overnight` flag here. Same day, same briefing for everyone.
+ */
+export function composeBriefing(dungeon: DungeonDef, day: number, rules: ThreatRules = threatRules): Briefing {
+  const { threats, rng } = rollThreats(dungeon, day, rules);
 
   let opportunity: OpportunityId | null = null;
   if (dungeon.tier >= rules.compose.opportunityFromTier) {
@@ -227,18 +246,27 @@ export type Surge = { dungeonId: string; threatId: ThreatId };
  * its undead, traps or beasts threat raised. The dungeon is picked uniformly;
  * its first matching threat is the one raised.
  */
+/**
+ * Whether the day's surge chance passes. rollSurge draws the same chance from
+ * the same seed first, so composing threats only when this passes changes no
+ * result — a rolled surge is still rolled when rollSurge runs.
+ */
+export function surgeRolled(day: number, tier: number, rules: ThreatRules = threatRules): boolean {
+  return createRng(`surge|${day}|${tier}`).chance(rules.compose.surgeChance);
+}
+
 export function rollSurge(
   day: number,
   tier: number,
-  briefings: Record<string, Briefing>,
+  threats: Record<string, ActiveThreat[]>,
   rules: ThreatRules = threatRules,
 ): Surge | null {
   const rng = createRng(`surge|${day}|${tier}`);
   if (!rng.chance(rules.compose.surgeChance)) return null;
-  const candidates = Object.keys(briefings).filter((id) => briefings[id].threats.some((t) => surges[t.id]));
+  const candidates = Object.keys(threats).filter((id) => threats[id].some((t) => surges[t.id]));
   if (candidates.length === 0) return null;
   const dungeonId = rng.weighted(candidates, () => 1);
-  const threat = briefings[dungeonId].threats.find((t) => surges[t.id])!;
+  const threat = threats[dungeonId].find((t) => surges[t.id])!;
   return { dungeonId, threatId: threat.id };
 }
 

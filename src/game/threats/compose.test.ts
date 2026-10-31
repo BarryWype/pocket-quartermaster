@@ -249,18 +249,21 @@ describe('threats before their kit', () => {
 
 describe('daily surges', () => {
   const tierDungeons = ['harpyCliffs', 'thunderPlateau', 'boneField'] as const;
-  const briefings = () =>
-    Object.fromEntries(tierDungeons.map((id) => [id, compose(id, 12)])) as Record<string, ReturnType<typeof compose>>;
+  const threats = () =>
+    Object.fromEntries(tierDungeons.map((id) => [id, compose(id, 12).threats])) as Record<
+      string,
+      ReturnType<typeof compose>['threats']
+    >;
 
   it('rolls one surge some days, and none without a matching threat', () => {
-    const rolled = days(50).map((day) => rollSurge(day, 4, briefings()));
+    const rolled = days(50).map((day) => rollSurge(day, 4, threats()));
     expect(rolled.some((s) => s !== null)).toBe(true);
     expect(rolled.filter(Boolean).every((s) => (tierDungeons as readonly string[]).includes(s!.dungeonId))).toBe(true);
     // Nothing to raise: no surge.
-    const quiet = { d: { threats: [{ id: 'locked' as const, level: 1 as const }], restriction: null, opportunity: null } };
+    const quiet = { d: [{ id: 'locked' as const, level: 1 as const }] };
     expect(days(50).every((day) => rollSurge(day, 4, quiet) === null)).toBe(true);
     // The same day always rolls the same surge.
-    expect(rollSurge(12, 4, briefings())).toEqual(rollSurge(12, 4, briefings()));
+    expect(rollSurge(12, 4, threats())).toEqual(rollSurge(12, 4, threats()));
   });
 
   it('raises the threat by one level, capped at 3, and names the surge', () => {

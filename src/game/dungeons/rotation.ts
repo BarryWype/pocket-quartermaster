@@ -2,7 +2,7 @@ import { dungeons as allDungeons } from '@/content/dungeons';
 import { rotationRules } from '@/content/rotation';
 
 import { createRng } from '../generation/rng';
-import { composeBriefing, rollSurge, withSurge, type Surge } from '../threats/compose';
+import { composeBriefing, composeThreats, rollSurge, surgeRolled, withSurge, type Surge } from '../threats/compose';
 import type { Briefing, DungeonDef } from '../types';
 import { mainTag } from './tags';
 
@@ -69,8 +69,18 @@ function pickDay(
     };
     const short = pick('short', null);
     const long = pick('long', mainTag(short));
-    const briefings = Object.fromEntries([boss, short, long].map((d) => [d.id, composeBriefing(d, day)]));
-    tiers[tier] = { boss: boss.id, short: short.id, long: long.id, surge: rollSurge(day, tier, briefings) };
+    // The surge reads only the threats, so the briefings are composed without
+    // the restriction roll (the expensive part) — and only on the days the
+    // surge chance passes at all (issue 17). rollSurge draws the same chance
+    // from the same seed first, so every surge is the one the full replay rolls.
+    const surge = surgeRolled(day, tier)
+      ? rollSurge(
+          day,
+          tier,
+          Object.fromEntries([boss, short, long].map((d) => [d.id, composeThreats(d, day)])),
+        )
+      : null;
+    tiers[tier] = { boss: boss.id, short: short.id, long: long.id, surge };
   }
   return { day, tiers };
 }
