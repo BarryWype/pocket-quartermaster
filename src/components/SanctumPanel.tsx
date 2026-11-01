@@ -24,7 +24,7 @@ import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
 
 import { EnemyTags } from './EnemyTags';
-import { EmberButton, WoodButton } from './ui';
+import { DifficultyChip, EmberButton, WoodButton } from './ui';
 import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
@@ -135,6 +135,7 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
           </View>
         }
       >
+        <DifficultyChip difficulty="hard" />
         <View style={styles.elementRow}>
           <IconLabel emoji={element.emoji} label={tr(element.name)} labelStyle={styles.muted} />
           <Text style={styles.muted}> · {tr(sanctum.description)}</Text>

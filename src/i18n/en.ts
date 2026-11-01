@@ -643,6 +643,12 @@ export const en = {
     buy: 'Buy',
     header: 'Gold: {gold} · Roster {count}/{cap} · new recruits every day',
   },
+  difficulty: {
+    markerLabel: '{name}, {difficulty} {kind}',
+    patrol: 'patrol',
+    sanctum: 'sanctum',
+    fight: 'fight',
+  },
   patrols: {
     walkCloser: 'Walk closer ({distance} m)',
     gone: 'They are gone.',

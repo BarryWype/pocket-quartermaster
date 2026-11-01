@@ -1,5 +1,8 @@
 export { AnchoredPopup, type PopupAnchor } from './AnchoredPopup';
 export { Chip, type ChipTone } from './Chip';
+export { DifficultyChip } from './DifficultyChip';
+export { DifficultyPips } from './DifficultyPips';
+export { DifficultyRing } from './DifficultyRing';
 export { DiamondButton } from './DiamondButton';
 export { DiamondRail, RAIL_WIDTH, type RailItem } from './DiamondRail';
 export { EmberButton } from './EmberButton';

@@ -3,9 +3,7 @@ import { rosterRules } from '@/content/roster';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { frPatrolTexts } from '@/content/fr/patrols';
-import { frDifficultyLabels } from '@/content/fr/difficulty';
 import { heroClasses } from '@/content/heroes';
-import { difficultyLabels } from '@/content/difficulty';
 import { patrolFights, patrolTexts } from '@/content/patrols';
 import { patrolThreat } from '@/content/threats';
 import { tagInfo } from '@/content/rotation';
@@ -26,10 +24,10 @@ import { syncBackground } from '@/hooks/useAutoGather';
 import { recordTiming } from '@/services/timings';
 import { useGameStore } from '@/store/gameStore';
 import { useWorldStore } from '@/store/worldStore';
-import { colors, difficultyTokens, pixel } from '@/theme';
+import { colors, pixel } from '@/theme';
 
 import { EnemyTags } from './EnemyTags';
-import { EmberButton, WoodButton } from './ui';
+import { DifficultyChip, EmberButton, WoodButton } from './ui';
 import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
@@ -138,11 +136,7 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
           ]}
           labelStyle={styles.muted}
         />
-        {difficulty && (
-          <Text style={[styles.muted, { color: difficultyTokens[difficulty].ring }]}>
-            {'●'.repeat(difficultyTokens[difficulty].pips)} {localized({ en: difficultyLabels, fr: frDifficultyLabels })[difficulty]}
-          </Text>
-        )}
+        <DifficultyChip difficulty={difficulty} />
         <Text style={styles.muted}>{t(`patrols.rewards.${kind}`)}</Text>
         <ThreatChip threat={patrolThreat(spawn)} />
         <PartsLine

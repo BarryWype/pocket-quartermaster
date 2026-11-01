@@ -49,6 +49,7 @@ import {
   type PatrolSubject,
 } from '@/game/patrols/generate';
 import type { Difficulty } from '@/content/difficulty';
+import { difficultyRules } from '@/content/difficulty';
 import { distanceTo } from '@/game/patrols/visibility';
 import { masteryCap, masteryOf } from '@/game/forging/mastery';
 import { guildRank } from '@/game/guild/guild';
@@ -84,6 +85,9 @@ import { ui } from '@/theme';
 import { PixelBar } from '@/components/PixelBar';
 import {
   Chip,
+  DifficultyChip,
+  DifficultyPips,
+  DifficultyRing,
   DiamondButton,
   DiamondRail,
   EmberButton,
@@ -236,6 +240,22 @@ function UiKitDebug() {
         <Chip tone="bad" label="Exposed" />
         <Chip tone="keyword" label="Pierce" />
         <Chip tone="neutral" label="Lv 3" />
+      </View>
+      <View style={styles.kitRow}>
+        {difficultyRules.order.map((difficulty) => (
+          <View key={difficulty} style={styles.kitDifficulty}>
+            <DifficultyRing difficulty={difficulty} shape="diamond" size={24}>
+              <View style={styles.kitDiamond}>
+                <Text>👺</Text>
+              </View>
+            </DifficultyRing>
+            <DifficultyPips difficulty={difficulty} />
+            <DifficultyRing difficulty={difficulty} shape="square" size={24}>
+              <Text>⚔️</Text>
+            </DifficultyRing>
+            <DifficultyChip difficulty={difficulty} />
+          </View>
+        ))}
       </View>
       <PixelBar value={0.3} />
       <PixelBar value={0.8} />
@@ -1329,6 +1349,8 @@ const styles = StyleSheet.create({
   kitRailRow: { flexDirection: 'row', height: 220 },
   kitRailFill: { flex: 1, backgroundColor: ui.woodDark },
   kitRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
+  kitDifficulty: { alignItems: 'center', gap: 4 },
+  kitDiamond: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: ui.woodDark, transform: [{ rotate: '45deg' }] },
   kitSlot60: { width: 60 },
   kitGrow: { flex: 1 },
   kitTabs: { height: 160 },

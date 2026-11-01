@@ -10,6 +10,8 @@ type Props = {
   title?: string;
   titleEmoji?: string;
   titleIcon?: ImageSourcePropType;
+  /** Replaces the band's icon: a ringed icon instead of the plain one. */
+  titleIconNode?: ReactNode;
   titleSub?: string;
   /** A red pin dot on the top edge, for quest notices. */
   pinned?: boolean;
@@ -19,7 +21,7 @@ type Props = {
 };
 
 /** A parchment card: 3 px outline, double inner rim, 4 px drop strip, optional plank title band. */
-export function ParchmentCard({ children, title, titleEmoji, titleIcon, titleSub, pinned, tilt = 0, style, contentStyle }: Props) {
+export function ParchmentCard({ children, title, titleEmoji, titleIcon, titleIconNode, titleSub, pinned, tilt = 0, style, contentStyle }: Props) {
   return (
     <View style={[styles.drop, style]}>
       <View style={[styles.card, tilt !== 0 && { transform: [{ rotate: `${tilt}deg` }] }]}>
@@ -33,10 +35,14 @@ export function ParchmentCard({ children, title, titleEmoji, titleIcon, titleSub
                 <View key={i} style={[styles.bandSeam, { top: (i + 1) * 14 }]} />
               ))}
             </View>
-            {titleEmoji !== undefined && (
-              <View style={styles.bandIcon}>
-                <GameIcon emoji={titleEmoji} icon={titleIcon} size={30} />
-              </View>
+            {titleIconNode !== undefined ? (
+              <View style={styles.bandIcon}>{titleIconNode}</View>
+            ) : (
+              titleEmoji !== undefined && (
+                <View style={styles.bandIcon}>
+                  <GameIcon emoji={titleEmoji} icon={titleIcon} size={30} />
+                </View>
+              )
             )}
             <View style={styles.bandText}>
               <Text style={styles.bandTitle}>{title}</Text>

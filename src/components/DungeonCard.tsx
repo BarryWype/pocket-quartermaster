@@ -16,7 +16,7 @@ import { fonts, ui } from '@/theme';
 import { BriefingChips } from './BriefingChips';
 import { EnemyTags } from './EnemyTags';
 import { IconLabel, RewardLabel } from './IconLabel';
-import { Chip, EmberButton, ParchmentCard } from './ui';
+import { Chip, DifficultyPips, DifficultyRing, EmberButton, ParchmentCard } from './ui';
 import { Text } from './Text';
 import { ThreatCoverageChips } from './ThreatDetail';
 import { GameIcon } from './GameIcon';
@@ -67,7 +67,14 @@ export function DungeonCard({ save, dungeon, rotation, now, durationMs, chance, 
     >
       <ParchmentCard
         title={tr(dungeon.name)}
-        titleEmoji={dungeon.emoji}
+        titleIconNode={
+          <View style={styles.ringedIcon}>
+            <DifficultyRing difficulty={dungeon.difficulty} shape="square" size={22}>
+              <GameIcon emoji={dungeon.emoji} size={22} />
+            </DifficultyRing>
+            <DifficultyPips difficulty={dungeon.difficulty} />
+          </View>
+        }
         titleSub={`${t(`expeditions.kind.${kind}`)} · ${formatDuration(durationMs)}`}
         contentStyle={styles.content}
       >
@@ -133,6 +140,7 @@ export function DungeonCard({ save, dungeon, rotation, now, durationMs, chance, 
 }
 
 const styles = StyleSheet.create({
+  ringedIcon: { alignItems: 'center' },
   content: { gap: 7 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },

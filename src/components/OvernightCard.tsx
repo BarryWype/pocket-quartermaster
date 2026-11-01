@@ -10,8 +10,9 @@ import { formatDuration, formatPercent, t, tr } from '@/i18n';
 import { fonts, ui } from '@/theme';
 
 import { BriefingChips } from './BriefingChips';
+import { GameIcon } from './GameIcon';
 import { RewardLabel } from './IconLabel';
-import { Chip, EmberButton, ParchmentCard } from './ui';
+import { Chip, DifficultyPips, DifficultyRing, EmberButton, ParchmentCard } from './ui';
 import { Text } from './Text';
 
 type Props = {
@@ -39,7 +40,14 @@ export function OvernightCard({ save, dungeon, rotation, now, chance, onSend }: 
   return (
     <ParchmentCard
       title={tr(dungeon.name)}
-      titleEmoji={dungeon.emoji}
+      titleIconNode={
+        <View style={styles.ringedIcon}>
+          <DifficultyRing difficulty={dungeon.difficulty} shape="square" size={22}>
+            <GameIcon emoji={dungeon.emoji} size={22} />
+          </DifficultyRing>
+          <DifficultyPips difficulty={dungeon.difficulty} />
+        </View>
+      }
       titleSub={`${t('expeditions.overnight.title')} · ${formatDuration(durationMs)} · ${t('expeditions.overnight.back', { time: clockTime(now + durationMs) })}`}
       contentStyle={styles.content}
     >
@@ -69,6 +77,7 @@ export function OvernightCard({ save, dungeon, rotation, now, chance, onSend }: 
 }
 
 const styles = StyleSheet.create({
+  ringedIcon: { alignItems: 'center' },
   content: { gap: 7 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   line: { fontFamily: fonts.serif, fontSize: 14, color: ui.ink },

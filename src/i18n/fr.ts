@@ -651,6 +651,12 @@ export const fr: Dictionary = {
     buy: 'Acheter',
     header: 'Or : {gold} · Effectif {count}/{cap} · nouvelles recrues chaque jour',
   },
+  difficulty: {
+    markerLabel: '{name}, {kind} {difficulty}',
+    patrol: 'patrouille',
+    sanctum: 'sanctuaire',
+    fight: 'combat',
+  },
   patrols: {
     walkCloser: 'Approchez-vous ({distance} m)',
     gone: 'Ils ne sont plus là.',
