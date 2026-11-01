@@ -1,18 +1,12 @@
-import type { ReactNode } from 'react';
-import { StyleSheet } from 'react-native';
-
 import { elementInfo } from '@/content/elements';
-import { qualities } from '@/content/forging';
-import { componentById, gearName, itemById, relicById } from '@/content/lookup';
+import { componentById, itemById, relicById } from '@/content/lookup';
 import { gearStats } from '@/game/forging/quality';
 import { trinketEffect } from '@/game/loot/trinkets';
 import { rollToScale } from '@/game/forging/roll';
 import type { GearDef, GearInstance } from '@/game/types';
 import { t, tr } from '@/i18n';
-import { colors } from '@/theme';
 
-import { PartsLine, type LabelPart } from './IconLabel';
-import { Row } from './Row';
+import type { LabelPart } from './IconLabel';
 
 export const statIcons = {
   power: '⚔️',
@@ -59,30 +53,3 @@ export function gearEffectParts(gear: GearInstance): LabelPart[] {
   }
   return [];
 }
-
-type Props = { gear: GearInstance; note?: string | null; right?: ReactNode };
-
-/** A gear piece in its quality colour, with its stats, element and an optional note. */
-export function GearRow({ gear, note, right }: Props) {
-  const item = itemById[gear.itemId];
-  const parts: LabelPart[] = [
-    ...gearStatsParts(gear),
-    gear.element ? { emoji: elementInfo[gear.element].emoji, text: tr(elementInfo[gear.element].name) } : null,
-    ...gearEffectParts(gear),
-    note,
-  ].filter((part): part is LabelPart => part !== null);
-  return (
-    <Row
-      emoji={item.emoji}
-      icon={item.icon}
-      title={gearName(gear)}
-      titleColor={qualities[gear.quality].color}
-      subtitle={parts.length > 0 ? <PartsLine parts={parts} labelStyle={styles.subtitle} /> : undefined}
-      right={right}
-    />
-  );
-}
-
-const styles = StyleSheet.create({
-  subtitle: { fontSize: 17, color: colors.muted },
-});

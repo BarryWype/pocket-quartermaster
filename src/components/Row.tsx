@@ -1,10 +1,9 @@
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 
-import { colors, pixel } from '@/theme';
+import { colors } from '@/theme';
 
 import { GameIcon } from './GameIcon';
-import { IconLabel } from './IconLabel';
 import { Text } from './Text';
 
 type Props = {
@@ -45,19 +44,6 @@ export function IconSlot({ emoji, icon, size = 32 }: { emoji: string; icon?: Ima
   );
 }
 
-/** A wooden banner heading a section, its icon beside the words when given one. */
-export function SectionTitle({ children, emoji }: { children: string; emoji?: string }) {
-  return (
-    <View style={styles.banner}>
-      {emoji ? (
-        <IconLabel emoji={emoji} label={children} size={22} gap={6} labelStyle={styles.section} />
-      ) : (
-        <Text style={styles.section}>◆ {children}</Text>
-      )}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
@@ -80,15 +66,4 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 17, color: colors.muted },
   right: { fontSize: 20 },
   badge: { position: 'absolute', right: -6, bottom: -6, fontSize: 13 },
-  banner: {
-    alignSelf: 'flex-start',
-    marginTop: 16,
-    marginBottom: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 2,
-    borderWidth: pixel.outline,
-    borderColor: colors.ink,
-    backgroundColor: colors.wood,
-  },
-  section: { fontSize: 22, color: colors.parchment },
 });

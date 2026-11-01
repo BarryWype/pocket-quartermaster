@@ -29,8 +29,3 @@ export function spendKey(save: SaveData): SaveData {
   if (!hasKey(save)) throw new Error('No mysterious key');
   return { ...save, keyFragments: save.keyFragments - lootConfig.keyFragmentsPerKey };
 }
-
-/** Whether the secret places' lock opens for this player. */
-export function secretLock(save: SaveData): 'open' | 'closed' {
-  return hasKey(save) ? 'open' : 'closed';
-}

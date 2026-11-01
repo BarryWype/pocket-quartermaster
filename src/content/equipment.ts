@@ -111,8 +111,6 @@ export const gearBudgetRules = {
   evasionPerTier: 1,
 };
 
-export const TIER_NAMES = ['Wood, bone', 'Stone', 'Copper', 'Iron', 'Steel'];
-
 /** Names from item-names.csv, per type and tier (1–5). */
 export const gearNames: Record<GearType, [string, string, string, string, string]> = {
   sword: ['Wooden sword', 'Flint sword', 'Copper sword', 'Iron sword', 'Steel sword'],

@@ -9,12 +9,10 @@ import { activeCount, questUpkeep } from './arrival';
 import {
   deliver,
   deliverProblem,
-  isClaimable,
   markSeen,
   maybeSecretQuest,
   questEvent,
   refreshWalks,
-  unseenCount,
   type QuestEvent,
 } from './progress';
 import { objectiveAmount } from './unlocks';
@@ -71,10 +69,7 @@ describe('quest progress', () => {
     expect(done.quests.list[0].doneAt).toBe(at);
     expect(done.quests.completions).toEqual([at]);
     expect(done.quests.list[0].seen).toBe(false);
-    expect(unseenCount(done)).toBe(1);
-    expect(isClaimable(done.quests.list[0])).toBe(true);
     expect(markSeen(done).quests.list[0].seen).toBe(true);
-    expect(unseenCount(markSeen(done))).toBe(0);
   });
 
   it('completes fights and the lair at their target', () => {

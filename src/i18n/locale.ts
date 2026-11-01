@@ -1,5 +1,4 @@
 export type Locale = 'en' | 'fr';
-export const LOCALES: Locale[] = ['en', 'fr'];
 
 let current: Locale = 'en';
 

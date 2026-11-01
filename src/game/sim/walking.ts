@@ -137,9 +137,3 @@ export function walkYield(
 export const bonusScaled = (stacks: MaterialStack[], multiplier: number = gatheringConfig.walkingBonus.multiplier): MaterialStack[] =>
   stacks.map((stack) => ({ materialId: stack.materialId, amount: Math.ceil(stack.amount * multiplier) }));
 
-/** Auto-gather's yield as a share of tapping's, per material, on the same walks with the pickaxes owned. */
-export function autoYieldRatio(rates: WalkRates, pickaxes: number): Record<string, number> {
-  const manual = rates.perMinute[pickaxes];
-  const auto = rates.autoPerMinute[pickaxes];
-  return Object.fromEntries(Object.keys(manual).map((id) => [id, (auto[id] ?? 0) / manual[id]]));
-}

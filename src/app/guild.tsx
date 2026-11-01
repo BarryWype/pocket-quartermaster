@@ -6,7 +6,7 @@ import { IconLabel } from '@/components/IconLabel';
 import { Text } from '@/components/Text';
 import { guildBuildings, guildTrackById, guildTracks, type GuildBuildingId, type GuildTrack } from '@/content/guild';
 import { materialById } from '@/content/lookup';
-import { bossBeaten, guildRank, isGuildUnlocked, rankGate, rankPrice, rankProblem } from '@/game/guild/guild';
+import { guildRank, isGuildUnlocked, rankGate, rankPrice, rankProblem } from '@/game/guild/guild';
 import type { MaterialStack } from '@/game/types';
 import { useLanguage } from '@/hooks/useLanguage';
 import { t, tr } from '@/i18n';

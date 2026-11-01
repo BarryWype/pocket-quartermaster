@@ -106,7 +106,6 @@ export const travellerRules = {
   usesPerTrade: 3,
 };
 
-export type TravellerRules = typeof travellerRules;
 
 /** English wording; the French is in content/fr/patrols.ts. */
 export const patrolTexts = {

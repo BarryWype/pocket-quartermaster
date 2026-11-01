@@ -96,8 +96,3 @@ export function showsForPlayer(spawn: PlaceSpawn, pickaxeTier: number, lockedSha
   return !(isLockedMine(spawn.kind, pickaxeTier) && spawn.roll >= lockedShare);
 }
 
-/** Drops bookkeeping entries (place id → expiresAt) that have lapsed. */
-export function prunePlaces<T extends Record<string, number>>(bookkeeping: T, now: number): T {
-  const kept = Object.fromEntries(Object.entries(bookkeeping).filter(([, expiresAt]) => expiresAt > now));
-  return kept as T;
-}

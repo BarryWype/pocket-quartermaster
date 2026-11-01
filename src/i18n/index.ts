@@ -5,7 +5,7 @@ import { fr } from './fr';
 import { article } from './french';
 import { getLocale, localized } from './locale';
 
-export { getLocale, localized, setLocale, LOCALES, type Locale } from './locale';
+export { getLocale, localized, setLocale, type Locale } from './locale';
 
 export type Plural = { one: string; other: string };
 export type Dictionary = typeof en;

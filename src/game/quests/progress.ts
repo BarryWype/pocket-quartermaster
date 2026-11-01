@@ -176,17 +176,8 @@ export function noteMarksReached(save: SaveData, arrivals: { questId: string; at
   return questsState(save, { list });
 }
 
-export function isClaimable(quest: Quest): boolean {
-  return quest.doneAt !== null;
-}
-
 /** Everything in the list has been shown (badge cleared). */
 export function markSeen(save: SaveData): SaveData {
   if (save.quests.list.every((quest) => quest.seen)) return save;
   return questsState(save, { list: save.quests.list.map((quest) => ({ ...quest, seen: true })) });
-}
-
-/** Quests waiting to be shown: new arrivals and newly finished ones. */
-export function unseenCount(save: SaveData): number {
-  return save.quests.list.filter((quest) => !quest.seen).length;
 }

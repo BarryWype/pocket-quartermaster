@@ -1,5 +1,5 @@
 import { createInitialSave, type SaveData } from '../save';
-import { fragmentsTowardKey, hasKey, keyDots, keysHeld, secretLock, spendKey } from './keys';
+import { fragmentsTowardKey, hasKey, keyDots, keysHeld, spendKey } from './keys';
 
 const saveWith = (keyFragments: number): SaveData => ({ ...createInitialSave(), keyFragments });
 
@@ -22,10 +22,5 @@ describe('mysterious keys', () => {
     expect(keyDots(saveWith(2))).toBe('●●○○');
     expect(keyDots(saveWith(5))).toBe('●○○○');
     expect(keyDots(saveWith(0))).toBe('○○○○');
-  });
-
-  it('locks the secret places without a key', () => {
-    expect(secretLock(saveWith(3))).toBe('closed');
-    expect(secretLock(saveWith(4))).toBe('open');
   });
 });

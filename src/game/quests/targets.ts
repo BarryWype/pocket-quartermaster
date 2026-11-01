@@ -1,4 +1,4 @@
-import { placeRules, type PlaceKind } from '@/content/places';
+import type { PlaceKind } from '@/content/places';
 import { objectives, questRules, type QuestBand } from '@/content/quests';
 
 import { distanceMeters, offsetPosition } from '../generation/geo';
@@ -239,6 +239,3 @@ export function compassDirection(from: LatLng, to: LatLng): 'N' | 'NE' | 'E' | '
   return (['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const)[index];
 }
 
-/** Whether the player stands close enough to a place to act there. */
-export const withinInteraction = (player: LatLng, place: PlaceSpawn) =>
-  distanceMeters(player, place.position) <= placeRules.interactionMeters;

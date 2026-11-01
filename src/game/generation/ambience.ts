@@ -36,9 +36,6 @@ export function decorationMode(zoom: number, config = ambienceConfig): Decoratio
   return zoom < config.animationMinZoom ? 'still' : 'animated';
 }
 
-/** Whether the map is zoomed in enough to show the butterflies, fireflies and plants. */
-export const showsDecoration = (zoom: number, config = ambienceConfig) => zoom >= config.decorationMinZoom;
-
 export const inSpan = (hour: number, [from, to]: Span) => (from <= to ? hour >= from && hour < to : hour >= from || hour < to);
 
 /** The tint at a local hour, as an rgb colour and an opacity. */
