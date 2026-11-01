@@ -37,10 +37,11 @@ import { useNow } from '@/hooks/useNow';
 import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { fonts, ui } from '@/theme';
+import { timed } from '@/components/timed';
 
 const GEAR_SLOTS = ['weapon', 'armor', 'offhand', 'trinket'] as const;
 
-export default function CharacterSheetScreen() {
+function CharacterSheetScreen() {
   useLanguage();
   const { heroId } = useLocalSearchParams<{ heroId: string }>();
   const save = useGameStore((state) => state.save);
@@ -633,3 +634,5 @@ const styles = StyleSheet.create({
   slotLabel: { fontFamily: fonts.body, fontSize: 13, color: ui.brassLight },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
 });
+
+export default timed('screen: hero', CharacterSheetScreen);

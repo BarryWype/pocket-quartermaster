@@ -34,6 +34,7 @@ import { formatDistance, formatDuration, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { fonts, ui } from '@/theme';
 import { AnchoredPopup, Chip, DiamondRail, ItemPopup, ItemSlot, WoodButton, type PopupAnchor, type RailItem } from '@/components/ui';
+import { timed } from '@/components/timed';
 
 const HOUR = 3_600_000;
 
@@ -51,7 +52,7 @@ const PAGE_EMOJI: Record<InventoryPageId, string> = {
 let lastPage: InventoryPageId | null = null;
 
 /** The inventory: one swipable page per category of what is held, each a grid of sockets. */
-export default function InventoryScreen() {
+function InventoryScreen() {
   useLanguage();
   const save = useGameStore((state) => state.save);
   const readMap = useGameStore((state) => state.readTreasureMap);
@@ -498,3 +499,5 @@ const styles = StyleSheet.create({
   line: { fontFamily: fonts.serif, fontSize: 15, color: ui.inkMuted },
   lock: { fontSize: 20 },
 });
+
+export default timed('screen: inventory', InventoryScreen);

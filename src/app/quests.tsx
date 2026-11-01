@@ -29,6 +29,7 @@ import { useWorldStore } from '@/store/worldStore';
 import { fonts, ui } from '@/theme';
 
 import { DiamondRail, EmberButton, ItemSlot, ParchmentCard, WoodButton, type RailItem } from '@/components/ui';
+import { timed } from '@/components/timed';
 
 /** One emoji per loot category, for the reward slots. */
 const CATEGORY_EMOJI: Record<LootCategory, string> = {
@@ -100,7 +101,7 @@ let lastPage: QuestsPageId | null = null;
  * The daily quests and the step chests, one swipable page each. Opening the
  * list accepts new quests and fixes their targets from where the player stands.
  */
-export default function QuestsScreen() {
+function QuestsScreen() {
   useLanguage();
   const now = useNow(5000);
   const save = useGameStore((state) => state.save);
@@ -348,3 +349,5 @@ const styles = StyleSheet.create({
   spacer: { flex: 1 },
   rerollButton: { minHeight: 44 },
 });
+
+export default timed('screen: quests', QuestsScreen);

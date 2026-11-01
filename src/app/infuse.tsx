@@ -1,7 +1,10 @@
 import { InfuseStation } from '@/components/InfuseStation';
 import { useLanguage } from '@/hooks/useLanguage';
+import { timed } from '@/components/timed';
 
-export default function InfuseScreen() {
+function InfuseScreen() {
   useLanguage();
   return <InfuseStation />;
 }
+
+export default timed('screen: infuse', InfuseScreen);

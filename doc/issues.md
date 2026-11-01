@@ -81,3 +81,24 @@ Second attempt: measured first (`src/perf/expeditionsFirstOpen.test.ts`, every p
 *noisy and not comparable: in the app most of that module graph is already evaluated by the screens before it; the row is measured only in jest, whose registry starts empty.
 Not verified on a real device: the actual first-open time on a phone.
 
+
+## 18. Menu screens take 3–4 s to open again, with no sign the tap registered (open)
+Found 2026-11-01, after #21 (progression-difficulty) and #22 (ui-quest-fixes). Every screen the bottom menu opens takes 3–4 s on a phone, and nothing on screen shows the tap was taken in the meantime.
+Notes: measured first. Every screen the bottom menu and the hero list open is now wrapped in `timed()`, so the debug profiler records `tap→open <screen>` for each (forge, infuse, provisions, inventory, team, hero, quests, guild, settings, tips; expeditions already was). `src/perf/menuFirstOpen.test.tsx` mounts each screen with react-test-renderer on a mid-game save (tiers 1–2 cleared, tier 3 half way, six heroes, 40 gear pieces, every material and consumable), cold (fresh module registry, modules loaded before the timing) and warm, and times `dailyRotation` cold on its own. Phone estimate ×4, as in issue 17.
+
+| item (dev machine) | cold | warm | phone cold (×4) |
+| --- | --- | --- | --- |
+| dailyRotation(today) | 418 ms | 0 ms | 1672 ms |
+| screen: expeditions | 457 ms | 17 ms | 1828 ms |
+| screen: forge | 8 ms | 4 ms | 32 ms |
+| screen: infuse | 1 ms | 1 ms | 4 ms |
+| screen: provisions | 8 ms | 6 ms | 32 ms |
+| screen: inventory | 7 ms | 2 ms | 28 ms |
+| screen: team | 15 ms | 12 ms | 60 ms |
+| screen: hero | 19 ms | 13 ms | 76 ms |
+| screen: quests | 13 ms | 3 ms | 52 ms |
+| screen: guild | 21 ms | 16 ms | 84 ms |
+| screen: settings | 21 ms | 15 ms | 84 ms |
+| screen: tips | 2 ms | 0 ms | 8 ms |
+
+Expeditions' first render is almost all the rotation replay (418 of 457 ms): the new briefing rotation replays every day since `startDay`, walking every chain dungeon of every tier with up to 8 salted `composeThreats` calls. Every other screen's JS render is under ~85 ms on the phone estimate, so their 3–4 s are not render work jest can see. What jest can't see is the native side: every pager page mounting at once (3–6 pages of image slots per rail screen), plus the transition.

@@ -8,9 +8,10 @@ import { useLanguage } from '@/hooks/useLanguage';
 import { t } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { fonts, ui } from '@/theme';
+import { timed } from '@/components/timed';
 
 /** Every tip already closed, in the order they came, to read again. */
-export default function TipsScreen() {
+function TipsScreen() {
   useLanguage();
   const seen = useGameStore((state) => state.save.tips.seen);
 
@@ -58,3 +59,5 @@ const styles = StyleSheet.create({
   kind: { fontSize: 19, lineHeight: 21, color: ui.ink },
   tip: { fontFamily: fonts.serif, fontSize: 14, lineHeight: 19, color: ui.ink },
 });
+
+export default timed('screen: tips', TipsScreen);

@@ -1,5 +1,8 @@
 import { ForgeStation } from '@/components/ForgeStation';
+import { timed } from '@/components/timed';
 
-export default function ForgeScreen() {
+function ForgeScreen() {
   return <ForgeStation />;
 }
+
+export default timed('screen: forge', ForgeScreen);

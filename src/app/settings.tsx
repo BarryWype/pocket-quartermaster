@@ -24,6 +24,7 @@ import { type LanguageSetting, useSettingsStore } from '@/store/settingsStore';
 import { fonts, ui } from '@/theme';
 
 import { DiamondRail, EmberButton, ParchmentCard, PixelSwitch, WoodButton } from '@/components/ui';
+import { timed } from '@/components/timed';
 
 const DAY_MINUTES = 24 * 60;
 const QUIET_STEP = 30;
@@ -107,7 +108,7 @@ type SectionId = 'game' | 'language' | 'alerts' | 'about';
  * entry renders its own scrolling page of parchment cards, so a new setting
  * lands in a section's cards, and a whole new page is one more entry here.
  */
-export default function SettingsScreen() {
+function SettingsScreen() {
   useLanguage();
   const { language, notifications, updateNotifications, setCategory, setQuietHours, set, pocketMode, setPocketMode } = useSettingsStore();
   const autoToggle = useAutoGatherToggle();
@@ -390,3 +391,5 @@ const styles = StyleSheet.create({
   warning: { gap: 8, padding: 12, borderWidth: 2, borderColor: ui.bad, backgroundColor: ui.badBg },
   dangerBox: { alignSelf: 'flex-start', padding: 6, borderWidth: 2, borderColor: ui.bad, backgroundColor: ui.badBg },
 });
+
+export default timed('screen: settings', SettingsScreen);
