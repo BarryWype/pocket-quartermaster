@@ -77,6 +77,7 @@ import { deviceLocation } from '@/services/location';
 import { readBackground, readBuffer, stepPatrols, updateBackground, updateBuffer, type StoredBuffer } from '@/services/walkTracking';
 import { deviceNotifications } from '@/services/notifications';
 import { useNow } from '@/hooks/useNow';
+import { clockConfig } from '@/content/clockConfig';
 import { useLanguage } from '@/hooks/useLanguage';
 import * as Clipboard from 'expo-clipboard';
 import { clearTimings, timingEntries, timingsAsText } from '@/services/timings';
@@ -567,7 +568,7 @@ export default function DebugScreen() {
   const [heroPrimary, setHeroPrimary] = useState<StatKey>(gamblerRules.primaryChoices[0]);
   const [hpHero, setHpHero] = useState(game.save.heroes[0]?.id ?? '');
   const [levelHero, setLevelHero] = useState(game.save.heroes[0]?.id ?? '');
-  const now = useNow();
+  const now = useNow(clockConfig.minutesMs);
   const hpHeroState = game.save.heroes.find((h) => h.id === hpHero);
   const levelHeroState = game.save.heroes.find((h) => h.id === levelHero);
   const levelHeroLevel = levelHeroState?.level ?? 1;

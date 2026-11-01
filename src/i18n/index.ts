@@ -51,8 +51,8 @@ export function formatNumber(value: number) {
 export const formatPercent = (share: number) =>
   `${Math.round(share * 100)}${getLocale() === 'fr' ? `${NBSP}%` : '%'}`;
 
-/** "1h 05m", "3m 05s", "5s" (French: "1 h 05", "3 min 05 s", "5 s"). */
-export function formatDuration(ms: number) {
+/** "1h 05m", "3m 05s", "5s" (French: "1 h 05", "3 min 05 s", "5 s"); without seconds, "3m" ("3 min"). */
+export function formatDuration(ms: number, withSeconds = true) {
   const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -60,11 +60,11 @@ export function formatDuration(ms: number) {
   const pad = (n: number) => String(n).padStart(2, '0');
   if (getLocale() === 'fr') {
     if (hours > 0) return `${hours}${NBSP}h${NBSP}${pad(minutes)}`;
-    if (minutes > 0) return `${minutes}${NBSP}min${NBSP}${pad(seconds)}${NBSP}s`;
+    if (minutes > 0) return withSeconds ? `${minutes}${NBSP}min${NBSP}${pad(seconds)}${NBSP}s` : `${minutes}${NBSP}min`;
     return `${seconds}${NBSP}s`;
   }
   if (hours > 0) return `${hours}h ${pad(minutes)}m`;
-  if (minutes > 0) return `${minutes}m ${pad(seconds)}s`;
+  if (minutes > 0) return withSeconds ? `${minutes}m ${pad(seconds)}s` : `${minutes}m`;
   return `${seconds}s`;
 }
 

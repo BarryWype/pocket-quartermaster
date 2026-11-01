@@ -21,7 +21,8 @@ export type PopupIngredient = {
 
 type Props = {
   title: string;
-  subtitle?: string;
+  /** The title band's second line; takes a node so a countdown can tick inside it. */
+  subtitle?: ReactNode;
   emoji: string;
   icon?: ImageSourcePropType;
   value?: string | number;

@@ -1,11 +1,13 @@
 import { Camera, type CameraRef, Images, Map, type MapRef } from '@maplibre/maplibre-react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useNavigation, type NativeStackNavigationProp } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Freeze } from 'react-freeze';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AutoGatherPill, WalkCard } from '@/components/AutoGather';
 import { Button } from '@/components/Button';
+import { Countdown, countdownText } from '@/components/Countdown';
 import { WalkEffects } from '@/components/WalkEffects';
 import { ISLAND_HEIGHT } from '@/components/IslandMenu';
 import { MapFoliage, useFoliage } from '@/components/MapFoliage';
@@ -20,6 +22,7 @@ import { PlaceholderScreen } from '@/components/PlaceholderScreen';
 import { timed } from '@/components/timed';
 import { Text } from '@/components/Text';
 import { TutorialHint } from '@/components/TutorialHint';
+import { clockConfig } from '@/content/clockConfig';
 import { gatheringConfig } from '@/content/gatheringConfig';
 import { items } from '@/content/items';
 import { materialById } from '@/content/lookup';
@@ -57,9 +60,10 @@ import { generateSanctumsAround, type SanctumSpawn } from '@/game/sanctums/sanct
 import { generateTavernsAround, type TavernSpawn } from '@/game/taverns/taverns';
 import { collectRadiusNow, fallbackReady, shownTutorialSpawns } from '@/game/tutorial/spawns';
 import { useLanguage } from '@/hooks/useLanguage';
-import { usePlacedPoints, usePlacedSpawns } from '@/hooks/usePlacedSpawns';
 import { useAmbience } from '@/hooks/useAmbience';
-import { usePlayerLocation } from '@/hooks/usePlayerLocation';
+import { useNow } from '@/hooks/useNow';
+import { usePlacedPoints, usePlacedSpawns } from '@/hooks/usePlacedSpawns';
+import { usePlayerLocation, type PlayerLocationState } from '@/hooks/usePlayerLocation';
 import { useQuestMarks } from '@/hooks/useQuestMarks';
 import { useSecretPlaces } from '@/hooks/useSecretPlaces';
 import { useWalkableTiles } from '@/hooks/useWalkableTiles';
@@ -89,12 +93,6 @@ const MAP_TEXTURES = {
   'water-0': require('../../assets/sprites/water-0.png'),
   'water-1': require('../../assets/sprites/water-1.png'),
 };
-/**
- * How often the map screen refreshes the time. Patrols walk 1-2 km/h, so they
- * only step a pixel or two between ticks; the markers skip the ticks that
- * change nothing they read.
- */
-const TICK_MS = 3000;
 
 /** Sanctums and taverns snap with coarse map tiles so they can be shown from kilometres away. */
 const sanctumPlacement = { ...walkableRules, ...sanctumRules.placement };
@@ -107,7 +105,6 @@ const isShownKind = (kind: PlaceSpawn['kind']) => PANEL_KINDS.includes(kind) || 
 const keepPlace = (place: PlaceSpawn, tile: WalkableTile | null, position: LatLng) =>
   place.kind !== 'fishingDock' || (tile !== null && nearWater(tile, position, dockRules.waterMeters));
 
-const minutesLeft = (ms: number) => `${Math.floor(ms / 60_000)}:${String(Math.floor((ms % 60_000) / 1000)).padStart(2, '0')}`;
 const failureMessages: Record<CollectFailure, (distance: number, radius?: number) => string> = {
   tooFar: (distance, radius = gatheringConfig.collectRadiusMeters) =>
     t('map.tooFar', { distance: Math.round(distance), radius }),
@@ -117,9 +114,52 @@ const failureMessages: Record<CollectFailure, (distance: number, radius?: number
   needsTool: () => t('map.needsTool'),
 };
 
-function MapScreen() {
-  useLanguage();
+/**
+ * The map's route: it owns the GPS watch and feeds "app open only" auto-gather,
+ * and freezes the map while another screen covers it. A frozen tree keeps its
+ * state and effects but doesn't render, so its clocks and store updates wait
+ * until the map comes back. It freezes once the covering screen has finished
+ * sliding in, and thaws as soon as the map starts coming back.
+ */
+function MapRoute() {
   const player = usePlayerLocation();
+  const navigation = useNavigation<NativeStackNavigationProp<Record<string, undefined>>>();
+  const [covered, setCovered] = useState(false);
+  useEffect(() => {
+    const unsubscribe = [
+      navigation.addListener('transitionEnd', (event) => event.data.closing && setCovered(true)),
+      navigation.addListener('transitionStart', (event) => !event.data.closing && setCovered(false)),
+      navigation.addListener('focus', () => setCovered(false)),
+    ];
+    return () => unsubscribe.forEach((fn) => fn());
+  }, [navigation]);
+  const autoMode = useWorldStore((state) => state.autoGather);
+
+  // Other screens (quests, the launch dialog) read the player's position here, also while the map is frozen.
+  const position = player.status === 'ready' ? player.location.position : null;
+  useEffect(() => {
+    useWorldStore.getState().set({ player: position });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [position?.latitude, position?.longitude]);
+
+  // "App open only": the route's own GPS fixes feed auto-gather, wherever in the app the player is.
+  const fixAt = player.status === 'ready' && !player.mocked ? player.location.timestamp : null;
+  useEffect(() => {
+    if (autoMode !== 'limited' || player.status !== 'ready' || player.mocked) return;
+    const { position: at, accuracy, timestamp } = player.location;
+    appendFixesNow([{ position: at, accuracy, timestamp, stepsCounted: true }]).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoMode, fixAt]);
+
+  return (
+    <Freeze freeze={covered}>
+      <MapScreen player={player} />
+    </Freeze>
+  );
+}
+
+function MapScreen({ player }: { player: PlayerLocationState }) {
+  useLanguage();
   const insets = useSafeAreaInsets();
   const setDebug = useDebugStore((state) => state.set);
   const debugOn = useDebugStore(debugEnabled);
@@ -149,7 +189,11 @@ function MapScreen() {
   const [decor, setDecor] = useState<DecorationMode>('still');
   // Where the map last said it looks; markers outside it plus the culling margin are not drawn.
   const [bounds, setBounds] = useState<Bounds | null>(null);
-  const [now, setNow] = useState(Date.now());
+  // Two clocks (clockConfig): the fast one steps the moving things — patrols walk
+  // 1-2 km/h, so they only move a pixel or two between ticks — and the slow one
+  // regenerates spawns, whose windows last whole minutes anyway.
+  const now = useNow(clockConfig.mapMovingMs);
+  const minute = Math.floor(useNow(clockConfig.spawnsMs) / 60_000);
   const [message, setMessage] = useState<{ text: string; gains?: string[] } | null>(null);
   const [freshLegsOpen, setFreshLegsOpen] = useState(true);
   const autoMode = useWorldStore((state) => state.autoGather);
@@ -166,20 +210,6 @@ function MapScreen() {
     [],
   );
 
-  // "App open only": the map's own GPS fixes feed auto-gather.
-  const fixAt = player.status === 'ready' && !player.mocked ? player.location.timestamp : null;
-  useEffect(() => {
-    if (autoMode !== 'limited' || player.status !== 'ready' || player.mocked) return;
-    const { position: at, accuracy, timestamp } = player.location;
-    appendFixesNow([{ position: at, accuracy, timestamp, stepsCounted: true }]).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoMode, fixAt]);
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), TICK_MS);
-    return () => clearInterval(timer);
-  }, []);
-
   useEffect(() => {
     if (!message) return;
     const timer = setTimeout(() => setMessage(null), 2500);
@@ -188,7 +218,6 @@ function MapScreen() {
 
   const position = player.status === 'ready' ? player.location.position : null;
   const speed = player.status === 'ready' ? player.location.speed : null;
-  const minute = Math.floor(now / 60_000);
 
   // Spawn windows are whole minutes, so regenerating once a minute is enough.
   const spawns = useMemo(() => {
@@ -344,9 +373,9 @@ function MapScreen() {
   const setWorld = useWorldStore((state) => state.set);
   const focusPlace = useWorldStore((state) => state.focusPlace);
   useEffect(() => {
-    setWorld({ player: position, nearbyTavern });
+    setWorld({ nearbyTavern });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [position?.latitude, position?.longitude, nearbyTavern?.id, setWorld]);
+  }, [nearbyTavern?.id, setWorld]);
 
   // Treasure from read maps, shown only to this player.
   const treasureSpots = useMemo(
@@ -721,7 +750,11 @@ function MapScreen() {
       <TutorialHint screen="map" style={[styles.tutorialHint, { top: insets.top + TOP_BAR_HEIGHT + (player.mocked ? 84 : 48) }]} />
       {isLureActive(save, now) && (
         <View style={[styles.banner, { top: insets.top + TOP_BAR_HEIGHT + 8 }]}>
-          <Text style={styles.bannerText}>{t('map.lure', { time: minutesLeft(lureEndsAt(save) - now) })}</Text>
+          <Countdown
+            endsAt={lureEndsAt(save)}
+            format={(ms) => t('map.lure', { time: countdownText(ms) })}
+            style={styles.bannerText}
+          />
         </View>
       )}
       <WalkEffects
@@ -750,7 +783,7 @@ function MapScreen() {
           <Text style={styles.buttonEmoji}>🦵</Text>
         </Pressable>
       ))}
-      <MapPanels player={position} now={now} patrols={visiblePatrols} />
+      <MapPanels player={position} patrols={visiblePatrols} />
       {fallbackButton}
       {showPill && <AutoGatherPill style={[styles.autoGather, { bottom: insets.bottom + ISLAND_HEIGHT + 12 }]} />}
       {message && <ToastBanner message={message} style={{ bottom: insets.bottom + ISLAND_HEIGHT + (showPill || fallback ? 52 : 12) }} />}
@@ -822,4 +855,4 @@ const styles = StyleSheet.create({
   recentreEmoji: { fontSize: 24 },
 });
 
-export default timed('screen: map', MapScreen);
+export default timed('screen: map', MapRoute);

@@ -12,7 +12,8 @@ type Props = {
   titleIcon?: ImageSourcePropType;
   /** Replaces the band's icon: a ringed icon instead of the plain one. */
   titleIconNode?: ReactNode;
-  titleSub?: string;
+  /** The band's second line; takes a node so a countdown can tick inside it. */
+  titleSub?: ReactNode;
   /** A red pin dot on the top edge, for quest notices. */
   pinned?: boolean;
   tilt?: -1 | 0 | 1;

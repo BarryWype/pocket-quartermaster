@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 
+import { clockConfig } from '@/content/clockConfig';
 import { healthRules } from '@/content/health';
 import type { SaveData } from '@/game/save';
 import { currentHp, isExhausted, maxHp, timeToFull } from '@/game/team/health';
@@ -7,6 +8,7 @@ import { isOnExpedition } from '@/game/team/team';
 import type { HeroState } from '@/game/types';
 import { formatDuration, t } from '@/i18n';
 import { colors } from '@/theme';
+import { useNow } from '@/hooks/useNow';
 
 import { PixelBar } from './PixelBar';
 import { Text } from './Text';
@@ -15,13 +17,14 @@ import { IconLabel } from './IconLabel';
 type Props = {
   save: SaveData;
   hero: HeroState;
-  now: number;
   /** Lighter text, e.g. on a dark header. */
   light?: boolean;
 };
 
 /** A hero's HP now, with how long until they are full or no longer exhausted. */
-export function HpBar({ save, hero, now, light }: Props) {
+export function HpBar({ save, hero, light }: Props) {
+  // Its own clock, so healing ticks without re-rendering the screen around it.
+  const now = useNow(clockConfig.minutesMs);
   const max = maxHp(save, hero);
   const hp = currentHp(save, hero, now);
   const share = max > 0 ? hp / max : 0;
