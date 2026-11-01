@@ -1,4 +1,4 @@
-import { useFocusEffect, type Href } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { Alert, AppState, Linking, Pressable, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import PagerView from 'react-native-pager-view';
@@ -306,7 +306,7 @@ export default function SettingsScreen() {
     <>
       <ParchmentCard title={t('settings.section.about')} contentStyle={styles.card}>
         <Text style={styles.rowTitle}>{`${t('settings.version')}: ${Constants.expoConfig?.version ?? ''}`}</Text>
-        <WoodButton title={t('settings.credits')} compact onPress={() => navigate('/settings/credits' as Href)} />
+        <WoodButton title={t('settings.credits')} compact onPress={() => navigate('/settings/credits')} />
       </ParchmentCard>
       <ParchmentCard title={t('settings.developer')} contentStyle={styles.card}>
         <SwitchRow
