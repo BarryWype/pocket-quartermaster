@@ -455,6 +455,15 @@ export const fr: Dictionary = {
     missing: 'Il manque {parts}.',
     buy: 'Acheter',
     wallet: '🪙 {gold} pièces d’or',
+    now: 'Maintenant',
+    next: 'Suivant',
+    sub: {
+      warRoom: 'Des améliorations durables pour chaque expédition',
+      treasury: 'Revenus et économies',
+      barracks: 'La troupe et son entraînement',
+      questBoard: 'Plus de quêtes, de meilleures quêtes',
+      workshop: 'Fabrication et récupération',
+    },
   },
   sanctum: {
     used: 'Vous avez déjà défié ce Sanctuaire. Il rouvre quand il se renouvelle.',

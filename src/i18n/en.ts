@@ -449,6 +449,15 @@ export const en = {
     missing: 'Missing {parts}.',
     buy: 'Buy',
     wallet: '🪙 {gold} gold',
+    now: 'Now',
+    next: 'Next',
+    sub: {
+      warRoom: 'Lasting upgrades for every expedition',
+      treasury: 'Earnings and savings',
+      barracks: 'The roster and its training',
+      questBoard: 'More quests, better quests',
+      workshop: 'Crafting and salvage',
+    },
   },
   sanctum: {
     used: 'You already challenged this Sanctum. It reopens when it refreshes.',
