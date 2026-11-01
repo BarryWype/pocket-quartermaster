@@ -450,6 +450,7 @@ export const en = {
       luck: 'More gold, materials and rare finds for the party.',
     },
     awayHint: 'Equipment can be changed once the hero is back.',
+    statFrom: 'Class {base} · Levels {levels} · Gear and abilities {gear} → {total}',
     capped: 'capped',
     pendingPicks: { one: '{count} pick pending', other: '{count} picks pending' },
     pickApproach: 'Pick an approach',

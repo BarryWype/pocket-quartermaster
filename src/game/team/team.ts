@@ -167,6 +167,14 @@ export function heroStats(save: SaveData, hero: HeroState): Stats {
   return stats;
 }
 
+/** Where a stat's current value comes from: the class base, the level growth, and gear, components and class abilities together. */
+export function statSources(save: SaveData, hero: HeroState, stat: keyof Stats) {
+  const base = Math.round(baseHeroStats(hero.classId, 1, hero.roll)[stat]);
+  const levels = Math.round(baseHeroStats(hero.classId, hero.level, hero.roll)[stat]) - base;
+  const total = heroStats(save, hero)[stat];
+  return { base, levels, gear: total - base - levels, total };
+}
+
 /** The stat the hero's hits roll with: the weapon's, or the class's when unarmed. */
 export function heroDamageStat(save: SaveData, hero: HeroState): DamageStat {
   const weapon = save.gear.find((g) => g.uid === hero.equipment.weapon);

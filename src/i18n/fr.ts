@@ -456,6 +456,7 @@ export const fr: Dictionary = {
       luck: 'Plus d’or, de matériaux et de trouvailles rares pour le groupe.',
     },
     awayHint: 'L’équipement pourra être changé au retour du héros.',
+    statFrom: 'Classe {base} · Niveaux {levels} · Équipement et talents {gear} → {total}',
     capped: 'plafonnée',
     pendingPicks: { one: '{count} choix en attente', other: '{count} choix en attente' },
     pickApproach: 'Choisir une approche',

@@ -4,7 +4,7 @@ import { itemById } from '@/content/lookup';
 
 import { createInitialSave, type SaveData } from '../save';
 import type { GearDef } from '../types';
-import { addXp, canDismiss, dismissHero, equip, equipPreview, heroStats, markClassesSeen, rosterFull, setKitFor, unequip } from './team';
+import { addXp, canDismiss, dismissHero, equip, equipPreview, heroStats, markClassesSeen, rosterFull, setKitFor, statSources, unequip } from './team';
 
 function saveWithGear(): SaveData {
   return {
@@ -228,5 +228,29 @@ describe('class slots and picks', () => {
     const next = markClassesSeen(save(), ['scholar', 'scholar', 'warrior']);
     expect(next.seenClasses).toEqual([...createInitialSave().seenClasses, 'scholar']);
     expect(markClassesSeen(next, ['scholar'])).toBe(next);
+  });
+});
+
+describe('statSources', () => {
+  it('splits a stat into class base, level growth and gear, adding back to the total', () => {
+    const equipped = equip(saveWithGear(), 'bram', 'weapon', 'g1');
+    const save = { ...equipped, heroes: equipped.heroes.map((h) => (h.id === 'bram' ? { ...h, level: 9 } : h)) };
+    for (const stat of ['power', 'hp', 'crit'] as const) {
+      const sources = statSources(save, hero(save, 'bram'), stat);
+      expect(sources.base + sources.levels + sources.gear).toBe(sources.total);
+    }
+    expect(statSources(save, hero(save, 'bram'), 'power').levels).toBeGreaterThan(0);
+  });
+
+  it('has no level growth at level 1', () => {
+    const save = createInitialSave();
+    expect(statSources(save, hero(save, 'bram'), 'power').levels).toBe(0);
+  });
+
+  // Components only add flat Speed or Evasion, and only the traits multiply HP,
+  // so Crit is untouched with nothing equipped.
+  it('has no gear contribution for a stat nothing else touches, with nothing equipped', () => {
+    const save = createInitialSave();
+    expect(statSources(save, hero(save, 'lyra'), 'crit').gear).toBe(0);
   });
 });

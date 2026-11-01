@@ -251,3 +251,10 @@ For the fishing dock, later. A short, physical moment instead of a button that j
 - Every listed gear piece a hero wears carries a small shield badge on its icon's corner (`EquippedBadge`, through `ItemSlot` and `Row`): the inventory's Gear page, the equip picker, the hero's storeroom and the infuse station.
 - The inventory lists equipped gear first, then spare gear, each in the old order; the piece's pop-up names the hero ("Equipped: Bram"). The salvage dialog's red warning is unchanged.
 - Who wears what is one pure lookup, `wearers` in `src/game/forging/salvage.ts`, with `equippedFirst` for the order.
+
+### Hero stats: the small stats work like the main ones
+
+*Done in commit "Hero stats: the small stats are tiles too, and every tile's tip shows where its value comes from".*
+
+- The four small stats (Resistance, Evasion, Crit, Luck) are the same tile as the four main ones, a little smaller, in one row of four under them; a tap opens the same tip.
+- Every tile's tip gives what the stat does, then where the value comes from and the total: the class at level 1, the level growth, and gear and class abilities together (`statSources` in `src/game/team/team.ts`). Approach picks don't change these stats, so they have no line. Evasion at its cap says so in the tip.
