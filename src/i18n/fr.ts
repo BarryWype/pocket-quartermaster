@@ -118,7 +118,7 @@ export const fr: Dictionary = {
     overnight: {
       title: 'Expédition de nuit',
       back: 'retour à {time}',
-      rewards: '🪙 {gold} or · ✨ {xp} XP par héros, et une chance de trouvailles',
+      rewards: '✨ {xp} XP par héros, et une chance de trouvailles',
       hint: 'Une patrouille sûre et lente pour les héros qui partent pour la nuit : elle rapporte environ {runs} expéditions de ce palier.',
       underWay: 'La patrouille est déjà partie ; elle revient au matin.',
     },
@@ -155,7 +155,7 @@ export const fr: Dictionary = {
       drink: '🧪 Boire',
       swap: 'Échanger',
       swapTitle: 'Remplacer {name} par :',
-      buySupply: 'Acheter de la viande séchée (🪙 {price})',
+      buySupply: 'Acheter de la viande séchée',
     },
     tips: {
       duration: 'Durée d’absence du groupe.',
@@ -251,7 +251,7 @@ export const fr: Dictionary = {
     componentAbout: 'Pour {fits} · ajoute {adds}',
     relicAbout: '{type}, palier {tier} · {effect}',
     salvageTitle: 'Recycler {item} ?',
-    salvageBody: 'L’objet est détruit et vous récupérez {returns}.',
+    salvageBody: 'L’objet est détruit et vous récupérez :',
     salvage: 'Recycler',
     salvageWarning: {
       equipped: 'Porté par un héros',
@@ -277,7 +277,7 @@ export const fr: Dictionary = {
     filterAll: 'Tout',
     ruins: 'Ruines fouillées',
     valuable: '{name} (palier {tier})',
-    valuablePrice: '🪙 {price} au marché, moitié prix ailleurs',
+    valuablePrice: '{price} pièces d’or au marché, moitié prix ailleurs',
     manualHint: 'Fait progresser un héros, jusqu’au niveau {level} à votre palier.',
     readTo: 'Lire à {name} (niveau {level})',
     next: {
@@ -470,7 +470,7 @@ export const fr: Dictionary = {
     missingGold: '{gold} pièces d’or',
     missing: 'Il manque {parts}.',
     buy: 'Acheter',
-    wallet: '🪙 {gold} pièces d’or',
+    wallet: '{gold} pièces d’or',
     now: 'Maintenant',
     next: 'Suivant',
     sub: {
@@ -592,7 +592,7 @@ export const fr: Dictionary = {
     weaknessFor: 'Affaiblit : {boss}',
     known: 'Déjà connu',
     noGold: 'Pas assez d’or.',
-    gold: 'Or : {gold}',
+    gold: 'Or :',
     nothingToSell: 'Rien qui les intéresse.',
     collector: 'Un collectionneur paie le double aujourd’hui : {name}.',
     collectorWants: 'le collectionneur paie double',
@@ -649,7 +649,8 @@ export const fr: Dictionary = {
     emergency: 'Vivres d’urgence',
     emergencyHint: 'De la viande séchée (3 points de vivres) à prix fort, quand la cuisine est vide. Vous en avez {held}.',
     buy: 'Acheter',
-    header: 'Or : {gold} · Effectif {count}/{cap} · nouvelles recrues chaque jour',
+    headerGold: 'Or :',
+    header: 'Effectif {count}/{cap} · nouvelles recrues chaque jour',
   },
   difficulty: {
     markerLabel: '{name}, {kind} {difficulty}',

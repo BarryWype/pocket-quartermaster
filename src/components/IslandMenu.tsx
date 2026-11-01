@@ -57,7 +57,7 @@ export function IslandMenu() {
   return (
     <>
       {craftOpen && <Pressable style={StyleSheet.absoluteFill} onPress={() => setCraftOpen(false)} />}
-      <View style={[styles.wrapper, { paddingBottom: insets.bottom }]} pointerEvents="box-none">
+      <View style={styles.wrapper} pointerEvents="box-none">
         {craftOpen && (
           <View style={styles.dropdown}>
             {CRAFT_LINKS.map((link) => (
@@ -76,9 +76,10 @@ export function IslandMenu() {
             ))}
           </View>
         )}
-        <View style={styles.bar}>
+        {/* The planks run down through the home indicator or navigation bar; the buttons stay above it. */}
+        <View style={[styles.bar, { height: ISLAND_HEIGHT + insets.bottom, paddingBottom: insets.bottom }]}>
           <View style={styles.seams} pointerEvents="none">
-            {Array.from({ length: Math.ceil(ISLAND_HEIGHT / 16) }, (_, i) => (
+            {Array.from({ length: Math.ceil((ISLAND_HEIGHT + insets.bottom) / 16) }, (_, i) => (
               <View key={i} style={[styles.seam, { top: (i + 1) * 16 }]} />
             ))}
           </View>
@@ -131,7 +132,6 @@ export function IslandMenu() {
 const styles = StyleSheet.create({
   wrapper: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   bar: {
-    height: ISLAND_HEIGHT,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-evenly',

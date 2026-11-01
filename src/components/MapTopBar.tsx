@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GameIcon } from '@/components/GameIcon';
+import { Price } from '@/components/Price';
 import { Text } from '@/components/Text';
 import { chestState, dayKey, stepChests } from '@/game/rewards/chests';
 import { highestUnlockedTier } from '@/game/dungeons/unlock';
@@ -42,8 +43,7 @@ export function MapTopBar() {
       <View style={styles.row}>
         <Text style={styles.tier}>{t('map.tier', { tier: ROMAN[tier - 1] ?? tier })}</Text>
         <View style={styles.gold}>
-          <GameIcon emoji="🪙" size={16} />
-          <Text style={styles.goldAmount}>{formatNumber(save.gold)}</Text>
+          <Price amount={save.gold} size={16} textStyle={styles.goldAmount} />
         </View>
         <View style={styles.chest}>
           <Text style={styles.chestLabel}>{t('map.nextChest')}</Text>

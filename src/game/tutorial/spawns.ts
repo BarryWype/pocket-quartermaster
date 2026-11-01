@@ -9,6 +9,7 @@ import type { LatLng } from '../generation/types';
 import { snapToWalkable, type WalkableTile } from '../generation/walkable';
 import type { SaveData, TutorialSpawn } from '../save';
 import type { MaterialStack } from '../types';
+import { withinCollectRange } from '../gathering/gathering';
 import { advanceTutorial } from './tutorial';
 
 /** The current step's nodes, each still to pick up. */
@@ -168,7 +169,7 @@ export function collectTutorialSpawn(
   const spawn = stepSpawns(save).find((s) => s.id === id);
   if (!spawn) return { ok: false, reason: 'collected', distance: Infinity };
   const distance = player && spawn.position ? distanceMeters(player, spawn.position) : Infinity;
-  if (!anywhere && distance > collectRadiusNow(save)) return { ok: false, reason: 'tooFar', distance };
+  if (!anywhere && !withinCollectRange(distance, collectRadiusNow(save))) return { ok: false, reason: 'tooFar', distance };
 
   const picked: SaveData = {
     ...save,

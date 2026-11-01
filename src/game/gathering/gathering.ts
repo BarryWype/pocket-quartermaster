@@ -91,6 +91,11 @@ export function bonusForGather(save: SaveData, spawn: Spawn, timeMs: number, con
   return { day: localDayKey(timeMs), used: (save.freshGathers.day === localDayKey(timeMs) ? save.freshGathers.used : 0) + 1 };
 }
 
+/** Whether a node this far away can be gathered: the Collect action's check, and the map's in-reach border. */
+export function withinCollectRange(distance: number, radius: number = gatheringConfig.collectRadiusMeters) {
+  return distance <= radius;
+}
+
 export function collectSpawn(
   save: SaveData,
   spawn: Spawn,
@@ -105,7 +110,7 @@ export function collectSpawn(
   // Locked ore nodes read as the ore the player can mine (converted), or are refused.
   const read = readSpawn(save, spawn, resources);
   if (read.state === 'locked') return { ok: false, reason: 'needsTool', distance };
-  if (distance > config.collectRadiusMeters) return { ok: false, reason: 'tooFar', distance };
+  if (!withinCollectRange(distance, config.collectRadiusMeters)) return { ok: false, reason: 'tooFar', distance };
   if (spawn.kind === 'animal' && isFleeing(gatherer.speed, config)) {
     return { ok: false, reason: 'fled', distance };
   }
