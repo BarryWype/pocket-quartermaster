@@ -17,8 +17,9 @@ const RESOLVE_INTERVAL_MS = 5000;
  * Keeps patrol fights, place fights and heists settling while the app is
  * open, and tells the map what each one paid.
  */
-export function usePatrols() {
+export function usePatrols(paused = false) {
   useEffect(() => {
+    if (paused) return;
     const timer = setInterval(() => {
       if (AppState.currentState !== 'active') return;
       const { kinds } = localized({ en: patrolTexts, fr: frPatrolTexts });
@@ -48,5 +49,5 @@ export function usePatrols() {
       }
     }, RESOLVE_INTERVAL_MS);
     return () => clearInterval(timer);
-  }, []);
+  }, [paused]);
 }

@@ -488,6 +488,36 @@ function TimingsDebug() {
   );
 }
 
+/** The runtime performance switches, each trading a feature for render work. */
+function PerformanceDebug() {
+  const set = useDebugStore((state) => state.set);
+  return (
+    <>
+      <Text style={styles.title}>Performance switches</Text>
+      <View style={styles.row}>
+        <Text>Unmount map when covered</Text>
+        <Switch value={useDebugStore((state) => state.unmountMapWhenCovered)} onValueChange={(on) => set({ unmountMapWhenCovered: on })} />
+      </View>
+      <View style={styles.row}>
+        <Text>No map decorations</Text>
+        <Switch value={useDebugStore((state) => state.noMapDecorations)} onValueChange={(on) => set({ noMapDecorations: on })} />
+      </View>
+      <View style={styles.row}>
+        <Text>No content deferral</Text>
+        <Switch value={useDebugStore((state) => state.noContentDeferral)} onValueChange={(on) => set({ noContentDeferral: on })} />
+      </View>
+      <View style={styles.row}>
+        <Text>No screen animation</Text>
+        <Switch value={useDebugStore((state) => state.noScreenAnimation)} onValueChange={(on) => set({ noScreenAnimation: on })} />
+      </View>
+      <View style={styles.row}>
+        <Text>Pause background hooks off the map</Text>
+        <Switch value={useDebugStore((state) => state.pauseBackgroundHooks)} onValueChange={(on) => set({ pauseBackgroundHooks: on })} />
+      </View>
+    </>
+  );
+}
+
 export default function DebugScreen() {
   useLanguage();
   const debug = useDebugStore();
@@ -740,6 +770,7 @@ export default function DebugScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <TimingsDebug />
+      <PerformanceDebug />
       <UiKitDebug />
       <Text style={styles.title}>Location</Text>
       <View style={styles.row}>

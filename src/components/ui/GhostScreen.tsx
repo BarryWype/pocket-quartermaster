@@ -4,6 +4,7 @@ import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { useAfterFirstFrame } from '@/hooks/useAfterFirstFrame';
 import { useAnimationsEnabled } from '@/hooks/useAnimationFrame';
 import { recordTapToContent } from '@/services/timings';
+import { debugEnabled, useDebugStore } from '@/store/debugStore';
 import { ui } from '@/theme';
 
 /** What the content will look like: stacked cards, a slot grid, or a hero sheet. */
@@ -86,7 +87,8 @@ function ContentMark({ name, children }: { name: string; children: ReactNode }) 
  */
 export function Deferred({ name, ghost, children }: { name: string; ghost: ReactNode; children: ReactNode }) {
   const ready = useAfterFirstFrame();
-  return ready ? <ContentMark name={name}>{children}</ContentMark> : ghost;
+  const noDeferral = useDebugStore((state) => debugEnabled(state) && state.noContentDeferral);
+  return ready || noDeferral ? <ContentMark name={name}>{children}</ContentMark> : ghost;
 }
 
 const styles = StyleSheet.create({

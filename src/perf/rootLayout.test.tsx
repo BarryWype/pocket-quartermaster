@@ -22,7 +22,7 @@ jest.mock('expo-router', () => {
     mockStackRenders.push(screenOptions);
     return children;
   };
-  return { Stack: Object.assign(Stack, { Screen: () => null }) };
+  return { Stack: Object.assign(Stack, { Screen: () => null }), usePathname: () => '/' };
 });
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
 jest.mock('@/components/IslandMenu', () => ({ IslandMenu: () => null, ISLAND_HEIGHT: 60 }));

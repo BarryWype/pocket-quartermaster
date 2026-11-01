@@ -134,6 +134,7 @@ function MapRoute() {
     return () => unsubscribe.forEach((fn) => fn());
   }, [navigation]);
   const autoMode = useWorldStore((state) => state.autoGather);
+  const unmountWhenCovered = useDebugStore((state) => debugEnabled(state) && state.unmountMapWhenCovered);
 
   // Other screens (quests, the launch dialog) read the player's position here, also while the map is frozen.
   const position = player.status === 'ready' ? player.location.position : null;
@@ -150,6 +151,8 @@ function MapRoute() {
     appendFixesNow([{ position: at, accuracy, timestamp, stepsCounted: true }]).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoMode, fixAt]);
+
+  if (unmountWhenCovered && covered) return <View style={styles.covered} />;
 
   return (
     <Freeze freeze={covered}>
@@ -200,6 +203,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
   const autoEnabled = useSettingsStore((state) => pocketTracking(state.pocketMode));
   const showAutoRadius = useDebugStore((state) => debugOn && state.showAutoRadius);
   const showNodeRanges = useDebugStore((state) => debugOn && state.showNodeRanges);
+  const noDecorations = useDebugStore((state) => debugOn && state.noMapDecorations);
 
   useEffect(
     () =>
@@ -693,9 +697,9 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
       >
         <Camera ref={cameraRef} initialViewState={{ center: toLngLat(position), zoom: 17 }} />
         <Images images={MAP_TEXTURES} />
-        <MapWater mode={decor} />
-        <MapTrail position={position} />
-        <MapFoliage data={foliage.data} mode={decor} />
+        {!noDecorations && <MapWater mode={decor} />}
+        {!noDecorations && <MapTrail position={position} />}
+        {!noDecorations && <MapFoliage data={foliage.data} mode={decor} />}
         <MapRanges circles={ranges} />
         <MapMarkers
           save={save}
@@ -726,7 +730,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
           onQuest={quest}
         />
       </Map>
-      <MapSky pan={skyPan} hour={ambience.hour} raining={ambience.raining} decor={decor !== 'hidden'} />
+      {!noDecorations && <MapSky pan={skyPan} hour={ambience.hour} raining={ambience.raining} decor={decor !== 'hidden'} />}
       <MapTopBar />
       {player.mocked && (
         <View style={[styles.banner, { top: insets.top + TOP_BAR_HEIGHT + 48 }]}>
@@ -805,6 +809,7 @@ function ToastBanner({ message, style }: { message: { text: string; gains?: stri
 const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { flex: 1 },
+  covered: { flex: 1, backgroundColor: ui.woodDark },
   // Below the map attribution; leaves the right side to the walk effect chips.
   freshLegs: { left: 16, maxWidth: '60%', alignSelf: 'auto' },
   freshLegsButton: { left: 16 },
