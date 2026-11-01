@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Guild Hall — wood and brass</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Fantaisie';src:url(/_blob/5b1e7bdb2a304b22ed34c8110385ae44) format('truetype');font-display:swap}
+body{margin:0}
+a{color:#C9A04E}a:hover{color:#E8C877}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; overflow: hidden; background: repeating-linear-gradient(0deg, #3A2314 0 23px, #331F11 23px 24px); color: #F2E4C2; font-family: Alegreya, Georgia, serif; display: flex; flex-direction: column">
+
+  <header style="height: 66px; padding: 0 12px; display: flex; align-items: center; gap: 10px; background: repeating-linear-gradient(0deg, #5A3820 0 15px, #4E301B 15px 16px); border-bottom: 3px solid #1E120A; box-shadow: inset 0 -3px 0 #C9A04E">
+    <a href="MapWood.dc.html" aria-label="Back to the map" style="width: 44px; height: 44px; background: #3A2314; border: 2px solid #1E120A; outline: 2px solid #C9A04E; outline-offset: -5px; color: #F6D98E; display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </a>
+    <div style="flex-grow: 1; text-align: center; font-family: Fantaisie, serif; font-size: 30px; color: #F6D98E; text-shadow: 0 2px 0 #1E120A">Guild Hall</div>
+    <span style="width: 44px; display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-weight: 700; font-size: 14px"><span style="width: 12px; height: 12px; border-radius: 6px; background: #E8B83A; border: 2px solid #7A5A24"></span>412</span>
+  </header>
+
+  <div style="display: flex; flex-grow: 1; min-height: 0">
+    <nav aria-label="Buildings" style="width: 74px; flex-shrink: 0; background: #2A180D; border-right: 3px solid #1E120A; box-shadow: inset -2px 0 0 #5A3820; display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 14px">
+      <sc-for list="{{rail}}" as="r" hint-placeholder-count="5">
+        <button aria-label="{{r.label}}" style="{{r.style}}">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="{{r.fill}}" stroke="#1E120A" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true" style="transform: rotate(-45deg)"><path d="{{r.path}}"/></svg>
+        </button>
+        <span style="font-family: Fantaisie, serif; font-size: 14px; color: {{r.color}}; margin: 0 0 8px; line-height: 1; text-align: center">{{r.label}}</span>
+      </sc-for>
+    </nav>
+
+    <div style="flex-grow: 1; padding: 14px 12px; display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; flex-direction: column">
+        <span style="font-family: Fantaisie, serif; font-size: 22px; color: #F6D98E">War Room</span>
+        <span style="font-size: 13px; color: #C9B48A">Lasting upgrades for every expedition</span>
+      </div>
+
+      <sc-for list="{{tracks}}" as="t" hint-placeholder-count="3">
+        <article style="padding: 10px 12px; background: #F2E4C2; color: #3A2314; border: 3px solid #1E120A; box-shadow: inset 0 0 0 3px #F2E4C2, inset 0 0 0 5px #C9A04E, 0 4px 0 #1E120A; display: flex; flex-direction: column; gap: 7px">
+          <div style="display: flex; align-items: center; gap: 8px">
+            <h2 style="margin: 0; flex-grow: 1; font-family: Fantaisie, serif; font-weight: 400; font-size: 21px; line-height: 1">{{t.name}}</h2>
+            <span style="display: flex; gap: 7px">
+              <sc-for list="{{t.pips}}" as="p" hint-placeholder-count="4"><span style="{{p}}"></span></sc-for>
+            </span>
+          </div>
+          <span style="font-size: 14px"><span style="color: #6A4A2C">Now</span> <b>{{t.now}}</b></span>
+          <span style="font-size: 14px"><span style="color: #6A4A2C">Next</span> <b style="color: #2F6B32">{{t.next}}</b></span>
+          <sc-if value="{{t.buy}}" hint-placeholder-val="{{true}}">
+            <div style="display: flex; align-items: center; gap: 8px">
+              <span style="flex-grow: 1; display: flex; align-items: center; gap: 5px; font-weight: 700; font-size: 15px"><span style="width: 12px; height: 12px; border-radius: 6px; background: #E8B83A; border: 2px solid #7A5A24"></span>{{t.cost}}</span>
+              <button style="min-height: 42px; padding: 0 16px; border: 3px solid #1E120A; background: #B4471C; color: #FFF1DC; font-family: Fantaisie, serif; font-size: 19px; box-shadow: inset 2px 2px 0 #E07A3E, inset -2px -3px 0 #6E2A0E">Buy</button>
+            </div>
+          </sc-if>
+          <sc-if value="{{t.locked}}" hint-placeholder-val="{{false}}">
+            <span style="padding: 6px 8px; background: #E6D3A8; border: 2px dashed #8A6A34; font-size: 13px; font-weight: 700; color: #6A4A2C">{{t.gate}}</span>
+          </sc-if>
+        </article>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const P = {
+      war: 'M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z',
+      treasury: 'M4 10h16v10H4z M4 10l3-5h10l3 5 M10 14h4',
+      barracks: 'M3 12h18v7H3z M3 12V8h6v4 M5 19v2 M19 19v2',
+      board: 'M4 4h16v13H4z M7 8h10 M7 12h7 M8 17l-2 4 M16 17l2 4',
+      workshop: 'M14 4l6 6-3 3-6-6z M11 7 3 15l3 3 8-8z'
+    };
+    const rd = 'width: 46px; height: 46px; transform: rotate(45deg); display: flex; align-items: center; justify-content: center; padding: 0; border: 2px solid #1E120A; margin-top: 8px; ';
+    const rail = [['War room', 'war', '#E8D6A8', true], ['Treasury', 'treasury', '#E8B83A'], ['Barracks', 'barracks', '#B98A5E'], ['Quest board', 'board', '#D9B37A'], ['Workshop', 'workshop', '#8A8F96']]
+      .map(([label, k, fill, on]) => ({ label, path: P[k], fill, color: on ? '#F6D98E' : '#C9B48A', style: rd + (on ? 'background: #7A4A26; outline: 2px solid #F6D98E; outline-offset: -6px; box-shadow: 0 0 0 2px #C9A04E;' : 'background: #3A2314; outline: 2px solid #8A6A34; outline-offset: -6px;') }));
+    const pip = (on) => `width: 13px; height: 13px; transform: rotate(45deg); border: 2px solid #1E120A; ${on ? 'background: #C9A04E; box-shadow: inset 2px 2px 0 #F6D98E;' : 'background: #E2D2AC;'}`;
+    const tracks = [
+      { name: 'Hero XP', rank: 0, max: 4, now: 'no bonus yet', next: '+10% XP from expeditions', cost: '150', buy: true, gate: '' },
+      { name: 'Faster expeditions', rank: 0, max: 3, now: 'no bonus yet', next: '−10% expedition time', cost: '250', buy: true, gate: '' },
+      { name: 'Better retreats', rank: 2, max: 3, now: '+30% rewards from retreats', next: '+45% rewards from retreats', cost: '', buy: false, gate: 'Rank 3: beat the tier II boss' }
+    ].map((t) => ({ ...t, locked: !t.buy, pips: Array.from({ length: t.max }, (_, i) => pip(i < t.rank)) }));
+    return { rail, tracks };
+  }
+}
+</script>
+</body>
+</html>

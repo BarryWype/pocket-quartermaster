@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings, notifications — wood and brass</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Fantaisie';src:url(/_blob/5b1e7bdb2a304b22ed34c8110385ae44) format('truetype');font-display:swap}
+body{margin:0}
+a{color:#C9A04E}a:hover{color:#E8C877}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; overflow: hidden; background: repeating-linear-gradient(0deg, #3A2314 0 23px, #331F11 23px 24px); color: #F2E4C2; font-family: Alegreya, Georgia, serif; display: flex; flex-direction: column">
+
+  <header style="height: 66px; padding: 0 12px; display: flex; align-items: center; gap: 10px; background: repeating-linear-gradient(0deg, #5A3820 0 15px, #4E301B 15px 16px); border-bottom: 3px solid #1E120A; box-shadow: inset 0 -3px 0 #C9A04E">
+    <a href="MapWood.dc.html" aria-label="Back to the map" style="width: 44px; height: 44px; background: #3A2314; border: 2px solid #1E120A; outline: 2px solid #C9A04E; outline-offset: -5px; color: #F6D98E; display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </a>
+    <div style="flex-grow: 1; text-align: center; font-family: Fantaisie, serif; font-size: 30px; color: #F6D98E; text-shadow: 0 2px 0 #1E120A">Settings</div>
+    <div style="width: 44px"></div>
+  </header>
+
+  <div style="display: flex; flex-grow: 1; min-height: 0">
+    <nav aria-label="Settings sections" style="width: 74px; flex-shrink: 0; background: #2A180D; border-right: 3px solid #1E120A; box-shadow: inset -2px 0 0 #5A3820; display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 14px">
+      <sc-for list="{{rail}}" as="r" hint-placeholder-count="4">
+        <a href="{{r.href}}" aria-label="{{r.label}}" style="{{r.style}}">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="{{r.fill}}" stroke="#1E120A" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true" style="transform: rotate(-45deg)"><path d="{{r.path}}"/></svg>
+        </a>
+        <span style="font-family: Fantaisie, serif; font-size: 14px; color: {{r.color}}; margin: 0 0 8px; line-height: 1; text-align: center">{{r.label}}</span>
+      </sc-for>
+    </nav>
+
+    <div style="flex-grow: 1; padding: 14px 12px; display: flex; flex-direction: column; gap: 12px">
+      <span style="font-family: Fantaisie, serif; font-size: 22px; color: #F6D98E">Notifications</span>
+
+      <section aria-label="What to send" style="padding: 8px 12px; background: #F2E4C2; color: #3A2314; border: 3px solid #1E120A; box-shadow: inset 0 0 0 3px #F2E4C2, inset 0 0 0 5px #C9A04E, 0 4px 0 #1E120A; display: flex; flex-direction: column">
+        <sc-for list="{{toggles}}" as="t" hint-placeholder-count="6">
+          <label style="{{t.row}}">
+            <span style="flex-grow: 1; display: flex; flex-direction: column">
+              <span style="font-weight: 700">{{t.label}}</span>
+              <span style="font-size: 12px; color: #6A4A2C">{{t.hint}}</span>
+            </span>
+            <span style="{{t.track}}"><span style="{{t.knob}}"></span></span>
+            <input type="checkbox" checked="{{t.on}}" aria-label="{{t.label}}" style="position: absolute; opacity: 0; width: 1px; height: 1px">
+          </label>
+        </sc-for>
+      </section>
+
+      <section aria-label="Quiet hours" style="padding: 10px 12px; background: #F2E4C2; color: #3A2314; border: 3px solid #1E120A; box-shadow: inset 0 0 0 3px #F2E4C2, inset 0 0 0 5px #C9A04E, 0 4px 0 #1E120A; display: flex; flex-direction: column; gap: 8px">
+        <h2 style="margin: 0; font-family: Fantaisie, serif; font-weight: 400; font-size: 20px">Quiet hours</h2>
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 15px">
+          <button style="flex: 1; min-height: 42px; border: 2px solid #1E120A; background: #E6D3A8; font-weight: 700; font-size: 16px; color: #3A2314">22:00</button>
+          <span style="color: #6A4A2C">to</span>
+          <button style="flex: 1; min-height: 42px; border: 2px solid #1E120A; background: #E6D3A8; font-weight: 700; font-size: 16px; color: #3A2314">07:00</button>
+        </div>
+        <label style="display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 14px">
+          <span style="flex-grow: 1">Still send expedition results</span>
+          <span style="position: relative; width: 46px; height: 24px; flex-shrink: 0; border: 2px solid #1E120A; background: #8A7556"><span style="position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #F2E4C2; border: 2px solid #1E120A"></span></span>
+          <input type="checkbox" aria-label="Still send expedition results during quiet hours" style="position: absolute; opacity: 0; width: 1px; height: 1px">
+        </label>
+      </section>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const P = {
+      game: 'M4 9h16v10H4z M8 9V6h8v3 M8 14h2 M14 14h2',
+      lang: 'M4 5h12v9H9l-4 4v-4H4z M14 10h6v8h-1v3l-3-3h-4v-3',
+      bell: 'M6 16V11a6 6 0 0 1 12 0v5l2 2H4z M10 20h4',
+      about: 'M6 3h11l2 3v15H6z'
+    };
+    const rd = 'width: 46px; height: 46px; transform: rotate(45deg); display: flex; align-items: center; justify-content: center; border: 2px solid #1E120A; margin-top: 8px; ';
+    const rail = [
+      ['Game', 'game', '#C9A06A', 'SettingsGameWood.dc.html'], ['Language', 'lang', '#E8D6A8', 'SettingsWood.dc.html'],
+      ['Alerts', 'bell', '#E8B83A', 'SettingsWood.dc.html', true], ['About', 'about', '#E8D6A8', 'SettingsGameWood.dc.html']
+    ].map(([label, k, fill, href, on]) => ({ label, href, path: P[k], fill, color: on ? '#F6D98E' : '#C9B48A', style: rd + (on ? 'background: #7A4A26; outline: 2px solid #F6D98E; outline-offset: -6px; box-shadow: 0 0 0 2px #C9A04E;' : 'background: #3A2314; outline: 2px solid #8A6A34; outline-offset: -6px;') }));
+    const track = (on) => `position: relative; width: 46px; height: 24px; flex-shrink: 0; border: 2px solid #1E120A; background: ${on ? '#2F6B32' : '#8A7556'};`;
+    const knob = (on) => `position: absolute; top: 2px; ${on ? 'right: 2px' : 'left: 2px'}; width: 16px; height: 16px; background: #F2E4C2; border: 2px solid #1E120A;`;
+    const row = 'display: flex; align-items: center; gap: 10px; min-height: 52px; font-size: 15px; ';
+    const toggles = [
+      ['All notifications', 'Master switch', true],
+      ['Patrol alerts', 'A patrol is close', true],
+      ['Quest ready', 'An objective was met while walking', true],
+      ['Quest target near', 'You are at a quest’s place', true],
+      ['Step chests', 'A chest is ready to open', true],
+      ['Places nearby', 'Fight events, ruins, treasure', false]
+    ].map(([label, hint, on], i, all) => ({ label, hint, on, track: track(on), knob: knob(on), row: row + (i < all.length - 1 ? 'border-bottom: 1px solid #D8C49A;' : '') + (i === 0 ? 'padding-bottom: 4px;' : '') }));
+    return { rail, toggles };
+  }
+}
+</script>
+</body>
+</html>
