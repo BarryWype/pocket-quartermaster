@@ -23,7 +23,7 @@ import { useGameStore } from '@/store/gameStore';
 import { type LanguageSetting, useSettingsStore } from '@/store/settingsStore';
 import { fonts, ui } from '@/theme';
 
-import { Deferred, DiamondRail, EmberButton, GhostScreen, ParchmentCard, PixelSwitch, WoodButton, type RailItem } from '@/components/ui';
+import { Deferred, DiamondRail, EmberButton, GhostScreen, ParchmentCard, PixelSwitch, WoodButton, useLazyPages, type RailItem } from '@/components/ui';
 import { timed } from '@/components/timed';
 
 const DAY_MINUTES = 24 * 60;
@@ -352,6 +352,21 @@ function SettingsContent() {
     render: { game: renderGame, language: renderLanguage, alerts: renderAlerts, about: renderAbout }[meta.id],
   }));
 
+  const pagerPages = useLazyPages({
+    keys: SECTION_META.map(({ id }) => id),
+    active: page,
+    variant: 'cards',
+    render: (id) => {
+      const section = sections.find((one) => one.id === id)!;
+      return (
+        <ScrollView style={styles.content} contentContainerStyle={styles.page}>
+          <Text style={styles.pageTitle}>{section.label()}</Text>
+          {section.render()}
+        </ScrollView>
+      );
+    },
+  });
+
   return (
     <View style={styles.screen}>
       <View style={styles.body}>
@@ -370,14 +385,7 @@ function SettingsContent() {
           initialPage={0}
           onPageSelected={({ nativeEvent }) => setPage(sections[nativeEvent.position].id)}
         >
-          {sections.map((section) => (
-            <View key={section.id} collapsable={false}>
-              <ScrollView style={styles.content} contentContainerStyle={styles.page}>
-                <Text style={styles.pageTitle}>{section.label()}</Text>
-                {section.render()}
-              </ScrollView>
-            </View>
-          ))}
+          {pagerPages}
         </PagerView>
       </View>
       {autoToggle.dialog}

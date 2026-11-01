@@ -15,7 +15,7 @@ import { Text } from '@/components/Text';
 import { ThreatCoverageChips } from '@/components/ThreatDetail';
 import { TutorialHint } from '@/components/TutorialHint';
 import { IconLabel, RewardLabel, splitLeadingEmoji } from '@/components/IconLabel';
-import { Deferred, DiamondButton, DiamondRail, EmberButton, GhostScreen, ParchmentCard, type RailItem } from '@/components/ui';
+import { Deferred, DiamondButton, DiamondRail, EmberButton, GhostScreen, ParchmentCard, useLazyPages, type RailItem } from '@/components/ui';
 import { dungeons } from '@/content/dungeons';
 import { heroClasses } from '@/content/heroes';
 import { dungeonById } from '@/content/lookup';
@@ -473,6 +473,28 @@ function ExpeditionsContent() {
     </>
   );
 
+  const pagerPages = useLazyPages({
+    keys: TABS,
+    active: tab,
+    variant: 'cards',
+    render: (key) => (
+      <ScrollView style={styles.content} contentContainerStyle={styles.container}>
+        <TutorialHint screen="expeditions" />
+        {ready.length > 0 && key !== 'teams' && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={readyBanner}
+            onPress={() => setTab('teams')}
+            style={styles.banner}
+          >
+            <RewardLabel text={readyBanner} size={16} labelStyle={styles.bannerText} />
+          </Pressable>
+        )}
+        {key === 'dungeons' ? dungeonsTab : key === 'teams' ? teamsTab : reportsTab}
+      </ScrollView>
+    ),
+  });
+
   return (
     <View style={styles.screen}>
       <View style={styles.body}>
@@ -483,24 +505,7 @@ function ExpeditionsContent() {
           initialPage={TABS.indexOf(initialTab)}
           onPageSelected={({ nativeEvent }) => showTab(TABS[nativeEvent.position])}
         >
-          {TABS.map((key) => (
-            <View key={key} collapsable={false}>
-              <ScrollView style={styles.content} contentContainerStyle={styles.container}>
-                <TutorialHint screen="expeditions" />
-                {ready.length > 0 && key !== 'teams' && (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={readyBanner}
-                    onPress={() => setTab('teams')}
-                    style={styles.banner}
-                  >
-                    <RewardLabel text={readyBanner} size={16} labelStyle={styles.bannerText} />
-                  </Pressable>
-                )}
-                {key === 'dungeons' ? dungeonsTab : key === 'teams' ? teamsTab : reportsTab}
-              </ScrollView>
-            </View>
-          ))}
+          {pagerPages}
         </PagerView>
       </View>
 

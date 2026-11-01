@@ -27,7 +27,7 @@ import { RecipeInputs, recipeInputsStyles } from './RecipeInputs';
 import { Row } from './Row';
 import { Text } from './Text';
 import { TutorialHint } from './TutorialHint';
-import { DiamondRail, ItemSlot, type RailItem } from './ui';
+import { DiamondRail, ItemSlot, useLazyPages, type RailItem } from './ui';
 
 /** The gear sections, always in this order; the Other section joins last when it has content. */
 const GEAR_SECTIONS = ['weapons', 'armour', 'offhands'] as const;
@@ -102,6 +102,46 @@ export function ForgeStation() {
     setAnchor(null);
   };
 
+  const pagerPages = useLazyPages({
+    keys: sections,
+    active: section,
+    variant: 'grid',
+    render: (type) => (
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentInner}
+        onLayout={({ nativeEvent }) => setContentWidth(nativeEvent.layout.width - 24)}
+      >
+        <TutorialHint screen="forge" />
+        {result && <ForgeBanner result={result} onClose={() => setResult(null)} />}
+        {pages.length === 0 ? (
+          <Text style={styles.nothing}>{t('crafting.nothingKnown')}</Text>
+        ) : type === 'other' ? (
+          <OtherPage
+            save={save}
+            onRestore={(uid) => {
+              setAnchor(null);
+              setPending({ kind: 'restore', relicUid: uid });
+            }}
+            onCraft={(id) => setResult(craft(id))}
+          />
+        ) : (
+          <GearSection
+            save={save}
+            type={type}
+            tiers={[...tiers].reverse()}
+            contentWidth={contentWidth}
+            pending={pending}
+            onForge={(recipeId, slot) => {
+              setAnchor(slot);
+              setPending({ kind: 'forge', recipeId, componentId: null });
+            }}
+          />
+        )}
+      </ScrollView>
+    ),
+  });
+
   return (
     <View style={styles.screen}>
       <View style={styles.body}>
@@ -119,42 +159,7 @@ export function ForgeStation() {
           initialPage={Math.max(0, sections.indexOf(section))}
           onPageSelected={({ nativeEvent }) => showSection(sections[nativeEvent.position])}
         >
-          {sections.map((type) => (
-            <View key={type} collapsable={false}>
-              <ScrollView
-                style={styles.content}
-                contentContainerStyle={styles.contentInner}
-                onLayout={({ nativeEvent }) => setContentWidth(nativeEvent.layout.width - 24)}
-              >
-                <TutorialHint screen="forge" />
-                {result && <ForgeBanner result={result} onClose={() => setResult(null)} />}
-                {pages.length === 0 ? (
-                  <Text style={styles.nothing}>{t('crafting.nothingKnown')}</Text>
-                ) : type === 'other' ? (
-                  <OtherPage
-                    save={save}
-                    onRestore={(uid) => {
-                      setAnchor(null);
-                      setPending({ kind: 'restore', relicUid: uid });
-                    }}
-                    onCraft={(id) => setResult(craft(id))}
-                  />
-                ) : (
-                  <GearSection
-                    save={save}
-                    type={type}
-                    tiers={[...tiers].reverse()}
-                    contentWidth={contentWidth}
-                    pending={pending}
-                    onForge={(recipeId, slot) => {
-                      setAnchor(slot);
-                      setPending({ kind: 'forge', recipeId, componentId: null });
-                    }}
-                  />
-                )}
-              </ScrollView>
-            </View>
-          ))}
+          {pagerPages}
         </PagerView>
       </View>
       {pending && (

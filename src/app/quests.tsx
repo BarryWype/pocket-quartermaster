@@ -28,7 +28,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useWorldStore } from '@/store/worldStore';
 import { fonts, ui } from '@/theme';
 
-import { Deferred, DiamondRail, EmberButton, GhostScreen, ItemSlot, ParchmentCard, WoodButton, type RailItem } from '@/components/ui';
+import { Deferred, DiamondRail, EmberButton, GhostScreen, ItemSlot, ParchmentCard, WoodButton, useLazyPages, type RailItem } from '@/components/ui';
 import { timed } from '@/components/timed';
 
 /** One emoji per loot category, for the reward slots. */
@@ -195,6 +195,52 @@ function QuestsContent() {
     );
   };
 
+  const pagerPages = useLazyPages({
+    keys: ['quests', 'chests'] as QuestsPageId[],
+    active: page,
+    variant: 'cards',
+    render: (key) =>
+      key === 'chests' ? (
+        <ScrollView style={styles.content} contentContainerStyle={styles.page}>
+          <StepChests />
+        </ScrollView>
+      ) : (
+        <ScrollView style={styles.content} contentContainerStyle={styles.page}>
+          <View style={styles.pageHead}>
+            <Text style={styles.pageTitle}>{t('quests.notices')}</Text>
+            <RewardLabel
+              text={rerolls === 0 ? t('quests.rerollUsed') : t('quests.rerollFree', { count: rerolls })}
+              size={13}
+              labelStyle={styles.rerolls}
+            />
+          </View>
+          {quests.length === 0 && Object.keys(claimed).length === 0 && <Text style={styles.muted}>{t('quests.empty')}</Text>}
+          {Object.entries(claimed)
+            .filter(([id]) => !quests.some((q) => q.id === id))
+            .map(([id, gains]) => (
+              <View key={id} style={styles.claimed}>
+                <RewardLabel text={gainsPrefix(t('quests.claimed', { gains: '' }))} size={13} labelStyle={styles.claimedText} />
+                <GainsLine gains={gains.length > 0 ? gains : [t('quests.nothing')]} size={13} labelStyle={styles.claimedText} />
+              </View>
+            ))}
+          {quests.map((quest, index) => (
+            <QuestCard
+              key={quest.id}
+              quest={quest}
+              index={index}
+              now={now}
+              secret={quest.band === 'secret'}
+              rerollDisabled={quest.band !== 'secret' && rerollProblem(save, quest.id, now) !== null}
+              target={targetLine(quest)}
+              onClaim={() => claim(quest)}
+              onDeliver={() => deliver(quest)}
+              onReroll={() => game.rerollQuest(quest.id)}
+            />
+          ))}
+        </ScrollView>
+      ),
+  });
+
   return (
     <View style={styles.screen}>
       <View style={styles.body}>
@@ -215,46 +261,7 @@ function QuestsContent() {
             lastPage = nativeEvent.position === 1 ? 'chests' : 'quests';
           }}
         >
-          <View key="quests" collapsable={false}>
-            <ScrollView style={styles.content} contentContainerStyle={styles.page}>
-              <View style={styles.pageHead}>
-                <Text style={styles.pageTitle}>{t('quests.notices')}</Text>
-                <RewardLabel
-                  text={rerolls === 0 ? t('quests.rerollUsed') : t('quests.rerollFree', { count: rerolls })}
-                  size={13}
-                  labelStyle={styles.rerolls}
-                />
-              </View>
-              {quests.length === 0 && Object.keys(claimed).length === 0 && <Text style={styles.muted}>{t('quests.empty')}</Text>}
-              {Object.entries(claimed)
-                .filter(([id]) => !quests.some((q) => q.id === id))
-                .map(([id, gains]) => (
-                  <View key={id} style={styles.claimed}>
-                    <RewardLabel text={gainsPrefix(t('quests.claimed', { gains: '' }))} size={13} labelStyle={styles.claimedText} />
-                    <GainsLine gains={gains.length > 0 ? gains : [t('quests.nothing')]} size={13} labelStyle={styles.claimedText} />
-                  </View>
-                ))}
-              {quests.map((quest, index) => (
-                <QuestCard
-                  key={quest.id}
-                  quest={quest}
-                  index={index}
-                  now={now}
-                  secret={quest.band === 'secret'}
-                  rerollDisabled={quest.band !== 'secret' && rerollProblem(save, quest.id, now) !== null}
-                  target={targetLine(quest)}
-                  onClaim={() => claim(quest)}
-                  onDeliver={() => deliver(quest)}
-                  onReroll={() => game.rerollQuest(quest.id)}
-                />
-              ))}
-            </ScrollView>
-          </View>
-          <View key="chests" collapsable={false}>
-            <ScrollView style={styles.content} contentContainerStyle={styles.page}>
-              <StepChests />
-            </ScrollView>
-          </View>
+          {pagerPages}
         </PagerView>
       </View>
     </View>

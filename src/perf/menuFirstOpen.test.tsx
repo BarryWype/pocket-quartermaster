@@ -139,7 +139,7 @@ describe('the first opening of each menu screen', () => {
           const react = jest.requireActual<typeof import('react')>('react');
           const Screen = jest.requireActual<{ default: ComponentType }>(path).default;
           const treeJson = (renderer: ReactTestRenderer) => JSON.stringify(renderer.toJSON()) ?? '';
-          // The ghost's body is the only thing marked hidden; it is gone once the content has replaced it.
+          // The ghost's body is marked hidden; once the content has replaced it the tree changed.
           const GHOST_MARK = 'accessibilityElementsHidden';
           const mount = () => {
             let renderer: ReactTestRenderer | undefined;
@@ -153,15 +153,16 @@ describe('the first opening of each menu screen', () => {
             expect(ghostJson).toContain(GHOST_MARK);
             const flushStart = performance.now();
             let json = ghostJson;
-            for (let tick = 0; tick <= 300 && json.includes(GHOST_MARK); tick++) {
+            for (let tick = 0; tick <= 300 && json === ghostJson; tick++) {
               act(() => {
                 jest.advanceTimersByTime(1);
               });
               json = treeJson(renderer!);
             }
             const content = ghost + performance.now() - flushStart;
-            // The deferred content really rendered, in the ghost's place.
-            expect(json).not.toContain(GHOST_MARK);
+            // The deferred content really rendered, in the ghost's place (lazy pager
+            // pages keep their own ghost bodies, so the mark alone can't tell).
+            expect(json).not.toBe(ghostJson);
             act(() => renderer!.unmount());
             return { ghost, content };
           };

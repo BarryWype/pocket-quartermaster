@@ -15,7 +15,7 @@ import { useGameStore } from '@/store/gameStore';
 import { fonts, ui } from '@/theme';
 import { priceLabel } from '@/components/PriceTag';
 
-import { Deferred, DiamondRail, EmberButton, GhostScreen, ParchmentCard, type RailItem } from '@/components/ui';
+import { Deferred, DiamondRail, EmberButton, GhostScreen, ParchmentCard, useLazyPages, type RailItem } from '@/components/ui';
 import { timed } from '@/components/timed';
 
 const BUILDINGS = Object.keys(guildBuildings) as GuildBuildingId[];
@@ -158,6 +158,25 @@ function GuildContent() {
   const pager = useRef<PagerView>(null);
   const railItems = guildRailItems();
 
+  const pagerPages = useLazyPages({
+    keys: BUILDINGS,
+    active: building,
+    variant: 'cards',
+    render: (id) => (
+      <ScrollView style={styles.content} contentContainerStyle={styles.page}>
+        <View>
+          <Text style={styles.pageTitle}>{tr(guildBuildings[id].name)}</Text>
+          <Text style={styles.pageSub}>{t(`guild.sub.${id}`)}</Text>
+        </View>
+        {guildTracks
+          .filter((track) => track.building === id)
+          .map((track) => (
+            <UpgradeCard key={track.id} track={track} onBuy={() => buy(track.id)} />
+          ))}
+      </ScrollView>
+    ),
+  });
+
   return (
     <View style={styles.screen}>
       <View style={styles.body}>
@@ -175,21 +194,7 @@ function GuildContent() {
           initialPage={0}
           onPageSelected={({ nativeEvent }) => setBuilding(BUILDINGS[nativeEvent.position])}
         >
-          {BUILDINGS.map((id) => (
-            <View key={id} collapsable={false}>
-              <ScrollView style={styles.content} contentContainerStyle={styles.page}>
-                <View>
-                  <Text style={styles.pageTitle}>{tr(guildBuildings[id].name)}</Text>
-                  <Text style={styles.pageSub}>{t(`guild.sub.${id}`)}</Text>
-                </View>
-                {guildTracks
-                  .filter((track) => track.building === id)
-                  .map((track) => (
-                    <UpgradeCard key={track.id} track={track} onBuy={() => buy(track.id)} />
-                  ))}
-              </ScrollView>
-            </View>
-          ))}
+          {pagerPages}
         </PagerView>
       </View>
     </View>

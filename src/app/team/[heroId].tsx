@@ -409,6 +409,7 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
           { key: 'stats', label: t('hero.stats') },
           { key: 'equipment', label: t('hero.equipment') },
         ]}
+        variant="hero"
       >
         {summaryPage}
         {statsPage}

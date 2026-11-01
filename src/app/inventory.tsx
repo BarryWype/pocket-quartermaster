@@ -34,7 +34,7 @@ import { usePlayerLocation } from '@/hooks/usePlayerLocation';
 import { formatDistance, formatDuration, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { fonts, ui } from '@/theme';
-import { AnchoredPopup, Chip, Deferred, DiamondRail, GhostScreen, ItemPopup, ItemSlot, WoodButton, type PopupAnchor, type RailItem } from '@/components/ui';
+import { AnchoredPopup, Chip, Deferred, DiamondRail, GhostScreen, ItemPopup, ItemSlot, WoodButton, useLazyPages, type PopupAnchor, type RailItem } from '@/components/ui';
 import { timed } from '@/components/timed';
 
 const HOUR = 3_600_000;
@@ -112,6 +112,45 @@ function InventoryContent() {
 
   const closePopup = () => setOpened(null);
 
+  const pagerPages = useLazyPages({
+    keys: pages.map(({ id }) => id),
+    active: active as InventoryPageId,
+    variant: 'grid',
+    render: (id) => (
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.page}
+        onLayout={({ nativeEvent }) => setContentWidth(nativeEvent.layout.width - 24)}
+      >
+        <TutorialHint screen="inventory" />
+        {id === 'materials' && rows.every((row) => row.page !== 'materials') && (
+          <Text style={styles.empty}>{t('inventory.noMaterials')}</Text>
+        )}
+        {/* While the quests screen is still hidden, the chests stay here. */}
+        {id === 'finds' && !isRevealed(save, 'quests') && <StepChests />}
+        {cell > 0 && (
+          <View style={styles.grid}>
+            {rows
+              .filter((row) => row.page === id)
+              .map((row) => (
+                <RowSlot
+                  key={rowKey(row)}
+                  row={row}
+                  save={save}
+                  size={cell}
+                  selected={opened !== null && rowKey(opened.row) === rowKey(row)}
+                  onOpen={(anchor) => setOpened({ row, anchor })}
+                />
+              ))}
+          </View>
+        )}
+        {id === 'secrets' && rows.some((row) => row.page === 'secrets' && row.kind === 'tip') && !hasKey(save) && (
+          <Text style={styles.empty}>{t('secrets.needKey', { dots: keyDots(save) })}</Text>
+        )}
+      </ScrollView>
+    ),
+  });
+
   return (
     <View style={styles.screen}>
       <View style={styles.body}>
@@ -133,41 +172,7 @@ function InventoryContent() {
             lastPage = pages[nativeEvent.position].id;
           }}
         >
-          {pages.map(({ id }) => (
-            <View key={id} collapsable={false}>
-              <ScrollView
-                style={styles.content}
-                contentContainerStyle={styles.page}
-                onLayout={({ nativeEvent }) => setContentWidth(nativeEvent.layout.width - 24)}
-              >
-                <TutorialHint screen="inventory" />
-                {id === 'materials' && rows.every((row) => row.page !== 'materials') && (
-                  <Text style={styles.empty}>{t('inventory.noMaterials')}</Text>
-                )}
-                {/* While the quests screen is still hidden, the chests stay here. */}
-                {id === 'finds' && !isRevealed(save, 'quests') && <StepChests />}
-                {cell > 0 && (
-                  <View style={styles.grid}>
-                    {rows
-                      .filter((row) => row.page === id)
-                      .map((row) => (
-                        <RowSlot
-                          key={rowKey(row)}
-                          row={row}
-                          save={save}
-                          size={cell}
-                          selected={opened !== null && rowKey(opened.row) === rowKey(row)}
-                          onOpen={(anchor) => setOpened({ row, anchor })}
-                        />
-                      ))}
-                  </View>
-                )}
-                {id === 'secrets' && rows.some((row) => row.page === 'secrets' && row.kind === 'tip') && !hasKey(save) && (
-                  <Text style={styles.empty}>{t('secrets.needKey', { dots: keyDots(save) })}</Text>
-                )}
-              </ScrollView>
-            </View>
-          ))}
+          {pagerPages}
         </PagerView>
       </View>
       {opened && (
