@@ -82,7 +82,7 @@ Second attempt: measured first (`src/perf/expeditionsFirstOpen.test.ts`, every p
 Not verified on a real device: the actual first-open time on a phone.
 
 
-## 18. Menu screens take 3–4 s to open again, with no sign the tap registered (open)
+## 18. Menu screens take 3–4 s to open again, with no sign the tap registered (open: Expeditions content still slow)
 Found 2026-11-01, after #21 (progression-difficulty) and #22 (ui-quest-fixes). Every screen the bottom menu opens takes 3–4 s on a phone, and nothing on screen shows the tap was taken in the meantime.
 Notes: measured first. Every screen the bottom menu and the hero list open is now wrapped in `timed()`, so the debug profiler records `tap→open <screen>` for each (forge, infuse, provisions, inventory, team, hero, quests, guild, settings, tips; expeditions already was). `src/perf/menuFirstOpen.test.tsx` mounts each screen with react-test-renderer on a mid-game save (tiers 1–2 cleared, tier 3 half way, six heroes, 40 gear pieces, every material and consumable), cold (fresh module registry, modules loaded before the timing) and warm, and times `dailyRotation` cold on its own. Phone estimate ×4, as in issue 17.
 
@@ -102,3 +102,29 @@ Notes: measured first. Every screen the bottom menu and the hero list open is no
 | screen: tips | 2 ms | 0 ms | 8 ms |
 
 Expeditions' first render is almost all the rotation replay (418 of 457 ms): the new briefing rotation replays every day since `startDay`, walking every chain dungeon of every tier with up to 8 salted `composeThreats` calls. Every other screen's JS render is under ~85 ms on the phone estimate, so their 3–4 s are not render work jest can see. What jest can't see is the native side: every pager page mounting at once (3–6 pages of image slots per rail screen), plus the transition.
+
+Changes, one commit each on `perf-menu-open`:
+- Step 2, kept (7e40edd): a tap always shows it registered. `DiamondButton` lights on press-in, in the same frame. Every menu screen renders `GhostScreen` on its first frame (the stack's real header, the screen's real rail, pulsing parchment blocks in a `cards`, `grid` or `hero` shape; static when animations are off) and its content one frame later (`Deferred` + `useAfterFirstFrame`: two animation frames, 250 ms safety timeout, no work of its own). The profiler now records `tap→content <screen>` beside `tap→open` (which times the ghost).
+- Step 3, kept (bb5c69e): `useLazyPages` builds only the pages already visited; the others hold a ghost body until a swipe reaches them (inventory, expeditions, forge, guild, settings, quests, `SwipeTabs` for the hero and kitchen tabs). In jest it cut provisions, hero, quests and guild's first render by 20–65%; the native side, which jest can't see, mounts one page instead of 3–6.
+- Step 4, reverted (no commit): replaying a 14-day window instead of every day since `startDay` does not match the full replay, and never converges. With windows of 14, 21, 28 and 42 days, 495, 439, 392 and 307 of ~700 days still differ. Some dungeons only have two threat sets that pass "differs from yesterday", so they alternate A, B, A, B, and which phase a day lands on depends on where the replay started. No window can reproduce the full replay, so the rotation would change for everyone. Stopped there, as the rules ask.
+- Step 5, no change needed: Expeditions already computes odds after the first frame, one dungeon per tick, only for the tier shown, with "…" standing in (since issue 17). Jest confirms the odds are not in the render.
+
+| screen (phone estimate, ×4) | before: tap→content | after: tap→ghost | after: tap→content |
+| --- | --- | --- | --- |
+| expeditions | 1828 ms | 40 ms | 1792 ms |
+| forge | 32 ms | 16 ms | 40 ms |
+| infuse | 4 ms | 8 ms | 16 ms |
+| provisions | 32 ms | 28 ms | 56 ms |
+| inventory | 28 ms | 16 ms | 40 ms |
+| team | 60 ms | 4 ms | 64 ms |
+| hero | 76 ms | 8 ms | 52 ms |
+| quests | 52 ms | 12 ms | 24 ms |
+| guild | 84 ms | 12 ms | 76 ms |
+| settings | 84 ms | 12 ms | 56 ms |
+| tips | 8 ms | 4 ms | 8 ms |
+"Before" had no ghost, so its first paint was the content. "After" content includes the one-frame deferral and, for the pager screens, only the active page.
+
+Left open:
+- Expeditions content is still ~1.8 s on a phone. Almost all of it is `dailyRotation`'s replay (430 ms of 448 ms on the dev machine). The ghost shows at once, but the cards land late. Fixing it means changing what the replay computes (a design call), not caching it.
+- The other screens are all under ~100 ms of JS on the phone estimate, so their reported 3–4 s isn't JS render work jest can see. The `tap→open` / `tap→content` entries the profiler now records on every screen should be read on a release build on the phone, to confirm whether the native side (now one page per screen) has closed the gap.
+
