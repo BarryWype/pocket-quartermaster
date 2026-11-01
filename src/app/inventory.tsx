@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
+import { useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 import PagerView from 'react-native-pager-view';
 
 import { Text } from '@/components/Text';
+import { Countdown, countdownText } from '@/components/Countdown';
 import { TutorialHint } from '@/components/TutorialHint';
 import { StepChests } from '@/components/StepChests';
 import { PartsLine } from '@/components/IconLabel';
@@ -30,8 +31,9 @@ import { isAway } from '@/game/team/team';
 import type { GearInstance } from '@/game/types';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useNow } from '@/hooks/useNow';
+import { clockConfig } from '@/content/clockConfig';
 import { usePlayerLocation } from '@/hooks/usePlayerLocation';
-import { formatDistance, formatDuration, t, tr } from '@/i18n';
+import { formatDistance, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { fonts, ui } from '@/theme';
 import { AnchoredPopup, Chip, Deferred, DiamondRail, GhostScreen, ItemPopup, ItemSlot, WoodButton, useLazyPages, type PopupAnchor, type RailItem } from '@/components/ui';
@@ -69,7 +71,7 @@ export function useInventoryRail(now: number) {
 
 /** The inventory: one swipable page per category of what is held, each a grid of sockets. */
 function InventoryScreen() {
-  const rail = useInventoryRail(useNow());
+  const rail = useInventoryRail(useNow(clockConfig.minutesMs));
   return (
     <Deferred
       name="inventory"
@@ -88,7 +90,7 @@ function InventoryContent() {
   const salvage = useGameStore((state) => state.salvage);
   const player = usePlayerLocation();
   const position = player.status === 'ready' ? player.location.position : null;
-  const [now, setNow] = useState(() => Date.now());
+  const now = useNow(clockConfig.minutesMs);
   // Materials open first; later visits reopen the page last used this session.
   const rail = useInventoryRail(now);
   const pages = rail.pages;
@@ -96,12 +98,6 @@ function InventoryContent() {
   const pager = useRef<PagerView>(null);
   const activeIndex = Math.min(index, pages.length - 1);
   const active = pages[activeIndex]?.id;
-  // Only the finds page shows something that ticks: map expiry and the lure's time left.
-  useEffect(() => {
-    if (active !== 'finds') return;
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [active]);
   /** The row whose pop-up is open, and the socket it opened from. */
   const [opened, setOpened] = useState<{ row: InventoryRow; anchor: PopupAnchor } | null>(null);
   const [salvaging, setSalvaging] = useState<GearInstance | null>(null);
@@ -357,7 +353,7 @@ function InventoryPopup({
   let title: string;
   let emoji: string;
   let icon: ImageSourcePropType | undefined;
-  let subtitle: string | undefined;
+  let subtitle: ReactNode;
   let value: string | number | undefined;
   let note: string | undefined;
   let children: ReactNode;
@@ -472,10 +468,17 @@ function InventoryPopup({
       const spot = tipPosition(row.tip, () => false);
       title = tr(placeInfo[row.tip.secret].name);
       emoji = placeInfo[row.tip.secret].emoji;
-      subtitle = t('secrets.where', {
-        distance: position && spot ? formatDistance(distanceMeters(position, spot)) : '?',
-        time: formatDuration(row.tip.expiresAt - now),
-      });
+      subtitle = (
+        <Countdown
+          endsAt={row.tip.expiresAt}
+          format={(ms) =>
+            t('secrets.where', {
+              distance: position && spot ? formatDistance(distanceMeters(position, spot)) : '?',
+              time: countdownText(ms),
+            })
+          }
+        />
+      );
       children = <Text style={styles.lock}>{row.tip.entered || hasKey(save) ? '🔓' : '🔒'}</Text>;
       break;
     }

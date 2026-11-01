@@ -14,6 +14,7 @@ import { Tip } from '@/components/Tip';
 import { TutorialHint } from '@/components/TutorialHint';
 import { AnchoredPopup, Chip, Deferred, GhostScreen, ItemPopup, ItemSlot, ScreenHeader, SwipeTabs, WoodButton, WoodPanel, type PopupAnchor, type PopupLine } from '@/components/ui';
 import { abilityText } from '@/content/abilities';
+import { clockConfig } from '@/content/clockConfig';
 import { elementInfo } from '@/content/elements';
 import { expeditionRules } from '@/content/dungeons';
 import { approachRules } from '@/content/threats';
@@ -116,7 +117,8 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
   const drinkPotion = useGameStore((state) => state.drinkPotion);
   const giveHomeCare = useGameStore((state) => state.giveHomeCare);
   const pickApproach = useGameStore((state) => state.pickApproach);
-  const now = useNow();
+  // Button enablement (potions, home care) turns on time, so the clock is coarse.
+  const now = useNow(clockConfig.minutesMs);
   const [picking, setPicking] = useState<EquipmentSlot | null>(null);
   /** The storeroom piece being compared, and where its slot sits on screen. */
   const [compare, setCompare] = useState<{ gear: GearInstance; slot: (typeof GEAR_SLOTS)[number]; anchor: PopupAnchor } | null>(null);
@@ -237,7 +239,7 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
         {save.patrolFights.some((fight) => fight.heroIds.includes(hero.id)) ? t('common.patrol') : ''}
       </Text>
       {aboveBand ? <Text style={styles.note}>{t('hero.xpAboveBand')}</Text> : null}
-      <HpBar save={save} hero={hero} now={now} />
+      <HpBar save={save} hero={hero} />
       {!away && (
         <View style={styles.drink}>
           {potionsHeld.length === 0 && <WoodButton title={t('health.drink', { count: 0 })} disabled onPress={() => {}} />}

@@ -45,6 +45,16 @@ type DebugSettings = {
   guildGatesOpen: boolean;
   /** Times the map's and panels' computations and renders; the entries show on the debug screen. */
   recordTimings: boolean;
+  /** Renders a plain background instead of the map while another screen covers it. */
+  unmountMapWhenCovered: boolean;
+  /** Foliage, sky and ambience (trail/water) off on the map. */
+  noMapDecorations: boolean;
+  /** `Deferred` renders the content directly, no ghost. */
+  noContentDeferral: boolean;
+  /** The stack's push/pop has no animation. */
+  noScreenAnimation: boolean;
+  /** Patrol and auto-gather intervals pause while a screen other than the map is open. */
+  pauseBackgroundHooks: boolean;
 };
 
 type DebugState = DebugSettings & {
@@ -75,6 +85,11 @@ const DEBUG_DEFAULTS: DebugSettings = {
   showNodeRanges: false,
   guildGatesOpen: false,
   recordTimings: false,
+  unmountMapWhenCovered: false,
+  noMapDecorations: false,
+  noContentDeferral: false,
+  noScreenAnimation: false,
+  pauseBackgroundHooks: false,
 };
 
 export const useDebugStore = create<DebugState>()(

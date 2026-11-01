@@ -5,12 +5,14 @@ import { items } from '@/content/items';
 import { itemById } from '@/content/lookup';
 import { activeWalkEffects, replacesActive } from '@/game/gathering/walkEffects';
 import type { LatLng } from '@/game/generation/types';
+import { clockConfig } from '@/content/clockConfig';
 import { useNow } from '@/hooks/useNow';
 import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
 
 import { Button } from './Button';
+import { Countdown } from './Countdown';
 import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
@@ -20,7 +22,6 @@ import { Tip } from './Tip';
 
 const walkItems = items.filter((item) => item.slot === 'utility' && item.walk);
 
-const timeLeft = (ms: number) => `${Math.floor(ms / 60_000)}:${String(Math.floor((ms % 60_000) / 1000)).padStart(2, '0')}`;
 
 /** The map's walking consumables: a round button opening the ones in stock, and a countdown chip per running effect. */
 export function WalkEffects({ player, buttonStyle, chipsStyle }: {
@@ -28,8 +29,8 @@ export function WalkEffects({ player, buttonStyle, chipsStyle }: {
   buttonStyle: StyleProp<ViewStyle>;
   chipsStyle: StyleProp<ViewStyle>;
 }) {
-  // Its own clock, so the seconds tick without re-rendering the whole map.
-  const now = useNow();
+  // Its own clock, so the chips tick without re-rendering the whole map.
+  const now = useNow(clockConfig.minutesMs);
   const save = useGameStore((state) => state.save);
   const startWalkEffect = useGameStore((state) => state.startWalkEffect);
   const [open, setOpen] = useState(false);
@@ -64,7 +65,7 @@ export function WalkEffects({ player, buttonStyle, chipsStyle }: {
                 <View style={styles.chip}>
                   <GameIcon emoji={item.emoji} size={18} />
                   <Text style={styles.chipText}>
-                    {timeLeft(effect.endsAt - now)} ⓘ
+                    <Countdown endsAt={effect.endsAt} /> ⓘ
                   </Text>
                 </View>
               </Tip>

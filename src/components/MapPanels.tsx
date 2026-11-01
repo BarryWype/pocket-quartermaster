@@ -1,8 +1,10 @@
 import { timed } from '@/components/timed';
+import { clockConfig } from '@/content/clockConfig';
 import type { LatLng } from '@/game/generation/types';
 import { isPatrolKind, isTravellerKind, type PatrolSpawn } from '@/game/patrols/generate';
 import { isFightPlace } from '@/game/places/fights';
 import type { PlaceSpawn } from '@/game/places/generate';
+import { useNow } from '@/hooks/useNow';
 import { useMapPanels } from '@/store/mapPanelsStore';
 import { useWorldStore } from '@/store/worldStore';
 
@@ -24,7 +26,6 @@ const TimedPatrolPanel = timed('panel: patrol', PatrolPanel);
 
 type Props = {
   player: LatLng;
-  now: number;
   /** The patrols the map shows, to find the one a notification pointed at. */
   patrols: PatrolSpawn[];
 };
@@ -37,7 +38,9 @@ const isSecretKind = (kind: PlaceSpawn['kind']) => kind === 'hiddenDen' || kind 
  * re-renders the map screen's markers, only this component. A notification's
  * held patrol stays selected while it is still around.
  */
-export function MapPanels({ player, now, patrols }: Props) {
+export function MapPanels({ player, patrols }: Props) {
+  // Its own clock: a panel's countdowns tick without re-rendering the map screen.
+  const now = useNow(clockConfig.mapMovingMs);
   const openSanctum = useMapPanels((state) => state.sanctum);
   const openPlace = useMapPanels((state) => state.place);
   const openTavern = useMapPanels((state) => state.tavern);

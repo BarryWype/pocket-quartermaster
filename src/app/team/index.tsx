@@ -13,7 +13,6 @@ import { heroDamageStat, heroStats, isOnExpedition } from '@/game/team/team';
 import { pendingApproachPicks } from '@/game/team/stats';
 import { rosterCap } from '@/game/guild/guild';
 import { useLanguage } from '@/hooks/useLanguage';
-import { useNow } from '@/hooks/useNow';
 import { navigate } from '@/services/navigation';
 import { t, tr, type TextKey } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
@@ -36,7 +35,6 @@ function TeamScreen() {
 function TeamContent() {
   useLanguage();
   const save = useGameStore((state) => state.save);
-  const now = useNow();
   const freeBunks = Math.max(0, rosterCap(save) - save.heroes.length);
 
   return (
@@ -95,7 +93,7 @@ function TeamContent() {
                 <Text style={styles.classLine}>
                   {tr(heroClass.name)} · {tr(traitById[hero.trait]?.name ?? '')}
                 </Text>
-                <HpBar save={save} hero={hero} now={now} />
+                <HpBar save={save} hero={hero} />
                 <View style={styles.statRow}>
                   {(['hp', damageStat, 'armour', 'speed'] as const).map((stat) => (
                     <View key={stat} style={styles.statCell}>

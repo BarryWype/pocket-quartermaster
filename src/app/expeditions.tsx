@@ -5,6 +5,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import PagerView from 'react-native-pager-view';
 
 import { DungeonCard } from '@/components/DungeonCard';
+import { Countdown, countdownText } from '@/components/Countdown';
 import { GameIcon } from '@/components/GameIcon';
 import { HpBar } from '@/components/HpBar';
 import { LootReveal } from '@/components/LootReveal';
@@ -16,6 +17,7 @@ import { ThreatCoverageChips } from '@/components/ThreatDetail';
 import { TutorialHint } from '@/components/TutorialHint';
 import { IconLabel, RewardLabel, splitLeadingEmoji } from '@/components/IconLabel';
 import { Deferred, DiamondButton, DiamondRail, EmberButton, GhostScreen, ParchmentCard, useLazyPages, type RailItem } from '@/components/ui';
+import { clockConfig } from '@/content/clockConfig';
 import { dungeons } from '@/content/dungeons';
 import { heroClasses } from '@/content/heroes';
 import { dungeonById } from '@/content/lookup';
@@ -36,7 +38,7 @@ import { syncBackground } from '@/hooks/useAutoGather';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useNow } from '@/hooks/useNow';
 import { syncPlan } from '@/hooks/useNotifications';
-import { formatDuration, formatPercent, t, tr } from '@/i18n';
+import { formatPercent, t, tr } from '@/i18n';
 import { deviceNotifications } from '@/services/notifications';
 import { recordTiming } from '@/services/timings';
 import { currentRotation, debugEnabled, useDebugStore } from '@/store/debugStore';
@@ -57,7 +59,7 @@ type Collected = { report: ExpeditionReport; before: HeroState[]; after: HeroSta
 /** The rail's items, and the tab the screen opens on: teams when a team is back, so the loot is the first thing to see. */
 export function useExpeditionsRail(): { items: RailItem[]; initial: Tab } {
   const save = useGameStore((state) => state.save);
-  const now = useNow();
+  const now = useNow(clockConfig.minutesMs);
   const ready = readyExpeditions(save, now);
   const unseen = save.reports.filter((r) => !r.seen).length;
   const teamsBadge = ready.length > 0 ? ready.length : save.expeditions.length > 0 ? save.expeditions.length : undefined;
@@ -103,7 +105,7 @@ function ExpeditionsContent() {
   const setSettings = useSettingsStore((state) => state.set);
   const fastExpeditions = useDebugStore((state) => debugEnabled(state) && state.fastExpeditions);
   const durationScale = fastExpeditions ? 1 / 60 : 1;
-  const now = useNow();
+  const now = useNow(clockConfig.minutesMs);
   const ready = readyExpeditions(save, now);
 
   const rail = useExpeditionsRail();
@@ -344,7 +346,7 @@ function ExpeditionsContent() {
                 <Text style={styles.heroSub}>
                   {away ? t('expeditions.away') : t('common.levelShort', { level: hero.level })}
                 </Text>
-                {!away && <HpBar save={save} hero={hero} now={now} />}
+                {!away && <HpBar save={save} hero={hero} />}
               </View>
               {active && <Text style={styles.check}>✓</Text>}
             </Pressable>
@@ -370,7 +372,10 @@ function ExpeditionsContent() {
           );
         })}
       </View>
-      <Text style={styles.muted}>{t('expeditions.tapDungeon', { time: formatDuration(nextRotationAt(now) - now) })}</Text>
+      <Countdown
+        endsAt={nextRotationAt(now)}
+        render={(ms) => <Text style={styles.muted}>{t('expeditions.tapDungeon', { time: countdownText(ms) })}</Text>}
+      />
       {shown.map((dungeon) => (
         <DungeonCard
           key={dungeon.id}
@@ -421,7 +426,7 @@ function ExpeditionsContent() {
               key={expedition.id}
               title={tr(dungeon.name)}
               titleEmoji={dungeon.emoji}
-              titleSub={back ? t('expeditions.back') : formatDuration(expedition.endsAt - now)}
+              titleSub={back ? t('expeditions.back') : <Countdown endsAt={expedition.endsAt} />}
               contentStyle={styles.teamCard}
             >
               <View style={styles.teamRow}>

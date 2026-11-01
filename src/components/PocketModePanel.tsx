@@ -6,6 +6,7 @@ import { heroClasses } from '@/content/heroes';
 import { notificationCategories } from '@/content/notifications';
 import { patrolRules } from '@/content/patrols';
 import { nearbyKinds } from '@/content/pocketMode';
+import { clockConfig } from '@/content/clockConfig';
 import type { NotificationCategory } from '@/game/notifications/types';
 import type { AlertFor } from '@/game/patrols/escort';
 import { pocketTracking } from '@/game/patrols/pocketMode';
@@ -199,7 +200,7 @@ function EscortSection({ save, now }: { save: SaveData; now: number }) {
   return (
     <View style={styles.section}>
       <IconLabel emoji={heroClasses[hero.classId].emoji} label={`${hero.name} · ${status}`} labelStyle={styles.escortName} />
-      <HpBar save={save} hero={hero} now={now} />
+      <HpBar save={save} hero={hero} />
       <View style={styles.buttons}>
         <Button
           title={t('autoGather.escortDrink')}
@@ -227,7 +228,7 @@ function EscortSection({ save, now }: { save: SaveData; now: number }) {
 export function PocketModePanel() {
   const open = useWorldStore((state) => state.pocketPanel !== 'closed');
   const save = useGameStore((state) => state.save);
-  const now = useNow();
+  const now = useNow(clockConfig.minutesMs);
   const close = () => useWorldStore.getState().set({ pocketPanel: 'closed' });
   const maxHeight = useSheetMaxHeight();
   if (!open) return null;

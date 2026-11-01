@@ -228,7 +228,7 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
                   )}
                   {idle.length > 0 && <Button title={t('expeditions.confirm.swap')} color={colors.muted} onPress={() => setSwapping(swapping === hero.id ? null : hero.id)} />}
                 </View>
-                <HpBar save={save} hero={hero} now={now} />
+                <HpBar save={save} hero={hero} />
                 <View style={styles.options}>
                   {(['consumable', ...(hasPotionSlot(hero) ? ['potion' as const] : [])] as const).map((slot) => {
                     const id = hero.equipment[slot];

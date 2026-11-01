@@ -5,6 +5,7 @@ import PagerView from 'react-native-pager-view';
 import { GainsLine, IconLabel, RewardLabel } from '@/components/IconLabel';
 import { StepChests } from '@/components/StepChests';
 import { gainsPrefix, lootLabels } from '@/components/lootText';
+import { Countdown, countdownText } from '@/components/Countdown';
 import { Text } from '@/components/Text';
 import { itemById, valuableById } from '@/content/lookup';
 import { lootMatrix } from '@/content/loot/matrix';
@@ -22,8 +23,9 @@ import { chestState, dayKey, stepChests } from '@/game/rewards/chests';
 import { useTodaySteps } from '@/hooks/useTodaySteps';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useNow } from '@/hooks/useNow';
+import { clockConfig } from '@/content/clockConfig';
 import { useQuestPlaces } from '@/hooks/useQuestPlaces';
-import { formatDistance, formatDuration, t, tr } from '@/i18n';
+import { formatDistance, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { useWorldStore } from '@/store/worldStore';
 import { fonts, ui } from '@/theme';
@@ -141,7 +143,7 @@ function QuestsScreen() {
 
 function QuestsContent() {
   useLanguage();
-  const now = useNow(5000);
+  const now = useNow(clockConfig.minutesMs);
   const save = useGameStore((state) => state.save);
   const game = useGameStore.getState();
   const player = useWorldStore((state) => state.player);
@@ -305,7 +307,12 @@ function QuestCard({
       <View style={styles.subline}>
         <Text style={styles.sub}>
           {t(`quests.band.${quest.band}`)}
-          {!done && ` · ${t('quests.timeLeft', { time: formatDuration(quest.expiresAt - now) })}`}
+          {!done && (
+            <Countdown
+              endsAt={quest.expiresAt}
+              render={(ms) => ` · ${t('quests.timeLeft', { time: countdownText(ms) })}`}
+            />
+          )}
         </Text>
         {target && <IconLabel emoji="🧭" label={target} size={13} gap={2} labelStyle={styles.sub} />}
       </View>
