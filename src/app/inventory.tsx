@@ -29,11 +29,12 @@ import { tipPosition } from '@/game/secrets/tips';
 import { isAway } from '@/game/team/team';
 import type { GearInstance } from '@/game/types';
 import { useLanguage } from '@/hooks/useLanguage';
+import { useNow } from '@/hooks/useNow';
 import { usePlayerLocation } from '@/hooks/usePlayerLocation';
 import { formatDistance, formatDuration, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { fonts, ui } from '@/theme';
-import { AnchoredPopup, Chip, DiamondRail, ItemPopup, ItemSlot, WoodButton, type PopupAnchor, type RailItem } from '@/components/ui';
+import { AnchoredPopup, Chip, Deferred, DiamondRail, GhostScreen, ItemPopup, ItemSlot, WoodButton, type PopupAnchor, type RailItem } from '@/components/ui';
 import { timed } from '@/components/timed';
 
 const HOUR = 3_600_000;
@@ -51,8 +52,35 @@ const PAGE_EMOJI: Record<InventoryPageId, string> = {
 /** The page the player last swiped to, kept for this session only. */
 let lastPage: InventoryPageId | null = null;
 
+/** The inventory pages as rail items, and the page the screen opens on: the one last swiped to this session. */
+export function useInventoryRail(now: number) {
+  const save = useGameStore((state) => state.save);
+  const pages = inventoryPages(save, now);
+  const items: RailItem[] = pages.map(({ id, count }) => ({
+    key: id,
+    label: t(`inventory.pages.${id}`),
+    emoji: PAGE_EMOJI[id],
+    badge: count > 0 ? count : undefined,
+  }));
+  const wanted = pages.findIndex(({ id }) => id === lastPage);
+  const index = wanted === -1 ? 0 : wanted;
+  return { items, pages, index, selected: pages[Math.min(index, pages.length - 1)]?.id };
+}
+
 /** The inventory: one swipable page per category of what is held, each a grid of sockets. */
 function InventoryScreen() {
+  const rail = useInventoryRail(useNow());
+  return (
+    <Deferred
+      name="inventory"
+      ghost={<GhostScreen variant="grid" rail={<DiamondRail items={rail.items} selected={rail.selected} onSelect={() => {}} />} />}
+    >
+      <InventoryContent />
+    </Deferred>
+  );
+}
+
+function InventoryContent() {
   useLanguage();
   const save = useGameStore((state) => state.save);
   const readMap = useGameStore((state) => state.readTreasureMap);
@@ -61,12 +89,10 @@ function InventoryScreen() {
   const player = usePlayerLocation();
   const position = player.status === 'ready' ? player.location.position : null;
   const [now, setNow] = useState(() => Date.now());
-  const pages = inventoryPages(save, now);
   // Materials open first; later visits reopen the page last used this session.
-  const [index, setIndex] = useState(() => {
-    const wanted = pages.findIndex(({ id }) => id === lastPage);
-    return wanted === -1 ? 0 : wanted;
-  });
+  const rail = useInventoryRail(now);
+  const pages = rail.pages;
+  const [index, setIndex] = useState(() => rail.index);
   const pager = useRef<PagerView>(null);
   const activeIndex = Math.min(index, pages.length - 1);
   const active = pages[activeIndex]?.id;
@@ -84,20 +110,13 @@ function InventoryScreen() {
   // Each slot is wrapped in a 2 px ring, so its face is 4 px narrower than its cell.
   const cell = contentWidth > 0 ? Math.floor((contentWidth - 3 * 6) / 4) - 4 : 0;
 
-  const railItems: RailItem[] = pages.map(({ id, count }) => ({
-    key: id,
-    label: t(`inventory.pages.${id}`),
-    emoji: PAGE_EMOJI[id],
-    badge: count > 0 ? count : undefined,
-  }));
-
   const closePopup = () => setOpened(null);
 
   return (
     <View style={styles.screen}>
       <View style={styles.body}>
         <DiamondRail
-          items={railItems}
+          items={rail.items}
           selected={active}
           onSelect={(key) => {
             const wanted = pages.findIndex(({ id }) => id === key);

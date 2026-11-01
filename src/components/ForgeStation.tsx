@@ -43,6 +43,31 @@ const RAIL_ICONS: Record<ForgePageType, { emoji: string; icon?: ImageSourcePropT
 /** The page the player last swiped to, kept for this session only. */
 let lastPage: ForgePageType | null = null;
 
+/**
+ * The forge's rail: its sections with craftable badges, and the section the
+ * screen opens on. It also carries the page and tier lists it is built from,
+ * so the station does not compute the forge list twice; the screen's ghost
+ * shows the same rail on its first frame.
+ */
+export function useForgeRail() {
+  const save = useGameStore((state) => state.save);
+  const { pages, tiers } = forgeList(save);
+  const otherVisible = pages.some(({ type }) => type === 'other');
+  const sections = otherVisible ? ([...GEAR_SECTIONS, 'other'] as ForgePageType[]) : ([...GEAR_SECTIONS] as ForgePageType[]);
+  const items: RailItem[] = sections.map((type) => {
+    const page = pages.find((one) => one.type === type);
+    return {
+      key: type,
+      label: t(`crafting.pages.${type}`),
+      ...RAIL_ICONS[type],
+      badge: page && page.craftable > 0 ? page.craftable : undefined,
+    };
+  });
+  // The tutorial's forge step must land on the sword's section, whatever was last used.
+  const selected: ForgePageType = save.tutorial.step === 'forgeSword' ? 'weapons' : lastPage ?? 'weapons';
+  return { items, sections, selected, pages, tiers };
+}
+
 /** The forge: a rail of item types on the left, the chosen section's tiers of blueprints on the right. */
 export function ForgeStation() {
   const save = useGameStore((state) => state.save);
@@ -53,26 +78,11 @@ export function ForgeStation() {
   /** The forge or restore waiting for its confirmation, if any, and the slot it opened from. */
   const [pending, setPending] = useState<ForgePending | null>(null);
   const [anchor, setAnchor] = useState<PopupAnchor | null>(null);
-  const [section, setSection] = useState<ForgePageType>(() => {
-    // The tutorial's forge step must land on the sword's section, whatever was last used.
-    if (save.tutorial.step === 'forgeSword') return 'weapons';
-    return lastPage ?? 'weapons';
-  });
+  const rail = useForgeRail();
+  const [section, setSection] = useState<ForgePageType>(() => rail.selected);
   const [contentWidth, setContentWidth] = useState(0);
   const pager = useRef<PagerView>(null);
-  const { pages, tiers } = forgeList(save);
-
-  const otherVisible = pages.some(({ type }) => type === 'other');
-  const sections = otherVisible ? ([...GEAR_SECTIONS, 'other'] as ForgePageType[]) : ([...GEAR_SECTIONS] as ForgePageType[]);
-  const railItems: RailItem[] = sections.map((type) => {
-    const page = pages.find((one) => one.type === type);
-    return {
-      key: type,
-      label: t(`crafting.pages.${type}`),
-      ...RAIL_ICONS[type],
-      badge: page && page.craftable > 0 ? page.craftable : undefined,
-    };
-  });
+  const { items: railItems, sections, pages, tiers } = rail;
 
   const showSection = (next: ForgePageType) => {
     setSection(next);

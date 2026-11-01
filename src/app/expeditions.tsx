@@ -15,7 +15,7 @@ import { Text } from '@/components/Text';
 import { ThreatCoverageChips } from '@/components/ThreatDetail';
 import { TutorialHint } from '@/components/TutorialHint';
 import { IconLabel, RewardLabel, splitLeadingEmoji } from '@/components/IconLabel';
-import { DiamondButton, DiamondRail, EmberButton, ParchmentCard, type RailItem } from '@/components/ui';
+import { Deferred, DiamondButton, DiamondRail, EmberButton, GhostScreen, ParchmentCard, type RailItem } from '@/components/ui';
 import { dungeons } from '@/content/dungeons';
 import { heroClasses } from '@/content/heroes';
 import { dungeonById } from '@/content/lookup';
@@ -54,7 +54,39 @@ const ROMAN = ['I', 'II', 'III', 'IV', 'V'];
 /** What the loot reveal shows: the report, and the heroes before and after for XP and level-ups. */
 type Collected = { report: ExpeditionReport; before: HeroState[]; after: HeroState[] };
 
+/** The rail's items, and the tab the screen opens on: teams when a team is back, so the loot is the first thing to see. */
+export function useExpeditionsRail(): { items: RailItem[]; initial: Tab } {
+  const save = useGameStore((state) => state.save);
+  const now = useNow();
+  const ready = readyExpeditions(save, now);
+  const unseen = save.reports.filter((r) => !r.seen).length;
+  const teamsBadge = ready.length > 0 ? ready.length : save.expeditions.length > 0 ? save.expeditions.length : undefined;
+  const items: RailItem[] = [
+    {
+      key: 'dungeons',
+      label: t('expeditions.tabs.dungeons'),
+      emoji: '🏰',
+      icon: require('../../assets/icons/scaled/menu-expeditions.png'),
+    },
+    { key: 'teams', label: t('expeditions.tabs.teams'), emoji: '🧭', badge: teamsBadge },
+    { key: 'reports', label: t('expeditions.tabs.reports'), emoji: '📜', badge: unseen > 0 ? unseen : undefined },
+  ];
+  return { items, initial: ready.length > 0 ? 'teams' : 'dungeons' };
+}
+
 export function ExpeditionsScreen() {
+  const rail = useExpeditionsRail();
+  return (
+    <Deferred
+      name="expeditions"
+      ghost={<GhostScreen variant="cards" rail={<DiamondRail items={rail.items} selected={rail.initial} onSelect={() => {}} />} />}
+    >
+      <ExpeditionsContent />
+    </Deferred>
+  );
+}
+
+function ExpeditionsContent() {
   useLanguage();
   // In development: how long the first render took to reach its effects (no simulation in it any more).
   const [mountedAt] = useState(() => Date.now());
@@ -74,8 +106,9 @@ export function ExpeditionsScreen() {
   const now = useNow();
   const ready = readyExpeditions(save, now);
 
+  const rail = useExpeditionsRail();
   // Open on the teams when one is back, so the loot is the first thing to see.
-  const [tab, setTabState] = useState<Tab>(() => (readyExpeditions(save, Date.now()).length > 0 ? 'teams' : 'dungeons'));
+  const [tab, setTabState] = useState<Tab>(() => rail.initial);
   const [selected, setSelected] = useState<string[]>(() =>
     save.heroes.filter((h) => !isOnExpedition(save, h.id)).slice(0, rosterRules.partySize).map((h) => h.id),
   );
@@ -274,18 +307,6 @@ export function ExpeditionsScreen() {
   };
 
   const lowSupply = save.tutorial.step === 'done' && !save.cookingHintSeen && supplyHeld(save.consumables) < provisionRules.lowStockPoints;
-  const unseen = save.reports.filter((r) => !r.seen).length;
-  const teamsBadge = ready.length > 0 ? ready.length : save.expeditions.length > 0 ? save.expeditions.length : undefined;
-  const railItems: RailItem[] = [
-    {
-      key: 'dungeons',
-      label: t('expeditions.tabs.dungeons'),
-      emoji: '🏰',
-      icon: require('../../assets/icons/scaled/menu-expeditions.png'),
-    },
-    { key: 'teams', label: t('expeditions.tabs.teams'), emoji: '🧭', badge: teamsBadge },
-    { key: 'reports', label: t('expeditions.tabs.reports'), emoji: '📜', badge: unseen > 0 ? unseen : undefined },
-  ];
   const readyBanner = t('expeditions.readyBanner', { count: ready.length });
 
   const dungeonsTab = (
@@ -455,7 +476,7 @@ export function ExpeditionsScreen() {
   return (
     <View style={styles.screen}>
       <View style={styles.body}>
-        <DiamondRail items={railItems} selected={tab} onSelect={(key) => setTab(key as Tab)} />
+        <DiamondRail items={rail.items} selected={tab} onSelect={(key) => setTab(key as Tab)} />
         <PagerView
           ref={pager}
           style={styles.pager}

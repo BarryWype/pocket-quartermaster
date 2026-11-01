@@ -2,7 +2,7 @@ import { Fragment } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/Text';
-import { ParchmentCard } from '@/components/ui';
+import { Deferred, GhostScreen, ParchmentCard } from '@/components/ui';
 import { tipText } from '@/game/reveal/reveal';
 import { useLanguage } from '@/hooks/useLanguage';
 import { t } from '@/i18n';
@@ -12,6 +12,14 @@ import { timed } from '@/components/timed';
 
 /** Every tip already closed, in the order they came, to read again. */
 function TipsScreen() {
+  return (
+    <Deferred name="tips" ghost={<GhostScreen variant="cards" />}>
+      <TipsContent />
+    </Deferred>
+  );
+}
+
+function TipsContent() {
   useLanguage();
   const seen = useGameStore((state) => state.save.tips.seen);
 

@@ -1,5 +1,5 @@
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Alert, AppState, Linking, Pressable, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import PagerView from 'react-native-pager-view';
 import Constants from 'expo-constants';
@@ -23,7 +23,7 @@ import { useGameStore } from '@/store/gameStore';
 import { type LanguageSetting, useSettingsStore } from '@/store/settingsStore';
 import { fonts, ui } from '@/theme';
 
-import { DiamondRail, EmberButton, ParchmentCard, PixelSwitch, WoodButton } from '@/components/ui';
+import { Deferred, DiamondRail, EmberButton, GhostScreen, ParchmentCard, PixelSwitch, WoodButton, type RailItem } from '@/components/ui';
 import { timed } from '@/components/timed';
 
 const DAY_MINUTES = 24 * 60;
@@ -103,12 +103,37 @@ function SelectButton({
 
 type SectionId = 'game' | 'language' | 'alerts' | 'about';
 
+/** The four rail sections, their labels also used by the ghost's rail on the first frame. */
+const SECTION_META: { id: SectionId; icon: string; label: () => string }[] = [
+  { id: 'game', icon: '🎲', label: () => t('settings.section.game') },
+  { id: 'language', icon: '🌍', label: () => t('settings.section.language') },
+  { id: 'alerts', icon: '🔔', label: () => t('settings.section.alerts') },
+  { id: 'about', icon: 'ℹ️', label: () => t('settings.section.about') },
+];
+
+/** The settings sections as rail items, and the section the screen opens on; the ghost's rail shows the same ones. */
+export function useSettingsRail(): { items: RailItem[]; selected: SectionId } {
+  return { items: SECTION_META.map(({ id, icon, label }) => ({ key: id, label: label(), emoji: icon })), selected: 'game' };
+}
+
 /**
  * The four settings sections on a rail: Game, Language, Alerts, About. Each
  * entry renders its own scrolling page of parchment cards, so a new setting
  * lands in a section's cards, and a whole new page is one more entry here.
  */
 function SettingsScreen() {
+  const rail = useSettingsRail();
+  return (
+    <Deferred
+      name="settings"
+      ghost={<GhostScreen variant="cards" rail={<DiamondRail items={rail.items} selected={rail.selected} onSelect={() => {}} />} />}
+    >
+      <SettingsContent />
+    </Deferred>
+  );
+}
+
+function SettingsContent() {
   useLanguage();
   const { language, notifications, updateNotifications, setCategory, setQuietHours, set, pocketMode, setPocketMode } = useSettingsStore();
   const autoToggle = useAutoGatherToggle();
@@ -158,6 +183,7 @@ function SettingsScreen() {
   const off = !notifications.enabled;
   const groups = Object.keys(notificationGroups) as NotificationGroup[];
   const categories = Object.keys(notificationCategories) as NotificationCategory[];
+  const rail = useSettingsRail();
   const [page, setPage] = useState<SectionId>('game');
   const pager = useRef<PagerView>(null);
 
@@ -321,21 +347,19 @@ function SettingsScreen() {
     </>
   );
 
-  const SECTIONS: { id: SectionId; icon: string; label: () => string; render: () => ReactNode }[] = [
-    { id: 'game', icon: '🎲', label: () => t('settings.section.game'), render: renderGame },
-    { id: 'language', icon: '🌍', label: () => t('settings.section.language'), render: renderLanguage },
-    { id: 'alerts', icon: '🔔', label: () => t('settings.section.alerts'), render: renderAlerts },
-    { id: 'about', icon: 'ℹ️', label: () => t('settings.section.about'), render: renderAbout },
-  ];
+  const sections = SECTION_META.map((meta) => ({
+    ...meta,
+    render: { game: renderGame, language: renderLanguage, alerts: renderAlerts, about: renderAbout }[meta.id],
+  }));
 
   return (
     <View style={styles.screen}>
       <View style={styles.body}>
         <DiamondRail
-          items={SECTIONS.map(({ id, icon, label }) => ({ key: id, label: label(), emoji: icon }))}
+          items={rail.items}
           selected={page}
           onSelect={(key) => {
-            const index = SECTIONS.findIndex((section) => section.id === key);
+            const index = sections.findIndex((section) => section.id === key);
             pager.current?.setPage(index);
             setPage(key as SectionId);
           }}
@@ -344,9 +368,9 @@ function SettingsScreen() {
           ref={pager}
           style={styles.pager}
           initialPage={0}
-          onPageSelected={({ nativeEvent }) => setPage(SECTIONS[nativeEvent.position].id)}
+          onPageSelected={({ nativeEvent }) => setPage(sections[nativeEvent.position].id)}
         >
-          {SECTIONS.map((section) => (
+          {sections.map((section) => (
             <View key={section.id} collapsable={false}>
               <ScrollView style={styles.content} contentContainerStyle={styles.page}>
                 <Text style={styles.pageTitle}>{section.label()}</Text>

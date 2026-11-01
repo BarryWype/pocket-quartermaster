@@ -31,24 +31,32 @@ export function DiamondButton({ label, emoji, icon, selected, badge, size = 52, 
       style={[styles.item, disabled && styles.itemDisabled]}
       hitSlop={size < 44 ? 6 : undefined}
     >
-      <View style={[styles.box, { width: size, height: size, marginHorizontal: size * 0.21, marginVertical: size * 0.21 }]}>
-        <View style={[styles.frame, selected && styles.frameSelected]}>
-          <View style={[styles.face, selected ? styles.faceSelected : styles.faceIdle]}>
-            <View style={[styles.inner, { borderColor: selected ? ui.brassLight : ui.brassDim }]} pointerEvents="none" />
-            {(emoji !== undefined || icon !== undefined) && (
-              <View style={styles.iconSpin}>
-                <GameIcon emoji={emoji ?? ''} icon={icon} size={iconSize} />
+      {({ pressed }) => {
+        // Lit on press-in, in the same frame, so a tap shows it registered before anything opens.
+        const lit = selected || pressed;
+        return (
+          <>
+            <View style={[styles.box, { width: size, height: size, marginHorizontal: size * 0.21, marginVertical: size * 0.21 }]}>
+              <View style={[styles.frame, lit && styles.frameSelected]}>
+                <View style={[styles.face, lit ? styles.faceSelected : styles.faceIdle]}>
+                  <View style={[styles.inner, { borderColor: lit ? ui.brassLight : ui.brassDim }]} pointerEvents="none" />
+                  {(emoji !== undefined || icon !== undefined) && (
+                    <View style={styles.iconSpin}>
+                      <GameIcon emoji={emoji ?? ''} icon={icon} size={iconSize} />
+                    </View>
+                  )}
+                </View>
               </View>
-            )}
-          </View>
-        </View>
-        {badge !== undefined && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{badge}</Text>
-          </View>
-        )}
-      </View>
-      {showLabel && <Text style={[styles.label, selected && styles.labelSelected]}>{label}</Text>}
+              {badge !== undefined && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{badge}</Text>
+                </View>
+              )}
+            </View>
+            {showLabel && <Text style={[styles.label, lit && styles.labelSelected]}>{label}</Text>}
+          </>
+        );
+      }}
     </Pressable>
   );
 }

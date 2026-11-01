@@ -28,7 +28,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useWorldStore } from '@/store/worldStore';
 import { fonts, ui } from '@/theme';
 
-import { DiamondRail, EmberButton, ItemSlot, ParchmentCard, WoodButton, type RailItem } from '@/components/ui';
+import { Deferred, DiamondRail, EmberButton, GhostScreen, ItemSlot, ParchmentCard, WoodButton, type RailItem } from '@/components/ui';
 import { timed } from '@/components/timed';
 
 /** One emoji per loot category, for the reward slots. */
@@ -97,11 +97,45 @@ type QuestsPageId = 'quests' | 'chests';
 /** The page the player last swiped to, kept for this session only. */
 let lastPage: QuestsPageId | null = null;
 
+/** The rail's items — quests waiting to be seen or claimed, chests ready to open — and the page the screen opens on. */
+export function useQuestsRail(): { items: RailItem[]; selected: QuestsPageId } {
+  const save = useGameStore((state) => state.save);
+  const steps = useTodaySteps();
+  const day = dayKey(new Date());
+  const questNews = save.quests.list.filter((quest) => !quest.seen || quest.doneAt !== null).length;
+  const readyChests = stepChests.filter((chest) => chestState(save, chest, steps, day) === 'ready').length;
+  const items: RailItem[] = [
+    { key: 'quests', label: t('quests.pages.quests'), emoji: '📜', badge: questNews > 0 ? questNews : undefined },
+    { key: 'chests', label: t('quests.pages.chests'), emoji: '🎁', badge: readyChests > 0 ? readyChests : undefined },
+  ];
+  return { items, selected: lastPage === 'chests' ? 'chests' : 'quests' };
+}
+
 /**
  * The daily quests and the step chests, one swipable page each. Opening the
  * list accepts new quests and fixes their targets from where the player stands.
  */
 function QuestsScreen() {
+  const save = useGameStore((state) => state.save);
+  const rail = useQuestsRail();
+  if (!isRevealed(save, 'quests')) {
+    return (
+      <View style={styles.locked}>
+        <Text style={styles.muted}>{t('quests.locked')}</Text>
+      </View>
+    );
+  }
+  return (
+    <Deferred
+      name="quests"
+      ghost={<GhostScreen variant="cards" rail={<DiamondRail items={rail.items} selected={rail.selected} onSelect={() => {}} />} />}
+    >
+      <QuestsContent />
+    </Deferred>
+  );
+}
+
+function QuestsContent() {
   useLanguage();
   const now = useNow(5000);
   const save = useGameStore((state) => state.save);
@@ -109,18 +143,9 @@ function QuestsScreen() {
   const player = useWorldStore((state) => state.player);
   const { places, ready } = useQuestPlaces(save, player, now);
   const [claimed, setClaimed] = useState<Record<string, string[]>>({});
-  const steps = useTodaySteps();
-  const day = dayKey(new Date());
-  // The rail badges: quests waiting to be seen or claimed, and chests ready to open.
-  const questNews = save.quests.list.filter((quest) => !quest.seen || quest.doneAt !== null).length;
-  const readyChests = stepChests.filter((chest) => chestState(save, chest, steps, day) === 'ready').length;
-  const [page, setPage] = useState<QuestsPageId>(() => (lastPage === 'chests' ? 'chests' : 'quests'));
+  const rail = useQuestsRail();
+  const [page, setPage] = useState<QuestsPageId>(() => rail.selected);
   const pager = useRef<PagerView>(null);
-
-  const railItems: RailItem[] = [
-    { key: 'quests', label: t('quests.pages.quests'), emoji: '📜', badge: questNews > 0 ? questNews : undefined },
-    { key: 'chests', label: t('quests.pages.chests'), emoji: '🎁', badge: readyChests > 0 ? readyChests : undefined },
-  ];
 
   useEffect(() => {
     if (ready && player) useGameStore.getState().fixQuestTargets(places, player);
@@ -130,14 +155,6 @@ function QuestsScreen() {
   useEffect(() => {
     useGameStore.getState().markQuestsSeen();
   }, [save.quests.list]);
-
-  if (!isRevealed(save, 'quests')) {
-    return (
-      <View style={styles.locked}>
-        <Text style={styles.muted}>{t('quests.locked')}</Text>
-      </View>
-    );
-  }
 
   const rerolls = rerollsLeft(save, now);
   const quests = [...save.quests.list].sort((a, b) => order(a) - order(b) || a.expiresAt - b.expiresAt);
@@ -182,7 +199,7 @@ function QuestsScreen() {
     <View style={styles.screen}>
       <View style={styles.body}>
         <DiamondRail
-          items={railItems}
+          items={rail.items}
           selected={page}
           onSelect={(key) => {
             pager.current?.setPage(key === 'chests' ? 1 : 0);

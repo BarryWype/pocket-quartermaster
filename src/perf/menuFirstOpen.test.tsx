@@ -1,14 +1,20 @@
 /**
- * Issue 18: how long each menu screen's first render takes.
+ * Issue 18: how long each menu screen's first frame (its ghost) takes, and how
+ * long the real content behind it takes to land.
  *
  * Every screen the bottom menu and the hero list open is mounted with
  * react-test-renderer on a mid-game save (three tiers unlocked, six heroes,
  * ~40 gear pieces, every material and consumable in stock), cold (first mount
  * in a fresh module registry, `jest.isolateModules`, modules loaded before the
- * timing) and warm (a second mount in that registry). `dailyRotation` cold has
- * its own row, since Expeditions pays it inside its first render. The table is
- * logged, not asserted: it is a measurement, and the numbers move with the
- * machine.
+ * timing) and warm (a second mount in that registry). The ghost is the first
+ * `create`; the content adds the flush that flips `useAfterFirstFrame`. Fake
+ * timers drive that flip: the flush advances one millisecond at a time until
+ * the ghost's body is gone from the tree, so a single big advance would also
+ * run the timers the content's own effects schedule once it mounts (the
+ * expeditions odds, for one) and those would pollute the number. `dailyRotation` cold has its own
+ * row, since Expeditions pays it inside its first render. The table is
+ * logged, not asserted beyond "the content really rendered": it is a
+ * measurement, and the numbers move with the machine.
  *
  * Phone estimate: ×4, the same assumption as issue 17's measurement
  * (src/perf/expeditionsFirstOpen.test.ts).
@@ -29,9 +35,10 @@ import type { GearInstance, Quality } from '@/game/types';
 jest.mock('expo-router', () => ({
   ...jest.requireActual('expo-router'),
   useFocusEffect: () => {},
+  useIsFocused: () => true,
   usePathname: () => '/',
   useLocalSearchParams: () => ({ heroId: 'bram' }),
-  router: { push: () => {}, back: () => {}, replace: () => {}, navigate: () => {} },
+  router: { push: () => {}, back: () => {}, replace: () => {}, navigate: () => {}, setParams: () => {} },
   Stack: { Screen: () => null },
 }));
 
@@ -104,10 +111,12 @@ export function midGameSave(): SaveData {
 
 const ms = (value: number) => `${Math.round(value)} ms`;
 
+type Row = { name: string; ghost?: number; content: number; warm: number };
+
 describe('the first opening of each menu screen', () => {
   it('times each screen cold and warm', () => {
     const save = midGameSave();
-    const rows: { name: string; cold: number; warm: number }[] = [];
+    const rows: Row[] = [];
 
     jest.isolateModules(() => {
       const rotation = jest.requireActual<typeof import('@/game/dungeons/rotation')>('@/game/dungeons/rotation');
@@ -116,35 +125,63 @@ describe('the first opening of each menu screen', () => {
       const cold = performance.now() - start;
       const again = performance.now();
       rotation.dailyRotation(rotationDay(Date.now()));
-      rows.push({ name: 'dailyRotation(today)', cold, warm: performance.now() - again });
+      rows.push({ name: 'dailyRotation(today)', content: cold, warm: performance.now() - again });
     });
 
-    for (const [name, path] of SCREENS) {
-      jest.isolateModules(() => {
-        jest.requireActual<typeof import('@/store/gameStore')>('@/store/gameStore').useGameStore.setState({ save });
-        // The renderer and React come from the same fresh registry as the screen.
-        const { act, create } = jest.requireActual<typeof import('react-test-renderer')>('react-test-renderer');
-        const react = jest.requireActual<typeof import('react')>('react');
-        const Screen = jest.requireActual<{ default: ComponentType }>(path).default;
-        const mount = () => {
-          let renderer: ReactTestRenderer | undefined;
-          const start = performance.now();
-          act(() => {
-            renderer = create(react.createElement(Screen));
-          });
-          const took = performance.now() - start;
-          act(() => renderer!.unmount());
-          return took;
-        };
-        const cold = mount();
-        rows.push({ name: `screen: ${name}`, cold, warm: mount() });
-      });
+    // Fake timers drive the deferred flip; performance stays real so the timings are.
+    jest.useFakeTimers({ doNotFake: ['performance'] });
+    try {
+      for (const [name, path] of SCREENS) {
+        jest.isolateModules(() => {
+          jest.requireActual<typeof import('@/store/gameStore')>('@/store/gameStore').useGameStore.setState({ save });
+          // The renderer and React come from the same fresh registry as the screen.
+          const { act, create } = jest.requireActual<typeof import('react-test-renderer')>('react-test-renderer');
+          const react = jest.requireActual<typeof import('react')>('react');
+          const Screen = jest.requireActual<{ default: ComponentType }>(path).default;
+          const treeJson = (renderer: ReactTestRenderer) => JSON.stringify(renderer.toJSON()) ?? '';
+          // The ghost's body is the only thing marked hidden; it is gone once the content has replaced it.
+          const GHOST_MARK = 'accessibilityElementsHidden';
+          const mount = () => {
+            let renderer: ReactTestRenderer | undefined;
+            const start = performance.now();
+            act(() => {
+              renderer = create(react.createElement(Screen));
+            });
+            // The first frame: the ghost, before useAfterFirstFrame has flipped.
+            const ghost = performance.now() - start;
+            const ghostJson = treeJson(renderer!);
+            expect(ghostJson).toContain(GHOST_MARK);
+            const flushStart = performance.now();
+            let json = ghostJson;
+            for (let tick = 0; tick <= 300 && json.includes(GHOST_MARK); tick++) {
+              act(() => {
+                jest.advanceTimersByTime(1);
+              });
+              json = treeJson(renderer!);
+            }
+            const content = ghost + performance.now() - flushStart;
+            // The deferred content really rendered, in the ghost's place.
+            expect(json).not.toContain(GHOST_MARK);
+            act(() => renderer!.unmount());
+            return { ghost, content };
+          };
+          const cold = mount();
+          rows.push({ name: `screen: ${name}`, ghost: cold.ghost, content: cold.content, warm: mount().content });
+        });
+      }
+    } finally {
+      jest.useRealTimers();
     }
 
     const lines = [
-      '| item (dev machine) | cold | warm | phone cold (×4) |',
-      '| --- | --- | --- | --- |',
-      ...rows.map((r) => `| ${r.name} | ${ms(r.cold)} | ${ms(r.warm)} | ${ms(r.cold * PHONE_FACTOR)} |`),
+      '| item (dev machine) | ghost cold | content cold | content warm | phone ghost (×4) | phone content (×4) |',
+      '| --- | --- | --- | --- | --- | --- |',
+      ...rows.map(
+        (r) =>
+          `| ${r.name} | ${r.ghost === undefined ? '—' : ms(r.ghost)} | ${ms(r.content)} | ${ms(r.warm)} | ${
+            r.ghost === undefined ? '—' : ms(r.ghost * PHONE_FACTOR)
+          } | ${ms(r.content * PHONE_FACTOR)} |`,
+      ),
     ];
     console.log(lines.join('\n'));
     expect(rows).toHaveLength(SCREENS.length + 1);
