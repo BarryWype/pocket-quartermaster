@@ -3,7 +3,7 @@ import type { tipTexts } from '../reveal';
 export const frTipTexts: typeof tipTexts = {
   resources: 'Arbres, rochers et herbes : touchez-en un à moins de 30 m pour le récolter.',
   animals: 'Des animaux rôdent à proximité. Approchez-vous doucement : ils fuient les coureurs.',
-  dungeons: 'Expéditions : envoyez jusqu’à trois héros dans un donjon. La liste change chaque jour.',
+  dungeons: 'Expéditions : envoyez jusqu’à trois héros dans un donjon. Les menaces et les conditions de chaque donjon changent chaque jour.',
   quests: 'Les quêtes arrivent toutes seules, 2 à 3 par jour. Acceptez-en une et marchez jusqu’à sa cible.',
   commonPlaces: 'Boutiques et services : achetez des matériaux, vendez de l’équipement, soignez des héros. Ils déménagent au bout de quelques jours.',
   patrols: 'Des patrouilles et des voyageurs parcourent la carte. Approchez-vous pour combattre une patrouille ou aider un voyageur.',

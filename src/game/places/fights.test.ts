@@ -72,10 +72,11 @@ describe('place fight problems', () => {
 describe('fighting at a place', () => {
   it('sends the heroes away and pays the win when the fight is up', () => {
     const save = tierTeam();
-    const crypt = spawnOf('hauntedCrypt');
-    const started = startPlaceFight(save, crypt, ['bram', 'lyra', 'mira'], HOME, now);
+    // An easy fight, so a tier 1 trio wins it.
+    const camp = spawnOf('banditCamp');
+    const started = startPlaceFight(save, camp, ['bram', 'lyra', 'mira'], HOME, now);
     const fight = started.placeFights[0];
-    expect(fight.endsAt).toBe(now + placeFightRules.kinds.hauntedCrypt.minutes * 60_000);
+    expect(fight.endsAt).toBe(now + placeFightRules.kinds.banditCamp.minutes * 60_000);
     expect(isAway(started, 'bram')).toBe(true);
 
     const { save: done, resolved } = resolvePlaceFights(started, fight.endsAt);
@@ -83,9 +84,9 @@ describe('fighting at a place', () => {
     expect(resolved[0].won).toBe(true);
     expect(done.placeFights).toHaveLength(0);
     expect(done.gold).toBe(save.gold + fight.reward.gold);
-    expect(done.usedPlaces[crypt.id]).toBe(crypt.expiresAt);
+    expect(done.usedPlaces[camp.id]).toBe(camp.expiresAt);
     expect(isAway(done, 'bram')).toBe(false);
-    expect(placeFightProblem(done, crypt, ['bram'], HOME, now)).toBe('gone');
+    expect(placeFightProblem(done, camp, ['bram'], HOME, now)).toBe('gone');
   });
 
   it('leaves the place on the map after a lost fight', () => {
@@ -175,16 +176,16 @@ describe('lair patrol boost', () => {
 
   it('spawns more patrols in a boosted tile, and leaves others untouched', () => {
     const windows = Array.from({ length: 300 }, (_, w) => w);
-    const count = (boosted: boolean) => windows.reduce((sum, w) => sum + generateTilePatrols(tile, w, patrolRules, boosted).length, 0);
+    const count = (boosted: boolean) => windows.reduce((sum, w) => sum + generateTilePatrols(tile, w, 1, patrolRules, boosted).length, 0);
     expect(count(true)).toBeGreaterThan(count(false) * 1.15);
     for (const w of windows.slice(0, 20)) {
-      expect(generateTilePatrols(tile, w, patrolRules, false)).toEqual(generateTilePatrols(tile, w, patrolRules));
+      expect(generateTilePatrols(tile, w, 1, patrolRules, false)).toEqual(generateTilePatrols(tile, w, 1, patrolRules));
     }
   });
 
   it('spawns more patrols around a lair over many windows', () => {
     const total = (lairs: LatLng[]) =>
-      Array.from({ length: 200 }, (_, w) => patrolsAround(HOME, now + w * 30 * 60_000, patrolRules, lairs).length).reduce((a, b) => a + b, 0);
+      Array.from({ length: 200 }, (_, w) => patrolsAround(HOME, now + w * 30 * 60_000, 1, patrolRules, lairs).length).reduce((a, b) => a + b, 0);
     const plain = total([]);
     expect(total([HOME])).toBeGreaterThan(plain);
     // A lair far away boosts nothing.

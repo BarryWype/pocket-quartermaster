@@ -3,15 +3,22 @@ import { Animated, Easing, StyleSheet, View, type ImageSourcePropType } from 're
 
 import type { ResourceKind } from '@/game/generation/types';
 import { useAnimationsEnabled } from '@/hooks/useAnimationFrame';
+import { ui } from '@/theme';
 
 import { GameIcon } from './GameIcon';
 
-const borderColors: Record<ResourceKind, string> = {
-  wood: '#5e3622',
-  ore: '#6b6b6b',
-  animal: '#8a5a2b',
-  herb: '#2f6b2a',
+/** The diamond's fill, a light tint of each resource kind. */
+const fills: Record<ResourceKind, string> = {
+  wood: '#E8D3B8',
+  ore: '#DADAD6',
+  animal: '#EBD7BC',
+  herb: '#D7E6C8',
 };
+
+/** The rotated square's side: its diagonal keeps the old 30 px tile's footprint. */
+const SIDE = 21;
+/** The wrapper keeps the tap target at 44 pt around the smaller diamond. */
+const TAP = 44;
 
 type Props = {
   emoji: string;
@@ -28,18 +35,22 @@ type Props = {
 export function SpawnMarker({ emoji, icon, kind, inRange, fleeing, locked = false, sway = false }: Props) {
   const tilt = useSway(sway);
   return (
-    <View
-      style={[
-        styles.tile,
-        { borderColor: borderColors[kind] },
-        inRange && styles.inRange,
-        fleeing && styles.fleeing,
-        locked && styles.locked,
-      ]}
-    >
-      <Animated.View style={[styles.swayOrigin, tilt && { transform: [{ rotate: tilt }] }]}>
-        {fleeing ? <GameIcon emoji="💨" size={21} /> : <GameIcon emoji={emoji} icon={icon} size={21} />}
-      </Animated.View>
+    <View style={styles.tap}>
+      <View
+        style={[
+          styles.tile,
+          { backgroundColor: fills[kind] },
+          inRange && styles.inRange,
+          fleeing && styles.fleeing,
+          locked && styles.locked,
+        ]}
+      >
+        <View style={styles.upright}>
+          <Animated.View style={[styles.swayOrigin, tilt && { transform: [{ rotate: tilt }] }]}>
+            {fleeing ? <GameIcon emoji="💨" size={18} /> : <GameIcon emoji={emoji} icon={icon} size={18} />}
+          </Animated.View>
+        </View>
+      </View>
     </View>
   );
 }
@@ -66,16 +77,19 @@ function useSway(enabled: boolean) {
 }
 
 const styles = StyleSheet.create({
+  tap: { width: TAP, height: TAP, alignItems: 'center', justifyContent: 'center' },
   tile: {
-    width: 30,
-    height: 30,
+    width: SIDE,
+    height: SIDE,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f4ead2',
     borderWidth: 3,
+    borderColor: ui.outline,
+    transform: [{ rotate: '45deg' }],
   },
-  inRange: { backgroundColor: '#fff6a8', transform: [{ scale: 1.2 }] },
+  inRange: { backgroundColor: '#fff6a8', transform: [{ rotate: '45deg' }, { scale: 1.2 }] },
   fleeing: { opacity: 0.6 },
   locked: { opacity: 0.45, backgroundColor: '#8f8d88' },
   swayOrigin: { transformOrigin: 'bottom' },
+  upright: { transform: [{ rotate: '-45deg' }] },
 });

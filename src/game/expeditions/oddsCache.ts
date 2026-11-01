@@ -83,7 +83,7 @@ export function oddsKey({ save, heroIds, dungeon, options = {} }: OddsInputs): s
 
 /**
  * The key for a fight's odds (a place fight or a patrol): the spawn's
- * identity — its id, its kind and, for a patrol, the tier roll that says how
+ * identity — its id, its kind and, for a patrol, the difficulty that says how
  * it fights — the tier it fights at, the minute the party's HP is taken at,
  * and the party exactly as the run reads it (see `partyProjection`). Unrelated
  * save writes (gold, materials, steps, the expeditions list, reports) leave it
@@ -92,7 +92,7 @@ export function oddsKey({ save, heroIds, dungeon, options = {} }: OddsInputs): s
 export function fightOddsKey(
   save: SaveData,
   heroIds: string[],
-  spawn: { id: string; kind: string; tierRoll?: string },
+  spawn: { id: string; kind: string; difficulty?: string | null },
   tier: number,
   elite: boolean,
   now: number,
@@ -100,7 +100,7 @@ export function fightOddsKey(
   return JSON.stringify({
     spawnId: spawn.id,
     kind: spawn.kind,
-    tierRoll: spawn.tierRoll ?? null,
+    difficulty: spawn.difficulty ?? null,
     tier,
     elite,
     // HP is taken at this time, rounded to the minute.

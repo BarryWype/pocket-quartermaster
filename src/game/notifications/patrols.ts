@@ -1,6 +1,8 @@
 import { frPatrolTexts } from '@/content/fr/patrols';
 import { patrolTexts } from '@/content/patrols';
-import { formatDistance, localized } from '@/i18n';
+import { difficultyLabels, type Difficulty } from '@/content/difficulty';
+import { frDifficultyLabels } from '@/content/fr/difficulty';
+import { formatDistance, getLocale, localized } from '@/i18n';
 
 import type { BackgroundAlert } from '../patrols/escort';
 import { isTravellerKind, patrolPositionAt } from '../patrols/generate';
@@ -22,6 +24,9 @@ export function patrolNotifications(
   if (!settings.enabled) return [];
   const texts = notificationTexts();
   const kinds = localized({ en: patrolTexts, fr: frPatrolTexts });
+  const labels = localized({ en: difficultyLabels, fr: frDifficultyLabels });
+  /** The difficulty's label, lower-case in French where it sits mid-sentence. */
+  const difficultyLabel = (difficulty: Difficulty) => (getLocale() === 'fr' ? labels[difficulty].toLowerCase() : labels[difficulty]);
   const planned: PlannedNotification[] = [];
 
   for (const [index, alert] of alerts.entries()) {
@@ -38,7 +43,10 @@ export function patrolNotifications(
             body: fill(texts.travellerSpotted.body, { line: kinds.travellers[spawn.kind].line }),
           }
         : {
-            title: fill(texts.patrolSpotted.title, { patrol: kinds.kinds[spawn.kind] }),
+            title: fill(texts.patrolSpotted.title, {
+              difficulty: difficultyLabel(spawn.difficulty ?? 'easy'),
+              patrol: kinds.kinds[spawn.kind],
+            }),
             body: fill(texts.patrolSpotted.body, {
               patrol: kinds.kinds[spawn.kind],
               distance: formatDistance(Math.round(alert.distance / 10) * 10),

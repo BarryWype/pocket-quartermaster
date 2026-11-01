@@ -4,17 +4,17 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { frPatrolTexts } from '@/content/fr/patrols';
 import { heroClasses } from '@/content/heroes';
-import { patrolKinds, patrolTexts } from '@/content/patrols';
-import { patrolThreats } from '@/content/threats';
+import { patrolFights, patrolTexts } from '@/content/patrols';
+import { patrolThreat } from '@/content/threats';
 import { tagInfo } from '@/content/rotation';
-import { highestUnlockedTier } from '@/game/expeditions/expeditions';
+import { isElitePatrolKind } from '@/content/enemies';
 import { fightOddsKey, cachedOdds, storeOdds } from '@/game/expeditions/oddsCache';
 import { oddsBand, type Odds } from '@/game/expeditions/odds';
 import { dungeonTags } from '@/game/dungeons/tags';
 import { dungeonFoes } from '@/game/enemies/tags';
 
 import type { LatLng } from '@/game/generation/types';
-import { isPatrolKind, patrolTier, type PatrolSpawn } from '@/game/patrols/generate';
+import { isPatrolKind, type PatrolSpawn } from '@/game/patrols/generate';
 import { patrolDungeon, patrolFightProblem, patrolOdds, type PatrolFightProblem } from '@/game/patrols/fight';
 import { distanceTo } from '@/game/patrols/visibility';
 import { currentHp, isExhausted, maxHp } from '@/game/team/health';
@@ -27,7 +27,7 @@ import { useWorldStore } from '@/store/worldStore';
 import { colors, pixel } from '@/theme';
 
 import { EnemyTags } from './EnemyTags';
-import { EmberButton, WoodButton } from './ui';
+import { DifficultyChip, EmberButton, WoodButton } from './ui';
 import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
@@ -57,10 +57,11 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
   const engagePatrol = useGameStore((state) => state.engagePatrol);
   const [openedAt] = useState(() => Date.now());
   const kind = isPatrolKind(spawn.kind) ? spawn.kind : null;
+  const difficulty = kind ? spawn.difficulty : null;
   // Home heroes who can still fight; the escort can be sent, and stops escorting if so.
   const candidates = save.heroes.filter((hero) => !isAway(save, hero.id) && !isExhausted(hero, now));
   const [heroIds, setHeroIds] = useState<string[]>(() =>
-    kind ? candidates.slice(0, patrolKinds[kind].party).map((hero) => hero.id) : [],
+    kind && difficulty ? candidates.slice(0, patrolFights[difficulty].party).map((hero) => hero.id) : [],
   );
   const texts = localized({ en: patrolTexts, fr: frPatrolTexts });
 
@@ -69,11 +70,10 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
   // these inputs (same patrol, party, minute) show immediately.
   const oddsKey = useMemo(
     () => {
-      if (!kind || heroIds.length === 0) return null;
-      const { tier, elite } = patrolTier(spawn, highestUnlockedTier(save));
-      return fightOddsKey(save, heroIds, spawn, tier, elite, openedAt);
+      if (!kind || difficulty === null || heroIds.length === 0) return null;
+      return fightOddsKey(save, heroIds, spawn, spawn.tier, isElitePatrolKind(kind), openedAt);
     },
-    [save, spawn, heroIds, openedAt, kind],
+    [save, spawn, heroIds, openedAt, kind, difficulty],
   );
   const [computed, setComputed] = useState<{ key: string; odds: Odds } | null>(() => {
     if (oddsKey === null) return null;
@@ -93,9 +93,10 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
   }, [oddsKey, computed?.key]);
   const odds = computed?.key === oddsKey ? computed.odds : (oddsKey !== null ? (cachedOdds(oddsKey) ?? null) : null);
 
-  if (!kind) return null;
+  if (!kind || difficulty === null) return null;
 
-  const { tier, elite } = patrolTier(spawn, highestUnlockedTier(save));
+  const tier = spawn.tier;
+  const elite = isElitePatrolKind(kind);
   const dungeon = patrolDungeon(spawn, tier, elite);
   const problem = patrolFightProblem(save, spawn, heroIds, player, now);
   const escortId = save.escort?.heroId;
@@ -131,12 +132,13 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
           parts={[
             `${t('expeditions.tier', { tier })}${elite ? ` ★ ${t('patrols.eliteX2')}` : ''}`,
             { emoji: '⏳', text: formatDuration(dungeon.durationMinutes * 60_000) },
-            t('patrols.recommended', { count: patrolKinds[kind].party }),
+            t('patrols.recommended', { count: patrolFights[difficulty].party }),
           ]}
           labelStyle={styles.muted}
         />
+        <DifficultyChip difficulty={difficulty} />
         <Text style={styles.muted}>{t(`patrols.rewards.${kind}`)}</Text>
-        <ThreatChip threat={patrolThreats[kind]} />
+        <ThreatChip threat={patrolThreat(spawn)} />
         <PartsLine
           parts={dungeonTags(dungeon).map((tag) => ({ emoji: tagInfo[tag].emoji, text: tr(tagInfo[tag].name) }))}
           labelStyle={styles.muted}

@@ -1,3 +1,4 @@
+import type { Difficulty } from '@/content/difficulty';
 import type { OpportunityId, ThreatId } from '@/game/types';
 
 /** The kinds of places home heroes can fight at. */
@@ -13,6 +14,8 @@ export type FightPlaceKind =
 
 /** How a fight at one kind of place plays: its threat, party size and mobs. */
 export type PlaceFightKindRules = {
+  /** How risky the fight is: sets its threat level, loot and ring (see content/difficulty.ts). */
+  difficulty: Difficulty;
   /** The threat its briefing carries; a caravan's varies per spawn. */
   threat: ThreatId | ThreatId[];
   /** Max heroes on the fight. */
@@ -29,6 +32,7 @@ export type PlaceFightKindRules = {
 export const placeFightRules = {
   kinds: {
     banditCamp: {
+      difficulty: 'easy',
       threat: 'thieves',
       party: 3,
       minutes: 15,
@@ -39,6 +43,7 @@ export const placeFightRules = {
       ],
     },
     goblinRaid: {
+      difficulty: 'medium',
       threat: 'ambush',
       party: 3,
       minutes: 8,
@@ -49,6 +54,7 @@ export const placeFightRules = {
       ],
     },
     beastDen: {
+      difficulty: 'medium',
       threat: 'beasts',
       party: 3,
       minutes: 10,
@@ -59,6 +65,7 @@ export const placeFightRules = {
       ],
     },
     hauntedCrypt: {
+      difficulty: 'hard',
       threat: 'undead',
       party: 3,
       minutes: 12,
@@ -69,6 +76,7 @@ export const placeFightRules = {
       ],
     },
     elementalRift: {
+      difficulty: 'hard',
       threat: 'element',
       party: 3,
       minutes: 10,
@@ -79,6 +87,7 @@ export const placeFightRules = {
       ],
     },
     abandonedCaravan: {
+      difficulty: 'easy',
       threat: ['thieves', 'ambush', 'beasts', 'undead'],
       party: 3,
       minutes: 8,
@@ -89,6 +98,7 @@ export const placeFightRules = {
       ],
     },
     wantedOutlaw: {
+      difficulty: 'hard',
       threat: 'brute',
       party: 3,
       minutes: 20,
@@ -99,6 +109,7 @@ export const placeFightRules = {
       ],
     },
     monsterLair: {
+      difficulty: 'hard',
       threat: 'brute',
       party: 3,
       minutes: 30,
@@ -112,8 +123,6 @@ export const placeFightRules = {
   /** Chance a place's briefing carries one opportunity. */
   opportunityChance: 0.2,
   opportunities: ['hiddenCache', 'bounty', 'forgottenShrine', 'healingSpring'] as OpportunityId[],
-  /** Briefing threats rise to level 2 once the player's highest tier reaches this. */
-  levelTwoFromTier: 3,
   lair: {
     /** Tiles this close to a live lair spawn more patrols. */
     radiusMeters: 800,

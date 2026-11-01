@@ -1,3 +1,5 @@
+import type { Difficulty } from '@/content/difficulty';
+
 // Shared UI colours, picked to sit with the map palette in `content/mapStyle.ts`.
 export const colors = {
   wood: '#8a5a35',
@@ -59,4 +61,17 @@ export const ui = {
   hpLow: '#D98A2E',
   xp: '#C9A04E',
   gold: '#E8B83A',
+};
+
+/** Difficulty rings: colour, ring width and pip count (a crown for bosses); the pips repeat the signal for colour-blind players. */
+export const difficultyTokens: Record<Difficulty, {
+  ring: string;
+  width: number;
+  pips: number;
+  outerRing?: { colour: string; width: number };
+}> = {
+  easy: { ring: '#4E9A3E', width: 2, pips: 1 },
+  medium: { ring: '#D98A2E', width: 3, pips: 2 },
+  hard: { ring: '#C9473A', width: 4, pips: 3 },
+  boss: { ring: '#C9473A', width: 4, pips: 0, outerRing: { colour: ui.brass, width: 2 } },
 };

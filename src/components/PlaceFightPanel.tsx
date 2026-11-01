@@ -23,7 +23,7 @@ import { useWorldStore } from '@/store/worldStore';
 import { colors, pixel } from '@/theme';
 
 import { EnemyTags } from './EnemyTags';
-import { EmberButton, WoodButton } from './ui';
+import { DifficultyChip, EmberButton, WoodButton } from './ui';
 import { leavesIn } from './PlacePanel';
 import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
@@ -111,6 +111,7 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
           </View>
         }
       >
+        <DifficultyChip difficulty={rules.difficulty} />
         <Text style={styles.muted}>{tr(info.description)}</Text>
         <PartsLine
           parts={[

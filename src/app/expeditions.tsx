@@ -13,7 +13,7 @@ import { SendDialog } from '@/components/SendDialog';
 import { Text } from '@/components/Text';
 import { ThreatCoverageChips } from '@/components/ThreatDetail';
 import { TutorialHint } from '@/components/TutorialHint';
-import { RewardLabel, splitLeadingEmoji } from '@/components/IconLabel';
+import { IconLabel, RewardLabel, splitLeadingEmoji } from '@/components/IconLabel';
 import { DiamondButton, DiamondRail, EmberButton, ParchmentCard, type RailItem } from '@/components/ui';
 import { dungeons } from '@/content/dungeons';
 import { heroClasses } from '@/content/heroes';
@@ -22,6 +22,7 @@ import { provisionRules } from '@/content/provisions';
 import { narrowPartySize } from '@/content/threats';
 import { tutorialRules } from '@/content/tutorial';
 import { nextRotationAt, rotationDay } from '@/game/dungeons/rotation';
+import { tierChain } from '@/game/dungeons/unlock';
 import { briefingOf, expeditionMinutes, isDungeonUnlocked, readyExpeditions, type Loadout } from '@/game/expeditions/expeditions';
 import type { Odds } from '@/game/expeditions/odds';
 import { cachedEstimateOdds, cachedOdds, oddsKey } from '@/game/expeditions/oddsCache';
@@ -97,12 +98,11 @@ export function ExpeditionsScreen() {
   // Re-read when the day changes or a debug override does.
   const day = rotationDay(now);
   const dayOffset = useDebugStore((state) => state.rotationDayOffset);
-  const forcedSlots = useDebugStore((state) => state.forcedSlots);
   const forcedBriefings = useDebugStore((state) => state.forcedBriefings);
   const rotation = useMemo(
     () => currentRotation(now),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [day, dayOffset, forcedSlots, forcedBriefings],
+    [day, dayOffset, forcedBriefings],
   );
 
   /** The first launch asks, in game, before the OS permission prompt. */
@@ -139,18 +139,17 @@ export function ExpeditionsScreen() {
     [selected, save],
   );
 
-  // Today's open dungeons per unlocked tier; until dungeons are revealed, only the tutorial's.
+  // The unlocked chain dungeons per tier, in chain order; until dungeons are
+  // revealed, only the tutorial's.
   const dungeonsShown = isRevealed(save, 'dungeons');
   const open = useMemo(() => {
-    const ids = dungeonsShown ? Object.values(rotation.tiers).flatMap((t) => [t.short, t.long, t.boss]) : [];
-    if (save.tutorial.step !== 'done' && !ids.includes(tutorialRules.dungeonId)) {
-      ids.unshift(tutorialRules.dungeonId);
+    if (!dungeonsShown) {
+      return save.tutorial.step !== 'done' ? [dungeonById[tutorialRules.dungeonId]] : [];
     }
-    return ids
-      .map((id) => dungeonById[id])
-      .filter((d) => isDungeonUnlocked(save, d))
-      .sort((a, b) => a.tier - b.tier);
-  }, [rotation, save, dungeonsShown]);
+    return dungeons
+      .filter((d) => !d.overnight && isDungeonUnlocked(save, d))
+      .sort((a, b) => a.tier - b.tier || (a.chainIndex ?? 0) - (b.chainIndex ?? 0));
+  }, [save, dungeonsShown]);
   // The overnight expedition of each unlocked tier, open every day.
   const overnight = useMemo(
     () => dungeons.filter((d) => dungeonsShown && d.overnight && isDungeonUnlocked(save, d)).sort((a, b) => a.tier - b.tier),
@@ -161,6 +160,17 @@ export function ExpeditionsScreen() {
   const shownTier = tier !== null && tiers.includes(tier) ? tier : save.tutorial.step === 'done' ? tiers[tiers.length - 1] : tiers[0];
   const shown = open.filter((d) => d.tier === shownTier);
   const shownOvernight = overnight.find((d) => d.tier === shownTier) ?? null;
+  // The chain's next locked dungeon shows greyed; the ones behind it hide behind a count.
+  const chain = dungeonsShown ? tierChain(shownTier) : [];
+  const firstLocked = chain.find((d) => !isDungeonUnlocked(save, d)) ?? null;
+  const hiddenCount = firstLocked
+    ? chain.filter((d) => (d.chainIndex ?? 0) > (firstLocked.chainIndex ?? 0) && !isDungeonUnlocked(save, d)).length
+    : 0;
+  const lockedPrevious = !firstLocked
+    ? null
+    : firstLocked.chainIndex === 0
+      ? dungeons.find((d) => d.tier === shownTier - 1 && d.isBoss)
+      : chain.find((d) => d.chainIndex === firstLocked.chainIndex! - 1);
 
   // Simulated runs for the dungeons shown, with current HP. Nothing runs on the first
   // render: the odds land from the module cache at once when their key was computed
@@ -345,6 +355,13 @@ export function ExpeditionsScreen() {
           onSend={() => setConfirming(dungeon.id)}
         />
       ))}
+      {firstLocked && lockedPrevious && (
+        <View style={styles.locked}>
+          <IconLabel emoji="🔒" label={tr(firstLocked.name)} labelStyle={styles.lockedText} />
+          <Text style={styles.lockedText}>{t('expeditions.clearFirst', { name: tr(lockedPrevious.name) })}</Text>
+        </View>
+      )}
+      {hiddenCount > 0 && <Text style={styles.muted}>{t('expeditions.moreToDiscover', { count: hiddenCount })}</Text>}
       {shownOvernight && (
         <OvernightCard
           save={save}
@@ -483,6 +500,8 @@ const styles = StyleSheet.create({
   content: { flex: 1, backgroundColor: ui.woodDark },
   container: { paddingVertical: 14, paddingHorizontal: 12, gap: 10 },
   muted: { fontFamily: fonts.serif, fontSize: 13, color: ui.onWoodMuted },
+  locked: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, opacity: 0.6 },
+  lockedText: { fontFamily: fonts.serif, fontSize: 14, color: ui.onWoodMuted },
   banner: { minHeight: 44, justifyContent: 'center', padding: 10, borderWidth: 2, borderColor: ui.outline, backgroundColor: ui.parchment },
   bannerText: { fontFamily: fonts.serif, fontSize: 14, color: ui.ink },
   heading: { fontSize: 19, color: ui.brassLight },

@@ -84,18 +84,18 @@ describe('the trinket catalogue', () => {
 });
 
 describe('looted trinkets', () => {
-  it('only drops the ring of fortune on a Legendary roll, and never from goblin patrols', () => {
+  it('only drops the ring of fortune on a Legendary roll, and never from patrols', () => {
     const rolls = (source: LootSourceId) =>
       Array.from({ length: 3000 }, (_, i) => rollLootTrinket(request(source, `${source}${i}`)));
     for (const piece of rolls('tierBoss')) {
       if (piece.itemId.startsWith('ringOfFortune')) expect(piece.quality).toBe('legendary');
     }
-    expect(rolls('patrolGoblins').some((piece) => piece.itemId.startsWith('ringOfFortune'))).toBe(false);
+    expect(rolls('patrol').some((piece) => piece.itemId.startsWith('ringOfFortune'))).toBe(false);
   });
 
   it('shares the talismans between 10% and 25% of non-legendary rolls', () => {
     const rolls = [...Array.from({ length: 3000 }, (_, i) => rollLootTrinket(request('tierBoss', `b${i}`))),
-      ...Array.from({ length: 3000 }, (_, i) => rollLootTrinket(request('patrolGoblins', `p${i}`)))];
+      ...Array.from({ length: 3000 }, (_, i) => rollLootTrinket(request('patrol', `p${i}`)))];
     const plain = rolls.filter((piece) => piece.quality !== 'legendary');
     const talismans = plain.filter((piece) => piece.itemId.includes('Talisman')).length;
     expect(talismans / plain.length).toBeGreaterThan(0.1);

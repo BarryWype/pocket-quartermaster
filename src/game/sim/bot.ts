@@ -1,4 +1,5 @@
 import { dungeons } from '@/content/dungeons';
+import { difficultyRules } from '@/content/difficulty';
 import { rosterRules } from '@/content/roster';
 import { affinityRules, classAffinities, gearProfiles, type Affinity } from '@/content/equipment';
 import { mobById } from '@/content/enemies';
@@ -1145,9 +1146,24 @@ export function sendExpeditions(sim: Sim) {
         const hours = (sim.collectionAt(sim.now + d.durationMinutes * (1 - guildBonus(sim.save, 'fasterExpeditions')) * 60_000) - sim.now) / 3_600_000;
         return { d, party, score: expectedValue(sim, d, party.odds, party.heroIds) / Math.max(0.1, hours) };
       });
-    const threshold = (d: DungeonDef) => (d.tier === top && dropsBlueprint(sim.save, d) ? sim.config.odds.blueprint : sim.profile.oddsThreshold);
+    // The top tier's next uncleared chain dungeon opens the one after it, so it is pushed like the boss.
+    const nextInChain = open.find((d) => d.tier === top && !d.isBoss && d.chainIndex !== undefined && !sim.save.clearedDungeons.includes(d.id));
+    const threshold = (d: DungeonDef) =>
+      d === nextInChain
+        ? Math.min(sim.config.odds.boss, sim.profile.oddsThreshold)
+        : d.tier === top && dropsBlueprint(sim.save, d)
+          ? sim.config.odds.blueprint
+          : sim.profile.oddsThreshold;
     const good = options.filter((o) => o.party.odds.success >= threshold(o.d)).sort((a, b) => b.score - a.score);
-    let pick = good[0];
+    // The chain: the highest-difficulty dungeon of the top tier that passes first (uncleared ones first), else the best odds.
+    const uncleared = (d: DungeonDef) => (sim.save.clearedDungeons.includes(d.id) ? 1 : 0);
+    const hardest = good
+      .filter((o) => o.d.tier === top && !o.d.overnight)
+      .sort(
+        (a, b) =>
+          difficultyRules.order.indexOf(b.d.difficulty) - difficultyRules.order.indexOf(a.d.difficulty) || uncleared(a.d) - uncleared(b.d),
+      );
+    let pick = hardest[0] ?? good.sort((a, b) => b.party.odds.success - a.party.odds.success)[0];
     if (!pick && sim.save.expeditions.length === 0) {
       pick = options.filter((o) => o.party.odds.success >= sim.config.odds.fallback).sort((a, b) => b.party.odds.success - a.party.odds.success)[0];
     }

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 
+import type { Difficulty } from '@/content/difficulty';
 import type { PatrolSubject } from '@/game/patrols/generate';
 import { useAnimationsEnabled } from '@/hooks/useAnimationFrame';
-import { colors, pixel } from '@/theme';
+import { colors, difficultyTokens, pixel } from '@/theme';
 
+import { DifficultyPips, DifficultyRing } from './ui';
 import { Text } from './Text';
 
 /** One icon per kind of patrol or traveller. */
@@ -12,26 +14,41 @@ export const patrolIcons: Record<PatrolSubject, string> = {
   goblins: '👺',
   herd: '🐗',
   bandits: '🗡️',
+  wolves: '🐺',
+  orcs: '👹',
+  spiders: '🕷️',
+  eliteGoblins: '👺',
+  outlaws: '🗡️',
+  ogres: '👹',
+  eliteOrcs: '👹',
+  trolls: '👹',
+  wraiths: '👻',
+  wyverns: '🐉',
+  golems: '🗿',
   wounded: '🤕',
   pilgrim: '🧙',
   trader: '🎒',
 };
 
+/** The rotated square's side: its diagonal keeps the old 44 px footprint. */
+const SIDE = 31;
+
 type Props = {
   kind: PatrolSubject;
-  tier: number;
-  elite: boolean;
+  /** The patrol's difficulty band; travellers have none. */
+  difficulty: Difficulty | null;
   /** Milliseconds before the goblins move on; null for kinds that never flee. */
   fleesIn: number | null;
-  /** Just came into view: the border pulses for a few seconds. */
+  /** Just came into view: the difficulty ring pulses for a few seconds. */
   fresh: boolean;
+  accessibilityLabel?: string;
 };
 
-/** A patrol or traveller on the map, styled like a Sanctum: tier badge, elite star, goblins' flee timer. */
-export function PatrolMarker({ kind, tier, elite, fleesIn, fresh }: Props) {
+/** A patrol or traveller on the map: a diamond tile with the difficulty ring and pips, and the goblins' flee timer. */
+export function PatrolMarker({ kind, difficulty, fleesIn, fresh, accessibilityLabel }: Props) {
   const animationsEnabled = useAnimationsEnabled();
   const [pulse] = useState(() => new Animated.Value(0));
-  const active = fresh && animationsEnabled;
+  const active = fresh && animationsEnabled && difficulty !== null;
 
   useEffect(() => {
     if (!active) return;
@@ -50,48 +67,50 @@ export function PatrolMarker({ kind, tier, elite, fleesIn, fresh }: Props) {
     };
   }, [active, pulse]);
 
-  const borderWidth = pulse.interpolate({ inputRange: [0, 1], outputRange: [pixel.outline, pixel.outline * 2] });
+  // The fresh pulse breathes the ring's width, from its base width to double.
+  const base = difficulty ? difficultyTokens[difficulty].width : pixel.outline;
+  const ringWidth = pulse.interpolate({ inputRange: [0, 1], outputRange: [base, base * 2] });
+
+  const tile = (
+    <View style={[styles.tile, difficulty === null && styles.plain]}>
+      <View style={styles.upright}>
+        <Text style={styles.emoji}>{patrolIcons[kind]}</Text>
+      </View>
+    </View>
+  );
 
   return (
-    <Animated.View style={[styles.tile, elite && styles.elite, active && { borderWidth }]}>
-      <Text style={styles.emoji}>{patrolIcons[kind]}</Text>
-      <View style={styles.tierBadge}>
-        <Text style={styles.tierText}>{tier}</Text>
-      </View>
-      {elite && <Text style={styles.star}>★</Text>}
+    <View style={styles.marker} accessibilityLabel={accessibilityLabel}>
+      {difficulty ? (
+        <DifficultyRing difficulty={difficulty} shape="diamond" size={SIDE} ringWidth={active ? ringWidth : undefined}>
+          {tile}
+        </DifficultyRing>
+      ) : (
+        tile
+      )}
+      {difficulty && (
+        <View style={styles.pips}>
+          <DifficultyPips difficulty={difficulty} />
+        </View>
+      )}
       {fleesIn !== null && <Text style={styles.timer}>{Math.max(0, Math.ceil(fleesIn / 60_000))}m</Text>}
-    </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  marker: { alignItems: 'center' },
   tile: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: SIDE,
+    height: SIDE,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: pixel.outline,
-    borderColor: colors.highlight,
     backgroundColor: colors.woodDark,
+    transform: [{ rotate: '45deg' }],
   },
-  elite: { borderColor: colors.gold },
+  plain: { borderWidth: pixel.outline, borderColor: colors.highlight },
+  upright: { transform: [{ rotate: '-45deg' }] },
   emoji: { fontSize: 22 },
-  tierBadge: {
-    position: 'absolute',
-    left: -6,
-    top: -6,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    paddingHorizontal: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.woodDark,
-    backgroundColor: colors.parchment,
-  },
-  tierText: { fontSize: 12 },
-  star: { position: 'absolute', right: -4, bottom: -6, fontSize: 16, color: colors.gold },
-  timer: { position: 'absolute', top: 40, alignSelf: 'center', fontSize: 13, backgroundColor: colors.parchment },
+  pips: { position: 'absolute', bottom: -8 },
+  timer: { position: 'absolute', bottom: -26, alignSelf: 'center', fontSize: 13, backgroundColor: colors.parchment },
 });

@@ -1,18 +1,29 @@
-import { patrolRules } from '@/content/patrols';
+import { difficultyRules, threatLevelFor } from '@/content/difficulty';
+import { patrolRules, patrolTable } from '@/content/patrols';
 
 import { offsetPosition } from '../generation/geo';
 import { tileAt, tileBounds } from '../generation/tiles';
-import { generateTilePatrols, isPatrolKind, patrolPositionAt, patrolTier, pruneByWindow } from './generate';
+import { generateTilePatrols, isPatrolKind, patrolPositionAt, pruneByWindow } from './generate';
 import { HOME, T0 } from './testHelpers';
 import { fleesAt, hasFled, inEngageRange, isGone, isVisible } from './visibility';
 
 const tile = tileAt(HOME, patrolRules.precision);
-const many = Array.from({ length: 4000 }, (_, w) => generateTilePatrols(tile, 100_000 + w)).flat();
+const tier = 3;
+const many = Array.from({ length: 4000 }, (_, w) => generateTilePatrols(tile, 100_000 + w, tier)).flat();
 
 describe('patrol generation', () => {
-  it('is the same for the same tile and window', () => {
-    expect(generateTilePatrols(tile, 5)).toEqual(generateTilePatrols(tile, 5));
-    expect(generateTilePatrols(tile, 5)).not.toEqual(generateTilePatrols(tile, 6));
+  it('is the same for the same tile, window and tier, and different per window and tier', () => {
+    expect(generateTilePatrols(tile, 5, 1)).toEqual(generateTilePatrols(tile, 5, 1));
+    expect(generateTilePatrols(tile, 5, 1)).not.toEqual(generateTilePatrols(tile, 6, 1));
+    const kinds = (t: number) =>
+      Array.from({ length: 50 }, (_, w) => generateTilePatrols(tile, 100_000 + w, t))
+        .flat()
+        .filter((s) => isPatrolKind(s.kind))
+        .map((s) => `${s.kind}:${s.difficulty}`)
+        .sort();
+    // A tier spawns only its own table row; another tier another one.
+    expect(kinds(1)).not.toEqual(kinds(5));
+    expect(new Set(kinds(1))).toEqual(new Set(['herd:easy', 'wolves:easy', 'goblins:medium', 'bandits:medium', 'orcs:hard', 'spiders:hard']));
   });
 
   it('spawns about one per tile per window, a sixth of them travellers', () => {
@@ -23,17 +34,35 @@ describe('patrol generation', () => {
     expect(travellers).toBeLessThan(0.25);
   });
 
-  it('rolls tiers 60/30/10 around the highest unlocked tier', () => {
+  it('spawns only the tier table row, split between its two kinds per difficulty', () => {
     const patrols = many.filter((s) => isPatrolKind(s.kind));
-    const share = (roll: string) => patrols.filter((s) => s.tierRoll === roll).length / patrols.length;
-    expect(share('current')).toBeCloseTo(0.6, 1);
-    expect(share('below')).toBeCloseTo(0.3, 1);
-    expect(share('elite')).toBeCloseTo(0.1, 1);
-    const below = patrols.find((s) => s.tierRoll === 'below')!;
-    const elite = patrols.find((s) => s.tierRoll === 'elite')!;
-    expect(patrolTier(below, 3)).toEqual({ tier: 2, elite: false });
-    expect(patrolTier(below, 1)).toEqual({ tier: 1, elite: false });
-    expect(patrolTier(elite, 3)).toEqual({ tier: 3, elite: true });
+    const row = patrolTable[3 as keyof typeof patrolTable];
+    const expected = new Set([...row.easy, ...row.medium, ...row.hard]);
+    expect(new Set(patrols.map((s) => s.kind))).toEqual(expected);
+    // The two kinds of a difficulty split its weight evenly.
+    for (const difficulty of ['easy', 'medium', 'hard'] as const) {
+      const ofDifficulty = patrols.filter((s) => s.difficulty === difficulty);
+      for (const kind of row[difficulty]) {
+        const share = patrols.filter((s) => s.kind === kind).length / ofDifficulty.length;
+        expect(share).toBeGreaterThan(0.4);
+        expect(share).toBeLessThan(0.6);
+      }
+    }
+  });
+
+  it('rolls difficulties by the patrol weights, always at the highest unlocked tier', () => {
+    const patrols = many.filter((s) => isPatrolKind(s.kind));
+    for (const difficulty of ['easy', 'medium', 'hard'] as const) {
+      const share = patrols.filter((s) => s.difficulty === difficulty).length / patrols.length;
+      expect(share).toBeCloseTo(difficultyRules.patrolWeights[difficulty], 1);
+    }
+    expect(new Set(patrols.map((s) => s.tier))).toEqual(new Set([tier]));
+  });
+
+  it('travellers carry no difficulty and read as the current tier', () => {
+    const travellers = many.filter((s) => !isPatrolKind(s.kind));
+    expect(travellers.length).toBeGreaterThan(0);
+    expect(travellers.every((s) => s.difficulty === null && s.tier === tier)).toBe(true);
   });
 });
 
@@ -63,8 +92,9 @@ describe('patrol movement and ranges', () => {
   });
 
   it('lets goblins flee 10 minutes after they are first seen, and nothing else', () => {
-    const goblins = many.find((s) => s.kind === 'goblins')!;
-    const herd = many.find((s) => s.kind === 'herd')!;
+    const tier1 = Array.from({ length: 400 }, (_, w) => generateTilePatrols(tile, 100_000 + w, 1)).flat();
+    const goblins = tier1.find((s) => s.kind === 'goblins')!;
+    const herd = tier1.find((s) => s.kind === 'herd')!;
     expect(fleesAt(goblins, T0)).toBe(T0 + 10 * 60_000);
     expect(hasFled(goblins, T0, T0 + 9 * 60_000)).toBe(false);
     expect(hasFled(goblins, T0, T0 + 10 * 60_000)).toBe(true);
@@ -78,5 +108,14 @@ describe('patrol movement and ranges', () => {
     expect(isGone(spawn, {}, spawn.startsAt + 1)).toBe(false);
     expect(pruneByWindow(beaten, spawn.endsAt - 1)).toEqual(beaten);
     expect(pruneByWindow(beaten, spawn.endsAt)).toEqual({});
+  });
+});
+
+describe('threat levels by difficulty', () => {
+  it('reads the level from the difficulty rules', () => {
+    expect(threatLevelFor('easy', 1)).toBe(difficultyRules.threatLevel.easy[0]);
+    expect(threatLevelFor('medium', 1)).toBe(difficultyRules.threatLevel.medium[0]);
+    expect(threatLevelFor('medium', 3)).toBe(difficultyRules.threatLevel.medium[1]);
+    expect(threatLevelFor('hard', 3)).toBe(difficultyRules.threatLevel.hard[1]);
   });
 });

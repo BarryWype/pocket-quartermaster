@@ -1,4 +1,5 @@
 import { dungeons } from '@/content/dungeons';
+import { difficultyRules, type Difficulty } from '@/content/difficulty';
 import { MASTERY_TYPES } from '@/content/forging';
 import { lootConfig } from '@/content/loot/config';
 
@@ -28,13 +29,22 @@ export function lootContextOf(save: SaveData): LootContext {
   };
 }
 
-const shortDungeon = (tier: number) => dungeons.find((d) => d.tier === tier && d.slot === 'short')!;
+const shortDungeon = (tier: number) => dungeons.find((d) => d.tier === tier && d.chainIndex === 0)!;
 
-/** A source's gold and XP at a tier, as shares of the tier's short dungeon (see `lootConfig.amounts`). */
-export function sourceAmounts(source: LootSourceId, tier: number): { gold: number; xp: number } {
+/**
+ * A source's gold and XP at a tier, as shares of the tier's short dungeon (see
+ * `lootConfig.amounts`). The difficulty's `goldXp` applies here; dungeon runs
+ * and the bonus rows pay their dungeon's own gold and XP, which already
+ * include it.
+ */
+export function sourceAmounts(source: LootSourceId, tier: number, difficulty?: Difficulty): { gold: number; xp: number } {
   const share = lootConfig.amounts[source] ?? { gold: 0, xp: 0 };
+  const goldXp = difficulty ? difficultyRules.rewards[difficulty].goldXp : 1;
   const short = shortDungeon(tier);
-  return { gold: Math.round(((short.gold[0] + short.gold[1]) / 2) * share.gold), xp: Math.round(short.xp * share.xp) };
+  return {
+    gold: Math.round(((short.gold[0] + short.gold[1]) / 2) * share.gold * goldXp),
+    xp: Math.round(short.xp * share.xp * goldXp),
+  };
 }
 
 /**
@@ -43,7 +53,7 @@ export function sourceAmounts(source: LootSourceId, tier: number): { gold: numbe
  */
 export function rollForSave(save: SaveData, source: LootSourceId, rng: Rng, options: Partial<LootRequest> = {}): Loot {
   const tier = highestUnlockedTier(save);
-  const amounts = sourceAmounts(source, tier);
+  const amounts = sourceAmounts(source, tier, options.difficulty);
   return rollSourceLoot({
     source,
     tier,

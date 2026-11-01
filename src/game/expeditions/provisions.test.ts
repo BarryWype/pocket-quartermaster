@@ -58,18 +58,19 @@ const oneEncounter = (encounter: EncounterDef): DungeonDef => ({
 
 const trap: EncounterDef = { type: 'trap', weight: 1, name: 'test trap', targets: 'all' };
 
-/** A started tutorial-free save with the starting heroes in wooden kit. */
+/** A started tutorial-free save with heroes strong enough to clear the refit Rat Cellar. */
 function ready(consumables: Record<string, number> = createInitialSave().consumables): SaveData {
   let save: SaveData = {
     ...createInitialSave(),
     tutorial: { ...createInitialSave().tutorial, step: 'done' },
     clearedDungeons: ['banditStockade', 'ogreQuarry'],
     stats: { patrolsWon: 0, questsDone: 1 },
+    heroes: createInitialSave().heroes.map((h) => ({ ...h, level: 5 })),
     consumables,
     gear: [
-      { uid: 'g1', itemId: 'sword1', quality: 'normal' },
-      { uid: 'g2', itemId: 'bow1', quality: 'normal' },
-      { uid: 'g3', itemId: 'wand1', quality: 'normal' },
+      { uid: 'g1', itemId: 'sword3', quality: 'normal' },
+      { uid: 'g2', itemId: 'bow3', quality: 'normal' },
+      { uid: 'g3', itemId: 'wand3', quality: 'normal' },
     ],
   };
   ALL.forEach((id, i) => {
@@ -207,8 +208,8 @@ describe('meals', () => {
   it('Comfort broth: +25% of the cleared share after a retreat, never more than a full clear', () => {
     const weak = (mealId: string | null) =>
       Array.from({ length: 60 }, (_, i) => {
-        // Tier 1 as the highest, so XP isn't reduced.
-        const save = { ...ready({ trailMix: 10, comfortBroth: 1 }), clearedDungeons: [], nextUid: 200 + i };
+        // Tier 1 as the highest, so XP isn't reduced; the chain's end cleared, so the boss is open.
+        const save = { ...ready({ trailMix: 10, comfortBroth: 1 }), clearedDungeons: ['millRuins'], nextUid: 200 + i };
         return resolve(startExpedition(save, 'banditStockade', ['mira'], 0, 1, undefined, { mealId })).report;
       });
     const plain = weak(null);
@@ -395,9 +396,9 @@ describe('elixirs', () => {
 
   it('opens the run’s first fight with fire on every enemy, and no later one', () => {
     const bomb = () => [member('a', [], { consumable: elixirOf('firebomb'), power: 0, maxHp: 1e6 })];
-    const first = simulateRun(bomb(), { ...fights([{ mobId: 'giantRat', count: 2 }]), tier: 5 }, 's', { rules: steady, elixirs: true });
+    const first = simulateRun(bomb(), { ...fights([{ mobId: 'npc:poachers:1', count: 2 }]), tier: 5 }, 's', { rules: steady, elixirs: true });
     expect(first.encounters[0].effects).toContainEqual({ heroId: 'a', key: 'firebomb' });
-    // Tier-5 strength against element-less rats: the bomb alone clears the fight.
+    // Tier-5 bombs against element-less poachers: the bomb alone clears the fight.
     expect(first.encounters[0].dealt.a).toBe(2 * Math.round(provisionRules.elixirs.firebombDamage * TIER_SCALE[4]));
     expect(first.encounters[0].cleared).toBe(true);
     expect(first.elixirsUsed).toEqual(['a']);
@@ -478,7 +479,9 @@ describe('elixirs', () => {
   it('pays the smoke bomb’s retreat bonus on the loot of an escape', () => {
     // Heroes at a sliver of HP fall to the first blow: the bomb turns the wipe into an escape.
     const frail = (consumableId: string | null): SaveData => {
-      let save = { ...ready({ trailMix: 10, ...(consumableId ? { [consumableId]: 1 } : {}) }), nextUid: 7 };
+      // Back to level 1, so the party is feeble and the retreat bonus shows in the salvage numbers.
+      const feeble = ready().heroes.map((h) => ({ ...h, level: 1 }));
+      let save = { ...ready({ trailMix: 10, ...(consumableId ? { [consumableId]: 1 } : {}) }), heroes: feeble, nextUid: 7 };
       for (const id of ALL) save = setHeroHp(save, id, 0.01, 0);
       return consumableId ? equip(save, 'bram', 'consumable', consumableId) : save;
     };

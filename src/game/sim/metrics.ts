@@ -10,6 +10,7 @@ import type { LootCategory, LootSourceId } from '../loot/types';
 import { PATROL_KINDS, TRAVELLER_KINDS, type PatrolKind } from '../patrols/generate';
 import type { ProbeRow, RunLog } from './bot';
 import { expectedLevels, profiles } from './config';
+import type { DifficultyOdds } from './difficultyOdds';
 import { lootPacing } from './pacing';
 import { inRange, targets as defaultTargets, type Targets } from './targets';
 
@@ -85,6 +86,8 @@ export type ProfileSummary = {
 export type Summary = {
   settings: { profiles: string[]; seeds: number; seed: string; overrides: string[]; maxDays: number | null };
   profiles: Record<string, ProfileSummary>;
+  /** The reference teams' odds per tier and difficulty, measured once per run (see difficultyOdds.ts). */
+  difficultyOdds: Record<number, DifficultyOdds>;
 };
 
 /** Median of each key over seeds, of per-seed totals. */
@@ -271,7 +274,7 @@ export function summarize(logs: RunLog[], t: Targets = defaultTargets): ProfileS
       ],
       [
         'patrols',
-        (v) => (v.patrolGoblins ?? 0) + (v.patrolHerd ?? 0) + (v.patrolBandits ?? 0),
+        (v) => v.patrol ?? 0,
         (log) => log.patrols.seen.filter((s) => (PATROL_KINDS as string[]).includes(s.kind)).length,
       ],
       ['travellers', (v) => v.traveller ?? 0, (log) => log.patrols.seen.filter((s) => (TRAVELLER_KINDS as string[]).includes(s.kind)).length],

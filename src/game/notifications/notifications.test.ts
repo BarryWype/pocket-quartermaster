@@ -1,4 +1,5 @@
 import { dungeons } from '@/content/dungeons';
+import { dungeonById } from '@/content/lookup';
 import { notificationTexts } from '@/content/notifications';
 import { recipes } from '@/content/recipes';
 
@@ -91,7 +92,7 @@ describe('expedition notifications', () => {
 
   it('groups expeditions ending within a couple of minutes', () => {
     let save = startExpedition(veterans(), 'ratCellar', ['bram'], now);
-    save = startExpedition(save, 'wolfDen', ['lyra'], now); // 10 min: separate
+    save = startExpedition(save, 'wolfDen', ['lyra'], now); // ends well after the first: separate
     save = startExpedition(save, 'ratCellar', ['mira'], now + MIN); // ends a minute after the first
     const results = planNotifications(save, settings(), now).filter((n) => n.group === 'expeditions');
     expect(results).toHaveLength(2);
@@ -148,7 +149,7 @@ describe('idle reminder', () => {
     expect(idle.at).toBe(save.expeditions[0].endsAt + 4 * HOUR);
     const later = startExpedition(save, 'wolfDen', ['lyra'], at(13));
     const moved = planNotifications(later, idleOn, at(13)).find((n) => n.category === 'heroesIdle')!;
-    expect(moved.at).toBe(at(13) + 10 * MIN + 4 * HOUR);
+    expect(moved.at).toBe(at(13) + dungeonById.wolfDen.durationMinutes * MIN + 4 * HOUR);
   });
 
   it('counts from the last report once everyone is home, and is not sent late', () => {
@@ -163,7 +164,13 @@ describe('idle reminder', () => {
 describe('heroes rested', () => {
   const restedOn = withCategories({ heroesRested: true, expeditionFinished: false, bigResult: false });
   /** Bram alone with no gear in the boss dungeon: he comes back hurt. */
-  const hurtRun = () => startExpedition({ ...createInitialSave(), tutorial: { ...createInitialSave().tutorial, step: 'done' } }, 'banditStockade', ['bram'], at(12));
+  const hurtRun = () =>
+    startExpedition(
+      { ...createInitialSave(), tutorial: { ...createInitialSave().tutorial, step: 'done' }, clearedDungeons: ['millRuins'] },
+      'banditStockade',
+      ['bram'],
+      at(12),
+    );
 
   it('is off by default', () => {
     expect(planNotifications(hurtRun(), settings(), at(12)).some((n) => n.category === 'heroesRested')).toBe(false);

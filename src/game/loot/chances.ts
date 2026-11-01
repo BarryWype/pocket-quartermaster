@@ -1,3 +1,4 @@
+import { difficultyRules, type Difficulty } from '@/content/difficulty';
 import { lootConfig } from '@/content/loot/config';
 import { lootMatrix } from '@/content/loot/matrix';
 
@@ -10,6 +11,8 @@ export type ChanceInput = {
   modifiers: LootModifier[];
   mapRarity?: MapRarity;
   chanceMultiplier?: number;
+  /** The source's difficulty band: raises every non-A chance (see difficultyRules.rewards). */
+  difficulty?: Difficulty;
 };
 
 /** First modifier of each id: the same charm from two heroes counts once. */
@@ -67,6 +70,7 @@ export function categoryChance(category: LootCategory, input: ChanceInput): numb
     (1 + Math.min(maxChanceBonus, chancePerPoint * luck)) *
     charms *
     mapMultiplier(input) *
+    (input.difficulty ? difficultyRules.rewards[input.difficulty].chance : 1) *
     (input.chanceMultiplier ?? 1);
   return Math.min(lootConfig.maxChance, chance);
 }

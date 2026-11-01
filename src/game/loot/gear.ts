@@ -1,4 +1,5 @@
 import { gearId, gearRecipes } from '@/content/equipment';
+import { difficultyRules } from '@/content/difficulty';
 import { lootConfig } from '@/content/loot/config';
 import { QUALITIES } from '@/content/forging';
 import type { GearInstance, GearType, Quality } from '@/game/types';
@@ -53,6 +54,7 @@ export function qualityBonus(req: Pick<LootRequest, 'luck' | 'modifiers'>): numb
   return Math.floor(partyLuck(req.luck, req.modifiers) / lootConfig.luck.pointsPerQualityStep);
 }
 
-/** Quality charms: whole steps up after the roll. */
-export const qualitySteps = (req: Pick<LootRequest, 'modifiers'>): number =>
-  dedupeModifiers(req.modifiers).reduce((sum, mod) => (mod.kind === 'quality' ? sum + mod.steps : sum), 0);
+/** Quality charms: whole steps up after the roll; a harder source adds its own (see difficultyRules.rewards). */
+export const qualitySteps = (req: Pick<LootRequest, 'modifiers' | 'difficulty'>): number =>
+  dedupeModifiers(req.modifiers).reduce((sum, mod) => (mod.kind === 'quality' ? sum + mod.steps : sum), 0) +
+  (req.difficulty ? difficultyRules.rewards[req.difficulty].qualitySteps : 0);

@@ -89,7 +89,7 @@ export const offMapRevealKinds: RevealKind[] = ['dungeons', 'quests', 'guildHall
 export const tipTexts: Record<TipId, string> = {
   resources: 'Trees, rocks and herbs: tap one within 30 m to gather it.',
   animals: 'Animals roam nearby. Walk up slowly: they flee from runners.',
-  dungeons: 'Expeditions: send up to three heroes to a dungeon. The list changes every day.',
+  dungeons: 'Expeditions: send up to three heroes to a dungeon. Every dungeon’s threats and conditions change every day.',
   quests: 'Quests arrive on their own, 2–3 a day. Accept one and walk to its target.',
   commonPlaces: 'Shops and services: buy materials, sell gear, heal heroes. They move on after a few days.',
   patrols: 'Patrols and travellers roam the map. Get close to fight a patrol or help a traveller.',

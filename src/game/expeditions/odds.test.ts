@@ -1,4 +1,5 @@
 import { newHero, startingHeroes } from '@/content/heroes';
+import { dungeons } from '@/content/dungeons';
 import { dungeonById } from '@/content/lookup';
 
 import { composeBriefing } from '../threats/compose';
@@ -20,7 +21,8 @@ function team(tier: number, level: number): SaveData {
   let save: SaveData = {
     ...createInitialSave(),
     tutorial: { ...createInitialSave().tutorial, step: 'done' },
-    clearedDungeons: ['banditStockade', 'ogreQuarry', 'drownedCrypt', 'giantsHall'],
+    // Every chain's boss and its predecessor cleared, so any dungeon can be started.
+    clearedDungeons: dungeons.filter((d) => d.isBoss || d.chainIndex === 5).map((d) => d.id),
     heroes: createInitialSave().heroes.map((h) => ({ ...h, level })),
     consumables: { ...createInitialSave().consumables, healingPotion: 3 },
     gear: ALL.flatMap((_, i) => [
@@ -72,7 +74,7 @@ describe('odds preview', () => {
   ];
   for (const [dungeonId, what, loadout] of loadouts) {
     it(`matches the real resolution of ${dungeonId} with hurt, underfed heroes and ${what} within 5 points`, () => {
-      const save = { ...prepared(), clearedDungeons: ['banditStockade'] };
+      const save = { ...prepared(), clearedDungeons: dungeons.filter((d) => !d.overnight && !d.secret).map((d) => d.id) };
       const dungeon = dungeonById[dungeonId];
       const briefing = composeBriefing(dungeon, DAY);
       const estimate = estimateOdds(save, ALL, dungeon, N, { now: 0, loadout, briefing }).success;
@@ -87,7 +89,7 @@ describe('odds preview', () => {
   }
 
   it('uses current HP, and shows the odds at full HP for comparison', () => {
-    const save = { ...prepared(), clearedDungeons: ['banditStockade'] };
+    const save = { ...prepared(), clearedDungeons: dungeons.filter((d) => !d.overnight && !d.secret).map((d) => d.id) };
     const dungeon = dungeonById.ogreQuarry;
     const briefing = composeBriefing(dungeon, DAY);
     const now = estimateOdds(save, ALL, dungeon, 300, { now: 0, briefing }).success;

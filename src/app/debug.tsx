@@ -27,7 +27,8 @@ import { sanctums } from '@/content/sanctums';
 import { bossWeaknesses } from '@/content/weaknesses';
 import { ELEMENTS, type Element } from '@/game/elements';
 import { highestUnlockedTier } from '@/game/expeditions/expeditions';
-import { briefingFor, openDungeonIds } from '@/game/dungeons/rotation';
+import { briefingFor } from '@/game/dungeons/rotation';
+import { tierChain } from '@/game/dungeons/unlock';
 import { maxThreatLevel } from '@/game/threats/compose';
 import { playbackRoute, type WalkSummary } from '@/game/gathering/autoGather';
 import { offsetPosition } from '@/game/generation/geo';
@@ -44,11 +45,11 @@ import {
   isPatrolKind,
   isTravellerKind,
   patrolsAround,
-  patrolTier,
   type PatrolSpawn,
   type PatrolSubject,
-  type TierRoll,
 } from '@/game/patrols/generate';
+import type { Difficulty } from '@/content/difficulty';
+import { difficultyRules } from '@/content/difficulty';
 import { distanceTo } from '@/game/patrols/visibility';
 import { masteryCap, masteryOf } from '@/game/forging/mastery';
 import { guildRank } from '@/game/guild/guild';
@@ -84,6 +85,9 @@ import { ui } from '@/theme';
 import { PixelBar } from '@/components/PixelBar';
 import {
   Chip,
+  DifficultyChip,
+  DifficultyPips,
+  DifficultyRing,
   DiamondButton,
   DiamondRail,
   EmberButton,
@@ -237,6 +241,22 @@ function UiKitDebug() {
         <Chip tone="keyword" label="Pierce" />
         <Chip tone="neutral" label="Lv 3" />
       </View>
+      <View style={styles.kitRow}>
+        {difficultyRules.order.map((difficulty) => (
+          <View key={difficulty} style={styles.kitDifficulty}>
+            <DifficultyRing difficulty={difficulty} shape="diamond" size={24}>
+              <View style={styles.kitDiamond}>
+                <Text>👺</Text>
+              </View>
+            </DifficultyRing>
+            <DifficultyPips difficulty={difficulty} />
+            <DifficultyRing difficulty={difficulty} shape="square" size={24}>
+              <Text>⚔️</Text>
+            </DifficultyRing>
+            <DifficultyChip difficulty={difficulty} />
+          </View>
+        ))}
+      </View>
       <PixelBar value={0.3} />
       <PixelBar value={0.8} />
       <View style={styles.kitTabs}>
@@ -276,7 +296,7 @@ function LootDebug() {
     ...(source === 'treasureSpot' ? { mapRarity } : {}),
   };
   const chances = lootChances(input);
-  const short = dungeons.find((d) => d.tier === tier && d.slot === 'short')!;
+  const short = dungeons.find((d) => d.tier === tier && d.chainIndex === 0)!;
   const base = lootConfig.amounts[source] ? sourceAmounts(source, tier) : { gold: Math.round((short.gold[0] + short.gold[1]) / 2), xp: short.xp };
   const roll = () => {
     const loot = rollForSave(game.save, source, createRng(`debug|${game.save.nextUid}|${rolls}`), { ...input, tier, base, ...(force ? { force } : {}) });
@@ -484,7 +504,7 @@ export default function DebugScreen() {
   const autoMode = useWorldStore((state) => state.autoGather);
   const [buffer, setBuffer] = useState<StoredBuffer | null>(null);
   const [playback, setPlayback] = useState<WalkSummary | null>(null);
-  const [tierRoll, setTierRoll] = useState<TierRoll>('current');
+  const [patrolDifficulty, setPatrolDifficulty] = useState<Exclude<Difficulty, 'boss'>>('easy');
   const [around, setAround] = useState<{ position: LatLng; spawns: PatrolSpawn[] } | null>(null);
   const [escortMerged, setEscortMerged] = useState<number | null>(null);
   const [pocketReport, setPocketReport] = useState<string | null>(null);
@@ -553,15 +573,13 @@ export default function DebugScreen() {
   const levelHeroLevel = levelHeroState?.level ?? 1;
   const hpShareNow = hpHeroState ? currentHp(game.save, hpHeroState, now) / maxHp(game.save, hpHeroState) : 1;
   const [guildTrack, setGuildTrack] = useState<GuildTrackId>('gold');
-  const [rotationSlot, setRotationSlot] = useState<'short' | 'long'>('short');
-  const slotKey = `${rotationTier}:${rotationSlot}`;
   const [threatPick, setThreatPick] = useState<ThreatId>('traps');
   const [threatLevel, setThreatLevel] = useState<ThreatLevel>(1);
   const [threatElement, setThreatElement] = useState<Element>('fire');
 
   /** Today's rotation with the debug overrides applied, as the expeditions screen sees it. */
   const rotation = currentRotation(now);
-  const openDungeons = openDungeonIds(rotation).map((id) => dungeons.find((d) => d.id === id)!);
+  const openDungeons = tierChain(rotationTier, dungeons);
   const setBriefing = (dungeonId: string, briefing: Briefing) =>
     debug.set({ forcedBriefings: { ...debug.forcedBriefings, [dungeonId]: briefing } });
   const clearBriefing = (dungeonId: string) => {
@@ -643,7 +661,8 @@ export default function DebugScreen() {
         tile,
         window,
         kind,
-        tierRoll: isTravellerKind(kind) ? 'current' : tierRoll,
+        difficulty: isTravellerKind(kind) ? null : patrolDifficulty,
+        tier: highestUnlockedTier(useGameStore.getState().save),
         path: { waypoints: [offsetPosition(position, 30, 0)], loopMs: 60_000, phaseMs: 0 },
         startsAt: start,
         endsAt: end,
@@ -653,7 +672,7 @@ export default function DebugScreen() {
 
   const showAround = async () => {
     const position = await currentPosition();
-    setAround({ position, spawns: patrolsAround(position, Date.now()) });
+    setAround({ position, spawns: patrolsAround(position, Date.now(), highestUnlockedTier(useGameStore.getState().save)) });
   };
 
   /** Ignores settings and quiet hours, so the OS side can be checked alone. */
@@ -690,7 +709,7 @@ export default function DebugScreen() {
   const testPatrolAlert = async () => {
     const position = await currentPosition();
     const now = Date.now();
-    const spawn = patrolsAround(position, now)
+    const spawn = patrolsAround(position, now, highestUnlockedTier(useGameStore.getState().save))
       .filter((candidate) => isPatrolKind(candidate.kind))
       .sort((a, b) => distanceTo(a, position, now) - distanceTo(b, position, now))[0];
     if (!spawn) {
@@ -701,7 +720,7 @@ export default function DebugScreen() {
       kind: 'patrolSpotted',
       spawn,
       distance: distanceTo(spawn, position, now),
-      tier: patrolTier(spawn, highestUnlockedTier(useGameStore.getState().save)).tier,
+      tier: spawn.tier,
     });
   };
 
@@ -1015,17 +1034,6 @@ export default function DebugScreen() {
         </View>
       </View>
       <Choice options={TIERS} value={rotationTier} label={(t) => `T${t}`} onChange={setRotationTier} />
-      <Choice options={['short', 'long'] as const} value={rotationSlot} label={(s) => s} onChange={setRotationSlot} />
-      <Text>Force a dungeon into this slot</Text>
-      <Choice
-        options={[null, ...dungeons.filter((d) => d.tier === rotationTier && d.slot === rotationSlot).map((d) => d.id)]}
-        value={debug.forcedSlots[slotKey] ?? null}
-        label={(id) => (id ? dungeons.find((d) => d.id === id)!.name : 'auto')}
-        onChange={(id) => {
-          const { [slotKey]: _, ...others } = debug.forcedSlots;
-          debug.set({ forcedSlots: id ? { ...others, [slotKey]: id } : others });
-        }}
-      />
       <Button title="Reset the first win of the day" onPress={game.resetFirstWin} />
 
       <Text style={styles.title}>Threats</Text>
@@ -1252,10 +1260,10 @@ export default function DebugScreen() {
       <Text style={styles.title}>Patrols</Text>
       <Text>Spawn next to me</Text>
       <Choice
-        options={['current', 'below', 'elite'] as TierRoll[]}
-        value={tierRoll}
-        label={(roll) => roll}
-        onChange={setTierRoll}
+        options={['easy', 'medium', 'hard'] as Exclude<Difficulty, 'boss'>[]}
+        value={patrolDifficulty}
+        label={(difficulty) => difficulty}
+        onChange={setPatrolDifficulty}
       />
       <View style={styles.choices}>
         {([...PATROL_KINDS, ...TRAVELLER_KINDS] as PatrolSubject[]).map((kind) => (
@@ -1279,7 +1287,7 @@ export default function DebugScreen() {
       {around &&
         around.spawns.map((spawn) => (
           <Text key={spawn.id} style={styles.mono}>
-            {patrolIcons[spawn.kind]} {spawn.id} · {spawn.kind} {spawn.tierRoll} ·{' '}
+            {patrolIcons[spawn.kind]} {spawn.id} · {spawn.kind} {spawn.difficulty ?? ''} ·{' '}
             {new Date(spawn.startsAt).toLocaleTimeString()}–{new Date(spawn.endsAt).toLocaleTimeString()} ·{' '}
             {Math.round(distanceTo(spawn, around.position, now))} m · {spawn.path.waypoints.length} waypoints
           </Text>
@@ -1341,6 +1349,8 @@ const styles = StyleSheet.create({
   kitRailRow: { flexDirection: 'row', height: 220 },
   kitRailFill: { flex: 1, backgroundColor: ui.woodDark },
   kitRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
+  kitDifficulty: { alignItems: 'center', gap: 4 },
+  kitDiamond: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: ui.woodDark, transform: [{ rotate: '45deg' }] },
   kitSlot60: { width: 60 },
   kitGrow: { flex: 1 },
   kitTabs: { height: 160 },

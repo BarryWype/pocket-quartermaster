@@ -4,7 +4,7 @@ import type { LootSourceId, LootSourceRow } from '@/game/loot/types';
 export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
   dungeonRun: {
     name: 'Dungeon run',
-    visitsPerDay: 6,
+    visitsPerDay: 5,
     marks: {
       gold: 'A',
       xp: 'A',
@@ -71,6 +71,29 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
     notes: 'Gear at least Uncommon',
   },
 
+  firstDungeonClear: {
+    name: 'First clear of a dungeon',
+    visitsPerDay: 0.3,
+    marks: {
+      gold: 'A',
+      xp: 'A',
+      materials: '—',
+      shards: '—',
+      blueprints: 'S',
+      gear: 'A',
+      trinkets: 'R/2',
+      components: '—',
+      relics: '—',
+      monsterParts: 'O',
+      valuables: 'S',
+      consumables: 'S',
+      treasureMaps: 'R',
+      manuals: 'R',
+      keyFragments: 'R/2',
+    },
+    notes: 'Paid once per chain dungeon; stacks with the difficulty multiplier',
+  },
+
   tierBoss: {
     name: 'Tier boss',
     visitsPerDay: 0.2,
@@ -117,9 +140,9 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
     notes: '',
   },
 
-  patrolGoblins: {
-    name: 'Patrol: goblin scouts',
-    visitsPerDay: 1.33,
+  patrol: {
+    name: 'Patrol',
+    visitsPerDay: 4,
     marks: {
       gold: 'O',
       xp: 'O',
@@ -137,53 +160,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       manuals: '—',
       keyFragments: '—',
     },
-    notes: '',
-  },
-
-  patrolHerd: {
-    name: 'Patrol: game herd',
-    visitsPerDay: 1.33,
-    marks: {
-      gold: 'S',
-      xp: 'O',
-      materials: 'A',
-      shards: '—',
-      blueprints: '—',
-      gear: '—',
-      trinkets: '—',
-      components: 'R',
-      relics: '—',
-      monsterParts: 'A',
-      valuables: '—',
-      consumables: '—',
-      treasureMaps: '—',
-      manuals: '—',
-      keyFragments: '—',
-    },
-    notes: 'Meat, hide, bone; components from elites',
-  },
-
-  patrolBandits: {
-    name: 'Patrol: bandits',
-    visitsPerDay: 1.33,
-    marks: {
-      gold: 'A',
-      xp: 'O',
-      materials: 'O',
-      shards: '—',
-      blueprints: '—',
-      gear: 'S',
-      trinkets: '—',
-      components: '—',
-      relics: '—',
-      monsterParts: 'S',
-      valuables: 'O',
-      consumables: 'S',
-      treasureMaps: 'R',
-      manuals: '—',
-      keyFragments: '—',
-    },
-    notes: '',
+    notes: 'Materials by patrol kind (lootConfig.patrolThemes)',
   },
 
   traveller: {

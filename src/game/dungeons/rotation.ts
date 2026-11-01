@@ -1,25 +1,26 @@
 import { dungeons as allDungeons } from '@/content/dungeons';
 import { rotationRules } from '@/content/rotation';
 
-import { createRng } from '../generation/rng';
 import { composeBriefing, composeThreats, rollSurge, surgeRolled, withSurge, type Surge } from '../threats/compose';
-import type { Briefing, DungeonDef } from '../types';
-import { mainTag } from './tags';
+import type { ActiveThreat, Briefing, DungeonDef, ThreatId } from '../types';
+import { tierChain } from './unlock';
 
 type Rules = typeof rotationRules;
 
 const DAY = 86_400_000;
 const HOUR = 3_600_000;
 
+/** How many salted seeds a dungeon's daily threats are re-rolled over when yesterday's repeat. */
+const SALTS = 8;
+
 export type TierRotation = {
-  boss: string;
-  short: string;
-  long: string;
-  /** The day's surge: one open dungeon's undead, traps or beasts threat, raised a level. */
+  /** The tier's chain briefings for the day, keyed by dungeon id, the surge applied. */
+  briefings: Record<string, Briefing>;
+  /** The day's surge: one chain dungeon's undead, traps or beasts threat, raised a level. */
   surge: Surge | null;
 };
 
-/** The dungeons open on one rotation day, by tier. The same for every player. */
+/** The day's briefings, by tier. The same for every player. */
 export type Rotation = {
   day: number;
   tiers: Record<number, TierRotation>;
@@ -27,9 +28,8 @@ export type Rotation = {
   briefings?: Record<string, Briefing>;
 };
 
-/** Debug overrides: a dungeon forced into a `tier:slot`, or a briefing forced on one. */
+/** Debug overrides: a briefing forced on a dungeon. */
 export type RotationOverrides = {
-  slots?: Record<string, string>;
   briefings?: Record<string, Briefing>;
 };
 
@@ -41,100 +41,114 @@ export const rotationDay = (now: number, rules: Rules = rotationRules) =>
 export const nextRotationAt = (now: number, rules: Rules = rotationRules) =>
   (rotationDay(now, rules) + 1) * DAY + rules.resetHourUtc * HOUR;
 
-const tiersOf = (dungeons: DungeonDef[]) => [...new Set(dungeons.map((d) => d.tier))].sort((a, b) => a - b);
+/**
+ * What the replay keeps per day: only each dungeon's salt and threats, never
+ * the full briefings (the restriction roll is the expensive part).
+ */
+type DayTiers = Record<number, { salts: Record<string, number>; threats: Record<string, ActiveThreat[]>; surge: Surge | null }>;
+type DayRecord = { day: number; tiers: DayTiers };
+
+/** Whether two threat sets are the same ones at the same levels. */
+const sameThreats = (a: ActiveThreat[], b: ActiveThreat[]) =>
+  a.length === b.length && a.every((t, i) => t.id === b[i].id && t.level === b[i].level);
+
+/** The briefing's lead threat: the highest level, the first drawn on a tie. */
+const mainThreatOf = (threats: ActiveThreat[]) =>
+  threats.length ? threats.reduce((main, t) => (t.level > main.level ? t : main), threats[0]) : null;
 
 /**
- * One day's picks. Each slot favours the dungeons it hasn't had for longest,
- * never repeats yesterday's, and the long slot avoids the short one's main tag.
- * The tier's three briefings are composed here, and the surge rolled over them.
+ * One day's salts. Each chain dungeon walks its salted seeds and takes the
+ * first whose threats differ from yesterday's without reusing a main threat
+ * an earlier dungeon of the tier already shows today; failing that, the first
+ * that merely differs; failing that, salt 0.
  */
-function pickDay(
-  day: number,
-  dungeons: DungeonDef[],
-  yesterday: Rotation | null,
-  lastSeen: Map<string, number>,
-  rules: Rules,
-): Rotation {
-  const tiers: Record<number, TierRotation> = {};
-  for (const tier of tiersOf(dungeons)) {
-    const inTier = dungeons.filter((d) => d.tier === tier);
-    const boss = inTier.find((d) => d.isBoss)!;
-    const pick = (slot: 'short' | 'long', avoidTag: string | null) => {
-      const pool = inTier.filter((d) => d.slot === slot);
-      const fresh = pool.filter((d) => d.id !== yesterday?.tiers[tier]?.[slot]);
-      const varied = fresh.filter((d) => !avoidTag || mainTag(d) !== avoidTag);
-      const candidates = varied.length ? varied : fresh.length ? fresh : pool;
-      const rng = createRng(`rotation|${day}|${tier}|${slot}`);
-      return rng.weighted(candidates, (d) => (day - (lastSeen.get(d.id) ?? day - pool.length - 1)) ** 2);
-    };
-    const short = pick('short', null);
-    const long = pick('long', mainTag(short));
-    // The surge reads only the threats, so the briefings are composed without
-    // the restriction roll (the expensive part) — and only on the days the
-    // surge chance passes at all (issue 17). rollSurge draws the same chance
-    // from the same seed first, so every surge is the one the full replay rolls.
-    const surge = surgeRolled(day, tier)
-      ? rollSurge(
-          day,
-          tier,
-          Object.fromEntries([boss, short, long].map((d) => [d.id, composeThreats(d, day)])),
-        )
-      : null;
-    tiers[tier] = { boss: boss.id, short: short.id, long: long.id, surge };
+function pickDay(day: number, dungeons: DungeonDef[], yesterday: DayTiers | null): DayTiers {
+  const tiers: DayTiers = {};
+  for (const tier of [...new Set(dungeons.map((d) => d.tier))].sort((a, b) => a - b)) {
+    const salts: Record<string, number> = {};
+    const threats: Record<string, ActiveThreat[]> = {};
+    const usedMain = new Set<ThreatId>();
+    for (const dungeon of tierChain(tier, dungeons)) {
+      const yesterdayThreats = yesterday?.[tier]?.threats[dungeon.id] ?? null;
+      let chosen: { salt: number; threats: ActiveThreat[] } | null = null;
+      let firstDiff: { salt: number; threats: ActiveThreat[] } | null = null;
+      for (let s = 0; s < SALTS; s++) {
+        const threatsAt = composeThreats(dungeon, day, s);
+        const differs = !yesterdayThreats || !sameThreats(threatsAt, yesterdayThreats);
+        if (differs && !firstDiff) firstDiff = { salt: s, threats: threatsAt };
+        const main = mainThreatOf(threatsAt);
+        if (differs && main !== null && !usedMain.has(main.id)) {
+          chosen = { salt: s, threats: threatsAt };
+          break;
+        }
+      }
+      const picked = chosen ?? firstDiff ?? { salt: 0, threats: composeThreats(dungeon, day, 0) };
+      const main = mainThreatOf(picked.threats);
+      if (main) usedMain.add(main.id);
+      salts[dungeon.id] = picked.salt;
+      threats[dungeon.id] = picked.threats;
+    }
+    const surge = surgeRolled(day, tier) ? rollSurge(day, tier, threats) : null;
+    tiers[tier] = { salts, threats, surge };
   }
-  return { day, tiers };
+  return tiers;
 }
 
-type History = { rotations: Rotation[]; lastSeen: Map<string, number> };
-const history: History = { rotations: [], lastSeen: new Map() };
+/** The public rotation of a replayed day: full briefings, composed with the day's salts, the surge applied. */
+function buildRotation(record: DayRecord, dungeons: DungeonDef[]): Rotation {
+  const tiers: Record<number, TierRotation> = {};
+  for (const [key, { salts, surge }] of Object.entries(record.tiers)) {
+    const briefings: Record<string, Briefing> = {};
+    for (const [id, salt] of Object.entries(salts)) {
+      const dungeon = dungeons.find((d) => d.id === id)!;
+      briefings[id] = composeBriefing(dungeon, record.day, salt);
+    }
+    if (surge) briefings[surge.dungeonId] = withSurge(briefings[surge.dungeonId], surge.threatId);
+    tiers[Number(key)] = { briefings, surge };
+  }
+  return { day: record.day, tiers };
+}
+
+const history: DayRecord[] = [];
+/** The last day built into full briefings; building them is the expensive part. */
+let built: { day: number; rotation: Rotation } | null = null;
 
 /**
- * The rotation for a day. Worked out day by day from `rules.startDay` (and
- * kept), so every player gets the same one and the no-repeat rule is exact.
+ * The rotation for a day. The salts are worked out day by day from
+ * `rules.startDay` (and kept), so every player gets the same one and the
+ * differs-from-yesterday rule is exact. The full briefings are composed only
+ * for the day asked for.
  */
 export function dailyRotation(day: number, dungeons: DungeonDef[] = allDungeons, rules: Rules = rotationRules): Rotation {
   const startDay = rotationDay(rules.startDay, rules);
-  if (day < startDay) return pickDay(day, dungeons, null, new Map(), rules);
-  const kept: History = dungeons === allDungeons && rules === rotationRules ? history : { rotations: [], lastSeen: new Map() };
-  while (startDay + kept.rotations.length <= day) {
-    const today = pickDay(startDay + kept.rotations.length, dungeons, kept.rotations.at(-1) ?? null, kept.lastSeen, rules);
-    for (const t of Object.values(today.tiers)) [t.short, t.long].forEach((id) => kept.lastSeen.set(id, today.day));
-    kept.rotations.push(today);
+  if (day < startDay) return buildRotation({ day, tiers: pickDay(day, dungeons, null) }, dungeons);
+  const kept = dungeons === allDungeons && rules === rotationRules ? history : [];
+  while (startDay + kept.length <= day) {
+    kept.push({
+      day: startDay + kept.length,
+      tiers: pickDay(startDay + kept.length, dungeons, kept.at(-1)?.tiers ?? null),
+    });
   }
-  return kept.rotations[day - startDay];
+  const record = kept[day - startDay];
+  if (kept === history && built?.day === day) return built.rotation;
+  const rotation = buildRotation(record, dungeons);
+  if (kept === history) built = { day, rotation };
+  return rotation;
 }
 
 export function applyOverrides(rotation: Rotation, overrides: RotationOverrides = {}): Rotation {
-  const tiers = Object.fromEntries(
-    Object.entries(rotation.tiers).map(([key, tier]) => [
-      Number(key),
-      {
-        ...tier,
-        short: overrides.slots?.[`${key}:short`] ?? tier.short,
-        long: overrides.slots?.[`${key}:long`] ?? tier.long,
-      },
-    ]),
-  );
   return {
     ...rotation,
-    tiers,
     ...(overrides.briefings && Object.keys(overrides.briefings).length > 0 ? { briefings: overrides.briefings } : {}),
   };
 }
 
-/** The ids open today: every tier's boss, short and long dungeons. */
-export const openDungeonIds = (rotation: Rotation) =>
-  Object.values(rotation.tiers).flatMap((t) => [t.short, t.long, t.boss]);
-
 /**
  * A dungeon's briefing today: a debug-forced one when there is one, else the
- * day's composed briefing with the tier's surge applied when it targets the
- * dungeon. Same day, same briefing for everyone.
+ * day's composed briefing (with the tier's surge applied when it targets the
+ * dungeon). Dungeons outside the rotation — overnight and secret ones — keep
+ * their own composed briefing. Same day, same briefing for everyone.
  */
 export function briefingFor(rotation: Rotation, dungeon: DungeonDef): Briefing {
-  const forced = rotation.briefings?.[dungeon.id];
-  if (forced) return forced;
-  const surge = Object.values(rotation.tiers).find((t) => t.surge?.dungeonId === dungeon.id)?.surge ?? null;
-  const briefing = composeBriefing(dungeon, rotation.day);
-  return surge ? withSurge(briefing, surge.threatId) : briefing;
+  return rotation.briefings?.[dungeon.id] ?? rotation.tiers[dungeon.tier]?.briefings[dungeon.id] ?? composeBriefing(dungeon, rotation.day);
 }

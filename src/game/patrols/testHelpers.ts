@@ -30,10 +30,10 @@ export function escortTeam(): SaveData {
 }
 
 /** The first spawn around HOME, window after window from T0, that matches; with a time inside its window. */
-export function findSpawn(matches: (spawn: PatrolSpawn) => boolean): { spawn: PatrolSpawn; at: number } {
+export function findSpawn(matches: (spawn: PatrolSpawn) => boolean, tier = 1): { spawn: PatrolSpawn; at: number } {
   for (let w = 0; w < 500; w++) {
     const at = T0 + w * 30 * 60_000 + 60_000;
-    const spawn = patrolsAround(HOME, at).find(matches);
+    const spawn = patrolsAround(HOME, at, tier).find(matches);
     if (spawn) return { spawn, at };
   }
   throw new Error('No matching spawn');

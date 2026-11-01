@@ -35,8 +35,6 @@ type DebugSettings = {
   offerSeed: string;
   /** Days added to today's rotation day. */
   rotationDayOffset: number;
-  /** Dungeons forced into a `tier:slot`, e.g. `2:short`. */
-  forcedSlots: Record<string, string>;
   /** Briefings forced on dungeons, keyed by dungeon id. */
   forcedBriefings: Record<string, Briefing>;
   /** Shows auto-gather's radius around the player even while it is off. */
@@ -72,7 +70,6 @@ const DEBUG_DEFAULTS: DebugSettings = {
   debugTavern: null,
   debugPlaces: [],
   offerSeed: '',
-  forcedSlots: {},
   forcedBriefings: {},
   showAutoRadius: false,
   showNodeRanges: false,
@@ -109,6 +106,6 @@ export const debugEnabled = (state: Pick<DebugState, 'enabled'>) => __DEV__ || s
 /** Today's dungeon rotation, with the debug day shift and overrides when debug tools are on. */
 export function currentRotation(now = Date.now()) {
   if (!debugEnabled(useDebugStore.getState())) return dailyRotation(rotationDay(now));
-  const { rotationDayOffset, forcedSlots, forcedBriefings } = useDebugStore.getState();
-  return applyOverrides(dailyRotation(rotationDay(now) + rotationDayOffset), { slots: forcedSlots, briefings: forcedBriefings });
+  const { rotationDayOffset, forcedBriefings } = useDebugStore.getState();
+  return applyOverrides(dailyRotation(rotationDay(now) + rotationDayOffset), { briefings: forcedBriefings });
 }

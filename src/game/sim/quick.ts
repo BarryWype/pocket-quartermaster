@@ -16,6 +16,7 @@ import { equip } from '../team/team';
 import type { ConsumableDef } from '../types';
 import { highestTier, withLoadout } from './bot';
 import { expectedLevels, simConfig, type SimConfig } from './config';
+import { difficultyOdds as tierDifficultyOdds, type DifficultyOdds } from './difficultyOdds';
 import { fillPotions } from './rules/loadout';
 
 const DAY = 86_400_000;
@@ -36,6 +37,8 @@ export type QuickTier = {
   patrols: number | null;
   /** Each fight event kind and patrol kind on its own, null where it never spawned. */
   byKind: Record<string, number | null>;
+  /** The mean odds of the tier's sources per difficulty (see difficultyOdds.ts). */
+  difficulty: DifficultyOdds;
   /** Samples behind each mean (`notPrepared` counts as `normal`). */
   samples: { normal: number; boss: number; events: number; patrols: number };
 };
@@ -61,7 +64,8 @@ function quickSave(tier: number): SaveData {
   const kits = items.filter((i): i is ConsumableDef => i.slot === 'consumable' && !!i.kit);
   const next: SaveData = {
     ...save,
-    clearedDungeons: dungeons.filter((d) => d.tier < tier).map((d) => d.id),
+    // The tier's whole chain is measured, so its regular dungeons count as cleared.
+    clearedDungeons: dungeons.filter((d) => d.tier < tier || (d.tier === tier && !d.isBoss && !d.overnight)).map((d) => d.id),
     consumables: {
       ...save.consumables,
       healingPotion: 3,
@@ -121,7 +125,7 @@ export function quickProbe(config: SimConfig = simConfig): QuickTier[] {
 
       const armed = fillPotions(save, ids);
       for (const kind of PATROL_KINDS) {
-        const spawn = patrolsAround(config.location, t).find((p) => p.kind === kind && p.tierRoll === 'current');
+        const spawn = patrolsAround(config.location, t, tier).find((p) => p.kind === kind);
         if (!spawn) continue;
         const odds = patrolOdds(armed, spawn, ids, t, runs).success;
         patrols.push(odds);
@@ -136,6 +140,12 @@ export function quickProbe(config: SimConfig = simConfig): QuickTier[] {
       events: mean(events),
       patrols: mean(patrols),
       byKind: Object.fromEntries(Object.entries(byKind).map(([k, v]) => [k, mean(v)])),
+      difficulty: Object.fromEntries(
+        (['easy', 'medium', 'hard'] as const).map((d) => [
+          d,
+          { start: tierDifficultyOdds(tier, d, 'start', runs), end: tierDifficultyOdds(tier, d, 'end', runs) },
+        ]),
+      ) as DifficultyOdds,
       samples: { normal: prepared.length, boss: boss.length, events: events.length, patrols: patrols.length },
     };
   });

@@ -71,6 +71,7 @@ export function sanctumDungeon(sanctum: SanctumDef, tier: number, rules: Rules =
     name: sanctum.name,
     emoji: sanctum.emoji,
     tier,
+    difficulty: 'hard',
     durationMinutes: 0,
     encounterCount: rules.encounterCount,
     encounters: [
@@ -147,7 +148,12 @@ export function challengeSanctum(
   // A win rolls the Sanctum row for the rest; its shards are the ones above.
   // Components survive, the heart of the Sanctum's element among them.
   const rolled = win
-    ? rollForSave(save, 'sanctum', createRng(`${seed}|loot`), { tier, luck, base: sourceAmounts('sanctum', tier), element: sanctum.element })
+    ? rollForSave(
+        save,
+        'sanctum',
+        createRng(`${seed}|loot`),
+        { tier, luck, difficulty: 'hard', base: sourceAmounts('sanctum', tier, 'hard'), element: sanctum.element },
+      )
     : emptyLoot();
   const loot = { ...rolled, materials: rolled.materials.filter((stack) => componentById[stack.materialId] !== undefined) };
   reward.xp = loot.xp;

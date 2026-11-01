@@ -9,7 +9,12 @@ import { Text } from '@/components/Text';
 import { timed } from '@/components/timed';
 import { materialById, resourceById } from '@/content/lookup';
 import { placeInfo } from '@/content/places';
-import { highestUnlockedTier } from '@/game/expeditions/expeditions';
+import { difficultyLabels, type Difficulty } from '@/content/difficulty';
+import { frDifficultyLabels } from '@/content/fr/difficulty';
+import { frPatrolTexts } from '@/content/fr/patrols';
+import { patrolTexts } from '@/content/patrols';
+import { placeFightRules } from '@/content/placeFights';
+import { isFightPlace } from '@/game/places/fights';
 import { isFleeing, pickaxeTier } from '@/game/gathering/gathering';
 import { readSpawn } from '@/game/gathering/lockedNodes';
 import { distanceMeters } from '@/game/generation/geo';
@@ -17,7 +22,7 @@ import type { Bounds } from '@/game/generation/foliage';
 import type { LatLng, Spawn } from '@/game/generation/types';
 import type { VisibleSpawn } from '@/game/generation/visibility';
 import { isLockedMine } from '@/game/places/generate';
-import { patrolPositionAt, patrolTier, type PatrolSpawn } from '@/game/patrols/generate';
+import { isPatrolKind, patrolPositionAt, type PatrolSpawn } from '@/game/patrols/generate';
 import { fleesAt } from '@/game/patrols/visibility';
 import { isEntered } from '@/game/secrets/places';
 import { hasKey } from '@/game/secrets/keys';
@@ -26,12 +31,22 @@ import type { SanctumSpawn } from '@/game/sanctums/sanctums';
 import { sanctumById } from '@/game/sanctums/sanctums';
 import type { TavernSpawn } from '@/game/taverns/taverns';
 import { isTavernUnlocked } from '@/game/taverns/taverns';
-import { tr } from '@/i18n';
+import { getLocale, localized, t, tr } from '@/i18n';
 import { useCulled } from '@/hooks/useCulled';
 import type { SaveData } from '@/game/save';
 
 /** How long a patrol just come into view pulses on the map. */
 const SEEN_HIGHLIGHT_MS = 5000;
+
+/** The difficulty word as it reads inside a marker's label: lowercase in French. */
+const markerDifficulty = (difficulty: Difficulty) => {
+  const labels = localized({ en: difficultyLabels, fr: frDifficultyLabels });
+  return getLocale() === 'fr' ? labels[difficulty].toLowerCase() : labels[difficulty];
+};
+
+/** A ringed marker's spoken label, e.g. "Orcs, hard patrol". */
+const markerLabel = (name: string, difficulty: Difficulty, kind: string) =>
+  t('difficulty.markerLabel', { name, difficulty: markerDifficulty(difficulty), kind });
 
 const TimedSpawnMarker = memo(timed('marker: spawn', SpawnMarker));
 const TimedSanctumMarker = memo(timed('marker: sanctum', SanctumMarker));
@@ -130,7 +145,6 @@ function MapMarkersBase({
   const playerPickaxe = pickaxeTier(save);
   const keyHeld = hasKey(save);
   const tavernsOpen = isTavernUnlocked(save);
-  const highestTier = highestUnlockedTier(save);
 
   return (
     <>
@@ -170,25 +184,38 @@ function MapMarkersBase({
           </Marker>
         );
       })}
-      {culledSanctums.map((sanctum) => (
-        <Marker key={sanctum.id} id={sanctum.id} lngLat={toLngLat(sanctum.position)} onPress={() => onOpenSanctum(sanctum)}>
-          <TimedSanctumMarker emoji={sanctumById[sanctum.sanctumId].emoji} locked={save.sigils.length === 0} />
-        </Marker>
-      ))}
+      {culledSanctums.map((sanctum) => {
+        const def = sanctumById[sanctum.sanctumId];
+        return (
+          <Marker key={sanctum.id} id={sanctum.id} lngLat={toLngLat(sanctum.position)} onPress={() => onOpenSanctum(sanctum)}>
+            <TimedSanctumMarker
+              emoji={def.emoji}
+              locked={save.sigils.length === 0}
+              difficulty="hard"
+              accessibilityLabel={markerLabel(tr(def.name), 'hard', t('difficulty.sanctum'))}
+            />
+          </Marker>
+        );
+      })}
       {culledTaverns.map((tavern) => (
         <Marker key={tavern.id} id={tavern.id} lngLat={toLngLat(tavern.position)} onPress={() => onOpenTavern(tavern)}>
           <TimedSanctumMarker emoji="🍺" locked={!tavernsOpen} label={tr(placeInfo.tavern.name)} />
         </Marker>
       ))}
-      {culledPlaces.map((place) => (
-        <Marker key={place.id} id={place.id} lngLat={toLngLat(place.position)} onPress={() => onOpenPlace(place)}>
-          <TimedSanctumMarker
-            emoji={placeInfo[place.kind].emoji}
-            locked={isLockedMine(place.kind, playerPickaxe)}
-            label={tr(placeInfo[place.kind].name)}
-          />
-        </Marker>
-      ))}
+      {culledPlaces.map((place) => {
+        const difficulty = isFightPlace(place.kind) ? placeFightRules.kinds[place.kind].difficulty : undefined;
+        return (
+          <Marker key={place.id} id={place.id} lngLat={toLngLat(place.position)} onPress={() => onOpenPlace(place)}>
+            <TimedSanctumMarker
+              emoji={placeInfo[place.kind].emoji}
+              locked={isLockedMine(place.kind, playerPickaxe)}
+              label={tr(placeInfo[place.kind].name)}
+              difficulty={difficulty}
+              accessibilityLabel={difficulty ? markerLabel(tr(placeInfo[place.kind].name), difficulty, t('difficulty.fight')) : undefined}
+            />
+          </Marker>
+        );
+      })}
       {culledSecrets.map((place) => (
         <Marker key={place.id} id={place.id} lngLat={toLngLat(place.position)} onPress={() => onOpenPlace(place)}>
           <TimedSanctumMarker
@@ -202,15 +229,18 @@ function MapMarkersBase({
       {culledPatrols.map(({ spawn }) => {
         const seenAt = patrolsSeen[spawn.id];
         const fleesIn = seenAt !== undefined ? fleesAt(spawn, seenAt) : null;
-        const { tier, elite } = patrolTier(spawn, highestTier);
         return (
           <Marker key={spawn.id} id={spawn.id} lngLat={toLngLat(patrolPositionAt(spawn, now))} onPress={() => onOpenPatrol(spawn)}>
             <TimedPatrolMarker
               kind={spawn.kind}
-              tier={tier}
-              elite={elite}
+              difficulty={spawn.difficulty}
               fleesIn={fleesIn === null ? null : Math.max(0, fleesIn - now)}
               fresh={seenAt !== undefined && now - seenAt < SEEN_HIGHLIGHT_MS}
+              accessibilityLabel={
+                spawn.difficulty && isPatrolKind(spawn.kind)
+                  ? markerLabel(localized({ en: patrolTexts, fr: frPatrolTexts }).kinds[spawn.kind], spawn.difficulty, t('difficulty.patrol'))
+                  : undefined
+              }
             />
           </Marker>
         );

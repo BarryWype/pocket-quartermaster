@@ -1,5 +1,5 @@
 import { expeditionRules } from '@/content/dungeons';
-import { patrolThreats, restrictionRules, threatRules } from '@/content/threats';
+import { patrolThreat, restrictionRules, threatRules } from '@/content/threats';
 import { travellerRules } from '@/content/patrols';
 import { newHero } from '@/content/heroes';
 import { dungeonById, itemById } from '@/content/lookup';
@@ -517,19 +517,22 @@ describe('locked forced with Might', () => {
 
 describe('patrol threats', () => {
   it('each patrol kind carries its threat in its briefing', () => {
-    expect(patrolRunOptions('goblins').briefing).toEqual({ threats: [patrolThreats.goblins], restriction: null, opportunity: null });
-    expect(patrolRunOptions('herd').briefing).toEqual({ threats: [patrolThreats.herd], restriction: null, opportunity: null });
-    expect(patrolRunOptions('bandits').briefing).toEqual({ threats: [patrolThreats.bandits], restriction: null, opportunity: null });
+    const goblins = findSpawn((s) => s.kind === 'goblins').spawn;
+    const herd = findSpawn((s) => s.kind === 'herd').spawn;
+    const bandits = findSpawn((s) => s.kind === 'bandits').spawn;
+    expect(patrolRunOptions(goblins).briefing).toEqual({ threats: [patrolThreat(goblins)], restriction: null, opportunity: null });
+    expect(patrolRunOptions(herd).briefing).toEqual({ threats: [patrolThreat(herd)], restriction: null, opportunity: null });
+    expect(patrolRunOptions(bandits).briefing).toEqual({ threats: [patrolThreat(bandits)], restriction: null, opportunity: null });
   });
 
   it('ambush half-exposes the goblins\' first fight, and the odds include it', () => {
     const save = tierTeam();
     // Bram alone has no Watchful: the level 1 ambush is half-missed.
     const party = prepareParty(save, ['bram']);
-    const { spawn } = findSpawn((s) => s.kind === 'goblins' && s.tierRoll === 'current');
+    const { spawn } = findSpawn((s) => s.kind === 'goblins');
     // Elites, so the fights can be lost and the exposure shows in the odds.
     const dungeon = patrolDungeon(spawn, 1, true);
-    const runs = Array.from({ length: 10 }, (_, i) => simulateRun(party, dungeon, `s${i}`, patrolRunOptions('goblins')));
+    const runs = Array.from({ length: 10 }, (_, i) => simulateRun(party, dungeon, `s${i}`, patrolRunOptions(spawn)));
     runs.forEach((run) => expect(run.threats[0]).toMatchObject({ threat: { id: 'ambush' }, state: 'half' }));
     // Half of the first fights are exposed: the enemies strike first.
     const exposed = runs.filter((run) => run.encounters[0].effects.some((e) => e.key === 'exposed')).length;
@@ -537,7 +540,7 @@ describe('patrol threats', () => {
     expect(exposed).toBeLessThan(10);
     // The odds the party and the escort see run the same seeds with the same briefing.
     const oddsSeeds = Array.from({ length: 30 }, (_, i) =>
-      simulateRun(party, dungeon, `odds|${dungeon.id}|${i}`, patrolRunOptions('goblins')),
+      simulateRun(party, dungeon, `odds|${dungeon.id}|${i}`, patrolRunOptions(spawn)),
     );
     expect(oddsSeeds.some((run) => run.encounters[0].effects.some((e) => e.key === 'exposed'))).toBe(true);
   });
@@ -545,9 +548,9 @@ describe('patrol threats', () => {
   it('beasts make the herd\'s mobs hit harder', () => {
     const save = tierTeam();
     const party = prepareParty(save, ['bram']);
-    const { spawn } = findSpawn((s) => s.kind === 'herd' && s.tierRoll === 'current');
+    const { spawn } = findSpawn((s) => s.kind === 'herd');
     const dungeon = patrolDungeon(spawn, 1, true);
-    const withThreat = simulateRun(party, dungeon, 's', patrolRunOptions('herd'));
+    const withThreat = simulateRun(party, dungeon, 's', patrolRunOptions(spawn));
     const without = simulateRun(party, dungeon, 's', { rules: { ...expeditionRules, mishapChance: 0 } });
     expect(withThreat.threats[0]).toMatchObject({ threat: { id: 'beasts' }, state: 'half' });
     expect(withThreat.encounters[0].taken.bram).toBeGreaterThan(without.encounters[0].taken.bram);
@@ -557,9 +560,9 @@ describe('patrol threats', () => {
     const save = tierTeam();
     // Bram alone: Finesse 1 half-misses the level 1 thieves.
     const party = prepareParty(save, ['bram']);
-    const { spawn } = findSpawn((s) => s.kind === 'bandits' && s.tierRoll === 'current');
+    const { spawn } = findSpawn((s) => s.kind === 'bandits');
     const dungeon = patrolDungeon(spawn, 1, false);
-    const run = simulateRun(party, dungeon, 's', patrolRunOptions('bandits'));
+    const run = simulateRun(party, dungeon, 's', patrolRunOptions(spawn));
     expect(run.threats[0]).toMatchObject({ threat: { id: 'thieves' }, state: 'half' });
     expect(run.lostLoot).toBeCloseTo(0.05);
   });
@@ -585,11 +588,9 @@ function geared(consumables: Record<string, number> = {}): SaveData {
   return save;
 }
 
-/** A rotation with a debug-forced briefing on `dungeonId`, and the dungeon forced open in its slot. */
+/** A rotation with a debug-forced briefing on `dungeonId`. */
 function forcedRotation(dungeonId: string, briefingOf: Briefing) {
-  const dungeon = dungeonById[dungeonId];
   return applyOverrides(dailyRotation(rotationDay(0)), {
-    ...(dungeon.slot ? { slots: { [`${dungeon.tier}:${dungeon.slot}`]: dungeonId } } : {}),
     briefings: { [dungeonId]: briefingOf },
   });
 }

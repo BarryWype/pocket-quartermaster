@@ -18,8 +18,9 @@ import { createRng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { rosterCap } from '../guild/guild';
 import { applyTraining } from '../guild/training';
-import { TRAVELLER_KINDS, isTravellerKind, patrolsAround, patrolPositionAt, patrolTier, type PatrolKind, type PatrolSpawn, type PatrolSubject } from '../patrols/generate';
-import { PATROL_SOURCES, patrolOdds, resolvePatrolFights, startPatrolFight } from '../patrols/fight';
+import { PATROL_KINDS, TRAVELLER_KINDS, isPatrolKind, isTravellerKind, patrolsAround, patrolPositionAt, type PatrolSpawn, type PatrolSubject } from '../patrols/generate';
+import { isElitePatrolKind } from '@/content/enemies';
+import { patrolOdds, resolvePatrolFights, startPatrolFight } from '../patrols/fight';
 import { isGone } from '../patrols/visibility';
 import { acceptRecruit, helpProblem, helpTraveller, trade, traderOffers } from '../patrols/travellers';
 import { activateLure, isLureActive } from '../rewards/lures';
@@ -157,8 +158,6 @@ const PILGRIM_SUPPLY_STOCK = 8;
 /** Places the walk looks for a patrol or traveller: around home, then this far along each of 8 bearings. */
 const SEARCH_METERS = [0, 500, 1000];
 
-const PATROL_VISITS: [LootSourceId, PatrolKind][] = (Object.entries(PATROL_SOURCES) as [PatrolKind, LootSourceId][]).map(([kind, source]) => [source, kind]);
-
 /** A live spawn of one of these kinds the walk can meet now, not beaten or helped yet. */
 function findSpawn(sim: Sim, kinds: PatrolSubject[]): PatrolSpawn | null {
   const gone = { ...sim.save.beatenPatrols, ...sim.save.helpedTravellers };
@@ -166,7 +165,7 @@ function findSpawn(sim: Sim, kinds: PatrolSubject[]): PatrolSpawn | null {
     for (let bearing = 0; bearing < (meters ? 8 : 1); bearing++) {
       const angle = (bearing / 8) * 2 * Math.PI;
       const at = offsetPosition(sim.location, Math.cos(angle) * meters, Math.sin(angle) * meters);
-      const live = patrolsAround(at, sim.now).filter((s) => kinds.includes(s.kind) && !sim.met.has(s.id) && !isGone(s, gone, sim.now));
+      const live = patrolsAround(at, sim.now, highestTier(sim.save)).filter((s) => kinds.includes(s.kind) && !sim.met.has(s.id) && !isGone(s, gone, sim.now));
       if (live.length) return live[sim.rng.int(0, live.length - 1)];
     }
   }
@@ -176,18 +175,16 @@ function findSpawn(sim: Sim, kinds: PatrolSubject[]): PatrolSpawn | null {
 /** The patrols and travellers the profile meets on this walk, once the map shows them. */
 function meetPatrols(sim: Sim) {
   if (!isRevealed(sim.save, 'patrols')) return;
-  for (const [source, kind] of PATROL_VISITS) {
-    while (takeVisit(sim, source)) {
-      const spawn = findSpawn(sim, [kind]);
-      if (!spawn) {
-        skip(sim, source);
-        continue;
-      }
-      sim.met.add(spawn.id);
-      const { tier, elite } = patrolTier(spawn, highestTier(sim.save));
-      sim.log.patrols.seen.push({ kind, tier, elite });
-      if (!engagePatrol(sim, spawn, sim.now, patrolPositionAt(spawn, sim.now))) skip(sim, source);
+  while (takeVisit(sim, 'patrol')) {
+    const spawn = findSpawn(sim, PATROL_KINDS);
+    if (!spawn || !isPatrolKind(spawn.kind)) {
+      skip(sim, 'patrol');
+      continue;
     }
+    const kind = spawn.kind;
+    sim.met.add(spawn.id);
+    sim.log.patrols.seen.push({ kind, tier: spawn.tier, elite: isElitePatrolKind(kind) });
+    if (!engagePatrol(sim, spawn, sim.now, patrolPositionAt(spawn, sim.now))) skip(sim, 'patrol');
   }
   while (takeVisit(sim, 'traveller')) {
     const spawn = findSpawn(sim, TRAVELLER_KINDS);
@@ -196,8 +193,7 @@ function meetPatrols(sim: Sim) {
       continue;
     }
     sim.met.add(spawn.id);
-    const { tier, elite } = patrolTier(spawn, highestTier(sim.save));
-    sim.log.patrols.seen.push({ kind: spawn.kind, tier, elite });
+    sim.log.patrols.seen.push({ kind: spawn.kind, tier: spawn.tier, elite: isPatrolKind(spawn.kind) && isElitePatrolKind(spawn.kind) });
     helpTravellerSpawn(sim, spawn, sim.now, patrolPositionAt(spawn, sim.now));
   }
 }

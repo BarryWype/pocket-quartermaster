@@ -129,7 +129,7 @@ describe('fight odds cache (the map panels)', () => {
   function spawns() {
     const save = team(3, 5);
     const place = placesAround(POSITION, NOW).find((spawn) => isFightPlace(spawn.kind))!;
-    const patrol = patrolsAround(POSITION, NOW).find((spawn) => isPatrolKind(spawn.kind))!;
+    const patrol = patrolsAround(POSITION, NOW, 3).find((spawn) => isPatrolKind(spawn.kind))!;
     return { save, place, patrol };
   }
 
@@ -147,11 +147,11 @@ describe('fight odds cache (the map panels)', () => {
     expect(fightOddsKey(save, party, other, 3, false, NOW)).not.toBe(first);
   });
 
-  it('keys a patrol by its tier roll as well', () => {
+  it('keys a patrol by its difficulty as well', () => {
     const { save, patrol } = spawns();
     const first = fightOddsKey(save, party, patrol, 3, false, NOW);
-    expect(fightOddsKey(save, party, { ...patrol, tierRoll: 'elite' }, 3, true, NOW)).not.toBe(first);
-    expect(fightOddsKey(save, party, { ...patrol, tierRoll: 'below' }, 2, false, NOW)).not.toBe(first);
+    expect(fightOddsKey(save, party, { ...patrol, difficulty: 'hard' }, 3, true, NOW)).not.toBe(first);
+    expect(fightOddsKey(save, party, { ...patrol, difficulty: 'easy' }, 2, false, NOW)).not.toBe(first);
   });
 
   it('does not recompute on unrelated save writes', () => {

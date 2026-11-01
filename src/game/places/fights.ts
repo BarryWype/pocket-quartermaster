@@ -1,6 +1,7 @@
 import { expeditionRules } from '@/content/dungeons';
 import { mobById, placeMobId } from '@/content/enemies';
 import { placeFightRules, type FightPlaceKind } from '@/content/placeFights';
+import { threatLevelFor } from '@/content/difficulty';
 import { placeInfo, placeRules, type PlaceKind } from '@/content/places';
 
 import { ELEMENTS, type Element } from '../elements';
@@ -39,8 +40,8 @@ export function riftElement(spawn: PlaceSpawn): Element {
 export function placeFightBriefing(save: SaveData, spawn: PlaceSpawn): Briefing {
   const kind = spawn.kind;
   if (!isFightPlace(kind)) throw new Error(`No fight at a ${kind}`);
-  const { threat } = rulesOf(kind);
-  const level = highestUnlockedTier(save) >= placeFightRules.levelTwoFromTier ? 2 : 1;
+  const { threat, difficulty } = rulesOf(kind);
+  const level = (threatLevelFor(difficulty, highestUnlockedTier(save)) ?? 1) as ActiveThreat['level'];
   const id = Array.isArray(threat) ? createRng(`threat|${spawn.id}`).weighted(threat, () => 1) : threat;
   const active: ActiveThreat = { id, level, ...(id === 'element' ? { element: riftElement(spawn) } : {}) };
   const rng = createRng(`opportunity|${spawn.id}`);
@@ -64,12 +65,13 @@ export function placeFightDungeon(spawn: PlaceSpawn, tier: number): DungeonDef {
     weight: group.weight,
     mobs: [{ mobId: placeMobId(kind, tier, group.role, elite, element), count: group.count }],
   }));
-  const { gold, xp } = sourceAmounts(kind, tier);
+  const { gold, xp } = sourceAmounts(kind, tier, rulesOf(kind).difficulty);
   return {
     id: `place:${kind}:${tier}${elite ? ':elite' : ''}`,
     name: placeInfo[kind].name,
     emoji: placeInfo[kind].emoji,
     tier,
+    difficulty: rulesOf(kind).difficulty,
     durationMinutes: minutes,
     encounterCount: [1, 2],
     encounters,
@@ -92,7 +94,13 @@ export function placeLoot(
   element?: Element,
   modifiers: LootModifier[] = [],
 ): Loot {
-  return rollForSave(save, kind, rng, { luck, modifiers, enemies, ...(element ? { element } : {}) });
+  return rollForSave(save, kind, rng, {
+    luck,
+    modifiers,
+    enemies,
+    difficulty: rulesOf(kind).difficulty,
+    ...(element ? { element } : {}),
+  });
 }
 
 export type PlaceFightProblem = 'gone' | 'tooFar' | 'empty' | 'partySize' | 'away' | 'exhausted' | null;

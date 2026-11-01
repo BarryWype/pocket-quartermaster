@@ -1,9 +1,9 @@
 import { expeditionRules } from '@/content/dungeons';
 import { rosterRules } from '@/content/roster';
 import { lootConfig } from '@/content/loot/config';
-import { mobById, patrolMobId } from '@/content/enemies';
-import { patrolKinds, patrolRules, patrolTexts, type PatrolRules } from '@/content/patrols';
-import { patrolThreats } from '@/content/threats';
+import { isElitePatrolKind, mobById, patrolMobId } from '@/content/enemies';
+import { patrolFights, patrolRules, patrolTexts, type PatrolRules } from '@/content/patrols';
+import { patrolThreat } from '@/content/threats';
 
 import { estimatePartyOdds, ODDS_RUNS, type Odds } from '../expeditions/odds';
 import { highestUnlockedTier, untriggeredSalvage } from '../expeditions/expeditions';
@@ -22,20 +22,20 @@ import type { SaveData } from '../save';
 import { applyRunHp, isExhausted } from '../team/health';
 import { isAway } from '../team/team';
 import type { BossDef, Briefing, DungeonDef, EncounterDef, ExpeditionReport } from '../types';
-import { isPatrolKind, patrolTier, pruneByWindow, type PatrolKind, type PatrolSpawn } from './generate';
+import { isPatrolKind, pruneByWindow, wyvernElement, type PatrolKind, type PatrolSpawn } from './generate';
 import { distanceTo, isGone } from './visibility';
 import { questEvent } from '../quests/progress';
 
 const MINUTE = 60_000;
 
-/** The threat each patrol kind carries: only its run-level effects apply. */
-export function patrolBriefing(kind: PatrolKind): Briefing {
-  return { threats: [patrolThreats[kind]], restriction: null, opportunity: null };
+/** The threat a patrol spawn carries: only its run-level effects apply. */
+export function patrolBriefing(spawn: PatrolSpawn): Briefing {
+  return { threats: [patrolThreat(spawn)], restriction: null, opportunity: null };
 }
 
 /** The run options a patrol fight uses: no mishaps, with the patrol's threat. */
-export function patrolRunOptions(kind: PatrolKind): RunOptions {
-  return { rules: { ...expeditionRules, mishapChance: 0 }, briefing: patrolBriefing(kind), elixirs: true };
+export function patrolRunOptions(spawn: PatrolSpawn): RunOptions {
+  return { rules: { ...expeditionRules, mishapChance: 0 }, briefing: patrolBriefing(spawn), elixirs: true };
 }
 
 /** What the game state knows when rewards are rolled: the save does not have to be at hand. */
@@ -60,7 +60,8 @@ export const rewardContextOf = (save: SaveData, luck = 0, modifiers: LootModifie
   playerTier: highestUnlockedTier(save),
 });
 
-export const PATROL_SOURCES: Record<PatrolKind, LootSourceId> = { goblins: 'patrolGoblins', herd: 'patrolHerd', bandits: 'patrolBandits' };
+/** Every patrol kind rolls the same Patrol row; its material theme comes with the kind. */
+const PATROL_SOURCE: LootSourceId = 'patrol';
 
 /**
  * The fight itself, as a mini dungeon: one or two encounters, the last group a
@@ -69,23 +70,25 @@ export const PATROL_SOURCES: Record<PatrolKind, LootSourceId> = { goblins: 'patr
  */
 export function patrolDungeon(spawn: PatrolSpawn, tier: number, elite: boolean, rules: PatrolRules = patrolRules): DungeonDef {
   const patrolKind = spawn.kind;
-  if (!isPatrolKind(patrolKind)) throw new Error(`No fight with a ${patrolKind}`);
-  const kind = patrolKinds[patrolKind];
+  if (!isPatrolKind(patrolKind) || spawn.difficulty === null) throw new Error(`No fight with a ${patrolKind}`);
+  const kind = patrolFights[spawn.difficulty];
+  const element = patrolKind === 'wyverns' ? wyvernElement(spawn) : undefined;
   const encounters: EncounterDef[] = kind.groups.map((group) => ({
     type: 'fight',
     weight: group.weight,
-    mobs: [{ mobId: patrolMobId(patrolKind, tier, group.role, elite), count: group.count }],
+    mobs: [{ mobId: patrolMobId(patrolKind, tier, group.role, elite, element), count: group.count }],
   }));
-  const { gold, xp } = sourceAmounts(PATROL_SOURCES[patrolKind], tier);
+  const { gold, xp } = sourceAmounts(PATROL_SOURCE, tier, spawn.difficulty);
   return {
     id: `patrol:${patrolKind}:${tier}${elite ? ':elite' : ''}`,
     name: patrolTexts.kinds[patrolKind],
     emoji: '⚔️',
     tier,
+    difficulty: spawn.difficulty,
     durationMinutes: kind.fightMinutes,
     encounterCount: [1, 2],
     encounters,
-    boss: mobById[patrolMobId(patrolKind, tier, 'boss', elite)] as BossDef,
+    boss: mobById[patrolMobId(patrolKind, tier, 'boss', elite, element)] as BossDef,
     gold: [gold, gold],
     xp,
   };
@@ -105,8 +108,8 @@ export function patrolRewards(
   rng: Rng,
 ): Loot {
   if (!isPatrolKind(spawn.kind)) throw new Error(`No rewards from a ${spawn.kind}`);
-  const source = PATROL_SOURCES[spawn.kind];
-  const amounts = sourceAmounts(source, tier);
+  const source = PATROL_SOURCE;
+  const amounts = sourceAmounts(source, tier, spawn.difficulty ?? undefined);
   const elites = elite ? lootConfig.eliteMultiplier : 1;
   return rollSourceLoot({
     source,
@@ -114,6 +117,8 @@ export function patrolRewards(
     luck: context.luck,
     modifiers: context.modifiers ?? [],
     enemies,
+    difficulty: spawn.difficulty ?? undefined,
+    patrolKind: spawn.kind,
     base: { gold: Math.round(amounts.gold * elites * context.goldMultiplier), xp: Math.round(amounts.xp * elites) },
     context: { playerTier: context.playerTier, pickaxeTier: context.pickaxeTier, knownRecipes: [], favourCounts: {}, mastery: {} },
     rng,
@@ -182,11 +187,13 @@ export function startPatrolFight(
   const kind = spawn.kind;
   if (problem || !isPatrolKind(kind)) throw new Error(`Cannot fight this patrol: ${problem}`);
 
-  const { tier, elite } = patrolTier(spawn, highestUnlockedTier(save));
+  // Elites are their own kinds now (see ELITE_PATROL_KINDS), so the elite mob variant and its reward multiplier come with the kind.
+  const tier = spawn.tier;
+  const elite = isElitePatrolKind(kind);
   const dungeon = patrolDungeon(spawn, tier, elite, rules);
   const party = prepareParty(save, heroIds, now, true);
   const id = `p${save.nextUid}`;
-  const run = simulateRun(party, dungeon, `${id}|${spawn.id}`, patrolRunOptions(kind));
+  const run = simulateRun(party, dungeon, `${id}|${spawn.id}`, patrolRunOptions(spawn));
   const rewards = run.bossDefeated
     ? patrolRewards(
         rewardContextOf(save, party.reduce((sum, m) => sum + m.luck, 0), partyCharms(party)),
@@ -214,7 +221,7 @@ export function startPatrolFight(
         windowEndsAt: spawn.endsAt,
         won: run.bossDefeated,
         hp: run.hp,
-        salvaged: untriggeredSalvage(party, run, PATROL_SOURCES[kind]),
+        salvaged: untriggeredSalvage(party, run, PATROL_SOURCE),
         rewards,
       },
     ],
@@ -236,12 +243,13 @@ export function patrolOdds(
 ): Odds {
   const kind = spawn.kind;
   if (!isPatrolKind(kind)) throw new Error(`No fight with a ${kind}`);
-  const { tier, elite } = patrolTier(spawn, highestUnlockedTier(save));
+  const tier = spawn.tier;
+  const elite = isElitePatrolKind(kind);
   return estimatePartyOdds(
     prepareParty(save, heroIds, now, true),
     patrolDungeon(spawn, tier, elite, rules),
     runs,
-    patrolRunOptions(kind),
+    patrolRunOptions(spawn),
   );
 }
 

@@ -1,6 +1,7 @@
 import { materialById } from '@/content/lookup';
 import { REVEAL_KINDS } from '@/content/reveal';
-
+import { difficultyRules } from '@/content/difficulty';
+import type { DifficultyOdds } from '@/game/sim/difficultyOdds';
 import { misses, type ProfileSummary, type Stat } from '@/game/sim/metrics';
 import { inRange, targets } from '@/game/sim/targets';
 
@@ -8,6 +9,8 @@ export type ReportInput = {
   summaries: ProfileSummary[];
   rules: string[];
   settings: { seeds: number; seed: string; overrides: string[]; elapsed: number; date: string };
+  /** The reference teams' odds per tier and difficulty (summary.json's `difficultyOdds`). */
+  difficultyOdds: Record<number, DifficultyOdds>;
 };
 
 const WARN = '⚠';
@@ -185,8 +188,26 @@ function reasonsTable(labels: Record<string, string>, stats: Record<string, Stat
   return table(['Reason', 'Per day'], Object.entries(labels).map(([key, label]) => [label, n(stats[key]?.median ?? null, 2)]));
 }
 
+/** The reference teams' odds per tier and difficulty, the fitting script's target table. */
+function difficultyTable(difficultyOdds: Record<number, DifficultyOdds>) {
+  const cell = (value: number, range: [number, number]) => `${pct(value)}${mark(value, range)}`;
+  const rows = Object.entries(difficultyOdds)
+    .map(([tier, odds]) => Number(tier))
+    .sort((a, b) => a - b)
+    .map((tier) =>
+      [
+        String(tier),
+        ...(['easy', 'medium', 'hard'] as const).flatMap((d) => [
+          cell(difficultyOdds[tier][d].start, difficultyRules.oddsTargets[d].start),
+          cell(difficultyOdds[tier][d].end, difficultyRules.oddsTargets[d].end),
+        ]),
+      ].join(' | '),
+    );
+  return ['| Tier | easy start | easy end | medium start | medium end | hard start | hard end |', '| --- | --- | --- | --- | --- | --- | --- |', ...rows.map((r) => `| ${r} |`)].join('\n') + '\n';
+}
+
 /** The markdown report: targets next to results, ⚠ on anything out of range. */
-export function renderReport({ summaries, rules, settings }: ReportInput) {
+export function renderReport({ summaries, rules, settings, difficultyOdds }: ReportInput) {
   const regular = summaries.find((s) => s.profile === 'regular');
   const worst = misses(summaries).slice(0, 10);
   const out: string[] = [
@@ -209,9 +230,16 @@ export function renderReport({ summaries, rules, settings }: ReportInput) {
   ];
   for (const s of summaries) out.push(`### ${s.profile}`, '', odds(s));
   out.push(
+    '## Difficulty odds (reference teams)',
+    '',
+    'The fitting script\u2019s target table: each tier\u2019s sources of each difficulty, measured with the reference team at the tier\u2019s start and end (see src/game/sim/difficultyOdds.ts). ⚠ marks an odds outside its difficulty\u2019s target range.',
+    '',
+    difficultyTable(difficultyOdds),
+  );
+  out.push(
     '## Events and patrols by kind',
     '',
-    'The same probe and fight record split by kind: each patrol kind (goblin scouts, game herd, bandits) and each fight event kind.',
+    'The same probe and fight record split by kind: each patrol kind and each fight event kind.',
     '',
   );
   for (const s of summaries) out.push(`### ${s.profile}`, '', kindOdds(s));

@@ -75,7 +75,7 @@ describe('map and panel timings (logged, not asserted)', () => {
       places.filter((place) => isPlaceVisible(place, POSITION, NOW) && !(place.id in save.usedPlaces) && showsForPlayer(place, pickaxeTier(save))),
     );
     const taverns = perf('map: generateTavernsAround', () => generateTavernsAround(POSITION, MINUTE));
-    const patrols = perf('map: patrolsAround', () => patrolsAround(POSITION, MINUTE, patrolRules));
+    const patrols = perf('map: patrolsAround', () => patrolsAround(POSITION, MINUTE, 1, patrolRules));
     const fights = perf('map: visiblePatrols', () =>
       patrols.filter((spawn) => isPatrolKind(spawn.kind) && isVisible(spawn, POSITION, NOW, patrolRules)),
     );

@@ -1,6 +1,10 @@
 import type { ValuableBuyer, ValuableRarity } from '@/content/loot/valuables';
+import type { PatrolKind } from '@/game/patrols/generate';
 import type { LootCategory, LootSourceId, MapRarity } from '@/game/loot/types';
 import type { Quality } from '@/game/types';
+
+/** One materials drop's flavour: a fixed list, or "cache" for a pickaxe-covered resource. */
+export type MaterialTheme = { materials?: string[]; cache?: boolean };
 
 /** A consumable pick of this id is a lure (herbs and animals near the player), added to `loot.lures`. */
 export const LURE_ID = 'lure';
@@ -33,11 +37,10 @@ export const lootConfig = {
     dungeonRun: 1,
     firstWin: 1,
     firstTierClear: 1,
+    firstDungeonClear: 1,
     tierBoss: 1,
     overnightExpedition: 1,
-    patrolGoblins: 1,
-    patrolHerd: 1,
-    patrolBandits: 1,
+    patrol: 1,
     traveller: 1,
     banditCamp: 1,
     goblinRaid: 1,
@@ -74,7 +77,7 @@ export const lootConfig = {
     monsterPartsOnA: [2, 3] as [number, number],
   },
   /** Gear tier: these sources give the source's tier, all others the player's (70%) or one below (30%). */
-  dungeonSources: ['dungeonRun', 'firstWin', 'firstTierClear', 'tierBoss', 'overnightExpedition'] as LootSourceId[],
+  dungeonSources: ['dungeonRun', 'firstWin', 'firstTierClear', 'firstDungeonClear', 'tierBoss', 'overnightExpedition'] as LootSourceId[],
   gearTier: { playerTierShare: 0.7 },
   /**
    * A materials drop picks one option uniformly: a fixed material list, plus
@@ -82,12 +85,9 @@ export const lootConfig = {
    * by its `weight` (ore, stone or wood, never herbs or animals).
    */
   materialThemes: {
-    patrolGoblins: { materials: ['herb', 'berries', 'mushroom'] },
-    patrolHerd: { materials: ['meat', 'hide', 'bone'] },
     beastDen: { materials: ['meat', 'hide', 'bone'] },
     hauntedCrypt: { materials: ['bone'] },
     traveller: { materials: ['herb', 'berries', 'mushroom'] },
-    patrolBandits: { cache: true },
     banditCamp: { cache: true },
     goblinRaid: { cache: true },
     abandonedCaravan: { cache: true },
@@ -99,7 +99,24 @@ export const lootConfig = {
     questShort: { materials: ['wood', 'hide', 'herb', 'berries', 'bone', 'meat', 'mushroom'] },
     questMedium: { materials: ['wood', 'hide', 'herb', 'berries', 'bone', 'meat', 'mushroom'], cache: true },
     questLong: { materials: ['hide', 'bone', 'meat'], cache: true },
-  } as Partial<Record<LootSourceId, { materials?: string[]; cache?: boolean }>>,
+  } as Partial<Record<LootSourceId, MaterialTheme>>,
+  /** The single Patrol row's material theme, by patrol kind (see content/patrols.ts). */
+  patrolThemes: {
+    goblins: { materials: ['herb', 'berries', 'mushroom'] },
+    eliteGoblins: { materials: ['herb', 'berries', 'mushroom'] },
+    spiders: { materials: ['mushroom', 'herb'] },
+    orcs: { materials: ['hide', 'bone'], cache: true },
+    eliteOrcs: { materials: ['hide', 'bone'], cache: true },
+    ogres: { materials: ['hide', 'bone'], cache: true },
+    trolls: { materials: ['hide', 'bone'], cache: true },
+    wraiths: { materials: ['bone'] },
+    wyverns: { materials: ['hide', 'bone'] },
+    golems: { materials: ['stone'] },
+    herd: { materials: ['meat', 'hide', 'bone'] },
+    wolves: { materials: ['meat', 'hide', 'bone'] },
+    bandits: { cache: true },
+    outlaws: { cache: true },
+  } as Record<PatrolKind, MaterialTheme>,
   /** Quality ladders, read with d20 + bonus; floors then lift a source's minimum. */
   gearQuality: {
     ladders: {
@@ -184,9 +201,7 @@ export const lootConfig = {
    * dungeon's gold and XP instead; the two bonus rows use `bonusRows`.
    */
   amounts: {
-    patrolGoblins: { gold: 1, xp: 0.25 },
-    patrolHerd: { gold: 0.5, xp: 0.25 },
-    patrolBandits: { gold: 1.5, xp: 0.25 },
+    patrol: { gold: 1, xp: 0.25 },
     traveller: { gold: 1, xp: 0 },
     banditCamp: { gold: 2, xp: 0.3 },
     goblinRaid: { gold: 0.5, xp: 0.3 },
@@ -208,7 +223,7 @@ export const lootConfig = {
     secretQuest: { gold: 2, xp: 0 },
   } as Partial<Record<LootSourceId, { gold: number; xp: number }>>,
   /** The day's first win and a new tier's first clear: shares of the dungeon's top gold and its XP. */
-  bonusRows: { firstWin: { gold: 1, xp: 0.5 }, firstTierClear: { gold: 1, xp: 0.5 } },
+  bonusRows: { firstWin: { gold: 1, xp: 0.5 }, firstTierClear: { gold: 1, xp: 0.5 }, firstDungeonClear: { gold: 1, xp: 0.5 } },
   /** Elite patrols pay this many times the gold and XP. */
   eliteMultiplier: 2,
   /** Treasure maps last this long once found. */
@@ -224,7 +239,7 @@ export const lootConfig = {
     /** Weight of each valuable in the collector's daily pick; others weigh 1. */
     collectorWeights: { oldCoins: 2 } as Record<string, number>,
   },
-  /** Gold at each tier relative to tier 1; rewards follow it (see `slotGold` in content/dungeons.ts). */
+  /** Gold at each tier relative to tier 1; rewards follow it (see `chainGold` in content/dungeons.ts). */
   goldByTier,
   /** A valuable's price is its base price times this, by the source's tier: the enemy strength curve. */
   valuablePriceByTier: goldByTier,

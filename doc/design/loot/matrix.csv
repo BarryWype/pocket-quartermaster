@@ -1,12 +1,11 @@
 Source,Visits per day (regular player),Gold,XP,Materials,Shards,Blueprints,Gear,Trinkets,Components,Relics,Monster parts,Valuables,Consumables,Treasure maps,Manuals,Key fragments,Notes
-Dungeon run,6,A,A,—,—,R,S,R/2,—,—,O,S,S,R,R,R/2,Launched from the phone: no materials
+Dungeon run,5,A,A,—,—,R,S,R/2,—,—,O,S,S,R,R,R/2,Launched from the phone: no materials
 "Dungeon, first win of the day",1,A,A,—,R,A,S,S,—,—,O,S,S,R,S,R,The first won dungeon of the day (one per day in total)
 First clear of a new tier,0.03,A,A,—,—,A,A,—,—,—,O,S,S,—,S,A,Gear at least Uncommon
+"First clear of a dungeon",0.3,A,A,—,—,S,A,R/2,—,—,O,S,S,R,R,R/2,"Paid once per chain dungeon; stacks with the difficulty multiplier"
 Tier boss,0.2,A,A,—,R,R,O,S,S,R,A,O,S,S,S,R,Components are the boss's own; Legendary gear possible
 Overnight expedition,1,A,A,—,—,R,S,R,—,—,O,O,S,S,R,—,
-Patrol: goblin scouts,1.33,O,O,S,—,—,R,—,—,—,O,S,S,—,—,—,
-Patrol: game herd,1.33,S,O,A,—,—,—,—,R,—,A,—,—,—,—,—,"Meat, hide, bone; components from elites"
-Patrol: bandits,1.33,A,O,O,—,—,S,—,—,—,S,O,S,R,—,—,
+Patrol,4,O,O,S,—,—,R,—,—,—,O,S,S,—,—,—,Materials by patrol kind (lootConfig.patrolThemes)
 Traveller,0.3,S,—,S,S,—,—,R,—,—,—,S,S,R,—,R,"Also a blessing, trades, a rare recruit"
 Bandit camp,0.43,A,O,S,—,R,S,—,—,—,S,O,S,R,—,—,
 Goblin raiding party,0.43,O,O,O,—,—,R,R,—,—,O,S,O,—,—,—,

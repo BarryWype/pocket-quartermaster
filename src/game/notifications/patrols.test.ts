@@ -1,3 +1,4 @@
+import { difficultyLabels } from '@/content/difficulty';
 import { formatDistance } from '@/i18n';
 
 import type { BackgroundAlert } from '../patrols/escort';
@@ -32,7 +33,7 @@ describe('patrol alerts', () => {
       category: 'patrolSpotted',
       group: 'patrols',
       at: null,
-      title: 'Goblin patrol spotted',
+      title: `${difficultyLabels[goblins.difficulty!]} patrol nearby: Goblin patrol`,
       body: `Goblin patrol ${formatDistance(120)} away (tier 3)`,
     });
     expect(alert!.data).toEqual({ route: 'map', patrolId: goblins.id, ...patrolPositionAt(goblins, now) });

@@ -1,4 +1,6 @@
+import type { Difficulty } from '@/content/difficulty';
 import type { MasteryState, MasteryType } from '@/game/types';
+import type { PatrolKind } from '@/game/patrols/generate';
 
 import type { Element } from '../elements';
 import type { Rng } from '../generation/rng';
@@ -23,6 +25,10 @@ export type LootRequest = ChanceInput & {
   rng: Rng;
   element?: Element;
   force?: LootCategory;
+  /** The source's difficulty band: scales chance, amounts, quality and (via sourceAmounts) gold and XP. */
+  difficulty?: Difficulty;
+  /** The patrol's kind, for the Patrol row's material theme. */
+  patrolKind?: PatrolKind;
 };
 
 /**

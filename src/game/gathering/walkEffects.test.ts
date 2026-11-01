@@ -5,7 +5,7 @@ import { spawnPositionAt } from '../generation/animalPaths';
 import { distanceMeters, offsetPosition } from '../generation/geo';
 import type { LatLng, Spawn, StaticSpawn } from '../generation/types';
 import { backgroundStep, snapshotBackground, type BackgroundAlert, type PatrolSettings } from '../patrols/escort';
-import { patrolPositionAt } from '../patrols/generate';
+import { patrolPositionAt, patrolsAround, type PatrolSpawn } from '../patrols/generate';
 import { findSpawn, HOME, tierTeam } from '../patrols/testHelpers';
 import { createInitialSave, type SaveData } from '../save';
 import type { WalkEffect } from '../types';
@@ -197,11 +197,16 @@ describe('track', () => {
   });
 
   it('lets the background see and alert on a patrol from twice as far, fix by fix', () => {
-    const { spawn: goblins, at: patrolAt } = findSpawn((s) => s.kind === 'goblins' && s.tierRoll === 'current');
+    // Goblins with no other patrol within a kilometre, so the alert cooldown can't go to another spawn first.
+    const alone = (s: PatrolSpawn) =>
+      patrolsAround(HOME, s.startsAt, 1).every(
+        (o) => o.id === s.id || distanceMeters(patrolPositionAt(o, s.startsAt + MIN), patrolPositionAt(s, s.startsAt + MIN)) > 1000,
+      );
+    const { spawn: goblins, at: patrolAt } = findSpawn((s) => s.kind === 'goblins' && alone(s));
     const settings: PatrolSettings = { escortHeroId: null, alertFor: 'all', patrolAlerts: true, escortAlerts: false };
     const save = (effect: WalkEffect | null) => ({ ...tierTeam(), walkEffects: effect ? [effect] : [] });
     const spotted = (alerts: ReturnType<typeof backgroundStep>['alerts']) =>
-      alerts.filter((a): a is Extract<BackgroundAlert, { kind: 'patrolSpotted' }> => a.kind === 'patrolSpotted');
+      alerts.filter((a): a is Extract<BackgroundAlert, { kind: 'patrolSpotted' }> => a.kind === 'patrolSpotted' && a.spawn.id === goblins.id);
     // 495 m off to the south-east: past the usual 300 m sight, inside the doubled one (and so is everything else here).
     const off = (time: number) => ({ position: offsetPosition(patrolPositionAt(goblins, time), -350, 350), timestamp: time });
 

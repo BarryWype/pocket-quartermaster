@@ -13,7 +13,7 @@ import { tutorialRules } from '@/content/tutorial';
 import { unlockRecipe } from '../crafting/crafting';
 import { guildBonus, rosterCap } from '../guild/guild';
 import { highestUnlockedTier, isDungeonUnlocked } from '../dungeons/unlock';
-import { briefingFor, openDungeonIds, rotationDay, type Rotation } from '../dungeons/rotation';
+import { briefingFor, rotationDay, type Rotation } from '../dungeons/rotation';
 import { createRng, type Rng } from '../generation/rng';
 import { addMaterials } from '../inventory';
 import { charmApplies, partyCharms } from '../loot/charms';
@@ -53,15 +53,13 @@ import {
 export { highestUnlockedTier, isDungeonUnlocked } from '../dungeons/unlock';
 
 /**
- * Whether the player can send a party there now: unlocked and open in the
- * rotation (if given). During the tutorial only its own dungeon is, until the
- * tutorial is done.
+ * Whether the player can send a party there now: every unlocked dungeon is
+ * open every day (only its briefing rotates). During the tutorial only its
+ * own dungeon is, until the tutorial is done.
  */
-export function isDungeonAvailable(save: SaveData, dungeon: DungeonDef, rotation?: Rotation) {
+export function isDungeonAvailable(save: SaveData, dungeon: DungeonDef, _rotation?: Rotation) {
   if (save.tutorial.step !== 'done') return isTutorialDungeon(dungeon.id);
-  // Overnight expeditions are open every day; they only follow their tier's unlock.
-  if (dungeon.overnight) return isDungeonUnlocked(save, dungeon);
-  return isDungeonUnlocked(save, dungeon) && (!rotation || openDungeonIds(rotation).includes(dungeon.id));
+  return isDungeonUnlocked(save, dungeon);
 }
 
 /** Whether a win in this dungeon now would be the day's first (dungeons and tier bosses, never overnight expeditions). */
@@ -422,11 +420,17 @@ export function resolveExpedition(
   const firstWin =
     tutorialReward ||
     (success && !dungeon.overnight && !dungeon.secret && save.firstWinDay !== rotationDay(expedition.endsAt));
+  // A tier's first clear is its boss's: the chain dungeons each pay their own first clear.
   const firstTierClear =
+    !tutorialReward && success && !dungeon.secret && dungeon.isBoss && !save.clearedDungeons.includes(dungeon.id);
+  // The first clear of each chain dungeon pays its own row once; the boss keeps the tier's.
+  const firstDungeonClear =
     !tutorialReward &&
     success &&
     !dungeon.secret &&
-    !save.clearedDungeons.some((id) => dungeonById[id]?.tier === dungeon.tier);
+    dungeon.chainIndex !== undefined &&
+    !dungeon.isBoss &&
+    !save.clearedDungeons.includes(dungeon.id);
   const context = lootContextOf(save);
   const enemies = run.encounters.flatMap((e) => e.mobs.map((m) => m.mobId));
   const source = dungeonLootSource(dungeon);
@@ -440,6 +444,7 @@ export function resolveExpedition(
       luck,
       modifiers,
       enemies,
+      difficulty: dungeon.difficulty,
       base,
       context,
       rng: createRng(`${expedition.seed}|${source}`),
@@ -456,6 +461,7 @@ export function resolveExpedition(
     loot = roll(source, { gold: baseGold, xp: Math.round(xp * mealXp) });
     if (firstWin) loot = mergeLoot(loot, roll('firstWin', bonus('firstWin')));
     if (firstTierClear) loot = mergeLoot(loot, roll('firstTierClear', bonus('firstTierClear')));
+    if (firstDungeonClear) loot = mergeLoot(loot, roll('firstDungeonClear', bonus('firstDungeonClear')));
   } else {
     loot = { ...emptyLoot(), gold: Math.round(baseGold * (1 + lootConfig.luck.goldPerPoint * luck)), xp: Math.round(xp * mealXp) };
   }
@@ -526,7 +532,7 @@ export function resolveExpedition(
   if (run.opportunity?.answered && run.opportunity.pilgrim) {
     const pilgrim = run.opportunity.pilgrim;
     if (pilgrim === 'gold') {
-      const short = dungeons.find((d) => d.tier === dungeon.tier && d.slot === 'short')!;
+      const short = dungeons.find((d) => d.tier === dungeon.tier && d.chainIndex === 0)!;
       next = { ...next, gold: next.gold + Math.round(((short.gold[0] + short.gold[1]) / 2) * travellerRules.goldShareOfShort) };
     } else if (pilgrim === 'keyFragment') {
       next = { ...next, keyFragments: next.keyFragments + 1 };
@@ -563,6 +569,7 @@ export function resolveExpedition(
       ...sigil,
       firstWin,
       firstTierClear,
+      firstDungeonClear,
       hunger: expedition.hunger,
       salvaged,
       elixirs: true,
@@ -601,6 +608,7 @@ export function resolveExpedition(
     ...(prize ? { prize } : {}),
     ...(firstWin ? { firstWin } : {}),
     ...(firstTierClear ? { firstTierClear } : {}),
+    ...(firstDungeonClear ? { firstDungeonClear } : {}),
     consumablesUsed,
     log,
     seen: false,

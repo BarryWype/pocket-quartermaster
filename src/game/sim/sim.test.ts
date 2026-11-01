@@ -23,7 +23,7 @@ const rates = measureWalkRates({ ...simConfig, walk: { ...simConfig.walk, sample
 const csv = parseMatrixCsv(fs.readFileSync(path.resolve(__dirname, '../../../doc/design/loot/matrix.csv'), 'utf8'));
 const total = (visits: Partial<Record<LootSourceId, number>>, sources: LootSourceId[]) => sources.reduce((sum, s) => sum + (visits[s] ?? 0), 0);
 const FIGHT_EVENTS: LootSourceId[] = ['banditCamp', 'goblinRaid', 'beastDen', 'hauntedCrypt', 'elementalRift', 'abandonedCaravan', 'wantedOutlaw'];
-const PATROLS: LootSourceId[] = ['patrolGoblins', 'patrolHerd', 'patrolBandits'];
+const PATROLS: LootSourceId[] = ['patrol'];
 const QUESTS: LootSourceId[] = ['questShort', 'questMedium', 'questLong'];
 
 describe('profiles', () => {
@@ -76,7 +76,7 @@ describe('balance lab', () => {
   it('plays through the tutorial and the first tier', () => {
     // Full XP above the tier band: this checks the bot's play, not the soft XP cap's balance.
     const undo = applyOverrides([parseOverride('xp.aboveBandShare=1')]);
-    const log = runSim({ profile: 'regular', maxDays: 14, seed: 'progress', rates });
+    const log = runSim({ profile: 'regular', maxDays: 21, seed: 'progress', rates });
     undo();
     expect(log.milestones['boss:1']).toBeDefined();
     expect(log.expeditions.length).toBeGreaterThan(5);

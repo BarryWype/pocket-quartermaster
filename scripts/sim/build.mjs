@@ -10,6 +10,7 @@ await build({
   entryPoints: {
     sim: path.join(root, 'scripts/sim/index.ts'),
     quick: path.join(root, 'scripts/sim/quick.ts'),
+    fit: path.join(root, 'scripts/sim/fitDifficulty.ts'),
   },
   outdir: path.join(root, 'sim-output/.build'),
   outExtension: { '.js': '.cjs' },

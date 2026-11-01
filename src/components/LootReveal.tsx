@@ -9,6 +9,7 @@ import { t, tr } from '@/i18n';
 import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
+import { DifficultyChip } from './ui';
 import { lootLabels } from './lootText';
 import { Overlay } from './Overlay';
 import { useSheetMaxHeight } from './Sheet';
@@ -26,7 +27,7 @@ export const OUTCOME_COLORS: Record<ExpeditionOutcome, string> = {
 /** Everything a report brought back, one short label each: gold first, then the rarer finds, then materials. */
 export function lootItems(report: ExpeditionReport): string[] {
   return [
-    report.firstTierClear ? t('expeditions.firstTierClear') : report.firstWin ? t('expeditions.firstWin') : null,
+    report.firstTierClear ? t('expeditions.firstTierClear') : report.firstDungeonClear ? t('expeditions.firstDungeonClear') : report.firstWin ? t('expeditions.firstWin') : null,
     report.sigil ? t('expeditions.sigil', { tier: report.sigil }) : null,
     report.sigilShards
       ? t('expeditions.sigilShards', { emoji: materialById[shardId(report.sigilShards.element)].emoji, amount: report.sigilShards.amount })
@@ -72,7 +73,10 @@ export function LootReveal({ report, before, after, onClose, onReadReport }: Pro
     <Overlay onClose={onClose} backdropStyle={styles.backdrop}>
         <Panel style={[styles.dialog, { maxHeight }]}>
           <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-          <IconLabel emoji={dungeon.emoji} label={tr(dungeon.name)} size={22} labelStyle={styles.title} />
+          <View style={styles.titleRow}>
+            <IconLabel emoji={dungeon.emoji} label={tr(dungeon.name)} size={22} labelStyle={styles.title} />
+            <DifficultyChip difficulty={dungeon.difficulty} />
+          </View>
           <Text style={[styles.outcome, { color: OUTCOME_COLORS[report.outcome] }]}>
             {t(`expeditions.outcome.${report.outcome}`)} ({report.encountersCleared}/{report.encounterCount})
           </Text>
@@ -110,6 +114,7 @@ const styles = StyleSheet.create({
   dialog: { gap: 10, padding: 16 },
   scroll: { flexShrink: 1 },
   content: { gap: 10 },
+  titleRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8 },
   title: { fontSize: 26, textAlign: 'center' },
   outcome: { fontSize: 21, textAlign: 'center' },
   muted: { color: colors.muted, textAlign: 'center' },

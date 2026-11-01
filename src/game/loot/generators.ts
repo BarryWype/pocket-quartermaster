@@ -1,3 +1,4 @@
+import { difficultyRules } from '@/content/difficulty';
 import { gearId, gearRecipes } from '@/content/equipment';
 import { LURE_ID, lootConfig } from '@/content/loot/config';
 import { lootMatrix } from '@/content/loot/matrix';
@@ -33,6 +34,12 @@ function percentBonus(req: LootRequest, kind: 'gold' | 'xp'): number {
   );
 }
 
+/** Difficulty scales material, shard and monster-part amounts, rounded half up, never below 1. */
+function scaledAmount(req: LootRequest, raw: number): number {
+  const multiplier = req.difficulty ? difficultyRules.rewards[req.difficulty].amount : 1;
+  return Math.max(1, Math.round(raw * multiplier));
+}
+
 /** One pickaxe-covered resource: ore, stone or wood, weighted by its weight. */
 function cacheMaterial(req: LootRequest, rng: Rng): { materialId: string; amount: number } {
   const pool = resources.filter(
@@ -43,11 +50,13 @@ function cacheMaterial(req: LootRequest, rng: Rng): { materialId: string; amount
   );
   const resource = rng.weighted(pool, (r) => r.weight);
   const [min, max] = lootConfig.quantities.materials;
-  return { materialId: resource.yields[0].materialId, amount: rng.int(min, max) };
+  return { materialId: resource.yields[0].materialId, amount: scaledAmount(req, rng.int(min, max)) };
 }
 
 function materials(req: LootRequest, loot: Loot): void {
-  const theme = lootConfig.materialThemes[req.source];
+  // The single Patrol row keeps its per-kind flavour through `patrolThemes`.
+  const theme =
+    req.source === 'patrol' ? lootConfig.patrolThemes[req.patrolKind ?? 'goblins'] : lootConfig.materialThemes[req.source];
   if (!theme) return;
   const options: (string | 'cache')[] = [...(theme.materials ?? [])];
   if (theme.cache) options.push('cache');
@@ -56,14 +65,14 @@ function materials(req: LootRequest, loot: Loot): void {
   const stack =
     pick === 'cache'
       ? cacheMaterial(req, req.rng)
-      : { materialId: pick, amount: req.rng.int(min, max) };
+      : { materialId: pick, amount: scaledAmount(req, req.rng.int(min, max)) };
   loot.materials.push(stack);
 }
 
 function shards(req: LootRequest, loot: Loot): void {
   const element: Element = req.element ?? ELEMENTS[req.rng.int(0, ELEMENTS.length - 1)];
   const [min, max] = lootConfig.quantities.shards;
-  loot.materials.push({ materialId: shardId(element), amount: req.rng.int(min, max) });
+  loot.materials.push({ materialId: shardId(element), amount: scaledAmount(req, req.rng.int(min, max)) });
 }
 
 function blueprints(req: LootRequest, loot: Loot): void {
@@ -123,7 +132,7 @@ function monsterParts(req: LootRequest, loot: Loot): void {
     lootMatrix[req.source].marks.monsterParts === 'A'
       ? lootConfig.quantities.monsterPartsOnA
       : lootConfig.quantities.monsterParts;
-  loot.materials.push({ materialId: pick.materialId, amount: req.rng.int(min, max) });
+  loot.materials.push({ materialId: pick.materialId, amount: scaledAmount(req, req.rng.int(min, max)) });
 }
 
 function components(req: LootRequest, loot: Loot, viaBlueprints = false): void {

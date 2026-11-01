@@ -10,7 +10,7 @@ import { lootItems } from './LootReveal';
 import { GainsLine } from './IconLabel';
 import { GameIcon } from './GameIcon';
 import { PixelBar } from './PixelBar';
-import { Chip, ParchmentCard } from './ui';
+import { Chip, DifficultyChip, ParchmentCard } from './ui';
 import { Text } from './Text';
 
 type Props = {
@@ -69,7 +69,10 @@ export function ReportCard({ report, heroes, now, expanded, onToggle }: Props) {
 
   return (
     <ParchmentCard title={tr(dungeon.name)} titleEmoji={dungeon.emoji} titleSub={`${outcomeText} · ${when}`} contentStyle={styles.content}>
-      <Chip tone={win ? 'good' : 'bad'} label={t(`expeditions.outcome.${report.outcome}`)} />
+      <View style={styles.chips}>
+        <Chip tone={win ? 'good' : 'bad'} label={t(`expeditions.outcome.${report.outcome}`)} />
+        <DifficultyChip difficulty={dungeon.difficulty} />
+      </View>
       <GainsLine gains={loot} size={16} gap={6} labelStyle={styles.line} />
       <GainsLine gains={extras} size={16} gap={6} labelStyle={styles.line} />
 
@@ -152,6 +155,7 @@ export function ReportCard({ report, heroes, now, expanded, onToggle }: Props) {
 
 const styles = StyleSheet.create({
   content: { gap: 6 },
+  chips: { flexDirection: 'row', gap: 6 },
   row: {
     minHeight: 44,
     flexDirection: 'row',

@@ -2,6 +2,7 @@ import { dungeons } from '@/content/dungeons';
 import { xpRules, xpToNextLevel } from '@/content/heroes';
 import { MATERIAL_TIERS } from '@/content/items';
 import { dungeonById, monsterPartById, recipeById } from '@/content/lookup';
+import { lootConfig } from '@/content/loot/config';
 import { tutorialRules } from '@/content/tutorial';
 
 import { rotationDay } from '../dungeons/rotation';
@@ -25,11 +26,13 @@ import { estimateOdds, oddsBand } from './odds';
 const ALL = ['bram', 'lyra', 'mira'];
 const MIN = 60_000;
 const BOSSES = dungeons.filter((d) => d.isBoss).map((d) => d.id);
+/** Every chain's boss and its predecessor, so every chain dungeon and boss is unlocked. */
+const OPENERS = dungeons.filter((d) => d.isBoss || d.chainIndex === 5).map((d) => d.id);
 
 /** Every tier revealed and the tutorial done, so any dungeon can be started. */
 const allTiers = (save: SaveData): SaveData => ({
   ...save,
-  clearedDungeons: BOSSES,
+  clearedDungeons: OPENERS,
   tutorial: { ...save.tutorial, step: 'done' },
 });
 
@@ -65,19 +68,19 @@ function outcomes(save: SaveData, dungeonId: string, runs = 200) {
 }
 
 describe('dungeon tiers', () => {
-  it('has five tiers, each with one boss and three short and three long dungeons', () => {
+  it('has five tiers, each with a chain of six plus its boss, ordered by difficulty', () => {
     for (let tier = 1; tier <= 5; tier++) {
       const inTier = dungeons.filter((d) => d.tier === tier);
       const [boss] = inTier.filter((d) => d.isBoss);
-      const short = inTier.filter((d) => d.slot === 'short');
-      const long = inTier.filter((d) => d.slot === 'long');
-      expect(inTier.filter((d) => d.isBoss)).toHaveLength(1);
-      expect([short.length, long.length]).toEqual([3, 3]);
-      for (const s of short) for (const l of long) expect(s.encounterCount[0]).toBeLessThan(l.encounterCount[0]);
-      for (const l of long) {
-        expect(l.encounterCount[0]).toBeLessThan(boss.encounterCount[0]);
+      const chain = inTier.filter((d) => !d.isBoss && !d.overnight);
+      expect(chain.map((d) => d.difficulty)).toEqual(['easy', 'easy', 'medium', 'medium', 'hard', 'hard']);
+      expect(chain.map((d) => d.chainIndex)).toEqual([0, 1, 2, 3, 4, 5]);
+      expect(boss.difficulty).toBe('boss');
+      expect(boss.chainIndex).toBe(6);
+      for (const d of chain) {
+        expect(d.encounterCount[0]).toBeLessThan(boss.encounterCount[0]);
         // The elder dragon is eased below its lair's strength (see dragonLairBoss in content/enemies.ts).
-        if (tier < 5) expect(boss.boss.hp).toBeGreaterThan(l.boss.hp);
+        if (tier < 5) expect(boss.boss.hp).toBeGreaterThan(d.boss.hp);
       }
     }
   });
@@ -85,13 +88,13 @@ describe('dungeon tiers', () => {
   it('opens only tier 1 at the start', () => {
     const fresh = createInitialSave();
     expect(new Set(dungeons.filter((d) => isDungeonUnlocked(fresh, d)).map((d) => d.tier))).toEqual(new Set([1]));
-    expect(() => startExpedition(fresh, 'wolfDen', ['bram'], 0)).toThrow();
+    expect(() => startExpedition(fresh, 'sunkenFord', ['bram'], 0)).toThrow();
   });
 
   it('opens the next tier once its boss has been beaten', () => {
     const save = { ...createInitialSave(), clearedDungeons: ['banditStockade'] };
-    expect(isDungeonUnlocked(save, dungeonById.wolfDen)).toBe(true);
-    expect(isDungeonUnlocked(save, dungeonById.hauntedMine)).toBe(false);
+    expect(isDungeonUnlocked(save, dungeonById.sunkenFord)).toBe(true);
+    expect(isDungeonUnlocked(save, dungeonById.stormRidge)).toBe(false);
   });
 
   it('has each boss teach the pickaxe that opens the next tier material', () => {
@@ -104,12 +107,12 @@ describe('dungeon tiers', () => {
 describe('startExpedition', () => {
   it('creates a timed expedition with the dungeon duration', () => {
     const save = startExpedition(allTiers(createInitialSave()), 'trollBridge', ['bram'], 1000);
-    expect(save.expeditions[0]).toMatchObject({ dungeonId: 'trollBridge', heroIds: ['bram'], endsAt: 1000 + 30 * MIN });
+    expect(save.expeditions[0]).toMatchObject({ dungeonId: 'trollBridge', heroIds: ['bram'], endsAt: 1000 + dungeonById.trollBridge.durationMinutes * MIN });
   });
 
   it('scales duration in debug mode', () => {
     const save = startExpedition(allTiers(createInitialSave()), 'trollBridge', ['bram'], 0, 1 / 60);
-    expect(save.expeditions[0].endsAt).toBe(30_000);
+    expect(save.expeditions[0].endsAt).toBe(dungeonById.trollBridge.durationMinutes * 1000);
   });
 
   it('rejects busy heroes and empty parties', () => {
@@ -137,7 +140,8 @@ describe('estimateOdds', () => {
 
   it('rises with better gear and is zero without a party', () => {
     const naked = estimateOdds(createInitialSave(), ALL, dungeonById.goblinWarren, 100);
-    const armed = estimateOdds(geared(), ALL, dungeonById.goblinWarren, 100);
+    // Tier-5 kit: the refit enemies outmatch the tier-1 wooden gear, so compare against gear a tier above the dungeon.
+    const armed = estimateOdds(atTier(geared(), 5), ALL, dungeonById.goblinWarren, 100);
     expect(armed.success).toBeGreaterThan(naked.success);
     expect(estimateOdds(geared(), [], dungeonById.goblinWarren).success).toBe(0);
   });
@@ -160,11 +164,11 @@ describe('resolveExpedition', () => {
   it('pays in full for the boss and the cleared share on a retreat', () => {
     const dungeon = dungeonById.banditStockade;
     // Tier 1 is still the highest, so its XP isn't reduced; levelled heroes, so the boss falls sometimes.
-    // Rat Cellar counts as the tier's clear and the day's first win, so only the run's own XP shows.
+    // Rat Cellar counts as the day's first win; the boss is the tier's first clear, so its bonus XP shows too.
     const save = {
       ...geared(),
       heroes: geared().heroes.map((h) => ({ ...h, level: 4 })),
-      clearedDungeons: ['ratCellar'],
+      clearedDungeons: ['ratCellar', 'millRuins'],
       firstWinDay: rotationDay(dungeon.durationMinutes * MIN),
     };
     const results = outcomes(save, dungeon.id);
@@ -172,7 +176,8 @@ describe('resolveExpedition', () => {
     const retreats = results.filter((r) => r.report.outcome === 'retreat');
     expect(wins.length).toBeGreaterThan(0);
     expect(retreats.length).toBeGreaterThan(0);
-    wins.forEach(({ report }) => expect(report.xp).toBe(dungeon.xp));
+    const firstTierXp = lootConfig.bonusRows.firstTierClear.xp;
+    wins.forEach(({ report }) => expect(report.xp).toBe(Math.round(dungeon.xp * (1 + firstTierXp))));
     retreats.forEach(({ report }) => {
       const share = report.encountersCleared / report.encounterCount;
       expect(share).toBeGreaterThan(0);
@@ -193,7 +198,7 @@ describe('resolveExpedition', () => {
   });
 
   it('records the dungeon as cleared only on success', () => {
-    const results = outcomes({ ...geared(), clearedDungeons: [] }, 'banditStockade', 50);
+    const results = outcomes({ ...geared(), clearedDungeons: ['millRuins'] }, 'banditStockade', 50);
     results.forEach(({ save, report }) =>
       expect(save.clearedDungeons.includes('banditStockade')).toBe(report.success),
     );
@@ -270,10 +275,10 @@ describe('resolveExpedition', () => {
     for (const dungeon of dungeons) {
       for (const { report } of outcomes(geared(), dungeon.id, 20)) {
         // Every encounter played gets at most one line (quiet steps none), plus a summary
-        // and any recipe, first-win, charter or salvage lines.
+        // and any recipe, first-win, first-clear, charter or salvage lines.
         const played = report.encountersCleared + (report.success ? 0 : 1);
         expect(report.log.length).toBeGreaterThanOrEqual(2);
-        expect(report.log.length).toBeLessThanOrEqual(played + 7);
+        expect(report.log.length).toBeLessThanOrEqual(played + 8);
         expect(report.log.join(' ')).not.toMatch(/\{\w+\}/);
       }
     }
@@ -449,27 +454,36 @@ describe('first tier clear', () => {
   };
   const strong = () => ({ ...geared(), heroes: geared().heroes.map((h) => ({ ...h, level: 15 })), clearedDungeons: [] });
 
-  it('is paid the first time a tier is won, whatever the dungeon', () => {
-    const first = win(strong(), 'spiderBurrow');
+  it('is paid only through the tier boss; chain dungeons pay their own first clear', () => {
+    const first = win(strong(), 'ratCellar');
     expect(first.report.success).toBe(true);
-    expect(first.report.firstTierClear).toBe(true);
+    expect(first.report.firstTierClear).toBeUndefined();
+    expect(first.report.firstDungeonClear).toBe(true);
     // The tier is cleared now: no other tier 1 dungeon pays it again.
-    const second = win(first.save, 'ratCellar');
+    const second = win(first.save, 'spiderBurrow');
     expect(second.report.success).toBe(true);
     expect(second.report.firstTierClear).toBeUndefined();
+    expect(second.report.firstDungeonClear).toBe(true);
+    // The tier's first clear is the boss's own; it opens once its chain is cleared.
+    const boss = win({ ...second.save, clearedDungeons: [...second.save.clearedDungeons, 'millRuins'] }, 'banditStockade');
+    expect(boss.report.success).toBe(true);
+    expect(boss.report.firstTierClear).toBe(true);
+    expect(boss.report.firstDungeonClear).toBeUndefined();
   });
 
   it('is paid again for the next tier', () => {
-    // That day's Wolf Den has Beasts 2: a Hunter's pack on Lyra answers it.
+    // The tier's chain head, unlocked with the tier-1 boss and still the tier's first clear.
     const base: SaveData = {
       ...atTier(strong(), 2),
       clearedDungeons: ['banditStockade'],
       consumables: { ...strong().consumables, huntersPack: 1 },
     };
     const save = equip(base, 'lyra', 'consumable', 'huntersPack');
-    const result = win(save, 'wolfDen');
+    // That day's Sunken Ford is winnable with the pack.
+    const result = win(save, 'sunkenFord', 86_400_000);
     expect(result.report.success).toBe(true);
-    expect(result.report.firstTierClear).toBe(true);
+    expect(result.report.firstTierClear).toBeUndefined();
+    expect(result.report.firstDungeonClear).toBe(true);
   });
 });
 

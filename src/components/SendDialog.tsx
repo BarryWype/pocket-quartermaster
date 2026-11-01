@@ -26,6 +26,7 @@ import { colors, pixel } from '@/theme';
 import { Button } from './Button';
 import { EquipPicker } from './EquipPicker';
 import { HpBar } from './HpBar';
+import { DifficultyChip } from './ui';
 import { Overlay } from './Overlay';
 import { useSheetMaxHeight } from './Sheet';
 import { Panel } from './Panel';
@@ -207,12 +208,15 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
     <Overlay onClose={onClose}>
         <Panel style={[styles.dialog, { maxHeight }]}>
           <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-            <IconLabel
-              emoji={dungeon.emoji}
-              label={t('expeditions.confirm.title', { dungeon: tr(dungeon.name) })}
-              size={22}
-              labelStyle={styles.title}
-            />
+            <View style={styles.titleRow}>
+              <IconLabel
+                emoji={dungeon.emoji}
+                label={t('expeditions.confirm.title', { dungeon: tr(dungeon.name) })}
+                size={22}
+                labelStyle={styles.title}
+              />
+              <DifficultyChip difficulty={dungeon.difficulty} />
+            </View>
             <ThreatCoverageChips coverage={coverage} labelled={save.tutorial.step !== 'done'} />
             {heroes.map((hero) => (
               <View key={hero.id} style={styles.hero}>
@@ -379,6 +383,7 @@ const styles = StyleSheet.create({
   dialog: { gap: 10, padding: 14 },
   scroll: { flexShrink: 1 },
   content: { gap: 10 },
+  titleRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   title: { fontSize: 24 },
   hero: { gap: 4 },
   heroLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },

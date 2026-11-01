@@ -435,6 +435,126 @@
   "patrol:bandits:5:weak:elite": [
     "locals"
   ],
+  "patrol:eliteGoblins:1:boss": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:1:boss:elite": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:1:normal": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:1:normal:elite": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:1:weak": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:1:weak:elite": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:2:boss": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:2:boss:elite": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:2:normal": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:2:normal:elite": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:2:weak": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:2:weak:elite": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:3:boss": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:3:boss:elite": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:3:normal": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:3:normal:elite": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:3:weak": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:3:weak:elite": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:4:boss": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:4:boss:elite": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:4:normal": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:4:normal:elite": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:4:weak": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:4:weak:elite": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:5:boss": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:5:boss:elite": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:5:normal": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:5:normal:elite": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:5:weak": [
+    "locals"
+  ],
+  "patrol:eliteGoblins:5:weak:elite": [
+    "locals"
+  ],
+  "patrol:eliteOrcs:1:boss": [],
+  "patrol:eliteOrcs:1:boss:elite": [],
+  "patrol:eliteOrcs:1:normal": [],
+  "patrol:eliteOrcs:1:normal:elite": [],
+  "patrol:eliteOrcs:1:weak": [],
+  "patrol:eliteOrcs:1:weak:elite": [],
+  "patrol:eliteOrcs:2:boss": [],
+  "patrol:eliteOrcs:2:boss:elite": [],
+  "patrol:eliteOrcs:2:normal": [],
+  "patrol:eliteOrcs:2:normal:elite": [],
+  "patrol:eliteOrcs:2:weak": [],
+  "patrol:eliteOrcs:2:weak:elite": [],
+  "patrol:eliteOrcs:3:boss": [],
+  "patrol:eliteOrcs:3:boss:elite": [],
+  "patrol:eliteOrcs:3:normal": [],
+  "patrol:eliteOrcs:3:normal:elite": [],
+  "patrol:eliteOrcs:3:weak": [],
+  "patrol:eliteOrcs:3:weak:elite": [],
+  "patrol:eliteOrcs:4:boss": [],
+  "patrol:eliteOrcs:4:boss:elite": [],
+  "patrol:eliteOrcs:4:normal": [],
+  "patrol:eliteOrcs:4:normal:elite": [],
+  "patrol:eliteOrcs:4:weak": [],
+  "patrol:eliteOrcs:4:weak:elite": [],
+  "patrol:eliteOrcs:5:boss": [],
+  "patrol:eliteOrcs:5:boss:elite": [],
+  "patrol:eliteOrcs:5:normal": [],
+  "patrol:eliteOrcs:5:normal:elite": [],
+  "patrol:eliteOrcs:5:weak": [],
+  "patrol:eliteOrcs:5:weak:elite": [],
   "patrol:goblins:1:boss": [
     "locals"
   ],
@@ -525,6 +645,36 @@
   "patrol:goblins:5:weak:elite": [
     "locals"
   ],
+  "patrol:golems:1:boss": [],
+  "patrol:golems:1:boss:elite": [],
+  "patrol:golems:1:normal": [],
+  "patrol:golems:1:normal:elite": [],
+  "patrol:golems:1:weak": [],
+  "patrol:golems:1:weak:elite": [],
+  "patrol:golems:2:boss": [],
+  "patrol:golems:2:boss:elite": [],
+  "patrol:golems:2:normal": [],
+  "patrol:golems:2:normal:elite": [],
+  "patrol:golems:2:weak": [],
+  "patrol:golems:2:weak:elite": [],
+  "patrol:golems:3:boss": [],
+  "patrol:golems:3:boss:elite": [],
+  "patrol:golems:3:normal": [],
+  "patrol:golems:3:normal:elite": [],
+  "patrol:golems:3:weak": [],
+  "patrol:golems:3:weak:elite": [],
+  "patrol:golems:4:boss": [],
+  "patrol:golems:4:boss:elite": [],
+  "patrol:golems:4:normal": [],
+  "patrol:golems:4:normal:elite": [],
+  "patrol:golems:4:weak": [],
+  "patrol:golems:4:weak:elite": [],
+  "patrol:golems:5:boss": [],
+  "patrol:golems:5:boss:elite": [],
+  "patrol:golems:5:normal": [],
+  "patrol:golems:5:normal:elite": [],
+  "patrol:golems:5:weak": [],
+  "patrol:golems:5:weak:elite": [],
   "patrol:herd:1:boss": [
     "beast"
   ],
@@ -615,6 +765,486 @@
   "patrol:herd:5:weak:elite": [
     "beast"
   ],
+  "patrol:ogres:1:boss": [],
+  "patrol:ogres:1:boss:elite": [],
+  "patrol:ogres:1:normal": [],
+  "patrol:ogres:1:normal:elite": [],
+  "patrol:ogres:1:weak": [],
+  "patrol:ogres:1:weak:elite": [],
+  "patrol:ogres:2:boss": [],
+  "patrol:ogres:2:boss:elite": [],
+  "patrol:ogres:2:normal": [],
+  "patrol:ogres:2:normal:elite": [],
+  "patrol:ogres:2:weak": [],
+  "patrol:ogres:2:weak:elite": [],
+  "patrol:ogres:3:boss": [],
+  "patrol:ogres:3:boss:elite": [],
+  "patrol:ogres:3:normal": [],
+  "patrol:ogres:3:normal:elite": [],
+  "patrol:ogres:3:weak": [],
+  "patrol:ogres:3:weak:elite": [],
+  "patrol:ogres:4:boss": [],
+  "patrol:ogres:4:boss:elite": [],
+  "patrol:ogres:4:normal": [],
+  "patrol:ogres:4:normal:elite": [],
+  "patrol:ogres:4:weak": [],
+  "patrol:ogres:4:weak:elite": [],
+  "patrol:ogres:5:boss": [],
+  "patrol:ogres:5:boss:elite": [],
+  "patrol:ogres:5:normal": [],
+  "patrol:ogres:5:normal:elite": [],
+  "patrol:ogres:5:weak": [],
+  "patrol:ogres:5:weak:elite": [],
+  "patrol:orcs:1:boss": [],
+  "patrol:orcs:1:boss:elite": [],
+  "patrol:orcs:1:normal": [],
+  "patrol:orcs:1:normal:elite": [],
+  "patrol:orcs:1:weak": [],
+  "patrol:orcs:1:weak:elite": [],
+  "patrol:orcs:2:boss": [],
+  "patrol:orcs:2:boss:elite": [],
+  "patrol:orcs:2:normal": [],
+  "patrol:orcs:2:normal:elite": [],
+  "patrol:orcs:2:weak": [],
+  "patrol:orcs:2:weak:elite": [],
+  "patrol:orcs:3:boss": [],
+  "patrol:orcs:3:boss:elite": [],
+  "patrol:orcs:3:normal": [],
+  "patrol:orcs:3:normal:elite": [],
+  "patrol:orcs:3:weak": [],
+  "patrol:orcs:3:weak:elite": [],
+  "patrol:orcs:4:boss": [],
+  "patrol:orcs:4:boss:elite": [],
+  "patrol:orcs:4:normal": [],
+  "patrol:orcs:4:normal:elite": [],
+  "patrol:orcs:4:weak": [],
+  "patrol:orcs:4:weak:elite": [],
+  "patrol:orcs:5:boss": [],
+  "patrol:orcs:5:boss:elite": [],
+  "patrol:orcs:5:normal": [],
+  "patrol:orcs:5:normal:elite": [],
+  "patrol:orcs:5:weak": [],
+  "patrol:orcs:5:weak:elite": [],
+  "patrol:outlaws:1:boss": [
+    "locals"
+  ],
+  "patrol:outlaws:1:boss:elite": [
+    "locals"
+  ],
+  "patrol:outlaws:1:normal": [
+    "locals"
+  ],
+  "patrol:outlaws:1:normal:elite": [
+    "locals"
+  ],
+  "patrol:outlaws:1:weak": [
+    "locals"
+  ],
+  "patrol:outlaws:1:weak:elite": [
+    "locals"
+  ],
+  "patrol:outlaws:2:boss": [
+    "locals"
+  ],
+  "patrol:outlaws:2:boss:elite": [
+    "locals"
+  ],
+  "patrol:outlaws:2:normal": [
+    "locals"
+  ],
+  "patrol:outlaws:2:normal:elite": [
+    "locals"
+  ],
+  "patrol:outlaws:2:weak": [
+    "locals"
+  ],
+  "patrol:outlaws:2:weak:elite": [
+    "locals"
+  ],
+  "patrol:outlaws:3:boss": [
+    "locals"
+  ],
+  "patrol:outlaws:3:boss:elite": [
+    "locals"
+  ],
+  "patrol:outlaws:3:normal": [
+    "locals"
+  ],
+  "patrol:outlaws:3:normal:elite": [
+    "locals"
+  ],
+  "patrol:outlaws:3:weak": [
+    "locals"
+  ],
+  "patrol:outlaws:3:weak:elite": [
+    "locals"
+  ],
+  "patrol:outlaws:4:boss": [
+    "locals"
+  ],
+  "patrol:outlaws:4:boss:elite": [
+    "locals"
+  ],
+  "patrol:outlaws:4:normal": [
+    "locals"
+  ],
+  "patrol:outlaws:4:normal:elite": [
+    "locals"
+  ],
+  "patrol:outlaws:4:weak": [
+    "locals"
+  ],
+  "patrol:outlaws:4:weak:elite": [
+    "locals"
+  ],
+  "patrol:outlaws:5:boss": [
+    "locals"
+  ],
+  "patrol:outlaws:5:boss:elite": [
+    "locals"
+  ],
+  "patrol:outlaws:5:normal": [
+    "locals"
+  ],
+  "patrol:outlaws:5:normal:elite": [
+    "locals"
+  ],
+  "patrol:outlaws:5:weak": [
+    "locals"
+  ],
+  "patrol:outlaws:5:weak:elite": [
+    "locals"
+  ],
+  "patrol:spiders:1:boss": [],
+  "patrol:spiders:1:boss:elite": [],
+  "patrol:spiders:1:normal": [],
+  "patrol:spiders:1:normal:elite": [],
+  "patrol:spiders:1:weak": [],
+  "patrol:spiders:1:weak:elite": [],
+  "patrol:spiders:2:boss": [],
+  "patrol:spiders:2:boss:elite": [],
+  "patrol:spiders:2:normal": [],
+  "patrol:spiders:2:normal:elite": [],
+  "patrol:spiders:2:weak": [],
+  "patrol:spiders:2:weak:elite": [],
+  "patrol:spiders:3:boss": [],
+  "patrol:spiders:3:boss:elite": [],
+  "patrol:spiders:3:normal": [],
+  "patrol:spiders:3:normal:elite": [],
+  "patrol:spiders:3:weak": [],
+  "patrol:spiders:3:weak:elite": [],
+  "patrol:spiders:4:boss": [],
+  "patrol:spiders:4:boss:elite": [],
+  "patrol:spiders:4:normal": [],
+  "patrol:spiders:4:normal:elite": [],
+  "patrol:spiders:4:weak": [],
+  "patrol:spiders:4:weak:elite": [],
+  "patrol:spiders:5:boss": [],
+  "patrol:spiders:5:boss:elite": [],
+  "patrol:spiders:5:normal": [],
+  "patrol:spiders:5:normal:elite": [],
+  "patrol:spiders:5:weak": [],
+  "patrol:spiders:5:weak:elite": [],
+  "patrol:trolls:1:boss": [],
+  "patrol:trolls:1:boss:elite": [],
+  "patrol:trolls:1:normal": [],
+  "patrol:trolls:1:normal:elite": [],
+  "patrol:trolls:1:weak": [],
+  "patrol:trolls:1:weak:elite": [],
+  "patrol:trolls:2:boss": [],
+  "patrol:trolls:2:boss:elite": [],
+  "patrol:trolls:2:normal": [],
+  "patrol:trolls:2:normal:elite": [],
+  "patrol:trolls:2:weak": [],
+  "patrol:trolls:2:weak:elite": [],
+  "patrol:trolls:3:boss": [],
+  "patrol:trolls:3:boss:elite": [],
+  "patrol:trolls:3:normal": [],
+  "patrol:trolls:3:normal:elite": [],
+  "patrol:trolls:3:weak": [],
+  "patrol:trolls:3:weak:elite": [],
+  "patrol:trolls:4:boss": [],
+  "patrol:trolls:4:boss:elite": [],
+  "patrol:trolls:4:normal": [],
+  "patrol:trolls:4:normal:elite": [],
+  "patrol:trolls:4:weak": [],
+  "patrol:trolls:4:weak:elite": [],
+  "patrol:trolls:5:boss": [],
+  "patrol:trolls:5:boss:elite": [],
+  "patrol:trolls:5:normal": [],
+  "patrol:trolls:5:normal:elite": [],
+  "patrol:trolls:5:weak": [],
+  "patrol:trolls:5:weak:elite": [],
+  "patrol:wolves:1:boss": [
+    "beast"
+  ],
+  "patrol:wolves:1:boss:elite": [
+    "beast"
+  ],
+  "patrol:wolves:1:normal": [
+    "beast"
+  ],
+  "patrol:wolves:1:normal:elite": [
+    "beast"
+  ],
+  "patrol:wolves:1:weak": [
+    "beast"
+  ],
+  "patrol:wolves:1:weak:elite": [
+    "beast"
+  ],
+  "patrol:wolves:2:boss": [
+    "beast"
+  ],
+  "patrol:wolves:2:boss:elite": [
+    "beast"
+  ],
+  "patrol:wolves:2:normal": [
+    "beast"
+  ],
+  "patrol:wolves:2:normal:elite": [
+    "beast"
+  ],
+  "patrol:wolves:2:weak": [
+    "beast"
+  ],
+  "patrol:wolves:2:weak:elite": [
+    "beast"
+  ],
+  "patrol:wolves:3:boss": [
+    "beast"
+  ],
+  "patrol:wolves:3:boss:elite": [
+    "beast"
+  ],
+  "patrol:wolves:3:normal": [
+    "beast"
+  ],
+  "patrol:wolves:3:normal:elite": [
+    "beast"
+  ],
+  "patrol:wolves:3:weak": [
+    "beast"
+  ],
+  "patrol:wolves:3:weak:elite": [
+    "beast"
+  ],
+  "patrol:wolves:4:boss": [
+    "beast"
+  ],
+  "patrol:wolves:4:boss:elite": [
+    "beast"
+  ],
+  "patrol:wolves:4:normal": [
+    "beast"
+  ],
+  "patrol:wolves:4:normal:elite": [
+    "beast"
+  ],
+  "patrol:wolves:4:weak": [
+    "beast"
+  ],
+  "patrol:wolves:4:weak:elite": [
+    "beast"
+  ],
+  "patrol:wolves:5:boss": [
+    "beast"
+  ],
+  "patrol:wolves:5:boss:elite": [
+    "beast"
+  ],
+  "patrol:wolves:5:normal": [
+    "beast"
+  ],
+  "patrol:wolves:5:normal:elite": [
+    "beast"
+  ],
+  "patrol:wolves:5:weak": [
+    "beast"
+  ],
+  "patrol:wolves:5:weak:elite": [
+    "beast"
+  ],
+  "patrol:wraiths:1:boss": [],
+  "patrol:wraiths:1:boss:elite": [],
+  "patrol:wraiths:1:normal": [],
+  "patrol:wraiths:1:normal:elite": [],
+  "patrol:wraiths:1:weak": [],
+  "patrol:wraiths:1:weak:elite": [],
+  "patrol:wraiths:2:boss": [],
+  "patrol:wraiths:2:boss:elite": [],
+  "patrol:wraiths:2:normal": [],
+  "patrol:wraiths:2:normal:elite": [],
+  "patrol:wraiths:2:weak": [],
+  "patrol:wraiths:2:weak:elite": [],
+  "patrol:wraiths:3:boss": [],
+  "patrol:wraiths:3:boss:elite": [],
+  "patrol:wraiths:3:normal": [],
+  "patrol:wraiths:3:normal:elite": [],
+  "patrol:wraiths:3:weak": [],
+  "patrol:wraiths:3:weak:elite": [],
+  "patrol:wraiths:4:boss": [],
+  "patrol:wraiths:4:boss:elite": [],
+  "patrol:wraiths:4:normal": [],
+  "patrol:wraiths:4:normal:elite": [],
+  "patrol:wraiths:4:weak": [],
+  "patrol:wraiths:4:weak:elite": [],
+  "patrol:wraiths:5:boss": [],
+  "patrol:wraiths:5:boss:elite": [],
+  "patrol:wraiths:5:normal": [],
+  "patrol:wraiths:5:normal:elite": [],
+  "patrol:wraiths:5:weak": [],
+  "patrol:wraiths:5:weak:elite": [],
+  "patrol:wyverns:1:boss:electric": [],
+  "patrol:wyverns:1:boss:elite:electric": [],
+  "patrol:wyverns:1:boss:elite:fire": [],
+  "patrol:wyverns:1:boss:elite:grass": [],
+  "patrol:wyverns:1:boss:elite:stone": [],
+  "patrol:wyverns:1:boss:elite:water": [],
+  "patrol:wyverns:1:boss:fire": [],
+  "patrol:wyverns:1:boss:grass": [],
+  "patrol:wyverns:1:boss:stone": [],
+  "patrol:wyverns:1:boss:water": [],
+  "patrol:wyverns:1:normal:electric": [],
+  "patrol:wyverns:1:normal:elite:electric": [],
+  "patrol:wyverns:1:normal:elite:fire": [],
+  "patrol:wyverns:1:normal:elite:grass": [],
+  "patrol:wyverns:1:normal:elite:stone": [],
+  "patrol:wyverns:1:normal:elite:water": [],
+  "patrol:wyverns:1:normal:fire": [],
+  "patrol:wyverns:1:normal:grass": [],
+  "patrol:wyverns:1:normal:stone": [],
+  "patrol:wyverns:1:normal:water": [],
+  "patrol:wyverns:1:weak:electric": [],
+  "patrol:wyverns:1:weak:elite:electric": [],
+  "patrol:wyverns:1:weak:elite:fire": [],
+  "patrol:wyverns:1:weak:elite:grass": [],
+  "patrol:wyverns:1:weak:elite:stone": [],
+  "patrol:wyverns:1:weak:elite:water": [],
+  "patrol:wyverns:1:weak:fire": [],
+  "patrol:wyverns:1:weak:grass": [],
+  "patrol:wyverns:1:weak:stone": [],
+  "patrol:wyverns:1:weak:water": [],
+  "patrol:wyverns:2:boss:electric": [],
+  "patrol:wyverns:2:boss:elite:electric": [],
+  "patrol:wyverns:2:boss:elite:fire": [],
+  "patrol:wyverns:2:boss:elite:grass": [],
+  "patrol:wyverns:2:boss:elite:stone": [],
+  "patrol:wyverns:2:boss:elite:water": [],
+  "patrol:wyverns:2:boss:fire": [],
+  "patrol:wyverns:2:boss:grass": [],
+  "patrol:wyverns:2:boss:stone": [],
+  "patrol:wyverns:2:boss:water": [],
+  "patrol:wyverns:2:normal:electric": [],
+  "patrol:wyverns:2:normal:elite:electric": [],
+  "patrol:wyverns:2:normal:elite:fire": [],
+  "patrol:wyverns:2:normal:elite:grass": [],
+  "patrol:wyverns:2:normal:elite:stone": [],
+  "patrol:wyverns:2:normal:elite:water": [],
+  "patrol:wyverns:2:normal:fire": [],
+  "patrol:wyverns:2:normal:grass": [],
+  "patrol:wyverns:2:normal:stone": [],
+  "patrol:wyverns:2:normal:water": [],
+  "patrol:wyverns:2:weak:electric": [],
+  "patrol:wyverns:2:weak:elite:electric": [],
+  "patrol:wyverns:2:weak:elite:fire": [],
+  "patrol:wyverns:2:weak:elite:grass": [],
+  "patrol:wyverns:2:weak:elite:stone": [],
+  "patrol:wyverns:2:weak:elite:water": [],
+  "patrol:wyverns:2:weak:fire": [],
+  "patrol:wyverns:2:weak:grass": [],
+  "patrol:wyverns:2:weak:stone": [],
+  "patrol:wyverns:2:weak:water": [],
+  "patrol:wyverns:3:boss:electric": [],
+  "patrol:wyverns:3:boss:elite:electric": [],
+  "patrol:wyverns:3:boss:elite:fire": [],
+  "patrol:wyverns:3:boss:elite:grass": [],
+  "patrol:wyverns:3:boss:elite:stone": [],
+  "patrol:wyverns:3:boss:elite:water": [],
+  "patrol:wyverns:3:boss:fire": [],
+  "patrol:wyverns:3:boss:grass": [],
+  "patrol:wyverns:3:boss:stone": [],
+  "patrol:wyverns:3:boss:water": [],
+  "patrol:wyverns:3:normal:electric": [],
+  "patrol:wyverns:3:normal:elite:electric": [],
+  "patrol:wyverns:3:normal:elite:fire": [],
+  "patrol:wyverns:3:normal:elite:grass": [],
+  "patrol:wyverns:3:normal:elite:stone": [],
+  "patrol:wyverns:3:normal:elite:water": [],
+  "patrol:wyverns:3:normal:fire": [],
+  "patrol:wyverns:3:normal:grass": [],
+  "patrol:wyverns:3:normal:stone": [],
+  "patrol:wyverns:3:normal:water": [],
+  "patrol:wyverns:3:weak:electric": [],
+  "patrol:wyverns:3:weak:elite:electric": [],
+  "patrol:wyverns:3:weak:elite:fire": [],
+  "patrol:wyverns:3:weak:elite:grass": [],
+  "patrol:wyverns:3:weak:elite:stone": [],
+  "patrol:wyverns:3:weak:elite:water": [],
+  "patrol:wyverns:3:weak:fire": [],
+  "patrol:wyverns:3:weak:grass": [],
+  "patrol:wyverns:3:weak:stone": [],
+  "patrol:wyverns:3:weak:water": [],
+  "patrol:wyverns:4:boss:electric": [],
+  "patrol:wyverns:4:boss:elite:electric": [],
+  "patrol:wyverns:4:boss:elite:fire": [],
+  "patrol:wyverns:4:boss:elite:grass": [],
+  "patrol:wyverns:4:boss:elite:stone": [],
+  "patrol:wyverns:4:boss:elite:water": [],
+  "patrol:wyverns:4:boss:fire": [],
+  "patrol:wyverns:4:boss:grass": [],
+  "patrol:wyverns:4:boss:stone": [],
+  "patrol:wyverns:4:boss:water": [],
+  "patrol:wyverns:4:normal:electric": [],
+  "patrol:wyverns:4:normal:elite:electric": [],
+  "patrol:wyverns:4:normal:elite:fire": [],
+  "patrol:wyverns:4:normal:elite:grass": [],
+  "patrol:wyverns:4:normal:elite:stone": [],
+  "patrol:wyverns:4:normal:elite:water": [],
+  "patrol:wyverns:4:normal:fire": [],
+  "patrol:wyverns:4:normal:grass": [],
+  "patrol:wyverns:4:normal:stone": [],
+  "patrol:wyverns:4:normal:water": [],
+  "patrol:wyverns:4:weak:electric": [],
+  "patrol:wyverns:4:weak:elite:electric": [],
+  "patrol:wyverns:4:weak:elite:fire": [],
+  "patrol:wyverns:4:weak:elite:grass": [],
+  "patrol:wyverns:4:weak:elite:stone": [],
+  "patrol:wyverns:4:weak:elite:water": [],
+  "patrol:wyverns:4:weak:fire": [],
+  "patrol:wyverns:4:weak:grass": [],
+  "patrol:wyverns:4:weak:stone": [],
+  "patrol:wyverns:4:weak:water": [],
+  "patrol:wyverns:5:boss:electric": [],
+  "patrol:wyverns:5:boss:elite:electric": [],
+  "patrol:wyverns:5:boss:elite:fire": [],
+  "patrol:wyverns:5:boss:elite:grass": [],
+  "patrol:wyverns:5:boss:elite:stone": [],
+  "patrol:wyverns:5:boss:elite:water": [],
+  "patrol:wyverns:5:boss:fire": [],
+  "patrol:wyverns:5:boss:grass": [],
+  "patrol:wyverns:5:boss:stone": [],
+  "patrol:wyverns:5:boss:water": [],
+  "patrol:wyverns:5:normal:electric": [],
+  "patrol:wyverns:5:normal:elite:electric": [],
+  "patrol:wyverns:5:normal:elite:fire": [],
+  "patrol:wyverns:5:normal:elite:grass": [],
+  "patrol:wyverns:5:normal:elite:stone": [],
+  "patrol:wyverns:5:normal:elite:water": [],
+  "patrol:wyverns:5:normal:fire": [],
+  "patrol:wyverns:5:normal:grass": [],
+  "patrol:wyverns:5:normal:stone": [],
+  "patrol:wyverns:5:normal:water": [],
+  "patrol:wyverns:5:weak:electric": [],
+  "patrol:wyverns:5:weak:elite:electric": [],
+  "patrol:wyverns:5:weak:elite:fire": [],
+  "patrol:wyverns:5:weak:elite:grass": [],
+  "patrol:wyverns:5:weak:elite:stone": [],
+  "patrol:wyverns:5:weak:elite:water": [],
+  "patrol:wyverns:5:weak:fire": [],
+  "patrol:wyverns:5:weak:grass": [],
+  "patrol:wyverns:5:weak:stone": [],
+  "patrol:wyverns:5:weak:water": [],
   "place:abandonedCaravan:1:boss": [
     "locals"
   ],
