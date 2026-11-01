@@ -522,11 +522,14 @@ function ComparePopup({
   const wornUid = hero.equipment[slot];
   const worn = wornUid ? save.gear.find((g) => g.uid === wornUid) : undefined;
   const lines: PopupLine[] = [];
+  // What the worn piece and this one each add to the hero, against the slot left empty.
+  const bare = heroStats(save, { ...hero, equipment: { ...hero.equipment, [slot]: null } });
+  const rows = preview
+    ? DELTA_KEYS.map((key) => ({ key, worn: preview.before[key] - bare[key], next: preview.after[key] - bare[key] })).filter(
+        (row) => row.worn !== 0 || row.next !== 0,
+      )
+    : [];
   if (preview) {
-    for (const key of DELTA_KEYS) {
-      const delta = preview.after[key] - preview.before[key];
-      if (delta) lines.push({ tone: delta > 0 ? 'good' : 'bad', text: `${t(`hero.statNames.${key}`)} ${delta > 0 ? '+' : '−'}${Math.abs(delta)}` });
-    }
     const keywords = keywordChange(save, hero, slot, gear);
     for (const { keyword, gained } of keywords) {
       lines.push(
@@ -547,7 +550,21 @@ function ComparePopup({
       lines={lines}
       action={{ title: t('hero.equip'), onPress: onEquip, disabled: !preview || isOnExpedition(save, hero.id) }}
       pointer={pointer}
-    />
+    >
+      {rows.length > 0 && (
+        <View style={styles.compare}>
+          {rows.map(({ key, worn: wornValue, next }) => (
+            <View key={key} style={styles.compareRow}>
+              <Text style={styles.compareName}>{t(`hero.statNames.${key}`)}</Text>
+              <Text style={styles.compareValue}>{`${wornValue} → ${next}`}</Text>
+              <Text style={[styles.compareMark, next > wornValue ? styles.compareUp : styles.compareDown]}>
+                {next > wornValue ? '▲' : next < wornValue ? '▼' : ''}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
+    </ItemPopup>
   );
 }
 
@@ -569,6 +586,13 @@ function keywordChange(save: SaveData, hero: HeroState, slot: (typeof GEAR_SLOTS
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: ui.woodDark },
+  compare: { alignSelf: 'stretch', gap: 2 },
+  compareRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  compareName: { flex: 1, fontFamily: fonts.serif, fontSize: 15, color: ui.ink },
+  compareValue: { fontFamily: fonts.serif, fontSize: 15, color: ui.ink },
+  compareMark: { width: 14, fontFamily: fonts.serif, fontSize: 15 },
+  compareUp: { color: ui.good },
+  compareDown: { color: ui.bad },
   page: { padding: 12, gap: 10 },
   navRow: { flexDirection: 'row', gap: 6 },
   navButton: {

@@ -5,12 +5,12 @@ import { recipeById } from '@/content/lookup';
 import { heroClasses } from '@/content/heroes';
 
 import { craft, forgeResult, unlockRecipe } from '../crafting/crafting';
-import type { GearDef, GearInstance, MasteryType } from '../types';
+import type { GearDef, GearInstance, MasteryType, StatKey } from '../types';
 import { createRng } from '../generation/rng';
 import { createInitialSave, type SaveData } from '../save';
 import { equip, heroStats } from '../team/team';
 import { forgesForNextLevel, gainMastery, masteryCap, startingMastery } from './mastery';
-import { gearStats, qualityOdds, rollQuality } from './quality';
+import { gearStats, qualityOdds, rollQuality, SCALING_KEYS } from './quality';
 import { canSalvage, salvage, salvageReturns } from './salvage';
 
 const gearItems = items.filter((i): i is GearDef => i.slot === 'weapon' || i.slot === 'armor');
@@ -162,11 +162,24 @@ describe('forging quality', () => {
 });
 
 describe('quality stats', () => {
-  it('multiplies every stat of the piece', () => {
+  it('multiplies the scaling stats of the piece, the extras stay flat', () => {
     const armour = items.find((i) => i.id === 'mail4') as GearDef;
-    const scaled = (multiplier: number) => Object.fromEntries(Object.entries(armour.stats).map(([key, value]) => [key, value! * multiplier]));
+    const scaled = (multiplier: number) =>
+      Object.fromEntries(Object.entries(armour.stats).map(([key, value]) => [key, SCALING_KEYS.includes(key as StatKey) ? value! * multiplier : value]));
     expect(gearStats(armour, { quality: 'crappy' })).toEqual(scaled(0.85));
     expect(gearStats(armour, { quality: 'legendary' })).toEqual(scaled(1.3));
+  });
+
+  it('shows what equipping the piece adds to a usable hero', () => {
+    const sword = items.find((i) => i.id === 'sword1') as GearDef;
+    for (const quality of ['crappy', 'normal'] as const) {
+      const base = createInitialSave();
+      const ranger = base.heroes.find((h) => h.classId === 'ranger')!;
+      const armed = equip({ ...base, gear: [{ ...piece('sword1', quality), roll: 1 }] }, ranger.id, 'weapon', 'g1');
+      const unarmed = heroStats(base, ranger);
+      const withSword = heroStats(armed, armed.heroes.find((h) => h.id === ranger.id)!);
+      expect(withSword.crit - unarmed.crit).toBe(gearStats(sword, { quality, roll: 1 }).crit);
+    }
   });
 
   it('applies class affinity on top', () => {

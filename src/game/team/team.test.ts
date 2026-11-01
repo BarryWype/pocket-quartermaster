@@ -254,3 +254,21 @@ describe('statSources', () => {
     expect(statSources(save, hero(save, 'lyra'), 'crit').gear).toBe(0);
   });
 });
+
+describe('two pieces of the same item', () => {
+  it('equips the one picked, with its own stats', () => {
+    let save: SaveData = {
+      ...createInitialSave(),
+      gear: [
+        { uid: 'g1', itemId: 'sword1', quality: 'crappy', roll: 0.9 },
+        { uid: 'g2', itemId: 'sword1', quality: 'normal', roll: 1.1 },
+      ],
+    };
+    const warrior = save.heroes.find((h) => h.classId === 'warrior')!.id;
+    save = equip(save, warrior, 'weapon', 'g1');
+    const poorPower = heroStats(save, hero(save, warrior)).power;
+    save = equip(save, warrior, 'weapon', 'g2');
+    expect(hero(save, warrior).equipment.weapon).toBe('g2');
+    expect(heroStats(save, hero(save, warrior)).power).toBeGreaterThan(poorPower);
+  });
+});
