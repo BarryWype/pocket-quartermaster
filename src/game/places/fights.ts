@@ -1,6 +1,7 @@
 import { expeditionRules } from '@/content/dungeons';
 import { mobById, placeMobId } from '@/content/enemies';
 import { placeFightRules, type FightPlaceKind } from '@/content/placeFights';
+import type { Difficulty } from '@/content/difficulty';
 import { placeInfo, placeRules, type PlaceKind } from '@/content/places';
 
 import { ELEMENTS, type Element } from '../elements';
@@ -53,6 +54,18 @@ export function placeRunOptions(save: SaveData, spawn: PlaceSpawn): RunOptions {
   return { rules: { ...expeditionRules, mishapChance: 0 }, briefing: placeFightBriefing(save, spawn), elixirs: true };
 }
 
+/** The fight's difficulty band: each kind is tuned to one (see content/difficulty.ts). */
+const FIGHT_DIFFICULTY: Record<FightPlaceKind, Difficulty> = {
+  banditCamp: 'easy',
+  abandonedCaravan: 'easy',
+  goblinRaid: 'medium',
+  beastDen: 'medium',
+  hauntedCrypt: 'hard',
+  elementalRift: 'hard',
+  wantedOutlaw: 'hard',
+  monsterLair: 'hard',
+};
+
 /** The fight itself, as a mini dungeon like a patrol's (see patrols/fight.ts). */
 export function placeFightDungeon(spawn: PlaceSpawn, tier: number): DungeonDef {
   const kind = spawn.kind;
@@ -70,6 +83,7 @@ export function placeFightDungeon(spawn: PlaceSpawn, tier: number): DungeonDef {
     name: placeInfo[kind].name,
     emoji: placeInfo[kind].emoji,
     tier,
+    difficulty: FIGHT_DIFFICULTY[kind],
     durationMinutes: minutes,
     encounterCount: [1, 2],
     encounters,

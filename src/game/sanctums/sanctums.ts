@@ -71,6 +71,7 @@ export function sanctumDungeon(sanctum: SanctumDef, tier: number, rules: Rules =
     name: sanctum.name,
     emoji: sanctum.emoji,
     tier,
+    difficulty: 'hard',
     durationMinutes: 0,
     encounterCount: rules.encounterCount,
     encounters: [

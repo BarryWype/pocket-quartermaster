@@ -6,7 +6,7 @@ import { createRng } from '../generation/rng';
 import { createInitialSave, type SaveData } from '../save';
 import { rollSigil } from './sigils';
 
-const short = dungeons.find((d) => d.tier === 1 && d.slot === 'short')!;
+const easy = dungeons.find((d) => d.tier === 1 && d.chainIndex === 0)!;
 const boss = dungeons.find((d) => d.tier === 1 && d.isBoss)!;
 
 /** A save one win away from the pity counter, whose slot roll fails. */
@@ -19,7 +19,7 @@ describe('rollSigil', () => {
   it('counts a failed roll towards the pity counter', () => {
     for (let i = 0; i < 40; i++) {
       const save: SaveData = { ...createInitialSave(), sigilPity: 0 };
-      const { save: after, drop } = rollSigil(save, short, createRng(`s${i}`));
+      const { save: after, drop } = rollSigil(save, easy, createRng(`s${i}`));
       if (drop.sigil) continue; // The slot's roll landed.
       expect(after.sigilPity).toBe(1);
       expect(drop.sigilShards).toBeUndefined();
@@ -28,7 +28,7 @@ describe('rollSigil', () => {
 
   it('grants a Sigil once the pity counter reaches pityAfter', () => {
     const { save, seed } = pityDue();
-    const { save: after, drop } = rollSigil(save, short, createRng(seed));
+    const { save: after, drop } = rollSigil(save, easy, createRng(seed));
     expect(drop.sigil).toBe(1);
     expect(after.sigils).toEqual([1]);
     expect(after.sigilPity).toBe(0);

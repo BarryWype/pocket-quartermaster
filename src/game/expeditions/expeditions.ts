@@ -13,7 +13,7 @@ import { tutorialRules } from '@/content/tutorial';
 import { unlockRecipe } from '../crafting/crafting';
 import { guildBonus, rosterCap } from '../guild/guild';
 import { highestUnlockedTier, isDungeonUnlocked } from '../dungeons/unlock';
-import { briefingFor, openDungeonIds, rotationDay, type Rotation } from '../dungeons/rotation';
+import { briefingFor, rotationDay, type Rotation } from '../dungeons/rotation';
 import { createRng, type Rng } from '../generation/rng';
 import { addMaterials } from '../inventory';
 import { charmApplies, partyCharms } from '../loot/charms';
@@ -53,15 +53,13 @@ import {
 export { highestUnlockedTier, isDungeonUnlocked } from '../dungeons/unlock';
 
 /**
- * Whether the player can send a party there now: unlocked and open in the
- * rotation (if given). During the tutorial only its own dungeon is, until the
- * tutorial is done.
+ * Whether the player can send a party there now: every unlocked dungeon is
+ * open every day (only its briefing rotates). During the tutorial only its
+ * own dungeon is, until the tutorial is done.
  */
-export function isDungeonAvailable(save: SaveData, dungeon: DungeonDef, rotation?: Rotation) {
+export function isDungeonAvailable(save: SaveData, dungeon: DungeonDef, _rotation?: Rotation) {
   if (save.tutorial.step !== 'done') return isTutorialDungeon(dungeon.id);
-  // Overnight expeditions are open every day; they only follow their tier's unlock.
-  if (dungeon.overnight) return isDungeonUnlocked(save, dungeon);
-  return isDungeonUnlocked(save, dungeon) && (!rotation || openDungeonIds(rotation).includes(dungeon.id));
+  return isDungeonUnlocked(save, dungeon);
 }
 
 /** Whether a win in this dungeon now would be the day's first (dungeons and tier bosses, never overnight expeditions). */
@@ -526,7 +524,7 @@ export function resolveExpedition(
   if (run.opportunity?.answered && run.opportunity.pilgrim) {
     const pilgrim = run.opportunity.pilgrim;
     if (pilgrim === 'gold') {
-      const short = dungeons.find((d) => d.tier === dungeon.tier && d.slot === 'short')!;
+      const short = dungeons.find((d) => d.tier === dungeon.tier && d.chainIndex === 0)!;
       next = { ...next, gold: next.gold + Math.round(((short.gold[0] + short.gold[1]) / 2) * travellerRules.goldShareOfShort) };
     } else if (pilgrim === 'keyFragment') {
       next = { ...next, keyFragments: next.keyFragments + 1 };

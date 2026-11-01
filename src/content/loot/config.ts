@@ -224,7 +224,7 @@ export const lootConfig = {
     /** Weight of each valuable in the collector's daily pick; others weigh 1. */
     collectorWeights: { oldCoins: 2 } as Record<string, number>,
   },
-  /** Gold at each tier relative to tier 1; rewards follow it (see `slotGold` in content/dungeons.ts). */
+  /** Gold at each tier relative to tier 1; rewards follow it (see `chainGold` in content/dungeons.ts). */
   goldByTier,
   /** A valuable's price is its base price times this, by the source's tier: the enemy strength curve. */
   valuablePriceByTier: goldByTier,

@@ -112,8 +112,10 @@ function swordOnly(level = 1): SaveData {
 }
 
 describe('tier 1 opens up as the team gears up', () => {
-  it('needs more than one sword for the long dungeons and the boss', () => {
-    for (const dungeon of dungeons.filter((d) => d.tier === 1 && d.slot !== 'short')) expect(chance(swordOnly(), dungeon)).toBeLessThan(0.1);
+  it('needs more than one sword for the hard dungeons and the boss', () => {
+    // Medium is meant to stay winnable-ish for a lone under-geared hero; hard and the boss are not.
+    for (const dungeon of dungeons.filter((d) => d.tier === 1 && (d.difficulty === 'hard' || d.difficulty === 'boss')))
+      expect(chance(swordOnly(), dungeon)).toBeLessThan(0.1);
   });
 
   it('never reaches 100%: a mishap can always end a run', () => {

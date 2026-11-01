@@ -63,8 +63,8 @@ const hasBeasts = (dungeon: DungeonDef) =>
  * The dungeon's threats for a day, sharing composeBriefing's seeded stream:
  * the same seed and the same draw order, so the threats are the same.
  */
-function rollThreats(dungeon: DungeonDef, day: number, rules: ThreatRules): { threats: ActiveThreat[]; rng: Rng } {
-  const rng = createRng(`threats|${day}|${dungeon.id}`);
+function rollThreats(dungeon: DungeonDef, day: number, salt: number, rules: ThreatRules): { threats: ActiveThreat[]; rng: Rng } {
+  const rng = createRng(salt > 0 ? `threats|${day}|${dungeon.id}|${salt}` : `threats|${day}|${dungeon.id}`);
   const table = dungeonThreats[dungeon.id] ?? { weights: {} };
   const hasLocals = dungeon.encounters.some((e) => e.type === 'locals');
   const count = rules.compose.threatCount[dungeon.tier - 1];
@@ -103,8 +103,13 @@ function rollThreats(dungeon: DungeonDef, day: number, rules: ThreatRules): { th
  * restriction roll is by far the briefing's most expensive part, and it can be
  * skipped wherever the rest of the briefing is never read.
  */
-export function composeThreats(dungeon: DungeonDef, day: number, rules: ThreatRules = threatRules): ActiveThreat[] {
-  return rollThreats(dungeon, day, rules).threats;
+export function composeThreats(
+  dungeon: DungeonDef,
+  day: number,
+  salt = 0,
+  rules: ThreatRules = threatRules,
+): ActiveThreat[] {
+  return rollThreats(dungeon, day, salt, rules).threats;
 }
 
 /**
@@ -114,8 +119,8 @@ export function composeThreats(dungeon: DungeonDef, day: number, rules: ThreatRu
  * restriction on some days — never on overnight expeditions, which read their
  * `overnight` flag here. Same day, same briefing for everyone.
  */
-export function composeBriefing(dungeon: DungeonDef, day: number, rules: ThreatRules = threatRules): Briefing {
-  const { threats, rng } = rollThreats(dungeon, day, rules);
+export function composeBriefing(dungeon: DungeonDef, day: number, salt = 0, rules: ThreatRules = threatRules): Briefing {
+  const { threats, rng } = rollThreats(dungeon, day, salt, rules);
 
   let opportunity: OpportunityId | null = null;
   if (dungeon.tier >= rules.compose.opportunityFromTier) {

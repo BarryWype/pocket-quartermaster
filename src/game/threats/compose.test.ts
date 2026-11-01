@@ -221,11 +221,11 @@ describe('threats before their kit', () => {
     const noEarlyKit = { ...threatRules, compose: { ...threatRules.compose, beforeKitWeight: 0 } };
     for (const day of days(40)) {
       for (const id of ['sunkenFord', 'boarThicket', 'fungalGrotto', 'cinderHollow'] as const) {
-        expect(composeBriefing(byId[id], day, noEarlyKit).threats.some((t) => t.id === 'element')).toBe(false);
+        expect(composeBriefing(byId[id], day, 0, noEarlyKit).threats.some((t) => t.id === 'element')).toBe(false);
       }
     }
     // At the salves’ tier the threat draws at full weight again.
-    expect(days(40).some((day) => composeBriefing(byId.thunderPlateau, day, noEarlyKit).threats.some((t) => t.id === 'element'))).toBe(true);
+    expect(days(40).some((day) => composeBriefing(byId.thunderPlateau, day, 0, noEarlyKit).threats.some((t) => t.id === 'element'))).toBe(true);
     // Halved, not removed: Element still shows up below its kit’s tier.
     expect(days(40).some((day) => compose('sunkenFord', day).threats.some((t) => t.id === 'element'))).toBe(true);
   });

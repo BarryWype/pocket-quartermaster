@@ -61,7 +61,8 @@ function quickSave(tier: number): SaveData {
   const kits = items.filter((i): i is ConsumableDef => i.slot === 'consumable' && !!i.kit);
   const next: SaveData = {
     ...save,
-    clearedDungeons: dungeons.filter((d) => d.tier < tier).map((d) => d.id),
+    // The tier's whole chain is measured, so its regular dungeons count as cleared.
+    clearedDungeons: dungeons.filter((d) => d.tier < tier || (d.tier === tier && !d.isBoss && !d.overnight)).map((d) => d.id),
     consumables: {
       ...save.consumables,
       healingPotion: 3,

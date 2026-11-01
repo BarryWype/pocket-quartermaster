@@ -43,7 +43,7 @@ describe('expedition loot', () => {
 
   it('rolls no first win row for the day\'s second win', () => {
     const first = resolve(veterans(), 'ratCellar');
-    const second = resolve(first.save, 'goblinWarren');
+    const second = resolve(first.save, 'spiderBurrow');
     expect(second.report.success).toBe(true);
     expect(second.report.firstWin).toBeUndefined();
   });
@@ -58,11 +58,11 @@ describe('expedition loot', () => {
   it('rolls the first clear of a tier only the first time the tier is won', () => {
     const first = resolve(veterans(), 'ratCellar');
     expect(first.report.firstTierClear).toBe(true);
-    expect(resolve(first.save, 'goblinWarren').report.firstTierClear).toBeUndefined();
+    expect(resolve(first.save, 'spiderBurrow').report.firstTierClear).toBeUndefined();
   });
 
   it('teaches the tier boss its pickaxe', () => {
-    const { report, save } = resolve(veterans(), BOSS_1);
+    const { report, save } = resolve({ ...veterans(), clearedDungeons: ['millRuins'] }, BOSS_1);
     expect(report.success).toBe(true);
     expect(save.knownRecipes).toContain('woodPickaxe');
   });
@@ -75,7 +75,7 @@ describe('expedition loot', () => {
 
   it('rolls nothing on a loss, keeping only its gold and XP share', () => {
     const losing = (): SaveData => ({ ...createInitialSave(), tutorial: { ...createInitialSave().tutorial, step: 'done' } });
-    const losses = Array.from({ length: 10 }, (_, i) => resolve(losing(), 'goblinWarren', i).report).filter((r) => !r.success);
+    const losses = Array.from({ length: 10 }, (_, i) => resolve(losing(), 'ratCellar', i).report).filter((r) => !r.success);
     expect(losses.length).toBeGreaterThan(0);
     for (const report of losses) {
       expect(report.loot.dropped).toEqual([]);

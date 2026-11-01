@@ -28,7 +28,7 @@ export function lootContextOf(save: SaveData): LootContext {
   };
 }
 
-const shortDungeon = (tier: number) => dungeons.find((d) => d.tier === tier && d.slot === 'short')!;
+const shortDungeon = (tier: number) => dungeons.find((d) => d.tier === tier && d.chainIndex === 0)!;
 
 /** A source's gold and XP at a tier, as shares of the tier's short dungeon (see `lootConfig.amounts`). */
 export function sourceAmounts(source: LootSourceId, tier: number): { gold: number; xp: number } {

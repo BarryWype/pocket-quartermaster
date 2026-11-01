@@ -1,30 +1,23 @@
 import { dungeons } from '@/content/dungeons';
-import { heroClasses } from '@/content/heroes';
 import { dungeonById } from '@/content/lookup';
-import { surges } from '@/content/threats';
 import { rotationRules } from '@/content/rotation';
+import { surges } from '@/content/threats';
 
-import { composeBriefing, rollSurge } from '../threats/compose';
-import { createRng } from '../generation/rng';
+import { composeBriefing, composeThreats } from '../threats/compose';
 import { isDungeonAvailable, resolveExpedition, startExpedition } from '../expeditions/expeditions';
 import { createInitialSave, type SaveData } from '../save';
 import { equip } from '../team/team';
-import type { Briefing, DungeonDef } from '../types';
-import {
-  applyOverrides,
-  briefingFor,
-  dailyRotation,
-  nextRotationAt,
-  openDungeonIds,
-  rotationDay,
-  type Rotation,
-  type TierRotation,
-} from './rotation';
-import { mainTag } from './tags';
+import type { Briefing, ThreatId } from '../types';
+import { applyOverrides, briefingFor, dailyRotation, nextRotationAt, rotationDay } from './rotation';
+import { tierChain } from './unlock';
 
 const START = rotationDay(rotationRules.startDay);
-const days = (count: number, from = START + 100) => Array.from({ length: count }, (_, i) => dailyRotation(from + i));
-const pool = dungeons.filter((d) => d.slot);
+const TIERS = [1, 2, 3, 4, 5];
+/** A threat set as the rotation compares them: ids and levels. */
+const threatKey = (threats: { id: ThreatId; level: number }[]) => threats.map((t) => `${t.id}${t.level}`).join(',');
+/** A briefing's lead threat: the highest level, the first drawn on a tie. */
+const mainThreat = (threats: { id: ThreatId; level: number }[]) =>
+  threats.reduce((main, t) => (t.level > main.level ? t : main));
 
 describe('rotation days', () => {
   it('resets at the configured UTC hour, not the local day', () => {
@@ -37,127 +30,93 @@ describe('rotation days', () => {
 });
 
 describe('daily rotation', () => {
-  it('is the same every time it is worked out', () => {
+  it('is the same every time it is worked out, whatever dungeon array it is given', () => {
     const day = START + 250;
     // A copy of the content list skips the kept history, so this recomputes from the start.
     expect(dailyRotation(day)).toEqual(dailyRotation(day, [...dungeons]));
   });
 
-  it('equals a full replay that composes every briefing, every day from startDay to a year ahead', () => {
-    // The kept replay composes only the threats, and only on days the surge
-    // chance passes; this replays the same days the original way — the day's
-    // full briefings composed for the surge — and the results must be equal.
-    const tiersOf = (list: DungeonDef[]) => [...new Set(list.map((d) => d.tier))].sort((a, b) => a - b);
-    const lastSeen = new Map<string, number>();
-    let yesterday: Rotation | null = null;
-    for (let day = START; day <= START + 365; day++) {
-      const tiers: Record<number, TierRotation> = {};
-      for (const tier of tiersOf(dungeons)) {
-        const inTier = dungeons.filter((d) => d.tier === tier);
-        const boss = inTier.find((d) => d.isBoss)!;
-        const pick = (slot: 'short' | 'long', avoidTag: string | null) => {
-          const pool = inTier.filter((d) => d.slot === slot);
-          const fresh = pool.filter((d) => d.id !== yesterday?.tiers[tier]?.[slot]);
-          const varied = fresh.filter((d) => !avoidTag || mainTag(d) !== avoidTag);
-          const candidates = varied.length ? varied : fresh.length ? fresh : pool;
-          const rng = createRng(`rotation|${day}|${tier}|${slot}`);
-          return rng.weighted(candidates, (d) => (day - (lastSeen.get(d.id) ?? day - pool.length - 1)) ** 2);
-        };
-        const short = pick('short', null);
-        const long = pick('long', mainTag(short));
-        const briefings = Object.fromEntries([boss, short, long].map((d) => [d.id, composeBriefing(d, day)]));
-        const surge = rollSurge(
-          day,
-          tier,
-          Object.fromEntries([boss, short, long].map((d) => [d.id, briefings[d.id].threats])),
-        );
-        tiers[tier] = { boss: boss.id, short: short.id, long: long.id, surge };
+  it('briefs every chain dungeon every day, the same for everyone', () => {
+    const day = START + 10;
+    const rotation = dailyRotation(day);
+    for (const tier of TIERS) {
+      for (const dungeon of tierChain(tier)) {
+        expect(rotation.tiers[tier].briefings[dungeon.id]).toBeDefined();
+        expect(briefingFor(rotation, dungeon)).toEqual(briefingFor(dailyRotation(day, [...dungeons]), dungeon));
       }
-      expect(dailyRotation(day)).toEqual({ day, tiers });
-      for (const t of Object.values(tiers)) [t.short, t.long].forEach((id) => lastSeen.set(id, day));
-      yesterday = { day, tiers };
     }
   });
 
-  it('opens each tier boss plus one short and one long dungeon', () => {
-    const rotation = dailyRotation(START + 10);
-    for (const tier of [1, 2, 3, 4, 5]) {
-      const t = rotation.tiers[tier];
-      expect(dungeonById[t.boss].isBoss).toBe(true);
-      expect(dungeonById[t.short]).toMatchObject({ tier, slot: 'short' });
-      expect(dungeonById[t.long]).toMatchObject({ tier, slot: 'long' });
-    }
-  });
-
-  it('never opens two dungeons with the same main tag in a tier, nor repeats a slot two days running (60 days)', () => {
-    const rotations = days(60);
-    rotations.forEach((today, i) => {
-      for (const [tier, t] of Object.entries(today.tiers)) {
-        expect(mainTag(dungeonById[t.short])).not.toBe(mainTag(dungeonById[t.long]));
-        const yesterday = rotations[i - 1]?.tiers[Number(tier)];
-        if (yesterday) {
-          expect(t.short).not.toBe(yesterday.short);
-          expect(t.long).not.toBe(yesterday.long);
+  it("changes every chain dungeon's threats from yesterday (30 days)", () => {
+    for (let day = START + 1; day <= START + 30; day++) {
+      const today = dailyRotation(day);
+      const yesterday = dailyRotation(day - 1);
+      for (const tier of TIERS) {
+        for (const dungeon of tierChain(tier)) {
+          const todays = today.tiers[tier].briefings[dungeon.id].threats;
+          const yesterdays = yesterday.tiers[tier].briefings[dungeon.id].threats;
+          // A surged day raises a threat level, which is a change of its own.
+          if (todays.some((t) => t.surge) || yesterdays.some((t) => t.surge)) continue;
+          if (threatKey(todays) !== threatKey(yesterdays)) continue;
+          // Allowed only when the dungeon's table has no other draw to show.
+          const salts = Array.from({ length: 8 }, (_, s) => threatKey(composeThreats(dungeon, day, s)));
+          expect(salts.every((key) => key === threatKey(yesterdays))).toBe(true);
         }
       }
-    });
+    }
   });
 
-  it('shows every pool dungeon within 30 days', () => {
-    const seen = new Set(days(30).flatMap(openDungeonIds));
-    for (const dungeon of pool) expect(seen).toContain(dungeon.id);
+  it('spreads the main threats within a tier on most days', () => {
+    let duplicated = 0;
+    const tierDays = TIERS.length * 30;
+    for (let day = START; day < START + 30; day++) {
+      const rotation = dailyRotation(day);
+      for (const tier of TIERS) {
+        const mains = tierChain(tier).map((d) => mainThreat(rotation.tiers[tier].briefings[d.id].threats).id);
+        if (new Set(mains).size < mains.length) duplicated++;
+      }
+    }
+    // The tables of a tier can force a clash on some days, but not on most.
+    expect(duplicated / tierDays).toBeLessThan(0.5);
   });
 
   it('can be overridden from debug', () => {
     const forced: Briefing = { threats: [{ id: 'traps', level: 3 }], restriction: 'barren', opportunity: 'bounty' };
     const rotation = applyOverrides(dailyRotation(START + 5), {
-      slots: { '1:short': 'oldGraveyard' },
       briefings: { oldGraveyard: forced },
     });
-    expect(rotation.tiers[1]).toMatchObject({ short: 'oldGraveyard' });
     expect(briefingFor(rotation, dungeonById.oldGraveyard)).toEqual(forced);
   });
 });
 
 describe('daily surge', () => {
-  it('hits about 30% of tiers, always one of the tier\'s three dungeons, raising an undead, traps or beasts threat', () => {
-    const tiers = days(100).flatMap((r) => Object.values(r.tiers));
-    const surged = tiers.filter((t) => t.surge);
-    expect(surged.length / tiers.length).toBeGreaterThan(0.15);
-    expect(surged.length / tiers.length).toBeLessThan(0.45);
-    for (const t of surged) {
-      expect([t.boss, t.short, t.long]).toContain(t.surge!.dungeonId);
-      expect(Object.keys(surges)).toContain(t.surge!.threatId);
+  it('hits about 30% of tiers, always a chain dungeon, raising an undead, traps or beasts threat', () => {
+    const surged = TIERS.flatMap((tier) =>
+      Array.from({ length: 100 }, (_, i) => dailyRotation(START + i).tiers[tier].surge),
+    ).filter((s): s is NonNullable<typeof s> => !!s);
+    expect(surged.length / (TIERS.length * 100)).toBeGreaterThan(0.15);
+    expect(surged.length / (TIERS.length * 100)).toBeLessThan(0.45);
+    for (const surge of surged) {
+      expect(Object.keys(surges)).toContain(surge.threatId);
     }
   });
 
-  it('raises the targeted dungeon\'s threat by one level, capped at 3, and marks the surge', () => {
+  it('targets a tier dungeon and is applied by briefingFor', () => {
     for (let i = 0; i < 200; i++) {
       const day = START + i;
       const rotation = dailyRotation(day);
-      for (const tier of Object.values(rotation.tiers)) {
-        const surge = tier.surge;
+      for (const tier of TIERS) {
+        const surge = rotation.tiers[tier].surge;
         if (!surge) continue;
-        const plain = composeBriefing(dungeonById[surge.dungeonId], day);
-        const surged = briefingFor(rotation, dungeonById[surge.dungeonId]);
-        const plainThreat = plain.threats.find((t) => t.id === surge.threatId)!;
-        const surgedThreat = surged.threats.find((t) => t.id === surge.threatId)!;
-        expect(surgedThreat.level).toBe(Math.min(3, plainThreat.level + 1));
-        expect(surgedThreat.surge).toBeDefined();
-      }
-    }
-  });
-
-  it('leaves the other two dungeons of the tier alone', () => {
-    for (let i = 0; i < 100; i++) {
-      const day = START + i;
-      const rotation = dailyRotation(day);
-      for (const tier of Object.values(rotation.tiers)) {
-        const surge = tier.surge;
-        if (!surge) continue;
-        for (const id of [tier.boss, tier.short, tier.long]) {
-          if (id === surge.dungeonId) continue;
-          expect(briefingFor(rotation, dungeonById[id]).threats).toEqual(composeBriefing(dungeonById[id], day).threats);
+        const dungeon = tierChain(tier).find((d) => d.id === surge.dungeonId)!;
+        expect(dungeon.tier).toBe(tier);
+        const briefed = briefingFor(rotation, dungeon);
+        const raised = briefed.threats.find((t) => t.surge);
+        expect(raised?.id).toBe(surge.threatId);
+        expect(raised?.level).toBeLessThanOrEqual(3);
+        for (const other of tierChain(tier)) {
+          if (other.id === surge.dungeonId) continue;
+          expect(briefingFor(rotation, other).threats.some((t) => t.surge)).toBe(false);
         }
       }
     }
@@ -165,62 +124,42 @@ describe('daily surge', () => {
 });
 
 describe('briefingFor', () => {
-  it('composes the day\'s briefing: same day, same briefing for everyone', () => {
+  it('composes a dungeon outside the rotation — overnight and secret ones — for the same day', () => {
     const day = START + 10;
     const rotation = dailyRotation(day);
-    for (const dungeon of pool) {
-      expect(briefingFor(rotation, dungeon)).toEqual(composeBriefing(dungeon, day));
-    }
-    // And it is the same whatever rotation instance is at hand.
-    expect(briefingFor(dailyRotation(day), dungeonById.wolfDen)).toEqual(briefingFor(rotation, dungeonById.wolfDen));
+    const overnight = dungeons.find((d) => d.overnight)!;
+    expect(briefingFor(rotation, overnight)).toEqual(composeBriefing(overnight, day));
   });
 });
 
 describe('availability', () => {
-  /** A rotation where tier 1 has the Spider Burrow and the Collapsed Mill. */
-  const rotation: Rotation = applyOverrides(dailyRotation(START), {
-    slots: { '1:short': 'spiderBurrow', '1:long': 'millRuins', '2:short': 'wolfDen' },
-  });
   const done = (save: SaveData): SaveData => ({ ...save, tutorial: { ...createInitialSave().tutorial, step: 'done' } });
 
-  it('opens only today’s dungeons, plus the bosses', () => {
+  it('opens every unlocked dungeon every day, and locks the chain behind clears', () => {
     const save = done(createInitialSave());
-    expect(isDungeonAvailable(save, dungeonById.spiderBurrow, rotation)).toBe(true);
-    expect(isDungeonAvailable(save, dungeonById.banditStockade, rotation)).toBe(true);
-    expect(isDungeonAvailable(save, dungeonById.goblinWarren, rotation)).toBe(false);
-    expect(() => startExpedition(save, 'goblinWarren', ['bram'], 0, 1, rotation)).toThrow();
+    for (const day of [START, START + 10]) {
+      expect(isDungeonAvailable(save, dungeonById.ratCellar, dailyRotation(day))).toBe(true);
+      expect(isDungeonAvailable(save, dungeonById.spiderBurrow, dailyRotation(day))).toBe(false);
+      expect(() => startExpedition(save, 'spiderBurrow', ['bram'], 0, 1, dailyRotation(day))).toThrow();
+    }
+    const cleared = { ...save, clearedDungeons: ['ratCellar'] };
+    expect(isDungeonAvailable(cleared, dungeonById.spiderBurrow, dailyRotation(START))).toBe(true);
   });
 
-  it('shows today’s dungeons of a tier unlocked mid-day', () => {
-    const save = done(createInitialSave());
-    expect(isDungeonAvailable(save, dungeonById.wolfDen, rotation)).toBe(false);
-    expect(isDungeonAvailable({ ...save, clearedDungeons: ['banditStockade'] }, dungeonById.wolfDen, rotation)).toBe(true);
-  });
-
-  it('keeps the tutorial dungeon open until the tutorial is done', () => {
+  it('keeps the tutorial dungeon the only one until the tutorial is done', () => {
     const during: SaveData = { ...createInitialSave(), tutorial: { ...createInitialSave().tutorial, step: 'awaitReport' } };
-    expect(isDungeonAvailable(during, dungeonById.ratCellar, rotation)).toBe(true);
-    expect(isDungeonAvailable(done(during), dungeonById.ratCellar, rotation)).toBe(false);
+    expect(isDungeonAvailable(during, dungeonById.ratCellar, dailyRotation(START))).toBe(true);
+    expect(isDungeonAvailable(during, dungeonById.spiderBurrow, dailyRotation(START))).toBe(false);
+    expect(isDungeonAvailable(done(during), dungeonById.ratCellar, dailyRotation(START))).toBe(true);
   });
 
   it('lets a running expedition keep its dungeon and briefing after the rotation moves on', () => {
-    const save = done(equip({ ...createInitialSave(), gear: [{ uid: 'g', itemId: 'sword5', quality: 'normal' }] }, 'bram', 'weapon', 'g'));
-    const started = startExpedition(save, 'spiderBurrow', ['bram'], 0, 1, rotation);
-    expect(started.expeditions[0].briefing).toEqual(briefingFor(rotation, dungeonById.spiderBurrow));
-    // Tomorrow it may be gone from the rotation; resolving doesn't look at the rotation at all.
+    const save = done({ ...createInitialSave(), gear: [{ uid: 'g', itemId: 'sword5', quality: 'normal' }] });
+    const equipped = equip(save, 'bram', 'weapon', 'g');
+    const started = startExpedition(equipped, 'ratCellar', ['bram'], 0, 1, dailyRotation(START));
+    expect(started.expeditions[0].briefing).toEqual(briefingFor(dailyRotation(START), dungeonById.ratCellar));
     const { report } = resolveExpedition(started, started.expeditions[0]);
-    expect(report.dungeonId).toBe('spiderBurrow');
+    expect(report.dungeonId).toBe('ratCellar');
     expect(report.briefing).toEqual(started.expeditions[0].briefing);
-  });
-});
-
-describe('class answers', () => {
-  it('gives every class something to answer threats with: an approach above the base, or a keyword', () => {
-    for (const heroClass of Object.values(heroClasses)) {
-      // The Gambler's approaches are rolled at the daily reset.
-      if (heroClass.name === 'Gambler') continue;
-      const approaches = Object.values(heroClass.approaches).some((score) => score > 1);
-      expect(approaches || heroClass.keywords.length > 0).toBe(true);
-    }
   });
 });

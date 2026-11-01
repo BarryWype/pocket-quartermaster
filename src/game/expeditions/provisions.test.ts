@@ -207,8 +207,8 @@ describe('meals', () => {
   it('Comfort broth: +25% of the cleared share after a retreat, never more than a full clear', () => {
     const weak = (mealId: string | null) =>
       Array.from({ length: 60 }, (_, i) => {
-        // Tier 1 as the highest, so XP isn't reduced.
-        const save = { ...ready({ trailMix: 10, comfortBroth: 1 }), clearedDungeons: [], nextUid: 200 + i };
+        // Tier 1 as the highest, so XP isn't reduced; the chain's end cleared, so the boss is open.
+        const save = { ...ready({ trailMix: 10, comfortBroth: 1 }), clearedDungeons: ['millRuins'], nextUid: 200 + i };
         return resolve(startExpedition(save, 'banditStockade', ['mira'], 0, 1, undefined, { mealId })).report;
       });
     const plain = weak(null);

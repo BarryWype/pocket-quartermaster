@@ -585,11 +585,9 @@ function geared(consumables: Record<string, number> = {}): SaveData {
   return save;
 }
 
-/** A rotation with a debug-forced briefing on `dungeonId`, and the dungeon forced open in its slot. */
+/** A rotation with a debug-forced briefing on `dungeonId`. */
 function forcedRotation(dungeonId: string, briefingOf: Briefing) {
-  const dungeon = dungeonById[dungeonId];
   return applyOverrides(dailyRotation(rotationDay(0)), {
-    ...(dungeon.slot ? { slots: { [`${dungeon.tier}:${dungeon.slot}`]: dungeonId } } : {}),
     briefings: { [dungeonId]: briefingOf },
   });
 }

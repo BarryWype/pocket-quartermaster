@@ -27,7 +27,8 @@ import { sanctums } from '@/content/sanctums';
 import { bossWeaknesses } from '@/content/weaknesses';
 import { ELEMENTS, type Element } from '@/game/elements';
 import { highestUnlockedTier } from '@/game/expeditions/expeditions';
-import { briefingFor, openDungeonIds } from '@/game/dungeons/rotation';
+import { briefingFor } from '@/game/dungeons/rotation';
+import { tierChain } from '@/game/dungeons/unlock';
 import { maxThreatLevel } from '@/game/threats/compose';
 import { playbackRoute, type WalkSummary } from '@/game/gathering/autoGather';
 import { offsetPosition } from '@/game/generation/geo';
@@ -276,7 +277,7 @@ function LootDebug() {
     ...(source === 'treasureSpot' ? { mapRarity } : {}),
   };
   const chances = lootChances(input);
-  const short = dungeons.find((d) => d.tier === tier && d.slot === 'short')!;
+  const short = dungeons.find((d) => d.tier === tier && d.chainIndex === 0)!;
   const base = lootConfig.amounts[source] ? sourceAmounts(source, tier) : { gold: Math.round((short.gold[0] + short.gold[1]) / 2), xp: short.xp };
   const roll = () => {
     const loot = rollForSave(game.save, source, createRng(`debug|${game.save.nextUid}|${rolls}`), { ...input, tier, base, ...(force ? { force } : {}) });
@@ -553,15 +554,13 @@ export default function DebugScreen() {
   const levelHeroLevel = levelHeroState?.level ?? 1;
   const hpShareNow = hpHeroState ? currentHp(game.save, hpHeroState, now) / maxHp(game.save, hpHeroState) : 1;
   const [guildTrack, setGuildTrack] = useState<GuildTrackId>('gold');
-  const [rotationSlot, setRotationSlot] = useState<'short' | 'long'>('short');
-  const slotKey = `${rotationTier}:${rotationSlot}`;
   const [threatPick, setThreatPick] = useState<ThreatId>('traps');
   const [threatLevel, setThreatLevel] = useState<ThreatLevel>(1);
   const [threatElement, setThreatElement] = useState<Element>('fire');
 
   /** Today's rotation with the debug overrides applied, as the expeditions screen sees it. */
   const rotation = currentRotation(now);
-  const openDungeons = openDungeonIds(rotation).map((id) => dungeons.find((d) => d.id === id)!);
+  const openDungeons = tierChain(rotationTier, dungeons);
   const setBriefing = (dungeonId: string, briefing: Briefing) =>
     debug.set({ forcedBriefings: { ...debug.forcedBriefings, [dungeonId]: briefing } });
   const clearBriefing = (dungeonId: string) => {
@@ -1015,17 +1014,6 @@ export default function DebugScreen() {
         </View>
       </View>
       <Choice options={TIERS} value={rotationTier} label={(t) => `T${t}`} onChange={setRotationTier} />
-      <Choice options={['short', 'long'] as const} value={rotationSlot} label={(s) => s} onChange={setRotationSlot} />
-      <Text>Force a dungeon into this slot</Text>
-      <Choice
-        options={[null, ...dungeons.filter((d) => d.tier === rotationTier && d.slot === rotationSlot).map((d) => d.id)]}
-        value={debug.forcedSlots[slotKey] ?? null}
-        label={(id) => (id ? dungeons.find((d) => d.id === id)!.name : 'auto')}
-        onChange={(id) => {
-          const { [slotKey]: _, ...others } = debug.forcedSlots;
-          debug.set({ forcedSlots: id ? { ...others, [slotKey]: id } : others });
-        }}
-      />
       <Button title="Reset the first win of the day" onPress={game.resetFirstWin} />
 
       <Text style={styles.title}>Threats</Text>

@@ -3,6 +3,7 @@ import type { ImageSourcePropType } from 'react-native';
 
 import type { PlaceKind, SecretKind } from '@/content/places';
 import type { PlaceTipSource, TipSource } from '@/content/secrets';
+import type { Difficulty } from '@/content/difficulty';
 
 import type { Element } from './elements';
 import type { LatLng } from './generation/types';
@@ -767,8 +768,10 @@ export type DungeonDef = {
   tier: number;
   /** The tier's last dungeon; beating it reveals the next tier. Always available. */
   isBoss?: boolean;
-  /** Regular dungeons rotate daily: one `short` (farm) and one `long` slot per tier. */
-  slot?: 'short' | 'long';
+  /** The difficulty band the dungeon is tuned to (see content/difficulty.ts). */
+  difficulty: Difficulty;
+  /** The dungeon's place in its tier's chain, 0 first; the boss is 6. Overnight and secret dungeons have none. */
+  chainIndex?: number;
   /** An overnight expedition: open every day alongside the rotation, not part of it. */
   overnight?: boolean;
   /** A secret dungeon, launched from a tipped place: never in the rotation, no first-win or first-clear rows. */

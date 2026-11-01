@@ -1,5 +1,5 @@
 import { dungeons, overnightExpeditionRules } from '@/content/dungeons';
-import { dailyRotation, openDungeonIds } from '@/game/dungeons/rotation';
+import { dailyRotation } from '@/game/dungeons/rotation';
 import { isDungeonAvailable, launchPlan, overnightUnderWay, resolveExpedition, startExpedition } from '@/game/expeditions/expeditions';
 import { createInitialSave, type SaveData } from '@/game/save';
 
@@ -14,10 +14,10 @@ describe('overnight expeditions', () => {
   it('has exactly one per tier, unlocked with its tier and never part of the rotation', () => {
     expect(runs.map((d) => d.tier)).toEqual([1, 2, 3, 4, 5]);
     for (const run of runs) {
-      expect(run.slot).toBeUndefined();
+      expect(run.chainIndex).toBeUndefined();
       expect(run.isBoss).toBeUndefined();
       for (const day of [10, 11, 12, 13]) {
-        expect(openDungeonIds(dailyRotation(day))).not.toContain(run.id);
+        expect(dailyRotation(day).tiers[run.tier].briefings[run.id]).toBeUndefined();
         expect(isDungeonAvailable(cleared(run.tier), run, dailyRotation(day))).toBe(true);
       }
       // Locked until the tier below's boss has fallen.
@@ -25,13 +25,13 @@ describe('overnight expeditions', () => {
     }
   });
 
-  it('runs for the configured hours and pays the configured short runs', () => {
+  it('runs for the configured hours and pays the configured easy runs', () => {
     const { goldRunsWorth, xpRunsWorth } = overnightExpeditionRules;
     for (const run of runs) {
       expect(run.durationMinutes).toBe(overnightExpeditionRules.durationHours * 60);
-      const short = dungeons.find((d) => d.tier === run.tier && d.slot === 'short')!;
-      expect(run.gold).toEqual([short.gold[0] * goldRunsWorth, short.gold[1] * goldRunsWorth]);
-      expect(run.xp).toBe(short.xp * xpRunsWorth);
+      const easy = dungeons.find((d) => d.tier === run.tier && d.chainIndex === 0)!;
+      expect(run.gold).toEqual([easy.gold[0] * goldRunsWorth, easy.gold[1] * goldRunsWorth]);
+      expect(run.xp).toBe(easy.xp * xpRunsWorth);
     }
   });
 

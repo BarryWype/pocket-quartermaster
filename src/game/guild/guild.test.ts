@@ -168,7 +168,7 @@ describe('effects', () => {
     const save = withRanks({ fasterExpeditions: 3 });
     expect(expeditionMinutes(save, dungeonById.ratCellar)).toBeCloseTo(5 * 0.7);
     const started = startExpedition(save, 'goblinWarren', ['bram'], 1234);
-    expect(started.expeditions[0].endsAt - 1234).toBe(Math.round(15 * 60 * 0.7) * 1000);
+    expect(started.expeditions[0].endsAt - 1234).toBe(Math.round(dungeonById.goblinWarren.durationMinutes * 60 * 0.7) * 1000);
     // Buying more later doesn't touch an expedition already under way.
     expect(withRanks({ fasterExpeditions: 3 }, { ...started, guild: {} }).expeditions[0]).toEqual(started.expeditions[0]);
     const tutorial = { ...save, tutorial: { ...createInitialSave().tutorial, step: 'sendExpedition' as const } };

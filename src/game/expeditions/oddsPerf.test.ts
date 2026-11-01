@@ -35,14 +35,13 @@ function debugSave(): SaveData {
 }
 
 describe('odds performance', () => {
-  // The dungeons the Expeditions screen shows at tier 3: the rotation's short, long and
-  // boss, plus the overnight one.
+  // The dungeons the Expeditions screen shows at tier 3: the chain's easy and
+  // hard ends, the boss, plus the overnight one.
   const save = debugSave();
   const now = 300_000;
-  // The rotation picks one short and one long per tier; the screen shows those two, the boss and the overnight one.
   const shown: DungeonDef[] = [
-    dungeons.find((d) => d.tier === 3 && d.slot === 'short')!,
-    dungeons.find((d) => d.tier === 3 && d.slot === 'long')!,
+    dungeons.find((d) => d.tier === 3 && d.chainIndex === 0)!,
+    dungeons.find((d) => d.tier === 3 && d.chainIndex === 5)!,
     dungeons.find((d) => d.tier === 3 && d.isBoss)!,
     dungeons.find((d) => d.tier === 3 && d.overnight)!,
   ];

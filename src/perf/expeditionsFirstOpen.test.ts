@@ -82,14 +82,14 @@ describe('the first opening of Expeditions', () => {
     const now = Date.now();
     const today = rotationDay(now);
 
-    // What the screen would show today at tier 3: the rotation's short, long
-    // and boss, plus the tier's overnight run.
+    // What the screen would show today at tier 3: the chain's easy and hard
+    // ends, the boss, plus the tier's overnight run.
     const rotationModule = jest.requireActual<typeof import('@/game/dungeons/rotation')>('@/game/dungeons/rotation');
-    const rotation = rotationModule.dailyRotation(today);
+    rotationModule.dailyRotation(today);
     const shown: DungeonDef[] = [
-      dungeons.find((d) => d.id === rotation.tiers[3].short)!,
-      dungeons.find((d) => d.id === rotation.tiers[3].long)!,
-      dungeons.find((d) => d.id === rotation.tiers[3].boss)!,
+      dungeons.find((d) => d.tier === 3 && d.chainIndex === 0)!,
+      dungeons.find((d) => d.tier === 3 && d.chainIndex === 5)!,
+      dungeons.find((d) => d.tier === 3 && d.isBoss)!,
       dungeons.find((d) => d.tier === 3 && d.overnight)!,
     ];
     const rows: Row[] = [];
@@ -204,7 +204,7 @@ describe('the first opening of Expeditions', () => {
           const lookup = load<typeof import('@/content/lookup')>('@/content/lookup');
           const rotationMod = load<typeof import('@/game/dungeons/rotation')>('@/game/dungeons/rotation');
           const todayRotation = rotationMod.dailyRotation(today);
-          const ids = Object.values(todayRotation.tiers).flatMap((t) => [t.short, t.long, t.boss]);
+          const ids = Object.values(todayRotation.tiers).flatMap((t) => Object.keys(t.briefings));
           ids.map((id) => lookup.dungeonById[id]).filter((d) => unlockMod.isDungeonUnlocked(save, d)).sort((a, b) => a.tier - b.tier);
           dungeons.filter((d) => d.overnight && unlockMod.isDungeonUnlocked(save, d));
         },
