@@ -90,6 +90,7 @@ import {
   ItemPopup,
   ItemSlot,
   ParchmentCard,
+  PixelSwitch,
   ScreenHeader,
   SwipeTabs,
   WoodButton,
@@ -152,6 +153,7 @@ function QuestDebug() {
 function UiKitDebug() {
   const [rail, setRail] = useState('weapons');
   const [page, setPage] = useState(0);
+  const [pixelOn, setPixelOn] = useState(true);
   return (
     <>
       <Text style={styles.title}>UI kit</Text>
@@ -224,6 +226,11 @@ function UiKitDebug() {
         <EmberButton title="Forge" disabled onPress={() => {}} style={styles.kitGrow} />
       </View>
       <WoodButton title="Reroll" onPress={() => {}} />
+      <View style={styles.kitRow}>
+        <PixelSwitch value={pixelOn} onValueChange={setPixelOn} accessibilityLabel="pixel switch on" />
+        <PixelSwitch value={false} onValueChange={() => {}} accessibilityLabel="pixel switch off" />
+        <PixelSwitch value disabled onValueChange={() => {}} accessibilityLabel="pixel switch disabled" />
+      </View>
       <View style={styles.kitRow}>
         <Chip tone="good" label="Answered" />
         <Chip tone="bad" label="Exposed" />

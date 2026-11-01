@@ -768,6 +768,20 @@ export const fr: Dictionary = {
     removeEscort: 'Retirer',
   },
   settings: {
+    section: {
+      game: 'Jeu',
+      language: 'Langue',
+      alerts: 'Alertes',
+      about: 'À propos',
+    },
+    autoStopHint: 'S’arrête tout seul après cette durée sans mouvement',
+    fieldNotes: 'Carnet de terrain',
+    fieldNotesHint: {
+      one: 'Relire l’astuce déjà vue',
+      other: 'Relire les {count} astuces déjà vues',
+    },
+    version: 'Version',
+    credits: 'Crédits et licences',
     language: 'Langue',
     languageSystem: 'Langue du téléphone',
     notifications: 'Notifications',

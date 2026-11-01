@@ -25,6 +25,7 @@ import { HpBar } from './HpBar';
 import { Overlay } from './Overlay';
 import { useSheetMaxHeight } from './Sheet';
 import { Panel } from './Panel';
+import { PixelSwitch } from './ui';
 import { Text } from './Text';
 import { IconLabel } from './IconLabel';
 
@@ -42,30 +43,13 @@ function setPocketOption(option: PocketOption, on: boolean) {
   else syncBackground();
 }
 
-/** The wood-and-brass switch: dark wood when off, brass when on. */
-function WoodToggle({ on, disabled, onValueChange }: { on: boolean; disabled?: boolean; onValueChange: (value: boolean) => void }) {
-  return (
-    <Pressable
-      accessibilityRole="switch"
-      accessibilityState={{ checked: on, disabled: !!disabled }}
-      disabled={disabled}
-      onPress={() => onValueChange(!on)}
-      style={styles.toggle}
-    >
-      <View style={[styles.toggleTrack, on && styles.toggleTrackOn]}>
-        <View style={[styles.toggleThumb, on && styles.toggleThumbOn]} />
-      </View>
-    </Pressable>
-  );
-}
-
 /** One of Pocket mode's options, with its switch. */
 export function PocketOptionRow({ option }: { option: PocketOption }) {
   const on = useSettingsStore((state) => state.pocketMode[option]);
   return (
     <View style={styles.optionRow}>
       <Text style={styles.optionLabel}>{t(`autoGather.options.${option}`)}</Text>
-      <WoodToggle on={on} onValueChange={(value) => setPocketOption(option, value)} />
+      <PixelSwitch value={on} accessibilityLabel={t(`autoGather.options.${option}`)} onValueChange={(value) => setPocketOption(option, value)} />
     </View>
   );
 }
@@ -139,8 +123,9 @@ export function PocketNotificationRows() {
       {POCKET_CATEGORIES.map((category) => (
         <View key={category} style={styles.optionRow}>
           <Text style={styles.optionLabel}>{texts[category].title}</Text>
-          <WoodToggle
-            on={notifications.categories[category]}
+          <PixelSwitch
+            value={notifications.categories[category]}
+            accessibilityLabel={texts[category].title}
             disabled={!notifications.enabled}
             onValueChange={(on) => {
               setCategory(category, on);
@@ -275,11 +260,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 24 },
   optionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   optionLabel: { fontSize: 15, color: ui.ink, fontFamily: fonts.serif },
-  toggle: { width: 56, height: 44, alignItems: 'center', justifyContent: 'center' },
-  toggleTrack: { width: 44, height: 24, padding: 2, borderWidth: 2, borderColor: ui.outline, backgroundColor: ui.woodDark },
-  toggleTrackOn: { backgroundColor: ui.brass, alignItems: 'flex-end' },
-  toggleThumb: { width: 16, height: 16, backgroundColor: ui.parchment, borderWidth: 1, borderColor: ui.outline },
-  toggleThumbOn: { backgroundColor: ui.brassLight },
   picker: { gap: 4 },
   pickerLabel: { fontSize: 16, color: colors.muted, textTransform: 'uppercase' },
   options: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },

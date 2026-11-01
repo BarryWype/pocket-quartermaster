@@ -760,6 +760,20 @@ export const en = {
     removeEscort: 'Remove',
   },
   settings: {
+    section: {
+      game: 'Game',
+      language: 'Language',
+      alerts: 'Alerts',
+      about: 'About',
+    },
+    autoStopHint: 'Stops by itself after this long without moving',
+    fieldNotes: 'Field notes',
+    fieldNotesHint: {
+      one: "Read again the tip you've seen",
+      other: "Read again the {count} tips you've seen",
+    },
+    version: 'Version',
+    credits: 'Credits & licences',
     language: 'Language',
     languageSystem: 'Phone language',
     notifications: 'Notifications',

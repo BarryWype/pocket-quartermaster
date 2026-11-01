@@ -6,6 +6,7 @@ export { EmberButton } from './EmberButton';
 export { ItemPopup, type PopupIngredient, type PopupLine } from './ItemPopup';
 export { ItemSlot, type SlotState } from './ItemSlot';
 export { ParchmentCard } from './ParchmentCard';
+export { PixelSwitch } from './PixelSwitch';
 export { ScreenHeader } from './ScreenHeader';
 export { SwipeTabs } from './SwipeTabs';
 export { WoodButton } from './WoodButton';

@@ -90,7 +90,7 @@ export default function RootLayout() {
         <Stack.Screen name="expeditions" dangerouslySingular options={{ title: t('screens.expeditions') }} />
         <Stack.Screen name="quests" dangerouslySingular options={{ title: t('screens.quests'), header: () => <ScreenHeader title={t('screens.quests')} />, contentStyle: { backgroundColor: ui.woodDark } }} />
         <Stack.Screen name="guild" dangerouslySingular options={{ title: t('screens.guild'), header: () => <ScreenHeader title={t('screens.guild')} right={<HeaderGold />} />, contentStyle: { backgroundColor: ui.woodDark } }} />
-        <Stack.Screen name="settings" dangerouslySingular options={{ title: t('screens.settings') }} />
+        <Stack.Screen name="settings" dangerouslySingular options={{ title: t('screens.settings'), header: () => <ScreenHeader title={t('screens.settings')} />, contentStyle: { backgroundColor: ui.woodDark } }} />
         <Stack.Screen name="tips" dangerouslySingular options={{ title: t('screens.tips') }} />
         <Stack.Screen name="debug" dangerouslySingular options={{ title: t('screens.debug') }} />
       </Stack>
