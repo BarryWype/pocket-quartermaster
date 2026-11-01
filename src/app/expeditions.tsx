@@ -2,6 +2,7 @@ import { useFocusEffect } from 'expo-router';
 import { rosterRules } from '@/content/roster';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import PagerView from 'react-native-pager-view';
 
 import { DungeonCard } from '@/components/DungeonCard';
 import { GameIcon } from '@/components/GameIcon';
@@ -45,6 +46,7 @@ import { fonts, ui } from '@/theme';
 import { timed } from '@/components/timed';
 
 type Tab = 'dungeons' | 'teams' | 'reports';
+const TABS: Tab[] = ['dungeons', 'teams', 'reports'];
 
 /** The tier diamonds' labels. */
 const ROMAN = ['I', 'II', 'III', 'IV', 'V'];
@@ -88,10 +90,17 @@ export function ExpeditionsScreen() {
 
   // Reports count as read once the player leaves their tab or the screen.
   const tabRef = useRef(tab);
-  const setTab = (next: Tab) => {
+  const pager = useRef<PagerView>(null);
+  const [initialTab] = useState(tab);
+  /** Follows a swipe; `setTab` also turns the page. */
+  const showTab = (next: Tab) => {
     if (tabRef.current === 'reports' && next !== 'reports') markReportsSeen();
     tabRef.current = next;
     setTabState(next);
+  };
+  const setTab = (next: Tab) => {
+    pager.current?.setPage(TABS.indexOf(next));
+    showTab(next);
   };
   useFocusEffect(useCallback(() => () => markReportsSeen(), [markReportsSeen]));
 
@@ -447,20 +456,31 @@ export function ExpeditionsScreen() {
     <View style={styles.screen}>
       <View style={styles.body}>
         <DiamondRail items={railItems} selected={tab} onSelect={(key) => setTab(key as Tab)} />
-        <ScrollView style={styles.content} contentContainerStyle={styles.container}>
-          <TutorialHint screen="expeditions" />
-          {ready.length > 0 && tab !== 'teams' && (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={readyBanner}
-              onPress={() => setTab('teams')}
-              style={styles.banner}
-            >
-              <RewardLabel text={readyBanner} size={16} labelStyle={styles.bannerText} />
-            </Pressable>
-          )}
-          {tab === 'dungeons' ? dungeonsTab : tab === 'teams' ? teamsTab : reportsTab}
-        </ScrollView>
+        <PagerView
+          ref={pager}
+          style={styles.pager}
+          initialPage={TABS.indexOf(initialTab)}
+          onPageSelected={({ nativeEvent }) => showTab(TABS[nativeEvent.position])}
+        >
+          {TABS.map((key) => (
+            <View key={key} collapsable={false}>
+              <ScrollView style={styles.content} contentContainerStyle={styles.container}>
+                <TutorialHint screen="expeditions" />
+                {ready.length > 0 && key !== 'teams' && (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={readyBanner}
+                    onPress={() => setTab('teams')}
+                    style={styles.banner}
+                  >
+                    <RewardLabel text={readyBanner} size={16} labelStyle={styles.bannerText} />
+                  </Pressable>
+                )}
+                {key === 'dungeons' ? dungeonsTab : key === 'teams' ? teamsTab : reportsTab}
+              </ScrollView>
+            </View>
+          ))}
+        </PagerView>
       </View>
 
       {confirmingDungeon && (
@@ -497,6 +517,7 @@ export function ExpeditionsScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: ui.woodDark },
   body: { flex: 1, flexDirection: 'row' },
+  pager: { flex: 1 },
   content: { flex: 1, backgroundColor: ui.woodDark },
   container: { paddingVertical: 14, paddingHorizontal: 12, gap: 10 },
   muted: { fontFamily: fonts.serif, fontSize: 13, color: ui.onWoodMuted },

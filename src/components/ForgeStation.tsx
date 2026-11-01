@@ -1,5 +1,6 @@
 import { useRef, useState, type ComponentRef } from 'react';
 import { ScrollView, StyleSheet, View, type ImageSourcePropType } from 'react-native';
+import PagerView from 'react-native-pager-view';
 
 import { masteryTypeNames } from '@/content/forging';
 import { gearProfiles } from '@/content/equipment';
@@ -58,6 +59,7 @@ export function ForgeStation() {
     return lastPage ?? 'weapons';
   });
   const [contentWidth, setContentWidth] = useState(0);
+  const pager = useRef<PagerView>(null);
   const { pages, tiers } = forgeList(save);
 
   const otherVisible = pages.some(({ type }) => type === 'other');
@@ -71,6 +73,11 @@ export function ForgeStation() {
       badge: page && page.craftable > 0 ? page.craftable : undefined,
     };
   });
+
+  const showSection = (next: ForgePageType) => {
+    setSection(next);
+    lastPage = next;
+  };
 
   const confirmPending = () => {
     if (!pending) return;
@@ -92,42 +99,53 @@ export function ForgeStation() {
           items={railItems}
           selected={section}
           onSelect={(key) => {
-            setSection(key as ForgePageType);
-            lastPage = key as ForgePageType;
+            pager.current?.setPage(sections.indexOf(key as ForgePageType));
+            showSection(key as ForgePageType);
           }}
         />
-        <ScrollView
-          style={styles.content}
-          contentContainerStyle={styles.contentInner}
-          onLayout={({ nativeEvent }) => setContentWidth(nativeEvent.layout.width - 24)}
+        <PagerView
+          ref={pager}
+          style={styles.pager}
+          initialPage={Math.max(0, sections.indexOf(section))}
+          onPageSelected={({ nativeEvent }) => showSection(sections[nativeEvent.position])}
         >
-          <TutorialHint screen="forge" />
-          {result && <ForgeBanner result={result} onClose={() => setResult(null)} />}
-          {pages.length === 0 ? (
-            <Text style={styles.nothing}>{t('crafting.nothingKnown')}</Text>
-          ) : section === 'other' ? (
-            <OtherPage
-              save={save}
-              onRestore={(uid) => {
-                setAnchor(null);
-                setPending({ kind: 'restore', relicUid: uid });
-              }}
-              onCraft={(id) => setResult(craft(id))}
-            />
-          ) : (
-            <GearSection
-              save={save}
-              type={section}
-              tiers={[...tiers].reverse()}
-              contentWidth={contentWidth}
-              pending={pending}
-              onForge={(recipeId, slot) => {
-                setAnchor(slot);
-                setPending({ kind: 'forge', recipeId, componentId: null });
-              }}
-            />
-          )}
-        </ScrollView>
+          {sections.map((type) => (
+            <View key={type} collapsable={false}>
+              <ScrollView
+                style={styles.content}
+                contentContainerStyle={styles.contentInner}
+                onLayout={({ nativeEvent }) => setContentWidth(nativeEvent.layout.width - 24)}
+              >
+                <TutorialHint screen="forge" />
+                {result && <ForgeBanner result={result} onClose={() => setResult(null)} />}
+                {pages.length === 0 ? (
+                  <Text style={styles.nothing}>{t('crafting.nothingKnown')}</Text>
+                ) : type === 'other' ? (
+                  <OtherPage
+                    save={save}
+                    onRestore={(uid) => {
+                      setAnchor(null);
+                      setPending({ kind: 'restore', relicUid: uid });
+                    }}
+                    onCraft={(id) => setResult(craft(id))}
+                  />
+                ) : (
+                  <GearSection
+                    save={save}
+                    type={type}
+                    tiers={[...tiers].reverse()}
+                    contentWidth={contentWidth}
+                    pending={pending}
+                    onForge={(recipeId, slot) => {
+                      setAnchor(slot);
+                      setPending({ kind: 'forge', recipeId, componentId: null });
+                    }}
+                  />
+                )}
+              </ScrollView>
+            </View>
+          ))}
+        </PagerView>
       </View>
       {pending && (
         <ForgeConfirmDialog
@@ -374,6 +392,7 @@ function RelicList({ save, onRestore }: { save: SaveData; onRestore: (relicUid: 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   body: { flex: 1, flexDirection: 'row' },
+  pager: { flex: 1 },
   content: { flex: 1, backgroundColor: ui.woodDark },
   contentInner: { paddingVertical: 14, paddingHorizontal: 12, gap: 10 },
   nothing: { color: ui.onWoodMuted },
