@@ -58,8 +58,12 @@ function materials(req: LootRequest, loot: Loot): void {
   const theme =
     req.source === 'patrol' ? lootConfig.patrolThemes[req.patrolKind ?? 'goblins'] : lootConfig.materialThemes[req.source];
   if (!theme) return;
-  const options: (string | 'cache')[] = [...(theme.materials ?? [])];
+  // A listed ore the pickaxe can't mine yet belongs to a later tier.
+  const minable = (id: string) =>
+    (resources.find((r) => r.yields[0].materialId === id)?.pickaxeTier ?? 0) <= req.context.pickaxeTier;
+  const options: (string | 'cache')[] = (theme.materials ?? []).filter(minable);
   if (theme.cache) options.push('cache');
+  if (options.length === 0) return;
   const pick = options[req.rng.int(0, options.length - 1)];
   const [min, max] = lootConfig.quantities.materials;
   const stack =
