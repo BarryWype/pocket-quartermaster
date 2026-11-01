@@ -267,3 +267,12 @@ For the fishing dock, later. A short, physical moment instead of a button that j
 - From the map a menu tap pushes the screen; from any other screen it replaces it (`navigate(href, { replace: true })`), so Back returns to the map. Tapping the current screen's button does nothing. A hero sheet opened from the Barracks is replaced like any screen, so Back from there goes to the Barracks first.
 - Every screen but the map gets bottom padding of the menu's height plus the safe area, once, through the stack's `contentStyle`. Sheets and dialogs are modals, so they open above it. It hides (stays mounted) while the keyboard is open.
 - Tap-to-first-frame on a mid-game save (`src/perf/menuFirstOpen.test.tsx`, content cold, dev machine) before → after: forge 9–11 → 9–10 ms, infuse 2–4 → 3 ms, provisions 12–13 → 13–17 ms, inventory 9–10 → 10 ms, team 15 → 14–20 ms, hero 11–12 → 10–12 ms, quests 5 → 5 ms, guild 11 → 10–11 ms, settings 13–14 → 13–14 ms, tips 2 → 2–3 ms, expeditions 399–415 → 418–434 ms (its `dailyRotation` replay, which varied 365–398 ms on its own). The differences are run-to-run noise: no screen's tree changed. Not measured on a phone.
+
+### Daily quests: "sell goods worth N gold" replaces the impossible collector
+
+*Done in commit "Quests: sell goods worth N gold, and the collector quest only asks for a valuable you hold (save version 31)".*
+
+- New Trade objective, "Sell goods worth N gold": every valuable, material or gear piece sold (market, smithy, part buyers, trader) counts its gold, from the quest's arrival. N is by tier in `questRules.sellGoodsGold` (50, 140, 190, 300, 320: about a regular player's daily selling gold per tier in the simulator summary).
+- The collector quest now names a valuable picked among those held when it arrives (or when it swaps in at acceptance), and is done when that valuable is sold at its market; without a valuable held it is never rolled. Both are Trade, so at most one is active.
+- Save version 31 (`src/game/migrations.ts`): an open collector quest whose market wants a valuable the player holds keeps it as its item; any other open one becomes a "sell goods" quest of the player's tier, keeping its id (so its reward), band, arrival and expiry.
+- The simulator bot sells through the game's own functions, so these quests progress there with no bot change. Run `npm run sim` to check the effect.

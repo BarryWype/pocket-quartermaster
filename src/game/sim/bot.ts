@@ -1277,7 +1277,7 @@ export function noteQuestGathers(sim: Sim, changes: Record<string, number>) {
  * the oldest targets are reached and done, as many as the profile's quests
  * owed (four at once on a walk with a secret quest owed, so it pops; its
  * strange mark is always reached); finished quests are claimed. Walks,
- * patrols and gathering count through the game's own events.
+ * patrols, gathering and sales count through the game's own events.
  */
 export function doQuests(sim: Sim, walking: boolean) {
   sim.save = questUpkeep(sim.save, sim.now);

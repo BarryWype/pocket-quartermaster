@@ -13,6 +13,7 @@ import { rollForSave } from '../loot/context';
 import { grantLoot } from '../loot/grant';
 import type { Loot } from '../loot/types';
 import { valuableSellPrice } from '../loot/valuables';
+import { questEvent } from '../quests/progress';
 import { grantTip, rollTip, type TipOutcome } from '../secrets/tips';
 import { recruitGrade, rollRecruit, type Grade } from '../taverns/roll';
 import { pickRecruitClass } from '../taverns/taverns';
@@ -236,7 +237,7 @@ export function sellValuableToTrader(
   const left = (valuables[key] ?? 0) - count;
   if (left > 0) valuables[key] = left;
   else delete valuables[key];
-  return { ...save, gold: save.gold + price, valuables };
+  return questEvent({ ...save, gold: save.gold + price, valuables }, { kind: 'sold', gold: price }, now);
 }
 
 /** Why this trade cannot be made now, or null. */

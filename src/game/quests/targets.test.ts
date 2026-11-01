@@ -6,7 +6,7 @@ import { pickaxeTier } from '../gathering/gathering';
 import { isLockedMine, type PlaceSpawn } from '../places/generate';
 import { createInitialSave, type SaveData } from '../save';
 import { objectiveAmount } from './unlocks';
-import { acceptQuests, compassDirection, nearestInBand, retargetQuests, targetDistance, targetKinds } from './targets';
+import { acceptQuests, compassDirection, nearestInBand, needsPlace, retargetQuests, targetDistance, targetKinds } from './targets';
 import type { Quest } from './types';
 
 const DAY = 86_400_000;
@@ -87,6 +87,12 @@ describe('quest targets', () => {
     expect(next.quests.list[0].target).toBe(null);
   });
 
+  it('treats sell goods like walk and patrol: no place on the map', () => {
+    expect(needsPlace(quest('sellGoods'))).toBe(false);
+    expect(needsPlace(quest('patrols'))).toBe(false);
+    expect(needsPlace(quest('collector'))).toBe(true);
+  });
+
   it('swaps to another objective when nothing is in range', () => {
     const save = opened();
     save.quests.list = [quest('chapel')];
@@ -95,7 +101,17 @@ describe('quest targets', () => {
     const accepted = next.quests.list[0];
     expect(accepted.objective).not.toBe('chapel');
     expect(accepted.target === null || accepted.target.kind === 'market').toBe(true);
-    expect(['gatherOnWay', 'walk', 'patrols', 'fightEvent']).toContain(accepted.objective);
+    expect(['gatherOnWay', 'walk', 'patrols', 'fightEvent', 'sellGoods']).toContain(accepted.objective);
+  });
+
+  it('names a held valuable when a quest swaps to the collector', () => {
+    const save = opened();
+    save.valuables = { 'oldCoins:1': 2 };
+    // No chapel anywhere, a market in range: across seeds, some quests swap to the collector.
+    save.quests.list = Array.from({ length: 40 }, (_, i) => quest('chapel', 'short', { id: `q|10|${i}` }));
+    const collectors = acceptQuests(save, [spawn('market', 'market', 150)], origin, 100).quests.list.filter((q) => q.objective === 'collector');
+    expect(collectors.length).toBeGreaterThan(0);
+    for (const q of collectors) expect(q.itemId).toBe('oldCoins');
   });
 
   it('retargets from where the target was fixed, staying in band', () => {

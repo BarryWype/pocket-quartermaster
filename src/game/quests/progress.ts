@@ -16,7 +16,8 @@ export type QuestEvent =
   | { kind: 'patrolWon' }
   | { kind: 'gathered'; materialId: string; amount: number }
   | { kind: 'bought'; placeId: string; amount: number } // units bought at a mine, sawmill or lodge
-  | { kind: 'soldToCollector'; placeId: string } // the market's wanted valuable sold there
+  | { kind: 'sold'; gold: number } // goods sold anywhere: valuables, materials, gear
+  | { kind: 'soldValuable'; placeId: string; valuableId: string } // a valuable sold there
   | { kind: 'arrived'; placeId: string }; // reached a 'mark'
 
 const questsState = (save: SaveData, quests: Partial<QuestsState>): SaveData => ({
@@ -30,7 +31,10 @@ const questsState = (save: SaveData, quests: Partial<QuestsState>): SaveData => 
  * and got its target, for the place objectives. Until it is done or lapses.
  */
 const countsFromArrival = (quest: Quest) =>
-  quest.objective === 'walk' || quest.objective === 'gatherOnWay' || quest.objective === 'patrols';
+  quest.objective === 'walk' ||
+  quest.objective === 'gatherOnWay' ||
+  quest.objective === 'patrols' ||
+  quest.objective === 'sellGoods';
 
 const counts = (quest: Quest, at: number) =>
   quest.doneAt === null &&
@@ -81,8 +85,11 @@ export function questEvent(save: SaveData, event: QuestEvent, at: number): SaveD
       case 'bought':
         if (atTarget && quest.objective === 'mine') progress += event.amount;
         break;
-      case 'soldToCollector':
-        if (atTarget && quest.objective === 'collector') progress += quest.amount;
+      case 'sold':
+        if (quest.objective === 'sellGoods') progress += event.gold;
+        break;
+      case 'soldValuable':
+        if (atTarget && quest.objective === 'collector' && event.valuableId === quest.itemId) progress += quest.amount;
         break;
       case 'arrived':
         if (atTarget && quest.objective === 'mark') progress += quest.amount;

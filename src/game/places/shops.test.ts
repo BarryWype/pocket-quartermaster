@@ -1,4 +1,5 @@
 import { itemById, monsterPartById, recipeById } from '@/content/lookup';
+import { questRules } from '@/content/quests';
 import { secretRules } from '@/content/secrets';
 import { materialPrices, shopRules } from '@/content/shops';
 
@@ -319,5 +320,18 @@ describe('selling', () => {
     expect(placeValuablePrice(save, smithy, 'oldCoins:2', now)).toBe(
       Math.max(1, Math.round(valuableSellPrice('oldCoins', 2, 'market') * 0.5 * 1.2)),
     );
+  });
+
+  it('feeds the gold paid into a sell goods quest', () => {
+    const market = spawnOf('market');
+    const save = withGold(0, { materials: { wood: 10 }, valuables: { 'oldCoins:2': 1 } });
+    save.quests.list = [
+      { id: 'q', objective: 'sellGoods', band: 'short', arrivedAt: 0, expiresAt: 1e15, acceptedAt: null,
+        amount: questRules.sellGoodsGold[0], progress: 0, target: null, doneAt: null, seen: true },
+    ];
+    const next = sellMaterial(save, market, 'wood', 2, position, now);
+    expect(next.quests.list[0].progress).toBe(materialSellPrice('wood') * 2);
+    const last = sellValuable(next, market, 'oldCoins:2', 1, position, now);
+    expect(last.quests.list[0].progress).toBe(materialSellPrice('wood') * 2 + placeValuablePrice(save, market, 'oldCoins:2', now));
   });
 });

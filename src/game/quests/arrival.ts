@@ -7,7 +7,7 @@ import { questCap, guildBonus } from '../guild/guild';
 import type { SaveData } from '../save';
 import { isRevealed } from '../reveal/reveal';
 import { refreshWalks } from './progress';
-import { availableObjectives, deliverItems, objectiveAmount } from './unlocks';
+import { availableObjectives, deliverItems, heldValuables, objectiveAmount, sellGoodsAmount } from './unlocks';
 import type { Quest, QuestsState } from './types';
 
 const DAY_MS = 86_400_000;
@@ -73,6 +73,10 @@ export function newQuest(
     const options = deliverOptions(save);
     itemId = options[rng.int(0, options.length - 1)]?.itemId;
   }
+  if (objective === 'collector') {
+    const held = heldValuables(save);
+    itemId = held[rng.int(0, held.length - 1)];
+  }
   return {
     id,
     objective,
@@ -80,7 +84,7 @@ export function newQuest(
     arrivedAt,
     expiresAt: arrivedAt + questRules.lifetimeHours * HOUR_MS,
     acceptedAt: null,
-    amount: objectiveAmount(objective, band),
+    amount: objective === 'sellGoods' ? sellGoodsAmount(save) : objectiveAmount(objective, band),
     progress: 0,
     ...(objective === 'walk' ? { stepsAtArrive: save.stepsTotal } : {}),
     ...(itemId !== undefined ? { itemId } : {}),
