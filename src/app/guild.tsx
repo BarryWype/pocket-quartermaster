@@ -154,6 +154,7 @@ export default function GuildScreen() {
           }}
         />
         <PagerView
+          ref={pager}
           style={styles.pager}
           initialPage={0}
           onPageSelected={({ nativeEvent }) => setBuilding(BUILDINGS[nativeEvent.position])}

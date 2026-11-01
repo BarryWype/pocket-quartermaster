@@ -340,6 +340,7 @@ export default function SettingsScreen() {
           }}
         />
         <PagerView
+          ref={pager}
           style={styles.pager}
           initialPage={0}
           onPageSelected={({ nativeEvent }) => setPage(SECTIONS[nativeEvent.position].id)}

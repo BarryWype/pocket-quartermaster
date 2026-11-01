@@ -34,6 +34,7 @@ export function SwipeTabs({ tabs, children, initialPage = 0, onPageChange }: Pro
       </View>
       <View style={styles.pages}>
         <PagerView
+          ref={pager}
           style={styles.pager}
           initialPage={initialPage}
           onPageSelected={({ nativeEvent }) => {

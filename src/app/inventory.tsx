@@ -105,6 +105,7 @@ export default function InventoryScreen() {
           }}
         />
         <PagerView
+          ref={pager}
           style={styles.pager}
           initialPage={Math.min(index, pages.length - 1)}
           onPageSelected={({ nativeEvent }) => {

@@ -189,6 +189,7 @@ export default function QuestsScreen() {
           }}
         />
         <PagerView
+          ref={pager}
           style={styles.pager}
           initialPage={page === 'chests' ? 1 : 0}
           onPageSelected={({ nativeEvent }) => {
