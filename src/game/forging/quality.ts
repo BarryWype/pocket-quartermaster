@@ -3,7 +3,7 @@ import { itemById, relicById } from '@/content/lookup';
 
 import { relicStats } from '../equipment/budget';
 import type { Rng } from '../generation/rng';
-import type { GearDef, GearInstance, Quality, Stats } from '../types';
+import type { GearDef, GearInstance, Quality, StatKey, Stats } from '../types';
 import { masteryCap } from './mastery';
 
 type Rules = typeof masteryRules;
@@ -30,8 +30,16 @@ export function pieceBaseStats(gear: Pick<GearInstance, 'itemId' | 'relicId'>): 
   return gear.relicId ? relicStats(relicById[gear.relicId]) : (itemById[gear.itemId] as GearDef).stats;
 }
 
-/** A piece's stats after its quality and stat roll. Class affinity applies on top, in `heroStats`. */
+/** The stats quality, roll and affinity multiply; the extras (crit, evasion, speed, luck) stay flat. */
+export const SCALING_KEYS: StatKey[] = ['hp', 'power', 'magic', 'armour', 'resistance'];
+
+/** A piece's stats after its quality and stat roll, as `heroStats` adds them. Class affinity applies on top, in `heroStats`. */
 export function gearStats(item: GearDef, gear: GearQualityRoll): Partial<Stats> {
   const multiplier = qualities[gear.quality].multiplier * (gear.roll ?? 1);
-  return Object.fromEntries(Object.entries(pieceBaseStats({ itemId: item.id, relicId: gear.relicId })).map(([key, value]) => [key, value * multiplier]));
+  return Object.fromEntries(
+    Object.entries(pieceBaseStats({ itemId: item.id, relicId: gear.relicId })).map(([key, value]) => [
+      key,
+      SCALING_KEYS.includes(key as StatKey) ? value * multiplier : value,
+    ]),
+  );
 }

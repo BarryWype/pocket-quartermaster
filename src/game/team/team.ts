@@ -6,7 +6,7 @@ import { traitById } from '@/content/traits';
 import { lootConfig } from '@/content/loot/config';
 
 import { slotProblem } from '../equipment/slots';
-import { pieceBaseStats } from '../forging/quality';
+import { pieceBaseStats, SCALING_KEYS } from '../forging/quality';
 import { rosterCap } from '../guild/guild';
 import { trinketEffect } from '../loot/trinkets';
 import type { SaveData } from '../save';
@@ -14,9 +14,6 @@ import type { Ability, ArmourType, ConsumableDef, DamageStat, EquipmentSlot, Gea
 import { baseHeroStats } from './stats';
 
 const STAT_KEYS: StatKey[] = ['hp', 'power', 'magic', 'armour', 'resistance', 'evasion', 'speed', 'crit'];
-
-/** The stats quality, roll and affinity multiply; the extras stay flat. */
-const SCALING_KEYS: StatKey[] = ['hp', 'power', 'magic', 'armour', 'resistance'];
 
 export function isOnExpedition(save: SaveData, heroId: string) {
   return save.expeditions.some((e) => e.heroIds.includes(heroId));
