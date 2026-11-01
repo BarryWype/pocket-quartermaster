@@ -23,6 +23,7 @@ export const fr: Dictionary = {
     infuse: 'Imprégner',
     provisions: 'Provisions',
     inventory: 'Inventaire',
+    storeroom: 'Réserve',
     team: 'Équipe',
     barracks: 'Caserne',
     hero: 'Fiche de personnage',

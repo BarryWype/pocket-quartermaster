@@ -8,15 +8,17 @@ import { useEffect } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
 
 import { RecipeToast } from '@/components/RecipeToast';
+import { GameIcon } from '@/components/GameIcon';
 import { ScreenHeader } from '@/components/ui';
 import { SecretToast } from '@/components/SecretToast';
+import { Text } from '@/components/Text';
 import { TipBar } from '@/components/TipBar';
 import { useAutoGather } from '@/hooks/useAutoGather';
 import { useLanguage } from '@/hooks/useLanguage';
 import { syncPlan, useNotifications } from '@/hooks/useNotifications';
 import { usePatrols } from '@/hooks/usePatrols';
 import { useStepTracking } from '@/hooks/useTodaySteps';
-import { t } from '@/i18n';
+import { formatNumber, t } from '@/i18n';
 import { configureChannels, configureNotifications } from '@/services/notifications';
 import { useGameStore } from '@/store/gameStore';
 import { colors, fonts, ui } from '@/theme';
@@ -81,7 +83,7 @@ export default function RootLayout() {
         <Stack.Screen name="forge" dangerouslySingular options={{ title: t('screens.forge'), header: () => <ScreenHeader title={t('screens.forge')} />, contentStyle: { backgroundColor: ui.woodDark } }} />
         <Stack.Screen name="infuse" dangerouslySingular options={{ title: t('screens.infuse') }} />
         <Stack.Screen name="provisions" dangerouslySingular options={{ title: t('screens.provisions'), header: () => <ScreenHeader title={t('screens.provisions')} />, contentStyle: { backgroundColor: ui.woodDark } }} />
-        <Stack.Screen name="inventory" dangerouslySingular options={{ title: t('screens.inventory') }} />
+        <Stack.Screen name="inventory" dangerouslySingular options={{ title: t('screens.inventory'), header: () => <ScreenHeader title={t('screens.storeroom')} right={<HeaderGold />} />, contentStyle: { backgroundColor: ui.woodDark } }} />
         <Stack.Screen name="team/index" dangerouslySingular options={{ title: t('screens.team'), header: () => <ScreenHeader title={t('screens.barracks')} />, contentStyle: { backgroundColor: ui.woodDark } }} />
         <Stack.Screen name="team/[heroId]" dangerouslySingular options={{ title: t('screens.hero') }} />
         <Stack.Screen name="team/classes" dangerouslySingular options={{ title: t('classes.title') }} />
@@ -99,4 +101,19 @@ export default function RootLayout() {
   );
 }
 
-const styles = StyleSheet.create({ root: { flex: 1 } });
+/** The gold count pinned to a screen header's right corner. */
+function HeaderGold() {
+  const gold = useGameStore((state) => state.save.gold);
+  return (
+    <View style={styles.gold} accessibilityLabel={t('common.gold')}>
+      <GameIcon emoji="🪙" size={14} />
+      <Text style={styles.goldAmount}>{formatNumber(gold)}</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  gold: { minWidth: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4 },
+  goldAmount: { fontFamily: fonts.serifBold, fontSize: 15, color: ui.gold },
+});

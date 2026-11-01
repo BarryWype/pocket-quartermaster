@@ -21,6 +21,7 @@ export const en = {
     infuse: 'Infuse',
     provisions: 'Provisions',
     inventory: 'Inventory',
+    storeroom: 'Storeroom',
     team: 'Team',
     barracks: 'Barracks',
     hero: 'Character sheet',

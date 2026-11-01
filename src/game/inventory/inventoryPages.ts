@@ -1,4 +1,3 @@
-import type { InventoryItem } from '@/components/ItemSheet';
 import { masteryTypeNames } from '@/content/forging';
 import { componentById, itemById, monsterPartById, relicById, valuableById } from '@/content/lookup';
 import { baseItems } from '@/content/loot/baseItems';
@@ -7,6 +6,7 @@ import type { SecretKind } from '@/content/places';
 import { t, tr } from '@/i18n';
 
 import type { ManualRarity } from '../loot/types';
+import type { BaseItemRef } from '../loot/purposes';
 import { valuablePrice } from '../loot/catalogue';
 import { isLureActive } from '../rewards/lures';
 import { liveTreasureMaps } from '../rewards/treasure';
@@ -18,6 +18,19 @@ import type { GearInstance, SecretTip, TreasureMap } from '../types';
 
 /** One page per category of the inventory; the screen swipes through them in this order. */
 export type InventoryPageId = 'materials' | 'gear' | 'consumables' | 'treasures' | 'finds' | 'secrets';
+
+/** A base item as the inventory lists it. */
+export type InventoryItem = {
+  key: string;
+  ref: BaseItemRef;
+  emoji: string;
+  name: string;
+  count: number;
+  /** A line about the item itself: a relic's effect, a part's uses. */
+  about?: string;
+  /** Set for a training manual, so it can be read. */
+  manual?: ManualRarity;
+};
 
 const PAGE_ORDER: InventoryPageId[] = ['materials', 'gear', 'consumables', 'treasures', 'finds', 'secrets'];
 const SECRETS: SecretKind[] = ['hiddenDen', 'blackMarket', 'underwaterDungeon'];
