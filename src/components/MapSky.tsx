@@ -130,7 +130,8 @@ function useSkyClock(enabled: boolean): Clock {
         duration: skyConfig.clockStretchSeconds * 1000,
         useNativeDriver: true,
       });
-      arm.start(wind);
+      // A stopped stretch (cleanup, or another animation taking the value) must not wind again.
+      arm.start(({ finished }) => finished && wind());
     };
     wind();
     return () => arm?.stop();

@@ -128,6 +128,31 @@ Left open:
 - Expeditions content is still ~1.8 s on a phone. Almost all of it is `dailyRotation`'s replay (430 ms of 448 ms on the dev machine). The ghost shows at once, but the cards land late. Fixing it means changing what the replay computes (a design call), not caching it.
 - The other screens are all under ~100 ms of JS on the phone estimate, so their reported 3–4 s isn't JS render work jest can see. The `tap→open` / `tap→content` entries the profiler now records on every screen should be read on a release build on the phone, to confirm whether the native side (now one page per screen) has closed the gap.
 
+Follow-up, 2026-11-01: on a release build every screen still shows its ghost for seconds before the content. JS render is under ~100 ms, so the work behind it was looked for in what runs while any screen opens. Two commits on `main`:
+- de83ec9, nothing works behind an open screen:
+  - The map freezes while covered. `freezeOnBlur` has no effect in this Expo Router (deprecated, and the native stack hard-codes it off), so the map route wraps the screen in `react-freeze`'s `Freeze`, the library behind `freezeOnBlur`. It freezes on the stack's `transitionEnd` (closing), once the new screen has finished sliding in, and thaws on `transitionStart` (opening) or focus. A frozen tree keeps its state and effects but doesn't render. Its own clocks also stop when unfocused.
+  - Kept outside the freeze, in the map route: the GPS watch, the "App open only" fix feed to auto-gather, and the player position other screens read (`worldStore.player`, used by Quests and the launch dialog). Pocket mode (background task), patrol fights and escorts (`usePatrols`, `syncBackground`), auto-gather (`useAutoGather`), notifications and steps all run from the root, not the map.
+  - Paused while the map is frozen, and caught up when it comes back: quest marks reached (`useQuestMarks`), places seen for quests, the first quest's target, patrols seen and fled, tutorial spawn placement, and `nearbyTavern` for the launch dialog's supply purchase.
+  - Root layout: its hooks moved into `BackgroundServices`, which renders `null` beside the `Stack`, so a step, an expedition or a patrol message re-renders only that. `screenOptions` and every screen's `options` are memoised on the language and insets, and the headers are module-level components.
+  - One clock policy (`src/content/clockConfig.ts`): GPS fixes at most every 2 s; map patrols and animals every 5 s and spawns and places every 30 s, map focused only; ambience once a minute. Countdowns tick in their own `Countdown` component, every 10 s in minutes and every second in the last minute. HP bars tick on their own every 10 s. Screens whose logic turns on time use a 10 s clock. `useNow` has no default and stops while its screen is unfocused. The inventory's duplicate 1 s interval is gone.
+  - Background ticks with nothing due already returned the same save object. This is now pinned by `src/perf/idleBackground.test.ts`, which covers patrol fights, walks, place fights, heists, the store actions and the auto-gather refresh.
+- 18c4335, Debug → "Performance switches" (off by default, no rebuild): unmount the map while another screen is open, no map decorations (foliage, sky, trail, water), no content deferral, no screen transition animation, and pause background hooks (patrol and auto-gather intervals while a screen other than the map is open).
+
+| screen | idle commits per 10 s, before | after |
+| --- | --- | --- |
+| expeditions | 10 | 1 |
+| team | 10 | 0 |
+| hero | 10 | 1 |
+| inventory | 10 | 1 |
+`src/perf/idleRenders.test.tsx`, mid-game save, HP bars stubbed, countdowns counted. "Before" was measured at 331d266. `src/perf/rootLayout.test.tsx` checks that the layout and its `screenOptions` stay put when a step, an expedition or a patrol message comes in.
+
+Next: on the phone, try the release build as is, then each switch on its own. Keep only what makes screens open fast, and revert the rest, switches included. Not marked fixed until confirmed on the phone.
+
+Cause found, 2026-11-01, measured on the phone over USB (`adb`, release build). The lag only came after a while with Pocket mode on, and killing the app cured it. With the lag on, the JS thread ran at 100% non-stop, with the UI thread at ~50% and the render thread at ~20%, even with the app idle. It dropped to 0% while the screen was off and came back the moment the app was visible again: a loop driven by animation frames, not by timers. Memory and thread count didn't leak.
+- The loop was the sky's shared clock (`useSkyClock`, `src/components/MapSky.tsx`). It re-armed its 600 s native stretch from `start(wind)`, and `start`'s callback also runs when the animation is *stopped*. Each cleanup (map left, app backgrounded, sky unmounted) stopped the stretch, which wound a new one that nothing tracked. Two of these orphans on the one clock value stop each other through `setValue` and re-arm each other on every frame. That is a JS ↔ native ping-pong, which only stops when the process dies.
+- Pocket mode's role: its foreground service keeps the process alive through many backgrounds and focus changes, so orphans pile up. Without it, Android kills the app in the background and it starts clean. Turning "No map decorations" on mid-lag couldn't help, since unmounting the sky stops the clock once more. With decorations off from the start the sky never mounted, which is why that run stayed smooth.
+- Fix: re-arm only when a stretch finished (`({ finished }) => finished && wind()`). `src/components/MapSky.test.tsx` toggles animations off, on and off, then unmounts the sky: before the fix it counted 128 clock arms in one second, after it 2.
+
 
 ## 19. A tier 2 material (stone) dropped for a tier 1 player (fixed)
 Found 2026-11-01, after 0.7. A player still on tier 1 received stone as a reward; stone is tier 2's main material (the wooden pickaxe, the tier 1 boss reward, is what opens it).
