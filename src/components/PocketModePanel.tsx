@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { frNotificationCategories } from '@/content/fr/notifications';
 import { heroClasses } from '@/content/heroes';
@@ -18,13 +18,14 @@ import { useNow } from '@/hooks/useNow';
 import { useGameStore } from '@/store/gameStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useWorldStore } from '@/store/worldStore';
-import { colors, pixel } from '@/theme';
+import { colors, pixel, fonts, ui } from '@/theme';
 
 import { Button } from './Button';
 import { HpBar } from './HpBar';
 import { Overlay } from './Overlay';
 import { useSheetMaxHeight } from './Sheet';
 import { Panel } from './Panel';
+import { PixelSwitch } from './ui';
 import { Text } from './Text';
 import { IconLabel } from './IconLabel';
 
@@ -48,13 +49,7 @@ export function PocketOptionRow({ option }: { option: PocketOption }) {
   return (
     <View style={styles.optionRow}>
       <Text style={styles.optionLabel}>{t(`autoGather.options.${option}`)}</Text>
-      <Switch
-        value={on}
-        onValueChange={(value) => setPocketOption(option, value)}
-        trackColor={{ false: colors.parchmentDark, true: colors.success }}
-        thumbColor={colors.parchment}
-        ios_backgroundColor={colors.parchmentDark}
-      />
+      <PixelSwitch value={on} accessibilityLabel={t(`autoGather.options.${option}`)} onValueChange={(value) => setPocketOption(option, value)} />
     </View>
   );
 }
@@ -128,16 +123,14 @@ export function PocketNotificationRows() {
       {POCKET_CATEGORIES.map((category) => (
         <View key={category} style={styles.optionRow}>
           <Text style={styles.optionLabel}>{texts[category].title}</Text>
-          <Switch
+          <PixelSwitch
             value={notifications.categories[category]}
+            accessibilityLabel={texts[category].title}
             disabled={!notifications.enabled}
             onValueChange={(on) => {
               setCategory(category, on);
               syncBackground();
             }}
-            trackColor={{ false: colors.parchmentDark, true: colors.success }}
-            thumbColor={colors.parchment}
-            ios_backgroundColor={colors.parchmentDark}
           />
         </View>
       ))}
@@ -266,7 +259,7 @@ const styles = StyleSheet.create({
   content: { gap: 10 },
   title: { fontSize: 24 },
   optionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  optionLabel: { fontSize: 20 },
+  optionLabel: { fontSize: 15, color: ui.ink, fontFamily: fonts.serif },
   picker: { gap: 4 },
   pickerLabel: { fontSize: 16, color: colors.muted, textTransform: 'uppercase' },
   options: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },

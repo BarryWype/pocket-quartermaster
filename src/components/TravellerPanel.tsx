@@ -26,11 +26,11 @@ import { localized, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
 
-import { Button } from './Button';
 import { ClassSummary } from './ClassSummary';
 import { patrolIcons } from './PatrolMarker';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
+import { EmberButton, WoodButton } from './ui';
 import { RecruitGrade } from './RecruitGrade';
 import { ValuableRows } from './ValuableRows';
 import { Text } from './Text';
@@ -88,27 +88,28 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
 
   return (
     <Overlay onClose={onClose} position="bottom">
-      <Sheet title={`${patrolIcons[kind]} ${traveller.name}`} bodyStyle={styles.content}
+      <Sheet variant="wood" emoji={patrolIcons[kind]} title={traveller.name} bodyStyle={styles.content}
       footer={
         <View style={styles.actions}>
           {!reward && kind !== 'trader' && (
             <>
               {kind === 'wounded' && (
-                <Button title={t('patrols.help')} disabled={helpProblemShown !== null} onPress={() => help()} />
+                <EmberButton title={t('patrols.help')} compact disabled={helpProblemShown !== null} onPress={() => help()} />
               )}
               {kind === 'pilgrim' && hasMeal && (
-                <Button title={t('patrols.giveMeal')} disabled={helpProblemShown !== null} onPress={() => help('meal')} />
+                <EmberButton title={t('patrols.giveMeal')} compact disabled={helpProblemShown !== null} onPress={() => help('meal')} />
               )}
               {kind === 'pilgrim' && canSupply && (
-                <Button
+                <EmberButton
                   title={t('patrols.giveSupply', { points: supplyPoints })}
+                  compact
                   disabled={helpProblemShown !== null}
                   onPress={() => help('supply')}
                 />
               )}
             </>
           )}
-          <Button title={t('patrols.walkOn')} color={colors.muted} onPress={onClose} />
+          <WoodButton title={t('patrols.walkOn')} onPress={onClose} />
         </View>
       }>
         <Text style={styles.muted}>{traveller.line}</Text>
@@ -129,8 +130,9 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
                     {t('patrols.usesLeft', { count: trade.usesLeft })}
                   </Text>
                   <View style={styles.actions}>
-                    <Button
+                    <WoodButton
                       title={t('patrols.trade')}
+                      compact
                       disabled={issue !== null}
                       onPress={() => tradeWithTrader(spawn, trade.index, player)}
                     />
@@ -199,8 +201,8 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
                   {tr(traitById[recruit.trait].name)}: {tr(traitById[recruit.trait].description)}
                 </Text>
                 <View style={styles.actions}>
-                  <Button title={t('patrols.accept')} onPress={() => { acceptTravellerRecruit(recruit); onClose(); }} />
-                  <Button title={t('patrols.decline')} color={colors.muted} onPress={onClose} />
+                  <EmberButton title={t('patrols.accept')} compact onPress={() => { acceptTravellerRecruit(recruit); onClose(); }} />
+                  <WoodButton title={t('patrols.decline')} onPress={onClose} />
                 </View>
               </View>
             )}

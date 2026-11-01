@@ -6,11 +6,12 @@ import { gainsPrefix, lootLabels } from '@/components/lootText';
 import { useTodaySteps } from '@/hooks/useTodaySteps';
 import { formatNumber, t } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
+import { fonts, ui } from '@/theme';
 
-import { Button } from './Button';
-import { GainsLine } from './IconLabel';
-import { Row, SectionTitle } from './Row';
+import { GainsLine, RewardLabel } from './IconLabel';
+import { GameIcon } from './GameIcon';
 import { Text } from './Text';
+import { EmberButton, ParchmentCard } from './ui';
 
 export function StepChests() {
   const steps = useTodaySteps();
@@ -26,27 +27,31 @@ export function StepChests() {
 
   return (
     <>
-      <SectionTitle>{t('chests.title', { steps: formatNumber(steps) })}</SectionTitle>
+      <Text style={styles.title}>{t('chests.title', { steps: formatNumber(steps) })}</Text>
       {stepChests.map((chest, index) => {
         const state = chestState(save, chest, steps, day);
         return (
-          <Row
-            key={chest.id}
-            emoji={index < 2 ? '📦' : '🧰'}
-            title={t('chests.name', { steps: formatNumber(chest.steps) })}
-            right={
-              state === 'opened' ? (
-                t('chests.opened')
-              ) : (
-                <Button title={t('chests.open')} disabled={state === 'locked'} onPress={() => open(chest.id)} />
-              )
-            }
-          />
+          <ParchmentCard key={chest.id} contentStyle={styles.chest}>
+            <View style={styles.chestIcon}>
+              <GameIcon emoji={index < 2 ? '📦' : '🧰'} size={26} />
+            </View>
+            <View style={styles.chestBody}>
+              <Text style={styles.chestName}>{t('chests.name', { steps: formatNumber(chest.steps) })}</Text>
+              <View style={styles.barTrack}>
+                <View style={[styles.barFill, { width: `${Math.min(1, steps / chest.steps) * 100}%` }]} />
+              </View>
+            </View>
+            {state === 'opened' ? (
+              <Text style={styles.opened}>{t('chests.opened')}</Text>
+            ) : (
+              <EmberButton title={t('chests.open')} compact disabled={state === 'locked'} onPress={() => open(chest.id)} />
+            )}
+          </ParchmentCard>
         );
       })}
       {message && (
         <View style={styles.rewardRow}>
-          <Text style={styles.reward}>{message.text}</Text>
+          <RewardLabel text={message.text} labelStyle={styles.reward} />
           {message.gains.length > 0 && <GainsLine gains={message.gains} labelStyle={styles.reward} />}
         </View>
       )}
@@ -55,6 +60,31 @@ export function StepChests() {
 }
 
 const styles = StyleSheet.create({
-  rewardRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
-  reward: { paddingVertical: 8 },
+  title: { fontSize: 19, color: ui.brassLight },
+  chest: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  chestIcon: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: ui.woodDeep,
+    borderWidth: 2,
+    borderColor: ui.brass,
+  },
+  chestBody: { flex: 1, gap: 4 },
+  chestName: { fontSize: 20, color: ui.ink },
+  opened: { fontFamily: fonts.serif, fontSize: 14, color: ui.inkMuted },
+  barTrack: { height: 10, borderWidth: 2, borderColor: ui.outline, backgroundColor: ui.woodDark },
+  barFill: { height: '100%', backgroundColor: ui.hp },
+  rewardRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
+    padding: 8,
+    backgroundColor: ui.parchment,
+    borderWidth: 2,
+    borderColor: ui.outline,
+  },
+  reward: { fontFamily: fonts.serif, fontSize: 14, color: ui.ink },
 });

@@ -3,19 +3,18 @@ import { rosterRules } from '@/content/roster';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { Button } from '@/components/Button';
 import { DungeonCard } from '@/components/DungeonCard';
+import { GameIcon } from '@/components/GameIcon';
 import { HpBar } from '@/components/HpBar';
 import { LootReveal } from '@/components/LootReveal';
 import { OvernightCard } from '@/components/OvernightCard';
-import { Panel } from '@/components/Panel';
-import { PixelBar } from '@/components/PixelBar';
-import { IconSlot, Row, SectionTitle } from '@/components/Row';
 import { ReportCard } from '@/components/ReportCard';
 import { SendDialog } from '@/components/SendDialog';
 import { Text } from '@/components/Text';
 import { ThreatCoverageChips } from '@/components/ThreatDetail';
 import { TutorialHint } from '@/components/TutorialHint';
+import { RewardLabel, splitLeadingEmoji } from '@/components/IconLabel';
+import { DiamondButton, DiamondRail, EmberButton, ParchmentCard, type RailItem } from '@/components/ui';
 import { dungeons } from '@/content/dungeons';
 import { heroClasses } from '@/content/heroes';
 import { dungeonById } from '@/content/lookup';
@@ -41,11 +40,13 @@ import { recordTiming } from '@/services/timings';
 import { currentRotation, debugEnabled, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { useSettingsStore } from '@/store/settingsStore';
-import { colors, pixel } from '@/theme';
+import { fonts, ui } from '@/theme';
 import { timed } from '@/components/timed';
 
 type Tab = 'dungeons' | 'teams' | 'reports';
-const TABS: Tab[] = ['dungeons', 'teams', 'reports'];
+
+/** The tier diamonds' labels. */
+const ROMAN = ['I', 'II', 'III', 'IV', 'V'];
 
 /** What the loot reveal shows: the report, and the heroes before and after for XP and level-ups. */
 type Collected = { report: ExpeditionReport; before: HeroState[]; after: HeroState[] };
@@ -255,19 +256,27 @@ export function ExpeditionsScreen() {
 
   const lowSupply = save.tutorial.step === 'done' && !save.cookingHintSeen && supplyHeld(save.consumables) < provisionRules.lowStockPoints;
   const unseen = save.reports.filter((r) => !r.seen).length;
-  const tabLabel = (key: Tab) => {
-    const count = key === 'teams' ? save.expeditions.length : key === 'reports' ? unseen : 0;
-    return `${t(`expeditions.tabs.${key}`)}${count ? ` (${count})` : ''}`;
-  };
+  const teamsBadge = ready.length > 0 ? ready.length : save.expeditions.length > 0 ? save.expeditions.length : undefined;
+  const railItems: RailItem[] = [
+    {
+      key: 'dungeons',
+      label: t('expeditions.tabs.dungeons'),
+      emoji: '🏰',
+      icon: require('../../assets/icons/scaled/menu-expeditions.png'),
+    },
+    { key: 'teams', label: t('expeditions.tabs.teams'), emoji: '🧭', badge: teamsBadge },
+    { key: 'reports', label: t('expeditions.tabs.reports'), emoji: '📜', badge: unseen > 0 ? unseen : undefined },
+  ];
+  const readyBanner = t('expeditions.readyBanner', { count: ready.length });
 
   const dungeonsTab = (
     <>
       {lowSupply && (
-        <Pressable onPress={closeCookingHint} style={styles.hint}>
-          <Text style={styles.hintText}>{t('map.cookingHint')}</Text>
+        <Pressable onPress={closeCookingHint} accessibilityLabel={t('map.cookingHint')} style={styles.hint}>
+          <RewardLabel text={t('map.cookingHint')} size={16} labelStyle={styles.hintText} />
         </Pressable>
       )}
-      <SectionTitle>{t('expeditions.party', { count: party.length, max: cap })}</SectionTitle>
+      <Text style={styles.heading}>{t('expeditions.party', { count: party.length, max: cap })}</Text>
       {narrow && (
         <Text style={styles.muted}>{t('threats.narrowCap', { count: cap })}</Text>
       )}
@@ -279,17 +288,22 @@ export function ExpeditionsScreen() {
             <Pressable
               key={hero.id}
               accessibilityRole="checkbox"
+              accessibilityLabel={hero.name}
               accessibilityState={{ checked: active, disabled: away }}
               disabled={away}
               onPress={() => toggle(hero.id)}
               style={[styles.hero, active && styles.heroActive, away && styles.heroAway]}
             >
-              <IconSlot emoji={heroClasses[hero.classId].emoji} size={28} />
+              <View style={styles.heroFrame}>
+                <GameIcon emoji={heroClasses[hero.classId].emoji} size={22} />
+              </View>
               <View style={styles.heroBody}>
                 <Text style={styles.heroName} numberOfLines={1}>
                   {hero.name}
                 </Text>
-                <Text style={styles.muted}>{away ? t('expeditions.away') : t('common.levelShort', { level: hero.level })}</Text>
+                <Text style={styles.heroSub}>
+                  {away ? t('expeditions.away') : t('common.levelShort', { level: hero.level })}
+                </Text>
                 {!away && <HpBar save={save} hero={hero} now={now} />}
               </View>
               {active && <Text style={styles.check}>✓</Text>}
@@ -300,11 +314,21 @@ export function ExpeditionsScreen() {
       {coverage && <ThreatCoverageChips coverage={coverage} />}
 
       <View style={styles.tiers}>
-        {tiers.map((n) => (
-          <Pressable key={n} onPress={() => setTier(n)} style={[styles.pill, n === shownTier && styles.pillActive]}>
-            <Text style={styles.pillText}>{t('expeditions.tier', { tier: n })}</Text>
-          </Pressable>
-        ))}
+        {ROMAN.map((roman, i) => {
+          const n = i + 1;
+          const unlocked = tiers.includes(n);
+          return (
+            <DiamondButton
+              key={n}
+              label={roman}
+              size={36}
+              selected={shownTier === n}
+              disabled={!unlocked}
+              accessibilityLabel={t('expeditions.tier', { tier: n })}
+              onPress={() => unlocked && setTier(n)}
+            />
+          );
+        })}
       </View>
       <Text style={styles.muted}>{t('expeditions.tapDungeon', { time: formatDuration(nextRotationAt(now) - now) })}</Text>
       {shown.map((dungeon) => (
@@ -341,21 +365,46 @@ export function ExpeditionsScreen() {
         .sort((a, b) => a.endsAt - b.endsAt)
         .map((expedition) => {
           const dungeon = dungeonById[expedition.dungeonId];
-          const names = save.heroes.filter((h) => expedition.heroIds.includes(h.id)).map((h) => h.name);
+          const heroes = save.heroes.filter((h) => expedition.heroIds.includes(h.id));
           const progress = Math.min(1, Math.max(0, (now - expedition.startedAt) / (expedition.endsAt - expedition.startedAt)));
           const back = expedition.endsAt <= now;
+          const collectSplit = splitLeadingEmoji(t('expeditions.collect')) ?? { emoji: undefined, label: t('expeditions.collect') };
           return (
-            <Panel key={expedition.id} color={back ? colors.highlight : undefined} borderColor={back ? colors.gold : undefined}>
-              <Row emoji={dungeon.emoji} title={tr(dungeon.name)} subtitle={names.join(', ')} right={back ? t('expeditions.back') : formatDuration(expedition.endsAt - now)} />
+            <ParchmentCard
+              key={expedition.id}
+              title={tr(dungeon.name)}
+              titleEmoji={dungeon.emoji}
+              titleSub={back ? t('expeditions.back') : formatDuration(expedition.endsAt - now)}
+              contentStyle={styles.teamCard}
+            >
+              <View style={styles.teamRow}>
+                {heroes.map((hero) => (
+                  <View key={hero.id} style={styles.teamHero}>
+                    <View style={styles.teamPortrait}>
+                      <GameIcon emoji={heroClasses[hero.classId].emoji} size={28} />
+                    </View>
+                    <Text style={styles.teamHeroName} numberOfLines={1}>
+                      {hero.name}
+                    </Text>
+                  </View>
+                ))}
+              </View>
               {back ? (
-                <Button title={t('expeditions.collect')} onPress={() => collect(expedition.id)} />
+                <EmberButton
+                  title={collectSplit.label}
+                  emoji={collectSplit.emoji}
+                  compact
+                  onPress={() => collect(expedition.id)}
+                />
               ) : (
-                <>
-                  <PixelBar value={progress} />
-                  <Text style={styles.muted}>{t('expeditions.explored', { percent: formatPercent(progress) })}</Text>
-                </>
+                <View style={styles.progressRow}>
+                  <View style={styles.barTrack}>
+                    <View style={[styles.barFill, { width: `${progress * 100}%` }]} />
+                  </View>
+                  <Text style={styles.mutedInk}>{t('expeditions.explored', { percent: formatPercent(progress) })}</Text>
+                </View>
               )}
-            </Panel>
+            </ParchmentCard>
           );
         })}
     </>
@@ -379,31 +428,23 @@ export function ExpeditionsScreen() {
 
   return (
     <View style={styles.screen}>
-      <View style={styles.tabs}>
-        {TABS.map((key) => (
-          <Pressable
-            key={key}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: tab === key }}
-            onPress={() => setTab(key)}
-            style={[styles.tab, tab === key && styles.tabActive]}
-          >
-            <Text style={[styles.tabText, tab === key && styles.tabTextActive]} numberOfLines={1}>
-              {tabLabel(key)}
-            </Text>
-            {key === 'teams' && ready.length > 0 && <View style={styles.dot} />}
-          </Pressable>
-        ))}
+      <View style={styles.body}>
+        <DiamondRail items={railItems} selected={tab} onSelect={(key) => setTab(key as Tab)} />
+        <ScrollView style={styles.content} contentContainerStyle={styles.container}>
+          <TutorialHint screen="expeditions" />
+          {ready.length > 0 && tab !== 'teams' && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={readyBanner}
+              onPress={() => setTab('teams')}
+              style={styles.banner}
+            >
+              <RewardLabel text={readyBanner} size={16} labelStyle={styles.bannerText} />
+            </Pressable>
+          )}
+          {tab === 'dungeons' ? dungeonsTab : tab === 'teams' ? teamsTab : reportsTab}
+        </ScrollView>
       </View>
-      <ScrollView contentContainerStyle={styles.container}>
-        <TutorialHint screen="expeditions" />
-        {ready.length > 0 && tab !== 'teams' && (
-          <Pressable onPress={() => setTab('teams')} style={styles.banner}>
-            <Text style={styles.bannerText}>{t('expeditions.readyBanner', { count: ready.length })}</Text>
-          </Pressable>
-        )}
-        {tab === 'dungeons' ? dungeonsTab : tab === 'teams' ? teamsTab : reportsTab}
-      </ScrollView>
 
       {confirmingDungeon && (
         <SendDialog
@@ -437,42 +478,62 @@ export function ExpeditionsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  container: { padding: 16 },
-  muted: { color: colors.muted, paddingVertical: 2 },
-  tabs: { flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, backgroundColor: colors.parchmentDark },
-  tab: { flex: 1, alignItems: 'center', paddingVertical: 6, borderWidth: pixel.outline, borderColor: colors.woodDark, backgroundColor: colors.parchment },
-  tabActive: { borderColor: colors.ink, backgroundColor: colors.wood },
-  tabText: { fontSize: 17 },
-  tabTextActive: { color: colors.parchment },
-  dot: { position: 'absolute', top: -6, right: -6, width: 14, height: 14, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.gold },
-  banner: { padding: 10, marginBottom: 8, borderWidth: pixel.outline, borderColor: colors.ink, backgroundColor: colors.gold },
-  bannerText: { color: colors.ink, fontSize: 19 },
+  screen: { flex: 1, backgroundColor: ui.woodDark },
+  body: { flex: 1, flexDirection: 'row' },
+  content: { flex: 1, backgroundColor: ui.woodDark },
+  container: { paddingVertical: 14, paddingHorizontal: 12, gap: 10 },
+  muted: { fontFamily: fonts.serif, fontSize: 13, color: ui.onWoodMuted },
+  banner: { minHeight: 44, justifyContent: 'center', padding: 10, borderWidth: 2, borderColor: ui.outline, backgroundColor: ui.parchment },
+  bannerText: { fontFamily: fonts.serif, fontSize: 14, color: ui.ink },
+  heading: { fontSize: 19, color: ui.brassLight },
+  hint: { minHeight: 44, justifyContent: 'center', padding: 10, borderWidth: 2, borderColor: ui.outline, backgroundColor: ui.parchment },
+  hintText: { fontFamily: fonts.serif, fontSize: 14, color: ui.ink },
   party: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   hero: {
     width: '48%',
     flexGrow: 1,
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    padding: 6,
-    borderWidth: pixel.outline,
-    borderColor: colors.woodDark,
-    backgroundColor: colors.parchment,
+    padding: 8,
+    borderWidth: 2,
+    borderColor: ui.outline,
+    backgroundColor: ui.parchment,
   },
-  heroActive: { borderColor: colors.ink, backgroundColor: colors.highlight },
-  heroAway: { opacity: 0.4 },
+  heroActive: { borderColor: ui.good, backgroundColor: ui.goodBg },
+  heroAway: { opacity: 0.5 },
+  heroFrame: {
+    width: 34,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: ui.woodDeep,
+    borderWidth: 2,
+    borderColor: ui.outline,
+  },
   heroBody: { flex: 1 },
-  heroName: { fontSize: 19 },
-  check: { fontSize: 24, color: colors.success },
-  goodHere: { alignSelf: 'flex-start', marginTop: 2, paddingHorizontal: 6, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.success },
-  goodHereText: { color: '#fff', fontSize: 15 },
-  tiers: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 16, marginBottom: 4 },
-  pill: { paddingHorizontal: 10, paddingVertical: 4, borderWidth: 2, borderColor: colors.woodDark, backgroundColor: colors.parchment },
-  pillActive: { borderColor: colors.ink, backgroundColor: colors.highlight },
-  pillText: { fontSize: 18 },
-  hint: { padding: 10, marginBottom: 8, borderWidth: pixel.outline, borderColor: colors.ink, backgroundColor: colors.wood },
-  hintText: { color: colors.parchment, fontSize: 18 },
+  heroName: { fontSize: 16, lineHeight: 18, color: ui.ink },
+  heroSub: { fontFamily: fonts.serif, fontSize: 12, color: ui.inkMuted },
+  check: { fontSize: 20, color: ui.good },
+  tiers: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingVertical: 4 },
+  teamCard: { gap: 9 },
+  teamRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'flex-start' },
+  teamHero: { alignItems: 'center', gap: 2, width: 52 },
+  teamPortrait: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: ui.woodMid,
+    borderWidth: 2,
+    borderColor: ui.outline,
+  },
+  teamHeroName: { fontFamily: fonts.serif, fontSize: 12, color: ui.inkMuted },
+  progressRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  barTrack: { flex: 1, height: 12, borderWidth: 2, borderColor: ui.outline, backgroundColor: ui.woodDark },
+  barFill: { height: '100%', backgroundColor: ui.xp },
+  mutedInk: { fontFamily: fonts.serif, fontSize: 13, color: ui.inkMuted },
 });
 
 export default timed('screen: expeditions', ExpeditionsScreen);

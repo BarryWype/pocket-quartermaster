@@ -26,8 +26,8 @@ import { useGameStore } from '@/store/gameStore';
 import { useWorldStore } from '@/store/worldStore';
 import { colors, pixel } from '@/theme';
 
-import { Button } from './Button';
 import { EnemyTags } from './EnemyTags';
+import { EmberButton, WoodButton } from './ui';
 import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
@@ -116,13 +116,14 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
   return (
     <Overlay onClose={onClose} position="bottom">
       <Sheet
+        variant="wood"
         emoji={dungeon.emoji}
         title={texts.kinds[kind]}
         bodyStyle={styles.content}
         footer={
           <View style={styles.actions}>
-            <Button title={t('patrols.fight')} disabled={problem !== null} onPress={fight} />
-            <Button title={t('common.close')} color={colors.muted} onPress={onClose} />
+            <EmberButton title={t('patrols.fight')} disabled={problem !== null} onPress={fight} />
+            <WoodButton title={t('common.close')} onPress={onClose} />
           </View>
         }
       >

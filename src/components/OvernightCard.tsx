@@ -7,14 +7,12 @@ import { oddsBand } from '@/game/expeditions/odds';
 import type { SaveData } from '@/game/save';
 import type { DungeonDef } from '@/game/types';
 import { formatDuration, formatPercent, t, tr } from '@/i18n';
-import { colors, pixel } from '@/theme';
+import { fonts, ui } from '@/theme';
 
 import { BriefingChips } from './BriefingChips';
-import { Button } from './Button';
-import { IconSlot } from './Row';
+import { RewardLabel } from './IconLabel';
+import { Chip, EmberButton, ParchmentCard } from './ui';
 import { Text } from './Text';
-import { ODDS_COLORS } from './SendDialog';
-import { PartsLine } from './IconLabel';
 
 type Props = {
   save: SaveData;
@@ -29,6 +27,8 @@ type Props = {
 const pad = (n: number) => String(n).padStart(2, '0');
 const clockTime = (ms: number) => `${pad(new Date(ms).getHours())}:${pad(new Date(ms).getMinutes())}`;
 
+const ODDS_TONE = { Safe: 'good', Fair: 'neutral', Risky: 'bad' } as const;
+
 /** The tier's overnight expedition: a long, safe patrol for heroes with a long night ahead. */
 export function OvernightCard({ save, dungeon, rotation, now, chance, onSend }: Props) {
   const durationMs = expeditionMinutes(save, dungeon) * 60_000;
@@ -37,57 +37,41 @@ export function OvernightCard({ save, dungeon, rotation, now, chance, onSend }: 
   const underWay = overnightUnderWay(save);
 
   return (
-    <View style={styles.card}>
-      <View style={styles.header}>
-        <IconSlot emoji={dungeon.emoji} />
-        <View style={styles.title}>
-          <Text style={styles.name}>{tr(dungeon.name)}</Text>
-          <PartsLine
-            parts={[
-              t('expeditions.overnight.title'),
-              { emoji: '⏳', text: formatDuration(durationMs) },
-              t('expeditions.overnight.back', { time: clockTime(now + durationMs) }),
-            ]}
-            labelStyle={styles.muted}
-          />
-        </View>
-        {typeof chance === 'number' && band ? (
-          <View style={[styles.odds, { backgroundColor: ODDS_COLORS[band] }]}>
-            <Text style={styles.oddsText}>{formatPercent(chance)}</Text>
-          </View>
+    <ParchmentCard
+      title={tr(dungeon.name)}
+      titleEmoji={dungeon.emoji}
+      titleSub={`${t('expeditions.overnight.title')} · ${formatDuration(durationMs)} · ${t('expeditions.overnight.back', { time: clockTime(now + durationMs) })}`}
+      contentStyle={styles.content}
+    >
+      <View style={styles.metaRow}>
+        {band && typeof chance === 'number' ? (
+          <Chip tone={ODDS_TONE[band]} label={`${t(`odds.${band}`)} ${formatPercent(chance)}`} />
         ) : (
-          chance === undefined && (
-            <View style={[styles.odds, styles.oddsPending]}>
-              <Text style={styles.oddsText}>…</Text>
-            </View>
-          )
+          chance === undefined && <Chip tone="neutral" label="…" />
         )}
       </View>
-      <Text style={styles.line}>
-        {t('expeditions.overnight.rewards', {
+      <RewardLabel
+        text={t('expeditions.overnight.rewards', {
           gold: `${dungeon.gold[0]}–${dungeon.gold[1]}`,
           xp: dungeon.xp,
         })}
-      </Text>
+        size={16}
+        labelStyle={styles.line}
+      />
       <BriefingChips briefing={briefingFor(rotation, dungeon)} />
-      <Text style={styles.muted}>{t('expeditions.overnight.hint', { runs: overnightExpeditionRules.goldRunsWorth })}</Text>
-      {underWay && <Text style={styles.muted}>{t('expeditions.overnight.underWay')}</Text>}
+      <Text style={styles.sub}>{t('expeditions.overnight.hint', { runs: overnightExpeditionRules.goldRunsWorth })}</Text>
+      {underWay && <Text style={styles.sub}>{t('expeditions.overnight.underWay')}</Text>}
       <View style={styles.footer}>
-        <Button title={t('expeditions.send')} disabled={!available || chance === null} onPress={onSend} />
+        <EmberButton title={t('expeditions.send')} compact disabled={!available || chance === null} onPress={onSend} />
       </View>
-    </View>
+    </ParchmentCard>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { marginBottom: 8, padding: 8, gap: 6, borderWidth: pixel.outline, borderColor: colors.ink, backgroundColor: colors.parchmentDark },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  title: { flex: 1 },
-  name: { fontSize: 21 },
-  muted: { color: colors.muted },
-  line: { fontSize: 17 },
-  odds: { paddingHorizontal: 8, paddingVertical: 2, borderWidth: 2, borderColor: colors.ink },
-  oddsPending: { backgroundColor: colors.parchmentDark },
-  oddsText: { color: colors.parchment, fontSize: 18 },
+  content: { gap: 7 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  line: { fontFamily: fonts.serif, fontSize: 14, color: ui.ink },
+  sub: { fontFamily: fonts.serif, fontSize: 13, color: ui.inkMuted },
   footer: { flexDirection: 'row', justifyContent: 'flex-end' },
 });

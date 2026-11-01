@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Infusion — wood and brass</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Fantaisie';src:url(/_blob/5b1e7bdb2a304b22ed34c8110385ae44) format('truetype');font-display:swap}
+body{margin:0}
+a{color:#C9A04E}a:hover{color:#E8C877}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; overflow: hidden; background: repeating-linear-gradient(0deg, #3A2314 0 23px, #331F11 23px 24px); color: #F2E4C2; font-family: Alegreya, Georgia, serif; display: flex; flex-direction: column">
+
+  <header style="height: 66px; padding: 0 12px; display: flex; align-items: center; gap: 10px; background: repeating-linear-gradient(0deg, #5A3820 0 15px, #4E301B 15px 16px); border-bottom: 3px solid #1E120A; box-shadow: inset 0 -3px 0 #C9A04E">
+    <a href="MapWood.dc.html" aria-label="Back to the map" style="width: 44px; height: 44px; background: #3A2314; border: 2px solid #1E120A; outline: 2px solid #C9A04E; outline-offset: -5px; color: #F6D98E; display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </a>
+    <div style="flex-grow: 1; text-align: center; font-family: Fantaisie, serif; font-size: 30px; color: #F6D98E; text-shadow: 0 2px 0 #1E120A">Infusion</div>
+    <div style="width: 44px"></div>
+  </header>
+
+  <div style="padding: 14px 12px; display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <span style="font-family: Fantaisie, serif; font-size: 20px; color: #F6D98E">Elemental stones</span>
+      <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px">
+        <sc-for list="{{stones}}" as="s" hint-placeholder-count="5">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 3px">
+            <span style="{{s.style}}">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="{{s.fill}}" stroke="#1E120A" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true" style="opacity: {{s.op}}"><path d="{{s.path}}"/></svg>
+              <span style="position: absolute; right: 3px; bottom: 1px; font-size: 13px; font-weight: 700; color: #F2E4C2; text-shadow: 0 1px 0 #1E120A">{{s.n}}</span>
+            </span>
+            <span style="font-size: 12px; font-weight: 700; color: {{s.labelColor}}">{{s.name}}</span>
+            <span style="font-size: 11px; color: #C9B48A">{{s.shards}}</span>
+          </div>
+        </sc-for>
+      </div>
+      <span style="font-size: 13px; color: #C9B48A">10 shards make a stone. Win shards at Sanctums.</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <span style="font-family: Fantaisie, serif; font-size: 20px; color: #F6D98E">Weapons</span>
+      <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px">
+        <sc-for list="{{weapons}}" as="w" hint-placeholder-count="5">
+          <button aria-label="{{w.label}}" style="{{w.style}}">
+            <img src="{{w.src}}" alt="" width="34" height="34" style="image-rendering: pixelated">
+            <sc-if value="{{w.infused}}" hint-placeholder-val="{{false}}"><span style="position: absolute; right: 2px; top: 2px; width: 10px; height: 10px; transform: rotate(45deg); background: #3A8AC9; border: 2px solid #1E120A"></span></sc-if>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+
+    <section aria-label="Infuse the Wooden sword" style="background: #F2E4C2; color: #3A2314; border: 3px solid #1E120A; box-shadow: inset 0 0 0 3px #F2E4C2, inset 0 0 0 5px #C9A04E, 0 6px 0 #1E120A; display: flex; flex-direction: column">
+      <div style="padding: 10px 14px 8px; background: repeating-linear-gradient(0deg, #5A3820 0 13px, #4E301B 13px 14px); border-bottom: 3px solid #1E120A; display: flex; align-items: center; gap: 10px">
+        <img src="/_blob/0f279c5cf7058afc885afe00c6c6f6fe" alt="" width="40" height="40" style="image-rendering: pixelated; background: #2A180D; border: 2px solid #C9A04E">
+        <span style="display: flex; flex-direction: column">
+          <span style="font-family: Fantaisie, serif; font-size: 23px; color: #F6D98E; line-height: 1">Wooden Sword</span>
+          <span style="font-size: 13px; color: #E2CFA4">Worn by Bram · not infused</span>
+        </span>
+      </div>
+      <div style="padding: 10px 14px; display: flex; flex-direction: column; gap: 8px; font-size: 14px">
+        <span style="font-weight: 700; color: #6A4A2C">Choose an element</span>
+        <div style="display: flex; gap: 14px; padding: 4px 6px">
+          <sc-for list="{{choices}}" as="c" hint-placeholder-count="5">
+            <button aria-label="{{c.label}}" style="{{c.style}}">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="{{c.fill}}" stroke="#1E120A" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true" style="transform: rotate(-45deg); opacity: {{c.op}}"><path d="{{c.path}}"/></svg>
+            </button>
+          </sc-for>
+        </div>
+        <span style="text-align: center"><b style="font-size: 17px; color: #2E4E8A">Water</b><br><span style="color: #2F6B32; font-weight: 700">×1.5 damage to fire foes</span> · <span style="color: #8A2E1C; font-weight: 700">×0.75 to electric foes</span></span>
+        <span style="color: #6A4A2C; font-size: 13px; text-align: center">Salvaging an infused weapon gives back 8 of its 10 shards.</span>
+      </div>
+      <button style="margin: 0 14px 14px; min-height: 52px; border: 3px solid #1E120A; background: #B4471C; color: #FFF1DC; font-family: Fantaisie, serif; font-size: 24px; box-shadow: inset 3px 3px 0 #E07A3E, inset -3px -4px 0 #6E2A0E">Infuse · 1 water stone</button>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const P = {
+      fire: 'M12 3c3 4 6 6 6 11a6 6 0 0 1-12 0c0-3 2-4 3-6 0 2 1 3 2 3 0-3 0-5 1-8z',
+      grass: 'M12 10c0-4 3-6 7-6 0 4-3 6-7 6z M12 14c0-3-2-5-6-5 0 3 2 5 6 5z M11 10h2v11h-2z',
+      stone: 'M5 17l3-9 6-3 5 6-2 8H7z',
+      electric: 'M13 2 5 14h6l-2 8 9-13h-6z',
+      water: 'M12 3c4 6 6 9 6 12a6 6 0 0 1-12 0c0-3 2-6 6-12z'
+    };
+    const F = { fire: '#E0602E', grass: '#5E9A4A', stone: '#9A8F80', electric: '#E8C83A', water: '#3A8AC9' };
+    const N = { fire: 'Fire', grass: 'Grass', stone: 'Stone', electric: 'Electric', water: 'Water' };
+    const held = { fire: [0, 7], grass: [0, 3], stone: [0, 0], electric: [0, 2], water: [1, 4] };
+    const sb = 'position: relative; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; border: 2px solid #1E120A; background: #2A180D; ';
+    const stones = Object.keys(P).map((k) => ({
+      path: P[k], fill: F[k], name: N[k], n: String(held[k][0]), shards: `${held[k][1]}/10 shards`,
+      op: held[k][0] ? '1' : '0.45', labelColor: held[k][0] ? '#F6D98E' : '#C9B48A',
+      style: sb + (held[k][0] ? 'outline: 2px solid #C9A04E; outline-offset: -5px;' : 'outline: 2px solid #4E301B; outline-offset: -5px;')
+    }));
+    const wb = 'position: relative; aspect-ratio: 1; min-height: 56px; display: flex; align-items: center; justify-content: center; padding: 0; border: 2px solid #1E120A; ';
+    const weapons = [
+      { src: '/_blob/0f279c5cf7058afc885afe00c6c6f6fe', label: 'Wooden sword, Bram, selected', sel: true },
+      { src: '/_blob/03917cbff457694996c5049c2f4c5640', label: 'Wooden bow, Lyra' },
+      { src: '/_blob/ec873ec3be250bbc0e3ca1ce6938f5cb', label: 'Wooden wand, Mira, infused with water', infused: true }
+    ].map((w) => ({ ...w, infused: !!w.infused, style: wb + (w.sel ? 'background: #7A4A26; outline: 2px solid #F6D98E; outline-offset: -6px; box-shadow: 0 0 0 2px #C9A04E;' : 'background: #2A180D; outline: 2px solid #8A6A34; outline-offset: -6px;') }));
+    const cb = 'width: 40px; height: 40px; transform: rotate(45deg); display: flex; align-items: center; justify-content: center; padding: 0; border: 2px solid #1E120A; ';
+    const choices = Object.keys(P).map((k) => ({
+      path: P[k], fill: F[k], label: `${N[k]}${held[k][0] ? '' : ', no stone'}${k === 'water' ? ', selected' : ''}`,
+      op: held[k][0] ? '1' : '0.35',
+      style: cb + (k === 'water' ? 'background: #7A4A26; outline: 2px solid #F6D98E; outline-offset: -5px; box-shadow: 0 0 0 2px #C9A04E;' : held[k][0] ? 'background: #3A2314;' : 'background: #E2D2AC; border-style: dashed;')
+    }));
+    return { stones, weapons, choices };
+  }
+}
+</script>
+</body>
+</html>

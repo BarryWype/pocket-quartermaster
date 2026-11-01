@@ -1,11 +1,12 @@
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { Alert, AppState, Linking, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { useCallback, useRef, useState, type ReactNode } from 'react';
+import { Alert, AppState, Linking, Pressable, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import PagerView from 'react-native-pager-view';
+import Constants from 'expo-constants';
 
 import { useAutoGatherToggle, WalkStats } from '@/components/AutoGather';
 import { Button } from '@/components/Button';
 import { AlertForPicker, POCKET_CATEGORIES, PocketNotificationRows, PocketOptionRow, PocketOptionsHint } from '@/components/PocketModePanel';
-import { SectionTitle } from '@/components/Row';
 import { Text } from '@/components/Text';
 import { frNotificationCategories, frNotificationGroups } from '@/content/fr/notifications';
 import { gatheringConfig } from '@/content/gatheringConfig';
@@ -20,7 +21,9 @@ import { updateBuffer } from '@/services/walkTracking';
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { type LanguageSetting, useSettingsStore } from '@/store/settingsStore';
-import { colors, pixel } from '@/theme';
+import { fonts, ui } from '@/theme';
+
+import { DiamondRail, EmberButton, ParchmentCard, PixelSwitch, WoodButton } from '@/components/ui';
 
 const DAY_MINUTES = 24 * 60;
 const QUIET_STEP = 30;
@@ -30,12 +33,10 @@ const LANGUAGES: { id: LanguageSetting; label: () => string }[] = [
   { id: 'fr', label: () => 'Français' },
 ];
 
-/** Shown with the auto-gather toggle in its own section, not in the steps group. */
-const AUTO_GATHER_CATEGORY: NotificationCategory = 'walkSummary';
-
 const clock = (minutes: number) =>
   `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
 
+/** A setting with a switch: its title, an optional one-line hint, and a pixel switch. */
 function SwitchRow({
   title,
   description,
@@ -55,7 +56,7 @@ function SwitchRow({
         <Text style={styles.rowTitle}>{title}</Text>
         {description && <Text style={styles.hint}>{description}</Text>}
       </View>
-      <Switch value={value} disabled={disabled} onValueChange={onChange} />
+      <PixelSwitch value={value} accessibilityLabel={title} disabled={disabled} onValueChange={onChange} />
     </View>
   );
 }
@@ -74,11 +75,44 @@ function TimeStepper({ label, value, onChange }: { label: string; value: number;
   );
 }
 
+/** One of a setting's fixed choices, brass when it is the picked one. */
+function SelectButton({
+  label,
+  selected,
+  onPress,
+  style,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+  style?: StyleProp<ViewStyle>;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityLabel={label}
+      accessibilityState={{ checked: selected }}
+      onPress={onPress}
+      style={[styles.choice, selected && styles.choiceOn, style]}
+    >
+      <Text style={[styles.choiceText, selected && styles.choiceTextOn]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+type SectionId = 'game' | 'language' | 'alerts' | 'about';
+
+/**
+ * The four settings sections on a rail: Game, Language, Alerts, About. Each
+ * entry renders its own scrolling page of parchment cards, so a new setting
+ * lands in a section's cards, and a whole new page is one more entry here.
+ */
 export default function SettingsScreen() {
   useLanguage();
   const { language, notifications, updateNotifications, setCategory, setQuietHours, set, pocketMode, setPocketMode } = useSettingsStore();
   const autoToggle = useAutoGatherToggle();
   const walks = useGameStore((state) => state.save.autoGather.history);
+  const tipsSeen = useGameStore((state) => state.save.tips.seen.length);
   const setAutoStop = (autoStopMinutes: number) => {
     setPocketMode({ autoStopMinutes });
     updateBuffer((buffer) => ({ ...buffer, autoStopMinutes })).catch(() => {});
@@ -123,60 +157,52 @@ export default function SettingsScreen() {
   const off = !notifications.enabled;
   const groups = Object.keys(notificationGroups) as NotificationGroup[];
   const categories = Object.keys(notificationCategories) as NotificationCategory[];
+  const [page, setPage] = useState<SectionId>('game');
+  const pager = useRef<PagerView>(null);
 
-  return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>{t('settings.language')}</Text>
-      <View style={styles.languages}>
-        {LANGUAGES.map(({ id, label }) => (
-          <Button key={id} title={label()} color={language === id ? colors.woodDark : colors.muted} onPress={() => set({ language: id })} />
-        ))}
-      </View>
-
-      <Text style={styles.title}>{t('autoGather.label')}</Text>
-      <SwitchRow
-        title={t('autoGather.label')}
-        description={
-          !autoToggle.available
-            ? t('autoGather.afterTutorial')
-            : autoToggle.enabled && autoToggle.mode === 'limited'
-              ? t('autoGather.limitedHint')
-              : t('autoGather.hint', { radius: gatheringConfig.autoGather.radiusMeters })
-        }
-        value={autoToggle.enabled}
-        disabled={!autoToggle.available}
-        onChange={autoToggle.toggle}
-      />
-      <PocketOptionRow option="autoGather" />
-      <PocketOptionRow option="patrolAlerts" />
-      <AlertForPicker />
-      <PocketOptionRow option="escort" />
-      <PocketOptionsHint />
-      <PocketNotificationRows />
-      <View style={styles.languages}>
-        <Button title={t('autoGather.info')} color={colors.muted} onPress={autoToggle.showInfo} />
-        {autoToggle.enabled && autoToggle.mode === 'limited' && <Button title={t('autoGather.openSettings')} onPress={() => Linking.openSettings()} />}
-      </View>
-      <Text style={styles.rowTitle}>{t('autoGather.autoStopDelay')}</Text>
-      <View style={styles.languages}>
-        {gatheringConfig.autoGather.autoStopChoices.map((minutes) => (
-          <Button
-            key={minutes}
-            title={t('autoGather.minutes', { count: minutes })}
-            color={pocketMode.autoStopMinutes === minutes ? colors.woodDark : colors.muted}
-            onPress={() => setAutoStop(minutes)}
-          />
-        ))}
-      </View>
-      <SwitchRow
-        title={categoryTexts[AUTO_GATHER_CATEGORY].title}
-        description={categoryTexts[AUTO_GATHER_CATEGORY].description}
-        value={notifications.categories[AUTO_GATHER_CATEGORY]}
-        disabled={!notifications.enabled}
-        onChange={(on) => setCategory(AUTO_GATHER_CATEGORY, on)}
-      />
-      <View style={styles.section}>
-        <SectionTitle>{t('autoGather.history')}</SectionTitle>
+  const renderGame = () => (
+    <>
+      <ParchmentCard title={t('autoGather.label')} contentStyle={styles.card}>
+        <SwitchRow
+          title={t('autoGather.label')}
+          description={
+            !autoToggle.available
+              ? t('autoGather.afterTutorial')
+              : autoToggle.enabled && autoToggle.mode === 'limited'
+                ? t('autoGather.limitedHint')
+                : t('autoGather.hint', { radius: gatheringConfig.autoGather.radiusMeters })
+          }
+          value={autoToggle.enabled}
+          disabled={!autoToggle.available}
+          onChange={autoToggle.toggle}
+        />
+        <PocketOptionRow option="autoGather" />
+        <PocketOptionRow option="patrolAlerts" />
+        <AlertForPicker />
+        <PocketOptionRow option="escort" />
+        <PocketOptionsHint />
+        <PocketNotificationRows />
+        <View style={styles.actions}>
+          <WoodButton title={t('autoGather.info')} compact onPress={autoToggle.showInfo} />
+          {autoToggle.enabled && autoToggle.mode === 'limited' && (
+            <WoodButton title={t('autoGather.openSettings')} compact onPress={() => Linking.openSettings()} />
+          )}
+        </View>
+        <Text style={styles.rowTitle}>{t('autoGather.autoStopDelay')}</Text>
+        <Text style={styles.hint}>{t('settings.autoStopHint')}</Text>
+        <View style={styles.choiceFrame}>
+          {gatheringConfig.autoGather.autoStopChoices.map((minutes) => (
+            <SelectButton
+              key={minutes}
+              label={t('autoGather.minutes', { count: minutes })}
+              selected={pocketMode.autoStopMinutes === minutes}
+              onPress={() => setAutoStop(minutes)}
+              style={styles.choiceGrow}
+            />
+          ))}
+        </View>
+      </ParchmentCard>
+      <ParchmentCard title={t('autoGather.history')} contentStyle={styles.card}>
         {walks.length === 0 && <Text style={styles.hint}>{t('autoGather.noHistory')}</Text>}
         {walks.map((walk) => (
           <View key={`${walk.startedAt}-${walk.endedAt}`} style={styles.walk}>
@@ -184,49 +210,71 @@ export default function SettingsScreen() {
             <WalkStats walk={walk} />
           </View>
         ))}
-      </View>
-      {autoToggle.dialog}
+      </ParchmentCard>
+      <ParchmentCard title={t('settings.fieldNotes')} contentStyle={styles.card}>
+        <Text style={styles.hint}>{t('settings.fieldNotesHint', { count: tipsSeen })}</Text>
+        <WoodButton title={t('settings.tips')} compact onPress={() => navigate('/tips')} />
+      </ParchmentCard>
+      <ParchmentCard title={t('settings.progression')} contentStyle={styles.card}>
+        <Text style={styles.hint}>{t('settings.resetHint')}</Text>
+        <View style={styles.dangerBox}>
+          <EmberButton title={t('settings.reset')} compact onPress={confirmReset} />
+        </View>
+      </ParchmentCard>
+    </>
+  );
 
-      <Text style={styles.title}>{t('settings.notifications')}</Text>
+  const renderLanguage = () => (
+    <ParchmentCard title={t('settings.language')} contentStyle={styles.card}>
+      <View style={styles.choices}>
+        {LANGUAGES.map(({ id, label }) => (
+          <SelectButton key={id} label={label()} selected={language === id} onPress={() => set({ language: id })} style={styles.langChoice} />
+        ))}
+      </View>
+    </ParchmentCard>
+  );
+
+  const renderAlerts = () => (
+    <>
       {permission && !permission.granted && (
         <View style={styles.warning}>
-          <Text>
-            {permission.canAskAgain ? t('settings.notAllowed') : t('settings.blocked')}
-          </Text>
-          <Button title={permission.canAskAgain ? t('settings.allow') : t('settings.openSettings')} onPress={askPermission} />
+          <Text style={styles.hint}>{permission.canAskAgain ? t('settings.notAllowed') : t('settings.blocked')}</Text>
+          <WoodButton
+            title={permission.canAskAgain ? t('settings.allow') : t('settings.openSettings')}
+            compact
+            onPress={askPermission}
+          />
         </View>
       )}
-      <SwitchRow
-        title={t('settings.allNotifications')}
-        value={notifications.enabled}
-        onChange={(enabled) => updateNotifications({ enabled })}
-      />
-
-      {groups.map((group) => {
-        // Pocket mode's own kinds are switched in its section above.
-        const shown = categories.filter(
-          (category) => notificationCategories[category].group === group && category !== AUTO_GATHER_CATEGORY && !POCKET_CATEGORIES.includes(category),
-        );
-        if (shown.length === 0) return null;
-        return (
-          <View key={group} style={styles.section}>
-            <SectionTitle>{groupTexts[group].title}</SectionTitle>
-            {shown.map((category) => (
-              <SwitchRow
-                key={category}
-                title={categoryTexts[category].title}
-                description={categoryTexts[category].description}
-                value={notifications.categories[category]}
-                disabled={off}
-                onChange={(on) => setCategory(category, on)}
-              />
-            ))}
-          </View>
-        );
-      })}
-
-      <View style={styles.section}>
-        <SectionTitle>{t('settings.quietHours')}</SectionTitle>
+      <ParchmentCard title={t('settings.notifications')} contentStyle={styles.card}>
+        <SwitchRow
+          title={t('settings.allNotifications')}
+          value={notifications.enabled}
+          onChange={(enabled) => updateNotifications({ enabled })}
+        />
+        {groups.map((group) => {
+          const shown = categories.filter(
+            (category) => notificationCategories[category].group === group && !POCKET_CATEGORIES.includes(category),
+          );
+          if (shown.length === 0) return null;
+          return (
+            <View key={group} style={styles.group}>
+              <Text style={styles.groupTitle}>{groupTexts[group].title}</Text>
+              {shown.map((category) => (
+                <SwitchRow
+                  key={category}
+                  title={categoryTexts[category].title}
+                  description={categoryTexts[category].description}
+                  value={notifications.categories[category]}
+                  disabled={off}
+                  onChange={(on) => setCategory(category, on)}
+                />
+              ))}
+            </View>
+          );
+        })}
+      </ParchmentCard>
+      <ParchmentCard title={t('settings.quietHours')} contentStyle={styles.card}>
         <SwitchRow
           title={t('settings.quietHours')}
           description={t('settings.quietHoursHint')}
@@ -250,16 +298,17 @@ export default function SettingsScreen() {
             />
           </>
         )}
-      </View>
+      </ParchmentCard>
+    </>
+  );
 
-      <View style={styles.section}>
-        <SectionTitle>{t('settings.tips')}</SectionTitle>
-        <Text style={styles.hint}>{t('settings.tipsHint')}</Text>
-        <Button title={t('settings.tips')} onPress={() => navigate('/tips')} />
-      </View>
-
-      <View style={styles.section}>
-        <SectionTitle>{t('settings.developer')}</SectionTitle>
+  const renderAbout = () => (
+    <>
+      <ParchmentCard title={t('settings.section.about')} contentStyle={styles.card}>
+        <Text style={styles.rowTitle}>{`${t('settings.version')}: ${Constants.expoConfig?.version ?? ''}`}</Text>
+        <WoodButton title={t('settings.credits')} compact onPress={() => navigate('/settings/credits')} />
+      </ParchmentCard>
+      <ParchmentCard title={t('settings.developer')} contentStyle={styles.card}>
         <SwitchRow
           title={t('settings.debugTools')}
           description={__DEV__ ? t('settings.debugAlwaysOn') : t('settings.debugHint')}
@@ -267,40 +316,76 @@ export default function SettingsScreen() {
           disabled={__DEV__}
           onChange={toggleDebug}
         />
-      </View>
+      </ParchmentCard>
+    </>
+  );
 
-      <View style={styles.section}>
-        <SectionTitle>{t('settings.progression')}</SectionTitle>
-        <Text style={styles.hint}>{t('settings.resetHint')}</Text>
-        <Button title={t('settings.reset')} color={colors.danger} onPress={confirmReset} />
+  const SECTIONS: { id: SectionId; icon: string; label: () => string; render: () => ReactNode }[] = [
+    { id: 'game', icon: '🎲', label: () => t('settings.section.game'), render: renderGame },
+    { id: 'language', icon: '🌍', label: () => t('settings.section.language'), render: renderLanguage },
+    { id: 'alerts', icon: '🔔', label: () => t('settings.section.alerts'), render: renderAlerts },
+    { id: 'about', icon: 'ℹ️', label: () => t('settings.section.about'), render: renderAbout },
+  ];
+
+  return (
+    <View style={styles.screen}>
+      <View style={styles.body}>
+        <DiamondRail
+          items={SECTIONS.map(({ id, icon, label }) => ({ key: id, label: label(), emoji: icon }))}
+          selected={page}
+          onSelect={(key) => {
+            const index = SECTIONS.findIndex((section) => section.id === key);
+            pager.current?.setPage(index);
+            setPage(key as SectionId);
+          }}
+        />
+        <PagerView
+          style={styles.pager}
+          initialPage={0}
+          onPageSelected={({ nativeEvent }) => setPage(SECTIONS[nativeEvent.position].id)}
+        >
+          {SECTIONS.map((section) => (
+            <View key={section.id} collapsable={false}>
+              <ScrollView style={styles.content} contentContainerStyle={styles.page}>
+                <Text style={styles.pageTitle}>{section.label()}</Text>
+                {section.render()}
+              </ScrollView>
+            </View>
+          ))}
+        </PagerView>
       </View>
-    </ScrollView>
+      {autoToggle.dialog}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 12, padding: 24 },
-  title: { fontSize: 28 },
-  languages: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  section: { gap: 12 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
+  screen: { flex: 1, backgroundColor: ui.woodDark },
+  body: { flex: 1, flexDirection: 'row' },
+  pager: { flex: 1 },
+  content: { flex: 1, backgroundColor: ui.woodDark },
+  page: { paddingVertical: 12, paddingHorizontal: 14, gap: 14 },
+  pageTitle: { fontSize: 22, color: ui.brassLight },
+  card: { gap: 10 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: 44 },
   label: { flex: 1 },
-  rowTitle: { fontSize: 21 },
-  hint: { color: colors.muted, fontSize: 18 },
+  rowTitle: { fontSize: 20, color: ui.ink },
+  hint: { fontFamily: fonts.serif, fontSize: 14, color: ui.inkMuted },
   disabled: { opacity: 0.5 },
+  group: { gap: 6 },
+  groupTitle: { fontFamily: fonts.serif, fontSize: 15, color: ui.inkMuted, textTransform: 'uppercase' },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  time: { fontSize: 21, minWidth: 52, textAlign: 'center' },
-  walk: { gap: 2, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: colors.parchmentDark },
-  warning: {
-    gap: 8,
-    padding: 12,
-    borderWidth: pixel.outline,
-    borderColor: colors.danger,
-    backgroundColor: colors.parchmentDark,
-  },
+  time: { fontSize: 20, minWidth: 52, textAlign: 'center', color: ui.ink },
+  walk: { gap: 2, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: ui.parchmentRule },
+  choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  choiceFrame: { flexDirection: 'row', borderWidth: 2, borderColor: ui.outline, backgroundColor: ui.woodDark },
+  choice: { minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
+  choiceGrow: { flex: 1 },
+  choiceOn: { backgroundColor: ui.brass },
+  choiceText: { fontFamily: fonts.serifBold, fontSize: 14, color: ui.onWoodMuted },
+  choiceTextOn: { color: ui.outline },
+  langChoice: { borderWidth: 2, borderColor: ui.outline, backgroundColor: ui.parchmentShade },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  warning: { gap: 8, padding: 12, borderWidth: 2, borderColor: ui.bad, backgroundColor: ui.badBg },
+  dangerBox: { alignSelf: 'flex-start', padding: 6, borderWidth: 2, borderColor: ui.bad, backgroundColor: ui.badBg },
 });

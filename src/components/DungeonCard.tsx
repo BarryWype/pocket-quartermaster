@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { dungeonById, itemById } from '@/content/lookup';
+import { dungeonById, itemById, threatById } from '@/content/lookup';
 import { placeInfo } from '@/content/places';
 import { weaknessByBoss } from '@/content/weaknesses';
 import type { Rotation } from '@/game/dungeons/rotation';
@@ -11,17 +11,15 @@ import { briefingCoverage } from '@/game/threats/coverage';
 import { isTutorialDungeon } from '@/game/tutorial/tutorial';
 import type { DungeonDef } from '@/game/types';
 import { formatDuration, formatPercent, t, tr } from '@/i18n';
-import { colors, pixel } from '@/theme';
+import { fonts, ui } from '@/theme';
 
 import { BriefingChips } from './BriefingChips';
-import { Button } from './Button';
 import { EnemyTags } from './EnemyTags';
-import { IconSlot } from './Row';
-import { ODDS_COLORS } from './SendDialog';
+import { IconLabel, RewardLabel } from './IconLabel';
+import { Chip, EmberButton, ParchmentCard } from './ui';
 import { Text } from './Text';
 import { ThreatCoverageChips } from './ThreatDetail';
 import { GameIcon } from './GameIcon';
-import { IconLabel, PartsLine } from './IconLabel';
 
 type Props = {
   save: SaveData;
@@ -35,6 +33,8 @@ type Props = {
   onToggle: () => void;
   onSend: () => void;
 };
+
+const ODDS_TONE = { Safe: 'good', Fair: 'neutral', Risky: 'bad' } as const;
 
 /** A dungeon at a glance (name, kind, time, odds); tapped, its details and the Send button. */
 export function DungeonCard({ save, dungeon, rotation, now, durationMs, chance, expanded, onToggle, onSend }: Props) {
@@ -51,96 +51,97 @@ export function DungeonCard({ save, dungeon, rotation, now, durationMs, chance, 
     !!weakness &&
     ((save.consumables[weakness.itemId] ?? 0) > 0 || save.heroes.some((h) => h.equipment.consumable === weakness.itemId));
 
+  const oddsChip =
+    band && typeof chance === 'number' ? (
+      <Chip tone={ODDS_TONE[band]} label={`${t(`odds.${band}`)} ${formatPercent(chance)}`} />
+    ) : (
+      chance === undefined && <Chip tone="neutral" label="…" />
+    );
+
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ expanded }}
+      accessibilityLabel={tr(dungeon.name)}
       onPress={onToggle}
-      style={[styles.card, dungeon.isBoss && styles.boss, expanded && styles.expanded]}
     >
-      <View style={styles.header}>
-        <IconSlot emoji={dungeon.emoji} />
-        <View style={styles.title}>
-          <View style={styles.nameRow}>
-            <Text style={styles.name} numberOfLines={1}>
-              {tr(dungeon.name)}
-            </Text>
-            {newTier && <GameIcon emoji="✨" size={18} />}
-          </View>
-          <PartsLine
-            parts={[t(`expeditions.kind.${kind}`), { emoji: '⏳', text: formatDuration(durationMs) }]}
-            labelStyle={styles.muted}
+      <ParchmentCard
+        title={tr(dungeon.name)}
+        titleEmoji={dungeon.emoji}
+        titleSub={`${t(`expeditions.kind.${kind}`)} · ${formatDuration(durationMs)}`}
+        contentStyle={styles.content}
+      >
+        {tutorial ? (
+          <ThreatCoverageChips
+            coverage={briefingCoverage(save, save.heroes.map((h) => h.id), briefing, now, false)}
+            labelled
           />
-        </View>
-        {typeof chance === 'number' && band ? (
-          <View style={[styles.odds, { backgroundColor: ODDS_COLORS[band] }]}>
-            <Text style={styles.oddsText}>{formatPercent(chance)}</Text>
-          </View>
         ) : (
-          chance === undefined && (
-            <View style={[styles.odds, styles.oddsPending]}>
-              <Text style={styles.oddsText}>…</Text>
-            </View>
-          )
+          <View style={styles.chipRow}>
+            {briefing.threats.map((threat) => {
+              const def = threatById[threat.id];
+              const pips = '●'.repeat(threat.level) + '○'.repeat(3 - threat.level);
+              return <Chip key={threat.id} tone="neutral" label={`${tr(def.name)} ${pips}`} />;
+            })}
+          </View>
         )}
-        <Text style={styles.chevron}>{expanded ? '▾' : '▸'}</Text>
-      </View>
-      {tutorial && (
-        <ThreatCoverageChips
-          coverage={briefingCoverage(save, save.heroes.map((h) => h.id), briefing, now, false)}
-          labelled
-        />
-      )}
-
-      {expanded && (
-        <View style={styles.details}>
-          {band && <Text style={styles.muted}>{t(`odds.${band}`)} · {t('expeditions.tips.odds')}</Text>}
-          {!tutorial && <BriefingChips briefing={briefing} />}
-          <View style={styles.foe}>
-            <Text style={[styles.line, styles.muted]}>{t('expeditions.boss')}</Text>
-            <EnemyTags mob={dungeon.boss} />
-          </View>
-          {newTier && <Text style={styles.line}>{t('expeditions.newTierBonus')}</Text>}
-          {firstWin && <Text style={styles.line}>{t('expeditions.firstWinToday')}</Text>}
-          {weakness && (
-            <View style={styles.lineRow}>
-              <IconLabel
-                emoji={itemById[weakness.itemId].emoji}
-                label={t('expeditions.weakness', {
-                  item: tr(itemById[weakness.itemId].name),
-                  place: tr(placeInfo[weakness.place].name).toLowerCase(),
-                })}
-                labelStyle={[styles.line, { color: weaknessHeld ? colors.success : colors.muted }]}
-              />
-              {weaknessHeld ? <Text style={[styles.line, { color: weaknessHeld ? colors.success : colors.muted }]}> {t('expeditions.weaknessHeld')}</Text> : null}
-            </View>
-          )}
-          <View style={styles.footer}>
-            {!available && <Text style={styles.muted}>{t('expeditions.afterTutorial')}</Text>}
-            <Button title={t('expeditions.send')} disabled={!available || chance === null} onPress={onSend} />
-          </View>
+        <View style={styles.metaRow}>
+          {oddsChip}
+          {newTier && <GameIcon emoji="✨" size={18} />}
+          <View style={styles.spacer} />
+          <Text style={styles.chevron}>{expanded ? '▾' : '▸'}</Text>
         </View>
-      )}
+
+        {expanded && (
+          <View style={styles.details}>
+            {band && (
+              <Text style={styles.sub}>
+                {t(`odds.${band}`)} · {t('expeditions.tips.odds')}
+              </Text>
+            )}
+            {!tutorial && <BriefingChips briefing={briefing} />}
+            <View style={styles.foe}>
+              <Text style={styles.sub}>{t('expeditions.boss')}</Text>
+              <EnemyTags mob={dungeon.boss} />
+            </View>
+            {newTier && <RewardLabel text={t('expeditions.newTierBonus')} size={16} labelStyle={styles.line} />}
+            {firstWin && <RewardLabel text={t('expeditions.firstWinToday')} size={16} labelStyle={styles.line} />}
+            {weakness && (
+              <View style={styles.lineRow}>
+                <IconLabel
+                  emoji={itemById[weakness.itemId].emoji}
+                  label={t('expeditions.weakness', {
+                    item: tr(itemById[weakness.itemId].name),
+                    place: tr(placeInfo[weakness.place].name).toLowerCase(),
+                  })}
+                  labelStyle={[styles.line, { color: weaknessHeld ? ui.good : ui.inkMuted }]}
+                />
+                {weaknessHeld && (
+                  <Text style={[styles.line, { color: ui.good }]}> {t('expeditions.weaknessHeld')}</Text>
+                )}
+              </View>
+            )}
+            <View style={styles.footer}>
+              {!available && <Text style={styles.sub}>{t('expeditions.afterTutorial')}</Text>}
+              <EmberButton title={t('expeditions.send')} compact disabled={!available || chance === null} onPress={onSend} />
+            </View>
+          </View>
+        )}
+      </ParchmentCard>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  lineRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' },
-  card: { marginBottom: 8, padding: 8, gap: 6, borderWidth: pixel.outline, borderColor: colors.woodDark, backgroundColor: colors.parchment },
-  boss: { borderColor: colors.danger },
-  expanded: { backgroundColor: colors.highlight, borderColor: colors.ink },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  title: { flex: 1 },
-  name: { fontSize: 21 },
-  muted: { color: colors.muted },
-  odds: { paddingHorizontal: 8, paddingVertical: 2, borderWidth: 2, borderColor: colors.ink },
-  oddsPending: { backgroundColor: colors.parchmentDark },
-  oddsText: { color: colors.parchment, fontSize: 18 },
-  chevron: { fontSize: 22, color: colors.muted, width: 16 },
-  details: { gap: 6 },
+  content: { gap: 7 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  spacer: { flex: 1 },
+  chevron: { fontSize: 22, color: ui.inkMuted, width: 16 },
+  details: { gap: 7 },
   foe: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
-  line: { fontSize: 17 },
+  lineRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' },
+  line: { fontFamily: fonts.serif, fontSize: 14, color: ui.ink },
+  sub: { fontFamily: fonts.serif, fontSize: 13, color: ui.inkMuted },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10 },
 });

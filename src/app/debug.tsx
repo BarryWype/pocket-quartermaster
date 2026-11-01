@@ -80,6 +80,22 @@ import { useLanguage } from '@/hooks/useLanguage';
 import * as Clipboard from 'expo-clipboard';
 import { clearTimings, timingEntries, timingsAsText } from '@/services/timings';
 import { formatPercent, t } from '@/i18n';
+import { ui } from '@/theme';
+import { PixelBar } from '@/components/PixelBar';
+import {
+  Chip,
+  DiamondButton,
+  DiamondRail,
+  EmberButton,
+  ItemPopup,
+  ItemSlot,
+  ParchmentCard,
+  PixelSwitch,
+  ScreenHeader,
+  SwipeTabs,
+  WoodButton,
+  WoodPanel,
+} from '@/components/ui';
 import { currentRotation, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -129,6 +145,109 @@ function QuestDebug() {
           onChange={game.completeQuest}
         />
       )}
+    </>
+  );
+}
+
+/** The wood & brass UI kit, every component in each of its states. */
+function UiKitDebug() {
+  const [rail, setRail] = useState('weapons');
+  const [page, setPage] = useState(0);
+  const [pixelOn, setPixelOn] = useState(true);
+  return (
+    <>
+      <Text style={styles.title}>UI kit</Text>
+      <WoodPanel style={styles.kitBlock}>
+        <Text style={styles.kitOnWood}>WoodPanel</Text>
+        <WoodPanel rim style={styles.kitInner}>
+          <Text style={styles.kitOnWood}>with rim</Text>
+        </WoodPanel>
+      </WoodPanel>
+      <ParchmentCard contentStyle={styles.kitGap}>
+        <Text>Plain card</Text>
+      </ParchmentCard>
+      <ParchmentCard title="Wooden Bow" titleEmoji="🏹" titleSub="Normal · Bow · Tier I" contentStyle={styles.kitGap}>
+        <Text>Titled card</Text>
+      </ParchmentCard>
+      <ParchmentCard title="Notice" titleEmoji="📜" pinned tilt={-1} contentStyle={styles.kitGap}>
+        <Text>Pinned, tilted card</Text>
+      </ParchmentCard>
+      <View style={styles.kitHeader}>
+        <ScreenHeader title="The Forge" onBack={() => {}} />
+      </View>
+      <View style={styles.kitRailRow}>
+        <DiamondRail
+          items={[
+            { key: 'weapons', label: 'Weapons', emoji: '🗡️', badge: 2 },
+            { key: 'armour', label: 'Armour', emoji: '🛡️' },
+            { key: 'offhand', label: 'Off-hand', emoji: '🤺' },
+          ]}
+          selected={rail}
+          onSelect={setRail}
+        />
+        <View style={styles.kitRailFill} />
+      </View>
+      <View style={styles.kitRow}>
+        <DiamondButton label="Small" emoji="🗡️" size={36} onPress={() => {}} />
+      </View>
+      <WoodPanel style={styles.kitBlock}>
+        <View style={styles.kitRow}>
+          <ItemSlot state="selected" emoji="🗡️" style={styles.kitSlot60} accessibilityLabel="selected slot" onPress={() => {}} />
+          <ItemSlot state="ready" emoji="🏹" count="3" style={styles.kitSlot60} accessibilityLabel="ready slot" onPress={() => {}} />
+          <ItemSlot state="short" emoji="🪵" count="1/2" mark="down" style={styles.kitSlot60} accessibilityLabel="short slot" onPress={() => {}} />
+          <ItemSlot state="empty" style={styles.kitSlot60} accessibilityLabel="empty slot" onPress={() => {}} />
+          <ItemSlot state="locked" style={styles.kitSlot60} accessibilityLabel="locked slot" onPress={() => {}} />
+          <ItemSlot state="ready" emoji="⚔️" count={12} mark="up" style={styles.kitSlot60} accessibilityLabel="counted slot" onPress={() => {}} />
+        </View>
+      </WoodPanel>
+      <ItemPopup
+        title="Wooden Bow"
+        subtitle="Normal · Bow · Tier I"
+        emoji="🏹"
+        value={4}
+        valueLabel="Power"
+        note="One-handed"
+        lines={[
+          { tone: 'keyword', text: 'Pierce', detail: 'ignores the Armoured penalty' },
+          { tone: 'good', text: 'Favoured: Ranger' },
+          { tone: 'bad', text: 'Two hands to string' },
+          { tone: 'muted', text: 'Sold at markets' },
+        ]}
+        ingredients={[
+          { key: 'wood', label: 'Wood', emoji: '🪵', have: 3, need: 3 },
+          { key: 'bone', label: 'Bone', emoji: '🦴', have: 1, need: 2 },
+        ]}
+        action={{ title: 'Forge', onPress: () => {}, emoji: '🔨' }}
+        secondary={{ title: 'Reroll', onPress: () => {} }}
+        pointer={{ side: 'top', x: 60 }}
+      />
+      <View style={styles.kitRow}>
+        <EmberButton title="Forge" emoji="🔨" onPress={() => {}} style={styles.kitGrow} />
+        <EmberButton title="Forge" disabled onPress={() => {}} style={styles.kitGrow} />
+      </View>
+      <WoodButton title="Reroll" onPress={() => {}} />
+      <View style={styles.kitRow}>
+        <PixelSwitch value={pixelOn} onValueChange={setPixelOn} accessibilityLabel="pixel switch on" />
+        <PixelSwitch value={false} onValueChange={() => {}} accessibilityLabel="pixel switch off" />
+        <PixelSwitch value disabled onValueChange={() => {}} accessibilityLabel="pixel switch disabled" />
+      </View>
+      <View style={styles.kitRow}>
+        <Chip tone="good" label="Answered" />
+        <Chip tone="bad" label="Exposed" />
+        <Chip tone="keyword" label="Pierce" />
+        <Chip tone="neutral" label="Lv 3" />
+      </View>
+      <PixelBar value={0.3} />
+      <PixelBar value={0.8} />
+      <View style={styles.kitTabs}>
+        <SwipeTabs
+          tabs={[{ key: 'summary', label: 'Summary' }, { key: 'stats', label: 'Stats' }, { key: 'gear', label: 'Gear' }]}
+          initialPage={page}
+          onPageChange={setPage}
+        >
+          {[<Text key="summary">Page one</Text>, <Text key="stats">Page two</Text>, <Text key="gear">Page three</Text>]}
+        </SwipeTabs>
+      </View>
     </>
   );
 }
@@ -601,6 +720,7 @@ export default function DebugScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <TimingsDebug />
+      <UiKitDebug />
       <Text style={styles.title}>Location</Text>
       <View style={styles.row}>
         <Text>Mock location</Text>
@@ -1213,4 +1333,15 @@ const styles = StyleSheet.create({
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   choice: { borderWidth: 2, borderColor: '#3b2a1a', paddingHorizontal: 10, paddingVertical: 6 },
   choiceActive: { backgroundColor: '#fff6a8' },
+  kitBlock: { padding: 10, gap: 8 },
+  kitInner: { padding: 10 },
+  kitOnWood: { color: ui.onWood },
+  kitGap: { gap: 4 },
+  kitHeader: { borderWidth: 3, borderColor: ui.outline },
+  kitRailRow: { flexDirection: 'row', height: 220 },
+  kitRailFill: { flex: 1, backgroundColor: ui.woodDark },
+  kitRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
+  kitSlot60: { width: 60 },
+  kitGrow: { flex: 1 },
+  kitTabs: { height: 160 },
 });

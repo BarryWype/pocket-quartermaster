@@ -22,13 +22,13 @@ import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
 
-import { Button } from './Button';
 import { ClassSummary } from './ClassSummary';
 import { lineParts } from './PlacePanel';
 import { IconLabel, PartsLine } from './IconLabel';
 import { PriceTag } from './PriceTag';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
+import { EmberButton, WoodButton } from './ui';
 import { RecruitGrade } from './RecruitGrade';
 import { Text } from './Text';
 
@@ -75,7 +75,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
         <ClassSummary classId={offer.classId} />
         <View style={styles.actions}>
           <PriceTag price={offer.price} style={styles.price} />
-          <Button title={t('tavern.recruit')} disabled={problem !== null} onPress={() => recruit(offer, tavern.position, player)} />
+          <EmberButton title={t('tavern.recruit')} compact disabled={problem !== null} onPress={() => recruit(offer, tavern.position, player)} />
         </View>
         {problem && <Text style={styles.problem}>{problemText[problem](distance, rosterCap(save))}</Text>}
       </View>
@@ -84,7 +84,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
 
   return (
     <Overlay onClose={onClose} position="bottom">
-      <Sheet emoji="🍺" title={tavern.name} bodyStyle={styles.content} footer={<Button title={t('common.close')} onPress={onClose} />}>
+      <Sheet variant="wood" emoji="🍺" title={tavern.name} bodyStyle={styles.content} footer={<WoodButton title={t('common.close')} onPress={onClose} />}>
         <Text style={styles.muted}>
           {t('tavern.header', { gold: save.gold, count: save.heroes.length, cap: rosterCap(save) })}
         </Text>
@@ -94,8 +94,9 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
           <Text style={styles.muted}>{t('tavern.emergencyHint', { held: save.consumables.jerky ?? 0 })}</Text>
           <View style={styles.actions}>
             <PriceTag price={supplyPrice(save)} style={styles.price} />
-            <Button
+            <WoodButton
               title={t('tavern.buy')}
+              compact
               disabled={buySupplyProblem(save, 1, tavern.position, player) !== null}
               onPress={() => buySupply(1, tavern.position, player)}
             />
@@ -109,8 +110,9 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
               <Text style={styles.muted}>
                 {stockLeft(save, tavern, line) > 0 ? t('places.left', { count: stockLeft(save, tavern, line) }) : t('places.soldOut')}
               </Text>
-              <Button
+              <WoodButton
                 title={t('tavern.buy')}
+                compact
                 disabled={buyProblem(save, tavern, line.key, 1, player, openedAt) !== null}
                 onPress={() => buyAtPlace(tavern, line.key, 1, player)}
               />

@@ -1,25 +1,23 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useRef, useState, type ComponentRef } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
 
-import { Button } from '@/components/Button';
-import { EquipPicker } from '@/components/EquipPicker';
+import { DELTA_KEYS, EquipPicker, gainOf } from '@/components/EquipPicker';
 import { PlaceholderScreen } from '@/components/PlaceholderScreen';
-import { gearEffectParts, gearStatsParts, statIcons } from '@/components/GearRow';
-import { IconLabel, PartsLine, type LabelPart } from '@/components/IconLabel';
-import { GearMarks } from '@/components/GearMarks';
+import { statIcons } from '@/components/GearRow';
+import { GameIcon } from '@/components/GameIcon';
+import { IconLabel, PartsLine } from '@/components/IconLabel';
 import { HpBar } from '@/components/HpBar';
-import { Panel } from '@/components/Panel';
 import { PixelBar } from '@/components/PixelBar';
-import { IconSlot, SectionTitle } from '@/components/Row';
 import { Text } from '@/components/Text';
 import { Tip } from '@/components/Tip';
 import { TutorialHint } from '@/components/TutorialHint';
+import { AnchoredPopup, Chip, ItemPopup, ItemSlot, ScreenHeader, SwipeTabs, WoodButton, WoodPanel, type PopupAnchor, type PopupLine } from '@/components/ui';
 import { abilityText } from '@/content/abilities';
 import { elementInfo } from '@/content/elements';
 import { expeditionRules } from '@/content/dungeons';
 import { approachRules } from '@/content/threats';
-import { qualities } from '@/content/forging';
+import { slotProblem } from '@/game/equipment/slots';
 import { gearApproachBonus, approachScore, pendingApproachPicks } from '@/game/team/stats';
 import { heroClasses, xpRules, xpToNextLevel } from '@/content/heroes';
 import { lootConfig } from '@/content/loot/config';
@@ -29,28 +27,33 @@ import { gearName, itemById } from '@/content/lookup';
 import { answersMemberOf, prepareParty } from '@/game/expeditions/simulate';
 import { highestUnlockedTier } from '@/game/dungeons/unlock';
 import { careProblem, drinkProblem } from '@/game/team/health';
-import { affinityOf, canDismiss, hasPotionSlot, healingPotion, heroDamageStat, heroStats, isOnExpedition } from '@/game/team/team';
+import { affinityOf, canDismiss, equip, equipPreview, gearKeywordsOf, hasPotionSlot, healingPotion, heroDamageStat, heroStats, isOnExpedition } from '@/game/team/team';
 import { ClassSummary } from '@/components/ClassSummary';
 import { APPROACHES, heroAnswers } from '@/game/threats/answers';
-import type { EquipmentSlot, GearDef } from '@/game/types';
+import type { EquipmentSlot, GearDef, GearInstance, HeroState } from '@/game/types';
+import type { SaveData } from '@/game/save';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useNow } from '@/hooks/useNow';
 import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
-import { colors, pixel } from '@/theme';
+import { fonts, ui } from '@/theme';
 
+const GEAR_SLOTS = ['weapon', 'armor', 'offhand', 'trinket'] as const;
 
 export default function CharacterSheetScreen() {
   useLanguage();
   const { heroId } = useLocalSearchParams<{ heroId: string }>();
   const save = useGameStore((state) => state.save);
-  const equip = useGameStore((state) => state.equip);
+  const equipAction = useGameStore((state) => state.equip);
   const dismiss = useGameStore((state) => state.dismissHero);
   const drinkPotion = useGameStore((state) => state.drinkPotion);
   const giveHomeCare = useGameStore((state) => state.giveHomeCare);
   const pickApproach = useGameStore((state) => state.pickApproach);
   const now = useNow();
   const [picking, setPicking] = useState<EquipmentSlot | null>(null);
+  /** The storeroom piece being compared, and where its slot sits on screen. */
+  const [compare, setCompare] = useState<{ gear: GearInstance; slot: (typeof GEAR_SLOTS)[number]; anchor: PopupAnchor } | null>(null);
+  const [contentWidth, setContentWidth] = useState(0);
 
   const hero = save.heroes.find((h) => h.id === heroId);
   if (!hero) return <PlaceholderScreen title={t('hero.unknown')} description={t('hero.unknownHint')} />;
@@ -66,8 +69,6 @@ export default function CharacterSheetScreen() {
     .map((item) => ({ item, count: (save.consumables[item.id] ?? 0) + (hero.equipment.consumable === item.id ? 1 : 0) }))
     .filter(({ count }) => count > 0);
   const smallStats = ['resistance', 'evasion', 'crit', 'luck'] as const;
-
-  const slots: EquipmentSlot[] = ['weapon', 'armor', 'offhand', 'trinket', 'consumable', ...(hasPotionSlot(hero) ? ['potion' as const] : [])];
   const trait = traitById[hero.trait];
   // The hero as equipped, seen through the threats rules; the kit keyword is
   // left out here because it only counts on the threats the kit covers.
@@ -77,6 +78,11 @@ export default function CharacterSheetScreen() {
   const element = heroClass.element ? elementInfo[heroClass.element] : null;
   const next = xpToNextLevel(hero.level);
   const aboveBand = hero.level >= lootConfig.manuals.topLevelByTier[highestUnlockedTier(save) - 1] + xpRules.aboveBandMargin;
+  const index = save.heroes.findIndex((h) => h.id === hero.id);
+  const gotoHero = (delta: number) => {
+    const target = save.heroes[(index + delta + save.heroes.length) % save.heroes.length];
+    router.setParams({ heroId: target.id });
+  };
   const confirmDismiss = () =>
     Alert.alert(t('hero.dismissTitle', { name: hero.name }), t('hero.dismissBody'), [
       { text: t('common.cancel'), style: 'cancel' },
@@ -90,94 +96,151 @@ export default function CharacterSheetScreen() {
       },
     ]);
 
-  /**
-   * What the slot holds: icon, name in its quality colour, tier badge with the
-   * hero's ▲/▼ marker for gear, and stats. The off-hand is locked under a
-   * two-handed weapon.
-   */
-  const slotContent = (slot: EquipmentSlot) => {
-    const id = hero.equipment[slot];
-    if (id && (slot === 'consumable' || slot === 'potion')) return { emoji: itemById[id].emoji, icon: itemById[id].icon, name: tr(itemById[id].name) };
-    const gear = id ? save.gear.find((g) => g.uid === id) : undefined;
-    if (!gear) return { emoji: '·', name: t('hero.empty') };
+  /** One gear piece that fits this hero's gear slots, if another hero does not have it out. */
+  const storeroomPieces = save.gear.flatMap((gear) => {
     const item = itemById[gear.itemId] as GearDef;
-    return {
-      emoji: item.emoji,
-      icon: item.icon,
-      name: gearName(gear),
-      color: qualities[gear.quality].color,
-      stats: [...gearStatsParts(gear), ...gearEffectParts(gear)] as LabelPart[],
-      marks: <GearMarks tier={item.tier} affinity={affinityOf(hero.classId, item.gearType)} />,
-    };
-  };
+    if (!GEAR_SLOTS.includes(item.slot as (typeof GEAR_SLOTS)[number])) return [];
+    if (GEAR_SLOTS.some((slot) => hero.equipment[slot] === gear.uid)) return [];
+    const holder = save.heroes.find((h) => h.id !== hero.id && GEAR_SLOTS.some((slot) => h.equipment[slot] === gear.uid));
+    if (holder && save.expeditions.some((e) => e.heroIds.includes(holder.id))) return [];
+    return [{ gear, item }];
+  });
 
   const weaponGear = hero.equipment.weapon ? save.gear.find((g) => g.uid === hero.equipment.weapon) : undefined;
   const offhandLocked = !!weaponGear && (itemById[weaponGear.itemId] as GearDef).twoHanded;
 
-  return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Stack.Screen options={{ title: hero.name }} />
+  /** What a doll slot holds: ready with the item, empty, or locked under a two-handed weapon. */
+  const dollSlot = (slot: EquipmentSlot) => {
+    const id = hero.equipment[slot];
+    const locked = slot === 'offhand' && offhandLocked;
+    if (slot === 'consumable' || slot === 'potion') {
+      const item = id ? itemById[id] : undefined;
+      return {
+        state: locked ? ('locked' as const) : id ? ('ready' as const) : ('empty' as const),
+        emoji: item?.emoji,
+        icon: item?.icon,
+        mark: undefined,
+        label: `${t(`hero.slots.${slot}`)}${item ? `: ${tr(item.name)}` : ''}`,
+      };
+    }
+    const gear = id ? save.gear.find((g) => g.uid === id) : undefined;
+    const item = gear ? (itemById[gear.itemId] as GearDef) : undefined;
+    const affinity = item ? affinityOf(hero.classId, item.gearType) : 'usable';
+    return {
+      state: locked ? ('locked' as const) : gear ? ('ready' as const) : ('empty' as const),
+      emoji: item?.emoji,
+      icon: item?.icon,
+      mark: affinity === 'favoured' ? ('up' as const) : affinity === 'unfit' ? ('down' as const) : undefined,
+      label: `${t(`hero.slots.${slot}`)}${gear ? `: ${gearName(gear)}` : ''}`,
+    };
+  };
+
+  const summaryPage = (
+    <ScrollView contentContainerStyle={styles.page}>
       <TutorialHint screen="hero" />
-      <Panel color={colors.wood} style={styles.header}>
-        <View style={styles.identity}>
-          <IconSlot emoji={heroClass.emoji} size={64} />
-          <View style={styles.identityText}>
-            <Text style={styles.name}>{hero.name}</Text>
-            <View style={styles.classNameRow}>
-              <Text style={styles.className}>{tr(heroClass.name)}</Text>
-              {element && (
-                <>
-                  <Text style={styles.className}> · </Text>
-                  <IconLabel emoji={element.emoji} label={tr(element.name)} labelStyle={styles.className} />
-                </>
-              )}
+      <View style={styles.identity}>
+        <View style={styles.portrait}>
+          <View style={styles.portraitSeams} pointerEvents="none">
+            {Array.from({ length: 6 }, (_, i) => (
+              <View key={i} style={[styles.portraitSeam, { top: (i + 1) * 10 }]} />
+            ))}
+          </View>
+          <View style={styles.portraitBrass} pointerEvents="none" />
+          <GameIcon emoji={heroClass.emoji} size={46} />
+          <View style={styles.levelDiamond}>
+            <View style={styles.levelDiamondFace}>
+              <Text style={styles.levelText}>{hero.level}</Text>
             </View>
-            <Text style={styles.level}>{t('common.level', { level: hero.level })}</Text>
           </View>
         </View>
-        <ClassSummary classId={hero.classId} light />
-        <PixelBar value={next ? hero.xp / next : 1} color={colors.highlight} />
-        <Text style={styles.xp}>
-          {t('hero.xp', { xp: hero.xp, next })}
-          {away ? t('common.onExpedition') : ''}
-          {save.escort?.heroId === hero.id ? t('common.escort') : ''}
-          {save.patrolFights.some((fight) => fight.heroIds.includes(hero.id)) ? t('common.patrol') : ''}
-        </Text>
-        {aboveBand ? <Text style={styles.xp}>{t('hero.xpAboveBand')}</Text> : null}
-        <HpBar save={save} hero={hero} now={now} light />
-        {!away && (
-          <View style={styles.drink}>
-            {potionsHeld.length === 0 && <Button title={t('health.drink', { count: 0 })} disabled onPress={() => {}} />}
-            {potionsHeld.map(({ item, count }) => (
-              <Button
+        <View style={styles.identityText}>
+          <Text style={styles.name}>{hero.name}</Text>
+          <View style={styles.classNameRow}>
+            <Text style={styles.className}>{tr(heroClass.name)}</Text>
+            {element && <IconLabel emoji={element.emoji} label={tr(element.name)} size={14} labelStyle={styles.className} />}
+          </View>
+          {trait && (
+            <View style={styles.traitBlock}>
+              <Chip tone={trait.positive ? 'good' : 'bad'} label={tr(trait.name)} />
+              <Text style={styles.traitText}>{tr(trait.description)}</Text>
+            </View>
+          )}
+        </View>
+      </View>
+      <PixelBar value={next ? hero.xp / next : 1} />
+      <Text style={styles.note}>
+        {t('hero.xp', { xp: hero.xp, next })}
+        {away ? t('common.onExpedition') : ''}
+        {save.escort?.heroId === hero.id ? t('common.escort') : ''}
+        {save.patrolFights.some((fight) => fight.heroIds.includes(hero.id)) ? t('common.patrol') : ''}
+      </Text>
+      {aboveBand ? <Text style={styles.note}>{t('hero.xpAboveBand')}</Text> : null}
+      <HpBar save={save} hero={hero} now={now} />
+      {!away && (
+        <View style={styles.drink}>
+          {potionsHeld.length === 0 && <WoodButton title={t('health.drink', { count: 0 })} disabled onPress={() => {}} />}
+          {potionsHeld.map(({ item, count }) => (
+            <WoodButton
+              key={item.id}
+              emoji={item.emoji}
+              icon={item.icon}
+              title={t('health.use', { item: tr(item.name), count })}
+              disabled={drinkProblem(save, hero.id, now, item.id) !== null}
+              onPress={() => drinkPotion(hero.id, item.id)}
+            />
+          ))}
+          <Text style={styles.note}>{t('health.drinkHint')}</Text>
+          {items
+            .filter((item) => item.slot === 'utility' && item.homeCare && (save.consumables[item.id] ?? 0) > 0)
+            .map((item) => (
+              <WoodButton
                 key={item.id}
                 emoji={item.emoji}
-                title={t('health.use', { item: tr(item.name), count })}
-                disabled={drinkProblem(save, hero.id, now, item.id) !== null}
-                onPress={() => drinkPotion(hero.id, item.id)}
+                icon={item.icon}
+                title={t('health.use', { item: tr(item.name), count: save.consumables[item.id] })}
+                disabled={careProblem(save, hero.id, item.id, now) !== null}
+                onPress={() => giveHomeCare(hero.id, item.id)}
               />
             ))}
-            <Text style={styles.xp}>{t('health.drinkHint')}</Text>
-            {items
-              .filter((item) => item.slot === 'utility' && item.homeCare && (save.consumables[item.id] ?? 0) > 0)
-              .map((item) => (
-                <Button
-                  key={item.id}
-                  emoji={item.emoji}
-                  title={t('health.use', { item: tr(item.name), count: save.consumables[item.id] })}
-                  disabled={careProblem(save, hero.id, item.id, now) !== null}
-                  onPress={() => giveHomeCare(hero.id, item.id)}
-                />
-              ))}
+        </View>
+      )}
+      <ClassSummary classId={hero.classId} />
+      {keywords.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.heading}>{t('hero.keywords')}</Text>
+          <View style={styles.keywords}>
+            {keywords.map(({ keyword }) => (
+              <Chip key={keyword} tone="keyword" label={t(`threats.keyword.${keyword}`)} />
+            ))}
           </View>
-        )}
-      </Panel>
+        </View>
+      )}
+      <View style={styles.section}>
+        <Text style={styles.heading}>{t('hero.skills')}</Text>
+        {heroClass.abilities
+          .map(abilityText)
+          .filter(Boolean)
+          .map((text, i) => (
+            <Text key={i} style={styles.ability}>
+              ◆ {text}
+            </Text>
+          ))}
+      </View>
+      <View style={styles.dismiss}>
+        <WoodButton title={t('hero.dismiss')} disabled={!canDismiss(save, hero.id)} onPress={confirmDismiss} />
+        {!canDismiss(save, hero.id) && <Text style={styles.note}>{away ? t('hero.cantDismissAway') : t('hero.cantDismissLast')}</Text>}
+      </View>
+    </ScrollView>
+  );
 
-      <SectionTitle>{t('hero.stats')}</SectionTitle>
+  const pipsOf = (value: number) =>
+    Array.from({ length: approachRules.max }, (_, i) => <View key={i} style={[styles.pip, i < value && styles.pipOn]} />);
+  const statsPage = (
+    <ScrollView contentContainerStyle={styles.page}>
       <View style={styles.stats}>
         {largeStats.map((stat) => (
           <Tip key={stat} title={t(`hero.statNames.${stat}`)} text={t(`hero.statTips.${stat}`)} style={styles.stat}>
-            <Text style={styles.statIcon}>{statIcons[stat]}</Text>
+            <GameIcon emoji={statIcons[stat]} size={22} />
             <View>
               <Text style={styles.statName}>{t(`hero.statNames.${stat}`)}</Text>
               <Text style={styles.statValue}>{stats[stat]}</Text>
@@ -187,29 +250,31 @@ export default function CharacterSheetScreen() {
       </View>
       <PartsLine
         style={styles.smallStats}
+        labelStyle={styles.note}
         parts={smallStats.map((stat) => {
           const capped = stat === 'evasion' && stats.evasion >= expeditionRules.evasionCap;
           return { emoji: statIcons[stat], text: `${stats[stat]}${capped ? ` (${t('hero.capped')})` : ''}` };
         })}
       />
-
-      <SectionTitle>
-        {`${t('hero.approaches')}${hero.gamble ? ` · 🎲 ${t('classes.rolledToday')}` : ''}${pending > 0 ? ` · ${t('hero.pendingPicks', { count: pending })}` : ''}`}
-      </SectionTitle>
-      <View style={styles.approaches}>
+      <View style={styles.section}>
+        <View style={styles.headRow}>
+          <Text style={styles.heading}>{t('hero.approaches')}</Text>
+          {hero.gamble && <IconLabel emoji="🎲" label={t('classes.rolledToday')} size={14} labelStyle={styles.note} />}
+          {pending > 0 && <Text style={styles.note}>{t('hero.pendingPicks', { count: pending })}</Text>}
+        </View>
         {APPROACHES.map((approach) => {
           const value = approachScore(hero, approach, gearApproachBonus(save, hero));
           return (
             <View key={approach} style={styles.approach}>
               <Text style={styles.approachName}>{t(`threats.approach.${approach}`)}</Text>
-              <Text style={styles.approachPips}>{'●'.repeat(value) + '○'.repeat(approachRules.max - value)}</Text>
+              <View style={styles.pipRow}>{pipsOf(value)}</View>
             </View>
           );
         })}
       </View>
       {pending > 0 && (
-        <>
-          <Text style={styles.muted}>{t('hero.pickApproach')}</Text>
+        <View style={styles.section}>
+          <Text style={styles.note}>{t('hero.pickApproach')}</Text>
           {APPROACHES.map((approach) => {
             const value = approachScore(hero, approach, gearApproachBonus(save, hero));
             const disabled = value >= approachRules.max;
@@ -217,80 +282,113 @@ export default function CharacterSheetScreen() {
               <Pressable
                 key={approach}
                 accessibilityRole="button"
+                accessibilityLabel={t(`threats.approach.${approach}`)}
                 disabled={disabled}
                 onPress={() => pickApproach(hero.id, approach)}
                 style={({ pressed }) => [styles.pickRow, pressed && styles.pressed, disabled && styles.pickDisabled]}
               >
                 <Text style={[styles.approachName, disabled && styles.pickDisabled]}>{t(`threats.approach.${approach}`)}</Text>
-                <Text style={styles.approachPips}>{'●'.repeat(value) + '○'.repeat(approachRules.max - value)}</Text>
+                <View style={styles.pipRow}>{pipsOf(value)}</View>
               </Pressable>
             );
           })}
-        </>
+        </View>
       )}
+    </ScrollView>
+  );
 
-      {keywords.length > 0 && (
-        <>
-          <SectionTitle>{t('hero.keywords')}</SectionTitle>
-          <View style={styles.keywords}>
-            {keywords.map(({ keyword }) => (
-              <View key={keyword} style={styles.keywordChip}>
-                <Text>{t(`threats.keyword.${keyword}`)}</Text>
-              </View>
-            ))}
-          </View>
-        </>
-      )}
-
-      <SectionTitle>{t('hero.equipment')}</SectionTitle>
-      {slots.map((slot) => {
-        const content = slotContent(slot);
-        const locked = slot === 'offhand' && offhandLocked;
-        return (
-          <Pressable
-            key={slot}
-            accessibilityRole="button"
-            disabled={away || locked}
-            onPress={() => setPicking(slot)}
-            style={({ pressed }) => [styles.slot, pressed && styles.pressed]}
-          >
-            <IconSlot emoji={locked ? '🔒' : content.emoji} icon={locked ? undefined : content.icon} size={40} />
-            <View style={styles.slotBody}>
-              <Text style={styles.slotName}>{t(`hero.slots.${slot}`)}</Text>
-              <View style={styles.slotValueRow}>
-                <Text style={[styles.slotValue, content.color ? { color: content.color } : null, locked && styles.locked]}>
-                  {locked ? t('hero.twoHanded') : content.name}
-                </Text>
-                {content.marks}
-              </View>
-              {content.stats && content.stats.length > 0 ? <PartsLine parts={content.stats} labelStyle={styles.muted} /> : null}
-            </View>
-            {!away && !locked && <Text style={styles.chevron}>›</Text>}
-          </Pressable>
-        );
-      })}
-      <Text style={styles.muted}>{away ? t('hero.awayHint') : t('hero.tapSlot')}</Text>
-
-      <SectionTitle>{t('hero.skills')}</SectionTitle>
-      {trait && (
-        <Panel color={trait.positive ? colors.parchment : colors.parchmentDark} borderColor={trait.positive ? colors.ink : colors.danger}>
-          <Text style={[styles.traitName, !trait.positive && { color: colors.danger }]}>{t('hero.traitTitle', { name: tr(trait.name) })}</Text>
-          <Text>{tr(trait.description)}</Text>
-        </Panel>
-      )}
-      {heroClass.abilities
-        .map(abilityText)
-        .filter(Boolean)
-        .map((text, i) => (
-          <Text key={i} style={styles.ability}>
-            ◆ {text}
-          </Text>
-        ))}
-
-      <View style={styles.dismiss}>
-        <Button title={t('hero.dismiss')} color={colors.danger} disabled={!canDismiss(save, hero.id)} onPress={confirmDismiss} />
-        {!canDismiss(save, hero.id) && <Text style={styles.muted}>{away ? t('hero.cantDismissAway') : t('hero.cantDismissLast')}</Text>}
+  /** The doll slot, absolutely placed, with its slot label under it. */
+  const dollSlotView = (slot: EquipmentSlot, position: ViewStyle) => {
+    const content = dollSlot(slot);
+    return (
+      <View key={slot} style={[styles.dollSlot, position]}>
+        <ItemSlot
+          state={content.state}
+          emoji={content.emoji}
+          icon={content.icon}
+          mark={content.mark}
+          size={64}
+          accessibilityLabel={content.label}
+          onPress={away || content.state === 'locked' ? undefined : () => setPicking(slot)}
+        />
+        <Text style={styles.slotLabel}>{t(`hero.slots.${slot}`)}</Text>
       </View>
+    );
+  };
+  const equipmentPage = (
+    <ScrollView
+      contentContainerStyle={styles.page}
+      onLayout={({ nativeEvent }) => setContentWidth(nativeEvent.layout.width - 24)}
+    >
+      <WoodPanel rim style={styles.doll}>
+        <View style={styles.dollArea}>
+          {dollSlotView('weapon', styles.dollWeapon)}
+          {dollSlotView('armor', styles.dollArmor)}
+          {dollSlotView('offhand', styles.dollOffhand)}
+          {dollSlotView('trinket', styles.dollTrinket)}
+          {hasPotionSlot(hero) && dollSlotView('potion', styles.dollPotion)}
+          {dollSlotView('consumable', styles.dollConsumable)}
+        </View>
+      </WoodPanel>
+      <Text style={styles.note}>{away ? t('hero.awayHint') : t('hero.tapSlot')}</Text>
+      <View style={styles.section}>
+        <View style={styles.headRow}>
+          <Text style={styles.heading}>{t('hero.storeroom')}</Text>
+          <Text style={styles.note}>{t('hero.storeroomHint')}</Text>
+        </View>
+        <View style={styles.grid}>
+          {storeroomPieces.map(({ gear, item }) => (
+            <StoreroomSlot
+              key={gear.uid}
+              save={save}
+              hero={hero}
+              gear={gear}
+              item={item}
+              size={Math.floor((contentWidth - 3 * 6) / 4) - 4}
+              onOpen={(slot, anchor) => setCompare({ gear, slot, anchor })}
+            />
+          ))}
+        </View>
+      </View>
+    </ScrollView>
+  );
+
+  return (
+    <View style={styles.screen}>
+      <Stack.Screen
+        options={{
+          header: () => (
+            <ScreenHeader
+              title={hero.name}
+              right={
+                save.heroes.length > 1 ? (
+                  <View style={styles.navRow}>
+                    <Pressable accessibilityRole="button" accessibilityLabel={t('hero.previous')} onPress={() => gotoHero(-1)} style={styles.navButton}>
+                      <View style={styles.navRim} pointerEvents="none" />
+                      <Text style={styles.navGlyph}>‹</Text>
+                    </Pressable>
+                    <Pressable accessibilityRole="button" accessibilityLabel={t('hero.next')} onPress={() => gotoHero(1)} style={styles.navButton}>
+                      <View style={styles.navRim} pointerEvents="none" />
+                      <Text style={styles.navGlyph}>›</Text>
+                    </Pressable>
+                  </View>
+                ) : undefined
+              }
+            />
+          ),
+        }}
+      />
+      <SwipeTabs
+        tabs={[
+          { key: 'summary', label: t('hero.summary') },
+          { key: 'stats', label: t('hero.stats') },
+          { key: 'equipment', label: t('hero.equipment') },
+        ]}
+      >
+        {summaryPage}
+        {statsPage}
+        {equipmentPage}
+      </SwipeTabs>
 
       {picking && (
         <EquipPicker
@@ -299,26 +397,188 @@ export default function CharacterSheetScreen() {
           slot={picking}
           onClose={() => setPicking(null)}
           onPick={(id) => {
-            equip(hero.id, picking, id);
+            equipAction(hero.id, picking, id);
             setPicking(null);
           }}
         />
       )}
-    </ScrollView>
+      {compare && (
+        <AnchoredPopup
+          anchor={compare.anchor}
+          onClose={() => setCompare(null)}
+          render={(pointer) => (
+            <ComparePopup save={save} hero={hero} gear={compare.gear} slot={compare.slot} pointer={pointer} onEquip={() => {
+              equipAction(hero.id, compare.slot, compare.gear.uid);
+              setCompare(null);
+            }} />
+          )}
+        />
+      )}
+    </View>
   );
 }
 
+/** One storeroom piece as a slot, ▲ when its main stat beats what is worn, ▼ when it loses. */
+function StoreroomSlot({
+  save,
+  hero,
+  gear,
+  item,
+  size,
+  onOpen,
+}: {
+  save: SaveData;
+  hero: HeroState;
+  gear: GearInstance;
+  item: GearDef;
+  size: number;
+  onOpen: (slot: (typeof GEAR_SLOTS)[number], anchor: PopupAnchor) => void;
+}) {
+  const wrapper = useRef<ComponentRef<typeof View>>(null);
+  const preview = equipPreview(save, hero.id, item.slot, gear.uid);
+  const gain = gainOf({ item, preview });
+  if (size <= 0) return null;
+  return (
+    <View ref={wrapper} collapsable={false}>
+      <ItemSlot
+        state="ready"
+        emoji={item.emoji}
+        icon={item.icon}
+        mark={preview && gain > 0 ? 'up' : preview && gain < 0 ? 'down' : undefined}
+        size={size}
+        accessibilityLabel={gearName(gear)}
+        onPress={() =>
+          wrapper.current?.measureInWindow((x, y, width, height) =>
+            onOpen(item.slot as (typeof GEAR_SLOTS)[number], { x, y, width, height }),
+          )
+        }
+      />
+    </View>
+  );
+}
+
+/** What one storeroom piece would change, with the Equip action; the problem line when it cannot go in. */
+function ComparePopup({
+  save,
+  hero,
+  gear,
+  slot,
+  pointer,
+  onEquip,
+}: {
+  save: SaveData;
+  hero: HeroState;
+  gear: GearInstance;
+  slot: (typeof GEAR_SLOTS)[number];
+  pointer: { side: 'top' | 'bottom'; x: number } | undefined;
+  onEquip: () => void;
+}) {
+  const item = itemById[gear.itemId] as GearDef;
+  const problem = slot !== 'weapon' ? slotProblem(save, hero, slot, gear) : null;
+  const preview = equipPreview(save, hero.id, slot, gear.uid);
+  const wornUid = hero.equipment[slot];
+  const worn = wornUid ? save.gear.find((g) => g.uid === wornUid) : undefined;
+  const lines: PopupLine[] = [];
+  if (preview) {
+    for (const key of DELTA_KEYS) {
+      const delta = preview.after[key] - preview.before[key];
+      if (delta) lines.push({ tone: delta > 0 ? 'good' : 'bad', text: `${t(`hero.statNames.${key}`)} ${delta > 0 ? '+' : '−'}${Math.abs(delta)}` });
+    }
+    const keywords = keywordChange(save, hero, slot, gear);
+    for (const { keyword, gained } of keywords) {
+      lines.push(
+        gained
+          ? { tone: 'keyword', text: t('hero.gainsKeyword', { keyword: t(`threats.keyword.${keyword}`) }) }
+          : { tone: 'bad', text: t('hero.losesKeyword', { keyword: t(`threats.keyword.${keyword}`) }) },
+      );
+    }
+  } else if (problem) {
+    lines.push({ tone: 'muted', text: t(`equip.problem.${problem}`) });
+  }
+  return (
+    <ItemPopup
+      title={gearName(gear)}
+      subtitle={t('hero.insteadOf', { item: worn ? gearName(worn) : t('hero.empty') })}
+      emoji={item.emoji}
+      icon={item.icon}
+      lines={lines}
+      action={{ title: t('hero.equip'), onPress: onEquip, disabled: !preview || isOnExpedition(save, hero.id) }}
+      pointer={pointer}
+    />
+  );
+}
+
+/** The keywords equipping the piece would add or take away, versus the hero as equipped. */
+function keywordChange(save: SaveData, hero: HeroState, slot: (typeof GEAR_SLOTS)[number], gear: GearInstance) {
+  try {
+    const next = equip(save, hero.id, slot, gear.uid);
+    const nextHero = next.heroes.find((h) => h.id === hero.id)!;
+    const before = new Set(gearKeywordsOf(save, hero).map((entry) => entry.keyword));
+    const after = new Set(gearKeywordsOf(next, nextHero).map((entry) => entry.keyword));
+    return [...after]
+      .filter((keyword) => !before.has(keyword))
+      .map((keyword) => ({ keyword, gained: true }))
+      .concat([...before].filter((keyword) => !after.has(keyword)).map((keyword) => ({ keyword, gained: false })));
+  } catch {
+    return [];
+  }
+}
+
 const styles = StyleSheet.create({
-  classNameRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 2 },
-  container: { padding: 16, paddingBottom: 32 },
-  header: { gap: 8 },
+  screen: { flex: 1, backgroundColor: ui.woodDark },
+  page: { padding: 12, gap: 10 },
+  navRow: { flexDirection: 'row', gap: 6 },
+  navButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: ui.woodDark,
+    borderWidth: 2,
+    borderColor: ui.outline,
+  },
+  navRim: { position: 'absolute', top: 3, left: 3, bottom: 3, right: 3, borderWidth: 2, borderColor: ui.brass },
+  navGlyph: { fontSize: 28, color: ui.brassLight, lineHeight: 30 },
   identity: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  identityText: { flex: 1 },
-  name: { fontSize: 28, color: colors.parchment },
-  className: { fontSize: 19, color: colors.parchment },
-  level: { alignSelf: 'flex-start', marginTop: 4, paddingHorizontal: 6, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.highlight },
-  xp: { color: colors.parchment, fontSize: 17 },
-  drink: { alignItems: 'flex-start', gap: 4 },
+  portrait: {
+    width: 68,
+    height: 68,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: ui.woodMid,
+    borderWidth: 3,
+    borderColor: ui.outline,
+  },
+  portraitSeams: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' },
+  portraitSeam: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: ui.woodSeam },
+  portraitBrass: { position: 'absolute', top: 4, left: 4, right: 4, bottom: 4, borderWidth: 2, borderColor: ui.brass },
+  levelDiamond: {
+    position: 'absolute',
+    left: -9,
+    bottom: -9,
+    width: 28,
+    height: 28,
+    transform: [{ rotate: '45deg' }],
+    backgroundColor: ui.ember,
+    borderWidth: 2,
+    borderColor: ui.outline,
+  },
+  levelDiamondFace: { flex: 1, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-45deg' }] },
+  levelText: { fontFamily: fonts.body, fontSize: 16, color: ui.onEmber },
+  identityText: { flex: 1, gap: 2 },
+  name: { fontFamily: fonts.body, fontSize: 26, color: ui.ink },
+  classNameRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
+  className: { fontFamily: fonts.serif, fontSize: 14, color: ui.inkMuted },
+  traitBlock: { gap: 2 },
+  traitText: { fontFamily: fonts.serif, fontSize: 13, color: ui.inkMuted },
+  note: { fontFamily: fonts.serif, fontSize: 13, color: ui.inkMuted },
+  drink: { alignItems: 'stretch', gap: 6 },
+  section: { gap: 6 },
+  heading: { fontFamily: fonts.body, fontSize: 18, color: ui.ink },
+  headRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+  keywords: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  ability: { fontFamily: fonts.serif, fontSize: 14, color: ui.ink, paddingVertical: 2 },
+  dismiss: { marginTop: 8, alignItems: 'stretch', gap: 4 },
   stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   stat: {
     width: '48%',
@@ -327,58 +587,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     padding: 8,
-    borderWidth: pixel.outline,
-    borderColor: colors.ink,
-    backgroundColor: colors.parchmentDark,
+    borderWidth: 2,
+    borderColor: ui.outline,
+    backgroundColor: ui.parchmentShade,
   },
-  statIcon: { fontSize: 26 },
-  statName: { fontSize: 16, color: colors.muted, textTransform: 'uppercase' },
-  statValue: { fontSize: 26 },
-  approaches: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  statName: { fontFamily: fonts.serif, fontSize: 13, color: ui.inkMuted, textTransform: 'uppercase' },
+  statValue: { fontFamily: fonts.serifBold, fontSize: 22, color: ui.ink },
+  smallStats: { paddingVertical: 2 },
   approach: {
-    width: '48%',
-    flexGrow: 1,
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8,
     padding: 8,
-    borderWidth: pixel.outline,
-    borderColor: colors.ink,
-    backgroundColor: colors.parchmentDark,
+    borderWidth: 2,
+    borderColor: ui.outline,
+    backgroundColor: ui.parchmentShade,
   },
-  approachName: { fontSize: 17, flexShrink: 1 },
-  approachPips: { fontSize: 15, color: colors.muted },
-  smallStats: { color: colors.muted, paddingVertical: 4 },
+  approachName: { fontFamily: fonts.serif, fontSize: 15, color: ui.ink, flexShrink: 1 },
+  pipRow: { flexDirection: 'row', gap: 6 },
+  pip: { width: 12, height: 12, borderWidth: 2, borderColor: ui.outline, backgroundColor: ui.parchmentShade },
+  pipOn: { backgroundColor: ui.brass },
   pickRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8,
     padding: 8,
-    borderWidth: pixel.outline,
-    borderColor: colors.ink,
-    backgroundColor: colors.parchmentDark,
+    borderWidth: 2,
+    borderColor: ui.brass,
+    backgroundColor: ui.parchmentShade,
   },
   pickDisabled: { opacity: 0.4 },
-  keywords: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  keywordChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderWidth: pixel.outline,
-    borderColor: colors.woodDark,
-    backgroundColor: colors.parchmentDark,
-  },
-  slot: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6, borderBottomWidth: 2, borderBottomColor: colors.parchmentDark },
   pressed: { opacity: 0.6 },
-  slotBody: { flex: 1 },
-  slotName: { fontSize: 16, color: colors.muted, textTransform: 'uppercase' },
-  slotValue: { fontSize: 20 },
-  slotValueRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  locked: { color: colors.muted },
-  chevron: { fontSize: 28, color: colors.muted },
-  muted: { color: colors.muted, paddingVertical: 4 },
-  traitName: { fontSize: 20 },
-  ability: { color: colors.ink, paddingVertical: 2 },
-  dismiss: { marginTop: 24, alignItems: 'flex-start', gap: 4 },
+  doll: { height: 270 },
+  dollArea: { height: 270 },
+  dollSlot: { position: 'absolute', alignItems: 'center', gap: 3 },
+  dollWeapon: { left: 14, top: 90 },
+  dollArmor: { left: '50%', marginLeft: -32, top: 8 },
+  dollOffhand: { right: 14, top: 90 },
+  dollTrinket: { left: 14, bottom: 6 },
+  dollPotion: { left: '50%', marginLeft: -32, bottom: 6 },
+  dollConsumable: { right: 14, bottom: 6 },
+  slotLabel: { fontFamily: fonts.body, fontSize: 13, color: ui.brassLight },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
 });

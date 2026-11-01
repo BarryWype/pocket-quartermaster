@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Map — wood and brass HUD</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Fantaisie';src:url(/_blob/5b1e7bdb2a304b22ed34c8110385ae44) format('truetype');font-display:swap}
+body{margin:0}
+a{color:#C9A04E}a:hover{color:#E8C877}
+.pq-map{background-image:url(/_blob/ac0f0a92834b569f9f1e5a3f2ad30ebf);background-size:cover;background-position:center 40%;image-rendering:pixelated}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; overflow: hidden; position: relative; background: #6DAE4F; color: #F2E4C2; font-family: Alegreya, Georgia, serif">
+  <div class="pq-map" aria-hidden="true" style="position: absolute; inset: 0"></div>
+
+  <header style="position: absolute; left: 10px; right: 10px; top: 12px; display: flex; gap: 8px">
+    <div style="flex-grow: 1; padding: 8px 10px; background: repeating-linear-gradient(0deg, #5A3820 0 13px, #4E301B 13px 14px); border: 2px solid #1E120A; outline: 2px solid #C9A04E; outline-offset: -5px; box-shadow: 0 4px 0 #1E120A; display: flex; flex-direction: column; gap: 6px">
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 4px">
+        <span style="font-family: Fantaisie, serif; font-size: 19px; color: #F6D98E">Tier I</span>
+        <span style="display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 15px"><span style="width: 14px; height: 14px; border-radius: 7px; background: #E8B83A; border: 2px solid #7A5A24"></span>131</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 0 4px; font-size: 13px">
+        <span style="color: #E2CFA4">Chest</span>
+        <div style="flex-grow: 1; height: 10px; background: #2A180D; border: 2px solid #1E120A"><div style="width: 62%; height: 100%; background: #E07A3E; box-shadow: inset 0 2px 0 #F2A066"></div></div>
+        <span>3 120 / 5 000</span>
+      </div>
+    </div>
+    <button aria-label="Settings" style="width: 54px; background: repeating-linear-gradient(0deg, #5A3820 0 13px, #4E301B 13px 14px); border: 2px solid #1E120A; outline: 2px solid #C9A04E; outline-offset: -5px; box-shadow: 0 4px 0 #1E120A; color: #F6D98E; display: flex; align-items: center; justify-content: center; padding: 0">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6 M12 2v3 M12 19v3 M2 12h3 M19 12h3 M5 5l2 2 M17 17l2 2 M5 19l2-2 M17 7l2-2"/></svg>
+    </button>
+  </header>
+
+  <div style="position: absolute; left: 10px; top: 104px; padding: 6px 12px 6px 10px; background: #F2E4C2; color: #3A2314; border: 2px solid #1E120A; box-shadow: 0 3px 0 #1E120A; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700">
+    <span style="width: 10px; height: 10px; transform: rotate(45deg); background: #E07A3E; border: 1px solid #6E2A0E"></span>
+    Fresh legs: 15 bonus gathers
+  </div>
+
+  <section aria-label="Wild herbs" style="position: absolute; left: 150px; top: 206px; width: 200px; background: #F2E4C2; color: #3A2314; border: 2px solid #1E120A; box-shadow: inset 0 0 0 3px #F2E4C2, inset 0 0 0 5px #C9A04E, 0 5px 0 #1E120A; display: flex; flex-direction: column">
+    <div style="padding: 8px 12px 6px; background: repeating-linear-gradient(0deg, #5A3820 0 11px, #4E301B 11px 12px); border-bottom: 2px solid #1E120A; color: #F6D98E; font-family: Fantaisie, serif; font-size: 18px; text-align: center">Wild herbs</div>
+    <div style="padding: 8px 12px; display: flex; align-items: center; gap: 10px">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="#5E9A4A" stroke="#1E3A16" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M12 21V10 M12 10c0-4 3-6 7-6 0 4-3 6-7 6z M12 14c0-3-2-5-6-5 0 3 2 5 6 5z"/></svg>
+      <span style="font-size: 15px; flex-grow: 1"><b>Herb ×1</b><br><span style="font-size: 13px; color: #6A4A2C">12 m away · counts for a quest</span></span>
+    </div>
+    <button style="margin: 0 10px 10px; min-height: 44px; border: 2px solid #1E120A; background: #B4471C; color: #FFF1DC; font-family: Fantaisie, serif; font-size: 20px; box-shadow: inset 2px 2px 0 #E07A3E, inset -2px -3px 0 #6E2A0E">Gather</button>
+  </section>
+  <div aria-hidden="true" style="position: absolute; left: 246px; top: 380px; width: 14px; height: 14px; background: #F2E4C2; border-right: 2px solid #1E120A; border-bottom: 2px solid #1E120A; transform: rotate(45deg)"></div>
+
+  <div style="position: absolute; left: 10px; right: 10px; bottom: 112px; display: flex; align-items: flex-end; justify-content: space-between">
+    <button aria-label="Pocket mode, off" style="min-height: 44px; padding: 0 12px; background: #F2E4C2; color: #3A2314; border: 2px solid #1E120A; box-shadow: 0 3px 0 #1E120A; display: flex; align-items: center; gap: 8px; font-family: Fantaisie, serif; font-size: 17px">
+      <span style="width: 30px; height: 16px; background: #8A7556; border: 2px solid #1E120A; position: relative"><span style="position: absolute; left: 1px; top: 1px; width: 10px; height: 10px; background: #F2E4C2; border: 1px solid #1E120A"></span></span>
+      Pocket mode
+    </button>
+    <button aria-label="Centre on me" style="width: 56px; height: 56px; transform: rotate(45deg); margin: 0 10px 10px 0; background: repeating-linear-gradient(0deg, #5A3820 0 13px, #4E301B 13px 14px); border: 2px solid #1E120A; outline: 2px solid #C9A04E; outline-offset: -5px; color: #F6D98E; display: flex; align-items: center; justify-content: center; padding: 0">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="transform: rotate(-45deg)"><path d="M12 2v4 M12 18v4 M2 12h4 M18 12h4 M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8"/></svg>
+    </button>
+  </div>
+
+  <nav aria-label="Main menu" style="position: absolute; left: 0; right: 0; bottom: 0; height: 100px; background: repeating-linear-gradient(0deg, #5A3820 0 15px, #4E301B 15px 16px); border-top: 3px solid #1E120A; box-shadow: inset 0 3px 0 #C9A04E, inset 0 5px 0 #1E120A; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: center; padding: 6px 8px 0">
+    <sc-for list="{{menu}}" as="b" hint-placeholder-count="4">
+      <a href="{{b.href}}" aria-label="{{b.label}}" style="display: flex; flex-direction: column; align-items: center; gap: 10px; text-decoration: none; position: relative">
+        <span style="{{b.diamond}}">
+          <sc-if value="{{b.img}}" hint-placeholder-val="{{true}}"><img src="{{b.src}}" alt="" width="34" height="34" style="transform: rotate(-45deg); image-rendering: pixelated"></sc-if>
+          <sc-if value="{{b.svg}}" hint-placeholder-val="{{false}}"><svg width="26" height="26" viewBox="0 0 24 24" fill="#F2E4C2" stroke="#3A2314" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true" style="transform: rotate(-45deg)"><path d="M6 3h11l2 3v15H6z M9 9h7 M9 13h7 M9 17h4"/></svg></sc-if>
+        </span>
+        <span style="font-family: Fantaisie, serif; font-size: 15px; color: {{b.color}}">{{b.label}}</span>
+        <sc-if value="{{b.badge}}" hint-placeholder-val="{{false}}"><span style="position: absolute; right: 18px; top: -8px; min-width: 20px; height: 20px; padding: 0 4px; background: #B4471C; border: 2px solid #1E120A; color: #FFF1DC; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{b.badgeText}}</span></sc-if>
+      </a>
+    </sc-for>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const d = 'width: 50px; height: 50px; transform: rotate(45deg); display: flex; align-items: center; justify-content: center; border: 2px solid #1E120A; ';
+    const menu = [
+      { label: 'Craft', src: '/_blob/cf22f49eeaea34fafc80126616b1da27', img: true, svg: false, href: 'ForgeWood.dc.html', badge: false, badgeText: '' },
+      { label: 'Team', src: '/_blob/9a6033395c4b1de89a1fe7017278bb04', img: true, svg: false, href: 'TeamWood.dc.html', badge: false, badgeText: '' },
+      { label: 'Quests', src: '', img: false, svg: true, href: 'QuestsWood.dc.html', badge: true, badgeText: '1' },
+      { label: 'Expeditions', src: '/_blob/d2616ec772c39a703efe4b1603eaabfb', img: true, svg: false, href: 'DungeonsWood.dc.html', badge: true, badgeText: '2' }
+    ].map((b, i) => ({
+      ...b,
+      diamond: d + (i === 0 ? 'background: #7A4A26; outline: 2px solid #F6D98E; outline-offset: -5px; box-shadow: 0 0 0 2px #C9A04E;' : 'background: #3A2314; outline: 2px solid #C9A04E; outline-offset: -5px;'),
+      color: i === 0 ? '#F6D98E' : '#E2CFA4'
+    }));
+    return { menu };
+  }
+}
+</script>
+</body>
+</html>

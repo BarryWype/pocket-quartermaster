@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tips — wood and brass</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Fantaisie';src:url(/_blob/5b1e7bdb2a304b22ed34c8110385ae44) format('truetype');font-display:swap}
+body{margin:0}
+a{color:#C9A04E}a:hover{color:#E8C877}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; overflow: hidden; background: repeating-linear-gradient(0deg, #3A2314 0 23px, #331F11 23px 24px); color: #F2E4C2; font-family: Alegreya, Georgia, serif; display: flex; flex-direction: column">
+
+  <header style="height: 66px; padding: 0 12px; display: flex; align-items: center; gap: 10px; background: repeating-linear-gradient(0deg, #5A3820 0 15px, #4E301B 15px 16px); border-bottom: 3px solid #1E120A; box-shadow: inset 0 -3px 0 #C9A04E">
+    <a href="SettingsWood.dc.html" aria-label="Back to settings" style="width: 44px; height: 44px; background: #3A2314; border: 2px solid #1E120A; outline: 2px solid #C9A04E; outline-offset: -5px; color: #F6D98E; display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </a>
+    <div style="flex-grow: 1; text-align: center; font-family: Fantaisie, serif; font-size: 30px; color: #F6D98E; text-shadow: 0 2px 0 #1E120A">Field Notes</div>
+    <div style="width: 44px"></div>
+  </header>
+
+  <div style="margin: 14px 12px; flex-grow: 1; min-height: 0; background: #F2E4C2; color: #3A2314; border: 3px solid #1E120A; box-shadow: inset 0 0 0 3px #F2E4C2, inset 0 0 0 5px #C9A04E, 0 4px 0 #1E120A; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; overflow: hidden">
+    <span style="font-size: 14px; color: #6A4A2C; margin-bottom: 4px">Every tip you've seen, in the order it came. New ones arrive as the world opens up.</span>
+    <sc-for list="{{tips}}" as="t" hint-placeholder-count="8">
+      <div style="display: flex; gap: 12px; align-items: flex-start; padding: 8px 0; border-bottom: 2px dashed #D8C49A">
+        <span style="width: 30px; height: 30px; margin: 4px; flex-shrink: 0; transform: rotate(45deg); background: #3A2314; border: 2px solid #1E120A; outline: 2px solid #C9A04E; outline-offset: -5px; display: flex; align-items: center; justify-content: center">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="{{t.fill}}" stroke="#1E120A" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true" style="transform: rotate(-45deg)"><path d="{{t.path}}"/></svg>
+        </span>
+        <span style="display: flex; flex-direction: column">
+          <span style="font-family: Fantaisie, serif; font-size: 19px; line-height: 1.1">{{t.title}}</span>
+          <span style="font-size: 14px; line-height: 1.35">{{t.text}}</span>
+        </span>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const P = {
+      tree: 'M12 3l6 9h-4l4 6H6l4-6H6z',
+      paw: 'M6 18c0-4 3-7 6-7s6 3 6 7z M8 9a2 2 0 1 0 0-4 2 2 0 1 0 0 4z M16 9a2 2 0 1 0 0-4 2 2 0 1 0 0 4z',
+      gate: 'M4 20V10l8-6 8 6v10z',
+      scroll: 'M6 3h11l2 3v15H6z',
+      shield: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',
+      ruin: 'M5 20V9l3-2v13z M11 20V6h3v14z M17 20v-8h2v8z',
+      mug: 'M5 6h10v14H5z M15 9h3v6h-3'
+    };
+    const tips = [
+      ['Resources', 'tree', '#5E9A4A', 'Trees, rocks and herbs: tap one within 30 m to gather it.'],
+      ['Animals', 'paw', '#B98A5E', 'Animals roam nearby. Walk up slowly: they flee from runners.'],
+      ['Dungeons', 'gate', '#9A8F80', 'Expeditions: send up to three heroes to a dungeon. The list changes every day.'],
+      ['Quests', 'scroll', '#E8D6A8', 'Quests arrive on their own, 2–3 a day. Accept one and walk to its target.'],
+      ['Patrols', 'shield', '#C9473A', 'Patrols and travellers roam the map. Get close to fight a patrol or help a traveller.'],
+      ['Ruins', 'ruin', '#C9A04E', 'Ruins: dig each once for materials and key fragments. Five digs give a relic.'],
+      ['Taverns', 'mug', '#E8B83A', 'Taverns are open: recruit heroes and buy emergency supply.']
+    ].map(([title, k, fill, text]) => ({ title, path: P[k], fill, text }));
+    return { tips };
+  }
+}
+</script>
+</body>
+</html>

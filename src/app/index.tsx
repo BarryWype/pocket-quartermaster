@@ -11,6 +11,7 @@ import { IslandMenu, ISLAND_HEIGHT } from '@/components/IslandMenu';
 import { MapFoliage, useFoliage } from '@/components/MapFoliage';
 import { MapTrail, MapWater } from '@/components/MapAmbience';
 import { MapSky, useSkyPan } from '@/components/MapSky';
+import { MapTopBar, TOP_BAR_HEIGHT } from '@/components/MapTopBar';
 import { MapMarkers } from '@/components/MapMarkers';
 import { MapPanels } from '@/components/MapPanels';
 import { MapRanges, type RangeCircle } from '@/components/MapRanges';
@@ -72,7 +73,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useMapPanels } from '@/store/mapPanelsStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useWorldStore } from '@/store/worldStore';
-import { colors } from '@/theme';
+import { fonts, ui } from '@/theme';
 
 const toLngLat = (position: LatLng): [number, number] => [position.longitude, position.latitude];
 /** Dragging the map further than this from the player stops the camera following them. */
@@ -579,10 +580,11 @@ function MapScreen() {
         ) : (
           <PlaceholderScreen title={t('map.locationNeeded')} description={t('map.locationHint')} />
         )}
+        <MapTopBar />
         <TutorialHint
           screen="map"
           text={locationOff && shownTutorialSpawns(save).length > 0 ? t('tutorial.locationOff') : undefined}
-          style={[styles.tutorialHint, { top: insets.top + 48 }]}
+          style={[styles.tutorialHint, { top: insets.top + TOP_BAR_HEIGHT + 48 }]}
         />
         {fallbackButton}
         {message && <ToastBanner message={message} style={{ bottom: insets.bottom + ISLAND_HEIGHT + 64 }} />}
@@ -628,7 +630,7 @@ function MapScreen() {
         touchRotate={false}
         touchPitch={false}
         logo={false}
-        attributionPosition={{ top: insets.top + 8, left: 8 }}
+        attributionPosition={{ top: insets.top + TOP_BAR_HEIGHT + 8, left: 8 }}
         onRegionIsChanging={(event) => {
           // Native-driven pan: no state changes here, so panning never re-renders this screen.
           skyPan.update(event.nativeEvent.center, event.nativeEvent.zoom);
@@ -694,25 +696,12 @@ function MapScreen() {
         />
       </Map>
       <MapSky pan={skyPan} hour={ambience.hour} raining={ambience.raining} decor={decor !== 'hidden'} />
+      <MapTopBar />
       {player.mocked && (
-        <Text style={[styles.banner, { top: insets.top + 48 }]}>{t('map.mockBanner')}</Text>
+        <View style={[styles.banner, { top: insets.top + TOP_BAR_HEIGHT + 48 }]}>
+          <Text style={styles.bannerText}>{t('map.mockBanner')}</Text>
+        </View>
       )}
-      {debugOn && (
-        <Pressable
-          accessibilityLabel={t('map.debug')}
-          onPress={() => navigate('/debug')}
-          style={[styles.roundButton, styles.debugButton, { top: insets.top + 8 }]}
-        >
-          <Text style={styles.buttonEmoji}>🐞</Text>
-        </Pressable>
-      )}
-      <Pressable
-        accessibilityLabel={t('screens.settings')}
-        onPress={() => navigate('/settings')}
-        style={[styles.roundButton, styles.settingsButton, { top: insets.top + 8 }]}
-      >
-        <Text style={styles.buttonEmoji}>⚙️</Text>
-      </Pressable>
       {(!following || focusPlace) && (
         <Pressable
           accessibilityLabel={t('map.recentre')}
@@ -721,37 +710,41 @@ function MapScreen() {
             setWorld({ focusPlace: null });
             cameraRef.current?.easeTo({ center: toLngLat(position), duration: 500 });
           }}
-          style={[styles.roundButton, styles.recentreButton, { bottom: insets.bottom + ISLAND_HEIGHT + 12 }]}
+          style={[styles.squareButton, styles.recentreButton, { bottom: insets.bottom + ISLAND_HEIGHT + 12 }]}
         >
+          <View style={styles.squareRim} pointerEvents="none" />
           <Text style={styles.recentreEmoji}>🧙</Text>
         </Pressable>
       )}
-      <TutorialHint screen="map" style={[styles.tutorialHint, { top: insets.top + (player.mocked ? 84 : 48) }]} />
+      <TutorialHint screen="map" style={[styles.tutorialHint, { top: insets.top + TOP_BAR_HEIGHT + (player.mocked ? 84 : 48) }]} />
       {isLureActive(save, now) && (
-        <Text style={[styles.banner, styles.lure, { top: insets.top + 8 }]}>
-          {t('map.lure', { time: minutesLeft(lureEndsAt(save) - now) })}
-        </Text>
+        <View style={[styles.banner, { top: insets.top + TOP_BAR_HEIGHT + 8 }]}>
+          <Text style={styles.bannerText}>{t('map.lure', { time: minutesLeft(lureEndsAt(save) - now) })}</Text>
+        </View>
       )}
       <WalkEffects
         player={position}
         buttonStyle={{ bottom: insets.bottom + ISLAND_HEIGHT + 68 }}
-        chipsStyle={{ top: insets.top + 48 }}
+        chipsStyle={{ top: insets.top + TOP_BAR_HEIGHT + 48 }}
       />
       {save.tutorial.step === 'done' && freshGathersLeft(save, now) > 0 && (freshLegsOpen ? (
-        <Text
-          accessibilityRole="button"
-          accessibilityHint={t('common.close')}
-          onPress={() => setFreshLegsOpen(false)}
-          style={[styles.banner, styles.freshLegs, { top: insets.top + 48 }]}
-        >
-          {t('map.freshLegs', { count: freshGathersLeft(save, now) })}  ✕
-        </Text>
+        <View style={[styles.banner, styles.freshLegs, { top: insets.top + TOP_BAR_HEIGHT + 48 }]}>
+          <Text
+            accessibilityRole="button"
+            accessibilityHint={t('common.close')}
+            onPress={() => setFreshLegsOpen(false)}
+            style={styles.bannerText}
+          >
+            {t('map.freshLegs', { count: freshGathersLeft(save, now) })}  ✕
+          </Text>
+        </View>
       ) : (
         <Pressable
           accessibilityLabel={t('map.freshLegsShow')}
           onPress={() => setFreshLegsOpen(true)}
-          style={[styles.roundButton, styles.freshLegsButton, { top: insets.top + 48 }]}
+          style={[styles.squareButton, styles.freshLegsButton, { top: insets.top + TOP_BAR_HEIGHT + 48 }]}
         >
+          <View style={styles.squareRim} pointerEvents="none" />
           <Text style={styles.buttonEmoji}>🦵</Text>
         </Pressable>
       ))}
@@ -778,27 +771,29 @@ function ToastBanner({ message, style }: { message: { text: string; gains?: stri
 const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { flex: 1 },
-  lure: { right: 56, alignSelf: 'auto' },
   // Below the map attribution; leaves the right side to the walk effect chips.
-  freshLegs: { left: 16, maxWidth: '60%', alignSelf: 'auto', fontSize: 15 },
+  freshLegs: { left: 16, maxWidth: '60%', alignSelf: 'auto' },
   freshLegsButton: { left: 16 },
+  // A parchment label: a 2 px outline and a 3 px solid drop strip below it.
   banner: {
     position: 'absolute',
     alignSelf: 'center',
     overflow: 'hidden',
-    borderRadius: 12,
-    backgroundColor: colors.ink,
-    color: colors.parchment,
+    backgroundColor: ui.parchment,
+    borderWidth: 2,
+    borderBottomWidth: 5,
+    borderColor: ui.outline,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    fontSize: 18,
   },
   bannerView: {
     position: 'absolute',
     alignSelf: 'center',
     overflow: 'hidden',
-    borderRadius: 12,
-    backgroundColor: colors.ink,
+    backgroundColor: ui.parchment,
+    borderWidth: 2,
+    borderBottomWidth: 5,
+    borderColor: ui.outline,
     paddingHorizontal: 12,
     paddingVertical: 6,
     flexDirection: 'row',
@@ -806,25 +801,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  bannerText: { color: colors.parchment, fontSize: 18 },
+  bannerText: { color: ui.ink, fontSize: 14, fontFamily: fonts.serif },
   tutorialHint: { position: 'absolute', left: 16, right: 16 },
   fallback: { position: 'absolute', alignSelf: 'center' },
   autoGather: { position: 'absolute', left: 16 },
-  debugButton: { alignSelf: 'center' },
-  settingsButton: { right: 16 },
-  roundButton: {
+  squareButton: {
     position: 'absolute',
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: colors.woodDark,
-    backgroundColor: colors.parchment,
+    borderColor: ui.outline,
+    backgroundColor: ui.woodDark,
   },
-  buttonEmoji: { fontSize: 15 },
-  recentreButton: { right: 16, width: 48, height: 48, borderRadius: 24 },
+  squareRim: { position: 'absolute', top: 2, left: 2, right: 2, bottom: 2, borderWidth: 2, borderColor: ui.brass },
+  buttonEmoji: { fontSize: 20 },
+  recentreButton: { right: 16 },
   recentreEmoji: { fontSize: 24 },
 });
 

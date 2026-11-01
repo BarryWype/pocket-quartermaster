@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Barracks — wood and brass</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Fantaisie';src:url(/_blob/5b1e7bdb2a304b22ed34c8110385ae44) format('truetype');font-display:swap}
+body{margin:0}
+a{color:#C9A04E}a:hover{color:#E8C877}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; overflow: hidden; background: repeating-linear-gradient(0deg, #3A2314 0 23px, #331F11 23px 24px); color: #F2E4C2; font-family: Alegreya, Georgia, serif; display: flex; flex-direction: column">
+
+  <header style="height: 66px; padding: 0 12px; display: flex; align-items: center; gap: 10px; background: repeating-linear-gradient(0deg, #5A3820 0 15px, #4E301B 15px 16px); border-bottom: 3px solid #1E120A; box-shadow: inset 0 -3px 0 #C9A04E">
+    <a href="MapWood.dc.html" aria-label="Back to the map" style="width: 44px; height: 44px; background: #3A2314; border: 2px solid #1E120A; outline: 2px solid #C9A04E; outline-offset: -5px; color: #F6D98E; display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </a>
+    <div style="flex-grow: 1; text-align: center; font-family: Fantaisie, serif; font-size: 30px; color: #F6D98E; text-shadow: 0 2px 0 #1E120A">Barracks</div>
+    <button aria-label="All classes" style="width: 44px; height: 44px; background: #3A2314; border: 2px solid #1E120A; outline: 2px solid #C9A04E; outline-offset: -5px; display: flex; align-items: center; justify-content: center; padding: 0">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="#E8D6A8" stroke="#1E120A" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h8v15H3z M13 5h8v15h-8z"/></svg>
+    </button>
+  </header>
+
+  <div style="padding: 14px 14px; display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; justify-content: space-between; align-items: baseline">
+      <span style="font-family: Fantaisie, serif; font-size: 20px; color: #F6D98E">Roster 3 / 6</span>
+      <span style="font-size: 13px; color: #C9B48A">3 heroes per expedition</span>
+    </div>
+
+    <sc-for list="{{heroes}}" as="h" hint-placeholder-count="3">
+      <a href="HeroWood.dc.html" aria-label="{{h.name}}, {{h.cls}}, level {{h.level}}" style="display: flex; gap: 12px; padding: 10px; background: #F2E4C2; color: #3A2314; border: 3px solid #1E120A; box-shadow: inset 0 0 0 3px #F2E4C2, inset 0 0 0 5px #C9A04E, 0 4px 0 #1E120A; text-decoration: none; align-items: center">
+        <div style="position: relative; width: 68px; height: 68px; flex-shrink: 0; background: repeating-linear-gradient(0deg, #5A3820 0 9px, #4E301B 9px 10px); border: 3px solid #1E120A; outline: 2px solid #C9A04E; outline-offset: -6px; display: flex; align-items: center; justify-content: center">
+          <img src="{{h.src}}" alt="" width="46" height="46" style="image-rendering: pixelated">
+          <span style="position: absolute; left: -9px; bottom: -9px; width: 28px; height: 28px; transform: rotate(45deg); background: #B4471C; border: 2px solid #1E120A; display: flex; align-items: center; justify-content: center"><span style="transform: rotate(-45deg); font-family: Fantaisie, serif; font-size: 16px; color: #FFF1DC">{{h.level}}</span></span>
+        </div>
+        <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+          <div style="display: flex; align-items: baseline; gap: 8px">
+            <span style="font-family: Fantaisie, serif; font-size: 23px; line-height: 1; flex-grow: 1">{{h.name}}</span>
+            <span style="font-size: 12px; font-weight: 700; color: {{h.statusColor}}">{{h.status}}</span>
+          </div>
+          <span style="font-size: 13px; color: #6A4A2C">{{h.cls}} · {{h.trait}}</span>
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700">
+            <div style="flex-grow: 1; height: 10px; background: #3A2314; border: 2px solid #1E120A"><div style="{{h.hpBar}}"></div></div>
+            <span>{{h.hp}}</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px; font-size: 12px">
+            <sc-for list="{{h.stats}}" as="s" hint-placeholder-count="4">
+              <span style="display: flex; justify-content: space-between; padding: 1px 4px; background: #E6D3A8; border: 1px solid #B9A27A"><span style="color: #6A4A2C">{{s.k}}</span><b>{{s.v}}</b></span>
+            </sc-for>
+          </div>
+        </div>
+      </a>
+    </sc-for>
+
+    <sc-for list="{{empty}}" as="e" hint-placeholder-count="3">
+      <div style="height: 58px; border: 2px dashed #6A4A2C; background: #2A180D; display: flex; align-items: center; justify-content: center; gap: 8px; color: #C9B48A; font-size: 15px">
+        <span style="font-family: Fantaisie, serif; font-size: 19px; color: #8A6A34">+</span> Empty bunk · recruit at a tavern
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const heroes = [
+      { name: 'Bram', cls: 'Warrior', trait: 'Resilient', level: 1, src: '/_blob/0f279c5cf7058afc885afe00c6c6f6fe', hp: '35/35', pct: 100, status: 'At home', statusColor: '#2F6B32', stats: [['PWR', 9], ['ARM', 3], ['SPD', 5], ['CRT', '10%']] },
+      { name: 'Lyra', cls: 'Ranger', trait: 'Lucky', level: 1, src: '/_blob/03917cbff457694996c5049c2f4c5640', hp: '18/24', pct: 75, status: 'Rat Cellar · 3 min', statusColor: '#B4471C', stats: [['PWR', 5], ['ARM', 1], ['SPD', 7], ['EVA', '5%']] },
+      { name: 'Mira', cls: 'Fire mage', trait: 'Quick learner', level: 1, src: '/_blob/ec873ec3be250bbc0e3ca1ce6938f5cb', hp: '22/22', pct: 100, status: 'At home', statusColor: '#2F6B32', stats: [['MAG', 6], ['ARM', 0], ['SPD', 7], ['CRT', '10%']] }
+    ];
+    return {
+      heroes: heroes.map((h) => ({ ...h, stats: h.stats.map(([k, v]) => ({ k, v })), hpBar: `width: ${h.pct}%; height: 100%; background: ${h.pct < 100 ? '#D98A2E' : '#4E9A3E'}; box-shadow: inset 0 2px 0 rgba(255,255,255,0.3);` })),
+      empty: [1, 2, 3]
+    };
+  }
+}
+</script>
+</body>
+</html>
