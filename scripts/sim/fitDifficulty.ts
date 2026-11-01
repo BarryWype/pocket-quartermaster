@@ -1,0 +1,246 @@
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+
+import { dungeonFactors, patrolFactors, placeFactors } from '@/content/difficultyFactors';
+import { bossById, mobById, patrolMobId, placeMobId } from '@/content/enemies';
+import { dungeonById } from '@/content/lookup';
+import { patrolRow, type PatrolDifficulty } from '@/content/patrols';
+import { placeFightRules, type FightPlaceKind } from '@/content/placeFights';
+import { difficultyRules, type Difficulty } from '@/content/difficulty';
+import { ELEMENTS, type Element } from '@/game/elements';
+import type { PatrolKind } from '@/game/patrols/generate';
+import { tierChain } from '@/game/dungeons/unlock';
+import { sourceOdds, type FitSource } from '@/game/sim/difficultyOdds';
+import { targets } from '@/game/sim/targets';
+
+const USAGE = `npm run sim:fit -- [options]
+  --runs N    odds runs per estimate (default: 200)
+  --steps N   bisection steps per source (default: 8)`;
+
+function parse(argv: string[]) {
+  const options = { runs: 200, steps: 8 };
+  for (let i = 0; i < argv.length; i++) {
+    const value = () => {
+      const next = argv[++i];
+      if (next === undefined) throw new Error(`${argv[i - 1]} needs a value`);
+      return Number(next);
+    };
+    switch (argv[i]) {
+      case '--runs': options.runs = value(); break;
+      case '--steps': options.steps = value(); break;
+      case '--help': console.log(USAGE); process.exit(0);
+      default: throw new Error(`Unknown option ${argv[i]}\n${USAGE}`);
+    }
+  }
+  return options;
+}
+
+const options = parse(process.argv.slice(2));
+const started = performance.now();
+const DIFFICULTIES: PatrolDifficulty[] = ['easy', 'medium', 'hard'];
+const ROLES = ['weak', 'normal', 'boss'] as const;
+
+/** One fitted source, with everything the bisection needs. */
+type Job = {
+  source: FitSource;
+  label: string;
+  tier: number;
+  difficulty: Difficulty;
+  /** The S key, patrol kind or place kind the factor is written under. */
+  key: string;
+  f0: number;
+  /** The mob defs whose hp and damage the factor scales. */
+  defs: { id: string; hp: number; damage: number }[];
+};
+
+/** The mob ids a patrol kind's or fight event kind's factor scales at a tier: every role, elite and element variant. */
+function variantMobIds(prefix: 'patrol' | 'place', kind: string, tier: number, elemental: boolean): string[] {
+  const elements: (Element | undefined)[] = elemental ? [...ELEMENTS] : [undefined];
+  const id = (role: (typeof ROLES)[number], elite: boolean, element?: Element) =>
+    prefix === 'patrol' ? patrolMobId(kind as PatrolKind, tier, role, elite, element) : placeMobId(kind as FightPlaceKind, tier, role, elite, element);
+  return ROLES.flatMap((role) => [false, true].flatMap((elite) => elements.map((element) => id(role, elite, element))));
+}
+
+/** Every source the fit tunes, in the order the generated file lists them. */
+function jobs(): Job[] {
+  const out: Job[] = [];
+  const bossOf = (id: string) => bossById[dungeonById[id].boss.id];
+  for (const tier of [1, 2, 3, 4, 5]) {
+    for (const dungeon of tierChain(tier).filter((d) => (d.chainIndex ?? 6) < 6)) {
+      const fights = dungeon.encounters.filter((e) => e.type === 'fight').flatMap((e) => e.mobs.map((m) => m.mobId));
+      out.push({
+        source: { kind: 'dungeon', id: dungeon.id },
+        label: dungeon.id,
+        tier,
+        difficulty: dungeon.difficulty,
+        key: dungeon.id,
+        f0: dungeonFactors[dungeon.id],
+        defs: [...fights.map((id) => mobById[id]), dungeonById[dungeon.id].boss],
+      });
+    }
+    for (const difficulty of DIFFICULTIES) {
+      for (const kind of patrolRow(tier)[difficulty]) {
+        out.push({
+          source: { kind: 'patrol', patrolKind: kind },
+          label: `patrol ${kind}`,
+          tier,
+          difficulty,
+          key: kind,
+          f0: patrolFactors[kind][tier - 1],
+          defs: variantMobIds('patrol', kind, tier, kind === 'wyverns').map((id) => mobById[id]),
+        });
+      }
+    }
+  }
+  for (const kind of Object.keys(placeFightRules.kinds) as FightPlaceKind[]) {
+    for (const tier of [1, 2, 3, 4, 5]) {
+      out.push({
+        source: { kind: 'event', placeKind: kind },
+        label: `event ${kind}`,
+        tier,
+        difficulty: placeFightRules.kinds[kind].difficulty,
+        key: kind,
+        f0: placeFactors[kind][tier - 1],
+        defs: variantMobIds('place', kind, tier, kind === 'elementalRift').map((id) => mobById[id]),
+      });
+    }
+  }
+  // The tier 4 boss shares its S entry with its own encounter mobs; the tier 5 boss has a key of its own.
+  out.push({
+    source: { kind: 'boss', id: 'giantsHall' },
+    label: 'boss giantsHall',
+    tier: 4,
+    difficulty: 'boss',
+    key: 'giantsHall',
+    f0: dungeonFactors.giantsHall,
+    defs: [
+      ...dungeonById.giantsHall.encounters.filter((e) => e.type === 'fight').flatMap((e) => e.mobs.map((m) => mobById[m.mobId])),
+      bossOf('giantsHall'),
+    ],
+  });
+  out.push({
+    source: { kind: 'boss', id: 'dragonLair' },
+    label: 'boss dragonLair',
+    tier: 5,
+    difficulty: 'boss',
+    key: 'dragonLairBoss',
+    f0: dungeonFactors.dragonLairBoss,
+    defs: [bossOf('dragonLair')],
+  });
+  return out;
+}
+
+/** Every mob stays fitted by at most one source; a second one keeps its mobs untouched. */
+const claimed = new Map<string, string>();
+
+const all = jobs().map((job) => {
+  const defs = job.defs.filter((def) => {
+    if (claimed.get(def.id) === job.label) return false;
+    if (claimed.has(def.id)) {
+      console.warn(`Warning: ${def.id} is already fitted by ${claimed.get(def.id)}; ${job.label} leaves it alone.`);
+      return false;
+    }
+    claimed.set(def.id, job.label);
+    return true;
+  });
+  return { ...job, defs, originals: defs.map((d) => ({ hp: d.hp, damage: d.damage })) };
+});
+
+/** Sets a source's mobs to a factor, relative to the factor they were built with. */
+function scale(job: (typeof all)[number], factor: number) {
+  job.defs.forEach((def, i) => {
+    def.hp = Math.round((job.originals[i].hp * factor) / job.f0);
+    def.damage = Math.round((job.originals[i].damage * factor) / job.f0);
+  });
+}
+
+/** The end-of-tier odds at a factor, bisected towards its difficulty's target. */
+const targetOf = (difficulty: Difficulty) =>
+  difficulty === 'boss'
+    ? (targets.odds.boss[0] + targets.odds.boss[1]) / 2
+    : (difficultyRules.oddsTargets[difficulty].end[0] + difficultyRules.oddsTargets[difficulty].end[1]) / 2;
+
+type Result = { label: string; tier: number; difficulty: Difficulty; key: string; factor: number; start: number | null; end: number };
+const results: Result[] = [];
+
+for (const job of all) {
+  const target = targetOf(job.difficulty);
+  let lo = job.f0 / 4;
+  let hi = job.f0 * 4;
+  // Higher factor, stronger mobs, lower odds: a factor that measures too high is a lower bound.
+  for (let step = 0; step < options.steps; step++) {
+    const mid = Math.sqrt(lo * hi);
+    scale(job, mid);
+    if (sourceOdds(job.source, job.tier, 'end', options.runs) > target) lo = mid;
+    else hi = mid;
+  }
+  const factor = Math.round(Math.sqrt(lo * hi) * 100) / 100;
+  scale(job, factor);
+  const end = sourceOdds(job.source, job.tier, 'end', options.runs);
+  const start = job.difficulty === 'boss' ? null : sourceOdds(job.source, job.tier, 'start', options.runs);
+  results.push({ label: job.label, tier: job.tier, difficulty: job.difficulty, key: job.key, factor, start, end });
+  scale(job, job.f0);
+}
+
+/** One tier's factor for a kind it was not fitted at: the nearest fitted tier's. */
+const nearest = (fitted: Map<number, number>, tier: number) =>
+  fitted.get([...fitted.keys()].sort((a, b) => Math.abs(a - tier) - Math.abs(b - tier) || a - b)[0])!;
+
+const round2 = (value: number) => Math.round(value * 100) / 100;
+const writeFactors = () => {
+  const chainIds = [1, 2, 3, 4, 5].flatMap((tier) => tierChain(tier).filter((d) => (d.chainIndex ?? 6) < 6).map((d) => d.id));
+  const dungeonLines = [...chainIds, 'giantsHall', 'dragonLairBoss'].map((id) => `  ${id}: ${round2(results.find((r) => r.key === id)!.factor)},`);
+  const patrolLines = (Object.keys(patrolFactors) as PatrolKind[]).map((kind) => {
+    const fitted = new Map<number, number>();
+    for (const result of results) if (result.key === kind) fitted.set(result.tier, result.factor);
+    return `  ${kind}: [${[1, 2, 3, 4, 5].map((tier) => round2(nearest(fitted, tier))).join(', ')}],`;
+  });
+  const placeLines = (Object.keys(placeFightRules.kinds) as FightPlaceKind[]).map((kind) => {
+    const fitted = new Map<number, number>();
+    for (const result of results) if (result.key === kind) fitted.set(result.tier, result.factor);
+    return `  ${kind}: [${[1, 2, 3, 4, 5].map((tier) => round2(nearest(fitted, tier))).join(', ')}],`;
+  });
+  const file = `// Generated by npm run sim:fit — do not edit by hand.
+import type { FightPlaceKind } from '@/content/placeFights';
+import type { PatrolKind } from '@/game/patrols/generate';
+
+/**
+ * Strength factors, fitted to the reference teams' win-odds targets (see
+ * src/game/sim/difficultyOdds.ts and the fitting script scripts/sim/fitDifficulty.ts).
+ */
+
+/** Chain dungeons' S keys (src/content/enemies.ts), plus the fitted tier 4 and 5 boss keys. */
+export const dungeonFactors: Record<string, number> = {
+${dungeonLines.join('\n')}
+};
+
+/** One factor per tier for every patrol kind, whatever the tier it spawns in. */
+export const patrolFactors: Record<PatrolKind, [number, number, number, number, number]> = {
+${patrolLines.join('\n')}
+};
+
+/** One factor per tier for every fight event kind and the monster lair. */
+export const placeFactors: Record<FightPlaceKind, [number, number, number, number, number]> = {
+${placeLines.join('\n')}
+};
+`;
+  fs.writeFileSync(path.resolve(process.cwd(), 'src/content/difficultyFactors.ts'), file);
+};
+
+const inRange = (value: number, [min, max]: [number, number]) => value >= min && value <= max;
+const pct = (value: number | null) => (value === null ? '—' : `${Math.round(value * 100)}%`);
+const cell = (value: number | null, range: [number, number]) =>
+  value === null ? '—' : `${pct(value)} ${inRange(value, range) ? '✓' : '✗'}`;
+
+console.log('| source | tier | difficulty | factor | start | end |');
+console.log('| --- | --- | --- | --- | --- | --- |');
+for (const r of results) {
+  const startRange = r.difficulty === 'boss' ? null : difficultyRules.oddsTargets[r.difficulty as PatrolDifficulty].start;
+  const endRange = r.difficulty === 'boss' ? targets.odds.boss : difficultyRules.oddsTargets[r.difficulty as PatrolDifficulty].end;
+  console.log(
+    `| ${r.label} | ${r.tier} | ${r.difficulty} | ${r.factor} | ${startRange ? cell(r.start, startRange) : '—'} | ${cell(r.end, endRange)} |`,
+  );
+}
+
+writeFactors();
+console.log(`\n${((performance.now() - started) / 1000).toFixed(1)} s (${options.runs} runs, ${options.steps} steps per source)`);

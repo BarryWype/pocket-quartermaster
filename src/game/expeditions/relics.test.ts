@@ -125,7 +125,7 @@ describe('relic keyword effects', () => {
   it("the Deserter's mail braces strongly in the first fight only", () => {
     const rules = { ...steady, maxRounds: 2 };
     const taken = (encounters: EncounterDef[]) => {
-      const run = simulateRun([relicMember('desertersMail')], dungeon(encounters, { damage: 50 }), 'seed', { rules });
+      const run = simulateRun([relicMember('desertersMail', { power: 13 })], dungeon(encounters, { damage: 50 }), 'seed', { rules });
       const boss = run.encounters.find((e) => e.kind === 'boss');
       if (!boss) throw new Error('no boss fight');
       return boss.taken.bram;

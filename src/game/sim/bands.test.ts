@@ -1,6 +1,8 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
+import { difficultyRules } from '@/content/difficulty';
+
 import type { Stat, Summary } from './metrics';
 import { inRange, targets } from './targets';
 
@@ -25,7 +27,7 @@ const expectIn = (value: number, range: [number, number]) => {
 };
 
 check('simulator balance bands', () => {
-  const summary: Pick<Summary, 'profiles'> = fs.existsSync(FILE) ? read() : { profiles: {} };
+  const summary: Summary = fs.existsSync(FILE) ? read() : { settings: { profiles: [], seeds: 0, seed: '', overrides: [], maxDays: null }, profiles: {}, difficultyOdds: {} };
   const profiles = Object.values(summary.profiles);
 
   it('has a summary to read (run npm run sim)', () => expect(profiles.length).toBeGreaterThan(0));
@@ -47,6 +49,15 @@ check('simulator balance bands', () => {
         it(`${s.profile}: tier ${tier.tier} normal expeditions, not prepared`, () => expectIn(median(odds.unprepared.probe), targets.odds.unprepared));
         it(`${s.profile}: tier ${tier.tier} boss, prepared`, () => expectIn(median(odds.boss.probe), targets.odds.boss));
         it(`${s.profile}: tier ${tier.tier} fight events and patrols, prepared`, () => expectIn(median(odds.events.probe), targets.odds.events));
+      }
+    }
+  });
+
+  describe('difficulty odds (reference teams)', () => {
+    for (const [tier, odds] of Object.entries(summary.difficultyOdds ?? {})) {
+      for (const difficulty of ['easy', 'medium', 'hard'] as const) {
+        it(`tier ${tier} ${difficulty} sources at the tier's start`, () => expectIn(odds[difficulty].start, difficultyRules.oddsTargets[difficulty].start));
+        it(`tier ${tier} ${difficulty} sources at the tier's end`, () => expectIn(odds[difficulty].end, difficultyRules.oddsTargets[difficulty].end));
       }
     }
   });

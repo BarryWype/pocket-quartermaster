@@ -7,6 +7,7 @@ import { highestTier, type RunLog } from '@/game/sim/bot';
 import { BOT_RULES, profiles } from '@/game/sim/config';
 import { runSim } from '@/game/sim/engine';
 import { summarize, type ProfileSummary, type Summary } from '@/game/sim/metrics';
+import { difficultyOddsByTier } from '@/game/sim/difficultyOdds';
 import { applyOverrides, parseOverride } from '@/game/sim/overrides';
 import { measureWalkRates, walkCacheKey, type WalkRates } from '@/game/sim/walking';
 import { craftsCsv, dailyCsv, expeditionsCsv } from './csv';
@@ -136,6 +137,7 @@ export async function runLab(options: LabOptions) {
     for (let i = 0; i < options.profiles.length; i++) summaries.push(summarize(logs.slice(i * options.seeds, (i + 1) * options.seeds)));
     const summary: Summary = {
       settings: { profiles: options.profiles, seeds: options.seeds, seed: options.seed, overrides: options.overrides, maxDays: options.maxDays ?? null },
+      difficultyOdds: difficultyOddsByTier(),
       profiles: Object.fromEntries(summaries.map((s) => [s.profile, s])),
     };
     fs.mkdirSync(options.outDir, { recursive: true });
@@ -148,7 +150,7 @@ export async function runLab(options: LabOptions) {
     fs.writeFileSync(path.join(options.reportDir, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
     fs.writeFileSync(
       path.join(options.reportDir, 'report.md'),
-      renderReport({ summaries, rules: BOT_RULES, settings: { seeds: options.seeds, seed: options.seed, overrides: options.overrides, elapsed, date } }),
+      renderReport({ summaries, rules: BOT_RULES, settings: { seeds: options.seeds, seed: options.seed, overrides: options.overrides, elapsed, date }, difficultyOdds: summary.difficultyOdds }),
     );
     print(`\n${logs.length} games in ${elapsed.toFixed(1)} s → ${path.join(options.reportDir, 'report.md')} (CSVs in ${options.outDir})`);
     return { logs, summary, elapsed };

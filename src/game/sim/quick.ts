@@ -16,6 +16,7 @@ import { equip } from '../team/team';
 import type { ConsumableDef } from '../types';
 import { highestTier, withLoadout } from './bot';
 import { expectedLevels, simConfig, type SimConfig } from './config';
+import { difficultyOdds as tierDifficultyOdds, type DifficultyOdds } from './difficultyOdds';
 import { fillPotions } from './rules/loadout';
 
 const DAY = 86_400_000;
@@ -36,6 +37,8 @@ export type QuickTier = {
   patrols: number | null;
   /** Each fight event kind and patrol kind on its own, null where it never spawned. */
   byKind: Record<string, number | null>;
+  /** The mean odds of the tier's sources per difficulty (see difficultyOdds.ts). */
+  difficulty: DifficultyOdds;
   /** Samples behind each mean (`notPrepared` counts as `normal`). */
   samples: { normal: number; boss: number; events: number; patrols: number };
 };
@@ -137,6 +140,12 @@ export function quickProbe(config: SimConfig = simConfig): QuickTier[] {
       events: mean(events),
       patrols: mean(patrols),
       byKind: Object.fromEntries(Object.entries(byKind).map(([k, v]) => [k, mean(v)])),
+      difficulty: Object.fromEntries(
+        (['easy', 'medium', 'hard'] as const).map((d) => [
+          d,
+          { start: tierDifficultyOdds(tier, d, 'start', runs), end: tierDifficultyOdds(tier, d, 'end', runs) },
+        ]),
+      ) as DifficultyOdds,
       samples: { normal: prepared.length, boss: boss.length, events: events.length, patrols: patrols.length },
     };
   });

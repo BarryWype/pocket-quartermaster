@@ -140,7 +140,8 @@ describe('estimateOdds', () => {
 
   it('rises with better gear and is zero without a party', () => {
     const naked = estimateOdds(createInitialSave(), ALL, dungeonById.goblinWarren, 100);
-    const armed = estimateOdds(geared(), ALL, dungeonById.goblinWarren, 100);
+    // Tier-5 kit: the refit enemies outmatch the tier-1 wooden gear, so compare against gear a tier above the dungeon.
+    const armed = estimateOdds(atTier(geared(), 5), ALL, dungeonById.goblinWarren, 100);
     expect(armed.success).toBeGreaterThan(naked.success);
     expect(estimateOdds(geared(), [], dungeonById.goblinWarren).success).toBe(0);
   });

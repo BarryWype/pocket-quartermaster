@@ -76,7 +76,7 @@ describe('balance lab', () => {
   it('plays through the tutorial and the first tier', () => {
     // Full XP above the tier band: this checks the bot's play, not the soft XP cap's balance.
     const undo = applyOverrides([parseOverride('xp.aboveBandShare=1')]);
-    const log = runSim({ profile: 'regular', maxDays: 14, seed: 'progress', rates });
+    const log = runSim({ profile: 'regular', maxDays: 21, seed: 'progress', rates });
     undo();
     expect(log.milestones['boss:1']).toBeDefined();
     expect(log.expeditions.length).toBeGreaterThan(5);

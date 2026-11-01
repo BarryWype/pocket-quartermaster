@@ -1,4 +1,5 @@
 import { simConfig } from '@/game/sim/config';
+import { difficultyRules } from '@/content/difficulty';
 import { applyOverrides, parseOverride } from '@/game/sim/overrides';
 import { quickProbe, type QuickTier } from '@/game/sim/quick';
 import { inRange, targets } from '@/game/sim/targets';
@@ -59,4 +60,15 @@ console.log(`\n| tier | ${kinds.join(' | ')} |`);
 console.log(`| --- |${kinds.map(() => ' --- |').join('')}`);
 for (const tier of tiers) console.log(`| ${tier.tier} | ${kinds.map((k) => cell(tier.byKind[k], targets.odds.events)).join(' | ')} |`);
 console.log(`| mean | ${averages.map((v) => cell(v, targets.odds.events)).join(' | ')} |`);
+
+console.log('\n## Odds by difficulty (reference teams)');
+console.log('| tier | easy start | easy end | medium start | medium end | hard start | hard end |');
+console.log('| --- | --- | --- | --- | --- | --- | --- |');
+for (const tier of tiers) {
+  console.log(
+    `| ${tier.tier} | ${(['easy', 'medium', 'hard'] as const)
+      .flatMap((d) => [tier.difficulty[d].start, tier.difficulty[d].end].map((v, i) => cell(v, difficultyRules.oddsTargets[d][i ? 'end' : 'start'])))
+      .join(' | ')} |`,
+  );
+}
 console.log(`\n${((performance.now() - started) / 1000).toFixed(1)} s`);

@@ -3,6 +3,7 @@ import type { FightPlaceKind } from '@/content/placeFights';
 import { ELEMENTS, type Element } from '@/game/elements';
 import type { BossDef, DamageStat, MobDef, SanctumDef, SpeedClass, Tag } from '@/game/types';
 
+import { dungeonFactors, patrolFactors, placeFactors } from './difficultyFactors';
 import { npcs } from './npcs';
 import { sanctumRules, sanctums } from './sanctums';
 
@@ -28,6 +29,9 @@ export const TIER_SCALE = [1, 1.9, 3, 4.2, 5.6];
 type Strength = { tier: number; scale: number };
 
 const strength = (tier: number, dungeonFactor: number): Strength => ({ tier, scale: TIER_SCALE[tier - 1] * dungeonFactor });
+
+/** A chain dungeon's fitted factor (see content/difficultyFactors.ts), or its hand-tuned one. */
+const D = (id: string, fallback: number) => dungeonFactors[id] ?? fallback;
 
 const enemySpeed = (tier: number, speedClass: SpeedClass) =>
   enemySpeedRules[speedClass] + enemySpeedRules.speedPerTier * (tier - 1);
@@ -73,49 +77,49 @@ function boss(
 
 const S = {
   // Tier 1
-  ratCellar: strength(1, 2.50),
-  spiderBurrow: strength(1, 2.70),
-  oldGraveyard: strength(1, 2.15),
-  goblinWarren: strength(1, 4.22),
-  millRuins: strength(1, 4.37),
-  smugglersCove: strength(1, 4.29),
+  ratCellar: strength(1, D('ratCellar', 2.50)),
+  spiderBurrow: strength(1, D('spiderBurrow', 2.70)),
+  oldGraveyard: strength(1, D('oldGraveyard', 2.15)),
+  goblinWarren: strength(1, D('goblinWarren', 4.22)),
+  millRuins: strength(1, D('millRuins', 4.37)),
+  smugglersCove: strength(1, D('smugglersCove', 4.29)),
   banditStockade: strength(1, 3.95),
   // The bandit captain alone: ×0.9, aimed at about 55% for the full game's rosters (the reference team is far below).
   banditStockadeBoss: strength(1, 3.56),
   // Tier 2
-  wolfDen: strength(2, 4.14),
-  barrowMounds: strength(2, 3.32),
-  boarThicket: strength(2, 3.97),
-  trollBridge: strength(2, 3.61),
-  sunkenFord: strength(2, 2.67),
-  watchtower: strength(2, 3.72),
+  wolfDen: strength(2, D('wolfDen', 4.14)),
+  barrowMounds: strength(2, D('barrowMounds', 3.32)),
+  boarThicket: strength(2, D('boarThicket', 3.97)),
+  trollBridge: strength(2, D('trollBridge', 3.61)),
+  sunkenFord: strength(2, D('sunkenFord', 2.67)),
+  watchtower: strength(2, D('watchtower', 3.72)),
   ogreQuarry: strength(2, 3.17),
   // Tier 3
-  hauntedMine: strength(3, 3.49),
-  fungalGrotto: strength(3, 3.04),
-  stormRidge: strength(3, 2.68),
-  cinderHollow: strength(3, 2.60),
-  dwarfhold: strength(3, 2.63),
-  witchMarsh: strength(3, 2.65),
+  hauntedMine: strength(3, D('hauntedMine', 3.49)),
+  fungalGrotto: strength(3, D('fungalGrotto', 3.04)),
+  stormRidge: strength(3, D('stormRidge', 2.68)),
+  cinderHollow: strength(3, D('cinderHollow', 2.60)),
+  dwarfhold: strength(3, D('dwarfhold', 2.63)),
+  witchMarsh: strength(3, D('witchMarsh', 2.65)),
   drownedCrypt: strength(3, 2.93),
   // Tier 4
-  harpyCliffs: strength(4, 3.42),
-  thunderPlateau: strength(4, 2.28),
-  boneField: strength(4, 3.39),
-  orcWarcamp: strength(4, 2.81),
-  clockworkVault: strength(4, 2.79),
-  frozenLake: strength(4, 2.27),
-  giantsHall: strength(4, 2.81),
+  harpyCliffs: strength(4, D('harpyCliffs', 3.42)),
+  thunderPlateau: strength(4, D('thunderPlateau', 2.28)),
+  boneField: strength(4, D('boneField', 3.39)),
+  orcWarcamp: strength(4, D('orcWarcamp', 2.81)),
+  clockworkVault: strength(4, D('clockworkVault', 2.79)),
+  frozenLake: strength(4, D('frozenLake', 2.27)),
+  giantsHall: strength(4, D('giantsHall', 2.81)),
   // Tier 5
-  wyvernPeaks: strength(5, 3.10),
-  ossuary: strength(5, 3.11),
-  stormIsle: strength(5, 2.05),
-  ashenCitadel: strength(5, 2.07),
-  abyssalDepths: strength(5, 1.74),
-  titanRuins: strength(5, 2.13),
+  wyvernPeaks: strength(5, D('wyvernPeaks', 3.10)),
+  ossuary: strength(5, D('ossuary', 3.11)),
+  stormIsle: strength(5, D('stormIsle', 2.05)),
+  ashenCitadel: strength(5, D('ashenCitadel', 2.07)),
+  abyssalDepths: strength(5, D('abyssalDepths', 1.74)),
+  titanRuins: strength(5, D('titanRuins', 2.13)),
   dragonLair: strength(5, 1.94),
   // The elder dragon alone: eased so the reference team beats it about 55% of the time.
-  dragonLairBoss: strength(5, 1.16),
+  dragonLairBoss: strength(5, D('dragonLairBoss', 1.16)),
   // Overnight expeditions: a long, safe patrol at low strength (see overnightExpeditionRules).
   nightWatch1: strength(1, 1.7),
   nightWatch2: strength(2, 2.5),
@@ -388,24 +392,11 @@ const GOLEM_FOES: Foe[][] = [
   [foe('obsidian golem'), foe('war golem'), foe('golem overlord')],
 ];
 
-type Factors = [number, number, number, number, number];
-
-const BANDIT_FACTORS: Factors = [7.93, 7.09, 6.76, 6.66, 6.97];
-const GOBLIN_FACTORS: Factors = [4.93, 4.47, 4.17, 4.2, 4.37];
-const HERD_FACTORS: Factors = [4.56, 4, 3.78, 3.91, 3.89];
-
-/** A fight event kind's own fit on top of the shared per-tier factors (the quick check's per-kind odds, ~75%). */
-const kindFit = { goblinRaid: 1.85, beastDen: 1.85, hauntedCrypt: 1.85, elementalRift: 1.85 };
-
-const fitted = (factors: Factors, fit: number) => factors.map((f) => Math.round(f * fit * 100) / 100) as Factors;
-
 type PatrolTemplate = {
   /** Stats for [weak, normal, boss] at tier-1 strength. */
   hp: [number, number, number];
   damage: [number, number, number];
   tags: Tag[];
-  /** Like a dungeon's factor, per tier: tuned against the odds targets in the comment above. */
-  factors: Factors;
   /** Foes for [weak, normal, boss], one row per tier; the last row repeats for the tiers beyond it. */
   foes: Foe[][];
   /** One mob set per element instead of a single set. */
@@ -440,70 +431,60 @@ const patrolTemplates: Record<Exclude<PatrolKind, (typeof ELITE_PATROL_KINDS)[nu
     hp: [7, 10, 14],
     damage: [2, 3, 4],
     tags: ['locals'],
-    factors: GOBLIN_FACTORS,
     foes: GOBLIN_FOES,
   },
   herd: {
     hp: [8, 12, 16],
     damage: [2, 3, 4],
     tags: ['beast'],
-    factors: HERD_FACTORS,
     foes: HERD_FOES,
   },
   wolves: {
     hp: [8, 12, 16],
     damage: [2, 3, 4],
     tags: ['beast'],
-    factors: HERD_FACTORS,
     foes: HERD_FOES,
   },
   bandits: {
     hp: [10, 14, 22],
     damage: [3, 4, 6],
     tags: ['locals'],
-    factors: BANDIT_FACTORS,
     foes: BANDIT_FOES,
   },
   orcs: {
     hp: [10, 14, 22],
     damage: [3, 4, 6],
     tags: ['brute'],
-    factors: BANDIT_FACTORS,
     foes: ORC_FOES,
   },
   spiders: {
     hp: [8, 12, 16],
     damage: [2, 3, 4],
     tags: ['vermin'],
-    factors: HERD_FACTORS,
     foes: SPIDER_FOES,
   },
   ogres: {
     hp: [10, 14, 22],
     damage: [3, 4, 6],
     tags: ['brute'],
-    factors: BANDIT_FACTORS,
     foes: OGRES_FOES,
   },
   trolls: {
     hp: [10, 14, 22],
     damage: [3, 4, 6],
     tags: ['brute'],
-    factors: BANDIT_FACTORS,
     foes: TROLL_FOES,
   },
   wraiths: {
     hp: [10, 14, 22],
     damage: [3, 4, 6],
     tags: ['spirit'],
-    factors: BANDIT_FACTORS,
     foes: WRAITH_FOES,
   },
   wyverns: {
     hp: [10, 14, 22],
     damage: [3, 4, 6],
     tags: ['dragon'],
-    factors: BANDIT_FACTORS,
     foes: WYVERN_FOES,
     elemental: true,
   },
@@ -511,7 +492,6 @@ const patrolTemplates: Record<Exclude<PatrolKind, (typeof ELITE_PATROL_KINDS)[nu
     hp: [10, 14, 22],
     damage: [3, 4, 6],
     tags: ['construct'],
-    factors: BANDIT_FACTORS,
     foes: GOLEM_FOES,
   },
 };
@@ -521,7 +501,9 @@ export const patrolMobId = (kind: PatrolKind, tier: number, role: PatrolRole, el
   `patrol:${kind}:${tier}:${role}${elite ? ':elite' : ''}${element ? `:${element}` : ''}`;
 
 const patrolMobs: MobDef[] = (Object.keys(PATROL_TEMPLATE_OF) as PatrolKind[]).flatMap((kind) => {
-  const { hp, damage, tags, factors, foes, elemental } = patrolTemplates[PATROL_TEMPLATE_OF[kind]];
+  const { hp, damage, tags, foes, elemental } = patrolTemplates[PATROL_TEMPLATE_OF[kind]];
+  // The kind's own fitted factors, one per tier (see content/difficultyFactors.ts).
+  const factors = patrolFactors[kind];
   // Beasts charge; everyone else keeps pace with heroes.
   const speedClass: SpeedClass = tags.includes('beast') ? 'fast' : 'normal';
   const elements = elemental ? [...ELEMENTS] : [undefined];
@@ -546,15 +528,12 @@ const patrolMobs: MobDef[] = (Object.keys(PATROL_TEMPLATE_OF) as PatrolKind[]).f
 
 // Fight events and the monster lair: the fixed enemies home heroes fight at
 // map places (see content/placeFights.ts). Templates work like patrol ones;
-// the factors are the bandit and goblin/herd patrol factors, since place
-// fights are tuned like patrols with a full party, with the goblin raid, beast
-// den, haunted crypt and elemental rift scaled by their own `kindFit`.
+// each kind's fitted factors are in content/difficultyFactors.ts.
 type PlaceTemplate = {
   /** Stats for [weak, normal, boss] at tier-1 strength. */
   hp: [number, number, number];
   damage: [number, number, number];
   tags: Tag[];
-  factors: Factors;
   /** Foes for [weak, normal, boss], one row per tier. */
   foes: Foe[][];
   /** One mob set per element instead of a single set. */
@@ -566,28 +545,24 @@ const placeTemplates: Record<FightPlaceKind, PlaceTemplate> = {
     hp: [10, 14, 22],
     damage: [3, 4, 6],
     tags: ['locals'],
-    factors: BANDIT_FACTORS,
     foes: BANDIT_FOES,
   },
   goblinRaid: {
     hp: [7, 10, 14],
     damage: [2, 3, 4],
     tags: ['locals'],
-    factors: fitted(GOBLIN_FACTORS, kindFit.goblinRaid),
     foes: GOBLIN_FOES,
   },
   beastDen: {
     hp: [8, 12, 16],
     damage: [2, 3, 4],
     tags: ['beast'],
-    factors: fitted(HERD_FACTORS, kindFit.beastDen),
     foes: HERD_FOES,
   },
   hauntedCrypt: {
     hp: [8, 12, 16],
     damage: [2, 3, 4],
     tags: ['undead'],
-    factors: fitted(HERD_FACTORS, kindFit.hauntedCrypt),
     foes: [
       [foe('restless bones'), foe('grave robber', 'humanoid'), foe('ghoul')],
       [foe('barrow wight', 'spirit'), foe('drowned soldier'), foe('mould knight')],
@@ -600,7 +575,6 @@ const placeTemplates: Record<FightPlaceKind, PlaceTemplate> = {
     hp: [8, 12, 16],
     damage: [2, 3, 4],
     tags: [],
-    factors: fitted(HERD_FACTORS, kindFit.elementalRift),
     elemental: true,
     foes: [
       [foe('ember whelp', 'dragon'), foe('ember sprite', 'elemental'), foe('rift spawn', 'elemental')],
@@ -614,21 +588,18 @@ const placeTemplates: Record<FightPlaceKind, PlaceTemplate> = {
     hp: [10, 14, 22],
     damage: [3, 4, 6],
     tags: ['locals'],
-    factors: BANDIT_FACTORS,
     foes: BANDIT_FOES,
   },
   wantedOutlaw: {
     hp: [10, 14, 22],
     damage: [3, 4, 6],
     tags: ['locals'],
-    factors: BANDIT_FACTORS,
     foes: BANDIT_FOES,
   },
   monsterLair: {
     hp: [10, 14, 22],
     damage: [3, 4, 6],
     tags: ['beast'],
-    factors: BANDIT_FACTORS,
     foes: [
       [foe('giant rat'), foe('ghoul'), foe('rat king', 'vermin')],
       [foe('bog hound'), foe('river troll', 'brute'), foe('barrow king', 'spirit')],
@@ -644,7 +615,9 @@ export const placeMobId = (kind: FightPlaceKind, tier: number, role: 'weak' | 'n
   `place:${kind}:${tier}:${role}${elite ? ':elite' : ''}${element ? `:${element}` : ''}`;
 
 const placeMobs: MobDef[] = (Object.keys(placeTemplates) as FightPlaceKind[]).flatMap((kind) => {
-  const { hp, damage, tags, factors, foes, elemental } = placeTemplates[kind];
+  const { hp, damage, tags, foes, elemental } = placeTemplates[kind];
+  // The kind's own fitted factors, one per tier (see content/difficultyFactors.ts).
+  const factors = placeFactors[kind];
   // Beasts charge; everyone else keeps pace with heroes.
   const speedClass: SpeedClass = tags.includes('beast') ? 'fast' : 'normal';
   const elements = elemental ? [...ELEMENTS] : [undefined];
