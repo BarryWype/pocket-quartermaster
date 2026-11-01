@@ -32,7 +32,7 @@ import { colors, pixel } from '@/theme';
 
 import { ClassSummary } from './ClassSummary';
 import { EnemyTags } from './EnemyTags';
-import { PriceTag } from './PriceTag';
+import { Price } from './Price';
 import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
@@ -189,7 +189,7 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
             </Text>
             <ClassSummary classId={offer.classId} />
             <View style={styles.actions}>
-              <PriceTag price={offer.price} style={styles.price} />
+              <Price amount={offer.price} short={save.gold < offer.price} textStyle={styles.price} />
               <EmberButton title={t('tavern.recruit')} compact disabled={recruitProblem !== null} onPress={() => recruit(place, player)} />
             </View>
             {recruitProblem && <Text style={styles.problem}>{problemText(recruitProblem, distance, rosterCap(save))}</Text>}
@@ -204,7 +204,7 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
                 <View key={line.key} style={styles.offer}>
                   <PartsLine parts={marketLineParts(line)} labelStyle={styles.name} />
                   <View style={styles.actions}>
-                    <PriceTag price={line.price} style={styles.price} />
+                    <Price amount={line.price} short={save.gold < line.price} textStyle={styles.price} />
                     {problem === 'soldOut' && <Text style={styles.muted}>{t('places.soldOut')}</Text>}
                     <WoodButton title={t('tavern.buy')} compact disabled={problem !== null} onPress={() => buy(place, line.key, player)} />
                   </View>
@@ -222,11 +222,14 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
       <Sheet variant="wood" emoji={info.emoji} title={tr(info.name)} bodyStyle={styles.content} footer={<WoodButton title={t('common.close')} onPress={onClose} />}>
         {keyLine}
         <Text style={styles.muted}>{tr(info.description)}</Text>
-        <Text style={styles.muted}>
-          {t('secrets.where', { distance: formatDistance(distance), time: formatDuration(place.expiresAt - now) })}
-          {' · '}
-          {t('places.gold', { gold: save.gold })}
-        </Text>
+        <View style={styles.goldRow}>
+          <Text style={styles.muted}>
+            {t('secrets.where', { distance: formatDistance(distance), time: formatDuration(place.expiresAt - now) })}
+            {' · '}
+            {t('places.gold')}
+          </Text>
+          <Price amount={save.gold} textStyle={styles.muted} />
+        </View>
         {underwater ? underwaterBody() : offerBody()}
       </Sheet>
     </Overlay>
@@ -244,6 +247,7 @@ const styles = StyleSheet.create({
   trait: { fontSize: 19 },
   price: { fontSize: 21 },
   actions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
+  goldRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: pixel.outline, borderColor: colors.woodDark, paddingHorizontal: 10, paddingVertical: 6 },
   chipActive: { borderColor: colors.ink, backgroundColor: colors.highlight },

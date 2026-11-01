@@ -25,7 +25,7 @@ import { colors } from '@/theme';
 import { ClassSummary } from './ClassSummary';
 import { lineParts } from './PlacePanel';
 import { IconLabel, PartsLine } from './IconLabel';
-import { PriceTag } from './PriceTag';
+import { Price } from './Price';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
 import { EmberButton, WoodButton } from './ui';
@@ -74,7 +74,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
         </Text>
         <ClassSummary classId={offer.classId} />
         <View style={styles.actions}>
-          <PriceTag price={offer.price} style={styles.price} />
+          <Price amount={offer.price} short={save.gold < offer.price} textStyle={styles.price} />
           <EmberButton title={t('tavern.recruit')} compact disabled={problem !== null} onPress={() => recruit(offer, tavern.position, player)} />
         </View>
         {problem && <Text style={styles.problem}>{problemText[problem](distance, rosterCap(save))}</Text>}
@@ -85,15 +85,20 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
   return (
     <Overlay onClose={onClose} position="bottom">
       <Sheet variant="wood" emoji="🍺" title={tavern.name} bodyStyle={styles.content} footer={<WoodButton title={t('common.close')} onPress={onClose} />}>
-        <Text style={styles.muted}>
-          {t('tavern.header', { gold: save.gold, count: save.heroes.length, cap: rosterCap(save) })}
-        </Text>
+        <View style={styles.goldRow}>
+          <Text style={styles.muted}>{t('tavern.headerGold')}</Text>
+          <Price amount={save.gold} textStyle={styles.muted} />
+          <Text style={styles.muted}>
+            {' · '}
+            {t('tavern.header', { count: save.heroes.length, cap: rosterCap(save) })}
+          </Text>
+        </View>
         {offers.map(offerRow)}
         <View style={styles.offer}>
           <IconLabel emoji="🥓" label={t('tavern.emergency')} labelStyle={styles.name} />
           <Text style={styles.muted}>{t('tavern.emergencyHint', { held: save.consumables.jerky ?? 0 })}</Text>
           <View style={styles.actions}>
-            <PriceTag price={supplyPrice(save)} style={styles.price} />
+            <Price amount={supplyPrice(save)} short={save.gold < supplyPrice(save)} textStyle={styles.price} />
             <WoodButton
               title={t('tavern.buy')}
               compact
@@ -106,7 +111,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
           <View key={line.key} style={styles.offer}>
             <PartsLine parts={lineParts(line)} labelStyle={styles.name} />
             <View style={styles.actions}>
-              <PriceTag price={line.price} style={styles.price} />
+              <Price amount={line.price} short={save.gold < line.price} textStyle={styles.price} />
               <Text style={styles.muted}>
                 {stockLeft(save, tavern, line) > 0 ? t('places.left', { count: stockLeft(save, tavern, line) }) : t('places.soldOut')}
               </Text>
@@ -132,5 +137,6 @@ const styles = StyleSheet.create({
   trait: { fontSize: 19 },
   price: { fontSize: 21 },
   actions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  goldRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
   problem: { color: colors.muted, fontStyle: 'italic' },
 });

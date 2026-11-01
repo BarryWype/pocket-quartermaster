@@ -8,17 +8,16 @@ import { useEffect } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
 
 import { RecipeToast } from '@/components/RecipeToast';
-import { GameIcon } from '@/components/GameIcon';
+import { Price } from '@/components/Price';
 import { ScreenHeader } from '@/components/ui';
 import { SecretToast } from '@/components/SecretToast';
-import { Text } from '@/components/Text';
 import { TipBar } from '@/components/TipBar';
 import { useAutoGather } from '@/hooks/useAutoGather';
 import { useLanguage } from '@/hooks/useLanguage';
 import { syncPlan, useNotifications } from '@/hooks/useNotifications';
 import { usePatrols } from '@/hooks/usePatrols';
 import { useStepTracking } from '@/hooks/useTodaySteps';
-import { formatNumber, t } from '@/i18n';
+import { t } from '@/i18n';
 import { configureChannels, configureNotifications } from '@/services/notifications';
 import { useGameStore } from '@/store/gameStore';
 import { colors, fonts, ui } from '@/theme';
@@ -107,8 +106,7 @@ function HeaderGold() {
   const gold = useGameStore((state) => state.save.gold);
   return (
     <View style={styles.gold} accessibilityLabel={t('common.gold')}>
-      <GameIcon emoji="🪙" size={14} />
-      <Text style={styles.goldAmount}>{formatNumber(gold)}</Text>
+      <Price amount={gold} size={14} textStyle={styles.goldAmount} />
     </View>
   );
 }

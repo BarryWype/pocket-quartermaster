@@ -30,6 +30,7 @@ import { DifficultyChip } from './ui';
 import { Overlay } from './Overlay';
 import { useSheetMaxHeight } from './Sheet';
 import { Panel } from './Panel';
+import { Price } from './Price';
 import { Text } from './Text';
 import { ThreatCoverageChips } from './ThreatDetail';
 import { IconLabel } from './IconLabel';
@@ -284,10 +285,10 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
               <View style={styles.warning}>
                 <IconLabel emoji="⚠️" label={t(`expeditions.confirm.hunger.${plan.hunger}`)} labelStyle={styles.warningText} />
                 {canBuy && (
-                  <Button
-                    title={t('expeditions.confirm.buySupply', { price: supplyPrice(save) })}
-                    onPress={() => buySupply(1, nearbyTavern.position, player)}
-                  />
+                  <View style={styles.buyRow}>
+                    <Price amount={supplyPrice(save)} short={save.gold < supplyPrice(save)} />
+                    <Button title={t('expeditions.confirm.buySupply')} onPress={() => buySupply(1, nearbyTavern.position, player)} />
+                  </View>
                 )}
               </View>
             )}
@@ -379,6 +380,7 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
 
 const styles = StyleSheet.create({
   charmRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
+  buyRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   summaryRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
   dialog: { gap: 10, padding: 14 },
   scroll: { flexShrink: 1 },

@@ -3,6 +3,8 @@ import { gearName, itemById, materialById, recipeById, recipeOutput, relicById, 
 import type { Loot } from '@/game/loot/types';
 import { t, tr } from '@/i18n';
 
+import { goldLabel } from './Price';
+
 /** A gains sentence with its `{gains}` placeholder emptied: the words that stay beside the gains list. */
 export const gainsPrefix = (sentence: string) => sentence.replace(/[\s:·.!]+$/g, '');
 
@@ -13,7 +15,7 @@ export const lootText = (loot: Loot) => lootLabels(loot).join(', ');
 export function lootLabels(loot: Loot): string[] {
   const rarity = (r: Loot['manuals'][number]) => t(`expeditions.rarity.${r}`);
   return [
-    loot.gold > 0 ? `🪙 +${loot.gold}` : null,
+    loot.gold > 0 ? goldLabel(loot.gold, '+') : null,
     ...loot.gear.map((g) => `${itemById[g.itemId].emoji} ${gearName(g)}`),
     ...loot.recipeIds.map((id) => t('expeditions.newBlueprint', { name: tr(recipeOutput(recipeById[id]).name) })),
     ...loot.mastery.map((m) => t('expeditions.tierComplete', { tier: m.tier, forges: m.forges, types: tr(masteryTypeNames[m.type].plural) })),

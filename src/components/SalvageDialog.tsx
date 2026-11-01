@@ -12,6 +12,7 @@ import { Button } from './Button';
 import { Overlay } from './Overlay';
 import { useSheetMaxHeight } from './Sheet';
 import { Panel } from './Panel';
+import { Price } from './Price';
 import { Text } from './Text';
 import { IconLabel } from './IconLabel';
 
@@ -35,7 +36,6 @@ export function SalvageDialog({ gear, save, onConfirm, onClose }: Props) {
   const dialog = salvageDialog(save, gear);
   const returns = dialog.returns.materials
     .map(({ materialId, amount }) => `${amount} ${tr(materialById[materialId].name).toLowerCase()}`)
-    .concat(dialog.returns.gold > 0 ? [`🪙 ${dialog.returns.gold}`] : [])
     .join(', ');
 
   const maxHeight = useSheetMaxHeight();
@@ -45,7 +45,11 @@ export function SalvageDialog({ gear, save, onConfirm, onClose }: Props) {
         <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
           <Text style={styles.title}>{t('inventory.salvageTitle', { item: gearName(gear) })}</Text>
           <Text style={[styles.quality, { color: qualities[dialog.quality].color }]}>{tr(qualities[dialog.quality].name)}</Text>
-          <Text>{t('inventory.salvageBody', { returns: returns })}</Text>
+          <View style={styles.returnsRow}>
+            <Text>{t('inventory.salvageBody')}</Text>
+            {returns ? <Text>{returns}</Text> : null}
+            {dialog.returns.gold > 0 && <Price amount={dialog.returns.gold} />}
+          </View>
           {dialog.warnings.map((warning) => (
             <View key={warning} style={styles.warning}>
               <IconLabel emoji="⚠️" label={t(warningKey[warning])} labelStyle={styles.warningText} />
@@ -67,6 +71,7 @@ const styles = StyleSheet.create({
   content: { gap: 10 },
   title: { fontSize: 24 },
   quality: { fontSize: 16, textTransform: 'uppercase' },
+  returnsRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
   warning: { padding: 8, borderWidth: 2, borderColor: colors.danger, backgroundColor: colors.parchmentDark },
   warningText: { color: colors.danger },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 4 },

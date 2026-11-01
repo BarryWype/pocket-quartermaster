@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View, type ImageSourcePropType, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 
+import { Price, parseGoldLabel } from './Price';
 import { GameIcon } from './GameIcon';
 import { Text } from './Text';
 
@@ -68,7 +69,7 @@ export function PartsLine({ parts, sep = ' · ', style, labelStyle, size = 18, g
 
 const LEADING_EMOJI = /^(?:[\uD83C-\uD83F][\uDC00-\uDFFF]|[\u2600-\u2604\u2607-\u2712\u2717-\u2725\u2728-\u27BF\u2B00-\u2BFF\u231A-\u23FF]\uFE0F?)\s*/;
 
-/** The emoji a loot or reward label starts with, if any: `splitLeadingEmoji('🪙 +12')` is `🪙`. */
+/** The emoji a loot or reward label starts with, if any: `splitLeadingEmoji('✨ +12')` is `✨`. */
 export function splitLeadingEmoji(text: string): { emoji: string; label: string } | null {
   const match = LEADING_EMOJI.exec(text);
   if (!match) return null;
@@ -77,6 +78,8 @@ export function splitLeadingEmoji(text: string): { emoji: string; label: string 
 
 /** A loot or reward label: its leading emoji beside the words when it has one. */
 export function RewardLabel({ text, size = 18, labelStyle }: { text: string; size?: number; labelStyle?: StyleProp<TextStyle> }) {
+  const gold = parseGoldLabel(text);
+  if (gold) return <Price amount={gold.amount} prefix={gold.prefix} size={size} textStyle={labelStyle} />;
   const split = splitLeadingEmoji(text);
   if (!split) return <Text style={labelStyle}>{text}</Text>;
   return <IconLabel emoji={split.emoji} label={split.label} size={size} labelStyle={labelStyle} />;

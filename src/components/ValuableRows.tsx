@@ -5,7 +5,7 @@ import { t, tr } from '@/i18n';
 import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
-import { PriceTag } from './PriceTag';
+import { Price } from './Price';
 import { IconLabel } from './IconLabel';
 
 type Props = {
@@ -39,7 +39,7 @@ export function ValuableRows({ valuables, price, canSell, onSell, wanted }: Prop
           />
         </View>
         <View style={styles.actions}>
-          <PriceTag price={price(key)} style={styles.name} />
+          <Price amount={price(key)} textStyle={styles.name} />
           <Button title={t('places.sell')} disabled={!canSell(key, 1)} onPress={() => onSell(key, 1)} />
           <Button title={t('places.sellAll')} disabled={!canSell(key, count)} onPress={() => onSell(key, count)} />
         </View>

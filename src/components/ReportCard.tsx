@@ -8,6 +8,7 @@ import { fonts, ui } from '@/theme';
 
 import { lootItems } from './LootReveal';
 import { GainsLine } from './IconLabel';
+import { goldLabel } from './Price';
 import { GameIcon } from './GameIcon';
 import { PixelBar } from './PixelBar';
 import { Chip, DifficultyChip, ParchmentCard } from './ui';
@@ -24,9 +25,9 @@ type Props = {
 /** What an answered opportunity handed over, one short label per effect. */
 function opportunityGave(outcome: OpportunityOutcome): string {
   return [
-    outcome.gold ? `🪙 +${outcome.gold}` : null,
+    outcome.gold ? goldLabel(outcome.gold, '+') : null,
     ...(outcome.materials ?? []).map((m) => `${materialById[m.materialId].emoji} ${m.amount}`),
-    outcome.goldMultiplier ? `🪙 ×${outcome.goldMultiplier}` : null,
+    outcome.goldMultiplier ? goldLabel(outcome.goldMultiplier, '×') : null,
     outcome.damageMultiplier ? `⚔️ ×${outcome.damageMultiplier}` : null,
     outcome.xpMultiplier ? `✨ ×${outcome.xpMultiplier}` : null,
     outcome.recipe ? t('expeditions.report.recipe') : null,
@@ -111,7 +112,7 @@ export function ReportCard({ report, heroes, now, expanded, onToggle }: Props) {
           const item = itemById[entry.itemId];
           const returns = [
             ...entry.materials.map((m) => `${materialById[m.materialId].emoji} ${m.amount}`),
-            entry.gold ? `🪙 +${entry.gold}` : null,
+            entry.gold ? goldLabel(entry.gold, '+') : null,
           ]
             .filter((part): part is string => part !== null)
             .join(' · ');

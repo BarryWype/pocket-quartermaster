@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import PagerView from 'react-native-pager-view';
 
 import { IconLabel } from '@/components/IconLabel';
+import { Price } from '@/components/Price';
 import { Text } from '@/components/Text';
 import { guildBuildings, guildTrackById, guildTracks, type GuildBuildingId, type GuildTrack } from '@/content/guild';
 import { materialById } from '@/content/lookup';
@@ -13,7 +14,6 @@ import { t, tr } from '@/i18n';
 import { useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { fonts, ui } from '@/theme';
-import { priceLabel } from '@/components/PriceTag';
 
 import { Deferred, DiamondRail, EmberButton, GhostScreen, ParchmentCard, useLazyPages, type RailItem } from '@/components/ui';
 import { timed } from '@/components/timed';
@@ -26,27 +26,23 @@ const materialsText = (materials: MaterialStack[]) =>
 /** The next rank's full cost; whatever the player is short of is in red. */
 function PriceLine({ price }: { price: ReturnType<typeof rankPrice> }) {
   const save = useGameStore((state) => state.save);
-  const parts = [
-    { key: 'gold', emoji: undefined, text: priceLabel(price.gold), short: save.gold < price.gold },
-    ...price.materials.map(({ materialId, amount }) => ({
-      key: materialId,
-      emoji: materialById[materialId].emoji,
-      text: `${amount} ${tr(materialById[materialId].name).toLowerCase()}`,
-      short: (save.materials[materialId] ?? 0) < amount,
-    })),
-  ];
   return (
     <View style={styles.priceLineRow}>
-      {parts.map((part, i) => (
-        <Fragment key={part.key}>
-          {part.emoji ? (
-            <IconLabel emoji={part.emoji} label={part.text} size={18} labelStyle={[styles.price, part.short && styles.short]} />
-          ) : (
-            <Text style={[styles.price, part.short && styles.short]}>{part.text}</Text>
-          )}
-          {i > 0 ? <Text style={styles.price}> · </Text> : null}
-        </Fragment>
-      ))}
+      <Price amount={price.gold} short={save.gold < price.gold} size={18} textStyle={styles.price} />
+      {price.materials.map(({ materialId, amount }) => {
+        const short = (save.materials[materialId] ?? 0) < amount;
+        return (
+          <Fragment key={materialId}>
+            <Text style={styles.price}> · </Text>
+            <IconLabel
+              emoji={materialById[materialId].emoji}
+              label={`${amount} ${tr(materialById[materialId].name).toLowerCase()}`}
+              size={18}
+              labelStyle={[styles.price, short && styles.short]}
+            />
+          </Fragment>
+        );
+      })}
     </View>
   );
 }

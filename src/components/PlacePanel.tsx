@@ -50,7 +50,7 @@ import { useGameStore } from '@/store/gameStore';
 import { colors, pixel, ui } from '@/theme';
 
 import { GainsLine, IconLabel, PartsLine, type LabelPart } from './IconLabel';
-import { PriceTag, priceLabel } from './PriceTag';
+import { Price } from './Price';
 import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
@@ -137,7 +137,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
           <Text style={styles.muted}>
             {problem === 'known' ? t('places.known') : left > 0 ? t('places.left', { count: left }) : t('places.soldOut')}
           </Text>
-          <PriceTag price={line.price} style={styles.price} />
+          <Price amount={line.price} short={save.gold < line.price} textStyle={styles.price} />
           <WoodButton title={t('places.buy')} compact disabled={problem !== null} onPress={() => actions.buyAtPlace(place, line.key, 1, player)} />
         </View>
       </View>
@@ -171,7 +171,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
       return gear.map((g) => (
         <View key={g.uid} style={[styles.row, styles.actions]}>
           <IconLabel emoji={itemById[g.itemId].emoji} label={gearName(g)} labelStyle={styles.name} />
-          <PriceTag price={gearSellPrice(g)} style={styles.price} />
+          <Price amount={gearSellPrice(g)} textStyle={styles.price} />
           <WoodButton
             title={t('places.sell')}
             compact
@@ -187,7 +187,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
       <View key={id} style={styles.row}>
         <IconLabel emoji={materialById[id].emoji} label={`${tr(materialById[id].name)} ×${count}`} labelStyle={styles.name} />
         <View style={styles.actions}>
-          <PriceTag price={materialSellPrice(id, place.kind)} style={styles.price} />
+          <Price amount={materialSellPrice(id, place.kind)} textStyle={styles.price} />
           <WoodButton
             title={t('places.sell')}
             compact
@@ -219,13 +219,23 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
         <Text style={styles.name}>{heroLine(hero.id)}</Text>
         <View style={styles.actions}>
           {(['heal', 'rest'] as const).map((care) => (
-            <WoodButton
-              key={care}
-              compact
-              title={`${t(care === 'heal' ? 'places.heal' : 'places.rest')} · ${paid ? priceLabel(apothecaryCarePrice(save, care)) : t('places.free')}`}
-              disabled={problemOf(hero.id, care) !== null}
-              onPress={() => give(hero.id, care)}
-            />
+            <View key={care} style={styles.actions}>
+              {paid ? (
+                <Price
+                  amount={apothecaryCarePrice(save, care)}
+                  short={save.gold < apothecaryCarePrice(save, care)}
+                  textStyle={styles.price}
+                />
+              ) : (
+                <Text style={styles.muted}>{t('places.free')}</Text>
+              )}
+              <WoodButton
+                compact
+                title={t(care === 'heal' ? 'places.heal' : 'places.rest')}
+                disabled={problemOf(hero.id, care) !== null}
+                onPress={() => give(hero.id, care)}
+              />
+            </View>
           ))}
         </View>
       </View>
@@ -237,9 +247,12 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
       <Sheet variant="wood" emoji={info.emoji} title={tr(info.name)} bodyStyle={styles.content} footer={<WoodButton title={t('common.close')} onPress={onClose} />}>
         <Text style={styles.muted}>{tr(info.description)}</Text>
         {wanted && <Text style={styles.wanted}>{t('places.collector', { name: tr(valuableById[wanted].name).toLowerCase() })}</Text>}
-        <Text style={styles.muted}>
-          {leavesIn(place.expiresAt - now)} · {t('places.gold', { gold: save.gold })}
-        </Text>
+        <View style={styles.goldRow}>
+          <Text style={styles.muted}>
+            {leavesIn(place.expiresAt - now)} · {t('places.gold')}
+          </Text>
+          <Price amount={save.gold} textStyle={styles.muted} />
+        </View>
         {locked && <Text style={styles.problem}>{t('places.lockedMine')}</Text>}
         {distance > placeRules.interactionMeters && (
           <Text style={styles.problem}>{t('places.walkCloser', { distance: Math.round(distance) })}</Text>
@@ -381,12 +394,10 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
                   {problem === 'maxLevel' ? (
                     <Text style={styles.muted}>{t('places.maxLevel')}</Text>
                   ) : (
-                    <WoodButton
-                      compact
-                      title={`${t('places.train')} · ${priceLabel(trainPrice(save))}`}
-                      disabled={problem !== null}
-                      onPress={() => actions.trainHero(place, hero.id, player)}
-                    />
+                    <>
+                      <Price amount={trainPrice(save)} short={save.gold < trainPrice(save)} textStyle={styles.price} />
+                      <WoodButton compact title={t('places.train')} disabled={problem !== null} onPress={() => actions.trainHero(place, hero.id, player)} />
+                    </>
                   )}
                 </View>
               );
@@ -407,6 +418,7 @@ const styles = StyleSheet.create({
   name: { fontSize: 21 },
   price: { fontSize: 21 },
   actions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  goldRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
   tabs: { flexDirection: 'row', gap: 8 },
   tabOn: { backgroundColor: ui.woodSelected },
   tabOff: { backgroundColor: ui.woodDark, opacity: 0.7 },

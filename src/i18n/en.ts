@@ -116,7 +116,7 @@ export const en = {
     overnight: {
       title: 'Overnight expedition',
       back: 'back at {time}',
-      rewards: '🪙 {gold} gold · ✨ {xp} XP per hero, and a chance at finds',
+      rewards: '✨ {xp} XP per hero, and a chance at finds',
       hint: 'A safe, slow patrol for heroes with a long night ahead: it pays about {runs} runs of this tier.',
       underWay: 'The patrol is already out; it comes back in the morning.',
     },
@@ -150,7 +150,7 @@ export const en = {
       drink: '🧪 Drink',
       swap: 'Swap',
       swapTitle: 'Swap {name} for:',
-      buySupply: 'Buy jerky (🪙 {price})',
+      buySupply: 'Buy jerky',
     },
     tips: {
       duration: 'How long the party is away.',
@@ -246,7 +246,7 @@ export const en = {
     componentAbout: 'Fits {fits} · adds {adds}',
     relicAbout: 'Tier {tier} {type} · {effect}',
     salvageTitle: 'Salvage {item}?',
-    salvageBody: 'It is destroyed and you get back {returns}.',
+    salvageBody: 'It is destroyed and you get back:',
     salvage: 'Salvage',
     salvageWarning: {
       equipped: 'Equipped by a hero',
@@ -272,7 +272,7 @@ export const en = {
     filterAll: 'All',
     ruins: 'Ruins dug',
     valuable: '{name} (tier {tier})',
-    valuablePrice: '🪙 {price} at the market, half elsewhere',
+    valuablePrice: '{price} gold at the market, half elsewhere',
     manualHint: 'Raises one hero, up to level {level} at your tier.',
     readTo: 'Read to {name} (level {level})',
     next: {
@@ -464,7 +464,7 @@ export const en = {
     missingGold: '{gold} gold',
     missing: 'Missing {parts}.',
     buy: 'Buy',
-    wallet: '🪙 {gold} gold',
+    wallet: '{gold} gold',
     now: 'Now',
     next: 'Next',
     sub: {
@@ -584,7 +584,7 @@ export const en = {
     weaknessFor: 'Weakens the {boss}',
     known: 'Already known',
     noGold: 'Not enough gold.',
-    gold: 'Gold: {gold}',
+    gold: 'Gold:',
     nothingToSell: 'Nothing they want.',
     collector: 'A collector pays double for {name} today.',
     collectorWants: 'the collector pays double',
@@ -641,7 +641,8 @@ export const en = {
     emergency: 'Emergency supply',
     emergencyHint: 'Jerky (3 supply points) at a steep price, for when the kitchen is empty. You have {held}.',
     buy: 'Buy',
-    header: 'Gold: {gold} · Roster {count}/{cap} · new recruits every day',
+    headerGold: 'Gold:',
+    header: 'Roster {count}/{cap} · new recruits every day',
   },
   difficulty: {
     markerLabel: '{name}, {difficulty} {kind}',

@@ -33,7 +33,7 @@ import { timed } from '@/components/timed';
 
 /** One emoji per loot category, for the reward slots. */
 const CATEGORY_EMOJI: Record<LootCategory, string> = {
-  gold: '🪙',
+  gold: '🪙', // coin-ok: the gold category's slot icon, no amount
   xp: '✨',
   materials: '🪵',
   shards: '🔮',

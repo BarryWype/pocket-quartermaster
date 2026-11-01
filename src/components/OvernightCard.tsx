@@ -12,6 +12,7 @@ import { fonts, ui } from '@/theme';
 import { BriefingChips } from './BriefingChips';
 import { GameIcon } from './GameIcon';
 import { RewardLabel } from './IconLabel';
+import { Price } from './Price';
 import { Chip, DifficultyPips, DifficultyRing, EmberButton, ParchmentCard } from './ui';
 import { Text } from './Text';
 
@@ -58,14 +59,16 @@ export function OvernightCard({ save, dungeon, rotation, now, chance, onSend }: 
           chance === undefined && <Chip tone="neutral" label="…" />
         )}
       </View>
-      <RewardLabel
-        text={t('expeditions.overnight.rewards', {
-          gold: `${dungeon.gold[0]}–${dungeon.gold[1]}`,
-          xp: dungeon.xp,
-        })}
-        size={16}
-        labelStyle={styles.line}
-      />
+      <View style={styles.rewardsRow}>
+        <Price amount={dungeon.gold[0]} to={dungeon.gold[1]} size={16} textStyle={styles.line} />
+        <RewardLabel
+          text={t('expeditions.overnight.rewards', {
+            xp: dungeon.xp,
+          })}
+          size={16}
+          labelStyle={styles.line}
+        />
+      </View>
       <BriefingChips briefing={briefingFor(rotation, dungeon)} />
       <Text style={styles.sub}>{t('expeditions.overnight.hint', { runs: overnightExpeditionRules.goldRunsWorth })}</Text>
       {underWay && <Text style={styles.sub}>{t('expeditions.overnight.underWay')}</Text>}
@@ -80,6 +83,7 @@ const styles = StyleSheet.create({
   ringedIcon: { alignItems: 'center' },
   content: { gap: 7 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  rewardsRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
   line: { fontFamily: fonts.serif, fontSize: 14, color: ui.ink },
   sub: { fontFamily: fonts.serif, fontSize: 13, color: ui.inkMuted },
   footer: { flexDirection: 'row', justifyContent: 'flex-end' },
