@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AutoGatherPill, WalkCard } from '@/components/AutoGather';
 import { Button } from '@/components/Button';
 import { WalkEffects } from '@/components/WalkEffects';
-import { IslandMenu, ISLAND_HEIGHT } from '@/components/IslandMenu';
+import { ISLAND_HEIGHT } from '@/components/IslandMenu';
 import { MapFoliage, useFoliage } from '@/components/MapFoliage';
 import { MapTrail, MapWater } from '@/components/MapAmbience';
 import { MapSky, useSkyPan } from '@/components/MapSky';
@@ -591,7 +591,6 @@ function MapScreen() {
         />
         {fallbackButton}
         {message && <ToastBanner message={message} style={{ bottom: insets.bottom + ISLAND_HEIGHT + 64 }} />}
-        <IslandMenu />
       </View>
     );
   }
@@ -756,7 +755,6 @@ function MapScreen() {
       {showPill && <AutoGatherPill style={[styles.autoGather, { bottom: insets.bottom + ISLAND_HEIGHT + 12 }]} />}
       {message && <ToastBanner message={message} style={{ bottom: insets.bottom + ISLAND_HEIGHT + (showPill || fallback ? 52 : 12) }} />}
       <WalkCard />
-      <IslandMenu />
     </View>
   );
 }

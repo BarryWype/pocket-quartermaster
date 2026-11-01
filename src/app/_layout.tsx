@@ -6,7 +6,9 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { IslandMenu, ISLAND_HEIGHT } from '@/components/IslandMenu';
 import { RecipeToast } from '@/components/RecipeToast';
 import { Price } from '@/components/Price';
 import { ScreenHeader } from '@/components/ui';
@@ -64,6 +66,11 @@ export default function RootLayout() {
     [fonts.serifBold]: Alegreya_700Bold,
   });
 
+  const insets = useSafeAreaInsets();
+  // Room for the plank bar on every screen; the map places its own controls and needs none.
+  const below = { paddingBottom: ISLAND_HEIGHT + insets.bottom };
+  const wood = [{ backgroundColor: ui.woodDark }, below];
+
   // On a load error, fall back to the system font rather than a blank screen.
   if (!fontsLoaded && !fontError) return null;
 
@@ -75,25 +82,26 @@ export default function RootLayout() {
           headerTintColor: colors.parchment,
           headerTitleStyle: { fontFamily: fonts.body, fontSize: 26 },
           headerBackTitleStyle: { fontFamily: fonts.body },
-          contentStyle: { backgroundColor: colors.parchment },
+          contentStyle: [{ backgroundColor: colors.parchment }, below],
         }}
       >
-        <Stack.Screen name="index" dangerouslySingular options={{ title: t('screens.map'), headerShown: false }} />
-        <Stack.Screen name="forge" dangerouslySingular options={{ title: t('screens.forge'), header: () => <ScreenHeader title={t('screens.forge')} />, contentStyle: { backgroundColor: ui.woodDark } }} />
-        <Stack.Screen name="infuse" dangerouslySingular options={{ title: t('screens.infuse'), header: () => <ScreenHeader title={t('screens.infuse')} />, contentStyle: { backgroundColor: ui.woodDark } }} />
-        <Stack.Screen name="provisions" dangerouslySingular options={{ title: t('screens.provisions'), header: () => <ScreenHeader title={t('screens.provisions')} />, contentStyle: { backgroundColor: ui.woodDark } }} />
-        <Stack.Screen name="inventory" dangerouslySingular options={{ title: t('screens.inventory'), header: () => <ScreenHeader title={t('screens.storeroom')} right={<HeaderGold />} />, contentStyle: { backgroundColor: ui.woodDark } }} />
-        <Stack.Screen name="team/index" dangerouslySingular options={{ title: t('screens.team'), header: () => <ScreenHeader title={t('screens.barracks')} />, contentStyle: { backgroundColor: ui.woodDark } }} />
+        <Stack.Screen name="index" dangerouslySingular options={{ title: t('screens.map'), headerShown: false, contentStyle: { paddingBottom: 0 } }} />
+        <Stack.Screen name="forge" dangerouslySingular options={{ title: t('screens.forge'), header: () => <ScreenHeader title={t('screens.forge')} />, contentStyle: wood }} />
+        <Stack.Screen name="infuse" dangerouslySingular options={{ title: t('screens.infuse'), header: () => <ScreenHeader title={t('screens.infuse')} />, contentStyle: wood }} />
+        <Stack.Screen name="provisions" dangerouslySingular options={{ title: t('screens.provisions'), header: () => <ScreenHeader title={t('screens.provisions')} />, contentStyle: wood }} />
+        <Stack.Screen name="inventory" dangerouslySingular options={{ title: t('screens.inventory'), header: () => <ScreenHeader title={t('screens.storeroom')} right={<HeaderGold />} />, contentStyle: wood }} />
+        <Stack.Screen name="team/index" dangerouslySingular options={{ title: t('screens.team'), header: () => <ScreenHeader title={t('screens.barracks')} />, contentStyle: wood }} />
         <Stack.Screen name="team/[heroId]" dangerouslySingular options={{ title: t('screens.hero') }} />
         <Stack.Screen name="team/classes" dangerouslySingular options={{ title: t('classes.title') }} />
         <Stack.Screen name="expeditions" dangerouslySingular options={{ title: t('screens.expeditions') }} />
-        <Stack.Screen name="quests" dangerouslySingular options={{ title: t('screens.quests'), header: () => <ScreenHeader title={t('screens.quests')} />, contentStyle: { backgroundColor: ui.woodDark } }} />
-        <Stack.Screen name="guild" dangerouslySingular options={{ title: t('screens.guild'), header: () => <ScreenHeader title={t('screens.guild')} right={<HeaderGold />} />, contentStyle: { backgroundColor: ui.woodDark } }} />
-        <Stack.Screen name="settings" dangerouslySingular options={{ title: t('screens.settings'), header: () => <ScreenHeader title={t('screens.settings')} />, contentStyle: { backgroundColor: ui.woodDark } }} />
-        <Stack.Screen name="settings/credits" dangerouslySingular options={{ title: t('settings.credits'), header: () => <ScreenHeader title={t('settings.credits')} />, contentStyle: { backgroundColor: ui.woodDark } }} />
-        <Stack.Screen name="tips" dangerouslySingular options={{ title: t('screens.tips'), header: () => <ScreenHeader title={t('settings.fieldNotes')} />, contentStyle: { backgroundColor: ui.woodDark } }} />
+        <Stack.Screen name="quests" dangerouslySingular options={{ title: t('screens.quests'), header: () => <ScreenHeader title={t('screens.quests')} />, contentStyle: wood }} />
+        <Stack.Screen name="guild" dangerouslySingular options={{ title: t('screens.guild'), header: () => <ScreenHeader title={t('screens.guild')} right={<HeaderGold />} />, contentStyle: wood }} />
+        <Stack.Screen name="settings" dangerouslySingular options={{ title: t('screens.settings'), header: () => <ScreenHeader title={t('screens.settings')} />, contentStyle: wood }} />
+        <Stack.Screen name="settings/credits" dangerouslySingular options={{ title: t('settings.credits'), header: () => <ScreenHeader title={t('settings.credits')} />, contentStyle: wood }} />
+        <Stack.Screen name="tips" dangerouslySingular options={{ title: t('screens.tips'), header: () => <ScreenHeader title={t('settings.fieldNotes')} />, contentStyle: wood }} />
         <Stack.Screen name="debug" dangerouslySingular options={{ title: t('screens.debug') }} />
       </Stack>
+      <IslandMenu />
       <RecipeToast />
       <SecretToast />
       <TipBar />

@@ -7,10 +7,11 @@ import { navigationRules } from '@/content/navigation';
 
 import { navigate } from './navigation';
 
-jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
+jest.mock('expo-router', () => ({ router: { push: jest.fn(), replace: jest.fn() } }));
 jest.mock('@/services/timings', () => ({ markTap: jest.fn() }));
 
 const pushMock = router.push as jest.Mock;
+const replaceMock = router.replace as jest.Mock;
 
 /**
  * The clock the tests drive, so the tap lock sees exactly the times we choose.
@@ -21,6 +22,7 @@ let now = 0;
 beforeEach(() => {
   now += navigationRules.tapLockMs * 10;
   pushMock.mockClear();
+  replaceMock.mockClear();
   jest.spyOn(Date, 'now').mockImplementation(() => now);
 });
 
@@ -73,6 +75,13 @@ describe('navigate', () => {
     now += 1;
     navigate('/inventory');
     expect(pushMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('replaces with singular options when asked, instead of pushing', () => {
+    navigate('/team', { replace: true });
+    expect(pushMock).not.toHaveBeenCalled();
+    expect(replaceMock).toHaveBeenCalledTimes(1);
+    expect(replaceMock).toHaveBeenCalledWith('/team', { dangerouslySingular: true });
   });
 
   it('treats the root href as its own target', () => {

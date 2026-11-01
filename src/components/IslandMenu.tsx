@@ -1,6 +1,6 @@
-import type { Href } from 'expo-router';
-import { useState } from 'react';
-import { Image, Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-native';
+import { usePathname, type Href } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Image, Keyboard, Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { healthRules } from '@/content/health';
@@ -29,10 +29,24 @@ const DIAMOND_SIZE = 40;
 /** Height of the plank bar above the safe area, so overlays can sit above it. */
 export const ISLAND_HEIGHT = Math.ceil(DIAMOND_SIZE * 1.42) + 10;
 
-/** The plank bar at the bottom of the map. */
+/** The plank bar at the bottom of every screen. */
 export function IslandMenu() {
   const insets = useSafeAreaInsets();
+  const pathname = usePathname();
   const [craftOpen, setCraftOpen] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  // The keyboard covers the bar; hiding it (rather than unmounting) keeps every badge fresh for free.
+  useEffect(() => {
+    const shown = Keyboard.addListener('keyboardDidShow', () => {
+      setKeyboardOpen(true);
+      setCraftOpen(false);
+    });
+    const hidden = Keyboard.addListener('keyboardDidHide', () => setKeyboardOpen(false));
+    return () => {
+      shown.remove();
+      hidden.remove();
+    };
+  }, []);
   // Unread reports and teams back with loot to collect, as of the last change to the save.
   const unseenReports = useGameStore(
     ({ save }) => save.reports.filter((r) => !r.seen).length + save.expeditions.filter((e) => e.endsAt <= Date.now()).length,
@@ -51,13 +65,15 @@ export function IslandMenu() {
 
   const go = (href: Href) => {
     setCraftOpen(false);
-    navigate(href);
+    if (pathname === href) return;
+    // From the map it pushes as today; from any other screen it replaces, so Back returns to the map.
+    navigate(href, { replace: pathname !== '/' });
   };
 
   return (
     <>
       {craftOpen && <Pressable style={StyleSheet.absoluteFill} onPress={() => setCraftOpen(false)} />}
-      <View style={styles.wrapper} pointerEvents="box-none">
+      <View style={[styles.wrapper, keyboardOpen && { display: 'none' }]} pointerEvents="box-none">
         {craftOpen && (
           <View style={styles.dropdown}>
             {CRAFT_LINKS.map((link) => (
@@ -66,7 +82,7 @@ export function IslandMenu() {
                 onPress={() => go(link.href)}
                 style={({ pressed }) => [
                   styles.dropdownItem,
-                  link.target === target && styles.dropdownHighlight,
+                  (link.target === target || link.href === pathname) && styles.dropdownHighlight,
                   pressed && styles.pressed,
                 ]}
               >
@@ -89,7 +105,7 @@ export function IslandMenu() {
             icon={require('../../assets/icons/scaled/menu-craft.png')}
             size={DIAMOND_SIZE}
             showLabel={false}
-            selected={craftOpen || (!craftOpen && CRAFT_LINKS.some((link) => link.target === target))}
+            selected={craftOpen || CRAFT_LINKS.some((link) => link.target === target || link.href === pathname)}
             onPress={() => setCraftOpen((open) => !open)}
           />
           <DiamondButton
@@ -98,11 +114,11 @@ export function IslandMenu() {
             badge={hurt || undefined}
             size={DIAMOND_SIZE}
             showLabel={false}
-            selected={target === 'team'}
+            selected={target === 'team' || pathname.startsWith('/team')}
             onPress={() => go('/team')}
           />
           {guildShown && (
-            <DiamondButton label={t('menu.guild')} emoji="🏛️" size={DIAMOND_SIZE} showLabel={false} onPress={() => go('/guild')} />
+            <DiamondButton label={t('menu.guild')} emoji="🏛️" size={DIAMOND_SIZE} showLabel={false} selected={pathname === '/guild'} onPress={() => go('/guild')} />
           )}
           {questsShown && (
             <DiamondButton
@@ -111,6 +127,7 @@ export function IslandMenu() {
               badge={questNews || undefined}
               size={DIAMOND_SIZE}
               showLabel={false}
+              selected={pathname === '/quests'}
               onPress={() => go('/quests')}
             />
           )}
@@ -120,7 +137,7 @@ export function IslandMenu() {
             badge={unseenReports || undefined}
             size={DIAMOND_SIZE}
             showLabel={false}
-            selected={target === 'expeditions'}
+            selected={target === 'expeditions' || pathname === '/expeditions'}
             onPress={() => go('/expeditions')}
           />
         </View>
