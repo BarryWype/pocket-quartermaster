@@ -35,9 +35,9 @@ export function DiamondButton({ label, emoji, icon, selected, badge, size = 52, 
         <View style={[styles.frame, selected && styles.frameSelected]}>
           <View style={[styles.face, selected ? styles.faceSelected : styles.faceIdle]}>
             <View style={[styles.inner, { borderColor: selected ? ui.brassLight : ui.brassDim }]} pointerEvents="none" />
-            {emoji !== undefined && (
+            {(emoji !== undefined || icon !== undefined) && (
               <View style={styles.iconSpin}>
-                <GameIcon emoji={emoji} icon={icon} size={iconSize} />
+                <GameIcon emoji={emoji ?? ''} icon={icon} size={iconSize} />
               </View>
             )}
           </View>
