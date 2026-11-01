@@ -241,3 +241,38 @@ For the fishing dock, later. A short, physical moment instead of a button that j
 - Ore spawn density and refresh rate.
 - Multiplayer features: trading between players, specialization.
 - Visual combat replay later (assets could be sourced or generated).
+
+## After 0.7
+
+### Inventory: show which gear is equipped
+
+*Done in commit "Inventory: equipped gear wears a shield badge, comes first, and names its hero".*
+
+- Every listed gear piece a hero wears carries a small shield badge on its icon's corner (`EquippedBadge`, through `ItemSlot` and `Row`): the inventory's Gear page, the equip picker, the hero's storeroom and the infuse station.
+- The inventory lists equipped gear first, then spare gear, each in the old order; the piece's pop-up names the hero ("Equipped: Bram"). The salvage dialog's red warning is unchanged.
+- Who wears what is one pure lookup, `wearers` in `src/game/forging/salvage.ts`, with `equippedFirst` for the order.
+
+### Hero stats: the small stats work like the main ones
+
+*Done in commit "Hero stats: the small stats are tiles too, and every tile's tip shows where its value comes from".*
+
+- The four small stats (Resistance, Evasion, Crit, Luck) are the same tile as the four main ones, a little smaller, in one row of four under them; a tap opens the same tip.
+- Every tile's tip gives what the stat does, then where the value comes from and the total: the class at level 1, the level growth, and gear and class abilities together (`statSources` in `src/game/team/team.ts`). Approach picks don't change these stats, so they have no line. Evasion at its cap says so in the tip.
+
+### The island menu on every screen
+
+*Done in commit "Island menu on every screen: rendered once at the root, replaces the screen it leaves, highlights where you are".*
+
+- The menu is rendered once in the root layout, outside the `Stack`, and stays mounted; no screen renders it. Its store subscriptions are unchanged (badge counts, reveals and the tutorial target); the only new one is the current path, for the highlight. `src/components/IslandMenu.test.tsx` checks that save writes which change no badge don't re-render it.
+- From the map a menu tap pushes the screen; from any other screen it replaces it (`navigate(href, { replace: true })`), so Back returns to the map. Tapping the current screen's button does nothing. A hero sheet opened from the Barracks is replaced like any screen, so Back from there goes to the Barracks first.
+- Every screen but the map gets bottom padding of the menu's height plus the safe area, once, through the stack's `contentStyle`. Sheets and dialogs are modals, so they open above it. It hides (stays mounted) while the keyboard is open.
+- Tap-to-first-frame on a mid-game save (`src/perf/menuFirstOpen.test.tsx`, content cold, dev machine) before → after: forge 9–11 → 9–10 ms, infuse 2–4 → 3 ms, provisions 12–13 → 13–17 ms, inventory 9–10 → 10 ms, team 15 → 14–20 ms, hero 11–12 → 10–12 ms, quests 5 → 5 ms, guild 11 → 10–11 ms, settings 13–14 → 13–14 ms, tips 2 → 2–3 ms, expeditions 399–415 → 418–434 ms (its `dailyRotation` replay, which varied 365–398 ms on its own). The differences are run-to-run noise: no screen's tree changed. Not measured on a phone.
+
+### Daily quests: "sell goods worth N gold" replaces the impossible collector
+
+*Done in commit "Quests: sell goods worth N gold, and the collector quest only asks for a valuable you hold (save version 31)".*
+
+- New Trade objective, "Sell goods worth N gold": every valuable, material or gear piece sold (market, smithy, part buyers, trader) counts its gold, from the quest's arrival. N is by tier in `questRules.sellGoodsGold` (50, 140, 190, 300, 320: about a regular player's daily selling gold per tier in the simulator summary).
+- The collector quest now names a valuable picked among those held when it arrives (or when it swaps in at acceptance), and is done when that valuable is sold at its market; without a valuable held it is never rolled. Both are Trade, so at most one is active.
+- Save version 31 (`src/game/migrations.ts`): an open collector quest whose market wants a valuable the player holds keeps it as its item; any other open one becomes a "sell goods" quest of the player's tier, keeping its id (so its reward), band, arrival and expiry.
+- The simulator bot sells through the game's own functions, so these quests progress there with no bot change. Run `npm run sim` to check the effect.

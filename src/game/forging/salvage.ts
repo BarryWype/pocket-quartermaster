@@ -8,7 +8,7 @@ import { createRng } from '../generation/rng';
 import { guildBonus } from '../guild/guild';
 import { addMaterials } from '../inventory';
 import type { SaveData } from '../save';
-import type { GearDef, GearInstance, MaterialStack, Quality } from '../types';
+import type { GearDef, GearInstance, HeroState, MaterialStack, Quality } from '../types';
 
 /** Why a piece deserves a red warning line before it is destroyed. */
 export type SalvageWarning = 'equipped' | 'rareOrBetter' | 'relic' | 'component' | 'infused';
@@ -21,10 +21,27 @@ export type SalvageDialogContent = {
 
 type Rules = typeof salvageRules;
 
-export const wornBy = (save: SaveData, gearUid: string) =>
-  save.heroes.find(
-    (h) => h.equipment.weapon === gearUid || h.equipment.armor === gearUid || h.equipment.offhand === gearUid || h.equipment.trinket === gearUid,
-  );
+/** Gear uid -> the hero wearing it, over the same slots `wornBy` checks. */
+export function wearers(save: SaveData): Map<string, HeroState> {
+  const map = new Map<string, HeroState>();
+  for (const hero of save.heroes) {
+    for (const slot of ['weapon', 'armor', 'offhand', 'trinket'] as const) {
+      const uid = hero.equipment[slot];
+      if (uid) map.set(uid, hero);
+    }
+  }
+  return map;
+}
+
+export const wornBy = (save: SaveData, gearUid: string) => wearers(save).get(gearUid);
+
+/** Equipped items first, then spare, each group keeping the input order. */
+export function equippedFirst<T>(items: T[], uidOf: (item: T) => string, save: SaveData): T[] {
+  const worn = wearers(save);
+  const equipped = items.filter((item) => worn.has(uidOf(item)));
+  const spare = items.filter((item) => !worn.has(uidOf(item)));
+  return [...equipped, ...spare];
+}
 
 /** Worn gear (including gear away on an expedition) has to be taken off first. */
 export function canSalvage(save: SaveData, gearUid: string) {

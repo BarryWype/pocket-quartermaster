@@ -2,8 +2,9 @@ import { objectives, questRules, type QuestBand, type QuestObjective } from '@/c
 
 import { createInitialSave, type SaveData } from '../save';
 import { tierBoss } from '../guild/guild';
-import { activeCount, pruneQuests, receiveQuests, rerollProblem, rerollQuest } from './arrival';
+import { activeCount, newQuest, pruneQuests, receiveQuests, rerollProblem, rerollQuest } from './arrival';
 import { availableObjectives, deliverItems, mineKinds } from './unlocks';
+import { createRng } from '../generation/rng';
 import type { Quest } from './types';
 
 const HOUR = 3_600_000;
@@ -281,8 +282,38 @@ describe('available objectives', () => {
     const save = opened();
     save.seenPlaceKinds = ['market'];
     expect(availableObjectives(save, 'short')).not.toContain('collector');
+    expect(availableObjectives(save, 'short')).toContain('sellGoods');
     save.valuables = { goldRing: 1 };
     expect(availableObjectives(save, 'short')).toContain('collector');
+  });
+
+  it('names the collector quest after a valuable held on arrival', () => {
+    const save = opened();
+    save.valuables = { 'oldCoins:2': 1, 'oldCoins:1': 1, 'silverRing:1': 2, 'roughGem:2': 0 };
+    for (const seed of ['a', 'b', 'c', 'd']) {
+      const quest = newQuest('q', 'short', 'collector', save, createRng(`seed|${seed}`), 0);
+      expect(['oldCoins', 'silverRing']).toContain(quest.itemId);
+    }
+  });
+
+  it('asks sell goods for the player tier', () => {
+    const save = opened();
+    expect(newQuest('q', 'short', 'sellGoods', save, createRng('seed'), 0).amount).toBe(questRules.sellGoodsGold[0]);
+  });
+
+  it('keeps at most one Trade quest active while other kinds are free', () => {
+    const save = opened();
+    save.revealAll = true;
+    save.seenPlaceKinds = ['chapel', 'library', 'ruins', 'fishingDock', 'market', 'apothecary', 'tavern', 'sawmill', 'huntingLodge'];
+    save.valuables = { 'oldCoins:2': 1 };
+    save.quests.list = [{ ...regular('a'), objective: 'collector', itemId: 'oldCoins' }];
+    save.quests.lastArrivalDay = 9;
+    const next = receiveQuests(save, 10 * DAY);
+    const fresh = next.quests.list.filter((q) => q.arrivedAt === 10 * DAY);
+    expect(fresh.length).toBeGreaterThanOrEqual(2);
+    for (const quest of fresh) {
+      expect(objectives[quest.objective as QuestObjective].kind).not.toBe('trade');
+    }
   });
 
   it('offers patrols once the tutorial is done, fight events once a patrol is won', () => {

@@ -14,6 +14,7 @@ export const fr: Dictionary = {
     escort: ' · Escorte',
     patrol: ' · Patrouille',
     wornBy: 'Porté par {name}',
+    equippedBy: 'Équipé : {name}',
     and: ' et ',
     tooFar: 'Approchez-vous à moins de {radius} m pour {action} (à {distance} m).',
   },
@@ -392,6 +393,7 @@ export const fr: Dictionary = {
   },
   gear: {
     roll: 'roll {roll}/{max}',
+    equipped: 'Équipé',
   },
   team: {
     roster: 'Effectif {count}/{cap} · jusqu’à {party} par expédition',
@@ -454,6 +456,7 @@ export const fr: Dictionary = {
       luck: 'Plus d’or, de matériaux et de trouvailles rares pour le groupe.',
     },
     awayHint: 'L’équipement pourra être changé au retour du héros.',
+    statFrom: 'Classe {base} · Niveaux {levels} · Équipement et talents {gear} → {total}',
     capped: 'plafonnée',
     pendingPicks: { one: '{count} choix en attente', other: '{count} choix en attente' },
     pickApproach: 'Choisir une approche',
@@ -545,7 +548,8 @@ export const fr: Dictionary = {
       deliver: 'Apporter {count} × {item} : {place}',
       mine: 'Acheter {count} matériaux : {place}',
       gatherOnWay: 'Récolter {count} herbes, baies ou champignons en chemin',
-      collector: 'Vendre au collectionneur du marché l’objet qu’il recherche',
+      collector: 'Vendre votre {item} au marché',
+      sellGoods: 'Vendre pour {gold} or de marchandises',
       walk: 'Marcher {distance}',
       visit: 'Visiter le lieu marqué sur votre carte',
       mark: 'Trouver l’étrange marque',

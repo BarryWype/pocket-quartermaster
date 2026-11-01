@@ -18,7 +18,7 @@ import { placeInfo } from '@/content/places';
 import { distanceMeters } from '@/game/generation/geo';
 import { highestUnlockedTier } from '@/game/dungeons/unlock';
 import { inventoryPages, inventoryRows, type InventoryItem, type InventoryPageId, type InventoryRow } from '@/game/inventory/inventoryPages';
-import { canSalvage, wornBy } from '@/game/forging/salvage';
+import { canSalvage, wearers, wornBy } from '@/game/forging/salvage';
 import { nextSteps, purposesOf, type BaseItemRef, type NextStep } from '@/game/loot/purposes';
 import { ruinsDots } from '@/game/places/ruins';
 import { isLureActive, lureEndsAt } from '@/game/rewards/lures';
@@ -107,6 +107,8 @@ function InventoryContent() {
   const [salvaging, setSalvaging] = useState<GearInstance | null>(null);
   const [contentWidth, setContentWidth] = useState(0);
   const rows = inventoryRows(save, now);
+  // Computed once: every slot asks whether its piece is worn.
+  const worn = wearers(save);
   // Each slot is wrapped in a 2 px ring, so its face is 4 px narrower than its cell.
   const cell = contentWidth > 0 ? Math.floor((contentWidth - 3 * 6) / 4) - 4 : 0;
 
@@ -137,6 +139,7 @@ function InventoryContent() {
                   key={rowKey(row)}
                   row={row}
                   save={save}
+                  worn={worn}
                   size={cell}
                   selected={opened !== null && rowKey(opened.row) === rowKey(row)}
                   onOpen={(anchor) => setOpened({ row, anchor })}
@@ -259,12 +262,14 @@ function rowFace(row: InventoryRow, save: SaveData): { emoji: string; icon?: Ima
 function RowSlot({
   row,
   save,
+  worn,
   size,
   selected,
   onOpen,
 }: {
   row: InventoryRow;
   save: SaveData;
+  worn: Map<string, SaveData['heroes'][number]>;
   size: number;
   selected: boolean;
   onOpen: (anchor: PopupAnchor) => void;
@@ -279,6 +284,7 @@ function RowSlot({
         emoji={face.emoji}
         icon={face.icon}
         count={face.count}
+        equipped={row.kind === 'gear' ? worn.has(row.gear.uid) : undefined}
         accessibilityLabel={face.label}
         onPress={() => wrapper.current?.measureInWindow((x, y, width, height) => onOpen({ x, y, width, height }))}
       />
@@ -400,7 +406,7 @@ function InventoryPopup({
       emoji = item.emoji;
       icon = item.icon;
       subtitle = `${tr(qualities[gear.quality].name)} · ${tr(item.name)}`;
-      note = holder ? t('common.wornBy', { name: holder.name }) : undefined;
+      note = holder ? t('common.equippedBy', { name: holder.name }) : undefined;
       const parts = [
         ...gearStatsParts(gear),
         gear.element ? { emoji: elementInfo[gear.element].emoji, text: tr(elementInfo[gear.element].name) } : null,

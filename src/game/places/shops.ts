@@ -24,7 +24,7 @@ import type { GearDef, GearInstance, Quality, RecipeDef } from '../types';
 import type { LatLng } from '../generation/types';
 import type { PlaceSpawn } from './generate';
 import { isLockedMine } from './generate';
-import { questEvent } from '../quests/progress';
+import { questEvent, type QuestEvent } from '../quests/progress';
 
 export type StockLine = {
   key: string;
@@ -256,7 +256,8 @@ export function sellGear(save: SaveData, spawn: PlaceSpawn, gearUid: string, pla
   const problem = sellGearProblem(save, spawn, gearUid, player, now);
   if (problem) throw new Error(`Cannot sell ${gearUid}: ${problem}`);
   const gear = save.gear.find((g) => g.uid === gearUid)!;
-  return { ...save, gold: save.gold + gearSellPrice(gear), gear: save.gear.filter((g) => g.uid !== gearUid) };
+  const sold = { ...save, gold: save.gold + gearSellPrice(gear), gear: save.gear.filter((g) => g.uid !== gearUid) };
+  return questEvent(sold, { kind: 'sold', gold: gearSellPrice(gear) }, now);
 }
 
 /**
@@ -295,11 +296,13 @@ export function sellMaterialProblem(
 export function sellMaterial(save: SaveData, spawn: PlaceSpawn, materialId: string, count: number, player: LatLng, now: number): SaveData {
   const problem = sellMaterialProblem(save, spawn, materialId, count, player, now);
   if (problem) throw new Error(`Cannot sell ${materialId}: ${problem}`);
-  return {
+  const gold = materialSellPrice(materialId, spawn.kind) * count;
+  const sold = {
     ...save,
-    gold: save.gold + materialSellPrice(materialId, spawn.kind) * count,
+    gold: save.gold + gold,
     materials: removeMaterials(save.materials, [{ materialId, amount: count }]),
   };
+  return questEvent(sold, { kind: 'sold', gold }, now);
 }
 
 export type SellValuableProblem = 'gone' | 'tooFar' | 'notBuyer' | 'notEnough';
@@ -339,7 +342,11 @@ export function sellValuable(save: SaveData, spawn: PlaceSpawn, key: string, cou
   const left = (valuables[key] ?? 0) - count;
   if (left > 0) valuables[key] = left;
   else delete valuables[key];
-  const sold = { ...save, gold: save.gold + placeValuablePrice(save, spawn, key, now) * count, valuables };
-  const wanted = spawn.kind === 'market' && key.slice(0, key.lastIndexOf(':')) === todaysCollector(save, spawn.id, now);
-  return wanted ? questEvent(sold, { kind: 'soldToCollector', placeId: spawn.id }, now) : sold;
+  const gold = placeValuablePrice(save, spawn, key, now) * count;
+  const sold = { ...save, gold: save.gold + gold, valuables };
+  const events: QuestEvent[] = [
+    { kind: 'sold', gold },
+    { kind: 'soldValuable', placeId: spawn.id, valuableId: key.slice(0, key.lastIndexOf(':')) },
+  ];
+  return events.reduce((s, e) => questEvent(s, e, now), sold);
 }

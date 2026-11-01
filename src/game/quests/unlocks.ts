@@ -3,6 +3,7 @@ import { deliverPlaces, objectives, questRules, type QuestBand, type QuestObject
 import { itemById, recipeById } from '@/content/lookup';
 
 import { pickaxeTier } from '../gathering/gathering';
+import { highestUnlockedTier } from '../dungeons/unlock';
 import { isPlaceRevealed, isRevealed } from '../reveal/reveal';
 import type { SaveData } from '../save';
 
@@ -30,6 +31,14 @@ export function deliverItems(save: SaveData): DeliverItem[] {
   return items;
 }
 
+/** The valuables held, by id (any tier), sorted: what a collector quest can ask for. */
+export function heldValuables(save: SaveData): string[] {
+  const ids = Object.entries(save.valuables)
+    .filter(([, count]) => count > 0)
+    .map(([key]) => key.slice(0, key.lastIndexOf(':')));
+  return [...new Set(ids)].sort();
+}
+
 /** The mine places at the player's pickaxe tier: wood and hide, plus the ore they can mine. */
 export function mineKinds(save: SaveData): PlaceKind[] {
   const tier = Math.min(pickaxeTier(save), 4);
@@ -51,6 +60,7 @@ export function availableObjectives(save: SaveData, band: QuestBand): QuestObjec
     'deliver',
     'mine',
     'collector',
+    'sellGoods',
     'gatherOnWay',
     'walk',
   ];
@@ -74,7 +84,9 @@ export function availableObjectives(save: SaveData, band: QuestBand): QuestObjec
       case 'mine':
         return mineKinds(save).some(seenKind);
       case 'collector':
-        return seenKind('market') && Object.values(save.valuables).some((count) => count > 0);
+        return seenKind('market') && heldValuables(save).length > 0;
+      case 'sellGoods':
+        return seenKind('market');
       default:
         return true;
     }
@@ -86,6 +98,12 @@ export function objectiveNeedsPlace(objective: QuestObjective | 'mark'): boolean
   if (objective === 'mark') return true;
   if (objective === 'deliver' || objective === 'mine') return true;
   return objectives[objective].places !== undefined;
+}
+
+/** How much gold a sellGoods quest asks for: the tier the player has reached. */
+export function sellGoodsAmount(save: SaveData): number {
+  const tier = highestUnlockedTier(save);
+  return questRules.sellGoodsGold[Math.min(Math.max(tier, 1), questRules.sellGoodsGold.length) - 1];
 }
 
 /** How much of an objective a band asks for (metres for walk, 1 without an amount). */

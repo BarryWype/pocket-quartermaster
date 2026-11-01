@@ -103,6 +103,7 @@ export function InfuseStation() {
                     emoji={item.emoji}
                     icon={item.icon}
                     size={cell}
+                    equipped={!!holder}
                     accessibilityLabel={label}
                     onPress={() => selectGear(one.uid)}
                   />

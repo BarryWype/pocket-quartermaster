@@ -116,9 +116,26 @@ describe('quest progress', () => {
     expect(done.quests.list[0].doneAt).toBe(at);
   });
 
-  it('completes the collector at the market', () => {
-    const save = withQuest(opened(), quest('collector', 'short', { target: target('market-1', 'market') }));
-    expect(feed(save, { kind: 'soldToCollector', placeId: 'market-1' }).quests.list[0].doneAt).toBe(at);
+  it('completes the collector only on its own valuable at its market', () => {
+    const save = withQuest(opened(), quest('collector', 'short', { itemId: 'oldCoins', target: target('market-1', 'market') }));
+    const other = feed(save, { kind: 'soldValuable', placeId: 'market-1', valuableId: 'silverRing' });
+    expect(other.quests.list[0].doneAt).toBe(null);
+    const elsewhere = feed(save, { kind: 'soldValuable', placeId: 'market-2', valuableId: 'oldCoins' });
+    expect(elsewhere.quests.list[0].doneAt).toBe(null);
+    const done = feed(save, { kind: 'soldValuable', placeId: 'market-1', valuableId: 'oldCoins' });
+    expect(done.quests.list[0].doneAt).toBe(at);
+  });
+
+  it('counts gold sold anywhere for sell goods, from arrival and before being shown', () => {
+    const save = withQuest(opened(), quest('sellGoods', 'short', { amount: 100, acceptedAt: null, seen: false }));
+    const part = feed(save, { kind: 'sold', gold: 60 });
+    expect(part.quests.list[0].progress).toBe(60);
+    expect(part.quests.list[0].doneAt).toBe(null);
+    const done = feed(part, { kind: 'sold', gold: 40 });
+    expect(done.quests.list[0].doneAt).toBe(at);
+
+    const early = withQuest(opened(), quest('sellGoods', 'short', { amount: 100, arrivedAt: at + 1 }));
+    expect(feed(early, { kind: 'sold', gold: 150 }).quests.list[0].progress).toBe(0);
   });
 
   it('follows the walk from the steps taken since arrival, never shown or not', () => {

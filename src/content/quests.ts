@@ -8,6 +8,7 @@ export type QuestObjective =
   | 'deliver'                                      // Deliver
   | 'mine' | 'gatherOnWay'                         // Gather
   | 'collector'                                    // Trade
+  | 'sellGoods'                                    // Trade
   | 'walk';                                        // Walk
 
 export const questRules = {
@@ -36,6 +37,8 @@ export const questRules = {
   } as Partial<Record<QuestObjective, Record<QuestBand, number>>>,
   /** Herbs, berries and mushrooms count for "gather on the way". */
   gatherOnWayMaterials: ['herb', 'berries', 'mushroom'],
+  /** Gold to sell for the sellGoods quest, by dungeon tier 1–5: roughly a regular player's daily gold from selling valuables and materials at that tier, from the simulator summary. */
+  sellGoodsGold: [50, 140, 190, 300, 320],
   /** A target counts as reached this close (Pocket mode alerts, the strange mark). */
   arrivalMeters: 50,
   /** Rewards read the Luck of this many of the luckiest heroes, like a party's. */
@@ -84,6 +87,7 @@ export const objectives: Record<QuestObjective, ObjectiveDef> = {
   mine: { kind: 'gather', emoji: '⛏️', weight: 1 },
   gatherOnWay: { kind: 'gather', emoji: '🌿', weight: 1 },
   collector: { kind: 'trade', emoji: '💰', places: ['market'], weight: 1 },
+  sellGoods: { kind: 'trade', emoji: '💰', weight: 1 },
   walk: { kind: 'walk', emoji: '🥾', weight: 1 },
 };
 

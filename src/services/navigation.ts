@@ -16,12 +16,13 @@ let lastTap: { target: string; at: number } | null = null;
  * to a screen lower in the stack filters it out of the history instead of
  * stacking a second copy. Hardware back and swipe back are untouched.
  */
-export function navigate(href: Href) {
+export function navigate(href: Href, options?: { replace?: boolean }) {
   const path = typeof href === 'string' ? href : (href.pathname ?? '');
   const target = path.replace(/^\//, '') || 'index';
   const now = Date.now();
   if (lastTap !== null && lastTap.target === target && now < lastTap.at + navigationRules.tapLockMs) return;
   lastTap = { target, at: now };
   markTap(target);
-  router.push(href, { dangerouslySingular: true });
+  if (options?.replace) router.replace(href, { dangerouslySingular: true });
+  else router.push(href, { dangerouslySingular: true });
 }

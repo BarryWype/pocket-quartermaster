@@ -6,7 +6,7 @@ import { DELTA_KEYS, EquipPicker, gainOf } from '@/components/EquipPicker';
 import { PlaceholderScreen } from '@/components/PlaceholderScreen';
 import { statIcons } from '@/components/GearRow';
 import { GameIcon } from '@/components/GameIcon';
-import { IconLabel, PartsLine } from '@/components/IconLabel';
+import { IconLabel } from '@/components/IconLabel';
 import { HpBar } from '@/components/HpBar';
 import { PixelBar } from '@/components/PixelBar';
 import { Text } from '@/components/Text';
@@ -27,10 +27,10 @@ import { gearName, itemById } from '@/content/lookup';
 import { answersMemberOf, prepareParty } from '@/game/expeditions/simulate';
 import { highestUnlockedTier } from '@/game/dungeons/unlock';
 import { careProblem, drinkProblem } from '@/game/team/health';
-import { affinityOf, canDismiss, equip, equipPreview, gearKeywordsOf, hasPotionSlot, healingPotion, heroDamageStat, heroStats, isOnExpedition } from '@/game/team/team';
+import { affinityOf, canDismiss, equip, equipPreview, gearKeywordsOf, hasPotionSlot, healingPotion, heroDamageStat, heroStats, isOnExpedition, statSources } from '@/game/team/team';
 import { ClassSummary } from '@/components/ClassSummary';
 import { APPROACHES, heroAnswers } from '@/game/threats/answers';
-import type { EquipmentSlot, GearDef, GearInstance, HeroState } from '@/game/types';
+import type { EquipmentSlot, GearDef, GearInstance, HeroState, Stats } from '@/game/types';
 import type { SaveData } from '@/game/save';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useNow } from '@/hooks/useNow';
@@ -78,6 +78,21 @@ function HeroHeader({ heroId }: { heroId: string }) {
         ),
       }}
     />
+  );
+}
+
+/** A stat tile: the name, the value, and a tap that shows where the value comes from. */
+function StatTile({ stat, value, text, small }: { stat: keyof Stats; value: number; text: string; small?: boolean }) {
+  return (
+    <Tip title={t(`hero.statNames.${stat}`)} text={text} style={small ? styles.smallStat : styles.stat}>
+      <GameIcon emoji={statIcons[stat]} size={small ? 16 : 22} />
+      <View style={small ? styles.smallStatBody : undefined}>
+        <Text style={small ? styles.smallStatName : styles.statName} numberOfLines={small ? 1 : undefined} adjustsFontSizeToFit={small}>
+          {t(`hero.statNames.${stat}`)}
+        </Text>
+        <Text style={small ? styles.smallStatValue : styles.statValue}>{value}</Text>
+      </View>
+    </Tip>
   );
 }
 
@@ -150,7 +165,7 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
     if (GEAR_SLOTS.some((slot) => hero.equipment[slot] === gear.uid)) return [];
     const holder = save.heroes.find((h) => h.id !== hero.id && GEAR_SLOTS.some((slot) => h.equipment[slot] === gear.uid));
     if (holder && save.expeditions.some((e) => e.heroIds.includes(holder.id))) return [];
-    return [{ gear, item }];
+    return [{ gear, item, equipped: !!holder }];
   });
 
   const weaponGear = hero.equipment.weapon ? save.gear.find((g) => g.uid === hero.equipment.weapon) : undefined;
@@ -282,27 +297,25 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
 
   const pipsOf = (value: number) =>
     Array.from({ length: approachRules.max }, (_, i) => <View key={i} style={[styles.pip, i < value && styles.pipOn]} />);
+  /** The value's origin, signed: '+6' for the gain, '−2' (U+2212) for a loss. */
+  const sign = (value: number) => `${value < 0 ? '−' : '+'}${Math.abs(value)}`;
+  const tipOf = (stat: keyof Stats) => {
+    const { base, levels, gear, total } = statSources(save, hero, stat);
+    const capped = stat === 'evasion' && stats.evasion >= expeditionRules.evasionCap;
+    return `${t(`hero.statTips.${stat}`)}\n${t('hero.statFrom', { base, levels: sign(levels), gear: sign(gear), total })}${capped ? ` (${t('hero.capped')})` : ''}`;
+  };
   const statsPage = (
     <ScrollView contentContainerStyle={styles.page}>
       <View style={styles.stats}>
         {largeStats.map((stat) => (
-          <Tip key={stat} title={t(`hero.statNames.${stat}`)} text={t(`hero.statTips.${stat}`)} style={styles.stat}>
-            <GameIcon emoji={statIcons[stat]} size={22} />
-            <View>
-              <Text style={styles.statName}>{t(`hero.statNames.${stat}`)}</Text>
-              <Text style={styles.statValue}>{stats[stat]}</Text>
-            </View>
-          </Tip>
+          <StatTile key={stat} stat={stat} value={stats[stat]} text={tipOf(stat)} />
         ))}
       </View>
-      <PartsLine
-        style={styles.smallStats}
-        labelStyle={styles.note}
-        parts={smallStats.map((stat) => {
-          const capped = stat === 'evasion' && stats.evasion >= expeditionRules.evasionCap;
-          return { emoji: statIcons[stat], text: `${stats[stat]}${capped ? ` (${t('hero.capped')})` : ''}` };
-        })}
-      />
+      <View style={styles.smallStats}>
+        {smallStats.map((stat) => (
+          <StatTile key={stat} stat={stat} value={stats[stat]} text={tipOf(stat)} small />
+        ))}
+      </View>
       <View style={styles.section}>
         <View style={styles.headRow}>
           <Text style={styles.heading}>{t('hero.approaches')}</Text>
@@ -384,13 +397,14 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
           <Text style={styles.note}>{t('hero.storeroomHint')}</Text>
         </View>
         <View style={styles.grid}>
-          {storeroomPieces.map(({ gear, item }) => (
+          {storeroomPieces.map(({ gear, item, equipped }) => (
             <StoreroomSlot
               key={gear.uid}
               save={save}
               hero={hero}
               gear={gear}
               item={item}
+              equipped={equipped}
               size={Math.floor((contentWidth - 3 * 6) / 4) - 4}
               onOpen={(slot, anchor) => setCompare({ gear, slot, anchor })}
             />
@@ -450,6 +464,7 @@ function StoreroomSlot({
   hero,
   gear,
   item,
+  equipped,
   size,
   onOpen,
 }: {
@@ -457,6 +472,7 @@ function StoreroomSlot({
   hero: HeroState;
   gear: GearInstance;
   item: GearDef;
+  equipped: boolean;
   size: number;
   onOpen: (slot: (typeof GEAR_SLOTS)[number], anchor: PopupAnchor) => void;
 }) {
@@ -472,6 +488,7 @@ function StoreroomSlot({
         icon={item.icon}
         mark={preview && gain > 0 ? 'up' : preview && gain < 0 ? 'down' : undefined}
         size={size}
+        equipped={equipped}
         accessibilityLabel={gearName(gear)}
         onPress={() =>
           wrapper.current?.measureInWindow((x, y, width, height) =>
@@ -619,7 +636,21 @@ const styles = StyleSheet.create({
   },
   statName: { fontFamily: fonts.serif, fontSize: 13, color: ui.inkMuted, textTransform: 'uppercase' },
   statValue: { fontFamily: fonts.serifBold, fontSize: 22, color: ui.ink },
-  smallStats: { paddingVertical: 2 },
+  smallStats: { flexDirection: 'row', gap: 8 },
+  smallStat: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'center',
+    gap: 2,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: ui.outline,
+    backgroundColor: ui.parchmentShade,
+  },
+  smallStatBody: { alignSelf: 'stretch', alignItems: 'center' },
+  smallStatName: { fontFamily: fonts.serif, fontSize: 11, color: ui.inkMuted, textTransform: 'uppercase' },
+  smallStatValue: { fontFamily: fonts.serifBold, fontSize: 17, color: ui.ink },
   approach: {
     minHeight: 44,
     flexDirection: 'row',

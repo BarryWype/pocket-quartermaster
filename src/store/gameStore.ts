@@ -26,6 +26,7 @@ import { dayKey, openChest, recordSteps, syncSteps } from '@/game/rewards/chests
 import { activateLure } from '@/game/rewards/lures';
 import { collectTreasure, readTreasureMap } from '@/game/rewards/treasure';
 import { grantLoot } from '@/game/loot/grant';
+import { migrateSave } from '@/game/migrations';
 import { readManual } from '@/game/loot/manuals';
 import type { Loot, ManualRarity } from '@/game/loot/types';
 import { applyBackgroundResults, type BackgroundResult } from '@/game/patrols/escort';
@@ -702,7 +703,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 30,
+      version: 31,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
       // Saves from version 30 on are kept: every later version bump adds a migration step here (see AGENTS.md, Saves).
@@ -710,7 +711,7 @@ export const useGameStore = create<GameState>()(
       migrate: (persisted, version) => {
         const old = (persisted as { save?: SaveData } | undefined)?.save;
         if (!old || version < 30) return { save: createInitialSave() };
-        return { save: old };
+        return { save: migrateSave(old, version, Date.now()) };
       },
       merge: (persisted, current) => ({
         ...current,

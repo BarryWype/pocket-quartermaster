@@ -12,6 +12,7 @@ export const en = {
     escort: ' · Escort',
     patrol: ' · Patrol',
     wornBy: 'Worn by {name}',
+    equippedBy: 'Equipped: {name}',
     and: ' and ',
     tooFar: 'Get within {radius} m to {action} ({distance} m away).',
   },
@@ -386,6 +387,7 @@ export const en = {
   },
   gear: {
     roll: 'roll {roll}/{max}',
+    equipped: 'Equipped',
   },
   team: {
     roster: 'Roster {count}/{cap} · up to {party} per expedition',
@@ -448,6 +450,7 @@ export const en = {
       luck: 'More gold, materials and rare finds for the party.',
     },
     awayHint: 'Equipment can be changed once the hero is back.',
+    statFrom: 'Class {base} · Levels {levels} · Gear and abilities {gear} → {total}',
     capped: 'capped',
     pendingPicks: { one: '{count} pick pending', other: '{count} picks pending' },
     pickApproach: 'Pick an approach',
@@ -537,7 +540,8 @@ export const en = {
       deliver: 'Bring {count} × {item} to the {place}',
       mine: 'Buy {count} materials at the {place}',
       gatherOnWay: 'Gather {count} herbs, berries or mushrooms on the way',
-      collector: 'Sell the collector’s wanted valuable at the market',
+      collector: 'Sell your {item} at the market',
+      sellGoods: 'Sell goods worth {gold} gold',
       walk: 'Walk {distance}',
       visit: 'Visit the place marked on your map',
       mark: 'Find the strange mark',
