@@ -37,6 +37,18 @@ const RAIL_ICONS: Record<Tab, { emoji: string; icon?: ImageSourcePropType }> = {
 /** One recipe group: every known recipe of the station that makes the same item. */
 type Group = RecipeDef[];
 
+/** The kitchen/alchemy tabs as rail items, with craftable badges, and the tab the station opens on; the screen's ghost shows the same rail. */
+export function useCraftingRail(station: Props['station']): { items: RailItem[]; selected: Tab } | undefined {
+  const save = useGameStore((state) => state.save);
+  if (station !== 'provisions') return undefined;
+  const items = (['kitchen', 'alchemy'] as Tab[]).map((key) => {
+    const rows = recipes.filter((recipe) => recipe.station === station && recipe.tab === key).filter((recipe) => isKnown(save, recipe));
+    const craftable = new Set(rows.filter((recipe) => canCraft(save, recipe)).map((recipe) => recipeOutput(recipe).id)).size;
+    return { key, label: t(`crafting.tabs.${key}`), ...RAIL_ICONS[key], badge: craftable > 0 ? craftable : undefined };
+  });
+  return { items, selected: 'kitchen' };
+}
+
 function familyOf(recipe: RecipeDef): Family {
   if (!('itemId' in recipe.output)) return 'hero';
   const item = itemById[recipe.output.itemId];
@@ -57,18 +69,11 @@ export function CraftingStation({ station, action }: Props) {
   /** The recipe group whose pop-up is open, and the slot it opened from. */
   const [pending, setPending] = useState<{ group: Group; anchor: PopupAnchor } | null>(null);
   const tabbed = station === 'provisions';
+  const rail = useCraftingRail(station);
 
   const known = recipes.filter((recipe) => recipe.station === station && (!tabbed || recipe.tab === tab)).filter((recipe) => isKnown(save, recipe));
   const groupsOf = (rows: RecipeDef[]): Group[] =>
     [...new Set(rows.map((recipe) => recipeOutput(recipe).id))].map((id) => rows.filter((recipe) => recipeOutput(recipe).id === id));
-
-  const railItems: RailItem[] | undefined = tabbed
-    ? (['kitchen', 'alchemy'] as Tab[]).map((key) => {
-        const rows = recipes.filter((recipe) => recipe.station === station && recipe.tab === key).filter((recipe) => isKnown(save, recipe));
-        const craftable = new Set(rows.filter((recipe) => canCraft(save, recipe)).map((recipe) => recipeOutput(recipe).id)).size;
-        return { key, label: t(`crafting.tabs.${key}`), ...RAIL_ICONS[key], badge: craftable > 0 ? craftable : undefined };
-      })
-    : undefined;
 
   /** One family's recipes of the current tab, grouped per item. */
   const familyGroups = (family: Family): Group[] => groupsOf(known.filter((recipe) => familyOf(recipe) === family));
@@ -77,7 +82,7 @@ export function CraftingStation({ station, action }: Props) {
   return (
     <View style={styles.screen}>
       <View style={styles.body}>
-        {railItems && <DiamondRail items={railItems} selected={tab} onSelect={(key) => setTab(key as Tab)} />}
+        {rail && <DiamondRail items={rail.items} selected={tab} onSelect={(key) => setTab(key as Tab)} />}
         <View style={styles.content}>
           <TutorialHint screen={station} />
           {result && <ForgeBanner result={result} onClose={() => setResult(null)} />}

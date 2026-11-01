@@ -6,7 +6,7 @@ import { GameIcon } from '@/components/GameIcon';
 import { HpBar } from '@/components/HpBar';
 import { Text } from '@/components/Text';
 import { TutorialHint } from '@/components/TutorialHint';
-import { ParchmentCard, WoodButton } from '@/components/ui';
+import { Deferred, GhostScreen, ParchmentCard, WoodButton } from '@/components/ui';
 import { heroClasses } from '@/content/heroes';
 import { traitById } from '@/content/traits';
 import { heroDamageStat, heroStats, isOnExpedition } from '@/game/team/team';
@@ -18,13 +18,22 @@ import { navigate } from '@/services/navigation';
 import { t, tr, type TextKey } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { fonts, ui } from '@/theme';
+import { timed } from '@/components/timed';
 
 /** A leading ' · ' separator stripped when the fragment is shown on its own. */
 function alone(key: TextKey): string {
   return t(key).replace(/^\s*·\s*/, '').trim();
 }
 
-export default function TeamScreen() {
+function TeamScreen() {
+  return (
+    <Deferred name="team" ghost={<GhostScreen variant="cards" />}>
+      <TeamContent />
+    </Deferred>
+  );
+}
+
+function TeamContent() {
   useLanguage();
   const save = useGameStore((state) => state.save);
   const now = useNow();
@@ -192,3 +201,5 @@ const styles = StyleSheet.create({
   bunkPlus: { fontFamily: fonts.body, fontSize: 19, color: ui.brassDim },
   bunkText: { fontFamily: fonts.serif, fontSize: 15, color: ui.onWoodMuted },
 });
+
+export default timed('screen: team', TeamScreen);

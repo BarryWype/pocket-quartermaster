@@ -15,7 +15,8 @@ import { useGameStore } from '@/store/gameStore';
 import { fonts, ui } from '@/theme';
 import { priceLabel } from '@/components/PriceTag';
 
-import { DiamondRail, EmberButton, ParchmentCard, type RailItem } from '@/components/ui';
+import { Deferred, DiamondRail, EmberButton, GhostScreen, ParchmentCard, useLazyPages, type RailItem } from '@/components/ui';
+import { timed } from '@/components/timed';
 
 const BUILDINGS = Object.keys(guildBuildings) as GuildBuildingId[];
 
@@ -118,20 +119,19 @@ function UpgradeCard({ track, onBuy }: { track: GuildTrack; onBuy: () => void })
   );
 }
 
-/** Gold upgrades: five buildings on a rail, each with a few tracks bought rank by rank, gated by tier bosses. */
-export default function GuildScreen() {
-  useLanguage();
-  const save = useGameStore((state) => state.save);
-  const buy = useGameStore((state) => state.buyRank);
-  const [building, setBuilding] = useState<GuildBuildingId>('warRoom');
-  const pager = useRef<PagerView>(null);
-
-  const railItems: RailItem[] = BUILDINGS.map((id) => ({
+/** The guild buildings as rail items, shared by the content and the ghost's first frame. */
+export function guildRailItems(): RailItem[] {
+  return BUILDINGS.map((id) => ({
     key: id,
     label: tr(guildBuildings[id].name),
     emoji: guildBuildings[id].emoji,
   }));
+}
 
+/** Gold upgrades: five buildings on a rail, each with a few tracks bought rank by rank, gated by tier bosses. */
+function GuildScreen() {
+  useLanguage();
+  const save = useGameStore((state) => state.save);
   if (!isGuildUnlocked(save)) {
     return (
       <View style={styles.lockedScreen}>
@@ -141,6 +141,41 @@ export default function GuildScreen() {
       </View>
     );
   }
+  const railItems = guildRailItems();
+  return (
+    <Deferred
+      name="guild"
+      ghost={<GhostScreen variant="cards" rail={<DiamondRail items={railItems} selected="warRoom" onSelect={() => {}} />} />}
+    >
+      <GuildContent />
+    </Deferred>
+  );
+}
+
+function GuildContent() {
+  const buy = useGameStore((state) => state.buyRank);
+  const [building, setBuilding] = useState<GuildBuildingId>('warRoom');
+  const pager = useRef<PagerView>(null);
+  const railItems = guildRailItems();
+
+  const pagerPages = useLazyPages({
+    keys: BUILDINGS,
+    active: building,
+    variant: 'cards',
+    render: (id) => (
+      <ScrollView style={styles.content} contentContainerStyle={styles.page}>
+        <View>
+          <Text style={styles.pageTitle}>{tr(guildBuildings[id].name)}</Text>
+          <Text style={styles.pageSub}>{t(`guild.sub.${id}`)}</Text>
+        </View>
+        {guildTracks
+          .filter((track) => track.building === id)
+          .map((track) => (
+            <UpgradeCard key={track.id} track={track} onBuy={() => buy(track.id)} />
+          ))}
+      </ScrollView>
+    ),
+  });
 
   return (
     <View style={styles.screen}>
@@ -159,21 +194,7 @@ export default function GuildScreen() {
           initialPage={0}
           onPageSelected={({ nativeEvent }) => setBuilding(BUILDINGS[nativeEvent.position])}
         >
-          {BUILDINGS.map((id) => (
-            <View key={id} collapsable={false}>
-              <ScrollView style={styles.content} contentContainerStyle={styles.page}>
-                <View>
-                  <Text style={styles.pageTitle}>{tr(guildBuildings[id].name)}</Text>
-                  <Text style={styles.pageSub}>{t(`guild.sub.${id}`)}</Text>
-                </View>
-                {guildTracks
-                  .filter((track) => track.building === id)
-                  .map((track) => (
-                    <UpgradeCard key={track.id} track={track} onBuy={() => buy(track.id)} />
-                  ))}
-              </ScrollView>
-            </View>
-          ))}
+          {pagerPages}
         </PagerView>
       </View>
     </View>
@@ -220,3 +241,5 @@ const styles = StyleSheet.create({
   },
   problem: { fontFamily: fonts.serif, fontSize: 13, color: ui.inkMuted, fontStyle: 'italic' },
 });
+
+export default timed('screen: guild', GuildScreen);

@@ -6,6 +6,8 @@ export { DifficultyRing } from './DifficultyRing';
 export { DiamondButton } from './DiamondButton';
 export { DiamondRail, RAIL_WIDTH, type RailItem } from './DiamondRail';
 export { EmberButton } from './EmberButton';
+export { Deferred, GhostBody, GhostScreen, type GhostVariant } from './GhostScreen';
+export { useLazyPages } from './LazyPages';
 export { ItemPopup, type PopupIngredient, type PopupLine } from './ItemPopup';
 export { ItemSlot, type SlotState } from './ItemSlot';
 export { ParchmentCard } from './ParchmentCard';

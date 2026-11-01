@@ -27,7 +27,7 @@ import { RecipeInputs, recipeInputsStyles } from './RecipeInputs';
 import { Row } from './Row';
 import { Text } from './Text';
 import { TutorialHint } from './TutorialHint';
-import { DiamondRail, ItemSlot, type RailItem } from './ui';
+import { DiamondRail, ItemSlot, useLazyPages, type RailItem } from './ui';
 
 /** The gear sections, always in this order; the Other section joins last when it has content. */
 const GEAR_SECTIONS = ['weapons', 'armour', 'offhands'] as const;
@@ -43,6 +43,31 @@ const RAIL_ICONS: Record<ForgePageType, { emoji: string; icon?: ImageSourcePropT
 /** The page the player last swiped to, kept for this session only. */
 let lastPage: ForgePageType | null = null;
 
+/**
+ * The forge's rail: its sections with craftable badges, and the section the
+ * screen opens on. It also carries the page and tier lists it is built from,
+ * so the station does not compute the forge list twice; the screen's ghost
+ * shows the same rail on its first frame.
+ */
+export function useForgeRail() {
+  const save = useGameStore((state) => state.save);
+  const { pages, tiers } = forgeList(save);
+  const otherVisible = pages.some(({ type }) => type === 'other');
+  const sections = otherVisible ? ([...GEAR_SECTIONS, 'other'] as ForgePageType[]) : ([...GEAR_SECTIONS] as ForgePageType[]);
+  const items: RailItem[] = sections.map((type) => {
+    const page = pages.find((one) => one.type === type);
+    return {
+      key: type,
+      label: t(`crafting.pages.${type}`),
+      ...RAIL_ICONS[type],
+      badge: page && page.craftable > 0 ? page.craftable : undefined,
+    };
+  });
+  // The tutorial's forge step must land on the sword's section, whatever was last used.
+  const selected: ForgePageType = save.tutorial.step === 'forgeSword' ? 'weapons' : lastPage ?? 'weapons';
+  return { items, sections, selected, pages, tiers };
+}
+
 /** The forge: a rail of item types on the left, the chosen section's tiers of blueprints on the right. */
 export function ForgeStation() {
   const save = useGameStore((state) => state.save);
@@ -53,26 +78,11 @@ export function ForgeStation() {
   /** The forge or restore waiting for its confirmation, if any, and the slot it opened from. */
   const [pending, setPending] = useState<ForgePending | null>(null);
   const [anchor, setAnchor] = useState<PopupAnchor | null>(null);
-  const [section, setSection] = useState<ForgePageType>(() => {
-    // The tutorial's forge step must land on the sword's section, whatever was last used.
-    if (save.tutorial.step === 'forgeSword') return 'weapons';
-    return lastPage ?? 'weapons';
-  });
+  const rail = useForgeRail();
+  const [section, setSection] = useState<ForgePageType>(() => rail.selected);
   const [contentWidth, setContentWidth] = useState(0);
   const pager = useRef<PagerView>(null);
-  const { pages, tiers } = forgeList(save);
-
-  const otherVisible = pages.some(({ type }) => type === 'other');
-  const sections = otherVisible ? ([...GEAR_SECTIONS, 'other'] as ForgePageType[]) : ([...GEAR_SECTIONS] as ForgePageType[]);
-  const railItems: RailItem[] = sections.map((type) => {
-    const page = pages.find((one) => one.type === type);
-    return {
-      key: type,
-      label: t(`crafting.pages.${type}`),
-      ...RAIL_ICONS[type],
-      badge: page && page.craftable > 0 ? page.craftable : undefined,
-    };
-  });
+  const { items: railItems, sections, pages, tiers } = rail;
 
   const showSection = (next: ForgePageType) => {
     setSection(next);
@@ -92,6 +102,46 @@ export function ForgeStation() {
     setAnchor(null);
   };
 
+  const pagerPages = useLazyPages({
+    keys: sections,
+    active: section,
+    variant: 'grid',
+    render: (type) => (
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentInner}
+        onLayout={({ nativeEvent }) => setContentWidth(nativeEvent.layout.width - 24)}
+      >
+        <TutorialHint screen="forge" />
+        {result && <ForgeBanner result={result} onClose={() => setResult(null)} />}
+        {pages.length === 0 ? (
+          <Text style={styles.nothing}>{t('crafting.nothingKnown')}</Text>
+        ) : type === 'other' ? (
+          <OtherPage
+            save={save}
+            onRestore={(uid) => {
+              setAnchor(null);
+              setPending({ kind: 'restore', relicUid: uid });
+            }}
+            onCraft={(id) => setResult(craft(id))}
+          />
+        ) : (
+          <GearSection
+            save={save}
+            type={type}
+            tiers={[...tiers].reverse()}
+            contentWidth={contentWidth}
+            pending={pending}
+            onForge={(recipeId, slot) => {
+              setAnchor(slot);
+              setPending({ kind: 'forge', recipeId, componentId: null });
+            }}
+          />
+        )}
+      </ScrollView>
+    ),
+  });
+
   return (
     <View style={styles.screen}>
       <View style={styles.body}>
@@ -109,42 +159,7 @@ export function ForgeStation() {
           initialPage={Math.max(0, sections.indexOf(section))}
           onPageSelected={({ nativeEvent }) => showSection(sections[nativeEvent.position])}
         >
-          {sections.map((type) => (
-            <View key={type} collapsable={false}>
-              <ScrollView
-                style={styles.content}
-                contentContainerStyle={styles.contentInner}
-                onLayout={({ nativeEvent }) => setContentWidth(nativeEvent.layout.width - 24)}
-              >
-                <TutorialHint screen="forge" />
-                {result && <ForgeBanner result={result} onClose={() => setResult(null)} />}
-                {pages.length === 0 ? (
-                  <Text style={styles.nothing}>{t('crafting.nothingKnown')}</Text>
-                ) : type === 'other' ? (
-                  <OtherPage
-                    save={save}
-                    onRestore={(uid) => {
-                      setAnchor(null);
-                      setPending({ kind: 'restore', relicUid: uid });
-                    }}
-                    onCraft={(id) => setResult(craft(id))}
-                  />
-                ) : (
-                  <GearSection
-                    save={save}
-                    type={type}
-                    tiers={[...tiers].reverse()}
-                    contentWidth={contentWidth}
-                    pending={pending}
-                    onForge={(recipeId, slot) => {
-                      setAnchor(slot);
-                      setPending({ kind: 'forge', recipeId, componentId: null });
-                    }}
-                  />
-                )}
-              </ScrollView>
-            </View>
-          ))}
+          {pagerPages}
         </PagerView>
       </View>
       {pending && (

@@ -12,7 +12,7 @@ import { PixelBar } from '@/components/PixelBar';
 import { Text } from '@/components/Text';
 import { Tip } from '@/components/Tip';
 import { TutorialHint } from '@/components/TutorialHint';
-import { AnchoredPopup, Chip, ItemPopup, ItemSlot, ScreenHeader, SwipeTabs, WoodButton, WoodPanel, type PopupAnchor, type PopupLine } from '@/components/ui';
+import { AnchoredPopup, Chip, Deferred, GhostScreen, ItemPopup, ItemSlot, ScreenHeader, SwipeTabs, WoodButton, WoodPanel, type PopupAnchor, type PopupLine } from '@/components/ui';
 import { abilityText } from '@/content/abilities';
 import { elementInfo } from '@/content/elements';
 import { expeditionRules } from '@/content/dungeons';
@@ -37,12 +37,64 @@ import { useNow } from '@/hooks/useNow';
 import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { fonts, ui } from '@/theme';
+import { timed } from '@/components/timed';
 
 const GEAR_SLOTS = ['weapon', 'armor', 'offhand', 'trinket'] as const;
 
-export default function CharacterSheetScreen() {
-  useLanguage();
+/**
+ * The stack header with the hero's name and the prev/next arrows. Rendered
+ * beside the ghost too, outside the deferred content, so the header is right
+ * on the first frame.
+ */
+function HeroHeader({ heroId }: { heroId: string }) {
+  const save = useGameStore((state) => state.save);
+  const hero = save.heroes.find((h) => h.id === heroId);
+  const index = save.heroes.findIndex((h) => h.id === heroId);
+  const gotoHero = (delta: number) => {
+    const target = save.heroes[(index + delta + save.heroes.length) % save.heroes.length];
+    router.setParams({ heroId: target.id });
+  };
+  return (
+    <Stack.Screen
+      options={{
+        header: () => (
+          <ScreenHeader
+            title={hero?.name ?? ''}
+            right={
+              save.heroes.length > 1 ? (
+                <View style={styles.navRow}>
+                  <Pressable accessibilityRole="button" accessibilityLabel={t('hero.previous')} onPress={() => gotoHero(-1)} style={styles.navButton}>
+                    <View style={styles.navRim} pointerEvents="none" />
+                    <Text style={styles.navGlyph}>‹</Text>
+                  </Pressable>
+                  <Pressable accessibilityRole="button" accessibilityLabel={t('hero.next')} onPress={() => gotoHero(1)} style={styles.navButton}>
+                    <View style={styles.navRim} pointerEvents="none" />
+                    <Text style={styles.navGlyph}>›</Text>
+                  </Pressable>
+                </View>
+              ) : undefined
+            }
+          />
+        ),
+      }}
+    />
+  );
+}
+
+function CharacterSheetScreen() {
   const { heroId } = useLocalSearchParams<{ heroId: string }>();
+  return (
+    <>
+      <HeroHeader heroId={heroId} />
+      <Deferred name="hero" ghost={<GhostScreen variant="hero" />}>
+        <CharacterSheetContent heroId={heroId} />
+      </Deferred>
+    </>
+  );
+}
+
+function CharacterSheetContent({ heroId }: { heroId: string }) {
+  useLanguage();
   const save = useGameStore((state) => state.save);
   const equipAction = useGameStore((state) => state.equip);
   const dismiss = useGameStore((state) => state.dismissHero);
@@ -78,11 +130,6 @@ export default function CharacterSheetScreen() {
   const element = heroClass.element ? elementInfo[heroClass.element] : null;
   const next = xpToNextLevel(hero.level);
   const aboveBand = hero.level >= lootConfig.manuals.topLevelByTier[highestUnlockedTier(save) - 1] + xpRules.aboveBandMargin;
-  const index = save.heroes.findIndex((h) => h.id === hero.id);
-  const gotoHero = (delta: number) => {
-    const target = save.heroes[(index + delta + save.heroes.length) % save.heroes.length];
-    router.setParams({ heroId: target.id });
-  };
   const confirmDismiss = () =>
     Alert.alert(t('hero.dismissTitle', { name: hero.name }), t('hero.dismissBody'), [
       { text: t('common.cancel'), style: 'cancel' },
@@ -355,35 +402,14 @@ export default function CharacterSheetScreen() {
 
   return (
     <View style={styles.screen}>
-      <Stack.Screen
-        options={{
-          header: () => (
-            <ScreenHeader
-              title={hero.name}
-              right={
-                save.heroes.length > 1 ? (
-                  <View style={styles.navRow}>
-                    <Pressable accessibilityRole="button" accessibilityLabel={t('hero.previous')} onPress={() => gotoHero(-1)} style={styles.navButton}>
-                      <View style={styles.navRim} pointerEvents="none" />
-                      <Text style={styles.navGlyph}>‹</Text>
-                    </Pressable>
-                    <Pressable accessibilityRole="button" accessibilityLabel={t('hero.next')} onPress={() => gotoHero(1)} style={styles.navButton}>
-                      <View style={styles.navRim} pointerEvents="none" />
-                      <Text style={styles.navGlyph}>›</Text>
-                    </Pressable>
-                  </View>
-                ) : undefined
-              }
-            />
-          ),
-        }}
-      />
+      <HeroHeader heroId={heroId} />
       <SwipeTabs
         tabs={[
           { key: 'summary', label: t('hero.summary') },
           { key: 'stats', label: t('hero.stats') },
           { key: 'equipment', label: t('hero.equipment') },
         ]}
+        variant="hero"
       >
         {summaryPage}
         {statsPage}
@@ -633,3 +659,5 @@ const styles = StyleSheet.create({
   slotLabel: { fontFamily: fonts.body, fontSize: 13, color: ui.brassLight },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
 });
+
+export default timed('screen: hero', CharacterSheetScreen);

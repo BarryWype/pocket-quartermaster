@@ -54,16 +54,27 @@ export function markTap(target: string): void {
   if (timingsEnabled()) tapMark = { target, at: Date.now() };
 }
 
+/** The tap that opened the last screen, kept until its content shows (see `recordTapToContent`). */
+let openedMark: { target: string; at: number } | null = null;
+
 /** The pending tap mark, if any, handed to the first thing that opens for it. */
 export function takeTapMark(): { target: string; at: number } | null {
   const mark = tapMark;
   tapMark = null;
+  openedMark = mark;
   return mark;
 }
 
 /** Records how long a tap took to reach what it opened. */
 export function recordTapToOpen(name: string, target: string, at: number): void {
   add(`tap→open ${name} (${target})`, Date.now() - at, at);
+}
+
+/** Records how long the tap that opened a screen took to reach its real content, after its ghost. */
+export function recordTapToContent(name: string): void {
+  const mark = openedMark;
+  openedMark = null;
+  if (mark) add(`tap→content ${name} (${mark.target})`, Date.now() - mark.at, mark.at);
 }
 
 /** Drops every recorded entry. */

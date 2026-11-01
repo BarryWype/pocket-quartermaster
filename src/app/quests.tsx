@@ -28,7 +28,8 @@ import { useGameStore } from '@/store/gameStore';
 import { useWorldStore } from '@/store/worldStore';
 import { fonts, ui } from '@/theme';
 
-import { DiamondRail, EmberButton, ItemSlot, ParchmentCard, WoodButton, type RailItem } from '@/components/ui';
+import { Deferred, DiamondRail, EmberButton, GhostScreen, ItemSlot, ParchmentCard, WoodButton, useLazyPages, type RailItem } from '@/components/ui';
+import { timed } from '@/components/timed';
 
 /** One emoji per loot category, for the reward slots. */
 const CATEGORY_EMOJI: Record<LootCategory, string> = {
@@ -96,11 +97,45 @@ type QuestsPageId = 'quests' | 'chests';
 /** The page the player last swiped to, kept for this session only. */
 let lastPage: QuestsPageId | null = null;
 
+/** The rail's items — quests waiting to be seen or claimed, chests ready to open — and the page the screen opens on. */
+export function useQuestsRail(): { items: RailItem[]; selected: QuestsPageId } {
+  const save = useGameStore((state) => state.save);
+  const steps = useTodaySteps();
+  const day = dayKey(new Date());
+  const questNews = save.quests.list.filter((quest) => !quest.seen || quest.doneAt !== null).length;
+  const readyChests = stepChests.filter((chest) => chestState(save, chest, steps, day) === 'ready').length;
+  const items: RailItem[] = [
+    { key: 'quests', label: t('quests.pages.quests'), emoji: '📜', badge: questNews > 0 ? questNews : undefined },
+    { key: 'chests', label: t('quests.pages.chests'), emoji: '🎁', badge: readyChests > 0 ? readyChests : undefined },
+  ];
+  return { items, selected: lastPage === 'chests' ? 'chests' : 'quests' };
+}
+
 /**
  * The daily quests and the step chests, one swipable page each. Opening the
  * list accepts new quests and fixes their targets from where the player stands.
  */
-export default function QuestsScreen() {
+function QuestsScreen() {
+  const save = useGameStore((state) => state.save);
+  const rail = useQuestsRail();
+  if (!isRevealed(save, 'quests')) {
+    return (
+      <View style={styles.locked}>
+        <Text style={styles.muted}>{t('quests.locked')}</Text>
+      </View>
+    );
+  }
+  return (
+    <Deferred
+      name="quests"
+      ghost={<GhostScreen variant="cards" rail={<DiamondRail items={rail.items} selected={rail.selected} onSelect={() => {}} />} />}
+    >
+      <QuestsContent />
+    </Deferred>
+  );
+}
+
+function QuestsContent() {
   useLanguage();
   const now = useNow(5000);
   const save = useGameStore((state) => state.save);
@@ -108,18 +143,9 @@ export default function QuestsScreen() {
   const player = useWorldStore((state) => state.player);
   const { places, ready } = useQuestPlaces(save, player, now);
   const [claimed, setClaimed] = useState<Record<string, string[]>>({});
-  const steps = useTodaySteps();
-  const day = dayKey(new Date());
-  // The rail badges: quests waiting to be seen or claimed, and chests ready to open.
-  const questNews = save.quests.list.filter((quest) => !quest.seen || quest.doneAt !== null).length;
-  const readyChests = stepChests.filter((chest) => chestState(save, chest, steps, day) === 'ready').length;
-  const [page, setPage] = useState<QuestsPageId>(() => (lastPage === 'chests' ? 'chests' : 'quests'));
+  const rail = useQuestsRail();
+  const [page, setPage] = useState<QuestsPageId>(() => rail.selected);
   const pager = useRef<PagerView>(null);
-
-  const railItems: RailItem[] = [
-    { key: 'quests', label: t('quests.pages.quests'), emoji: '📜', badge: questNews > 0 ? questNews : undefined },
-    { key: 'chests', label: t('quests.pages.chests'), emoji: '🎁', badge: readyChests > 0 ? readyChests : undefined },
-  ];
 
   useEffect(() => {
     if (ready && player) useGameStore.getState().fixQuestTargets(places, player);
@@ -129,14 +155,6 @@ export default function QuestsScreen() {
   useEffect(() => {
     useGameStore.getState().markQuestsSeen();
   }, [save.quests.list]);
-
-  if (!isRevealed(save, 'quests')) {
-    return (
-      <View style={styles.locked}>
-        <Text style={styles.muted}>{t('quests.locked')}</Text>
-      </View>
-    );
-  }
 
   const rerolls = rerollsLeft(save, now);
   const quests = [...save.quests.list].sort((a, b) => order(a) - order(b) || a.expiresAt - b.expiresAt);
@@ -177,11 +195,57 @@ export default function QuestsScreen() {
     );
   };
 
+  const pagerPages = useLazyPages({
+    keys: ['quests', 'chests'] as QuestsPageId[],
+    active: page,
+    variant: 'cards',
+    render: (key) =>
+      key === 'chests' ? (
+        <ScrollView style={styles.content} contentContainerStyle={styles.page}>
+          <StepChests />
+        </ScrollView>
+      ) : (
+        <ScrollView style={styles.content} contentContainerStyle={styles.page}>
+          <View style={styles.pageHead}>
+            <Text style={styles.pageTitle}>{t('quests.notices')}</Text>
+            <RewardLabel
+              text={rerolls === 0 ? t('quests.rerollUsed') : t('quests.rerollFree', { count: rerolls })}
+              size={13}
+              labelStyle={styles.rerolls}
+            />
+          </View>
+          {quests.length === 0 && Object.keys(claimed).length === 0 && <Text style={styles.muted}>{t('quests.empty')}</Text>}
+          {Object.entries(claimed)
+            .filter(([id]) => !quests.some((q) => q.id === id))
+            .map(([id, gains]) => (
+              <View key={id} style={styles.claimed}>
+                <RewardLabel text={gainsPrefix(t('quests.claimed', { gains: '' }))} size={13} labelStyle={styles.claimedText} />
+                <GainsLine gains={gains.length > 0 ? gains : [t('quests.nothing')]} size={13} labelStyle={styles.claimedText} />
+              </View>
+            ))}
+          {quests.map((quest, index) => (
+            <QuestCard
+              key={quest.id}
+              quest={quest}
+              index={index}
+              now={now}
+              secret={quest.band === 'secret'}
+              rerollDisabled={quest.band !== 'secret' && rerollProblem(save, quest.id, now) !== null}
+              target={targetLine(quest)}
+              onClaim={() => claim(quest)}
+              onDeliver={() => deliver(quest)}
+              onReroll={() => game.rerollQuest(quest.id)}
+            />
+          ))}
+        </ScrollView>
+      ),
+  });
+
   return (
     <View style={styles.screen}>
       <View style={styles.body}>
         <DiamondRail
-          items={railItems}
+          items={rail.items}
           selected={page}
           onSelect={(key) => {
             pager.current?.setPage(key === 'chests' ? 1 : 0);
@@ -197,46 +261,7 @@ export default function QuestsScreen() {
             lastPage = nativeEvent.position === 1 ? 'chests' : 'quests';
           }}
         >
-          <View key="quests" collapsable={false}>
-            <ScrollView style={styles.content} contentContainerStyle={styles.page}>
-              <View style={styles.pageHead}>
-                <Text style={styles.pageTitle}>{t('quests.notices')}</Text>
-                <RewardLabel
-                  text={rerolls === 0 ? t('quests.rerollUsed') : t('quests.rerollFree', { count: rerolls })}
-                  size={13}
-                  labelStyle={styles.rerolls}
-                />
-              </View>
-              {quests.length === 0 && Object.keys(claimed).length === 0 && <Text style={styles.muted}>{t('quests.empty')}</Text>}
-              {Object.entries(claimed)
-                .filter(([id]) => !quests.some((q) => q.id === id))
-                .map(([id, gains]) => (
-                  <View key={id} style={styles.claimed}>
-                    <RewardLabel text={gainsPrefix(t('quests.claimed', { gains: '' }))} size={13} labelStyle={styles.claimedText} />
-                    <GainsLine gains={gains.length > 0 ? gains : [t('quests.nothing')]} size={13} labelStyle={styles.claimedText} />
-                  </View>
-                ))}
-              {quests.map((quest, index) => (
-                <QuestCard
-                  key={quest.id}
-                  quest={quest}
-                  index={index}
-                  now={now}
-                  secret={quest.band === 'secret'}
-                  rerollDisabled={quest.band !== 'secret' && rerollProblem(save, quest.id, now) !== null}
-                  target={targetLine(quest)}
-                  onClaim={() => claim(quest)}
-                  onDeliver={() => deliver(quest)}
-                  onReroll={() => game.rerollQuest(quest.id)}
-                />
-              ))}
-            </ScrollView>
-          </View>
-          <View key="chests" collapsable={false}>
-            <ScrollView style={styles.content} contentContainerStyle={styles.page}>
-              <StepChests />
-            </ScrollView>
-          </View>
+          {pagerPages}
         </PagerView>
       </View>
     </View>
@@ -348,3 +373,5 @@ const styles = StyleSheet.create({
   spacer: { flex: 1 },
   rerollButton: { minHeight: 44 },
 });
+
+export default timed('screen: quests', QuestsScreen);
