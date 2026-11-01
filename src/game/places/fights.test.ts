@@ -72,10 +72,11 @@ describe('place fight problems', () => {
 describe('fighting at a place', () => {
   it('sends the heroes away and pays the win when the fight is up', () => {
     const save = tierTeam();
-    const crypt = spawnOf('hauntedCrypt');
-    const started = startPlaceFight(save, crypt, ['bram', 'lyra', 'mira'], HOME, now);
+    // An easy fight, so a tier 1 trio wins it.
+    const camp = spawnOf('banditCamp');
+    const started = startPlaceFight(save, camp, ['bram', 'lyra', 'mira'], HOME, now);
     const fight = started.placeFights[0];
-    expect(fight.endsAt).toBe(now + placeFightRules.kinds.hauntedCrypt.minutes * 60_000);
+    expect(fight.endsAt).toBe(now + placeFightRules.kinds.banditCamp.minutes * 60_000);
     expect(isAway(started, 'bram')).toBe(true);
 
     const { save: done, resolved } = resolvePlaceFights(started, fight.endsAt);
@@ -83,9 +84,9 @@ describe('fighting at a place', () => {
     expect(resolved[0].won).toBe(true);
     expect(done.placeFights).toHaveLength(0);
     expect(done.gold).toBe(save.gold + fight.reward.gold);
-    expect(done.usedPlaces[crypt.id]).toBe(crypt.expiresAt);
+    expect(done.usedPlaces[camp.id]).toBe(camp.expiresAt);
     expect(isAway(done, 'bram')).toBe(false);
-    expect(placeFightProblem(done, crypt, ['bram'], HOME, now)).toBe('gone');
+    expect(placeFightProblem(done, camp, ['bram'], HOME, now)).toBe('gone');
   });
 
   it('leaves the place on the map after a lost fight', () => {

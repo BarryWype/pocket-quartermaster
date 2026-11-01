@@ -1,7 +1,7 @@
 import { expeditionRules } from '@/content/dungeons';
 import { mobById, placeMobId } from '@/content/enemies';
 import { placeFightRules, type FightPlaceKind } from '@/content/placeFights';
-import type { Difficulty } from '@/content/difficulty';
+import { threatLevelFor } from '@/content/difficulty';
 import { placeInfo, placeRules, type PlaceKind } from '@/content/places';
 
 import { ELEMENTS, type Element } from '../elements';
@@ -40,8 +40,8 @@ export function riftElement(spawn: PlaceSpawn): Element {
 export function placeFightBriefing(save: SaveData, spawn: PlaceSpawn): Briefing {
   const kind = spawn.kind;
   if (!isFightPlace(kind)) throw new Error(`No fight at a ${kind}`);
-  const { threat } = rulesOf(kind);
-  const level = highestUnlockedTier(save) >= placeFightRules.levelTwoFromTier ? 2 : 1;
+  const { threat, difficulty } = rulesOf(kind);
+  const level = (threatLevelFor(difficulty, highestUnlockedTier(save)) ?? 1) as ActiveThreat['level'];
   const id = Array.isArray(threat) ? createRng(`threat|${spawn.id}`).weighted(threat, () => 1) : threat;
   const active: ActiveThreat = { id, level, ...(id === 'element' ? { element: riftElement(spawn) } : {}) };
   const rng = createRng(`opportunity|${spawn.id}`);
@@ -53,18 +53,6 @@ export function placeFightBriefing(save: SaveData, spawn: PlaceSpawn): Briefing 
 export function placeRunOptions(save: SaveData, spawn: PlaceSpawn): RunOptions {
   return { rules: { ...expeditionRules, mishapChance: 0 }, briefing: placeFightBriefing(save, spawn), elixirs: true };
 }
-
-/** The fight's difficulty band: each kind is tuned to one (see content/difficulty.ts). */
-const FIGHT_DIFFICULTY: Record<FightPlaceKind, Difficulty> = {
-  banditCamp: 'easy',
-  abandonedCaravan: 'easy',
-  goblinRaid: 'medium',
-  beastDen: 'medium',
-  hauntedCrypt: 'hard',
-  elementalRift: 'hard',
-  wantedOutlaw: 'hard',
-  monsterLair: 'hard',
-};
 
 /** The fight itself, as a mini dungeon like a patrol's (see patrols/fight.ts). */
 export function placeFightDungeon(spawn: PlaceSpawn, tier: number): DungeonDef {
@@ -83,7 +71,7 @@ export function placeFightDungeon(spawn: PlaceSpawn, tier: number): DungeonDef {
     name: placeInfo[kind].name,
     emoji: placeInfo[kind].emoji,
     tier,
-    difficulty: FIGHT_DIFFICULTY[kind],
+    difficulty: rulesOf(kind).difficulty,
     durationMinutes: minutes,
     encounterCount: [1, 2],
     encounters,
