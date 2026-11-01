@@ -1,4 +1,4 @@
-import { usePathname, type Href } from 'expo-router';
+import { router, usePathname, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Image, Keyboard, Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -66,6 +66,8 @@ export function IslandMenu() {
   const go = (href: Href) => {
     setCraftOpen(false);
     if (pathname === href) return;
+    // The map is the root of the stack: pop back to it rather than stacking a second one.
+    if (href === '/') return router.dismissTo('/');
     // From the map it pushes as today; from any other screen it replaces, so Back returns to the map.
     navigate(href, { replace: pathname !== '/' });
   };
@@ -100,6 +102,7 @@ export function IslandMenu() {
             ))}
           </View>
           <View style={styles.brassLine} pointerEvents="none" />
+          <DiamondButton label={t('screens.map')} emoji="🗺️" size={DIAMOND_SIZE} showLabel={false} selected={pathname === '/'} onPress={() => go('/')} />
           <DiamondButton
             label={craftOpen ? t('menu.craftOpen') : t('menu.craftClosed')}
             icon={require('../../assets/icons/scaled/menu-craft.png')}

@@ -21,11 +21,12 @@ import { IslandMenu } from './IslandMenu';
 
 jest.mock('expo-router', () => ({
   usePathname: () => '/forge',
-  router: { push: jest.fn(), replace: jest.fn() },
+  router: { push: jest.fn(), replace: jest.fn(), dismissTo: jest.fn() },
 }));
 
 const pushMock = router.push as jest.Mock;
 const replaceMock = router.replace as jest.Mock;
+const dismissToMock = router.dismissTo as jest.Mock;
 
 // The keyboard events the tests fire, by name, as IslandMenu registered them.
 const keyboardEvents: Record<string, () => void> = {};
@@ -40,6 +41,7 @@ beforeAll(() => {
 beforeEach(() => {
   pushMock.mockClear();
   replaceMock.mockClear();
+  dismissToMock.mockClear();
 });
 
 const QUALITIES: Quality[] = ['crappy', 'normal', 'uncommon', 'rare'];
@@ -175,6 +177,18 @@ describe('IslandMenu', () => {
     expect(pushMock).not.toHaveBeenCalled();
     expect(replaceMock).toHaveBeenCalledTimes(1);
     expect(replaceMock).toHaveBeenCalledWith('/team', { dangerouslySingular: true });
+    act(() => tree.unmount());
+  });
+
+  it('pops back to the map from any screen', () => {
+    useGameStore.setState({ save: midGameSave() });
+    const { tree } = mountMenu();
+    act(() => {
+      tree.root.findByProps({ accessibilityLabel: t('screens.map') }).props.onPress();
+    });
+    expect(dismissToMock).toHaveBeenCalledWith('/');
+    expect(pushMock).not.toHaveBeenCalled();
+    expect(replaceMock).not.toHaveBeenCalled();
     act(() => tree.unmount());
   });
 });
