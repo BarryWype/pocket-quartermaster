@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { PatrolMarker } from '@/components/PatrolMarker';
 import { SanctumMarker } from '@/components/SanctumMarker';
-import { SpawnMarker } from '@/components/SpawnMarker';
+import { sameSpawnMarker, SpawnMarker } from '@/components/SpawnMarker';
 import { Text } from '@/components/Text';
 import { timed } from '@/components/timed';
 import { materialById, resourceById } from '@/content/lookup';
@@ -15,7 +15,7 @@ import { frPatrolTexts } from '@/content/fr/patrols';
 import { patrolTexts } from '@/content/patrols';
 import { placeFightRules } from '@/content/placeFights';
 import { isFightPlace } from '@/game/places/fights';
-import { isFleeing, pickaxeTier } from '@/game/gathering/gathering';
+import { isFleeing, pickaxeTier, withinCollectRange } from '@/game/gathering/gathering';
 import { readSpawn } from '@/game/gathering/lockedNodes';
 import { distanceMeters } from '@/game/generation/geo';
 import type { Bounds } from '@/game/generation/foliage';
@@ -48,7 +48,7 @@ const markerDifficulty = (difficulty: Difficulty) => {
 const markerLabel = (name: string, difficulty: Difficulty, kind: string) =>
   t('difficulty.markerLabel', { name, difficulty: markerDifficulty(difficulty), kind });
 
-const TimedSpawnMarker = memo(timed('marker: spawn', SpawnMarker));
+const TimedSpawnMarker = memo(timed('marker: spawn', SpawnMarker), sameSpawnMarker);
 const TimedSanctumMarker = memo(timed('marker: sanctum', SanctumMarker));
 const TimedPatrolMarker = memo(timed('marker: patrol', PatrolMarker));
 
@@ -157,7 +157,7 @@ function MapMarkersBase({
               kind={spawn.kind}
               emoji={shown?.emoji ?? '❓'}
               icon={shown?.icon}
-              inRange={distance <= collectRadius}
+              inRange={withinCollectRange(distance)}
               fleeing={spawn.kind === 'animal' && isFleeing(speed)}
               sway={read.resourceId === 'tree'}
               locked={read.state === 'locked'}
@@ -176,7 +176,7 @@ function MapMarkersBase({
                 kind={wood ? 'wood' : 'animal'}
                 emoji={wood ? resourceById.tree.emoji : material.emoji}
                 icon={wood ? resourceById.tree.icon : material.icon}
-                inRange={distanceMeters(position, node.position) <= collectRadius}
+                inRange={withinCollectRange(distanceMeters(position, node.position), collectRadius)}
                 fleeing={false}
                 sway={wood}
               />

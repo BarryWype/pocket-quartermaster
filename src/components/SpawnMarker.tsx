@@ -3,7 +3,7 @@ import { Animated, Easing, StyleSheet, View, type ImageSourcePropType } from 're
 
 import type { ResourceKind } from '@/game/generation/types';
 import { useAnimationsEnabled } from '@/hooks/useAnimationFrame';
-import { ui } from '@/theme';
+import { colors, ui } from '@/theme';
 
 import { GameIcon } from './GameIcon';
 
@@ -31,6 +31,10 @@ type Props = {
   /** Rocks gently in the wind, e.g. trees. */
   sway?: boolean;
 };
+
+/** The memo comparison for map markers: every prop, so walking in or out of reach re-renders only that marker. */
+export const sameSpawnMarker = (a: Props, b: Props) =>
+  (Object.keys({ ...a, ...b }) as (keyof Props)[]).every((key) => a[key] === b[key]);
 
 export function SpawnMarker({ emoji, icon, kind, inRange, fleeing, locked = false, sway = false }: Props) {
   const tilt = useSway(sway);
@@ -87,7 +91,7 @@ const styles = StyleSheet.create({
     borderColor: ui.outline,
     transform: [{ rotate: '45deg' }],
   },
-  inRange: { backgroundColor: '#fff6a8', transform: [{ rotate: '45deg' }, { scale: 1.2 }] },
+  inRange: { backgroundColor: colors.highlight, borderColor: colors.success, transform: [{ rotate: '45deg' }, { scale: 1.2 }] },
   fleeing: { opacity: 0.6 },
   locked: { opacity: 0.45, backgroundColor: '#8f8d88' },
   swayOrigin: { transformOrigin: 'bottom' },
