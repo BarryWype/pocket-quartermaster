@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 
+import type { Difficulty } from '@/content/difficulty';
 import type { PatrolSubject } from '@/game/patrols/generate';
 import { useAnimationsEnabled } from '@/hooks/useAnimationFrame';
-import { colors, pixel } from '@/theme';
+import { colors, difficultyTokens, pixel } from '@/theme';
 
 import { Text } from './Text';
 
@@ -12,6 +13,17 @@ export const patrolIcons: Record<PatrolSubject, string> = {
   goblins: '👺',
   herd: '🐗',
   bandits: '🗡️',
+  wolves: '🐺',
+  orcs: '👹',
+  spiders: '🕷️',
+  eliteGoblins: '👺',
+  outlaws: '🗡️',
+  ogres: '👹',
+  eliteOrcs: '👹',
+  trolls: '👹',
+  wraiths: '👻',
+  wyverns: '🐉',
+  golems: '🗿',
   wounded: '🤕',
   pilgrim: '🧙',
   trader: '🎒',
@@ -20,18 +32,20 @@ export const patrolIcons: Record<PatrolSubject, string> = {
 type Props = {
   kind: PatrolSubject;
   tier: number;
-  elite: boolean;
+  /** The patrol's difficulty band; travellers have none. */
+  difficulty: Difficulty | null;
   /** Milliseconds before the goblins move on; null for kinds that never flee. */
   fleesIn: number | null;
   /** Just came into view: the border pulses for a few seconds. */
   fresh: boolean;
 };
 
-/** A patrol or traveller on the map, styled like a Sanctum: tier badge, elite star, goblins' flee timer. */
-export function PatrolMarker({ kind, tier, elite, fleesIn, fresh }: Props) {
+/** A patrol or traveller on the map, styled like a Sanctum: tier badge, difficulty ring and pips, goblins' flee timer. */
+export function PatrolMarker({ kind, tier, difficulty, fleesIn, fresh }: Props) {
   const animationsEnabled = useAnimationsEnabled();
   const [pulse] = useState(() => new Animated.Value(0));
   const active = fresh && animationsEnabled;
+  const ring = difficulty ? difficultyTokens[difficulty] : null;
 
   useEffect(() => {
     if (!active) return;
@@ -50,15 +64,19 @@ export function PatrolMarker({ kind, tier, elite, fleesIn, fresh }: Props) {
     };
   }, [active, pulse]);
 
-  const borderWidth = pulse.interpolate({ inputRange: [0, 1], outputRange: [pixel.outline, pixel.outline * 2] });
+  const borderWidth = pulse.interpolate({ inputRange: [0, 1], outputRange: [ring?.width ?? pixel.outline, (ring?.width ?? pixel.outline) * 2] });
 
   return (
-    <Animated.View style={[styles.tile, elite && styles.elite, active && { borderWidth }]}>
+    <Animated.View style={[styles.tile, ring && { borderColor: ring.ring, borderWidth: ring.width }, active && { borderWidth }]}>
       <Text style={styles.emoji}>{patrolIcons[kind]}</Text>
       <View style={styles.tierBadge}>
         <Text style={styles.tierText}>{tier}</Text>
       </View>
-      {elite && <Text style={styles.star}>★</Text>}
+      {ring && ring.pips > 0 && (
+        <Text style={styles.pips}>
+          {'●'.repeat(ring.pips)}
+        </Text>
+      )}
       {fleesIn !== null && <Text style={styles.timer}>{Math.max(0, Math.ceil(fleesIn / 60_000))}m</Text>}
     </Animated.View>
   );
@@ -75,7 +93,6 @@ const styles = StyleSheet.create({
     borderColor: colors.highlight,
     backgroundColor: colors.woodDark,
   },
-  elite: { borderColor: colors.gold },
   emoji: { fontSize: 22 },
   tierBadge: {
     position: 'absolute',
@@ -92,6 +109,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.parchment,
   },
   tierText: { fontSize: 12 },
-  star: { position: 'absolute', right: -4, bottom: -6, fontSize: 16, color: colors.gold },
+  pips: { position: 'absolute', bottom: -7, fontSize: 8, backgroundColor: colors.parchment },
   timer: { position: 'absolute', top: 40, alignSelf: 'center', fontSize: 13, backgroundColor: colors.parchment },
 });

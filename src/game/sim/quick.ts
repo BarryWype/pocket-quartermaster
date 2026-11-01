@@ -122,7 +122,7 @@ export function quickProbe(config: SimConfig = simConfig): QuickTier[] {
 
       const armed = fillPotions(save, ids);
       for (const kind of PATROL_KINDS) {
-        const spawn = patrolsAround(config.location, t).find((p) => p.kind === kind && p.tierRoll === 'current');
+        const spawn = patrolsAround(config.location, t, tier).find((p) => p.kind === kind);
         if (!spawn) continue;
         const odds = patrolOdds(armed, spawn, ids, t, runs).success;
         patrols.push(odds);

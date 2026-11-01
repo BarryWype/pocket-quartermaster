@@ -1,6 +1,8 @@
-import { patrolRules, travellerRules, type PatrolRules } from '@/content/patrols';
+import { patrolRow, patrolRules, travellerRules, type PatrolDifficulty, type PatrolRules } from '@/content/patrols';
+import { difficultyRules } from '@/content/difficulty';
 import { placeFightRules } from '@/content/placeFights';
 
+import { ELEMENTS, type Element } from '../elements';
 import { createAnimalPath, animalPositionAt } from '../generation/animalPaths';
 import { distanceMeters } from '../generation/geo';
 import { createRng, type Rng } from '../generation/rng';
@@ -8,12 +10,41 @@ import { tileCenter, tilesAround } from '../generation/tiles';
 import { windowIndex, windowRange } from '../generation/time';
 import type { AnimalPath, LatLng } from '../generation/types';
 
-export type PatrolKind = 'goblins' | 'herd' | 'bandits';
+export type PatrolKind =
+  | 'goblins'
+  | 'herd'
+  | 'bandits'
+  | 'wolves'
+  | 'orcs'
+  | 'spiders'
+  | 'eliteGoblins'
+  | 'outlaws'
+  | 'ogres'
+  | 'eliteOrcs'
+  | 'trolls'
+  | 'wraiths'
+  | 'wyverns'
+  | 'golems';
 export type TravellerKind = 'wounded' | 'pilgrim' | 'trader';
 /** Anything that roams the map: a patrol to fight, or a traveller to help. */
 export type PatrolSubject = PatrolKind | TravellerKind;
 
-export const PATROL_KINDS: PatrolKind[] = ['goblins', 'herd', 'bandits'];
+export const PATROL_KINDS: PatrolKind[] = [
+  'goblins',
+  'herd',
+  'bandits',
+  'wolves',
+  'orcs',
+  'spiders',
+  'eliteGoblins',
+  'outlaws',
+  'ogres',
+  'eliteOrcs',
+  'trolls',
+  'wraiths',
+  'wyverns',
+  'golems',
+];
 export const TRAVELLER_KINDS: TravellerKind[] = ['wounded', 'pilgrim', 'trader'];
 
 export const isPatrolKind = (kind: PatrolSubject): kind is PatrolKind =>
@@ -21,24 +52,21 @@ export const isPatrolKind = (kind: PatrolSubject): kind is PatrolKind =>
 export const isTravellerKind = (kind: PatrolSubject): kind is TravellerKind =>
   (TRAVELLER_KINDS as string[]).includes(kind);
 
-/** The tier a spawn fights at, relative to the highest unlocked one. */
-export type TierRoll = 'current' | 'below' | 'elite';
-
 export type PatrolSpawn = {
   id: string;
   tile: string;
   window: number;
   kind: PatrolSubject;
-  /** Travellers always read as the current tier. */
-  tierRoll: TierRoll;
+  /** The difficulty band it fights at; null for travellers. */
+  difficulty: PatrolDifficulty | null;
+  /** The tier it fights at: always the highest unlocked one. */
+  tier: number;
   path: AnimalPath;
   startsAt: number;
   endsAt: number;
 };
 
-function tierRollOf(rng: Rng, rules: PatrolRules): TierRoll {
-  return rng.weighted(['current', 'below', 'elite'] as TierRoll[], (roll) => rules.tierWeights[roll]);
-}
+const PATROL_DIFFICULTIES: PatrolDifficulty[] = ['easy', 'medium', 'hard'];
 
 /**
  * A loop through the tile, walked at a seeded speed in the rules' range: the
@@ -59,27 +87,36 @@ function patrolPath(tile: string, rng: Rng, rules: PatrolRules): AnimalPath {
 }
 
 /**
- * The patrols and travellers of one tile in one window, rolled from the tile
- * and the window alone, so every player at the same place sees the same spawns.
- * A tile boosted by a nearby monster lair draws its count from the lair's
- * weights instead; the draw order is unchanged, so other tiles keep their spawns.
+ * The patrols and travellers of one tile in one window, rolled from the tile,
+ * the window and the highest unlocked tier alone, so every player at the same
+ * place sees the same spawns. A tile boosted by a nearby monster lair draws its
+ * count from the lair's weights instead; the draw order is unchanged, so other
+ * tiles keep their spawns.
  */
-export function generateTilePatrols(tile: string, window: number, rules: PatrolRules = patrolRules, boosted = false): PatrolSpawn[] {
+export function generateTilePatrols(
+  tile: string,
+  window: number,
+  highestTier: number,
+  rules: PatrolRules = patrolRules,
+  boosted = false,
+): PatrolSpawn[] {
   const rng = createRng(`patrol|${tile}|${window}`);
   const { start, end } = windowRange(window, rules.windowMinutes);
   const countWeights = boosted ? placeFightRules.lair.patrolCountWeights : rules.patrolCountWeights;
   const count = rng.weighted([0, 1, 2], (n) => countWeights[n]);
   return Array.from({ length: count }, (_, i): PatrolSpawn => {
     const traveller = rng.chance(1 / rules.travellerEvery);
-    const kind = traveller
-      ? rng.weighted(TRAVELLER_KINDS, (kind) => travellerRules.kinds[kind])
-      : rng.weighted(PATROL_KINDS, (kind) => rules.kindWeights[kind]);
+    const difficulty = traveller ? null : rng.weighted(PATROL_DIFFICULTIES, (d) => difficultyRules.patrolWeights[d]);
+    const kind = difficulty
+      ? patrolRow(highestTier)[difficulty][rng.chance(0.5) ? 0 : 1]
+      : rng.weighted(TRAVELLER_KINDS, (kind) => travellerRules.kinds[kind]);
     return {
       id: `patrol:${tile}:${window}:${i}`,
       tile,
       window,
       kind,
-      tierRoll: traveller ? 'current' : tierRollOf(rng, rules),
+      difficulty,
+      tier: highestTier,
       path: patrolPath(tile, rng, rules),
       startsAt: start,
       endsAt: end,
@@ -88,17 +125,22 @@ export function generateTilePatrols(tile: string, window: number, rules: PatrolR
 }
 
 /** Every spawn in the tiles around a position, for the window the time falls in; tiles near a live lair spawn more. */
-export function patrolsAround(position: LatLng, timeMs: number, rules: PatrolRules = patrolRules, lairs: LatLng[] = []): PatrolSpawn[] {
+export function patrolsAround(
+  position: LatLng,
+  timeMs: number,
+  highestTier: number,
+  rules: PatrolRules = patrolRules,
+  lairs: LatLng[] = [],
+): PatrolSpawn[] {
   const window = windowIndex(timeMs, rules.windowMinutes);
   return tilesAround(position, rules.precision).flatMap((tile) =>
-    generateTilePatrols(tile, window, rules, lairs.some((lair) => distanceMeters(tileCenter(tile), lair) <= placeFightRules.lair.radiusMeters)),
+    generateTilePatrols(tile, window, highestTier, rules, lairs.some((lair) => distanceMeters(tileCenter(tile), lair) <= placeFightRules.lair.radiusMeters)),
   );
 }
 
-/** The tier and elite flag a spawn fights at, given the highest unlocked tier. */
-export function patrolTier(spawn: PatrolSpawn, highestTier: number): { tier: number; elite: boolean } {
-  if (spawn.tierRoll === 'below') return { tier: Math.max(1, highestTier - 1), elite: false };
-  return { tier: highestTier, elite: spawn.tierRoll === 'elite' };
+/** The element a wyvern patrol bears, fixed per spawn (like a rift's, see places/fights.ts). */
+export function wyvernElement(spawn: PatrolSpawn): Element {
+  return createRng(`wyvern|${spawn.id}`).weighted(ELEMENTS, () => 1);
 }
 
 /** Where a spawn stands at a time. */

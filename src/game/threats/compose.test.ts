@@ -1,6 +1,8 @@
 import { dungeons } from '@/content/dungeons';
 import { itemById, threatById } from '@/content/lookup';
-import { dungeonThreats, patrolThreats, threatRules } from '@/content/threats';
+import { dungeonThreats, patrolThreatIds, patrolThreat, threatRules } from '@/content/threats';
+import { PATROL_KINDS, type PatrolKind } from '@/game/patrols/generate';
+import { patrolDifficulty, patrolTable } from '@/content/patrols';
 
 import type { ConsumableDef, DungeonDef, ThreatId } from '../types';
 import { heroAnswers, type AnswersMember } from './answers';
@@ -24,12 +26,29 @@ describe('threat content', () => {
     }
   });
 
-  it('gives every patrol kind its threat', () => {
-    expect(patrolThreats).toEqual({
-      goblins: { id: 'ambush', level: 1 },
-      herd: { id: 'beasts', level: 1 },
-      bandits: { id: 'thieves', level: 1 },
-    });
+  it('gives every patrol kind its threat, at its difficulty level', () => {
+    expect(Object.keys(patrolThreatIds).sort()).toEqual([...PATROL_KINDS].sort());
+    for (const kind of PATROL_KINDS) {
+      expect(threatById[patrolThreatIds[kind]]).toBeDefined();
+    }
+    // The two kinds sharing a tier and difficulty carry different threats.
+    for (const tier of [1, 2, 3, 4, 5] as const) {
+      for (const difficulty of ['easy', 'medium', 'hard'] as const) {
+        const [a, b] = patrolTable[tier][difficulty];
+        const spawnOf = (kind: PatrolKind) => ({
+          id: `t:${kind}`,
+          tile: 't',
+          window: 0,
+          kind,
+          difficulty: patrolDifficulty(kind, tier),
+          tier,
+          path: { waypoints: [], loopMs: 0, phaseMs: 0 },
+          startsAt: 0,
+          endsAt: 1,
+        });
+        expect(patrolThreat(spawnOf(a)).id).not.toBe(patrolThreat(spawnOf(b)).id);
+      }
+    }
   });
 });
 

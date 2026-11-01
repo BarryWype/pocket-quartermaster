@@ -45,6 +45,7 @@ import { patrolRulesAt, trackedRange, trackWindows, walkEffectAt, walkEffectSpaw
 import { patrolPositionAt, patrolsAround, pruneByWindow, type PatrolSpawn } from '@/game/patrols/generate';
 import { pocketModeAvailable, pocketTracking } from '@/game/patrols/pocketMode';
 import { activeLairs, isFightPlace } from '@/game/places/fights';
+import { highestUnlockedTier } from '@/game/expeditions/expeditions';
 import { isPlaceVisible, placeGroupOf, placesAround, showsForPlayer, type PlaceSpawn } from '@/game/places/generate';
 import { ruinReplacements } from '@/game/places/ruins';
 import { mapTileAt, mapTileKey, nearWater, type WalkableTile } from '@/game/generation/walkable';
@@ -378,6 +379,7 @@ function MapScreen() {
   // Patrols and travellers reroll with their window, so generating once per window is enough.
   const patrolWindow = Math.floor(now / (patrolRules.windowMinutes * 60_000));
   const debugPatrols = useWorldStore((state) => state.debugPatrols);
+  const highestTier = highestUnlockedTier(save);
   const patrolSpawns = useMemo(
     () =>
       position
@@ -386,6 +388,7 @@ function MapScreen() {
               ...patrolsAround(
                 position,
                 patrolWindow * patrolRules.windowMinutes * 60_000,
+                highestTier,
                 patrolRules,
                 // More patrols swarm around a live monster lair.
                 activeLairs(position, patrolWindow * patrolRules.windowMinutes * 60_000, save.usedPlaces),
@@ -394,7 +397,7 @@ function MapScreen() {
             ],
           )
         : [],
-    [position, patrolWindow, debugPatrols, save.usedPlaces],
+    [position, patrolWindow, debugPatrols, save.usedPlaces, highestTier],
   );
   const patrolsSeen = useWorldStore((state) => state.patrolsSeen);
   const patrolsShown = isRevealed(save, 'patrols');

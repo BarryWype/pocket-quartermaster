@@ -1,4 +1,6 @@
-import type { PatrolKind } from '@/game/patrols/generate';
+import { threatLevelFor } from '@/content/difficulty';
+import type { PatrolKind, PatrolSpawn } from '@/game/patrols/generate';
+import { wyvernElement } from '@/game/patrols/generate';
 import type { Element } from '@/game/elements';
 import type {
   ActiveThreat,
@@ -499,8 +501,26 @@ export const dungeonThreats: Record<string, DungeonThreats> = {
 };
 
 /** The threat each patrol kind carries in its briefing. */
-export const patrolThreats: Record<PatrolKind, ActiveThreat> = {
-  goblins: { id: 'ambush', level: 1 },
-  herd: { id: 'beasts', level: 1 },
-  bandits: { id: 'thieves', level: 1 },
+export const patrolThreatIds: Record<PatrolKind, ThreatId> = {
+  goblins: 'ambush',
+  eliteGoblins: 'ambush',
+  herd: 'beasts',
+  wolves: 'swarm',
+  bandits: 'thieves',
+  outlaws: 'thieves',
+  orcs: 'brute',
+  eliteOrcs: 'armoured',
+  spiders: 'poison',
+  ogres: 'brute',
+  trolls: 'brute',
+  wraiths: 'undead',
+  wyverns: 'element',
+  golems: 'armoured',
 };
+
+/** The threat a patrol spawn carries: its kind's threat, at its difficulty's level. */
+export function patrolThreat(spawn: PatrolSpawn): ActiveThreat {
+  const id = patrolThreatIds[spawn.kind as PatrolKind];
+  const level = (threatLevelFor(spawn.difficulty ?? 'easy', spawn.tier) ?? 1) as ActiveThreat['level'];
+  return { id, level, ...(id === 'element' ? { element: wyvernElement(spawn) } : {}) };
+}

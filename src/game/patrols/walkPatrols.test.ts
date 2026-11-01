@@ -1,4 +1,5 @@
 import { gatheringConfig } from '@/content/gatheringConfig';
+import { patrolFights } from '@/content/patrols';
 
 import { walkToShow, type WalkPatrols } from '../gathering/autoGather';
 import { emptyLoot } from '../loot/types';
@@ -10,16 +11,17 @@ import { addPatrolsToWalks, escortHpChange, walkPatrolsFrom } from './walkPatrol
 
 const MINUTE = 60_000;
 const escortSettings: PatrolSettings = { escortHeroId: 'bram', alertFor: 'all', patrolAlerts: true, escortAlerts: true };
-const { spawn: escortSpawn, at: escortAt } = findSpawn((s) => s.kind === 'goblins' && s.tierRoll === 'current');
-const { spawn: goblins, at } = findSpawn((s) => s.kind === 'goblins' && s.tierRoll !== 'elite');
+const { spawn: escortSpawn, at: escortAt } = findSpawn((s) => s.kind === 'goblins');
+const { spawn: goblins, at } = findSpawn((s) => s.kind === 'goblins');
 const player = fixOn(goblins, at).position;
+const goblinMinutes = patrolFights[goblins.difficulty ?? 'easy'].fightMinutes * MINUTE;
 
 /** The escort's real fight with the goblins under test, as the background task plays it out. */
 const escortResult = () =>
   backgroundStep(snapshotBackground(escortTeam(), escortSettings, escortAt - MINUTE), [fixOn(escortSpawn, escortAt)], escortAt).state.pending[0];
 
 /** The player's own fight with the full team, resolved once its time is up. */
-const wonFight = () => resolvePatrolFights(startPatrolFight(tierTeam(), goblins, ['bram', 'lyra', 'mira'], player, at), at + 2 * MINUTE).resolved;
+const wonFight = () => resolvePatrolFights(startPatrolFight(tierTeam(), goblins, ['bram', 'lyra', 'mira'], player, at), at + goblinMinutes).resolved;
 
 const result = (overrides: Partial<BackgroundResult> = {}): BackgroundResult => ({
   id: 'r1',

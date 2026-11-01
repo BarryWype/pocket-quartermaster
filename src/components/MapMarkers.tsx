@@ -9,7 +9,6 @@ import { Text } from '@/components/Text';
 import { timed } from '@/components/timed';
 import { materialById, resourceById } from '@/content/lookup';
 import { placeInfo } from '@/content/places';
-import { highestUnlockedTier } from '@/game/expeditions/expeditions';
 import { isFleeing, pickaxeTier } from '@/game/gathering/gathering';
 import { readSpawn } from '@/game/gathering/lockedNodes';
 import { distanceMeters } from '@/game/generation/geo';
@@ -17,7 +16,7 @@ import type { Bounds } from '@/game/generation/foliage';
 import type { LatLng, Spawn } from '@/game/generation/types';
 import type { VisibleSpawn } from '@/game/generation/visibility';
 import { isLockedMine } from '@/game/places/generate';
-import { patrolPositionAt, patrolTier, type PatrolSpawn } from '@/game/patrols/generate';
+import { patrolPositionAt, type PatrolSpawn } from '@/game/patrols/generate';
 import { fleesAt } from '@/game/patrols/visibility';
 import { isEntered } from '@/game/secrets/places';
 import { hasKey } from '@/game/secrets/keys';
@@ -130,7 +129,6 @@ function MapMarkersBase({
   const playerPickaxe = pickaxeTier(save);
   const keyHeld = hasKey(save);
   const tavernsOpen = isTavernUnlocked(save);
-  const highestTier = highestUnlockedTier(save);
 
   return (
     <>
@@ -202,13 +200,12 @@ function MapMarkersBase({
       {culledPatrols.map(({ spawn }) => {
         const seenAt = patrolsSeen[spawn.id];
         const fleesIn = seenAt !== undefined ? fleesAt(spawn, seenAt) : null;
-        const { tier, elite } = patrolTier(spawn, highestTier);
         return (
           <Marker key={spawn.id} id={spawn.id} lngLat={toLngLat(patrolPositionAt(spawn, now))} onPress={() => onOpenPatrol(spawn)}>
             <TimedPatrolMarker
               kind={spawn.kind}
-              tier={tier}
-              elite={elite}
+              tier={spawn.tier}
+              difficulty={spawn.difficulty}
               fleesIn={fleesIn === null ? null : Math.max(0, fleesIn - now)}
               fresh={seenAt !== undefined && now - seenAt < SEEN_HIGHLIGHT_MS}
             />

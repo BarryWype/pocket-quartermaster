@@ -69,11 +69,11 @@ export function probe(sim: Sim): ProbeRow[] {
     if (spawn) add('event', kind, prepare(placeFightDungeon(spawn, tier), placeFightBriefing(save, spawn)).party.odds.success);
   }
 
-  const patrols = patrolsAround(sim.location, sim.now);
+  const patrols = patrolsAround(sim.location, sim.now, tier);
   const strongest = [...save.heroes].sort((a, b) => b.level - a.level).slice(0, 3).map((h) => h.id);
   const armed = fillPotions(save, strongest);
   for (const kind of PATROL_KINDS) {
-    const spawn = patrols.find((p) => p.kind === kind && p.tierRoll === 'current');
+    const spawn = patrols.find((p) => p.kind === kind);
     if (spawn) add('patrol', kind, patrolOdds(armed, spawn, strongest, sim.now, runs).success);
   }
   return rows;

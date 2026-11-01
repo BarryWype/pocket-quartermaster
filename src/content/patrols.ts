@@ -1,7 +1,39 @@
+import type { Difficulty } from '@/content/difficulty';
+import { difficultyRules } from '@/content/difficulty';
 import type { PatrolKind, TravellerKind } from '@/game/patrols/generate';
 
-/** Recommended fight setup for one kind of patrol; what a win pays is its loot matrix row. */
-export type PatrolKindRules = {
+/** The difficulties a patrol can roll; bosses are their own thing. */
+export type PatrolDifficulty = Exclude<Difficulty, 'boss'>;
+
+/** Which two kinds each tier spawns per difficulty (see the difficulty pass in doc/design/progression/). */
+export const patrolTable = {
+  1: { easy: ['herd', 'wolves'], medium: ['goblins', 'bandits'], hard: ['orcs', 'spiders'] },
+  2: { easy: ['goblins', 'bandits'], medium: ['orcs', 'spiders'], hard: ['eliteGoblins', 'outlaws'] },
+  3: { easy: ['orcs', 'spiders'], medium: ['eliteGoblins', 'outlaws'], hard: ['ogres', 'eliteOrcs'] },
+  4: { easy: ['eliteGoblins', 'outlaws'], medium: ['ogres', 'eliteOrcs'], hard: ['trolls', 'wraiths'] },
+  5: { easy: ['ogres', 'eliteOrcs'], medium: ['trolls', 'wraiths'], hard: ['wyverns', 'golems'] },
+} as const satisfies Record<1 | 2 | 3 | 4 | 5, Record<PatrolDifficulty, readonly [PatrolKind, PatrolKind]>>;
+
+/** A tier's row of the table. */
+export const patrolRow = (tier: number) => patrolTable[Math.min(5, Math.max(1, tier)) as keyof typeof patrolTable];
+
+/** The kinds a tier can spawn, in difficulty order. */
+export const patrolKindsAt = (tier: number): PatrolKind[] => {
+  const row = patrolRow(tier);
+  return [...row.easy, ...row.medium, ...row.hard];
+};
+
+/** The difficulty a kind fights at in a tier, or null if the tier does not spawn it. */
+export function patrolDifficulty(kind: PatrolKind, tier: number): PatrolDifficulty | null {
+  const row = patrolRow(tier);
+  for (const difficulty of ['easy', 'medium', 'hard'] as const) {
+    if ((row[difficulty] as readonly PatrolKind[]).includes(kind)) return difficulty;
+  }
+  return null;
+}
+
+/** Recommended fight setup by difficulty; what a win pays is the kind's loot matrix row. */
+export type PatrolDifficultyRules = {
   /** The party size its odds are tuned for. */
   party: number;
   /** Minutes the fight takes. */
@@ -10,29 +42,29 @@ export type PatrolKindRules = {
   groups: { role: 'weak' | 'normal'; count: number; weight: number }[];
 };
 
-export const patrolKinds: Record<PatrolKind, PatrolKindRules> = {
-  goblins: {
-    party: 1,
+export const patrolFights: Record<PatrolDifficulty, PatrolDifficultyRules> = {
+  easy: {
+    party: difficultyRules.patrolParty.easy,
     fightMinutes: 2,
     groups: [
       { role: 'weak', count: 1, weight: 2 },
       { role: 'normal', count: 1, weight: 1 },
     ],
   },
-  herd: {
-    party: 1,
-    fightMinutes: 2,
-    groups: [
-      { role: 'weak', count: 2, weight: 2 },
-      { role: 'normal', count: 1, weight: 1 },
-    ],
-  },
-  bandits: {
-    party: 2,
+  medium: {
+    party: difficultyRules.patrolParty.medium,
     fightMinutes: 5,
     groups: [
       { role: 'weak', count: 2, weight: 2 },
       { role: 'normal', count: 1, weight: 2 },
+    ],
+  },
+  hard: {
+    party: difficultyRules.patrolParty.hard,
+    fightMinutes: 6,
+    groups: [
+      { role: 'weak', count: 3, weight: 2 },
+      { role: 'normal', count: 2, weight: 2 },
     ],
   },
 };
@@ -47,8 +79,6 @@ export const patrolRules = {
   patrolCountWeights: [0.3, 0.4, 0.3],
   /** One traveller per about this many spawns. */
   travellerEvery: 5,
-  /** Patrol kinds by weight; travellers pick their own kinds. */
-  kindWeights: { goblins: 0.45, herd: 0.35, bandits: 0.2 } satisfies Record<PatrolKind, number>,
   /** Each spawn wanders at a speed rolled in this range (km/h). */
   speedKmh: [1, 2] as [min: number, max: number],
   /** Waypoints its loop runs through. */
@@ -59,10 +89,8 @@ export const patrolRules = {
   engageMeters: 80,
   /** Goblins move on this long after first being seen. */
   goblinFleeMinutes: 10,
-  /** The tier a patrol fights at, relative to the highest unlocked. */
-  tierWeights: { current: 0.6, below: 0.3, elite: 0.1 },
   /** What the background task's escort hero may take on by itself. */
-  escort: { types: ['goblins', 'herd'] as PatrolKind[], minOdds: 0.7, minHpShare: 0.5, oddsRuns: 60 },
+  escort: { difficulties: ['easy', 'medium'] as PatrolDifficulty[], minOdds: 0.7, minHpShare: 0.5, oddsRuns: 60 },
   /** Patrol alerts: one per patrol, none closer together than this. */
   alerts: { cooldownMinutes: 5 },
   /** Chance a traveller offers to join the roster when helped. */
@@ -106,10 +134,42 @@ export const travellerRules = {
   usesPerTrade: 3,
 };
 
+/** Which rewards line a kind shows in the panel, by its loot matrix row. */
+export const patrolRewardKey: Record<PatrolKind, 'goblins' | 'herd' | 'bandits'> = {
+  goblins: 'goblins',
+  eliteGoblins: 'goblins',
+  spiders: 'goblins',
+  orcs: 'goblins',
+  eliteOrcs: 'goblins',
+  ogres: 'goblins',
+  trolls: 'goblins',
+  wraiths: 'goblins',
+  wyverns: 'goblins',
+  golems: 'goblins',
+  herd: 'herd',
+  wolves: 'herd',
+  bandits: 'bandits',
+  outlaws: 'bandits',
+};
 
 /** English wording; the French is in content/fr/patrols.ts. */
 export const patrolTexts = {
-  kinds: { goblins: 'Goblin patrol', herd: 'Wild herd', bandits: 'Bandits' } satisfies Record<PatrolKind, string>,
+  kinds: {
+    goblins: 'Goblin patrol',
+    herd: 'Wild herd',
+    bandits: 'Bandits',
+    wolves: 'Wolf pack',
+    orcs: 'Orc band',
+    spiders: 'Giant spiders',
+    eliteGoblins: 'Goblin elites',
+    outlaws: 'Outlaws',
+    ogres: 'Ogres',
+    eliteOrcs: 'Orc veterans',
+    trolls: 'Trolls',
+    wraiths: 'Wraiths',
+    wyverns: 'Wyverns',
+    golems: 'Golems',
+  } satisfies Record<PatrolKind, string>,
   travellers: {
     wounded: { name: 'Wounded traveller', line: 'Hurt and far from the road — a healing potion would help.' },
     pilgrim: { name: 'Pilgrim', line: 'A long road on an empty pack. A meal would be a kindness.' },

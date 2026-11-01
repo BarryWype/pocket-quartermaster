@@ -20,8 +20,9 @@ import { partyCharms } from '../loot/charms';
 import { emptyLoot, type Loot } from '../loot/types';
 import type { QuestTarget } from '../quests/types';
 import type { PocketWatch } from './pocketMode';
+import { isElitePatrolKind } from '@/content/enemies';
 import { PATROL_SOURCES, foughtEnemies, grantPatrolWin, patrolDungeon, patrolRewards, patrolRunOptions, settleConsumables } from './fight';
-import { isPatrolKind, patrolTier, patrolsAround, pruneByWindow, type PatrolKind, type PatrolSpawn } from './generate';
+import { isPatrolKind, patrolsAround, pruneByWindow, type PatrolKind, type PatrolSpawn } from './generate';
 import { distanceTo, hasFled, inEngageRange, isGone, isVisible } from './visibility';
 
 const MINUTE = 60_000;
@@ -198,13 +199,12 @@ export function alertAppliesTo(spawn: PatrolSpawn, alertFor: AlertFor) {
  */
 function escortTakes(spawn: PatrolSpawn, escort: EscortState | null, hp: number, state: BackgroundState, rules: PatrolRules) {
   const kind = spawn.kind;
-  if (!escort || escort.paused || !isPatrolKind(kind) || !rules.escort.types.includes(kind) || spawn.tierRoll === 'elite') return false;
-  const { tier } = patrolTier(spawn, state.highestTier);
+  if (!escort || escort.paused || !isPatrolKind(kind) || spawn.difficulty === null || !rules.escort.difficulties.includes(spawn.difficulty)) return false;
   const odds = estimatePartyOdds(
     [{ ...escort.member, hp }],
-    patrolDungeon(spawn, tier, false, rules),
+    patrolDungeon(spawn, spawn.tier, isElitePatrolKind(kind), rules),
     rules.escort.oddsRuns,
-    patrolRunOptions(kind),
+    patrolRunOptions(spawn),
   );
   return odds.success >= rules.escort.minOdds;
 }
@@ -258,7 +258,7 @@ export function backgroundStep(
 
     // More patrols around live lairs, as on the map; states stored before lairs existed have no defeated ones.
     const lairs = activeLairs(position, at, next.defeatedLairs ?? {});
-    const spawns = patrolsAround(position, at, rules, lairs).filter(
+    const spawns = patrolsAround(position, at, next.highestTier, rules, lairs).filter(
       (spawn) => !isGone(spawn, next.beaten, at) && !hasFled(spawn, next.firstSeen[spawn.id], at, rules),
     );
     // The tracker's eye widens patrol sight per fix, so a window can end mid-walk.
@@ -277,10 +277,9 @@ export function backgroundStep(
 
     const target = escort && at >= escort.busyUntil ? spawns.find((s) => inEngageRange(s, position, at, rules) && willTake(s)) : undefined;
     if (escort && target && isPatrolKind(target.kind)) {
-      const { tier } = patrolTier(target, next.highestTier);
-      const dungeon = patrolDungeon(target, tier, false, rules);
+      const dungeon = patrolDungeon(target, target.tier, isElitePatrolKind(target.kind), rules);
       const id = `escort|${target.id}|${escort.heroId}|${at}`;
-      const run = simulateRun([{ ...escort.member, hp }], dungeon, id, patrolRunOptions(target.kind));
+      const run = simulateRun([{ ...escort.member, hp }], dungeon, id, patrolRunOptions(target));
       const end = at + dungeon.durationMinutes * MINUTE;
       const hpAfter = run.hp[0]?.hp ?? 0;
       const rewards: Loot = run.bossDefeated
@@ -293,8 +292,8 @@ export function backgroundStep(
               modifiers: partyCharms([escort.member]),
             },
             target,
-            tier,
-            false,
+            target.tier,
+            isElitePatrolKind(target.kind),
             foughtEnemies(run),
             createRng(`${id}|rewards`),
           )
@@ -305,7 +304,7 @@ export function backgroundStep(
         patrolId: target.id,
         windowEndsAt: target.endsAt,
         kind: target.kind,
-        tier,
+        tier: target.tier,
         heroId: escort.heroId,
         won: run.bossDefeated,
         hpBefore: hp,
@@ -336,7 +335,7 @@ export function backgroundStep(
       if (next.lastAlertAt !== null && at - next.lastAlertAt < rules.alerts.cooldownMinutes * MINUTE) continue;
       const distance = distanceTo(spawn, position, at);
       if (distance > atRules.visibleMeters || willTake(spawn)) continue;
-      alerts.push({ kind: 'patrolSpotted', spawn, distance, tier: patrolTier(spawn, next.highestTier).tier });
+      alerts.push({ kind: 'patrolSpotted', spawn, distance, tier: spawn.tier });
       next.alerted[spawn.id] = spawn.endsAt;
       next.lastAlertAt = at;
     }

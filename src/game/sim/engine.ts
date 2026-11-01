@@ -18,7 +18,8 @@ import { createRng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { rosterCap } from '../guild/guild';
 import { applyTraining } from '../guild/training';
-import { TRAVELLER_KINDS, isTravellerKind, patrolsAround, patrolPositionAt, patrolTier, type PatrolKind, type PatrolSpawn, type PatrolSubject } from '../patrols/generate';
+import { TRAVELLER_KINDS, isPatrolKind, isTravellerKind, patrolsAround, patrolPositionAt, type PatrolKind, type PatrolSpawn, type PatrolSubject } from '../patrols/generate';
+import { isElitePatrolKind } from '@/content/enemies';
 import { PATROL_SOURCES, patrolOdds, resolvePatrolFights, startPatrolFight } from '../patrols/fight';
 import { isGone } from '../patrols/visibility';
 import { acceptRecruit, helpProblem, helpTraveller, trade, traderOffers } from '../patrols/travellers';
@@ -166,7 +167,7 @@ function findSpawn(sim: Sim, kinds: PatrolSubject[]): PatrolSpawn | null {
     for (let bearing = 0; bearing < (meters ? 8 : 1); bearing++) {
       const angle = (bearing / 8) * 2 * Math.PI;
       const at = offsetPosition(sim.location, Math.cos(angle) * meters, Math.sin(angle) * meters);
-      const live = patrolsAround(at, sim.now).filter((s) => kinds.includes(s.kind) && !sim.met.has(s.id) && !isGone(s, gone, sim.now));
+      const live = patrolsAround(at, sim.now, highestTier(sim.save)).filter((s) => kinds.includes(s.kind) && !sim.met.has(s.id) && !isGone(s, gone, sim.now));
       if (live.length) return live[sim.rng.int(0, live.length - 1)];
     }
   }
@@ -184,8 +185,7 @@ function meetPatrols(sim: Sim) {
         continue;
       }
       sim.met.add(spawn.id);
-      const { tier, elite } = patrolTier(spawn, highestTier(sim.save));
-      sim.log.patrols.seen.push({ kind, tier, elite });
+      sim.log.patrols.seen.push({ kind, tier: spawn.tier, elite: isElitePatrolKind(kind) });
       if (!engagePatrol(sim, spawn, sim.now, patrolPositionAt(spawn, sim.now))) skip(sim, source);
     }
   }
@@ -196,8 +196,7 @@ function meetPatrols(sim: Sim) {
       continue;
     }
     sim.met.add(spawn.id);
-    const { tier, elite } = patrolTier(spawn, highestTier(sim.save));
-    sim.log.patrols.seen.push({ kind: spawn.kind, tier, elite });
+    sim.log.patrols.seen.push({ kind: spawn.kind, tier: spawn.tier, elite: isPatrolKind(spawn.kind) && isElitePatrolKind(spawn.kind) });
     helpTravellerSpawn(sim, spawn, sim.now, patrolPositionAt(spawn, sim.now));
   }
 }

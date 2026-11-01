@@ -346,6 +346,48 @@ const HERD_FOES: Foe[][] = [
   [foe('frost wolf'), foe('storm eel'), foe('wyvern', 'dragon')],
 ];
 
+const ORC_FOES: Foe[][] = [
+  [foe('orc grunt', 'goblinoid'), foe('orc warrior'), foe('orc warboss')],
+  [foe('orc marauder'), foe('orc raider', 'goblinoid'), foe('orc chieftain', 'humanoid')],
+  [foe('orc veteran'), foe('orc champion'), foe('orc warlord')],
+];
+
+const SPIDER_FOES: Foe[][] = [
+  [foe('spiderling'), foe('web spider'), foe('brood mother')],
+  [foe('web weaver'), foe('giant spider'), foe('spider matriarch')],
+  [foe('venom crawler'), foe('shadow spider'), foe('spider queen')],
+];
+
+const OGRES_FOES: Foe[][] = [
+  [foe('ogre whelp'), foe('ogre brute'), foe('ogre bull')],
+  [foe('swamp ogre'), foe('ogre basher'), foe('ogre chief')],
+  [foe('hill ogre'), foe('ogre ravager'), foe('ogre tyrant')],
+];
+
+const TROLL_FOES: Foe[][] = [
+  [foe('troll cub'), foe('river troll', 'brute'), foe('troll matriarch')],
+  [foe('cave troll'), foe('stone troll'), foe('troll champion')],
+  [foe('frost troll'), foe('elder troll'), foe('troll king')],
+];
+
+const WRAITH_FOES: Foe[][] = [
+  [foe('shade'), foe('wraith'), foe('barrow wraith')],
+  [foe('hollow shade'), foe('grim wraith'), foe('wraith lord')],
+  [foe('phantom'), foe('dread wraith'), foe('wraith king')],
+];
+
+const WYVERN_FOES: Foe[][] = [
+  [foe('wyvern hatchling'), foe('wyvern'), foe('wyvern broodmother')],
+  [foe('gale wyvern'), foe('ember wyvern'), foe('wyvern matriarch')],
+  [foe('storm wyvern'), foe('wyvern alpha'), foe('elder wyvern')],
+];
+
+const GOLEM_FOES: Foe[][] = [
+  [foe('clay golem'), foe('stone golem'), foe('guardian golem')],
+  [foe('iron golem'), foe('rune golem'), foe('colossus golem')],
+  [foe('obsidian golem'), foe('war golem'), foe('golem overlord')],
+];
+
 type Factors = [number, number, number, number, number];
 
 const BANDIT_FACTORS: Factors = [7.93, 7.09, 6.76, 6.66, 6.97];
@@ -364,11 +406,36 @@ type PatrolTemplate = {
   tags: Tag[];
   /** Like a dungeon's factor, per tier: tuned against the odds targets in the comment above. */
   factors: Factors;
-  /** Foes for [weak, normal, boss], one per tier. */
+  /** Foes for [weak, normal, boss], one row per tier; the last row repeats for the tiers beyond it. */
   foes: Foe[][];
+  /** One mob set per element instead of a single set. */
+  elemental?: boolean;
 };
 
-const patrolTemplates: Record<PatrolKind, PatrolTemplate> = {
+/** The kinds that fight with the elite mob variant (see PATROL_ELITE). */
+export const ELITE_PATROL_KINDS = ['eliteGoblins', 'outlaws', 'eliteOrcs'] as const;
+
+export const isElitePatrolKind = (kind: PatrolKind): boolean => ((ELITE_PATROL_KINDS as readonly string[]).includes(kind));
+
+/** The template each kind fights with; the elite kinds borrow their base kind's. */
+const PATROL_TEMPLATE_OF: Record<PatrolKind, Exclude<PatrolKind, (typeof ELITE_PATROL_KINDS)[number]>> = {
+  goblins: 'goblins',
+  eliteGoblins: 'goblins',
+  herd: 'herd',
+  wolves: 'wolves',
+  bandits: 'bandits',
+  outlaws: 'bandits',
+  orcs: 'orcs',
+  eliteOrcs: 'orcs',
+  spiders: 'spiders',
+  ogres: 'ogres',
+  trolls: 'trolls',
+  wraiths: 'wraiths',
+  wyverns: 'wyverns',
+  golems: 'golems',
+};
+
+const patrolTemplates: Record<Exclude<PatrolKind, (typeof ELITE_PATROL_KINDS)[number]>, PatrolTemplate> = {
   goblins: {
     hp: [7, 10, 14],
     damage: [2, 3, 4],
@@ -383,6 +450,13 @@ const patrolTemplates: Record<PatrolKind, PatrolTemplate> = {
     factors: HERD_FACTORS,
     foes: HERD_FOES,
   },
+  wolves: {
+    hp: [8, 12, 16],
+    damage: [2, 3, 4],
+    tags: ['beast'],
+    factors: HERD_FACTORS,
+    foes: HERD_FOES,
+  },
   bandits: {
     hp: [10, 14, 22],
     damage: [3, 4, 6],
@@ -390,30 +464,83 @@ const patrolTemplates: Record<PatrolKind, PatrolTemplate> = {
     factors: BANDIT_FACTORS,
     foes: BANDIT_FOES,
   },
+  orcs: {
+    hp: [10, 14, 22],
+    damage: [3, 4, 6],
+    tags: ['brute'],
+    factors: BANDIT_FACTORS,
+    foes: ORC_FOES,
+  },
+  spiders: {
+    hp: [8, 12, 16],
+    damage: [2, 3, 4],
+    tags: ['vermin'],
+    factors: HERD_FACTORS,
+    foes: SPIDER_FOES,
+  },
+  ogres: {
+    hp: [10, 14, 22],
+    damage: [3, 4, 6],
+    tags: ['brute'],
+    factors: BANDIT_FACTORS,
+    foes: OGRES_FOES,
+  },
+  trolls: {
+    hp: [10, 14, 22],
+    damage: [3, 4, 6],
+    tags: ['brute'],
+    factors: BANDIT_FACTORS,
+    foes: TROLL_FOES,
+  },
+  wraiths: {
+    hp: [10, 14, 22],
+    damage: [3, 4, 6],
+    tags: ['spirit'],
+    factors: BANDIT_FACTORS,
+    foes: WRAITH_FOES,
+  },
+  wyverns: {
+    hp: [10, 14, 22],
+    damage: [3, 4, 6],
+    tags: ['dragon'],
+    factors: BANDIT_FACTORS,
+    foes: WYVERN_FOES,
+    elemental: true,
+  },
+  golems: {
+    hp: [10, 14, 22],
+    damage: [3, 4, 6],
+    tags: ['construct'],
+    factors: BANDIT_FACTORS,
+    foes: GOLEM_FOES,
+  },
 };
 
 /** A patrol mob, or its elite variant, by kind, tier and role. */
-export const patrolMobId = (kind: PatrolKind, tier: number, role: PatrolRole, elite = false) =>
-  `patrol:${kind}:${tier}:${role}${elite ? ':elite' : ''}`;
+export const patrolMobId = (kind: PatrolKind, tier: number, role: PatrolRole, elite = false, element?: Element) =>
+  `patrol:${kind}:${tier}:${role}${elite ? ':elite' : ''}${element ? `:${element}` : ''}`;
 
-const patrolMobs: MobDef[] = (Object.keys(patrolTemplates) as PatrolKind[]).flatMap((kind) => {
-  const { hp, damage, tags, factors, foes } = patrolTemplates[kind];
-  // Herds charge; goblins and bandits keep pace with heroes.
-  const speedClass: SpeedClass = kind === 'herd' ? 'fast' : 'normal';
-  return foes.flatMap((tierFoes, i) =>
-    tierFoes.flatMap((f, role) => [
-      mob(patrolMobId(kind, i + 1, PATROL_ROLES[role]), f.name, strength(i + 1, factors[i]), hp[role], damage[role], foeTags(f, tags), undefined, speedClass),
-      mob(
-        patrolMobId(kind, i + 1, PATROL_ROLES[role], true),
-        f.name,
-        strength(i + 1, factors[i]),
-        hp[role] * PATROL_ELITE.hp,
-        damage[role] * PATROL_ELITE.damage,
-        foeTags(f, tags),
-        undefined,
-        speedClass,
-      ),
-    ]),
+const patrolMobs: MobDef[] = (Object.keys(PATROL_TEMPLATE_OF) as PatrolKind[]).flatMap((kind) => {
+  const { hp, damage, tags, factors, foes, elemental } = patrolTemplates[PATROL_TEMPLATE_OF[kind]];
+  // Beasts charge; everyone else keeps pace with heroes.
+  const speedClass: SpeedClass = tags.includes('beast') ? 'fast' : 'normal';
+  const elements = elemental ? [...ELEMENTS] : [undefined];
+  return TIER_SCALE.flatMap((_, i) =>
+    foes[Math.min(i, foes.length - 1)].flatMap((f, role) =>
+      elements.flatMap((element) => [
+        mob(patrolMobId(kind, i + 1, PATROL_ROLES[role], false, element), f.name, strength(i + 1, factors[i]), hp[role], damage[role], foeTags(f, tags), element, speedClass),
+        mob(
+          patrolMobId(kind, i + 1, PATROL_ROLES[role], true, element),
+          f.name,
+          strength(i + 1, factors[i]),
+          hp[role] * PATROL_ELITE.hp,
+          damage[role] * PATROL_ELITE.damage,
+          foeTags(f, tags),
+          element,
+          speedClass,
+        ),
+      ]),
+    ),
   );
 });
 

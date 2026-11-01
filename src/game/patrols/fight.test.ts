@@ -1,4 +1,4 @@
-import { patrolRules } from '@/content/patrols';
+import { patrolFights, patrolRules } from '@/content/patrols';
 import { components } from '@/content/loot/components';
 import { monsterParts } from '@/content/loot/monsterParts';
 
@@ -12,10 +12,13 @@ import { findSpawn, fixOn, tierTeam } from './testHelpers';
 import { isGone } from './visibility';
 
 const MINUTE = 60_000;
-const { spawn: goblins, at } = findSpawn((s) => s.kind === 'goblins' && s.tierRoll !== 'elite');
+const { spawn: goblins, at } = findSpawn((s) => s.kind === 'goblins');
 const player = fixOn(goblins, at).position;
+/** How long the goblins' fight takes, read from the difficulty rules. */
+const goblinFight = patrolFights[goblins.difficulty ?? 'easy'];
+const goblinMinutes = goblinFight.fightMinutes * MINUTE;
 
-const asKind = (spawn: PatrolSpawn, kind: PatrolKind, tierRoll: PatrolSpawn['tierRoll'] = 'current'): PatrolSpawn => ({ ...spawn, kind, tierRoll });
+const asKind = (spawn: PatrolSpawn, kind: PatrolKind, difficulty: PatrolSpawn['difficulty'] = spawn.difficulty): PatrolSpawn => ({ ...spawn, kind, difficulty });
 
 describe('engaging a patrol', () => {
   it('takes only home heroes who are not exhausted, within engage range, within the party size', () => {
@@ -35,7 +38,7 @@ describe('engaging a patrol', () => {
     const started = startPatrolFight(hurt, goblins, ['bram'], player, at);
     const fight = started.patrolFights[0];
     const bram = () => started.heroes.find((h) => h.id === 'bram')!;
-    expect(fight.endsAt).toBe(at + 2 * MINUTE);
+    expect(fight.endsAt).toBe(at + goblinMinutes);
     // Away heroes don't heal.
     expect(currentHp(started, bram(), at + MINUTE)).toBeCloseTo(currentHp(hurt, hurt.heroes[0], at), 5);
     const { save, resolved } = resolvePatrolFights(started, fight.endsAt);
@@ -52,25 +55,26 @@ describe('engaging a patrol', () => {
   });
 
   it('hides a beaten patrol until its window ends, and leaves a lost one on the map', () => {
-    const won = resolvePatrolFights(startPatrolFight(tierTeam(), goblins, ['bram', 'lyra', 'mira'], player, at), at + 2 * MINUTE);
+    const won = resolvePatrolFights(startPatrolFight(tierTeam(), goblins, ['bram', 'lyra', 'mira'], player, at), at + goblinMinutes);
     expect(won.resolved[0].won).toBe(true);
     expect(isGone(goblins, won.save.beatenPatrols, at + 3 * MINUTE)).toBe(true);
     expect(isGone(goblins, won.save.beatenPatrols, goblins.endsAt)).toBe(true);
 
     const weak = setHeroHp(tierTeam(), 'mira', 0.02, at);
-    const lost = resolvePatrolFights(startPatrolFight(weak, goblins, ['mira'], player, at), at + 2 * MINUTE);
+    const lost = resolvePatrolFights(startPatrolFight(weak, goblins, ['mira'], player, at), at + goblinMinutes);
     expect(lost.resolved[0].won).toBe(false);
     expect(lost.save.gold).toBe(weak.gold);
     expect(isGone(goblins, lost.save.beatenPatrols, at + 3 * MINUTE)).toBe(false);
     const mira = lost.save.heroes.find((h) => h.id === 'mira')!;
-    expect(isExhausted(mira, at + 3 * MINUTE)).toBe(true);
-    expect(isExhausted(mira, at + 23 * MINUTE)).toBe(false);
+    // Exhaustion runs from the fight's end.
+    expect(isExhausted(mira, at + goblinMinutes + MINUTE)).toBe(true);
+    expect(isExhausted(mira, at + goblinMinutes + 21 * MINUTE)).toBe(false);
   });
 
   it('empties the consumable slot and salvages an unused healing potion into herb', () => {
     let save = tierTeam();
     save = { ...save, heroes: save.heroes.map((h) => (h.id === 'bram' ? { ...h, equipment: { ...h.equipment, consumable: 'healingPotion' } } : h)) };
-    const done = resolvePatrolFights(startPatrolFight(save, goblins, ['bram', 'lyra', 'mira'], player, at), at + 2 * MINUTE);
+    const done = resolvePatrolFights(startPatrolFight(save, goblins, ['bram', 'lyra', 'mira'], player, at), at + goblinMinutes);
     const bram = done.save.heroes.find((h) => h.id === 'bram')!;
     expect(bram.equipment.consumable).toBeNull();
     expect(done.save.consumables.healingPotion ?? 0).toBe(0);

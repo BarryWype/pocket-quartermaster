@@ -45,11 +45,10 @@ import {
   isPatrolKind,
   isTravellerKind,
   patrolsAround,
-  patrolTier,
   type PatrolSpawn,
   type PatrolSubject,
-  type TierRoll,
 } from '@/game/patrols/generate';
+import type { Difficulty } from '@/content/difficulty';
 import { distanceTo } from '@/game/patrols/visibility';
 import { masteryCap, masteryOf } from '@/game/forging/mastery';
 import { guildRank } from '@/game/guild/guild';
@@ -485,7 +484,7 @@ export default function DebugScreen() {
   const autoMode = useWorldStore((state) => state.autoGather);
   const [buffer, setBuffer] = useState<StoredBuffer | null>(null);
   const [playback, setPlayback] = useState<WalkSummary | null>(null);
-  const [tierRoll, setTierRoll] = useState<TierRoll>('current');
+  const [patrolDifficulty, setPatrolDifficulty] = useState<Exclude<Difficulty, 'boss'>>('easy');
   const [around, setAround] = useState<{ position: LatLng; spawns: PatrolSpawn[] } | null>(null);
   const [escortMerged, setEscortMerged] = useState<number | null>(null);
   const [pocketReport, setPocketReport] = useState<string | null>(null);
@@ -642,7 +641,8 @@ export default function DebugScreen() {
         tile,
         window,
         kind,
-        tierRoll: isTravellerKind(kind) ? 'current' : tierRoll,
+        difficulty: isTravellerKind(kind) ? null : patrolDifficulty,
+        tier: highestUnlockedTier(useGameStore.getState().save),
         path: { waypoints: [offsetPosition(position, 30, 0)], loopMs: 60_000, phaseMs: 0 },
         startsAt: start,
         endsAt: end,
@@ -652,7 +652,7 @@ export default function DebugScreen() {
 
   const showAround = async () => {
     const position = await currentPosition();
-    setAround({ position, spawns: patrolsAround(position, Date.now()) });
+    setAround({ position, spawns: patrolsAround(position, Date.now(), highestUnlockedTier(useGameStore.getState().save)) });
   };
 
   /** Ignores settings and quiet hours, so the OS side can be checked alone. */
@@ -689,7 +689,7 @@ export default function DebugScreen() {
   const testPatrolAlert = async () => {
     const position = await currentPosition();
     const now = Date.now();
-    const spawn = patrolsAround(position, now)
+    const spawn = patrolsAround(position, now, highestUnlockedTier(useGameStore.getState().save))
       .filter((candidate) => isPatrolKind(candidate.kind))
       .sort((a, b) => distanceTo(a, position, now) - distanceTo(b, position, now))[0];
     if (!spawn) {
@@ -700,7 +700,7 @@ export default function DebugScreen() {
       kind: 'patrolSpotted',
       spawn,
       distance: distanceTo(spawn, position, now),
-      tier: patrolTier(spawn, highestUnlockedTier(useGameStore.getState().save)).tier,
+      tier: spawn.tier,
     });
   };
 
@@ -1240,10 +1240,10 @@ export default function DebugScreen() {
       <Text style={styles.title}>Patrols</Text>
       <Text>Spawn next to me</Text>
       <Choice
-        options={['current', 'below', 'elite'] as TierRoll[]}
-        value={tierRoll}
-        label={(roll) => roll}
-        onChange={setTierRoll}
+        options={['easy', 'medium', 'hard'] as Exclude<Difficulty, 'boss'>[]}
+        value={patrolDifficulty}
+        label={(difficulty) => difficulty}
+        onChange={setPatrolDifficulty}
       />
       <View style={styles.choices}>
         {([...PATROL_KINDS, ...TRAVELLER_KINDS] as PatrolSubject[]).map((kind) => (
@@ -1267,7 +1267,7 @@ export default function DebugScreen() {
       {around &&
         around.spawns.map((spawn) => (
           <Text key={spawn.id} style={styles.mono}>
-            {patrolIcons[spawn.kind]} {spawn.id} · {spawn.kind} {spawn.tierRoll} ·{' '}
+            {patrolIcons[spawn.kind]} {spawn.id} · {spawn.kind} {spawn.difficulty ?? ''} ·{' '}
             {new Date(spawn.startsAt).toLocaleTimeString()}–{new Date(spawn.endsAt).toLocaleTimeString()} ·{' '}
             {Math.round(distanceTo(spawn, around.position, now))} m · {spawn.path.waypoints.length} waypoints
           </Text>

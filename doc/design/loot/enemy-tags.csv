@@ -329,3 +329,110 @@ Granite Colossus,sanctum:deepQuarry,construct
 ember imp,sanctum:emberForge,elemental
 slag hound,sanctum:emberForge,beast
 Cinder Smith,sanctum:emberForge,elemental
+goblin runt,patrol:eliteGoblins,goblinoid locals
+goblin,patrol:eliteGoblins,goblinoid locals
+goblin slinger,patrol:eliteGoblins,goblinoid locals
+squatter,patrol:eliteGoblins,humanoid locals
+smuggler,patrol:eliteGoblins,humanoid locals
+turncoat knight,patrol:eliteGoblins,humanoid locals
+fire imp,patrol:eliteGoblins,elemental locals
+hexed hunter,patrol:eliteGoblins,humanoid locals
+stone warden,patrol:eliteGoblins,construct locals
+orc grunt,patrol:eliteGoblins,goblinoid locals
+brass beetle,patrol:eliteGoblins,construct carapace locals
+vault automaton,patrol:eliteGoblins,construct locals
+ruin crawler,patrol:eliteGoblins,carapace locals
+mountain troll,patrol:eliteGoblins,brute locals
+ash knight,patrol:eliteGoblins,humanoid locals
+giant rat,patrol:wolves,beast
+cellar spider,patrol:wolves,vermin beast
+rat swarm,patrol:wolves,vermin beast
+wolf pup,patrol:wolves,beast
+grey wolf,patrol:wolves,beast
+dire wolf,patrol:wolves,beast
+ghost bat,patrol:wolves,spirit bird beast
+spark moth,patrol:wolves,vermin beast
+ember hound,patrol:wolves,beast
+rock lizard,patrol:wolves,dragon beast
+storm ram,patrol:wolves,beast
+thunderbird,patrol:wolves,bird beast
+frost wolf,patrol:wolves,beast
+storm eel,patrol:wolves,beast
+wyvern,patrol:wolves,dragon beast
+cutpurse,patrol:outlaws,humanoid locals
+bandit,patrol:outlaws,humanoid locals
+bandit archer,patrol:outlaws,humanoid locals
+deserter,patrol:outlaws,humanoid locals
+tower sergeant,patrol:outlaws,humanoid locals
+bogling,patrol:outlaws,goblinoid locals
+hexed hunter,patrol:outlaws,humanoid locals
+bone knight,patrol:outlaws,humanoid locals
+fallen legionary,patrol:outlaws,humanoid locals
+orc raider,patrol:outlaws,goblinoid locals
+death captain,patrol:outlaws,humanoid locals
+flame cultist,patrol:outlaws,caster humanoid locals
+abyssal priest,patrol:outlaws,caster locals
+death knight,patrol:outlaws,humanoid locals
+orc grunt,patrol:orcs,goblinoid brute
+orc warrior,patrol:orcs,brute
+orc warboss,patrol:orcs,brute
+orc marauder,patrol:orcs,brute
+orc raider,patrol:orcs,goblinoid brute
+orc chieftain,patrol:orcs,humanoid brute
+orc veteran,patrol:orcs,brute
+orc champion,patrol:orcs,brute
+orc warlord,patrol:orcs,brute
+orc grunt,patrol:eliteOrcs,goblinoid brute
+orc warrior,patrol:eliteOrcs,brute
+orc warboss,patrol:eliteOrcs,brute
+orc marauder,patrol:eliteOrcs,brute
+orc raider,patrol:eliteOrcs,goblinoid brute
+orc chieftain,patrol:eliteOrcs,humanoid brute
+orc veteran,patrol:eliteOrcs,brute
+orc champion,patrol:eliteOrcs,brute
+orc warlord,patrol:eliteOrcs,brute
+spiderling,patrol:spiders,vermin
+web spider,patrol:spiders,vermin
+brood mother,patrol:spiders,vermin
+web weaver,patrol:spiders,vermin
+giant spider,patrol:spiders,vermin
+spider matriarch,patrol:spiders,vermin
+venom crawler,patrol:spiders,vermin
+shadow spider,patrol:spiders,vermin
+spider queen,patrol:spiders,vermin
+ogre whelp,patrol:ogres,brute
+ogre brute,patrol:ogres,brute
+ogre bull,patrol:ogres,brute
+swamp ogre,patrol:ogres,brute
+ogre basher,patrol:ogres,brute
+ogre chief,patrol:ogres,brute
+hill ogre,patrol:ogres,brute
+ogre ravager,patrol:ogres,brute
+ogre tyrant,patrol:ogres,brute
+troll cub,patrol:trolls,brute
+river troll,patrol:trolls,brute
+troll matriarch,patrol:trolls,brute
+cave troll,patrol:trolls,brute
+stone troll,patrol:trolls,brute
+troll champion,patrol:trolls,brute
+frost troll,patrol:trolls,brute
+elder troll,patrol:trolls,brute
+troll king,patrol:trolls,brute
+shade,patrol:wraiths,spirit
+wraith,patrol:wraiths,spirit
+barrow wraith,patrol:wraiths,spirit
+hollow shade,patrol:wraiths,spirit
+grim wraith,patrol:wraiths,spirit
+wraith lord,patrol:wraiths,spirit
+phantom,patrol:wraiths,spirit
+dread wraith,patrol:wraiths,spirit
+wraith king,patrol:wraiths,spirit
+clay golem,patrol:golems,construct
+stone golem,patrol:golems,construct
+guardian golem,patrol:golems,construct
+iron golem,patrol:golems,construct
+rune golem,patrol:golems,construct
+colossus golem,patrol:golems,construct
+obsidian golem,patrol:golems,construct
+war golem,patrol:golems,construct
+golem overlord,patrol:golems,construct
