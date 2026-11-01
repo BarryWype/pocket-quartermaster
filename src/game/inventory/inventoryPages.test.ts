@@ -1,4 +1,5 @@
 import { createInitialSave, type SaveData, type TutorialStep } from '../save';
+import { equip } from '../team/team';
 import type { GearInstance, SecretTip } from '../types';
 
 import { inventoryPages, inventoryRows, type InventoryPageId, type InventoryRow } from './inventoryPages';
@@ -75,6 +76,19 @@ describe('inventoryPages', () => {
     const gear: GearInstance[] = [{ uid: '1', itemId: 'sword1', quality: 'normal' }];
     const save = { ...emptySave(), gear };
     expect(inventoryPages(save, NOW)).toEqual(expect.arrayContaining([{ id: 'gear', count: 1 }]));
+  });
+
+  it('gear rows list equipped pieces first, each group in order', () => {
+    const gear: GearInstance[] = [
+      { uid: 'spare1', itemId: 'sword1', quality: 'normal' },
+      { uid: 'worn', itemId: 'sword1', quality: 'normal' },
+      { uid: 'spare2', itemId: 'sword1', quality: 'normal' },
+    ];
+    const save = equip({ ...emptySave(), gear }, 'bram', 'weapon', 'worn');
+    const uids = rowsOn(save, 'gear')
+      .filter((row) => row.kind === 'gear')
+      .map((row) => (row as { gear: GearInstance }).gear.uid);
+    expect(uids).toEqual(['worn', 'spare1', 'spare2']);
   });
 
   it('a weakness item sits on consumables, not materials', () => {

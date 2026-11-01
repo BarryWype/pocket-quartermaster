@@ -40,6 +40,8 @@ type Option = {
   subtitle?: ReactNode;
   color?: string;
   disabled?: boolean;
+  /** A hero (any hero) is wearing this piece. */
+  equipped?: boolean;
   marks?: ReactNode;
 };
 
@@ -97,14 +99,14 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, briefin
           offhandGear,
         );
       }
-      return [{ gear, item, holder, problem, preview, unequipsOffhand }];
+      return [{ gear, item, holder, problem, preview, unequipsOffhand, equipped: save.heroes.some((h) => h.equipment[slot] === gear.uid) }];
     })
     .sort((a, b) => {
       const greyedDiff = Number(a.problem !== null || a.preview === null) - Number(b.problem !== null || b.preview === null);
       if (greyedDiff) return greyedDiff;
       return gainOf(b) - gainOf(a);
     })
-    .map(({ gear, item, holder, problem, preview, unequipsOffhand }) => {
+    .map(({ gear, item, holder, problem, preview, unequipsOffhand, equipped }) => {
       const greyed = problem !== null || preview === null;
       const parts: LabelPart[] = greyed
         ? problem
@@ -124,6 +126,7 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, briefin
         subtitle: parts.length > 0 ? <PartsLine parts={parts} labelStyle={styles.subtitle} /> : undefined,
         color: greyed ? colors.muted : qualities[gear.quality].color,
         disabled: greyed,
+        equipped,
         marks: <GearMarks tier={item.tier} affinity={affinityOf(hero.classId, item.gearType)} />,
       };
     });
@@ -163,6 +166,7 @@ export function EquipPicker({ save, heroId, slot, briefing, bossId, onPick, onCl
               title={option.title}
               subtitle={option.subtitle}
               titleColor={option.color}
+              equipped={option.equipped}
               right={option.marks}
             />
           </Pressable>

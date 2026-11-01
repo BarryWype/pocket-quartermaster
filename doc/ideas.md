@@ -241,3 +241,13 @@ For the fishing dock, later. A short, physical moment instead of a button that j
 - Ore spawn density and refresh rate.
 - Multiplayer features: trading between players, specialization.
 - Visual combat replay later (assets could be sourced or generated).
+
+## After 0.7
+
+### Inventory: show which gear is equipped
+
+*Done in commit "Inventory: equipped gear wears a shield badge, comes first, and names its hero".*
+
+- Every listed gear piece a hero wears carries a small shield badge on its icon's corner (`EquippedBadge`, through `ItemSlot` and `Row`): the inventory's Gear page, the equip picker, the hero's storeroom and the infuse station.
+- The inventory lists equipped gear first, then spare gear, each in the old order; the piece's pop-up names the hero ("Equipped: Bram"). The salvage dialog's red warning is unchanged.
+- Who wears what is one pure lookup, `wearers` in `src/game/forging/salvage.ts`, with `equippedFirst` for the order.

@@ -150,7 +150,7 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
     if (GEAR_SLOTS.some((slot) => hero.equipment[slot] === gear.uid)) return [];
     const holder = save.heroes.find((h) => h.id !== hero.id && GEAR_SLOTS.some((slot) => h.equipment[slot] === gear.uid));
     if (holder && save.expeditions.some((e) => e.heroIds.includes(holder.id))) return [];
-    return [{ gear, item }];
+    return [{ gear, item, equipped: !!holder }];
   });
 
   const weaponGear = hero.equipment.weapon ? save.gear.find((g) => g.uid === hero.equipment.weapon) : undefined;
@@ -384,13 +384,14 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
           <Text style={styles.note}>{t('hero.storeroomHint')}</Text>
         </View>
         <View style={styles.grid}>
-          {storeroomPieces.map(({ gear, item }) => (
+          {storeroomPieces.map(({ gear, item, equipped }) => (
             <StoreroomSlot
               key={gear.uid}
               save={save}
               hero={hero}
               gear={gear}
               item={item}
+              equipped={equipped}
               size={Math.floor((contentWidth - 3 * 6) / 4) - 4}
               onOpen={(slot, anchor) => setCompare({ gear, slot, anchor })}
             />
@@ -450,6 +451,7 @@ function StoreroomSlot({
   hero,
   gear,
   item,
+  equipped,
   size,
   onOpen,
 }: {
@@ -457,6 +459,7 @@ function StoreroomSlot({
   hero: HeroState;
   gear: GearInstance;
   item: GearDef;
+  equipped: boolean;
   size: number;
   onOpen: (slot: (typeof GEAR_SLOTS)[number], anchor: PopupAnchor) => void;
 }) {
@@ -472,6 +475,7 @@ function StoreroomSlot({
         icon={item.icon}
         mark={preview && gain > 0 ? 'up' : preview && gain < 0 ? 'down' : undefined}
         size={size}
+        equipped={equipped}
         accessibilityLabel={gearName(gear)}
         onPress={() =>
           wrapper.current?.measureInWindow((x, y, width, height) =>

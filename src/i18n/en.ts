@@ -12,6 +12,7 @@ export const en = {
     escort: ' · Escort',
     patrol: ' · Patrol',
     wornBy: 'Worn by {name}',
+    equippedBy: 'Equipped: {name}',
     and: ' and ',
     tooFar: 'Get within {radius} m to {action} ({distance} m away).',
   },
@@ -386,6 +387,7 @@ export const en = {
   },
   gear: {
     roll: 'roll {roll}/{max}',
+    equipped: 'Equipped',
   },
   team: {
     roster: 'Roster {count}/{cap} · up to {party} per expedition',

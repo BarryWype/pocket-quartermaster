@@ -14,6 +14,7 @@ export const fr: Dictionary = {
     escort: ' · Escorte',
     patrol: ' · Patrouille',
     wornBy: 'Porté par {name}',
+    equippedBy: 'Équipé : {name}',
     and: ' et ',
     tooFar: 'Approchez-vous à moins de {radius} m pour {action} (à {distance} m).',
   },
@@ -392,6 +393,7 @@ export const fr: Dictionary = {
   },
   gear: {
     roll: 'roll {roll}/{max}',
+    equipped: 'Équipé',
   },
   team: {
     roster: 'Effectif {count}/{cap} · jusqu’à {party} par expédition',

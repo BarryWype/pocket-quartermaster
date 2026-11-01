@@ -9,6 +9,7 @@ import type { ManualRarity } from '../loot/types';
 import type { BaseItemRef } from '../loot/purposes';
 import { valuablePrice } from '../loot/catalogue';
 import { isLureActive } from '../rewards/lures';
+import { equippedFirst } from '../forging/salvage';
 import { liveTreasureMaps } from '../rewards/treasure';
 import { isRevealed } from '../reveal/reveal';
 import type { SaveData } from '../save';
@@ -102,7 +103,7 @@ export function inventoryRows(save: SaveData, now: number): InventoryRow[] {
     });
   }
 
-  for (const gear of save.gear) rows.push({ kind: 'gear', page: 'gear', gear });
+  for (const gear of equippedFirst(save.gear, (g) => g.uid, save)) rows.push({ kind: 'gear', page: 'gear', gear });
 
   for (const [itemId, count] of Object.entries(save.consumables)) {
     const item = itemById[itemId];

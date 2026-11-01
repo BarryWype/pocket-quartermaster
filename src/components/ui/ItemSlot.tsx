@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, View, type ImageSourcePropType, type StyleProp, type ViewStyle } from 'react-native';
 
+import { EquippedBadge } from '@/components/EquippedBadge';
 import { GameIcon } from '@/components/GameIcon';
 import { Text } from '@/components/Text';
 import { fonts, ui } from '@/theme';
@@ -15,13 +16,15 @@ type Props = {
   size?: number;
   /** A "maybe" reward: dashed brass-dim border and a half-faded icon. */
   faded?: boolean;
+  /** A hero is wearing this piece: a shield badge on the corner. */
+  equipped?: boolean;
   onPress?: () => void;
   accessibilityLabel: string;
   style?: StyleProp<ViewStyle>;
 };
 
 /** A square item socket: selected, ready, short, empty or locked. */
-export function ItemSlot({ state, emoji, icon, count, mark, size, faded, onPress, accessibilityLabel, style }: Props) {
+export function ItemSlot({ state, emoji, icon, count, mark, size, faded, equipped, onPress, accessibilityLabel, style }: Props) {
   const filled = state === 'selected' || state === 'ready' || state === 'short';
   const shown = state === 'locked' ? '🔒' : state === 'empty' ? undefined : emoji;
   const face = (
@@ -53,6 +56,7 @@ export function ItemSlot({ state, emoji, icon, count, mark, size, faded, onPress
       {state === 'short' && <View style={styles.shortMark} pointerEvents="none" />}
       {count !== undefined && <Text style={styles.count}>{count}</Text>}
       {mark !== undefined && <Text style={[styles.mark, mark === 'up' ? styles.markUp : styles.markDown]}>{mark === 'up' ? '▲' : '▼'}</Text>}
+      {equipped && <EquippedBadge size={size ?? 60} />}
     </View>
   );
   const ring = [styles.ring, state === 'selected' && styles.ringSelected];

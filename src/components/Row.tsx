@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-nat
 
 import { colors } from '@/theme';
 
+import { EquippedBadge } from './EquippedBadge';
 import { GameIcon } from './GameIcon';
 import { Text } from './Text';
 
@@ -16,15 +17,18 @@ type Props = {
   titleColor?: string;
   /** Small icons in the slot's corner, e.g. an item's purpose tags. */
   badge?: string;
+  /** A hero is wearing this piece: a shield badge on the slot's corner. */
+  equipped?: boolean;
   onPress?: () => void;
 };
 
-export function Row({ emoji, icon, title, subtitle, right, titleColor, badge, onPress }: Props) {
+export function Row({ emoji, icon, title, subtitle, right, titleColor, badge, equipped, onPress }: Props) {
   return (
     <Pressable style={styles.row} onPress={onPress} disabled={!onPress} accessibilityRole={onPress ? 'button' : undefined}>
       <View>
         <IconSlot emoji={emoji} icon={icon} />
         {badge ? <Text style={styles.badge}>{badge}</Text> : null}
+        {equipped ? <EquippedBadge size={32} /> : null}
       </View>
       <View style={styles.body}>
         <Text style={[styles.title, titleColor ? { color: titleColor } : null]}>{title}</Text>
