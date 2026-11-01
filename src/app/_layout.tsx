@@ -81,7 +81,7 @@ export default function RootLayout() {
       >
         <Stack.Screen name="index" dangerouslySingular options={{ title: t('screens.map'), headerShown: false }} />
         <Stack.Screen name="forge" dangerouslySingular options={{ title: t('screens.forge'), header: () => <ScreenHeader title={t('screens.forge')} />, contentStyle: { backgroundColor: ui.woodDark } }} />
-        <Stack.Screen name="infuse" dangerouslySingular options={{ title: t('screens.infuse') }} />
+        <Stack.Screen name="infuse" dangerouslySingular options={{ title: t('screens.infuse'), header: () => <ScreenHeader title={t('screens.infuse')} />, contentStyle: { backgroundColor: ui.woodDark } }} />
         <Stack.Screen name="provisions" dangerouslySingular options={{ title: t('screens.provisions'), header: () => <ScreenHeader title={t('screens.provisions')} />, contentStyle: { backgroundColor: ui.woodDark } }} />
         <Stack.Screen name="inventory" dangerouslySingular options={{ title: t('screens.inventory'), header: () => <ScreenHeader title={t('screens.storeroom')} right={<HeaderGold />} />, contentStyle: { backgroundColor: ui.woodDark } }} />
         <Stack.Screen name="team/index" dangerouslySingular options={{ title: t('screens.team'), header: () => <ScreenHeader title={t('screens.barracks')} />, contentStyle: { backgroundColor: ui.woodDark } }} />
