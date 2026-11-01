@@ -55,10 +55,19 @@ describe('expedition loot', () => {
     expect(save.firstWinDay).toBeNull();
   });
 
-  it('rolls the first clear of a tier only the first time the tier is won', () => {
+  it('pays the first clear of a chain dungeon once, and the tier only through its boss', () => {
     const first = resolve(veterans(), 'ratCellar');
-    expect(first.report.firstTierClear).toBe(true);
-    expect(resolve(first.save, 'spiderBurrow').report.firstTierClear).toBeUndefined();
+    expect(first.report.firstDungeonClear).toBe(true);
+    expect(first.report.firstTierClear).toBeUndefined();
+    // The same dungeon again pays nothing extra; the next one of the chain pays its own.
+    expect(resolve(first.save, 'ratCellar').report.firstDungeonClear).toBeUndefined();
+    const second = resolve(first.save, 'spiderBurrow');
+    expect(second.report.firstDungeonClear).toBe(true);
+    // The boss keeps the tier's first clear; it opens once its chain is cleared.
+    const boss = resolve({ ...second.save, clearedDungeons: [...second.save.clearedDungeons, 'millRuins'] }, BOSS_1);
+    expect(boss.report.success).toBe(true);
+    expect(boss.report.firstTierClear).toBe(true);
+    expect(boss.report.firstDungeonClear).toBeUndefined();
   });
 
   it('teaches the tier boss its pickaxe', () => {

@@ -1,3 +1,4 @@
+import { difficultyRules } from '@/content/difficulty';
 import { QUALITIES } from '@/content/forging';
 import type { Quality } from '@/game/types';
 
@@ -47,10 +48,10 @@ describe('looted gear', () => {
   });
 
   it('gives other sources the player tier or one below', () => {
-    for (const piece of gearOver('patrolGoblins', 200, { context: context(3) })) {
+    for (const piece of gearOver('patrol', 200, { context: context(3) })) {
       expect(piece.itemId).toMatch(/[23]$/);
     }
-    for (const piece of gearOver('patrolGoblins', 200, { context: context(1) })) {
+    for (const piece of gearOver('patrol', 200, { context: context(1) })) {
       expect(piece.itemId).toMatch(/1$/);
     }
     let atPlayerTier = 0;
@@ -91,6 +92,17 @@ describe('looted gear', () => {
     const average = (pieces: { quality: Quality }[]) =>
       pieces.reduce((sum, piece) => sum + QUALITIES.indexOf(piece.quality), 0) / pieces.length;
     expect(average(lucky)).toBeGreaterThan(average(plain));
+  });
+
+  it('raises a hard source one quality step over the same roll at easy', () => {
+    const easy = gearOver('dungeonRun', 300, { difficulty: 'easy' });
+    const hard = gearOver('dungeonRun', 300, { difficulty: 'hard' });
+    const best = QUALITIES.indexOf('uncommon'); // the basic ladder's top
+    for (let i = 0; i < easy.length; i++) {
+      expect(QUALITIES.indexOf(hard[i].quality)).toBe(
+        Math.min(QUALITIES.indexOf(easy[i].quality) + difficultyRules.rewards.hard.qualitySteps, best),
+      );
+    }
   });
 
   it('rolls stats within the roll range', () => {

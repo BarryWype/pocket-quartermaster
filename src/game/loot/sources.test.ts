@@ -1,3 +1,4 @@
+import { difficultyRules } from '@/content/difficulty';
 import { lootMatrix } from '@/content/loot/matrix';
 import { components } from '@/content/loot/components';
 import { monsterParts } from '@/content/loot/monsterParts';
@@ -5,7 +6,7 @@ import { monsterParts } from '@/content/loot/monsterParts';
 import { ELEMENTS, shardId } from '../elements';
 import { createRng } from '../generation/rng';
 import { createInitialSave } from '../save';
-import { rollForSave } from './context';
+import { rollForSave, sourceAmounts } from './context';
 import { LOOT_CATEGORIES, LOOT_SOURCES, type LootCategory, type LootSourceId } from './types';
 
 const SEEDS = 200;
@@ -42,10 +43,21 @@ describe('rollForSave', () => {
   }
 
   it('never gives materials from a dungeon source', () => {
-    for (const source of ['dungeonRun', 'firstWin', 'firstTierClear', 'tierBoss', 'overnightExpedition'] as LootSourceId[]) {
+    for (const source of ['dungeonRun', 'firstWin', 'firstTierClear', 'firstDungeonClear', 'tierBoss', 'overnightExpedition'] as LootSourceId[]) {
       for (let i = 0; i < SEEDS; i++) {
         expect(gathered(rollForSave(createInitialSave(), source, createRng(`${source}|d|${i}`), { luck: LUCK }).materials)).toEqual([]);
       }
+    }
+  });
+
+  it('scales a source\'s gold and XP by its difficulty', () => {
+    const base = sourceAmounts('sanctum', 3);
+    for (const difficulty of difficultyRules.order) {
+      const { goldXp } = difficultyRules.rewards[difficulty];
+      expect(sourceAmounts('sanctum', 3, difficulty)).toEqual({
+        gold: Math.round(base.gold * goldXp),
+        xp: Math.round(base.xp * goldXp),
+      });
     }
   });
 });

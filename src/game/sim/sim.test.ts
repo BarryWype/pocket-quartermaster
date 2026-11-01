@@ -23,7 +23,7 @@ const rates = measureWalkRates({ ...simConfig, walk: { ...simConfig.walk, sample
 const csv = parseMatrixCsv(fs.readFileSync(path.resolve(__dirname, '../../../doc/design/loot/matrix.csv'), 'utf8'));
 const total = (visits: Partial<Record<LootSourceId, number>>, sources: LootSourceId[]) => sources.reduce((sum, s) => sum + (visits[s] ?? 0), 0);
 const FIGHT_EVENTS: LootSourceId[] = ['banditCamp', 'goblinRaid', 'beastDen', 'hauntedCrypt', 'elementalRift', 'abandonedCaravan', 'wantedOutlaw'];
-const PATROLS: LootSourceId[] = ['patrolGoblins', 'patrolHerd', 'patrolBandits'];
+const PATROLS: LootSourceId[] = ['patrol'];
 const QUESTS: LootSourceId[] = ['questShort', 'questMedium', 'questLong'];
 
 describe('profiles', () => {

@@ -420,11 +420,17 @@ export function resolveExpedition(
   const firstWin =
     tutorialReward ||
     (success && !dungeon.overnight && !dungeon.secret && save.firstWinDay !== rotationDay(expedition.endsAt));
+  // A tier's first clear is its boss's: the chain dungeons each pay their own first clear.
   const firstTierClear =
+    !tutorialReward && success && !dungeon.secret && dungeon.isBoss && !save.clearedDungeons.includes(dungeon.id);
+  // The first clear of each chain dungeon pays its own row once; the boss keeps the tier's.
+  const firstDungeonClear =
     !tutorialReward &&
     success &&
     !dungeon.secret &&
-    !save.clearedDungeons.some((id) => dungeonById[id]?.tier === dungeon.tier);
+    dungeon.chainIndex !== undefined &&
+    !dungeon.isBoss &&
+    !save.clearedDungeons.includes(dungeon.id);
   const context = lootContextOf(save);
   const enemies = run.encounters.flatMap((e) => e.mobs.map((m) => m.mobId));
   const source = dungeonLootSource(dungeon);
@@ -438,6 +444,7 @@ export function resolveExpedition(
       luck,
       modifiers,
       enemies,
+      difficulty: dungeon.difficulty,
       base,
       context,
       rng: createRng(`${expedition.seed}|${source}`),
@@ -454,6 +461,7 @@ export function resolveExpedition(
     loot = roll(source, { gold: baseGold, xp: Math.round(xp * mealXp) });
     if (firstWin) loot = mergeLoot(loot, roll('firstWin', bonus('firstWin')));
     if (firstTierClear) loot = mergeLoot(loot, roll('firstTierClear', bonus('firstTierClear')));
+    if (firstDungeonClear) loot = mergeLoot(loot, roll('firstDungeonClear', bonus('firstDungeonClear')));
   } else {
     loot = { ...emptyLoot(), gold: Math.round(baseGold * (1 + lootConfig.luck.goldPerPoint * luck)), xp: Math.round(xp * mealXp) };
   }
@@ -561,6 +569,7 @@ export function resolveExpedition(
       ...sigil,
       firstWin,
       firstTierClear,
+      firstDungeonClear,
       hunger: expedition.hunger,
       salvaged,
       elixirs: true,
@@ -599,6 +608,7 @@ export function resolveExpedition(
     ...(prize ? { prize } : {}),
     ...(firstWin ? { firstWin } : {}),
     ...(firstTierClear ? { firstTierClear } : {}),
+    ...(firstDungeonClear ? { firstDungeonClear } : {}),
     consumablesUsed,
     log,
     seen: false,

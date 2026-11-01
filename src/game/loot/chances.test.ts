@@ -1,3 +1,4 @@
+import { difficultyRules } from '@/content/difficulty';
 import { lootConfig } from '@/content/loot/config';
 
 import { categoryChance, lootChances, partyLuck, runLengthMultiplier } from './chances';
@@ -20,7 +21,7 @@ describe('loot chances', () => {
     expect(chances.gold).toBe(1);
     expect(chances.materials).toBe(0);
     expect(categoryChance('trinkets', input('dungeonRun'))).toBeCloseTo(lootConfig.markChances['R/2']);
-    expect(categoryChance('monsterParts', input('patrolHerd'))).toBe(1);
+    expect(categoryChance('gold', input('stepChest'))).toBe(1);
   });
 
   it('scales run length for run sources only', () => {
@@ -31,7 +32,7 @@ describe('loot chances', () => {
     expect(runLengthMultiplier('tierBoss', 5)).toBe(1);
     expect(runLengthMultiplier('tierBoss', 480)).toBe(1);
     expect(runLengthMultiplier('firstWin', 5)).toBe(1);
-    expect(runLengthMultiplier('patrolGoblins', 5)).toBe(1);
+    expect(runLengthMultiplier('patrol', 5)).toBe(1);
     const gear = categoryChance('gear', input('dungeonRun', { minutes: 5 }));
     expect(gear).toBeCloseTo(0.25 * 0.25);
     expect(categoryChance('gear', input('firstWin', { minutes: 5 }))).toBeCloseTo(0.25);
@@ -102,5 +103,18 @@ describe('loot chances', () => {
     expect(categoryChance('gear', input('stepChest', { chanceMultiplier: 1.5 }))).toBeCloseTo(
       base * 1.5,
     );
+  });
+
+  it('multiplies non-A chances by the difficulty, still capped', () => {
+    const base = categoryChance('gear', input('overnightExpedition'));
+    for (const difficulty of difficultyRules.order) {
+      expect(categoryChance('gear', input('overnightExpedition', { difficulty }))).toBeCloseTo(
+        base * difficultyRules.rewards[difficulty].chance,
+      );
+    }
+    expect(categoryChance('gold', input('overnightExpedition', { difficulty: 'hard' }))).toBe(1);
+    expect(
+      categoryChance('gear', input('overnightExpedition', { minutes: 480, luck: 100, difficulty: 'hard' })),
+    ).toBe(lootConfig.maxChance);
   });
 });

@@ -26,7 +26,7 @@ export const OUTCOME_COLORS: Record<ExpeditionOutcome, string> = {
 /** Everything a report brought back, one short label each: gold first, then the rarer finds, then materials. */
 export function lootItems(report: ExpeditionReport): string[] {
   return [
-    report.firstTierClear ? t('expeditions.firstTierClear') : report.firstWin ? t('expeditions.firstWin') : null,
+    report.firstTierClear ? t('expeditions.firstTierClear') : report.firstDungeonClear ? t('expeditions.firstDungeonClear') : report.firstWin ? t('expeditions.firstWin') : null,
     report.sigil ? t('expeditions.sigil', { tier: report.sigil }) : null,
     report.sigilShards
       ? t('expeditions.sigilShards', { emoji: materialById[shardId(report.sigilShards.element)].emoji, amount: report.sigilShards.amount })

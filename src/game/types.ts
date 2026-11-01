@@ -859,6 +859,8 @@ export type ExpeditionReport = {
   /** The day's first win, a new tier's first clear: their rows were rolled on top. */
   firstWin?: boolean;
   firstTierClear?: boolean;
+  /** The first clear of a chain dungeon: its row was rolled on top (once per dungeon). */
+  firstDungeonClear?: boolean;
   consumablesUsed: string[];
   log: string[];
   seen: boolean;

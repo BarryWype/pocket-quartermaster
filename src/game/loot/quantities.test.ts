@@ -1,3 +1,4 @@
+import { difficultyRules } from '@/content/difficulty';
 import { lootConfig } from '@/content/loot/config';
 import { components } from '@/content/loot/components';
 import { monsterParts } from '@/content/loot/monsterParts';
@@ -26,8 +27,8 @@ const partIds = new Set(monsterParts.map((p) => p.id));
 /** A forced roll's stacks other than monster parts, which every source with an A or O mark drops too. */
 const withoutParts = (loot: Loot) => loot.materials.filter((stack) => !partIds.has(stack.materialId));
 
-const forced = (source: LootSourceId, category: 'materials' | 'shards' | 'treasureMaps' | 'manuals' | 'keyFragments' | 'gold' | 'xp' | 'consumables', seeds = 60): Loot[] =>
-  Array.from({ length: seeds }, (_, i) => rollSourceLoot(request(source, `${source}${i}`, { force: category })));
+const forced = (source: LootSourceId, category: 'materials' | 'shards' | 'treasureMaps' | 'manuals' | 'keyFragments' | 'gold' | 'xp' | 'consumables', seeds = 60, overrides: Partial<LootRequest> = {}): Loot[] =>
+  Array.from({ length: seeds }, (_, i) => rollSourceLoot(request(source, `${source}${i}`, { force: category, ...overrides })));
 
 describe('loot quantities', () => {
   it('gives 2-4 of one themed material', () => {
@@ -41,12 +42,22 @@ describe('loot quantities', () => {
 
   it('draws caches from the pickaxe-covered resources', () => {
     const pool = ['stone', 'copper', 'iron', 'coal', 'wood'];
-    for (const loot of forced('patrolBandits', 'materials')) {
+    for (const loot of forced('patrol', 'materials', 60, { patrolKind: 'bandits' })) {
       const [stack, ...rest] = withoutParts(loot);
       expect(rest).toEqual([]);
       expect(pool).toContain(stack.materialId);
       expect(stack.amount).toBeGreaterThanOrEqual(2);
       expect(stack.amount).toBeLessThanOrEqual(4);
+    }
+  });
+
+  it('scales material amounts by the difficulty, never below 1', () => {
+    const [min, max] = lootConfig.quantities.materials;
+    const amount = difficultyRules.rewards.hard.amount;
+    for (const loot of forced('stepChest', 'materials', 60, { difficulty: 'hard' })) {
+      const [stack] = withoutParts(loot);
+      expect(stack.amount).toBeGreaterThanOrEqual(Math.max(1, Math.round(min * amount)));
+      expect(stack.amount).toBeLessThanOrEqual(Math.max(1, Math.round(max * amount)));
     }
   });
 

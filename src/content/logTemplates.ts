@@ -117,6 +117,7 @@ export const logTemplates = {
   tagNames: { undead: 'undead', beast: 'beasts', trap: 'traps', obstacle: 'obstacles', locals: 'locals' } as Record<string, string>,
   firstWin: ['The first win of the day brought a little extra.'],
   firstTierClear: ['A new tier conquered! The spoils were richer for it.'],
+  firstDungeonClear: ['A first clear of this dungeon — its finest treasures came with it.'],
   mishap: ['A {event} forced the party to turn back.', 'Bad luck: a {event} cut the expedition short.'],
   /** The midpoint opportunity, right after the encounter it followed. */
   opportunityTaken: ['Halfway, the party made the most of the {opportunity}.'],

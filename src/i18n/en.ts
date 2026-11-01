@@ -167,6 +167,7 @@ export const en = {
     noReports: 'No expeditions have returned yet.',
     firstWin: '☀️ First win of the day',
     firstTierClear: '✨ New tier conquered',
+    firstDungeonClear: '🗺️ First clear',
     sigilShards: '{emoji} {amount} (no room for a Sigil)',
     sigil: '🎟️ Sigil T{tier}',
     treasureMap: '🗺️ {rarity} treasure map',

@@ -271,7 +271,7 @@ export function summarize(logs: RunLog[], t: Targets = defaultTargets): ProfileS
       ],
       [
         'patrols',
-        (v) => (v.patrolGoblins ?? 0) + (v.patrolHerd ?? 0) + (v.patrolBandits ?? 0),
+        (v) => v.patrol ?? 0,
         (log) => log.patrols.seen.filter((s) => (PATROL_KINDS as string[]).includes(s.kind)).length,
       ],
       ['travellers', (v) => v.traveller ?? 0, (log) => log.patrols.seen.filter((s) => (TRAVELLER_KINDS as string[]).includes(s.kind)).length],

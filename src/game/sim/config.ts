@@ -26,7 +26,7 @@ export type Profile = {
 const matrixVisits: Visits = Object.fromEntries(LOOT_SOURCES.map((source) => [source, lootMatrix[source].visitsPerDay]));
 
 const GROUPS = {
-  patrols: ['patrolGoblins', 'patrolHerd', 'patrolBandits'],
+  patrols: ['patrol'],
   fightEvents: ['banditCamp', 'goblinRaid', 'beastDen', 'hauntedCrypt', 'elementalRift', 'abandonedCaravan', 'wantedOutlaw'],
   quests: ['questShort', 'questMedium', 'questLong'],
 } satisfies Record<string, LootSourceId[]>;

@@ -63,7 +63,7 @@ describe('components', () => {
     ];
     for (const [mobId, componentId] of cases) {
       expect(mobById[mobId]).toBeDefined();
-      expect(rolledIds('patrolHerd', `${mobId}-`, 1, { enemies: [mobId] })).toEqual([componentId]);
+      expect(rolledIds('patrol', `${mobId}-`, 1, { enemies: [mobId] })).toEqual([componentId]);
     }
   });
 

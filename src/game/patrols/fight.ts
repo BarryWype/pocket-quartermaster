@@ -60,22 +60,8 @@ export const rewardContextOf = (save: SaveData, luck = 0, modifiers: LootModifie
   playerTier: highestUnlockedTier(save),
 });
 
-export const PATROL_SOURCES: Record<PatrolKind, LootSourceId> = {
-  goblins: 'patrolGoblins',
-  eliteGoblins: 'patrolGoblins',
-  spiders: 'patrolGoblins',
-  orcs: 'patrolGoblins',
-  eliteOrcs: 'patrolGoblins',
-  ogres: 'patrolGoblins',
-  trolls: 'patrolGoblins',
-  wraiths: 'patrolGoblins',
-  wyverns: 'patrolGoblins',
-  golems: 'patrolGoblins',
-  herd: 'patrolHerd',
-  wolves: 'patrolHerd',
-  bandits: 'patrolBandits',
-  outlaws: 'patrolBandits',
-};
+/** Every patrol kind rolls the same Patrol row; its material theme comes with the kind. */
+const PATROL_SOURCE: LootSourceId = 'patrol';
 
 /**
  * The fight itself, as a mini dungeon: one or two encounters, the last group a
@@ -92,7 +78,7 @@ export function patrolDungeon(spawn: PatrolSpawn, tier: number, elite: boolean, 
     weight: group.weight,
     mobs: [{ mobId: patrolMobId(patrolKind, tier, group.role, elite, element), count: group.count }],
   }));
-  const { gold, xp } = sourceAmounts(PATROL_SOURCES[patrolKind], tier);
+  const { gold, xp } = sourceAmounts(PATROL_SOURCE, tier, spawn.difficulty);
   return {
     id: `patrol:${patrolKind}:${tier}${elite ? ':elite' : ''}`,
     name: patrolTexts.kinds[patrolKind],
@@ -122,8 +108,8 @@ export function patrolRewards(
   rng: Rng,
 ): Loot {
   if (!isPatrolKind(spawn.kind)) throw new Error(`No rewards from a ${spawn.kind}`);
-  const source = PATROL_SOURCES[spawn.kind];
-  const amounts = sourceAmounts(source, tier);
+  const source = PATROL_SOURCE;
+  const amounts = sourceAmounts(source, tier, spawn.difficulty ?? undefined);
   const elites = elite ? lootConfig.eliteMultiplier : 1;
   return rollSourceLoot({
     source,
@@ -131,6 +117,8 @@ export function patrolRewards(
     luck: context.luck,
     modifiers: context.modifiers ?? [],
     enemies,
+    difficulty: spawn.difficulty ?? undefined,
+    patrolKind: spawn.kind,
     base: { gold: Math.round(amounts.gold * elites * context.goldMultiplier), xp: Math.round(amounts.xp * elites) },
     context: { playerTier: context.playerTier, pickaxeTier: context.pickaxeTier, knownRecipes: [], favourCounts: {}, mastery: {} },
     rng,
@@ -233,7 +221,7 @@ export function startPatrolFight(
         windowEndsAt: spawn.endsAt,
         won: run.bossDefeated,
         hp: run.hp,
-        salvaged: untriggeredSalvage(party, run, PATROL_SOURCES[kind]),
+        salvaged: untriggeredSalvage(party, run, PATROL_SOURCE),
         rewards,
       },
     ],

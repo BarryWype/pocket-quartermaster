@@ -93,6 +93,7 @@ export const frLogTemplates: typeof logTemplates = {
   tagNames: { undead: 'les morts-vivants', beast: 'les bêtes', trap: 'les pièges', obstacle: 'les obstacles', locals: 'les habitants' },
   firstWin: ['La première victoire du jour a rapporté un petit supplément.'],
   firstTierClear: ['Un nouveau palier conquis ! Le butin n’en fut que plus riche.'],
+  firstDungeonClear: ['Une première victoire ici — ses plus beaux trésors sont venus avec.'],
   mishap: ['{un:event} a forcé le groupe à rebrousser chemin.', 'Pas de chance : {un:event} a écourté l’expédition.'],
   opportunityTaken: ['À mi-chemin, le groupe a profité {du:opportunity}.'],
   opportunityMissed: ['À mi-chemin, le groupe a laissé passer {le:opportunity}.'],

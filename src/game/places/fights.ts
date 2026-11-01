@@ -65,7 +65,7 @@ export function placeFightDungeon(spawn: PlaceSpawn, tier: number): DungeonDef {
     weight: group.weight,
     mobs: [{ mobId: placeMobId(kind, tier, group.role, elite, element), count: group.count }],
   }));
-  const { gold, xp } = sourceAmounts(kind, tier);
+  const { gold, xp } = sourceAmounts(kind, tier, rulesOf(kind).difficulty);
   return {
     id: `place:${kind}:${tier}${elite ? ':elite' : ''}`,
     name: placeInfo[kind].name,
@@ -94,7 +94,13 @@ export function placeLoot(
   element?: Element,
   modifiers: LootModifier[] = [],
 ): Loot {
-  return rollForSave(save, kind, rng, { luck, modifiers, enemies, ...(element ? { element } : {}) });
+  return rollForSave(save, kind, rng, {
+    luck,
+    modifiers,
+    enemies,
+    difficulty: rulesOf(kind).difficulty,
+    ...(element ? { element } : {}),
+  });
 }
 
 export type PlaceFightProblem = 'gone' | 'tooFar' | 'empty' | 'partySize' | 'away' | 'exhausted' | null;

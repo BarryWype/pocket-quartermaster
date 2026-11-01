@@ -172,6 +172,7 @@ export const fr: Dictionary = {
     noReports: 'Aucune expédition n’est encore rentrée.',
     firstWin: '☀️ Première victoire du jour',
     firstTierClear: '✨ Nouveau palier conquis',
+    firstDungeonClear: '🗺️ Première victoire ici',
     sigilShards: '{emoji} {amount} (plus de place pour un Sceau)',
     sigil: '🎟️ Sceau P{tier}',
     treasureMap: '🗺️ Carte au trésor ({rarity})',

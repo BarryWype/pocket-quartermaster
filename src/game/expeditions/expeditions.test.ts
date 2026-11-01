@@ -2,6 +2,7 @@ import { dungeons } from '@/content/dungeons';
 import { xpRules, xpToNextLevel } from '@/content/heroes';
 import { MATERIAL_TIERS } from '@/content/items';
 import { dungeonById, monsterPartById, recipeById } from '@/content/lookup';
+import { lootConfig } from '@/content/loot/config';
 import { tutorialRules } from '@/content/tutorial';
 
 import { rotationDay } from '../dungeons/rotation';
@@ -162,7 +163,7 @@ describe('resolveExpedition', () => {
   it('pays in full for the boss and the cleared share on a retreat', () => {
     const dungeon = dungeonById.banditStockade;
     // Tier 1 is still the highest, so its XP isn't reduced; levelled heroes, so the boss falls sometimes.
-    // Rat Cellar counts as the tier's clear and the day's first win, so only the run's own XP shows.
+    // Rat Cellar counts as the day's first win; the boss is the tier's first clear, so its bonus XP shows too.
     const save = {
       ...geared(),
       heroes: geared().heroes.map((h) => ({ ...h, level: 4 })),
@@ -174,7 +175,8 @@ describe('resolveExpedition', () => {
     const retreats = results.filter((r) => r.report.outcome === 'retreat');
     expect(wins.length).toBeGreaterThan(0);
     expect(retreats.length).toBeGreaterThan(0);
-    wins.forEach(({ report }) => expect(report.xp).toBe(dungeon.xp));
+    const firstTierXp = lootConfig.bonusRows.firstTierClear.xp;
+    wins.forEach(({ report }) => expect(report.xp).toBe(Math.round(dungeon.xp * (1 + firstTierXp))));
     retreats.forEach(({ report }) => {
       const share = report.encountersCleared / report.encounterCount;
       expect(share).toBeGreaterThan(0);
@@ -272,10 +274,10 @@ describe('resolveExpedition', () => {
     for (const dungeon of dungeons) {
       for (const { report } of outcomes(geared(), dungeon.id, 20)) {
         // Every encounter played gets at most one line (quiet steps none), plus a summary
-        // and any recipe, first-win, charter or salvage lines.
+        // and any recipe, first-win, first-clear, charter or salvage lines.
         const played = report.encountersCleared + (report.success ? 0 : 1);
         expect(report.log.length).toBeGreaterThanOrEqual(2);
-        expect(report.log.length).toBeLessThanOrEqual(played + 7);
+        expect(report.log.length).toBeLessThanOrEqual(played + 8);
         expect(report.log.join(' ')).not.toMatch(/\{\w+\}/);
       }
     }
@@ -451,14 +453,21 @@ describe('first tier clear', () => {
   };
   const strong = () => ({ ...geared(), heroes: geared().heroes.map((h) => ({ ...h, level: 15 })), clearedDungeons: [] });
 
-  it('is paid the first time a tier is won, whatever the dungeon', () => {
+  it('is paid only through the tier boss; chain dungeons pay their own first clear', () => {
     const first = win(strong(), 'ratCellar');
     expect(first.report.success).toBe(true);
-    expect(first.report.firstTierClear).toBe(true);
+    expect(first.report.firstTierClear).toBeUndefined();
+    expect(first.report.firstDungeonClear).toBe(true);
     // The tier is cleared now: no other tier 1 dungeon pays it again.
     const second = win(first.save, 'spiderBurrow');
     expect(second.report.success).toBe(true);
     expect(second.report.firstTierClear).toBeUndefined();
+    expect(second.report.firstDungeonClear).toBe(true);
+    // The tier's first clear is the boss's own; it opens once its chain is cleared.
+    const boss = win({ ...second.save, clearedDungeons: [...second.save.clearedDungeons, 'millRuins'] }, 'banditStockade');
+    expect(boss.report.success).toBe(true);
+    expect(boss.report.firstTierClear).toBe(true);
+    expect(boss.report.firstDungeonClear).toBeUndefined();
   });
 
   it('is paid again for the next tier', () => {
@@ -472,7 +481,8 @@ describe('first tier clear', () => {
     // That day's Sunken Ford is winnable with the pack.
     const result = win(save, 'sunkenFord', 86_400_000);
     expect(result.report.success).toBe(true);
-    expect(result.report.firstTierClear).toBe(true);
+    expect(result.report.firstTierClear).toBeUndefined();
+    expect(result.report.firstDungeonClear).toBe(true);
   });
 });
 

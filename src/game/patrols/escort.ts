@@ -21,7 +21,7 @@ import { emptyLoot, type Loot } from '../loot/types';
 import type { QuestTarget } from '../quests/types';
 import type { PocketWatch } from './pocketMode';
 import { isElitePatrolKind } from '@/content/enemies';
-import { PATROL_SOURCES, foughtEnemies, grantPatrolWin, patrolDungeon, patrolRewards, patrolRunOptions, settleConsumables } from './fight';
+import { foughtEnemies, grantPatrolWin, patrolDungeon, patrolRewards, patrolRunOptions, settleConsumables } from './fight';
 import { isPatrolKind, patrolsAround, pruneByWindow, type PatrolKind, type PatrolSpawn } from './generate';
 import { distanceTo, hasFled, inEngageRange, isGone, isVisible } from './visibility';
 
@@ -310,7 +310,7 @@ export function backgroundStep(
         hpBefore: hp,
         hpAfter,
         maxHp: escort.maxHp,
-        salvaged: untriggeredSalvage([{ ...escort.member, hp }], run, PATROL_SOURCES[target.kind]),
+        salvaged: untriggeredSalvage([{ ...escort.member, hp }], run, 'patrol'),
         rewards,
       });
       if (run.bossDefeated) next.beaten[target.id] = target.endsAt;

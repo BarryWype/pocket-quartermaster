@@ -211,7 +211,7 @@ export function renderReport({ summaries, rules, settings }: ReportInput) {
   out.push(
     '## Events and patrols by kind',
     '',
-    'The same probe and fight record split by kind: each patrol kind (goblin scouts, game herd, bandits) and each fight event kind.',
+    'The same probe and fight record split by kind: each patrol kind and each fight event kind.',
     '',
   );
   for (const s of summaries) out.push(`### ${s.profile}`, '', kindOdds(s));

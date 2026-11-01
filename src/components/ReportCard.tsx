@@ -1,9 +1,11 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { elementInfo } from '@/content/elements';
+import { difficultyLabels } from '@/content/difficulty';
+import { frDifficultyLabels } from '@/content/fr/difficulty';
 import { dungeonById, itemById, materialById, opportunityById, threatById } from '@/content/lookup';
 import type { ExpeditionReport, HeroState, OpportunityOutcome } from '@/game/types';
-import { formatDuration, t, tr } from '@/i18n';
+import { formatDuration, localized, t, tr } from '@/i18n';
 import { fonts, ui } from '@/theme';
 
 import { lootItems } from './LootReveal';
@@ -69,7 +71,10 @@ export function ReportCard({ report, heroes, now, expanded, onToggle }: Props) {
 
   return (
     <ParchmentCard title={tr(dungeon.name)} titleEmoji={dungeon.emoji} titleSub={`${outcomeText} · ${when}`} contentStyle={styles.content}>
-      <Chip tone={win ? 'good' : 'bad'} label={t(`expeditions.outcome.${report.outcome}`)} />
+      <View style={styles.chips}>
+        <Chip tone={win ? 'good' : 'bad'} label={t(`expeditions.outcome.${report.outcome}`)} />
+        <Chip tone="neutral" label={localized({ en: difficultyLabels, fr: frDifficultyLabels })[dungeon.difficulty]} />
+      </View>
       <GainsLine gains={loot} size={16} gap={6} labelStyle={styles.line} />
       <GainsLine gains={extras} size={16} gap={6} labelStyle={styles.line} />
 
@@ -152,6 +157,7 @@ export function ReportCard({ report, heroes, now, expanded, onToggle }: Props) {
 
 const styles = StyleSheet.create({
   content: { gap: 6 },
+  chips: { flexDirection: 'row', gap: 6 },
   row: {
     minHeight: 44,
     flexDirection: 'row',
