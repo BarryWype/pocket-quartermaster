@@ -187,10 +187,11 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
   const mapRef = useRef<MapRef>(null);
   const ambience = useAmbience();
   const skyPan = useSkyPan();
-  const foliage = useFoliage(mapRef, inSpan(ambience.hour, ambienceConfig.smoke));
-  const [following, setFollowing] = useState(true);
   // What the map draws of its decorations at the current zoom: nothing, one still frame, or the animated frames.
   const [decor, setDecor] = useState<DecorationMode>('still');
+  // Below the decorations' zoom nothing is drawn, so placing plants would be wasted work (and slow, zoomed out).
+  const foliage = useFoliage(mapRef, inSpan(ambience.hour, ambienceConfig.smoke), decor !== 'hidden');
+  const [following, setFollowing] = useState(true);
   // Where the map last said it looks; markers outside it plus the culling margin are not drawn.
   const [bounds, setBounds] = useState<Bounds | null>(null);
   // Two clocks (clockConfig): the fast one steps the moving things — patrols walk

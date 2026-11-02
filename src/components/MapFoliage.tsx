@@ -19,6 +19,7 @@ import {
 import { ambienceConfig, type DecorationMode } from '@/game/generation/ambience';
 import { useAnimationFrame } from '@/hooks/useAnimationFrame';
 import { useMapPanels } from '@/store/mapPanelsStore';
+import { startTiming } from '@/services/timings';
 
 // Frames are drawn by scripts/generate-foliage-sprites.py; swap in real art with the same names.
 const SPRITES = {
@@ -86,9 +87,11 @@ async function queryObstacles(map: MapRef): Promise<FoliageObstacles & { buildin
  * Scatters bushes and trees on open ground around the current view, posts on
  * building corners and, when `smoke` is on, smoke from a few chimneys. Call
  * `refresh` when the view changes; it re-reads the drawn map, then once more
- * after a moment for tiles that were still loading.
+ * after a moment for tiles that were still loading. While `visible` is false
+ * (the decorations' zoom isn't reached), placing does nothing: nothing would
+ * be drawn, and generating for a zoomed-out view blocks for seconds.
  */
-export function useFoliage(mapRef: RefObject<MapRef | null>, smoke: boolean) {
+export function useFoliage(mapRef: RefObject<MapRef | null>, smoke: boolean, visible: boolean) {
   const [data, setData] = useState<GeoJSON.FeatureCollection>(EMPTY);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   // Querying the map before it has loaded crashes natively, so only the map's own events start placement.
@@ -96,7 +99,9 @@ export function useFoliage(mapRef: RefObject<MapRef | null>, smoke: boolean) {
 
   const place = useCallback(async () => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map || !visible) return;
+    // The whole span is timed: the map query and the generation are one unit of work.
+    const endTiming = startTiming('map: foliage place');
     try {
       const [bounds, obstacles] = await Promise.all([map.getBounds(), queryObstacles(map)]);
       loaded.current = true;
@@ -104,8 +109,10 @@ export function useFoliage(mapRef: RefObject<MapRef | null>, smoke: boolean) {
       setData(foliageToGeoJSON([...placeFoliage(bounds, obstacles), ...posts, ...(smoke ? chimneySmoke(posts) : [])]));
     } catch {
       // The map can unmount mid-query; the next view change tries again.
+    } finally {
+      endTiming();
     }
-  }, [mapRef, smoke]);
+  }, [mapRef, smoke, visible]);
 
   const refresh = useCallback(() => {
     timers.current.forEach(clearTimeout);
