@@ -65,6 +65,7 @@ import { useNow } from '@/hooks/useNow';
 import { usePlacedPoints, usePlacedSpawns } from '@/hooks/usePlacedSpawns';
 import { usePlayerLocation, type PlayerLocationState } from '@/hooks/usePlayerLocation';
 import { useQuestMarks } from '@/hooks/useQuestMarks';
+import { usePersonalTavern } from '@/hooks/usePersonalTavern';
 import { useSecretPlaces } from '@/hooks/useSecretPlaces';
 import { useWalkableTiles } from '@/hooks/useWalkableTiles';
 import { gainsPrefix, lootLabels } from '@/components/lootText';
@@ -277,17 +278,18 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
     return generateTavernsAround(position, minute * 60_000).filter((t) => distanceMeters(position, t.position) <= reach);
   }, [position, minute]);
   const placedTaverns = usePlacedPoints(tavernCandidates, tavernPlacement);
+  const personal = usePersonalTavern(save, position, now);
   const tavernsShown = isRevealed(save, 'taverns');
   const tavernsInSight = useMemo(
     () =>
       recordTiming('map: tavernsInSight', () =>
-        [...(tavernsShown ? placedTaverns : []), ...(debugTavern ? [debugTavern] : [])].filter(
+        [...(tavernsShown ? [...placedTaverns, ...personal] : []), ...(debugTavern ? [debugTavern] : [])].filter(
           (t) => position !== null && distanceMeters(position, t.position) <= tavernRules.visibilityMeters,
         ),
       ),
     // Keyed by the coordinates, not the object: GPS fixes would recompute every list each second.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [placedTaverns, tavernsShown, debugTavern, position?.latitude, position?.longitude],
+    [placedTaverns, personal, tavernsShown, debugTavern, position?.latitude, position?.longitude],
   );
 
   // Places and fight events within sight (plus snapping room), and this player's replacement ruins, placed on walkable places.

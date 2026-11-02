@@ -413,7 +413,7 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
     }
     const meters = profile.walkHours.length * profile.walkMinutes * 60 * config.walk.speed;
     sim.reach = { meters, tavern: false, sanctums: [], maps: new Map() };
-    sim.reach.tavern = rng.chance(reachChance(sim, distanceMeters(location, tavern.position)));
+    sim.reach.tavern = true; // Once taverns open, the personal tavern keeps one within the walking range every profile covers (see taverns/personal.ts).
     // The nearest Sanctum of each kind today.
     const nearest = new Map<string, ReturnType<typeof generateSanctumsAround>[number]>();
     for (const spawn of generateSanctumsAround(location, dayStart + HOUR)) {

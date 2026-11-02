@@ -9,6 +9,7 @@ import type { LatLng } from '@/game/generation/types';
 import { mapTileAt, mapTileKey, nearWater, placePoint } from '@/game/generation/walkable';
 import { placesWithin, type PlaceSpawn } from '@/game/places/generate';
 import { ruinReplacements } from '@/game/places/ruins';
+import { personalTaverns } from '@/game/taverns/personal';
 import type { SaveData } from '@/game/save';
 
 import { useWalkableTiles } from './useWalkableTiles';
@@ -39,8 +40,11 @@ export function useQuestPlaces(save: SaveData, player: LatLng | null, now: numbe
     for (const ruin of ruinReplacements(save, minute * 60_000)) {
       if (centres.some((centre) => distanceMeters(centre, ruin.position) <= reach)) byId.set(ruin.id, ruin);
     }
+    for (const tavern of personalTaverns(save, minute * 60_000)) {
+      if (centres.some((centre) => distanceMeters(centre, tavern.position) <= reach)) byId.set(tavern.id, tavern);
+    }
     return [...byId.values()];
-  }, [centres, minute, save.dugRuins]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [centres, minute, save.dugRuins, save.personalTavern]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const keys = useMemo(() => [...new Set(raw.map((place) => tileKey(place.position)))].sort().join(','), [raw]);
   const tiles = useWalkableTiles(keys);
