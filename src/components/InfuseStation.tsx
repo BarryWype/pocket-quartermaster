@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { elementInfo, elementRules } from '@/content/elements';
 import { salvageRules } from '@/content/forging';
@@ -21,7 +21,7 @@ const elementName = (element: Element) => tr(elementInfo[element].name);
 /** The element that beats this one, for the weak half of the effect line. */
 const beaterOf = (element: Element) => ELEMENTS.find((one) => elementRules.beats[one] === element)!;
 
-/** Infuse plain gear with an elemental stone. Unwanted gear is salvaged from the Inventory. */
+/** Infuse plain gear with an elemental stone, hosted by the forge's Infuse page. Unwanted gear is salvaged from the Inventory. */
 export function InfuseStation() {
   const save = useGameStore((state) => state.save);
   const infuse = useGameStore((state) => state.infuse);
@@ -45,10 +45,9 @@ export function InfuseStation() {
   const cell = contentWidth > 0 ? Math.floor((contentWidth - 4 * 6) / 5) - 4 : 0;
 
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={styles.content}
-      onLayout={({ nativeEvent }) => setContentWidth(nativeEvent.layout.width - 24)}
+    <View
+      style={styles.content}
+      onLayout={({ nativeEvent }) => setContentWidth(nativeEvent.layout.width)}
     >
       <Text style={styles.sectionTitle}>{t('crafting.stonesTitle')}</Text>
       {cell > 0 && (
@@ -130,7 +129,7 @@ export function InfuseStation() {
           }}
         />
       )}
-    </ScrollView>
+    </View>
   );
 }
 
@@ -227,8 +226,7 @@ function SelectedGearCard({
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: ui.woodDark },
-  content: { paddingVertical: 14, paddingHorizontal: 12, gap: 8 },
+  content: { gap: 8 },
   sectionTitle: { fontSize: 20, fontFamily: fonts.body, color: ui.brassLight },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   cell: { position: 'relative' },

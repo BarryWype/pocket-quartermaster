@@ -11,6 +11,7 @@ type Props = {
   text: string;
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
+  accessibilityLabel?: string;
 };
 
 type Anchor = { x: number; y: number; width: number; height: number };
@@ -19,7 +20,7 @@ const BUBBLE_WIDTH = 260;
 const GAP = 6;
 
 /** Wraps an icon or label: tapping it shows a tooltip bubble next to it; tapping anywhere closes it. */
-export function Tip({ title, text, children, style }: Props) {
+export function Tip({ title, text, children, style, accessibilityLabel }: Props) {
   const ref = useRef<ComponentRef<typeof View>>(null);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
   const window = useWindowDimensions();
@@ -38,7 +39,7 @@ export function Tip({ title, text, children, style }: Props) {
 
   return (
     <>
-      <Pressable ref={ref} accessibilityRole="button" accessibilityHint={text} onPress={open} hitSlop={6} style={style}>
+      <Pressable ref={ref} accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityHint={text} onPress={open} hitSlop={6} style={style}>
         {children}
       </Pressable>
       {anchor && (

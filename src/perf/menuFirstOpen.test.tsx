@@ -61,7 +61,6 @@ const PHONE_FACTOR = 4;
 const SCREENS: [name: string, path: string][] = [
   ['expeditions', '@/app/expeditions'],
   ['forge', '@/app/forge'],
-  ['infuse', '@/app/infuse'],
   ['provisions', '@/app/provisions'],
   ['inventory', '@/app/inventory'],
   ['team', '@/app/team/index'],

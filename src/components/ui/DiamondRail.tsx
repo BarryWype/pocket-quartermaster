@@ -12,6 +12,8 @@ export type RailItem = {
   emoji?: string;
   icon?: ImageSourcePropType;
   badge?: number | string;
+  /** Set apart from the items above with a little extra top margin. */
+  spaced?: boolean;
 };
 
 type Props = {
@@ -26,21 +28,23 @@ export function DiamondRail({ items, selected, onSelect }: Props) {
     <View style={styles.rail}>
       <View style={styles.innerLine} pointerEvents="none" />
       {items.map((item) => (
-        <DiamondButton
-          key={item.key}
-          label={item.label}
-          emoji={item.emoji}
-          icon={item.icon}
-          badge={item.badge}
-          selected={item.key === selected}
-          onPress={() => onSelect(item.key)}
-        />
+        <View key={item.key} style={item.spaced && styles.spaced}>
+          <DiamondButton
+            label={item.label}
+            emoji={item.emoji}
+            icon={item.icon}
+            badge={item.badge}
+            selected={item.key === selected}
+            onPress={() => onSelect(item.key)}
+          />
+        </View>
       ))}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  spaced: { marginTop: 12 },
   rail: {
     width: RAIL_WIDTH,
     alignSelf: 'stretch',

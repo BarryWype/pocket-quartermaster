@@ -343,11 +343,12 @@ function ExpeditionsContent() {
                 <Text style={styles.heroName} numberOfLines={1}>
                   {hero.name}
                 </Text>
-                <Text style={styles.heroSub}>
-                  {away ? t('expeditions.away') : t('common.levelShort', { level: hero.level })}
-                </Text>
-                {!away && <HpBar save={save} hero={hero} />}
               </View>
+              {away ? (
+                <Text style={styles.heroSub}>{t('expeditions.away')}</Text>
+              ) : (
+                <HpBar save={save} hero={hero} />
+              )}
               {active && <Text style={styles.check}>✓</Text>}
             </Pressable>
           );
@@ -559,10 +560,8 @@ const styles = StyleSheet.create({
   heading: { fontSize: 19, color: ui.brassLight },
   hint: { minHeight: 44, justifyContent: 'center', padding: 10, borderWidth: 2, borderColor: ui.outline, backgroundColor: ui.parchment },
   hintText: { fontFamily: fonts.serif, fontSize: 14, color: ui.ink },
-  party: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  party: { flexDirection: 'column', gap: 8 },
   hero: {
-    width: '48%',
-    flexGrow: 1,
     minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',

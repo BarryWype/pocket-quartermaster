@@ -12,7 +12,6 @@ import { useGameStore } from '@/store/gameStore';
 import { fonts, ui } from '@/theme';
 
 import { ForgeBanner } from './ForgeBanner';
-import { GameIcon } from './GameIcon';
 import { RewardLabel } from './IconLabel';
 import { Text } from './Text';
 import { TutorialHint } from './TutorialHint';
@@ -135,7 +134,7 @@ export function CraftingStation({ station, action }: Props) {
   );
 }
 
-/** One family's header, its slot grid (one slot per item, whichever recipes make it) and its pantry strip. */
+/** One family's header and its slot grid (one slot per item, whichever recipes make it). */
 function FamilySection({
   save,
   family,
@@ -172,7 +171,6 @@ function FamilySection({
           ))}
         </View>
       )}
-      {width > 0 && <PantryStrip save={save} recipes={groups.flat()} itemWidth={Math.floor((width - 6) / 2)} />}
     </View>
   );
 }
@@ -207,29 +205,6 @@ function GroupSlot({
         accessibilityLabel={state === 'short' ? `${tr(output.name)}, ${t('crafting.missing')}` : tr(output.name)}
         onPress={() => wrapper.current?.measureInWindow((x, y, width, height) => onOpen(group, { x, y, width, height }))}
       />
-    </View>
-  );
-}
-
-/** A two-column parchment counter for every material the family's recipes use, in first-seen order. */
-function PantryStrip({ save, recipes, itemWidth }: { save: SaveData; recipes: RecipeDef[]; itemWidth: number }) {
-  const ids: string[] = [];
-  for (const recipe of recipes) {
-    for (const { materialId } of recipe.inputs) if (!ids.includes(materialId)) ids.push(materialId);
-  }
-  if (ids.length === 0) return null;
-  return (
-    <View style={styles.strip}>
-      {ids.map((id) => {
-        const material = materialById[id];
-        return (
-          <View key={id} style={[styles.material, { width: itemWidth }]}>
-            <GameIcon emoji={material.emoji} icon={material.icon} size={20} />
-            <Text style={styles.materialName}>{tr(material.name)}</Text>
-            <Text style={styles.materialCount}>{save.materials[id] ?? 0}</Text>
-          </View>
-        );
-      })}
     </View>
   );
 }
@@ -329,18 +304,5 @@ const styles = StyleSheet.create({
   familyName: { fontSize: 18, color: ui.brassLight },
   familyNameParchment: { fontSize: 18, color: ui.ink },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  strip: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingTop: 4 },
-  material: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    backgroundColor: ui.parchment,
-    borderWidth: 2,
-    borderColor: ui.outline,
-  },
-  materialName: { flex: 1, fontFamily: fonts.serif, fontSize: 14, color: ui.ink },
-  materialCount: { fontFamily: fonts.serifBold, fontSize: 14, color: ui.ink },
   shardLine: { fontFamily: fonts.serif, fontSize: 15, color: ui.inkMuted },
 });

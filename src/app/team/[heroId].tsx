@@ -31,16 +31,26 @@ import { careProblem, drinkProblem } from '@/game/team/health';
 import { affinityOf, canDismiss, equip, equipPreview, gearKeywordsOf, hasPotionSlot, healingPotion, heroDamageStat, heroStats, isOnExpedition, statSources } from '@/game/team/team';
 import { ClassSummary } from '@/components/ClassSummary';
 import { APPROACHES, heroAnswers } from '@/game/threats/answers';
-import type { EquipmentSlot, GearDef, GearInstance, HeroState, Stats } from '@/game/types';
+import type { Approach, EquipmentSlot, GearDef, GearInstance, HeroState, Stats } from '@/game/types';
 import type { SaveData } from '@/game/save';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useNow } from '@/hooks/useNow';
-import { t, tr } from '@/i18n';
+import { t, tr, type Vars } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { fonts, ui } from '@/theme';
 import { timed } from '@/components/timed';
 
 const GEAR_SLOTS = ['weapon', 'armor', 'offhand', 'trinket'] as const;
+
+/** Localized threat names for each approach's tip, by the threats it answers. */
+const approachTipVars = (approach: Approach): Vars =>
+  ({
+    might: { rubble: tr('Rubble'), locked: tr('Locked'), locals: tr('Locals') },
+    finesse: { traps: tr('Traps'), locked: tr('Locked'), thieves: tr('Thieves') },
+    wits: { puzzle: tr('Puzzle'), maze: tr('Maze'), underwater: tr('Underwater') },
+    faith: { desecrated: tr('Desecrated ground'), casters: tr('Casters') },
+    presence: { locals: tr('Locals') },
+  })[approach];
 
 /**
  * The stack header with the hero's name and the prev/next arrows. Rendered
@@ -326,11 +336,18 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
         </View>
         {APPROACHES.map((approach) => {
           const value = approachScore(hero, approach, gearApproachBonus(save, hero));
+          const name = t(`threats.approach.${approach}`);
           return (
-            <View key={approach} style={styles.approach}>
-              <Text style={styles.approachName}>{t(`threats.approach.${approach}`)}</Text>
+            <Tip
+              key={approach}
+              title={name}
+              text={t(`hero.approachTips.${approach}`, approachTipVars(approach))}
+              style={styles.approach}
+              accessibilityLabel={t('hero.approachInfo', { approach: name })}
+            >
+              <Text style={styles.approachName}>{name}</Text>
               <View style={styles.pipRow}>{pipsOf(value)}</View>
-            </View>
+            </Tip>
           );
         })}
       </View>

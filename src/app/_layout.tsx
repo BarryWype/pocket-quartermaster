@@ -45,7 +45,6 @@ const BackgroundServices = memo(function BackgroundServices() {
 
 /** The screens' headers, module-level so the stack's options stay stable. */
 const ForgeHeader = () => <ScreenHeader title={t('screens.forge')} />;
-const InfuseHeader = () => <ScreenHeader title={t('screens.infuse')} />;
 const ProvisionsHeader = () => <ScreenHeader title={t('screens.provisions')} />;
 const InventoryHeader = () => <ScreenHeader title={t('screens.storeroom')} right={<HeaderGold />} />;
 const TeamHeader = () => <ScreenHeader title={t('screens.barracks')} />;
@@ -113,7 +112,6 @@ export default function RootLayout() {
     () => ({
       map: { title: t('screens.map'), headerShown: false, contentStyle: { paddingBottom: 0 } },
       forge: { title: t('screens.forge'), header: ForgeHeader, contentStyle: wood },
-      infuse: { title: t('screens.infuse'), header: InfuseHeader, contentStyle: wood },
       provisions: { title: t('screens.provisions'), header: ProvisionsHeader, contentStyle: wood },
       inventory: { title: t('screens.inventory'), header: InventoryHeader, contentStyle: wood },
       team: { title: t('screens.team'), header: TeamHeader, contentStyle: wood },
@@ -142,7 +140,6 @@ export default function RootLayout() {
       <Stack screenOptions={screenOptions}>
         <Stack.Screen name="index" dangerouslySingular options={options.map} />
         <Stack.Screen name="forge" dangerouslySingular options={options.forge} />
-        <Stack.Screen name="infuse" dangerouslySingular options={options.infuse} />
         <Stack.Screen name="provisions" dangerouslySingular options={options.provisions} />
         <Stack.Screen name="inventory" dangerouslySingular options={options.inventory} />
         <Stack.Screen name="team/index" dangerouslySingular options={options.team} />

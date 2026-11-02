@@ -10,10 +10,10 @@ import { canCraft, forgedItem, ownsTool, type ForgeResult } from '@/game/craftin
 import { forgeList, pageTypeOf, type ForgeTierList, type ForgePageType } from '@/game/crafting/forgeList';
 import { tierRecipes } from '@/game/crafting/recipeUnlocks';
 import { highestUnlockedTier } from '@/game/dungeons/unlock';
+import { ELEMENTS, shardId, stoneId } from '@/game/elements';
 import { canRestore, relicRecipe } from '@/game/forging/relics';
 import { guildBonus } from '@/game/guild/guild';
 import type { SaveData } from '@/game/save';
-import type { RecipeDef } from '@/game/types';
 import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors, fonts, ui } from '@/theme';
@@ -21,8 +21,8 @@ import { colors, fonts, ui } from '@/theme';
 import { Button } from './Button';
 import { ForgeBanner } from './ForgeBanner';
 import { ForgeConfirmDialog, ROMAN, type ForgePending, type PopupAnchor } from './ForgeConfirmDialog';
-import { GameIcon } from './GameIcon';
 import { GearMarks } from './GearMarks';
+import { InfuseStation } from './InfuseStation';
 import { RecipeInputs, recipeInputsStyles } from './RecipeInputs';
 import { Row } from './Row';
 import { Text } from './Text';
@@ -32,7 +32,10 @@ import { DiamondRail, ItemSlot, useLazyPages, type RailItem } from './ui';
 /** The gear sections, always in this order; the Other section joins last when it has content. */
 const GEAR_SECTIONS = ['weapons', 'armour', 'offhands'] as const;
 
-/** One emoji (and icon, for the weapons) per rail section. */
+/** The rail's sections: the forge's gear pages, plus the infuse page the player has the stones for. */
+export type ForgeSection = ForgePageType | 'infuse';
+
+/** One emoji (and icon, for the weapons) per forge page. */
 const RAIL_ICONS: Record<ForgePageType, { emoji: string; icon?: ImageSourcePropType }> = {
   weapons: { emoji: '🗡️', icon: require('../../assets/icons/scaled/menu-forge.png') },
   armour: { emoji: '🧥' },
@@ -40,8 +43,12 @@ const RAIL_ICONS: Record<ForgePageType, { emoji: string; icon?: ImageSourcePropT
   other: { emoji: '⚒️' },
 };
 
+/** Whether the player holds any elemental shard or stone, which is what the infuse page needs. */
+const hasInfuseMaterial = (save: SaveData) =>
+  ELEMENTS.some((e) => ((save.materials[stoneId(e)] ?? 0) + (save.materials[shardId(e)] ?? 0)) > 0);
+
 /** The page the player last swiped to, kept for this session only. */
-let lastPage: ForgePageType | null = null;
+let lastPage: ForgeSection | null = null;
 
 /**
  * The forge's rail: its sections with craftable badges, and the section the
@@ -53,8 +60,12 @@ export function useForgeRail() {
   const save = useGameStore((state) => state.save);
   const { pages, tiers } = forgeList(save);
   const otherVisible = pages.some(({ type }) => type === 'other');
-  const sections = otherVisible ? ([...GEAR_SECTIONS, 'other'] as ForgePageType[]) : ([...GEAR_SECTIONS] as ForgePageType[]);
+  const sections: ForgeSection[] = otherVisible ? [...GEAR_SECTIONS, 'other'] : [...GEAR_SECTIONS];
+  if (hasInfuseMaterial(save)) sections.push('infuse');
   const items: RailItem[] = sections.map((type) => {
+    if (type === 'infuse') {
+      return { key: 'infuse', label: t('screens.infuse'), emoji: '💠', spaced: true };
+    }
     const page = pages.find((one) => one.type === type);
     return {
       key: type,
@@ -63,8 +74,10 @@ export function useForgeRail() {
       badge: page && page.craftable > 0 ? page.craftable : undefined,
     };
   });
-  // The tutorial's forge step must land on the sword's section, whatever was last used.
-  const selected: ForgePageType = save.tutorial.step === 'forgeSword' ? 'weapons' : lastPage ?? 'weapons';
+  // The tutorial's forge step must land on the sword's section, whatever was last used;
+  // a last page that is no longer shown falls back to the weapons.
+  const wanted = lastPage ?? 'weapons';
+  const selected: ForgeSection = save.tutorial.step === 'forgeSword' || !sections.includes(wanted) ? 'weapons' : wanted;
   return { items, sections, selected, pages, tiers };
 }
 
@@ -79,12 +92,12 @@ export function ForgeStation() {
   const [pending, setPending] = useState<ForgePending | null>(null);
   const [anchor, setAnchor] = useState<PopupAnchor | null>(null);
   const rail = useForgeRail();
-  const [section, setSection] = useState<ForgePageType>(() => rail.selected);
+  const [section, setSection] = useState<ForgeSection>(() => rail.selected);
   const [contentWidth, setContentWidth] = useState(0);
   const pager = useRef<PagerView>(null);
   const { items: railItems, sections, pages, tiers } = rail;
 
-  const showSection = (next: ForgePageType) => {
+  const showSection = (next: ForgeSection) => {
     setSection(next);
     lastPage = next;
   };
@@ -114,7 +127,9 @@ export function ForgeStation() {
       >
         <TutorialHint screen="forge" />
         {result && <ForgeBanner result={result} onClose={() => setResult(null)} />}
-        {pages.length === 0 ? (
+        {type === 'infuse' ? (
+          <InfuseStation />
+        ) : pages.length === 0 ? (
           <Text style={styles.nothing}>{t('crafting.nothingKnown')}</Text>
         ) : type === 'other' ? (
           <OtherPage
@@ -149,8 +164,8 @@ export function ForgeStation() {
           items={railItems}
           selected={section}
           onSelect={(key) => {
-            pager.current?.setPage(sections.indexOf(key as ForgePageType));
-            showSection(key as ForgePageType);
+            pager.current?.setPage(sections.indexOf(key as ForgeSection));
+            showSection(key as ForgeSection);
           }}
         />
         <PagerView
@@ -178,7 +193,7 @@ export function ForgeStation() {
   );
 }
 
-/** One item type's blueprints: per tier newest first, its progress line, its slot grid and its materials. */
+/** One item type's blueprints: per tier newest first, its progress line and its slot grid. */
 function GearSection({
   save,
   type,
@@ -214,7 +229,7 @@ function GearSection({
   );
 }
 
-/** One tier of one item type: the tier line, the blueprint grid and the material strip. */
+/** One tier of one item type: the tier line and the blueprint grid. */
 function TierBlock({
   save,
   type,
@@ -260,7 +275,6 @@ function TierBlock({
           <ItemSlot key={id} state="empty" size={cell} accessibilityLabel={t('crafting.notFound')} />
         ))}
       </View>
-      <MaterialStrip save={save} recipes={known.map((id) => recipeById[id])} itemWidth={Math.floor((contentWidth - 2 * 6) / 3)} />
     </View>
   );
 }
@@ -296,29 +310,6 @@ function GearSlot({
           wrapper.current?.measureInWindow((x, y, width, height) => onForge(recipeId, { x, y, width, height }))
         }
       />
-    </View>
-  );
-}
-
-/** A parchment counter for every material the tier's known recipes of this type use, in first-seen order. */
-function MaterialStrip({ save, recipes, itemWidth }: { save: SaveData; recipes: RecipeDef[]; itemWidth: number }) {
-  const ids: string[] = [];
-  for (const recipe of recipes) {
-    for (const { materialId } of recipe.inputs) if (!ids.includes(materialId)) ids.push(materialId);
-  }
-  if (ids.length === 0) return null;
-  return (
-    <View style={styles.strip}>
-      {ids.map((id) => {
-        const material = materialById[id];
-        return (
-          <View key={id} style={[styles.material, { width: itemWidth }]}>
-            <GameIcon emoji={material.emoji} icon={material.icon} size={20} />
-            <Text style={styles.materialName}>{tr(material.name)}</Text>
-            <Text style={styles.materialCount}>{save.materials[id] ?? 0}</Text>
-          </View>
-        );
-      })}
     </View>
   );
 }
@@ -416,19 +407,6 @@ const styles = StyleSheet.create({
   tierName: { fontSize: 19, color: ui.brassLight },
   knownCount: { fontFamily: fonts.serif, fontSize: 13, color: ui.onWoodMuted },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  strip: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingTop: 4 },
-  material: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    backgroundColor: ui.parchment,
-    borderWidth: 2,
-    borderColor: ui.outline,
-  },
-  materialName: { flex: 1, fontFamily: fonts.serif, fontSize: 14, color: ui.ink },
-  materialCount: { fontFamily: fonts.serifBold, fontSize: 14, color: ui.ink },
   mastery: { fontSize: 16, color: colors.muted },
   family: { fontSize: 18, color: ui.onWood, marginTop: 8, marginBottom: 2 },
   relicHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
