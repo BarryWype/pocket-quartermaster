@@ -32,9 +32,16 @@ export function toV31(save: SaveData, now: number): SaveData {
   return { ...save, quests: { ...save.quests, list } };
 }
 
+/** Version 32: the personal tavern check (see taverns/personal.ts) starts unset. */
+export function toV32(save: SaveData): SaveData {
+  if (save.personalTavern !== undefined) return save;
+  return { ...save, personalTavern: null };
+}
+
 /** Applies the migration steps in order, from the save's own version on. */
 export function migrateSave(save: SaveData, fromVersion: number, now: number): SaveData {
   let next = save;
   if (fromVersion < 31) next = toV31(next, now);
+  if (fromVersion < 32) next = toV32(next);
   return next;
 }

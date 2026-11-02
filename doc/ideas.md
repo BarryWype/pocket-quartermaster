@@ -276,3 +276,7 @@ For the fishing dock, later. A short, physical moment instead of a button that j
 - The collector quest now names a valuable picked among those held when it arrives (or when it swaps in at acceptance), and is done when that valuable is sold at its market; without a valuable held it is never rolled. Both are Trade, so at most one is active.
 - Save version 31 (`src/game/migrations.ts`): an open collector quest whose market wants a valuable the player holds keeps it as its item; any other open one becomes a "sell goods" quest of the player's tier, keeping its id (so its reward), band, arrival and expiry.
 - The simulator bot sells through the game's own functions, so these quests progress there with no bot change. Run `npm run sim` to check the effect.
+
+### A tavern always within walking distance
+
+- Once taverns are open, the day's first map position always has a tavern within 800 m: a world one when there is, else a personal one 300–700 m away on a walkable spot, seeded by player seed and rotation day, lasting until the rotation reset (`src/game/taverns/personal.ts`, save version 32).

@@ -25,6 +25,10 @@
 
 - Once the hidden den exists, travellers stop offering rare classes and give the den tip instead.
 
+## Taverns
+- Once taverns are open, the day's first map position always has a tavern within 800 m: a world tavern when one is there, else a personal one for the day.
+- The personal tavern stands 300–700 m from that first position, on the first seeded spot that snaps onto a walkable place (seeded by player seed and rotation day, so it is stable for the day), and lasts until the rotation reset; its name and offers work like any tavern's.
+
 ## Open
 - Spawn frequency of each place and event.
 - Daily contracts and chains (later, not tied to taverns).

@@ -82,8 +82,15 @@ describe('save migrations', () => {
     expect(next.quests.list[1]).toEqual(walk);
   });
 
-  it('does nothing for a save already at version 31', () => {
+  it('does nothing for a save already at version 32', () => {
     const save = withQuests(collector('q-1'));
-    expect(migrateSave(save, 31, 10 * DAY)).toBe(save);
+    expect(migrateSave(save, 32, 10 * DAY)).toBe(save);
+  });
+
+  it('starts the personal tavern check unset for a version 31 save', () => {
+    const { personalTavern, ...save } = createInitialSave();
+    const next = migrateSave(save as unknown as SaveData, 31, 10 * DAY);
+    expect(next.personalTavern).toBeNull();
+    expect(next).toEqual({ ...save, personalTavern: null });
   });
 });

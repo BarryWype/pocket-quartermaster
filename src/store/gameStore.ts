@@ -53,6 +53,7 @@ import type { TipId } from '@/content/reveal';
 import { pickApproach } from '@/game/team/stats';
 import { dismissHero, equip, heroStats, isAway, keepHpShare, markClassesSeen, setKitFor, unequip } from '@/game/team/team';
 import { buySupply, recruit, type RecruitOffer } from '@/game/taverns/taverns';
+import { checkPersonalTavern } from '@/game/taverns/personal';
 import { buyRank } from '@/game/guild/guild';
 import { applyTraining } from '@/game/guild/training';
 import { guildRules, type GuildTrackId } from '@/content/guild';
@@ -132,6 +133,8 @@ type GameState = {
   /** Spends one of the hero's pending approach picks. */
   pickApproach: (heroId: string, approach: Approach) => void;
   buySupply: (count: number, tavern: LatLng, player: LatLng) => void;
+  /** Runs the day's tavern-guarantee check from the day's first map position; `snap` places a spot on a walkable point. */
+  checkPersonalTavern: (origin: LatLng, snap: (point: LatLng) => LatLng | null) => void;
   /** Buys from a place's stock; a sold-out place leaves the map for this player. */
   buyAtPlace: (spawn: PlaceSpawn, lineKey: string, count: number, player: LatLng) => void;
   sellGearAtPlace: (spawn: PlaceSpawn, gearUid: string, player: LatLng) => void;
@@ -392,6 +395,10 @@ export const useGameStore = create<GameState>()(
       giveHomeCare: (heroId, itemId) => set(({ save }) => ({ save: giveHomeCare(save, heroId, itemId, Date.now()) })),
       pickApproach: (heroId, approach) => set(({ save }) => ({ save: pickApproach(save, heroId, approach) })),
       buySupply: (count, tavern, player) => set(({ save }) => ({ save: buySupply(save, count, tavern, player) })),
+      checkPersonalTavern: (origin, snap) => {
+        const next = checkPersonalTavern(get().save, origin, Date.now(), snap);
+        if (next !== get().save) set({ save: next });
+      },
       buyAtPlace: (spawn, lineKey, count, player) => set(({ save }) => ({ save: buy(save, spawn, lineKey, count, player, Date.now()) })),
       sellGearAtPlace: (spawn, gearUid, player) => set(({ save }) => ({ save: sellGear(save, spawn, gearUid, player, Date.now()) })),
       sellMaterialAtPlace: (spawn, materialId, count, player) =>
@@ -703,7 +710,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 31,
+      version: 32,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
       // Saves from version 30 on are kept: every later version bump adds a migration step here (see AGENTS.md, Saves).

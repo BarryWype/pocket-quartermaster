@@ -40,6 +40,15 @@ export type RecruitOffer = {
 
 export type RecruitProblem = 'locked' | 'tooFar' | 'taken' | 'rosterFull' | 'gold';
 
+/** A tavern spawn with its name: drawn from the spawn id, so a tavern keeps its name for everyone. */
+export const withTavernName = (spawn: PlaceSpawn): TavernSpawn => {
+  const rng = createRng(`tavern-name|${spawn.id}`);
+  return {
+    ...spawn,
+    name: tavernName(rng.int(0, tavernNames.adjectives.length - 1), rng.int(0, tavernNames.nouns.length - 1)),
+  };
+};
+
 /**
  * Taverns are map places now: the same for everyone while their 72 h window
  * lasts, then they move. Only their recruits change every rotation day.
@@ -47,13 +56,7 @@ export type RecruitProblem = 'locked' | 'tooFar' | 'taken' | 'rosterFull' | 'gol
 export function generateTavernsAround(position: LatLng, timeMs: number): TavernSpawn[] {
   return placesAround(position, timeMs, [placeGroupOf('tavern')])
     .filter((spawn) => spawn.kind === 'tavern')
-    .map((spawn) => {
-      const rng = createRng(`tavern-name|${spawn.id}`);
-      return {
-        ...spawn,
-        name: tavernName(rng.int(0, tavernNames.adjectives.length - 1), rng.int(0, tavernNames.nouns.length - 1)),
-      };
-    });
+    .map(withTavernName);
 }
 
 export const isTavernUnlocked = (save: SaveData, rules: TavernRules = tavernRules) =>

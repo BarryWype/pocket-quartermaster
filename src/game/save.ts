@@ -150,6 +150,8 @@ export type SaveData = {
   ruinsProgress: number;
   /** Ruin id → when and where it was dug; a replacement ruin shows elsewhere 24 h later. */
   dugRuins: Record<string, DugRuin>;
+  /** The day's tavern check (rotation day): the personal tavern made when no world tavern was near the first map position, or null spot when one was. */
+  personalTavern: { day: number; spot: { id: string; position: LatLng } | null } | null;
   /** Background fight result id → when it was applied; idempotence and pruning. */
   appliedBackgroundResults: Record<string, number>;
   /** Valuables held, by `valuableId:tier` (their value rises with the tier). */
@@ -227,6 +229,7 @@ export function createInitialSave(playerSeed?: string): SaveData {
     seenClasses: [...new Set(startingHeroes.map((h) => h.classId))],
     ruinsProgress: 0,
     dugRuins: {},
+    personalTavern: null,
     // Mastery starts with the starting recipes' types (their ids are `<type><tier>`), level 1.
     mastery: Object.fromEntries(startingRecipes.map((id) => [id.replace(/\d+$/, '') as MasteryType, startingMastery(1)])),
     valuables: {},
