@@ -344,12 +344,16 @@ function ExpeditionsContent() {
                   {hero.name}
                 </Text>
               </View>
-              {away ? (
-                <Text style={styles.heroSub}>{t('expeditions.away')}</Text>
-              ) : (
-                <HpBar save={save} hero={hero} />
-              )}
-              {active && <Text style={styles.check}>✓</Text>}
+              <View style={styles.heroStatus}>
+                {away ? (
+                  <Text style={styles.heroSub} numberOfLines={1}>
+                    {t('expeditions.away')}
+                  </Text>
+                ) : (
+                  <HpBar save={save} hero={hero} inBar />
+                )}
+              </View>
+              <View style={styles.heroCheck}>{active && <Text style={styles.check}>✓</Text>}</View>
             </Pressable>
           );
         })}
@@ -562,7 +566,8 @@ const styles = StyleSheet.create({
   hintText: { fontFamily: fonts.serif, fontSize: 14, color: ui.ink },
   party: { flexDirection: 'column', gap: 8 },
   hero: {
-    minHeight: 44,
+    /** Fixed, so every row is the same size whatever its HP text. */
+    height: 68,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -585,6 +590,8 @@ const styles = StyleSheet.create({
   heroBody: { flex: 1 },
   heroName: { fontSize: 16, lineHeight: 18, color: ui.ink },
   heroSub: { fontFamily: fonts.serif, fontSize: 12, color: ui.inkMuted },
+  heroStatus: { width: 120 },
+  heroCheck: { width: 18, alignItems: 'center' },
   check: { fontSize: 20, color: ui.good },
   tiers: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingVertical: 4 },
   teamCard: { gap: 9 },

@@ -29,10 +29,10 @@ export function ClassSummary({ classId, affinities = true, light = false }: { cl
       </Text>
       <Text style={[styles.signature, light && styles.light]}>{signatureText(classId)}</Text>
       {affinities && (
-        <Text style={styles.affinities}>
-          <Text style={styles.favoured}>{t('classes.favoured', { types: typesAt(classId, 'favoured') })}</Text>
-          {unfit ? <Text style={styles.unfit}>{`  ${t('classes.unfit', { types: unfit })}`}</Text> : null}
-        </Text>
+        <View>
+          <Text style={[styles.affinities, styles.favoured]}>{t('classes.favoured', { types: typesAt(classId, 'favoured') })}</Text>
+          {unfit ? <Text style={[styles.affinities, styles.unfit]}>{t('classes.unfit', { types: unfit })}</Text> : null}
+        </View>
       )}
     </View>
   );

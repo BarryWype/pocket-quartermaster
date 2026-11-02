@@ -141,6 +141,8 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
   const stats = heroStats(save, hero);
   const damageStat = heroDamageStat(save, hero);
   const away = isOnExpedition(save, hero.id);
+  const escort = save.escort?.heroId === hero.id;
+  const onPatrol = save.patrolFights.some((fight) => fight.heroIds.includes(hero.id));
   const pending = pendingApproachPicks(hero);
   const largeStats = ['hp', damageStat, 'armour', 'speed'] as const;
   const potionsHeld = items
@@ -156,6 +158,8 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
   const keywords = (answers?.keywords ?? []).filter((k) => k.source !== 'kit');
   const element = heroClass.element ? elementInfo[heroClass.element] : null;
   const next = xpToNextLevel(hero.level);
+  /** The hero's progress to the next level, 1 when there is none left to gain. */
+  const xpShare = next ? hero.xp / next : 1;
   const aboveBand = hero.level >= lootConfig.manuals.topLevelByTier[highestUnlockedTier(save) - 1] + xpRules.aboveBandMargin;
   const confirmDismiss = () =>
     Alert.alert(t('hero.dismissTitle', { name: hero.name }), t('hero.dismissBody'), [
@@ -228,28 +232,34 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
           </View>
         </View>
         <View style={styles.identityText}>
-          <Text style={styles.name}>{hero.name}</Text>
+          <View style={styles.nameRow}>
+            <Text style={styles.name}>{hero.name}</Text>
+            {(away || escort || onPatrol) && (
+              <Text style={styles.nameStatus}>
+                {away ? t('common.onExpedition') : ''}
+                {escort ? t('common.escort') : ''}
+                {onPatrol ? t('common.patrol') : ''}
+              </Text>
+            )}
+          </View>
           <View style={styles.classNameRow}>
             <Text style={styles.className}>{tr(heroClass.name)}</Text>
             {element && <IconLabel emoji={element.emoji} label={tr(element.name)} size={14} labelStyle={styles.className} />}
           </View>
           {trait && (
-            <View style={styles.traitBlock}>
+            <Tip title={tr(trait.name)} text={tr(trait.description)} accessibilityLabel={tr(trait.name)}>
               <Chip tone={trait.positive ? 'good' : 'bad'} label={tr(trait.name)} />
-              <Text style={styles.traitText}>{tr(trait.description)}</Text>
-            </View>
+            </Tip>
           )}
         </View>
       </View>
-      <PixelBar value={next ? hero.xp / next : 1} />
-      <Text style={styles.note}>
-        {t('hero.xp', { xp: hero.xp, next })}
-        {away ? t('common.onExpedition') : ''}
-        {save.escort?.heroId === hero.id ? t('common.escort') : ''}
-        {save.patrolFights.some((fight) => fight.heroIds.includes(hero.id)) ? t('common.patrol') : ''}
-      </Text>
+      <View style={styles.hpGap}>
+        <HpBar save={save} hero={hero} inBar />
+      </View>
+      <Tip text={t('hero.xp', { xp: hero.xp, next })} accessibilityLabel={t('hero.xp', { xp: hero.xp, next })}>
+        <PixelBar value={xpShare} overlay={`${Math.round(xpShare * 100)}%`} />
+      </Tip>
       {aboveBand ? <Text style={styles.note}>{t('hero.xpAboveBand')}</Text> : null}
-      <HpBar save={save} hero={hero} />
       {!away && (
         <View style={styles.drink}>
           {potionsHeld.length === 0 && <WoodButton title={t('health.drink', { count: 0 })} disabled onPress={() => {}} />}
@@ -655,10 +665,12 @@ const styles = StyleSheet.create({
   levelText: { fontFamily: fonts.body, fontSize: 16, color: ui.onEmber },
   identityText: { flex: 1, gap: 2 },
   name: { fontFamily: fonts.body, fontSize: 26, color: ui.ink },
+  nameRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline' },
+  /** The page's gap is 10, so this doubles the space between the two bars. */
+  hpGap: { marginBottom: 10 },
+  nameStatus: { fontFamily: fonts.serif, fontSize: 13, color: ui.inkMuted },
   classNameRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
   className: { fontFamily: fonts.serif, fontSize: 14, color: ui.inkMuted },
-  traitBlock: { gap: 2 },
-  traitText: { fontFamily: fonts.serif, fontSize: 13, color: ui.inkMuted },
   note: { fontFamily: fonts.serif, fontSize: 13, color: ui.inkMuted },
   drink: { alignItems: 'stretch', gap: 6 },
   section: { gap: 6 },
@@ -729,9 +741,9 @@ const styles = StyleSheet.create({
   dollWeapon: { left: 14, top: 90 },
   dollArmor: { left: '50%', marginLeft: -32, top: 8 },
   dollOffhand: { right: 14, top: 90 },
-  dollTrinket: { left: 14, bottom: 6 },
-  dollPotion: { left: '50%', marginLeft: -32, bottom: 6 },
-  dollConsumable: { right: 14, bottom: 6 },
+  dollTrinket: { left: 14, top: 8 },
+  dollPotion: { right: 14, bottom: 6 },
+  dollConsumable: { left: '50%', marginLeft: -32, bottom: 6 },
   slotLabel: { fontFamily: fonts.body, fontSize: 13, color: ui.brassLight },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
 });

@@ -184,6 +184,7 @@ export const en = {
   },
   health: {
     hp: '{hp}/{max} HP',
+    hpCount: '{hp}/{max}',
     full: 'Full HP',
     fullIn: 'full in {time}',
     exhausted: 'exhausted for {time}',

@@ -1,5 +1,6 @@
 import { useRef, useState, type ComponentRef } from 'react';
 import { ScrollView, StyleSheet, View, type ImageSourcePropType } from 'react-native';
+import PagerView from 'react-native-pager-view';
 
 import { itemById, materialById, recipeOutput, valuableById } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
@@ -15,7 +16,7 @@ import { ForgeBanner } from './ForgeBanner';
 import { RewardLabel } from './IconLabel';
 import { Text } from './Text';
 import { TutorialHint } from './TutorialHint';
-import { AnchoredPopup, DiamondRail, ItemPopup, ItemSlot, SwipeTabs, type PopupAnchor, type PopupIngredient, type PopupLine, type RailItem } from './ui';
+import { AnchoredPopup, DiamondRail, ItemPopup, ItemSlot, useLazyPages, type PopupAnchor, type PopupIngredient, type PopupLine, type RailItem } from './ui';
 
 type Props = {
   station: RecipeDef['station'];
@@ -23,12 +24,15 @@ type Props = {
   action: string;
 };
 
-type Tab = NonNullable<RecipeDef['tab']>;
 type Family = 'meals' | 'supply' | 'kits' | 'hero' | 'walking' | 'homeCare';
-/** Provisions rows are grouped by family, in this order within each tab. */
+/** Provisions rows are grouped by family, in this order within each section. */
 const FAMILIES: Family[] = ['meals', 'supply', 'kits', 'hero', 'walking', 'homeCare'];
 
-const RAIL_ICONS: Record<Tab, { emoji: string; icon?: ImageSourcePropType }> = {
+/** The provisions screen's swipable rail sections: the kitchen, and alchemy. */
+type Section = 'kitchen' | 'alchemy';
+const SECTIONS: Section[] = ['kitchen', 'alchemy'];
+
+const SECTION_ICONS: Record<Section, { emoji: string; icon?: ImageSourcePropType }> = {
   kitchen: { emoji: '🍲' },
   alchemy: { emoji: '⚗️', icon: require('../../assets/icons/scaled/menu-alchemy.png') },
 };
@@ -36,14 +40,14 @@ const RAIL_ICONS: Record<Tab, { emoji: string; icon?: ImageSourcePropType }> = {
 /** One recipe group: every known recipe of the station that makes the same item. */
 type Group = RecipeDef[];
 
-/** The kitchen/alchemy tabs as rail items, with craftable badges, and the tab the station opens on; the screen's ghost shows the same rail. */
-export function useCraftingRail(station: Props['station']): { items: RailItem[]; selected: Tab } | undefined {
+/** The provisions sections as rail items, with craftable badges, and the section the station opens on; the screen's ghost shows the same rail. */
+export function useCraftingRail(station: Props['station']): { items: RailItem[]; selected: Section } | undefined {
   const save = useGameStore((state) => state.save);
   if (station !== 'provisions') return undefined;
-  const items = (['kitchen', 'alchemy'] as Tab[]).map((key) => {
-    const rows = recipes.filter((recipe) => recipe.station === station && recipe.tab === key).filter((recipe) => isKnown(save, recipe));
+  const items = SECTIONS.map((key) => {
+    const rows = recipes.filter((recipe) => recipe.station === station && sectionOf(recipe) === key).filter((recipe) => isKnown(save, recipe));
     const craftable = new Set(rows.filter((recipe) => canCraft(save, recipe)).map((recipe) => recipeOutput(recipe).id)).size;
-    return { key, label: t(`crafting.tabs.${key}`), ...RAIL_ICONS[key], badge: craftable > 0 ? craftable : undefined };
+    return { key, label: t(`crafting.tabs.${key}`), ...SECTION_ICONS[key], badge: craftable > 0 ? craftable : undefined };
   });
   return { items, selected: 'kitchen' };
 }
@@ -57,63 +61,75 @@ function familyOf(recipe: RecipeDef): Family {
   return 'hero';
 }
 
+/** The provisions section a recipe shows in: the kitchen, or alchemy. */
+function sectionOf(recipe: RecipeDef): Section {
+  return recipe.tab === 'alchemy' ? 'alchemy' : 'kitchen';
+}
+
 /** The known recipes of one crafting station; locked ones stay hidden. The forge has its own screen. */
 export function CraftingStation({ station, action }: Props) {
   const save = useGameStore((state) => state.save);
   const craft = useGameStore((state) => state.craft);
   const [result, setResult] = useState<ForgeResult | null>(null);
-  const [tab, setTab] = useState<Tab>('kitchen');
+  const [section, setSection] = useState<Section>('kitchen');
   /** The recipe picked for an item that has two, by item id. */
   const [picked, setPicked] = useState<Record<string, string>>({});
   /** The recipe group whose pop-up is open, and the slot it opened from. */
   const [pending, setPending] = useState<{ group: Group; anchor: PopupAnchor } | null>(null);
   const tabbed = station === 'provisions';
   const rail = useCraftingRail(station);
+  const pager = useRef<PagerView>(null);
 
-  const known = recipes.filter((recipe) => recipe.station === station && (!tabbed || recipe.tab === tab)).filter((recipe) => isKnown(save, recipe));
+  const known = recipes.filter((recipe) => recipe.station === station).filter((recipe) => isKnown(save, recipe));
   const groupsOf = (rows: RecipeDef[]): Group[] =>
     [...new Set(rows.map((recipe) => recipeOutput(recipe).id))].map((id) => rows.filter((recipe) => recipeOutput(recipe).id === id));
 
-  /** One family's recipes of the current tab, grouped per item. */
-  const familyGroups = (family: Family): Group[] => groupsOf(known.filter((recipe) => familyOf(recipe) === family));
+  /** One family's recipes of the given rows, grouped per item. */
+  const familyGroups = (rows: RecipeDef[], family: Family): Group[] => groupsOf(rows.filter((recipe) => familyOf(recipe) === family));
   const openGroup = (group: Group, anchor: PopupAnchor) => setPending({ group, anchor });
+
+  /** One provisions section's page: its families' recipes, in the station's plain look. */
+  const sectionPage = (key: Section) => (
+    <ScrollView style={styles.pageScroll} contentContainerStyle={styles.page}>
+      {FAMILIES.map((family) => (
+        <FamilySection
+          key={family}
+          save={save}
+          family={family}
+          groups={familyGroups(known.filter((recipe) => sectionOf(recipe) === key), family)}
+          pending={pending}
+          onOpen={openGroup}
+        />
+      ))}
+    </ScrollView>
+  );
+  /** The sections as lazily built pages: a horizontal swipe changes section, as on the other screens. */
+  const pages = useLazyPages({ keys: SECTIONS, active: tabbed ? section : 'kitchen', variant: 'grid', render: sectionPage });
 
   return (
     <View style={styles.screen}>
       <View style={styles.body}>
-        {rail && <DiamondRail items={rail.items} selected={tab} onSelect={(key) => setTab(key as Tab)} />}
+        {rail && (
+          <DiamondRail items={rail.items} selected={section} onSelect={(key) => pager.current?.setPage(SECTIONS.indexOf(key as Section))} />
+        )}
         <View style={styles.content}>
           <TutorialHint screen={station} />
           {result && <ForgeBanner result={result} onClose={() => setResult(null)} />}
           {!tabbed ? (
             <ScrollView contentContainerStyle={styles.page}>
               {FAMILIES.map((family) => (
-                <FamilySection key={family} save={save} family={family} groups={familyGroups(family)} onParchment={false} pending={pending} onOpen={openGroup} />
+                <FamilySection key={family} save={save} family={family} groups={familyGroups(known, family)} pending={pending} onOpen={openGroup} />
               ))}
             </ScrollView>
-          ) : tab === 'kitchen' ? (
-            <View style={styles.tabArea}>
-              <SwipeTabs
-                tabs={[
-                  { key: 'meals', label: t('crafting.families.meals') },
-                  { key: 'supplies', label: t('crafting.supplies') },
-                ]}
-              >
-                {[FAMILIES.filter((family) => family === 'meals'), FAMILIES.filter((family) => family !== 'meals')].map((families, page) => (
-                  <ScrollView key={page} contentContainerStyle={styles.page}>
-                    {families.map((family) => (
-                      <FamilySection key={family} save={save} family={family} groups={familyGroups(family)} onParchment pending={pending} onOpen={openGroup} />
-                    ))}
-                  </ScrollView>
-                ))}
-              </SwipeTabs>
-            </View>
           ) : (
-            <ScrollView contentContainerStyle={styles.page}>
-              {FAMILIES.map((family) => (
-                <FamilySection key={family} save={save} family={family} groups={familyGroups(family)} onParchment={false} pending={pending} onOpen={openGroup} />
-              ))}
-            </ScrollView>
+            <PagerView
+              ref={pager}
+              style={styles.pager}
+              initialPage={0}
+              onPageSelected={({ nativeEvent }) => setSection(SECTIONS[nativeEvent.position])}
+            >
+              {pages}
+            </PagerView>
           )}
         </View>
       </View>
@@ -123,7 +139,7 @@ export function CraftingStation({ station, action }: Props) {
           group={pending.group}
           anchor={pending.anchor}
           picked={picked[recipeOutput(pending.group[0]).id]}
-          kitchen={tab === 'kitchen'}
+          kitchen={!tabbed || section !== 'alchemy'}
           action={action}
           onClose={() => setPending(null)}
           onPick={(recipeId) => setPicked({ ...picked, [recipeOutput(pending.group[0]).id]: recipeId })}
@@ -139,14 +155,12 @@ function FamilySection({
   save,
   family,
   groups,
-  onParchment,
   pending,
   onOpen,
 }: {
   save: SaveData;
   family: Family;
   groups: Group[];
-  onParchment: boolean;
   pending: { group: Group; anchor: PopupAnchor } | null;
   onOpen: (group: Group, anchor: PopupAnchor) => void;
 }) {
@@ -156,7 +170,7 @@ function FamilySection({
   const cell = Math.floor((width - 3 * 6) / 4) - 4;
   return (
     <View style={styles.family} onLayout={({ nativeEvent }) => setWidth(nativeEvent.layout.width)}>
-      <Text style={onParchment ? styles.familyNameParchment : styles.familyName}>{t(`crafting.families.${family}`)}</Text>
+      <Text style={styles.familyName}>{t(`crafting.families.${family}`)}</Text>
       {cell > 0 && (
         <View style={styles.grid}>
           {groups.map((group) => (
@@ -298,11 +312,11 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   body: { flex: 1, flexDirection: 'row' },
   content: { flex: 1, backgroundColor: ui.woodDark, paddingVertical: 14, paddingHorizontal: 12, gap: 10 },
-  tabArea: { flex: 1 },
+  pager: { flex: 1 },
+  pageScroll: { flex: 1 },
   page: { padding: 12, gap: 12 },
   family: { gap: 8 },
   familyName: { fontSize: 18, color: ui.brassLight },
-  familyNameParchment: { fontSize: 18, color: ui.ink },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   shardLine: { fontFamily: fonts.serif, fontSize: 15, color: ui.inkMuted },
 });

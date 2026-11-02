@@ -189,6 +189,7 @@ export const fr: Dictionary = {
   },
   health: {
     hp: '{hp}/{max} PV',
+    hpCount: '{hp}/{max}',
     full: 'PV au maximum',
     fullIn: 'rétabli dans {time}',
     exhausted: 'épuisé pour {time}',
