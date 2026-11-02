@@ -9,6 +9,7 @@ import { threatDefs } from '@/content/threats';
 import { canCraft } from '@/game/crafting/crafting';
 import { forgeConfirmation, restoreConfirmation, type ConfirmCost } from '@/game/crafting/confirm';
 import { canForgeWithComponent, fittingComponents } from '@/game/forging/components';
+import { forgeStatRange } from '@/game/forging/quality';
 import { canRestore } from '@/game/forging/relics';
 import type { SaveData } from '@/game/save';
 import type { GearDef } from '@/game/types';
@@ -121,7 +122,7 @@ export function ForgeConfirmDialog({
   let emoji: string;
   let icon: ImageSourcePropType | undefined;
   let subtitle: string;
-  let value: number | undefined;
+  let value: string | number | undefined;
   let valueLabel: string | undefined;
   let note: string | undefined;
   let lines: PopupLine[] = [];
@@ -148,7 +149,10 @@ export function ForgeConfirmDialog({
     subtitle = `${tr(qualities[confirm.expectedQuality].name)} · ${tr(masteryTypeNames[confirm.gearType].name)} · ${t('crafting.tierShort', { tier: ROMAN[confirm.tier - 1] })}`;
 
     const mainKey = item.damageStat ?? STATS.find((key) => item.stats[key]) ?? STATS[0];
-    value = Math.round(item.stats[mainKey] ?? 0);
+    // The values the forge can roll: Crappy floor to Uncommon ceiling, Rare and Legendary kept
+    // as a surprise. A component forge is guaranteed at least Rare, so it shows the Rare band.
+    const range = forgeStatRange(item.stats[mainKey] ?? 0, componentId ? 'rare' : 'crappy', componentId ? 'rare' : 'uncommon');
+    value = range.min === range.max ? String(range.min) : `${range.min}–${range.max}`;
     valueLabel = t(`hero.statNames.${mainKey}`);
     const noteParts = STATS.filter((key) => key !== mainKey && item.stats[key]).map((key) => `${t(`hero.statNames.${key}`)} ${signed(item.stats[key]!)}`);
     if (item.twoHanded) noteParts.push(t('hero.twoHanded'));

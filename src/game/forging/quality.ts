@@ -1,4 +1,4 @@
-import { masteryRules, QUALITIES, qualities } from '@/content/forging';
+import { masteryRules, QUALITIES, qualities, rollRules } from '@/content/forging';
 import { itemById, relicById } from '@/content/lookup';
 
 import { relicStats } from '../equipment/budget';
@@ -42,4 +42,16 @@ export function gearStats(item: GearDef, gear: GearQualityRoll): Partial<Stats> 
       SCALING_KEYS.includes(key as StatKey) ? value * multiplier : value,
     ]),
   );
+}
+
+/**
+ * The stat values a forge can roll between two quality bounds, each combined
+ * with the stat roll's extremes (see rollRules). The forge's confirm dialog
+ * previews the Crappy…Uncommon band; Rare and Legendary stay a surprise.
+ */
+export function forgeStatRange(base: number, floor: Quality, ceiling: Quality): { min: number; max: number } {
+  return {
+    min: Math.round(base * qualities[floor].multiplier * rollRules.range.min),
+    max: Math.round(base * qualities[ceiling].multiplier * rollRules.range.max),
+  };
 }

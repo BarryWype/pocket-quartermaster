@@ -10,7 +10,7 @@ import { createRng } from '../generation/rng';
 import { createInitialSave, type SaveData } from '../save';
 import { equip, heroStats } from '../team/team';
 import { forgesForNextLevel, gainMastery, masteryCap, startingMastery } from './mastery';
-import { gearStats, qualityOdds, rollQuality, SCALING_KEYS } from './quality';
+import { forgeStatRange, gearStats, qualityOdds, rollQuality, SCALING_KEYS } from './quality';
 import { canSalvage, salvage, salvageReturns } from './salvage';
 
 const gearItems = items.filter((i): i is GearDef => i.slot === 'weapon' || i.slot === 'armor');
@@ -207,6 +207,19 @@ describe('quality stats', () => {
         expect(value(current, 'legendary')).toBeLessThan(value(next, 'normal'));
       }
     }
+  });
+
+  it('ranges a forge preview from the floor quality to the ceiling quality, roll extremes included', () => {
+    // The bone axe's base power: budget 5 less the axe profile's extras cost.
+    expect(forgeStatRange(4.95, 'crappy', 'uncommon')).toEqual({ min: 4, max: 6 });
+    expect(forgeStatRange(4.95, 'rare', 'rare')).toEqual({ min: 5, max: 6 });
+    // A clean base of 10 spans 10 × 0.85…1.07 × 0.94…1.06.
+    expect(forgeStatRange(10, 'crappy', 'uncommon')).toEqual({ min: 8, max: 11 });
+  });
+
+  it('collapses to a single value when both ends round the same', () => {
+    expect(forgeStatRange(1, 'normal', 'normal')).toEqual({ min: 1, max: 1 });
+    expect(forgeStatRange(0, 'crappy', 'legendary')).toEqual({ min: 0, max: 0 });
   });
 });
 
