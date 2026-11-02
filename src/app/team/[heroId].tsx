@@ -284,7 +284,9 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
           <Text style={styles.heading}>{t('hero.keywords')}</Text>
           <View style={styles.keywords}>
             {keywords.map(({ keyword }) => (
-              <Chip key={keyword} tone="keyword" label={t(`threats.keyword.${keyword}`)} />
+              <Tip key={keyword} title={t(`threats.keyword.${keyword}`)} text={t(`threats.keywordTip.${keyword}`)}>
+                <Chip tone="keyword" label={t(`threats.keyword.${keyword}`)} />
+              </Tip>
             ))}
           </View>
         </View>
