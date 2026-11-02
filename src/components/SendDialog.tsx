@@ -49,7 +49,13 @@ type Props = {
   briefing?: Briefing;
 };
 
-export const ODDS_COLORS: Record<OddsBand, string> = { Risky: colors.danger, Fair: colors.gold, Safe: colors.success };
+export const ODDS_COLORS: Record<OddsBand, string> = {
+  Hopeless: colors.danger,
+  Risky: colors.danger,
+  Fair: colors.gold,
+  Favourable: colors.success,
+  AlmostSure: colors.success,
+};
 
 /** Things worth a second look before the party leaves. */
 function warningsFor(save: SaveData, dungeon: DungeonDef, party: string[], chance: number, durationMs: number, now: number) {
@@ -66,8 +72,9 @@ function warningsFor(save: SaveData, dungeon: DungeonDef, party: string[], chanc
     if (share >= 1) return [];
     return [t('expeditions.confirm.hurt', { name: hero.name, percent: formatPercent(share), time: formatDuration(timeToFull(save, hero, now)) })];
   });
+  const band = oddsBand(chance);
   return [
-    oddsBand(chance) === 'Risky' ? t('expeditions.confirm.risky', { percent: formatPercent(chance) }) : null,
+    band === 'Risky' || band === 'Hopeless' ? t('expeditions.confirm.risky') : null,
     ...hurt,
     party.length < rosterRules.partySize && idle.length > 0
       ? t('expeditions.confirm.roomLeft', { count: idle.length, names: idle.map((h) => h.name).join(', ') })
@@ -338,16 +345,16 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
               <Text style={styles.summary}>
                 {' · '}
                 {odds && band ? (
-                  <Text style={{ color: ODDS_COLORS[band] }}>
-                    {formatPercent(odds.now)} {t(`odds.${band}`)}
-                  </Text>
+                  <Text style={{ color: ODDS_COLORS[band] }}>{t(`odds.${band}`)}</Text>
                 ) : (
                   '…'
                 )}
               </Text>
             </View>
-            {odds && odds.full !== odds.now && (
-              <Text style={styles.muted}>{t('expeditions.confirm.oddsFull', { percent: formatPercent(odds.full) })}</Text>
+            {odds && oddsBand(odds.full) !== oddsBand(odds.now) && (
+              <Text style={styles.muted}>
+                {t('expeditions.confirm.oddsFull', { band: t(`odds.${oddsBand(odds.full)}`) })}
+              </Text>
             )}
             {warnings.map((warning) => (
               <View key={warning} style={styles.warning}>

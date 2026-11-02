@@ -147,9 +147,16 @@ describe('estimateOdds', () => {
   });
 
   it('labels the odds', () => {
+    expect(oddsBand(0.05)).toBe('Hopeless');
     expect(oddsBand(0.2)).toBe('Risky');
     expect(oddsBand(0.6)).toBe('Fair');
-    expect(oddsBand(0.9)).toBe('Safe');
+    expect(oddsBand(0.8)).toBe('Favourable');
+    expect(oddsBand(0.95)).toBe('AlmostSure');
+    // Band boundaries.
+    expect(oddsBand(0.15)).toBe('Risky');
+    expect(oddsBand(0.4)).toBe('Fair');
+    expect(oddsBand(0.65)).toBe('Favourable');
+    expect(oddsBand(0.9)).toBe('AlmostSure');
   });
 });
 

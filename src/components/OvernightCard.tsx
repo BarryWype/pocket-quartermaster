@@ -6,7 +6,7 @@ import { isDungeonAvailable, expeditionMinutes, overnightUnderWay } from '@/game
 import { oddsBand } from '@/game/expeditions/odds';
 import type { SaveData } from '@/game/save';
 import type { DungeonDef } from '@/game/types';
-import { formatDuration, formatPercent, t, tr } from '@/i18n';
+import { formatDuration, t, tr } from '@/i18n';
 import { fonts, ui } from '@/theme';
 
 import { BriefingChips } from './BriefingChips';
@@ -29,7 +29,7 @@ type Props = {
 const pad = (n: number) => String(n).padStart(2, '0');
 const clockTime = (ms: number) => `${pad(new Date(ms).getHours())}:${pad(new Date(ms).getMinutes())}`;
 
-const ODDS_TONE = { Safe: 'good', Fair: 'neutral', Risky: 'bad' } as const;
+const ODDS_TONE = { AlmostSure: 'good', Favourable: 'good', Fair: 'neutral', Risky: 'bad', Hopeless: 'bad' } as const;
 
 /** The tier's overnight expedition: a long, safe patrol for heroes with a long night ahead. */
 export function OvernightCard({ save, dungeon, rotation, now, chance, onSend }: Props) {
@@ -54,7 +54,7 @@ export function OvernightCard({ save, dungeon, rotation, now, chance, onSend }: 
     >
       <View style={styles.metaRow}>
         {band && typeof chance === 'number' ? (
-          <Chip tone={ODDS_TONE[band]} label={`${t(`odds.${band}`)} ${formatPercent(chance)}`} />
+          <Chip tone={ODDS_TONE[band]} label={t(`odds.${band}`)} />
         ) : (
           chance === undefined && <Chip tone="neutral" label="…" />
         )}

@@ -19,7 +19,7 @@ import {
   type SanctumResult,
   type SanctumSpawn,
 } from '@/game/sanctums/sanctums';
-import { formatPercent, t, tr } from '@/i18n';
+import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
 
@@ -184,7 +184,7 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
             {heroIds.length > 0 &&
               (odds ? (
                 <Text style={styles.odds}>
-                  {t('sanctum.estimate', { percent: formatPercent(odds.success), band: t(`odds.${oddsBand(odds.success)}`) })}
+                  {t('sanctum.estimate', { band: t(`odds.${oddsBand(odds.success)}`) })}
                 </Text>
               ) : (
                 <Text style={styles.odds}>…</Text>

@@ -273,6 +273,9 @@ type HeroState = {
   keywords: Set<Keyword>;
   /** The hero's strong keywords the restriction left standing (see gearKeywordsOf). */
   strong: Set<Keyword>;
+  /** The weakened-penalty damage factor, in the run's first fight and after it (a relic ignores them early on). */
+  weakenedFirst: number;
+  weakenedRest: number;
 };
 /** `maxHp` is the def's HP after a weakness cut; thresholds like enrage use it. */
 type EnemyState = { def: MobDef | BossDef; hp: number; maxHp: number; staggered: boolean };
@@ -440,51 +443,67 @@ const add = (map: Record<string, number>, key: string, amount: number) => {
   map[key] = (map[key] ?? 0) + amount;
 };
 
+/** The penalties of one kind, narrowed from the applied list. */
+type PenaltyOfKind<K extends AppliedPenalty['kind']> = Extract<AppliedPenalty, { kind: K }>;
+
 /**
- * Runs a party through a dungeon: encounters drawn from the seed, fought round
- * by round, ending at the boss or when every hero is knocked out. The briefing
- * is scored against the party first: what it missed shapes the run.
+ * Everything a run reads that no rng draw touches: the party's signatures, the
+ * answers, the briefing's penalties and the heroes as they set out. One
+ * preparation serves any number of runs of the same party, dungeon and options.
  */
-export function simulateRun(
+export type PreparedSimulation = {
+  rules: ExpeditionRules;
+  guaranteed: boolean;
+  optIn: boolean;
+  elixirs: boolean;
+  blessed: boolean;
+  dungeon: DungeonDef;
+  signed: SignatureBriefing;
+  activeBriefing: Briefing;
+  restriction: Briefing['restriction'];
+  meal: MealEffect | null;
+  answers: HeroAnswers[];
+  scores: ReturnType<typeof scoreBriefing>;
+  /** The heroes as they set out; each run takes its own copy. */
+  heroStart: HeroState[];
+  fenceGold: number;
+  weakenedAgainst: number;
+  beastDamage: number;
+  undeadHp: number;
+  bruteDamage: number;
+  extraEnemies: PenaltyOfKind<'extraEnemies'>[];
+  exposedPenalties: PenaltyOfKind<'exposed'>[];
+  poisonWounds: PenaltyOfKind<'fightWounds'>[];
+  casterWounds: PenaltyOfKind<'fightWounds'>[];
+  trapWounds: number;
+  extraFight: number;
+  elementThreat: Briefing['threats'][number] | null;
+  elementalDamage: number;
+  magicFactor: number;
+  partyHealFactor: number;
+  healing: number;
+  lostLoot: number;
+  delay: number;
+};
+
+/**
+ * Prepares a party's run of a dungeon: everything the outcome reads that no rng
+ * draw touches, so the odds preview can compute it once for all its runs.
+ */
+export function prepareSimulation(
   party: PartyMember[],
   dungeon: DungeonDef,
-  seed: string,
   { rules = expeditionRules, guaranteed = false, hunger = 'fed', meal: eaten = null, briefing = null, optIn = false, elixirs = false, blessed = false }: RunOptions = {},
-): RunResult {
+): PreparedSimulation {
   // The party's signatures first: a cancelled restriction, a lowered threat, a Cook's meal.
   const classIds = party.map((member) => member.classId);
   const signed = signatureBriefing(briefing ?? EMPTY_BRIEFING, party.map(answersMemberOf));
   const activeBriefing: Briefing = signed.briefing;
   const restriction = activeBriefing.restriction;
   const meal = partyMeal(eaten, activeBriefing, classIds);
-  const rng = createRng(seed);
-  // How the day goes for the whole party: a good day hits harder and gets hurt less.
-  // Unlike per-hit variance this doesn't average out, so weaker teams keep a real chance.
-  const fortune = 1 + (rng.next() * 2 - 1) * rules.fortune;
   // The briefing against this party: what was met, and what it costs.
   const members = mealParty(party, meal);
   const answers: HeroAnswers[] = members.map((member) => heroAnswers(answersMemberOf(member), restriction));
-  const heroes: HeroState[] = members.map((member, i) => {
-    const { damage, hpLoss } = hungerEffect(hunger, member.abilities);
-    // Starving costs HP before the first step, but never knocks anyone out.
-    const hp = Math.min(member.maxHp, member.hp > 0 ? Math.max(Math.min(member.hp, 1), member.hp - hpLoss * member.maxHp) : 0);
-    const keywords = new Set(answers[i].keywords.map((k) => k.keyword));
-    return {
-      member,
-      hp,
-      // A hero with no HP to start with can't act at all.
-      out: hp <= 0,
-      consumableLeft: member.consumable !== null,
-      potionLeft: !!member.potion,
-      carriedLeft: member.carriedKit?.kit?.heal !== undefined,
-      fed: damage,
-      keywords,
-      // A relic's own keyword doubles only while its condition holds, so conditional entries wait for isStrong.
-      strong: new Set(member.gearKeywords.filter((k) => k.strong && !k.when && keywords.has(k.keyword)).map((k) => k.keyword)),
-    };
-  });
-  const alive = () => heroes.filter((h) => !h.out);
-
   const scores = scoreBriefing(activeBriefing, answers);
   // A Smuggler fences what the thieves would take: no loot lost, a little gold instead.
   const fence = party.flatMap((m) => m.abilities).find((a): a is Extract<Ability, { kind: 'fence' }> => a.kind === 'fence');
@@ -507,18 +526,23 @@ export function simulateRun(
   const ofKind = <K extends AppliedPenalty['kind']>(kind: K) =>
     penalties.filter((p): p is Extract<AppliedPenalty, { kind: K }> => p.kind === kind);
   const weakenedAgainst = ofKind('weakenedAgainst').reduce((m, p) => m * (1 - p.pct), 1);
-  /** Heavy wearers take the Underwater weakened penalty double. */
-  const weakenedOf = (member: PartyMember) =>
+  // A relic's condition, as it holds while the run's first fight is still ahead.
+  const holdsFirst = (when: GearCondition) => {
+    if ('firstFight' in when) return true;
+    if ('threat' in when) return activeBriefing.threats.some((t) => t.id === when.threat);
+    return false;
+  };
+  /** Heavy wearers take the Underwater weakened penalty double; a relic ignores a threat's weakened penalty in the run's first fight (the Drowned bell). */
+  const weakenedOf = (member: PartyMember, firstFight: boolean) =>
     Math.max(
       0,
       ofKind('weakened').reduce(
         (m, p) =>
-          // A relic ignores a threat's weakened penalty in the run's first fight (the Drowned bell).
-          fightsSeen === 0 &&
+          firstFight &&
           party.some((m2) =>
             (m2.relicEffects ?? []).some(
               (e): e is WornRelicEffect & { effect: Extract<RelicEffect, { kind: 'ignorePenalty' }> } =>
-                e.effect.kind === 'ignorePenalty' && e.effect.threat === p.threatId && holds(e.effect.when),
+                e.effect.kind === 'ignorePenalty' && e.effect.threat === p.threatId && holdsFirst(e.effect.when),
             ),
           )
             ? m
@@ -526,6 +550,28 @@ export function simulateRun(
         1,
       ),
     );
+  const heroStart: HeroState[] = members.map((member, i) => {
+    const { damage, hpLoss } = hungerEffect(hunger, member.abilities);
+    // Starving costs HP before the first step, but never knocks anyone out.
+    const hp = Math.min(member.maxHp, member.hp > 0 ? Math.max(Math.min(member.hp, 1), member.hp - hpLoss * member.maxHp) : 0);
+    const keywords = new Set(answers[i].keywords.map((k) => k.keyword));
+    return {
+      member,
+      hp,
+      // A hero with no HP to start with can't act at all.
+      out: hp <= 0,
+      consumableLeft: member.consumable !== null,
+      potionLeft: !!member.potion,
+      carriedLeft: member.carriedKit?.kit?.heal !== undefined,
+      fed: damage,
+      keywords,
+      // A relic's own keyword doubles only while its condition holds, so conditional entries wait for isStrong.
+      strong: new Set(member.gearKeywords.filter((k) => k.strong && !k.when && keywords.has(k.keyword)).map((k) => k.keyword)),
+      // The weakened penalties, once for the run's first fight and once for the rest of it.
+      weakenedFirst: weakenedOf(member, true),
+      weakenedRest: weakenedOf(member, false),
+    };
+  });
   const beastDamage = ofKind('enemyDamage').reduce((m, p) => m * (1 + p.pct), 1);
   const undeadHp = ofKind('enemyHp').reduce((m, p) => m * (1 + p.pct), 1);
   const bruteDamage = ofKind('bruteDamage').reduce((m, p) => m * (1 + p.pct), 1);
@@ -543,6 +589,88 @@ export function simulateRun(
     ofKind('healingHalved').reduce((m, p) => m * p.multiplier, 1) * (restriction === 'noHealing' ? restrictionRules.noHealing : 1);
   const lostLoot = 1 - ofKind('lostLoot').reduce((m, p) => m * (1 - p.pct), 1);
   const delay = ofKind('delay').reduce((m, p) => m * (1 + p.pct), 1) - 1;
+  return {
+    rules,
+    guaranteed,
+    optIn,
+    elixirs,
+    blessed,
+    dungeon,
+    signed,
+    activeBriefing,
+    restriction,
+    meal,
+    answers,
+    scores,
+    heroStart,
+    fenceGold,
+    weakenedAgainst,
+    beastDamage,
+    undeadHp,
+    bruteDamage,
+    extraEnemies,
+    exposedPenalties,
+    poisonWounds,
+    casterWounds,
+    trapWounds,
+    extraFight,
+    elementThreat,
+    elementalDamage,
+    magicFactor,
+    partyHealFactor,
+    healing,
+    lostLoot,
+    delay,
+  };
+}
+
+/**
+ * Plays one prepared run: the seed's first draw is the day's fortune, then the
+ * encounters are drawn and fought round by round, to the boss or the party's
+ * knock-out.
+ */
+export function runPrepared(prepared: PreparedSimulation, seed: string): RunResult {
+  const {
+    rules,
+    guaranteed,
+    optIn,
+    elixirs,
+    blessed,
+    dungeon,
+    signed,
+    activeBriefing,
+    restriction,
+    meal,
+    answers,
+    scores,
+    heroStart,
+    fenceGold,
+    weakenedAgainst,
+    beastDamage,
+    undeadHp,
+    bruteDamage,
+    extraEnemies,
+    exposedPenalties,
+    poisonWounds,
+    casterWounds,
+    trapWounds,
+    extraFight,
+    elementThreat,
+    elementalDamage,
+    magicFactor,
+    partyHealFactor,
+    healing,
+    lostLoot,
+    delay,
+  } = prepared;
+  const rng = createRng(seed);
+  // How the day goes for the whole party: a good day hits harder and gets hurt less.
+  // Unlike per-hit variance this doesn't average out, so weaker teams keep a real chance.
+  const fortune = 1 + (rng.next() * 2 - 1) * rules.fortune;
+  // Every run fights with its own heroes: HP and consumables change with the run,
+  // while the keyword sets are only ever read.
+  const heroes: HeroState[] = heroStart.map((hero) => ({ ...hero }));
+  const alive = () => heroes.filter((h) => !h.out);
 
   /** The first conscious hero with an ability of this kind that passes `test`. */
   const withAbility = <K extends Ability['kind']>(kind: K, test: (ability: Extract<Ability, { kind: K }>) => boolean = () => true) => {
@@ -569,16 +697,24 @@ export function simulateRun(
     if ('threat' in when) return activeBriefing.threats.some((t) => t.id === when.threat);
     return tags !== undefined && tags.includes(when.tag);
   };
-  /** The hero's conditional gear keywords that hold here; a magic piece's fall in an anti-magic zone. */
-  const conditional = (hero: HeroState, keyword: Keyword, tags?: Tag[]) =>
-    hero.member.gearKeywords.filter(
-      (e) => e.when && e.keyword === keyword && !(restriction === 'antiMagic' && e.magic) && holds(e.when, tags),
-    );
+  /** A conditional gear keyword that holds here; a magic piece's falls in an anti-magic zone. */
+  const holdsKeyword = (entry: GearKeywordEntry, tags?: Tag[]) =>
+    !!entry.when && !(restriction === 'antiMagic' && entry.magic) && holds(entry.when, tags);
   /** The keyword the hero has here, plain, strong from gear, or held by a relic's condition. */
-  const has = (hero: HeroState, keyword: Keyword, tags?: Tag[]) =>
-    hero.keywords.has(keyword) || conditional(hero, keyword, tags).length > 0;
-  const isStrong = (hero: HeroState, keyword: Keyword, tags?: Tag[]) =>
-    hero.strong.has(keyword) || conditional(hero, keyword, tags).some((e) => e.strong);
+  const has = (hero: HeroState, keyword: Keyword, tags?: Tag[]) => {
+    if (hero.keywords.has(keyword)) return true;
+    for (const entry of hero.member.gearKeywords) {
+      if (entry.keyword === keyword && holdsKeyword(entry, tags)) return true;
+    }
+    return false;
+  };
+  const isStrong = (hero: HeroState, keyword: Keyword, tags?: Tag[]) => {
+    if (hero.strong.has(keyword)) return true;
+    for (const entry of hero.member.gearKeywords) {
+      if (entry.keyword === keyword && entry.strong && holdsKeyword(entry, tags)) return true;
+    }
+    return false;
+  };
   /** The hero's relic effects of this kind whose condition holds here. */
   const relicEffect = <K extends RelicEffect['kind']>(hero: HeroState, kind: K, tags?: Tag[]) =>
     (hero.member.relicEffects ?? []).find(
@@ -751,15 +887,18 @@ export function simulateRun(
     /** The tags of every enemy of this fight, for the relic conditions that hold against any of them. */
     const anyTags = [...new Set(enemies.flatMap((e) => enemyTags(e.def)))];
     const heroesAttack = (attackers: HeroState[]) => {
+      // Nobody is hurt while the heroes strike, so the conscious heroes hold for all of it.
+      const living = alive();
       // The best buff of a conscious hero lifts everyone; buffs don't stack.
-      const buffer = alive()
-        .map((h) => ({ h, buff: own(h, 'partyDamageBuff') }))
-        .filter((b) => b.buff)
-        .sort((a, b) => b.buff!.multiplier - a.buff!.multiplier)[0];
+      let buffer: { h: HeroState; buff: Extract<Ability, { kind: 'partyDamageBuff' }> } | undefined;
+      for (const hero of living) {
+        const buff = own(hero, 'partyDamageBuff');
+        if (buff && (!buffer || buff.multiplier > buffer.buff.multiplier)) buffer = { h: hero, buff };
+      }
       if (buffer) note(buffer.h.member.heroId, 'buff');
       // Inspire lifts the whole party while a conscious hero has it, on top of the best buff.
-      const inspired = alive().some((h) => has(h, 'inspire', anyTags))
-        ? alive().some((h) => isStrong(h, 'inspire', anyTags))
+      const inspired = living.some((h) => has(h, 'inspire', anyTags))
+        ? living.some((h) => isStrong(h, 'inspire', anyTags))
           ? gearKeywordRules.strong.inspire.multiplier
           : gearKeywordRules.inspire.multiplier
         : 1;
@@ -776,7 +915,13 @@ export function simulateRun(
             : hero.member.damageStat === 'power'
               ? weakenedAgainst
               : 1 - rules.magicArmourShare * (1 - weakenedAgainst);
-          let bonus = blessing * (buffer?.buff?.multiplier ?? 1) * inspired * shrine * weakenedOf(hero.member) * armourFactor;
+          let bonus =
+            blessing *
+            (buffer?.buff?.multiplier ?? 1) *
+            inspired *
+            shrine *
+            (fightsSeen === 0 ? hero.weakenedFirst : hero.weakenedRest) *
+            armourFactor;
           for (const ability of hero.member.abilities) {
             if (ability.kind !== 'damageVsTag' || !tags.includes(ability.tag)) continue;
             bonus *= ability.multiplier;
@@ -890,7 +1035,7 @@ export function simulateRun(
       if (!living.includes(target)) return amount;
       const lowest = living.reduce((low, h) => (h.hp / h.member.maxHp < low.hp / low.member.maxHp ? h : low));
       if (lowest !== target) return amount;
-      const protector = alive().find((h) => h !== target && own(h, 'protect'));
+      const protector = living.find((h) => h !== target && own(h, 'protect'));
       if (!protector) return amount;
       const moved = amount * own(protector, 'protect')!.share;
       note(protector.member.heroId, 'protect', { allyId: target.member.heroId });
@@ -918,12 +1063,14 @@ export function simulateRun(
           (beast ? beastDamage : 1) *
           (weakness?.damageCut ? 1 - weakness.damageCut : 1);
         const sweeping = boss?.effect === 'sweep' && !weakness?.noSweep;
+        // Nobody is hurt between these reads, so one pass over the conscious heroes serves.
+        const living = alive();
         const targets =
           sweeping
-            ? alive()
-            : alive().length
+            ? living
+            : living.length
               ? [
-                  rng.weighted(alive(), (h) =>
+                  rng.weighted(living, (h) =>
                     h.member.threat *
                     (has(h, 'guard', attackerTags)
                       ? isStrong(h, 'guard', attackerTags)
@@ -1359,4 +1506,13 @@ export function simulateRun(
     carriedHealed,
     fenceGold,
   };
+}
+
+/**
+ * Runs a party through a dungeon: encounters drawn from the seed, fought round
+ * by round, ending at the boss or when every hero is knocked out. The briefing
+ * is scored against the party first: what it missed shapes the run.
+ */
+export function simulateRun(party: PartyMember[], dungeon: DungeonDef, seed: string, options: RunOptions = {}): RunResult {
+  return runPrepared(prepareSimulation(party, dungeon, options), seed);
 }

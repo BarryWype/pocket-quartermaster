@@ -173,7 +173,7 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
         {heroIds.length > 0 &&
           (odds ? (
             <Text style={styles.odds}>
-              {t('sanctum.estimate', { percent: formatPercent(odds.success), band: t(`odds.${oddsBand(odds.success)}`) })}
+              {t('sanctum.estimate', { band: t(`odds.${oddsBand(odds.success)}`) })}
             </Text>
           ) : (
             <Text style={styles.odds}>…</Text>

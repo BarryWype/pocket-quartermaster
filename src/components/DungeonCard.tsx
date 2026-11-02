@@ -10,7 +10,7 @@ import type { SaveData } from '@/game/save';
 import { briefingCoverage } from '@/game/threats/coverage';
 import { isTutorialDungeon } from '@/game/tutorial/tutorial';
 import type { DungeonDef } from '@/game/types';
-import { formatDuration, formatPercent, t, tr } from '@/i18n';
+import { formatDuration, t, tr } from '@/i18n';
 import { fonts, ui } from '@/theme';
 
 import { BriefingChips } from './BriefingChips';
@@ -34,7 +34,7 @@ type Props = {
   onSend: () => void;
 };
 
-const ODDS_TONE = { Safe: 'good', Fair: 'neutral', Risky: 'bad' } as const;
+const ODDS_TONE = { AlmostSure: 'good', Favourable: 'good', Fair: 'neutral', Risky: 'bad', Hopeless: 'bad' } as const;
 
 /** A dungeon at a glance (name, kind, time, odds); tapped, its details and the Send button. */
 export function DungeonCard({ save, dungeon, rotation, now, durationMs, chance, expanded, onToggle, onSend }: Props) {
@@ -53,7 +53,7 @@ export function DungeonCard({ save, dungeon, rotation, now, durationMs, chance, 
 
   const oddsChip =
     band && typeof chance === 'number' ? (
-      <Chip tone={ODDS_TONE[band]} label={`${t(`odds.${band}`)} ${formatPercent(chance)}`} />
+      <Chip tone={ODDS_TONE[band]} label={t(`odds.${band}`)} />
     ) : (
       chance === undefined && <Chip tone="neutral" label="…" />
     );

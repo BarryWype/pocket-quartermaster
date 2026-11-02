@@ -126,7 +126,7 @@ export const fr: Dictionary = {
     away: 'Absent',
     confirm: {
       title: 'Envoyer le groupe vers {dungeon} ?',
-      risky: 'Seulement {percent} de chances de réussite.',
+      risky: 'Les chances sont contre vous.',
       roomLeft: {
         one: 'Il reste de la place : {names} peut se joindre au groupe.',
         other: 'Il reste de la place : {names} peuvent se joindre au groupe.',
@@ -152,7 +152,7 @@ export const fr: Dictionary = {
       charmOnce: ' Porté deux fois : ne compte qu’une fois.',
       kit: 'Équipement',
       none: 'Aucun',
-      oddsFull: 'PV au maximum : {percent}',
+      oddsFull: 'PV au maximum : {band}',
       drink: '🧪 Boire',
       swap: 'Échanger',
       swapTitle: 'Remplacer {name} par :',
@@ -196,7 +196,7 @@ export const fr: Dictionary = {
     drinkHint: 'Une potion de soin rend sa part des PV d’un coup (30 %, 50 % ou 70 %) et met fin à l’épuisement.',
     use: 'Utiliser {item} ({count})',
   },
-  odds: { Risky: 'Risqué', Fair: 'Correct', Safe: 'Sûr' },
+  odds: { Hopeless: 'Désespéré', Risky: 'Risqué', Fair: 'Correct', Favourable: 'Favorable', AlmostSure: 'Presque sûr' },
   threats: {
     level: 'Niveau {level}',
     covered: 'couvert',
@@ -510,7 +510,7 @@ export const fr: Dictionary = {
     noSigilHeld: 'Aucun Sceau en votre possession.',
     tier: 'Palier {tier} ×{count}',
     heroes: 'Héros',
-    estimate: 'Chances estimées : {percent} · {band}',
+    estimate: 'Chances estimées : {band}',
     warning:
       '⚠️ Une seule tentative. Victoire ou défaite, le Sceau est dépensé et ce Sanctuaire vous reste fermé jusqu’à son renouvellement.',
     victory: 'Victoire ! Vous gagnez {reward}.',

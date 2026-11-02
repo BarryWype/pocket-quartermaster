@@ -121,10 +121,10 @@ describe('odds preview', () => {
 describe('estimateOdds and the meal', () => {
   /** The meal every preview run played with. */
   function mealsSeen(save: SaveData, heroIds: string[], loadout: Loadout, briefing: Briefing) {
-    const spy = jest.spyOn(simulate, 'simulateRun');
+    const spy = jest.spyOn(simulate, 'runPrepared');
     try {
       estimateOdds(save, heroIds, dungeonById.ratCellar, 3, { loadout, briefing });
-      return spy.mock.results.map((r) => (r.value as ReturnType<typeof simulate.simulateRun>).meal);
+      return spy.mock.results.map((r) => (r.value as ReturnType<typeof simulate.runPrepared>).meal);
     } finally {
       spy.mockRestore();
     }
