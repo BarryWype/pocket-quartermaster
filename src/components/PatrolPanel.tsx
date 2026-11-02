@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { frPatrolTexts } from '@/content/fr/patrols';
 import { heroClasses } from '@/content/heroes';
-import { patrolFights, patrolTexts } from '@/content/patrols';
+import { patrolFights, patrolRules, patrolTexts } from '@/content/patrols';
 import { patrolThreat } from '@/content/threats';
 import { tagInfo } from '@/content/rotation';
 import { isElitePatrolKind } from '@/content/enemies';
@@ -99,6 +99,7 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
   const elite = isElitePatrolKind(kind);
   const dungeon = patrolDungeon(spawn, tier, elite);
   const problem = patrolFightProblem(save, spawn, heroIds, player, now);
+  const far = distanceTo(spawn, player, now) > patrolRules.engageMeters;
   const escortId = save.escort?.heroId;
   const toggle = (heroId: string) =>
     setHeroIds((ids) =>
@@ -137,34 +138,38 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
           labelStyle={styles.muted}
         />
         <DifficultyChip difficulty={difficulty} />
-        <Text style={styles.muted}>{t(`patrols.rewards.${kind}`)}</Text>
-        <ThreatChip threat={patrolThreat(spawn)} />
-        <PartsLine
-          parts={dungeonTags(dungeon).map((tag) => ({ emoji: tagInfo[tag].emoji, text: tr(tagInfo[tag].name) }))}
-          labelStyle={styles.muted}
-        />
-        <Text style={styles.subtitle}>{t('expeditions.foes')}</Text>
-        {dungeonFoes(dungeon).map((mob) => (
-          <EnemyTags key={mob.id} mob={mob} />
-        ))}
-        <Text style={styles.subtitle}>{t('sanctum.heroes')}</Text>
-        <View style={styles.chips}>
-          {candidates.map((hero) => (
-            <Pressable
-              key={hero.id}
-              onPress={() => toggle(hero.id)}
-              style={[styles.chip, heroIds.includes(hero.id) && styles.chipActive]}
-            >
-              <GameIcon emoji={heroClasses[hero.classId].emoji} size={20} />
-              <Text>
-                {hero.name}
-                {hero.id === escortId ? t('common.escort') : ''} ·{' '}
-                {formatPercent(currentHp(save, hero, now) / maxHp(save, hero))}
-              </Text>
-            </Pressable>
+        {!far && (
+          <>
+          <Text style={styles.muted}>{t(`patrols.rewards.${kind}`)}</Text>
+          <ThreatChip threat={patrolThreat(spawn)} />
+          <PartsLine
+            parts={dungeonTags(dungeon).map((tag) => ({ emoji: tagInfo[tag].emoji, text: tr(tagInfo[tag].name) }))}
+            labelStyle={styles.muted}
+          />
+          <Text style={styles.subtitle}>{t('expeditions.foes')}</Text>
+          {dungeonFoes(dungeon).map((mob) => (
+            <EnemyTags key={mob.id} mob={mob} />
           ))}
-        </View>
-        {escortId !== undefined && heroIds.includes(escortId) && <Text style={styles.muted}>{t('patrols.escortNote')}</Text>}
+          <Text style={styles.subtitle}>{t('sanctum.heroes')}</Text>
+          <View style={styles.chips}>
+            {candidates.map((hero) => (
+              <Pressable
+                key={hero.id}
+                onPress={() => toggle(hero.id)}
+                style={[styles.chip, heroIds.includes(hero.id) && styles.chipActive]}
+              >
+                <GameIcon emoji={heroClasses[hero.classId].emoji} size={20} />
+                <Text>
+                  {hero.name}
+                  {hero.id === escortId ? t('common.escort') : ''} ·{' '}
+                  {formatPercent(currentHp(save, hero, now) / maxHp(save, hero))}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          {escortId !== undefined && heroIds.includes(escortId) && <Text style={styles.muted}>{t('patrols.escortNote')}</Text>}
+          </>
+        )}
         {heroIds.length > 0 &&
           (odds ? (
             <Text style={styles.odds}>
@@ -174,6 +179,7 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
             <Text style={styles.odds}>…</Text>
           ))}
         {problem && <Text style={styles.problem}>{problemText[problem](distanceTo(spawn, player, now))}</Text>}
+        {far && <Text style={styles.muted}>{t('places.tooFarToSee')}</Text>}
       </Sheet>
     </Overlay>
   );

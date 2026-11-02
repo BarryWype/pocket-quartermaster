@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { heroClasses } from '@/content/heroes';
 import { componentById, gearName, itemById } from '@/content/lookup';
-import { placeInfo } from '@/content/places';
+import { placeInfo, placeRules } from '@/content/places';
 import { secretRules } from '@/content/secrets';
 import { traitById } from '@/content/traits';
 import { dungeonFoes } from '@/game/enemies/tags';
@@ -81,6 +81,7 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
   const seeClasses = useGameStore((state) => state.seeClasses);
   const info = placeInfo[place.kind];
   const distance = distanceMeters(player, place.position);
+  const far = distance > placeRules.interactionMeters;
   const entered = isEntered(save, place);
   const underwater = place.kind === 'underwaterDungeon';
   const candidates = save.heroes.filter((hero) => !isAway(save, hero.id) && !isExhausted(hero, now));
@@ -220,17 +221,27 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
   return (
     <Overlay onClose={onClose} position="bottom">
       <Sheet variant="wood" emoji={info.emoji} title={tr(info.name)} bodyStyle={styles.content} footer={<WoodButton title={t('common.close')} onPress={onClose} />}>
-        {keyLine}
-        <Text style={styles.muted}>{tr(info.description)}</Text>
-        <View style={styles.goldRow}>
-          <Text style={styles.muted}>
-            {t('secrets.where', { distance: formatDistance(distance), time: formatDuration(place.expiresAt - now) })}
-            {' · '}
-            {t('places.gold')}
-          </Text>
-          <Price amount={save.gold} textStyle={styles.muted} />
-        </View>
-        {underwater ? underwaterBody() : offerBody()}
+        {far ? (
+          <>
+            {keyLine}
+            <Text style={styles.problem}>{t('places.walkCloser', { distance: Math.round(distance) })}</Text>
+            <Text style={styles.muted}>{t('places.tooFarToSee')}</Text>
+          </>
+        ) : (
+          <>
+          {keyLine}
+          <Text style={styles.muted}>{tr(info.description)}</Text>
+          <View style={styles.goldRow}>
+            <Text style={styles.muted}>
+              {t('secrets.where', { distance: formatDistance(distance), time: formatDuration(place.expiresAt - now) })}
+              {' · '}
+              {t('places.gold')}
+            </Text>
+            <Price amount={save.gold} textStyle={styles.muted} />
+          </View>
+          {underwater ? underwaterBody() : offerBody()}
+          </>
+        )}
       </Sheet>
     </Overlay>
   );

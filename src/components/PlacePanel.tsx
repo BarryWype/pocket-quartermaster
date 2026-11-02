@@ -109,6 +109,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
   const [result, setResult] = useState<{ text: string; gains: string[] } | null>(null);
   const info = placeInfo[place.kind];
   const distance = distanceMeters(player, place.position);
+  const far = distance > placeRules.interactionMeters;
   const locked = isLockedMine(place.kind, pickaxeTier(save));
   const stock = placeStock(save, place, now);
   const buysValuables = (lootConfig.valuables.buyers as readonly string[]).includes(place.kind);
@@ -245,164 +246,170 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
   return (
     <Overlay onClose={onClose} position="bottom">
       <Sheet variant="wood" emoji={info.emoji} title={tr(info.name)} bodyStyle={styles.content} footer={<WoodButton title={t('common.close')} onPress={onClose} />}>
-        <Text style={styles.muted}>{tr(info.description)}</Text>
-        {wanted && <Text style={styles.wanted}>{t('places.collector', { name: tr(valuableById[wanted].name).toLowerCase() })}</Text>}
-        <View style={styles.goldRow}>
-          <Text style={styles.muted}>
-            {leavesIn(place.expiresAt - now)} · {t('places.gold')}
-          </Text>
-          <Price amount={save.gold} textStyle={styles.muted} />
-        </View>
-        {locked && <Text style={styles.problem}>{t('places.lockedMine')}</Text>}
-        {distance > placeRules.interactionMeters && (
-          <Text style={styles.problem}>{t('places.walkCloser', { distance: Math.round(distance) })}</Text>
-        )}
-
-        {sells && (
-          <View style={styles.tabs}>
-            <WoodButton title={t('places.buyTab')} compact style={tab === 'buy' ? styles.tabOn : styles.tabOff} onPress={() => setTab('buy')} />
-            <WoodButton title={t('places.sellTab')} compact style={tab === 'sell' ? styles.tabOn : styles.tabOff} onPress={() => setTab('sell')} />
-          </View>
-        )}
-        {sells && tab === 'sell' ? sellRows() : stock.map(stockRow)}
-
-        {(place.kind === 'chapel' || place.kind === 'apothecary') && (
-          <View style={styles.section}>
-            <Text style={styles.name}>{t('places.careHeader')}</Text>
-            {careRows(place.kind === 'apothecary')}
-          </View>
-        )}
-
-        {place.kind === 'chapel' && (
+        {far ? (
           <>
-            <View style={styles.section}>
-              <IconLabel emoji="🕯️" label={t('places.bless')} labelStyle={styles.name} />
-              <Text style={styles.muted}>{t('places.blessHint', { count: save.consumables.holyRelics ?? 0 })}</Text>
-              <EmberButton
-                title={t('places.bless')}
-                compact
-                disabled={blessRelicsProblem(save, place, player, now) !== null}
-                onPress={() => actions.blessRelics(place, player)}
-              />
-            </View>
-            <View style={styles.section}>
-              <IconLabel emoji="🙏" label={t('places.blessing')} labelStyle={styles.name} />
-              <Text style={styles.muted}>
-                {save.expeditionBlessing
-                  ? t('places.blessingWaiting')
-                  : t('places.blessingHint', { percent: Math.round(serviceRules.chapel.blessingDamage * 100) })}
-              </Text>
-              <EmberButton
-                title={t('places.blessing')}
-                compact
-                disabled={chapelBlessingProblem(save, place, player, now) !== null}
-                onPress={() => actions.takeChapelBlessing(place, player)}
-              />
-            </View>
+            <Text style={styles.problem}>{t('places.walkCloser', { distance: Math.round(distance) })}</Text>
+            <Text style={styles.muted}>{t('places.tooFarToSee')}</Text>
           </>
-        )}
-
-        {place.kind === 'ruins' && (
-          <View style={styles.section}>
-            <Text style={styles.name}>{t('places.digProgress', { dots: ruinsDots(save.ruinsProgress) })}</Text>
-            <Text style={styles.muted}>{t('places.digHint')}</Text>
-            <EmberButton
-              title={t('places.dig')}
-              compact
-              disabled={digProblem(save, place, player, now) !== null}
-              onPress={() => {
-                const { reward, relic } = actions.digRuin(place, player);
-                setResult({ text: gainsPrefix(t(relic ? 'places.relicFound' : 'places.dug', { gains: '' })), gains: lootLabels(reward) });
-              }}
-            />
-          </View>
-        )}
-
-        {place.kind === 'fishingDock' && (
-          <View style={styles.section}>
-            <Text style={styles.muted}>{t('places.fishHint')}</Text>
-            <EmberButton
-              title={t('places.fishAction')}
-              compact
-              disabled={fishProblem(save, place, player, now) !== null}
-              onPress={() => setResult({ text: gainsPrefix(t('places.caught', { gains: '' })), gains: lootLabels(actions.fish(place, player)) })}
-            />
-          </View>
-        )}
-
-        {place.kind === 'thievesGuild' && (
-          <View style={styles.section}>
-            <IconLabel emoji="🗝️" label={t('places.heist')} labelStyle={styles.name} />
+        ) : (
+          <>
+          <Text style={styles.muted}>{tr(info.description)}</Text>
+          {wanted && <Text style={styles.wanted}>{t('places.collector', { name: tr(valuableById[wanted].name).toLowerCase() })}</Text>}
+          <View style={styles.goldRow}>
             <Text style={styles.muted}>
-              {t('places.heistHint', {
-                min: heistRules.minutes[0],
-                max: heistRules.minutes[1],
-                threat: tr(threatById[heistRules.threat].name),
-                level: heistLevel(save),
-              })}
+              {leavesIn(place.expiresAt - now)} · {t('places.gold')}
             </Text>
-            {save.heists.some((h) => h.placeId === place.id) && <Text style={styles.problem}>{t('places.heistAway')}</Text>}
-            {heistCandidates.length === 0 && <Text style={styles.muted}>{t('places.noHeroes')}</Text>}
-            <View style={styles.chips}>
-              {heistCandidates.map((hero) => (
-                <Pressable
-                  key={hero.id}
-                  onPress={() => setHeistHeroId(hero.id)}
-                  style={[styles.chip, heistHeroId === hero.id && styles.chipActive]}
-                >
-                  <GameIcon emoji={heroClasses[hero.classId].emoji} size={20} />
-                  <Text>
-                    {hero.name} · {formatPercent(currentHp(save, hero, now) / maxHp(save, hero))}
-                  </Text>
-                </Pressable>
-              ))}
+            <Price amount={save.gold} textStyle={styles.muted} />
+          </View>
+          {locked && <Text style={styles.problem}>{t('places.lockedMine')}</Text>}
+
+          {sells && (
+            <View style={styles.tabs}>
+              <WoodButton title={t('places.buyTab')} compact style={tab === 'buy' ? styles.tabOn : styles.tabOff} onPress={() => setTab('buy')} />
+              <WoodButton title={t('places.sellTab')} compact style={tab === 'sell' ? styles.tabOn : styles.tabOff} onPress={() => setTab('sell')} />
             </View>
-            {heistHeroId && (
-              <Text style={styles.odds}>{t('places.heistOdds', { percent: formatPercent(heistOdds(save, heistHeroId)) })}</Text>
-            )}
-            <EmberButton
-              title={t('places.heist')}
-              compact
-              disabled={!heistHeroId || heistProblem(save, place, heistHeroId, player, now) !== null}
-              onPress={() => {
-                if (!heistHeroId) return;
-                actions.startHeist(place, heistHeroId, player);
-                onClose();
-              }}
-            />
-          </View>
-        )}
+          )}
+          {sells && tab === 'sell' ? sellRows() : stock.map(stockRow)}
 
-        {result && (
-          <View style={styles.resultRow}>
-            <Text style={styles.result}>{result.text}</Text>
-            <GainsLine gains={result.gains} labelStyle={styles.result} />
-          </View>
-        )}
+          {(place.kind === 'chapel' || place.kind === 'apothecary') && (
+            <View style={styles.section}>
+              <Text style={styles.name}>{t('places.careHeader')}</Text>
+              {careRows(place.kind === 'apothecary')}
+            </View>
+          )}
 
-        {place.kind === 'library' && (
-          <View style={styles.section}>
-            <IconLabel emoji="📖" label={t('places.train')} labelStyle={styles.name} />
-            <Text style={styles.muted}>{t('places.trainHint', { xp: trainXp(save) })}</Text>
-            {homeHeroes.map((hero) => {
-              const problem = trainProblem(save, place, hero.id, player, now);
-              return (
-                <View key={hero.id} style={[styles.row, styles.actions]}>
-                  <Text style={styles.name}>
-                    {hero.name} · {t('common.levelShort', { level: hero.level })}
-                  </Text>
-                  {problem === 'maxLevel' ? (
-                    <Text style={styles.muted}>{t('places.maxLevel')}</Text>
-                  ) : (
-                    <>
-                      <Price amount={trainPrice(save)} short={save.gold < trainPrice(save)} textStyle={styles.price} />
-                      <WoodButton compact title={t('places.train')} disabled={problem !== null} onPress={() => actions.trainHero(place, hero.id, player)} />
-                    </>
-                  )}
-                </View>
-              );
-            })}
-          </View>
+          {place.kind === 'chapel' && (
+            <>
+              <View style={styles.section}>
+                <IconLabel emoji="🕯️" label={t('places.bless')} labelStyle={styles.name} />
+                <Text style={styles.muted}>{t('places.blessHint', { count: save.consumables.holyRelics ?? 0 })}</Text>
+                <EmberButton
+                  title={t('places.bless')}
+                  compact
+                  disabled={blessRelicsProblem(save, place, player, now) !== null}
+                  onPress={() => actions.blessRelics(place, player)}
+                />
+              </View>
+              <View style={styles.section}>
+                <IconLabel emoji="🙏" label={t('places.blessing')} labelStyle={styles.name} />
+                <Text style={styles.muted}>
+                  {save.expeditionBlessing
+                    ? t('places.blessingWaiting')
+                    : t('places.blessingHint', { percent: Math.round(serviceRules.chapel.blessingDamage * 100) })}
+                </Text>
+                <EmberButton
+                  title={t('places.blessing')}
+                  compact
+                  disabled={chapelBlessingProblem(save, place, player, now) !== null}
+                  onPress={() => actions.takeChapelBlessing(place, player)}
+                />
+              </View>
+            </>
+          )}
+
+          {place.kind === 'ruins' && (
+            <View style={styles.section}>
+              <Text style={styles.name}>{t('places.digProgress', { dots: ruinsDots(save.ruinsProgress) })}</Text>
+              <Text style={styles.muted}>{t('places.digHint')}</Text>
+              <EmberButton
+                title={t('places.dig')}
+                compact
+                disabled={digProblem(save, place, player, now) !== null}
+                onPress={() => {
+                  const { reward, relic } = actions.digRuin(place, player);
+                  setResult({ text: gainsPrefix(t(relic ? 'places.relicFound' : 'places.dug', { gains: '' })), gains: lootLabels(reward) });
+                }}
+              />
+            </View>
+          )}
+
+          {place.kind === 'fishingDock' && (
+            <View style={styles.section}>
+              <Text style={styles.muted}>{t('places.fishHint')}</Text>
+              <EmberButton
+                title={t('places.fishAction')}
+                compact
+                disabled={fishProblem(save, place, player, now) !== null}
+                onPress={() => setResult({ text: gainsPrefix(t('places.caught', { gains: '' })), gains: lootLabels(actions.fish(place, player)) })}
+              />
+            </View>
+          )}
+
+          {place.kind === 'thievesGuild' && (
+            <View style={styles.section}>
+              <IconLabel emoji="🗝️" label={t('places.heist')} labelStyle={styles.name} />
+              <Text style={styles.muted}>
+                {t('places.heistHint', {
+                  min: heistRules.minutes[0],
+                  max: heistRules.minutes[1],
+                  threat: tr(threatById[heistRules.threat].name),
+                  level: heistLevel(save),
+                })}
+              </Text>
+              {save.heists.some((h) => h.placeId === place.id) && <Text style={styles.problem}>{t('places.heistAway')}</Text>}
+              {heistCandidates.length === 0 && <Text style={styles.muted}>{t('places.noHeroes')}</Text>}
+              <View style={styles.chips}>
+                {heistCandidates.map((hero) => (
+                  <Pressable
+                    key={hero.id}
+                    onPress={() => setHeistHeroId(hero.id)}
+                    style={[styles.chip, heistHeroId === hero.id && styles.chipActive]}
+                  >
+                    <GameIcon emoji={heroClasses[hero.classId].emoji} size={20} />
+                    <Text>
+                      {hero.name} · {formatPercent(currentHp(save, hero, now) / maxHp(save, hero))}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              {heistHeroId && (
+                <Text style={styles.odds}>{t('places.heistOdds', { percent: formatPercent(heistOdds(save, heistHeroId)) })}</Text>
+              )}
+              <EmberButton
+                title={t('places.heist')}
+                compact
+                disabled={!heistHeroId || heistProblem(save, place, heistHeroId, player, now) !== null}
+                onPress={() => {
+                  if (!heistHeroId) return;
+                  actions.startHeist(place, heistHeroId, player);
+                  onClose();
+                }}
+              />
+            </View>
+          )}
+
+          {result && (
+            <View style={styles.resultRow}>
+              <Text style={styles.result}>{result.text}</Text>
+              <GainsLine gains={result.gains} labelStyle={styles.result} />
+            </View>
+          )}
+
+          {place.kind === 'library' && (
+            <View style={styles.section}>
+              <IconLabel emoji="📖" label={t('places.train')} labelStyle={styles.name} />
+              <Text style={styles.muted}>{t('places.trainHint', { xp: trainXp(save) })}</Text>
+              {homeHeroes.map((hero) => {
+                const problem = trainProblem(save, place, hero.id, player, now);
+                return (
+                  <View key={hero.id} style={[styles.row, styles.actions]}>
+                    <Text style={styles.name}>
+                      {hero.name} · {t('common.levelShort', { level: hero.level })}
+                    </Text>
+                    {problem === 'maxLevel' ? (
+                      <Text style={styles.muted}>{t('places.maxLevel')}</Text>
+                    ) : (
+                      <>
+                        <Price amount={trainPrice(save)} short={save.gold < trainPrice(save)} textStyle={styles.price} />
+                        <WoodButton compact title={t('places.train')} disabled={problem !== null} onPress={() => actions.trainHero(place, hero.id, player)} />
+                      </>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          )}
+          </>
         )}
       </Sheet>
     </Overlay>

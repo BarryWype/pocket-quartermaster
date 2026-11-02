@@ -95,6 +95,7 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
 
   const problem = challengeProblem(save, spawn, tier ?? 0, heroIds, player, openedAt);
   const distance = distanceMeters(player, spawn.position);
+  const far = distance > sanctumRules.interactionMeters;
   const toggle = (heroId: string) =>
     setHeroIds((ids) => (ids.includes(heroId) ? ids.filter((id) => id !== heroId) : [...ids, heroId]));
 
@@ -136,42 +137,50 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
         }
       >
         <DifficultyChip difficulty="hard" />
-        <View style={styles.elementRow}>
-          <IconLabel emoji={element.emoji} label={tr(element.name)} labelStyle={styles.muted} />
-          <Text style={styles.muted}> · {tr(sanctum.description)}</Text>
-        </View>
-        <Text style={styles.subtitle}>{t('sanctum.guardian', { name: tr(sanctum.guardian.name) })}</Text>
-        <EnemyTags mob={sanctumGuardian(sanctum, tier ?? 1)} named={false} />
-        <Text style={styles.muted}>{tr(sanctum.guardian.description)}</Text>
+        {!far && (
+          <>
+          <View style={styles.elementRow}>
+            <IconLabel emoji={element.emoji} label={tr(element.name)} labelStyle={styles.muted} />
+            <Text style={styles.muted}> · {tr(sanctum.description)}</Text>
+          </View>
+          <Text style={styles.subtitle}>{t('sanctum.guardian', { name: tr(sanctum.guardian.name) })}</Text>
+          <EnemyTags mob={sanctumGuardian(sanctum, tier ?? 1)} named={false} />
+          <Text style={styles.muted}>{tr(sanctum.guardian.description)}</Text>
+          </>
+        )}
 
         {!result && (
           <>
-            <Text style={styles.subtitle}>{t('sanctum.sigil')}</Text>
-            <View style={styles.chips}>
-              {tiers.length === 0 && <Text style={styles.muted}>{t('sanctum.noSigilHeld')}</Text>}
-              {tiers.map((sigilTier) => (
-                <Pressable
-                  key={sigilTier}
-                  onPress={() => setTier(sigilTier)}
-                  style={[styles.chip, tier === sigilTier && styles.chipActive]}
-                >
-                  <Text>{t('sanctum.tier', { tier: sigilTier, count: save.sigils.filter((s) => s === sigilTier).length })}</Text>
-                </Pressable>
-              ))}
-            </View>
-            <Text style={styles.subtitle}>{t('sanctum.heroes')}</Text>
-            <View style={styles.chips}>
-              {availableHeroes(save).map((hero) => (
-                <Pressable
-                  key={hero.id}
-                  onPress={() => toggle(hero.id)}
-                  style={[styles.chip, heroIds.includes(hero.id) && styles.chipActive]}
-                >
-                  <GameIcon emoji={heroClasses[hero.classId].emoji} size={20} />
-                  <Text>{hero.name}</Text>
-                </Pressable>
-              ))}
-            </View>
+            {!far && (
+              <>
+              <Text style={styles.subtitle}>{t('sanctum.sigil')}</Text>
+              <View style={styles.chips}>
+                {tiers.length === 0 && <Text style={styles.muted}>{t('sanctum.noSigilHeld')}</Text>}
+                {tiers.map((sigilTier) => (
+                  <Pressable
+                    key={sigilTier}
+                    onPress={() => setTier(sigilTier)}
+                    style={[styles.chip, tier === sigilTier && styles.chipActive]}
+                  >
+                    <Text>{t('sanctum.tier', { tier: sigilTier, count: save.sigils.filter((s) => s === sigilTier).length })}</Text>
+                  </Pressable>
+                ))}
+              </View>
+              <Text style={styles.subtitle}>{t('sanctum.heroes')}</Text>
+              <View style={styles.chips}>
+                {availableHeroes(save).map((hero) => (
+                  <Pressable
+                    key={hero.id}
+                    onPress={() => toggle(hero.id)}
+                    style={[styles.chip, heroIds.includes(hero.id) && styles.chipActive]}
+                  >
+                    <GameIcon emoji={heroClasses[hero.classId].emoji} size={20} />
+                    <Text>{hero.name}</Text>
+                  </Pressable>
+                ))}
+              </View>
+              </>
+            )}
             {heroIds.length > 0 &&
               (odds ? (
                 <Text style={styles.odds}>
@@ -182,6 +191,7 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
               ))}
             <Text style={styles.warning}>{t('sanctum.warning')}</Text>
             {problem && <Text style={styles.problem}>{problemText[problem](distance)}</Text>}
+            {far && <Text style={styles.muted}>{t('places.tooFarToSee')}</Text>}
           </>
         )}
 

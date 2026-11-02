@@ -592,6 +592,7 @@ export const fr: Dictionary = {
     minutes: '{count} min',
     lockedMine: 'Votre pioche ne sait pas encore travailler ce minerai : la mine vous est fermée.',
     walkCloser: 'Approchez-vous pour l’utiliser (à {distance} m).',
+    tooFarToSee: 'Vous êtes trop loin pour voir ce qui s’y trouve.',
     buyTab: 'Acheter',
     sellTab: 'Vendre',
     buy: 'Acheter',

@@ -584,6 +584,7 @@ export const en = {
     minutes: '{count} min',
     lockedMine: 'Your pickaxe can’t work this ore yet: the mine is closed to you.',
     walkCloser: 'Walk closer to use it ({distance} m away).',
+    tooFarToSee: 'You are too far to see what is here.',
     buyTab: 'Buy',
     sellTab: 'Sell',
     buy: 'Buy',

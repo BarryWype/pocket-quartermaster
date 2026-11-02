@@ -53,6 +53,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
   const [openedAt] = useState(() => Date.now());
   const offers = tavernOffers(save, tavern.id, openedAt, offerSeed);
   const distance = distanceMeters(player, tavern.position);
+  const far = distance > tavernRules.interactionMeters;
   const seeClasses = useGameStore((state) => state.seeClasses);
   const offeredClasses = offers.map((o) => o.classId).join(',');
   useEffect(() => seeClasses(offeredClasses.split(',') as RecruitOffer['classId'][]), [offeredClasses, seeClasses]);
@@ -85,45 +86,54 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
   return (
     <Overlay onClose={onClose} position="bottom">
       <Sheet variant="wood" emoji="🍺" title={tavern.name} bodyStyle={styles.content} footer={<WoodButton title={t('common.close')} onPress={onClose} />}>
-        <View style={styles.goldRow}>
-          <Text style={styles.muted}>{t('tavern.headerGold')}</Text>
-          <Price amount={save.gold} textStyle={styles.muted} />
-          <Text style={styles.muted}>
-            {' · '}
-            {t('tavern.header', { count: save.heroes.length, cap: rosterCap(save) })}
-          </Text>
-        </View>
-        {offers.map(offerRow)}
-        <View style={styles.offer}>
-          <IconLabel emoji="🥓" label={t('tavern.emergency')} labelStyle={styles.name} />
-          <Text style={styles.muted}>{t('tavern.emergencyHint', { held: save.consumables.jerky ?? 0 })}</Text>
-          <View style={styles.actions}>
-            <Price amount={supplyPrice(save)} short={save.gold < supplyPrice(save)} textStyle={styles.price} />
-            <WoodButton
-              title={t('tavern.buy')}
-              compact
-              disabled={buySupplyProblem(save, 1, tavern.position, player) !== null}
-              onPress={() => buySupply(1, tavern.position, player)}
-            />
+        {far ? (
+          <>
+            <Text style={styles.problem}>{problemText.tooFar(distance, rosterCap(save))}</Text>
+            <Text style={styles.muted}>{t('places.tooFarToSee')}</Text>
+          </>
+        ) : (
+          <>
+          <View style={styles.goldRow}>
+            <Text style={styles.muted}>{t('tavern.headerGold')}</Text>
+            <Price amount={save.gold} textStyle={styles.muted} />
+            <Text style={styles.muted}>
+              {' · '}
+              {t('tavern.header', { count: save.heroes.length, cap: rosterCap(save) })}
+            </Text>
           </View>
-        </View>
-        {placeStock(save, tavern, openedAt).map((line) => (
-          <View key={line.key} style={styles.offer}>
-            <PartsLine parts={lineParts(line)} labelStyle={styles.name} />
+          {offers.map(offerRow)}
+          <View style={styles.offer}>
+            <IconLabel emoji="🥓" label={t('tavern.emergency')} labelStyle={styles.name} />
+            <Text style={styles.muted}>{t('tavern.emergencyHint', { held: save.consumables.jerky ?? 0 })}</Text>
             <View style={styles.actions}>
-              <Price amount={line.price} short={save.gold < line.price} textStyle={styles.price} />
-              <Text style={styles.muted}>
-                {stockLeft(save, tavern, line) > 0 ? t('places.left', { count: stockLeft(save, tavern, line) }) : t('places.soldOut')}
-              </Text>
+              <Price amount={supplyPrice(save)} short={save.gold < supplyPrice(save)} textStyle={styles.price} />
               <WoodButton
                 title={t('tavern.buy')}
                 compact
-                disabled={buyProblem(save, tavern, line.key, 1, player, openedAt) !== null}
-                onPress={() => buyAtPlace(tavern, line.key, 1, player)}
+                disabled={buySupplyProblem(save, 1, tavern.position, player) !== null}
+                onPress={() => buySupply(1, tavern.position, player)}
               />
             </View>
           </View>
-        ))}
+          {placeStock(save, tavern, openedAt).map((line) => (
+            <View key={line.key} style={styles.offer}>
+              <PartsLine parts={lineParts(line)} labelStyle={styles.name} />
+              <View style={styles.actions}>
+                <Price amount={line.price} short={save.gold < line.price} textStyle={styles.price} />
+                <Text style={styles.muted}>
+                  {stockLeft(save, tavern, line) > 0 ? t('places.left', { count: stockLeft(save, tavern, line) }) : t('places.soldOut')}
+                </Text>
+                <WoodButton
+                  title={t('tavern.buy')}
+                  compact
+                  disabled={buyProblem(save, tavern, line.key, 1, player, openedAt) !== null}
+                  onPress={() => buyAtPlace(tavern, line.key, 1, player)}
+                />
+              </View>
+            </View>
+          ))}
+          </>
+        )}
       </Sheet>
     </Overlay>
   );

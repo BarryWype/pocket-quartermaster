@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { frPatrolTexts } from '@/content/fr/patrols';
 import { heroClasses } from '@/content/heroes';
 import { materialById } from '@/content/lookup';
-import { patrolTexts } from '@/content/patrols';
+import { patrolRules, patrolTexts } from '@/content/patrols';
 import { traitById } from '@/content/traits';
 import { mealItems, supplyHeld } from '@/game/expeditions/provisions';
 import { guildBonus } from '@/game/guild/guild';
@@ -78,6 +78,7 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
   const offer = travellerOffer(spawn, save);
   const supplyPoints = offer.kind === 'mealOrSupply' ? offer.supplyPoints : 0;
   const problem = helpProblem(save, spawn, player, now);
+  const far = distanceTo(spawn, player, now) > patrolRules.engageMeters;
   const helpProblemShown = problem === 'trader' ? null : problem;
   const reward = helped?.reward ?? null;
   const recruit = reward?.kind === 'recruit' ? reward.offer : null;
@@ -91,7 +92,7 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
       <Sheet variant="wood" emoji={patrolIcons[kind]} title={traveller.name} bodyStyle={styles.content}
       footer={
         <View style={styles.actions}>
-          {!reward && kind !== 'trader' && (
+          {!reward && !far && kind !== 'trader' && (
             <>
               {kind === 'wounded' && (
                 <EmberButton title={t('patrols.help')} compact disabled={helpProblemShown !== null} onPress={() => help()} />
@@ -112,102 +113,111 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
           <WoodButton title={t('patrols.walkOn')} onPress={onClose} />
         </View>
       }>
-        <Text style={styles.muted}>{traveller.line}</Text>
-
-        {kind === 'trader' ? (
+        {far ? (
           <>
-            <Text style={styles.muted}>{t('patrols.askTrade')}</Text>
-            {traderOffers(spawn, save).map((trade) => {
-              const issue = tradeProblem(save, spawn, trade.index, player, now);
-              return (
-                <View key={trade.index} style={styles.offer}>
-                  <Text style={styles.name}>
-                    {trade.give.amount} {tr(materialById[trade.give.materialId]?.name ?? trade.give.materialId)} →{' '}
-                    {trade.get.amount} {tr(materialById[trade.get.materialId]?.name ?? trade.get.materialId)}
-                  </Text>
-                  <Text style={styles.muted}>
-                    {t('patrols.held', { count: save.materials[trade.give.materialId] ?? 0 })} ·{' '}
-                    {t('patrols.usesLeft', { count: trade.usesLeft })}
-                  </Text>
-                  <View style={styles.actions}>
-                    <WoodButton
-                      title={t('patrols.trade')}
-                      compact
-                      disabled={issue !== null}
-                      onPress={() => tradeWithTrader(spawn, trade.index, player)}
-                    />
-                  </View>
-                  {issue && <Text style={styles.problem}>{tradeProblemText[issue](distanceTo(spawn, player, now))}</Text>}
-                </View>
-              );
-            })}
-            <ValuableRows
-              valuables={save.valuables}
-              price={(key) => valuableSellPrice(key.split(':')[0], Number(key.split(':')[1]), 'trader', null, guildBonus(save, 'collector'))}
-              canSell={(key, count) => traderValuableProblem(save, spawn, key, count, player, now) === null}
-              onSell={(key, count) => sellValuableToTrader(spawn, key, count, player)}
-            />
+            <Text style={styles.problem}>{t('patrols.walkCloser', { distance: Math.round(distanceTo(spawn, player, now)) })}</Text>
+            <Text style={styles.muted}>{t('places.tooFarToSee')}</Text>
           </>
         ) : (
-          !reward && (
-            <>
-              <Text style={styles.muted}>
-                {kind === 'wounded'
-                  ? t('patrols.askPotion')
-                  : t('patrols.askMeal', { points: supplyPoints })}
-              </Text>
-              <Text style={styles.muted}>
-                {kind === 'wounded'
-                  ? t('patrols.potionsHeld', {
-                      count: offer.kind === 'potion' ? (save.consumables[offer.itemId] ?? 0) : 0,
-                    })
-                  : t('patrols.provisionsHeld', {
-                      meals: mealItems.reduce((sum, item) => sum + (save.consumables[item.id] ?? 0), 0),
-                      points: supplyHeld(save.consumables),
-                    })}
-              </Text>
-              {helpProblemShown && (
-                <Text style={styles.problem}>{helpProblemText[helpProblemShown](distanceTo(spawn, player, now))}</Text>
-              )}
-            </>
-          )
-        )}
+          <>
+          <Text style={styles.muted}>{traveller.line}</Text>
 
-        {reward && (
-          <View style={styles.offer}>
-            {reward.kind === 'loot' && (
-              <View style={styles.rewardRow}>
-                {lootLabels(reward.loot).length > 0 ? (
-                  <GainsLine gains={lootLabels(reward.loot)} labelStyle={styles.name} />
-                ) : (
-                  <Text style={styles.name}>{t('chests.nothing')}</Text>
-                )}
-                {reward.blessing && <Text style={styles.name}> {t('patrols.rewardBlessing')}</Text>}
-              </View>
-            )}
-            {recruit && (
-              <View style={styles.recruit}>
-                <Text style={styles.name}>{t('patrols.recruitOffer', { name: recruit.name })}</Text>
+          {kind === 'trader' ? (
+            <>
+              <Text style={styles.muted}>{t('patrols.askTrade')}</Text>
+              {traderOffers(spawn, save).map((trade) => {
+                const issue = tradeProblem(save, spawn, trade.index, player, now);
+                return (
+                  <View key={trade.index} style={styles.offer}>
+                    <Text style={styles.name}>
+                      {trade.give.amount} {tr(materialById[trade.give.materialId]?.name ?? trade.give.materialId)} →{' '}
+                      {trade.get.amount} {tr(materialById[trade.get.materialId]?.name ?? trade.get.materialId)}
+                    </Text>
+                    <Text style={styles.muted}>
+                      {t('patrols.held', { count: save.materials[trade.give.materialId] ?? 0 })} ·{' '}
+                      {t('patrols.usesLeft', { count: trade.usesLeft })}
+                    </Text>
+                    <View style={styles.actions}>
+                      <WoodButton
+                        title={t('patrols.trade')}
+                        compact
+                        disabled={issue !== null}
+                        onPress={() => tradeWithTrader(spawn, trade.index, player)}
+                      />
+                    </View>
+                    {issue && <Text style={styles.problem}>{tradeProblemText[issue](distanceTo(spawn, player, now))}</Text>}
+                  </View>
+                );
+              })}
+              <ValuableRows
+                valuables={save.valuables}
+                price={(key) => valuableSellPrice(key.split(':')[0], Number(key.split(':')[1]), 'trader', null, guildBonus(save, 'collector'))}
+                canSell={(key, count) => traderValuableProblem(save, spawn, key, count, player, now) === null}
+                onSell={(key, count) => sellValuableToTrader(spawn, key, count, player)}
+              />
+            </>
+          ) : (
+            !reward && (
+              <>
                 <Text style={styles.muted}>
-                  {t('tavern.offer', {
-                    name: recruit.name,
-                    className: tr(heroClasses[recruit.classId].name),
-                    level: recruit.level,
-                  })}
+                  {kind === 'wounded'
+                    ? t('patrols.askPotion')
+                    : t('patrols.askMeal', { points: supplyPoints })}
                 </Text>
-                <ClassSummary classId={recruit.classId} />
-                <RecruitGrade grade={recruit.grade} roll={recruit.roll} />
-                <Text style={[styles.trait, { color: traitById[recruit.trait].positive ? colors.ink : colors.danger }]}>
-                  {tr(traitById[recruit.trait].name)}: {tr(traitById[recruit.trait].description)}
+                <Text style={styles.muted}>
+                  {kind === 'wounded'
+                    ? t('patrols.potionsHeld', {
+                        count: offer.kind === 'potion' ? (save.consumables[offer.itemId] ?? 0) : 0,
+                      })
+                    : t('patrols.provisionsHeld', {
+                        meals: mealItems.reduce((sum, item) => sum + (save.consumables[item.id] ?? 0), 0),
+                        points: supplyHeld(save.consumables),
+                      })}
                 </Text>
-                <View style={styles.actions}>
-                  <EmberButton title={t('patrols.accept')} compact onPress={() => { acceptTravellerRecruit(recruit); onClose(); }} />
-                  <WoodButton title={t('patrols.decline')} onPress={onClose} />
+                {helpProblemShown && (
+                  <Text style={styles.problem}>{helpProblemText[helpProblemShown](distanceTo(spawn, player, now))}</Text>
+                )}
+              </>
+            )
+          )}
+
+          {reward && (
+            <View style={styles.offer}>
+              {reward.kind === 'loot' && (
+                <View style={styles.rewardRow}>
+                  {lootLabels(reward.loot).length > 0 ? (
+                    <GainsLine gains={lootLabels(reward.loot)} labelStyle={styles.name} />
+                  ) : (
+                    <Text style={styles.name}>{t('chests.nothing')}</Text>
+                  )}
+                  {reward.blessing && <Text style={styles.name}> {t('patrols.rewardBlessing')}</Text>}
                 </View>
-              </View>
-            )}
-            {helped?.rosterFull && <Text style={styles.muted}>{t('patrols.rosterFull')}</Text>}
-          </View>
+              )}
+              {recruit && (
+                <View style={styles.recruit}>
+                  <Text style={styles.name}>{t('patrols.recruitOffer', { name: recruit.name })}</Text>
+                  <Text style={styles.muted}>
+                    {t('tavern.offer', {
+                      name: recruit.name,
+                      className: tr(heroClasses[recruit.classId].name),
+                      level: recruit.level,
+                    })}
+                  </Text>
+                  <ClassSummary classId={recruit.classId} />
+                  <RecruitGrade grade={recruit.grade} roll={recruit.roll} />
+                  <Text style={[styles.trait, { color: traitById[recruit.trait].positive ? colors.ink : colors.danger }]}>
+                    {tr(traitById[recruit.trait].name)}: {tr(traitById[recruit.trait].description)}
+                  </Text>
+                  <View style={styles.actions}>
+                    <EmberButton title={t('patrols.accept')} compact onPress={() => { acceptTravellerRecruit(recruit); onClose(); }} />
+                    <WoodButton title={t('patrols.decline')} onPress={onClose} />
+                  </View>
+                </View>
+              )}
+              {helped?.rosterFull && <Text style={styles.muted}>{t('patrols.rosterFull')}</Text>}
+            </View>
+          )}
+          </>
         )}
       </Sheet>
     </Overlay>

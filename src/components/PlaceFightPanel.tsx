@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { heroClasses } from '@/content/heroes';
 import { opportunityById } from '@/content/lookup';
 import { placeFightRules } from '@/content/placeFights';
-import { placeInfo } from '@/content/places';
+import { placeInfo, placeRules } from '@/content/places';
 import { highestUnlockedTier } from '@/game/expeditions/expeditions';
 import { fightOddsKey, cachedOdds, storeOdds } from '@/game/expeditions/oddsCache';
 import { oddsBand, type Odds } from '@/game/expeditions/odds';
@@ -86,6 +86,7 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
   const briefing = placeFightBriefing(save, place);
   const foes = dungeonFoes(placeFightDungeon(place, highestUnlockedTier(save)));
   const problem = placeFightProblem(save, place, heroIds, player, now);
+  const far = distanceMeters(player, place.position) > placeRules.interactionMeters;
   const info = placeInfo[kind];
   const toggle = (heroId: string) =>
     setHeroIds((ids) => (ids.includes(heroId) ? ids.filter((id) => id !== heroId) : ids.length < rules.party ? [...ids, heroId] : ids));
@@ -112,7 +113,7 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
         }
       >
         <DifficultyChip difficulty={rules.difficulty} />
-        <Text style={styles.muted}>{tr(info.description)}</Text>
+        {!far && <Text style={styles.muted}>{tr(info.description)}</Text>}
         <PartsLine
           parts={[
             `${t('expeditions.tier', { tier: highestUnlockedTier(save) })}${rules.elite ? ' ★' : ''}`,
@@ -122,31 +123,35 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
           labelStyle={styles.muted}
         />
         <Text style={styles.muted}>{leavesIn(place.expiresAt - now)}</Text>
-        {briefing.threats.map((threat) => (
-          <ThreatChip key={threat.id} threat={threat} />
-        ))}
-        {briefing.opportunity && (
-          <IconLabel
-            emoji={opportunityById[briefing.opportunity].emoji}
-            label={`${tr(opportunityById[briefing.opportunity].name)}: ${tr(opportunityById[briefing.opportunity].description)}`}
-            labelStyle={styles.muted}
-          />
-        )}
-        <Text style={styles.subtitle}>{t('expeditions.foes')}</Text>
-        {foes.map((mob) => (
-          <EnemyTags key={mob.id} mob={mob} />
-        ))}
-        <Text style={styles.subtitle}>{t('sanctum.heroes')}</Text>
-        <View style={styles.chips}>
-          {candidates.map((hero) => (
-            <Pressable key={hero.id} onPress={() => toggle(hero.id)} style={[styles.chip, heroIds.includes(hero.id) && styles.chipActive]}>
-              <GameIcon emoji={heroClasses[hero.classId].emoji} size={20} />
-              <Text>
-                {hero.name} · {formatPercent(currentHp(save, hero, now) / maxHp(save, hero))}
-              </Text>
-            </Pressable>
+        {!far && (
+          <>
+          {briefing.threats.map((threat) => (
+            <ThreatChip key={threat.id} threat={threat} />
           ))}
-        </View>
+          {briefing.opportunity && (
+            <IconLabel
+              emoji={opportunityById[briefing.opportunity].emoji}
+              label={`${tr(opportunityById[briefing.opportunity].name)}: ${tr(opportunityById[briefing.opportunity].description)}`}
+              labelStyle={styles.muted}
+            />
+          )}
+          <Text style={styles.subtitle}>{t('expeditions.foes')}</Text>
+          {foes.map((mob) => (
+            <EnemyTags key={mob.id} mob={mob} />
+          ))}
+          <Text style={styles.subtitle}>{t('sanctum.heroes')}</Text>
+          <View style={styles.chips}>
+            {candidates.map((hero) => (
+              <Pressable key={hero.id} onPress={() => toggle(hero.id)} style={[styles.chip, heroIds.includes(hero.id) && styles.chipActive]}>
+                <GameIcon emoji={heroClasses[hero.classId].emoji} size={20} />
+                <Text>
+                  {hero.name} · {formatPercent(currentHp(save, hero, now) / maxHp(save, hero))}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          </>
+        )}
         {heroIds.length > 0 &&
           (odds ? (
             <Text style={styles.odds}>
@@ -156,6 +161,7 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
             <Text style={styles.odds}>…</Text>
           ))}
         {problem && <Text style={styles.problem}>{problemText[problem](distanceMeters(player, place.position))}</Text>}
+        {far && <Text style={styles.muted}>{t('places.tooFarToSee')}</Text>}
       </Sheet>
     </Overlay>
   );
