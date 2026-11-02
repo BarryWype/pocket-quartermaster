@@ -567,7 +567,7 @@ const styles = StyleSheet.create({
   party: { flexDirection: 'column', gap: 8 },
   hero: {
     /** Fixed, so every row is the same size whatever its HP text. */
-    height: 68,
+    height: 50,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,

@@ -19,7 +19,7 @@ type Props = {
   hero: HeroState;
   /** Lighter text, e.g. on a dark header. */
   light?: boolean;
-  /** Draw the count inside a taller bar, heart and all, instead of the row below it. */
+  /** Draw the count inside a taller bar, heart and all, with nothing below it. */
   inBar?: boolean;
 };
 
@@ -54,16 +54,14 @@ export function HpBar({ save, hero, light, inBar }: Props) {
           ) : undefined
         }
       />
-      {(!inBar || status) && (
+      {!inBar && (
         <View style={styles.row}>
-          {!inBar && (
-            <IconLabel
-              emoji="❤️"
-              label={t('health.hp', { hp: Math.floor(hp), max })}
-              labelStyle={[styles.text, light && styles.light]}
-            />
-          )}
-          {status ? <Text style={[styles.text, light && styles.light]}>{inBar ? status : ` · ${status}`}</Text> : null}
+          <IconLabel
+            emoji="❤️"
+            label={t('health.hp', { hp: Math.floor(hp), max })}
+            labelStyle={[styles.text, light && styles.light]}
+          />
+          {status ? <Text style={[styles.text, light && styles.light]}> · {status}</Text> : null}
         </View>
       )}
     </View>
