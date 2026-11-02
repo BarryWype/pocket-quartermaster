@@ -21,6 +21,9 @@ export const gatheringConfig = {
     maxAccuracyMeters: 35,
     /** Segments faster than a run are ignored (m/s, ~15 km/h). */
     maxSpeed: 4.2,
+    /** Riding, not walking: tracking stops when the straight-line speed between accurate fixes at least `rideWindowSeconds` apart is above this (km/h). */
+    rideStopKmh: 30,
+    rideWindowSeconds: 60,
     /** Segments longer than this are GPS jumps (m). */
     maxSegmentMeters: 300,
     /** Fixes further apart in time start a new path instead of joining up (s). */

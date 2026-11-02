@@ -15,6 +15,7 @@ import {
   recordWalk,
   shouldAutoStop,
   walkToShow,
+  type WalkBuffer,
   type WalkFix,
 } from './autoGather';
 import { collectSpawn, localDayKey } from './gathering';
@@ -257,5 +258,39 @@ describe('walk buffer', () => {
     const buffer = appendFixes(emptyBuffer(t0), [...eastWalk, fix(0, 300, 225)], t0);
     const { save } = processWalkPath(player(), buffer.fixes.slice(0, 2), { spawnsAt: only([]) });
     expect(clearProcessed(buffer, save.autoGather.processedUntil).fixes).toEqual([fix(0, 300, 225)]);
+  });
+
+  it('flags riding between accurate fixes at least the ride window apart', () => {
+    const ridden = appendFixes(emptyBuffer(t0), [fix(0, 0, 0), fix(0, 600, 60)], t0 + 60_000);
+    expect(ridden.riding).toBe(true);
+    expect(ridden.speedAnchor).toEqual(fix(0, 600, 60));
+  });
+
+  it('does not flag riding below the stop speed', () => {
+    const walked = appendFixes(emptyBuffer(t0), [fix(0, 0, 0), fix(0, 400, 60)], t0 + 60_000);
+    expect(walked.riding).toBe(false);
+  });
+
+  it('does not flag riding between fixes closer than the ride window, however fast', () => {
+    const jumped = appendFixes(emptyBuffer(t0), [fix(0, 0, 0), fix(0, 200, 15)], t0 + 15_000);
+    expect(jumped.riding).toBe(false);
+  });
+
+  it('does not take inaccurate fixes for riding', () => {
+    const drifted = appendFixes(emptyBuffer(t0), [fix(0, 0, 0), fix(0, 600, 60, { accuracy: 80 })], t0 + 60_000);
+    expect(drifted.riding).toBe(false);
+  });
+
+  it('keeps riding once set', () => {
+    const ridden = appendFixes(emptyBuffer(t0), [fix(0, 0, 0), fix(0, 600, 60)], t0 + 60_000);
+    const after = appendFixes(ridden, [fix(0, 610, 75)], t0 + 75_000);
+    expect(after.riding).toBe(true);
+  });
+
+  it('still works with a buffer stored before riding was tracked', () => {
+    const legacy = { fixes: [], lastMovedAt: t0, autoStopped: false, reference: null } as unknown as WalkBuffer;
+    const buffer = appendFixes(legacy, [fix(0, 0, 0), fix(0, 20, 15)], t0 + 15_000);
+    expect(buffer.fixes).toHaveLength(2);
+    expect(buffer.riding).toBe(false);
   });
 });

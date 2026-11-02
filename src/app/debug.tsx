@@ -569,7 +569,7 @@ export default function DebugScreen() {
   const describeWalk = (walk: WalkSummary) =>
     `${Math.round((walk.endedAt - walk.startedAt) / 60_000)} min · ${walk.distanceMeters} m · ${walk.nodes} nodes · ` +
     `${walk.gained.map((g) => `${g.amount} ${g.materialId}`).join(', ') || 'nothing'} · ${walk.steps} steps${walk.stepsEstimated ? ' (estimated)' : ''}` +
-    `${walk.autoStopped ? ' · auto-stopped' : ''}\n` +
+    `${walk.autoStopped ? ' · auto-stopped' : ''}${walk.riding ? ' · riding' : ''}\n` +
     `${walk.distanceMeters > 0 ? ((walk.gained.reduce((sum, g) => sum + g.amount, 0) * 1000) / walk.distanceMeters).toFixed(1) : '0'} resources/km · ` +
     `${Object.values(walk.ignored).reduce((sum, count) => sum + count, 0)} fixes dropped (${Object.entries(walk.ignored).map(([reason, count]) => `${reason} ${count}`).join(', ') || 'none'})`;
 
@@ -1279,12 +1279,12 @@ export default function DebugScreen() {
       {pocketReport && <Text style={styles.mono}>{pocketReport}</Text>}
       <View style={styles.row}>
         <Button title="Read buffer" onPress={refreshBuffer} />
-        <Button title="Clear buffer" onPress={() => updateBuffer((b) => ({ ...b, fixes: [], autoStopped: false })).then(setBuffer)} />
+        <Button title="Clear buffer" onPress={() => updateBuffer((b) => ({ ...b, fixes: [], autoStopped: false, riding: false, speedAnchor: null })).then(setBuffer)} />
       </View>
       {buffer && (
         <Text style={styles.mono}>
           Buffer: {buffer.fixes.length} fixes{buffer.fixes.length > 0 ? ` from ${new Date(buffer.fixes[0].timestamp).toLocaleTimeString()}` : ''} · last moved{' '}
-          {new Date(buffer.lastMovedAt).toLocaleTimeString()} · auto-stop {buffer.autoStopMinutes} min{buffer.autoStopped ? ' · auto-stopped' : ''}
+          {new Date(buffer.lastMovedAt).toLocaleTimeString()} · auto-stop {buffer.autoStopMinutes} min{buffer.autoStopped ? ' · auto-stopped' : ''}{buffer.riding ? ' · riding' : ''}
         </Text>
       )}
       {lastWalk && <Text style={styles.mono}>Last walk: {describeWalk(lastWalk)}</Text>}

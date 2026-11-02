@@ -299,7 +299,13 @@ export function WalkCard() {
           <IconLabel emoji="🚶" label={t('autoGather.whileYouWalked')} labelStyle={styles.title} />
           <WalkStats walk={walk} />
           {walk.patrols && <WalkPatrolsSection patrols={walk.patrols} />}
-          {walk.autoStopped && <Text style={styles.muted}>{t('autoGather.autoStopped', { minutes: autoStopMinutes })}</Text>}
+          {walk.autoStopped && (
+            <Text style={styles.muted}>
+              {walk.riding
+                ? t('autoGather.rideStopped', { speed: gatheringConfig.autoGather.rideStopKmh })
+                : t('autoGather.autoStopped', { minutes: autoStopMinutes })}
+            </Text>
+          )}
           <View style={styles.actions}>
             <Button title={t('common.close')} onPress={markWalksSeen} />
           </View>

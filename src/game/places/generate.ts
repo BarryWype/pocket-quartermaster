@@ -72,11 +72,11 @@ export function placeGroupOf(kind: PlaceKind): PlaceGroup {
 }
 
 /** A place shows while its window is live and the player is close enough. */
-export function isPlaceVisible(spawn: PlaceSpawn, player: LatLng, now: number): boolean {
+export function isPlaceVisible(spawn: PlaceSpawn, player: LatLng, now: number, multiplier = 1): boolean {
   return (
     spawn.expiresAt > now &&
     spawn.startsAt <= now &&
-    distanceMeters(player, spawn.position) <= placeGroupOf(spawn.kind).visibilityMeters
+    distanceMeters(player, spawn.position) <= placeGroupOf(spawn.kind).visibilityMeters * multiplier
   );
 }
 

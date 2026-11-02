@@ -49,7 +49,7 @@ import { patrolPositionAt, patrolsAround, pruneByWindow, type PatrolSpawn } from
 import { pocketModeAvailable, pocketTracking } from '@/game/patrols/pocketMode';
 import { activeLairs, isFightPlace } from '@/game/places/fights';
 import { highestUnlockedTier } from '@/game/expeditions/expeditions';
-import { isPlaceVisible, placeGroupOf, placesAround, showsForPlayer, type PlaceSpawn } from '@/game/places/generate';
+import { isPlaceVisible, placeGroupOf, placesWithin, showsForPlayer, type PlaceSpawn } from '@/game/places/generate';
 import { ruinReplacements } from '@/game/places/ruins';
 import { mapTileAt, mapTileKey, nearWater, type WalkableTile } from '@/game/generation/walkable';
 import { hasFled, isGone, isVisible } from '@/game/patrols/visibility';
@@ -202,6 +202,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
   const [freshLegsOpen, setFreshLegsOpen] = useState(true);
   const autoMode = useWorldStore((state) => state.autoGather);
   const autoEnabled = useSettingsStore((state) => pocketTracking(state.pocketMode));
+  const sight = useSettingsStore((s) => s.sightRange);
   const showAutoRadius = useDebugStore((state) => debugOn && state.showAutoRadius);
   const showNodeRanges = useDebugStore((state) => debugOn && state.showNodeRanges);
   const noDecorations = useDebugStore((state) => debugOn && state.noMapDecorations);
@@ -250,9 +251,9 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
   // Sanctums within sight (plus snapping room), placed on walkable places.
   const sanctumCandidates = useMemo(() => {
     if (!position) return [];
-    const reach = sanctumRules.visibilityMeters + sanctumRules.placement.maxSnapMeters;
+    const reach = sanctumRules.visibilityMeters * sight + sanctumRules.placement.maxSnapMeters;
     return generateSanctumsAround(position, minute * 60_000).filter((s) => distanceMeters(position, s.position) <= reach);
-  }, [position, minute]);
+  }, [position, minute, sight]);
   const placedSanctums = usePlacedPoints(sanctumCandidates, sanctumPlacement);
   const sanctumsShown = isRevealed(save, 'sanctums');
   const sanctumsInSight = useMemo(
@@ -263,20 +264,20 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
             s.expiresAt > now &&
             !(s.id in save.usedSanctums) &&
             position !== null &&
-            distanceMeters(position, s.position) <= sanctumRules.visibilityMeters,
+            distanceMeters(position, s.position) <= sanctumRules.visibilityMeters * sight,
         ),
       ),
     // Keyed by the coordinates, not the object: GPS fixes would recompute every list each second.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [placedSanctums, sanctumsShown, debugSanctum, now, save.usedSanctums, position?.latitude, position?.longitude],
+    [placedSanctums, sanctumsShown, debugSanctum, now, save.usedSanctums, sight, position?.latitude, position?.longitude],
   );
 
   // Tavern windows last 72 h, so regenerating once a minute is enough.
   const tavernCandidates = useMemo(() => {
     if (!position) return [];
-    const reach = tavernRules.visibilityMeters + tavernRules.placement.maxSnapMeters;
+    const reach = tavernRules.visibilityMeters * sight + tavernRules.placement.maxSnapMeters;
     return generateTavernsAround(position, minute * 60_000).filter((t) => distanceMeters(position, t.position) <= reach);
-  }, [position, minute]);
+  }, [position, minute, sight]);
   const placedTaverns = usePlacedPoints(tavernCandidates, tavernPlacement);
   const personal = usePersonalTavern(save, position, now);
   const tavernsShown = isRevealed(save, 'taverns');
@@ -284,25 +285,33 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
     () =>
       recordTiming('map: tavernsInSight', () =>
         [...(tavernsShown ? [...placedTaverns, ...personal] : []), ...(debugTavern ? [debugTavern] : [])].filter(
-          (t) => position !== null && distanceMeters(position, t.position) <= tavernRules.visibilityMeters,
+          (t) => position !== null && distanceMeters(position, t.position) <= tavernRules.visibilityMeters * sight,
         ),
       ),
     // Keyed by the coordinates, not the object: GPS fixes would recompute every list each second.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [placedTaverns, personal, tavernsShown, debugTavern, position?.latitude, position?.longitude],
+    [placedTaverns, personal, tavernsShown, debugTavern, sight, position?.latitude, position?.longitude],
   );
 
   // Places and fight events within sight (plus snapping room), and this player's replacement ruins, placed on walkable places.
   const placeCandidates = useMemo(() => {
     if (!position) return [];
     return recordTiming('map: placesAround', () =>
-      [...placesAround(position, minute * 60_000, shownPlaceGroups), ...ruinReplacements(save, minute * 60_000)].filter(
+      [
+        ...placesWithin(
+          position,
+          Math.max(...shownPlaceGroups.map((g) => g.visibilityMeters)) * sight + placeRules.placement.maxSnapMeters,
+          minute * 60_000,
+          shownPlaceGroups,
+        ),
+        ...ruinReplacements(save, minute * 60_000),
+      ].filter(
         (place) =>
           isShownKind(place.kind) &&
-          distanceMeters(position, place.position) <= placeGroupOf(place.kind).visibilityMeters + placeRules.placement.maxSnapMeters,
+          distanceMeters(position, place.position) <= placeGroupOf(place.kind).visibilityMeters * sight + placeRules.placement.maxSnapMeters,
       ),
     );
-  }, [position, minute, save.dugRuins]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [position, minute, save.dugRuins, sight]); // eslint-disable-line react-hooks/exhaustive-deps
   const placedPlaces = usePlacedPoints(placeCandidates, placePlacement, keepPlace);
   const playerPickaxe = pickaxeTier(save);
   const placesInSight = useMemo(
@@ -311,14 +320,14 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
         [...placedPlaces.filter((place) => isPlaceRevealed(save, place.kind)), ...debugPlaces].filter(
           (place) =>
             position !== null &&
-            isPlaceVisible(place, position, now) &&
+            isPlaceVisible(place, position, now, sight) &&
             !(place.id in save.usedPlaces) &&
             showsForPlayer(place, playerPickaxe),
         ),
       ),
     // Keyed by the coordinates, not the object: GPS fixes would recompute every list each second.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [placedPlaces, debugPlaces, position?.latitude, position?.longitude, now, save, playerPickaxe],
+    [placedPlaces, debugPlaces, position?.latitude, position?.longitude, now, save, playerPickaxe, sight],
   );
   // This player's tipped secret places: shown at any distance until they move on.
   const tippedSecrets = useSecretPlaces(save, now);

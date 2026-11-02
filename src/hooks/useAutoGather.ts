@@ -102,11 +102,11 @@ async function processBuffer(away: boolean): Promise<WalkSummary | null> {
       : null;
   const summary = useGameStore.getState().processWalk(
     buffer.fixes,
-    { tiles, estimateSteps: Platform.OS !== 'ios', measuredSteps, autoStopped: buffer.autoStopped },
+    { tiles, estimateSteps: Platform.OS !== 'ios', measuredSteps, autoStopped: buffer.autoStopped, riding: buffer.riding },
     away,
   );
   const processedUntil = useGameStore.getState().save.autoGather.processedUntil;
-  await updateBuffer((current) => ({ ...clearProcessed(current, processedUntil), autoStopped: false }));
+  await updateBuffer((current) => ({ ...clearProcessed(current, processedUntil), autoStopped: false, riding: false }));
   return summary;
 }
 
@@ -156,7 +156,8 @@ export function refreshAutoGather(foregrounded: boolean) {
       if (summary && !foregrounded) say(t('autoGather.gained', { items: materialsText(summary.gained) }));
       return;
     }
-    if (summary.autoStopped) say(t('autoGather.autoStopped', { minutes: useSettingsStore.getState().pocketMode.autoStopMinutes }));
+    if (summary.riding) say(t('autoGather.rideStopped', { speed: config.rideStopKmh }));
+    else if (summary.autoStopped) say(t('autoGather.autoStopped', { minutes: useSettingsStore.getState().pocketMode.autoStopMinutes }));
     else if (foregrounded && summary.distanceMeters > 0) say(t('autoGather.nothingInReach', { distance: formatDistance(summary.distanceMeters) }));
   })()
     .catch(() => {})

@@ -21,12 +21,14 @@ type SettingsState = {
   stepAlertLog: StepAlertLog;
   /** Whether we already asked, in game, before showing the OS permission prompt. */
   askedNotificationPermission: boolean;
+  /** Sight range multiplier: how far sanctums, taverns and places show on the map. */
+  sightRange: number;
   pocketMode: PocketModeSettings;
   updateNotifications: (change: Partial<NotificationSettings>) => void;
   setCategory: (category: NotificationCategory, on: boolean) => void;
   setQuietHours: (change: Partial<NotificationSettings['quietHours']>) => void;
   setPocketMode: (change: Partial<PocketModeSettings>) => void;
-  set: (change: Partial<Pick<SettingsState, 'language' | 'stepAlertLog' | 'askedNotificationPermission'>>) => void;
+  set: (change: Partial<Pick<SettingsState, 'language' | 'stepAlertLog' | 'askedNotificationPermission' | 'sightRange'>>) => void;
 };
 
 export const useSettingsStore = create<SettingsState>()(
@@ -36,6 +38,7 @@ export const useSettingsStore = create<SettingsState>()(
       notifications: defaultNotificationSettings(),
       stepAlertLog: { day: '', sent: [] },
       askedNotificationPermission: false,
+      sightRange: 1,
       pocketMode: { enabled: false, autoGather: true, patrolAlerts: true, escort: true, autoStopMinutes: gatheringConfig.autoGather.autoStopMinutes, introSeen: false },
       updateNotifications: (change) => set(({ notifications }) => ({ notifications: { ...notifications, ...change } })),
       setCategory: (category, on) =>
@@ -53,11 +56,12 @@ export const useSettingsStore = create<SettingsState>()(
       name: 'pocket-quartermaster-settings',
       version: 3,
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: ({ language, notifications, stepAlertLog, askedNotificationPermission, pocketMode }) => ({
+      partialize: ({ language, notifications, stepAlertLog, askedNotificationPermission, sightRange, pocketMode }) => ({
         language,
         notifications,
         stepAlertLog,
         askedNotificationPermission,
+        sightRange,
         pocketMode,
       }),
       // v3 folded auto-gather into Pocket mode; `merge` fills in its defaults.

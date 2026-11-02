@@ -47,6 +47,8 @@ export type WalkSummary = {
   ignored: Partial<Record<IgnoreReason, number>>;
   /** Tracking stopped by itself after a while without movement. */
   autoStopped: boolean;
+  /** Tracking stopped because the player moved faster than `rideStopKmh` (car, bus). */
+  riding?: boolean;
   /** Patrols and travellers met while walking (the background task fills this in). */
   patrols?: WalkPatrols;
 };
@@ -91,6 +93,7 @@ export type WalkOptions = {
   /** Steps the pedometer measured over the walk, when it keeps history (iOS). */
   measuredSteps?: number | null;
   autoStopped?: boolean;
+  riding?: boolean;
 };
 
 type Segment = { from: WalkFix; to: WalkFix; meters: number };
@@ -324,6 +327,7 @@ export function processWalkPath(
     stepsEstimated: measured === null && estimated > 0,
     ignored,
     autoStopped: options.autoStopped ?? false,
+    riding: options.riding || undefined,
   };
   return { save: { ...next, autoGather: { ...next.autoGather, processedUntil, anchor } }, summary };
 }
@@ -353,18 +357,23 @@ export type WalkBuffer = {
   lastMovedAt: number;
   /** Set when tracking stopped by itself after a while without movement. */
   autoStopped: boolean;
+  /** Set once a ride was detected: tracking stops for good. */
+  riding: boolean;
+  /** The accurate fix the ride speed is measured from. */
+  speedAnchor: WalkFix | null;
   /** The last accurate fix, kept when processed fixes are cleared: movement is measured from it. */
   reference: WalkFix | null;
 };
 
-export const emptyBuffer = (now: number): WalkBuffer => ({ fixes: [], lastMovedAt: now, autoStopped: false, reference: null });
+export const emptyBuffer = (now: number): WalkBuffer => ({ fixes: [], lastMovedAt: now, autoStopped: false, riding: false, speedAnchor: null, reference: null });
 
 /**
  * Appends new fixes. A fix within `minMoveMeters` of the last accurate one is
  * not stored, so standing still doesn't fill the buffer; inaccurate fixes are
  * kept (processing reports them) but don't count as movement, so GPS drift
- * indoors doesn't hold off auto-stop. The buffer drops fixes older than
- * `bufferHours` and keeps the newest `bufferMaxFixes`.
+ * indoors doesn't hold off auto-stop. Speed between accurate fixes at least
+ * `rideWindowSeconds` apart is measured for ride detection. The buffer drops
+ * fixes older than `bufferHours` and keeps the newest `bufferMaxFixes`.
  */
 export function appendFixes(buffer: WalkBuffer, fixes: WalkFix[], now: number, config: AutoConfig = gatheringConfig.autoGather): WalkBuffer {
   const accurate = (fix: WalkFix) => fix.accuracy === null || fix.accuracy <= config.maxAccuracyMeters;
@@ -372,17 +381,24 @@ export function appendFixes(buffer: WalkBuffer, fixes: WalkFix[], now: number, c
   let { lastMovedAt } = buffer;
   // Buffers saved before `reference` existed fall back to their last accurate fix.
   let reference = buffer.reference ?? kept.findLast(accurate) ?? null;
+  let anchor = buffer.speedAnchor ?? null;
+  let riding = buffer.riding ?? false;
   for (const fix of [...fixes].sort((a, b) => a.timestamp - b.timestamp)) {
     const latest = Math.max(kept[kept.length - 1]?.timestamp ?? 0, reference?.timestamp ?? 0);
     if (fix.timestamp <= latest) continue;
     if (reference && distanceMeters(reference.position, fix.position) < config.minMoveMeters) continue;
     kept.push(fix);
     if (!accurate(fix)) continue;
+    if (anchor && fix.timestamp - anchor.timestamp >= config.rideWindowSeconds * 1000) {
+      const seconds = (fix.timestamp - anchor.timestamp) / 1000;
+      if ((distanceMeters(anchor.position, fix.position) / seconds) * 3.6 > config.rideStopKmh) riding = true;
+      anchor = fix;
+    } else if (!anchor) anchor = fix;
     reference = fix;
     lastMovedAt = Math.max(lastMovedAt, fix.timestamp);
   }
   const oldest = now - config.bufferHours * 3_600_000;
-  return { ...buffer, lastMovedAt, reference, fixes: kept.filter((f) => f.timestamp >= oldest).slice(-config.bufferMaxFixes) };
+  return { ...buffer, lastMovedAt, reference, speedAnchor: anchor, riding, fixes: kept.filter((f) => f.timestamp >= oldest).slice(-config.bufferMaxFixes) };
 }
 
 /** Drops the fixes a processing run went through. */

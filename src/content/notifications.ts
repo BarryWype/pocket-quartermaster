@@ -137,6 +137,7 @@ export const notificationTexts = {
   chestClose: { title: 'Almost there', body: 'Only {steps} more steps to your {chest}.' },
   dailyReset: { title: 'New day', body: 'New day, new step chests.' },
   walkSummary: { title: 'Auto-gather stopped', body: 'You walked {distance}. Open the game to see what you gathered.' },
+  walkRide: { title: 'Auto-gather stopped', body: 'Moving faster than {speed} km/h, so auto-gather turned off. You walked {distance}.' },
   patrolSpotted: { title: '{difficulty} patrol nearby: {patrol}', body: '{patrol} {distance} away (tier {tier})' },
   travellerSpotted: { title: '{traveller} nearby', body: '{line}' },
   escortPaused: { title: 'Escort paused', body: '{hero} is at {percent}% HP.' },

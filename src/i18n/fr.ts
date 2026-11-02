@@ -740,6 +740,7 @@ export const fr: Dictionary = {
     serviceTitle: 'Récolte auto activée',
     serviceBody: 'Touchez pour ouvrir.',
     autoStopped: 'Récolte auto arrêtée après {minutes} min sans mouvement.',
+    rideStopped: 'Récolte auto arrêtée : déplacement à plus de {speed} km/h.',
     whileYouWalked: 'Pendant votre marche',
     walkStats: { one: '{duration} · {distance} · {count} nœud', other: '{duration} · {distance} · {count} nœuds' },
     walkPatrols: {
@@ -800,6 +801,9 @@ export const fr: Dictionary = {
       about: 'À propos',
     },
     autoStopHint: 'S’arrête tout seul après cette durée sans mouvement',
+    sightRange: 'Portée de vue',
+    sightRangeHint: 'Distance à laquelle sanctuaires, tavernes et événements apparaissent sur la carte.',
+    sight: { '1': 'Normale', '2': 'Loin', '3': 'Très loin' },
     fieldNotes: 'Carnet de terrain',
     fieldNotesHint: {
       one: 'Relire l’astuce déjà vue',

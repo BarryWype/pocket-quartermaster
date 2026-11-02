@@ -50,6 +50,7 @@ export const frNotificationTexts: typeof notificationTexts = {
   chestClose: { title: 'Presque arrivé', body: 'Plus que {steps} pas avant votre {chest}.' },
   dailyReset: { title: 'Nouvelle journée', body: 'Nouvelle journée, nouveaux coffres de pas.' },
   walkSummary: { title: 'Récolte auto arrêtée', body: 'Vous avez marché {distance}. Ouvrez le jeu pour voir votre récolte.' },
+  walkRide: { title: 'Récolte auto arrêtée', body: 'Déplacement à plus de {speed} km/h : la récolte auto s’est arrêtée. Vous avez marché {distance}.' },
   patrolSpotted: { title: 'Patrouille {difficulty} à proximité : {patrol}', body: '{patrol} à {distance} (palier {tier})' },
   travellerSpotted: { title: '{traveller} à proximité', body: '{line}' },
   escortPaused: { title: 'Escorte en pause', body: '{hero} est à {percent} % de PV.' },

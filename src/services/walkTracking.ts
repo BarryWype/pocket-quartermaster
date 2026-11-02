@@ -129,7 +129,8 @@ export async function stepPatrols(fixes: WalkFix[], appActive: boolean) {
 
 /** Appends fixes from the app's own location watch (auto-gather limited to the app being open). */
 export const appendFixesNow = async (fixes: WalkFix[]) => {
-  await updateBuffer((buffer) => ({ ...buffer, ...appendFixes(buffer, fixes, Date.now()) }));
+  const appended = await updateBuffer((buffer) => ({ ...buffer, ...appendFixes(buffer, fixes, Date.now()) }));
+  if (appended.riding && !appended.autoStopped) await updateBuffer((buffer) => ({ ...buffer, autoStopped: true }));
   await stepPatrols(fixes, true).catch(() => {});
 };
 
@@ -140,14 +141,14 @@ async function notifyAutoStop(buffer: StoredBuffer) {
   const meters = buffer.fixes.slice(1).reduce((sum, fix, i) => sum + distanceMeters(buffer.fixes[i].position, fix.position), 0);
   const now = Date.now();
   const at = deliveryTime(now, 'walkSummary', settings);
-  const text = notificationTexts().walkSummary;
+  const text = buffer.riding ? notificationTexts().walkRide : notificationTexts().walkSummary;
   await deviceNotifications.send({
     id: `walk:${now}`,
     category: 'walkSummary',
     group: 'steps',
     at: at > now ? at : null,
     title: text.title,
-    body: fill(text.body, { distance: formatDistance(meters) }),
+    body: fill(text.body, { distance: formatDistance(meters), speed: config.rideStopKmh }),
   });
 }
 
@@ -158,7 +159,7 @@ TaskManager.defineTask<{ locations: Location.LocationObject[] }>(TASK, async ({ 
   const now = Date.now();
   const buffer = await updateBuffer((current) => {
     const next = { ...current, ...appendFixes(current, fixes, now) };
-    return shouldAutoStop(next, now, next.autoStopMinutes) ? { ...next, autoStopped: true } : next;
+    return next.riding || shouldAutoStop(next, now, next.autoStopMinutes) ? { ...next, autoStopped: true } : next;
   });
   await stepPatrols(fixes, AppState.currentState === 'active').catch(() => {});
   if (!buffer.autoStopped) return;
@@ -204,7 +205,7 @@ export const isTracking = () => Location.hasStartedLocationUpdatesAsync(TASK).ca
 
 /** Starts a walk: auto-stop counts from now. Fixes not processed yet are kept. */
 export async function startTracking(autoStopMinutes: number, background: boolean) {
-  await updateBuffer((buffer) => ({ ...buffer, lastMovedAt: Date.now(), autoStopped: false, autoStopMinutes }));
+  await updateBuffer((buffer) => ({ ...buffer, lastMovedAt: Date.now(), autoStopped: false, riding: false, speedAnchor: null, autoStopMinutes }));
   if (!background || (await isTracking())) return;
   await Location.startLocationUpdatesAsync(TASK, {
     accuracy: Location.Accuracy.High,

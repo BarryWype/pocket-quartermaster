@@ -732,6 +732,7 @@ export const en = {
     serviceTitle: 'Auto-gather is on',
     serviceBody: 'Tap to open.',
     autoStopped: 'Auto-gather stopped after {minutes} min without movement.',
+    rideStopped: 'Auto-gather stopped: moving faster than {speed} km/h.',
     whileYouWalked: 'While you walked',
     walkStats: { one: '{duration} · {distance} · {count} node', other: '{duration} · {distance} · {count} nodes' },
     walkPatrols: {
@@ -792,6 +793,9 @@ export const en = {
       about: 'About',
     },
     autoStopHint: 'Stops by itself after this long without moving',
+    sightRange: 'Sight range',
+    sightRangeHint: 'How far sanctums, taverns and events show on the map.',
+    sight: { '1': 'Normal', '2': 'Far', '3': 'Very far' },
     fieldNotes: 'Field notes',
     fieldNotesHint: {
       one: "Read again the tip you've seen",

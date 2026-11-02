@@ -10,6 +10,7 @@ import { AlertForPicker, POCKET_CATEGORIES, PocketNotificationRows, PocketOption
 import { Text } from '@/components/Text';
 import { frNotificationCategories, frNotificationGroups } from '@/content/fr/notifications';
 import { gatheringConfig } from '@/content/gatheringConfig';
+import { sightRules } from '@/content/map';
 import { notificationCategories, notificationGroups } from '@/content/notifications';
 import type { NotificationCategory, NotificationGroup } from '@/game/notifications/types';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -33,6 +34,11 @@ const LANGUAGES: { id: LanguageSetting; label: () => string }[] = [
   { id: 'en', label: () => 'English' },
   { id: 'fr', label: () => 'Français' },
 ];
+const SIGHT_LABELS: Record<number, () => string> = {
+  1: () => t('settings.sight.1'),
+  2: () => t('settings.sight.2'),
+  3: () => t('settings.sight.3'),
+};
 
 const clock = (minutes: number) =>
   `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
@@ -135,7 +141,7 @@ function SettingsScreen() {
 
 function SettingsContent() {
   useLanguage();
-  const { language, notifications, updateNotifications, setCategory, setQuietHours, set, pocketMode, setPocketMode } = useSettingsStore();
+  const { language, notifications, updateNotifications, setCategory, setQuietHours, set, sightRange, pocketMode, setPocketMode } = useSettingsStore();
   const autoToggle = useAutoGatherToggle();
   const walks = useGameStore((state) => state.save.autoGather.history);
   const tipsSeen = useGameStore((state) => state.save.tips.seen.length);
@@ -224,6 +230,20 @@ function SettingsContent() {
               label={t('autoGather.minutes', { count: minutes })}
               selected={pocketMode.autoStopMinutes === minutes}
               onPress={() => setAutoStop(minutes)}
+              style={styles.choiceGrow}
+            />
+          ))}
+        </View>
+      </ParchmentCard>
+      <ParchmentCard title={t('settings.sightRange')} contentStyle={styles.card}>
+        <Text style={styles.hint}>{t('settings.sightRangeHint')}</Text>
+        <View style={styles.choiceFrame}>
+          {sightRules.choices.map((choice) => (
+            <SelectButton
+              key={choice}
+              label={SIGHT_LABELS[choice]()}
+              selected={sightRange === choice}
+              onPress={() => set({ sightRange: choice })}
               style={styles.choiceGrow}
             />
           ))}
