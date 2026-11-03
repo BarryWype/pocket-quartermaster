@@ -14,7 +14,8 @@ import type { LatLng } from '../generation/types';
 import { placeGroupOf, placesAround, type PlaceSpawn } from '../places/generate';
 import type { SaveData } from '../save';
 import { rosterFull } from '../team/team';
-import type { ClassRarity, HeroClassId, HeroRoll } from '../types';
+import { rolledSpecial } from '../team/specials';
+import type { ClassRarity, HeroClassId, HeroRoll, SpecialId } from '../types';
 import { gradePriceMultiplier, recruitGrade, rollRecruit, type Grade } from './roll';
 
 type TavernRules = typeof tavernRules;
@@ -29,6 +30,8 @@ export type RecruitOffer = {
   name: string;
   level: number;
   trait: string;
+  /** The recruit's special, rolled from the offer id (see game/team/specials.ts). */
+  special: SpecialId;
   /** The recruit's 3d6 roll (see roll.ts). */
   roll: HeroRoll;
   /** The roll's grade, which scales the price. */
@@ -136,6 +139,7 @@ export function tavernOffers(save: SaveData, tavernId: string, now: number, seed
       name: names[rng.int(0, names.length - 1)],
       level,
       trait: pool[rng.int(0, pool.length - 1)].id,
+      special: rolledSpecial(id, classId),
       roll,
       grade,
       price: Math.round(
@@ -165,7 +169,7 @@ export function recruitProblem(
 export function recruit(save: SaveData, offer: RecruitOffer, tavern: LatLng, player: LatLng): SaveData {
   const problem = recruitProblem(save, offer, tavern, player);
   if (problem) throw new Error(`Cannot recruit ${offer.name}: ${problem}`);
-  const hero = { ...newHero(`h${save.nextUid}`, offer.name, offer.classId, offer.trait, offer.level), roll: offer.roll };
+  const hero = { ...newHero(`h${save.nextUid}`, offer.name, offer.classId, offer.trait, offer.level, offer.special), roll: offer.roll };
   return {
     ...save,
     gold: save.gold - offer.price,

@@ -1,5 +1,6 @@
 import { dungeons } from '@/content/dungeons';
 import { classAffinities } from '@/content/equipment';
+import { classSpecials } from '@/content/classSpecials';
 import { newHero } from '@/content/heroes';
 import { items } from '@/content/items';
 import type { GearDef, HeroClassId, HeroState, Quality } from '@/game/types';
@@ -22,7 +23,8 @@ function weaponFor(classId: HeroClassId, tier: number) {
  * best weapons and armour at one quality, each with a healing potion, no traits.
  */
 export function referenceTeam(classes: HeroClassId[], tier: number, quality: Quality, level: number): SaveData {
-  const heroes: HeroState[] = classes.map((classId, i) => newHero(`h${i}`, classId, classId, '', level));
+  // For now each class rolls its first common special; the fight engine doesn't read specials yet.
+  const heroes: HeroState[] = classes.map((classId, i) => newHero(`h${i}`, classId, classId, '', level, classSpecials[classId].common[0]));
   const armour = items.find((i) => i.slot === 'armor' && i.tier === tier)!;
   let save: SaveData = {
     ...createInitialSave(),

@@ -2,6 +2,7 @@ import { todaysCollector } from './loot/valuables';
 import type { SaveData } from './save';
 import { sellGoodsAmount } from './quests/unlocks';
 import type { Quest } from './quests/types';
+import { rolledSpecial } from './team/specials';
 
 /**
  * Version 31: the collector quest now names the valuable it wants, chosen from
@@ -38,10 +39,21 @@ export function toV32(save: SaveData): SaveData {
   return { ...save, personalTavern: null };
 }
 
+/**
+ * Version 33: every hero now has a special (see game/team/specials.ts).
+ * Heroes without one roll it from their own id, so it never changes.
+ */
+export function toV33(save: SaveData): SaveData {
+  const heroes = save.heroes.map((hero) => (hero.special ? hero : { ...hero, special: rolledSpecial(hero.id, hero.classId) }));
+  if (heroes.every((hero, i) => hero === save.heroes[i])) return save;
+  return { ...save, heroes };
+}
+
 /** Applies the migration steps in order, from the save's own version on. */
 export function migrateSave(save: SaveData, fromVersion: number, now: number): SaveData {
   let next = save;
   if (fromVersion < 31) next = toV31(next, now);
   if (fromVersion < 32) next = toV32(next);
+  if (fromVersion < 33) next = toV33(next);
   return next;
 }

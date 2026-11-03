@@ -1,4 +1,6 @@
-import type { HeroClassDef, HeroClassId, HeroState, StatKey } from '@/game/types';
+import type { HeroClassDef, HeroClassId, HeroState, SpecialId, StatKey } from '@/game/types';
+
+import { rolledSpecial } from '@/game/team/specials';
 
 // Heroes keep modest bases and grow mostly through their three primary stats
 // (every level) and milestone steps for the rest (levels 5, 10, 15). Gear
@@ -407,13 +409,15 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   },
 };
 
-export const newHero = (id: string, name: string, classId: HeroClassId, trait: string, level = 1): HeroState => ({
+export const newHero = (id: string, name: string, classId: HeroClassId, trait: string, level = 1, special?: SpecialId): HeroState => ({
   id,
   name,
   classId,
   trait,
   level,
   xp: 0,
+  // Offers hand over theirs; anyone else rolls from the hero's id, so it never changes.
+  special: special ?? rolledSpecial(id, classId),
   equipment: { weapon: null, armor: null, offhand: null, trinket: null, consumable: null },
 });
 

@@ -15,6 +15,7 @@ import type { LatLng } from '../generation/types';
 import { addMaterials } from '../inventory';
 import type { PlaceSpawn } from '../places/generate';
 import { rosterFull } from '../team/team';
+import { rolledSpecial } from '../team/specials';
 import { offerLevel, recruitPrice, type RecruitOffer } from '../taverns/taverns';
 import { recruitGrade, rollRecruit } from '../taverns/roll';
 import type { GearInstance, HeroClassId } from '../types';
@@ -69,6 +70,7 @@ export function secretRecruit(save: SaveData, place: PlaceSpawn): RecruitOffer {
     name,
     level,
     trait,
+    special: rolledSpecial(id, classId),
     roll,
     grade,
     price: recruitPrice('rare', level, save.heroes.length, positive, highestUnlockedTier(save), grade),
@@ -93,7 +95,7 @@ export function recruitAtSecret(save: SaveData, place: PlaceSpawn, player: LatLn
   const problem = secretRecruitProblem(save, place, player, now);
   if (problem) throw new Error(`Cannot recruit: ${problem}`);
   const offer = secretRecruit(save, place);
-  const hero = { ...newHero(`h${save.nextUid}`, offer.name, offer.classId, offer.trait, offer.level), roll: offer.roll };
+  const hero = { ...newHero(`h${save.nextUid}`, offer.name, offer.classId, offer.trait, offer.level, offer.special), roll: offer.roll };
   let next: SaveData = {
     ...save,
     gold: save.gold - offer.price,

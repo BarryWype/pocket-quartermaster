@@ -19,7 +19,8 @@ import { recruitGrade, rollRecruit, type Grade } from '../taverns/roll';
 import { pickRecruitClass } from '../taverns/taverns';
 import type { SaveData } from '../save';
 import { isAway } from '../team/team';
-import type { HeroClassId, HeroRoll, MaterialStack } from '../types';
+import { rolledSpecial } from '../team/specials';
+import type { HeroClassId, HeroRoll, MaterialStack, SpecialId } from '../types';
 import { isTravellerKind, pruneByWindow, type PatrolSpawn, type TravellerKind } from './generate';
 import { distanceTo, isGone } from './visibility';
 
@@ -47,6 +48,8 @@ export type TravellerRecruit = {
   classId: HeroClassId;
   name: string;
   trait: string;
+  /** The recruit's special, rolled from the offer id (see game/team/specials.ts). */
+  special: SpecialId;
   level: number;
   roll: HeroRoll;
   grade: Grade;
@@ -99,6 +102,7 @@ function travellerRecruit(save: SaveData, spawn: PatrolSpawn): TravellerRecruit 
     classId,
     name: names[rng.int(0, names.length - 1)],
     trait: positive[rng.int(0, positive.length - 1)].id,
+    special: rolledSpecial(id, classId),
     level: recruitRules.levelByTier[highestUnlockedTier(save) - 1],
     roll,
     grade: recruitGrade(roll),
@@ -286,6 +290,6 @@ export function trade(
 /** Takes a traveller up on joining the roster. */
 export function acceptRecruit(save: SaveData, offer: TravellerRecruit): SaveData {
   if (save.heroes.length >= rosterCap(save)) throw new Error('Roster is full');
-  const hero = { ...newHero(`h${save.nextUid}`, offer.name, offer.classId, offer.trait, offer.level), roll: offer.roll };
+  const hero = { ...newHero(`h${save.nextUid}`, offer.name, offer.classId, offer.trait, offer.level, offer.special), roll: offer.roll };
   return { ...save, heroes: [...save.heroes, hero], nextUid: save.nextUid + 1 };
 }

@@ -47,6 +47,7 @@ import type {
   OpportunityOutcome,
   RelicEffect,
   RestrictionId,
+  SpecialId,
   Tag,
 } from '../types';
 import { hungerEffect } from './provisions';
@@ -63,6 +64,8 @@ export type PartyMember = {
   classId: HeroClassId;
   /** Personal trait id; party-wide trait effects count once per trait. */
   traitId: string;
+  /** The hero's special (see content/specials.ts); the engine doesn't fire it yet. */
+  special?: SpecialId;
   weaponName: string | null;
   /** The keywords of the hero's weapon, armour and off-hand; magic pieces marked, strong ones doubled, relic ones behind their condition. */
   gearKeywords: GearKeywordEntry[];
@@ -365,6 +368,7 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs
         name: hero.name,
         classId: hero.classId,
         traitId: hero.trait,
+        special: hero.special,
         weaponName: weapon ? gearName(weapon) : null,
         gearKeywords: gearKeywordsOf(save, hero),
         relicEffects,

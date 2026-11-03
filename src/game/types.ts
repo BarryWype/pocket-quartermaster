@@ -714,6 +714,8 @@ export type HeroState = {
   classId: HeroClassId;
   /** Personal trait id (see content/traits.ts). */
   trait: string;
+  /** The hero's special, rolled from its class's pool at recruitment (see game/team/specials.ts). */
+  special: SpecialId;
   level: number;
   /** XP towards the next level. */
   xp: number;
