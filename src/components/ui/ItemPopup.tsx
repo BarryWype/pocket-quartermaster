@@ -4,12 +4,13 @@ import { StyleSheet, View, type ImageSourcePropType, type StyleProp, type ViewSt
 import { Text } from '@/components/Text';
 import { fonts, ui } from '@/theme';
 
+import { Tip } from '../Tip';
 import { EmberButton } from './EmberButton';
 import { ItemSlot } from './ItemSlot';
 import { ParchmentCard } from './ParchmentCard';
 import { WoodButton } from './WoodButton';
 
-export type PopupLine = { tone: 'keyword' | 'good' | 'bad' | 'muted'; text: string; detail?: string };
+export type PopupLine = { tone: 'keyword' | 'good' | 'bad' | 'muted'; text: string; detail?: string; tip?: string };
 export type PopupIngredient = {
   key: string;
   label: string;
@@ -44,7 +45,13 @@ function Line({ line }: { line: PopupLine }) {
   if (line.tone === 'keyword')
     return (
       <View style={styles.line}>
-        <Text style={styles.keyword}>{line.text}</Text>
+        {line.tip !== undefined ? (
+          <Tip title={line.text} text={line.tip} accessibilityLabel={line.text}>
+            <Text style={styles.keyword}>{line.text}</Text>
+          </Tip>
+        ) : (
+          <Text style={styles.keyword}>{line.text}</Text>
+        )}
         {line.detail !== undefined && <Text style={styles.keywordDetail}>— {line.detail}</Text>}
       </View>
     );

@@ -164,7 +164,12 @@ export function ForgeConfirmDialog({
         .filter((def) => def.answer.kind === 'keyword' && def.answer.keyword === keyword)
         .map((def) => tr(def.name))
         .join(', ');
-      lines.push({ tone: 'keyword', text: t(`threats.keyword.${keyword}`), detail: threats ? t('crafting.keywordAnswers', { threats }) : undefined });
+      lines.push({
+        tone: 'keyword',
+        text: t(`threats.keyword.${keyword}`),
+        detail: threats ? t('crafting.keywordAnswers', { threats }) : undefined,
+        tip: t(`threats.keywordTip.${keyword}`),
+      });
     }
     const classIds = [...new Set(save.heroes.map((hero) => hero.classId))];
     const favoured = classIds.filter((classId) => affinityOf(classId, item.gearType) === 'favoured');

@@ -26,6 +26,19 @@ Design catalogues for what's built or being built live in `doc/design/` (`threat
 7. Release (a small test group first).
 8. After release: big work on interfaces and assets.
 
+**Roadmap: heroes, jobs and expeditions** (planned 2026-11-03, details in "Heroes, jobs and expeditions" below)
+
+Direction: the game stays a walking game with short, dense check-ins at home (direction A). Walking must stay the best source of resources, but no longer the only one. Every step adds output to the economy, so run the simulator after each one.
+
+1. **Special abilities.** One random ability per hero from its class pool, fired automatically by its own rule; more picks unlock with level (choose one to equip). Manuals can teach or reroll an ability.
+2. **Non-combat traits, gatherer jobs and the resource rework.** A second trait per hero for jobs, trade and gathering; farmer, woodcutter, miner and the outdoor gatherer; the resource rework that lets non-walking sources exist without overshadowing walking. More ways to recruit heroes come in around here (rescues, quest rewards).
+3. **Affixes.** Uncommon 1, rare 2, legendary 3, rolled from a small pool with bell-curve rolls; some affixes soften a threat. Gear drops can become more frequent. The forge keeps control: walking materials reroll one affix. No affix extraction.
+4. **Monster research.** Enemy-family research tracks, fuelled by monster parts: kit recipes, then trinket recipes, then higher kit tiers and better trinkets. The best trinkets stay drop-only.
+5. **Crafting jobs.** Forge apprentice, cook and herbalist, supplied by step 2's gatherers.
+6. **Expedition rework, part 1: heroes on the map.** Send heroes to places to fight and haul, or to fill shop orders (a shop asks for items, consumables or materials and pays gold, materials, blueprints or consumables); local missions (protect a village, escort a caravan, bodyguard, investigate a murder, recover stolen goods); outdoor jobs (fishing, hunting, tavern bard, watch duty, smuggling) and the kennel. Heroes fight and haul; only the player trades, talks, recruits and makes choices at places.
+7. **Expedition rework, part 2: adventures and regional threats.** Chained-quest expeditions towards a final boss, with a choice of next location by reward. Regional threats: the one the player ignores grows on the map (more of its patrols and events, with its loot), capped, with a deadline and a recoverable consequence. Quests reworked to come from the active threats.
+8. **Later.** Builder (guild hall improvements cost gold plus builder time), mentor and training yard (once abilities tie into levels), reputation and affiliations.
+
 **Saves are kept (from save version 30, 2026-10-31):** a change to the saved state bumps the store version and adds a migration that carries the old save forward. No more resets. Only saves older than version 30 are reset.
 
 **Parked**
@@ -38,6 +51,8 @@ Design catalogues for what's built or being built live in `doc/design/` (`threat
 - Sigil and elemental stone surplus (the simulator showed far too many Sanctum attempts).
 - Global trade between players.
 - Fishing mini game (see below).
+- Battle plan: cards (hero specials, gear cards, battle consumables) placed on a run's fights before sending, unplaced ones kept for the boss; mockup PlanWood in the UI canvas. Felt clunky, especially for patrols.
+- Reputation and affiliations: towns and organisations, each shop and mission tied to one; filling orders and missions raises standing (better prices, rarer stock).
 - Enemy tags beyond loot: elite components by tag (a drake fang from any dragon elite), and threat dungeons whose enemies match the threat (a Casters threat dungeon holds caster-tagged enemies).
 
 ## Pitch
@@ -225,6 +240,67 @@ For the fishing dock, later. A short, physical moment instead of a button that j
 - Encourages specialization (one player farms crystals, another forges blades) and makes regional materials valuable worldwide.
 - Keeps the in-game gold economy separate from player trading, limiting inflation and real-money abuse.
 - To consider: trade limits per day, trade request listings, and protection against scams or bots.
+
+## Heroes, jobs and expeditions
+
+*Discussed 2026-11-03; the order is in the roadmap at the top. Not designed or built.*
+
+### Special abilities
+
+- Each hero gets one random special from its class (or class type) pool: heal, regen, protect, bless for clerics and paladins; sure crit, cleave, triple strike, guard for warriors and barbarians; and so on. Some can be rarer than others, for the chase.
+- It fires automatically by its own rule (cleave on the first fight with 3+ enemies, guard when the boss winds up, heal below 40%), so it needs no planning screen.
+- More abilities unlock with level (e.g. levels 10 and 20, a pick of 1 of 2); the hero equips one. Manuals can teach or reroll one.
+- Every ability should be worth about the same on average, so the simulator can check none dominates.
+
+### Non-combat traits
+
+A second trait per hero, rolled at recruitment, for jobs, trade and gathering: Green thumb (farming), Woodsman and Prospector (wood or ore, small chance of a rarer find), Pack mule (hauls more), Haggler (shop orders pay more), Tinkerer (forge apprentice faster), Scholar (decrypting and research faster), Homebody and Wanderlust (guild jobs vs the road), Night owl (job output caps later), Bedside manner (infirmary), Clumsy (may waste materials), Idle (lower job output).
+
+### Jobs
+
+Rules: jobs trickle and fill up after about 8 hours (check-ins, not staying in the app); an hour of walking should be worth more than a day of jobs; class and traits change output; Guild buildings open job slots; heroes are shown at their station or moving on the map.
+
+At the guild:
+- **Gatherers** (farmer with a garden plot, woodcutter, miner): a slow resource trickle.
+- **Builder:** guild improvements cost gold plus builder time.
+- **Scribe:** decrypts secret maps.
+- **Monster research:** see below.
+- **Forge apprentice, cook, herbalist:** crafting continues while away. Needs the resource rework.
+- **Kennel or stables:** tames animals brought back by hunting into pack animals (haul more) or mounts (travel faster).
+- **Infirmary:** resting heroes recover HP faster; a cleric, paladin or Bedside manner hero on duty boosts it.
+- **Mentor and training yard:** later, once abilities tie into levels.
+
+Out in the world:
+- **Gathering:** one hero walks slowly to nearby visible resources, shown on the map.
+- **Fishing** at the docks, **hunting** (meat, hide, monster parts, live animals for the kennel).
+- **Tavern bard:** gold, and rumours that reveal secrets or hidden places.
+- **Watch duty:** slows an escalating regional threat's spawns a little.
+- **Smuggling:** high gold, with a risk of coming back hurt or empty-handed.
+
+Dropped: recruiter (a must-have you'd just assign before visiting a tavern), scouting, courier, pilgrimage, bounty hunting (overlaps quests and adventures), treasure hunting (treasure maps stay walking-only), clerk (overlaps shop orders).
+
+### Monster research
+
+Per enemy family (undead, beasts, goblinoids, brutes...), fuelled by that family's monster parts: rank 1 unlocks the family's threat kit recipe, rank 2 a themed trinket recipe, rank 3 the higher kit tier and a better trinket. The best trinkets stay drop-only.
+
+### Affixes
+
+Uncommon gear rolls 1 affix, rare 2, legendary 3, from a small pool (10–15), each with a bell-curve roll shown as a bar. Some affixes soften a threat (Warded: −1 Undead level), so they matter for briefings. Drops and crafted gear both roll them, so gear can drop more often; walking materials pay to reroll one affix at the forge. No extraction (too complex for now). Icons, not text.
+
+### Heroes on the map
+
+- Heroes go to any place visible on the map; the distance sets the travel time, with patrol encounters on the way.
+- **Fight and haul:** fight events, patrols, ruins, treasure spots.
+- **Shop orders:** each shop posts 1–2 orders matching its trade ("2 swords and 1 shield"), paying gold, materials, a blueprint or a consumable, worth more than selling. Orders refresh with the place's 48 h reset and only ask for what the player can craft at their tier. It gives crafting a buyer. Watch the gold inflow.
+- **Only the player** trades, talks, recruits, helps travellers, solves sanctums and makes choices at places.
+- **Local missions:** protect a village (on the map for a limited time, a reason to check in), escort a caravan (long, low risk, ambushes), bodyguard, investigate a murder, recover stolen goods, rescue a prisoner (a recruit).
+
+### Adventures and regional threats
+
+- **Adventures:** chained-quest expeditions over days; each check-in picks the next location from 2–3 by its reward icon (reward targeting), ending with a boss. They could become the tier structure: the dungeon chain as a branching regional map ("The Orc Menace").
+- **Regional threats:** usually a choice of 2. The one the player ignores grows on the map (its patrol and event kinds weigh more within the difficulty bands, and drop its loot), up to 3 levels, fading once dealt with. A threat left past its deadline wins something recoverable: the orcs occupy a village, whose tavern or shop closes until a defence mission frees it. A new threat appears when one ends.
+- **Quests** come from the active threats ("defeat 3 orc patrols", "walk to the scouted warcamp", "deliver 5 hide to the besieged village").
+- **Walk there yourself or send heroes:** the player going in person is faster and gets a bonus.
 
 ## Tech and architecture notes
 
