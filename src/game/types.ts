@@ -551,6 +551,126 @@ export type Ability =
   /** This hero's own damage ignores these restrictions. */
   | { kind: 'ignoresRestrictions'; restrictions: RestrictionId[] };
 
+/** A hero's special: one active ability, rolled from its class's pool at recruitment (see content/specials.ts). */
+export type SpecialId =
+  | 'cleave'
+  | 'aimedStrike'
+  | 'flurry'
+  | 'poison'
+  | 'elementalBlast'
+  | 'smite'
+  | 'execute'
+  | 'focus'
+  | 'stagger'
+  | 'entangle'
+  | 'taunt'
+  | 'dirtyTrick'
+  | 'distraction'
+  | 'secondWind'
+  | 'manaShield'
+  | 'ward'
+  | 'vanish'
+  | 'riposte'
+  | 'mend'
+  | 'regrowth'
+  | 'rally'
+  | 'patchUp'
+  | 'steal'
+  | 'doubleOrNothing'
+  | 'meteor'
+  | 'deepFreeze'
+  | 'resurrection'
+  | 'banish'
+  | 'summon'
+  | 'parley'
+  | 'feast'
+  | 'turret';
+
+/** What a special does when it fires; every number lives in the data, none in engine code. */
+export type SpecialEffect =
+  /** Hits every enemy for `share` of a normal hit, elemental when the hero's element applies. */
+  | { kind: 'allEnemies'; share: number; elemental: boolean }
+  /** The hero's next hit is a sure crit. */
+  | { kind: 'sureCrit' }
+  /** `hits` quick hits at `share` each. */
+  | { kind: 'multiHit'; hits: number; share: number }
+  /** The target takes `share` of a hit per round for `rounds` rounds. */
+  | { kind: 'damageOverTime'; share: number; rounds: number }
+  /** One empowered hit: ×`multiplier`, at `target`, with a `missChance` miss chance. */
+  | {
+      kind: 'strike';
+      multiplier: number;
+      target: 'any' | 'boss' | 'tags' | 'belowHp';
+      tags?: Tag[];
+      belowPct?: number;
+      missChance?: number;
+    }
+  /** The hero's next attack deals ×`multiplier`. */
+  | { kind: 'nextAttack'; multiplier: number }
+  /** `target` loses its next turn. */
+  | { kind: 'skipTurn'; target: 'strongest' | 'one' | 'all' | 'boss' }
+  /** Every enemy targets this hero for `rounds` rounds. */
+  | { kind: 'taunt'; rounds: number }
+  /** The weakest ally isn't targeted for `rounds` rounds. */
+  | { kind: 'shieldWeakest'; rounds: number }
+  /** Absorbs the next `hits` hits on `target`. */
+  | { kind: 'absorb'; target: 'self' | 'ally'; hits: number }
+  /** Dodges every attack for `rounds` rounds. */
+  | { kind: 'dodge'; rounds: number }
+  /** Counters the next `hits` hits taken for `share` of a hit each. */
+  | { kind: 'counter'; hits: number; share: number }
+  /** Heals `target` this share of max HP (1 = back to full). */
+  | { kind: 'heal'; target: 'self' | 'weakest' | 'party'; pct: number }
+  /** The target heals this share of max HP per round, for `rounds` rounds. */
+  | { kind: 'healOverTime'; pct: number; rounds: number }
+  /** A knocked-out ally gets back up at this share of max HP. */
+  | { kind: 'revive'; pct: number }
+  /** Party damage ×`multiplier` for `rounds` rounds. */
+  | { kind: 'partyDamage'; multiplier: number; rounds: number }
+  /** One enemy leaves the fight: defeated when `loot`, gone when not. */
+  | { kind: 'removeEnemy'; tags?: Tag[]; loot: boolean }
+  /** A temporary ally dealing `share` of the hero's hit each round, for `rounds` (null: the whole fight). */
+  | { kind: 'ally'; share: number; rounds: number | null }
+  /** `rolls` extra loot rolls from the boss's row. */
+  | { kind: 'extraLoot'; rolls: number };
+
+/**
+ * When a special fires on its own. Nothing in an effect may depend on the
+ * trigger: playing a special by hand only replaces the trigger.
+ */
+export type SpecialTrigger =
+  /** At the fight's first round; `minEnemies` (3+) or `boss` restricts it. */
+  | { kind: 'fightStart'; minEnemies?: number; boss?: boolean }
+  /** A `chance` chance on the hero's turn. */
+  | { kind: 'heroTurn'; chance: number }
+  /** The hero's first turn against an enemy with one of these `tags`. */
+  | { kind: 'heroTurnVsTags'; tags: Tag[] }
+  /** An enemy (the boss with `boss`) below `pct` of its HP. */
+  | { kind: 'enemyBelow'; pct: number; boss?: boolean }
+  | { kind: 'bossFirstTurn' }
+  /** `who` (any conscious party member, the hero included) below `pct` of max HP. */
+  | { kind: 'hpBelow'; pct: number; who: 'self' | 'ally' }
+  /** The party's average HP share below `pct`. */
+  | { kind: 'partyBelow'; pct: number }
+  | { kind: 'firstHit' }
+  | { kind: 'betweenFights' }
+  | { kind: 'allyKnockedOut' }
+  | { kind: 'bossWon' };
+
+export type SpecialUses = 'perFight' | 'perExpedition' | 'betweenFights';
+
+export type SpecialDef = {
+  id: SpecialId;
+  /** English; shown in French through frNames (see content/fr/names.ts). */
+  name: string;
+  /** One short line: the effect, then the trigger. */
+  description: string;
+  kind: 'shared' | 'unique';
+  effect: SpecialEffect;
+  trigger: SpecialTrigger;
+  uses: SpecialUses;
+};
+
 export type TraitDef = {
   id: string;
   name: string;

@@ -9,6 +9,7 @@ import { items } from '../items';
 import { materials } from '../materials';
 import { npcs } from '../npcs';
 import { resources } from '../resources';
+import { specials } from '../specials';
 import { tagInfo } from '../rotation';
 import { sanctums } from '../sanctums';
 import { traits } from '../traits';
@@ -38,6 +39,7 @@ export function contentTexts(): string[] {
     ...npcs.flatMap((n) => [n.name, n.description, n.hostile.name]),
     ...sanctums.flatMap((s) => [s.name, s.description, s.guardian.name, s.guardian.description, ...s.minions.map((m) => m.name)]),
     ...Object.values(heroClasses).map((c) => c.name),
+    ...Object.values(specials).flatMap((s) => [s.name, s.description]),
     ...traits.flatMap((t) => [t.name, t.description]),
     ...threatDefs.flatMap((t) => [t.name, t.description]),
     ...restrictionDefs.flatMap((r) => [r.name, r.description]),
