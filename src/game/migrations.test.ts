@@ -202,4 +202,32 @@ describe('save migrations', () => {
       expect(migrateSave(save, 36, 10 * DAY)).toBe(save);
     });
   });
+
+  describe('version 37: the outdoor gatherer', () => {
+    // A version 36 save: heroes could work jobs, an entry could hold output.
+    const v36 = () => {
+      const fresh = createInitialSave();
+      return {
+        ...fresh,
+        heroes: fresh.heroes.map((h) => (h.id === 'bram' ? { ...h, job: { jobId: 'woodcutter', since: 10 * DAY, tired: false } } : h)),
+        jobOutput: { woodcutter: { amounts: { wood: 2 }, fraction: 0.5, units: 2, since: 10 * DAY } },
+      } as SaveData;
+    };
+
+    it('migrates without a camp, gatherer output or new counters', () => {
+      const next = migrateSave(v36(), 36, 12 * DAY);
+      expect(next.jobOutput.woodcutter).toEqual({ amounts: { wood: 2 }, fraction: 0.5, units: 2, since: 10 * DAY });
+      expect(next.jobOutput.gatherer).toBeUndefined();
+      for (const hero of next.heroes) {
+        expect(hero.job?.camp).toBeUndefined();
+      }
+      expect(next.jobChoice.miner).toBeNull();
+    });
+
+    it('leaves a save already carrying its choices alone', () => {
+      const save = v36();
+      expect(migrateSave(save, 36, 12 * DAY)).toBe(save);
+      expect(migrateSave(save, 37, 12 * DAY)).toBe(save);
+    });
+  });
 });

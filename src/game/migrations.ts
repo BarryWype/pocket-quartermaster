@@ -94,6 +94,19 @@ export function toV36(save: SaveData): SaveData {
   return { ...save, jobOutput, jobChoice };
 }
 
+/**
+ * Version 37: the outdoor gatherer (see game/jobs/gatherer.ts). The new state
+ * is all optional — no camp until the player sets one, and the gatherer's new
+ * output fields only appear once it gathers — so only the job choices are
+ * given their defaults.
+ */
+export function toV37(save: SaveData): SaveData {
+  if (save.jobChoice) return save;
+  const jobChoice: Record<string, string | null> = {};
+  for (const job of jobs) if (choiceOf(job)) jobChoice[job.id] = null;
+  return { ...save, jobChoice };
+}
+
 /** Applies the migration steps in order, from the save's own version on. */
 export function migrateSave(save: SaveData, fromVersion: number, now: number): SaveData {
   let next = save;
@@ -103,5 +116,6 @@ export function migrateSave(save: SaveData, fromVersion: number, now: number): S
   if (fromVersion < 34) next = toV33(next);
   if (fromVersion < 35) next = toV35(next, now);
   if (fromVersion < 36) next = toV36(next);
+  if (fromVersion < 37) next = toV37(next);
   return next;
 }
