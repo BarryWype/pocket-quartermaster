@@ -21,4 +21,5 @@ export const frTipTexts: typeof tipTexts = {
   trinkets: 'Bibelots : de l’équipement introuvable en boutique, aux statistiques rares comme Chance et Critique.',
   valuables: 'Objets de valeur : vendez-les au marché. Les collectionneurs en paient certains plus cher.',
   keyFragments: 'Fragments de clé : quatre forment une clé mystérieuse, qui ouvre les lieux secrets.',
+  specials: 'Aptitudes : chaque héros en a une, tirée de sa classe. Elle se déclenche seule dans les combats, un nombre limité de fois ; les rares sont marquées ✦.',
 };

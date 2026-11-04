@@ -30,6 +30,7 @@ import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
 import { EmberButton, WoodButton } from './ui';
 import { RecruitGrade } from './RecruitGrade';
+import { SpecialLabel } from './SpecialLabel';
 import { Text } from './Text';
 
 const problemText: Record<RecruitProblem, (distance: number, cap: number) => string> = {
@@ -73,6 +74,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
         <Text style={[styles.trait, { color: trait.positive ? colors.ink : colors.danger }]}>
           {tr(trait.name)}: {tr(trait.description)}
         </Text>
+        <SpecialLabel classId={offer.classId} special={offer.special} />
         <ClassSummary classId={offer.classId} />
         <View style={styles.actions}>
           <Price amount={offer.price} short={save.gold < offer.price} textStyle={styles.price} />

@@ -887,6 +887,7 @@ export const en = {
       trinkets: 'Trinkets',
       valuables: 'Valuables',
       keyFragments: 'Key fragments',
+      specials: 'Specials',
     },
   },
   debug: {

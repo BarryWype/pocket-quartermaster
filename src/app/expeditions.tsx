@@ -12,6 +12,7 @@ import { LootReveal } from '@/components/LootReveal';
 import { OvernightCard } from '@/components/OvernightCard';
 import { ReportCard } from '@/components/ReportCard';
 import { SendDialog } from '@/components/SendDialog';
+import { SpecialLabel } from '@/components/SpecialLabel';
 import { Text } from '@/components/Text';
 import { ThreatCoverageChips } from '@/components/ThreatDetail';
 import { TutorialHint } from '@/components/TutorialHint';
@@ -343,6 +344,7 @@ function ExpeditionsContent() {
                 <Text style={styles.heroName} numberOfLines={1}>
                   {hero.name}
                 </Text>
+                <SpecialLabel classId={hero.classId} special={hero.special} short />
               </View>
               <View style={styles.heroStatus}>
                 {away ? (

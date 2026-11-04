@@ -28,6 +28,7 @@ import { leavesIn } from './PlacePanel';
 import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
+import { SpecialLabel } from './SpecialLabel';
 import { Text } from './Text';
 import { ThreatChip } from './ThreatChip';
 import { IconLabel, PartsLine } from './IconLabel';
@@ -147,6 +148,7 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
                 <Text>
                   {hero.name} · {formatPercent(currentHp(save, hero, now) / maxHp(save, hero))}
                 </Text>
+                <SpecialLabel classId={hero.classId} special={hero.special} short />
               </Pressable>
             ))}
           </View>

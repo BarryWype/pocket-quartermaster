@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { statIcons } from '@/components/GearRow';
 import { GameIcon } from '@/components/GameIcon';
 import { HpBar } from '@/components/HpBar';
+import { SpecialLabel } from '@/components/SpecialLabel';
 import { Text } from '@/components/Text';
 import { TutorialHint } from '@/components/TutorialHint';
 import { Deferred, GhostScreen, ParchmentCard, WoodButton } from '@/components/ui';
@@ -90,9 +91,12 @@ function TeamContent() {
                   <Text style={[styles.status, !away && !escort && !patrol && styles.statusReady]}>{status}</Text>
                   {pending > 0 && <Text style={styles.pending}>{t('hero.pendingPicks', { count: pending })}</Text>}
                 </View>
-                <Text style={styles.classLine}>
-                  {tr(heroClass.name)} · {tr(traitById[hero.trait]?.name ?? '')}
-                </Text>
+                <View style={styles.classRow}>
+                  <Text style={styles.classLine}>
+                    {tr(heroClass.name)} · {tr(traitById[hero.trait]?.name ?? '')}
+                  </Text>
+                  <SpecialLabel classId={hero.classId} special={hero.special} labelStyle={styles.classLine} />
+                </View>
                 <HpBar save={save} hero={hero} />
                 <View style={styles.statRow}>
                   {(['hp', damageStat, 'armour', 'speed'] as const).map((stat) => (
@@ -171,6 +175,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: ui.keyword,
   },
+  classRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
   classLine: { fontFamily: fonts.serif, fontSize: 13, color: ui.inkMuted },
   statRow: { flexDirection: 'row', gap: 3 },
   statCell: {

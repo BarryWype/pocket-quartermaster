@@ -32,6 +32,7 @@ import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
 import { EmberButton, WoodButton } from './ui';
 import { RecruitGrade } from './RecruitGrade';
+import { SpecialLabel } from './SpecialLabel';
 import { ValuableRows } from './ValuableRows';
 import { Text } from './Text';
 import { GainsLine } from './IconLabel';
@@ -208,6 +209,7 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
                   <Text style={[styles.trait, { color: traitById[recruit.trait].positive ? colors.ink : colors.danger }]}>
                     {tr(traitById[recruit.trait].name)}: {tr(traitById[recruit.trait].description)}
                   </Text>
+                  <SpecialLabel classId={recruit.classId} special={recruit.special} />
                   <View style={styles.actions}>
                     <EmberButton title={t('patrols.accept')} compact onPress={() => { acceptTravellerRecruit(recruit); onClose(); }} />
                     <WoodButton title={t('patrols.decline')} onPress={onClose} />

@@ -39,6 +39,7 @@ import { Sheet } from './Sheet';
 import { EmberButton, WoodButton } from './ui';
 import { RecruitGrade } from './RecruitGrade';
 import { SendDialog } from './SendDialog';
+import { SpecialLabel } from './SpecialLabel';
 import { Text } from './Text';
 import { ThreatChip } from './ThreatChip';
 import { IconLabel, PartsLine, type LabelPart } from './IconLabel';
@@ -137,6 +138,7 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
             <Pressable key={hero.id} onPress={() => toggle(hero.id)} style={[styles.chip, heroIds.includes(hero.id) && styles.chipActive]}>
               <GameIcon emoji={heroClasses[hero.classId].emoji} size={20} />
               <Text>{hero.name}</Text>
+              <SpecialLabel classId={hero.classId} special={hero.special} short />
             </Pressable>
           ))}
         </View>
@@ -188,6 +190,7 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
             <Text style={[styles.trait, { color: trait.positive ? colors.ink : colors.danger }]}>
               {tr(trait.name)}: {tr(trait.description)}
             </Text>
+            <SpecialLabel classId={offer.classId} special={offer.special} />
             <ClassSummary classId={offer.classId} />
             <View style={styles.actions}>
               <Price amount={offer.price} short={save.gold < offer.price} textStyle={styles.price} />

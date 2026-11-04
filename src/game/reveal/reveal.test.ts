@@ -170,10 +170,10 @@ describe('dueTips', () => {
     const save = createInitialSave();
     expect(dueTips(save)).toEqual([]);
     const done = noteTips(opened(), dueTips(opened()));
-    expect(done.tips.pending).toEqual(['dungeons', 'quests']);
+    expect(done.tips.pending).toEqual(['specials', 'dungeons', 'quests']);
     const guild = opened();
     guild.clearedDungeons = [guildRules.unlockedBy];
-    guild.tips.seen = ['dungeons', 'quests'];
+    guild.tips.seen = ['specials', 'dungeons', 'quests'];
     const owed = noteTips(guild, dueTips(guild));
     expect(owed.tips.pending).toEqual(['guildHall']);
   });

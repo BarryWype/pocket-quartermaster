@@ -28,6 +28,7 @@ import { DifficultyChip, EmberButton, WoodButton } from './ui';
 import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
+import { SpecialLabel } from './SpecialLabel';
 import { Text } from './Text';
 import { IconLabel } from './IconLabel';
 
@@ -176,6 +177,7 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
                   >
                     <GameIcon emoji={heroClasses[hero.classId].emoji} size={20} />
                     <Text>{hero.name}</Text>
+                    <SpecialLabel classId={hero.classId} special={hero.special} short />
                   </Pressable>
                 ))}
               </View>

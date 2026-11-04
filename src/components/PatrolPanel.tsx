@@ -31,6 +31,7 @@ import { DifficultyChip, EmberButton, WoodButton } from './ui';
 import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
+import { SpecialLabel } from './SpecialLabel';
 import { Text } from './Text';
 import { ThreatChip } from './ThreatChip';
 import { PartsLine } from './IconLabel';
@@ -164,6 +165,7 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
                   {hero.id === escortId ? t('common.escort') : ''} ·{' '}
                   {formatPercent(currentHp(save, hero, now) / maxHp(save, hero))}
                 </Text>
+                <SpecialLabel classId={hero.classId} special={hero.special} short />
               </Pressable>
             ))}
           </View>

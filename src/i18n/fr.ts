@@ -895,6 +895,7 @@ export const fr: Dictionary = {
       trinkets: 'Bibelots',
       valuables: 'Objets de valeur',
       keyFragments: 'Fragments de clé',
+      specials: 'Aptitudes',
     },
   },
   debug: {

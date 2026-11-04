@@ -70,9 +70,13 @@ export function noteTips(save: SaveData, ids: TipId[]): SaveData {
   return { ...save, tips: { ...save.tips, pending: [...save.tips.pending, ...fresh] } };
 }
 
-/** Tips due now: item kinds first held, and off-map kinds once revealed. */
+/** Tips due now: specials once a hero is fielded, item kinds first held, and off-map kinds once revealed. */
 export function dueTips(save: SaveData): TipId[] {
-  return [...heldItemKinds(save), ...offMapRevealKinds.filter((kind) => isRevealed(save, kind))];
+  return [
+    ...(save.tutorial.step === 'done' && save.heroes.length > 0 ? (['specials'] as TipId[]) : []),
+    ...heldItemKinds(save),
+    ...offMapRevealKinds.filter((kind) => isRevealed(save, kind)),
+  ];
 }
 
 /** Closes a tip: out of the queue, into `seen` once. */

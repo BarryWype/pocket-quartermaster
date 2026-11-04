@@ -30,6 +30,7 @@ import { highestUnlockedTier } from '@/game/dungeons/unlock';
 import { careProblem, drinkProblem } from '@/game/team/health';
 import { affinityOf, canDismiss, equip, equipPreview, gearKeywordsOf, hasPotionSlot, healingPotion, heroDamageStat, heroStats, isOnExpedition, statSources } from '@/game/team/team';
 import { ClassSummary } from '@/components/ClassSummary';
+import { SpecialLabel } from '@/components/SpecialLabel';
 import { APPROACHES, heroAnswers } from '@/game/threats/answers';
 import type { Approach, EquipmentSlot, GearDef, GearInstance, HeroState, Stats } from '@/game/types';
 import type { SaveData } from '@/game/save';
@@ -246,11 +247,14 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
             <Text style={styles.className}>{tr(heroClass.name)}</Text>
             {element && <IconLabel emoji={element.emoji} label={tr(element.name)} size={14} labelStyle={styles.className} />}
           </View>
-          {trait && (
-            <Tip title={tr(trait.name)} text={tr(trait.description)} accessibilityLabel={tr(trait.name)}>
-              <Chip tone={trait.positive ? 'good' : 'bad'} label={tr(trait.name)} />
-            </Tip>
-          )}
+          <View style={styles.traitRow}>
+            {trait && (
+              <Tip title={tr(trait.name)} text={tr(trait.description)} accessibilityLabel={tr(trait.name)}>
+                <Chip tone={trait.positive ? 'good' : 'bad'} label={tr(trait.name)} />
+              </Tip>
+            )}
+            <SpecialLabel classId={hero.classId} special={hero.special} />
+          </View>
         </View>
       </View>
       <View style={styles.hpGap}>
@@ -671,6 +675,7 @@ const styles = StyleSheet.create({
   nameStatus: { fontFamily: fonts.serif, fontSize: 13, color: ui.inkMuted },
   classNameRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
   className: { fontFamily: fonts.serif, fontSize: 14, color: ui.inkMuted },
+  traitRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
   note: { fontFamily: fonts.serif, fontSize: 13, color: ui.inkMuted },
   drink: { alignItems: 'stretch', gap: 6 },
   section: { gap: 6 },

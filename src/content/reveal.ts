@@ -20,7 +20,8 @@ export type RevealKind =
 /** Item kinds that get a tip the first time one is held. */
 export type ItemTipKind = 'charms' | 'components' | 'relics' | 'trinkets' | 'valuables' | 'keyFragments';
 
-export type TipId = RevealKind | ItemTipKind;
+/** The specials tip: due once the tutorial is done and a hero is fielded. */
+export type TipId = RevealKind | ItemTipKind | 'specials';
 
 /** What has to be true for a kind to show; read by `isRevealed`. */
 export type RevealCondition =
@@ -107,4 +108,5 @@ export const tipTexts: Record<TipId, string> = {
   trinkets: 'Trinkets: loot-only gear with rare stats like Luck and Crit.',
   valuables: 'Valuables: sell them at a market. Collectors pay more for some.',
   keyFragments: 'Key fragments: four make a mysterious key, which opens secret places.',
+  specials: 'Specials: every hero has one, rolled from its class. It fires on its own in fights, a limited number of times; rare ones are marked ✦.',
 };
