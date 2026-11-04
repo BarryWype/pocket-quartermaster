@@ -49,6 +49,17 @@ export function toV33(save: SaveData): SaveData {
   return { ...save, heroes };
 }
 
+/**
+ * Version 35: jobs (see game/jobs/jobs.ts). Every hero starts free, at full
+ * energy, and no job holds any output yet.
+ */
+export function toV35(save: SaveData, now: number): SaveData {
+  const heroes = save.heroes.map((hero) => (hero.energy ? hero : { ...hero, job: null, energy: { value: 100, at: now } }));
+  const unchanged = heroes.every((hero, i) => hero === save.heroes[i]);
+  if (unchanged && save.jobOutput) return save;
+  return { ...save, heroes, jobOutput: save.jobOutput ?? {} };
+}
+
 /** Applies the migration steps in order, from the save's own version on. */
 export function migrateSave(save: SaveData, fromVersion: number, now: number): SaveData {
   let next = save;
@@ -56,5 +67,6 @@ export function migrateSave(save: SaveData, fromVersion: number, now: number): S
   if (fromVersion < 32) next = toV32(next);
   // Version 34 runs the special roll again: builds of other branches stamped saves 33 without giving heroes a special.
   if (fromVersion < 34) next = toV33(next);
+  if (fromVersion < 35) next = toV35(next, now);
   return next;
 }

@@ -125,4 +125,29 @@ describe('save migrations', () => {
     expect(next.heroes[0]).toBe(withSpecial.heroes[0]);
     expect(next.heroes.slice(1).every((hero) => hero.special)).toBe(true);
   });
+
+  describe('version 35: jobs', () => {
+    // A version 34 save: no jobs, no energy, no job output.
+    const save = createInitialSave();
+    const { jobOutput: _jobOutput, ...rest } = save;
+    const v34 = { ...rest, heroes: save.heroes.map(({ job: _job, energy: _energy, ...hero }) => hero) } as unknown as SaveData;
+
+    it('gives every hero no job and full energy, and the save no job output', () => {
+      const next = migrateSave(v34, 34, 10 * DAY);
+      for (const hero of next.heroes) {
+        expect(hero.job).toBeNull();
+        expect(hero.energy).toEqual({ value: 100, at: 10 * DAY });
+      }
+      expect(next.jobOutput).toEqual({});
+    });
+
+    it('keeps everything else the player has', () => {
+      const next = migrateSave(v34, 34, 10 * DAY);
+      expect({ ...next, heroes: next.heroes.map((h) => ({ ...h, energy: save.heroes[0].energy })) }).toEqual(save);
+    });
+
+    it('leaves a save already at version 35 alone', () => {
+      expect(migrateSave(save, 35, 10 * DAY)).toBe(save);
+    });
+  });
 });
