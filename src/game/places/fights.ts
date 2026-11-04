@@ -20,7 +20,7 @@ import { emptyLoot, type Loot, type LootModifier } from '../loot/types';
 import { grantTip, rollTip, type TipOutcome } from '../secrets/tips';
 import type { SaveData } from '../save';
 import { applyRunHp, isExhausted } from '../team/health';
-import { isAway } from '../team/team';
+import { isBusy } from '../team/team';
 import type { ActiveThreat, Briefing, BossDef, DungeonDef, EncounterDef, PlaceFight } from '../types';
 import { placeGroupOf, placesAround, type PlaceSpawn } from './generate';
 import { questEvent } from '../quests/progress';
@@ -128,7 +128,7 @@ export function placeFightProblem(
   if (heroIds.length > rulesOf(kind).party || heroIds.length < min) return 'partySize';
   for (const heroId of heroIds) {
     const hero = save.heroes.find((h) => h.id === heroId);
-    if (!hero || isAway(save, heroId)) return 'away';
+    if (!hero || isBusy(save, heroId)) return 'away';
     if (isExhausted(hero, now)) return 'exhausted';
   }
   return null;

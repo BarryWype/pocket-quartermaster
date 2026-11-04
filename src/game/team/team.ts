@@ -29,6 +29,12 @@ export function isAway(save: SaveData, heroId: string) {
   );
 }
 
+/** Whether the hero is working a guild job (see game/jobs/jobs.ts). */
+export const isWorking = (save: SaveData, heroId: string) => save.heroes.some((h) => h.id === heroId && h.job !== null);
+
+/** Whether a hero is away or working: not free for anything that sends heroes out. */
+export const isBusy = (save: SaveData, heroId: string) => isAway(save, heroId) || isWorking(save, heroId);
+
 export function equippedGear(save: SaveData, hero: HeroState) {
   return (['weapon', 'armor', 'offhand', 'trinket'] as const)
     .map((slot) => save.gear.find((g) => g.uid === hero.equipment[slot]))

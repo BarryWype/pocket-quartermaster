@@ -445,6 +445,8 @@ export const newHero = (id: string, name: string, classId: HeroClassId, trait: s
   // Offers hand over theirs; anyone else rolls from the hero's id, so it never changes.
   special: special ?? rolledSpecial(id, classId),
   equipment: { weapon: null, armor: null, offhand: null, trinket: null, consumable: null },
+  job: null,
+  energy: { value: 100, at: 0 },
 });
 
 export const startingHeroes: HeroState[] = [

@@ -11,7 +11,7 @@ import { grantTip, rollTip, type TipOutcome } from '../secrets/tips';
 import type { PlaceSpawn } from './generate';
 import type { SaveData } from '../save';
 import { isExhausted } from '../team/health';
-import { isAway } from '../team/team';
+import { isBusy } from '../team/team';
 import { answersMemberOf, prepareParty } from '../expeditions/simulate';
 import { heroAnswers } from '../threats/answers';
 import { scoreThreat, type ThreatState } from '../threats/score';
@@ -49,7 +49,7 @@ export function heistProblem(save: SaveData, spawn: PlaceSpawn, heroId: string, 
   }
   if (distanceMeters(player, spawn.position) > placeRules.interactionMeters) return 'tooFar';
   const hero = save.heroes.find((h) => h.id === heroId);
-  if (!hero || isAway(save, heroId)) return 'away';
+  if (!hero || isBusy(save, heroId)) return 'away';
   if (isExhausted(hero, now)) return 'exhausted';
   return null;
 }

@@ -65,6 +65,8 @@ export type SaveData = {
   tools: string[];
   knownRecipes: string[];
   heroes: HeroState[];
+  /** Output waiting at each job, as of its `since` (see game/jobs/jobs.ts). */
+  jobOutput: Record<string, { amount: number; since: number }>;
   expeditions: ActiveExpedition[];
   /** Finished expeditions, newest first. */
   reports: ExpeditionReport[];
@@ -187,6 +189,7 @@ export function createInitialSave(playerSeed?: string): SaveData {
     gear: [],
     tools: [],
     heroes: startingHeroes,
+    jobOutput: {},
     expeditions: [],
     reports: [],
     clearedDungeons: [],

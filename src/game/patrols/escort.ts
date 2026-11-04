@@ -14,7 +14,7 @@ import type { LatLng } from '../generation/types';
 import type { ExpeditionReport } from '../types';
 import type { SaveData } from '../save';
 import { applyRunHp } from '../team/health';
-import { isAway } from '../team/team';
+import { isAway, isBusy } from '../team/team';
 import { rolledSpecial } from '../team/specials';
 import { activeLairs } from '../places/fights';
 import { partyCharms } from '../loot/charms';
@@ -133,7 +133,7 @@ export function snapshotBackground(
   previous: BackgroundState | null = null,
   rules: PatrolRules = patrolRules,
 ): BackgroundState {
-  const hero = save.heroes.find((h) => h.id === settings.escortHeroId && !isAway(save, h.id));
+  const hero = save.heroes.find((h) => h.id === settings.escortHeroId && !isBusy(save, h.id));
   const member = hero ? prepareParty(save, [hero.id], now, true)[0] : undefined;
   const healRate = member?.abilities.find((a) => a.kind === 'healRate');
   const rate = healRate?.kind === 'healRate' ? healRate : { multiplier: 1, exhaustion: 1 };

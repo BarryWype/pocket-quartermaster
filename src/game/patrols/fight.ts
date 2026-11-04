@@ -20,7 +20,7 @@ import { mergeLoot, rollSourceLoot } from '../loot/roll';
 import { emptyLoot, type Loot, type LootModifier, type LootSourceId } from '../loot/types';
 import type { SaveData } from '../save';
 import { applyRunHp, isExhausted } from '../team/health';
-import { isAway } from '../team/team';
+import { isBusy } from '../team/team';
 import type { BossDef, Briefing, DungeonDef, EncounterDef, ExpeditionReport } from '../types';
 import { isPatrolKind, pruneByWindow, wyvernElement, type PatrolKind, type PatrolSpawn } from './generate';
 import { distanceTo, isGone } from './visibility';
@@ -164,7 +164,7 @@ export function patrolFightProblem(
   if (heroIds.length > rosterRules.partySize) return 'partySize';
   for (const heroId of heroIds) {
     const hero = save.heroes.find((h) => h.id === heroId);
-    if (!hero || isAway(save, heroId)) return 'away';
+    if (!hero || isBusy(save, heroId)) return 'away';
     if (isExhausted(hero, now)) return 'exhausted';
   }
   return null;

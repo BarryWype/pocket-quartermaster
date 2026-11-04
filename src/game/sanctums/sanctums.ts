@@ -23,7 +23,7 @@ import type { LatLng } from '../generation/types';
 import { addMaterials } from '../inventory';
 import type { SaveData } from '../save';
 import { applyRunHp } from '../team/health';
-import { isAway } from '../team/team';
+import { isBusy } from '../team/team';
 import type { DungeonDef, SanctumDef } from '../types';
 
 type Rules = typeof sanctumRules;
@@ -85,7 +85,7 @@ export function sanctumDungeon(sanctum: SanctumDef, tier: number, rules: Rules =
   };
 }
 
-export const availableHeroes = (save: SaveData) => save.heroes.filter((h) => !isAway(save, h.id));
+export const availableHeroes = (save: SaveData) => save.heroes.filter((h) => !isBusy(save, h.id));
 
 /** Odds with the heroes' HP at `now` (left out, as stored). Sanctum fights need no supply. */
 export function sanctumOdds(save: SaveData, heroIds: string[], sanctum: SanctumDef, tier: number, runs = ODDS_RUNS, now?: number) {
@@ -109,7 +109,7 @@ export function challengeProblem(
   if (!save.sigils.includes(tier)) return 'noSigil';
   if (distanceMeters(player, spawn.position) > rules.interactionMeters) return 'tooFar';
   if (heroIds.length === 0) return 'noHeroes';
-  if (heroIds.some((id) => isAway(save, id))) return 'heroAway';
+  if (heroIds.some((id) => isBusy(save, id))) return 'heroAway';
   return null;
 }
 

@@ -26,7 +26,7 @@ import { secretPrize } from '../secrets/prize';
 import { spendKey } from '../secrets/keys';
 import type { SaveData } from '../save';
 import { applyRunHp, settleHp } from '../team/health';
-import { heroAbilities, heroStats, isAway } from '../team/team';
+import { heroAbilities, heroStats, isAway, isBusy } from '../team/team';
 import { composeBriefing } from '../threats/compose';
 import { heroAnswers } from '../threats/answers';
 import { launchEffects } from '../threats/penalties';
@@ -193,7 +193,7 @@ export function startExpedition(
   }
   for (const heroId of heroIds) {
     if (!save.heroes.some((h) => h.id === heroId)) throw new Error(`Unknown hero ${heroId}`);
-    if (isAway(save, heroId)) throw new Error(`${heroId} is already away`);
+    if (isBusy(save, heroId)) throw new Error(`${heroId} is already away`);
   }
   const consumables = { ...save.consumables };
   const take = (itemId: string, count: number) => {
