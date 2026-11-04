@@ -4,7 +4,7 @@ Step 2 of the roadmap in `doc/ideas.md` ("Heroes, jobs and expeditions"). Design
 
 ## Split of step 2
 - **2a. The job system, with one job: the woodcutter.** This document. Built 2026-11-04.
-- 2b. Non-combat traits (a second trait per hero).
+- 2b. Work traits: **postponed** to roadmap step 8 (after every job and activity exists), so heroes' traits don't need reworking each time a job is added.
 - 2c. Farmer, miner, the outdoor gatherer, and the resource rework (each material's main source and other sources).
 - 2d. More ways to recruit (rescues, quest rewards).
 
@@ -36,8 +36,8 @@ Step 2 of the roadmap in `doc/ideas.md` ("Heroes, jobs and expeditions"). Design
 - Non-combat traits that change output and energy (Homebody, Wanderlust, Idle, Green thumb…).
 - Energy for expeditions, or a penalty for tired heroes, only if play shows the same heroes being sent everywhere.
 
-## Work traits (2b)
-Designed 2026-11-04. A second trait per hero, separate from the combat trait, for jobs (and later trade and gathering): `work-traits.csv`.
+## Work traits (postponed)
+Designed 2026-11-04, then postponed the same day to roadmap step 8: the trait list should be fixed once every job and activity is in the game. Kept here as a first draft. A second trait per hero, separate from the combat trait, for jobs (and later trade and gathering): `work-traits.csv`.
 - Every hero has exactly one, rolled at recruitment: 60% positive, 40% negative, rolled independently of the combat trait, so a strong fighter can be a poor worker.
 - Only traits that do something with the jobs that exist ship (phase `2b`). The others arrive with their job (farmer, miner, outdoor jobs, research, the infirmary, shop orders).
 - Existing heroes roll one through a save migration, seeded by hero id.
