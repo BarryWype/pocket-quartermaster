@@ -68,6 +68,16 @@ export function pruneCollected(collected: Record<string, number>, timeMs: number
   return Object.fromEntries(Object.entries(collected).filter(([, expiresAt]) => expiresAt > timeMs));
 }
 
+/**
+ * The earliest time collected entries may be dropped at: an outdoor gatherer
+ * keeps scanning back to its output's `since` (see game/jobs/gatherer.ts), so a
+ * node the player took must stay hidden to it until that scan has passed.
+ */
+export function collectedKeepFrom(save: SaveData, timeMs: number): number {
+  const gatherer = save.heroes.find((h) => h.job?.jobId === 'gatherer');
+  return gatherer ? Math.min(timeMs, save.jobOutput.gatherer?.since ?? timeMs) : timeMs;
+}
+
 /** The local calendar day of a moment, as an ISO date (the walking bonus resets with it). */
 export const localDayKey = (timeMs: number) => {
   const date = new Date(timeMs);
@@ -129,7 +139,7 @@ export function collectSpawn(
   const collected: SaveData = {
     ...save,
     materials: addMaterials(save.materials, finalGained),
-    collected: { ...pruneCollected(save.collected, timeMs), [spawn.id]: spawn.expiresAt },
+    collected: { ...pruneCollected(save.collected, collectedKeepFrom(save, timeMs)), [spawn.id]: spawn.expiresAt },
     ...(bonus ? { freshGathers: bonus } : {}),
   };
   return {

@@ -745,8 +745,11 @@ export type HeroState = {
   hpAt?: number;
   /** Knocked out: no healing at home before this time. */
   exhaustedUntil?: number;
-  /** The station job the hero works at, or null (see game/jobs/jobs.ts). */
-  job: { jobId: string; since: number; tired: boolean } | null;
+  /**
+   * The station job the hero works at, or null (see game/jobs/jobs.ts). An
+   * outdoor gatherer also carries where its camp stands, from when.
+   */
+  job: { jobId: string; since: number; tired: boolean; camp?: { position: LatLng; since: number } } | null;
   /** Energy (0–100) as of `at`: drained while working a job, regained otherwise. */
   energy: { value: number; at: number };
 };

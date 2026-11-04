@@ -1,6 +1,6 @@
 import { gatheringConfig, type GatheringConfig } from '@/content/gatheringConfig';
 
-import { pruneCollected } from './gathering/gathering';
+import { collectedKeepFrom, pruneCollected } from './gathering/gathering';
 import { pruneDugRuins } from './places/ruins';
 import { lureEndsAt } from './rewards/lures';
 import { pruneTips } from './secrets/tips';
@@ -19,7 +19,7 @@ export function pruneExpired(save: SaveData, now: number, config: GatheringConfi
   const treasureMaps = save.treasureMaps.filter((m) => m.expiresAt > now);
   const activeLure = save.activeLure && lureEndsAt(save) > now ? save.activeLure : null;
   const usedSanctums = pruneCollected(save.usedSanctums, now);
-  const collected = pruneCollected(save.collected, now);
+  const collected = pruneCollected(save.collected, collectedKeepFrom(save, now));
   const takenOffers = pruneCollected(save.takenOffers, now);
   const usedPlaces = pruneCollected(save.usedPlaces, now);
   const chapelVisits = pruneCollected(save.chapelVisits, now);

@@ -30,7 +30,7 @@ import { migrateSave } from '@/game/migrations';
 import { readManual } from '@/game/loot/manuals';
 import type { Loot, ManualRarity } from '@/game/loot/types';
 import { applyBackgroundResults, type BackgroundResult } from '@/game/patrols/escort';
-import { assignJob, assignProblem, collectJob, jobChoices, jobOutputNow, recallFromJob, setJobChoice } from '@/game/jobs/jobs';
+import { assignJob, assignProblem, collectJob, jobChoices, jobOutputNow, moveCamp, recallFromJob, setJobChoice } from '@/game/jobs/jobs';
 import { isTravellerKind, type PatrolSpawn, type TravellerKind } from '@/game/patrols/generate';
 import { resolvePatrolFights as resolveDueFights, startPatrolFight, type PatrolFight } from '@/game/patrols/fight';
 import { acceptRecruit, helpTraveller as helpTravellerRule, sellValuableToTrader, trade, type TravellerRecruit, type TravellerReward } from '@/game/patrols/travellers';
@@ -129,8 +129,10 @@ type GameState = {
   noteTips: (ids: TipId[]) => void;
   /** Drinks a healing potion at home: the one asked for, or else the best fit. */
   drinkPotion: (heroId: string, itemId?: string) => void;
-  /** Puts a free hero to work at a station; a busy hero or a taken station changes nothing. */
-  assignJob: (heroId: string, jobId: string) => void;
+  /** Puts a free hero to work at a station; a busy hero or a taken station changes nothing. The gatherer camps where the player stands. */
+  assignJob: (heroId: string, jobId: string, position?: LatLng) => void;
+  /** Moves the gatherer's camp to where the player stands; the output made so far is kept. */
+  moveCamp: (position: LatLng) => void;
   /** Takes a working hero off their job; the output made so far stays at the station. */
   recallFromJob: (heroId: string) => void;
   /** Collects a job's output: whole units go to the materials, the fraction stays. */
@@ -404,9 +406,13 @@ export const useGameStore = create<GameState>()(
       drinkPotion: (heroId, itemId) =>
         set(({ save }) => (drinkProblem(save, heroId, Date.now(), itemId) ? {} : { save: drinkPotion(save, heroId, Date.now(), itemId) })),
       // Job actions skip when the rules refuse: a screen still showing an old state must not crash.
-      assignJob: (heroId, jobId) => {
+      assignJob: (heroId, jobId, position) => {
         const now = Date.now();
-        set(({ save }) => (assignProblem(save, heroId, jobId, now) ? {} : { save: assignJob(save, heroId, jobId, now) }));
+        set(({ save }) => (assignProblem(save, heroId, jobId, now, position) ? {} : { save: assignJob(save, heroId, jobId, now, position) }));
+      },
+      moveCamp: (position) => {
+        const now = Date.now();
+        set(({ save }) => (save.heroes.some((h) => h.job?.jobId === 'gatherer') ? { save: moveCamp(save, position, now) } : {}));
       },
       recallFromJob: (heroId) => {
         const now = Date.now();

@@ -63,6 +63,12 @@ export type JobOutput = {
   /** Units the job has made since it started: the next unit's index. */
   units: number;
   since: number;
+  /** Gatherer only: when the last node was taken (its pace clock). */
+  lastNodeAt?: number;
+  /** Gatherer only: wounds since the last collect: the hero's HP lost. */
+  wounds?: { at: number; heroId: string; hp: number }[];
+  /** Gatherer only: nodes gathered since the last collect. */
+  nodes?: number;
 };
 
 export type SaveData = {

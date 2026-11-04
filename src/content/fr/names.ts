@@ -1263,6 +1263,7 @@ export const frNames: Record<string, string> = {
   Trapper: 'Trappeur',
   Miner: 'Mineur',
   'Charcoal burner': 'Charbonnier',
+  'Outdoor gatherer': 'Cueilleur des environs',
   // Purpose tags
   'Ingredient': 'Ingrédient',
   'Good': 'Marchandise',

@@ -2,36 +2,46 @@ import { choiceOf, jobById, jobRules, jobs, type JobDef } from '@/content/jobs';
 
 import { highestUnlockedTier } from '../dungeons/unlock';
 import { createRng } from '../generation/rng';
+import type { LatLng } from '../generation/types';
 import { addMaterials } from '../inventory';
+import { currentHp, maxHp, withHp } from '../team/health';
 import type { JobOutput, SaveData } from '../save';
 import { isAway } from '../team/team';
 import type { HeroState } from '../types';
+import { gathererCapNodes, gathererDetail, gathererFullAt, gathererNodesNow, type GathererWound } from './gatherer';
 
 const HOUR = 3_600_000;
 
-/** One energy cycle: a work phase of D hours, then a rest phase of R hours. */
-const D = jobRules.energy.drainHours;
-const R = jobRules.energy.restHours;
-const C = D + R;
+/** One energy cycle: a work phase of D hours, then a rest phase of R hours. D is the hero's own job's drain. */
+const REST_HOURS = jobRules.energy.restHours;
 const MAX = jobRules.energy.max;
-/** Energy lost per hour of work, and gained per hour of rest. */
-const DRAIN = MAX / D;
-const REST = MAX / R;
+/** Energy gained per hour of rest. */
+const REST = MAX / REST_HOURS;
+
+/** The hero's cycle: their job's drain hours (or the default), then the usual rest. */
+export const cycleOf = (hero: HeroState) => {
+  const d = (hero.job && jobById[hero.job.jobId]?.drainHours) || jobRules.energy.drainHours;
+  return { d, c: d + REST_HOURS, drain: MAX / d };
+};
 
 const mod = (x: number, m: number) => ((x % m) + m) % m;
 const clampEnergy = (value: number) => Math.min(MAX, Math.max(0, value));
 
 /** Where a worker sits in the cycle at `at` (hours): work 0..D, rest D..C, unrolled over whole cycles. */
-function cycleAt(hero: HeroState, at: number) {
-  const offset = hero.job?.tired ? D + hero.energy.value / REST : (MAX - hero.energy.value) / DRAIN;
+export function cycleAt(hero: HeroState, at: number) {
+  const { d, drain } = cycleOf(hero);
+  const offset = hero.job?.tired ? d + hero.energy.value / REST : (MAX - hero.energy.value) / drain;
   return offset + (at - hero.energy.at) / HOUR;
 }
 
 /** The absolute time of cycle position `x`. */
-const timeOf = (hero: HeroState, x: number) => hero.energy.at + (x - cycleAt(hero, hero.energy.at)) * HOUR;
+export const timeOf = (hero: HeroState, x: number) => hero.energy.at + (x - cycleAt(hero, hero.energy.at)) * HOUR;
 
 /** Work hours a worker puts in over `x` hours of the cycle, whole cycles via floor/modulo. */
-const workDone = (x: number) => Math.floor(x / C) * D + Math.min(mod(x, C), D);
+export const workDone = (hero: HeroState, x: number) => {
+  const { d, c } = cycleOf(hero);
+  return Math.floor(x / c) * d + Math.min(mod(x, c), d);
+};
 
 /** Energy now, worked out from the stored value and its timestamp: a worker cycles work and rest, anyone else rests. */
 export function currentEnergy(save: SaveData, hero: HeroState, now: number): number {
@@ -39,13 +49,16 @@ export function currentEnergy(save: SaveData, hero: HeroState, now: number): num
     const hours = Math.max(0, now - hero.energy.at) / HOUR;
     return clampEnergy(hero.energy.value + REST * hours);
   }
-  const p = mod(cycleAt(hero, now), C);
-  return clampEnergy(p < D ? MAX - p * DRAIN : (p - D) * REST);
+  const { d, c, drain } = cycleOf(hero);
+  const p = mod(cycleAt(hero, now), c);
+  return clampEnergy(p < d ? MAX - p * drain : (p - d) * REST);
 }
 
 /** Whether a worker's cycle position is in the tired (rest) phase. */
 export function isTired(save: SaveData, hero: HeroState, now: number): boolean {
-  return hero.job !== null && mod(cycleAt(hero, now), C) >= D;
+  if (hero.job === null) return false;
+  const { d, c } = cycleOf(hero);
+  return mod(cycleAt(hero, now), c) >= d;
 }
 
 /** The hero working `jobId`, if any. */
@@ -56,6 +69,7 @@ export const jobWorker = (save: SaveData, jobId: string): HeroState | undefined 
 export function unitMaterial(save: SaveData, jobId: string, heroId: string, index: number): string {
   const produces = jobById[jobId].produces;
   if (typeof produces === 'string') return produces;
+  if ('nodes' in produces) throw new Error(`Job ${jobId} gathers no unit material`);
   if ('weights' in produces) {
     return createRng(`job|${jobId}|${heroId}|${index}`).weighted(Object.keys(produces.weights), (m) => produces.weights[m]);
   }
@@ -68,6 +82,7 @@ export function unitMaterial(save: SaveData, jobId: string, heroId: string, inde
 export function jobMaterials(job: JobDef): string[] {
   const produces = job.produces;
   if (typeof produces === 'string') return [produces];
+  if ('nodes' in produces) return [];
   if ('weights' in produces) return Object.keys(produces.weights);
   return produces.choice.map((option) => option.material);
 }
@@ -84,11 +99,11 @@ export function jobChoices(save: SaveData, jobId: string): string[] {
 export const isJobOpen = (save: SaveData, jobId: string): boolean =>
   !!jobById[jobId] && highestUnlockedTier(save) >= jobById[jobId].opensAtTier;
 
-/** The stations the save's tier has opened, in content order. */
-export const openJobs = (save: SaveData): JobDef[] => jobs.filter((job) => isJobOpen(save, job.id));
+/** The stations the save's tier has opened, in content order; the gatherer has no station card. */
+export const openJobs = (save: SaveData): JobDef[] => jobs.filter((job) => !job.kind && isJobOpen(save, job.id));
 
-/** The output a job holds once full. */
-export const jobCap = (jobId: string) => jobById[jobId].ratePerHour * jobRules.capHours;
+/** The output a job holds once full: units for a station, gathered nodes for the gatherer. */
+export const jobCap = (jobId: string) => (jobById[jobId].kind === 'outdoor' ? gathererCapNodes() : jobById[jobId].ratePerHour * jobRules.capHours);
 
 /** The amount an entry holds: its whole units plus the fraction of the next one. */
 const totalOf = (entry: JobOutput | undefined) =>
@@ -105,12 +120,13 @@ export function jobProduced(save: SaveData, jobId: string, now: number): number 
   // Counted from the later of the output's and the worker's timestamps, both on the worker's cycle.
   const from = Math.max(entry?.since ?? now, worker.energy.at);
   if (now <= from) return 0;
-  const produced = jobById[jobId].ratePerHour * (workDone(cycleAt(worker, now)) - workDone(cycleAt(worker, from)));
+  const produced = jobById[jobId].ratePerHour * (workDone(worker, cycleAt(worker, now)) - workDone(worker, cycleAt(worker, from)));
   return Math.min(Math.max(0, produced), room);
 }
 
 /** The output waiting at the job now, capped at the job's cap. */
 export function jobOutputNow(save: SaveData, jobId: string, now: number): number {
+  if (jobById[jobId].kind === 'outdoor') return gathererNodesNow(save, jobId, now);
   return totalOf(save.jobOutput[jobId]) + jobProduced(save, jobId, now);
 }
 
@@ -120,6 +136,7 @@ export const isJobFull = (save: SaveData, jobId: string, now: number) => jobOutp
 export function jobOutputDetail(save: SaveData, jobId: string, now: number): JobOutput {
   const entry = save.jobOutput[jobId];
   if (!entry) return { amounts: {}, fraction: 0, units: 0, since: now };
+  if (jobById[jobId].kind === 'outdoor') return gathererDetail(save, jobId, now).entry;
   const worker = jobWorker(save, jobId);
   const fraction = entry.fraction + jobProduced(save, jobId, now);
   // The epsilon keeps float error from swallowing a unit that was fully made.
@@ -132,38 +149,59 @@ export function jobOutputDetail(save: SaveData, jobId: string, now: number): Job
   return { amounts, fraction: Math.max(0, fraction - made), units: entry.units + made, since: now };
 }
 
+/** Settles the gatherer's wounds onto the hero, in order: HP never below 1, and never before the HP already stored. */
+function woundedHeroes(save: SaveData, heroes: HeroState[], wounds: GathererWound[]): HeroState[] {
+  let next = heroes;
+  for (const wound of wounds) {
+    next = next.map((hero) => {
+      if (hero.id !== wound.heroId) return hero;
+      const at = Math.max(wound.at, hero.hpAt ?? wound.at);
+      const max = maxHp(save, hero);
+      return withHp(hero, Math.max(1, currentHp(save, hero, at) - wound.hp), max, at, hero.exhaustedUntil);
+    });
+  }
+  return next;
+}
+
 /** Writes every job's output and every hero's energy as of `now`: output first, from the old energy state. */
 export function settleJobs(save: SaveData, now: number): SaveData {
   const jobOutput = { ...save.jobOutput };
+  let wounds: GathererWound[] = [];
   for (const job of jobs) {
     if (!jobWorker(save, job.id) && !(job.id in jobOutput)) continue;
+    if (job.kind === 'outdoor') {
+      const detail = gathererDetail(save, job.id, now);
+      jobOutput[job.id] = detail.entry;
+      wounds = detail.wounds;
+      continue;
+    }
     jobOutput[job.id] = jobOutputDetail(save, job.id, now);
   }
-  return {
-    ...save,
-    jobOutput,
-    heroes: save.heroes.map((hero) => ({
-      ...hero,
-      job: hero.job ? { ...hero.job, tired: isTired(save, hero, now) } : null,
-      energy: { value: currentEnergy(save, hero, now), at: now },
-    })),
-  };
+  const energy = save.heroes.map((hero) => ({
+    ...hero,
+    job: hero.job ? { ...hero.job, tired: isTired(save, hero, now) } : null,
+    energy: { value: currentEnergy(save, hero, now), at: now },
+  }));
+  return { ...save, jobOutput, heroes: woundedHeroes(save, energy, wounds) };
 }
 
 /** When the output reaches the job's cap with the current worker's cycle, or null with no worker or already full. */
 export function fullAt(save: SaveData, jobId: string, now: number): number | null {
+  const job = jobById[jobId];
   const worker = jobWorker(save, jobId);
   if (!worker || isJobFull(save, jobId, now)) return null;
-  let need = (jobCap(jobId) - jobOutputNow(save, jobId, now)) / jobById[jobId].ratePerHour;
+  if (job.kind === 'outdoor') return gathererFullAt(save, jobId, now);
+  const { d, c } = cycleOf(worker);
+  let need = (jobCap(jobId) - jobOutputNow(save, jobId, now)) / job.ratePerHour;
   let x = cycleAt(worker, now);
   for (;;) {
-    const m = mod(x, C);
+    const m = mod(x, c);
     // Resting: work starts again at the top of the cycle.
-    if (m >= D) x += C - m;
-    else if (need <= D - m) return timeOf(worker, x + need);
+    if (m >= d) x += c - m;
+    else if (need <= d - m) return timeOf(worker, x + need);
     else {
-      need -= D - m;
-      x += C - m;
+      need -= d - m;
+      x += c - m;
     }
   }
 }
@@ -171,35 +209,47 @@ export function fullAt(save: SaveData, jobId: string, now: number): number | nul
 /** When the worker's energy next reaches 0, or null with no job; a tired hero rests a full phase first. */
 export function tiredAt(save: SaveData, hero: HeroState, now: number): number | null {
   if (!hero.job) return null;
+  const { d, c } = cycleOf(hero);
   const x = cycleAt(hero, now);
-  const m = mod(x, C);
-  const zero = Math.floor(x / C) * C + D + (m >= D ? C : 0);
+  const m = mod(x, c);
+  const zero = Math.floor(x / c) * c + d + (m >= d ? c : 0);
   return timeOf(hero, zero);
 }
 
-export type AssignProblem = 'away' | 'working' | 'taken' | 'unknown' | 'closed' | null;
+export type AssignProblem = 'away' | 'working' | 'taken' | 'unknown' | 'closed' | 'noPosition' | null;
 
 /** Why the hero cannot take the job now, or null when they can. */
-export function assignProblem(save: SaveData, heroId: string, jobId: string, now: number): AssignProblem {
+export function assignProblem(save: SaveData, heroId: string, jobId: string, now: number, position?: LatLng): AssignProblem {
   if (!jobById[jobId]) return 'unknown';
   if (!isJobOpen(save, jobId)) return 'closed';
   const hero = save.heroes.find((h) => h.id === heroId);
   if (!hero || isAway(save, heroId)) return 'away';
   if (hero.job) return 'working';
   if (jobWorker(save, jobId)) return 'taken';
+  if (jobById[jobId].kind === 'outdoor' && !position) return 'noPosition';
   return null;
 }
 
-/** Puts the hero to work at the station: settled energy 0 sends them into the tired phase at once. */
-export function assignJob(save: SaveData, heroId: string, jobId: string, now: number): SaveData {
-  const problem = assignProblem(save, heroId, jobId, now);
+/** Puts the hero to work: settled energy 0 sends them into the tired phase at once; an outdoor job camps where given. */
+export function assignJob(save: SaveData, heroId: string, jobId: string, now: number, position?: LatLng): SaveData {
+  const problem = assignProblem(save, heroId, jobId, now, position);
   if (problem) throw new Error(`Cannot assign ${heroId} to ${jobId}: ${problem}`);
   const settled = settleJobs(save, now);
   const hero = settled.heroes.find((h) => h.id === heroId)!;
   const withJob = {
     ...settled,
     heroes: settled.heroes.map((h) =>
-      h.id === heroId ? { ...h, job: { jobId, since: now, tired: hero.energy.value <= 0 } } : h,
+      h.id === heroId
+        ? {
+            ...h,
+            job: {
+              jobId,
+              since: now,
+              tired: hero.energy.value <= 0,
+              ...(position ? { camp: { position, since: now } } : {}),
+            },
+          }
+        : h,
     ),
     jobOutput: jobId in settled.jobOutput ? settled.jobOutput : { ...settled.jobOutput, [jobId]: { amounts: {}, fraction: 0, units: 0, since: now } },
   };
@@ -210,6 +260,17 @@ export function assignJob(save: SaveData, heroId: string, jobId: string, now: nu
     return { ...withJob, jobChoice: { ...settled.jobChoice, [jobId]: choices[choices.length - 1] } };
   }
   return withJob;
+}
+
+/** Moves the gatherer's camp: the output made so far is kept, gathering starts again from the new spot. */
+export function moveCamp(save: SaveData, position: LatLng, now: number): SaveData {
+  const settled = settleJobs(save, now);
+  const worker = settled.heroes.find((h) => h.job?.jobId === 'gatherer');
+  if (!worker) throw new Error('No gatherer to move a camp for');
+  return {
+    ...settled,
+    heroes: settled.heroes.map((h) => (h.id === worker.id ? { ...h, job: { ...h.job!, camp: { position, since: now } } } : h)),
+  };
 }
 
 /** Sends the choice job's future units to `material`; units already made keep their old material. */
@@ -228,7 +289,7 @@ export function recallFromJob(save: SaveData, heroId: string, now: number): Save
   return { ...settled, heroes: settled.heroes.map((h) => (h.id === heroId ? { ...h, job: null } : h)) };
 }
 
-/** Collects the job's output: whole units go to the materials, the fraction stays until the next collect. */
+/** Collects the job's output: whole units go to the materials, the fraction stays; the gatherer's counters reset. */
 export function collectJob(save: SaveData, jobId: string, now: number): SaveData {
   if (!jobById[jobId]) throw new Error(`Unknown job ${jobId}`);
   const settled = settleJobs(save, now);
@@ -238,6 +299,15 @@ export function collectJob(save: SaveData, jobId: string, now: number): SaveData
   return {
     ...settled,
     materials: addMaterials(settled.materials, whole.map(([materialId, amount]) => ({ materialId, amount }))),
-    jobOutput: { ...settled.jobOutput, [jobId]: { amounts: {}, fraction: entry!.fraction, units: entry!.units, since: now } },
+    jobOutput: {
+      ...settled.jobOutput,
+      [jobId]: {
+        amounts: {},
+        fraction: entry!.fraction,
+        units: entry!.units,
+        since: now,
+        ...(jobById[jobId].kind === 'outdoor' ? { nodes: 0, wounds: [] } : {}),
+      },
+    },
   };
 }
