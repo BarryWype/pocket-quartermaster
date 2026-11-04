@@ -30,7 +30,7 @@ Design catalogues for what's built or being built live in `doc/design/` (`threat
 
 Direction: the game stays a walking game with short, dense check-ins at home (direction A). Walking must stay the best source of resources, but no longer the only one. Every step adds output to the economy, so run the simulator after each one.
 
-1. **Special abilities.** One random ability per hero from its class pool, fired automatically by its own rule; more picks unlock with level (choose one to equip). Manuals can teach or reroll an ability.
+1. **Special abilities.** Done (2026-11-04) for the first version: one special per hero from its class pool, fired automatically by its own rule (see `doc/design/abilities/`). Later: more picks with level (choose one to equip), manuals that teach or reroll one.
 2. **Non-combat traits, gatherer jobs and the resource rework.** A second trait per hero for jobs, trade and gathering; farmer, woodcutter, miner and the outdoor gatherer; the resource rework that lets non-walking sources exist without overshadowing walking. More ways to recruit heroes come in around here (rescues, quest rewards).
 3. **Affixes.** Uncommon 1, rare 2, legendary 3, rolled from a small pool with bell-curve rolls; some affixes soften a threat. Gear drops can become more frequent. The forge keeps control: walking materials reroll one affix. No affix extraction.
 4. **Monster research.** Enemy-family research tracks, fuelled by monster parts: kit recipes, then trinket recipes, then higher kit tiers and better trinkets. The best trinkets stay drop-only.
