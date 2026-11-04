@@ -48,7 +48,7 @@ export const frNotificationTexts: typeof notificationTexts = {
   heroesIdle: { title: 'Vos héros s’impatientent', body: 'Personne n’est parti en expédition depuis un moment. Envoyer une équipe ?' },
   heroesRested: { title: 'Héros reposés', body: 'Vos héros ont retrouvé toute leur santé, prêts pour la prochaine expédition.' },
   jobFull: { title: '{job} : production pleine', body: 'Prête à être récoltée à la guilde.' },
-  jobTired: { title: '{hero} est fatigué', body: 'Repos au poste jusqu’au retour de son énergie.' },
+  jobTired: { title: '{hero} est fatigué ({job})', body: 'Repos au poste jusqu’au retour de son énergie.' },
   chestUnlocked: { title: 'Coffre de pas débloqué', body: 'Votre {chest} est prêt à être ouvert.' },
   chestClose: { title: 'Presque arrivé', body: 'Plus que {steps} pas avant votre {chest}.' },
   dailyReset: { title: 'Nouvelle journée', body: 'Nouvelle journée, nouveaux coffres de pas.' },

@@ -1,5 +1,5 @@
 import { dungeonById, recipeById, recipeOutput } from '@/content/lookup';
-import { jobs } from '@/content/jobs';
+import { jobById, jobs } from '@/content/jobs';
 import { frNotificationTexts } from '@/content/fr/notifications';
 import { notificationCategories, notificationRules, notificationTexts as enNotificationTexts } from '@/content/notifications';
 import { nearbyKinds } from '@/content/pocketMode';
@@ -192,14 +192,14 @@ function jobNotifications(save: SaveData, now: number): PlannedNotification[] {
   });
   const tired = save.heroes.flatMap((hero): PlannedNotification[] => {
     const at = tiredAt(save, hero, now);
-    if (at === null) return [];
+    if (at === null || hero.job === null) return [];
     return [
       {
         id: `job:tired:${hero.id}`,
         category: 'jobs',
         group: 'expeditions',
         at,
-        title: fill(t.jobTired.title, { hero: hero.name }),
+        title: fill(t.jobTired.title, { hero: hero.name, job: tr(jobById[hero.job.jobId].name) }),
         body: t.jobTired.body,
         data: { route: 'jobs' },
       },

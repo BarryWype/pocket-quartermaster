@@ -5,7 +5,7 @@ import { clockConfig } from '@/content/clockConfig';
 import { type JobDef, jobRules, jobs } from '@/content/jobs';
 import { heroClasses } from '@/content/heroes';
 import { materialById } from '@/content/lookup';
-import { currentEnergy, isJobFull, jobCap, jobMaterials, jobOutputNow, jobWorker, openJobs } from '@/game/jobs/jobs';
+import { currentEnergy, isJobFull, jobCap, jobChoices, jobMaterials, jobOutputDetail, jobOutputNow, jobWorker, openJobs } from '@/game/jobs/jobs';
 import type { SaveData } from '@/game/save';
 import { isBusy } from '@/game/team/team';
 import { formatPercent, t, tr } from '@/i18n';
@@ -19,6 +19,7 @@ import { IconLabel } from './IconLabel';
 import { PixelBar } from './PixelBar';
 import { SpecialLabel } from './SpecialLabel';
 import { Text } from './Text';
+import { Tip } from './Tip';
 import { EmberButton, ParchmentCard, WoodButton } from './ui';
 
 /**
@@ -83,6 +84,7 @@ function JobCard({
       contentStyle={styles.card}
     >
       <OutputBar save={save} job={job} />
+      <OrePicker save={save} job={job} />
       {worker && <EnergyBar save={save} hero={worker} />}
       <View style={styles.actions}>
         <EmberButton
@@ -140,24 +142,83 @@ function HeroChips({ save, preselect, onPick }: { save: SaveData; preselect?: st
   );
 }
 
+/** The materials worth showing as a job's produce: every one it makes, unlocked ores only for a choice job. */
+function producesOf(save: SaveData, job: JobDef): string[] {
+  const choices = jobChoices(save, job.id);
+  return choices.length > 0 ? choices : jobMaterials(job);
+}
+
+/** The produces row's tip text: the odds for weighted jobs, otherwise the material names. */
+function producesTip(save: SaveData, job: JobDef): string {
+  const ids = producesOf(save, job);
+  if (typeof job.produces === 'object' && 'weights' in job.produces) {
+    const weights = job.produces.weights;
+    const sum = Object.values(weights).reduce((total, weight) => total + weight, 0);
+    return ids
+      .map((id) => t('jobs.odds', { name: tr(materialById[id].name), percent: formatPercent((weights[id] ?? 0) / sum) }))
+      .join(' · ');
+  }
+  return ids.map((id) => tr(materialById[id].name)).join(' · ');
+}
+
+/** The ore picker of a choice job: one chip per unlocked material, the chosen one highlighted. */
+function OrePicker({ save, job }: { save: SaveData; job: JobDef }) {
+  const setJobChoice = useGameStore((state) => state.setJobChoice);
+  const choices = jobChoices(save, job.id);
+  if (choices.length === 0) return null;
+  const choice = save.jobChoice[job.id];
+  const current = choice !== null && choice !== undefined && choices.includes(choice) ? choice : choices[choices.length - 1];
+  return (
+    <View style={styles.row}>
+      <Text style={styles.barText}>{t('jobs.ore')}</Text>
+      <View style={styles.chips}>
+        {choices.map((material) => (
+          <Pressable
+            key={material}
+            onPress={() => setJobChoice(job.id, material)}
+            style={[styles.chip, current === material && styles.chipActive]}
+          >
+            <IconLabel emoji={materialById[material].emoji} icon={materialById[material].icon} label={tr(materialById[material].name)} />
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 /** The output waiting at a station, towards the cap it fills after `capHours` of work. */
 function OutputBar({ save, job }: { save: SaveData; job: JobDef }) {
   // Its own clock, so the bar ticks without re-rendering the card around it.
   const now = useNow(clockConfig.minutesMs);
   const output = jobOutputNow(save, job.id, now);
   const cap = jobCap(job.id);
-  const material = materialById[jobMaterials(job)[0]];
+  const detail = jobOutputDetail(save, job.id, now);
+  const waiting = jobMaterials(job).filter((id) => (detail.amounts[id] ?? 0) > 0);
   return (
-    <View>
+    <View style={styles.bar}>
       <PixelBar value={cap > 0 ? output / cap : 0} color={colors.success} />
       <View style={styles.row}>
-        <IconLabel
-          emoji={material.emoji}
-          icon={material.icon}
-          label={t('jobs.output', { amount: output.toFixed(1), cap })}
-          labelStyle={styles.barText}
-        />
+        {waiting.map((materialId) => (
+          <IconLabel
+            key={materialId}
+            emoji={materialById[materialId].emoji}
+            icon={materialById[materialId].icon}
+            label={String(detail.amounts[materialId])}
+            labelStyle={styles.barText}
+          />
+        ))}
+        <Text style={styles.barText}>{t('jobs.output', { amount: output.toFixed(1), cap })}</Text>
         {isJobFull(save, job.id, now) && <Text style={styles.barText}> · {t('jobs.full')}</Text>}
+      </View>
+      <View style={styles.row}>
+        <Text style={styles.barText}>{t('jobs.produces')}</Text>
+        <Tip text={producesTip(save, job)}>
+          <View style={styles.row}>
+            {producesOf(save, job).map((materialId) => (
+              <GameIcon key={materialId} emoji={materialById[materialId].emoji} icon={materialById[materialId].icon} size={20} />
+            ))}
+          </View>
+        </Tip>
       </View>
     </View>
   );
@@ -165,6 +226,7 @@ function OutputBar({ save, job }: { save: SaveData; job: JobDef }) {
 
 const styles = StyleSheet.create({
   card: { gap: 8 },
+  bar: { gap: 4 },
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
   barText: { fontSize: 16, color: colors.muted },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 2 },

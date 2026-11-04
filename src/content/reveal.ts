@@ -20,8 +20,11 @@ export type RevealKind =
 /** Item kinds that get a tip the first time one is held. */
 export type ItemTipKind = 'charms' | 'components' | 'relics' | 'trinkets' | 'valuables' | 'keyFragments';
 
-/** The specials tip: due once the tutorial is done and a hero is fielded. The jobs tip: due once the Jobs tab is opened. */
-export type TipId = RevealKind | ItemTipKind | 'specials' | 'jobs';
+/**
+ * The specials tip: due once the tutorial is done and a hero is fielded. The jobs tip: due once
+ * the Jobs tab is opened. The per-job tips: due once their station opens at the guild.
+ */
+export type TipId = RevealKind | ItemTipKind | 'specials' | 'jobs' | 'jobMiner' | 'jobCharcoalBurner';
 
 /** What has to be true for a kind to show; read by `isRevealed`. */
 export type RevealCondition =
@@ -110,4 +113,7 @@ export const tipTexts: Record<TipId, string> = {
   keyFragments: 'Key fragments: four make a mysterious key, which opens secret places.',
   specials: 'Specials: every hero has one, rolled from its class. It fires on its own in fights, a limited number of times; rare ones are marked ✦.',
   jobs: "A hero at a job produces slowly while you're away. Output fills up after 8 hours, so collect on check-in. Work tires them over a day, and tired heroes rest at the station before working again. Working heroes must be recalled before they can be sent out.",
+  jobMiner:
+    'The Miner is open at the guild: a hero there digs the ore you pick. Stone now, copper and iron as tiers open. Switching ore keeps what was mined.',
+  jobCharcoalBurner: "The Charcoal burner is open at the guild: a hero there makes coal while you're away.",
 };

@@ -202,6 +202,9 @@ export const fr: Dictionary = {
     pickTitle: 'Qui prend le poste ?',
     noFreeHeroes: 'Aucun héros n’est libre pour l’instant.',
     taken: '{name} occupe ce poste. Rappelez-le pour libérer le poste.',
+    produces: 'Produit',
+    ore: 'Minerai',
+    odds: '{name} {percent}',
   },
   health: {
     hp: '{hp}/{max} PV',
@@ -914,6 +917,8 @@ export const fr: Dictionary = {
       keyFragments: 'Fragments de clé',
       specials: 'Aptitudes',
       jobs: 'Métiers',
+      jobMiner: 'Mineur',
+      jobCharcoalBurner: 'Charbonnier',
     },
   },
   debug: {

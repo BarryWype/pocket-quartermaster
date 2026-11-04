@@ -175,7 +175,15 @@ describe('dueTips', () => {
     guild.clearedDungeons = [guildRules.unlockedBy];
     guild.tips.seen = ['specials', 'dungeons', 'quests'];
     const owed = noteTips(guild, dueTips(guild));
-    expect(owed.tips.pending).toEqual(['guildHall']);
+    expect(owed.tips.pending).toEqual(['guildHall', 'jobMiner']);
+  });
+
+  it('queues the Miner tip once tier 2 opens, and not before', () => {
+    const save = opened();
+    expect(dueTips(save)).not.toContain('jobMiner');
+    save.clearedDungeons = [tierBoss(1).id];
+    expect(dueTips(save)).toContain('jobMiner');
+    expect(dueTips(save)).not.toContain('jobCharcoalBurner');
   });
 });
 

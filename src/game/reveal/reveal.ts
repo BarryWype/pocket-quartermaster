@@ -6,6 +6,7 @@ import { localized } from '@/i18n/locale';
 
 import { highestUnlockedTier } from '../dungeons/unlock';
 import { isGuildUnlocked } from '../guild/guild';
+import { isJobOpen } from '../jobs/jobs';
 import type { SaveData } from '../save';
 
 type Rules = typeof revealRules;
@@ -70,12 +71,14 @@ export function noteTips(save: SaveData, ids: TipId[]): SaveData {
   return { ...save, tips: { ...save.tips, pending: [...save.tips.pending, ...fresh] } };
 }
 
-/** Tips due now: specials once a hero is fielded, item kinds first held, and off-map kinds once revealed. */
+/** Tips due now: specials once a hero is fielded, item kinds first held, off-map kinds once revealed, job stations once open. */
 export function dueTips(save: SaveData): TipId[] {
   return [
     ...(save.tutorial.step === 'done' && save.heroes.length > 0 ? (['specials'] as TipId[]) : []),
     ...heldItemKinds(save),
     ...offMapRevealKinds.filter((kind) => isRevealed(save, kind)),
+    ...(isJobOpen(save, 'miner') ? (['jobMiner'] as TipId[]) : []),
+    ...(isJobOpen(save, 'charcoalBurner') ? (['jobCharcoalBurner'] as TipId[]) : []),
   ];
 }
 

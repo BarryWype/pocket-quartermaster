@@ -298,7 +298,7 @@ describe('job notifications', () => {
     expect(full.title).toBe('Woodcutter: output full');
     const [tired] = planned.filter((n) => n.id === 'job:tired:bram');
     expect(tired).toMatchObject({ category: 'jobs', group: 'expeditions', at: now + 24 * HOUR, data: { route: 'jobs' } });
-    expect(tired.title).toBe('Bram is tired');
+    expect(tired.title).toBe('Bram is tired (Woodcutter)');
   });
 
   it('plans nothing without a worker, and follows the category', () => {

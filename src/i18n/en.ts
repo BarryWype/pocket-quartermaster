@@ -197,6 +197,9 @@ export const en = {
     pickTitle: 'Who takes the station?',
     noFreeHeroes: 'No hero is free right now.',
     taken: '{name} is working here. Recall them to free the station.',
+    produces: 'Produces',
+    ore: 'Ore',
+    odds: '{name} {percent}',
   },
   health: {
     hp: '{hp}/{max} HP',
@@ -906,6 +909,8 @@ export const en = {
       keyFragments: 'Key fragments',
       specials: 'Specials',
       jobs: 'Jobs',
+      jobMiner: 'Miner',
+      jobCharcoalBurner: 'Charcoal burner',
     },
   },
   debug: {

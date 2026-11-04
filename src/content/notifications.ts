@@ -140,7 +140,7 @@ export const notificationTexts = {
   heroesIdle: { title: 'Your heroes are restless', body: 'Nobody has been on an expedition for a while. Send a team out?' },
   heroesRested: { title: 'Heroes rested', body: 'Your heroes are back to full health, ready for the next expedition.' },
   jobFull: { title: '{job}: output full', body: 'Ready to collect at the guild.' },
-  jobTired: { title: '{hero} is tired', body: 'Resting at the station until their energy is back.' },
+  jobTired: { title: '{hero} is tired ({job})', body: 'Resting at the station until their energy is back.' },
   chestUnlocked: { title: 'Step chest unlocked', body: 'Your {chest} is ready to open.' },
   chestClose: { title: 'Almost there', body: 'Only {steps} more steps to your {chest}.' },
   dailyReset: { title: 'New day', body: 'New day, new step chests.' },
