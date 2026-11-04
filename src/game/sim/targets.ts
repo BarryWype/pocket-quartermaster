@@ -24,6 +24,8 @@ export const targets = {
   woodcutterShare: [0.1, 0.15] as [number, number],
   /** A job gives at most this share of a material's walking intake (regular profile); walk first. */
   jobShareMax: 0.15,
+  /** The gatherer gives at most this share of a material's walking intake (regular profile); it beats guild jobs because it depends on spawns. */
+  gathererShareMax: 0.25,
   /** Heroes end each tier within this many levels of the top of its band (expectedLevels). */
   levelSlack: 1,
   /** A stock that grows at every tier end and ends above this is a pile-up. */

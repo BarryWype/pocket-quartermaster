@@ -148,6 +148,28 @@ function jobsVsWalking(s: ProfileSummary) {
   return table(['Tier', 'Job', 'Material', 'Walked/day', 'Job/day', `Share of walking (max ${pct(targets.jobShareMax)})`], rows);
 }
 
+/** The gatherer's nodes gathered and wounds settled per day, per tier. */
+function gathererNodes(s: ProfileSummary) {
+  const rows = s.tiers.map((t) => [String(t.tier), n(t.gatherer?.nodes.median, 1), n(t.gatherer?.wounds.median, 1)]);
+  return table(['Tier', 'Nodes/day', 'Wounds/day'], rows);
+}
+
+/** The gatherer's materials over each tier, against the same walking intake as the guild jobs. */
+function gathererVsWalking(s: ProfileSummary) {
+  const rows = s.tiers.flatMap((t) =>
+    Object.entries(t.gatherer?.materials ?? {})
+      .filter(([, m]) => (m.fromJob.median ?? 0) > 0 || (m.walked.median ?? 0) > 0)
+      .map(([material, m]) => [
+        String(t.tier),
+        name(material),
+        n(m.walked.median, 1),
+        n(m.fromJob.median, 1),
+        `${pct(m.share.median)}${m.share.median !== null && m.share.median > targets.gathererShareMax ? ` ${WARN}` : ''}`,
+      ]),
+  );
+  return table(['Tier', 'Material', 'Walked/day', 'Gatherer/day', `Share of walking (max ${pct(targets.gathererShareMax)})`], rows);
+}
+
 /** Days per tier against a baseline run (e.g. with `--no-jobs`). */
 function baselineTable(s: ProfileSummary, baseline: Summary) {
   const before = baseline.profiles[s.profile];
@@ -326,7 +348,8 @@ export function renderReport({ summaries, rules, settings, difficultyOdds, basel
     'Every guild job over each tier: wood for the woodcutter, then each job’s materials — what walking and the map brought in, what the job added, and the job’s share of that walking (walk first).',
     '',
   );
-  for (const s of summaries) out.push(`### ${s.profile}`, '', jobsTable(s), '', '**Jobs vs walking**', '', jobsVsWalking(s), '');
+  for (const s of summaries)
+    out.push(`### ${s.profile}`, '', jobsTable(s), '', '**Jobs vs walking**', '', jobsVsWalking(s), '', '**Outdoor gatherer**', '', gathererNodes(s), '', gathererVsWalking(s), '');
   out.push(
     'The bot collects every station at the start of a session, recalls a worker whenever a send needs them, and staffs every open station at the end of a session — the one shortest of its material first, so a worker never costs a party member; the miner digs the unlocked ore the bot holds least of (see the Jobs rule under Bot rules).',
     '',

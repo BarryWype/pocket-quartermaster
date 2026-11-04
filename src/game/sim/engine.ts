@@ -54,6 +54,7 @@ import {
   infuseWeapons,
   mark,
   markCoreKit,
+  morningCamp,
   noteQuestGathers,
   reachChance,
   recallWorking,
@@ -266,8 +267,9 @@ function helpTravellerSpawn(sim: Sim, spawn: PatrolSpawn, at: number, player: La
   }
 }
 
-function session(sim: Sim, walking: boolean, firstWalk: boolean, steps: number, dayKey: string) {
+function session(sim: Sim, walking: boolean, firstWalk: boolean, firstSession: boolean, steps: number, dayKey: string) {
   collectJobs(sim);
+  if (firstSession) morningCamp(sim);
   sim.save = rollDailyApproaches(pruneExpired(sim.save, sim.now), sim.now);
   sim.rotation = dailyRotation(rotationDay(sim.now));
 
@@ -434,7 +436,7 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
     let idle = 0;
     sessionTimes(day).forEach((time, i) => {
       sim.now = time;
-      session(sim, profile.walkHours.includes(hours[i]), hours[i] === Math.min(...profile.walkHours), steps / hours.length, dayKey);
+      session(sim, profile.walkHours.includes(hours[i]), hours[i] === Math.min(...profile.walkHours), i === 0, steps / hours.length, dayKey);
       idle += homeHeroes(sim.save).length / sim.save.heroes.length;
       markHoldings(sim);
       markReveals(sim);

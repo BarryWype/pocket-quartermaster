@@ -86,6 +86,15 @@ check('simulator balance bands', () => {
           expect(line.share.median).toBeLessThanOrEqual(targets.jobShareMax));
       }
     }
+    for (const tier of summary.profiles.regular?.tiers ?? []) {
+      // A summary from before the gatherer was covered has no gatherer data to check.
+      if (!tier.gatherer) continue;
+      for (const [material, line] of Object.entries(tier.gatherer.materials)) {
+        if (line.share.median === null) continue;
+        it(`regular: tier ${tier.tier} gatherer gives at most ${Math.round(targets.gathererShareMax * 100)}% of the ${material} walked`, () =>
+          expect(line.share.median).toBeLessThanOrEqual(targets.gathererShareMax));
+      }
+    }
   });
 
   describe('gold, materials and levels', () => {

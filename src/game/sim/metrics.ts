@@ -56,6 +56,8 @@ export type TierSummary = {
   wood: { walked: Stat; spent: Stat; woodcutter: Stat; share: Stat };
   /** Every job's materials over the tier: gathered by walking, gathered at the job, and the job's share of the walk. */
   jobs: Record<string /* material */, { job: string; walked: Stat; fromJob: Stat; share: Stat }>;
+  /** The gatherer's own output over the tier: its materials against the same walking intake as the guild jobs, and its nodes and wounds per day. */
+  gatherer: { materials: Record<string, { walked: Stat; fromJob: Stat; share: Stat }>; nodes: Stat; wounds: Stat };
   level: { end: Stat; target: number };
 };
 
@@ -170,15 +172,25 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
 
   // Wood per day: what walking and the map brought in, what every sink spent, and the woodcutter's share of it.
   const perDay = (total: number | null, window: [number, number] | null) => (total === null || !window ? null : total / (window[1] - window[0] + 1));
+  const jobFlowOfDay = (log: RunLog, window: [number, number] | null, jobId: string, material: string) =>
+    window ? sum(Object.entries(log.jobFlow).filter(([day]) => within(Number(day), window)).map(([, jobs]) => jobs[jobId]?.[material] ?? 0)) : null;
   const jobFlowOf = (log: RunLog, window: [number, number] | null, material: string) =>
-    window ? sum(Object.entries(log.jobFlow).filter(([day]) => within(Number(day), window)).map(([, m]) => m[material] ?? 0)) : null;
+    window
+      ? sum(Object.entries(log.jobFlow).filter(([day]) => within(Number(day), window)).map(([, jobs]) => sum(Object.values(jobs).map((m) => m[material] ?? 0))))
+      : null;
+  /** A material's walking intake over the window: what everything but the jobs gathered of it. */
+  const walkedOf = (log: RunLog, window: [number, number] | null, material: string) => {
+    const gathered = flowOf(log, window, material, 0);
+    const jobs = jobFlowOf(log, window, material);
+    return gathered !== null && jobs !== null ? gathered - jobs : null;
+  };
   const woodSeeds = logs.map((log, i) => {
     const window = windows[i];
-    const gatheredWood = flowOf(log, window, 'wood', 0);
     const spentWood = flowOf(log, window, 'wood', 1);
-    const job = jobFlowOf(log, window, 'wood');
+    const job = jobFlowOfDay(log, window, 'woodcutter', 'wood');
+    const walked = walkedOf(log, window, 'wood');
     return {
-      walked: perDay(gatheredWood !== null && job !== null ? gatheredWood - job : null, window),
+      walked: perDay(walked, window),
       spent: perDay(spentWood, window),
       woodcutter: perDay(job, window),
       share: job !== null && spentWood ? job / spentWood : null,
@@ -197,10 +209,9 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
       jobMaterials(job).map((material) => {
         const seeds = logs.map((log, i) => {
           const window = windows[i];
-          const fromJob = jobFlowOf(log, window, material);
-          const gathered = flowOf(log, window, material, 0);
-          if (fromJob === null || gathered === null) return { walked: null, fromJob: null, share: null };
-          const walked = gathered - fromJob;
+          const fromJob = jobFlowOfDay(log, window, job.id, material);
+          const walked = walkedOf(log, window, material);
+          if (fromJob === null || walked === null) return { walked: null, fromJob: null, share: null };
           return {
             walked: perDay(walked, window),
             fromJob: perDay(fromJob, window),
@@ -219,6 +230,40 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
       }),
     ),
   );
+
+  // The gatherer: its nodes and wounds per day, and its own materials against the walking intake the guild jobs share.
+  const gathererTotal = (log: RunLog, window: [number, number] | null, key: 'nodes' | 'wounds') =>
+    window ? sum(Object.entries(log.gatherer).filter(([day]) => within(Number(day), window)).map(([, g]) => g[key])) : null;
+  const gathererMaterials = [...new Set(logs.flatMap((log, i) => Object.entries(log.jobFlow)
+    .filter(([day]) => within(Number(day), windows[i]))
+    .flatMap(([, jobs]) => Object.keys(jobs.gatherer ?? {}))))];
+  const gatherer = {
+    materials: Object.fromEntries(
+      gathererMaterials.map((material) => {
+        const seeds = logs.map((log, i) => {
+          const window = windows[i];
+          const fromJob = jobFlowOfDay(log, window, 'gatherer', material);
+          const walked = walkedOf(log, window, material);
+          if (fromJob === null || walked === null) return { walked: null, fromJob: null, share: null };
+          return {
+            walked: perDay(walked, window),
+            fromJob: perDay(fromJob, window),
+            share: walked > 0 ? fromJob / walked : null,
+          };
+        });
+        return [
+          material,
+          {
+            walked: stat(seeds.map((s) => s.walked)),
+            fromJob: stat(seeds.map((s) => s.fromJob)),
+            share: stat(seeds.map((s) => s.share)),
+          },
+        ] as const;
+      }),
+    ),
+    nodes: stat(logs.map((log, i) => perDay(gathererTotal(log, windows[i], 'nodes'), windows[i]))),
+    wounds: stat(logs.map((log, i) => perDay(gathererTotal(log, windows[i], 'wounds'), windows[i]))),
+  };
 
   const end = stat(logs.map((log) => {
     const day = log.milestones[`boss:${tier}`];
@@ -245,6 +290,7 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
     material: { id, gathered, spent, share },
     wood,
     jobs,
+    gatherer,
     level: { end, target: expectedLevels[tier - 1] },
   };
 }

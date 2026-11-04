@@ -43,7 +43,7 @@ import type { Rng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { buyRank, guildBonus, isGuildUnlocked, rankPrice, rankProblem } from '../guild/guild';
 import { hasMaterials } from '../inventory';
-import { assignJob, collectJob, jobChoices, jobMaterials, jobWorker, openJobs, recallFromJob, setJobChoice } from '../jobs/jobs';
+import { assignJob, collectJob, isJobOpen, jobChoices, jobMaterials, jobOutputDetail, jobWorker, openJobs, recallFromJob, setJobChoice } from '../jobs/jobs';
 import { isRevealed } from '../reveal/reveal';
 import type { PatrolKind, PatrolSubject, TravellerKind } from '../patrols/generate';
 import type { TravellerReward } from '../patrols/travellers';
@@ -188,8 +188,10 @@ export type RunLog = {
   probes: ProbeRow[];
   /** Day → material → [gathered, used]. */
   materialFlow: Record<number, Record<string, [number, number]>>;
-  /** Day → material → gathered from guild jobs (sources `job:<id>`), for the jobs report. */
-  jobFlow: Record<number, Record<string, number>>;
+  /** Day → job id → material → gathered from that guild job (sources `job:<id>`), the jobs report. */
+  jobFlow: Record<number, Record<string, Record<string, number>>>;
+  /** Day → the gatherer's nodes gathered and wounds settled, as the day's collects clear them. */
+  gatherer: Record<number, { nodes: number; wounds: number }>;
   /** Recipes known at the end. */
   knownRecipes: string[];
   /** Map places visited: fight events, the lair, ruins, heists, the dock, secret places. */
@@ -236,6 +238,7 @@ export const emptyLog = (profile: string, seed: string): RunLog => ({
   probes: [],
   materialFlow: {},
   jobFlow: {},
+  gatherer: {},
   knownRecipes: [],
   places: [],
   skipped: {},
@@ -349,8 +352,9 @@ export function act(sim: Sim, source: string, action: (save: SaveData) => SaveDa
     const flow = ((sim.log.materialFlow[sim.day] ??= {})[id] ??= [0, 0]);
     flow[delta > 0 ? 0 : 1] += Math.abs(delta);
     if (delta > 0 && source.startsWith('job:')) {
-      const jobFlow = (sim.log.jobFlow[sim.day] ??= {});
-      jobFlow[id] = (jobFlow[id] ?? 0) + delta;
+      const byJob = (sim.log.jobFlow[sim.day] ??= {});
+      const flow = (byJob[source.slice('job:'.length)] ??= {});
+      flow[id] = (flow[id] ?? 0) + delta;
     }
     if (delta > 0 && id.endsWith('Stone')) mark(sim, 'firstStone');
   }
@@ -860,7 +864,25 @@ export const jobSource = (jobId: string) => `job:${jobId}`;
 /** Collects every station's output at the start of a session. */
 export function collectJobs(sim: Sim) {
   if (!sim.jobs) return;
-  for (const job of jobList) act(sim, jobSource(job.id), (save) => collectJob(save, job.id, sim.now));
+  for (const job of jobList) {
+    // The gatherer's nodes and wounds are what this collect clears.
+    if (job.id === 'gatherer') {
+      const detail = jobOutputDetail(sim.save, 'gatherer', sim.now);
+      const day = (sim.log.gatherer[sim.day] ??= { nodes: 0, wounds: 0 });
+      day.nodes += detail.nodes ?? 0;
+      day.wounds += (detail.wounds ?? []).length;
+    }
+    act(sim, jobSource(job.id), (save) => collectJob(save, job.id, sim.now));
+  }
+}
+
+/** Camps the gatherer at home with the least useful free hero, at the day's first session (the tutorial excepted). */
+export function morningCamp(sim: Sim) {
+  if (!sim.jobs || sim.save.tutorial.step !== 'done' || !isJobOpen(sim.save, 'gatherer') || jobWorker(sim.save, 'gatherer')) return;
+  const free = sim.save.heroes.filter((h) => !isBusy(sim.save, h.id));
+  if (!free.length) return;
+  const pick = [...free].sort((a, b) => statScore(sim.save, a) - statScore(sim.save, b))[0];
+  act(sim, 'job', (save) => assignJob(save, pick.id, 'gatherer', sim.now, sim.location));
 }
 
 /** Recalls the given working heroes before a send; the output made so far and their settled energy are kept. */

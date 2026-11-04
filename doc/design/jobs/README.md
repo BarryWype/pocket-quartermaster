@@ -6,7 +6,7 @@ Step 2 of the roadmap in `doc/ideas.md` ("Heroes, jobs and expeditions"). Design
 - **2a. The job system, with one job: the woodcutter.** This document. Built 2026-11-04.
 - 2b. Work traits: **postponed** to roadmap step 8 (after every job and activity exists), so heroes' traits don't need reworking each time a job is added.
 - **2c-1. Guild gathering jobs: forager, trapper, miner, charcoal burner** (below). Built 2026-11-05.
-- 2c-2. The outdoor gatherer (below).
+- **2c-2. The outdoor gatherer** (below). Built 2026-11-05.
 - 2d. More ways to recruit (rescues, quest rewards).
 
 ## Rules (2a)
@@ -56,7 +56,7 @@ Designed 2026-11-04. Same system as the woodcutter (energy, 8 h cap, collect, re
 - Rolls are seeded (job, hero, unit index), so the same moment always gives the same result.
 - No new materials: jobs are a second, smaller source of existing ones.
 
-## The outdoor gatherer (2c-2)
+## The outdoor gatherer (2c-2, built 2026-11-05)
 Designed 2026-11-04. A job of its own kind, with its own niche: it **picks up what the player leaves behind**.
 - The player sets up a **camp** where they stand. The hero works within **250 m** of it.
 - It collects only resource nodes the player **didn't** collect before they expired: never competing with the player, using what would go to waste.
@@ -65,3 +65,4 @@ Designed 2026-11-04. A job of its own kind, with its own niche: it **picks up wh
 - Outdoor work drains energy 1.5× faster (100 lasts 16 h).
 - Small risk: a small chance per node of a minor wound (HP loss), so a hero back from the gatherer may need to heal before a dungeon.
 - The camp and the hero walking between nodes show on the map.
+- As built: the cap is 24 nodes (8 h ÷ 20 min). A node counts once its window has ended uncollected; the hero picks it inside its window, at the pace, in order of window end. The 250 m check uses generated node positions, not the map's snapped ones. The hero on the map walks a seeded loop inside the circle (cosmetic).
