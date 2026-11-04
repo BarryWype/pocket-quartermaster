@@ -1,4 +1,7 @@
-id,name,station,produces,rate_per_hour,rate_note,cap_hours,risk,phase
-woodcutter,Woodcutter,guild,wood,0.3,10–15% of a regular player's daily wood need per full day (estimated from the regular profile's tier 1 wood spend; check the Jobs section of the simulator report),8,none,2a
-farmer,Farmer,guild,herbs / mushrooms / crops (to design),,to design with the resource rework,8,none,2c
-miner,Miner,guild,stone / ores (to design),,to design with the resource rework,8,none,2c
+id,name,station,produces,weights,rate_per_hour,cap_hours,energy_drain_hours,risk,opens,phase
+woodcutter,Woodcutter,guild,wood,wood 100,0.3,8,24,none,start,2a
+forager,Forager,guild,herbs / berries / mushrooms,herb 50 · berries 30 · mushroom 20,like the woodcutter (tune),8,24,none,start,2c-1
+trapper,Trapper,guild,meat / hide / bone,meat 45 · hide 35 · bone 20,like the woodcutter (tune),8,24,none,start,2c-1
+miner,Miner,guild,the ore the player picks: stone / copper / iron,chosen ore 100,like the woodcutter (tune),8,24,none,tier 2 (copper tier 3; iron tier 4),2c-1
+charcoalBurner,Charcoal burner,guild,coal,coal 100,like the woodcutter (tune),8,24,none,tier 5,2c-1
+gatherer,Outdoor gatherer,camp (outdoor),nodes the player left uncollected within 250 m of the camp,whatever spawns there,1 node every 20 min (tune),8,16,small wound chance per node,start,2c-2

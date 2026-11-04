@@ -5,7 +5,8 @@ Step 2 of the roadmap in `doc/ideas.md` ("Heroes, jobs and expeditions"). Design
 ## Split of step 2
 - **2a. The job system, with one job: the woodcutter.** This document. Built 2026-11-04.
 - 2b. Work traits: **postponed** to roadmap step 8 (after every job and activity exists), so heroes' traits don't need reworking each time a job is added.
-- 2c. Farmer, miner, the outdoor gatherer, and the resource rework (each material's main source and other sources).
+- 2c-1. Guild gathering jobs: forager, trapper, miner, charcoal burner (below).
+- 2c-2. The outdoor gatherer (below).
 - 2d. More ways to recruit (rescues, quest rewards).
 
 ## Rules (2a)
@@ -44,3 +45,23 @@ Designed 2026-11-04, then postponed the same day to roadmap step 8: the trait li
 - Shown wherever the combat trait is (recruit offers, hero card), and on the Jobs tab next to each worker.
 - Names avoid clashes: "Clumsy" is a combat trait, so this one is Butterfingers; "Scholar" is a class, so this one is Bookworm.
 - Effects are small, because job output is small next to walking (woodcutter 0.3 wood/h): Hard worker on the woodcutter makes about 8.6 wood a full day instead of 7.2.
+
+## Guild gathering jobs (2c-1)
+Designed 2026-11-04. Same system as the woodcutter (energy, 8 h cap, collect, recall). Walk first: rates stay low, about the woodcutter's.
+- **Forager** (from the start): each unit is a weighted roll, herbs 50, berries 30, mushrooms 20.
+- **Trapper** (from the start): meat 45, hide 35, bone 20.
+- **Miner** (tier 2): one job; the player picks the ore among those unlocked (stone at tier 2, copper at tier 3, iron at tier 4). Switching ore keeps what was mined so far.
+- **Charcoal burner** (tier 5): coal.
+- The weights are a starting guess, set by feel: they account for how often things are made (healing potions use herbs far more than walking gives), not only how many recipes use them. Tune later from play.
+- Rolls are seeded (job, hero, unit index), so the same moment always gives the same result.
+- No new materials: jobs are a second, smaller source of existing ones.
+
+## The outdoor gatherer (2c-2)
+Designed 2026-11-04. A job of its own kind, with its own niche: it **picks up what the player leaves behind**.
+- The player sets up a **camp** where they stand. The hero works within **250 m** of it.
+- It collects only resource nodes the player **didn't** collect before they expired: never competing with the player, using what would go to waste.
+- It gathers what actually spawns there (the same nodes as the map, the same rules as the player's Collect, pickaxe included), so it's predictable and can give the current tier's materials, but only what spawns around the camp: walking still covers far more ground.
+- Pace: one node every 20 minutes at most (to tune), 8 h cap like other jobs.
+- Outdoor work drains energy 1.5× faster (100 lasts 16 h).
+- Small risk: a small chance per node of a minor wound (HP loss), so a hero back from the gatherer may need to heal before a dungeon.
+- The camp and the hero walking between nodes show on the map.
