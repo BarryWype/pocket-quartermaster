@@ -14,8 +14,9 @@ import { distanceMeters } from '../generation/geo';
 import { guildBonus } from '../guild/guild';
 import { rollForSave, sourceAmounts } from '../loot/context';
 import { grantLoot } from '../loot/grant';
+import { mergeLoot } from '../loot/roll';
 import { emptyLoot } from '../loot/types';
-import { createRng } from '../generation/rng';
+import { createRng, type Rng } from '../generation/rng';
 import { randomPointInTile, tilesAround } from '../generation/tiles';
 import { windowIndex, windowRange } from '../generation/time';
 import type { LatLng } from '../generation/types';
@@ -147,14 +148,17 @@ export function challengeSanctum(
   };
   // A win rolls the Sanctum row for the rest; its shards are the ones above.
   // Components survive, the heart of the Sanctum's element among them.
-  const rolled = win
-    ? rollForSave(
-        save,
-        'sanctum',
-        createRng(`${seed}|loot`),
-        { tier, luck, difficulty: 'hard', base: sourceAmounts('sanctum', tier, 'hard'), element: sanctum.element },
-      )
-    : emptyLoot();
+  const sanctumLoot = (rng: Rng) =>
+    rollForSave(save, 'sanctum', rng, {
+      tier,
+      luck,
+      difficulty: 'hard',
+      base: sourceAmounts('sanctum', tier, 'hard'),
+      element: sanctum.element,
+    });
+  let rolled = win ? sanctumLoot(createRng(`${seed}|loot`)) : emptyLoot();
+  // A special's extra loot rolls draw from their own derived seeds.
+  for (let i = 0; i < run.extraLootRolls; i++) rolled = mergeLoot(rolled, sanctumLoot(createRng(`${seed}|loot|extra|${i}`)));
   const loot = { ...rolled, materials: rolled.materials.filter((stack) => componentById[stack.materialId] !== undefined) };
   reward.xp = loot.xp;
 

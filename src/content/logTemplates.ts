@@ -1,4 +1,4 @@
-import type { ExpeditionOutcome, HeroClassId, NpcHelp } from '@/game/types';
+import type { ExpeditionOutcome, HeroClassId, NpcHelp, SpecialId } from '@/game/types';
 
 /** Before the boss line, keyed by boss id: the weakness item at work. */
 const weaknessLines: Record<string, string> = {
@@ -108,6 +108,43 @@ export const logTemplates = {
   fightHeal: ' {hero} shared a bite to eat.',
   secondPotion: ' {hero} drank a second potion.',
   relic: ' {hero}’s {relic} answered.',
+  /** Appended to a fight line: a hero's special at work, keyed by special id. */
+  specials: {
+    cleave: ' {hero}’s Cleave cut through {count} foes.',
+    aimedStrike: ' {hero} lined up a sure strike.',
+    flurry: ' {hero} landed a flurry of {count} blows.',
+    poison: ' {hero}’s Poison sank in.',
+    elementalBlast: ' {hero}’s Elemental blast swept {count} foes.',
+    smite: ' {hero} delivered a Smite.',
+    execute: ' {hero} finished a faltering foe.',
+    focus: ' {hero} focused their next blow.',
+    stagger: ' {hero} staggered the strongest foe.',
+    entangle: ' {hero} entangled a foe.',
+    taunt: ' {hero} drew every enemy’s eye.',
+    dirtyTrick: ' {hero} played a dirty trick on the boss.',
+    distraction: ' {hero} kept the enemies off {ally}.',
+    secondWind: ' {hero} found a second wind.',
+    manaShield: ' {hero} raised a Mana shield.',
+    ward: ' {hero} threw a Ward over {ally}.',
+    vanish: ' {hero} vanished from sight.',
+    riposte: ' {hero} readied a riposte.',
+    mend: ' {hero} mended {ally}.',
+    regrowth: ' {hero}’s Regrowth closed the party’s wounds.',
+    rally: ' {hero} rallied the party.',
+    patchUp: ' {hero} patched everyone up.',
+    steal: ' {hero} stuffed extra loot in their pack.',
+    doubleOrNothing: ' {hero} went double or nothing and doubled.',
+    meteor: ' {hero} called down a Meteor.',
+    deepFreeze: ' {hero} froze every foe in place.',
+    resurrection: ' {hero} raised {ally} from the dead.',
+    banish: ' {hero} banished a foe outright.',
+    summon: ' {hero} called an ally to their side.',
+    parley: ' {hero} talked a foe into leaving.',
+    feast: ' {hero} laid out a feast.',
+    turret: ' {hero}’s turret opened fire.',
+  } satisfies Record<SpecialId, string>,
+  /** A Double or nothing that missed. */
+  specialMiss: ' {hero} went double or nothing and missed.',
   /** The opening lines for the party's stat, speed and oil elixirs. */
   elixirDrank: ' {hero} drank their {item} before setting out.',
   elixirOil: ' {hero} coated their weapon with {item}.',

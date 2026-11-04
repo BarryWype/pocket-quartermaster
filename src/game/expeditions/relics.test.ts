@@ -218,8 +218,13 @@ describe('relic combat effects', () => {
   it("the Archmage's tome strikes every enemy with the first spell of the first fight only", () => {
     const rules = steady;
     const rats = dungeon([{ type: 'fight', weight: 1, mobs: [{ mobId: 'giantRat', count: 3 }] }], {}, [3, 3]);
-    // A Magic hero (Bram's stat overridden) so the tome's spell is what they cast.
-    const run = simulateRun([relicMember('archmagesTome', { magic: 100, speed: 0, damageStat: 'magic' })], rats, 'seed', { rules });
+    // A Magic hero (Bram's stat overridden) so the tome's spell is what they cast; no special, so the tome is all that strikes.
+    const run = simulateRun(
+      [relicMember('archmagesTome', { magic: 100, speed: 0, damageStat: 'magic', special: undefined })],
+      rats,
+      'seed',
+      { rules },
+    );
     const [first, second] = run.encounters.filter((e) => e.kind === 'fight');
     expect(first).toBeDefined();
     expect(second).toBeDefined();

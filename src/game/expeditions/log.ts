@@ -129,6 +129,14 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
             return [fill(logTemplates.casters, { hero })];
           case 'relic':
             return [fill(logTemplates.relic, { hero, relic: tr(relicById[e.relicId!].name) })];
+          case 'special':
+            return [
+              fill(e.missed ? logTemplates.specialMiss : logTemplates.specials[e.specialId!], {
+                hero,
+                count: e.count ?? 0,
+                ally: e.allyId ? nameOf(e.allyId) : '',
+              }),
+            ];
           default:
             return [];
         }

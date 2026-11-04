@@ -9,6 +9,7 @@ import { infusionRules } from '@/content/sanctums';
 import { travellerRules } from '@/content/patrols';
 import { gearName, itemById, opportunityById } from '@/content/lookup';
 import { serviceRules } from '@/content/services';
+import { specials } from '@/content/specials';
 import { weaknessByBoss, type WeaknessEffect } from '@/content/weaknesses';
 
 import { ELEMENTS, beats, incomingMultiplier, shardId, weaponMultiplier, type Element } from '../elements';
@@ -47,6 +48,7 @@ import type {
   OpportunityOutcome,
   RelicEffect,
   RestrictionId,
+  SpecialDef,
   SpecialId,
   Tag,
 } from '../types';
@@ -64,7 +66,7 @@ export type PartyMember = {
   classId: HeroClassId;
   /** Personal trait id; party-wide trait effects count once per trait. */
   traitId: string;
-  /** The hero's special (see content/specials.ts); the engine doesn't fire it yet. */
+  /** The hero's special (see content/specials.ts), fired on its trigger during the run. */
   special?: SpecialId;
   weaponName: string | null;
   /** The keywords of the hero's weapon, armour and off-hand; magic pieces marked, strong ones doubled, relic ones behind their condition. */
@@ -159,12 +161,20 @@ export type AbilityEffect = {
     /** A relic answered for this hero in this encounter. */
     | 'relic'
     /** An Alchemist drank the potion in their second slot. */
-    | 'secondPotion';
+    | 'secondPotion'
+    /** A hero's special fired (`specialId`); once per firing, however often it fires. */
+    | 'special';
   tag?: Tag;
   /** The ally a `protect` shielded. */
   allyId?: string;
   /** The relic behind a `relic` note. */
   relicId?: string;
+  /** The special behind a `special` note. */
+  specialId?: SpecialId;
+  /** How many enemies or hits a `special` note covered. */
+  count?: number;
+  /** A Double or nothing that missed. */
+  missed?: boolean;
 };
 
 export type LocalsReaction = 'help' | 'fight' | 'steal' | 'neutral';
@@ -239,6 +249,8 @@ export type RunResult = {
   fenceGold: number;
   /** The meal the party got: none under Spoiled stores, more with a Cook. */
   meal: MealEffect | null;
+  /** Extra rolls of the main loot row a won run pays (a special's bonus). */
+  extraLootRolls: number;
 };
 
 /** What the party ate and signed up for: the same for the odds preview and the real run. */
@@ -767,6 +779,18 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
   };
   /** Heroes whose first spell already struck every enemy of the run's first fight. */
   const firstSpellUsed = new Set<string>();
+  /** Heroes whose once-per-expedition special already fired. */
+  const specialRunSpent = new Set<string>();
+  /** Heroes whose next hit is a sure crit (Aimed strike). */
+  const sureCrits = new Set<string>();
+  /** A hero's next attack, multiplied (Focus). */
+  const nextAttackMultiplier = new Map<string, number>();
+  /** Extra rolls of the main loot row a won run pays (Steal). */
+  let extraLootRolls = 0;
+  /** The hero's special, when they have one. */
+  const specialOf = (hero: HeroState) => (hero.member.special ? specials[hero.member.special] : undefined);
+  /** Fires the specials triggered by damage or a knock-out; set while a fight runs. */
+  let damageTriggers: ((hero: HeroState, knockedOut: boolean) => void) | null = null;
 
   const heal = (hero: HeroState, share: number, result: EncounterResult) => {
     const amount = Math.min(hero.member.maxHp - hero.hp, share * hero.member.maxHp * healing);
@@ -805,6 +829,8 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
             hero.hp = 0;
             hero.out = true;
             result.knockedOut.push(hero.member.heroId);
+            // A fall wakes the specials that answer one (Resurrection).
+            damageTriggers?.(hero, true);
             return;
           }
         }
@@ -832,6 +858,8 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       potionsDrunk.push(hero.member.heroId);
       result.effects.push({ heroId: hero.member.heroId, key: 'secondPotion' });
     }
+    // The specials that watch for damage fire after everything else is settled.
+    damageTriggers?.(hero, false);
   };
 
   /** The Forgotten shrine's multiplier, set at the midpoint. */
@@ -890,99 +918,357 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     };
     /** The tags of every enemy of this fight, for the relic conditions that hold against any of them. */
     const anyTags = [...new Set(enemies.flatMap((e) => enemyTags(e.def)))];
+    /** This fight's special-ability state: uses spent, and the effects that last. */
+    const ctx: {
+      spent: Set<string>;
+      /** The heroes who already took a hit in this fight. */
+      hitsTaken: Set<string>;
+      /** The Riposte counters left, by hero. */
+      counters: Map<string, { hits: number; share: number }>;
+      /** Rounds of Vanish left, by hero. */
+      dodges: Map<string, number>;
+      /** The hits left that a Mana shield or Ward absorbs, by hero. */
+      absorbs: Map<string, number>;
+      taunt: { heroId: string; rounds: number } | null;
+      shield: { rounds: number } | null;
+      hot: { pct: number; rounds: number } | null;
+      party: { multiplier: number; rounds: number } | null;
+      dots: { heroId: string; enemy: EnemyState; damage: number; rounds: number }[];
+      summons: { heroId: string; damage: number; rounds: number | null }[];
+      /** Whether the boss's first turn already fired its specials. */
+      bossTurn: boolean;
+    } = {
+      spent: new Set(),
+      hitsTaken: new Set(),
+      counters: new Map(),
+      dodges: new Map(),
+      absorbs: new Map(),
+      taunt: null,
+      shield: null,
+      hot: null,
+      party: null,
+      dots: [],
+      summons: [],
+      bossTurn: false,
+    };
+    const living = () => enemies.filter((e) => e.hp > 0);
+    const bossOf = () => (isBoss ? enemies[0] : enemies.find((e) => 'effect' in e.def));
+    const strongest = (foes: EnemyState[]) => foes.reduce((best, e) => (e.def.damage > best.def.damage ? e : best));
+    /** Whether the hero's special still has its use, this fight or this run. */
+    const hasUseLeft = (hero: HeroState, def: SpecialDef) =>
+      def.uses === 'betweenFights' ||
+      (def.uses === 'perFight' ? !ctx.spent.has(hero.member.heroId) : !specialRunSpent.has(hero.member.heroId));
+    /**
+     * A normal hit of `hero` on `target`: the hero's own attack maths (fortune,
+     * buffs, blessing, wheel, armour, fed, weakened, crits), with the overrides a
+     * special needs — a crit chance, a multiplier, or the whole hit through the
+     * elemental wheel.
+     */
+    const normalHit = (
+      hero: HeroState,
+      target: EnemyState,
+      { critChance, multiplier = 1, elemental = false }: { critChance?: number; multiplier?: number; elemental?: boolean } = {},
+    ) => {
+      const id = hero.member.heroId;
+      const tags = enemyTags(target.def);
+      // An armoured target blunts Power in full and Magic only partly; Pierce ignores it.
+      const armourFactor = has(hero, 'pierce', tags)
+        ? 1
+        : hero.member.damageStat === 'power'
+          ? weakenedAgainst
+          : 1 - rules.magicArmourShare * (1 - weakenedAgainst);
+      // The best buff of a conscious hero lifts everyone; buffs don't stack.
+      let buffer: { buff: Extract<Ability, { kind: 'partyDamageBuff' }> } | undefined;
+      for (const other of alive()) {
+        const buff = own(other, 'partyDamageBuff');
+        if (buff && (!buffer || buff.multiplier > buffer.buff.multiplier)) buffer = { buff };
+      }
+      let bonus =
+        blessing *
+        (buffer?.buff?.multiplier ?? 1) *
+        (alive().some((h) => has(h, 'inspire', anyTags))
+          ? alive().some((h) => isStrong(h, 'inspire', anyTags))
+            ? gearKeywordRules.strong.inspire.multiplier
+            : gearKeywordRules.inspire.multiplier
+          : 1) *
+        shrine *
+        (fightsSeen === 0 ? hero.weakenedFirst : hero.weakenedRest) *
+        armourFactor;
+      for (const ability of hero.member.abilities) {
+        if (ability.kind !== 'damageVsTag' || !tags.includes(ability.tag)) continue;
+        bonus *= ability.multiplier;
+        note(id, 'tagBonus', { tag: ability.tag });
+      }
+      // Sacred ground dulls every weapon it can see.
+      if (restriction === 'sacredGround' && !hero.member.concealed && !ignores(hero, 'sacredGround')) {
+        bonus *= restrictionRules.sacredGround;
+      }
+      const rage = own(hero, 'rage');
+      if (rage && hero.hp < rage.belowPct * hero.member.maxHp) {
+        bonus *= rage.multiplier;
+        note(id, 'rage');
+      }
+      const targetElement = enemyElement(target.def);
+      const advantage = own(hero, 'elementalAdvantage');
+      // The wheel only touches the elemental part of a hit.
+      const wheel = (element: Element | undefined) => {
+        let multiplier = weaponMultiplier(element, targetElement);
+        const channel = has(hero, 'channel', tags)
+          ? isStrong(hero, 'channel', tags)
+            ? gearKeywordRules.strong.channel.advantage
+            : gearKeywordRules.channel.advantage
+          : 1;
+        if (element && targetElement && beats(element, targetElement) && (advantage || channel > 1)) {
+          // Channel lifts the wheel's advantage; Anti-magic cuts the bonus above 1 in half.
+          const bonus = Math.max(advantage?.multiplier ?? multiplier, channel);
+          multiplier = restriction === 'antiMagic' && !ignores(hero, 'antiMagic') ? 1 + (bonus - 1) * restrictionRules.antiMagic : bonus;
+          if (advantage) note(id, 'advantage');
+        }
+        return multiplier;
+      };
+      // Anti-magic halves Magic; Power only turns elemental through an infused weapon.
+      const magic = hero.member.damageStat === 'magic';
+      const base = magic ? hero.member.magic * (ignores(hero, 'antiMagic') ? 1 : magicFactor) : hero.member.power;
+      const element = hero.member.weaponElement;
+      const physical = elemental && element ? 0 : magic ? 0 : base * (element ? infusionRules.physicalShare : 1);
+      const elementalPart = elemental && element
+        ? base * wheel(element)
+        : magic
+          ? base * wheel(element)
+          : element
+            ? (base * infusionRules.elementalShare + hero.member.power * infusionRules.bonusShare) * wheel(element)
+            : 0;
+      const critBonus = hero.member.abilities.reduce((sum, a) => sum + (a.kind === 'critBonus' ? a.chance : 0), 0);
+      // A Duelist's crits hit harder in a fight against a lone enemy.
+      const duel = enemies.length === 1 ? own(hero, 'singleEnemyCrit') : undefined;
+      // A relic's crit damage against a matching foe replaces the usual crit multiplier.
+      const critDamage = relicEffect(hero, 'critDamage', tags);
+      const staggerOnCrit = relicEffect(hero, 'staggerOnCrit', tags);
+      let crit = false;
+      const onCrit = () => {
+        crit = true;
+        if (duel) note(id, 'duel');
+        else if (critBonus > 0) note(id, 'crit');
+        if (critDamage) noteRelic(result, id, critDamage.relicId);
+      };
+      // An Aimed strike makes the hero's next hit a sure crit.
+      const chance = critChance ?? (sureCrits.delete(id) ? 1 : hero.member.crit / 100 + critBonus);
+      const hit = roll(physical + elementalPart, chance, onCrit, duel?.multiplier ?? critDamage?.effect.multiplier);
+      return {
+        damage: hit * fortune * bonus * hero.fed * multiplier * (ctx.party ? ctx.party.multiplier : 1),
+        crit,
+        staggerOnCrit,
+      };
+    };
+    /**
+     * Fires the hero's special in this fight: the effect, its use spent, and a
+     * note pushed to the encounter. False when the effect found no target, so
+     * the use is kept.
+     */
+    const fireSpecial = (hero: HeroState, def: SpecialDef, opts: { target?: EnemyState; victim?: HeroState } = {}): boolean => {
+      const id = hero.member.heroId;
+      const log = (extra: Partial<AbilityEffect> = {}) => result.effects.push({ heroId: id, key: 'special', specialId: def.id, ...extra });
+      switch (def.effect.kind) {
+        case 'allEnemies': {
+          const foes = living();
+          if (foes.length === 0) return false;
+          for (const foe of foes) {
+            const damage = normalHit(hero, foe, { elemental: def.effect.elemental, multiplier: def.effect.share }).damage;
+            foe.hp -= damage;
+            add(result.dealt, id, damage);
+          }
+          log({ count: foes.length });
+          break;
+        }
+        case 'sureCrit':
+          sureCrits.add(id);
+          log();
+          break;
+        case 'multiHit': {
+          let foe = opts.target ?? living()[0];
+          if (!foe) return false;
+          for (let i = 0; i < def.effect.hits && foe; i++) {
+            const damage = normalHit(hero, foe, { multiplier: def.effect.share }).damage;
+            foe.hp -= damage;
+            add(result.dealt, id, damage);
+            if (foe.hp <= 0) foe = living()[0];
+          }
+          log({ count: def.effect.hits });
+          break;
+        }
+        case 'damageOverTime': {
+          const foe = opts.target ?? living()[0];
+          if (!foe) return false;
+          // The damage is computed once, when applied.
+          ctx.dots.push({ heroId: id, enemy: foe, damage: normalHit(hero, foe, { multiplier: def.effect.share }).damage, rounds: def.effect.rounds });
+          log();
+          break;
+        }
+        case 'strike': {
+          const e = def.effect;
+          const foe =
+            e.target === 'boss'
+              ? bossOf()
+              : e.target === 'tags'
+                ? living().find((x) => enemyTags(x.def).some((tag) => e.tags!.includes(tag)))
+                : e.target === 'belowHp'
+                  ? living().find((x) => x.hp < x.maxHp * e.belowPct!)
+                  : opts.target ?? living()[0];
+          if (!foe || foe.hp <= 0) return false;
+          if (e.missChance !== undefined && rng.chance(e.missChance)) {
+            log({ missed: true });
+            break;
+          }
+          const damage = normalHit(hero, foe, { multiplier: e.multiplier }).damage;
+          foe.hp -= damage;
+          add(result.dealt, id, damage);
+          log();
+          break;
+        }
+        case 'nextAttack':
+          nextAttackMultiplier.set(id, def.effect.multiplier);
+          log();
+          break;
+        case 'skipTurn': {
+          const e = def.effect;
+          const foes = (
+            e.target === 'strongest'
+              ? [living().length > 0 ? strongest(living()) : undefined]
+              : e.target === 'one'
+                ? [opts.target ?? living()[0]]
+                : e.target === 'boss'
+                  ? [bossOf()]
+                  : living()
+          ).filter((foe): foe is EnemyState => !!foe && foe.hp > 0);
+          if (foes.length === 0) return false;
+          foes.forEach((foe) => (foe.staggered = true));
+          log(e.target === 'all' ? { count: foes.length } : {});
+          break;
+        }
+        case 'taunt':
+          ctx.taunt = { heroId: id, rounds: def.effect.rounds };
+          log();
+          break;
+        case 'shieldWeakest':
+          ctx.shield = { rounds: def.effect.rounds };
+          log();
+          break;
+        case 'absorb': {
+          const target =
+            def.effect.target === 'self' || alive().length < 2
+              ? hero
+              : alive().filter((h) => h !== hero).reduce((low, h) => (h.hp / h.member.maxHp < low.hp / low.member.maxHp ? h : low));
+          ctx.absorbs.set(target.member.heroId, def.effect.hits);
+          log(def.effect.target === 'ally' && target !== hero ? { allyId: target.member.heroId } : {});
+          break;
+        }
+        case 'dodge':
+          ctx.dodges.set(id, def.effect.rounds);
+          log();
+          break;
+        case 'counter':
+          ctx.counters.set(id, { hits: def.effect.hits, share: def.effect.share });
+          log();
+          break;
+        case 'heal': {
+          const e = def.effect;
+          const targets =
+            e.target === 'self' ? [hero] : e.target === 'party' ? alive() : [alive().reduce((low, h) => (h.hp / h.member.maxHp < low.hp / low.member.maxHp ? h : low))];
+          if (!targets.some((h) => h.hp < h.member.maxHp)) return false;
+          targets.forEach((h) => heal(h, e.pct, result));
+          log(e.target === 'weakest' ? { allyId: targets[0].member.heroId } : {});
+          break;
+        }
+        case 'healOverTime':
+          ctx.hot = { pct: def.effect.pct, rounds: def.effect.rounds };
+          log();
+          break;
+        case 'revive': {
+          const victim = opts.victim;
+          if (!victim) return false;
+          victim.hp = Math.max(1, Math.round(def.effect.pct * victim.member.maxHp));
+          victim.out = false;
+          log({ allyId: victim.member.heroId });
+          break;
+        }
+        case 'partyDamage':
+          ctx.party = { multiplier: def.effect.multiplier, rounds: def.effect.rounds };
+          log();
+          break;
+        case 'removeEnemy': {
+          const e = def.effect;
+          // Never the boss.
+          const foes = living().filter((foe) => !('effect' in foe.def));
+          const foe = e.tags ? foes.find((x) => enemyTags(x.def).some((tag) => e.tags!.includes(tag))) : foes.length > 0 ? strongest(foes) : undefined;
+          if (!foe) return false;
+          foe.hp = 0;
+          log();
+          break;
+        }
+        case 'ally': {
+          const foe = opts.target ?? living()[0];
+          if (!foe) return false;
+          // The summon's damage is fixed at summoning, and never crits.
+          ctx.summons.push({ heroId: id, damage: normalHit(hero, foe, { critChance: 0, multiplier: def.effect.share }).damage, rounds: def.effect.rounds });
+          log();
+          break;
+        }
+      }
+      if (def.uses === 'perFight') ctx.spent.add(id);
+      if (def.uses === 'perExpedition') specialRunSpent.add(id);
+      return true;
+    };
+    /**
+     * The specials that fire at the start of the hero's own attack; false when
+     * a strike or flurry replaces it.
+     */
+    const turnSpecial = (hero: HeroState, target: EnemyState): boolean => {
+      const def = specialOf(hero);
+      if (!def) return true;
+      const t = def.trigger;
+      if (t.kind === 'heroTurn') {
+        if (!hasUseLeft(hero, def) || !rng.chance(t.chance)) return true;
+      } else if (t.kind === 'heroTurnVsTags') {
+        if (!hasUseLeft(hero, def) || !enemyTags(target.def).some((tag) => t.tags.includes(tag))) return true;
+      } else if (t.kind === 'enemyBelow') {
+        // The boss itself when the trigger says so, any living enemy when not.
+        const below = (e: EnemyState) => e.hp > 0 && (!t.boss || e === bossOf()) && e.hp < e.maxHp * t.pct;
+        if (!hasUseLeft(hero, def) || !enemies.some(below)) return true;
+      } else {
+        return true;
+      }
+      if (!fireSpecial(hero, def, { target })) return true;
+      return def.effect.kind !== 'strike' && def.effect.kind !== 'multiHit';
+    };
     const heroesAttack = (attackers: HeroState[]) => {
       // Nobody is hurt while the heroes strike, so the conscious heroes hold for all of it.
-      const living = alive();
+      const conscious = alive();
       // The best buff of a conscious hero lifts everyone; buffs don't stack.
       let buffer: { h: HeroState; buff: Extract<Ability, { kind: 'partyDamageBuff' }> } | undefined;
-      for (const hero of living) {
+      for (const hero of conscious) {
         const buff = own(hero, 'partyDamageBuff');
         if (buff && (!buffer || buff.multiplier > buffer.buff.multiplier)) buffer = { h: hero, buff };
       }
       if (buffer) note(buffer.h.member.heroId, 'buff');
-      // Inspire lifts the whole party while a conscious hero has it, on top of the best buff.
-      const inspired = living.some((h) => has(h, 'inspire', anyTags))
-        ? living.some((h) => isStrong(h, 'inspire', anyTags))
-          ? gearKeywordRules.strong.inspire.multiplier
-          : gearKeywordRules.inspire.multiplier
-        : 1;
       for (const hero of attackers) {
         // A hero quicker than the fastest living enemy may land one second blow.
         const heroAttack = (second = false) => {
-          const target = enemies.find((e) => e.hp > 0);
+          let target = enemies.find((e) => e.hp > 0);
           if (!target) return;
           const id = hero.member.heroId;
+          // A special can fire on the hero's turn; a strike or flurry replaces the attack.
+          if (!second && !turnSpecial(hero, target)) return;
+          // The special may have felled the target; the attack falls to the next foe.
+          if (target.hp <= 0) {
+            target = enemies.find((e) => e.hp > 0);
+            if (!target) return;
+          }
           const tags = enemyTags(target.def);
-          // An armoured target blunts Power in full and Magic only partly; Pierce ignores it.
-          const armourFactor = has(hero, 'pierce', tags)
-            ? 1
-            : hero.member.damageStat === 'power'
-              ? weakenedAgainst
-              : 1 - rules.magicArmourShare * (1 - weakenedAgainst);
-          let bonus =
-            blessing *
-            (buffer?.buff?.multiplier ?? 1) *
-            inspired *
-            shrine *
-            (fightsSeen === 0 ? hero.weakenedFirst : hero.weakenedRest) *
-            armourFactor;
-          for (const ability of hero.member.abilities) {
-            if (ability.kind !== 'damageVsTag' || !tags.includes(ability.tag)) continue;
-            bonus *= ability.multiplier;
-            note(id, 'tagBonus', { tag: ability.tag });
-          }
-          // Sacred ground dulls every weapon it can see.
-          if (restriction === 'sacredGround' && !hero.member.concealed && !ignores(hero, 'sacredGround')) {
-            bonus *= restrictionRules.sacredGround;
-          }
-          const rage = own(hero, 'rage');
-          if (rage && hero.hp < rage.belowPct * hero.member.maxHp) {
-            bonus *= rage.multiplier;
-            note(id, 'rage');
-          }
-          const targetElement = enemyElement(target.def);
-          const advantage = own(hero, 'elementalAdvantage');
-          // The wheel only touches the elemental part of a hit.
-          const wheel = (element: Element | undefined) => {
-            let multiplier = weaponMultiplier(element, targetElement);
-            const channel = has(hero, 'channel', tags)
-              ? isStrong(hero, 'channel', tags)
-                ? gearKeywordRules.strong.channel.advantage
-                : gearKeywordRules.channel.advantage
-              : 1;
-            if (element && targetElement && beats(element, targetElement) && (advantage || channel > 1)) {
-              // Channel lifts the wheel's advantage; Anti-magic cuts the bonus above 1 in half.
-              const bonus = Math.max(advantage?.multiplier ?? multiplier, channel);
-              multiplier = restriction === 'antiMagic' && !ignores(hero, 'antiMagic') ? 1 + (bonus - 1) * restrictionRules.antiMagic : bonus;
-              if (advantage) note(id, 'advantage');
-            }
-            return multiplier;
-          };
-          // Anti-magic halves Magic; Power only turns elemental through an infused weapon.
-          const magic = hero.member.damageStat === 'magic';
-          const base = magic ? hero.member.magic * (ignores(hero, 'antiMagic') ? 1 : magicFactor) : hero.member.power;
-          const element = hero.member.weaponElement;
-          const physical = magic ? 0 : base * (element ? infusionRules.physicalShare : 1);
-          const elemental = magic
-            ? base * wheel(element)
-            : element
-              ? (base * infusionRules.elementalShare + hero.member.power * infusionRules.bonusShare) * wheel(element)
-              : 0;
-          const critBonus = hero.member.abilities.reduce((sum, a) => sum + (a.kind === 'critBonus' ? a.chance : 0), 0);
-          // A Duelist's crits hit harder in a fight against a lone enemy.
-          const duel = enemies.length === 1 ? own(hero, 'singleEnemyCrit') : undefined;
-          // A relic's crit damage against a matching foe replaces the usual crit multiplier.
-          const critDamage = relicEffect(hero, 'critDamage', tags);
-          const staggerOnCrit = relicEffect(hero, 'staggerOnCrit', tags);
-          let crit = false;
-          const onCrit = () => {
-            crit = true;
-            if (duel) note(id, 'duel');
-            else if (critBonus > 0) note(id, 'crit');
-            if (critDamage) noteRelic(result, id, critDamage.relicId);
-          };
-          const hit = roll(physical + elemental, hero.member.crit / 100 + critBonus, onCrit, duel?.multiplier ?? critDamage?.effect.multiplier);
-          const damage = hit * fortune * bonus * hero.fed;
+          const { damage: hit, crit, staggerOnCrit } = normalHit(hero, target);
+          // Focus multiplies the hero's next attack.
+          const focus = nextAttackMultiplier.get(id);
+          if (focus !== undefined) nextAttackMultiplier.delete(id);
+          const damage = hit * (focus ?? 1);
           // The first spell of the run's first fight strikes every living enemy instead of one.
           const firstSpell =
             fightsSeen === 0 && hero.member.damageStat === 'magic' && !firstSpellUsed.has(id) && relicEffect(hero, 'firstSpellAll');
@@ -1047,6 +1333,14 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       return amount - moved;
     };
     const enemiesAttack = (round: number) => {
+      // The boss's first turn is when the specials waiting for it fire.
+      if (isBoss && !ctx.bossTurn) {
+        ctx.bossTurn = true;
+        for (const hero of alive()) {
+          const def = specialOf(hero);
+          if (def?.trigger.kind === 'bossFirstTurn' && hasUseLeft(hero, def)) fireSpecial(hero, def);
+        }
+      }
       for (const enemy of enemies.filter((e) => e.hp > 0)) {
         // A staggered enemy loses this attack.
         if (enemy.staggered) {
@@ -1069,22 +1363,29 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         const sweeping = boss?.effect === 'sweep' && !weakness?.noSweep;
         // Nobody is hurt between these reads, so one pass over the conscious heroes serves.
         const living = alive();
+        // A taunt pulls every single-target attack onto its hero; a distraction leaves the weakest ally alone.
+        const taunting = ctx.taunt && living.find((h) => h.member.heroId === ctx.taunt!.heroId);
+        const spared = ctx.shield && living.length > 1 ? living.reduce((low, h) => (h.hp / h.member.maxHp < low.hp / low.member.maxHp ? h : low)) : undefined;
+        const pool = spared ? living.filter((h) => h !== spared) : living;
+        const threatOf = (h: HeroState) =>
+          h.member.threat *
+          (has(h, 'guard', attackerTags)
+            ? isStrong(h, 'guard', attackerTags)
+              ? gearKeywordRules.strong.guard.targetWeight
+              : gearKeywordRules.guard.targetWeight
+            : 1);
+        // Zero-threat heroes can still be the only target left; then anyone will do.
         const targets =
           sweeping
-            ? living
-            : living.length
-              ? [
-                  rng.weighted(living, (h) =>
-                    h.member.threat *
-                    (has(h, 'guard', attackerTags)
-                      ? isStrong(h, 'guard', attackerTags)
-                        ? gearKeywordRules.strong.guard.targetWeight
-                        : gearKeywordRules.guard.targetWeight
-                      : 1),
-                  ),
-                ]
-              : [];
+            ? pool
+            : taunting
+              ? [taunting]
+              : pool.length
+                ? [rng.weighted(pool, pool.some((h) => threatOf(h) > 0) ? threatOf : () => 1)]
+                : [];
         for (const hero of targets) {
+          // A Vanished hero slips out of the way of every attack.
+          if ((ctx.dodges.get(hero.member.heroId) ?? 0) > 0) continue;
           // Quick heroes slip out of the way.
           if (rng.chance(Math.min(hero.member.evasion, rules.evasionCap) / 100)) continue;
           // Parry turns a physical hit away entirely.
@@ -1126,53 +1427,130 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
             taken *= immune.effect.multiplier;
             noteRelic(result, hero.member.heroId, immune.relicId);
           }
+          // A Mana shield or Ward swallows the whole hit.
+          const absorbed = ctx.absorbs.get(hero.member.heroId);
+          if (absorbed !== undefined) {
+            if (absorbed <= 1) ctx.absorbs.delete(hero.member.heroId);
+            else ctx.absorbs.set(hero.member.heroId, absorbed - 1);
+            continue;
+          }
           hurt(hero, shielded(hero, taken), result);
           tookDamage(hero, element);
+          // A Riposte answers the hit with a strike of its own.
+          const counter = ctx.counters.get(hero.member.heroId);
+          if (counter && !hero.out) {
+            const back = normalHit(hero, enemy, { multiplier: counter.share }).damage;
+            enemy.hp -= back;
+            add(result.dealt, hero.member.heroId, back);
+            if (--counter.hits <= 0) ctx.counters.delete(hero.member.heroId);
+          }
           if (escaped) return;
         }
       }
+      // The attack phase counts a taunt's, a distraction's and a Vanish's rounds down.
+      if (ctx.taunt && --ctx.taunt.rounds <= 0) ctx.taunt = null;
+      if (ctx.shield && --ctx.shield.rounds <= 0) ctx.shield = null;
+      ctx.dodges = new Map([...ctx.dodges].filter(([, left]) => left > 1).map(([id, left]) => [id, left - 1]));
     };
 
     const maxRounds = guaranteed ? rules.maxRounds * 10 : rules.maxRounds;
-    for (let round = 1; round <= maxRounds; round++) {
-      result.rounds = round;
-      // An exposed fight gives the enemies the first strike; after that it plays like any fight.
-      const ambushed = enemiesFirst && round === 1;
-      // Reach acts before the enemies in round 1 of every fight (rounds 1-2 when strong).
-      const reach = alive().filter((h) => has(h, 'reach', anyTags) && round <= (isStrong(h, 'reach', anyTags) ? gearKeywordRules.strong.reach.rounds : 1));
-      if (reach.length > 0) {
-        heroesAttack(reach);
+    // The specials that fire at the fight's start, once the enemies stand and the firebombs are out.
+    for (const hero of alive()) {
+      const def = specialOf(hero);
+      if (def?.trigger.kind !== 'fightStart') continue;
+      const t = def.trigger;
+      if ((t.minEnemies !== undefined && enemies.length < t.minEnemies) || (t.boss && !isBoss)) continue;
+      if (hasUseLeft(hero, def)) fireSpecial(hero, def);
+    }
+    // While the fight runs, hurt() hands the specials that watch for damage or a fall over to it.
+    damageTriggers = (hero, knockedOut) => {
+      const firstHit = !ctx.hitsTaken.has(hero.member.heroId);
+      ctx.hitsTaken.add(hero.member.heroId);
+      for (const other of alive()) {
+        const def = specialOf(other);
+        if (!def) continue;
+        const t = def.trigger;
+        // A fall wakes the specials that answer one; a hero knocked out can't act.
+        if (t.kind === 'allyKnockedOut') {
+          if (knockedOut && hasUseLeft(other, def)) fireSpecial(other, def, { victim: hero });
+        } else if (t.kind === 'hpBelow' && !knockedOut) {
+          const below = (h: HeroState) => h.hp < t.pct * h.member.maxHp;
+          const applies = t.who === 'self' ? other === hero && below(other) : alive().some(below);
+          if (applies && hasUseLeft(other, def)) fireSpecial(other, def);
+        } else if (t.kind === 'partyBelow' && !knockedOut) {
+          const living = alive();
+          const share = living.reduce((sum, h) => sum + h.hp / h.member.maxHp, 0) / living.length;
+          if (share < t.pct && hasUseLeft(other, def)) fireSpecial(other, def);
+        } else if (t.kind === 'firstHit' && !knockedOut && other === hero && firstHit && !hero.out && hasUseLeft(other, def)) {
+          fireSpecial(other, def);
+        }
+      }
+    };
+    try {
+      for (let round = 1; round <= maxRounds; round++) {
+        result.rounds = round;
+        // A special's lasting effects: poison wears, regrowth heals, rally's rounds count down.
+        for (const dot of ctx.dots) {
+          if (dot.enemy.hp <= 0) continue;
+          dot.enemy.hp -= dot.damage;
+          add(result.dealt, dot.heroId, dot.damage);
+          dot.rounds--;
+        }
+        ctx.dots = ctx.dots.filter((dot) => dot.rounds > 0 && dot.enemy.hp > 0);
+        if (ctx.hot) {
+          alive().forEach((h) => heal(h, ctx.hot!.pct, result));
+          ctx.hot.rounds--;
+          if (ctx.hot.rounds <= 0) ctx.hot = null;
+        }
+        // The round it fires in is past, so the multiplier counts down from the next round.
+        if (ctx.party && --ctx.party.rounds < 0) ctx.party = null;
+        // An exposed fight gives the enemies the first strike; after that it plays like any fight.
+        const ambushed = enemiesFirst && round === 1;
+        // Reach acts before the enemies in round 1 of every fight (rounds 1-2 when strong).
+        const reach = alive().filter((h) => has(h, 'reach', anyTags) && round <= (isStrong(h, 'reach', anyTags) ? gearKeywordRules.strong.reach.rounds : 1));
+        if (reach.length > 0) {
+          heroesAttack(reach);
+          if (enemies.every((e) => e.hp <= 0)) {
+            result.cleared = true;
+            return;
+          }
+        }
+        // Heroes at least as fast as the fastest living enemy strike first; the rest strike after them.
+        const rest = alive().filter((h) => !reach.includes(h));
+        const fastest = Math.max(...enemies.filter((e) => e.hp > 0).map((e) => e.def.speed));
+        const quick = ambushed ? rest : rest.filter((h) => h.member.speed >= fastest);
+        const slow = ambushed ? [] : rest.filter((h) => h.member.speed < fastest);
+        if (ambushed) enemiesAttack(round);
+        if (escaped || alive().length === 0) return;
+        // Raised enemies strike every round and are never targeted; a special's summons fight beside them.
+        for (const ally of [...allies, ...ctx.summons]) {
+          const target = enemies.find((e) => e.hp > 0);
+          if (!target) break;
+          if ('tag' in ally) {
+            target.hp -= ally.def.damage * ally.damage;
+            note(ally.heroId, 'allies', { tag: ally.tag });
+          } else {
+            target.hp -= ally.damage;
+          }
+        }
+        ctx.summons = ctx.summons
+          .map((summon) => (summon.rounds === null ? summon : { ...summon, rounds: summon.rounds - 1 }))
+          .filter((summon) => summon.rounds === null || summon.rounds > 0);
+        heroesAttack(quick);
+        if (enemies.every((e) => e.hp <= 0)) {
+          result.cleared = true;
+          return;
+        }
+        if (!ambushed) enemiesAttack(round);
+        if (escaped || alive().length === 0) return;
+        heroesAttack(slow);
         if (enemies.every((e) => e.hp <= 0)) {
           result.cleared = true;
           return;
         }
       }
-      // Heroes at least as fast as the fastest living enemy strike first; the rest strike after them.
-      const rest = alive().filter((h) => !reach.includes(h));
-      const fastest = Math.max(...enemies.filter((e) => e.hp > 0).map((e) => e.def.speed));
-      const quick = ambushed ? rest : rest.filter((h) => h.member.speed >= fastest);
-      const slow = ambushed ? [] : rest.filter((h) => h.member.speed < fastest);
-      if (ambushed) enemiesAttack(round);
-      if (escaped || alive().length === 0) return;
-      // Raised enemies strike every round and are never targeted.
-      for (const ally of allies) {
-        const target = enemies.find((e) => e.hp > 0);
-        if (!target) break;
-        target.hp -= ally.def.damage * ally.damage;
-        note(ally.heroId, 'allies', { tag: ally.tag });
-      }
-      heroesAttack(quick);
-      if (enemies.every((e) => e.hp <= 0)) {
-        result.cleared = true;
-        return;
-      }
-      if (!ambushed) enemiesAttack(round);
-      if (escaped || alive().length === 0) return;
-      heroesAttack(slow);
-      if (enemies.every((e) => e.hp <= 0)) {
-        result.cleared = true;
-        return;
-      }
+    } finally {
+      damageTriggers = null;
     }
   };
 
@@ -1252,6 +1630,10 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     });
 
   const expand = (groups: MobGroup[]) => groups.flatMap(({ mobId, count }) => Array(count).fill(mobById[mobId]));
+
+  /** Whether the encounter came to blows: a fight, the boss, or locals that fought. */
+  const fought = (result: EncounterResult) =>
+    result.kind === 'fight' || result.kind === 'boss' || result.reaction === 'fight' || !!result.noticed;
 
   /** A quiet step: cleared, nothing happens, no log line. */
   const quietResult = (name: string): EncounterResult => {
@@ -1444,6 +1826,16 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       encounters.push(result);
       if (!result.cleared) break;
       if (i === midpoint && i < encounterCount - 1) opportunity = resolveOpportunity(result);
+      // A hero's between-fights special tends the party before the healer does.
+      if (fought(result)) {
+        for (const hero of alive()) {
+          const def = specialOf(hero);
+          if (def?.trigger.kind === 'betweenFights' && def.effect.kind === 'heal' && alive().some((h) => h.hp < h.member.maxHp)) {
+            for (const h of alive()) heal(h, def.effect.pct, result);
+            result.effects.push({ heroId: hero.member.heroId, key: 'special', specialId: def.id });
+          }
+        }
+      }
       // A healer tends the party between encounters.
       const healer = withAbility('partyHeal');
       if (healer && alive().some((h) => h.hp < h.member.maxHp)) {
@@ -1467,6 +1859,16 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     }
     runFight([dungeon.boss], result, exposedAt(fightsSeen), true, carrier ? weakness.effect : undefined);
     fightsSeen++;
+    // A won boss fight pays a hero's Steal its extra loot rolls.
+    if (result.cleared) {
+      for (const hero of alive()) {
+        const def = specialOf(hero);
+        if (def?.trigger.kind !== 'bossWon' || def.effect.kind !== 'extraLoot') continue;
+        extraLootRolls += def.effect.rolls;
+        specialRunSpent.add(hero.member.heroId);
+        result.effects.push({ heroId: hero.member.heroId, key: 'special', specialId: def.id });
+      }
+    }
     encounters.push(result);
   }
 
@@ -1506,6 +1908,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     delay,
     signed,
     meal,
+    extraLootRolls,
     potionsDrunk,
     carriedHealed,
     fenceGold,

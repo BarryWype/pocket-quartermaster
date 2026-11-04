@@ -436,7 +436,7 @@ export function resolveExpedition(
   const source = dungeonLootSource(dungeon);
   // Barren runs take no gold bonus from charms.
   const modifiers = partyCharms(party).filter((mod) => !barren || mod.kind !== 'gold');
-  const roll = (source: LootSourceId, base: { gold: number; xp: number }) =>
+  const roll = (source: LootSourceId, base: { gold: number; xp: number }, extra = 0) =>
     rollSourceLoot({
       source,
       tier: dungeon.tier,
@@ -447,7 +447,8 @@ export function resolveExpedition(
       difficulty: dungeon.difficulty,
       base,
       context,
-      rng: createRng(`${expedition.seed}|${source}`),
+      // A special's extra rolls draw from their own derived seed.
+      rng: createRng(extra > 0 ? `${expedition.seed}|${source}|extra|${extra}` : `${expedition.seed}|${source}`),
       ...(lootOptions.force ? { force: lootOptions.force } : {}),
     });
   const bonus = (row: keyof typeof lootConfig.bonusRows) => ({
@@ -459,6 +460,9 @@ export function resolveExpedition(
     loot = tutorialLoot(save, expedition.endsAt);
   } else if (success) {
     loot = roll(source, { gold: baseGold, xp: Math.round(xp * mealXp) });
+    for (let i = 0; i < run.extraLootRolls; i++) {
+      loot = mergeLoot(loot, roll(source, { gold: baseGold, xp: Math.round(xp * mealXp) }, i + 1));
+    }
     if (firstWin) loot = mergeLoot(loot, roll('firstWin', bonus('firstWin')));
     if (firstTierClear) loot = mergeLoot(loot, roll('firstTierClear', bonus('firstTierClear')));
     if (firstDungeonClear) loot = mergeLoot(loot, roll('firstDungeonClear', bonus('firstDungeonClear')));

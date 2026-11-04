@@ -16,7 +16,7 @@ import { addMaterials } from '../inventory';
 import { partyCharms } from '../loot/charms';
 import { sourceAmounts } from '../loot/context';
 import { grantLoot } from '../loot/grant';
-import { rollSourceLoot } from '../loot/roll';
+import { mergeLoot, rollSourceLoot } from '../loot/roll';
 import { emptyLoot, type Loot, type LootModifier, type LootSourceId } from '../loot/types';
 import type { SaveData } from '../save';
 import { applyRunHp, isExhausted } from '../team/health';
@@ -194,16 +194,11 @@ export function startPatrolFight(
   const party = prepareParty(save, heroIds, now, true);
   const id = `p${save.nextUid}`;
   const run = simulateRun(party, dungeon, `${id}|${spawn.id}`, patrolRunOptions(spawn));
-  const rewards = run.bossDefeated
-    ? patrolRewards(
-        rewardContextOf(save, party.reduce((sum, m) => sum + m.luck, 0), partyCharms(party)),
-        spawn,
-        tier,
-        elite,
-        foughtEnemies(run),
-        createRng(`${id}|rewards`),
-      )
-    : emptyLoot();
+  // A special's extra loot rolls draw from their own derived seeds.
+  const rollRewards = (rng: Rng) =>
+    patrolRewards(rewardContextOf(save, party.reduce((sum, m) => sum + m.luck, 0), partyCharms(party)), spawn, tier, elite, foughtEnemies(run), rng);
+  let rewards: Loot = run.bossDefeated ? rollRewards(createRng(`${id}|rewards`)) : emptyLoot();
+  for (let i = 0; i < run.extraLootRolls; i++) rewards = mergeLoot(rewards, rollRewards(createRng(`${id}|rewards|extra|${i}`)));
 
   return {
     ...save,

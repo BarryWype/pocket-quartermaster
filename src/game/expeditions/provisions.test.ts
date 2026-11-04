@@ -488,7 +488,8 @@ describe('elixirs', () => {
     const report = (consumableId: string | null, i: number) =>
       resolve(startExpedition({ ...frail(consumableId), nextUid: 500 + i }, 'ratCellar', ALL, 0)).report;
     let compared = false;
-    for (let i = 0; i < 60 && !compared; i++) {
+    // Specials let the frail trio survive a fall, so the seed where the wipe lands on the escape's encounter sits further out.
+    for (let i = 0; i < 200 && !compared; i++) {
       const plain = report(null, i);
       const escaped = report('smokeBomb', i);
       // The bomb only triggers on an escape; runs that never reached for it are left alone.

@@ -9,14 +9,16 @@ import { pickaxeTier } from '../gathering/gathering';
 import { patrolRulesAt, trackWindows } from '../gathering/walkEffects';
 import { guildBonus } from '../guild/guild';
 import { distanceMeters } from '../generation/geo';
-import { createRng } from '../generation/rng';
+import { createRng, type Rng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import type { ExpeditionReport } from '../types';
 import type { SaveData } from '../save';
 import { applyRunHp } from '../team/health';
 import { isAway } from '../team/team';
+import { rolledSpecial } from '../team/specials';
 import { activeLairs } from '../places/fights';
 import { partyCharms } from '../loot/charms';
+import { mergeLoot } from '../loot/roll';
 import { emptyLoot, type Loot } from '../loot/types';
 import type { QuestTarget } from '../quests/types';
 import type { PocketWatch } from './pocketMode';
@@ -187,6 +189,14 @@ export function escortHpAt(escort: EscortState, now: number): number {
   return Math.min(escort.maxHp, escort.hp + minutes * escort.healPerMinute);
 }
 
+/**
+ * The escort as it fights: the stored member, with the special a state saved
+ * before specials lacks — rolled from the hero's id, like the save's own.
+ */
+function fightingMember(escort: EscortState): PartyMember {
+  return { ...escort.member, special: escort.member.special ?? rolledSpecial(escort.member.heroId, escort.member.classId) };
+}
+
 /** Whether a spawn is one the settings want a notification for. */
 export function alertAppliesTo(spawn: PatrolSpawn, alertFor: AlertFor) {
   if (alertFor === 'all') return true;
@@ -201,7 +211,7 @@ function escortTakes(spawn: PatrolSpawn, escort: EscortState | null, hp: number,
   const kind = spawn.kind;
   if (!escort || escort.paused || !isPatrolKind(kind) || spawn.difficulty === null || !rules.escort.difficulties.includes(spawn.difficulty)) return false;
   const odds = estimatePartyOdds(
-    [{ ...escort.member, hp }],
+    [{ ...fightingMember(escort), hp }],
     patrolDungeon(spawn, spawn.tier, isElitePatrolKind(kind), rules),
     rules.escort.oddsRuns,
     patrolRunOptions(spawn),
@@ -279,25 +289,28 @@ export function backgroundStep(
     if (escort && target && isPatrolKind(target.kind)) {
       const dungeon = patrolDungeon(target, target.tier, isElitePatrolKind(target.kind), rules);
       const id = `escort|${target.id}|${escort.heroId}|${at}`;
-      const run = simulateRun([{ ...escort.member, hp }], dungeon, id, patrolRunOptions(target));
+      const run = simulateRun([{ ...fightingMember(escort), hp }], dungeon, id, patrolRunOptions(target));
       const end = at + dungeon.durationMinutes * MINUTE;
       const hpAfter = run.hp[0]?.hp ?? 0;
-      const rewards: Loot = run.bossDefeated
-        ? patrolRewards(
-            {
-              goldMultiplier: next.goldMultiplier,
-              pickaxeTier: next.pickaxeTier,
-              playerTier: next.highestTier,
-              luck: escort.member.luck,
-              modifiers: partyCharms([escort.member]),
-            },
-            target,
-            target.tier,
-            isElitePatrolKind(target.kind),
-            foughtEnemies(run),
-            createRng(`${id}|rewards`),
-          )
-        : emptyLoot();
+      const elite = isElitePatrolKind(target.kind);
+      const rollRewards = (rng: Rng) =>
+        patrolRewards(
+          {
+            goldMultiplier: next.goldMultiplier,
+            pickaxeTier: next.pickaxeTier,
+            playerTier: next.highestTier,
+            luck: escort.member.luck,
+            modifiers: partyCharms([escort.member]),
+          },
+          target,
+          target.tier,
+          elite,
+          foughtEnemies(run),
+          rng,
+        );
+      let rewards: Loot = run.bossDefeated ? rollRewards(createRng(`${id}|rewards`)) : emptyLoot();
+      // A special's extra loot rolls draw from their own derived seeds.
+      for (let i = 0; i < run.extraLootRolls; i++) rewards = mergeLoot(rewards, rollRewards(createRng(`${id}|rewards|extra|${i}`)));
       next.pending.push({
         id,
         at: end,

@@ -15,6 +15,7 @@ import { foughtEnemies, settleConsumables } from '../patrols/fight';
 import { partyCharms } from '../loot/charms';
 import { rollForSave, sourceAmounts } from '../loot/context';
 import { grantLoot } from '../loot/grant';
+import { mergeLoot } from '../loot/roll';
 import { emptyLoot, type Loot, type LootModifier } from '../loot/types';
 import { grantTip, rollTip, type TipOutcome } from '../secrets/tips';
 import type { SaveData } from '../save';
@@ -147,17 +148,19 @@ export function startPlaceFight(save: SaveData, spawn: PlaceSpawn, heroIds: stri
   const party = prepareParty(save, heroIds, now, true);
   const id = `f${save.nextUid}`;
   const run = simulateRun(party, dungeon, `${id}|${spawn.id}`, placeRunOptions(save, spawn));
-  const reward: Loot = run.bossDefeated
-    ? placeLoot(
-        kind,
-        save,
-        party.reduce((sum, m) => sum + m.luck, 0),
-        foughtEnemies(run),
-        createRng(`${id}|rewards`),
-        kind === 'elementalRift' ? riftElement(spawn) : undefined,
-        partyCharms(party),
-      )
-    : emptyLoot();
+  const rollRewards = (rng: Rng) =>
+    placeLoot(
+      kind,
+      save,
+      party.reduce((sum, m) => sum + m.luck, 0),
+      foughtEnemies(run),
+      rng,
+      kind === 'elementalRift' ? riftElement(spawn) : undefined,
+      partyCharms(party),
+    );
+  let reward: Loot = run.bossDefeated ? rollRewards(createRng(`${id}|rewards`)) : emptyLoot();
+  // A special's extra loot rolls draw from their own derived seeds.
+  for (let i = 0; i < run.extraLootRolls; i++) reward = mergeLoot(reward, rollRewards(createRng(`${id}|rewards|extra|${i}`)));
   const tip =
     run.bossDefeated && (kind === 'banditCamp' || kind === 'monsterLair') && rollTip(kind, spawn.id)
       ? { source: kind, sourceId: spawn.id, anchor: spawn.position }
