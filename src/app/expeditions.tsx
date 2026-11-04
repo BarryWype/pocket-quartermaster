@@ -1,4 +1,4 @@
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { rosterRules } from '@/content/roster';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -30,10 +30,14 @@ import { tierChain } from '@/game/dungeons/unlock';
 import { briefingOf, expeditionMinutes, isDungeonUnlocked, readyExpeditions, type Loadout } from '@/game/expeditions/expeditions';
 import type { Odds } from '@/game/expeditions/odds';
 import { cachedEstimateOdds, cachedOdds, oddsKey } from '@/game/expeditions/oddsCache';
+import { isJobFull, isTired } from '@/game/jobs/jobs';
+import { includesWorking, recallWorkingHeroes } from '@/components/workingHeroes';
+import { JobsTab } from '@/components/JobsTab';
+import { jobs } from '@/content/jobs';
 import { isRevealed } from '@/game/reveal/reveal';
 import { supplyHeld } from '@/game/expeditions/provisions';
 import { briefingCoverage } from '@/game/threats/coverage';
-import { isOnExpedition } from '@/game/team/team';
+import { isOnExpedition, isWorking } from '@/game/team/team';
 import type { ExpeditionReport, HeroState } from '@/game/types';
 import { syncBackground } from '@/hooks/useAutoGather';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -48,8 +52,8 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { fonts, ui } from '@/theme';
 import { timed } from '@/components/timed';
 
-type Tab = 'dungeons' | 'teams' | 'reports';
-const TABS: Tab[] = ['dungeons', 'teams', 'reports'];
+type Tab = 'dungeons' | 'teams' | 'reports' | 'jobs';
+const TABS: Tab[] = ['dungeons', 'teams', 'reports', 'jobs'];
 
 /** The tier diamonds' labels. */
 const ROMAN = ['I', 'II', 'III', 'IV', 'V'];
@@ -64,6 +68,9 @@ export function useExpeditionsRail(): { items: RailItem[]; initial: Tab } {
   const ready = readyExpeditions(save, now);
   const unseen = save.reports.filter((r) => !r.seen).length;
   const teamsBadge = ready.length > 0 ? ready.length : save.expeditions.length > 0 ? save.expeditions.length : undefined;
+  // Stations full of output and tired workers, waiting on a check-in.
+  const jobNews =
+    jobs.filter((job) => isJobFull(save, job.id, now)).length + save.heroes.filter((hero) => isTired(save, hero, now)).length;
   const items: RailItem[] = [
     {
       key: 'dungeons',
@@ -73,6 +80,7 @@ export function useExpeditionsRail(): { items: RailItem[]; initial: Tab } {
     },
     { key: 'teams', label: t('expeditions.tabs.teams'), emoji: '🧭', badge: teamsBadge },
     { key: 'reports', label: t('expeditions.tabs.reports'), emoji: '📜', badge: unseen > 0 ? unseen : undefined },
+    { key: 'jobs', label: t('expeditions.tabs.jobs'), emoji: '🪓', badge: jobNews > 0 ? jobNews : undefined },
   ];
   return { items, initial: ready.length > 0 ? 'teams' : 'dungeons' };
 }
@@ -110,8 +118,10 @@ function ExpeditionsContent() {
   const ready = readyExpeditions(save, now);
 
   const rail = useExpeditionsRail();
+  // The hero card opens the Jobs tab on a hero: tab=jobs preselects them in the assign picker.
+  const { tab: tabParam, heroId } = useLocalSearchParams<{ tab?: string; heroId?: string }>();
   // Open on the teams when one is back, so the loot is the first thing to see.
-  const [tab, setTabState] = useState<Tab>(() => rail.initial);
+  const [tab, setTabState] = useState<Tab>(() => (tabParam === 'jobs' ? 'jobs' : rail.initial));
   const [selected, setSelected] = useState<string[]>(() =>
     save.heroes.filter((h) => !isOnExpedition(save, h.id)).slice(0, rosterRules.partySize).map((h) => h.id),
   );
@@ -140,6 +150,14 @@ function ExpeditionsContent() {
   };
   useFocusEffect(useCallback(() => () => markReportsSeen(), [markReportsSeen]));
 
+  // A hero card's link can also land while the screen is open: follow its tab then.
+  useEffect(() => {
+    if (tabParam === 'jobs')
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- navigation params are external input, not render state.
+      setTab('jobs');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- setTab comes from this render and is stable.
+  }, [tabParam]);
+
   // Re-read when the day changes or a debug override does.
   const day = rotationDay(now);
   const dayOffset = useDebugStore((state) => state.rotationDayOffset);
@@ -153,6 +171,8 @@ function ExpeditionsContent() {
   /** The first launch asks, in game, before the OS permission prompt. */
   const send = (dungeonId: string, party: string[], loadout: Loadout) => {
     const setOut = async () => {
+      // The pure send rule refuses working heroes: recall them first, in the same tap.
+      recallWorkingHeroes(party);
       start(dungeonId, party, durationScale, loadout);
       syncBackground();
       if (askedPermission) return;
@@ -169,7 +189,7 @@ function ExpeditionsContent() {
     if (!escort) return setOut();
     Alert.alert(t('expeditions.confirm.escortTitle', { hero: escort.name }), t('expeditions.confirm.escortBody'), [
       { text: t('common.cancel'), style: 'cancel' },
-      { text: t('expeditions.send'), onPress: () => void setOut() },
+      { text: includesWorking(save, party) ? t('jobs.recallAndSend') : t('expeditions.send'), onPress: () => void setOut() },
     ]);
   };
 
@@ -343,6 +363,7 @@ function ExpeditionsContent() {
               <View style={styles.heroBody}>
                 <Text style={styles.heroName} numberOfLines={1}>
                   {hero.name}
+                  {isWorking(save, hero.id) ? ` · ${t('jobs.working')}` : ''}
                 </Text>
                 <SpecialLabel classId={hero.classId} special={hero.special} short />
               </View>
@@ -502,7 +523,7 @@ function ExpeditionsContent() {
             <RewardLabel text={readyBanner} size={16} labelStyle={styles.bannerText} />
           </Pressable>
         )}
-        {key === 'dungeons' ? dungeonsTab : key === 'teams' ? teamsTab : reportsTab}
+        {key === 'dungeons' ? dungeonsTab : key === 'teams' ? teamsTab : key === 'reports' ? reportsTab : <JobsTab key={heroId ?? 'none'} preselect={heroId ?? null} />}
       </ScrollView>
     ),
   });

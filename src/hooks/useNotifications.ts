@@ -31,6 +31,8 @@ function openFrom(data: Record<string, unknown> | undefined) {
     navigate('/inventory');
   } else if (data?.route === 'quests') {
     navigate('/quests');
+  } else if (data?.route === 'jobs') {
+    navigate({ pathname: '/expeditions', params: { tab: 'jobs' } });
   } else if (data?.route === 'pocketMode') {
     useWorldStore.getState().set({ pocketPanel: 'escort' });
     navigate('/');
@@ -55,12 +57,19 @@ export function useNotifications() {
   const expeditions = useGameStore((state) => state.save.expeditions);
   const lastReport = useGameStore((state) => state.save.reports[0]?.finishedAt);
   const chests = useGameStore((state) => state.save.chests);
+  // Job assignments and station outputs, so a job action re-plans the jobs notifications.
+  const jobsAt = useGameStore((state) =>
+    [
+      state.save.heroes.map((hero) => `${hero.id}:${hero.job?.jobId ?? ''}`).join(','),
+      Object.entries(state.save.jobOutput).map(([id, output]) => `${id}:${output.amount}:${output.since}`).join(','),
+    ].join('|'),
+  );
   const settings = useSettingsStore((state) => state.notifications);
   const steps = useTodaySteps();
 
   useEffect(() => {
     syncPlan();
-  }, [expeditions, lastReport, settings]);
+  }, [expeditions, lastReport, jobsAt, settings]);
 
   useEffect(() => {
     const unsubscribe = [useGameStore, useSettingsStore].map((store) => store.persist.onFinishHydration(syncPlan));

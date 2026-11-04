@@ -10,6 +10,7 @@ export type NotificationCategory =
   | 'heistFinished'
   | 'heroesIdle'
   | 'heroesRested'
+  | 'jobs'
   | 'chestUnlocked'
   | 'chestClose'
   | 'dailyReset'

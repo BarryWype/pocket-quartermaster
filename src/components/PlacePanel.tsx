@@ -57,6 +57,7 @@ import { Sheet } from './Sheet';
 import { EmberButton, WoodButton } from './ui';
 import { Text } from './Text';
 import { ValuableRows } from './ValuableRows';
+import { asRecalled, includesWorking, recallWorkingHeroes } from './workingHeroes';
 
 /** Kinds this sheet knows how to open; other kinds stay off the map until their rules exist. */
 export const PANEL_KINDS: PlaceKind[] = [
@@ -357,7 +358,8 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
                   >
                     <GameIcon emoji={heroClasses[hero.classId].emoji} icon={heroClasses[hero.classId].icon} size={20} />
                     <Text>
-                      {hero.name} · {formatPercent(currentHp(save, hero, now) / maxHp(save, hero))}
+                      {hero.name}
+                      {hero.job ? ` · ${t('jobs.working')}` : ''} · {formatPercent(currentHp(save, hero, now) / maxHp(save, hero))}
                     </Text>
                   </Pressable>
                 ))}
@@ -366,11 +368,13 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
                 <Text style={styles.odds}>{t('places.heistOdds', { percent: formatPercent(heistOdds(save, heistHeroId)) })}</Text>
               )}
               <EmberButton
-                title={t('places.heist')}
+                title={includesWorking(save, heistHeroId ? [heistHeroId] : []) ? t('jobs.recallAndSend') : t('places.heist')}
                 compact
-                disabled={!heistHeroId || heistProblem(save, place, heistHeroId, player, now) !== null}
+                disabled={!heistHeroId || heistProblem(asRecalled(save, heistHeroId ? [heistHeroId] : []), place, heistHeroId, player, now) !== null}
                 onPress={() => {
                   if (!heistHeroId) return;
+                  // The pure heist rule refuses a working hero: recall them first, in the same tap.
+                  recallWorkingHeroes([heistHeroId]);
                   actions.startHeist(place, heistHeroId, player);
                   onClose();
                 }}

@@ -4,6 +4,7 @@ import { notificationTexts } from '@/content/notifications';
 import { recipes } from '@/content/recipes';
 
 import { resolveExpedition, startExpedition } from '../expeditions/expeditions';
+import { assignJob } from '../jobs/jobs';
 import { emptyLoot } from '../loot/types';
 import type { Heist } from '../types';
 import { createInitialSave, type SaveData } from '../save';
@@ -278,5 +279,31 @@ describe('heist notifications', () => {
     expect(planned[0].body).toContain('Bram');
     expect(planned[0].body).toContain('Lyra');
     expect(planNotifications(save, withCategories({ heistFinished: false }), now)).toEqual([]);
+  });
+});
+
+describe('job notifications', () => {
+  const now = at(12);
+
+  it('is on by default', () => {
+    expect(defaultNotificationSettings().categories.jobs).toBe(true);
+  });
+
+  it('announces a station when its output fills, and its worker when they tire', () => {
+    const save = assignJob(createInitialSave(), 'bram', 'woodcutter', now);
+    const planned = planNotifications(save, settings(), now);
+    expect(planned).toHaveLength(2);
+    const [full] = planned.filter((n) => n.id === 'job:full:woodcutter');
+    expect(full).toMatchObject({ category: 'jobs', group: 'expeditions', at: now + 8 * HOUR, data: { route: 'jobs' } });
+    expect(full.title).toBe('Woodcutter: output full');
+    const [tired] = planned.filter((n) => n.id === 'job:tired:bram');
+    expect(tired).toMatchObject({ category: 'jobs', group: 'expeditions', at: now + 24 * HOUR, data: { route: 'jobs' } });
+    expect(tired.title).toBe('Bram is tired');
+  });
+
+  it('plans nothing without a worker, and follows the category', () => {
+    expect(planNotifications(createInitialSave(), settings(), now)).toEqual([]);
+    const save = assignJob(createInitialSave(), 'bram', 'woodcutter', now);
+    expect(planNotifications(save, withCategories({ jobs: false }), now)).toEqual([]);
   });
 });

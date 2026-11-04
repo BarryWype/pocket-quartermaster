@@ -35,6 +35,7 @@ import { SpecialLabel } from './SpecialLabel';
 import { Text } from './Text';
 import { ThreatChip } from './ThreatChip';
 import { PartsLine } from './IconLabel';
+import { asRecalled, includesWorking, recallWorkingHeroes } from './workingHeroes';
 
 const problemText: Record<Exclude<PatrolFightProblem, null>, (distance: number) => string> = {
   tooFar: (distance) => t('patrols.walkCloser', { distance: Math.round(distance) }),
@@ -99,7 +100,8 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
   const tier = spawn.tier;
   const elite = isElitePatrolKind(kind);
   const dungeon = patrolDungeon(spawn, tier, elite);
-  const problem = patrolFightProblem(save, spawn, heroIds, player, now);
+  // Working heroes are recalled on send, so the problem sees them as free.
+  const problem = patrolFightProblem(asRecalled(save, heroIds), spawn, heroIds, player, now);
   const far = distanceTo(spawn, player, now) > patrolRules.engageMeters;
   const escortId = save.escort?.heroId;
   const toggle = (heroId: string) =>
@@ -108,6 +110,8 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
     );
 
   const fight = () => {
+    // The pure fight rule refuses working heroes: recall them first, in the same tap.
+    recallWorkingHeroes(heroIds);
     engagePatrol(spawn, heroIds, player);
     syncBackground();
     useWorldStore
@@ -125,7 +129,11 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
         bodyStyle={styles.content}
         footer={
           <View style={styles.actions}>
-            <EmberButton title={t('patrols.fight')} disabled={problem !== null} onPress={fight} />
+            <EmberButton
+              title={includesWorking(save, heroIds) ? t('jobs.recallAndSend') : t('patrols.fight')}
+              disabled={problem !== null}
+              onPress={fight}
+            />
             <WoodButton title={t('common.close')} onPress={onClose} />
           </View>
         }
@@ -162,6 +170,7 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
                 <GameIcon emoji={heroClasses[hero.classId].emoji} icon={heroClasses[hero.classId].icon} size={20} />
                 <Text>
                   {hero.name}
+                  {hero.job ? ` · ${t('jobs.working')}` : ''}
                   {hero.id === escortId ? t('common.escort') : ''} ·{' '}
                   {formatPercent(currentHp(save, hero, now) / maxHp(save, hero))}
                 </Text>

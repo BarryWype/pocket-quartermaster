@@ -2,6 +2,7 @@ import { dungeons, underwaterDungeons } from '../dungeons';
 import { elementInfo } from '../elements';
 import { bosses, mobs } from '../enemies';
 import { events } from '../events';
+import { jobs } from '../jobs';
 import { masteryTypeNames, qualities, TIER_NAMES } from '../forging';
 import { guildBuildings, guildTracks } from '../guild';
 import { heroClasses } from '../heroes';
@@ -36,6 +37,7 @@ export function contentTexts(): string[] {
     ...mobs.map((m) => m.name),
     ...bosses.map((b) => b.name),
     ...events.map((e) => e.name),
+    ...jobs.map((j) => j.name),
     ...npcs.flatMap((n) => [n.name, n.description, n.hostile.name]),
     ...sanctums.flatMap((s) => [s.name, s.description, s.guardian.name, s.guardian.description, ...s.minions.map((m) => m.name)]),
     ...Object.values(heroClasses).map((c) => c.name),

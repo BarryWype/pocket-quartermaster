@@ -3,6 +3,7 @@ import { useRef, useState, type ComponentRef } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
 
 import { DELTA_KEYS, EquipPicker } from '@/components/EquipPicker';
+import { EnergyBar } from '@/components/EnergyBar';
 import { PlaceholderScreen } from '@/components/PlaceholderScreen';
 import { statIcons } from '@/components/GearRow';
 import { GameIcon } from '@/components/GameIcon';
@@ -21,6 +22,7 @@ import { approachRules } from '@/content/threats';
 import { slotProblem } from '@/game/equipment/slots';
 import { gearApproachBonus, approachScore, pendingApproachPicks } from '@/game/team/stats';
 import { heroClasses, xpRules, xpToNextLevel } from '@/content/heroes';
+import { jobById } from '@/content/jobs';
 import { lootConfig } from '@/content/loot/config';
 import { traitById } from '@/content/traits';
 import { systemIcons } from '@/content/systemIcons';
@@ -29,12 +31,13 @@ import { gearName, itemById } from '@/content/lookup';
 import { answersMemberOf, prepareParty } from '@/game/expeditions/simulate';
 import { highestUnlockedTier } from '@/game/dungeons/unlock';
 import { careProblem, drinkProblem } from '@/game/team/health';
-import { affinityOf, canDismiss, equip, equipPreview, gearKeywordsOf, hasPotionSlot, healingPotion, heroDamageStat, heroStats, isOnExpedition, statSources, upgradeMark } from '@/game/team/team';
+import { affinityOf, canDismiss, equip, equipPreview, gearKeywordsOf, hasPotionSlot, healingPotion, heroDamageStat, heroStats, isBusy, isOnExpedition, statSources, upgradeMark } from '@/game/team/team';
 import { ClassSummary } from '@/components/ClassSummary';
 import { SpecialLabel } from '@/components/SpecialLabel';
 import { APPROACHES, heroAnswers } from '@/game/threats/answers';
 import type { Approach, EquipmentSlot, GearDef, GearInstance, HeroState, Stats } from '@/game/types';
 import type { SaveData } from '@/game/save';
+import { navigate } from '@/services/navigation';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useNow } from '@/hooks/useNow';
 import { t, tr, type Vars } from '@/i18n';
@@ -129,6 +132,7 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
   const drinkPotion = useGameStore((state) => state.drinkPotion);
   const giveHomeCare = useGameStore((state) => state.giveHomeCare);
   const pickApproach = useGameStore((state) => state.pickApproach);
+  const recallFromJob = useGameStore((state) => state.recallFromJob);
   // Button enablement (potions, home care) turns on time, so the clock is coarse.
   const now = useNow(clockConfig.minutesMs);
   const [picking, setPicking] = useState<EquipmentSlot | null>(null);
@@ -267,6 +271,22 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
         <PixelBar value={xpShare} overlay={`${Math.round(xpShare * 100)}%`} />
       </Tip>
       {aboveBand ? <Text style={styles.note}>{t('hero.xpAboveBand')}</Text> : null}
+      {hero.job ? (
+        <View style={styles.drink}>
+          <Text style={styles.note}>{t('hero.workingAt', { job: tr(jobById[hero.job.jobId].name) })}</Text>
+          <EnergyBar save={save} hero={hero} />
+          <WoodButton title={t('jobs.recall')} onPress={() => recallFromJob(hero.id)} />
+        </View>
+      ) : (
+        !isBusy(save, hero.id) && (
+          <View style={styles.drink}>
+            <WoodButton
+              title={t('jobs.putToWork')}
+              onPress={() => navigate({ pathname: '/expeditions', params: { tab: 'jobs', heroId: hero.id } })}
+            />
+          </View>
+        )
+      )}
       {!away && (
         <View style={styles.drink}>
           {potionsHeld.length === 0 && <WoodButton title={t('health.drink', { count: 0 })} disabled onPress={() => {}} />}

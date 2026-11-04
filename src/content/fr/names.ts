@@ -1257,6 +1257,8 @@ export const frNames: Record<string, string> = {
   'Treasure map': 'Carte au trésor',
   'Training manual': 'Manuel d’entraînement',
   'Blueprint': 'Plan',
+  // Guild jobs
+  Woodcutter: 'Bûcheron',
   // Purpose tags
   'Ingredient': 'Ingrédient',
   'Good': 'Marchandise',

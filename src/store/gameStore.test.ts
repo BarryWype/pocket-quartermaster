@@ -37,6 +37,40 @@ describe('gameStore', () => {
     expect(useGameStore.getState().save).toBe(after);
   });
 
+  it('assigns a hero to a job, recalls them and collects the output', () => {
+    const { save } = useGameStore.getState();
+    const heroId = save.heroes[0].id;
+    const otherId = save.heroes[1].id;
+    const woodBefore = save.materials.wood ?? 0;
+    useGameStore.getState().assignJob(heroId, 'woodcutter');
+
+    expect(useGameStore.getState().save.heroes.find((h) => h.id === heroId)!.job).toMatchObject({ jobId: 'woodcutter' });
+    expect(useGameStore.getState().save.jobOutput).toMatchObject({ woodcutter: { amount: 0 } });
+    // A taken station and a working hero are refused silently.
+    useGameStore.getState().assignJob(otherId, 'woodcutter');
+    expect(useGameStore.getState().save.heroes.find((h) => h.id === otherId)!.job).toBeNull();
+    const assigned = useGameStore.getState().save;
+    useGameStore.getState().assignJob(heroId, 'woodcutter');
+    expect(useGameStore.getState().save).toBe(assigned);
+
+    // With less than a whole unit waiting, collecting changes nothing.
+    useGameStore.setState({ save: { ...assigned, jobOutput: { woodcutter: { amount: 0.5, since: Date.now() } } } });
+    useGameStore.getState().collectJob('woodcutter');
+    expect(useGameStore.getState().save.materials.wood ?? 0).toBe(woodBefore);
+
+    useGameStore.setState({ save: { ...useGameStore.getState().save, jobOutput: { woodcutter: { amount: 2.5, since: Date.now() } } } });
+    useGameStore.getState().collectJob('woodcutter');
+    expect(useGameStore.getState().save.materials.wood).toBe(woodBefore + 2);
+    expect(useGameStore.getState().save.jobOutput.woodcutter.amount).toBeCloseTo(0.5, 9);
+
+    useGameStore.getState().recallFromJob(heroId);
+    expect(useGameStore.getState().save.heroes.find((h) => h.id === heroId)!.job).toBeNull();
+    // Recalling a hero without a job changes nothing.
+    const recalled = useGameStore.getState().save;
+    useGameStore.getState().recallFromJob(heroId);
+    expect(useGameStore.getState().save).toBe(recalled);
+  });
+
   it('resets save data', () => {
     useGameStore.getState().addGold(10);
     useGameStore.getState().resetSave();

@@ -11,7 +11,6 @@ import { recordTiming } from '@/services/timings';
 import { distanceMeters } from '@/game/generation/geo';
 import type { LatLng } from '@/game/generation/types';
 import {
-  availableHeroes,
   challengeProblem,
   sanctumById,
   sanctumOdds,
@@ -19,6 +18,7 @@ import {
   type SanctumResult,
   type SanctumSpawn,
 } from '@/game/sanctums/sanctums';
+import { isAway } from '@/game/team/team';
 import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
@@ -31,6 +31,7 @@ import { Sheet } from './Sheet';
 import { SpecialLabel } from './SpecialLabel';
 import { Text } from './Text';
 import { IconLabel } from './IconLabel';
+import { asRecalled, includesWorking, recallWorkingHeroes } from './workingHeroes';
 
 const LINE_DELAY_MS = 600;
 
@@ -57,7 +58,9 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
   const element = elementInfo[sanctum.element];
   const tiers = [...new Set(save.sigils)].sort((a, b) => a - b);
   const [tier, setTier] = useState<number | null>(tiers[0] ?? null);
-  const [heroIds, setHeroIds] = useState(availableHeroes(save).map((h) => h.id));
+  // Working heroes are listed with their mark and recalled on challenge.
+  const candidates = save.heroes.filter((hero) => !isAway(save, hero.id));
+  const [heroIds, setHeroIds] = useState(candidates.map((h) => h.id));
   const [result, setResult] = useState<SanctumResult | null>(null);
   const [shown, setShown] = useState(0);
   const [openedAt] = useState(() => Date.now());
@@ -94,7 +97,8 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
     return () => clearTimeout(timer);
   }, [result, shown]);
 
-  const problem = challengeProblem(save, spawn, tier ?? 0, heroIds, player, openedAt);
+  // Working heroes are recalled on challenge, so the problem sees them as free.
+  const problem = challengeProblem(asRecalled(save, heroIds), spawn, tier ?? 0, heroIds, player, openedAt);
   const distance = distanceMeters(player, spawn.position);
   const far = distance > sanctumRules.interactionMeters;
   const toggle = (heroId: string) =>
@@ -106,7 +110,16 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
       t('sanctum.confirmBody'),
       [
         { text: t('common.cancel'), style: 'cancel' },
-        { text: t('sanctum.challenge'), style: 'destructive', onPress: () => tier && setResult(challenge(spawn, tier, heroIds, player)) },
+        {
+          text: includesWorking(save, heroIds) ? t('jobs.recallAndSend') : t('sanctum.challenge'),
+          style: 'destructive',
+          onPress: () => {
+            if (!tier) return;
+            // The pure challenge rule refuses working heroes: recall them first, in the same tap.
+            recallWorkingHeroes(heroIds);
+            setResult(challenge(spawn, tier, heroIds, player));
+          },
+        },
       ],
     );
 
@@ -129,7 +142,13 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
         bodyStyle={styles.content}
         footer={
           <View style={styles.actions}>
-            {!result && <EmberButton title={t('sanctum.challenge')} disabled={problem !== null} onPress={start} />}
+            {!result && (
+              <EmberButton
+                title={includesWorking(save, heroIds) ? t('jobs.recallAndSend') : t('sanctum.challenge')}
+                disabled={problem !== null}
+                onPress={start}
+              />
+            )}
             <WoodButton
               title={result && !finished ? t('sanctum.skip') : t('common.close')}
               onPress={() => (result && !finished ? setShown(result.log.length) : onClose())}
@@ -169,14 +188,17 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
               </View>
               <Text style={styles.subtitle}>{t('sanctum.heroes')}</Text>
               <View style={styles.chips}>
-                {availableHeroes(save).map((hero) => (
+                {candidates.map((hero) => (
                   <Pressable
                     key={hero.id}
                     onPress={() => toggle(hero.id)}
                     style={[styles.chip, heroIds.includes(hero.id) && styles.chipActive]}
                   >
                     <GameIcon emoji={heroClasses[hero.classId].emoji} icon={heroClasses[hero.classId].icon} size={20} />
-                    <Text>{hero.name}</Text>
+                    <Text>
+                      {hero.name}
+                      {hero.job ? ` · ${t('jobs.working')}` : ''}
+                    </Text>
                     <SpecialLabel classId={hero.classId} special={hero.special} short />
                   </Pressable>
                 ))}

@@ -34,6 +34,7 @@ import { Price } from './Price';
 import { Text } from './Text';
 import { ThreatCoverageChips } from './ThreatDetail';
 import { IconLabel } from './IconLabel';
+import { includesWorking } from './workingHeroes';
 
 type Props = {
   save: SaveData;
@@ -277,7 +278,7 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
                       >
                         <IconLabel
                           emoji={heroClasses[other.classId].emoji} icon={heroClasses[other.classId].icon}
-                          label={`${other.name} · ${formatPercent(currentHp(save, other, now) / maxHp(save, other))}`}
+                          label={`${other.name}${other.job ? ` · ${t('jobs.working')}` : ''} · ${formatPercent(currentHp(save, other, now) / maxHp(save, other))}`}
                           labelStyle={styles.optionText}
                         />
                       </Pressable>
@@ -364,7 +365,11 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
           </ScrollView>
           <View style={styles.actions}>
             <Button title={t('common.cancel')} color={colors.muted} onPress={onClose} />
-            <Button title={t('expeditions.send')} disabled={party.length === 0} onPress={() => onConfirm(loadout)} />
+            <Button
+              title={includesWorking(save, party) ? t('jobs.recallAndSend') : t('expeditions.send')}
+              disabled={party.length === 0}
+              onPress={() => onConfirm(loadout)}
+            />
           </View>
         </Panel>
       {picking && (

@@ -3,7 +3,7 @@ import type { notificationCategories, notificationGroups, notificationTexts } fr
 type Texts = { title: string; description: string };
 
 export const frNotificationGroups: Record<keyof typeof notificationGroups, Texts> = {
-  expeditions: { title: 'Expéditions et héros', description: 'Résultats des expéditions, héros reposés et rappels quand les héros attendent.' },
+  expeditions: { title: 'Expéditions et héros', description: 'Résultats des expéditions, héros reposés, métiers et rappels quand les héros attendent.' },
   steps: { title: 'Pas et objectifs du jour', description: 'Coffres de pas, remise à zéro quotidienne et cibles de quête.' },
   patrols: { title: 'Patrouilles', description: 'Patrouilles et voyageurs repérés à proximité, et votre escorte.' },
   places: { title: 'Lieux à proximité', description: 'Combats, ruines, trésors et lieux secrets proches de votre marche.' },
@@ -18,6 +18,7 @@ export const frNotificationCategories: Record<keyof typeof notificationCategorie
   },
   heroesIdle: { title: 'Héros inactifs', description: 'Un petit rappel quand personne n’est parti depuis un moment.' },
   heroesRested: { title: 'Héros reposés', description: 'Quand les héros revenus blessés de la dernière expédition ont retrouvé tous leurs PV.' },
+  jobs: { title: 'Métiers', description: 'Quand la production d’un poste est pleine, et quand un héros au travail est fatigué.' },
   chestUnlocked: { title: 'Coffre de pas débloqué', description: 'Quand vos pas du jour ouvrent un coffre.' },
   chestClose: { title: 'Prochain coffre tout proche', description: 'Quand le prochain coffre n’est plus qu’à une petite marche.' },
   dailyReset: { title: 'Nouvelle journée', description: 'À minuit, quand les coffres de pas se remettent à zéro.' },
@@ -46,6 +47,8 @@ export const frNotificationTexts: typeof notificationTexts = {
   heistOutcome: { loot: 'avec du butin', empty: 'les mains vides' },
   heroesIdle: { title: 'Vos héros s’impatientent', body: 'Personne n’est parti en expédition depuis un moment. Envoyer une équipe ?' },
   heroesRested: { title: 'Héros reposés', body: 'Vos héros ont retrouvé toute leur santé, prêts pour la prochaine expédition.' },
+  jobFull: { title: '{job} : production pleine', body: 'Prête à être récoltée à la guilde.' },
+  jobTired: { title: '{hero} est fatigué', body: 'Repos au poste jusqu’au retour de son énergie.' },
   chestUnlocked: { title: 'Coffre de pas débloqué', body: 'Votre {chest} est prêt à être ouvert.' },
   chestClose: { title: 'Presque arrivé', body: 'Plus que {steps} pas avant votre {chest}.' },
   dailyReset: { title: 'Nouvelle journée', body: 'Nouvelle journée, nouveaux coffres de pas.' },

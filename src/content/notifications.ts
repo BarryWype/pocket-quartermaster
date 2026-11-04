@@ -3,7 +3,7 @@ import type { ExpeditionOutcome } from '@/game/types';
 
 /** Android channels, one per settings group, so players can also manage them in system settings. */
 export const notificationGroups: Record<NotificationGroup, { title: string; description: string }> = {
-  expeditions: { title: 'Expeditions & heroes', description: 'Expedition results, rested heroes and idle hero reminders.' },
+  expeditions: { title: 'Expeditions & heroes', description: 'Expedition results, rested heroes, jobs and idle hero reminders.' },
   steps: { title: 'Steps & daily goals', description: 'Step chests, the daily reset and quest targets.' },
   patrols: { title: 'Patrols', description: 'Patrols and travellers spotted nearby, and your escort.' },
   places: { title: 'Places nearby', description: 'Fight events, ruins, treasure and secret places close to your walk.' },
@@ -42,6 +42,12 @@ export const notificationCategories: Record<
     title: 'Heroes rested',
     description: 'When the heroes who came back hurt from the last expedition are at full HP again.',
     defaultOn: false,
+  },
+  jobs: {
+    group: 'expeditions',
+    title: 'Jobs',
+    description: 'When a station’s output is full, and when a working hero is tired.',
+    defaultOn: true,
   },
   chestUnlocked: {
     group: 'steps',
@@ -133,6 +139,8 @@ export const notificationTexts = {
   heistOutcome: { loot: 'with loot', empty: 'empty-handed' },
   heroesIdle: { title: 'Your heroes are restless', body: 'Nobody has been on an expedition for a while. Send a team out?' },
   heroesRested: { title: 'Heroes rested', body: 'Your heroes are back to full health, ready for the next expedition.' },
+  jobFull: { title: '{job}: output full', body: 'Ready to collect at the guild.' },
+  jobTired: { title: '{hero} is tired', body: 'Resting at the station until their energy is back.' },
   chestUnlocked: { title: 'Step chest unlocked', body: 'Your {chest} is ready to open.' },
   chestClose: { title: 'Almost there', body: 'Only {steps} more steps to your {chest}.' },
   dailyReset: { title: 'New day', body: 'New day, new step chests.' },

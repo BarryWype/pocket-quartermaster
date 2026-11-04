@@ -43,6 +43,7 @@ import { SpecialLabel } from './SpecialLabel';
 import { Text } from './Text';
 import { ThreatChip } from './ThreatChip';
 import { IconLabel, PartsLine, type LabelPart } from './IconLabel';
+import { includesWorking, recallWorkingHeroes } from './workingHeroes';
 
 const problemText = (problem: SecretProblem, distance: number, cap: number): string => {
   switch (problem) {
@@ -137,13 +138,21 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
           {candidates.map((hero) => (
             <Pressable key={hero.id} onPress={() => toggle(hero.id)} style={[styles.chip, heroIds.includes(hero.id) && styles.chipActive]}>
               <GameIcon emoji={heroClasses[hero.classId].emoji} icon={heroClasses[hero.classId].icon} size={20} />
-              <Text>{hero.name}</Text>
+              <Text>
+                {hero.name}
+                {hero.job ? ` · ${t('jobs.working')}` : ''}
+              </Text>
               <SpecialLabel classId={hero.classId} special={hero.special} short />
             </Pressable>
           ))}
         </View>
         {problem && problem !== 'noKey' && <Text style={styles.problem}>{problemText(problem, distance, rosterCap(save))}</Text>}
-        <WoodButton title={t('secrets.launch')} compact disabled={problem !== null || heroIds.length === 0} onPress={() => setConfirming(true)} />
+        <WoodButton
+          title={includesWorking(save, heroIds) ? t('jobs.recallAndSend') : t('secrets.launch')}
+          compact
+          disabled={problem !== null || heroIds.length === 0}
+          onPress={() => setConfirming(true)}
+        />
         {confirming && (
           <SendDialog
             save={save}
@@ -156,6 +165,8 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
             onSwap={(out, into) => setHeroIds(heroIds.map((id) => (id === out ? into : id)))}
             onConfirm={(loadout) => {
               setConfirming(false);
+              // The pure launch rule refuses working heroes: recall them first, in the same tap.
+              recallWorkingHeroes(heroIds);
               launch(place, heroIds, player, loadout);
               onClose();
             }}

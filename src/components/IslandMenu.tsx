@@ -4,6 +4,8 @@ import { Image, Keyboard, Pressable, StyleSheet, View, type ImageSourcePropType 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { healthRules } from '@/content/health';
+import { jobs } from '@/content/jobs';
+import { isJobFull, isTired } from '@/game/jobs/jobs';
 import { isRevealed } from '@/game/reveal/reveal';
 import { currentHp, maxHp } from '@/game/team/health';
 import { tutorialTarget, type MenuTarget } from '@/game/tutorial/tutorial';
@@ -61,6 +63,11 @@ export function IslandMenu() {
   const hurt = useGameStore(
     ({ save }) => save.heroes.filter((h) => currentHp(save, h, Date.now()) < healthRules.hurtShare * maxHp(save, h)).length,
   );
+  // Stations full of output and tired workers, waiting on a check-in.
+  const jobNews = useGameStore(({ save }) => {
+    const now = Date.now();
+    return jobs.filter((job) => isJobFull(save, job.id, now)).length + save.heroes.filter((hero) => isTired(save, hero, now)).length;
+  });
 
   const go = (href: Href) => {
     setCraftOpen(false);
@@ -136,7 +143,7 @@ export function IslandMenu() {
           <DiamondButton
             label={t('menu.expeditions')}
             icon={require('../../assets/icons/scaled/menu-expeditions.png')}
-            badge={unseenReports || undefined}
+            badge={(unseenReports || 0) + jobNews || undefined}
             size={DIAMOND_SIZE}
             showLabel={false}
             selected={target === 'expeditions' || pathname === '/expeditions'}

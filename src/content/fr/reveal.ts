@@ -22,4 +22,5 @@ export const frTipTexts: typeof tipTexts = {
   valuables: 'Objets de valeur : vendez-les au marché. Les collectionneurs en paient certains plus cher.',
   keyFragments: 'Fragments de clé : quatre forment une clé mystérieuse, qui ouvre les lieux secrets.',
   specials: 'Aptitudes : chaque héros en a une, tirée de sa classe. Elle se déclenche seule dans les combats, un nombre limité de fois ; les rares sont marquées ✦.',
+  jobs: "Un héros à un métier produit lentement en votre absence. La production remplit en 8 heures : récoltez-la à votre retour. Le travail les fatigue sur une journée, et un héros fatigué se repose à son poste avant de reprendre. Un héros au travail doit d'abord être rappelé avant de pouvoir être envoyé ailleurs.",
 };

@@ -396,6 +396,7 @@ const SAMPLE_NOTIFICATIONS: Record<NotificationCategory, { title: string; body: 
   },
   heroesIdle: texts.heroesIdle,
   heroesRested: texts.heroesRested,
+  jobs: { ...texts.jobFull, body: fill(texts.jobFull.body, { job: 'Woodcutter' }), data: { route: 'jobs' } },
   chestUnlocked: { ...texts.chestUnlocked, body: fill(texts.chestUnlocked.body, { chest: 'wooden chest' }), data: { route: 'chests' } },
   chestClose: { ...texts.chestClose, body: fill(texts.chestClose.body, { steps: 600, chest: 'iron chest' }) },
   dailyReset: texts.dailyReset,

@@ -8,13 +8,16 @@ export const jobRules = {
 
 export type JobDef = {
   id: string;
+  name: string;
   /** The material the station produces. */
   produces: string;
   /** Units per hour of work. */
   ratePerHour: number;
+  /** The station's band icon. */
+  emoji: string;
 };
 
 /** Placeholder rate, to be tuned with the simulator. */
-export const jobs: JobDef[] = [{ id: 'woodcutter', produces: 'wood', ratePerHour: 0.5 }];
+export const jobs: JobDef[] = [{ id: 'woodcutter', name: 'Woodcutter', produces: 'wood', ratePerHour: 0.5, emoji: '🪓' }];
 
 export const jobById: Record<string, JobDef> = Object.fromEntries(jobs.map((job) => [job.id, job]));

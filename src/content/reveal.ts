@@ -20,8 +20,8 @@ export type RevealKind =
 /** Item kinds that get a tip the first time one is held. */
 export type ItemTipKind = 'charms' | 'components' | 'relics' | 'trinkets' | 'valuables' | 'keyFragments';
 
-/** The specials tip: due once the tutorial is done and a hero is fielded. */
-export type TipId = RevealKind | ItemTipKind | 'specials';
+/** The specials tip: due once the tutorial is done and a hero is fielded. The jobs tip: due once the Jobs tab is opened. */
+export type TipId = RevealKind | ItemTipKind | 'specials' | 'jobs';
 
 /** What has to be true for a kind to show; read by `isRevealed`. */
 export type RevealCondition =
@@ -109,4 +109,5 @@ export const tipTexts: Record<TipId, string> = {
   valuables: 'Valuables: sell them at a market. Collectors pay more for some.',
   keyFragments: 'Key fragments: four make a mysterious key, which opens secret places.',
   specials: 'Specials: every hero has one, rolled from its class. It fires on its own in fights, a limited number of times; rare ones are marked ✦.',
+  jobs: "A hero at a job produces slowly while you're away. Output fills up after 8 hours, so collect on check-in. Work tires them over a day, and tired heroes rest at the station before working again. Working heroes must be recalled before they can be sent out.",
 };

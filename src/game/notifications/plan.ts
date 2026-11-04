@@ -1,10 +1,12 @@
 import { dungeonById, recipeById, recipeOutput } from '@/content/lookup';
+import { jobs } from '@/content/jobs';
 import { frNotificationTexts } from '@/content/fr/notifications';
 import { notificationCategories, notificationRules, notificationTexts as enNotificationTexts } from '@/content/notifications';
 import { nearbyKinds } from '@/content/pocketMode';
 import { fill, localized, tr } from '@/i18n';
 
 import { resolveExpedition } from '../expeditions/expeditions';
+import { fullAt, tiredAt } from '../jobs/jobs';
 import type { SaveData } from '../save';
 import { timeToFull } from '../team/health';
 import type { ActiveExpedition, ExpeditionReport, Heist } from '../types';
@@ -170,6 +172,42 @@ function dailyResetNotification(now: number): PlannedNotification[] {
   return [{ id: 'daily', category: 'dailyReset', group: 'steps', at: midnight.getTime(), ...notificationTexts().dailyReset }];
 }
 
+/** Jobs: when a station's output fills up, and when a working hero next gets tired. */
+function jobNotifications(save: SaveData, now: number): PlannedNotification[] {
+  const t = notificationTexts();
+  const full = jobs.flatMap((job): PlannedNotification[] => {
+    const at = fullAt(save, job.id, now);
+    if (at === null) return [];
+    return [
+      {
+        id: `job:full:${job.id}`,
+        category: 'jobs',
+        group: 'expeditions',
+        at,
+        title: fill(t.jobFull.title, { job: tr(job.name) }),
+        body: t.jobFull.body,
+        data: { route: 'jobs' },
+      },
+    ];
+  });
+  const tired = save.heroes.flatMap((hero): PlannedNotification[] => {
+    const at = tiredAt(save, hero, now);
+    if (at === null) return [];
+    return [
+      {
+        id: `job:tired:${hero.id}`,
+        category: 'jobs',
+        group: 'expeditions',
+        at,
+        title: fill(t.jobTired.title, { hero: hero.name }),
+        body: t.jobTired.body,
+        data: { route: 'jobs' },
+      },
+    ];
+  });
+  return [...full, ...tired];
+}
+
 /**
  * Every notification that should be scheduled right now, given the game state
  * and settings: expedition results, rested heroes, the idle reminder and the daily reset,
@@ -188,6 +226,7 @@ export function planNotifications(
     ...heistNotifications(save, settings, rules),
     ...(categories.heroesIdle ? idleNotification(save, rules) : []),
     ...(categories.heroesRested ? restedNotification(save, now) : []),
+    ...(categories.jobs ? jobNotifications(save, now) : []),
     ...(categories.dailyReset ? dailyResetNotification(now) : []),
   ];
   return planned

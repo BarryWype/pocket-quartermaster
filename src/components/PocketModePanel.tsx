@@ -29,6 +29,7 @@ import { Panel } from './Panel';
 import { PixelSwitch } from './ui';
 import { Text } from './Text';
 import { IconLabel } from './IconLabel';
+import { recallWorkingHeroes } from './workingHeroes';
 
 export type PocketOption = 'autoGather' | 'patrolAlerts' | 'escort';
 
@@ -166,6 +167,8 @@ function EscortSection({ save, now }: { save: SaveData; now: number }) {
             <Pressable
               key={candidate.id}
               onPress={() => {
+                // The pure escort rule refuses a working hero: recall them first, in the same tap.
+                recallWorkingHeroes([candidate.id]);
                 setEscort(candidate.id);
                 setPicking(false);
                 syncBackground();
@@ -174,7 +177,9 @@ function EscortSection({ save, now }: { save: SaveData; now: number }) {
             >
               <IconLabel
                 emoji={heroClasses[candidate.classId].emoji} icon={heroClasses[candidate.classId].icon}
-                label={`${candidate.name} · ${formatPercent(currentHp(save, candidate, now) / maxHp(save, candidate))}`}
+                label={`${candidate.name}${
+                  candidate.job ? ` · ${t('jobs.working')} · ${t('jobs.recallAndSend')}` : ''
+                } · ${formatPercent(currentHp(save, candidate, now) / maxHp(save, candidate))}`}
                 labelStyle={styles.optionText}
               />
             </Pressable>

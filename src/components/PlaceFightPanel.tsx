@@ -32,6 +32,7 @@ import { SpecialLabel } from './SpecialLabel';
 import { Text } from './Text';
 import { ThreatChip } from './ThreatChip';
 import { IconLabel, PartsLine } from './IconLabel';
+import { asRecalled, includesWorking, recallWorkingHeroes } from './workingHeroes';
 
 const problemText: Record<Exclude<PlaceFightProblem, null>, (distance: number) => string> = {
   tooFar: (distance) => t('patrols.walkCloser', { distance: Math.round(distance) }),
@@ -86,13 +87,16 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
 
   const briefing = placeFightBriefing(save, place);
   const foes = dungeonFoes(placeFightDungeon(place, highestUnlockedTier(save)));
-  const problem = placeFightProblem(save, place, heroIds, player, now);
+  // Working heroes are recalled on send, so the problem sees them as free.
+  const problem = placeFightProblem(asRecalled(save, heroIds), place, heroIds, player, now);
   const far = distanceMeters(player, place.position) > placeRules.interactionMeters;
   const info = placeInfo[kind];
   const toggle = (heroId: string) =>
     setHeroIds((ids) => (ids.includes(heroId) ? ids.filter((id) => id !== heroId) : ids.length < rules.party ? [...ids, heroId] : ids));
 
   const fight = () => {
+    // The pure fight rule refuses working heroes: recall them first, in the same tap.
+    recallWorkingHeroes(heroIds);
     engage(place, heroIds, player);
     syncBackground();
     useWorldStore.getState().set({ patrolMessage: { text: t('places.sent', { minutes: rules.minutes }), at: now } });
@@ -108,7 +112,11 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
         bodyStyle={styles.content}
         footer={
           <View style={styles.actions}>
-            <EmberButton title={t('places.fight')} disabled={problem !== null} onPress={fight} />
+            <EmberButton
+              title={includesWorking(save, heroIds) ? t('jobs.recallAndSend') : t('places.fight')}
+              disabled={problem !== null}
+              onPress={fight}
+            />
             <WoodButton title={t('common.close')} onPress={onClose} />
           </View>
         }
@@ -146,7 +154,8 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
               <Pressable key={hero.id} onPress={() => toggle(hero.id)} style={[styles.chip, heroIds.includes(hero.id) && styles.chipActive]}>
                 <GameIcon emoji={heroClasses[hero.classId].emoji} icon={heroClasses[hero.classId].icon} size={20} />
                 <Text>
-                  {hero.name} · {formatPercent(currentHp(save, hero, now) / maxHp(save, hero))}
+                  {hero.name}
+                  {hero.job ? ` · ${t('jobs.working')}` : ''} · {formatPercent(currentHp(save, hero, now) / maxHp(save, hero))}
                 </Text>
                 <SpecialLabel classId={hero.classId} special={hero.special} short />
               </Pressable>
