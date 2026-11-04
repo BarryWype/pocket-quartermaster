@@ -23,8 +23,8 @@ import type { LatLng, Spawn } from '@/game/generation/types';
 import type { WalkableTile } from '@/game/generation/walkable';
 import { addMaterials } from '@/game/inventory';
 import { dayKey, openChest, recordSteps, syncSteps } from '@/game/rewards/chests';
-import { activateLure } from '@/game/rewards/lures';
-import { collectTreasure, readTreasureMap } from '@/game/rewards/treasure';
+import { activateLure, isLureActive } from '@/game/rewards/lures';
+import { collectTreasure, liveTreasureMaps, readTreasureMap } from '@/game/rewards/treasure';
 import { grantLoot } from '@/game/loot/grant';
 import { migrateSave } from '@/game/migrations';
 import { readManual } from '@/game/loot/manuals';
@@ -37,7 +37,7 @@ import { addPatrolsToWalks, escortHpChange, walkPatrolsFrom } from '@/game/patro
 import { challengeSanctum, type SanctumResult, type SanctumSpawn } from '@/game/sanctums/sanctums';
 import { closeTip as closeTipRule, dueTips, noteTips as queueTips } from '@/game/reveal/reveal';
 import { createInitialSave, type SaveData, type TutorialStep } from '@/game/save';
-import { drinkPotion, fastForwardHealing, giveHomeCare, healAll, setHeroHp, settleHp } from '@/game/team/health';
+import { careProblem, drinkPotion, drinkProblem, fastForwardHealing, giveHomeCare, healAll, setHeroHp, settleHp } from '@/game/team/health';
 import { buy, sellGear, sellMaterial, sellValuable } from '@/game/places/shops';
 import { apothecaryCare, blessRelics, chapelCare, takeChapelBlessing, trainHero, type CareKind } from '@/game/places/services';
 import type { PlaceSpawn } from '@/game/places/generate';
@@ -391,8 +391,11 @@ export const useGameStore = create<GameState>()(
         const next = queueTips(get().save, ids);
         if (next !== get().save) set({ save: next });
       },
-      drinkPotion: (heroId, itemId) => set(({ save }) => ({ save: drinkPotion(save, heroId, Date.now(), itemId) })),
-      giveHomeCare: (heroId, itemId) => set(({ save }) => ({ save: giveHomeCare(save, heroId, itemId, Date.now()) })),
+      // Item uses skip when the item is no longer there: a screen still showing it, or a second tap, must not crash.
+      drinkPotion: (heroId, itemId) =>
+        set(({ save }) => (drinkProblem(save, heroId, Date.now(), itemId) ? {} : { save: drinkPotion(save, heroId, Date.now(), itemId) })),
+      giveHomeCare: (heroId, itemId) =>
+        set(({ save }) => (careProblem(save, heroId, itemId, Date.now()) ? {} : { save: giveHomeCare(save, heroId, itemId, Date.now()) })),
       pickApproach: (heroId, approach) => set(({ save }) => ({ save: pickApproach(save, heroId, approach) })),
       buySupply: (count, tavern, player) => set(({ save }) => ({ save: buySupply(save, count, tavern, player) })),
       checkPersonalTavern: (origin, snap) => {
@@ -564,16 +567,20 @@ export const useGameStore = create<GameState>()(
         set({ save });
         return result;
       },
-      readManual: (heroId, rarity) => set(({ save }) => ({ save: readManual(save, heroId, rarity) })),
+      readManual: (heroId, rarity) => set(({ save }) => ((save.manuals[rarity] ?? 0) < 1 ? {} : { save: readManual(save, heroId, rarity) })),
       readTreasureMap: (mapId, position) =>
-        set(({ save }) => ({ save: readTreasureMap(save, mapId, position, Date.now()) })),
+        set(({ save }) =>
+          liveTreasureMaps(save, Date.now()).some((m) => m.id === mapId) ? { save: readTreasureMap(save, mapId, position, Date.now()) } : {},
+        ),
       collectTreasure: (mapId, player, treasureAt) => {
         const { save, contents } = collectTreasure(get().save, mapId, player, treasureAt, Date.now());
         set({ save });
         return contents;
       },
-      activateLure: (position) => set(({ save }) => ({ save: activateLure(save, position, Date.now()) })),
-      startWalkEffect: (itemId, position) => set(({ save }) => ({ save: startWalkEffect(save, itemId, position, Date.now()) })),
+      activateLure: (position) =>
+        set(({ save }) => (save.lures < 1 || isLureActive(save, Date.now()) ? {} : { save: activateLure(save, position, Date.now()) })),
+      startWalkEffect: (itemId, position) =>
+        set(({ save }) => ((save.consumables[itemId] ?? 0) < 1 ? {} : { save: startWalkEffect(save, itemId, position, Date.now()) })),
       nextTutorialStep: (step) => set(({ save }) => ({ save: nextTutorialStep(save, step, Date.now()) })),
       finishTutorial: () => set(({ save }) => ({ save: finishTutorial(save, Date.now()) })),
       restartTutorial: () => set(({ save }) => ({ save: restartTutorial(save) })),

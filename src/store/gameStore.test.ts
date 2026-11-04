@@ -21,6 +21,22 @@ describe('gameStore', () => {
     expect(useGameStore.getState().save.tips.pending).toEqual(['keyFragments']);
   });
 
+  it('ignores using an item that is no longer in stock', () => {
+    const { save } = useGameStore.getState();
+    useGameStore.setState({ save: { ...save, manuals: { ...save.manuals, common: 1 } } });
+    const heroId = save.heroes[0].id;
+    useGameStore.getState().readManual(heroId, 'common');
+    const after = useGameStore.getState().save;
+
+    expect(() => useGameStore.getState().readManual(heroId, 'common')).not.toThrow();
+    expect(() => useGameStore.getState().startWalkEffect('foragersTonic', { latitude: 0, longitude: 0 })).not.toThrow();
+    expect(() => useGameStore.getState().activateLure({ latitude: 0, longitude: 0 })).not.toThrow();
+    expect(() => useGameStore.getState().readTreasureMap('gone', { latitude: 0, longitude: 0 })).not.toThrow();
+    expect(() => useGameStore.getState().drinkPotion(heroId)).not.toThrow();
+    expect(() => useGameStore.getState().giveHomeCare(heroId, 'herbalPoultice')).not.toThrow();
+    expect(useGameStore.getState().save).toBe(after);
+  });
+
   it('resets save data', () => {
     useGameStore.getState().addGold(10);
     useGameStore.getState().resetSave();

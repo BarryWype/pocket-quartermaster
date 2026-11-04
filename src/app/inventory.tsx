@@ -105,6 +105,9 @@ function InventoryContent() {
   const [salvaging, setSalvaging] = useState<GearInstance | null>(null);
   const [contentWidth, setContentWidth] = useState(0);
   const rows = inventoryRows(save, now);
+  // The pop-up shows the row as the save holds it now, and closes once the row is gone (its last one used).
+  const openedRow = opened ? rows.find((row) => rowKey(row) === rowKey(opened.row)) : undefined;
+  if (opened && !openedRow) setOpened(null);
   // Computed once: every slot asks whether its piece is worn.
   const worn = wearers(save);
   // Each slot is wrapped in a 2 px ring, so its face is 4 px narrower than its cell.
@@ -176,13 +179,13 @@ function InventoryContent() {
           {pagerPages}
         </PagerView>
       </View>
-      {opened && (
+      {opened && openedRow && (
         <AnchoredPopup
           anchor={opened.anchor}
           onClose={closePopup}
           render={(pointer) => (
             <InventoryPopup
-              row={opened.row}
+              row={openedRow}
               save={save}
               now={now}
               position={position}
