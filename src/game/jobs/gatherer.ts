@@ -3,7 +3,7 @@ import { resources } from '@/content/resources';
 import { spawnConfig } from '@/content/spawnConfig';
 
 import { spawnPositionAt } from '../generation/animalPaths';
-import { distanceMeters } from '../generation/geo';
+import { distanceMeters, interpolate, offsetPosition } from '../generation/geo';
 import { createRng } from '../generation/rng';
 import { generateTileSpawns } from '../generation/spawns';
 import { tilesWithin } from '../generation/tiles';
@@ -161,6 +161,34 @@ export function gathererDetail(
     },
     wounds,
   };
+}
+
+/** One leg of the worker's walk around the camp. */
+const WALK_LEG_MS = 4 * 60_000;
+
+/** Waypoint k on the worker's seeded walk: points spread evenly inside 80% of the circle. */
+const waypointAt = (camp: { position: LatLng; since: number }, heroId: string, k: number): LatLng => {
+  const rng = createRng(`gatherer|walk|${heroId}|${camp.since}|${k}`);
+  const r = 0.8 * gathererRules.radiusMeters * Math.sqrt(rng.next());
+  const theta = 2 * Math.PI * rng.next();
+  return offsetPosition(camp.position, r * Math.cos(theta), r * Math.sin(theta));
+};
+
+/** Where the gatherer's worker wanders: a seeded loop of waypoints, interpolated leg by leg. */
+export function gathererHeroAt(camp: { position: LatLng; since: number }, heroId: string, now: number): LatLng {
+  const t = Math.max(0, now - camp.since);
+  const leg = Math.floor(t / WALK_LEG_MS);
+  return interpolate(waypointAt(camp, heroId, leg), waypointAt(camp, heroId, leg + 1), (t % WALK_LEG_MS) / WALK_LEG_MS);
+}
+
+/** When the worker next takes a wound from the nodes ahead, or null when none does. */
+export function gathererFirstWoundAt(save: SaveData, jobId: string, now: number): number | null {
+  if (!save.jobOutput[jobId]) return null;
+  // Settled to now first, so the pace clock includes what was found since the last settle.
+  const settled = { ...save, jobOutput: { ...save.jobOutput, [jobId]: gathererDetail(save, jobId, now).entry } };
+  const { nodes } = gathererFinds(settled, jobId, now, now + gathererRules.capHours * 24 * 3_600_000);
+  const first = nodes.find((node) => node.wound > 0);
+  return first ? first.at : null;
 }
 
 /** When the gatherer's output next reaches its node cap, or null when no node gets it there. */

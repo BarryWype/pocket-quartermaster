@@ -58,9 +58,10 @@ export function useNotifications() {
   const lastReport = useGameStore((state) => state.save.reports[0]?.finishedAt);
   const chests = useGameStore((state) => state.save.chests);
   // Job assignments and station outputs, so a job action re-plans the jobs notifications.
+  // The gatherer's camp counts too, as moving it changes what lies ahead for the worker.
   const jobsAt = useGameStore((state) =>
     [
-      state.save.heroes.map((hero) => `${hero.id}:${hero.job?.jobId ?? ''}`).join(','),
+      state.save.heroes.map((hero) => `${hero.id}:${hero.job?.jobId ?? ''}:${hero.job?.camp?.since ?? ''}`).join(','),
       Object.entries(state.save.jobOutput).map(([id, output]) => `${id}:${output.units}:${output.fraction}:${output.since}`).join(','),
       JSON.stringify(state.save.jobChoice),
     ].join('|'),

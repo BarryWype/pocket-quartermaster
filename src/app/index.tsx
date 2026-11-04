@@ -14,7 +14,7 @@ import { MapFoliage, useFoliage } from '@/components/MapFoliage';
 import { MapTrail, MapWater } from '@/components/MapAmbience';
 import { MapSky, useSkyPan } from '@/components/MapSky';
 import { MapTopBar, TOP_BAR_HEIGHT } from '@/components/MapTopBar';
-import { MapMarkers } from '@/components/MapMarkers';
+import { MapMarkers, type CampSpot } from '@/components/MapMarkers';
 import { MapPanels } from '@/components/MapPanels';
 import { MapRanges, type RangeCircle } from '@/components/MapRanges';
 import { PANEL_KINDS } from '@/components/PlacePanel';
@@ -24,6 +24,7 @@ import { Text } from '@/components/Text';
 import { TutorialHint } from '@/components/TutorialHint';
 import { clockConfig } from '@/content/clockConfig';
 import { gatheringConfig } from '@/content/gatheringConfig';
+import { gathererRules } from '@/content/jobs';
 import { items } from '@/content/items';
 import { materialById } from '@/content/lookup';
 import { mapStyle } from '@/content/mapStyle';
@@ -619,6 +620,20 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
     navigate('/quests');
   }, []);
 
+  // The gatherer's camp while a hero works it: one memoised prop, keyed on its
+  // fields, so store writes that don't move it leave the markers alone.
+  const gatherer = save.heroes.find((hero) => hero.job?.jobId === 'gatherer');
+  const campAt = gatherer?.job?.camp;
+  const camp = useMemo<CampSpot | null>(
+    () =>
+      gatherer && campAt
+        ? { position: campAt.position, since: campAt.since, heroId: gatherer.id, classId: gatherer.classId }
+        : null,
+    // Keyed by the camp fields, not the objects: settles recreate them on every store write.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [gatherer?.id, gatherer?.classId, campAt?.position.latitude, campAt?.position.longitude, campAt?.since],
+  );
+
   // The menu stays reachable while there is no map to show.
   if (player.status === 'pending' || player.status === 'denied' || !position) {
     return (
@@ -657,6 +672,8 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
     ...(selectedPatrol
       ? [{ id: 'patrol', center: patrolPositionAt(selectedPatrol, now), radius: patrolRules.engageMeters, kind: 'patrol' as const }]
       : []),
+    // The gatherer's reach, only while the map is zoomed in enough to draw decorations.
+    ...(camp && decor !== 'hidden' ? [{ id: 'camp', center: camp.position, radius: gathererRules.radiusMeters, kind: 'camp' as const }] : []),
     ...(autoOn || showAutoRadius ? [{ id: 'auto', center: position, radius: autoRadius, kind: 'auto' as const }] : []),
     ...(showNodeRanges
       ? [
@@ -732,6 +749,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
           patrolsSeen={patrolsSeen}
           questTargets={questTargets}
           placedTreasure={placedTreasure}
+          camp={camp}
           onGather={gather}
           onGatherTutorial={gatherTutorial}
           onDigUp={digUp}

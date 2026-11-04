@@ -4,7 +4,8 @@ import { notificationTexts } from '@/content/notifications';
 import { recipes } from '@/content/recipes';
 
 import { resolveExpedition, startExpedition } from '../expeditions/expeditions';
-import { assignJob } from '../jobs/jobs';
+import { assignJob, fullAt } from '../jobs/jobs';
+import { gathererFirstWoundAt } from '../jobs/gatherer';
 import { emptyLoot } from '../loot/types';
 import type { Heist } from '../types';
 import { createInitialSave, type SaveData } from '../save';
@@ -305,5 +306,23 @@ describe('job notifications', () => {
     expect(planNotifications(createInitialSave(), settings(), now)).toEqual([]);
     const save = assignJob(createInitialSave(), 'bram', 'woodcutter', now);
     expect(planNotifications(save, withCategories({ jobs: false }), now)).toEqual([]);
+  });
+
+  it('announces the gatherer only while a hero works it', () => {
+    const gathered = assignJob(
+      { ...createInitialSave(), tutorial: { ...createInitialSave().tutorial, step: 'done' } },
+      'bram',
+      'gatherer',
+      now,
+      { latitude: 48.85, longitude: 2.35 },
+    );
+    const gathererIds = (n: { id: string }) => n.id.includes('gatherer');
+    const planned = planNotifications(gathered, settings(), now).filter(gathererIds);
+    const full = fullAt(gathered, 'gatherer', now);
+    if (full !== null) expect(planned.some((n) => n.id === 'job:full:gatherer' && n.at !== null && n.at > now)).toBe(true);
+    const wound = gathererFirstWoundAt(gathered, 'gatherer', now);
+    if (wound !== null) expect(planned.some((n) => n.id === 'job:hurt:gatherer' && n.at !== null && n.at === wound)).toBe(true);
+    // Without a worker, no gatherer notification is planned at all.
+    expect(planNotifications(createInitialSave(), settings(), now).filter(gathererIds)).toEqual([]);
   });
 });

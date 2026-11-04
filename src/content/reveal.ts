@@ -24,7 +24,7 @@ export type ItemTipKind = 'charms' | 'components' | 'relics' | 'trinkets' | 'val
  * The specials tip: due once the tutorial is done and a hero is fielded. The jobs tip: due once
  * the Jobs tab is opened. The per-job tips: due once their station opens at the guild.
  */
-export type TipId = RevealKind | ItemTipKind | 'specials' | 'jobs' | 'jobMiner' | 'jobCharcoalBurner';
+export type TipId = RevealKind | ItemTipKind | 'specials' | 'jobs' | 'jobMiner' | 'jobCharcoalBurner' | 'jobGatherer';
 
 /** What has to be true for a kind to show; read by `isRevealed`. */
 export type RevealCondition =
@@ -116,4 +116,6 @@ export const tipTexts: Record<TipId, string> = {
   jobMiner:
     'The Miner is open at the guild: a hero there digs the ore you pick. Stone now, copper and iron as tiers open. Switching ore keeps what was mined.',
   jobCharcoalBurner: "The Charcoal burner is open at the guild: a hero there makes coal while you're away.",
+  jobGatherer:
+    'The outdoor gatherer camps where you stand and picks up, within 250 m, the nodes you left behind once they expire. Outdoor work tires faster, and wildlife can hurt the hero a little.',
 };

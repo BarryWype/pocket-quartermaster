@@ -21,7 +21,7 @@ import {
   workDone,
   cycleAt,
 } from './jobs';
-import { gathererCapNodes, gathererFinds } from './gatherer';
+import { gathererCapNodes, gathererFinds, gathererFirstWoundAt, gathererHeroAt } from './gatherer';
 
 const HOUR = 3_600_000;
 const CAMP = { latitude: 48.85, longitude: 2.35 };
@@ -86,6 +86,34 @@ describe('the outdoor gatherer', () => {
     for (let i = 1; i < nodes.length; i++) {
       const worked = workDone(worker, cycleAt(worker, nodes[i].at)) - workDone(worker, cycleAt(worker, nodes[i - 1].at));
       expect(worked).toBeGreaterThanOrEqual(paceHours - 1e-9);
+    }
+  });
+
+  it('walks the worker on a seeded loop that stays inside the circle', () => {
+    const camp = { position: CAMP, since: 0 };
+    const walk = (at: number) => gathererHeroAt(camp, 'bram', at);
+    // Deterministic, and a different seed (a moved camp) walks elsewhere.
+    expect(walk(10 * HOUR + 76)).toEqual(walk(10 * HOUR + 76));
+    expect(gathererHeroAt({ position: CAMP, since: 1_000 }, 'bram', 10 * HOUR + 76)).not.toEqual(walk(10 * HOUR + 76));
+    for (const at of [1234, 13 * 60_000 + 5, 10 * HOUR + 76, 100 * HOUR + 9]) {
+      expect(distanceMeters(camp.position, walk(at))).toBeLessThanOrEqual(gathererRules.radiusMeters);
+    }
+    // Several legs apart, the worker is somewhere else.
+    expect(walk(10 * HOUR + 76)).not.toEqual(walk(100 * HOUR + 9));
+  });
+
+  it('says when the worker next takes a wound, only while one works', () => {
+    const now = 2 * HOUR;
+    expect(gathererFirstWoundAt(base(), 'gatherer', now)).toBeNull();
+    const save = camped();
+    const at = gathererFirstWoundAt(save, 'gatherer', now);
+    if (at !== null) {
+      expect(at).toBeGreaterThanOrEqual(now);
+      // The same scan, settled the same way, takes its first wound at the same moment.
+      const settled = { ...save, jobOutput: { ...save.jobOutput, gatherer: jobOutputDetail(save, 'gatherer', now) } };
+      const wounds = gathererFinds(settled, 'gatherer', now, now + 8 * 24 * HOUR).nodes.filter((node) => node.wound > 0);
+      expect(wounds.length).toBeGreaterThan(0);
+      expect(wounds[0].at).toBe(at);
     }
   });
 

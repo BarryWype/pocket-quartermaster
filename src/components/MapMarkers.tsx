@@ -8,6 +8,7 @@ import { sameSpawnMarker, SpawnMarker } from '@/components/SpawnMarker';
 import { Text } from '@/components/Text';
 import { timed } from '@/components/timed';
 import { materialById, resourceById } from '@/content/lookup';
+import { heroClasses } from '@/content/heroes';
 import { placeInfo } from '@/content/places';
 import { difficultyLabels, type Difficulty } from '@/content/difficulty';
 import { frDifficultyLabels } from '@/content/fr/difficulty';
@@ -15,6 +16,7 @@ import { frPatrolTexts } from '@/content/fr/patrols';
 import { patrolTexts } from '@/content/patrols';
 import { placeFightRules } from '@/content/placeFights';
 import { isFightPlace } from '@/game/places/fights';
+import { gathererHeroAt } from '@/game/jobs/gatherer';
 import { isFleeing, pickaxeTier, withinCollectRange } from '@/game/gathering/gathering';
 import { readSpawn } from '@/game/gathering/lockedNodes';
 import { distanceMeters } from '@/game/generation/geo';
@@ -32,8 +34,10 @@ import { sanctumById } from '@/game/sanctums/sanctums';
 import type { TavernSpawn } from '@/game/taverns/taverns';
 import { isTavernUnlocked } from '@/game/taverns/taverns';
 import { getLocale, localized, t, tr } from '@/i18n';
+import { navigate } from '@/services/navigation';
 import { useCulled } from '@/hooks/useCulled';
 import type { SaveData } from '@/game/save';
+import type { HeroClassId } from '@/game/types';
 
 /** How long a patrol just come into view pulses on the map. */
 const SEEN_HIGHLIGHT_MS = 5000;
@@ -51,6 +55,9 @@ const markerLabel = (name: string, difficulty: Difficulty, kind: string) =>
 const TimedSpawnMarker = memo(timed('marker: spawn', SpawnMarker), sameSpawnMarker);
 const TimedSanctumMarker = memo(timed('marker: sanctum', SanctumMarker));
 const TimedPatrolMarker = memo(timed('marker: patrol', PatrolMarker));
+const CampHeroMarker = memo(function CampHeroMarker({ emoji }: { emoji: string }) {
+  return <Text style={styles.campHero}>{emoji}</Text>;
+});
 
 /** The tutorial's nodes, with the position they are drawn at. */
 export type TutorialNode = { id: string; materialId: string; position: LatLng };
@@ -58,6 +65,8 @@ export type TutorialNode = { id: string; materialId: string; position: LatLng };
 export type QuestMark = { id: string; target: { position: LatLng; kind: string } };
 /** A treasure spot from a read map. */
 export type TreasureSpot = { id: string; position: LatLng };
+/** The gatherer's camp when a hero works it. */
+export type CampSpot = { position: LatLng; since: number; heroId: string; classId: HeroClassId };
 
 type Props = {
   save: SaveData;
@@ -80,6 +89,8 @@ type Props = {
   patrolsSeen: Record<string, number>;
   questTargets: QuestMark[];
   placedTreasure: TreasureSpot[];
+  /** The gatherer's camp, with the worker walking around it; null when nobody works it. */
+  camp: CampSpot | null;
   onGather: (spawn: Spawn) => void;
   onGatherTutorial: (id: string) => void;
   onDigUp: (mapId: string, at: LatLng) => void;
@@ -117,6 +128,7 @@ function MapMarkersBase({
   patrolsSeen,
   questTargets,
   placedTreasure,
+  camp,
   onGather,
   onGatherTutorial,
   onDigUp,
@@ -141,6 +153,7 @@ function MapMarkersBase({
     always,
   );
   const culledTreasure = useCulled(placedTreasure, bounds, always);
+  const culledCamp = useCulled(useMemo(() => (camp ? [{ id: 'gatherer:camp', position: camp.position, camp }] : []), [camp]), bounds, always);
 
   const playerPickaxe = pickaxeTier(save);
   const keyHeld = hasKey(save);
@@ -255,6 +268,21 @@ function MapMarkersBase({
           <Text style={styles.treasure}>💰</Text>
         </Marker>
       ))}
+      {culledCamp.map(({ camp: spot }) => (
+        <Marker
+          key="gatherer:camp"
+          id="gatherer:camp"
+          lngLat={toLngLat(spot.position)}
+          onPress={() => navigate({ pathname: '/expeditions', params: { tab: 'jobs' } })}
+        >
+          <TimedSanctumMarker emoji="🏕️" locked={false} />
+        </Marker>
+      ))}
+      {culledCamp.map(({ camp: spot }) => (
+        <Marker key="gatherer:hero" id="gatherer:hero" lngLat={toLngLat(gathererHeroAt(spot, spot.heroId, now))}>
+          <CampHeroMarker emoji={heroClasses[spot.classId].emoji} />
+        </Marker>
+      ))}
       <Marker id="player" lngLat={toLngLat(position)}>
         <Text style={styles.player}>🧙</Text>
       </Marker>
@@ -267,6 +295,7 @@ export const MapMarkers = memo(MapMarkersBase);
 const styles = StyleSheet.create({
   player: { fontSize: 28 },
   treasure: { fontSize: 30 },
+  campHero: { fontSize: 20 },
   // Sits above the target's own marker.
   questTarget: { fontSize: 18, transform: [{ translateY: -34 }] },
   questMark: { fontSize: 26 },

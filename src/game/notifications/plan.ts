@@ -6,7 +6,8 @@ import { nearbyKinds } from '@/content/pocketMode';
 import { fill, localized, tr } from '@/i18n';
 
 import { resolveExpedition } from '../expeditions/expeditions';
-import { fullAt, tiredAt } from '../jobs/jobs';
+import { gathererFirstWoundAt } from '../jobs/gatherer';
+import { fullAt, jobWorker, tiredAt } from '../jobs/jobs';
 import type { SaveData } from '../save';
 import { timeToFull } from '../team/health';
 import type { ActiveExpedition, ExpeditionReport, Heist } from '../types';
@@ -172,7 +173,7 @@ function dailyResetNotification(now: number): PlannedNotification[] {
   return [{ id: 'daily', category: 'dailyReset', group: 'steps', at: midnight.getTime(), ...notificationTexts().dailyReset }];
 }
 
-/** Jobs: when a station's output fills up, and when a working hero next gets tired. */
+/** Jobs: when a station's output fills up, when a working hero next gets tired, and when the gatherer is next hurt. */
 function jobNotifications(save: SaveData, now: number): PlannedNotification[] {
   const t = notificationTexts();
   const full = jobs.flatMap((job): PlannedNotification[] => {
@@ -205,7 +206,25 @@ function jobNotifications(save: SaveData, now: number): PlannedNotification[] {
       },
     ];
   });
-  return [...full, ...tired];
+  const hurt = jobs.flatMap((job): PlannedNotification[] => {
+    if (job.kind !== 'outdoor') return [];
+    const at = gathererFirstWoundAt(save, job.id, now);
+    if (at === null) return [];
+    const worker = jobWorker(save, job.id);
+    if (!worker) return [];
+    return [
+      {
+        id: `job:hurt:${job.id}`,
+        category: 'jobs',
+        group: 'expeditions',
+        at,
+        title: fill(t.jobHurt.title, { hero: worker.name }),
+        body: t.jobHurt.body,
+        data: { route: 'jobs' },
+      },
+    ];
+  });
+  return [...full, ...tired, ...hurt];
 }
 
 /**

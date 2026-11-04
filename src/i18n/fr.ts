@@ -205,6 +205,14 @@ export const fr: Dictionary = {
     produces: 'Produit',
     ore: 'Minerai',
     odds: '{name} {percent}',
+    gatherer: {
+      setUpCamp: 'Installer le camp ici',
+      noPosition: 'En attente de votre position',
+      distance: 'Camp à {distance}',
+      nodes: '{count}/{cap} nœuds récoltés',
+      hurt: '{hero} a été blessé par la faune (−{hp} PV)',
+      moveCamp: 'Déplacer le camp ici',
+    },
   },
   health: {
     hp: '{hp}/{max} PV',
@@ -919,6 +927,7 @@ export const fr: Dictionary = {
       jobs: 'Métiers',
       jobMiner: 'Mineur',
       jobCharcoalBurner: 'Charbonnier',
+      jobGatherer: 'Cueilleur des environs',
     },
   },
   debug: {

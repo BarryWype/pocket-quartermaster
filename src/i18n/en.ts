@@ -200,6 +200,14 @@ export const en = {
     produces: 'Produces',
     ore: 'Ore',
     odds: '{name} {percent}',
+    gatherer: {
+      setUpCamp: 'Set up camp here',
+      noPosition: 'Waiting for your location',
+      distance: 'Camp {distance} away',
+      nodes: '{count}/{cap} nodes gathered',
+      hurt: '{hero} was hurt by wildlife (−{hp} HP)',
+      moveCamp: 'Move camp here',
+    },
   },
   health: {
     hp: '{hp}/{max} HP',
@@ -911,6 +919,7 @@ export const en = {
       jobs: 'Jobs',
       jobMiner: 'Miner',
       jobCharcoalBurner: 'Charcoal burner',
+      jobGatherer: 'Outdoor gatherer',
     },
   },
   debug: {

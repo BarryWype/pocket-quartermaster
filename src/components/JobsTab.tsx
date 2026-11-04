@@ -5,7 +5,7 @@ import { clockConfig } from '@/content/clockConfig';
 import { type JobDef, jobRules, jobs } from '@/content/jobs';
 import { heroClasses } from '@/content/heroes';
 import { materialById } from '@/content/lookup';
-import { currentEnergy, isJobFull, jobCap, jobChoices, jobMaterials, jobOutputDetail, jobOutputNow, jobWorker, openJobs } from '@/game/jobs/jobs';
+import { currentEnergy, isJobFull, isJobOpen, jobCap, jobChoices, jobMaterials, jobOutputDetail, jobOutputNow, jobWorker, openJobs } from '@/game/jobs/jobs';
 import type { SaveData } from '@/game/save';
 import { isBusy } from '@/game/team/team';
 import { formatPercent, t, tr } from '@/i18n';
@@ -21,6 +21,8 @@ import { SpecialLabel } from './SpecialLabel';
 import { Text } from './Text';
 import { Tip } from './Tip';
 import { EmberButton, ParchmentCard, WoodButton } from './ui';
+
+import { GathererCard } from './GathererCard';
 
 /**
  * The Expeditions screen's Jobs tab: one card per station, with its worker,
@@ -50,6 +52,7 @@ export function JobsTab({ preselect }: { preselect?: string | null }) {
           onPicked={() => setPicking(null)}
         />
       ))}
+      {isJobOpen(save, 'gatherer') && <GathererCard />}
     </>
   );
 }
@@ -119,7 +122,7 @@ function JobCard({
 }
 
 /** The free heroes, each with their energy; the preselected one comes marked. */
-function HeroChips({ save, preselect, onPick }: { save: SaveData; preselect?: string | null; onPick: (heroId: string) => void }) {
+export function HeroChips({ save, preselect, onPick }: { save: SaveData; preselect?: string | null; onPick: (heroId: string) => void }) {
   const now = useNow(clockConfig.minutesMs);
   const free = save.heroes.filter((hero) => !isBusy(save, hero.id));
   if (free.length === 0) return <Text style={styles.muted}>{t('jobs.noFreeHeroes')}</Text>;
