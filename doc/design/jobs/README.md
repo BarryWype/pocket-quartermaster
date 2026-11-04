@@ -5,7 +5,7 @@ Step 2 of the roadmap in `doc/ideas.md` ("Heroes, jobs and expeditions"). Design
 ## Split of step 2
 - **2a. The job system, with one job: the woodcutter.** This document. Built 2026-11-04.
 - 2b. Work traits: **postponed** to roadmap step 8 (after every job and activity exists), so heroes' traits don't need reworking each time a job is added.
-- 2c-1. Guild gathering jobs: forager, trapper, miner, charcoal burner (below).
+- **2c-1. Guild gathering jobs: forager, trapper, miner, charcoal burner** (below). Built 2026-11-05.
 - 2c-2. The outdoor gatherer (below).
 - 2d. More ways to recruit (rescues, quest rewards).
 
@@ -46,7 +46,7 @@ Designed 2026-11-04, then postponed the same day to roadmap step 8: the trait li
 - Names avoid clashes: "Clumsy" is a combat trait, so this one is Butterfingers; "Scholar" is a class, so this one is Bookworm.
 - Effects are small, because job output is small next to walking (woodcutter 0.3 wood/h): Hard worker on the woodcutter makes about 8.6 wood a full day instead of 7.2.
 
-## Guild gathering jobs (2c-1)
+## Guild gathering jobs (2c-1, built 2026-11-05)
 Designed 2026-11-04. Same system as the woodcutter (energy, 8 h cap, collect, recall). Walk first: rates stay low, about the woodcutter's.
 - **Forager** (from the start): each unit is a weighted roll, herbs 50, berries 30, mushrooms 20.
 - **Trapper** (from the start): meat 45, hide 35, bone 20.

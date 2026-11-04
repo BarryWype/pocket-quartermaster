@@ -77,6 +77,15 @@ check('simulator balance bands', () => {
       it(`regular: tier ${tier.tier} woodcutter gives ${targets.woodcutterShare.join('–')} of the wood spent`, () =>
         expectIn(value, targets.woodcutterShare));
     }
+    for (const tier of summary.profiles.regular?.tiers ?? []) {
+      // A summary from before jobs were covered has no per-job data to check.
+      if (!tier.jobs) continue;
+      for (const [material, line] of Object.entries(tier.jobs)) {
+        if (line.share.median === null) continue;
+        it(`regular: tier ${tier.tier} jobs give at most ${Math.round(targets.jobShareMax * 100)}% of the ${material} walked`, () =>
+          expect(line.share.median).toBeLessThanOrEqual(targets.jobShareMax));
+      }
+    }
   });
 
   describe('gold, materials and levels', () => {

@@ -1,11 +1,13 @@
 import { dungeons } from '@/content/dungeons';
 import { heroClasses } from '@/content/heroes';
 import { items } from '@/content/items';
+import { jobs as jobList } from '@/content/jobs';
 import { tierMaterials } from '@/content/materials';
 import { placeFightRules } from '@/content/placeFights';
 import { placeInfo } from '@/content/places';
 import { REVEAL_KINDS, type RevealKind } from '@/content/reveal';
 
+import { jobMaterials } from '../jobs/jobs';
 import type { LootCategory, LootSourceId } from '../loot/types';
 import { PATROL_KINDS, TRAVELLER_KINDS, type PatrolKind } from '../patrols/generate';
 import type { ProbeRow, RunLog } from './bot';
@@ -52,6 +54,8 @@ export type TierSummary = {
   material: { id: string; gathered: Stat; spent: Stat; share: Stat };
   /** Wood per day over the tier: gathered by walking, spent, the woodcutter's output, and its share of the spend. */
   wood: { walked: Stat; spent: Stat; woodcutter: Stat; share: Stat };
+  /** Every job's materials over the tier: gathered by walking, gathered at the job, and the job's share of the walk. */
+  jobs: Record<string /* material */, { job: string; walked: Stat; fromJob: Stat; share: Stat }>;
   level: { end: Stat; target: number };
 };
 
@@ -166,13 +170,13 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
 
   // Wood per day: what walking and the map brought in, what every sink spent, and the woodcutter's share of it.
   const perDay = (total: number | null, window: [number, number] | null) => (total === null || !window ? null : total / (window[1] - window[0] + 1));
-  const jobWood = (log: RunLog, window: [number, number] | null) =>
-    window ? sum(Object.entries(log.jobFlow).filter(([day]) => within(Number(day), window)).map(([, m]) => m.wood ?? 0)) : null;
+  const jobFlowOf = (log: RunLog, window: [number, number] | null, material: string) =>
+    window ? sum(Object.entries(log.jobFlow).filter(([day]) => within(Number(day), window)).map(([, m]) => m[material] ?? 0)) : null;
   const woodSeeds = logs.map((log, i) => {
     const window = windows[i];
     const gatheredWood = flowOf(log, window, 'wood', 0);
     const spentWood = flowOf(log, window, 'wood', 1);
-    const job = jobWood(log, window);
+    const job = jobFlowOf(log, window, 'wood');
     return {
       walked: perDay(gatheredWood !== null && job !== null ? gatheredWood - job : null, window),
       spent: perDay(spentWood, window),
@@ -186,6 +190,35 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
     woodcutter: stat(woodSeeds.map((s) => s.woodcutter)),
     share: stat(woodSeeds.map((s) => s.share)),
   };
+
+  // Each job's materials over the tier: what the station added against the same material gathered by walking.
+  const jobs = Object.fromEntries(
+    jobList.flatMap((job) =>
+      jobMaterials(job).map((material) => {
+        const seeds = logs.map((log, i) => {
+          const window = windows[i];
+          const fromJob = jobFlowOf(log, window, material);
+          const gathered = flowOf(log, window, material, 0);
+          if (fromJob === null || gathered === null) return { walked: null, fromJob: null, share: null };
+          const walked = gathered - fromJob;
+          return {
+            walked: perDay(walked, window),
+            fromJob: perDay(fromJob, window),
+            share: walked > 0 ? fromJob / walked : null,
+          };
+        });
+        return [
+          material,
+          {
+            job: job.name,
+            walked: stat(seeds.map((s) => s.walked)),
+            fromJob: stat(seeds.map((s) => s.fromJob)),
+            share: stat(seeds.map((s) => s.share)),
+          },
+        ] as const;
+      }),
+    ),
+  );
 
   const end = stat(logs.map((log) => {
     const day = log.milestones[`boss:${tier}`];
@@ -211,6 +244,7 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
     gold: { income, spend, growth, incomePerDay, surplus },
     material: { id, gathered, spent, share },
     wood,
+    jobs,
     level: { end, target: expectedLevels[tier - 1] },
   };
 }

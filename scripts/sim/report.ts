@@ -131,6 +131,23 @@ function jobsTable(s: ProfileSummary) {
   return table(['Tier', 'Wood walked/day', 'Wood spent/day', 'Woodcutter/day', `Woodcutter share (target ${range(targets.woodcutterShare, pct)})`], rows);
 }
 
+/** Each job's material over each tier: what walking brought in, what the job added, and the job's share of the walk. */
+function jobsVsWalking(s: ProfileSummary) {
+  const rows = s.tiers.flatMap((t) =>
+    Object.entries(t.jobs ?? {})
+      .filter(([, j]) => (j.fromJob.median ?? 0) > 0 || (j.walked.median ?? 0) > 0)
+      .map(([material, j]) => [
+        String(t.tier),
+        j.job,
+        name(material),
+        n(j.walked.median, 1),
+        n(j.fromJob.median, 1),
+        `${pct(j.share.median)}${j.share.median !== null && j.share.median > targets.jobShareMax ? ` ${WARN}` : ''}`,
+      ]),
+  );
+  return table(['Tier', 'Job', 'Material', 'Walked/day', 'Job/day', `Share of walking (max ${pct(targets.jobShareMax)})`], rows);
+}
+
 /** Days per tier against a baseline run (e.g. with `--no-jobs`). */
 function baselineTable(s: ProfileSummary, baseline: Summary) {
   const before = baseline.profiles[s.profile];
@@ -306,12 +323,12 @@ export function renderReport({ summaries, rules, settings, difficultyOdds, basel
   out.push(
     '## Jobs',
     '',
-    'Wood per day over each tier: what walking and the map brought in, what every sink spent (crafting, forging, cooking, upgrades), and the woodcutter’s share of that need.',
+    'Every guild job over each tier: wood for the woodcutter, then each job’s materials — what walking and the map brought in, what the job added, and the job’s share of that walking (walk first).',
     '',
   );
-  for (const s of summaries) out.push(`### ${s.profile}`, '', jobsTable(s));
+  for (const s of summaries) out.push(`### ${s.profile}`, '', jobsTable(s), '', '**Jobs vs walking**', '', jobsVsWalking(s), '');
   out.push(
-    'The bot collects every station at the start of a session, recalls a worker whenever a send needs them, and staffs each empty station at the end of a session — so the woodcutter never costs a party member (see the Jobs rule under Bot rules).',
+    'The bot collects every station at the start of a session, recalls a worker whenever a send needs them, and staffs every open station at the end of a session — the one shortest of its material first, so a worker never costs a party member; the miner digs the unlocked ore the bot holds least of (see the Jobs rule under Bot rules).',
     '',
   );
   if (baseline) {

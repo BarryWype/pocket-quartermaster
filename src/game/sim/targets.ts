@@ -22,6 +22,8 @@ export const targets = {
   materialSpent: 0.75,
   /** The woodcutter's share of the wood spent per day, at every tier (doc/design/jobs/README.md's 10–15%). */
   woodcutterShare: [0.1, 0.15] as [number, number],
+  /** A job gives at most this share of a material's walking intake (regular profile); walk first. */
+  jobShareMax: 0.15,
   /** Heroes end each tier within this many levels of the top of its band (expectedLevels). */
   levelSlack: 1,
   /** A stock that grows at every tier end and ends above this is a pile-up. */

@@ -7,7 +7,7 @@ import { guildTrackById, guildTracks } from '@/content/guild';
 import { heroClasses, xpRules } from '@/content/heroes';
 import { dungeonById, itemById, recipeById } from '@/content/lookup';
 import { items } from '@/content/items';
-import { jobs as jobList } from '@/content/jobs';
+import { jobs as jobList, type JobDef } from '@/content/jobs';
 import { lootConfig } from '@/content/loot/config';
 import { shopRules } from '@/content/shops';
 import { recipes } from '@/content/recipes';
@@ -43,7 +43,7 @@ import type { Rng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { buyRank, guildBonus, isGuildUnlocked, rankPrice, rankProblem } from '../guild/guild';
 import { hasMaterials } from '../inventory';
-import { assignJob, collectJob, jobWorker, openJobs, recallFromJob } from '../jobs/jobs';
+import { assignJob, collectJob, jobChoices, jobMaterials, jobWorker, openJobs, recallFromJob, setJobChoice } from '../jobs/jobs';
 import { isRevealed } from '../reveal/reveal';
 import type { PatrolKind, PatrolSubject, TravellerKind } from '../patrols/generate';
 import type { TravellerReward } from '../patrols/travellers';
@@ -870,15 +870,26 @@ export function recallWorking(sim: Sim, heroIds: string[]) {
   }
 }
 
-/** Staffs each open station at the end of a session with the least useful free hero. */
+/** Staffs every open station at the end of a session, the one shortest of its material first, with the least useful free heroes. */
 export function assignJobs(sim: Sim) {
   if (!sim.jobs) return;
-  for (const job of openJobs(sim.save)) {
+  // A station's shortage score: the stock of the material it can produce least of.
+  const shortage = (job: JobDef) => {
+    const materials = job.id === 'miner' ? jobChoices(sim.save, 'miner') : jobMaterials(job);
+    return Math.min(...materials.map((m) => sim.save.materials[m] ?? 0));
+  };
+  const open = [...openJobs(sim.save)].sort((a, b) => shortage(a) - shortage(b));
+  for (const job of open) {
     if (jobWorker(sim.save, job.id)) continue;
     const free = sim.save.heroes.filter((h) => !isBusy(sim.save, h.id));
     if (!free.length) continue;
     const pick = [...free].sort((a, b) => statScore(sim.save, a) - statScore(sim.save, b))[0];
     act(sim, 'job', (save) => assignJob(save, pick.id, job.id, sim.now));
+  }
+  // The miner digs the unlocked ore the bot holds least of; assignJob above may have just picked another.
+  const ores = [...jobChoices(sim.save, 'miner')].sort((a, b) => (sim.save.materials[a] ?? 0) - (sim.save.materials[b] ?? 0));
+  if (ores.length > 0 && sim.save.jobChoice.miner !== ores[0]) {
+    act(sim, 'job', (save) => setJobChoice(save, 'miner', ores[0], sim.now));
   }
 }
 
