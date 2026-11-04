@@ -159,7 +159,7 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
                 onPress={() => toggle(hero.id)}
                 style={[styles.chip, heroIds.includes(hero.id) && styles.chipActive]}
               >
-                <GameIcon emoji={heroClasses[hero.classId].emoji} size={20} />
+                <GameIcon emoji={heroClasses[hero.classId].emoji} icon={heroClasses[hero.classId].icon} size={20} />
                 <Text>
                   {hero.name}
                   {hero.id === escortId ? t('common.escort') : ''} ·{' '}

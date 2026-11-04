@@ -6,6 +6,7 @@ import { masteryTypeNames } from '@/content/forging';
 import { gearProfiles } from '@/content/equipment';
 import { materialById, recipeById, recipeOutput, relicById } from '@/content/lookup';
 import { tierMaterials } from '@/content/materials';
+import { systemIcons } from '@/content/systemIcons';
 import { canCraft, forgedItem, ownsTool, type ForgeResult } from '@/game/crafting/crafting';
 import { forgeList, pageTypeOf, type ForgeTierList, type ForgePageType } from '@/game/crafting/forgeList';
 import { tierRecipes } from '@/game/crafting/recipeUnlocks';
@@ -38,9 +39,9 @@ export type ForgeSection = ForgePageType | 'infuse';
 /** One emoji (and icon, for the weapons) per forge page. */
 const RAIL_ICONS: Record<ForgePageType, { emoji: string; icon?: ImageSourcePropType }> = {
   weapons: { emoji: '🗡️', icon: require('../../assets/icons/scaled/menu-forge.png') },
-  armour: { emoji: '🧥' },
-  offhands: { emoji: '🛡️' },
-  other: { emoji: '⚒️' },
+  armour: { emoji: '🧥', icon: systemIcons['🧥'] },
+  offhands: { emoji: '🛡️', icon: systemIcons['🛡️'] },
+  other: { emoji: '⚒️', icon: systemIcons['⚒️'] },
 };
 
 /** Whether the player holds any elemental shard or stone, which is what the infuse page needs. */

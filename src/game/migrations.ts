@@ -54,6 +54,7 @@ export function migrateSave(save: SaveData, fromVersion: number, now: number): S
   let next = save;
   if (fromVersion < 31) next = toV31(next, now);
   if (fromVersion < 32) next = toV32(next);
-  if (fromVersion < 33) next = toV33(next);
+  // Version 34 runs the special roll again: builds of other branches stamped saves 33 without giving heroes a special.
+  if (fromVersion < 34) next = toV33(next);
   return next;
 }

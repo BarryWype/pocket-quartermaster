@@ -23,6 +23,7 @@ import { gearApproachBonus, approachScore, pendingApproachPicks } from '@/game/t
 import { heroClasses, xpRules, xpToNextLevel } from '@/content/heroes';
 import { lootConfig } from '@/content/loot/config';
 import { traitById } from '@/content/traits';
+import { systemIcons } from '@/content/systemIcons';
 import { items } from '@/content/items';
 import { gearName, itemById } from '@/content/lookup';
 import { answersMemberOf, prepareParty } from '@/game/expeditions/simulate';
@@ -97,7 +98,7 @@ function HeroHeader({ heroId }: { heroId: string }) {
 function StatTile({ stat, value, text, small }: { stat: keyof Stats; value: number; text: string; small?: boolean }) {
   return (
     <Tip title={t(`hero.statNames.${stat}`)} text={text} style={small ? styles.smallStat : styles.stat}>
-      <GameIcon emoji={statIcons[stat]} size={small ? 16 : 22} />
+      <GameIcon emoji={statIcons[stat]} icon={systemIcons[statIcons[stat]]} size={small ? 16 : 22} />
       <View style={small ? styles.smallStatBody : undefined}>
         <Text style={small ? styles.smallStatName : styles.statName} numberOfLines={small ? 1 : undefined} adjustsFontSizeToFit={small}>
           {t(`hero.statNames.${stat}`)}
@@ -225,7 +226,7 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
             ))}
           </View>
           <View style={styles.portraitBrass} pointerEvents="none" />
-          <GameIcon emoji={heroClass.emoji} size={46} />
+          <GameIcon emoji={heroClass.emoji} icon={heroClass.icon} size={46} />
           <View style={styles.levelDiamond}>
             <View style={styles.levelDiamondFace}>
               <Text style={styles.levelText}>{hero.level}</Text>

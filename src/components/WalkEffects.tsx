@@ -63,7 +63,7 @@ export function WalkEffects({ player, buttonStyle, chipsStyle }: {
             return (
               <Tip key={effect.id} title={tr(item.name)} text={tr(item.description ?? '')}>
                 <View style={styles.chip}>
-                  <GameIcon emoji={item.emoji} size={18} />
+                  <GameIcon emoji={item.emoji} icon={item.icon} size={18} />
                   <Text style={styles.chipText}>
                     <Countdown endsAt={effect.endsAt} /> ⓘ
                   </Text>

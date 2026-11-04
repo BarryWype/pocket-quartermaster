@@ -173,7 +173,7 @@ function EscortSection({ save, now }: { save: SaveData; now: number }) {
               style={styles.option}
             >
               <IconLabel
-                emoji={heroClasses[candidate.classId].emoji}
+                emoji={heroClasses[candidate.classId].emoji} icon={heroClasses[candidate.classId].icon}
                 label={`${candidate.name} · ${formatPercent(currentHp(save, candidate, now) / maxHp(save, candidate))}`}
                 labelStyle={styles.optionText}
               />
@@ -199,7 +199,7 @@ function EscortSection({ save, now }: { save: SaveData; now: number }) {
       : t('autoGather.escortReady');
   return (
     <View style={styles.section}>
-      <IconLabel emoji={heroClasses[hero.classId].emoji} label={`${hero.name} · ${status}`} labelStyle={styles.escortName} />
+      <IconLabel emoji={heroClasses[hero.classId].emoji} icon={heroClasses[hero.classId].icon} label={`${hero.name} · ${status}`} labelStyle={styles.escortName} />
       <HpBar save={save} hero={hero} />
       <View style={styles.buttons}>
         <Button

@@ -36,6 +36,7 @@ function PriceLine({ price }: { price: ReturnType<typeof rankPrice> }) {
             <Text style={styles.price}> · </Text>
             <IconLabel
               emoji={materialById[materialId].emoji}
+              icon={materialById[materialId].icon}
               label={`${amount} ${tr(materialById[materialId].name).toLowerCase()}`}
               size={18}
               labelStyle={[styles.price, short && styles.short]}

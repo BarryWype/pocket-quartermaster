@@ -11,6 +11,7 @@ import { itemById, valuableById } from '@/content/lookup';
 import { lootMatrix } from '@/content/loot/matrix';
 import { placeInfo } from '@/content/places';
 import { objectives, questRules } from '@/content/quests';
+import { systemIcons } from '@/content/systemIcons';
 import { LOOT_CATEGORIES, type LootCategory } from '@/game/loot/types';
 import type { PlaceSpawn } from '@/game/places/generate';
 import { rerollProblem, rerollsLeft } from '@/game/quests/arrival';
@@ -328,10 +329,10 @@ function QuestCard({
       )}
       <View style={styles.rewardRow}>
         {likely.map((category) => (
-          <ItemSlot key={category} state="ready" size={32} emoji={CATEGORY_EMOJI[category]} accessibilityLabel={t(`quests.categories.${category}`)} />
+          <ItemSlot key={category} state="ready" size={32} emoji={CATEGORY_EMOJI[category]} icon={systemIcons[CATEGORY_EMOJI[category]]} accessibilityLabel={t(`quests.categories.${category}`)} />
         ))}
         {maybe.map((category) => (
-          <ItemSlot key={category} state="ready" size={32} faded emoji={CATEGORY_EMOJI[category]} accessibilityLabel={t(`quests.categories.${category}`)} />
+          <ItemSlot key={category} state="ready" size={32} faded emoji={CATEGORY_EMOJI[category]} icon={systemIcons[CATEGORY_EMOJI[category]]} accessibilityLabel={t(`quests.categories.${category}`)} />
         ))}
         <View style={styles.spacer} />
         {done ? (

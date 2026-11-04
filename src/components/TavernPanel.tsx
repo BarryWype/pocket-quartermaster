@@ -66,7 +66,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
     return (
       <View key={offer.id} style={styles.offer}>
         <IconLabel
-          emoji={heroClass.emoji}
+          emoji={heroClass.emoji} icon={heroClass.icon}
           label={t('tavern.offer', { name: offer.name, className: tr(heroClass.name), level: offer.level })}
           labelStyle={styles.name}
         />

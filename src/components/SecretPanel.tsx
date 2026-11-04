@@ -136,7 +136,7 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
         <View style={styles.chips}>
           {candidates.map((hero) => (
             <Pressable key={hero.id} onPress={() => toggle(hero.id)} style={[styles.chip, heroIds.includes(hero.id) && styles.chipActive]}>
-              <GameIcon emoji={heroClasses[hero.classId].emoji} size={20} />
+              <GameIcon emoji={heroClasses[hero.classId].emoji} icon={heroClasses[hero.classId].icon} size={20} />
               <Text>{hero.name}</Text>
               <SpecialLabel classId={hero.classId} special={hero.special} short />
             </Pressable>
@@ -182,7 +182,7 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
         {offer && trait && (
           <View style={styles.offer}>
             <IconLabel
-              emoji={heroClasses[offer.classId].emoji}
+              emoji={heroClasses[offer.classId].emoji} icon={heroClasses[offer.classId].icon}
               label={t('tavern.offer', { name: offer.name, className: tr(heroClasses[offer.classId].name), level: offer.level })}
               labelStyle={styles.name}
             />

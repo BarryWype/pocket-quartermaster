@@ -2,6 +2,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { clockConfig } from '@/content/clockConfig';
 import { healthRules } from '@/content/health';
+import { systemIcons } from '@/content/systemIcons';
 import type { SaveData } from '@/game/save';
 import { currentHp, isExhausted, maxHp, timeToFull } from '@/game/team/health';
 import { isOnExpedition } from '@/game/team/team';
@@ -47,6 +48,7 @@ export function HpBar({ save, hero, light, inBar }: Props) {
           inBar ? (
             <IconLabel
               emoji="❤️"
+              icon={systemIcons['❤️']}
               label={t('health.hpCount', { hp: Math.floor(hp), max })}
               size={14}
               labelStyle={[styles.count, light && styles.light]}
@@ -58,6 +60,7 @@ export function HpBar({ save, hero, light, inBar }: Props) {
         <View style={styles.row}>
           <IconLabel
             emoji="❤️"
+              icon={systemIcons['❤️']}
             label={t('health.hp', { hp: Math.floor(hp), max })}
             labelStyle={[styles.text, light && styles.light]}
           />

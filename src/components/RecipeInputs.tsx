@@ -30,7 +30,7 @@ export function RecipeInputs({ save, recipe }: { save: SaveData; recipe: RecipeD
       })}
       {(recipe.valuables ?? []).map(({ valuableId, amount }) => (
         <View key={valuableId} style={recipeInputsStyles.input}>
-          <GameIcon emoji={valuableById[valuableId].emoji} size={18} />
+          <GameIcon emoji={valuableById[valuableId].emoji} icon={valuableById[valuableId].icon} size={18} />
           <Text style={recipeInputsStyles.inputText}>
             {held(valuableId)}/{amount}
           </Text>

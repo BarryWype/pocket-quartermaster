@@ -93,7 +93,7 @@ export function LootReveal({ report, before, after, onClose, onReadReport }: Pro
           {heroes.map(({ hero, xp, levelUp }, i) => (
             <Pop key={hero.id} delay={300 + (items.length + i) * STAGGER_MS}>
               <View style={styles.hero}>
-                <IconLabel emoji={heroClasses[hero.classId].emoji} label={hero.name} labelStyle={styles.heroName} />
+                <IconLabel emoji={heroClasses[hero.classId].emoji} icon={heroClasses[hero.classId].icon} label={hero.name} labelStyle={styles.heroName} />
                 <Text style={styles.xp}>{t('expeditions.loot.xp', { xp })}</Text>
                 {levelUp && <IconLabel emoji="⬆" label={t('expeditions.loot.levelUp', { level: hero.level })} labelStyle={styles.levelUp} />}
               </View>

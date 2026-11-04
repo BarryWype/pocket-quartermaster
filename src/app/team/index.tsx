@@ -9,6 +9,7 @@ import { Text } from '@/components/Text';
 import { TutorialHint } from '@/components/TutorialHint';
 import { Deferred, GhostScreen, ParchmentCard, WoodButton } from '@/components/ui';
 import { heroClasses } from '@/content/heroes';
+import { systemIcons } from '@/content/systemIcons';
 import { traitById } from '@/content/traits';
 import { heroDamageStat, heroStats, isOnExpedition } from '@/game/team/team';
 import { pendingApproachPicks } from '@/game/team/stats';
@@ -78,7 +79,7 @@ function TeamContent() {
                   ))}
                 </View>
                 <View style={styles.portraitBrass} pointerEvents="none" />
-                <GameIcon emoji={heroClass.emoji} size={46} />
+                <GameIcon emoji={heroClass.emoji} icon={heroClass.icon} size={46} />
                 <View style={styles.levelDiamond}>
                   <View style={styles.levelDiamondFace}>
                     <Text style={styles.levelText}>{hero.level}</Text>
@@ -101,7 +102,7 @@ function TeamContent() {
                 <View style={styles.statRow}>
                   {(['hp', damageStat, 'armour', 'speed'] as const).map((stat) => (
                     <View key={stat} style={styles.statCell}>
-                      <GameIcon emoji={statIcons[stat]} size={12} />
+                      <GameIcon emoji={statIcons[stat]} icon={systemIcons[statIcons[stat]]} size={12} />
                       <Text style={styles.statValue}>{stats[stat]}</Text>
                     </View>
                   ))}

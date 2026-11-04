@@ -683,6 +683,7 @@ export type TraitDef = {
 export type HeroClassDef = {
   name: string;
   emoji: string;
+  icon: ImageSourcePropType;
   rarity: ClassRarity;
   /** How the class plays its role against threats. */
   family: ClassFamily;

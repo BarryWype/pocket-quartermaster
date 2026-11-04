@@ -29,6 +29,7 @@ export function ValuableRows({ valuables, price, canSell, onSell, wanted }: Prop
         <View style={styles.nameRow}>
           <IconLabel
             emoji={def.emoji}
+            icon={def.icon}
             label={
               <>
                 {t('inventory.valuable', { name: tr(def.name), tier })} ×{count}

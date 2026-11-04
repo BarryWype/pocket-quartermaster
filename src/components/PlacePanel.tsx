@@ -171,7 +171,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
       if (gear.length === 0) return <Text style={styles.muted}>{t('places.nothingToSell')}</Text>;
       return gear.map((g) => (
         <View key={g.uid} style={[styles.row, styles.actions]}>
-          <IconLabel emoji={itemById[g.itemId].emoji} label={gearName(g)} labelStyle={styles.name} />
+          <IconLabel emoji={itemById[g.itemId].emoji} icon={itemById[g.itemId].icon} label={gearName(g)} labelStyle={styles.name} />
           <Price amount={gearSellPrice(g)} textStyle={styles.price} />
           <WoodButton
             title={t('places.sell')}
@@ -186,7 +186,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
     if (held.length === 0) return place.kind === 'market' ? <Text style={styles.muted}>{t('places.nothingToSell')}</Text> : null;
     return held.map(([id, count]) => (
       <View key={id} style={styles.row}>
-        <IconLabel emoji={materialById[id].emoji} label={`${tr(materialById[id].name)} ×${count}`} labelStyle={styles.name} />
+        <IconLabel emoji={materialById[id].emoji} icon={materialById[id].icon} label={`${tr(materialById[id].name)} ×${count}`} labelStyle={styles.name} />
         <View style={styles.actions}>
           <Price amount={materialSellPrice(id, place.kind)} textStyle={styles.price} />
           <WoodButton
@@ -355,7 +355,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
                     onPress={() => setHeistHeroId(hero.id)}
                     style={[styles.chip, heistHeroId === hero.id && styles.chipActive]}
                   >
-                    <GameIcon emoji={heroClasses[hero.classId].emoji} size={20} />
+                    <GameIcon emoji={heroClasses[hero.classId].emoji} icon={heroClasses[hero.classId].icon} size={20} />
                     <Text>
                       {hero.name} · {formatPercent(currentHp(save, hero, now) / maxHp(save, hero))}
                     </Text>

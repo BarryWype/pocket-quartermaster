@@ -110,6 +110,10 @@ describe('save migrations', () => {
     }
   });
 
+  it('rolls the missing specials of a save another build already stamped 33', () => {
+    expect(migrateSave(v32, 33, 10 * DAY)).toEqual(save);
+  });
+
   it('rolls the same special for the same hero id', () => {
     expect(migrateSave(v32, 32, 10 * DAY)).toEqual(migrateSave(v32, 32, 20 * DAY));
   });

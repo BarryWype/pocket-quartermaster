@@ -4,6 +4,7 @@ import PagerView from 'react-native-pager-view';
 
 import { itemById, materialById, recipeOutput, valuableById } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
+import { systemIcons } from '@/content/systemIcons';
 import { canCraft, isKnown, ownsTool, type ForgeResult } from '@/game/crafting/crafting';
 import { ELEMENTS, shardId } from '@/game/elements';
 import type { SaveData } from '@/game/save';
@@ -33,7 +34,7 @@ type Section = 'kitchen' | 'alchemy';
 const SECTIONS: Section[] = ['kitchen', 'alchemy'];
 
 const SECTION_ICONS: Record<Section, { emoji: string; icon?: ImageSourcePropType }> = {
-  kitchen: { emoji: '🍲' },
+  kitchen: { emoji: '🍲', icon: systemIcons['🍲'] },
   alchemy: { emoji: '⚗️', icon: require('../../assets/icons/scaled/menu-alchemy.png') },
 };
 

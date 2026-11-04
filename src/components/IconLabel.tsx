@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View, type ImageSourcePropType, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 
+import { systemIcons } from '@/content/systemIcons';
+
 import { Price, parseGoldLabel } from './Price';
 import { GameIcon } from './GameIcon';
 import { Text } from './Text';
@@ -58,8 +60,8 @@ export function PartsLine({ parts, sep = ' · ', style, labelStyle, size = 18, g
           </Text>
         ) : (
           <View key={i} style={styles.part}>
-            <IconLabel emoji={part.emoji} label={(i > 0 ? sep : '') + part.text} size={size} gap={gap} labelStyle={labelStyle} />
-            {part.after ? <GameIcon emoji={part.after} size={size} /> : null}
+            <IconLabel emoji={part.emoji} icon={systemIcons[part.emoji]} label={(i > 0 ? sep : '') + part.text} size={size} gap={gap} labelStyle={labelStyle} />
+            {part.after ? <GameIcon emoji={part.after} icon={systemIcons[part.after]} size={size} /> : null}
           </View>
         ),
       )}
@@ -82,7 +84,7 @@ export function RewardLabel({ text, size = 18, labelStyle }: { text: string; siz
   if (gold) return <Price amount={gold.amount} prefix={gold.prefix} size={size} textStyle={labelStyle} />;
   const split = splitLeadingEmoji(text);
   if (!split) return <Text style={labelStyle}>{text}</Text>;
-  return <IconLabel emoji={split.emoji} label={split.label} size={size} labelStyle={labelStyle} />;
+  return <IconLabel emoji={split.emoji} icon={systemIcons[split.emoji]} label={split.label} size={size} labelStyle={labelStyle} />;
 }
 
 /** Loot labels in one wrapping row, each leading emoji beside its own words. */

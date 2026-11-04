@@ -72,6 +72,7 @@ describe('baseHeroStats', () => {
     const def: HeroClassDef = {
       name: 'Fake',
       emoji: '🧪',
+      icon: 0,
       rarity: 'common',
       family: 'fighter',
       poolTier: 1,

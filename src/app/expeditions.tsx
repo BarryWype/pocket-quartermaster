@@ -338,7 +338,7 @@ function ExpeditionsContent() {
               style={[styles.hero, active && styles.heroActive, away && styles.heroAway]}
             >
               <View style={styles.heroFrame}>
-                <GameIcon emoji={heroClasses[hero.classId].emoji} size={22} />
+                <GameIcon emoji={heroClasses[hero.classId].emoji} icon={heroClasses[hero.classId].icon} size={22} />
               </View>
               <View style={styles.heroBody}>
                 <Text style={styles.heroName} numberOfLines={1}>
@@ -440,7 +440,7 @@ function ExpeditionsContent() {
                 {heroes.map((hero) => (
                   <View key={hero.id} style={styles.teamHero}>
                     <View style={styles.teamPortrait}>
-                      <GameIcon emoji={heroClasses[hero.classId].emoji} size={28} />
+                      <GameIcon emoji={heroClasses[hero.classId].emoji} icon={heroClasses[hero.classId].icon} size={28} />
                     </View>
                     <Text style={styles.teamHeroName} numberOfLines={1}>
                       {hero.name}

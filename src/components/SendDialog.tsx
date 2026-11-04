@@ -107,7 +107,7 @@ function Picker({ label, items, stock, value, onChange, disabled }: {
             style={[styles.option, value === id && styles.optionActive, disabled && styles.optionDisabled]}
           >
             {id ? (
-              <IconLabel emoji={itemById[id].emoji} label={`${tr(itemById[id].name)} ×${stock[id]}`} labelStyle={styles.optionText} />
+              <IconLabel emoji={itemById[id].emoji} icon={itemById[id].icon} label={`${tr(itemById[id].name)} ×${stock[id]}`} labelStyle={styles.optionText} />
             ) : (
               <Text style={styles.optionText}>{t('expeditions.confirm.none')}</Text>
             )}
@@ -229,7 +229,7 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
             {heroes.map((hero) => (
               <View key={hero.id} style={styles.hero}>
                 <View style={styles.heroLine}>
-                  <IconLabel emoji={heroClasses[hero.classId].emoji} label={hero.name} labelStyle={styles.heroName} />
+                  <IconLabel emoji={heroClasses[hero.classId].emoji} icon={heroClasses[hero.classId].icon} label={hero.name} labelStyle={styles.heroName} />
                   {drinkProblem(save, hero.id, now) === null && (
                     <Button title={t('expeditions.confirm.drink')} onPress={() => drinkPotion(hero.id)} />
                   )}
@@ -276,7 +276,7 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
                         }}
                       >
                         <IconLabel
-                          emoji={heroClasses[other.classId].emoji}
+                          emoji={heroClasses[other.classId].emoji} icon={heroClasses[other.classId].icon}
                           label={`${other.name} · ${formatPercent(currentHp(save, other, now) / maxHp(save, other))}`}
                           labelStyle={styles.optionText}
                         />

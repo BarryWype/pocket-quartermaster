@@ -2,6 +2,15 @@ import { elementInfo } from '@/content/elements';
 import { ELEMENTS, type Element } from '@/game/elements';
 import type { Approach, GearDef, StatKey } from '@/game/types';
 
+/** Each element's amulet icon. */
+const AMULET_ICONS: Record<Element, GearDef['icon']> = {
+  fire: require('../../assets/icons/rpg/amulet-copper-pendant.png'),
+  grass: require('../../assets/icons/rpg/amulet-triple-gem.png'),
+  stone: require('../../assets/icons/relics/amulet-amethyst-drop.png'),
+  electric: require('../../assets/icons/relics/amulet-crescent-gold.png'),
+  water: require('../../assets/icons/relics/amulet-blue-gem.png'),
+};
+
 export const trinketRules = {
   /** Crit, Speed and Evasion trinkets: base × this by tier (≈ √ of the enemy strength curve). */
   extraBudget: [1, 1.4, 1.7, 2, 2.4],
@@ -20,6 +29,7 @@ type TrinketKind = {
   kind: string;
   name: string;
   emoji: string;
+  icon: GearDef['icon'];
   group: TrinketGroup;
 } & (
   | { group: 'stat'; stat: StatKey; base: number }
@@ -30,23 +40,24 @@ type TrinketKind = {
 
 /** One kind of trinket; the bases are Normal-quality values at tier 1. */
 export const trinketKinds: TrinketKind[] = [
-  { kind: 'hawkEyeRing', name: 'Hawk-eye ring', emoji: '💍', group: 'stat', stat: 'crit', base: 4 },
-  { kind: 'quicksilverAnklet', name: 'Quicksilver anklet', emoji: '🦶', group: 'stat', stat: 'speed', base: 1 },
-  { kind: 'shadowPin', name: 'Shadow pin', emoji: '📌', group: 'stat', stat: 'evasion', base: 3 },
+  { kind: 'hawkEyeRing', name: 'Hawk-eye ring', emoji: '💍', icon: require('../../assets/icons/rpg/ring-gold-sapphire.png'), group: 'stat', stat: 'crit', base: 4 },
+  { kind: 'quicksilverAnklet', name: 'Quicksilver anklet', emoji: '🦶', icon: require('../../assets/icons/rpg/ring-steel-band.png'), group: 'stat', stat: 'speed', base: 1 },
+  { kind: 'shadowPin', name: 'Shadow pin', emoji: '📌', icon: require('../../assets/icons/rpg/amulet-silver-fang.png'), group: 'stat', stat: 'evasion', base: 3 },
   ...ELEMENTS.map((element): TrinketKind => ({
     kind: `${element}Amulet`,
     name: `${elementInfo[element].name} amulet`,
     emoji: '📿',
+    icon: AMULET_ICONS[element],
     group: 'amulet',
     element,
     base: 4,
   })),
-  { kind: 'oxTalisman', name: 'Ox talisman', emoji: '🪬', group: 'talisman', approach: 'might' },
-  { kind: 'foxTalisman', name: 'Fox talisman', emoji: '🪬', group: 'talisman', approach: 'finesse' },
-  { kind: 'owlTalisman', name: 'Owl talisman', emoji: '🪬', group: 'talisman', approach: 'wits' },
-  { kind: 'doveTalisman', name: 'Dove talisman', emoji: '🪬', group: 'talisman', approach: 'faith' },
-  { kind: 'lionTalisman', name: 'Lion talisman', emoji: '🪬', group: 'talisman', approach: 'presence' },
-  { kind: 'ringOfFortune', name: 'Ring of fortune', emoji: '🍀', group: 'fortune' },
+  { kind: 'oxTalisman', name: 'Ox talisman', emoji: '🪬', icon: require('../../assets/icons/relics/totem-ox.png'), group: 'talisman', approach: 'might' },
+  { kind: 'foxTalisman', name: 'Fox talisman', emoji: '🪬', icon: require('../../assets/icons/relics/totem-red.png'), group: 'talisman', approach: 'finesse' },
+  { kind: 'owlTalisman', name: 'Owl talisman', emoji: '🪬', icon: require('../../assets/icons/relics/totem-feathered.png'), group: 'talisman', approach: 'wits' },
+  { kind: 'doveTalisman', name: 'Dove talisman', emoji: '🪬', icon: require('../../assets/icons/relics/ankh-gold.png'), group: 'talisman', approach: 'faith' },
+  { kind: 'lionTalisman', name: 'Lion talisman', emoji: '🪬', icon: require('../../assets/icons/relics/mask-silver.png'), group: 'talisman', approach: 'presence' },
+  { kind: 'ringOfFortune', name: 'Ring of fortune', emoji: '🍀', icon: require('../../assets/icons/magic/ring-gold-emerald.png'), group: 'fortune' },
 ];
 
 export const trinketId = (kind: string, tier: number) => `${kind}${tier}`;
@@ -57,6 +68,7 @@ export const trinkets: GearDef[] = trinketKinds.flatMap((kind) =>
     id: trinketId(kind.kind, tier),
     name: kind.name,
     emoji: kind.emoji,
+    icon: kind.icon,
     slot: 'trinket',
     keywords: [],
     tier,

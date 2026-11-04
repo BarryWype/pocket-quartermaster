@@ -11,6 +11,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   warrior: {
     name: 'Warrior',
     emoji: '🛡️',
+    icon: require('../../assets/icons/rpg/helmet-great-helm.png'),
     rarity: 'common',
     family: 'fighter',
     poolTier: 1,
@@ -25,6 +26,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   ranger: {
     name: 'Ranger',
     emoji: '🏹',
+    icon: require('../../assets/icons/rpg/helmet-green-hood.png'),
     rarity: 'common',
     family: 'answerer',
     poolTier: 1,
@@ -43,6 +45,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   fireMage: {
     name: 'Fire mage',
     emoji: '🔥',
+    icon: require('../../assets/icons/rpg/helmet-red-wizard-hat.png'),
     rarity: 'common',
     family: 'answerer',
     poolTier: 1,
@@ -59,6 +62,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   frostMage: {
     name: 'Frost mage',
     emoji: '❄️',
+    icon: require('../../assets/icons/rpg/helmet-crystal-armet.png'),
     rarity: 'common',
     family: 'answerer',
     poolTier: 1,
@@ -75,6 +79,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   thief: {
     name: 'Thief',
     emoji: '🗝️',
+    icon: require('../../assets/icons/rpg/helmet-dark-leather.png'),
     rarity: 'uncommon',
     family: 'answerer',
     poolTier: 1,
@@ -93,6 +98,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   barbarian: {
     name: 'Barbarian',
     emoji: '🪓',
+    icon: require('../../assets/icons/rpg/helmet-horned-viking.png'),
     rarity: 'uncommon',
     family: 'fighter',
     poolTier: 1,
@@ -107,6 +113,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   cleric: {
     name: 'Cleric',
     emoji: '✝️',
+    icon: require('../../assets/icons/relics/book-holy-blue.png'),
     rarity: 'uncommon',
     family: 'answerer',
     poolTier: 1,
@@ -121,6 +128,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   paladin: {
     name: 'Paladin',
     emoji: '⚜️',
+    icon: require('../../assets/icons/rpg/shield-knight-crest.png'),
     rarity: 'uncommon',
     family: 'fighter',
     poolTier: 1,
@@ -135,6 +143,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   druid: {
     name: 'Druid',
     emoji: '🌿',
+    icon: require('../../assets/icons/rpg/herb-sprout.png'),
     rarity: 'uncommon',
     family: 'answerer',
     poolTier: 2,
@@ -150,6 +159,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   troubadour: {
     name: 'Troubadour',
     emoji: '🎻',
+    icon: require('../../assets/icons/relics/drum-pale.png'),
     rarity: 'uncommon',
     family: 'answerer',
     poolTier: 2,
@@ -164,6 +174,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   sorcerer: {
     name: 'Sorcerer',
     emoji: '🔮',
+    icon: require('../../assets/icons/relics/orb-pink.png'),
     rarity: 'uncommon',
     family: 'answerer',
     poolTier: 2,
@@ -178,6 +189,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   scholar: {
     name: 'Scholar',
     emoji: '📖',
+    icon: require('../../assets/icons/magic/book-gold.png'),
     rarity: 'common',
     family: 'answerer',
     poolTier: 2,
@@ -192,6 +204,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   exorcist: {
     name: 'Exorcist',
     emoji: '📿',
+    icon: require('../../assets/icons/relics/cross-silver.png'),
     rarity: 'uncommon',
     family: 'answerer',
     poolTier: 3,
@@ -209,6 +222,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   duelist: {
     name: 'Duelist',
     emoji: '🤺',
+    icon: require('../../assets/icons/rpg/sword-gilded-rapier.png'),
     rarity: 'common',
     family: 'fighter',
     poolTier: 2,
@@ -223,6 +237,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   smuggler: {
     name: 'Smuggler',
     emoji: '🏴‍☠️',
+    icon: require('../../assets/icons/relics/banner-black-crown.png'),
     rarity: 'uncommon',
     family: 'converter',
     poolTier: 3,
@@ -238,6 +253,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   diplomat: {
     name: 'Diplomat',
     emoji: '🕊️',
+    icon: require('../../assets/icons/magic/scroll-sealed-blue.png'),
     rarity: 'uncommon',
     family: 'converter',
     poolTier: 3,
@@ -256,6 +272,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   necromancer: {
     name: 'Necromancer',
     emoji: '💀',
+    icon: require('../../assets/icons/relics/skull-ram.png'),
     rarity: 'rare',
     family: 'converter',
     poolTier: null,
@@ -273,6 +290,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   beastmaster: {
     name: 'Beastmaster',
     emoji: '🐾',
+    icon: require('../../assets/icons/relics/pelt-wolf.png'),
     rarity: 'rare',
     family: 'converter',
     poolTier: null,
@@ -290,6 +308,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   engineer: {
     name: 'Engineer',
     emoji: '⚙️',
+    icon: require('../../assets/icons/rpg/crossbow-mechanical.png'),
     rarity: 'uncommon',
     family: 'ruleBender',
     poolTier: 4,
@@ -304,6 +323,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   alchemist: {
     name: 'Alchemist',
     emoji: '⚗️',
+    icon: require('../../assets/icons/alchemy/potion-cone-emerald.png'),
     rarity: 'uncommon',
     family: 'ruleBender',
     poolTier: 4,
@@ -318,6 +338,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   porter: {
     name: 'Porter',
     emoji: '🧳',
+    icon: require('../../assets/icons/rpg/bag-small-backpack.png'),
     rarity: 'uncommon',
     family: 'ruleBender',
     poolTier: 3,
@@ -333,6 +354,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   scout: {
     name: 'Scout',
     emoji: '🔭',
+    icon: require('../../assets/icons/relics/horn-gold-tipped.png'),
     rarity: 'uncommon',
     family: 'ruleBender',
     poolTier: 3,
@@ -347,6 +369,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   curseBreaker: {
     name: 'Curse-breaker',
     emoji: '🧿',
+    icon: require('../../assets/icons/relics/ankh-silver.png'),
     rarity: 'rare',
     family: 'ruleBender',
     poolTier: null,
@@ -361,6 +384,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   cook: {
     name: 'Cook',
     emoji: '🍳',
+    icon: require('../../assets/icons/rpg/mace-iron-pan.png'),
     rarity: 'uncommon',
     family: 'ruleBender',
     poolTier: 2,
@@ -381,6 +405,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   monk: {
     name: 'Monk',
     emoji: '🥋',
+    icon: require('../../assets/icons/rpg/gloves-red-cloth.png'),
     rarity: 'uncommon',
     family: 'ruleBender',
     poolTier: 3,
@@ -395,6 +420,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   gambler: {
     name: 'Gambler',
     emoji: '🃏',
+    icon: require('../../assets/icons/tavern/dice.png'),
     rarity: 'uncommon',
     family: 'ruleBender',
     poolTier: 4,

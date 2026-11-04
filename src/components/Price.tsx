@@ -1,6 +1,7 @@
 import { StyleSheet, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 
 import { formatNumber } from '@/i18n';
+import { systemIcons } from '@/content/systemIcons';
 import { ui } from '@/theme';
 
 import { GameIcon } from './GameIcon';
@@ -48,7 +49,7 @@ export function Price({ amount, to, prefix = '', short = false, size = 18, style
   const label = `${prefix}${formatPrice(amount)}${to === undefined ? '' : `–${formatPrice(to)}`}`;
   return (
     <View style={[styles.row, style]}>
-      <GameIcon emoji="🪙" size={size} />
+      <GameIcon emoji="🪙" icon={systemIcons['🪙']} size={size} />
       <Text style={[styles.amount, textStyle, short && styles.short]} numberOfLines={1}>
         {label}
       </Text>

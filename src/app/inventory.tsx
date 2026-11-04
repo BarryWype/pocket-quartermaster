@@ -16,6 +16,7 @@ import { lootConfig } from '@/content/loot/config';
 import { purposeInfo } from '@/content/loot/purposes';
 import { gearName, itemById, materialById, recipeById, recipeOutput, valuableById } from '@/content/lookup';
 import { placeInfo } from '@/content/places';
+import { systemIcons } from '@/content/systemIcons';
 import { distanceMeters } from '@/game/generation/geo';
 import { highestUnlockedTier } from '@/game/dungeons/unlock';
 import { inventoryPages, inventoryRows, type InventoryItem, type InventoryPageId, type InventoryRow } from '@/game/inventory/inventoryPages';
@@ -62,6 +63,7 @@ export function useInventoryRail(now: number) {
     key: id,
     label: t(`inventory.pages.${id}`),
     emoji: PAGE_EMOJI[id],
+    icon: systemIcons[PAGE_EMOJI[id]],
     badge: count > 0 ? count : undefined,
   }));
   const wanted = pages.findIndex(({ id }) => id === lastPage);
@@ -219,13 +221,22 @@ function InventoryContent() {
 /** What one row shows on its socket: its face, its count and its spoken name. */
 function rowFace(row: InventoryRow, save: SaveData): { emoji: string; icon?: ImageSourcePropType; count?: number | string; label: string } {
   switch (row.kind) {
-    case 'item':
+    case 'item': {
+      const { ref } = row.item;
       return {
         emoji: row.item.emoji,
-        icon: row.item.ref.kind === 'material' ? materialById[row.item.ref.id]?.icon : undefined,
+        icon:
+          ref.kind === 'material'
+            ? materialById[ref.id]?.icon
+            : ref.kind === 'valuable'
+              ? valuableById[ref.id]?.icon
+              : ref.kind === 'weakness'
+                ? itemById[ref.id]?.icon
+                : systemIcons[row.item.emoji],
         count: row.item.count,
         label: row.item.count > 1 ? `${row.item.name}, ${row.item.count}` : row.item.name,
       };
+    }
     case 'gear': {
       const item = itemById[row.gear.itemId];
       return { emoji: item.emoji, icon: item.icon, label: gearName(row.gear) };
@@ -239,6 +250,7 @@ function rowFace(row: InventoryRow, save: SaveData): { emoji: string; icon?: Ima
     case 'map':
       return {
         emoji: '🗺️',
+        icon: systemIcons['🗺️'],
         label: t('inventory.treasureMap', { rarity: t(`expeditions.rarity.${row.map.rarity}`), tier: row.map.tier }),
       };
     case 'lure':

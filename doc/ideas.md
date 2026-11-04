@@ -4,36 +4,36 @@ A place to collect ideas for Pocket Quartermaster. This is not a spec and not a 
 
 ## Status and roadmap
 
-Design catalogues for what's built or being built live in `doc/design/` (`threats/` and `places/`). This file stays for ideas that aren't designed yet.
+Design catalogues for what's built or being built live in `doc/design/` (threats, places, loot, quests, guild, pocket mode, progression, tutorial, simulator, UI). Bugs and their fixes are in `doc/issues.md`. This file stays for ideas that aren't designed yet.
 
 **Done**
 - Threats, restrictions, opportunities and kits (phase 1).
 - Stats, growth, recruitment roll and equipment rebuilt (phase 2).
 - Kit recipes using each tier's main material; threats can appear before their kit, rarer and milder.
 - New alchemy and kitchen items (hero consumables, meals, walking consumables, home care); infusion salvage.
-- Places and fight events on the map.
-- Boss weaknesses.
-- 26 classes.
-- Healing potions in three strengths and fish recipes.
+- Places and fight events on the map; boss weaknesses; 26 classes; healing potions in three strengths and fish recipes.
+- Loot rework (`doc/design/loot/`): the loot matrix, monster parts and charms, part recipes, blueprints, components and relics, trinkets and valuables.
+- Secret places and the mysterious key: hidden den, black market, underwater dungeons and the Sealed vault, with their tip sources (library, travellers, heists, bandit camps, catches, lairs, quests).
+- Daily quests and the secret quest (`doc/design/quests/`).
+- Guild Hall rework: five buildings (`doc/design/guild/`).
+- Simulator rework and balance passes 1–4 (`doc/design/simulator/`).
+- Tutorial rework with the gradual reveal and tips; Pocket mode rework (background notifications).
+- 0.7 out; fixes since are under "After 0.7" below.
+- Wood & brass UI on every screen.
+- Progression pass (`doc/design/progression/`): a chain of 6 dungeons plus the boss per tier, unlocked in order; daily briefings instead of a daily dungeon pick; patrols as 6 kinds per tier, 2 per difficulty; difficulty rings and pips on everything that fights; diamond map markers; loot growing with difficulty.
+- Odds shown as labels instead of percentages; a personal tavern when none is near.
 
-**Next** (in this order)
-1. Loot rework: five prompts (base, then parts and charms, blueprints, components and relics, trinkets and valuables), designed in `doc/design/loot/`.
-2. Secret places and the mysterious key: hidden den, black market, underwater dungeon and the Sealed vault, all opened by a key; two tip sources per place.
-3. Daily quests (daily contracts and chains).
-4. Guild Hall rework, for the new systems.
-5. Simulator rework and heavy testing of the new content; balancing.
-6. Tutorial rework, with systems unlocked gradually.
-7. Release (a small test group first).
-8. After release: big work on interfaces and assets.
+**Experimenting**
+- Live combat for places, patrols and Sanctums, with route, damage forecast and enemy intent (branch `feature/live-combat`).
 
 **Roadmap: heroes, jobs and expeditions** (planned 2026-11-03, details in "Heroes, jobs and expeditions" below)
 
 Direction: the game stays a walking game with short, dense check-ins at home (direction A). Walking must stay the best source of resources, but no longer the only one. Every step adds output to the economy, so run the simulator after each one.
 
 1. **Special abilities.** Done (2026-11-04) for the first version: one special per hero from its class pool, fired automatically by its own rule (see `doc/design/abilities/`). Later: more picks with level (choose one to equip), manuals that teach or reroll one.
-2. **Non-combat traits, gatherer jobs and the resource rework.** A second trait per hero for jobs, trade and gathering; farmer, woodcutter, miner and the outdoor gatherer; the resource rework that lets non-walking sources exist without overshadowing walking. More ways to recruit heroes come in around here (rescues, quest rewards).
+2. **Hero assignment, non-combat traits, gatherer jobs and the resource rework.** The job system itself: a hero can be assigned to a job slot instead of an expedition, shown at their station, collected on check-in; every later job builds on it. A second trait per hero for jobs, trade and gathering; farmer, woodcutter, miner and the outdoor gatherer; the resource rework that lets non-walking sources exist without overshadowing walking. More ways to recruit heroes come in around here (rescues, quest rewards).
 3. **Affixes.** Uncommon 1, rare 2, legendary 3, rolled from a small pool with bell-curve rolls; some affixes soften a threat. Gear drops can become more frequent. The forge keeps control: walking materials reroll one affix. No affix extraction.
-4. **Monster research.** Enemy-family research tracks, fuelled by monster parts: kit recipes, then trinket recipes, then higher kit tiers and better trinkets. The best trinkets stay drop-only.
+4. **Monster research.** A job on step 2's assignment system (a hero researches, Scholars faster), fuelled by monster parts. Enemy-family research tracks: kit recipes, then trinket recipes, then higher kit tiers and better trinkets. The best trinkets stay drop-only.
 5. **Crafting jobs.** Forge apprentice, cook and herbalist, supplied by step 2's gatherers.
 6. **Expedition rework, part 1: heroes on the map.** Send heroes to places to fight and haul, or to fill shop orders (a shop asks for items, consumables or materials and pays gold, materials, blueprints or consumables); local missions (protect a village, escort a caravan, bodyguard, investigate a murder, recover stolen goods); outdoor jobs (fishing, hunting, tavern bard, watch duty, smuggling) and the kennel. Heroes fight and haul; only the player trades, talks, recruits and makes choices at places.
 7. **Expedition rework, part 2: adventures and regional threats.** Chained-quest expeditions towards a final boss, with a choice of next location by reward. Regional threats: the one the player ignores grows on the map (more of its patrols and events, with its loot), capped, with a deadline and a recoverable consequence. Quests reworked to come from the active threats.
@@ -42,12 +42,9 @@ Direction: the game stays a walking game with short, dense check-ins at home (di
 **Saves are kept (from save version 30, 2026-10-31):** a change to the saved state bumps the store version and adds a migration that carries the old save forward. No more resets. Only saves older than version 30 are reset.
 
 **Parked**
-- Charms: redesign with the loot rework (they should affect what a run finds: Luck, blueprint, component and relic chances, materials).
 - Village fair (weekends at the market, absorbs the circus): contests and special stock.
-- Hidden den tip: how players find it (an NPC on the map or an event).
-- Underwater dungeon: design.
 - Boss weaknesses for non-tier bosses.
-- Friendly merchant and Sealed vault opportunities.
+- Friendly merchant opportunity (the Sealed vault is built).
 - Sigil and elemental stone surplus (the simulator showed far too many Sanctum attempts).
 - Global trade between players.
 - Fishing mini game (see below).
@@ -75,7 +72,7 @@ Goal: give players a reason to go out with a destination, not only to wander. Po
 
 ### Daily contracts
 
-*Designed in outline, not built. Contracts won't be tied to taverns.*
+*Built as daily quests: see `doc/design/quests/`. Quests are to be reworked to come from regional threats (see "Adventures and regional threats").*
 
 - 2–3 new contracts every 24 h, stacking up to 6. A Guild Hall upgrade raises the cap.
 - No board to walk to: contracts arrive automatically and target "the nearest X", so there's always one within reach.
@@ -87,7 +84,7 @@ Goal: give players a reason to go out with a destination, not only to wander. Po
 
 ### Chained contracts
 
-*Designed in outline, not built. Contracts won't be tied to taverns.*
+*Not built. Folded into adventures (see "Adventures and regional threats").*
 
 - 3–5 steps over a few hours, at most one per day, with a big reward at the end (a unique named item or a key fragment).
 - Example: a traveller → the ruins → a monster lair → a key. That gives secret places a story arc instead of a plain drop.
@@ -105,7 +102,7 @@ Standalone places on the map, worth visiting even without a contract. Each has a
 - **Event** (temporary): village fair (weekends?), circus passing through.
 - More: monster lair (the source of patrols: clearing it stops patrols nearby for a day), outpost or camp (heal heroes on the spot, delivery target), ruins or dig site (excavated over several visits, gives relics and key fragments), shrine (blessing for the next expedition), watchtower (reveals patrols and rare nodes in a large radius for an hour), hermit or trainer (teaches a trait, gives XP), library (scrolls, XP), mage tower (elemental stones), cartographer (dungeon maps), herbalist, fishing dock, stables.
 
-Leaning towards: stores sell materials (wood at the sawmill, stone at the quarry, ore at the mines, hide at the hunting lodge). It still respects the walking rule, since you have to walk to the store. Stock is limited (a stack of 5–10 per store) so it stays a side reward, not the main source of materials. Buying works as a gold sink, which then lets us increase gold from other sources.
+Leaning towards: stores sell materials (wood at the sawmill, stone at the quarry, ore at the mines, hide at the hunting lodge). You still have to walk to the store. (The rule that only walking gives resources is being relaxed: walking should give the most, not everything.) Stock is limited (a stack of 5–10 per store) so it stays a side reward, not the main source of materials. Buying works as a gold sink, which then lets us increase gold from other sources.
 
 Watch out for unreachable destinations (a lake, a motorway, a private garden). Use a generous arrival radius (~50 m), a free "move this destination" once per contract, and avoid water using the map layers if possible.
 
@@ -117,11 +114,15 @@ Watch out for unreachable destinations (a lake, a motorway, a private garden). U
 
 ### Temporary drops
 
+*Partly built as lures (a consumable that draws herbs and animals near the player). Timed rare drops with alerts are not built.*
+
 - Rare materials occasionally spawn for a limited time only (e.g. 1 hour).
 - A notification alerts nearby players, creating urgency and a reason to go out right now.
 - Could tie into time of day or weather (e.g. moonstone only at night).
 
 ### Visibility layers
+
+*Built.*
 
 Each resource type has a different discovery range, which makes walks more interesting:
 
@@ -131,6 +132,8 @@ Each resource type has a different discovery range, which makes walks more inter
 
 ### Animals
 
+*Built.*
+
 - Deer, boars, rabbits, etc. move around the map and provide leather, bones and horns.
 - Behavior tied to context: deer at dawn and dusk, boars in wooded areas, rabbits in parks.
 - Animals flee if the player approaches too fast, rewarding real walking (and discouraging driving).
@@ -139,6 +142,8 @@ Each resource type has a different discovery range, which makes walks more inter
 - Forged hunting gear (knife, bow) can improve leather and horn yields, linking forging and gathering.
 
 ### Foraging
+
+*Built.*
 
 - Herbs, berries, mushrooms, flowers, etc. feed alchemy.
 - Alchemy is a lighter side job next to the main forging activity.
@@ -158,6 +163,8 @@ For the fishing dock, later. A short, physical moment instead of a button that j
 
 ## Time of day and events
 
+*Time of day built (spawns); weekly world events not built.*
+
 - Real seasons are too slow for most players to notice, and hard gating creates frustration.
 - Principle: boost, never gate. Every resource is always available; context only makes it more common or higher quality.
 - Time of day (dawn, day, dusk, night) gives variety within a single walk and is cheap to implement.
@@ -171,7 +178,6 @@ For the fishing dock, later. A short, physical moment instead of a button that j
 
 - Forge anywhere from stored components.
 - Recipes are unlocked through dungeon loot, scrolls, or the shop.
-- Gear wears down during expeditions (durability), giving a constant reason to go out and gather again.
 
 ### Alchemy
 
@@ -210,8 +216,10 @@ For the fishing dock, later. A short, physical moment instead of a button that j
 
 ## Expeditions (auto-battle)
 
-- Expeditions are idle and timed (e.g. a few hours), so progression is not too fast.
-- No real-time combat visuals at first: results are delivered as text.
+*Built: timed runs with briefings, a chain of dungeons per tier, overnight expeditions, reports with a log. Live combat is being tried on a branch; a reworked shape is in "Heroes, jobs and expeditions".*
+
+- Expeditions are idle and timed, so progression is not too fast.
+- Results are delivered as text.
 - Results come as a short narrative expedition log, e.g. "The fire mage burned three goblins, but his staff cracked." This adds flavor and highlights the gear the player forged.
 - Push notification when the team returns.
 
@@ -285,7 +293,18 @@ Per enemy family (undead, beasts, goblinoids, brutes...), fuelled by that family
 
 ### Affixes
 
-Uncommon gear rolls 1 affix, rare 2, legendary 3, from a small pool (10–15), each with a bell-curve roll shown as a bar. Some affixes soften a threat (Warded: −1 Undead level), so they matter for briefings. Drops and crafted gear both roll them, so gear can drop more often; walking materials pay to reroll one affix at the forge. No extraction (too complex for now). Icons, not text.
+Uncommon gear rolls 1 affix, rare 2, legendary 3, from a small pool (10–15), each with a bell-curve roll shown as a bar. Drops and crafted gear both roll them, so gear can drop more often; walking materials pay to reroll one affix at the forge. No extraction (too complex for now). Icons, not text.
+
+Affixes are a net plus on top of the item's stats, never a trade-off. They stay in check by being situational or by not adding fighting power at all:
+
+- **Situational combat:** +damage against one enemy family, +Resistance against one element, +Crit in the first exchange or against an enemy at full HP. Worth it only when the briefing matches, so they reward preparation.
+- **Threat safety net:** a missed threat of one kind costs less (e.g. 25% less for Undead). Never a full answer, so kits keep their role.
+- **Run economy:** more gold, XP, monster parts, shards or salvage; a better sell price.
+- **Walking:** worn gear helps the player's walks: a chance of an extra herb or ore when gathering, a wider gather radius, better Pocket mode yields. Ties gear back to walking.
+- **Survival utility:** a small shield at the start of each fight, potions heal this hero more, poison and bleed wear off faster.
+- **Later, jobs:** a bonus to one job (woodcutting, research...) once jobs exist.
+
+Balance: the simulator's reference teams count the average affix value of their gear, so enemy strength is fitted with affixes in.
 
 ### Heroes on the map
 
@@ -316,7 +335,8 @@ Uncommon gear rolls 1 affix, rare 2, legendary 3, from a small pool (10–15), e
 - Monetization (if any).
 - Ore spawn density and refresh rate.
 - Multiplayer features: trading between players, specialization.
-- Visual combat replay later (assets could be sourced or generated).
+- Active play at home: decided to stay a walking game with short check-ins (direction A); active depth comes from heroes, jobs, crafting and expeditions, not minigames. Live combat is an experiment.
+- How much non-walking sources may give: walking must stay clearly the best (target: an hour of walking beats a day of jobs).
 
 ## After 0.7
 
