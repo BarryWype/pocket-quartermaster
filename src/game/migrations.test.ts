@@ -150,4 +150,56 @@ describe('save migrations', () => {
       expect(migrateSave(save, 35, 10 * DAY)).toBe(save);
     });
   });
+
+  describe('version 36: gathering jobs', () => {
+    // A version 35 save: output was one amount per station, and choices were not saved yet.
+    const fresh = createInitialSave();
+    const { jobOutput: _jobOutput, jobChoice: _jobChoice, ...rest } = fresh;
+    const v35 = {
+      ...rest,
+      jobOutput: { woodcutter: { amount: 2.5, since: 5 * DAY } },
+    } as unknown as SaveData;
+
+    it('turns a station amount into whole units of its material plus the fraction', () => {
+      const next = migrateSave(v35, 35, 10 * DAY);
+      expect(next.jobOutput.woodcutter).toEqual({ amounts: { wood: 2 }, fraction: 0.5, units: 2, since: 5 * DAY });
+      expect(next.jobChoice).toEqual({ miner: null });
+    });
+
+    it('keeps nothing but the fraction of an amount below one unit', () => {
+      const subUnit = { ...v35, jobOutput: { woodcutter: { amount: 0.25, since: 6 * DAY } } } as unknown as SaveData;
+      expect(migrateSave(subUnit, 35, 10 * DAY).jobOutput.woodcutter).toEqual({
+        amounts: {},
+        fraction: 0.25,
+        units: 0,
+        since: 6 * DAY,
+      });
+    });
+
+    it('keeps a choice the save already had', () => {
+      const withChoice = { ...v35, jobChoice: { miner: 'stone' } } as unknown as SaveData;
+      expect(migrateSave(withChoice, 35, 10 * DAY).jobChoice).toEqual({ miner: 'stone' });
+    });
+
+    it('carries a version 34 save through both job migrations', () => {
+      const save = createInitialSave();
+      const { jobOutput: _out, jobChoice: _choice, heroes: heroesWithJobs, ...restOf } = save;
+      const v34 = {
+        ...restOf,
+        heroes: heroesWithJobs.map(({ job: _job, energy: _energy, ...hero }) => hero),
+      } as unknown as SaveData;
+      const next = migrateSave(v34, 34, 10 * DAY);
+      expect(next.jobOutput).toEqual({});
+      expect(next.jobChoice).toEqual({ miner: null });
+      for (const hero of next.heroes) {
+        expect(hero.job).toBeNull();
+        expect(hero.energy.value).toBe(100);
+      }
+    });
+
+    it('leaves a save already at version 36 alone', () => {
+      const save = createInitialSave();
+      expect(migrateSave(save, 36, 10 * DAY)).toBe(save);
+    });
+  });
 });

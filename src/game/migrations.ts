@@ -1,5 +1,7 @@
+import { choiceOf, jobById, jobs } from '@/content/jobs';
+import { jobMaterials } from './jobs/jobs';
 import { todaysCollector } from './loot/valuables';
-import type { SaveData } from './save';
+import type { JobOutput, SaveData } from './save';
 import { sellGoodsAmount } from './quests/unlocks';
 import type { Quest } from './quests/types';
 import { rolledSpecial } from './team/specials';
@@ -60,6 +62,38 @@ export function toV35(save: SaveData, now: number): SaveData {
   return { ...save, heroes, jobOutput: save.jobOutput ?? {} };
 }
 
+/**
+ * Version 36: gathering jobs with rolls and choices (see game/jobs/jobs.ts).
+ * Output entries now count whole units per material; a version 35 entry's
+ * single amount becomes whole units of its job's material plus the fraction.
+ * Choice jobs get their picked material, unset until the player chooses.
+ */
+export function toV36(save: SaveData): SaveData {
+  const jobOutput: Record<string, JobOutput> = {};
+  let changed = !save.jobChoice;
+  for (const [id, raw] of Object.entries(save.jobOutput ?? {})) {
+    if (raw && typeof raw === 'object' && 'amount' in raw) {
+      const entry = raw as unknown as { amount: number; since: number };
+      const job = jobById[id];
+      if (!job) continue;
+      const whole = Math.floor(entry.amount);
+      jobOutput[id] = {
+        amounts: whole > 0 ? { [jobMaterials(job)[0]]: whole } : {},
+        fraction: entry.amount - whole,
+        units: whole,
+        since: entry.since,
+      };
+      changed = true;
+    } else {
+      jobOutput[id] = raw;
+    }
+  }
+  const jobChoice: Record<string, string | null> = {};
+  for (const job of jobs) if (choiceOf(job)) jobChoice[job.id] = save.jobChoice?.[job.id] ?? null;
+  if (!changed) return save;
+  return { ...save, jobOutput, jobChoice };
+}
+
 /** Applies the migration steps in order, from the save's own version on. */
 export function migrateSave(save: SaveData, fromVersion: number, now: number): SaveData {
   let next = save;
@@ -68,5 +102,6 @@ export function migrateSave(save: SaveData, fromVersion: number, now: number): S
   // Version 34 runs the special roll again: builds of other branches stamped saves 33 without giving heroes a special.
   if (fromVersion < 34) next = toV33(next);
   if (fromVersion < 35) next = toV35(next, now);
+  if (fromVersion < 36) next = toV36(next);
   return next;
 }
