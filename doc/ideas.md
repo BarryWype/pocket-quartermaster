@@ -251,9 +251,11 @@ For the fishing dock, later. A short, physical moment instead of a button that j
 
 ## Heroes, jobs and expeditions
 
-*Discussed 2026-11-03; the order is in the roadmap at the top. Not designed or built.*
+*Discussed 2026-11-03; the order is in the roadmap at the top. Special abilities are built (2026-11-04); the rest is not designed or built.*
 
 ### Special abilities
+
+*Built 2026-11-04 (first version): see `doc/design/abilities/`. 32 specials (22 shared, 10 unique), a pool of 4 per class (three common, one rare at 15%), set class by class rather than by archetype; effect and trigger kept separate so a special can later be played by hand. Not built yet: more picks with level, manuals that teach or reroll one, playing a special on a chosen fight.*
 
 - Each hero gets one random special from its class (or class type) pool: heal, regen, protect, bless for clerics and paladins; sure crit, cleave, triple strike, guard for warriors and barbarians; and so on. Some can be rarer than others, for the chase.
 - It fires automatically by its own rule (cleave on the first fight with 3+ enemies, guard when the boss winds up, heal below 40%), so it needs no planning screen.
