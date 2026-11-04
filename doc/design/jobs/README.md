@@ -35,3 +35,12 @@ Step 2 of the roadmap in `doc/ideas.md` ("Heroes, jobs and expeditions"). Design
 - Farmer and miner (2c), outdoor jobs (fishing, hunting, gathering on the map), forge apprentice, cook and herbalist, infirmary (faster energy and HP recovery), scribe, builder.
 - Non-combat traits that change output and energy (Homebody, Wanderlust, Idle, Green thumb…).
 - Energy for expeditions, or a penalty for tired heroes, only if play shows the same heroes being sent everywhere.
+
+## Work traits (2b)
+Designed 2026-11-04. A second trait per hero, separate from the combat trait, for jobs (and later trade and gathering): `work-traits.csv`.
+- Every hero has exactly one, rolled at recruitment: 60% positive, 40% negative, rolled independently of the combat trait, so a strong fighter can be a poor worker.
+- Only traits that do something with the jobs that exist ship (phase `2b`). The others arrive with their job (farmer, miner, outdoor jobs, research, the infirmary, shop orders).
+- Existing heroes roll one through a save migration, seeded by hero id.
+- Shown wherever the combat trait is (recruit offers, hero card), and on the Jobs tab next to each worker.
+- Names avoid clashes: "Clumsy" is a combat trait, so this one is Butterfingers; "Scholar" is a class, so this one is Bookworm.
+- Effects are small, because job output is small next to walking (woodcutter 0.3 wood/h): Hard worker on the woodcutter makes about 8.6 wood a full day instead of 7.2.

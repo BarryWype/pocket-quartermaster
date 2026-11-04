@@ -42,6 +42,7 @@ Direction: the game stays a walking game with short, dense check-ins at home (di
 **Saves are kept (from save version 30, 2026-10-31):** a change to the saved state bumps the store version and adds a migration that carries the old save forward. No more resets. Only saves older than version 30 are reset.
 
 **Parked**
+- Overlapping map icons: a screen-space spread of overlapping icons, plus a pulsing ring on icons in reach, was tried on `feat/map-icon-spread` (2026-11-04) and didn't work; abandoned. A chooser list for ambiguous taps is the untried alternative.
 - Village fair (weekends at the market, absorbs the circus): contests and special stock.
 - Boss weaknesses for non-tier bosses.
 - Friendly merchant opportunity (the Sealed vault is built).

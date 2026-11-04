@@ -1,0 +1,18 @@
+id,name,positive,effect,applies_to,phase
+hardWorker,Hard worker,true,Job output +20%,every job,2b
+tireless,Tireless,true,Energy lasts 30 h of work instead of 24,every job,2b
+earlyRiser,Early riser,true,Rests back to full in 4 h instead of 6,every job,2b
+nightOwl,Night owl,true,Output cap 12 h instead of 8,every job,2b
+woodsman,Woodsman,true,Woodcutter output +40% and a 10% chance of 1 herb per collection,woodcutter,2b
+idle,Idle,false,Job output −20%,every job,2b
+lazybones,Lazybones,false,Energy lasts 18 h of work instead of 24,every job,2b
+restlessSleeper,Restless sleeper,false,Rests back to full in 9 h instead of 6,every job,2b
+butterfingers,Butterfingers,false,15% chance a collection loses a third of its output,every job,2b
+greenThumb,Green thumb,true,Farming output up (to design),farmer,2c
+prospector,Prospector,true,Mining output up and a chance of a rarer ore (to design),miner,2c
+homebody,Homebody,true,Energy drains slower on guild jobs (to design),guild jobs,outdoor jobs
+wanderlust,Wanderlust,true,Energy drains slower on outdoor jobs (to design),outdoor jobs,outdoor jobs
+packMule,Pack mule,true,Hauls more (to design),hauling,outdoor jobs
+bookworm,Bookworm,true,Research and decrypting faster (to design),research and scribe,step 4
+bedsideManner,Bedside manner,true,Infirmary recovery faster (to design),infirmary,infirmary
+haggler,Haggler,true,Shop orders pay more (to design),shop orders,step 6
