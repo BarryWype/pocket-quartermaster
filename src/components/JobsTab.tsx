@@ -5,7 +5,7 @@ import { clockConfig } from '@/content/clockConfig';
 import { type JobDef, jobRules, jobs } from '@/content/jobs';
 import { heroClasses } from '@/content/heroes';
 import { materialById } from '@/content/lookup';
-import { currentEnergy, isJobFull, jobCap, jobOutputNow, jobWorker } from '@/game/jobs/jobs';
+import { currentEnergy, isJobFull, jobCap, jobMaterials, jobOutputNow, jobWorker, openJobs } from '@/game/jobs/jobs';
 import type { SaveData } from '@/game/save';
 import { isBusy } from '@/game/team/team';
 import { formatPercent, t, tr } from '@/i18n';
@@ -28,6 +28,7 @@ import { EmberButton, ParchmentCard, WoodButton } from './ui';
  */
 export function JobsTab({ preselect }: { preselect?: string | null }) {
   const noteTips = useGameStore((state) => state.noteTips);
+  const save = useGameStore((state) => state.save);
   // The tip queues the first time the tab is on screen; later times change nothing.
   useEffect(() => {
     noteTips(['jobs']);
@@ -38,7 +39,7 @@ export function JobsTab({ preselect }: { preselect?: string | null }) {
 
   return (
     <>
-      {jobs.map((job) => (
+      {openJobs(save).map((job) => (
         <JobCard
           key={job.id}
           job={job}
@@ -145,7 +146,7 @@ function OutputBar({ save, job }: { save: SaveData; job: JobDef }) {
   const now = useNow(clockConfig.minutesMs);
   const output = jobOutputNow(save, job.id, now);
   const cap = jobCap(job.id);
-  const material = materialById[job.produces];
+  const material = materialById[jobMaterials(job)[0]];
   return (
     <View>
       <PixelBar value={cap > 0 ? output / cap : 0} color={colors.success} />

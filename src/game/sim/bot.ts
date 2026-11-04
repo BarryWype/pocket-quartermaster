@@ -43,7 +43,7 @@ import type { Rng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { buyRank, guildBonus, isGuildUnlocked, rankPrice, rankProblem } from '../guild/guild';
 import { hasMaterials } from '../inventory';
-import { assignJob, collectJob, jobWorker, recallFromJob } from '../jobs/jobs';
+import { assignJob, collectJob, jobWorker, openJobs, recallFromJob } from '../jobs/jobs';
 import { isRevealed } from '../reveal/reveal';
 import type { PatrolKind, PatrolSubject, TravellerKind } from '../patrols/generate';
 import type { TravellerReward } from '../patrols/travellers';
@@ -870,10 +870,10 @@ export function recallWorking(sim: Sim, heroIds: string[]) {
   }
 }
 
-/** Staffs each empty station at the end of a session with the least useful free hero. */
+/** Staffs each open station at the end of a session with the least useful free hero. */
 export function assignJobs(sim: Sim) {
   if (!sim.jobs) return;
-  for (const job of jobList) {
+  for (const job of openJobs(sim.save)) {
     if (jobWorker(sim.save, job.id)) continue;
     const free = sim.save.heroes.filter((h) => !isBusy(sim.save, h.id));
     if (!free.length) continue;

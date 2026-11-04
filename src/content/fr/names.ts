@@ -1259,6 +1259,10 @@ export const frNames: Record<string, string> = {
   'Blueprint': 'Plan',
   // Guild jobs
   Woodcutter: 'Bûcheron',
+  Forager: 'Cueilleur',
+  Trapper: 'Trappeur',
+  Miner: 'Mineur',
+  'Charcoal burner': 'Charbonnier',
   // Purpose tags
   'Ingredient': 'Ingrédient',
   'Good': 'Marchandise',

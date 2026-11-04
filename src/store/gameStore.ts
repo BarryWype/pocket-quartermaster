@@ -30,7 +30,7 @@ import { migrateSave } from '@/game/migrations';
 import { readManual } from '@/game/loot/manuals';
 import type { Loot, ManualRarity } from '@/game/loot/types';
 import { applyBackgroundResults, type BackgroundResult } from '@/game/patrols/escort';
-import { assignJob, assignProblem, collectJob, jobOutputNow, recallFromJob } from '@/game/jobs/jobs';
+import { assignJob, assignProblem, collectJob, jobChoices, jobOutputNow, recallFromJob, setJobChoice } from '@/game/jobs/jobs';
 import { isTravellerKind, type PatrolSpawn, type TravellerKind } from '@/game/patrols/generate';
 import { resolvePatrolFights as resolveDueFights, startPatrolFight, type PatrolFight } from '@/game/patrols/fight';
 import { acceptRecruit, helpTraveller as helpTravellerRule, sellValuableToTrader, trade, type TravellerRecruit, type TravellerReward } from '@/game/patrols/travellers';
@@ -135,6 +135,8 @@ type GameState = {
   recallFromJob: (heroId: string) => void;
   /** Collects a job's output: whole units go to the materials, the fraction stays. */
   collectJob: (jobId: string) => void;
+  /** Picks what a choice job makes next; a material outside the save's tier changes nothing. */
+  setJobChoice: (jobId: string, material: string) => void;
   /** Uses a home care item from the stock on a hero at home. */
   giveHomeCare: (heroId: string, itemId: string) => void;
   /** Spends one of the hero's pending approach picks. */
@@ -413,6 +415,10 @@ export const useGameStore = create<GameState>()(
       collectJob: (jobId) => {
         const now = Date.now();
         set(({ save }) => (Math.floor(jobOutputNow(save, jobId, now)) >= 1 ? { save: collectJob(save, jobId, now) } : {}));
+      },
+      setJobChoice: (jobId, material) => {
+        const now = Date.now();
+        set(({ save }) => (jobChoices(save, jobId).includes(material) ? { save: setJobChoice(save, jobId, material, now) } : {}));
       },
       giveHomeCare: (heroId, itemId) =>
         set(({ save }) => (careProblem(save, heroId, itemId, Date.now()) ? {} : { save: giveHomeCare(save, heroId, itemId, Date.now()) })),

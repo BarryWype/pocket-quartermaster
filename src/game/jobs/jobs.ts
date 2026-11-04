@@ -1,7 +1,9 @@
-import { jobById, jobRules, jobs } from '@/content/jobs';
+import { choiceOf, jobById, jobRules, jobs, type JobDef } from '@/content/jobs';
 
+import { highestUnlockedTier } from '../dungeons/unlock';
+import { createRng } from '../generation/rng';
 import { addMaterials } from '../inventory';
-import type { SaveData } from '../save';
+import type { JobOutput, SaveData } from '../save';
 import { isAway } from '../team/team';
 import type { HeroState } from '../types';
 
@@ -50,15 +52,54 @@ export function isTired(save: SaveData, hero: HeroState, now: number): boolean {
 export const jobWorker = (save: SaveData, jobId: string): HeroState | undefined =>
   save.heroes.find((hero) => hero.job?.jobId === jobId);
 
+/** The material a roll index becomes: fixed, weighted, or the job's chosen material. */
+export function unitMaterial(save: SaveData, jobId: string, heroId: string, index: number): string {
+  const produces = jobById[jobId].produces;
+  if (typeof produces === 'string') return produces;
+  if ('weights' in produces) {
+    return createRng(`job|${jobId}|${heroId}|${index}`).weighted(Object.keys(produces.weights), (m) => produces.weights[m]);
+  }
+  const material = save.jobChoice[jobId];
+  if (material === null || material === undefined) throw new Error(`Job ${jobId} has no chosen material`);
+  return material;
+}
+
+/** Every material the job can produce, whatever shape its `produces` takes. */
+export function jobMaterials(job: JobDef): string[] {
+  const produces = job.produces;
+  if (typeof produces === 'string') return [produces];
+  if ('weights' in produces) return Object.keys(produces.weights);
+  return produces.choice.map((option) => option.material);
+}
+
+/** The ore options a choice job has at the save's tier; empty for any other job. */
+export function jobChoices(save: SaveData, jobId: string): string[] {
+  const choice = choiceOf(jobById[jobId]);
+  if (!choice) return [];
+  const tier = highestUnlockedTier(save);
+  return choice.filter((option) => option.fromTier <= tier).map((option) => option.material);
+}
+
+/** Whether the save's tier has opened the station yet. */
+export const isJobOpen = (save: SaveData, jobId: string): boolean =>
+  !!jobById[jobId] && highestUnlockedTier(save) >= jobById[jobId].opensAtTier;
+
+/** The stations the save's tier has opened, in content order. */
+export const openJobs = (save: SaveData): JobDef[] => jobs.filter((job) => isJobOpen(save, job.id));
+
 /** The output a job holds once full. */
 export const jobCap = (jobId: string) => jobById[jobId].ratePerHour * jobRules.capHours;
+
+/** The amount an entry holds: its whole units plus the fraction of the next one. */
+const totalOf = (entry: JobOutput | undefined) =>
+  entry ? Object.values(entry.amounts).reduce((sum, amount) => sum + amount, 0) + entry.fraction : 0;
 
 /** What the job produced since its output was last settled, at rate but only through the worker's working phases. */
 export function jobProduced(save: SaveData, jobId: string, now: number): number {
   const worker = jobWorker(save, jobId);
   if (!worker) return 0;
   const entry = save.jobOutput[jobId];
-  const amount = entry?.amount ?? 0;
+  const amount = totalOf(entry);
   const room = jobCap(jobId) - amount;
   if (room <= 0) return 0;
   // Counted from the later of the output's and the worker's timestamps, both on the worker's cycle.
@@ -70,17 +111,33 @@ export function jobProduced(save: SaveData, jobId: string, now: number): number 
 
 /** The output waiting at the job now, capped at the job's cap. */
 export function jobOutputNow(save: SaveData, jobId: string, now: number): number {
-  return (save.jobOutput[jobId]?.amount ?? 0) + jobProduced(save, jobId, now);
+  return totalOf(save.jobOutput[jobId]) + jobProduced(save, jobId, now);
 }
 
 export const isJobFull = (save: SaveData, jobId: string, now: number) => jobOutputNow(save, jobId, now) >= jobCap(jobId) - 1e-9;
+
+/** The job's entry as of `now`: new whole units get their material rolled, the fraction keeps waiting. */
+export function jobOutputDetail(save: SaveData, jobId: string, now: number): JobOutput {
+  const entry = save.jobOutput[jobId];
+  if (!entry) return { amounts: {}, fraction: 0, units: 0, since: now };
+  const worker = jobWorker(save, jobId);
+  const fraction = entry.fraction + jobProduced(save, jobId, now);
+  // The epsilon keeps float error from swallowing a unit that was fully made.
+  const made = Math.floor(fraction + 1e-9);
+  const amounts = { ...entry.amounts };
+  for (let i = 0; i < made && worker; i++) {
+    const material = unitMaterial(save, jobId, worker.id, entry.units + i);
+    amounts[material] = (amounts[material] ?? 0) + 1;
+  }
+  return { amounts, fraction: Math.max(0, fraction - made), units: entry.units + made, since: now };
+}
 
 /** Writes every job's output and every hero's energy as of `now`: output first, from the old energy state. */
 export function settleJobs(save: SaveData, now: number): SaveData {
   const jobOutput = { ...save.jobOutput };
   for (const job of jobs) {
     if (!jobWorker(save, job.id) && !(job.id in jobOutput)) continue;
-    jobOutput[job.id] = { amount: jobOutputNow(save, job.id, now), since: now };
+    jobOutput[job.id] = jobOutputDetail(save, job.id, now);
   }
   return {
     ...save,
@@ -120,11 +177,12 @@ export function tiredAt(save: SaveData, hero: HeroState, now: number): number | 
   return timeOf(hero, zero);
 }
 
-export type AssignProblem = 'away' | 'working' | 'taken' | 'unknown' | null;
+export type AssignProblem = 'away' | 'working' | 'taken' | 'unknown' | 'closed' | null;
 
 /** Why the hero cannot take the job now, or null when they can. */
 export function assignProblem(save: SaveData, heroId: string, jobId: string, now: number): AssignProblem {
   if (!jobById[jobId]) return 'unknown';
+  if (!isJobOpen(save, jobId)) return 'closed';
   const hero = save.heroes.find((h) => h.id === heroId);
   if (!hero || isAway(save, heroId)) return 'away';
   if (hero.job) return 'working';
@@ -138,13 +196,28 @@ export function assignJob(save: SaveData, heroId: string, jobId: string, now: nu
   if (problem) throw new Error(`Cannot assign ${heroId} to ${jobId}: ${problem}`);
   const settled = settleJobs(save, now);
   const hero = settled.heroes.find((h) => h.id === heroId)!;
-  return {
+  const withJob = {
     ...settled,
     heroes: settled.heroes.map((h) =>
       h.id === heroId ? { ...h, job: { jobId, since: now, tired: hero.energy.value <= 0 } } : h,
     ),
-    jobOutput: jobId in settled.jobOutput ? settled.jobOutput : { ...settled.jobOutput, [jobId]: { amount: 0, since: now } },
+    jobOutput: jobId in settled.jobOutput ? settled.jobOutput : { ...settled.jobOutput, [jobId]: { amounts: {}, fraction: 0, units: 0, since: now } },
   };
+  // A choice job starts on its highest unlocked material until the player picks one.
+  const choices = jobChoices(settled, jobId);
+  const current = settled.jobChoice[jobId];
+  if (choices.length > 0 && (current === null || current === undefined)) {
+    return { ...withJob, jobChoice: { ...settled.jobChoice, [jobId]: choices[choices.length - 1] } };
+  }
+  return withJob;
+}
+
+/** Sends the choice job's future units to `material`; units already made keep their old material. */
+export function setJobChoice(save: SaveData, jobId: string, material: string, now: number): SaveData {
+  if (!jobById[jobId] || !choiceOf(jobById[jobId])) throw new Error(`Job ${jobId} takes no choice`);
+  if (!jobChoices(save, jobId).includes(material)) throw new Error(`Job ${jobId} cannot make ${material}`);
+  const settled = settleJobs(save, now);
+  return { ...settled, jobChoice: { ...settled.jobChoice, [jobId]: material } };
 }
 
 /** Takes the hero off the job: their energy keeps its settled value, the output stays at the station. */
@@ -159,12 +232,12 @@ export function recallFromJob(save: SaveData, heroId: string, now: number): Save
 export function collectJob(save: SaveData, jobId: string, now: number): SaveData {
   if (!jobById[jobId]) throw new Error(`Unknown job ${jobId}`);
   const settled = settleJobs(save, now);
-  const amount = settled.jobOutput[jobId]?.amount ?? 0;
-  const whole = Math.floor(amount);
-  if (whole <= 0) return save;
+  const entry = settled.jobOutput[jobId];
+  const whole = Object.entries(entry?.amounts ?? {}).filter(([, amount]) => amount > 0);
+  if (whole.length === 0) return save;
   return {
     ...settled,
-    materials: addMaterials(settled.materials, [{ materialId: jobById[jobId].produces, amount: whole }]),
-    jobOutput: { ...settled.jobOutput, [jobId]: { amount: amount - whole, since: now } },
+    materials: addMaterials(settled.materials, whole.map(([materialId, amount]) => ({ materialId, amount }))),
+    jobOutput: { ...settled.jobOutput, [jobId]: { amounts: {}, fraction: entry!.fraction, units: entry!.units, since: now } },
   };
 }

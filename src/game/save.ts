@@ -1,5 +1,6 @@
 import type { GuildTrackId } from '@/content/guild';
 import { startingHeroes } from '@/content/heroes';
+import { choiceOf, jobs } from '@/content/jobs';
 import type { PlaceKind } from '@/content/places';
 import { provisionRules } from '@/content/provisions';
 import { recipes } from '@/content/recipes';
@@ -54,6 +55,16 @@ export type TutorialSpawn = {
   collected: boolean;
 };
 
+export type JobOutput = {
+  /** Whole units waiting, per material. */
+  amounts: Record<string, number>;
+  /** The fraction of the next unit. */
+  fraction: number;
+  /** Units the job has made since it started: the next unit's index. */
+  units: number;
+  since: number;
+};
+
 export type SaveData = {
   /** This save's own seed: daily rolls mix it in, so two players (or two new games) differ. */
   playerSeed: string;
@@ -66,7 +77,9 @@ export type SaveData = {
   knownRecipes: string[];
   heroes: HeroState[];
   /** Output waiting at each job, as of its `since` (see game/jobs/jobs.ts). */
-  jobOutput: Record<string, { amount: number; since: number }>;
+  jobOutput: Record<string, JobOutput>;
+  /** The material each choice job makes (see content/jobs.ts); null until set. */
+  jobChoice: Record<string, string | null>;
   expeditions: ActiveExpedition[];
   /** Finished expeditions, newest first. */
   reports: ExpeditionReport[];
@@ -181,6 +194,8 @@ export type SaveData = {
 };
 
 export function createInitialSave(playerSeed?: string): SaveData {
+  const jobChoice: Record<string, string | null> = {};
+  for (const job of jobs) if (choiceOf(job)) jobChoice[job.id] = null;
   return {
     playerSeed: playerSeed ?? `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`,
     gold: 0,
@@ -190,6 +205,7 @@ export function createInitialSave(playerSeed?: string): SaveData {
     tools: [],
     heroes: startingHeroes,
     jobOutput: {},
+    jobChoice,
     expeditions: [],
     reports: [],
     clearedDungeons: [],

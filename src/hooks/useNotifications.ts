@@ -61,7 +61,8 @@ export function useNotifications() {
   const jobsAt = useGameStore((state) =>
     [
       state.save.heroes.map((hero) => `${hero.id}:${hero.job?.jobId ?? ''}`).join(','),
-      Object.entries(state.save.jobOutput).map(([id, output]) => `${id}:${output.amount}:${output.since}`).join(','),
+      Object.entries(state.save.jobOutput).map(([id, output]) => `${id}:${output.units}:${output.fraction}:${output.since}`).join(','),
+      JSON.stringify(state.save.jobChoice),
     ].join('|'),
   );
   const settings = useSettingsStore((state) => state.notifications);

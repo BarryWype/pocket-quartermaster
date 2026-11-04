@@ -11,12 +11,17 @@ import {
   isJobFull,
   isTired,
   jobCap,
+  jobChoices,
+  jobMaterials,
   jobOutputNow,
   jobProduced,
   jobWorker,
+  openJobs,
   recallFromJob,
+  setJobChoice,
   settleJobs,
   tiredAt,
+  unitMaterial,
 } from './jobs';
 
 const HOUR = 3_600_000;
@@ -164,7 +169,7 @@ describe('busy heroes', () => {
     expect(assignProblem(save, 'bram', 'woodcutter', 0)).toBe('working');
     expect(assignProblem(save, 'lyra', 'woodcutter', 0)).toBe('taken');
     expect(() => assignJob(save, 'lyra', 'woodcutter', 0)).toThrow();
-    expect(assignProblem(save, 'lyra', 'miner', 0)).toBe('unknown');
+    expect(assignProblem(save, 'lyra', 'noSuchJob', 0)).toBe('unknown');
   });
 
   it('keeps a working hero off expeditions until recalled', () => {
@@ -205,5 +210,83 @@ describe('determinism', () => {
   it('gives the same save for the same inputs', () => {
     const run = () => settleJobs(assignJob(base(), 'bram', 'woodcutter', 0), 25 * HOUR);
     expect(run()).toEqual(run());
+  });
+});
+
+describe('guild gathering jobs', () => {
+  /** A save whose bosses up to `tier` - 1 have fallen, so tier `tier` stations stand open. */
+  const atTier = (tier: number): SaveData => ({
+    ...base(),
+    clearedDungeons: ['banditStockade', 'ogreQuarry', 'drownedCrypt', 'giantsHall'].slice(0, tier - 1),
+  });
+
+  it('opens stations with the tiers: forager and trapper at the start, miner at 2, charcoal burner at 5', () => {
+    const ids = (save: SaveData) => openJobs(save).map((job) => job.id);
+    expect(ids(base())).toEqual(['woodcutter', 'forager', 'trapper']);
+    expect(ids(atTier(2))).toEqual(['woodcutter', 'forager', 'trapper', 'miner']);
+    expect(ids(atTier(3))).toEqual(['woodcutter', 'forager', 'trapper', 'miner']);
+    expect(ids(atTier(5))).toEqual(['woodcutter', 'forager', 'trapper', 'miner', 'charcoalBurner']);
+  });
+
+  it('refuses a closed station with a problem of its own', () => {
+    expect(assignProblem(base(), 'bram', 'miner', 0)).toBe('closed');
+    const save = assignJob(atTier(2), 'bram', 'miner', 0);
+    expect(assignProblem(save, 'bram', 'miner', 0)).toBe('working');
+  });
+
+  it('lists every material a job can make, whatever shape its produces takes', () => {
+    expect(unitMaterial(base(), 'woodcutter', 'bram', 0)).toBe('wood');
+    expect(jobMaterials(jobById.forager)).toEqual(['herb', 'berries', 'mushroom']);
+    expect(jobMaterials(jobById.trapper)).toEqual(['meat', 'hide', 'bone']);
+    expect(jobMaterials(jobById.miner)).toEqual(['stone', 'copper', 'iron']);
+    expect(jobMaterials(jobById.charcoalBurner)).toEqual(['coal']);
+  });
+
+  it('rolls each unit of a weighted job from its list, the same roll every time', () => {
+    const save = base();
+    for (let index = 0; index < 25; index++) {
+      expect(jobMaterials(jobById.forager)).toContain(unitMaterial(save, 'forager', 'bram', index));
+      expect(unitMaterial(save, 'forager', 'bram', index)).toBe(unitMaterial(save, 'forager', 'bram', index));
+    }
+  });
+
+  it('pays the rolled units on collecting, and rolls them the same way again', () => {
+    const foraged = () => collectJob(assignJob(base(), 'bram', 'forager', 0), 'forager', 8 * HOUR);
+    const materialsOf = (save: SaveData) =>
+      ['herb', 'berries', 'mushroom'].map((id) => (save.materials[id] ?? 0) - (base().materials[id] ?? 0));
+    const first = foraged();
+    expect(materialsOf(first).reduce((sum, count) => sum + count, 0)).toBe(Math.floor(CAP));
+    expect(first.materials.wood ?? 0).toBe(base().materials.wood ?? 0);
+    expect(materialsOf(foraged())).toEqual(materialsOf(first));
+  });
+
+  it('gives the miner the ores the tier has unlocked', () => {
+    expect(jobChoices(base(), 'miner')).toEqual([]);
+    expect(jobChoices(atTier(2), 'miner')).toEqual(['stone']);
+    expect(jobChoices(atTier(3), 'miner')).toEqual(['stone', 'copper']);
+    expect(jobChoices(atTier(4), 'miner')).toEqual(['stone', 'copper', 'iron']);
+    expect(jobChoices(base(), 'woodcutter')).toEqual([]);
+  });
+
+  it('starts a choice job on its highest unlocked material', () => {
+    const save = assignJob(atTier(3), 'bram', 'miner', 0);
+    expect(save.jobChoice.miner).toBe('copper');
+    const collected = collectJob(save, 'miner', 8 * HOUR);
+    expect(collected.materials.copper ?? 0).toBe((base().materials.copper ?? 0) + Math.floor(CAP));
+  });
+
+  it('switches the ore but keeps what was already mined', () => {
+    const save = assignJob(atTier(3), 'bram', 'miner', 0);
+    const at4h = setJobChoice(save, 'miner', 'stone', 4 * HOUR);
+    expect(at4h.jobChoice.miner).toBe('stone');
+    const collected = collectJob(at4h, 'miner', 8 * HOUR);
+    // 1.2 units by the 4-hour switch (copper), then 1.2 more (stone): a unit each.
+    expect(collected.materials.copper ?? 0).toBe((base().materials.copper ?? 0) + 1);
+    expect(collected.materials.stone ?? 0).toBe((base().materials.stone ?? 0) + 1);
+  });
+
+  it('refuses an ore the tier has not unlocked', () => {
+    expect(() => setJobChoice(atTier(2), 'miner', 'copper', 0)).toThrow();
+    expect(() => setJobChoice(base(), 'woodcutter', 'wood', 0)).toThrow();
   });
 });

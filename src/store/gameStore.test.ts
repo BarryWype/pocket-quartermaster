@@ -45,7 +45,7 @@ describe('gameStore', () => {
     useGameStore.getState().assignJob(heroId, 'woodcutter');
 
     expect(useGameStore.getState().save.heroes.find((h) => h.id === heroId)!.job).toMatchObject({ jobId: 'woodcutter' });
-    expect(useGameStore.getState().save.jobOutput).toMatchObject({ woodcutter: { amount: 0 } });
+    expect(useGameStore.getState().save.jobOutput).toMatchObject({ woodcutter: { amounts: {}, fraction: 0, units: 0 } });
     // A taken station and a working hero are refused silently.
     useGameStore.getState().assignJob(otherId, 'woodcutter');
     expect(useGameStore.getState().save.heroes.find((h) => h.id === otherId)!.job).toBeNull();
@@ -54,14 +54,19 @@ describe('gameStore', () => {
     expect(useGameStore.getState().save).toBe(assigned);
 
     // With less than a whole unit waiting, collecting changes nothing.
-    useGameStore.setState({ save: { ...assigned, jobOutput: { woodcutter: { amount: 0.5, since: Date.now() } } } });
+    useGameStore.setState({ save: { ...assigned, jobOutput: { woodcutter: { amounts: {}, fraction: 0.5, units: 0, since: Date.now() } } } });
     useGameStore.getState().collectJob('woodcutter');
     expect(useGameStore.getState().save.materials.wood ?? 0).toBe(woodBefore);
 
-    useGameStore.setState({ save: { ...useGameStore.getState().save, jobOutput: { woodcutter: { amount: 2.5, since: Date.now() } } } });
+    useGameStore.setState({
+      save: {
+        ...useGameStore.getState().save,
+        jobOutput: { woodcutter: { amounts: { wood: 2 }, fraction: 0.5, units: 2, since: Date.now() } },
+      },
+    });
     useGameStore.getState().collectJob('woodcutter');
     expect(useGameStore.getState().save.materials.wood).toBe(woodBefore + 2);
-    expect(useGameStore.getState().save.jobOutput.woodcutter.amount).toBeCloseTo(0.5, 9);
+    expect(useGameStore.getState().save.jobOutput.woodcutter).toMatchObject({ amounts: {}, fraction: 0.5, units: 2 });
 
     useGameStore.getState().recallFromJob(heroId);
     expect(useGameStore.getState().save.heroes.find((h) => h.id === heroId)!.job).toBeNull();
@@ -69,6 +74,13 @@ describe('gameStore', () => {
     const recalled = useGameStore.getState().save;
     useGameStore.getState().recallFromJob(heroId);
     expect(useGameStore.getState().save).toBe(recalled);
+  });
+
+  it('picks a choice job material only among the ones the tier has unlocked', () => {
+    const { save } = useGameStore.getState();
+    useGameStore.getState().setJobChoice('woodcutter', 'wood');
+    useGameStore.getState().setJobChoice('miner', 'stone');
+    expect(useGameStore.getState().save).toBe(save);
   });
 
   it('resets save data', () => {
