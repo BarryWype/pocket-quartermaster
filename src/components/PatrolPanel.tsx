@@ -144,7 +144,7 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
           <Text style={styles.muted}>{t(`patrols.rewards.${kind}`)}</Text>
           <ThreatChip threat={patrolThreat(spawn)} />
           <PartsLine
-            parts={dungeonTags(dungeon).map((tag) => ({ emoji: tagInfo[tag].emoji, text: tr(tagInfo[tag].name) }))}
+            parts={dungeonTags(dungeon).map((tag) => ({ emoji: tagInfo[tag].emoji, icon: tagInfo[tag].icon, text: tr(tagInfo[tag].name) }))}
             labelStyle={styles.muted}
           />
           <Text style={styles.subtitle}>{t('expeditions.foes')}</Text>

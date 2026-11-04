@@ -262,6 +262,7 @@ export type ThreatDef = {
   id: ThreatId;
   name: string;
   emoji: string;
+  icon: ImageSourcePropType;
   category: ThreatCategory;
   /** The first tier the threat appears in, at level 1. */
   firstTier: number;
@@ -663,6 +664,7 @@ export type SpecialDef = {
   id: SpecialId;
   /** English; shown in French through frNames (see content/fr/names.ts). */
   name: string;
+  icon: ImageSourcePropType;
   /** One short line: the effect, then the trigger. */
   description: string;
   kind: 'shared' | 'unique';

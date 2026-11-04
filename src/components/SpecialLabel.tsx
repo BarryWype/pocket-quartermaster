@@ -6,6 +6,7 @@ import type { HeroClassId, SpecialId } from '@/game/types';
 import { tr } from '@/i18n';
 import { colors } from '@/theme';
 
+import { GameIcon } from './GameIcon';
 import { Text } from './Text';
 import { Tip } from './Tip';
 
@@ -17,13 +18,14 @@ type Props = {
   labelStyle?: StyleProp<TextStyle>;
 };
 
-/** A hero's special by name, with a ✦ when it is the class's rare one; tapping shows what it does and when it fires. */
+/** A hero's special by icon and name, with a ✦ when it is the class's rare one; tapping shows what it does and when it fires. */
 export function SpecialLabel({ classId, special, short = false, labelStyle }: Props) {
   const def = specials[special];
   const name = tr(def.name);
   return (
     <Tip title={name} text={tr(def.description)} accessibilityLabel={name}>
       <View style={styles.row}>
+        <GameIcon emoji="" icon={def.icon} size={short ? 16 : 20} />
         <Text style={[short ? styles.short : styles.name, labelStyle]}>{name}</Text>
         {isRareSpecial(classId, special) && <Text style={[styles.rare, short && styles.rareShort]}>✦</Text>}
       </View>

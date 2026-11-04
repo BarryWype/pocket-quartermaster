@@ -272,6 +272,23 @@ export function equipPreview(
   }
 }
 
+/**
+ * ▲ or ▼ for a piece, judged on the stats the hero's class cares about (its
+ * damage stat and primary stats): up when none drops and one rises, down the
+ * other way round, nothing for a trade-off.
+ */
+export function upgradeMark(hero: HeroState, preview: { before: Stats; after: Stats } | null): 'up' | 'down' | undefined {
+  if (!preview) return undefined;
+  const heroClass = heroClasses[hero.classId];
+  const keys = new Set<StatKey>([heroClass.damageStat, ...heroClass.primary, ...(hero.roll?.primary ? [hero.roll.primary] : [])]);
+  const deltas = [...keys].map((key) => preview.after[key] - preview.before[key]);
+  const rises = deltas.some((d) => d > 0);
+  const drops = deltas.some((d) => d < 0);
+  if (rises && !drops) return 'up';
+  if (drops && !rises) return 'down';
+  return undefined;
+}
+
 /** Heroes can be dismissed at home, keeping at least one; their gear and consumable go back to the stock. */
 export function canDismiss(save: SaveData, heroId: string) {
   return save.heroes.length > 1 && save.heroes.some((h) => h.id === heroId) && !isAway(save, heroId);

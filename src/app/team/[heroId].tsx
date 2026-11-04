@@ -2,7 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useRef, useState, type ComponentRef } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
 
-import { DELTA_KEYS, EquipPicker, gainOf } from '@/components/EquipPicker';
+import { DELTA_KEYS, EquipPicker } from '@/components/EquipPicker';
 import { PlaceholderScreen } from '@/components/PlaceholderScreen';
 import { statIcons } from '@/components/GearRow';
 import { GameIcon } from '@/components/GameIcon';
@@ -29,7 +29,7 @@ import { gearName, itemById } from '@/content/lookup';
 import { answersMemberOf, prepareParty } from '@/game/expeditions/simulate';
 import { highestUnlockedTier } from '@/game/dungeons/unlock';
 import { careProblem, drinkProblem } from '@/game/team/health';
-import { affinityOf, canDismiss, equip, equipPreview, gearKeywordsOf, hasPotionSlot, healingPotion, heroDamageStat, heroStats, isOnExpedition, statSources } from '@/game/team/team';
+import { affinityOf, canDismiss, equip, equipPreview, gearKeywordsOf, hasPotionSlot, healingPotion, heroDamageStat, heroStats, isOnExpedition, statSources, upgradeMark } from '@/game/team/team';
 import { ClassSummary } from '@/components/ClassSummary';
 import { SpecialLabel } from '@/components/SpecialLabel';
 import { APPROACHES, heroAnswers } from '@/game/threats/answers';
@@ -133,6 +133,8 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
   const now = useNow(clockConfig.minutesMs);
   const [picking, setPicking] = useState<EquipmentSlot | null>(null);
   /** The storeroom piece being compared, and where its slot sits on screen. */
+  /** The storeroom's folded slot sections, kept while the screen is open. */
+  const [collapsed, setCollapsed] = useState<(typeof GEAR_SLOTS)[number][]>([]);
   const [compare, setCompare] = useState<{ gear: GearInstance; slot: (typeof GEAR_SLOTS)[number]; anchor: PopupAnchor } | null>(null);
   const [contentWidth, setContentWidth] = useState(0);
 
@@ -432,20 +434,40 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
           <Text style={styles.heading}>{t('hero.storeroom')}</Text>
           <Text style={styles.note}>{t('hero.storeroomHint')}</Text>
         </View>
-        <View style={styles.grid}>
-          {storeroomPieces.map(({ gear, item, equipped }) => (
-            <StoreroomSlot
-              key={gear.uid}
-              save={save}
-              hero={hero}
-              gear={gear}
-              item={item}
-              equipped={equipped}
-              size={Math.floor((contentWidth - 3 * 6) / 4) - 4}
-              onOpen={(slot, anchor) => setCompare({ gear, slot, anchor })}
-            />
-          ))}
-        </View>
+        {GEAR_SLOTS.map((slot) => {
+          const pieces = storeroomPieces.filter(({ item }) => item.slot === slot);
+          if (pieces.length === 0) return null;
+          const open = !collapsed.includes(slot);
+          return (
+            <View key={slot} style={styles.section}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ expanded: open }}
+                onPress={() => setCollapsed(open ? [...collapsed, slot] : collapsed.filter((s) => s !== slot))}
+                style={styles.headRow}
+              >
+                <Text style={styles.slotHeading}>{`${t(`hero.slots.${slot}`)} (${pieces.length})`}</Text>
+                <Text style={styles.note}>{open ? '▲' : '▼'}</Text>
+              </Pressable>
+              {open && (
+                <View style={styles.grid}>
+                  {pieces.map(({ gear, item, equipped }) => (
+                    <StoreroomSlot
+                      key={gear.uid}
+                      save={save}
+                      hero={hero}
+                      gear={gear}
+                      item={item}
+                      equipped={equipped}
+                      size={Math.floor((contentWidth - 3 * 6) / 4) - 4}
+                      onOpen={(slot, anchor) => setCompare({ gear, slot, anchor })}
+                    />
+                  ))}
+                </View>
+              )}
+            </View>
+          );
+        })}
       </View>
     </ScrollView>
   );
@@ -494,7 +516,7 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
   );
 }
 
-/** One storeroom piece as a slot, ▲ when its main stat beats what is worn, ▼ when it loses. */
+/** One storeroom piece as a slot, ▲ or ▼ when it is better or worse for the hero's class (see upgradeMark). */
 function StoreroomSlot({
   save,
   hero,
@@ -514,7 +536,6 @@ function StoreroomSlot({
 }) {
   const wrapper = useRef<ComponentRef<typeof View>>(null);
   const preview = equipPreview(save, hero.id, item.slot, gear.uid);
-  const gain = gainOf({ item, preview });
   if (size <= 0) return null;
   return (
     <View ref={wrapper} collapsable={false}>
@@ -522,7 +543,7 @@ function StoreroomSlot({
         state="ready"
         emoji={item.emoji}
         icon={item.icon}
-        mark={preview && gain > 0 ? 'up' : preview && gain < 0 ? 'down' : undefined}
+        mark={upgradeMark(hero, preview)}
         size={size}
         equipped={equipped}
         accessibilityLabel={gearName(gear)}
@@ -681,6 +702,7 @@ const styles = StyleSheet.create({
   drink: { alignItems: 'stretch', gap: 6 },
   section: { gap: 6 },
   heading: { fontFamily: fonts.body, fontSize: 18, color: ui.ink },
+  slotHeading: { fontFamily: fonts.body, fontSize: 15, color: ui.ink },
   headRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   keywords: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   ability: { fontFamily: fonts.serif, fontSize: 14, color: ui.ink, paddingVertical: 2 },

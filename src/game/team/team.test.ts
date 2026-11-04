@@ -4,7 +4,7 @@ import { itemById } from '@/content/lookup';
 
 import { createInitialSave, type SaveData } from '../save';
 import type { GearDef } from '../types';
-import { addXp, canDismiss, dismissHero, equip, equipPreview, heroStats, markClassesSeen, rosterFull, setKitFor, statSources, unequip } from './team';
+import { addXp, canDismiss, dismissHero, equip, equipPreview, heroStats, markClassesSeen, rosterFull, setKitFor, statSources, unequip, upgradeMark } from './team';
 
 function saveWithGear(): SaveData {
   return {
@@ -270,5 +270,32 @@ describe('two pieces of the same item', () => {
     save = equip(save, warrior, 'weapon', 'g2');
     expect(hero(save, warrior).equipment.weapon).toBe('g2');
     expect(heroStats(save, hero(save, warrior)).power).toBeGreaterThan(poorPower);
+  });
+});
+
+describe('upgradeMark', () => {
+  const save: SaveData = {
+    ...createInitialSave(),
+    gear: [
+      { uid: 'axe', itemId: 'axe3', quality: 'normal' },
+      { uid: 'plate', itemId: 'plate3', quality: 'normal' },
+      { uid: 'wand', itemId: 'wand3', quality: 'normal' },
+    ],
+  };
+  const mark = (heroId: string, slot: 'weapon' | 'armor', uid: string) =>
+    upgradeMark(save.heroes.find((h) => h.id === heroId)!, equipPreview(save, heroId, slot, uid));
+
+  it('never marks gear a class has no use for as an upgrade', () => {
+    expect(mark('mira', 'weapon', 'axe')).not.toBe('up');
+    expect(mark('mira', 'armor', 'plate')).not.toBe('up');
+  });
+
+  it('marks gear that raises what the class cares about', () => {
+    expect(mark('mira', 'weapon', 'wand')).toBe('up');
+    expect(mark('bram', 'weapon', 'axe')).toBe('up');
+  });
+
+  it('marks nothing without a preview', () => {
+    expect(upgradeMark(save.heroes[0], null)).toBeUndefined();
   });
 });

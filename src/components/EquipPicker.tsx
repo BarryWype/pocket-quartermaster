@@ -99,14 +99,19 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, briefin
           offhandGear,
         );
       }
-      return [{ gear, item, holder, problem, preview, unequipsOffhand, equipped: save.heroes.some((h) => h.equipment[slot] === gear.uid) }];
+      const affinity = affinityOf(hero.classId, item.gearType);
+      return [{ gear, item, holder, problem, preview, unequipsOffhand, affinity, equipped: save.heroes.some((h) => h.equipment[slot] === gear.uid) }];
     })
     .sort((a, b) => {
       const greyedDiff = Number(a.problem !== null || a.preview === null) - Number(b.problem !== null || b.preview === null);
       if (greyedDiff) return greyedDiff;
+      // Free pieces the class favours, then the other free pieces, then pieces another hero wears.
+      const group = (o: typeof a) => (o.holder ? 2 : o.affinity === 'favoured' ? 0 : 1);
+      const groupDiff = group(a) - group(b);
+      if (groupDiff) return groupDiff;
       return gainOf(b) - gainOf(a);
     })
-    .map(({ gear, item, holder, problem, preview, unequipsOffhand, equipped }) => {
+    .map(({ gear, item, holder, problem, preview, unequipsOffhand, affinity, equipped }) => {
       const greyed = problem !== null || preview === null;
       const parts: LabelPart[] = greyed
         ? problem
@@ -127,7 +132,7 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, briefin
         color: greyed ? colors.muted : qualities[gear.quality].color,
         disabled: greyed,
         equipped,
-        marks: <GearMarks tier={item.tier} affinity={affinityOf(hero.classId, item.gearType)} />,
+        marks: <GearMarks tier={item.tier} affinity={affinity} />,
       };
     });
 }

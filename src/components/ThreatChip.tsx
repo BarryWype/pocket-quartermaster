@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 
 import { elementInfo } from '@/content/elements';
 import { threatById } from '@/content/lookup';
@@ -21,6 +21,7 @@ export const stateColors: Record<ThreatDisplay, string> = {
 
 type ChipProps = {
   emoji: string;
+  icon?: ImageSourcePropType;
   title: string;
   /** A second icon after the label (e.g. the element an elemental threat adds). */
   titleIcon?: string;
@@ -31,13 +32,13 @@ type ChipProps = {
 };
 
 /** The shared chip frame: icon, short label, then the chip's own details. */
-function Chip({ emoji, title, titleIcon, label, state, onPress, children }: ChipProps) {
+function Chip({ emoji, icon, title, titleIcon, label, state, onPress, children }: ChipProps) {
   const body = (
     <View
       accessibilityLabel={label}
       style={[styles.chip, { borderColor: state ? stateColors[state] : colors.woodDark }]}
     >
-      <GameIcon emoji={emoji} size={20} />
+      <GameIcon emoji={emoji} icon={icon} size={20} />
       <Text style={styles.title} numberOfLines={1}>
         {title}
       </Text>
@@ -75,7 +76,7 @@ export function ThreatChip({ threat, state, onPress }: ThreatChipProps) {
     .filter(Boolean)
     .join(', ');
   return (
-    <Chip emoji={def.emoji} title={name} titleIcon={element?.emoji} label={label} state={state} onPress={onPress}>
+    <Chip emoji={def.emoji} icon={def.icon} title={name} titleIcon={element?.emoji} label={label} state={state} onPress={onPress}>
       {threat.surge && (
         <View style={styles.surge}>
           <Text style={styles.surgeText}>{t(`threats.surge.${threat.surge}`)}</Text>

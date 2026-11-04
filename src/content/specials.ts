@@ -8,6 +8,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   cleave: {
     id: 'cleave',
     name: 'Cleave',
+    icon: require('../../assets/icons/abilities-scaled/axe-spin.png'),
     description: 'Hits every enemy for 45% of a normal hit. A fight with 3+ enemies.',
     kind: 'shared',
     effect: { kind: 'allEnemies', share: 0.45, elemental: false },
@@ -17,6 +18,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   aimedStrike: {
     id: 'aimedStrike',
     name: 'Aimed strike',
+    icon: require('../../assets/icons/abilities-scaled/frost-bow.png'),
     description: "The hero's next hit is a sure crit. First round of a fight.",
     kind: 'shared',
     effect: { kind: 'sureCrit' },
@@ -26,6 +28,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   flurry: {
     id: 'flurry',
     name: 'Flurry',
+    icon: require('../../assets/icons/abilities-scaled/purple-slashes.png'),
     description: "3 quick hits at 100% each. 20% chance on the hero's turn.",
     kind: 'shared',
     effect: { kind: 'multiHit', hits: 3, share: 1 },
@@ -35,6 +38,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   poison: {
     id: 'poison',
     name: 'Poison',
+    icon: require('../../assets/icons/abilities-scaled/poison-slash.png'),
     description: "The target takes damage over 3 rounds (60% of a hit per round). 20% chance on the hero's turn.",
     kind: 'shared',
     effect: { kind: 'damageOverTime', share: 0.6, rounds: 3 },
@@ -44,6 +48,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   elementalBlast: {
     id: 'elementalBlast',
     name: 'Elemental blast',
+    icon: require('../../assets/icons/abilities-scaled/fire-galaxy.png'),
     description: "Hits every enemy for 45% in the hero's element (or the gear's infusion). A fight with 3+ enemies.",
     kind: 'shared',
     effect: { kind: 'allEnemies', share: 0.45, elemental: true },
@@ -53,6 +58,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   smite: {
     id: 'smite',
     name: 'Smite',
+    icon: require('../../assets/icons/abilities-scaled/light-pillar.png'),
     description: "×4 damage on one undead or spirit. The hero's first turn against an undead or spirit.",
     kind: 'shared',
     effect: { kind: 'strike', multiplier: 4, target: 'tags', tags: ['undead', 'spirit'] },
@@ -62,6 +68,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   execute: {
     id: 'execute',
     name: 'Execute',
+    icon: require('../../assets/icons/abilities-scaled/bloody-scythe.png'),
     description: '×4 damage on an enemy below 25% HP. An enemy below 25% HP.',
     kind: 'shared',
     effect: { kind: 'strike', multiplier: 4, target: 'belowHp', belowPct: 0.25 },
@@ -71,6 +78,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   focus: {
     id: 'focus',
     name: 'Focus',
+    icon: require('../../assets/icons/abilities-scaled/radiant-eye.png'),
     description: "The hero's next attack ×2. The boss's first turn.",
     kind: 'shared',
     effect: { kind: 'nextAttack', multiplier: 2 },
@@ -80,6 +88,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   stagger: {
     id: 'stagger',
     name: 'Stagger',
+    icon: require('../../assets/icons/abilities-scaled/golden-hammer.png'),
     description: 'The strongest enemy loses its next turn (30% chance). First round of a fight.',
     kind: 'shared',
     effect: { kind: 'skipTurn', target: 'strongest', chance: 0.3 },
@@ -89,6 +98,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   entangle: {
     id: 'entangle',
     name: 'Entangle',
+    icon: require('../../assets/icons/abilities-scaled/green-vines.png'),
     description: "One enemy loses its next turn (75% chance). 20% chance on the hero's turn.",
     kind: 'shared',
     effect: { kind: 'skipTurn', target: 'one', chance: 0.75 },
@@ -98,6 +108,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   taunt: {
     id: 'taunt',
     name: 'Taunt',
+    icon: require('../../assets/icons/abilities-scaled/battle-cry.png'),
     description: 'Every enemy targets this hero for 2 rounds; the hero takes 50% of the damage. An ally below 40% HP.',
     kind: 'shared',
     effect: { kind: 'taunt', rounds: 2, damageTaken: 0.5 },
@@ -107,6 +118,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   dirtyTrick: {
     id: 'dirtyTrick',
     name: 'Dirty trick',
+    icon: require('../../assets/icons/abilities-scaled/dust-cloud.png'),
     description: "The boss misses its next attack (55% chance). The boss's first turn.",
     kind: 'shared',
     effect: { kind: 'skipTurn', target: 'boss', chance: 0.55 },
@@ -116,6 +128,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   distraction: {
     id: 'distraction',
     name: 'Distraction',
+    icon: require('../../assets/icons/abilities-scaled/war-horn.png'),
     description: "The weakest ally isn't targeted for 4 rounds. An ally below 40% HP.",
     kind: 'shared',
     effect: { kind: 'shieldWeakest', rounds: 4 },
@@ -125,6 +138,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   secondWind: {
     id: 'secondWind',
     name: 'Second wind',
+    icon: require('../../assets/icons/abilities-scaled/heart.png'),
     description: 'Heals self 50% of max HP. First time below 30% HP.',
     kind: 'shared',
     effect: { kind: 'heal', target: 'self', pct: 0.5 },
@@ -134,6 +148,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   manaShield: {
     id: 'manaShield',
     name: 'Mana shield',
+    icon: require('../../assets/icons/abilities-scaled/blue-shield.png'),
     description: 'Absorbs the next hit on self. Below 50% HP.',
     kind: 'shared',
     effect: { kind: 'absorb', target: 'self', hits: 1 },
@@ -143,6 +158,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   ward: {
     id: 'ward',
     name: 'Ward',
+    icon: require('../../assets/icons/abilities-scaled/blue-gold-shield.png'),
     description: "Absorbs the next hit on an ally. The boss's first turn.",
     kind: 'shared',
     effect: { kind: 'absorb', target: 'ally', hits: 1 },
@@ -152,6 +168,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   vanish: {
     id: 'vanish',
     name: 'Vanish',
+    icon: require('../../assets/icons/abilities-scaled/shadow-cloak.png'),
     description: 'Dodges every attack for 3 rounds. Below 40% HP.',
     kind: 'shared',
     effect: { kind: 'dodge', rounds: 3 },
@@ -161,6 +178,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   riposte: {
     id: 'riposte',
     name: 'Riposte',
+    icon: require('../../assets/icons/abilities-scaled/sword-clash.png'),
     description: 'Counters the next 2 hits taken. First time hit in a fight.',
     kind: 'shared',
     effect: { kind: 'counter', hits: 2, share: 1 },
@@ -170,6 +188,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   mend: {
     id: 'mend',
     name: 'Mend',
+    icon: require('../../assets/icons/abilities-scaled/golden-potion.png'),
     description: 'Heals the weakest ally 14% of max HP. An ally below 40% HP.',
     kind: 'shared',
     effect: { kind: 'heal', target: 'weakest', pct: 0.14 },
@@ -179,6 +198,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   regrowth: {
     id: 'regrowth',
     name: 'Regrowth',
+    icon: require('../../assets/icons/abilities-scaled/green-leaves.png'),
     description: 'The party heals 5% a round for 3 rounds. Party average below 60% HP.',
     kind: 'shared',
     effect: { kind: 'healOverTime', pct: 0.05, rounds: 3 },
@@ -188,6 +208,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   rally: {
     id: 'rally',
     name: 'Rally',
+    icon: require('../../assets/icons/abilities-scaled/war-banner.png'),
     description: "Party +15% damage for 2 rounds. The boss's first turn.",
     kind: 'shared',
     effect: { kind: 'partyDamage', multiplier: 1.15, rounds: 2 },
@@ -197,6 +218,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   patchUp: {
     id: 'patchUp',
     name: 'Patch up',
+    icon: require('../../assets/icons/abilities-scaled/potion-bottle.png'),
     description: 'The party heals 5.5% of max HP. Between fights.',
     kind: 'shared',
     effect: { kind: 'heal', target: 'party', pct: 0.055 },
@@ -206,6 +228,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   steal: {
     id: 'steal',
     name: 'Steal',
+    icon: require('../../assets/icons/abilities-scaled/gold-pile.png'),
     description: "An extra loot roll from the boss's row. A won boss fight.",
     kind: 'unique',
     effect: { kind: 'extraLoot', rolls: 1 },
@@ -215,6 +238,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   doubleOrNothing: {
     id: 'doubleOrNothing',
     name: 'Double or nothing',
+    icon: require('../../assets/icons/abilities-scaled/fire-die.png'),
     description: "×8 damage or a miss (50/50). 20% chance on the hero's turn.",
     kind: 'unique',
     effect: { kind: 'strike', multiplier: 8, target: 'any', missChance: 0.5 },
@@ -224,6 +248,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   meteor: {
     id: 'meteor',
     name: 'Meteor',
+    icon: require('../../assets/icons/abilities-scaled/meteor.png'),
     description: '300% of a hit to the boss. The boss below 50% HP.',
     kind: 'unique',
     effect: { kind: 'strike', multiplier: 3, target: 'boss' },
@@ -233,6 +258,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   deepFreeze: {
     id: 'deepFreeze',
     name: 'Deep freeze',
+    icon: require('../../assets/icons/abilities-scaled/ice-burst.png'),
     description: 'Every enemy loses its next turn (70% chance). A fight with 3+ enemies.',
     kind: 'unique',
     effect: { kind: 'skipTurn', target: 'all', chance: 0.7 },
@@ -242,6 +268,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   resurrection: {
     id: 'resurrection',
     name: 'Resurrection',
+    icon: require('../../assets/icons/abilities-scaled/phoenix.png'),
     description: 'A fallen ally returns at 30% HP (60% chance). An ally knocked out.',
     kind: 'unique',
     effect: { kind: 'revive', pct: 0.3, chance: 0.6 },
@@ -251,6 +278,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   banish: {
     id: 'banish',
     name: 'Banish',
+    icon: require('../../assets/icons/abilities-scaled/halo.png'),
     description: "Instantly defeats one non-boss undead or spirit. The hero's first turn against one.",
     kind: 'unique',
     effect: { kind: 'removeEnemy', tags: ['undead', 'spirit'], loot: true, chance: 1 },
@@ -260,6 +288,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   summon: {
     id: 'summon',
     name: 'Summon',
+    icon: require('../../assets/icons/abilities-scaled/golden-aura-hood.png'),
     description: "A temporary ally for one fight that deals 80% of the hero's hit each round (beast for Beastmaster and Druid; undead for Necromancer). First fight with 3+ enemies.",
     kind: 'unique',
     effect: { kind: 'ally', share: 0.8, rounds: null },
@@ -269,6 +298,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   parley: {
     id: 'parley',
     name: 'Parley',
+    icon: require('../../assets/icons/abilities-scaled/white-dove.png'),
     description: 'One non-boss enemy leaves the fight (no loot from it; 75% chance). First round of a fight with 3+ enemies.',
     kind: 'unique',
     effect: { kind: 'removeEnemy', loot: false, chance: 0.75 },
@@ -278,6 +308,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   feast: {
     id: 'feast',
     name: 'Feast',
+    icon: require('../../assets/icons/abilities-scaled/wine-goblet.png'),
     description: 'The party heals 18% of max HP. Before the boss fight.',
     kind: 'unique',
     effect: { kind: 'heal', target: 'party', pct: 0.18 },
@@ -287,6 +318,7 @@ export const specials: Record<SpecialId, SpecialDef> = {
   turret: {
     id: 'turret',
     name: 'Turret',
+    icon: require('../../assets/icons/abilities-scaled/crossbow.png'),
     description: "A construct deals 40% of the Engineer's hit each round for 3 rounds. First round of the boss fight.",
     kind: 'unique',
     effect: { kind: 'ally', share: 0.4, rounds: 3 },

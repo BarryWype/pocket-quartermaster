@@ -28,7 +28,7 @@ export default function ClassesScreen() {
         const known = met.has(classId);
         return (
           <Panel key={classId} style={styles.card} borderColor={def.rarity === 'rare' ? colors.gold : colors.ink}>
-            <IconSlot emoji={known ? def.emoji : '❔'} size={44} />
+            <IconSlot emoji={known ? def.emoji : '❔'} icon={known ? def.icon : undefined} size={44} />
             <View style={styles.body}>
               <Text style={styles.name}>{known ? tr(def.name) : t('classes.notMet')}</Text>
               {known ? (

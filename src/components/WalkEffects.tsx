@@ -21,6 +21,7 @@ import { Text } from './Text';
 import { Tip } from './Tip';
 
 const walkItems = items.filter((item) => item.slot === 'utility' && item.walk);
+const WALK_BUTTON_ICON = require('../../assets/icons/magic/elixir-green-aura.png');
 
 
 /** The map's walking consumables: a round button opening the ones in stock, and a countdown chip per running effect. */
@@ -53,7 +54,7 @@ export function WalkEffects({ player, buttonStyle, chipsStyle }: {
     <>
       {held.length > 0 && (
         <Pressable accessibilityLabel={t('walkEffects.title')} onPress={() => setOpen(true)} style={[styles.button, buttonStyle]}>
-          <Text style={styles.buttonEmoji}>🧴</Text>
+          <GameIcon emoji="🧴" icon={WALK_BUTTON_ICON} size={28} />
         </Pressable>
       )}
       {active.length > 0 && (
@@ -105,7 +106,6 @@ const styles = StyleSheet.create({
     borderColor: colors.woodDark,
     backgroundColor: colors.parchment,
   },
-  buttonEmoji: { fontSize: 24 },
   chips: { position: 'absolute', right: 16, gap: 4, alignItems: 'flex-end' },
   chip: {
     flexDirection: 'row',

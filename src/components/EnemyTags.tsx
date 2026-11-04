@@ -20,7 +20,7 @@ export function EnemyTags({ mob, named = true }: Props) {
         // The emoji never shares the label's Text: the game font holds no emoji
         // glyphs, and a run mixing them measures wrong and clips the label.
         <View key={tag} style={[styles.label, i === 0 && styles.main]}>
-          <GameIcon emoji={tagInfo[tag].emoji} size={18} />
+          <GameIcon emoji={tagInfo[tag].emoji} icon={tagInfo[tag].icon} size={18} />
           <Text style={styles.labelText}>{tr(tagInfo[tag].name)}</Text>
         </View>
       ))}

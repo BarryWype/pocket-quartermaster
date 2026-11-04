@@ -164,6 +164,7 @@ export function ThreatCoverageChips({ coverage, labelled = false }: { coverage: 
         <Overlay onClose={() => setDetail(null)} position="bottom">
           <Sheet
             emoji={threatById[detail.threat.id].emoji}
+            icon={threatById[detail.threat.id].icon}
             title={`${tr(threatById[detail.threat.id].name)} · ${t('threats.level', { level: detail.threat.level })}`}
             bodyStyle={styles.body}
           >

@@ -37,7 +37,7 @@ export function IconLabel({ emoji, label, icon, size = 18, gap = 4, style, label
 }
 
 /** A line of short parts — plain words or an icon with words — that wraps whole. */
-export type LabelPart = { emoji: string; text: string; after?: string } | string;
+export type LabelPart = { emoji: string; icon?: ImageSourcePropType; text: string; after?: string } | string;
 
 type PartsProps = {
   parts: LabelPart[];
@@ -60,7 +60,7 @@ export function PartsLine({ parts, sep = ' · ', style, labelStyle, size = 18, g
           </Text>
         ) : (
           <View key={i} style={styles.part}>
-            <IconLabel emoji={part.emoji} icon={systemIcons[part.emoji]} label={(i > 0 ? sep : '') + part.text} size={size} gap={gap} labelStyle={labelStyle} />
+            <IconLabel emoji={part.emoji} icon={part.icon ?? systemIcons[part.emoji]} label={(i > 0 ? sep : '') + part.text} size={size} gap={gap} labelStyle={labelStyle} />
             {part.after ? <GameIcon emoji={part.after} icon={systemIcons[part.after]} size={size} /> : null}
           </View>
         ),

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
+import { ScrollView, StyleSheet, View, useWindowDimensions, type ImageSourcePropType, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { sheetMaxHeight } from '@/content/overlay';
@@ -14,6 +14,7 @@ type Props = {
   title?: ReactNode;
   /** The icon beside the title, in its own element — never bake it into `title`. */
   emoji?: string;
+  icon?: ImageSourcePropType;
   subtitle?: ReactNode;
   /** Extra style on the scrolling body's content. */
   bodyStyle?: StyleProp<ViewStyle>;
@@ -46,7 +47,7 @@ export function useSheetMaxHeight(): number {
  * of the screen: the overlay's modal spans the whole screen, so only the
  * footer's inset padding lifts the buttons.
  */
-export function Sheet({ title, emoji, subtitle, bodyStyle, footer, children, variant }: Props) {
+export function Sheet({ title, emoji, icon, subtitle, bodyStyle, footer, children, variant }: Props) {
   const { bottom } = useSafeAreaInsets();
   const maxHeight = useSheetMaxHeight();
   const wood = variant === 'wood';
@@ -68,7 +69,7 @@ export function Sheet({ title, emoji, subtitle, bodyStyle, footer, children, var
             </View>
             {emoji !== undefined && (
               <View style={styles.bandIcon}>
-                <GameIcon emoji={emoji} size={30} />
+                <GameIcon emoji={emoji} icon={icon} size={30} />
               </View>
             )}
             <View style={styles.bandText}>
@@ -80,7 +81,7 @@ export function Sheet({ title, emoji, subtitle, bodyStyle, footer, children, var
           <View style={styles.header}>
             {title !== undefined &&
               (emoji ? (
-                <IconLabel emoji={emoji} label={title} size={24} gap={6} labelStyle={styles.title} />
+                <IconLabel emoji={emoji} icon={icon} label={title} size={24} gap={6} labelStyle={styles.title} />
               ) : (
                 <Text style={styles.title}>{title}</Text>
               ))}

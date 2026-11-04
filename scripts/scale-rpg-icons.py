@@ -1,6 +1,7 @@
-"""Upscales the 32 px icons in assets/icons/RPG Icons into assets/icons/rpg
-with nearest-neighbor, since React Native blurs small pixel art when it scales
-it up.
+"""Upscales the small icon sets with nearest-neighbor, since React Native
+blurs small pixel art when it scales it up: assets/icons/RPG Icons (32 px)
+into assets/icons/rpg, assets/icons/abilities (16 px) into
+assets/icons/abilities-scaled, both to 128 px.
 
 Run with: python3 scripts/scale-rpg-icons.py (needs Pillow)
 """
@@ -9,13 +10,12 @@ from pathlib import Path
 
 from PIL import Image
 
-SCALE = 4
+SIZE = 128
 ICONS = Path(__file__).resolve().parent.parent / 'assets' / 'icons'
-SOURCE = ICONS / 'RPG Icons'
-OUT = ICONS / 'rpg'
+SETS = {'RPG Icons': 'rpg', 'abilities': 'abilities-scaled'}
 
-OUT.mkdir(exist_ok=True)
-for file in sorted(SOURCE.glob('*.png')):
-    icon = Image.open(file).convert('RGBA')
-    name = file.stem.rstrip('-')
-    icon.resize((icon.width * SCALE, icon.height * SCALE), Image.Resampling.NEAREST).save(OUT / f'{name}.png')
+for source, out in SETS.items():
+    (ICONS / out).mkdir(exist_ok=True)
+    for file in sorted((ICONS / source).glob('*.png')):
+        icon = Image.open(file).convert('RGBA')
+        icon.resize((SIZE, SIZE), Image.Resampling.NEAREST).save(ICONS / out / file.name)
