@@ -1,3 +1,4 @@
+import { classSpecials } from '@/content/classSpecials';
 import { dungeons } from '@/content/dungeons';
 import { items } from '@/content/items';
 import { placeFightRules, type FightPlaceKind } from '@/content/placeFights';
@@ -50,12 +51,13 @@ export type QuickTier = {
  * dungeons cleared (so this tier is unlocked), stocked with every kit, every
  * boss weakness item and three healing potions.
  */
-function quickSave(tier: number): SaveData {
+export function quickSave(tier: number): SaveData {
   const initial = createInitialSave();
   let save: SaveData = {
     ...initial,
     tutorial: { ...initial.tutorial, step: 'done' },
-    heroes: initial.heroes.map((h) => ({ ...h, level: expectedLevels[tier - 1] })),
+    // Each hero carries its class's first common special, like the other reference teams.
+    heroes: initial.heroes.map((h) => ({ ...h, level: expectedLevels[tier - 1], special: classSpecials[h.classId].common[0] })),
     gear: [`sword${tier}`, `bow${tier}`, `wand${tier}`, `mail${tier}`, `mail${tier}`, `mail${tier}`].map((itemId, i) => ({ uid: `g${i}`, itemId, quality: 'normal' as const })),
   };
   save.heroes.forEach((hero, i) => {

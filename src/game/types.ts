@@ -608,9 +608,9 @@ export type SpecialEffect =
   /** The hero's next attack deals ×`multiplier`. */
   | { kind: 'nextAttack'; multiplier: number }
   /** `target` loses its next turn. */
-  | { kind: 'skipTurn'; target: 'strongest' | 'one' | 'all' | 'boss' }
+  | { kind: 'skipTurn'; target: 'strongest' | 'one' | 'all' | 'boss'; chance: number }
   /** Every enemy targets this hero for `rounds` rounds. */
-  | { kind: 'taunt'; rounds: number }
+  | { kind: 'taunt'; rounds: number; damageTaken: number }
   /** The weakest ally isn't targeted for `rounds` rounds. */
   | { kind: 'shieldWeakest'; rounds: number }
   /** Absorbs the next `hits` hits on `target`. */
@@ -624,11 +624,11 @@ export type SpecialEffect =
   /** The target heals this share of max HP per round, for `rounds` rounds. */
   | { kind: 'healOverTime'; pct: number; rounds: number }
   /** A knocked-out ally gets back up at this share of max HP. */
-  | { kind: 'revive'; pct: number }
+  | { kind: 'revive'; pct: number; chance: number }
   /** Party damage ×`multiplier` for `rounds` rounds. */
   | { kind: 'partyDamage'; multiplier: number; rounds: number }
   /** One enemy leaves the fight: defeated when `loot`, gone when not. */
-  | { kind: 'removeEnemy'; tags?: Tag[]; loot: boolean }
+  | { kind: 'removeEnemy'; tags?: Tag[]; loot: boolean; chance: number }
   /** A temporary ally dealing `share` of the hero's hit each round, for `rounds` (null: the whole fight). */
   | { kind: 'ally'; share: number; rounds: number | null }
   /** `rolls` extra loot rolls from the boss's row. */

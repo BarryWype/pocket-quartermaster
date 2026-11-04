@@ -603,3 +603,54 @@ The median day each map kind first shows (the gradual reveal); no target.
 - Sanctums: with a Sigil, a reachable Sanctum and odds ≥ 0.5 with the best heroes at home, use the highest Sigil tier that passes.
 - Treasure: read every map; dig it up on a day its spot is reachable.
 - Expeditions (up to the profile’s expeditions a day; the overnight one only for profiles that plan it): the unbeaten boss of the highest tier first when its odds are ≥ 0.45. Then, while heroes are idle, the open dungeon of the top two tiers with the best expected value per hour among those with odds ≥ the profile threshold; the day’s first win and a new tier’s first clear add their rows’ gold. A dungeon of the highest tier whose tier still has a favoured gear blueprint the team lacks only needs odds ≥ 0.35. When the gap to the next session is at least the overnight expedition’s duration, the overnight expeditions of the top two tiers join the ranking at their full value over that gap — but only one overnight expedition can be out at a time. Parties are built greedily (add the hero who raises the odds most) and each hero takes a potion (an ember ward salve for fire runs).
+
+<!-- specials -->
+## Specials balance
+
+The quick reference trio against every tier's whole chain, each special carried by one hero at a time: the gain in win odds over the no-special baseline, averaged over every tier, dungeon and hero. Steal only adds loot, so it is never flagged; the others should stay within 0.5×–1.5× of the median average gain.
+
+| special | average gain | min | max | flag |
+| --- | --- | --- | --- | --- |
+| Cleave | +3.3 pts | -0.5 pts | +18.3 pts |  |
+| Aimed strike | +2.5 pts | -0.5 pts | +7.7 pts |  |
+| Flurry | +3.7 pts | +0.1 pts | +12.1 pts |  |
+| Poison | +1.8 pts | -0.5 pts | +7.8 pts |  |
+| Elemental blast | +3.3 pts | -0.5 pts | +18.3 pts |  |
+| Smite | +1.8 pts | +0.0 pts | +25.0 pts |  |
+| Execute | +1.9 pts | -2.6 pts | +19.6 pts |  |
+| Focus | +2.1 pts | +0.1 pts | +8.6 pts |  |
+| Stagger | +3.5 pts | +0.0 pts | +9.2 pts |  |
+| Entangle | +3.2 pts | +0.1 pts | +8.6 pts |  |
+| Taunt | +3.1 pts | -0.7 pts | +10.1 pts |  |
+| Dirty trick | +3.8 pts | +0.0 pts | +11.3 pts |  |
+| Distraction | +2.2 pts | -3.1 pts | +17.0 pts |  |
+| Second wind | +2.2 pts | +0.0 pts | +14.8 pts |  |
+| Mana shield | +3.9 pts | +0.0 pts | +16.1 pts |  |
+| Ward | +3.8 pts | -0.1 pts | +16.6 pts |  |
+| Vanish | +3.7 pts | +0.0 pts | +16.9 pts |  |
+| Riposte | +3.5 pts | -0.2 pts | +14.0 pts |  |
+| Mend | +3.0 pts | +0.0 pts | +9.9 pts |  |
+| Regrowth | +2.9 pts | +0.0 pts | +11.5 pts |  |
+| Rally | +2.4 pts | +0.1 pts | +9.0 pts |  |
+| Patch up | +3.1 pts | +0.1 pts | +8.5 pts |  |
+| Steal | +0.0 pts | +0.0 pts | +0.0 pts | loot only |
+| Double or nothing | +2.0 pts | -3.0 pts | +13.8 pts |  |
+| Meteor | +2.9 pts | -0.3 pts | +13.3 pts |  |
+| Deep freeze | +3.7 pts | +0.1 pts | +11.4 pts |  |
+| Resurrection | +4.0 pts | +0.0 pts | +10.5 pts |  |
+| Banish | +2.2 pts | +0.0 pts | +35.6 pts |  |
+| Summon | +2.1 pts | -0.5 pts | +6.9 pts |  |
+| Parley | +3.7 pts | +0.2 pts | +8.7 pts |  |
+| Feast | +4.0 pts | +0.1 pts | +9.1 pts |  |
+| Turret | +2.6 pts | -0.2 pts | +9.3 pts |  |
+<!-- /specials -->
+
+
+
+
+
+
+
+
+
+

@@ -680,6 +680,8 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     delay,
   } = prepared;
   const rng = createRng(seed);
+  // Specials draw from their own stream, so a special changes only what it does, not every later roll.
+  const specialRng = createRng(`${seed}|specials`);
   // How the day goes for the whole party: a good day hits harder and gets hurt less.
   // Unlike per-hit variance this doesn't average out, so weaker teams keep a real chance.
   const fortune = 1 + (rng.next() * 2 - 1) * rules.fortune;
@@ -929,7 +931,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       dodges: Map<string, number>;
       /** The hits left that a Mana shield or Ward absorbs, by hero. */
       absorbs: Map<string, number>;
-      taunt: { heroId: string; rounds: number } | null;
+      taunt: { heroId: string; rounds: number; damageTaken: number } | null;
       shield: { rounds: number } | null;
       hot: { pct: number; rounds: number } | null;
       party: { multiplier: number; rounds: number } | null;
@@ -1115,7 +1117,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
                   ? living().find((x) => x.hp < x.maxHp * e.belowPct!)
                   : opts.target ?? living()[0];
           if (!foe || foe.hp <= 0) return false;
-          if (e.missChance !== undefined && rng.chance(e.missChance)) {
+          if (e.missChance !== undefined && specialRng.chance(e.missChance)) {
             log({ missed: true });
             break;
           }
@@ -1141,12 +1143,14 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
                   : living()
           ).filter((foe): foe is EnemyState => !!foe && foe.hp > 0);
           if (foes.length === 0) return false;
-          foes.forEach((foe) => (foe.staggered = true));
+          // The foes may shake it off: the use is spent either way.
+          if (specialRng.chance(e.chance)) foes.forEach((foe) => (foe.staggered = true));
+          else break;
           log(e.target === 'all' ? { count: foes.length } : {});
           break;
         }
         case 'taunt':
-          ctx.taunt = { heroId: id, rounds: def.effect.rounds };
+          ctx.taunt = { heroId: id, rounds: def.effect.rounds, damageTaken: def.effect.damageTaken };
           log();
           break;
         case 'shieldWeakest':
@@ -1186,6 +1190,8 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         case 'revive': {
           const victim = opts.victim;
           if (!victim) return false;
+          // The prayer may go unanswered: the use is spent either way.
+          if (!specialRng.chance(def.effect.chance)) break;
           victim.hp = Math.max(1, Math.round(def.effect.pct * victim.member.maxHp));
           victim.out = false;
           log({ allyId: victim.member.heroId });
@@ -1201,6 +1207,8 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           const foes = living().filter((foe) => !('effect' in foe.def));
           const foe = e.tags ? foes.find((x) => enemyTags(x.def).some((tag) => e.tags!.includes(tag))) : foes.length > 0 ? strongest(foes) : undefined;
           if (!foe) return false;
+          // The foe may refuse: the use is spent either way.
+          if (!specialRng.chance(e.chance)) break;
           foe.hp = 0;
           log();
           break;
@@ -1227,7 +1235,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       if (!def) return true;
       const t = def.trigger;
       if (t.kind === 'heroTurn') {
-        if (!hasUseLeft(hero, def) || !rng.chance(t.chance)) return true;
+        if (!hasUseLeft(hero, def) || !specialRng.chance(t.chance)) return true;
       } else if (t.kind === 'heroTurnVsTags') {
         if (!hasUseLeft(hero, def) || !enemyTags(target.def).some((tag) => t.tags.includes(tag))) return true;
       } else if (t.kind === 'enemyBelow') {
@@ -1427,6 +1435,8 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
             taken *= immune.effect.multiplier;
             noteRelic(result, hero.member.heroId, immune.relicId);
           }
+          // A taunting hero braces for the hits they draw.
+          if (ctx.taunt?.heroId === hero.member.heroId) taken *= ctx.taunt.damageTaken;
           // A Mana shield or Ward swallows the whole hit.
           const absorbed = ctx.absorbs.get(hero.member.heroId);
           if (absorbed !== undefined) {

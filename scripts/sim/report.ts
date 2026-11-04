@@ -11,6 +11,8 @@ export type ReportInput = {
   settings: { seeds: number; seed: string; overrides: string[]; elapsed: number; date: string };
   /** The reference teams' odds per tier and difficulty (summary.json's `difficultyOdds`). */
   difficultyOdds: Record<number, DifficultyOdds>;
+  /** The specials section carried over from the previous report, written by `npm run sim:specials`. */
+  specials?: string | null;
 };
 
 const WARN = '⚠';
@@ -206,8 +208,15 @@ function difficultyTable(difficultyOdds: Record<number, DifficultyOdds>) {
   return ['| Tier | easy start | easy end | medium start | medium end | hard start | hard end |', '| --- | --- | --- | --- | --- | --- | --- |', ...rows.map((r) => `| ${r} |`)].join('\n') + '\n';
 }
 
+/** The specials section between its markers, carried over from the previous report (written by `npm run sim:specials`). */
+export function specialsBlock(markdown: string): string | null {
+  const start = markdown.indexOf('<!-- specials -->');
+  const end = markdown.indexOf('<!-- /specials -->');
+  return start !== -1 && end !== -1 ? markdown.slice(start, end + '<!-- /specials -->'.length) : null;
+}
+
 /** The markdown report: targets next to results, ⚠ on anything out of range. */
-export function renderReport({ summaries, rules, settings, difficultyOdds }: ReportInput) {
+export function renderReport({ summaries, rules, settings, difficultyOdds, specials }: ReportInput) {
   const regular = summaries.find((s) => s.profile === 'regular');
   const worst = misses(summaries).slice(0, 10);
   const out: string[] = [
@@ -236,6 +245,7 @@ export function renderReport({ summaries, rules, settings, difficultyOdds }: Rep
     '',
     difficultyTable(difficultyOdds),
   );
+  if (specials) out.push(specials);
   out.push(
     '## Events and patrols by kind',
     '',

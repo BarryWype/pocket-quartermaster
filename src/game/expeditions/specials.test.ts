@@ -51,6 +51,10 @@ function dungeon(encounters: EncounterDef[], boss: Partial<BossDef> = {}, count:
   };
 }
 
+/** The tier 1 mobs' fitted stats: the expectations follow any refit of the rat cellar. */
+const RAT = mobById.giantRat;
+const BOGLING = mobById.bogling;
+
 const quiet: EncounterDef = { type: 'event', weight: 1, eventId: 'cache' };
 /** One fight of `count` giant rats (26 HP, 10 damage, Speed 7 like the hero). */
 const rats = (count: number): EncounterDef => ({ type: 'fight', weight: 1, mobs: [{ mobId: 'giantRat', count }] });
@@ -89,33 +93,35 @@ describe('specials', () => {
   it('plays a plain fight exactly as before, and a special that never applies changes nothing', () => {
     const def = dungeon([rats(1)]);
     const plain = run([member('a')], def, 's');
-    // Three hits of 10 fell the 26 HP rat, which strikes back twice for its full 10.
-    expect(plain.encounters[0]).toMatchObject({ rounds: 3, dealt: { a: 30 }, taken: { a: 20 } });
+    // Three hits of 10 fell the rat, which strikes back twice for its full damage.
+    expect(plain.encounters[0]).toMatchObject({ rounds: 3, dealt: { a: 30 }, taken: { a: 2 * RAT.damage } });
     // Smite never meets an undead here, so it draws nothing and the run is identical.
     expect(run([hero('smite')], def, 's')).toEqual(plain);
   });
 
   it('Cleave hits every enemy of a big fight, once per fight', () => {
     const def = dungeon([rats(3)], {}, [3, 3]);
-    const result = run([hero('cleave')], def, 's');
-    const plain = run([member('a')], def, 's');
-    // 60% of a hit on every rat up front: each takes one blow fewer to fell.
+    const result = run([hero('cleave', { power: 12 })], def, 's');
+    const plain = run([member('a', { power: 12 })], def, 's');
+    // 45% of a hit of 12 on every rat up front: each takes one blow fewer to fell.
     expect(result.encounters[0].rounds).toBe(6);
     expect(plain.encounters[0].rounds).toBe(9);
     for (const i of [0, 1]) {
       expect(result.encounters[i].effects).toContainEqual({ heroId: 'a', key: 'special', specialId: 'cleave', count: 3 });
     }
-    expect(logOf([hero('cleave')], result, def)).toContain('Cleave cut through 3 foes');
+    expect(logOf([hero('cleave', { power: 12 })], result, def)).toContain('Cleave cut through 3 foes');
   });
 
   it('Elemental blast runs the whole hit through the elemental wheel', () => {
     const def = dungeon([boglings(3)], {}, [3, 3]);
-    const caster = hero('elementalBlast', { damageStat: 'magic', magic: 10, weaponElement: 'fire' });
+    const caster = hero('elementalBlast', { damageStat: 'magic', magic: 13, weaponElement: 'fire' });
     const result = run([caster], def, 's');
-    const plain = run([member('a', { damageStat: 'magic', magic: 10, weaponElement: 'fire' })], def, 's');
-    // Fire beats the boglings' grass: every blast is 60% of a hit at the wheel's 1.5.
-    expect(result.encounters[0].rounds).toBe(21);
-    expect(plain.encounters[0].rounds).toBe(24);
+    const plain = run([member('a', { damageStat: 'magic', magic: 13, weaponElement: 'fire' })], def, 's');
+    // Fire beats the boglings' grass: a hit is 13 at the wheel's 1.5, and the blast lands 45% of one on each.
+    const hit = 13 * 1.5;
+    expect(result.encounters[0].rounds).toBe(3 * Math.ceil((BOGLING.hp - 0.45 * hit) / hit));
+    expect(plain.encounters[0].rounds).toBe(3 * Math.ceil(BOGLING.hp / hit));
+    expect(result.encounters[0].rounds).toBeLessThan(plain.encounters[0].rounds);
     expect(result.encounters[0].effects).toContainEqual({ heroId: 'a', key: 'special', specialId: 'elementalBlast', count: 3 });
   });
 
@@ -136,13 +142,14 @@ describe('specials', () => {
     const seed = firingSeed(
       [hero('flurry')],
       def,
-      (result, s) => fired(result, 'flurry') && result.encounters[0].dealt.a !== run([member('a')], def, s).encounters[0].dealt.a,
+      (result, s) => fired(result, 'flurry') && result.encounters[0].rounds < run([member('a')], def, s).encounters[0].rounds,
     );
     const result = run([hero('flurry')], def, seed);
     const plain = run([member('a')], def, seed);
-    // Three hits at 50% land 15 in the turn they replace: 35 over the fight.
-    expect(result.encounters[0].dealt.a).toBe(35);
-    expect(plain.encounters[0].dealt.a).toBe(30);
+    // Three full hits in the turn they replace fell the rat early.
+    expect(result.encounters[0].rounds).toBeLessThan(3);
+    expect(plain.encounters[0].rounds).toBe(3);
+    expect(result.encounters[0].dealt.a).toBe(30);
     expect(result.encounters[0].effects).toContainEqual({ heroId: 'a', key: 'special', specialId: 'flurry', count: 3 });
     expect(logOf([hero('flurry')], result, def)).toContain('flurry of 3 blows');
   });
@@ -158,13 +165,13 @@ describe('specials', () => {
     expect(result.encounters[0].effects).toContainEqual({ heroId: 'a', key: 'special', specialId: 'poison' });
   });
 
-  it('Smite replaces the first turn against an undead with a doubled hit', () => {
+  it('Smite replaces the first turn against an undead with a quadrupled hit', () => {
     const def = dungeon([bones(1)], {}, [3, 3]);
     const speed = mobById.restlessBones.speed;
     const result = run([hero('smite', { speed })], def, 's');
     const plain = run([member('a', { speed })], def, 's');
     const hp = mobById.restlessBones.hp;
-    expect(result.encounters[0].rounds).toBe(1 + Math.max(0, Math.ceil((hp - 20) / 10)));
+    expect(result.encounters[0].rounds).toBe(1 + Math.max(0, Math.ceil((hp - 40) / 10)));
     expect(plain.encounters[0].rounds).toBe(Math.ceil(hp / 10));
     for (const i of [0, 1]) {
       expect(result.encounters[i].effects).toContainEqual({ heroId: 'a', key: 'special', specialId: 'smite' });
@@ -190,7 +197,7 @@ describe('specials', () => {
     expect(result.encounters[0].effects).toContainEqual({ heroId: 'a', key: 'special', specialId: 'focus' });
   });
 
-  it('Double or nothing replaces the turn with a tripled hit or a miss', () => {
+  it('Double or nothing replaces the turn with a ×8 hit or a miss', () => {
     const def = dungeon([rats(1)]);
     const party = [hero('doubleOrNothing')];
     const hitSeed = firingSeed(party, def, (result) => fired(result, 'doubleOrNothing') && result.encounters[0].rounds === 1);
@@ -201,7 +208,7 @@ describe('specials', () => {
     const miss = run(party, def, missSeed);
     const plain = run([member('a')], def, missSeed);
     // The hit fells the rat at once; the miss costs the turn and the fight plays out as ever.
-    expect(hit.encounters[0].dealt.a).toBe(30);
+    expect(hit.encounters[0].dealt.a).toBe(80);
     expect(miss.encounters[0].dealt.a).toBe(plain.encounters[0].dealt.a);
     expect(logOf(party, hit, def)).toContain('went double or nothing and doubled');
     expect(logOf(party, miss, def)).toContain('went double or nothing and missed');
@@ -212,8 +219,8 @@ describe('specials', () => {
     const result = run([hero('stagger')], def, 's');
     const plain = run([member('a')], def, 's');
     // The rat loses its round 1 attack; the fight itself plays out the same.
-    expect(result.encounters[0].taken.a).toBe(10);
-    expect(plain.encounters[0].taken.a).toBe(20);
+    expect(result.encounters[0].taken.a).toBe(RAT.damage);
+    expect(plain.encounters[0].taken.a).toBe(2 * RAT.damage);
     for (const i of [0, 1]) {
       expect(result.encounters[i].effects).toContainEqual({ heroId: 'a', key: 'special', specialId: 'stagger' });
     }
@@ -228,9 +235,17 @@ describe('specials', () => {
     );
     const result = run([hero('entangle')], def, seed);
     const plain = run([member('a')], def, seed);
-    expect(result.encounters[0].taken.a).toBe(10);
-    expect(plain.encounters[0].taken.a).toBe(20);
+    expect(result.encounters[0].taken.a).toBe(RAT.damage);
+    expect(plain.encounters[0].taken.a).toBe(2 * RAT.damage);
     expect(result.encounters[0].effects).toContainEqual({ heroId: 'a', key: 'special', specialId: 'entangle' });
+  });
+
+  it('Stagger can be shaken off, and its use is spent anyway', () => {
+    const def = dungeon([rats(1)], {}, [3, 3]);
+    const seed = firingSeed([hero('stagger')], def, (result) => result.encounters[0].taken.a === 2 * RAT.damage);
+    const result = run([hero('stagger')], def, seed);
+    expect(fired(result, 'stagger')).toBe(false);
+    expect(result.encounters[0].rounds).toBe(run([member('a')], def, seed).encounters[0].rounds);
   });
 
   it('Deep freeze takes every enemy’s turn, once per expedition', () => {
@@ -238,7 +253,7 @@ describe('specials', () => {
     const result = run([hero('deepFreeze')], def, 's');
     const plain = run([member('a')], def, 's');
     // All three rats skip their first attack.
-    expect(result.encounters[0].taken.a).toBe(plain.encounters[0].taken.a - 30);
+    expect(result.encounters[0].taken.a).toBe(plain.encounters[0].taken.a - 3 * RAT.damage);
     expect(result.encounters[0].effects).toContainEqual({ heroId: 'a', key: 'special', specialId: 'deepFreeze', count: 3 });
     // Once per expedition: the second big fight sees none of it.
     expect(result.encounters[1].effects.some((f) => f.key === 'special' && f.specialId === 'deepFreeze')).toBe(false);
@@ -261,13 +276,13 @@ describe('specials', () => {
     ];
     const result = run(party, def, 's');
     const plain = run([member('a', { threat: 0 }), member('b', { power: 0, maxHp: 100, threat: 1 })], def, 's');
-    // The boss only ever means to hit b; once b drops below 40%, a takes the next phase's blow.
-    expect(result.encounters[0].taken).toEqual({ a: 10, b: 80 });
+    // The boss only ever means to hit b; once b drops below 40%, a takes the next phase's blow at half damage.
+    expect(result.encounters[0].taken).toEqual({ a: 5, b: 80 });
     expect(plain.encounters[0].taken).toEqual({ b: 90 });
     expect(result.encounters[0].effects).toContainEqual({ heroId: 'a', key: 'special', specialId: 'taunt' });
   });
 
-  it('Distraction keeps the enemies off the weakest ally for the rest of the phase', () => {
+  it('Distraction keeps the enemies off the weakest ally for the next phases', () => {
     const def = dungeon([rats(2)]);
     const party: PartyMember[] = [
       member('a', { special: 'distraction', threat: 0 }),
@@ -275,9 +290,9 @@ describe('specials', () => {
     ];
     const result = run(party, def, 's');
     const plain = run([member('a', { threat: 0 }), member('b', { maxHp: 1000, hp: 250, threat: 1 })], def, 's');
-    // The first rat's blow lands on b, already low; the second's goes to a instead.
-    expect(result.encounters[0].taken).toEqual({ a: 10, b: 20 });
-    expect(plain.encounters[0].taken).toEqual({ b: 30 });
+    // The first rat's blow lands on b, already low; every blow after it goes to a instead.
+    expect(result.encounters[0].taken).toEqual({ a: 2 * RAT.damage, b: RAT.damage });
+    expect(plain.encounters[0].taken).toEqual({ b: 3 * RAT.damage });
     expect(result.encounters[0].effects).toContainEqual({ heroId: 'a', key: 'special', specialId: 'distraction' });
   });
 
@@ -308,8 +323,8 @@ describe('specials', () => {
     const def = dungeon([rats(2)]);
     const result = run([hero('vanish', { maxHp: 100, hp: 40 })], def, 's');
     const plain = run([member('a', { maxHp: 100, hp: 40 })], def, 's');
-    // The first rat's blow brings the hero under 40%; the second's misses, buying a round before the hero falls.
-    expect(result.encounters[0].rounds).toBe(3);
+    // The first rat's blow brings the hero under 40%; three phases of misses buy rounds before the hero falls.
+    expect(result.encounters[0].rounds).toBe(6);
     expect(plain.encounters[0].rounds).toBe(2);
     expect(result.encounters[0].effects).toContainEqual({ heroId: 'a', key: 'special', specialId: 'vanish' });
   });
@@ -329,8 +344,8 @@ describe('specials', () => {
     const def = bossOnly({ hp: 90, damage: 10 });
     const result = run([hero('secondWind', { maxHp: 100, hp: 100 })], def, 's');
     const plain = run([member('a', { maxHp: 100, hp: 100 })], def, 's');
-    expect(result.encounters[0].healed.a).toBe(25);
-    expect(result.hp.find((h) => h.heroId === 'a')!.hp).toBe(45);
+    expect(result.encounters[0].healed.a).toBe(50);
+    expect(result.hp.find((h) => h.heroId === 'a')!.hp).toBe(70);
     expect(plain.hp.find((h) => h.heroId === 'a')!.hp).toBe(20);
     expect(result.encounters[0].effects).toContainEqual({ heroId: 'a', key: 'special', specialId: 'secondWind' });
   });
@@ -343,8 +358,8 @@ describe('specials', () => {
     ];
     const result = run(party, def, 's');
     const plain = run([member('a', { threat: 0 }), member('b', { power: 0, maxHp: 100, threat: 1 })], def, 's');
-    expect(result.encounters[0].healed.b).toBe(20);
-    expect(result.hp.find((h) => h.heroId === 'b')!.hp).toBe(30);
+    expect(result.encounters[0].healed.b).toBeCloseTo(14);
+    expect(result.hp.find((h) => h.heroId === 'b')!.hp).toBe(24);
     expect(plain.hp.find((h) => h.heroId === 'b')!.hp).toBe(10);
     expect(result.encounters[0].effects).toContainEqual({ heroId: 'a', key: 'special', specialId: 'mend', allyId: 'b' });
   });
@@ -374,24 +389,24 @@ describe('specials', () => {
     const party = [hero('patchUp', { maxHp: 100, hp: 100 })];
     const result = run(party, def, 's');
     const plain = run([member('a', { maxHp: 100, hp: 100 })], def, 's');
-    // 8% of max HP after each of the two fights, each of which cost 20.
+    // 5.5% of max HP after each of the two fights, each of which cost two rat blows.
     for (const i of [0, 1]) {
-      expect(result.encounters[i].healed.a).toBe(8);
+      expect(result.encounters[i].healed.a).toBe(5.5);
       expect(result.encounters[i].effects).toContainEqual({ heroId: 'a', key: 'special', specialId: 'patchUp' });
     }
-    expect(result.hp.find((h) => h.heroId === 'a')!.hp).toBe(76);
-    expect(plain.hp.find((h) => h.heroId === 'a')!.hp).toBe(60);
+    expect(result.hp.find((h) => h.heroId === 'a')!.hp).toBe(100 - 4 * RAT.damage + 11);
+    expect(plain.hp.find((h) => h.heroId === 'a')!.hp).toBe(100 - 4 * RAT.damage);
     expect(logOf(party, result, def)).toContain('patched everyone up');
   });
 
-  it('Feast brings the party back to full before the boss', () => {
+  it('Feast heals the party before the boss', () => {
     const def = dungeon([rats(1)], { damage: 0 }, [3, 3]);
     const result = run([hero('feast', { maxHp: 100, hp: 100 })], def, 's');
     const plain = run([member('a', { maxHp: 100, hp: 100 })], def, 's');
-    // The rats cost 40; the feast makes the hero whole before the boss, and the boss deals nothing.
-    expect(result.encounters[2].healed.a).toBe(40);
-    expect(result.hp.find((h) => h.heroId === 'a')!.hp).toBe(100);
-    expect(plain.hp.find((h) => h.heroId === 'a')!.hp).toBe(60);
+    // The rats cost four blows; the feast heals 18% before the boss, and the boss deals nothing.
+    expect(result.encounters[2].healed.a).toBe(18);
+    expect(result.hp.find((h) => h.heroId === 'a')!.hp).toBe(100 - 4 * RAT.damage + 18);
+    expect(plain.hp.find((h) => h.heroId === 'a')!.hp).toBe(100 - 4 * RAT.damage);
     expect(result.encounters[2].effects).toContainEqual({ heroId: 'a', key: 'special', specialId: 'feast' });
   });
 
@@ -438,7 +453,7 @@ describe('specials', () => {
     const def = dungeon([rats(3)], {}, [3, 3]);
     const result = run([hero('summon')], def, 's');
     const plain = run([member('a')], def, 's');
-    // Half a hit every round takes three rounds off the fight.
+    // 80% of a hit every round takes three rounds off the fight.
     expect(result.encounters[0].rounds).toBe(6);
     expect(plain.encounters[0].rounds).toBe(9);
     expect(result.encounters[0].effects).toContainEqual({ heroId: 'a', key: 'special', specialId: 'summon' });

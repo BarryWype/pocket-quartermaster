@@ -60,6 +60,7 @@
     "sim:quick": "node scripts/sim/build.mjs && node sim-output/.build/quick.cjs",
     "sim:check": "npm run sim && SIM_CHECK=1 jest src/game/sim/bands.test.ts",
     "sim:fit": "node scripts/sim/build.mjs && node sim-output/.build/fit.cjs",
+    "sim:specials": "node scripts/sim/build.mjs && node sim-output/.build/specials.cjs",
     "loot:matrix": "tsx scripts/loot/genMatrix.ts"
   },
   "private": true,

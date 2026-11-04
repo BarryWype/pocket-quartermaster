@@ -496,6 +496,8 @@ describe('elixirs', () => {
       if (escaped.salvaged.some((s) => s.itemId === 'smokeBomb')) continue;
       // Same fights cleared: the escape and the wipe it averted differ only in the retreat bonus.
       if (escaped.success || plain.success || escaped.encountersCleared === 0 || escaped.encountersCleared !== plain.encountersCleared) continue;
+      // Too little gold for the bonus to show once rounded.
+      if (plain.gold < 5) continue;
       expect(escaped.outcome).toBe('retreat');
       expect(escaped.gold).toBeGreaterThan(plain.gold);
       compared = true;

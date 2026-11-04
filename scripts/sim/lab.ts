@@ -11,7 +11,7 @@ import { difficultyOddsByTier } from '@/game/sim/difficultyOdds';
 import { applyOverrides, parseOverride } from '@/game/sim/overrides';
 import { measureWalkRates, walkCacheKey, type WalkRates } from '@/game/sim/walking';
 import { craftsCsv, dailyCsv, expeditionsCsv } from './csv';
-import { renderReport } from './report';
+import { renderReport, specialsBlock } from './report';
 
 export type LabOptions = {
   profiles: string[];
@@ -148,9 +148,12 @@ export async function runLab(options: LabOptions) {
     const date = new Date().toISOString().slice(0, 10);
     fs.mkdirSync(options.reportDir, { recursive: true });
     fs.writeFileSync(path.join(options.reportDir, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
+    // The specials section is written by `npm run sim:specials`; regenerate the rest around it.
+    const previousReport = path.join(options.reportDir, 'report.md');
+    const previous = fs.existsSync(previousReport) ? fs.readFileSync(previousReport, 'utf8') : null;
     fs.writeFileSync(
       path.join(options.reportDir, 'report.md'),
-      renderReport({ summaries, rules: BOT_RULES, settings: { seeds: options.seeds, seed: options.seed, overrides: options.overrides, elapsed, date }, difficultyOdds: summary.difficultyOdds }),
+      renderReport({ summaries, rules: BOT_RULES, settings: { seeds: options.seeds, seed: options.seed, overrides: options.overrides, elapsed, date }, difficultyOdds: summary.difficultyOdds, specials: previous ? specialsBlock(previous) : null }),
     );
     print(`\n${logs.length} games in ${elapsed.toFixed(1)} s → ${path.join(options.reportDir, 'report.md')} (CSVs in ${options.outDir})`);
     return { logs, summary, elapsed };

@@ -712,65 +712,65 @@ export const frNames: Record<string, string> = {
   Parley: 'Pourparlers',
   Feast: 'Festin',
   Turret: 'Tourelle',
-  'Hits every enemy for 60% of a normal hit. A fight with 3+ enemies.':
-    'Frappe tous les ennemis pour 60 % d’un coup normal. Un combat contre 3 ennemis ou plus.',
+  'Hits every enemy for 45% of a normal hit. A fight with 3+ enemies.':
+    'Frappe tous les ennemis pour 45 % d’un coup normal. Un combat contre 3 ennemis ou plus.',
   "The hero's next hit is a sure crit. First round of a fight.":
     'Le prochain coup du héros est un critique assuré. Dès le premier tour d’un combat.',
-  "3 quick hits at 50% each. 20% chance on the hero's turn.":
-    '3 coups rapides à 50 % chacun. 20 % de chance au tour du héros.',
-  "The target takes damage over 3 rounds (30% of a hit per round). 20% chance on the hero's turn.":
-    'La cible subit des dégâts pendant 3 tours (30 % d’un coup par tour). 20 % de chance au tour du héros.',
-  "Hits every enemy for 60% in the hero's element (or the gear's infusion). A fight with 3+ enemies.":
-    'Frappe tous les ennemis pour 60 % dans l’élément du héros (ou l’infusion de l’équipement). Un combat contre 3 ennemis ou plus.',
-  "×2 damage on one undead or spirit. The hero's first turn against an undead or spirit.":
-    'Dégâts ×2 sur un mort-vivant ou un esprit. Au premier tour du héros contre l’un d’eux.',
-  '×3 damage on an enemy below 25% HP. An enemy below 25% HP.':
-    'Dégâts ×3 sur un ennemi sous 25 % de PV. Quand un ennemi est sous 25 % de PV.',
+  "3 quick hits at 100% each. 20% chance on the hero's turn.":
+    '3 coups rapides à 100 % chacun. 20 % de chance au tour du héros.',
+  "The target takes damage over 3 rounds (60% of a hit per round). 20% chance on the hero's turn.":
+    'La cible subit des dégâts pendant 3 tours (60 % d’un coup par tour). 20 % de chance au tour du héros.',
+  "Hits every enemy for 45% in the hero's element (or the gear's infusion). A fight with 3+ enemies.":
+    'Frappe tous les ennemis pour 45 % dans l’élément du héros (ou l’infusion de l’équipement). Un combat contre 3 ennemis ou plus.',
+  "×4 damage on one undead or spirit. The hero's first turn against an undead or spirit.":
+    'Dégâts ×4 sur un mort-vivant ou un esprit. Au premier tour du héros contre l’un d’eux.',
+  '×4 damage on an enemy below 25% HP. An enemy below 25% HP.':
+    'Dégâts ×4 sur un ennemi sous 25 % de PV. Quand un ennemi est sous 25 % de PV.',
   "The hero's next attack ×2. The boss's first turn.":
     'La prochaine attaque du héros inflige ×2. Au premier tour du boss.',
-  'The strongest enemy loses its next turn. First round of a fight.':
-    'L’ennemi le plus fort perd son prochain tour. Dès le premier tour d’un combat.',
-  "One enemy loses its next turn. 20% chance on the hero's turn.":
-    'Un ennemi perd son prochain tour. 20 % de chance au tour du héros.',
-  'Every enemy targets this hero for 2 rounds. An ally below 40% HP.':
-    'Tous les ennemis ciblent ce héros pendant 2 tours. Quand un allié tombe sous 40 % de PV.',
-  "The boss misses its next attack. The boss's first turn.":
-    'Le boss rate sa prochaine attaque. Au premier tour du boss.',
-  "The weakest ally isn't targeted for 1 round. An ally below 30% HP.":
-    'L’allié le plus faible n’est pas ciblé pendant 1 tour. Quand un allié tombe sous 30 % de PV.',
-  'Heals self 25% of max HP. First time below 30% HP.':
-    'Se soigne de 25 % de ses PV max. À la première chute sous 30 % de PV.',
+  'The strongest enemy loses its next turn (30% chance). First round of a fight.':
+    'L’ennemi le plus fort perd son prochain tour (30 % de chance). Dès le premier tour d’un combat.',
+  "One enemy loses its next turn (75% chance). 20% chance on the hero's turn.":
+    'Un ennemi perd son prochain tour (75 % de chance). 20 % de chance au tour du héros.',
+  'Every enemy targets this hero for 2 rounds; the hero takes 50% of the damage. An ally below 40% HP.':
+    'Tous les ennemis ciblent ce héros pendant 2 tours ; il ne subit que 50 % des dégâts. Quand un allié tombe sous 40 % de PV.',
+  "The boss misses its next attack (55% chance). The boss's first turn.":
+    'Le boss rate sa prochaine attaque (55 % de chance). Au premier tour du boss.',
+  "The weakest ally isn't targeted for 4 rounds. An ally below 40% HP.":
+    'L’allié le plus faible n’est pas ciblé pendant 4 tours. Quand un allié tombe sous 40 % de PV.',
+  'Heals self 50% of max HP. First time below 30% HP.':
+    'Se soigne de 50 % de ses PV max. À la première chute sous 30 % de PV.',
   'Absorbs the next hit on self. Below 50% HP.': 'Absorbe le prochain coup reçu. Sous 50 % de PV.',
   "Absorbs the next hit on an ally. The boss's first turn.":
     'Absorbe le prochain coup visant un allié. Au premier tour du boss.',
-  'Dodges every attack for 1 round. Below 40% HP.': 'Esquive toutes les attaques pendant 1 tour. Sous 40 % de PV.',
+  'Dodges every attack for 3 rounds. Below 40% HP.': 'Esquive toutes les attaques pendant 3 tours. Sous 40 % de PV.',
   'Counters the next 2 hits taken. First time hit in a fight.':
     'Riposte aux 2 prochains coups reçus. À la première fois qu’il est touché dans un combat.',
-  'Heals the weakest ally 20% of max HP. An ally below 40% HP.':
-    'Soigne l’allié le plus faible de 20 % de ses PV max. Quand un allié tombe sous 40 % de PV.',
+  'Heals the weakest ally 14% of max HP. An ally below 40% HP.':
+    'Soigne l’allié le plus faible de 14 % de ses PV max. Quand un allié tombe sous 40 % de PV.',
   'The party heals 5% a round for 3 rounds. Party average below 60% HP.':
     'Le groupe se soigne de 5 % par tour pendant 3 tours. Quand la moyenne du groupe tombe sous 60 % de PV.',
   "Party +15% damage for 2 rounds. The boss's first turn.":
     'Dégâts du groupe +15 % pendant 2 tours. Au premier tour du boss.',
-  'The party heals 8% of max HP. Between fights.': 'Le groupe se soigne de 8 % de ses PV max. Entre les combats.',
+  'The party heals 5.5% of max HP. Between fights.': 'Le groupe se soigne de 5,5 % de ses PV max. Entre les combats.',
   "An extra loot roll from the boss's row. A won boss fight.":
     'Un jet de butin supplémentaire sur la ligne du boss. Après un combat de boss gagné.',
-  "×3 damage or a miss (50/50). 20% chance on the hero's turn.":
-    'Dégâts ×3 ou un échec (50/50). 20 % de chance au tour du héros.',
+  "×8 damage or a miss (50/50). 20% chance on the hero's turn.":
+    'Dégâts ×8 ou un échec (50/50). 20 % de chance au tour du héros.',
   '300% of a hit to the boss. The boss below 50% HP.':
     '300 % d’un coup sur le boss. Quand le boss tombe sous 50 % de PV.',
-  'Every enemy loses its next turn. A fight with 3+ enemies.':
-    'Tous les ennemis perdent leur prochain tour. Un combat contre 3 ennemis ou plus.',
-  'A fallen ally returns at 30% HP. An ally knocked out.':
-    'Un allié tombé revient avec 30 % de ses PV. Quand un allié est mis hors combat.',
+  'Every enemy loses its next turn (70% chance). A fight with 3+ enemies.':
+    'Tous les ennemis perdent leur prochain tour (70 % de chance). Un combat contre 3 ennemis ou plus.',
+  'A fallen ally returns at 30% HP (60% chance). An ally knocked out.':
+    'Un allié tombé revient avec 30 % de ses PV (60 % de chance). Quand un allié est mis hors combat.',
   "Instantly defeats one non-boss undead or spirit. The hero's first turn against one.":
     'Vainc aussitôt un mort-vivant ou un esprit qui n’est pas un boss. Au premier tour du héros contre l’un d’eux.',
-  'A temporary ally for one fight (beast for Beastmaster and Druid; undead for Necromancer). First fight with 3+ enemies.':
-    'Un allié temporaire pour un combat (une bête pour le Maître des bêtes et le Druide ; un mort-vivant pour le Nécromancier). Au premier combat contre 3 ennemis ou plus.',
-  'One non-boss enemy leaves the fight (no loot from it). First round of a fight with 3+ enemies.':
-    'Un ennemi qui n’est pas un boss quitte le combat (aucun butin de sa part). Dès le premier tour d’un combat contre 3 ennemis ou plus.',
-  'Every hero back to full HP. Before the boss fight.':
-    'Tous les héros reviennent au maximum de leurs PV. Avant le combat du boss.',
+  "A temporary ally for one fight that deals 80% of the hero's hit each round (beast for Beastmaster and Druid; undead for Necromancer). First fight with 3+ enemies.":
+    'Un allié temporaire pour un combat, qui inflige 80 % du coup du héros à chaque tour (une bête pour le Maître des bêtes et le Druide ; un mort-vivant pour le Nécromancier). Au premier combat contre 3 ennemis ou plus.',
+  'One non-boss enemy leaves the fight (no loot from it; 75% chance). First round of a fight with 3+ enemies.':
+    'Un ennemi qui n’est pas un boss quitte le combat (aucun butin de sa part ; 75 % de chance). Dès le premier tour d’un combat contre 3 ennemis ou plus.',
+  'The party heals 18% of max HP. Before the boss fight.':
+    'Le groupe se soigne de 18 % de ses PV max. Avant le combat du boss.',
   "A construct deals 40% of the Engineer's hit each round for 3 rounds. First round of the boss fight.":
     'Une construction inflige 40 % du coup de l’Ingénieur à chaque tour pendant 3 tours. Dès le premier tour du combat du boss.',
 

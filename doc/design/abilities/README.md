@@ -15,6 +15,15 @@ Step 1 of the roadmap in `doc/ideas.md` ("Heroes, jobs and expeditions"). Design
 - **Seen everywhere a hero is judged:** tavern and traveller offers, the hero card, the expedition and fight pickers, the report log.
 - **Existing heroes** roll one through a save migration, seeded by hero id, so nobody is behind.
 
+## Balance
+- `npm run sim:specials` (about 2 minutes) gives one hero of the quick reference trio each special in turn and compares the win odds on every tier's chain dungeons with the same trio without specials. The table goes into `doc/design/simulator/report.md`.
+- A special is flagged when its average gain is above 1.5× or below 0.5× the median gain. The numbers in `specials.csv` are the tuned ones; none is flagged.
+- Steal only adds loot, so it never changes the odds: it is listed as loot only and never flagged.
+- Some strong effects can fail, so their numbers can be tuned: a lost turn (Stagger, Entangle, Dirty trick, Deep freeze), Parley and Resurrection have a chance to work. A failed one still spends its use.
+- Taunt also halves the damage its hero takes while it lasts, otherwise drawing the hits onto a frail hero costs the party. Feast heals 18% instead of to full.
+- Parley's "no loot from it" has no effect: loot is rolled per source, not per enemy.
+- Specials draw their random numbers from their own stream of the run's seed, so a special changes only what it does, not every later roll.
+
 ## Not in the first version
 - More specials with levels (levels 10 and 20, pick 1 of 2, equip one).
 - Manuals that teach or reroll a special.

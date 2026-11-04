@@ -1,33 +1,33 @@
 id,name,kind,effect,trigger,uses,notes
-cleave,Cleave,shared,Hits every enemy for 60% of a normal hit,A fight with 3+ enemies,once per fight,
+cleave,Cleave,shared,Hits every enemy for 45% of a normal hit,A fight with 3+ enemies,once per fight,
 aimedStrike,Aimed strike,shared,The hero's next hit is a sure crit,First round of a fight,once per fight,
-flurry,Flurry,shared,3 quick hits at 50% each,20% chance on the hero's turn,once per fight,
-poison,Poison,shared,The target takes damage over 3 rounds (30% of a hit per round),20% chance on the hero's turn,once per fight,
-elementalBlast,Elemental blast,shared,Hits every enemy for 60% in the hero's element (or the gear's infusion),A fight with 3+ enemies,once per fight,Elemental advantage applies
-smite,Smite,shared,×2 damage on one undead or spirit,The hero's first turn against an undead or spirit,once per fight,
-execute,Execute,shared,×3 damage on an enemy below 25% HP,An enemy below 25% HP,once per fight,
+flurry,Flurry,shared,3 quick hits at 100% each,20% chance on the hero's turn,once per fight,
+poison,Poison,shared,The target takes damage over 3 rounds (60% of a hit per round),20% chance on the hero's turn,once per fight,
+elementalBlast,Elemental blast,shared,Hits every enemy for 45% in the hero's element (or the gear's infusion),A fight with 3+ enemies,once per fight,Elemental advantage applies
+smite,Smite,shared,×4 damage on one undead or spirit,The hero's first turn against an undead or spirit,once per fight,
+execute,Execute,shared,×4 damage on an enemy below 25% HP,An enemy below 25% HP,once per fight,
 focus,Focus,shared,The hero's next attack ×2,The boss's first turn,once per expedition,
-stagger,Stagger,shared,The strongest enemy loses its next turn,First round of a fight,once per fight,
-entangle,Entangle,shared,One enemy loses its next turn,20% chance on the hero's turn,once per fight,
-taunt,Taunt,shared,Every enemy targets this hero for 2 rounds,An ally below 40% HP,once per fight,
-dirtyTrick,Dirty trick,shared,The boss misses its next attack,The boss's first turn,once per expedition,
-distraction,Distraction,shared,The weakest ally isn't targeted for 1 round,An ally below 30% HP,once per fight,
-secondWind,Second wind,shared,Heals self 25% of max HP,First time below 30% HP,once per expedition,
+stagger,Stagger,shared,The strongest enemy loses its next turn (30% chance),First round of a fight,once per fight,
+entangle,Entangle,shared,One enemy loses its next turn (75% chance),20% chance on the hero's turn,once per fight,
+taunt,Taunt,shared,Every enemy targets this hero for 2 rounds; the hero takes 50% of the damage,An ally below 40% HP,once per fight,
+dirtyTrick,Dirty trick,shared,The boss misses its next attack (55% chance),The boss's first turn,once per expedition,
+distraction,Distraction,shared,The weakest ally isn't targeted for 4 rounds,An ally below 40% HP,once per fight,
+secondWind,Second wind,shared,Heals self 50% of max HP,First time below 30% HP,once per expedition,
 manaShield,Mana shield,shared,Absorbs the next hit on self,Below 50% HP,once per fight,
 ward,Ward,shared,Absorbs the next hit on an ally,The boss's first turn,once per expedition,
-vanish,Vanish,shared,Dodges every attack for 1 round,Below 40% HP,once per fight,
+vanish,Vanish,shared,Dodges every attack for 3 rounds,Below 40% HP,once per fight,
 riposte,Riposte,shared,Counters the next 2 hits taken,First time hit in a fight,once per fight,
-mend,Mend,shared,Heals the weakest ally 20% of max HP,An ally below 40% HP,once per fight,
+mend,Mend,shared,Heals the weakest ally 14% of max HP,An ally below 40% HP,once per fight,
 regrowth,Regrowth,shared,The party heals 5% a round for 3 rounds,Party average below 60% HP,once per fight,
 rally,Rally,shared,Party +15% damage for 2 rounds,The boss's first turn,once per expedition,
-patchUp,Patch up,shared,The party heals 8% of max HP,Between fights,once per fight gap,
+patchUp,Patch up,shared,The party heals 5.5% of max HP,Between fights,once per fight gap,
 steal,Steal,unique,An extra loot roll from the boss's row,A won boss fight,once per expedition,Thief and Smuggler
-doubleOrNothing,Double or nothing,unique,×3 damage or a miss (50/50),20% chance on the hero's turn,once per fight,Gambler
+doubleOrNothing,Double or nothing,unique,×8 damage or a miss (50/50),20% chance on the hero's turn,once per fight,Gambler
 meteor,Meteor,unique,300% of a hit to the boss,The boss below 50% HP,once per expedition,Fire mage and Sorcerer
-deepFreeze,Deep freeze,unique,Every enemy loses its next turn,A fight with 3+ enemies,once per expedition,Frost mage
-resurrection,Resurrection,unique,A fallen ally returns at 30% HP,An ally knocked out,once per expedition,Cleric
+deepFreeze,Deep freeze,unique,Every enemy loses its next turn (70% chance),A fight with 3+ enemies,once per expedition,Frost mage
+resurrection,Resurrection,unique,A fallen ally returns at 30% HP (60% chance),An ally knocked out,once per expedition,Cleric
 banish,Banish,unique,Instantly defeats one non-boss undead or spirit,The hero's first turn against one,once per fight,Exorcist
-summon,Summon,unique,A temporary ally for one fight (beast for Beastmaster and Druid; undead for Necromancer),First fight with 3+ enemies,once per expedition,Separate from the Beastmaster and Necromancer passives
-parley,Parley,unique,One non-boss enemy leaves the fight (no loot from it),First round of a fight with 3+ enemies,once per expedition,Diplomat
-feast,Feast,unique,Every hero back to full HP,Before the boss fight,once per expedition,Cook
+summon,Summon,unique,A temporary ally for one fight that deals 80% of the hero's hit each round (beast for Beastmaster and Druid; undead for Necromancer),First fight with 3+ enemies,once per expedition,Separate from the Beastmaster and Necromancer passives
+parley,Parley,unique,One non-boss enemy leaves the fight (no loot from it; 75% chance),First round of a fight with 3+ enemies,once per expedition,Diplomat
+feast,Feast,unique,The party heals 18% of max HP,Before the boss fight,once per expedition,Cook
 turret,Turret,unique,A construct deals 40% of the Engineer's hit each round for 3 rounds,First round of the boss fight,once per expedition,Engineer
