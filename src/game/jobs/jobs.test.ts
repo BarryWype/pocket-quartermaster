@@ -1,4 +1,4 @@
-import { jobRules } from '@/content/jobs';
+import { jobById, jobRules } from '@/content/jobs';
 
 import { startExpedition } from '../expeditions/expeditions';
 import { createInitialSave, type SaveData } from '../save';
@@ -20,6 +20,7 @@ import {
 } from './jobs';
 
 const HOUR = 3_600_000;
+const RATE = jobById.woodcutter.ratePerHour;
 const CAP = jobCap('woodcutter');
 const hero = (save: SaveData, id = 'bram') => save.heroes.find((h) => h.id === id)!;
 const base = (): SaveData => ({ ...createInitialSave('seed'), tutorial: { ...createInitialSave('seed').tutorial, step: 'done' } });
@@ -101,9 +102,9 @@ describe('the tired cycle', () => {
 describe('job output', () => {
   it('accrues at the rate during work, then stops at the cap', () => {
     const save = working();
-    expect(jobCap('woodcutter')).toBe(0.5 * jobRules.capHours);
+    expect(jobCap('woodcutter')).toBe(RATE * jobRules.capHours);
     expect(jobWorker(save, 'woodcutter')).toBe(hero(save));
-    expect(jobOutputNow(save, 'woodcutter', 4 * HOUR)).toBeCloseTo(2);
+    expect(jobOutputNow(save, 'woodcutter', 4 * HOUR)).toBeCloseTo(4 * RATE);
     expect(jobOutputNow(save, 'woodcutter', 8 * HOUR)).toBeCloseTo(CAP);
     expect(jobOutputNow(save, 'woodcutter', 12 * HOUR)).toBeCloseTo(CAP);
     expect(isJobFull(save, 'woodcutter', 8 * HOUR)).toBe(true);
@@ -113,9 +114,9 @@ describe('job output', () => {
     // Energy 10 buys 2.4 hours of work; the output stops there, even read later.
     const save = assignJob(withEnergy(10), 'bram', 'woodcutter', 0);
     expect(currentEnergy(save, hero(save), 2.4 * HOUR)).toBeCloseTo(0);
-    expect(jobOutputNow(save, 'woodcutter', 2.4 * HOUR)).toBeCloseTo(1.2);
+    expect(jobOutputNow(save, 'woodcutter', 2.4 * HOUR)).toBeCloseTo(2.4 * RATE);
     expect(isTired(save, hero(save), 7 * HOUR)).toBe(true);
-    expect(jobOutputNow(save, 'woodcutter', 7 * HOUR)).toBeCloseTo(1.2);
+    expect(jobOutputNow(save, 'woodcutter', 7 * HOUR)).toBeCloseTo(2.4 * RATE);
   });
 
   it('produces nothing without a worker', () => {
@@ -127,17 +128,17 @@ describe('job output', () => {
 
 describe('collecting', () => {
   it('pays whole units and keeps the fraction', () => {
-    const save = collectJob(working(), 'woodcutter', 3 * HOUR);
+    const save = collectJob(working(), 'woodcutter', 4 * HOUR);
     expect(save.materials.wood).toBe(1);
-    expect(jobOutputNow(save, 'woodcutter', 3 * HOUR)).toBeCloseTo(0.5);
-    // Production carries on from the fraction: 5 more hours of work by 8 h.
-    expect(jobOutputNow(save, 'woodcutter', 8 * HOUR)).toBeCloseTo(3);
+    expect(jobOutputNow(save, 'woodcutter', 4 * HOUR)).toBeCloseTo(4 * RATE - 1);
+    // Production carries on from the fraction: 4 more hours of work by 8 h.
+    expect(jobOutputNow(save, 'woodcutter', 8 * HOUR)).toBeCloseTo(8 * RATE - 1);
   });
 
-  it('starts filling again from zero after a full collect', () => {
+  it('pays a full cap and keeps filling from its fraction', () => {
     const collected = collectJob(working(), 'woodcutter', 8 * HOUR);
-    expect(collected.materials.wood).toBe(4);
-    expect(jobOutputNow(collected, 'woodcutter', 12 * HOUR)).toBeCloseTo(2);
+    expect(collected.materials.wood).toBe(Math.floor(CAP));
+    expect(jobOutputNow(collected, 'woodcutter', 12 * HOUR)).toBeCloseTo(12 * RATE - Math.floor(CAP));
   });
 
   it('is unchanged when there is nothing whole to collect', () => {
@@ -146,11 +147,11 @@ describe('collecting', () => {
   });
 
   it('keeps the output through a recall, and pays it later', () => {
-    const recalled = recallFromJob(working(), 'bram', 3 * HOUR);
+    const recalled = recallFromJob(working(), 'bram', 4 * HOUR);
     expect(hero(recalled).job).toBeNull();
     const collected = collectJob(recalled, 'woodcutter', 5 * HOUR);
-    expect(collected.materials.wood).toBe(1);
-    expect(jobOutputNow(collected, 'woodcutter', 5 * HOUR)).toBeCloseTo(0.5);
+    expect(collected.materials.wood).toBe(Math.floor(4 * RATE));
+    expect(jobOutputNow(collected, 'woodcutter', 5 * HOUR)).toBeCloseTo(4 * RATE - Math.floor(4 * RATE));
   });
 });
 

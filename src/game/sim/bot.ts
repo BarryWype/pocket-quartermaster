@@ -7,6 +7,7 @@ import { guildTrackById, guildTracks } from '@/content/guild';
 import { heroClasses, xpRules } from '@/content/heroes';
 import { dungeonById, itemById, recipeById } from '@/content/lookup';
 import { items } from '@/content/items';
+import { jobs as jobList } from '@/content/jobs';
 import { lootConfig } from '@/content/loot/config';
 import { shopRules } from '@/content/shops';
 import { recipes } from '@/content/recipes';
@@ -42,6 +43,7 @@ import type { Rng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { buyRank, guildBonus, isGuildUnlocked, rankPrice, rankProblem } from '../guild/guild';
 import { hasMaterials } from '../inventory';
+import { assignJob, collectJob, jobWorker, recallFromJob } from '../jobs/jobs';
 import { isRevealed } from '../reveal/reveal';
 import type { PatrolKind, PatrolSubject, TravellerKind } from '../patrols/generate';
 import type { TravellerReward } from '../patrols/travellers';
@@ -51,7 +53,7 @@ import type { Loot, LootCategory, LootSourceId } from '../loot/types';
 import type { SaveData } from '../save';
 import { buySupply, buySupplyProblem, isTavernUnlocked, offerLevel, recruit, recruitPrice, tavernOffers, type TavernSpawn } from '../taverns/taverns';
 import { currentHp, drinkPotion, drinkProblem, maxHp } from '../team/health';
-import { affinityOf, carriesKit, equip, equipPreview, hasPotionSlot, heroDamageStat, heroStats, isOnExpedition, rosterFull, setKitFor, unequip } from '../team/team';
+import { affinityOf, carriesKit, equip, equipPreview, hasPotionSlot, heroDamageStat, heroStats, isBusy, isOnExpedition, rosterFull, setKitFor, unequip } from '../team/team';
 import { briefingCoverage, kitAnswers } from '../threats/coverage';
 import { gearApproachBonus, approachScore, pendingApproachPicks, pickApproach } from '../team/stats';
 import { heroAnswers, type AnswersMember } from '../threats/answers';
@@ -186,6 +188,8 @@ export type RunLog = {
   probes: ProbeRow[];
   /** Day → material → [gathered, used]. */
   materialFlow: Record<number, Record<string, [number, number]>>;
+  /** Day → material → gathered from guild jobs (sources `job:<id>`), for the jobs report. */
+  jobFlow: Record<number, Record<string, number>>;
   /** Recipes known at the end. */
   knownRecipes: string[];
   /** Map places visited: fight events, the lair, ruins, heists, the dock, secret places. */
@@ -231,6 +235,7 @@ export const emptyLog = (profile: string, seed: string): RunLog => ({
   quests: { claimed: { short: 0, medium: 0, long: 0, secret: 0 }, tips: 0 },
   probes: [],
   materialFlow: {},
+  jobFlow: {},
   knownRecipes: [],
   places: [],
   skipped: {},
@@ -265,6 +270,8 @@ export type Sim = {
   startedAt: number;
   profile: Profile;
   config: SimConfig;
+  /** Guild jobs on: stations are collected each session and staffed at its end. */
+  jobs: boolean;
   rates: WalkRates;
   /**
    * Visits still owed by activity ('expeditions', 'quests' or a loot source):
@@ -341,6 +348,10 @@ export function act(sim: Sim, source: string, action: (save: SaveData) => SaveDa
     add(delta > 0 ? sim.log.gathered : sim.log.used, id, source, Math.abs(delta));
     const flow = ((sim.log.materialFlow[sim.day] ??= {})[id] ??= [0, 0]);
     flow[delta > 0 ? 0 : 1] += Math.abs(delta);
+    if (delta > 0 && source.startsWith('job:')) {
+      const jobFlow = (sim.log.jobFlow[sim.day] ??= {});
+      jobFlow[id] = (jobFlow[id] ?? 0) + delta;
+    }
     if (delta > 0 && id.endsWith('Stone')) mark(sim, 'firstStone');
   }
   return changes;
@@ -841,6 +852,36 @@ export function buyGuildRanks(sim: Sim) {
   }
 }
 
+// —— Jobs ——
+
+/** The source a station's collections are logged under, separate from walking and map sources. */
+export const jobSource = (jobId: string) => `job:${jobId}`;
+
+/** Collects every station's output at the start of a session. */
+export function collectJobs(sim: Sim) {
+  if (!sim.jobs) return;
+  for (const job of jobList) act(sim, jobSource(job.id), (save) => collectJob(save, job.id, sim.now));
+}
+
+/** Recalls the given working heroes before a send; the output made so far and their settled energy are kept. */
+export function recallWorking(sim: Sim, heroIds: string[]) {
+  for (const id of heroIds) {
+    if (sim.save.heroes.find((h) => h.id === id)?.job) sim.save = recallFromJob(sim.save, id, sim.now);
+  }
+}
+
+/** Staffs each empty station at the end of a session with the least useful free hero. */
+export function assignJobs(sim: Sim) {
+  if (!sim.jobs) return;
+  for (const job of jobList) {
+    if (jobWorker(sim.save, job.id)) continue;
+    const free = sim.save.heroes.filter((h) => !isBusy(sim.save, h.id));
+    if (!free.length) continue;
+    const pick = [...free].sort((a, b) => statScore(sim.save, a) - statScore(sim.save, b))[0];
+    act(sim, 'job', (save) => assignJob(save, pick.id, job.id, sim.now));
+  }
+}
+
 // —— Parties and odds ——
 
 const heroKey = (save: SaveData, hero: HeroState, now: number) => {
@@ -975,6 +1016,7 @@ export function challengeSanctums(sim: Sim) {
     }
     if (!pick) return;
     const { spawn, tier, heroIds } = pick;
+    recallWorking(sim, heroIds);
     let win = false;
     act(sim, 'sanctum', (save) => {
       const result = challengeSanctum(save, spawn, tier, heroIds, spawn.position, sim.now);
@@ -1034,6 +1076,7 @@ function applyElixirs(sim: Sim, dungeon: DungeonDef, heroIds: string[], loadout:
 }
 
 export function launch(sim: Sim, dungeon: DungeonDef, heroIds: string[], o: Odds) {
+  recallWorking(sim, heroIds);
   const briefing = briefingFor(sim.rotation, dungeon);
   sim.save = withLoadout(emptySlots(sim.save, homeHeroes(sim.save).map((h) => h.id)), heroIds, dungeon, briefing);
   const loadout = { mealId: mealFor(sim, dungeon, heroIds, o) };

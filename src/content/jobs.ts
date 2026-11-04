@@ -17,7 +17,7 @@ export type JobDef = {
   emoji: string;
 };
 
-/** Placeholder rate, to be tuned with the simulator. */
-export const jobs: JobDef[] = [{ id: 'woodcutter', name: 'Woodcutter', produces: 'wood', ratePerHour: 0.5, emoji: '🪓' }];
+/** Rate fitted to the simulator's regular profile: a full day of work makes 10–15% of the wood it spends per day. */
+export const jobs: JobDef[] = [{ id: 'woodcutter', name: 'Woodcutter', produces: 'wood', ratePerHour: 0.3, emoji: '🪓' }];
 
 export const jobById: Record<string, JobDef> = Object.fromEntries(jobs.map((job) => [job.id, job]));

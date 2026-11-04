@@ -1,4 +1,4 @@
-id,name,station,produces,rate_note,cap_hours,risk,phase
-woodcutter,Woodcutter,guild,wood,10–15% of a regular player's daily wood need per full day (simulator sets the exact rate),8,none,2a
-farmer,Farmer,guild,herbs / mushrooms / crops (to design),to design with the resource rework,8,none,2c
-miner,Miner,guild,stone / ores (to design),to design with the resource rework,8,none,2c
+id,name,station,produces,rate_per_hour,rate_note,cap_hours,risk,phase
+woodcutter,Woodcutter,guild,wood,0.3,10–15% of a regular player's daily wood need per full day (estimated from the regular profile's tier 1 wood spend; check the Jobs section of the simulator report),8,none,2a
+farmer,Farmer,guild,herbs / mushrooms / crops (to design),,to design with the resource rework,8,none,2c
+miner,Miner,guild,stone / ores (to design),,to design with the resource rework,8,none,2c

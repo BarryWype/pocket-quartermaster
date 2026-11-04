@@ -25,6 +25,10 @@ export type LabOptions = {
   reportDir: string;
   /** Stops every game earlier than its profile's day cap. */
   maxDays?: number;
+  /** Guild jobs on (false: a baseline run without them). */
+  jobs?: boolean;
+  /** A summary to compare days per tier against, e.g. a run with `--no-jobs`. */
+  baseline?: Summary | null;
   /** Measured walk yields; read from (or written to) the cache when not given. */
   rates?: WalkRates;
   cacheDir?: string;
@@ -36,7 +40,7 @@ export type LabOptions = {
 };
 
 /** One game, sent to a worker process over IPC. */
-type WorkerJob = { profile: string; index: number; seed: string; maxDays?: number; overrides: string[]; rates: WalkRates };
+type WorkerJob = { profile: string; index: number; seed: string; maxDays?: number; overrides: string[]; rates: WalkRates; jobs: boolean };
 
 function walkRates(cacheDir: string, print: (line: string) => void): WalkRates {
   const file = path.join(cacheDir, `walk-${walkCacheKey()}.json`);
@@ -102,7 +106,7 @@ export function runWorker() {
     const undo = applyOverrides(job.overrides.map(parseOverride));
     let log: RunLog;
     try {
-      log = runSim({ profile: job.profile, seed: job.seed, rates: job.rates, maxDays: job.maxDays, afterDay: weeklyProgress(job.profile, job.index, console.log) });
+      log = runSim({ profile: job.profile, seed: job.seed, rates: job.rates, maxDays: job.maxDays, jobs: job.jobs, afterDay: weeklyProgress(job.profile, job.index, console.log) });
     } finally {
       undo();
     }
@@ -118,9 +122,10 @@ export async function runLab(options: LabOptions) {
   const undo = applyOverrides(options.overrides.map(parseOverride));
   try {
     const rates = options.rates ?? walkRates(options.cacheDir ?? 'sim-output/.cache', print);
+    const jobsOn = options.jobs ?? true;
     const jobs: WorkerJob[] = [];
     for (const profile of options.profiles)
-      for (let i = 1; i <= options.seeds; i++) jobs.push({ profile, index: i, seed: `${options.seed}-${i}`, maxDays: options.maxDays, overrides: options.overrides, rates });
+      for (let i = 1; i <= options.seeds; i++) jobs.push({ profile, index: i, seed: `${options.seed}-${i}`, maxDays: options.maxDays, overrides: options.overrides, rates, jobs: jobsOn });
     let logs: RunLog[];
     if ((options.workers ?? 1) > 1) {
       if (!options.workerScript) throw new Error('workers > 1 needs a workerScript');
@@ -128,7 +133,7 @@ export async function runLab(options: LabOptions) {
       for (let i = 0; i < jobs.length; i++) print(finishedLine(jobs[i].profile, jobs[i].index, logs[i]));
     } else {
       logs = jobs.map((job) => {
-        const log = runSim({ profile: job.profile, seed: job.seed, rates, maxDays: job.maxDays, afterDay: weeklyProgress(job.profile, job.index, print) });
+        const log = runSim({ profile: job.profile, seed: job.seed, rates, maxDays: job.maxDays, jobs: job.jobs, afterDay: weeklyProgress(job.profile, job.index, print) });
         print(finishedLine(job.profile, job.index, log));
         return log;
       });
@@ -136,7 +141,7 @@ export async function runLab(options: LabOptions) {
     const summaries: ProfileSummary[] = [];
     for (let i = 0; i < options.profiles.length; i++) summaries.push(summarize(logs.slice(i * options.seeds, (i + 1) * options.seeds)));
     const summary: Summary = {
-      settings: { profiles: options.profiles, seeds: options.seeds, seed: options.seed, overrides: options.overrides, maxDays: options.maxDays ?? null },
+      settings: { profiles: options.profiles, seeds: options.seeds, seed: options.seed, overrides: options.overrides, maxDays: options.maxDays ?? null, jobs: jobsOn },
       difficultyOdds: difficultyOddsByTier(),
       profiles: Object.fromEntries(summaries.map((s) => [s.profile, s])),
     };
@@ -153,7 +158,7 @@ export async function runLab(options: LabOptions) {
     const previous = fs.existsSync(previousReport) ? fs.readFileSync(previousReport, 'utf8') : null;
     fs.writeFileSync(
       path.join(options.reportDir, 'report.md'),
-      renderReport({ summaries, rules: BOT_RULES, settings: { seeds: options.seeds, seed: options.seed, overrides: options.overrides, elapsed, date }, difficultyOdds: summary.difficultyOdds, specials: previous ? specialsBlock(previous) : null }),
+      renderReport({ summaries, rules: BOT_RULES, settings: { seeds: options.seeds, seed: options.seed, overrides: options.overrides, elapsed, date }, difficultyOdds: summary.difficultyOdds, baseline: options.baseline ?? null, specials: previous ? specialsBlock(previous) : null }),
     );
     print(`\n${logs.length} games in ${elapsed.toFixed(1)} s → ${path.join(options.reportDir, 'report.md')} (CSVs in ${options.outDir})`);
     return { logs, summary, elapsed };

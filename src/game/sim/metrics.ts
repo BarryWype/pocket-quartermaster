@@ -50,6 +50,8 @@ export type TierSummary = {
   odds: { prepared: OddsLine; unprepared: OddsLine; gap: Stat; boss: OddsLine; events: OddsLine; kinds: KindOdds[] };
   gold: { income: Record<string, number>; spend: Record<string, number>; growth: Stat; incomePerDay: Stat; surplus: boolean };
   material: { id: string; gathered: Stat; spent: Stat; share: Stat };
+  /** Wood per day over the tier: gathered by walking, spent, the woodcutter's output, and its share of the spend. */
+  wood: { walked: Stat; spent: Stat; woodcutter: Stat; share: Stat };
   level: { end: Stat; target: number };
 };
 
@@ -84,7 +86,7 @@ export type ProfileSummary = {
 
 /** What `npm run sim` writes to doc/design/simulator/summary.json, and the balance band tests read. */
 export type Summary = {
-  settings: { profiles: string[]; seeds: number; seed: string; overrides: string[]; maxDays: number | null };
+  settings: { profiles: string[]; seeds: number; seed: string; overrides: string[]; maxDays: number | null; jobs: boolean };
   profiles: Record<string, ProfileSummary>;
   /** The reference teams' odds per tier and difficulty, measured once per run (see difficultyOdds.ts). */
   difficultyOdds: Record<number, DifficultyOdds>;
@@ -151,8 +153,9 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
   const surplus = (growth.median ?? 0) > t.goldSurplusDays * (incomePerDay.median ?? Infinity);
 
   const id = tierMaterials[tier - 1];
-  const flow = (log: RunLog, window: [number, number] | null, index: 0 | 1) =>
-    window ? sum(Object.entries(log.materialFlow).filter(([day]) => within(Number(day), window)).map(([, m]) => m[id]?.[index] ?? 0)) : null;
+  const flowOf = (log: RunLog, window: [number, number] | null, material: string, index: 0 | 1) =>
+    window ? sum(Object.entries(log.materialFlow).filter(([day]) => within(Number(day), window)).map(([, m]) => m[material]?.[index] ?? 0)) : null;
+  const flow = (log: RunLog, window: [number, number] | null, index: 0 | 1) => flowOf(log, window, id, index);
   const gathered = stat(logs.map((log, i) => flow(log, windows[i], 0)));
   const spent = stat(logs.map((log, i) => flow(log, windows[i], 1)));
   const share = stat(logs.map((log, i) => {
@@ -160,6 +163,29 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
     const s = flow(log, windows[i], 1);
     return g ? (s ?? 0) / g : null;
   }));
+
+  // Wood per day: what walking and the map brought in, what every sink spent, and the woodcutter's share of it.
+  const perDay = (total: number | null, window: [number, number] | null) => (total === null || !window ? null : total / (window[1] - window[0] + 1));
+  const jobWood = (log: RunLog, window: [number, number] | null) =>
+    window ? sum(Object.entries(log.jobFlow).filter(([day]) => within(Number(day), window)).map(([, m]) => m.wood ?? 0)) : null;
+  const woodSeeds = logs.map((log, i) => {
+    const window = windows[i];
+    const gatheredWood = flowOf(log, window, 'wood', 0);
+    const spentWood = flowOf(log, window, 'wood', 1);
+    const job = jobWood(log, window);
+    return {
+      walked: perDay(gatheredWood !== null && job !== null ? gatheredWood - job : null, window),
+      spent: perDay(spentWood, window),
+      woodcutter: perDay(job, window),
+      share: job !== null && spentWood ? job / spentWood : null,
+    };
+  });
+  const wood = {
+    walked: stat(woodSeeds.map((s) => s.walked)),
+    spent: stat(woodSeeds.map((s) => s.spent)),
+    woodcutter: stat(woodSeeds.map((s) => s.woodcutter)),
+    share: stat(woodSeeds.map((s) => s.share)),
+  };
 
   const end = stat(logs.map((log) => {
     const day = log.milestones[`boss:${tier}`];
@@ -184,6 +210,7 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
     },
     gold: { income, spend, growth, incomePerDay, surplus },
     material: { id, gathered, spent, share },
+    wood,
     level: { end, target: expectedLevels[tier - 1] },
   };
 }

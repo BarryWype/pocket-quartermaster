@@ -2,7 +2,7 @@ import { materialById } from '@/content/lookup';
 import { REVEAL_KINDS } from '@/content/reveal';
 import { difficultyRules } from '@/content/difficulty';
 import type { DifficultyOdds } from '@/game/sim/difficultyOdds';
-import { misses, type ProfileSummary, type Stat } from '@/game/sim/metrics';
+import { misses, type ProfileSummary, type Stat, type Summary } from '@/game/sim/metrics';
 import { inRange, targets } from '@/game/sim/targets';
 
 export type ReportInput = {
@@ -11,6 +11,8 @@ export type ReportInput = {
   settings: { seeds: number; seed: string; overrides: string[]; elapsed: number; date: string };
   /** The reference teams' odds per tier and difficulty (summary.json's `difficultyOdds`). */
   difficultyOdds: Record<number, DifficultyOdds>;
+  /** A summary to compare days per tier against, e.g. a run with `--no-jobs`. */
+  baseline?: Summary | null;
   /** The specials section carried over from the previous report, written by `npm run sim:specials`. */
   specials?: string | null;
 };
@@ -112,6 +114,28 @@ function materials(s: ProfileSummary) {
     `${pct(t.material.share.median)}${t.material.share.median !== null && t.material.share.median < targets.materialSpent ? ` ${WARN}` : ''}`,
   ]);
   return table(['Tier', 'Main material', 'Gathered', 'Spent', `Spent share (min ${pct(targets.materialSpent)})`], rows);
+}
+
+/** Wood per day over each tier, and the woodcutter's share of what was spent. */
+function jobsTable(s: ProfileSummary) {
+  const rows = s.tiers.map((t) => {
+    const w = t.wood;
+    return [
+      String(t.tier),
+      n(w?.walked.median, 1),
+      n(w?.spent.median, 1),
+      n(w?.woodcutter.median, 1),
+      `${pct(w?.share.median)}${w && w.share.median !== null ? mark(w.share.median, targets.woodcutterShare) : ''}`,
+    ];
+  });
+  return table(['Tier', 'Wood walked/day', 'Wood spent/day', 'Woodcutter/day', `Woodcutter share (target ${range(targets.woodcutterShare, pct)})`], rows);
+}
+
+/** Days per tier against a baseline run (e.g. with `--no-jobs`). */
+function baselineTable(s: ProfileSummary, baseline: Summary) {
+  const before = baseline.profiles[s.profile];
+  const rows = s.tiers.map((t) => [String(t.tier), n(before?.tiers[t.tier - 1]?.days.median ?? null), n(t.days.median)]);
+  return table(['Tier', 'Days before', 'Days after'], rows);
 }
 
 /** The median day each map kind first shows, per profile; no target. */
@@ -216,7 +240,7 @@ export function specialsBlock(markdown: string): string | null {
 }
 
 /** The markdown report: targets next to results, ⚠ on anything out of range. */
-export function renderReport({ summaries, rules, settings, difficultyOdds, specials }: ReportInput) {
+export function renderReport({ summaries, rules, settings, difficultyOdds, baseline, specials }: ReportInput) {
   const regular = summaries.find((s) => s.profile === 'regular');
   const worst = misses(summaries).slice(0, 10);
   const out: string[] = [
@@ -279,6 +303,22 @@ export function renderReport({ summaries, rules, settings, difficultyOdds, speci
   for (const s of summaries) out.push(`### ${s.profile}`, '', gold(s));
   out.push('## Materials: the tier’s main material', '');
   for (const s of summaries) out.push(`### ${s.profile}`, '', materials(s));
+  out.push(
+    '## Jobs',
+    '',
+    'Wood per day over each tier: what walking and the map brought in, what every sink spent (crafting, forging, cooking, upgrades), and the woodcutter’s share of that need.',
+    '',
+  );
+  for (const s of summaries) out.push(`### ${s.profile}`, '', jobsTable(s));
+  out.push(
+    'The bot collects every station at the start of a session, recalls a worker whenever a send needs them, and staffs each empty station at the end of a session — so the woodcutter never costs a party member (see the Jobs rule under Bot rules).',
+    '',
+  );
+  if (baseline) {
+    for (const s of summaries) out.push(`### ${s.profile}`, '', baselineTable(s, baseline));
+  } else {
+    out.push('Days per tier before jobs: run with `--no-jobs` for a baseline, then pass that summary with `--baseline <summary.json>`.', '');
+  }
   out.push('## Hero levels at the end of each tier', '');
   for (const s of summaries) out.push(`### ${s.profile}`, '', levels(s));
   out.push('## Reveal days', '', 'The median day each map kind first shows (the gradual reveal); no target.', '', reveals(summaries));

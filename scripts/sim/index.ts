@@ -1,8 +1,10 @@
+import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
 import { profiles } from '@/game/sim/config';
 import { pacingLines } from '@/game/sim/pacing';
+import type { Summary } from '@/game/sim/metrics';
 
 import { runLab, runWorker } from './lab';
 
@@ -15,10 +17,12 @@ const USAGE = `npm run sim -- [options]
   --workers N     games played in parallel, each in its own process (default: one per core)
   --out dir       where the CSVs go (default sim-output/<timestamp>)
   --report dir    where report.md and summary.json go (default doc/design/simulator)
+  --no-jobs       run without guild jobs (for a baseline summary)
+  --baseline file   a summary.json to compare days per tier against (e.g. a --no-jobs run)
   --pacing        print weekly loot drops per category (as doc/design/loot/tools/pacing.py) and stop`;
 
 function parse(argv: string[]) {
-  const options = { profile: 'all', seeds: 4, seed: '1', maxDays: undefined as number | undefined, overrides: [] as string[], out: '', report: 'doc/design/simulator', pacing: false, workers: os.availableParallelism() };
+  const options = { profile: 'all', seeds: 4, seed: '1', maxDays: undefined as number | undefined, overrides: [] as string[], out: '', report: 'doc/design/simulator', pacing: false, noJobs: false, baseline: undefined as string | undefined, workers: os.availableParallelism() };
   for (let i = 0; i < argv.length; i++) {
     const value = () => {
       const next = argv[++i];
@@ -34,6 +38,8 @@ function parse(argv: string[]) {
       case '--workers': options.workers = Number(value()); break;
       case '--out': options.out = value(); break;
       case '--report': options.report = value(); break;
+      case '--no-jobs': options.noJobs = true; break;
+      case '--baseline': options.baseline = value(); break;
       case '--pacing': options.pacing = true; break;
       case '--help': console.log(USAGE); process.exit(0);
       default: throw new Error(`Unknown option ${argv[i]}\n${USAGE}`);
@@ -61,5 +67,7 @@ if (process.argv[2] === '--worker') {
     reportDir: options.report,
     workers: options.workers,
     workerScript: process.argv[1],
+    jobs: !options.noJobs,
+    baseline: options.baseline ? (JSON.parse(fs.readFileSync(options.baseline, 'utf8')) as Summary) : null,
   });
 }

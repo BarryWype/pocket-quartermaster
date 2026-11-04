@@ -27,7 +27,7 @@ const expectIn = (value: number, range: [number, number]) => {
 };
 
 check('simulator balance bands', () => {
-  const summary: Summary = fs.existsSync(FILE) ? read() : { settings: { profiles: [], seeds: 0, seed: '', overrides: [], maxDays: null }, profiles: {}, difficultyOdds: {} };
+  const summary: Summary = fs.existsSync(FILE) ? read() : { settings: { profiles: [], seeds: 0, seed: '', overrides: [], maxDays: null, jobs: true }, profiles: {}, difficultyOdds: {} };
   const profiles = Object.values(summary.profiles);
 
   it('has a summary to read (run npm run sim)', () => expect(profiles.length).toBeGreaterThan(0));
@@ -65,6 +65,17 @@ check('simulator balance bands', () => {
   describe('loot pacing (regular)', () => {
     for (const row of summary.profiles.regular?.loot ?? []) {
       it(`${row.column} within ${targets.lootPacing * 100}% of pacing.py`, () => expect(Math.abs(row.off)).toBeLessThanOrEqual(targets.lootPacing));
+    }
+  });
+
+  describe('jobs', () => {
+    for (const tier of summary.profiles.regular?.tiers ?? []) {
+      const share = tier.wood?.share;
+      // A summary from before jobs were covered has no wood data to check.
+      if (!share || share.median === null) continue;
+      const value = share.median;
+      it(`regular: tier ${tier.tier} woodcutter gives ${targets.woodcutterShare.join('–')} of the wood spent`, () =>
+        expectIn(value, targets.woodcutterShare));
     }
   });
 

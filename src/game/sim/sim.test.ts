@@ -109,6 +109,17 @@ describe('balance lab', () => {
     expect(log.patrols.recruits.length).toBe(log.patrols.rewards.recruit ?? 0);
   });
 
+  it('staffs the woodcutter and collects its wood without costing a party member', () => {
+    const log = runSim({ profile: 'regular', maxDays: 4, seed: 'jobs', rates, afterSession: checkSave });
+    expect(log.gathered.wood?.['job:woodcutter']).toBeGreaterThan(0);
+    expect(log.expeditions.length).toBeGreaterThan(0);
+  });
+
+  it('plays without jobs when they are turned off', () => {
+    const log = runSim({ profile: 'regular', maxDays: 2, seed: 'no-jobs', rates, jobs: false });
+    expect(log.gathered.wood?.['job:woodcutter']).toBeUndefined();
+  });
+
   it('relies on the game functions, which refuse what is not allowed', () => {
     expect(() => craft(createInitialSave(), recipeById.woodSword)).toThrow();
     const away = startExpedition({ ...createInitialSave(), tutorial: { ...createInitialSave().tutorial, step: 'done' } }, 'ratCellar', ['bram'], 0);

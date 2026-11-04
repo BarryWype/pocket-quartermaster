@@ -33,6 +33,7 @@ describe('balance lab CLI', () => {
       '## Visits planned vs done',
       '## Gold per tier',
       '## Materials: the tier’s main material',
+      '## Jobs',
       '## Hero levels at the end of each tier',
       '## Health',
       '**Pile-ups**',

@@ -19,7 +19,7 @@ import { isPlaceRevealed, isRevealed } from '../../reveal/reveal';
 import { enterProblem, enterSecret, recruitAtSecret, secretRecruit, secretRecruitProblem } from '../../secrets/places';
 import { secretPlaces } from '../../secrets/tips';
 import { isExhausted } from '../../team/health';
-import { act, bestParty, countLoot, highestTier, homeHeroes, mark, nextForgeRecipe, skip, takeVisit, withLoadout, type PlaceRow, type Sim } from '../bot';
+import { act, bestParty, countLoot, highestTier, homeHeroes, mark, nextForgeRecipe, recallWorking, skip, takeVisit, withLoadout, type PlaceRow, type Sim } from '../bot';
 import { emptySlots } from './loadout';
 
 const MINUTE = 60_000;
@@ -61,12 +61,14 @@ function fightAt(sim: Sim, kind: FightPlaceKind): PlaceMiss | null {
     .map((h) => h.id);
   const probe = candidates.slice(0, placeFightRules.kinds[kind].party);
   if (!candidates.length) return 'noParty';
+  recallWorking(sim, probe);
   const spawn = spawnFor(sim, kind, (s) => placeFightProblem(sim.save, s, probe, s.position, sim.now) === null);
   if (!spawn) return 'nothing';
   const dungeon = placeFightDungeon(spawn, tier);
   const briefing = placeFightBriefing(sim.save, spawn);
   const party = bestParty(sim, dungeon, candidates, briefing);
   if (party.heroIds.length === 0 || party.odds.success < sim.config.odds.place) return 'odds';
+  recallWorking(sim, party.heroIds);
   sim.save = withLoadout(emptySlots(sim.save, party.heroIds), party.heroIds, dungeon, briefing);
   if (placeFightProblem(sim.save, spawn, party.heroIds, spawn.position, sim.now) !== null) return 'odds';
   const endsAt = sim.now + dungeon.durationMinutes * MINUTE;
@@ -111,6 +113,7 @@ function heistAt(sim: Sim): PlaceMiss | null {
     .filter((h) => !isExhausted(h, sim.now))
     .sort((a, b) => heistOdds(sim.save, b.id) - heistOdds(sim.save, a.id))[0];
   if (!hero) return 'noParty';
+  recallWorking(sim, [hero.id]);
   const odds = heistOdds(sim.save, hero.id);
   if (odds < sim.config.odds.heist) return 'odds';
   const spawn = spawnFor(sim, 'thievesGuild', (s) => heistProblem(sim.save, s, hero.id, s.position, sim.now) === null);
@@ -229,6 +232,7 @@ function underwaterAt(sim: Sim, place: PlaceSpawn): boolean {
   const briefing = underwaterBriefing(sim.save, place);
   const party = bestParty(sim, dungeon, homeHeroes(sim.save).map((h) => h.id), briefing);
   if (party.heroIds.length === 0 || party.odds.success < sim.config.odds.place) return false;
+  recallWorking(sim, party.heroIds);
   sim.save = withLoadout(emptySlots(sim.save, homeHeroes(sim.save).map((h) => h.id)), party.heroIds, dungeon, briefing);
   act(sim, 'secret', (save) => launchUnderwater(save, place, party.heroIds, place.position, sim.now));
   mark(sim, 'secretPlace');

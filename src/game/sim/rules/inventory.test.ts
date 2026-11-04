@@ -15,6 +15,7 @@ function simOf(save: SaveData): Sim {
     startedAt: simConfig.startDay,
     profile: profiles.regular,
     config: simConfig,
+    jobs: true,
     rates: { perMinute: [], lure: {}, lureSpawns: 0, gathersPerMinute: [], autoPerMinute: [], autoGathersPerMinute: [], nodes: [] },
     due: {},
     met: new Set(),

@@ -20,6 +20,8 @@ export const targets = {
   goldSurplusDays: 3,
   /** The tier's main material: spent at least this share of what was gathered. */
   materialSpent: 0.75,
+  /** The woodcutter's share of the wood spent per day, at every tier (doc/design/jobs/README.md's 10–15%). */
+  woodcutterShare: [0.1, 0.15] as [number, number],
   /** Heroes end each tier within this many levels of the top of its band (expectedLevels). */
   levelSlack: 1,
   /** A stock that grows at every tier end and ends above this is a pile-up. */

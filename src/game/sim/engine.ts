@@ -39,11 +39,13 @@ import type { LootSourceId } from '../loot/types';
 import { pruneExpired, rollDailyApproaches } from '../upkeep';
 import {
   act,
+  assignJobs,
   buyGuildRanks,
   skip,
   takeVisit,
   challengeSanctums,
   collectExpedition,
+  collectJobs,
   digTreasure,
   doQuests,
   forge,
@@ -54,6 +56,7 @@ import {
   markCoreKit,
   noteQuestGathers,
   reachChance,
+  recallWorking,
   recruitHeroes,
   sendExpeditions,
   spendPicks,
@@ -81,6 +84,8 @@ export type RunOptions = {
   /** Stops earlier than the profile's day cap. */
   maxDays?: number;
   config?: SimConfig;
+  /** Guild jobs on (false: a baseline run without them). */
+  jobs?: boolean;
   /** Called after every session, e.g. to check the save. */
   afterSession?: (save: SaveData) => void;
   /** Called at the end of each simulated day, after the daily row is pushed. */
@@ -207,6 +212,7 @@ function engagePatrol(sim: Sim, spawn: PatrolSpawn, at: number, player: LatLng) 
   for (let size = 1; size <= full; size++) {
     const heroIds = candidates.slice(0, size).map((h) => h.id);
     if (patrolOdds(sim.save, spawn, heroIds, at, sim.config.odds.runs).success < ENGAGE_ODDS) continue;
+    recallWorking(sim, heroIds);
     const id = `p${sim.save.nextUid}`;
     const fighting = startPatrolFight(sim.save, spawn, heroIds, player, at);
     const fight = fighting.patrolFights.find((f) => f.id === id)!;
@@ -261,6 +267,7 @@ function helpTravellerSpawn(sim: Sim, spawn: PatrolSpawn, at: number, player: La
 }
 
 function session(sim: Sim, walking: boolean, firstWalk: boolean, steps: number, dayKey: string) {
+  collectJobs(sim);
   sim.save = rollDailyApproaches(pruneExpired(sim.save, sim.now), sim.now);
   sim.rotation = dailyRotation(rotationDay(sim.now));
 
@@ -323,6 +330,7 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, steps: number, 
   challengeSanctums(sim);
   digTreasure(sim);
   sendExpeditions(sim);
+  assignJobs(sim);
   markCoreKit(sim);
 }
 
@@ -346,7 +354,7 @@ const OUTCOMES: LootSourceId[] = ['firstTierClear', 'tierBoss', 'stepChest'];
 const stepsPerDay = (profile: Profile) => stepChests[Math.max(0, Math.min(stepChests.length, Math.round(profile.visits.stepChest ?? 0)) - 1)].steps;
 
 /** Plays a profile with the bot until the tier 5 boss falls or the profile's day cap, and returns everything that happened. */
-export function runSim({ profile: name, seed, rates, maxDays, config = simConfig, afterSession, afterDay }: RunOptions): RunLog {
+export function runSim({ profile: name, seed, rates, maxDays, config = simConfig, jobs = true, afterSession, afterDay }: RunOptions): RunLog {
   const profile = profiles[name];
   if (!profile) throw new Error(`Unknown profile ${name}`);
   const days = maxDays ?? profile.maxDays;
@@ -367,6 +375,7 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
     startedAt,
     profile,
     config,
+    jobs,
     rates,
     due: { quests: 0, expeditions: 0 },
     met: new Set(),

@@ -27,6 +27,7 @@ const makeSim = (save: SaveData = createInitialSave(), now = simConfig.startDay)
   startedAt: now,
   profile: profiles.regular,
   config: simConfig,
+  jobs: true,
   rates: RATES,
   due: {},
   met: new Set(),
