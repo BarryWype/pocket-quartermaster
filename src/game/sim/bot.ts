@@ -850,7 +850,7 @@ export function collectJobs(sim: Sim) {
   }
 }
 
-/** Puts the least useful free hero on the gatherer at the day's first session, when nobody works it (the tutorial excepted). */
+/** Puts the least useful free hero on the gatherer when nobody works it (the tutorial excepted). */
 export function keepGatherer(sim: Sim) {
   if (!sim.jobs || sim.save.tutorial.step !== 'done' || !isJobOpen(sim.save, 'gatherer') || jobWorker(sim.save, 'gatherer')) return;
   const free = sim.save.heroes.filter((h) => !isBusy(sim.save, h.id));
@@ -886,6 +886,8 @@ export function recallWorking(sim: Sim, heroIds: string[]) {
 /** Staffs every open station at the end of a session, the one shortest of its material first, with the least useful free heroes. */
 export function assignJobs(sim: Sim) {
   if (!sim.jobs) return;
+  // The gatherer comes first, or the stations would take every free hero.
+  keepGatherer(sim);
   // A station's shortage score: the stock of the material it can produce least of.
   const shortage = (job: JobDef) => {
     const materials = job.id === 'miner' ? jobChoices(sim.save, 'miner') : jobMaterials(job);
