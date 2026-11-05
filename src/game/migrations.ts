@@ -253,6 +253,22 @@ export function toV38(save: SaveData): SaveData {
   return next;
 }
 
+/**
+ * Version 39: the outdoor gatherer works around the player. The camp leaves
+ * the hero's job (a hero already on the gatherer stays on it), and the anchor
+ * history starts empty with no focus. Uncollected gatherer output is kept.
+ */
+export function toV39(save: SaveData): SaveData {
+  const camped = save.heroes.some((hero) => hero.job && "camp" in hero.job);
+  if (save.gatherer && !camped) return save;
+  const heroes = save.heroes.map((hero) => {
+    if (!hero.job || !("camp" in hero.job)) return hero;
+    const { camp: _camp, ...job } = hero.job as typeof hero.job & { camp?: unknown };
+    return { ...hero, job };
+  });
+  return { ...save, heroes, gatherer: save.gatherer ?? { anchors: [], focus: "any" } };
+}
+
 /** Applies the migration steps in order, from the save's own version on. */
 export function migrateSave(
   save: SaveData,
@@ -268,5 +284,6 @@ export function migrateSave(
   if (fromVersion < 36) next = toV36(next);
   if (fromVersion < 37) next = toV37(next);
   if (fromVersion < 38) next = toV38(next);
+  if (fromVersion < 39) next = toV39(next);
   return next;
 }

@@ -7,7 +7,7 @@ import { gearRules } from "@/content/gear";
 import { affixById } from "@/content/affixes";
 import { gearStats } from "./gear/stats";
 import { uniquePool } from "./gear/uniques";
-import { migrateSave, toV38 } from "./migrations";
+import { migrateSave, toV38, toV39 } from "./migrations";
 import type { GearDef } from "./types";
 import { createInitialSave, type SaveData } from "./save";
 import type { Quest } from "./quests/types";
@@ -455,6 +455,56 @@ describe("save migrations", () => {
       expect(again.gear).toEqual(once.gear);
       expect(again.materials).toEqual(once.materials);
       expect(toV38(once)).toBe(once);
+    });
+  });
+
+  describe("version 39: the gatherer works around the player", () => {
+    // A version 38 save: Bram camped as the gatherer, with output waiting.
+    const v38 = () => {
+      const fresh = createInitialSave();
+      const { gatherer: _gatherer, ...rest } = fresh;
+      return {
+        ...rest,
+        heroes: fresh.heroes.map((h) =>
+          h.id === "bram"
+            ? {
+                ...h,
+                job: {
+                  jobId: "gatherer",
+                  since: 10 * DAY,
+                  tired: false,
+                  camp: { position: { latitude: 48.85, longitude: 2.35 }, since: 10 * DAY },
+                },
+              }
+            : h,
+        ),
+        jobOutput: {
+          gatherer: {
+            amounts: { wood: 3, herb: 1 },
+            fraction: 0,
+            units: 4,
+            nodes: 4,
+            lastNodeAt: 11 * DAY,
+            wounds: [{ at: 11 * DAY, heroId: "bram", hp: 2 }],
+            since: 11 * DAY,
+          },
+        },
+      } as unknown as SaveData;
+    };
+
+    it("drops the camp, keeps the hero on the gatherer and its output, and starts an empty anchor history", () => {
+      const old = v38();
+      const next = migrateSave(old, 38, 12 * DAY);
+      const bram = next.heroes.find((h) => h.id === "bram")!;
+      expect(bram.job).toEqual({ jobId: "gatherer", since: 10 * DAY, tired: false });
+      expect(next.jobOutput.gatherer).toEqual(old.jobOutput.gatherer);
+      expect(next.gatherer).toEqual({ anchors: [], focus: "any" });
+    });
+
+    it("leaves a save already at version 39 alone", () => {
+      const save = createInitialSave();
+      expect(toV39(save).gatherer).toBe(save.gatherer);
+      expect(migrateSave(save, 39, 12 * DAY)).toBe(save);
     });
   });
 });
