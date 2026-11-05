@@ -1,11 +1,8 @@
-import { componentForgeOdds } from '@/content/forging';
 import { recipeById, relicById } from '@/content/lookup';
+import type { Rarity } from '@/content/gear';
 
 import type { SaveData } from '../save';
-import type { MasteryType, Quality } from '../types';
-import { componentRecipe } from '../forging/components';
-import { masteryOf, masteryTypeOf } from '../forging/mastery';
-import { qualityOdds } from '../forging/quality';
+import type { GearType } from '../types';
 import { canRestore, relicRecipe } from '../forging/relics';
 import { guildBonus } from '../guild/guild';
 import { forgedItem } from './crafting';
@@ -36,21 +33,17 @@ const valuableCost = (save: SaveData, valuables: { valuableId: string; amount: n
     return { id: valuableId, needed: amount, held, remaining: Math.max(0, held - amount) };
   });
 
-/** The likeliest quality of a forge, straight from its odds. */
-function expectedQuality(odds: Record<Quality, number>): Quality {
-  return (Object.keys(odds) as Quality[]).reduce((best, quality) => (odds[quality] > odds[best] ? quality : best));
-}
 
-/** What one forge of `recipeId` asks before it happens: the piece, the quality its mastery points to, the cost and the chosen component's effect. */
+/** What one forge of `recipeId` asks before it happens: the piece, the rarity it comes out as, the cost and the chosen component's effect. */
 export type ForgeConfirmation = {
   kind: 'forge';
   recipeId: string;
   componentId: string | null;
   itemId: string;
   tier: number;
-  gearType: MasteryType;
-  masteryLevel: number;
-  expectedQuality: Quality;
+  gearType: GearType;
+  /** Uncommon with a component, Common without. */
+  expectedRarity: Rarity;
   cost: ConfirmCost;
 };
 
@@ -60,7 +53,7 @@ export type RestoreConfirmation = {
   relicUid: string;
   relicId: string;
   tier: number;
-  gearType: MasteryType;
+  gearType: GearType;
   cost: ConfirmCost;
 };
 
@@ -68,21 +61,16 @@ export type RestoreConfirmation = {
 export function forgeConfirmation(save: SaveData, recipeId: string, componentId: string | null = null): ForgeConfirmation | null {
   const recipe = recipeById[recipeId];
   const item = forgedItem(recipe);
-  if (!item) return null;
-  const gearType = masteryTypeOf(item);
-  const { level } = masteryOf(save, gearType);
-  const inputs = componentId ? componentRecipe(recipe, componentId) : recipe.inputs;
+  if (!item?.gearType) return null;
+  const inputs = componentId ? [...recipe.inputs, { materialId: componentId, amount: 1 }] : recipe.inputs;
   return {
     kind: 'forge',
     recipeId,
     componentId,
     itemId: item.id,
     tier: item.tier,
-    gearType,
-    masteryLevel: level,
-    expectedQuality: componentId
-      ? expectedQuality(componentForgeOdds)
-      : expectedQuality(qualityOdds(level, item.tier)),
+    gearType: item.gearType,
+    expectedRarity: componentId ? 'uncommon' : 'common',
     cost: { materials: materialCost(save, inputs), valuables: valuableCost(save, recipe.valuables) },
   };
 }

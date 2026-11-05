@@ -41,10 +41,10 @@ function geared(): SaveData {
     ...createInitialSave(),
     tutorial: { ...createInitialSave().tutorial, step: 'done' },
     gear: [
-      { uid: 'g1', itemId: 'sword1', quality: 'normal' },
-      { uid: 'g2', itemId: 'bow1', quality: 'normal' },
-      { uid: 'g3', itemId: 'wand1', quality: 'normal' },
-      { uid: 'g4', itemId: 'mail1', quality: 'normal' },
+      { uid: 'g1', itemId: 'sword1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
+      { uid: 'g2', itemId: 'bow1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
+      { uid: 'g3', itemId: 'wand1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
+      { uid: 'g4', itemId: 'mail1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
     ],
     consumables: { ...createInitialSave().consumables, healingPotion: 1, emberWardSalve: 1 },
     nextUid: 10,
@@ -329,7 +329,7 @@ describe('tutorial expedition', () => {
   const tutorialSave = (): SaveData => {
     const save: SaveData = {
       ...createInitialSave(),
-      gear: [{ uid: 'g1', itemId: 'sword1', quality: 'normal' }],
+      gear: [{ uid: 'g1', itemId: 'sword1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 }],
       tutorial: { ...createInitialSave().tutorial, step: 'sendExpedition' },
     };
     return equip(save, 'bram', 'weapon', 'g1');

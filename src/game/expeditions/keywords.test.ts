@@ -1,3 +1,4 @@
+import { affixes } from '@/content/affixes';
 import { expeditionRules } from '@/content/dungeons';
 import { dungeonById } from '@/content/lookup';
 
@@ -200,13 +201,14 @@ describe('gear keywords', () => {
 describe('strong keywords', () => {
   /** A hero wearing one piece of gear, optionally forged with a component. */
   const heroWith = (itemId: string, component?: string) => {
-    const gear: GearInstance = { uid: 'g1', itemId, quality: 'normal', ...(component ? { component } : {}) };
+    const affix = component ? affixes.find((a) => a.source.kind === 'component' && a.source.componentId === component) : undefined;
+    const gear: GearInstance = { uid: 'g1', itemId, rarity: 'uncommon', roll: 8, affixes: affix ? [{ id: affix.id, value: 0 }] : [], rerolls: 0 };
     const save: SaveData = { ...createInitialSave(), gear: [gear] };
     const hero = { ...save.heroes[0], equipment: { ...save.heroes[0].equipment, weapon: 'g1' } };
     return gearKeywordsOf({ ...save, heroes: [hero] }, hero);
   };
 
-  it("adds the component's keyword, or strengthens the piece's own", () => {
+  it("adds a keyword affix's keyword, or strengthens the piece's own", () => {
     // A mace is Blessed and Stagger: an ogre knucklebone doubles Stagger.
     expect(heroWith('mace3', 'ogreKnucklebone')).toEqual([
       { keyword: 'blessed', magic: false },

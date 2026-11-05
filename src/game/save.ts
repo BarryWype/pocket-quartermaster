@@ -7,7 +7,6 @@ import { recipes } from '@/content/recipes';
 import type { TipId } from '@/content/reveal';
 
 import { startingRecipes } from './crafting/recipeUnlocks';
-import { startingMastery } from './forging/mastery';
 
 import type { ManualRarity } from './loot/types';
 import type { AutoGatherSave } from './gathering/autoGather';
@@ -23,8 +22,6 @@ import type {
   HeroClassId,
   HeroState,
   Heist,
-  MasteryState,
-  MasteryType,
   PlaceFight,
   SecretTip,
   TreasureMap,
@@ -119,8 +116,6 @@ export type SaveData = {
   walkEffects: WalkEffect[];
   /** Sanctum spawn id → when it refreshes; one attempt per spawn, win or lose. */
   usedSanctums: Record<string, number>;
-  /** Forging mastery per weapon type and armour; a type is added when first met. */
-  mastery: Partial<Record<MasteryType, MasteryState>>;
   /** Tavern offer id → when the offers refresh; recruited offers stay gone until then. */
   takenOffers: Record<string, number>;
   /** Lifetime counters the gradual reveal reads; never pruned. */
@@ -255,8 +250,6 @@ export function createInitialSave(playerSeed?: string): SaveData {
     ruinsProgress: 0,
     dugRuins: {},
     personalTavern: null,
-    // Mastery starts with the starting recipes' types (their ids are `<type><tier>`), level 1.
-    mastery: Object.fromEntries(startingRecipes.map((id) => [id.replace(/\d+$/, '') as MasteryType, startingMastery(1)])),
     valuables: {},
     relics: [],
     manuals: {},

@@ -1,3 +1,4 @@
+import { ELEMENTS, stoneId } from '@/game/elements';
 import { mobById, patrolMobId, placeMobId } from '@/content/enemies';
 import { components } from '@/content/loot/components';
 
@@ -24,10 +25,11 @@ const request = (source: LootSourceId, seed: string, overrides: Partial<LootRequ
 
 const COMPONENT_IDS = new Set(components.map((c) => c.id));
 const BOSS_IDS = components.filter((c) => c.bossId).map((c) => c.id);
-const HEART_IDS = components.filter((c) => c.element).map((c) => c.id);
+const STONE_IDS = ELEMENTS.map(stoneId);
 
 /** The component stacks of a roll: shards and themed materials land in `materials` too. */
-const componentStacks = (loot: Loot) => loot.materials.filter((s) => COMPONENT_IDS.has(s.materialId));
+const componentStacks = (loot: Loot) =>
+  loot.materials.filter((s) => COMPONENT_IDS.has(s.materialId) || STONE_IDS.includes(s.materialId));
 
 const rolledIds = (source: LootSourceId, seedPrefix: string, seeds: number, overrides: Partial<LootRequest> = {}): string[] =>
   Array.from({ length: seeds }, (_, i) =>
@@ -77,10 +79,10 @@ describe('components', () => {
     expect([...ids].sort()).toEqual(['drakeFang', 'harpyFlightFeather', 'trollHide'].sort());
   });
 
-  it('gives the heart of the roll element, or a random one', () => {
-    expect(rolledIds('elementalRift', 'rift-', 1, { element: 'fire' })).toEqual(['fireHeart']);
-    expect(rolledIds('sanctum', 'sanctum-', 1, { element: 'water' })).toEqual(['waterHeart']);
-    expect(new Set(rolledIds('sanctum', 'heart-', 100))).toEqual(new Set(HEART_IDS));
+  it('gives the stone of the roll element, or a random one', () => {
+    expect(rolledIds('elementalRift', 'rift-', 1, { element: 'fire' })).toEqual([stoneId('fire')]);
+    expect(rolledIds('sanctum', 'sanctum-', 1, { element: 'water' })).toEqual([stoneId('water')]);
+    expect(new Set(rolledIds('sanctum', 'heart-', 100))).toEqual(new Set(STONE_IDS));
   });
 
   it('falls back to the tag component of non-elite enemies', () => {
@@ -99,6 +101,6 @@ describe('components', () => {
     const loot = emptyLoot();
     generators.components(req, loot);
     generators.components(req, loot);
-    expect(loot.materials).toEqual([{ materialId: 'fireHeart', amount: 2 }]);
+    expect(loot.materials).toEqual([{ materialId: stoneId('fire'), amount: 2 }]);
   });
 });

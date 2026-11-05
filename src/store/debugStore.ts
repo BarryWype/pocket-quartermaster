@@ -9,7 +9,7 @@ import type { PlaceSpawn } from '@/game/places/generate';
 import type { SanctumSpawn } from '@/game/sanctums/sanctums';
 import type { TavernSpawn } from '@/game/taverns/taverns';
 import type { LootCategory } from '@/game/loot/types';
-import type { Briefing, Quality } from '@/game/types';
+import type { Briefing, Rarity } from '@/game/types';
 
 type DebugSettings = {
   /** When set, replaces the device GPS position. */
@@ -25,8 +25,8 @@ type DebugSettings = {
   forcedLootCategory: LootCategory | null;
   /** A Sanctum placed by hand next to the player. */
   debugSanctum: SanctumSpawn | null;
-  /** Quality the next forged gear piece gets, then cleared. */
-  forcedQuality: Quality | null;
+  /** Rarity the next forged gear piece gets, then cleared. */
+  forcedRarity: Rarity | null;
   /** A tavern placed by hand next to the player. */
   debugTavern: TavernSpawn | null;
   /** Places put by hand next to the player. */
@@ -75,7 +75,7 @@ const DEBUG_DEFAULTS: DebugSettings = {
   extraSteps: 0,
   forcedLootCategory: null,
   debugSanctum: null,
-  forcedQuality: null,
+  forcedRarity: null,
   rotationDayOffset: 0,
   debugTavern: null,
   debugPlaces: [],

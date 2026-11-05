@@ -181,17 +181,16 @@ describe('recruiting', () => {
     expect(pruneExpired(after, offer.expiresAt + 1).takenOffers).toEqual({});
   });
 
-  it('teaches no recipe and grants no mastery', () => {
+  it('teaches no recipe', () => {
     const save = unlocked();
     const offer = firstOffer(save);
     const after = recruit(save, offer, here, here);
     expect(after.knownRecipes).toEqual(save.knownRecipes);
-    expect(after.mastery).toEqual(save.mastery);
   });
 
-  it('drops blueprints for the newer weapon types, and meeting one starts its mastery', () => {
+  it('drops blueprints for the newer weapon types, and teaches one', () => {
     const save = unlocked({ tutorial: { ...createInitialSave().tutorial, step: 'done' } });
-    const strong = equip({ ...save, heroes: save.heroes.map((h) => ({ ...h, level: 20 })), gear: [{ uid: 'g', itemId: 'sword5', quality: 'legendary' }] }, 'bram', 'weapon', 'g');
+    const strong = equip({ ...save, heroes: save.heroes.map((h) => ({ ...h, level: 20 })), gear: [{ uid: 'g', itemId: 'sword5', rarity: 'legendary' as const, roll: 8, affixes: [], rerolls: 0 }] }, 'bram', 'weapon', 'g');
     const drops = (s: SaveData) =>
       Array.from({ length: 80 }, (_, i) => {
         const started = startExpedition({ ...s, nextUid: i + 10 }, 'ratCellar', ['bram'], 0);
@@ -200,7 +199,7 @@ describe('recruiting', () => {
     const fresh = drops(strong).filter((id) => id && ['axe', 'dagger', 'staff'].some((type) => id.startsWith(type)));
     expect(fresh.length).toBeGreaterThan(0);
     const taught = unlockRecipe(strong, fresh[0]!);
-    expect(Object.keys(taught.mastery)).toContain(fresh[0]!.replace(/\d+$/, ''));
+    expect(taught.knownRecipes).toContain(fresh[0]);
   });
 });
 
@@ -216,7 +215,7 @@ describe('innate elements', () => {
     const save: SaveData = {
       ...createInitialSave(),
       heroes: [...createInitialSave().heroes, newHero('f', 'Neve', 'frostMage', 'tough')],
-      gear: [{ uid: 'w', itemId: 'wand1', quality: 'normal', element: 'electric' }],
+      gear: [{ uid: 'w', itemId: 'wand1', rarity: 'common' as const, roll: 8, affixes: [{ id: 'infusedElectric', value: 0 }], rerolls: 0 }],
     };
     const element = (s: SaveData, id: string) => prepareParty(s, [id])[0].weaponElement;
     expect(element(save, 'mira')).toBe('fire');
@@ -232,7 +231,7 @@ describe('trait rewards', () => {
       ...createInitialSave(),
       tutorial: { ...createInitialSave().tutorial, step: 'done' as const },
       heroes: createInitialSave().heroes.map((h) => (h.id === 'bram' ? { ...h, trait } : h)),
-      gear: [{ uid: 'g', itemId: 'sword5', quality: 'legendary' as const }],
+      gear: [{ uid: 'g', itemId: 'sword5', rarity: 'legendary' as const, roll: 8, affixes: [], rerolls: 0 }],
     };
     const started = startExpedition(equip(save, 'bram', 'weapon', 'g'), 'ratCellar', ['bram'], 0);
     return resolveExpedition(started, started.expeditions[0]);

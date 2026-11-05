@@ -8,7 +8,7 @@ import { createRng } from '../generation/rng';
 import type { ConsumableDef } from '../types';
 import { categoryChance, partyLuck } from './chances';
 import { charmApplies, partyCharms } from './charms';
-import { lootGearQuality } from './gear';
+import { lootGearRarity } from './gear';
 import { rollSourceLoot, type LootRequest } from './roll';
 import type { LootModifier, LootSourceId } from './types';
 
@@ -20,7 +20,7 @@ const request = (source: LootSourceId, modifiers: LootModifier[], seed = 's'): L
   tier: 1,
   enemies: [],
   base: { gold: 100, xp: 100 },
-  context: { playerTier: 1, pickaxeTier: 1, knownRecipes: [], favourCounts: {}, mastery: {} },
+  context: { playerTier: 1, pickaxeTier: 1, knownRecipes: [], favourCounts: {} },
   rng: createRng(seed),
   luck: 0,
   modifiers,
@@ -53,10 +53,10 @@ describe('charms', () => {
     expect(wise.xp).toBe(Math.round(plain.xp * (1 + xpPercent / 100)));
   });
 
-  it('lifts found gear one quality, never past the ladder', () => {
-    const roll = (steps: number, seed: string) => lootGearQuality('dungeonRun', createRng(seed), 0, undefined, steps);
+  it('lifts found gear one rarity, never past the ladder', () => {
+    const roll = (steps: number, seed: string) => lootGearRarity('dungeonRun', createRng(seed), 0, undefined, steps);
     const lifts = Array.from({ length: 50 }, (_, i) => [roll(0, `q${i}`), roll(1, `q${i}`)]);
-    expect(lifts.some(([plain, lifted]) => plain === 'crappy' && lifted === 'normal')).toBe(true);
+    expect(lifts.some(([plain, lifted]) => plain === 'common' && lifted === 'uncommon')).toBe(true);
     // The basic ladder tops out at Uncommon.
     expect(lifts.every(([plain, lifted]) => plain !== 'uncommon' || lifted === 'uncommon')).toBe(true);
     const found = rollSourceLoot({ ...request('dungeonRun', carrying('tinkersLodestone')), force: 'gear' });

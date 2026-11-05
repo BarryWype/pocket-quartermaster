@@ -23,7 +23,7 @@ export type CharmDef = {
   modifier: LootModifier;
 };
 
-const { chanceMultiplier, luck, goldPercent, xpPercent, qualitySteps } = lootConfig.charms;
+const { chanceMultiplier, luck, goldPercent, xpPercent, raritySteps } = lootConfig.charms;
 
 const chanceCharm = (
   id: string,
@@ -79,10 +79,10 @@ export const charms: CharmDef[] = [
     name: 'Tinker’s lodestone',
     emoji: '🧲',
     icon: require('../../../assets/icons/relics/runestone-bronze-spiral.png'),
-    description: 'Gear found on the run is one quality better.',
+    description: 'Gear found on the run is one rarity better.',
     inputs: { cog: 3 },
     unlockedBy: ['cog'],
-    modifier: { id: 'tinkersLodestone', kind: 'quality', steps: qualitySteps },
+    modifier: { id: 'tinkersLodestone', kind: 'rarity', steps: raritySteps },
   },
   chanceCharm('scarabCharm', 'Scarab charm', '🪲', require('../../../assets/icons/relics/amulet-violet-disc.png'), 'Treasure map', 'treasureMaps', { inputs: { chitin: 3 }, unlockedBy: ['chitin'] }),
   chanceCharm('ghostLantern', 'Ghost lantern', '🪔', require('../../../assets/icons/magic/elixir-blue-aura.png'), 'Key fragment', 'keyFragments', { inputs: { ectoplasm: 3 }, unlockedBy: ['ectoplasm'] }),

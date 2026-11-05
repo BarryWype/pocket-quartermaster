@@ -1,236 +1,85 @@
-import { masteryRules, QUALITIES, qualities, salvageRules } from '@/content/forging';
+import { salvageRules } from '@/content/forging';
 import { affinityRules } from '@/content/equipment';
+import { gearRules } from '@/content/gear';
 import { items } from '@/content/items';
-import { recipeById } from '@/content/lookup';
 import { heroClasses } from '@/content/heroes';
 
-import { craft, forgeResult, unlockRecipe } from '../crafting/crafting';
-import type { GearDef, GearInstance, MasteryType, StatKey } from '../types';
-import { createRng } from '../generation/rng';
+import type { GearDef, GearInstance, GearType, StatKey } from '../types';
+import { gearStats, SCALING_KEYS, statFactor, statRange } from '../gear/stats';
 import { createInitialSave, type SaveData } from '../save';
 import { equip, heroStats } from '../team/team';
-import { forgesForNextLevel, gainMastery, masteryCap, startingMastery } from './mastery';
-import { forgeStatRange, gearStats, qualityOdds, rollQuality, SCALING_KEYS } from './quality';
 import { canSalvage, salvage, salvageReturns } from './salvage';
 
 const gearItems = items.filter((i): i is GearDef => i.slot === 'weapon' || i.slot === 'armor');
-const piece = (itemId: string, quality: GearInstance['quality'] = 'normal', extra: Partial<GearInstance> = {}): GearInstance => ({
+const piece = (itemId: string, rarity: GearInstance['rarity'] = 'common', extra: Partial<GearInstance> = {}): GearInstance => ({
   uid: 'g1',
   itemId,
-  quality,
+  rarity,
+  roll: 8,
+  affixes: [],
+  rerolls: 0,
   ...extra,
 });
 
-describe('mastery caps and odds', () => {
-  it('caps mastery at 2 + 2 × tier', () => {
-    expect([1, 2, 3, 4, 5].map((tier) => masteryCap(tier))).toEqual([4, 6, 8, 10, 12]);
-  });
-
-  it('gives odds by levels below the cap', () => {
-    // Copper (cap 8), so the maxed row is the general one.
-    expect(qualityOdds(5, 3)).toEqual({ crappy: 80, normal: 20, uncommon: 0, rare: 0, legendary: 0 });
-    expect(qualityOdds(1, 3)).toEqual({ crappy: 80, normal: 20, uncommon: 0, rare: 0, legendary: 0 });
-    expect(qualityOdds(6, 3)).toEqual({ crappy: 58, normal: 40, uncommon: 0, rare: 2, legendary: 0 });
-    expect(qualityOdds(7, 3)).toEqual({ crappy: 30, normal: 65, uncommon: 0, rare: 5, legendary: 0 });
-    expect(qualityOdds(8, 3)).toEqual({ crappy: 10, normal: 75, uncommon: 0, rare: 12, legendary: 3 });
-  });
-
-  it('makes Legendary rarer on cheap tiers once maxed', () => {
-    expect(qualityOdds(4, 1)).toEqual({ crappy: 12, normal: 75, uncommon: 0, rare: 12, legendary: 1 });
-    expect(qualityOdds(6, 2)).toEqual({ crappy: 11, normal: 75, uncommon: 0, rare: 12, legendary: 2 });
-    expect(qualityOdds(10, 4)).toEqual({ crappy: 10, normal: 75, uncommon: 0, rare: 12, legendary: 3 });
-    expect(qualityOdds(12, 5)).toEqual({ crappy: 10, normal: 75, uncommon: 0, rare: 12, legendary: 3 });
-  });
-
-  it("uses an older tier's maxed odds above its cap", () => {
-    expect(qualityOdds(9, 1)).toEqual(qualityOdds(4, 1));
-    expect(qualityOdds(12, 2)).toEqual(qualityOdds(6, 2));
-  });
-
-  it('adds every row up to 100%', () => {
-    for (const row of [...masteryRules.odds, ...Object.values(masteryRules.maxedOddsByTier)]) {
-      expect(QUALITIES.reduce((sum, q) => sum + row![q], 0)).toBe(100);
-    }
-  });
-});
-
-describe('mastery gain', () => {
-  it('needs the band cost in forges per level', () => {
-    expect([1, 3, 4, 5, 6, 8, 10, 11].map((level) => forgesForNextLevel(level))).toEqual([3, 3, 3, 3, 4, 4, 4, 4]);
-    expect(forgesForNextLevel(12)).toBeNull();
-  });
-
-  it('counts one forge at a time and levels up at the band cost', () => {
-    let state = { level: 1, progress: 0 };
-    state = gainMastery(state, 1);
-    expect(state).toEqual({ level: 1, progress: 1 });
-    state = gainMastery(gainMastery(state, 1), 1);
-    expect(state).toEqual({ level: 2, progress: 0 });
-  });
-
-  it('gives nothing at or above the item tier cap', () => {
-    expect(gainMastery({ level: 4, progress: 0 }, 1)).toEqual({ level: 4, progress: 0 });
-    expect(gainMastery({ level: 7, progress: 2 }, 2)).toEqual({ level: 7, progress: 2 });
-  });
-
-  it('gains the given amount per forge, carrying the excess on level up', () => {
-    let state = { level: 1, progress: 0 };
-    state = gainMastery(state, 1, masteryRules, 1.2);
-    expect(state).toEqual({ level: 1, progress: 1.2 });
-    state = gainMastery(gainMastery(state, 1, masteryRules, 1.2), 1, masteryRules, 1.2);
-    expect(state.level).toBe(2);
-    expect(state.progress).toBeCloseTo(0.6);
-    expect(gainMastery({ level: 4, progress: 0 }, 1, masteryRules, 1.2)).toEqual({ level: 4, progress: 0 });
-  });
-
-  it('still counts higher-tier forges far below their cap, at the current band cost', () => {
-    expect(gainMastery({ level: 1, progress: 2 }, 5)).toEqual({ level: 2, progress: 0 });
-  });
-
-  it('starts a type first met through a later blueprint at the previous tier cap', () => {
-    expect(startingMastery(1)).toEqual({ level: 1, progress: 0 });
-    expect(startingMastery(3)).toEqual({ level: 6, progress: 0 });
-    expect(createInitialSave().mastery.wand).toBeUndefined();
-    expect(unlockRecipe(createInitialSave(), 'wand3').mastery.wand).toEqual({ level: 6, progress: 0 });
-    // Known types keep their level.
-    expect(unlockRecipe(createInitialSave(), 'sword3').mastery.sword).toEqual({ level: 1, progress: 0 });
-  });
-
-  it('takes the configured number of forges to max each tier', () => {
-    const forgesToMax = (from: number, to: number) => {
-      let state = { level: from, progress: 0 };
-      let forges = 0;
-      while (state.level < to) {
-        state = gainMastery(state, 5);
-        forges++;
-      }
-      return forges;
-    };
-    expect([forgesToMax(1, 4), forgesToMax(4, 6), forgesToMax(6, 8), forgesToMax(8, 10), forgesToMax(10, 12)]).toEqual([
-      9, 6, 8, 8, 8,
-    ]);
-  });
-
-  it('gives every tier the same maxed odds apart from the Legendary override', () => {
-    const maxed = [1, 2, 3, 4, 5].map((tier) => qualityOdds(masteryCap(tier), tier));
-    for (const odds of maxed) {
-      expect(odds.normal).toBe(75);
-      expect(odds.rare).toBe(12);
-      expect(odds.crappy + odds.legendary).toBe(13);
-    }
-  });
-});
-
-describe('forging quality', () => {
-  const withWood = (extra: Partial<SaveData> = {}): SaveData => ({ ...createInitialSave(), materials: { wood: 30 }, ...extra });
-
-  it('rolls the same quality for the same save, so reopening cannot reroll', () => {
-    const save = withWood({ nextUid: 42 });
-    expect(craft(save, recipeById.sword1).gear[0].quality).toBe(craft(save, recipeById.sword1).gear[0].quality);
-  });
-
-  it('follows the odds over many forges', () => {
-    const counts: Record<string, number> = {};
-    for (let uid = 1; uid <= 2000; uid++) {
-      const quality = craft(withWood({ nextUid: uid }), recipeById.sword1).gear[0].quality;
-      counts[quality] = (counts[quality] ?? 0) + 1;
-    }
-    // Level 1 against the wood cap of 4: 3 below, so 80% Crappy and 20% Normal.
-    expect(counts.crappy / 2000).toBeGreaterThan(0.75);
-    expect(counts.crappy / 2000).toBeLessThan(0.85);
-    expect(counts.rare ?? 0).toBe(0);
-  });
-
-  it('raises the mastery of the forged type and reports level-ups', () => {
-    let save = withWood();
-    for (let i = 0; i < 2; i++) save = craft(save, recipeById.sword1);
-    const before = save;
-    save = craft(save, recipeById.sword1);
-    expect(save.mastery.sword).toEqual({ level: 2, progress: 0 });
-    expect(save.mastery.mail).toEqual({ level: 1, progress: 0 });
-    expect(forgeResult(before, save)).toMatchObject({ type: 'sword', levelUp: true, mastery: { level: 2 } });
-  });
-
-  it('can be forced from debug', () => {
-    expect(craft(withWood(), recipeById.sword1, 'legendary').gear[0].quality).toBe('legendary');
-  });
-
-  it('rolls with the weighted odds', () => {
-    const rng = createRng('x');
-    for (let i = 0; i < 50; i++) expect(rollQuality({ crappy: 0, normal: 0, uncommon: 0, rare: 100, legendary: 0 }, rng)).toBe('rare');
-  });
-});
-
-describe('quality stats', () => {
-  it('multiplies the scaling stats of the piece, the extras stay flat', () => {
+describe('gear stats', () => {
+  it('multiplies the scaling stats of the piece by the dice factor, the extras stay flat', () => {
     const armour = items.find((i) => i.id === 'mail4') as GearDef;
     const scaled = (multiplier: number) =>
       Object.fromEntries(Object.entries(armour.stats).map(([key, value]) => [key, SCALING_KEYS.includes(key as StatKey) ? value! * multiplier : value]));
-    expect(gearStats(armour, { quality: 'crappy' })).toEqual(scaled(0.85));
-    expect(gearStats(armour, { quality: 'legendary' })).toEqual(scaled(1.3));
+    expect(gearStats(piece('mail4', 'common', { roll: 3 }))).toEqual(scaled(gearRules.statRange.min));
+    expect(gearStats(piece('mail4', 'common', { roll: 18 }))).toEqual(scaled(gearRules.statRange.max));
+  });
+
+  it('nudges the dice up by rarity, never past the top', () => {
+    expect(statFactor(10, 'rare')).toBe(statFactor(11, 'common'));
+    expect(statFactor(10, 'legendary')).toBe(statFactor(12, 'common'));
+    expect(statFactor(18, 'legendary')).toBe(gearRules.statRange.max);
   });
 
   it('shows what equipping the piece adds to a usable hero', () => {
-    const sword = items.find((i) => i.id === 'sword1') as GearDef;
-    for (const quality of ['crappy', 'normal'] as const) {
+    for (const roll of [3, 10, 18]) {
       const base = createInitialSave();
       const ranger = base.heroes.find((h) => h.classId === 'ranger')!;
-      const armed = equip({ ...base, gear: [{ ...piece('sword1', quality), roll: 1 }] }, ranger.id, 'weapon', 'g1');
+      const armed = equip({ ...base, gear: [piece('sword1', 'common', { roll })] }, ranger.id, 'weapon', 'g1');
       const unarmed = heroStats(base, ranger);
       const withSword = heroStats(armed, armed.heroes.find((h) => h.id === ranger.id)!);
-      expect(withSword.crit - unarmed.crit).toBe(gearStats(sword, { quality, roll: 1 }).crit);
+      expect(withSword.crit - unarmed.crit).toBe(gearStats(piece('sword1', 'common', { roll })).crit);
     }
   });
 
   it('applies class affinity on top', () => {
     const sword = items.find((i) => i.id === 'sword4') as GearDef;
-    const save = (quality: GearInstance['quality']) =>
-      equip({ ...createInitialSave(), gear: [piece('sword4', quality)] }, 'bram', 'weapon', 'g1');
+    const save = (roll: number) => equip({ ...createInitialSave(), gear: [piece('sword4', 'common', { roll })] }, 'bram', 'weapon', 'g1');
     const bram = (s: SaveData) => heroStats(s, s.heroes.find((h) => h.id === 'bram')!);
     const base = heroClasses.warrior.baseStats.power;
-    expect(bram(save('normal')).power).toBe(Math.round(base + sword.stats.power! * affinityRules.favoured));
-    expect(bram(save('rare')).power).toBe(Math.round(base + sword.stats.power! * 1.15 * affinityRules.favoured));
+    expect(bram(save(18)).power).toBe(Math.round(base + sword.stats.power! * gearRules.statRange.max * affinityRules.favoured));
   });
 
-  it('orders every quality within a tier, and a tier jump is worth more than quality', () => {
+  it('makes a tier jump worth more than rarity on average', () => {
     const mainStat = (item: GearDef) => (item.slot === 'armor' ? 'armour' : item.gearType === 'wand' ? 'magic' : 'power');
-    const lines: MasteryType[] = ['sword', 'bow', 'wand', 'mail'];
+    const lines: GearType[] = ['sword', 'bow', 'wand', 'mail'];
+    const meanFactor = (rarity: GearInstance['rarity']) => statFactor(10.5, rarity);
     for (const line of lines) {
-      const byTier = gearItems
-        .filter((i) => (i.gearType ?? 'mail') === line)
-        .sort((a, b) => a.tier - b.tier);
+      const byTier = gearItems.filter((i) => (i.gearType ?? 'mail') === line).sort((a, b) => a.tier - b.tier);
       for (let n = 0; n < byTier.length - 1; n++) {
         const [current, next] = [byTier[n], byTier[n + 1]];
         const stat = mainStat(current);
-        const value = (item: GearDef, quality: GearInstance['quality']) => item.stats[stat]! * qualities[quality].multiplier;
-        expect(value(current, 'crappy')).toBeLessThan(value(current, 'legendary'));
-        expect(value(current, 'legendary')).toBeLessThan(value(next, 'normal'));
+        expect(current.stats[stat]! * meanFactor('legendary')).toBeLessThan(next.stats[stat]! * meanFactor('common'));
       }
     }
   });
 
-  it('ranges a forge preview from the floor quality to the ceiling quality, roll extremes included', () => {
-    // The bone axe's base power: budget 5 less the axe profile's extras cost.
-    expect(forgeStatRange(4.95, 'crappy', 'uncommon')).toEqual({ min: 4, max: 6 });
-    expect(forgeStatRange(4.95, 'rare', 'rare')).toEqual({ min: 5, max: 6 });
-    // A clean base of 10 spans 10 × 0.85…1.07 × 0.94…1.06.
-    expect(forgeStatRange(10, 'crappy', 'uncommon')).toEqual({ min: 8, max: 11 });
-  });
-
-  it('collapses to a single value when both ends round the same', () => {
-    expect(forgeStatRange(1, 'normal', 'normal')).toEqual({ min: 1, max: 1 });
-    expect(forgeStatRange(0, 'crappy', 'legendary')).toEqual({ min: 0, max: 0 });
+  it('ranges a forge preview over the dice at the rarity', () => {
+    expect(statRange(10, 'common')).toEqual({ min: 8, max: 14 });
+    expect(statRange(1, 'common')).toEqual({ min: 1, max: 1 });
+    expect(statRange(0, 'legendary')).toEqual({ min: 0, max: 0 });
   });
 });
 
 describe('salvage', () => {
-  it('returns a share of the recipe by quality, rounded down', () => {
+  it('returns a share of the recipe by rarity, rounded down', () => {
     // Stone-scale mail: 1 bone, 1 hide and 4 stone.
-    expect(salvageReturns(piece('mail2', 'crappy'))).toEqual([
-      { materialId: 'bone', amount: 1 },
-      { materialId: 'stone', amount: 1 },
-    ]);
-    expect(salvageReturns(piece('mail2', 'normal'))).toEqual([
+    expect(salvageReturns(piece('mail2', 'common'))).toEqual([
       { materialId: 'bone', amount: 1 },
       { materialId: 'stone', amount: 1 },
     ]);
@@ -241,18 +90,14 @@ describe('salvage', () => {
   });
 
   it('always gives back at least 1 of the first input', () => {
-    expect(salvageReturns(piece('sword1', 'crappy'))).toEqual([{ materialId: 'wood', amount: 1 }]);
+    expect(salvageReturns(piece('sword1', 'common'))).toEqual([{ materialId: 'wood', amount: 1 }]);
   });
 
-  it('raises the recipe share with the Salvage track, never the shards', () => {
+  it('raises the recipe share with the Salvage track', () => {
     const bonus = 0.15 * 2;
     expect(salvageReturns(piece('mail2', 'rare'), salvageRules, bonus)).toEqual([
       { materialId: 'bone', amount: 1 },
       { materialId: 'stone', amount: 3 },
-    ]);
-    expect(salvageReturns(piece('sword1', 'normal', { element: 'fire' }), salvageRules, bonus)).toEqual([
-      { materialId: 'wood', amount: 2 },
-      { materialId: 'fireShard', amount: salvageRules.infusedShards },
     ]);
   });
 
@@ -261,25 +106,11 @@ describe('salvage', () => {
     expect(salvage(save, 'g1').materials).toEqual({ bone: 1, stone: 3 });
   });
 
-  it('gives shards back for infused and Legendary pieces', () => {
-    expect(salvageReturns(piece('sword1', 'normal', { element: 'fire' }))).toEqual([
-      { materialId: 'wood', amount: 1 },
-      { materialId: 'fireShard', amount: salvageRules.infusedShards },
-    ]);
-    const legendary = salvageReturns(piece('sword4', 'legendary'));
-    expect(legendary.slice(0, 2)).toEqual([
-      { materialId: 'wood', amount: 1 },
-      { materialId: 'iron', amount: 3 },
-    ]);
-    expect(legendary[2]).toEqual({ materialId: expect.stringMatching(/Shard$/), amount: 4 });
-    expect(salvageReturns(piece('sword4', 'legendary'))).toEqual(legendary);
-  });
-
-  it('destroys the piece and merges shards into stones', () => {
-    const save: SaveData = { ...createInitialSave(), gear: [piece('sword1', 'normal', { element: 'fire' })], materials: { fireShard: 5 } };
+  it('destroys the piece', () => {
+    const save: SaveData = { ...createInitialSave(), gear: [piece('sword1')] };
     const after = salvage(save, 'g1');
     expect(after.gear).toEqual([]);
-    expect(after.materials).toEqual({ wood: 1, fireStone: 1, fireShard: 3 });
+    expect(after.materials).toEqual({ wood: 1 });
   });
 
   it('refuses gear that is worn, including on an expedition', () => {

@@ -1,8 +1,8 @@
 import type { Difficulty } from '@/content/difficulty';
-import type { MasteryState, MasteryType } from '@/game/types';
 import type { PatrolKind } from '@/game/patrols/generate';
 
 import type { Element } from '../elements';
+import type { GearType } from '../types';
 import type { Rng } from '../generation/rng';
 import type { ChanceInput } from './chances';
 import { categoryChance } from './chances';
@@ -13,8 +13,7 @@ export type LootContext = {
   playerTier: number;
   pickaxeTier: number;
   knownRecipes: string[];
-  favourCounts: Partial<Record<MasteryType, number>>;
-  mastery: Partial<Record<MasteryType, MasteryState>>;
+  favourCounts: Partial<Record<GearType, number>>;
 };
 
 export type LootRequest = ChanceInput & {
@@ -62,7 +61,6 @@ export function mergeLoot(a: Loot, b: Loot): Loot {
     lures: a.lures + b.lures,
     gear: [...a.gear, ...b.gear],
     recipeIds: [...a.recipeIds, ...b.recipeIds],
-    mastery: [...a.mastery, ...b.mastery],
     keyFragments: a.keyFragments + b.keyFragments,
     treasureMaps: [...a.treasureMaps, ...b.treasureMaps],
     manuals: [...a.manuals, ...b.manuals],

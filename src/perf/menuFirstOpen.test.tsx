@@ -30,7 +30,7 @@ import { recipes } from '@/content/recipes';
 import { rotationDay } from '@/game/dungeons/rotation';
 import { createInitialSave, type SaveData } from '@/game/save';
 import { equip } from '@/game/team/team';
-import type { GearInstance, Quality } from '@/game/types';
+import type { GearInstance, Rarity } from '@/game/types';
 
 jest.mock('expo-router', () => ({
   ...jest.requireActual('expo-router'),
@@ -71,7 +71,7 @@ const SCREENS: [name: string, path: string][] = [
   ['tips', '@/app/tips'],
 ];
 
-const QUALITIES: Quality[] = ['crappy', 'normal', 'uncommon', 'rare'];
+const RARITIES: Rarity[] = ['common', 'common', 'uncommon', 'rare'];
 
 /** Tiers 1 and 2 cleared, tier 3 half way: six heroes at level 9, ~40 gear pieces, a full storeroom. */
 export function midGameSave(): SaveData {
@@ -86,7 +86,10 @@ export function midGameSave(): SaveData {
   const gear: GearInstance[] = Array.from({ length: 40 }, (_, i) => ({
     uid: `g${i}`,
     itemId: gearItems[(i * 7) % gearItems.length].id,
-    quality: QUALITIES[i % QUALITIES.length],
+    rarity: RARITIES[i % RARITIES.length],
+    roll: 8,
+    affixes: [],
+    rerolls: 0,
   }));
   let save: SaveData = {
     ...base,

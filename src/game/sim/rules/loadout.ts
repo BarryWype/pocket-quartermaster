@@ -5,6 +5,7 @@ import { items } from '@/content/items';
 import { weaknessByBoss } from '@/content/weaknesses';
 
 import { charmApplies } from '../../loot/charms';
+import { infusedElement } from '../../gear/affixes';
 import type { LootSourceId } from '../../loot/types';
 import type { SaveData } from '../../save';
 import { equip, unequip } from '../../team/team';
@@ -106,7 +107,7 @@ export function withOil(save: SaveData, heroId: string, itemId: string): SaveDat
   const hero = save.heroes.find((h) => h.id === heroId);
   const slot = hero?.equipment.consumable;
   const weapon = hero?.equipment.weapon ? save.gear.find((g) => g.uid === hero.equipment.weapon) : undefined;
-  if (!hero || !oilIds.includes(itemId) || (slot !== null && !isHealingPotion(slot)) || !weapon || weapon.element || (save.consumables[itemId] ?? 0) < 1)
+  if (!hero || !oilIds.includes(itemId) || (slot !== null && !isHealingPotion(slot)) || !weapon || infusedElement(weapon) || (save.consumables[itemId] ?? 0) < 1)
     return save;
   return equip(save, heroId, 'consumable', itemId);
 }

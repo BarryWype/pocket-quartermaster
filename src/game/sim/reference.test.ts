@@ -10,18 +10,18 @@ describe('referenceSave', () => {
   it('starts a tier at the previous tier band top, in Common gear of the tier below', () => {
     const save = referenceSave(3, 'start', 3);
     expect(save.heroes.map((h) => h.level)).toEqual([expectedLevels[1], expectedLevels[1], expectedLevels[1]]);
-    const gear = save.gear.map((g) => ({ item: items.find((i) => i.id === g.itemId) as GearDef, quality: g.quality }));
+    const gear = save.gear.map((g) => ({ item: items.find((i) => i.id === g.itemId) as GearDef, rarity: g.rarity }));
     expect(gear.every((g) => g.item.tier === 2)).toBe(true);
-    expect(gear.every((g) => g.quality === 'normal')).toBe(true);
+    expect(gear.every((g) => g.rarity === 'common')).toBe(true);
     expect(save.heroes.every((h) => h.equipment.armor)).toBe(true);
   });
 
   it('ends a tier at the band top, in Uncommon gear of the tier', () => {
     const save = referenceSave(2, 'end', 3);
     expect(save.heroes.every((h) => h.level === expectedLevels[1])).toBe(true);
-    const gear = save.gear.map((g) => ({ item: items.find((i) => i.id === g.itemId) as GearDef, quality: g.quality }));
+    const gear = save.gear.map((g) => ({ item: items.find((i) => i.id === g.itemId) as GearDef, rarity: g.rarity }));
     expect(gear.every((g) => g.item.tier === 2)).toBe(true);
-    expect(gear.every((g) => g.quality === 'uncommon')).toBe(true);
+    expect(gear.every((g) => g.rarity === 'uncommon')).toBe(true);
     expect(save.heroes.every((h) => h.equipment.weapon && h.equipment.armor)).toBe(true);
   });
 

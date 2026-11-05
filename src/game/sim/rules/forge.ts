@@ -5,13 +5,11 @@ import { recipes } from '@/content/recipes';
 
 import { forgedItem, isKnown } from '../../crafting/crafting';
 import { canForgeWithComponent, componentFits, forgeWithComponent } from '../../forging/components';
-import { masteryCap, masteryOf, masteryTypeOf } from '../../forging/mastery';
-import { rollToScale } from '../../forging/roll';
 import { canRestore, restoreRelic } from '../../forging/relics';
 import type { SaveData } from '../../save';
 import { affinityOf, equip } from '../../team/team';
 import type { GearDef, HeroState, OffhandType } from '../../types';
-import { QUALITY_ORDER, act, homeHeroes, mark, type CraftRow, type Sim } from '../bot';
+import { RARITY_ORDER, act, homeHeroes, mark, type CraftRow, type Sim } from '../bot';
 
 type Slot = 'weapon' | 'armor' | 'offhand';
 const SLOTS: Slot[] = ['weapon', 'armor', 'offhand'];
@@ -37,11 +35,11 @@ function usableBy(save: SaveData, hero: HeroState, slot: Slot, gearType: NonNull
   return affinityOf(hero.classId, gearType) !== 'unfit';
 }
 
-/** The tier and quality a hero wears in a slot; an empty slot ranks weakest. */
+/** The tier and rarity a hero wears in a slot; an empty slot ranks weakest. */
 const wornRank = (save: SaveData, hero: HeroState, slot: Slot): [number, number] => {
   const worn = gearOf(save, hero.equipment[slot]);
   if (!worn) return [-1, -1];
-  return [(itemById[worn.itemId] as GearDef).tier, QUALITY_ORDER.indexOf(worn.quality)];
+  return [(itemById[worn.itemId] as GearDef).tier, RARITY_ORDER.indexOf(worn.rarity)];
 };
 
 /** The best component forge on the table: highest tier, then the weakest worn piece it replaces, never one of a higher tier. */
@@ -104,16 +102,13 @@ function logCraft(sim: Sim, kind: 'component' | 'relic', before: SaveData, mater
   const gear = sim.save.gear.find((g) => !before.gear.some((b) => b.uid === g.uid));
   if (!gear) return null;
   const item = itemById[gear.itemId] as GearDef;
-  const type = masteryTypeOf(item);
   const row: CraftRow = {
     day: sim.day,
     kind,
     itemId: item.id,
     tier: item.tier,
-    quality: gear.quality,
-    roll: rollToScale(gear.roll ?? 1),
-    mastery: masteryOf(sim.save, type).level,
-    maxed: masteryOf(before, type).level >= masteryCap(item.tier),
+    rarity: gear.rarity,
+    roll: gear.roll,
     materials,
   };
   sim.log.crafts.push(row);

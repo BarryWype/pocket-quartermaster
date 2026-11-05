@@ -7,7 +7,6 @@ import { resources } from '@/content/resources';
 import { ELEMENTS, shardId, type Element } from '@/game/elements';
 import type { GearType } from '@/game/types';
 
-import { masteryCap } from '../forging/mastery';
 import type { Rng } from '../generation/rng';
 import { dedupeModifiers, partyLuck } from './chances';
 import { componentPool } from './components';
@@ -80,7 +79,7 @@ function shards(req: LootRequest, loot: Loot): void {
 }
 
 function blueprints(req: LootRequest, loot: Loot): void {
-  const { favourWeights, tierCompleteForges, componentShare } = lootConfig.blueprints;
+  const { favourWeights } = lootConfig.blueprints;
   const forgeable = (Object.keys(gearRecipes) as GearType[]).filter(
     (type) => gearRecipes[type][req.tier - 1].length > 0,
   );
@@ -96,15 +95,8 @@ function blueprints(req: LootRequest, loot: Loot): void {
     loot.recipeIds.push(pick.id);
     return;
   }
-  if (componentShare > 0 && req.rng.chance(componentShare)) {
-    generators.components(req, loot, true);
-    return;
-  }
-  const cap = masteryCap(req.tier);
-  const belowCap = forgeable.filter((type) => (req.context.mastery[type]?.level ?? 1) < cap);
-  const types = belowCap.length > 0 ? belowCap : forgeable;
-  const type = types[req.rng.int(0, types.length - 1)];
-  loot.mastery.push({ type, tier: req.tier, forges: tierCompleteForges });
+  // A complete tier: its blueprint row always falls through to a component.
+  generators.components(req, loot, true);
 }
 
 function consumables(req: LootRequest, loot: Loot): void {

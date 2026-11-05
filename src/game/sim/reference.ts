@@ -3,9 +3,11 @@ import { classAffinities } from '@/content/equipment';
 import { classSpecials } from '@/content/classSpecials';
 import { newHero } from '@/content/heroes';
 import { items } from '@/content/items';
-import type { GearDef, HeroClassId, HeroState, Quality } from '@/game/types';
+import type { Rarity } from '@/content/gear';
+import type { GearDef, HeroClassId, HeroState } from '@/game/types';
 
 import { createInitialSave, type SaveData } from '../save';
+import { makeGearPiece } from '../gear/make';
 import { equip } from '../team/team';
 import { expectedLevels } from './config';
 import { fillPotions } from './rules/loadout';
@@ -20,9 +22,9 @@ function weaponFor(classId: HeroClassId, tier: number) {
 
 /**
  * The reference team for odds targets: these classes at a level, in a tier's
- * best weapons and armour at one quality, each with a healing potion, no traits.
+ * best weapons and armour at one rarity, each with a healing potion, no traits.
  */
-export function referenceTeam(classes: HeroClassId[], tier: number, quality: Quality, level: number): SaveData {
+export function referenceTeam(classes: HeroClassId[], tier: number, rarity: Rarity, level: number): SaveData {
   // Each class rolls its first common special, like the reference teams it simulates.
   const heroes: HeroState[] = classes.map((classId, i) => newHero(`h${i}`, classId, classId, '', level, classSpecials[classId].common[0]));
   const armour = items.find((i) => i.slot === 'armor' && i.tier === tier)!;
@@ -32,8 +34,8 @@ export function referenceTeam(classes: HeroClassId[], tier: number, quality: Qua
     heroes,
     consumables: { ...createInitialSave().consumables, healingPotion: classes.length },
     gear: classes.flatMap((classId, i) => [
-      { uid: `w${i}`, itemId: weaponFor(classId, tier)!.id, quality },
-      { uid: `a${i}`, itemId: armour.id, quality },
+      makeGearPiece(`w${i}`, weaponFor(classId, tier)!.id, rarity),
+      makeGearPiece(`a${i}`, armour.id, rarity),
     ]),
   };
   heroes.forEach((hero, i) => {
@@ -60,7 +62,7 @@ export function referenceSave(tier: number, when: 'start' | 'end', party: number
   const initial = createInitialSave();
   const level = when === 'end' ? expectedLevels[tier - 1] : tier === 1 ? 1 : expectedLevels[tier - 2];
   const gearTier = when === 'end' ? tier : Math.max(1, tier - 1);
-  const quality: Quality = when === 'end' ? 'uncommon' : 'normal';
+  const rarity: Rarity = when === 'end' ? 'uncommon' : 'common';
   const withArmour = !(tier === 1 && when === 'start');
   const heroes = initial.heroes.slice(0, party).map((h) => ({ ...h, level }));
   let save: SaveData = {
@@ -69,8 +71,8 @@ export function referenceSave(tier: number, when: 'start' | 'end', party: number
     heroes,
     clearedDungeons: dungeons.filter((d) => d.tier < tier).map((d) => d.id),
     gear: heroes.flatMap((_, i) => [
-      { uid: `w${i}`, itemId: `${WEAPONS[i]}${gearTier}`, quality },
-      ...(withArmour ? [{ uid: `a${i}`, itemId: `mail${gearTier}`, quality }] : []),
+      makeGearPiece(`w${i}`, `${WEAPONS[i]}${gearTier}`, rarity),
+      ...(withArmour ? [makeGearPiece(`a${i}`, `mail${gearTier}`, rarity)] : []),
     ]),
     consumables: { ...initial.consumables, healingPotion: 3 },
   };

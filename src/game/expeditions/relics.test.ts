@@ -18,7 +18,7 @@ const steady = { ...calm, damageVariance: 0, enemyCritChance: 0 };
 
 /** A hero wearing one piece of gear, restored from a relic or plain, with flat combat numbers. */
 function wornMember(itemId: string, relicId: string | null, overrides: Partial<PartyMember> = {}, heroId = 'bram'): PartyMember {
-  const gear: GearInstance = { uid: 'g1', itemId, quality: 'normal', ...(relicId ? { relicId } : {}) };
+  const gear: GearInstance = { uid: 'g1', itemId, rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0, ...(relicId ? { relicId } : {}) };
   const save: SaveData = { ...createInitialSave(), gear: [gear] };
   const base = save.heroes.find((h) => h.id === heroId)!;
   const slot = GEAR_SLOTS[itemId.replace(/\d+$/, '') as keyof typeof GEAR_SLOTS];
@@ -261,7 +261,7 @@ describe('relic odds', () => {
     const save = createInitialSave();
     if (!relicId) return save;
     const relic = relicById[relicId];
-    const gear: GearInstance = { uid: 'g1', itemId: gearId(relic.gearType, relic.tier), quality: 'normal', relicId: relic.id };
+    const gear: GearInstance = { uid: 'g1', itemId: gearId(relic.gearType, relic.tier), rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0, relicId: relic.id };
     return {
       ...save,
       gear: [...save.gear, gear],

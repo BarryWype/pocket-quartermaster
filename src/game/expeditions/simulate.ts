@@ -17,6 +17,7 @@ import { createRng } from '../generation/rng';
 import { mobTags } from '../enemies/tags';
 import type { SaveData } from '../save';
 import { trinketEffect } from '../loot/trinkets';
+import { infusedElement, wardingElement } from '../gear/affixes';
 import { currentHp } from '../team/health';
 import { heroAbilities, heroDamageStat, heroStats, gearKeywordsOf, healingPotion, relicEffectsOf, type GearKeywordEntry, type WornRelicEffect } from '../team/team';
 import { classApproaches, gearApproachBonus, heroApproachBonus } from '../team/stats';
@@ -357,7 +358,7 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs
       const weaponItem = weapon ? (itemById[weapon.itemId] as GearDef) : null;
       const offhandItem = offhand ? (itemById[offhand.itemId] as GearDef) : null;
       const trinket = save.gear.find((g) => g.uid === hero.equipment.trinket);
-      const elementResist = trinket ? trinketEffect(itemById[trinket.itemId] as GearDef, trinket.quality).elementResist : undefined;
+      const elementResist = trinket ? trinketEffect(itemById[trinket.itemId] as GearDef, trinket).elementResist : undefined;
       // Heavy and Concealed read the equipped pieces; no pieces count as concealed.
       const pieces = [weaponItem, armour ? (itemById[armour.itemId] as GearDef) : null, offhandItem].flatMap(
         (item) => (item ? [item] : []),
@@ -411,8 +412,8 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs
           ...heroAbilities(hero),
         ],
         weaponElement:
-          elixir?.kind === 'oil' && weapon ? elixir.element : (weapon?.element ?? heroClass.element),
-        armourElement: armour?.element,
+          elixir?.kind === 'oil' && weapon ? elixir.element : (infusedElement(weapon) ?? heroClass.element),
+        armourElement: wardingElement(armour),
         consumable,
         classKeywords: fists ? [...new Set([...heroClass.keywords, 'pierce' as const])] : heroClass.keywords,
         carriedKit: porter ? (itemById[porter.equipment.consumable!] as ConsumableDef) : null,

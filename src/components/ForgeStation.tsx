@@ -2,8 +2,7 @@ import { useRef, useState, type ComponentRef } from 'react';
 import { ScrollView, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 import PagerView from 'react-native-pager-view';
 
-import { masteryTypeNames } from '@/content/forging';
-import { gearProfiles } from '@/content/equipment';
+import { gearTypeNames , gearProfiles } from '@/content/equipment';
 import { materialById, recipeById, recipeOutput, relicById } from '@/content/lookup';
 import { tierMaterials } from '@/content/materials';
 import { systemIcons } from '@/content/systemIcons';
@@ -380,7 +379,7 @@ function RelicList({ save, onRestore }: { save: SaveData; onRestore: (relicUid: 
               <View>
                 <View style={styles.relicHead}>
                   <GearMarks tier={relic.tier} />
-                  <Text style={styles.mastery}>{tr(masteryTypeNames[relic.gearType].name)}</Text>
+                  <Text style={styles.mastery}>{tr(gearTypeNames[relic.gearType].name)}</Text>
                 </View>
                 <Text style={styles.mastery}>✦ {tr(relic.effect)}</Text>
                 <View style={recipeInputsStyles.inputs}>

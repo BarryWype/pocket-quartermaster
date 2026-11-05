@@ -5,7 +5,7 @@ import { relics, type RelicDef } from '@/content/loot/relics';
 import type { GearDef, Stats } from '@/game/types';
 
 import { createInitialSave, type SaveData } from '../save';
-import { gearStats } from './quality';
+import { gearStats } from '../gear/stats';
 import { canRestore, relicRecipe, restoreRelic } from './relics';
 
 /** A save holding the relic and exactly its restore cost, gem included. */
@@ -97,7 +97,7 @@ describe('restoreRelic', () => {
     for (const relic of relics) {
       for (let uid = 1; uid <= 20; uid++) {
         const next = restoreRelic(holding(relic, { nextUid: uid }), 'r1');
-        expect(['rare', 'legendary']).toContain(next.gear[0].quality);
+        expect(['rare', 'legendary']).toContain(next.gear[0].rarity);
       }
     }
   });
@@ -105,8 +105,8 @@ describe('restoreRelic', () => {
   it('gives a Legendary relic with the best roll lower stats than the plain Legendary piece', () => {
     for (const relic of relics) {
       const item = itemById[gearId(relic.gearType, relic.tier)] as GearDef;
-      const restored = gearStats(item, { quality: 'legendary', roll: 1.06, relicId: relic.id });
-      const plain = gearStats(item, { quality: 'legendary', roll: 1.06 });
+      const restored = gearStats({ itemId: item.id, rarity: 'legendary', roll: 8, relicId: relic.id });
+      const plain = gearStats({ itemId: item.id, rarity: 'legendary', roll: 8 });
       for (const stat of ['power', 'magic', 'armour', 'resistance', 'hp'] as (keyof Stats)[]) {
         if (!plain[stat]) continue;
         expect(restored[stat]!).toBeLessThan(plain[stat]!);

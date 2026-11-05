@@ -1,18 +1,21 @@
-import { componentForgeOdds } from '@/content/forging';
-import { gearId, gearRecipes, gearLuckRules } from '@/content/equipment';
+import { gearId, gearRecipes } from '@/content/equipment';
+import type { Rarity } from '@/content/gear';
 import { itemById, relicById } from '@/content/lookup';
 import { lootConfig } from '@/content/loot/config';
 import type { RelicDef } from '@/content/loot/relics';
 
+import { makeGearPiece } from '../gear/make';
 import { recipeCost } from '../crafting/crafting';
 import { guildBonus } from '../guild/guild';
-import { masteryOf } from './mastery';
-import { rollQuality } from './quality';
-import { rollStatFactor } from './roll';
 import { createRng } from '../generation/rng';
 import { removeMaterials } from '../inventory';
 import type { SaveData } from '../save';
 import type { GearDef, RecipeDef } from '../types';
+
+/** A restored piece's rarity, seeded by the piece's uid. */
+function relicRarity(uid: string, relicId: string): Rarity {
+  return createRng(`${uid}|${relicId}`).weighted(['rare', 'legendary'] as Rarity[], (r) => (r === 'legendary' ? 20 : 80));
+}
 
 /** The gem a relic of `tier` restores with: rough up to tier 3, cut above. */
 function gemFor(tier: number) {
@@ -44,10 +47,9 @@ export function canRestore(save: SaveData, relicUid: string) {
 
 /**
  * Restores a held relic into a finished piece: the recipe's materials plus the
- * tier's gem are spent, and the piece carries the relic with its quality
- * rolled from componentForgeOdds (seeded by its uid, so it can't be
- * rerolled), a Legendary luck roll and a mastery stat roll. No mastery is
- * gained and no blueprint learned. `free` skips the cost (debug).
+ * tier's gem are spent, and the piece carries the relic, with its rarity
+ * rolled from the old component odds (seeded by its uid, so it can't be
+ * rerolled). No blueprint learned. `free` skips the cost (debug).
  */
 export function restoreRelic(save: SaveData, relicUid: string, free = false): SaveData {
   const held = save.relics.find((r) => r.uid === relicUid);
@@ -58,19 +60,13 @@ export function restoreRelic(save: SaveData, relicUid: string, free = false): Sa
   if (!free && !cost) throw new Error(`Cannot restore ${relic.id}`);
 
   const uid = `g${save.nextUid}`;
-  const mastery = masteryOf(save, relic.gearType);
-  const quality = rollQuality(componentForgeOdds, createRng(`${uid}|${relic.id}`));
-  // A Legendary restore also rolls +1 Luck, seeded by the piece's uid.
-  const luck = quality === 'legendary' && createRng(`${uid}|luck`).chance(gearLuckRules.chance) ? 1 : undefined;
   const gearItem = itemById[gearId(relic.gearType, relic.tier)] as GearDef;
+  const piece = makeGearPiece(uid, gearItem.id, relicRarity(uid, relic.id), undefined, { relicId: relic.id });
   return {
     ...save,
     relics: save.relics.filter((r) => r.uid !== relicUid),
     ...(cost ? { materials: removeMaterials(save.materials, cost.materials), valuables: cost.valuables } : {}),
-    gear: [
-      ...save.gear,
-      { uid, itemId: gearItem.id, quality, roll: rollStatFactor(uid, mastery.level, relic.tier), ...(luck ? { luck } : {}), relicId: relic.id },
-    ],
+    gear: [...save.gear, piece],
     nextUid: save.nextUid + 1,
   };
 }

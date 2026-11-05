@@ -104,13 +104,13 @@ describe('loadout rules', () => {
   it('puts an oil in a healing potion slot only for a hero with a plain weapon', () => {
     const armed: SaveData = {
       ...stocked({ emberOil: 1, healingPotion: 3 }),
-      gear: [{ uid: 'w1', itemId: 'sword1', quality: 'normal' }],
+      gear: [{ uid: 'w1', itemId: 'sword1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 }],
     };
     const equipped = { ...armed, heroes: armed.heroes.map((h) => (h.id === 'bram' ? { ...h, equipment: { ...h.equipment, weapon: 'w1' } } : h)) };
     const potion = fillPotions(equipped, PARTY);
     expect(slots(withOil(potion, 'bram', 'emberOil'))[0]).toBe('emberOil');
     expect(withOil(potion, 'lyra', 'emberOil')).toBe(potion);
-    const infused: SaveData = { ...potion, gear: [{ uid: 'w1', itemId: 'sword1', quality: 'normal', element: 'water' }] };
+    const infused: SaveData = { ...potion, gear: [{ uid: 'w1', itemId: 'sword1', rarity: 'common' as const, roll: 8, affixes: [{ id: 'infusedWater', value: 0 }], rerolls: 0 }] };
     expect(withOil(infused, 'bram', 'emberOil')).toBe(infused);
     const kitted = pickKits(stocked({ roguesRoll: 1, emberOil: 1 }), ['bram'], TRAPS);
     expect(withOil(kitted, 'bram', 'emberOil')).toBe(kitted);

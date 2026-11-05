@@ -120,7 +120,7 @@ export function patrolRewards(
     difficulty: spawn.difficulty ?? undefined,
     patrolKind: spawn.kind,
     base: { gold: Math.round(amounts.gold * elites * context.goldMultiplier), xp: Math.round(amounts.xp * elites) },
-    context: { playerTier: context.playerTier, pickaxeTier: context.pickaxeTier, knownRecipes: [], favourCounts: {}, mastery: {} },
+    context: { playerTier: context.playerTier, pickaxeTier: context.pickaxeTier, knownRecipes: [], favourCounts: {} },
     rng,
   });
 }

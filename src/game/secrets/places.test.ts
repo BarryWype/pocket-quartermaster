@@ -148,10 +148,11 @@ describe('the black market goods', () => {
     for (const line of lines) {
       expect(line.kind).toBe('gear');
       expect(trinkets.some((t) => t.id === line.id)).toBe(true);
-      expect(line.gear).toMatchObject({ quality: 'rare' });
+      expect(line.gear?.rarity).toBe('rare');
+      expect(line.gear?.affixes).toHaveLength(2);
       expect(line.id).not.toContain('ringOfFortune');
       expect(line.price).toBe(
-        Math.round(shopRules.gearPrice[0] * shopRules.qualityPrice.rare * secretRules.blackMarket.markup),
+        Math.round(shopRules.gearPrice[0] * shopRules.rarityPrice.rare * secretRules.blackMarket.markup),
       );
     }
   });

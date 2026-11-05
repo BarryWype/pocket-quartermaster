@@ -1,31 +1,15 @@
-import { componentForgeOdds } from '@/content/forging';
+import { affixes } from '@/content/affixes';
 import { components } from '@/content/loot/components';
 import { componentById } from '@/content/lookup';
-import { tierMaterials } from '@/content/materials';
 
-import { forgedItem, forgeGearPiece, isKnown, recipeCost, unlockRecipe } from '../crafting/crafting';
-import { removeMaterials } from '../inventory';
+import { forgeGearPiece, forgedItem, isKnown, recipeCost, unlockRecipe } from '../crafting/crafting';
+import { hasMaterials, removeMaterials } from '../inventory';
 import type { SaveData } from '../save';
-import type { GearType, MaterialStack, Quality, RecipeDef } from '../types';
+import type { GearType, RecipeDef } from '../types';
 
-/**
- * The recipe's inputs with one unit of a secondary material swapped for the
- * component. The main material stays in full: the tier's metal or stone from
- * tier 2 on, the largest input at tier 1 (ties to the last listed). A
- * one-material recipe loses that unit of the main material instead.
- */
-export function componentRecipe(recipe: RecipeDef, componentId: string): MaterialStack[] {
-  const item = forgedItem(recipe);
-  if (!item) throw new Error(`${recipe.id} forges no gear`);
-  const tierMaterial = tierMaterials[item.tier - 1];
-  const mainId =
-    item.tier >= 2 && recipe.inputs.some((input) => input.materialId === tierMaterial)
-      ? tierMaterial
-      : recipe.inputs.reduce((best, input) => (input.amount >= best.amount ? input : best)).materialId;
-  const inputs = recipe.inputs.map(({ materialId, amount }) => ({ materialId, amount }));
-  const swapped = inputs.find((input) => input.materialId !== mainId) ?? inputs.find((input) => input.materialId === mainId)!;
-  swapped.amount -= 1;
-  return [...inputs.filter((input) => input.amount > 0), { materialId: componentId, amount: 1 }];
+/** The affix a component gives the piece it is forged into. */
+export function componentAffixId(componentId: string): string | undefined {
+  return affixes.find((affix) => affix.source.kind === 'component' && affix.source.componentId === componentId)?.id;
 }
 
 /** Whether the component can be forged into a piece of this gear type. */
@@ -41,37 +25,33 @@ export function fittingComponents(save: SaveData, recipe: RecipeDef): string[] {
   return components.filter((c) => c.fits.includes(gearType) && (save.materials[c.id] ?? 0) > 0).map((c) => c.id);
 }
 
-/** Whether the blueprint is known, the component fits, and the materials cover the swapped inputs. */
+/** Whether the blueprint is known, the component fits, and the materials cover the recipe plus the component. */
 export function canForgeWithComponent(save: SaveData, recipe: RecipeDef, componentId: string) {
   const item = forgedItem(recipe);
   if (!item?.gearType || !isKnown(save, recipe) || !componentFits(componentId, item.gearType)) return false;
-  return recipeCost(save, { ...recipe, inputs: componentRecipe(recipe, componentId) }) !== null;
+  return (
+    recipeCost(save, recipe) !== null && hasMaterials(save.materials, [{ materialId: componentId, amount: 1 }])
+  );
 }
 
 /**
- * Forges the recipe's gear with one unit of a secondary material swapped for
- * the component: the piece carries the component, a heart infuses its element
- * for good, and quality comes from componentForgeOdds. Mastery gains as with
- * any forge.
+ * Forges the recipe's gear with one component added: the full recipe plus that
+ * component are spent, and the piece comes out Uncommon with the component's
+ * affix (rolled with the piece's other rolls).
  */
-export function forgeWithComponent(save: SaveData, recipe: RecipeDef, componentId: string, forceQuality?: Quality): SaveData {
+export function forgeWithComponent(save: SaveData, recipe: RecipeDef, componentId: string): SaveData {
   if (!canForgeWithComponent(save, recipe, componentId)) throw new Error(`Cannot forge ${recipe.id} with ${componentId}`);
-  const cost = recipeCost(save, { ...recipe, inputs: componentRecipe(recipe, componentId) })!;
+  const cost = recipeCost(save, recipe)!;
   const gearItem = forgedItem(recipe)!;
-  const component = componentById[componentId];
-  const element = component.effect.kind === 'infusion' ? component.element : undefined;
-  let next: SaveData = {
+  const affixId = componentAffixId(componentId);
+  if (!affixId) throw new Error(`Component ${componentId} has no affix`);
+  const next: SaveData = {
     ...save,
-    materials: removeMaterials(save.materials, cost.materials),
+    materials: removeMaterials(save.materials, [...cost.materials, { materialId: componentId, amount: 1 }]),
     valuables: cost.valuables,
   };
-  next = forgeGearPiece(
-    next,
-    recipe,
-    gearItem,
-    () => componentForgeOdds,
-    { component: componentId, ...(element ? { element } : {}) },
-    forceQuality,
+  return (recipe.unlocks ?? []).reduce(
+    unlockRecipe,
+    forgeGearPiece(next, gearItem, 'uncommon', { forced: [{ id: affixId }] }),
   );
-  return (recipe.unlocks ?? []).reduce(unlockRecipe, next);
 }

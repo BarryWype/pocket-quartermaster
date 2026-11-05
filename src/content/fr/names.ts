@@ -954,6 +954,7 @@ export const frNames: Record<string, string> = {
     'Un caveau scellé ; une clé mystérieuse l’ouvre, et une expédition victorieuse en emporte le contenu.',
 
   // Forging
+  Common: 'Commun',
   Crappy: 'Médiocre',
   Normal: 'Normale',
   Uncommon: 'Peu commun',
@@ -1114,7 +1115,7 @@ export const frNames: Record<string, string> = {
   '+20% gold for the run.': '+20 % d’or pour l’expédition.',
   'Quill charm': 'Charme plume',
   '+15% XP for the run.': '+15 % d’XP pour l’expédition.',
-  'Gear found on the run is one quality better.': 'L’équipement trouvé pendant l’expédition gagne un cran de qualité.',
+  'Gear found on the run is one rarity better.': 'L’équipement trouvé pendant l’expédition gagne un cran de rareté.',
   'Scarab charm': 'Charme scarabée',
   'Treasure map chance ×1.5 for the run, where it can drop.': 'Chance de carte au trésor ×1,5 pour l’expédition, là où elle peut tomber.',
   'Ghost lantern': 'Lanterne des fantômes',

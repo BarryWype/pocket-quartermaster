@@ -1,14 +1,13 @@
 import { gearId, gearRecipes } from '@/content/equipment';
 import { difficultyRules } from '@/content/difficulty';
 import { lootConfig } from '@/content/loot/config';
-import { QUALITIES } from '@/content/forging';
-import type { GearInstance, GearType, Quality } from '@/game/types';
+import { RARITIES, type Rarity } from '@/content/gear';
+import type { GearType } from '@/game/types';
 
-import { statRollFromDice } from '../forging/roll';
 import type { Rng } from '../generation/rng';
 import { dedupeModifiers, partyLuck } from './chances';
 import type { LootRequest } from './roll';
-import type { LootSourceId, MapRarity } from './types';
+import type { LootSourceId, MapRarity, RolledGear } from './types';
 
 /** Dungeon-tiered sources give the source's tier; others the player's, or one below. */
 export function lootGearTier(source: LootSourceId, sourceTier: number, playerTier: number, rng: Rng): number {
@@ -19,42 +18,42 @@ export function lootGearTier(source: LootSourceId, sourceTier: number, playerTie
 
 /**
  * d20 + bonus through the source's ladder, then lifted to the source's floor,
- * then `steps` qualities up (quality charms), never past the ladder's best.
+ * then `steps` rarities up (the Tinker's lodestone), never past the ladder's best.
  */
-export function lootGearQuality(source: LootSourceId, rng: Rng, bonus: number, mapRarity?: MapRarity, steps = 0): Quality {
-  const { ladders, ladderBySource, floors } = lootConfig.gearQuality;
+export function lootGearRarity(source: LootSourceId, rng: Rng, bonus: number, mapRarity?: MapRarity, steps = 0): Rarity {
+  const { ladders, ladderBySource, floors } = lootConfig.gearRarity;
   const ladder =
     mapRarity === 'rare' || mapRarity === 'legendary' ? ladders.big : ladders[ladderBySource[source] ?? 'basic'];
   const roll = rng.int(1, 20) + bonus;
-  let quality = ladder[ladder.length - 1][1];
-  for (const [ceiling, ladderQuality] of ladder) {
+  let rarity = ladder[ladder.length - 1][1];
+  for (const [ceiling, rung] of ladder) {
     if (roll <= ceiling) {
-      quality = ladderQuality;
+      rarity = rung;
       break;
     }
   }
   const floor = floors[source];
-  if (floor && QUALITIES.indexOf(floor) > QUALITIES.indexOf(quality)) quality = floor;
-  const best = Math.max(QUALITIES.indexOf(ladder[ladder.length - 1][1]), floor ? QUALITIES.indexOf(floor) : 0);
-  const lifted = Math.min(QUALITIES.indexOf(quality) + steps, best);
-  return lifted > QUALITIES.indexOf(quality) ? QUALITIES[lifted] : quality;
+  if (floor && RARITIES.indexOf(floor) > RARITIES.indexOf(rarity)) rarity = floor;
+  const best = Math.max(RARITIES.indexOf(ladder[ladder.length - 1][1]), floor ? RARITIES.indexOf(floor) : 0);
+  const lifted = Math.min(RARITIES.indexOf(rarity) + steps, best);
+  return lifted > RARITIES.indexOf(rarity) ? RARITIES[lifted] : rarity;
 }
 
-/** A random looted piece: uid '' until the save grants it. */
-export function rollLootGear(req: LootRequest): GearInstance {
+/** A random looted piece: uid '' until the save grants it, when its rolls are made. */
+export function rollLootGear(req: LootRequest): RolledGear {
   const tier = lootGearTier(req.source, req.tier, req.context.playerTier, req.rng);
   const types = (Object.keys(gearRecipes) as GearType[]).filter((type) => gearRecipes[type][tier - 1].length > 0);
   const type = types[req.rng.int(0, types.length - 1)];
-  const quality = lootGearQuality(req.source, req.rng, qualityBonus(req), req.mapRarity, qualitySteps(req));
-  return { uid: '', itemId: gearId(type, tier), quality, roll: statRollFromDice(req.rng, 0) };
+  const rarity = lootGearRarity(req.source, req.rng, rarityBonus(req), req.mapRarity, raritySteps(req));
+  return { uid: '', itemId: gearId(type, tier), rarity };
 }
 
 /** Every 10 Luck adds 1 to the ladder roll. */
-export function qualityBonus(req: Pick<LootRequest, 'luck' | 'modifiers'>): number {
-  return Math.floor(partyLuck(req.luck, req.modifiers) / lootConfig.luck.pointsPerQualityStep);
+export function rarityBonus(req: Pick<LootRequest, 'luck' | 'modifiers'>): number {
+  return Math.floor(partyLuck(req.luck, req.modifiers) / lootConfig.luck.pointsPerRarityStep);
 }
 
-/** Quality charms: whole steps up after the roll; a harder source adds its own (see difficultyRules.rewards). */
-export const qualitySteps = (req: Pick<LootRequest, 'modifiers' | 'difficulty'>): number =>
-  dedupeModifiers(req.modifiers).reduce((sum, mod) => (mod.kind === 'quality' ? sum + mod.steps : sum), 0) +
-  (req.difficulty ? difficultyRules.rewards[req.difficulty].qualitySteps : 0);
+/** Rarity charms: whole steps up after the roll; a harder source adds its own (see difficultyRules.rewards). */
+export const raritySteps = (req: Pick<LootRequest, 'modifiers' | 'difficulty'>): number =>
+  dedupeModifiers(req.modifiers).reduce((sum, mod) => (mod.kind === 'rarity' ? sum + mod.steps : sum), 0) +
+  (req.difficulty ? difficultyRules.rewards[req.difficulty].raritySteps : 0);

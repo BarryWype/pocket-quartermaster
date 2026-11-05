@@ -10,7 +10,7 @@ const request = (source: LootSourceId, seed: string, tier: number): LootRequest 
   tier,
   enemies: [],
   base: { gold: 0, xp: 0 },
-  context: { playerTier: 1, pickaxeTier: 3, knownRecipes: [], favourCounts: {}, mastery: {} },
+  context: { playerTier: 1, pickaxeTier: 3, knownRecipes: [], favourCounts: {} },
   rng: createRng(seed),
   luck: 0,
   modifiers: [],

@@ -1,6 +1,6 @@
 import { expeditionRules, overnightExpeditionRules } from '@/content/dungeons';
 import { elementRules } from '@/content/elements';
-import { masteryRules, salvageRules } from '@/content/forging';
+import { salvageRules } from '@/content/forging';
 import { guildRules, guildTrackById } from '@/content/guild';
 import { healthRules } from '@/content/health';
 import { heroClasses, xpRules } from '@/content/heroes';
@@ -31,7 +31,6 @@ const roots: Record<string, unknown> = {
   recruit: recruitRules,
   roster: rosterRules,
   taverns: tavernRules,
-  mastery: masteryRules,
   salvage: salvageRules,
   loot: lootConfig,
   sanctums: sanctumRules,

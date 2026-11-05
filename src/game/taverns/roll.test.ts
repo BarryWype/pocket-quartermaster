@@ -87,12 +87,11 @@ describe('offers and recruiting', () => {
     }
   });
 
-  it('stores the offer roll on the new hero, teaches no recipe and no mastery', () => {
+  it('stores the offer roll on the new hero, teaches no recipe', () => {
     const offer = tavernOffers(save, 'tavern:t:0', now)[0];
     const after = recruit(save, offer, here, here);
     const hero = after.heroes[after.heroes.length - 1];
     expect(hero.roll).toEqual(offer.roll);
     expect(after.knownRecipes).toEqual(save.knownRecipes);
-    expect(after.mastery).toEqual(save.mastery);
   });
 });

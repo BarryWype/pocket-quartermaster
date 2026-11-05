@@ -103,7 +103,7 @@ describe('fighting at a place', () => {
     const rewarded = grantLoot(save, [], {
       ...emptyLoot(),
       gold: 10,
-      gear: [{ uid: '', itemId: 'sword1', quality: 'rare', roll: 1 }],
+      gear: [{ uid: '', itemId: 'sword1', rarity: 'rare' as const }],
       keyFragments: 1,
     }, now);
     expect(rewarded.gold).toBe(save.gold + 10);

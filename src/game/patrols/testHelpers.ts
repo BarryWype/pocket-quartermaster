@@ -1,7 +1,7 @@
 import { createInitialSave, type SaveData } from '../save';
 import { expectedLevels } from '../sim/config';
 import { equip } from '../team/team';
-import type { Quality } from '../types';
+import type { Rarity } from '../types';
 import type { LatLng } from '../generation/types';
 import { patrolPositionAt, patrolsAround, type PatrolSpawn } from './generate';
 
@@ -9,12 +9,12 @@ export const HOME: LatLng = { latitude: -41.2865, longitude: 174.7762 };
 export const T0 = Date.UTC(2026, 9, 20, 9);
 
 /** The starting heroes at the tier's expected level, in its weapons and mail (Normal unless given), with the tutorial done. */
-export function tierTeam(tier = 1, quality: Quality = 'normal'): SaveData {
+export function tierTeam(tier = 1, rarity: Rarity = 'common'): SaveData {
   let save: SaveData = {
     ...createInitialSave(),
     tutorial: { ...createInitialSave().tutorial, step: 'done' },
     heroes: createInitialSave().heroes.map((h) => ({ ...h, level: expectedLevels[tier - 1] })),
-    gear: ['sword', 'bow', 'wand', 'mail', 'mail', 'mail'].map((type, i) => ({ uid: `g${i}`, itemId: `${type}${tier}`, quality })),
+    gear: ['sword', 'bow', 'wand', 'mail', 'mail', 'mail'].map((type, i) => ({ uid: `g${i}`, itemId: `${type}${tier}`, rarity, roll: 8, affixes: [], rerolls: 0 })),
   };
   ['bram', 'lyra', 'mira'].forEach((heroId, i) => {
     save = equip(save, heroId, 'weapon', `g${i}`);

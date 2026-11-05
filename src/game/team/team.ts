@@ -1,12 +1,13 @@
 import { heroClasses, xpRules, xpToNextLevel } from '@/content/heroes';
 import { affinityRules, castingPenalty, classAffinities, type Affinity } from '@/content/equipment';
-import { componentById, itemById, relicById } from '@/content/lookup';
-import { qualities } from '@/content/forging';
+import { itemById } from '@/content/lookup';
 import { traitById } from '@/content/traits';
 import { lootConfig } from '@/content/loot/config';
 
+import { affixEffects, pieceKeywords } from '../gear/affixes';
+import { gearStats, SCALING_KEYS } from '../gear/stats';
+import { pieceEffects } from '../gear/uniques';
 import { slotProblem } from '../equipment/slots';
-import { pieceBaseStats, SCALING_KEYS } from '../forging/quality';
 import { rosterCap } from '../guild/guild';
 import { trinketEffect } from '../loot/trinkets';
 import type { SaveData } from '../save';
@@ -46,8 +47,8 @@ export type GearKeywordEntry = { keyword: Keyword; magic: boolean; when?: GearCo
 
 /**
  * The keywords of the hero's weapon, armour and off-hand; magic pieces marked.
- * A component's keyword doubles the piece's own keyword (strong), or adds one
- * more entry; a relic's keyword works the same, or rides behind its `when`.
+ * An affix's keyword doubles the piece's own keyword (strong), or adds one
+ * more entry; a unique's keyword works the same, or rides behind its `when`.
  */
 export function gearKeywordsOf(save: SaveData, hero: HeroState): GearKeywordEntry[] {
   return (['weapon', 'armor', 'offhand'] as const).flatMap((slot) => {
@@ -59,13 +60,13 @@ export function gearKeywordsOf(save: SaveData, hero: HeroState): GearKeywordEntr
       keyword,
       magic,
     }));
-    const effect = gear.component ? componentById[gear.component]?.effect : undefined;
-    if (effect?.kind === 'keyword') {
-      const own = keywords.find((k) => k.keyword === effect.keyword);
+    const add = (keyword: Keyword) => {
+      const own = keywords.find((k) => k.keyword === keyword);
       if (own) own.strong = true;
-      else keywords.push({ keyword: effect.keyword, magic });
-    }
-    for (const relicEffect of gear.relicId ? relicById[gear.relicId].effects : []) {
+      else keywords.push({ keyword, magic });
+    };
+    for (const keyword of pieceKeywords(gear)) add(keyword);
+    for (const relicEffect of pieceEffects(gear)) {
       if (relicEffect.kind !== 'keyword') continue;
       if (relicEffect.when) {
         keywords.push({
@@ -76,9 +77,7 @@ export function gearKeywordsOf(save: SaveData, hero: HeroState): GearKeywordEntr
         });
         continue;
       }
-      const own = keywords.find((k) => k.keyword === relicEffect.keyword);
-      if (own) own.strong = true;
-      else keywords.push({ keyword: relicEffect.keyword, magic });
+      add(relicEffect.keyword);
     }
     return keywords;
   });
@@ -87,15 +86,18 @@ export function gearKeywordsOf(save: SaveData, hero: HeroState): GearKeywordEntr
 /** A relic effect on the hero's equipped piece, with the piece's magic mark and the relic it came from. */
 export type WornRelicEffect = { effect: RelicEffect; magic: boolean; relicId: string };
 
-/** The non-keyword effects of the relics restored into the hero's weapon, armour and off-hand. */
+/**
+ * The non-keyword effects of the relics restored into the hero's weapon,
+ * armour and off-hand, including a non-relic Legendary's unique.
+ */
 export function relicEffectsOf(save: SaveData, hero: HeroState): WornRelicEffect[] {
   return (['weapon', 'armor', 'offhand'] as const).flatMap((slot) => {
     const gear = save.gear.find((g) => g.uid === hero.equipment[slot]);
-    if (!gear?.relicId) return [];
+    if (!gear || (!gear.relicId && !gear.unique)) return [];
     const item = itemById[gear.itemId] as GearDef;
-    return relicById[gear.relicId].effects
+    return pieceEffects(gear)
       .filter((effect) => effect.kind !== 'keyword')
-      .map((effect) => ({ effect, magic: item.damageStat === 'magic', relicId: gear.relicId! }));
+      .map((effect) => ({ effect, magic: item.damageStat === 'magic', relicId: gear.relicId ?? gear.unique! }));
   });
 }
 
@@ -128,40 +130,42 @@ export function affinityOf(classId: HeroState['classId'], gearType: GearType | u
 export { gearApproachBonus } from './stats';
 
 /**
- * Base stats (class, level, roll) + gear: quality, roll and affinity multiply
- * the scaling stats only, the extras stay flat; mail and plate cast a penalty
- * on Magic unless favoured. Then traits.
+ * Base stats (class, level, roll) + gear: the dice factor and affinity
+ * multiply the scaling stats only, the extras stay flat; mail and plate cast a
+ * penalty on Magic unless favoured. Then affix stats and traits.
  */
 export function heroStats(save: SaveData, hero: HeroState): Stats {
   const stats = baseHeroStats(hero.classId, hero.level, hero.roll);
   let penalty = 0;
+  const worn = equippedGear(save, hero);
 
-  for (const gear of equippedGear(save, hero)) {
+  for (const gear of worn) {
     const item = itemById[gear.itemId] as GearDef;
     if (item.slot === 'trinket') {
-      for (const [key, value] of Object.entries(trinketEffect(item, gear.quality).stats) as [keyof Stats, number][]) {
+      for (const [key, value] of Object.entries(trinketEffect(item, gear).stats) as [keyof Stats, number][]) {
         stats[key] += value;
       }
       continue;
     }
     const affinity = affinityOf(hero.classId, item.gearType);
-    const multiplier = qualities[gear.quality].multiplier * (gear.roll ?? 1) * affinityRules[affinity];
-    const base = pieceBaseStats(gear);
+    const values = gearStats(gear);
     for (const key of STAT_KEYS) {
-      const value = base[key];
+      const value = values[key];
       if (!value) continue;
-      stats[key] += SCALING_KEYS.includes(key) ? value * multiplier : value;
+      stats[key] += SCALING_KEYS.includes(key) ? value * affinityRules[affinity] : value;
     }
-    if (gear.luck) stats.luck += gear.luck;
-    if (base.luck) stats.luck += base.luck;
-    // A component's flat stat rides on top, untouched by quality and affinity.
-    const effect = gear.component ? componentById[gear.component]?.effect : undefined;
-    if (effect?.kind === 'stat') stats[effect.stat] += effect.add;
+    if (values.luck) stats.luck += values.luck;
     if (item.slot === 'armor' && affinityOf(hero.classId, item.gearType) !== 'favoured') {
       penalty = Math.max(penalty, castingPenalty[item.gearType as ArmourType] ?? 0);
     }
   }
   stats.magic *= 1 - penalty;
+
+  // Affix stats: Speed and Evasion from their affixes, Luck counts per point.
+  const sums = affixEffects(worn);
+  stats.speed += (sums.swift ?? 0) + (sums.fleet ?? 0);
+  stats.evasion += (sums.light ?? 0) + (sums.silken ?? 0);
+  stats.luck += sums.lucky ?? 0;
 
   for (const effect of heroAbilities(hero)) {
     if (effect.kind === 'statMultiplier') stats[effect.stat] *= effect.multiplier;

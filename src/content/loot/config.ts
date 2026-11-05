@@ -1,7 +1,7 @@
 import type { ValuableBuyer, ValuableRarity } from '@/content/loot/valuables';
 import type { PatrolKind } from '@/game/patrols/generate';
 import type { LootCategory, LootSourceId, MapRarity } from '@/game/loot/types';
-import type { Quality } from '@/game/types';
+import type { Rarity } from '@/content/gear';
 
 /** One materials drop's flavour: a fixed list, or "cache" for a pickaxe-covered resource. */
 export type MaterialTheme = { materials?: string[]; cache?: boolean };
@@ -66,9 +66,9 @@ export const lootConfig = {
   /** Run-scaled sources: minutes ÷ 45, clamped. Tier bosses and the first win of the day are never scaled. */
   runLength: { sources: ['dungeonRun', 'overnightExpedition'] as LootSourceId[], baseMinutes: 45, min: 0.25, max: 2 },
   /** Luck raises non-A chances and gold amounts, never materials or other amounts. */
-  luck: { chancePerPoint: 0.01, maxChanceBonus: 0.3, pointsPerQualityStep: 10, goldPerPoint: 0.05 },
+  luck: { chancePerPoint: 0.01, maxChanceBonus: 0.3, pointsPerRarityStep: 10, goldPerPoint: 0.05 },
   /** Charm effects for the run (see content/loot/charms.ts). */
-  charms: { chanceMultiplier: 1.5, luck: 3, goldPercent: 20, xpPercent: 15, qualitySteps: 1 },
+  charms: { chanceMultiplier: 1.5, luck: 3, goldPercent: 20, xpPercent: 15, raritySteps: 1 },
   /** Amounts per drop; everything not listed is 1. */
   quantities: {
     materials: [2, 4] as [number, number],
@@ -117,27 +117,24 @@ export const lootConfig = {
     bandits: { cache: true },
     outlaws: { cache: true },
   } as Record<PatrolKind, MaterialTheme>,
-  /** Quality ladders, read with d20 + bonus; floors then lift a source's minimum. */
-  gearQuality: {
+  /** Rarity ladders, read with d20 + bonus; floors then lift a source's minimum. */
+  gearRarity: {
     ladders: {
       basic: [
-        [5, 'crappy'],
-        [14, 'normal'],
+        [14, 'common'],
         [Infinity, 'uncommon'],
-      ] as [number, Quality][],
+      ] as [number, Rarity][],
       big: [
-        [4, 'crappy'],
-        [12, 'normal'],
+        [12, 'common'],
         [18, 'uncommon'],
         [Infinity, 'rare'],
-      ] as [number, Quality][],
+      ] as [number, Rarity][],
       boss: [
-        [3, 'crappy'],
-        [10, 'normal'],
+        [10, 'common'],
         [16, 'uncommon'],
         [19, 'rare'],
         [Infinity, 'legendary'],
-      ] as [number, Quality][],
+      ] as [number, Rarity][],
     },
     ladderBySource: {
       tierBoss: 'boss',
@@ -146,7 +143,7 @@ export const lootConfig = {
       wantedOutlaw: 'big',
       banditCamp: 'big',
     } as Partial<Record<LootSourceId, 'basic' | 'big' | 'boss'>>,
-    floors: { firstTierClear: 'uncommon', monsterLair: 'rare' } as Partial<Record<LootSourceId, Quality>>,
+    floors: { firstTierClear: 'uncommon', monsterLair: 'rare' } as Partial<Record<LootSourceId, Rarity>>,
   },
   treasureMaps: {
     rarityWeights: { common: 70, rare: 25, legendary: 5 } as Record<MapRarity, number>,
@@ -243,8 +240,8 @@ export const lootConfig = {
   goldByTier,
   /** A valuable's price is its base price times this, by the source's tier: the enemy strength curve. */
   valuablePriceByTier: goldByTier,
-  /** Blueprint drops: weight by how many roster heroes favour the type; a complete tier gives mastery progress, or a component with `componentShare` half the time. */
-  blueprints: { favourWeights: [1, 2, 3], tierCompleteForges: 2, componentShare: 0.5 },
+  /** Blueprint drops: weight by how many roster heroes favour the type; a complete tier gives a component instead. */
+  blueprints: { favourWeights: [1, 2, 3] },
   /** Key fragments needed for one mysterious key. */
   keyFragmentsPerKey: 4,
   /** Sigil drops by slot, with a pity counter and a shard cap per tier. */

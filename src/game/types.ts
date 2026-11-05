@@ -4,9 +4,11 @@ import type { ImageSourcePropType } from 'react-native';
 import type { PlaceKind, SecretKind } from '@/content/places';
 import type { PlaceTipSource, TipSource } from '@/content/secrets';
 import type { Difficulty } from '@/content/difficulty';
+import type { Rarity } from '@/content/gear';
 
 import type { Element } from './elements';
 import type { LatLng } from './generation/types';
+export type { Rarity };
 
 export type MaterialStack = {
   materialId: string;
@@ -58,15 +60,8 @@ export type WeaponType =
 export type ArmourType = 'plate' | 'mail' | 'leather' | 'robes';
 export type OffhandType = 'shield' | 'buckler' | 'offhandBlade' | 'quiver' | 'tome' | 'focus';
 
-/** Every gear type; also the mastery key. */
+/** Every gear type. */
 export type GearType = WeaponType | ArmourType | OffhandType;
-
-export type Quality = 'crappy' | 'normal' | 'uncommon' | 'rare' | 'legendary';
-
-/** What forging mastery is tracked by: each gear type. */
-export type MasteryType = GearType;
-
-export type MasteryState = { level: number; progress: number };
 
 /** `potion` is the Alchemist's second slot, for healing consumables only. */
 export type EquipmentSlot = 'weapon' | 'armor' | 'offhand' | 'trinket' | 'consumable' | 'potion';
@@ -783,24 +778,19 @@ export type RelicEffect =
   /** The first hit of the run's first fight hits every enemy; Magic heroes only. */
   | { kind: 'firstSpellAll' };
 
-/** A forged piece of gear. */
+/** A piece of gear: forged, looted or restored. */
 export type GearInstance = {
   uid: string;
   itemId: string;
-  quality: Quality;
-  /**
-   * Stat roll factor (see rollRules): multiplies the piece's stats together
-   * with its quality. Set by every forge; gear from before rolls counts as 1.
-   */
-  roll?: number;
-  /** Infused element; a piece can only be infused once. */
-  element?: Element;
-  /** A Legendary forge's +1 Luck roll (see gearLuckRules). */
-  luck?: number;
-  /** The component forged into the piece, if any; one per piece. */
-  component?: string;
-  /** A restored relic; its stats come from its budget less its effect's cost. */
+  /** How many affixes the piece carries (see gearRules.affixCount). */
+  rarity: Rarity;
+  /** Stat dice total (gearRules.dice, 3..18), before the rarity shift. */
+  roll: number;
+  affixes: { id: string; value: number }[];
+  rerolls: number;
   relicId?: string;
+  /** A non-relic Legendary's unique: the id of the relic whose effects it carries (unnamed). */
+  unique?: string;
 };
 
 export type ActiveExpedition = {

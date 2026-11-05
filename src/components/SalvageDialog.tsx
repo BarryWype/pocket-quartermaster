@@ -1,6 +1,6 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { qualities } from '@/content/forging';
+import { gearRules, rarityNames } from '@/content/gear';
 import { gearName, materialById } from '@/content/lookup';
 import { salvageDialog, type SalvageWarning } from '@/game/forging/salvage';
 import type { SaveData } from '@/game/save';
@@ -20,8 +20,7 @@ const warningKey: Record<SalvageWarning, TextKey> = {
   equipped: 'inventory.salvageWarning.equipped',
   rareOrBetter: 'inventory.salvageWarning.rareOrBetter',
   relic: 'inventory.salvageWarning.relic',
-  component: 'inventory.salvageWarning.component',
-  infused: 'inventory.salvageWarning.infused',
+  affixes: 'inventory.salvageWarning.affixes',
 };
 
 type Props = {
@@ -31,7 +30,7 @@ type Props = {
   onClose: () => void;
 };
 
-/** Asks before a piece is destroyed: its name, quality, what comes back, and why to think twice. */
+/** Asks before a piece is destroyed: its name, rarity, what comes back, and why to think twice. */
 export function SalvageDialog({ gear, save, onConfirm, onClose }: Props) {
   const dialog = salvageDialog(save, gear);
   const returns = dialog.returns.materials
@@ -44,7 +43,7 @@ export function SalvageDialog({ gear, save, onConfirm, onClose }: Props) {
       <Panel style={[styles.dialog, { maxHeight }]}>
         <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
           <Text style={styles.title}>{t('inventory.salvageTitle', { item: gearName(gear) })}</Text>
-          <Text style={[styles.quality, { color: qualities[dialog.quality].color }]}>{tr(qualities[dialog.quality].name)}</Text>
+          <Text style={[styles.quality, { color: gearRules.colors[dialog.rarity] }]}>{tr(rarityNames[dialog.rarity])}</Text>
           <View style={styles.returnsRow}>
             <Text>{t('inventory.salvageBody')}</Text>
             {returns ? <Text>{returns}</Text> : null}

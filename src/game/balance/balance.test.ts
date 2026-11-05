@@ -1,7 +1,7 @@
 import { dungeons } from '@/content/dungeons';
 import { dungeonById } from '@/content/lookup';
 import { tierMaterials } from '@/content/materials';
-import type { DungeonDef, Quality } from '@/game/types';
+import type { DungeonDef, Rarity } from '@/game/types';
 
 import { estimateOdds } from '../expeditions/odds';
 import { createInitialSave, type SaveData } from '../save';
@@ -38,7 +38,7 @@ function averageWalk(save: SaveData, minutes: number) {
 }
 
 /** Every hero in the tier's weapon and armour (Normal unless given); ember ward salves for heroes who need them. */
-function team(level: number, material: string | null, elixirs = false, quality: Quality = 'normal'): SaveData {
+function team(level: number, material: string | null, elixirs = false, rarity: Rarity = 'common'): SaveData {
   let save: SaveData = {
     ...createInitialSave(),
     heroes: createInitialSave().heroes.map((h) => ({ ...h, level })),
@@ -47,7 +47,7 @@ function team(level: number, material: string | null, elixirs = false, quality: 
   if (material) {
     const gearTier = tierMaterials.indexOf(material) + 1;
     const pieces = [`sword${gearTier}`, `bow${gearTier}`, `wand${gearTier}`, `mail${gearTier}`, `mail${gearTier}`, `mail${gearTier}`];
-    save = { ...save, gear: pieces.map((piece, i) => ({ uid: `g${i}`, itemId: piece, quality })) };
+    save = { ...save, gear: pieces.map((piece, i) => ({ uid: `g${i}`, itemId: piece, rarity, roll: 8, affixes: [], rerolls: 0 })) };
     ALL.forEach((heroId, i) => {
       save = equip(save, heroId, 'weapon', `g${i}`);
       save = equip(save, heroId, 'armor', `g${i + 3}`);
@@ -106,7 +106,7 @@ function swordOnly(level = 1): SaveData {
   const save: SaveData = {
     ...createInitialSave(),
     heroes: createInitialSave().heroes.map((h) => ({ ...h, level })),
-    gear: [{ uid: 'g', itemId: 'sword1', quality: 'crappy' }],
+    gear: [{ uid: 'g', itemId: 'sword1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 }],
   };
   return equip(save, 'bram', 'weapon', 'g');
 }

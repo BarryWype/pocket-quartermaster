@@ -116,8 +116,8 @@ describe('the affix catalogue', () => {
     }
   });
 
-  it('gives every non-heart component exactly one affix, on the types it fits', () => {
-    for (const component of components.filter((c) => !c.element)) {
+  it('gives every component exactly one affix, on the types it fits', () => {
+    for (const component of components) {
       const matches = affixes.filter(
         (affix) => affix.source.kind === 'component' && affix.source.componentId === component.id,
       );

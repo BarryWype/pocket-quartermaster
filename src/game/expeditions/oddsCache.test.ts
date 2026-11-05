@@ -24,8 +24,8 @@ function team(tier: number, level: number): SaveData {
     heroes: createInitialSave().heroes.map((h) => ({ ...h, level })),
     consumables: { ...createInitialSave().consumables, healingPotion: 3 },
     gear: ALL.flatMap((_, i) => [
-      { uid: `w${i}`, itemId: `sword${tier}`, quality: 'normal' as const },
-      { uid: `a${i}`, itemId: `mail${tier}`, quality: 'normal' as const },
+      { uid: `w${i}`, itemId: `sword${tier}`, rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
+      { uid: `a${i}`, itemId: `mail${tier}`, rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
     ]),
   };
   ALL.forEach((id, i) => {
@@ -75,7 +75,7 @@ describe('odds cache', () => {
     cachedEstimateOdds(save, party, dungeon, undefined, { now: 600_000, briefing: { threats: [], restriction: null, opportunity: null } });
     expect(spy).toHaveBeenCalledTimes(4);
     // A reforged weapon.
-    const rearmed = { ...save, gear: save.gear.map((g) => (g.uid === 'w0' ? { ...g, quality: 'rare' as const } : g)) };
+    const rearmed = { ...save, gear: save.gear.map((g) => (g.uid === 'w0' ? { ...g, rarity: 'rare' as const, roll: 8, affixes: [], rerolls: 0 } : g)) };
     cachedEstimateOdds(rearmed, party, dungeon, undefined, { now: 600_000, briefing });
     expect(spy).toHaveBeenCalledTimes(5);
     // A hero's stored HP changes (a run applied it).

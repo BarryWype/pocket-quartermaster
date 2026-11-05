@@ -1,3 +1,4 @@
+import { RARITIES } from '@/content/gear';
 import { items } from '@/content/items';
 import { resources } from '@/content/resources';
 import { shopStock, marketPool } from '@/content/shops';
@@ -85,8 +86,8 @@ describe('a tier 1 save is never granted a material above tier 1', () => {
     const tier1Gear = items.filter((item) => 'tier' in item && item.tier === 1 && 'slot' in item && item.slot !== 'tool');
     const found = new Set<string>();
     for (const item of tier1Gear) {
-      for (const quality of ['crappy', 'normal', 'uncommon', 'rare', 'legendary'] as const) {
-        for (const id of aboveTier(salvageReturns({ uid: `s-${item.id}`, itemId: item.id, quality, roll: 1 }))) found.add(id);
+      for (const rarity of RARITIES) {
+        for (const id of aboveTier(salvageReturns({ uid: `s-${item.id}`, itemId: item.id, rarity, roll: 8, affixes: [], rerolls: 0 }))) found.add(id);
       }
     }
     expect(tier1Gear.length).toBeGreaterThan(0);

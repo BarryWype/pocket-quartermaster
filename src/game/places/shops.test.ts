@@ -1,3 +1,4 @@
+import { gearRules } from '@/content/gear';
 import { itemById, monsterPartById, recipeById } from '@/content/lookup';
 import { questRules } from '@/content/quests';
 import { secretRules } from '@/content/secrets';
@@ -75,8 +76,8 @@ describe('placeStock', () => {
     for (const line of gearLines) {
       const item = itemById[line.id] as GearDef;
       expect(item.tier).toBeLessThanOrEqual(1);
-      expect(line.price).toBe(Math.round(shopRules.gearPrice[0] * shopRules.qualityPrice[line.gear!.quality]));
-      expect(line.gear!.roll).toBe(1);
+      expect(line.price).toBe(Math.round(shopRules.gearPrice[0] * shopRules.rarityPrice[line.gear!.rarity]));
+      expect(line.gear!.affixes).toHaveLength(gearRules.affixCount[line.gear!.rarity]);
     }
     const recipeLines = lines.filter((l) => l.kind === 'recipe');
     expect(recipeLines.length).toBeLessThanOrEqual(1);
@@ -238,7 +239,7 @@ describe('the library ledger', () => {
 });
 
 describe('selling', () => {
-  const gear: GearInstance = { uid: 'g9', itemId: 'sword1', quality: 'normal' };
+  const gear: GearInstance = { uid: 'g9', itemId: 'sword1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 };
   const smithy = spawnOf('smithy');
 
   it('refuses worn gear and pays the share for the rest', () => {
@@ -251,7 +252,7 @@ describe('selling', () => {
     const sold = sellGear(spare, smithy, gear.uid, position, now);
     expect(sold.gold).toBe(gearSellPrice(gear));
     expect(sold.gear).toEqual([]);
-    expect(gearSellPrice(gear)).toBe(Math.round(shopRules.gearPrice[0] * shopRules.qualityPrice.normal * shopRules.gearSellShare));
+    expect(gearSellPrice(gear)).toBe(Math.round(shopRules.gearPrice[0] * shopRules.rarityPrice.common * shopRules.gearSellShare));
     expect(sellGearProblem(withGold(0), spawnOf('market'), gear.uid, position, now)).toBe('notSmithy');
   });
 

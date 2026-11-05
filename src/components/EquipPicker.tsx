@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, type ImageSourcePropType } from 'react-native';
 
-import { qualities } from '@/content/forging';
+import { gearRules } from '@/content/gear';
 import { gearName, itemById } from '@/content/lookup';
 import { slotProblem } from '@/game/equipment/slots';
 import { affinityOf, equipPreview, healingPotion } from '@/game/team/team';
@@ -129,7 +129,7 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, briefin
         icon: item.icon,
         title: gearName(gear),
         subtitle: parts.length > 0 ? <PartsLine parts={parts} labelStyle={styles.subtitle} /> : undefined,
-        color: greyed ? colors.muted : qualities[gear.quality].color,
+        color: greyed ? colors.muted : gearRules.colors[gear.rarity],
         disabled: greyed,
         equipped,
         marks: <GearMarks tier={item.tier} affinity={affinity} />,

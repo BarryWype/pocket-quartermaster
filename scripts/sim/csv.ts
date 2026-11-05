@@ -13,13 +13,12 @@ function toCsv(rows: Record<string, unknown>[]) {
 export function dailyCsv(logs: RunLog[]) {
   return toCsv(
     logs.flatMap((log) =>
-      log.daily.map(({ mastery, stock, ...row }) => ({
+      log.daily.map(({ stock, ...row }) => ({
         profile: log.profile,
         seed: log.seed,
         ...row,
         goldIn: log.goldIn.filter((g) => g.day === row.day).reduce((s, g) => s + g.amount, 0),
         goldOut: log.goldOut.filter((g) => g.day === row.day).reduce((s, g) => s + g.amount, 0),
-        ...Object.fromEntries(Object.entries(mastery).map(([k, v]) => [`mastery_${k}`, v])),
         ...Object.fromEntries(Object.entries(stock).map(([k, v]) => [`stock_${k}`, v])),
       })),
     ),
@@ -29,12 +28,12 @@ export function dailyCsv(logs: RunLog[]) {
 export function expeditionsCsv(logs: RunLog[]) {
   return toCsv(
     logs.flatMap((log) =>
-      log.expeditions.map(({ classes, qualities, effects, ...row }) => ({
+      log.expeditions.map(({ classes, rarities, effects, ...row }) => ({
         profile: log.profile,
         seed: log.seed,
         ...row,
         classes: classes.join(' '),
-        ...Object.fromEntries(Object.entries(qualities).map(([k, v]) => [`gear_${k}`, v])),
+        ...Object.fromEntries(Object.entries(rarities).map(([k, v]) => [`gear_${k}`, v])),
         effects: Object.entries(effects).map(([k, v]) => `${k}×${v}`).join(' '),
       })),
     ),

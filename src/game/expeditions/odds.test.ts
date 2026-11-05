@@ -26,8 +26,8 @@ function team(tier: number, level: number): SaveData {
     heroes: createInitialSave().heroes.map((h) => ({ ...h, level })),
     consumables: { ...createInitialSave().consumables, healingPotion: 3 },
     gear: ALL.flatMap((_, i) => [
-      { uid: `w${i}`, itemId: `${WEAPONS[i]}${tier}`, quality: 'normal' as const },
-      { uid: `a${i}`, itemId: `mail${tier}`, quality: 'normal' as const },
+      { uid: `w${i}`, itemId: `${WEAPONS[i]}${tier}`, rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
+      { uid: `a${i}`, itemId: `mail${tier}`, rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
     ]),
   };
   ALL.forEach((id, i) => {

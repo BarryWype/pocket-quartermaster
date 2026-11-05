@@ -29,8 +29,8 @@ function save(): SaveData {
     consumables: { ...createInitialSave().consumables, trailMix: 30 },
     heroes: createInitialSave().heroes.map((h) => ({ ...h, level: 30 })),
     gear: [
-      { uid: 'g1', itemId: 'sword5', quality: 'normal' },
-      { uid: 'g2', itemId: 'bow5', quality: 'normal' },
+      { uid: 'g1', itemId: 'sword5', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
+      { uid: 'g2', itemId: 'bow5', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
     ],
   };
   data = equip(data, 'bram', 'weapon', 'g1');

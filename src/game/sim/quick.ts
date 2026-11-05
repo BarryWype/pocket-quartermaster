@@ -13,6 +13,7 @@ import { placeFightBriefing, placeFightDungeon } from '../places/fights';
 import { PATROL_KINDS, patrolsAround } from '../patrols/generate';
 import { patrolOdds } from '../patrols/fight';
 import { createInitialSave, type SaveData } from '../save';
+import { makeGearPiece } from '../gear/make';
 import { equip } from '../team/team';
 import type { ConsumableDef } from '../types';
 import { highestTier, withLoadout } from './bot';
@@ -47,7 +48,7 @@ export type QuickTier = {
 /**
  * The reference team the dungeons are fitted to (see the comment above
  * TIER_SCALE): the starting trio in the tier's sword, bow and wand plus mail,
- * Normal quality, at the top of the tier's level band; every lower tier's
+ * Common rarity, at the top of the tier's level band; every lower tier's
  * dungeons cleared (so this tier is unlocked), stocked with every kit, every
  * boss weakness item and three healing potions.
  */
@@ -58,7 +59,7 @@ export function quickSave(tier: number): SaveData {
     tutorial: { ...initial.tutorial, step: 'done' },
     // Each hero carries its class's first common special, like the other reference teams.
     heroes: initial.heroes.map((h) => ({ ...h, level: expectedLevels[tier - 1], special: classSpecials[h.classId].common[0] })),
-    gear: [`sword${tier}`, `bow${tier}`, `wand${tier}`, `mail${tier}`, `mail${tier}`, `mail${tier}`].map((itemId, i) => ({ uid: `g${i}`, itemId, quality: 'normal' as const })),
+    gear: [`sword${tier}`, `bow${tier}`, `wand${tier}`, `mail${tier}`, `mail${tier}`, `mail${tier}`].map((itemId, i) => makeGearPiece(`g${i}`, itemId, 'common')),
   };
   save.heroes.forEach((hero, i) => {
     save = equip(equip(save, hero.id, 'weapon', `g${i}`), hero.id, 'armor', `g${i + 3}`);

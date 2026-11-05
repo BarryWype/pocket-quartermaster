@@ -41,16 +41,7 @@ function partyProjection(save: SaveData, heroIds: string[]) {
     });
   return {
     heroes,
-    gear: [...gear.values()].map((piece) => ({
-      uid: piece.uid,
-      itemId: piece.itemId,
-      quality: piece.quality,
-      roll: piece.roll ?? null,
-      element: piece.element ?? null,
-      luck: piece.luck ?? null,
-      component: piece.component ?? null,
-      relicId: piece.relicId ?? null,
-    })),
+    gear: [...gear.values()],
   };
 }
 

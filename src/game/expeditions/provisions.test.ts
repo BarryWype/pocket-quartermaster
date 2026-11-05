@@ -68,9 +68,9 @@ function ready(consumables: Record<string, number> = createInitialSave().consuma
     heroes: createInitialSave().heroes.map((h) => ({ ...h, level: 5 })),
     consumables,
     gear: [
-      { uid: 'g1', itemId: 'sword3', quality: 'normal' },
-      { uid: 'g2', itemId: 'bow3', quality: 'normal' },
-      { uid: 'g3', itemId: 'wand3', quality: 'normal' },
+      { uid: 'g1', itemId: 'sword3', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
+      { uid: 'g2', itemId: 'bow3', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
+      { uid: 'g3', itemId: 'wand3', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
     ],
   };
   ALL.forEach((id, i) => {
@@ -363,7 +363,7 @@ describe('elixirs', () => {
   it('coats the weapon in the oil’s element, replacing a permanent infusion', () => {
     const oiled = (permanent?: Element) => {
       let save = ready({ ...createInitialSave().consumables, emberOil: 1 });
-      save = { ...save, gear: save.gear.map((g) => (g.uid === 'g1' ? { ...g, ...(permanent ? { element: permanent } : {}) } : g)) };
+      save = { ...save, gear: save.gear.map((g) => (g.uid === 'g1' ? { ...g, affixes: permanent ? [{ id: `infused${permanent[0].toUpperCase()}${permanent.slice(1)}`, value: 0 }] : [] } : g)) };
       return equip(save, 'bram', 'consumable', 'emberOil');
     };
     expect(prepareParty(oiled(), ['bram'], 0, true)[0].weaponElement).toBe('fire');
@@ -375,7 +375,7 @@ describe('elixirs', () => {
   it('hits like a permanently infused weapon of the same element', () => {
     const permanent = () => {
       let save = ready();
-      return { ...save, gear: save.gear.map((g) => (g.uid === 'g1' ? { ...g, element: 'fire' as const } : g)) };
+      return { ...save, gear: save.gear.map((g) => (g.uid === 'g1' ? { ...g, affixes: [{ id: 'infusedFire', value: 0 }] } : g)) };
     };
     const oiled = prepareParty(equip(ready({ ...createInitialSave().consumables, emberOil: 1 }), 'bram', 'consumable', 'emberOil'), ['bram'], 0, true);
     const infused = prepareParty(permanent(), ['bram'], 0, true);

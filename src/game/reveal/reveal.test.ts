@@ -122,7 +122,7 @@ describe('heldItemKinds', () => {
     save.materials = { captainsSpurs: 1 };
     expect(heldItemKinds(save)).toEqual(['charms', 'components']);
     save.relics = [{ uid: 'r1', relicId: 'any' }];
-    save.gear = [{ uid: 'g1', itemId: 'hawkEyeRing1', quality: 'normal' }];
+    save.gear = [{ uid: 'g1', itemId: 'hawkEyeRing1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 }];
     save.valuables = { oldCoins: 1 };
     save.keyFragments = 4;
     expect(heldItemKinds(save)).toEqual(['charms', 'components', 'relics', 'trinkets', 'valuables', 'keyFragments']);

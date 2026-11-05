@@ -73,16 +73,16 @@ describe('inventoryPages', () => {
   });
 
   it('a gear piece gives the gear page one row', () => {
-    const gear: GearInstance[] = [{ uid: '1', itemId: 'sword1', quality: 'normal' }];
+    const gear: GearInstance[] = [{ uid: '1', itemId: 'sword1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 }];
     const save = { ...emptySave(), gear };
     expect(inventoryPages(save, NOW)).toEqual(expect.arrayContaining([{ id: 'gear', count: 1 }]));
   });
 
   it('gear rows list equipped pieces first, each group in order', () => {
     const gear: GearInstance[] = [
-      { uid: 'spare1', itemId: 'sword1', quality: 'normal' },
-      { uid: 'worn', itemId: 'sword1', quality: 'normal' },
-      { uid: 'spare2', itemId: 'sword1', quality: 'normal' },
+      { uid: 'spare1', itemId: 'sword1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
+      { uid: 'worn', itemId: 'sword1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
+      { uid: 'spare2', itemId: 'sword1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
     ];
     const save = equip({ ...emptySave(), gear }, 'bram', 'weapon', 'worn');
     const uids = rowsOn(save, 'gear')
@@ -117,7 +117,7 @@ describe('inventoryPages', () => {
     const save: SaveData = {
       ...tutorialDone(),
       materials: { wood: 3, hide: 1 },
-      gear: [{ uid: '1', itemId: 'sword1', quality: 'normal' }],
+      gear: [{ uid: '1', itemId: 'sword1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 }],
       consumables: { ...createInitialSave().consumables, strongAle: 1 },
       valuables: { 'oldCoins:1': 1 },
       relics: [{ uid: 'r1', relicId: 'rustedSaintsBuckler' }],

@@ -10,8 +10,6 @@ import { valuables } from '@/content/loot/valuables';
 import { contentTexts } from '@/content/fr/contentTexts';
 import { frNames } from '@/content/fr/names';
 import { materials } from '@/content/materials';
-import { elementInfo } from '@/content/elements';
-import { ELEMENTS } from '@/game/elements';
 import type { GearType } from '@/game/types';
 
 import { valuablePrice } from './catalogue';
@@ -86,24 +84,15 @@ describe('the base item catalogue', () => {
     }
   });
 
-  it('has the 12 components of the CSV plus one heart per element', () => {
+  it('has the 12 components of the CSV (its elemental heart row drops as a stone)', () => {
     const rows = csvRows('components.csv');
     expect(rows).toHaveLength(13);
-    const csvNames = rows.map((r) => r[0]);
-    expect(components.map((c) => c.name)).toEqual([
-      ...csvNames.slice(0, 12),
-      ...ELEMENTS.map((element) => `${elementInfo[element].name} heart`),
-    ]);
+    expect(components.map((c) => c.name)).toEqual(rows.map((r) => r[0]).slice(0, 12));
     // Boss components are the five bosses' own; the rest sell for 20.
     for (const component of components) {
-      expect(component.sellPrice).toBe(component.id.endsWith('Heart') ? 20 : components.indexOf(component) < 5 ? 40 : 20);
+      expect(component.sellPrice).toBe(components.indexOf(component) < 5 ? 40 : 20);
     }
-    expect(components.filter((c) => c.id.endsWith('Heart'))).toHaveLength(ELEMENTS.length);
-    for (const element of ELEMENTS) {
-      const heart = components.find((c) => c.id === `${element}Heart`);
-      expect(heart?.element).toBe(element);
-      expect(heart?.sellPrice).toBe(20);
-    }
+    expect(components.filter((c) => c.id.endsWith('Heart'))).toHaveLength(0);
   });
 
   it('has the 9 valuables of the CSV with their rarities', () => {

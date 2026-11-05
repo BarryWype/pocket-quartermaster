@@ -121,7 +121,7 @@ describe('sheetMaxHeight', () => {
 });
 
 describe('SalvageDialog closed from the outside', () => {
-  const gear: GearInstance = { uid: 'g1', itemId: 'sword1', quality: 'normal' };
+  const gear: GearInstance = { uid: 'g1', itemId: 'sword1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 };
 
   it('makes no change to the save: the backdrop is Cancel, only the button confirms', () => {
     let confirmed = false;

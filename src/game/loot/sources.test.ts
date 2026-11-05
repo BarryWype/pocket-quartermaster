@@ -3,7 +3,7 @@ import { lootMatrix } from '@/content/loot/matrix';
 import { components } from '@/content/loot/components';
 import { monsterParts } from '@/content/loot/monsterParts';
 
-import { ELEMENTS, shardId } from '../elements';
+import { ELEMENTS, shardId, stoneId } from '../elements';
 import { createRng } from '../generation/rng';
 import { createInitialSave } from '../save';
 import { rollForSave, sourceAmounts } from './context';
@@ -12,7 +12,8 @@ import { LOOT_CATEGORIES, LOOT_SOURCES, type LootCategory, type LootSourceId } f
 const SEEDS = 200;
 const LUCK = 100;
 const SHARD_IDS = new Set(ELEMENTS.map(shardId));
-const COMPONENT_IDS = new Set(components.map((c) => c.id));
+// Elemental stones drop where hearts did, from the components category.
+const COMPONENT_IDS = new Set([...components.map((c) => c.id), ...ELEMENTS.map(stoneId)]);
 const PART_IDS = new Set(monsterParts.map((p) => p.id));
 
 /** The categories a source may drop: every mark except '—'. */

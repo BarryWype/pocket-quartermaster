@@ -30,7 +30,7 @@ export type SpamCheck = {
 export function spamCheck(hours = 8, t: Targets = targets): SpamCheck {
   const dungeon = dungeons.filter((d) => d.tier === 1).sort((a, b) => a.durationMinutes - b.durationMinutes)[0];
   const play = (rotate: boolean): SpamResult => {
-    let save: SaveData = referenceTeam(['warrior', 'ranger', 'fireMage', 'warrior', 'ranger', 'fireMage'], 1, 'normal', expectedLevels[0]);
+    let save: SaveData = referenceTeam(['warrior', 'ranger', 'fireMage', 'warrior', 'ranger', 'fireMage'], 1, 'common', expectedLevels[0]);
     save = { ...save, consumables: { trailMix: 10_000 } };
     save = { ...save, heroes: save.heroes.map((h) => ({ ...h, equipment: { ...h.equipment, consumable: null } })) };
     const ids = save.heroes.map((h) => h.id);

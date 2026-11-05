@@ -1,11 +1,10 @@
 import { lootConfig } from '@/content/loot/config';
-import { masteryRules } from '@/content/forging';
 import { traitById } from '@/content/traits';
 
 import { unlockRecipe } from '../crafting/crafting';
 import { seeParts } from '../crafting/partRecipes';
 import { convertShards } from '../elements';
-import { gainMastery, masteryOf } from '../forging/mastery';
+import { makeGearPiece } from '../gear/make';
 import { guildBonus } from '../guild/guild';
 import { highestUnlockedTier } from '../dungeons/unlock';
 import { addMaterials } from '../inventory';
@@ -16,9 +15,9 @@ import type { Loot } from './types';
 
 /**
  * Pays a roll's loot: gold, XP per hero who took part (trait and Guild Hall
- * bonuses on top), materials, consumables, lures, gear (given fresh uids),
- * blueprints, key fragments, treasure maps (found `now`), manuals, valuables,
- * relics and mastery progress. Parts and gems found unlock their recipes.
+ * bonuses on top), materials, consumables, lures, gear (rolled with its fresh
+ * uid), blueprints, key fragments, treasure maps (found `now`), manuals,
+ * valuables and relics. Parts and gems found unlock their recipes.
  * Pure: returns a new save.
  */
 export function grantLoot(save: SaveData, heroIds: string[], loot: Loot, now: number): SaveData {
@@ -35,7 +34,7 @@ export function grantLoot(save: SaveData, heroIds: string[], loot: Loot, now: nu
   for (const rarity of loot.manuals) manuals[rarity] = (manuals[rarity] ?? 0) + 1;
 
   let uid = save.nextUid;
-  const gear = loot.gear.map((piece) => ({ ...piece, uid: `g${uid++}` }));
+  const gear = loot.gear.map((piece) => makeGearPiece(`g${uid++}`, piece.itemId, piece.rarity));
   const maps = loot.treasureMaps.map(
     ({ rarity, tier }): TreasureMap => ({ id: `map${uid++}`, tier, rarity, expiresAt: now + lootConfig.treasureMapHours * 3_600_000, location: null }),
   );
@@ -62,10 +61,5 @@ export function grantLoot(save: SaveData, heroIds: string[], loot: Loot, now: nu
   };
   for (const recipeId of loot.recipeIds) next = unlockRecipe(next, recipeId);
   next = seeParts(next, [...loot.materials.map((stack) => stack.materialId), ...loot.valuables.map((v) => v.valuableId)]);
-  for (const { type, tier, forges } of loot.mastery) {
-    let state = masteryOf(next, type);
-    for (let i = 0; i < forges; i++) state = gainMastery(state, tier, masteryRules, 1 + guildBonus(save, 'mastery'));
-    next = { ...next, mastery: { ...next.mastery, [type]: state } };
-  }
   return next;
 }

@@ -50,7 +50,7 @@ describe('grantLoot', () => {
 
   it('pays gear with fresh uids, advancing nextUid', () => {
     const save = createInitialSave();
-    const after = grantLoot(save, [], { ...emptyLoot(), gear: [{ uid: '', itemId: 'sword1', quality: 'rare', roll: 1 }] }, NOW);
+    const after = grantLoot(save, [], { ...emptyLoot(), gear: [{ uid: '', itemId: 'sword1', rarity: 'rare' as const }] }, NOW);
     expect(after.gear.at(-1)).toMatchObject({ uid: `g${save.nextUid}`, itemId: 'sword1' });
     expect(after.nextUid).toBe(save.nextUid + 1);
   });
@@ -96,7 +96,7 @@ describe('grantLoot', () => {
       [],
       {
         ...emptyLoot(),
-        gear: [{ uid: '', itemId: 'sword1', quality: 'normal', roll: 1 }],
+        gear: [{ uid: '', itemId: 'sword1', rarity: 'common' as const }],
         treasureMaps: [{ rarity: 'common', tier: 1 }],
         relics: ['rustyCoin', 'oldBoot'],
       },

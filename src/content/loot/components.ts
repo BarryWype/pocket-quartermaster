@@ -1,28 +1,15 @@
 import type { ImageSourcePropType } from 'react-native';
 
 import type { GearType, Keyword, Tag } from '@/game/types';
-import { ELEMENTS, type Element } from '@/game/elements';
 
-import { elementInfo } from '../elements';
-
-// The 13 components of doc/design/loot/components.csv, the elemental heart
-// expanded to one per element. Components are materials (inventory counts)
-// swapped into a gear recipe to add their effect.
+// The components of doc/design/loot/components.csv, boss and elite drops.
+// Components are materials (inventory counts) forged into a gear recipe to
+// add their affix.
 
 /** What a component adds to the piece it is forged into. */
 export type ComponentEffect =
   | { kind: 'keyword'; keyword: Keyword }
-  | { kind: 'stat'; stat: 'speed' | 'evasion'; add: number }
-  | { kind: 'infusion' };
-
-/** Each element's heart icon. */
-const HEART_ICONS: Record<Element, ImageSourcePropType> = {
-  fire: require('../../../assets/icons/rpg/gem-red-cushion.png'),
-  grass: require('../../../assets/icons/rpg/gem-green-cushion.png'),
-  stone: require('../../../assets/icons/rpg/gem-brown-cushion.png'),
-  electric: require('../../../assets/icons/rpg/gem-orange-cushion.png'),
-  water: require('../../../assets/icons/rpg/gem-blue-cushion.png'),
-};
+  | { kind: 'stat'; stat: 'speed' | 'evasion'; add: number };
 
 export type ComponentDef = {
   id: string;
@@ -37,27 +24,11 @@ export type ComponentDef = {
   bossId?: string;
   /** Family tags that map to this elite component, in family order. */
   tags?: Tag[];
-  element?: Element;
   sellPrice: number;
 };
 
 /** The CSV "Armour": every armour type. */
 const ARMOUR: GearType[] = ['plate', 'mail', 'leather', 'robes'];
-/** The CSV "Any weapon": every weapon type. */
-const ANY_WEAPON: GearType[] = [
-  'sword',
-  'axe',
-  'mace',
-  'dagger',
-  'bow',
-  'spear',
-  'warhammer',
-  'wand',
-  'staff',
-  'lute',
-  'censer',
-  'knuckles',
-];
 
 export const components: ComponentDef[] = [
   { id: 'captainsSpurs', name: 'Captain’s spurs', emoji: '🐎', icon: require('../../../assets/icons/rpg/boots-knight-sabatons.png'), from: 'Bandit captain (T1 boss)', fits: ARMOUR, adds: '+Speed', effect: { kind: 'stat', stat: 'speed', add: 1 }, bossId: 'banditCaptain', sellPrice: 40 },
@@ -72,16 +43,4 @@ export const components: ComponentDef[] = [
   { id: 'trollHide', name: 'Troll hide', emoji: '🟫', icon: require('../../../assets/icons/relics/pelt-fur-collar.png'), from: 'Elite trolls', fits: ARMOUR, adds: 'Mend', effect: { kind: 'keyword', keyword: 'mend' }, tags: ['brute'], sellPrice: 20 },
   { id: 'orcWarDrumSkin', name: 'Orc war-drum skin', emoji: '🥁', icon: require('../../../assets/icons/relics/drum-red.png'), from: 'Elite orcs', fits: ['lute', 'censer', 'tome'], adds: 'Inspire', effect: { kind: 'keyword', keyword: 'inspire' }, tags: ['goblinoid'], sellPrice: 20 },
   { id: 'spiderSilk', name: 'Spider silk', emoji: '🕸️', icon: require('../../../assets/icons/relics/rope-coil.png'), from: 'Elite spiders', fits: ['leather', 'robes'], adds: '+Evasion', effect: { kind: 'stat', stat: 'evasion', add: 5 }, tags: ['vermin'], sellPrice: 20 },
-  ...ELEMENTS.map((element): ComponentDef => ({
-    id: `${element}Heart`,
-    name: `${elementInfo[element].name} heart`,
-    emoji: elementInfo[element].emoji,
-    icon: HEART_ICONS[element],
-    from: 'Elemental rift, Sanctum guardians',
-    fits: ANY_WEAPON,
-    adds: 'Permanent infusion of that element',
-    effect: { kind: 'infusion' },
-    element,
-    sellPrice: 20,
-  })),
 ];

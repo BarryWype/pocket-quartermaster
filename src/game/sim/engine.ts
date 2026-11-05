@@ -1,6 +1,5 @@
 import { gatheringConfig } from '@/content/gatheringConfig';
 import { rosterRules } from '@/content/roster';
-import { MASTERY_TYPES } from '@/content/forging';
 import { guildTracks } from '@/content/guild';
 import { REVEAL_KINDS } from '@/content/reveal';
 import { dungeonById, itemById, recipeById } from '@/content/lookup';
@@ -11,8 +10,6 @@ import { craft } from '../crafting/crafting';
 import { dailyRotation, rotationDay } from '../dungeons/rotation';
 import { startExpedition } from '../expeditions/expeditions';
 import { mealItems, supplyHeld } from '../expeditions/provisions';
-import { masteryOf } from '../forging/mastery';
-import { rollToScale } from '../forging/roll';
 import { distanceMeters, offsetPosition } from '../generation/geo';
 import { createRng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
@@ -122,7 +119,7 @@ function playTutorial(sim: Sim) {
   act(sim, 'forge', (save) => craft(save, recipeById.sword1));
   const sword = sim.save.gear[sim.save.gear.length - 1];
   const wood = recipeById.sword1.inputs[0].amount;
-  sim.log.crafts.push({ day: sim.day, kind: 'tutorial', itemId: sword.itemId, tier: 1, quality: sword.quality, roll: rollToScale(sword.roll ?? 1), mastery: masteryOf(sim.save, 'sword').level, materials: { wood: -wood } });
+  sim.log.crafts.push({ day: sim.day, kind: 'tutorial', itemId: sword.itemId, tier: 1, rarity: sword.rarity, roll: sword.roll, materials: { wood: -wood } });
   sim.save = advanceTutorial(equip(sim.save, warrior.id, 'weapon', sword.uid));
   sim.save = nextTutorialStep(sim.save, 'seeThreat', sim.now);
 
@@ -462,7 +459,6 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
       pickaxes: PICKAXES.filter((id) => save.tools.includes(id)).length,
       sigils: save.sigils.length,
       guildRanks: guildTracks.reduce((s, t) => s + (save.guild[t.id] ?? 0), 0),
-      mastery: Object.fromEntries(MASTERY_TYPES.map((t) => [t, masteryOf(save, t).level])),
       stock: { ...save.materials },
       consumables: { ...save.consumables },
       valuables: { ...save.valuables },

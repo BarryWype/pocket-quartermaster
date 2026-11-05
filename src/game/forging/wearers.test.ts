@@ -4,7 +4,7 @@ import type { GearInstance } from '../types';
 
 import { equippedFirst, wearers } from './salvage';
 
-const piece = (uid: string, itemId: string): GearInstance => ({ uid, itemId, quality: 'normal' });
+const piece = (uid: string, itemId: string): GearInstance => ({ uid, itemId, rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 });
 
 const withGear = () => {
   const save = {

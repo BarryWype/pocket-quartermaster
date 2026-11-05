@@ -36,8 +36,8 @@ function debugSave(): SaveData {
     heroes: base.heroes.map((h) => ({ ...h, level: 5 })),
     consumables: { ...base.consumables, healingPotion: 3 },
     gear: ALL.flatMap((_, i) => [
-      { uid: `w${i}`, itemId: `sword3`, quality: 'normal' as const },
-      { uid: `a${i}`, itemId: `mail3`, quality: 'normal' as const },
+      { uid: `w${i}`, itemId: `sword3`, rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
+      { uid: `a${i}`, itemId: `mail3`, rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
     ]),
   };
   ALL.forEach((id, i) => {

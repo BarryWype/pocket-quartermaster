@@ -4,6 +4,14 @@
 export const RARITIES = ['common', 'uncommon', 'rare', 'legendary'] as const;
 export type Rarity = (typeof RARITIES)[number];
 
+/** The EN rarity names for display; translated through frNames. */
+export const rarityNames: Record<Rarity, string> = {
+  common: 'Common',
+  uncommon: 'Uncommon',
+  rare: 'Rare',
+  legendary: 'Legendary',
+};
+
 export const gearRules = {
   /** Each scaling stat is base × a factor in this range, mapped from the dice total. */
   statRange: { min: 0.8, max: 1.38 },

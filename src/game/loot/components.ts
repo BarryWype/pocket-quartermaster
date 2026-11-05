@@ -1,11 +1,10 @@
 import { components } from '@/content/loot/components';
-import { ELEMENTS } from '@/game/elements';
+import { ELEMENTS, stoneId, type Element } from '@/game/elements';
 import { bossById, mobById } from '@/content/enemies';
 
 import type { Rng } from '../generation/rng';
 import { familyTags } from '../enemies/tags';
 import type { MobDef } from '../types';
-import type { Element } from '../elements';
 import type { LootSourceId } from './types';
 
 /** The elite components: every component tagged with the families it comes from. */
@@ -13,12 +12,12 @@ const eliteComponentIds = components.filter((c) => c.tags).map((c) => c.id);
 
 /**
  * The component a mob carries: the first of its family tags with one. Golems
- * carry the golem core among constructs; elementals carry their element's heart.
+ * carry the golem core among constructs; elementals carry their element's stone.
  */
 export function componentForMob(mob: MobDef): string | undefined {
   for (const tag of familyTags(mob)) {
     if (tag === 'elemental') {
-      if (mob.element) return `${mob.element}Heart`;
+      if (mob.element) return stoneId(mob.element);
     } else if (tag === 'construct') {
       return mob.name.toLowerCase().includes('golem') ? 'golemCore' : 'clockworkEscapement';
     } else {
@@ -29,8 +28,8 @@ export function componentForMob(mob: MobDef): string | undefined {
   return undefined;
 }
 
-const heartOf = (element: Element | undefined, rng: Rng): string =>
-  `${element ?? ELEMENTS[rng.int(0, ELEMENTS.length - 1)]}Heart`;
+const stoneOf = (element: Element | undefined, rng: Rng): string =>
+  stoneId(element ?? ELEMENTS[rng.int(0, ELEMENTS.length - 1)]);
 
 /**
  * The components a roll can pick from, in equal weight. Tier bosses carry
@@ -49,7 +48,7 @@ export function componentPool(
     if (own.length > 0) return [own[0].id];
     if (!viaBlueprints) return [];
   }
-  if (source === 'elementalRift' || source === 'sanctum') return [heartOf(element, rng)];
+  if (source === 'elementalRift' || source === 'sanctum') return [stoneOf(element, rng)];
 
   const unique = (ids: (string | undefined)[]): string[] => [...new Set(ids.filter((id): id is string => id !== undefined))];
   const mobs = enemies.map((id) => mobById[id] ?? bossById[id]).filter((mob) => mob !== undefined);
@@ -63,6 +62,6 @@ export function componentPool(
   const byTags = unique(mobs.map(componentForMob));
   if (byTags.length > 0) return byTags;
 
-  // Nothing matched: any non-boss component, the heart of a random element.
-  return [...eliteComponentIds, heartOf(undefined, rng)];
+  // Nothing matched: any non-boss component, the stone of a random element.
+  return [...eliteComponentIds, stoneOf(undefined, rng)];
 }

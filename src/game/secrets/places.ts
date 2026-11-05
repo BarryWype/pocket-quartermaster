@@ -13,6 +13,7 @@ import { distanceMeters } from '../generation/geo';
 import { createRng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { addMaterials } from '../inventory';
+import { makeGearPiece } from '../gear/make';
 import type { PlaceSpawn } from '../places/generate';
 import { rosterFull } from '../team/team';
 import { rolledSpecial } from '../team/specials';
@@ -144,8 +145,8 @@ export function blackMarketGoods(
       key: `gear:${i}`,
       kind: 'gear' as const,
       id,
-      price: Math.round(shopRules.gearPrice[tier - 1] * shopRules.qualityPrice.rare * markup),
-      gear: { uid: `market:${place.id}:${i}`, itemId: id, quality: 'rare' },
+      price: Math.round(shopRules.gearPrice[tier - 1] * shopRules.rarityPrice.rare * markup),
+      gear: makeGearPiece(`market:${place.id}:${i}`, id, 'rare'),
     };
   });
 }

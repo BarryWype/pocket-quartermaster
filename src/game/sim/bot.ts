@@ -13,6 +13,7 @@ import { shopRules } from '@/content/shops';
 import { recipes } from '@/content/recipes';
 import { approachRules, narrowPartySize } from '@/content/threats';
 import { traitById } from '@/content/traits';
+import type { Rarity } from '@/content/gear';
 
 import { canCraft, craft, craftableCount, craftMany, forgedItem, isKnown } from '../crafting/crafting';
 import { canInfuse, infuse } from '../crafting/infusion';
@@ -33,10 +34,9 @@ import { estimateOdds, type Odds } from '../expeditions/odds';
 import { mealItems, supplyHeld, supplyItems } from '../expeditions/provisions';
 import { rollDailyApproaches } from '../upkeep';
 import { answersMemberOf, EMPTY_BRIEFING, prepareParty, simulateRun } from '../expeditions/simulate';
-import { masteryCap, masteryOf, masteryTypeOf } from '../forging/mastery';
-import { gearStats, qualityOdds, type GearQualityRoll } from '../forging/quality';
-import { rollToScale } from '../forging/roll';
 import { salvage } from '../forging/salvage';
+import { gearStats } from '../gear/stats';
+import { infusedElement } from '../gear/affixes';
 import { trinketEffect } from '../loot/trinkets';
 import { distanceMeters, offsetPosition } from '../generation/geo';
 import type { Rng } from '../generation/rng';
@@ -58,7 +58,7 @@ import { briefingCoverage, kitAnswers } from '../threats/coverage';
 import { gearApproachBonus, approachScore, pendingApproachPicks, pickApproach } from '../team/stats';
 import { heroAnswers, type AnswersMember } from '../threats/answers';
 import { scoreThreat } from '../threats/score';
-import type { ActiveExpedition, Approach, ArmourType, Briefing, ConsumableDef, DungeonDef, GearDef, GearInstance, HeroClassId, HeroState, OffhandType, Quality, RecipeDef, Stats, WeaponType } from '../types';
+import type { ActiveExpedition, Approach, ArmourType, Briefing, ConsumableDef, DungeonDef, GearDef, GearInstance, HeroClassId, HeroState, OffhandType, RecipeDef, Stats, WeaponType } from '../types';
 import { expectedLevels, type Profile, type SimConfig } from './config';
 import { partRecipeFor } from './rules/inventory';
 import { emptySlots, fillPotions, heldPotion, isKit, oilIds, pickCharm, pickKits, pickWeakness, statPotionIds, uncovered, withCharm, withElixir, withOil, withStatPotion } from './rules/loadout';
@@ -70,10 +70,7 @@ import { claimQuest, reachMark } from '../quests/rewards';
 import { needsPlace } from '../quests/targets';
 import type { Quest } from '../quests/types';
 
-export const QUALITY_ORDER: Quality[] = ['crappy', 'normal', 'uncommon', 'rare', 'legendary'];
-
-/** A hypothetical forged piece at Normal quality with a neutral roll, for ranking recipes. */
-const NEUTRAL = { quality: 'normal' as const, roll: 1 };
+export const RARITY_ORDER: Rarity[] = ['common', 'uncommon', 'rare', 'legendary'];
 
 export type ExpeditionRow = {
   day: number;
@@ -93,8 +90,8 @@ export type ExpeditionRow = {
   outcome: string;
   gold: number;
   xp: number;
-  /** Quality of the party's worn weapons and armour at launch. */
-  qualities: Record<Quality, number>;
+  /** Rarity of the party's worn weapons and armour at launch. */
+  rarities: Record<Rarity, number>;
   /** Abilities that changed an encounter, e.g. "calm" or "tagBonus:beast". */
   effects: Record<string, number>;
   /** The same by the class that used them, as "class|effect" ("local" for a local's tip). */
@@ -123,13 +120,9 @@ export type CraftRow = {
   kind: 'pickaxe' | 'upgrade' | 'reforge' | 'component' | 'relic' | 'consumable' | 'provision' | 'salvage' | 'tutorial';
   itemId: string;
   tier: number;
-  quality: Quality | null;
-  /** The piece's stat roll (1–7 scale), for forged gear. */
+  rarity: Rarity | null;
+  /** The piece's stat dice total (3–18), for forged gear. */
   roll: number | null;
-  /** Mastery level of the piece's type after the forge. */
-  mastery: number | null;
-  /** Forged with the type's mastery already at the item tier's cap. */
-  maxed?: boolean;
   /** Materials used (negative) or returned (positive). */
   materials: Record<string, number>;
 };
@@ -146,7 +139,6 @@ export type DayRow = {
   pickaxes: number;
   sigils: number;
   guildRanks: number;
-  mastery: Record<string, number>;
   stock: Record<string, number>;
   consumables: Record<string, number>;
   valuables: Record<string, number>;
@@ -294,7 +286,7 @@ export type Sim = {
   /** When the first session at or after a time happens. */
   collectionAt: (time: number) => number;
   oddsCache: Map<string, Odds>;
-  launched: Map<string, Pick<ExpeditionRow, 'odds' | 'qualities' | 'day' | 'hour' | 'level' | 'consumables'>>;
+  launched: Map<string, Pick<ExpeditionRow, 'odds' | 'rarities' | 'day' | 'hour' | 'level' | 'consumables'>>;
   /** Dungeons left for a later session this one, waiting for the heroes to heal. */
   waiting: Set<string>;
   /** How this session's expedition search ended while expeditions were owed, and whether one launched. */
@@ -367,9 +359,9 @@ export const highestTier = highestUnlockedTier;
 export const homeHeroes = (save: SaveData) => save.heroes.filter((h) => !isOnExpedition(save, h.id));
 const gearOf = (save: SaveData, uid: string | null) => save.gear.find((g) => g.uid === uid);
 
-/** How much a piece adds to a hero: their damage stat for weapons and off-hands, armour, resistance and a share of HP otherwise. */
-export function gearScore(hero: HeroState, item: GearDef, gear: GearQualityRoll) {
-  const stats = gearStats(item, gear);
+/** How much a Common piece with average dice adds to a hero: their damage stat for weapons and off-hands, armour, resistance and a share of HP otherwise. */
+export function gearScore(hero: HeroState, item: GearDef) {
+  const stats = gearStats({ itemId: item.id, rarity: 'common', roll: 10.5 });
   if (item.slot === 'armor') return (stats.armour ?? 0) + (stats.resistance ?? 0) + (stats.hp ?? 0) / 8;
   const damage = heroClasses[hero.classId].damageStat === 'magic' ? (stats.magic ?? 0) : (stats.power ?? 0);
   const affinity = item.gearType ? affinityRules[affinityOf(hero.classId, item.gearType)] : 1;
@@ -517,7 +509,7 @@ const forgeRecipes = recipes.filter((r) => forgedItem(r));
 /** The best-tier piece a hero could get for a slot from the known recipes, the class's favoured type first. */
 function bestRecipe(save: SaveData, hero: HeroState, slot: 'weapon' | 'armor' | 'offhand') {
   const want = slot === 'weapon' ? weaponTypeFor(hero.classId) : slot === 'armor' ? armourTypeFor(hero.classId) : offhandTypeFor(save, hero);
-  const rank = (item: GearDef) => [item.tier, item.gearType === want ? 1 : 0, gearScore(hero, item, NEUTRAL)] as const;
+  const rank = (item: GearDef) => [item.tier, item.gearType === want ? 1 : 0, gearScore(hero, item)] as const;
   let best: { recipe: RecipeDef; item: GearDef } | null = null;
   for (const recipe of forgeRecipes) {
     const item = forgedItem(recipe)!;
@@ -535,19 +527,15 @@ function recordCraft(sim: Sim, kind: CraftRow['kind'], before: SaveData, materia
   const gear = sim.save.gear.find((g) => !before.gear.some((b) => b.uid === g.uid));
   if (!gear) return null;
   const item = itemById[gear.itemId] as GearDef;
-  const type = masteryTypeOf(item);
-  const mastery = masteryOf(sim.save, type).level;
-  const maxed = masteryOf(before, type).level >= masteryCap(item.tier);
-  sim.log.crafts.push({ day: sim.day, kind, itemId: item.id, tier: item.tier, quality: gear.quality, roll: rollToScale(gear.roll ?? 1), mastery, maxed, materials });
-  if (gear.quality === 'rare' || gear.quality === 'legendary') mark(sim, `rare:${item.tier}`);
-  if (gear.quality === 'legendary') mark(sim, `legendary:${item.tier}`);
-  for (let tier = 1; tier <= 5; tier++) if (mastery >= masteryCap(tier)) mark(sim, `masteryCap:${tier}`);
+  sim.log.crafts.push({ day: sim.day, kind, itemId: item.id, tier: item.tier, rarity: gear.rarity, roll: gear.roll, materials });
+  if (gear.rarity === 'rare' || gear.rarity === 'legendary') mark(sim, `rare:${item.tier}`);
+  if (gear.rarity === 'legendary') mark(sim, `legendary:${item.tier}`);
   return gear;
 }
 
 /** A trinket's worth as one number: Crit and Evasion points, Speed and Luck count triple, an amulet half its Resistance, a talisman 3. */
 function trinketScore(gear: GearInstance) {
-  const effect = trinketEffect(itemById[gear.itemId] as GearDef, gear.quality);
+  const effect = trinketEffect(itemById[gear.itemId] as GearDef, gear);
   const { crit = 0, evasion = 0, speed = 0, luck = 0 } = effect.stats;
   return crit + evasion + 3 * (speed + luck) + (effect.elementResist?.amount ?? 0) / 2 + (effect.approach ? 3 : 0);
 }
@@ -589,7 +577,7 @@ function distribute(sim: Sim) {
   for (const gear of sim.save.gear.filter((g) => !worn.has(g.uid))) {
     const item = itemById[gear.itemId] as GearDef;
     const materials = act(sim, 'salvage', (save) => salvage(save, gear.uid));
-    sim.log.crafts.push({ day: sim.day, kind: 'salvage', itemId: item.id, tier: item.tier, quality: gear.quality, roll: null, mastery: null, materials });
+    sim.log.crafts.push({ day: sim.day, kind: 'salvage', itemId: item.id, tier: item.tier, rarity: gear.rarity, roll: gear.roll, materials });
   }
 }
 
@@ -613,10 +601,13 @@ function forgeGear(sim: Sim, recipe: RecipeDef, kind: CraftRow['kind']) {
   distribute(sim);
 }
 
-/** The chance a re-forge beats the piece's quality at the current mastery. */
-function betterChance(save: SaveData, item: GearDef, quality: Quality) {
-  const odds = qualityOdds(masteryOf(save, masteryTypeOf(item)).level, item.tier);
-  return QUALITY_ORDER.slice(QUALITY_ORDER.indexOf(quality) + 1).reduce((sum, q) => sum + odds[q], 0) / 100;
+/** How many of the 216 3d6 rolls land on each total, index 0 = 3 … 15 = 18. */
+const DICE_COUNTS = [1, 3, 6, 10, 15, 21, 25, 27, 27, 25, 21, 15, 10, 6, 3, 1];
+
+/** The chance a re-forge's fresh 3d6 beats the piece's current dice total. */
+function betterRollChance(roll: number): number {
+  const above = Math.min(18, Math.max(3, Math.round(roll))) - 3;
+  return DICE_COUNTS.slice(above + 1).reduce((sum, count) => sum + count, 0) / 216;
 }
 
 /** The recipe the forge rule would pick now: the next pickaxe, else the biggest upgrade. */
@@ -631,7 +622,7 @@ export function nextForgeRecipe(save: SaveData): RecipeDef | null {
         const best = bestRecipe(save, hero, slot);
         const current = gearOf(save, hero.equipment[slot]);
         if (!best || (current && (itemById[current.itemId] as GearDef).tier >= best.item.tier)) return null;
-        return { recipe: best.recipe, gain: gearScore(hero, best.item, NEUTRAL) - wornScore(save, hero, slot) };
+        return { recipe: best.recipe, gain: gearScore(hero, best.item) - wornScore(save, hero, slot) };
       });
     })
     .filter((u): u is { recipe: RecipeDef; gain: number } => u !== null && u.gain > 0)
@@ -644,7 +635,7 @@ export function forge(sim: Sim) {
   const pickaxe = recipeById[PICKAXES[owned]];
   if (pickaxe && sim.save.knownRecipes.includes(pickaxe.id) && smeltFor(sim, pickaxe.inputs) && canCraft(sim.save, pickaxe)) {
     act(sim, 'pickaxe', (save) => craft(save, pickaxe));
-    sim.log.crafts.push({ day: sim.day, kind: 'pickaxe', itemId: pickaxe.id, tier: owned + 1, quality: null, roll: null, mastery: null, materials: {} });
+    sim.log.crafts.push({ day: sim.day, kind: 'pickaxe', itemId: pickaxe.id, tier: owned + 1, rarity: null, roll: null, materials: {} });
     mark(sim, `pickaxe:${pickaxe.id}`);
   } else if (pickaxe && sim.save.knownRecipes.includes(pickaxe.id)) {
     recordMissing(sim, pickaxe);
@@ -659,7 +650,7 @@ export function forge(sim: Sim) {
           const best = bestRecipe(sim.save, hero, slot);
           const current = gearOf(sim.save, hero.equipment[slot]);
           if (!best || (current && (itemById[current.itemId] as GearDef).tier >= best.item.tier)) return null;
-          return { recipe: best.recipe, gain: gearScore(hero, best.item, NEUTRAL) - wornScore(sim.save, hero, slot) };
+          return { recipe: best.recipe, gain: gearScore(hero, best.item) - wornScore(sim.save, hero, slot) };
         });
       })
       .filter((u) => u !== null && u.gain > 0)
@@ -672,7 +663,7 @@ export function forge(sim: Sim) {
     forgeGear(sim, next.recipe, 'upgrade');
   }
 
-  // Re-forges: worn pieces of the best known tier, worst quality first, keeping one more forge's materials.
+  // Re-forges: worn pieces of the best known tier, worst dice first, keeping one more forge's materials.
   for (let i = 0; i < sim.config.reforgesPerSession; i++) {
     const candidates = homeHeroes(sim.save)
       .flatMap((hero) =>
@@ -681,12 +672,12 @@ export function forge(sim: Sim) {
           const best = bestRecipe(sim.save, hero, slot);
           if (!gear || !best || gear.itemId !== best.item.id) return null;
           const twice = best.recipe.inputs.map((s) => ({ ...s, amount: s.amount * 2 }));
-          if (betterChance(sim.save, best.item, gear.quality) < sim.config.reforgeChance || !hasMaterials(sim.save.materials, twice) || !canCraft(sim.save, best.recipe)) return null;
-          return { recipe: best.recipe, quality: QUALITY_ORDER.indexOf(gear.quality) };
+          if (betterRollChance(gear.roll) < sim.config.reforgeChance || !hasMaterials(sim.save.materials, twice) || !canCraft(sim.save, best.recipe)) return null;
+          return { recipe: best.recipe, roll: gear.roll };
         }),
       )
       .filter((c) => c !== null)
-      .sort((a, b) => a.quality - b.quality);
+      .sort((a, b) => a.roll - b.roll);
     if (!candidates[0]) break;
     forgeGear(sim, candidates[0].recipe, 'reforge');
   }
@@ -701,7 +692,7 @@ function cook(sim: Sim, itemId: string, count: number) {
   const n = Math.min(count, craftableCount(sim.save, recipe));
   if (n <= 0) return 0;
   act(sim, recipe.tab ?? 'alchemy', (save) => craftMany(save, recipe, n));
-  for (let i = 0; i < n; i++) sim.log.crafts.push({ day: sim.day, kind: 'provision', itemId, tier: 0, quality: null, roll: null, mastery: null, materials: {} });
+  for (let i = 0; i < n; i++) sim.log.crafts.push({ day: sim.day, kind: 'provision', itemId, tier: 0, rarity: null, roll: null, materials: {} });
   return n;
 }
 
@@ -793,7 +784,7 @@ export function infuseWeapons(sim: Sim) {
   if (!target) return;
   const weapons = homeHeroes(sim.save)
     .map((hero) => ({ hero, gear: gearOf(sim.save, hero.equipment.weapon) }))
-    .filter((w) => w.gear && !w.gear.element)
+    .filter((w) => w.gear && !infusedElement(w.gear))
     .sort((a, b) => wornScore(sim.save, b.hero, 'weapon') - wornScore(sim.save, a.hero, 'weapon'));
   for (const { gear } of weapons) {
     const element = ELEMENTS.filter((e) => (sim.save.materials[stoneId(e)] ?? 0) > 0 && weaponMultiplier(e, target) >= 1).sort(
@@ -920,7 +911,7 @@ export function assignJobs(sim: Sim) {
 const heroKey = (save: SaveData, hero: HeroState, now: number) => {
   const gear = (uid: string | null) => {
     const g = gearOf(save, uid);
-    return g ? `${g.uid}${g.quality}${g.element ?? ''}` : '-';
+    return g ? `${g.uid}${g.rarity}` : '-';
   };
   // HP in 5% steps, so healing heroes don't miss the cache every minute.
   const hp = Math.round((currentHp(save, hero, now) / maxHp(save, hero)) * 20);
@@ -1129,12 +1120,12 @@ export function launch(sim: Sim, dungeon: DungeonDef, heroIds: string[], o: Odds
     sim.save = withCharm(sim.save, heroIds, charm);
     final = estimateOdds(sim.save, heroIds, dungeon, sim.config.odds.runs, { now: sim.now, loadout, briefing });
   }
-  const qualities = Object.fromEntries(QUALITY_ORDER.map((q) => [q, 0])) as Record<Quality, number>;
+  const rarities = Object.fromEntries(RARITY_ORDER.map((r) => [r, 0])) as Record<Rarity, number>;
   for (const id of heroIds) {
     const hero = sim.save.heroes.find((h) => h.id === id)!;
     for (const uid of [hero.equipment.weapon, hero.equipment.armor]) {
       const gear = gearOf(sim.save, uid);
-      if (gear) qualities[gear.quality]++;
+      if (gear) rarities[gear.rarity]++;
     }
   }
   const id = `x${sim.save.nextUid}`;
@@ -1146,7 +1137,7 @@ export function launch(sim: Sim, dungeon: DungeonDef, heroIds: string[], o: Odds
     const { consumable, potion } = sim.save.heroes.find((x) => x.id === h)!.equipment;
     return [consumable, potion].filter((c): c is string => !!c);
   });
-  sim.launched.set(id, { odds: final.success, qualities, day: sim.day, hour: (sim.now - sim.startedAt) / 3_600_000, level, consumables });
+  sim.launched.set(id, { odds: final.success, rarities, day: sim.day, hour: (sim.now - sim.startedAt) / 3_600_000, level, consumables });
 }
 
 /** The loot row a run of this dungeon rolls, for charms. */
@@ -1319,7 +1310,7 @@ export function collectExpedition(sim: Sim, expedition: ActiveExpedition) {
     outcome: report.outcome,
     gold: report.gold,
     xp: report.xp,
-    qualities: launched?.qualities ?? { crappy: 0, normal: 0, uncommon: 0, rare: 0, legendary: 0 },
+    rarities: launched?.rarities ?? { common: 0, uncommon: 0, rare: 0, legendary: 0 },
     effects,
     classEffects,
     hours: (expedition.endsAt - expedition.startedAt) / 3_600_000,

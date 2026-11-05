@@ -154,7 +154,7 @@ describe('availability', () => {
   });
 
   it('lets a running expedition keep its dungeon and briefing after the rotation moves on', () => {
-    const save = done({ ...createInitialSave(), gear: [{ uid: 'g', itemId: 'sword5', quality: 'normal' }] });
+    const save = done({ ...createInitialSave(), gear: [{ uid: 'g', itemId: 'sword5', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 }] });
     const equipped = equip(save, 'bram', 'weapon', 'g');
     const started = startExpedition(equipped, 'ratCellar', ['bram'], 0, 1, dailyRotation(START));
     expect(started.expeditions[0].briefing).toEqual(briefingFor(dailyRotation(START), dungeonById.ratCellar));

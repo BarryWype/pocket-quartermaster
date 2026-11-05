@@ -90,7 +90,7 @@ describe('tutorial walkthrough', () => {
   it('skips steps the player already did out of order', () => {
     const save: SaveData = {
       ...createInitialSave(),
-      gear: [{ uid: 'g1', itemId: 'sword1', quality: 'normal' }],
+      gear: [{ uid: 'g1', itemId: 'sword1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 }],
     };
     expect(advanceTutorial(save).tutorial.step).toBe('equipSword');
   });

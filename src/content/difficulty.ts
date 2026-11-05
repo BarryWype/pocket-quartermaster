@@ -27,11 +27,11 @@ export const difficultyRules = {
   patrolWeights: { easy: 0.5, medium: 0.35, hard: 0.15 } satisfies Record<Exclude<Difficulty, 'boss'>, number>,
   /** Loot multipliers by difficulty; bosses keep their own rows. */
   rewards: {
-    easy: { goldXp: 1, chance: 1, amount: 1, qualitySteps: 0 },
-    medium: { goldXp: 1.3, chance: 1.25, amount: 1.25, qualitySteps: 0 },
-    hard: { goldXp: 1.7, chance: 1.5, amount: 1.5, qualitySteps: 1 },
-    boss: { goldXp: 1, chance: 1, amount: 1, qualitySteps: 0 },
-  } satisfies Record<Difficulty, { goldXp: number; chance: number; amount: number; qualitySteps: number }>,
+    easy: { goldXp: 1, chance: 1, amount: 1, raritySteps: 0 },
+    medium: { goldXp: 1.3, chance: 1.25, amount: 1.25, raritySteps: 0 },
+    hard: { goldXp: 1.7, chance: 1.5, amount: 1.5, raritySteps: 1 },
+    boss: { goldXp: 1, chance: 1, amount: 1, raritySteps: 0 },
+  } satisfies Record<Difficulty, { goldXp: number; chance: number; amount: number; raritySteps: number }>,
 };
 
 /** The threat level of a difficulty at `tier`; bosses keep their own threat. */

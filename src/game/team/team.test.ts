@@ -10,9 +10,9 @@ function saveWithGear(): SaveData {
   return {
     ...createInitialSave(),
     gear: [
-      { uid: 'g1', itemId: 'sword1', quality: 'normal' },
-      { uid: 'g2', itemId: 'wand1', quality: 'normal' },
-      { uid: 'g3', itemId: 'mail1', quality: 'normal' },
+      { uid: 'g1', itemId: 'sword1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
+      { uid: 'g2', itemId: 'wand1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
+      { uid: 'g3', itemId: 'mail1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
     ],
     consumables: { healingPotion: 1 },
   };
@@ -120,7 +120,7 @@ describe('equip', () => {
 describe('equipPreview', () => {
   it('shows the stat gain of an upgrade', () => {
     const save = equip(saveWithGear(), 'bram', 'weapon', 'g1');
-    const withBetter = { ...save, gear: [...save.gear, { uid: 'g4', itemId: 'sword3', quality: 'normal' as const }] };
+    const withBetter = { ...save, gear: [...save.gear, { uid: 'g4', itemId: 'sword3', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 }] };
     const preview = equipPreview(withBetter, 'bram', 'weapon', 'g4');
     expect(preview).not.toBeNull();
     expect(preview!.after.power).toBeGreaterThan(preview!.before.power);
@@ -136,8 +136,8 @@ describe('equipPreview', () => {
       ...saveWithGear(),
       gear: [
         ...saveWithGear().gear,
-        { uid: 'g5', itemId: 'shield1', quality: 'normal' as const },
-        { uid: 'g6', itemId: 'warhammer1', quality: 'normal' as const },
+        { uid: 'g5', itemId: 'shield1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
+        { uid: 'g6', itemId: 'warhammer1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
       ],
     };
     const save = equip(equip(base, 'bram', 'weapon', 'g1'), 'bram', 'offhand', 'g5');
@@ -260,8 +260,8 @@ describe('two pieces of the same item', () => {
     let save: SaveData = {
       ...createInitialSave(),
       gear: [
-        { uid: 'g1', itemId: 'sword1', quality: 'crappy', roll: 0.9 },
-        { uid: 'g2', itemId: 'sword1', quality: 'normal', roll: 1.1 },
+        { uid: 'g1', itemId: 'sword1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
+        { uid: 'g2', itemId: 'sword1', rarity: 'common' as const, roll: 18, affixes: [], rerolls: 0 },
       ],
     };
     const warrior = save.heroes.find((h) => h.classId === 'warrior')!.id;
@@ -277,9 +277,9 @@ describe('upgradeMark', () => {
   const save: SaveData = {
     ...createInitialSave(),
     gear: [
-      { uid: 'axe', itemId: 'axe3', quality: 'normal' },
-      { uid: 'plate', itemId: 'plate3', quality: 'normal' },
-      { uid: 'wand', itemId: 'wand3', quality: 'normal' },
+      { uid: 'axe', itemId: 'axe3', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
+      { uid: 'plate', itemId: 'plate3', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
+      { uid: 'wand', itemId: 'wand3', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
     ],
   };
   const mark = (heroId: string, slot: 'weapon' | 'armor', uid: string) =>

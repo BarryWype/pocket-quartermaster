@@ -2,13 +2,8 @@ import { relicById } from '@/content/lookup';
 import { lootConfig } from '@/content/loot/config';
 
 import { createInitialSave, type SaveData } from '../save';
-import { qualityOdds } from '../forging/quality';
 import { relicRecipe } from '../forging/relics';
 import { forgeConfirmation, restoreConfirmation } from './confirm';
-import type { Quality } from '../types';
-
-const likeliest = (odds: Record<Quality, number>) =>
-  (Object.keys(odds) as Quality[]).reduce((best, quality) => (odds[quality] > odds[best] ? quality : best));
 
 /** A save holding a relic and exactly its restore cost, gem included. */
 const holding = (relicId: string): SaveData => {
@@ -32,19 +27,19 @@ describe('forgeConfirmation', () => {
     expect(confirm?.cost.valuables).toEqual([]);
   });
 
-  it('expects the likeliest quality for the current mastery', () => {
-    const confirm = forgeConfirmation({ ...createInitialSave(), materials: { wood: 6 } }, 'sword1');
-    expect(confirm?.expectedQuality).toEqual(likeliest(qualityOdds(1, 1)));
-    expect(confirm?.masteryLevel).toEqual(1);
+  it('expects Common without a component, Uncommon with one', () => {
+    const save = { ...createInitialSave(), materials: { wood: 6, dragonClaw: 1 } };
+    expect(forgeConfirmation(save, 'sword1')?.expectedRarity).toBe('common');
+    expect(forgeConfirmation(save, 'sword1', 'dragonClaw')?.expectedRarity).toBe('uncommon');
   });
 
-  it('swaps the component unit into the cost when one is chosen', () => {
-    const save = { ...createInitialSave(), materials: { wood: 6, fireHeart: 1 } };
-    const confirm = forgeConfirmation(save, 'sword1', 'fireHeart');
-    expect(confirm?.componentId).toEqual('fireHeart');
+  it('adds the component to the full recipe cost when one is chosen', () => {
+    const save = { ...createInitialSave(), materials: { wood: 6, dragonClaw: 1 } };
+    const confirm = forgeConfirmation(save, 'sword1', 'dragonClaw');
+    expect(confirm?.componentId).toEqual('dragonClaw');
     expect(confirm?.cost.materials).toEqual([
-      { id: 'wood', needed: 3, held: 6, remaining: 3 },
-      { id: 'fireHeart', needed: 1, held: 1, remaining: 0 },
+      { id: 'wood', needed: 4, held: 6, remaining: 2 },
+      { id: 'dragonClaw', needed: 1, held: 1, remaining: 0 },
     ]);
   });
 

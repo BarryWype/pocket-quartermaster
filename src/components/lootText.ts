@@ -1,4 +1,3 @@
-import { masteryTypeNames } from '@/content/forging';
 import { gearName, itemById, materialById, recipeById, recipeOutput, relicById, valuableById } from '@/content/lookup';
 import type { Loot } from '@/game/loot/types';
 import { t, tr } from '@/i18n';
@@ -18,7 +17,6 @@ export function lootLabels(loot: Loot): string[] {
     loot.gold > 0 ? goldLabel(loot.gold, '+') : null,
     ...loot.gear.map((g) => `${itemById[g.itemId].emoji} ${gearName(g)}`),
     ...loot.recipeIds.map((id) => t('expeditions.newBlueprint', { name: tr(recipeOutput(recipeById[id]).name) })),
-    ...loot.mastery.map((m) => t('expeditions.tierComplete', { tier: m.tier, forges: m.forges, types: tr(masteryTypeNames[m.type].plural) })),
     ...loot.treasureMaps.map((m) => t('expeditions.treasureMap', { rarity: rarity(m.rarity) })),
     ...loot.manuals.map((m) => t('expeditions.manual', { rarity: rarity(m) })),
     ...loot.valuables.map((v) => `${valuableById[v.valuableId].emoji} ${t('inventory.valuable', { name: tr(valuableById[v.valuableId].name), tier: v.tier })}${v.amount > 1 ? ` ×${v.amount}` : ''}`),

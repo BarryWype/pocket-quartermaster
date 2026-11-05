@@ -64,7 +64,7 @@ describe('loot quantities', () => {
   it('gives 2-4 shards of one element', () => {
     const componentIds = new Set(components.map((c) => c.id));
     for (const loot of forced('sanctum', 'shards')) {
-      const stacks = loot.materials.filter((stack) => !componentIds.has(stack.materialId));
+      const stacks = loot.materials.filter((stack) => !componentIds.has(stack.materialId) && !stack.materialId.endsWith('Stone'));
       expect(stacks.length).toBe(1);
       const [stack] = stacks;
       expect(Object.values(ELEMENTS).map((element) => shardId(element))).toContain(stack.materialId);

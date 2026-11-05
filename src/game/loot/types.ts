@@ -1,4 +1,5 @@
-import type { GearInstance, MasteryType, MaterialStack } from '@/game/types';
+import type { MaterialStack } from '@/game/types';
+import type { Rarity } from '@/content/gear';
 
 export const LOOT_CATEGORIES = [
   'gold',
@@ -68,7 +69,13 @@ export type LootModifier =
   | { id: string; kind: 'luck'; add: number }
   | { id: string; kind: 'gold'; percent: number }
   | { id: string; kind: 'xp'; percent: number }
-  | { id: string; kind: 'quality'; steps: number };
+  | { id: string; kind: 'rarity'; steps: number };
+
+/**
+ * A looted piece before it is granted: its uid is filled in then, and its
+ * rolls happen with it (makeGearPiece seeds everything by the uid).
+ */
+export type RolledGear = { uid: ''; itemId: string; rarity: Rarity };
 
 /** What a roll gives. Shards, monster parts and components go in `materials`; trinkets in `gear`. */
 export type Loot = {
@@ -77,9 +84,8 @@ export type Loot = {
   materials: MaterialStack[];
   consumables: { itemId: string; amount: number }[];
   lures: number;
-  gear: GearInstance[]; // uid '' until granted
+  gear: RolledGear[];
   recipeIds: string[];
-  mastery: { type: MasteryType; tier: number; forges: number }[];
   keyFragments: number;
   treasureMaps: { rarity: MapRarity; tier: number }[];
   manuals: ManualRarity[];
@@ -97,7 +103,6 @@ export const emptyLoot = (): Loot => ({
   lures: 0,
   gear: [],
   recipeIds: [],
-  mastery: [],
   keyFragments: 0,
   treasureMaps: [],
   manuals: [],

@@ -2,7 +2,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { signatureText } from '@/content/abilities';
 import { classAffinities, type Affinity } from '@/content/equipment';
-import { masteryTypeNames } from '@/content/forging';
+import { gearTypeNames } from '@/content/equipment';
 import { heroClasses } from '@/content/heroes';
 import type { ArmourType, HeroClassId, WeaponType } from '@/game/types';
 import { t, tr } from '@/i18n';
@@ -14,7 +14,7 @@ import { Text } from './Text';
 const typesAt = (classId: HeroClassId, affinity: Affinity) =>
   (Object.entries(classAffinities[classId]) as [WeaponType | ArmourType, Affinity][])
     .filter(([, a]) => a === affinity)
-    .map(([type]) => tr(masteryTypeNames[type].name).toLowerCase())
+    .map(([type]) => tr(gearTypeNames[type].name).toLowerCase())
     .join(', ');
 
 /** A class at a glance: family (and rarity when rare), signature in one line, favoured ▲ and unfit ▼ types. */

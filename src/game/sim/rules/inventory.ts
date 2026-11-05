@@ -146,7 +146,7 @@ export function craftCharms(sim: Sim) {
     if (n <= 0) continue;
     act(sim, 'alchemy', (save) => craftMany(save, recipe, n));
     for (let i = 0; i < n; i++) {
-      sim.log.crafts.push({ day: sim.day, kind: 'consumable', itemId: recipe.output.itemId, tier: 0, quality: null, roll: null, mastery: null, materials: {} });
+      sim.log.crafts.push({ day: sim.day, kind: 'consumable', itemId: recipe.output.itemId, tier: 0, rarity: null, roll: null, materials: {} });
     }
     mark(sim, 'charmCrafted');
   }
@@ -162,7 +162,7 @@ function craftUpTo(sim: Sim, itemIds: string[], stock: number) {
     if (n <= 0) continue;
     act(sim, 'alchemy', (save) => craftMany(save, recipe, n));
     for (let i = 0; i < n; i++) {
-      sim.log.crafts.push({ day: sim.day, kind: 'consumable', itemId, tier: 0, quality: null, roll: null, mastery: null, materials: {} });
+      sim.log.crafts.push({ day: sim.day, kind: 'consumable', itemId, tier: 0, rarity: null, roll: null, materials: {} });
     }
   }
 }

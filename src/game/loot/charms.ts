@@ -21,7 +21,7 @@ export function charmApplies(modifier: LootModifier, source: LootSourceId): bool
       return marks.gold !== '—';
     case 'xp':
       return marks.xp !== '—';
-    case 'quality':
+    case 'rarity':
       return marks.gear !== '—';
     case 'luck':
       return marks.gold !== '—' || LOOT_CATEGORIES.some((category) => marks[category] !== '—' && marks[category] !== 'A');

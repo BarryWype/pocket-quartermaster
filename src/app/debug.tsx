@@ -5,7 +5,7 @@ import { Button } from '@/components/Button';
 import { patrolIcons } from '@/components/PatrolMarker';
 import { Text } from '@/components/Text';
 import { elementInfo } from '@/content/elements';
-import { MASTERY_TYPES, masteryTypeNames, QUALITIES, qualities } from '@/content/forging';
+import { RARITIES, rarityNames } from '@/content/gear';
 import { gearId, gearProfiles } from '@/content/equipment';
 import { trinketId, trinketKinds } from '@/content/trinkets';
 import { dungeons } from '@/content/dungeons';
@@ -51,7 +51,6 @@ import {
 import type { Difficulty } from '@/content/difficulty';
 import { difficultyRules } from '@/content/difficulty';
 import { distanceTo } from '@/game/patrols/visibility';
-import { masteryCap, masteryOf } from '@/game/forging/mastery';
 import { guildRank } from '@/game/guild/guild';
 import { currentHp, isExhausted, maxHp } from '@/game/team/health';
 import { gradeRoll, type Grade } from '@/game/taverns/roll';
@@ -70,7 +69,7 @@ import { monsterParts } from '@/content/loot/monsterParts';
 import { relics } from '@/content/loot/relics';
 import { valuables } from '@/content/loot/valuables';
 import { lootText } from '@/components/lootText';
-import type { ActiveThreat, Briefing, HeroClassId, MasteryType, Quality, StatKey, ThreatId, ThreatLevel } from '@/game/types';
+import type { ActiveThreat, Briefing, GearType, HeroClassId, Rarity, StatKey, ThreatId, ThreatLevel } from '@/game/types';
 import { forgedItem, isKnown } from '@/game/crafting/crafting';
 import { playBack, syncBackground } from '@/hooks/useAutoGather';
 import { deviceLocation } from '@/services/location';
@@ -380,7 +379,7 @@ function LootDebug() {
 const THREAT_LEVELS: ThreatLevel[] = [1, 2, 3];
 /** Every recipe that is not a gear recipe (pickaxes, smelting, provisions). */
 const NON_GEAR_RECIPES = recipes.filter((recipe) => !forgedItem(recipe));
-const MAX_MASTERY = masteryCap(5);
+const GEAR_TYPES = Object.keys(gearProfiles) as GearType[];
 const SAMPLE_NOTIFICATIONS: Record<NotificationCategory, { title: string; body: string; data?: Record<string, string> }> = {
   expeditionFinished: {
     ...texts.finished,
@@ -575,15 +574,14 @@ export default function DebugScreen() {
     `${Object.values(walk.ignored).reduce((sum, count) => sum + count, 0)} fixes dropped (${Object.entries(walk.ignored).map(([reason, count]) => `${reason} ${count}`).join(', ') || 'none'})`;
 
   const [element, setElement] = useState<Element>('fire');
-  const [gearType, setGearType] = useState<MasteryType>('sword');
+  const [gearType, setGearType] = useState<GearType>('sword');
   const [gearTier, setGearTier] = useState(1);
-  const [gearQuality, setGearQuality] = useState<Quality>('normal');
+  const [gearRarity, setGearRarity] = useState<Rarity>('common');
   const [trinketKind, setTrinketKind] = useState(trinketKinds[0].kind);
-  const [gearElement, setGearElement] = useState<Element | null>(null);
-  const [recipeType, setRecipeType] = useState<MasteryType>('sword');
+  const [recipeType, setRecipeType] = useState<GearType>('sword');
   const [recipeTier, setRecipeTier] = useState(1);
   const [recipeId, setRecipeId] = useState('sword1');
-  const chooseRecipeType = (type: MasteryType) => {
+  const chooseRecipeType = (type: GearType) => {
     setRecipeType(type);
     setRecipeId(gearId(type, recipeTier));
   };
@@ -836,49 +834,28 @@ export default function DebugScreen() {
       <Text style={styles.hint}>Pickaxes open the next ore. Beating a boss reveals the next dungeon tier.</Text>
 
       <Text style={styles.title}>Forging</Text>
-      {MASTERY_TYPES.map((type) => {
-        const { level, progress } = masteryOf(game.save, type);
-        return (
-          <View key={type} style={styles.row}>
-            <Text>
-              {masteryTypeNames[type].name} mastery {level} ({progress})
-            </Text>
-            <View style={styles.choices}>
-              <Button title="−" disabled={level <= 1} onPress={() => game.setMastery(type, level - 1)} />
-              <Button title="+" disabled={level >= MAX_MASTERY} onPress={() => game.setMastery(type, level + 1)} />
-            </View>
-          </View>
-        );
-      })}
-      <Text>Force the quality of the next forge</Text>
+      <Text>Force the rarity of the next forge</Text>
       <Choice
-        options={[null, ...QUALITIES]}
-        value={debug.forcedQuality}
-        label={(option) => (option ? qualities[option].name : 'off')}
-        onChange={(forcedQuality) => debug.set({ forcedQuality })}
+        options={[null, ...RARITIES]}
+        value={debug.forcedRarity}
+        label={(option) => (option ? rarityNames[option] : 'off')}
+        onChange={(forcedRarity) => debug.set({ forcedRarity })}
       />
       <Text>{t('debug.grantGear')}</Text>
       <Choice
-        options={MASTERY_TYPES}
+        options={GEAR_TYPES}
         value={gearType}
         emojiOf={(type) => gearProfiles[type].emoji}
-        label={(type) => masteryTypeNames[type].plural}
+        label={(type) => type}
         onChange={setGearType}
       />
       <Choice options={TIERS} value={gearTier} label={(tier) => `T${tier}`} onChange={setGearTier} />
-      <Choice options={QUALITIES} value={gearQuality} label={(q) => qualities[q].name} onChange={setGearQuality} />
-      <Choice
-        options={[null, ...ELEMENTS]}
-        value={gearElement}
-        emojiOf={(option) => (option ? elementInfo[option].emoji : undefined)}
-        label={(option) => (option ?? 'plain')}
-        onChange={setGearElement}
-      />
+      <Choice options={[...RARITIES]} value={gearRarity} label={(r) => rarityNames[r]} onChange={setGearRarity} />
       <View style={styles.row}>
-        <Button title="Add gear" onPress={() => game.addGear(gearId(gearType, gearTier), gearQuality, gearElement)} />
-        <Button title={t('debug.grantCharm')} onPress={() => game.addGear('testCharm', 'normal', null)} />
+        <Button title="Add gear" onPress={() => game.addGear(gearId(gearType, gearTier), gearRarity)} />
+        <Button title={t('debug.grantCharm')} onPress={() => game.addGear('testCharm', 'common')} />
       </View>
-      <Text>Trinket (tier and quality above)</Text>
+      <Text>Trinket (tier and rarity above)</Text>
       <Choice
         options={trinketKinds.map((kind) => kind.kind)}
         value={trinketKind}
@@ -886,14 +863,14 @@ export default function DebugScreen() {
         label={(kind) => trinketKinds.find((k) => k.kind === kind)!.name}
         onChange={setTrinketKind}
       />
-      <Button title="Add trinket" onPress={() => game.addGear(trinketId(trinketKind, gearTier), gearQuality, null)} />
+      <Button title="Add trinket" onPress={() => game.addGear(trinketId(trinketKind, gearTier), gearRarity)} />
 
       <Text>{t('debug.recipes')}</Text>
       <Choice
-        options={MASTERY_TYPES}
+        options={GEAR_TYPES}
         value={recipeType}
         emojiOf={(type) => gearProfiles[type].emoji}
-        label={(type) => masteryTypeNames[type].plural}
+        label={(type) => type}
         onChange={chooseRecipeType}
       />
       <Choice options={TIERS} value={recipeTier} label={(tier) => `T${tier}`} onChange={chooseRecipeTier} />

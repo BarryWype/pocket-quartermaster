@@ -4,8 +4,7 @@ import type { DamageStat, GearType, HeroClassId, Keyword, MaterialStack, WeaponT
 // design catalogue (doc/design/threats/). Stats are derived in
 // src/game/equipment/budget.ts, exactly as tools/gear-budget.py does.
 
-/** One gear type: its slot, damage stat, hands, flat extras and keywords. */
-export type GearProfile = {
+/** One gear type: its slot, damage stat, hands, flat extras and keywords. */export type GearProfile = {
   slot: 'weapon' | 'armor' | 'offhand';
   emoji: string;
   damageStat?: DamageStat;
@@ -67,6 +66,32 @@ export const gearProfiles: Record<GearType, GearProfile> = {
   quiver: { slot: 'offhand', emoji: '🎯', damageStat: 'power', extras: {}, keywords: ['reach'], shares: { power: 1 } },
   tome: { slot: 'offhand', emoji: '📖', damageStat: 'magic', extras: { approach: 1 }, keywords: [], shares: { magic: 1 } },
   focus: { slot: 'offhand', emoji: '🔮', damageStat: 'magic', extras: {}, keywords: ['channel'], shares: { magic: 0.7, resistance: 0.3 } },
+};
+
+/** Every gear type's name, singular and plural, for display. */
+export const gearTypeNames: Record<GearType, { name: string; plural: string }> = {
+  sword: { name: 'Sword', plural: 'swords' },
+  axe: { name: 'Axe', plural: 'axes' },
+  mace: { name: 'Mace', plural: 'maces' },
+  dagger: { name: 'Dagger', plural: 'daggers' },
+  bow: { name: 'Bow', plural: 'bows' },
+  spear: { name: 'Spear', plural: 'spears' },
+  warhammer: { name: 'Warhammer', plural: 'warhammers' },
+  wand: { name: 'Wand', plural: 'wands' },
+  staff: { name: 'Staff', plural: 'staves' },
+  lute: { name: 'Lute', plural: 'lutes' },
+  censer: { name: 'Censer', plural: 'censers' },
+  knuckles: { name: 'Knuckles', plural: 'knuckles' },
+  plate: { name: 'Plate', plural: 'plate' },
+  mail: { name: 'Mail', plural: 'mail' },
+  leather: { name: 'Leather', plural: 'leather' },
+  robes: { name: 'Robes', plural: 'robes' },
+  shield: { name: 'Shield', plural: 'shields' },
+  buckler: { name: 'Buckler', plural: 'bucklers' },
+  offhandBlade: { name: 'Parrying dagger', plural: 'parrying daggers' },
+  quiver: { name: 'Quiver', plural: 'quivers' },
+  tome: { name: 'Tome', plural: 'tomes' },
+  focus: { name: 'Focus', plural: 'focuses' },
 };
 
 /** Every constant of tools/gear-budget.py, for the budget maths in game/equipment/budget.ts. */
@@ -363,9 +388,6 @@ export const gearKeywordRules = {
 
 /** Magic lost to mail and plate, unless that armour type is favoured for the class. */
 export const castingPenalty: Partial<Record<ArmourType, number>> = { mail: 0.15, plate: 0.3 };
-
-/** Legendary forges: this chance of +1 Luck, seeded `${uid}|luck`. */
-export const gearLuckRules = { chance: 0.05 };
 
 /** The item id of a gear type and tier, e.g. `sword3` or `offhandBlade2`. */
 export const gearId = (type: GearType, tier: number) => `${type}${tier}`;

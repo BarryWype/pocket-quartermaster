@@ -1,7 +1,7 @@
 import { lootMatrix } from '@/content/loot/matrix';
 import { components } from '@/content/loot/components';
 import { monsterParts } from '@/content/loot/monsterParts';
-import { ELEMENTS, shardId } from '@/game/elements';
+import { ELEMENTS, shardId, stoneId } from '@/game/elements';
 
 import { createRng } from '../generation/rng';
 import { rollSourceLoot } from './roll';
@@ -58,7 +58,7 @@ describe('rollSourceLoot', () => {
     expect(foot).toEqual(themed);
     const shardIds = ELEMENTS.map((element) => shardId(element));
     // Components and monster parts live in `materials` too; they drop wherever their mark allows.
-    const otherIds = [...components.map((c) => c.id), ...monsterParts.map((p) => p.id)];
+    const otherIds = [...components.map((c) => c.id), ...ELEMENTS.map(stoneId), ...monsterParts.map((p) => p.id)];
     const notComponent = (stack: { materialId: string }) =>
       !shardIds.includes(stack.materialId) && !otherIds.includes(stack.materialId);
     for (const source of LOOT_SOURCES) {

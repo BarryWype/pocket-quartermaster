@@ -16,11 +16,12 @@ import { wornBy } from '../forging/salvage';
 import { guildBonus } from '../guild/guild';
 import { pickaxeTier } from '../gathering/gathering';
 import { addMaterials, removeMaterials } from '../inventory';
+import { makeGearPiece } from '../gear/make';
 import { valuableSellPrice, todaysCollector } from '../loot/valuables';
 import { activeTip, grantTip, rollTip } from '../secrets/tips';
 import type { SaveData } from '../save';
 import { affinityOf } from '../team/team';
-import type { GearDef, GearInstance, Quality, RecipeDef } from '../types';
+import type { GearDef, GearInstance, Rarity, RecipeDef } from '../types';
 import type { LatLng } from '../generation/types';
 import type { PlaceSpawn } from './generate';
 import { isLockedMine } from './generate';
@@ -36,7 +37,7 @@ export type StockLine = {
   gear?: GearInstance;
 };
 
-const gearPrice = (item: GearDef, quality: Quality) => Math.round(shopRules.gearPrice[item.tier - 1] * shopRules.qualityPrice[quality]);
+const gearPrice = (item: GearDef, rarity: Rarity) => Math.round(shopRules.gearPrice[item.tier - 1] * shopRules.rarityPrice[rarity]);
 
 /** A recipe a shop can teach: unknown, not given by default or tier, and within the player's tier. */
 export function recipeCandidates(save: SaveData): { recipe: RecipeDef; tier: number }[] {
@@ -110,14 +111,14 @@ export function placeStock(save: SaveData, spawn: PlaceSpawn, now: number): Stoc
       return [
         ...draw(pool, count, rng).map((recipe, i) => {
           const item = forgedItem(recipe)!;
-          const quality: Quality = rng.chance(shopRules.smithy.rareChance) ? 'rare' : 'normal';
+          const rarity: Rarity = rng.chance(shopRules.smithy.rareChance) ? 'rare' : 'common';
           return {
             key: `gear:${item.id}`,
             kind: 'gear' as const,
             id: item.id,
             amount: 1,
-            price: gearPrice(item, quality),
-            gear: { uid: `shop:${spawn.id}:${i}`, itemId: item.id, quality, roll: 1 },
+            price: gearPrice(item, rarity),
+            gear: makeGearPiece(`shop:${spawn.id}:${i}`, item.id, rarity),
           };
         }),
         ...(recipe ? [recipe] : []),
@@ -231,7 +232,7 @@ export function buy(save: SaveData, spawn: PlaceSpawn, lineKey: string, count: n
 
 /** What a smithy pays for a piece: the buy price's sell share, rounded. */
 export const gearSellPrice = (gear: GearInstance) => {
-  return Math.round(gearPrice(itemById[gear.itemId] as GearDef, gear.quality) * shopRules.gearSellShare);
+  return Math.round(gearPrice(itemById[gear.itemId] as GearDef, gear.rarity) * shopRules.gearSellShare);
 };
 
 export type SellGearProblem = 'gone' | 'tooFar' | 'notSmithy' | 'worn' | 'missing';

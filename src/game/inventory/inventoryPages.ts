@@ -1,4 +1,4 @@
-import { masteryTypeNames } from '@/content/forging';
+import { gearTypeNames } from '@/content/equipment';
 import { componentById, itemById, monsterPartById, relicById, valuableById } from '@/content/lookup';
 import { baseItems } from '@/content/loot/baseItems';
 import { materials } from '@/content/materials';
@@ -52,7 +52,7 @@ export type InventoryRow =
 /** What a component fits and what it adds to a forged piece. */
 function componentAbout(id: string): string {
   const component = componentById[id];
-  const fits = component.fits.map((type) => tr(masteryTypeNames[type].name)).join(', ');
+  const fits = component.fits.map((type) => tr(gearTypeNames[type].name)).join(', ');
   return t('inventory.componentAbout', { fits, adds: tr(component.adds) });
 }
 
@@ -137,7 +137,7 @@ export function inventoryRows(save: SaveData, now: number): InventoryRow[] {
         emoji: '🏺',
         name: tr(def.name),
         count: 1,
-        about: t('inventory.relicAbout', { tier: def.tier, type: tr(masteryTypeNames[def.gearType].name), effect: tr(def.effect) }),
+        about: t('inventory.relicAbout', { tier: def.tier, type: tr(gearTypeNames[def.gearType].name), effect: tr(def.effect) }),
       },
     });
   }

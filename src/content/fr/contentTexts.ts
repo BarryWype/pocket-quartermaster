@@ -3,8 +3,8 @@ import { elementInfo } from '../elements';
 import { bosses, mobs } from '../enemies';
 import { events } from '../events';
 import { jobs } from '../jobs';
-import { masteryTypeNames, qualities, TIER_NAMES } from '../forging';
-import { guildBuildings, guildTracks } from '../guild';
+import { rarityNames } from '../gear';import { guildBuildings, guildTracks } from '../guild';
+import { gearTypeNames } from '../equipment';
 import { heroClasses } from '../heroes';
 import { items } from '../items';
 import { materials } from '../materials';
@@ -48,9 +48,8 @@ export function contentTexts(): string[] {
     ...opportunityDefs.flatMap((o) => [o.name, o.description]),
     ...Object.values(guildBuildings).map((b) => b.name),
     ...guildTracks.map((t) => t.name),
-    ...Object.values(qualities).map((q) => q.name),
-    ...Object.values(masteryTypeNames).flatMap((m) => [m.name, m.plural]),
-    ...TIER_NAMES,
+    ...Object.values(rarityNames),
+    ...Object.values(gearTypeNames).flatMap((g) => [g.name, g.plural]),
     ...Object.values(elementInfo).map((e) => e.name),
     ...Object.values(tagInfo).map((t) => t.name),
     ...Object.values(placeInfo).flatMap((p) => [p.name, p.description]),

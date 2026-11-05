@@ -34,7 +34,7 @@ function veterans(): SaveData {
   let save: SaveData = {
     ...createInitialSave(),
     heroes: createInitialSave().heroes.map((h) => ({ ...h, level: 9 })),
-    gear: ['sword5', 'bow5', 'wand5', 'mail5', 'mail5', 'mail5'].map((itemId, i) => ({ uid: `g${i}`, itemId, quality: 'normal' })),
+    gear: ['sword5', 'bow5', 'wand5', 'mail5', 'mail5', 'mail5'].map((itemId, i) => ({ uid: `g${i}`, itemId, rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 })),
     knownRecipes: recipes.map((r) => r.id),
     clearedDungeons: dungeons.filter((d) => d.isBoss).map((d) => d.id),
     sigils: [1, 1, 1],

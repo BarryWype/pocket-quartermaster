@@ -1,3 +1,4 @@
+import { RARITIES } from '@/content/gear';
 import { dungeons } from '@/content/dungeons';
 import { heroClasses } from '@/content/heroes';
 import { itemById, monsterPartById, materialById } from '@/content/lookup';
@@ -122,10 +123,10 @@ describe('every shop price is finite and positive at every tier', () => {
     for (const recipe of recipes) {
       const item = forgedItem(recipe);
       if (!item) continue;
-      for (const quality of ['crappy', 'normal', 'uncommon', 'rare', 'legendary'] as const) {
+      for (const rarity of RARITIES) {
         finite(
-          gearSellPrice({ uid: 'u', itemId: item.id, quality, roll: 1 }),
-          `smithy price of ${item.id} (${quality})`,
+          gearSellPrice({ uid: 'u', itemId: item.id, rarity, roll: 8, affixes: [], rerolls: 0 }),
+          `smithy price of ${item.id} (${rarity})`,
         );
       }
     }

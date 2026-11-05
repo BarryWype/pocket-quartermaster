@@ -15,10 +15,9 @@ describe('secretPrize', () => {
     for (const prize of gear) {
       expect(prize.relics).toEqual([]);
       expect(prize.gear).toHaveLength(1);
-      expect(['rare', 'legendary']).toContain(prize.gear[0].quality);
-      expect(prize.gear[0].roll).toBeDefined();
+      expect(['rare', 'legendary']).toContain(prize.gear[0].rarity);
     }
-    const legendaryShare = gear.filter((p) => p.gear[0].quality === 'legendary').length / gear.length;
+    const legendaryShare = gear.filter((p) => p.gear[0].rarity === 'legendary').length / gear.length;
     expect(legendaryShare).toBeGreaterThan(secretRules.prize.legendaryChance - 0.02);
     expect(legendaryShare).toBeLessThan(secretRules.prize.legendaryChance + 0.02);
   });

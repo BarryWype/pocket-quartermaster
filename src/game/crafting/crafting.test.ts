@@ -2,11 +2,9 @@ import { gearId, gearRecipes } from '@/content/equipment';
 import { items, MATERIAL_TIERS } from '@/content/items';
 import { itemById, recipeById } from '@/content/lookup';
 import { materials } from '@/content/materials';
-import { QUALITIES } from '@/content/forging';
 import { recipes } from '@/content/recipes';
 
 import { createInitialSave, type SaveData } from '../save';
-import { startingMastery } from '../forging/mastery';
 import type { GearType, ProvisionDef } from '../types';
 import { canCraft, craft, forgetRecipe, isKnown, learnAllRecipes, ownsTool, unlockRecipe } from './crafting';
 
@@ -58,11 +56,6 @@ describe('crafting', () => {
     expect(canCraft(withMaterials({ wood: 3 }), recipeById.sword1)).toBe(false);
   });
 
-  it('raises mastery progress by the Mastery track', () => {
-    const save = withMaterials({ wood: 4 }, { guild: { mastery: 1 } });
-    expect(craft(save, recipeById.sword1).mastery.sword).toEqual({ level: 1, progress: 1.2 });
-  });
-
   it('crafts a pickaxe once, teaching no blueprints', () => {
     const save = craft(withMaterials({ wood: 5 }, { knownRecipes: ['woodPickaxe'] }), recipeById.woodPickaxe);
     expect(save.tools).toEqual(['woodPickaxe']);
@@ -72,14 +65,14 @@ describe('crafting', () => {
     expect(canCraft(save, recipeById.woodPickaxe)).toBe(false);
   });
 
-  it('forges a gear piece with a quality and a unique id', () => {
+  it('forges a Common gear piece with no affixes and a unique id', () => {
     const start = withMaterials({ wood: 9 });
     const twice = craft(craft(start, recipeById.sword1), recipeById.sword1);
     expect(twice.gear.map((g) => [g.uid, g.itemId])).toEqual([
       ['g1', 'sword1'],
       ['g2', 'sword1'],
     ]);
-    twice.gear.forEach((g) => expect(QUALITIES).toContain(g.quality));
+    twice.gear.forEach((g) => expect(g).toMatchObject({ rarity: 'common', affixes: [], rerolls: 0 }));
     expect(twice.materials).toEqual({ wood: 1 });
   });
 
@@ -259,12 +252,10 @@ describe('debug recipe tools', () => {
     expect(forgetRecipe(save, 'sword1').knownRecipes).toEqual(save.knownRecipes);
   });
 
-  it('learns every recipe, starting the mastery of new types', () => {
+  it('learns every recipe', () => {
     const save = learnAllRecipes(createInitialSave());
     expect(save.knownRecipes).toHaveLength(Object.keys(recipeById).length);
     expect(isKnown(save, recipeById.warhammer1)).toBe(true);
-    expect(save.mastery.warhammer).toEqual(startingMastery(1));
-    expect(Object.keys(save.mastery)).toHaveLength(22);
   });
 });
 

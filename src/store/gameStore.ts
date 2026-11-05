@@ -69,8 +69,9 @@ import { complete, deliver, maybeSecretQuest, markSeen, noteMarksReached, questE
 import { claimQuest, reachMark } from '@/game/quests/rewards';
 import { acceptQuests, retargetQuests, targetFirstQuest } from '@/game/quests/targets';
 import { createRng } from '@/game/generation/rng';
+import { makeGearPiece } from '@/game/gear/make';
 import { distanceMeters } from '@/game/generation/geo';
-import type { Approach, EquipmentSlot, ExpeditionReport, Heist, HeroClassId, HeroRoll, MasteryType, PlaceFight, Quality } from '@/game/types';
+import type { Approach, EquipmentSlot, ExpeditionReport, Heist, HeroClassId, HeroRoll, PlaceFight, Rarity } from '@/game/types';
 
 import { t } from '@/i18n';
 
@@ -107,7 +108,7 @@ type GameState = {
   acceptTravellerRecruit: (offer: TravellerRecruit) => void;
   /** Sets the hero the background task sends at patrols by itself; null clears it. */
   setEscort: (heroId: string | null) => void;
-  /** Returns the forged gear piece and mastery change, for gear recipes. Provisions can be made `count` at a time. */
+  /** Returns the forged gear piece, for gear recipes. Provisions can be made `count` at a time. */
   craft: (recipeId: string, count?: number) => ForgeResult | null;
   forgeWithComponent: (recipeId: string, componentId: string) => ForgeResult | null;
   /** `free` skips the cost (debug only). */
@@ -262,10 +263,9 @@ type GameState = {
   debugSetHeroLevel: (heroId: string, level: number) => void;
   setGuildRank: (trackId: GuildTrackId, rank: number) => void;
   resetGuild: () => void;
-  setMastery: (type: MasteryType, level: number) => void;
   /** Debug: adds a GearInstance, roll 1, no luck. */
-  addGear: (itemId: string, quality: Quality, element: Element | null) => void;
-  /** Debug: teaches a recipe, mastery starting where unlockRecipe puts it. */
+  addGear: (itemId: string, rarity: Rarity) => void;
+  /** Debug: teaches a recipe. */
   learnRecipe: (recipeId: string) => void;
   /** Debug: removes a recipe from the known list. */
   forgetRecipe: (recipeId: string) => void;
@@ -359,12 +359,12 @@ export const useGameStore = create<GameState>()(
       craft: (recipeId, count = 1) => {
         const before = get().save;
         const debug = useDebugStore.getState();
-        const quality = debugEnabled(debug) ? (debug.forcedQuality ?? undefined) : undefined;
+        const rarity = debugEnabled(debug) ? (debug.forcedRarity ?? undefined) : undefined;
         const recipe = recipeById[recipeId];
-        const save = advanceTutorial(recipe.station === 'provisions' ? craftMany(before, recipe, count) : craft(before, recipe, quality));
+        const save = advanceTutorial(recipe.station === 'provisions' ? craftMany(before, recipe, count) : craft(before, recipe, rarity));
         set({ save });
         const result = forgeResult(before, save);
-        if (result && quality) debug.set({ forcedQuality: null });
+        if (result && rarity) debug.set({ forcedRarity: null });
         return result;
       },
       forgeWithComponent: (recipeId, componentId) => {
@@ -660,13 +660,11 @@ export const useGameStore = create<GameState>()(
           },
         })),
       debugGrantLoot: (loot) => set(({ save }) => ({ save: grantLoot(save, save.heroes.map((h) => h.id), loot, Date.now()) })),
-      setMastery: (type, level) =>
-        set(({ save }) => ({ save: { ...save, mastery: { ...save.mastery, [type]: { level, progress: 0 } } } })),
-      addGear: (itemId, quality, element) =>
+      addGear: (itemId, rarity) =>
         set(({ save }) => ({
           save: {
             ...save,
-            gear: [...save.gear, { uid: `g${save.nextUid}`, itemId, quality, roll: 1, ...(element ? { element } : {}) }],
+            gear: [...save.gear, makeGearPiece(`g${save.nextUid}`, itemId, rarity)],
             nextUid: save.nextUid + 1,
           },
         })),
@@ -749,7 +747,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 37,
+      version: 38,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
       // Saves from version 30 on are kept: every later version bump adds a migration step here (see AGENTS.md, Saves).

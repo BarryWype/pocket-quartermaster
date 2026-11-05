@@ -1,9 +1,8 @@
 import { difficultyRules } from '@/content/difficulty';
-import { QUALITIES } from '@/content/forging';
-import type { Quality } from '@/game/types';
+import { RARITIES, type Rarity } from '@/content/gear';
 
 import { createRng, type Rng } from '../generation/rng';
-import { lootGearQuality, lootGearTier, rollLootGear } from './gear';
+import { lootGearRarity, lootGearTier, rollLootGear } from './gear';
 import type { LootRequest } from './roll';
 import type { LootSourceId } from './types';
 
@@ -12,7 +11,6 @@ const context = (playerTier: number) => ({
   pickaxeTier: 3,
   knownRecipes: [] as string[],
   favourCounts: {},
-  mastery: {},
 });
 
 const request = (source: LootSourceId, seed: string, overrides: Partial<LootRequest> = {}): LootRequest => ({
@@ -65,51 +63,45 @@ describe('looted gear', () => {
 
   it('keeps the basic ladder below Rare and the big ladder below Legendary', () => {
     for (const piece of gearOver('dungeonRun', 300)) {
-      expect(['crappy', 'normal', 'uncommon']).toContain(piece.quality);
+      expect(['common', 'uncommon']).toContain(piece.rarity);
     }
     for (const piece of gearOver('wantedOutlaw', 300)) {
-      expect(piece.quality).not.toBe('legendary');
+      expect(piece.rarity).not.toBe('legendary');
     }
   });
 
   it('holds the source floors', () => {
     for (const piece of gearOver('firstTierClear', 100)) {
-      expect(QUALITIES.indexOf(piece.quality)).toBeGreaterThanOrEqual(QUALITIES.indexOf('uncommon'));
+      expect(RARITIES.indexOf(piece.rarity)).toBeGreaterThanOrEqual(RARITIES.indexOf('uncommon'));
     }
     for (const piece of gearOver('monsterLair', 100)) {
-      expect(QUALITIES.indexOf(piece.quality)).toBeGreaterThanOrEqual(QUALITIES.indexOf('rare'));
+      expect(RARITIES.indexOf(piece.rarity)).toBeGreaterThanOrEqual(RARITIES.indexOf('rare'));
     }
   });
 
   it('shifts the ladder one step per 10 Luck', () => {
-    // A d20 of 14 is Normal on the basic ladder, Uncommon with +1.
-    expect(lootGearQuality('dungeonRun', scripted(14), 0)).toBe('normal');
-    expect(lootGearQuality('dungeonRun', scripted(14), 1)).toBe('uncommon');
-    expect(lootGearQuality('dungeonRun', scripted(5), 0)).toBe('crappy');
-    expect(lootGearQuality('dungeonRun', scripted(5), 1)).toBe('normal');
+    // A d20 of 14 is Common on the basic ladder, Uncommon with +1.
+    expect(lootGearRarity('dungeonRun', scripted(14), 0)).toBe('common');
+    expect(lootGearRarity('dungeonRun', scripted(14), 1)).toBe('uncommon');
     const lucky = gearOver('dungeonRun', 300, { luck: 10 });
     const plain = gearOver('dungeonRun', 300);
-    const average = (pieces: { quality: Quality }[]) =>
-      pieces.reduce((sum, piece) => sum + QUALITIES.indexOf(piece.quality), 0) / pieces.length;
+    const average = (pieces: { rarity: Rarity }[]) =>
+      pieces.reduce((sum, piece) => sum + RARITIES.indexOf(piece.rarity), 0) / pieces.length;
     expect(average(lucky)).toBeGreaterThan(average(plain));
   });
 
-  it('raises a hard source one quality step over the same roll at easy', () => {
+  it('raises a hard source one rarity step over the same roll at easy', () => {
     const easy = gearOver('dungeonRun', 300, { difficulty: 'easy' });
     const hard = gearOver('dungeonRun', 300, { difficulty: 'hard' });
-    const best = QUALITIES.indexOf('uncommon'); // the basic ladder's top
+    const best = RARITIES.indexOf('uncommon'); // the basic ladder's top
     for (let i = 0; i < easy.length; i++) {
-      expect(QUALITIES.indexOf(hard[i].quality)).toBe(
-        Math.min(QUALITIES.indexOf(easy[i].quality) + difficultyRules.rewards.hard.qualitySteps, best),
+      expect(RARITIES.indexOf(hard[i].rarity)).toBe(
+        Math.min(RARITIES.indexOf(easy[i].rarity) + difficultyRules.rewards.hard.raritySteps, best),
       );
     }
   });
 
-  it('rolls stats within the roll range', () => {
-    for (const piece of gearOver('dungeonRun', 300)) {
-      expect(piece.roll).toBeGreaterThanOrEqual(0.94);
-      expect(piece.roll).toBeLessThanOrEqual(1.06);
-      expect(piece.uid).toBe('');
-    }
+  it('leaves the rolls to the grant, which knows the uid', () => {
+    for (const piece of gearOver('dungeonRun', 30)) expect(Object.keys(piece).sort()).toEqual(['itemId', 'rarity', 'uid']);
   });
 });

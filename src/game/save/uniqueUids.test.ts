@@ -5,7 +5,7 @@ import { trinketId } from '@/content/trinkets';
 import { useGameStore } from '@/store/gameStore';
 
 import { craft } from '../crafting/crafting';
-import { componentRecipe, forgeWithComponent } from '../forging/components';
+import { forgeWithComponent } from '../forging/components';
 import { relicRecipe, restoreRelic } from '../forging/relics';
 import { resolveExpedition, startExpedition } from '../expeditions/expeditions';
 import type { LatLng } from '../generation/types';
@@ -53,11 +53,11 @@ const craftSword = (save: SaveData): SaveData => {
   return craft({ ...save, materials }, recipeById.sword1);
 };
 
-/** Forges a Wooden sword around a fire heart, topping the swapped inputs up first. */
-const forgeSwordWithHeart = (save: SaveData): SaveData => {
-  const materials = { ...save.materials };
-  for (const { materialId, amount } of componentRecipe(recipeById.sword1, 'fireHeart')) materials[materialId] = (materials[materialId] ?? 0) + amount;
-  return forgeWithComponent({ ...save, materials }, recipeById.sword1, 'fireHeart');
+/** Forges a Wooden sword with a dragon claw, topping the recipe and the claw up first. */
+const forgeSwordWithClaw = (save: SaveData): SaveData => {
+  const materials: Record<string, number> = { ...save.materials, dragonClaw: (save.materials.dragonClaw ?? 0) + 1 };
+  for (const { materialId, amount } of recipeById.sword1.inputs) materials[materialId] = (materials[materialId] ?? 0) + amount;
+  return forgeWithComponent({ ...save, materials }, recipeById.sword1, 'dragonClaw');
 };
 
 const spawnOf = (kind: PlaceSpawn['kind'], suffix: string): PlaceSpawn => ({
@@ -76,10 +76,10 @@ const veteran = (): SaveData => {
   let save: SaveData = {
     ...createInitialSave(),
     gear: [
-      { uid: 'g1', itemId: 'sword1', quality: 'normal', roll: 1 },
-      { uid: 'g2', itemId: 'bow1', quality: 'normal', roll: 1 },
-      { uid: 'g3', itemId: 'wand1', quality: 'normal', roll: 1 },
-      { uid: 'g4', itemId: 'mail1', quality: 'normal', roll: 1 },
+      { uid: 'g1', itemId: 'sword1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
+      { uid: 'g2', itemId: 'bow1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
+      { uid: 'g3', itemId: 'wand1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
+      { uid: 'g4', itemId: 'mail1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
     ],
     heroes: createInitialSave().heroes.map((hero) => ({ ...hero, level: 15 })),
     tutorial: { ...createInitialSave().tutorial, step: 'done' },
@@ -97,7 +97,7 @@ describe('unique uids', () => {
     for (let i = 0; i < 5; i++) {
       save = craftSword(save);
       expectUniqueIds(save);
-      save = forgeSwordWithHeart(save);
+      save = forgeSwordWithClaw(save);
       expectUniqueIds(save);
     }
   });
@@ -129,9 +129,9 @@ describe('unique uids', () => {
         {
           ...emptyLoot(),
           gear: [
-            { uid: '', itemId: 'sword1', quality: 'normal', roll: 1 },
-            { uid: '', itemId: trinketId('hawkEyeRing', 1), quality: 'rare', roll: 1 },
-            { uid: '', itemId: 'mail1', quality: 'normal', roll: 1 },
+            { uid: '', itemId: 'sword1', rarity: 'common' as const },
+            { uid: '', itemId: trinketId('hawkEyeRing', 1), rarity: 'rare' as const },
+            { uid: '', itemId: 'mail1', rarity: 'common' as const },
           ],
           relics: ['rustyCoin', 'oldBoot'],
           treasureMaps: [{ rarity: 'common', tier: 1 }],
@@ -210,7 +210,7 @@ describe('unique uids', () => {
   it('debug gear and hero grants give every piece and hero a fresh uid', () => {
     useGameStore.getState().resetSave();
     for (let i = 0; i < 6; i++) {
-      useGameStore.getState().addGear('sword1', 'normal', null);
+      useGameStore.getState().addGear('sword1', 'common');
       useGameStore.getState().addHero('warrior', 3, 'quickLearner');
       useGameStore.setState({ save: craftSword(useGameStore.getState().save) });
       expectUniqueIds(useGameStore.getState().save);
@@ -229,7 +229,7 @@ describe('unique uids', () => {
       [],
       {
         ...emptyLoot(),
-        gear: ['sword5', 'bow5', 'wand5', 'mail5', 'mail5', 'mail5'].map((itemId) => ({ uid: '', itemId, quality: 'normal' as const, roll: 1 })),
+        gear: ['sword5', 'bow5', 'wand5', 'mail5', 'mail5', 'mail5'].map((itemId) => ({ uid: '', itemId, rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 })),
       },
       NOW,
     );

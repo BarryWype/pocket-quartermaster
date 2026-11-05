@@ -1,21 +1,22 @@
 import { trinketId, trinketKinds, trinketRules } from '@/content/trinkets';
-import { qualities } from '@/content/forging';
 import { ELEMENTS, type Element } from '@/game/elements';
-import type { Approach, GearDef, GearInstance, Quality, Stats } from '@/game/types';
+import type { Approach, GearDef, GearInstance, Stats } from '@/game/types';
 
-import { lootGearQuality, lootGearTier, qualityBonus, qualitySteps } from './gear';
+import { statFactor } from '../gear/stats';
+import { lootGearRarity, lootGearTier, rarityBonus, raritySteps } from './gear';
 import type { LootRequest } from './roll';
+import type { RolledGear } from './types';
 
-/** What a trinket does at one quality: rounded stats, its approach, its resistance. */
+/** What a trinket does after its roll: rounded stats, its approach, its resistance. */
 export type TrinketEffect = {
   stats: Partial<Stats>;
   approach?: Approach;
   elementResist?: { element: Element; amount: number };
 };
 
-/** Quality multiplies and rounds every stat but Luck, which stays flat. */
-export function trinketEffect(item: GearDef, quality: Quality): TrinketEffect {
-  const multiplier = qualities[quality].multiplier;
+/** The dice factor multiplies and rounds every stat but Luck, which stays flat. */
+export function trinketEffect(item: GearDef, gear: Pick<GearInstance, 'roll' | 'rarity'>): TrinketEffect {
+  const multiplier = statFactor(gear.roll, gear.rarity);
   const stats: Partial<Stats> = {};
   for (const [key, value] of Object.entries(item.stats) as [keyof Stats, number][]) {
     const amount = key === 'luck' ? value : Math.round(value * multiplier);
@@ -31,16 +32,16 @@ export function trinketEffect(item: GearDef, quality: Quality): TrinketEffect {
 /** The five amulets are one weighted entry: the element is picked after the group. */
 const amuletKind = trinketKinds.find((kind) => kind.group === 'amulet')!;
 
-/** A random looted trinket; its tier and quality follow the gear rules, its kind the group weights. */
-export function rollLootTrinket(req: LootRequest): GearInstance {
+/** A random looted trinket; its tier and rarity follow the gear rules, its kind the group weights. */
+export function rollLootTrinket(req: LootRequest): RolledGear {
   const tier = lootGearTier(req.source, req.tier, req.context.playerTier, req.rng);
-  const quality = lootGearQuality(req.source, req.rng, qualityBonus(req), req.mapRarity, qualitySteps(req));
+  const rarity = lootGearRarity(req.source, req.rng, rarityBonus(req), req.mapRarity, raritySteps(req));
   const pool = trinketKinds.filter(
-    (kind) => kind.group === 'stat' || kind.group === 'talisman' || kind === amuletKind || (kind.group === 'fortune' && quality === 'legendary'),
+    (kind) => kind.group === 'stat' || kind.group === 'talisman' || kind === amuletKind || (kind.group === 'fortune' && rarity === 'legendary'),
   );
   const pick = req.rng.weighted(pool, (kind) => trinketRules.weights[kind.group]);
   const kind = pick.group === 'amulet'
     ? `${req.element ?? ELEMENTS[req.rng.int(0, ELEMENTS.length - 1)]}Amulet`
     : pick.kind;
-  return { uid: '', itemId: trinketId(kind, tier), quality };
+  return { uid: '', itemId: trinketId(kind, tier), rarity };
 }

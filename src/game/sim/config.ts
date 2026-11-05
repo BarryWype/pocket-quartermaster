@@ -154,7 +154,7 @@ export const simConfig = {
     /** Potions are drunk at home when current HP costs the party more than this much success chance. */
     potionGain: 0.15,
   },
-  /** Re-forge a worn piece only when the chance of a better quality is at least this. */
+  /** Re-forge a worn piece only when the chance of a better dice roll is at least this. */
   reforgeChance: 0.2,
   reforgesPerSession: 6,
   /** A stat potion takes a healing potion's slot when the prepared party's odds are below this. */
@@ -178,7 +178,6 @@ export const simConfig = {
     'collector',
     'tavernDiscount',
     'training',
-    'mastery',
     'salvage',
     'betterRetreats',
     'fasterExpeditions',
@@ -209,7 +208,7 @@ export const BOT_RULES = [
   'The gradual reveal is followed: a map kind is used only once it shows — patrols and travellers, fight events, ruins, treasure spots, taverns, the Guild Hall, rarer places (library, thieves’ guild, lair, dock), Sanctums, secret places, shops and services, daily quests. A visit owed for a kind still hidden is kept back for the day it shows, not logged as skipped.',
   'Collect: finished expeditions, ready step chests and Guild Hall training.',
   'Forge: the next pickaxe as soon as it can be made; then, per hero, the biggest upgrade first (best tier of a weapon they can use, and armour). New pieces go to whoever gains most; spare pieces are salvaged. Steel is smelted when a wanted forge is short of it.',
-  'Re-forge a worn piece of the best known tier while the chance of a better quality is at least 20% and the materials for one more forge remain; keep the better piece, salvage the other.',
+  'Re-forge a worn piece of the best known tier while the chance of a better stat roll is at least 20% and the materials for one more forge remain; keep the better piece, salvage the other.',
   'Cook supply in batches of 5 (jerky while meat lasts, else trail mix) to keep 18 points in stock; then keep 3 of the strongest healing potion the bot can brew (the weaker ones held are carried as fallbacks), 2 of each kit that answers something in today’s briefings of the top two tiers, and 2 of each meal. A part recipe is used instead of the base one when its parts are held. Charms: 1 of each known charm. Stat potions (Strength draught, Arcane tonic, Ironskin brew, Nullroot tincture, Quicksilver, Viper oil): 2 of each the bot can make, from the part recipe when its parts are held. Elemental oils (Ember, Tide, Storm, Stone, Thorn): 2 of each the bot can make, the same way.',
   'Meal: Hunter’s stew for a boss; Comfort broth when the odds are below 50%; Quick bites when they bring the party back a session earlier; Scholar’s porridge while the party is below the tier’s expected level; Merchant’s pie otherwise.',
   'Before a run (the spec’s loadout): kits from the stock for the threats the party misses, one at a time, the kit that removes the most missing threat points first — blessed Holy symbols count as the Holy symbols kit; the tier boss’s weakness item when held; the strongest healing potion held in every slot left, weaker ones as fallbacks. When the prepared odds reach 80%, a charm that raises what the run finds takes one potion’s place (never a kit’s). While the prepared odds of a dungeon run are below 65%, a slot that would hold a healing potion takes the held stat potion or elemental oil that raises the odds most, one hero at a time, until none helps; an oil only goes to a hero whose weapon is still plain. Combat elixirs (firebomb, smoke bomb, revival draught): 2 of each kind the bot can make are kept in stock; a revival draught is carried on tier boss runs, a firebomb when the party misses the briefing’s swarm threat, and a smoke bomb takes a healing potion’s slot while the run’s odds stay below 55%. The bot never opts into an opportunity.',

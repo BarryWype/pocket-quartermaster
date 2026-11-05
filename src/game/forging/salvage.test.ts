@@ -1,14 +1,15 @@
-import { salvageRules } from '@/content/forging';
-
 import { createInitialSave, type SaveData } from '../save';
 import { equip } from '../team/team';
 import type { GearInstance } from '../types';
 import { salvageDialog } from './salvage';
 
-const piece = (itemId: string, quality: GearInstance['quality'] = 'normal', extra: Partial<GearInstance> = {}): GearInstance => ({
+const piece = (itemId: string, rarity: GearInstance['rarity'] = 'common', extra: Partial<GearInstance> = {}): GearInstance => ({
   uid: 'g1',
   itemId,
-  quality,
+  rarity,
+  roll: 8,
+  affixes: [],
+  rerolls: 0,
   ...extra,
 });
 
@@ -16,7 +17,7 @@ describe('salvage dialog', () => {
   it('shows a plain unequipped piece with no warnings and its recipe share', () => {
     const save = createInitialSave();
     expect(salvageDialog(save, piece('sword1'))).toEqual({
-      quality: 'normal',
+      rarity: 'common',
       returns: { materials: [{ materialId: 'wood', amount: 1 }], gold: 0 },
       warnings: [],
     });
@@ -38,25 +39,16 @@ describe('salvage dialog', () => {
     expect(salvageDialog(worn, piece('sword1')).warnings).toEqual(['equipped']);
   });
 
-  it('warns about Rare and Legendary quality', () => {
+  it('warns about Rare and Legendary rarity', () => {
     const save = createInitialSave();
     expect(salvageDialog(save, piece('mail2', 'rare')).warnings).toEqual(['rareOrBetter']);
     expect(salvageDialog(save, piece('sword4', 'legendary')).warnings).toEqual(['rareOrBetter']);
   });
 
-  it('warns about restored relics and forged components', () => {
+  it('warns about restored relics and pieces with affixes', () => {
     const save = createInitialSave();
-    expect(salvageDialog(save, piece('sword1', 'normal', { relicId: 'poachersLongbow' })).warnings).toEqual(['relic']);
-    expect(salvageDialog(save, piece('mail2', 'normal', { component: 'captainsSpurs' })).warnings).toEqual(['component']);
-  });
-
-  it('warns about infused pieces and counts their shards in the returns', () => {
-    const dialog = salvageDialog(createInitialSave(), piece('sword1', 'normal', { element: 'fire' }));
-    expect(dialog.warnings).toEqual(['infused']);
-    expect(dialog.returns.materials).toEqual([
-      { materialId: 'wood', amount: 1 },
-      { materialId: 'fireShard', amount: salvageRules.infusedShards },
-    ]);
+    expect(salvageDialog(save, piece('sword1', 'common', { relicId: 'poachersLongbow' })).warnings).toEqual(['relic']);
+    expect(salvageDialog(save, piece('mail2', 'uncommon', { affixes: [{ id: 'fleet', value: 3 }] })).warnings).toEqual(['affixes']);
   });
 
   it('gives gold instead of materials for a trinket without a recipe', () => {
@@ -66,7 +58,8 @@ describe('salvage dialog', () => {
   });
 
   it('can combine several warnings on one piece', () => {
-    const dialog = salvageDialog(createInitialSave(), piece('sword4', 'rare', { component: 'dragonClaw', element: 'water' }));
-    expect(dialog.warnings).toEqual(['rareOrBetter', 'component', 'infused']);
+    const affixes = [{ id: 'cleaving', value: 0 }, { id: 'infusedWater', value: 0 }];
+    const dialog = salvageDialog(createInitialSave(), piece('sword4', 'rare', { affixes }));
+    expect(dialog.warnings).toEqual(['rareOrBetter', 'affixes']);
   });
 });

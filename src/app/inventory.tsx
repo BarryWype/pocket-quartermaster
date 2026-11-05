@@ -9,8 +9,7 @@ import { StepChests } from '@/components/StepChests';
 import { PartsLine } from '@/components/IconLabel';
 import { gearStatsParts, gearEffectParts } from '@/components/GearRow';
 import { SalvageDialog } from '@/components/SalvageDialog';
-import { elementInfo } from '@/content/elements';
-import { qualities } from '@/content/forging';
+import { rarityNames } from '@/content/gear';
 import { bossById } from '@/content/enemies';
 import { lootConfig } from '@/content/loot/config';
 import { purposeInfo } from '@/content/loot/purposes';
@@ -416,11 +415,10 @@ function InventoryPopup({
       title = gearName(gear);
       emoji = item.emoji;
       icon = item.icon;
-      subtitle = `${tr(qualities[gear.quality].name)} · ${tr(item.name)}`;
+      subtitle = `${tr(rarityNames[gear.rarity])} · ${tr(item.name)}`;
       note = holder ? t('common.equippedBy', { name: holder.name }) : undefined;
       const parts = [
         ...gearStatsParts(gear),
-        gear.element ? { emoji: elementInfo[gear.element].emoji, text: tr(elementInfo[gear.element].name) } : null,
         ...gearEffectParts(gear),
       ].filter((part) => part !== null);
       children = parts.length > 0 ? <PartsLine parts={parts} sep="   " labelStyle={styles.line} /> : undefined;

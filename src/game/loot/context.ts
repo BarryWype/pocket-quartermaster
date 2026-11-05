@@ -1,22 +1,22 @@
 import { dungeons } from '@/content/dungeons';
 import { difficultyRules, type Difficulty } from '@/content/difficulty';
-import { MASTERY_TYPES } from '@/content/forging';
+import { gearRecipes } from '@/content/equipment';
 import { lootConfig } from '@/content/loot/config';
 
 import { highestUnlockedTier } from '../dungeons/unlock';
 import { pickaxeTier } from '../gathering/gathering';
 import type { Rng } from '../generation/rng';
 import { guildBonus } from '../guild/guild';
-import type { MasteryType } from '../types';
+import type { GearType } from '../types';
 import type { SaveData } from '../save';
 import { affinityOf } from '../team/team';
 import { rollSourceLoot, type LootContext, type LootRequest } from './roll';
 import type { Loot, LootSourceId } from './types';
 
-/** What the generators read from the save: tiers, known blueprints, the types the roster favours and the mastery. */
+/** What the generators read from the save: tiers, known blueprints and the types the roster favours. */
 export function lootContextOf(save: SaveData): LootContext {
-  const favourCounts: Partial<Record<MasteryType, number>> = {};
-  for (const type of MASTERY_TYPES) {
+  const favourCounts: Partial<Record<GearType, number>> = {};
+  for (const type of Object.keys(gearRecipes) as GearType[]) {
     const count = save.heroes.filter((h) => affinityOf(h.classId, type) === 'favoured').length;
     if (count > 0) favourCounts[type] = count;
   }
@@ -25,7 +25,6 @@ export function lootContextOf(save: SaveData): LootContext {
     pickaxeTier: pickaxeTier(save),
     knownRecipes: save.knownRecipes,
     favourCounts,
-    mastery: save.mastery,
   };
 }
 

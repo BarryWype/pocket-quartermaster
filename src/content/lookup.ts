@@ -10,9 +10,7 @@ import type {
 } from '@/game/types';
 import { getLocale, tr } from '@/i18n';
 
-import { elementInfo } from './elements';
-import { qualities } from './forging';
-import { frElementQualifiers } from './fr/names';
+import { rarityNames } from './gear';
 
 import { dungeons, underwaterDungeons } from './dungeons';
 import { items } from './items';
@@ -49,16 +47,13 @@ export const recipeOutput = (recipe: RecipeDef) =>
   'itemId' in recipe.output ? itemById[recipe.output.itemId] : materialById[recipe.output.materialId];
 
 /**
- * A gear piece's display name with its quality and element, e.g. "Rare Fire Stone sword"
- * ("Épée en pierre de feu rare"). Normal is left out.
+ * A gear piece's display name with its rarity, e.g. "Rare stone sword"
+ * ("Épée en pierre rare"). Common is left out.
  */
-export function gearName(gear: GearInstance) {
-  const quality = gear.quality === 'normal' ? null : tr(qualities[gear.quality].name);
+export function gearName(gear: Pick<GearInstance, 'itemId' | 'rarity' | 'relicId'>) {
+  const rarity = gear.rarity === 'common' ? null : tr(rarityNames[gear.rarity]);
   // A restored relic carries the relic's name instead of its item's.
   const base = gear.relicId ? relicById[gear.relicId].name : itemById[gear.itemId].name;
-  const parts =
-    getLocale() === 'fr'
-      ? [tr(base), gear.element ? frElementQualifiers[gear.element] : null, quality?.toLowerCase()]
-      : [quality, gear.element ? elementInfo[gear.element].name : null, base];
+  const parts = getLocale() === 'fr' ? [tr(base), rarity?.toLowerCase()] : [rarity, base];
   return parts.filter(Boolean).join(' ');
 }

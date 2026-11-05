@@ -576,9 +576,9 @@ function geared(consumables: Record<string, number> = {}): SaveData {
     consumables: { ...createInitialSave().consumables, trailMix: 30, ...consumables },
     heroes: createInitialSave().heroes.map((h) => ({ ...h, level: 30 })),
     gear: [
-      { uid: 'g1', itemId: 'sword5', quality: 'normal' },
-      { uid: 'g2', itemId: 'bow5', quality: 'normal' },
-      { uid: 'g3', itemId: 'wand5', quality: 'normal' },
+      { uid: 'g1', itemId: 'sword5', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
+      { uid: 'g2', itemId: 'bow5', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
+      { uid: 'g3', itemId: 'wand5', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 },
     ],
     nextUid: 10,
   };

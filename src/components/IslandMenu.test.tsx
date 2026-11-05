@@ -15,7 +15,7 @@ import { createInitialSave, type SaveData } from '@/game/save';
 import { equip } from '@/game/team/team';
 import { t } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
-import type { GearInstance, Quality } from '@/game/types';
+import type { GearInstance, Rarity } from '@/game/types';
 
 import { IslandMenu } from './IslandMenu';
 
@@ -44,7 +44,7 @@ beforeEach(() => {
   dismissToMock.mockClear();
 });
 
-const QUALITIES: Quality[] = ['crappy', 'normal', 'uncommon', 'rare'];
+const RARITIES: Rarity[] = ['common', 'common', 'uncommon', 'rare'];
 
 /** Tiers 1 and 2 cleared, tier 3 half way: six heroes at level 9, ~40 gear pieces, a full storeroom. */
 function midGameSave(): SaveData {
@@ -59,7 +59,10 @@ function midGameSave(): SaveData {
   const gear: GearInstance[] = Array.from({ length: 40 }, (_, i) => ({
     uid: `g${i}`,
     itemId: gearItems[(i * 7) % gearItems.length].id,
-    quality: QUALITIES[i % QUALITIES.length],
+    rarity: RARITIES[i % RARITIES.length],
+    roll: 8,
+    affixes: [],
+    rerolls: 0,
   }));
   let save: SaveData = {
     ...base,
@@ -116,7 +119,7 @@ describe('IslandMenu', () => {
       const first = Object.keys(save.materials)[0];
       return { ...save, materials: { ...save.materials, [first]: save.materials[first] + 1 } };
     });
-    writeSave((save) => ({ ...save, gear: [...save.gear, { uid: 'extra', itemId: save.gear[0].itemId, quality: 'normal' }] }));
+    writeSave((save) => ({ ...save, gear: [...save.gear, { uid: 'extra', itemId: save.gear[0].itemId, rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 }] }));
     expect(renders()).toBe(1);
 
     // An unseen quest lights the quests badge: exactly one re-render.

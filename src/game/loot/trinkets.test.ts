@@ -1,5 +1,5 @@
 import { itemById } from '@/content/lookup';
-import { QUALITIES } from '@/content/forging';
+import { gearRules } from '@/content/gear';
 import { newHero } from '@/content/heroes';
 import { trinketKinds, trinketId } from '@/content/trinkets';
 import type { GearDef } from '@/game/types';
@@ -34,9 +34,11 @@ const request = (source: LootSourceId, seed: string, overrides: Partial<LootRequ
 
 const trinket = (kind: string, tier: number): GearDef => itemById[trinketId(kind, tier)] as GearDef;
 
-/** Values by quality, crappy → legendary. */
-const byQuality = (item: GearDef, pick: (effect: ReturnType<typeof trinketEffect>) => number) =>
-  QUALITIES.map((quality) => pick(trinketEffect(item, quality)));
+/** Values at the lowest, middle and highest dice total of a Common piece, then the top of a Legendary one. */
+const byRoll = (item: GearDef, pick: (effect: ReturnType<typeof trinketEffect>) => number) =>
+  [3, 10, 18].map((roll) => pick(trinketEffect(item, { roll, rarity: 'common' }))).concat(
+    pick(trinketEffect(item, { roll: 16, rarity: 'legendary' })),
+  );
 
 describe('the trinket catalogue', () => {
   it('holds one trinket per kind and tier, all in the trinket slot', () => {
@@ -47,39 +49,30 @@ describe('the trinket catalogue', () => {
     }
   });
 
-  it('scales the stat trinkets with quality and tier', () => {
-    expect(byQuality(trinket('hawkEyeRing', 1), (e) => e.stats.crit!)).toEqual([3, 4, 4, 5, 5]);
-    expect(byQuality(trinket('hawkEyeRing', 2), (e) => e.stats.crit!)).toEqual([5, 6, 6, 6, 7]);
-    expect(byQuality(trinket('hawkEyeRing', 3), (e) => e.stats.crit!)).toEqual([6, 7, 7, 8, 9]);
-    expect(byQuality(trinket('hawkEyeRing', 4), (e) => e.stats.crit!)).toEqual([7, 8, 9, 9, 10]);
-    expect(byQuality(trinket('hawkEyeRing', 5), (e) => e.stats.crit!)).toEqual([8, 10, 10, 11, 12]);
-
-    expect(byQuality(trinket('shadowPin', 1), (e) => e.stats.evasion!)).toEqual([3, 3, 3, 3, 4]);
-    expect(byQuality(trinket('shadowPin', 2), (e) => e.stats.evasion!)).toEqual([4, 4, 4, 5, 5]);
-    expect(byQuality(trinket('shadowPin', 3), (e) => e.stats.evasion!)).toEqual([4, 5, 5, 6, 7]);
-    expect(byQuality(trinket('shadowPin', 4), (e) => e.stats.evasion!)).toEqual([5, 6, 6, 7, 8]);
-    expect(byQuality(trinket('shadowPin', 5), (e) => e.stats.evasion!)).toEqual([6, 7, 8, 8, 9]);
-
-    expect(byQuality(trinket('quicksilverAnklet', 1), (e) => e.stats.speed!)).toEqual([1, 1, 1, 1, 1]);
-    expect(byQuality(trinket('quicksilverAnklet', 2), (e) => e.stats.speed!)).toEqual([1, 1, 1, 2, 2]);
-    expect(byQuality(trinket('quicksilverAnklet', 3), (e) => e.stats.speed!)).toEqual([1, 2, 2, 2, 2]);
-    expect(byQuality(trinket('quicksilverAnklet', 4), (e) => e.stats.speed!)).toEqual([2, 2, 2, 2, 3]);
-    expect(byQuality(trinket('quicksilverAnklet', 5), (e) => e.stats.speed!)).toEqual([2, 2, 3, 3, 3]);
-  });
-
-  it('scales the amulets with quality and the resistance curve', () => {
-    expect(byQuality(trinket('fireAmulet', 1), (e) => e.elementResist!.amount)).toEqual([3, 4, 4, 5, 5]);
-    expect(byQuality(trinket('fireAmulet', 2), (e) => e.elementResist!.amount)).toEqual([6, 8, 8, 9, 10]);
-    expect(byQuality(trinket('fireAmulet', 3), (e) => e.elementResist!.amount)).toEqual([10, 12, 13, 14, 16]);
-    expect(byQuality(trinket('fireAmulet', 4), (e) => e.elementResist!.amount)).toEqual([14, 17, 18, 19, 22]);
-    expect(byQuality(trinket('fireAmulet', 5), (e) => e.elementResist!.amount)).toEqual([19, 22, 24, 26, 29]);
+  it('scales the stat trinkets and amulets with the dice factor', () => {
+    for (const [kind, pick] of [
+      ['hawkEyeRing', (e: ReturnType<typeof trinketEffect>) => e.stats.crit!],
+      ['shadowPin', (e: ReturnType<typeof trinketEffect>) => e.stats.evasion!],
+      ['fireAmulet', (e: ReturnType<typeof trinketEffect>) => e.elementResist!.amount],
+    ] as const) {
+      for (const tier of [1, 3, 5]) {
+        const item = trinket(kind, tier);
+        const base = kind === 'fireAmulet' ? item.elementResist!.amount : (item.stats.crit ?? item.stats.evasion)!;
+        const [low, mid, high, legendary] = byRoll(item, pick);
+        expect(low).toBe(Math.round(base * gearRules.statRange.min));
+        expect(high).toBe(Math.round(base * gearRules.statRange.max));
+        expect(low).toBeLessThanOrEqual(mid);
+        expect(mid).toBeLessThanOrEqual(high);
+        expect(legendary).toBe(high);
+      }
+    }
   });
 
   it('leaves the ring of fortune Luck flat and gives talismans their approach', () => {
-    expect(byQuality(trinket('ringOfFortune', 1), (e) => e.stats.luck!)).toEqual([2, 2, 2, 2, 2]);
-    expect(byQuality(trinket('ringOfFortune', 3), (e) => e.stats.luck!)).toEqual([3, 3, 3, 3, 3]);
-    expect(byQuality(trinket('ringOfFortune', 5), (e) => e.stats.luck!)).toEqual([4, 4, 4, 4, 4]);
-    expect(trinketEffect(trinket('oxTalisman', 2), 'rare')).toEqual({ stats: {}, approach: 'might' });
+    expect(byRoll(trinket('ringOfFortune', 1), (e) => e.stats.luck!)).toEqual([2, 2, 2, 2]);
+    expect(byRoll(trinket('ringOfFortune', 3), (e) => e.stats.luck!)).toEqual([3, 3, 3, 3]);
+    expect(byRoll(trinket('ringOfFortune', 5), (e) => e.stats.luck!)).toEqual([4, 4, 4, 4]);
+    expect(trinketEffect(trinket('oxTalisman', 2), { roll: 10, rarity: 'rare' })).toEqual({ stats: {}, approach: 'might' });
   });
 });
 
@@ -88,7 +81,7 @@ describe('looted trinkets', () => {
     const rolls = (source: LootSourceId) =>
       Array.from({ length: 3000 }, (_, i) => rollLootTrinket(request(source, `${source}${i}`)));
     for (const piece of rolls('tierBoss')) {
-      if (piece.itemId.startsWith('ringOfFortune')) expect(piece.quality).toBe('legendary');
+      if (piece.itemId.startsWith('ringOfFortune')) expect(piece.rarity).toBe('legendary');
     }
     expect(rolls('patrol').some((piece) => piece.itemId.startsWith('ringOfFortune'))).toBe(false);
   });
@@ -96,7 +89,7 @@ describe('looted trinkets', () => {
   it('shares the talismans between 10% and 25% of non-legendary rolls', () => {
     const rolls = [...Array.from({ length: 3000 }, (_, i) => rollLootTrinket(request('tierBoss', `b${i}`))),
       ...Array.from({ length: 3000 }, (_, i) => rollLootTrinket(request('patrol', `p${i}`)))];
-    const plain = rolls.filter((piece) => piece.quality !== 'legendary');
+    const plain = rolls.filter((piece) => piece.rarity !== 'legendary');
     const talismans = plain.filter((piece) => piece.itemId.includes('Talisman')).length;
     expect(talismans / plain.length).toBeGreaterThan(0.1);
     expect(talismans / plain.length).toBeLessThan(0.25);
@@ -120,7 +113,7 @@ describe('looted trinkets', () => {
 describe('trinkets on a hero', () => {
   const saveWithTalisman = (hero = createInitialSave().heroes.find((h) => h.id === 'bram')!): SaveData => {
     const base = createInitialSave();
-    const save: SaveData = { ...base, heroes: [...base.heroes.filter((h) => h.id !== hero.id), hero], gear: [{ uid: 't1', itemId: 'oxTalisman1', quality: 'normal' }] };
+    const save: SaveData = { ...base, heroes: [...base.heroes.filter((h) => h.id !== hero.id), hero], gear: [{ uid: 't1', itemId: 'oxTalisman1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 }] };
     return equip(save, hero.id, 'trinket', 't1');
   };
 
