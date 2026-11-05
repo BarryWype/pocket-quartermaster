@@ -98,6 +98,41 @@ const GEAR_ICONS: Partial<Record<keyof typeof gearProfiles, GearDef['icon'][]>> 
     require('../../assets/icons/rpg/gloves-iron-knuckle.png'),
     require('../../assets/icons/rpg/gloves-steel-gauntlets.png'),
   ],
+  crossbow: [
+    require('../../assets/icons/rpg/crossbow-pale-wooden.png'),
+    require('../../assets/icons/rpg/crossbow-long-wooden.png'),
+    require('../../assets/icons/rpg/crossbow-spiked-wooden.png'),
+    require('../../assets/icons/rpg/crossbow-bone.png'),
+    require('../../assets/icons/rpg/crossbow-silver.png'),
+  ],
+  throwing: [
+    require('../../assets/icons/rpg/dual-serrated-knives.png'),
+    require('../../assets/icons/rpg/dual-crescent-blades.png'),
+    require('../../assets/icons/rpg/dual-iron-battleaxes.png'),
+    require('../../assets/icons/rpg/dual-steel-spears.png'),
+    require('../../assets/icons/rpg/dual-steel-axes.png'),
+  ],
+  totem: [
+    require('../../assets/icons/relics/totem-green.png'),
+    require('../../assets/icons/relics/totem-ox.png'),
+    require('../../assets/icons/relics/totem-red.png'),
+    require('../../assets/icons/relics/totem-feathered.png'),
+    require('../../assets/icons/relics/totem-steel.png'),
+  ],
+  runestone: [
+    require('../../assets/icons/rpg/rune-red-fehu.png'),
+    require('../../assets/icons/rpg/rune-orange-serpent.png'),
+    require('../../assets/icons/rpg/rune-green-double-cross.png'),
+    require('../../assets/icons/rpg/rune-blue-othala.png'),
+    require('../../assets/icons/rpg/rune-violet-uruz.png'),
+  ],
+  flasks: [
+    require('../../assets/icons/rpg/bottle-empty-bulb.png'),
+    require('../../assets/icons/rpg/potion-green-bulb.png'),
+    require('../../assets/icons/rpg/potion-blue-bulb.png'),
+    require('../../assets/icons/rpg/potion-orange-bulb.png'),
+    require('../../assets/icons/rpg/potion-red-round.png'),
+  ],
   plate: [
     require('../../assets/icons/rpg/armor-leather-iron-pauldrons.png'),
     require('../../assets/icons/rpg/armor-mossy-plate.png'),
@@ -170,7 +205,7 @@ const GEAR_ICONS: Partial<Record<keyof typeof gearProfiles, GearDef['icon'][]>> 
   ],
 };
 
-/** One item per gear type and tier (110 pieces), stats from the budget maths. */
+/** One item per gear type and tier (135 pieces), stats from the budget maths. */
 const gear: GearDef[] = (Object.keys(gearProfiles) as (keyof typeof gearProfiles)[]).flatMap((type) => {
   const profile = gearProfiles[type];
   return [1, 2, 3, 4, 5].map((tier): GearDef => ({

@@ -5,7 +5,7 @@ import type { HeroClassDef, HeroRoll, StatKey } from '../types';
 import { rotationDay } from '../dungeons/rotation';
 import { rollRecruit } from '../taverns/roll';
 import { rollDailyApproaches } from '../upkeep';
-import { addXp, heroDamageStat } from './team';
+import { addXp, heroDamageStat, heroStats } from './team';
 import {
   approachScore,
   baseHeroStats,
@@ -149,6 +149,39 @@ describe('half-rate damage stat', () => {
     }
     expect(baseHeroStats('diplomat', 4).magic).toBe(3 + 3);
     expect(baseHeroStats('warrior', 4).magic).toBe(0);
+  });
+});
+
+describe('flasks (wielder damage stat)', () => {
+  const flaskSave = (classId: 'sorcerer' | 'warrior') => {
+    const hero = { ...newHero('h1', 'H', classId, ''), equipment: { ...newHero('h1', 'H', classId, '').equipment, weapon: 'f1' } };
+    const save: SaveData = {
+      ...createInitialSave(),
+      heroes: [hero],
+      gear: [{ uid: 'f1', itemId: 'flasks1', rarity: 'common', roll: 10.5, affixes: [], rerolls: 0 }],
+    };
+    return { save, hero };
+  };
+  const bareStats = (classId: 'sorcerer' | 'warrior') => heroStats(createInitialSave(), newHero('h1', 'H', classId, ''));
+
+  it("a flask's Power is added to the wielder's damage stat", () => {
+    // flasks1 rolls 5 Power at the average dice; a magic class gets it as Magic.
+    const mage = flaskSave('sorcerer');
+    const withFlask = heroStats(mage.save, mage.hero);
+    expect(withFlask.magic - bareStats('sorcerer').magic).toBeGreaterThan(4);
+    expect(withFlask.magic - bareStats('sorcerer').magic).toBeLessThan(7);
+    expect(withFlask.power).toBe(bareStats('sorcerer').power);
+    // A power class gets it as Power.
+    const fighter = flaskSave('warrior');
+    const fighterStats = heroStats(fighter.save, fighter.hero);
+    expect(fighterStats.power - bareStats('warrior').power).toBeGreaterThan(4);
+    expect(fighterStats.power - bareStats('warrior').power).toBeLessThan(7);
+    expect(fighterStats.magic).toBe(bareStats('warrior').magic);
+  });
+
+  it('heroDamageStat resolves a flask to the class damage stat', () => {
+    expect(heroDamageStat(flaskSave('sorcerer').save, flaskSave('sorcerer').hero)).toBe('magic');
+    expect(heroDamageStat(flaskSave('warrior').save, flaskSave('warrior').hero)).toBe('power');
   });
 });
 

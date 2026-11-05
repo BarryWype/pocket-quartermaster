@@ -11,6 +11,11 @@ Weapon,Staff,Magic,Two,10%,,,,,Cleave,0,0,Magic 100%,
 Weapon,Lute,Magic,One,18%,,,,1,Inspire,0,1,Magic 100%,+1 Presence
 Weapon,Censer,Magic,One,15%,,,,,"Blessed, Mend",0,0,Magic 100%,
 Weapon,Knuckles,Power,One,17%,1,,,,Stagger,0,1,Power 100%,
+Weapon,Crossbow,Power,One,1%,-1,,,,Pierce,0,0,Power 100%,
+Weapon,Throwing,Power,One,9%,1,,,,,0,0,Power 100%,
+Weapon,Totem,Magic,Two,-9%,-1,,,,,0,0,Magic 100%,
+Weapon,Runestone,Magic,One,5%,,,,,Channel,0,0,Magic 100%,
+Weapon,Flasks,Wielder,One,0%,,,,,,0,0,Power 100%,wielder's stat
 Armour,Plate,,,-18%,-2,,,,Guard,1,0,"Armour 75%, HP 20%, Resistance 5%",
 Armour,Mail,,,5%,,,,,Brace,0,0,"Armour 50%, Resistance 30%, HP 20%",
 Armour,Leather,,,49%,1,,8,,,0,0,"Armour 45%, HP 40%, Resistance 15%",

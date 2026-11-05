@@ -7,6 +7,7 @@ import { lootConfig } from '@/content/loot/config';
 import { affixEffects, pieceKeywords } from '../gear/affixes';
 import { gearStats, SCALING_KEYS } from '../gear/stats';
 import { pieceEffects } from '../gear/uniques';
+import { pieceDamageStat } from '../equipment/damageStat';
 import { slotProblem } from '../equipment/slots';
 import { rosterCap } from '../guild/guild';
 import { trinketEffect } from '../loot/trinkets';
@@ -55,7 +56,7 @@ export function gearKeywordsOf(save: SaveData, hero: HeroState): GearKeywordEntr
     const gear = save.gear.find((g) => g.uid === hero.equipment[slot]);
     if (!gear) return [];
     const item = itemById[gear.itemId] as GearDef;
-    const magic = item.damageStat === 'magic';
+    const magic = pieceDamageStat(item, hero.classId) === 'magic';
     const keywords: GearKeywordEntry[] = item.keywords.map((keyword) => ({
       keyword,
       magic,
@@ -97,7 +98,7 @@ export function relicEffectsOf(save: SaveData, hero: HeroState): WornRelicEffect
     const item = itemById[gear.itemId] as GearDef;
     return pieceEffects(gear)
       .filter((effect) => effect.kind !== 'keyword')
-      .map((effect) => ({ effect, magic: item.damageStat === 'magic', relicId: gear.relicId ?? gear.unique! }));
+      .map((effect) => ({ effect, magic: pieceDamageStat(item, hero.classId) === 'magic', relicId: gear.relicId ?? gear.unique! }));
   });
 }
 
@@ -149,10 +150,13 @@ export function heroStats(save: SaveData, hero: HeroState): Stats {
     }
     const affinity = affinityOf(hero.classId, item.gearType);
     const values = gearStats(gear);
+    // A flask's Power counts as the wielder's class damage stat.
+    const wielderStat = item.damageStat === 'wielder' ? heroClasses[hero.classId].damageStat : null;
     for (const key of STAT_KEYS) {
       const value = values[key];
       if (!value) continue;
-      stats[key] += SCALING_KEYS.includes(key) ? value * affinityRules[affinity] : value;
+      const target = wielderStat && key === 'power' ? wielderStat : key;
+      stats[target] += SCALING_KEYS.includes(key) ? value * affinityRules[affinity] : value;
     }
     if (values.luck) stats.luck += values.luck;
     if (item.slot === 'armor' && affinityOf(hero.classId, item.gearType) !== 'favoured') {
@@ -200,7 +204,7 @@ export function heroDamageStat(save: SaveData, hero: HeroState): DamageStat {
   const item = weapon ? (itemById[weapon.itemId] as GearDef) : null;
   // An unarmed Gambler rolls with Magic when Magic is their third primary.
   if (!item && hero.roll?.primary === 'magic') return 'magic';
-  return item?.damageStat ?? heroClasses[hero.classId].damageStat;
+  return (item ? pieceDamageStat(item, hero.classId) : undefined) ?? heroClasses[hero.classId].damageStat;
 }
 
 function updateHero(save: SaveData, heroId: string, update: (hero: HeroState) => HeroState): SaveData {

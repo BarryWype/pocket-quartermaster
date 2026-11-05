@@ -3,6 +3,8 @@ import { itemById } from '@/content/lookup';
 import type { SaveData } from '../save';
 import type { GearDef, GearInstance, HeroState } from '../types';
 
+import { pieceDamageStat } from './damageStat';
+
 export type SlotProblem =
   /** A two-handed weapon takes the off-hand. */
   | 'twoHanded'
@@ -40,7 +42,7 @@ export function slotProblem(
       return isBow ? null : 'quiverBowOnly';
     case 'tome':
     case 'focus':
-      return weaponItem?.damageStat === 'magic' ? null : 'needsMagicWeapon';
+      return weaponItem && pieceDamageStat(weaponItem, hero.classId) === 'magic' ? null : 'needsMagicWeapon';
     default:
       return null;
   }

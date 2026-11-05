@@ -39,6 +39,11 @@ P = [
  ("weapon","Lute","Magic",1,{"approach":1},["Inspire"],{"Magic":1}),
  ("weapon","Censer","Magic",1,{},["Blessed","Mend"],{"Magic":1}),
  ("weapon","Knuckles","Power",1,{"speed":1},["Stagger"],{"Power":1}),
+ ("weapon","Crossbow","Power",1,{"speed":-1},["Pierce"],{"Power":1}),
+ ("weapon","Throwing","Power",1,{"speed":1},[],{"Power":1}),
+ ("weapon","Totem","Magic",2,{"speed":-1},[],{"Magic":1}),
+ ("weapon","Runestone","Magic",1,{},["Channel"],{"Magic":1}),
+ ("weapon","Flasks","Wielder",1,{},[],{"Power":1}),
  # Armour
  ("armour","Plate","",0,{"speed":-2},["Guard"],{"Armour":0.75,"HP":0.2,"Resistance":0.05}),
  ("armour","Mail","",0,{},["Brace"],{"Armour":0.5,"Resistance":0.3,"HP":0.2}),
@@ -60,6 +65,7 @@ NOTES = {
  "Bow": "Fully functional alone; a quiver adds its bonus on top", "Quiver": "Bow only", "Shield": "One-handed weapons only",
  "Buckler": "Small Evasion for heroes below the cap", "Off-hand blade": "Damage for heroes already at the Evasion cap",
  "Lute": "+1 Presence", "Robes": "Part of the budget goes into Magic", "Tome": "+1 Wits",
+ "Flasks": "wielder's stat: the Power counts as the wielder's damage stat",
 }
 
 def extras_cost(name, flat, kws):

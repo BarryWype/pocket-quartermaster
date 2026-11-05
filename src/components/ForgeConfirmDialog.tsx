@@ -180,10 +180,12 @@ export function ForgeConfirmDialog({
 
     // One line per stat, with the values the forge can roll at the piece's rarity.
     const rangeOf = ({ min, max }: { min: number; max: number }) => (min === max ? signed(min) : `${signed(min)}–${signed(max)}`);
-    const main = confirm.statRanges.find((range) => range.key === item.damageStat) ?? confirm.statRanges[0];
+    // A flask's Power is the wielder's stat: shown unresolved without a hero.
+    const mainKey = item.damageStat === 'wielder' ? 'power' : item.damageStat;
+    const main = confirm.statRanges.find((range) => range.key === mainKey) ?? confirm.statRanges[0];
     const others = confirm.statRanges.filter((range) => range !== main);
     value = rangeOf(main);
-    valueLabel = t(`hero.statNames.${main.key}`);
+    valueLabel = item.damageStat === 'wielder' ? t('hero.wielderStat') : t(`hero.statNames.${main.key}`);
     note = others.map((range) => `${t(`hero.statNames.${range.key}`)} ${rangeOf(range)}`).join(' · ') || undefined;
 
     // The chosen ingredient's affix, at the range the forge rolls it.

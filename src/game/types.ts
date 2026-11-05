@@ -56,7 +56,12 @@ export type WeaponType =
   | 'staff'
   | 'lute'
   | 'censer'
-  | 'knuckles';
+  | 'knuckles'
+  | 'crossbow'
+  | 'throwing'
+  | 'totem'
+  | 'runestone'
+  | 'flasks';
 export type ArmourType = 'plate' | 'mail' | 'leather' | 'robes';
 export type OffhandType = 'shield' | 'buckler' | 'offhandBlade' | 'quiver' | 'tome' | 'focus';
 
@@ -89,8 +94,8 @@ export type GearDef = ItemBase & {
   heavy?: boolean;
   /** Counts as concealed on Sacred ground. */
   concealed?: boolean;
-  /** The stat the piece's damage rolls with, for weapons and damage off-hands. */
-  damageStat?: DamageStat;
+  /** The stat the piece's damage rolls with, for weapons and damage off-hands; 'wielder' means the wielder's class damage stat. */
+  damageStat?: DamageStat | 'wielder';
   /** A talisman's +1 approach. */
   approach?: Approach;
   /** An amulet's Resistance against one element (Normal-quality value, unrounded). */

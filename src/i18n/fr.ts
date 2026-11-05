@@ -512,6 +512,7 @@ export const fr: Dictionary = {
       crit: 'Critique',
       luck: 'Chance',
     },
+    wielderStat: 'Puissance ou Magie (celle du porteur)',
     statTips: {
       power: 'Dégâts des armes : ce que le héros inflige quand il porte une arme.',
       armour: 'Réduit les dégâts infligés par les ennemis physiques.',

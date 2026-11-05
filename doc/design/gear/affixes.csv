@@ -26,10 +26,10 @@ nullAffix,Null,part:ritualCandle,caster,defensive,Less damage from casters,−15
 infused,Infused <element>,elemental stone,element,offensive,Hits deal that element (with elemental advantage),fixed,Replaces infusion; one per element (fire water stone electric grass)
 warding,<Element> warding,elemental stone,element,defensive,Resistance against that element,+15–30%,One per element
 staggering,Staggering,component:ogreKnucklebone,keyword,"mace, warhammer, knuckles",Grants Stagger,fixed,Keyword affix
-channeling,Channeling,component:phylacteryShard,keyword,"focus, wand, staff, tome",Grants Channel,fixed,Keyword affix
+channeling,Channeling,component:phylacteryShard,keyword,"focus, wand, staff, tome, runestone",Grants Channel,fixed,Keyword affix
 guarding,Guarding,component:giantsHeartstone,keyword,"shield, plate",Grants Guard,fixed,Keyword affix
 cleaving,Cleaving,component:dragonClaw,keyword,"sword, axe, staff",Grants Cleave,fixed,Keyword affix
-piercing,Piercing,component:drakeFang,keyword,"spear, dagger, bow, warhammer",Grants Pierce,fixed,Keyword affix
+piercing,Piercing,component:drakeFang,keyword,"spear, dagger, bow, warhammer, crossbow",Grants Pierce,fixed,Keyword affix
 reaching,Reaching,component:harpyFlightFeather,keyword,"bow, spear, quiver",Grants Reach,fixed,Keyword affix
 parrying,Parrying,component:clockworkEscapement,keyword,"off-hand blade, buckler, sword",Grants Parry,fixed,Keyword affix
 bracing,Bracing,component:golemCore,keyword,"armour, shield, spear",Grants Brace,fixed,Keyword affix

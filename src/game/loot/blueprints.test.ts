@@ -29,7 +29,7 @@ const blueprint = (req: LootRequest): Loot => {
 describe('blueprints', () => {
   it('never drops a duplicate, always at the source tier, and completes every forgeable type exactly once', () => {
     const tierTypes = [1, 2, 3, 4, 5].map(forgeableAt);
-    expect(tierTypes.reduce((sum, types) => sum + types.length, 0)).toBe(110);
+    expect(tierTypes.reduce((sum, types) => sum + types.length, 0)).toBe(135);
     for (const [index, types] of tierTypes.entries()) {
       const tier = index + 1;
       const known: string[] = [];

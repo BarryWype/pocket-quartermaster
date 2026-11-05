@@ -27,6 +27,7 @@ import {
   startExpedition,
   type Loadout,
 } from '../expeditions/expeditions';
+import { pieceDamageStat } from '../equipment/damageStat';
 import { estimateOdds, type Odds } from '../expeditions/odds';
 import { mealItems, supplyHeld, supplyItems } from '../expeditions/provisions';
 import { rollDailyApproaches } from '../upkeep';
@@ -415,7 +416,7 @@ function offhandTypeFor(save: SaveData, hero: HeroState): OffhandType | null {
   const item = weapon ? (itemById[weapon.itemId] as GearDef) : null;
   if (!item || item.twoHanded) return null;
   if (item.gearType === 'bow') return 'quiver';
-  return item.damageStat === 'magic' ? 'focus' : 'shield';
+  return pieceDamageStat(item, hero.classId) === 'magic' ? 'focus' : 'shield';
 }
 
 /** A hypothetical member of a class: its best weapon, no kit or salve. */

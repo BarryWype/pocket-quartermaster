@@ -506,6 +506,7 @@ export const en = {
       crit: 'Crit',
       luck: 'Luck',
     },
+    wielderStat: 'Power or Magic (the wielder’s)',
     statTips: {
       power: 'Weapon damage: what the hero hits with when wielding a weapon.',
       armour: 'Reduces the damage physical enemies deal.',

@@ -323,7 +323,7 @@ export const affixes: AffixDef[] = [
     nameFr: 'Canalisation',
     family: 'keyword',
     source: { kind: 'component', componentId: 'phylacteryShard' },
-    slot: { types: ['focus', 'wand', 'staff', 'tome'] },
+    slot: { types: ['focus', 'wand', 'staff', 'tome', 'runestone'] },
     effect: { kind: 'keyword', keyword: 'channel' },
   },
   {
@@ -350,7 +350,7 @@ export const affixes: AffixDef[] = [
     nameFr: 'Perce',
     family: 'keyword',
     source: { kind: 'component', componentId: 'drakeFang' },
-    slot: { types: ['spear', 'dagger', 'bow', 'warhammer'] },
+    slot: { types: ['spear', 'dagger', 'bow', 'warhammer', 'crossbow'] },
     effect: { kind: 'keyword', keyword: 'pierce' },
   },
   {

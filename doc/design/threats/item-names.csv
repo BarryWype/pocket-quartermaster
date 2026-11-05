@@ -11,6 +11,11 @@ Weapon,Staff,Wooden staff,Stone-tipped staff,Copper-shod staff,Iron-shod staff,S
 Weapon,Lute,Wooden lute,Stone-inlaid lute,Copper-strung lute,Iron-strung lute,Steel-strung lute,
 Weapon,Censer,Bone censer,Stone censer,Copper censer,Iron censer,Steel censer,Bone instead of wood
 Weapon,Knuckles,Bone knuckles,Stone knuckles,Copper knuckles,Iron knuckles,Steel knuckles,
+Weapon,Crossbow,Wooden crossbow,Flint crossbow,Copper crossbow,Iron crossbow,Steel crossbow,
+Weapon,Throwing,Bone throwing knives,Flint throwing axes,Copper throwing axes,Iron javelins,Steel throwing blades,
+Weapon,Totem,Carved totem,Bone totem,Copper-bound totem,Iron-bound totem,Steel-bound totem,
+Weapon,Runestone,Carved runestone,Flint runestone,Copper runestone,Iron runestone,Steel runestone,
+Weapon,Flasks,Clay flasks,Stone flasks,Copper flasks,Iron flasks,Steel flasks,
 Armour,Plate,Hardwood plate,Slate plate,Copper plate,Iron plate,Steel plate,Hardwood and slate instead of wood and stone
 Armour,Mail,Bone mail,Stone-scale mail,Copper mail,Iron mail,Steel mail,
 Armour,Leather,Hide armour,Stone-studded leather,Copper-studded leather,Iron-studded leather,Steel-studded leather,

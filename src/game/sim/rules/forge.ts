@@ -3,6 +3,7 @@ import { itemById, recipeById, relicById } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
 
 import { forgedItem, isKnown } from '../../crafting/crafting';
+import { pieceDamageStat } from '../../equipment/damageStat';
 import { canForgeWithIngredient, forgeWithIngredient, ingredientAffixId, ingredients } from '../../forging/components';
 import { canRestore, restoreRelic } from '../../forging/relics';
 import type { SaveData } from '../../save';
@@ -26,7 +27,7 @@ function offhandTypeFor(save: SaveData, hero: HeroState): OffhandType | null {
   const item = weapon ? (itemById[weapon.itemId] as GearDef) : null;
   if (!item || item.twoHanded) return null;
   if (item.gearType === 'bow') return 'quiver';
-  return item.damageStat === 'magic' ? 'focus' : 'shield';
+  return pieceDamageStat(item, hero.classId) === 'magic' ? 'focus' : 'shield';
 }
 
 /** Whether the hero can use the gear type: not unfit, and an off-hand that matches their weapon. */

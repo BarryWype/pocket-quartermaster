@@ -59,6 +59,31 @@ Weapon,Knuckles,2,Stone,8,0,0,0,0,1,0,0
 Weapon,Knuckles,3,Copper,12,0,0,0,0,1,0,0
 Weapon,Knuckles,4,Iron,17,0,0,0,0,1,0,0
 Weapon,Knuckles,5,Steel,23,0,0,0,0,1,0,0
+Weapon,Crossbow,1,"Wood, bone",5,0,0,0,0,-1,0,0
+Weapon,Crossbow,2,Stone,9,0,0,0,0,-1,0,0
+Weapon,Crossbow,3,Copper,15,0,0,0,0,-1,0,0
+Weapon,Crossbow,4,Iron,21,0,0,0,0,-1,0,0
+Weapon,Crossbow,5,Steel,28,0,0,0,0,-1,0,0
+Weapon,Throwing,1,"Wood, bone",5,0,0,0,0,1,0,0
+Weapon,Throwing,2,Stone,9,0,0,0,0,1,0,0
+Weapon,Throwing,3,Copper,14,0,0,0,0,1,0,0
+Weapon,Throwing,4,Iron,19,0,0,0,0,1,0,0
+Weapon,Throwing,5,Steel,25,0,0,0,0,1,0,0
+Weapon,Totem,1,"Wood, bone",0,8,0,0,0,-1,0,0
+Weapon,Totem,2,Stone,0,16,0,0,0,-1,0,0
+Weapon,Totem,3,Copper,0,25,0,0,0,-1,0,0
+Weapon,Totem,4,Iron,0,35,0,0,0,-1,0,0
+Weapon,Totem,5,Steel,0,47,0,0,0,-1,0,0
+Weapon,Runestone,1,"Wood, bone",0,5,0,0,0,0,0,0
+Weapon,Runestone,2,Stone,0,9,0,0,0,0,0,0
+Weapon,Runestone,3,Copper,0,14,0,0,0,0,0,0
+Weapon,Runestone,4,Iron,0,20,0,0,0,0,0,0
+Weapon,Runestone,5,Steel,0,27,0,0,0,0,0,0
+Weapon,Flasks,1,"Wood, bone",5,0,0,0,0,0,0,0
+Weapon,Flasks,2,Stone,10,0,0,0,0,0,0,0
+Weapon,Flasks,3,Copper,15,0,0,0,0,0,0,0
+Weapon,Flasks,4,Iron,21,0,0,0,0,0,0,0
+Weapon,Flasks,5,Steel,28,0,0,0,0,0,0,0
 Armour,Plate,1,"Wood, bone",0,0,5,0,14,-2,0,0
 Armour,Plate,2,Stone,0,0,10,1,27,-2,0,0
 Armour,Plate,3,Copper,0,0,16,1,42,-2,0,0
