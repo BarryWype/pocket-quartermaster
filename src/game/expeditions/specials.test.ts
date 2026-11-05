@@ -51,17 +51,22 @@ function dungeon(encounters: EncounterDef[], boss: Partial<BossDef> = {}, count:
   };
 }
 
-/** The tier 1 mobs' fitted stats: the expectations follow any refit of the rat cellar. */
-const RAT = mobById.giantRat;
-const BOGLING = mobById.bogling;
+/**
+ * Fixed copies of three tier 1 mobs, so a refit of the dungeon strengths
+ * can't change the fights these tests count (mobById is this file's own copy).
+ */
+const RAT = { ...mobById.giantRat, id: 'testRat', hp: 29, damage: 11 };
+const BONES = { ...mobById.restlessBones, id: 'testBones', hp: 29, damage: 11 };
+const BOGLING = { ...mobById.bogling, id: 'testBogling', hp: 125, damage: 36 };
+Object.assign(mobById, { [RAT.id]: RAT, [BONES.id]: BONES, [BOGLING.id]: BOGLING });
 
 const quiet: EncounterDef = { type: 'event', weight: 1, eventId: 'cache' };
-/** One fight of `count` giant rats (26 HP, 10 damage, Speed 7 like the hero). */
-const rats = (count: number): EncounterDef => ({ type: 'fight', weight: 1, mobs: [{ mobId: 'giantRat', count }] });
-/** One fight of `count` restless bones (28 HP, 10 damage, Speed 5, undead). */
-const bones = (count: number): EncounterDef => ({ type: 'fight', weight: 1, mobs: [{ mobId: 'restlessBones', count }] });
-/** One fight of `count` boglings (113 HP, 32 damage, Speed 7, grass). */
-const boglings = (count: number): EncounterDef => ({ type: 'fight', weight: 1, mobs: [{ mobId: 'bogling', count }] });
+/** One fight of `count` giant rats (29 HP, 11 damage, Speed 7 like the hero). */
+const rats = (count: number): EncounterDef => ({ type: 'fight', weight: 1, mobs: [{ mobId: RAT.id, count }] });
+/** One fight of `count` restless bones (29 HP, 11 damage, Speed 5, undead). */
+const bones = (count: number): EncounterDef => ({ type: 'fight', weight: 1, mobs: [{ mobId: BONES.id, count }] });
+/** One fight of `count` boglings (125 HP, 36 damage, Speed 7, grass). */
+const boglings = (count: number): EncounterDef => ({ type: 'fight', weight: 1, mobs: [{ mobId: BOGLING.id, count }] });
 /** Just the boss: `bossOnly({ hp: 60 })` is a run that only fights it. */
 const bossOnly = (boss: Partial<BossDef> = {}) => dungeon([quiet], boss, [1, 1]);
 
@@ -129,7 +134,7 @@ describe('specials', () => {
     const def = dungeon([rats(1)], {}, [3, 3]);
     const result = run([hero('aimedStrike')], def, 's');
     const plain = run([member('a')], def, 's');
-    // The first hit crits for ×1.5; without it, three hits of 10 fell the 26 HP rat.
+    // The first hit crits for ×1.5; without it, three hits of 10 fell the 29 HP rat.
     expect(result.encounters[0].dealt.a).toBe(35);
     expect(plain.encounters[0].dealt.a).toBe(30);
     for (const i of [0, 1]) {
@@ -167,10 +172,10 @@ describe('specials', () => {
 
   it('Smite replaces the first turn against an undead with a quadrupled hit', () => {
     const def = dungeon([bones(1)], {}, [3, 3]);
-    const speed = mobById.restlessBones.speed;
+    const speed = BONES.speed;
     const result = run([hero('smite', { speed })], def, 's');
     const plain = run([member('a', { speed })], def, 's');
-    const hp = mobById.restlessBones.hp;
+    const hp = BONES.hp;
     expect(result.encounters[0].rounds).toBe(1 + Math.max(0, Math.ceil((hp - 40) / 10)));
     expect(plain.encounters[0].rounds).toBe(Math.ceil(hp / 10));
     for (const i of [0, 1]) {
@@ -428,7 +433,7 @@ describe('specials', () => {
 
   it('Banish outright defeats one undead, once per fight', () => {
     const def = dungeon([bones(2)], {}, [3, 3]);
-    const speed = mobById.restlessBones.speed;
+    const speed = BONES.speed;
     const result = run([hero('banish', { speed })], def, 's');
     const plain = run([member('a', { speed })], def, 's');
     expect(result.encounters[0].rounds).toBe(plain.encounters[0].rounds / 2);

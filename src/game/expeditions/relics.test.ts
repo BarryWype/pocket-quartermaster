@@ -1,6 +1,7 @@
 import { GEAR_SLOTS, gearId } from '@/content/equipment';
 import { expeditionRules } from '@/content/dungeons';
 import { elementRules } from '@/content/elements';
+import { mobById } from '@/content/enemies';
 import { dungeonById, relicById } from '@/content/lookup';
 
 import type { ActiveThreat, BossDef, Briefing, DungeonDef, EncounterDef, GearInstance, Tag, ThreatId } from '../types';
@@ -10,6 +11,10 @@ import { launchPlan } from './expeditions';
 import { heroAnswers } from '../threats/answers';
 import { scoreThreat } from '../threats/score';
 import { estimateOdds } from './odds';
+
+/** A fixed giant rat, so a refit of the dungeon strengths can't change the fights counted here (mobById is this file's own copy). */
+const RAT = { ...mobById.giantRat, id: 'testRat', hp: 29, damage: 11 };
+Object.assign(mobById, { [RAT.id]: RAT });
 
 /** No mishaps or run-wide luck, so each test sees the mechanic it targets. */
 const calm = { ...expeditionRules, mishapChance: 0, fortune: 0 };
@@ -133,7 +138,7 @@ describe('relic keyword effects', () => {
     // The boss is the first fight: both big hits are softened.
     expect(taken([{ type: 'event', weight: 1, eventId: 'cache' }])).toBeCloseTo(25 + 25, 5);
     // A rat fight first: the boss is the second fight, so only the mace's own brace holds.
-    expect(taken([{ type: 'fight', weight: 1, mobs: [{ mobId: 'giantRat', count: 1 }] }])).toBeCloseTo(25 + 50, 5);
+    expect(taken([{ type: 'fight', weight: 1, mobs: [{ mobId: RAT.id, count: 1 }] }])).toBeCloseTo(25 + 50, 5);
   });
 
   it("the Thief-taker's quiver reaches through Ambush briefings only", () => {
@@ -196,7 +201,7 @@ describe('relic combat effects', () => {
     // A rat fight first: the boss is the second fight, fought out of depth.
     const run = simulateRun(
       bell(),
-      dungeon([{ type: 'fight', weight: 1, mobs: [{ mobId: 'giantRat', count: 1 }] }], { hp: 1e6 }),
+      dungeon([{ type: 'fight', weight: 1, mobs: [{ mobId: RAT.id, count: 1 }] }], { hp: 1e6 }),
       'seed',
       options,
     );
@@ -217,7 +222,7 @@ describe('relic combat effects', () => {
 
   it("the Archmage's tome strikes every enemy with the first spell of the first fight only", () => {
     const rules = steady;
-    const rats = dungeon([{ type: 'fight', weight: 1, mobs: [{ mobId: 'giantRat', count: 3 }] }], {}, [3, 3]);
+    const rats = dungeon([{ type: 'fight', weight: 1, mobs: [{ mobId: RAT.id, count: 3 }] }], {}, [3, 3]);
     // A Magic hero (Bram's stat overridden) so the tome's spell is what they cast; no special, so the tome is all that strikes.
     const run = simulateRun(
       [relicMember('archmagesTome', { magic: 100, speed: 0, damageStat: 'magic', special: undefined })],
