@@ -160,6 +160,7 @@ export function ForgeConfirmDialog({
     const relic = relicById[confirm.relicId];
     title = tr(relic.name);
     emoji = gearProfiles[relic.gearType].emoji;
+    icon = relic.icon;
     subtitle = `${tr(gearTypeNames[confirm.gearType].name)} · ${t('crafting.tierShort', { tier: ROMAN[confirm.tier - 1] })}`;
     lines = [{ tone: 'keyword', text: tr(relic.effect) }];
     action = { title: t('crafting.restore'), disabled: !canRestore(save, pending.relicUid), onPress: onConfirm };

@@ -9,6 +9,7 @@ import { canApplyStone, stoneAffixId, stonePreview } from '@/game/crafting/infus
 import { ELEMENTS, type Element } from '@/game/elements';
 import { hasMaterials } from '@/game/inventory';
 import { canReroll, rerollCost } from '@/game/forging/reroll';
+import { gearIconOf } from '@/game/gear/gearIcon';
 import { wornBy } from '@/game/forging/salvage';
 import { isAway } from '@/game/team/team';
 import type { SaveData } from '@/game/save';
@@ -88,7 +89,8 @@ export function ReworkStation() {
                 <ItemSlot
                   state={one.uid === selectedUid ? 'selected' : 'ready'}
                   emoji={item.emoji}
-                  icon={item.icon}
+                  icon={gearIconOf(one)}
+                  legendary={one.rarity === 'legendary' ? true : undefined}
                   size={cell}
                   equipped={!!holder}
                   accessibilityLabel={holder ? `${gearName(one)}, ${t('common.wornBy', { name: holder.name })}` : gearName(one)}
@@ -164,7 +166,8 @@ function ReworkCard({
     <ParchmentCard
       title={gearName(gear)}
       titleEmoji={item.emoji}
-      titleIcon={item.icon}
+      titleIcon={gearIconOf(gear)}
+      titleIconLegendary={gear.rarity === 'legendary' ? true : undefined}
       titleSub={holder ? t('common.wornBy', { name: holder.name }) : undefined}
       style={styles.card}
     >

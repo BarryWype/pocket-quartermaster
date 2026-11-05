@@ -9,6 +9,7 @@ import { placeInfo, placeRules, type PlaceKind, type SecretKind } from '@/conten
 import { serviceRules } from '@/content/services';
 import { weaknessByItem } from '@/content/weaknesses';
 import { wornBy } from '@/game/forging/salvage';
+import { gearIconOf } from '@/game/gear/gearIcon';
 import { pickaxeTier } from '@/game/gathering/gathering';
 import { distanceMeters } from '@/game/generation/geo';
 import type { LatLng } from '@/game/generation/types';
@@ -172,7 +173,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
       if (gear.length === 0) return <Text style={styles.muted}>{t('places.nothingToSell')}</Text>;
       return gear.map((g) => (
         <View key={g.uid} style={[styles.row, styles.actions]}>
-          <IconLabel emoji={itemById[g.itemId].emoji} icon={itemById[g.itemId].icon} label={gearName(g)} labelStyle={styles.name} />
+          <IconLabel emoji={itemById[g.itemId].emoji} icon={gearIconOf(g)} label={gearName(g)} labelStyle={styles.name} />
           <Price amount={gearSellPrice(g)} textStyle={styles.price} />
           <WoodButton
             title={t('places.sell')}

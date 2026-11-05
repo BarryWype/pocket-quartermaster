@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View, type ImageSourcePropType, type StyleProp, 
 import { EquippedBadge } from '@/components/EquippedBadge';
 import { GameIcon } from '@/components/GameIcon';
 import { Text } from '@/components/Text';
+import { gearRules } from '@/content/gear';
 import { fonts, ui } from '@/theme';
 
 export type SlotState = 'selected' | 'ready' | 'short' | 'empty' | 'locked';
@@ -18,13 +19,15 @@ type Props = {
   faded?: boolean;
   /** A hero is wearing this piece: a shield badge on the corner. */
   equipped?: boolean;
+  /** A Legendary piece: a gold frame around the socket. */
+  legendary?: boolean;
   onPress?: () => void;
   accessibilityLabel: string;
   style?: StyleProp<ViewStyle>;
 };
 
 /** A square item socket: selected, ready, short, empty or locked. */
-export function ItemSlot({ state, emoji, icon, count, mark, size, faded, equipped, onPress, accessibilityLabel, style }: Props) {
+export function ItemSlot({ state, emoji, icon, count, mark, size, faded, equipped, legendary, onPress, accessibilityLabel, style }: Props) {
   const filled = state === 'selected' || state === 'ready' || state === 'short';
   const shown = state === 'locked' ? '🔒' : state === 'empty' ? undefined : emoji;
   const face = (
@@ -33,6 +36,7 @@ export function ItemSlot({ state, emoji, icon, count, mark, size, faded, equippe
         styles.slot,
         size !== undefined ? { width: size, height: size } : styles.fill,
         state === 'selected' && styles.selected,
+        legendary && { borderColor: gearRules.colors.legendary },
         (state === 'empty' || state === 'locked') && styles.emptyish,
         faded && styles.faded,
         style,

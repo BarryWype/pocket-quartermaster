@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 
+import { gearRules } from '@/content/gear';
 import { colors } from '@/theme';
 
 import { EquippedBadge } from './EquippedBadge';
@@ -19,14 +20,16 @@ type Props = {
   badge?: string;
   /** A hero is wearing this piece: a shield badge on the slot's corner. */
   equipped?: boolean;
+  /** A Legendary piece: a gold frame around the slot. */
+  legendary?: boolean;
   onPress?: () => void;
 };
 
-export function Row({ emoji, icon, title, subtitle, right, titleColor, badge, equipped, onPress }: Props) {
+export function Row({ emoji, icon, title, subtitle, right, titleColor, badge, equipped, legendary, onPress }: Props) {
   return (
     <Pressable style={styles.row} onPress={onPress} disabled={!onPress} accessibilityRole={onPress ? 'button' : undefined}>
       <View>
-        <IconSlot emoji={emoji} icon={icon} />
+        <IconSlot emoji={emoji} icon={icon} legendary={legendary} />
         {badge ? <Text style={styles.badge}>{badge}</Text> : null}
         {equipped ? <EquippedBadge size={32} /> : null}
       </View>
@@ -40,9 +43,9 @@ export function Row({ emoji, icon, title, subtitle, right, titleColor, badge, eq
 }
 
 /** An icon in a sunken inventory-style square. */
-export function IconSlot({ emoji, icon, size = 32 }: { emoji: string; icon?: ImageSourcePropType; size?: number }) {
+export function IconSlot({ emoji, icon, size = 32, legendary }: { emoji: string; icon?: ImageSourcePropType; size?: number; legendary?: boolean }) {
   return (
-    <View style={styles.slot}>
+    <View style={[styles.slot, legendary && { borderColor: gearRules.colors.legendary }]}>
       <GameIcon emoji={emoji} icon={icon} size={size} />
     </View>
   );

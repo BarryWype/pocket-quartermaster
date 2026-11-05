@@ -22,6 +22,7 @@ import { expeditionRules } from '@/content/dungeons';
 import { gearRules, rarityNames } from '@/content/gear';
 import { approachRules } from '@/content/threats';
 import { slotProblem } from '@/game/equipment/slots';
+import { gearIconOf } from '@/game/gear/gearIcon';
 import { gearApproachBonus, approachScore, pendingApproachPicks } from '@/game/team/stats';
 import { heroClasses, xpRules, xpToNextLevel } from '@/content/heroes';
 import { jobById } from '@/content/jobs';
@@ -209,6 +210,7 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
         state: locked ? ('locked' as const) : id ? ('ready' as const) : ('empty' as const),
         emoji: item?.emoji,
         icon: item?.icon,
+        legendary: undefined,
         mark: undefined,
         label: `${t(`hero.slots.${slot}`)}${item ? `: ${tr(item.name)}` : ''}`,
       };
@@ -219,7 +221,8 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
     return {
       state: locked ? ('locked' as const) : gear ? ('ready' as const) : ('empty' as const),
       emoji: item?.emoji,
-      icon: item?.icon,
+      icon: gear ? gearIconOf(gear) : item?.icon,
+      legendary: gear?.rarity === 'legendary' ? true : undefined,
       mark: affinity === 'favoured' ? ('up' as const) : affinity === 'unfit' ? ('down' as const) : undefined,
       label: `${t(`hero.slots.${slot}`)}${gear ? `: ${gearName(gear)}` : ''}`,
     };
@@ -434,6 +437,7 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
           state={content.state}
           emoji={content.emoji}
           icon={content.icon}
+          legendary={content.legendary}
           mark={content.mark}
           size={64}
           accessibilityLabel={content.label}
@@ -577,7 +581,8 @@ function StoreroomSlot({
       <ItemSlot
         state="ready"
         emoji={item.emoji}
-        icon={item.icon}
+        icon={gearIconOf(gear)}
+        legendary={gear.rarity === 'legendary' ? true : undefined}
         mark={upgradeMark(hero, preview)}
         size={size}
         equipped={equipped}
@@ -642,7 +647,8 @@ function ComparePopup({
       title={gearName(gear)}
       subtitle={t('hero.insteadOf', { item: worn ? gearName(worn) : t('hero.empty') })}
       emoji={item.emoji}
-      icon={item.icon}
+      icon={gearIconOf(gear)}
+      legendary={gear.rarity === 'legendary' ? true : undefined}
       lines={lines}
       action={{ title: t('hero.equip'), onPress: onEquip, disabled: !preview || isOnExpedition(save, hero.id) }}
       pointer={pointer}

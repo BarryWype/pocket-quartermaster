@@ -5,6 +5,7 @@ import { gearRules } from '@/content/gear';
 import { gearName, itemById } from '@/content/lookup';
 import { pieceDamageStat } from '@/game/equipment/damageStat';
 import { slotProblem } from '@/game/equipment/slots';
+import { gearIconOf } from '@/game/gear/gearIcon';
 import { affinityOf, equipPreview, healingPotion } from '@/game/team/team';
 import { kitAnswers } from '@/game/threats/coverage';
 import type { SaveData } from '@/game/save';
@@ -45,6 +46,8 @@ type Option = {
   disabled?: boolean;
   /** A hero (any hero) is wearing this piece. */
   equipped?: boolean;
+  /** A Legendary piece: a gold frame around the row's slot. */
+  legendary?: boolean;
   marks?: ReactNode;
 };
 
@@ -131,7 +134,8 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, briefin
       return {
         id: gear.uid,
         emoji: item.emoji,
-        icon: item.icon,
+        icon: gearIconOf(gear),
+        legendary: gear.rarity === 'legendary',
         title: gearName(gear),
         subtitle:
           parts.length > 0 || showAffixes ? (
@@ -179,6 +183,7 @@ export function EquipPicker({ save, heroId, slot, briefing, bossId, onPick, onCl
             <Row
               emoji={option.emoji}
               icon={option.icon}
+              legendary={option.legendary}
               title={option.title}
               subtitle={option.subtitle}
               titleColor={option.color}

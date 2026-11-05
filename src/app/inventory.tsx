@@ -22,6 +22,7 @@ import { distanceMeters } from '@/game/generation/geo';
 import { highestUnlockedTier } from '@/game/dungeons/unlock';
 import { inventoryPages, inventoryRows, type InventoryItem, type InventoryPageId, type InventoryRow } from '@/game/inventory/inventoryPages';
 import { canSalvage, wearers, wornBy } from '@/game/forging/salvage';
+import { gearIconOf } from '@/game/gear/gearIcon';
 import { nextSteps, purposesOf, type BaseItemRef, type NextStep } from '@/game/loot/purposes';
 import { ruinsDots } from '@/game/places/ruins';
 import { isLureActive, lureEndsAt } from '@/game/rewards/lures';
@@ -242,8 +243,7 @@ function rowFace(row: InventoryRow, save: SaveData): { emoji: string; icon?: Ima
       };
     }
     case 'gear': {
-      const item = itemById[row.gear.itemId];
-      return { emoji: item.emoji, icon: item.icon, label: gearName(row.gear) };
+      return { emoji: itemById[row.gear.itemId].emoji, icon: gearIconOf(row.gear), label: gearName(row.gear) };
     }
     case 'consumable': {
       const item = itemById[row.itemId];
@@ -297,6 +297,7 @@ function RowSlot({
         icon={face.icon}
         count={face.count}
         equipped={row.kind === 'gear' ? worn.has(row.gear.uid) : undefined}
+        legendary={row.kind === 'gear' && row.gear.rarity === 'legendary' ? true : undefined}
         accessibilityLabel={face.label}
         onPress={() => wrapper.current?.measureInWindow((x, y, width, height) => onOpen({ x, y, width, height }))}
       />
@@ -369,6 +370,7 @@ function InventoryPopup({
   let title: string;
   let emoji: string;
   let icon: ImageSourcePropType | undefined;
+  let legendary: boolean | undefined;
   let subtitle: ReactNode;
   let value: string | number | undefined;
   let note: string | undefined;
@@ -416,7 +418,8 @@ function InventoryPopup({
       const holder = wornBy(save, gear.uid);
       title = gearName(gear);
       emoji = item.emoji;
-      icon = item.icon;
+      icon = gearIconOf(gear);
+      legendary = gear.rarity === 'legendary' ? true : undefined;
       subtitle = (
         <>
           <Text style={{ color: gearRules.colors[gear.rarity] }}>{tr(rarityNames[gear.rarity])}</Text>
@@ -513,6 +516,7 @@ function InventoryPopup({
       title={title}
       emoji={emoji}
       icon={icon}
+      legendary={legendary}
       subtitle={subtitle}
       value={value}
       note={note}

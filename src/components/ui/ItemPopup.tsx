@@ -26,6 +26,8 @@ type Props = {
   subtitle?: ReactNode;
   emoji: string;
   icon?: ImageSourcePropType;
+  /** A Legendary piece: a gold frame around the title band's icon. */
+  legendary?: boolean;
   value?: string | number;
   valueLabel?: string;
   note?: string;
@@ -65,13 +67,13 @@ function Line({ line }: { line: PopupLine }) {
 }
 
 /** The selected item's pop-up: parchment card with value, lines, ingredients and the main action. */
-export function ItemPopup({ title, subtitle, emoji, icon, value, valueLabel, note, lines, children, ingredients, action, secondary, pointer, style }: Props) {
+export function ItemPopup({ title, subtitle, emoji, icon, legendary, value, valueLabel, note, lines, children, ingredients, action, secondary, pointer, style }: Props) {
   return (
     <View style={style}>
       {pointer?.side === 'top' && (
         <View style={[styles.pointer, styles.pointerTop, { left: pointer.x - 9 }]} pointerEvents="none" />
       )}
-      <ParchmentCard title={title} titleEmoji={emoji} titleIcon={icon} titleSub={subtitle} contentStyle={styles.content}>
+      <ParchmentCard title={title} titleEmoji={emoji} titleIcon={icon} titleIconLegendary={legendary} titleSub={subtitle} contentStyle={styles.content}>
         {(value !== undefined || note !== undefined) && (
           <View style={styles.center}>
             {value !== undefined && (

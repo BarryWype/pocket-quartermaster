@@ -3,6 +3,7 @@ import { StyleSheet, View, type ImageSourcePropType, type StyleProp, type ViewSt
 
 import { GameIcon } from '@/components/GameIcon';
 import { Text } from '@/components/Text';
+import { gearRules } from '@/content/gear';
 import { fonts, ui } from '@/theme';
 
 type Props = {
@@ -10,6 +11,8 @@ type Props = {
   title?: string;
   titleEmoji?: string;
   titleIcon?: ImageSourcePropType;
+  /** A Legendary piece: a gold frame around the band's icon socket. */
+  titleIconLegendary?: boolean;
   /** Replaces the band's icon: a ringed icon instead of the plain one. */
   titleIconNode?: ReactNode;
   /** The band's second line; takes a node so a countdown can tick inside it. */
@@ -22,7 +25,7 @@ type Props = {
 };
 
 /** A parchment card: 3 px outline, double inner rim, 4 px drop strip, optional plank title band. */
-export function ParchmentCard({ children, title, titleEmoji, titleIcon, titleIconNode, titleSub, pinned, tilt = 0, style, contentStyle }: Props) {
+export function ParchmentCard({ children, title, titleEmoji, titleIcon, titleIconLegendary, titleIconNode, titleSub, pinned, tilt = 0, style, contentStyle }: Props) {
   return (
     <View style={[styles.drop, style]}>
       <View style={[styles.card, tilt !== 0 && { transform: [{ rotate: `${tilt}deg` }] }]}>
@@ -40,7 +43,7 @@ export function ParchmentCard({ children, title, titleEmoji, titleIcon, titleIco
               <View style={styles.bandIcon}>{titleIconNode}</View>
             ) : (
               titleEmoji !== undefined && (
-                <View style={styles.bandIcon}>
+                <View style={[styles.bandIcon, titleIconLegendary && { borderColor: gearRules.colors.legendary }]}>
                   <GameIcon emoji={titleEmoji} icon={titleIcon} size={30} />
                 </View>
               )

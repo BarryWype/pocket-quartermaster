@@ -374,6 +374,8 @@ function RelicList({ save, onRestore }: { save: SaveData; onRestore: (relicUid: 
           <Row
             key={uid}
             emoji={gearProfiles[relic.gearType].emoji}
+            icon={relic.icon}
+            legendary
             title={tr(relic.name)}
             subtitle={
               <View>
