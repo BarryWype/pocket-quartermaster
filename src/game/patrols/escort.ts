@@ -6,6 +6,8 @@ import { estimatePartyOdds } from '../expeditions/odds';
 import { highestUnlockedTier, untriggeredSalvage } from '../expeditions/expeditions';
 import { prepareParty, simulateRun, type PartyMember } from '../expeditions/simulate';
 import { rosterAffixBest } from '../gear/affixes';
+import { scavengeStack, type WornWorkTool } from '../gear/workTools';
+import { jobChoices, wornWorkTool } from '../jobs/jobs';
 import { pickaxeTier } from '../gathering/gathering';
 import { patrolRulesAt, trackWindows } from '../gathering/walkEffects';
 import { guildBonus } from '../guild/guild';
@@ -47,6 +49,8 @@ export type EscortState = {
   heroId: string;
   /** Stats as they set out; the consumable is dropped after the first fight, as on an expedition. */
   member: PartyMember;
+  /** The work tool they wear, with its job context for scavenge rolls (see gear/workTools.ts). */
+  workTool?: { tool: WornWorkTool; jobChoice: string | null | undefined; choices: string[] };
   hp: number;
   hpAt: number;
   maxHp: number;
@@ -136,6 +140,7 @@ export function snapshotBackground(
 ): BackgroundState {
   const hero = save.heroes.find((h) => h.id === settings.escortHeroId && !isBusy(save, h.id));
   const member = hero ? prepareParty(save, [hero.id], now, true)[0] : undefined;
+  const tool = hero ? wornWorkTool(save, hero) : null;
   const healRate = member?.abilities.find((a) => a.kind === 'healRate');
   const rate = healRate?.kind === 'healRate' ? healRate : { multiplier: 1, exhaustion: 1 };
   return {
@@ -144,6 +149,7 @@ export function snapshotBackground(
         ? {
             heroId: hero.id,
             member,
+            ...(tool ? { workTool: { tool, jobChoice: save.jobChoice[tool.job], choices: jobChoices(save, tool.job) } } : {}),
             hp: member.hp,
             hpAt: now,
             maxHp: member.maxHp,
@@ -312,6 +318,13 @@ export function backgroundStep(
       let rewards: Loot = run.bossDefeated ? rollRewards(createRng(`${id}|rewards`)) : emptyLoot();
       // A special's extra loot rolls draw from their own derived seeds.
       for (let i = 0; i < run.extraLootRolls; i++) rewards = mergeLoot(rewards, rollRewards(createRng(`${id}|rewards|extra|${i}`)));
+      // A hero wearing a work tool scavenges its job's material from every fight they won.
+      const scavenge = run.encounters.flatMap((encounter, i) =>
+        encounter.cleared && (encounter.kind === 'fight' || encounter.kind === 'boss') && escort.workTool
+          ? scavengeStack(escort.workTool.tool, `${id}|scavenge|${escort.heroId}|${i}`, escort.workTool)
+          : [],
+      );
+      if (scavenge.length > 0) rewards = mergeLoot(rewards, { ...emptyLoot(), materials: scavenge });
       next.pending.push({
         id,
         at: end,

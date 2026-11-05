@@ -54,4 +54,13 @@ describe('slotProblem off-hand pairing', () => {
     expect(problemOf(saveWith('flasks1', 'focus1'), warrior, 'flasks1', 'focus1')).toBe('needsMagicWeapon');
     expect(problemOf(saveWith('flasks1', 'shield1'), warrior, 'flasks1', 'shield1')).toBeNull();
   });
+
+  it('takes a work tool with no weapon or any one-handed weapon, but not with a two-handed one or a bow', () => {
+    expect(problemOf(saveWith('sword1', 'hatchet1'), warrior, 'sword1', 'hatchet1')).toBeNull();
+    expect(problemOf(saveWith('throwing1', 'miningPick2'), warrior, 'throwing1', 'miningPick2')).toBeNull();
+    expect(problemOf(saveWith(null, 'tongs1'), warrior, null, 'tongs1')).toBeNull();
+    expect(problemOf(saveWith('totem1', 'hatchet1'), sorcerer, 'totem1', 'hatchet1')).toBe('twoHanded');
+    expect(problemOf(saveWith('bow1', 'hatchet1'), warrior, 'bow1', 'hatchet1')).toBe('rangedNeedsAmmo');
+    expect(problemOf(saveWith('crossbow1', 'sickle1'), warrior, 'crossbow1', 'sickle1')).toBe('rangedNeedsAmmo');
+  });
 });

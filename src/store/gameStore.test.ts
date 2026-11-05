@@ -83,6 +83,25 @@ describe('gameStore', () => {
     expect(useGameStore.getState().save).toBe(save);
   });
 
+  it('settles jobs when a working hero’s equipment changes, so a tool’s bonus applies forward', () => {
+    const { save } = useGameStore.getState();
+    const heroId = save.heroes[0].id;
+    useGameStore.getState().assignJob(heroId, 'woodcutter');
+    useGameStore.setState({
+      save: {
+        ...useGameStore.getState().save,
+        gear: [...useGameStore.getState().save.gear, { uid: 't1', itemId: 'hatchet1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 }],
+      },
+    });
+    useGameStore.getState().equip(heroId, 'offhand', 't1');
+    const after = useGameStore.getState().save;
+    const hero = after.heroes.find((h) => h.id === heroId)!;
+    // The job was settled at the moment of the change.
+    expect(hero.energy.at).toBeCloseTo(Date.now(), -3);
+    expect(after.jobOutput.woodcutter.since).toBe(hero.energy.at);
+    expect(hero.equipment.offhand).toBe('t1');
+  });
+
   it('resets save data', () => {
     useGameStore.getState().addGold(10);
     useGameStore.getState().resetSave();

@@ -1,4 +1,6 @@
 import { choiceOf, jobById, jobRules, jobs, type JobDef } from '@/content/jobs';
+import { itemById } from '@/content/lookup';
+import { type WorkToolKind, workToolRules } from '@/content/workTools';
 
 import { highestUnlockedTier } from '../dungeons/unlock';
 import { createRng } from '../generation/rng';
@@ -7,7 +9,7 @@ import { addMaterials } from '../inventory';
 import { currentHp, maxHp, withHp } from '../team/health';
 import type { JobOutput, SaveData } from '../save';
 import { isAway } from '../team/team';
-import type { HeroState } from '../types';
+import type { GearDef, HeroState } from '../types';
 import { gathererCapNodes, gathererDetail, gathererFullAt, gathererNodesNow, type GathererWound } from './gatherer';
 
 const HOUR = 3_600_000;
@@ -65,6 +67,26 @@ export function isTired(save: SaveData, hero: HeroState, now: number): boolean {
 export const jobWorker = (save: SaveData, jobId: string): HeroState | undefined =>
   save.heroes.find((hero) => hero.job?.jobId === jobId);
 
+/** A work tool as worn: its kind and job, plus the tier of the piece. */
+export type WornWorkTool = { kind: WorkToolKind; job: string; tier: number };
+
+/** The work tool a hero wears in the off-hand, if any. */
+export function wornWorkTool(save: SaveData, hero: HeroState): WornWorkTool | null {
+  const uid = hero.equipment.offhand;
+  if (!uid) return null;
+  const gear = save.gear.find((g) => g.uid === uid);
+  const item = gear ? (itemById[gear.itemId] as GearDef) : null;
+  return item?.workTool ? { kind: item.workTool.kind, job: item.workTool.job, tier: item.tier } : null;
+}
+
+/** The job's rate per hour of work, raised by the worker's matching work tool (see workToolRules.outputBonus). */
+export function jobRate(save: SaveData, jobId: string): number {
+  const worker = jobWorker(save, jobId);
+  const tool = worker ? wornWorkTool(save, worker) : null;
+  const bonus = tool && tool.job === jobId ? workToolRules.outputBonus[tool.tier - 1] : 0;
+  return jobById[jobId].ratePerHour * (1 + bonus);
+}
+
 /** The material a roll index becomes: fixed, weighted, or the job's chosen material. */
 export function unitMaterial(save: SaveData, jobId: string, heroId: string, index: number): string {
   const produces = jobById[jobId].produces;
@@ -120,7 +142,7 @@ export function jobProduced(save: SaveData, jobId: string, now: number): number 
   // Counted from the later of the output's and the worker's timestamps, both on the worker's cycle.
   const from = Math.max(entry?.since ?? now, worker.energy.at);
   if (now <= from) return 0;
-  const produced = jobById[jobId].ratePerHour * (workDone(worker, cycleAt(worker, now)) - workDone(worker, cycleAt(worker, from)));
+  const produced = jobRate(save, jobId) * (workDone(worker, cycleAt(worker, now)) - workDone(worker, cycleAt(worker, from)));
   return Math.min(Math.max(0, produced), room);
 }
 
@@ -192,7 +214,7 @@ export function fullAt(save: SaveData, jobId: string, now: number): number | nul
   if (!worker || isJobFull(save, jobId, now)) return null;
   if (job.kind === 'outdoor') return gathererFullAt(save, jobId, now);
   const { d, c } = cycleOf(worker);
-  let need = (jobCap(jobId) - jobOutputNow(save, jobId, now)) / job.ratePerHour;
+  let need = (jobCap(jobId) - jobOutputNow(save, jobId, now)) / jobRate(save, jobId);
   let x = cycleAt(worker, now);
   for (;;) {
     const m = mod(x, c);

@@ -12,6 +12,7 @@ import { distanceMeters } from '../generation/geo';
 import { createRng, type Rng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { foughtEnemies, settleConsumables } from '../patrols/fight';
+import { scavengeLoot } from '../gear/workTools';
 import { partyCharms } from '../loot/charms';
 import { rollForSave, sourceAmounts } from '../loot/context';
 import { grantLoot } from '../loot/grant';
@@ -161,6 +162,13 @@ export function startPlaceFight(save: SaveData, spawn: PlaceSpawn, heroIds: stri
   let reward: Loot = run.bossDefeated ? rollRewards(createRng(`${id}|rewards`)) : emptyLoot();
   // A special's extra loot rolls draw from their own derived seeds.
   for (let i = 0; i < run.extraLootRolls; i++) reward = mergeLoot(reward, rollRewards(createRng(`${id}|rewards|extra|${i}`)));
+  // A hero wearing a work tool scavenges its job's material from every fight they won.
+  const scavenge = run.encounters.flatMap((encounter, i) =>
+    encounter.cleared && (encounter.kind === 'fight' || encounter.kind === 'boss')
+      ? heroIds.flatMap((heroId) => scavengeLoot(save, heroId, i, id))
+      : [],
+  );
+  if (scavenge.length > 0) reward = mergeLoot(reward, { ...emptyLoot(), materials: scavenge });
   const tip =
     run.bossDefeated && (kind === 'banditCamp' || kind === 'monsterLair') && rollTip(kind, spawn.id)
       ? { source: kind, sourceId: spawn.id, anchor: spawn.position }

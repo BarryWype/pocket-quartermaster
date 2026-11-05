@@ -15,6 +15,7 @@ import {
   jobMaterials,
   jobOutputNow,
   jobProduced,
+  jobRate,
   jobWorker,
   openJobs,
   recallFromJob,
@@ -288,5 +289,45 @@ describe('guild gathering jobs', () => {
   it('refuses an ore the tier has not unlocked', () => {
     expect(() => setJobChoice(atTier(2), 'miner', 'copper', 0)).toThrow();
     expect(() => setJobChoice(base(), 'woodcutter', 'wood', 0)).toThrow();
+  });
+});
+
+describe('work tool output bonus', () => {
+  /** Bram wearing a work tool of `itemId` in the off-hand. */
+  const withTool = (itemId: string): SaveData => ({
+    ...base(),
+    gear: [{ uid: 't1', itemId, rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 }],
+    heroes: base().heroes.map((h) => (h.id === 'bram' ? { ...h, equipment: { ...h.equipment, offhand: 't1' } } : h)),
+  });
+
+  it('raises the worker’s job rate by the tool’s tier bonus', () => {
+    expect(jobRate(working(), 'woodcutter')).toBe(RATE);
+    expect(jobRate(assignJob(withTool('hatchet1'), 'bram', 'woodcutter', 0), 'woodcutter')).toBeCloseTo(RATE * 1.2);
+    expect(jobRate(assignJob(withTool('hatchet3'), 'bram', 'woodcutter', 0), 'woodcutter')).toBeCloseTo(RATE * 1.3);
+  });
+
+  it('produces 1.2× the output over the same time with a tier-1 hatchet', () => {
+    const tooled = assignJob(withTool('hatchet1'), 'bram', 'woodcutter', 0);
+    expect(jobOutputNow(tooled, 'woodcutter', 4 * HOUR)).toBeCloseTo(4 * RATE * 1.2);
+    expect(jobOutputNow(working(), 'woodcutter', 4 * HOUR)).toBeCloseTo(4 * RATE);
+    expect(fullAt(tooled, 'woodcutter', 0)).toBeCloseTo((8 / 1.2) * HOUR);
+  });
+
+  it('does not help a job the tool is not for', () => {
+    const foraging = assignJob(withTool('hatchet1'), 'bram', 'forager', 0);
+    expect(jobRate(foraging, 'forager')).toBe(RATE);
+    expect(jobOutputNow(foraging, 'forager', 4 * HOUR)).toBeCloseTo(4 * RATE);
+  });
+
+  it('applies only forward when the tool is equipped mid-job, once the store settles', () => {
+    // 4 h of plain work, then the hatchet goes on: the settled fraction stays, the rate rises from then.
+    const at4h = settleJobs(working(), 4 * HOUR);
+    const equipped = {
+      ...at4h,
+      gear: [...at4h.gear, { uid: 't1', itemId: 'hatchet1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 }],
+      heroes: at4h.heroes.map((h) => (h.id === 'bram' ? { ...h, equipment: { ...h.equipment, offhand: 't1' } } : h)),
+    };
+    expect(jobOutputNow(equipped, 'woodcutter', 4 * HOUR)).toBeCloseTo(4 * RATE);
+    expect(jobOutputNow(equipped, 'woodcutter', 6 * HOUR)).toBeCloseTo(4 * RATE + 2 * RATE * 1.2);
   });
 });

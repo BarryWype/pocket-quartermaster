@@ -31,7 +31,7 @@ import { migrateSave } from '@/game/migrations';
 import { readManual } from '@/game/loot/manuals';
 import type { Loot, ManualRarity } from '@/game/loot/types';
 import { applyBackgroundResults, type BackgroundResult } from '@/game/patrols/escort';
-import { assignJob, assignProblem, collectJob, jobChoices, jobOutputNow, moveCamp, recallFromJob, setJobChoice } from '@/game/jobs/jobs';
+import { assignJob, assignProblem, collectJob, jobChoices, jobOutputNow, moveCamp, recallFromJob, setJobChoice, settleJobs } from '@/game/jobs/jobs';
 import { isTravellerKind, type PatrolSpawn, type TravellerKind } from '@/game/patrols/generate';
 import { resolvePatrolFights as resolveDueFights, startPatrolFight, type PatrolFight } from '@/game/patrols/fight';
 import { acceptRecruit, helpTraveller as helpTravellerRule, sellValuableToTrader, trade, type TravellerRecruit, type TravellerReward } from '@/game/patrols/travellers';
@@ -386,12 +386,14 @@ export const useGameStore = create<GameState>()(
       salvage: (gearUid) => set(({ save }) => ({ save: salvage(save, gearUid) })),
       reroll: (gearUid) => set(({ save }) => ({ save: rerollPiece(save, gearUid) })),
       equip: (heroId, slot, id) =>
-        set(({ save }) => ({
-          // HP is settled first, so a change of max HP keeps the right share.
-          save: advanceTutorial(
-            id ? equip(settleHp(save, Date.now()), heroId, slot, id) : unequip(settleHp(save, Date.now()), heroId, slot),
-          ),
-        })),
+        set(({ save }) => {
+          // HP and jobs are settled first: a max HP change keeps the right share, and a work tool's bonus applies only forward.
+          const at = Date.now();
+          const settled = settleJobs(settleHp(save, at), at);
+          return {
+            save: advanceTutorial(id ? equip(settled, heroId, slot, id) : unequip(settled, heroId, slot)),
+          };
+        }),
       // Notifications follow the save: see `useNotifications`.
       dismissHero: (heroId) => set(({ save }) => ({ save: dismissHero(save, heroId) })),
       setKitFor: (porterId, heroId) => set(({ save }) => ({ save: setKitFor(save, porterId, heroId) })),

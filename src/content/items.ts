@@ -2,10 +2,11 @@ import type { ConsumableDef, GearDef, ItemDef } from '@/game/types';
 
 import { gearItemStats } from '@/game/equipment/budget';
 
-import { GEAR_SLOTS, gearId, gearNames, gearProfiles, testCharm } from './equipment';
+import { GEAR_SLOTS, gearBudgetRules, gearId, gearNames, gearProfiles, testCharm } from './equipment';
 import { healthRules } from './health';
 import { charms } from './loot/charms';
 import { provisionRules } from './provisions';
+import { workToolId, workToolNames, workTools, workToolRules } from './workTools';
 
 import { trinkets } from './trinkets';
 
@@ -225,6 +226,34 @@ const gear: GearDef[] = (Object.keys(gearProfiles) as (keyof typeof gearProfiles
   }));
 });
 
+/**
+ * A work tool's weak stats: `budgetShare` of the off-hand budget, scaled by
+ * tier like other gear, split by workToolRules.shares (HP at hpPerPoint).
+ */
+const workToolStats = (tier: number): GearDef['stats'] => {
+  const points = gearBudgetRules.budget.offhand * workToolRules.budgetShare * gearBudgetRules.tierScale[tier - 1];
+  const total = workToolRules.shares.armour + workToolRules.shares.hp;
+  return {
+    armour: (points * workToolRules.shares.armour) / total,
+    hp: ((points * workToolRules.shares.hp) / total) * gearBudgetRules.hpPerPoint,
+  };
+};
+
+/** One work tool per kind and tier (25 pieces): off-hand, no gear type, no damage stat, no keywords. */
+const workToolGear: GearDef[] = workTools.flatMap((tool) =>
+  [1, 2, 3, 4, 5].map((tier): GearDef => ({
+    id: workToolId(tool.kind, tier),
+    name: workToolNames[tool.kind][tier - 1],
+    emoji: tool.emoji,
+    icon: tool.icon,
+    slot: 'offhand',
+    stats: workToolStats(tier),
+    tier,
+    keywords: [],
+    workTool: { kind: tool.kind, job: tool.job },
+  })),
+);
+
 // One gear set per material tier: wood → stone → copper → iron → steel.
 export const items: ItemDef[] = [
   // Tier 1: wood
@@ -328,5 +357,6 @@ export const items: ItemDef[] = [
   testCharm,
 
   ...gear,
+  ...workToolGear,
   ...trinkets,
 ];

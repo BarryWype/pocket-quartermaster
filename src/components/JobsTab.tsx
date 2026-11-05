@@ -5,8 +5,11 @@ import { clockConfig } from '@/content/clockConfig';
 import { type JobDef, jobRules, jobs } from '@/content/jobs';
 import { heroClasses } from '@/content/heroes';
 import { materialById } from '@/content/lookup';
-import { currentEnergy, isJobFull, isJobOpen, jobCap, jobChoices, jobMaterials, jobOutputDetail, jobOutputNow, jobWorker, openJobs } from '@/game/jobs/jobs';
+import { placeInfo } from '@/content/places';
+import { workToolByKind, workToolNames, workTools } from '@/content/workTools';
+import { currentEnergy, isJobFull, isJobOpen, jobCap, jobChoices, jobMaterials, jobOutputDetail, jobOutputNow, jobWorker, openJobs, wornWorkTool } from '@/game/jobs/jobs';
 import type { SaveData } from '@/game/save';
+import type { HeroState } from '@/game/types';
 import { isBusy } from '@/game/team/team';
 import { formatPercent, t, tr } from '@/i18n';
 import { useNow } from '@/hooks/useNow';
@@ -89,6 +92,7 @@ function JobCard({
       <OutputBar save={save} job={job} />
       <OrePicker save={save} job={job} />
       {worker && <EnergyBar save={save} hero={worker} />}
+      {worker && <ToolLine save={save} job={job} worker={worker} />}
       <View style={styles.actions}>
         <EmberButton
           title={t('jobs.collect')}
@@ -142,6 +146,27 @@ export function HeroChips({ save, preselect, onPick }: { save: SaveData; presele
         </Pressable>
       ))}
     </View>
+  );
+}
+
+/** The station's tool: its icon on the worker wearing it, otherwise a hint where to buy one. */
+function ToolLine({ save, job, worker }: { save: SaveData; job: JobDef; worker: HeroState }) {
+  const tool = wornWorkTool(save, worker);
+  if (tool && tool.job === job.id) {
+    const def = workToolByKind[tool.kind];
+    return (
+      <View style={styles.row}>
+        <GameIcon emoji={def.emoji} icon={def.icon} size={20} />
+        <Text style={styles.barText}>{tr(workToolNames[tool.kind][tool.tier - 1])}</Text>
+      </View>
+    );
+  }
+  const def = workTools.find((w) => w.job === job.id);
+  if (!def) return null;
+  return (
+    <Text style={styles.muted}>
+      {t('jobs.toolHint', { tool: t(`workTool.kind.${def.kind}`), place: tr(placeInfo[def.places[0]].name) })}
+    </Text>
   );
 }
 

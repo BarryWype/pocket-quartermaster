@@ -2,6 +2,7 @@ import type { Loot, LootModifier, MapRarity } from './loot/types';
 import type { ImageSourcePropType } from 'react-native';
 
 import type { PlaceKind, SecretKind } from '@/content/places';
+import type { WorkToolKind } from '@/content/workTools';
 import type { PlaceTipSource, TipSource } from '@/content/secrets';
 import type { Difficulty } from '@/content/difficulty';
 import type { Rarity } from '@/content/gear';
@@ -100,6 +101,8 @@ export type GearDef = ItemBase & {
   approach?: Approach;
   /** An amulet's Resistance against one element (Normal-quality value, unrounded). */
   elementResist?: { element: Element; amount: number };
+  /** A work tool: the off-hand line for workers, with the job it boosts and scavenges for (see content/workTools.ts). */
+  workTool?: { kind: WorkToolKind; job: string };
 };
 
 /** What a hero consumable does for the run (see expeditions/simulate.ts). */

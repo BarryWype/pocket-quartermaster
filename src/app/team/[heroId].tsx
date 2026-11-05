@@ -25,6 +25,7 @@ import { slotProblem } from '@/game/equipment/slots';
 import { gearApproachBonus, approachScore, pendingApproachPicks } from '@/game/team/stats';
 import { heroClasses, xpRules, xpToNextLevel } from '@/content/heroes';
 import { jobById } from '@/content/jobs';
+import { workTools } from '@/content/workTools';
 import { lootConfig } from '@/content/loot/config';
 import { traitById } from '@/content/traits';
 import { systemIcons } from '@/content/systemIcons';
@@ -34,6 +35,7 @@ import { answersMemberOf, prepareParty } from '@/game/expeditions/simulate';
 import { highestUnlockedTier } from '@/game/dungeons/unlock';
 import { careProblem, drinkProblem } from '@/game/team/health';
 import { affinityOf, canDismiss, equip, equipPreview, gearKeywordsOf, hasPotionSlot, healingPotion, heroDamageStat, heroStats, isBusy, isOnExpedition, statSources, upgradeMark } from '@/game/team/team';
+import { workToolParts } from '@/components/WorkToolLine';
 import { ClassSummary } from '@/components/ClassSummary';
 import { SpecialLabel } from '@/components/SpecialLabel';
 import { APPROACHES, heroAnswers } from '@/game/threats/answers';
@@ -424,6 +426,8 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
   /** The doll slot, absolutely placed, with its slot label under it. */
   const dollSlotView = (slot: EquipmentSlot, position: ViewStyle) => {
     const content = dollSlot(slot);
+    // A working hero's job tool as an off-hand recommendation.
+    const jobTool = slot === 'offhand' && hero.job ? workTools.find((w) => w.job === hero.job!.jobId) : undefined;
     return (
       <View key={slot} style={[styles.dollSlot, position]}>
         <ItemSlot
@@ -436,6 +440,11 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
           onPress={away || content.state === 'locked' ? undefined : () => setPicking(slot)}
         />
         <Text style={styles.slotLabel}>{t(`hero.slots.${slot}`)}</Text>
+        {jobTool && (
+          <Text style={styles.slotNote}>
+            {t('hero.offhandTool', { job: tr(jobById[hero.job!.jobId].name), tool: t(`workTool.kind.${jobTool.kind}`) })}
+          </Text>
+        )}
       </View>
     );
   };
@@ -605,6 +614,9 @@ function ComparePopup({
   const wornUid = hero.equipment[slot];
   const worn = wornUid ? save.gear.find((g) => g.uid === wornUid) : undefined;
   const lines: PopupLine[] = [];
+  if (item.workTool) {
+    lines.push({ tone: 'muted', text: workToolParts(item).map((part) => (typeof part === 'string' ? part : part.text)).join('') });
+  }
   // What the worn piece and this one each add to the hero, against the slot left empty.
   const bare = heroStats(save, { ...hero, equipment: { ...hero.equipment, [slot]: null } });
   const rows = preview
@@ -842,6 +854,7 @@ const styles = StyleSheet.create({
   dollPotion: { right: 14, bottom: 6 },
   dollConsumable: { left: '50%', marginLeft: -32, bottom: 6 },
   slotLabel: { fontFamily: fonts.body, fontSize: 13, color: ui.brassLight },
+  slotNote: { fontFamily: fonts.serif, fontSize: 11, color: ui.inkMuted, maxWidth: 96, textAlign: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
 });
 

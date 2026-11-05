@@ -186,6 +186,11 @@ export const fr: Dictionary = {
     hpChange: '{before} → {hp}/{max}',
     hunger: { fed: '', underfed: '🍖 Sous-alimenté', starving: '🍖 Affamé' },
   },
+  workTool: {
+    kind: { hatchet: 'la hachette', sickle: 'la faucille', snare: 'le collet', miningPick: 'la pioche de mineur', tongs: 'la pince' },
+    line: '{job} : +{percent} de production · Butin : +{count} {materials} par combat gagné',
+    or: '{head} ou {last}',
+  },
   jobs: {
     noOne: 'Personne au travail',
     working: 'Au travail',
@@ -204,6 +209,7 @@ export const fr: Dictionary = {
     produces: 'Produit',
     ore: 'Minerai',
     odds: '{name} {percent}',
+    toolHint: '{tool} (à la {place}) aide',
     gatherer: {
       setUpCamp: 'Installer le camp ici',
       noPosition: 'En attente de votre position',
@@ -480,6 +486,7 @@ export const fr: Dictionary = {
     slots: { weapon: 'Arme', armor: 'Armure', offhand: 'Main secondaire', trinket: 'Bibelot', consumable: 'Consommable', potion: 'Potion' },
     empty: 'Vide',
     twoHanded: 'Arme à deux mains',
+    offhandTool: 'Pour {job} : {tool} en main secondaire',
     dismissTitle: 'Renvoyer {name} ?',
     dismissBody: 'Son équipement et son consommable retournent dans votre inventaire. Action irréversible.',
     dismiss: 'Renvoyer',

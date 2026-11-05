@@ -9,6 +9,7 @@ import { StepChests } from '@/components/StepChests';
 import { PartsLine } from '@/components/IconLabel';
 import { AffixLines } from '@/components/AffixLines';
 import { gearStatsParts } from '@/components/GearRow';
+import { workToolParts } from '@/components/WorkToolLine';
 import { SalvageDialog } from '@/components/SalvageDialog';
 import { gearRules, rarityNames } from '@/content/gear';
 import { bossById } from '@/content/enemies';
@@ -29,7 +30,7 @@ import type { SaveData } from '@/game/save';
 import { hasKey, keyDots } from '@/game/secrets/keys';
 import { tipPosition } from '@/game/secrets/tips';
 import { isAway } from '@/game/team/team';
-import type { GearInstance } from '@/game/types';
+import type { GearDef, GearInstance } from '@/game/types';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useNow } from '@/hooks/useNow';
 import { clockConfig } from '@/content/clockConfig';
@@ -427,6 +428,7 @@ function InventoryPopup({
       children = (
         <>
           {parts.length > 0 && <PartsLine parts={parts} sep="   " labelStyle={styles.line} />}
+          {workToolParts(item as GearDef).length > 0 && <PartsLine parts={workToolParts(item as GearDef)} labelStyle={styles.line} />}
           <AffixLines piece={gear} compact labelStyle={styles.line} />
         </>
       );

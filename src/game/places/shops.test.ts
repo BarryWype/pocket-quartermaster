@@ -3,6 +3,7 @@ import { itemById, monsterPartById, recipeById } from '@/content/lookup';
 import { questRules } from '@/content/quests';
 import { secretRules } from '@/content/secrets';
 import { materialPrices, shopRules } from '@/content/shops';
+import { workToolRules } from '@/content/workTools';
 
 import { forgedItem, isKnown } from '../crafting/crafting';
 import { rollTip } from '../secrets/tips';
@@ -197,7 +198,63 @@ describe('buy', () => {
     const lines = placeStock(save, spawnOf('apothecary'), now);
     expect(lines.map((l) => l.id).lastIndexOf('sleepingDraught')).toBe(lines.length - 1);
     expect(lines[lines.length - 1].price).toBe(120);
-    expect(lines.length).toBe(4);
+    // Three normal lines, the sickle, and the weakness line.
+    expect(lines.length).toBe(5);
+  });
+});
+
+describe('work tool stock lines', () => {
+  /** A save whose bosses up to `tier` - 1 have fallen. */
+  const atTier = (tier: number): SaveData => ({
+    ...withGold(1000),
+    clearedDungeons: ['banditStockade', 'ogreQuarry', 'drownedCrypt', 'giantsHall'].slice(0, tier - 1),
+  });
+
+  it('stocks the sawmill with a hatchet at the player’s tier, after its normal lines', () => {
+    const save = withGold(1000);
+    const lines = placeStock(save, spawnOf('sawmill'), now);
+    expect(lines[0]).toMatchObject({ key: 'material:wood', kind: 'material', id: 'wood', price: materialPrices.wood });
+    const tool = lines.find((l) => l.kind === 'gear');
+    expect(tool).toEqual({
+      key: 'gear:hatchet1',
+      kind: 'gear',
+      id: 'hatchet1',
+      amount: 1,
+      price: workToolRules.price[0],
+      gear: expect.objectContaining({ itemId: 'hatchet1', rarity: 'common', affixes: [] }),
+    });
+    // The tool line is the only addition: the other sawmill lines are untouched.
+    expect(lines.filter((l) => l.kind !== 'gear')).toEqual([lines[0]]);
+    // A new tier restocks the tool under a new key.
+    const tier2 = placeStock(atTier(2), spawnOf('sawmill'), now).find((l) => l.kind === 'gear');
+    expect(tier2).toMatchObject({ key: 'gear:hatchet2', id: 'hatchet2', price: workToolRules.price[1] });
+  });
+
+  it('stocks the mining pick at a mine only from tier 2, when the miner station opens', () => {
+    expect(placeStock(withGold(1000), spawnOf('quarry'), now).some((l) => l.id.startsWith('miningPick'))).toBe(false);
+    const pick = placeStock(atTier(2), spawnOf('quarry'), now).find((l) => l.kind === 'gear');
+    expect(pick).toMatchObject({ key: 'gear:miningPick2', id: 'miningPick2', amount: 1, price: workToolRules.price[1] });
+    expect(placeStock(atTier(5), spawnOf('coalPit'), now).find((l) => l.kind === 'gear')).toMatchObject({ key: 'gear:tongs5', id: 'tongs5' });
+  });
+
+  it('never stocks a work tool at a market or the smithy, or anywhere the job is closed', () => {
+    for (const kind of ['market', 'smithy', 'tavern', 'library'] as const) {
+      for (let i = 0; i < 20; i++) {
+        expect(placeStock(atTier(5), spawnOf(kind, `${i}:1`), now).some((l) => l.kind === 'gear' && (itemById[l.id] as GearDef).workTool)).toBe(false);
+      }
+    }
+    // The charcoal burner opens at tier 5: no tongs anywhere before that.
+    expect(placeStock(atTier(4), spawnOf('coalPit'), now).some((l) => l.id.startsWith('tongs'))).toBe(false);
+  });
+
+  it('sells a work tool through the gear buy path', () => {
+    const spawn = spawnOf('sawmill');
+    const save = withGold(100);
+    const next = buy(save, spawn, 'gear:hatchet1', 1, position, now);
+    expect(next.gold).toBe(100 - workToolRules.price[0]);
+    expect(next.gear).toHaveLength(1);
+    expect(next.gear[0]).toMatchObject({ itemId: 'hatchet1', rarity: 'common', affixes: [] });
+    expect(buyProblem(next, spawn, 'gear:hatchet1', 1, position, now)).toBe('soldOut');
   });
 });
 

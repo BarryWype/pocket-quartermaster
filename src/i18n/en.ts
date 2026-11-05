@@ -181,6 +181,11 @@ export const en = {
     hpChange: '{before} → {hp}/{max}',
     hunger: { fed: '', underfed: '🍖 Underfed', starving: '🍖 Starving' },
   },
+  workTool: {
+    kind: { hatchet: 'hatchet', sickle: 'sickle', snare: 'snare', miningPick: 'mining pick', tongs: 'tongs' },
+    line: '{job}: +{percent} output · Scavenge: +{count} {materials} per won fight',
+    or: '{head} or {last}',
+  },
   jobs: {
     noOne: 'No one working',
     working: 'Working',
@@ -199,6 +204,7 @@ export const en = {
     produces: 'Produces',
     ore: 'Ore',
     odds: '{name} {percent}',
+    toolHint: 'A {tool} from a {place} helps',
     gatherer: {
       setUpCamp: 'Set up camp here',
       noPosition: 'Waiting for your location',
@@ -474,6 +480,7 @@ export const en = {
     slots: { weapon: 'Weapon', armor: 'Armor', offhand: 'Off-hand', trinket: 'Trinket', consumable: 'Consumable', potion: 'Potion' },
     empty: 'Empty',
     twoHanded: 'Two-handed weapon',
+    offhandTool: 'For {job}: a {tool} in the off-hand',
     dismissTitle: 'Dismiss {name}?',
     dismissBody: 'Their gear and consumable go back to your inventory. This cannot be undone.',
     dismiss: 'Dismiss',
