@@ -484,7 +484,7 @@ export function resolveExpedition(
       ? expedition.heroIds.flatMap((heroId) => scavengeLoot(save, heroId, i, expedition.id))
       : [],
   );
-  if (scavenge.length > 0) loot = mergeLoot(loot, { ...emptyLoot(), materials: scavenge });
+  if (scavenge.length > 0) loot = mergeLoot(loot, { ...emptyLoot(), materials: scavenge, scavenged: scavenge });
 
   // Everything in a consumable slot is gone after the run; what never triggered
   // is broken back down instead (see threats/salvage.ts).

@@ -28,7 +28,7 @@ export type FitSource =
   | { kind: 'boss'; id: string };
 
 /** The days the odds are averaged over, one briefing each. */
-const FIT_DAYS = [0, 1, 2].map((i) => rotationDay(Date.UTC(2026, 0, 10 + i)));
+export const FIT_DAYS = [0, 1, 2].map((i) => rotationDay(Date.UTC(2026, 0, 10 + i)));
 /** When the fights are measured: noon of the first fitting day. */
 export const FIT_NOW = Date.UTC(2026, 0, 10) + 12 * 3_600_000;
 /** Runs per estimate when the full simulator measures the difficulty odds for its summary. */
@@ -50,7 +50,7 @@ function stocked(save: SaveData): SaveData {
 }
 
 /** The save a hard or boss source is measured with: potions, then the loadout that answers its briefing. */
-function prepared(save: SaveData, heroIds: string[], dungeon: DungeonDef, briefing: Parameters<typeof withLoadout>[3]): SaveData {
+export function prepared(save: SaveData, heroIds: string[], dungeon: DungeonDef, briefing: Parameters<typeof withLoadout>[3]): SaveData {
   return withLoadout(stocked(save), heroIds, dungeon, briefing);
 }
 

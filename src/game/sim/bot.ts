@@ -181,6 +181,8 @@ export type RunLog = {
   materialFlow: Record<number, Record<string, [number, number]>>;
   /** Day → job id → material → gathered from that guild job (sources `job:<id>`), the jobs report. */
   jobFlow: Record<number, Record<string, Record<string, number>>>;
+  /** Day → material → work-tool scavenge from won fights (loot's `scavenged`). */
+  scavenge: Record<number, Record<string, number>>;
   /** Day → the gatherer's nodes gathered and wounds settled, as the day's collects clear them. */
   gatherer: Record<number, { nodes: number; wounds: number }>;
   /** Recipes known at the end. */
@@ -235,6 +237,7 @@ export const emptyLog = (profile: string, seed: string): RunLog => ({
   probes: [],
   materialFlow: {},
   jobFlow: {},
+  scavenge: {},
   gatherer: {},
   knownRecipes: [],
   places: [],
@@ -396,12 +399,12 @@ function equipGain(save: SaveData, hero: HeroState, slot: 'weapon' | 'armor' | '
   return preview ? statScore(save, hero, preview.after) - statScore(save, hero, preview.before) : 0;
 }
 
-/** The class's weapon of choice: its first favoured weapon type that rolls with the class's damage stat. */
+/** The class's weapon of choice: its first favoured weapon type that rolls with the class's damage stat ('wielder' pieces roll with it). */
 const weaponTypeFor = (classId: HeroClassId): WeaponType | null => {
   const favoured = (Object.entries(classAffinities[classId]) as [WeaponType | ArmourType, Affinity][])
     .filter(([type, affinity]) => affinity === 'favoured' && gearProfiles[type]?.slot === 'weapon')
     .map(([type]) => type as WeaponType);
-  return favoured.find((type) => gearProfiles[type].damageStat === heroClasses[classId].damageStat) ?? favoured[0] ?? null;
+  return favoured.find((type) => pieceDamageStat(gearProfiles[type], classId) === heroClasses[classId].damageStat) ?? favoured[0] ?? null;
 };
 
 /** The class's armour of choice: the first favoured armour type. */
@@ -586,6 +589,7 @@ function distribute(sim: Sim) {
   const worn = new Set(sim.save.heroes.flatMap((h) => slots.map((slot) => h.equipment[slot])));
   for (const gear of sim.save.gear.filter((g) => !worn.has(g.uid))) {
     const item = itemById[gear.itemId] as GearDef;
+    if (item.workTool) continue; // work tools cannot be salvaged; a spare one just waits
     const materials = act(sim, 'salvage', (save) => salvage(save, gear.uid));
     sim.log.crafts.push({ day: sim.day, kind: 'salvage', itemId: item.id, tier: item.tier, rarity: gear.rarity, roll: gear.roll, materials });
   }
@@ -1232,6 +1236,10 @@ export function countLoot(sim: Sim, loot: Loot, source: LootSourceId) {
   for (const category of loot.dropped) sim.log.loot[category] = (sim.log.loot[category] ?? 0) + 1;
   for (const piece of loot.gear) sim.log.gearLoot.push({ day: sim.day, source, itemId: piece.itemId, rarity: piece.rarity });
   for (const relicId of loot.relics) sim.log.gearLoot.push({ day: sim.day, source, itemId: `relic:${relicId}`, rarity: null });
+  for (const stack of loot.scavenged ?? []) {
+    const byDay = (sim.log.scavenge[sim.day] ??= {});
+    byDay[stack.materialId] = (byDay[stack.materialId] ?? 0) + stack.amount;
+  }
 }
 
 /** Resolves one expedition through the game, and logs it with the abilities that fired in its run. */

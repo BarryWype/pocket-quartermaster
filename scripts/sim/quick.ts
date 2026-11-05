@@ -3,6 +3,7 @@ import { difficultyRules } from '@/content/difficulty';
 import { applyOverrides, parseOverride } from '@/game/sim/overrides';
 import { quickProbe, type QuickTier } from '@/game/sim/quick';
 import { inRange, targets } from '@/game/sim/targets';
+import { affinityTable } from './report';
 
 const USAGE = `npm run sim:quick -- [options]
   --days N        rotation days to sample (default: sim.quick.days)
@@ -71,4 +72,6 @@ for (const tier of tiers) {
       .join(' | ')} |`,
   );
 }
+console.log('\n## Class affinity changes (reference odds, old vs new favoured weapon)');
+console.log(affinityTable(options.runs));
 console.log(`\n${((performance.now() - started) / 1000).toFixed(1)} s`);

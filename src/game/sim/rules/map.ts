@@ -1,7 +1,9 @@
 import { dungeons } from '@/content/dungeons';
+import { itemById } from '@/content/lookup';
 import { placeFightRules, type FightPlaceKind } from '@/content/placeFights';
 import type { PlaceKind } from '@/content/places';
 import { weaknessByBoss } from '@/content/weaknesses';
+import { workToolId, workTools } from '@/content/workTools';
 
 import { distanceMeters } from '../../generation/geo';
 import type { LatLng } from '../../generation/types';
@@ -19,6 +21,9 @@ import { isPlaceRevealed, isRevealed } from '../../reveal/reveal';
 import { enterProblem, enterSecret, recruitAtSecret, secretRecruit, secretRecruitProblem } from '../../secrets/places';
 import { secretPlaces } from '../../secrets/tips';
 import { isExhausted } from '../../team/health';
+import { isJobOpen, jobWorker, wornWorkTool } from '../../jobs/jobs';
+import { equip, equipPreview } from '../../team/team';
+import type { GearDef } from '../../types';
 import { act, bestParty, countLoot, highestTier, homeHeroes, mark, nextForgeRecipe, recallWorking, skip, takeVisit, withLoadout, type PlaceRow, type Sim } from '../bot';
 import { emptySlots } from './loadout';
 
@@ -192,6 +197,39 @@ export function buyWeakness(sim: Sim) {
   if (buyProblem(sim.save, spawn, line.key, 1, spawn.position, sim.now) !== null) return;
   act(sim, 'weakness', (save) => buy(save, spawn, line.key, 1, spawn.position, sim.now));
   row(sim, spawn.kind, tier, null, null);
+}
+
+/**
+ * Buys each open station's work tool at the nearest place that stocks it, when the
+ * gold covers it, and fits it on the worker's off-hand; re-buys when the tier rises.
+ */
+export function buyWorkTools(sim: Sim) {
+  const tier = highestTier(sim.save);
+  for (const tool of workTools) {
+    if (!isJobOpen(sim.save, tool.job)) continue;
+    const worker = jobWorker(sim.save, tool.job);
+    if (!worker) continue;
+    // A two-handed weapon takes the off-hand, so the worker could never wear the tool.
+    const weapon = sim.save.gear.find((g) => g.uid === worker.equipment.weapon);
+    if (weapon && (itemById[weapon.itemId] as GearDef).twoHanded) continue;
+    const worn = wornWorkTool(sim.save, worker);
+    if (worn && worn.kind === tool.kind && worn.tier >= tier) continue;
+    const id = workToolId(tool.kind, tier);
+    const stocked = (spawn: PlaceSpawn) => placeStock(sim.save, spawn, sim.now).find((l) => l.kind === 'gear' && l.id === id);
+    const spawn = placesWithin(sim.location, BUY_METERS, sim.now)
+      .filter((s) => tool.places.includes(s.kind) && isPlaceRevealed(sim.save, s.kind) && stocked(s))
+      .sort((a, b) => distanceMeters(sim.location, a.position) - distanceMeters(sim.location, b.position))[0];
+    if (!spawn) continue;
+    const line = stocked(spawn)!;
+    if (stockLeft(sim.save, spawn, line) < 1 || buyProblem(sim.save, spawn, line.key, 1, spawn.position, sim.now) !== null) continue;
+    const before = sim.save;
+    act(sim, 'workTool', (save) => buy(save, spawn, line.key, 1, spawn.position, sim.now));
+    const piece = sim.save.gear.find((g) => !before.gear.some((b) => b.uid === g.uid));
+    if (piece && equipPreview(sim.save, worker.id, 'offhand', piece.uid)) {
+      act(sim, 'equip', (save) => equip(save, worker.id, 'offhand', piece.uid));
+    }
+    row(sim, spawn.kind, tier, null, null);
+  }
 }
 
 /** Blesses every held holy symbol at the nearest chapel, turning them into their stronger blessed version. */

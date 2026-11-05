@@ -168,7 +168,7 @@ export function startPlaceFight(save: SaveData, spawn: PlaceSpawn, heroIds: stri
       ? heroIds.flatMap((heroId) => scavengeLoot(save, heroId, i, id))
       : [],
   );
-  if (scavenge.length > 0) reward = mergeLoot(reward, { ...emptyLoot(), materials: scavenge });
+  if (scavenge.length > 0) reward = mergeLoot(reward, { ...emptyLoot(), materials: scavenge, scavenged: scavenge });
   const tip =
     run.bossDefeated && (kind === 'banditCamp' || kind === 'monsterLair') && rollTip(kind, spawn.id)
       ? { source: kind, sourceId: spawn.id, anchor: spawn.position }

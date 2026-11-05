@@ -3,8 +3,10 @@ import { RARITIES } from '@/content/gear';
 import { REVEAL_KINDS } from '@/content/reveal';
 import { difficultyRules } from '@/content/difficulty';
 import type { DifficultyOdds } from '@/game/sim/difficultyOdds';
+import { affinityChanges } from '@/game/sim/affinity';
 import { misses, type ProfileSummary, type Stat, type Summary } from '@/game/sim/metrics';
 import { inRange, targets } from '@/game/sim/targets';
+import type { HeroClassId, WeaponType } from '@/game/types';
 
 export type ReportInput = {
   summaries: ProfileSummary[];
@@ -12,11 +14,40 @@ export type ReportInput = {
   settings: { seeds: number; seed: string; overrides: string[]; elapsed: number; date: string };
   /** The reference teams' odds per tier and difficulty (summary.json's `difficultyOdds`). */
   difficultyOdds: Record<number, DifficultyOdds>;
+  /** The "Class affinity changes" section's table, measured with the quick odds machinery. */
+  affinity?: string | null;
   /** A summary to compare days per tier against, e.g. a run with `--no-jobs`. */
   baseline?: Summary | null;
   /** The specials section carried over from the previous report, written by `npm run sim:specials`. */
   specials?: string | null;
 };
+
+/**
+ * The favoured weapon lists before the weapon-types change (the pre-change
+ * table): what the classes below favoured before crossbow, throwing, totem,
+ * runestone and flasks joined the weapon types.
+ */
+export const OLD_FAVOURED_WEAPONS: Record<string, WeaponType[]> = {
+  thief: ['sword', 'dagger', 'knuckles'],
+  gambler: ['dagger', 'lute'],
+  scout: ['dagger', 'bow', 'spear'],
+  smuggler: ['dagger', 'bow'],
+  engineer: ['axe', 'bow', 'warhammer'],
+  druid: ['wand', 'staff'],
+  scholar: ['wand', 'staff'],
+  necromancer: ['wand', 'staff', 'censer'],
+  alchemist: ['wand', 'censer'],
+  curseBreaker: ['wand', 'staff', 'censer'],
+};
+
+/** The "Class affinity changes" table: each changed class's reference win odds per tier with its old vs new reference weapon. */
+export function affinityTable(runs?: number) {
+  const rows = affinityChanges(
+    (Object.entries(OLD_FAVOURED_WEAPONS) as [HeroClassId, WeaponType[]][]).map(([classId, oldFavoured]) => ({ classId, oldFavoured })),
+    runs,
+  ).flatMap((c) => c.tiers.map((t) => [c.classId, String(t.tier), t.oldWeapon, t.newWeapon, pct(t.oldOdds), pct(t.newOdds)]));
+  return table(['Class', 'Tier', 'Old reference weapon', 'New reference weapon', 'Old odds', 'New odds'], rows);
+}
 
 const WARN = '⚠';
 const n = (value: number | null | undefined, digits = 0) => (value === null || value === undefined ? '—' : value.toFixed(digits));
@@ -194,6 +225,25 @@ function jobsVsWalking(s: ProfileSummary) {
   return table(['Tier', 'Job', 'Material', 'Walked/day', 'Job/day', `Share of walking (max ${pct(targets.jobShareMax)})`], rows);
 }
 
+/** Each station's work tool over each tier: job output per day with and without the tool, scavenge per day, against the walking intake. */
+function toolsTable(s: ProfileSummary) {
+  const rows = s.tiers.flatMap((t) =>
+    Object.entries(t.tools ?? {})
+      .filter(([, x]) => (x.withTool.median ?? 0) > 0 || (x.withoutTool.median ?? 0) > 0 || (x.scavenge.median ?? 0) > 0)
+      .map(([material, x]) => [
+        String(t.tier),
+        x.job,
+        name(material),
+        n(x.withTool.median, 1),
+        n(x.withoutTool.median, 1),
+        n(x.scavenge.median, 1),
+        n(x.walked.median, 1),
+        `${pct(x.share.median)}${x.share.median !== null && x.share.median > targets.jobShareMax ? ` ${WARN}` : ''}`,
+      ]),
+  );
+  return table(['Tier', 'Job', 'Material', 'Job/day with tool', 'Job/day without tool', 'Scavenge/day', 'Walked/day', `Share of walking (max ${pct(targets.jobShareMax)})`], rows);
+}
+
 /** The gatherer's nodes gathered and wounds settled per day, per tier. */
 function gathererNodes(s: ProfileSummary) {
   const rows = s.tiers.map((t) => [String(t.tier), n(t.gatherer?.nodes.median, 1), n(t.gatherer?.wounds.median, 1)]);
@@ -325,7 +375,7 @@ export function specialsBlock(markdown: string): string | null {
 }
 
 /** The markdown report: targets next to results, ⚠ on anything out of range. */
-export function renderReport({ summaries, rules, settings, difficultyOdds, baseline, specials }: ReportInput) {
+export function renderReport({ summaries, rules, settings, difficultyOdds, affinity, baseline, specials }: ReportInput) {
   const regular = summaries.find((s) => s.profile === 'regular');
   const worst = misses(summaries).slice(0, 10);
   const out: string[] = [
@@ -354,6 +404,15 @@ export function renderReport({ summaries, rules, settings, difficultyOdds, basel
     '',
     difficultyTable(difficultyOdds),
   );
+  if (affinity)
+    out.push(
+      '## Class affinity changes',
+      '',
+      'Each class whose favoured weapons changed: the reference team’s win odds per tier with its old reference weapon (picked from the pre-change favoured list) against its new one, measured with the quick odds machinery (src/game/sim/affinity.ts).',
+      '',
+      affinity,
+      '',
+    );
   if (specials) out.push(specials);
   out.push(
     '## Events and patrols by kind',
@@ -402,7 +461,7 @@ export function renderReport({ summaries, rules, settings, difficultyOdds, basel
     '',
   );
   for (const s of summaries)
-    out.push(`### ${s.profile}`, '', jobsTable(s), '', '**Jobs vs walking**', '', jobsVsWalking(s), '', '**Outdoor gatherer**', '', gathererNodes(s), '', gathererVsWalking(s), '');
+    out.push(`### ${s.profile}`, '', jobsTable(s), '', '**Jobs vs walking**', '', jobsVsWalking(s), '', '**Work tools**', '', toolsTable(s), '', '**Outdoor gatherer**', '', gathererNodes(s), '', gathererVsWalking(s), '');
   out.push(
     'The bot collects every station at the start of a session, recalls a worker whenever a send needs them, and staffs every open station at the end of a session — the one shortest of its material first, so a worker never costs a party member; the miner digs the unlocked ore the bot holds least of (see the Jobs rule under Bot rules).',
     '',

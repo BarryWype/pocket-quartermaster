@@ -6,11 +6,12 @@ import { dungeonById, recipeById } from '@/content/lookup';
 
 import { craft } from '../crafting/crafting';
 import { startExpedition } from '../expeditions/expeditions';
+import { wornWorkTool } from '../jobs/jobs';
 import { PATROL_KINDS, TRAVELLER_KINDS } from '../patrols/generate';
 import { rankCost } from '../guild/guild';
 import { parseMatrixCsv } from '../loot/matrixCsv';
 import type { LootSourceId } from '../loot/types';
-import { createInitialSave } from '../save';
+import { createInitialSave, type SaveData } from '../save';
 import { profiles, simConfig } from './config';
 import { checkSave, runSim } from './engine';
 import { applyOverrides, parseOverride } from './overrides';
@@ -118,6 +119,17 @@ describe('balance lab', () => {
   it('plays without jobs when they are turned off', () => {
     const log = runSim({ profile: 'regular', maxDays: 2, seed: 'no-jobs', rates, jobs: false });
     expect(log.gathered.wood?.['job:woodcutter']).toBeUndefined();
+  });
+
+  it('fits a worker with their job’s work tool during tier 2', () => {
+    const saves: SaveData[] = [];
+    const log = runSim({ profile: 'regular', maxDays: 21, seed: 'tools', rates, afterDay: (day, save) => { saves[day] = save; } });
+    const end = log.milestones['boss:2'];
+    expect(end).toBeDefined();
+    const fitted = Object.entries(saves)
+      .filter(([day]) => Number(day) <= end!)
+      .flatMap(([, save]) => save.heroes.filter((h) => h.job && wornWorkTool(save, h)?.job === h.job.jobId));
+    expect(fitted.length).toBeGreaterThan(0);
   });
 
   it('relies on the game functions, which refuse what is not allowed', () => {

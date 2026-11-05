@@ -34,7 +34,7 @@ export function averagePiece(uid: string, itemId: string, rarity: Rarity) {
 }
 
 /** The class's best weapon of a tier: a favoured type, first one found. */
-function weaponFor(classId: HeroClassId, tier: number) {
+export function weaponFor(classId: HeroClassId, tier: number) {
   return items.find(
     (i): i is GearDef =>
       i.slot === 'weapon' && i.tier === tier && !!i.gearType && classAffinities[classId][i.gearType as keyof (typeof classAffinities)[HeroClassId]] === 'favoured',
@@ -45,7 +45,7 @@ function weaponFor(classId: HeroClassId, tier: number) {
  * The reference team for odds targets: these classes at a level, in a tier's
  * best weapons and armour at one rarity, each with a healing potion, no traits.
  */
-export function referenceTeam(classes: HeroClassId[], tier: number, rarity: Rarity, level: number): SaveData {
+export function referenceTeam(classes: HeroClassId[], tier: number, rarity: Rarity, level: number, weaponOf: (classId: HeroClassId, tier: number) => GearDef | undefined = weaponFor): SaveData {
   // Each class rolls its first common special, like the reference teams it simulates.
   const heroes: HeroState[] = classes.map((classId, i) => newHero(`h${i}`, classId, classId, '', level, classSpecials[classId].common[0]));
   const armour = items.find((i) => i.slot === 'armor' && i.tier === tier)!;
@@ -55,7 +55,7 @@ export function referenceTeam(classes: HeroClassId[], tier: number, rarity: Rari
     heroes,
     consumables: { ...createInitialSave().consumables, healingPotion: classes.length },
     gear: classes.flatMap((classId, i) => [
-      averagePiece(`w${i}`, weaponFor(classId, tier)!.id, rarity),
+      averagePiece(`w${i}`, weaponOf(classId, tier)!.id, rarity),
       averagePiece(`a${i}`, armour.id, rarity),
     ]),
   };

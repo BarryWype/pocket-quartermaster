@@ -93,6 +93,8 @@ export type Loot = {
   relics: string[];
   /** Every category that rolled a drop, even when its generator gave nothing (a tier boss's component without its boss). */
   dropped: LootCategory[];
+  /** The work-tool scavenge merged into `materials`, kept apart so reports can tell it from rolled loot. */
+  scavenged?: MaterialStack[];
 };
 
 export const emptyLoot = (): Loot => ({

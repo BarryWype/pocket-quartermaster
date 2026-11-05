@@ -1,10 +1,33 @@
 import { items } from '@/content/items';
-import type { GearDef } from '@/game/types';
+import { classAffinities } from '@/content/equipment';
+import type { GearDef, HeroClassId, WeaponType } from '@/game/types';
 
-import { referenceSave } from './reference';
+import { referenceSave, weaponFor } from './reference';
 import { expectedLevels } from './config';
 
 // The reference teams the difficulty odds are measured against (see difficultyOdds.ts).
+
+/** The weapon types the last content change added. */
+const NEW_WEAPON_TYPES: WeaponType[] = ['crossbow', 'throwing', 'totem', 'runestone', 'flasks'];
+
+describe('weaponFor', () => {
+  it('picks a weapon type the class favours, for the classes the affinity change touched', () => {
+    for (const classId of ['scholar', 'smuggler', 'druid'] as HeroClassId[]) {
+      for (let tier = 1; tier <= 5; tier++) {
+        const weapon = weaponFor(classId, tier)!;
+        expect(classAffinities[classId][weapon.gearType as WeaponType]).toBe('favoured');
+      }
+    }
+    expect(weaponFor('scholar', 1)!.gearType).toBe('runestone');
+    expect(weaponFor('smuggler', 1)!.gearType).toBe('crossbow');
+  });
+
+  it('uses at least one of the new weapon types across all classes', () => {
+    const classes = Object.keys(classAffinities) as HeroClassId[];
+    const picked = new Set(classes.map((classId) => weaponFor(classId, 3)!.gearType as WeaponType));
+    expect(NEW_WEAPON_TYPES.some((type) => picked.has(type))).toBe(true);
+  });
+});
 
 describe('referenceSave', () => {
   it('starts a tier at the previous tier band top, in Common gear of the tier below', () => {

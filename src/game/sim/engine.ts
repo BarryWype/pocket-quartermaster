@@ -67,7 +67,7 @@ import { probe } from './probe';
 import { applyStones, rerollGear } from './rules/gear';
 import { forgeIngredients, restoreRelics } from './rules/forge';
 import { craftCharms, craftCombatElixirs, craftOils, craftStatPotions, readManuals, sellMaterials, sellParts, sellValuables } from './rules/inventory';
-import { buyWeakness, blessSymbols, buyForgeMaterials, openSecrets, visitPlaces, SOURCES } from './rules/map';
+import { buyWeakness, blessSymbols, buyForgeMaterials, buyWorkTools, openSecrets, visitPlaces, SOURCES } from './rules/map';
 import { profiles, simConfig, type Profile, type SimConfig } from './config';
 import { targets } from './targets';
 import { PICKAXES, bonusScaled, walkYield, type WalkRates } from './walking';
@@ -331,6 +331,7 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, firstSession: b
   digTreasure(sim);
   sendExpeditions(sim);
   assignJobs(sim);
+  if (walking) buyWorkTools(sim);
   markCoreKit(sim);
 }
 
