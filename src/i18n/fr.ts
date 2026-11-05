@@ -492,6 +492,7 @@ export const fr: Dictionary = {
     },
     awayHint: 'L’équipement pourra être changé au retour du héros.',
     statFrom: 'Classe {base} · Niveaux {levels} · Équipement et talents {gear} → {total}',
+    statFromAffixes: 'Classe {base} · Niveaux {levels} · Équipement et talents {gear} · Affixes {affixes} → {total}',
     capped: 'plafonnée',
     pendingPicks: { one: '{count} choix en attente', other: '{count} choix en attente' },
     pickApproach: 'Choisir une approche',

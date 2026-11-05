@@ -5,6 +5,7 @@ import { itemById } from '@/content/lookup';
 
 import type { Rng } from '../generation/rng';
 import type { Element } from '../elements';
+import type { SaveData } from '../save';
 import type { GearDef, GearInstance, GearType, Keyword } from '../types';
 
 /** An affix's value: fixed affixes stay 0, ranged affixes roll 3d6 mapped onto their range. */
@@ -74,6 +75,19 @@ export function bestAffixValue(pieces: GearInstance[], affixId: string): number 
     (best, piece) => Math.max(best, piece.affixes.find((affix) => affix.id === affixId)?.value ?? 0),
     0,
   );
+}
+
+/** The best value of a roster-wide affix over every hero's equipped gear. */
+export function rosterAffixBest(save: SaveData, affixId: string): number {
+  const byUid = new Map(save.gear.map((piece) => [piece.uid, piece]));
+  const worn = save.heroes.flatMap((hero) =>
+    (['weapon', 'armor', 'offhand', 'trinket'] as const).flatMap((slot) => {
+      const uid = hero.equipment[slot];
+      const piece = uid ? byUid.get(uid) : undefined;
+      return piece ? [piece] : [];
+    }),
+  );
+  return bestAffixValue(worn, affixId);
 }
 
 /** The combat keywords a piece's affixes grant. */

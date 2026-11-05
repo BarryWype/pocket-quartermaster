@@ -1,7 +1,7 @@
 import { createInitialSave, type SaveData } from '../save';
 import { equip } from '../team/team';
 import type { GearInstance } from '../types';
-import { salvageDialog } from './salvage';
+import { salvageDialog, salvageReturns } from './salvage';
 
 const piece = (itemId: string, rarity: GearInstance['rarity'] = 'common', extra: Partial<GearInstance> = {}): GearInstance => ({
   uid: 'g1',
@@ -32,6 +32,18 @@ describe('salvage dialog', () => {
       ],
       gold: 0,
     });
+  });
+
+  it("raises a Tinkered piece's recipe share by its own value, keeping the first input's floor", () => {
+    expect(salvageReturns(piece('mail2', 'rare'))).toEqual([
+      { materialId: 'bone', amount: 1 },
+      { materialId: 'stone', amount: 2 },
+    ]);
+    // A 50% share raise: stone goes 2 → 3, bone stays at its floor of 1.
+    expect(salvageReturns(piece('mail2', 'rare', { affixes: [{ id: 'tinkered', value: 50 }] }))).toEqual([
+      { materialId: 'bone', amount: 1 },
+      { materialId: 'stone', amount: 3 },
+    ]);
   });
 
   it('warns about a piece a hero is wearing', () => {

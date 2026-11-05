@@ -85,6 +85,13 @@ describe('background results', () => {
     expect(currentHp(once, bram, result.at)).toBeCloseTo(result.hpAfter, 5);
   });
 
+  it("scale the rewards by Pocket mode's roster-best affix", () => {
+    const worn = { uid: 'gp', itemId: 'sword1', rarity: 'common' as const, roll: 8, affixes: [{ id: 'pocket', value: 20 }], rerolls: 0 };
+    const pocket = { ...save, gear: [...save.gear, worn], heroes: save.heroes.map((h) => ({ ...h, equipment: { ...h.equipment, weapon: 'gp' } })) };
+    const merged = applyBackgroundResults(pocket, [result], at + 5 * MINUTE);
+    expect(merged.gold).toBe(save.gold + Math.round(result.rewards.gold * 1.2));
+  });
+
   it('apply in time order, so the latest fight sets the HP', () => {
     const later = { ...result, id: 'later', at: result.at + 10 * MINUTE, hpAfter: result.maxHp * 0.3, won: false };
     const merged = applyBackgroundResults(save, [later, result], later.at);

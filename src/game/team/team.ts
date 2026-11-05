@@ -174,12 +174,24 @@ export function heroStats(save: SaveData, hero: HeroState): Stats {
   return stats;
 }
 
-/** Where a stat's current value comes from: the class base, the level growth, and gear, components and class abilities together. */
+/**
+ * Where a stat's current value comes from: the class base, the level growth,
+ * what gear and class abilities add, and the worn affix stats.
+ */
 export function statSources(save: SaveData, hero: HeroState, stat: keyof Stats) {
   const base = Math.round(baseHeroStats(hero.classId, 1, hero.roll)[stat]);
   const levels = Math.round(baseHeroStats(hero.classId, hero.level, hero.roll)[stat]) - base;
+  const sums = affixEffects(equippedGear(save, hero));
+  const affixes =
+    stat === 'speed'
+      ? (sums.swift ?? 0) + (sums.fleet ?? 0)
+      : stat === 'evasion'
+        ? (sums.light ?? 0) + (sums.silken ?? 0)
+        : stat === 'luck'
+          ? sums.lucky ?? 0
+          : 0;
   const total = heroStats(save, hero)[stat];
-  return { base, levels, gear: total - base - levels, total };
+  return { base, levels, gear: total - base - levels - affixes, affixes, total };
 }
 
 /** The stat the hero's hits roll with: the weapon's, or the class's when unarmed. */

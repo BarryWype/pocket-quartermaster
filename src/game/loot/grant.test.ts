@@ -14,6 +14,36 @@ describe('grantLoot', () => {
     expect(save.gold).toBe(25);
   });
 
+  /** A save whose heroes wear a weapon with the given affix, by hero id. */
+  const wornAffix = (affixId: string, values: Record<string, number>): SaveData => {
+    const base = createInitialSave();
+    const gear = base.heroes
+      .filter((hero) => values[hero.id] !== undefined)
+      .map((hero) => ({ uid: `gA-${hero.id}`, itemId: 'sword1', rarity: 'common' as const, roll: 8, affixes: [{ id: affixId, value: values[hero.id] }], rerolls: 0 }));
+    return {
+      ...base,
+      gear: [...base.gear, ...gear],
+      heroes: base.heroes.map((hero) =>
+        values[hero.id] !== undefined ? { ...hero, equipment: { ...hero.equipment, weapon: `gA-${hero.id}` } } : hero,
+      ),
+    };
+  };
+
+  it("counts the party's best Plunderer once on the gold, ignoring heroes outside it", () => {
+    // Bram +10%, Mira +20% (counted once at the best value); Lyra +15% is out of the party.
+    const save = wornAffix('plunderer', { bram: 10, mira: 20, lyra: 15 });
+    expect(grantLoot(save, ['bram', 'mira'], { ...emptyLoot(), gold: 100 }, NOW).gold).toBe(120);
+  });
+
+  it("adds a hero's worn Veteran to their own XP only", () => {
+    const save = wornAffix('veteran', { bram: 25 });
+    const after = grantLoot(save, ['bram', 'mira'], { ...emptyLoot(), xp: 20 }, NOW);
+    const total = (h: { level: number; xp: number }) => h.xp + (h.level - 1) * xpToNextLevel(1);
+    expect(total(after.heroes.find((h) => h.id === 'bram')!)).toBe(25);
+    // Mira's quick learner still applies; the Veteran is Bram's alone.
+    expect(total(after.heroes.find((h) => h.id === 'mira')!)).toBe(24);
+  });
+
   it('pays XP to each hero of the party only, with the trait and Guild Hall bonuses', () => {
     const save: SaveData = { ...createInitialSave(), guild: { heroXp: 2 } };
     const after = grantLoot(save, ['bram', 'mira'], { ...emptyLoot(), xp: 20 }, NOW);

@@ -351,9 +351,13 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
   /** The value's origin, signed: '+6' for the gain, '−2' (U+2212) for a loss. */
   const sign = (value: number) => `${value < 0 ? '−' : '+'}${Math.abs(value)}`;
   const tipOf = (stat: keyof Stats) => {
-    const { base, levels, gear, total } = statSources(save, hero, stat);
+    const { base, levels, gear, affixes, total } = statSources(save, hero, stat);
     const capped = stat === 'evasion' && stats.evasion >= expeditionRules.evasionCap;
-    return `${t(`hero.statTips.${stat}`)}\n${t('hero.statFrom', { base, levels: sign(levels), gear: sign(gear), total })}${capped ? ` (${t('hero.capped')})` : ''}`;
+    const from =
+      affixes === 0
+        ? t('hero.statFrom', { base, levels: sign(levels), gear: sign(gear), total })
+        : t('hero.statFromAffixes', { base, levels: sign(levels), gear: sign(gear), affixes: sign(affixes), total });
+    return `${t(`hero.statTips.${stat}`)}\n${from}${capped ? ` (${t('hero.capped')})` : ''}`;
   };
   const statsPage = (
     <ScrollView contentContainerStyle={styles.page}>

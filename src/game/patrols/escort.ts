@@ -5,6 +5,7 @@ import { questRules } from '@/content/quests';
 import { estimatePartyOdds } from '../expeditions/odds';
 import { highestUnlockedTier, untriggeredSalvage } from '../expeditions/expeditions';
 import { prepareParty, simulateRun, type PartyMember } from '../expeditions/simulate';
+import { rosterAffixBest } from '../gear/affixes';
 import { pickaxeTier } from '../gathering/gathering';
 import { patrolRulesAt, trackWindows } from '../gathering/walkEffects';
 import { guildBonus } from '../guild/guild';
@@ -373,12 +374,28 @@ export function backgroundStep(
  */
 export function applyBackgroundResults(save: SaveData, results: BackgroundResult[], now: number, rules: PatrolRules = patrolRules): SaveData {
   let next = save;
+  // Pocket mode's yield, at the roster's best value, applied here rather than in the background step.
+  const pocketYield = 1 + rosterAffixBest(save, 'pocket') / 100;
   for (const result of [...results].sort((a, b) => a.at - b.at)) {
     if (next.appliedBackgroundResults[result.id] !== undefined) continue;
     next = { ...next, appliedBackgroundResults: { ...next.appliedBackgroundResults, [result.id]: result.at } };
     // A hero dismissed since still counts the fight as done; one sent away since keeps the HP they left with.
     if (!next.heroes.some((h) => h.id === result.heroId)) continue;
-    if (result.won) next = grantPatrolWin(next, [result.heroId], result.rewards, result.patrolId, result.windowEndsAt, result.at);
+    // The countable rewards scale: dropped gear, maps and manuals do not.
+    const rewards =
+      pocketYield === 1
+        ? result.rewards
+        : {
+            ...result.rewards,
+            gold: Math.round(result.rewards.gold * pocketYield),
+            xp: Math.round(result.rewards.xp * pocketYield),
+            materials: result.rewards.materials.map((s) => ({ ...s, amount: Math.round(s.amount * pocketYield) })),
+            consumables: result.rewards.consumables.map((c) => ({ ...c, amount: Math.round(c.amount * pocketYield) })),
+            lures: Math.round(result.rewards.lures * pocketYield),
+            keyFragments: Math.round(result.rewards.keyFragments * pocketYield),
+            valuables: result.rewards.valuables.map((v) => ({ ...v, amount: Math.round(v.amount * pocketYield) })),
+          };
+    if (result.won) next = grantPatrolWin(next, [result.heroId], rewards, result.patrolId, result.windowEndsAt, result.at);
     if (isAway(next, result.heroId)) continue;
     next = settleConsumables(next, [result.heroId], result.salvaged);
     next = applyRunHp(next, [{ heroId: result.heroId, hp: result.hpAfter, maxHp: result.maxHp }], result.at);

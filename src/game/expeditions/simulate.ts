@@ -1,3 +1,4 @@
+import { affixById, type AffixEffect } from '@/content/affixes';
 import { expeditionRules } from '@/content/dungeons';
 import { mobById, npcMobId, TIER_SCALE } from '@/content/enemies';
 import { eventById } from '@/content/events';
@@ -17,9 +18,9 @@ import { createRng } from '../generation/rng';
 import { mobTags } from '../enemies/tags';
 import type { SaveData } from '../save';
 import { trinketEffect } from '../loot/trinkets';
-import { infusedElement, wardingElement } from '../gear/affixes';
+import { affixEffects, infusedElement } from '../gear/affixes';
 import { currentHp } from '../team/health';
-import { heroAbilities, heroDamageStat, heroStats, gearKeywordsOf, healingPotion, relicEffectsOf, type GearKeywordEntry, type WornRelicEffect } from '../team/team';
+import { equippedGear, heroAbilities, heroDamageStat, heroStats, gearKeywordsOf, healingPotion, relicEffectsOf, type GearKeywordEntry, type WornRelicEffect } from '../team/team';
 import { classApproaches, gearApproachBonus, heroApproachBonus } from '../team/stats';
 import { heroAnswers, type AnswersMember, type HeroAnswers } from '../threats/answers';
 import { threatPenalties, type AppliedPenalty, type PenaltyReduction } from '../threats/penalties';
@@ -52,6 +53,7 @@ import type {
   SpecialDef,
   SpecialId,
   Tag,
+  ThreatId,
 } from '../types';
 import { hungerEffect } from './provisions';
 
@@ -74,6 +76,8 @@ export type PartyMember = {
   gearKeywords: GearKeywordEntry[];
   /** The non-keyword effects of the relics restored into the hero's weapon, armour and off-hand. */
   relicEffects?: WornRelicEffect[];
+  /** The values of the affixes on the hero's worn pieces, summed by affix id. */
+  affixes?: Record<string, number>;
   /** Any equipped piece is heavy (warhammer, plate). */
   heavy: boolean;
   /** Weapon and off-hand are each empty or Concealed; unarmed heroes with a free off-hand count. */
@@ -106,7 +110,6 @@ export type PartyMember = {
   abilities: Ability[];
   /** The infused weapon's element, or the class's innate one. */
   weaponElement?: Element;
-  armourElement?: Element;
   /** Potion, kit, ward salve or charm. */
   consumable: ConsumableDef | null;
   /** The class's keywords for this hero: a Monk's fists add Pierce. */
@@ -118,6 +121,23 @@ export type PartyMember = {
   carriesFor?: string | null;
   /** The Alchemist's second slot: a healing consumable. */
   potion?: ConsumableDef | null;
+};
+
+/**
+ * The member's summed affix values of one effect kind. The tagged families
+ * (damageVs, damageFrom) count only against a foe that matches a tag, and a
+ * warding affix only for a hit of its element.
+ */
+const affixTotal = (member: PartyMember, kind: AffixEffect['kind'], foe?: { tags?: Tag[]; element?: Element }): number => {
+  const tags = foe?.tags;
+  const element = foe?.element;
+  return Object.entries(member.affixes ?? {}).reduce((sum, [id, value]) => {
+    const effect = affixById[id]?.effect;
+    if (effect?.kind !== kind) return sum;
+    if (tags !== undefined && 'tags' in effect && !effect.tags.some((tag) => tags.includes(tag))) return sum;
+    if (element !== undefined && 'element' in effect && effect.element !== element) return sum;
+    return sum + value;
+  }, 0);
 };
 
 /** An ability that changed an encounter, for the log. `heroId` is null for a local's tip. */
@@ -385,6 +405,7 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs
         weaponName: weapon ? gearName(weapon) : null,
         gearKeywords: gearKeywordsOf(save, hero),
         relicEffects,
+        affixes: affixEffects(equippedGear(save, hero)),
         heavy: pieces.some((item) => item.heavy),
         concealed: [weaponItem, offhandItem].every((item) => !item || item.concealed),
         maxHp: stats.hp,
@@ -413,7 +434,6 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs
         ],
         weaponElement:
           elixir?.kind === 'oil' && weapon ? elixir.element : (infusedElement(weapon) ?? heroClass.element),
-        armourElement: wardingElement(armour),
         consumable,
         classKeywords: fists ? [...new Set([...heroClass.keywords, 'pierce' as const])] : heroClass.keywords,
         carriedKit: porter ? (itemById[porter.equipment.consumable!] as ConsumableDef) : null,
@@ -528,10 +548,16 @@ export function prepareSimulation(
   const fenceGold = fence && thieves ? Math.round(fence.shares[thieves.level - 1] * dungeon.gold[1]) : 0;
   // The chowder multiplies the penalties of the threats it lists.
   const classReduction = penaltyReduction(classIds);
-  const reduction: PenaltyReduction =
-    meal?.kind === 'penaltyCut'
-      ? { ...classReduction, threats: Object.fromEntries(meal.threats.map((id) => [id, meal.multiplier])) }
-      : classReduction;
+  const threatCuts: Partial<Record<ThreatId, number>> =
+    meal?.kind === 'penaltyCut' ? Object.fromEntries(meal.threats.map((id) => [id, meal.multiplier])) : {};
+  // A Steady affix cuts its threat's penalties for the party, at the best value worn.
+  for (const [id, value] of party.flatMap((m) => Object.entries(m.affixes ?? {}))) {
+    const effect = affixById[id]?.effect;
+    if (effect?.kind !== 'steady') continue;
+    const best = party.reduce((most, m) => Math.max(most, m.affixes?.[id] ?? 0), value);
+    threatCuts[effect.threat] = (meal?.kind === 'penaltyCut' && meal.threats.includes(effect.threat) ? meal.multiplier : 1) * (1 - best / 100);
+  }
+  const reduction: PenaltyReduction = Object.keys(threatCuts).length > 0 ? { ...classReduction, threats: threatCuts } : classReduction;
   // A restored relic cancels a threat's penalties for the whole party (the Smuggler's coat: no stolen loot).
   const cancelled = new Set(
     party.flatMap((m) => (m.relicEffects ?? []).flatMap((e) => (e.effect.kind === 'cancelPenalty' ? [e.effect.threat] : []))),
@@ -751,8 +777,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     onCrit?.();
     return varied * critMultiplier;
   };
-  const elementFactor = (hero: HeroState, attack?: Element) =>
-    incomingMultiplier(attack, { armour: hero.member.armourElement, resists: hero.member.resists });
+  const elementFactor = (hero: HeroState, attack?: Element) => incomingMultiplier(attack, { resists: hero.member.resists });
 
   /** Elements whose damage a ward salve holder has taken, for salvage. */
   const damageElements: Record<string, Element[]> = {};
@@ -794,6 +819,10 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
   const specialOf = (hero: HeroState) => (hero.member.special ? specials[hero.member.special] : undefined);
   /** Fires the specials triggered by damage or a knock-out; set while a fight runs. */
   let damageTriggers: ((hero: HeroState, knockedOut: boolean) => void) | null = null;
+  /** The Bulwark shields of the running fight, so hurt() can spend them; null between fights. */
+  let fightShields: Map<string, number> | null = null;
+  /** Heroes whose Unyielding save already fired this run. */
+  const lastStands = new Set<string>();
 
   const heal = (hero: HeroState, share: number, result: EncounterResult) => {
     const amount = Math.min(hero.member.maxHp - hero.hp, share * hero.member.maxHp * healing);
@@ -801,8 +830,14 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     add(result.healed, hero.member.heroId, amount);
   };
 
+  /** A Potion affinity multiplies the healing consumables used on the hero. */
+  const potionFactor = (hero: HeroState) => 1 + affixTotal(hero.member, 'potionHealing') / 100;
+
   const hurt = (hero: HeroState, raw: number, result: EncounterResult) => {
-    const amount = raw * (own(hero, 'damageTaken')?.multiplier ?? 1);
+    // The fight's Bulwark shield soaks damage before it lands.
+    const shield = fightShields?.get(hero.member.heroId) ?? 0;
+    if (shield > 0) fightShields!.set(hero.member.heroId, Math.max(0, shield - raw));
+    const amount = Math.max(0, raw - shield) * (own(hero, 'damageTaken')?.multiplier ?? 1);
     hero.hp -= amount;
     add(result.taken, hero.member.heroId, amount);
     if (hero.hp <= 0) {
@@ -818,23 +853,31 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           result.effects.push({ heroId: hero.member.heroId, key: 'revive' });
           result.knockedOut.push(hero.member.heroId);
         } else {
-          // A conscious holder's smoke bomb leaves the hero at 1 HP and ends the run in an escape.
-          const bomber = elixirs
-            ? alive().find((h) => h.consumableLeft && h.member.consumable?.elixir?.kind === 'smokeBomb')
-            : undefined;
-          if (bomber) {
+          // Unyielding may hold the hero at 1 HP at their first would-be fall of the expedition.
+          const lastStand = affixTotal(hero.member, 'lastStand');
+          const firstFall = lastStand > 0 && !lastStands.has(hero.member.heroId);
+          if (firstFall) lastStands.add(hero.member.heroId);
+          if (firstFall && rng.chance(lastStand / 100)) {
             hero.hp = 1;
-            bomber.consumableLeft = false;
-            elixirsUsed.push(bomber.member.heroId);
-            escaped = true;
-            result.effects.push({ heroId: bomber.member.heroId, key: 'smokeBomb' });
           } else {
-            hero.hp = 0;
-            hero.out = true;
-            result.knockedOut.push(hero.member.heroId);
-            // A fall wakes the specials that answer one (Resurrection).
-            damageTriggers?.(hero, true);
-            return;
+            // A conscious holder's smoke bomb leaves the hero at 1 HP and ends the run in an escape.
+            const bomber = elixirs
+              ? alive().find((h) => h.consumableLeft && h.member.consumable?.elixir?.kind === 'smokeBomb')
+              : undefined;
+            if (bomber) {
+              hero.hp = 1;
+              bomber.consumableLeft = false;
+              elixirsUsed.push(bomber.member.heroId);
+              escaped = true;
+              result.effects.push({ heroId: bomber.member.heroId, key: 'smokeBomb' });
+            } else {
+              hero.hp = 0;
+              hero.out = true;
+              result.knockedOut.push(hero.member.heroId);
+              // A fall wakes the specials that answer one (Resurrection).
+              damageTriggers?.(hero, true);
+              return;
+            }
           }
         }
       }
@@ -846,18 +889,18 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     const healShare = potion?.when === 'lowHp' ? potion.heal : potion?.kit?.heal;
     if (hero.consumableLeft && healShare !== undefined && low()) {
       hero.consumableLeft = false;
-      heal(hero, healShare, result);
+      heal(hero, healShare * potionFactor(hero), result);
       result.consumed.push(hero.member.heroId);
     }
     if (hero.carriedLeft && low()) {
       hero.carriedLeft = false;
-      heal(hero, hero.member.carriedKit!.kit!.heal!, result);
+      heal(hero, hero.member.carriedKit!.kit!.heal! * potionFactor(hero), result);
       carriedHealed.push(hero.member.carriedBy!);
     }
     // The Alchemist's second potion, once the first is gone or isn't one.
     if (hero.potionLeft && low()) {
       hero.potionLeft = false;
-      heal(hero, hero.member.potion!.heal!, result);
+      heal(hero, hero.member.potion!.heal! * potionFactor(hero), result);
       potionsDrunk.push(hero.member.heroId);
       result.effects.push({ heroId: hero.member.heroId, key: 'secondPotion' });
     }
@@ -954,6 +997,12 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       summons: [],
       bossTurn: false,
     };
+    // A Bulwark affix shields its wearer for this fight, and only for this fight.
+    fightShields = new Map(
+      alive()
+        .map((hero) => [hero.member.heroId, (affixTotal(hero.member, 'fightShield') / 100) * hero.member.maxHp] as [string, number])
+        .filter(([, shield]) => shield > 0),
+    );
     const living = () => enemies.filter((e) => e.hp > 0);
     const bossOf = () => (isBoss ? enemies[0] : enemies.find((e) => 'effect' in e.def));
     const strongest = (foes: EnemyState[]) => foes.reduce((best, e) => (e.def.damage > best.def.damage ? e : best));
@@ -1002,6 +1051,9 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         bonus *= ability.multiplier;
         note(id, 'tagBonus', { tag: ability.tag });
       }
+      // A damageVs affix lifts the hit against a foe it names.
+      const vs = affixTotal(hero.member, 'damageVs', { tags });
+      if (vs > 0) bonus *= 1 + vs / 100;
       // Sacred ground dulls every weapon it can see.
       if (restriction === 'sacredGround' && !hero.member.concealed && !ignores(hero, 'sacredGround')) {
         bonus *= restrictionRules.sacredGround;
@@ -1054,8 +1106,9 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         else if (critBonus > 0) note(id, 'crit');
         if (critDamage) noteRelic(result, id, critDamage.relicId);
       };
-      // An Aimed strike makes the hero's next hit a sure crit.
-      const chance = critChance ?? (sureCrits.delete(id) ? 1 : hero.member.crit / 100 + critBonus);
+      // An Aimed strike makes the hero's next hit a sure crit; an Opener affix sharpens the first round of the fight.
+      const opener = currentRound === 1 ? affixTotal(hero.member, 'firstRoundCrit') / 100 : 0;
+      const chance = critChance ?? (sureCrits.delete(id) ? 1 : hero.member.crit / 100 + critBonus + opener);
       const hit = roll(physical + elementalPart, chance, onCrit, duel?.multiplier ?? critDamage?.effect.multiplier);
       return {
         damage: hit * fortune * bonus * hero.fed * multiplier * (ctx.party ? ctx.party.multiplier : 1),
@@ -1296,6 +1349,12 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
             heal(hero, healOnKill.effect.pct, result);
             noteRelic(result, id, healOnKill.relicId);
           }
+          // A Bloodthirsty piece heals its wearer for every kill.
+          const onKill = affixTotal(hero.member, 'healOnKill');
+          if (onKill > 0 && target.hp <= 0) heal(hero, onKill / 100, result);
+          // A Venomous piece may poison the hit's target: a tenth of the hit, ticking for three rounds.
+          const venom = affixTotal(hero.member, 'poisonOnHit');
+          if (venom > 0 && rng.chance(venom / 100)) ctx.dots.push({ heroId: id, enemy: target, damage: damage * 0.1, rounds: 3 });
           // Cleave splashes onto the next living enemy after the target.
           if (has(hero, 'cleave', tags)) {
             const splashTarget = enemies.slice(enemies.indexOf(target) + 1).find((e) => e.hp > 0);
@@ -1436,6 +1495,15 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
             taken *= immune.effect.multiplier;
             noteRelic(result, hero.member.heroId, immune.relicId);
           }
+          // The wearer's affixes blunt the hit: by the attacker's family, its magic and its element.
+          const from = affixTotal(hero.member, 'damageFrom', { tags: attackerTags });
+          if (from > 0) taken *= 1 - from / 100;
+          const spiritWard = enemy.def.damageType === 'magic' ? affixTotal(hero.member, 'magicDamageTaken') : 0;
+          if (spiritWard > 0) taken *= 1 - spiritWard / 100;
+          if (element !== undefined) {
+            const ward = (1 - affixTotal(hero.member, 'warding', { element }) / 100) * (1 - affixTotal(hero.member, 'elementResistAll') / 100);
+            if (ward < 1) taken *= ward;
+          }
           // A taunting hero braces for the hits they draw.
           if (ctx.taunt?.heroId === hero.member.heroId) taken *= ctx.taunt.damageTaken;
           // A Mana shield or Ward swallows the whole hit.
@@ -1465,6 +1533,8 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     };
 
     const maxRounds = guaranteed ? rules.maxRounds * 10 : rules.maxRounds;
+    /** The round now playing; the Opener's crit lift reads it. */
+    let currentRound = 0;
     // The specials that fire at the fight's start, once the enemies stand and the firebombs are out.
     for (const hero of alive()) {
       const def = specialOf(hero);
@@ -1500,6 +1570,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     try {
       for (let round = 1; round <= maxRounds; round++) {
         result.rounds = round;
+        currentRound = round;
         // A special's lasting effects: poison wears, regrowth heals, rally's rounds count down.
         for (const dot of ctx.dots) {
           if (dot.enemy.hp <= 0) continue;
@@ -1562,6 +1633,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       }
     } finally {
       damageTriggers = null;
+      fightShields = null;
     }
   };
 
@@ -1606,7 +1678,9 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           (e): e is WornRelicEffect & { effect: Extract<RelicEffect, { kind: 'penaltyCut' }> } =>
             e.effect.kind === 'penaltyCut' && e.effect.threat === penalty.threatId,
         );
-        hurt(hero, penalty.pct * hero.member.maxHp * (cut?.effect.multiplier ?? 1), result);
+        // An Antivenom affix makes the poison wear off faster on its wearer: a smaller share.
+        const antivenom = 1 - affixTotal(hero.member, 'dotDuration') / 100;
+        hurt(hero, penalty.pct * hero.member.maxHp * (cut?.effect.multiplier ?? 1) * antivenom, result);
         if (cut) noteRelic(result, hero.member.heroId, cut.relicId);
       }
       result.effects.push({ heroId: null, key: 'poison' });

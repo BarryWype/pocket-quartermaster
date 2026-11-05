@@ -13,9 +13,11 @@ import { placeInfo } from '@/content/places';
 import { difficultyLabels, type Difficulty } from '@/content/difficulty';
 import { frDifficultyLabels } from '@/content/fr/difficulty';
 import { frPatrolTexts } from '@/content/fr/patrols';
+import { gatheringConfig } from '@/content/gatheringConfig';
 import { patrolTexts } from '@/content/patrols';
 import { placeFightRules } from '@/content/placeFights';
 import { isFightPlace } from '@/game/places/fights';
+import { rosterAffixBest } from '@/game/gear/affixes';
 import { gathererHeroAt } from '@/game/jobs/gatherer';
 import { isFleeing, pickaxeTier, withinCollectRange } from '@/game/gathering/gathering';
 import { readSpawn } from '@/game/gathering/lockedNodes';
@@ -156,6 +158,8 @@ function MapMarkersBase({
   const culledCamp = useCulled(useMemo(() => (camp ? [{ id: 'gatherer:camp', position: camp.position, camp }] : []), [camp]), bounds, always);
 
   const playerPickaxe = pickaxeTier(save);
+  // Wanderer's widens the collect radius, for the marker's in-range border too.
+  const tapRadius = gatheringConfig.collectRadiusMeters + rosterAffixBest(save, 'wanderers');
   const keyHeld = hasKey(save);
   const tavernsOpen = isTavernUnlocked(save);
 
@@ -170,7 +174,7 @@ function MapMarkersBase({
               kind={spawn.kind}
               emoji={shown?.emoji ?? '❓'}
               icon={shown?.icon}
-              inRange={withinCollectRange(distance)}
+              inRange={withinCollectRange(distance, tapRadius)}
               fleeing={spawn.kind === 'animal' && isFleeing(speed)}
               sway={read.resourceId === 'tree'}
               locked={read.state === 'locked'}

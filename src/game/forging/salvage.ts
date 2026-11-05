@@ -49,11 +49,13 @@ export function canSalvage(save: SaveData, gearUid: string) {
 
 /**
  * What salvaging a piece gives back: a share of its recipe by rarity (at
- * least 1 of the first input). `bonus` raises the share (Guild Hall).
+ * least 1 of the first input). `bonus` raises the share (Guild Hall), the
+ * piece's own Tinkered affix by its own percentage.
  */
 export function salvageReturns(gear: GearInstance, rules: Rules = salvageRules, bonus = 0): MaterialStack[] {
   const recipe = recipes.find((r) => 'itemId' in r.output && r.output.itemId === gear.itemId);
-  const share = rules.returned[gear.rarity];
+  const tinkered = gear.affixes.find((affix) => affix.id === 'tinkered')?.value ?? 0;
+  const share = rules.returned[gear.rarity] * (1 + tinkered / 100);
   const all = (recipe?.inputs ?? []).map(({ materialId, amount }, i) => ({
     materialId,
     amount: Math.max(i === 0 ? 1 : 0, Math.floor(amount * share * (1 + bonus))),

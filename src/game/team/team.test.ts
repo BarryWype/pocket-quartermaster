@@ -237,7 +237,7 @@ describe('statSources', () => {
     const save = { ...equipped, heroes: equipped.heroes.map((h) => (h.id === 'bram' ? { ...h, level: 9 } : h)) };
     for (const stat of ['power', 'hp', 'crit'] as const) {
       const sources = statSources(save, hero(save, 'bram'), stat);
-      expect(sources.base + sources.levels + sources.gear).toBe(sources.total);
+      expect(sources.base + sources.levels + sources.gear + sources.affixes).toBe(sources.total);
     }
     expect(statSources(save, hero(save, 'bram'), 'power').levels).toBeGreaterThan(0);
   });
@@ -252,6 +252,21 @@ describe('statSources', () => {
   it('has no gear contribution for a stat nothing else touches, with nothing equipped', () => {
     const save = createInitialSave();
     expect(statSources(save, hero(save, 'lyra'), 'crit').gear).toBe(0);
+    expect(statSources(save, hero(save, 'lyra'), 'crit').affixes).toBe(0);
+  });
+
+  it('splits worn affix stats out of gear: Swift sums into Speed, not into gear', () => {
+    const save: SaveData = {
+      ...saveWithGear(),
+      gear: saveWithGear().gear.map((piece) => (piece.uid === 'g1' ? { ...piece, affixes: [{ id: 'swift', value: 3 }] } : piece)),
+    };
+    const equipped = equip(save, 'bram', 'weapon', 'g1');
+    const sources = statSources(equipped, hero(equipped, 'bram'), 'speed');
+    expect(sources.affixes).toBe(3);
+    expect(sources.base + sources.levels + sources.gear).toBe(sources.total - 3);
+
+    const plain = equip(saveWithGear(), 'bram', 'weapon', 'g1');
+    expect(statSources(plain, hero(plain, 'bram'), 'speed').gear).toBe(sources.gear);
   });
 });
 

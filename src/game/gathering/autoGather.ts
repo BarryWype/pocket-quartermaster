@@ -9,6 +9,7 @@ import { tilesAround } from '../generation/tiles';
 import { windowIndex } from '../generation/time';
 import type { LatLng, ResourceKind, Spawn, SpawnConfig } from '../generation/types';
 import { mapTileKeysFor, placeSpawns, type WalkableTile } from '../generation/walkable';
+import { rosterAffixBest } from '../gear/affixes';
 import { addMaterials } from '../inventory';
 import { recordSteps } from '../rewards/chests';
 import { lureSpawns } from '../rewards/lures';
@@ -229,7 +230,7 @@ function rawCandidates(save: SaveData, options: WalkOptions) {
   const forage = save.walkEffects.some((effect) => walkKind(effect.itemId) === 'forage')
     ? config.walkEffects.forage.radiusBonusMeters
     : 0;
-  const reach = config.autoGather.radiusMeters + forage + walkableRules.maxSnapMeters;
+  const reach = config.autoGather.radiusMeters + forage + rosterAffixBest(save, 'wanderers') + walkableRules.maxSnapMeters;
   return (piece: Piece) => {
     const around = new Map<string, Spawn>();
     for (const end of [piece.from, piece.to]) {

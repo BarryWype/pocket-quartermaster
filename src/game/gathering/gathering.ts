@@ -4,7 +4,9 @@ import { resources as defaultResources } from '@/content/resources';
 
 import { spawnPositionAt } from '../generation/animalPaths';
 import { distanceMeters } from '../generation/geo';
+import { createRng } from '../generation/rng';
 import type { LatLng, ResourceDef, Spawn } from '../generation/types';
+import { rosterAffixBest } from '../gear/affixes';
 import { addMaterials } from '../inventory';
 import type { SaveData } from '../save';
 import type { MaterialStack } from '../types';
@@ -120,16 +122,24 @@ export function collectSpawn(
   // Locked ore nodes read as the ore the player can mine (converted), or are refused.
   const read = readSpawn(save, spawn, resources);
   if (read.state === 'locked') return { ok: false, reason: 'needsTool', distance };
-  if (!withinCollectRange(distance, config.collectRadiusMeters)) return { ok: false, reason: 'tooFar', distance };
+  // Wanderer's widens the collect radius by the roster's best value.
+  if (!withinCollectRange(distance, config.collectRadiusMeters + rosterAffixBest(save, 'wanderers'))) return { ok: false, reason: 'tooFar', distance };
   if (spawn.kind === 'animal' && isFleeing(gatherer.speed, config)) {
     return { ok: false, reason: 'fled', distance };
   }
 
   const gained = spawnYield(spawn, resources, read.resourceId);
+  // Forager's: one extra unit of the gathered herb or ore, at the roster's best chance, drawn from a rng seeded by spawn and time.
+  const kind = resources.find((r) => r.id === read.resourceId)?.kind;
+  const foragers = rosterAffixBest(save, 'foragers');
+  const forageHit = (kind === 'herb' || kind === 'ore') && foragers > 0 && createRng(`foragers|${spawn.id}|${timeMs}`).chance(foragers / 100);
+  const withForagers = forageHit
+    ? gained.map((stack, i) => ({ ...stack, amount: stack.amount + (i === 0 ? 1 : 0) }))
+    : gained;
   const bonus = bonusForGather(save, spawn, timeMs, config);
   const withWalkingBonus: MaterialStack[] = bonus
-    ? gained.map((stack) => ({ materialId: stack.materialId, amount: Math.ceil(stack.amount * config.walkingBonus.multiplier) }))
-    : gained;
+    ? withForagers.map((stack) => ({ materialId: stack.materialId, amount: Math.ceil(stack.amount * config.walkingBonus.multiplier) }))
+    : withForagers;
   // The prospector's draught: one more per ore, on top of any walking bonus.
   const oreBonus =
     spawn.kind === 'ore' && walkEffectAt(save.walkEffects, 'prospect', timeMs) ? config.walkEffects.prospect.oreBonus : 0;

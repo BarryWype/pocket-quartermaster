@@ -112,6 +112,10 @@ describe('every shop price is finite and positive at every tier', () => {
         if (price !== 0) finite(price, `${kind} price of monster part ${id}`);
       }
     }
+    // A Tinkered piece sells for its share raised by the affix's own value.
+    const common = gearSellPrice({ uid: 'u', itemId: 'sword1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 });
+    const tinkered = gearSellPrice({ uid: 'u', itemId: 'sword1', rarity: 'common' as const, roll: 8, affixes: [{ id: 'tinkered', value: 50 }], rerolls: 0 });
+    expect(tinkered).toBe(Math.round(common * 1.5));
     for (const valuable of valuables) {
       for (const tier2 of TIERS) {
         for (const buyer of lootConfig.valuables.buyers) {

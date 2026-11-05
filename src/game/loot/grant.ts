@@ -4,18 +4,19 @@ import { traitById } from '@/content/traits';
 import { unlockRecipe } from '../crafting/crafting';
 import { seeParts } from '../crafting/partRecipes';
 import { convertShards } from '../elements';
+import { affixEffects, bestAffixValue } from '../gear/affixes';
 import { makeGearPiece } from '../gear/make';
 import { guildBonus } from '../guild/guild';
 import { highestUnlockedTier } from '../dungeons/unlock';
 import { addMaterials } from '../inventory';
 import type { SaveData } from '../save';
-import { addXp } from '../team/team';
+import { addXp, equippedGear } from '../team/team';
 import type { TreasureMap } from '../types';
 import type { Loot } from './types';
 
 /**
- * Pays a roll's loot: gold, XP per hero who took part (trait and Guild Hall
- * bonuses on top), materials, consumables, lures, gear (rolled with its fresh
+ * Pays a roll's loot: gold (the party's best Plunderer counts once), XP per
+ * hero who took part (trait, Veteran and Guild Hall bonuses on top), materials, consumables, lures, gear (rolled with its fresh
  * uid), blueprints, key fragments, treasure maps (found `now`), manuals,
  * valuables and relics. Parts and gems found unlock their recipes.
  * Pure: returns a new save.
@@ -39,14 +40,18 @@ export function grantLoot(save: SaveData, heroIds: string[], loot: Loot, now: nu
     ({ rarity, tier }): TreasureMap => ({ id: `map${uid++}`, tier, rarity, expiresAt: now + lootConfig.treasureMapHours * 3_600_000, location: null }),
   );
   const relics = loot.relics.map((relicId) => ({ uid: `r${uid++}`, relicId }));
+  const party = save.heroes.filter((hero) => heroIds.includes(hero.id));
+  // The party's best Plunderer counts once on the gold.
+  const plunderer = bestAffixValue(party.flatMap((hero) => equippedGear(save, hero)), 'plunderer');
   const heroes = save.heroes.map((hero) => {
     if (!heroIds.includes(hero.id) || loot.xp <= 0) return hero;
     const xpBonus = (traitById[hero.trait]?.effects ?? []).reduce((m, e) => m * (e.kind === 'xpMultiplier' ? e.multiplier : 1), 1);
-    return addXp(hero, Math.round(loot.xp * xpBonus * guildXp), playerTier);
+    const veteran = affixEffects(equippedGear(save, hero)).veteran ?? 0;
+    return addXp(hero, Math.round(loot.xp * xpBonus * (1 + veteran / 100) * guildXp), playerTier);
   });
   let next: SaveData = {
     ...save,
-    gold: save.gold + loot.gold,
+    gold: save.gold + Math.round(loot.gold * (1 + plunderer / 100)),
     materials: convertShards(addMaterials(save.materials, loot.materials)),
     consumables,
     lures: save.lures + loot.lures,

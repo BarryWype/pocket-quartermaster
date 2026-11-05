@@ -230,9 +230,10 @@ export function buy(save: SaveData, spawn: PlaceSpawn, lineKey: string, count: n
   return next;
 }
 
-/** What a smithy pays for a piece: the buy price's sell share, rounded. */
+/** What a smithy pays for a piece: the buy price's sell share, raised by its own Tinkered affix, rounded. */
 export const gearSellPrice = (gear: GearInstance) => {
-  return Math.round(gearPrice(itemById[gear.itemId] as GearDef, gear.rarity) * shopRules.gearSellShare);
+  const tinkered = gear.affixes.find((affix) => affix.id === 'tinkered')?.value ?? 0;
+  return Math.round(gearPrice(itemById[gear.itemId] as GearDef, gear.rarity) * shopRules.gearSellShare * (1 + tinkered / 100));
 };
 
 export type SellGearProblem = 'gone' | 'tooFar' | 'notSmithy' | 'worn' | 'missing';

@@ -69,6 +69,39 @@ describe('collectSpawn', () => {
     if (!result.ok) expect(result.distance).toBeCloseTo(50, 0);
   });
 
+  /** A save whose heroes wear the walking affix at its best value. */
+  const rosterWears = (affixId: string, value: number): SaveData => {
+    const save = withPickaxe();
+    const piece = { uid: 'ga', itemId: 'sword1', rarity: 'common' as const, roll: 8, affixes: [{ id: affixId, value }], rerolls: 0 };
+    return {
+      ...save,
+      gear: [...save.gear, piece],
+      heroes: save.heroes.map((hero) => ({ ...hero, equipment: { ...hero.equipment, weapon: 'ga' } })),
+    };
+  };
+
+  it("widens the collect radius by the roster's best Wanderer's value", () => {
+    // The spawn sits 10 m east; 35 m west of the player it is 45 m out — within reach only with the +20 m affix.
+    const far = { position: offsetPosition(origin, -35, 0), speed: 1.4 };
+    expect(collectSpawn(withPickaxe(), stoneSpawn, far, now)).toMatchObject({ ok: false, reason: 'tooFar' });
+    expect(collectSpawn(rosterWears('wanderers', 20), stoneSpawn, far, now).ok).toBe(true);
+  });
+
+  it("gives one extra unit of the gathered herb or ore at the roster's best Forager's chance", () => {
+    const herbSpawn: StaticSpawn = { ...stoneSpawn, id: 'herb:abc:1:0', kind: 'herb', resourceId: 'herb' };
+    expect(collectSpawn(rosterWears('foragers', 100), herbSpawn, walking, now)).toMatchObject({
+      gained: [{ materialId: 'herb', amount: 3 }],
+    });
+    // Wood is neither herb nor ore, so the only +2 stays.
+    expect(collectSpawn(rosterWears('foragers', 100), treeSpawn, walking, now)).toMatchObject({
+      gained: [{ materialId: 'wood', amount: 2 }],
+    });
+    // A chance of 0 gives nothing, and the roll is deterministic per spawn and time.
+    expect(collectSpawn(rosterWears('foragers', 0), herbSpawn, walking, now)).toMatchObject({
+      gained: [{ materialId: 'herb', amount: 2 }],
+    });
+  });
+
   it('refuses expired spawns', () => {
     expect(collectSpawn(withPickaxe(), stoneSpawn, walking, stoneSpawn.expiresAt)).toMatchObject({
       ok: false,

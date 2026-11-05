@@ -486,6 +486,7 @@ export const en = {
     },
     awayHint: 'Equipment can be changed once the hero is back.',
     statFrom: 'Class {base} · Levels {levels} · Gear and abilities {gear} → {total}',
+    statFromAffixes: 'Class {base} · Levels {levels} · Gear and abilities {gear} · Affixes {affixes} → {total}',
     capped: 'capped',
     pendingPicks: { one: '{count} pick pending', other: '{count} picks pending' },
     pickApproach: 'Pick an approach',
