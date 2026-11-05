@@ -5,7 +5,7 @@ import { trinketId } from '@/content/trinkets';
 import { useGameStore } from '@/store/gameStore';
 
 import { craft } from '../crafting/crafting';
-import { forgeWithComponent } from '../forging/components';
+import { forgeWithIngredient } from '../forging/components';
 import { relicRecipe, restoreRelic } from '../forging/relics';
 import { resolveExpedition, startExpedition } from '../expeditions/expeditions';
 import type { LatLng } from '../generation/types';
@@ -57,7 +57,7 @@ const craftSword = (save: SaveData): SaveData => {
 const forgeSwordWithClaw = (save: SaveData): SaveData => {
   const materials: Record<string, number> = { ...save.materials, dragonClaw: (save.materials.dragonClaw ?? 0) + 1 };
   for (const { materialId, amount } of recipeById.sword1.inputs) materials[materialId] = (materials[materialId] ?? 0) + amount;
-  return forgeWithComponent({ ...save, materials }, recipeById.sword1, 'dragonClaw');
+  return forgeWithIngredient({ ...save, materials }, recipeById.sword1, 'dragonClaw');
 };
 
 const spawnOf = (kind: PlaceSpawn['kind'], suffix: string): PlaceSpawn => ({

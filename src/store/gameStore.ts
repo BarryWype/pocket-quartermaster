@@ -10,8 +10,9 @@ import { recipeById } from '@/content/lookup';
 import { materials } from '@/content/materials';
 import { craft, craftMany, forgetRecipe, forgeResult, learnAllRecipes, learnTier, unlockRecipe, type ForgeResult } from '@/game/crafting/crafting';
 import { unlockAllPartRecipes } from '@/game/crafting/partRecipes';
-import { infuse } from '@/game/crafting/infusion';
-import { forgeWithComponent } from '@/game/forging/components';
+import { applyStone } from '@/game/crafting/infusion';
+import { forgeWithIngredient } from '@/game/forging/components';
+import { reroll as rerollPiece } from '@/game/forging/reroll';
 import { restoreRelic } from '@/game/forging/relics';
 import { salvage } from '@/game/forging/salvage';
 import { convertShards, shardId, stoneId, type Element } from '@/game/elements';
@@ -110,11 +111,13 @@ type GameState = {
   setEscort: (heroId: string | null) => void;
   /** Returns the forged gear piece, for gear recipes. Provisions can be made `count` at a time. */
   craft: (recipeId: string, count?: number) => ForgeResult | null;
-  forgeWithComponent: (recipeId: string, componentId: string) => ForgeResult | null;
+  forgeWithIngredient: (recipeId: string, ingredientId: string) => ForgeResult | null;
   /** `free` skips the cost (debug only). */
   restoreRelic: (relicUid: string, free?: boolean) => ForgeResult | null;
-  infuse: (gearUid: string, element: Element) => void;
+  applyStone: (gearUid: string, element: Element) => void;
   salvage: (gearUid: string) => void;
+  /** Rerolls every affix of an Uncommon-or-better piece for materials and gold. */
+  reroll: (gearUid: string) => void;
   /** Pass null to empty the slot. */
   equip: (heroId: string, slot: EquipmentSlot, id: string | null) => void;
   dismissHero: (heroId: string) => void;
@@ -367,9 +370,9 @@ export const useGameStore = create<GameState>()(
         if (result && rarity) debug.set({ forcedRarity: null });
         return result;
       },
-      forgeWithComponent: (recipeId, componentId) => {
+      forgeWithIngredient: (recipeId, ingredientId) => {
         const before = get().save;
-        const save = forgeWithComponent(before, recipeById[recipeId], componentId);
+        const save = forgeWithIngredient(before, recipeById[recipeId], ingredientId);
         set({ save });
         return forgeResult(before, save);
       },
@@ -379,8 +382,9 @@ export const useGameStore = create<GameState>()(
         set({ save });
         return forgeResult(before, save);
       },
-      infuse: (gearUid, element) => set(({ save }) => ({ save: infuse(save, gearUid, element) })),
+      applyStone: (gearUid, element) => set(({ save }) => ({ save: applyStone(save, gearUid, element) })),
       salvage: (gearUid) => set(({ save }) => ({ save: salvage(save, gearUid) })),
+      reroll: (gearUid) => set(({ save }) => ({ save: rerollPiece(save, gearUid) })),
       equip: (heroId, slot, id) =>
         set(({ save }) => ({
           // HP is settled first, so a change of max HP keeps the right share.

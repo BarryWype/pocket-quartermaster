@@ -8,7 +8,7 @@ import { generators } from './generators';
 import { rollSourceLoot, type LootRequest } from './roll';
 import { emptyLoot, type Loot, type LootSourceId } from './types';
 
-const context = { playerTier: 3, pickaxeTier: 3, knownRecipes: [] as string[], favourCounts: {}, mastery: {} };
+const context = { playerTier: 3, pickaxeTier: 3, knownRecipes: [] as string[], favourCounts: {} };
 
 const request = (source: LootSourceId, seed: string, overrides: Partial<LootRequest> = {}): LootRequest => ({
   source,

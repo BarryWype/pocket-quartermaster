@@ -17,7 +17,6 @@ const context = (playerTier: number) => ({
   pickaxeTier: 3,
   knownRecipes: [] as string[],
   favourCounts: {},
-  mastery: {},
 });
 
 const request = (source: LootSourceId, seed: string, overrides: Partial<LootRequest> = {}): LootRequest => ({

@@ -22,25 +22,48 @@ describe('forgeConfirmation', () => {
   it('shows the piece, its tier and type, and the cost with what remains after', () => {
     const save = { ...createInitialSave(), materials: { wood: 6 } };
     const confirm = forgeConfirmation(save, 'sword1');
-    expect(confirm).toMatchObject({ kind: 'forge', itemId: 'sword1', tier: 1, gearType: 'sword', componentId: null });
+    expect(confirm).toMatchObject({ kind: 'forge', itemId: 'sword1', tier: 1, gearType: 'sword', ingredientId: null });
     expect(confirm?.cost.materials).toEqual([{ id: 'wood', needed: 4, held: 6, remaining: 2 }]);
     expect(confirm?.cost.valuables).toEqual([]);
   });
 
-  it('expects Common without a component, Uncommon with one', () => {
+  it('expects Common without an ingredient, Uncommon with one', () => {
     const save = { ...createInitialSave(), materials: { wood: 6, dragonClaw: 1 } };
     expect(forgeConfirmation(save, 'sword1')?.expectedRarity).toBe('common');
     expect(forgeConfirmation(save, 'sword1', 'dragonClaw')?.expectedRarity).toBe('uncommon');
   });
 
-  it('adds the component to the full recipe cost when one is chosen', () => {
+  it('adds the ingredient to the full recipe cost when one is chosen', () => {
     const save = { ...createInitialSave(), materials: { wood: 6, dragonClaw: 1 } };
     const confirm = forgeConfirmation(save, 'sword1', 'dragonClaw');
-    expect(confirm?.componentId).toEqual('dragonClaw');
+    expect(confirm?.ingredientId).toEqual('dragonClaw');
     expect(confirm?.cost.materials).toEqual([
       { id: 'wood', needed: 4, held: 6, remaining: 2 },
       { id: 'dragonClaw', needed: 1, held: 1, remaining: 0 },
     ]);
+  });
+
+  it('shows the ingredient affix with its range, and none for a fixed affix or no ingredient', () => {
+    const materials = { wood: 4 };
+    const hunter = forgeConfirmation({ ...createInitialSave(), materials }, 'sword1', 'fangOrHorn');
+    expect(hunter?.affix).toEqual({ id: 'hunter', min: 15, max: 30 });
+    expect(forgeConfirmation({ ...createInitialSave(), materials }, 'sword1', 'dragonClaw')?.affix).toBeUndefined();
+    expect(forgeConfirmation({ ...createInitialSave(), materials }, 'sword1')?.affix).toBeUndefined();
+  });
+
+  it('ranges every stat of the piece at the expected rarity', () => {
+    const save = { ...createInitialSave(), materials: { wood: 6, fangOrHorn: 1 } };
+    const plain = forgeConfirmation(save, 'sword1');
+    const withIngredient = forgeConfirmation(save, 'sword1', 'fangOrHorn');
+    expect(plain?.statRanges).toEqual(
+      expect.arrayContaining([
+        { key: 'power', min: 4, max: 6 },
+        { key: 'crit', min: 4, max: 7 },
+      ]),
+    );
+    const uncommonPower = withIngredient?.statRanges.find((range) => range.key === 'power');
+    expect(uncommonPower).toEqual({ key: 'power', min: 4, max: 6 });
+    expect(withIngredient?.statRanges).toHaveLength((plain?.statRanges ?? []).length);
   });
 
   it('returns null for a recipe that forges no gear', () => {

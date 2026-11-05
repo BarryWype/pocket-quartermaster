@@ -3,7 +3,7 @@ import { recipeById } from '@/content/lookup';
 import { craft } from '../crafting/crafting';
 import { createInitialSave, type SaveData } from '../save';
 import { equip, heroStats } from '../team/team';
-import { canForgeWithComponent, componentFits, fittingComponents, forgeWithComponent } from './components';
+import { canForgeWithIngredient, fittingIngredients, forgeWithIngredient, ingredientAffixId } from './components';
 
 const withMaterials = (counts: Record<string, number>, extra: Partial<SaveData> = {}): SaveData => ({
   ...createInitialSave(),
@@ -13,51 +13,67 @@ const withMaterials = (counts: Record<string, number>, extra: Partial<SaveData> 
 
 const known = (ids: string[]) => [...createInitialSave().knownRecipes, ...ids];
 
-describe('forging with a component', () => {
-  it('only fits the listed gear types', () => {
-    expect(componentFits('ogreKnucklebone', 'mace')).toBe(true);
-    expect(componentFits('ogreKnucklebone', 'sword')).toBe(false);
-    expect(componentFits('dragonClaw', 'sword')).toBe(true);
+describe('ingredient affixes', () => {
+  it('gives a monster part its weapon affix on a weapon, its armour one on armour and off-hands', () => {
+    expect(ingredientAffixId('fangOrHorn', 'sword')).toBe('hunter');
+    expect(ingredientAffixId('fangOrHorn', 'mail')).toBe('thickHide');
+    expect(ingredientAffixId('fangOrHorn', 'shield')).toBe('thickHide');
   });
 
-  it('lists held fitting components in catalogue order', () => {
-    const save = withMaterials({ ogreKnucklebone: 1, captainsSpurs: 1, bone: 1, stone: 3 });
-    expect(fittingComponents(save, recipeById.mace2)).toEqual(['ogreKnucklebone']);
-    expect(fittingComponents(save, recipeById.leather1)).toEqual(['captainsSpurs']);
+  it('gives a component its affix only on the gear types its slot lists', () => {
+    expect(ingredientAffixId('dragonClaw', 'sword')).toBe('cleaving');
+    expect(ingredientAffixId('dragonClaw', 'mail')).toBeUndefined();
+    expect(ingredientAffixId('captainsSpurs', 'leather')).toBe('fleet');
+    expect(ingredientAffixId('giantsHeartstone', 'shield')).toBe('guarding');
+  });
+});
+
+describe('fitting ingredients', () => {
+  it('lists held parts first, then components, both in catalogue order', () => {
+    const save = withMaterials({ chitin: 1, fangOrHorn: 3, ogreKnucklebone: 1, dragonClaw: 1, bone: 1 });
+    expect(fittingIngredients(save, recipeById.mace2)).toEqual(['fangOrHorn', 'chitin', 'ogreKnucklebone']);
   });
 
-  it('needs the blueprint, the full recipe and the component', () => {
+  it('skips an ingredient that gives the piece no affix', () => {
+    const save = withMaterials({ dragonClaw: 1, stone: 3 });
+    expect(fittingIngredients(save, recipeById.mace2)).toEqual([]);
+  });
+});
+
+describe('forging with an ingredient', () => {
+  it('needs the blueprint, the full recipe and the ingredient', () => {
     const full = Object.fromEntries(recipeById.sword1.inputs.map((input) => [input.materialId, input.amount]));
-    expect(canForgeWithComponent(withMaterials({ ...full, dragonClaw: 1 }), recipeById.sword1, 'dragonClaw')).toBe(true);
-    expect(canForgeWithComponent(withMaterials(full), recipeById.sword1, 'dragonClaw')).toBe(false);
-    const unknown = withMaterials({ stone: 10, wood: 10, dragonClaw: 1 });
-    expect(canForgeWithComponent(unknown, recipeById.sword2, 'dragonClaw')).toBe(false);
-    expect(() => forgeWithComponent(unknown, recipeById.sword2, 'dragonClaw')).toThrow();
+    expect(canForgeWithIngredient(withMaterials({ ...full, fangOrHorn: 1 }), recipeById.sword1, 'fangOrHorn')).toBe(true);
+    expect(canForgeWithIngredient(withMaterials(full), recipeById.sword1, 'fangOrHorn')).toBe(false);
+    expect(canForgeWithIngredient(withMaterials({ ...full, dragonClaw: 1 }), recipeById.sword1, 'dragonClaw')).toBe(true);
+    const unknown = withMaterials({ stone: 10, wood: 10, fangOrHorn: 1 });
+    expect(canForgeWithIngredient(unknown, recipeById.sword2, 'fangOrHorn')).toBe(false);
+    expect(() => forgeWithIngredient(unknown, recipeById.sword2, 'fangOrHorn')).toThrow();
   });
 
-  it('spends the full recipe plus the component', () => {
-    const full = Object.fromEntries(recipeById.mace2.inputs.map((input) => [input.materialId, input.amount]));
-    const save = forgeWithComponent(
-      withMaterials({ ...full, ogreKnucklebone: 1 }, { knownRecipes: known(['mace2']) }),
-      recipeById.mace2,
-      'ogreKnucklebone',
+  it('spends the full recipe plus one of the ingredient', () => {
+    const full = Object.fromEntries(recipeById.sword1.inputs.map((input) => [input.materialId, input.amount]));
+    const save = forgeWithIngredient(
+      withMaterials({ ...full, fangOrHorn: 2 }, { knownRecipes: known(['sword1']) }),
+      recipeById.sword1,
+      'fangOrHorn',
     );
-    expect(Object.values(save.materials).every((amount) => amount === 0)).toBe(true);
+    expect(save.materials).toEqual({ fangOrHorn: 1 });
   });
 
-  it('forges an Uncommon piece carrying the component affix', () => {
-    let save = withMaterials({ wood: 100, dragonClaw: 20 });
-    for (let i = 0; i < 20; i++) save = forgeWithComponent(save, recipeById.sword1, 'dragonClaw');
+  it('forges an Uncommon piece with that ingredient affix, its value rolled', () => {
+    let save = withMaterials({ wood: 100, fangOrHorn: 20 }, { knownRecipes: known(['sword1']) });
+    for (let i = 0; i < 20; i++) save = forgeWithIngredient(save, recipeById.sword1, 'fangOrHorn');
     expect(save.gear).toHaveLength(20);
     for (const gear of save.gear) {
       expect(gear.rarity).toBe('uncommon');
-      expect(gear.affixes.map((affix) => affix.id)).toEqual(['cleaving']);
+      expect(gear.affixes.map((affix) => affix.id)).toEqual(['hunter']);
     }
   });
 
-  it("adds a stat component's affix to the wearer's stats", () => {
+  it("adds a stat ingredient's affix to the wearer's stats", () => {
     const plain = craft(withMaterials({ bone: 1, hide: 5 }, { knownRecipes: known(['leather1']) }), recipeById.leather1);
-    const spurred = forgeWithComponent(
+    const spurred = forgeWithIngredient(
       withMaterials({ bone: 1, hide: 5, captainsSpurs: 1 }, { knownRecipes: known(['leather1']) }),
       recipeById.leather1,
       'captainsSpurs',

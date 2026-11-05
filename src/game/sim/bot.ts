@@ -16,7 +16,7 @@ import { traitById } from '@/content/traits';
 import type { Rarity } from '@/content/gear';
 
 import { canCraft, craft, craftableCount, craftMany, forgedItem, isKnown } from '../crafting/crafting';
-import { canInfuse, infuse } from '../crafting/infusion';
+import { canApplyStone, applyStone } from '../crafting/infusion';
 import { briefingFor, type Rotation } from '../dungeons/rotation';
 import { ELEMENTS, stoneId, weaponMultiplier, type Element } from '../elements';
 import {
@@ -790,8 +790,8 @@ export function infuseWeapons(sim: Sim) {
     const element = ELEMENTS.filter((e) => (sim.save.materials[stoneId(e)] ?? 0) > 0 && weaponMultiplier(e, target) >= 1).sort(
       (a, b) => weaponMultiplier(b, target) - weaponMultiplier(a, target),
     )[0];
-    if (!element || !canInfuse(sim.save, gear!.uid, element)) return;
-    act(sim, 'infuse', (save) => infuse(save, gear!.uid, element));
+    if (!element || !canApplyStone(sim.save, gear!.uid, element)) return;
+    act(sim, 'infuse', (save) => applyStone(save, gear!.uid, element));
   }
 }
 

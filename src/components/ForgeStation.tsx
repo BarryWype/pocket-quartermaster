@@ -10,7 +10,7 @@ import { canCraft, forgedItem, ownsTool, type ForgeResult } from '@/game/craftin
 import { forgeList, pageTypeOf, type ForgeTierList, type ForgePageType } from '@/game/crafting/forgeList';
 import { tierRecipes } from '@/game/crafting/recipeUnlocks';
 import { highestUnlockedTier } from '@/game/dungeons/unlock';
-import { ELEMENTS, shardId, stoneId } from '@/game/elements';
+import { ELEMENTS, stoneId } from '@/game/elements';
 import { canRestore, relicRecipe } from '@/game/forging/relics';
 import { guildBonus } from '@/game/guild/guild';
 import type { SaveData } from '@/game/save';
@@ -22,7 +22,7 @@ import { Button } from './Button';
 import { ForgeBanner } from './ForgeBanner';
 import { ForgeConfirmDialog, ROMAN, type ForgePending, type PopupAnchor } from './ForgeConfirmDialog';
 import { GearMarks } from './GearMarks';
-import { InfuseStation } from './InfuseStation';
+import { ReworkStation } from './ReworkStation';
 import { RecipeInputs, recipeInputsStyles } from './RecipeInputs';
 import { Row } from './Row';
 import { Text } from './Text';
@@ -32,8 +32,8 @@ import { DiamondRail, ItemSlot, useLazyPages, type RailItem } from './ui';
 /** The gear sections, always in this order; the Other section joins last when it has content. */
 const GEAR_SECTIONS = ['weapons', 'armour', 'offhands'] as const;
 
-/** The rail's sections: the forge's gear pages, plus the infuse page the player has the stones for. */
-export type ForgeSection = ForgePageType | 'infuse';
+/** The rail's sections: the forge's gear pages, plus the rework page the player holds a stone or an uncommon piece for. */
+export type ForgeSection = ForgePageType | 'rework';
 
 /** One emoji (and icon, for the weapons) per forge page. */
 const RAIL_ICONS: Record<ForgePageType, { emoji: string; icon?: ImageSourcePropType }> = {
@@ -43,9 +43,9 @@ const RAIL_ICONS: Record<ForgePageType, { emoji: string; icon?: ImageSourcePropT
   other: { emoji: '⚒️', icon: systemIcons['⚒️'] },
 };
 
-/** Whether the player holds any elemental shard or stone, which is what the infuse page needs. */
-const hasInfuseMaterial = (save: SaveData) =>
-  ELEMENTS.some((e) => ((save.materials[stoneId(e)] ?? 0) + (save.materials[shardId(e)] ?? 0)) > 0);
+/** Whether the player holds an elemental stone or an Uncommon-or-better piece, which is what the rework page works on. */
+const hasReworkMaterial = (save: SaveData) =>
+  ELEMENTS.some((e) => (save.materials[stoneId(e)] ?? 0) > 0) || save.gear.some((piece) => piece.rarity !== 'common');
 
 /** The page the player last swiped to, kept for this session only. */
 let lastPage: ForgeSection | null = null;
@@ -61,10 +61,10 @@ export function useForgeRail() {
   const { pages, tiers } = forgeList(save);
   const otherVisible = pages.some(({ type }) => type === 'other');
   const sections: ForgeSection[] = otherVisible ? [...GEAR_SECTIONS, 'other'] : [...GEAR_SECTIONS];
-  if (hasInfuseMaterial(save)) sections.push('infuse');
+  if (hasReworkMaterial(save)) sections.push('rework');
   const items: RailItem[] = sections.map((type) => {
-    if (type === 'infuse') {
-      return { key: 'infuse', label: t('screens.infuse'), emoji: '💠', spaced: true };
+    if (type === 'rework') {
+      return { key: 'rework', label: t('screens.rework'), emoji: '💠', spaced: true };
     }
     const page = pages.find((one) => one.type === type);
     return {
@@ -85,7 +85,7 @@ export function useForgeRail() {
 export function ForgeStation() {
   const save = useGameStore((state) => state.save);
   const craft = useGameStore((state) => state.craft);
-  const forgeWithComponent = useGameStore((state) => state.forgeWithComponent);
+  const forgeWithIngredient = useGameStore((state) => state.forgeWithIngredient);
   const restoreRelic = useGameStore((state) => state.restoreRelic);
   const [result, setResult] = useState<ForgeResult | null>(null);
   /** The forge or restore waiting for its confirmation, if any, and the slot it opened from. */
@@ -106,7 +106,7 @@ export function ForgeStation() {
     if (!pending) return;
     // A confirmed forge goes straight through; a cancel keeps everything as it is.
     if (pending.kind === 'restore') setResult(restoreRelic(pending.relicUid));
-    else setResult(pending.componentId ? forgeWithComponent(pending.recipeId, pending.componentId) : craft(pending.recipeId));
+    else setResult(pending.ingredientId ? forgeWithIngredient(pending.recipeId, pending.ingredientId) : craft(pending.recipeId));
     setPending(null);
     setAnchor(null);
   };
@@ -127,8 +127,8 @@ export function ForgeStation() {
       >
         <TutorialHint screen="forge" />
         {result && <ForgeBanner result={result} onClose={() => setResult(null)} />}
-        {type === 'infuse' ? (
-          <InfuseStation />
+        {type === 'rework' ? (
+          <ReworkStation />
         ) : pages.length === 0 ? (
           <Text style={styles.nothing}>{t('crafting.nothingKnown')}</Text>
         ) : type === 'other' ? (
@@ -149,7 +149,7 @@ export function ForgeStation() {
             pending={pending}
             onForge={(recipeId, slot) => {
               setAnchor(slot);
-              setPending({ kind: 'forge', recipeId, componentId: null });
+              setPending({ kind: 'forge', recipeId, ingredientId: null });
             }}
           />
         )}
@@ -182,8 +182,8 @@ export function ForgeStation() {
           save={save}
           pending={pending}
           anchor={anchor}
-          onPickComponent={(componentId) =>
-            setPending((current) => (current && current.kind === 'forge' ? { ...current, componentId } : current))
+          onPickIngredient={(ingredientId) =>
+            setPending((current) => (current && current.kind === 'forge' ? { ...current, ingredientId } : current))
           }
           onConfirm={confirmPending}
           onClose={closeDialog}
@@ -343,7 +343,7 @@ function OtherPage({
                   <RecipeInputs save={save} recipe={recipe} />
                 </View>
                 {'description' in output && typeof output.description === 'string' ? (
-                  <Text style={styles.mastery}>{tr(output.description)}</Text>
+                  <Text style={styles.subtitle}>{tr(output.description)}</Text>
                 ) : null}
               </View>
             }
@@ -379,9 +379,9 @@ function RelicList({ save, onRestore }: { save: SaveData; onRestore: (relicUid: 
               <View>
                 <View style={styles.relicHead}>
                   <GearMarks tier={relic.tier} />
-                  <Text style={styles.mastery}>{tr(gearTypeNames[relic.gearType].name)}</Text>
+                  <Text style={styles.subtitle}>{tr(gearTypeNames[relic.gearType].name)}</Text>
                 </View>
-                <Text style={styles.mastery}>✦ {tr(relic.effect)}</Text>
+                <Text style={styles.subtitle}>✦ {tr(relic.effect)}</Text>
                 <View style={recipeInputsStyles.inputs}>
                   <RecipeInputs save={save} recipe={relicRecipe(relic, guildBonus(save, 'relicRestore'))} />
                 </View>
@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
   tierName: { fontSize: 19, color: ui.brassLight },
   knownCount: { fontFamily: fonts.serif, fontSize: 13, color: ui.onWoodMuted },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  mastery: { fontSize: 16, color: colors.muted },
+  subtitle: { fontSize: 16, color: colors.muted },
   family: { fontSize: 18, color: ui.onWood, marginTop: 8, marginBottom: 2 },
   relicHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 });

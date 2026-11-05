@@ -17,8 +17,27 @@ function stoneAffix(piece: GearInstance, element: Element): { id: string; value:
   return { id, value: affixValue(createRng(`${piece.uid}|stone|${id}`), affixById[id]) };
 }
 
+/** The affix a stone replaces on a piece that has some, seeded so the preview's promise holds on the apply. */
+function replacedIndex(piece: GearInstance): number {
+  return createRng(`${piece.uid}|stone|${piece.affixes.length}|${piece.rerolls}`).int(0, piece.affixes.length - 1);
+}
+
+/** What applying a stone would do: add to a Common piece, otherwise replace one of its affixes. Null for pieces that take no stones. */
+export type StonePreview = { kind: 'add' } | { kind: 'replace'; candidates: string[] };
+
+/** What applying a stone of `element` to a held piece would do; null when the piece is not a weapon, armour or off-hand. */
+export function stonePreview(save: SaveData, gearUid: string, element: Element): StonePreview | null {
+  const gear = save.gear.find((g) => g.uid === gearUid);
+  const item = gear ? (itemById[gear.itemId] as GearDef) : undefined;
+  const held = !!item && (item.slot === 'weapon' || item.slot === 'armor' || item.slot === 'offhand');
+  if (!gear || !held) return null;
+  return gear.affixes.length === 0
+    ? { kind: 'add' }
+    : { kind: 'replace', candidates: gear.affixes.map((affix) => affix.id) };
+}
+
 /** A held weapon/armour/off-hand piece, not away on an expedition, with that element's stone in stock. */
-export function canInfuse(save: SaveData, gearUid: string, element: Element) {
+export function canApplyStone(save: SaveData, gearUid: string, element: Element) {
   const gear = save.gear.find((g) => g.uid === gearUid);
   const item = gear ? (itemById[gear.itemId] as GearDef) : undefined;
   const held = !!item && (item.slot === 'weapon' || item.slot === 'armor' || item.slot === 'offhand');
@@ -32,16 +51,16 @@ export function canInfuse(save: SaveData, gearUid: string, element: Element) {
 
 /**
  * Uses one stone on a finished piece: a Common piece gains the stone's affix
- * and becomes Uncommon; otherwise one of its affixes is replaced with it,
- * picked from a seed of the piece.
+ * and becomes Uncommon; otherwise the affix `stonePreview` showed as up for
+ * replacement is swapped for it.
  */
-export function infuse(save: SaveData, gearUid: string, element: Element): SaveData {
-  if (!canInfuse(save, gearUid, element)) throw new Error(`Cannot infuse ${gearUid} with ${element}`);
+export function applyStone(save: SaveData, gearUid: string, element: Element): SaveData {
+  if (!canApplyStone(save, gearUid, element)) throw new Error(`Cannot apply a stone to ${gearUid}`);
   const gear = save.gear.find((g) => g.uid === gearUid)!;
   const affix = stoneAffix(gear, element);
   const affixes = [...gear.affixes];
   if (affixes.length === 0) affixes.push(affix);
-  else affixes[createRng(`${gearUid}|stone|${gear.affixes.length}|${gear.rerolls}`).int(0, gear.affixes.length - 1)] = affix;
+  else affixes[replacedIndex(gear)] = affix;
   return {
     ...save,
     materials: removeMaterials(save.materials, [{ materialId: stoneId(element), amount: 1 }]),

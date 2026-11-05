@@ -76,7 +76,7 @@ type ItemBase = {
 
 export type GearDef = ItemBase & {
   slot: 'weapon' | 'armor' | 'offhand' | 'trinket';
-  /** The gear type (also the mastery key); trinkets have none. */
+  /** The gear type; trinkets have none. */
   gearType?: GearType;
   stats: Partial<Stats>;
   /** Material tier: wood 1 … steel 5. */

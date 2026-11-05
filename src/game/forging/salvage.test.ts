@@ -1,7 +1,7 @@
 import { createInitialSave, type SaveData } from '../save';
 import { equip } from '../team/team';
 import type { GearInstance } from '../types';
-import { salvageDialog, salvageReturns } from './salvage';
+import { salvage, salvageDialog, salvageReturns } from './salvage';
 
 const piece = (itemId: string, rarity: GearInstance['rarity'] = 'common', extra: Partial<GearInstance> = {}): GearInstance => ({
   uid: 'g1',
@@ -73,5 +73,34 @@ describe('salvage dialog', () => {
     const affixes = [{ id: 'cleaving', value: 0 }, { id: 'infusedWater', value: 0 }];
     const dialog = salvageDialog(createInitialSave(), piece('sword4', 'rare', { affixes }));
     expect(dialog.warnings).toEqual(['rareOrBetter', 'affixes']);
+  });
+
+  it('shows the component chance a keyword affix carries', () => {
+    expect(salvageDialog(createInitialSave(), piece('sword1', 'uncommon', { affixes: [{ id: 'cleaving', value: 0 }] }))).toMatchObject({
+      componentChance: { componentId: 'dragonClaw', chance: 0.5 },
+    });
+    expect(salvageDialog(createInitialSave(), piece('sword1'))).not.toHaveProperty('componentChance');
+  });
+});
+
+describe('salvage component return', () => {
+  it('returns the component on a seed that passes the chance', () => {
+    const save: SaveData = { ...createInitialSave(), gear: [piece('sword1', 'uncommon', { affixes: [{ id: 'cleaving', value: 0 }] })] };
+    const salvaged = salvage(save, 'g1');
+    expect(salvaged.materials.dragonClaw).toBe(1);
+  });
+
+  it('returns nothing on a seed that fails the chance', () => {
+    const gear: GearInstance = { ...piece('sword1', 'uncommon', { affixes: [{ id: 'cleaving', value: 0 }] }), uid: 'g2' };
+    const save: SaveData = { ...createInitialSave(), gear: [gear] };
+    const salvaged = salvage(save, 'g2');
+    expect(salvaged.materials).not.toHaveProperty('dragonClaw');
+  });
+
+  it('never returns a monster part', () => {
+    const save: SaveData = { ...createInitialSave(), gear: [piece('sword1', 'uncommon', { affixes: [{ id: 'hunter', value: 20 }] })] };
+    const salvaged = salvage(save, 'g1');
+    expect(salvaged.materials).not.toHaveProperty('fangOrHorn');
+    expect(salvageDialog(save, save.gear[0])).not.toHaveProperty('componentChance');
   });
 });

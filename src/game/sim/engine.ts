@@ -65,7 +65,7 @@ import {
   emptyLog,
 } from './bot';
 import { probe } from './probe';
-import { forgeComponents, restoreRelics } from './rules/forge';
+import { forgeIngredients, restoreRelics } from './rules/forge';
 import { craftCharms, craftCombatElixirs, craftOils, craftStatPotions, readManuals, sellMaterials, sellParts, sellValuables } from './rules/inventory';
 import { buyWeakness, blessSymbols, buyForgeMaterials, openSecrets, visitPlaces, SOURCES } from './rules/map';
 import { profiles, simConfig, type Profile, type SimConfig } from './config';
@@ -313,7 +313,7 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, firstSession: b
   if (sim.save.tutorial.step !== 'done') playTutorial(sim);
   doQuests(sim, walking);
   forge(sim);
-  forgeComponents(sim);
+  forgeIngredients(sim);
   restoreRelics(sim);
   spendPicks(sim);
   stockProvisions(sim);

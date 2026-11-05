@@ -11,7 +11,7 @@ import { collectorWants, rollValuable, todaysCollector, valuableSellPrice } from
 import type { LootRequest } from './roll';
 import type { LootSourceId } from './types';
 
-const context = { playerTier: 3, pickaxeTier: 3, knownRecipes: [], favourCounts: {}, mastery: {} };
+const context = { playerTier: 3, pickaxeTier: 3, knownRecipes: [], favourCounts: {} };
 
 const request = (source: LootSourceId, seed: string, overrides: Partial<LootRequest> = {}): LootRequest => ({
   source,

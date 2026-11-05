@@ -2,7 +2,7 @@ import { relicById } from '@/content/lookup';
 
 import { relicRecipe } from '../../forging/relics';
 import { createInitialSave, type SaveData } from '../../save';
-import { pickComponentForge, pickRelic } from './forge';
+import { pickIngredientForge, pickRelic } from './forge';
 
 const known = (ids: string[]) => [...createInitialSave().knownRecipes, ...ids];
 
@@ -25,16 +25,16 @@ const holding = (relicIds: string[], extra: Partial<SaveData> = {}): SaveData =>
   return { ...save, materials, valuables };
 };
 
-describe('pickComponentForge', () => {
+describe('pickIngredientForge', () => {
   it('goes on the fitting item of the right hero', () => {
     const save: SaveData = {
       ...createInitialSave(),
       materials: { bone: 2, copper: 3, ogreKnucklebone: 1 },
       knownRecipes: known(['mace1', 'mace2', 'mace3', 'knuckles1']),
     };
-    expect(pickComponentForge(save, ['bram', 'lyra', 'mira'])).toEqual({
+    expect(pickIngredientForge(save, ['bram', 'lyra', 'mira'])).toEqual({
       recipeId: 'mace3',
-      componentId: 'ogreKnucklebone',
+      ingredientId: 'ogreKnucklebone',
       heroId: 'bram',
       slot: 'weapon',
     });
@@ -42,7 +42,7 @@ describe('pickComponentForge', () => {
 
   it('returns null for a component that fits nothing known', () => {
     const save: SaveData = { ...createInitialSave(), materials: { wood: 3, giantsHeartstone: 1 } };
-    expect(pickComponentForge(save, ['bram', 'lyra', 'mira'])).toBeNull();
+    expect(pickIngredientForge(save, ['bram', 'lyra', 'mira'])).toBeNull();
   });
 });
 

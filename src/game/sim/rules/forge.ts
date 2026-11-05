@@ -1,10 +1,9 @@
-import { components } from '@/content/loot/components';
 import { gearId } from '@/content/equipment';
 import { itemById, recipeById, relicById } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
 
 import { forgedItem, isKnown } from '../../crafting/crafting';
-import { canForgeWithComponent, componentFits, forgeWithComponent } from '../../forging/components';
+import { canForgeWithIngredient, forgeWithIngredient, ingredientAffixId, ingredients } from '../../forging/components';
 import { canRestore, restoreRelic } from '../../forging/relics';
 import type { SaveData } from '../../save';
 import { affinityOf, equip } from '../../team/team';
@@ -42,17 +41,17 @@ const wornRank = (save: SaveData, hero: HeroState, slot: Slot): [number, number]
   return [(itemById[worn.itemId] as GearDef).tier, RARITY_ORDER.indexOf(worn.rarity)];
 };
 
-/** The best component forge on the table: highest tier, then the weakest worn piece it replaces, never one of a higher tier. */
-export function pickComponentForge(save: SaveData, heroIds: string[]): { recipeId: string; componentId: string; heroId: string; slot: Slot } | null {
-  let best: { recipeId: string; componentId: string; heroId: string; slot: Slot; tier: number; worn: [number, number] } | null = null;
-  for (const component of components) {
-    if ((save.materials[component.id] ?? 0) <= 0) continue;
+/** The best ingredient forge on the table: highest tier, then the weakest worn piece it replaces, never one of a higher tier. */
+export function pickIngredientForge(save: SaveData, heroIds: string[]): { recipeId: string; ingredientId: string; heroId: string; slot: Slot } | null {
+  let best: { recipeId: string; ingredientId: string; heroId: string; slot: Slot; tier: number; worn: [number, number] } | null = null;
+  for (const ingredient of ingredients) {
+    if ((save.materials[ingredient.id] ?? 0) <= 0) continue;
     for (const hero of heroesOf(save, heroIds)) {
       for (const slot of SLOTS) {
         const recipe = recipes
           .filter((r) => {
             const item = forgedItem(r);
-            return !!item?.gearType && item.slot === slot && isKnown(save, r) && componentFits(component.id, item.gearType) && usableBy(save, hero, slot, item.gearType);
+            return !!item?.gearType && item.slot === slot && isKnown(save, r) && ingredientAffixId(ingredient.id, item.gearType) && usableBy(save, hero, slot, item.gearType);
           })
           .sort((a, b) => {
             const mine = forgedItem(a)!;
@@ -62,17 +61,17 @@ export function pickComponentForge(save: SaveData, heroIds: string[]): { recipeI
               Number(affinityOf(hero.classId, other.gearType) === 'favoured') - Number(affinityOf(hero.classId, mine.gearType) === 'favoured')
             );
           })[0];
-        if (!recipe || !canForgeWithComponent(save, recipe, component.id)) continue;
+        if (!recipe || !canForgeWithIngredient(save, recipe, ingredient.id)) continue;
         const tier = forgedItem(recipe)!.tier;
         const worn = wornRank(save, hero, slot);
         if (worn[0] > tier) continue;
         if (!best || tier > best.tier || (tier === best.tier && (worn[0] < best.worn[0] || (worn[0] === best.worn[0] && worn[1] < best.worn[1])))) {
-          best = { recipeId: recipe.id, componentId: component.id, heroId: hero.id, slot, tier, worn };
+          best = { recipeId: recipe.id, ingredientId: ingredient.id, heroId: hero.id, slot, tier, worn };
         }
       }
     }
   }
-  return best ? { recipeId: best.recipeId, componentId: best.componentId, heroId: best.heroId, slot: best.slot } : null;
+  return best ? { recipeId: best.recipeId, ingredientId: best.ingredientId, heroId: best.heroId, slot: best.slot } : null;
 }
 
 /** The best relic on the table: highest tier, a favoured affinity, and never below the piece it replaces. */
@@ -115,16 +114,16 @@ function logCraft(sim: Sim, kind: 'component' | 'relic', before: SaveData, mater
   return gear;
 }
 
-/** Forges held components onto the best fitting pieces and equips them, until nothing fits. */
-export function forgeComponents(sim: Sim) {
+/** Forges held ingredients (parts and components) onto the best fitting pieces and equips them, until nothing fits. */
+export function forgeIngredients(sim: Sim) {
   const cap = Object.values(sim.save.materials).reduce((sum, amount) => sum + amount, 0);
   for (let i = 0; i < cap; i++) {
     const heroIds = homeHeroes(sim.save).map((h) => h.id);
-    const pick = pickComponentForge(sim.save, heroIds);
+    const pick = pickIngredientForge(sim.save, heroIds);
     if (!pick) return;
     mark(sim, 'componentFound');
     const before = sim.save;
-    const materials = act(sim, 'forge', (save) => forgeWithComponent(save, recipeById[pick.recipeId], pick.componentId));
+    const materials = act(sim, 'forge', (save) => forgeWithIngredient(save, recipeById[pick.recipeId], pick.ingredientId));
     const gear = logCraft(sim, 'component', before, materials);
     if (!gear) return;
     act(sim, 'equip', (save) => equip(save, pick.heroId, pick.slot, gear.uid));

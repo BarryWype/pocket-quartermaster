@@ -1,11 +1,14 @@
+import { affixById } from '@/content/affixes';
 import { recipeById, relicById } from '@/content/lookup';
 import type { Rarity } from '@/content/gear';
 
 import type { SaveData } from '../save';
-import type { GearType } from '../types';
+import type { GearType, StatKey } from '../types';
 import { canRestore, relicRecipe } from '../forging/relics';
-import { guildBonus } from '../guild/guild';
 import { forgedItem } from './crafting';
+import { ingredientAffixId } from '../forging/components';
+import { guildBonus } from '../guild/guild';
+import { statRange } from '../gear/stats';
 
 /** One thing the forge spends: how many are needed, held, and left after. */
 export type CostLine = {
@@ -34,16 +37,20 @@ const valuableCost = (save: SaveData, valuables: { valuableId: string; amount: n
   });
 
 
-/** What one forge of `recipeId` asks before it happens: the piece, the rarity it comes out as, the cost and the chosen component's effect. */
+/** What one forge of `recipeId` asks before it happens: the piece, the rarity it comes out as, the ingredients' affix, the stat ranges and the cost. */
 export type ForgeConfirmation = {
   kind: 'forge';
   recipeId: string;
-  componentId: string | null;
+  ingredientId: string | null;
   itemId: string;
   tier: number;
   gearType: GearType;
-  /** Uncommon with a component, Common without. */
+  /** Uncommon with an ingredient, Common without. */
   expectedRarity: Rarity;
+  /** The chosen ingredient's affix and its rolled-value range; absent with none or a fixed one. */
+  affix?: { id: string; min: number; max: number };
+  /** Every stat of the piece at the range the forge can roll at the expected rarity. */
+  statRanges: { key: StatKey; min: number; max: number }[];
   cost: ConfirmCost;
 };
 
@@ -57,20 +64,27 @@ export type RestoreConfirmation = {
   cost: ConfirmCost;
 };
 
-/** The confirmation for one forge, plain or with a held component. */
-export function forgeConfirmation(save: SaveData, recipeId: string, componentId: string | null = null): ForgeConfirmation | null {
+/** The confirmation for one forge, plain or with one held ingredient. */
+export function forgeConfirmation(save: SaveData, recipeId: string, ingredientId: string | null = null): ForgeConfirmation | null {
   const recipe = recipeById[recipeId];
   const item = forgedItem(recipe);
   if (!item?.gearType) return null;
-  const inputs = componentId ? [...recipe.inputs, { materialId: componentId, amount: 1 }] : recipe.inputs;
+  const inputs = ingredientId ? [...recipe.inputs, { materialId: ingredientId, amount: 1 }] : recipe.inputs;
+  const expectedRarity: Rarity = ingredientId ? 'uncommon' : 'common';
+  const ingredientAffix = ingredientId ? affixById[ingredientAffixId(ingredientId, item.gearType) ?? ''] : undefined;
   return {
     kind: 'forge',
     recipeId,
-    componentId,
+    ingredientId,
     itemId: item.id,
     tier: item.tier,
     gearType: item.gearType,
-    expectedRarity: componentId ? 'uncommon' : 'common',
+    expectedRarity,
+    ...(ingredientAffix?.range ? { affix: { id: ingredientAffix.id, ...ingredientAffix.range } } : {}),
+    statRanges: Object.entries(item.stats).map(([key, base]) => ({
+      key: key as StatKey,
+      ...statRange(base ?? 0, expectedRarity),
+    })),
     cost: { materials: materialCost(save, inputs), valuables: valuableCost(save, recipe.valuables) },
   };
 }

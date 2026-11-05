@@ -1,34 +1,34 @@
 import { useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 
+import { affixById } from '@/content/affixes';
 import { gearProfiles, gearTypeNames } from '@/content/equipment';
-import { rarityNames } from '@/content/gear';
+import { gearRules, rarityNames } from '@/content/gear';
 import { heroClasses } from '@/content/heroes';
-import { componentById, itemById, materialById, recipeById, relicById, valuableById } from '@/content/lookup';
+import { componentById, itemById, materialById, monsterPartById, recipeById, relicById, valuableById } from '@/content/lookup';
 import { threatDefs } from '@/content/threats';
-import { canCraft } from '@/game/crafting/crafting';
 import { forgeConfirmation, restoreConfirmation, type ConfirmCost } from '@/game/crafting/confirm';
-import { canForgeWithComponent, fittingComponents } from '@/game/forging/components';
-import { statRange } from '@/game/gear/stats';
+import { canCraft } from '@/game/crafting/crafting';
+import { canForgeWithIngredient, fittingIngredients, ingredientAffixId } from '@/game/forging/components';
 import { canRestore } from '@/game/forging/relics';
 import type { SaveData } from '@/game/save';
-import type { GearDef } from '@/game/types';
+import type { GearDef, GearType } from '@/game/types';
 import { affinityOf } from '@/game/team/team';
 import { t, tr } from '@/i18n';
 import { fonts, ui } from '@/theme';
 
+import { affixLine, affixRangeLine } from './affixText';
 import { GameIcon } from './GameIcon';
 import { useSheetMaxHeight } from './Sheet';
-import { STATS } from './GearRow';
 import { Text } from './Text';
 import { AnchoredPopup, ItemPopup, type PopupAnchor, type PopupIngredient, type PopupLine } from './ui';
 
 /** The forge's roman tier numerals, shared with the tier headers on the forge itself. */
 export const ROMAN = ['I', 'II', 'III', 'IV', 'V'] as const;
 
-/** What the forge asks before it happens: a forge (plain or with a component) or a relic restore. */
+/** What the forge asks before it happens: a forge (plain or with one ingredient) or a relic restore. */
 export type ForgePending =
-  | { kind: 'forge'; recipeId: string; componentId: string | null }
+  | { kind: 'forge'; recipeId: string; ingredientId: string | null }
   | { kind: 'restore'; relicUid: string };
 
 /** The tapped slot's place in the window, so the pop-up can open beside it. */
@@ -63,38 +63,63 @@ function ingredientsOf(cost: ConfirmCost): PopupIngredient[] {
   ];
 }
 
-/** One fitting component as a tappable row: its icon, name and what it adds. */
-function ComponentRow({
-  componentId,
+/** One fitting ingredient — or plain forging — as a tappable row: its icon, name, held count and the affix it gives. */
+function IngredientRow({
+  ingredientId,
+  gearType,
+  held,
   selected,
   onPick,
 }: {
-  componentId: string;
+  ingredientId: string | null;
+  gearType: GearType;
+  held: number;
   selected: boolean;
-  onPick: (componentId: string | null) => void;
+  onPick: (ingredientId: string | null) => void;
 }) {
-  const component = componentById[componentId];
+  const picked = () => onPick(selected ? null : ingredientId);
+  if (ingredientId === null) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t('crafting.noIngredient')}
+        onPress={picked}
+        style={[styles.ingredientRow, selected && styles.ingredientSelected]}
+      >
+        <Text style={styles.ingredientName}>{t('crafting.noIngredient')}</Text>
+      </Pressable>
+    );
+  }
+  const ingredient = monsterPartById[ingredientId] ?? componentById[ingredientId];
+  const affixId = ingredientAffixId(ingredientId, gearType);
+  const range = affixId ? affixById[affixId].range : undefined;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={tr(component.name)}
-      onPress={() => onPick(selected ? null : componentId)}
-      style={[styles.componentRow, selected && styles.componentSelected]}
+      accessibilityLabel={tr(ingredient.name)}
+      onPress={picked}
+      style={[styles.ingredientRow, selected && styles.ingredientSelected]}
     >
-      <GameIcon emoji={component.emoji} size={20} />
-      <View style={styles.componentText}>
-        <Text style={styles.componentName}>{tr(component.name)}</Text>
-        <Text style={styles.componentAdds}>{tr(component.adds)}</Text>
+      <GameIcon emoji={ingredient.emoji} size={20} />
+      <View style={styles.ingredientText}>
+        <Text style={styles.ingredientName}>{tr(ingredient.name)}</Text>
+        {affixId && (
+          <Text style={styles.ingredientAffix}>
+            {range ? affixRangeLine(affixId, range.min, range.max) : affixLine({ id: affixId, value: 0 })}
+          </Text>
+        )}
       </View>
+      <Text style={styles.ingredientHeld}>×{held}</Text>
     </Pressable>
   );
 }
 
 /**
  * Asks before anything is forged or restored: the piece as a pop-up card with
- * its stats, keywords, the roster's affinities and the full cost. The backdrop
- * tap and the back button cancel and change nothing. With an anchor the card
- * opens beside the tapped slot, with its pointer at it.
+ * its stat ranges, the ingredient's affix, keywords, the roster's affinities
+ * and the full cost. The backdrop tap and the back button cancel and change
+ * nothing. With an anchor the card opens beside the tapped slot, with its
+ * pointer at it.
  */
 export function ForgeConfirmDialog({
   save,
@@ -102,17 +127,17 @@ export function ForgeConfirmDialog({
   onConfirm,
   onClose,
   anchor,
-  onPickComponent,
+  onPickIngredient,
 }: {
   save: SaveData;
   pending: ForgePending;
   onConfirm: () => void;
   onClose: () => void;
   anchor?: PopupAnchor | null;
-  onPickComponent?: (componentId: string | null) => void;
+  onPickIngredient?: (ingredientId: string | null) => void;
 }) {
   const confirm =
-    pending.kind === 'forge' ? forgeConfirmation(save, pending.recipeId, pending.componentId) : restoreConfirmation(save, pending.relicUid);
+    pending.kind === 'forge' ? forgeConfirmation(save, pending.recipeId, pending.ingredientId) : restoreConfirmation(save, pending.relicUid);
   const [picking, setPicking] = useState(false);
   const maxHeight = useSheetMaxHeight();
   if (!confirm) return null;
@@ -121,7 +146,7 @@ export function ForgeConfirmDialog({
   let title: string;
   let emoji: string;
   let icon: ImageSourcePropType | undefined;
-  let subtitle: string;
+  let subtitle: ReactNode;
   let value: string | number | undefined;
   let valueLabel: string | undefined;
   let note: string | undefined;
@@ -142,20 +167,34 @@ export function ForgeConfirmDialog({
     if (pending.kind !== 'forge' || confirm.kind !== 'forge') return null;
     const item = itemById[confirm.itemId] as GearDef;
     const recipe = recipeById[confirm.recipeId];
-    const componentId = pending.componentId;
+    const ingredientId = pending.ingredientId;
     title = tr(item.name);
     emoji = item.emoji;
     icon = item.icon;
-    subtitle = `${tr(rarityNames[confirm.expectedRarity])} · ${tr(gearTypeNames[confirm.gearType].name)} · ${t('crafting.tierShort', { tier: ROMAN[confirm.tier - 1] })}`;
+    subtitle = (
+      <Text>
+        <Text style={[{ color: gearRules.colors[confirm.expectedRarity] }]}>{tr(rarityNames[confirm.expectedRarity])}</Text>
+        {` · ${tr(gearTypeNames[confirm.gearType].name)} · ${t('crafting.tierShort', { tier: ROMAN[confirm.tier - 1] })}`}
+      </Text>
+    );
 
-    const mainKey = item.damageStat ?? STATS.find((key) => item.stats[key]) ?? STATS[0];
-    // The values the forge can roll at the piece's rarity.
-    const range = statRange(item.stats[mainKey] ?? 0, confirm.expectedRarity);
-    value = range.min === range.max ? String(range.min) : `${range.min}–${range.max}`;
-    valueLabel = t(`hero.statNames.${mainKey}`);
-    const noteParts = STATS.filter((key) => key !== mainKey && item.stats[key]).map((key) => `${t(`hero.statNames.${key}`)} ${signed(item.stats[key]!)}`);
-    if (item.twoHanded) noteParts.push(t('hero.twoHanded'));
-    note = noteParts.join(' · ');
+    // One line per stat, with the values the forge can roll at the piece's rarity.
+    const rangeOf = ({ min, max }: { min: number; max: number }) => (min === max ? signed(min) : `${signed(min)}–${signed(max)}`);
+    const main = confirm.statRanges.find((range) => range.key === item.damageStat) ?? confirm.statRanges[0];
+    const others = confirm.statRanges.filter((range) => range !== main);
+    value = rangeOf(main);
+    valueLabel = t(`hero.statNames.${main.key}`);
+    note = others.map((range) => `${t(`hero.statNames.${range.key}`)} ${rangeOf(range)}`).join(' · ') || undefined;
+
+    // The chosen ingredient's affix, at the range the forge rolls it.
+    const affixId = ingredientId ? ingredientAffixId(ingredientId, confirm.gearType) : undefined;
+    if (affixId) {
+      const range = affixById[affixId].range;
+      lines.push({
+        tone: 'keyword',
+        text: range ? affixRangeLine(affixId, range.min, range.max) : affixLine({ id: affixId, value: 0 }),
+      });
+    }
 
     for (const keyword of item.keywords) {
       const threats = threatDefs
@@ -174,18 +213,25 @@ export function ForgeConfirmDialog({
     const unfit = classIds.filter((classId) => affinityOf(classId, item.gearType) === 'unfit');
     if (favoured.length > 0) lines.push({ tone: 'good', text: favoured.map((classId) => tr(heroClasses[classId].name)).join(', ') });
     if (unfit.length > 0) lines.push({ tone: 'bad', text: unfit.map((classId) => tr(heroClasses[classId].name)).join(', ') });
-    if (componentId) lines.push({ tone: 'keyword', text: tr(componentById[componentId].name), detail: tr(componentById[componentId].adds) });
 
-    const fitting = fittingComponents(save, recipe);
-    const showComponents = onPickComponent !== undefined && fitting.length > 0;
-    secondary = showComponents ? { title: t('crafting.withComponent'), onPress: () => setPicking((open) => !open) } : undefined;
+    const fitting = fittingIngredients(save, recipe);
+    const showIngredients = onPickIngredient !== undefined && fitting.length > 0;
+    secondary = showIngredients ? { title: t('crafting.pickIngredient'), onPress: () => setPicking((open) => !open) } : undefined;
     children =
-      showComponents && picking ? (
-        <View style={styles.componentList}>
-          <Text style={styles.componentHint}>{t('crafting.componentHint', { item: tr(item.name) })}</Text>
-          <ScrollView style={{ maxHeight }} contentContainerStyle={styles.componentRows}>
+      showIngredients && picking ? (
+        <View style={styles.ingredientList}>
+          <Text style={styles.ingredientHint}>{t('crafting.ingredientHint')}</Text>
+          <ScrollView style={{ maxHeight }} contentContainerStyle={styles.ingredientRows}>
+            <IngredientRow ingredientId={null} gearType={confirm.gearType} held={0} selected={!ingredientId} onPick={onPickIngredient} />
             {fitting.map((id) => (
-              <ComponentRow key={id} componentId={id} selected={id === componentId} onPick={onPickComponent} />
+              <IngredientRow
+                key={id}
+                ingredientId={id}
+                gearType={confirm.gearType}
+                held={save.materials[id] ?? 0}
+                selected={id === ingredientId}
+                onPick={onPickIngredient}
+              />
             ))}
           </ScrollView>
         </View>
@@ -195,7 +241,7 @@ export function ForgeConfirmDialog({
       title: t('crafting.forge'),
       emoji: '⚒️',
       icon: FORGE_ICON,
-      disabled: !(componentId ? canForgeWithComponent(save, recipe, componentId) : canCraft(save, recipe)),
+      disabled: !(ingredientId ? canForgeWithIngredient(save, recipe, ingredientId) : canCraft(save, recipe)),
       onPress: onConfirm,
     };
   }
@@ -227,10 +273,10 @@ export function ForgeConfirmDialog({
 }
 
 const styles = StyleSheet.create({
-  componentList: { alignSelf: 'stretch', gap: 6 },
-  componentHint: { fontFamily: fonts.serif, fontSize: 13, color: ui.inkMuted, textAlign: 'center' },
-  componentRows: { gap: 6 },
-  componentRow: {
+  ingredientList: { alignSelf: 'stretch', gap: 6 },
+  ingredientHint: { fontFamily: fonts.serif, fontSize: 13, color: ui.inkMuted, textAlign: 'center' },
+  ingredientRows: { gap: 6 },
+  ingredientRow: {
     minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
@@ -240,8 +286,9 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: ui.outline,
   },
-  componentSelected: { borderColor: ui.brass },
-  componentText: { flex: 1 },
-  componentName: { fontFamily: fonts.serifBold, fontSize: 14, color: ui.ink },
-  componentAdds: { fontFamily: fonts.serif, fontSize: 13, color: ui.inkMuted },
+  ingredientSelected: { borderColor: ui.brass },
+  ingredientText: { flex: 1 },
+  ingredientName: { fontFamily: fonts.serifBold, fontSize: 14, color: ui.ink },
+  ingredientAffix: { fontFamily: fonts.serif, fontSize: 13, color: ui.inkMuted },
+  ingredientHeld: { fontFamily: fonts.serif, fontSize: 13, color: ui.inkMuted },
 });
