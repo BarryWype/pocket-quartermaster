@@ -150,10 +150,10 @@ export const lootConfig = {
     floors: { firstTierClear: 'uncommon', monsterLair: 'rare' } as Partial<Record<LootSourceId, Rarity>>,
     /**
      * A ladder's own upgrade roll after the d20: basic sources drop most of the
-     * gear, so small chances there give a Legendary about 1.5 times a tier and
+     * gear, so small chances there give a Legendary at least 1.3 times a tier (casual) and
      * a Rare every 2–4 days (regular profile), below big fights' chances.
      */
-    upgrades: { basic: { rare: 0.03, legendary: 0.025 } } as Partial<Record<'basic' | 'big' | 'boss', { rare: number; legendary: number }>>,
+    upgrades: { basic: { rare: 0.03, legendary: 0.04 } } as Partial<Record<'basic' | 'big' | 'boss', { rare: number; legendary: number }>>,
   },
   treasureMaps: {
     rarityWeights: { common: 70, rare: 25, legendary: 5 } as Record<MapRarity, number>,
