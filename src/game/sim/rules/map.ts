@@ -78,7 +78,7 @@ function fightAt(sim: Sim, kind: FightPlaceKind): PlaceMiss | null {
     const done = resolvePlaceFights(save, endsAt);
     for (const fight of done.resolved) {
       if (fight.placeId === spawn.id) won = fight.won;
-      if (fight.won) countLoot(sim, fight.reward);
+      if (fight.won) countLoot(sim, fight.reward, spawn.kind as LootSourceId);
     }
     return done.save;
   });
@@ -98,7 +98,7 @@ function digAt(sim: Sim): PlaceMiss | null {
     loot = dug.reward;
     return dug.save;
   });
-  if (loot) countLoot(sim, loot);
+  if (loot) countLoot(sim, loot, 'ruinsDig');
   if (relic) {
     mark(sim, 'relicFound');
     sim.log.loot.relics = (sim.log.loot.relics ?? 0) + 1;
@@ -125,7 +125,7 @@ function heistAt(sim: Sim): PlaceMiss | null {
     const done = resolveHeists(save, endsAt);
     for (const heist of done.resolved) {
       if (heist.placeId === spawn.id) won = heist.success;
-      if (heist.success) countLoot(sim, heist.reward);
+      if (heist.success) countLoot(sim, heist.reward, 'heist');
     }
     return done.save;
   });
@@ -143,7 +143,7 @@ function fishAt(sim: Sim): PlaceMiss | null {
     loot = caught.loot;
     return caught.save;
   });
-  if (loot) countLoot(sim, loot);
+  if (loot) countLoot(sim, loot, 'fishingDock');
   row(sim, spawn.kind, highestTier(sim.save), null, null);
   return null;
 }

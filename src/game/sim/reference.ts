@@ -7,10 +7,31 @@ import type { Rarity } from '@/content/gear';
 import type { GearDef, HeroClassId, HeroState } from '@/game/types';
 
 import { createInitialSave, type SaveData } from '../save';
+import { affixById } from '@/content/affixes';
+
 import { makeGearPiece } from '../gear/make';
 import { equip } from '../team/team';
 import { expectedLevels } from './config';
 import { fillPotions } from './rules/loadout';
+
+/** The middle of the 3d6 stat dice: a reference piece's stats are the average roll. */
+const AVERAGE_ROLL = 10.5;
+
+/**
+ * A reference piece: average stats for its rarity, and its rarity's affixes
+ * (picked from its uid) at the middle of their ranges, so fitted strengths
+ * count affixes at their average value.
+ */
+export function averagePiece(uid: string, itemId: string, rarity: Rarity) {
+  const piece = makeGearPiece(uid, itemId, rarity, undefined, { roll: AVERAGE_ROLL });
+  return {
+    ...piece,
+    affixes: piece.affixes.map(({ id }) => {
+      const range = affixById[id].range;
+      return { id, value: range ? Math.round((range.min + range.max) / 2) : 0 };
+    }),
+  };
+}
 
 /** The class's best weapon of a tier: a favoured type, first one found. */
 function weaponFor(classId: HeroClassId, tier: number) {
@@ -34,8 +55,8 @@ export function referenceTeam(classes: HeroClassId[], tier: number, rarity: Rari
     heroes,
     consumables: { ...createInitialSave().consumables, healingPotion: classes.length },
     gear: classes.flatMap((classId, i) => [
-      makeGearPiece(`w${i}`, weaponFor(classId, tier)!.id, rarity),
-      makeGearPiece(`a${i}`, armour.id, rarity),
+      averagePiece(`w${i}`, weaponFor(classId, tier)!.id, rarity),
+      averagePiece(`a${i}`, armour.id, rarity),
     ]),
   };
   heroes.forEach((hero, i) => {
@@ -71,8 +92,8 @@ export function referenceSave(tier: number, when: 'start' | 'end', party: number
     heroes,
     clearedDungeons: dungeons.filter((d) => d.tier < tier).map((d) => d.id),
     gear: heroes.flatMap((_, i) => [
-      makeGearPiece(`w${i}`, `${WEAPONS[i]}${gearTier}`, rarity),
-      ...(withArmour ? [makeGearPiece(`a${i}`, `mail${gearTier}`, rarity)] : []),
+      averagePiece(`w${i}`, `${WEAPONS[i]}${gearTier}`, rarity),
+      ...(withArmour ? [averagePiece(`a${i}`, `mail${gearTier}`, rarity)] : []),
     ]),
     consumables: { ...initial.consumables, healingPotion: 3 },
   };

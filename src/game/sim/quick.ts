@@ -13,7 +13,7 @@ import { placeFightBriefing, placeFightDungeon } from '../places/fights';
 import { PATROL_KINDS, patrolsAround } from '../patrols/generate';
 import { patrolOdds } from '../patrols/fight';
 import { createInitialSave, type SaveData } from '../save';
-import { makeGearPiece } from '../gear/make';
+import { averagePiece } from './reference';
 import { equip } from '../team/team';
 import type { ConsumableDef } from '../types';
 import { highestTier, withLoadout } from './bot';
@@ -59,7 +59,7 @@ export function quickSave(tier: number): SaveData {
     tutorial: { ...initial.tutorial, step: 'done' },
     // Each hero carries its class's first common special, like the other reference teams.
     heroes: initial.heroes.map((h) => ({ ...h, level: expectedLevels[tier - 1], special: classSpecials[h.classId].common[0] })),
-    gear: [`sword${tier}`, `bow${tier}`, `wand${tier}`, `mail${tier}`, `mail${tier}`, `mail${tier}`].map((itemId, i) => makeGearPiece(`g${i}`, itemId, 'common')),
+    gear: [`sword${tier}`, `bow${tier}`, `wand${tier}`, `mail${tier}`, `mail${tier}`, `mail${tier}`].map((itemId, i) => averagePiece(`g${i}`, itemId, 'common')),
   };
   save.heroes.forEach((hero, i) => {
     save = equip(equip(save, hero.id, 'weapon', `g${i}`), hero.id, 'armor', `g${i + 3}`);

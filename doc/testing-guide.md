@@ -47,15 +47,14 @@ A fresh save walks you through the whole loop in a few minutes. A one-line 🧭 
 3. Tap a marker that's further away and you'll get "Too far: N m away".
 4. Animals show 💨 and can't be gathered when you move faster than about 18 km/h. Try this on a bike or in a car, not in mock mode.
 
-## Quality, mastery and salvage
+## Rarity, affixes, forge and salvage
 
-1. **Quality:** every forged weapon or armour piece is Crappy (×0.85 stats, grey), Normal (×1, ink), Rare (×1.15, blue) or Legendary (×1.3, gold). Names read e.g. "Rare Fire Stone sword"; Normal is left out.
-2. **Mastery:** swords, bows, wands and armour each have a level, shown under each recipe in the Forge with the quality odds.
-   - Each material tier caps it: wood 4, stone 6, copper 8, iron 10, steel 12. Forging an item whose cap you've reached gives no progress, so the Forge tells you to move to the next tier.
-   - Forges per level: 3 up to level 6, then 4. That's about 30 min of walking to max wood swords, 50 min for stone, 1.5 h copper, 3 h iron and 5 h steel (simulated walks).
-   - The closer you are to the item's cap, the better the odds: 3+ levels below is 80% Crappy; maxed is 10–12% Crappy, 75% Normal, 12% Rare and 1–3% Legendary.
-3. **Salvage:** Inventory → **Salvage** on gear nobody is wearing. You get back 25% / 40% / 60% / 100% of the recipe (by quality, at least 1 of the first input), 5 shards if infused, and for a Legendary piece 1 shard per tier of a random element. Rare, Legendary and infused pieces ask first.
-4. **Debug → Forging:** set each mastery level, force the next forge's quality, or add any gear piece with a quality and element.
+1. **Rarity:** every piece is Common (ink), Uncommon (green, 1 affix), Rare (blue, 2), or Legendary (gold, 3 plus a unique effect). Stats roll in a range (about ×0.80–1.38 of the base, 3d6; +1 on the dice for Rare, +2 for Legendary). Each affix shows as one line with its value, e.g. "Hunter: +22% damage to beasts".
+2. **Forge:** pick a blueprint, then optionally one ingredient (a monster part or a component that fits the piece). Without one the piece is Common; with one it is Uncommon with that affix. The confirmation shows the stat ranges, the rarity and the cost.
+3. **Rework (forge page):** an elemental stone adds its affix to a Common piece (it becomes Uncommon) or replaces one affix at random; a reroll changes all affixes of an Uncommon-or-better piece for its tier material and gold, rising with each reroll. Both ask first.
+4. **Salvage:** Inventory → **Salvage** on gear nobody is wearing. You get back 40% / 50% / 60% / 100% of the recipe by rarity (at least 1 of the first input); a piece with a keyword affix has a 50% chance to return its component. Rare, Legendary, relic and affixed pieces ask first.
+5. **Old saves:** pieces keep their stats as close as possible; components, infusions and Legendary Luck become affixes, held elemental hearts become stones.
+6. **Debug → Forging:** force the next forge's rarity, or add any gear piece with a rarity.
 
 ## Inventory, forge and alchemy
 
@@ -124,7 +123,7 @@ A fresh save walks you through the whole loop in a few minutes. A one-line 🧭 
    - **Level:** the roster's average level minus 1.
    - **Price:** base (80 common, 180 uncommon) × (1 + 25% per level above 1) × (1 + 35% per hero beyond 3) × trait (×1.15 positive, ×0.75 negative).
    - A recruited offer is gone until the next day. You can't recruit with a full roster (6).
-3. **Classes** only use their own weapon types (armour is open to all): axes, maces, daggers, staves and lutes are new. Recruiting the first hero who uses a type teaches its recipes up to your highest tier, with mastery starting at the previous tier's cap; later tiers drop from dungeons.
+3. **Classes** only use their own weapon types (armour is open to all): axes, maces, daggers, staves and lutes are new. Recruiting the first hero who uses a type teaches its recipes up to your highest tier; later tiers drop from dungeons.
    - Fire mages attack with fire, frost mages with water, druids with grass, unless their weapon is infused.
    - Thieves disarm traps, pick locks and pockets and find more in caches. Barbarians clear rubble, provoke locals and rage when hurt. Clerics heal the party between encounters; paladins shield the most hurt ally; both hit the undead hard. Druids calm beasts. Troubadours charm locals and lift the party's damage. Sorcerers get more from elemental advantage.
 4. **Traits:** every hero has one. Positive: Tough, Thrifty, Lucky, Quick learner, Light sleeper, Iron stomach. Negative: Clumsy, Greedy, Coward, Loud. Party-wide ones (gold, traps, locals, ambushes) count once per trait.

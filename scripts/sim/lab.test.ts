@@ -31,6 +31,7 @@ describe('balance lab CLI', () => {
       '## Win odds per tier',
       '## Events and patrols by kind',
       '## Visits planned vs done',
+      '## Gear',
       '## Gold per tier',
       '## Materials: the tier’s main material',
       '## Jobs',

@@ -48,7 +48,6 @@ import {
   forge,
   highestTier,
   homeHeroes,
-  infuseWeapons,
   mark,
   markCoreKit,
   morningCamp,
@@ -65,6 +64,7 @@ import {
   emptyLog,
 } from './bot';
 import { probe } from './probe';
+import { applyStones, rerollGear } from './rules/gear';
 import { forgeIngredients, restoreRelics } from './rules/forge';
 import { craftCharms, craftCombatElixirs, craftOils, craftStatPotions, readManuals, sellMaterials, sellParts, sellValuables } from './rules/inventory';
 import { buyWeakness, blessSymbols, buyForgeMaterials, openSecrets, visitPlaces, SOURCES } from './rules/map';
@@ -217,7 +217,7 @@ function engagePatrol(sim: Sim, spawn: PatrolSpawn, at: number, player: LatLng) 
     const { save } = resolvePatrolFights(fighting, fight.endsAt);
     act(sim, 'patrol', () => save);
     sim.log.patrols.fights.push({ kind: fight.kind, tier: fight.tier, elite: fight.elite, won: fight.won, xp: fight.won ? fight.rewards.xp * heroIds.length : 0 });
-    if (fight.won) countLoot(sim, fight.rewards);
+    if (fight.won) countLoot(sim, fight.rewards, 'patrol');
     return true;
   }
   return false;
@@ -253,7 +253,7 @@ function helpTravellerSpawn(sim: Sim, spawn: PatrolSpawn, at: number, player: La
   log.rewards[reward.kind]++;
   if (reward.kind === 'loot') {
     log.keyFragments += reward.loot.keyFragments;
-    countLoot(sim, reward.loot);
+    countLoot(sim, reward.loot, 'traveller');
   }
   if (reward.kind === 'recruit') sim.log.offered[reward.offer.id] = reward.offer.classId;
   if (reward.kind === 'recruit' && save.heroes.length < rosterCap(save)) {
@@ -305,7 +305,7 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, firstSession: b
   for (const chest of stepChests) {
     if (chestState(sim.save, chest, stepsRecorded(sim.save, dayKey), dayKey) === 'ready') {
       const opened = openChest(sim.save, chest.id, stepsRecorded(sim.save, dayKey), dayKey, sim.now);
-      countLoot(sim, opened.reward);
+      countLoot(sim, opened.reward, 'stepChest');
       act(sim, 'chest', () => opened.save);
     }
   }
@@ -322,7 +322,8 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, firstSession: b
   craftOils(sim);
   craftCombatElixirs(sim);
   readManuals(sim);
-  infuseWeapons(sim);
+  applyStones(sim);
+  rerollGear(sim);
   openSecrets(sim);
   recruitHeroes(sim);
   buyGuildRanks(sim);
@@ -351,6 +352,13 @@ const OUTCOMES: LootSourceId[] = ['firstTierClear', 'tierBoss', 'stepChest'];
 
 /** The day's steps: just enough to open the profile's step chests. */
 const stepsPerDay = (profile: Profile) => stepChests[Math.max(0, Math.min(stepChests.length, Math.round(profile.visits.stepChest ?? 0)) - 1)].steps;
+
+/** Average number of affixes on the heroes' worn gear (all four slots). */
+function wornAffixes(save: SaveData) {
+  const byUid = new Map(save.gear.map((piece) => [piece.uid, piece]));
+  const slots = ['weapon', 'armor', 'offhand', 'trinket'] as const;
+  return save.heroes.reduce((sum, hero) => sum + slots.reduce((n, slot) => n + (byUid.get(hero.equipment[slot] ?? '')?.affixes.length ?? 0), 0), 0) / save.heroes.length;
+}
 
 /** Plays a profile with the bot until the tier 5 boss falls or the profile's day cap, and returns everything that happened. */
 export function runSim({ profile: name, seed, rates, maxDays, config = simConfig, jobs = true, afterSession, afterDay }: RunOptions): RunLog {
@@ -391,6 +399,7 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
     oddsCache: new Map(),
     launched: new Map(),
     waiting: new Set(),
+    rerolled: new Set(),
     expeditionStop: { reason: null, launched: false },
     log: emptyLog(name, seed),
   };
@@ -398,6 +407,7 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
   let probedTier = 0;
   for (let day = 0; day < days && !sim.log.finished; day++) {
     sim.day = day + 1;
+    sim.rerolled.clear();
     sim.bonusGathers = gatheringConfig.walkingBonus.gathers;
     const dayStart = startedAt + day * DAY;
     const dayKey = new Date(dayStart).toISOString().slice(0, 10);
@@ -463,6 +473,7 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
       consumables: { ...save.consumables },
       valuables: { ...save.valuables },
       topLevel: [...save.heroes.map((h) => h.level)].sort((a, b) => b - a).slice(0, 3).reduce((a, b, _, all) => a + b / all.length, 0),
+      affixes: wornAffixes(save),
     });
     afterDay?.(sim.day, sim.save);
   }

@@ -29,6 +29,7 @@ function simOf(save: SaveData): Sim {
     oddsCache: new Map(),
     launched: new Map(),
     waiting: new Set(),
+    rerolled: new Set(),
     expeditionStop: { reason: null, launched: false },
     log: emptyLog('regular', 'test'),
   };

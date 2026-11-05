@@ -9,6 +9,7 @@ import type { SaveData } from '../../save';
 import { affinityOf, equip } from '../../team/team';
 import type { GearDef, HeroState, OffhandType } from '../../types';
 import { RARITY_ORDER, act, homeHeroes, mark, type CraftRow, type Sim } from '../bot';
+import { affixFits, planGear } from './gear';
 
 type Slot = 'weapon' | 'armor' | 'offhand';
 const SLOTS: Slot[] = ['weapon', 'armor', 'offhand'];
@@ -41,9 +42,14 @@ const wornRank = (save: SaveData, hero: HeroState, slot: Slot): [number, number]
   return [(itemById[worn.itemId] as GearDef).tier, RARITY_ORDER.indexOf(worn.rarity)];
 };
 
-/** The best ingredient forge on the table: highest tier, then the weakest worn piece it replaces, never one of a higher tier. */
-export function pickIngredientForge(save: SaveData, heroIds: string[]): { recipeId: string; ingredientId: string; heroId: string; slot: Slot } | null {
-  let best: { recipeId: string; ingredientId: string; heroId: string; slot: Slot; tier: number; worn: [number, number] } | null = null;
+/**
+ * The best ingredient forge on the table: highest tier, then the weakest worn
+ * piece it replaces, never one of a higher tier; among equals, an ingredient
+ * whose affix `fits` the day's plan (see rules/gear.ts) wins; without the
+ * predicate, the first fitting ingredient in catalogue order stays.
+ */
+export function pickIngredientForge(save: SaveData, heroIds: string[], fits?: (affixId: string) => boolean): { recipeId: string; ingredientId: string; heroId: string; slot: Slot } | null {
+  let best: { recipeId: string; ingredientId: string; heroId: string; slot: Slot; tier: number; fit: boolean; worn: [number, number] } | null = null;
   for (const ingredient of ingredients) {
     if ((save.materials[ingredient.id] ?? 0) <= 0) continue;
     for (const hero of heroesOf(save, heroIds)) {
@@ -65,8 +71,10 @@ export function pickIngredientForge(save: SaveData, heroIds: string[]): { recipe
         const tier = forgedItem(recipe)!.tier;
         const worn = wornRank(save, hero, slot);
         if (worn[0] > tier) continue;
-        if (!best || tier > best.tier || (tier === best.tier && (worn[0] < best.worn[0] || (worn[0] === best.worn[0] && worn[1] < best.worn[1])))) {
-          best = { recipeId: recipe.id, ingredientId: ingredient.id, heroId: hero.id, slot, tier, worn };
+        const fit = !!fits?.(ingredientAffixId(ingredient.id, forgedItem(recipe)!.gearType!)!);
+        const weakest = (other: { worn: [number, number] }) => worn[0] < other.worn[0] || (worn[0] === other.worn[0] && worn[1] < other.worn[1]);
+        if (!best || tier > best.tier || (tier === best.tier && (fit !== best.fit ? fit : weakest(best)))) {
+          best = { recipeId: recipe.id, ingredientId: ingredient.id, heroId: hero.id, slot, tier, fit, worn };
         }
       }
     }
@@ -114,12 +122,14 @@ function logCraft(sim: Sim, kind: 'component' | 'relic', before: SaveData, mater
   return gear;
 }
 
-/** Forges held ingredients (parts and components) onto the best fitting pieces and equips them, until nothing fits. */
+/** Forges held ingredients (parts and components) onto the best fitting pieces and equips them, until nothing fits; a fitting affix that helps against the day's dungeons beats one that doesn't. */
 export function forgeIngredients(sim: Sim) {
+  const plan = planGear(sim.save, sim.rotation);
+  const fits = (affixId: string) => affixFits(plan, affixId);
   const cap = Object.values(sim.save.materials).reduce((sum, amount) => sum + amount, 0);
   for (let i = 0; i < cap; i++) {
     const heroIds = homeHeroes(sim.save).map((h) => h.id);
-    const pick = pickIngredientForge(sim.save, heroIds);
+    const pick = pickIngredientForge(sim.save, heroIds, fits);
     if (!pick) return;
     mark(sim, 'componentFound');
     const before = sim.save;

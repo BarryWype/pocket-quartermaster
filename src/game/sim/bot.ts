@@ -2,7 +2,6 @@ import { dungeons } from '@/content/dungeons';
 import { difficultyRules } from '@/content/difficulty';
 import { rosterRules } from '@/content/roster';
 import { affinityRules, classAffinities, gearProfiles, type Affinity } from '@/content/equipment';
-import { mobById } from '@/content/enemies';
 import { guildTrackById, guildTracks } from '@/content/guild';
 import { heroClasses, xpRules } from '@/content/heroes';
 import { dungeonById, itemById, recipeById } from '@/content/lookup';
@@ -16,9 +15,7 @@ import { traitById } from '@/content/traits';
 import type { Rarity } from '@/content/gear';
 
 import { canCraft, craft, craftableCount, craftMany, forgedItem, isKnown } from '../crafting/crafting';
-import { canApplyStone, applyStone } from '../crafting/infusion';
 import { briefingFor, type Rotation } from '../dungeons/rotation';
-import { ELEMENTS, stoneId, weaponMultiplier, type Element } from '../elements';
 import {
   firstWinAvailable,
   highestUnlockedTier,
@@ -36,7 +33,6 @@ import { rollDailyApproaches } from '../upkeep';
 import { answersMemberOf, EMPTY_BRIEFING, prepareParty, simulateRun } from '../expeditions/simulate';
 import { salvage } from '../forging/salvage';
 import { gearStats } from '../gear/stats';
-import { infusedElement } from '../gear/affixes';
 import { trinketEffect } from '../loot/trinkets';
 import { distanceMeters, offsetPosition } from '../generation/geo';
 import type { Rng } from '../generation/rng';
@@ -144,6 +140,8 @@ export type DayRow = {
   valuables: Record<string, number>;
   /** Average level of the three highest-level heroes. */
   topLevel: number;
+  /** Average number of affixes on the heroes' worn gear. */
+  affixes: number;
 };
 
 export type RunLog = {
@@ -194,6 +192,12 @@ export type RunLog = {
   notLaunched: Record<string, number>;
   /** Place visits owed that couldn't happen, by reason; 'hidden' is the kind still behind the reveal. */
   placesNotDone: Record<string, number>;
+  /** Every looted piece (gear, trinkets and relics), with the loot source it came from; a relic is named `relic:<id>` and has no rarity. */
+  gearLoot: { day: number; source: LootSourceId; itemId: string | null; rarity: Rarity | null }[];
+  /** Each reroll: its day and what it cost (gold and materials, negative amounts). */
+  rerolls: { day: number; gold: number; materials: Record<string, number> }[];
+  /** The day of each elemental stone applied to a piece. */
+  stones: number[];
   /** The tier 5 boss was beaten before the profile's day cap. */
   finished: boolean;
 };
@@ -236,6 +240,9 @@ export const emptyLog = (profile: string, seed: string): RunLog => ({
   skipped: {},
   notLaunched: {},
   placesNotDone: {},
+  gearLoot: [],
+  rerolls: [],
+  stones: [],
   finished: false,
 });
 
@@ -289,6 +296,8 @@ export type Sim = {
   launched: Map<string, Pick<ExpeditionRow, 'odds' | 'rarities' | 'day' | 'hour' | 'level' | 'consumables'>>;
   /** Dungeons left for a later session this one, waiting for the heroes to heal. */
   waiting: Set<string>;
+  /** Worn pieces already rerolled today. */
+  rerolled: Set<string>;
   /** How this session's expedition search ended while expeditions were owed, and whether one launched. */
   expeditionStop: { reason: 'noParty' | 'hp' | 'odds' | null; launched: boolean };
   log: RunLog;
@@ -762,39 +771,6 @@ function topUpSupply(sim: Sim, dungeon: DungeonDef, heroIds: string[], loadout: 
 
 // —— Infusion ——
 
-/** The most common enemy element in a tier's dungeons, weighting fights by mob count and the boss by 3. */
-function commonElement(tier: number): Element | null {
-  const counts: Partial<Record<Element, number>> = {};
-  const count = (element: Element | undefined, weight: number) => {
-    if (element) counts[element] = (counts[element] ?? 0) + weight;
-  };
-  for (const dungeon of dungeons.filter((d) => d.tier === tier)) {
-    count(dungeon.boss.element, 3);
-    for (const encounter of dungeon.encounters) {
-      if (encounter.type === 'fight') encounter.mobs.forEach((g) => count(mobById[g.mobId].element, g.count * encounter.weight));
-      if (encounter.type === 'trap') count(encounter.element, encounter.weight);
-    }
-  }
-  const sorted = (Object.entries(counts) as [Element, number][]).sort((a, b) => b[1] - a[1]);
-  return sorted[0]?.[0] ?? null;
-}
-
-export function infuseWeapons(sim: Sim) {
-  const target = commonElement(highestTier(sim.save));
-  if (!target) return;
-  const weapons = homeHeroes(sim.save)
-    .map((hero) => ({ hero, gear: gearOf(sim.save, hero.equipment.weapon) }))
-    .filter((w) => w.gear && !infusedElement(w.gear))
-    .sort((a, b) => wornScore(sim.save, b.hero, 'weapon') - wornScore(sim.save, a.hero, 'weapon'));
-  for (const { gear } of weapons) {
-    const element = ELEMENTS.filter((e) => (sim.save.materials[stoneId(e)] ?? 0) > 0 && weaponMultiplier(e, target) >= 1).sort(
-      (a, b) => weaponMultiplier(b, target) - weaponMultiplier(a, target),
-    )[0];
-    if (!element || !canApplyStone(sim.save, gear!.uid, element)) return;
-    act(sim, 'infuse', (save) => applyStone(save, gear!.uid, element));
-  }
-}
-
 // —— Recruiting and the Guild Hall ——
 
 function nextRecruitPrice(save: SaveData) {
@@ -1063,7 +1039,7 @@ export function digTreasure(sim: Sim) {
     if (!sim.reach.maps.has(map.id)) sim.reach.maps.set(map.id, sim.rng.chance(reachChance(sim, distanceMeters(sim.location, spot))));
     if (sim.reach.maps.get(map.id)) {
       const dug = collectTreasure(sim.save, map.id, spot, spot, sim.now);
-      countLoot(sim, dug.contents);
+      countLoot(sim, dug.contents, 'treasureSpot');
       act(sim, 'treasure', () => dug.save);
     }
   }
@@ -1250,9 +1226,11 @@ export function sendExpeditions(sim: Sim) {
   if (dueExpeditions() && !idle().length) sim.expeditionStop.reason = 'noParty';
 }
 
-/** Counts every category a roll dropped, for the observed pacing. */
-export function countLoot(sim: Sim, loot: Loot) {
+/** Counts every category a roll dropped, for the observed pacing, and every piece of gear and every relic it granted, with the row's source. */
+export function countLoot(sim: Sim, loot: Loot, source: LootSourceId) {
   for (const category of loot.dropped) sim.log.loot[category] = (sim.log.loot[category] ?? 0) + 1;
+  for (const piece of loot.gear) sim.log.gearLoot.push({ day: sim.day, source, itemId: piece.itemId, rarity: piece.rarity });
+  for (const relicId of loot.relics) sim.log.gearLoot.push({ day: sim.day, source, itemId: `relic:${relicId}`, rarity: null });
 }
 
 /** Resolves one expedition through the game, and logs it with the abilities that fired in its run. */
@@ -1267,7 +1245,7 @@ export function collectExpedition(sim: Sim, expedition: ActiveExpedition) {
 
   const before = sim.save;
   const { save, report } = resolveExpedition(before, expedition);
-  countLoot(sim, report.loot);
+  countLoot(sim, report.loot, runSource(dungeon));
   const source = expedition.guaranteed ? 'tutorial' : 'dungeon';
   // Materials through `act` (with the gold held back), then the gold split by source.
   act(sim, source, () => ({ ...save, gold: before.gold }));
@@ -1338,6 +1316,9 @@ export function noteQuestGathers(sim: Sim, changes: Record<string, number>) {
   }
 }
 
+/** A quest claim's loot row, by band. */
+const QUEST_SOURCE: Record<Quest['band'], LootSourceId> = { short: 'questShort', medium: 'questMedium', long: 'questLong', secret: 'secretQuest' };
+
 /**
  * Daily quests, each session: the day's arrive and the list is opened (every
  * new quest accepted, a place target at the middle of its band); on walks,
@@ -1384,7 +1365,7 @@ export function doQuests(sim: Sim, walking: boolean) {
 
   for (const quest of sim.save.quests.list.filter((q) => q.doneAt !== null)) {
     const claimed = claimQuest(sim.save, quest.id, sim.now);
-    countLoot(sim, claimed.loot);
+    countLoot(sim, claimed.loot, QUEST_SOURCE[quest.band]);
     act(sim, 'quest', () => claimed.save);
     sim.log.quests.claimed[quest.band]++;
   }

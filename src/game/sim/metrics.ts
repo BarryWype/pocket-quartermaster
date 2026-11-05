@@ -1,7 +1,9 @@
 import { dungeons } from '@/content/dungeons';
+import { RARITIES, type Rarity } from '@/content/gear';
 import { heroClasses } from '@/content/heroes';
 import { items } from '@/content/items';
 import { jobs as jobList } from '@/content/jobs';
+import { lootConfig } from '@/content/loot/config';
 import { tierMaterials } from '@/content/materials';
 import { placeFightRules } from '@/content/placeFights';
 import { placeInfo } from '@/content/places';
@@ -58,6 +60,26 @@ export type TierSummary = {
   jobs: Record<string /* material */, { job: string; walked: Stat; fromJob: Stat; share: Stat }>;
   /** The gatherer's own output over the tier: its materials against the same walking intake as the guild jobs, and its nodes and wounds per day. */
   gatherer: { materials: Record<string, { walked: Stat; fromJob: Stat; share: Stat }>; nodes: Stat; wounds: Stat };
+  /**
+   * Gear over the tier: looted pieces by rarity (trinkets included, relics
+   * apart) with their per-day rates, affixes per hero worn at the tier's end,
+   * and the gear actions — rerolls (gold and materials), stones and
+   * ingredient forges.
+   */
+  gear: {
+    rarity: Record<Rarity, Stat>;
+    relics: Stat;
+    uncommonPerDay: Stat;
+    rarePerDay: Stat;
+    daysPerRare: Stat;
+    affixes: Stat;
+    rerolls: Stat;
+    rerollGold: Stat;
+    /** Material → median spent on rerolls over the tier (positive amounts). */
+    rerollMaterials: Record<string, number>;
+    stones: Stat;
+    forges: Stat;
+  };
   level: { end: Stat; target: number };
 };
 
@@ -71,6 +93,8 @@ export type ProfileSummary = {
   reveals: Record<RevealKind, Stat>;
   /** Regular profile only: designed vs observed weekly drops. */
   loot: { category: LootCategory; column: string; designed: number; observed: number; off: number }[];
+  /** Gear: the observed rarity split of looted pieces (relics apart) by the loot ladder their source rolls on. */
+  ladders: { ladder: 'basic' | 'big' | 'boss'; drops: Stat; split: Record<Rarity, number> }[];
   health: {
     pileUps: { id: string; final: number }[];
     dead: { items: string[]; recipes: string[]; places: string[]; dungeons: string[] };
@@ -270,6 +294,48 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
     return day === undefined ? null : (log.daily[day - 1]?.topLevel ?? null);
   }));
 
+  // Gear over the tier: what was looted and what the bot did with it.
+  const daysIn = (window: [number, number] | null) => (window ? window[1] - window[0] + 1 : null);
+  const lootOf = (log: RunLog, window: [number, number] | null, match: (row: RunLog['gearLoot'][number]) => boolean) =>
+    window ? log.gearLoot.filter((row) => within(row.day, window) && match(row)).length : null;
+  const countOf = (match: (row: RunLog['gearLoot'][number]) => boolean) => stat(logs.map((log, i) => lootOf(log, windows[i], match)));
+  const perDayOf = (match: (row: RunLog['gearLoot'][number]) => boolean) =>
+    stat(logs.map((log, i) => {
+      const days = daysIn(windows[i]);
+      const count = lootOf(log, windows[i], match);
+      return days !== null && count !== null ? count / days : null;
+    }));
+  const isGear = (row: RunLog['gearLoot'][number]) => row.rarity !== null;
+  const rarityPerDay = (rarity: Rarity) => perDayOf((row) => isGear(row) && row.rarity === rarity);
+  const rareCount = logs.map((log, i) => lootOf(log, windows[i], (row) => isGear(row) && row.rarity === 'rare'));
+  const gear = {
+    rarity: Object.fromEntries(RARITIES.map((rarity) => [rarity, countOf((row) => isGear(row) && row.rarity === rarity)])) as Record<Rarity, Stat>,
+    relics: countOf((row) => !isGear(row)),
+    uncommonPerDay: rarityPerDay('uncommon'),
+    rarePerDay: rarityPerDay('rare'),
+    daysPerRare: stat(logs.map((log, i) => {
+      const days = daysIn(windows[i]);
+      const rare = rareCount[i];
+      return days !== null && rare !== null && rare > 0 ? days / rare : null;
+    })),
+    affixes: stat(logs.map((log) => {
+      const day = log.milestones[`boss:${tier}`];
+      return day === undefined ? null : (log.daily[day - 1]?.affixes ?? null);
+    })),
+    rerolls: stat(logs.map((log, i) => (windows[i] ? log.rerolls.filter((row) => within(row.day, windows[i])).length : null))),
+    rerollGold: stat(logs.map((log, i) => (windows[i] ? sum(log.rerolls.filter((row) => within(row.day, windows[i])).map((row) => row.gold)) : null))),
+    rerollMaterials: medianTotals(
+      logs.map((log, i) => {
+        const spent: Record<string, number> = {};
+        for (const row of windows[i] ? log.rerolls.filter((row) => within(row.day, windows[i])) : [])
+          for (const [id, amount] of Object.entries(row.materials)) spent[id] = (spent[id] ?? 0) + amount;
+        return Object.fromEntries(Object.entries(spent).map(([id, amount]) => [id, -amount]));
+      }),
+    ),
+    stones: stat(logs.map((log, i) => (windows[i] ? log.stones.filter((day) => within(day, windows[i])).length : null))),
+    forges: stat(logs.map((log, i) => (windows[i] ? log.crafts.filter((row) => row.kind === 'component' && within(row.day, windows[i])).length : null))),
+  };
+
   return {
     tier,
     days,
@@ -291,6 +357,7 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
     wood,
     jobs,
     gatherer,
+    gear,
     level: { end, target: expectedLevels[tier - 1] },
   };
 }
@@ -325,6 +392,19 @@ export function summarize(logs: RunLog[], t: Targets = defaultTargets): ProfileS
           return { category: row.category, column: row.column, designed: row.perWeek, observed, off: row.perWeek ? observed / row.perWeek - 1 : observed ? Infinity : 0 };
         })
       : [];
+  const { ladders: rarityLadders, ladderBySource } = lootConfig.gearRarity;
+  const ladderOf = (source: LootSourceId) => ladderBySource[source] ?? 'basic';
+  const ladderSummary = (Object.keys(rarityLadders) as ('basic' | 'big' | 'boss')[]).map((ladder) => {
+    const perSeed = logs.map((log) => {
+      const rows = log.gearLoot.filter((row) => row.rarity !== null && ladderOf(row.source) === ladder);
+      return { drops: rows.length, byRarity: Object.fromEntries(RARITIES.map((rarity) => [rarity, rows.filter((row) => row.rarity === rarity).length])) };
+    });
+    return {
+      ladder,
+      drops: stat(perSeed.map((seed) => seed.drops)),
+      split: Object.fromEntries(RARITIES.map((rarity) => [rarity, stat(perSeed.map((seed) => (seed.drops ? seed.byRarity[rarity as Rarity] / seed.drops : null))).median ?? 0])) as Record<Rarity, number>,
+    };
+  });
 
   const pile = new Map<string, number[]>();
   for (const log of logs) for (const p of pileUps(log, t)) pile.set(p.id, [...(pile.get(p.id) ?? []), p.final]);
@@ -400,6 +480,7 @@ export function summarize(logs: RunLog[], t: Targets = defaultTargets): ProfileS
     finished: logs.filter((l) => l.finished).length,
     totalDays: stat(logs.map((l) => (l.finished ? l.days : null))),
     tiers,
+    ladders: ladderSummary,
     reveals: Object.fromEntries(REVEAL_KINDS.map((kind) => [kind, stat(logs.map((l) => l.milestones[`reveal:${kind}`]))])) as Record<RevealKind, Stat>,
     loot,
     health: {

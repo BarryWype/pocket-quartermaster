@@ -32,7 +32,7 @@ Direction: the game stays a walking game with short, dense check-ins at home (di
 
 1. **Special abilities.** Done (2026-11-04) for the first version: one special per hero from its class pool, fired automatically by its own rule (see `doc/design/abilities/`). Later: more picks with level (choose one to equip), manuals that teach or reroll one.
 2. **Hero assignment, gatherer jobs and the resource rework.** Done (2026-11-05): the job system with the woodcutter and energy (2a), the forager, trapper, miner and charcoal burner (2c-1), and the outdoor gatherer (2c-2); see `doc/design/jobs/`. Work traits (2b) moved to step 8; more ways to recruit heroes (2d: rescues, quest rewards) parked, as later steps may rework or ease it.
-3. **Gear rework and affixes** (designed 2026-11-05, see `doc/design/gear/`). Uncommon 1, rare 2, legendary 3, rolled from a small pool with bell-curve rolls; some affixes soften a threat. Gear drops can become more frequent. The forge keeps control: walking materials reroll one affix. No affix extraction.
+3. **Gear rework and affixes.** Done (2026-11-05): stat ranges on 3d6, rarity as the number of affixes (Uncommon 1, Rare 2, Legendary 3 plus a unique), the one-ingredient forge, elemental stones and reroll, crafting mastery removed; see `doc/design/gear/`. Loot ladders to tune from the full simulator run.
 4. **Monster research.** A job on step 2's assignment system (a hero researches, Scholars faster), fuelled by monster parts. Enemy-family research tracks: kit recipes, then trinket recipes, then higher kit tiers and better trinkets. The best trinkets stay drop-only.
 5. **Crafting jobs.** Forge apprentice, cook and herbalist, supplied by step 2's gatherers.
 6. **Expedition rework, part 1: heroes on the map.** Send heroes to places to fight and haul, or to fill shop orders (a shop asks for items, consumables or materials and pays gold, materials, blueprints or consumables); local missions (protect a village, escort a caravan, bodyguard, investigate a murder, recover stolen goods); outdoor jobs (fishing, hunting, tavern bard, watch duty, smuggling) and the kennel. Heroes fight and haul; only the player trades, talks, recruits and makes choices at places.
@@ -191,7 +191,7 @@ For the fishing dock, later. A short, physical moment instead of a button that j
 
 ### Item quality and crafting mastery
 
-*Built. Mastery is per item type.*
+*Superseded (2026-11-05) by the gear rework: rarity and affixes replace quality, crafting mastery is removed; see `doc/design/gear/`.*
 
 - Each item has quality levels: Poor, Normal, Rare, Legendary.
 - Each recipe has its own mastery XP bar: crafting the item fills it and raises the chance of better quality.

@@ -18,9 +18,9 @@ export const enemySpeedRules: Record<SpeedClass, number> & { speedPerTier: numbe
 // Enemies are written at tier 1 strength, then scaled by their tier and by how
 // tough their dungeon should be within it. Per-dungeon factors are fitted to a
 // reference team (the starting trio in the tier's sword, bow and wand plus
-// mail, Normal quality, at the top of the tier's level band, no threats):
+// mail, Common gear at the average roll, at the top of the tier's level band, no threats):
 // short dungeons about 72%, long about 68%, bosses about 38% before a further
-// ×1.3. Real rosters do much better (trinkets, better qualities, meals, the
+// ×1.3. Real rosters do much better (trinkets, rarer gear and affixes, meals, the
 // boss's weakness item). Tier 1 short dungeons are kept softer for onboarding
 // (Rat Cellar is the tutorial dungeon).
 export const TIER_SCALE = [1, 1.9, 3, 4.2, 5.6];

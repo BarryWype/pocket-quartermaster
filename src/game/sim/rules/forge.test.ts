@@ -44,6 +44,18 @@ describe('pickIngredientForge', () => {
     const save: SaveData = { ...createInitialSave(), materials: { wood: 3, giantsHeartstone: 1 } };
     expect(pickIngredientForge(save, ['bram', 'lyra', 'mira'])).toBeNull();
   });
+
+  it('prefers an ingredient whose affix fits the day, else keeps the first that fits', () => {
+    const save: SaveData = {
+      ...createInitialSave(),
+      materials: { wood: 1, copper: 3, fangOrHorn: 1, venomSac: 1 },
+      knownRecipes: known(['sword3']),
+    };
+    const pick = { recipeId: 'sword3', heroId: 'bram', slot: 'weapon' } as const;
+    expect(pickIngredientForge(save, ['bram'])).toEqual({ ...pick, ingredientId: 'fangOrHorn' });
+    expect(pickIngredientForge(save, ['bram'], () => false)).toEqual({ ...pick, ingredientId: 'fangOrHorn' });
+    expect(pickIngredientForge(save, ['bram'], (affixId) => affixId !== 'hunter')).toEqual({ ...pick, ingredientId: 'venomSac' });
+  });
 });
 
 describe('pickRelic', () => {
