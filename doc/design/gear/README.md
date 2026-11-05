@@ -49,7 +49,7 @@ Roadmap step 3 in `doc/ideas.md`. Designed 2026-11-05. Replaces quality multipli
 - One unique per piece; a reroll changes the affixes, never the unique.
 
 ## Trinkets
-- Keep their stats; rarity gives them affixes from the "any slot" pool.
+- Keep their stat lines (not turned into affixes), rolled like all gear: base value × the rolled range, with the rarity shift; no quality multiplier. Rarity gives them affixes from the "any slot" pool. The Ring of fortune stays Legendary-only.
 
 ## Not now
 - Job affixes: added with each new job later (they join the pool; existing gear isn't touched).
