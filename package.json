@@ -33,6 +33,8 @@
     "zustand": "^5.0.16"
   },
   "devDependencies": {
+    "@swc/core": "^1.16.21",
+    "@swc/jest": "^0.2.39",
     "@types/jest": "^30.0.0",
     "@types/mapbox__vector-tile": "^1.3.4",
     "@types/ngeohash": "^0.6.8",
@@ -53,7 +55,13 @@
     "android:fresh": "expo prebuild --platform android --clean && expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "test": "jest",
+    "test": "jest --selectProjects logic app",
+    "test:all": "jest",
+    "test:logic": "jest --selectProjects logic",
+    "test:app": "jest --selectProjects app",
+    "test:perf": "jest --selectProjects perf",
+    "test:sim": "jest --selectProjects sim",
+    "test:changed": "jest -o --selectProjects logic app",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
     "sim": "node scripts/sim/build.mjs && node sim-output/.build/sim.cjs",
@@ -65,13 +73,128 @@
   },
   "private": true,
   "jest": {
-    "preset": "jest-expo",
-    "setupFiles": [
-      "./jest.setup.ts"
-    ],
-    "testPathIgnorePatterns": [
-      "/node_modules/",
-      "/\\.worktrees/"
+    "projects": [
+      {
+        "displayName": "logic",
+        "testEnvironment": "node",
+        "transform": {
+          "^.+\\.(t|j)sx?$": [
+            "@swc/jest",
+            {
+              "jsc": {
+                "parser": {
+                  "syntax": "typescript",
+                  "tsx": true
+                },
+                "target": "es2022"
+              },
+              "module": {
+                "type": "commonjs"
+              }
+            }
+          ],
+          "^.+\\.(png|jpg|jpeg|gif|webp|svg|bmp|avif|heic|ttf|otf|woff|woff2|mp3|wav|m4a|mp4|pdf|html)$": "jest-expo/src/preset/assetFileTransformer.js"
+        },
+        "moduleNameMapper": {
+          "^@/(.*)$": "<rootDir>/src/$1"
+        },
+        "testMatch": [
+          "<rootDir>/src/game/**/*.test.ts",
+          "<rootDir>/src/game/**/*.test.tsx",
+          "<rootDir>/src/content/**/*.test.ts",
+          "<rootDir>/src/content/**/*.test.tsx"
+        ],
+        "testPathIgnorePatterns": [
+          "/node_modules/",
+          "/\\.worktrees/",
+          "<rootDir>/src/game/sim/sim\\.test\\.ts$",
+          "<rootDir>/src/game/sim/quick\\.test\\.ts$",
+          "<rootDir>/src/game/expeditions/oddsPerf\\.test\\.ts$",
+          "<rootDir>/src/game/save/uniqueUids\\.test\\.ts$",
+          "<rootDir>/src/game/patrols/pocketPassive\\.test\\.ts$",
+          "<rootDir>/src/game/expeditions/oddsCache\\.test\\.ts$",
+          "<rootDir>/src/game/expeditions/odds\\.test\\.ts$"
+        ]
+      },
+      {
+        "displayName": "app",
+        "preset": "jest-expo",
+        "setupFiles": [
+          "./jest.setup.ts"
+        ],
+        "testMatch": [
+          "<rootDir>/src/app/**/*.test.ts",
+          "<rootDir>/src/app/**/*.test.tsx",
+          "<rootDir>/src/components/**/*.test.ts",
+          "<rootDir>/src/components/**/*.test.tsx",
+          "<rootDir>/src/store/**/*.test.ts",
+          "<rootDir>/src/store/**/*.test.tsx",
+          "<rootDir>/src/services/**/*.test.ts",
+          "<rootDir>/src/services/**/*.test.tsx",
+          "<rootDir>/src/hooks/**/*.test.ts",
+          "<rootDir>/src/hooks/**/*.test.tsx",
+          "<rootDir>/src/i18n/**/*.test.ts",
+          "<rootDir>/src/i18n/**/*.test.tsx",
+          "<rootDir>/src/appConfig.test.ts",
+          "<rootDir>/src/game/save/uniqueUids.test.ts",
+          "<rootDir>/src/game/patrols/pocketPassive.test.ts",
+          "<rootDir>/src/game/expeditions/oddsCache.test.ts",
+          "<rootDir>/src/game/expeditions/odds.test.ts"
+        ],
+        "testPathIgnorePatterns": [
+          "/node_modules/",
+          "/\\.worktrees/"
+        ]
+      },
+      {
+        "displayName": "perf",
+        "preset": "jest-expo",
+        "setupFiles": [
+          "./jest.setup.ts"
+        ],
+        "testMatch": [
+          "<rootDir>/src/perf/**/*.test.ts",
+          "<rootDir>/src/perf/**/*.test.tsx",
+          "<rootDir>/src/game/expeditions/oddsPerf.test.ts"
+        ],
+        "testPathIgnorePatterns": [
+          "/node_modules/",
+          "/\\.worktrees/"
+        ]
+      },
+      {
+        "displayName": "sim",
+        "testEnvironment": "node",
+        "transform": {
+          "^.+\\.(t|j)sx?$": [
+            "@swc/jest",
+            {
+              "jsc": {
+                "parser": {
+                  "syntax": "typescript",
+                  "tsx": true
+                },
+                "target": "es2022"
+              },
+              "module": {
+                "type": "commonjs"
+              }
+            }
+          ],
+          "^.+\\.(png|jpg|jpeg|gif|webp|svg|bmp|avif|heic|ttf|otf|woff|woff2|mp3|wav|m4a|mp4|pdf|html)$": "jest-expo/src/preset/assetFileTransformer.js"
+        },
+        "moduleNameMapper": {
+          "^@/(.*)$": "<rootDir>/src/$1"
+        },
+        "testMatch": [
+          "<rootDir>/src/game/sim/sim.test.ts",
+          "<rootDir>/src/game/sim/quick.test.ts"
+        ],
+        "testPathIgnorePatterns": [
+          "/node_modules/",
+          "/\\.worktrees/"
+        ]
+      }
     ]
   }
 }
