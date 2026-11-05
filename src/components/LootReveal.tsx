@@ -10,7 +10,7 @@ import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
 import { DifficultyChip } from './ui';
-import { lootLabels } from './lootText';
+import { lootGains, type LootGain } from './lootText';
 import { Overlay } from './Overlay';
 import { useSheetMaxHeight } from './Sheet';
 import { Panel } from './Panel';
@@ -25,15 +25,26 @@ export const OUTCOME_COLORS: Record<ExpeditionOutcome, string> = {
 };
 
 /** Everything a report brought back, one short label each: gold first, then the rarer finds, then materials. */
-export function lootItems(report: ExpeditionReport): string[] {
+export function lootItems(report: ExpeditionReport): LootGain[] {
   return [
-    report.firstTierClear ? t('expeditions.firstTierClear') : report.firstDungeonClear ? t('expeditions.firstDungeonClear') : report.firstWin ? t('expeditions.firstWin') : null,
-    report.sigil ? t('expeditions.sigil', { tier: report.sigil }) : null,
+    report.firstTierClear
+      ? { text: t('expeditions.firstTierClear') }
+      : report.firstDungeonClear
+        ? { text: t('expeditions.firstDungeonClear') }
+        : report.firstWin
+          ? { text: t('expeditions.firstWin') }
+          : null,
+    report.sigil ? { text: t('expeditions.sigil', { tier: report.sigil }) } : null,
     report.sigilShards
-      ? t('expeditions.sigilShards', { emoji: materialById[shardId(report.sigilShards.element)].emoji, amount: report.sigilShards.amount })
+      ? {
+          text: t('expeditions.sigilShards', {
+            emoji: materialById[shardId(report.sigilShards.element)].emoji,
+            amount: report.sigilShards.amount,
+          }),
+        }
       : null,
-    ...lootLabels(report.loot),
-  ].filter((item): item is string => item !== null);
+    ...lootGains(report.loot),
+  ].filter((item): item is LootGain => item !== null);
 }
 
 const totalXp = (hero: HeroState) => Array.from({ length: hero.level - 1 }, (_, i) => xpToNextLevel(i + 1)).reduce((a, b) => a + b, hero.xp);
@@ -85,7 +96,12 @@ export function LootReveal({ report, before, after, onClose, onReadReport }: Pro
             {items.map((item, i) => (
               <Pop key={i} delay={300 + i * STAGGER_MS}>
                 <View style={[styles.item, i === 0 && report.gold > 0 && styles.itemGold]}>
-                  <RewardLabel text={item} size={20} labelStyle={[styles.itemText, i === 0 && report.gold > 0 && styles.itemTextBig]} />
+                  <RewardLabel
+                    text={item.text}
+                    color={item.color}
+                    size={20}
+                    labelStyle={[styles.itemText, i === 0 && report.gold > 0 && styles.itemTextBig]}
+                  />
                 </View>
               </Pop>
             ))}

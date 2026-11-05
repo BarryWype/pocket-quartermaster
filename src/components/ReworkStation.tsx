@@ -18,6 +18,7 @@ import { useGameStore } from '@/store/gameStore';
 import { colors, fonts, ui } from '@/theme';
 
 import { affixLine, affixName, affixRangeLine } from './affixText';
+import { AffixLines } from './AffixLines';
 import { Button } from './Button';
 import { Overlay } from './Overlay';
 import { Panel } from './Panel';
@@ -174,11 +175,7 @@ function ReworkCard({
     >
       <>
         <Text style={[styles.rarity, { color: gearRules.colors[gear.rarity] }]}>{tr(rarityNames[gear.rarity])}</Text>
-        {gear.affixes.map((affix) => (
-          <Text key={affix.id} style={styles.affix}>
-            {affixLine(affix)}
-          </Text>
-        ))}
+        <AffixLines piece={gear} labelStyle={styles.affix} />
 
         {takesStone && (
           <>

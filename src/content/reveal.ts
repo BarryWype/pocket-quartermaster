@@ -24,7 +24,18 @@ export type ItemTipKind = 'charms' | 'components' | 'relics' | 'trinkets' | 'val
  * The specials tip: due once the tutorial is done and a hero is fielded. The jobs tip: due once
  * the Jobs tab is opened. The per-job tips: due once their station opens at the guild.
  */
-export type TipId = RevealKind | ItemTipKind | 'specials' | 'jobs' | 'jobMiner' | 'jobCharcoalBurner' | 'jobGatherer';
+export type TipId =
+  | RevealKind
+  | ItemTipKind
+  | 'affixes'
+  | 'ingredients'
+  | 'stones'
+  | 'reroll'
+  | 'specials'
+  | 'jobs'
+  | 'jobMiner'
+  | 'jobCharcoalBurner'
+  | 'jobGatherer';
 
 /** What has to be true for a kind to show; read by `isRevealed`. */
 export type RevealCondition =
@@ -111,6 +122,10 @@ export const tipTexts: Record<TipId, string> = {
   trinkets: 'Trinkets: loot-only gear with rare stats like Luck and Crit.',
   valuables: 'Valuables: sell them at a market. Collectors pay more for some.',
   keyFragments: 'Key fragments: four make a mysterious key, which opens secret places.',
+  affixes: 'Affixes: named effects a piece of gear carries, shown under its stats. Uncommon pieces have one, Rare two, Legendary three.',
+  ingredients: 'Ingredients: monster parts and components. Forging a blueprint with one makes the piece Uncommon and adds its affix.',
+  stones: "Elemental stones give a piece their element — Infused on weapons, Warding on armour. Apply one at the forge's Rework page.",
+  reroll: "An Uncommon or better piece can reroll all of its affixes at the forge's Rework page, for materials and gold.",
   specials: 'Specials: every hero has one, rolled from its class. It fires on its own in fights, a limited number of times; rare ones are marked ✦.',
   jobs: "A hero at a job produces slowly while you're away. Output fills up after 8 hours, so collect on check-in. Work tires them over a day, and tired heroes rest at the station before working again. Working heroes must be recalled before they can be sent out.",
   jobMiner:

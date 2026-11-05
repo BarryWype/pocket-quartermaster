@@ -1,9 +1,10 @@
-import { componentById, itemById } from '@/content/lookup';
+import { componentById, itemById, monsterPartById } from '@/content/lookup';
 import { offMapRevealKinds, placeRevealKinds, revealRules, tipTexts, type ItemTipKind, type RevealKind, type TipId } from '@/content/reveal';
 import type { PlaceKind } from '@/content/places';
 import { frTipTexts } from '@/content/fr/reveal';
 import { localized } from '@/i18n/locale';
 
+import { ELEMENTS, stoneId } from '../elements';
 import { highestUnlockedTier } from '../dungeons/unlock';
 import { isGuildUnlocked } from '../guild/guild';
 import { isJobOpen } from '../jobs/jobs';
@@ -71,11 +72,26 @@ export function noteTips(save: SaveData, ids: TipId[]): SaveData {
   return { ...save, tips: { ...save.tips, pending: [...save.tips.pending, ...fresh] } };
 }
 
+/** The gear-based tips the piece first held or the stock first held of it triggers, in tip order. */
+function heldGearKinds(save: SaveData): TipId[] {
+  const held: TipId[] = [];
+  if (save.gear.some((gear) => gear.affixes.length > 0)) held.push('affixes');
+  if (
+    Object.entries(save.materials).some(([id, count]) => count > 0 && (monsterPartById[id] !== undefined || componentById[id] !== undefined))
+  ) {
+    held.push('ingredients');
+  }
+  if (ELEMENTS.some((element) => (save.materials[stoneId(element)] ?? 0) > 0)) held.push('stones');
+  if (save.gear.some((gear) => gear.rarity !== 'common')) held.push('reroll');
+  return held;
+}
+
 /** Tips due now: specials once a hero is fielded, item kinds first held, off-map kinds once revealed, job stations once open. */
 export function dueTips(save: SaveData): TipId[] {
   return [
     ...(save.tutorial.step === 'done' && save.heroes.length > 0 ? (['specials'] as TipId[]) : []),
     ...heldItemKinds(save),
+    ...heldGearKinds(save),
     ...offMapRevealKinds.filter((kind) => isRevealed(save, kind)),
     ...(isJobOpen(save, 'miner') ? (['jobMiner'] as TipId[]) : []),
     ...(isJobOpen(save, 'charcoalBurner') ? (['jobCharcoalBurner'] as TipId[]) : []),

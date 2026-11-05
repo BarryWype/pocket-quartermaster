@@ -455,6 +455,7 @@ export const en = {
   },
   gear: {
     equipped: 'Equipped',
+    unique: 'Unique: {effect}',
   },
   team: {
     roster: 'Roster {count}/{cap} · up to {party} per expedition',
@@ -938,6 +939,10 @@ export const en = {
       trinkets: 'Trinkets',
       valuables: 'Valuables',
       keyFragments: 'Key fragments',
+      affixes: 'Affixes',
+      ingredients: 'Ingredients',
+      stones: 'Elemental stones',
+      reroll: 'Reroll',
       specials: 'Specials',
       jobs: 'Jobs',
       jobMiner: 'Miner',

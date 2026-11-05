@@ -7,9 +7,10 @@ import { Countdown, countdownText } from '@/components/Countdown';
 import { TutorialHint } from '@/components/TutorialHint';
 import { StepChests } from '@/components/StepChests';
 import { PartsLine } from '@/components/IconLabel';
-import { gearStatsParts, gearEffectParts } from '@/components/GearRow';
+import { AffixLines } from '@/components/AffixLines';
+import { gearStatsParts } from '@/components/GearRow';
 import { SalvageDialog } from '@/components/SalvageDialog';
-import { rarityNames } from '@/content/gear';
+import { gearRules, rarityNames } from '@/content/gear';
 import { bossById } from '@/content/enemies';
 import { lootConfig } from '@/content/loot/config';
 import { purposeInfo } from '@/content/loot/purposes';
@@ -415,13 +416,20 @@ function InventoryPopup({
       title = gearName(gear);
       emoji = item.emoji;
       icon = item.icon;
-      subtitle = `${tr(rarityNames[gear.rarity])} · ${tr(item.name)}`;
+      subtitle = (
+        <>
+          <Text style={{ color: gearRules.colors[gear.rarity] }}>{tr(rarityNames[gear.rarity])}</Text>
+          {` · ${tr(item.name)}`}
+        </>
+      );
       note = holder ? t('common.equippedBy', { name: holder.name }) : undefined;
-      const parts = [
-        ...gearStatsParts(gear),
-        ...gearEffectParts(gear),
-      ].filter((part) => part !== null);
-      children = parts.length > 0 ? <PartsLine parts={parts} sep="   " labelStyle={styles.line} /> : undefined;
+      const parts = gearStatsParts(gear);
+      children = (
+        <>
+          {parts.length > 0 && <PartsLine parts={parts} sep="   " labelStyle={styles.line} />}
+          <AffixLines piece={gear} compact labelStyle={styles.line} />
+        </>
+      );
       action = { title: t('inventory.salvage'), disabled: !canSalvage(save, gear.uid), onPress: () => onSalvage(gear) };
       break;
     }

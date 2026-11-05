@@ -12,12 +12,13 @@ import { t, tr } from '@/i18n';
 import { colors } from '@/theme';
 
 import { Button } from './Button';
+import { AffixLines } from './AffixLines';
 import { GearMarks } from './GearMarks';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
 import { Row } from './Row';
 import { Text } from './Text';
-import { gearEffectParts, statIcons, trinketParts } from './GearRow';
+import { statIcons, trinketParts } from './GearRow';
 import { PartsLine, type LabelPart } from './IconLabel';
 
 type Props = {
@@ -119,16 +120,23 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, briefin
           : []
         : [
             ...(item.slot === 'trinket' ? trinketParts(gear) : deltaParts(preview!)),
-            ...gearEffectParts(gear),
             unequipsOffhand ? t('equip.unequipsOffhand') : null,
             holder ? t('equip.usedBy', { name: holder.name }) : null,
           ].filter((part): part is LabelPart => part !== null);
+      const hasUnique = gear.relicId !== undefined || gear.unique !== undefined;
+      const showAffixes = !greyed && (hasUnique || gear.affixes.length > 0);
       return {
         id: gear.uid,
         emoji: item.emoji,
         icon: item.icon,
         title: gearName(gear),
-        subtitle: parts.length > 0 ? <PartsLine parts={parts} labelStyle={styles.subtitle} /> : undefined,
+        subtitle:
+          parts.length > 0 || showAffixes ? (
+            <>
+              {parts.length > 0 && <PartsLine parts={parts} labelStyle={styles.subtitle} />}
+              {showAffixes && <AffixLines piece={gear} compact labelStyle={styles.subtitle} />}
+            </>
+          ) : undefined,
         color: greyed ? colors.muted : gearRules.colors[gear.rarity],
         disabled: greyed,
         equipped,

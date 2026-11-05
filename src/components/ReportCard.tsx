@@ -66,7 +66,7 @@ export function ReportCard({ report, heroes, now, expanded, onToggle }: Props) {
     report.hunger && report.hunger !== 'fed' ? t(`expeditions.hunger.${report.hunger}`) : null,
     report.mealId ? `${itemById[report.mealId].emoji} ${tr(itemById[report.mealId].name)}` : null,
   ].filter((item): item is string => item !== null);
-  const loot = [...lootItems(report), `+${report.xp} XP`];
+  const loot = [...lootItems(report), { text: `+${report.xp} XP` }];
 
   return (
     <ParchmentCard title={tr(dungeon.name)} titleEmoji={dungeon.emoji} titleSub={`${outcomeText} · ${when}`} contentStyle={styles.content}>

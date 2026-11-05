@@ -185,6 +185,19 @@ describe('dueTips', () => {
     expect(dueTips(save)).toContain('jobMiner');
     expect(dueTips(save)).not.toContain('jobCharcoalBurner');
   });
+
+  it('queues each gear tip once, when its piece or stock is first held', () => {
+    const save = opened();
+    expect(dueTips(save)).not.toContain('affixes');
+    save.gear = [
+      { uid: 'g1', itemId: 'stoneSword', rarity: 'uncommon' as const, roll: 12, affixes: [{ id: 'hunter', value: 22 }], rerolls: 0 },
+    ];
+    save.materials = { fangOrHorn: 1, fireStone: 1 };
+    expect(dueTips(save)).toEqual(expect.arrayContaining(['affixes', 'ingredients', 'stones', 'reroll']));
+    const queued = noteTips(save, dueTips(save));
+    expect(queued.tips.pending).toEqual(['specials', 'affixes', 'ingredients', 'stones', 'reroll', 'dungeons', 'quests']);
+    expect(noteTips(queued, dueTips(queued))).toBe(queued);
+  });
 });
 
 describe('quest objectives', () => {

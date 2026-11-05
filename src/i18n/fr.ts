@@ -461,6 +461,7 @@ export const fr: Dictionary = {
   },
   gear: {
     equipped: 'Équipé',
+    unique: 'Unique : {effect}',
   },
   team: {
     roster: 'Effectif {count}/{cap} · jusqu’à {party} par expédition',
@@ -946,6 +947,10 @@ export const fr: Dictionary = {
       trinkets: 'Bibelots',
       valuables: 'Objets de valeur',
       keyFragments: 'Fragments de clé',
+      affixes: 'Affixes',
+      ingredients: 'Ingrédients',
+      stones: 'Pierres élémentaires',
+      reroll: 'Relance',
       specials: 'Aptitudes',
       jobs: 'Métiers',
       jobMiner: 'Mineur',

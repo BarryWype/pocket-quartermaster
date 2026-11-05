@@ -78,21 +78,43 @@ export function splitLeadingEmoji(text: string): { emoji: string; label: string 
   return { emoji: match[0].trim(), label: text.slice(match[0].length) };
 }
 
-/** A loot or reward label: its leading emoji beside the words when it has one. */
-export function RewardLabel({ text, size = 18, labelStyle }: { text: string; size?: number; labelStyle?: StyleProp<TextStyle> }) {
+/** A loot or reward label: its leading emoji beside the words when it has one, in `color` when it carries one. */
+export function RewardLabel({
+  text,
+  color,
+  size = 18,
+  labelStyle,
+}: {
+  text: string;
+  /** The gain's own colour, e.g. looted gear's rarity. */
+  color?: string;
+  size?: number;
+  labelStyle?: StyleProp<TextStyle>;
+}) {
   const gold = parseGoldLabel(text);
   if (gold) return <Price amount={gold.amount} prefix={gold.prefix} size={size} textStyle={labelStyle} />;
   const split = splitLeadingEmoji(text);
-  if (!split) return <Text style={labelStyle}>{text}</Text>;
-  return <IconLabel emoji={split.emoji} icon={systemIcons[split.emoji]} label={split.label} size={size} labelStyle={labelStyle} />;
+  if (!split) return <Text style={[labelStyle, color ? { color } : null]}>{text}</Text>;
+  return (
+    <IconLabel emoji={split.emoji} icon={systemIcons[split.emoji]} label={split.label} size={size} labelStyle={[labelStyle, color ? { color } : null]} />
+  );
 }
 
+/** One gain of a loot or reward list: plain words, or words with their own colour. */
+export type Gain = string | { text: string; color?: string };
+
 /** Loot labels in one wrapping row, each leading emoji beside its own words. */
-export function GainsLine({ gains, size = 18, gap = 6, style, labelStyle }: { gains: string[]; size?: number; gap?: number; style?: StyleProp<ViewStyle>; labelStyle?: StyleProp<TextStyle> }) {
+export function GainsLine({ gains, size = 18, gap = 6, style, labelStyle }: { gains: Gain[]; size?: number; gap?: number; style?: StyleProp<ViewStyle>; labelStyle?: StyleProp<TextStyle> }) {
   return (
     <View style={[styles.line, { gap }, style]}>
       {gains.map((gain, i) => (
-        <RewardLabel key={i} text={gain} size={size} labelStyle={labelStyle} />
+        <RewardLabel
+          key={i}
+          text={typeof gain === 'string' ? gain : gain.text}
+          color={typeof gain === 'string' ? undefined : gain.color}
+          size={size}
+          labelStyle={labelStyle}
+        />
       ))}
     </View>
   );

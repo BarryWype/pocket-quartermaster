@@ -1,3 +1,5 @@
+import { type ImageSourcePropType } from 'react-native';
+
 import { affixById, type AffixDef, type AffixEffect } from '@/content/affixes';
 import { elementInfo } from '@/content/elements';
 import { threatById } from '@/content/lookup';
@@ -69,4 +71,19 @@ export function affixRangeLine(id: string, min: number, max: number): string {
   if (!def) return id;
   const value = def.unit ? valueText(def.unit, min, max) : '';
   return `${affixName(id)}: ${effectText(def.effect, value)}`;
+}
+
+/** The icon an affix's line shows: its family tag's, element's, threat's, or the keyword's. */
+export function affixIcon(id: string): { emoji: string; icon?: ImageSourcePropType } {
+  const def = affixById[id];
+  if (!def) return { emoji: '◆' };
+  if ('element' in def.effect) return { emoji: elementInfo[def.effect.element].emoji };
+  if ('threat' in def.effect) {
+    const threat = threatById[def.effect.threat];
+    return { emoji: threat.emoji, icon: threat.icon };
+  }
+  if (def.family === 'keyword' || 'keyword' in def.effect) return { emoji: '🗝️' };
+  if (def.family === 'walking') return { emoji: '🥾' };
+  const tag = tagInfo[def.family as Tag];
+  return { emoji: tag.emoji, icon: tag.icon };
 }

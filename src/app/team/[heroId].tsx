@@ -3,6 +3,7 @@ import { useRef, useState, type ComponentRef } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
 
 import { DELTA_KEYS, EquipPicker } from '@/components/EquipPicker';
+import { affixIcon, affixLine } from '@/components/affixText';
 import { EnergyBar } from '@/components/EnergyBar';
 import { PlaceholderScreen } from '@/components/PlaceholderScreen';
 import { statIcons } from '@/components/GearRow';
@@ -18,6 +19,7 @@ import { abilityText } from '@/content/abilities';
 import { clockConfig } from '@/content/clockConfig';
 import { elementInfo } from '@/content/elements';
 import { expeditionRules } from '@/content/dungeons';
+import { gearRules, rarityNames } from '@/content/gear';
 import { approachRules } from '@/content/threats';
 import { slotProblem } from '@/game/equipment/slots';
 import { gearApproachBonus, approachScore, pendingApproachPicks } from '@/game/team/stats';
@@ -610,6 +612,7 @@ function ComparePopup({
         (row) => row.worn !== 0 || row.next !== 0,
       )
     : [];
+  const affixRows = preview ? affixChanges(worn, gear) : [];
   if (preview) {
     const keywords = keywordChange(save, hero, slot, gear);
     for (const { keyword, gained } of keywords) {
@@ -632,6 +635,7 @@ function ComparePopup({
       action={{ title: t('hero.equip'), onPress: onEquip, disabled: !preview || isOnExpedition(save, hero.id) }}
       pointer={pointer}
     >
+      <Text style={[styles.rarity, { color: gearRules.colors[gear.rarity] }]}>{tr(rarityNames[gear.rarity])}</Text>
       {rows.length > 0 && (
         <View style={styles.compare}>
           {rows.map(({ key, worn: wornValue, next }) => (
@@ -645,8 +649,47 @@ function ComparePopup({
           ))}
         </View>
       )}
+      {affixRows.length > 0 && (
+        <View style={styles.compare}>
+          {affixRows.map(({ mark, icon, text, up, down }, i) => (
+            <View key={i} style={styles.affixRow}>
+              <Text style={[styles.compareMark, up && styles.compareUp, down && styles.compareDown]}>{mark}</Text>
+              <IconLabel
+                emoji={icon.emoji}
+                icon={icon.icon}
+                label={text}
+                size={15}
+                labelStyle={[styles.compareValue, up && styles.compareUp, down && styles.compareDown]}
+              />
+            </View>
+          ))}
+        </View>
+      )}
     </ItemPopup>
   );
+}
+
+/** The affixes the piece would gain, change or lose, marked against the worn one. */
+function affixChanges(worn: GearInstance | undefined, piece: GearInstance) {
+  const before = new Map((worn?.affixes ?? []).map((affix) => [affix.id, affix.value]));
+  const rows: { mark: '+' | '−' | ''; icon: ReturnType<typeof affixIcon>; text: string; up: boolean; down: boolean }[] = [];
+  for (const affix of piece.affixes) {
+    const old = before.get(affix.id);
+    if (old === undefined) rows.push({ mark: '+', icon: affixIcon(affix.id), text: affixLine(affix), up: true, down: false });
+    else if (old !== affix.value)
+      rows.push({
+        mark: '',
+        icon: affixIcon(affix.id),
+        text: `${affixLine({ id: affix.id, value: old })} → ${affixLine(affix)}`,
+        up: affix.value > old,
+        down: affix.value < old,
+      });
+  }
+  const after = new Set(piece.affixes.map((affix) => affix.id));
+  for (const affix of worn?.affixes ?? []) {
+    if (!after.has(affix.id)) rows.push({ mark: '−', icon: affixIcon(affix.id), text: affixLine(affix), up: false, down: true });
+  }
+  return rows;
 }
 
 /** The keywords equipping the piece would add or take away, versus the hero as equipped. */
@@ -668,7 +711,9 @@ function keywordChange(save: SaveData, hero: HeroState, slot: (typeof GEAR_SLOTS
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: ui.woodDark },
   compare: { alignSelf: 'stretch', gap: 2 },
+  rarity: { fontFamily: fonts.body, fontSize: 16, color: ui.ink, textTransform: 'uppercase' },
   compareRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  affixRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   compareName: { flex: 1, fontFamily: fonts.serif, fontSize: 15, color: ui.ink },
   compareValue: { fontFamily: fonts.serif, fontSize: 15, color: ui.ink },
   compareMark: { width: 14, fontFamily: fonts.serif, fontSize: 15 },

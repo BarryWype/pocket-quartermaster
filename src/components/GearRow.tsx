@@ -1,10 +1,9 @@
 import { elementInfo } from '@/content/elements';
-import { affixById } from '@/content/affixes';
-import { itemById, relicById } from '@/content/lookup';
+import { itemById } from '@/content/lookup';
 import { gearStats } from '@/game/gear/stats';
 import { trinketEffect } from '@/game/loot/trinkets';
 import type { GearDef, GearInstance } from '@/game/types';
-import { getLocale, t, tr } from '@/i18n';
+import { t } from '@/i18n';
 
 import type { LabelPart } from './IconLabel';
 
@@ -41,13 +40,4 @@ export function gearStatsParts(gear: GearInstance): LabelPart[] {
   if (item.slot !== 'weapon' && item.slot !== 'armor' && item.slot !== 'offhand') return [];
   const stats = gearStats(gear);
   return STATS.filter((key) => stats[key]).map((key) => ({ emoji: statIcons[key], text: String(Math.round(stats[key]!)) }));
-}
-
-/** "🏺 Pierce against constructs", then each affix's name: a piece's unique and affixes. */
-export function gearEffectParts(gear: GearInstance): LabelPart[] {
-  const unique = gear.relicId ?? gear.unique;
-  return [
-    ...(unique ? [{ emoji: '🏺', text: tr(relicById[unique].effect) }] : []),
-    ...gear.affixes.map((affix) => (getLocale() === 'fr' ? affixById[affix.id].nameFr : affixById[affix.id].name)),
-  ];
 }

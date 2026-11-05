@@ -21,6 +21,12 @@ export const frTipTexts: typeof tipTexts = {
   trinkets: 'Bibelots : de l’équipement introuvable en boutique, aux statistiques rares comme Chance et Critique.',
   valuables: 'Objets de valeur : vendez-les au marché. Les collectionneurs en paient certains plus cher.',
   keyFragments: 'Fragments de clé : quatre forment une clé mystérieuse, qui ouvre les lieux secrets.',
+  affixes: "Affixes : des effets nommés portés par une pièce d'équipement, affichés sous ses statistiques. Une pièce Peu commune en a un, Rare deux, Légendaire trois.",
+  ingredients:
+    'Ingrédients : parties de monstres et composants. Forger un plan avec l’un d’eux rend la pièce Inhabituelle et ajoute son affixe.',
+  stones: "Les pierres élémentaires donnent leur élément à une pièce — Infusé sur les armes, Protection sur les armures. Appliquez-les à la page Retouche de la forge.",
+  reroll:
+    "Une pièce Inhabituelle ou meilleure peut relancer tous ses affixes à la page Retouche de la forge, contre des matériaux et de l'or.",
   specials: 'Aptitudes : chaque héros en a une, tirée de sa classe. Elle se déclenche seule dans les combats, un nombre limité de fois ; les rares sont marquées ✦.',
   jobs: "Un héros à un métier produit lentement en votre absence. La production remplit en 8 heures : récoltez-la à votre retour. Le travail les fatigue sur une journée, et un héros fatigué se repose à son poste avant de reprendre. Un héros au travail doit d'abord être rappelé avant de pouvoir être envoyé ailleurs.",
   jobMiner:
