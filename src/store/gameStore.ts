@@ -31,7 +31,9 @@ import { migrateSave } from '@/game/migrations';
 import { readManual } from '@/game/loot/manuals';
 import type { Loot, ManualRarity } from '@/game/loot/types';
 import { applyBackgroundResults, type BackgroundResult } from '@/game/patrols/escort';
-import { assignJob, assignProblem, collectJob, jobChoices, jobOutputNow, moveCamp, recallFromJob, setJobChoice, settleJobs } from '@/game/jobs/jobs';
+import type { GathererFocus } from '@/content/jobs';
+import { addAnchor, addAnchorsFromFixes } from '@/game/jobs/gatherer';
+import { assignJob, assignProblem, collectJob, jobChoices, jobOutputNow, recallFromJob, setGathererFocus, setJobChoice, settleJobs } from '@/game/jobs/jobs';
 import { isTravellerKind, type PatrolSpawn, type TravellerKind } from '@/game/patrols/generate';
 import { resolvePatrolFights as resolveDueFights, startPatrolFight, type PatrolFight } from '@/game/patrols/fight';
 import { acceptRecruit, helpTraveller as helpTravellerRule, sellValuableToTrader, trade, type TravellerRecruit, type TravellerReward } from '@/game/patrols/travellers';
@@ -133,10 +135,12 @@ type GameState = {
   noteTips: (ids: TipId[]) => void;
   /** Drinks a healing potion at home: the one asked for, or else the best fit. */
   drinkPotion: (heroId: string, itemId?: string) => void;
-  /** Puts a free hero to work at a station; a busy hero or a taken station changes nothing. The gatherer camps where the player stands. */
-  assignJob: (heroId: string, jobId: string, position?: LatLng) => void;
-  /** Moves the gatherer's camp to where the player stands; the output made so far is kept. */
-  moveCamp: (position: LatLng) => void;
+  /** Puts a free hero to work at a station; a busy hero or a taken station changes nothing. */
+  assignJob: (heroId: string, jobId: string) => void;
+  /** Notes where the player is, for the outdoor gatherer; most calls change nothing. */
+  noteAnchor: (position: LatLng) => void;
+  /** Points the outdoor gatherer at a focus. */
+  setGathererFocus: (focus: GathererFocus) => void;
   /** Takes a working hero off their job; the output made so far stays at the station. */
   recallFromJob: (heroId: string) => void;
   /** Collects a job's output: whole units go to the materials, the fraction stays. */
@@ -307,12 +311,15 @@ export const useGameStore = create<GameState>()(
         const save = get().save;
         // While the tutorial runs, the pick-up range is wider (see collectRadiusNow).
         const config = { ...gatheringConfig, collectRadiusMeters: collectRadiusNow(save) };
-        const result = collectSpawn(save, spawn, gatherer, timeMs, { config });
+        // The gatherer settles first: a node its hero already took is gone.
+        const result = collectSpawn(settleJobs(save, timeMs), spawn, gatherer, timeMs, { config });
         if (result.ok) set({ save: advanceTutorial(result.save) });
         return result;
       },
       processWalk: (fixes, options, record) => {
-        const { save, summary } = processWalkPath(get().save, fixes, options);
+        // The walk moves the gatherer's anchor first, then the gatherer settles, so a node its hero took is gone.
+        const anchored = settleJobs(addAnchorsFromFixes(get().save, fixes), Date.now());
+        const { save, summary } = processWalkPath(anchored, fixes, options);
         const walked = refreshWalks(save, Date.now());
         set({ save: record ? recordWalk(walked, summary) : walked });
         return summary;
@@ -412,14 +419,15 @@ export const useGameStore = create<GameState>()(
       drinkPotion: (heroId, itemId) =>
         set(({ save }) => (drinkProblem(save, heroId, Date.now(), itemId) ? {} : { save: drinkPotion(save, heroId, Date.now(), itemId) })),
       // Job actions skip when the rules refuse: a screen still showing an old state must not crash.
-      assignJob: (heroId, jobId, position) => {
+      assignJob: (heroId, jobId) => {
         const now = Date.now();
-        set(({ save }) => (assignProblem(save, heroId, jobId, now, position) ? {} : { save: assignJob(save, heroId, jobId, now, position) }));
+        set(({ save }) => (assignProblem(save, heroId, jobId, now) ? {} : { save: assignJob(save, heroId, jobId, now) }));
       },
-      moveCamp: (position) => {
-        const now = Date.now();
-        set(({ save }) => (save.heroes.some((h) => h.job?.jobId === 'gatherer') ? { save: moveCamp(save, position, now) } : {}));
+      noteAnchor: (position) => {
+        const next = addAnchor(get().save, position, Date.now());
+        if (next !== get().save) set({ save: next });
       },
+      setGathererFocus: (focus) => set(({ save }) => ({ save: setGathererFocus(save, focus, Date.now()) })),
       recallFromJob: (heroId) => {
         const now = Date.now();
         set(({ save }) => (save.heroes.some((h) => h.id === heroId && h.job) ? { save: recallFromJob(save, heroId, now) } : {}));

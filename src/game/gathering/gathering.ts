@@ -71,13 +71,14 @@ export function pruneCollected(collected: Record<string, number>, timeMs: number
 }
 
 /**
- * The earliest time collected entries may be dropped at: an outdoor gatherer
- * keeps scanning back to its output's `since` (see game/jobs/gatherer.ts), so a
- * node the player took must stay hidden to it until that scan has passed.
+ * The earliest time collected entries may be dropped at: the outdoor gatherer's
+ * next replay starts at its next look (see game/jobs/gatherer.ts), so a node
+ * the player took must stay hidden to it until then.
  */
 export function collectedKeepFrom(save: SaveData, timeMs: number): number {
   const gatherer = save.heroes.find((h) => h.job?.jobId === 'gatherer');
-  return gatherer ? Math.min(timeMs, save.jobOutput.gatherer?.since ?? timeMs) : timeMs;
+  const entry = save.jobOutput.gatherer;
+  return gatherer ? Math.min(timeMs, entry?.nextAt ?? entry?.since ?? timeMs) : timeMs;
 }
 
 /** The local calendar day of a moment, as an ISO date (the walking bonus resets with it). */

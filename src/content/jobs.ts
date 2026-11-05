@@ -1,3 +1,5 @@
+import type { ResourceKind } from '@/game/generation/types';
+
 /** Guild jobs: a hero at a station turns time into materials (see doc/design/jobs/README.md). */
 export const jobRules = {
   /** Hours of work a station's output holds before it fills up. */
@@ -6,19 +8,30 @@ export const jobRules = {
   energy: { max: 100, drainHours: 24, restHours: 6 },
 };
 
-/** The outdoor gatherer (2c-2): it picks up, around a camp, the nodes the player leaves behind. */
+/** The outdoor gatherer: it gathers, around the player, the resource nodes the player can see on the map. */
 export const gathererRules = {
-  /** How far from the camp the gatherer works. */
-  radiusMeters: 250,
-  /** At least this many minutes of working time between two nodes. */
-  minutesPerNode: 20,
-  /** A full output holds this much working time. */
+  /** The hero's walking pace between nodes. */
+  heroWalkMetersPerMinute: 60,
+  /** Minutes spent gathering at a node, on top of the walk. */
+  gatherMinutes: 3,
+  /** At most one node every this many minutes. */
+  minMinutesPerNode: 15,
+  /** A full output holds this much time at the pace: capHours × 60 ÷ minMinutesPerNode nodes. */
   capHours: 8,
   /** Chance per gathered node of a minor wound. */
   woundChancePerNode: 0.03,
   /** The share of max HP a wound costs. */
   woundHpShare: 0.15,
+  /** The anchor history gets a new point once the player is this far from the last one… */
+  anchorMoveMeters: 50,
+  /** …and at least this long after it. */
+  anchorEveryMinutes: 15,
+  /** The resource kinds each focus prefers; with none of them in sight, the hero takes any. */
+  focus: { wood: ['wood'], food: ['herb', 'animal'], ore: ['ore'] } as Record<'wood' | 'food' | 'ore', ResourceKind[]>,
 };
+
+/** What the gatherer looks for first: anything, or one focus of gathererRules.focus. */
+export type GathererFocus = 'any' | keyof typeof gathererRules.focus;
 
 /**
  * One material, a weighted roll per unit, a player-picked material from an
@@ -72,7 +85,7 @@ export const jobs: JobDef[] = [
     ratePerHour: 0, // unused: the gatherer's output is the nodes it gathers
     opensAtTier: 1,
     drainHours: 16,
-    emoji: '🏕️',
+    emoji: '🎒',
   },
 ];
 

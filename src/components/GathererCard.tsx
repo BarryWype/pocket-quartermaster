@@ -6,9 +6,8 @@ import { jobById } from '@/content/jobs';
 import { materialById } from '@/content/lookup';
 import { gathererCapNodes, type GathererWound } from '@/game/jobs/gatherer';
 import { isJobFull, jobOutputDetail, jobWorker } from '@/game/jobs/jobs';
-import { distanceMeters } from '@/game/generation/geo';
 import type { SaveData } from '@/game/save';
-import { formatDistance, t, tr } from '@/i18n';
+import { t, tr } from '@/i18n';
 import { useNow } from '@/hooks/useNow';
 import { usePlayerLocation } from '@/hooks/usePlayerLocation';
 import { colors } from '@/theme';
@@ -31,7 +30,6 @@ export function GathererCard() {
   const assignJob = useGameStore((state) => state.assignJob);
   const collectJob = useGameStore((state) => state.collectJob);
   const recallFromJob = useGameStore((state) => state.recallFromJob);
-  const moveCamp = useGameStore((state) => state.moveCamp);
   const noteTips = useGameStore((state) => state.noteTips);
   const player = usePlayerLocation();
   const position = player.status === 'ready' ? player.location.position : null;
@@ -41,7 +39,6 @@ export function GathererCard() {
   // The buttons turn on the settled output, so the clock is coarse; the bar ticks on its own.
   const now = useNow(clockConfig.minutesMs);
   const worker = jobWorker(save, 'gatherer');
-  const camp = worker?.job?.camp;
   const detail = jobOutputDetail(save, 'gatherer', now);
 
   // The tip queues the first time the card is on screen; later times change nothing.
@@ -49,7 +46,7 @@ export function GathererCard() {
     noteTips(['jobGatherer']);
   }, [noteTips]);
 
-  const working = worker && camp ? { worker, camp } : null;
+  const working = worker ? { worker } : null;
   const wounds = collectedWounds ?? detail.wounds ?? [];
   const nameOf = (heroId: string) => save.heroes.find((hero) => hero.id === heroId)?.name ?? heroId;
 
@@ -62,11 +59,6 @@ export function GathererCard() {
     >
       {working ? (
         <>
-          {position && (
-            <Text style={styles.muted}>
-              {t('jobs.gatherer.distance', { distance: formatDistance(distanceMeters(position, working.camp.position)) })}
-            </Text>
-          )}
           <GathererOutput save={save} />
           <EnergyBar save={save} hero={working.worker} />
           {wounds.map((wound, index) => (
@@ -92,15 +84,6 @@ export function GathererCard() {
                 recallFromJob(working.worker.id);
               }}
             />
-            <WoodButton
-              title={t('jobs.gatherer.moveCamp')}
-              compact
-              disabled={!position}
-              onPress={() => {
-                setCollectedWounds(null);
-                if (position) moveCamp(position);
-              }}
-            />
           </View>
         </>
       ) : (
@@ -115,7 +98,7 @@ export function GathererCard() {
               <HeroChips
                 save={save}
                 onPick={(heroId) => {
-                  assignJob(heroId, 'gatherer', position ?? undefined);
+                  assignJob(heroId, 'gatherer');
                   setPicking(false);
                 }}
               />

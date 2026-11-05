@@ -40,6 +40,7 @@ import type { Rng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { buyRank, guildBonus, isGuildUnlocked, rankPrice, rankProblem } from '../guild/guild';
 import { hasMaterials } from '../inventory';
+import { addAnchor } from '../jobs/gatherer';
 import { assignJob, collectJob, isJobOpen, jobChoices, jobMaterials, jobOutputDetail, jobWorker, openJobs, recallFromJob, setJobChoice } from '../jobs/jobs';
 import { isRevealed } from '../reveal/reveal';
 import type { PatrolKind, PatrolSubject, TravellerKind } from '../patrols/generate';
@@ -854,7 +855,7 @@ export function morningCamp(sim: Sim) {
   const free = sim.save.heroes.filter((h) => !isBusy(sim.save, h.id));
   if (!free.length) return;
   const pick = [...free].sort((a, b) => statScore(sim.save, a) - statScore(sim.save, b))[0];
-  act(sim, 'job', (save) => assignJob(save, pick.id, 'gatherer', sim.now, sim.location));
+  act(sim, 'job', (save) => assignJob(addAnchor(save, sim.location, sim.now), pick.id, 'gatherer', sim.now));
 }
 
 /** Recalls the given working heroes before a send; the output made so far and their settled energy are kept. */

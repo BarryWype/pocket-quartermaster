@@ -288,9 +288,6 @@ describe("save migrations", () => {
         since: 10 * DAY,
       });
       expect(next.jobOutput.gatherer).toBeUndefined();
-      for (const hero of next.heroes) {
-        expect(hero.job?.camp).toBeUndefined();
-      }
       expect(next.jobChoice.miner).toBeNull();
     });
 

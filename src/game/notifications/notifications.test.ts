@@ -5,7 +5,7 @@ import { recipes } from '@/content/recipes';
 
 import { resolveExpedition, startExpedition } from '../expeditions/expeditions';
 import { assignJob, fullAt } from '../jobs/jobs';
-import { gathererFirstWoundAt } from '../jobs/gatherer';
+import { addAnchor, gathererFirstWoundAt } from '../jobs/gatherer';
 import { emptyLoot } from '../loot/types';
 import type { Heist } from '../types';
 import { createInitialSave, type SaveData } from '../save';
@@ -309,13 +309,12 @@ describe('job notifications', () => {
   });
 
   it('announces the gatherer only while a hero works it', () => {
-    const gathered = assignJob(
+    const anchored = addAnchor(
       { ...createInitialSave(), tutorial: { ...createInitialSave().tutorial, step: 'done' } },
-      'bram',
-      'gatherer',
-      now,
       { latitude: 48.85, longitude: 2.35 },
+      now - 1,
     );
+    const gathered = assignJob(anchored, 'bram', 'gatherer', now);
     const gathererIds = (n: { id: string }) => n.id.includes('gatherer');
     const planned = planNotifications(gathered, settings(), now).filter(gathererIds);
     const full = fullAt(gathered, 'gatherer', now);

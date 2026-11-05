@@ -1,6 +1,6 @@
 import type { GuildTrackId } from '@/content/guild';
 import { startingHeroes } from '@/content/heroes';
-import { choiceOf, jobs } from '@/content/jobs';
+import { choiceOf, jobs, type GathererFocus } from '@/content/jobs';
 import type { PlaceKind } from '@/content/places';
 import { provisionRules } from '@/content/provisions';
 import { recipes } from '@/content/recipes';
@@ -62,11 +62,20 @@ export type JobOutput = {
   since: number;
   /** Gatherer only: when the last node was taken (its pace clock). */
   lastNodeAt?: number;
+  /** Gatherer only: where the hero stands after the last node. */
+  heroAt?: LatLng;
+  /** Gatherer only: when the hero next looks for a node (the replay starts there). */
+  nextAt?: number;
+  /** Gatherer only: nodes gathered on a local day (ISO date). */
+  today?: { day: string; nodes: number };
   /** Gatherer only: wounds since the last collect: the hero's HP lost. */
   wounds?: { at: number; heroId: string; hp: number }[];
   /** Gatherer only: nodes gathered since the last collect. */
   nodes?: number;
 };
+
+/** Where the player was from `at` on: the gatherer works around it. */
+export type GathererAnchor = { position: LatLng; at: number };
 
 export type SaveData = {
   /** This save's own seed: daily rolls mix it in, so two players (or two new games) differ. */
@@ -81,6 +90,8 @@ export type SaveData = {
   heroes: HeroState[];
   /** Output waiting at each job, as of its `since` (see game/jobs/jobs.ts). */
   jobOutput: Record<string, JobOutput>;
+  /** The outdoor gatherer: where the player was (see game/jobs/gatherer.ts), and what it looks for first. */
+  gatherer: { anchors: GathererAnchor[]; focus: GathererFocus };
   /** The material each choice job makes (see content/jobs.ts); null until set. */
   jobChoice: Record<string, string | null>;
   expeditions: ActiveExpedition[];
@@ -207,6 +218,7 @@ export function createInitialSave(playerSeed?: string): SaveData {
     heroes: startingHeroes,
     jobOutput: {},
     jobChoice,
+    gatherer: { anchors: [], focus: 'any' },
     expeditions: [],
     reports: [],
     clearedDungeons: [],

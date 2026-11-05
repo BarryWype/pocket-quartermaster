@@ -1,16 +1,15 @@
-import { choiceOf, jobById, jobRules, jobs, type JobDef } from '@/content/jobs';
+import { choiceOf, jobById, jobRules, jobs, type GathererFocus, type JobDef } from '@/content/jobs';
 import { itemById } from '@/content/lookup';
 import { type WorkToolKind, workToolRules } from '@/content/workTools';
 
 import { highestUnlockedTier } from '../dungeons/unlock';
 import { createRng } from '../generation/rng';
-import type { LatLng } from '../generation/types';
 import { addMaterials } from '../inventory';
 import { currentHp, maxHp, withHp } from '../team/health';
 import type { JobOutput, SaveData } from '../save';
 import { isAway } from '../team/team';
 import type { GearDef, HeroState } from '../types';
-import { gathererCapNodes, gathererDetail, gathererFullAt, gathererNodesNow, type GathererWound } from './gatherer';
+import { gathererCapNodes, gathererDetail, gathererFullAt, gathererNodesNow, anchorsKeepFrom, pruneAnchors, type GathererWound } from './gatherer';
 
 const HOUR = 3_600_000;
 
@@ -189,12 +188,15 @@ function woundedHeroes(save: SaveData, heroes: HeroState[], wounds: GathererWoun
 export function settleJobs(save: SaveData, now: number): SaveData {
   const jobOutput = { ...save.jobOutput };
   let wounds: GathererWound[] = [];
+  let collected = save.collected;
   for (const job of jobs) {
     if (!jobWorker(save, job.id) && !(job.id in jobOutput)) continue;
     if (job.kind === 'outdoor') {
       const detail = gathererDetail(save, job.id, now);
       jobOutput[job.id] = detail.entry;
       wounds = detail.wounds;
+      // The nodes the hero took leave the map as if the player had taken them.
+      if (Object.keys(detail.collected).length > 0) collected = { ...collected, ...detail.collected };
       continue;
     }
     jobOutput[job.id] = jobOutputDetail(save, job.id, now);
@@ -204,7 +206,14 @@ export function settleJobs(save: SaveData, now: number): SaveData {
     job: hero.job ? { ...hero.job, tired: isTired(save, hero, now) } : null,
     energy: { value: currentEnergy(save, hero, now), at: now },
   }));
-  return { ...save, jobOutput, heroes: woundedHeroes(save, energy, wounds) };
+  const anchors = pruneAnchors(save.gatherer.anchors, anchorsKeepFrom({ ...save, jobOutput }, now));
+  return {
+    ...save,
+    jobOutput,
+    collected,
+    ...(anchors !== save.gatherer.anchors ? { gatherer: { ...save.gatherer, anchors } } : {}),
+    heroes: woundedHeroes(save, energy, wounds),
+  };
 }
 
 /** When the output reaches the job's cap with the current worker's cycle, or null with no worker or already full. */
@@ -238,23 +247,22 @@ export function tiredAt(save: SaveData, hero: HeroState, now: number): number | 
   return timeOf(hero, zero);
 }
 
-export type AssignProblem = 'away' | 'working' | 'taken' | 'unknown' | 'closed' | 'noPosition' | null;
+export type AssignProblem = 'away' | 'working' | 'taken' | 'unknown' | 'closed' | null;
 
 /** Why the hero cannot take the job now, or null when they can. */
-export function assignProblem(save: SaveData, heroId: string, jobId: string, now: number, position?: LatLng): AssignProblem {
+export function assignProblem(save: SaveData, heroId: string, jobId: string, now: number): AssignProblem {
   if (!jobById[jobId]) return 'unknown';
   if (!isJobOpen(save, jobId)) return 'closed';
   const hero = save.heroes.find((h) => h.id === heroId);
   if (!hero || isAway(save, heroId)) return 'away';
   if (hero.job) return 'working';
   if (jobWorker(save, jobId)) return 'taken';
-  if (jobById[jobId].kind === 'outdoor' && !position) return 'noPosition';
   return null;
 }
 
-/** Puts the hero to work: settled energy 0 sends them into the tired phase at once; an outdoor job camps where given. */
-export function assignJob(save: SaveData, heroId: string, jobId: string, now: number, position?: LatLng): SaveData {
-  const problem = assignProblem(save, heroId, jobId, now, position);
+/** Puts the hero to work: settled energy 0 sends them into the tired phase at once. */
+export function assignJob(save: SaveData, heroId: string, jobId: string, now: number): SaveData {
+  const problem = assignProblem(save, heroId, jobId, now);
   if (problem) throw new Error(`Cannot assign ${heroId} to ${jobId}: ${problem}`);
   const settled = settleJobs(save, now);
   const hero = settled.heroes.find((h) => h.id === heroId)!;
@@ -264,12 +272,7 @@ export function assignJob(save: SaveData, heroId: string, jobId: string, now: nu
       h.id === heroId
         ? {
             ...h,
-            job: {
-              jobId,
-              since: now,
-              tired: hero.energy.value <= 0,
-              ...(position ? { camp: { position, since: now } } : {}),
-            },
+            job: { jobId, since: now, tired: hero.energy.value <= 0 },
           }
         : h,
     ),
@@ -284,23 +287,18 @@ export function assignJob(save: SaveData, heroId: string, jobId: string, now: nu
   return withJob;
 }
 
-/** Moves the gatherer's camp: the output made so far is kept, gathering starts again from the new spot. */
-export function moveCamp(save: SaveData, position: LatLng, now: number): SaveData {
-  const settled = settleJobs(save, now);
-  const worker = settled.heroes.find((h) => h.job?.jobId === 'gatherer');
-  if (!worker) throw new Error('No gatherer to move a camp for');
-  return {
-    ...settled,
-    heroes: settled.heroes.map((h) => (h.id === worker.id ? { ...h, job: { ...h.job!, camp: { position, since: now } } } : h)),
-  };
-}
-
 /** Sends the choice job's future units to `material`; units already made keep their old material. */
 export function setJobChoice(save: SaveData, jobId: string, material: string, now: number): SaveData {
   if (!jobById[jobId] || !choiceOf(jobById[jobId])) throw new Error(`Job ${jobId} takes no choice`);
   if (!jobChoices(save, jobId).includes(material)) throw new Error(`Job ${jobId} cannot make ${material}`);
   const settled = settleJobs(save, now);
   return { ...settled, jobChoice: { ...settled.jobChoice, [jobId]: material } };
+}
+
+/** Points the gatherer at a focus from now on; what it gathered so far is kept. */
+export function setGathererFocus(save: SaveData, focus: GathererFocus, now: number): SaveData {
+  const settled = settleJobs(save, now);
+  return { ...settled, gatherer: { ...settled.gatherer, focus } };
 }
 
 /** Takes the hero off the job: their energy keeps its settled value, the output stays at the station. */
@@ -323,13 +321,10 @@ export function collectJob(save: SaveData, jobId: string, now: number): SaveData
     materials: addMaterials(settled.materials, whole.map(([materialId, amount]) => ({ materialId, amount }))),
     jobOutput: {
       ...settled.jobOutput,
-      [jobId]: {
-        amounts: {},
-        fraction: entry!.fraction,
-        units: entry!.units,
-        since: now,
-        ...(jobById[jobId].kind === 'outdoor' ? { nodes: 0, wounds: [] } : {}),
-      },
+      [jobId]:
+        jobById[jobId].kind === 'outdoor'
+          ? { ...entry!, amounts: {}, nodes: 0, wounds: [], since: now }
+          : { amounts: {}, fraction: entry!.fraction, units: entry!.units, since: now },
     },
   };
 }
