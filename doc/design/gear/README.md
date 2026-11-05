@@ -40,7 +40,7 @@ Roadmap step 3 in `doc/ideas.md`. Designed 2026-11-05. Replaces quality multipli
 - Costs walking materials plus gold, rising with each reroll of the same piece.
 
 ## Loot
-- Looted gear keeps each source's own d20 ladder, floors (monster lair ≥ Rare, first tier clear ≥ Uncommon) and quality steps (Tinker's lodestone, Hard difficulty), now as rarity steps; Luck keeps its +1 per 10 points. The ladders' results map to rarities (Crappy and Normal → Common). Target for basic sources after the mapping: about Common 40%, Uncommon 45%, Rare 13%, Legendary 2%; bosses, the lair and big fights stay richer. Affixes are random from the slot's pool, including loot-only ones (Steady, walking affixes) and, rarely, keyword affixes.
+- Looted gear keeps each source's own d20 ladder, floors (monster lair ≥ Rare, first tier clear ≥ Uncommon) and quality steps (Tinker's lodestone, Hard difficulty), now as rarity steps; Luck keeps its +1 per 10 points. The ladders' results map to rarities (Crappy and Normal → Common). No per-source split target: keep the order basic < big fights < bosses < monster lair, and tune to overall rates for the regular profile per tier (Luck included): about one Rare every 2–4 days, a Legendary about once per tier (relics aside), at least one Uncommon a day. Adjust big fights first, then bosses, then (only if needed) a small Rare chance on basic, at most 3% and below big fights. Affixes are random from the slot's pool, including loot-only ones (Steady, walking affixes) and, rarely, keyword affixes.
 - Gear may drop a little more often than today (tuned in the simulator).
 
 ## Relics and uniques
