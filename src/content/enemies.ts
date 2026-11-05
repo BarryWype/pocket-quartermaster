@@ -85,7 +85,7 @@ const S = {
   smugglersCove: strength(1, D('smugglersCove', 4.29)),
   banditStockade: strength(1, 3.95),
   // The bandit captain alone: ×0.9, aimed at about 55% for the full game's rosters (the reference team is far below).
-  banditStockadeBoss: strength(1, 3.56),
+  banditStockadeBoss: strength(1, 3.77),
   // Tier 2
   wolfDen: strength(2, D('wolfDen', 4.14)),
   barrowMounds: strength(2, D('barrowMounds', 3.32)),
@@ -93,7 +93,7 @@ const S = {
   trollBridge: strength(2, D('trollBridge', 3.61)),
   sunkenFord: strength(2, D('sunkenFord', 2.67)),
   watchtower: strength(2, D('watchtower', 3.72)),
-  ogreQuarry: strength(2, 3.17),
+  ogreQuarry: strength(2, 3.36),
   // Tier 3
   hauntedMine: strength(3, D('hauntedMine', 3.49)),
   fungalGrotto: strength(3, D('fungalGrotto', 3.04)),
@@ -101,7 +101,7 @@ const S = {
   cinderHollow: strength(3, D('cinderHollow', 2.60)),
   dwarfhold: strength(3, D('dwarfhold', 2.63)),
   witchMarsh: strength(3, D('witchMarsh', 2.65)),
-  drownedCrypt: strength(3, 2.93),
+  drownedCrypt: strength(3, 3.11),
   // Tier 4
   harpyCliffs: strength(4, D('harpyCliffs', 3.42)),
   thunderPlateau: strength(4, D('thunderPlateau', 2.28)),
