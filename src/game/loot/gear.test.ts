@@ -1,10 +1,15 @@
 import { difficultyRules } from '@/content/difficulty';
+import { affixById } from '@/content/affixes';
 import { RARITIES, type Rarity } from '@/content/gear';
+import { trinketId } from '@/content/trinkets';
 
 import { createRng, type Rng } from '../generation/rng';
 import { lootGearRarity, lootGearTier, rollLootGear } from './gear';
 import type { LootRequest } from './roll';
-import type { LootSourceId } from './types';
+import { createInitialSave } from '../save';
+import { uniquePool } from '../gear/uniques';
+import { grantLoot } from './grant';
+import { emptyLoot, type LootSourceId } from './types';
 
 const context = (playerTier: number) => ({
   playerTier,
@@ -103,5 +108,42 @@ describe('looted gear', () => {
 
   it('leaves the rolls to the grant, which knows the uid', () => {
     for (const piece of gearOver('dungeonRun', 30)) expect(Object.keys(piece).sort()).toEqual(['itemId', 'rarity', 'uid']);
+  });
+});
+
+describe('looted pieces once granted', () => {
+  const granted = (itemId: string, rarity: Rarity, count: number) =>
+    grantLoot(
+      createInitialSave(),
+      [],
+      { ...emptyLoot(), gear: Array.from({ length: count }, () => ({ uid: '' as const, itemId, rarity })) },
+      0,
+    ).gear.slice(-count);
+
+  it('carry their rarity’s affixes from the slot pool, loot-only ones included', () => {
+    const swords = granted('sword3', 'rare', 300);
+    const ids = swords.flatMap((piece) => piece.affixes.map((a) => a.id));
+    for (const piece of swords) expect(piece.affixes).toHaveLength(2);
+    expect(ids.every((id) => affixById[id].slot !== 'armourOffhand')).toBe(true);
+    expect(ids.some((id) => affixById[id].source.kind === 'loot')).toBe(true);
+    // Keyword affixes weigh gearRules.keywordAffixWeight against 1: rare.
+    const keywords = ids.filter((id) => affixById[id].family === 'keyword').length;
+    expect(keywords / ids.length).toBeLessThan(0.05);
+  });
+
+  it('give a Legendary one unique that fits it', () => {
+    for (const piece of granted('mail4', 'legendary', 30)) {
+      expect(piece.affixes).toHaveLength(3);
+      expect(uniquePool(piece).map((relic) => relic.id)).toContain(piece.unique);
+    }
+  });
+
+  it('give trinkets affixes from the any-slot pool, their stats rolled like gear', () => {
+    for (const piece of granted(trinketId('hawkEyeRing', 2), 'uncommon', 30)) {
+      expect(piece.affixes).toHaveLength(1);
+      expect(affixById[piece.affixes[0].id].slot).toBe('any');
+      expect(piece.roll).toBeGreaterThanOrEqual(3);
+      expect(piece.roll).toBeLessThanOrEqual(18);
+    }
   });
 });

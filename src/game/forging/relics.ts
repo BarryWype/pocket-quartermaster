@@ -1,5 +1,4 @@
 import { gearId, gearRecipes } from '@/content/equipment';
-import type { Rarity } from '@/content/gear';
 import { itemById, relicById } from '@/content/lookup';
 import { lootConfig } from '@/content/loot/config';
 import type { RelicDef } from '@/content/loot/relics';
@@ -7,15 +6,9 @@ import type { RelicDef } from '@/content/loot/relics';
 import { makeGearPiece } from '../gear/make';
 import { recipeCost } from '../crafting/crafting';
 import { guildBonus } from '../guild/guild';
-import { createRng } from '../generation/rng';
 import { removeMaterials } from '../inventory';
 import type { SaveData } from '../save';
 import type { GearDef, RecipeDef } from '../types';
-
-/** A restored piece's rarity, seeded by the piece's uid. */
-function relicRarity(uid: string, relicId: string): Rarity {
-  return createRng(`${uid}|${relicId}`).weighted(['rare', 'legendary'] as Rarity[], (r) => (r === 'legendary' ? 20 : 80));
-}
 
 /** The gem a relic of `tier` restores with: rough up to tier 3, cut above. */
 function gemFor(tier: number) {
@@ -47,9 +40,9 @@ export function canRestore(save: SaveData, relicUid: string) {
 
 /**
  * Restores a held relic into a finished piece: the recipe's materials plus the
- * tier's gem are spent, and the piece carries the relic, with its rarity
- * rolled from the old component odds (seeded by its uid, so it can't be
- * rerolled). No blueprint learned. `free` skips the cost (debug).
+ * tier's gem are spent, and the piece comes out Legendary: the relic's effect
+ * as its unique and 3 affixes, seeded by its uid so they can't be rerolled by
+ * reopening. No blueprint learned. `free` skips the cost (debug).
  */
 export function restoreRelic(save: SaveData, relicUid: string, free = false): SaveData {
   const held = save.relics.find((r) => r.uid === relicUid);
@@ -61,7 +54,7 @@ export function restoreRelic(save: SaveData, relicUid: string, free = false): Sa
 
   const uid = `g${save.nextUid}`;
   const gearItem = itemById[gearId(relic.gearType, relic.tier)] as GearDef;
-  const piece = makeGearPiece(uid, gearItem.id, relicRarity(uid, relic.id), undefined, { relicId: relic.id });
+  const piece = makeGearPiece(uid, gearItem.id, 'legendary', undefined, { relicId: relic.id });
   return {
     ...save,
     relics: save.relics.filter((r) => r.uid !== relicUid),

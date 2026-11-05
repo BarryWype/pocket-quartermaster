@@ -93,12 +93,13 @@ describe('restoreRelic', () => {
     expect(restoreRelic(save, 'r1').materials).toEqual({});
   });
 
-  it('rolls at least Rare over many seeds', () => {
+  it('restores every relic as a Legendary with 3 affixes and the relic as its unique', () => {
     for (const relic of relics) {
-      for (let uid = 1; uid <= 20; uid++) {
-        const next = restoreRelic(holding(relic, { nextUid: uid }), 'r1');
-        expect(['rare', 'legendary']).toContain(next.gear[0].rarity);
-      }
+      const [piece] = restoreRelic(holding(relic), 'r1').gear;
+      expect(piece.rarity).toBe('legendary');
+      expect(piece.affixes).toHaveLength(3);
+      expect(piece.relicId).toBe(relic.id);
+      expect(piece.unique).toBeUndefined();
     }
   });
 
