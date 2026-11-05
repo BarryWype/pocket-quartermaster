@@ -6,6 +6,7 @@ import { shopRules } from '@/content/shops';
 import { workToolId, workToolNames, workToolRules, workTools } from '@/content/workTools';
 
 import { resolveExpedition, startExpedition } from '../expeditions/expeditions';
+import { createRng } from '../generation/rng';
 import { jobChoices } from '../jobs/jobs';
 import type { GearDef } from '../types';
 import { gearPool } from '../places/shops';
@@ -21,8 +22,8 @@ describe('work tool content', () => {
     for (let tier = 1; tier <= 5; tier++) {
       expect(workToolRules.price[tier - 1]).toBe(Math.round(shopRules.gearPrice[tier - 1] / 2));
     }
-    expect(workToolRules.outputBonus).toEqual([0.2, 0.25, 0.3, 0.35, 0.4]);
-    expect(workToolRules.scavengePerWin).toBe(1);
+    expect(1 + workToolRules.outputBonus[0]).toBeCloseTo(1.1);
+    expect(workToolRules.scavenge).toEqual({ chance: 0.5, amount: 1 });
   });
 
   it('gives one item per kind and tier, off-hand with no gear type, damage stat or keywords, and ids that clash with nothing', () => {
@@ -58,6 +59,9 @@ describe('work tool content', () => {
 });
 
 describe('scavenge', () => {
+  /** The share-of-won-fights band the 50% scavenge chance must land in over many seeds. */
+  const SCAVENGE_SHARE_BAND: [number, number] = [0.45, 0.55];
+
   const withTool = (itemId: string): SaveData => {
     const base = createInitialSave();
     return {
@@ -67,9 +71,21 @@ describe('scavenge', () => {
     };
   };
 
-  it('scavenges the tool’s fixed material per won fight', () => {
-    expect(scavengeLoot(withTool('hatchet1'), 'bram', 0, 'run1')).toEqual([{ materialId: 'wood', amount: 1 }]);
-    expect(scavengeLoot(withTool('hatchet3'), 'bram', 2, 'run1')).toEqual([{ materialId: 'wood', amount: 1 }]);
+  it('scavenges the tool’s fixed material on a successful roll, deterministically per seed', () => {
+    const save = withTool('hatchet1');
+    let hits = 0;
+    for (let fight = 0; fight < 1000; fight++) {
+      const loot = scavengeLoot(save, 'bram', fight, 'run1');
+      if (loot.length > 0) {
+        expect(loot).toEqual([{ materialId: 'wood', amount: workToolRules.scavenge.amount }]);
+        hits++;
+      }
+      // The same seed always scavenges the same.
+      expect(scavengeLoot(save, 'bram', fight, 'run1')).toEqual(loot);
+    }
+    const share = hits / 1000;
+    expect(share).toBeGreaterThanOrEqual(SCAVENGE_SHARE_BAND[0]);
+    expect(share).toBeLessThanOrEqual(SCAVENGE_SHARE_BAND[1]);
   });
 
   it('adds nothing without a tool, or for a hero who does not wear one', () => {
@@ -81,20 +97,19 @@ describe('scavenge', () => {
     const save = withTool('snare1');
     const ctx = { jobChoice: save.jobChoice.trapper, choices: [] };
     for (const seed of ['run1', 'run2', 'run3']) {
-      const material = scavengeMaterial('trapper', `${seed}|scavenge|bram|0`, ctx);
+      const material = scavengeMaterial('trapper', createRng(`${seed}|scavenge|bram|0`), ctx);
       expect(['meat', 'hide', 'bone']).toContain(material);
-      expect(scavengeMaterial('trapper', `${seed}|scavenge|bram|0`, ctx)).toBe(material);
+      expect(scavengeMaterial('trapper', createRng(`${seed}|scavenge|bram|0`), ctx)).toBe(material);
     }
-    expect(scavengeLoot(save, 'bram', 0, 'run1')[0].amount).toBe(1);
   });
 
   it('gives the miner its chosen ore, else its highest unlocked one, else stone', () => {
     const save = withTool('miningPick2');
-    expect(scavengeMaterial('miner', 's', { jobChoice: save.jobChoice.miner, choices: [] })).toBe('stone');
+    expect(scavengeMaterial('miner', createRng('s'), { jobChoice: save.jobChoice.miner, choices: [] })).toBe('stone');
     const chosen = { ...save, jobChoice: { ...save.jobChoice, miner: 'iron' } };
-    expect(scavengeMaterial('miner', 's', { jobChoice: chosen.jobChoice.miner, choices: [] })).toBe('iron');
+    expect(scavengeMaterial('miner', createRng('s'), { jobChoice: chosen.jobChoice.miner, choices: [] })).toBe('iron');
     const tier4 = { ...save, clearedDungeons: ['banditStockade', 'ogreQuarry', 'drownedCrypt'] };
-    expect(scavengeMaterial('miner', 's', { jobChoice: tier4.jobChoice.miner, choices: jobChoices(tier4, 'miner') })).toBe('iron');
+    expect(scavengeMaterial('miner', createRng('s'), { jobChoice: tier4.jobChoice.miner, choices: jobChoices(tier4, 'miner') })).toBe('iron');
   });
 });
 
@@ -122,13 +137,13 @@ describe('scavenge in a run', () => {
   const coalOf = (loot: { materials: { materialId: string; amount: number }[] }) =>
     loot.materials.find((m) => m.materialId === 'coal')?.amount ?? 0;
 
-  it('adds the tool’s material to a won run’s loot, and shows in its results', () => {
+  it('adds the tool’s scavenged material to a won run’s loot, and shows in its results', () => {
     const save = tooledParty();
     const started = startExpedition(save, 'ratCellar', ['bram', 'lyra', 'mira'], 0);
     // A guaranteed run, like the tutorial's: every fight is won.
     const { report, save: next } = resolveExpedition(started, { ...started.expeditions[0], guaranteed: true });
     expect(report.success).toBe(true);
-    expect(coalOf(report.loot)).toBeGreaterThanOrEqual(1);
+    expect(Number.isInteger(coalOf(report.loot))).toBe(true);
     expect((next.materials.coal ?? 0) - (save.materials.coal ?? 0)).toBe(coalOf(report.loot));
   });
 

@@ -1,4 +1,5 @@
 import { jobById, jobRules } from '@/content/jobs';
+import { workToolRules } from '@/content/workTools';
 
 import { startExpedition } from '../expeditions/expeditions';
 import { createInitialSave, type SaveData } from '../save';
@@ -302,15 +303,15 @@ describe('work tool output bonus', () => {
 
   it('raises the worker’s job rate by the tool’s tier bonus', () => {
     expect(jobRate(working(), 'woodcutter')).toBe(RATE);
-    expect(jobRate(assignJob(withTool('hatchet1'), 'bram', 'woodcutter', 0), 'woodcutter')).toBeCloseTo(RATE * 1.2);
-    expect(jobRate(assignJob(withTool('hatchet3'), 'bram', 'woodcutter', 0), 'woodcutter')).toBeCloseTo(RATE * 1.3);
+    expect(jobRate(assignJob(withTool('hatchet1'), 'bram', 'woodcutter', 0), 'woodcutter')).toBeCloseTo(RATE * (1 + workToolRules.outputBonus[0]));
+    expect(jobRate(assignJob(withTool('hatchet3'), 'bram', 'woodcutter', 0), 'woodcutter')).toBeCloseTo(RATE * (1 + workToolRules.outputBonus[2]));
   });
 
-  it('produces 1.2× the output over the same time with a tier-1 hatchet', () => {
+  it(`produces ${(1 + workToolRules.outputBonus[0]).toFixed(2)}× the output over the same time with a tier-1 hatchet`, () => {
     const tooled = assignJob(withTool('hatchet1'), 'bram', 'woodcutter', 0);
-    expect(jobOutputNow(tooled, 'woodcutter', 4 * HOUR)).toBeCloseTo(4 * RATE * 1.2);
+    expect(jobOutputNow(tooled, 'woodcutter', 4 * HOUR)).toBeCloseTo(4 * RATE * (1 + workToolRules.outputBonus[0]));
     expect(jobOutputNow(working(), 'woodcutter', 4 * HOUR)).toBeCloseTo(4 * RATE);
-    expect(fullAt(tooled, 'woodcutter', 0)).toBeCloseTo((8 / 1.2) * HOUR);
+    expect(fullAt(tooled, 'woodcutter', 0)).toBeCloseTo((8 / (1 + workToolRules.outputBonus[0])) * HOUR);
   });
 
   it('does not help a job the tool is not for', () => {
@@ -328,6 +329,6 @@ describe('work tool output bonus', () => {
       heroes: at4h.heroes.map((h) => (h.id === 'bram' ? { ...h, equipment: { ...h.equipment, offhand: 't1' } } : h)),
     };
     expect(jobOutputNow(equipped, 'woodcutter', 4 * HOUR)).toBeCloseTo(4 * RATE);
-    expect(jobOutputNow(equipped, 'woodcutter', 6 * HOUR)).toBeCloseTo(4 * RATE + 2 * RATE * 1.2);
+    expect(jobOutputNow(equipped, 'woodcutter', 6 * HOUR)).toBeCloseTo(4 * RATE + 2 * RATE * (1 + workToolRules.outputBonus[0]));
   });
 });

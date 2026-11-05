@@ -14,6 +14,7 @@ import type { LootSourceId } from '../loot/types';
 import { createInitialSave, type SaveData } from '../save';
 import { profiles, simConfig } from './config';
 import { checkSave, runSim } from './engine';
+import { summarize } from './metrics';
 import { applyOverrides, parseOverride } from './overrides';
 import { spamCheck } from './spam';
 import { measureWalkRates } from './walking';
@@ -130,6 +131,20 @@ describe('balance lab', () => {
       .filter(([day]) => Number(day) <= end!)
       .flatMap(([, save]) => save.heroes.filter((h) => h.job && wornWorkTool(save, h)?.job === h.job.jobId));
     expect(fitted.length).toBeGreaterThan(0);
+  });
+
+  it('counts the work-tool scavenge in the tools’ share of walking', () => {
+    const log = runSim({ profile: 'regular', maxDays: 21, seed: 'tools', rates });
+    const lines = summarize([log])
+      .tiers.flatMap((tier) => Object.values(tier.tools ?? {}))
+      .filter((line) => line.walked.median !== null && line.walked.median > 0);
+    expect(lines.length).toBeGreaterThan(0);
+    // The bot fitted a tool and won fights with it, so some scavenge was logged.
+    expect(lines.some((line) => (line.scavenge.median ?? 0) > 0)).toBe(true);
+    for (const line of lines) {
+      // The share is the tool's job output and its scavenge together against the walking intake.
+      expect(line.share.median).toBeCloseTo(((line.withTool.median ?? 0) + (line.scavenge.median ?? 0)) / line.walked.median!, 6);
+    }
   });
 
   it('relies on the game functions, which refuse what is not allowed', () => {

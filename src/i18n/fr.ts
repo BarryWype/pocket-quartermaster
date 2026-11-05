@@ -188,7 +188,7 @@ export const fr: Dictionary = {
   },
   workTool: {
     kind: { hatchet: 'la hachette', sickle: 'la faucille', snare: 'le collet', miningPick: 'la pioche de mineur', tongs: 'la pince' },
-    line: '{job} : +{percent} de production · Butin : +{count} {materials} par combat gagné',
+    line: '{job} : +{percent} de production · Butin : {chance} de chance de {count} {materials} par combat gagné',
     or: '{head} ou {last}',
   },
   jobs: {

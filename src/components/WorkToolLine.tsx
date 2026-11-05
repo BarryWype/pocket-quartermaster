@@ -8,8 +8,8 @@ import { formatPercent, t, tr } from '@/i18n';
 import type { LabelPart } from './IconLabel';
 
 /**
- * A work tool's item-card line, e.g. "Woodcutter: +20% output · Scavenge: +1
- * wood per won fight" (weighted jobs list their materials). Empty for other gear.
+ * A work tool's item-card line, e.g. "Woodcutter: +10% output · Scavenge: 50%
+ * chance of 1 wood per won fight" (weighted jobs list their materials). Empty for other gear.
  */
 export function workToolParts(item: GearDef): LabelPart[] {
   if (!item.workTool) return [];
@@ -23,7 +23,8 @@ export function workToolParts(item: GearDef): LabelPart[] {
       text: t('workTool.line', {
         job: tr(job.name),
         percent: formatPercent(workToolRules.outputBonus[item.tier - 1]),
-        count: workToolRules.scavengePerWin,
+        chance: formatPercent(workToolRules.scavenge.chance),
+        count: workToolRules.scavenge.amount,
         materials: list,
       }),
     },

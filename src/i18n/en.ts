@@ -183,7 +183,7 @@ export const en = {
   },
   workTool: {
     kind: { hatchet: 'hatchet', sickle: 'sickle', snare: 'snare', miningPick: 'mining pick', tongs: 'tongs' },
-    line: '{job}: +{percent} output · Scavenge: +{count} {materials} per won fight',
+    line: '{job}: +{percent} output · Scavenge: {chance} chance of {count} {materials} per won fight',
     or: '{head} or {last}',
   },
   jobs: {

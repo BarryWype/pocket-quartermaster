@@ -13,9 +13,9 @@ export const workToolRules = {
   /** About half of shopRules.gearPrice for the tier's Common piece. */
   price: [5, 10, 20, 40, 80],
   /** Job output bonus by the tool's tier (1–5). */
-  outputBonus: [0.2, 0.25, 0.3, 0.35, 0.4],
-  /** Job material units a fighter wearing the tool scavenges per won fight. */
-  scavengePerWin: 1,
+  outputBonus: [0.1, 0.125, 0.15, 0.175, 0.2],
+  /** Chance per won fight that a hero wearing the tool scavenges `amount` units of its job's material. */
+  scavenge: { chance: 0.5, amount: 1 },
 };
 
 export type WorkToolDef = {

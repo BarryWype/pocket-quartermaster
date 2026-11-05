@@ -245,12 +245,13 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
         const seeds = logs.map((log, i) => {
           const window = windows[i];
           const fromJob = jobFlowOfDay(log, window, job.id, material);
+          const scavenged = scavengeOf(log, window, material);
           const walked = walkedOf(log, window, material);
           if (fromJob === null || walked === null) return { walked: null, fromJob: null, share: null };
           return {
             walked: perDay(walked, window),
             fromJob: perDay(fromJob, window),
-            share: walked > 0 ? fromJob / walked : null,
+            share: walked > 0 ? (fromJob + (scavenged ?? 0)) / walked : null,
           };
         });
         return [
@@ -287,7 +288,7 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
               withoutTool: perDayWithTool !== null ? perDayWithTool / (1 + bonus) : null,
               scavenge: perDay(scavenged, window),
               walked: perDay(walked, window),
-              share: walked > 0 ? withTool / walked : null,
+              share: walked > 0 ? (withTool + (scavenged ?? 0)) / walked : null,
             };
           });
           return [

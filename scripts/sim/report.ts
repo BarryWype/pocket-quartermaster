@@ -241,7 +241,7 @@ function toolsTable(s: ProfileSummary) {
         `${pct(x.share.median)}${x.share.median !== null && x.share.median > targets.jobShareMax ? ` ${WARN}` : ''}`,
       ]),
   );
-  return table(['Tier', 'Job', 'Material', 'Job/day with tool', 'Job/day without tool', 'Scavenge/day', 'Walked/day', `Share of walking (max ${pct(targets.jobShareMax)})`], rows);
+  return table(['Tier', 'Job', 'Material', 'Job/day with tool', 'Job/day without tool', 'Scavenge/day', 'Walked/day', `Share of walking, job + scavenge (max ${pct(targets.jobShareMax)})`], rows);
 }
 
 /** The gatherer's nodes gathered and wounds settled per day, per tier. */
