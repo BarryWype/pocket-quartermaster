@@ -43,8 +43,10 @@ Roadmap step 3 in `doc/ideas.md`. Designed 2026-11-05. Replaces quality multipli
 - Looted gear keeps each source's own d20 ladder, floors (monster lair ≥ Rare, first tier clear ≥ Uncommon) and quality steps (Tinker's lodestone, Hard difficulty), now as rarity steps; Luck keeps its +1 per 10 points. The ladders' results map to rarities (Crappy and Normal → Common). Target for basic sources after the mapping: about Common 40%, Uncommon 45%, Rare 13%, Legendary 2%; bosses, the lair and big fights stay richer. Affixes are random from the slot's pool, including loot-only ones (Steady, walking affixes) and, rarely, keyword affixes.
 - Gear may drop a little more often than today (tuned in the simulator).
 
-## Relics
-- Restoring works as today; the result is a Legendary piece: 3 affixes plus the relic's effect as its unique.
+## Relics and uniques
+- Restoring works as today; the result is a Legendary piece: 3 affixes plus the relic's effect as its unique, with the relic's name.
+- Every other Legendary (looted, or forged before this rework) has one unique rolled from the relic effects that fit its slot or type (`doc/design/loot/relics.csv`), seeded by uid, shown as "Unique: <effect>" without a relic name.
+- One unique per piece; a reroll changes the affixes, never the unique.
 
 ## Trinkets
 - Keep their stats; rarity gives them affixes from the "any slot" pool.
