@@ -120,19 +120,23 @@ export const lootConfig = {
   /** Rarity ladders, read with d20 + bonus; floors then lift a source's minimum. */
   gearRarity: {
     ladders: {
+      // 70% Common, 30% Uncommon. A Rare rung here would also let rarity steps (Hard, the lodestone) reach Rare.
       basic: [
         [14, 'common'],
         [Infinity, 'uncommon'],
       ] as [number, Rarity][],
+      // 30% Common, 30% Uncommon, 30% Rare, 10% Legendary.
       big: [
-        [12, 'common'],
-        [18, 'uncommon'],
-        [Infinity, 'rare'],
+        [6, 'common'],
+        [12, 'uncommon'],
+        [18, 'rare'],
+        [Infinity, 'legendary'],
       ] as [number, Rarity][],
+      // 15% Common, 20% Uncommon, 35% Rare, 30% Legendary: bosses are the main source of Rares and Legendaries.
       boss: [
-        [10, 'common'],
-        [16, 'uncommon'],
-        [19, 'rare'],
+        [3, 'common'],
+        [7, 'uncommon'],
+        [14, 'rare'],
         [Infinity, 'legendary'],
       ] as [number, Rarity][],
     },

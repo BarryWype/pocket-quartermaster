@@ -66,13 +66,19 @@ describe('looted gear', () => {
     expect(lootGearTier('stepChest', 5, 1, createRng('low'))).toBe(1);
   });
 
-  it('keeps the basic ladder below Rare and the big ladder below Legendary', () => {
-    for (const piece of gearOver('dungeonRun', 300)) {
-      expect(['common', 'uncommon']).toContain(piece.rarity);
-    }
-    for (const piece of gearOver('wantedOutlaw', 300)) {
-      expect(piece.rarity).not.toBe('legendary');
-    }
+  it('keeps the ladders in order: basic < big fights < bosses < monster lair', () => {
+    const share = (source: LootSourceId, rarities: Rarity[]) =>
+      gearOver(source, 2000).filter((piece) => rarities.includes(piece.rarity)).length / 2000;
+    const order: LootSourceId[] = ['dungeonRun', 'wantedOutlaw', 'tierBoss', 'monsterLair'];
+    const rareOrBetter = order.map((source) => share(source, ['rare', 'legendary']));
+    const legendary = order.map((source) => share(source, ['legendary']));
+    for (let i = 1; i < order.length; i++) expect(rareOrBetter[i]).toBeGreaterThan(rareOrBetter[i - 1]);
+    // The lair lifts its floor to Rare, so its Legendary share is the boss ladder's.
+    expect(legendary[0]).toBeLessThan(legendary[1]);
+    expect(legendary[1]).toBeLessThan(legendary[2]);
+    expect(legendary[3]).toBeGreaterThanOrEqual(legendary[2] - 0.03);
+    // A basic source never drops a Rare.
+    expect(rareOrBetter[0]).toBe(0);
   });
 
   it('holds the source floors', () => {
