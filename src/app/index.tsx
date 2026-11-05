@@ -430,7 +430,14 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
     gathererTrail && gathererWorker ? gathererHeroAt(gathererTrail, save.gatherer.anchors.at(-1) ?? null, now) : null;
   const gathererHero = useMemo(
     // A few metres east, so the hero stands next to the player rather than under them.
-    () => (gathererAt && gathererWorker ? { position: offsetPosition(gathererAt, 0, 8), emoji: heroClasses[gathererWorker.classId].emoji } : null),
+    () =>
+      gathererAt && gathererWorker
+        ? {
+            position: offsetPosition(gathererAt, 0, 8),
+            emoji: heroClasses[gathererWorker.classId].emoji,
+            icon: heroClasses[gathererWorker.classId].icon,
+          }
+        : null,
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [gathererAt?.latitude, gathererAt?.longitude, gathererWorker?.classId],
   );

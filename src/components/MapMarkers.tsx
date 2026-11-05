@@ -1,7 +1,8 @@
 import { Marker } from '@maplibre/maplibre-react-native';
 import { memo, useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, type ImageSourcePropType } from 'react-native';
 
+import { GameIcon } from '@/components/GameIcon';
 import { PatrolMarker } from '@/components/PatrolMarker';
 import { SanctumMarker } from '@/components/SanctumMarker';
 import { sameSpawnMarker, SpawnMarker } from '@/components/SpawnMarker';
@@ -53,8 +54,11 @@ const markerLabel = (name: string, difficulty: Difficulty, kind: string) =>
 const TimedSpawnMarker = memo(timed('marker: spawn', SpawnMarker), sameSpawnMarker);
 const TimedSanctumMarker = memo(timed('marker: sanctum', SanctumMarker));
 const TimedPatrolMarker = memo(timed('marker: patrol', PatrolMarker));
-const GathererHeroMarker = memo(function GathererHeroMarker({ emoji }: { emoji: string }) {
-  return <Text style={styles.gathererHero}>{emoji}</Text>;
+/** Between a resource node and a patrol marker in size. */
+const GATHERER_HERO_SIZE = 24;
+/** Memoised on its props, the icon compared by reference: a tick that moves the hero doesn't re-render it. */
+const GathererHeroMarker = memo(function GathererHeroMarker({ emoji, icon }: { emoji: string; icon?: ImageSourcePropType }) {
+  return <GameIcon emoji={emoji} icon={icon} size={GATHERER_HERO_SIZE} />;
 });
 
 /** The tutorial's nodes, with the position they are drawn at. */
@@ -86,7 +90,7 @@ type Props = {
   questTargets: QuestMark[];
   placedTreasure: TreasureSpot[];
   /** The outdoor gatherer's hero, walking to its next node; null when nobody works it. */
-  gathererHero: { position: LatLng; emoji: string } | null;
+  gathererHero: { position: LatLng; emoji: string; icon?: ImageSourcePropType } | null;
   onGather: (spawn: Spawn) => void;
   onGatherTutorial: (id: string) => void;
   onDigUp: (mapId: string, at: LatLng) => void;
@@ -267,7 +271,7 @@ function MapMarkersBase({
       ))}
       {gathererHero && (
         <Marker key="gatherer:hero" id="gatherer:hero" lngLat={toLngLat(gathererHero.position)}>
-          <GathererHeroMarker emoji={gathererHero.emoji} />
+          <GathererHeroMarker emoji={gathererHero.emoji} icon={gathererHero.icon} />
         </Marker>
       )}
       <Marker id="player" lngLat={toLngLat(position)}>
@@ -282,7 +286,6 @@ export const MapMarkers = memo(MapMarkersBase);
 const styles = StyleSheet.create({
   player: { fontSize: 28 },
   treasure: { fontSize: 30 },
-  gathererHero: { fontSize: 20 },
   // Sits above the target's own marker.
   questTarget: { fontSize: 18, transform: [{ translateY: -34 }] },
   questMark: { fontSize: 26 },
