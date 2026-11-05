@@ -4,4 +4,4 @@ forager,Forager,guild,herbs / berries / mushrooms,herb 50 · berries 30 · mushr
 trapper,Trapper,guild,meat / hide / bone,meat 45 · hide 35 · bone 20,like the woodcutter (tune),8,24,none,start,2c-1
 miner,Miner,guild,the ore the player picks: stone / copper / iron,chosen ore 100,like the woodcutter (tune),8,24,none,tier 2 (copper tier 3; iron tier 4),2c-1
 charcoalBurner,Charcoal burner,guild,coal,coal 100,like the woodcutter (tune),8,24,none,tier 5,2c-1
-gatherer,Outdoor gatherer,camp (outdoor),nodes the player left uncollected within 250 m of the camp,whatever spawns there,1 node every 20 min (tune),8,16,small wound chance per node,start,2c-2
+gatherer,Outdoor gatherer,around the player (outdoor),the resource nodes visible on the map around the player's anchor; closest first; optional focus,whatever spawns there,walk at 60 m/min + 3 min gather; at most 1 node every 90 min,8,16,small wound chance per node,start,2c-2 (around the player)

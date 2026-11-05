@@ -6,7 +6,7 @@ Step 2 of the roadmap in `doc/ideas.md` ("Heroes, jobs and expeditions"). Design
 - **2a. The job system, with one job: the woodcutter.** This document. Built 2026-11-04.
 - 2b. Work traits: **postponed** to roadmap step 8 (after every job and activity exists), so heroes' traits don't need reworking each time a job is added.
 - **2c-1. Guild gathering jobs: forager, trapper, miner, charcoal burner** (below). Built 2026-11-05.
-- **2c-2. The outdoor gatherer** (below). Built 2026-11-05.
+- **2c-2. The outdoor gatherer** (below). Built 2026-11-05 with a camp; redesigned 2026-11-06 to work around the player.
 - 2d. More ways to recruit (rescues, quest rewards).
 
 ## Rules (2a)
@@ -56,13 +56,16 @@ Designed 2026-11-04. Same system as the woodcutter (energy, 8 h cap, collect, re
 - Rolls are seeded (job, hero, unit index), so the same moment always gives the same result.
 - No new materials: jobs are a second, smaller source of existing ones.
 
-## The outdoor gatherer (2c-2, built 2026-11-05)
-Designed 2026-11-04. A job of its own kind, with its own niche: it **picks up what the player leaves behind**.
-- The player sets up a **camp** where they stand. The hero works within **250 m** of it.
-- It collects only resource nodes the player **didn't** collect before they expired: never competing with the player, using what would go to waste.
-- It gathers what actually spawns there (the same nodes as the map, the same rules as the player's Collect, pickaxe included), so it's predictable and can give the current tier's materials, but only what spawns around the camp: walking still covers far more ground.
-- Pace: one node every 20 minutes at most (to tune), 8 h cap like other jobs.
-- Outdoor work drains energy 1.5× faster (100 lasts 16 h).
-- Small risk: a small chance per node of a minor wound (HP loss), so a hero back from the gatherer may need to heal before a dungeon.
-- The camp and the hero walking between nodes show on the map.
-- As built: the cap is 24 nodes (8 h ÷ 20 min). A node counts once its window has ended uncollected; the hero picks it inside its window, at the pace, in order of window end. The 250 m check uses generated node positions, not the map's snapped ones. The hero on the map walks a seeded loop inside the circle (cosmetic).
+## The outdoor gatherer (around the player)
+Designed 2026-11-04 as a camp (2c-2), redesigned 2026-11-06: no camp, the hero **works around the player**, and Pocket mode is its main use.
+- **Anchor:** the player's position while the app is open, otherwise the last known one. Every app open and every Pocket mode fix (when the app processes the walk buffer) offers a new point. The save keeps a compact history, `gatherer.anchors`: a new point only once the player is more than 50 m from the last one and at least 15 minutes after it, pruned to what the next replay can still use. The background location task does no new work: it only records fixes, as before.
+- **Targets:** the resource nodes the player would see on the map from the anchor: the map's visible range per kind (wood and ore 300 m, animals 150 m, herbs 100 m) and the player's Collect rules (revealed kinds, pickaxe tier, not in `save.collected`). Any visible node, not only leftovers: if the player collects a node first, the hero moves on.
+- **Order:** the closest node first, measured from where the hero stands, then the next closest from there. The hero starts at the anchor and starts again from it whenever the anchor moves.
+- **Pace:** each node costs the walk at `heroWalkMetersPerMinute` (60 m/min) plus `gatherMinutes` (3), and finishes no sooner than `minMinutesPerNode` after the previous one. With nothing in reach, the hero looks again after that long or when the anchor moves.
+- **Walk first:** `minMinutesPerNode` is **90**, about 0.7 nodes an hour. At 15 (4 an hour) a regular player got about 49 wood a day from it, as much as they walk (about 50); at 90 the probe gave about 6 wood and 6 stone a day, under 25% of walking at most tiers. The full simulator run checks every tier (the `gathererShareMax` band).
+- **Unchanged from 2c-2:** the 8 h cap (capHours × 60 ÷ minMinutesPerNode nodes, so 5 at 90 min), energy over 16 h and the tired cycle, the wound chance per node, collecting from the Jobs tab. No work tool matches the gatherer, so it gets no tool bonus.
+- **Focus** (new; the camp version had none): Any, Wood, Herbs and food (herbs and animals), Ores. The focus kinds come first; with none in reach, the hero takes any other.
+- **Replay:** `gathererFinds(save, job, from, to)` replays the anchor history from the hero's next look (`nextAt`), with where it stands (`heroAt`) and its pace clock (`lastNodeAt`) stored in the output, so settling often or rarely gives the same result. Tiles are generated only around the anchor in effect and only for the spawn window at each look. Nodes the hero takes go into `save.collected` at settle, so they leave the map as if the player had taken them; the player's Collect and Pocket mode's walk settle the gatherer first. Wounds are seeded by node id. A 3-day absence with a busy anchor history settles in well under 50 ms.
+- **Interface:** the Jobs tab card ("Gathers the resources you can see around you", the focus picker, output per material, energy, nodes gathered today, wounds, Collect, Assign, Recall). On the open map, a small hero marker next to the player walks to its current node, and the node disappears once gathered. The Pocket mode panel shows "Gatherer: N resources since you left" after a return to the app. Notifications are unchanged ("output full", "tired", "hurt").
+- **Known limits:** the gatherer uses the generated node positions, not the map's snapped ones (snapping needs map tiles, which the replay doesn't load). Pocket mode fixes reach the anchor history only when the app processes them, so a settle that runs before that (rare: processing runs first on open) uses the older anchor for that stretch.
+
