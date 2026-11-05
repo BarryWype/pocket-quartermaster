@@ -50,7 +50,8 @@ import {
   homeHeroes,
   mark,
   markCoreKit,
-  morningCamp,
+  keepGatherer,
+  moveGathererAnchor,
   noteQuestGathers,
   reachChance,
   recallWorking,
@@ -265,8 +266,9 @@ function helpTravellerSpawn(sim: Sim, spawn: PatrolSpawn, at: number, player: La
 }
 
 function session(sim: Sim, walking: boolean, firstWalk: boolean, firstSession: boolean, steps: number, dayKey: string) {
+  moveGathererAnchor(sim, walking);
   collectJobs(sim);
-  if (firstSession) morningCamp(sim);
+  if (firstSession) keepGatherer(sim);
   sim.save = rollDailyApproaches(pruneExpired(sim.save, sim.now), sim.now);
   sim.rotation = dailyRotation(rotationDay(sim.now));
 

@@ -14,8 +14,8 @@ export const gathererRules = {
   heroWalkMetersPerMinute: 60,
   /** Minutes spent gathering at a node, on top of the walk. */
   gatherMinutes: 3,
-  /** At most one node every this many minutes. */
-  minMinutesPerNode: 15,
+  /** At most one node every this many minutes. Raised from 15 for walk first: 15 gave a regular player about as much wood as walking (simulator, 2026-11-06). */
+  minMinutesPerNode: 90,
   /** A full output holds this much time at the pace: capHours × 60 ÷ minMinutesPerNode nodes. */
   capHours: 8,
   /** Chance per gathered node of a minor wound. */

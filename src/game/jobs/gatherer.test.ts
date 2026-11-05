@@ -236,15 +236,19 @@ describe('the outdoor gatherer', () => {
 
   it('says when the worker next takes a wound, only while one works', () => {
     expect(gathererFirstWoundAt(base(), 'gatherer', T0)).toBeNull();
-    // A save with some output already settled and collected, so the scan starts fresh.
+    // Settle and collect every 6 hours until a wound lies ahead (the scan stops at the output's cap).
     let save = working();
-    for (const hours of [6, 12]) save = collectJob(settleJobs(save, T0 + hours * HOUR), 'gatherer', T0 + hours * HOUR);
-    save = settleJobs(save, T0 + 18 * HOUR);
-    const at = gathererFirstWoundAt(save, 'gatherer', T0 + 18 * HOUR);
+    let now = T0;
+    let at: number | null = null;
+    for (let i = 0; i < 200 && at === null; i++) {
+      now += 6 * HOUR;
+      save = settleJobs(collectJob(settleJobs(save, now), 'gatherer', now), now);
+      at = gathererFirstWoundAt(save, 'gatherer', now);
+    }
     expect(at).not.toBeNull();
     // The same scan, settled the same way, takes its first wound at the same moment.
-    const settled = settleJobs(save, T0 + 18 * HOUR);
-    const wounds = gathererFinds(settled, 'gatherer', T0 + 18 * HOUR, T0 + 18 * HOUR + 3 * 24 * HOUR).nodes.filter((node) => node.wound > 0);
+    const settled = settleJobs(save, now);
+    const wounds = gathererFinds(settled, 'gatherer', now, now + 3 * 24 * HOUR).nodes.filter((node) => node.wound > 0);
     expect(wounds.length).toBeGreaterThan(0);
     expect(wounds[0].at).toBe(at);
   });

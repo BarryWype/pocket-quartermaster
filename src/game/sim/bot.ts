@@ -6,7 +6,7 @@ import { guildTrackById, guildTracks } from '@/content/guild';
 import { heroClasses, xpRules } from '@/content/heroes';
 import { dungeonById, itemById, recipeById } from '@/content/lookup';
 import { items } from '@/content/items';
-import { jobs as jobList, type JobDef } from '@/content/jobs';
+import { gathererRules, jobs as jobList, type JobDef } from '@/content/jobs';
 import { lootConfig } from '@/content/loot/config';
 import { shopRules } from '@/content/shops';
 import { recipes } from '@/content/recipes';
@@ -36,7 +36,7 @@ import { salvage } from '../forging/salvage';
 import { gearStats } from '../gear/stats';
 import { trinketEffect } from '../loot/trinkets';
 import { distanceMeters, offsetPosition } from '../generation/geo';
-import type { Rng } from '../generation/rng';
+import { createRng, type Rng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { buyRank, guildBonus, isGuildUnlocked, rankPrice, rankProblem } from '../guild/guild';
 import { hasMaterials } from '../inventory';
@@ -58,6 +58,7 @@ import { heroAnswers, type AnswersMember } from '../threats/answers';
 import { scoreThreat } from '../threats/score';
 import type { ActiveExpedition, Approach, ArmourType, Briefing, ConsumableDef, DungeonDef, GearDef, GearInstance, HeroClassId, HeroState, OffhandType, RecipeDef, Stats, WeaponType } from '../types';
 import { expectedLevels, type Profile, type SimConfig } from './config';
+import { playerMetersPerMinute } from './gathererPace';
 import { partRecipeFor } from './rules/inventory';
 import { emptySlots, fillPotions, heldPotion, isKit, oilIds, pickCharm, pickKits, pickWeakness, statPotionIds, uncovered, withCharm, withElixir, withOil, withStatPotion } from './rules/loadout';
 import { PICKAXES, type WalkRates } from './walking';
@@ -849,13 +850,30 @@ export function collectJobs(sim: Sim) {
   }
 }
 
-/** Camps the gatherer at home with the least useful free hero, at the day's first session (the tutorial excepted). */
-export function morningCamp(sim: Sim) {
+/** Puts the least useful free hero on the gatherer at the day's first session, when nobody works it (the tutorial excepted). */
+export function keepGatherer(sim: Sim) {
   if (!sim.jobs || sim.save.tutorial.step !== 'done' || !isJobOpen(sim.save, 'gatherer') || jobWorker(sim.save, 'gatherer')) return;
   const free = sim.save.heroes.filter((h) => !isBusy(sim.save, h.id));
   if (!free.length) return;
   const pick = [...free].sort((a, b) => statScore(sim.save, a) - statScore(sim.save, b))[0];
   act(sim, 'job', (save) => assignJob(addAnchor(save, sim.location, sim.now), pick.id, 'gatherer', sim.now));
+}
+
+const MINUTE = 60_000;
+
+/** Keeps the gatherer's anchor with the player: home while still, and around each walk's loop while walking. */
+export function moveGathererAnchor(sim: Sim, walking: boolean) {
+  sim.save = addAnchor(sim.save, sim.location, sim.now);
+  if (!walking) return;
+  const every = gathererRules.anchorEveryMinutes;
+  const bearing = (createRng(`gatherer|anchor|${sim.day}`).int(0, 359) * Math.PI) / 180;
+  const points = Math.floor(sim.profile.walkMinutes / every);
+  for (let k = 1; k <= points; k++) {
+    const meters = k * every * playerMetersPerMinute;
+    sim.save = addAnchor(sim.save, offsetPosition(sim.location, Math.sin(bearing) * meters, Math.cos(bearing) * meters), sim.now + k * every * MINUTE);
+  }
+  // Back home: one anchor interval after the last point at the earliest, or the anchor rules would drop it.
+  sim.save = addAnchor(sim.save, sim.location, sim.now + Math.max(sim.profile.walkMinutes, (points + 1) * every) * MINUTE);
 }
 
 /** Recalls the given working heroes before a send; the output made so far and their settled energy are kept. */

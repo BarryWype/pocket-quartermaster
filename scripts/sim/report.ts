@@ -1,10 +1,12 @@
 import { materialById } from '@/content/lookup';
+import { gathererRules } from '@/content/jobs';
 import { RARITIES } from '@/content/gear';
 import { REVEAL_KINDS } from '@/content/reveal';
 import { difficultyRules } from '@/content/difficulty';
 import type { DifficultyOdds } from '@/game/sim/difficultyOdds';
 import { affinityChanges } from '@/game/sim/affinity';
 import { misses, type ProfileSummary, type Stat, type Summary } from '@/game/sim/metrics';
+import { gathererPace } from '@/game/sim/gathererPace';
 import { inRange, targets } from '@/game/sim/targets';
 import type { HeroClassId, WeaponType } from '@/game/types';
 
@@ -458,6 +460,11 @@ export function renderReport({ summaries, rules, settings, difficultyOdds, affin
     '## Jobs',
     '',
     'Every guild job over each tier: wood for the woodcutter, then each job’s materials — what walking and the map brought in, what the job added, and the job’s share of that walking (walk first).',
+    '',
+  );
+  const gatherer = gathererPace();
+  out.push(
+    `Gatherer pace (rules, ${gathererRules.minMinutesPerNode} min per node at most): ${gatherer.stillPerHour.toFixed(1)} nodes/h while still, ${gatherer.walkingPerHour.toFixed(1)} nodes/h while walking.`,
     '',
   );
   for (const s of summaries)
