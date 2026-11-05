@@ -24,7 +24,7 @@ Roadmap step 3 in `doc/ideas.md`. Designed 2026-11-05. Replaces quality multipli
 
 ## The forge
 - Pick base and tier, as today (known blueprints only), then optionally add **one ingredient**:
-  - a **monster part**: gives its family affix; weapons get the weapon affix, armour and off-hands the armour affix (`affixes.csv`);
+  - a **monster part**: gives its family affix; offensive pieces (weapons and damage off-hands: quiver, off-hand blade, tome, focus) get the offensive affix, defensive ones (armour, shield, buckler) the defensive affix (`affixes.csv`);
   - or a **component** (boss and elite drops): gives its keyword affix, only on the types it fits.
 - With an ingredient the piece is Uncommon, with that affix and a rolled value. Without, Common.
 - One ingredient only, so crafting stays partly random (the stat roll, the affix value).
@@ -32,12 +32,13 @@ Roadmap step 3 in `doc/ideas.md`. Designed 2026-11-05. Replaces quality multipli
 - **Crafting mastery is removed** (a progression tree may bring something like it later).
 
 ## Elemental stones
-- Apply to a finished piece: on a piece with affixes, replaces one at random with its element affix (Infused on weapons, Warding on armour and off-hands); on a Common piece, adds it and makes it Uncommon.
+- Apply to a finished piece: on a piece with affixes, replaces one at random with its element affix (Infused on offensive pieces, Warding on defensive ones); on a Common piece, adds it and makes it Uncommon.
 - Elemental hearts merge into elemental stones. Infusion as a separate action is removed.
 
 ## Reroll
-- At the forge, on Uncommon or better only: rerolls **all** affixes (which ones and their values) from the slot's pool. Base stats don't change.
+- At the forge, on Uncommon or better only: rerolls **all** affixes (which ones and their values) from the piece's pool (offensive or defensive). Base stats don't change.
 - Costs walking materials plus gold, rising with each reroll of the same piece.
+- Existing pieces keep the affixes they rolled; only new rolls, rerolls and stones follow the offensive/defensive rule.
 
 ## Loot
 - Looted gear keeps each source's own d20 ladder, floors (monster lair ≥ Rare, first tier clear ≥ Uncommon) and quality steps (Tinker's lodestone, Hard difficulty), now as rarity steps; Luck keeps its +1 per 10 points. The ladders' results map to rarities (Crappy and Normal → Common). No per-source split target: keep the order basic < big fights < bosses < monster lair, and tune to overall rates for the regular profile per tier (Luck included): about one Rare every 2–4 days, a Legendary about once per tier (relics aside), at least one Uncommon a day. Adjust big fights first, then bosses, then (only if needed) a small Rare chance on basic, at most 3% and below big fights. Basic sources get it as their own upgrade roll after the d20 (`lootConfig.gearRarity.upgrades`: 2.5% Rare, 2.75% Legendary), which no rarity step raises; Legendaries must come at least 1.3 times per tier (relics aside), and bosses alone can't give that. Affixes are random from the slot's pool, including loot-only ones (Steady, walking affixes) and, rarely, keyword affixes.

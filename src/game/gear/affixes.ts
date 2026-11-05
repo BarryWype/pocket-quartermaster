@@ -1,6 +1,6 @@
 import { gearRules, type Rarity } from '@/content/gear';
 import { affixById, affixes, type AffixDef } from '@/content/affixes';
-import { GEAR_SLOTS } from '@/content/equipment';
+import { GEAR_SLOTS, gearProfiles } from '@/content/equipment';
 import { itemById } from '@/content/lookup';
 
 import type { Rng } from '../generation/rng';
@@ -18,15 +18,25 @@ export function affixValue(rng: Rng, affix: AffixDef): number {
 }
 
 /**
- * The affixes allowed on a piece: its slot's groups — weapons share the
- * weapon affixes, armour and off-hands the armour/off-hand ones, trinkets take
+ * Which affix pool a gear type rolls from: 'weapon' (the offensive pool) for
+ * weapons and damage off-hands, 'armourOffhand' (the defensive pool) for
+ * armour and non-damage off-hands, 'any' for trinkets.
+ */
+export function affixSlotOf(gearType: GearType | undefined): 'weapon' | 'armourOffhand' | 'any' {
+  if (!gearType) return 'any';
+  return GEAR_SLOTS[gearType] === 'weapon' || gearProfiles[gearType].damageStat ? 'weapon' : 'armourOffhand';
+}
+
+/**
+ * The affixes allowed on a piece: its pool's groups — offensive pieces share
+ * the weapon affixes, defensive ones the armour/off-hand ones, trinkets take
  * the "any" pool only — plus component affixes that list the piece's gear
  * type. Element affixes never roll: they come only from elemental stones.
  */
 export function affixPool(piece: GearInstance | { itemId: string; rarity?: Rarity }): AffixDef[] {
   const item = itemById[piece.itemId] as GearDef;
   const gearType = item.gearType as GearType | undefined;
-  const affixSlot = !gearType ? 'any' : GEAR_SLOTS[gearType] === 'weapon' ? 'weapon' : 'armourOffhand';
+  const affixSlot = affixSlotOf(gearType);
   return affixes.filter((affix) => {
     if (affix.source.kind === 'element') return false;
     if (affix.slot === 'any' || affix.slot === affixSlot) return true;
@@ -98,7 +108,7 @@ export function pieceKeywords(piece: GearInstance): Keyword[] {
   });
 }
 
-/** The element a piece's infused affix gives the hero's hits; stones add it to weapons. */
+/** The element a piece's infused affix gives the hero's hits; stones add it to offensive pieces. */
 export function infusedElement(piece: GearInstance | undefined): Element | undefined {
   if (!piece) return undefined;
   for (const affix of piece.affixes) {
@@ -108,7 +118,7 @@ export function infusedElement(piece: GearInstance | undefined): Element | undef
   return undefined;
 }
 
-/** The element a piece's warding affix resists (armour and off-hands). */
+/** The element a piece's warding affix resists (defensive pieces). */
 export function wardingElement(piece: GearInstance | undefined): Element | undefined {
   if (!piece) return undefined;
   for (const affix of piece.affixes) {

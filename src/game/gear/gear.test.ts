@@ -1,9 +1,13 @@
 import { affixById } from '@/content/affixes';
+import { gearProfiles } from '@/content/equipment';
 import { gearRules, RARITIES } from '@/content/gear';
 import { trinketId } from '@/content/trinkets';
 
+import { ingredientAffixId } from '../forging/components';
+import { stoneAffixId } from '../crafting/infusion';
 import { createRng } from '../generation/rng';
-import { affixPool, affixValue, bestAffixValue, rollAffixes } from './affixes';
+import type { GearType } from '../types';
+import { affixPool, affixSlotOf, affixValue, bestAffixValue, rollAffixes } from './affixes';
 import { makeGearPiece } from './make';
 import { uniquePool } from './uniques';
 
@@ -21,6 +25,50 @@ describe('affix pools', () => {
   it('gives armour and off-hands their own affixes, and trinkets only the any-slot ones', () => {
     expect(affixPool({ itemId: 'plate1' }).every((a) => a.slot !== 'weapon')).toBe(true);
     expect(affixPool({ itemId: trinketId('hawkEyeRing', 1) }).every((a) => a.slot === 'any')).toBe(true);
+  });
+});
+
+describe('affixSlotOf', () => {
+  const expected: Record<GearType, 'weapon' | 'armourOffhand'> = {
+    sword: 'weapon',
+    axe: 'weapon',
+    mace: 'weapon',
+    dagger: 'weapon',
+    bow: 'weapon',
+    spear: 'weapon',
+    warhammer: 'weapon',
+    wand: 'weapon',
+    staff: 'weapon',
+    lute: 'weapon',
+    censer: 'weapon',
+    knuckles: 'weapon',
+    offhandBlade: 'weapon',
+    quiver: 'weapon',
+    tome: 'weapon',
+    focus: 'weapon',
+    plate: 'armourOffhand',
+    mail: 'armourOffhand',
+    leather: 'armourOffhand',
+    robes: 'armourOffhand',
+    shield: 'armourOffhand',
+    buckler: 'armourOffhand',
+  };
+
+  it('puts weapons and damage off-hands in the offensive pool, the rest in the defensive one', () => {
+    for (const gearType of Object.keys(gearProfiles) as GearType[]) {
+      expect(affixSlotOf(gearType)).toBe(expected[gearType]);
+    }
+    expect(affixSlotOf(undefined)).toBe('any');
+  });
+
+  it('rolls the offensive pool on a quiver and the defensive one on a shield', () => {
+    expect(affixPool({ itemId: 'quiver1' }).some((a) => a.id === 'hunter')).toBe(true);
+    expect(ingredientAffixId('fangOrHorn', 'quiver')).toBe('hunter');
+    expect(stoneAffixId('quiver', 'fire')).toBe('infusedFire');
+    const shieldPool = affixPool({ itemId: 'shield1' });
+    expect(shieldPool.some((a) => a.id === 'thickHide')).toBe(true);
+    expect(shieldPool.some((a) => a.id === 'hunter')).toBe(false);
+    expect(stoneAffixId('shield', 'fire')).toBe('wardingFire');
   });
 });
 

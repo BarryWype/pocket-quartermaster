@@ -60,9 +60,9 @@ const typeOf = (csvName: string): GearType[] =>
     : [({ 'off-hand blade': 'offhandBlade' } as Record<string, GearType>)[csvName] ?? (csvName as GearType)];
 
 const slotOf = (csvSlot: string): 'weapon' | 'armourOffhand' | 'any' | { types: GearType[] } =>
-  csvSlot === 'weapon'
+  csvSlot === 'offensive'
     ? 'weapon'
-    : csvSlot === 'armour/offhand'
+    : csvSlot === 'defensive'
       ? 'armourOffhand'
       : csvSlot === 'any'
         ? 'any'
@@ -126,7 +126,7 @@ describe('the affix catalogue', () => {
     }
   });
 
-  it('gives every monster part one weapon and one armour/offhand affix', () => {
+  it('gives every monster part one offensive and one defensive affix', () => {
     for (const part of monsterParts) {
       const matches = affixes.filter((affix) => affix.source.kind === 'part' && affix.source.partId === part.id);
       expect(matches.filter((affix) => affix.slot === 'weapon')).toHaveLength(1);

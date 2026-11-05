@@ -1,9 +1,9 @@
 import { affixes } from '@/content/affixes';
-import { GEAR_SLOTS } from '@/content/equipment';
 import { components } from '@/content/loot/components';
 import { monsterParts } from '@/content/loot/monsterParts';
 
 import { forgeGearPiece, forgedItem, isKnown, recipeCost, unlockRecipe } from '../crafting/crafting';
+import { affixSlotOf } from '../gear/affixes';
 import { hasMaterials, removeMaterials } from '../inventory';
 import type { SaveData } from '../save';
 import type { GearType, RecipeDef } from '../types';
@@ -13,11 +13,11 @@ export const ingredients = [...monsterParts, ...components];
 
 /**
  * The affix an ingredient adds to a piece of this gear type: a monster part
- * gives its weapon affix on weapons and its armour one on armour and off-hands,
- * a component its affix on the types its slot lists.
+ * gives its offensive affix on offensive pieces and its defensive one on
+ * defensive pieces, a component its affix on the types its slot lists.
  */
 export function ingredientAffixId(ingredientId: string, gearType: GearType): string | undefined {
-  const slot = GEAR_SLOTS[gearType] === 'weapon' ? 'weapon' : 'armourOffhand';
+  const slot = affixSlotOf(gearType);
   return affixes.find(
     (affix) =>
       ((affix.source.kind === 'part' && affix.source.partId === ingredientId) ||

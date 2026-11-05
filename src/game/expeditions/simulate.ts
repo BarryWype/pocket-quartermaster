@@ -433,7 +433,9 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs
           ...heroAbilities(hero),
         ],
         weaponElement:
-          elixir?.kind === 'oil' && weapon ? elixir.element : (infusedElement(weapon) ?? heroClass.element),
+          elixir?.kind === 'oil' && weapon
+            ? elixir.element
+            : (infusedElement(weapon) ?? infusedElement(offhand) ?? heroClass.element),
         consumable,
         classKeywords: fists ? [...new Set([...heroClass.keywords, 'pierce' as const])] : heroClass.keywords,
         carriedKit: porter ? (itemById[porter.equipment.consumable!] as ConsumableDef) : null,

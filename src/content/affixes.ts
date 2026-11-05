@@ -332,7 +332,7 @@ export const affixes: AffixDef[] = [
     nameFr: 'Garde',
     family: 'keyword',
     source: { kind: 'component', componentId: 'giantsHeartstone' },
-    slot: { types: ['shield'] },
+    slot: { types: ['shield', 'plate'] },
     effect: { kind: 'keyword', keyword: 'guard' },
   },
   {
@@ -341,7 +341,7 @@ export const affixes: AffixDef[] = [
     nameFr: 'Fauchage',
     family: 'keyword',
     source: { kind: 'component', componentId: 'dragonClaw' },
-    slot: { types: ['sword', 'axe'] },
+    slot: { types: ['sword', 'axe', 'staff'] },
     effect: { kind: 'keyword', keyword: 'cleave' },
   },
   {
@@ -350,7 +350,7 @@ export const affixes: AffixDef[] = [
     nameFr: 'Perce',
     family: 'keyword',
     source: { kind: 'component', componentId: 'drakeFang' },
-    slot: { types: ['spear', 'dagger', 'bow'] },
+    slot: { types: ['spear', 'dagger', 'bow', 'warhammer'] },
     effect: { kind: 'keyword', keyword: 'pierce' },
   },
   {
@@ -359,7 +359,7 @@ export const affixes: AffixDef[] = [
     nameFr: 'Portée',
     family: 'keyword',
     source: { kind: 'component', componentId: 'harpyFlightFeather' },
-    slot: { types: ['bow', 'spear'] },
+    slot: { types: ['bow', 'spear', 'quiver'] },
     effect: { kind: 'keyword', keyword: 'reach' },
   },
   {
@@ -368,7 +368,7 @@ export const affixes: AffixDef[] = [
     nameFr: 'Parade',
     family: 'keyword',
     source: { kind: 'component', componentId: 'clockworkEscapement' },
-    slot: { types: ['offhandBlade', 'buckler'] },
+    slot: { types: ['offhandBlade', 'buckler', 'sword'] },
     effect: { kind: 'keyword', keyword: 'parry' },
   },
   {
@@ -377,7 +377,7 @@ export const affixes: AffixDef[] = [
     nameFr: 'Fermeté',
     family: 'keyword',
     source: { kind: 'component', componentId: 'golemCore' },
-    slot: { types: ['plate', 'mail', 'leather', 'robes', 'shield'] },
+    slot: { types: ['plate', 'mail', 'leather', 'robes', 'shield', 'spear'] },
     effect: { kind: 'keyword', keyword: 'brace' },
   },
   {
@@ -421,7 +421,7 @@ export const affixes: AffixDef[] = [
     unit: 'pct',
   },
 
-  // Elemental stones: Infused on weapons, Warding on armour and off-hands.
+  // Elemental stones: Infused on offensive pieces, Warding on defensive ones.
   ...ELEMENTS.map((element): AffixDef => ({
     id: `infused${element[0].toUpperCase()}${element.slice(1)}`,
     name: `${elementInfo[element].name}-infused`,

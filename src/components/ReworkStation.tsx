@@ -5,7 +5,7 @@ import { affixById } from '@/content/affixes';
 import { elementInfo } from '@/content/elements';
 import { gearRules, rarityNames } from '@/content/gear';
 import { gearName, itemById, materialById } from '@/content/lookup';
-import { canApplyStone, stonePreview } from '@/game/crafting/infusion';
+import { canApplyStone, stoneAffixId, stonePreview } from '@/game/crafting/infusion';
 import { ELEMENTS, type Element } from '@/game/elements';
 import { hasMaterials } from '@/game/inventory';
 import { canReroll, rerollCost } from '@/game/forging/reroll';
@@ -28,14 +28,9 @@ import { DiamondButton, EmberButton, ItemSlot, ParchmentCard } from './ui';
 
 const elementName = (element: Element) => tr(elementInfo[element].name);
 
-/** The affix a stone of `element` adds to a piece like this: Infused on weapons, Warding elsewhere. */
-function stoneAffixId(item: GearDef, element: Element): string {
-  return `${item.slot === 'weapon' ? 'infused' : 'warding'}${element[0].toUpperCase()}${element.slice(1)}`;
-}
-
-/** The affix line as the stone promises it: at its rolled range, or fixed without a value. */
+/** The affix line as the stone promises it: at its rolled range, or fixed without a value. Infused on offensive pieces, Warding on defensive ones. */
 function stoneAffixLine(item: GearDef, element: Element): string {
-  const id = stoneAffixId(item, element);
+  const id = stoneAffixId(item.gearType, element);
   const range = affixById[id]?.range;
   return range ? affixRangeLine(id, range.min, range.max) : affixLine({ id, value: 0 });
 }

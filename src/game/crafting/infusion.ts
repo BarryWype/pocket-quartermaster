@@ -2,18 +2,23 @@ import { affixById } from '@/content/affixes';
 import { itemById } from '@/content/lookup';
 
 import { wornBy } from '../forging/salvage';
-import { affixValue } from '../gear/affixes';
+import { affixSlotOf, affixValue } from '../gear/affixes';
 import { createRng } from '../generation/rng';
 import { stoneId, type Element } from '../elements';
 import { hasMaterials, removeMaterials } from '../inventory';
 import type { SaveData } from '../save';
-import type { GearDef, GearInstance } from '../types';
+import type { GearDef, GearInstance, GearType } from '../types';
 import { isAway } from '../team/team';
 
-/** The affix a stone of `element` adds to the piece: Infused on weapons, Warding elsewhere. */
+/** The affix a stone of `element` adds to a piece of this gear type: Infused on offensive pieces, Warding on defensive ones. */
+export function stoneAffixId(gearType: GearType | undefined, element: Element): string {
+  return `${affixSlotOf(gearType) === 'weapon' ? 'infused' : 'warding'}${element[0].toUpperCase()}${element.slice(1)}`;
+}
+
+/** The affix a stone of `element` adds to the piece: Infused on offensive pieces, Warding on defensive ones. */
 function stoneAffix(piece: GearInstance, element: Element): { id: string; value: number } {
   const item = itemById[piece.itemId] as GearDef;
-  const id = `${item.slot === 'weapon' ? 'infused' : 'warding'}${element[0].toUpperCase()}${element.slice(1)}`;
+  const id = stoneAffixId(item.gearType, element);
   return { id, value: affixValue(createRng(`${piece.uid}|stone|${id}`), affixById[id]) };
 }
 
