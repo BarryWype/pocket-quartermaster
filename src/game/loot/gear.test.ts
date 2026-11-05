@@ -1,3 +1,4 @@
+import { lootConfig } from '@/content/loot/config';
 import { difficultyRules } from '@/content/difficulty';
 import { affixById } from '@/content/affixes';
 import { RARITIES, type Rarity } from '@/content/gear';
@@ -30,8 +31,9 @@ const request = (source: LootSourceId, seed: string, overrides: Partial<LootRequ
   ...overrides,
 });
 
+/** A d20 that always shows `die`; the upgrade roll (next) never fires. */
 const scripted = (die: number): Rng => ({
-  next: () => 0,
+  next: () => 0.99,
   int: () => die,
   chance: () => false,
   weighted: <T,>(items: readonly T[]) => items[0],
@@ -77,8 +79,10 @@ describe('looted gear', () => {
     expect(legendary[0]).toBeLessThan(legendary[1]);
     expect(legendary[1]).toBeLessThan(legendary[2]);
     expect(legendary[3]).toBeGreaterThanOrEqual(legendary[2] - 0.03);
-    // A basic source never drops a Rare.
-    expect(rareOrBetter[0]).toBe(0);
+    // A basic source's Rares and Legendaries come only from its small upgrade roll.
+    const { rare, legendary: top } = lootConfig.gearRarity.upgrades.basic!;
+    expect(rareOrBetter[0]).toBeLessThan((rare + top) * 1.5);
+    expect(legendary[0]).toBeLessThan(top * 1.5);
   });
 
   it('holds the source floors', () => {
@@ -106,6 +110,11 @@ describe('looted gear', () => {
     const hard = gearOver('dungeonRun', 300, { difficulty: 'hard' });
     const best = RARITIES.indexOf('uncommon'); // the basic ladder's top
     for (let i = 0; i < easy.length; i++) {
+      // The upgrade roll lands the same on both, past any step: those pieces match.
+      if (RARITIES.indexOf(easy[i].rarity) > best) {
+        expect(hard[i].rarity).toBe(easy[i].rarity);
+        continue;
+      }
       expect(RARITIES.indexOf(hard[i].rarity)).toBe(
         Math.min(RARITIES.indexOf(easy[i].rarity) + difficultyRules.rewards.hard.raritySteps, best),
       );

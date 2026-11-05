@@ -1,3 +1,4 @@
+import { lootConfig } from '@/content/loot/config';
 import { itemById } from '@/content/lookup';
 import { gearRules } from '@/content/gear';
 import { newHero } from '@/content/heroes';
@@ -76,13 +77,15 @@ describe('the trinket catalogue', () => {
 });
 
 describe('looted trinkets', () => {
-  it('only drops the ring of fortune on a Legendary roll, and never from patrols', () => {
+  it('only drops the ring of fortune on a Legendary roll, rarely from patrols', () => {
     const rolls = (source: LootSourceId) =>
       Array.from({ length: 3000 }, (_, i) => rollLootTrinket(request(source, `${source}${i}`)));
     for (const piece of rolls('tierBoss')) {
       if (piece.itemId.startsWith('ringOfFortune')) expect(piece.rarity).toBe('legendary');
     }
-    expect(rolls('patrol').some((piece) => piece.itemId.startsWith('ringOfFortune'))).toBe(false);
+    // Patrols reach Legendary only through the basic upgrade roll.
+    const patrolRings = rolls('patrol').filter((piece) => piece.itemId.startsWith('ringOfFortune')).length;
+    expect(patrolRings / 3000).toBeLessThan(lootConfig.gearRarity.upgrades.basic!.legendary);
   });
 
   it('shares the talismans between 10% and 25% of non-legendary rolls', () => {

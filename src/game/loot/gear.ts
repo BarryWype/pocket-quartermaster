@@ -18,12 +18,14 @@ export function lootGearTier(source: LootSourceId, sourceTier: number, playerTie
 
 /**
  * d20 + bonus through the source's ladder, then lifted to the source's floor,
- * then `steps` rarities up (the Tinker's lodestone), never past the ladder's best.
+ * then `steps` rarities up (the Tinker's lodestone), never past the ladder's
+ * best. A ladder with an upgrade roll then may lift the piece to Rare or
+ * Legendary on its own small chances, which no step raises.
  */
 export function lootGearRarity(source: LootSourceId, rng: Rng, bonus: number, mapRarity?: MapRarity, steps = 0): Rarity {
   const { ladders, ladderBySource, floors } = lootConfig.gearRarity;
-  const ladder =
-    mapRarity === 'rare' || mapRarity === 'legendary' ? ladders.big : ladders[ladderBySource[source] ?? 'basic'];
+  const key = mapRarity === 'rare' || mapRarity === 'legendary' ? 'big' : (ladderBySource[source] ?? 'basic');
+  const ladder = ladders[key];
   const roll = rng.int(1, 20) + bonus;
   let rarity = ladder[ladder.length - 1][1];
   for (const [ceiling, rung] of ladder) {
@@ -36,7 +38,13 @@ export function lootGearRarity(source: LootSourceId, rng: Rng, bonus: number, ma
   if (floor && RARITIES.indexOf(floor) > RARITIES.indexOf(rarity)) rarity = floor;
   const best = Math.max(RARITIES.indexOf(ladder[ladder.length - 1][1]), floor ? RARITIES.indexOf(floor) : 0);
   const lifted = Math.min(RARITIES.indexOf(rarity) + steps, best);
-  return lifted > RARITIES.indexOf(rarity) ? RARITIES[lifted] : rarity;
+  if (lifted > RARITIES.indexOf(rarity)) rarity = RARITIES[lifted];
+  const upgrade = lootConfig.gearRarity.upgrades[key];
+  if (!upgrade) return rarity;
+  const chance = rng.next();
+  if (chance < upgrade.legendary) return 'legendary';
+  if (chance < upgrade.legendary + upgrade.rare && RARITIES.indexOf(rarity) < RARITIES.indexOf('rare')) return 'rare';
+  return rarity;
 }
 
 /** A random looted piece: uid '' until the save grants it, when its rolls are made. */
