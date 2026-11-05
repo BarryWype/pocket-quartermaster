@@ -5,7 +5,7 @@ import { trinketId, trinketKinds } from '@/content/trinkets';
 import { stoneAffixId } from '../crafting/infusion';
 import { ELEMENTS } from '../elements';
 import type { GearType, Keyword } from '../types';
-import { affixPool } from './affixes';
+import { affixPool, affixSlotOf } from './affixes';
 
 const gearTypes = Object.keys(gearProfiles) as GearType[];
 
@@ -40,6 +40,13 @@ describe('affix coverage', () => {
   it('offers every gear type an Infused or Warding affix per element', () => {
     for (const gearType of gearTypes) {
       for (const element of ELEMENTS) expect(affixById[stoneAffixId(gearType, element)]).toBeDefined();
+    }
+  });
+
+  it('rolls the offensive pool and Infused stones on the new weapon types', () => {
+    for (const gearType of ['crossbow', 'throwing', 'totem', 'runestone', 'flasks'] as GearType[]) {
+      expect(affixSlotOf(gearType)).toBe('weapon');
+      expect(stoneAffixId(gearType, 'fire')).toBe('infusedFire');
     }
   });
 

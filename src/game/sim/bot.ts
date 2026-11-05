@@ -410,12 +410,12 @@ const armourTypeFor = (classId: HeroClassId): ArmourType | null => {
   return favoured ?? null;
 };
 
-/** The off-hand that fits the hero's weapon: quiver for a bow, focus for a Magic weapon, shield for a one-handed Power weapon. */
+/** The off-hand that fits the hero's weapon: ammunition for a bow or crossbow, focus for a Magic weapon, shield for a one-handed Power weapon. */
 function offhandTypeFor(save: SaveData, hero: HeroState): OffhandType | null {
   const weapon = gearOf(save, hero.equipment.weapon);
   const item = weapon ? (itemById[weapon.itemId] as GearDef) : null;
   if (!item || item.twoHanded) return null;
-  if (item.gearType === 'bow') return 'quiver';
+  if (item.gearType === 'bow' || item.gearType === 'crossbow') return 'quiver';
   return pieceDamageStat(item, hero.classId) === 'magic' ? 'focus' : 'shield';
 }
 

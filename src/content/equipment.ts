@@ -104,7 +104,7 @@ export const gearTypeNames: Record<GearType, { name: string; plural: string }> =
   shield: { name: 'Shield', plural: 'shields' },
   buckler: { name: 'Buckler', plural: 'bucklers' },
   offhandBlade: { name: 'Parrying dagger', plural: 'parrying daggers' },
-  quiver: { name: 'Quiver', plural: 'quivers' },
+  quiver: { name: 'Ammunition', plural: 'ammunition' },
   tome: { name: 'Tome', plural: 'tomes' },
   focus: { name: 'Focus', plural: 'focuses' },
 };

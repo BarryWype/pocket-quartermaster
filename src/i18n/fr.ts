@@ -454,8 +454,8 @@ export const fr: Dictionary = {
     problem: {
       twoHanded: 'Une arme à deux mains occupe la main secondaire',
       shieldNeedsOneHanded: 'Nécessite une arme à une main',
-      quiverBowOnly: 'Uniquement avec un arc',
-      bowQuiverOnly: 'Un arc n’accepte qu’un carquois',
+      ammoNeedsBowOrCrossbow: 'Uniquement avec un arc ou une arbalète',
+      rangedNeedsAmmo: 'Un arc ou une arbalète n’accepte que des munitions',
       needsMagicWeapon: 'Nécessite une arme magique',
     },
   },

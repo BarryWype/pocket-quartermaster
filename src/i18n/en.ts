@@ -448,8 +448,8 @@ export const en = {
     problem: {
       twoHanded: 'A two-handed weapon takes the off-hand',
       shieldNeedsOneHanded: 'Needs a one-handed weapon',
-      quiverBowOnly: 'Only fits a bow-wielder',
-      bowQuiverOnly: 'A bow only takes a quiver',
+      ammoNeedsBowOrCrossbow: 'Only fits a bow or crossbow',
+      rangedNeedsAmmo: 'A bow or crossbow only takes ammunition',
       needsMagicWeapon: 'Needs a magic weapon',
     },
   },

@@ -314,7 +314,7 @@ export const affixes: AffixDef[] = [
     nameFr: 'Étourdissement',
     family: 'keyword',
     source: { kind: 'component', componentId: 'ogreKnucklebone' },
-    slot: { types: ['mace', 'warhammer', 'knuckles'] },
+    slot: { types: ['mace', 'warhammer', 'knuckles', 'throwing'] },
     effect: { kind: 'keyword', keyword: 'stagger' },
   },
   {
@@ -323,7 +323,7 @@ export const affixes: AffixDef[] = [
     nameFr: 'Canalisation',
     family: 'keyword',
     source: { kind: 'component', componentId: 'phylacteryShard' },
-    slot: { types: ['focus', 'wand', 'staff', 'tome', 'runestone'] },
+    slot: { types: ['focus', 'wand', 'staff', 'tome', 'runestone', 'totem'] },
     effect: { kind: 'keyword', keyword: 'channel' },
   },
   {
@@ -341,7 +341,7 @@ export const affixes: AffixDef[] = [
     nameFr: 'Fauchage',
     family: 'keyword',
     source: { kind: 'component', componentId: 'dragonClaw' },
-    slot: { types: ['sword', 'axe', 'staff'] },
+    slot: { types: ['sword', 'axe', 'staff', 'throwing'] },
     effect: { kind: 'keyword', keyword: 'cleave' },
   },
   {
@@ -350,7 +350,7 @@ export const affixes: AffixDef[] = [
     nameFr: 'Perce',
     family: 'keyword',
     source: { kind: 'component', componentId: 'drakeFang' },
-    slot: { types: ['spear', 'dagger', 'bow', 'warhammer', 'crossbow'] },
+    slot: { types: ['spear', 'dagger', 'bow', 'warhammer', 'crossbow', 'throwing'] },
     effect: { kind: 'keyword', keyword: 'pierce' },
   },
   {
@@ -359,7 +359,7 @@ export const affixes: AffixDef[] = [
     nameFr: 'Portée',
     family: 'keyword',
     source: { kind: 'component', componentId: 'harpyFlightFeather' },
-    slot: { types: ['bow', 'spear', 'quiver'] },
+    slot: { types: ['bow', 'crossbow', 'spear', 'quiver'] },
     effect: { kind: 'keyword', keyword: 'reach' },
   },
   {

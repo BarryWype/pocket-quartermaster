@@ -9,9 +9,9 @@ export type SlotProblem =
   /** A two-handed weapon takes the off-hand. */
   | 'twoHanded'
   | 'shieldNeedsOneHanded'
-  | 'quiverBowOnly'
-  /** A bow's off-hand can only be a quiver. */
-  | 'bowQuiverOnly'
+  | 'ammoNeedsBowOrCrossbow'
+  /** A bow's or crossbow's off-hand can only be ammunition. */
+  | 'rangedNeedsAmmo'
   | 'needsMagicWeapon';
 
 const gearDefOf = (save: SaveData, gear: GearInstance): GearDef => itemById[gear.itemId] as GearDef;
@@ -32,14 +32,14 @@ export function slotProblem(
   const weaponUid = hero.equipment.weapon;
   const weapon = weaponUid ? save.gear.find((g) => g.uid === weaponUid) : undefined;
   const weaponItem = weapon ? gearDefOf(save, weapon) : null;
-  const isBow = weaponItem?.gearType === 'bow';
+  const isRanged = weaponItem?.gearType === 'bow' || weaponItem?.gearType === 'crossbow';
   if (weaponItem?.twoHanded) return 'twoHanded';
-  if (isBow) return item.gearType === 'quiver' ? null : 'bowQuiverOnly';
+  if (isRanged) return item.gearType === 'quiver' ? null : 'rangedNeedsAmmo';
   switch (item.gearType) {
     case 'shield':
       return weaponItem && !weaponItem.twoHanded ? null : 'shieldNeedsOneHanded';
     case 'quiver':
-      return isBow ? null : 'quiverBowOnly';
+      return isRanged ? null : 'ammoNeedsBowOrCrossbow';
     case 'tome':
     case 'focus':
       return weaponItem && pieceDamageStat(weaponItem, hero.classId) === 'magic' ? null : 'needsMagicWeapon';
