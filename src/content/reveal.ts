@@ -132,5 +132,5 @@ export const tipTexts: Record<TipId, string> = {
     'The Miner is open at the guild: a hero there digs the ore you pick. Stone now, copper and iron as tiers open. Switching ore keeps what was mined.',
   jobCharcoalBurner: "The Charcoal burner is open at the guild: a hero there makes coal while you're away.",
   jobGatherer:
-    'The outdoor gatherer camps where you stand and picks up, within 250 m, the nodes you left behind once they expire. Outdoor work tires faster, and wildlife can hurt the hero a little.',
+    'The outdoor gatherer works around you: a hero gathers the resources you can see on the map, the closest first, about 4 an hour at most. It works best in Pocket mode, while you walk. Pick a focus if you need one material. Outdoor work tires faster, and wildlife can hurt the hero a little.',
 };

@@ -211,12 +211,12 @@ export const fr: Dictionary = {
     odds: '{name} {percent}',
     toolHint: '{tool} (à la {place}) aide',
     gatherer: {
-      setUpCamp: 'Installer le camp ici',
-      noPosition: 'En attente de votre position',
-      distance: 'Camp à {distance}',
+      around: 'Ramasse les ressources que vous voyez autour de vous',
+      focus: 'Cherche',
+      focusChoices: { any: 'Tout', wood: 'Bois', food: 'Herbes et nourriture', ore: 'Minerais' },
       nodes: '{count}/{cap} nœuds récoltés',
       hurt: '{hero} a été blessé par la faune (−{hp} PV)',
-      moveCamp: 'Déplacer le camp ici',
+      today: 'Récoltés aujourd’hui : {count}',
     },
   },
   health: {
@@ -879,6 +879,7 @@ export const fr: Dictionary = {
     escortDrink: 'Boire une potion',
     swapEscort: 'Changer d’escorte',
     removeEscort: 'Retirer',
+    gathererSinceLeft: 'Cueilleur : {count} ressources depuis votre départ',
   },
   settings: {
     section: {

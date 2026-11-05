@@ -4,6 +4,7 @@ import { AppState, Platform } from 'react-native';
 import { gatheringConfig } from '@/content/gatheringConfig';
 import { materialById } from '@/content/lookup';
 import { clearProcessed, shouldAutoStop, walkTileKeys, type WalkFix, type WalkSummary } from '@/game/gathering/autoGather';
+import { jobOutputDetail, jobWorker } from '@/game/jobs/jobs';
 import { snapshotBackground } from '@/game/patrols/escort';
 import { clearsRefusal, locationPermissionState } from '@/game/patrols/pocketPermission';
 import { needsBackgroundState, patrolSettingsFrom, pocketTracking, snapshotPocket } from '@/game/patrols/pocketMode';
@@ -218,7 +219,23 @@ export function useAutoGather(paused = false) {
   useEffect(() => {
     const unsubscribe = [useGameStore, useSettingsStore].map((store) => store.persist.onFinishHydration(() => refreshAutoGather(true)));
     refreshAutoGather(true);
-    const appState = AppState.addEventListener('change', (state) => state === 'active' && refreshAutoGather(true));
+    const appState = AppState.addEventListener('change', async (state) => {
+      const world = useWorldStore.getState();
+      if (state === 'background') {
+        const save = useGameStore.getState().save;
+        world.set({ gathererLeftUnits: jobWorker(save, 'gatherer') ? jobOutputDetail(save, 'gatherer', Date.now()).units : null });
+      } else if (state === 'active') {
+        await refreshAutoGather(true);
+        const { gathererLeftUnits } = useWorldStore.getState();
+        if (gathererLeftUnits !== null) {
+          const save = useGameStore.getState().save;
+          useWorldStore.getState().set({
+            gathererSinceLeft: jobOutputDetail(save, 'gatherer', Date.now()).units - gathererLeftUnits,
+            gathererLeftUnits: null,
+          });
+        }
+      }
+    });
     return () => {
       unsubscribe.forEach((fn) => fn());
       appState.remove();

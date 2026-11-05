@@ -1,16 +1,15 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { clockConfig } from '@/content/clockConfig';
-import { jobById } from '@/content/jobs';
+import { jobById, type GathererFocus } from '@/content/jobs';
 import { materialById } from '@/content/lookup';
-import { gathererCapNodes, type GathererWound } from '@/game/jobs/gatherer';
+import { gathererCapNodes, gathererNodesToday, type GathererWound } from '@/game/jobs/gatherer';
 import { isJobFull, jobOutputDetail, jobWorker } from '@/game/jobs/jobs';
 import type { SaveData } from '@/game/save';
 import { t, tr } from '@/i18n';
 import { useNow } from '@/hooks/useNow';
-import { usePlayerLocation } from '@/hooks/usePlayerLocation';
-import { colors } from '@/theme';
+import { colors, pixel } from '@/theme';
 import { useGameStore } from '@/store/gameStore';
 
 import { EnergyBar } from './EnergyBar';
@@ -20,19 +19,19 @@ import { PixelBar } from './PixelBar';
 import { Text } from './Text';
 import { EmberButton, ParchmentCard, WoodButton } from './ui';
 
+const FOCUS_CHOICES: GathererFocus[] = ['any', 'wood', 'food', 'ore'];
+
 /**
- * The gatherer's card: it camps where the player stands, so it reads the
- * position here (JobsTab never needs it) and can set up, move camp or collect
- * the nodes the worker gathered around it.
+ * The gatherer's card: the hero gathers the nodes visible around the player,
+ * so the card picks a focus, shows what it gathered and collects it.
  */
 export function GathererCard() {
   const save = useGameStore((state) => state.save);
   const assignJob = useGameStore((state) => state.assignJob);
   const collectJob = useGameStore((state) => state.collectJob);
   const recallFromJob = useGameStore((state) => state.recallFromJob);
+  const setGathererFocus = useGameStore((state) => state.setGathererFocus);
   const noteTips = useGameStore((state) => state.noteTips);
-  const player = usePlayerLocation();
-  const position = player.status === 'ready' ? player.location.position : null;
   const [picking, setPicking] = useState(false);
   // After a collect, the wounds it cleared stay on show until the next action.
   const [collectedWounds, setCollectedWounds] = useState<GathererWound[] | null>(null);
@@ -57,10 +56,26 @@ export function GathererCard() {
       titleSub={working ? working.worker.name : t('jobs.noOne')}
       contentStyle={styles.card}
     >
+      <Text style={styles.muted}>{t('jobs.gatherer.around')}</Text>
+      <View style={styles.picker}>
+        <Text style={styles.pickerLabel}>{t('jobs.gatherer.focus')}</Text>
+        <View style={styles.options}>
+          {FOCUS_CHOICES.map((focus) => (
+            <Pressable
+              key={focus}
+              onPress={() => setGathererFocus(focus)}
+              style={[styles.option, save.gatherer.focus === focus && styles.optionActive]}
+            >
+              <Text style={styles.optionText}>{t(`jobs.gatherer.focusChoices.${focus}`)}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
       {working ? (
         <>
           <GathererOutput save={save} />
           <EnergyBar save={save} hero={working.worker} />
+          <Text style={styles.muted}>{t('jobs.gatherer.today', { count: gathererNodesToday(save, now) })}</Text>
           {wounds.map((wound, index) => (
             <Text key={`${wound.at}:${index}`} style={styles.muted}>
               {t('jobs.gatherer.hurt', { hero: nameOf(wound.heroId), hp: Math.round(wound.hp) })}
@@ -88,9 +103,8 @@ export function GathererCard() {
         </>
       ) : (
         <>
-          {!position && <Text style={styles.muted}>{t('jobs.gatherer.noPosition')}</Text>}
           <View style={styles.actions}>
-            <EmberButton title={t('jobs.gatherer.setUpCamp')} compact disabled={!position} onPress={() => setPicking(true)} />
+            <EmberButton title={t('jobs.assign')} compact onPress={() => setPicking(true)} />
           </View>
           {picking && (
             <View style={styles.picker}>
@@ -110,7 +124,7 @@ export function GathererCard() {
   );
 }
 
-/** The nodes gathered around the camp, with what they gave, towards the cap a collect clears. */
+/** The nodes gathered around the player, with what they gave, towards the cap a collect clears. */
 function GathererOutput({ save }: { save: SaveData }) {
   // Its own clock, so the bar ticks without re-rendering the card around it.
   const now = useNow(clockConfig.minutesMs);
@@ -144,7 +158,12 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
   barText: { fontSize: 16, color: colors.muted },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 2 },
-  picker: { gap: 8 },
+  picker: { gap: 4 },
+  pickerLabel: { fontSize: 16, color: colors.muted, textTransform: 'uppercase' },
+  options: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  option: { paddingHorizontal: 8, paddingVertical: 4, borderWidth: 2, borderColor: colors.woodDark, backgroundColor: colors.parchmentDark },
+  optionActive: { borderColor: colors.ink, borderWidth: pixel.outline, backgroundColor: colors.highlight },
+  optionText: { fontSize: 17 },
   subtitle: { fontSize: 21 },
   muted: { color: colors.muted },
 });

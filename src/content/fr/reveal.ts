@@ -33,5 +33,5 @@ export const frTipTexts: typeof tipTexts = {
     'Le Mineur est ouvert à la guilde : un héros y extrait le minerai choisi. La pierre d’abord, le cuivre et le fer avec les paliers suivants. Changer de minerai garde ce qui a été extrait.',
   jobCharcoalBurner: 'Le Charbonnier est ouvert à la guilde : un héros y fait du charbon en votre absence.',
   jobGatherer:
-    'Le cueilleur des environs campe là où vous êtes et ramasse, à 250 m autour, les nœuds que vous avez laissés une fois expirés. Le travail dehors fatigue plus vite, et la faune peut blesser un peu le héros.',
+    'Le cueilleur des environs travaille autour de vous : un héros ramasse les ressources que vous voyez sur la carte, la plus proche d’abord, environ 4 par heure au plus. Il donne le meilleur en mode Poche, pendant que vous marchez. Choisissez une cible si vous manquez d’un matériau. Le travail dehors fatigue plus vite, et la faune peut blesser un peu le héros.',
 };

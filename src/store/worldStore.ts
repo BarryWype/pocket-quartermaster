@@ -27,6 +27,10 @@ type WorldState = {
   focusPlace: { latitude: number; longitude: number } | null;
   /** Pocket mode's panel, opened from the pill or a notification tap. */
   pocketPanel: 'closed' | 'open' | 'escort';
+  /** The gatherer's units when the app went to the background, to count what it gathered since. */
+  gathererLeftUnits: number | null;
+  /** Nodes the gatherer gathered while the app was away. */
+  gathererSinceLeft: number;
   /** Patrols placed by hand next to the player by the debug tools. */
   debugPatrols: PatrolSpawn[];
   /** Adds hand-placed debug patrols to the map's list; an empty list clears them. */
@@ -46,6 +50,8 @@ export const useWorldStore = create<WorldState>()((set) => ({
   focusPatrol: null,
   focusPlace: null,
   pocketPanel: 'closed',
+  gathererLeftUnits: null,
+  gathererSinceLeft: 0,
   debugPatrols: [],
   addDebugPatrols: (patrols) =>
     set((state) => ({ debugPatrols: patrols.length === 0 ? [] : [...state.debugPatrols, ...patrols] })),

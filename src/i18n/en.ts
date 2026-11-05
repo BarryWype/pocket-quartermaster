@@ -206,12 +206,12 @@ export const en = {
     odds: '{name} {percent}',
     toolHint: 'A {tool} from a {place} helps',
     gatherer: {
-      setUpCamp: 'Set up camp here',
-      noPosition: 'Waiting for your location',
-      distance: 'Camp {distance} away',
+      around: 'Gathers the resources you can see around you',
+      focus: 'Looks for',
+      focusChoices: { any: 'Any', wood: 'Wood', food: 'Herbs and food', ore: 'Ores' },
       nodes: '{count}/{cap} nodes gathered',
       hurt: '{hero} was hurt by wildlife (−{hp} HP)',
-      moveCamp: 'Move camp here',
+      today: 'Gathered today: {count}',
     },
   },
   health: {
@@ -871,6 +871,7 @@ export const en = {
     escortDrink: 'Drink potion',
     swapEscort: 'Swap escort',
     removeEscort: 'Remove',
+    gathererSinceLeft: 'Gatherer: {count} resources since you left',
   },
   settings: {
     section: {

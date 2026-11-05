@@ -232,6 +232,7 @@ function EscortSection({ save, now }: { save: SaveData; now: number }) {
 /** Pocket mode's panel, opened from the pill on the map: its options and the escort. */
 export function PocketModePanel() {
   const open = useWorldStore((state) => state.pocketPanel !== 'closed');
+  const gathererSinceLeft = useWorldStore((state) => state.gathererSinceLeft);
   const save = useGameStore((state) => state.save);
   const now = useNow(clockConfig.minutesMs);
   const close = () => useWorldStore.getState().set({ pocketPanel: 'closed' });
@@ -248,6 +249,7 @@ export function PocketModePanel() {
             <AlertForPicker />
             <PocketOptionRow option="escort" />
             <EscortSection save={save} now={now} />
+            {gathererSinceLeft > 0 && <Text style={styles.hint}>{t('autoGather.gathererSinceLeft', { count: gathererSinceLeft })}</Text>}
             <PocketOptionsHint />
             <PocketNotificationRows />
           </ScrollView>

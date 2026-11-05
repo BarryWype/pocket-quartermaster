@@ -53,6 +53,9 @@ const markerLabel = (name: string, difficulty: Difficulty, kind: string) =>
 const TimedSpawnMarker = memo(timed('marker: spawn', SpawnMarker), sameSpawnMarker);
 const TimedSanctumMarker = memo(timed('marker: sanctum', SanctumMarker));
 const TimedPatrolMarker = memo(timed('marker: patrol', PatrolMarker));
+const GathererHeroMarker = memo(function GathererHeroMarker({ emoji }: { emoji: string }) {
+  return <Text style={styles.gathererHero}>{emoji}</Text>;
+});
 
 /** The tutorial's nodes, with the position they are drawn at. */
 export type TutorialNode = { id: string; materialId: string; position: LatLng };
@@ -82,6 +85,8 @@ type Props = {
   patrolsSeen: Record<string, number>;
   questTargets: QuestMark[];
   placedTreasure: TreasureSpot[];
+  /** The outdoor gatherer's hero, walking to its next node; null when nobody works it. */
+  gathererHero: { position: LatLng; emoji: string } | null;
   onGather: (spawn: Spawn) => void;
   onGatherTutorial: (id: string) => void;
   onDigUp: (mapId: string, at: LatLng) => void;
@@ -119,6 +124,7 @@ function MapMarkersBase({
   patrolsSeen,
   questTargets,
   placedTreasure,
+  gathererHero,
   onGather,
   onGatherTutorial,
   onDigUp,
@@ -259,6 +265,11 @@ function MapMarkersBase({
           <Text style={styles.treasure}>💰</Text>
         </Marker>
       ))}
+      {gathererHero && (
+        <Marker key="gatherer:hero" id="gatherer:hero" lngLat={toLngLat(gathererHero.position)}>
+          <GathererHeroMarker emoji={gathererHero.emoji} />
+        </Marker>
+      )}
       <Marker id="player" lngLat={toLngLat(position)}>
         <Text style={styles.player}>🧙</Text>
       </Marker>
@@ -271,6 +282,7 @@ export const MapMarkers = memo(MapMarkersBase);
 const styles = StyleSheet.create({
   player: { fontSize: 28 },
   treasure: { fontSize: 30 },
+  gathererHero: { fontSize: 20 },
   // Sits above the target's own marker.
   questTarget: { fontSize: 18, transform: [{ translateY: -34 }] },
   questMark: { fontSize: 26 },

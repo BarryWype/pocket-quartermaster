@@ -40,7 +40,9 @@ import { freshGathersLeft, pickaxeTier, showsOnMap, type CollectFailure } from '
 import { requiredPickaxeTier } from '@/game/gathering/lockedNodes';
 import { ambienceConfig, decorationMode, inSpan, type DecorationMode } from '@/game/generation/ambience';
 import type { Bounds } from '@/game/generation/foliage';
-import { distanceMeters } from '@/game/generation/geo';
+import { distanceMeters, offsetPosition } from '@/game/generation/geo';
+import { gathererFinds, gathererHeroAt } from '@/game/jobs/gatherer';
+import { heroClasses } from '@/content/heroes';
 import { generateSpawnsAround } from '@/game/generation/spawns';
 import type { LatLng, Spawn, SpawnConfig } from '@/game/generation/types';
 import { visibleSpawns } from '@/game/generation/visibility';
@@ -411,16 +413,37 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
       ),
     [placedSpawns, animalsShown, resourcesShown],
   );
+  // The gatherer replayed to this minute: nodes its hero took since the last settle leave the map, and its marker walks the current leg.
+  const gathererWorker = save.heroes.find((hero) => hero.job?.jobId === 'gatherer');
+  const gathererEntry = save.jobOutput.gatherer;
+  const gathererTrail = useMemo(
+    () =>
+      gathererWorker && gathererEntry
+        ? recordTiming('map: gathererTrail', () => gathererFinds(save, 'gatherer', gathererEntry.since, minute * 60_000))
+        : null,
+    // Keyed by what the replay reads, not the save: most store writes leave it alone.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [minute, gathererWorker?.id, gathererEntry, save.gatherer, save.collected],
+  );
+  const gathererTaken = useMemo(() => new Set(gathererTrail?.nodes.map((node) => node.spawn.id)), [gathererTrail]);
+  const gathererAt =
+    gathererTrail && gathererWorker ? gathererHeroAt(gathererTrail, save.gatherer.anchors.at(-1)?.position ?? null, now) : null;
+  const gathererHero = useMemo(
+    // A few metres east, so the hero stands next to the player rather than under them.
+    () => (gathererAt && gathererWorker ? { position: offsetPosition(gathererAt, 0, 8), emoji: heroClasses[gathererWorker.classId].emoji } : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [gathererAt?.latitude, gathererAt?.longitude, gathererWorker?.classId],
+  );
   const visible = useMemo(
     () =>
       position
         ? recordTiming('map: visibleSpawns', () =>
             visibleSpawns(shownSpawns, position, now, undefined, trackedRange(save, now)).filter(
-              ({ spawn }) => !(spawn.id in save.collected) && showsOnMap(save, spawn),
+              ({ spawn }) => !(spawn.id in save.collected) && !gathererTaken.has(spawn.id) && showsOnMap(save, spawn),
             ),
           )
         : [],
-    [shownSpawns, position, now, save],
+    [shownSpawns, position, now, save, gathererTaken],
   );
 
   // Patrols and travellers reroll with their window, so generating once per window is enough.
@@ -734,6 +757,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
           patrolsSeen={patrolsSeen}
           questTargets={questTargets}
           placedTreasure={placedTreasure}
+          gathererHero={gathererHero}
           onGather={gather}
           onGatherTutorial={gatherTutorial}
           onDigUp={digUp}
