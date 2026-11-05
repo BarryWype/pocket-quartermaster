@@ -427,7 +427,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
   );
   const gathererTaken = useMemo(() => new Set(gathererTrail?.nodes.map((node) => node.spawn.id)), [gathererTrail]);
   const gathererAt =
-    gathererTrail && gathererWorker ? gathererHeroAt(gathererTrail, save.gatherer.anchors.at(-1)?.position ?? null, now) : null;
+    gathererTrail && gathererWorker ? gathererHeroAt(gathererTrail, save.gatherer.anchors.at(-1) ?? null, now) : null;
   const gathererHero = useMemo(
     // A few metres east, so the hero stands next to the player rather than under them.
     () => (gathererAt && gathererWorker ? { position: offsetPosition(gathererAt, 0, 8), emoji: heroClasses[gathererWorker.classId].emoji } : null),

@@ -1,5 +1,7 @@
 import type { ResourceKind } from '@/game/generation/types';
 
+import { spawnConfig } from './spawnConfig';
+
 /** Guild jobs: a hero at a station turns time into materials (see doc/design/jobs/README.md). */
 export const jobRules = {
   /** Hours of work a station's output holds before it fills up. */
@@ -10,8 +12,11 @@ export const jobRules = {
 
 /** The outdoor gatherer: it gathers, around the player, the resource nodes the player can see on the map. */
 export const gathererRules = {
-  /** The hero's walking pace between nodes. */
-  heroWalkMetersPerMinute: 60,
+  /**
+   * The hero's walking pace between nodes, which sets how many it gathers: 4 trips an hour of half the
+   * average of the wood and herb sight ranges ((300 + 100) / 2 / 2 × 4 = 400 m an hour).
+   */
+  heroWalkMetersPerMinute: ((spawnConfig.kinds.wood.visibilityMeters + spawnConfig.kinds.herb.visibilityMeters) / 2 / 2) * 4 / 60,
   /** Minutes spent gathering at a node, on top of the walk. */
   gatherMinutes: 3,
   /** At most one node every this many minutes: 4 an hour. */

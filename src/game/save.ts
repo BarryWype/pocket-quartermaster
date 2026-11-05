@@ -64,6 +64,8 @@ export type JobOutput = {
   lastNodeAt?: number;
   /** Gatherer only: where the hero stands after the last node. */
   heroAt?: LatLng;
+  /** Gatherer only: the anchor (its `at`) that node was picked around; without it, the hero starts from the anchor. */
+  heroAnchorAt?: number;
   /** Gatherer only: when the hero next looks for a node (the replay starts there). */
   nextAt?: number;
   /** Gatherer only: nodes gathered on a local day (ISO date). */

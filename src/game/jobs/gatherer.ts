@@ -40,6 +40,8 @@ export type GathererReplay = {
   nextAt: number;
   /** Where the hero stands after its last node, if any. */
   heroAt: LatLng | null;
+  /** The anchor (its `at`) the last node was picked around: the hero keeps its place only while that anchor holds. */
+  heroAnchorAt: number | null;
   lastNodeAt: number | null;
 };
 
@@ -117,7 +119,14 @@ export function gathererFinds(save: SaveData, jobId: string, from: number, to: n
   const worker = jobWorker(save, jobId);
   const entry = save.jobOutput[jobId];
   const anchors = save.gatherer.anchors;
-  const empty: GathererReplay = { nodes: [], leg: null, nextAt: to, heroAt: entry?.heroAt ?? null, lastNodeAt: entry?.lastNodeAt ?? null };
+  const empty: GathererReplay = {
+    nodes: [],
+    leg: null,
+    nextAt: to,
+    heroAt: entry?.heroAt ?? null,
+    heroAnchorAt: entry?.heroAnchorAt ?? null,
+    lastNodeAt: entry?.lastNodeAt ?? null,
+  };
   if (!worker?.job || !entry || jobById[jobId]?.kind !== 'outdoor' || anchors.length === 0) return empty;
   const shows = (kind: ResourceKind) => isRevealed(save, kind === 'animal' ? 'animals' : 'resources');
   if (!KINDS.some(shows)) return empty;
@@ -157,6 +166,7 @@ export function gathererFinds(save: SaveData, jobId: string, from: number, to: n
   const took = new Set<string>();
   let clock = Math.max(entry.nextAt ?? since, since);
   let heroAt = entry.heroAt ?? null;
+  let heroAnchorAt = entry.heroAnchorAt ?? null;
   let lastNodeAt = entry.lastNodeAt ?? null;
   let leg: GathererLeg | null = null;
 
@@ -171,8 +181,8 @@ export function gathererFinds(save: SaveData, jobId: string, from: number, to: n
       clock = nextAnchor!.at;
       continue;
     }
-    // The hero starts from the anchor, unless its last node came after the anchor's last move.
-    const start = heroAt && lastNodeAt !== null && lastNodeAt >= anchor.at && lastNodeAt >= since ? heroAt : anchor.position;
+    // The hero starts from the anchor, unless its last node was picked around this same anchor.
+    const start = heroAt && heroAnchorAt === anchor.at && lastNodeAt !== null && lastNodeAt >= since ? heroAt : anchor.position;
     const candidates = inSight(anchor, clock)
       .filter(({ spawn }) => !(spawn.id in save.collected) && !took.has(spawn.id) && canGather(save, spawn))
       .map((node) => ({ ...node, distance: distanceMeters(start, node.position) }))
@@ -215,10 +225,11 @@ export function gathererFinds(save: SaveData, jobId: string, from: number, to: n
       });
     }
     heroAt = picked.position;
+    heroAnchorAt = anchor.at;
     lastNodeAt = finishAt;
     clock = finishAt;
   }
-  return { nodes, leg, nextAt: clock, heroAt, lastNodeAt };
+  return { nodes, leg, nextAt: clock, heroAt, heroAnchorAt, lastNodeAt };
 }
 
 /** The gatherer's node count now: the settled ones plus those found since, capped at the cap. */
@@ -262,6 +273,7 @@ export function gathererDetail(
       nextAt: replay.nextAt,
       ...(replay.lastNodeAt !== null ? { lastNodeAt: replay.lastNodeAt } : {}),
       ...(replay.heroAt ? { heroAt: replay.heroAt } : {}),
+      ...(replay.heroAnchorAt !== null ? { heroAnchorAt: replay.heroAnchorAt } : {}),
       ...(today ? { today } : {}),
       wounds: [...(entry.wounds ?? []), ...wounds],
       since: now,
@@ -278,13 +290,13 @@ export function gathererNodesToday(save: SaveData, now: number): number {
 }
 
 /** Where the hero is at `now`: walking a leg, gathering at its node, or standing where it last stopped. */
-export function gathererHeroAt(replay: GathererReplay, anchor: LatLng | null, now: number): LatLng | null {
+export function gathererHeroAt(replay: GathererReplay, anchor: GathererAnchor | null, now: number): LatLng | null {
   const { leg } = replay;
   if (leg && now >= leg.startAt) {
     if (now >= leg.arriveAt) return leg.to;
     return interpolate(leg.from, leg.to, (now - leg.startAt) / Math.max(1, leg.arriveAt - leg.startAt));
   }
-  return replay.heroAt && replay.lastNodeAt !== null ? replay.heroAt : anchor;
+  return replay.heroAt && anchor && replay.heroAnchorAt === anchor.at ? replay.heroAt : (anchor?.position ?? null);
 }
 
 /** How far ahead the notifications look for the gatherer's next wound or full output. */
