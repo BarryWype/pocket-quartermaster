@@ -9,6 +9,7 @@ import { formatPercent, t, tr, type TextKey } from '@/i18n';
 import { colors } from '@/theme';
 
 import { Button } from './Button';
+import { GearDetails } from './GearDetails';
 import { Overlay } from './Overlay';
 import { useSheetMaxHeight } from './Sheet';
 import { Panel } from './Panel';
@@ -44,6 +45,7 @@ export function SalvageDialog({ gear, save, onConfirm, onClose }: Props) {
         <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
           <Text style={styles.title}>{t('inventory.salvageTitle', { item: gearName(gear) })}</Text>
           <Text style={[styles.quality, { color: gearRules.colors[dialog.rarity] }]}>{tr(rarityNames[dialog.rarity])}</Text>
+          <GearDetails gear={gear} />
           <View style={styles.returnsRow}>
             <Text>{t('inventory.salvageBody')}</Text>
             {returns ? <Text>{returns}</Text> : null}

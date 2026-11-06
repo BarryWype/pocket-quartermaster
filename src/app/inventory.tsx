@@ -6,12 +6,8 @@ import { Text } from '@/components/Text';
 import { Countdown, countdownText } from '@/components/Countdown';
 import { TutorialHint } from '@/components/TutorialHint';
 import { StepChests } from '@/components/StepChests';
-import { PartsLine } from '@/components/IconLabel';
-import { AffixLines } from '@/components/AffixLines';
-import { gearStatsParts } from '@/components/GearRow';
-import { workToolParts } from '@/components/WorkToolLine';
+import { GearDetails, GearSubtitle } from '@/components/GearDetails';
 import { SalvageDialog } from '@/components/SalvageDialog';
-import { gearRules, rarityNames } from '@/content/gear';
 import { bossById } from '@/content/enemies';
 import { lootConfig } from '@/content/loot/config';
 import { purposeInfo } from '@/content/loot/purposes';
@@ -31,7 +27,7 @@ import type { SaveData } from '@/game/save';
 import { hasKey, keyDots } from '@/game/secrets/keys';
 import { tipPosition } from '@/game/secrets/tips';
 import { isAway } from '@/game/team/team';
-import type { GearDef, GearInstance } from '@/game/types';
+import type { GearInstance } from '@/game/types';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useNow } from '@/hooks/useNow';
 import { clockConfig } from '@/content/clockConfig';
@@ -420,21 +416,9 @@ function InventoryPopup({
       emoji = item.emoji;
       icon = gearIconOf(gear);
       legendary = gear.rarity === 'legendary' ? true : undefined;
-      subtitle = (
-        <>
-          <Text style={{ color: gearRules.colors[gear.rarity] }}>{tr(rarityNames[gear.rarity])}</Text>
-          {` · ${tr(item.name)}`}
-        </>
-      );
+      subtitle = <GearSubtitle gear={gear} />;
       note = holder ? t('common.equippedBy', { name: holder.name }) : undefined;
-      const parts = gearStatsParts(gear);
-      children = (
-        <>
-          {parts.length > 0 && <PartsLine parts={parts} sep="   " labelStyle={styles.line} />}
-          {workToolParts(item as GearDef).length > 0 && <PartsLine parts={workToolParts(item as GearDef)} labelStyle={styles.line} />}
-          <AffixLines piece={gear} compact labelStyle={styles.line} />
-        </>
-      );
+      children = <GearDetails gear={gear} compact labelStyle={styles.line} />;
       action = { title: t('inventory.salvage'), disabled: !canSalvage(save, gear.uid), onPress: () => onSalvage(gear) };
       break;
     }

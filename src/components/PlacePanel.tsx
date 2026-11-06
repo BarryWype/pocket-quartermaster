@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { bossById } from '@/content/enemies';
+import { gearRules } from '@/content/gear';
 import { heroClasses } from '@/content/heroes';
 import { gearName, itemById, materialById, recipeById, recipeOutput, threatById, valuableById } from '@/content/lookup';
 import { heistRules } from '@/content/placeActivities';
@@ -51,6 +52,7 @@ import { useGameStore } from '@/store/gameStore';
 import { colors, pixel, ui } from '@/theme';
 
 import { GainsLine, IconLabel, PartsLine, type LabelPart } from './IconLabel';
+import { GearDetails } from './GearDetails';
 import { Price } from './Price';
 import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
@@ -173,7 +175,10 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
       if (gear.length === 0) return <Text style={styles.muted}>{t('places.nothingToSell')}</Text>;
       return gear.map((g) => (
         <View key={g.uid} style={[styles.row, styles.actions]}>
-          <IconLabel emoji={itemById[g.itemId].emoji} icon={gearIconOf(g)} label={gearName(g)} labelStyle={styles.name} />
+          <View style={styles.gearInfo}>
+            <IconLabel emoji={itemById[g.itemId].emoji} icon={gearIconOf(g)} label={gearName(g)} labelStyle={[styles.name, { color: gearRules.colors[g.rarity] }]} />
+            <GearDetails gear={g} compact labelStyle={styles.muted} />
+          </View>
           <Price amount={gearSellPrice(g)} textStyle={styles.price} />
           <WoodButton
             title={t('places.sell')}
@@ -425,6 +430,7 @@ const styles = StyleSheet.create({
   resultRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   content: { gap: 6, paddingBottom: 12 },
   muted: { color: colors.muted },
+  gearInfo: { flex: 1, gap: 2 },
   row: { gap: 4, paddingVertical: 8, borderTopWidth: 2, borderTopColor: colors.parchmentDark },
   section: { gap: 4, paddingVertical: 10, borderTopWidth: 2, borderTopColor: colors.parchmentDark },
   name: { fontSize: 21 },

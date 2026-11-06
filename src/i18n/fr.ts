@@ -451,6 +451,7 @@ export const fr: Dictionary = {
   equip: {
     choose: { weapon: 'Choisir une arme', armor: 'Choisir une armure', offhand: 'Choisir une main secondaire', trinket: 'Choisir un bibelot', consumable: 'Choisir un consommable', potion: 'Choisir une potion' },
     nothing: 'Rien',
+    wearing: 'Porté',
     inStock: '{count} en stock',
     usedBy: ' · utilisé par {name}',
     empty: 'Rien de disponible. Passez à la forge.',

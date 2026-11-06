@@ -445,6 +445,7 @@ export const en = {
   equip: {
     choose: { weapon: 'Choose weapon', armor: 'Choose armor', offhand: 'Choose off-hand', trinket: 'Choose trinket', consumable: 'Choose consumable', potion: 'Choose potion' },
     nothing: 'Nothing',
+    wearing: 'Wearing',
     inStock: '{count} in stock',
     usedBy: ' · used by {name}',
     empty: 'Nothing available. Visit the forge.',
