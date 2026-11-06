@@ -44,11 +44,12 @@ describe('rollSigil', () => {
   });
 
   it('crumbles into capShardsPerTier × tier shards at the cap', () => {
-    const capped: SaveData = { ...createInitialSave(), sigils: [1, 1, 1], sigilPity: lootConfig.sigils.pityAfter };
+    const full = Array<number>(lootConfig.sigils.cap).fill(1);
+    const capped: SaveData = { ...createInitialSave(), sigils: full, sigilPity: lootConfig.sigils.pityAfter };
     const { save: after, drop } = rollSigil(capped, boss, createRng('cap'));
     expect(drop.sigilShards!.amount).toBe(lootConfig.sigils.capShardsPerTier * boss.tier);
     expect(after.materials[shardId(drop.sigilShards!.element)]).toBe(drop.sigilShards!.amount);
-    expect(after.sigils).toEqual([1, 1, 1]);
+    expect(after.sigils).toEqual(full);
     expect(after.sigilPity).toBe(0);
   });
 });

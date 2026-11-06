@@ -1,3 +1,4 @@
+import { lootConfig } from '@/content/loot/config';
 import { formatPercent, t } from '@/i18n';
 
 export type GuildBuildingId = 'warRoom' | 'treasury' | 'barracks' | 'questBoard' | 'workshop';
@@ -61,7 +62,7 @@ export const guildTracks: GuildTrack[] = [
   // Treasury
   track({ id: 'gold', building: 'treasury', name: 'Gold', gates: [0, 1, 2, 3], perRank: 0.1, baseCost: 50, costs: [50, 60, 85, 240], describe: (r) => t('guildTracks.gold', { percent: pct(r * 0.1) }) }),
   track({ id: 'shards', building: 'treasury', name: 'Shards', gates: [1, 2, 3], perRank: 1, baseCost: 200, describe: (r) => t('guildTracks.shards', { count: r }) }),
-  track({ id: 'sigilCap', building: 'treasury', name: 'Sigil cap', gates: [3], perRank: 1, baseCost: 2500, describe: (r) => t('guildTracks.sigilCap', { count: 3 + r }) }),
+  track({ id: 'sigilCap', building: 'treasury', name: 'Sigil cap', gates: [3], perRank: 1, baseCost: 2500, describe: (r) => t('guildTracks.sigilCap', { count: lootConfig.sigils.cap + r }) }),
   track({ id: 'collector', building: 'treasury', name: 'Collector’s contacts', gates: [1, 2, 3], perRank: 0.1, baseCost: 150, describe: (r) => t('guildTracks.collector', { percent: pct(r * 0.1) }) }),
   // Barracks
   track({ id: 'tavernDiscount', building: 'barracks', name: 'Tavern discount', gates: [0, 1, 2], perRank: 0.1, baseCost: 120, describe: (r) => t('guildTracks.tavernDiscount', { percent: pct(r * 0.1) }) }),

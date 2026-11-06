@@ -238,7 +238,7 @@ describe('effects', () => {
 
   it('shards replace a Sigil only at the raised cap', () => {
     const boss = dungeons.find((d) => d.tier === 1 && d.isBoss)!;
-    const full = { ...hall(), sigils: [1, 1, 1], sigilPity: lootConfig.sigils.pityAfter };
+    const full = { ...hall(), sigils: Array<number>(lootConfig.sigils.cap).fill(1), sigilPity: lootConfig.sigils.pityAfter };
     const drop = (save: SaveData) => rollSigil(save, boss, createRng('s')).drop;
     expect(drop(full).sigilShards).toBeDefined();
     expect(drop(withRanks({ sigilCap: 1 }, full)).sigil).toBe(1);
