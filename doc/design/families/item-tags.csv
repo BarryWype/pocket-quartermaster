@@ -1,0 +1,30 @@
+type,slot,family,tags,notes
+sword,weapon,shadow,1,
+axe,weapon,bloodrage,1,
+mace,weapon,faith,1,
+censer,weapon,faith,1,
+dagger,weapon,venom,1,
+bow,weapon,volley,1,
+spear,weapon,watch,1,
+warhammer,weapon,breaker,2,two-handed
+knuckles,weapon,breaker,1,
+wand,weapon,spellweave,1,
+staff,weapon,warding,2,two-handed
+lute,weapon,rally,1,
+crossbow,weapon,cunning,1,
+throwing,weapon,plunder,1,
+totem,weapon,pack,2,two-handed
+runestone,weapon,watch,1,
+flasks,weapon,venom,1,
+plate,armour,breaker,1,
+mail,armour,bulwark,1,
+leather,armour,wild,1,
+robes,armour,faith,1,
+shield,offhand,bulwark,1,
+buckler,offhand,shadow,1,
+offhandBlade,offhand,bloodrage,1,
+ammunition,offhand,volley,1,
+tome,offhand,spellweave,1,
+focus,offhand,warding,1,
+workTools,offhand,,0,no tag
+trinkets,trinket,,0,no tag (some rare or named trinkets may carry one later)
