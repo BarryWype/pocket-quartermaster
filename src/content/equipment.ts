@@ -1,11 +1,15 @@
 import type { DamageStat, GearType, HeroClassId, Keyword, MaterialStack, WeaponType, ArmourType } from '@/game/types';
 
+import type { FamilyId } from '@/content/families';
+
 // Equipment content: profiles, budget rules, names and recipes from the
 // design catalogue (doc/design/threats/). Stats are derived in
 // src/game/equipment/budget.ts, exactly as tools/gear-budget.py does.
 
 /** One gear type: its slot, damage stat, hands, flat extras and keywords. */export type GearProfile = {
   slot: 'weapon' | 'armor' | 'offhand';
+  /** The team tag the gear type contributes (see doc/design/families/item-tags.csv). */
+  familyTag: FamilyId;
   emoji: string;
   damageStat?: DamageStat | 'wielder';
   twoHanded?: boolean;
@@ -49,33 +53,33 @@ export const GEAR_SLOTS: Record<GearType, 'weapon' | 'armor' | 'offhand'> = {
 };
 
 export const gearProfiles: Record<GearType, GearProfile> = {
-  sword: { slot: 'weapon', emoji: '🗡️', damageStat: 'power', extras: { crit: 5 }, keywords: ['parry'], shares: { power: 1 } },
-  axe: { slot: 'weapon', emoji: '🪓', damageStat: 'power', extras: { speed: -1 }, keywords: ['cleave'], shares: { power: 1 } },
-  mace: { slot: 'weapon', emoji: '🔨', damageStat: 'power', extras: { speed: -1 }, keywords: ['blessed', 'stagger'], shares: { power: 1 } },
-  dagger: { slot: 'weapon', emoji: '🔪', damageStat: 'power', extras: { speed: 2, crit: 10 }, keywords: ['pierce'], concealed: true, shares: { power: 1 } },
-  bow: { slot: 'weapon', emoji: '🏹', damageStat: 'power', extras: {}, keywords: ['pierce', 'reach'], shares: { power: 1 } },
-  spear: { slot: 'weapon', emoji: '🔱', damageStat: 'power', extras: {}, keywords: ['reach', 'brace'], shares: { power: 1 } },
-  warhammer: { slot: 'weapon', emoji: '⚒️', damageStat: 'power', twoHanded: true, extras: { speed: -2 }, keywords: ['pierce', 'stagger'], heavy: true, shares: { power: 1 } },
-  wand: { slot: 'weapon', emoji: '🪄', damageStat: 'magic', extras: { speed: 1 }, keywords: ['channel'], concealed: true, shares: { magic: 1 } },
-  staff: { slot: 'weapon', emoji: '🦯', damageStat: 'magic', twoHanded: true, extras: {}, keywords: ['cleave'], shares: { magic: 1 } },
-  lute: { slot: 'weapon', emoji: '🪕', damageStat: 'magic', extras: { approach: 1 }, keywords: ['inspire'], concealed: true, shares: { magic: 1 } },
-  censer: { slot: 'weapon', emoji: '🪔', damageStat: 'magic', extras: {}, keywords: ['blessed', 'mend'], shares: { magic: 1 } },
-  knuckles: { slot: 'weapon', emoji: '🥊', damageStat: 'power', extras: { speed: 1 }, keywords: ['stagger'], concealed: true, shares: { power: 1 } },
-  crossbow: { slot: 'weapon', emoji: '🎯', damageStat: 'power', extras: { speed: -1 }, keywords: ['pierce'], shares: { power: 1 } },
-  throwing: { slot: 'weapon', emoji: '🪃', damageStat: 'power', extras: { speed: 1 }, keywords: [], shares: { power: 1 } },
-  totem: { slot: 'weapon', emoji: '🗿', damageStat: 'magic', twoHanded: true, extras: { speed: -1 }, keywords: [], shares: { magic: 1 } },
-  runestone: { slot: 'weapon', emoji: '💠', damageStat: 'magic', extras: {}, keywords: ['channel'], shares: { magic: 1 } },
-  flasks: { slot: 'weapon', emoji: '⚗️', damageStat: 'wielder', extras: {}, keywords: [], shares: { power: 1 } },
-  plate: { slot: 'armor', emoji: '🛡️', extras: { speed: -2 }, keywords: ['guard'], heavy: true, shares: { armour: 0.75, hp: 0.2, resistance: 0.05 } },
-  mail: { slot: 'armor', emoji: '🦺', extras: {}, keywords: ['brace'], shares: { armour: 0.5, resistance: 0.3, hp: 0.2 } },
-  leather: { slot: 'armor', emoji: '🧥', extras: { speed: 1, evasion: 8 }, keywords: [], shares: { armour: 0.45, hp: 0.4, resistance: 0.15 } },
-  robes: { slot: 'armor', emoji: '👘', extras: {}, keywords: [], shares: { magic: 0.2, resistance: 0.65, hp: 0.15 } },
-  shield: { slot: 'offhand', emoji: '🛡️', extras: { speed: -1 }, keywords: ['guard'], shares: { armour: 0.75, hp: 0.25 } },
-  buckler: { slot: 'offhand', emoji: '🔔', extras: { evasion: 6 }, keywords: ['parry'], shares: { armour: 1 } },
-  offhandBlade: { slot: 'offhand', emoji: '🤺', damageStat: 'power', extras: { crit: 5 }, keywords: [], concealed: true, shares: { power: 1 } },
-  quiver: { slot: 'offhand', emoji: '🎯', damageStat: 'power', extras: {}, keywords: ['reach'], shares: { power: 1 } },
-  tome: { slot: 'offhand', emoji: '📖', damageStat: 'magic', extras: { approach: 1 }, keywords: [], shares: { magic: 1 } },
-  focus: { slot: 'offhand', emoji: '🔮', damageStat: 'magic', extras: {}, keywords: ['channel'], shares: { magic: 0.7, resistance: 0.3 } },
+  sword: { familyTag: 'bulwark', slot: 'weapon', emoji: '🗡️', damageStat: 'power', extras: { crit: 5 }, keywords: ['parry'], shares: { power: 1 } },
+  axe: { familyTag: 'bloodrage', slot: 'weapon', emoji: '🪓', damageStat: 'power', extras: { speed: -1 }, keywords: ['cleave'], shares: { power: 1 } },
+  mace: { familyTag: 'faith', slot: 'weapon', emoji: '🔨', damageStat: 'power', extras: { speed: -1 }, keywords: ['blessed', 'stagger'], shares: { power: 1 } },
+  dagger: { familyTag: 'shadow', slot: 'weapon', emoji: '🔪', damageStat: 'power', extras: { speed: 2, crit: 10 }, keywords: ['pierce'], concealed: true, shares: { power: 1 } },
+  bow: { familyTag: 'volley', slot: 'weapon', emoji: '🏹', damageStat: 'power', extras: {}, keywords: ['pierce', 'reach'], shares: { power: 1 } },
+  spear: { familyTag: 'wild', slot: 'weapon', emoji: '🔱', damageStat: 'power', extras: {}, keywords: ['reach', 'brace'], shares: { power: 1 } },
+  warhammer: { familyTag: 'breaker', slot: 'weapon', emoji: '⚒️', damageStat: 'power', twoHanded: true, extras: { speed: -2 }, keywords: ['pierce', 'stagger'], heavy: true, shares: { power: 1 } },
+  wand: { familyTag: 'spellweave', slot: 'weapon', emoji: '🪄', damageStat: 'magic', extras: { speed: 1 }, keywords: ['channel'], concealed: true, shares: { magic: 1 } },
+  staff: { familyTag: 'warding', slot: 'weapon', emoji: '🦯', damageStat: 'magic', twoHanded: true, extras: {}, keywords: ['cleave'], shares: { magic: 1 } },
+  lute: { familyTag: 'rally', slot: 'weapon', emoji: '🪕', damageStat: 'magic', extras: { approach: 1 }, keywords: ['inspire'], concealed: true, shares: { magic: 1 } },
+  censer: { familyTag: 'faith', slot: 'weapon', emoji: '🪔', damageStat: 'magic', extras: {}, keywords: ['blessed', 'mend'], shares: { magic: 1 } },
+  knuckles: { familyTag: 'breaker', slot: 'weapon', emoji: '🥊', damageStat: 'power', extras: { speed: 1 }, keywords: ['stagger'], concealed: true, shares: { power: 1 } },
+  crossbow: { familyTag: 'cunning', slot: 'weapon', emoji: '🎯', damageStat: 'power', extras: { speed: -1 }, keywords: ['pierce'], shares: { power: 1 } },
+  throwing: { familyTag: 'plunder', slot: 'weapon', emoji: '🪃', damageStat: 'power', extras: { speed: 1 }, keywords: [], shares: { power: 1 } },
+  totem: { familyTag: 'pack', slot: 'weapon', emoji: '🗿', damageStat: 'magic', twoHanded: true, extras: { speed: -1 }, keywords: [], shares: { magic: 1 } },
+  runestone: { familyTag: 'watch', slot: 'weapon', emoji: '💠', damageStat: 'magic', extras: {}, keywords: ['channel'], shares: { magic: 1 } },
+  flasks: { familyTag: 'venom', slot: 'weapon', emoji: '⚗️', damageStat: 'wielder', extras: {}, keywords: [], shares: { power: 1 } },
+  plate: { familyTag: 'bulwark', slot: 'armor', emoji: '🛡️', extras: { speed: -2 }, keywords: ['guard'], heavy: true, shares: { armour: 0.75, hp: 0.2, resistance: 0.05 } },
+  mail: { familyTag: 'warding', slot: 'armor', emoji: '🦺', extras: {}, keywords: ['brace'], shares: { armour: 0.5, resistance: 0.3, hp: 0.2 } },
+  leather: { familyTag: 'wild', slot: 'armor', emoji: '🧥', extras: { speed: 1, evasion: 8 }, keywords: [], shares: { armour: 0.45, hp: 0.4, resistance: 0.15 } },
+  robes: { familyTag: 'spellweave', slot: 'armor', emoji: '👘', extras: {}, keywords: [], shares: { magic: 0.2, resistance: 0.65, hp: 0.15 } },
+  shield: { familyTag: 'bulwark', slot: 'offhand', emoji: '🛡️', extras: { speed: -1 }, keywords: ['guard'], shares: { armour: 0.75, hp: 0.25 } },
+  buckler: { familyTag: 'shadow', slot: 'offhand', emoji: '🔔', extras: { evasion: 6 }, keywords: ['parry'], shares: { armour: 1 } },
+  offhandBlade: { familyTag: 'bloodrage', slot: 'offhand', emoji: '🤺', damageStat: 'power', extras: { crit: 5 }, keywords: [], concealed: true, shares: { power: 1 } },
+  quiver: { familyTag: 'volley', slot: 'offhand', emoji: '🎯', damageStat: 'power', extras: {}, keywords: ['reach'], shares: { power: 1 } },
+  tome: { familyTag: 'spellweave', slot: 'offhand', emoji: '📖', damageStat: 'magic', extras: { approach: 1 }, keywords: [], shares: { magic: 1 } },
+  focus: { familyTag: 'warding', slot: 'offhand', emoji: '🔮', damageStat: 'magic', extras: {}, keywords: ['channel'], shares: { magic: 0.7, resistance: 0.3 } },
 };
 
 /** Every gear type's name, singular and plural, for display. */

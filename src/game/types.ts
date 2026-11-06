@@ -6,6 +6,7 @@ import type { WorkToolKind } from '@/content/workTools';
 import type { PlaceTipSource, TipSource } from '@/content/secrets';
 import type { Difficulty } from '@/content/difficulty';
 import type { Rarity } from '@/content/gear';
+import type { FamilyId } from '@/content/families';
 
 import type { Element } from './elements';
 import type { LatLng } from './generation/types';
@@ -692,6 +693,8 @@ export type HeroClassDef = {
   rarity: ClassRarity;
   /** How the class plays its role against threats. */
   family: ClassFamily;
+  /** The team tag the class contributes to the party's families (see content/families.ts). */
+  familyTag: FamilyId;
   /** Highest unlocked tier from which taverns offer the class; null = never (rare classes). */
   poolTier: number | null;
   /** Its attacks use this element unless its weapon is infused. */

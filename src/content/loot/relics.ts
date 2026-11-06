@@ -2,6 +2,8 @@ import type { ImageSourcePropType } from 'react-native';
 
 import type { GearType, RelicEffect } from '@/game/types';
 
+import type { FamilyId } from '@/content/families';
+
 // The 25 relics of doc/design/loot/relics.csv: one-off items restored at the
 // forge into a finished piece with their fixed effects.
 
@@ -12,6 +14,8 @@ export type RelicDef = {
   gearType: GearType;
   effect: string;
   effects: RelicEffect[];
+  /** A rare second team tag (see doc/design/families/); unset on every relic so far. */
+  extraFamily?: FamilyId;
   sellPrice: number;
   icon: ImageSourcePropType;
 };

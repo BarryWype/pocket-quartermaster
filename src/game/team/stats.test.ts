@@ -75,6 +75,7 @@ describe('baseHeroStats', () => {
       icon: 0,
       rarity: 'common',
       family: 'fighter',
+      familyTag: 'bulwark',
       poolTier: 1,
       baseStats: { hp: 20, power: 2, magic: 0, armour: 1, resistance: 1, evasion: 0, speed: 5, crit: 5 },
       primary: ['hp', 'power', 'armour'],

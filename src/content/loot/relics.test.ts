@@ -58,4 +58,14 @@ describe('relic icons', () => {
       expect(fs.existsSync(path.join(iconsRoot, listed))).toBe(true);
     }
   });
+
+  it('lists each relic an extra family, empty unless the content entry has one', () => {
+    const rows = csvRows();
+    const byName = new Map(relics.map((relic) => [relic.name, relic]));
+    for (const row of rows) {
+      const relic = byName.get(row[0].replace(/'/g, '’'));
+      expect(relic).toBeDefined();
+      expect(relic!.extraFamily ?? '').toBe(row[5] ?? '');
+    }
+  });
 });

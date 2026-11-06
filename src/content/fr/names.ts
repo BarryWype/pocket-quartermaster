@@ -736,6 +736,22 @@ export const frNames: Record<string, string> = {
   Monk: 'Moine',
   Gambler: 'Joueur',
 
+  // Families (see content/families.ts)
+  Faith: 'Foi',
+  Wild: 'Sauvage',
+  Watch: 'Vigie',
+  Cunning: 'Ruse',
+  Venom: 'Venin',
+  Warding: 'Protection',
+  Breaker: 'Brise-armure',
+  Bulwark: 'Rempart',
+  Bloodrage: 'Rage sanguinaire',
+  Shadow: 'Ombre',
+  Volley: 'Salve',
+  Spellweave: 'Tissage',
+  Pack: 'Meute',
+  Plunder: 'Pillage',
+
   // Specials (Cleave, Stagger, Mend, Poison and Focus already sit above, with the other content names)
   'Aimed strike': 'Tir ajusté',
   Flurry: 'Déluge de coups',
