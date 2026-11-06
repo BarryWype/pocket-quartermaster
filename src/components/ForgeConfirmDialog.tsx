@@ -19,7 +19,6 @@ import { fonts, ui } from '@/theme';
 
 import { affixLine, affixRangeLine } from './affixText';
 import { GameIcon } from './GameIcon';
-import { useSheetMaxHeight } from './Sheet';
 import { Text } from './Text';
 import { AnchoredPopup, ItemPopup, type PopupAnchor, type PopupIngredient, type PopupLine } from './ui';
 
@@ -139,7 +138,6 @@ export function ForgeConfirmDialog({
   const confirm =
     pending.kind === 'forge' ? forgeConfirmation(save, pending.recipeId, pending.ingredientId) : restoreConfirmation(save, pending.relicUid);
   const [picking, setPicking] = useState(false);
-  const maxHeight = useSheetMaxHeight();
   if (!confirm) return null;
   const isRestore = confirm.kind === 'restore';
 
@@ -224,7 +222,7 @@ export function ForgeConfirmDialog({
       showIngredients && picking ? (
         <View style={styles.ingredientList}>
           <Text style={styles.ingredientHint}>{t('crafting.ingredientHint')}</Text>
-          <ScrollView style={{ maxHeight }} contentContainerStyle={styles.ingredientRows}>
+          <ScrollView style={styles.ingredientScroll} nestedScrollEnabled contentContainerStyle={styles.ingredientRows}>
             <IngredientRow ingredientId={null} gearType={confirm.gearType} held={0} selected={!ingredientId} onPick={onPickIngredient} />
             {fitting.map((id) => (
               <IngredientRow
@@ -278,6 +276,8 @@ export function ForgeConfirmDialog({
 const styles = StyleSheet.create({
   ingredientList: { alignSelf: 'stretch', gap: 6 },
   ingredientHint: { fontFamily: fonts.serif, fontSize: 13, color: ui.inkMuted, textAlign: 'center' },
+  // About three and a half rows, so the cut-off row shows the list scrolls and the card keeps its Forge button on screen.
+  ingredientScroll: { maxHeight: 200 },
   ingredientRows: { gap: 6 },
   ingredientRow: {
     minHeight: 44,
