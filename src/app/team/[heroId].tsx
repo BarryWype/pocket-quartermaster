@@ -1,8 +1,9 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useRef, useState, type ComponentRef } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { DELTA_KEYS, EquipPicker } from '@/components/EquipPicker';
+import { GearDetails, GearSubtitle } from '@/components/GearDetails';
 import { affixIcon, affixLine } from '@/components/affixText';
 import { EnergyBar } from '@/components/EnergyBar';
 import { PlaceholderScreen } from '@/components/PlaceholderScreen';
@@ -19,7 +20,6 @@ import { abilityText } from '@/content/abilities';
 import { clockConfig } from '@/content/clockConfig';
 import { elementInfo } from '@/content/elements';
 import { expeditionRules } from '@/content/dungeons';
-import { gearRules, rarityNames } from '@/content/gear';
 import { approachRules } from '@/content/threats';
 import { slotProblem } from '@/game/equipment/slots';
 import { gearIconOf } from '@/game/gear/gearIcon';
@@ -35,8 +35,7 @@ import { gearName, itemById } from '@/content/lookup';
 import { answersMemberOf, prepareParty } from '@/game/expeditions/simulate';
 import { highestUnlockedTier } from '@/game/dungeons/unlock';
 import { careProblem, drinkProblem } from '@/game/team/health';
-import { affinityOf, canDismiss, equip, equipPreview, gearKeywordsOf, hasPotionSlot, healingPotion, heroDamageStat, heroStats, isBusy, isOnExpedition, statSources, upgradeMark } from '@/game/team/team';
-import { workToolParts } from '@/components/WorkToolLine';
+import { affinityOf, canDismiss, equip, equipPreview, gearKeywordsOf, hasPotionSlot, healingPotion, heroDamageStat, heroStats, isAway, isBusy, statSources, upgradeMark } from '@/game/team/team';
 import { ClassSummary } from '@/components/ClassSummary';
 import { SpecialLabel } from '@/components/SpecialLabel';
 import { APPROACHES, heroAnswers } from '@/game/threats/answers';
@@ -153,7 +152,8 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
   const heroClass = heroClasses[hero.classId];
   const stats = heroStats(save, hero);
   const damageStat = heroDamageStat(save, hero);
-  const away = isOnExpedition(save, hero.id);
+  // Equipping throws for any hero who is out (expedition, fight, heist), not only an expedition.
+  const away = isAway(save, hero.id);
   const escort = save.escort?.heroId === hero.id;
   const onPatrol = save.patrolFights.some((fight) => fight.heroIds.includes(hero.id));
   const pending = pendingApproachPicks(hero);
@@ -426,13 +426,13 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
     </ScrollView>
   );
 
-  /** The doll slot, absolutely placed, with its slot label under it. */
-  const dollSlotView = (slot: EquipmentSlot, position: ViewStyle) => {
+  /** One doll cell: the slot, with its slot label under it. */
+  const dollSlotView = (slot: EquipmentSlot) => {
     const content = dollSlot(slot);
     // A working hero's job tool as an off-hand recommendation.
     const jobTool = slot === 'offhand' && hero.job ? workTools.find((w) => w.job === hero.job!.jobId) : undefined;
     return (
-      <View key={slot} style={[styles.dollSlot, position]}>
+      <View key={slot} style={styles.dollCell}>
         <ItemSlot
           state={content.state}
           emoji={content.emoji}
@@ -457,14 +457,24 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
       contentContainerStyle={styles.page}
       onLayout={({ nativeEvent }) => setContentWidth(nativeEvent.layout.width - 24)}
     >
-      <WoodPanel rim style={styles.doll}>
+      <WoodPanel rim>
+        {/* Flex rows, not absolute placement: Android drops taps on the absolutely placed slots. */}
         <View style={styles.dollArea}>
-          {dollSlotView('weapon', styles.dollWeapon)}
-          {dollSlotView('armor', styles.dollArmor)}
-          {dollSlotView('offhand', styles.dollOffhand)}
-          {dollSlotView('trinket', styles.dollTrinket)}
-          {hasPotionSlot(hero) && dollSlotView('potion', styles.dollPotion)}
-          {dollSlotView('consumable', styles.dollConsumable)}
+          <View style={styles.dollRow}>
+            {dollSlotView('trinket')}
+            {dollSlotView('armor')}
+            <View style={styles.dollCell} />
+          </View>
+          <View style={styles.dollRow}>
+            {dollSlotView('weapon')}
+            <View style={styles.dollCell} />
+            {dollSlotView('offhand')}
+          </View>
+          <View style={styles.dollRow}>
+            <View style={styles.dollCell} />
+            {dollSlotView('consumable')}
+            {hasPotionSlot(hero) ? dollSlotView('potion') : <View style={styles.dollCell} />}
+          </View>
         </View>
       </WoodPanel>
       <Text style={styles.note}>{away ? t('hero.awayHint') : t('hero.tapSlot')}</Text>
@@ -619,9 +629,6 @@ function ComparePopup({
   const wornUid = hero.equipment[slot];
   const worn = wornUid ? save.gear.find((g) => g.uid === wornUid) : undefined;
   const lines: PopupLine[] = [];
-  if (item.workTool) {
-    lines.push({ tone: 'muted', text: workToolParts(item).map((part) => (typeof part === 'string' ? part : part.text)).join('') });
-  }
   // What the worn piece and this one each add to the hero, against the slot left empty.
   const bare = heroStats(save, { ...hero, equipment: { ...hero.equipment, [slot]: null } });
   const rows = preview
@@ -645,15 +652,18 @@ function ComparePopup({
   return (
     <ItemPopup
       title={gearName(gear)}
-      subtitle={t('hero.insteadOf', { item: worn ? gearName(worn) : t('hero.empty') })}
+      subtitle={<GearSubtitle gear={gear} />}
       emoji={item.emoji}
       icon={gearIconOf(gear)}
       legendary={gear.rarity === 'legendary' ? true : undefined}
       lines={lines}
-      action={{ title: t('hero.equip'), onPress: onEquip, disabled: !preview || isOnExpedition(save, hero.id) }}
+      action={{ title: t('hero.equip'), onPress: onEquip, disabled: !preview || isAway(save, hero.id) }}
       pointer={pointer}
     >
-      <Text style={[styles.rarity, { color: gearRules.colors[gear.rarity] }]}>{tr(rarityNames[gear.rarity])}</Text>
+      <GearDetails gear={gear} compact labelStyle={styles.compareValue} />
+      {(rows.length > 0 || affixRows.length > 0) && (
+        <Text style={styles.compareHeading}>{t('hero.insteadOf', { item: worn ? gearName(worn) : t('hero.empty') })}</Text>
+      )}
       {rows.length > 0 && (
         <View style={styles.compare}>
           {rows.map(({ key, worn: wornValue, next }) => (
@@ -729,7 +739,7 @@ function keywordChange(save: SaveData, hero: HeroState, slot: (typeof GEAR_SLOTS
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: ui.woodDark },
   compare: { alignSelf: 'stretch', gap: 2 },
-  rarity: { fontFamily: fonts.body, fontSize: 16, color: ui.ink, textTransform: 'uppercase' },
+  compareHeading: { fontFamily: fonts.body, fontSize: 14, color: ui.inkMuted, marginTop: 4 },
   compareRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   affixRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   compareName: { flex: 1, fontFamily: fonts.serif, fontSize: 15, color: ui.ink },
@@ -850,15 +860,9 @@ const styles = StyleSheet.create({
   },
   pickDisabled: { opacity: 0.4 },
   pressed: { opacity: 0.6 },
-  doll: { height: 270 },
-  dollArea: { height: 270 },
-  dollSlot: { position: 'absolute', alignItems: 'center', gap: 3 },
-  dollWeapon: { left: 14, top: 90 },
-  dollArmor: { left: '50%', marginLeft: -32, top: 8 },
-  dollOffhand: { right: 14, top: 90 },
-  dollTrinket: { left: 14, top: 8 },
-  dollPotion: { right: 14, bottom: 6 },
-  dollConsumable: { left: '50%', marginLeft: -32, bottom: 6 },
+  dollArea: { paddingVertical: 8, paddingHorizontal: 6, gap: 2 },
+  dollRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  dollCell: { width: 96, alignItems: 'center', gap: 3 },
   slotLabel: { fontFamily: fonts.body, fontSize: 13, color: ui.brassLight },
   slotNote: { fontFamily: fonts.serif, fontSize: 11, color: ui.inkMuted, maxWidth: 96, textAlign: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },

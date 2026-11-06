@@ -7,18 +7,16 @@ import type { GearDef } from '@/game/types';
 import { t, tr } from '@/i18n';
 import { colors, pixel } from '@/theme';
 
-import { AffixLines } from './AffixLines';
+import { GearDetails } from './GearDetails';
 import { GearMarks } from './GearMarks';
-import { IconLabel, PartsLine } from './IconLabel';
+import { IconLabel } from './IconLabel';
 import { Text } from './Text';
-import { gearStatsParts } from './GearRow';
 
 /** The forged piece in its rarity colour, bigger for Legendary. */
 export function ForgeBanner({ result, onClose }: { result: ForgeResult; onClose: () => void }) {
   const { rarity } = result.gear;
   const legendary = rarity === 'legendary';
   const color = gearRules.colors[rarity];
-  const stats = gearStatsParts(result.gear);
   return (
     <Pressable
       onPress={onClose}
@@ -38,8 +36,7 @@ export function ForgeBanner({ result, onClose }: { result: ForgeResult; onClose:
         <GearMarks tier={(itemById[result.gear.itemId] as GearDef).tier} />
       </View>
       <Text style={{ color }}>{t('crafting.quality', { quality: tr(rarityNames[rarity]) })}</Text>
-      {stats.length > 0 && <PartsLine parts={stats} labelStyle={styles.stats} />}
-      <AffixLines piece={result.gear} labelStyle={styles.stats} />
+      <GearDetails gear={result.gear} labelStyle={styles.stats} />
     </Pressable>
   );
 }

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, type ImageSourcePropType } from 'react-native';
+import { Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 
 import { gearRules } from '@/content/gear';
 import { gearName, itemById } from '@/content/lookup';
@@ -15,6 +15,7 @@ import { colors } from '@/theme';
 
 import { Button } from './Button';
 import { AffixLines } from './AffixLines';
+import { GearDetails } from './GearDetails';
 import { GearMarks } from './GearMarks';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
@@ -130,7 +131,8 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, briefin
             holder ? t('equip.usedBy', { name: holder.name }) : null,
           ].filter((part): part is LabelPart => part !== null);
       const hasUnique = gear.relicId !== undefined || gear.unique !== undefined;
-      const showAffixes = !greyed && (hasUnique || gear.affixes.length > 0);
+      // Greyed pieces still say what they are.
+      const showAffixes = hasUnique || gear.affixes.length > 0;
       return {
         id: gear.uid,
         emoji: item.emoji,
@@ -171,10 +173,27 @@ function deltaParts({ before, after }: { before: Stats; after: Stats }): LabelPa
 
 export function EquipPicker({ save, heroId, slot, briefing, bossId, onPick, onClose }: Props) {
   const options = optionsFor(save, heroId, slot, briefing, bossId);
+  // The piece in the slot now, described in full, so the choice is made against it.
+  const hero = save.heroes.find((h) => h.id === heroId);
+  const wornUid = slot === 'consumable' || slot === 'potion' ? null : hero?.equipment[slot];
+  const worn = wornUid ? save.gear.find((g) => g.uid === wornUid) : undefined;
 
   return (
     <Overlay onClose={onClose} position="bottom">
       <Sheet title={t(`equip.choose.${slot}`)} bodyStyle={styles.body} footer={<Button title={t('common.cancel')} onPress={onClose} />}>
+        {worn && (
+          <View style={styles.worn}>
+            <Text style={styles.wornLabel}>{t('equip.wearing')}</Text>
+            <Row
+              emoji={itemById[worn.itemId].emoji}
+              icon={gearIconOf(worn)}
+              legendary={worn.rarity === 'legendary'}
+              title={gearName(worn)}
+              titleColor={gearRules.colors[worn.rarity]}
+              subtitle={<GearDetails gear={worn} compact labelStyle={styles.subtitle} />}
+            />
+          </View>
+        )}
         <Pressable onPress={() => onPick(null)}>
           <Row emoji="🚫" title={t('equip.nothing')} />
         </Pressable>
@@ -201,5 +220,7 @@ export function EquipPicker({ save, heroId, slot, briefing, bossId, onPick, onCl
 const styles = StyleSheet.create({
   body: { gap: 4 },
   empty: { color: colors.muted, paddingVertical: 8 },
+  worn: { gap: 2, paddingBottom: 6, borderBottomWidth: 2, borderBottomColor: colors.muted },
+  wornLabel: { fontSize: 15, color: colors.muted },
   subtitle: { fontSize: 17, color: colors.muted },
 });

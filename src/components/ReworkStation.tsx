@@ -19,7 +19,7 @@ import { useGameStore } from '@/store/gameStore';
 import { colors, fonts, ui } from '@/theme';
 
 import { affixLine, affixName, affixRangeLine } from './affixText';
-import { AffixLines } from './AffixLines';
+import { GearDetails } from './GearDetails';
 import { Button } from './Button';
 import { Overlay } from './Overlay';
 import { Panel } from './Panel';
@@ -173,7 +173,7 @@ function ReworkCard({
     >
       <>
         <Text style={[styles.rarity, { color: gearRules.colors[gear.rarity] }]}>{tr(rarityNames[gear.rarity])}</Text>
-        <AffixLines piece={gear} labelStyle={styles.affix} />
+        <GearDetails gear={gear} labelStyle={styles.affix} style={styles.details} />
 
         {takesStone && (
           <>
@@ -261,6 +261,7 @@ const styles = StyleSheet.create({
   card: { marginTop: 6, alignItems: 'stretch', gap: 4 },
   rarity: { fontSize: 16, textTransform: 'uppercase', textAlign: 'center' },
   affix: { fontFamily: fonts.serif, fontSize: 14, color: ui.ink, textAlign: 'center' },
+  details: { alignItems: 'center' },
   blockTitle: { fontFamily: fonts.serifBold, fontSize: 14, color: ui.inkMuted, marginTop: 4, textAlign: 'center' },
   elementRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 6 },
   detail: { fontFamily: fonts.serif, fontSize: 14, color: ui.ink, textAlign: 'center' },
