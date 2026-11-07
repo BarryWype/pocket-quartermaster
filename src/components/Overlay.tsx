@@ -1,5 +1,12 @@
-import type { ReactNode } from 'react';
+import { createContext, type ReactNode } from 'react';
 import { Modal, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+
+/**
+ * Inside an overlay: closes it and every overlay around it, so a link can leave
+ * for another screen. Null inside an overlay that must be answered first;
+ * undefined outside any overlay.
+ */
+export const CloseOverlays = createContext<(() => void) | null | undefined>(undefined);
 
 /** Where the panel sits; it decides the animation and the dimming. */
 export type OverlayPosition = 'center' | 'bottom';
@@ -66,7 +73,15 @@ export function Overlay({ onClose, dismissOnBackdrop = true, position = 'center'
     >
       <View style={styles.frame}>
         <Pressable style={[styles.backdrop, position === 'center' ? styles.dimCenter : styles.dimBottom, backdropStyle]} onPress={backdrop} />
-        <View style={[position === 'center' ? styles.layoutCenter : styles.layoutBottom, contentStyle]}>{children}</View>
+        <View style={[position === 'center' ? styles.layoutCenter : styles.layoutBottom, contentStyle]}>
+          <CloseOverlays.Consumer>
+            {(closeOuter) => (
+              <CloseOverlays.Provider value={dismissOnBackdrop && closeOuter !== null ? () => (closeOuter?.(), onClose()) : null}>
+                {children}
+              </CloseOverlays.Provider>
+            )}
+          </CloseOverlays.Consumer>
+        </View>
       </View>
     </Modal>
   );

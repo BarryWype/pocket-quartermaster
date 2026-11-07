@@ -953,6 +953,7 @@ export const fr: Dictionary = {
     none: 'Aucun tag de famille pour l’instant.',
     all: 'Toutes les familles',
     link: 'Familles',
+    party: 'Votre groupe : {count} tags',
     where: 'Où les trouver',
     classes: 'Classes',
     items: 'Équipement',

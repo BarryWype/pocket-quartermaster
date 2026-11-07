@@ -945,6 +945,7 @@ export const en = {
     none: 'No family tags yet.',
     all: 'All families',
     link: 'Families',
+    party: 'Your party: {count} tags',
     where: 'Where to get it',
     classes: 'Classes',
     items: 'Gear',

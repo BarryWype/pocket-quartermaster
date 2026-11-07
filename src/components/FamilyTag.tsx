@@ -1,36 +1,56 @@
-import { StyleSheet, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 
 import { familyById, type FamilyId } from '@/content/families';
-import { threatById } from '@/content/lookup';
-import { levelMarks, tagsForLevel } from '@/game/families/strip';
-import { localized, t, tr, type TextKey } from '@/i18n';
-import { en } from '@/i18n/en';
-import { fr } from '@/i18n/fr';
+import { tr } from '@/i18n';
 import { colors } from '@/theme';
 
+import { FamilySheet } from './FamilySheet';
 import { GameIcon } from './GameIcon';
-import { IconLabel } from './IconLabel';
 import { Text } from './Text';
 
-/** A family's icon beside its name, or beside "×2" alone when `named` is false. */
+/**
+ * A family's icon, "×2" on it for a two-handed weapon, and its name unless
+ * `named` is false. Tapping it opens the family sheet, unless `sheet` is false
+ * (inside a tile that has its own tap).
+ */
 export function FamilyTag({
   family,
   count = 1,
   named = true,
   size = 16,
+  sheet = true,
   labelStyle,
 }: {
   family: FamilyId;
+  /** The tags this one source gives: 2 on a two-handed weapon. */
   count?: number;
   named?: boolean;
   size?: number;
+  sheet?: boolean;
   labelStyle?: StyleProp<TextStyle>;
 }) {
+  const [open, setOpen] = useState(false);
   const def = familyById[family];
-  const times = count > 1 ? `×${count}` : '';
-  if (!named && !times) return <GameIcon emoji={def.emoji} icon={def.icon} size={size} />;
-  const label = named ? [tr(def.name), times].filter(Boolean).join(' ') : times;
-  return <IconLabel emoji={def.emoji} icon={def.icon} label={label} size={size} gap={3} labelStyle={[styles.label, labelStyle]} />;
+  const name = tr(def.name);
+  const tag = (
+    <View style={styles.tag}>
+      <View style={count > 1 && { paddingRight: Math.round(size * 0.55) }}>
+        <GameIcon emoji={def.emoji} icon={def.icon} size={size} />
+        {count > 1 && <Text style={[styles.times, { fontSize: Math.max(10, Math.round(size * 0.7)), lineHeight: Math.max(11, Math.round(size * 0.75)) }]}>{`×${count}`}</Text>}
+      </View>
+      {named && <Text style={[styles.label, labelStyle]}>{name}</Text>}
+    </View>
+  );
+  if (!sheet) return tag;
+  return (
+    <>
+      <Pressable accessibilityRole="button" accessibilityLabel={count > 1 ? `${name} ×${count}` : name} onPress={() => setOpen(true)} hitSlop={6}>
+        {tag}
+      </Pressable>
+      {open && <FamilySheet family={family} onClose={() => setOpen(false)} />}
+    </>
+  );
 }
 
 /** A piece's family tags in a row: its type's (×2 on a two-handed weapon), then its relic's extra one. */
@@ -38,12 +58,14 @@ export function FamilyTags({
   tags,
   named = true,
   size = 16,
+  sheet = true,
   style,
   labelStyle,
 }: {
   tags: { family: FamilyId; count: number }[];
   named?: boolean;
   size?: number;
+  sheet?: boolean;
   style?: StyleProp<ViewStyle>;
   labelStyle?: StyleProp<TextStyle>;
 }) {
@@ -51,48 +73,15 @@ export function FamilyTags({
   return (
     <View style={[styles.tags, style]} accessibilityLabel={tags.map((tag) => `${tr(familyById[tag.family].name)}${tag.count > 1 ? ` ×${tag.count}` : ''}`).join(', ')}>
       {tags.map((tag) => (
-        <FamilyTag key={tag.family} family={tag.family} count={tag.count} named={named} size={size} labelStyle={labelStyle} />
+        <FamilyTag key={tag.family} family={tag.family} count={tag.count} named={named} size={size} sheet={sheet} labelStyle={labelStyle} />
       ))}
     </View>
   );
 }
 
-/** A family's three levels: what each needs and does; the reached ones highlighted and the next one with its missing tags. */
-export function FamilyLevelLines({ family, count }: { family: FamilyId; /** The party's tags, when there is a party. */ count?: number }) {
-  const def = familyById[family];
-  const details: Record<string, string> = localized({ en, fr }).families.details;
-  return (
-    <View style={styles.levels}>
-      {[1, 2, 3].map((level) => {
-        const needed = tagsForLevel(level);
-        const reached = count !== undefined && count >= needed;
-        const isNext = count !== undefined && !reached && (level === 1 || count >= tagsForLevel(level - 1));
-        return (
-          <View key={level} style={[styles.level, reached && styles.reached]}>
-            <View style={styles.levelHead}>
-              <Text style={[styles.levelTitle, reached && styles.reachedText]}>{t('families.level', { marks: levelMarks(level), count: needed })}</Text>
-              {isNext && <Text style={styles.toReach}>{t('families.toReach', { count: needed - count })}</Text>}
-            </View>
-            <Text style={styles.effect}>{t(`families.effects.${family}${level}` as TextKey)}</Text>
-            {details[`${family}${level}`] && <Text style={styles.detail}>{details[`${family}${level}`]}</Text>}
-            {def.answers && <Text style={styles.detail}>{t('families.answers', { threat: tr(threatById[def.answers].name), marks: levelMarks(level) })}</Text>}
-          </View>
-        );
-      })}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
+  tag: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  times: { position: 'absolute', right: 0, bottom: -2, color: colors.ink, fontWeight: 'bold' },
   label: { fontSize: 14, color: colors.muted },
   tags: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
-  levels: { gap: 6 },
-  level: { gap: 2, padding: 6, borderWidth: 2, borderColor: colors.parchmentDark },
-  reached: { borderColor: colors.gold, backgroundColor: colors.highlight },
-  levelHead: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 6 },
-  levelTitle: { fontSize: 16, color: colors.muted },
-  reachedText: { color: colors.ink },
-  toReach: { fontSize: 15, color: colors.danger },
-  effect: { fontSize: 17 },
-  detail: { fontSize: 15, color: colors.muted },
 });

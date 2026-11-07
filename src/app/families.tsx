@@ -1,6 +1,6 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { FamilyLevelLines } from '@/components/FamilyTag';
+import { FamilyLevelLines } from '@/components/FamilySheet';
 import { Panel } from '@/components/Panel';
 import { IconSlot } from '@/components/Row';
 import { Text } from '@/components/Text';

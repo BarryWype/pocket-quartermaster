@@ -1,15 +1,17 @@
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { familyById, familyOfThreat } from '@/content/families';
 import { threatById } from '@/content/lookup';
 import type { BriefingCoverage, ThreatCoverage } from '@/game/threats/coverage';
 import { threatPenalties, type AppliedPenalty } from '@/game/threats/penalties';
 import type { ThreatScore } from '@/game/threats/score';
+import type { FamilyCounts } from '@/game/families/families';
 import { tagsForLevel } from '@/game/families/strip';
 import { formatPercent, t, tr } from '@/i18n';
 import { colors } from '@/theme';
 
+import { FamilySheet } from './FamilySheet';
 import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
@@ -45,7 +47,8 @@ function appliedText(penalty: AppliedPenalty): string {
 }
 
 /** One line per answer and miss penalty of a threat, in order. */
-function DetailLines({ coverage }: { coverage: ThreatCoverage }) {
+function DetailLines({ coverage, counts }: { coverage: ThreatCoverage; counts: FamilyCounts }) {
+  const [open, setOpen] = useState(false);
   const threat = coverage.threat;
   const def = threatById[threat.id];
   const lines: string[] = [
@@ -56,6 +59,7 @@ function DetailLines({ coverage }: { coverage: ThreatCoverage }) {
     threat, state, have: coverage.have, needed: coverage.needed, coveredBy: [],
   });
   const met = coverage.state === 'met';
+  const family = familyOfThreat(threat.id);
   return (
     <>
       {lines.map((line) => (
@@ -63,9 +67,15 @@ function DetailLines({ coverage }: { coverage: ThreatCoverage }) {
           {line}
         </Text>
       ))}
-      <Text style={[styles.line, { color: met ? colors.success : colors.danger }]}>
-        {t('families.needs', { count: tagsForLevel(coverage.needed), family: tr(familyById[familyOfThreat(threat.id)].name) }) + (met ? ' ✓' : '')}
-      </Text>
+      <Pressable accessibilityRole="button" onPress={() => setOpen(true)}>
+        <IconLabel
+          emoji={familyById[family].emoji}
+          icon={familyById[family].icon}
+          label={t('families.needs', { count: tagsForLevel(coverage.needed), family: tr(familyById[family].name) }) + (met ? ' ✓' : '')}
+          labelStyle={[styles.line, { color: met ? colors.success : colors.danger }]}
+        />
+      </Pressable>
+      {open && <FamilySheet family={family} count={counts[family] ?? 0} onClose={() => setOpen(false)} />}
       <Text style={[styles.line, { color: colors.gold }]}>{t('threats.missHalf')}</Text>
       {threatPenalties(scoreOf('half')).map((penalty) => (
         <Text key={penalty.kind} style={styles.line}>
@@ -125,7 +135,7 @@ export function ThreatCoverageChips({ coverage, labelled = false }: { coverage: 
             title={`${tr(threatById[detail.threat.id].name)} · ${t('threats.level', { level: detail.threat.level })}`}
             bodyStyle={styles.body}
           >
-            <DetailLines coverage={detail} />
+            <DetailLines coverage={detail} counts={coverage.families} />
           </Sheet>
         </Overlay>
       )}

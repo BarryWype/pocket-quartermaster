@@ -65,7 +65,7 @@ export function ItemSlot({ state, emoji, icon, count, mark, size, faded, equippe
       {count !== undefined && <Text style={styles.count}>{count}</Text>}
       {mark !== undefined && <Text style={[styles.mark, mark === 'up' ? styles.markUp : styles.markDown]}>{mark === 'up' ? '▲' : '▼'}</Text>}
       {families && (
-        <FamilyTags tags={families} named={false} size={Math.round((size ?? 60) * 0.24)} style={styles.families} labelStyle={styles.familyCount} />
+        <FamilyTags tags={families} named={false} sheet={false} size={Math.round((size ?? 60) * 0.24)} style={styles.families} />
       )}
       {equipped && <EquippedBadge size={size ?? 60} />}
     </View>
@@ -131,7 +131,6 @@ const styles = StyleSheet.create({
   },
   mark: { position: 'absolute', top: 1, left: 2, fontSize: 12 },
   families: { position: 'absolute', left: 3, bottom: 3, gap: 2 },
-  familyCount: { fontFamily: fonts.serifBold, fontSize: 11, color: ui.onWood },
   markUp: { color: '#7FC46A' },
   markDown: { color: '#E0704E' },
 });

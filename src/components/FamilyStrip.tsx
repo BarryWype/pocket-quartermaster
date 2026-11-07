@@ -5,16 +5,12 @@ import { familyById, type FamilyId } from '@/content/families';
 import { partyFamilies, type FamilyCounts } from '@/game/families/families';
 import { familyStrip, levelMarks, type FamilyNeed, type StripChip } from '@/game/families/strip';
 import { t, tr } from '@/i18n';
-import { navigate } from '@/services/navigation';
 import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
 
-import { FamilyLevelLines } from './FamilyTag';
+import { FamilySheet } from './FamilySheet';
 import { GameIcon } from './GameIcon';
-import { Overlay } from './Overlay';
-import { Sheet } from './Sheet';
 import { Text } from './Text';
-import { WoodButton } from './ui';
 
 /** The family tags of the heroes picked, recomputed only when the picks, the heroes or the gear change. */
 export function usePartyFamilies(heroIds: string[]): FamilyCounts {
@@ -64,27 +60,7 @@ export function FamilyStrip({ counts, needs }: { counts: FamilyCounts; needs?: F
       {chips.map((chip) => (
         <Chip key={chip.family} chip={chip} onPress={() => setOpen(chip.family)} />
       ))}
-      {open && (
-        <Overlay onClose={() => setOpen(null)} position="bottom">
-          <Sheet
-            emoji={familyById[open].emoji}
-            icon={familyById[open].icon}
-            title={`${tr(familyById[open].name)} · ${opened?.count ?? 0}`}
-            bodyStyle={styles.body}
-            footer={
-              <WoodButton
-                title={t('families.all')}
-                onPress={() => {
-                  setOpen(null);
-                  navigate('/families');
-                }}
-              />
-            }
-          >
-            <FamilyLevelLines family={open} count={opened?.count ?? 0} />
-          </Sheet>
-        </Overlay>
-      )}
+      {open && <FamilySheet family={open} count={opened?.count ?? 0} onClose={() => setOpen(null)} />}
     </View>
   );
 }
@@ -111,5 +87,4 @@ const styles = StyleSheet.create({
   marksLit: { color: colors.gold },
   need: { fontSize: 14 },
   none: { color: colors.muted },
-  body: { gap: 6 },
 });

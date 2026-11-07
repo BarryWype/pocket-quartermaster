@@ -4,7 +4,7 @@ import { sheetMaxHeight } from '@/content/overlay';
 import { createInitialSave } from '@/game/save';
 import type { GearInstance } from '@/game/types';
 
-import { Overlay, overlayHandlers } from './Overlay';
+import { CloseOverlays, Overlay, overlayHandlers } from './Overlay';
 import { SalvageDialog } from './SalvageDialog';
 
 // SalvageDialog sizes its panel with the window's height; pin it so the
@@ -99,6 +99,26 @@ describe('Overlay', () => {
       expect(overlay.props.statusBarTranslucent).toBe(true);
       expect(overlay.props.navigationBarTranslucent).toBe(true);
     }
+  });
+});
+
+describe('CloseOverlays', () => {
+  /** What the overlay hands its panel, given the value of the overlays around it. */
+  const valueInside = (overlay: Element, outer: (() => void) | null | undefined) => {
+    const consumer = allElements(overlay).find((element) => element.type === CloseOverlays.Consumer)!;
+    return ((consumer.props.children as (outer: unknown) => Element)(outer)).props.value as (() => void) | null;
+  };
+
+  it('closes the overlay and every one around it, so a link can leave the screen', () => {
+    const closed: string[] = [];
+    const inner = valueInside(Overlay({ onClose: () => closed.push('inner'), children: null }), () => closed.push('outer'));
+    inner!();
+    expect(closed).toEqual(['outer', 'inner']);
+  });
+
+  it('is null inside an overlay that must be answered, and under one', () => {
+    expect(valueInside(Overlay({ onClose: () => {}, dismissOnBackdrop: false, children: null }), undefined)).toBeNull();
+    expect(valueInside(Overlay({ onClose: () => {}, children: null }), null)).toBeNull();
   });
 });
 

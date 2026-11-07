@@ -1,13 +1,15 @@
+import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { elementInfo } from '@/content/elements';
-import { families } from '@/content/families';
+import { familyById, families, type FamilyId } from '@/content/families';
 import { dungeonById, itemById, materialById, opportunityById, threatById } from '@/content/lookup';
 import type { ExpeditionReport, HeroState, OpportunityOutcome } from '@/game/types';
 import { levelMarks } from '@/game/families/strip';
 import { formatDuration, t, tr } from '@/i18n';
 import { fonts, ui } from '@/theme';
 
+import { FamilySheet } from './FamilySheet';
 import { lootItems } from './LootReveal';
 import { GainsLine, IconLabel } from './IconLabel';
 import { goldLabel } from './Price';
@@ -41,6 +43,21 @@ function opportunityGave(outcome: OpportunityOutcome): string {
 }
 
 /** A finished expedition: outcome and loot at a glance; tapped, the full log and how the heroes came back. */
+/** The families the party played with, as dots; tapping one opens its sheet. */
+function ReportFamilies({ levels, active }: { levels: Partial<Record<FamilyId, number>>; active: FamilyId[] }) {
+  const [open, setOpen] = useState<FamilyId | null>(null);
+  return (
+    <View style={styles.families} accessibilityLabel={t('families.strip')}>
+      {active.map((id) => (
+        <Pressable key={id} accessibilityRole="button" onPress={() => setOpen(id)} hitSlop={4}>
+          <IconLabel emoji={familyById[id].emoji} icon={familyById[id].icon} label={`${tr(familyById[id].name)} ${levelMarks(levels[id]!)}`} size={16} labelStyle={styles.line} />
+        </Pressable>
+      ))}
+      {open && <FamilySheet family={open} onClose={() => setOpen(null)} />}
+    </View>
+  );
+}
+
 export function ReportCard({ report, heroes, now, expanded, onToggle }: Props) {
   const dungeon = dungeonById[report.dungeonId];
   const win = report.outcome === 'flawless' || report.outcome === 'success';
@@ -78,23 +95,7 @@ export function ReportCard({ report, heroes, now, expanded, onToggle }: Props) {
         <Chip tone={win ? 'good' : 'bad'} label={t(`expeditions.outcome.${report.outcome}`)} />
         <DifficultyChip difficulty={dungeon.difficulty} />
       </View>
-      {active.length > 0 && (
-        <View style={styles.families} accessibilityLabel={t('families.strip')}>
-          {active.map((family) => {
-            const level = report.families![family.id]!;
-            return (
-              <IconLabel
-                key={family.id}
-                emoji={family.emoji}
-                icon={family.icon}
-                label={`${tr(family.name)} ${levelMarks(level)}`}
-                size={16}
-                labelStyle={styles.line}
-              />
-            );
-          })}
-        </View>
-      )}
+      {active.length > 0 && <ReportFamilies levels={report.families!} active={active.map((family) => family.id)} />}
       <GainsLine gains={loot} size={16} gap={6} labelStyle={styles.line} />
       <GainsLine gains={extras} size={16} gap={6} labelStyle={styles.line} />
 
