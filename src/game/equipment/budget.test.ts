@@ -80,29 +80,29 @@ function parseTiersCsv(): Row[] {
 }
 
 describe('relicCost', () => {
-  // Every relic's effects, as shares of the item's budget.
+  // Every relic's effects and extra tag, as shares of the item's budget.
   const expected: Record<string, number> = {
     rustedSaintsBuckler: 0.1,
-    poachersLongbow: 0.03,
+    poachersLongbow: 0.13,
     sextonsMace: 0.025,
     ratcatchersKnuckles: 0.05,
-    hedgeWitchsRobes: 0.03,
+    hedgeWitchsRobes: 0.13,
     smugglersCoat: 0.03,
     barrowKingsBlade: 0.025,
-    wolfhoundSpear: 0.025,
+    wolfhoundSpear: 0.125,
     desertersMail: 0.025,
     bogWitchsWand: 0.025,
     minersLampStaff: 0.1,
     drownedBell: 0.03,
-    dwarfLordsAxe: 0.05,
+    dwarfLordsAxe: 0.15,
     witchHuntersDagger: 0.03,
-    thiefTakersQuiver: 0.025,
+    thiefTakersQuiver: 0.125,
     orcWarlordsHammer: 0.025,
     clockworkAegis: 0.025,
     sirensLute: 0.025,
     cartographersFocus: 0.1,
     duelistsMainGauche: 0.025,
-    dragonbonePlate: 0.1,
+    dragonbonePlate: 0.2,
     archmagesTome: 0.075,
     wyrmSlayersSword: 0.05,
     stormcallersRobes: 0.1,

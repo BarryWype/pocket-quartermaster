@@ -1,25 +1,25 @@
 Relic,Tier,Type,Unique effect,Icon,Extra family
 Rusted saint's buckler,1,Buckler,A Faith tag for its carrier,rpg/shield-iron-cross.png,faith
-Poacher's longbow,1,Bow,Double crit damage against beasts,rpg/bow-knotted-wooden.png,
+Poacher's longbow,1,Bow,Double crit damage against beasts; a Wild tag for its carrier,rpg/bow-knotted-wooden.png,wild
 Sexton's mace,1,Mace,Stagger against undead,rpg/mace-skull.png,
 Ratcatcher's knuckles,1,Knuckles,Cleave in fights against vermin,rpg/gloves-padded-leather.png,
-Hedge-witch's robes,1,Robes,Halves the Poison penalty for its wearer,relics/robes-hedge-witch.png,
+Hedge-witch's robes,1,Robes,Halves the Poison penalty for its wearer; a Venom tag for its carrier,relics/robes-hedge-witch.png,venom
 Smuggler's coat,2,Leather,Traps cost the party nothing,rpg/armor-padded-leather.png,
 Barrow king's blade,2,Sword,Heals the wielder when it kills an undead,rpg/sword-ghost-blade.png,
-Wolfhound spear,2,Spear,Reach against beasts,rpg/spear-barbed-steel.png,
+Wolfhound spear,2,Spear,Reach against beasts; a Pack tag for its carrier,rpg/spear-barbed-steel.png,pack
 Deserter's mail,2,Mail,Brace in the first fight,relics/armor-steel-belted.png,
 Bog-witch's wand,2,Wand,Channel against water enemies,magic/wand-iron-crescent.png,
 Miner's lamp-staff,3,Staff,A second Watch tag for its carrier,relics/staff-lamp.png,watch
 Drowned bell,3,Censer,The party ignores the Element penalty in the first fight,relics/censer-drowned.png,
-Dwarf-lord's axe,3,Axe,Pierce against constructs,rpg/axe-bearded-spike.png,
+Dwarf-lord's axe,3,Axe,Pierce against constructs; a Breaker tag for its carrier,rpg/axe-bearded-spike.png,breaker
 Witch-hunter's dagger,3,Dagger,Double crit damage against casters,rpg/dagger-blue-dirk.png,
-Thief-taker's quiver,3,Quiver,Reach in Darkness fights,rpg/crossbow-obsidian.png,
+Thief-taker's quiver,3,Quiver,Reach in Darkness fights; a Watch tag for its carrier,rpg/crossbow-obsidian.png,watch
 Orc warlord's hammer,4,Warhammer,Stagger on every crit against Brutes,rpg/hammer-axe-hammer.png,
 Clockwork aegis,4,Shield,Guard; Brace against Brutes only,rpg/shield-silver-heater.png,
 Siren's lute,4,Lute,Inspire in Element dungeons,relics/horn-curved.png,
 Cartographer's focus,4,Focus,A second Cunning tag for its carrier,relics/orb-blue.png,cunning
 Duelist's main-gauche,4,Off-hand blade,Parry against Brutes,rpg/sword-arrowhead-blade.png,
-Dragonbone plate,5,Plate,Immune to fire,relics/armor-green-scale.png,
+Dragonbone plate,5,Plate,Immune to fire; a Warding tag for its carrier,relics/armor-green-scale.png,warding
 Archmage's tome,5,Tome,Channel; the first spell of the first fight hits every enemy,magic/book-open-blue.png,
 Wyrm-slayer's sword,5,Sword,Pierce against dragons,rpg/sword-runed-greatsword.png,
 Stormcaller's robes,5,Robes,Immune to electric,relics/robes-stormcaller.png,

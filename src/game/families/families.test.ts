@@ -1,7 +1,7 @@
 import { gearProfiles } from '@/content/equipment';
 import { heroClasses, newHero } from '@/content/heroes';
 import { items } from '@/content/items';
-import { itemById, relicById } from '@/content/lookup';
+import { itemById } from '@/content/lookup';
 import { relics } from '@/content/loot/relics';
 
 import type { GearDef, GearInstance, HeroClassId, HeroState } from '@/game/types';
@@ -63,17 +63,18 @@ describe('heroFamilyTags', () => {
   });
 
   test("a relic's extra family contributes 1 on top of its piece", () => {
-    const relic = relics[0];
-    relic.extraFamily = 'faith';
-    try {
-      const save = saveWith(newHero('h', 'H', 'warrior', 'resilient'), [
-        piece('g1', itemIdOfGearType(relic.gearType), { relicId: relic.id }),
-      ]);
-      expect(heroFamilyTags(save, save.heroes[0])).toEqual({ bulwark: 1, shadow: 1, faith: 1 });
-    } finally {
-      delete relic.extraFamily;
-      expect(relicById[relic.id].extraFamily).toBeUndefined();
-    }
+    // The Poacher's longbow: a bow (Volley) with a Wild tag.
+    const save = saveWith(newHero('h', 'H', 'warrior', 'resilient'), [
+      piece('g1', itemIdOfGearType('bow'), { relicId: 'poachersLongbow' }),
+    ]);
+    expect(heroFamilyTags(save, save.heroes[0])).toEqual({ bulwark: 1, volley: 1, wild: 1 });
+  });
+
+  test('about a third of the relics carry a second tag, never their own type tag', () => {
+    const tagged = relics.filter((relic) => relic.extraFamily);
+    expect(tagged.length).toBeGreaterThanOrEqual(Math.floor(relics.length / 3));
+    expect(tagged.length).toBeLessThanOrEqual(Math.ceil(relics.length / 3) + 1);
+    for (const relic of tagged) expect(relic.extraFamily).not.toBe(gearProfiles[relic.gearType].familyTag);
   });
 });
 
