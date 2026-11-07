@@ -35,6 +35,7 @@ function member(heroId: string, overrides: Partial<PartyMember> = {}): PartyMemb
     luck: 0,
     threat: 1,
     resists: [],
+    familyTags: [],
     abilities: [],
     consumable: null,
     ...overrides,

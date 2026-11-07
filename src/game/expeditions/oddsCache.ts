@@ -27,9 +27,6 @@ function partyProjection(save: SaveData, heroIds: string[]) {
         trait: hero.trait,
         level: hero.level,
         roll: hero.roll ?? null,
-        approachPicks: hero.approachPicks ?? null,
-        gamble: hero.gamble ?? null,
-        kitFor: hero.kitFor ?? null,
         equipment: hero.equipment,
         // HP as the run would take it (healed to the minute, frozen while away).
         hp: hero.hp ?? null,

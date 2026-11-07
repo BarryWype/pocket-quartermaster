@@ -33,7 +33,7 @@ import { advanceTutorial, finishTutorial, nextTutorialStep } from '../tutorial/t
 import { collectTutorialSpawn, placeTutorialSpawns, shownTutorialSpawns } from '../tutorial/spawns';
 import { addMaterials } from '../inventory';
 import type { LootSourceId } from '../loot/types';
-import { pruneExpired, rollDailyApproaches } from '../upkeep';
+import { pruneExpired } from '../upkeep';
 import {
   act,
   assignJobs,
@@ -258,7 +258,7 @@ function helpTravellerSpawn(sim: Sim, spawn: PatrolSpawn, at: number, player: La
   }
   if (reward.kind === 'recruit') sim.log.offered[reward.offer.id] = reward.offer.classId;
   if (reward.kind === 'recruit' && save.heroes.length < rosterCap(save)) {
-    act(sim, 'traveller', (next) => rollDailyApproaches(acceptRecruit(next, reward.offer), sim.now));
+    act(sim, 'traveller', (next) => acceptRecruit(next, reward.offer));
     log.recruits.push(sim.day);
     sim.log.recruits.push({ day: sim.day, classId: reward.offer.classId, price: 0, trait: reward.offer.trait });
     mark(sim, `recruit:${sim.save.heroes.length}`);
@@ -269,7 +269,7 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, firstSession: b
   moveGathererAnchor(sim, walking);
   collectJobs(sim);
   if (firstSession) keepGatherer(sim);
-  sim.save = rollDailyApproaches(pruneExpired(sim.save, sim.now), sim.now);
+  sim.save = pruneExpired(sim.save, sim.now);
   sim.rotation = dailyRotation(rotationDay(sim.now));
 
   // Walking, with a lure on the day's first walk. The day's first gathers

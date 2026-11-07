@@ -39,6 +39,7 @@ function member(heroId: string, classId: HeroClassId, overrides: Partial<PartyMe
     luck: 0,
     threat: 1,
     resists: [],
+    familyTags: [],
     abilities: heroClasses[classId].abilities,
     consumable: null,
     ...overrides,
@@ -52,33 +53,33 @@ const pool = (encounters: EncounterDef[], boss: Partial<DungeonDef['boss']> = {}
   boss: { id: 'testBoss', name: 'test boss', hp: 40, damage: 1, damageType: 'power', speed: 5, tags: [], ...boss },
 });
 const fight = (mobs: MobGroup[]): EncounterDef => ({ type: 'fight', weight: 1, mobs });
+/** Family tags from gear, enough to answer an opportunity of that family at `level`. */
+const answers = (family: PartyMember['familyTags'][number]['family'], level: 1 | 2) => [
+  { family, count: level === 1 ? 2 : 4, magic: false, fromClass: false, source: 'gear' as const },
+];
 const wolves = pool([fight([{ mobId: 'wolfPup', count: 2 }])]);
 const run = (party: PartyMember[], dungeon: DungeonDef, b: Briefing, extra = {}) =>
   simulateRun(party, dungeon, 's', { rules: steady, briefing: b, ...extra });
 
 describe('the Smuggler', () => {
-  it('fences what the thieves would take: no loot lost, a share of the top gold instead', () => {
-    const fenced = run([member('s', 'smuggler')], wolves, threat('thieves', 2));
-    expect(fenced.lostLoot).toBe(0);
-    expect(fenced.fenceGold).toBe(Math.round(0.08 * wolves.gold[1]));
-    expect(fenced.bonusGold).toBeGreaterThanOrEqual(fenced.fenceGold);
-    const robbed = run([member('w', 'warrior')], wolves, threat('thieves', 2));
-    expect(robbed.lostLoot).toBeGreaterThan(0);
-    expect(robbed.fenceGold).toBe(0);
+  it('lifts the whole run’s gold by 10%', () => {
+    const smuggled = run([member('s', 'smuggler')], wolves, briefing());
+    const plain = run([member('w', 'warrior')], wolves, briefing());
+    expect(smuggled.bonusGold).toBeCloseTo(plain.bonusGold * 1.1, 5);
   });
 });
 
 describe('opportunity signatures', () => {
   it('doubles Old inscriptions for a Scholar', () => {
     const inscriptions = briefing({ opportunity: 'oldInscriptions' });
-    expect(run([member('s', 'scholar')], wolves, inscriptions).opportunity?.xpMultiplier).toBeCloseTo(1.5);
-    expect(run([member('f', 'frostMage')], wolves, inscriptions).opportunity?.xpMultiplier).toBeCloseTo(1.25);
+    expect(run([member('s', 'scholar', { familyTags: answers('watch', 2) })], wolves, inscriptions).opportunity?.xpMultiplier).toBeCloseTo(1.5);
+    expect(run([member('f', 'frostMage', { familyTags: answers('watch', 2) })], wolves, inscriptions).opportunity?.xpMultiplier).toBeCloseTo(1.25);
   });
 
   it('raises the Bounty to +50% for a Diplomat', () => {
     const bounty = briefing({ opportunity: 'bounty' });
-    expect(run([member('d', 'diplomat')], wolves, bounty).opportunity?.goldMultiplier).toBeCloseTo(1.5);
-    expect(run([member('t', 'troubadour')], wolves, bounty).opportunity?.goldMultiplier).toBeCloseTo(1.3);
+    expect(run([member('d', 'diplomat', { familyTags: answers('rally', 1) })], wolves, bounty).opportunity?.goldMultiplier).toBeCloseTo(1.5);
+    expect(run([member('t', 'troubadour', { familyTags: answers('rally', 1) })], wolves, bounty).opportunity?.goldMultiplier).toBeCloseTo(1.3);
   });
 });
 
@@ -101,15 +102,15 @@ describe('the Duelist', () => {
 describe('raised allies', () => {
   const bones = pool([fight([{ mobId: 'restlessBones', count: 2 }])]);
 
-  it('at Undead 1, the first undead fight’s fallen fight for the party in the next fight only', () => {
-    const result = run([member('n', 'necromancer')], bones, threat('undead', 1));
+  it('at Holy 1, the first undead fight’s fallen fight for the party in the next fight only', () => {
+    const result = run([member('n', 'necromancer')], bones, threat('holy', 1));
     expect(result.encounters[0].effects).toContainEqual({ heroId: 'n', key: 'raise', tag: 'undead' });
     expect(result.encounters[1].effects.some((e) => e.key === 'allies')).toBe(true);
     expect(result.encounters[2].effects.some((e) => e.key === 'allies' || e.key === 'raise')).toBe(false);
   });
 
-  it('raises nobody at Undead 2, or without the threat', () => {
-    for (const b of [threat('undead', 2), briefing()]) {
+  it('raises nobody at Holy 2, or without the threat', () => {
+    for (const b of [threat('holy', 2), briefing()]) {
       expect(run([member('n', 'necromancer')], bones, b).encounters.some((e) => e.effects.some((x) => x.key === 'raise'))).toBe(false);
     }
   });
@@ -180,17 +181,5 @@ describe('the Alchemist’s second slot', () => {
     const [a, w] = prepareParty(save, ['a', 'w']);
     expect(a.potion?.id).toBe('healingPotion');
     expect(w.potion).toBeNull();
-  });
-});
-
-describe('the Porter’s carried kit', () => {
-  it('heals the hero it is carried for, and counts as the Porter’s for salvage', () => {
-    const satchel = consumable('healersSatchel');
-    const porter = member('p', 'porter', { power: 0, consumable: satchel, carriesFor: 'r' });
-    const recipient = member('r', 'warrior', { maxHp: 100, hp: 3, power: 0, carriedKit: satchel, carriedBy: 'p' });
-    const result = simulateRun([porter, recipient], pool([], { hp: 1e6, damage: 1 }, [1, 1]), 's', { rules: { ...steady, maxRounds: 1 } });
-    expect(result.carriedHealed).toEqual(['p']);
-    expect(result.consumed).not.toContain('p');
-    expect(untriggeredSalvage([porter, recipient], result, 'dungeonRun')).toEqual([]);
   });
 });

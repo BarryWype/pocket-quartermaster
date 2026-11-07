@@ -62,12 +62,11 @@ const stonesOf = (save: SaveData) =>
   ['fire', 'grass', 'stone', 'electric', 'water'].reduce((sum, element) => sum + (save.materials[`${element}Stone`] ?? 0), 0);
 
 describe('affixFits', () => {
-  const plan: GearPlan = { tags: ['beast'], keywords: ['pierce'], element: null };
+  const plan: GearPlan = { tags: ['beast'], element: null };
 
-  it("fits damage for and against the plan's enemies, and a keyword one of its threats wants", () => {
+  it("fits damage for and against the plan's enemies", () => {
     expect(affixFits(plan, 'hunter')).toBe(true);
     expect(affixFits(plan, 'thickHide')).toBe(true);
-    expect(affixFits(plan, 'piercing')).toBe(true);
   });
 
   it('fits nothing else', () => {
@@ -86,22 +85,22 @@ describe('stoneFor', () => {
 
   it('gives a Common weapon the held stone that beats the plan element, else any held one', () => {
     const save = wearing([piece('w1', 'sword1', 'common')], [{ heroId: 'bram', slot: 'weapon', uid: 'w1' }], { materials: held });
-    expect(stoneFor(save, 'w1', { tags: [], keywords: [], element: 'stone' })).toBe('grass');
-    expect(stoneFor(save, 'w1', { tags: [], keywords: [], element: 'fire' })).toBe('water');
-    expect(stoneFor(save, 'w1', { tags: [], keywords: [], element: null })).toBe('fire');
+    expect(stoneFor(save, 'w1', { tags: [], element: 'stone' })).toBe('grass');
+    expect(stoneFor(save, 'w1', { tags: [], element: 'fire' })).toBe('water');
+    expect(stoneFor(save, 'w1', { tags: [], element: null })).toBe('fire');
   });
 
   it('wards armour and off-hands with the plan element, and nothing above Common', () => {
-    const plan: GearPlan = { tags: [], keywords: [], element: 'fire' };
+    const plan: GearPlan = { tags: [], element: 'fire' };
     const save = wearing([piece('a1', 'mail1', 'common'), piece('a2', 'mail1', 'uncommon')], [], { materials: held });
     expect(stoneFor(save, 'a1', plan)).toBe('fire');
     expect(stoneFor(save, 'a2', plan)).toBeNull();
-    expect(stoneFor(save, 'a1', { tags: [], keywords: [], element: 'electric' })).toBeNull();
+    expect(stoneFor(save, 'a1', { tags: [], element: 'electric' })).toBeNull();
   });
 
   it('takes no stone without one in stock', () => {
     const save = wearing([piece('w1', 'sword1', 'common')]);
-    expect(stoneFor(save, 'w1', { tags: [], keywords: [], element: null })).toBeNull();
+    expect(stoneFor(save, 'w1', { tags: [], element: null })).toBeNull();
   });
 });
 
@@ -129,7 +128,7 @@ describe('applyStones', () => {
 });
 
 describe('rerollWanted', () => {
-  const plan: GearPlan = { tags: ['beast'], keywords: [], element: null };
+  const plan: GearPlan = { tags: ['beast'], element: null };
 
   it('wants a Rare or Legendary piece whose affixes fit nothing', () => {
     const save = wearing([piece('r1', 'sword1', 'rare', [{ id: 'lucky', value: 2 }]), piece('r2', 'sword1', 'legendary', [{ id: 'hunter', value: 20 }])]);

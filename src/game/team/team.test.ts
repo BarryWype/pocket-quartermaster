@@ -4,7 +4,7 @@ import { itemById } from '@/content/lookup';
 
 import { createInitialSave, type SaveData } from '../save';
 import type { GearDef } from '../types';
-import { addXp, canDismiss, dismissHero, equip, equipPreview, heroStats, markClassesSeen, rosterFull, setKitFor, statSources, unequip, upgradeMark } from './team';
+import { addXp, canDismiss, dismissHero, equip, equipPreview, heroStats, markClassesSeen, rosterFull, statSources, unequip, upgradeMark } from './team';
 
 function saveWithGear(): SaveData {
   return {
@@ -214,14 +214,6 @@ describe('class slots and picks', () => {
     const stocked = { ...save(), consumables: { ...save().consumables, standardHealingPotion: 1, greaterHealingPotion: 1 } };
     expect(equip(stocked, 'a', 'potion', 'standardHealingPotion').heroes[0].equipment.potion).toBe('standardHealingPotion');
     expect(equip(stocked, 'a', 'potion', 'greaterHealingPotion').heroes[0].equipment.potion).toBe('greaterHealingPotion');
-  });
-
-  it('lets a Porter pick the hero their kit is carried for', () => {
-    const next = setKitFor(save(), 'p', 'w');
-    expect(next.heroes[1].kitFor).toBe('w');
-    expect(setKitFor(next, 'p', null).heroes[1].kitFor).toBeUndefined();
-    expect(() => setKitFor(save(), 'w', 'a')).toThrow();
-    expect(() => setKitFor(save(), 'p', 'p')).toThrow();
   });
 
   it('marks classes as met once', () => {

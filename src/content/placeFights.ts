@@ -33,7 +33,7 @@ export const placeFightRules = {
   kinds: {
     banditCamp: {
       difficulty: 'easy',
-      threat: 'thieves',
+      threat: 'traps',
       party: 3,
       minutes: 15,
       elite: false,
@@ -44,7 +44,7 @@ export const placeFightRules = {
     },
     goblinRaid: {
       difficulty: 'medium',
-      threat: 'ambush',
+      threat: 'darkness',
       party: 3,
       minutes: 8,
       elite: false,
@@ -66,7 +66,7 @@ export const placeFightRules = {
     },
     hauntedCrypt: {
       difficulty: 'hard',
-      threat: 'undead',
+      threat: 'holy',
       party: 3,
       minutes: 12,
       elite: false,
@@ -88,7 +88,7 @@ export const placeFightRules = {
     },
     abandonedCaravan: {
       difficulty: 'easy',
-      threat: ['thieves', 'ambush', 'beasts', 'undead'],
+      threat: ['traps', 'darkness', 'beasts', 'holy'],
       party: 3,
       minutes: 8,
       elite: false,
@@ -99,7 +99,7 @@ export const placeFightRules = {
     },
     wantedOutlaw: {
       difficulty: 'hard',
-      threat: 'brute',
+      threat: 'armoured',
       party: 3,
       minutes: 20,
       elite: true,
@@ -110,7 +110,7 @@ export const placeFightRules = {
     },
     monsterLair: {
       difficulty: 'hard',
-      threat: 'brute',
+      threat: 'armoured',
       party: 3,
       minutes: 30,
       elite: true,

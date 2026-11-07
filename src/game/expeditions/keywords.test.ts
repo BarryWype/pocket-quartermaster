@@ -35,6 +35,7 @@ function member(heroId: string, keywords: Keyword[] = [], overrides: Partial<Par
     luck: 0,
     threat: 1,
     resists: [],
+    familyTags: [],
     abilities: [],
     consumable: null,
     ...overrides,

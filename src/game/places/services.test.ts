@@ -10,12 +10,9 @@ import { highestUnlockedTier } from '../dungeons/unlock';
 import { startExpedition } from '../expeditions/expeditions';
 import { simulateRun, type PartyMember, type RunResult } from '../expeditions/simulate';
 import type { LatLng } from '../generation/types';
-import type { ConsumableDef } from '../types';
 import { createInitialSave, type SaveData } from '../save';
 import { isExhausted, setHeroHp } from '../team/health';
 import { addXp } from '../team/team';
-import { heroAnswers, type AnswersMember } from '../threats/answers';
-import { approachScore } from '../threats/score';
 import type { PlaceSpawn } from './generate';
 import {
   apothecaryCare,
@@ -99,21 +96,6 @@ describe('map place services', () => {
     expect(fr.places.bless).toBe('Bénir les symboles sacrés');
   });
 
-  it('scores Faith +3 with blessed symbols, against +2 with plain ones', () => {
-    const carrier = (itemId: string): AnswersMember => ({
-      heroId: 'bram',
-      classId: 'warrior',
-      traitId: 'resilient',
-      gearKeywords: [],
-      kit: { itemId, effect: (itemById[itemId] as ConsumableDef).kit! },
-      salveElement: null,
-      classResists: [],
-    });
-    const faith = heroAnswers(carrier('holyRelics')).approaches.faith;
-    expect(approachScore(heroAnswers(carrier('holyRelics')), 'desecrated', 'faith', true)).toBe(faith + 2);
-    expect(approachScore(heroAnswers(carrier('blessedRelics')), 'desecrated', 'faith', true)).toBe(faith + 3);
-  });
-
   it('spends the blessing on the next expedition only', () => {
     const save = { ...base(), expeditionBlessing: true };
     const out = startExpedition(save, 'ratCellar', ['bram'], 0);
@@ -148,6 +130,7 @@ describe('map place services', () => {
       luck: 0,
       threat: 1,
       resists: [],
+      familyTags: [],
       abilities: [],
       consumable: null,
     };

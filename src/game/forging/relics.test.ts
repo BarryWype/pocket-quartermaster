@@ -103,7 +103,7 @@ describe('restoreRelic', () => {
     }
   });
 
-  it('gives a Legendary relic with the best roll lower stats than the plain Legendary piece', () => {
+  it('gives a Legendary relic lower stats than the plain piece: its effects and extra family both cost', () => {
     for (const relic of relics) {
       const item = itemById[gearId(relic.gearType, relic.tier)] as GearDef;
       const restored = gearStats({ itemId: item.id, rarity: 'legendary', roll: 8, relicId: relic.id });

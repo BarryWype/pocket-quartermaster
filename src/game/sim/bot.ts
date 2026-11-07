@@ -3,15 +3,13 @@ import { difficultyRules } from '@/content/difficulty';
 import { rosterRules } from '@/content/roster';
 import { affinityRules, classAffinities, gearProfiles, type Affinity } from '@/content/equipment';
 import { guildTrackById, guildTracks } from '@/content/guild';
-import { heroClasses, xpRules } from '@/content/heroes';
+import { heroClasses, approachRules, xpRules } from '@/content/heroes';
 import { dungeonById, itemById, recipeById } from '@/content/lookup';
-import { items } from '@/content/items';
 import { gathererRules, jobs as jobList, type JobDef } from '@/content/jobs';
 import { lootConfig } from '@/content/loot/config';
 import { shopRules } from '@/content/shops';
 import { recipes } from '@/content/recipes';
-import { approachRules, narrowPartySize } from '@/content/threats';
-import { traitById } from '@/content/traits';
+import { narrowPartySize } from '@/content/threats';import { traitById } from '@/content/traits';
 import type { Rarity } from '@/content/gear';
 
 import { canCraft, craft, craftableCount, craftMany, forgedItem, isKnown } from '../crafting/crafting';
@@ -30,7 +28,7 @@ import {
 import { pieceDamageStat } from '../equipment/damageStat';
 import { estimateOdds, type Odds } from '../expeditions/odds';
 import { mealItems, supplyHeld, supplyItems } from '../expeditions/provisions';
-import { rollDailyApproaches } from '../upkeep';
+
 import { answersMemberOf, EMPTY_BRIEFING, prepareParty, simulateRun } from '../expeditions/simulate';
 import { salvage } from '../forging/salvage';
 import { gearStats } from '../gear/stats';
@@ -51,16 +49,16 @@ import type { Loot, LootCategory, LootSourceId } from '../loot/types';
 import type { SaveData } from '../save';
 import { buySupply, buySupplyProblem, isTavernUnlocked, offerLevel, recruit, recruitPrice, tavernOffers, type TavernSpawn } from '../taverns/taverns';
 import { currentHp, drinkPotion, drinkProblem, maxHp } from '../team/health';
-import { affinityOf, carriesKit, equip, equipPreview, hasPotionSlot, heroDamageStat, heroStats, isBusy, isOnExpedition, rosterFull, setKitFor, unequip } from '../team/team';
-import { briefingCoverage, kitAnswers } from '../threats/coverage';
+import { affinityOf, equip, equipPreview, hasPotionSlot, heroDamageStat, heroStats, isBusy, isOnExpedition, rosterFull, unequip } from '../team/team';
+import { briefingCoverage } from '../threats/coverage';
 import { gearApproachBonus, approachScore, pendingApproachPicks, pickApproach } from '../team/stats';
 import { heroAnswers, type AnswersMember } from '../threats/answers';
 import { scoreThreat } from '../threats/score';
-import type { ActiveExpedition, Approach, ArmourType, Briefing, ConsumableDef, DungeonDef, GearDef, GearInstance, HeroClassId, HeroState, OffhandType, RecipeDef, Stats, WeaponType } from '../types';
+import type { ActiveExpedition, Approach, ArmourType, Briefing, DungeonDef, GearDef, GearInstance, HeroClassId, HeroState, OffhandType, RecipeDef, Stats, WeaponType } from '../types';
 import { expectedLevels, type Profile, type SimConfig } from './config';
 import { playerMetersPerMinute } from './gathererPace';
 import { partRecipeFor } from './rules/inventory';
-import { emptySlots, fillPotions, heldPotion, isKit, oilIds, pickCharm, pickKits, pickWeakness, statPotionIds, uncovered, withCharm, withElixir, withOil, withStatPotion } from './rules/loadout';
+import { emptySlots, fillPotions, heldPotion, oilIds, pickCharm, pickWeakness, statPotionIds, uncovered, withCharm, withElixir, withOil, withStatPotion } from './rules/loadout';
 import { PICKAXES, type WalkRates } from './walking';
 import { questRules } from '@/content/quests';
 import { questUpkeep } from '../quests/arrival';
@@ -424,7 +422,7 @@ function offhandTypeFor(save: SaveData, hero: HeroState): OffhandType | null {
   return pieceDamageStat(item, hero.classId) === 'magic' ? 'focus' : 'shield';
 }
 
-/** A hypothetical member of a class: its best weapon, no kit or salve. */
+/** A hypothetical member of a class: its best weapon. */
 const offerMember = (classId: HeroClassId): AnswersMember => {
   const gearType = weaponTypeFor(classId);
   const profile = gearType ? gearProfiles[gearType] : null;
@@ -432,12 +430,9 @@ const offerMember = (classId: HeroClassId): AnswersMember => {
     heroId: `offer:${classId}`,
     classId,
     traitId: 'none',
-    gearKeywords: profile
-      ? profile.keywords.map((keyword) => ({ keyword, magic: profile.damageStat === 'magic' }))
+    familyTags: profile
+      ? [{ family: profile.familyTag, count: profile.twoHanded ? 2 : 1, magic: profile.damageStat === 'magic', fromClass: false, source: 'gear' }]
       : [],
-    kit: null,
-    salveElement: null,
-    classResists: heroClasses[classId].resists ?? [],
   };
 };
 
@@ -723,14 +718,9 @@ export function stockProvisions(sim: Sim) {
   while (supplyHeld(sim.save.consumables) < provisions.supplyBuffer) {
     if (!bySupply.some((item) => cook(sim, item.id, provisions.batch) > 0)) break;
   }
-  // Kits that answer something in today's briefings of the top two tiers.
-  const top = highestTier(sim.save);
-  const briefings = dungeons.filter((d) => d.tier >= top - 1 && isDungeonAvailable(sim.save, d, sim.rotation)).map((d) => briefingFor(sim.rotation, d));
-  const kits = items.filter((i) => isKit(i.id) && briefings.some((b) => kitAnswers(i.id, b)));
   // The healing potion stock is the strongest one the bot can brew.
   const targets: [string, number][] = [
     ...Object.entries(sim.config.stock).map(([id, target]): [string, number] => [id === 'healingPotion' ? brewablePotion(sim.save) : id, target]),
-    ...kits.map((i): [string, number] => [i.id, provisions.kits]),
     ...mealItems.map((i): [string, number] => [i.id, provisions.meals]),
   ];
   for (const [id, target] of targets) {
@@ -800,7 +790,7 @@ export function recruitHeroes(sim: Sim) {
       .sort((a, b) => b.score - a.score || b.positive - a.positive || a.offer.price - b.offer.price);
     const pick = offers[0]?.offer;
     if (!pick) return;
-    act(sim, 'recruit', (save) => rollDailyApproaches(recruit(save, pick, sim.tavern.position, sim.tavern.position), sim.now));
+    act(sim, 'recruit', (save) => recruit(save, pick, sim.tavern.position, sim.tavern.position));
     sim.log.places.push({ day: sim.day, kind: 'tavern', tier: highestTier(sim.save), odds: null, won: null });
     sim.log.recruits.push({ day: sim.day, classId: pick.classId, price: pick.price, trait: pick.trait });
     mark(sim, `recruit:${sim.save.heroes.length}`);
@@ -968,23 +958,13 @@ function restUp(sim: Sim, dungeon: DungeonDef, heroIds: string[]) {
  * leaves the fewest threat points uncovered with.
  */
 export function withLoadout(save: SaveData, heroIds: string[], dungeon: DungeonDef, briefing: Briefing): SaveData {
-  let next = fillPotions(pickWeakness(pickKits(emptySlots(save, heroIds), heroIds, briefing), heroIds, dungeon), heroIds);
+  let next = fillPotions(pickWeakness(emptySlots(save, heroIds), heroIds, dungeon), heroIds);
   for (const id of heroIds) {
     const hero = next.heroes.find((h) => h.id === id)!;
     const potion = heldPotion(next);
     if (hasPotionSlot(hero) && !hero.equipment.potion && potion) {
       next = equip(next, id, 'potion', potion);
     }
-  }
-  for (const porter of next.heroes.filter((h) => heroIds.includes(h.id) && carriesKit(h))) {
-    const kit = porter.equipment.consumable ? (itemById[porter.equipment.consumable] as ConsumableDef).kit : undefined;
-    if (!kit || heroIds.length < 2) continue;
-    let best: { id: string | null; points: number } = { id: null, points: uncovered(setKitFor(next, porter.id, null), heroIds, briefing) };
-    for (const id of heroIds.filter((h) => h !== porter.id)) {
-      const points = uncovered(setKitFor(next, porter.id, id), heroIds, briefing);
-      if (points < best.points) best = { id, points };
-    }
-    next = setKitFor(next, porter.id, best.id);
   }
   return next;
 }
@@ -1107,10 +1087,10 @@ export function launch(sim: Sim, dungeon: DungeonDef, heroIds: string[], o: Odds
   sim.save = withLoadout(emptySlots(sim.save, homeHeroes(sim.save).map((h) => h.id)), heroIds, dungeon, briefing);
   const loadout = { mealId: mealFor(sim, dungeon, heroIds, o) };
   topUpSupply(sim, dungeon, heroIds, loadout, briefing);
-  // A revival draught on a tier boss run, a firebomb while the swarm threat is missed.
+  // A revival draught on a tier boss run, a firebomb while a beasts threat is missed.
   if (dungeon.isBoss && !dungeon.overnight) sim.save = withElixir(sim.save, heroIds, 'revivalDraught');
-  const swarm = briefingCoverage(sim.save, heroIds, briefing).threats.find((t) => t.threat.id === 'swarm');
-  if (swarm && swarm.have < swarm.needed) sim.save = withElixir(sim.save, heroIds, 'firebomb');
+  const beasts = briefingCoverage(sim.save, heroIds, briefing).threats.find((t) => t.threat.id === 'beasts');
+  if (beasts && beasts.have < beasts.needed) sim.save = withElixir(sim.save, heroIds, 'firebomb');
   applyElixirs(sim, dungeon, heroIds, loadout, briefing);
   // A smoke bomb in place of a healing potion when the odds stay low.
   const lowOdds = estimateOdds(sim.save, heroIds, dungeon, sim.config.odds.searchRuns, { now: sim.now, loadout, briefing });
@@ -1300,8 +1280,6 @@ export function collectExpedition(sim: Sim, expedition: ActiveExpedition) {
   };
   tally(run.signed.lowered?.heroId, 'lowerThreat');
   tally(run.signed.cancelledBy, 'cancelRestriction');
-  if (run.fenceGold > 0) tally(expedition.heroIds.find((id) => classOf(id) === 'smuggler'), 'fence');
-  for (const porterId of run.carriedHealed) tally(porterId, 'carriedHeal');
   const launched = sim.launched.get(expedition.id);
   sim.log.expeditions.push({
     day: launched?.day ?? sim.day,

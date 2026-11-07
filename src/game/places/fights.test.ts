@@ -35,7 +35,7 @@ const spawnOf = (kind: PlaceKind, position: LatLng = HOME): PlaceSpawn => ({
 
 describe('place fight briefings', () => {
   it('carries the configured threat, and a caravan picks one per spawn', () => {
-    expect(placeFightBriefing(tierTeam(), spawnOf('hauntedCrypt')).threats[0].id).toBe('undead');
+    expect(placeFightBriefing(tierTeam(), spawnOf('hauntedCrypt')).threats[0].id).toBe('holy');
     const caravan = spawnOf('abandonedCaravan');
     const briefing = placeFightBriefing(tierTeam(), caravan);
     expect(briefing.threats).toHaveLength(1);

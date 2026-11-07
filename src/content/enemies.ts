@@ -4,7 +4,6 @@ import { ELEMENTS, type Element } from '@/game/elements';
 import type { BossDef, DamageStat, MobDef, SanctumDef, SpeedClass, Tag } from '@/game/types';
 
 import { dungeonFactors, patrolFactors, placeFactors } from './difficultyFactors';
-import { npcs } from './npcs';
 import { sanctumRules, sanctums } from './sanctums';
 
 /** An enemy's Speed from its class and tier: the class base, plus one per tier above the first. */
@@ -290,21 +289,6 @@ export const bosses: BossDef[] = [
   boss('campRaider', 'camp raider', S.nightWatch4, 65, 12, ['humanoid']),
   boss('ashStalker', 'ash stalker', S.nightWatch5, 65, 12, ['spirit'], undefined, 'fire', 'fast'),
 ];
-
-/** The mob an NPC turns into when the party fights them, at a dungeon tier. */
-export const npcMobId = (npcId: string, tier: number) => `npc:${npcId}:${tier}`;
-
-/** NPCs fight at roughly a tier's short-dungeon strength. */
-const NPC_STRENGTH = 1.6;
-
-const npcMobs: MobDef[] = npcs.flatMap((npc) =>
-  TIER_SCALE.map((_, i) =>
-    mob(npcMobId(npc.id, i + 1), npc.hostile.name, strength(i + 1, NPC_STRENGTH), npc.hostile.hp, npc.hostile.damage, [
-      ...npc.hostile.tags,
-      'locals',
-    ]),
-  ),
-);
 
 // Patrols: the small roaming groups home heroes fight on the map (see
 // content/patrols.ts). Template stats are scaled like dungeon enemies, by tier
@@ -670,5 +654,5 @@ export function sanctumGuardian(sanctum: SanctumDef, tier: number): BossDef {
   return boss(`${sanctum.id}:guardian:${tier}`, sanctum.guardian.name, sanctumScale(tier), hp, damage, sanctum.guardian.tags, sanctum.guardian.effect, sanctum.element);
 }
 
-export const mobById = Object.fromEntries([...mobs, ...npcMobs, ...sanctumMinions, ...patrolMobs, ...placeMobs].map((m) => [m.id, m]));
+export const mobById = Object.fromEntries([...mobs, ...sanctumMinions, ...patrolMobs, ...placeMobs].map((m) => [m.id, m]));
 export const bossById = Object.fromEntries(bosses.map((b) => [b.id, b]));

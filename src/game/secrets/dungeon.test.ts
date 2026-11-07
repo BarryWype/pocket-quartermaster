@@ -73,23 +73,23 @@ const runs = (save: SaveData, level: number, count = 200) =>
   });
 
 describe('the underwater briefing', () => {
-  it('starts with Underwater at the tier level and never repeats it', () => {
+  it('starts with Element (water) at the tier level and never repeats it', () => {
     const briefing = underwaterBriefing(base(), place);
     expect(underwaterDungeonFor(base()).id).toBe('underwater1');
-    expect(briefing.threats[0]).toEqual({ id: 'underwater', level: secretRules.underwaterLevelByTier[0] });
-    expect(briefing.threats.filter((t) => t.id === 'underwater')).toHaveLength(1);
+    expect(briefing.threats[0]).toEqual({ id: 'element', level: secretRules.underwaterLevelByTier[0], element: 'water' });
+    expect(briefing.threats.filter((t) => t.id === 'element')).toHaveLength(1);
 
     const deep = underwaterDungeonFor(veteran());
     const deepBriefing = underwaterBriefing(veteran(), place);
     expect(deep.tier).toBe(5);
-    expect(deepBriefing.threats[0]).toEqual({ id: 'underwater', level: secretRules.underwaterLevelByTier[4] });
+    expect(deepBriefing.threats[0]).toEqual({ id: 'element', level: secretRules.underwaterLevelByTier[4], element: 'water' });
     expect(new Set(deepBriefing.threats.map((t) => t.id)).size).toBe(deepBriefing.threats.length);
     expect(deepBriefing.threats).toHaveLength(2);
   });
 
-  it('is only Underwater at tier 1', () => {
+  it('is only Element at tier 1', () => {
     expect(underwaterBriefing(base(), place).threats).toEqual([
-      { id: 'underwater', level: secretRules.underwaterLevelByTier[0] },
+      { id: 'element', level: secretRules.underwaterLevelByTier[0], element: 'water' },
     ]);
   });
 });
@@ -102,7 +102,7 @@ describe('launchUnderwater', () => {
     expect(next.usedPlaces[place.id]).toBe(place.expiresAt);
     expect(next.expeditions).toHaveLength(1);
     expect(next.expeditions[0].dungeonId).toBe('underwater1');
-    expect(next.expeditions[0].briefing!.threats[0].id).toBe('underwater');
+    expect(next.expeditions[0].briefing!.threats[0].id).toBe('element');
   });
 
   it('refuses a place with no tip, too far, or no key', () => {

@@ -1,27 +1,26 @@
 import { affixById } from '@/content/affixes';
 import { mobById } from '@/content/enemies';
 import { dungeons } from '@/content/dungeons';
-import { itemById, threatById } from '@/content/lookup';
+import { itemById } from '@/content/lookup';
 
 import { applyStone, canApplyStone } from '../../crafting/infusion';
-import { briefingFor, type Rotation } from '../../dungeons/rotation';
+import { type Rotation } from '../../dungeons/rotation';
 import { beats, ELEMENTS, stoneId, type Element } from '../../elements';
 import { isDungeonAvailable, highestUnlockedTier } from '../../expeditions/expeditions';
 import { canReroll, reroll, rerollCost } from '../../forging/reroll';
 import type { SaveData } from '../../save';
-import type { Keyword, Tag } from '../../types';
+import type { Tag } from '../../types';
 import { act, homeHeroes, type Sim } from '../bot';
 
 const SLOTS = ['weapon', 'armor', 'offhand'] as const;
 
 /**
  * What the dungeons the bot is about to run call for: the tags of their
- * enemies, the keywords that answer their briefings' threats, and their most
- * common enemy element (fights weighted by mob count, the boss by 3).
+ * enemies, and their most common enemy element (fights weighted by mob count,
+ * the boss by 3).
  */
 export type GearPlan = {
   tags: Tag[];
-  keywords: Keyword[];
   element: Element | null;
 };
 
@@ -34,7 +33,6 @@ function plannedDungeons(save: SaveData, rotation: Rotation) {
 /** Reads the plan off the planned dungeons' enemies and today's briefings. */
 export function planGear(save: SaveData, rotation: Rotation): GearPlan {
   const tags: Tag[] = [];
-  const keywords: Keyword[] = [];
   const elements: Partial<Record<Element, number>> = {};
   const count = (element: Element | undefined, weight: number) => {
     if (element) elements[element] = (elements[element] ?? 0) + weight;
@@ -45,10 +43,6 @@ export function planGear(save: SaveData, rotation: Rotation): GearPlan {
   for (const dungeon of plannedDungeons(save, rotation)) {
     take(dungeon.boss.tags);
     count(dungeon.boss.element, 3);
-    for (const threat of briefingFor(rotation, dungeon).threats) {
-      const answer = threatById[threat.id].answer;
-      if (answer.kind === 'keyword' && !keywords.includes(answer.keyword)) keywords.push(answer.keyword);
-    }
     for (const encounter of dungeon.encounters) {
       if (encounter.type !== 'fight') continue;
       for (const group of encounter.mobs) {
@@ -58,18 +52,17 @@ export function planGear(save: SaveData, rotation: Rotation): GearPlan {
     }
   }
   const element = (Object.entries(elements) as [Element, number][]).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
-  return { tags, keywords, element };
+  return { tags, element };
 }
 
 /**
  * Whether an affix helps against the planned dungeons: bonus damage dealt to
- * or taken from their enemies, or a keyword that answers one of their threats.
+ * or taken from their enemies.
  */
 export function affixFits(plan: GearPlan, affixId: string): boolean {
   const effect = affixById[affixId]?.effect;
   if (!effect) return false;
   if (effect.kind === 'damageVs' || effect.kind === 'damageFrom') return effect.tags.some((tag) => plan.tags.includes(tag));
-  if (effect.kind === 'keyword') return plan.keywords.includes(effect.keyword);
   return false;
 }
 

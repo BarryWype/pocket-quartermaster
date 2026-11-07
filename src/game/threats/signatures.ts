@@ -48,11 +48,15 @@ export function signatureBriefing(briefing: Briefing, members: AnswersMember[], 
   return { briefing: { ...briefing, restriction: kept, threats }, cancelledBy: breaker?.heroId ?? null, lowered };
 }
 
-/** The party's multipliers on missed threats' Delay (Ranger) and Hunger (Cook): the best of each counts, once. */
-export function penaltyReduction(classIds: HeroClassId[]): { delay: number; hunger: number } {
-  const best = (penalty: 'delay' | 'hunger') =>
-    Math.min(1, ...classIds.flatMap((id) => signaturesOf(id, 'penaltyReduce').filter((a) => a.penalty === penalty).map((a) => a.multiplier)));
-  return { delay: best('delay'), hunger: best('hunger') };
+/** The party's multipliers on missed threats' penalties (a Ranger's Traps cut): the best of each threat counts, once. */
+export function penaltyReduction(classIds: HeroClassId[]): { threats: Partial<Record<ThreatId, number>> } {
+  const threats: Partial<Record<ThreatId, number>> = {};
+  for (const id of classIds) {
+    for (const ability of signaturesOf(id, 'penaltyReduce')) {
+      threats[ability.threat] = Math.min(threats[ability.threat] ?? 1, ability.multiplier);
+    }
+  }
+  return { threats };
 }
 
 /** The meal the party gets: none under Spoiled stores, its bonus multiplied by a Cook's (the best one counts). */

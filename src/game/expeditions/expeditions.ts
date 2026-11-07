@@ -29,11 +29,8 @@ import type { SaveData } from '../save';
 import { applyRunHp, settleHp } from '../team/health';
 import { heroAbilities, heroStats, isAway, isBusy } from '../team/team';
 import { composeBriefing } from '../threats/compose';
-import { heroAnswers } from '../threats/answers';
-import { launchEffects } from '../threats/penalties';
 import { salvage } from '../threats/salvage';
-import { scoreBriefing } from '../threats/score';
-import { partyMeal, penaltyReduction, signatureBriefing } from '../threats/signatures';
+import { partyMeal, signatureBriefing } from '../threats/signatures';
 import { pickRecruitClass } from '../taverns/taverns';
 import { isTutorialDungeon, isTutorialExpedition } from '../tutorial/tutorial';
 import type { ActiveExpedition, Briefing, DungeonDef, ExpeditionReport, HeroState, Hunger, OpportunityOutcome, ProvisionDef } from '../types';
@@ -104,12 +101,6 @@ export function mealOf(briefing: Briefing, mealId: string | null | undefined, pa
   return partyMeal(provision(mealId)?.meal, signed, party.map((member) => member.classId));
 }
 
-/** The briefing's scores against these heroes as equipped, after their signatures. */
-const threatScores = (briefing: Briefing, party: PartyMember[]) => {
-  const signed = signatureBriefing(briefing, party.map(answersMemberOf)).briefing;
-  return scoreBriefing(signed, party.map((member) => heroAnswers(answersMemberOf(member), signed.restriction))).threats;
-};
-
 /**
  * Supply and duration for sending these heroes with this loadout now. The
  * briefing's missed threats stretch the time and add to the supply need, and
@@ -124,18 +115,16 @@ export function launchPlan(
 ): LaunchPlan {
   const base = expeditionMinutes(save, dungeon);
   const party = prepareParty(save, heroIds);
-  const effects = launchEffects(threatScores(briefing, party), undefined, penaltyReduction(party.map((m) => m.classId)));
   const opportunity = briefing.opportunity ? opportunityById[briefing.opportunity] : null;
   const need =
     save.heroes
       .filter((h) => heroIds.includes(h.id))
       .reduce((sum, hero) => sum + heroSupplyNeed(heroAbilities(hero), supplyMinutes(save, dungeon)), 0) +
-    effects.extraSupply +
     (loadout.optIn ? opportunity?.cost?.supply ?? 0 : 0);
   const supply = pickSupply(save.consumables, need);
   const meal = mealOf(briefing, loadout.mealId, party);
   return {
-    minutes: base * (meal?.kind === 'duration' ? meal.multiplier : 1) * effects.timeMultiplier,
+    minutes: base * (meal?.kind === 'duration' ? meal.multiplier : 1),
     need,
     held: supplyHeld(save.consumables),
     supply,
@@ -319,21 +308,14 @@ export function untriggeredSalvage(party: PartyMember[], run: RunResult, source:
     if (item.charm) return charmApplies(item.charm, source);
     if (item.when === 'lowHp') return run.consumed.includes(member.heroId);
     if (item.kit) {
-      // A ward salve is a kit too: it also counts when its carrier took damage of its element.
+      // A ward salve is a kit too: it counts when its carrier took damage of its element.
       return (
-        run.threats.some((t) => t.kitHeroes.includes(member.heroId)) ||
-        run.opportunity?.kitHeroId === member.heroId ||
-        run.carriedHealed.includes(member.heroId) ||
         (item.kit.heal !== undefined && run.consumed.includes(member.heroId)) ||
         (item.protectsAgainst !== undefined && (run.damageElements[member.heroId]?.includes(item.protectsAgainst) ?? false))
       );
     }
     if (item.protectsAgainst) {
-      const element = run.threats.find((t) => t.threat.id === 'element');
-      return (
-        (element?.kitHeroes.includes(member.heroId) ?? false) ||
-        (run.damageElements[member.heroId]?.includes(item.protectsAgainst) ?? false)
-      );
+      return (run.damageElements[member.heroId]?.includes(item.protectsAgainst) ?? false);
     }
     const elixir = item.elixir;
     if (elixir) {
@@ -402,9 +384,8 @@ export function resolveExpedition(
   const mealGold = cut(meal?.kind === 'gold' ? meal.multiplier : 1);
   // Lost loot cuts the dungeon's rolled gold; the run's bonus gold is unaffected.
   const bounty = run.opportunity?.answered && run.opportunity.goldMultiplier ? run.opportunity.goldMultiplier : 1;
-  const kept = 1 - run.lostLoot;
   const goldScale = guildGold * traitGold * mealGold;
-  const baseGold = Math.round((rng.int(dungeon.gold[0], dungeon.gold[1]) * lootShare * kept * bounty + run.bonusGold) * goldScale);
+  const baseGold = Math.round((rng.int(dungeon.gold[0], dungeon.gold[1]) * lootShare * bounty + run.bonusGold) * goldScale);
   // The tutorial's first expedition pays the day's first-win row instead.
   const tutorialReward = expedition.guaranteed;
   // Dungeons below the highest unlocked tier teach less.
@@ -567,9 +548,7 @@ export function resolveExpedition(
     sigil = rolled.drop;
   }
 
-  const opportunity: OpportunityOutcome | null = run.opportunity
-    ? (({ kitHeroId: _kit, ...outcome }) => outcome)(run.opportunity)
-    : null;
+  const opportunity: OpportunityOutcome | null = run.opportunity;
   const log = buildLog(
     {
       dungeon,
@@ -604,13 +583,11 @@ export function resolveExpedition(
     supplyUsed: expedition.supplyUsed,
     mealId: expedition.mealId ?? null,
     briefing,
-    threats: run.threats.map(({ threat, state, forced, intimidated }) => ({
+    threats: run.threats.map(({ threat, state }) => ({
       id: threat.id,
       level: threat.level,
       ...(threat.element ? { element: threat.element } : {}),
       state,
-      ...(forced ? { forced } : {}),
-      ...(intimidated ? { intimidated } : {}),
     })),
     opportunity,
     salvaged,

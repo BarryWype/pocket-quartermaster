@@ -117,9 +117,6 @@ export function healingPotion(itemId: string): ConsumableDef | null {
 /** Whether the hero's class has the second, potion-only slot (the Alchemist). */
 export const hasPotionSlot = (hero: HeroState) => heroClasses[hero.classId].abilities.some((a) => a.kind === 'potionSlot');
 
-/** Whether the hero's class carries its kit for another hero (the Porter). */
-export const carriesKit = (hero: HeroState) => heroClasses[hero.classId].abilities.some((a) => a.kind === 'carryKit');
-
 /** Favoured, usable or unfit: weapons and armour by class, off-hands and trinkets always usable. */
 export function affinityOf(classId: HeroState['classId'], gearType: GearType | undefined): Affinity {
   if (!gearType) return 'usable';
@@ -330,17 +327,6 @@ export function dismissHero(save: SaveData, heroId: string): SaveData {
     // The escort hero is gone: the background task stands down.
     escort: next.escort && next.escort.heroId === heroId ? null : next.escort,
   };
-}
-
-/** A Porter's pick of the hero their kit is carried for (null: carried for themselves). */
-export function setKitFor(save: SaveData, porterId: string, heroId: string | null): SaveData {
-  const porter = save.heroes.find((h) => h.id === porterId);
-  if (!porter || !carriesKit(porter)) throw new Error(`${porterId} is not a Porter`);
-  if (heroId === porterId || (heroId && !save.heroes.some((h) => h.id === heroId))) throw new Error(`Cannot carry for ${heroId}`);
-  return updateHero(save, porterId, (h) => {
-    const { kitFor: _kitFor, ...rest } = h;
-    return heroId ? { ...rest, kitFor: heroId } : rest;
-  });
 }
 
 /** Adds classes to the ones the player has met. */

@@ -4,6 +4,7 @@ import { tutorialRules } from '@/content/tutorial';
 import { craft } from '../crafting/crafting';
 import { grantTutorialLoot, resolveExpedition, startExpedition } from '../expeditions/expeditions';
 import { addMaterials } from '../inventory';
+import { salvage } from '../threats/salvage';
 import { createInitialSave, type SaveData, type TutorialSpawn, type TutorialStep } from '../save';
 import { equip, isAway } from '../team/team';
 import type { MaterialStack, RecipeDef } from '../types';
@@ -79,6 +80,25 @@ export function skipTutorial(save: SaveData, now: number): SaveData {
   }
 
   if (packOwed) next = craftAnyway(next, recipeById[tutorialRules.kitRecipe]);
+
+  // Without a run to carry it, the pack comes back untriggered and is broken
+  // back down, exactly as a played run's report would do.
+  if (!underWay) {
+    const holder = next.heroes.find((h) => h.equipment.consumable === tutorialRules.kitRecipe);
+    const held = (next.consumables[tutorialRules.kitRecipe] ?? 0) > 0;
+    if (held || holder) {
+      const { materials, gold } = salvage(tutorialRules.kitRecipe);
+      next = {
+        ...next,
+        materials: addMaterials(next.materials, materials),
+        gold: next.gold + gold,
+        consumables: { ...next.consumables, [tutorialRules.kitRecipe]: Math.max(0, (next.consumables[tutorialRules.kitRecipe] ?? 0) - 1) },
+        heroes: holder
+          ? next.heroes.map((h) => (h.id === holder.id ? { ...h, equipment: { ...h.equipment, consumable: null } } : h))
+          : next.heroes,
+      };
+    }
+  }
 
   if (!next.tutorial.rewarded) next = grantTutorialLoot(next, next.heroes.map((h) => h.id), now);
   return finishTutorial(next, now);

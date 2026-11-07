@@ -21,15 +21,15 @@ export function underwaterDungeonFor(save: SaveData): DungeonDef {
   return dungeonById[underwaterDungeonId(tier)];
 }
 
-/** The underwater dungeon's own briefing: Underwater first, then its base dungeon's other threats at the same level. */
+/** The underwater dungeon's own briefing: Element (water) first, then its base dungeon's other threats at the same level. */
 export function underwaterBriefing(save: SaveData, place: { id: string }): Briefing {
   const dungeon = underwaterDungeonFor(save);
   const level = secretRules.underwaterLevelByTier[dungeon.tier - 1];
   const table = dungeonThreats[underwaterThreatBase[dungeon.id]];
   const rng = createRng(`underwater|${place.id}`);
-  const threats: ActiveThreat[] = [{ id: 'underwater', level }];
+  const threats: ActiveThreat[] = [{ id: 'element', level, ...(table.element ? { element: table.element } : {}) }];
   let eligible = (Object.entries(table.weights) as [ThreatId, number][])
-    .filter(([id]) => id !== 'underwater')
+    .filter(([id]) => id !== 'element')
     .map(([id, weight]) => ({ id, weight }));
   const count = threatRules.compose.threatCount[dungeon.tier - 1];
   while (threats.length < count && eligible.length > 0) {

@@ -41,7 +41,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     abilities: [
       { kind: 'trapReduce', multiplier: 0.5 },
       { kind: 'damageVsTag', tag: 'beast', multiplier: 1.5 },
-      { kind: 'penaltyReduce', penalty: 'delay', multiplier: 0.5 },
+      { kind: 'penaltyReduce', threat: 'traps', multiplier: 0.5 },
     ],
   },
   fireMage: {
@@ -95,7 +95,6 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     keywords: [],
     threat: 1,
     abilities: [
-      { kind: 'pickpocket' },
       { kind: 'critBonus', chance: 0.15 },
       { kind: 'cacheBonus', multiplier: 2 },
     ],
@@ -227,10 +226,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     approaches: { might: 2, finesse: 1, wits: 1, faith: 3, presence: 1 },
     keywords: ['blessed'],
     threat: 1.5,
-    abilities: [
-      { kind: 'keywordCount', threat: 'undead', count: 2 },
-      { kind: 'approachFor', threat: 'desecrated', approach: 'faith', add: 1 },
-    ],
+    abilities: [{ kind: 'familyVsThreat', family: 'faith', add: 1 }],
   },
   duelist: {
     name: 'Duelist',
@@ -263,7 +259,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     approaches: { might: 0, finesse: 4, wits: 1, faith: 0, presence: 3 },
     keywords: [],
     threat: 1,
-    abilities: [{ kind: 'fence', shares: [0.05, 0.08, 0.12] }],
+    abilities: [{ kind: 'goldMultiplier', multiplier: 1.1 }],
   },
   diplomat: {
     name: 'Diplomat',
@@ -280,10 +276,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     approaches: { might: 0, finesse: 1, wits: 2, faith: 1, presence: 4 },
     keywords: [],
     threat: 0.8,
-    abilities: [
-      { kind: 'approachFor', threat: 'locals', approach: 'presence', score: 5 },
-      { kind: 'opportunityBoost', opportunity: 'bounty', multiplier: 5 / 3 },
-    ],
+    abilities: [{ kind: 'opportunityBoost', opportunity: 'bounty', multiplier: 5 / 3 }],
   },
   necromancer: {
     name: 'Necromancer',
@@ -300,8 +293,8 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     keywords: [],
     threat: 1,
     abilities: [
-      { kind: 'raiseAllies', threat: 'undead', level: 1, tag: 'undead', max: 3, damage: 1 },
-      { kind: 'keywordCount', threat: 'undead', count: 1, levels: [2, 3] },
+      { kind: 'raiseAllies', threat: 'holy', level: 1, tag: 'undead', max: 3, damage: 1 },
+      { kind: 'familyVsThreat', family: 'faith', add: 1, levels: [2, 3] },
     ],
   },
   beastmaster: {
@@ -320,7 +313,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     threat: 2,
     abilities: [
       { kind: 'raiseAllies', threat: 'beasts', level: 1, tag: 'beast', max: 3, damage: 1 },
-      { kind: 'keywordCount', threat: 'beasts', count: 2, levels: [2, 3] },
+      { kind: 'familyVsThreat', family: 'wild', add: 1, levels: [2, 3] },
     ],
   },
   engineer: {
@@ -337,7 +330,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     approaches: { might: 3, finesse: 1, wits: 3, faith: 0, presence: 1 },
     keywords: [],
     threat: 2,
-    abilities: [{ kind: 'kitBonus', add: 1 }],
+    abilities: [{ kind: 'familyVsThreat', family: 'cunning', add: 1 }],
   },
   alchemist: {
     name: 'Alchemist',
@@ -370,7 +363,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     approaches: { might: 3, finesse: 2, wits: 1, faith: 1, presence: 1 },
     keywords: [],
     threat: 2,
-    abilities: [{ kind: 'carryKit' }],
+    abilities: [{ kind: 'supplyNeed', add: -1 }],
   },
   scout: {
     name: 'Scout',
@@ -421,7 +414,6 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     threat: 1,
     abilities: [
       { kind: 'mealBoost', multiplier: 2 },
-      { kind: 'penaltyReduce', penalty: 'hunger', multiplier: 0.5 },
       { kind: 'cancelRestriction', restriction: 'spoiledStores' },
       { kind: 'fightHeal', pct: 0.03 },
     ],
@@ -453,7 +445,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     baseStats: { hp: 22, power: 3, magic: 3, armour: 0, resistance: 1, evasion: 0, speed: 7, crit: 10 },
     primary: ['speed', 'crit'],
     damageStat: 'power',
-    // Approach scores are rolled at the daily reset.
+    // No approach scores: the gamble is the third primary alone.
     approaches: { might: 0, finesse: 0, wits: 0, faith: 0, presence: 0 },
     keywords: [],
     threat: 1,
@@ -498,11 +490,13 @@ export const xpRules = {
 /** XP needed to go from `level` to `level + 1`. */
 export const xpToNextLevel = (level: number, rules: typeof xpRules = xpRules) => Math.round(rules.base * level ** rules.exponent);
 
-/** The Gambler's dice (see team/stats.ts): approach points dealt at each daily reset, and the stats a third primary is rolled from. */
+/** The Gambler's dice (see team/stats.ts): the stats a third primary is rolled from. */
 export const gamblerRules = {
-  approachPoints: 8,
   primaryChoices: ['hp', 'power', 'magic', 'armour', 'resistance', 'evasion'] satisfies StatKey[],
 };
+
+/** The bounds of a hero's approach scores (see team/stats.ts). */
+export const approachRules = { min: 0, max: 5 };
 
 /** Growth rules (see team/stats.ts): steps per level, milestones, Luck and the recruit roll's pull. */
 export const growthRules = {

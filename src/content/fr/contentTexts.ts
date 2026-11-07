@@ -39,7 +39,7 @@ export function contentTexts(): string[] {
     ...bosses.map((b) => b.name),
     ...events.map((e) => e.name),
     ...jobs.map((j) => j.name),
-    ...npcs.flatMap((n) => [n.name, n.description, n.hostile.name]),
+    ...npcs.flatMap((n) => [n.name, n.description]),
     ...sanctums.flatMap((s) => [s.name, s.description, s.guardian.name, s.guardian.description, ...s.minions.map((m) => m.name)]),
     ...Object.values(heroClasses).map((c) => c.name),
     ...families.map((f) => f.name),

@@ -89,8 +89,6 @@ export function ReportCard({ report, heroes, now, expanded, onToggle }: Props) {
               {element ? <GameIcon emoji={element.emoji} size={18} /> : null}
               <Text style={styles.logLine}>
                 {tr(def.name)} {pips} · {t(`expeditions.report.state.${threat.state}`)}
-                {threat.forced ? t('expeditions.report.forced') : ''}
-                {threat.intimidated ? t('expeditions.report.intimidated') : ''}
               </Text>
             </View>
           );

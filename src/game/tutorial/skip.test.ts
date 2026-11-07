@@ -113,14 +113,9 @@ describe('skipping the tutorial', () => {
     expect(swordGear(skipped)).toHaveLength(1);
     expect(bram(skipped).equipment.weapon).toBe(swordGear(skipped)[0].uid);
 
-    // The Hunter's pack: crafted by the skip before its equip step, held or carried around it, spent by the run after.
-    if (STEPS.indexOf(step) < STEPS.indexOf('equipKit')) {
-      expect(skipped.consumables[tutorialRules.kitRecipe]).toBe(1);
-    } else if (step === 'equipKit' || step === 'sendExpedition') {
-      expect(kitAnywhere(skipped)).toBe(true);
-    } else {
-      expect(kitAnywhere(skipped)).toBe(false);
-    }
+    // The Hunter's pack never reaches a run that could trigger it, so it comes
+    // back untriggered and is broken back down, exactly like a played run.
+    expect(kitAnywhere(skipped)).toBe(false);
 
     expect(skipped.tutorial.rewarded).toBe(true);
     expect(skipped.firstWinDay).not.toBeNull();

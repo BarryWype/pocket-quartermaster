@@ -2,20 +2,16 @@ import { growthRules, newHero, xpToNextLevel } from '@/content/heroes';
 
 import { createInitialSave, type SaveData } from '../save';
 import type { HeroClassDef, HeroRoll, StatKey } from '../types';
-import { rotationDay } from '../dungeons/rotation';
 import { rollRecruit } from '../taverns/roll';
-import { rollDailyApproaches } from '../upkeep';
 import { addXp, heroDamageStat, heroStats } from './team';
 import {
   approachScore,
   baseHeroStats,
-  classApproaches,
   classBaseStats,
   heroApproachBonus,
   pendingApproachPicks,
   pickApproach,
   rollFactors,
-  rollGamble,
   rollGamblerPrimary,
 } from './stats';
 
@@ -187,28 +183,6 @@ describe('flasks (wielder damage stat)', () => {
 });
 
 describe('the Gambler', () => {
-  it('deals 8 approach points at random, the same for a hero and day', () => {
-    for (let day = 0; day < 50; day++) {
-      const scores = rollGamble('h1', day);
-      expect(Object.values(scores).reduce((a, b) => a + b, 0)).toBe(8);
-      expect(Math.max(...Object.values(scores))).toBeLessThanOrEqual(5);
-      expect(rollGamble('h1', day)).toEqual(scores);
-    }
-    const days = new Set(Array.from({ length: 20 }, (_, day) => JSON.stringify(rollGamble('h1', day))));
-    expect(days.size).toBeGreaterThan(1);
-  });
-
-  it('uses the roll of the day for their approach scores, with picks on top', () => {
-    const hero = {
-      ...newHero('g', 'G', 'gambler', ''),
-      gamble: { day: 3, approaches: { might: 0, finesse: 4, wits: 1, faith: 2, presence: 1 } },
-      approachPicks: ['finesse' as const],
-    };
-    expect(approachScore(hero, 'finesse')).toBe(5);
-    expect(approachScore(hero, 'faith')).toBe(2);
-    expect(classApproaches(hero).finesse).toBe(4);
-  });
-
   it('rolls a third primary stat at recruitment, never Speed or Crit, the same for an offer', () => {
     const seen = new Set<StatKey>();
     for (let i = 0; i < 200; i++) {
@@ -227,22 +201,5 @@ describe('the Gambler', () => {
     expect(baseHeroStats('gambler', 4).magic).toBe(3);
     const hero = { ...newHero('g', 'G', 'gambler', ''), roll };
     expect(heroDamageStat({ ...createInitialSave(), heroes: [hero] }, hero)).toBe('magic');
-  });
-
-  it('rolls at the daily reset for Gamblers at home, keeping the day and leaving heroes away as they are', () => {
-    const now = Date.UTC(2026, 9, 29, 12);
-    const home = newHero('g1', 'A', 'gambler', '');
-    const away = { ...newHero('g2', 'B', 'gambler', ''), gamble: { day: 1, approaches: rollGamble('g2', 1) } };
-    const save: SaveData = {
-      ...createInitialSave(),
-      heroes: [home, away, newHero('w', 'W', 'warrior', '')],
-      heists: [{ heroId: 'g2' } as SaveData['heists'][number]],
-    };
-    const next = rollDailyApproaches(save, now);
-    const day = rotationDay(now);
-    expect(next.heroes[0].gamble).toEqual({ day, approaches: rollGamble('g1', day) });
-    expect(next.heroes[1]).toBe(away);
-    expect(next.heroes[2].gamble).toBeUndefined();
-    expect(rollDailyApproaches(next, now)).toBe(next);
   });
 });

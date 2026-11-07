@@ -4,10 +4,7 @@ import { collectedKeepFrom, pruneCollected } from './gathering/gathering';
 import { pruneDugRuins } from './places/ruins';
 import { lureEndsAt } from './rewards/lures';
 import { pruneTips } from './secrets/tips';
-import { rotationDay } from './dungeons/rotation';
 import type { SaveData } from './save';
-import { rollGamble } from './team/stats';
-import { isAway } from './team/team';
 
 /**
  * Drops what has run out: treasure maps, an ended lure, taken recruits, and
@@ -45,15 +42,4 @@ export function pruneExpired(save: SaveData, now: number, config: GatheringConfi
   return unchanged
     ? save
     : { ...save, treasureMaps, activeLure, walkEffects, usedSanctums, collected, takenOffers, usedPlaces, chapelVisits, placePurchases, dugRuins, secretTips };
-}
-
-/** At each daily reset, Gamblers at home roll their approach scores; heroes away keep theirs until they are back. */
-export function rollDailyApproaches(save: SaveData, now: number): SaveData {
-  const day = rotationDay(now);
-  const due = save.heroes.filter((h) => h.classId === 'gambler' && h.gamble?.day !== day && !isAway(save, h.id));
-  if (due.length === 0) return save;
-  return {
-    ...save,
-    heroes: save.heroes.map((h) => (due.includes(h) ? { ...h, gamble: { day, approaches: rollGamble(h.id, day) } } : h)),
-  };
 }

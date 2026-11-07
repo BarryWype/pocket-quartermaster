@@ -5,11 +5,10 @@ import { weaknessByBoss } from '@/content/weaknesses';
 import { charmApplies } from '../../loot/charms';
 import { createInitialSave, type SaveData } from '../../save';
 import type { Briefing } from '../../types';
-import { emptySlots, fillPotions, isKit, pickCharm, pickKits, pickWeakness, uncovered, unprepared, withCharm, withElixir, withOil, withStatPotion } from './loadout';
+import { emptySlots, fillPotions, pickCharm, pickWeakness, uncovered, withCharm, withElixir, withOil, withStatPotion } from './loadout';
 
 const PARTY = ['bram', 'lyra', 'mira'];
 const TRAPS: Briefing = { threats: [{ id: 'traps', level: 3 }], restriction: null, opportunity: null };
-const DESECRATED: Briefing = { threats: [{ id: 'desecrated', level: 2 }], restriction: null, opportunity: null };
 const NONE: Briefing = { threats: [], restriction: null, opportunity: null };
 
 const stocked = (consumables: Record<string, number>): SaveData => ({ ...createInitialSave(), consumables });
@@ -17,16 +16,10 @@ const slots = (save: SaveData) => PARTY.map((id) => save.heroes.find((h) => h.id
 const dungeonCharms = charms.filter((c) => charmApplies(c.modifier, 'dungeonRun'));
 
 describe('loadout rules', () => {
-  it('takes the kit that answers a threat the party misses', () => {
-    const save = stocked({ roguesRoll: 1, huntersPack: 1, healingPotion: 3 });
-    const kitted = pickKits(save, PARTY, TRAPS);
-    expect(slots(kitted)).toContain('roguesRoll');
-    expect(slots(kitted)).not.toContain('huntersPack');
-    expect(uncovered(kitted, PARTY, TRAPS)).toBeLessThan(uncovered(save, PARTY, TRAPS));
-  });
-
-  it('takes no kit when the briefing has nothing to answer', () => {
-    expect(slots(pickKits(stocked({ roguesRoll: 2 }), PARTY, NONE))).toEqual([null, null, null]);
+  it('counts the threat points a party still misses on a briefing', () => {
+    const save = stocked({ healingPotion: 3 });
+    expect(uncovered(save, PARTY, TRAPS)).toBeGreaterThan(0);
+    expect(uncovered(save, PARTY, NONE)).toBe(0);
   });
 
   it('gives the boss its weakness item and everyone else a potion', () => {
@@ -37,25 +30,18 @@ describe('loadout rules', () => {
     expect(slots(save).filter((s) => s === 'healingPotion')).toHaveLength(2);
   });
 
-  it('picks the charm held most that applies to the run, and never puts it over a kit', () => {
+  it('picks the charm held most that applies to the run', () => {
     const [few, many] = dungeonCharms;
-    const save = stocked({ [few.id]: 1, [many.id]: 3, roguesRoll: 3 });
-    expect(pickCharm(save, 'dungeonRun')).toBe(many.id);
-    const kitted = PARTY.reduce((next, id) => pickKits(next, [id], TRAPS), save);
-    expect(slots(withCharm(kitted, PARTY, many.id))).not.toContain(many.id);
+    expect(pickCharm(stocked({ [few.id]: 1, [many.id]: 3 }), 'dungeonRun')).toBe(many.id);
     expect(pickCharm(stocked({ healingPotion: 3 }), 'dungeonRun')).toBeNull();
   });
 
-  it('leaves the same party without kits for the threats: only the kit slots differ, and they are empty', () => {
-    const prepared = fillPotions(pickKits(stocked({ roguesRoll: 1, healingPotion: 3 }), PARTY, TRAPS), PARTY);
-    const plain = unprepared(prepared, PARTY);
-    prepared.heroes.forEach((hero, i) => {
-      const other = plain.heroes[i];
-      expect({ ...other, equipment: { ...other.equipment, consumable: null } }).toEqual({ ...hero, equipment: { ...hero.equipment, consumable: null } });
-      expect(other.equipment.consumable).toBe(isKit(hero.equipment.consumable) ? null : hero.equipment.consumable);
-    });
-    expect(slots(plain)).not.toContain('roguesRoll');
-    expect(plain.gear).toEqual(prepared.gear);
+  it('puts a held charm on the first hero with a free slot or a healing potion', () => {
+    const [charm] = dungeonCharms;
+    const potions = fillPotions(stocked({ [charm.id]: 1, healingPotion: 2 }), PARTY);
+    const withCharmSave = withCharm(potions, PARTY, charm.id);
+    expect(slots(withCharmSave).filter((s) => s === charm.id)).toHaveLength(1);
+    expect(withCharmSave.consumables[charm.id]).toBe(0);
   });
 
   it('puts carried consumables back in the stock', () => {
@@ -63,15 +49,12 @@ describe('loadout rules', () => {
     expect(emptySlots(save, PARTY).consumables.healingPotion).toBe(3);
   });
 
-  it('puts a stat potion over a healing potion or in a free slot, never over a kit', () => {
-    const kitted = pickKits(stocked({ roguesRoll: 1, strengthDraught: 1, healingPotion: 3 }), PARTY, TRAPS);
-    const carrier = slots(kitted).findIndex((s) => s === 'roguesRoll');
-    expect(slots(withStatPotion(kitted, PARTY[carrier], 'strengthDraught'))[carrier]).toBe('roguesRoll');
-    const potion = fillPotions(kitted, PARTY);
+  it('puts a stat potion over a healing potion or in a free slot', () => {
+    const potion = fillPotions(stocked({ strengthDraught: 1, healingPotion: 3 }), PARTY);
     const free = slots(potion).findIndex((s) => s === 'healingPotion');
     const withStat = withStatPotion(potion, PARTY[free], 'strengthDraught');
     expect(slots(withStat)[free]).toBe('strengthDraught');
-    expect(withStat.consumables).toEqual({ roguesRoll: 0, strengthDraught: 0, healingPotion: 2 });
+    expect(withStat.consumables).toEqual({ strengthDraught: 0, healingPotion: 1 });
     expect(withStatPotion(potion, PARTY[free], 'quicksilver')).toBe(potion);
   });
 
@@ -84,16 +67,8 @@ describe('loadout rules', () => {
     expect(slots(fillPotions(stocked({ healingPotion: 3 }), PARTY))).toEqual(['healingPotion', 'healingPotion', 'healingPotion']);
   });
 
-  it('counts blessed holy symbols as the kit for desecrated ground', () => {
-    const save = stocked({ blessedRelics: 1, healingPotion: 3 });
-    const kitted = pickKits(save, PARTY, DESECRATED);
-    expect(slots(kitted)).toContain('blessedRelics');
-    expect(uncovered(kitted, PARTY, DESECRATED)).toBeLessThan(uncovered(save, PARTY, DESECRATED));
-  });
-
-  it('puts a held elixir on the first hero with a free slot or a healing potion, never a kit', () => {
-    const kitted = pickKits(stocked({ roguesRoll: 1, healingPotion: 3, firebomb: 1 }), PARTY, TRAPS);
-    const potions = fillPotions(kitted, PARTY);
+  it('puts a held elixir on the first hero with a free slot or a healing potion', () => {
+    const potions = fillPotions(stocked({ healingPotion: 3, firebomb: 1 }), PARTY);
     const carrier = slots(potions).findIndex((s) => s === 'healingPotion');
     const withElixirSave = withElixir(potions, PARTY, 'firebomb');
     expect(slots(withElixirSave)[carrier]).toBe('firebomb');
@@ -112,7 +87,5 @@ describe('loadout rules', () => {
     expect(withOil(potion, 'lyra', 'emberOil')).toBe(potion);
     const infused: SaveData = { ...potion, gear: [{ uid: 'w1', itemId: 'sword1', rarity: 'common' as const, roll: 8, affixes: [{ id: 'infusedWater', value: 0 }], rerolls: 0 }] };
     expect(withOil(infused, 'bram', 'emberOil')).toBe(infused);
-    const kitted = pickKits(stocked({ roguesRoll: 1, emberOil: 1 }), ['bram'], TRAPS);
-    expect(withOil(kitted, 'bram', 'emberOil')).toBe(kitted);
   });
 });

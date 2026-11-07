@@ -6,7 +6,6 @@ import { gearProfiles, gearTypeNames } from '@/content/equipment';
 import { gearRules, rarityNames } from '@/content/gear';
 import { heroClasses } from '@/content/heroes';
 import { componentById, itemById, materialById, monsterPartById, recipeById, relicById, valuableById } from '@/content/lookup';
-import { threatDefs } from '@/content/threats';
 import { forgeConfirmation, restoreConfirmation, type ConfirmCost } from '@/game/crafting/confirm';
 import { canCraft } from '@/game/crafting/crafting';
 import { canForgeWithIngredient, fittingIngredients, ingredientAffixId } from '@/game/forging/components';
@@ -198,14 +197,9 @@ export function ForgeConfirmDialog({
     }
 
     for (const keyword of item.keywords) {
-      const threats = threatDefs
-        .filter((def) => def.answer.kind === 'keyword' && def.answer.keyword === keyword)
-        .map((def) => tr(def.name))
-        .join(', ');
       lines.push({
         tone: 'keyword',
         text: t(`threats.keyword.${keyword}`),
-        detail: threats ? t('crafting.keywordAnswers', { threats }) : undefined,
         tip: t(`threats.keywordTip.${keyword}`),
       });
     }

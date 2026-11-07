@@ -3,7 +3,6 @@ import { formatNumber, formatPercent as percent, t, tr } from '@/i18n';
 
 import { heroClasses } from './heroes';
 import { opportunityById } from './lookup';
-import { approachRules } from './threats';
 
 import { tagInfo } from './rotation';
 
@@ -14,8 +13,6 @@ export function abilityText(ability: Ability): string {
       return t('abilities.damageVsTag', { percent: percent(ability.multiplier - 1), tag: tr(tagInfo[ability.tag].name).toLowerCase() });
     case 'trapReduce':
       return t('abilities.trapReduce', { multiplier: formatNumber(ability.multiplier) });
-    case 'pickpocket':
-      return t('abilities.pickpocket');
     case 'partyHeal':
       return t('abilities.partyHeal', { percent: percent(ability.pct) });
     case 'protect':
@@ -64,18 +61,14 @@ export function abilityText(ability: Ability): string {
     case 'keyword':
     // Class signatures are shown by the class's signature line.
     case 'penaltyReduce':
-    case 'keywordCount':
-    case 'approachFor':
-    case 'kitBonus':
+    case 'familyVsThreat':
     case 'fistsPierce':
-    case 'carryKit':
     case 'potionSlot':
     case 'lowerThreat':
     case 'cancelRestriction':
     case 'opportunityBoost':
     case 'raiseAllies':
     case 'singleEnemyCrit':
-    case 'fence':
     case 'mealBoost':
     case 'fightHeal':
     case 'ignoresRestrictions':
@@ -98,7 +91,7 @@ export function signatureText(classId: HeroClassId): string {
         vars.tagBonus = percent(a.multiplier - 1);
         break;
       case 'penaltyReduce':
-        vars[a.penalty] = formatNumber(a.multiplier);
+        vars[a.threat] = formatNumber(a.multiplier);
         break;
       case 'cacheBonus':
         vars.cache = formatNumber(a.multiplier);
@@ -115,20 +108,11 @@ export function signatureText(classId: HeroClassId): string {
         if (reward.kind === 'goldMultiplier') vars.bounty = percent((reward.multiplier - 1) * a.multiplier);
         break;
       }
-      case 'keywordCount':
-        vars.count = a.count;
-        break;
-      case 'approachFor':
-        if (a.add) vars.add = a.add;
+      case 'familyVsThreat':
+        vars.familyAdd = a.add;
         break;
       case 'singleEnemyCrit':
         vars.crit = formatNumber(a.multiplier);
-        break;
-      case 'fence':
-        Object.assign(vars, { fenceMin: percent(a.shares[0]), fenceMax: percent(a.shares[2]) });
-        break;
-      case 'kitBonus':
-        Object.assign(vars, { kit: approachRules.kitBonus + a.add, baseKit: approachRules.kitBonus });
         break;
       case 'mealBoost':
         vars.meal = formatNumber(a.multiplier);

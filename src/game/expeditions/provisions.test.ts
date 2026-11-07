@@ -1,5 +1,6 @@
 import { expeditionRules } from '@/content/dungeons';
 import { TIER_SCALE } from '@/content/enemies';
+import { elementRules } from '@/content/elements';
 import { dungeonById, itemById } from '@/content/lookup';
 import { provisionRules } from '@/content/provisions';
 import { tavernRules } from '@/content/taverns';
@@ -43,6 +44,7 @@ const member = (heroId: string, abilities: Ability[] = [], overrides: Partial<Pa
   luck: 0,
   threat: 1,
   resists: [],
+  familyTags: [],
   abilities,
   consumable: null,
   ...overrides,
@@ -226,7 +228,13 @@ describe('meals', () => {
 describe('party meals', () => {
   const mealRun = (meal: MealEffect | null, boss: BossDef = weakBoss, briefing: Briefing = EMPTY_BRIEFING) =>
     simulateRun(
-      [member('a', [], { resistance: 10, approachBonus: { finesse: 1, wits: 2, presence: 1 } })],
+      // Family tags enough to answer every opportunity the meals test takes.
+      [member('a', [], { resistance: 10, familyTags: [
+        { family: 'cunning', count: 2, magic: false, fromClass: false, source: 'gear' },
+        { family: 'breaker', count: 2, magic: false, fromClass: false, source: 'gear' },
+        { family: 'watch', count: 4, magic: false, fromClass: false, source: 'gear' },
+        { family: 'rally', count: 2, magic: false, fromClass: false, source: 'gear' },
+      ] })],
       { ...oneEncounter(trap), encounterCount: [3, 3], boss },
       's',
       { rules: steady, meal, briefing },
@@ -396,10 +404,10 @@ describe('elixirs', () => {
 
   it('opens the run’s first fight with fire on every enemy, and no later one', () => {
     const bomb = () => [member('a', [], { consumable: elixirOf('firebomb'), power: 0, maxHp: 1e6 })];
-    const first = simulateRun(bomb(), { ...fights([{ mobId: 'npc:poachers:1', count: 2 }]), tier: 5 }, 's', { rules: steady, elixirs: true });
+    const first = simulateRun(bomb(), { ...fights([{ mobId: 'overgrownLabyrinth:weak:1', count: 2 }]), tier: 5 }, 's', { rules: steady, elixirs: true });
     expect(first.encounters[0].effects).toContainEqual({ heroId: 'a', key: 'firebomb' });
-    // Tier-5 bombs against element-less poachers: the bomb alone clears the fight.
-    expect(first.encounters[0].dealt.a).toBe(2 * Math.round(provisionRules.elixirs.firebombDamage * TIER_SCALE[4]));
+    // Tier-5 bombs against grass foes the fire beats: the bomb alone clears the fight.
+    expect(first.encounters[0].dealt.a).toBe(2 * Math.round(provisionRules.elixirs.firebombDamage * TIER_SCALE[4] * elementRules.strongMultiplier));
     expect(first.encounters[0].cleared).toBe(true);
     expect(first.elixirsUsed).toEqual(['a']);
     const later = simulateRun([member('a', [], { consumable: elixirOf('firebomb'), power: 1000 })], fights([{ mobId: 'giantRat', count: 1 }], [3, 3]), 's', {

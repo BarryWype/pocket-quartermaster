@@ -20,14 +20,14 @@ import type { LatLng } from '../generation/types';
 
 const MINUTE = 60_000;
 
-/** The Locked threat's level at the player's highest unlocked tier. */
+/** The Traps threat's level at the player's highest unlocked tier. */
 export function heistLevel(save: SaveData): number {
   return heistRules.levelByTier[Math.min(heistRules.levelByTier.length - 1, Math.max(0, highestUnlockedTier(save) - 1))];
 }
 
 /**
- * How one hero fares against the guild's locks: the existing approach scoring
- * for a Locked threat at the heist's level, with the hero alone (kit included).
+ * How one hero fares against the guild's locks: the family scoring for a Traps
+ * threat at the heist's level, with the hero alone.
  */
 export function heistScore(save: SaveData, heroId: string): ThreatState {
   const threat: ActiveThreat = { id: heistRules.threat, level: heistLevel(save) as 1 | 2 | 3 };

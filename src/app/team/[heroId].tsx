@@ -20,11 +20,10 @@ import { abilityText } from '@/content/abilities';
 import { clockConfig } from '@/content/clockConfig';
 import { elementInfo } from '@/content/elements';
 import { expeditionRules } from '@/content/dungeons';
-import { approachRules } from '@/content/threats';
+import { heroClasses, approachRules, xpRules, xpToNextLevel } from '@/content/heroes';
 import { slotProblem } from '@/game/equipment/slots';
 import { gearIconOf } from '@/game/gear/gearIcon';
-import { gearApproachBonus, approachScore, pendingApproachPicks } from '@/game/team/stats';
-import { heroClasses, xpRules, xpToNextLevel } from '@/content/heroes';
+import { APPROACHES, gearApproachBonus, approachScore, pendingApproachPicks } from '@/game/team/stats';
 import { jobById } from '@/content/jobs';
 import { workTools } from '@/content/workTools';
 import { lootConfig } from '@/content/loot/config';
@@ -32,34 +31,23 @@ import { traitById } from '@/content/traits';
 import { systemIcons } from '@/content/systemIcons';
 import { items } from '@/content/items';
 import { gearName, itemById } from '@/content/lookup';
-import { answersMemberOf, prepareParty } from '@/game/expeditions/simulate';
+import { prepareParty } from '@/game/expeditions/simulate';
 import { highestUnlockedTier } from '@/game/dungeons/unlock';
 import { careProblem, drinkProblem } from '@/game/team/health';
 import { affinityOf, canDismiss, equip, equipPreview, gearKeywordsOf, hasPotionSlot, healingPotion, heroDamageStat, heroStats, isAway, isBusy, statSources, upgradeMark } from '@/game/team/team';
 import { ClassSummary } from '@/components/ClassSummary';
 import { SpecialLabel } from '@/components/SpecialLabel';
-import { APPROACHES, heroAnswers } from '@/game/threats/answers';
-import type { Approach, EquipmentSlot, GearDef, GearInstance, HeroState, Stats } from '@/game/types';
+import type { EquipmentSlot, GearDef, GearInstance, HeroState, Stats } from '@/game/types';
 import type { SaveData } from '@/game/save';
 import { navigate } from '@/services/navigation';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useNow } from '@/hooks/useNow';
-import { t, tr, type Vars } from '@/i18n';
+import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { fonts, ui } from '@/theme';
 import { timed } from '@/components/timed';
 
 const GEAR_SLOTS = ['weapon', 'armor', 'offhand', 'trinket'] as const;
-
-/** Localized threat names for each approach's tip, by the threats it answers. */
-const approachTipVars = (approach: Approach): Vars =>
-  ({
-    might: { rubble: tr('Rubble'), locked: tr('Locked'), locals: tr('Locals') },
-    finesse: { traps: tr('Traps'), locked: tr('Locked'), thieves: tr('Thieves') },
-    wits: { puzzle: tr('Puzzle'), maze: tr('Maze'), underwater: tr('Underwater') },
-    faith: { desecrated: tr('Desecrated ground'), casters: tr('Casters') },
-    presence: { locals: tr('Locals') },
-  })[approach];
 
 /**
  * The stack header with the hero's name and the prev/next arrows. Rendered
@@ -164,11 +152,15 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
     .filter(({ count }) => count > 0);
   const smallStats = ['resistance', 'evasion', 'crit', 'luck'] as const;
   const trait = traitById[hero.trait];
-  // The hero as equipped, seen through the threats rules; the kit keyword is
-  // left out here because it only counts on the threats the kit covers.
+  // The hero as equipped, seen through the threats rules.
   const member = prepareParty(save, [hero.id], now)[0];
-  const answers = member ? heroAnswers(answersMemberOf(member), null) : null;
-  const keywords = (answers?.keywords ?? []).filter((k) => k.source !== 'kit');
+  const keywords = member
+    ? [
+        ...(member.classKeywords ?? heroClass.keywords),
+        ...(traitById[hero.trait]?.effects ?? []).flatMap((effect) => (effect.kind === 'keyword' ? [effect.keyword] : [])),
+        ...member.gearKeywords.filter((entry) => !entry.when).map((entry) => entry.keyword),
+      ]
+    : [];
   const element = heroClass.element ? elementInfo[heroClass.element] : null;
   const next = xpToNextLevel(hero.level);
   /** The hero's progress to the next level, 1 when there is none left to gain. */
@@ -327,7 +319,7 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
         <View style={styles.section}>
           <Text style={styles.heading}>{t('hero.keywords')}</Text>
           <View style={styles.keywords}>
-            {keywords.map(({ keyword }) => (
+            {keywords.map((keyword) => (
               <Tip key={keyword} title={t(`threats.keyword.${keyword}`)} text={t(`threats.keywordTip.${keyword}`)}>
                 <Chip tone="keyword" label={t(`threats.keyword.${keyword}`)} />
               </Tip>
@@ -381,7 +373,6 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
       <View style={styles.section}>
         <View style={styles.headRow}>
           <Text style={styles.heading}>{t('hero.approaches')}</Text>
-          {hero.gamble && <IconLabel emoji="🎲" label={t('classes.rolledToday')} size={14} labelStyle={styles.note} />}
           {pending > 0 && <Text style={styles.note}>{t('hero.pendingPicks', { count: pending })}</Text>}
         </View>
         {APPROACHES.map((approach) => {
@@ -391,7 +382,7 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
             <Tip
               key={approach}
               title={name}
-              text={t(`hero.approachTips.${approach}`, approachTipVars(approach))}
+              text={t(`hero.approachTips.${approach}`)}
               style={styles.approach}
               accessibilityLabel={t('hero.approachInfo', { approach: name })}
             >

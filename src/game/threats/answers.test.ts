@@ -1,125 +1,70 @@
-import { gearProfiles } from '@/content/equipment';
-import { heroClasses } from '@/content/heroes';
-import { itemById } from '@/content/lookup';
-import { approachRules } from '@/content/threats';
+import type { FamilyId } from '@/content/families';
 
-import type { ConsumableDef, GearType, Keyword } from '../types';
+import type { HeroFamilyTag } from '../families/families';
 import { heroAnswers, type AnswersMember } from './answers';
 
-/** The keywords one piece of this gear type carries, magic pieces marked. */
-const gear = (type: GearType): { keyword: Keyword; magic: boolean }[] =>
-  gearProfiles[type].keywords.map((keyword) => ({ keyword, magic: gearProfiles[type].damageStat === 'magic' }));
+/** One family tag, as heroFamilyTagSources would have built it. */
+const tag = (family: FamilyId, overrides: Partial<HeroFamilyTag> = {}): HeroFamilyTag => ({
+  family,
+  count: 1,
+  magic: false,
+  fromClass: true,
+  source: 'class',
+  ...overrides,
+});
 
 const member = (overrides: Partial<AnswersMember> = {}): AnswersMember => ({
   heroId: 'h',
   classId: 'warrior',
   traitId: 'none',
-  gearKeywords: [],
-  kit: null,
-  salveElement: null,
-  classResists: [],
+  familyTags: [],
   ...overrides,
 });
 
-const kit = (itemId: string) => {
-  const item = itemById[itemId] as ConsumableDef;
-  return { itemId, effect: item.kit! };
-};
-
-const keywords = (answers: ReturnType<typeof heroAnswers>) => answers.keywords.map((k) => `${k.keyword}:${k.source}`);
+const tagsOf = (answers: ReturnType<typeof heroAnswers>) => answers.tags.map((t) => `${t.family}:${t.source}`);
+const bonusesOf = (answers: ReturnType<typeof heroAnswers>) =>
+  answers.bonuses.map((b) => `${b.family}:${b.add}:${b.source}${b.levels ? `:${b.levels.join('')}` : ''}`);
 
 describe('heroAnswers', () => {
-  it('scores every approach from the class, missing ones at the base', () => {
-    expect(heroAnswers(member({ classId: 'warrior' })).approaches).toEqual({
-      might: 3,
-      finesse: approachRules.base,
-      wits: approachRules.base,
-      faith: approachRules.base,
-      presence: 2,
-    });
-    expect(heroAnswers(member({ classId: 'thief' })).approaches.finesse).toBe(4);
-    expect(heroAnswers(member({ classId: 'fireMage' })).approaches).toEqual({
-      might: 1,
-      finesse: 1,
-      wits: 3,
-      faith: 1,
-      presence: 2,
-    });
+  it('keeps every family tag when no restriction applies', () => {
+    const familyTags = [tag('faith'), tag('rally', { source: 'gear', fromClass: false }), tag('watch', { count: 2 })];
+    expect(heroAnswers(member({ familyTags })).tags).toEqual(familyTags);
   });
 
-  it('applies trait approach modifiers, clamped at the rules', () => {
-    expect(heroAnswers(member({ classId: 'thief', traitId: 'clumsy' })).approaches.finesse).toBe(3);
-    expect(heroAnswers(member({ classId: 'warrior', traitId: 'clumsy' })).approaches.finesse).toBe(0);
-    expect(heroAnswers(member({ classId: 'troubadour', traitId: 'loud' })).approaches.presence).toBe(3);
+  it('drops every tag from a magic source in an anti-magic zone', () => {
+    const magicGear = tag('warding', { source: 'gear', fromClass: false, magic: true });
+    const plainGear = tag('cunning', { source: 'gear', fromClass: false });
+    const casterClass = tag('spellweave', { magic: true });
+    const answers = heroAnswers(member({ familyTags: [magicGear, plainGear, casterClass] }), 'antiMagic');
+    expect(tagsOf(answers)).toEqual(['cunning:gear']);
+    // A caster's whole class falls in the zone, a power class's does not.
+    expect(heroAnswers(member({ classId: 'fireMage', familyTags: [tag('spellweave', { magic: true })] }), 'antiMagic').tags).toEqual([]);
+    expect(heroAnswers(member({ classId: 'cleric', familyTags: [tag('faith', { magic: true })] }), 'antiMagic').tags).toEqual([]);
   });
 
-  it('collects class, trait, gear and kit keywords once each', () => {
-    expect(keywords(heroAnswers(member({ classId: 'fireMage' })))).toEqual(['light:class', 'cleave:class']);
-    expect(keywords(heroAnswers(member({ gearKeywords: gear('axe') })))).toEqual(['cleave:gear']);
-    expect(keywords(heroAnswers(member({ gearKeywords: gear('dagger') })))).toEqual(['pierce:gear']);
-    expect(keywords(heroAnswers(member({ gearKeywords: gear('staff') })))).toEqual(['cleave:gear']);
-    expect(keywords(heroAnswers(member({ gearKeywords: gear('mace') })))).toEqual(['blessed:gear', 'stagger:gear']);
-    // A sword gives Parry, a bow Pierce and Reach, plate and a shield Guard.
-    expect(keywords(heroAnswers(member({ gearKeywords: gear('sword') })))).toEqual(['parry:gear']);
-    expect(keywords(heroAnswers(member({ gearKeywords: gear('bow') })))).toEqual(['pierce:gear', 'reach:gear']);
-    expect(keywords(heroAnswers(member({ gearKeywords: gear('plate') })))).toEqual(['guard:gear']);
-    expect(keywords(heroAnswers(member({ gearKeywords: gear('shield') })))).toEqual(['guard:gear']);
-    // An unfit class still gets the piece's keywords: a fire mage with an axe cleaves (counted once).
-    expect(keywords(heroAnswers(member({ classId: 'fireMage', gearKeywords: gear('axe') })))).toEqual([
-      'light:class',
-      'cleave:class',
-    ]);
-    expect(keywords(heroAnswers(member({ kit: kit('lantern') })))).toEqual(['light:kit', 'watchful:kit']);
-    // A trait keyword counts once with the class one.
-    expect(keywords(heroAnswers(member({ classId: 'ranger', traitId: 'lightSleeper' })))).toEqual(['watchful:class']);
-    // A kit keyword the class already has counts once too.
-    expect(keywords(heroAnswers(member({ classId: 'druid', kit: kit('huntersPack') })))).toEqual([
-      'calm:class',
-      'antidote:class',
-    ]);
+  it('drops only Watch tags that come from classes in thick fog', () => {
+    const classWatch = tag('watch');
+    const gearWatch = tag('watch', { source: 'gear', fromClass: false });
+    const classFaith = tag('faith');
+    const answers = heroAnswers(member({ familyTags: [classWatch, gearWatch, classFaith] }), 'thickFog');
+    expect(tagsOf(answers)).toEqual(['watch:gear', 'faith:class']);
   });
 
-  it('keeps only Watchful from a kit in thick fog', () => {
-    expect(heroAnswers(member({ classId: 'ranger' }), 'thickFog').keywords).toEqual([]);
-    expect(heroAnswers(member({ classId: 'ranger', traitId: 'lightSleeper' }), 'thickFog').keywords).toEqual([]);
-    expect(keywords(heroAnswers(member({ kit: kit('lantern') }), 'thickFog'))).toEqual(['light:kit', 'watchful:kit']);
+  it('collects the class familyVsThreat bonuses, with their levels', () => {
+    expect(bonusesOf(heroAnswers(member({ classId: 'exorcist' })))).toEqual(['faith:1:class']);
+    expect(bonusesOf(heroAnswers(member({ classId: 'necromancer' })))).toEqual(['faith:1:class:23']);
+    expect(bonusesOf(heroAnswers(member({ classId: 'engineer' })))).toEqual(['cunning:1:class']);
+    expect(bonusesOf(heroAnswers(member()))).toEqual([]);
   });
 
-  it('drops every keyword from a magic source in an anti-magic zone', () => {
-    expect(heroAnswers(member({ classId: 'fireMage' }), 'antiMagic').keywords).toEqual([]);
-    expect(keywords(heroAnswers(member({ classId: 'barbarian' }), 'antiMagic'))).toEqual(['cleave:class']);
-    // A wand's or focus's Channel is magic; an axe's Cleave is not.
-    expect(heroAnswers(member({ gearKeywords: gear('wand') }), 'antiMagic').keywords).toEqual([]);
-    expect(heroAnswers(member({ gearKeywords: gear('focus') }), 'antiMagic').keywords).toEqual([]);
-    expect(keywords(heroAnswers(member({ gearKeywords: gear('axe') }), 'antiMagic'))).toEqual(['cleave:gear']);
-    // A kit's keyword and the Paladin's class Guard keep working.
-    expect(keywords(heroAnswers(member({ kit: kit('lantern') }), 'antiMagic'))).toEqual(['light:kit', 'watchful:kit']);
-    expect(keywords(heroAnswers(member({ classId: 'paladin' }), 'antiMagic'))).toEqual(['blessed:class', 'guard:class']);
+  it('drops a caster class bonus in an anti-magic zone, and keeps a power class one', () => {
+    expect(heroAnswers(member({ classId: 'necromancer' }), 'antiMagic').bonuses).toEqual([]);
+    expect(bonusesOf(heroAnswers(member({ classId: 'exorcist' }), 'antiMagic'))).toEqual(['faith:1:class']);
   });
 
-  it('keeps the Paladin Guard as a class keyword without gear', () => {
-    expect(keywords(heroAnswers(member({ classId: 'paladin' })))).toEqual(['blessed:class', 'guard:class']);
-    expect(keywords(heroAnswers(member({ classId: 'warrior', gearKeywords: gear('sword') })))).toEqual(['parry:gear']);
-  });
-
-  it('resists the class elements and the ward salve, without repeats', () => {
-    expect(heroAnswers(member({ classId: 'fireMage', classResists: heroClasses.fireMage.resists! })).resists).toEqual([
-      'fire',
-    ]);
-    expect(
-      heroAnswers(
-        member({ classId: 'fireMage', classResists: heroClasses.fireMage.resists!, salveElement: 'water' }),
-      ).resists,
-    ).toEqual(['fire', 'water']);
-    expect(
-      heroAnswers(
-        member({ classId: 'fireMage', classResists: heroClasses.fireMage.resists!, salveElement: 'fire' }),
-      ).resists,
-    ).toEqual(['fire']);
-  });
-
-  it('carries the kit item id along', () => {
-    expect(heroAnswers(member()).kitItemId).toBeNull();
-    expect(heroAnswers(member({ kit: kit('roguesRoll') })).kitItemId).toBe('roguesRoll');
+  it('collects trait familyVsThreat bonuses, negative ones included', () => {
+    expect(bonusesOf(heroAnswers(member({ traitId: 'lightSleeper' })))).toEqual(['watch:1:trait']);
+    expect(bonusesOf(heroAnswers(member({ traitId: 'clumsy' })))).toEqual(['cunning:-1:trait']);
+    expect(bonusesOf(heroAnswers(member({ traitId: 'loud' })))).toEqual(['watch:-1:trait']);
   });
 });

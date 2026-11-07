@@ -7,7 +7,6 @@ import { dungeonById, relicById } from '@/content/lookup';
 import type { ActiveThreat, BossDef, Briefing, DungeonDef, EncounterDef, GearInstance, Tag, ThreatId } from '../types';
 import { createInitialSave, type SaveData } from '../save';
 import { answersMemberOf, prepareParty, simulateRun, type PartyMember } from './simulate';
-import { launchPlan } from './expeditions';
 import { heroAnswers } from '../threats/answers';
 import { scoreThreat } from '../threats/score';
 import { estimateOdds } from './odds';
@@ -141,16 +140,16 @@ describe('relic keyword effects', () => {
     expect(taken([{ type: 'fight', weight: 1, mobs: [{ mobId: RAT.id, count: 1 }] }])).toBeCloseTo(25 + 50, 5);
   });
 
-  it("the Thief-taker's quiver reaches through Ambush briefings only", () => {
+  it("the Thief-taker's quiver reaches through Darkness briefings only", () => {
     const hero = (relic: boolean) => [relic ? relicMember('thiefTakersQuiver', { power: 80, speed: 5 }) : wornMember('quiver3', null, { power: 80, speed: 5 })];
     const boss = { hp: 120, damage: 60, speed: 7 };
-    // Ambushed: the relic's strong reach strikes first in rounds 1 and 2, felling the boss before its second blow.
-    const ambushed = simulateRun(hero(true), bossOnly(boss), 'seed', { rules: steady, briefing: briefingOf('ambush', 3) });
-    expect(ambushed.bossDefeated).toBe(true);
-    expect(ambushed.hp[0].hp).toBeCloseTo(40, 5);
+    // In the dark: the relic's strong reach strikes first in rounds 1 and 2, felling the boss before its second blow.
+    const dark = simulateRun(hero(true), bossOnly(boss), 'seed', { rules: steady, briefing: briefingOf('darkness', 3) });
+    expect(dark.bossDefeated).toBe(true);
+    expect(dark.hp[0].hp).toBeCloseTo(40, 5);
     // The quiver's own reach covers round 1 only: with or without the briefing, the boss lands its second blow first.
-    const ambushedPlain = simulateRun(hero(false), bossOnly(boss), 'seed', { rules: steady, briefing: briefingOf('ambush', 3) });
-    expect(ambushedPlain.bossDefeated).toBe(false);
+    const darkPlain = simulateRun(hero(false), bossOnly(boss), 'seed', { rules: steady, briefing: briefingOf('darkness', 3) });
+    expect(darkPlain.bossDefeated).toBe(false);
     const plain = simulateRun(hero(true), bossOnly(boss), 'seed', { rules: steady });
     expect(plain.bossDefeated).toBe(false);
     expect(plain.hp[0].hp).toBe(0);
@@ -185,28 +184,38 @@ describe('relic combat effects', () => {
     expect(boss.taken.lyra).toBeCloseTo(25, 5);
   });
 
-  it("the Smuggler's coat removes the Thieves' lost loot", () => {
-    const options = { rules: calm, briefing: briefingOf('thieves', 3) };
-    const coat = simulateRun([relicMember('smugglersCoat')], bossOnly(), 'seed', options);
-    const plain = simulateRun([plainMember('bram')], bossOnly(), 'seed', options);
-    expect(plain.lostLoot).toBeCloseTo(0.3, 5);
-    expect(coat.lostLoot).toBe(0);
+  it("the Smuggler's coat cancels the Traps penalty for the whole party", () => {
+    const options = { rules: steady, briefing: briefingOf('traps', 3) };
+    const trapped = dungeon([{ type: 'trap', weight: 1, name: 'test trap', targets: 'all' }]);
+    const coat = simulateRun([relicMember('smugglersCoat')], trapped, 'seed', options);
+    const plain = simulateRun([plainMember('bram')], trapped, 'seed', options);
+    expect(plain.encounters[0].taken.bram).toBeCloseTo(45, 5);
+    // The cancelled penalty leaves the trap untriggered, so nobody takes anything.
+    expect(coat.encounters[0].trapTriggered).toBe(false);
+    expect(coat.encounters[0].taken.bram).toBeUndefined();
   });
 
-  it("the Drowned bell ignores the Underwater penalty in the first fight only", () => {
-    const options = { rules: steady, briefing: briefingOf('underwater', 3) };
-    const bell = () => [relicMember('drownedBell', { maxHp: 1e6, hp: 1e6 })];
-    // The boss is the first fight: no weakening.
-    expect(bossFight(bell(), {}, options).fight.dealt.bram).toBeCloseTo(10 * 40, 5);
+  it("the Drowned bell ignores the Element penalty in the first fight only", () => {
+    const briefing: Briefing = { threats: [{ id: 'element', level: 3, element: 'water' }], restriction: null, opportunity: null };
+    const rules = { ...steady, maxRounds: 1 };
+    const options = { rules, briefing };
+    const bell = () => [relicMember('drownedBell', { magic: 1000, maxHp: 1e6, hp: 1e6 })];
+    // The boss is the first fight: the element's bite is ignored, its plain unprotected bite is not.
+    expect(bossFight(bell(), { damage: 40 }, options).fight.taken.bram).toBeCloseTo(40 * elementRules.unprotectedMultiplier, 5);
     // A rat fight first: the boss is the second fight, fought out of depth.
     const run = simulateRun(
       bell(),
-      dungeon([{ type: 'fight', weight: 1, mobs: [{ mobId: RAT.id, count: 1 }] }], { hp: 1e6 }),
+      dungeon([{ type: 'fight', weight: 1, mobs: [{ mobId: RAT.id, count: 1 }] }], { hp: 1e6, damage: 40 }),
       'seed',
       options,
     );
     const boss = run.encounters.find((e) => e.kind === 'boss')!;
-    expect(boss.dealt.bram).toBeCloseTo(10 * (1 - 0.32) * 40, 5);
+    expect(boss.taken.bram).toBeCloseTo(40 * elementRules.unprotectedMultiplier * 2.1, 5);
+    // Without the bell, even the first fight pays the penalty.
+    expect(bossFight([plainMember('bram', { power: 1000, maxHp: 1e6, hp: 1e6 })], { damage: 40 }, options).fight.taken.bram).toBeCloseTo(
+      40 * elementRules.unprotectedMultiplier * 2.1,
+      5,
+    );
   });
 
   it("the Dragonbone plate resists fire and halves its hits", () => {
@@ -239,24 +248,22 @@ describe('relic combat effects', () => {
   });
 });
 
-describe('relic answers', () => {
-  const scored = (member: PartyMember, threat: ActiveThreat) => scoreThreat(threat, [heroAnswers(answersMemberOf(member))]);
+describe('relic family tags', () => {
+  const tagsOf = (member: PartyMember) => heroAnswers(answersMemberOf(member)).tags;
 
-  it("the Miner's lamp-staff meets Darkness", () => {
-    const score = scored(relicMember('minersLampStaff', {}, 'mira'), { id: 'darkness', level: 1 });
-    expect(score.state).toBe('met');
+  it("the Miner's lamp-staff adds a Watch tag from the relic", () => {
+    const watch = tagsOf(relicMember('minersLampStaff', {}, 'mira')).find((t) => t.family === 'watch');
+    expect(watch).toMatchObject({ count: 1, source: 'relic' });
   });
 
-  it("the Cartographer's focus meets Maze at level 3", () => {
-    const score = scored(relicMember('cartographersFocus', {}, 'mira'), { id: 'maze', level: 3 });
-    expect(score.state).toBe('met');
-    expect(score.have).toBe(5);
+  it("the Cartographer's focus adds a Cunning tag from the relic", () => {
+    const cunning = tagsOf(relicMember('cartographersFocus', {}, 'mira')).find((t) => t.family === 'cunning');
+    expect(cunning).toMatchObject({ count: 1, source: 'relic' });
   });
 
-  it("the Dwarf-lord's situational pierce never meets Armoured", () => {
-    const score = scored(relicMember('dwarfLordsAxe'), { id: 'armoured', level: 2 });
-    expect(score.state).toBe('full');
-    expect(score.have).toBe(0);
+  it("the Dwarf-lord's situational pierce adds no family tag", () => {
+    const scored = (member: PartyMember, threat: ActiveThreat) => scoreThreat(threat, [heroAnswers(answersMemberOf(member))]);
+    expect(scored(relicMember('dwarfLordsAxe'), { id: 'armoured', level: 2 })).toMatchObject({ state: 'full', have: 0 });
   });
 });
 
@@ -273,36 +280,35 @@ describe('relic odds', () => {
       heroes: save.heroes.map((h) => (h.id === heroId ? { ...h, equipment: { ...h.equipment, [GEAR_SLOTS[relic.gearType]]: 'g1' } } : h)),
     };
   };
-  const briefingOf3 = (id: ThreatId): Briefing => ({ threats: [{ id, level: 3 }], restriction: null, opportunity: null });
+  /** The same save with one more plain piece worn by another hero. */
+  const wearing = (save: SaveData, itemId: string, heroId: string, uid: string): SaveData => {
+    const slot = GEAR_SLOTS[itemId.replace(/\d+$/, '') as keyof typeof GEAR_SLOTS];
+    return {
+      ...save,
+      gear: [...save.gear, { uid, itemId, rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 }],
+      heroes: save.heroes.map((h) => (h.id === heroId ? { ...h, equipment: { ...h.equipment, [slot]: uid } } : h)),
+    };
+  };
+  const briefingOf = (id: ThreatId, level: 1 | 2 | 3): Briefing => ({ threats: [{ id, level }], restriction: null, opportunity: null });
 
-  it("the lamp-staff raises the odds against Darkness", () => {
+  it("the lamp-staff's Watch tag tips Darkness to met, raising the odds", () => {
     const dungeon = dungeonById.ratCellar;
-    const options = { briefing: briefingOf3('darkness') };
-    const withLamp = estimateOdds(saveWith('minersLampStaff'), ['bram', 'lyra', 'mira'], dungeon, 100, options);
-    const without = estimateOdds(saveWith(null), ['bram', 'lyra', 'mira'], dungeon, 100, options);
+    const options = { briefing: briefingOf('darkness', 1) };
+    // Bram's tome carries one Watch tag: the lamp-staff's second one is what meets the threat.
+    const withLamp = estimateOdds(wearing(saveWith('minersLampStaff'), 'tome3', 'bram', 'g2'), ['bram', 'lyra', 'mira'], dungeon, 100, options);
+    const without = estimateOdds(wearing(saveWith(null), 'tome3', 'bram', 'g2'), ['bram', 'lyra', 'mira'], dungeon, 100, options);
     expect(withLamp.success).toBeGreaterThan(without.success);
   });
 
-  it("the Cartographer's focus raises the odds against a Maze", () => {
+  it("the Cartographer's focus's Cunning tag tips Traps to met, raising the odds", () => {
     const dungeon = dungeonById.ratCellar;
-    const briefing = briefingOf3('maze');
-    const heroIds = ['bram', 'lyra', 'mira'];
-    // Just enough supply to eat well when the maze is met, short when it is not.
-    const base = launchNeed(saveWith(null), dungeon, heroIds);
-    const stock = (relicId: string | null) => {
-      const save = saveWith(relicId);
-      return { ...save, consumables: { trailMix: Math.ceil(base / 2) } };
-    };
-    const withFocus = estimateOdds(stock('cartographersFocus'), heroIds, dungeon, 100, { briefing });
-    const without = estimateOdds(stock(null), heroIds, dungeon, 100, { briefing });
+    const options = { briefing: briefingOf('traps', 1) };
+    // Lyra's crossbow carries one Cunning tag: the focus's second one is what meets the threat.
+    const withFocus = estimateOdds(wearing(saveWith('cartographersFocus'), 'crossbow3', 'lyra', 'g2'), ['bram', 'lyra', 'mira'], dungeon, 100, options);
+    const without = estimateOdds(wearing(saveWith(null), 'crossbow3', 'lyra', 'g2'), ['bram', 'lyra', 'mira'], dungeon, 100, options);
     expect(withFocus.success).toBeGreaterThan(without.success);
   });
 });
-
-/** The supply points the party needs with no threats in play. */
-function launchNeed(save: SaveData, dungeon: DungeonDef, heroIds: string[]) {
-  return launchPlan(save, dungeon, heroIds, {}, { threats: [], restriction: null, opportunity: null }).need;
-}
 
 describe('every relic', () => {
   it.each(Object.keys(relicById))('%s reaches its wearer with every effect', (relicId) => {
@@ -314,9 +320,6 @@ describe('every relic', () => {
       if (effect.kind !== 'keyword') continue;
       const entry = member.gearKeywords.find((k) => k.keyword === effect.keyword && (effect.when ? k.when === effect.when : !k.when));
       expect(entry).toBeDefined();
-      // A situational keyword never answers a threat; a plain one does.
-      const answered = heroAnswers(answersMemberOf(member)).keywords.some((k) => k.keyword === effect.keyword);
-      if (!effect.when) expect(answered).toBe(true);
     }
   });
 });

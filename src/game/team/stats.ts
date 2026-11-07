@@ -1,6 +1,5 @@
-import { gamblerRules, growthRules, heroClasses } from '@/content/heroes';
+import { approachRules, gamblerRules, growthRules, heroClasses } from '@/content/heroes';
 import { traitById } from '@/content/traits';
-import { approachRules } from '@/content/threats';
 
 import { itemById } from '@/content/lookup';
 
@@ -9,7 +8,7 @@ import type { SaveData } from '../save';
 import type { Approach, GearDef, HeroClassDef, HeroClassId, HeroRoll, HeroState, StatKey, Stats } from '../types';
 
 export const STAT_KEYS: StatKey[] = ['hp', 'power', 'magic', 'armour', 'resistance', 'evasion', 'speed', 'crit'];
-const APPROACHES: Approach[] = ['might', 'finesse', 'wits', 'faith', 'presence'];
+export const APPROACHES: Approach[] = ['might', 'finesse', 'wits', 'faith', 'presence'];
 
 type GrowthRules = typeof growthRules;
 
@@ -57,20 +56,8 @@ export function rollGamblerPrimary(seed: string): StatKey {
   return gamblerRules.primaryChoices[rng.int(0, gamblerRules.primaryChoices.length - 1)];
 }
 
-/** A Gambler's approach scores for one rotation day: the points dealt one at a time to random approaches, none past the cap. */
-export function rollGamble(heroId: string, day: number): Record<Approach, number> {
-  const rng = createRng(`gamble|${heroId}|${day}`);
-  const scores: Record<Approach, number> = { might: 0, finesse: 0, wits: 0, faith: 0, presence: 0 };
-  for (let i = 0; i < gamblerRules.approachPoints; i++) {
-    const open = APPROACHES.filter((approach) => scores[approach] < approachRules.max);
-    scores[open[rng.int(0, open.length - 1)]] += 1;
-  }
-  return scores;
-}
-
-/** The hero's class approach scores: the class's, or a Gambler's roll of the day. */
-export const classApproaches = (hero: HeroState): Record<Approach, number> =>
-  hero.gamble?.approaches ?? heroClasses[hero.classId].approaches;
+/** The hero's class approach scores. */
+export const classApproaches = (hero: HeroState): Record<Approach, number> => heroClasses[hero.classId].approaches;
 
 /** How many approach picks the hero still owes: milestones reached minus picks made. */
 export function pendingApproachPicks(hero: HeroState, rules: GrowthRules = growthRules) {

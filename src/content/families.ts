@@ -1,6 +1,7 @@
 // Families: team tags counted across the party to unlock set bonuses
-// (doc/design/families/). Data only — nothing in fights or threats reads
-// them yet.
+// (doc/design/families/).
+
+import type { ThreatId } from '@/game/types';
 
 export type FamilyId =
   | 'faith'
@@ -19,8 +20,8 @@ export type FamilyId =
   | 'rally'
   | 'plunder';
 
-/** The threat a threat family answers; these threats do not exist in code yet. */
-export type FamilyThreat = 'holy' | 'beasts' | 'darkness' | 'traps' | 'poison' | 'element' | 'armoured';
+/** The threat a threat family answers. */
+export type FamilyThreat = ThreatId;
 
 export type FamilyDef = {
   id: FamilyId;
@@ -50,6 +51,11 @@ export const families: FamilyDef[] = [
 ];
 
 export const familyById = Object.fromEntries(families.map((family) => [family.id, family])) as Record<FamilyId, FamilyDef>;
+
+/** The family that answers a threat. */
+export function familyOfThreat(threatId: ThreatId): FamilyId {
+  return families.find((family) => family.answers === threatId)!.id;
+}
 
 /** Tag counts a family's levels are reached at (2, 4 and 6). */
 export const familyRules = { levels: [2, 4, 6] };

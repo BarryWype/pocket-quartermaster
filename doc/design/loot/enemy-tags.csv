@@ -148,11 +148,6 @@ road stalker,overnight,beast
 shaft haunt,overnight,spirit undead
 camp raider,overnight,humanoid
 ash stalker,overnight,spirit
-toll troll,npc,brute locals
-angry hermit,npc,humanoid locals
-pedlar’s guard,npc,humanoid locals
-frantic miner,npc,humanoid locals
-poacher,npc,humanoid locals
 goblin runt,patrol:goblins,goblinoid locals
 goblin,patrol:goblins,goblinoid locals
 goblin slinger,patrol:goblins,goblinoid locals

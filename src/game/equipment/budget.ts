@@ -68,7 +68,8 @@ export function relicEffectCost(effect: RelicEffect, rules: Rules = gearBudgetRu
 
 /** What all of a relic's effects cost together, as a share of the item's budget. */
 export function relicCost(relic: RelicDef, rules: Rules = gearBudgetRules): number {
-  return relic.effects.reduce((sum, effect) => sum + relicEffectCost(effect, rules), 0);
+  // An extra family tag answers a threat like the old answers effect did, and costs the same.
+  return (relic.extraFamily ? rules.relic.answers : 0) + relic.effects.reduce((sum, effect) => sum + relicEffectCost(effect, rules), 0);
 }
 
 /** A restored relic piece's base stats: its type's stats less the cost of its effects. */

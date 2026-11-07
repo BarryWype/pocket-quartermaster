@@ -73,8 +73,8 @@ describe('language switch', () => {
 
   it('keeps English texts as they were', () => {
     expect(t('expeditions.party', { count: 2, max: 3 })).toBe('Party (2/3)');
-    expect(t('threats.penalty.hunger', { count: 1 })).toBe('1 extra supply point');
-    expect(t('threats.penalty.hunger', { count: 0 })).toBe('0 extra supply points');
+    expect(t('threats.penalty.exposed', { count: 1 })).toBe('Enemies strike first in the first 1 fights');
+    expect(t('threats.penalty.exposed', { count: 0 })).toBe('Enemies strike first in the first 0 fights');
     expect(formatNumber(12345)).toBe('12,345');
     expect(formatDuration(65_000)).toBe('1m 05s');
     expect(tr('Rat Cellar')).toBe('Rat Cellar');
@@ -86,7 +86,7 @@ describe('language switch', () => {
   it('switches to French', () => {
     setLocale('fr');
     expect(t('expeditions.party', { count: 2, max: 3 })).toBe('Groupe (2/3)');
-    expect(t('threats.penalty.hunger', { count: 0 })).toBe('0 point de ravitaillement en plus');
+    expect(t('threats.penalty.exposed', { count: 0 })).toBe('Les ennemis frappent en premier pendant les 0 premiers combats');
     expect(formatNumber(12345)).toBe('12 345');
     expect(tr('Rat Cellar')).toBe('Cave aux rats');
     expect(fill(frLogTemplates.trapMissed[0], { trap: tr('spike pit') })).toBe('Le groupe a évité une fosse à pieux.');

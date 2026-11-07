@@ -20,7 +20,7 @@ describe('signatureText', () => {
     setLocale('en');
     expect(signatureText('duelist')).toContain('×2.25');
     expect(signatureText('diplomat')).toContain('+50%');
-    expect(signatureText('engineer')).toContain('+3 instead of +2');
-    expect(signatureText('smuggler')).toContain('5%–12%');
+    expect(signatureText('engineer')).toContain('+1 Cunning against Traps');
+    expect(signatureText('smuggler')).toContain('+10%');
   });
 });

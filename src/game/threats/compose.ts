@@ -1,46 +1,25 @@
-import { gearProfiles } from '@/content/equipment';
+import { familyOfThreat, familyRules } from '@/content/families';
 import { heroClasses } from '@/content/heroes';
-import { items } from '@/content/items';
-import { itemById, opportunityById, recipeById, restrictionById, threatById } from '@/content/lookup';
+import { opportunityById, restrictionById, threatById } from '@/content/lookup';
 import { rosterRules } from '@/content/roster';
+import { classAffinities, gearProfiles, type Affinity, type GearProfile } from '@/content/equipment';
 import { dungeonThreats, narrowPartySize, surges, threatRules, type ThreatRules } from '@/content/threats';
-import { traits } from '@/content/traits';
 import { mobById } from '@/content/enemies';
 import { mobTags } from '../enemies/tags';
 
+import type { FamilyId } from '@/content/families';
 import { createRng, type Rng } from '../generation/rng';
 import type {
   ActiveThreat,
   Briefing,
-  ConsumableDef,
   DungeonDef,
   GearType,
   HeroClassId,
-  KitEffect,
   OpportunityId,
   RestrictionId,
   ThreatId,
   ThreatLevel,
 } from '../types';
-import { heroAnswers, type AnswersMember, type HeroAnswers } from './answers';
-import { approachScore } from './score';
-
-const kitItems: { itemId: string; effect: KitEffect }[] = items.flatMap((item) =>
-  item.slot === 'consumable' && item.kit ? [{ itemId: item.id, effect: item.kit }] : [],
-);
-
-/** The tier a kit's recipe becomes available at (unlocked recipes count as tier 1). */
-const kitFromTier = (itemId: string) => recipeById[itemId]?.availableFromTier ?? 1;
-
-/** The lowest tier at which some kit answers the threat; null when no kit does. */
-export function kitTier(id: ThreatId): number | null {
-  const tiers = kitItems.filter((kit) => kit.effect.threats.includes(id)).map((kit) => kitFromTier(kit.itemId));
-  return tiers.length > 0 ? Math.min(...tiers) : null;
-}
-
-/** Whether two threats are answered by the same kit: never both in one briefing. */
-const sharesKit = (a: ThreatId, b: ThreatId) =>
-  kitItems.some((kit) => kit.effect.threats.includes(a) && kit.effect.threats.includes(b));
 
 /** The highest level a threat reaches in a dungeon: one more per tier above its first. */
 export const maxThreatLevel = (tier: number, firstTier: number): ThreatLevel =>
@@ -66,31 +45,20 @@ const hasBeasts = (dungeon: DungeonDef) =>
 function rollThreats(dungeon: DungeonDef, day: number, salt: number, rules: ThreatRules): { threats: ActiveThreat[]; rng: Rng } {
   const rng = createRng(salt > 0 ? `threats|${day}|${dungeon.id}|${salt}` : `threats|${day}|${dungeon.id}`);
   const table = dungeonThreats[dungeon.id] ?? { weights: {} };
-  const hasLocals = dungeon.encounters.some((e) => e.type === 'locals');
   const count = rules.compose.threatCount[dungeon.tier - 1];
 
-  let eligible = (Object.entries(table.weights) as [ThreatId, number][])
-    .filter(([id]) => threatById[id].firstTier <= dungeon.tier && (id !== 'locals' || hasLocals))
-    .map(([id, weight]) => {
-      const kit = kitTier(id);
-      // A threat drawn before its kit's tier is rarer and capped at level 1.
-      const beforeKit = kit !== null && kit > dungeon.tier;
-      const tierWeight = rules.compose.tierWeights[dungeon.tier]?.[id] ?? 1;
-      return { id, weight: weight * tierWeight * (beforeKit ? rules.compose.beforeKitWeight : 1), beforeKit };
-    });
+  const eligible = (Object.entries(table.weights) as [ThreatId, number][])
+    .filter(([id]) => threatById[id].firstTier <= dungeon.tier)
+    .map(([id, weight]) => ({ id, weight: weight * (rules.compose.tierWeights[dungeon.tier]?.[id] ?? 1) }));
 
   const threats: ActiveThreat[] = [];
   while (threats.length < count && eligible.length > 0) {
     const pick = rng.weighted(eligible, (e) => e.weight);
-    // A draw the briefing rejects is set aside, and another taken.
-    eligible = eligible.filter((e) => e.id !== pick.id);
+    eligible.splice(eligible.indexOf(pick), 1);
     const def = threatById[pick.id];
-    const secondObstacle = def.category === 'obstacle' && threats.some((t) => threatById[t.id].category === 'obstacle');
-    if (secondObstacle || threats.some((t) => sharesKit(t.id, pick.id))) continue;
-    const max = pick.beforeKit ? 1 : maxThreatLevel(dungeon.tier, def.firstTier);
     threats.push({
       id: pick.id,
-      level: rollLevel(rng, max, rules),
+      level: rollLevel(rng, maxThreatLevel(dungeon.tier, def.firstTier), rules),
       ...(pick.id === 'element' && table.element ? { element: table.element } : {}),
     });
   }
@@ -113,11 +81,10 @@ export function composeThreats(
 }
 
 /**
- * What a dungeon shows today: threats drawn from its table (first-tier gated,
- * at most one obstacle, never two sharing a kit, locals only where its pool
- * has a locals encounter), an opportunity from tier 2 on, and from tier 4 a
- * restriction on some days — never on overnight expeditions, which read their
- * `overnight` flag here. Same day, same briefing for everyone.
+ * What a dungeon shows today: threats drawn from its table (first-tier gated),
+ * an opportunity from tier 2 on, and from tier 4 a restriction on some days —
+ * never on overnight expeditions, which read their `overnight` flag here. Same
+ * day, same briefing for everyone.
  */
 export function composeBriefing(dungeon: DungeonDef, day: number, salt = 0, rules: ThreatRules = threatRules): Briefing {
   const { threats, rng } = rollThreats(dungeon, day, salt, rules);
@@ -136,7 +103,7 @@ export function composeBriefing(dungeon: DungeonDef, day: number, salt = 0, rule
     while (candidates.length > 0) {
       const pick = rng.weighted(candidates, () => 1);
       candidates.splice(candidates.indexOf(pick), 1);
-      if (restrictionKeepsAnswers(threats, pick, possibleMembers(dungeon.tier), rules)) {
+      if (restrictionKeepsAnswers(threats, pick, rules)) {
         restriction = pick;
         break;
       }
@@ -146,111 +113,68 @@ export function composeBriefing(dungeon: DungeonDef, day: number, salt = 0, rule
   return { threats, restriction, opportunity };
 }
 
-const possibleMembersCache = new Map<number, AnswersMember[]>();
-const kitTopTier = Math.max(...kitItems.map((kit) => kitFromTier(kit.itemId)));
+const maxTagsCache = new Map<string, number>();
 
 /**
- * Every hero shape that could be fielded: class, gear and kit combinations,
- * with the traits that add a keyword or a positive approach. Gear enters one
- * piece at a time (a keyword counts once per hero, gear only adds), so every
- * answer stays within reach. Only kits craftable at the tier can be held.
- * Restrictions then play against each shape through `heroAnswers`.
+ * The most tags of this family one hero can wear: their class's tag plus the
+ * best weapon, armour and off-hand of the family their class can wear (a
+ * two-handed weapon counts 2 and takes the off-hand's place), after the
+ * restriction drops tags.
  */
-export function possibleMembers(tier: number): AnswersMember[] {
-  const cached = possibleMembersCache.get(tier);
-  if (cached) return cached;
-  const usefulTraits = [
-    'none',
-    ...traits
-      .filter((t) => t.effects.some((e) => e.kind === 'keyword' || (e.kind === 'approach' && e.add > 0)))
-      .map((t) => t.id),
-  ];
-  const gearTypes = [...Object.keys(gearProfiles) as GearType[], null];
-  const members: AnswersMember[] = [];
+export function maxTagsPerHero(family: FamilyId, restriction: RestrictionId | null): number {
+  const key = `${family}|${restriction ?? 'none'}`;
+  const cached = maxTagsCache.get(key);
+  if (cached !== undefined) return cached;
+  const keeps = (profile: GearProfile) => !(restriction === 'antiMagic' && profile.damageStat === 'magic');
+  const best = (types: GearType[], twoHanded: boolean) =>
+    Math.max(
+      0,
+      ...types
+        .filter((type) => keeps(gearProfiles[type]) && (twoHanded ? gearProfiles[type].twoHanded : !gearProfiles[type].twoHanded))
+        .map((type) => (gearProfiles[type].twoHanded ? 2 : 1)),
+    );
+  let max = 0;
   for (const classId of Object.keys(heroClasses) as HeroClassId[]) {
-    const classResists = heroClasses[classId].resists ?? [];
-    for (const gearType of gearTypes) {
-      // One piece of this type: its keywords, marked when the piece rolls with Magic.
-      const profile = gearType ? gearProfiles[gearType] : null;
-      const gearKeywords = profile
-        ? profile.keywords.map((keyword) => ({ keyword, magic: profile.damageStat === 'magic' }))
-        : [];
-      for (const kit of [null, ...kitItems.filter((k) => kitFromTier(k.itemId) <= tier)]) {
-        const salveElement = kit ? ((itemById[kit.itemId] as ConsumableDef).protectsAgainst ?? null) : null;
-        for (const traitId of usefulTraits) {
-          members.push({
-            heroId: `${classId}:${gearType ?? 'unarmed'}:${kit?.itemId ?? 'noKit'}:${traitId}`,
-            classId,
-            traitId,
-            gearKeywords,
-            kit,
-            salveElement,
-            classResists,
-          });
-        }
-      }
-    }
+    const def = heroClasses[classId];
+    // Off-hands fit every class; weapons and armour by the class's affinities.
+    const wearable = (type: GearType) =>
+      gearProfiles[type].slot === 'offhand' || (classAffinities[classId] as Partial<Record<GearType, Affinity>>)[type] !== 'unfit';
+    const ofFamily = (slot: 'weapon' | 'armor' | 'offhand') =>
+      (Object.keys(gearProfiles) as GearType[]).filter(
+        (type) => gearProfiles[type].slot === slot && gearProfiles[type].familyTag === family && wearable(type),
+      );
+    const classTag =
+      def.familyTag === family &&
+      !(restriction === 'antiMagic' && def.damageStat === 'magic') &&
+      !(restriction === 'thickFog' && family === 'watch')
+        ? 1
+        : 0;
+    // A two-handed weapon counts 2 but leaves no hand for an off-hand.
+    const hands = Math.max(best(ofFamily('weapon'), true), best(ofFamily('weapon'), false) + best(ofFamily('offhand'), false));
+    max = Math.max(max, classTag + hands + best(ofFamily('armor'), false));
   }
-  possibleMembersCache.set(tier, members);
-  return members;
+  maxTagsCache.set(key, max);
+  return max;
 }
 
 /**
- * Whether a restriction leaves every drawn threat answerable: some class,
- * trait, gear or kit must still answer each one. Narrow passages also
- * rejects a keyword threat that needs more heroes than the party may hold.
+ * Whether a restriction leaves every drawn threat answerable: the party must
+ * be able to hold enough tags of each threat's family, one hero's best being
+ * the ceiling. Narrow passages also shrinks the party.
  */
 export function restrictionKeepsAnswers(
   threats: ActiveThreat[],
   restriction: RestrictionId | null,
-  members: AnswersMember[] = possibleMembers(kitTopTier),
   rules: ThreatRules = threatRules,
 ) {
-  if (
-    restriction === 'narrowPassages' &&
-    threats.some((t) => {
-      const def = threatById[t.id];
-      return def.answer.kind === 'keyword' && rules.levels.keyword[t.level - 1] > narrowPartySize(rosterRules.partySize);
-    })
-  ) {
-    return false;
-  }
-  const answers = answersUnder(members, restriction);
-  return threats.every((threat) => answerable(threat, answers, rules));
-}
-
-const answersCache = new WeakMap<AnswersMember[], Map<RestrictionId | null, HeroAnswers[]>>();
-
-/** Every possible hero's answers under a restriction; each tier's full set is worked out once per restriction. */
-function answersUnder(members: AnswersMember[], restriction: RestrictionId | null) {
-  if (![...possibleMembersCache.values()].includes(members)) return members.map((member) => heroAnswers(member, restriction));
-  const byRestriction = answersCache.get(members) ?? new Map<RestrictionId | null, HeroAnswers[]>();
-  answersCache.set(members, byRestriction);
-  if (!byRestriction.has(restriction)) byRestriction.set(restriction, members.map((member) => heroAnswers(member, restriction)));
-  return byRestriction.get(restriction)!;
-}
-
-/** Whether some possible hero answers the threat, kit bonuses included. */
-function answerable(threat: ActiveThreat, answers: HeroAnswers[], rules: ThreatRules) {
-  const def = threatById[threat.id];
-  const { answer } = def;
-  if (answer.kind === 'approach') {
-    const needed = rules.levels.approach[threat.level - 1];
-    return answers.some((a) => approachScore(a, threat.id, answer.approach, true) >= needed);
-  }
-  if (answer.kind === 'keyword') {
-    return answers.some((a) => a.keywords.some((k) => k.keyword === answer.keyword));
-  }
-  return answers.some((a) => a.resists.includes(threat.element!));
+  const size = restriction === 'narrowPassages' ? narrowPartySize(rosterRules.partySize) : rosterRules.partySize;
+  return threats.every(
+    (threat) => size * maxTagsPerHero(familyOfThreat(threat.id), restriction) >= familyRules.levels[threat.level - 1],
+  );
 }
 
 export type Surge = { dungeonId: string; threatId: ThreatId };
 
-/**
- * The day's surge for one tier: a 30% chance one of the open dungeons gets
- * its undead, traps or beasts threat raised. The dungeon is picked uniformly;
- * its first matching threat is the one raised.
- */
 /**
  * Whether the day's surge chance passes. rollSurge draws the same chance from
  * the same seed first, so composing threats only when this passes changes no

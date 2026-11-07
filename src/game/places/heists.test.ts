@@ -46,15 +46,22 @@ const heistOf = (over: Partial<Heist> = {}): Heist => ({
   ...over,
 });
 
+/** A save whose bram wears a crossbow, a Cunning-tagged weapon. */
+const crossbowed = (save: SaveData): SaveData => ({
+  ...save,
+  gear: [...save.gear, { uid: 'crossbow', itemId: 'crossbow1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 }],
+  heroes: save.heroes.map((h) => (h.id === 'bram' ? { ...h, equipment: { ...h.equipment, weapon: 'crossbow' } } : h)),
+});
+
 describe('heistScore', () => {
-  it('rides on Finesse: a thief meets the locks, a warrior has to force them or fails', () => {
-    expect(heistScore(saveOf('thief'), 'bram')).toBe('met');
-    // A warrior's Might (3) covers the level 1 need (2), so the lock is forced open.
-    expect(heistScore(saveOf('warrior'), 'bram')).toBe('met');
-    // At tier 5 the locks need 4: the warrior is short everywhere, the thief still meets them.
-    expect(heistLevel(saveOf('thief', 5))).toBe(3);
+  it('rides on Cunning tags: a crossbow thief meets the locks, a bare hero is one short', () => {
+    // One Cunning tag from the class alone is one short of level 1.
+    expect(heistScore(saveOf('thief'), 'bram')).toBe('half');
+    // The crossbow's Cunning tag completes level 1.
+    expect(heistScore(crossbowed(saveOf('thief')), 'bram')).toBe('met');
+    // At tier 5 the locks need level 3: no lone hero reaches it.
+    expect(heistScore(crossbowed(saveOf('thief', 5)), 'bram')).toBe('full');
     expect(heistScore(saveOf('warrior', 5), 'bram')).toBe('full');
-    expect(heistScore(saveOf('thief', 5), 'bram')).toBe('met');
   });
 
   it('follows the tier: levels 1, 1, 2, 2, 3', () => {
@@ -66,7 +73,7 @@ describe('heistScore', () => {
   });
 
   it('turns the score into the success chance', () => {
-    expect(heistOdds(saveOf('thief'), 'bram')).toBe(heistRules.successChance.met);
+    expect(heistOdds(crossbowed(saveOf('thief')), 'bram')).toBe(heistRules.successChance.met);
     expect(heistOdds(saveOf('warrior', 5), 'bram')).toBe(heistRules.successChance.full);
   });
 });

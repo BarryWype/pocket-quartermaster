@@ -63,9 +63,9 @@ export const traits: TraitDef[] = [
   {
     id: 'lightSleeper',
     name: 'Light sleeper',
-    description: 'Counts as Watchful.',
+    description: '+1 Watch against Darkness.',
     positive: true,
-    effects: [{ kind: 'keyword', keyword: 'watchful' }],
+    effects: [{ kind: 'familyVsThreat', family: 'watch', add: 1 }],
   },
   {
     id: 'ironStomach',
@@ -77,9 +77,9 @@ export const traits: TraitDef[] = [
   {
     id: 'clumsy',
     name: 'Clumsy',
-    description: '−1 Finesse.',
+    description: '−1 Cunning against Traps.',
     positive: false,
-    effects: [{ kind: 'approach', approach: 'finesse', add: -1 }],
+    effects: [{ kind: 'familyVsThreat', family: 'cunning', add: -1 }],
   },
   {
     id: 'greedy',
@@ -98,9 +98,9 @@ export const traits: TraitDef[] = [
   {
     id: 'loud',
     name: 'Loud',
-    description: '−1 Presence.',
+    description: '−1 Watch against Darkness.',
     positive: false,
-    effects: [{ kind: 'approach', approach: 'presence', add: -1 }],
+    effects: [{ kind: 'familyVsThreat', family: 'watch', add: -1 }],
   },
   {
     id: 'frail',

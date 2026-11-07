@@ -55,7 +55,7 @@ import { buyAtBlackMarket, enterSecret, recruitAtSecret } from '@/game/secrets/p
 import { secretRules, type PlaceTipSource } from '@/content/secrets';
 import type { TipId } from '@/content/reveal';
 import { pickApproach } from '@/game/team/stats';
-import { dismissHero, equip, heroStats, isAway, keepHpShare, markClassesSeen, setKitFor, unequip } from '@/game/team/team';
+import { dismissHero, equip, heroStats, isAway, keepHpShare, markClassesSeen, unequip } from '@/game/team/team';
 import { buySupply, recruit, type RecruitOffer } from '@/game/taverns/taverns';
 import { checkPersonalTavern } from '@/game/taverns/personal';
 import { buyRank } from '@/game/guild/guild';
@@ -64,7 +64,7 @@ import { guildRules, type GuildTrackId } from '@/content/guild';
 import { advanceTutorial, finishTutorial, nextTutorialStep } from '@/game/tutorial/tutorial';
 import { collectFromHere, collectRadiusNow, collectTutorialSpawn, placeTutorialSpawns, type TutorialCollectAllResult, type TutorialCollectResult } from '@/game/tutorial/spawns';
 import { skipTutorial, restartTutorial, jumpToStep } from '@/game/tutorial/skip';
-import { pruneExpired, rollDailyApproaches } from '@/game/upkeep';
+import { pruneExpired } from '@/game/upkeep';
 import { questRules, type QuestBand, type QuestObjective } from '@/content/quests';
 import { placeRules, type PlaceKind } from '@/content/places';
 import { newQuest, questUpkeep, rerollQuest } from '@/game/quests/arrival';
@@ -123,8 +123,6 @@ type GameState = {
   /** Pass null to empty the slot. */
   equip: (heroId: string, slot: EquipmentSlot, id: string | null) => void;
   dismissHero: (heroId: string) => void;
-  /** A Porter's pick of the hero their kit is carried for. */
-  setKitFor: (porterId: string, heroId: string | null) => void;
   /** Classes shown to the player (tavern or traveller offers) count as met. */
   seeClasses: (classIds: HeroClassId[]) => void;
   recruit: (offer: RecruitOffer, tavern: LatLng, player: LatLng) => void;
@@ -359,7 +357,7 @@ export const useGameStore = create<GameState>()(
       },
       tradeWithTrader: (spawn, tradeIndex, player) =>
         set(({ save }) => ({ save: trade(save, spawn, tradeIndex, player, Date.now()) })),
-      acceptTravellerRecruit: (offer) => set(({ save }) => ({ save: rollDailyApproaches(acceptRecruit(save, offer), Date.now()) })),
+      acceptTravellerRecruit: (offer) => set(({ save }) => ({ save: acceptRecruit(save, offer) })),
       setEscort: (heroId) => {
         const save = get().save;
         if (heroId && !save.heroes.some((h) => h.id === heroId)) throw new Error(`Unknown hero ${heroId}`);
@@ -403,12 +401,11 @@ export const useGameStore = create<GameState>()(
         }),
       // Notifications follow the save: see `useNotifications`.
       dismissHero: (heroId) => set(({ save }) => ({ save: dismissHero(save, heroId) })),
-      setKitFor: (porterId, heroId) => set(({ save }) => ({ save: setKitFor(save, porterId, heroId) })),
       seeClasses: (classIds) => {
         const next = markClassesSeen(get().save, classIds);
         if (next !== get().save) set({ save: next });
       },
-      recruit: (offer, tavern, player) => set(({ save }) => ({ save: rollDailyApproaches(recruit(save, offer, tavern, player), Date.now()) })),
+      recruit: (offer, tavern, player) => set(({ save }) => ({ save: recruit(save, offer, tavern, player) })),
       closeCookingHint: () => set(({ save }) => ({ save: { ...save, cookingHintSeen: true } })),
       closeTip: (id) => set(({ save }) => ({ save: closeTipRule(save, id) })),
       noteTips: (ids) => {
@@ -487,7 +484,7 @@ export const useGameStore = create<GameState>()(
       },
       enterSecret: (place, player) => set(({ save }) => ({ save: enterSecret(save, place, player, Date.now()) })),
       recruitAtSecret: (place, player) =>
-        set(({ save }) => ({ save: rollDailyApproaches(recruitAtSecret(save, place, player, Date.now()), Date.now()) })),
+        set(({ save }) => ({ save: recruitAtSecret(save, place, player, Date.now()) })),
       buyAtBlackMarket: (place, key, player) => set(({ save }) => ({ save: buyAtBlackMarket(save, place, key, player, Date.now()) })),
       launchUnderwater: (place, heroIds, player, loadout) =>
         set(({ save }) => ({ save: launchUnderwater(save, place, heroIds, player, Date.now(), loadout) })),
@@ -509,7 +506,7 @@ export const useGameStore = create<GameState>()(
           save: advanceTutorial(startExpedition(save, dungeonId, heroIds, Date.now(), durationScale, currentRotation(), loadout)),
         })),
       prune: () => {
-        const pruned = questUpkeep(rollDailyApproaches(pruneExpired(get().save, Date.now()), Date.now()), Date.now());
+        const pruned = questUpkeep(pruneExpired(get().save, Date.now()), Date.now());
         if (pruned !== get().save) set({ save: pruned });
       },
       collectLoot: (expeditionId) => {
@@ -520,7 +517,7 @@ export const useGameStore = create<GameState>()(
         const force = debug.forcedLootCategory ?? undefined;
         const { save, report } = resolveExpedition(get().save, expedition, { loot: { force } });
         if (force && report.success) debug.set({ forcedLootCategory: null });
-        set({ save: advanceTutorial(rollDailyApproaches(pruneExpired(save, now), now)) });
+        set({ save: advanceTutorial(pruneExpired(save, now)) });
         return report;
       },
       markReportsSeen: () =>
@@ -692,14 +689,11 @@ export const useGameStore = create<GameState>()(
       resetGuild: () => set(({ save }) => ({ save: { ...save, guild: {} } })),
       addHero: (classId, level, trait, roll) =>
         set(({ save }) => ({
-          save: rollDailyApproaches(
-            {
-              ...save,
-              heroes: [...save.heroes, { ...newHero(`h${save.nextUid}`, `Debug ${classId}`, classId, trait, level), ...(roll ? { roll } : {}) }],
-              nextUid: save.nextUid + 1,
-            },
-            Date.now(),
-          ),
+          save: {
+            ...save,
+            heroes: [...save.heroes, { ...newHero(`h${save.nextUid}`, `Debug ${classId}`, classId, trait, level), ...(roll ? { roll } : {}) }],
+            nextUid: save.nextUid + 1,
+          },
         })),
       debugSetHeroLevel: (heroId, level) =>
         set(({ save }) => {

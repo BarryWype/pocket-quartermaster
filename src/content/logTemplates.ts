@@ -1,4 +1,4 @@
-import type { ExpeditionOutcome, HeroClassId, NpcHelp, SpecialId } from '@/game/types';
+import type { ExpeditionOutcome, HeroClassId, SpecialId } from '@/game/types';
 
 /** Before the boss line, keyed by boss id: the weakness item at work. */
 const weaknessLines: Record<string, string> = {
@@ -67,19 +67,9 @@ export const logTemplates = {
   trapHit: ['A {trap} caught {hero} ({damage} damage).', '{hero} stumbled into a {trap} ({damage} damage).'],
   trapAll: ['A {trap} hit the whole party.'],
   trapMissed: ['The party slipped past a {trap}.'],
-  trapTip: ['Thanks to a local’s tip, the party stepped around a {trap}.'],
-  /** Appended to a trap line. */
   trapReduced: ' {hero} shouted a warning, softening the blow.',
   /** Appended to a fight line; {tag} is e.g. "beasts". */
   tagBonus: ' {hero} knew just where to strike the {tag}.',
-  localsHelp: {
-    heal: '{hero} won over the {npc}, who patched everyone up.',
-    gold: '{hero} won over the {npc}, who paid {gold} gold for the company.',
-    tip: '{hero} won over the {npc}, who pointed out a trap ahead.',
-  } satisfies Record<NpcHelp['kind'], string>,
-  localsHostile: ['The {npc} turned on the party.'],
-  localsStolen: '{hero} lifted {gold} gold from the {npc}.',
-  localsNoticed: ' They noticed, and attacked!',
   localsNeutral: ['The party passed a {npc}, who paid them no mind.', 'A {npc} watched the party go by.'],
   /** Appended to a fight line. {ally} is who was shielded. */
   rage: ' {hero} flew into a rage.',

@@ -2,6 +2,8 @@
 
 **Status: design only, not implemented.** Don't implement anything from this folder unless a prompt asks for it. Prompts will point to the files they need.
 
+**Superseded in part by families (`doc/design/families/`, step 2, 2026-11-07):** threats are answered by family levels (a threat at level N is met when its family reaches level N; one level short is a half penalty). Approaches, threat keywords and kits are gone, so `levels.csv`, `kits.csv`, `coverage.csv` and the approach and kit rules below are history. `threats.csv` (7 threats, one per threat family) and `opportunities.csv` (answered by family level: an old score of 2 became level 1, a score of 3 level 2) describe the game as it is.
+
 The game is moving to a "problems first" model: dungeons, patrols and exploration places show **threats** (and sometimes a **restriction** and an **opportunity**), and the player builds the team's toolbox to answer them with **approaches**, **keywords**, **kits** and **gear**.
 
 ## Files

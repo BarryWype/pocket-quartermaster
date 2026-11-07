@@ -1,7 +1,5 @@
 import { expeditionRules } from '@/content/dungeons';
-import { npcMobId } from '@/content/enemies';
 import { dungeonById } from '@/content/lookup';
-import { localsRules, npcById } from '@/content/npcs';
 
 import type { Ability, BossDef, Briefing, DungeonDef, EncounterDef, ThreatId } from '../types';
 import { simulateRun, type PartyMember } from './simulate';
@@ -31,6 +29,7 @@ const member = (heroId: string, abilities: Ability[] = [], overrides: Partial<Pa
   luck: 0,
   threat: 1,
   resists: [],
+  familyTags: [],
   abilities,
   consumable: null,
   ...overrides,
@@ -84,88 +83,9 @@ describe('traps', () => {
 });
 
 describe('locals', () => {
-  /** Locals are live only with the locals threat in the briefing. */
-  const withLocals = (party: PartyMember[], npcId: string, level: 1 | 2 | 3 = 1, seed = 's') =>
-    first(party, locals(npcId), seed, briefingOf('locals', level));
-
-  it('help a party that meets them with Presence, as their NPC says', () => {
-    // Presence 3 from a troubadour meets level 1 (needs 2).
-    const charming = member('a', [], { classId: 'troubadour' });
-    const hermit = withLocals([charming], 'hermit');
-    expect(hermit).toMatchObject({ reaction: 'help', help: npcById.hermit.help, cleared: true });
-    const troll = withLocals([charming], 'tollTroll');
-    expect(troll.gold).toBe(Math.round(0.3 * dungeonById.ratCellar.gold[1]));
-  });
-
-  it('give a tip that skips the next trap', () => {
-    const charming = member('a', [], { classId: 'troubadour' });
-    const run = simulateRun(
-      [charming],
-      {
-        ...oneEncounter(locals('lostMiner')),
-        encounterCount: [3, 3],
-        // The trap never comes up in the draw: the guarantee gives it the step after the locals.
-        encounters: [locals('lostMiner'), { ...trap, weight: 1e-9 }],
-      },
-      's',
-      {
-        rules: steady,
-        briefing: { threats: [{ id: 'locals', level: 1 }, { id: 'traps', level: 1 }], restriction: null, opportunity: null },
-      },
-    );
-    expect(run.encounters[0]).toMatchObject({ kind: 'locals', reaction: 'help' });
-    expect(run.encounters[1].kind).toBe('trap');
-    expect(run.encounters[1].effects).toEqual([{ heroId: null, key: 'tip' }]);
-    expect(run.encounters[1].taken).toEqual({});
-  });
-
-  it('lose some gold to a pickpocket when the party only half meets them, and sometimes notice', () => {
-    // A frost mage (Presence 1, Might 1) half-misses level 1: the thief works.
-    const thief = member('a', [{ kind: 'pickpocket' }], { classId: 'frostMage', maxHp: 1e6, magic: 100, damageStat: 'magic' });
-    const results = Array.from({ length: 60 }, (_, i) => withLocals([thief], 'pedlar', 1, `p${i}`));
-    results.forEach((r) => expect(r).toMatchObject({ reaction: 'steal', gold: Math.round(localsRules.pickpocketGoldShare * 12) }));
-    const noticed = results.filter((r) => r.noticed).length / results.length;
-    expect(noticed).toBeGreaterThan(0.1);
-    expect(noticed).toBeLessThan(0.55);
-  });
-
-  it('turn neutral when the party merely intimidates them: no help, no fight', () => {
-    // Might 3 from a barbarian meets level 1 (needs 2), but that only scares them.
-    const barbarian = member('a', [], { classId: 'barbarian' });
-    expect(withLocals([barbarian], 'hermit')).toMatchObject({ reaction: 'neutral', cleared: true, gold: 0 });
-    expect(withLocals([barbarian], 'hermit', 2)).toMatchObject({ reaction: 'neutral', cleared: true });
-  });
-
-  it('still lose a purse to a thief when the party intimidates them', () => {
-    const barbarian = member('a', [], { classId: 'barbarian' });
-    const thief = member('t', [{ kind: 'pickpocket' }], { classId: 'ranger' });
-    const picks = Array.from({ length: 20 }, (_, i) => withLocals([barbarian, thief], 'hermit', 1, `i${i}`));
-    expect(picks.every((p) => p.reaction === 'steal' && p.gold > 0)).toBe(true);
-    // Not every lift gets noticed: some end without a fight.
-    expect(picks.some((p) => !p.noticed && p.cleared)).toBe(true);
-  });
-
-  it('sometimes turn hostile when the party misses them, and fight with their hostile group', () => {
-    // A frost mage alone: level 1 is one short (half), so the extra fight is a coin flip.
-    const loner = member('a', [], { classId: 'frostMage', maxHp: 1e6, magic: 100, damageStat: 'magic' });
-    const met = Array.from({ length: 40 }, (_, i) => withLocals([loner], 'poachers', 1, `h${i}`));
-    const hostile = met.filter((r) => r.reaction === 'fight');
-    expect(hostile.length).toBeGreaterThan(0);
-    expect(hostile.length).toBeLessThan(40);
-    hostile.forEach((result) => {
-      expect(result.mobs).toEqual([{ mobId: npcMobId('poachers', 1), count: 3 }]);
-      expect(result.rounds).toBeGreaterThan(0);
-    });
-  });
-
-  it('are a quiet step without the locals threat in the briefing', () => {
+  it('are always a quiet step: no locals threat exists any more', () => {
     expect(first([member('a')], locals('hermit'))).toMatchObject({ kind: 'quiet', cleared: true, effects: [] });
-  });
-
-  it("don't count knocked-out pickpockets", () => {
-    const thief = knockedOut(member('a', [{ kind: 'pickpocket' }], { classId: 'fireMage' }));
-    const result = withLocals([thief, member('b')], 'pedlar');
-    expect(result.reaction).not.toBe('steal');
+    expect(first([member('a')], locals('poachers'), 's', briefingOf('traps', 1))).toMatchObject({ kind: 'quiet', cleared: true, effects: [] });
   });
 });
 

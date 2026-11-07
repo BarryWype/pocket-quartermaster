@@ -305,6 +305,7 @@ export const frNames: Record<string, string> = {
   '4 supply points.': '4 points de vivres.',
   '+10% critical hit chance for the party.': '+10 % de chances de coup critique pour le groupe.',
   'Halves the Underwater and Poison penalties.': 'Divise par deux les malus Sous l’eau et Poison.',
+  'Halves the Element and Poison penalties.': 'Divise par deux les pénalités d’Élément et de Poison.',
   Fish: 'Poisson',
   'Hunter’s stew': 'Ragoût du chasseur',
   'Heals 15% of max HP before the boss.': 'Soigne 15 % des PV max avant le boss.',
@@ -866,17 +867,17 @@ export const frNames: Record<string, string> = {
   'Quick learner': 'Vif d’esprit',
   '+20% XP.': '+20 % d’XP.',
   'Light sleeper': 'Sommeil léger',
-  'Counts as Watchful.': 'Compte comme Vigilant.',
+  '+1 Watch against Darkness.': '+1 Vigie contre l’Obscurité.',
   'Iron stomach': 'Estomac d’acier',
   'Hunter’s stew heals them twice as much.': 'Le ragoût du chasseur le soigne deux fois plus.',
   Clumsy: 'Maladroit',
-  '−1 Finesse.': '−1 Finesse.',
+  '−1 Cunning against Traps.': '−1 Ruse contre les Pièges.',
   Greedy: 'Avide',
   '−10% gold from their expeditions.': '−10 % d’or sur ses expéditions.',
   Coward: 'Lâche',
   'Drinks their potion early, below 60% HP.': 'Boit sa potion tôt, sous 60 % de PV.',
   Loud: 'Bruyant',
-  '−1 Presence.': '−1 Présence.',
+  '−1 Watch against Darkness.': '−1 Vigie contre l’Obscurité.',
 
   // Guild Hall
   'War room': 'Salle de guerre',
@@ -918,6 +919,15 @@ export const frNames: Record<string, string> = {
   'More beast fights.': 'Plus de combats contre des bêtes.',
 
   // Threats. Traps, Beasts, Undead and Locals already sit with the dungeon tags.
+  Holy: 'Sacré',
+  'The dead walk and the ground is profaned; missed, the undead are harder to put down.':
+    'Les morts marchent et le sol est profané ; sans réponse, les morts-vivants sont plus durs à abattre.',
+  'Pitch dark and ambushers; missed, enemies strike first and the party hits softer.':
+    'Noir complet et embusqués ; sans réponse, les ennemis frappent en premier et le groupe tape plus faible.',
+  'Snares, locks and caved-in ways; missed, they wound whoever they catch.':
+    'Pièges, serrures et passages effondrés ; sans réponse, ils blessent quiconque ils attrapent.',
+  'The dungeon’s element everywhere; without Warding, its damage is worse.':
+    'L’élément du donjon est partout ; sans Protection, ses dégâts sont pires.',
   Element: 'Élément',
   'The dungeon’s element everywhere; without Resist, its damage is worse.':
     'L’élément du donjon est partout ; sans Résistance, ses dégâts sont pires.',
@@ -971,8 +981,8 @@ export const frNames: Record<string, string> = {
 
   // Restrictions
   'Anti-magic zone': 'Zone antimagique',
-  'Magic damage and abilities −50%; keywords from magic gear and casters don’t count.':
-    'Dégâts et capacités magiques −50 % ; les mots-clés de l’équipement magique et des lanceurs de sorts ne comptent pas.',
+  'Magic damage and abilities −50%; family tags from magic gear and casters don’t count.':
+    'Dégâts et capacités magiques −50 % ; les tags de famille de l’équipement magique et des lanceurs de sorts ne comptent pas.',
   'Sacred ground': 'Sol sacré',
   'Only Concealed gear hits at full strength; others −40%.':
     'Seul l’équipement dissimulé frappe à pleine force ; les autres −40 %.',
@@ -982,8 +992,8 @@ export const frNames: Record<string, string> = {
   'Cursed luck': 'Chance maudite',
   'No critical hits.': 'Aucun coup critique.',
   'Thick fog': 'Brouillard épais',
-  'Watchful doesn’t count; Ambush can only be answered by a kit.':
-    'La Vigilance ne compte pas ; l’Embuscade ne se répond que par un kit.',
+  'Watch from classes doesn’t count; only gear lights the way.':
+    'La Vigie des classes ne compte pas ; seul l’équipement éclaire le chemin.',
   Barren: 'Terres stériles',
   'Gold bonuses from traits, charms and meals don’t apply.':
     'Les bonus d’or des traits, charmes et repas ne s’appliquent pas.',
@@ -1014,9 +1024,13 @@ export const frNames: Record<string, string> = {
   'Old inscriptions': 'Vieilles inscriptions',
   'Old inscriptions; a sharp mind learns from them.':
     'De vieilles inscriptions ; un esprit vif en tire des leçons.',
+  'Old inscriptions; a keen eye learns from them.':
+    'De vieilles inscriptions ; un œil aiguisé en tire des leçons.',
   'Trophy beast': 'Bête trophée',
   'A trophy beast; a calm hand or a strong arm takes it.':
     'Une bête trophée ; une main calme ou un bras fort l’abat.',
+  'A trophy beast; a beast-hunter takes it.':
+    'Une bête trophée ; un chasseur de bêtes l’abat.',
   'Sealed vault': 'Caveau scellé',
   'A sealed vault; a mysterious key opens it, and a won run claims what lies inside.':
     'Un caveau scellé ; une clé mystérieuse l’ouvre, et une expédition victorieuse en emporte le contenu.',
@@ -1290,6 +1304,7 @@ export const frNames: Record<string, string> = {
   'Halves the Poison penalty for its wearer': 'Divise par deux la pénalité de Poison pour son porteur',
   'Smuggler’s coat': 'Cape du passeur',
   'Thieves can’t steal from the party': 'Les voleurs ne peuvent pas dérober au groupe',
+  'Traps cost the party nothing': 'Les pièges ne coûtent rien au groupe',
   'Barrow king’s blade': 'Lame du roi des tertres',
   'Heals the wielder when it kills an undead': 'Soigne le porteur quand il tue un mort-vivant',
   'Wolfhound spear': 'Lance du lévrier',
@@ -1302,20 +1317,25 @@ export const frNames: Record<string, string> = {
   'Answers Darkness for its carrier': 'Répond aux Ténèbres pour son porteur',
   'Drowned bell': 'Cloche noyée',
   'Blessed; the party ignores the Underwater penalty in the first fight': 'Béni ; le groupe ignore la pénalité Sous l’eau dans le premier combat',
+  'Blessed; the party ignores the Element penalty in the first fight': 'Béni ; le groupe ignore la pénalité de l’Élément dans le premier combat',
   'Dwarf-lord’s axe': 'Hache du seigneur nain',
   'Pierce against constructs': 'Perce contre les constructs',
   'Witch-hunter’s dagger': 'Dague du chasseur de sorcières',
   'Double crit damage against casters': 'Dégâts critiques doublés contre les lanceurs de sorts',
   'Thief-taker’s quiver': 'Carquois du chasseur de voleurs',
   'Reach in Ambush fights': 'Portée dans les combats d’embuscade',
+  'Reach in Darkness fights': 'Allonge dans les combats d’Obscurité',
   'Orc warlord’s hammer': 'Marteau du seigneur de guerre orc',
   'Stagger on every crit against Brutes': 'Étourdissement à chaque critique contre les Brutes',
   'Clockwork aegis': 'Égide mécanique',
   'Guard; Brace against Brutes only': 'Garde ; Fermeté contre les Brutes seulement',
   'Siren’s lute': 'Luth de la sirène',
   'Inspire in Underwater dungeons': 'Inspiration dans les donjons sous-marins',
+  'Inspire in Element dungeons': 'Inspiration dans les donjons d’Élément',
   'Cartographer’s focus': 'Foyer du cartographe',
   'Answers Maze for its carrier': 'Répond au Labyrinthe pour son porteur',
+  'A second Cunning tag for its carrier': 'Un second tag Ruse pour son porteur',
+  'A second Watch tag for its carrier': 'Un second tag Vigie pour son porteur',
   'Duelist’s main-gauche': 'Main-gauche du dueliste',
   'Parry against Brutes': 'Parade contre les Brutes',
   'Dragonbone plate': 'Plaque d’os de dragon',

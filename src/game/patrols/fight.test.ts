@@ -72,9 +72,12 @@ describe('engaging a patrol', () => {
   });
 
   it('empties the consumable slot and salvages an unused healing potion into herb', () => {
+    // Wolves carry the Beasts threat, which never pushes the party low enough to drink.
+    const wolves = asKind(goblins, 'wolves');
+    const minutes = patrolFights[wolves.difficulty ?? 'easy'].fightMinutes * MINUTE;
     let save = tierTeam();
     save = { ...save, heroes: save.heroes.map((h) => (h.id === 'bram' ? { ...h, equipment: { ...h.equipment, consumable: 'healingPotion' } } : h)) };
-    const done = resolvePatrolFights(startPatrolFight(save, goblins, ['bram', 'lyra', 'mira'], player, at), at + goblinMinutes);
+    const done = resolvePatrolFights(startPatrolFight(save, wolves, ['bram', 'lyra', 'mira'], player, at), at + minutes);
     const bram = done.save.heroes.find((h) => h.id === 'bram')!;
     expect(bram.equipment.consumable).toBeNull();
     expect(done.save.consumables.healingPotion ?? 0).toBe(0);

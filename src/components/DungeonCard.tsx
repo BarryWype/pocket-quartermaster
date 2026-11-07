@@ -43,7 +43,7 @@ export function DungeonCard({ save, dungeon, rotation, now, durationMs, chance, 
   const newTier = !save.clearedDungeons.some((id) => dungeonById[id]?.tier === dungeon.tier);
   const firstWin = firstWinAvailable(save, dungeon, now);
   const briefing = briefingOf(save, dungeon, rotation, now);
-  // The tutorial shows its threat up front, against the whole roster: red until a hero carries the kit.
+  // The tutorial shows its threat up front, against the whole roster: red until a hero's family covers it.
   const tutorial = save.tutorial.step !== 'done' && isTutorialDungeon(dungeon.id);
   const kind = dungeon.isBoss ? 'boss' : dungeon.difficulty === 'easy' ? 'short' : 'long';
   const weakness = dungeon.isBoss ? weaknessByBoss[dungeon.boss.id] : undefined;

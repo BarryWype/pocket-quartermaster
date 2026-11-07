@@ -1,4 +1,3 @@
-import { itemById } from '@/content/lookup';
 import { charms } from '@/content/loot/charms';
 import { shopRules } from '@/content/shops';
 import { items } from '@/content/items';
@@ -9,15 +8,12 @@ import { infusedElement } from '../../gear/affixes';
 import type { LootSourceId } from '../../loot/types';
 import type { SaveData } from '../../save';
 import { equip, unequip } from '../../team/team';
-import { briefingCoverage, kitAnswers } from '../../threats/coverage';
+import { briefingCoverage } from '../../threats/coverage';
 import type { Briefing, ConsumableDef, DungeonDef } from '../../types';
 
-// The bot's loadout before a run: kits for the threats it can answer, the
-// boss's weakness item, a charm only when the odds are already high, a potion
-// otherwise. Pure: each rule takes a save and returns the save with the
-// party's consumable slots filled.
-
-export const isKit = (itemId: string | null | undefined) => !!itemId && !!(itemById[itemId] as ConsumableDef | undefined)?.kit;
+// The bot's loadout before a run: the boss's weakness item, a charm only
+// when the odds are already high, a potion otherwise. Pure: each rule takes a
+// save and returns the save with the party's consumable slots filled.
 
 const consumableOf = (save: SaveData, heroId: string) => save.heroes.find((h) => h.id === heroId)?.equipment.consumable ?? null;
 
@@ -28,35 +24,6 @@ export const uncovered = (save: SaveData, heroIds: string[], briefing: Briefing)
 /** Puts back into the stock every consumable these heroes carry. */
 export function emptySlots(save: SaveData, heroIds: string[]): SaveData {
   return heroIds.reduce((next, id) => (consumableOf(next, id) ? unequip(next, id, 'consumable') : next), save);
-}
-
-/** The same party without kits for the threats: the kit slots left empty. */
-export function unprepared(save: SaveData, heroIds: string[]): SaveData {
-  return heroIds.reduce((next, id) => (isKit(consumableOf(next, id)) ? unequip(next, id, 'consumable') : next), save);
-}
-
-/**
- * Kits from the stock, one at a time: the kit that removes the most missing
- * threat points goes to the hero without a consumable it helps most, until no
- * kit removes any.
- */
-export function pickKits(save: SaveData, heroIds: string[], briefing: Briefing): SaveData {
-  let next = save;
-  for (;;) {
-    const missing = uncovered(next, heroIds, briefing);
-    if (missing === 0) return next;
-    let best: { save: SaveData; points: number } | null = null;
-    for (const id of heroIds.filter((h) => !consumableOf(next, h))) {
-      for (const [itemId, count] of Object.entries(next.consumables)) {
-        if (count < 1 || !isKit(itemId) || !kitAnswers(itemId, briefing)) continue;
-        const tried = equip(next, id, 'consumable', itemId);
-        const points = missing - uncovered(tried, heroIds, briefing);
-        if (points > 0 && (!best || points > best.points)) best = { save: tried, points };
-      }
-    }
-    if (!best) return next;
-    next = best.save;
-  }
 }
 
 /** The boss's weakness item, when held, on the first hero without a consumable. */

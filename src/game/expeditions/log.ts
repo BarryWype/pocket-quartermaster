@@ -69,16 +69,11 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
     const name = tr(threatById[score.threat.id].name);
     return french ? name : name.toLowerCase();
   };
-  /** Who or what answered a threat: heroes by name, a kit by its item's name. */
+  /** Who answered a threat: the heroes by name. */
   const answererOf = (score: ThreatScore) => {
-    const parts = score.coveredBy.flatMap(({ heroId, source }) => {
+    const parts = score.coveredBy.flatMap(({ heroId }) => {
       const member = party.find((m) => m.heroId === heroId);
-      if (!member) return [];
-      if (source === 'kit' && member.consumable) {
-        const name = tr(member.consumable.name);
-        return [french ? article('le', name) : `the ${name.toLowerCase()}`];
-      }
-      return [member.name];
+      return member ? [member.name] : [];
     });
     if (parts.length === 0) return french ? 'personne' : 'nobody';
     return parts.length > 1 ? `${parts.slice(0, -1).join(', ')}${t('common.and')}${parts[parts.length - 1]}` : parts[0];
@@ -125,8 +120,6 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
             return [logTemplates.exposed];
           case 'poison':
             return [logTemplates.poison];
-          case 'casters':
-            return [fill(logTemplates.casters, { hero })];
           case 'relic':
             return [fill(logTemplates.relic, { hero, relic: tr(relicById[e.relicId!].name) })];
           case 'special':
@@ -186,7 +179,6 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
       }
       case 'trap': {
         const trap = tr(encounter.name);
-        if (effect(encounter, 'tip')) return fill(pick(rng, logTemplates.trapTip), { trap });
         if (!encounter.trapTriggered) return fill(pick(rng, logTemplates.trapMissed), { trap });
         const hit = Object.keys(encounter.taken);
         const line =
@@ -203,32 +195,6 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
           ? fill(logTemplates.trapReduced, { hero: effectHero(encounter, 'trapReduce') })
           : '';
         return [line, reduced, ...potions(encounter), knockedOut(encounter)].join('').trim();
-      }
-      case 'locals': {
-        const npc = tr(encounter.name);
-        const answerer = run.threats.find((t) => t.threat.id === 'locals');
-        switch (encounter.reaction) {
-          case 'help':
-            return fill(logTemplates.localsHelp[encounter.help!.kind], {
-              hero: answerer ? answererOf(answerer) : '',
-              npc,
-              gold: encounter.gold,
-            });
-          case 'fight':
-            return (
-              fill(pick(rng, logTemplates.localsHostile), { npc }) +
-              ' ' +
-              capitalised(fightSentence(encounter)) +
-              aftermath(encounter)
-            );
-          case 'steal': {
-            const line = fill(logTemplates.localsStolen, { hero: effectHero(encounter, 'pickpocket'), npc, gold: encounter.gold });
-            if (!encounter.noticed) return line;
-            return line + logTemplates.localsNoticed + ' ' + capitalised(fightSentence(encounter)) + aftermath(encounter);
-          }
-          default:
-            return fill(pick(rng, logTemplates.localsNeutral), { npc });
-        }
       }
       case 'mishap':
         return fill(pick(rng, logTemplates.mishap), { event: tr(encounter.name) });

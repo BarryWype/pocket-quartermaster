@@ -1,5 +1,5 @@
 import { expeditionRules } from '@/content/dungeons';
-import { patrolThreat, restrictionRules, threatRules } from '@/content/threats';
+import { patrolThreat, restrictionRules } from '@/content/threats';
 import { travellerRules } from '@/content/patrols';
 import { newHero } from '@/content/heroes';
 import { dungeonById, itemById } from '@/content/lookup';
@@ -10,8 +10,9 @@ import { prepareParty, simulateRun, type PartyMember, type RunOptions } from '..
 import { patrolDungeon, patrolRunOptions } from '../patrols/fight';
 import { findSpawn, tierTeam } from '../patrols/testHelpers';
 import { createInitialSave, type SaveData } from '../save';
-import { healAll } from '../team/health';
 import { equip } from '../team/team';
+import type { FamilyId } from '@/content/families';
+import type { HeroFamilyTag } from '../families/families';
 import type { Briefing, ConsumableDef, DungeonDef, EncounterDef, MobGroup, OpportunityId, RestrictionId, ThreatId } from '../types';
 
 /** No first win of the day or first tier clear on top, so a run pays its own row only. */
@@ -24,9 +25,10 @@ const noBonusRows = (save: SaveData): SaveData => ({
 // The threats rework wired into the run: what each briefing does to a party
 // through simulateRun, launchPlan and resolveExpedition.
 //
-// State math to keep in mind: a threat one short of its answer is 'half' (every
-// number halved), two or more short is 'full'. A plain warrior party answers
-// nothing (Might 3 aside), so keyword threats at level 1 are half-missed.
+// State math to keep in mind: a threat is met when the party's family level
+// reaches its level, half (every number halved) when one short, full (all of
+// it) when two or more short. A party with no family tags of the threat's
+// family half-misses level 1 and fully misses level 2 and 3.
 
 const ALL = ['bram', 'lyra', 'mira'];
 const steady = { ...expeditionRules, mishapChance: 0, fortune: 0, damageVariance: 0, enemyCritChance: 0 };
@@ -36,6 +38,16 @@ const threat = (id: ThreatId, level: 1 | 2 | 3 = 1, element?: Briefing['threats'
   threats: [{ id, level, ...(element ? { element } : {}) }],
   restriction: null,
   opportunity: null,
+});
+
+/** A family tag fixture, as heroFamilyTagSources would have built it. */
+const familyTag = (family: FamilyId, count = 1, overrides: Partial<HeroFamilyTag> = {}): HeroFamilyTag => ({
+  family,
+  count,
+  magic: false,
+  fromClass: true,
+  source: 'class',
+  ...overrides,
 });
 
 function member(heroId: string, abilities: PartyMember['abilities'] = [], overrides: Partial<PartyMember> = {}): PartyMember {
@@ -61,6 +73,7 @@ function member(heroId: string, abilities: PartyMember['abilities'] = [], overri
     luck: 0,
     threat: 1,
     resists: [],
+    familyTags: [],
     abilities,
     consumable: null,
     ...overrides,
@@ -86,22 +99,22 @@ const bossOnly = (boss: Partial<DungeonDef['boss']>, count: [number, number] = [
 
 describe('run penalties', () => {
   it('expose the first fights: the enemies strike first, and it shows in the results', () => {
-    // Watchful 0 against level 2 (needs 2): a full miss, the first two fights exposed.
+    // No Watch tags against level 2 (needs family level 2): a full miss, the first three fights exposed.
     const run = simulateRun([member('a', [], { maxHp: 1e6, power: 1000 })], fights, 's', {
       rules: steady,
-      briefing: threat('ambush', 2),
+      briefing: threat('darkness', 2),
     });
-    expect(run.threats[0]).toMatchObject({ threat: { id: 'ambush' }, state: 'full' });
+    expect(run.threats[0]).toMatchObject({ threat: { id: 'darkness' }, state: 'full' });
     expect(run.encounters[0].effects).toContainEqual({ heroId: null, key: 'exposed' });
-    expect(run.encounters[1].effects).toContainEqual({ heroId: null, key: 'exposed' });
-    expect(run.encounters[2].effects).not.toContainEqual({ heroId: null, key: 'exposed' });
+    expect(run.encounters[2].effects).toContainEqual({ heroId: null, key: 'exposed' });
+    expect(run.encounters[3].effects).not.toContainEqual({ heroId: null, key: 'exposed' });
   });
 
   it('expose every other fight when "all" is halved by a half miss', () => {
-    // Darkness level 3 exposes every fight; two light holders halve that to every other one.
-    const carriers = [member('a', [], { classId: 'fireMage', maxHp: 1e6, power: 1000 }), member('b', [], { classId: 'fireMage', maxHp: 1e6, power: 1000 })];
+    // Darkness level 3 exposes every fight; five Watch tags (one short of level 3) halve that to every other one.
+    const watcher = [member('a', [], { maxHp: 1e6, power: 1000, familyTags: [familyTag('watch', 5)] })];
     const runs = Array.from({ length: 8 }, (_, i) =>
-      simulateRun(carriers, fights, `d${i}`, { rules: steady, briefing: threat('darkness', 3) }),
+      simulateRun(watcher, fights, `d${i}`, { rules: steady, briefing: threat('darkness', 3) }),
     );
     runs.forEach((run) => {
       expect(run.threats[0].state).toBe('half');
@@ -114,15 +127,15 @@ describe('run penalties', () => {
   it('weaken the party when missed', () => {
     const strong = [member('a', [], { maxHp: 1e6, power: 20 })];
     const none = simulateRun(strong, fights, 's', { rules: steady });
-    // Wits 1 against level 1 (needs 2): a half miss, ×0.925 damage.
-    const weakened = simulateRun(strong, fights, 's', { rules: steady, briefing: threat('underwater', 1) });
-    expect(weakened.threats[0].state).toBe('half');
-    // The 40 HP boss takes 2 rounds at 20 damage, 3 at 18.5.
+    // No Watch tags against level 2 (needs family level 2): a full miss, ×0.78 damage.
+    const weakened = simulateRun(strong, fights, 's', { rules: steady, briefing: threat('darkness', 2) });
+    expect(weakened.threats[0].state).toBe('full');
+    // The 40 HP boss takes 2 rounds at 20 damage, 3 at 15.6.
     expect(weakened.encounters.at(-1)!.rounds).toBeGreaterThan(none.encounters.at(-1)!.rounds);
   });
 
   it('poison everyone after each fight, and it shows in the results', () => {
-    // No antidote in the party: level 1 is half-missed at 7.5% of max HP per fight.
+    // No Venom tags in the party: level 1 is half-missed at 7.5% of max HP per fight.
     const hero = [member('a', [], { maxHp: 1000, power: 1000 })];
     const plain = simulateRun(hero, fights, 's', { rules: steady });
     const poisoned = simulateRun(hero, fights, 's', { rules: steady, briefing: threat('poison', 1) });
@@ -131,40 +144,19 @@ describe('run penalties', () => {
     expect(poisoned.encounters[0].taken.a - plain.encounters[0].taken.a).toBeCloseTo(75);
   });
 
-  it('let enemy casters wound one hero before each fight', () => {
-    const run = simulateRun(
-      [member('a', [], { maxHp: 1000, power: 1000 }), member('b', [], { maxHp: 1000, power: 1000 })],
-      fights,
-      's',
-      { rules: steady, briefing: threat('casters', 2) },
-    );
-    expect(run.encounters[0].effects.some((e) => e.key === 'casters')).toBe(true);
-  });
-
-  it('make the brute hit harder on the boss', () => {
+  it('make the party hit softer against any enemy when Armoured is missed', () => {
     const dungeon = bossOnly({ hp: 5000, damage: 4 });
     const run = (briefingOf?: Briefing) =>
       simulateRun([member('a', [], { maxHp: 1e6, power: 1000 })], dungeon, 's', { rules: steady, ...(briefingOf ? { briefing: briefingOf } : {}) });
-    expect(run(threat('brute', 2)).encounters[0].taken.a).toBeGreaterThan(run().encounters[0].taken.a);
+    expect(run(threat('armoured', 2)).encounters[0].rounds).toBeGreaterThan(run().encounters[0].rounds);
   });
 
-  it('beef up undead enemies when missed', () => {
+  it('beef up undead enemies when Holy is missed', () => {
     const dungeon = bossOnly({ hp: 100, damage: 0, tags: ['undead'] });
     const run = (briefingOf: Briefing) =>
       simulateRun([member('a', [], { maxHp: 1e6, power: 25 })], dungeon, 's', { rules: steady, briefing: briefingOf });
-    // Blessed 0 against level 1 (needs 1): half-missed, +35% HP: 6 rounds instead of 4.
-    expect(run(threat('undead', 1)).encounters[0].rounds).toBe(run(briefing()).encounters[0].rounds + 2);
-  });
-
-  it('report lost loot and delay from missed threats', () => {
-    // Finesse 1 and Might 3 both fall short of level 3 Locked (needs 4): a full miss.
-    const locked = simulateRun([member('a', [], { maxHp: 1e6, power: 1000 })], fights, 's', { rules: steady, briefing: threat('locked', 3) });
-    expect(locked.threats[0].state).toBe('full');
-    expect(locked.lostLoot).toBeCloseTo(0.4);
-    expect(locked.delay).toBe(0);
-    // Wits 1 against level 2 Puzzle (needs 3): a full miss, 30% longer.
-    const puzzled = simulateRun([member('a', [], { maxHp: 1e6, power: 1000 })], fights, 's', { rules: steady, briefing: threat('puzzle', 2) });
-    expect(puzzled.delay).toBeCloseTo(0.3);
+    // No Faith tags against level 1 (needs 2): half-missed, +35% HP: 6 rounds instead of 4.
+    expect(run(threat('holy', 1)).encounters[0].rounds).toBe(run(briefing()).encounters[0].rounds + 2);
   });
 });
 
@@ -206,21 +198,6 @@ describe('run restrictions', () => {
     }
   });
 
-  it('underwater weakened: counts double for heavy wearers', () => {
-    // A boss they cannot kill, so the damage dealt tracks the multiplier alone.
-    const meatShield = bossOnly({ hp: 1e9 });
-    const options = { rules: steady, briefing: threat('underwater', 3) };
-    const dealt = (party: PartyMember[]) =>
-      simulateRun(party, meatShield, 's', options).encounters.reduce(
-        (sum, e) => sum + Object.values(e.dealt).reduce((a, b) => a + b, 0),
-        0,
-      );
-    const light = member('l', [], { maxHp: 1e6, power: 20 });
-    const heavy = member('h', [], { heavy: true, maxHp: 1e6, power: 20 });
-    // Level 3 weakened is 0.32; the heavy wearer takes it doubled, to 0.64.
-    expect(dealt([heavy])).toBeCloseTo((dealt([light]) * (1 - 0.64)) / (1 - 0.32));
-  });
-
   it('noHealing: halves every heal in the run', () => {
     const potion = itemById.healingPotion as ConsumableDef;
     const party = [member('a', [], { consumable: potion, maxHp: 1000, power: 1000 })];
@@ -243,12 +220,13 @@ describe('run restrictions', () => {
     expect(cursed.encounters[0].rounds).toBeGreaterThan(plain.encounters[0].rounds);
   });
 
-  it('thickFog: only a kit answers an ambush', () => {
-    const ranger = member('r', [], { classId: 'ranger' });
-    const fog: Briefing = { ...threat('ambush', 1), restriction: 'thickFog' };
-    const watchful = simulateRun([ranger], fights, 's', { rules: steady, briefing: fog });
-    expect(watchful.threats[0]).toMatchObject({ state: 'half', have: 0, needed: 1 });
-    const lit = simulateRun([{ ...ranger, consumable: itemById.lantern as ConsumableDef }], fights, 's', { rules: steady, briefing: fog });
+  it('thickFog: drops Watch from classes, while gear still lights the way', () => {
+    const ranger = (gearWatch: number) =>
+      member('r', [], { classId: 'ranger', familyTags: [familyTag('watch', 1), familyTag('watch', gearWatch, { source: 'gear', fromClass: false })] });
+    const fog: Briefing = { ...threat('darkness', 1), restriction: 'thickFog' };
+    const dark = simulateRun([ranger(1)], fights, 's', { rules: steady, briefing: fog });
+    expect(dark.threats[0]).toMatchObject({ state: 'half', have: 0, needed: 1 });
+    const lit = simulateRun([ranger(2)], fights, 's', { rules: steady, briefing: fog });
     expect(lit.threats[0]).toMatchObject({ state: 'met' });
   });
 
@@ -289,10 +267,10 @@ describe('opportunities', () => {
   });
 
   it('hiddenCache: pays a share of the top gold, doubled by the Thief\'s cache bonus, and nothing when missed', () => {
-    const thief = run('hiddenCache', [member('a', [], { classId: 'thief', power: 1000 })]);
+    const thief = run('hiddenCache', [member('a', [], { classId: 'thief', power: 1000, familyTags: [familyTag('cunning', 2)] })]);
     expect(thief.opportunity).toMatchObject({ id: 'hiddenCache', answered: true, gold: Math.round(0.25 * dungeonById.ratCellar.gold[1]) });
     expect(thief.bonusGold).toBe(thief.opportunity?.gold);
-    const finder = run('hiddenCache', [member('a', [{ kind: 'cacheBonus', multiplier: 2 }], { classId: 'thief', power: 1000 })]);
+    const finder = run('hiddenCache', [member('a', [{ kind: 'cacheBonus', multiplier: 2 }], { classId: 'thief', power: 1000, familyTags: [familyTag('cunning', 2)] })]);
     expect(finder.opportunity?.gold).toBe(Math.round(0.25 * dungeonById.ratCellar.gold[1] * 2));
     const clumsy = run('hiddenCache', [member('a', [], { classId: 'fireMage', power: 1000 })]);
     expect(clumsy.opportunity).toMatchObject({ id: 'hiddenCache', answered: false });
@@ -300,12 +278,12 @@ describe('opportunities', () => {
   });
 
   it('richVein: gives the tier\'s ore', () => {
-    const result = run('richVein', [member('a', [], { power: 1000 })]);
+    const result = run('richVein', [member('a', [], { power: 1000, familyTags: [familyTag('breaker', 2)] })]);
     expect(result.opportunity).toMatchObject({ id: 'richVein', answered: true, materials: [{ materialId: 'wood', amount: 4 }] });
   });
 
   it('bounty: multiplies the dungeon\'s rolled gold', () => {
-    expect(run('bounty', [member('a', [], { classId: 'troubadour', power: 1000 })]).opportunity).toMatchObject({
+    expect(run('bounty', [member('a', [], { classId: 'troubadour', power: 1000, familyTags: [familyTag('rally', 2)] })]).opportunity).toMatchObject({
       id: 'bounty',
       answered: true,
       goldMultiplier: 1.3,
@@ -313,7 +291,7 @@ describe('opportunities', () => {
   });
 
   it('prisoners: pay their share of the top gold, and sometimes join the roster', () => {
-    const save = geared();
+    const save = rallySave();
     const rotation = forcedRotation('ratCellar', briefing({ opportunity: 'prisoners' }));
     let recruit = false;
     let gold = 0;
@@ -345,12 +323,12 @@ describe('opportunities', () => {
   });
 
   it('forgottenShrine: steels the party for the rest of the run', () => {
-    const result = run('forgottenShrine', [member('a', [], { classId: 'cleric', power: 1000 })]);
+    const result = run('forgottenShrine', [member('a', [], { classId: 'cleric', power: 1000, familyTags: [familyTag('faith', 4)] })]);
     expect(result.opportunity).toMatchObject({ id: 'forgottenShrine', answered: true, damageMultiplier: 1.1 });
   });
 
   it('oldInscriptions: teach XP, and sometimes an unknown Provisions recipe', () => {
-    const save = noBonusRows(geared());
+    const save = noBonusRows(watchSave());
     const rotation = forcedRotation('ratCellar', briefing({ opportunity: 'oldInscriptions' }));
     let taught = 0;
     let xp = 0;
@@ -371,8 +349,8 @@ describe('opportunities', () => {
     expect(xp).toBe(Math.round(dungeonById.ratCellar.xp * 1.25));
   });
 
-  it('trophyBeast: gives hide and bone for a calm hand', () => {
-    const druid = member('a', [], { classId: 'druid', power: 1000 });
+  it('trophyBeast: gives hide and bone for a wild hand', () => {
+    const druid = member('a', [], { classId: 'druid', power: 1000, familyTags: [familyTag('wild', 2)] });
     const result = run('trophyBeast', [druid]);
     expect(result.opportunity?.answered).toBe(true);
     const materials = result.opportunity?.materials ?? [];
@@ -382,7 +360,7 @@ describe('opportunities', () => {
     expect(materials.find((m) => m.materialId === 'bone')!.amount).toBe(2);
   });
 
-  it('trophyBeast: needs a calm hand or a strong arm, and costs nothing when missed', () => {
+  it('trophyBeast: needs the Wild family, and costs nothing when missed', () => {
     const result = run('trophyBeast', [member('a', [], { classId: 'fireMage', power: 1000 })]);
     expect(result.opportunity).toMatchObject({ id: 'trophyBeast', answered: false });
     expect(result.opportunity?.materials).toBeUndefined();
@@ -429,49 +407,16 @@ describe('salvage and consumables', () => {
     expect((after.materials.bone ?? 0) - (save.materials.bone ?? 0)).toBe(1);
   });
 
-  it('keeps a kit that answered a drawn threat', () => {
-    let save = geared({ roguesRoll: 1 });
-    save = equip(save, 'bram', 'consumable', 'roguesRoll');
-    // Finesse 1 + the kit's 2 meets level 2 traps (needs 3): the roll did its job.
-    const { report } = resolve(save, {}, threat('traps', 2));
-    expect(report.threats[0]).toMatchObject({ id: 'traps', state: 'met' });
-    expect(report.salvaged.map((s) => s.itemId)).not.toContain('roguesRoll');
-  });
-
   it('keeps a ward salve that faced its element', () => {
     const briefingOf = threat('element', 1, 'fire');
     let save = geared({ emberWardSalve: 1 });
     save = equip(save, 'bram', 'consumable', 'emberWardSalve');
-    // Bram alone: his salve is the party's only Resist fire, so it answers the threat.
+    // Bram alone: no Warding tags, so the threat is half-missed, but facing the fire itself still uses the salve up.
     const started = startExpedition(save, 'ratCellar', ['bram'], 0, 1, forcedRotation('ratCellar', briefingOf));
     const { report } = resolveExpedition(started, started.expeditions[0]);
     expect(report.briefing).toEqual(briefingOf);
-    expect(report.threats[0]).toMatchObject({ id: 'element', element: 'fire', state: 'met' });
+    expect(report.threats[0]).toMatchObject({ id: 'element', element: 'fire', state: 'half' });
     expect(report.salvaged.map((s) => s.itemId)).not.toContain('emberWardSalve');
-    // Without the salve the threat is half-missed; with it met (see threats/score.test.ts).
-    const bareStart = startExpedition(geared(), 'ratCellar', ['bram'], 0, 1, forcedRotation('ratCellar', briefingOf));
-    expect(resolveExpedition(bareStart, bareStart.expeditions[0]).report.threats[0]).toMatchObject({ state: 'half' });
-  });
-
-  it('keeps a ward salve whose carrier took damage of its element, even when it answered nothing', () => {
-    // Mira already resists fire, so Bram's salve changes no threat's result;
-    // facing the fire itself still uses it up.
-    const briefingOf = threat('element', 1, 'fire');
-    let kept = 0;
-    for (let i = 0; i < 10; i++) {
-      let save: SaveData = {
-        ...createInitialSave(),
-        tutorial: { ...createInitialSave().tutorial, step: 'done' },
-        consumables: { ...createInitialSave().consumables, emberWardSalve: 1, trailMix: 30 },
-        nextUid: 400 + i,
-      };
-      save = equip(save, 'bram', 'consumable', 'emberWardSalve');
-      const started = startExpedition(save, 'ratCellar', ['bram', 'mira'], 0, 1, forcedRotation('ratCellar', briefingOf));
-      const { report } = resolveExpedition(started, started.expeditions[0]);
-      expect(report.threats[0]).toMatchObject({ id: 'element', element: 'fire', state: 'met' });
-      if (!report.salvaged.map((s) => s.itemId).includes('emberWardSalve')) kept++;
-    }
-    expect(kept).toBeGreaterThan(0);
   });
 
   it('salvages a ward salve that never faced its element', () => {
@@ -488,33 +433,6 @@ describe('salvage and consumables', () => {
   });
 });
 
-describe('locked forced with Might', () => {
-  it('cuts only the rolled gold, and nothing else', () => {
-    const save = noBonusRows(healAll(geared()));
-    let cut = 0;
-    // Warriors have Might 3: level 2 Locked (needs 3, Finesse falls short) is forced open, at the cost of some loot.
-    const rotation = forcedRotation('ratCellar', threat('locked', 2));
-    for (let i = 0; i < 30; i++) {
-      const forcedStart = startExpedition({ ...save, nextUid: 200 + i }, 'ratCellar', ALL, 0, 1, rotation);
-      const forced = resolveExpedition(forcedStart, forcedStart.expeditions[0]).report;
-      const plainStart = startExpedition({ ...save, nextUid: 200 + i }, 'ratCellar', ALL, 0, 1);
-      const plain = resolveExpedition(plainStart, plainStart.expeditions[0]).report;
-      expect(forced.threats[0]).toMatchObject({ id: 'locked', state: 'met', forced: true });
-      expect(forced.success).toBe(plain.success);
-      // The same loot rolls either way: only the dungeon's rolled gold is cut.
-      expect(forced.loot.dropped).toEqual(plain.loot.dropped);
-      expect(forced.xp).toBe(plain.xp);
-      expect(forced.loot.recipeIds).toEqual(plain.loot.recipeIds);
-      expect(forced.loot.gear).toEqual(plain.loot.gear);
-      expect(forced.gold).toBeLessThanOrEqual(plain.gold);
-      if (forced.gold < plain.gold) cut++;
-      // The forced loss takes its share of the rolled gold, never more than the whole.
-      expect(plain.gold - forced.gold).toBeLessThanOrEqual(1 + threatRules.forcedLockLoss * plain.gold);
-    }
-    expect(cut).toBeGreaterThan(0);
-  });
-});
-
 describe('patrol threats', () => {
   it('each patrol kind carries its threat in its briefing', () => {
     const goblins = findSpawn((s) => s.kind === 'goblins').spawn;
@@ -525,24 +443,24 @@ describe('patrol threats', () => {
     expect(patrolRunOptions(bandits).briefing).toEqual({ threats: [patrolThreat(bandits)], restriction: null, opportunity: null });
   });
 
-  it('ambush half-exposes the goblins\' first fight, and the odds include it', () => {
+  it('darkness exposes the goblins\' first fight when half-missed, and the odds include it', () => {
     const save = tierTeam();
-    // Bram alone has no Watchful: the level 1 ambush is half-missed.
+    // Bram alone has no Watch tags: the level 1 darkness is half-missed, one exposed fight.
     const party = prepareParty(save, ['bram']);
     const { spawn } = findSpawn((s) => s.kind === 'goblins');
     // Elites, so the fights can be lost and the exposure shows in the odds.
     const dungeon = patrolDungeon(spawn, 1, true);
     const runs = Array.from({ length: 10 }, (_, i) => simulateRun(party, dungeon, `s${i}`, patrolRunOptions(spawn)));
-    runs.forEach((run) => expect(run.threats[0]).toMatchObject({ threat: { id: 'ambush' }, state: 'half' }));
-    // Half of the first fights are exposed: the enemies strike first.
-    const exposed = runs.filter((run) => run.encounters[0].effects.some((e) => e.key === 'exposed')).length;
-    expect(exposed).toBeGreaterThan(0);
-    expect(exposed).toBeLessThan(10);
+    runs.forEach((run) => {
+      expect(run.threats[0]).toMatchObject({ threat: { id: 'darkness' }, state: 'half' });
+      // The enemies strike first in the one exposed fight.
+      expect(run.encounters[0].effects).toContainEqual({ heroId: null, key: 'exposed' });
+    });
     // The odds the party and the escort see run the same seeds with the same briefing.
     const oddsSeeds = Array.from({ length: 30 }, (_, i) =>
       simulateRun(party, dungeon, `odds|${dungeon.id}|${i}`, patrolRunOptions(spawn)),
     );
-    expect(oddsSeeds.some((run) => run.encounters[0].effects.some((e) => e.key === 'exposed'))).toBe(true);
+    expect(oddsSeeds.every((run) => run.encounters[0].effects.some((e) => e.key === 'exposed'))).toBe(true);
   });
 
   it('beasts make the herd\'s mobs hit harder', () => {
@@ -554,17 +472,6 @@ describe('patrol threats', () => {
     const without = simulateRun(party, dungeon, 's', { rules: { ...expeditionRules, mishapChance: 0 } });
     expect(withThreat.threats[0]).toMatchObject({ threat: { id: 'beasts' }, state: 'half' });
     expect(withThreat.encounters[0].taken.bram).toBeGreaterThan(without.encounters[0].taken.bram);
-  });
-
-  it('thieves\' lost loot costs the run, but never the patrol\'s rewards', () => {
-    const save = tierTeam();
-    // Bram alone: Finesse 1 half-misses the level 1 thieves.
-    const party = prepareParty(save, ['bram']);
-    const { spawn } = findSpawn((s) => s.kind === 'bandits');
-    const dungeon = patrolDungeon(spawn, 1, false);
-    const run = simulateRun(party, dungeon, 's', patrolRunOptions(spawn));
-    expect(run.threats[0]).toMatchObject({ threat: { id: 'thieves' }, state: 'half' });
-    expect(run.lostLoot).toBeCloseTo(0.05);
   });
 });
 
@@ -585,6 +492,42 @@ function geared(consumables: Record<string, number> = {}): SaveData {
   save = equip(save, 'bram', 'weapon', 'g1');
   save = equip(save, 'lyra', 'weapon', 'g2');
   save = equip(save, 'mira', 'weapon', 'g3');
+  return save;
+}
+
+/** The trio as Rally veterans: three troubadours, one with a sword, clearing Prisoners (Rally 2). */
+function rallySave(): SaveData {
+  let save: SaveData = {
+    ...createInitialSave(),
+    tutorial: { ...createInitialSave().tutorial, step: 'done' },
+    consumables: { ...createInitialSave().consumables, trailMix: 30 },
+    heroes: [
+      newHero('bram', 'Bram', 'troubadour', 'none', 30),
+      newHero('lyra', 'Lyra', 'troubadour', 'none', 30),
+      newHero('mira', 'Mira', 'troubadour', 'none', 30),
+    ],
+    gear: [{ uid: 'g1', itemId: 'sword5', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 }],
+    nextUid: 10,
+  };
+  save = equip(save, 'bram', 'weapon', 'g1');
+  return save;
+}
+
+/** The trio as Watch veterans: three scouts, one with a runestone, clearing Old inscriptions (Watch 2). */
+function watchSave(): SaveData {
+  let save: SaveData = {
+    ...createInitialSave(),
+    tutorial: { ...createInitialSave().tutorial, step: 'done' },
+    consumables: { ...createInitialSave().consumables, trailMix: 30 },
+    heroes: [
+      newHero('bram', 'Bram', 'scout', 'none', 30),
+      newHero('lyra', 'Lyra', 'scout', 'none', 30),
+      newHero('mira', 'Mira', 'scout', 'none', 30),
+    ],
+    gear: [{ uid: 'g1', itemId: 'runestone5', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 }],
+    nextUid: 10,
+  };
+  save = equip(save, 'bram', 'weapon', 'g1');
   return save;
 }
 

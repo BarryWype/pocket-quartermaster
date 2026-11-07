@@ -15,8 +15,8 @@ export const ruinRules = {
 
 export const heistRules = {
   minutes: [15, 30] as [min: number, max: number],
-  threat: 'locked' as ThreatId,
-  /** The Locked threat's level at each dungeon tier, 1-indexed by tier. */
+  threat: 'traps' as ThreatId,
+  /** The Traps threat's level at each dungeon tier, 1-indexed by tier. */
   levelByTier: [1, 1, 2, 2, 3],
   successChance: { met: 0.9, half: 0.5, full: 0.1 } as Record<ThreatState, number>,
 };

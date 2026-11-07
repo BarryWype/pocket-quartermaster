@@ -97,15 +97,13 @@ describe('tutorial walkthrough', () => {
 });
 
 describe('the tutorial threat', () => {
-  it('reads red until a Hunter’s pack covers it', () => {
+  it('reads partial with nobody answering it', () => {
     const save = createInitialSave();
     const party = ['bram', 'lyra', 'mira'];
     const uncovered = briefingCoverage(save, party, tutorialRules.briefing);
     expect(uncovered.threats[0].threat.id).toBe('beasts');
-    // A level-1 keyword threat reads gold (partial) with nobody answering it.
+    // A level-1 threat reads gold (partial) with nobody answering it.
     expect(uncovered.threats[0].display).toBe('partial');
-    const kitted = equip({ ...save, consumables: { ...save.consumables, huntersPack: 1 } }, 'bram', 'consumable', 'huntersPack');
-    expect(briefingCoverage(kitted, party, tutorialRules.briefing).threats[0].display).toBe('covered');
   });
 });
 

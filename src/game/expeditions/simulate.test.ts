@@ -34,6 +34,7 @@ function member(heroId: string, overrides: Partial<PartyMember> = {}): PartyMemb
     luck: 0,
     threat: 1,
     resists: [],
+    familyTags: [],
     abilities: [],
     consumable: null,
     ...overrides,
@@ -90,8 +91,6 @@ describe('simulateRun', () => {
     const run = simulateRun([member('a')], dungeon([trap()]), 's', { rules: steady });
     expect(run.threats).toEqual([]);
     expect(run.encounters[0]).toMatchObject({ kind: 'quiet', cleared: true, taken: {} });
-    expect(run.lostLoot).toBe(0);
-    expect(run.delay).toBe(0);
   });
 });
 
@@ -148,8 +147,10 @@ describe('traps', () => {
   });
 
   it('catch nobody when the threat is met', () => {
+    // Two Cunning tags meet level 1.
     const briefing = briefingOf('traps');
-    const run = simulateRun([member('a', { classId: 'thief' })], dungeon([trap()]), 's', { rules: steady, briefing });
+    const cunning = { family: 'cunning', count: 2, magic: false, fromClass: true, source: 'class' } as const;
+    const run = simulateRun([member('a', { familyTags: [cunning] })], dungeon([trap()]), 's', { rules: steady, briefing });
     expect(run.encounters[0]).toMatchObject({ trapTriggered: false, taken: {}, cleared: true });
   });
 

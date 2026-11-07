@@ -45,8 +45,8 @@ export const relics: RelicDef[] = [
   relic('hedgeWitchsRobes', 'Hedge-witch’s robes', 1, 'robes', 'Halves the Poison penalty for its wearer', [
     { kind: 'penaltyCut', threat: 'poison', multiplier: 0.5 },
   ], require('../../../assets/icons/relics/robes-hedge-witch.png')),
-  relic('smugglersCoat', 'Smuggler’s coat', 2, 'leather', 'Thieves can’t steal from the party', [
-    { kind: 'cancelPenalty', threat: 'thieves' },
+  relic('smugglersCoat', 'Smuggler’s coat', 2, 'leather', 'Traps cost the party nothing', [
+    { kind: 'cancelPenalty', threat: 'traps' },
   ], require('../../../assets/icons/rpg/armor-padded-leather.png')),
   relic('barrowKingsBlade', 'Barrow king’s blade', 2, 'sword', 'Heals the wielder when it kills an undead', [
     { kind: 'healOnKill', pct: 0.1, when: { tag: 'undead' } },
@@ -60,11 +60,12 @@ export const relics: RelicDef[] = [
   relic('bogWitchsWand', 'Bog-witch’s wand', 2, 'wand', 'Channel against water enemies', [
     { kind: 'keyword', keyword: 'channel', when: { tag: 'water' } },
   ], require('../../../assets/icons/magic/wand-iron-crescent.png')),
-  relic('minersLampStaff', 'Miner’s lamp-staff', 3, 'staff', 'Answers Darkness for its carrier', [
-    { kind: 'keyword', keyword: 'light' },
-  ], require('../../../assets/icons/relics/staff-lamp.png')),
-  relic('drownedBell', 'Drowned bell', 3, 'censer', 'Blessed; the party ignores the Underwater penalty in the first fight', [
-    { kind: 'ignorePenalty', threat: 'underwater', when: { firstFight: true } },
+  {
+    ...relic('minersLampStaff', 'Miner’s lamp-staff', 3, 'staff', 'A second Watch tag for its carrier', [], require('../../../assets/icons/relics/staff-lamp.png')),
+    extraFamily: 'watch',
+  },
+  relic('drownedBell', 'Drowned bell', 3, 'censer', 'Blessed; the party ignores the Element penalty in the first fight', [
+    { kind: 'ignorePenalty', threat: 'element', when: { firstFight: true } },
   ], require('../../../assets/icons/relics/censer-drowned.png')),
   relic('dwarfLordsAxe', 'Dwarf-lord’s axe', 3, 'axe', 'Pierce against constructs', [
     { kind: 'keyword', keyword: 'pierce', when: { tag: 'construct' } },
@@ -72,8 +73,8 @@ export const relics: RelicDef[] = [
   relic('witchHuntersDagger', 'Witch-hunter’s dagger', 3, 'dagger', 'Double crit damage against casters', [
     { kind: 'critDamage', multiplier: 2, when: { tag: 'caster' } },
   ], require('../../../assets/icons/rpg/dagger-blue-dirk.png')),
-  relic('thiefTakersQuiver', 'Thief-taker’s quiver', 3, 'quiver', 'Reach in Ambush fights', [
-    { kind: 'keyword', keyword: 'reach', when: { threat: 'ambush' } },
+  relic('thiefTakersQuiver', 'Thief-taker’s quiver', 3, 'quiver', 'Reach in Darkness fights', [
+    { kind: 'keyword', keyword: 'reach', when: { threat: 'darkness' } },
   ], require('../../../assets/icons/rpg/crossbow-obsidian.png')),
   relic('orcWarlordsHammer', 'Orc warlord’s hammer', 4, 'warhammer', 'Stagger on every crit against Brutes', [
     { kind: 'staggerOnCrit', when: { tag: 'brute' } },
@@ -81,12 +82,13 @@ export const relics: RelicDef[] = [
   relic('clockworkAegis', 'Clockwork aegis', 4, 'shield', 'Guard; Brace against Brutes only', [
     { kind: 'keyword', keyword: 'brace', when: { tag: 'brute' } },
   ], require('../../../assets/icons/rpg/shield-silver-heater.png')),
-  relic('sirensLute', 'Siren’s lute', 4, 'lute', 'Inspire in Underwater dungeons', [
-    { kind: 'keyword', keyword: 'inspire', when: { threat: 'underwater' } },
+  relic('sirensLute', 'Siren’s lute', 4, 'lute', 'Inspire in Element dungeons', [
+    { kind: 'keyword', keyword: 'inspire', when: { threat: 'element' } },
   ], require('../../../assets/icons/relics/horn-curved.png')),
-  relic('cartographersFocus', 'Cartographer’s focus', 4, 'focus', 'Answers Maze for its carrier', [
-    { kind: 'answers', threat: 'maze' },
-  ], require('../../../assets/icons/relics/orb-blue.png')),
+  {
+    ...relic('cartographersFocus', 'Cartographer’s focus', 4, 'focus', 'A second Cunning tag for its carrier', [], require('../../../assets/icons/relics/orb-blue.png')),
+    extraFamily: 'cunning',
+  },
   relic('duelistsMainGauche', 'Duelist’s main-gauche', 4, 'offhandBlade', 'Parry against Brutes', [
     { kind: 'keyword', keyword: 'parry', when: { tag: 'brute' } },
   ], require('../../../assets/icons/rpg/sword-arrowhead-blade.png')),

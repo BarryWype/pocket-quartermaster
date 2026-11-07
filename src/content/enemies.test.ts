@@ -1,9 +1,8 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-import { bossById, bosses, mobById, mobs, npcMobId, patrolMobId, sanctumGuardian, sanctumMinionId } from './enemies';
+import { bossById, bosses, mobById, mobs, patrolMobId, sanctumGuardian, sanctumMinionId } from './enemies';
 import fixture from './enemyThreatTags.fixture.json';
-import { npcs } from './npcs';
 import { sanctumRules, sanctums } from './sanctums';
 import { dungeons } from './dungeons';
 
@@ -36,10 +35,6 @@ const guardianById = Object.fromEntries(guardians.map((g) => [g.id, g]));
 beforeAll(() => {
   mobs.forEach((m) => addRow(m.name, 'dungeon', m.tags));
   bosses.forEach((b) => addRow(b.name, overnightBossIds.has(b.id) ? 'overnight' : 'boss', b.tags));
-  npcs.forEach((n) => {
-    const mob = mobById[npcMobId(n.id, 1)];
-    addRow(mob.name, 'npc', mob.tags);
-  });
   for (const [id, mob] of Object.entries(mobById)) {
     const patrol = /^patrol:([^:]+):\d+:(?:weak|normal|boss)$/.exec(id);
     const place = /^place:([^:]+):\d+:(?:weak|normal|boss)(?::[a-z]+)?$/.exec(id);

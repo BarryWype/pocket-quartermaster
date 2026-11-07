@@ -178,28 +178,7 @@ export type Keyword =
   | 'inspire'
   | 'mend';
 
-export type ThreatId =
-  | 'traps'
-  | 'element'
-  | 'beasts'
-  | 'undead'
-  | 'brute'
-  | 'rubble'
-  | 'poison'
-  | 'locals'
-  | 'swarm'
-  | 'darkness'
-  | 'locked'
-  | 'desecrated'
-  | 'casters'
-  | 'ambush'
-  | 'thieves'
-  | 'armoured'
-  | 'puzzle'
-  | 'maze'
-  | 'underwater';
-
-export type ThreatCategory = 'environment' | 'obstacle' | 'holy' | 'enemy' | 'social';
+export type ThreatId = 'holy' | 'beasts' | 'darkness' | 'traps' | 'poison' | 'element' | 'armoured';
 
 /** Light, strong or extreme: higher levels need better answers and bite harder when missed. */
 export type ThreatLevel = 1 | 2 | 3;
@@ -226,12 +205,6 @@ export type OpportunityId =
   | 'trophyBeast'
   | 'sealedVault';
 
-/** What meets a threat: the best hero's approach score, the number of heroes with a keyword, or with Resist(element). */
-export type ThreatAnswer =
-  | { kind: 'approach'; approach: Approach }
-  | { kind: 'keyword'; keyword: Keyword }
-  | { kind: 'resist' };
-
 /** One effect of a missed threat. A half penalty halves every number (see "Half penalties"). */
 export type ThreatPenalty =
   /** Enemies strike first in the first `fights` fights, or in all of them. */
@@ -240,39 +213,22 @@ export type ThreatPenalty =
   | { kind: 'weakened'; pct: number }
   /** Share of max HP lost by each hero a trap catches. */
   | { kind: 'trapWounds'; pct: number }
-  /** After (poison: all) or before (casters: one) each fight, % of max HP, ignores armour. */
-  | { kind: 'fightWounds'; pct: number; targets: 'all' | 'one' }
-  /** Expedition time × (1 + pct). */
-  | { kind: 'delay'; pct: number }
-  /** Extra supply points needed at launch. */
-  | { kind: 'hunger'; supply: number }
-  /** Gold and materials × (1 − pct). */
-  | { kind: 'lostLoot'; pct: number }
-  /** The locals turn hostile. */
-  | { kind: 'extraFight' }
+  /** After each fight, % of max HP, ignores armour. */
+  | { kind: 'fightWounds'; pct: number }
   /** Damage of the threat's element taken by heroes without Resist. */
   | { kind: 'elementalDamage'; multiplier: number }
   | { kind: 'enemyDamage'; tag: 'beast'; pct: number }
   | { kind: 'enemyHp'; tag: 'undead'; pct: number }
   /** Armoured: party damage against every enemy × (1 − pct). */
-  | { kind: 'weakenedAgainst'; pct: number }
-  /** Per fight of 3+ enemies, copies of its weakest mob. */
-  | { kind: 'extraEnemies'; count: number }
-  /** The boss deals × (1 + pct). */
-  | { kind: 'bruteDamage'; pct: number }
-  | { kind: 'healingHalved' };
+  | { kind: 'weakenedAgainst'; pct: number };
 
 export type ThreatDef = {
   id: ThreatId;
   name: string;
   emoji: string;
   icon: ImageSourcePropType;
-  category: ThreatCategory;
   /** The first tier the threat appears in, at level 1. */
   firstTier: number;
-  answer: ThreatAnswer;
-  /** Locked: Might forces it (loses some loot). Locals: Might intimidates them (no help, no fight). */
-  alternative?: Approach;
   /** Penalties at levels 1, 2 and 3. */
   penalties: [ThreatPenalty[], ThreatPenalty[], ThreatPenalty[]];
   /** One short line: what it is and what happens if missed. */
@@ -304,8 +260,8 @@ export type RestrictionDef = {
   description: string;
 };
 
-/** What answers an opportunity: any one of them (empty = free). */
-export type OpportunityAnswer = { approach: Approach; score: number } | { keyword: Keyword };
+/** What answers an opportunity: the party's family at that level (empty = free). */
+export type OpportunityAnswer = { family: FamilyId; level: 1 | 2 };
 
 /** What an answered opportunity pays; one kind per opportunity. */
 export type OpportunityReward =
@@ -481,14 +437,12 @@ export type ObstacleKind = 'rubble' | 'locked' | 'barricade';
 
 /**
  * A class ability: one of a few effects the simulation knows. Party-wide ones
- * (beast damage, traps, pickpocket) work if any conscious hero has them.
+ * (beast damage, traps) work if any conscious hero has them.
  */
 export type Ability =
   | { kind: 'damageVsTag'; tag: Tag; multiplier: number }
   /** Trap damage to the party is multiplied by this. */
   | { kind: 'trapReduce'; multiplier: number }
-  /** A thief lifts some gold from locals who don't help. */
-  | { kind: 'pickpocket' }
   /** After each encounter, conscious heroes regain this share of max HP. */
   | { kind: 'partyHeal'; pct: number }
   /** This share of the damage aimed at the most hurt ally is taken by this hero instead. */
@@ -523,18 +477,12 @@ export type Ability =
   /** This hero counts as having the keyword (traits). */
   | { kind: 'keyword'; keyword: Keyword }
   // Class signatures (see threats/signatures.ts and expeditions/simulate.ts).
-  /** The party's missed-threat Delay or Hunger penalties are multiplied by this. */
-  | { kind: 'penaltyReduce'; penalty: 'delay' | 'hunger'; multiplier: number }
-  /** Against this threat (at these levels; all if left out), this hero counts as `count` heroes with its keyword. */
-  | { kind: 'keywordCount'; threat: ThreatId; count: number; levels?: ThreatLevel[] }
-  /** Against this threat, this hero's approach gets `add`, or counts as at least `score`. */
-  | { kind: 'approachFor'; threat: ThreatId; approach: Approach; add?: number; score?: number }
-  /** Added to the approach bonus of this hero's own kit. */
-  | { kind: 'kitBonus'; add: number }
+  /** The party's penalties from this threat are multiplied by this. */
+  | { kind: 'penaltyReduce'; threat: ThreatId; multiplier: number }
+  /** Adds `add` tags of `family` when scoring the threat that family answers (only at these threat levels if given). */
+  | { kind: 'familyVsThreat'; family: FamilyId; add: number; levels?: ThreatLevel[] }
   /** Unarmed or with knuckles, this hero has Pierce. */
   | { kind: 'fistsPierce' }
-  /** The kit in this hero's consumable slot counts as carried by the hero they pick (HeroState.kitFor). */
-  | { kind: 'carryKit' }
   /** A second consumable slot for healing consumables (HeroState.equipment.potion). */
   | { kind: 'potionSlot' }
   /** Lowers the party's worst Extreme threat to Strong. */
@@ -547,8 +495,6 @@ export type Ability =
   | { kind: 'raiseAllies'; threat: ThreatId; level: ThreatLevel; tag: Tag; max: number; damage: number }
   /** This hero's crits deal this multiplier instead in fights that start against a single enemy. */
   | { kind: 'singleEnemyCrit'; multiplier: number }
-  /** The Thieves threat costs no loot; it pays this share of the dungeon's top gold at levels 1, 2 and 3. */
-  | { kind: 'fence'; shares: [number, number, number] }
   /** The meal's bonus (above 1, or its amount) is multiplied by this. */
   | { kind: 'mealBoost'; multiplier: number }
   /** After every fight, conscious heroes heal this share of max HP. */
@@ -782,8 +728,6 @@ export type RelicEffect =
   | { kind: 'cancelPenalty'; threat: ThreatId }
   /** The whole party ignores that threat's penalty, only when `when` holds. */
   | { kind: 'ignorePenalty'; threat: ThreatId; when: GearCondition }
-  /** The carrier meets that approach threat on their own. */
-  | { kind: 'answers'; threat: ThreatId }
   /** The element counts as resisted and its hits deal ×multiplier damage. */
   | { kind: 'immune'; element: Element; multiplier: number }
   /** The first hit of the run's first fight hits every enemy; Magic heroes only. */
@@ -866,21 +810,10 @@ export type EncounterDef = { weight: number } & (
   | { type: 'locals'; npcId: string }
 );
 
-/** How locals help a party that charms them. */
-export type NpcHelp =
-  | { kind: 'heal'; pct: number }
-  /** This share of the dungeon's top gold reward. */
-  | { kind: 'gold'; share: number }
-  /** The party skips the next trap. */
-  | { kind: 'tip' };
-
 export type NpcDef = {
   id: string;
   name: string;
   description: string;
-  help: NpcHelp;
-  /** What they turn into when provoked or caught: scaled to the dungeon's tier in `enemies.ts`. */
-  hostile: { name: string; count: number; hp: number; damage: number; tags: Tag[] };
 };
 
 export type EventDef = { id: string; name: string } & (
@@ -973,7 +906,7 @@ export type ExpeditionReport = {
   /** The briefing the expedition played under (empty when it had none). */
   briefing?: Briefing;
   /** Each drawn threat, its level and how the party fared against it. */
-  threats: { id: ThreatId; level: ThreatLevel; element?: Element; state: 'met' | 'half' | 'full'; forced?: boolean; intimidated?: boolean }[];
+  threats: { id: ThreatId; level: ThreatLevel; element?: Element; state: 'met' | 'half' | 'full' }[];
   /** The briefing's opportunity at the midpoint and what it gave, or null when there was none. */
   opportunity: OpportunityOutcome | null;
   /** Consumables that never triggered, broken back down (see threats/salvage.ts). */

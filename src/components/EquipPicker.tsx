@@ -7,9 +7,8 @@ import { pieceDamageStat } from '@/game/equipment/damageStat';
 import { slotProblem } from '@/game/equipment/slots';
 import { gearIconOf } from '@/game/gear/gearIcon';
 import { affinityOf, equipPreview, healingPotion } from '@/game/team/team';
-import { kitAnswers } from '@/game/threats/coverage';
 import type { SaveData } from '@/game/save';
-import type { Briefing, EquipmentSlot, GearDef, HeroState, StatKey, Stats } from '@/game/types';
+import type { EquipmentSlot, GearDef, HeroState, StatKey, Stats } from '@/game/types';
 import { t, tr } from '@/i18n';
 import { colors } from '@/theme';
 
@@ -29,8 +28,6 @@ type Props = {
   save: SaveData;
   heroId: string;
   slot: EquipmentSlot;
-  /** With a briefing, consumables that answer today's threats or opportunity come first, marked. */
-  briefing?: Briefing;
   /** The dungeon's boss: its weakness item comes first, marked. */
   bossId?: string;
   onPick: (id: string | null) => void;
@@ -54,14 +51,13 @@ type Option = {
 
 export const DELTA_KEYS: (keyof Stats)[] = ['hp', 'power', 'magic', 'armour', 'resistance', 'evasion', 'speed', 'crit', 'luck'];
 
-function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, briefing?: Briefing, bossId?: string): Option[] {
+function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, bossId?: string): Option[] {
   if (slot === 'consumable' || slot === 'potion') {
     // Potions, elixirs and charms; food and kits are for the whole party. The Alchemist's second slot takes healing potions only.
     return Object.entries(save.consumables)
       .filter(([itemId, count]) => count > 0 && itemById[itemId]?.slot === 'consumable' && (slot === 'consumable' || healingPotion(itemId)))
       .map(([itemId, count]) => {
         const item = itemById[itemId];
-        const answers = briefing ? kitAnswers(itemId, briefing) : false;
         const weakens = item.slot === 'consumable' && bossId !== undefined && item.weakness === bossId;
         return {
           id: itemId,
@@ -70,16 +66,15 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, briefin
           title: tr(item.name),
           subtitle: [
             t('equip.inStock', { count }),
-            answers ? t('equip.answersToday') : null,
             weakens ? t('equip.weakensBoss') : null,
             item.description ? tr(item.description) : null,
           ]
             .filter(Boolean)
             .join(' · '),
-          color: answers || weakens ? colors.success : undefined,
+          color: weakens ? colors.success : undefined,
         };
       })
-      // Kits and salves that answer the briefing, and the boss's weakness item, come first.
+      // The boss's weakness item comes first.
       .sort((a, b) => Number(b.color !== undefined) - Number(a.color !== undefined));
   }
   const hero = save.heroes.find((h) => h.id === heroId);
@@ -171,8 +166,8 @@ function deltaParts({ before, after }: { before: Stats; after: Stats }): LabelPa
   });
 }
 
-export function EquipPicker({ save, heroId, slot, briefing, bossId, onPick, onClose }: Props) {
-  const options = optionsFor(save, heroId, slot, briefing, bossId);
+export function EquipPicker({ save, heroId, slot, bossId, onPick, onClose }: Props) {
+  const options = optionsFor(save, heroId, slot, bossId);
   // The piece in the slot now, described in full, so the choice is made against it.
   const hero = save.heroes.find((h) => h.id === heroId);
   const wornUid = slot === 'consumable' || slot === 'potion' ? null : hero?.equipment[slot];

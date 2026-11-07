@@ -18,18 +18,7 @@ function penaltyText(penalty: ThreatPenalty): string {
     case 'trapWounds':
       return t('threats.penalty.trapWounds', { pct: formatPercent(penalty.pct) });
     case 'fightWounds':
-      return t(
-        penalty.targets === 'all' ? 'threats.penalty.fightWoundsAll' : 'threats.penalty.fightWoundsOne',
-        { pct: formatPercent(penalty.pct) },
-      );
-    case 'delay':
-      return t('threats.penalty.delay', { pct: formatPercent(penalty.pct) });
-    case 'hunger':
-      return t('threats.penalty.hunger', { count: penalty.supply });
-    case 'lostLoot':
-      return t('threats.penalty.lostLoot', { pct: formatPercent(penalty.pct) });
-    case 'extraFight':
-      return t('threats.penalty.extraFight');
+      return t('threats.penalty.fightWoundsAll', { pct: formatPercent(penalty.pct) });
     case 'elementalDamage':
       return t('threats.penalty.elementalDamage', { multiplier: penalty.multiplier });
     case 'enemyDamage':
@@ -38,12 +27,6 @@ function penaltyText(penalty: ThreatPenalty): string {
       return t('threats.penalty.enemyHp', { pct: formatPercent(penalty.pct) });
     case 'weakenedAgainst':
       return t('threats.penalty.weakenedAgainst', { pct: formatPercent(penalty.pct) });
-    case 'extraEnemies':
-      return t('threats.penalty.extraEnemies', { count: penalty.count });
-    case 'bruteDamage':
-      return t('threats.penalty.bruteDamage', { pct: formatPercent(penalty.pct) });
-    case 'healingHalved':
-      return t('threats.penalty.healingHalved');
   }
 }
 
