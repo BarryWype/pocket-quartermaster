@@ -173,6 +173,10 @@ export const logTemplates = {
     rally2: ' {hero} rallied the party between fights: everyone caught their breath.',
     bloodrage3: ' On the brink, {hero} struck twice in a frenzy.',
     volley3: ' {hero} loosed a volley that struck every foe.',
+    pack1: ' The pack kept {hero}’s summon in the fight a round longer.',
+    pack2: ' The pack drove {hero}’s summon to hit harder.',
+    pack3: ' A beast of the pack answered {hero}’s call.',
+    wild3: ' {hero} calmed a beast, and it turned on its own.',
   } as Partial<Record<FamilyEffectId, string>>,
   /** The opening lines for the party's stat, speed and oil elixirs. */
   elixirDrank: ' {hero} drank their {item} before setting out.',

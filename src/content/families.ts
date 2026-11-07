@@ -67,6 +67,7 @@ export type FamilyEffectId =
   | 'faith3'
   | 'wild1'
   | 'wild2'
+  | 'wild3'
   | 'watch1'
   | 'watch2'
   | 'watch3'
@@ -92,6 +93,9 @@ export type FamilyEffectId =
   | 'venom1'
   | 'venom2'
   | 'venom3'
+  | 'pack1'
+  | 'pack2'
+  | 'pack3'
   | 'spellweave1'
   | 'spellweave2'
   | 'spellweave3'
@@ -123,5 +127,7 @@ export const familyEffectRules = {
   /** Magic damage added each round of a fight, up to the max; an elemental hit's share that jumps to a second enemy; the scale on the wheel's advantage bonus. */
   spellweave: { perRound: 0.05, max: 0.25, chainShare: 0.3, advantageScale: 2 },
   /** Party damage; the party's heal between fights (level 2). */
+  /** Rounds added to a summon's; its damage; Pack 3's own summon: its share of the hero's hit, and its rounds (before Pack 1). */
+  pack: { extraRounds: 1, damage: 1.5, summonShare: 0.5, summonRounds: 3 },
   rally: { damage: 1.1, healShare: 0.05 },
 };

@@ -87,6 +87,26 @@ export type Hit = FamilyBase & {
   jump: (share: number) => EnemyState | null;
 };
 
+/** A summon joins the party's side: a special's ally, a raised enemy, Pack 3's beast or a calmed one. */
+export type Summon = FamilyBase & {
+  /** The hero it fights for. */
+  hero: HeroState;
+  /** Its damage each round (a raised enemy's: the multiplier on its own damage). */
+  damage: number;
+  /** Rounds it stays; null for the whole fight. */
+  rounds: number | null;
+};
+
+/** Once the fight-start specials have fired, before round 1. */
+export type FightReady = FamilyBase & {
+  enemies: EnemyState[];
+  isBoss: boolean;
+  /** The hero summons an ally dealing this share of their hit on the first living enemy, for these rounds; false with no enemy left. */
+  summon: (hero: HeroState, share: number, rounds: number) => boolean;
+  /** The enemy leaves the fight and strikes for the hero's side for the rest of it, at its own damage. */
+  calm: (hero: HeroState, enemy: EnemyState) => void;
+};
+
 /** A hero's turn is over (their attack and any second blow). */
 export type AfterAttack = FamilyBase & {
   hero: HeroState;
@@ -182,6 +202,8 @@ export type FamilyHooks = {
   onHit?: (ctx: Hit) => void;
   onKill?: (ctx: Hit) => void;
   afterAttack?: (ctx: AfterAttack) => void;
+  summon?: (ctx: Summon) => void;
+  fightReady?: (ctx: FightReady) => void;
   beforeDefend?: (ctx: Defend) => void;
   onDodge?: (ctx: Dodge) => void;
   incoming?: (ctx: Incoming) => void;
@@ -513,6 +535,55 @@ export const familyEffects: FamilyEffect[] = [
       },
     },
   },
+  // Summons.
+  {
+    family: 'pack',
+    level: 1,
+    hooks: {
+      summon: (s) => {
+        if (s.rounds === null) return;
+        s.rounds += R.pack.extraRounds;
+        s.log('pack1', idOf(s.hero));
+      },
+    },
+  },
+  {
+    family: 'pack',
+    level: 2,
+    hooks: {
+      summon: (s) => {
+        s.damage *= R.pack.damage;
+        s.log('pack2', idOf(s.hero));
+      },
+    },
+  },
+  // Calmed first, so Pack 3's summon never aims at the calmed beast.
+  {
+    family: 'wild',
+    level: 3,
+    hooks: {
+      fightReady: (f) => {
+        if (f.isBoss) return;
+        const beast = f.enemies.find(
+          (e) => e.hp > 0 && !('effect' in e.def) && !e.def.id.includes(':elite') && e.def.tags.some((tag) => R.wild.fromTags.includes(tag)),
+        );
+        const hero = f.heroOf('wild');
+        if (!beast || !hero || !f.once('wild3', 'run')) return;
+        f.calm(hero, beast);
+        f.log('wild3', idOf(hero));
+      },
+    },
+  },
+  {
+    family: 'pack',
+    level: 3,
+    hooks: {
+      fightReady: (f) => {
+        const hero = f.heroOf('pack');
+        if (hero && f.summon(hero, R.pack.summonShare, R.pack.summonRounds)) f.log('pack3', idOf(hero));
+      },
+    },
+  },
   // Healing and revival.
   {
     family: 'faith',
@@ -614,6 +685,8 @@ export function activeHooks(levels: FamilyLevels, effects: FamilyEffect[] = fami
     onHit: [],
     onKill: [],
     afterAttack: [],
+    summon: [],
+    fightReady: [],
     beforeDefend: [],
     onDodge: [],
     incoming: [],

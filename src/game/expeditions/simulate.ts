@@ -975,6 +975,13 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         .filter(([, shield]) => shield > 0),
     );
     const living = () => enemies.filter((e) => e.hp > 0);
+    /** A summon joining the party's side, after the family effects that scale it. */
+    const summoned = (hero: HeroState, damage: number, rounds: number | null) => {
+      if (hooks.summon.length === 0) return { damage, rounds };
+      const joining = { ...family, hero, damage, rounds };
+      for (const hook of hooks.summon) hook(joining);
+      return { damage: joining.damage, rounds: joining.rounds };
+    };
     const bossOf = () => (isBoss ? enemies[0] : enemies.find((e) => 'effect' in e.def));
     const strongest = (foes: EnemyState[]) => foes.reduce((best, e) => (e.def.damage > best.def.damage ? e : best));
     const isElite = (enemy: EnemyState) => isBoss || 'effect' in enemy.def || enemy.def.id.includes(':elite');
@@ -1274,7 +1281,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           const foe = opts.target ?? living()[0];
           if (!foe) return false;
           // The summon's damage is fixed at summoning, and never crits.
-          ctx.summons.push({ heroId: id, damage: normalHit(hero, foe, { critChance: 0, multiplier: def.effect.share }).damage, rounds: def.effect.rounds });
+          ctx.summons.push({ heroId: id, ...summoned(hero, normalHit(hero, foe, { critChance: 0, multiplier: def.effect.share }).damage, def.effect.rounds) });
           log();
           break;
         }
@@ -1646,6 +1653,29 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       if ((t.minEnemies !== undefined && enemies.length < t.minEnemies) || (t.boss && !isBoss)) continue;
       if (hasUseLeft(hero, def)) fireSpecial(hero, def);
     }
+    // Raised enemies join with the family effects that scale summons; their damage multiplies their own.
+    const raisedAllies = allies.map((ally) => {
+      const hero = heroes.find((h) => h.member.heroId === ally.heroId)!;
+      return { ...ally, damage: summoned(hero, ally.damage, null).damage };
+    });
+    if (hooks.fightReady.length > 0) {
+      const ready = {
+        ...family,
+        enemies,
+        isBoss,
+        summon: (hero: HeroState, share: number, rounds: number) => {
+          const foe = living()[0];
+          if (!foe) return false;
+          ctx.summons.push({ heroId: hero.member.heroId, ...summoned(hero, normalHit(hero, foe, { critChance: 0, multiplier: share }).damage, rounds) });
+          return true;
+        },
+        calm: (hero: HeroState, enemy: EnemyState) => {
+          enemy.hp = 0;
+          ctx.summons.push({ heroId: hero.member.heroId, ...summoned(hero, enemy.def.damage, null) });
+        },
+      };
+      for (const hook of hooks.fightReady) hook(ready);
+    }
     // While the fight runs, hurt() hands the specials that watch for damage or a fall over to it.
     damageTriggers = (hero, knockedOut) => {
       const firstHit = !ctx.hitsTaken.has(hero.member.heroId);
@@ -1722,7 +1752,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         if (ambushed) enemiesAttack(round);
         if (escaped || alive().length === 0) return;
         // Raised enemies strike every round and are never targeted; a special's summons fight beside them.
-        for (const ally of [...allies, ...ctx.summons]) {
+        for (const ally of [...raisedAllies, ...ctx.summons]) {
           const target = enemies.find((e) => e.hp > 0);
           if (!target) break;
           if ('tag' in ally) {

@@ -48,6 +48,8 @@ export type FightSetup = {
   boss?: Partial<BossDef>;
   /** A fight before the boss with these mobs: the fight looked at. */
   mobs?: MobGroup[];
+  /** How many fights of `mobs` come before the boss (default 1). */
+  fights?: number;
   options?: RunOptions;
   seed?: string;
 };
@@ -73,7 +75,7 @@ export function familyFight(family: FamilyId | null, level: number, setup: Fight
   const boss: BossDef = { id: 'testBoss', name: 'test boss', hp: 1e6, damage: 5, damageType: 'power', speed: 5, tags: [], ...setup.boss };
   const dungeon: DungeonDef = {
     ...dungeonById.ratCellar,
-    encounterCount: setup.mobs ? [2, 2] : [1, 1],
+    encounterCount: setup.mobs ? [(setup.fights ?? 1) + 1, (setup.fights ?? 1) + 1] : [1, 1],
     encounters: setup.mobs ? [{ type: 'fight', weight: 1, mobs: setup.mobs }] : [{ type: 'event', weight: 1, eventId: 'cache' }],
     boss,
   };
