@@ -774,6 +774,11 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       result.effects.push({ heroId, key: 'family', familyEffect: effect, ...(allyId ? { allyId } : {}) });
     },
     heroOf: (family) => alive().find((h) => h.member.familyTags.some((t) => t.family === family)) ?? alive()[0],
+    heal: (hero, share) => {
+      const before = hero.hp;
+      heal(hero, share, result);
+      return hero.hp - before;
+    },
   });
 
   const heal = (hero: HeroState, share: number, result: EncounterResult) => {
@@ -793,8 +798,18 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     hero.hp -= amount;
     add(result.taken, hero.member.heroId, amount);
     if (hero.hp <= 0) {
+      let revive: number | null = null;
+      if (!guaranteed && hooks.knockout.length > 0) {
+        const knockout = { ...familyBase(result), hero, revive };
+        for (const hook of hooks.knockout) hook(knockout);
+        revive = knockout.revive;
+      }
       if (guaranteed) {
         hero.hp = 1;
+      } else if (revive !== null) {
+        // A family revival gets the hero back up before any draught; the run still counts them as knocked out.
+        hero.hp = Math.max(1, Math.round(revive * hero.member.maxHp));
+        result.knockedOut.push(hero.member.heroId);
       } else {
         const elixir = hero.member.consumable?.elixir;
         // A revival draught gets the carrier back up once; the run still counts them as knocked out.
@@ -1327,6 +1342,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
               ...family,
               hero,
               target,
+              tags,
               crit,
               damage,
               round: currentRound,
@@ -1735,6 +1751,10 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     const allies = raised;
     raised = [];
     fight(enemyDefs, result, enemiesFirst, isBoss, weakness, allies);
+    if (result.cleared && hooks.afterFight.length > 0 && alive().length > 0) {
+      const after = { ...familyBase(result), heroes: alive(), tags: [...new Set(enemyDefs.flatMap(enemyTags))], isBoss };
+      for (const hook of hooks.afterFight) hook(after);
+    }
     // The first fight with the tag, at the signature's threat level: its fallen fight for the party next.
     for (const hero of heroes) {
       for (const ability of hero.member.abilities) {

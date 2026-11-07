@@ -63,7 +63,10 @@ export const familyRules = { levels: [2, 4, 6] };
 /** A family effect that fired, for the log: the family and level, with a suffix when one level has two parts. */
 export type FamilyEffectId =
   | 'faith1'
+  | 'faith2'
+  | 'faith3'
   | 'wild1'
+  | 'wild2'
   | 'watch1'
   | 'watch2'
   | 'watch3'
@@ -78,6 +81,7 @@ export type FamilyEffectId =
   | 'bulwark2'
   | 'bulwark3'
   | 'bloodrage1'
+  | 'bloodrage2'
   | 'shadow1'
   | 'shadow2'
   | 'shadow3'
@@ -89,12 +93,15 @@ export type FamilyEffectId =
   | 'spellweave1'
   | 'spellweave2'
   | 'spellweave3'
-  | 'rally1';
+  | 'rally1'
+  | 'rally2';
 
 /** The numbers behind the family effects in fights (see game/expeditions/familyEffects.ts). */
 export const familyEffectRules = {
-  faith: { vsTags: ['undead', 'spirit'] as string[], damage: 1.1 },
-  wild: { fromTags: ['beast'] as string[], damageTaken: 0.9 },
+  /** Damage against these tags; the share of that damage healed (level 2); the HP share the run's first knockout gets back up at (level 3). */
+  faith: { vsTags: ['undead', 'spirit'] as string[], damage: 1.1, healShare: 0.03, revivePct: 0.25 },
+  /** Damage taken from these tags; the party's heal after a won fight against them (level 2). */
+  wild: { fromTags: ['beast'] as string[], damageTaken: 0.9, healShare: 0.05 },
   /** Speed added in round 1; crit chance added against elites. */
   watch: { firstRoundSpeed: 3, eliteCrit: 0.1 },
   /** Elemental hits taken are multiplied; a share of the elemental damage taken is reflected. */
@@ -103,7 +110,8 @@ export const familyEffectRules = {
   breaker: { armourIgnore: 0.1, shred: 0.3 },
   /** The front hero's damage taken; the share of the weakest ally's hits the front hero takes. */
   bulwark: { frontTaken: 0.85, guardShare: 0.5 },
-  bloodrage: { belowHp: 0.5, damage: 1.2 },
+  /** Damage below this HP share; the heal on each kill (level 2). */
+  bloodrage: { belowHp: 0.5, damage: 1.2, healOnKill: 0.05 },
   /** Crit chance in round 1; Evasion points added; a counter's share of a normal hit. */
   shadow: { firstRoundCrit: 0.15, evasion: 10, counterShare: 0.5 },
   /** The weapons that count as ranged, and the share of armour their hits ignore. */
@@ -112,5 +120,6 @@ export const familyEffectRules = {
   venom: { woundsTaken: 0.5, dotShare: 0.1, dotRounds: 3, baseStacks: 1, maxStacks: 3, poisonedTaken: 1.2 },
   /** Magic damage added each round of a fight, up to the max; an elemental hit's share that jumps to a second enemy; the scale on the wheel's advantage bonus. */
   spellweave: { perRound: 0.05, max: 0.25, chainShare: 0.3, advantageScale: 2 },
-  rally: { damage: 1.1 },
+  /** Party damage; the party's heal between fights (level 2). */
+  rally: { damage: 1.1, healShare: 0.05 },
 };

@@ -18,6 +18,8 @@ export type FamilyBase = {
   log: (effect: FamilyEffectId, heroId: string | null, allyId?: string) => void;
   /** The first conscious hero carrying a tag of the family, else the first conscious hero. */
   heroOf: (family: FamilyId) => HeroState | undefined;
+  /** Heals the hero this share of max HP (times the run's healing); the HP healed. */
+  heal: (hero: HeroState, share: number) => number;
 };
 
 /** Before round 1, once the enemies stand. */
@@ -69,6 +71,8 @@ export type Attack = FamilyBase & {
 export type Hit = FamilyBase & {
   hero: HeroState;
   target: EnemyState;
+  /** The target's tags. */
+  tags: Tag[];
   crit: boolean;
   damage: number;
   round: number;
@@ -125,6 +129,21 @@ export type BetweenFights = FamilyBase & {
   heroes: HeroState[];
 };
 
+/** A hero is about to be knocked out (not in a guaranteed run). */
+export type Knockout = FamilyBase & {
+  hero: HeroState;
+  /** Set to a share of max HP to get the hero back up at it; the run still counts the knockout. */
+  revive: number | null;
+};
+
+/** After every won fight, boss included, while someone stands. */
+export type AfterFight = FamilyBase & {
+  heroes: HeroState[];
+  /** Every enemy tag of the fight. */
+  tags: Tag[];
+  isBoss: boolean;
+};
+
 /** The Poison threat's after-fight wounds, per hero before they land. */
 export type PoisonWound = FamilyBase & {
   hero: HeroState;
@@ -153,6 +172,8 @@ export type FamilyHooks = {
   incoming?: (ctx: Incoming) => void;
   afterTaken?: (ctx: Taken) => void;
   betweenFights?: (ctx: BetweenFights) => void;
+  knockout?: (ctx: Knockout) => void;
+  afterFight?: (ctx: AfterFight) => void;
   poisonWound?: (ctx: PoisonWound) => void;
   poisonCap?: (ctx: PoisonCap) => void;
 };
@@ -451,6 +472,60 @@ export const familyEffects: FamilyEffect[] = [
       },
     },
   },
+  // Healing and revival.
+  {
+    family: 'faith',
+    level: 2,
+    hooks: {
+      onHit: (h) => {
+        if (!h.tags.some((tag) => R.faith.vsTags.includes(tag))) return;
+        if (h.heal(h.hero, (R.faith.healShare * h.damage) / h.hero.member.maxHp) > 0) h.log('faith2', idOf(h.hero));
+      },
+    },
+  },
+  {
+    family: 'faith',
+    level: 3,
+    hooks: {
+      knockout: (k) => {
+        if (!k.once('faith3', 'run')) return;
+        k.revive = R.faith.revivePct;
+        k.log('faith3', idOf(k.hero));
+      },
+    },
+  },
+  {
+    family: 'wild',
+    level: 2,
+    hooks: {
+      afterFight: (f) => {
+        if (!f.tags.some((tag) => R.wild.fromTags.includes(tag))) return;
+        const healed = f.heroes.reduce((sum, hero) => sum + f.heal(hero, R.wild.healShare), 0);
+        const hero = f.heroOf('wild');
+        if (healed > 0) f.log('wild2', hero ? idOf(hero) : null);
+      },
+    },
+  },
+  {
+    family: 'bloodrage',
+    level: 2,
+    hooks: {
+      onKill: (h) => {
+        if (h.heal(h.hero, R.bloodrage.healOnKill) > 0) h.log('bloodrage2', idOf(h.hero));
+      },
+    },
+  },
+  {
+    family: 'rally',
+    level: 2,
+    hooks: {
+      betweenFights: (b) => {
+        const healed = b.heroes.reduce((sum, hero) => sum + b.heal(hero, R.rally.healShare), 0);
+        const hero = b.heroOf('rally');
+        if (healed > 0) b.log('rally2', hero ? idOf(hero) : null);
+      },
+    },
+  },
   // Poison.
   {
     family: 'venom',
@@ -502,6 +577,8 @@ export function activeHooks(levels: FamilyLevels, effects: FamilyEffect[] = fami
     incoming: [],
     afterTaken: [],
     betweenFights: [],
+    knockout: [],
+    afterFight: [],
     poisonWound: [],
     poisonCap: [],
   };

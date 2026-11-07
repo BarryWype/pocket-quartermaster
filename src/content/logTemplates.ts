@@ -166,6 +166,11 @@ export const logTemplates = {
     venom3: ' {hero}’s blows tore at the poisoned foe.',
     spellweave2: ' {hero}’s spell leapt to a second foe.',
     spellweave3: ' {hero}’s element overwhelmed a foe it masters.',
+    faith2: ' Faith mended {hero} with every blow at the undead.',
+    faith3: ' Faith raised {hero} back to their feet.',
+    wild2: ' The Wild tended the party after the beasts fell.',
+    bloodrage2: ' {hero} drew strength from the kill.',
+    rally2: ' {hero} rallied the party between fights: everyone caught their breath.',
   } as Partial<Record<FamilyEffectId, string>>,
   /** The opening lines for the party's stat, speed and oil elixirs. */
   elixirDrank: ' {hero} drank their {item} before setting out.',
