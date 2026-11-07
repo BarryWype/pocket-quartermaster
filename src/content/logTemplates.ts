@@ -139,10 +139,16 @@ export const logTemplates = {
   /** A family effect that fired, by effect: {hero} is who it fired for, {ally} who it protected. */
   families: {
     faith1: ' Faith burned the undead under {hero}’s blows.',
-    wild1: ' The Wild calmed the beasts: they hit {hero} softer.',
+    wild1: ' The Wild soothed the beasts: they hit {hero} softer.',
     bloodrage1: ' Bleeding, {hero} hit harder.',
     spellweave1: ' {hero}’s spells grew stronger each round.',
     rally1: ' {hero} rallied the party: everyone hit harder.',
+    watch1: ' The Watch saw them coming: {hero} moved first.',
+    volley1: ' {hero} loosed before the enemy could close in.',
+    watch3: ' Nothing caught the Watch off guard: {hero} struck first.',
+    watch3Crit: ' {hero} found the gap in an elite’s guard.',
+    shadow1: ' From the shadows, {hero} struck a weak spot.',
+    shadow3: ' {hero} struck down the weakest foe before it could move.',
   } as Partial<Record<FamilyEffectId, string>>,
   /** The opening lines for the party's stat, speed and oil elixirs. */
   elixirDrank: ' {hero} drank their {item} before setting out.',

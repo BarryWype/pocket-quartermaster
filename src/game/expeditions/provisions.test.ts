@@ -226,15 +226,16 @@ describe('meals', () => {
 });
 
 describe('party meals', () => {
-  const mealRun = (meal: MealEffect | null, boss: BossDef = weakBoss, briefing: Briefing = EMPTY_BRIEFING) =>
+  // Family tags enough to answer every opportunity the meals test takes.
+  const answering: PartyMember['familyTags'] = [
+    { family: 'cunning', count: 2, magic: false, fromClass: false, source: 'gear' },
+    { family: 'breaker', count: 2, magic: false, fromClass: false, source: 'gear' },
+    { family: 'watch', count: 4, magic: false, fromClass: false, source: 'gear' },
+    { family: 'rally', count: 2, magic: false, fromClass: false, source: 'gear' },
+  ];
+  const mealRun = (meal: MealEffect | null, boss: BossDef = weakBoss, briefing: Briefing = EMPTY_BRIEFING, familyTags = answering) =>
     simulateRun(
-      // Family tags enough to answer every opportunity the meals test takes.
-      [member('a', [], { resistance: 10, familyTags: [
-        { family: 'cunning', count: 2, magic: false, fromClass: false, source: 'gear' },
-        { family: 'breaker', count: 2, magic: false, fromClass: false, source: 'gear' },
-        { family: 'watch', count: 4, magic: false, fromClass: false, source: 'gear' },
-        { family: 'rally', count: 2, magic: false, fromClass: false, source: 'gear' },
-      ] })],
+      [member('a', [], { resistance: 10, familyTags })],
       { ...oneEncounter(trap), encounterCount: [3, 3], boss },
       's',
       { rules: steady, meal, briefing },
@@ -250,8 +251,9 @@ describe('party meals', () => {
 
   it('Spiced skewers: +1 Speed, quick heroes strike first', () => {
     const quick = { ...weakBoss, speed: 6, damage: 40 };
-    const plain = mealRun(null, quick);
-    const fed = mealRun({ kind: 'speed', add: provisionRules.meals.skewersSpeed }, quick);
+    // No Watch tags: their round-1 Speed would decide the order on its own.
+    const plain = mealRun(null, quick, undefined, []);
+    const fed = mealRun({ kind: 'speed', add: provisionRules.meals.skewersSpeed }, quick, undefined, []);
     expect(plain.hp[0].hp).toBe(60);
     expect(fed.hp[0].hp).toBe(100);
   });

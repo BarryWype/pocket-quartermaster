@@ -65,6 +65,8 @@ export type Hit = FamilyBase & {
   target: EnemyState;
   crit: boolean;
   damage: number;
+  round: number;
+  elite: boolean;
 };
 
 /** An enemy attack aimed at a hero, before the dodge roll. */
@@ -188,6 +190,74 @@ export const familyEffects: FamilyEffect[] = [
         a.multiplier *= R.rally.damage;
         const rallier = a.heroOf('rally');
         a.log('rally1', rallier ? idOf(rallier) : null);
+      },
+    },
+  },
+  // Turn order and first strikes.
+  {
+    family: 'watch',
+    level: 1,
+    hooks: {
+      turnOrder: (o) => {
+        if (o.round !== 1) return;
+        const behind = o.speed < o.fastest;
+        o.speed += R.watch.firstRoundSpeed;
+        if (behind && o.speed >= o.fastest && !o.first && !o.ambushed) o.log('watch1', idOf(o.hero));
+      },
+    },
+  },
+  {
+    family: 'volley',
+    level: 1,
+    hooks: {
+      turnOrder: (o) => {
+        if (!o.hero.member.ranged || o.first) return;
+        o.first = true;
+        if (o.speed < o.fastest || o.ambushed) o.log('volley1', idOf(o.hero));
+      },
+    },
+  },
+  {
+    family: 'watch',
+    level: 3,
+    hooks: {
+      turnOrder: (o) => {
+        if (o.first) return;
+        o.first = true;
+        if (o.speed < o.fastest || o.ambushed) o.log('watch3', idOf(o.hero));
+      },
+      beforeAttack: (a) => {
+        if (a.elite) a.critAdd += R.watch.eliteCrit;
+      },
+      onHit: (h) => {
+        if (h.crit && h.elite) h.log('watch3Crit', idOf(h.hero));
+      },
+    },
+  },
+  {
+    family: 'shadow',
+    level: 1,
+    hooks: {
+      beforeAttack: (a) => {
+        if (a.round === 1) a.critAdd += R.shadow.firstRoundCrit;
+      },
+      onHit: (h) => {
+        if (h.crit && h.round === 1) h.log('shadow1', idOf(h.hero));
+      },
+    },
+  },
+  {
+    family: 'shadow',
+    level: 3,
+    hooks: {
+      fightStart: (f) => {
+        // Never the boss.
+        const foes = f.enemies.filter((e) => e.hp > 0 && !f.isBoss && !('effect' in e.def));
+        const hero = f.heroOf('shadow');
+        if (foes.length === 0 || !hero || !f.once('shadow3')) return;
+        const weakest = foes.reduce((low, e) => (e.hp < low.hp ? e : low));
+        f.strikeDown(hero, weakest);
+        f.log('shadow3', idOf(hero));
       },
     },
   },

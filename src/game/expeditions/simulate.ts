@@ -1316,7 +1316,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           }
           attacked.add(id);
           if (hooks.onHit.length > 0 || hooks.onKill.length > 0) {
-            const hit = { ...family, hero, target, crit, damage };
+            const hit = { ...family, hero, target, crit, damage, round: currentRound, elite: isElite(target) };
             for (const hook of hooks.onHit) hook(hit);
             if (target.hp <= 0) for (const hook of hooks.onKill) hook(hit);
           }

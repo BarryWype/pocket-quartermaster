@@ -18,7 +18,7 @@ describe('family damage modifiers', () => {
     ['Faith 1: not other foes', 'faith', 1, { boss: { tags: ['beast'] } },
       (on, off) => expect(perRound(on, 'dealt')).toBeCloseTo(perRound(off, 'dealt')), 'faith1', null, null],
     ['Wild 1: beasts deal less damage', 'wild', 1, { boss: { tags: ['beast'] } },
-      (on, off) => expect(perRound(on, 'taken') / perRound(off, 'taken')).toBeCloseTo(R.wild.damageTaken), 'wild1', 'The Wild calmed the beasts: they hit a softer.', 'Le Sauvage a calmé les bêtes : elles ont frappé a moins fort.'],
+      (on, off) => expect(perRound(on, 'taken') / perRound(off, 'taken')).toBeCloseTo(R.wild.damageTaken), 'wild1', 'The Wild soothed the beasts: they hit a softer.', 'Le Sauvage a apaisé les bêtes : elles ont frappé a moins fort.'],
     ['Wild 1: not other foes', 'wild', 1, { boss: { tags: ['undead'] } },
       (on, off) => expect(perRound(on, 'taken')).toBeCloseTo(perRound(off, 'taken')), 'wild1', null, null],
     ['Bloodrage 1: more damage below half HP', 'bloodrage', 1, { party: { a: { hp: 40 } }, boss: { damage: 0 } },
