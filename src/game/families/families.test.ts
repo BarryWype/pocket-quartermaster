@@ -100,7 +100,7 @@ describe('partyFamilies', () => {
       piece('g2', itemIdOfGearType('plate')),
       piece('g3', itemIdOfGearType('shield')),
     ]);
-    expect(partyFamilies(save, ['w', 'nobody'])).toEqual({ bulwark: 4 });
-    expect(activeFamilies(partyFamilies(save, ['w']))).toEqual([{ family: 'bulwark', count: 4, level: 2 }]);
+    expect(partyFamilies(save, ['w', 'nobody'])).toEqual({ bulwark: 3, rally: 1 });
+    expect(activeFamilies(partyFamilies(save, ['w']))).toEqual([{ family: 'bulwark', count: 3, level: 1 }]);
   });
 });

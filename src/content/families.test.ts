@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-import { gearProfiles } from '@/content/equipment';
+import { classAffinities, gearProfiles } from '@/content/equipment';
 import { families } from '@/content/families';
 import { heroClasses } from '@/content/heroes';
 
@@ -98,8 +98,32 @@ describe('gearProfiles matches item-tags.csv', () => {
     }
   });
 
-  test('every family has at least one weapon type', () => {
-    const weaponTags = new Set(itemTagsCsv.filter((row) => row.slot === 'weapon').map((row) => row.family));
-    for (const family of families) expect(weaponTags.has(family.id)).toBe(true);
+  test('every family has at least one item type', () => {
+    const itemTags = new Set(itemTagsCsv.map((row) => row.family));
+    for (const family of families) expect(itemTags.has(family.id)).toBe(true);
+  });
+});
+
+describe('no class anchors its own family alone', () => {
+  test('class tag plus gear tags of its own family is at most 3 in any gear it can use', () => {
+    const types = Object.keys(gearProfiles) as GearType[];
+    const offhands = types.filter((type) => gearProfiles[type].slot === 'offhand');
+    const broken: string[] = [];
+    for (const classId of Object.keys(heroClasses) as HeroClassId[]) {
+      const own = heroClasses[classId].familyTag;
+      const affinities = classAffinities[classId];
+      const usable = (slot: 'weapon' | 'armor') =>
+        types.filter((type) => gearProfiles[type].slot === slot && affinities[type as keyof typeof affinities] !== 'unfit');
+      for (const weapon of usable('weapon')) {
+        for (const armour of usable('armor')) {
+          const gear = gearProfiles[weapon].twoHanded ? [[weapon, armour]] : offhands.map((offhand) => [weapon, armour, offhand]);
+          for (const set of gear) {
+            const count = 1 + set.reduce((sum, type) => sum + (gearProfiles[type].familyTag === own ? (gearProfiles[type].twoHanded ? 2 : 1) : 0), 0);
+            if (count > 3) broken.push(`${classId} in ${set.join(', ')}: ${count} ${own}`);
+          }
+        }
+      }
+    }
+    expect(broken).toEqual([]);
   });
 });
