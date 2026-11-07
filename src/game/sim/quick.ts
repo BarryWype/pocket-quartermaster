@@ -12,7 +12,8 @@ import { placeFightBriefing, placeFightDungeon } from '../places/fights';
 import { PATROL_KINDS, patrolsAround } from '../patrols/generate';
 import { patrolOdds } from '../patrols/fight';
 import { createInitialSave, type SaveData } from '../save';
-import { averagePiece } from './reference';
+import { averagePiece, withSpares } from './reference';
+import { dressParty } from './rules/families';
 import { equip } from '../team/team';
 import { highestTier, withLoadout } from './bot';
 import { expectedLevels, simConfig, type SimConfig } from './config';
@@ -25,9 +26,9 @@ const NOON = 12 * 3_600_000;
 /** One tier's means, or null where nothing was sampled. */
 export type QuickTier = {
   tier: number;
-  /** Open normal dungeons, prepared (weakness item, potions). */
+  /** Open normal dungeons, prepared: dressed for the briefing (threat families, then a playstyle), weakness item, potions. */
   prepared: number | null;
-  /** The same dungeons with the briefing skipped when the party was picked (potions only). */
+  /** The same dungeons with the briefing skipped: gear as worn, potions only. */
   notPrepared: number | null;
   /** The tier boss, prepared. */
   boss: number | null;
@@ -46,7 +47,8 @@ export type QuickTier = {
 /**
  * The reference team the dungeons are fitted to (see the comment above
  * TIER_SCALE): the starting trio in the tier's sword, bow and wand plus mail,
- * Common rarity, at the top of the tier's level band; every lower tier's
+ * Common rarity, with a spare piece of every type to dress from, at the top
+ * of the tier's level band; every lower tier's
  * dungeons cleared (so this tier is unlocked), stocked with every
  * boss weakness item and three healing potions.
  */
@@ -59,6 +61,7 @@ export function quickSave(tier: number): SaveData {
     heroes: initial.heroes.map((h) => ({ ...h, level: expectedLevels[tier - 1], special: classSpecials[h.classId].common[0] })),
     gear: [`sword${tier}`, `bow${tier}`, `wand${tier}`, `mail${tier}`, `mail${tier}`, `mail${tier}`].map((itemId, i) => averagePiece(`g${i}`, itemId, 'common')),
   };
+  save = withSpares(save, tier, 'common');
   save.heroes.forEach((hero, i) => {
     save = equip(equip(save, hero.id, 'weapon', `g${i}`), hero.id, 'armor', `g${i + 3}`);
   });
@@ -101,14 +104,14 @@ export function quickProbe(config: SimConfig = simConfig): QuickTier[] {
 
       for (const dungeon of dungeons.filter((d) => d.tier === tier && !d.isBoss && !d.overnight && isDungeonAvailable(save, d, rotation))) {
         const briefing = briefingFor(rotation, dungeon);
-        prepared.push(estimateOdds(withLoadout(save, ids, dungeon, briefing), ids, dungeon, runs, { now: t, briefing }).success);
+        prepared.push(estimateOdds(withLoadout(dressParty(save, ids, briefing), ids, dungeon, briefing), ids, dungeon, runs, { now: t, briefing }).success);
         plain.push(estimateOdds(withLoadout(save, ids, dungeon, EMPTY_BRIEFING), ids, dungeon, runs, { now: t, briefing }).success);
       }
 
       const bossDungeon = dungeons.find((d) => d.tier === tier && d.isBoss && !d.overnight);
       if (bossDungeon) {
         const briefing = briefingFor(rotation, bossDungeon);
-        boss.push(estimateOdds(withLoadout(save, ids, bossDungeon, briefing), ids, bossDungeon, runs, { now: t, briefing }).success);
+        boss.push(estimateOdds(withLoadout(dressParty(save, ids, briefing), ids, bossDungeon, briefing), ids, bossDungeon, runs, { now: t, briefing }).success);
       }
 
       const places = placesWithin(config.location, 2000, t);
@@ -117,7 +120,7 @@ export function quickProbe(config: SimConfig = simConfig): QuickTier[] {
         if (!spawn) continue;
         const dungeon = placeFightDungeon(spawn, tier);
         const briefing = placeFightBriefing(save, spawn);
-        const odds = estimateOdds(withLoadout(save, ids, dungeon, briefing), ids, dungeon, runs, { now: t, briefing }).success;
+        const odds = estimateOdds(withLoadout(dressParty(save, ids, briefing), ids, dungeon, briefing), ids, dungeon, runs, { now: t, briefing }).success;
         events.push(odds);
         byKind[kind].push(odds);
       }

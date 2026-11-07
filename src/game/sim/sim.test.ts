@@ -14,6 +14,7 @@ import type { LootSourceId } from '../loot/types';
 import { createInitialSave, type SaveData } from '../save';
 import { profiles, simConfig } from './config';
 import { checkSave, runSim } from './engine';
+import { renderReport } from '../../../scripts/sim/report';
 import { summarize } from './metrics';
 import { applyOverrides, parseOverride } from './overrides';
 import { spamCheck } from './spam';
@@ -83,6 +84,18 @@ describe('balance lab', () => {
     expect(log.milestones['boss:1']).toBeDefined();
     expect(log.expeditions.length).toBeGreaterThan(5);
     expect(log.crafts.some((c) => c.kind === 'upgrade')).toBe(true);
+  });
+
+  it('logs the families its parties reach and reports them', () => {
+    const log = runSim({ profile: 'regular', maxDays: 4, seed: 'families', rates });
+    expect(log.expeditions.length).toBeGreaterThan(0);
+    expect(log.expeditions.some((e) => Object.keys(e.families).length > 0)).toBe(true);
+    expect(log.expeditions.every((e) => e.cycleHours >= e.hours - 1e-9)).toBe(true);
+    const summary = summarize([log]);
+    expect(summary.families[0].runs).toBeGreaterThan(0);
+    const report = renderReport({ summaries: [summary], rules: [], settings: { seeds: 1, seed: 'families', overrides: [], elapsed: 0, date: 'test' }, difficultyOdds: {} });
+    expect(report).toContain('## Families');
+    expect(report).toContain('**Families reached**');
   });
 
   it('never leaves the save in a state the game forbids', () => {

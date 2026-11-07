@@ -13,7 +13,10 @@ import { workToolRules } from '@/content/workTools';
 import { jobMaterials } from '../jobs/jobs';
 import type { LootCategory, LootSourceId } from '../loot/types';
 import { PATROL_KINDS, TRAVELLER_KINDS, type PatrolKind } from '../patrols/generate';
-import type { ProbeRow, RunLog } from './bot';
+import { families, type FamilyId } from '@/content/families';
+
+import type { ExpeditionRow, ProbeRow, RunLog } from './bot';
+import type { AffixRow, FocusRow } from './familyFocus';
 import { expectedLevels, profiles } from './config';
 import type { DifficultyOdds } from './difficultyOdds';
 import { lootPacing } from './pacing';
@@ -92,6 +95,8 @@ export type TierSummary = {
 
 export type ProfileSummary = {
   profile: string;
+  /** The Families report: what the bot's parties reached per tier (see familyTiers). */
+  families: FamilyTier[];
   seeds: number;
   finished: number;
   totalDays: Stat;
@@ -127,7 +132,108 @@ export type Summary = {
   profiles: Record<string, ProfileSummary>;
   /** The reference teams' odds per tier and difficulty, measured once per run (see difficultyOdds.ts). */
   difficultyOdds: Record<number, DifficultyOdds>;
+  /** The family probes, measured once per run (see familyFocus.ts). */
+  familyProbes?: { focus: FocusRow[]; venom: AffixRow[] };
 };
+
+/** One tier of the Families report, from the bot's own runs. */
+export type FamilyTier = {
+  tier: number;
+  /** The tier's dungeon runs (bosses and overnight runs apart), over all seeds. */
+  runs: number;
+  /** Per family the parties reached: the share of runs at level 1 or more, 2 or more, and 3. */
+  reached: Partial<Record<FamilyId, [number, number, number]>>;
+  /** Per threat in the briefings: runs that met it, half met it, or missed it. */
+  threats: Record<string, { met: number; half: number; full: number }>;
+  /** The probe's not-prepared party, in the gear it wears (picked without regard to families): probes, and the share reaching level 2 or more, and 3. */
+  natural: { probes: number; level2: number; level3: number };
+  /**
+   * Runs with Cunning 2 or more against the rest, on the same dungeons: their
+   * share, the mean hours from launch to the end of the run and to the session
+   * that collected it, and how much faster that cycle is (the runs a week it
+   * allows), weighted by the Cunning runs; null without a pair.
+   */
+  cunning: { runs: number; share: number; hours: [number, number] | null; cycle: [number, number] | null; speedup: number | null };
+  /** Trophies and blueprint overflow over the tier, per seed: drops, gold, monster parts, relics and stones, and drops a week. */
+  trophies: { drops: Stat; gold: Stat; parts: Stat; relics: Stat; stones: Stat; perWeek: Stat };
+};
+
+/** The Families report's per-tier rows (see FamilyTier). */
+export function familyTiers(logs: RunLog[]): FamilyTier[] {
+  return TIERS.map((tier) => {
+    const rows = logs.flatMap((log) => log.expeditions.filter((e) => e.tier === tier && !e.boss && !e.overnight));
+    const share = (count: number) => (rows.length ? count / rows.length : 0);
+    const reached: FamilyTier['reached'] = {};
+    for (const family of families) {
+      const levels = rows.map((r) => r.families?.[family.id] ?? 0);
+      if (levels.every((l) => l === 0)) continue;
+      reached[family.id] = [share(levels.filter((l) => l >= 1).length), share(levels.filter((l) => l >= 2).length), share(levels.filter((l) => l >= 3).length)];
+    }
+    const threats: FamilyTier['threats'] = {};
+    for (const row of rows) {
+      for (const part of row.threats.split(', ').filter(Boolean)) {
+        const [id, , state] = part.split(' ');
+        const t = (threats[id] ??= { met: 0, half: 0, full: 0 });
+        if (state === 'met' || state === 'half' || state === 'full') t[state]++;
+      }
+    }
+    const probes = logs.flatMap((log) => log.probes.filter((p) => p.tier === tier && p.kind === 'normal' && p.natural !== null && p.natural !== undefined));
+    const natural = {
+      probes: probes.length,
+      level2: probes.length ? probes.filter((p) => p.natural! >= 2).length / probes.length : 0,
+      level3: probes.length ? probes.filter((p) => p.natural! >= 3).length / probes.length : 0,
+    };
+    const cunning = (r: ExpeditionRow) => (r.families?.cunning ?? 0) >= 2;
+    const paired = [...new Set(rows.filter(cunning).map((r) => r.dungeonId))].filter((id) => rows.some((r) => r.dungeonId === id && !cunning(r)));
+    const avg = (values: number[]) => mean(values) ?? 0;
+    const weighted = (pick: (r: ExpeditionRow) => number) => {
+      let w = 0;
+      let withSum = 0;
+      let withoutSum = 0;
+      for (const id of paired) {
+        const on = rows.filter((r) => r.dungeonId === id && cunning(r));
+        const off = rows.filter((r) => r.dungeonId === id && !cunning(r));
+        w += on.length;
+        withSum += avg(on.map(pick)) * on.length;
+        withoutSum += avg(off.map(pick)) * on.length;
+      }
+      return w ? ([withSum / w, withoutSum / w] as [number, number]) : null;
+    };
+    const cycle = weighted((r) => r.cycleHours ?? r.hours);
+    const windows = logs.map((log) => tierWindow(log, tier));
+    const drops = (i: number) => (windows[i] ? logs[i].trophies.filter((t) => within(t.day, windows[i])) : null);
+    const total = (pick: (t: RunLog['trophies'][number]) => number) => stat(logs.map((_, i) => drops(i)?.reduce((sum, t) => sum + pick(t), 0) ?? null));
+    return {
+      tier,
+      runs: rows.length,
+      reached,
+      threats,
+      natural,
+      cunning: {
+        runs: rows.filter(cunning).length,
+        share: share(rows.filter(cunning).length),
+        hours: weighted((r) => r.hours),
+        cycle,
+        speedup: cycle && cycle[0] > 0 ? cycle[1] / cycle[0] - 1 : null,
+      },
+      trophies: {
+        drops: total(() => 1),
+        gold: total((t) => t.gold),
+        parts: total((t) => t.parts),
+        relics: total((t) => t.relics),
+        stones: total((t) => t.stones),
+        perWeek: stat(logs.map((_, i) => (windows[i] ? ((drops(i)?.length ?? 0) / (windows[i]![1] - windows[i]![0] + 1)) * 7 : null))),
+      },
+    };
+  });
+}
+
+/** Cunning 2 parties' speed-up over the whole game: the per-tier speed-ups weighted by their Cunning runs; null without any. */
+export function cunningSpeedup(tiers: FamilyTier[]): number | null {
+  const counted = tiers.filter((t) => t.cunning.speedup !== null && t.cunning.runs > 0);
+  const runs = counted.reduce((sum, t) => sum + t.cunning.runs, 0);
+  return runs ? counted.reduce((sum, t) => sum + t.cunning.speedup! * t.cunning.runs, 0) / runs : null;
+}
 
 /** Median of each key over seeds, of per-seed totals. */
 function medianTotals(perSeed: Record<string, number>[]): Record<string, number> {
@@ -528,6 +634,7 @@ export function summarize(logs: RunLog[], t: Targets = defaultTargets): ProfileS
 
   return {
     profile,
+    families: familyTiers(logs),
     seeds: logs.length,
     finished: logs.filter((l) => l.finished).length,
     totalDays: stat(logs.map((l) => (l.finished ? l.days : null))),

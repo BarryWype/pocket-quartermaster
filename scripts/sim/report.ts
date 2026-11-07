@@ -5,10 +5,13 @@ import { REVEAL_KINDS } from '@/content/reveal';
 import { difficultyRules } from '@/content/difficulty';
 import type { DifficultyOdds } from '@/game/sim/difficultyOdds';
 import { affinityChanges } from '@/game/sim/affinity';
-import { misses, type ProfileSummary, type Stat, type Summary } from '@/game/sim/metrics';
+import { affixById } from '@/content/affixes';
+import { FOCUS_FLAG, familyName, focusFlags, VENOM_RIVALS, type AffixRow, type FocusRow } from '@/game/sim/familyFocus';
+import { cunningSpeedup, misses, type ProfileSummary, type Stat, type Summary } from '@/game/sim/metrics';
+import { familyById, familyOfThreat, families } from '@/content/families';
 import { gathererPace } from '@/game/sim/gathererPace';
 import { inRange, targets } from '@/game/sim/targets';
-import type { HeroClassId, WeaponType } from '@/game/types';
+import type { HeroClassId, ThreatId, WeaponType } from '@/game/types';
 
 export type ReportInput = {
   summaries: ProfileSummary[];
@@ -16,6 +19,8 @@ export type ReportInput = {
   settings: { seeds: number; seed: string; overrides: string[]; elapsed: number; date: string };
   /** The reference teams' odds per tier and difficulty (summary.json's `difficultyOdds`). */
   difficultyOdds: Record<number, DifficultyOdds>;
+  /** The family probes (summary.json's `familyProbes`). */
+  familyProbes?: Summary['familyProbes'];
   /** The "Class affinity changes" section's table, measured with the quick odds machinery. */
   affinity?: string | null;
   /** A summary to compare days per tier against, e.g. a run with `--no-jobs`. */
@@ -49,6 +54,137 @@ export function affinityTable(runs?: number) {
     runs,
   ).flatMap((c) => c.tiers.map((t) => [c.classId, String(t.tier), t.oldWeapon, t.newWeapon, pct(t.oldOdds), pct(t.newOdds)]));
   return table(['Class', 'Tier', 'Old reference weapon', 'New reference weapon', 'Old odds', 'New odds'], rows);
+}
+
+/** Win odds per family focus: each playstyle family's team per tier at level 3 and with its tags stripped, then the lift and its flag. */
+export function familyFocusTable(rows: FocusRow[]) {
+  const tiers = [...new Set(rows.map((r) => r.tier))];
+  const flags = focusFlags(rows);
+  const body = flags.map(({ family, lift, flag }) => {
+    const mine = rows.filter((r) => r.family === family);
+    return [
+      `${familyName(family)} (${mine[0].classes.join(', ')})`,
+      ...tiers.map((tier) => {
+        const r = mine.find((row) => row.tier === tier)!;
+        return `${pct(r.none)} → ${pct(r.level3)} (L${r.reached})`;
+      }),
+      `${n(lift * 100, 1)} pts`,
+      flag === 'high' ? `${WARN} above ${FOCUS_FLAG.above}× median` : flag === 'low' ? `${WARN} below ${FOCUS_FLAG.below}× median` : flag === 'loot' ? 'loot family, not flagged' : '',
+    ];
+  });
+  return table(['Family (team)', ...tiers.map((t) => `Tier ${t}: none → L3 (reached)`), 'Lift', 'Flag'], body);
+}
+
+/** The Venomous affix outside Venom parties against the rival weapon affixes, per tier and on average (flagged below half the rivals' median), with Venom 2 for comparison. */
+export function venomTable(rows: AffixRow[]) {
+  const avg = (pick: (r: AffixRow) => number) => rows.reduce((sum, r) => sum + pick(r), 0) / rows.length;
+  const line = (label: string, lift: (pick: (r: AffixRow) => number) => number, flag = '') => [
+    label,
+    `${n(lift((r) => r.venomous) * 100, 1)}${flag}`,
+    n(lift((r) => r.venom2) * 100, 1),
+    ...VENOM_RIVALS.map((id) => n(lift((r) => r.rivals[id]) * 100, 1)),
+  ];
+  const body = rows.map((r) => line(`Tier ${r.tier} (${pct(r.plain)})`, (pick) => pick(r) - r.plain));
+  const meanLift = (pick: (r: AffixRow) => number) => avg((r) => pick(r) - r.plain);
+  const rivals = VENOM_RIVALS.map((id) => meanLift((r) => r.rivals[id])).sort((a, b) => a - b);
+  const weak = meanLift((r) => r.venomous) < FOCUS_FLAG.below * rivals[Math.floor(rivals.length / 2)];
+  body.push(line('Mean', meanLift, weak ? ` ${WARN} below ${FOCUS_FLAG.below}× the rivals’ median` : ''));
+  return table(['Tier (odds with no affix)', 'Venomous (no Venom)', 'Venomous (Venom 2)', ...VENOM_RIVALS.map((id) => affixById[id].name)], body);
+}
+
+/** Components per week for the regular player on main before families step 4 (report of 2026-11-06), and the pacing plan's. */
+const MAIN_COMPONENTS = { observed: 0.69, designed: 2.46, date: '2026-11-06' };
+
+/** A Cunning 2 party faster than this over the game is flagged. */
+const CUNNING_FLAG = 0.1;
+
+/** One profile's Families tables: families reached, threats answered, natural parties, Cunning 2 pace and trophies. */
+function familyProfile(s: ProfileSummary) {
+  const tiers = s.families.filter((t) => t.runs > 0 || t.natural.probes > 0);
+  const head = (first: string) => [first, ...tiers.map((t) => `Tier ${t.tier}`)];
+  const reachedRows = families
+    .filter((f) => tiers.some((t) => t.reached[f.id]))
+    .map((f) => [
+      f.name,
+      ...tiers.map((t) => {
+        const r = t.reached[f.id];
+        return r ? `${pct(r[0])} / ${pct(r[1])} / ${pct(r[2])}` : '—';
+      }),
+    ]);
+  const threatIds = [...new Set(tiers.flatMap((t) => Object.keys(t.threats)))];
+  const threatRows = threatIds.map((id) => [
+    `${id} (${familyById[familyOfThreat(id as ThreatId)].name})`,
+    ...tiers.map((t) => {
+      const c = t.threats[id];
+      const seen = c ? c.met + c.half + c.full : 0;
+      return seen ? `${pct(c.met / seen)} met, ${pct(c.half / seen)} half (${seen})` : '—';
+    }),
+  ]);
+  const overall = cunningSpeedup(s.families);
+  const hoursCell = (pair: [number, number] | null) => (pair ? `${n(pair[0], 1)} vs ${n(pair[1], 1)}` : '—');
+  return [
+    `**Families reached** (share of the tier’s dungeon runs with the family at level 1+ / 2+ / 3; ${tiers.map((t) => `tier ${t.tier}: ${t.runs} runs`).join(', ')})`,
+    '',
+    table(head('Family'), reachedRows),
+    '',
+    '**Threats answered** (share of the tier’s runs whose briefing had the threat: met, half met; runs in brackets)',
+    '',
+    table(head('Threat'), threatRows),
+    '',
+    '**Natural parties** (the probe’s not-prepared party: picked as if there were no threats, in the gear it wears)',
+    '',
+    table(['Tier', 'Probes', 'Level 2+', 'Level 3'], tiers.map((t) => [String(t.tier), String(t.natural.probes), pct(t.natural.level2), pct(t.natural.level3)])),
+    '',
+    `**Cunning 2 pace** (runs with Cunning 2+ against the rest on the same dungeons; a cycle is launch to the session that collected the run, what limits runs a week). Over the game: ${overall === null ? '—' : `${n(overall * 100, 1)}% faster`}${overall !== null && overall > CUNNING_FLAG ? ` ${WARN} above ${CUNNING_FLAG * 100}%` : ''}.`,
+    '',
+    table(
+      ['Tier', 'Cunning 2 runs', 'Run hours (with vs without)', 'Cycle hours (with vs without)', 'Faster'],
+      tiers.map((t) => [String(t.tier), `${t.cunning.runs} (${pct(t.cunning.share)})`, hoursCell(t.cunning.hours), hoursCell(t.cunning.cycle), t.cunning.speedup === null ? '—' : `${n(t.cunning.speedup * 100, 1)}%`]),
+    ),
+    '',
+    '**Trophies** (boss and elite trophies and a complete blueprint tier’s overflow, which replaced components; per seed over the tier)',
+    '',
+    table(
+      ['Tier', 'Drops', 'A week', 'Gold', 'Monster parts', 'Relics', 'Stones'],
+      s.families.map((t) => [String(t.tier), cellStat(t.trophies.drops), cellStat(t.trophies.perWeek, 1), cellStat(t.trophies.gold), cellStat(t.trophies.parts), cellStat(t.trophies.relics), cellStat(t.trophies.stones)]),
+    ),
+    '',
+  ].join('\n');
+}
+
+/** A Stat as "median (min–max)". */
+const cellStat = (st: Stat, digits = 0) => `${n(st.median, digits)}${spread(st, (v) => n(v, digits))}`;
+
+/** The report's Families section. */
+function familiesSection(summaries: ProfileSummary[], probes: Summary['familyProbes'] | undefined) {
+  const out = [
+    '## Families',
+    '',
+    'How the families play out: the family focus probe (each playstyle family at level 3 against the same team with its tags stripped, so only the family’s effects differ), the Venomous affix outside Venom parties, then per profile what the bot’s parties reached, how often each threat was answered, how often natural parties reach level 2 and 3 in real gear, how much faster Cunning 2 parties go, and what trophies bring.',
+    '',
+  ];
+  if (probes) {
+    out.push(
+      '### Win odds per family focus',
+      '',
+      `Each playstyle family’s focus team (its first two classes, filled from the starting trio) at each tier’s end, in Uncommon gear of the tier and dressed to push the family, over the tier’s chain dungeons: odds with the family’s tags stripped → at level 3, and the level the team reaches in its own gear. Lift: level 3 minus none, averaged over the tiers. ${WARN} flags a lift above ${FOCUS_FLAG.above}× or below ${FOCUS_FLAG.below}× the median lift; Plunder (gold, parts and rarity, nothing in a fight) is shown but not flagged.`,
+      '',
+      familyFocusTable(probes.focus),
+      '',
+      '### Venomous outside Venom parties',
+      '',
+      `The reference trio at each tier’s end, each weapon with one more affix at the middle of its range: points of win odds over no affix. Venomous is measured outside a Venom party (Venom tags stripped: one poison per enemy) and with Venom 2 (stacks to 3); ${WARN} if its mean is below ${FOCUS_FLAG.below}× the rivals’ median.`,
+      '',
+      venomTable(probes.venom),
+      '',
+    );
+  }
+  out.push(
+    `Components on main (report of ${MAIN_COMPONENTS.date}): ${MAIN_COMPONENTS.observed.toFixed(1)} a week for the regular player (${MAIN_COMPONENTS.designed.toFixed(1)} planned); compare with the trophies a week below.`,
+    '',
+  );
+  for (const s of summaries) out.push(`### ${s.profile}`, '', familyProfile(s));
+  return out;
 }
 
 const WARN = '⚠';
@@ -377,7 +513,7 @@ export function specialsBlock(markdown: string): string | null {
 }
 
 /** The markdown report: targets next to results, ⚠ on anything out of range. */
-export function renderReport({ summaries, rules, settings, difficultyOdds, affinity, baseline, specials }: ReportInput) {
+export function renderReport({ summaries, rules, settings, difficultyOdds, familyProbes, affinity, baseline, specials }: ReportInput) {
   const regular = summaries.find((s) => s.profile === 'regular');
   const worst = misses(summaries).slice(0, 10);
   const out: string[] = [
@@ -415,6 +551,7 @@ export function renderReport({ summaries, rules, settings, difficultyOdds, affin
       affinity,
       '',
     );
+  out.push(...familiesSection(summaries, familyProbes));
   if (specials) out.push(specials);
   out.push(
     '## Events and patrols by kind',
