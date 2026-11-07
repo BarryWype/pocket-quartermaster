@@ -197,14 +197,14 @@ describe('class slots and picks', () => {
   const save = (): SaveData => ({
     ...createInitialSave(),
     heroes: [newHero('a', 'A', 'alchemist', 'none'), newHero('p', 'P', 'porter', 'none'), newHero('w', 'W', 'warrior', 'none')],
-    consumables: { healingPotion: 2, roguesRoll: 1 },
+    consumables: { healingPotion: 2, trailMix: 1 },
   });
 
   it('gives the Alchemist a second slot for healing consumables only, back to the stock on dismissal', () => {
     let next = equip(save(), 'a', 'potion', 'healingPotion');
     expect(next.heroes[0].equipment.potion).toBe('healingPotion');
     expect(next.consumables.healingPotion).toBe(1);
-    expect(() => equip(save(), 'a', 'potion', 'roguesRoll')).toThrow();
+    expect(() => equip(save(), 'a', 'potion', 'trailMix')).toThrow();
     expect(() => equip(save(), 'w', 'potion', 'healingPotion')).toThrow();
     next = dismissHero(next, 'a');
     expect(next.consumables.healingPotion).toBe(2);

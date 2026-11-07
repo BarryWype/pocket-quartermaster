@@ -297,9 +297,8 @@ export function grantTutorialLoot(save: SaveData, heroIds: string[], now: number
 
 /**
  * The party's consumables that never triggered during the run, broken back
- * down (see threats/salvage.ts): potions nobody needed, kits that changed no
- * threat and never healed, salves whose element never came, elixirs and
- * weakness items never used.
+ * down (see threats/salvage.ts): potions nobody needed, elixirs and weakness
+ * items never used.
  */
 export function untriggeredSalvage(party: PartyMember[], run: RunResult, source: LootSourceId): ExpeditionReport['salvaged'] {
   const triggered = (member: PartyMember): boolean => {
@@ -307,16 +306,6 @@ export function untriggeredSalvage(party: PartyMember[], run: RunResult, source:
     // A charm is spent by any run at a source where it can apply, won or lost.
     if (item.charm) return charmApplies(item.charm, source);
     if (item.when === 'lowHp') return run.consumed.includes(member.heroId);
-    if (item.kit) {
-      // A ward salve is a kit too: it counts when its carrier took damage of its element.
-      return (
-        (item.kit.heal !== undefined && run.consumed.includes(member.heroId)) ||
-        (item.protectsAgainst !== undefined && (run.damageElements[member.heroId]?.includes(item.protectsAgainst) ?? false))
-      );
-    }
-    if (item.protectsAgainst) {
-      return (run.damageElements[member.heroId]?.includes(item.protectsAgainst) ?? false);
-    }
     const elixir = item.elixir;
     if (elixir) {
       // Stat, speed and crit elixirs are drunk before the run; an oil needs a weapon that struck; the rest need their trigger.

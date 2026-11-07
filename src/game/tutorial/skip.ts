@@ -4,7 +4,6 @@ import { tutorialRules } from '@/content/tutorial';
 import { craft } from '../crafting/crafting';
 import { grantTutorialLoot, resolveExpedition, startExpedition } from '../expeditions/expeditions';
 import { addMaterials } from '../inventory';
-import { salvage } from '../threats/salvage';
 import { createInitialSave, type SaveData, type TutorialSpawn, type TutorialStep } from '../save';
 import { equip, isAway } from '../team/team';
 import type { MaterialStack, RecipeDef } from '../types';
@@ -79,24 +78,16 @@ export function skipTutorial(save: SaveData, now: number): SaveData {
     next = equip(next, armed.id, 'weapon', sword.uid);
   }
 
-  if (packOwed) next = craftAnyway(next, recipeById[tutorialRules.kitRecipe]);
+  if (packOwed) next = craftAnyway(next, recipeById[tutorialRules.potionRecipe]);
 
-  // Without a run to carry it, the pack comes back untriggered and is broken
-  // back down, exactly as a played run's report would do.
+  // A played run spends the potion in its slot, used or not; the skipped run does too.
   if (!underWay) {
-    const holder = next.heroes.find((h) => h.equipment.consumable === tutorialRules.kitRecipe);
-    const held = (next.consumables[tutorialRules.kitRecipe] ?? 0) > 0;
-    if (held || holder) {
-      const { materials, gold } = salvage(tutorialRules.kitRecipe);
-      next = {
-        ...next,
-        materials: addMaterials(next.materials, materials),
-        gold: next.gold + gold,
-        consumables: { ...next.consumables, [tutorialRules.kitRecipe]: Math.max(0, (next.consumables[tutorialRules.kitRecipe] ?? 0) - 1) },
-        heroes: holder
-          ? next.heroes.map((h) => (h.id === holder.id ? { ...h, equipment: { ...h.equipment, consumable: null } } : h))
-          : next.heroes,
-      };
+    const holder = next.heroes.find((h) => h.equipment.consumable === tutorialRules.potionRecipe);
+    const held = (next.consumables[tutorialRules.potionRecipe] ?? 0) > 0;
+    if (holder) {
+      next = { ...next, heroes: next.heroes.map((h) => (h.id === holder.id ? { ...h, equipment: { ...h.equipment, consumable: null } } : h)) };
+    } else if (held) {
+      next = { ...next, consumables: { ...next.consumables, [tutorialRules.potionRecipe]: next.consumables[tutorialRules.potionRecipe]! - 1 } };
     }
   }
 
@@ -171,11 +162,11 @@ export function jumpToStep(save: SaveData, step: TutorialStep, now: number): Sav
         next = nextTutorialStep(next, 'seeThreat', now);
         break;
       case 'craftKit':
-        next = advanceTutorial(craftAnyway(next, recipeById[tutorialRules.kitRecipe]));
+        next = advanceTutorial(craftAnyway(next, recipeById[tutorialRules.potionRecipe]));
         break;
       case 'equipKit': {
         const hero = next.heroes.find((h) => !isAway(next, h.id));
-        next = hero && hero.equipment.consumable == null ? advanceTutorial(equip(next, hero.id, 'consumable', tutorialRules.kitRecipe)) : stepPast(next);
+        next = hero && hero.equipment.consumable == null ? advanceTutorial(equip(next, hero.id, 'consumable', tutorialRules.potionRecipe)) : stepPast(next);
         break;
       }
       case 'sendExpedition': {

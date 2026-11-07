@@ -11,7 +11,7 @@ import { generateTavernsAround } from '../../taverns/taverns';
 import { emptyLog, type Sim } from '../bot';
 import { profiles, simConfig } from '../config';
 import type { WalkRates } from '../walking';
-import { blessSymbols, buyForgeMaterials, nearestSpawn, openSecrets, visitPlaces } from './map';
+import { buyForgeMaterials, nearestSpawn, openSecrets, visitPlaces } from './map';
 
 const DAY = 86_400_000;
 const LOCATION = simConfig.location;
@@ -101,25 +101,6 @@ describe('map rules', () => {
     expect(sim.save.keyFragments).toBe(0);
     expect(sim.save.heroes.some((h) => heroClasses[h.classId].rarity === 'rare')).toBe(true);
     expect(heroClasses[sim.log.recruits[0].classId as HeroClassId].rarity).toBe('rare');
-  });
-
-  it('blesses held holy symbols at a chapel within 1.5 km', () => {
-    const now = simConfig.startDay;
-    const chapel = placesWithin(LOCATION, 2000, now).find((p) => p.kind === 'chapel');
-    expect(chapel).toBeDefined();
-    const sim = makeSim(
-      {
-        ...createInitialSave(),
-        tutorial: { step: 'done', spawns: [], lastPickupAt: null, rewarded: true },
-        consumables: { ...createInitialSave().consumables, holyRelics: 2 },
-      },
-      now,
-    );
-    sim.location = chapel!.position;
-    blessSymbols(sim);
-    expect(sim.save.consumables.holyRelics).toBe(0);
-    expect(sim.save.consumables.blessedRelics).toBe(2);
-    expect(sim.log.places).toEqual([{ day: 1, kind: 'chapel', tier: 1, odds: null, won: null }]);
   });
 
   it('buys the material a wanted forge is short of at the nearest place stocking it', () => {

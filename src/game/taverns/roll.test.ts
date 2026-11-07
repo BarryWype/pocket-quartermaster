@@ -26,7 +26,6 @@ describe('rollRecruit', () => {
         expect(sum).toBeGreaterThanOrEqual(3);
         expect(sum).toBeLessThanOrEqual(18);
       }
-      if (roll.approach) expect(['might', 'finesse', 'wits', 'faith', 'presence']).toContain(roll.approach);
     }
   });
 

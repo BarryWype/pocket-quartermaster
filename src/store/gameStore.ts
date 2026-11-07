@@ -43,7 +43,7 @@ import { closeTip as closeTipRule, dueTips, noteTips as queueTips } from '@/game
 import { createInitialSave, type SaveData, type TutorialStep } from '@/game/save';
 import { careProblem, drinkPotion, drinkProblem, fastForwardHealing, giveHomeCare, healAll, setHeroHp, settleHp } from '@/game/team/health';
 import { buy, sellGear, sellMaterial, sellValuable } from '@/game/places/shops';
-import { apothecaryCare, blessRelics, chapelCare, takeChapelBlessing, trainHero, type CareKind } from '@/game/places/services';
+import { apothecaryCare, chapelCare, takeChapelBlessing, trainHero, type CareKind } from '@/game/places/services';
 import type { PlaceSpawn } from '@/game/places/generate';
 import { fish } from '@/game/places/dock';
 import { resolvePlaceFights, startPlaceFight } from '@/game/places/fights';
@@ -54,7 +54,6 @@ import { grantTip, type TipOutcome } from '@/game/secrets/tips';
 import { buyAtBlackMarket, enterSecret, recruitAtSecret } from '@/game/secrets/places';
 import { secretRules, type PlaceTipSource } from '@/content/secrets';
 import type { TipId } from '@/content/reveal';
-import { pickApproach } from '@/game/team/stats';
 import { dismissHero, equip, heroStats, isAway, keepHpShare, markClassesSeen, unequip } from '@/game/team/team';
 import { buySupply, recruit, type RecruitOffer } from '@/game/taverns/taverns';
 import { checkPersonalTavern } from '@/game/taverns/personal';
@@ -74,7 +73,7 @@ import { acceptQuests, retargetQuests, targetFirstQuest } from '@/game/quests/ta
 import { createRng } from '@/game/generation/rng';
 import { makeGearPiece } from '@/game/gear/make';
 import { distanceMeters } from '@/game/generation/geo';
-import type { Approach, EquipmentSlot, ExpeditionReport, Heist, HeroClassId, HeroRoll, PlaceFight, Rarity } from '@/game/types';
+import type { EquipmentSlot, ExpeditionReport, Heist, HeroClassId, HeroRoll, PlaceFight, Rarity } from '@/game/types';
 
 import { t } from '@/i18n';
 
@@ -147,8 +146,6 @@ type GameState = {
   setJobChoice: (jobId: string, material: string) => void;
   /** Uses a home care item from the stock on a hero at home. */
   giveHomeCare: (heroId: string, itemId: string) => void;
-  /** Spends one of the hero's pending approach picks. */
-  pickApproach: (heroId: string, approach: Approach) => void;
   buySupply: (count: number, tavern: LatLng, player: LatLng) => void;
   /** Runs the day's tavern-guarantee check from the day's first map position; `snap` places a spot on a walkable point. */
   checkPersonalTavern: (origin: LatLng, snap: (point: LatLng) => LatLng | null) => void;
@@ -163,7 +160,6 @@ type GameState = {
   setCollector: (valuableId: string) => void;
   /** The chapel's free care, once per visit. */
   chapelCare: (spawn: PlaceSpawn, heroId: string, care: CareKind, player: LatLng) => void;
-  blessRelics: (spawn: PlaceSpawn, player: LatLng) => void;
   takeChapelBlessing: (spawn: PlaceSpawn, player: LatLng) => void;
   apothecaryCare: (spawn: PlaceSpawn, heroId: string, care: CareKind, player: LatLng) => void;
   trainHero: (spawn: PlaceSpawn, heroId: string, player: LatLng) => void;
@@ -264,7 +260,7 @@ type GameState = {
   resetFirstWin: () => void;
   /** Debug: a hero of any class and level, with an average roll or one landing on a grade. */
   addHero: (classId: HeroClassId, level: number, trait: string, roll?: HeroRoll) => void;
-  /** Debug: sets a hero's level (1–15), XP to 0; pending approach picks follow. */
+  /** Debug: sets a hero's level (1–15), XP to 0. */
   debugSetHeroLevel: (heroId: string, level: number) => void;
   setGuildRank: (trackId: GuildTrackId, rank: number) => void;
   resetGuild: () => void;
@@ -291,8 +287,6 @@ type GameState = {
   healAll: () => void;
   /** Adds this many of every provision and charm. */
   addProvisions: (amount: number) => void;
-  /** Adds one of every kit and ward salve (debug only). */
-  addKits: () => void;
   /** Adds one of every elixir, provision, walking and home care item (debug only). */
   addConsumables: () => void;
   /** Ends a walking effect now (debug only). */
@@ -439,7 +433,6 @@ export const useGameStore = create<GameState>()(
       },
       giveHomeCare: (heroId, itemId) =>
         set(({ save }) => (careProblem(save, heroId, itemId, Date.now()) ? {} : { save: giveHomeCare(save, heroId, itemId, Date.now()) })),
-      pickApproach: (heroId, approach) => set(({ save }) => ({ save: pickApproach(save, heroId, approach) })),
       buySupply: (count, tavern, player) => set(({ save }) => ({ save: buySupply(save, count, tavern, player) })),
       checkPersonalTavern: (origin, snap) => {
         const next = checkPersonalTavern(get().save, origin, Date.now(), snap);
@@ -456,7 +449,6 @@ export const useGameStore = create<GameState>()(
       setCollector: (valuableId) =>
         set(({ save }) => ({ save: { ...save, collectorOverride: { dayKey: localDayKey(Date.now()), valuableId } } })),
       chapelCare: (spawn, heroId, care, player) => set(({ save }) => ({ save: chapelCare(save, spawn, heroId, care, player, Date.now()) })),
-      blessRelics: (spawn, player) => set(({ save }) => ({ save: blessRelics(save, spawn, player, Date.now()) })),
       takeChapelBlessing: (spawn, player) => set(({ save }) => ({ save: takeChapelBlessing(save, spawn, player, Date.now()) })),
       apothecaryCare: (spawn, heroId, care, player) =>
         set(({ save }) => ({ save: apothecaryCare(save, spawn, heroId, care, player, Date.now()) })),
@@ -728,14 +720,6 @@ export const useGameStore = create<GameState>()(
           const consumables = { ...save.consumables };
           for (const item of items.filter((i) => i.slot === 'provision')) {
             consumables[item.id] = (consumables[item.id] ?? 0) + amount;
-          }
-          return { save: { ...save, consumables } };
-        }),
-      addKits: () =>
-        set(({ save }) => {
-          const consumables = { ...save.consumables };
-          for (const item of items.filter((i) => i.slot === 'consumable' && (i.kit || i.protectsAgainst))) {
-            consumables[item.id] = (consumables[item.id] ?? 0) + 1;
           }
           return { save: { ...save, consumables } };
         }),

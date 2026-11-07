@@ -18,9 +18,9 @@ export function deliverItems(save: SaveData): DeliverItem[] {
     if (!recipe || !('itemId' in recipe.output)) continue;
     const item = itemById[recipe.output.itemId];
     if (!item) continue;
-    let group: 'potion' | 'meal' | 'kit' | null = null;
+    let group: 'potion' | 'meal' | null = null;
     if (item.slot === 'consumable') {
-      group = item.kit || item.protectsAgainst ? 'kit' : item.charm ? null : 'potion';
+      group = item.charm ? null : 'potion';
     } else if (item.slot === 'provision' && item.meal) {
       group = 'meal';
     }

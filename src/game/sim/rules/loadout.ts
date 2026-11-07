@@ -51,7 +51,7 @@ export const isHealingPotion = (itemId: string | null | undefined) => !!itemId &
 /** The strongest healing potion held, or null when none is. */
 export const heldPotion = (save: SaveData): string | null => [...healingPotionIds].reverse().find((id) => (save.consumables[id] ?? 0) > 0) ?? null;
 
-/** Swaps one hero's potion (or empty slot) for the charm, never a kit or weakness item. */
+/** Swaps one hero's potion (or empty slot) for the charm, never a weakness item. */
 export function withCharm(save: SaveData, heroIds: string[], charmId: string): SaveData {
   const carrier = heroIds.find((id) => !consumableOf(save, id) || isHealingPotion(consumableOf(save, id)));
   if (!carrier || (save.consumables[charmId] ?? 0) < 1) return save;
@@ -61,7 +61,7 @@ export function withCharm(save: SaveData, heroIds: string[], charmId: string): S
 /** The six stat potions: they take a healing potion's slot when the prepared odds are low. */
 export const statPotionIds = ['strengthDraught', 'arcaneTonic', 'ironskinBrew', 'nullrootTincture', 'quicksilver', 'viperOil'];
 
-/** Swaps the hero's healing potion (or empty consumable slot) for this held stat potion; never a kit or weakness item. */
+/** Swaps the hero's healing potion (or empty consumable slot) for this held stat potion; never a weakness item. */
 export function withStatPotion(save: SaveData, heroId: string, itemId: string): SaveData {
   const hero = save.heroes.find((h) => h.id === heroId);
   const slot = hero?.equipment.consumable;
@@ -81,7 +81,7 @@ export function withOil(save: SaveData, heroId: string, itemId: string): SaveDat
 
 /**
  * Puts a held consumable on the first party hero whose slot is free or holds a
- * healing potion; never a kit or the weakness item.
+ * healing potion; never the weakness item.
  */
 export function withElixir(save: SaveData, heroIds: string[], itemId: string): SaveData {
   const carrier = heroIds.find((id) => {

@@ -170,10 +170,10 @@ describe('dueTips', () => {
     const save = createInitialSave();
     expect(dueTips(save)).toEqual([]);
     const done = noteTips(opened(), dueTips(opened()));
-    expect(done.tips.pending).toEqual(['specials', 'dungeons', 'quests']);
+    expect(done.tips.pending).toEqual(['specials', 'threats', 'dungeons', 'quests']);
     const guild = opened();
     guild.clearedDungeons = [guildRules.unlockedBy];
-    guild.tips.seen = ['specials', 'dungeons', 'quests'];
+    guild.tips.seen = ['specials', 'threats', 'dungeons', 'quests'];
     const owed = noteTips(guild, dueTips(guild));
     expect(owed.tips.pending).toEqual(['guildHall', 'jobMiner']);
   });
@@ -195,7 +195,7 @@ describe('dueTips', () => {
     save.materials = { fangOrHorn: 1, fireStone: 1 };
     expect(dueTips(save)).toEqual(expect.arrayContaining(['affixes', 'ingredients', 'stones', 'reroll']));
     const queued = noteTips(save, dueTips(save));
-    expect(queued.tips.pending).toEqual(['specials', 'affixes', 'ingredients', 'stones', 'reroll', 'dungeons', 'quests']);
+    expect(queued.tips.pending).toEqual(['specials', 'threats', 'affixes', 'ingredients', 'stones', 'reroll', 'dungeons', 'quests']);
     expect(noteTips(queued, dueTips(queued))).toBe(queued);
   });
 });

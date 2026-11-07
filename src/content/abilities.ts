@@ -55,9 +55,8 @@ export function abilityText(ability: Ability): string {
       return t('abilities.hungerResist', { multiplier: formatNumber(ability.multiplier) });
     case 'potionThreshold':
       return t('abilities.potionThreshold');
-    // Trait approach and keyword effects are shown by the trait's description,
+    // Trait keyword effects are shown by the trait's description,
     // never by this ability list.
-    case 'approach':
     case 'keyword':
     // Class signatures are shown by the class's signature line.
     case 'penaltyReduce':

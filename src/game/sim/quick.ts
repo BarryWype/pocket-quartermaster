@@ -1,6 +1,5 @@
 import { classSpecials } from '@/content/classSpecials';
 import { dungeons } from '@/content/dungeons';
-import { items } from '@/content/items';
 import { placeFightRules, type FightPlaceKind } from '@/content/placeFights';
 import { bossWeaknesses } from '@/content/weaknesses';
 
@@ -15,7 +14,6 @@ import { patrolOdds } from '../patrols/fight';
 import { createInitialSave, type SaveData } from '../save';
 import { averagePiece } from './reference';
 import { equip } from '../team/team';
-import type { ConsumableDef } from '../types';
 import { highestTier, withLoadout } from './bot';
 import { expectedLevels, simConfig, type SimConfig } from './config';
 import { difficultyOdds as tierDifficultyOdds, type DifficultyOdds } from './difficultyOdds';
@@ -27,7 +25,7 @@ const NOON = 12 * 3_600_000;
 /** One tier's means, or null where nothing was sampled. */
 export type QuickTier = {
   tier: number;
-  /** Open normal dungeons, prepared (kits, weakness item, potions). */
+  /** Open normal dungeons, prepared (weakness item, potions). */
   prepared: number | null;
   /** The same dungeons with the briefing skipped when the party was picked (potions only). */
   notPrepared: number | null;
@@ -49,7 +47,7 @@ export type QuickTier = {
  * The reference team the dungeons are fitted to (see the comment above
  * TIER_SCALE): the starting trio in the tier's sword, bow and wand plus mail,
  * Common rarity, at the top of the tier's level band; every lower tier's
- * dungeons cleared (so this tier is unlocked), stocked with every kit, every
+ * dungeons cleared (so this tier is unlocked), stocked with every
  * boss weakness item and three healing potions.
  */
 export function quickSave(tier: number): SaveData {
@@ -64,7 +62,6 @@ export function quickSave(tier: number): SaveData {
   save.heroes.forEach((hero, i) => {
     save = equip(equip(save, hero.id, 'weapon', `g${i}`), hero.id, 'armor', `g${i + 3}`);
   });
-  const kits = items.filter((i): i is ConsumableDef => i.slot === 'consumable' && !!i.kit);
   const next: SaveData = {
     ...save,
     // The tier's whole chain is measured, so its regular dungeons count as cleared.
@@ -72,7 +69,6 @@ export function quickSave(tier: number): SaveData {
     consumables: {
       ...save.consumables,
       healingPotion: 3,
-      ...Object.fromEntries(kits.map((k) => [k.id, 2])),
       ...Object.fromEntries(bossWeaknesses.map((w) => [w.itemId, 1])),
     },
   };

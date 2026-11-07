@@ -3,7 +3,6 @@ import { itemById } from '@/content/lookup';
 import { gearStats } from '@/game/gear/stats';
 import { trinketEffect } from '@/game/loot/trinkets';
 import type { GearDef, GearInstance } from '@/game/types';
-import { t } from '@/i18n';
 
 import type { LabelPart } from './IconLabel';
 
@@ -20,17 +19,15 @@ export const statIcons = {
 } as const;
 export const STATS = Object.keys(statIcons) as (keyof typeof statIcons)[];
 
-/** "🎯 6", "🔰 🔥 +12" or "+1 ● Might": what a trinket gives after its roll. */
+/** "🎯 6" or "🔰 🔥 +12": what a trinket gives after its roll. */
 export function trinketParts(gear: GearInstance): LabelPart[] {
   const effect = trinketEffect(itemById[gear.itemId] as GearDef, gear);
   const statParts: LabelPart[] = STATS.filter((key) => effect.stats[key]).map((key) => ({ emoji: statIcons[key], text: String(effect.stats[key]) }));
-  return statParts
-    .concat(
-      effect.elementResist
-        ? [{ emoji: statIcons.resistance, after: elementInfo[effect.elementResist.element].emoji, text: `+${effect.elementResist.amount}` }]
-        : [],
-    )
-    .concat(effect.approach ? [`+1 ● ${t(`threats.approach.${effect.approach}`)}`] : []);
+  return statParts.concat(
+    effect.elementResist
+      ? [{ emoji: statIcons.resistance, after: elementInfo[effect.elementResist.element].emoji, text: `+${effect.elementResist.amount}` }]
+      : [],
+  );
 }
 
 /** "⚔️ 14 · ❤️ 30": a piece's stats after its roll. */

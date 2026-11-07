@@ -274,23 +274,6 @@ export const items: ItemDef[] = [
   { id: 'standardHealingPotion', name: 'Healing potion', emoji: '🧪', icon: require('../../assets/icons/rpg/potion-red-flask.png'), description: 'Heals 50% of max HP when badly hurt.', slot: 'consumable', heal: healthRules.potionHeal.standard, when: 'lowHp' },
   { id: 'greaterHealingPotion', name: 'Greater healing potion', emoji: '🧪', icon: require('../../assets/icons/rpg/potion-red-bulb.png'), description: 'Heals 70% of max HP when badly hurt.', slot: 'consumable', heal: healthRules.potionHeal.greater, when: 'lowHp' },
 
-  // Kits and ward salves: single-use answers to threats, in a hero's slot and
-  // gone after the run, like every consumable.
-  { id: 'roguesRoll', name: 'Rogue’s roll', emoji: '🗝️', icon: require('../../assets/icons/relics/lockpicks.png'), description: 'Picks, a probe, wire and a decoy purse.', slot: 'consumable', kit: { threats: ['traps'], approach: 'finesse' } },
-  { id: 'huntersPack', name: 'Hunter’s pack', emoji: '🎒', icon: require('../../assets/icons/rpg/bag-backpack.png'), description: 'Sleepweed bait and a snare.', slot: 'consumable', kit: { threats: ['beasts'], keywords: ['calm'] } },
-  { id: 'emberWardSalve', name: 'Ember ward salve', emoji: '🔥', icon: require('../../assets/icons/alchemy/bowl-fire-crystals.png'), description: 'Rubbed on skin and armour.', slot: 'consumable', protectsAgainst: 'fire', kit: { threats: ['element'] } },
-  { id: 'tideWardSalve', name: 'Tide ward salve', emoji: '💧', icon: require('../../assets/icons/alchemy/bowl-aqua-crystals.png'), description: 'Rubbed on skin and armour.', slot: 'consumable', protectsAgainst: 'water', kit: { threats: ['element'] } },
-  { id: 'stormWardSalve', name: 'Storm ward salve', emoji: '⚡', icon: require('../../assets/icons/alchemy/bowl-yellow-powder.png'), description: 'Rubbed on skin and armour.', slot: 'consumable', protectsAgainst: 'electric', kit: { threats: ['element'] } },
-  { id: 'stoneWardSalve', name: 'Stone ward salve', emoji: '🪨', icon: require('../../assets/icons/alchemy/bowl-white-powder.png'), description: 'Rubbed on skin and armour.', slot: 'consumable', protectsAgainst: 'stone', kit: { threats: ['element'] } },
-  { id: 'thornWardSalve', name: 'Thorn ward salve', emoji: '🌵', icon: require('../../assets/icons/alchemy/bowl-green-moss.png'), description: 'Rubbed on skin and armour.', slot: 'consumable', protectsAgainst: 'grass', kit: { threats: ['element'] } },
-  { id: 'explorersKit', name: 'Explorer’s kit', emoji: '🧭', icon: require('../../assets/icons/rpg/bag-large-satchel.png'), description: 'Rope, a pry bar, an air bladder and seabreath tonic.', slot: 'consumable', kit: { threats: ['traps', 'element'], approach: 'threat' } },
-  { id: 'healersSatchel', name: 'Healer’s satchel', emoji: '🩹', icon: require('../../assets/icons/rpg/bag-small-pouch.png'), description: 'Theriac, bandages and a stone mortar.', slot: 'consumable', kit: { threats: ['poison'], keywords: ['antidote'], heal: 0.1 } },
-  { id: 'giftBasket', name: 'Gift basket', emoji: '🎁', icon: require('../../assets/icons/rpg/bag-large-sack.png'), description: 'Honey cakes, smoked meat and a carved stone trinket.', slot: 'consumable' },
-  { id: 'lantern', name: 'Lantern', emoji: '🏮', description: 'A shuttered tallow lantern and bells.', slot: 'consumable', kit: { threats: ['darkness'], keywords: ['light', 'watchful'] } },
-  { id: 'holyRelics', name: 'Holy symbols', emoji: '🕯️', icon: require('../../assets/icons/relics/cross-wooden.png'), description: 'Holy water in a copper vial and warding salt.', slot: 'consumable', kit: { threats: ['holy'], approach: 'faith' } },
-  { id: 'blessedRelics', name: 'Blessed symbols', emoji: '✨', icon: require('../../assets/icons/relics/cross-gold-ornate.png'), description: 'Holy symbols blessed at a chapel: +3 Faith.', slot: 'consumable', kit: { threats: ['holy'], approach: 'faith', bonus: 3 } },
-  { id: 'scholarsSatchel', name: 'Scholar’s satchel', emoji: '📚', icon: require('../../assets/icons/magic/book-open-brown.png'), description: 'A cipher wheel, lampblack ink, thread and chalk.', slot: 'consumable', kit: { threats: ['traps'], approach: 'wits' } },
-
   // Hero consumables, gone after the run like every one in a hero's slot.
   { id: 'strengthDraught', name: 'Strength draught', emoji: '💪', icon: require('../../assets/icons/alchemy/potion-cone-red.png'), description: '+15% Power for the run.', slot: 'consumable', elixir: { kind: 'stat', stat: 'power', multiplier: elixirs.power } },
   { id: 'arcaneTonic', name: 'Arcane tonic', emoji: '🔮', icon: require('../../assets/icons/alchemy/potion-cone-violet.png'), description: '+15% Magic for the run.', slot: 'consumable', elixir: { kind: 'stat', stat: 'magic', multiplier: elixirs.magic } },

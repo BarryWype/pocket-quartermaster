@@ -1,6 +1,5 @@
 import { difficultyRules } from '@/content/difficulty';
 import { dungeonById } from '@/content/lookup';
-import { items } from '@/content/items';
 import { patrolDifficulty, patrolRow, type PatrolDifficulty } from '@/content/patrols';
 import { placeFightRules, type FightPlaceKind } from '@/content/placeFights';
 import { bossWeaknesses } from '@/content/weaknesses';
@@ -16,7 +15,7 @@ import { isElitePatrolKind } from '@/content/enemies';
 import { patrolBriefing, patrolDungeon, patrolOdds } from '../patrols/fight';
 import type { PatrolKind, PatrolSpawn } from '../patrols/generate';
 import type { SaveData } from '../save';
-import type { ConsumableDef, DungeonDef } from '../types';
+import type { DungeonDef } from '../types';
 import { withLoadout } from './bot';
 import { referenceSave } from './reference';
 
@@ -36,14 +35,12 @@ export const SUMMARY_RUNS = 100;
 
 const mean = (values: number[]) => values.reduce((sum, v) => sum + v, 0) / values.length;
 
-/** Every kit and boss weakness item in stock, as the bot's prepared loadout picks from. */
+/** Every boss weakness item in stock, as the bot's prepared loadout picks from. */
 function stocked(save: SaveData): SaveData {
-  const kits = items.filter((i): i is ConsumableDef => i.slot === 'consumable' && !!i.kit);
   return {
     ...save,
     consumables: {
       ...save.consumables,
-      ...Object.fromEntries(kits.map((k) => [k.id, 2])),
       ...Object.fromEntries(bossWeaknesses.map((w) => [w.itemId, 1])),
     },
   };

@@ -5,12 +5,8 @@ import type { HeroClassDef, HeroRoll, StatKey } from '../types';
 import { rollRecruit } from '../taverns/roll';
 import { addXp, heroDamageStat, heroStats } from './team';
 import {
-  approachScore,
   baseHeroStats,
   classBaseStats,
-  heroApproachBonus,
-  pendingApproachPicks,
-  pickApproach,
   rollFactors,
   rollGamblerPrimary,
 } from './stats';
@@ -77,7 +73,6 @@ describe('baseHeroStats', () => {
       primary: ['hp', 'power', 'armour'],
       halfRate: 'resistance',
       damageStat: 'power',
-      approaches: { might: 3, finesse: 1, wits: 1, faith: 1, presence: 2 },
       keywords: [],
       threat: 1,
       abilities: [],
@@ -87,43 +82,6 @@ describe('baseHeroStats', () => {
 });
 
 const heroAt = (level: number) => ({ ...newHero('h1', 'H', 'warrior', 'resilient'), level });
-
-describe('approach picks', () => {
-  const saveAt = (level: number): SaveData => ({ ...createInitialSave(), heroes: [heroAt(level)] });
-
-  it('is pending at the approach milestones and spent picks come off', () => {
-    expect(pendingApproachPicks(heroAt(4))).toBe(0);
-    expect(pendingApproachPicks(heroAt(5))).toBe(1);
-    expect(pendingApproachPicks(heroAt(10))).toBe(2);
-    const picked = { ...heroAt(10), approachPicks: ['might' as const] };
-    expect(pendingApproachPicks(picked)).toBe(1);
-  });
-
-  it('throws when nothing is pending or the approach is at the cap', () => {
-    expect(() => pickApproach(saveAt(4), 'h1', 'might')).toThrow(/pending/);
-    // Warrior Might base 3: with the roll's +1 and one pick it is at the cap
-    // of 5, so the one pick still pending must go elsewhere.
-    let save = saveAt(10);
-    save = pickApproach(save, 'h1', 'might');
-    save = pickApproach(save, 'h1', 'finesse');
-    expect(save.heroes[0].approachPicks).toEqual(['might', 'finesse']);
-    expect(() => pickApproach(save, 'h1', 'wits')).toThrow(/pending/);
-    const capped: SaveData = {
-      ...createInitialSave(),
-      heroes: [{ ...heroAt(10), roll: { ...rollOf(10), approach: 'might' as const }, approachPicks: ['might' as const] }],
-    };
-    expect(pendingApproachPicks(capped.heroes[0])).toBe(1);
-    expect(approachScore(capped.heroes[0], 'might')).toBe(5);
-    expect(() => pickApproach(capped, 'h1', 'might')).toThrow(/already at/);
-    expect(pickApproach(capped, 'h1', 'wits').heroes[0].approachPicks).toEqual(['might', 'wits']);
-  });
-
-  it('counts the roll bonus as +1', () => {
-    const hero = { ...heroAt(5), roll: { ...rollOf(10), approach: 'wits' as const } };
-    expect(heroApproachBonus(hero)).toEqual({ wits: 1 });
-    expect(approachScore(hero, 'wits')).toBe(2);
-  });
-});
 
 describe('addXp at the cap', () => {
   it('gives nothing at 15 and never goes past it', () => {

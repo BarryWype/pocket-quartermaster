@@ -109,18 +109,6 @@ describe('gameStore', () => {
     expect(useGameStore.getState().save.gold).toBe(0);
   });
 
-  it('spends a pending approach pick', () => {
-    const { debugSetHeroLevel, pickApproach } = useGameStore.getState();
-    const hero = useGameStore.getState().save.heroes[0];
-    debugSetHeroLevel(hero.id, 5);
-    pickApproach(hero.id, 'might');
-
-    const updated = useGameStore.getState().save.heroes.find((h) => h.id === hero.id)!;
-    expect(updated.level).toBe(5);
-    expect(updated.xp).toBe(0);
-    expect(updated.approachPicks).toEqual(['might']);
-  });
-
   it('clamps the debug hero level between 1 and 15', () => {
     const { debugSetHeroLevel } = useGameStore.getState();
     const hero = useGameStore.getState().save.heroes[0];

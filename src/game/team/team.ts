@@ -124,9 +124,6 @@ export function affinityOf(classId: HeroState['classId'], gearType: GearType | u
   return table[gearType as WeaponType | ArmourType] ?? 'usable';
 }
 
-/** What a hero's equipped gear adds to their approaches: a lute +1 Presence, a tome +1 Wits. */
-export { gearApproachBonus } from './stats';
-
 /**
  * Base stats (class, level, roll) + gear: the dice factor and affinity
  * multiply the scaling stats only, the extras stay flat; mail and plate cast a

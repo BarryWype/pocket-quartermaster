@@ -14,7 +14,6 @@ import { placesWithin, type PlaceSpawn } from '../../places/generate';
 import { heistOdds, heistProblem, resolveHeists, startHeist } from '../../places/heists';
 import { digProblem, digRuin } from '../../places/ruins';
 import { buy, buyProblem, placeStock, stockLeft } from '../../places/shops';
-import { blessRelics as blessAtChapel, blessRelicsProblem } from '../../places/services';
 import { underwaterBriefing, underwaterDungeonFor, underwaterLaunchProblem, launchUnderwater } from '../../secrets/dungeon';
 import { hasKey } from '../../secrets/keys';
 import { isPlaceRevealed, isRevealed } from '../../reveal/reveal';
@@ -230,17 +229,6 @@ export function buyWorkTools(sim: Sim) {
     }
     row(sim, spawn.kind, tier, null, null);
   }
-}
-
-/** Blesses every held holy symbol at the nearest chapel, turning them into their stronger blessed version. */
-export function blessSymbols(sim: Sim) {
-  if ((sim.save.consumables.holyRelics ?? 0) < 1 || !isPlaceRevealed(sim.save, 'chapel')) return;
-  const spawn = nearestSpawn(placesWithin(sim.location, BUY_METERS, sim.now), 'chapel', sim.location, (s) =>
-    blessRelicsProblem(sim.save, s, s.position, sim.now) === null,
-  );
-  if (!spawn) return;
-  act(sim, 'chapel', (save) => blessAtChapel(save, spawn, spawn.position, sim.now));
-  row(sim, 'chapel', highestTier(sim.save), null, null);
 }
 
 /** Buys what the next wanted forge is short of at the nearest place stocking it, when the gold covers it. */

@@ -40,8 +40,6 @@ export type SpeedClass = 'slow' | 'normal' | 'fast';
 export type HeroRoll = {
   base: Record<StatKey, number>;
   growth: Record<StatKey, number>;
-  /** The 10% chance of +1 on a random approach. */
-  approach?: Approach;
   /** The Gambler's third primary stat, rolled at recruitment. */
   primary?: StatKey;
 };
@@ -98,8 +96,6 @@ export type GearDef = ItemBase & {
   concealed?: boolean;
   /** The stat the piece's damage rolls with, for weapons and damage off-hands; 'wielder' means the wielder's class damage stat. */
   damageStat?: DamageStat | 'wielder';
-  /** A talisman's +1 approach. */
-  approach?: Approach;
   /** An amulet's Resistance against one element (Normal-quality value, unrounded). */
   elementResist?: { element: Element; amount: number };
   /** A work tool: the off-hand line for workers, with the job it boosts and scavenges for (see content/workTools.ts). */
@@ -129,8 +125,6 @@ export type ConsumableDef = ItemBase & {
   when?: 'lowHp';
   /** Element this consumable protects its hero against for the whole run. */
   protectsAgainst?: Element;
-  /** A kit: what it gives its carrier against threats. */
-  kit?: KitEffect;
   elixir?: Elixir;
   /** The boss id this weakness item weakens when its carrier meets that boss. */
   weakness?: string;
@@ -157,18 +151,10 @@ export type MealEffect =
   /** The penalties of these threats are multiplied by this. */
   | { kind: 'penaltyCut'; threats: ThreatId[]; multiplier: number };
 
-/** What a hero can bring to bear on a threat. */
-export type Approach = 'might' | 'finesse' | 'wits' | 'faith' | 'presence';
-
-/** Keywords answer keyword threats; classes, traits, gear and kits give them. */
+/** Combat keywords: what a piece of gear does in a fight on its own. */
 export type Keyword =
-  | 'light'
-  | 'watchful'
-  | 'calm'
-  | 'antidote'
   | 'pierce'
   | 'cleave'
-  | 'blessed'
   | 'guard'
   | 'parry'
   | 'reach'
@@ -321,18 +307,6 @@ export type OpportunityOutcome = {
   pilgrim?: 'blessing' | 'gold' | 'keyFragment';
 };
 
-/** What a kit gives its carrier against the threats it covers. */
-export type KitEffect = {
-  threats: ThreatId[];
-  /** Adds to the answer approach of these threats (the carrier's own approach for 'threat'). */
-  approach?: Approach | 'threat';
-  /** Added to the approach instead of approachRules.kitBonus. */
-  bonus?: number;
-  keywords?: Keyword[];
-  /** Heals its carrier once, like a potion. */
-  heal?: number;
-};
-
 /** Food: held in the stock, taken by the whole party. */
 export type ProvisionDef = ItemBase & {
   slot: 'provision';
@@ -472,8 +446,6 @@ export type Ability =
   | { kind: 'hungerResist'; multiplier: number }
   /** Added to the share of max HP below which this hero drinks a potion. */
   | { kind: 'potionThreshold'; add: number }
-  /** Added to this hero's score for one approach (traits). */
-  | { kind: 'approach'; approach: Approach; add: number }
   /** This hero counts as having the keyword (traits). */
   | { kind: 'keyword'; keyword: Keyword }
   // Class signatures (see threats/signatures.ts and expeditions/simulate.ts).
@@ -653,8 +625,6 @@ export type HeroClassDef = {
   halfRate?: StatKey;
   /** The stat its unarmed attacks roll with; weapons decide their own. */
   damageStat: DamageStat;
-  /** Approach scores; the Gambler's are rolled at the daily reset. */
-  approaches: Record<Approach, number>;
   keywords: Keyword[];
   /** Elements this class takes no extra damage from. */
   resists?: Element[];
@@ -684,14 +654,8 @@ export type HeroState = {
     /** The Alchemist's second slot: a healing consumable. */
     potion?: string | null;
   };
-  /** A Porter's pick: the hero the kit in their consumable slot is carried for. */
-  kitFor?: string;
   /** The recruit's 3d6 roll; missing means the average (10.5) everywhere. */
   roll?: HeroRoll;
-  /** The approach picks made at levels 5 and 10, in order. */
-  approachPicks?: Approach[];
-  /** The Gambler's approach scores, rolled at the daily reset (`day` is the rotation day). */
-  gamble?: { day: number; approaches: Record<Approach, number> };
   /** HP at `hpAt`; missing means full. Heroes at home heal from then on (see team/health.ts). */
   hp?: number;
   hpAt?: number;

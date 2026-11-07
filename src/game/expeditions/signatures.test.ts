@@ -168,7 +168,7 @@ describe('the Alchemist’s second slot', () => {
 
   it('only takes healing consumables, and only for an Alchemist', () => {
     expect(healingPotion('healingPotion')).not.toBeNull();
-    expect(healingPotion('roguesRoll')).toBeNull();
+    expect(healingPotion('trailMix')).toBeNull();
     const alchemist = newHero('a', 'A', 'alchemist', 'none');
     const warrior = newHero('w', 'W', 'warrior', 'none');
     const save = {

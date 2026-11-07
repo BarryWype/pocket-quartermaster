@@ -13,8 +13,8 @@ import type { FamilyId } from '@/content/families';
   emoji: string;
   damageStat?: DamageStat | 'wielder';
   twoHanded?: boolean;
-  /** Flat extras, as budget costs (see gearBudgetRules.cost); approach is +1 approach pip. */
-  extras: { speed?: number; crit?: number; evasion?: number; approach?: number };
+  /** Flat extras, as budget costs (see gearBudgetRules.cost). */
+  extras: { speed?: number; crit?: number; evasion?: number };
   keywords: Keyword[];
   heavy?: boolean;
   concealed?: boolean;
@@ -55,15 +55,15 @@ export const GEAR_SLOTS: Record<GearType, 'weapon' | 'armor' | 'offhand'> = {
 export const gearProfiles: Record<GearType, GearProfile> = {
   sword: { familyTag: 'rally', slot: 'weapon', emoji: '🗡️', damageStat: 'power', extras: { crit: 5 }, keywords: ['parry'], shares: { power: 1 } },
   axe: { familyTag: 'bloodrage', slot: 'weapon', emoji: '🪓', damageStat: 'power', extras: { speed: -1 }, keywords: ['cleave'], shares: { power: 1 } },
-  mace: { familyTag: 'faith', slot: 'weapon', emoji: '🔨', damageStat: 'power', extras: { speed: -1 }, keywords: ['blessed', 'stagger'], shares: { power: 1 } },
+  mace: { familyTag: 'faith', slot: 'weapon', emoji: '🔨', damageStat: 'power', extras: { speed: -1 }, keywords: ['stagger'], shares: { power: 1 } },
   dagger: { familyTag: 'shadow', slot: 'weapon', emoji: '🔪', damageStat: 'power', extras: { speed: 2, crit: 10 }, keywords: ['pierce'], concealed: true, shares: { power: 1 } },
   bow: { familyTag: 'volley', slot: 'weapon', emoji: '🏹', damageStat: 'power', extras: {}, keywords: ['pierce', 'reach'], shares: { power: 1 } },
   spear: { familyTag: 'wild', slot: 'weapon', emoji: '🔱', damageStat: 'power', extras: {}, keywords: ['reach', 'brace'], shares: { power: 1 } },
   warhammer: { familyTag: 'breaker', slot: 'weapon', emoji: '⚒️', damageStat: 'power', twoHanded: true, extras: { speed: -2 }, keywords: ['pierce', 'stagger'], heavy: true, shares: { power: 1 } },
   wand: { familyTag: 'spellweave', slot: 'weapon', emoji: '🪄', damageStat: 'magic', extras: { speed: 1 }, keywords: ['channel'], concealed: true, shares: { magic: 1 } },
   staff: { familyTag: 'warding', slot: 'weapon', emoji: '🦯', damageStat: 'magic', twoHanded: true, extras: {}, keywords: ['cleave'], shares: { magic: 1 } },
-  lute: { familyTag: 'rally', slot: 'weapon', emoji: '🪕', damageStat: 'magic', extras: { approach: 1 }, keywords: ['inspire'], concealed: true, shares: { magic: 1 } },
-  censer: { familyTag: 'faith', slot: 'weapon', emoji: '🪔', damageStat: 'magic', extras: {}, keywords: ['blessed', 'mend'], shares: { magic: 1 } },
+  lute: { familyTag: 'rally', slot: 'weapon', emoji: '🪕', damageStat: 'magic', extras: {}, keywords: ['inspire'], concealed: true, shares: { magic: 1 } },
+  censer: { familyTag: 'faith', slot: 'weapon', emoji: '🪔', damageStat: 'magic', extras: {}, keywords: ['mend'], shares: { magic: 1 } },
   knuckles: { familyTag: 'breaker', slot: 'weapon', emoji: '🥊', damageStat: 'power', extras: { speed: 1 }, keywords: ['stagger'], concealed: true, shares: { power: 1 } },
   crossbow: { familyTag: 'cunning', slot: 'weapon', emoji: '🎯', damageStat: 'power', extras: { speed: -1 }, keywords: ['pierce'], shares: { power: 1 } },
   throwing: { familyTag: 'plunder', slot: 'weapon', emoji: '🪃', damageStat: 'power', extras: { speed: 1 }, keywords: [], shares: { power: 1 } },
@@ -78,7 +78,7 @@ export const gearProfiles: Record<GearType, GearProfile> = {
   buckler: { familyTag: 'shadow', slot: 'offhand', emoji: '🔔', extras: { evasion: 6 }, keywords: ['parry'], shares: { armour: 1 } },
   offhandBlade: { familyTag: 'bloodrage', slot: 'offhand', emoji: '🤺', damageStat: 'power', extras: { crit: 5 }, keywords: [], concealed: true, shares: { power: 1 } },
   quiver: { familyTag: 'volley', slot: 'offhand', emoji: '🎯', damageStat: 'power', extras: {}, keywords: ['reach'], shares: { power: 1 } },
-  tome: { familyTag: 'watch', slot: 'offhand', emoji: '📖', damageStat: 'magic', extras: { approach: 1 }, keywords: [], shares: { magic: 1 } },
+  tome: { familyTag: 'watch', slot: 'offhand', emoji: '📖', damageStat: 'magic', extras: {}, keywords: [], shares: { magic: 1 } },
   focus: { familyTag: 'warding', slot: 'offhand', emoji: '🔮', damageStat: 'magic', extras: {}, keywords: ['channel'], shares: { magic: 0.7, resistance: 0.3 } },
 };
 
@@ -129,12 +129,11 @@ export const gearBudgetRules = {
     evasion: 0.05,
     major: 0.1,
     minor: 0.05,
-    approach: 0.1,
     heavy: -0.1,
     concealed: 0.03,
   },
   /** Keywords that cost the major share instead of the minor one. */
-  major: ['pierce', 'cleave', 'blessed', 'guard'] as Keyword[],
+  major: ['pierce', 'cleave', 'guard'] as Keyword[],
   /**
    * Shares of the item's budget a relic's effects cost: a keyword costs its
    * usual major/minor share, halved when it only works in a situation.
@@ -426,7 +425,7 @@ export const gearKeywordRules = {
   mend: { pct: 0.05 },
   /**
    * The "strong" numbers: a keyword an item already has, given again by a
-   * component, doubles its effect (Pierce and Blessed have no strong form).
+   * component, doubles its effect (Pierce has no strong form).
    */
   strong: {
     stagger: { chance: 0.3 },

@@ -103,9 +103,9 @@ export const recipes: RecipeDef[] = [
   ),
 
   // Provisions: food from meat and berries in the kitchen; potions, elixirs,
-  // oils and utilities from herbs and mushrooms in alchemy, kits from their
-  // tier's main material. Beyond the starting set, recipes are known once the
-  // player's highest unlocked tier reaches theirs (see isKnown in crafting.ts).
+  // oils and utilities from herbs and mushrooms in alchemy. Beyond the
+  // starting set, recipes are known once the player's highest unlocked tier
+  // reaches theirs (see isKnown in crafting.ts).
   ...provisionRecipes([
     ['trailMix', 'kitchen', { berries: 2 }],
     ['jerky', 'kitchen', { meat: 2 }],
@@ -117,8 +117,6 @@ export const recipes: RecipeDef[] = [
     ['quickBites', 'kitchen', { meat: 1, berries: 1 }],
     ['comfortBroth', 'kitchen', { meat: 1, herb: 2 }],
     ['healingPotion', 'alchemy', { herb: 2, mushroom: 1 }],
-    ['roguesRoll', 'alchemy', { bone: 2, hide: 1 }, false, 1],
-    ['huntersPack', 'alchemy', { bone: 1, meat: 1, hide: 1 }, false, 1],
     // The tier's main material comes first: salvage gives back at least 1 of it.
     ['foragersTonic', 'alchemy', { herb: 1, berries: 1, wood: 1 }, false, 1],
     ['herbalPoultice', 'alchemy', { herb: 2, hide: 1 }, false, 1],
@@ -131,9 +129,6 @@ export const recipes: RecipeDef[] = [
     ['arcaneTonic', 'alchemy', { stone: 1, mushroom: 1, berries: 1 }, false, 2],
     ['ironskinBrew', 'alchemy', { stone: 1, bone: 1, herb: 1 }, false, 2],
     ['huntersMusk', 'alchemy', { stone: 1, meat: 1, hide: 1 }, false, 2],
-    ['explorersKit', 'alchemy', { stone: 1, wood: 1, hide: 2 }, false, 2],
-    ['giftBasket', 'alchemy', { stone: 1, berries: 1, meat: 1 }, false, 2],
-    ['healersSatchel', 'alchemy', { stone: 1, herb: 1, mushroom: 1 }, false, 2],
     ['emberOil', 'alchemy', { copper: 1, fireShard: 2, herb: 1 }, false, 3],
     ['tideOil', 'alchemy', { copper: 1, waterShard: 2, herb: 1 }, false, 3],
     ['stormOil', 'alchemy', { copper: 1, electricShard: 2, herb: 1 }, false, 3],
@@ -147,14 +142,6 @@ export const recipes: RecipeDef[] = [
     ['calmingTea', 'alchemy', { copper: 1, herb: 1, berries: 1 }, false, 3],
     ['spicedSkewers', 'kitchen', { meat: 1, herb: 1, mushroom: 1 }, false, 3],
     ['mushroomRisotto', 'kitchen', { mushroom: 2, herb: 1 }, false, 3],
-    ['lantern', 'alchemy', { copper: 1, wood: 1, meat: 1 }, false, 3],
-    ['holyRelics', 'alchemy', { copper: 1, herb: 1, stone: 1 }, false, 3],
-    ['emberWardSalve', 'alchemy', { iron: 1, fireShard: 1, herb: 1 }, false, 4],
-    ['tideWardSalve', 'alchemy', { iron: 1, waterShard: 1, herb: 1 }, false, 4],
-    ['stormWardSalve', 'alchemy', { iron: 1, electricShard: 1, herb: 1 }, false, 4],
-    ['stoneWardSalve', 'alchemy', { iron: 1, stoneShard: 1, herb: 1 }, false, 4],
-    ['thornWardSalve', 'alchemy', { iron: 1, grassShard: 1, herb: 1 }, false, 4],
-    ['scholarsSatchel', 'alchemy', { coal: 1, wood: 1, berries: 1 }, false, 5],
     ['greaterHealingPotion', 'alchemy', { coal: 1, herb: 1, mushroom: 1 }, false, 5],
   ]),
 

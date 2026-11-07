@@ -71,9 +71,9 @@ describe('tutorial spawns', () => {
     }
     const save = placeTutorialSpawns(createInitialSave(), player, null, now);
     expect(placeTutorialSpawns(save, player, null, now + 1)).toBe(save);
-    // The second phase: three kit nodes.
+    // The second phase: the potion's three nodes.
     const kit = placeTutorialSpawns(atStep('gatherKit'), player, null, now);
-    expect(kit.tutorial.spawns.map((s) => s.materialId).sort()).toEqual(['bone', 'hide', 'meat']);
+    expect(kit.tutorial.spawns.map((s) => s.materialId).sort()).toEqual(['herb', 'herb', 'mushroom']);
   });
 });
 

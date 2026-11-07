@@ -21,7 +21,6 @@ import { digProblem, ruinsDots } from '@/game/places/ruins';
 import {
   apothecaryCarePrice,
   apothecaryCareProblem,
-  blessRelicsProblem,
   chapelBlessingProblem,
   chapelCareProblem,
   trainPrice,
@@ -287,16 +286,6 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
 
           {place.kind === 'chapel' && (
             <>
-              <View style={styles.section}>
-                <IconLabel emoji="🕯️" label={t('places.bless')} labelStyle={styles.name} />
-                <Text style={styles.muted}>{t('places.blessHint', { count: save.consumables.holyRelics ?? 0 })}</Text>
-                <EmberButton
-                  title={t('places.bless')}
-                  compact
-                  disabled={blessRelicsProblem(save, place, player, now) !== null}
-                  onPress={() => actions.blessRelics(place, player)}
-                />
-              </View>
               <View style={styles.section}>
                 <IconLabel emoji="🙏" label={t('places.blessing')} labelStyle={styles.name} />
                 <Text style={styles.muted}>

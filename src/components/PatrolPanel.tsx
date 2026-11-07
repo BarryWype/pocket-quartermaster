@@ -67,7 +67,7 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
   );
   const texts = localized({ en: patrolTexts, fr: frPatrolTexts });
 
-  // The odds are computed off the first frame (issue 12's approach): the panel
+  // The odds are computed off the first frame (issue 12's method): the panel
   // opens at once, shows "…" until they land, and odds already held for exactly
   // these inputs (same patrol, party, minute) show immediately.
   const oddsKey = useMemo(

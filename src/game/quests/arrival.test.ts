@@ -253,11 +253,10 @@ describe('available objectives', () => {
 
   it('offers deliver only for known recipes with a seen destination', () => {
     const save = opened();
-    save.knownRecipes = ['healingPotion', 'huntersStew', 'roguesRoll'];
+    save.knownRecipes = ['healingPotion', 'huntersStew'];
     const items = deliverItems(save).map(({ itemId, place }) => [itemId, place]);
     expect(items).toContainEqual(['healingPotion', 'apothecary']);
     expect(items).toContainEqual(['huntersStew', 'tavern']);
-    expect(items).toContainEqual(['roguesRoll', 'chapel']);
 
     save.seenPlaceKinds = ['market'];
     expect(availableObjectives(save, 'short')).not.toContain('deliver');

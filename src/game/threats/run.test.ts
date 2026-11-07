@@ -396,41 +396,6 @@ describe('salvage and consumables', () => {
       expect(report.salvaged.map((s) => s.itemId)).toContain(itemId);
     }
   });
-
-  it('salvages an untriggered kit into half its recipe, and adds it to the stock', () => {
-    let save = geared({ roguesRoll: 1 });
-    save = equip(save, 'bram', 'consumable', 'roguesRoll');
-    const { save: after, report } = resolve(save);
-    const roll = report.salvaged.find((s) => s.itemId === 'roguesRoll');
-    // The Rogue's roll is bone 2, hide 1: half is one bone.
-    expect(roll).toMatchObject({ heroId: 'bram', itemId: 'roguesRoll', materials: [{ materialId: 'bone', amount: 1 }], gold: 0 });
-    expect((after.materials.bone ?? 0) - (save.materials.bone ?? 0)).toBe(1);
-  });
-
-  it('keeps a ward salve that faced its element', () => {
-    const briefingOf = threat('element', 1, 'fire');
-    let save = geared({ emberWardSalve: 1 });
-    save = equip(save, 'bram', 'consumable', 'emberWardSalve');
-    // Bram alone: no Warding tags, so the threat is half-missed, but facing the fire itself still uses the salve up.
-    const started = startExpedition(save, 'ratCellar', ['bram'], 0, 1, forcedRotation('ratCellar', briefingOf));
-    const { report } = resolveExpedition(started, started.expeditions[0]);
-    expect(report.briefing).toEqual(briefingOf);
-    expect(report.threats[0]).toMatchObject({ id: 'element', element: 'fire', state: 'half' });
-    expect(report.salvaged.map((s) => s.itemId)).not.toContain('emberWardSalve');
-  });
-
-  it('salvages a ward salve that never faced its element', () => {
-    let save = geared({ emberWardSalve: 1 });
-    save = equip(save, 'bram', 'consumable', 'emberWardSalve');
-    const { report } = resolve(save);
-    // The Ember ward salve is iron 1, fire shard 1, herb 1: halves round down, the main input at least 1.
-    expect(report.salvaged).toContainEqual({
-      heroId: 'bram',
-      itemId: 'emberWardSalve',
-      materials: [{ materialId: 'iron', amount: 1 }],
-      gold: 0,
-    });
-  });
 });
 
 describe('patrol threats', () => {

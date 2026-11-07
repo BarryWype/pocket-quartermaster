@@ -25,9 +25,9 @@ type Props = {
   action: string;
 };
 
-type Family = 'meals' | 'supply' | 'kits' | 'hero' | 'walking' | 'homeCare';
+type Family = 'meals' | 'supply' | 'hero' | 'walking' | 'homeCare';
 /** Provisions rows are grouped by family, in this order within each section. */
-const FAMILIES: Family[] = ['meals', 'supply', 'kits', 'hero', 'walking', 'homeCare'];
+const FAMILIES: Family[] = ['meals', 'supply', 'hero', 'walking', 'homeCare'];
 
 /** The provisions screen's swipable rail sections: the kitchen, and alchemy. */
 type Section = 'kitchen' | 'alchemy';
@@ -58,7 +58,6 @@ function familyOf(recipe: RecipeDef): Family {
   const item = itemById[recipe.output.itemId];
   if (item?.slot === 'provision') return item.meal ? 'meals' : 'supply';
   if (item?.slot === 'utility') return item.walk ? 'walking' : 'homeCare';
-  if (item?.slot === 'consumable' && (item.kit || item.protectsAgainst)) return 'kits';
   return 'hero';
 }
 

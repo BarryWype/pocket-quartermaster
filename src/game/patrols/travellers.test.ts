@@ -38,8 +38,9 @@ describe('travellers', () => {
   it('ask the wounded for a potion and take it', () => {
     expect(travellerOffer(wounded, tierTeam())).toEqual({ kind: 'potion', itemId: 'healingPotion', amount: 1 });
     expect(helpProblem(tierTeam(), wounded, here(wounded, at), at)).toBe('noStock');
-    const { save } = helpTraveller(stocked(), wounded, here(wounded, at), at);
-    expect(save.consumables.healingPotion).toBe(1);
+    const { save, reward } = helpTraveller(stocked(), wounded, here(wounded, at), at);
+    const rewarded = reward.kind === 'loot' ? reward.loot.consumables.filter((c) => c.itemId === 'healingPotion').reduce((n, c) => n + c.amount, 0) : 0;
+    expect(save.consumables.healingPotion).toBe(1 + rewarded);
     expect(isGone(wounded, save.helpedTravellers, at + MINUTE)).toBe(true);
     expect(helpProblem(stocked(save), wounded, here(wounded, at + MINUTE), at + MINUTE)).toBe('gone');
   });

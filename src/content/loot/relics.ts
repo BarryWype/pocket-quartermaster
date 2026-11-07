@@ -32,7 +32,10 @@ const relic = (id: string, name: string, tier: number, gearType: GearType, effec
 });
 
 export const relics: RelicDef[] = [
-  relic('rustedSaintsBuckler', 'Rusted saint’s buckler', 1, 'buckler', 'Blessed', [{ kind: 'keyword', keyword: 'blessed' }], require('../../../assets/icons/rpg/shield-iron-cross.png')),
+  {
+    ...relic('rustedSaintsBuckler', 'Rusted saint’s buckler', 1, 'buckler', 'A Faith tag for its carrier', [], require('../../../assets/icons/rpg/shield-iron-cross.png')),
+    extraFamily: 'faith',
+  },
   relic('poachersLongbow', 'Poacher’s longbow', 1, 'bow', 'Double crit damage against beasts', [
     { kind: 'critDamage', multiplier: 2, when: { tag: 'beast' } },
   ], require('../../../assets/icons/rpg/bow-knotted-wooden.png')),
@@ -64,7 +67,7 @@ export const relics: RelicDef[] = [
     ...relic('minersLampStaff', 'Miner’s lamp-staff', 3, 'staff', 'A second Watch tag for its carrier', [], require('../../../assets/icons/relics/staff-lamp.png')),
     extraFamily: 'watch',
   },
-  relic('drownedBell', 'Drowned bell', 3, 'censer', 'Blessed; the party ignores the Element penalty in the first fight', [
+  relic('drownedBell', 'Drowned bell', 3, 'censer', 'The party ignores the Element penalty in the first fight', [
     { kind: 'ignorePenalty', threat: 'element', when: { firstFight: true } },
   ], require('../../../assets/icons/relics/censer-drowned.png')),
   relic('dwarfLordsAxe', 'Dwarf-lord’s axe', 3, 'axe', 'Pierce against constructs', [

@@ -218,33 +218,6 @@ export const frNames: Record<string, string> = {
   'Minor healing potion': 'Potion de soin mineure',
   'Healing potion': 'Potion de soin',
   'Greater healing potion': 'Potion de soin supérieure',
-  // Kits and ward salves
-  'Rogue’s roll': 'Trousse du voleur',
-  'Picks, a probe, wire and a decoy purse.': 'Crochets, une sonde, du fil et une bourse leurre.',
-  'Hunter’s pack': 'Paquetage du chasseur',
-  'Sleepweed bait and a snare.': 'Un appât d’herbe à sommeil et un collet.',
-  'Ember ward salve': 'Onguent aux braises',
-  'Rubbed on skin and armour.': 'Frotté sur la peau et l’armure.',
-  'Tide ward salve': 'Onguent des marées',
-  'Storm ward salve': 'Onguent des orages',
-  'Stone ward salve': 'Onguent de pierre',
-  'Thorn ward salve': 'Onguent aux ronces',
-  'Explorer’s kit': 'Kit de l’explorateur',
-  'Rope, a pry bar, an air bladder and seabreath tonic.':
-    'Une corde, un pied-de-biche, une vessie d’air et un tonique de souffle marin.',
-  'Healer’s satchel': 'Sac du soigneur',
-  'Theriac, bandages and a stone mortar.': 'De la thériaque, des bandages et un mortier de pierre.',
-  'Gift basket': 'Panier de cadeaux',
-  'Honey cakes, smoked meat and a carved stone trinket.': 'Des pains au miel, de la viande fumée et un bibelot de pierre sculpté.',
-  Lantern: 'Lanterne',
-  'A shuttered tallow lantern and bells.': 'Une lanterne à suif à volets et des clochettes.',
-  'Holy symbols': 'Symboles sacrés',
-  'Holy water in a copper vial and warding salt.': 'De l’eau bénite dans une fiole de cuivre et du sel de protection.',
-  'Blessed symbols': 'Symboles bénis',
-  'Holy symbols blessed at a chapel: +3 Faith.': 'Symboles sacrés bénis dans une chapelle : +3 Foi.',
-  'Scholar’s satchel': 'Sac de l’érudit',
-  'A cipher wheel, lampblack ink, thread and chalk.':
-    'Une roue de chiffrement, de l’encre de noir de fumée, du fil et de la craie.',
   'Heals 30% of max HP when badly hurt.': 'Soigne 30 % des PV max quand on va mal.',
   'Heals 50% of max HP when badly hurt.': 'Soigne 50 % des PV max quand on va mal.',
   'Heals 70% of max HP when badly hurt.': 'Soigne 70 % des PV max quand on va mal.',
@@ -346,13 +319,7 @@ export const frNames: Record<string, string> = {
   'Calming tea': 'Tisane apaisante',
   'Ends exhaustion at home.': 'Met fin à l’épuisement au refuge.',
   Lockpicks: 'Crochets',
-  'Opens one locked way.': 'Ouvre un passage verrouillé.',
-  'Rope and pitons': 'Corde et pitons',
-  'Gets past one rubble.': 'Franchit un éboulis.',
-  Torches: 'Torches',
-  'Burns through one barricade.': 'Brûle une barricade.',
   Bait: 'Appât',
-  '50% chance to calm the first beast fight.': '50 % de chances d’apaiser le premier combat de bêtes.',
   Gifts: 'Cadeaux',
   'The first locals react as if charmed.': 'Les premiers habitants réagissent comme s’ils étaient charmés.',
   'Holy water': 'Eau bénite',
@@ -1016,24 +983,20 @@ export const frNames: Record<string, string> = {
   'Prisoners in chains; freeing them earns their thanks.':
     'Des prisonniers enchaînés ; les libérer vaut leur gratitude.',
   Refugees: 'Réfugiés',
-  'Refugees on the road; shared supply earns a pilgrim’s reward.':
-    'Des réfugiés sur la route ; partager ses vivres vaut la récompense d’un pèlerin.',
+  'Refugees on the road; a rallying voice or shared supply earns a pilgrim’s reward.':
+    'Des réfugiés sur la route ; une voix qui rassemble ou des vivres partagés valent la récompense d’un pèlerin.',
   'Forgotten shrine': 'Sanctuaire oublié',
   'A forgotten shrine; a prayer here steels the party.':
     'Un sanctuaire oublié ; une prière ici aguerrit le groupe.',
   'Old inscriptions': 'Vieilles inscriptions',
-  'Old inscriptions; a sharp mind learns from them.':
-    'De vieilles inscriptions ; un esprit vif en tire des leçons.',
   'Old inscriptions; a keen eye learns from them.':
     'De vieilles inscriptions ; un œil aiguisé en tire des leçons.',
   'Trophy beast': 'Bête trophée',
-  'A trophy beast; a calm hand or a strong arm takes it.':
-    'Une bête trophée ; une main calme ou un bras fort l’abat.',
   'A trophy beast; a beast-hunter takes it.':
     'Une bête trophée ; un chasseur de bêtes l’abat.',
   'Sealed vault': 'Caveau scellé',
-  'A sealed vault; a mysterious key opens it, and a won run claims what lies inside.':
-    'Un caveau scellé ; une clé mystérieuse l’ouvre, et une expédition victorieuse en emporte le contenu.',
+  'A sealed vault; a deft hand or a mysterious key opens it, and a won run claims what lies inside.':
+    'Un caveau scellé ; une main habile ou une clé mystérieuse l’ouvre, et une expédition victorieuse en emporte le contenu.',
 
   // Forging
   Common: 'Commun',
@@ -1272,11 +1235,6 @@ export const frNames: Record<string, string> = {
   'Stone amulet': 'Amulette de pierre',
   'Electric amulet': 'Amulette électrique',
   'Water amulet': 'Amulette d’eau',
-  'Ox talisman': 'Talisman du bœuf',
-  'Fox talisman': 'Talisman du renard',
-  'Owl talisman': 'Talisman du hibou',
-  'Dove talisman': 'Talisman de la colombe',
-  'Lion talisman': 'Talisman du lion',
   'Ring of fortune': 'Anneau de fortune',
 
   // Valuables
@@ -1317,7 +1275,7 @@ export const frNames: Record<string, string> = {
   'Answers Darkness for its carrier': 'Répond aux Ténèbres pour son porteur',
   'Drowned bell': 'Cloche noyée',
   'Blessed; the party ignores the Underwater penalty in the first fight': 'Béni ; le groupe ignore la pénalité Sous l’eau dans le premier combat',
-  'Blessed; the party ignores the Element penalty in the first fight': 'Béni ; le groupe ignore la pénalité de l’Élément dans le premier combat',
+  'The party ignores the Element penalty in the first fight': 'Le groupe ignore la pénalité de l’Élément dans le premier combat',
   'Dwarf-lord’s axe': 'Hache du seigneur nain',
   'Pierce against constructs': 'Perce contre les constructs',
   'Witch-hunter’s dagger': 'Dague du chasseur de sorcières',
@@ -1336,6 +1294,7 @@ export const frNames: Record<string, string> = {
   'Answers Maze for its carrier': 'Répond au Labyrinthe pour son porteur',
   'A second Cunning tag for its carrier': 'Un second tag Ruse pour son porteur',
   'A second Watch tag for its carrier': 'Un second tag Vigie pour son porteur',
+  'A Faith tag for its carrier': 'Un tag Foi pour son porteur',
   'Duelist’s main-gauche': 'Main-gauche du dueliste',
   'Parry against Brutes': 'Parade contre les Brutes',
   'Dragonbone plate': 'Plaque d’os de dragon',

@@ -210,15 +210,9 @@ describe('strong keywords', () => {
   };
 
   it("adds a keyword affix's keyword, or strengthens the piece's own", () => {
-    // A mace is Blessed and Stagger: an ogre knucklebone doubles Stagger.
-    expect(heroWith('mace3', 'ogreKnucklebone')).toEqual([
-      { keyword: 'blessed', magic: false },
-      { keyword: 'stagger', magic: false, strong: true },
-    ]);
-    expect(heroWith('mace3')).toEqual([
-      { keyword: 'blessed', magic: false },
-      { keyword: 'stagger', magic: false },
-    ]);
+    // A mace has Stagger: an ogre knucklebone doubles it.
+    expect(heroWith('mace3', 'ogreKnucklebone')).toEqual([{ keyword: 'stagger', magic: false, strong: true }]);
+    expect(heroWith('mace3')).toEqual([{ keyword: 'stagger', magic: false }]);
     // A parrying dagger has no keywords: an escapement adds Parry.
     expect(heroWith('offhandBlade1', 'clockworkEscapement')).toEqual([{ keyword: 'parry', magic: false }]);
   });

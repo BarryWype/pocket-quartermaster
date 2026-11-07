@@ -226,7 +226,7 @@ export const opportunityDefs: OpportunityDef[] = [
     id: 'refugees',
     name: 'Refugees',
     emoji: '⛺',
-    description: 'Refugees on the road; shared supply earns a pilgrim’s reward.',
+    description: 'Refugees on the road; a rallying voice or shared supply earns a pilgrim’s reward.',
     answers: [{ family: 'rally', level: 1 }],
     cost: { supply: 3 },
     reward: { kind: 'pilgrimReward' },
@@ -259,7 +259,7 @@ export const opportunityDefs: OpportunityDef[] = [
     id: 'sealedVault',
     name: 'Sealed vault',
     emoji: '🔐',
-    description: 'A sealed vault; a mysterious key opens it, and a won run claims what lies inside.',
+    description: 'A sealed vault; a deft hand or a mysterious key opens it, and a won run claims what lies inside.',
     answers: [
       { family: 'cunning', level: 2 },
       { family: 'plunder', level: 2 },

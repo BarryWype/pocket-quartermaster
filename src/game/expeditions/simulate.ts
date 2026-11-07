@@ -106,7 +106,7 @@ export type PartyMember = {
   abilities: Ability[];
   /** The infused weapon's element, or the class's innate one. */
   weaponElement?: Element;
-  /** Potion, kit, ward salve or charm. */
+  /** Potion, elixir or charm. */
   consumable: ConsumableDef | null;
   /** The class's keywords for this hero: a Monk's fists add Pierce. */
   classKeywords?: Keyword[];
@@ -217,12 +217,10 @@ export type RunResult = {
   outcome: ExpeditionOutcome;
   bonusGold: number;
   hp: { heroId: string; hp: number; maxHp: number }[];
-  /** Heroes whose healing consumable (potion or kit heal) was used up during the run. */
+  /** Heroes whose healing consumable (potion) was used up during the run. */
   consumed: string[];
   /** Heroes who attacked at least once (a crit charm that never did is salvaged). */
   attacked: string[];
-  /** Elements whose damage each ward salve holder took (salvage decides on them). */
-  damageElements: Record<string, Element[]>;
   /** Heroes whose elixir (bomb, draught) triggered during the run; stat, speed and oil elixirs always count as used. */
   elixirsUsed: string[];
   /** The hero whose weakness item weakened the boss fight, if one did. */
@@ -353,7 +351,6 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs
         threat: heroClass.threat,
         resists: [
           ...(heroClass.resists ?? []),
-          ...(consumable?.protectsAgainst ? [consumable.protectsAgainst] : []),
           ...(relicEffects.filter((e) => e.effect.kind === 'immune').map((e) => (e.effect as Extract<RelicEffect, { kind: 'immune' }>).element)),
         ],
         familyTags: heroFamilyTagSources(save, hero),
@@ -387,14 +384,12 @@ export function mealParty(party: PartyMember[], meal: MealEffect | null | undefi
 
 /**
  * The hero's combat keywords after the restriction, whatever their source:
- * class, trait, gear or the kit in their slot. Anti-magic drops the magic
- * sources; Thick fog keeps Watchful only from a kit.
+ * class, trait or gear. Anti-magic drops the magic sources.
  */
 function combatKeywords(member: PartyMember, restriction: RestrictionId | null): Set<Keyword> {
   const caster = heroClasses[member.classId].damageStat === 'magic';
   const kept = (source: 'class' | 'trait' | 'gear', magic: boolean, keyword: Keyword) => {
     if (restriction === 'antiMagic' && magic) return false;
-    if (restriction === 'thickFog' && keyword === 'watchful' && source === 'class') return false;
     return true;
   };
   const set = new Set<Keyword>();
@@ -707,8 +702,6 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
   };
   const elementFactor = (hero: HeroState, attack?: Element) => incomingMultiplier(attack, { resists: hero.member.resists });
 
-  /** Elements whose damage a ward salve holder has taken, for salvage. */
-  const damageElements: Record<string, Element[]> = {};
   /** Heroes whose elixir (bomb, draught) triggered, for salvage. */
   const elixirsUsed: string[] = [];
   /** The hero whose weakness item weakened the boss fight, if one did. */
@@ -723,11 +716,6 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
   /** Raised enemies who fight for the party in the next fight, and the threats whose fallen were already raised. */
   let raised: { def: MobDef | BossDef; damage: number; heroId: string; tag: Tag }[] = [];
   const raisedFor = new Set<string>();
-  const tookDamage = (hero: HeroState, element: Element | undefined) => {
-    const salve = hero.member.consumable?.protectsAgainst;
-    if (!element || salve !== element) return;
-    damageElements[hero.member.heroId] = [...(damageElements[hero.member.heroId] ?? []), element];
-  };
   /** A relic effect at work: one note per encounter and hero. */
   const noteRelic = (result: EncounterResult, heroId: string, relicId: string) => {
     if (!result.effects.some((e) => e.key === 'relic' && e.heroId === heroId)) result.effects.push({ heroId, key: 'relic', relicId });
@@ -809,11 +797,10 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         }
       }
     }
-    // A Porter's kit heals the hero it is carried for, not the Porter.
     const potion = hero.member.consumable;
     const threshold = rules.potionThreshold + (own(hero, 'potionThreshold')?.add ?? 0);
     const low = () => hero.hp < threshold * hero.member.maxHp;
-    const healShare = potion?.when === 'lowHp' ? potion.heal : potion?.kit?.heal;
+    const healShare = potion?.when === 'lowHp' ? potion.heal : undefined;
     if (hero.consumableLeft && healShare !== undefined && low()) {
       hero.consumableLeft = false;
       heal(hero, healShare * potionFactor(hero), result);
@@ -1424,7 +1411,6 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
             continue;
           }
           hurt(hero, shielded(hero, taken), result);
-          tookDamage(hero, element);
           // A Riposte answers the hit with a strike of its own.
           const counter = ctx.counters.get(hero.member.heroId);
           if (counter && !hero.out) {
@@ -1720,7 +1706,6 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         for (const hero of caught) {
           const raw = trapWounds * hero.member.maxHp * reduce * elementFactor(hero, encounter.element);
           hurt(hero, raw, result);
-          tookDamage(hero, encounter.element);
         }
       }
       result.cleared = alive().length > 0;
@@ -1835,7 +1820,6 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     hp: heroes.map((h) => ({ heroId: h.member.heroId, hp: Math.round(h.hp), maxHp: h.member.maxHp })),
     consumed: encounters.flatMap((e) => e.consumed),
     attacked: [...attacked],
-    damageElements,
     elixirsUsed,
     weaknessUsedBy,
     ...(escaped ? { escaped: true } : {}),

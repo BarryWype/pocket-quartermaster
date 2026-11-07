@@ -1,14 +1,9 @@
-import { approachRules, gamblerRules, growthRules, heroClasses } from '@/content/heroes';
-import { traitById } from '@/content/traits';
-
-import { itemById } from '@/content/lookup';
+import { gamblerRules, growthRules, heroClasses } from '@/content/heroes';
 
 import { createRng } from '../generation/rng';
-import type { SaveData } from '../save';
-import type { Approach, GearDef, HeroClassDef, HeroClassId, HeroRoll, HeroState, StatKey, Stats } from '../types';
+import type { HeroClassDef, HeroClassId, HeroRoll, StatKey, Stats } from '../types';
 
 export const STAT_KEYS: StatKey[] = ['hp', 'power', 'magic', 'armour', 'resistance', 'evasion', 'speed', 'crit'];
-export const APPROACHES: Approach[] = ['might', 'finesse', 'wits', 'faith', 'presence'];
 
 type GrowthRules = typeof growthRules;
 
@@ -54,59 +49,4 @@ export function baseHeroStats(classId: HeroClassId, level: number, roll?: HeroRo
 export function rollGamblerPrimary(seed: string): StatKey {
   const rng = createRng(`gamblerPrimary|${seed}`);
   return gamblerRules.primaryChoices[rng.int(0, gamblerRules.primaryChoices.length - 1)];
-}
-
-/** The hero's class approach scores. */
-export const classApproaches = (hero: HeroState): Record<Approach, number> => heroClasses[hero.classId].approaches;
-
-/** How many approach picks the hero still owes: milestones reached minus picks made. */
-export function pendingApproachPicks(hero: HeroState, rules: GrowthRules = growthRules) {
-  const reached = rules.approachMilestones.filter((milestone) => milestone <= hero.level).length;
-  return Math.max(0, reached - (hero.approachPicks?.length ?? 0));
-}
-
-/** The +1s a hero's roll and picks add to their approaches (on top of class and trait). */
-export function heroApproachBonus(hero: HeroState): Partial<Record<Approach, number>> {
-  const bonus: Partial<Record<Approach, number>> = {};
-  if (hero.roll?.approach) bonus[hero.roll.approach] = (bonus[hero.roll.approach] ?? 0) + 1;
-  for (const pick of hero.approachPicks ?? []) bonus[pick] = (bonus[pick] ?? 0) + 1;
-  return bonus;
-}
-
-/** What a hero's equipped gear adds to their approaches: a lute +1 Presence, a tome +1 Wits. */
-export function gearApproachBonus(save: SaveData, hero: HeroState): Partial<Record<Approach, number>> {
-  const bonus: Partial<Record<Approach, number>> = {};
-  for (const slot of ['weapon', 'armor', 'offhand', 'trinket'] as const) {
-    const gear = save.gear.find((g) => g.uid === hero.equipment[slot]);
-    if (!gear) continue;
-    const item = itemById[gear.itemId] as GearDef;
-    const type = item.gearType;
-    if (type === 'lute') bonus.presence = (bonus.presence ?? 0) + 1;
-    if (type === 'tome') bonus.wits = (bonus.wits ?? 0) + 1;
-    if (item.approach) bonus[item.approach] = (bonus[item.approach] ?? 0) + 1;
-  }
-  return bonus;
-}
-
-/** The hero's score for one approach: class base, trait modifiers and roll/pick/gear bonus, clamped. */
-export function approachScore(hero: HeroState, approach: Approach, gearBonus: Partial<Record<Approach, number>> = {}) {
-  const effects = traitById[hero.trait]?.effects ?? [];
-  const add = effects.reduce((sum, e) => sum + (e.kind === 'approach' && e.approach === approach ? e.add : 0), 0);
-  const base = classApproaches(hero)[approach];
-  const score = base + add + (heroApproachBonus(hero)[approach] ?? 0) + (gearBonus[approach] ?? 0);
-  return Math.min(approachRules.max, Math.max(approachRules.min, score));
-}
-
-/** Spends a pending approach pick; throws when nothing is pending or the approach is at the cap. */
-export function pickApproach(save: SaveData, heroId: string, approach: Approach): SaveData {
-  const hero = save.heroes.find((h) => h.id === heroId);
-  if (!hero) throw new Error(`Unknown hero ${heroId}`);
-  if (pendingApproachPicks(hero) < 1) throw new Error(`${hero.name} has no approach pick pending`);
-  if (approachScore(hero, approach, gearApproachBonus(save, hero)) >= approachRules.max) {
-    throw new Error(`${hero.name}'s ${approach} is already at ${approachRules.max}`);
-  }
-  return {
-    ...save,
-    heroes: save.heroes.map((h) => (h.id === heroId ? { ...h, approachPicks: [...(h.approachPicks ?? []), approach] } : h)),
-  };
 }

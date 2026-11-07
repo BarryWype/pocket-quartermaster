@@ -37,12 +37,11 @@ function averageWalk(save: SaveData, minutes: number) {
   return (...ids: string[]) => ids.reduce((sum, id) => sum + (totals[id] ?? 0), 0) / runs.length;
 }
 
-/** Every hero in the tier's weapon and armour (Normal unless given); ember ward salves for heroes who need them. */
-function team(level: number, material: string | null, elixirs = false, rarity: Rarity = 'common'): SaveData {
+/** Every hero in the tier's weapon and armour (Normal unless given). */
+function team(level: number, material: string | null, rarity: Rarity = 'common'): SaveData {
   let save: SaveData = {
     ...createInitialSave(),
     heroes: createInitialSave().heroes.map((h) => ({ ...h, level })),
-    consumables: { ...createInitialSave().consumables, emberWardSalve: 2 },
   };
   if (material) {
     const gearTier = tierMaterials.indexOf(material) + 1;
@@ -52,10 +51,6 @@ function team(level: number, material: string | null, elixirs = false, rarity: R
       save = equip(save, heroId, 'weapon', `g${i}`);
       save = equip(save, heroId, 'armor', `g${i + 3}`);
     });
-  }
-  if (elixirs) {
-    save = equip(save, 'bram', 'consumable', 'emberWardSalve');
-    save = equip(save, 'lyra', 'consumable', 'emberWardSalve');
   }
   return save;
 }

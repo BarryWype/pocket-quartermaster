@@ -56,7 +56,7 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
   const candidates = save.heroes.filter((hero) => !isAway(save, hero.id) && !isExhausted(hero, now));
   const [heroIds, setHeroIds] = useState<string[]>(() => candidates.slice(0, rules?.party ?? 0).map((hero) => hero.id));
 
-  // The odds are computed off the first frame (issue 12's approach): the panel
+  // The odds are computed off the first frame (issue 12's method): the panel
   // opens at once, shows "…" until they land, and odds already held for exactly
   // these inputs (same place, party, minute) show immediately.
   const oddsKey = useMemo(

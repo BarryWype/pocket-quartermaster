@@ -20,10 +20,10 @@ const woodForFirstRecipe = () =>
 /** The warrior the sword goes to. */
 const warrior = (save: SaveData) => save.heroes.find((h) => h.classId === 'warrior');
 
-/** A Hunter's pack held in the stock or carried by any hero. */
+/** The tutorial potion held in the stock or carried by any hero. */
 export const kitHeld = (save: SaveData) =>
-  (save.consumables[tutorialRules.kitRecipe] ?? 0) > 0 ||
-  save.heroes.some((h) => h.equipment.consumable === tutorialRules.kitRecipe);
+  (save.consumables[tutorialRules.potionRecipe] ?? 0) > 0 ||
+  save.heroes.some((h) => h.equipment.consumable === tutorialRules.potionRecipe);
 
 /** The tutorial expedition has been sent, or its loot has already been given. */
 export function tutorialLaunched(save: SaveData) {
@@ -59,12 +59,12 @@ function isComplete(save: SaveData, step: TutorialStep): boolean {
       return (
         launched ||
         kitHeld(save) ||
-        (['meat', 'hide', 'bone'] as const).every((id) => (save.materials[id] ?? 0) >= 1)
+        ((save.materials.herb ?? 0) >= 2 && (save.materials.mushroom ?? 0) >= 1)
       );
     case 'craftKit':
       return launched || kitHeld(save);
     case 'equipKit':
-      return launched || save.heroes.some((h) => h.equipment.consumable === tutorialRules.kitRecipe);
+      return launched || save.heroes.some((h) => h.equipment.consumable === tutorialRules.potionRecipe);
     case 'sendExpedition':
       return launched;
     case 'awaitReport':

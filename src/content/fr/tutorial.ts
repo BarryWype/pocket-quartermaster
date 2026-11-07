@@ -15,19 +15,19 @@ export const frTutorialHints: typeof tutorialHints = {
   },
   seeThreat: {
     default: 'Ouvrez Expéditions.',
-    expeditions: 'Cette expédition affronte des Bêtes. En rouge : aucun héros n’y répond encore. Touchez pour continuer.',
+    expeditions: 'Cette expédition affronte des Bêtes. En rouge : il manque à l’équipe les tags Sauvage qui y répondent. Touchez pour continuer.',
   },
   gatherKit: {
-    default: 'Retournez à la carte : récoltez la viande, la peau et l’os autour de vous.',
-    map: 'Un Paquetage du chasseur répond aux Bêtes. Récoltez la viande, la peau et l’os autour de vous.',
+    default: 'Retournez à la carte : récoltez les herbes et le champignon autour de vous.',
+    map: 'Une potion de soin garde les héros sur pied. Récoltez les herbes et le champignon autour de vous.',
   },
   craftKit: {
     default: 'Ouvrez Atelier → Provisions.',
-    provisions: 'Fabriquez un Paquetage du chasseur.',
+    provisions: 'Fabriquez une Potion de soin mineure.',
   },
   equipKit: {
     default: 'Ouvrez Expéditions.',
-    expeditions: 'Ouvrez la Cave aux rats et donnez le Paquetage du chasseur à un héros : la menace passe au vert.',
+    expeditions: 'Ouvrez la Cave aux rats et donnez la Potion de soin mineure à un héros.',
   },
   sendExpedition: {
     default: 'Ouvrez Expéditions.',

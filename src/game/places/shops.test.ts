@@ -198,8 +198,8 @@ describe('buy', () => {
     const lines = placeStock(save, spawnOf('apothecary'), now);
     expect(lines.map((l) => l.id).lastIndexOf('sleepingDraught')).toBe(lines.length - 1);
     expect(lines[lines.length - 1].price).toBe(120);
-    // Three normal lines, the sickle, and the weakness line.
-    expect(lines.length).toBe(5);
+    // Two normal lines, the sickle, and the weakness line.
+    expect(lines.length).toBe(4);
   });
 });
 

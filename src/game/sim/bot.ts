@@ -3,7 +3,7 @@ import { difficultyRules } from '@/content/difficulty';
 import { rosterRules } from '@/content/roster';
 import { affinityRules, classAffinities, gearProfiles, type Affinity } from '@/content/equipment';
 import { guildTrackById, guildTracks } from '@/content/guild';
-import { heroClasses, approachRules, xpRules } from '@/content/heroes';
+import { heroClasses, xpRules } from '@/content/heroes';
 import { dungeonById, itemById, recipeById } from '@/content/lookup';
 import { gathererRules, jobs as jobList, type JobDef } from '@/content/jobs';
 import { lootConfig } from '@/content/loot/config';
@@ -51,10 +51,9 @@ import { buySupply, buySupplyProblem, isTavernUnlocked, offerLevel, recruit, rec
 import { currentHp, drinkPotion, drinkProblem, maxHp } from '../team/health';
 import { affinityOf, equip, equipPreview, hasPotionSlot, heroDamageStat, heroStats, isBusy, isOnExpedition, rosterFull, unequip } from '../team/team';
 import { briefingCoverage } from '../threats/coverage';
-import { gearApproachBonus, approachScore, pendingApproachPicks, pickApproach } from '../team/stats';
 import { heroAnswers, type AnswersMember } from '../threats/answers';
 import { scoreThreat } from '../threats/score';
-import type { ActiveExpedition, Approach, ArmourType, Briefing, DungeonDef, GearDef, GearInstance, HeroClassId, HeroState, OffhandType, RecipeDef, Stats, WeaponType } from '../types';
+import type { ActiveExpedition, ArmourType, Briefing, DungeonDef, GearDef, GearInstance, HeroClassId, HeroState, OffhandType, RecipeDef, Stats, WeaponType } from '../types';
 import { expectedLevels, type Profile, type SimConfig } from './config';
 import { playerMetersPerMinute } from './gathererPace';
 import { partRecipeFor } from './rules/inventory';
@@ -89,7 +88,7 @@ export type ExpeditionRow = {
   xp: number;
   /** Rarity of the party's worn weapons and armour at launch. */
   rarities: Record<Rarity, number>;
-  /** Abilities that changed an encounter, e.g. "calm" or "tagBonus:beast". */
+  /** Abilities that changed an encounter, e.g. "tagBonus:beast". */
   effects: Record<string, number>;
   /** The same by the class that used them, as "class|effect" ("local" for a local's tip). */
   classEffects: Record<string, number>;
@@ -108,7 +107,7 @@ export type ExpeditionRow = {
   meal: string | null;
   /** Healing potions drunk in the dungeon. */
   potions: number;
-  /** Consumables the party carried (kits, charms, potions, weakness items). */
+  /** Consumables the party carried (charms, potions, weakness items). */
   consumables: string[];
 };
 
@@ -205,7 +204,7 @@ export type RunLog = {
   finished: boolean;
 };
 
-/** One probe measurement: the best prepared party's odds, and for normal dungeons the same party with its kit slots empty. */
+/** One probe measurement: the best prepared party's odds, and for normal dungeons the same party with its consumable slots empty. */
 export type ProbeRow = { day: number; /** Hours since the game started. */ at: number; tier: number; kind: 'normal' | 'boss' | 'event' | 'patrol'; id: string; prepared: number; unprepared: number | null };
 
 /** A map place visit; odds and won only for fights and heists. */
@@ -309,11 +308,11 @@ export type Sim = {
 
 // —— Bookkeeping ——
 
-/** Marks the milestone for each tier whose core kit (sword, bow, wand, mail) is fully known. */
-export function markCoreKit(sim: Sim) {
+/** Marks the milestone for each tier whose core gear (sword, bow, wand, mail) is fully known. */
+export function markCoreGear(sim: Sim) {
   for (let tier = 1; tier <= 5; tier++) {
-    const kit = (['sword', 'bow', 'wand', 'mail'] as const).map((type) => recipeById[`${type}${tier}`]?.id);
-    if (kit.every((id) => id && sim.save.knownRecipes.includes(id))) mark(sim, `coreKit:${tier}`);
+    const core = (['sword', 'bow', 'wand', 'mail'] as const).map((type) => recipeById[`${type}${tier}`]?.id);
+    if (core.every((id) => id && sim.save.knownRecipes.includes(id))) mark(sim, `coreGear:${tier}`);
   }
 }
 
@@ -464,54 +463,6 @@ function recordMissing(sim: Sim, recipe: RecipeDef) {
   }
 }
 
-/** The order picks fall back through when the class's approach is at the cap. */
-const APPROACH_ORDER: Approach[] = ['might', 'finesse', 'wits', 'faith', 'presence'];
-
-/** The approach each class picks first, from the marked columns of classes.csv. */
-const classApproach: Record<HeroClassId, Approach> = {
-  warrior: 'might',
-  barbarian: 'might',
-  paladin: 'faith',
-  ranger: 'wits',
-  thief: 'finesse',
-  fireMage: 'might',
-  frostMage: 'wits',
-  sorcerer: 'wits',
-  cleric: 'faith',
-  druid: 'might',
-  troubadour: 'presence',
-  scholar: 'wits',
-  exorcist: 'faith',
-  duelist: 'finesse',
-  smuggler: 'finesse',
-  diplomat: 'presence',
-  necromancer: 'wits',
-  beastmaster: 'might',
-  engineer: 'might',
-  alchemist: 'wits',
-  porter: 'might',
-  scout: 'finesse',
-  curseBreaker: 'faith',
-  cook: 'presence',
-  monk: 'might',
-  gambler: 'finesse',
-};
-
-/** Spends every pending pick: the class's marked approach, then the next one below the cap. */
-export function spendPicks(sim: Sim) {
-  for (const { id } of sim.save.heroes) {
-    for (;;) {
-      const hero = sim.save.heroes.find((h) => h.id === id)!;
-      if (pendingApproachPicks(hero) < 1) break;
-      const want = classApproach[hero.classId];
-      const order = [want, ...APPROACH_ORDER.filter((approach) => approach !== want)];
-      const approach = order.find((a) => approachScore(hero, a, gearApproachBonus(sim.save, hero)) < approachRules.max);
-      if (!approach) break;
-      act(sim, 'approach', (save) => pickApproach(save, id, approach));
-    }
-  }
-}
-
 // —— Forging ——
 
 const forgeRecipes = recipes.filter((r) => forgedItem(r));
@@ -543,11 +494,11 @@ function recordCraft(sim: Sim, kind: CraftRow['kind'], before: SaveData, materia
   return gear;
 }
 
-/** A trinket's worth as one number: Crit and Evasion points, Speed and Luck count triple, an amulet half its Resistance, a talisman 3. */
+/** A trinket's worth as one number: Crit and Evasion points, Speed and Luck count triple, an amulet half its Resistance. */
 function trinketScore(gear: GearInstance) {
   const effect = trinketEffect(itemById[gear.itemId] as GearDef, gear);
   const { crit = 0, evasion = 0, speed = 0, luck = 0 } = effect.stats;
-  return crit + evasion + 3 * (speed + luck) + (effect.elementResist?.amount ?? 0) / 2 + (effect.approach ? 3 : 0);
+  return crit + evasion + 3 * (speed + luck) + (effect.elementResist?.amount ?? 0) / 2;
 }
 
 /** Gives each home hero, in turn, the best spare trinket that beats the one they wear. */
@@ -709,8 +660,7 @@ function cook(sim: Sim, itemId: string, count: number) {
 
 /**
  * Supply first, cooked in batches (jerky while meat lasts, then trail mix);
- * then potions, the kits today's briefings call for and meals up to their
- * stock. The bot never opts into an opportunity.
+ * then potions and meals up to their stock. The bot never opts into an opportunity.
  */
 export function stockProvisions(sim: Sim) {
   const { provisions } = sim.config;
@@ -724,9 +674,7 @@ export function stockProvisions(sim: Sim) {
     ...mealItems.map((i): [string, number] => [i.id, provisions.meals]),
   ];
   for (const [id, target] of targets) {
-    // Holy and blessed symbols are one stock line: the blessed ones count towards it (only the chapel makes them).
-    const held = (sim.save.consumables[id] ?? 0) + (id === 'holyRelics' ? (sim.save.consumables.blessedRelics ?? 0) : 0);
-    const missing = target - held;
+    const missing = target - (sim.save.consumables[id] ?? 0);
     if (missing > 0 && isKnownRecipe(sim.save, id)) cook(sim, id, missing);
   }
 }
@@ -952,10 +900,8 @@ function restUp(sim: Sim, dungeon: DungeonDef, heroIds: string[]) {
 }
 
 /**
- * The party's loadout (see rules/loadout.ts): kits for the threats, the boss's
- * weakness item, then a healing potion each. An Alchemist fills their second
- * slot with a potion too, and a Porter carries their kit for the hero it
- * leaves the fewest threat points uncovered with.
+ * The party's loadout (see rules/loadout.ts): the boss's weakness item, then
+ * a healing potion each. An Alchemist fills their second slot with a potion too.
  */
 export function withLoadout(save: SaveData, heroIds: string[], dungeon: DungeonDef, briefing: Briefing): SaveData {
   let next = fillPotions(pickWeakness(emptySlots(save, heroIds), heroIds, dungeon), heroIds);
@@ -971,8 +917,7 @@ export function withLoadout(save: SaveData, heroIds: string[], dungeon: DungeonD
 
 /**
  * The heroes with the best answers to the threats: adds the hero who leaves
- * the fewest threat points uncovered (by class, trait and gear; kits fill the
- * gaps afterwards), ties broken by a quick estimate of the prepared party's
+ * the fewest threat levels unanswered by the party's family tags, ties broken by a quick estimate of the prepared party's
  * odds, until the party is full, or covers everything and is safe enough.
  * The party found gets the full estimate.
  */

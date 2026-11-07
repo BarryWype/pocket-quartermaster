@@ -5,7 +5,7 @@ import { classAffinities } from '@/content/equipment';
 import { heroClasses } from '@/content/heroes';
 import { heroNames } from '@/content/roster';
 
-import type { Approach, ClassFamily, ClassRarity, HeroClassId, Keyword, StatKey } from '@/game/types';
+import type { ClassFamily, ClassRarity, HeroClassId, Keyword, StatKey } from '@/game/types';
 
 /** CSV class names keyed by hero class id. */
 const CLASS_IDS: Record<string, HeroClassId> = {
@@ -57,22 +57,9 @@ const PRIMARY_COLUMNS: [string, StatKey][] = [
   ['Primary Crit', 'crit'],
 ];
 
-const APPROACH_COLUMNS: [string, Approach][] = [
-  ['Might score', 'might'],
-  ['Finesse score', 'finesse'],
-  ['Wits score', 'wits'],
-  ['Faith score', 'faith'],
-  ['Presence score', 'presence'],
-];
-
 const KEYWORD_COLUMNS: [string, Keyword][] = [
-  ['Light', 'light'],
-  ['Watchful', 'watchful'],
-  ['Calm', 'calm'],
-  ['Antidote', 'antidote'],
   ['Pierce', 'pierce'],
   ['Cleave', 'cleave'],
-  ['Blessed', 'blessed'],
   ['Guard', 'guard'],
   ['Inspire', 'inspire'],
 ];
@@ -150,13 +137,6 @@ describe('heroClasses matches classes.csv', () => {
         expect(def.baseStats[stat.toLowerCase() as StatKey]).toBe(Number(row[`Base ${stat}`]));
       }
       expect(def.primary).toEqual(PRIMARY_COLUMNS.filter(([column]) => Number(row[column]) === 1).map(([, stat]) => stat));
-      // The Gambler's CSV scores are "Random"; the rolled ones start at 0.
-      for (const [column, approach] of APPROACH_COLUMNS) {
-        expect(def.approaches[approach]).toBe(id === 'gambler' ? 0 : Number(row[column]));
-      }
-      if (id !== 'gambler') {
-        expect(APPROACH_COLUMNS.reduce((sum, [column]) => sum + Number(row[column]), 0)).toBe(8);
-      }
       expect(def.keywords).toEqual(KEYWORD_COLUMNS.filter(([column]) => Number(row[column]) === 1).map(([, keyword]) => keyword));
     }
   });

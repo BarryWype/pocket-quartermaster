@@ -1,7 +1,4 @@
-import { frNames } from '@/content/fr/names';
-import { dungeonById, itemById } from '@/content/lookup';
-import { en } from '@/i18n/en';
-import { fr } from '@/i18n/fr';
+import { dungeonById } from '@/content/lookup';
 import { serviceRules } from '@/content/services';
 import { expeditionRules } from '@/content/dungeons';
 
@@ -18,8 +15,6 @@ import {
   apothecaryCare,
   apothecaryCarePrice,
   apothecaryCareProblem,
-  blessRelics,
-  blessRelicsProblem,
   chapelBlessingProblem,
   chapelCare,
   chapelCareProblem,
@@ -65,35 +60,12 @@ describe('map place services', () => {
     expect(isExhausted(hero(out), 0)).toBe(false);
   });
 
-  it('turns held holy symbols into blessed ones, leaving a carried set alone', () => {
-    const save = { ...base(), consumables: { holyRelics: 2 }, heroes: base().heroes.map((h) => (h.id === 'bram' ? { ...h, equipment: { ...h.equipment, consumable: 'holyRelics' } } : h)) };
-    const out = blessRelics(save, spawnOf('chapel'), at, 0);
-    expect(out.consumables).toMatchObject({ holyRelics: 0, blessedRelics: 2 });
-    expect(hero(out).equipment.consumable).toBe('holyRelics');
-  });
-
-  it('refuses blessing without holy symbols, from afar, or once the place is gone', () => {
-    expect(blessRelicsProblem(base(), spawnOf('chapel'), at, 0)).toBe('noRelics');
-    expect(blessRelicsProblem({ ...base(), consumables: { holyRelics: 1 } }, spawnOf('chapel'), { latitude: 48.9, longitude: 2.35 }, 0)).toBe('tooFar');
-    expect(blessRelicsProblem({ ...base(), consumables: { holyRelics: 1 } }, spawnOf('chapel'), at, 20 * 60_000)).toBe('gone');
-    expect(blessRelicsProblem({ ...base(), consumables: { holyRelics: 1 } }, spawnOf('library'), at, 0)).toBe('gone');
-  });
-
   it('takes the chapel blessing once, waiting for the next expedition', () => {
     const save = base();
     expect(chapelBlessingProblem(save, spawnOf('chapel'), at, 0)).toBeNull();
     const blessed = takeChapelBlessing(save, spawnOf('chapel'), at, 0);
     expect(blessed.expeditionBlessing).toBe(true);
     expect(chapelBlessingProblem(blessed, spawnOf('chapel'), at, 0)).toBe('alreadyBlessed');
-  });
-
-  it('names the holy kit Holy symbols in English and French', () => {
-    expect(itemById.holyRelics.name).toBe('Holy symbols');
-    expect(itemById.blessedRelics.name).toBe('Blessed symbols');
-    expect(frNames['Holy symbols']).toBe('Symboles sacrés');
-    expect(frNames['Blessed symbols']).toBe('Symboles bénis');
-    expect(en.places.bless).toBe('Bless holy symbols');
-    expect(fr.places.bless).toBe('Bénir les symboles sacrés');
   });
 
   it('spends the blessing on the next expedition only', () => {

@@ -153,14 +153,14 @@ function QuestDebug() {
   );
 }
 
-/** The wood & brass UI kit, every component in each of its states. */
+/** The wood & brass UI components, every component in each of its states. */
 function UiKitDebug() {
   const [rail, setRail] = useState('weapons');
   const [page, setPage] = useState(0);
   const [pixelOn, setPixelOn] = useState(true);
   return (
     <>
-      <Text style={styles.title}>UI kit</Text>
+      <Text style={styles.title}>UI components</Text>
       <WoodPanel style={styles.kitBlock}>
         <Text style={styles.kitOnWood}>WoodPanel</Text>
         <WoodPanel rim style={styles.kitInner}>
@@ -1160,8 +1160,7 @@ export default function DebugScreen() {
         <Button title="+10 min healing" onPress={() => game.fastForwardHealing(10)} />
         <Button title="+1 h healing" onPress={() => game.fastForwardHealing(60)} />
       </View>
-      <Button title="+5 of every food, kit and charm" onPress={() => game.addProvisions(5)} />
-      <Button title="Grant one of each kit" onPress={game.addKits} />
+      <Button title="+5 of every food and charm" onPress={() => game.addProvisions(5)} />
       <Button title="Grant one of each elixir, meal, walking and home care item" onPress={game.addConsumables} />
       <Text>Healing potions and fish dishes</Text>
       <View style={styles.row}>

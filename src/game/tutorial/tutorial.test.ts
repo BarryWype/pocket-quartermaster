@@ -35,7 +35,7 @@ function gatherStep(save: SaveData, at: number) {
 }
 
 describe('tutorial walkthrough', () => {
-  it('goes gather → forge → equip → threat → kit → send → report → done', () => {
+  it('goes gather → forge → equip → threat → potion → send → report → done', () => {
     let save = gatherStep(createInitialSave(), now);
     expect(save.materials.wood).toBe(4);
     expect(save.tutorial.step).toBe('forgeSword');
@@ -54,16 +54,16 @@ describe('tutorial walkthrough', () => {
 
     save = nextTutorialStep(save, 'seeThreat', now);
     expect(save.tutorial.step).toBe('gatherKit');
-    expect(tutorialHint(save, 'map')).toMatch(/Hunter/);
+    expect(tutorialHint(save, 'map')).toMatch(/healing potion/);
 
     save = gatherStep(save, now + 1);
     expect(save.tutorial.step).toBe('craftKit');
     expect(tutorialTarget(save)).toBe('provisions');
 
-    save = advanceTutorial(craft(save, recipeById.huntersPack));
+    save = advanceTutorial(craft(save, recipeById[tutorialRules.potionRecipe]));
     expect(save.tutorial.step).toBe('equipKit');
 
-    save = advanceTutorial(equip(save, 'bram', 'consumable', tutorialRules.kitRecipe));
+    save = advanceTutorial(equip(save, 'bram', 'consumable', tutorialRules.potionRecipe));
     expect(save.tutorial.step).toBe('sendExpedition');
 
     save = advanceTutorial(startExpedition(save, tutorialRules.dungeonId, ['bram', 'lyra', 'mira'], now));

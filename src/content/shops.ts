@@ -26,16 +26,8 @@ export const itemPrices: Record<string, number> = {
   healingPotion: 8,
   standardHealingPotion: 16,
   greaterHealingPotion: 32,
-  emberWardSalve: 10,
-  tideWardSalve: 10,
-  stormWardSalve: 10,
-  stoneWardSalve: 10,
-  thornWardSalve: 10,
   trailMix: 3,
   jerky: 5,
-  lantern: 12,
-  roguesRoll: 12,
-  huntersPack: 12,
 };
 
 export const shopRules = {
@@ -76,7 +68,6 @@ export const shopStock: Partial<Record<PlaceKind, StockDef[]>> = {
   apothecary: [
     { kind: 'item', id: 'healingPotion', amount: [2, 4] },
     { kind: 'material', id: 'herb', amount: [3, 6] },
-    { kind: 'item', pool: ['emberWardSalve', 'tideWardSalve', 'stormWardSalve', 'stoneWardSalve', 'thornWardSalve'], amount: [1, 2] },
   ],
 };
 
@@ -98,7 +89,6 @@ export const marketPool: MarketPoolEntry[] = [
   { kind: 'item', id: 'trailMix' },
   { kind: 'item', id: 'jerky' },
   { kind: 'item', id: 'healingPotion' },
-  { kind: 'item', id: 'lantern' },
 ];
 
 /** Pickaxe tier an ore needs before a market sells it. */

@@ -49,7 +49,7 @@ import {
   highestTier,
   homeHeroes,
   mark,
-  markCoreKit,
+  markCoreGear,
   keepGatherer,
   moveGathererAnchor,
   noteQuestGathers,
@@ -57,7 +57,6 @@ import {
   recallWorking,
   recruitHeroes,
   sendExpeditions,
-  spendPicks,
   stockProvisions,
   type RunLog,
   type Sim,
@@ -68,7 +67,7 @@ import { probe } from './probe';
 import { applyStones, rerollGear } from './rules/gear';
 import { forgeIngredients, restoreRelics } from './rules/forge';
 import { craftCharms, craftCombatElixirs, craftOils, craftStatPotions, readManuals, sellMaterials, sellParts, sellValuables } from './rules/inventory';
-import { buyWeakness, blessSymbols, buyForgeMaterials, buyWorkTools, openSecrets, visitPlaces, SOURCES } from './rules/map';
+import { buyWeakness, buyForgeMaterials, buyWorkTools, openSecrets, visitPlaces, SOURCES } from './rules/map';
 import { profiles, simConfig, type Profile, type SimConfig } from './config';
 import { targets } from './targets';
 import { PICKAXES, bonusScaled, walkYield, type WalkRates } from './walking';
@@ -126,8 +125,8 @@ function playTutorial(sim: Sim) {
 
   sim.save = placeTutorialSpawns(sim.save, sim.location, null, sim.now);
   pick();
-  act(sim, 'provisions', (save) => craft(save, recipeById.huntersPack));
-  sim.save = advanceTutorial(equip(sim.save, sim.save.heroes[0].id, 'consumable', tutorialRules.kitRecipe));
+  act(sim, 'provisions', (save) => craft(save, recipeById[tutorialRules.potionRecipe]));
+  sim.save = advanceTutorial(equip(sim.save, sim.save.heroes[0].id, 'consumable', tutorialRules.potionRecipe));
   sim.save = advanceTutorial(sim.save);
   sim.save = startExpedition(sim.save, tutorialRules.dungeonId, sim.save.heroes.map((h) => h.id), sim.now, 1, sim.rotation);
   collectExpedition(sim, sim.save.expeditions[0]);
@@ -300,7 +299,6 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, firstSession: b
     sellParts(sim);
     buyWeakness(sim);
     buyForgeMaterials(sim);
-    blessSymbols(sim);
   }
   sim.save = applyTraining(sim.save, sim.now);
   sim.save = recordSteps(sim.save, dayKey, steps);
@@ -317,7 +315,6 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, firstSession: b
   forge(sim);
   forgeIngredients(sim);
   restoreRelics(sim);
-  spendPicks(sim);
   stockProvisions(sim);
   craftCharms(sim);
   craftStatPotions(sim);
@@ -334,7 +331,7 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, firstSession: b
   sendExpeditions(sim);
   assignJobs(sim);
   if (walking) buyWorkTools(sim);
-  markCoreKit(sim);
+  markCoreGear(sim);
 }
 
 /** Milestones for what a session ends with: a component, a relic, a mysterious key, a secret place tip. */

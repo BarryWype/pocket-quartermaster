@@ -10,10 +10,10 @@ Weapon,Axe,3,Copper,15,0,0,0,0,-1,0,0
 Weapon,Axe,4,Iron,21,0,0,0,0,-1,0,0
 Weapon,Axe,5,Steel,28,0,0,0,0,-1,0,0
 Weapon,Mace,1,"Wood, bone",5,0,0,0,0,-1,0,0
-Weapon,Mace,2,Stone,9,0,0,0,0,-1,0,0
-Weapon,Mace,3,Copper,14,0,0,0,0,-1,0,0
-Weapon,Mace,4,Iron,20,0,0,0,0,-1,0,0
-Weapon,Mace,5,Steel,26,0,0,0,0,-1,0,0
+Weapon,Mace,2,Stone,10,0,0,0,0,-1,0,0
+Weapon,Mace,3,Copper,16,0,0,0,0,-1,0,0
+Weapon,Mace,4,Iron,22,0,0,0,0,-1,0,0
+Weapon,Mace,5,Steel,29,0,0,0,0,-1,0,0
 Weapon,Dagger,1,"Wood, bone",3,0,0,0,0,2,10,0
 Weapon,Dagger,2,Stone,5,0,0,0,0,2,10,0
 Weapon,Dagger,3,Copper,8,0,0,0,0,2,10,0
@@ -44,16 +44,16 @@ Weapon,Staff,2,Stone,0,13,0,0,0,0,0,0
 Weapon,Staff,3,Copper,0,21,0,0,0,0,0,0
 Weapon,Staff,4,Iron,0,29,0,0,0,0,0,0
 Weapon,Staff,5,Steel,0,39,0,0,0,0,0,0
-Weapon,Lute,1,"Wood, bone",0,4,0,0,0,0,0,0
-Weapon,Lute,2,Stone,0,8,0,0,0,0,0,0
-Weapon,Lute,3,Copper,0,12,0,0,0,0,0,0
-Weapon,Lute,4,Iron,0,17,0,0,0,0,0,0
-Weapon,Lute,5,Steel,0,23,0,0,0,0,0,0
-Weapon,Censer,1,"Wood, bone",0,4,0,0,0,0,0,0
-Weapon,Censer,2,Stone,0,8,0,0,0,0,0,0
-Weapon,Censer,3,Copper,0,13,0,0,0,0,0,0
-Weapon,Censer,4,Iron,0,18,0,0,0,0,0,0
-Weapon,Censer,5,Steel,0,24,0,0,0,0,0,0
+Weapon,Lute,1,"Wood, bone",0,5,0,0,0,0,0,0
+Weapon,Lute,2,Stone,0,9,0,0,0,0,0,0
+Weapon,Lute,3,Copper,0,14,0,0,0,0,0,0
+Weapon,Lute,4,Iron,0,19,0,0,0,0,0,0
+Weapon,Lute,5,Steel,0,26,0,0,0,0,0,0
+Weapon,Censer,1,"Wood, bone",0,5,0,0,0,0,0,0
+Weapon,Censer,2,Stone,0,9,0,0,0,0,0,0
+Weapon,Censer,3,Copper,0,14,0,0,0,0,0,0
+Weapon,Censer,4,Iron,0,20,0,0,0,0,0,0
+Weapon,Censer,5,Steel,0,27,0,0,0,0,0,0
 Weapon,Knuckles,1,"Wood, bone",4,0,0,0,0,1,0,0
 Weapon,Knuckles,2,Stone,8,0,0,0,0,1,0,0
 Weapon,Knuckles,3,Copper,12,0,0,0,0,1,0,0
@@ -125,10 +125,10 @@ Offhand,Quiver,3,Copper,9,0,0,0,0,0,0,0
 Offhand,Quiver,4,Iron,12,0,0,0,0,0,0,0
 Offhand,Quiver,5,Steel,16,0,0,0,0,0,0,0
 Offhand,Tome,1,"Wood, bone",0,3,0,0,0,0,0,0
-Offhand,Tome,2,Stone,0,5,0,0,0,0,0,0
-Offhand,Tome,3,Copper,0,8,0,0,0,0,0,0
-Offhand,Tome,4,Iron,0,11,0,0,0,0,0,0
-Offhand,Tome,5,Steel,0,15,0,0,0,0,0,0
+Offhand,Tome,2,Stone,0,6,0,0,0,0,0,0
+Offhand,Tome,3,Copper,0,9,0,0,0,0,0,0
+Offhand,Tome,4,Iron,0,13,0,0,0,0,0,0
+Offhand,Tome,5,Steel,0,17,0,0,0,0,0,0
 Offhand,Focus,1,"Wood, bone",0,2,0,1,0,0,0,0
 Offhand,Focus,2,Stone,0,4,0,2,0,0,0,0
 Offhand,Focus,3,Copper,0,6,0,3,0,0,0,0

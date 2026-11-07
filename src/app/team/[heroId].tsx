@@ -20,10 +20,9 @@ import { abilityText } from '@/content/abilities';
 import { clockConfig } from '@/content/clockConfig';
 import { elementInfo } from '@/content/elements';
 import { expeditionRules } from '@/content/dungeons';
-import { heroClasses, approachRules, xpRules, xpToNextLevel } from '@/content/heroes';
+import { heroClasses, xpRules, xpToNextLevel } from '@/content/heroes';
 import { slotProblem } from '@/game/equipment/slots';
 import { gearIconOf } from '@/game/gear/gearIcon';
-import { APPROACHES, gearApproachBonus, approachScore, pendingApproachPicks } from '@/game/team/stats';
 import { jobById } from '@/content/jobs';
 import { workTools } from '@/content/workTools';
 import { lootConfig } from '@/content/loot/config';
@@ -123,7 +122,6 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
   const dismiss = useGameStore((state) => state.dismissHero);
   const drinkPotion = useGameStore((state) => state.drinkPotion);
   const giveHomeCare = useGameStore((state) => state.giveHomeCare);
-  const pickApproach = useGameStore((state) => state.pickApproach);
   const recallFromJob = useGameStore((state) => state.recallFromJob);
   // Button enablement (potions, home care) turns on time, so the clock is coarse.
   const now = useNow(clockConfig.minutesMs);
@@ -144,7 +142,6 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
   const away = isAway(save, hero.id);
   const escort = save.escort?.heroId === hero.id;
   const onPatrol = save.patrolFights.some((fight) => fight.heroIds.includes(hero.id));
-  const pending = pendingApproachPicks(hero);
   const largeStats = ['hp', damageStat, 'armour', 'speed'] as const;
   const potionsHeld = items
     .filter((item) => healingPotion(item.id))
@@ -345,8 +342,6 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
     </ScrollView>
   );
 
-  const pipsOf = (value: number) =>
-    Array.from({ length: approachRules.max }, (_, i) => <View key={i} style={[styles.pip, i < value && styles.pipOn]} />);
   /** The value's origin, signed: '+6' for the gain, '−2' (U+2212) for a loss. */
   const sign = (value: number) => `${value < 0 ? '−' : '+'}${Math.abs(value)}`;
   const tipOf = (stat: keyof Stats) => {
@@ -370,50 +365,6 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
           <StatTile key={stat} stat={stat} value={stats[stat]} text={tipOf(stat)} small />
         ))}
       </View>
-      <View style={styles.section}>
-        <View style={styles.headRow}>
-          <Text style={styles.heading}>{t('hero.approaches')}</Text>
-          {pending > 0 && <Text style={styles.note}>{t('hero.pendingPicks', { count: pending })}</Text>}
-        </View>
-        {APPROACHES.map((approach) => {
-          const value = approachScore(hero, approach, gearApproachBonus(save, hero));
-          const name = t(`threats.approach.${approach}`);
-          return (
-            <Tip
-              key={approach}
-              title={name}
-              text={t(`hero.approachTips.${approach}`)}
-              style={styles.approach}
-              accessibilityLabel={t('hero.approachInfo', { approach: name })}
-            >
-              <Text style={styles.approachName}>{name}</Text>
-              <View style={styles.pipRow}>{pipsOf(value)}</View>
-            </Tip>
-          );
-        })}
-      </View>
-      {pending > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.note}>{t('hero.pickApproach')}</Text>
-          {APPROACHES.map((approach) => {
-            const value = approachScore(hero, approach, gearApproachBonus(save, hero));
-            const disabled = value >= approachRules.max;
-            return (
-              <Pressable
-                key={approach}
-                accessibilityRole="button"
-                accessibilityLabel={t(`threats.approach.${approach}`)}
-                disabled={disabled}
-                onPress={() => pickApproach(hero.id, approach)}
-                style={({ pressed }) => [styles.pickRow, pressed && styles.pressed, disabled && styles.pickDisabled]}
-              >
-                <Text style={[styles.approachName, disabled && styles.pickDisabled]}>{t(`threats.approach.${approach}`)}</Text>
-                <View style={styles.pipRow}>{pipsOf(value)}</View>
-              </Pressable>
-            );
-          })}
-        </View>
-      )}
     </ScrollView>
   );
 
@@ -824,33 +775,6 @@ const styles = StyleSheet.create({
   smallStatBody: { alignSelf: 'stretch', alignItems: 'center' },
   smallStatName: { fontFamily: fonts.serif, fontSize: 11, color: ui.inkMuted, textTransform: 'uppercase' },
   smallStatValue: { fontFamily: fonts.serifBold, fontSize: 17, color: ui.ink },
-  approach: {
-    minHeight: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-    padding: 8,
-    borderWidth: 2,
-    borderColor: ui.outline,
-    backgroundColor: ui.parchmentShade,
-  },
-  approachName: { fontFamily: fonts.serif, fontSize: 15, color: ui.ink, flexShrink: 1 },
-  pipRow: { flexDirection: 'row', gap: 6 },
-  pip: { width: 12, height: 12, borderWidth: 2, borderColor: ui.outline, backgroundColor: ui.parchmentShade },
-  pipOn: { backgroundColor: ui.brass },
-  pickRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-    padding: 8,
-    borderWidth: 2,
-    borderColor: ui.brass,
-    backgroundColor: ui.parchmentShade,
-  },
-  pickDisabled: { opacity: 0.4 },
-  pressed: { opacity: 0.6 },
   dollArea: { paddingVertical: 8, paddingHorizontal: 6, gap: 2 },
   dollRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   dollCell: { width: 96, alignItems: 'center', gap: 3 },

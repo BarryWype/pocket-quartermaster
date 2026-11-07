@@ -53,7 +53,7 @@ export const DELTA_KEYS: (keyof Stats)[] = ['hp', 'power', 'magic', 'armour', 'r
 
 function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, bossId?: string): Option[] {
   if (slot === 'consumable' || slot === 'potion') {
-    // Potions, elixirs and charms; food and kits are for the whole party. The Alchemist's second slot takes healing potions only.
+    // Potions, elixirs and charms; food is for the whole party. The Alchemist's second slot takes healing potions only.
     return Object.entries(save.consumables)
       .filter(([itemId, count]) => count > 0 && itemById[itemId]?.slot === 'consumable' && (slot === 'consumable' || healingPotion(itemId)))
       .map(([itemId, count]) => {

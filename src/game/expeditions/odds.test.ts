@@ -65,8 +65,8 @@ describe('odds preview', () => {
     let save = team(3, 9);
     save = setHeroHp(save, 'bram', 0.5, 0);
     save = setHeroHp(save, 'mira', 0.7, 0);
-    save = { ...save, consumables: { ...save.consumables, trailMix: 1, huntersStew: N, roguesRoll: 1 } };
-    return equip(save, 'lyra', 'consumable', 'roguesRoll');
+    save = { ...save, consumables: { ...save.consumables, trailMix: 1, huntersStew: N, ironskinBrew: 1 } };
+    return equip(save, 'lyra', 'consumable', 'ironskinBrew');
   };
   const loadouts: [string, string, Loadout][] = [
     ['ogreQuarry', 'Hunter’s stew', { mealId: 'huntersStew' }],

@@ -33,7 +33,7 @@ function restedRoster(save: SaveData): SaveData {
  * The win odds for the current tier right now, measured without changing the
  * game: the best prepared party from the whole roster at full HP against every
  * open normal dungeon (and, with the briefing skipped, the strongest party as
- * if there were no threats and no kits), the tier boss, the fight events
+ * if there were no threats and no consumables), the tier boss, the fight events
  * around and each patrol kind.
  */
 export function probe(sim: Sim): ProbeRow[] {
@@ -54,7 +54,7 @@ export function probe(sim: Sim): ProbeRow[] {
 
   for (const dungeon of dungeons.filter((d) => d.tier === tier && !d.isBoss && !d.overnight && isDungeonAvailable(save, d, sim.rotation))) {
     const { party, briefing } = prepare(dungeon);
-    // Not prepared: the briefing skipped. The strongest party as if there were no threats, potions and no kits, against the real briefing.
+    // Not prepared: the briefing skipped. The strongest party as if there were no threats and no consumables, against the real briefing.
     const blind = bestParty(view, dungeon, all, EMPTY_BRIEFING);
     const plain = estimateOdds(withLoadout(save, blind.heroIds, dungeon, EMPTY_BRIEFING), blind.heroIds, dungeon, runs, { now: sim.now, briefing });
     add('normal', dungeon.id, party.odds.success, plain.success);

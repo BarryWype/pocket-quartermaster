@@ -92,7 +92,7 @@ export const objectives: Record<QuestObjective, ObjectiveDef> = {
 };
 
 /** Where each crafted item group is wanted (see deliverItems). */
-export const deliverPlaces = { potion: 'apothecary', meal: 'tavern', kit: 'chapel' } as Record<
-  'potion' | 'meal' | 'kit',
+export const deliverPlaces = { potion: 'apothecary', meal: 'tavern' } as Record<
+  'potion' | 'meal',
   PlaceKind
 >;

@@ -252,12 +252,6 @@ describe('resolveExpedition', () => {
     results.forEach(({ report }) => expect(report.log.join(' ')).not.toMatch(/\{\w+\}/));
   });
 
-  it('always uses up ward salves', () => {
-    const save = equip(geared(), 'lyra', 'consumable', 'emberWardSalve');
-    const started = startExpedition(save, 'cinderHollow', ALL, 0);
-    expect(resolveExpedition(started, started.expeditions[0]).report.consumablesUsed).toContain('emberWardSalve');
-  });
-
   it('keeps gear equipped whatever the outcome', () => {
     for (const { save } of outcomes(geared(), 'banditStockade', 30)) {
       expect(save.heroes.find((h) => h.id === 'bram')!.equipment.weapon).toBe('g1');
@@ -480,14 +474,8 @@ describe('first tier clear', () => {
 
   it('is paid again for the next tier', () => {
     // The tier's chain head, unlocked with the tier-1 boss and still the tier's first clear.
-    const base: SaveData = {
-      ...atTier(strong(), 2),
-      clearedDungeons: ['banditStockade'],
-      consumables: { ...strong().consumables, huntersPack: 1 },
-    };
-    const save = equip(base, 'lyra', 'consumable', 'huntersPack');
-    // That day's Sunken Ford is winnable with the pack.
-    const result = win(save, 'sunkenFord', 86_400_000);
+    const base: SaveData = { ...atTier(strong(), 2), clearedDungeons: ['banditStockade'] };
+    const result = win(base, 'sunkenFord', 86_400_000);
     expect(result.report.success).toBe(true);
     expect(result.report.firstTierClear).toBeUndefined();
     expect(result.report.firstDungeonClear).toBe(true);

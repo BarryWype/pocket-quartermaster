@@ -9,7 +9,7 @@ export const difficultyRules = {
   oddsTargets: {
     easy: { start: [0.55, 0.65], end: [0.85, 0.9] },
     medium: { start: [0.25, 0.4], end: [0.65, 0.75] },
-    hard: { start: [0.05, 0.15], end: [0.5, 0.6] }, // measured with the kit that answers its threat
+    hard: { start: [0.05, 0.15], end: [0.5, 0.6] }, // measured with the threat answered
     // boss: keep the simulator's existing boss targets
   } satisfies Record<Exclude<Difficulty, 'boss'>, { start: [number, number]; end: [number, number] }>,
   /** Threat level by difficulty, before and from tier 3 (`threatLevelFromTier`); capped at 3. */

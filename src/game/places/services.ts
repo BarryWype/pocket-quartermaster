@@ -73,29 +73,6 @@ export function chapelCare(save: SaveData, spawn: PlaceSpawn, heroId: string, ca
   return questEvent(cared, { kind: 'placeUsed', placeId: spawn.id }, now);
 }
 
-export type BlessRelicsProblem = PlaceProblem | 'noRelics';
-
-/** Blessing needs a stock of holy symbols; the ones in a hero's slot stay as they are. */
-export function blessRelicsProblem(save: SaveData, spawn: PlaceSpawn, player: LatLng, now: number): BlessRelicsProblem | null {
-  return placeProblem(spawn, 'chapel', player, now) ?? ((save.consumables.holyRelics ?? 0) < 1 ? 'noRelics' : null);
-}
-
-/** Turns every held holy symbol into a blessed one; not limited by the visit. */
-export function blessRelics(save: SaveData, spawn: PlaceSpawn, player: LatLng, now: number): SaveData {
-  const problem = blessRelicsProblem(save, spawn, player, now);
-  if (problem) throw new Error(`Cannot bless holy symbols: ${problem}`);
-  const held = save.consumables.holyRelics ?? 0;
-  const blessed = {
-    ...save,
-    consumables: {
-      ...save.consumables,
-      holyRelics: 0,
-      blessedRelics: (save.consumables.blessedRelics ?? 0) + held,
-    },
-  };
-  return questEvent(blessed, { kind: 'placeUsed', placeId: spawn.id }, now);
-}
-
 export type ChapelBlessingProblem = PlaceProblem | 'alreadyBlessed';
 
 export function chapelBlessingProblem(save: SaveData, spawn: PlaceSpawn, player: LatLng, now: number): ChapelBlessingProblem | null {

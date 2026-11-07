@@ -65,7 +65,7 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
   const [shown, setShown] = useState(0);
   const [openedAt] = useState(() => Date.now());
 
-  // The odds are computed off the first frame (issue 12's approach): the panel
+  // The odds are computed off the first frame (issue 12's method): the panel
   // opens at once, shows "…" until they land, and odds already held for exactly
   // these inputs (same sanctum, tier, party, minute) show immediately.
   const oddsKey = useMemo(

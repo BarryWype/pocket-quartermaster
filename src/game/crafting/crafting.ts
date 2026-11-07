@@ -12,7 +12,7 @@ import type { GearDef, GearInstance, MaterialStack, RecipeDef } from '../types';
 export function isKnown(save: SaveData, recipe: RecipeDef) {
   // Part recipes need their parts seen as well as their tier.
   if (recipe.unlockedBy) return save.partRecipes.includes(recipe.id) && highestUnlockedTier(save) >= (recipe.availableFromTier ?? 1);
-  // Kit recipes come with the tiers alone: known once the player reaches their tier.
+  // Tier recipes come with the tiers alone: known once the player reaches their tier.
   if (recipe.availableFromTier !== undefined) return highestUnlockedTier(save) >= recipe.availableFromTier;
   return save.knownRecipes.includes(recipe.id);
 }

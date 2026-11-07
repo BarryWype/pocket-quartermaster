@@ -8,9 +8,9 @@ export const tutorialRules = {
   /** The tutorial expedition's only threat. */
   briefing: { threats: [{ id: 'beasts', level: 1 }], restriction: null, opportunity: null } satisfies Briefing,
   swordRecipe: 'sword1',
-  kitRecipe: 'huntersPack',
+  potionRecipe: 'healingPotion',
   /** Nodes spawned at the start of each gathering step, one material each. */
-  spawns: { gatherWood: ['wood', 'wood', 'wood', 'wood'], gatherKit: ['meat', 'hide', 'bone'] } as Partial<
+  spawns: { gatherWood: ['wood', 'wood', 'wood', 'wood'], gatherKit: ['herb', 'herb', 'mushroom'] } as Partial<
     Record<TutorialStep, string[]>
   >,
   spawnMeters: [8, 15] as [number, number],
@@ -50,19 +50,19 @@ export const tutorialHints: Record<TutorialStep, Partial<Record<TutorialScreen |
   },
   seeThreat: {
     default: 'Open Expeditions.',
-    expeditions: 'This expedition faces Beasts. Red: no hero answers it yet. Tap to continue.',
+    expeditions: 'This expedition faces Beasts. Red: the party lacks the Wild tags that answer it. Tap to continue.',
   },
   gatherKit: {
-    default: 'Back to the map: gather the meat, hide and bone around you.',
-    map: 'A Hunter’s pack answers Beasts. Gather the meat, hide and bone around you.',
+    default: 'Back to the map: gather the herbs and mushroom around you.',
+    map: 'A healing potion keeps heroes on their feet. Gather the herbs and mushroom around you.',
   },
   craftKit: {
     default: 'Open Craft → Provisions.',
-    provisions: 'Craft a Hunter’s pack.',
+    provisions: 'Craft a Minor healing potion.',
   },
   equipKit: {
     default: 'Open Expeditions.',
-    expeditions: 'Open the Rat Cellar and give the Hunter’s pack to a hero: the threat turns green.',
+    expeditions: 'Open the Rat Cellar and give the Minor healing potion to a hero.',
   },
   sendExpedition: {
     default: 'Open Expeditions.',

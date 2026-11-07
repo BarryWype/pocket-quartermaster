@@ -1,6 +1,6 @@
 import { elementInfo } from '@/content/elements';
 import { ELEMENTS, type Element } from '@/game/elements';
-import type { Approach, GearDef, StatKey } from '@/game/types';
+import type { GearDef, StatKey } from '@/game/types';
 
 /** Each element's amulet icon. */
 const AMULET_ICONS: Record<Element, GearDef['icon']> = {
@@ -19,11 +19,11 @@ export const trinketRules = {
   /** Ring of fortune Luck by tier; it only drops Legendary, so quality doesn't scale it. */
   luckByTier: [2, 2, 3, 3, 4],
   /** Kind weights in a trinket drop; the ring only joins the pool on a Legendary roll. */
-  weights: { stat: 3, amulet: 3, talisman: 0.5, fortune: 4 },
+  weights: { stat: 3, amulet: 3, fortune: 4 },
 };
 
 /** A trinket kind's drop group; amulets of the five elements share one entry. */
-export type TrinketGroup = 'stat' | 'amulet' | 'talisman' | 'fortune';
+export type TrinketGroup = 'stat' | 'amulet' | 'fortune';
 
 type TrinketKind = {
   kind: string;
@@ -34,7 +34,6 @@ type TrinketKind = {
 } & (
   | { group: 'stat'; stat: StatKey; base: number }
   | { group: 'amulet'; element: Element; base: number }
-  | { group: 'talisman'; approach: Approach }
   | { group: 'fortune' }
 );
 
@@ -52,17 +51,12 @@ export const trinketKinds: TrinketKind[] = [
     element,
     base: 4,
   })),
-  { kind: 'oxTalisman', name: 'Ox talisman', emoji: '🪬', icon: require('../../assets/icons/relics/totem-ox.png'), group: 'talisman', approach: 'might' },
-  { kind: 'foxTalisman', name: 'Fox talisman', emoji: '🪬', icon: require('../../assets/icons/relics/totem-red.png'), group: 'talisman', approach: 'finesse' },
-  { kind: 'owlTalisman', name: 'Owl talisman', emoji: '🪬', icon: require('../../assets/icons/relics/totem-feathered.png'), group: 'talisman', approach: 'wits' },
-  { kind: 'doveTalisman', name: 'Dove talisman', emoji: '🪬', icon: require('../../assets/icons/relics/ankh-gold.png'), group: 'talisman', approach: 'faith' },
-  { kind: 'lionTalisman', name: 'Lion talisman', emoji: '🪬', icon: require('../../assets/icons/relics/mask-silver.png'), group: 'talisman', approach: 'presence' },
   { kind: 'ringOfFortune', name: 'Ring of fortune', emoji: '🍀', icon: require('../../assets/icons/magic/ring-gold-emerald.png'), group: 'fortune' },
 ];
 
 export const trinketId = (kind: string, tier: number) => `${kind}${tier}`;
 
-/** One trinket per kind and tier (14 kinds × 5 tiers), stats at Normal quality, unrounded. */
+/** One trinket per kind and tier (9 kinds × 5 tiers), stats at Normal quality, unrounded. */
 export const trinkets: GearDef[] = trinketKinds.flatMap((kind) =>
   [1, 2, 3, 4, 5].map((tier): GearDef => ({
     id: trinketId(kind.kind, tier),
@@ -76,8 +70,6 @@ export const trinkets: GearDef[] = trinketKinds.flatMap((kind) =>
       ? { stats: { [kind.stat]: kind.base * trinketRules.extraBudget[tier - 1] } }
       : kind.group === 'amulet'
         ? { stats: {}, elementResist: { element: kind.element, amount: kind.base * trinketRules.resistanceBudget[tier - 1] } }
-        : kind.group === 'talisman'
-          ? { stats: {}, approach: kind.approach }
-          : { stats: { luck: trinketRules.luckByTier[tier - 1] } }),
+        : { stats: { luck: trinketRules.luckByTier[tier - 1] } }),
   })),
 );

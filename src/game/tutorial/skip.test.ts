@@ -15,9 +15,9 @@ const at = now + 60_000;
 
 const swordGear = (save: SaveData) => save.gear.filter((g) => g.itemId === tutorialRules.swordRecipe);
 const bram = (save: SaveData) => save.heroes.find((h) => h.id === 'bram')!;
-const kitAnywhere = (save: SaveData) =>
-  (save.consumables[tutorialRules.kitRecipe] ?? 0) > 0 ||
-  save.heroes.some((h) => h.equipment.consumable === tutorialRules.kitRecipe);
+const potions = (save: SaveData) =>
+  (save.consumables[tutorialRules.potionRecipe] ?? 0) +
+  save.heroes.filter((h) => h.equipment.consumable === tutorialRules.potionRecipe).length;
 
 /** Picks up the current step's nodes standing on them. */
 function gatherStep(save: SaveData, at: number) {
@@ -44,9 +44,9 @@ function playTo(step: TutorialStep): SaveData {
   if (step === 'gatherKit') return save;
   save = gatherStep(save, now + 1);
   if (step === 'craftKit') return save;
-  save = advanceTutorial(craft(save, recipeById.huntersPack));
+  save = advanceTutorial(craft(save, recipeById[tutorialRules.potionRecipe]));
   if (step === 'equipKit') return save;
-  save = advanceTutorial(equip(save, 'bram', 'consumable', tutorialRules.kitRecipe));
+  save = advanceTutorial(equip(save, 'bram', 'consumable', tutorialRules.potionRecipe));
   if (step === 'sendExpedition') return save;
   save = advanceTutorial(startExpedition(save, tutorialRules.dungeonId, ['bram', 'lyra', 'mira'], now));
   if (step === 'awaitReport') return save;
@@ -72,10 +72,10 @@ function playThrough(save: SaveData): SaveData {
         next = nextTutorialStep(next, 'seeThreat', now + 2);
         break;
       case 'craftKit':
-        next = advanceTutorial(craft(next, recipeById.huntersPack));
+        next = advanceTutorial(craft(next, recipeById[tutorialRules.potionRecipe]));
         break;
       case 'equipKit':
-        next = advanceTutorial(equip(next, 'bram', 'consumable', tutorialRules.kitRecipe));
+        next = advanceTutorial(equip(next, 'bram', 'consumable', tutorialRules.potionRecipe));
         break;
       case 'sendExpedition':
         next = advanceTutorial(startExpedition(next, tutorialRules.dungeonId, ['bram', 'lyra', 'mira'], now + 2));
@@ -113,9 +113,6 @@ describe('skipping the tutorial', () => {
     expect(swordGear(skipped)).toHaveLength(1);
     expect(bram(skipped).equipment.weapon).toBe(swordGear(skipped)[0].uid);
 
-    // The Hunter's pack never reaches a run that could trigger it, so it comes
-    // back untriggered and is broken back down, exactly like a played run.
-    expect(kitAnywhere(skipped)).toBe(false);
 
     expect(skipped.tutorial.rewarded).toBe(true);
     expect(skipped.firstWinDay).not.toBeNull();
@@ -125,6 +122,7 @@ describe('skipping the tutorial', () => {
     // The leftovers match a tutorial played through from the same point.
     const played = playThrough(before);
     expect(skipped.materials).toEqual(played.materials);
+    expect(potions(skipped)).toBe(potions(played));
     expect(skipped.knownRecipes).toEqual(played.knownRecipes);
     expect(skipped.gear).toHaveLength(played.gear.length);
   });

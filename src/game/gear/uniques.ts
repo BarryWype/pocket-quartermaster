@@ -4,16 +4,15 @@ import { relics, type RelicDef } from '@/content/loot/relics';
 import type { Rng } from '../generation/rng';
 import type { GearDef, GearInstance, GearType, RelicEffect } from '../types';
 
-/** Relic effect kinds that work from a trinket: penalties and immunities, plus Blessed. */
+/** Relic effect kinds that work from a trinket: penalties and immunities. */
 const TRINKET_UNIQUE_KINDS = new Set(['penaltyCut', 'cancelPenalty', 'ignorePenalty', 'answers', 'immune']);
 
-const trinketEffectOk = (effect: RelicEffect) =>
-  TRINKET_UNIQUE_KINDS.has(effect.kind) || (effect.kind === 'keyword' && effect.keyword === 'blessed');
+const trinketEffectOk = (effect: RelicEffect) => TRINKET_UNIQUE_KINDS.has(effect.kind);
 
 /**
  * The relics whose effects fit the piece: those of its gear type, and for a
- * trinket any relic whose every effect carries over (blessed, penalty and
- * immunity effects; the combat kinds only work from a held piece).
+ * trinket any relic whose every effect carries over (penalty and immunity
+ * effects; the combat kinds only work from a held piece).
  */
 export function uniquePool(piece: GearInstance | { itemId: string }): RelicDef[] {
   const item = itemById[piece.itemId] as GearDef;

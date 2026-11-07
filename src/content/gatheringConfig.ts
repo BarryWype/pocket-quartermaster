@@ -30,7 +30,7 @@ export const gatheringConfig = {
     maxSegmentSeconds: 300,
     /** The path is checked in pieces this long, so nodes come from the tiles along it (m). */
     sampleMeters: 50,
-    /** Animals move, so their closest approach is checked every this many metres of path. */
+    /** Animals move, so the nearest one is re-checked every this many metres of path. */
     animalStepMeters: 5,
     /** Steps estimated from distance where the pedometer can't count (Android in the background). */
     strideMeters: 0.75,

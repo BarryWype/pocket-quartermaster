@@ -12,7 +12,6 @@ import { heroClasses } from '@/content/heroes';
 import { systemIcons } from '@/content/systemIcons';
 import { traitById } from '@/content/traits';
 import { heroDamageStat, heroStats, isOnExpedition } from '@/game/team/team';
-import { pendingApproachPicks } from '@/game/team/stats';
 import { rosterCap } from '@/game/guild/guild';
 import { useLanguage } from '@/hooks/useLanguage';
 import { navigate } from '@/services/navigation';
@@ -62,7 +61,6 @@ function TeamContent() {
               : t('team.ready');
         const stats = heroStats(save, hero);
         const damageStat = heroDamageStat(save, hero);
-        const pending = pendingApproachPicks(hero);
         return (
           <Pressable
             key={hero.id}
@@ -90,7 +88,6 @@ function TeamContent() {
                 <View style={styles.titleLine}>
                   <Text style={styles.name}>{hero.name}</Text>
                   <Text style={[styles.status, !away && !escort && !patrol && styles.statusReady]}>{status}</Text>
-                  {pending > 0 && <Text style={styles.pending}>{t('hero.pendingPicks', { count: pending })}</Text>}
                 </View>
                 <View style={styles.classRow}>
                   <Text style={styles.classLine}>
@@ -167,15 +164,6 @@ const styles = StyleSheet.create({
   name: { flex: 1, fontFamily: fonts.body, fontSize: 23, color: ui.ink, lineHeight: 24 },
   status: { fontFamily: fonts.serifBold, fontSize: 12, color: ui.bad },
   statusReady: { color: ui.good },
-  pending: {
-    paddingHorizontal: 4,
-    borderWidth: 2,
-    borderColor: ui.keyword,
-    backgroundColor: ui.keywordBg,
-    fontFamily: fonts.serifBold,
-    fontSize: 12,
-    color: ui.keyword,
-  },
   classRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
   classLine: { fontFamily: fonts.serif, fontSize: 13, color: ui.inkMuted },
   statRow: { flexDirection: 'row', gap: 3 },

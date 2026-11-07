@@ -4,8 +4,8 @@ import type { Keyword, RelicEffect, Stats } from '../types';
 
 type Rules = typeof gearBudgetRules;
 
-/** Keywords with a combat number; kit keywords such as `light` answer threats instead. */
-const COMBAT_KEYWORDS: Keyword[] = ['pierce', 'cleave', 'blessed', 'guard', 'parry', 'reach', 'stagger', 'brace', 'channel', 'inspire', 'mend'];
+/** Keywords with a combat number. */
+const COMBAT_KEYWORDS: Keyword[] = ['pierce', 'cleave', 'guard', 'parry', 'reach', 'stagger', 'brace', 'channel', 'inspire', 'mend'];
 
 /**
  * The share of an item's budget its flat extras, keywords, Heavy and
@@ -14,7 +14,7 @@ const COMBAT_KEYWORDS: Keyword[] = ['pierce', 'cleave', 'blessed', 'guard', 'par
  */
 export function extrasCost(profile: GearProfile, rules: Rules = gearBudgetRules) {
   const { extras, keywords } = profile;
-  let cost = rules.cost.speed * (extras.speed ?? 0) + rules.cost.crit * (extras.crit ?? 0) + rules.cost.evasion * (extras.evasion ?? 0) + rules.cost.approach * (extras.approach ?? 0);
+  let cost = rules.cost.speed * (extras.speed ?? 0) + rules.cost.crit * (extras.crit ?? 0) + rules.cost.evasion * (extras.evasion ?? 0);
   for (const keyword of keywords) cost += rules.major.includes(keyword) ? rules.cost.major : rules.cost.minor;
   if (profile.heavy) cost += rules.cost.heavy;
   if (profile.concealed) cost += rules.cost.concealed;
@@ -51,8 +51,7 @@ export function gearItemStats(profile: GearProfile, tier: number, rules: Rules =
 /**
  * What one of a relic's effects costs as a share of the item's budget: a
  * combat keyword its usual major or minor share (halved when it only works
- * in a situation), a kit keyword the answers share, anything else its entry
- * in the rules.
+ * in a situation), anything else its entry in the rules.
  */
 export function relicEffectCost(effect: RelicEffect, rules: Rules = gearBudgetRules): number {
   if (effect.kind === 'keyword') {
