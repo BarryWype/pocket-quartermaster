@@ -1,10 +1,10 @@
 import { dungeons } from '@/content/dungeons';
-import { classAffinities } from '@/content/equipment';
+import { classAffinities, gearId, gearProfiles } from '@/content/equipment';
 import { classSpecials } from '@/content/classSpecials';
 import { newHero } from '@/content/heroes';
 import { items } from '@/content/items';
 import type { Rarity } from '@/content/gear';
-import type { GearDef, HeroClassId, HeroState } from '@/game/types';
+import type { GearDef, GearType, HeroClassId, HeroState } from '@/game/types';
 
 import { createInitialSave, type SaveData } from '../save';
 import { affixById } from '@/content/affixes';
@@ -65,14 +65,27 @@ export function referenceTeam(classes: HeroClassId[], tier: number, rarity: Rari
   return save;
 }
 
+/**
+ * `copies` spare pieces of every weapon, armour and off-hand type of a tier
+ * at a rarity (weapons only when `weaponsOnly`), for the reference teams to
+ * dress from (see rules/families.ts).
+ */
+export function withSpares(save: SaveData, tier: number, rarity: Rarity, weaponsOnly = false, copies = 1): SaveData {
+  const types = (Object.keys(gearProfiles) as GearType[]).filter((type) => !weaponsOnly || gearProfiles[type].slot === 'weapon');
+  const spares = types.flatMap((type) => Array.from({ length: copies }, (_, i) => averagePiece(`spare:${type}${i ? `:${i}` : ''}`, gearId(type, tier), rarity)));
+  return { ...save, gear: [...save.gear, ...spares] };
+}
+
 /** The tier's chain weapons: a sword, a bow and a wand, one per hero like the sim's quick team. */
 const WEAPONS = ['sword', 'bow', 'wand'] as const;
 
 /**
  * The reference save a difficulty's odds are measured against (see
  * difficultyOdds.ts): the starting heroes at the tier's start or end level,
- * in the gear a player is expected to have then, every lower tier cleared so
- * this tier is unlocked, three healing potions equipped.
+ * in the gear a player is expected to have then, with a spare piece of every
+ * type of that gear's tier and rarity to dress from (weapons only at the
+ * start of tier 1), every lower tier cleared so this tier is unlocked, three
+ * healing potions equipped.
  *
  * Start of a tier: the level at the tier's start, Common gear of the previous
  * tier (a weapon only at tier 1, for a new player with about 1.5 items per
@@ -101,5 +114,5 @@ export function referenceSave(tier: number, when: 'start' | 'end', party: number
     save = equip(save, hero.id, 'weapon', `w${i}`);
     if (withArmour) save = equip(save, hero.id, 'armor', `a${i}`);
   });
-  return fillPotions(save, save.heroes.map((h) => h.id));
+  return fillPotions(withSpares(save, gearTier, rarity, !withArmour), save.heroes.map((h) => h.id));
 }

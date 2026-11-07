@@ -17,6 +17,8 @@ import type { PatrolKind, PatrolSpawn } from '../patrols/generate';
 import type { SaveData } from '../save';
 import type { DungeonDef } from '../types';
 import { withLoadout } from './bot';
+import { EMPTY_BRIEFING } from '../expeditions/simulate';
+import { dressParty } from './rules/families';
 import { referenceSave } from './reference';
 
 /** A fight source whose strength the fitting script tunes. */
@@ -46,10 +48,13 @@ function stocked(save: SaveData): SaveData {
   };
 }
 
-/** The save a hard or boss source is measured with: potions, then the loadout that answers its briefing. */
+/** The save a hard or boss source is measured with: dressed for its briefing from the spare pool (rules/families.ts), then the loadout. */
 export function prepared(save: SaveData, heroIds: string[], dungeon: DungeonDef, briefing: Parameters<typeof withLoadout>[3]): SaveData {
-  return withLoadout(stocked(save), heroIds, dungeon, briefing);
+  return withLoadout(stocked(dressParty(save, heroIds, briefing)), heroIds, dungeon, briefing);
 }
+
+/** The save an easy or medium source is measured with: the briefing skipped, dressed for the team's playstyle family only. */
+const natural = (save: SaveData, heroIds: string[]): SaveData => dressParty(save, heroIds, EMPTY_BRIEFING);
 
 /** The odds of one source for a reference team at a tier's start or end, as a share of runs won. */
 export function sourceOdds(source: FitSource, tier: number, when: 'start' | 'end', runs: number): number {
@@ -61,7 +66,7 @@ export function sourceOdds(source: FitSource, tier: number, when: 'start' | 'end
     return mean(
       FIT_DAYS.map((day) => {
         const briefing = composeBriefing(dungeon, day);
-        const save = isPrepared ? prepared(base, ids, dungeon, briefing) : base;
+        const save = isPrepared ? prepared(base, ids, dungeon, briefing) : natural(base, ids);
         return estimateOdds(save, ids, dungeon, runs, { now: FIT_NOW, briefing }).success;
       }),
     );
@@ -85,7 +90,7 @@ export function sourceOdds(source: FitSource, tier: number, when: 'start' | 'end
       endsAt: Infinity,
     };
     const dungeon = patrolDungeon(spawn, tier, isElitePatrolKind(kind));
-    const save = difficulty === 'hard' ? prepared(base, ids, dungeon, patrolBriefing(spawn)) : base;
+    const save = difficulty === 'hard' ? prepared(base, ids, dungeon, patrolBriefing(spawn)) : natural(base, ids);
     return patrolOdds(save, spawn, ids, FIT_NOW, runs).success;
   }
   const kind = source.placeKind;
@@ -105,7 +110,7 @@ export function sourceOdds(source: FitSource, tier: number, when: 'start' | 'end
         roll: 0,
       };
       const briefing = placeFightBriefing(base, spawn);
-      const save = difficulty === 'hard' ? prepared(base, ids, placeFightDungeon(spawn, tier), briefing) : base;
+      const save = difficulty === 'hard' ? prepared(base, ids, placeFightDungeon(spawn, tier), briefing) : natural(base, ids);
       return placeFightOdds(save, spawn, ids, FIT_NOW, runs).success;
     }),
   );

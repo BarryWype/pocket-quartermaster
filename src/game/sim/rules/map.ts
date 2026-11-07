@@ -24,6 +24,7 @@ import { isJobOpen, jobWorker, wornWorkTool } from '../../jobs/jobs';
 import { equip, equipPreview } from '../../team/team';
 import type { GearDef } from '../../types';
 import { act, bestParty, countLoot, highestTier, homeHeroes, mark, nextForgeRecipe, recallWorking, skip, takeVisit, withLoadout, type PlaceRow, type Sim } from '../bot';
+import { dressParty } from './families';
 import { emptySlots } from './loadout';
 
 const MINUTE = 60_000;
@@ -73,7 +74,7 @@ function fightAt(sim: Sim, kind: FightPlaceKind): PlaceMiss | null {
   const party = bestParty(sim, dungeon, candidates, briefing);
   if (party.heroIds.length === 0 || party.odds.success < sim.config.odds.place) return 'odds';
   recallWorking(sim, party.heroIds);
-  sim.save = withLoadout(emptySlots(sim.save, party.heroIds), party.heroIds, dungeon, briefing);
+  sim.save = withLoadout(dressParty(emptySlots(sim.save, party.heroIds), party.heroIds, briefing), party.heroIds, dungeon, briefing);
   if (placeFightProblem(sim.save, spawn, party.heroIds, spawn.position, sim.now) !== null) return 'odds';
   const endsAt = sim.now + dungeon.durationMinutes * MINUTE;
   let won = false;
@@ -259,7 +260,7 @@ function underwaterAt(sim: Sim, place: PlaceSpawn): boolean {
   const party = bestParty(sim, dungeon, homeHeroes(sim.save).map((h) => h.id), briefing);
   if (party.heroIds.length === 0 || party.odds.success < sim.config.odds.place) return false;
   recallWorking(sim, party.heroIds);
-  sim.save = withLoadout(emptySlots(sim.save, homeHeroes(sim.save).map((h) => h.id)), party.heroIds, dungeon, briefing);
+  sim.save = withLoadout(dressParty(emptySlots(sim.save, homeHeroes(sim.save).map((h) => h.id)), party.heroIds, briefing), party.heroIds, dungeon, briefing);
   act(sim, 'secret', (save) => launchUnderwater(save, place, party.heroIds, place.position, sim.now));
   mark(sim, 'secretPlace');
   row(sim, place.kind, dungeon.tier, party.odds.success, null);

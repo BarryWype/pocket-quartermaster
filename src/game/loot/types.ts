@@ -95,7 +95,12 @@ export type Loot = {
   dropped: LootCategory[];
   /** The work-tool scavenge merged into `materials`, kept apart so reports can tell it from rolled loot. */
   scavenged?: MaterialStack[];
+  /** What trophies and a complete blueprint tier's overflow brought (merged above), kept apart for reports. */
+  trophies?: TrophyDrop[];
 };
+
+/** One trophy or blueprint overflow: its kind and what it added. */
+export type TrophyDrop = { kind: 'relic' | 'parts' | 'stone' | 'overflow'; gold: number; parts: number; relics: number; stones: number };
 
 export const emptyLoot = (): Loot => ({
   gold: 0,

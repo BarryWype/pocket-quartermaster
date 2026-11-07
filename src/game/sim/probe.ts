@@ -9,6 +9,7 @@ import { placeFightBriefing, placeFightDungeon } from '../places/fights';
 import { placesWithin } from '../places/generate';
 import { PATROL_KINDS, patrolsAround } from '../patrols/generate';
 import { patrolOdds } from '../patrols/fight';
+import { familyLevels, partyFamilies } from '../families/families';
 import type { SaveData } from '../save';
 import type { DungeonDef } from '../types';
 import { bestParty, highestTier, withLoadout, type ProbeRow, type RunLog, type Sim } from './bot';
@@ -45,7 +46,8 @@ export function probe(sim: Sim): ProbeRow[] {
   const all = save.heroes.map((h) => h.id);
   const runs = sim.config.odds.runs;
   const rows: ProbeRow[] = [];
-  const add = (kind: ProbeRow['kind'], id: string, prepared: number, plain: number | null = null) => rows.push({ day: sim.day, at: (sim.now - sim.startedAt) / 3_600_000, tier, kind, id, prepared, unprepared: plain });
+  const add = (kind: ProbeRow['kind'], id: string, prepared: number, plain: number | null = null, natural: number | null = null) =>
+    rows.push({ day: sim.day, at: (sim.now - sim.startedAt) / 3_600_000, tier, kind, id, prepared, unprepared: plain, natural });
 
   const prepare = (dungeon: DungeonDef, briefing = briefingFor(sim.rotation, dungeon)) => {
     const party = bestParty(view, dungeon, all, briefing);
@@ -55,9 +57,11 @@ export function probe(sim: Sim): ProbeRow[] {
   for (const dungeon of dungeons.filter((d) => d.tier === tier && !d.isBoss && !d.overnight && isDungeonAvailable(save, d, sim.rotation))) {
     const { party, briefing } = prepare(dungeon);
     // Not prepared: the briefing skipped. The strongest party as if there were no threats and no consumables, against the real briefing.
-    const blind = bestParty(view, dungeon, all, EMPTY_BRIEFING);
+    // Its gear stays as worn, so its family levels are the natural party's: picked without regard to families.
+    const blind = bestParty(view, dungeon, all, EMPTY_BRIEFING, false);
     const plain = estimateOdds(withLoadout(save, blind.heroIds, dungeon, EMPTY_BRIEFING), blind.heroIds, dungeon, runs, { now: sim.now, briefing });
-    add('normal', dungeon.id, party.odds.success, plain.success);
+    const natural = Math.max(0, ...Object.values(familyLevels(partyFamilies(save, blind.heroIds))));
+    add('normal', dungeon.id, party.odds.success, plain.success, natural);
   }
 
   const boss = dungeons.find((d) => d.tier === tier && d.isBoss);

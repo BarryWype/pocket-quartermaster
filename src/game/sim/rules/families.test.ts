@@ -1,0 +1,78 @@
+import { gearProfiles } from '@/content/equipment';
+import type { FamilyId } from '@/content/families';
+import { heroClasses } from '@/content/heroes';
+import { itemById } from '@/content/lookup';
+
+import { pieceDamageStat } from '../../equipment/damageStat';
+import { familyLevel, partyFamilies } from '../../families/families';
+import type { SaveData } from '../../save';
+import type { Briefing, GearDef } from '../../types';
+import { referenceSave } from '../reference';
+import { dressParty, focusFamily, sparePieces, sparesToKeep } from './families';
+import { uncovered } from './loadout';
+
+const NONE: Briefing = { threats: [], restriction: null, opportunity: null };
+const HOLY: Briefing = { threats: [{ id: 'holy', level: 2 }], restriction: null, opportunity: null };
+
+/** The tier 2 reference trio at the tier's end, with a spare piece of every type. */
+const base = (): SaveData => referenceSave(2, 'end', 3);
+const ids = (save: SaveData) => save.heroes.map((h) => h.id);
+const level = (save: SaveData, family: FamilyId) => familyLevel(partyFamilies(save, ids(save))[family] ?? 0);
+const worn = (save: SaveData, heroId: string, slot: 'weapon' | 'armor' | 'offhand') => {
+  const uid = save.heroes.find((h) => h.id === heroId)!.equipment[slot];
+  return uid ? (itemById[save.gear.find((g) => g.uid === uid)!.itemId] as GearDef) : null;
+};
+
+describe('family rules', () => {
+  it('swaps spare pieces in until the threat family reaches the needed level', () => {
+    const save = base();
+    expect(uncovered(save, ids(save), HOLY)).toBeGreaterThan(0);
+    const dressed = dressParty(save, ids(save), HOLY);
+    expect(uncovered(dressed, ids(dressed), HOLY)).toBe(0);
+    expect(level(dressed, 'faith')).toBeGreaterThanOrEqual(2);
+  });
+
+  it('then pushes the leading playstyle family to its next level', () => {
+    const save = base();
+    const focus = focusFamily(save, ids(save))!;
+    const before = level(save, focus);
+    const dressed = dressParty(save, ids(save), NONE);
+    expect(level(dressed, focus)).toBeGreaterThan(before);
+  });
+
+  it('never loses a threat answer for the playstyle family', () => {
+    const save = base();
+    const threatsOnly = dressParty(save, ids(save), HOLY, null, false);
+    const dressed = dressParty(save, ids(save), HOLY);
+    expect(uncovered(dressed, ids(dressed), HOLY)).toBe(uncovered(threatsOnly, ids(threatsOnly), HOLY));
+  });
+
+  it('only gives a hero weapons and off-hands that roll with their damage stat', () => {
+    const save = base();
+    const dressed = dressParty(save, ids(save), HOLY);
+    for (const hero of dressed.heroes) {
+      const stat = heroClasses[hero.classId].damageStat;
+      const weapon = worn(dressed, hero.id, 'weapon');
+      const offhand = worn(dressed, hero.id, 'offhand');
+      if (weapon) expect(pieceDamageStat(weapon, hero.classId)).toBe(stat);
+      const offhandStat = offhand?.gearType ? gearProfiles[offhand.gearType].damageStat : undefined;
+      if (offhandStat) expect(offhandStat).toBe(stat);
+    }
+  });
+
+  it('changes nothing without spare pieces', () => {
+    const save = base();
+    const bare = { ...save, gear: save.gear.filter((g) => !sparePieces(save).includes(g)) };
+    expect(dressParty(bare, ids(bare), HOLY)).toBe(bare);
+  });
+
+  it('keeps the best spare piece of each type of the top two tiers', () => {
+    const save = base();
+    const extra = { ...save.gear.find((g) => g.uid === 'spare:axe')!, uid: 'old-axe', itemId: 'axe1' };
+    const older = { ...extra, uid: 'older-axe', itemId: 'axe1', roll: 3 };
+    const kept = sparesToKeep({ ...save, gear: [...save.gear, extra, older] }, 3);
+    expect(kept.has('spare:axe')).toBe(true);
+    expect(kept.has('old-axe')).toBe(false);
+    expect(sparesToKeep({ ...save, gear: [...save.gear, older] }, 4).has('spare:axe')).toBe(false);
+  });
+});

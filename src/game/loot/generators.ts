@@ -14,7 +14,7 @@ import { partWeights } from './parts';
 import { rollLootTrinket } from './trinkets';
 import type { LootRequest } from './roll';
 import { rollValuable } from './valuables';
-import type { Loot, LootCategory, LootSourceId, MapRarity } from './types';
+import type { Loot, LootCategory, LootSourceId, MapRarity, TrophyDrop } from './types';
 
 /** Fills one category's drop into the loot being built. */
 export type Generator = (req: LootRequest, loot: Loot) => void;
@@ -95,8 +95,13 @@ function blueprints(req: LootRequest, loot: Loot): void {
     return;
   }
   // A complete tier: monster parts of the enemies' family, or gold when there were no enemies.
-  if (req.enemies.length > 0) addParts(req, loot, lootConfig.blueprints.overflowParts);
-  else loot.gold += Math.round(lootConfig.blueprints.overflowGold * lootConfig.goldByTier[req.tier - 1]);
+  if (req.enemies.length > 0) {
+    noteTrophy(loot, { kind: 'overflow', parts: addParts(req, loot, lootConfig.blueprints.overflowParts) });
+  } else {
+    const gold = Math.round(lootConfig.blueprints.overflowGold * lootConfig.goldByTier[req.tier - 1]);
+    loot.gold += gold;
+    noteTrophy(loot, { kind: 'overflow', gold });
+  }
 }
 
 function consumables(req: LootRequest, loot: Loot): void {
@@ -138,12 +143,19 @@ function addStack(loot: Loot, materialId: string, amount: number): void {
   else loot.materials.push({ materialId, amount });
 }
 
-/** A stack of one monster part of the enemies' family (the elites' when there are any), `range` in size. */
-function addParts(req: LootRequest, loot: Loot, [min, max]: [number, number]): void {
+/** A stack of one monster part of the enemies' family (the elites' when there are any), `range` in size; returns the amount. */
+function addParts(req: LootRequest, loot: Loot, [min, max]: [number, number]): number {
   const elites = req.enemies.filter((id) => id.includes(':elite'));
   const weights = partWeights(elites.length > 0 ? elites : req.enemies, req.element);
   const pick = req.rng.weighted(weights, (entry) => entry.weight);
-  addStack(loot, pick.materialId, req.rng.int(min, max));
+  const amount = req.rng.int(min, max);
+  addStack(loot, pick.materialId, amount);
+  return amount;
+}
+
+/** Notes a trophy or overflow drop apart, for reports. */
+function noteTrophy(loot: Loot, drop: Partial<TrophyDrop> & Pick<TrophyDrop, 'kind'>): void {
+  loot.trophies = [...(loot.trophies ?? []), { gold: 0, parts: 0, relics: 0, stones: 0, ...drop }];
 }
 
 /** What a source's trophy is, or null when its loot has no Trophies column (see lootConfig.trophies). */
@@ -156,9 +168,15 @@ export function trophyOf(source: LootSourceId): 'relic' | 'parts' | 'stone' | nu
 function trophies(req: LootRequest, loot: Loot): void {
   const { parts } = lootConfig.trophies;
   const kind = trophyOf(req.source) ?? 'parts';
-  if (kind === 'relic') loot.relics.push(randomRelic(req.tier, req.rng));
-  else if (kind === 'stone') addStack(loot, stoneId(req.element ?? ELEMENTS[req.rng.int(0, ELEMENTS.length - 1)]), 1);
-  else addParts(req, loot, parts);
+  if (kind === 'relic') {
+    loot.relics.push(randomRelic(req.tier, req.rng));
+    noteTrophy(loot, { kind, relics: 1 });
+  } else if (kind === 'stone') {
+    addStack(loot, stoneId(req.element ?? ELEMENTS[req.rng.int(0, ELEMENTS.length - 1)]), 1);
+    noteTrophy(loot, { kind, stones: 1 });
+  } else {
+    noteTrophy(loot, { kind: 'parts', parts: addParts(req, loot, parts) });
+  }
 }
 
 export const generators: Record<LootCategory, Generator> = {

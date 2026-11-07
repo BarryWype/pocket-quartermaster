@@ -3,6 +3,7 @@ import { difficultyRules } from '@/content/difficulty';
 import { rosterRules } from '@/content/roster';
 import { affinityRules, classAffinities, gearProfiles, type Affinity } from '@/content/equipment';
 import { guildTrackById, guildTracks } from '@/content/guild';
+import { familyOfThreat, familyRules, type FamilyId } from '@/content/families';
 import { heroClasses, xpRules } from '@/content/heroes';
 import { dungeonById, itemById, recipeById } from '@/content/lookup';
 import { gathererRules, jobs as jobList, type JobDef } from '@/content/jobs';
@@ -31,6 +32,7 @@ import { mealItems, supplyHeld, supplyItems } from '../expeditions/provisions';
 
 import { answersMemberOf, EMPTY_BRIEFING, prepareParty, simulateRun } from '../expeditions/simulate';
 import { salvage } from '../forging/salvage';
+import { familyLevels, partyFamilies, type FamilyLevels } from '../families/families';
 import { gearStats } from '../gear/stats';
 import { trinketEffect } from '../loot/trinkets';
 import { distanceMeters, offsetPosition } from '../generation/geo';
@@ -45,7 +47,7 @@ import type { PatrolKind, PatrolSubject, TravellerKind } from '../patrols/genera
 import type { TravellerReward } from '../patrols/travellers';
 import { collectTreasure, liveTreasureMaps, readTreasureMap } from '../rewards/treasure';
 import { challengeSanctum, sanctumById, sanctumDungeon, type SanctumSpawn } from '../sanctums/sanctums';
-import type { Loot, LootCategory, LootSourceId } from '../loot/types';
+import type { Loot, LootCategory, LootSourceId, TrophyDrop } from '../loot/types';
 import type { SaveData } from '../save';
 import { buySupply, buySupplyProblem, isTavernUnlocked, offerLevel, recruit, recruitPrice, tavernOffers, type TavernSpawn } from '../taverns/taverns';
 import { currentHp, drinkPotion, drinkProblem, maxHp } from '../team/health';
@@ -57,6 +59,7 @@ import type { ActiveExpedition, ArmourType, Briefing, DungeonDef, GearDef, GearI
 import { expectedLevels, type Profile, type SimConfig } from './config';
 import { playerMetersPerMinute } from './gathererPace';
 import { partRecipeFor } from './rules/inventory';
+import { dressParty, sparePieces, sparesToKeep } from './rules/families';
 import { emptySlots, fillPotions, heldPotion, oilIds, pickCharm, pickWeakness, statPotionIds, uncovered, withCharm, withElixir, withOil, withStatPotion } from './rules/loadout';
 import { PICKAXES, type WalkRates } from './walking';
 import { questRules } from '@/content/quests';
@@ -109,11 +112,15 @@ export type ExpeditionRow = {
   potions: number;
   /** Consumables the party carried (charms, potions, weakness items). */
   consumables: string[];
+  /** The party's family levels at launch, as dressed for the briefing. */
+  families: FamilyLevels;
+  /** Hours from launch to the session that collected the run: what limits runs per week. */
+  cycleHours: number;
 };
 
 export type CraftRow = {
   day: number;
-  kind: 'pickaxe' | 'upgrade' | 'reforge' | 'component' | 'relic' | 'consumable' | 'provision' | 'salvage' | 'tutorial';
+  kind: 'pickaxe' | 'upgrade' | 'family' | 'reforge' | 'component' | 'relic' | 'consumable' | 'provision' | 'salvage' | 'tutorial';
   itemId: string;
   tier: number;
   rarity: Rarity | null;
@@ -200,12 +207,25 @@ export type RunLog = {
   rerolls: { day: number; gold: number; materials: Record<string, number> }[];
   /** The day of each elemental stone applied to a piece. */
   stones: number[];
+  /** Every trophy and blueprint overflow drop (what replaced components), with its source. */
+  trophies: ({ day: number; source: LootSourceId } & TrophyDrop)[];
   /** The tier 5 boss was beaten before the profile's day cap. */
   finished: boolean;
 };
 
 /** One probe measurement: the best prepared party's odds, and for normal dungeons the same party with its consumable slots empty. */
-export type ProbeRow = { day: number; /** Hours since the game started. */ at: number; tier: number; kind: 'normal' | 'boss' | 'event' | 'patrol'; id: string; prepared: number; unprepared: number | null };
+export type ProbeRow = {
+  day: number;
+  /** Hours since the game started. */
+  at: number;
+  tier: number;
+  kind: 'normal' | 'boss' | 'event' | 'patrol';
+  id: string;
+  prepared: number;
+  unprepared: number | null;
+  /** Normal dungeons: the not-prepared party's best family level in the gear it wears (the natural party). */
+  natural: number | null;
+};
 
 /** A map place visit; odds and won only for fights and heists. */
 export type PlaceRow = { day: number; kind: string; tier: number; odds: number | null; won: boolean | null };
@@ -246,6 +266,7 @@ export const emptyLog = (profile: string, seed: string): RunLog => ({
   gearLoot: [],
   rerolls: [],
   stones: [],
+  trophies: [],
   finished: false,
 });
 
@@ -296,7 +317,7 @@ export type Sim = {
   /** When the first session at or after a time happens. */
   collectionAt: (time: number) => number;
   oddsCache: Map<string, Odds>;
-  launched: Map<string, Pick<ExpeditionRow, 'odds' | 'rarities' | 'day' | 'hour' | 'level' | 'consumables'>>;
+  launched: Map<string, Pick<ExpeditionRow, 'odds' | 'rarities' | 'day' | 'hour' | 'level' | 'consumables' | 'families'>>;
   /** Dungeons left for a later session this one, waiting for the heroes to heal. */
   waiting: Set<string>;
   /** Worn pieces already rerolled today. */
@@ -535,7 +556,8 @@ function distribute(sim: Sim) {
     act(sim, 'equip', (save) => equip(save, hero.id, slot, uid));
   }
   const worn = new Set(sim.save.heroes.flatMap((h) => slots.map((slot) => h.equipment[slot])));
-  for (const gear of sim.save.gear.filter((g) => !worn.has(g.uid))) {
+  const kept = sparesToKeep(sim.save, highestTier(sim.save));
+  for (const gear of sim.save.gear.filter((g) => !worn.has(g.uid) && !kept.has(g.uid))) {
     const item = itemById[gear.itemId] as GearDef;
     if (item.workTool) continue; // work tools cannot be salvaged; a spare one just waits
     const materials = act(sim, 'salvage', (save) => salvage(save, gear.uid));
@@ -592,7 +614,67 @@ export function nextForgeRecipe(save: SaveData): RecipeDef | null {
   return upgrades[0]?.recipe ?? null;
 }
 
+/**
+ * The family tags the roster can bring to a threat: its classes' tags, and
+ * the gear of the top two tiers worn or spare (a two-handed weapon counts 2).
+ */
+function rosterTags(save: SaveData, family: FamilyId): number {
+  const top = highestTier(save);
+  const classes = save.heroes.filter((h) => heroClasses[h.classId].familyTag === family).length;
+  const gear = save.gear.reduce((sum, g) => {
+    const item = itemById[g.itemId] as GearDef;
+    if (!item.gearType || item.workTool || item.tier < top - 1 || gearProfiles[item.gearType].familyTag !== family) return sum;
+    return sum + (item.twoHanded ? 2 : 1);
+  }, 0);
+  return classes + gear;
+}
+
+/**
+ * Forge for threats: for each threat family the day's open top-tier briefings
+ * need more tags of than the roster can bring, one piece of a type carrying it
+ * and not held spare yet (the best known recipe of the top two tiers), once
+ * per family a session.
+ */
+function forgeForThreats(sim: Sim) {
+  const top = highestTier(sim.save);
+  const needed = new Map<FamilyId, number>();
+  for (const dungeon of dungeons.filter((d) => d.tier === top && !d.overnight && isDungeonAvailable(sim.save, d, sim.rotation))) {
+    for (const threat of briefingFor(sim.rotation, dungeon).threats) {
+      const family = familyOfThreat(threat.id);
+      needed.set(family, Math.max(needed.get(family) ?? 0, familyRules.levels[threat.level - 1]));
+    }
+  }
+  // Only types without a spare of the top two tiers: the new piece is then the one kept.
+  const spareTypes = new Set(
+    sparePieces(sim.save)
+      .map((g) => itemById[g.itemId] as GearDef)
+      .filter((item) => item.tier >= top - 1)
+      .map((item) => item.gearType),
+  );
+  for (const [family, tags] of needed) {
+    if (rosterTags(sim.save, family) >= tags) continue;
+    const recipe = forgeRecipes
+      .filter((r) => {
+        const item = forgedItem(r)!;
+        return (
+          sim.save.knownRecipes.includes(r.id) &&
+          item.tier >= top - 1 &&
+          !!item.gearType &&
+          !item.workTool &&
+          !spareTypes.has(item.gearType) &&
+          gearProfiles[item.gearType].familyTag === family
+        );
+      })
+      .sort((a, b) => forgedItem(b)!.tier - forgedItem(a)!.tier)[0];
+    if (!recipe) continue;
+    if (smeltFor(sim, recipe.inputs) && canCraft(sim.save, recipe)) forgeGear(sim, recipe, 'family');
+    else recordMissing(sim, recipe);
+  }
+}
+
 export function forge(sim: Sim) {
+  // Back to the gear that suits each hero's stats best, undoing the last run's family swaps.
+  distribute(sim);
   const owned = PICKAXES.filter((id) => sim.save.tools.includes(id)).length;
   const pickaxe = recipeById[PICKAXES[owned]];
   if (pickaxe && sim.save.knownRecipes.includes(pickaxe.id) && smeltFor(sim, pickaxe.inputs) && canCraft(sim.save, pickaxe)) {
@@ -624,6 +706,8 @@ export function forge(sim: Sim) {
     }
     forgeGear(sim, next.recipe, 'upgrade');
   }
+
+  forgeForThreats(sim);
 
   // Re-forges: worn pieces of the best known tier, worst dice first, keeping one more forge's materials.
   for (let i = 0; i < sim.config.reforgesPerSession; i++) {
@@ -855,7 +939,7 @@ const heroKey = (save: SaveData, hero: HeroState, now: number) => {
   };
   // HP in 5% steps, so healing heroes don't miss the cache every minute.
   const hp = Math.round((currentHp(save, hero, now) / maxHp(save, hero)) * 20);
-  return `${hero.id}:${hero.level}:${gear(hero.equipment.weapon)}:${gear(hero.equipment.armor)}:${hero.equipment.consumable}:${hp}`;
+  return `${hero.id}:${hero.level}:${gear(hero.equipment.weapon)}:${gear(hero.equipment.armor)}:${gear(hero.equipment.offhand)}:${hero.equipment.consumable}:${hp}`;
 };
 
 /** Odds with fewer runs than the app, with current HP, remembered for the same heroes, gear, HP, supply and dungeon. */
@@ -917,22 +1001,28 @@ export function withLoadout(save: SaveData, heroIds: string[], dungeon: DungeonD
 
 /**
  * The heroes with the best answers to the threats: adds the hero who leaves
- * the fewest threat levels unanswered by the party's family tags, ties broken by a quick estimate of the prepared party's
- * odds, until the party is full, or covers everything and is safe enough.
- * The party found gets the full estimate.
+ * the fewest threat levels unanswered by the party's family tags (once
+ * dressed for the threats from the spare pieces), ties broken by a quick
+ * estimate of the prepared party's odds, until the party is full, or covers
+ * everything and is safe enough. The party found is dressed in full (threats,
+ * then its playstyle family; see rules/families.ts) and gets the full
+ * estimate. `dress` false keeps everyone's gear as worn.
  */
-export function bestParty(sim: Sim, dungeon: DungeonDef, candidates: string[], briefingOf: Briefing | null = null) {
+export function bestParty(sim: Sim, dungeon: DungeonDef, candidates: string[], briefingOf: Briefing | null = null, dress = true) {
   const briefing = briefingOf ?? briefingFor(sim.rotation, dungeon);
-  const bare = emptySlots(sim.save, candidates);
+  const empty = emptySlots(sim.save, candidates);
+  const dressedFor = (ids: string[], push: boolean) => (dress ? dressParty(empty, ids, briefing, null, push) : empty);
   // Narrow passages cap the party at launch (one hero fewer), unless a Curse-breaker in it lifts them.
   const fits = (ids: string[]) =>
     briefing.restriction !== 'narrowPassages' ||
     ids.length <= narrowPartySize(rosterRules.partySize) ||
-    briefingCoverage(bare, ids, briefing).restriction?.cancelledBy != null;
-  const quick = (ids: string[]) => odds(sim, withLoadout(bare, ids, dungeon, briefing), ids, dungeon, sim.config.odds.searchRuns, false, briefing);
+    briefingCoverage(empty, ids, briefing).restriction?.cancelledBy != null;
+  const quick = (ids: string[]) => odds(sim, withLoadout(dressedFor(ids, false), ids, dungeon, briefing), ids, dungeon, sim.config.odds.searchRuns, false, briefing);
   const party: string[] = [];
   while (party.length < rosterRules.partySize) {
-    const options = candidates.filter((c) => !party.includes(c) && fits([...party, c])).map((id) => ({ id, missing: uncovered(bare, [...party, id], briefing) }));
+    const options = candidates
+      .filter((c) => !party.includes(c) && fits([...party, c]))
+      .map((id) => ({ id, missing: uncovered(dressedFor([...party, id], false), [...party, id], briefing) }));
     if (!options.length) break;
     const fewest = Math.min(...options.map((o) => o.missing));
     let pick: { id: string; odds: Odds } | null = null;
@@ -943,7 +1033,7 @@ export function bestParty(sim: Sim, dungeon: DungeonDef, candidates: string[], b
     party.push(pick!.id);
     if (fewest === 0 && pick!.odds.success >= sim.config.odds.enough) break;
   }
-  const save = withLoadout(bare, party, dungeon, briefing);
+  const save = withLoadout(dressedFor(party, true), party, dungeon, briefing);
   return { heroIds: party, odds: party.length ? odds(sim, save, party, dungeon, sim.config.odds.runs, false, briefing) : { success: 0, flawless: 0, progress: 0 } };
 }
 
@@ -958,7 +1048,7 @@ export function challengeSanctums(sim: Sim) {
     let pick: { spawn: SanctumSpawn; tier: number; heroIds: string[]; odds: number } | null = null;
     for (const tier of [...new Set(sim.save.sigils)].sort((a, b) => b - a)) {
       for (const spawn of spawns) {
-        const party = bestParty(sim, sanctumDungeon(sanctumById[spawn.sanctumId], tier), home, EMPTY_BRIEFING);
+        const party = bestParty(sim, sanctumDungeon(sanctumById[spawn.sanctumId], tier), home, EMPTY_BRIEFING, false);
         if (party.odds.success >= sim.config.odds.sanctum && (!pick || party.odds.success > pick.odds)) {
           pick = { spawn, tier, heroIds: party.heroIds, odds: party.odds.success };
         }
@@ -1029,7 +1119,7 @@ function applyElixirs(sim: Sim, dungeon: DungeonDef, heroIds: string[], loadout:
 export function launch(sim: Sim, dungeon: DungeonDef, heroIds: string[], o: Odds) {
   recallWorking(sim, heroIds);
   const briefing = briefingFor(sim.rotation, dungeon);
-  sim.save = withLoadout(emptySlots(sim.save, homeHeroes(sim.save).map((h) => h.id)), heroIds, dungeon, briefing);
+  sim.save = withLoadout(dressParty(emptySlots(sim.save, homeHeroes(sim.save).map((h) => h.id)), heroIds, briefing), heroIds, dungeon, briefing);
   const loadout = { mealId: mealFor(sim, dungeon, heroIds, o) };
   topUpSupply(sim, dungeon, heroIds, loadout, briefing);
   // A revival draught on a tier boss run, a firebomb while a beasts threat is missed.
@@ -1064,7 +1154,8 @@ export function launch(sim: Sim, dungeon: DungeonDef, heroIds: string[], o: Odds
     const { consumable, potion } = sim.save.heroes.find((x) => x.id === h)!.equipment;
     return [consumable, potion].filter((c): c is string => !!c);
   });
-  sim.launched.set(id, { odds: final.success, rarities, day: sim.day, hour: (sim.now - sim.startedAt) / 3_600_000, level, consumables });
+  const families = familyLevels(partyFamilies(sim.save, heroIds));
+  sim.launched.set(id, { odds: final.success, rarities, day: sim.day, hour: (sim.now - sim.startedAt) / 3_600_000, level, consumables, families });
 }
 
 /** The loot row a run of this dungeon rolls, for charms. */
@@ -1182,6 +1273,7 @@ export function countLoot(sim: Sim, loot: Loot, source: LootSourceId) {
   for (const category of loot.dropped) sim.log.loot[category] = (sim.log.loot[category] ?? 0) + 1;
   for (const piece of loot.gear) sim.log.gearLoot.push({ day: sim.day, source, itemId: piece.itemId, rarity: piece.rarity });
   for (const relicId of loot.relics) sim.log.gearLoot.push({ day: sim.day, source, itemId: `relic:${relicId}`, rarity: null });
+  for (const drop of loot.trophies ?? []) sim.log.trophies.push({ day: sim.day, source, ...drop });
   for (const stack of loot.scavenged ?? []) {
     const byDay = (sim.log.scavenge[sim.day] ??= {});
     byDay[stack.materialId] = (byDay[stack.materialId] ?? 0) + stack.amount;
@@ -1254,6 +1346,8 @@ export function collectExpedition(sim: Sim, expedition: ActiveExpedition) {
     meal: report.mealId ?? null,
     potions: report.consumablesUsed.filter((id) => id === 'healingPotion').length,
     consumables: launched?.consumables ?? [],
+    families: launched?.families ?? {},
+    cycleHours: (sim.now - sim.startedAt) / 3_600_000 - (launched?.hour ?? 0),
   });
   if (report.success && dungeon.isBoss) mark(sim, `boss:${dungeon.tier}`);
 }

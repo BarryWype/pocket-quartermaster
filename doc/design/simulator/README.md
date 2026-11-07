@@ -2,6 +2,8 @@
 
 **Status: implemented.** `npm run sim` writes `report.md` and `summary.json` next to this file; `npm run sim:check` runs the balance band tests on them. Each game runs in its own process (`--workers N`, one per core by default), printing a line per simulated week. `npm run sim:quick` skips the game: it prints the win odds per tier (prepared, not prepared, boss, events, patrols) of the reference team the dungeons are fitted to (the comment above `TIER_SCALE` in `src/content/enemies.ts`), over 7 rotation days at 300 runs (`quick` in `config.ts`). It runs in seconds, for tuning; its team is weaker than a played roster, so its numbers sit below the full game's.
 
+**Reference teams and families.** The reference teams (`sim:quick` and the `sim:fit` targets, `src/game/sim/reference.ts`) hold a spare piece of every gear type of their tier and rarity, and are dressed by the bot's family rules (below): for the briefing when prepared, for their playstyle family alone otherwise. So each tier's reference team is built around 1–2 families (the starting trio's playstyle, Volley, at level 2, plus the threat families a briefing asks for), and `sim:fit` fits enemy strength with family effects in. `sim:quick` also prints the family tables (`--families` prints only them): each playstyle family's focus team at level 3 against the same team with its tags stripped, flagged above 1.5× or below 0.5× the median lift (Plunder, a loot family, is shown but not flagged), and the Venomous affix outside Venom parties against other weapon affixes.
+
 In the full game the probe runs after the day's last session (every `probeEveryDays`), after the first session of a new tier and while the tier boss is out, with its own odds cache so it never changes the game.
 
 The simulator plays the game with simple bots, for several player profiles, and checks the results against targets. It's the balancing tool for the release.
@@ -22,8 +24,8 @@ The simulator plays the game with simple bots, for several player profiles, and 
 | Target | Value |
 | --- | --- |
 | Days per tier | Regular **about 7**, casual **about 14**, heavy **3–4** |
-| Win odds, normal expedition, team prepared (right kits, gear of the tier) | **65–75%** |
-| Win odds, normal expedition, briefing skipped (the strongest party picked as if there were no threats, with no kits) | **30–45%** |
+| Win odds, normal expedition, team prepared (dressed for the briefing's threat families, gear of the tier) | **65–75%** |
+| Win odds, normal expedition, briefing skipped (the strongest party picked as if there were no threats, in the gear it wears) | **30–45%** |
 | Win odds, tier boss, prepared | **50–60%** |
 | Win odds, fight events and patrols, prepared | 70–80% |
 | Loot pacing | Within 20% of `doc/design/loot/tools/pacing.py` for the regular profile |
@@ -31,14 +33,21 @@ The simulator plays the game with simple bots, for several player profiles, and 
 | Materials | The tier's main material stays tight (spent about as fast as it's gathered) |
 | Levels | Heroes reach the top of the tier's level band around the end of the tier |
 
-"Prepared" vs "not prepared" is the point of the toolbox design: "not prepared" is the briefing skipped, the strongest party picked as if there were no threats, with no kits. The gap between the two lines must stay wide. If the bot wins that way, the game is too easy.
+"Prepared" vs "not prepared" is the point of the families design: "not prepared" is the briefing skipped, the strongest party picked as if there were no threats, in the gear it wears (the natural party: its family levels are whatever its classes and gear happen to bring). The gap between the two lines must stay wide. If the bot wins that way, the game is too easy.
 
 ## Bot rules (simple, not clever)
-- **Before a run**: kits for the threats it can answer; a charm only when its odds are already high (the safe-or-greedy choice); a potion otherwise.
+- **Before a run**: the boss's weakness item; a charm only when its odds are already high (the safe-or-greedy choice); a potion otherwise. No kits (they're gone).
 - **Forge**: the best known blueprint for each hero's slots; a component on the best fitting item; restore a relic when its type fits a hero.
 - **Inventory**: equip the best trinket by its stat; sell valuables at the market (to the collector when it wants one); craft charms and part potions when it has the parts.
 - **Map**: do quests (all in the regular and heavy profiles), dig ruins, open a secret place when it has a key and a tip, recruit rare classes.
-- **Team**: field the three heroes with the best answers to the dungeon's threats.
+- **Team**: field the three heroes with the best answers to the dungeon's threats, counted on their family tags once dressed (below).
+- **Families** (`src/game/sim/rules/families.ts`), for each briefing:
+  1. **Threats first.** Swap spare pieces onto the party, one at a time, picking the swap that brings the threat families closest to their needed level (2, 4 or 6 tags). A piece may be one tier below the one it replaces. Stop when every threat is met or no swap helps.
+  2. **Then one playstyle.** The party's playstyle family with the most tags (ties in the families' order) is pushed: swaps that add its tags, with pieces of the same tier or better, never losing a threat level, up to 6 tags.
+  3. Swaps that reach no new level are undone. Never an unfit weapon or armour, never a weapon or off-hand that rolls with the hero's other damage stat.
+  4. **Spares:** the best spare piece of each type of the top two tiers is kept for swaps; other spares are salvaged. Each session starts with every hero back in the gear that suits their stats best.
+  5. **Forge for threats:** when a threat family of the day's top-tier briefings needs more tags than the roster's classes and gear of the top two tiers carry, forge one piece of a type of that family with no spare held yet (the best known recipe), once per family a session.
+  6. Patrols and Sanctums are fought in the gear worn.
 
 ## Health reports
 These catch design problems, not just balance:
@@ -53,5 +62,5 @@ These catch design problems, not just balance:
 - With about 7 days per tier, a regular player finds about 12 of a tier's 22 blueprints before moving on. That's acceptable (types the roster favours come first), but the loot pacing table's target ("a tier's 22 in about 2 weeks") is now a stretch goal, not a requirement.
 - 5 tiers at about a week each is about 5 weeks to the last tier for a regular player. Play after that relies on the tier 5 loop (relics, components, secret places, quests).
 - The balance band tests (`src/game/sim/bands.test.ts`, targets in `targets.ts`) stay skipped until tuning brings the numbers in range; `npm run sim:check` runs them on demand.
-- Soft XP cap: a hero one level above the top of the player's tier band (`xpRules.aboveBandMargin`; levels 4, 7, 10, 13 for tiers 1–4, the band tops being 3, 6, 9, 12, 15 as for training manuals; 15 is the max level) gets 25% of the XP they would earn from any source: expeditions, fights, training and manuals (`xpRules.aboveBandShare`). Heroes may reach the band's top + 1 at full XP, matching the design target "the band's top ±1". Heroes stay near their band, so kits keep mattering. The hero card says so.
+- Soft XP cap: a hero one level above the top of the player's tier band (`xpRules.aboveBandMargin`; levels 4, 7, 10, 13 for tiers 1–4, the band tops being 3, 6, 9, 12, 15 as for training manuals; 15 is the max level) gets 25% of the XP they would earn from any source: expeditions, fights, training and manuals (`xpRules.aboveBandShare`). Heroes may reach the band's top + 1 at full XP, matching the design target "the band's top ±1". Heroes stay near their band, so threat answers keep mattering. The hero card says so.
 - Recruits from every source (taverns, travellers, the hidden den, the black market) join at the bottom of the player's tier band (levels 1, 4, 7, 10, 13; `recruitRules.levelByTier`), with the usual stat roll.
