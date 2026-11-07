@@ -1,17 +1,25 @@
+import { affixById } from "@/content/affixes";
 import type { Rarity } from "@/content/gear";
 import { choiceOf, jobById, jobs } from "@/content/jobs";
 import { itemById } from "@/content/lookup";
 import { shopRules } from "@/content/shops";
 import { ELEMENTS, stoneId, type Element } from "./elements";
-import { LEGACY_KEYWORD_AFFIXES } from "./legacyComponents";
+import {
+  LEGACY_COMPONENT_PART_COUNT,
+  LEGACY_COMPONENT_PARTS,
+  LEGACY_KEYWORD_AFFIXES,
+  LEGACY_STEADY,
+} from "./legacyComponents";
 import { LEGACY_KIT_REFUNDS, LEGACY_TALISMAN, LEGACY_THREAT_MAP } from "./legacyThreats";
-import { affixSlotOf } from "./gear/affixes";
+import { affixPool, affixSlotOf, rollAffixes } from "./gear/affixes";
+import { createRng } from "./generation/rng";
 import { makeGearPiece } from "./gear/make";
 import { statFactor } from "./gear/stats";
 import { jobMaterials } from "./jobs/jobs";
+import type { Loot } from "./loot/types";
 import { todaysCollector } from "./loot/valuables";
 import type { JobOutput, SaveData } from "./save";
-import type { ActiveThreat, Briefing, ExpeditionReport, GearDef, HeroState } from "./types";
+import type { ActiveThreat, Briefing, ExpeditionReport, GearDef, GearInstance, HeroState, MaterialStack } from "./types";
 import { sellGoodsAmount } from "./quests/unlocks";
 import type { Quest } from "./quests/types";
 import { rolledSpecial } from "./team/specials";
@@ -392,6 +400,106 @@ export function toV40(save: SaveData): SaveData {
   };
 }
 
+const isLegacyAffix = (id: string) => id in LEGACY_KEYWORD_AFFIXES || LEGACY_STEADY.test(id);
+
+/**
+ * A piece's affixes without components: a keyword affix becomes the closest
+ * part affix for the piece's slot (offensive or defensive), at the same place
+ * in its range (a fixed one in the middle); a Steady affix, or a keyword one
+ * whose part affix the piece already has, rerolls from the slot's pool,
+ * seeded by the uid.
+ */
+function migrateAffixes(piece: GearInstance): GearInstance {
+  if (!piece.affixes.some((affix) => isLegacyAffix(affix.id))) return piece;
+  const slot = affixSlotOf((itemById[piece.itemId] as GearDef).gearType);
+  const taken = new Set(piece.affixes.filter((affix) => !isLegacyAffix(affix.id)).map((affix) => affix.id));
+  const converted = piece.affixes.map((affix) => {
+    if (!isLegacyAffix(affix.id)) return affix;
+    const legacy = LEGACY_KEYWORD_AFFIXES[affix.id];
+    if (!legacy || slot === "any" || taken.has(legacy[slot])) return null;
+    const target = affixById[legacy[slot]];
+    taken.add(target.id);
+    const share = legacy.range
+      ? Math.min(1, Math.max(0, (affix.value - legacy.range.min) / (legacy.range.max - legacy.range.min)))
+      : 0.5;
+    const value = target.range ? Math.round(target.range.min + share * (target.range.max - target.range.min)) : 0;
+    return { id: target.id, value };
+  });
+  const rng = createRng(`${piece.uid}|v41`);
+  const affixes: GearInstance["affixes"] = [];
+  converted.forEach((affix, i) => {
+    if (affix) {
+      affixes.push(affix);
+      return;
+    }
+    const held = [...affixes, ...converted.slice(i + 1).filter((next) => next !== null)];
+    affixes.push(...rollAffixes(rng, { ...piece, affixes: held }, 1, affixPool(piece)));
+  });
+  return { ...piece, affixes };
+}
+
+/** Material stacks without components: each held one becomes two monster parts of its enemy's family. */
+function migrateStacks(stacks: MaterialStack[]): MaterialStack[] {
+  if (!stacks.some((stack) => stack.materialId in LEGACY_COMPONENT_PARTS)) return stacks;
+  const merged: MaterialStack[] = [];
+  for (const stack of stacks) {
+    const part = LEGACY_COMPONENT_PARTS[stack.materialId];
+    const next = part ? { materialId: part, amount: stack.amount * LEGACY_COMPONENT_PART_COUNT } : stack;
+    const same = merged.find((m) => m.materialId === next.materialId);
+    if (same) same.amount += next.amount;
+    else merged.push({ ...next });
+  }
+  return merged;
+}
+
+/** Loot not yet granted (or kept in a report) without components, the old category renamed; its gear rolls affixes when granted. */
+const migrateLoot = (loot: Loot): Loot => ({
+  ...loot,
+  materials: migrateStacks(loot.materials),
+  dropped: loot.dropped.map((category) => ((category as string) === "components" ? "trophies" : category)),
+});
+
+/**
+ * Version 41: components, their keyword affixes and the Steady affix are gone
+ * (families rework). Held components become two monster parts each (see
+ * LEGACY_COMPONENT_PARTS), there and in the loot of fights and heists still
+ * under way and of kept reports; gear affixes change as in migrateAffixes.
+ */
+export function toV41(save: SaveData): SaveData {
+  const oldStacks = (stacks: MaterialStack[]) => stacks.some((stack) => stack.materialId in LEGACY_COMPONENT_PARTS);
+  const oldLoot = (loot: Loot | undefined) =>
+    !!loot && (oldStacks(loot.materials) || loot.dropped.includes("components" as Loot["dropped"][number]));
+  const legacy =
+    Object.keys(save.materials).some((id) => id in LEGACY_COMPONENT_PARTS) ||
+    save.gear.some((piece) => piece.affixes.some((affix) => isLegacyAffix(affix.id))) ||
+    save.placeFights.some((fight) => oldLoot(fight.reward)) ||
+    save.heists.some((heist) => oldLoot(heist.reward)) ||
+    save.reports.some(
+      (report) => oldLoot(report.loot) || oldLoot(report.prize) || (report.salvaged ?? []).some((entry) => oldStacks(entry.materials)),
+    );
+  if (!legacy) return save;
+  const materials = { ...save.materials };
+  for (const [componentId, part] of Object.entries(LEGACY_COMPONENT_PARTS)) {
+    const held = materials[componentId];
+    if (held === undefined) continue;
+    delete materials[componentId];
+    if (held > 0) materials[part] = (materials[part] ?? 0) + held * LEGACY_COMPONENT_PART_COUNT;
+  }
+  return {
+    ...save,
+    materials,
+    gear: save.gear.map(migrateAffixes),
+    placeFights: save.placeFights.map((fight) => ({ ...fight, reward: migrateLoot(fight.reward) })),
+    heists: save.heists.map((heist) => ({ ...heist, reward: migrateLoot(heist.reward) })),
+    reports: save.reports.map((report) => ({
+      ...report,
+      loot: migrateLoot(report.loot),
+      ...(report.prize ? { prize: migrateLoot(report.prize) } : {}),
+      salvaged: (report.salvaged ?? []).map((entry) => ({ ...entry, materials: migrateStacks(entry.materials) })),
+    })),
+  };
+}
+
 /** Applies the migration steps in order, from the save's own version on. */
 export function migrateSave(
   save: SaveData,
@@ -409,5 +517,6 @@ export function migrateSave(
   if (fromVersion < 38) next = toV38(next);
   if (fromVersion < 39) next = toV39(next);
   if (fromVersion < 40) next = toV40(next);
+  if (fromVersion < 41) next = toV41(next);
   return next;
 }

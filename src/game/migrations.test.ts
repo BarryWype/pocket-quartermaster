@@ -7,8 +7,10 @@ import { gearRules } from "@/content/gear";
 import { affixById } from "@/content/affixes";
 import { gearStats } from "./gear/stats";
 import { uniquePool } from "./gear/uniques";
-import { migrateSave, toV38, toV39, toV40 } from "./migrations";
-import type { GearDef } from "./types";
+import { migrateSave, toV38, toV39, toV40, toV41 } from "./migrations";
+import { affixPool } from "./gear/affixes";
+import { emptyLoot } from "./loot/types";
+import type { ExpeditionReport, GearDef, GearInstance } from "./types";
 import { createInitialSave, type SaveData } from "./save";
 import type { Quest } from "./quests/types";
 import { rolledSpecial } from "./team/specials";
@@ -446,7 +448,9 @@ describe("save migrations", () => {
       expect(next.materials.waterHeart).toBeUndefined();
       expect(next.materials.waterStone).toBe(3);
       expect(next.materials.grassStone).toBe(1);
-      expect(next.materials.dragonClaw).toBe(1);
+      // The dragon claw stays a component until version 41 turns it into two scales.
+      expect(next.materials.dragonClaw).toBeUndefined();
+      expect(next.materials.scale).toBe(2);
       expect("mastery" in next).toBe(false);
     });
 
@@ -630,6 +634,84 @@ describe("save migrations", () => {
     it("leaves a save with nothing of the old answers alone", () => {
       const save = createInitialSave();
       expect(toV40(save)).toBe(save);
+    });
+  });
+
+  describe("version 41: components, keyword affixes and Steady removed", () => {
+    const piece = (uid: string, itemId: string, affixes: GearInstance["affixes"]): GearInstance => ({
+      uid,
+      itemId,
+      rarity: affixes.length === 1 ? "uncommon" : "rare",
+      roll: 10,
+      affixes,
+      rerolls: 0,
+    });
+    const report = (loot: ExpeditionReport["loot"]) =>
+      ({ id: "r1", loot, salvaged: [{ heroId: "bram", itemId: "sword1", materials: [{ materialId: "golemCore", amount: 1 }], gold: 0 }] }) as unknown as ExpeditionReport;
+    // A version 40 save: components held, in a kept report and in a fight under way; gear with keyword and Steady affixes.
+    const v40 = (): SaveData => {
+      const fresh = createInitialSave();
+      return {
+        ...fresh,
+        materials: { bone: 3, scale: 1, dragonClaw: 1, spiderSilk: 2, captainsSpurs: 0 },
+        gear: [
+          piece("g1", "sword1", [{ id: "cleaving", value: 0 }]),
+          piece("g2", "leather2", [{ id: "silken", value: 8 }, { id: "thickHide", value: 20 }]),
+          piece("g3", "mail2", [{ id: "fleet", value: 3 }]),
+          piece("g4", "shield1", [{ id: "bulwark", value: 5 }, { id: "guarding", value: 0 }]),
+          piece("g5", "plate1", [{ id: "steadyPoison", value: 20 }]),
+          piece("g6", "mace1", [{ id: "hallowed", value: 20 }]),
+        ],
+        reports: [report({ ...emptyLoot(), materials: [{ materialId: "dragonClaw", amount: 1 }, { materialId: "scale", amount: 2 }], dropped: ["components" as never] })],
+        placeFights: [{ id: "f1", reward: { ...emptyLoot(), materials: [{ materialId: "drakeFang", amount: 1 }] } } as unknown as SaveData["placeFights"][number]],
+      };
+    };
+    const affixesOf = (save: SaveData, uid: string) => save.gear.find((g) => g.uid === uid)!.affixes;
+
+    it("turns each held component into two monster parts of its enemy's family", () => {
+      const next = migrateSave(v40(), 40, 0);
+      expect(next.materials).toEqual({ bone: 3, scale: 3, venomSac: 4 });
+    });
+
+    it("turns a keyword affix into the closest part affix for the slot, at the same place in its range", () => {
+      const next = migrateSave(v40(), 40, 0);
+      // Fixed Cleaving sits mid-range: Bloodthirsty 2–5 gives 4.
+      expect(affixesOf(next, "g1")).toEqual([{ id: "bloodthirsty", value: 4 }]);
+      // Silken at its top (8 of 4–8) gives Light at its top (6); the other affix stays.
+      expect(affixesOf(next, "g2")).toEqual([{ id: "light", value: 6 }, { id: "thickHide", value: 20 }]);
+      // Fleet mid-range (3 of 2–4) gives Light mid-range (4).
+      expect(affixesOf(next, "g3")).toEqual([{ id: "light", value: 4 }]);
+      expect(affixesOf(next, "g6")).toEqual([{ id: "hallowed", value: 20 }]);
+    });
+
+    it("rerolls Steady, and a keyword affix whose part affix is already there, from the slot's pool by uid", () => {
+      const next = migrateSave(v40(), 40, 0);
+      for (const uid of ["g4", "g5"]) {
+        const piece = next.gear.find((g) => g.uid === uid)!;
+        const before = v40().gear.find((g) => g.uid === uid)!;
+        expect(piece.affixes).toHaveLength(before.affixes.length);
+        expect(new Set(piece.affixes.map((a) => a.id)).size).toBe(piece.affixes.length);
+        const pool = affixPool(piece).map((a) => a.id);
+        for (const affix of piece.affixes) expect(pool).toContain(affix.id);
+      }
+      expect(affixesOf(next, "g4")[0]).toEqual({ id: "bulwark", value: 5 });
+      expect(affixesOf(next, "g4")[1].id).not.toBe("guarding");
+      expect(affixesOf(migrateSave(v40(), 40, 0), "g5")).toEqual(affixesOf(next, "g5"));
+    });
+
+    it("converts components in kept reports and in loot still to be granted", () => {
+      const next = migrateSave(v40(), 40, 0);
+      expect(next.reports[0].loot.materials).toEqual([{ materialId: "scale", amount: 4 }]);
+      expect(next.reports[0].loot.dropped).toEqual(["trophies"]);
+      expect(next.reports[0].salvaged[0].materials).toEqual([{ materialId: "cog", amount: 2 }]);
+      expect(next.placeFights[0].reward.materials).toEqual([{ materialId: "fangOrHorn", amount: 2 }]);
+    });
+
+    it("leaves a save without components alone, and a migrated one too", () => {
+      const save = createInitialSave();
+      expect(toV41(save)).toBe(save);
+      const once = toV41(v40());
+      expect(toV41(once)).toBe(once);
     });
   });
 });
