@@ -68,6 +68,8 @@ export type FamilyEffectId =
   | 'wild1'
   | 'wild2'
   | 'wild3'
+  | 'cunning2'
+  | 'cunning3'
   | 'watch1'
   | 'watch2'
   | 'watch3'
@@ -101,14 +103,19 @@ export type FamilyEffectId =
   | 'spellweave3'
   | 'rally1'
   | 'rally2'
-  | 'rally3';
+  | 'rally3'
+  | 'plunder1'
+  | 'plunder2'
+  | 'plunder3';
 
 /** The numbers behind the family effects in fights (see game/expeditions/familyEffects.ts). */
 export const familyEffectRules = {
   /** Damage against these tags; the share of that damage healed (level 2); the HP share the run's first knockout gets back up at (level 3). */
   faith: { vsTags: ['undead', 'spirit'] as string[], damage: 1.1, healShare: 0.03, revivePct: 0.25 },
-  /** Damage taken from these tags; the party's heal after a won fight against them (level 2). */
-  wild: { fromTags: ['beast'] as string[], damageTaken: 0.9, healShare: 0.05 },
+  /** Damage taken from these tags; after a won fight against them, the party's heal and the monster parts found (level 2). */
+  wild: { fromTags: ['beast'] as string[], damageTaken: 0.9, healShare: 0.05, part: 'fangOrHorn', parts: 1 },
+  /** Extra loot rolls from every hidden cache step, Hidden cache and Sealed vault (level 3). */
+  cunning: { cacheRolls: 1 },
   /** Speed added in round 1; crit chance added against elites. */
   watch: { firstRoundSpeed: 3, eliteCrit: 0.1 },
   /** Elemental hits taken are multiplied; a share of the elemental damage taken is reflected. */
@@ -131,4 +138,6 @@ export const familyEffectRules = {
   pack: { extraRounds: 1, damage: 1.5, summonShare: 0.5, summonRounds: 3 },
   /** Party damage; the party's heal between fights (level 2); extra uses of every special per run (level 3). */
   rally: { damage: 1.1, healShare: 0.05, extraSpecialUses: 1 },
+  /** The run's gold; monster parts per won fight (level 2); rarity steps on gear loot (level 3). */
+  plunder: { gold: 1.1, partsPerFight: 1, raritySteps: 1 },
 };

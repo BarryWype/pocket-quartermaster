@@ -234,6 +234,10 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
           (effect(encounter, 'partyHeal') ? fill(logTemplates.partyHeal, { hero: effectHero(encounter, 'partyHeal') }) : ''),
       ).trim();
       if (line) encounterLines.push(line);
+    } else {
+      // A quiet step speaks only for the family effects it woke (a hidden cache opened).
+      const notes = capitalised(combatNotes({ ...encounter, effects: encounter.effects.filter((e) => e.key === 'family') }).trim());
+      if (notes) encounterLines.push(notes);
     }
     if (i === midpoint && run.opportunity) encounterLines.push(opportunityLine());
   });

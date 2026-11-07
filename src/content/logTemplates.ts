@@ -178,6 +178,11 @@ export const logTemplates = {
     pack3: ' A beast of the pack answered {hero}’s call.',
     wild3: ' {hero} calmed a beast, and it turned on its own.',
     rally3: ' Rallied, {hero} found the strength for one more special.',
+    plunder1: ' The party’s eye for plunder turned up more gold.',
+    plunder2: ' The party stripped the fallen for monster parts.',
+    plunder3: ' The party’s eye for plunder picked out the finest spoils.',
+    cunning2: ' {hero} found the hidden cache and emptied it.',
+    cunning3: ' {hero} found something more tucked away in the cache.',
   } as Partial<Record<FamilyEffectId, string>>,
   /** The opening lines for the party's stat, speed and oil elixirs. */
   elixirDrank: ' {hero} drank their {item} before setting out.',

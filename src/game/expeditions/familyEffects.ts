@@ -4,6 +4,7 @@
 // cumulative, so a level 3 party runs the level 1 and 2 effects too.
 
 import { familyEffectRules as R, type FamilyEffectId, type FamilyId } from '@/content/families';
+import { monsterParts } from '@/content/loot/monsterParts';
 
 import type { Element } from '../elements';
 import type { FamilyLevels } from '../families/families';
@@ -181,7 +182,30 @@ export type AfterFight = FamilyBase & {
   heroes: HeroState[];
   /** Every enemy tag of the fight. */
   tags: Tag[];
+  /** Each enemy's tags. */
+  foes: Tag[][];
   isBoss: boolean;
+  /** Adds a material to what the run brings home. */
+  addMaterial: (materialId: string, amount: number) => void;
+};
+
+/** A hidden cache step, or a taken Hidden cache or Sealed vault opportunity. */
+export type Cache = FamilyBase & {
+  /** A hidden cache step (not an opportunity). */
+  step: boolean;
+  /** The step's gold share of the dungeon's top gold, as a hidden cache's finder lifts it. */
+  worth: number;
+  /** Gold the step pays. */
+  gold: number;
+  /** Extra rolls of the main loot row on a won run. */
+  rolls: number;
+};
+
+/** Once the run is over, on its last encounter. */
+export type RunEnd = FamilyBase & {
+  won: boolean;
+  /** Encounters cleared. */
+  cleared: number;
 };
 
 /** The Poison threat's after-fight wounds, per hero before they land. */
@@ -211,6 +235,8 @@ export type FamilyHooks = {
   afterAttack?: (ctx: AfterAttack) => void;
   summon?: (ctx: Summon) => void;
   fightReady?: (ctx: FightReady) => void;
+  cache?: (ctx: Cache) => void;
+  runEnd?: (ctx: RunEnd) => void;
   beforeDefend?: (ctx: Defend) => void;
   onDodge?: (ctx: Dodge) => void;
   incoming?: (ctx: Incoming) => void;
@@ -629,9 +655,10 @@ export const familyEffects: FamilyEffect[] = [
     hooks: {
       afterFight: (f) => {
         if (!f.tags.some((tag) => R.wild.fromTags.includes(tag))) return;
-        const healed = f.heroes.reduce((sum, hero) => sum + f.heal(hero, R.wild.healShare), 0);
+        for (const hero of f.heroes) f.heal(hero, R.wild.healShare);
+        f.addMaterial(R.wild.part, R.wild.parts);
         const hero = f.heroOf('wild');
-        if (healed > 0) f.log('wild2', hero ? idOf(hero) : null);
+        f.log('wild2', hero ? idOf(hero) : null);
       },
     },
   },
@@ -652,6 +679,62 @@ export const familyEffects: FamilyEffect[] = [
         const healed = b.heroes.reduce((sum, hero) => sum + b.heal(hero, R.rally.healShare), 0);
         const hero = b.heroOf('rally');
         if (healed > 0) b.log('rally2', hero ? idOf(hero) : null);
+      },
+    },
+  },
+  // Loot and economy.
+  {
+    family: 'plunder',
+    level: 1,
+    hooks: {
+      runEnd: (r) => {
+        if (r.cleared > 0) r.log('plunder1', null);
+      },
+    },
+  },
+  {
+    family: 'plunder',
+    level: 2,
+    hooks: {
+      afterFight: (f) => {
+        // The part most of the fight's enemies carry the tag of; the first in the catalogue on a tie.
+        const counts = monsterParts.map((part) => f.foes.filter((tags) => tags.includes(part.tag)).length);
+        const most = Math.max(...counts);
+        if (most === 0) return;
+        f.addMaterial(monsterParts[counts.indexOf(most)].id, R.plunder.partsPerFight);
+        f.log('plunder2', null);
+      },
+    },
+  },
+  {
+    family: 'plunder',
+    level: 3,
+    hooks: {
+      runEnd: (r) => {
+        if (r.won) r.log('plunder3', null);
+      },
+    },
+  },
+  {
+    family: 'cunning',
+    level: 2,
+    hooks: {
+      cache: (c) => {
+        if (!c.step) return;
+        c.gold = c.worth;
+        const hero = c.heroOf('cunning');
+        c.log('cunning2', hero ? idOf(hero) : null);
+      },
+    },
+  },
+  {
+    family: 'cunning',
+    level: 3,
+    hooks: {
+      cache: (c) => {
+        c.rolls += R.cunning.cacheRolls;
+        const hero = c.heroOf('cunning');
+        c.log('cunning3', hero ? idOf(hero) : null);
       },
     },
   },
@@ -705,6 +788,8 @@ export function activeHooks(levels: FamilyLevels, effects: FamilyEffect[] = fami
     afterAttack: [],
     summon: [],
     fightReady: [],
+    cache: [],
+    runEnd: [],
     beforeDefend: [],
     onDodge: [],
     incoming: [],

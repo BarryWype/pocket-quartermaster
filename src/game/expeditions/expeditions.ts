@@ -1,4 +1,5 @@
 import { expeditionRules, overnightExpeditionRules, dungeons } from '@/content/dungeons';
+import { familyEffectRules } from '@/content/families';
 import { newHero, xpRules } from '@/content/heroes';
 import { dungeonById, itemById, opportunityById, recipeById, recipeOutput } from '@/content/lookup';
 import { lootConfig } from '@/content/loot/config';
@@ -373,7 +374,8 @@ export function resolveExpedition(
   const mealGold = cut(meal?.kind === 'gold' ? meal.multiplier : 1);
   // Lost loot cuts the dungeon's rolled gold; the run's bonus gold is unaffected.
   const bounty = run.opportunity?.answered && run.opportunity.goldMultiplier ? run.opportunity.goldMultiplier : 1;
-  const goldScale = guildGold * traitGold * mealGold;
+  const plunderGold = (run.families.plunder ?? 0) >= 1 ? familyEffectRules.plunder.gold : 1;
+  const goldScale = guildGold * traitGold * mealGold * plunderGold;
   const baseGold = Math.round((rng.int(dungeon.gold[0], dungeon.gold[1]) * lootShare * bounty + run.bonusGold) * goldScale);
   // The tutorial's first expedition pays the day's first-win row instead.
   const tutorialReward = expedition.guaranteed;
@@ -416,6 +418,7 @@ export function resolveExpedition(
       modifiers,
       enemies,
       difficulty: dungeon.difficulty,
+      familySteps: (run.families.plunder ?? 0) >= 3 ? familyEffectRules.plunder.raritySteps : 0,
       base,
       context,
       // A special's extra rolls draw from their own derived seed.
@@ -440,6 +443,9 @@ export function resolveExpedition(
   } else {
     loot = { ...emptyLoot(), gold: Math.round(baseGold * (1 + lootConfig.luck.goldPerPoint * luck)), xp: Math.round(xp * mealXp) };
   }
+
+  // Monster parts the family effects found in won fights, whatever the outcome.
+  if (run.familyMaterials.length > 0) loot = mergeLoot(loot, { ...emptyLoot(), materials: run.familyMaterials });
 
   // A secret dungeon's prize, or the Sealed vault's the party paid a key for: only a win claims either.
   const prize =

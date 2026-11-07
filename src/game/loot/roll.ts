@@ -26,6 +26,8 @@ export type LootRequest = ChanceInput & {
   force?: LootCategory;
   /** The source's difficulty band: scales chance, amounts, quality and (via sourceAmounts) gold and XP. */
   difficulty?: Difficulty;
+  /** Rarity steps a party's family adds to gear (Plunder 3). */
+  familySteps?: number;
   /** The patrol's kind, for the Patrol row's material theme. */
   patrolKind?: PatrolKind;
 };

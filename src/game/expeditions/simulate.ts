@@ -247,6 +247,8 @@ export type RunResult = {
   meal: MealEffect | null;
   /** Extra rolls of the main loot row a won run pays (a special's bonus). */
   extraLootRolls: number;
+  /** Materials the family effects found in won fights (monster parts). */
+  familyMaterials: MaterialStack[];
   /** The party's family levels the run played with. */
   families: FamilyLevels;
 };
@@ -748,8 +750,9 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
   const sureCrits = new Set<string>();
   /** A hero's next attack, multiplied (Focus). */
   const nextAttackMultiplier = new Map<string, number>();
-  /** Extra rolls of the main loot row a won run pays (Steal). */
+  /** Extra rolls of the main loot row a won run pays (Steal, Cunning 3). */
   let extraLootRolls = 0;
+  const familyMaterials: MaterialStack[] = [];
   /** The hero's special, when they have one. */
   const specialOf = (hero: HeroState) => (hero.member.special ? specials[hero.member.special] : undefined);
   /** Fires the specials triggered by damage or a knock-out; set while a fight runs. */
@@ -1809,7 +1812,18 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     raised = [];
     fight(enemyDefs, result, enemiesFirst, isBoss, weakness, allies);
     if (result.cleared && hooks.afterFight.length > 0 && alive().length > 0) {
-      const after = { ...familyBase(result), heroes: alive(), tags: [...new Set(enemyDefs.flatMap(enemyTags))], isBoss };
+      const after = {
+        ...familyBase(result),
+        heroes: alive(),
+        tags: [...new Set(enemyDefs.flatMap(enemyTags))],
+        foes: enemyDefs.map(enemyTags),
+        isBoss,
+        addMaterial: (materialId: string, amount: number) => {
+          const held = familyMaterials.find((stack) => stack.materialId === materialId);
+          if (held) held.amount += amount;
+          else familyMaterials.push({ materialId, amount });
+        },
+      };
       for (const hook of hooks.afterFight) hook(after);
     }
     // The first fight with the tag, at the signature's threat level: its fallen fight for the party next.
@@ -1954,6 +1968,11 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       case 'vault':
         break;
     }
+    if ((reward.kind === 'goldShare' || reward.kind === 'vault') && hooks.cache.length > 0) {
+      const cache = { ...familyBase(at), step: false, worth: 0, gold: 0, rolls: 0 };
+      for (const hook of hooks.cache) hook(cache);
+      extraLootRolls += cache.rolls;
+    }
     return taken;
   };
 
@@ -1987,6 +2006,17 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     if (encounter.type === 'locals') {
       // With no Locals threat, locals are always a quiet step.
       return quietResult(npcById[encounter.npcId].name);
+    }
+    // A hidden cache is a quiet step unless a family effect opens it.
+    const event = encounter.type === 'event' ? eventById[encounter.eventId] : undefined;
+    if (event?.kind === 'cache' && hooks.cache.length > 0) {
+      const result = quietResult(event.name);
+      const finder = withAbility('cacheBonus');
+      const cache = { ...familyBase(result), step: true, worth: event.goldShare * dungeon.gold[1] * (finder?.ability.multiplier ?? 1), gold: 0, rolls: 0 };
+      for (const hook of hooks.cache) hook(cache);
+      result.gold = Math.round(cache.gold);
+      extraLootRolls += cache.rolls;
+      return result;
     }
     // Every other non-fight encounter is a quiet step.
     return quietResult(encounter.type === 'obstacle' ? encounter.name : eventById[encounter.eventId].name);
@@ -2076,6 +2106,11 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
   const encountersCleared = guaranteed ? encounterCount : finalEncounters.filter((e) => e.cleared).length;
   const bossDefeated = guaranteed || finalEncounters.some((e) => e.kind === 'boss' && e.cleared);
   const anyKnockedOut = finalEncounters.some((e) => e.knockedOut.length > 0);
+  // The run's last encounter carries the notes of the family effects paid once the run is over.
+  if (hooks.runEnd.length > 0 && encounters.length > 0) {
+    const end = { ...familyBase(encounters[encounters.length - 1]), won: bossDefeated, cleared: encountersCleared };
+    for (const hook of hooks.runEnd) hook(end);
+  }
   // A smoke bomb escape is a retreat however little was cleared, with nobody out.
   const outcome: ExpeditionOutcome = escaped
     ? 'retreat'
@@ -2105,6 +2140,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     signed,
     meal,
     extraLootRolls,
+    familyMaterials,
     potionsDrunk,
     families,
   };
