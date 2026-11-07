@@ -1,16 +1,17 @@
-import { affixes } from "@/content/affixes";
 import type { Rarity } from "@/content/gear";
 import { choiceOf, jobById, jobs } from "@/content/jobs";
 import { itemById } from "@/content/lookup";
 import { shopRules } from "@/content/shops";
 import { ELEMENTS, stoneId, type Element } from "./elements";
+import { LEGACY_KEYWORD_AFFIXES } from "./legacyComponents";
 import { LEGACY_KIT_REFUNDS, LEGACY_TALISMAN, LEGACY_THREAT_MAP } from "./legacyThreats";
+import { affixSlotOf } from "./gear/affixes";
 import { makeGearPiece } from "./gear/make";
 import { statFactor } from "./gear/stats";
 import { jobMaterials } from "./jobs/jobs";
 import { todaysCollector } from "./loot/valuables";
 import type { JobOutput, SaveData } from "./save";
-import type { ActiveThreat, Briefing, ExpeditionReport, HeroState } from "./types";
+import type { ActiveThreat, Briefing, ExpeditionReport, GearDef, HeroState } from "./types";
 import { sellGoodsAmount } from "./quests/unlocks";
 import type { Quest } from "./quests/types";
 import { rolledSpecial } from "./team/specials";
@@ -188,14 +189,12 @@ function migrateGear(old: LegacyGear): {
     : undefined;
   const element =
     old.element ?? (heart && ELEMENTS.includes(heart) ? heart : undefined);
-  const componentAffix = old.component
-    ? affixes.find(
-        (affix) =>
-          affix.source.kind === "component" &&
-          affix.source.componentId === old.component,
-      )
-    : undefined;
-  if (componentAffix) forced.push({ id: componentAffix.id });
+  // Component affixes are gone: the closest part affix for the piece's slot takes their place.
+  const componentAffix = Object.values(LEGACY_KEYWORD_AFFIXES).find(
+    (legacy) => legacy.componentId === old.component,
+  );
+  const slot = affixSlotOf((item as GearDef).gearType);
+  if (componentAffix && slot !== "any") forced.push({ id: componentAffix[slot] });
   let refund: Element | undefined;
   if (element && item.slot === "weapon")
     forced.push({ id: `infused${capitalised(element)}` });

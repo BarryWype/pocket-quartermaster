@@ -4,12 +4,11 @@ import { LURE_ID, lootConfig } from '@/content/loot/config';
 import { lootMatrix } from '@/content/loot/matrix';
 import { relics as relicDefs } from '@/content/loot/relics';
 import { resources } from '@/content/resources';
-import { ELEMENTS, shardId, type Element } from '@/game/elements';
+import { ELEMENTS, shardId, stoneId, type Element } from '@/game/elements';
 import type { GearType } from '@/game/types';
 
 import type { Rng } from '../generation/rng';
 import { dedupeModifiers, partyLuck } from './chances';
-import { componentPool } from './components';
 import { rollLootGear } from './gear';
 import { partWeights } from './parts';
 import { rollLootTrinket } from './trinkets';
@@ -17,8 +16,8 @@ import type { LootRequest } from './roll';
 import { rollValuable } from './valuables';
 import type { Loot, LootCategory, MapRarity } from './types';
 
-/** Fills one category's drop into the loot being built. `viaBlueprints` marks the handoff from the blueprints generator on a complete tier. */
-export type Generator = (req: LootRequest, loot: Loot, viaBlueprints?: boolean) => void;
+/** Fills one category's drop into the loot being built. */
+export type Generator = (req: LootRequest, loot: Loot) => void;
 
 /** The map's loot multiplier applies to gold at the treasure spot only. */
 function mapMultiplier(req: LootRequest): number {
@@ -95,8 +94,9 @@ function blueprints(req: LootRequest, loot: Loot): void {
     loot.recipeIds.push(pick.id);
     return;
   }
-  // A complete tier: its blueprint row always falls through to a component.
-  generators.components(req, loot, true);
+  // A complete tier: monster parts of the enemies' family, or gold when there were no enemies.
+  if (req.enemies.length > 0) addParts(req, loot, lootConfig.blueprints.overflowParts);
+  else loot.gold += Math.round(lootConfig.blueprints.overflowGold * lootConfig.goldByTier[req.tier - 1]);
 }
 
 function consumables(req: LootRequest, loot: Loot): void {
@@ -131,13 +131,28 @@ function monsterParts(req: LootRequest, loot: Loot): void {
   loot.materials.push({ materialId: pick.materialId, amount: scaledAmount(req, req.rng.int(min, max)) });
 }
 
-function components(req: LootRequest, loot: Loot, viaBlueprints = false): void {
-  const pool = componentPool(req.source, req.enemies, req.element, req.rng, viaBlueprints);
-  if (pool.length === 0) return;
-  const componentId = pool[req.rng.int(0, pool.length - 1)];
-  const held = loot.materials.find((stack) => stack.materialId === componentId);
-  if (held) held.amount += 1;
-  else loot.materials.push({ materialId: componentId, amount: 1 });
+/** Adds a stack to the loot, merged with one of the same id. */
+function addStack(loot: Loot, materialId: string, amount: number): void {
+  const held = loot.materials.find((stack) => stack.materialId === materialId);
+  if (held) held.amount += amount;
+  else loot.materials.push({ materialId, amount });
+}
+
+/** A stack of one monster part of the enemies' family (the elites' when there are any), `range` in size. */
+function addParts(req: LootRequest, loot: Loot, [min, max]: [number, number]): void {
+  const elites = req.enemies.filter((id) => id.includes(':elite'));
+  const weights = partWeights(elites.length > 0 ? elites : req.enemies, req.element);
+  const pick = req.rng.weighted(weights, (entry) => entry.weight);
+  addStack(loot, pick.materialId, req.rng.int(min, max));
+}
+
+/** A boss's or elite's trophy, by source: a relic, monster parts or an elemental stone. */
+function trophies(req: LootRequest, loot: Loot): void {
+  const { bySource, parts } = lootConfig.trophies;
+  const kind = bySource[req.source] ?? 'parts';
+  if (kind === 'relic') loot.relics.push(randomRelic(req.tier, req.rng));
+  else if (kind === 'stone') addStack(loot, stoneId(req.element ?? ELEMENTS[req.rng.int(0, ELEMENTS.length - 1)]), 1);
+  else addParts(req, loot, parts);
 }
 
 export const generators: Record<LootCategory, Generator> = {
@@ -160,7 +175,7 @@ export const generators: Record<LootCategory, Generator> = {
   trinkets: (req, loot) => {
     loot.gear.push(rollLootTrinket(req));
   },
-  components,
+  trophies,
   relics: relicDrops,
   valuables: (req, loot) => {
     loot.valuables.push(rollValuable(req));

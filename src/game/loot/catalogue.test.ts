@@ -2,7 +2,6 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 import { baseItems } from '@/content/loot/baseItems';
-import { components } from '@/content/loot/components';
 import { monsterParts } from '@/content/loot/monsterParts';
 import { purposeInfo, PURPOSES } from '@/content/loot/purposes';
 import { relics } from '@/content/loot/relics';
@@ -84,17 +83,6 @@ describe('the base item catalogue', () => {
     }
   });
 
-  it('has the 12 components of the CSV (its elemental heart row drops as a stone)', () => {
-    const rows = csvRows('components.csv');
-    expect(rows).toHaveLength(13);
-    expect(components.map((c) => c.name)).toEqual(rows.map((r) => r[0]).slice(0, 12));
-    // Boss components are the five bosses' own; the rest sell for 20.
-    for (const component of components) {
-      expect(component.sellPrice).toBe(components.indexOf(component) < 5 ? 40 : 20);
-    }
-    expect(components.filter((c) => c.id.endsWith('Heart'))).toHaveLength(0);
-  });
-
   it('has the 9 valuables of the CSV with their rarities', () => {
     const rows = csvRows('valuables.csv');
     expect(rows).toHaveLength(9);
@@ -113,16 +101,14 @@ describe('the base item catalogue', () => {
     for (const relic of relics) expect(relic.sellPrice).toBe(10 * relic.tier);
   });
 
-  it('counts every part and component as a material', () => {
+  it('counts every part as a material', () => {
     const materialIds = new Set(materials.map((m) => m.id));
     for (const part of monsterParts) expect(materialIds.has(part.id)).toBe(true);
-    for (const component of components) expect(materialIds.has(component.id)).toBe(true);
   });
 
   it('has a French entry for every new name and text', () => {
     const texts = [
       ...monsterParts.flatMap((p) => [p.name, p.uses]),
-      ...components.flatMap((c) => [c.name, c.from, c.adds]),
       ...valuables.flatMap((v) => [v.name, ...(v.uses ? [v.uses] : [])]),
       ...relics.flatMap((r) => [r.name, r.effect]),
       ...Object.values(baseItems).flatMap((b) => [b.name, ...(b.description ? [b.description] : [])]),

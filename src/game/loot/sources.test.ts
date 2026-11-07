@@ -1,6 +1,5 @@
 import { difficultyRules } from '@/content/difficulty';
 import { lootMatrix } from '@/content/loot/matrix';
-import { components } from '@/content/loot/components';
 import { monsterParts } from '@/content/loot/monsterParts';
 
 import { ELEMENTS, shardId, stoneId } from '../elements';
@@ -12,17 +11,17 @@ import { LOOT_CATEGORIES, LOOT_SOURCES, type LootCategory, type LootSourceId } f
 const SEEDS = 200;
 const LUCK = 100;
 const SHARD_IDS = new Set(ELEMENTS.map(shardId));
-// Elemental stones drop where hearts did, from the components category.
-const COMPONENT_IDS = new Set([...components.map((c) => c.id), ...ELEMENTS.map(stoneId)]);
+// Elemental stones drop as trophies.
+const STONE_IDS = new Set(ELEMENTS.map(stoneId));
 const PART_IDS = new Set(monsterParts.map((p) => p.id));
 
 /** The categories a source may drop: every mark except '—'. */
 const droppable = (source: LootSourceId): LootCategory[] =>
   LOOT_CATEGORIES.filter((category) => lootMatrix[source].marks[category] !== '—');
 
-/** Stacks that are neither element shards, components nor monster parts: all live in `materials` too. */
+/** Stacks that are neither element shards, stones nor monster parts: all live in `materials` too. */
 const gathered = (materials: { materialId: string }[]) =>
-  materials.filter((m) => !SHARD_IDS.has(m.materialId) && !COMPONENT_IDS.has(m.materialId) && !PART_IDS.has(m.materialId));
+  materials.filter((m) => !SHARD_IDS.has(m.materialId) && !STONE_IDS.has(m.materialId) && !PART_IDS.has(m.materialId));
 
 describe('rollForSave', () => {
   for (const source of LOOT_SOURCES) {

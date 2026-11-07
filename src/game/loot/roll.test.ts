@@ -1,5 +1,4 @@
 import { lootMatrix } from '@/content/loot/matrix';
-import { components } from '@/content/loot/components';
 import { monsterParts } from '@/content/loot/monsterParts';
 import { ELEMENTS, shardId, stoneId } from '@/game/elements';
 
@@ -57,12 +56,12 @@ describe('rollSourceLoot', () => {
     const themed: LootSourceId[] = ['patrol', 'traveller', 'banditCamp', 'goblinRaid', 'beastDen', 'hauntedCrypt', 'abandonedCaravan', 'monsterLair', 'ruinsDig', 'fishingDock', 'treasureSpot', 'stepChest', 'questShort', 'questMedium', 'questLong'];
     expect(foot).toEqual(themed);
     const shardIds = ELEMENTS.map((element) => shardId(element));
-    // Components and monster parts live in `materials` too; they drop wherever their mark allows.
-    const otherIds = [...components.map((c) => c.id), ...ELEMENTS.map(stoneId), ...monsterParts.map((p) => p.id)];
-    const notComponent = (stack: { materialId: string }) =>
+    // Stones and monster parts live in `materials` too; they drop wherever their mark allows.
+    const otherIds = [...ELEMENTS.map(stoneId), ...monsterParts.map((p) => p.id)];
+    const notOther = (stack: { materialId: string }) =>
       !shardIds.includes(stack.materialId) && !otherIds.includes(stack.materialId);
     for (const source of LOOT_SOURCES) {
-      const withMaterials = rolls(source).some((loot) => loot.materials.some(notComponent));
+      const withMaterials = rolls(source).some((loot) => loot.materials.some(notOther));
       expect(withMaterials).toBe(foot.includes(source));
       if (foot.includes(source)) {
         expect(rolls(source).some((loot) => loot.dropped.includes('materials'))).toBe(true);

@@ -1,5 +1,5 @@
+import { monsterParts } from '@/content/loot/monsterParts';
 import { dungeons } from '@/content/dungeons';
-import { components } from '@/content/loot/components';
 import { rotationDay } from '@/game/dungeons/rotation';
 import { gearId, gearRecipes } from '@/content/equipment';
 import { resolveExpedition, startExpedition } from '@/game/expeditions/expeditions';
@@ -60,12 +60,13 @@ describe('the day’s first win', () => {
     expect(second.report.firstWin).toBeUndefined();
   });
 
-  it('turns into a component when every blueprint of the tier is already known', () => {
+  it('turns into monster parts when every blueprint of the tier is already known', () => {
     const at = rotationDay(Date.UTC(2026, 5, 11)) * DAY;
     const save = saveWith(tier1Blueprints.filter((id) => !createInitialSave().knownRecipes.includes(id)));
     const result = win(save, ratCellar, at);
     expect(result.report.firstWin).toBe(true);
     expect(result.report.loot.recipeIds).toEqual([]);
-    expect(result.report.loot.materials.some((stack) => components.some((c) => c.id === stack.materialId))).toBe(true);
+    expect(result.report.loot.dropped).toContain('blueprints');
+    expect(result.report.loot.materials.some((stack) => monsterParts.some((p) => p.id === stack.materialId))).toBe(true);
   });
 });

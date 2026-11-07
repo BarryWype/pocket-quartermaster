@@ -6,7 +6,7 @@ import type { SaveData } from '../save';
 import type { GearType, StatKey } from '../types';
 import { canRestore, relicRecipe } from '../forging/relics';
 import { forgedItem } from './crafting';
-import { ingredientAffixId } from '../forging/components';
+import { ingredientAffixId } from '../forging/ingredients';
 import { guildBonus } from '../guild/guild';
 import { statRange } from '../gear/stats';
 

@@ -6,7 +6,7 @@ import { itemById } from '@/content/lookup';
 import type { Rng } from '../generation/rng';
 import type { Element } from '../elements';
 import type { SaveData } from '../save';
-import type { GearDef, GearInstance, GearType, Keyword } from '../types';
+import type { GearDef, GearInstance, GearType } from '../types';
 
 /** An affix's value: fixed affixes stay 0, ranged affixes roll 3d6 mapped onto their range. */
 export function affixValue(rng: Rng, affix: AffixDef): number {
@@ -28,35 +28,28 @@ export function affixSlotOf(gearType: GearType | undefined): 'weapon' | 'armourO
 }
 
 /**
- * The affixes allowed on a piece: its pool's groups — offensive pieces share
- * the weapon affixes, defensive ones the armour/off-hand ones, trinkets take
- * the "any" pool only — plus component affixes that list the piece's gear
- * type. Element affixes never roll: they come only from elemental stones.
+ * The affixes allowed on a piece: offensive pieces share the weapon affixes,
+ * defensive ones the armour/off-hand ones, and every piece takes the "any"
+ * pool (trinkets only that one). Element affixes never roll: they come only
+ * from elemental stones.
  */
 export function affixPool(piece: GearInstance | { itemId: string; rarity?: Rarity }): AffixDef[] {
   const item = itemById[piece.itemId] as GearDef;
   const gearType = item.gearType as GearType | undefined;
   const affixSlot = affixSlotOf(gearType);
-  return affixes.filter((affix) => {
-    if (affix.source.kind === 'element') return false;
-    if (affix.slot === 'any' || affix.slot === affixSlot) return true;
-    return typeof affix.slot === 'object' && gearType !== undefined && affix.slot.types.includes(gearType);
-  });
+  return affixes.filter((affix) => affix.source.kind !== 'element' && (affix.slot === 'any' || affix.slot === affixSlot));
 }
-
-/** Default roll weights: keyword (component) affixes are rare, the rest weigh 1. */
-const keywordWeightOf = (affix: AffixDef) => (affix.family === 'keyword' ? gearRules.keywordAffixWeight : 1);
 
 /**
  * `count` distinct affixes from `pool`, never ones the piece already carries,
- * each with a rolled value. Weighted pick; `weightOf` overrides the weights.
+ * each with a rolled value. Even pick unless `weightOf` gives weights.
  */
 export function rollAffixes(
   rng: Rng,
   piece: Pick<GearInstance, 'itemId' | 'rarity' | 'affixes'>,
   count: number,
   pool: AffixDef[],
-  weightOf: (affix: AffixDef) => number = keywordWeightOf,
+  weightOf: (affix: AffixDef) => number = () => 1,
 ): { id: string; value: number }[] {
   const taken = new Set(piece.affixes.map((affix) => affix.id));
   const rolled: { id: string; value: number }[] = [];
@@ -98,14 +91,6 @@ export function rosterAffixBest(save: SaveData, affixId: string): number {
     }),
   );
   return bestAffixValue(worn, affixId);
-}
-
-/** The combat keywords a piece's affixes grant. */
-export function pieceKeywords(piece: GearInstance): Keyword[] {
-  return piece.affixes.flatMap((affix) => {
-    const effect = affixById[affix.id]?.effect;
-    return effect?.kind === 'keyword' ? [effect.keyword] : [];
-  });
 }
 
 /** The element a piece's infused affix gives the hero's hits; stones add it to offensive pieces. */

@@ -5,10 +5,10 @@ import { affixById } from '@/content/affixes';
 import { gearProfiles, gearTypeNames } from '@/content/equipment';
 import { gearRules, rarityNames } from '@/content/gear';
 import { heroClasses } from '@/content/heroes';
-import { componentById, itemById, materialById, monsterPartById, recipeById, relicById, valuableById } from '@/content/lookup';
+import { itemById, materialById, monsterPartById, recipeById, relicById, valuableById } from '@/content/lookup';
 import { forgeConfirmation, restoreConfirmation, type ConfirmCost } from '@/game/crafting/confirm';
 import { canCraft } from '@/game/crafting/crafting';
-import { canForgeWithIngredient, fittingIngredients, ingredientAffixId } from '@/game/forging/components';
+import { canForgeWithIngredient, fittingIngredients, ingredientAffixId } from '@/game/forging/ingredients';
 import { canRestore } from '@/game/forging/relics';
 import type { SaveData } from '@/game/save';
 import type { GearDef, GearType } from '@/game/types';
@@ -88,7 +88,7 @@ function IngredientRow({
       </Pressable>
     );
   }
-  const ingredient = monsterPartById[ingredientId] ?? componentById[ingredientId];
+  const ingredient = monsterPartById[ingredientId];
   const affixId = ingredientAffixId(ingredientId, gearType);
   const range = affixId ? affixById[affixId].range : undefined;
   return (

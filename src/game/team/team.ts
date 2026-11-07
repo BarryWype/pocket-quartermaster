@@ -4,7 +4,7 @@ import { itemById } from '@/content/lookup';
 import { traitById } from '@/content/traits';
 import { lootConfig } from '@/content/loot/config';
 
-import { affixEffects, pieceKeywords } from '../gear/affixes';
+import { affixEffects } from '../gear/affixes';
 import { gearStats, SCALING_KEYS } from '../gear/stats';
 import { pieceEffects } from '../gear/uniques';
 import { pieceDamageStat } from '../equipment/damageStat';
@@ -66,7 +66,6 @@ export function gearKeywordsOf(save: SaveData, hero: HeroState): GearKeywordEntr
       if (own) own.strong = true;
       else keywords.push({ keyword, magic });
     };
-    for (const keyword of pieceKeywords(gear)) add(keyword);
     for (const relicEffect of pieceEffects(gear)) {
       if (relicEffect.kind !== 'keyword') continue;
       if (relicEffect.when) {

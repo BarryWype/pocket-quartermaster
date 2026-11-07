@@ -1,5 +1,4 @@
 import { heroClasses, newHero } from '@/content/heroes';
-import { components } from '@/content/loot/components';
 import { placeRules } from '@/content/places';
 import { heroNames, recruitRules } from '@/content/roster';
 import { secretRules } from '@/content/secrets';
@@ -12,7 +11,6 @@ import { ELEMENTS } from '../elements';
 import { distanceMeters } from '../generation/geo';
 import { createRng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
-import { addMaterials } from '../inventory';
 import { makeGearPiece } from '../gear/make';
 import type { PlaceSpawn } from '../places/generate';
 import { rosterFull } from '../team/team';
@@ -110,40 +108,27 @@ export function recruitAtSecret(save: SaveData, place: PlaceSpawn, player: LatLn
 
 export type MarketLine = {
   key: string;
-  kind: 'component' | 'gear';
   id: string;
   price: number;
-  /** Gear lines carry the piece on sale; the real uid is assigned on purchase. */
-  gear?: GearInstance;
+  /** The piece on sale; the real uid is assigned on purchase. */
+  gear: GearInstance;
 };
 
-/** The black market's goods, deterministic from the place and the player's state. */
-export function blackMarketGoods(
-  save: SaveData,
-  place: PlaceSpawn,
-  goods: ('components' | 'trinkets')[] = secretRules.blackMarket.goods,
-): MarketLine[] {
+/** The black market's goods, Rare trinkets, deterministic from the place and the player's state. */
+export function blackMarketGoods(save: SaveData, place: PlaceSpawn): MarketLine[] {
   const rng = createRng(`black-market|${place.id}`);
   const markup = secretRules.blackMarket.markup;
   const tier = highestUnlockedTier(save);
   const count = rng.int(...secretRules.blackMarket.lines);
-  const componentPool = components.filter((c) => !c.bossId);
   // The five amulets are one weighted entry, like a looted trinket; the ring never sells here.
   const amulet = trinketKinds.find((kind) => kind.group === 'amulet')!;
   const trinketPool = trinketKinds.filter((kind) => kind.group !== 'fortune' && (kind.group !== 'amulet' || kind === amulet));
   return Array.from({ length: count }, (_, i) => {
-    const good = goods[rng.int(0, goods.length - 1)];
-    if (good === 'components') {
-      const pick = componentPool[rng.int(0, componentPool.length - 1)];
-      componentPool.splice(componentPool.indexOf(pick), 1);
-      return { key: `component:${pick.id}`, kind: 'component' as const, id: pick.id, price: Math.round(pick.sellPrice * markup) };
-    }
     const pick = rng.weighted(trinketPool, (kind) => trinketRules.weights[kind.group]);
     const kind = pick.group === 'amulet' ? `${ELEMENTS[rng.int(0, ELEMENTS.length - 1)]}Amulet` : pick.kind;
     const id = trinketId(kind, tier);
     return {
       key: `gear:${i}`,
-      kind: 'gear' as const,
       id,
       price: Math.round(shopRules.gearPrice[tier - 1] * shopRules.rarityPrice.rare * markup),
       gear: makeGearPiece(`market:${place.id}:${i}`, id, 'rare'),
@@ -169,13 +154,8 @@ export function buyAtBlackMarket(save: SaveData, place: PlaceSpawn, key: string,
   if (problem) throw new Error(`Cannot buy ${key}: ${problem}`);
   const line = blackMarketGoods(save, place).find((l) => l.key === key)!;
 
-  let next: SaveData = { ...save, gold: save.gold - line.price };
-  if (line.kind === 'component') {
-    next = { ...next, materials: addMaterials(next.materials, [{ materialId: line.id, amount: 1 }]) };
-  } else {
-    const uid = `g${next.nextUid}`;
-    next = { ...next, gear: [...next.gear, { ...line.gear!, uid }], nextUid: next.nextUid + 1 };
-  }
+  const uid = `g${save.nextUid}`;
+  const next: SaveData = { ...save, gold: save.gold - line.price, gear: [...save.gear, { ...line.gear, uid }], nextUid: save.nextUid + 1 };
 
   const bought = next.placePurchases[place.id]?.bought ?? {};
   return {

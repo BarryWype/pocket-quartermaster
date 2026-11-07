@@ -1,5 +1,4 @@
 import { affixes } from '@/content/affixes';
-import { components } from '@/content/loot/components';
 import { monsterParts } from '@/content/loot/monsterParts';
 
 import { forgeGearPiece, forgedItem, isKnown, recipeCost, unlockRecipe } from '../crafting/crafting';
@@ -8,25 +7,22 @@ import { hasMaterials, removeMaterials } from '../inventory';
 import type { SaveData } from '../save';
 import type { GearType, RecipeDef } from '../types';
 
-/** The forge's ingredients: monster parts first, then components, both in catalogue order. */
-export const ingredients = [...monsterParts, ...components];
+/** The forge's ingredients: the monster parts, in catalogue order. */
+export const ingredients = monsterParts;
 
 /**
  * The affix an ingredient adds to a piece of this gear type: a monster part
  * gives its offensive affix on offensive pieces and its defensive one on
- * defensive pieces, a component its affix on the types its slot lists.
+ * defensive pieces.
  */
 export function ingredientAffixId(ingredientId: string, gearType: GearType): string | undefined {
   const slot = affixSlotOf(gearType);
   return affixes.find(
-    (affix) =>
-      ((affix.source.kind === 'part' && affix.source.partId === ingredientId) ||
-        (affix.source.kind === 'component' && affix.source.componentId === ingredientId)) &&
-      (affix.slot === slot || (typeof affix.slot === 'object' && affix.slot.types.includes(gearType))),
+    (affix) => affix.source.kind === 'part' && affix.source.partId === ingredientId && affix.slot === slot,
   )?.id;
 }
 
-/** Ids of the held parts and components that give this recipe's piece an affix, parts first, in catalogue order. */
+/** Ids of the held parts that give this recipe's piece an affix, in catalogue order. */
 export function fittingIngredients(save: SaveData, recipe: RecipeDef): string[] {
   const item = forgedItem(recipe);
   const gearType = item?.gearType;

@@ -1,11 +1,11 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { gearRules, rarityNames } from '@/content/gear';
-import { componentById, gearName, materialById } from '@/content/lookup';
+import { gearName, materialById } from '@/content/lookup';
 import { salvageDialog, type SalvageWarning } from '@/game/forging/salvage';
 import type { SaveData } from '@/game/save';
 import type { GearInstance } from '@/game/types';
-import { formatPercent, t, tr, type TextKey } from '@/i18n';
+import { t, tr, type TextKey } from '@/i18n';
 import { colors } from '@/theme';
 
 import { Button } from './Button';
@@ -51,14 +51,6 @@ export function SalvageDialog({ gear, save, onConfirm, onClose }: Props) {
             {returns ? <Text>{returns}</Text> : null}
             {dialog.returns.gold > 0 && <Price amount={dialog.returns.gold} />}
           </View>
-          {dialog.componentChance && (
-            <Text style={styles.componentChance}>
-              {t('inventory.salvageComponent', {
-                chance: formatPercent(dialog.componentChance.chance),
-                component: tr(componentById[dialog.componentChance.componentId].name),
-              })}
-            </Text>
-          )}
           {dialog.warnings.map((warning) => (
             <View key={warning} style={styles.warning}>
               <IconLabel emoji="⚠️" label={t(warningKey[warning])} labelStyle={styles.warningText} />
@@ -81,7 +73,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 24 },
   quality: { fontSize: 16, textTransform: 'uppercase' },
   returnsRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
-  componentChance: { color: colors.success },
   warning: { padding: 8, borderWidth: 2, borderColor: colors.danger, backgroundColor: colors.parchmentDark },
   warningText: { color: colors.danger },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 4 },

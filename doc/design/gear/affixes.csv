@@ -25,19 +25,6 @@ opener,Opener,part:ritualCandle,caster,offensive,+Crit in the first round of eac
 nullAffix,Null,part:ritualCandle,caster,defensive,Less damage from casters,−15–30%,
 infused,Infused <element>,elemental stone,element,offensive,Hits deal that element (with elemental advantage),fixed,Replaces infusion; one per element (fire water stone electric grass)
 warding,<Element> warding,elemental stone,element,defensive,Resistance against that element,+15–30%,One per element
-staggering,Staggering,component:ogreKnucklebone,keyword,"mace, warhammer, knuckles, throwing",Grants Stagger,fixed,Keyword affix
-channeling,Channeling,component:phylacteryShard,keyword,"focus, wand, staff, tome, runestone, totem",Grants Channel,fixed,Keyword affix
-guarding,Guarding,component:giantsHeartstone,keyword,"shield, plate",Grants Guard,fixed,Keyword affix
-cleaving,Cleaving,component:dragonClaw,keyword,"sword, axe, staff, throwing",Grants Cleave,fixed,Keyword affix
-piercing,Piercing,component:drakeFang,keyword,"spear, dagger, bow, warhammer, crossbow, throwing",Grants Pierce,fixed,Keyword affix
-reaching,Reaching,component:harpyFlightFeather,keyword,"bow, crossbow, spear, quiver",Grants Reach,fixed,Keyword affix
-parrying,Parrying,component:clockworkEscapement,keyword,"off-hand blade, buckler, sword",Grants Parry,fixed,Keyword affix
-bracing,Bracing,component:golemCore,keyword,"armour, shield, spear",Grants Brace,fixed,Keyword affix
-mending,Mending,component:trollHide,keyword,armour,Grants Mend,fixed,Keyword affix
-inspiring,Inspiring,component:orcWarDrumSkin,keyword,"lute, censer, tome",Grants Inspire,fixed,Keyword affix
-fleet,Fleet,component:captainsSpurs,keyword,armour,+Speed,+2–4,Component affix (was +Speed)
-silken,Silken,component:spiderSilk,keyword,"leather, robes",+Evasion,+4–8%,Component affix (was +Evasion)
-steady,Steady vs <threat>,loot only,threat,defensive,A missed threat of that kind costs less,−15–30% penalty,One per threat kind
 foragers,Forager's,loot only,walking,any,Chance of an extra herb or ore when gathering,5–15%,Only while worn; counts once per roster at its best value
 wanderers,Wanderer's,loot only,walking,any,Slightly wider gather radius,+3–8 m,Only while worn; counts once per roster at its best value
 pocket,Pocket,loot only,walking,any,Better Pocket mode yields,+5–15%,Only while worn; counts once per roster at its best value

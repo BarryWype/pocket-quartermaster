@@ -18,7 +18,7 @@ export type RevealKind =
   | 'secrets';
 
 /** Item kinds that get a tip the first time one is held. */
-export type ItemTipKind = 'charms' | 'components' | 'relics' | 'trinkets' | 'valuables' | 'keyFragments';
+export type ItemTipKind = 'charms' | 'relics' | 'trinkets' | 'valuables' | 'keyFragments';
 
 /**
  * The specials tip: due once the tutorial is done and a hero is fielded. The jobs tip: due once
@@ -118,13 +118,12 @@ export const tipTexts: Record<TipId, string> = {
   sanctums: 'Sanctums: elemental shrines. Spend a Sigil to challenge the guardian for shards.',
   secrets: 'A tip marked a secret place. You need a mysterious key to enter.',
   charms: 'Charms go in the consumable slot and raise what a run finds.',
-  components: 'Components: forge one into an item to add its effect.',
   relics: 'Relics: restore one at the forge to get an item with a fixed effect.',
   trinkets: 'Trinkets: loot-only gear with rare stats like Luck and Crit.',
   valuables: 'Valuables: sell them at a market. Collectors pay more for some.',
   keyFragments: 'Key fragments: four make a mysterious key, which opens secret places.',
   affixes: 'Affixes: named effects a piece of gear carries, shown under its stats. Uncommon pieces have one, Rare two, Legendary three.',
-  ingredients: 'Ingredients: monster parts and components. Forging a blueprint with one makes the piece Uncommon and adds its affix.',
+  ingredients: 'Ingredients: monster parts. Forging a blueprint with one makes the piece Uncommon and adds its affix.',
   stones: "Elemental stones give a piece their element — Infused on weapons, Warding on armour. Apply one at the forge's Rework page.",
   reroll: "An Uncommon or better piece can reroll all of its affixes at the forge's Rework page, for materials and gold.",
   specials: 'Specials: every hero has one, rolled from its class. It fires on its own in fights, a limited number of times; rare ones are marked ✦.',

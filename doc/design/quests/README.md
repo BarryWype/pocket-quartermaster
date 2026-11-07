@@ -31,7 +31,7 @@ Daily **quests** are short walking objectives that arrive on their own. They rep
 ## Rewards: rows to add to `doc/design/loot/matrix.csv`
 Added by the quests prompt (with the rename of "Overnight quest" to "Overnight expedition"), so the content test and the CSV change together. Quests are a walking source, so materials are allowed.
 
-| Source | Visits/day | Gold | XP | Materials | Shards | Blueprints | Gear | Trinkets | Components | Relics | Monster parts | Valuables | Consumables | Treasure maps | Manuals | Key fragments | Notes |
+| Source | Visits/day | Gold | XP | Materials | Shards | Blueprints | Gear | Trinkets | Trophies | Relics | Monster parts | Valuables | Consumables | Treasure maps | Manuals | Key fragments | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Quest, short (500 m) | 1.2 | A | — | O | — | — | R | — | — | — | S | S | S | R | — | R/2 | |
 | Quest, medium (1 km) | 0.9 | A | — | O | R | R | S | R | — | — | S | S | S | R | R | R | |

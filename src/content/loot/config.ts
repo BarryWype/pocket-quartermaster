@@ -24,7 +24,7 @@ export const lootConfig = {
     blueprints: 1,
     gear: 1,
     trinkets: 1,
-    components: 1,
+    trophies: 1,
     relics: 1,
     monsterParts: 1,
     valuables: 1,
@@ -160,7 +160,7 @@ export const lootConfig = {
     distanceMeters: { common: [200, 800], rare: [800, 1500], legendary: [1500, 2000] } as Record<MapRarity, [number, number]>,
     /** Applies to non-A chances and gold at the treasure spot. */
     lootMultiplier: { common: 1, rare: 1.5, legendary: 2.5 } as Record<MapRarity, number>,
-    legendaryOnly: ['relics', 'components'] as LootCategory[],
+    legendaryOnly: ['relics', 'trophies'] as LootCategory[],
   },
   manuals: {
     rarityWeights: { common: 70, rare: 25, legendary: 5 } as Record<MapRarity, number>,
@@ -237,8 +237,31 @@ export const lootConfig = {
   goldByTier,
   /** A valuable's price is its base price times this, by the source's tier: the enemy strength curve. */
   valuablePriceByTier: goldByTier,
-  /** Blueprint drops: weight by how many roster heroes favour the type; a complete tier gives a component instead. */
-  blueprints: { favourWeights: [1, 2, 3] },
+  /**
+   * Blueprint drops: weight by how many roster heroes favour the type. A
+   * complete tier gives monster parts of the enemies' family instead, or gold
+   * (× the tier's gold curve) from a source without enemies.
+   */
+  blueprints: { favourWeights: [1, 2, 3], overflowParts: [2, 3] as [number, number], overflowGold: 30 },
+  /**
+   * The Trophies column, by source: a relic of the source's tier (on top of
+   * the Relics column, so bosses find relics far more often), 2–3 monster
+   * parts of the enemies' family (the elites' first), or an elemental stone of
+   * the source's element. Sources not listed give parts.
+   */
+  trophies: {
+    bySource: {
+      tierBoss: 'relic',
+      treasureSpot: 'relic',
+      fishingDock: 'relic',
+      monsterLair: 'parts',
+      beastDen: 'parts',
+      questLong: 'parts',
+      elementalRift: 'stone',
+      sanctum: 'stone',
+    } as Partial<Record<LootSourceId, 'relic' | 'parts' | 'stone'>>,
+    parts: [2, 3] as [number, number],
+  },
   /** Key fragments needed for one mysterious key. */
   keyFragmentsPerKey: 4,
   /** Sigil drops by slot, with a pity counter and a shard cap per tier. */

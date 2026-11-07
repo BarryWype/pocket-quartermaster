@@ -92,8 +92,8 @@ describe('loot chances', () => {
       0.25 * 2.5,
     );
     expect(categoryChance('relics', input('treasureSpot', { mapRarity: 'common' }))).toBe(0);
-    expect(categoryChance('components', input('treasureSpot', { mapRarity: 'rare' }))).toBe(0);
-    expect(categoryChance('components', input('treasureSpot', { mapRarity: 'legendary' }))).toBeCloseTo(
+    expect(categoryChance('trophies', input('treasureSpot', { mapRarity: 'rare' }))).toBe(0);
+    expect(categoryChance('trophies', input('treasureSpot', { mapRarity: 'legendary' }))).toBeCloseTo(
       0.07 * 2.5,
     );
   });

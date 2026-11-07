@@ -3,7 +3,7 @@ import { rosterRules } from '@/content/roster';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { heroClasses } from '@/content/heroes';
-import { componentById, gearName, itemById } from '@/content/lookup';
+import { gearName, itemById } from '@/content/lookup';
 import { placeInfo, placeRules } from '@/content/places';
 import { secretRules } from '@/content/secrets';
 import { traitById } from '@/content/traits';
@@ -66,10 +66,7 @@ const problemText = (problem: SecretProblem, distance: number, cap: number): str
   }
 };
 
-const marketLineParts = (line: MarketLine): LabelPart[] =>
-  line.kind === 'component'
-    ? [{ emoji: componentById[line.id].emoji, text: tr(componentById[line.id].name) }]
-    : [{ emoji: itemById[line.id].emoji, text: gearName(line.gear!) }];
+const marketLineParts = (line: MarketLine): LabelPart[] => [{ emoji: itemById[line.id].emoji, text: gearName(line.gear) }];
 
 type Props = { place: PlaceSpawn; player: LatLng; now: number; onClose: () => void };
 

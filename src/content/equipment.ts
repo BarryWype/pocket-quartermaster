@@ -425,7 +425,7 @@ export const gearKeywordRules = {
   mend: { pct: 0.05 },
   /**
    * The "strong" numbers: a keyword an item already has, given again by a
-   * component, doubles its effect (Pierce has no strong form).
+   * relic, doubles its effect (Pierce has no strong form).
    */
   strong: {
     stagger: { chance: 0.3 },

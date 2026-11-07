@@ -1,6 +1,6 @@
 # Loot: design catalogue
 
-**Status: implemented** (loot base, monster parts and charms, blueprints, components and relics, trinkets and valuables). The source for discussion is the Loot Design doc; this folder is the version to build from, and `matrix.csv` wins over any table elsewhere.
+**Status: implemented** (loot base, monster parts and charms, blueprints, trophies and relics, trinkets and valuables). Components were removed in the families rework (see Trophies). The source for discussion is the Loot Design doc; this folder is the version to build from, and `matrix.csv` wins over any table elsewhere.
 
 Loot is designed from scratch on top of the new dungeons, bosses, places, events and shops, not on the old reward code.
 
@@ -20,7 +20,7 @@ Loot is designed from scratch on top of the new dungeons, bosses, places, events
 | `monster-parts.csv` | 12 parts, one per enemy family tag, and their uses |
 | `charms.csv` | 10 charms (consumable slot) and their recipes |
 | `part-recipes.csv` | Potions made with parts: second recipes and part-only recipes, plus Viper oil |
-| `components.csv` | 13 components: source, slots they fit, what they add. Their effects are now affixes (`doc/design/gear/affixes.csv`); the elemental heart row merged into elemental stones |
+| `components.csv` | **Removed** in the families rework; kept as a record of the 13 components that boss and elite drops used to give |
 | `relics.csv` | 25 relics: tier, type, unique effect |
 | `trinkets.csv` | Trinket kinds |
 | `valuables.csv` | Valuables and their rarity |
@@ -53,7 +53,7 @@ Loot is designed from scratch on top of the new dungeons, bosses, places, events
 - Tier: expeditions give the dungeon's tier; map events, patrols and the lair give the player's tier 70% of the time, one below 30%, never more than one below.
 
 ### Blueprints
-- One per forgeable type and tier (110). Never a duplicate: a drop picks an unknown one of the source's tier, weighted towards types the roster favours, and becomes a component once the tier is complete.
+- One per forgeable type and tier (110). Never a duplicate: a drop picks an unknown one of the source's tier, weighted towards types the roster favours. Once the tier is complete it gives 2–3 monster parts of the enemies' family instead, or gold (30 × the tier's gold curve) from a source without enemies (`lootConfig.blueprints`).
 - The player starts with two tier 1 blueprints (one weapon, one armour). The first tutorial dungeon (always won) gives a third through the normal first-win-of-the-day rule.
 
 ### Monster parts and charms
@@ -63,10 +63,12 @@ Loot is designed from scratch on top of the new dungeons, bosses, places, events
 - **Charms** go in the consumable slot, single-use. They raise what a run finds, never materials. They compete with kits on purpose: kits lower risk, charms raise rewards.
 - **Part recipes**: a part replaces one secondary ingredient of an existing potion; the tier's main material stays. Common potions keep both recipes (same item, stacks), the others switch to the part recipe only (`part-recipes.csv`). Part potions never answer a threat.
 
-### Components
-- A component is a forge ingredient: forged into a piece of a type it fits, it gives its affix and the piece comes out Uncommon (`doc/design/gear/`). It no longer swaps a recipe material or guarantees Rare.
-- Each component lists the item types it fits. **One component per item.** Blessed is never a component.
-- Boss components are the boss's own and drop only from it.
+### Trophies
+- The Trophies column (it was Components) is what a boss or elite leaves, set per source in `lootConfig.trophies`:
+  - **a relic** of the source's tier: tier bosses, treasure spots, fishing docks. It rolls on top of the Relics column, so a tier boss now gives a relic about 30% of the time (it was 7%);
+  - **2–3 monster parts** of the enemies' family, the elites' first: monster lair, beast den, long quests;
+  - **an elemental stone** of the source's element: elemental rifts and sanctums.
+- Components are removed: their keyword affixes went with them (families do those jobs now), the black market sells Rare trinkets only, salvage gives no component back, and held components and component affixes were converted by the save migration.
 
 ### Relics
 - A relic is a one-off item in the inventory. Restoring it at the forge costs its type's recipe at its tier ×1.5 (plus gems, see valuables) and turns it into the finished item: Legendary, with 3 affixes and its fixed effect as the unique (`doc/design/gear/`). It teaches no blueprint and never shows in the craftable list; two relics make two items.

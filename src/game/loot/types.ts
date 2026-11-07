@@ -9,7 +9,7 @@ export const LOOT_CATEGORIES = [
   'blueprints',
   'gear',
   'trinkets',
-  'components',
+  'trophies',
   'relics',
   'monsterParts',
   'valuables',
@@ -77,7 +77,7 @@ export type LootModifier =
  */
 export type RolledGear = { uid: ''; itemId: string; rarity: Rarity };
 
-/** What a roll gives. Shards, monster parts and components go in `materials`; trinkets in `gear`. */
+/** What a roll gives. Shards, stones and monster parts go in `materials`; trinkets in `gear`. */
 export type Loot = {
   gold: number;
   xp: number;
@@ -91,7 +91,7 @@ export type Loot = {
   manuals: ManualRarity[];
   valuables: { valuableId: string; tier: number; amount: number }[];
   relics: string[];
-  /** Every category that rolled a drop, even when its generator gave nothing (a tier boss's component without its boss). */
+  /** Every category that rolled a drop. */
   dropped: LootCategory[];
   /** The work-tool scavenge merged into `materials`, kept apart so reports can tell it from rolled loot. */
   scavenged?: MaterialStack[];

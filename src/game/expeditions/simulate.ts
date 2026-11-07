@@ -502,13 +502,6 @@ export function prepareSimulation(
   const reduction: PenaltyReduction = penaltyReduction(classIds);
   const threatCuts: Partial<Record<ThreatId, number>> =
     meal?.kind === 'penaltyCut' ? Object.fromEntries(meal.threats.map((id) => [id, meal.multiplier])) : {};
-  // A Steady affix cuts its threat's penalties for the party, at the best value worn.
-  for (const [id, value] of party.flatMap((m) => Object.entries(m.affixes ?? {}))) {
-    const effect = affixById[id]?.effect;
-    if (effect?.kind !== 'steady') continue;
-    const best = party.reduce((most, m) => Math.max(most, m.affixes?.[id] ?? 0), value);
-    threatCuts[effect.threat] = (meal?.kind === 'penaltyCut' && meal.threats.includes(effect.threat) ? meal.multiplier : 1) * (1 - best / 100);
-  }
   const withCuts: PenaltyReduction = Object.keys(threatCuts).length > 0 ? { threats: threatCuts } : {};
   const reduce: PenaltyReduction = {
     ...withCuts,

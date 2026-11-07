@@ -60,7 +60,7 @@ describe('salvage dialog', () => {
   it('warns about restored relics and pieces with affixes', () => {
     const save = createInitialSave();
     expect(salvageDialog(save, piece('sword1', 'common', { relicId: 'poachersLongbow' })).warnings).toEqual(['relic']);
-    expect(salvageDialog(save, piece('mail2', 'uncommon', { affixes: [{ id: 'fleet', value: 3 }] })).warnings).toEqual(['affixes']);
+    expect(salvageDialog(save, piece('mail2', 'uncommon', { affixes: [{ id: 'light', value: 3 }] })).warnings).toEqual(['affixes']);
   });
 
   it('gives gold instead of materials for a trinket without a recipe', () => {
@@ -70,37 +70,16 @@ describe('salvage dialog', () => {
   });
 
   it('can combine several warnings on one piece', () => {
-    const affixes = [{ id: 'cleaving', value: 0 }, { id: 'infusedWater', value: 0 }];
+    const affixes = [{ id: 'hunter', value: 20 }, { id: 'infusedWater', value: 0 }];
     const dialog = salvageDialog(createInitialSave(), piece('sword4', 'rare', { affixes }));
     expect(dialog.warnings).toEqual(['rareOrBetter', 'affixes']);
   });
-
-  it('shows the component chance a keyword affix carries', () => {
-    expect(salvageDialog(createInitialSave(), piece('sword1', 'uncommon', { affixes: [{ id: 'cleaving', value: 0 }] }))).toMatchObject({
-      componentChance: { componentId: 'dragonClaw', chance: 0.5 },
-    });
-    expect(salvageDialog(createInitialSave(), piece('sword1'))).not.toHaveProperty('componentChance');
-  });
 });
 
-describe('salvage component return', () => {
-  it('returns the component on a seed that passes the chance', () => {
-    const save: SaveData = { ...createInitialSave(), gear: [piece('sword1', 'uncommon', { affixes: [{ id: 'cleaving', value: 0 }] })] };
-    const salvaged = salvage(save, 'g1');
-    expect(salvaged.materials.dragonClaw).toBe(1);
-  });
-
-  it('returns nothing on a seed that fails the chance', () => {
-    const gear: GearInstance = { ...piece('sword1', 'uncommon', { affixes: [{ id: 'cleaving', value: 0 }] }), uid: 'g2' };
-    const save: SaveData = { ...createInitialSave(), gear: [gear] };
-    const salvaged = salvage(save, 'g2');
-    expect(salvaged.materials).not.toHaveProperty('dragonClaw');
-  });
-
+describe('salvage returns', () => {
   it('never returns a monster part', () => {
     const save: SaveData = { ...createInitialSave(), gear: [piece('sword1', 'uncommon', { affixes: [{ id: 'hunter', value: 20 }] })] };
     const salvaged = salvage(save, 'g1');
     expect(salvaged.materials).not.toHaveProperty('fangOrHorn');
-    expect(salvageDialog(save, save.gear[0])).not.toHaveProperty('componentChance');
   });
 });

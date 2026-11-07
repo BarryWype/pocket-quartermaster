@@ -1,5 +1,5 @@
 // The gear rework's shared rules (doc/design/gear/README.md): rarity replaces
-// quality, affixes replace component effects, stats roll on the forge's dice.
+// quality, affixes carry named effects, stats roll on the forge's dice.
 
 export const RARITIES = ['common', 'uncommon', 'rare', 'legendary'] as const;
 export type Rarity = (typeof RARITIES)[number];
@@ -19,8 +19,6 @@ export const gearRules = {
   /** Added to the dice total (clamped to the max) by rarity. */
   rarityShift: { common: 0, uncommon: 0, rare: 1, legendary: 2 } satisfies Record<Rarity, number>,
   affixCount: { common: 0, uncommon: 1, rare: 2, legendary: 3 } satisfies Record<Rarity, number>,
-  /** Relative weight of a keyword (component) affix in a random roll; other affixes weigh 1. */
-  keywordAffixWeight: 0.15,
   /** Reroll: the piece's tier material (tierMaterials) and gold, both × growth^rerolls. */
   reroll: { material: 3, goldPerTier: 25, growth: 1.5 },
   /** Rarity colours (the old quality colours). */

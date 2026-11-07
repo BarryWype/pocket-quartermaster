@@ -63,7 +63,6 @@ import { lootConfig } from '@/content/loot/config';
 import { secretRules, type PlaceTipSource } from '@/content/secrets';
 import { objectives, type QuestBand, type QuestObjective } from '@/content/quests';
 import { lootMatrix } from '@/content/loot/matrix';
-import { components } from '@/content/loot/components';
 import { charms } from '@/content/loot/charms';
 import { monsterParts } from '@/content/loot/monsterParts';
 import { relics } from '@/content/loot/relics';
@@ -341,9 +340,6 @@ function LootDebug() {
         ))}
         {charms.map((charm) => (
           <Button key={charm.id} emoji={charm.emoji} title="+" onPress={() => grant({ consumables: [{ itemId: charm.id, amount: 1 }] })} />
-        ))}
-        {components.map((component) => (
-          <Button key={component.id} title={component.emoji} onPress={() => grant({ materials: [{ materialId: component.id, amount: 1 }] })} />
         ))}
       </View>
       <View style={styles.row}>

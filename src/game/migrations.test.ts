@@ -394,7 +394,8 @@ describe("save migrations", () => {
 
     it("turns components, infusions and Luck into affixes", () => {
       const next = migrateSave(v37(), 37, 0);
-      expect(byUid(next, "g4").affixes.map((a) => a.id)).toContain("cleaving");
+      // Component affixes are gone: the dragon claw's Cleaving became the closest part affix.
+      expect(byUid(next, "g4").affixes.map((a) => a.id)).toContain("bloodthirsty");
       expect(byUid(next, "g5").affixes.map((a) => a.id)).toEqual(
         expect.arrayContaining(["infusedFire", "lucky"]),
       );

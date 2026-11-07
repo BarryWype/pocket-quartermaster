@@ -1,5 +1,5 @@
 import { items } from '@/content/items';
-import { componentById, monsterPartById, relicById, valuableById } from '@/content/lookup';
+import { monsterPartById, relicById, valuableById } from '@/content/lookup';
 import { lootConfig } from '@/content/loot/config';
 import type { Purpose } from '@/content/loot/purposes';
 import { PURPOSES } from '@/content/loot/purposes';
@@ -14,7 +14,7 @@ import type { SaveData } from '@/game/save';
 import { valuablePrice } from './catalogue';
 
 export type BaseItemRef =
-  | { kind: 'material'; id: string } // materials, shards, stones, monster parts, components
+  | { kind: 'material'; id: string } // materials, shards, stones, monster parts
   | { kind: 'valuable'; id: string; tier?: number }
   | { kind: 'relic'; id: string }
   | { kind: 'weakness'; id: string } // boss weakness items (items with `weakness`)
@@ -42,10 +42,9 @@ export function ingredientIds(recipeList: RecipeDef[] = recipes): Set<string> {
 function isIngredient(id: string, ingredients: Set<string>): boolean {
   return (
     ingredients.has(id) ||
-    // Parts and gems with a listed use, and every component (forged into an item).
+    // Parts and gems with a listed use.
     !!monsterPartById[id]?.uses ||
-    !!valuableById[id]?.uses ||
-    !!componentById[id]
+    !!valuableById[id]?.uses
   );
 }
 

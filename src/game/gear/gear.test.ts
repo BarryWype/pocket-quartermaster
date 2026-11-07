@@ -3,7 +3,7 @@ import { gearProfiles } from '@/content/equipment';
 import { gearRules, RARITIES } from '@/content/gear';
 import { trinketId } from '@/content/trinkets';
 
-import { ingredientAffixId } from '../forging/components';
+import { ingredientAffixId } from '../forging/ingredients';
 import { stoneAffixId } from '../crafting/infusion';
 import { createRng } from '../generation/rng';
 import type { GearType } from '../types';
@@ -16,9 +16,7 @@ const slotOf = (id: string) => affixById[id].slot;
 describe('affix pools', () => {
   it('gives weapons weapon and any-slot affixes, never stone affixes', () => {
     const pool = affixPool({ itemId: 'sword1' });
-    expect(pool.every((a) => a.slot === 'weapon' || a.slot === 'any' || (typeof a.slot === 'object' && a.slot.types.includes('sword')))).toBe(true);
-    expect(pool.some((a) => a.id === 'cleaving')).toBe(true);
-    expect(pool.some((a) => a.id === 'staggering')).toBe(false);
+    expect(pool.every((a) => a.slot === 'weapon' || a.slot === 'any')).toBe(true);
     expect(pool.some((a) => a.source.kind === 'element')).toBe(false);
   });
 
@@ -84,7 +82,7 @@ describe('affix rolls', () => {
     expect(Math.max(...values)).toBeLessThanOrEqual(30);
     const middle = values.filter((v) => v >= 20 && v <= 25).length;
     expect(middle / values.length).toBeGreaterThan(0.4);
-    expect(affixValue(createRng('x'), affixById.cleaving)).toBe(0);
+    expect(affixValue(createRng('x'), affixById.infusedFire)).toBe(0);
   });
 
   it('never repeats an affix on one piece', () => {

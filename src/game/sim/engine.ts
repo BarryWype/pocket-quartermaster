@@ -3,7 +3,6 @@ import { rosterRules } from '@/content/roster';
 import { guildTracks } from '@/content/guild';
 import { REVEAL_KINDS } from '@/content/reveal';
 import { dungeonById, itemById, recipeById } from '@/content/lookup';
-import { components } from '@/content/loot/components';
 import { tutorialRules } from '@/content/tutorial';
 
 import { craft } from '../crafting/crafting';
@@ -334,9 +333,8 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, firstSession: b
   markCoreGear(sim);
 }
 
-/** Milestones for what a session ends with: a component, a relic, a mysterious key, a secret place tip. */
+/** Milestones for what a session ends with: a relic, a mysterious key, a secret place tip. */
 function markHoldings(sim: Sim) {
-  if (components.some((c) => (sim.save.materials[c.id] ?? 0) > 0)) mark(sim, 'componentFound');
   if (sim.save.relics.length) mark(sim, 'relicFound');
   if (hasKey(sim.save)) mark(sim, 'firstKey');
   if (sim.save.secretTips.length) mark(sim, 'firstTip');

@@ -16,14 +16,13 @@ export const frTipTexts: typeof tipTexts = {
   sanctums: 'Sanctuaires : des autels élémentaires. Dépensez un Sceau pour défier le gardien et gagner des éclats.',
   secrets: 'Un tuyau a marqué un lieu secret. Il vous faut une clé mystérieuse pour entrer.',
   charms: 'Les charmes vont dans l’emplacement consommable et augmentent ce qu’une expédition rapporte.',
-  components: 'Composants : forgez-en un dans un objet pour lui ajouter son effet.',
   relics: 'Reliques : restaurez-en une à la forge pour obtenir un objet à effet fixe.',
   trinkets: 'Bibelots : de l’équipement introuvable en boutique, aux statistiques rares comme Chance et Critique.',
   valuables: 'Objets de valeur : vendez-les au marché. Les collectionneurs en paient certains plus cher.',
   keyFragments: 'Fragments de clé : quatre forment une clé mystérieuse, qui ouvre les lieux secrets.',
   affixes: "Affixes : des effets nommés portés par une pièce d'équipement, affichés sous ses statistiques. Une pièce Peu commune en a un, Rare deux, Légendaire trois.",
   ingredients:
-    'Ingrédients : parties de monstres et composants. Forger un plan avec l’un d’eux rend la pièce Inhabituelle et ajoute son affixe.',
+    'Ingrédients : parties de monstres. Forger un plan avec l’une d’elles rend la pièce Inhabituelle et ajoute son affixe.',
   stones: "Les pierres élémentaires donnent leur élément à une pièce — Infusé sur les armes, Protection sur les armures. Appliquez-les à la page Retouche de la forge.",
   reroll:
     "Une pièce Inhabituelle ou meilleure peut relancer tous ses affixes à la page Retouche de la forge, contre des matériaux et de l'or.",

@@ -1,5 +1,4 @@
 import { heroClasses } from '@/content/heroes';
-import { components } from '@/content/loot/components';
 import { secretRules } from '@/content/secrets';
 import { shopRules } from '@/content/shops';
 import { trinkets } from '@/content/trinkets';
@@ -131,25 +130,13 @@ describe('the black market goods', () => {
   const tip = marketTipOf();
   const place = placeOf(tip);
 
-  it('sells components without a boss id, and only one of each', () => {
-    const lines = blackMarketGoods(saveWith(tip), place, ['components']);
-    expect(lines.length).toBeGreaterThanOrEqual(secretRules.blackMarket.lines[0]);
-    const noBoss = components.filter((c) => !c.bossId);
-    for (const line of lines) {
-      expect(line.kind).toBe('component');
-      expect(noBoss.some((c) => c.id === line.id)).toBe(true);
-      expect(line.price).toBe(Math.round(noBoss.find((c) => c.id === line.id)!.sellPrice * secretRules.blackMarket.markup));
-    }
-    expect(new Set(lines.map((l) => l.id)).size).toBe(lines.length);
-  });
-
   it('sells rare trinkets of the player’s tier, never the ring of fortune', () => {
-    const lines = blackMarketGoods(saveWith(tip), place, ['trinkets']);
+    const lines = blackMarketGoods(saveWith(tip), place);
+    expect(lines.length).toBeGreaterThanOrEqual(secretRules.blackMarket.lines[0]);
     for (const line of lines) {
-      expect(line.kind).toBe('gear');
       expect(trinkets.some((t) => t.id === line.id)).toBe(true);
-      expect(line.gear?.rarity).toBe('rare');
-      expect(line.gear?.affixes).toHaveLength(2);
+      expect(line.gear.rarity).toBe('rare');
+      expect(line.gear.affixes).toHaveLength(2);
       expect(line.id).not.toContain('ringOfFortune');
       expect(line.price).toBe(
         Math.round(shopRules.gearPrice[0] * shopRules.rarityPrice.rare * secretRules.blackMarket.markup),
@@ -171,11 +158,7 @@ describe('the black market goods', () => {
     expect(marketBuyProblem(next, place, line.key, anchor, now)).toBe('soldOut');
     expect(marketBuyProblem({ ...next, gold: 0 }, place, blackMarketGoods(next, place).find((l) => l.key !== line.key)!.key, anchor, now)).toBe('gold');
 
-    if (line.kind === 'component') {
-      expect(next.materials[line.id]).toBe(1);
-    } else {
-      expect(next.gear).toEqual([{ ...line.gear!, uid: 'g1' }]);
-      expect(next.nextUid).toBe(2);
-    }
+    expect(next.gear).toEqual([{ ...line.gear, uid: 'g1' }]);
+    expect(next.nextUid).toBe(2);
   });
 });

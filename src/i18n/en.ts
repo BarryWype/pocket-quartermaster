@@ -269,7 +269,6 @@ export const en = {
     },
   },
   inventory: {
-    componentAbout: 'Fits {fits} · adds {adds}',
     relicAbout: 'Tier {tier} {type} · {effect}',
     salvageTitle: 'Salvage {item}?',
     salvageBody: 'It is destroyed and you get back:',
@@ -280,7 +279,6 @@ export const en = {
       relic: 'A restored relic',
       affixes: 'Its affixes are lost',
     },
-    salvageComponent: '{chance} chance to get the {component} back',
     expeditionFinds: 'Expedition finds',
     sigils: 'Sanctum Sigils',
     sigilsHint: 'Tap a Sanctum on the map to use one.',
@@ -409,8 +407,6 @@ export const en = {
       firstRoundCrit: '+{value} crit in the first round of each fight',
       infused: 'Hits carry {element}',
       warding: '−{value} damage from {element} attacks',
-      keyword: 'Grants {keyword}',
-      steady: 'A missed {threat} threat costs {value} less',
       forage: '{value} chance of an extra herb or ore when gathering',
       gatherRadius: '+{value} gather radius',
       pocketYield: '+{value} Pocket mode yield',
@@ -576,7 +572,7 @@ export const en = {
     pages: { quests: 'Quests', chests: 'Step chests' },
     categories: {
       gold: 'Gold', xp: 'XP', materials: 'Materials', shards: 'Shards', blueprints: 'Blueprints', gear: 'Gear',
-      trinkets: 'Trinkets', components: 'Components', relics: 'Relics', monsterParts: 'Monster parts', valuables: 'Valuables',
+      trinkets: 'Trinkets', trophies: 'Trophies', relics: 'Relics', monsterParts: 'Monster parts', valuables: 'Valuables',
       consumables: 'Consumables', treasureMaps: 'Treasure maps', manuals: 'Manuals', keyFragments: 'Key fragments',
     },
     objective: {
@@ -905,7 +901,6 @@ export const en = {
       sanctums: 'Sanctums',
       secrets: 'Secrets',
       charms: 'Charms',
-      components: 'Components',
       relics: 'Relics',
       trinkets: 'Trinkets',
       valuables: 'Valuables',

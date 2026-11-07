@@ -1,4 +1,6 @@
 import { gearId, gearRecipes } from '@/content/equipment';
+import { lootConfig } from '@/content/loot/config';
+import { monsterParts } from '@/content/loot/monsterParts';
 import type { GearType } from '@/game/types';
 
 import { createRng } from '../generation/rng';
@@ -68,17 +70,24 @@ describe('blueprints', () => {
     expect(Math.abs(weightedPick(5) - 3 / 4)).toBeLessThan(0.04);
   });
 
-  it('hands over to the components generator when the tier is complete', () => {
+  it('gives monster parts of the enemies when the tier is complete', () => {
     const tier = 2;
     const known = forgeableAt(tier).map((type) => gearId(type, tier));
-    const original = generators.components;
-    generators.components = jest.fn();
-    try {
-      const loot = blueprint(request('component', tier, { knownRecipes: known }));
-      expect(generators.components).toHaveBeenCalledWith(expect.anything(), loot, true);
-      expect(loot.recipeIds).toEqual([]);
-    } finally {
-      generators.components = original;
-    }
+    const loot = blueprint({ ...request('overflow', tier, { knownRecipes: known }), enemies: ['giantRat', 'giantRat'] });
+    expect(loot.recipeIds).toEqual([]);
+    expect(loot.gold).toBe(0);
+    expect(loot.materials).toHaveLength(1);
+    expect(monsterParts.some((part) => part.id === loot.materials[0].materialId)).toBe(true);
+    expect(loot.materials[0].amount).toBeGreaterThanOrEqual(lootConfig.blueprints.overflowParts[0]);
+    expect(loot.materials[0].amount).toBeLessThanOrEqual(lootConfig.blueprints.overflowParts[1]);
+  });
+
+  it('gives gold on a complete tier when the source had no enemies', () => {
+    const tier = 3;
+    const known = forgeableAt(tier).map((type) => gearId(type, tier));
+    const loot = blueprint(request('overflow-gold', tier, { knownRecipes: known }));
+    expect(loot.recipeIds).toEqual([]);
+    expect(loot.materials).toEqual([]);
+    expect(loot.gold).toBe(Math.round(lootConfig.blueprints.overflowGold * lootConfig.goldByTier[tier - 1]));
   });
 });

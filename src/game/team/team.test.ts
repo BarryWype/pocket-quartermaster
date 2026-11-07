@@ -239,7 +239,7 @@ describe('statSources', () => {
     expect(statSources(save, hero(save, 'bram'), 'power').levels).toBe(0);
   });
 
-  // Components only add flat Speed or Evasion, and only the traits multiply HP,
+  // Affixes only add flat Speed or Evasion, and only the traits multiply HP,
   // so Crit is untouched with nothing equipped.
   it('has no gear contribution for a stat nothing else touches, with nothing equipped', () => {
     const save = createInitialSave();

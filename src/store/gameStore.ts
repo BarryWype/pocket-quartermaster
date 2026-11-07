@@ -11,7 +11,7 @@ import { materials } from '@/content/materials';
 import { craft, craftMany, forgetRecipe, forgeResult, learnAllRecipes, learnTier, unlockRecipe, type ForgeResult } from '@/game/crafting/crafting';
 import { unlockAllPartRecipes } from '@/game/crafting/partRecipes';
 import { applyStone } from '@/game/crafting/infusion';
-import { forgeWithIngredient } from '@/game/forging/components';
+import { forgeWithIngredient } from '@/game/forging/ingredients';
 import { reroll as rerollPiece } from '@/game/forging/reroll';
 import { restoreRelic } from '@/game/forging/relics';
 import { salvage } from '@/game/forging/salvage';

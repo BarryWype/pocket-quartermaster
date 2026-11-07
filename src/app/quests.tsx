@@ -43,7 +43,7 @@ const CATEGORY_EMOJI: Record<LootCategory, string> = {
   blueprints: '📜',
   gear: '⚔️',
   trinkets: '💍',
-  components: '🧩',
+  trophies: '🏆',
   relics: '🏺',
   monsterParts: '🦴',
   valuables: '💎',

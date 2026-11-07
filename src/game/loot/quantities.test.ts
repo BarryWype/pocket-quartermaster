@@ -1,6 +1,5 @@
 import { difficultyRules } from '@/content/difficulty';
 import { lootConfig } from '@/content/loot/config';
-import { components } from '@/content/loot/components';
 import { monsterParts } from '@/content/loot/monsterParts';
 import { ELEMENTS, shardId } from '@/game/elements';
 
@@ -62,9 +61,8 @@ describe('loot quantities', () => {
   });
 
   it('gives 2-4 shards of one element', () => {
-    const componentIds = new Set(components.map((c) => c.id));
     for (const loot of forced('sanctum', 'shards')) {
-      const stacks = loot.materials.filter((stack) => !componentIds.has(stack.materialId) && !stack.materialId.endsWith('Stone'));
+      const stacks = loot.materials.filter((stack) => !stack.materialId.endsWith('Stone'));
       expect(stacks.length).toBe(1);
       const [stack] = stacks;
       expect(Object.values(ELEMENTS).map((element) => shardId(element))).toContain(stack.materialId);

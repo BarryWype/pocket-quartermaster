@@ -26,6 +26,6 @@ Fight event,Elemental rift,Threat: Element. Loot: shards,"Until won, max 24 h",
 Fight event,Abandoned caravan,"Threat: varies. Loot: materials, consumables, a blueprint","Until won, max 24 h",
 Fight event,Wanted outlaw,"Threat: Brute. Loot: gold bounty, sometimes a rare item","Until won, max 24 h",
 Secret,Hidden den,"One random rare class, expensive. Needs a mysterious key (used up). Tips: library, traveller",Hidden; a tip places a marker until it resets,Travellers stop offering rare classes once it exists
-Secret,Black market,"One random rare class, expensive; also 2-3 components or trinkets for gold. Needs a mysterious key (used up). Tips: thieves' guild heist, bandit camp",Hidden; a tip places a marker until it resets,
+Secret,Black market,"One random rare class, expensive; also 2-3 Rare trinkets for gold. Needs a mysterious key (used up). Tips: thieves' guild heist, bandit camp",Hidden; a tip places a marker until it resets,
 Secret,Underwater dungeon,"Secret dungeon near water, Underwater threat, the player's tier. Needs a mysterious key (used up). Reward: a Rare item (Legendary ~5%) or a relic. Tips: fishing dock, monster lair",Hidden; a tip places a marker until it resets,
 Secret,Sealed vault,"A dungeon opportunity, no tip: shown on some dungeon cards; spend a mysterious key at launch, and a win opens it. Reward: a Rare item (Legendary ~5%) or a relic",With its dungeon,

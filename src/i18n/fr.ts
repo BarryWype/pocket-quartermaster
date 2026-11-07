@@ -274,7 +274,6 @@ export const fr: Dictionary = {
     },
   },
   inventory: {
-    componentAbout: 'Pour {fits} · ajoute {adds}',
     relicAbout: '{type}, palier {tier} · {effect}',
     salvageTitle: 'Recycler {item} ?',
     salvageBody: 'L’objet est détruit et vous récupérez :',
@@ -285,7 +284,6 @@ export const fr: Dictionary = {
       relic: 'Une relique restaurée',
       affixes: 'Ses affixes sont perdus',
     },
-    salvageComponent: '{chance} de chances de récupérer : {component}',
     expeditionFinds: 'Trouvailles d’expédition',
     sigils: 'Sceaux de Sanctuaire',
     sigilsHint: 'Touchez un Sanctuaire sur la carte pour en utiliser un.',
@@ -415,8 +413,6 @@ export const fr: Dictionary = {
       firstRoundCrit: '+{value} de critique au premier tour de chaque combat',
       infused: 'Les coups infligent des dégâts de {element}',
       warding: '−{value} de dégâts des attaques {element}',
-      keyword: 'Accorde {keyword}',
-      steady: 'Une menace {threat} manquée coûte {value} de moins',
       forage: '{value} de chances d’une ressource de plus à la cueillette',
       gatherRadius: '+{value} de rayon de cueillette',
       pocketYield: '+{value} de rendement en mode Poche',
@@ -584,7 +580,7 @@ export const fr: Dictionary = {
     pages: { quests: 'Quêtes', chests: 'Coffres de pas' },
     categories: {
       gold: 'Or', xp: 'XP', materials: 'Matériaux', shards: 'Éclats', blueprints: 'Plans', gear: 'Équipement',
-      trinkets: 'Bibelots', components: 'Composants', relics: 'Reliques', monsterParts: 'Parties de monstre', valuables: 'Objets de valeur',
+      trinkets: 'Bibelots', trophies: 'Trophées', relics: 'Reliques', monsterParts: 'Parties de monstre', valuables: 'Objets de valeur',
       consumables: 'Consommables', treasureMaps: 'Cartes au trésor', manuals: 'Manuels', keyFragments: 'Fragments de clé',
     },
     objective: {
@@ -913,7 +909,6 @@ export const fr: Dictionary = {
       sanctums: 'Sanctuaires',
       secrets: 'Secrets',
       charms: 'Amulettes',
-      components: 'Composants',
       relics: 'Reliques',
       trinkets: 'Bibelots',
       valuables: 'Objets de valeur',

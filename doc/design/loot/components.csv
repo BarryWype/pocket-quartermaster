@@ -1,14 +1,14 @@
-Component,From,Fits,Adds
-Captain's spurs,Bandit captain (T1 boss),Armour,+Speed
-Ogre knucklebone,Ogre chieftain (T2 boss),"Mace, warhammer, knuckles",Stagger
-Phylactery shard,Lich of the deep (T3 boss),"Focus, wand, staff, tome",Channel
-Giant's heartstone,Giant king (T4 boss),"Shield, plate",Guard
-Dragon claw,Elder dragon (T5 boss),"Sword, axe, staff",Cleave
-Drake fang,"Elite beasts, monster lair","Spear, dagger, bow, warhammer",Pierce
-Harpy flight feather,"Harpies, monster lair","Bow, spear, quiver",Reach
-Clockwork escapement,Elite constructs,"Off-hand blade, buckler, sword",Parry
-Golem core,Elite golems,"Armour, shield, spear",Brace
-Troll hide,Elite trolls,Armour,Mend
-Orc war-drum skin,Elite orcs,"Lute, censer, tome",Inspire
-Spider silk,Elite spiders,"Leather, robes",+Evasion
-Elemental heart (one per element),"Elemental rift, Sanctum guardians",Any weapon,Permanent infusion of that element
+Component,From,Fits,Adds,Status
+Captain's spurs,Bandit captain (T1 boss),Armour,+Speed,"Removed (families rework); a held one became 2 tattered insignia"
+Ogre knucklebone,Ogre chieftain (T2 boss),"Mace, warhammer, knuckles",Stagger,"Removed (families rework); a held one became 2 brute blood"
+Phylactery shard,Lich of the deep (T3 boss),"Focus, wand, staff, tome",Channel,"Removed (families rework); a held one became 2 grave dust"
+Giant's heartstone,Giant king (T4 boss),"Shield, plate",Guard,"Removed (families rework); a held one became 2 brute blood"
+Dragon claw,Elder dragon (T5 boss),"Sword, axe, staff",Cleave,"Removed (families rework); a held one became 2 scales"
+Drake fang,"Elite beasts, monster lair","Spear, dagger, bow, warhammer",Pierce,"Removed (families rework); a held one became 2 fangs or horns"
+Harpy flight feather,"Harpies, monster lair","Bow, spear, quiver",Reach,"Removed (families rework); a held one became 2 feathers"
+Clockwork escapement,Elite constructs,"Off-hand blade, buckler, sword",Parry,"Removed (families rework); a held one became 2 cogs"
+Golem core,Elite golems,"Armour, shield, spear",Brace,"Removed (families rework); a held one became 2 cogs"
+Troll hide,Elite trolls,Armour,Mend,"Removed (families rework); a held one became 2 brute blood"
+Orc war-drum skin,Elite orcs,"Lute, censer, tome",Inspire,"Removed (families rework); a held one became 2 goblin ears"
+Spider silk,Elite spiders,"Leather, robes",+Evasion,"Removed (families rework); a held one became 2 venom sacs"
+Elemental heart (one per element),"Elemental rift, Sanctum guardians",Any weapon,Permanent infusion of that element,Merged into elemental stones (gear rework)

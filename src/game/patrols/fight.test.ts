@@ -1,5 +1,4 @@
 import { patrolFights, patrolRules } from '@/content/patrols';
-import { components } from '@/content/loot/components';
 import { monsterParts } from '@/content/loot/monsterParts';
 
 import { offsetPosition } from '../generation/geo';
@@ -130,10 +129,10 @@ describe('patrol rewards', () => {
   });
 
   it('gives herds meat and hide', () => {
-    // Components and monster parts land in `materials` too; the herd's themed drops are these.
-    const componentIds = new Set([...components.map((c) => c.id), ...monsterParts.map((p) => p.id)]);
+    // Monster parts land in `materials` too; the herd's themed drops are these.
+    const partIds = new Set(monsterParts.map((p) => p.id));
     const materials = Array.from({ length: 200 }, (_, i) =>
-      rewards(context, asKind(goblins, 'herd'), 1, false, `h${i}`).materials.filter((m) => !componentIds.has(m.materialId)).map((m) => m.materialId),
+      rewards(context, asKind(goblins, 'herd'), 1, false, `h${i}`).materials.filter((m) => !partIds.has(m.materialId)).map((m) => m.materialId),
     ).flat();
     expect(new Set(materials)).toEqual(new Set(['meat', 'hide', 'bone']));
   });

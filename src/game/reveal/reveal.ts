@@ -1,4 +1,4 @@
-import { componentById, itemById, monsterPartById } from '@/content/lookup';
+import { itemById, monsterPartById } from '@/content/lookup';
 import { offMapRevealKinds, placeRevealKinds, revealRules, tipTexts, type ItemTipKind, type RevealKind, type TipId } from '@/content/reveal';
 import type { PlaceKind } from '@/content/places';
 import { frTipTexts } from '@/content/fr/reveal';
@@ -51,9 +51,6 @@ export function heldItemKinds(save: SaveData): ItemTipKind[] {
   ) {
     held.push('charms');
   }
-  if (Object.entries(save.materials).some(([id, count]) => count > 0 && componentById[id] !== undefined)) {
-    held.push('components');
-  }
   if (save.relics.length > 0) held.push('relics');
   const isTrinket = (itemId: string) => itemById[itemId]?.slot === 'trinket';
   if (save.gear.some((gear) => isTrinket(gear.itemId))) held.push('trinkets');
@@ -77,7 +74,7 @@ function heldGearKinds(save: SaveData): TipId[] {
   const held: TipId[] = [];
   if (save.gear.some((gear) => gear.affixes.length > 0)) held.push('affixes');
   if (
-    Object.entries(save.materials).some(([id, count]) => count > 0 && (monsterPartById[id] !== undefined || componentById[id] !== undefined))
+    Object.entries(save.materials).some(([id, count]) => count > 0 && monsterPartById[id] !== undefined)
   ) {
     held.push('ingredients');
   }

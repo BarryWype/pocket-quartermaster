@@ -4,7 +4,7 @@ import { recipes } from '@/content/recipes';
 
 import { forgedItem, isKnown } from '../../crafting/crafting';
 import { pieceDamageStat } from '../../equipment/damageStat';
-import { canForgeWithIngredient, forgeWithIngredient, ingredientAffixId, ingredients } from '../../forging/components';
+import { canForgeWithIngredient, forgeWithIngredient, ingredientAffixId, ingredients } from '../../forging/ingredients';
 import { canRestore, restoreRelic } from '../../forging/relics';
 import type { SaveData } from '../../save';
 import { affinityOf, equip } from '../../team/team';

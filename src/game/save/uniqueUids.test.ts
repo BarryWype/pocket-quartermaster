@@ -5,7 +5,7 @@ import { trinketId } from '@/content/trinkets';
 import { useGameStore } from '@/store/gameStore';
 
 import { craft } from '../crafting/crafting';
-import { forgeWithIngredient } from '../forging/components';
+import { forgeWithIngredient } from '../forging/ingredients';
 import { relicRecipe, restoreRelic } from '../forging/relics';
 import { resolveExpedition, startExpedition } from '../expeditions/expeditions';
 import type { LatLng } from '../generation/types';
@@ -54,10 +54,10 @@ const craftSword = (save: SaveData): SaveData => {
 };
 
 /** Forges a Wooden sword with a dragon claw, topping the recipe and the claw up first. */
-const forgeSwordWithClaw = (save: SaveData): SaveData => {
-  const materials: Record<string, number> = { ...save.materials, dragonClaw: (save.materials.dragonClaw ?? 0) + 1 };
+const forgeSwordWithFang = (save: SaveData): SaveData => {
+  const materials: Record<string, number> = { ...save.materials, fangOrHorn: (save.materials.fangOrHorn ?? 0) + 1 };
   for (const { materialId, amount } of recipeById.sword1.inputs) materials[materialId] = (materials[materialId] ?? 0) + amount;
-  return forgeWithIngredient({ ...save, materials }, recipeById.sword1, 'dragonClaw');
+  return forgeWithIngredient({ ...save, materials }, recipeById.sword1, 'fangOrHorn');
 };
 
 const spawnOf = (kind: PlaceSpawn['kind'], suffix: string): PlaceSpawn => ({
@@ -92,12 +92,12 @@ const veteran = (): SaveData => {
 };
 
 describe('unique uids', () => {
-  it('crafting and forging with a component give every piece a fresh uid', () => {
+  it('crafting and forging with a monster part give every piece a fresh uid', () => {
     let save = createInitialSave();
     for (let i = 0; i < 5; i++) {
       save = craftSword(save);
       expectUniqueIds(save);
-      save = forgeSwordWithClaw(save);
+      save = forgeSwordWithFang(save);
       expectUniqueIds(save);
     }
   });
@@ -182,7 +182,7 @@ describe('unique uids', () => {
         roll: 0,
       };
       save = enterSecret({ ...save, secretTips: [...save.secretTips, tip], keyFragments: save.keyFragments + 4 }, place, POSITION, NOW);
-      const line = blackMarketGoods(save, place).find((good) => good.kind === 'gear');
+      const line = blackMarketGoods(save, place)[0];
       if (line) save = buyAtBlackMarket(save, place, line.key, POSITION, NOW);
       save = craftSword(save);
       expectUniqueIds(save);

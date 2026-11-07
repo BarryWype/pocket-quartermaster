@@ -141,9 +141,6 @@ describe('looted pieces once granted', () => {
     for (const piece of swords) expect(piece.affixes).toHaveLength(2);
     expect(ids.every((id) => affixById[id].slot !== 'armourOffhand')).toBe(true);
     expect(ids.some((id) => affixById[id].source.kind === 'loot')).toBe(true);
-    // Keyword affixes weigh gearRules.keywordAffixWeight against 1: rare.
-    const keywords = ids.filter((id) => affixById[id].family === 'keyword').length;
-    expect(keywords / ids.length).toBeLessThan(0.05);
   });
 
   it('give a Legendary one unique that fits it', () => {

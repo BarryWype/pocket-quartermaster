@@ -29,19 +29,19 @@ describe('pickIngredientForge', () => {
   it('goes on the fitting item of the right hero', () => {
     const save: SaveData = {
       ...createInitialSave(),
-      materials: { bone: 2, copper: 3, ogreKnucklebone: 1 },
+      materials: { bone: 2, copper: 3, chitin: 1 },
       knownRecipes: known(['mace1', 'mace2', 'mace3', 'knuckles1']),
     };
     expect(pickIngredientForge(save, ['bram', 'lyra', 'mira'])).toEqual({
       recipeId: 'mace3',
-      ingredientId: 'ogreKnucklebone',
+      ingredientId: 'chitin',
       heroId: 'bram',
       slot: 'weapon',
     });
   });
 
-  it('returns null for a component that fits nothing known', () => {
-    const save: SaveData = { ...createInitialSave(), materials: { wood: 3, giantsHeartstone: 1 } };
+  it('returns null when nothing held is an ingredient', () => {
+    const save: SaveData = { ...createInitialSave(), materials: { wood: 3, fireStone: 1 } };
     expect(pickIngredientForge(save, ['bram', 'lyra', 'mira'])).toBeNull();
   });
 

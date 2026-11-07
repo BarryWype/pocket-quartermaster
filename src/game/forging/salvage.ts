@@ -1,4 +1,3 @@
-import { affixes } from '@/content/affixes';
 import { salvageRules } from '@/content/forging';
 import type { Rarity } from '@/content/gear';
 import { itemById } from '@/content/lookup';
@@ -7,7 +6,6 @@ import { shopRules } from '@/content/shops';
 
 import { guildBonus } from '../guild/guild';
 import { addMaterials } from '../inventory';
-import { createRng } from '../generation/rng';
 import type { SaveData } from '../save';
 import type { GearDef, GearInstance, HeroState, MaterialStack } from '../types';
 
@@ -18,8 +16,6 @@ export type SalvageDialogContent = {
   rarity: Rarity;
   returns: { materials: MaterialStack[]; gold: number };
   warnings: SalvageWarning[];
-  /** The keyword affix's component, which may also come back, so the dialog can show its chance. */
-  componentChance?: { componentId: string; chance: number };
 };
 
 type Rules = typeof salvageRules;
@@ -79,16 +75,6 @@ export function salvageGold(gear: GearInstance): number {
   return Math.round(shopRules.gearPrice[item.tier - 1] * shopRules.rarityPrice[gear.rarity] * shopRules.gearSellShare);
 }
 
-/** The component one of the piece's keyword affixes comes from, if the catalogue names one. */
-function keywordComponent(gear: GearInstance): string | undefined {
-  for (const affix of affixes) {
-    if (affix.family === 'keyword' && affix.source.kind === 'component' && gear.affixes.some((on) => on.id === affix.id)) {
-      return affix.source.componentId;
-    }
-  }
-  return undefined;
-}
-
 /**
  * Everything the salvage confirmation dialog shows: the piece's rarity, what
  * destroying it gives back (with the Guild Hall Salvage bonus, so the numbers
@@ -96,7 +82,6 @@ function keywordComponent(gear: GearInstance): string | undefined {
  * Pure — the component translates the tags.
  */
 export function salvageDialog(save: SaveData, gear: GearInstance): SalvageDialogContent {
-  const componentId = keywordComponent(gear);
   return {
     rarity: gear.rarity,
     returns: {
@@ -109,26 +94,17 @@ export function salvageDialog(save: SaveData, gear: GearInstance): SalvageDialog
       gear.relicId ? 'relic' : null,
       gear.affixes.length > 0 ? 'affixes' : null,
     ].filter((warning): warning is SalvageWarning => warning !== null),
-    ...(componentId ? { componentChance: { componentId, chance: salvageRules.componentReturnChance } } : {}),
   };
 }
 
-/** Destroys a gear piece and gives back `salvageReturns` and `salvageGold`, plus its keyword component on a seeded chance roll. */
+/** Destroys a gear piece and gives back `salvageReturns` and `salvageGold`. */
 export function salvage(save: SaveData, gearUid: string): SaveData {
   const gear = save.gear.find((g) => g.uid === gearUid);
   if (!gear || !canSalvage(save, gearUid)) throw new Error(`Cannot salvage ${gearUid}`);
-  const componentId = keywordComponent(gear);
-  const component =
-    componentId && createRng(`${gear.uid}|salvage`).chance(salvageRules.componentReturnChance)
-      ? [{ materialId: componentId, amount: 1 }]
-      : [];
   return {
     ...save,
     gold: save.gold + salvageGold(gear),
-    materials: addMaterials(save.materials, [
-      ...salvageReturns(gear, salvageRules, guildBonus(save, 'salvage')),
-      ...component,
-    ]),
+    materials: addMaterials(save.materials, salvageReturns(gear, salvageRules, guildBonus(save, 'salvage'))),
     gear: save.gear.filter((g) => g.uid !== gearUid),
   };
 }

@@ -1,5 +1,5 @@
 import { gearTypeNames } from '@/content/equipment';
-import { componentById, itemById, monsterPartById, relicById, valuableById } from '@/content/lookup';
+import { itemById, monsterPartById, relicById, valuableById } from '@/content/lookup';
 import { baseItems } from '@/content/loot/baseItems';
 import { materials } from '@/content/materials';
 import type { SecretKind } from '@/content/places';
@@ -49,13 +49,6 @@ export type InventoryRow =
   | { kind: 'tool'; page: 'finds'; toolId: string }
   | { kind: 'tip'; page: 'secrets'; tip: SecretTip };
 
-/** What a component fits and what it adds to a forged piece. */
-function componentAbout(id: string): string {
-  const component = componentById[id];
-  const fits = component.fits.map((type) => tr(gearTypeNames[type].name)).join(', ');
-  return t('inventory.componentAbout', { fits, adds: tr(component.adds) });
-}
-
 /** The mysterious key and the fragments towards the next one, on the given page. */
 function keyRows(save: SaveData, page: 'finds' | 'secrets'): InventoryRow[] {
   const rows: InventoryRow[] = [];
@@ -98,7 +91,7 @@ export function inventoryRows(save: SaveData, now: number): InventoryRow[] {
         emoji: material.emoji,
         name: tr(material.name),
         count: save.materials[material.id],
-        about: monsterPartById[material.id] ? tr(monsterPartById[material.id].uses) : componentById[material.id] ? componentAbout(material.id) : undefined,
+        about: monsterPartById[material.id] ? tr(monsterPartById[material.id].uses) : undefined,
       },
     });
   }

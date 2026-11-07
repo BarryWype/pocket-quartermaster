@@ -1,10 +1,10 @@
-import { affixes, affixById } from '@/content/affixes';
+import { affixById } from '@/content/affixes';
 import { gearId, gearProfiles } from '@/content/equipment';
 import { trinketId, trinketKinds } from '@/content/trinkets';
 
 import { stoneAffixId } from '../crafting/infusion';
 import { ELEMENTS } from '../elements';
-import type { GearType, Keyword } from '../types';
+import type { GearType } from '../types';
 import { affixPool, affixSlotOf } from './affixes';
 
 const gearTypes = Object.keys(gearProfiles) as GearType[];
@@ -47,38 +47,6 @@ describe('affix coverage', () => {
     for (const gearType of ['crossbow', 'throwing', 'totem', 'runestone', 'flasks'] as GearType[]) {
       expect(affixSlotOf(gearType)).toBe('weapon');
       expect(stoneAffixId(gearType, 'fire')).toBe('infusedFire');
-    }
-  });
-
-  it('names only existing gear types in keyword affix type lists', () => {
-    for (const affix of affixes) {
-      if (affix.family === 'keyword' && typeof affix.slot === 'object') {
-        for (const gearType of affix.slot.types) expect(gearProfiles[gearType]).toBeDefined();
-      }
-    }
-  });
-
-  it('covers every natural keyword with a keyword affix on each type that has it', () => {
-    // Each entry needs a reason.
-    const exceptions: Partial<Record<Keyword, Partial<Record<GearType, string>>>> = {};
-    const keywords: Keyword[] = ['pierce', 'cleave', 'reach', 'stagger', 'guard', 'parry', 'brace', 'channel', 'inspire'];
-    const keywordAffixes = affixes.filter(
-      (affix) => affix.effect.kind === 'keyword' && typeof affix.slot === 'object',
-    );
-    for (const keyword of keywords) {
-      for (const gearType of gearTypes) {
-        if (!gearProfiles[gearType].keywords.includes(keyword)) continue;
-        if (exceptions[keyword]?.[gearType]) continue;
-        expect(
-          keywordAffixes.some(
-            (affix) =>
-              affix.effect.kind === 'keyword' &&
-              affix.effect.keyword === keyword &&
-              typeof affix.slot === 'object' &&
-              affix.slot.types.includes(gearType),
-          ),
-        ).toBe(true);
-      }
     }
   });
 });

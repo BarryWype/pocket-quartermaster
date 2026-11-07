@@ -3,7 +3,7 @@ import { recipeById } from '@/content/lookup';
 import { craft } from '../crafting/crafting';
 import { createInitialSave, type SaveData } from '../save';
 import { equip, heroStats } from '../team/team';
-import { canForgeWithIngredient, fittingIngredients, forgeWithIngredient, ingredientAffixId } from './components';
+import { canForgeWithIngredient, fittingIngredients, forgeWithIngredient, ingredientAffixId } from './ingredients';
 
 const withMaterials = (counts: Record<string, number>, extra: Partial<SaveData> = {}): SaveData => ({
   ...createInitialSave(),
@@ -19,23 +19,16 @@ describe('ingredient affixes', () => {
     expect(ingredientAffixId('fangOrHorn', 'mail')).toBe('thickHide');
     expect(ingredientAffixId('fangOrHorn', 'shield')).toBe('thickHide');
   });
-
-  it('gives a component its affix only on the gear types its slot lists', () => {
-    expect(ingredientAffixId('dragonClaw', 'sword')).toBe('cleaving');
-    expect(ingredientAffixId('dragonClaw', 'mail')).toBeUndefined();
-    expect(ingredientAffixId('captainsSpurs', 'leather')).toBe('fleet');
-    expect(ingredientAffixId('giantsHeartstone', 'shield')).toBe('guarding');
-  });
 });
 
 describe('fitting ingredients', () => {
-  it('lists held parts first, then components, both in catalogue order', () => {
-    const save = withMaterials({ chitin: 1, fangOrHorn: 3, ogreKnucklebone: 1, dragonClaw: 1, bone: 1 });
-    expect(fittingIngredients(save, recipeById.mace2)).toEqual(['fangOrHorn', 'chitin', 'ogreKnucklebone']);
+  it('lists held parts in catalogue order', () => {
+    const save = withMaterials({ chitin: 1, fangOrHorn: 3, bone: 1 });
+    expect(fittingIngredients(save, recipeById.mace2)).toEqual(['fangOrHorn', 'chitin']);
   });
 
-  it('skips an ingredient that gives the piece no affix', () => {
-    const save = withMaterials({ dragonClaw: 1, stone: 3 });
+  it('skips what is no ingredient', () => {
+    const save = withMaterials({ fireStone: 1, stone: 3 });
     expect(fittingIngredients(save, recipeById.mace2)).toEqual([]);
   });
 });
@@ -45,7 +38,6 @@ describe('forging with an ingredient', () => {
     const full = Object.fromEntries(recipeById.sword1.inputs.map((input) => [input.materialId, input.amount]));
     expect(canForgeWithIngredient(withMaterials({ ...full, fangOrHorn: 1 }), recipeById.sword1, 'fangOrHorn')).toBe(true);
     expect(canForgeWithIngredient(withMaterials(full), recipeById.sword1, 'fangOrHorn')).toBe(false);
-    expect(canForgeWithIngredient(withMaterials({ ...full, dragonClaw: 1 }), recipeById.sword1, 'dragonClaw')).toBe(true);
     const unknown = withMaterials({ stone: 10, wood: 10, fangOrHorn: 1 });
     expect(canForgeWithIngredient(unknown, recipeById.sword2, 'fangOrHorn')).toBe(false);
     expect(() => forgeWithIngredient(unknown, recipeById.sword2, 'fangOrHorn')).toThrow();
@@ -73,15 +65,15 @@ describe('forging with an ingredient', () => {
 
   it("adds a stat ingredient's affix to the wearer's stats", () => {
     const plain = craft(withMaterials({ bone: 1, hide: 5 }, { knownRecipes: known(['leather1']) }), recipeById.leather1);
-    const spurred = forgeWithIngredient(
-      withMaterials({ bone: 1, hide: 5, captainsSpurs: 1 }, { knownRecipes: known(['leather1']) }),
+    const feathered = forgeWithIngredient(
+      withMaterials({ bone: 1, hide: 5, feather: 1 }, { knownRecipes: known(['leather1']) }),
       recipeById.leather1,
-      'captainsSpurs',
+      'feather',
     );
-    const fleet = spurred.gear[0].affixes.find((affix) => affix.id === 'fleet')!;
+    const light = feathered.gear[0].affixes.find((affix) => affix.id === 'light')!;
     const heroId = plain.heroes[0].id;
     const plainSave = equip({ ...plain, gear: [{ ...plain.gear[0], roll: 8 }] }, heroId, 'armor', 'g1');
-    const spurredSave = equip({ ...spurred, gear: [{ ...spurred.gear[0], roll: 8, rarity: 'common' }] }, heroId, 'armor', 'g1');
-    expect(heroStats(spurredSave, spurredSave.heroes[0]).speed).toBe(heroStats(plainSave, plainSave.heroes[0]).speed + fleet.value);
+    const featheredSave = equip({ ...feathered, gear: [{ ...feathered.gear[0], roll: 8, rarity: 'common' }] }, heroId, 'armor', 'g1');
+    expect(heroStats(featheredSave, featheredSave.heroes[0]).evasion).toBe(heroStats(plainSave, plainSave.heroes[0]).evasion + light.value);
   });
 });

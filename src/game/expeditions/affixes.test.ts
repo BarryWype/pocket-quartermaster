@@ -121,19 +121,6 @@ describe('gear affixes', () => {
     expect(1000 - poisoned({ antivenom: 60 })).toBeCloseTo(lost * 0.4, 0);
   });
 
-  it('steady cuts its threat penalty for the party, at the best value worn', () => {
-    const poisoned = (affixesA: Record<string, number>, affixesB: Record<string, number> = {}) =>
-      simulateRun(
-        [member('a', affixesA, { maxHp: 1000, hp: 1000 }), member('b', affixesB, { maxHp: 1000, hp: 1000 })],
-        dungeon({ damage: 0, hp: 1 }),
-        'seed',
-        { rules: steady, briefing: { threats: [{ id: 'poison', level: 1 }], restriction: null, opportunity: null } },
-      ).hp.map((h) => 1000 - h.hp);
-    const [lost] = poisoned({});
-    expect(lost).toBeGreaterThan(0);
-    for (const cut of poisoned({ steadyPoison: 20 }, { steadyPoison: 30 })) expect(Math.abs(cut - lost * 0.7)).toBeLessThanOrEqual(1);
-  });
-
   it('healOnKill heals a share of max HP on every kill', () => {
     const run = (affixes: Record<string, number>) =>
       bossFight([member('a', affixes, { hp: 40 })], { hp: 30, damage: 5 });

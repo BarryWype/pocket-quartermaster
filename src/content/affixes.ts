@@ -1,17 +1,15 @@
-import type { GearType, Keyword, Tag, ThreatId } from '@/game/types';
+import type { Tag } from '@/game/types';
 import { ELEMENTS, type Element } from '@/game/elements';
 
 import { elementInfo } from '@/content/elements';
-import { threatDefs } from '@/content/threats';
-import { frElementQualifiers, frNames } from '@/content/fr/names';
+import { frElementQualifiers } from '@/content/fr/names';
 
-// The affix catalogue of doc/design/gear/affixes.csv: what a monster part, a
-// component, an elemental stone or lucky looting adds to a piece of gear.
+// The affix catalogue of doc/design/gear/affixes.csv: what a monster part, an
+// elemental stone or lucky looting adds to a piece of gear.
 
-export type AffixSlot = 'weapon' | 'armourOffhand' | 'any' | { types: GearType[] };
+export type AffixSlot = 'weapon' | 'armourOffhand' | 'any';
 export type AffixSource =
   | { kind: 'part'; partId: string }
-  | { kind: 'component'; componentId: string }
   | { kind: 'element'; element: Element }
   | { kind: 'loot' };
 export type AffixEffect =
@@ -22,7 +20,6 @@ export type AffixEffect =
   | { kind: 'magicDamageTaken' } | { kind: 'gold' } | { kind: 'xp' } | { kind: 'healOnKill' }
   | { kind: 'potionHealing' } | { kind: 'salvageValue' } | { kind: 'elementResistAll' } | { kind: 'firstRoundCrit' }
   | { kind: 'infused'; element: Element } | { kind: 'warding'; element: Element }
-  | { kind: 'keyword'; keyword: Keyword } | { kind: 'steady'; threat: ThreatId }
   | { kind: 'forage' } | { kind: 'gatherRadius' } | { kind: 'pocketYield' };
 export type AffixDef = {
   id: string;
@@ -307,120 +304,6 @@ export const affixes: AffixDef[] = [
     unit: 'pct',
   },
 
-  // Components, on the gear types they fit (see loot/components.ts).
-  {
-    id: 'staggering',
-    name: 'Staggering',
-    nameFr: 'Étourdissement',
-    family: 'keyword',
-    source: { kind: 'component', componentId: 'ogreKnucklebone' },
-    slot: { types: ['mace', 'warhammer', 'knuckles', 'throwing'] },
-    effect: { kind: 'keyword', keyword: 'stagger' },
-  },
-  {
-    id: 'channeling',
-    name: 'Channeling',
-    nameFr: 'Canalisation',
-    family: 'keyword',
-    source: { kind: 'component', componentId: 'phylacteryShard' },
-    slot: { types: ['focus', 'wand', 'staff', 'tome', 'runestone', 'totem'] },
-    effect: { kind: 'keyword', keyword: 'channel' },
-  },
-  {
-    id: 'guarding',
-    name: 'Guarding',
-    nameFr: 'Garde',
-    family: 'keyword',
-    source: { kind: 'component', componentId: 'giantsHeartstone' },
-    slot: { types: ['shield', 'plate'] },
-    effect: { kind: 'keyword', keyword: 'guard' },
-  },
-  {
-    id: 'cleaving',
-    name: 'Cleaving',
-    nameFr: 'Fauchage',
-    family: 'keyword',
-    source: { kind: 'component', componentId: 'dragonClaw' },
-    slot: { types: ['sword', 'axe', 'staff', 'throwing'] },
-    effect: { kind: 'keyword', keyword: 'cleave' },
-  },
-  {
-    id: 'piercing',
-    name: 'Piercing',
-    nameFr: 'Perce',
-    family: 'keyword',
-    source: { kind: 'component', componentId: 'drakeFang' },
-    slot: { types: ['spear', 'dagger', 'bow', 'warhammer', 'crossbow', 'throwing'] },
-    effect: { kind: 'keyword', keyword: 'pierce' },
-  },
-  {
-    id: 'reaching',
-    name: 'Reaching',
-    nameFr: 'Portée',
-    family: 'keyword',
-    source: { kind: 'component', componentId: 'harpyFlightFeather' },
-    slot: { types: ['bow', 'crossbow', 'spear', 'quiver'] },
-    effect: { kind: 'keyword', keyword: 'reach' },
-  },
-  {
-    id: 'parrying',
-    name: 'Parrying',
-    nameFr: 'Parade',
-    family: 'keyword',
-    source: { kind: 'component', componentId: 'clockworkEscapement' },
-    slot: { types: ['offhandBlade', 'buckler', 'sword'] },
-    effect: { kind: 'keyword', keyword: 'parry' },
-  },
-  {
-    id: 'bracing',
-    name: 'Bracing',
-    nameFr: 'Fermeté',
-    family: 'keyword',
-    source: { kind: 'component', componentId: 'golemCore' },
-    slot: { types: ['plate', 'mail', 'leather', 'robes', 'shield', 'spear'] },
-    effect: { kind: 'keyword', keyword: 'brace' },
-  },
-  {
-    id: 'mending',
-    name: 'Mending',
-    nameFr: 'Réparation',
-    family: 'keyword',
-    source: { kind: 'component', componentId: 'trollHide' },
-    slot: { types: ['plate', 'mail', 'leather', 'robes'] },
-    effect: { kind: 'keyword', keyword: 'mend' },
-  },
-  {
-    id: 'inspiring',
-    name: 'Inspiring',
-    nameFr: 'Inspiration',
-    family: 'keyword',
-    source: { kind: 'component', componentId: 'orcWarDrumSkin' },
-    slot: { types: ['lute', 'censer', 'tome'] },
-    effect: { kind: 'keyword', keyword: 'inspire' },
-  },
-  {
-    id: 'fleet',
-    name: 'Fleet',
-    nameFr: 'Véloce',
-    family: 'keyword',
-    source: { kind: 'component', componentId: 'captainsSpurs' },
-    slot: { types: ['plate', 'mail', 'leather', 'robes'] },
-    effect: { kind: 'stat', stat: 'speed' },
-    range: { min: 2, max: 4 },
-    unit: 'flat',
-  },
-  {
-    id: 'silken',
-    name: 'Silken',
-    nameFr: 'Soyeux',
-    family: 'keyword',
-    source: { kind: 'component', componentId: 'spiderSilk' },
-    slot: { types: ['leather', 'robes'] },
-    effect: { kind: 'stat', stat: 'evasion' },
-    range: { min: 4, max: 8 },
-    unit: 'pct',
-  },
-
   // Elemental stones: Infused on offensive pieces, Warding on defensive ones.
   ...ELEMENTS.map((element): AffixDef => ({
     id: `infused${element[0].toUpperCase()}${element.slice(1)}`,
@@ -439,19 +322,6 @@ export const affixes: AffixDef[] = [
     source: { kind: 'element', element },
     slot: 'armourOffhand',
     effect: { kind: 'warding', element },
-    range: { min: 15, max: 30 },
-    unit: 'pct',
-  })),
-
-  // Loot-only: Steady, one per threat kind.
-  ...threatDefs.map((threat): AffixDef => ({
-    id: `steady${threat.id[0].toUpperCase()}${threat.id.slice(1)}`,
-    name: `Steady vs ${threat.name}`,
-    nameFr: `Anti-${frNames[threat.name]}`,
-    family: 'threat',
-    source: { kind: 'loot' },
-    slot: 'armourOffhand',
-    effect: { kind: 'steady', threat: threat.id },
     range: { min: 15, max: 30 },
     unit: 'pct',
   })),

@@ -1,5 +1,4 @@
 import { sanctumGuardian, sanctumMinionId } from '@/content/enemies';
-import { componentById } from '@/content/lookup';
 import { frLogTemplates } from '@/content/fr/logTemplates';
 import { logTemplates } from '@/content/logTemplates';
 import { fill, localized, tr } from '@/i18n';
@@ -146,8 +145,7 @@ export function challengeSanctum(
     stones: Math.round(amounts.stones * luckGold),
     xp: 0,
   };
-  // A win rolls the Sanctum row for the rest; its shards are the ones above.
-  // Components survive, the heart of the Sanctum's element among them.
+  // A win rolls the Sanctum row for the rest; its shards and stones are the ones above.
   const sanctumLoot = (rng: Rng) =>
     rollForSave(save, 'sanctum', rng, {
       tier,
@@ -159,7 +157,7 @@ export function challengeSanctum(
   let rolled = win ? sanctumLoot(createRng(`${seed}|loot`)) : emptyLoot();
   // A special's extra loot rolls draw from their own derived seeds.
   for (let i = 0; i < run.extraLootRolls; i++) rolled = mergeLoot(rolled, sanctumLoot(createRng(`${seed}|loot|extra|${i}`)));
-  const loot = { ...rolled, materials: rolled.materials.filter((stack) => componentById[stack.materialId] !== undefined) };
+  const loot = { ...rolled, materials: [] };
   reward.xp = loot.xp;
 
   const log = buildLog(

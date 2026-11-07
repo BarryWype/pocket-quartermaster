@@ -19,7 +19,7 @@
 | Secret place | Tip sources | Gives |
 | --- | --- | --- |
 | Hidden den | Library (an old ledger), traveller | One random rare class, expensive |
-| Black market | Thieves' guild heist, bandit camp (a fence's note) | One random rare class, expensive; 2-3 components or trinkets for gold |
+| Black market | Thieves' guild heist, bandit camp (a fence's note) | One random rare class, expensive; 2-3 Rare trinkets for gold |
 | Underwater dungeon | Fishing dock, monster lair (a drowned captain's log) | A Rare item (Legendary ~5%) or a relic |
 | Sealed vault | None: a dungeon opportunity | A Rare item (Legendary ~5%) or a relic |
 

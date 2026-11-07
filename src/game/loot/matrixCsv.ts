@@ -9,7 +9,7 @@ export const CATEGORY_COLUMNS: Record<string, LootCategory> = {
   Blueprints: 'blueprints',
   Gear: 'gear',
   Trinkets: 'trinkets',
-  Components: 'components',
+  Trophies: 'trophies',
   Relics: 'relics',
   'Monster parts': 'monsterParts',
   Valuables: 'valuables',

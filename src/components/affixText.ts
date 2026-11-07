@@ -2,7 +2,6 @@ import { type ImageSourcePropType } from 'react-native';
 
 import { affixById, type AffixDef, type AffixEffect } from '@/content/affixes';
 import { elementInfo } from '@/content/elements';
-import { threatById } from '@/content/lookup';
 import { tagInfo } from '@/content/rotation';
 import type { Tag } from '@/game/types';
 import { formatPercent, getLocale, t, tr, type Vars } from '@/i18n';
@@ -32,7 +31,7 @@ function tagNames(tags: Tag[]): string {
   return `${names.join(', ')}${and}${last}`;
 }
 
-/** The names an effect template plays on: its tags, stat, element, threat or keyword. */
+/** The names an effect template plays on: its tags, stat or element. */
 function effectVars(effect: AffixEffect): Vars {
   switch (effect.kind) {
     case 'damageVs':
@@ -43,10 +42,6 @@ function effectVars(effect: AffixEffect): Vars {
     case 'infused':
     case 'warding':
       return { element: tr(elementInfo[effect.element].name) };
-    case 'keyword':
-      return { keyword: t(`threats.keyword.${effect.keyword}`) };
-    case 'steady':
-      return { threat: tr(threatById[effect.threat].name) };
     default:
       return {};
   }
@@ -73,16 +68,11 @@ export function affixRangeLine(id: string, min: number, max: number): string {
   return `${affixName(id)}: ${effectText(def.effect, value)}`;
 }
 
-/** The icon an affix's line shows: its family tag's, element's, threat's, or the keyword's. */
+/** The icon an affix's line shows: its family tag's or element's. */
 export function affixIcon(id: string): { emoji: string; icon?: ImageSourcePropType } {
   const def = affixById[id];
   if (!def) return { emoji: '◆' };
   if ('element' in def.effect) return { emoji: elementInfo[def.effect.element].emoji };
-  if ('threat' in def.effect) {
-    const threat = threatById[def.effect.threat];
-    return { emoji: threat.emoji, icon: threat.icon };
-  }
-  if (def.family === 'keyword' || 'keyword' in def.effect) return { emoji: '🗝️' };
   if (def.family === 'walking') return { emoji: '🥾' };
   const tag = tagInfo[def.family as Tag];
   return { emoji: tag.emoji, icon: tag.icon };

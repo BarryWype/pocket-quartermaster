@@ -2,11 +2,8 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 import { ELEMENTS } from '@/game/elements';
-import type { GearType } from '@/game/types';
 
 import { affixes, affixById } from './affixes';
-import { threatDefs } from './threats';
-import { components } from './loot/components';
 import { monsterParts } from './loot/monsterParts';
 
 const dir = path.resolve(__dirname, '../../doc/design/gear');
@@ -44,29 +41,15 @@ const catalogue = rows.slice(1);
 
 const cap = (id: string) => `${id[0].toUpperCase()}${id.slice(1)}`;
 
-/** The affix ids a CSV row stands for: one, or one per element / threat kind. */
+/** The affix ids a CSV row stands for: one, or one per element. */
 const idsFor = (row: string[]): string[] => {
   if (row[0] === 'infused') return ELEMENTS.map((element) => `infused${cap(element)}`);
   if (row[0] === 'warding') return ELEMENTS.map((element) => `warding${cap(element)}`);
-  if (row[0] === 'steady') return threatDefs.map((threat) => `steady${cap(threat.id)}`);
   return [row[0]];
 };
 
-/** The CSV's gear-type names as ids ("armour" spreads to every armour type). */
-const ARMOUR: GearType[] = ['plate', 'mail', 'leather', 'robes'];
-const typeOf = (csvName: string): GearType[] =>
-  csvName === 'armour'
-    ? ARMOUR
-    : [({ 'off-hand blade': 'offhandBlade' } as Record<string, GearType>)[csvName] ?? (csvName as GearType)];
-
-const slotOf = (csvSlot: string): 'weapon' | 'armourOffhand' | 'any' | { types: GearType[] } =>
-  csvSlot === 'offensive'
-    ? 'weapon'
-    : csvSlot === 'defensive'
-      ? 'armourOffhand'
-      : csvSlot === 'any'
-        ? 'any'
-        : { types: csvSlot.split(', ').flatMap(typeOf) };
+const slotOf = (csvSlot: string): 'weapon' | 'armourOffhand' | 'any' =>
+  csvSlot === 'offensive' ? 'weapon' : csvSlot === 'defensive' ? 'armourOffhand' : 'any';
 
 /** The value range a CSV "value_range" spells out, in display units; absent when fixed. */
 const rangeIn = (csvRange: string): { range: { min: number; max: number }; unit: 'pct' | 'flat' | 'm' } | undefined => {
@@ -82,7 +65,7 @@ describe('the affix catalogue', () => {
   it('has every affix exactly once', () => {
     expect(Object.keys(affixById)).toHaveLength(affixes.length);
     expect(new Set(affixes.map((affix) => affix.id)).size).toBe(affixes.length);
-    expect(affixes).toHaveLength(catalogue.length - 3 + ELEMENTS.length * 2 + threatDefs.length);
+    expect(affixes).toHaveLength(catalogue.length - 2 + ELEMENTS.length * 2);
   });
 
   it('matches affixes.csv', () => {
@@ -93,8 +76,6 @@ describe('the affix catalogue', () => {
         expect(def).toBeDefined();
         if (affixId === id) expect(def.name).toBe(name);
         if (source.startsWith('part:')) expect(def.source).toEqual({ kind: 'part', partId: source.slice(5) });
-        else if (source.startsWith('component:'))
-          expect(def.source).toEqual({ kind: 'component', componentId: source.slice(10) });
         else if (source === 'elemental stone') {
           expect(def.source.kind).toBe('element');
           expect((def.source as { element?: string }).element).toBe(affixId.slice(7).toLowerCase());
@@ -113,16 +94,6 @@ describe('the affix catalogue', () => {
           expect(def.unit).toBe(range.unit);
         } else expect(def.range).toBeUndefined();
       }
-    }
-  });
-
-  it('gives every component exactly one affix, on the types it fits', () => {
-    for (const component of components) {
-      const matches = affixes.filter(
-        (affix) => affix.source.kind === 'component' && affix.source.componentId === component.id,
-      );
-      expect(matches).toHaveLength(1);
-      expect(matches[0].slot).toEqual({ types: component.fits });
     }
   });
 

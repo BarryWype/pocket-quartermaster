@@ -1,4 +1,3 @@
-import { affixes } from '@/content/affixes';
 import { expeditionRules } from '@/content/dungeons';
 import { dungeonById } from '@/content/lookup';
 
@@ -200,21 +199,23 @@ describe('gear keywords', () => {
 });
 
 describe('strong keywords', () => {
-  /** A hero wearing one piece of gear, optionally forged with a component. */
-  const heroWith = (itemId: string, component?: string) => {
-    const affix = component ? affixes.find((a) => a.source.kind === 'component' && a.source.componentId === component) : undefined;
-    const gear: GearInstance = { uid: 'g1', itemId, rarity: 'uncommon', roll: 8, affixes: affix ? [{ id: affix.id, value: 0 }] : [], rerolls: 0 };
+  /** A hero wearing one piece in `slot`, optionally a restored relic. */
+  const heroWith = (slot: 'weapon' | 'offhand', itemId: string, relicId?: string) => {
+    const gear: GearInstance = { uid: 'g1', itemId, rarity: 'uncommon', roll: 8, affixes: [], rerolls: 0, ...(relicId ? { relicId } : {}) };
     const save: SaveData = { ...createInitialSave(), gear: [gear] };
-    const hero = { ...save.heroes[0], equipment: { ...save.heroes[0].equipment, weapon: 'g1' } };
+    const hero = { ...save.heroes[0], equipment: { ...save.heroes[0].equipment, [slot]: 'g1' } };
     return gearKeywordsOf({ ...save, heroes: [hero] }, hero);
   };
 
-  it("adds a keyword affix's keyword, or strengthens the piece's own", () => {
-    // A mace has Stagger: an ogre knucklebone doubles it.
-    expect(heroWith('mace3', 'ogreKnucklebone')).toEqual([{ keyword: 'stagger', magic: false, strong: true }]);
-    expect(heroWith('mace3')).toEqual([{ keyword: 'stagger', magic: false }]);
-    // A parrying dagger has no keywords: an escapement adds Parry.
-    expect(heroWith('offhandBlade1', 'clockworkEscapement')).toEqual([{ keyword: 'parry', magic: false }]);
+  it("adds a relic's keyword, strong when the piece has it already", () => {
+    // A mace has Stagger: the Sexton's mace doubles it against undead.
+    expect(heroWith('weapon', 'mace1', 'sextonsMace')).toEqual([
+      { keyword: 'stagger', magic: false },
+      { keyword: 'stagger', magic: false, when: { tag: 'undead' }, strong: true },
+    ]);
+    expect(heroWith('weapon', 'mace1')).toEqual([{ keyword: 'stagger', magic: false }]);
+    // A tome has no keywords: the Archmage's tome adds Channel.
+    expect(heroWith('offhand', 'tome5', 'archmagesTome')).toEqual([{ keyword: 'channel', magic: true }]);
   });
 
   it('uses the strong Stagger and Parry chances', () => {
