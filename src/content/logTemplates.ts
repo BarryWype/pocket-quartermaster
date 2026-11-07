@@ -156,7 +156,7 @@ export const logTemplates = {
     shadow3: ' {hero} struck down the weakest foe before it could move.',
     bulwark1: ' {hero} stood in front and took the blows.',
     bulwark2: ' The Bulwark held: {hero} took the blow meant for {ally}.',
-    bulwark3: ' {hero} shrugged off the first blow of the fight.',
+    bulwark3: ' {hero} blunted the first blow of the fight.',
     warding1: ' The Warding blunted the elements on {hero}.',
     warding2: ' The Warding swallowed the first elemental blow aimed at {hero}.',
     warding3: ' The Warding turned the elements back on {hero}’s attacker.',

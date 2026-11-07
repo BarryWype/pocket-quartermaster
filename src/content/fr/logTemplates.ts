@@ -132,7 +132,7 @@ export const frLogTemplates: typeof logTemplates = {
     shadow3: ' {hero} a abattu l’ennemi le plus faible avant qu’il ne bouge.',
     bulwark1: ' {hero} a tenu la première ligne et encaissé les coups.',
     bulwark2: ' Le Rempart a tenu : {hero} a pris le coup destiné à {ally}.',
-    bulwark3: ' {hero} a ignoré le premier coup du combat.',
+    bulwark3: ' {hero} a amorti le premier coup du combat.',
     warding1: ' La Protection a émoussé les éléments sur {hero}.',
     warding2: ' La Protection a avalé le premier coup élémentaire visant {hero}.',
     warding3: ' La Protection a retourné les éléments contre l’assaillant de {hero}.',

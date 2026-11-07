@@ -1,4 +1,5 @@
 import { expeditionRules } from '@/content/dungeons';
+import { familyEffectRules } from '@/content/families';
 import { dungeonById, itemById } from '@/content/lookup';
 
 import type { BossDef, ConsumableDef, DungeonDef } from '../types';
@@ -108,8 +109,8 @@ describe('gear affixes', () => {
     const dealt = (affixes: Record<string, number>) =>
       bossFight([member('a', affixes, { maxHp: 1e6 })], { damage: 0 }, rules).fight.dealt.a;
     expect(dealt({})).toBeCloseTo(50, 5);
-    // One Venomous stack, refreshed each round: the poison ticks at rounds 2-5.
-    expect(dealt({ venomous: 100 })).toBeCloseTo(54, 5);
+    // One Venomous stack, refreshed each round: the poison (its share of a 10-damage hit) ticks at rounds 2-5.
+    expect(dealt({ venomous: 100 })).toBeCloseTo(50 + 4 * 10 * familyEffectRules.venom.dotShare, 5);
     // Antivenom cuts its wearer's share of the Poison threat's wounds after every fight.
     const poisoned = (affixes: Record<string, number>) =>
       simulateRun([member('a', affixes, { maxHp: 1000, hp: 1000 })], dungeon({ damage: 0, hp: 1 }), 'seed', {

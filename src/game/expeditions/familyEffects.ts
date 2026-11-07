@@ -23,6 +23,8 @@ export type FamilyBase = {
   alive: () => HeroState[];
   /** Heals the hero this share of max HP (times the run's healing); the HP healed. */
   heal: (hero: HeroState, share: number) => number;
+  /** True with this chance, from the run's rng; a chance of 1 or more draws nothing. */
+  chance: (p: number) => boolean;
 };
 
 /** Once, as the run starts. */
@@ -269,7 +271,7 @@ export const familyEffects: FamilyEffect[] = [
     hooks: {
       incoming: (i) => {
         if (!i.once('bulwark3')) return;
-        i.absorbed = true;
+        i.damage *= R.bulwark.firstHitTaken;
         i.log('bulwark3', idOf(i.hero));
       },
     },
@@ -423,7 +425,7 @@ export const familyEffects: FamilyEffect[] = [
         // Never the boss.
         const foes = f.enemies.filter((e) => e.hp > 0 && !f.isBoss && !('effect' in e.def));
         const hero = f.heroOf('shadow');
-        if (foes.length === 0 || !hero || !f.once('shadow3')) return;
+        if (foes.length === 0 || !hero || !f.once('shadow3') || !f.chance(R.shadow.strikeChance)) return;
         const weakest = foes.reduce((low, e) => (e.hp < low.hp ? e : low));
         f.strikeDown(hero, weakest);
         f.log('shadow3', idOf(hero));

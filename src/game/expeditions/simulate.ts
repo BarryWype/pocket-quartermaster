@@ -771,6 +771,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     },
     heroOf: (family) => alive().find((h) => h.member.familyTags.some((t) => t.family === family)) ?? alive()[0],
     alive,
+    chance: (p) => p >= 1 || rng.chance(p),
     heal: (hero, share) => {
       const before = hero.hp;
       heal(hero, share, result);

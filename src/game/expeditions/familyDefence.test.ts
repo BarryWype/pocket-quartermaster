@@ -30,8 +30,8 @@ describe('family defence', () => {
       }, 'bulwark2', 'The Bulwark held: a took the blow meant for b.', 'Le Rempart a tenu : a a pris le coup destiné à b.'],
     ['Bulwark 2: not when the front hero is the weakest', 'bulwark', 2, { ...pair, party: { a: { threat: 2, maxHp: 1e6, hp: 1e5 }, b: { maxHp: 1000 } } },
       (on, off) => expect(taken(on, 'b')).toBeCloseTo(taken(off, 'b')), 'bulwark2', null, null],
-    ['Bulwark 3: the party ignores the first hit of each fight', 'bulwark', 3, { party: sturdy },
-      (on, off) => expect(taken(on)).toBeCloseTo((taken(off) - oneHit(off)) * R.bulwark.frontTaken), 'bulwark3', 'a shrugged off the first blow of the fight.', 'a a ignoré le premier coup du combat.'],
+    ['Bulwark 3: the first hit of each fight deals less', 'bulwark', 3, { party: sturdy },
+      (on, off) => expect(taken(on)).toBeCloseTo((taken(off) - oneHit(off) * (1 - R.bulwark.firstHitTaken)) * R.bulwark.frontTaken), 'bulwark3', 'a blunted the first blow of the fight.', 'a a amorti le premier coup du combat.'],
     ['Warding 1: elemental hits hurt less', 'warding', 1, fire,
       (on, off) => expect(taken(on) / taken(off)).toBeCloseTo(R.warding.elementalTaken), 'warding1', 'The Warding blunted the elements on a.', 'La Protection a émoussé les éléments sur a.'],
     ['Warding 1: not plain hits', 'warding', 1, { party: sturdy },
@@ -40,7 +40,7 @@ describe('family defence', () => {
       (on, off) => expect(taken(on)).toBeCloseTo((taken(off) - oneHit(off)) * R.warding.elementalTaken), 'warding2', 'The Warding swallowed the first elemental blow aimed at a.', 'La Protection a avalé le premier coup élémentaire visant a.'],
     ['Warding 3: 20% of elemental damage taken is reflected', 'warding', 3, fire,
       (on, off) => expect(on.fight.dealt.a - off.fight.dealt.a).toBeCloseTo(taken(on) * R.warding.reflect), 'warding3', 'The Warding turned the elements back on a’s attacker.', 'La Protection a retourné les éléments contre l’assaillant de a.'],
-    ['Shadow 2: +Evasion, and every dodge strikes back', 'shadow', 2, { party: sturdy, options: { rules: { ...steady, critMultiplier: 1 } } },
+    ['Shadow 2: +Evasion, and every dodge strikes back', 'shadow', 2, { party: sturdy, options: { rules: { ...steady, critMultiplier: 1 } }, seed: 'seed0' },
       (on, off) => {
         const dodges = (taken(off) - taken(on)) / oneHit(off);
         expect(dodges).toBeGreaterThan(0);

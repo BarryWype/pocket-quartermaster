@@ -1,5 +1,5 @@
 import { expeditionRules } from '@/content/dungeons';
-import type { FamilyEffectId, FamilyId } from '@/content/families';
+import { familyEffectRules as R, type FamilyEffectId, type FamilyId } from '@/content/families';
 
 import { familyFight, logged, steady, type FamilyFight, type FightSetup } from './familyTestHelpers';
 
@@ -21,6 +21,24 @@ const extra = (family: FamilyId, level: number, setup: FightSetup) =>
 type Case = [string, FamilyId, number, FightSetup, (on: FamilyFight, off: FamilyFight) => void, FamilyEffectId, string | null, string | null];
 
 describe('family turn order and first strikes', () => {
+  // Shadow 3 always strikes in these cases; its chance has a test of its own.
+  const strikeChance = R.shadow.strikeChance;
+  beforeAll(() => {
+    R.shadow.strikeChance = 1;
+  });
+  afterAll(() => {
+    R.shadow.strikeChance = strikeChance;
+  });
+
+  test('Shadow 3 strikes in about its chance of fights', () => {
+    R.shadow.strikeChance = strikeChance;
+    const setup: FightSetup = { mobs: [{ mobId: 'giantRat', count: 1 }], options: noSecond };
+    const struck = seeds.filter((seed) => logged(familyFight('shadow', 3, { ...setup, seed }).fight, 'shadow3') === 1).length / seeds.length;
+    R.shadow.strikeChance = 1;
+    expect(struck).toBeGreaterThan(strikeChance - 0.2);
+    expect(struck).toBeLessThan(strikeChance + 0.2);
+  });
+
   test.each<Case>([
     // Without: the rats strike first every round (3 + 2 + 1 hits). Round 1 only: 2 + 2 + 1.
     ['Watch 1: +Speed in round 1 only', 'watch', 1, rats,
