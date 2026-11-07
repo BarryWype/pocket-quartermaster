@@ -7,7 +7,7 @@ import { gearRules } from "@/content/gear";
 import { affixById } from "@/content/affixes";
 import { gearStats } from "./gear/stats";
 import { uniquePool } from "./gear/uniques";
-import { migrateSave, toV38, toV39 } from "./migrations";
+import { migrateSave, toV38, toV39, toV40 } from "./migrations";
 import type { GearDef } from "./types";
 import { createInitialSave, type SaveData } from "./save";
 import type { Quest } from "./quests/types";
@@ -504,7 +504,131 @@ describe("save migrations", () => {
     it("leaves a save already at version 39 alone", () => {
       const save = createInitialSave();
       expect(toV39(save).gatherer).toBe(save.gatherer);
-      expect(migrateSave(save, 39, 12 * DAY)).toBe(save);
+      expect(migrateSave(save, 40, 12 * DAY)).toBe(save);
+    });
+  });
+
+  describe("version 40: threats answered by families", () => {
+    // A version 39 save: approach picks, kits held and in slots, a talisman worn, a run under way and a report under the old threats.
+    const v39 = () => {
+      const fresh = createInitialSave();
+      const [bram, lyra, ...rest] = fresh.heroes;
+      return {
+        ...fresh,
+        gold: 0,
+        materials: { bone: 1 },
+        consumables: { healingPotion: 2, roguesRoll: 2, blessedRelics: 1 },
+        knownRecipes: [...fresh.knownRecipes, "roguesRoll"],
+        gear: [
+          ...fresh.gear,
+          { uid: "t1", itemId: "oxTalisman3", rarity: "rare", roll: 10, affixes: [], rerolls: 0 },
+        ],
+        heroes: [
+          {
+            ...bram,
+            level: 10,
+            approachPicks: ["might", "wits"],
+            roll: { ...bram.roll, approach: "faith" },
+            equipment: { ...bram.equipment, consumable: "huntersPack", trinket: "t1" },
+          },
+          { ...lyra, kitFor: "bram", gamble: { day: 3, approaches: { might: 2, finesse: 2, wits: 2, faith: 1, presence: 1 } } },
+          ...rest,
+        ],
+        expeditions: [
+          {
+            id: "e1",
+            dungeonId: "ratCellar",
+            heroIds: ["bram"],
+            startedAt: 0,
+            endsAt: DAY,
+            seed: "s",
+            notificationId: null,
+            briefing: {
+              threats: [
+                { id: "undead", level: 1 },
+                { id: "desecrated", level: 2 },
+                { id: "locals", level: 1 },
+                { id: "casters", level: 2 },
+              ],
+              restriction: null,
+              opportunity: "bounty",
+            },
+          },
+        ],
+        reports: [
+          {
+            ...({} as SaveData["reports"][number]),
+            id: "r1",
+            threats: [
+              { id: "rubble", level: 1, state: "met" },
+              { id: "locked", level: 2, state: "full" },
+            ],
+            salvaged: [
+              { heroId: "bram", itemId: "lantern", materials: [{ materialId: "copper", amount: 1 }], gold: 0 },
+              { heroId: "bram", itemId: "healingPotion", materials: [{ materialId: "herb", amount: 1 }], gold: 0 },
+            ],
+          },
+        ],
+        quests: {
+          ...fresh.quests,
+          list: [
+            { id: "q1", objective: "deliver", itemId: "roguesRoll" },
+            { id: "q2", objective: "deliver", itemId: "healingPotion" },
+          ],
+        },
+      } as unknown as SaveData;
+    };
+
+    it("drops approach picks, the roll's approach, the Gambler's roll and the Porter's pick", () => {
+      const next = migrateSave(v39(), 39, 12 * DAY);
+      const [bram, lyra] = next.heroes;
+      expect(bram).not.toHaveProperty("approachPicks");
+      expect(bram.roll).not.toHaveProperty("approach");
+      expect(bram.roll?.base).toEqual(v39().heroes[0].roll?.base);
+      expect(bram.level).toBe(10);
+      expect(lyra).not.toHaveProperty("gamble");
+      expect(lyra).not.toHaveProperty("kitFor");
+    });
+
+    it("refunds kits held and worn as their recipe's materials", () => {
+      const next = migrateSave(v39(), 39, 12 * DAY);
+      // Two Rogue's rolls (bone 2, hide 1), a Hunter's pack in Bram's slot (bone, meat, hide), blessed symbols (copper, herb, stone).
+      expect(next.materials).toEqual({ bone: 1 + 4 + 1, hide: 2 + 1, meat: 1, copper: 1, herb: 1, stone: 1 });
+      expect(next.consumables).toEqual({ healingPotion: 2 });
+      expect(next.heroes[0].equipment.consumable).toBeNull();
+      expect(next.knownRecipes).not.toContain("roguesRoll");
+      expect(next.quests.list.map((q) => q.id)).toEqual(["q2"]);
+    });
+
+    it("sells talismans to the smithy, taking them off", () => {
+      const next = migrateSave(v39(), 39, 12 * DAY);
+      // A tier 3 Rare piece: round(40 × 2) × 0.3 = 24.
+      expect(next.gold).toBe(24);
+      expect(next.gear.some((g) => g.uid === "t1")).toBe(false);
+      expect(next.heroes[0].equipment.trinket).toBeNull();
+    });
+
+    it("maps a running expedition's threats onto the seven", () => {
+      const next = migrateSave(v39(), 39, 12 * DAY);
+      expect(next.expeditions[0].briefing).toEqual({
+        threats: [
+          { id: "holy", level: 2 },
+          { id: "element", level: 2, element: "water" },
+        ],
+        restriction: null,
+        opportunity: "bounty",
+      });
+    });
+
+    it("maps a report's threats, keeping the worst state, and drops kit salvage lines", () => {
+      const [report] = migrateSave(v39(), 39, 12 * DAY).reports;
+      expect(report.threats).toEqual([{ id: "traps", level: 2, state: "full" }]);
+      expect(report.salvaged.map((s) => s.itemId)).toEqual(["healingPotion"]);
+    });
+
+    it("leaves a save with nothing of the old answers alone", () => {
+      const save = createInitialSave();
+      expect(toV40(save)).toBe(save);
     });
   });
 });

@@ -2,12 +2,15 @@ import { affixes } from "@/content/affixes";
 import type { Rarity } from "@/content/gear";
 import { choiceOf, jobById, jobs } from "@/content/jobs";
 import { itemById } from "@/content/lookup";
+import { shopRules } from "@/content/shops";
 import { ELEMENTS, stoneId, type Element } from "./elements";
+import { LEGACY_KIT_REFUNDS, LEGACY_TALISMAN, LEGACY_THREAT_MAP } from "./legacyThreats";
 import { makeGearPiece } from "./gear/make";
 import { statFactor } from "./gear/stats";
 import { jobMaterials } from "./jobs/jobs";
 import { todaysCollector } from "./loot/valuables";
 import type { JobOutput, SaveData } from "./save";
+import type { ActiveThreat, Briefing, ExpeditionReport, HeroState } from "./types";
 import { sellGoodsAmount } from "./quests/unlocks";
 import type { Quest } from "./quests/types";
 import { rolledSpecial } from "./team/specials";
@@ -269,6 +272,127 @@ export function toV39(save: SaveData): SaveData {
   return { ...save, heroes, gatherer: save.gatherer ?? { anchors: [], focus: "any" } };
 }
 
+/** The threats of an old briefing, mapped onto the seven: merged ones keep the highest level, Locals is dropped. */
+function mapThreats<T extends { id: string; level: ActiveThreat["level"]; element?: Element }>(threats: T[]): T[] {
+  const mapped: T[] = [];
+  for (const threat of threats) {
+    const id = LEGACY_THREAT_MAP[threat.id];
+    if (!id) continue;
+    const same = mapped.findIndex((t) => t.id === id);
+    const next = { ...threat, id, ...(id === "element" && !threat.element ? { element: "water" as Element } : {}) };
+    if (same === -1) mapped.push(next);
+    else if (next.level > mapped[same].level) mapped[same] = { ...next, element: mapped[same].element ?? next.element };
+  }
+  return mapped;
+}
+
+const mapBriefing = (briefing: Briefing): Briefing => ({ ...briefing, threats: mapThreats(briefing.threats) });
+
+const STATE_RANK = { met: 0, half: 1, full: 2 } as const;
+
+type OldHero = HeroState & {
+  approachPicks?: unknown;
+  gamble?: unknown;
+  kitFor?: unknown;
+  roll?: HeroState["roll"] & { approach?: unknown };
+};
+
+/**
+ * Version 40: threats are answered by families. Approach picks, the recruit
+ * roll's approach, the Gambler's rolled approaches and the Porter's carried
+ * kit go. Kits, held or in a slot, are refunded as the materials of their
+ * recipe; talismans are sold to the smithy at its price. Running expeditions
+ * and reports have their threats mapped onto the seven (see LEGACY_THREAT_MAP),
+ * and kit recipes and quests asking for a kit are dropped.
+ */
+export function toV40(save: SaveData): SaveData {
+  const isKit = (id: string | null | undefined) => !!id && id in LEGACY_KIT_REFUNDS;
+  const oldThreats = (threats: { id: string }[] = []) => threats.some((t) => LEGACY_THREAT_MAP[t.id] !== t.id);
+  const legacy =
+    Object.keys(save.consumables).some(isKit) ||
+    save.gear.some((piece) => LEGACY_TALISMAN.test(piece.itemId)) ||
+    (save.heroes as OldHero[]).some(
+      (h) =>
+        "approachPicks" in h || "gamble" in h || "kitFor" in h || (h.roll && "approach" in h.roll) ||
+        isKit(h.equipment.consumable) || isKit(h.equipment.potion),
+    ) ||
+    save.expeditions.some((e) => oldThreats(e.briefing?.threats)) ||
+    save.reports.some((r) => oldThreats(r.threats) || oldThreats(r.briefing?.threats) || (r.salvaged ?? []).some((e) => isKit(e.itemId))) ||
+    save.knownRecipes.some(isKit) ||
+    save.partRecipes.some(isKit) ||
+    save.quests.list.some((q) => isKit(q.itemId));
+  if (!legacy) return save;
+  const materials = { ...save.materials };
+  const refund = (id: string, count: number) => {
+    for (const [materialId, amount] of Object.entries(LEGACY_KIT_REFUNDS[id]))
+      materials[materialId] = (materials[materialId] ?? 0) + amount * count;
+  };
+
+  const consumables = { ...save.consumables };
+  for (const id of Object.keys(consumables)) {
+    if (!isKit(id)) continue;
+    refund(id, consumables[id]);
+    delete consumables[id];
+  }
+
+  let gold = save.gold;
+  const talismans = new Set<string>();
+  const gear = save.gear.filter((piece) => {
+    const match = LEGACY_TALISMAN.exec(piece.itemId);
+    if (!match) return true;
+    const price = Math.round(shopRules.gearPrice[Number(match[2]) - 1] * shopRules.rarityPrice[piece.rarity]);
+    gold += Math.round(price * shopRules.gearSellShare);
+    talismans.add(piece.uid);
+    return false;
+  });
+
+  const heroes = (save.heroes as OldHero[]).map((old) => {
+    const { approachPicks: _picks, gamble: _gamble, kitFor: _kitFor, ...hero } = old;
+    const equipment = { ...hero.equipment };
+    for (const slot of ["consumable", "potion"] as const) {
+      const id = equipment[slot];
+      if (id && isKit(id)) {
+        refund(id, 1);
+        equipment[slot] = null;
+      }
+    }
+    if (equipment.trinket && talismans.has(equipment.trinket)) equipment.trinket = null;
+    const { approach: _approach, ...roll } = (hero.roll ?? {}) as NonNullable<OldHero["roll"]>;
+    return { ...hero, equipment, ...(hero.roll ? { roll } : {}) } as HeroState;
+  });
+
+  const reports = save.reports.map((report): ExpeditionReport => {
+    const threats: ExpeditionReport["threats"] = [];
+    for (const threat of report.threats ?? []) {
+      const [mapped] = mapThreats([threat]);
+      if (!mapped) continue;
+      const same = threats.findIndex((t) => t.id === mapped.id);
+      if (same === -1) threats.push(mapped);
+      else if (STATE_RANK[mapped.state] > STATE_RANK[threats[same].state]) threats[same] = mapped;
+    }
+    return {
+      ...report,
+      threats,
+      ...(report.briefing ? { briefing: mapBriefing(report.briefing) } : {}),
+      salvaged: (report.salvaged ?? []).filter((entry) => !isKit(entry.itemId)),
+    };
+  });
+
+  return {
+    ...save,
+    gold,
+    materials,
+    consumables,
+    gear,
+    heroes,
+    reports,
+    expeditions: save.expeditions.map((e) => (e.briefing ? { ...e, briefing: mapBriefing(e.briefing) } : e)),
+    knownRecipes: save.knownRecipes.filter((id) => !isKit(id)),
+    partRecipes: save.partRecipes.filter((id) => !isKit(id)),
+    quests: { ...save.quests, list: save.quests.list.filter((quest) => !isKit(quest.itemId)) },
+  };
+}
+
 /** Applies the migration steps in order, from the save's own version on. */
 export function migrateSave(
   save: SaveData,
@@ -285,5 +409,6 @@ export function migrateSave(
   if (fromVersion < 37) next = toV37(next);
   if (fromVersion < 38) next = toV38(next);
   if (fromVersion < 39) next = toV39(next);
+  if (fromVersion < 40) next = toV40(next);
   return next;
 }

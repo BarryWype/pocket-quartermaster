@@ -768,9 +768,9 @@ export type EncounterDef = { weight: number } & (
       targets: 'one' | 'all';
       element?: Element;
     }
-  /** A quiet step unless the briefing has the locals threat: help, intimidation or a hostile fight. */
   | { type: 'event'; eventId: string }
   | { type: 'obstacle'; name: string; kind: ObstacleKind }
+  /** Locals met on the way: always a quiet step since the Locals threat was removed. */
   | { type: 'locals'; npcId: string }
 );
 
