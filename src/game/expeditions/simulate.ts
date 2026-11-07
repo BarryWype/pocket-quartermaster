@@ -1685,7 +1685,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           ctx.summons.push({ heroId: hero.member.heroId, ...summoned(hero, normalHit(hero, foe, { critChance: 0, multiplier: share }).damage, rounds) });
           return true;
         },
-        calm: (hero: HeroState, enemy: EnemyState) => {
+        tame: (hero: HeroState, enemy: EnemyState) => {
           enemy.hp = 0;
           ctx.summons.push({ heroId: hero.member.heroId, ...summoned(hero, enemy.def.damage, null) });
         },
@@ -1996,7 +1996,12 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         const reduce = reducer?.ability.multiplier ?? 1;
         const caught = encounter.targets === 'all' ? alive() : [rng.weighted(alive(), () => 1)];
         for (const hero of caught) {
-          const raw = trapWounds * hero.member.maxHp * reduce * elementFactor(hero, encounter.element);
+          let raw = trapWounds * hero.member.maxHp * reduce * elementFactor(hero, encounter.element);
+          if (hooks.trapWound.length > 0) {
+            const wound = { ...familyBase(result), hero, damage: raw };
+            for (const hook of hooks.trapWound) hook(wound);
+            raw = wound.damage;
+          }
           hurt(hero, raw, result);
         }
       }

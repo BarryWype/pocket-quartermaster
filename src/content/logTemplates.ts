@@ -181,6 +181,7 @@ export const logTemplates = {
     plunder1: ' The party’s eye for plunder turned up more gold.',
     plunder2: ' The party stripped the fallen for monster parts.',
     plunder3: ' The party’s eye for plunder picked out the finest spoils.',
+    cunning1: ' {hero} spotted the trigger: the trap bit half as deep.',
     cunning2: ' {hero} found the hidden cache and emptied it.',
     cunning3: ' {hero} found something more tucked away in the cache.',
   } as Partial<Record<FamilyEffectId, string>>,

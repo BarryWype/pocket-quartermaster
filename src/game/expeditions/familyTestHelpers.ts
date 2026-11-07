@@ -52,6 +52,8 @@ export type FightSetup = {
   fights?: number;
   /** Without `mobs`: how many hidden cache steps come before the boss (default 0). */
   caches?: number;
+  /** Without `mobs`: how many traps catching everyone come before the boss, instead of caches. */
+  traps?: number;
   options?: RunOptions;
   seed?: string;
 };
@@ -75,10 +77,15 @@ export function familyFight(family: FamilyId | null, level: number, setup: Fight
     }),
   );
   const boss: BossDef = { id: 'testBoss', name: 'test boss', hp: 1e6, damage: 5, damageType: 'power', speed: 5, tags: [], ...setup.boss };
+  const steps = setup.mobs ? (setup.fights ?? 1) : (setup.traps ?? setup.caches ?? 0);
   const dungeon: DungeonDef = {
     ...dungeonById.ratCellar,
-    encounterCount: setup.mobs ? [(setup.fights ?? 1) + 1, (setup.fights ?? 1) + 1] : [(setup.caches ?? 0) + 1, (setup.caches ?? 0) + 1],
-    encounters: setup.mobs ? [{ type: 'fight', weight: 1, mobs: setup.mobs }] : [{ type: 'event', weight: 1, eventId: 'cache' }],
+    encounterCount: [steps + 1, steps + 1],
+    encounters: setup.mobs
+      ? [{ type: 'fight', weight: 1, mobs: setup.mobs }]
+      : setup.traps
+        ? [{ type: 'trap', weight: 1, name: 'test trap', targets: 'all' }]
+        : [{ type: 'event', weight: 1, eventId: 'cache' }],
     boss,
   };
   const run = simulateRun(party, dungeon, setup.seed ?? 'seed', { rules: steady, ...setup.options });

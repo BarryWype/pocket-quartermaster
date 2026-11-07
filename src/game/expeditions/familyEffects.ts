@@ -111,7 +111,7 @@ export type FightReady = FamilyBase & {
   /** The hero summons an ally dealing this share of their hit on the first living enemy, for these rounds; false with no enemy left. */
   summon: (hero: HeroState, share: number, rounds: number) => boolean;
   /** The enemy leaves the fight and strikes for the hero's side for the rest of it, at its own damage. */
-  calm: (hero: HeroState, enemy: EnemyState) => void;
+  tame: (hero: HeroState, enemy: EnemyState) => void;
 };
 
 /** A hero's turn is over (their attack and any second blow). */
@@ -208,6 +208,13 @@ export type RunEnd = FamilyBase & {
   cleared: number;
 };
 
+/** A live trap's wound, per caught hero before it lands. */
+export type TrapWound = FamilyBase & {
+  hero: HeroState;
+  /** The wound about to hurt the hero; effects may scale it. */
+  damage: number;
+};
+
 /** The Poison threat's after-fight wounds, per hero before they land. */
 export type PoisonWound = FamilyBase & {
   hero: HeroState;
@@ -244,6 +251,7 @@ export type FamilyHooks = {
   betweenFights?: (ctx: BetweenFights) => void;
   knockout?: (ctx: Knockout) => void;
   afterFight?: (ctx: AfterFight) => void;
+  trapWound?: (ctx: TrapWound) => void;
   poisonWound?: (ctx: PoisonWound) => void;
   poisonCap?: (ctx: PoisonCap) => void;
 };
@@ -612,7 +620,7 @@ export const familyEffects: FamilyEffect[] = [
         );
         const hero = f.heroOf('wild');
         if (!beast || !hero || !f.once('wild3', 'run')) return;
-        f.calm(hero, beast);
+        f.tame(hero, beast);
         f.log('wild3', idOf(hero));
       },
     },
@@ -679,6 +687,18 @@ export const familyEffects: FamilyEffect[] = [
         const healed = b.heroes.reduce((sum, hero) => sum + b.heal(hero, R.rally.healShare), 0);
         const hero = b.heroOf('rally');
         if (healed > 0) b.log('rally2', hero ? idOf(hero) : null);
+      },
+    },
+  },
+  // Traps.
+  {
+    family: 'cunning',
+    level: 1,
+    hooks: {
+      trapWound: (t) => {
+        t.damage *= R.cunning.trapTaken;
+        const hero = t.heroOf('cunning');
+        t.log('cunning1', hero ? idOf(hero) : null);
       },
     },
   },
@@ -797,6 +817,7 @@ export function activeHooks(levels: FamilyLevels, effects: FamilyEffect[] = fami
     betweenFights: [],
     knockout: [],
     afterFight: [],
+    trapWound: [],
     poisonWound: [],
     poisonCap: [],
   };

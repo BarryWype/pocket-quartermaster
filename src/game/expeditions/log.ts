@@ -140,6 +140,9 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
       })
       .join('');
 
+  /** The family effects' notes alone, for the steps that aren't fights. */
+  const familyNotes = (encounter: EncounterResult) => combatNotes({ ...encounter, effects: encounter.effects.filter((e) => e.key === 'family') });
+
   /** Ability notes, damage taken, potions and knock-outs, appended to a fight line. */
   const aftermath = (encounter: EncounterResult) => {
     const hurt = top(party, encounter.taken);
@@ -198,7 +201,7 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
         const reduced = effect(encounter, 'trapReduce')
           ? fill(logTemplates.trapReduced, { hero: effectHero(encounter, 'trapReduce') })
           : '';
-        return [line, reduced, ...potions(encounter), knockedOut(encounter)].join('').trim();
+        return [line, reduced, familyNotes(encounter), ...potions(encounter), knockedOut(encounter)].join('').trim();
       }
       case 'mishap':
         return fill(pick(rng, logTemplates.mishap), { event: tr(encounter.name) });
@@ -236,7 +239,7 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
       if (line) encounterLines.push(line);
     } else {
       // A quiet step speaks only for the family effects it woke (a hidden cache opened).
-      const notes = capitalised(combatNotes({ ...encounter, effects: encounter.effects.filter((e) => e.key === 'family') }).trim());
+      const notes = capitalised(familyNotes(encounter).trim());
       if (notes) encounterLines.push(notes);
     }
     if (i === midpoint && run.opportunity) encounterLines.push(opportunityLine());

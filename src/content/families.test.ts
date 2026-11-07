@@ -6,6 +6,7 @@ import { families } from '@/content/families';
 import { heroClasses } from '@/content/heroes';
 
 import type { FamilyId, FamilyThreat } from '@/content/families';
+import { familyEffects } from '@/game/expeditions/familyEffects';
 import type { GearType, HeroClassId } from '@/game/types';
 
 function parseCsvLine(line: string): string[] {
@@ -125,5 +126,12 @@ describe('no class anchors its own family alone', () => {
       }
     }
     expect(broken).toEqual([]);
+  });
+});
+
+describe('every family level of families.csv is built', () => {
+  // A threat family's levels also answer its threat, but each level still has an effect of its own.
+  test.each(familiesCsv.flatMap((row) => [1, 2, 3].map((level) => [row.id, level] as const)))('%s level %i has an effect', (id, level) => {
+    expect(familyEffects.some((effect) => effect.family === id && effect.level === level)).toBe(true);
   });
 });

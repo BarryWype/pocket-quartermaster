@@ -68,6 +68,7 @@ export type FamilyEffectId =
   | 'wild1'
   | 'wild2'
   | 'wild3'
+  | 'cunning1'
   | 'cunning2'
   | 'cunning3'
   | 'watch1'
@@ -114,8 +115,8 @@ export const familyEffectRules = {
   faith: { vsTags: ['undead', 'spirit'] as string[], damage: 1.1, healShare: 0.03, revivePct: 0.25 },
   /** Damage taken from these tags; after a won fight against them, the party's heal and the monster parts found (level 2). */
   wild: { fromTags: ['beast'] as string[], damageTaken: 0.9, healShare: 0.05, part: 'fangOrHorn', parts: 1 },
-  /** Extra loot rolls from every hidden cache step, Hidden cache and Sealed vault (level 3). */
-  cunning: { cacheRolls: 1 },
+  /** Trap wounds taken; the time a dungeon expedition saves (level 2); extra loot rolls from every hidden cache step, Hidden cache and Sealed vault (level 3). */
+  cunning: { trapTaken: 0.5, timeCut: 0.15, cacheRolls: 1 },
   /** Speed added in round 1; crit chance added against elites. */
   watch: { firstRoundSpeed: 3, eliteCrit: 0.1 },
   /** Elemental hits taken are multiplied; a share of the elemental damage taken is reflected. */

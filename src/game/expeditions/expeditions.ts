@@ -41,6 +41,7 @@ import {
   answersMemberOf,
   EMPTY_BRIEFING,
   prepareParty,
+  prepareSimulation,
   simulateRun,
   type ExpeditionRules,
   type PartyMember,
@@ -124,8 +125,11 @@ export function launchPlan(
     (loadout.optIn ? opportunity?.cost?.supply ?? 0 : 0);
   const supply = pickSupply(save.consumables, need);
   const meal = mealOf(briefing, loadout.mealId, party);
+  // Cunning 2 knows the shortcuts past a dungeon's obstacles; a patrol has none to take.
+  const cunning = dungeon.overnight ? 0 : (prepareSimulation(party, dungeon, { briefing }).families.cunning ?? 0);
+  const shortcut = cunning >= 2 ? 1 - familyEffectRules.cunning.timeCut : 1;
   return {
-    minutes: base * (meal?.kind === 'duration' ? meal.multiplier : 1),
+    minutes: base * (meal?.kind === 'duration' ? meal.multiplier : 1) * shortcut,
     need,
     held: supplyHeld(save.consumables),
     supply,

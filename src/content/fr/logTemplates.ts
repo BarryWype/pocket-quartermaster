@@ -157,6 +157,7 @@ export const frLogTemplates: typeof logTemplates = {
     plunder1: ' L’œil du groupe pour le butin a déniché plus d’or.',
     plunder2: ' Le groupe a dépouillé les vaincus de leurs trophées.',
     plunder3: ' L’œil du groupe pour le butin a repéré les plus belles prises.',
+    cunning1: ' {hero} a repéré le déclencheur : le piège a mordu deux fois moins fort.',
     cunning2: ' {hero} a trouvé la cache secrète et l’a vidée.',
     cunning3: ' {hero} a trouvé autre chose au fond de la cache.',
   },
