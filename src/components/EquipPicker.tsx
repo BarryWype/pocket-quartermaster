@@ -130,6 +130,7 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, bossId?
       const hasUnique = gear.relicId !== undefined || gear.unique !== undefined;
       // Greyed pieces still say what they are.
       const showAffixes = hasUnique || gear.affixes.length > 0;
+      const tags = gearFamilyTags(item, gear.relicId);
       return {
         id: gear.uid,
         emoji: item.emoji,
@@ -137,8 +138,9 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, bossId?
         legendary: gear.rarity === 'legendary',
         title: gearName(gear),
         subtitle:
-          parts.length > 0 || showAffixes ? (
+          parts.length > 0 || showAffixes || tags.length > 0 ? (
             <>
+              <FamilyTags tags={tags} />
               {parts.length > 0 && <PartsLine parts={parts} labelStyle={styles.subtitle} />}
               {showAffixes && <AffixLines piece={gear} compact labelStyle={styles.subtitle} />}
             </>
@@ -148,7 +150,6 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, bossId?
         equipped,
         marks: (
           <View style={styles.marks}>
-            <FamilyTags tags={gearFamilyTags(item, gear.relicId)} named={false} />
             <GearMarks tier={item.tier} affinity={affinity} />
           </View>
         ),

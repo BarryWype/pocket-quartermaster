@@ -92,7 +92,7 @@ function TeamContent() {
                 </View>
                 <View style={styles.classRow}>
                   <Text style={styles.classLine}>{tr(heroClass.name)}</Text>
-                  <FamilyTag family={heroClass.familyTag} named={false} size={14} />
+                  <FamilyTag family={heroClass.familyTag} size={14} labelStyle={styles.classLine} />
                   <Text style={styles.classLine}>{tr(traitById[hero.trait]?.name ?? '')}</Text>
                   <SpecialLabel classId={hero.classId} special={hero.special} labelStyle={styles.classLine} />
                 </View>

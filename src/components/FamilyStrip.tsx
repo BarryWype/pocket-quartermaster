@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { familyById, type FamilyId } from '@/content/families';
 import { partyFamilies, type FamilyCounts } from '@/game/families/families';
@@ -18,6 +18,8 @@ export function usePartyFamilies(heroIds: string[]): FamilyCounts {
   const gear = useGameStore((state) => state.save.gear);
   return useMemo(() => partyFamilies({ heroes, gear }, heroIds), [heroes, gear, heroIds]);
 }
+
+const SCROLL_FROM = 6;
 
 function Chip({ chip, onPress }: { chip: StripChip; onPress: () => void }) {
   const def = familyById[chip.family];
@@ -54,19 +56,26 @@ export function FamilyStrip({ counts, needs }: { counts: FamilyCounts; needs?: F
   const noteTips = useGameStore((state) => state.noteTips);
   useEffect(() => noteTips(['familyStrip']), [noteTips]);
   const opened = open ? chips.find((chip) => chip.family === open) : undefined;
+  const items = chips.map((chip) => <Chip key={chip.family} chip={chip} onPress={() => setOpen(chip.family)} />);
   return (
-    <View style={styles.strip} accessibilityLabel={t('families.strip')}>
+    <View accessibilityLabel={t('families.strip')}>
       {chips.length === 0 && <Text style={styles.none}>{t('families.none')}</Text>}
-      {chips.map((chip) => (
-        <Chip key={chip.family} chip={chip} onPress={() => setOpen(chip.family)} />
-      ))}
+      {/* Past a couple of lines' worth of chips, the strip scrolls sideways instead of wrapping. */}
+      {chips.length >= SCROLL_FROM ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+          {items}
+        </ScrollView>
+      ) : (
+        <View style={[styles.row, styles.wrap]}>{items}</View>
+      )}
       {open && <FamilySheet family={open} count={opened?.count ?? 0} onClose={() => setOpen(null)} />}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  strip: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'flex-start' },
+  row: { flexDirection: 'row', gap: 6, alignItems: 'flex-start' },
+  wrap: { flexWrap: 'wrap' },
   one: { gap: 2 },
   chip: {
     flexDirection: 'row',
