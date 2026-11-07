@@ -11,6 +11,7 @@ import { forgeList, pageTypeOf, type ForgeTierList, type ForgePageType } from '@
 import { tierRecipes } from '@/game/crafting/recipeUnlocks';
 import { highestUnlockedTier } from '@/game/dungeons/unlock';
 import { ELEMENTS, stoneId } from '@/game/elements';
+import { gearFamilyTags } from '@/game/families/families';
 import { canRestore, relicRecipe } from '@/game/forging/relics';
 import { guildBonus } from '@/game/guild/guild';
 import type { SaveData } from '@/game/save';
@@ -19,6 +20,7 @@ import { useGameStore } from '@/store/gameStore';
 import { colors, fonts, ui } from '@/theme';
 
 import { Button } from './Button';
+import { FamilyTags } from './FamilyTag';
 import { ForgeBanner } from './ForgeBanner';
 import { ForgeConfirmDialog, ROMAN, type ForgePending, type PopupAnchor } from './ForgeConfirmDialog';
 import { GearMarks } from './GearMarks';
@@ -305,6 +307,7 @@ function GearSlot({
         size={size}
         emoji={item.emoji}
         icon={item.icon}
+        families={gearFamilyTags(item)}
         accessibilityLabel={short ? `${tr(item.name)}, ${t('crafting.missing')}` : tr(item.name)}
         onPress={() =>
           wrapper.current?.measureInWindow((x, y, width, height) => onForge(recipeId, { x, y, width, height }))
@@ -382,6 +385,7 @@ function RelicList({ save, onRestore }: { save: SaveData; onRestore: (relicUid: 
                 <View style={styles.relicHead}>
                   <GearMarks tier={relic.tier} />
                   <Text style={styles.subtitle}>{tr(gearTypeNames[relic.gearType].name)}</Text>
+                  <FamilyTags tags={gearFamilyTags(relic, relic.id)} />
                 </View>
                 <Text style={styles.subtitle}>✦ {tr(relic.effect)}</Text>
                 <View style={recipeInputsStyles.inputs}>

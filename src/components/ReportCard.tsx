@@ -1,13 +1,14 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { elementInfo } from '@/content/elements';
+import { families } from '@/content/families';
 import { dungeonById, itemById, materialById, opportunityById, threatById } from '@/content/lookup';
 import type { ExpeditionReport, HeroState, OpportunityOutcome } from '@/game/types';
 import { formatDuration, t, tr } from '@/i18n';
 import { fonts, ui } from '@/theme';
 
 import { lootItems } from './LootReveal';
-import { GainsLine } from './IconLabel';
+import { GainsLine, IconLabel } from './IconLabel';
 import { goldLabel } from './Price';
 import { GameIcon } from './GameIcon';
 import { PixelBar } from './PixelBar';
@@ -67,6 +68,8 @@ export function ReportCard({ report, heroes, now, expanded, onToggle }: Props) {
     report.mealId ? `${itemById[report.mealId].emoji} ${tr(itemById[report.mealId].name)}` : null,
   ].filter((item): item is string => item !== null);
   const loot = [...lootItems(report), { text: `+${report.xp} XP` }];
+  // The families the party played with, highest level first.
+  const active = families.filter((family) => report.families?.[family.id]).sort((a, b) => report.families![b.id]! - report.families![a.id]!);
 
   return (
     <ParchmentCard title={tr(dungeon.name)} titleEmoji={dungeon.emoji} titleSub={`${outcomeText} · ${when}`} contentStyle={styles.content}>
@@ -74,6 +77,23 @@ export function ReportCard({ report, heroes, now, expanded, onToggle }: Props) {
         <Chip tone={win ? 'good' : 'bad'} label={t(`expeditions.outcome.${report.outcome}`)} />
         <DifficultyChip difficulty={dungeon.difficulty} />
       </View>
+      {active.length > 0 && (
+        <View style={styles.families} accessibilityLabel={t('families.strip')}>
+          {active.map((family) => {
+            const level = report.families![family.id]!;
+            return (
+              <IconLabel
+                key={family.id}
+                emoji={family.emoji}
+                icon={family.icon}
+                label={`${tr(family.name)} ${'●'.repeat(level)}${'○'.repeat(3 - level)}`}
+                size={16}
+                labelStyle={styles.line}
+              />
+            );
+          })}
+        </View>
+      )}
       <GainsLine gains={loot} size={16} gap={6} labelStyle={styles.line} />
       <GainsLine gains={extras} size={16} gap={6} labelStyle={styles.line} />
 
@@ -155,6 +175,7 @@ export function ReportCard({ report, heroes, now, expanded, onToggle }: Props) {
 const styles = StyleSheet.create({
   content: { gap: 6 },
   chips: { flexDirection: 'row', gap: 6 },
+  families: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   row: {
     minHeight: 44,
     flexDirection: 'row',

@@ -27,7 +27,8 @@ import type { SaveData } from '@/game/save';
 import { hasKey, keyDots } from '@/game/secrets/keys';
 import { tipPosition } from '@/game/secrets/tips';
 import { isAway } from '@/game/team/team';
-import type { GearInstance } from '@/game/types';
+import { gearFamilyTags } from '@/game/families/families';
+import type { GearDef, GearInstance } from '@/game/types';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useNow } from '@/hooks/useNow';
 import { clockConfig } from '@/content/clockConfig';
@@ -294,6 +295,7 @@ function RowSlot({
         count={face.count}
         equipped={row.kind === 'gear' ? worn.has(row.gear.uid) : undefined}
         legendary={row.kind === 'gear' && row.gear.rarity === 'legendary' ? true : undefined}
+        families={row.kind === 'gear' ? gearFamilyTags(itemById[row.gear.itemId] as GearDef, row.gear.relicId) : undefined}
         accessibilityLabel={face.label}
         onPress={() => wrapper.current?.measureInWindow((x, y, width, height) => onOpen({ x, y, width, height }))}
       />

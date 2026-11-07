@@ -4,7 +4,7 @@ import { dungeonById, itemById, threatById } from '@/content/lookup';
 import { placeInfo } from '@/content/places';
 import { weaknessByBoss } from '@/content/weaknesses';
 import type { Rotation } from '@/game/dungeons/rotation';
-import { briefingOf, firstWinAvailable, isDungeonAvailable } from '@/game/expeditions/expeditions';
+import { briefingOf, dungeonLootSource, firstWinAvailable, isDungeonAvailable } from '@/game/expeditions/expeditions';
 import { oddsBand } from '@/game/expeditions/odds';
 import type { SaveData } from '@/game/save';
 import { briefingCoverage } from '@/game/threats/coverage';
@@ -19,6 +19,7 @@ import { IconLabel, RewardLabel } from './IconLabel';
 import { Chip, DifficultyPips, DifficultyRing, EmberButton, ParchmentCard } from './ui';
 import { Text } from './Text';
 import { ThreatCoverageChips } from './ThreatDetail';
+import { TrophyLine } from './TrophyLine';
 import { GameIcon } from './GameIcon';
 
 type Props = {
@@ -111,6 +112,7 @@ export function DungeonCard({ save, dungeon, rotation, now, durationMs, chance, 
               <Text style={styles.sub}>{t('expeditions.boss')}</Text>
               <EnemyTags mob={dungeon.boss} />
             </View>
+            <TrophyLine source={dungeonLootSource(dungeon)} labelStyle={styles.line} />
             {newTier && <RewardLabel text={t('expeditions.newTierBonus')} size={16} labelStyle={styles.line} />}
             {firstWin && <RewardLabel text={t('expeditions.firstWinToday')} size={16} labelStyle={styles.line} />}
             {weakness && (

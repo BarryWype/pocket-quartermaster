@@ -16,7 +16,7 @@ const add = (counts: FamilyCounts, family: FamilyId, tags: number): void => {
   if (tags > 0) counts[family] = (counts[family] ?? 0) + tags;
 };
 
-const gearDefOf = (save: SaveData, gear: GearInstance): GearDef => itemById[gear.itemId] as GearDef;
+const gearDefOf = (gear: GearInstance): GearDef => itemById[gear.itemId] as GearDef;
 
 /** One family tag with where it came from: magic sources fall in an anti-magic zone, class Watch tags in thick fog. */
 export type HeroFamilyTag = {
@@ -28,21 +28,29 @@ export type HeroFamilyTag = {
 };
 
 /** The hero's family tags one by one, with their source (see heroFamilyTags for the sums). */
-export function heroFamilyTagSources(save: SaveData, hero: HeroState): HeroFamilyTag[] {
+export function heroFamilyTagSources(save: Pick<SaveData, 'gear'>, hero: HeroState): HeroFamilyTag[] {
   const heroClass = heroClasses[hero.classId];
   const tags: HeroFamilyTag[] = [{ family: heroClass.familyTag, count: 1, magic: heroClass.damageStat === 'magic', fromClass: true, source: 'class' }];
   for (const slot of ['weapon', 'armor', 'offhand', 'trinket'] as const) {
     const uid = hero.equipment[slot];
     const gear = uid ? save.gear.find((g) => g.uid === uid) : undefined;
     if (!gear) continue;
-    const item = gearDefOf(save, gear);
-    if (item.gearType && !item.workTool) {
-      const profile = gearProfiles[item.gearType];
-      tags.push({ family: profile.familyTag, count: profile.twoHanded ? 2 : 1, magic: profile.damageStat === 'magic', fromClass: false, source: 'gear' });
+    for (const tag of gearFamilyTags(gearDefOf(gear), gear.relicId)) {
+      tags.push({ ...tag, fromClass: false, source: tag.extra ? 'relic' : 'gear' });
     }
-    const extraFamily = gear.relicId ? relicById[gear.relicId].extraFamily : undefined;
-    if (extraFamily) tags.push({ family: extraFamily, count: 1, magic: false, fromClass: false, source: 'relic' });
   }
+  return tags;
+}
+
+/** A piece's family tags: its type's (2 on a two-handed weapon), then its relic's extra tag. Trinkets and work tools carry none. */
+export function gearFamilyTags(item: Pick<GearDef, 'gearType' | 'workTool'>, relicId?: string): { family: FamilyId; count: number; magic: boolean; extra: boolean }[] {
+  const tags: { family: FamilyId; count: number; magic: boolean; extra: boolean }[] = [];
+  if (item.gearType && !item.workTool) {
+    const profile = gearProfiles[item.gearType];
+    tags.push({ family: profile.familyTag, count: profile.twoHanded ? 2 : 1, magic: profile.damageStat === 'magic', extra: false });
+  }
+  const extraFamily = relicId ? relicById[relicId].extraFamily : undefined;
+  if (extraFamily) tags.push({ family: extraFamily, count: 1, magic: false, extra: true });
   return tags;
 }
 
@@ -54,12 +62,12 @@ export function familyCountsOf(tags: HeroFamilyTag[]): FamilyCounts {
 }
 
 /** The family tags one hero contributes: their class's tag, their gear's and their relic extras. */
-export function heroFamilyTags(save: SaveData, hero: HeroState): FamilyCounts {
+export function heroFamilyTags(save: Pick<SaveData, 'gear'>, hero: HeroState): FamilyCounts {
   return familyCountsOf(heroFamilyTagSources(save, hero));
 }
 
 /** The family tags a whole party contributes, summed over the heroes found in the roster. */
-export function partyFamilies(save: SaveData, heroIds: string[]): FamilyCounts {
+export function partyFamilies(save: Pick<SaveData, 'heroes' | 'gear'>, heroIds: string[]): FamilyCounts {
   const counts: FamilyCounts = {};
   const byId = new Map(save.heroes.map((hero) => [hero.id, hero]));
   for (const id of heroIds) {

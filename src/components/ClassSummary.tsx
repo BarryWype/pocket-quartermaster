@@ -8,6 +8,7 @@ import type { ArmourType, HeroClassId, WeaponType } from '@/game/types';
 import { t, tr } from '@/i18n';
 import { colors } from '@/theme';
 
+import { FamilyTag } from './FamilyTag';
 import { Text } from './Text';
 
 /** The weapon and armour types a class has at this affinity, by name. */
@@ -17,16 +18,30 @@ const typesAt = (classId: HeroClassId, affinity: Affinity) =>
     .map(([type]) => tr(gearTypeNames[type].name).toLowerCase())
     .join(', ');
 
-/** A class at a glance: family (and rarity when rare), signature in one line, favoured ▲ and unfit ▼ types. */
-export function ClassSummary({ classId, affinities = true, light = false }: { classId: HeroClassId; affinities?: boolean; light?: boolean }) {
+/** A class at a glance: role (and rarity when rare), team family, signature in one line, favoured ▲ and unfit ▼ types. */
+export function ClassSummary({
+  classId,
+  affinities = true,
+  light = false,
+  familyTag = true,
+}: {
+  classId: HeroClassId;
+  affinities?: boolean;
+  light?: boolean;
+  /** The class's team family beside its role; off where the hero card already shows it. */
+  familyTag?: boolean;
+}) {
   const def = heroClasses[classId];
   const unfit = typesAt(classId, 'unfit');
   return (
     <View style={styles.summary}>
-      <Text style={[styles.family, light && styles.light]}>
-        {t(`classes.family.${def.family}`)}
-        {def.rarity === 'rare' ? ` · ✦ ${t('classes.rare')}` : ''}
-      </Text>
+      <View style={styles.head}>
+        <Text style={[styles.family, light && styles.light]}>
+          {t(`classes.family.${def.family}`)}
+          {def.rarity === 'rare' ? ` · ✦ ${t('classes.rare')}` : ''}
+        </Text>
+        {familyTag && <FamilyTag family={def.familyTag} labelStyle={light ? styles.light : undefined} />}
+      </View>
       <Text style={[styles.signature, light && styles.light]}>{signatureText(classId)}</Text>
       {affinities && (
         <View>
@@ -40,6 +55,7 @@ export function ClassSummary({ classId, affinities = true, light = false }: { cl
 
 const styles = StyleSheet.create({
   summary: { gap: 2 },
+  head: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   family: { fontSize: 15, color: colors.muted, textTransform: 'uppercase' },
   signature: { fontSize: 17 },
   light: { color: colors.parchment },

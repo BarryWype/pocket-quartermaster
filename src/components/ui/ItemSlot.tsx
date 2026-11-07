@@ -1,8 +1,10 @@
 import { Pressable, StyleSheet, View, type ImageSourcePropType, type StyleProp, type ViewStyle } from 'react-native';
 
 import { EquippedBadge } from '@/components/EquippedBadge';
+import { FamilyTags } from '@/components/FamilyTag';
 import { GameIcon } from '@/components/GameIcon';
 import { Text } from '@/components/Text';
+import type { FamilyId } from '@/content/families';
 import { gearRules } from '@/content/gear';
 import { fonts, ui } from '@/theme';
 
@@ -21,13 +23,15 @@ type Props = {
   equipped?: boolean;
   /** A Legendary piece: a gold frame around the socket. */
   legendary?: boolean;
+  /** A piece's family tags, small in the socket's bottom-left corner. */
+  families?: { family: FamilyId; count: number }[];
   onPress?: () => void;
   accessibilityLabel: string;
   style?: StyleProp<ViewStyle>;
 };
 
 /** A square item socket: selected, ready, short, empty or locked. */
-export function ItemSlot({ state, emoji, icon, count, mark, size, faded, equipped, legendary, onPress, accessibilityLabel, style }: Props) {
+export function ItemSlot({ state, emoji, icon, count, mark, size, faded, equipped, legendary, families, onPress, accessibilityLabel, style }: Props) {
   const filled = state === 'selected' || state === 'ready' || state === 'short';
   const shown = state === 'locked' ? '🔒' : state === 'empty' ? undefined : emoji;
   const face = (
@@ -60,6 +64,9 @@ export function ItemSlot({ state, emoji, icon, count, mark, size, faded, equippe
       {state === 'short' && <View style={styles.shortMark} pointerEvents="none" />}
       {count !== undefined && <Text style={styles.count}>{count}</Text>}
       {mark !== undefined && <Text style={[styles.mark, mark === 'up' ? styles.markUp : styles.markDown]}>{mark === 'up' ? '▲' : '▼'}</Text>}
+      {families && (
+        <FamilyTags tags={families} named={false} size={Math.round((size ?? 60) * 0.24)} style={styles.families} labelStyle={styles.familyCount} />
+      )}
       {equipped && <EquippedBadge size={size ?? 60} />}
     </View>
   );
@@ -123,6 +130,8 @@ const styles = StyleSheet.create({
     textShadowRadius: 0,
   },
   mark: { position: 'absolute', top: 1, left: 2, fontSize: 12 },
+  families: { position: 'absolute', left: 3, bottom: 3, gap: 2 },
+  familyCount: { fontFamily: fonts.serifBold, fontSize: 11, color: ui.onWood },
   markUp: { color: '#7FC46A' },
   markDown: { color: '#E0704E' },
 });

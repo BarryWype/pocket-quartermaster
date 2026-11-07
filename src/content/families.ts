@@ -1,6 +1,8 @@
 // Families: team tags counted across the party to unlock set bonuses
 // (doc/design/families/).
 
+import type { ImageSourcePropType } from 'react-native';
+
 import type { ThreatId } from '@/game/types';
 
 export type FamilyId =
@@ -30,24 +32,25 @@ export type FamilyDef = {
   /** Only threat families: the threat they answer. */
   answers?: FamilyThreat;
   emoji: string;
+  icon: ImageSourcePropType;
 };
 
 export const families: FamilyDef[] = [
-  { id: 'faith', name: 'Faith', kind: 'threat', answers: 'holy', emoji: '✨' },
-  { id: 'wild', name: 'Wild', kind: 'threat', answers: 'beasts', emoji: '🐺' },
-  { id: 'watch', name: 'Watch', kind: 'threat', answers: 'darkness', emoji: '👁️' },
-  { id: 'cunning', name: 'Cunning', kind: 'threat', answers: 'traps', emoji: '🪤' },
-  { id: 'venom', name: 'Venom', kind: 'threat', answers: 'poison', emoji: '🧪' },
-  { id: 'warding', name: 'Warding', kind: 'threat', answers: 'element', emoji: '🔰' },
-  { id: 'breaker', name: 'Breaker', kind: 'threat', answers: 'armoured', emoji: '🔨' },
-  { id: 'bulwark', name: 'Bulwark', kind: 'playstyle', emoji: '🛡️' },
-  { id: 'bloodrage', name: 'Bloodrage', kind: 'playstyle', emoji: '🩸' },
-  { id: 'shadow', name: 'Shadow', kind: 'playstyle', emoji: '🌑' },
-  { id: 'volley', name: 'Volley', kind: 'playstyle', emoji: '🏹' },
-  { id: 'spellweave', name: 'Spellweave', kind: 'playstyle', emoji: '🌀' },
-  { id: 'pack', name: 'Pack', kind: 'playstyle', emoji: '🐾' },
-  { id: 'rally', name: 'Rally', kind: 'playstyle', emoji: '📯' },
-  { id: 'plunder', name: 'Plunder', kind: 'playstyle', emoji: '💰' },
+  { id: 'faith', name: 'Faith', kind: 'threat', answers: 'holy', emoji: '✨', icon: require('../../assets/icons/abilities-scaled/holy-star.png') },
+  { id: 'wild', name: 'Wild', kind: 'threat', answers: 'beasts', emoji: '🐺', icon: require('../../assets/icons/abilities-scaled/bull-head.png') },
+  { id: 'watch', name: 'Watch', kind: 'threat', answers: 'darkness', emoji: '👁️', icon: require('../../assets/icons/abilities-scaled/stone-tower.png') },
+  { id: 'cunning', name: 'Cunning', kind: 'threat', answers: 'traps', emoji: '🪤', icon: require('../../assets/icons/relics/lockpicks.png') },
+  { id: 'venom', name: 'Venom', kind: 'threat', answers: 'poison', emoji: '🧪', icon: require('../../assets/icons/abilities-scaled/poison-net.png') },
+  { id: 'warding', name: 'Warding', kind: 'threat', answers: 'element', emoji: '🔰', icon: require('../../assets/icons/abilities-scaled/ice-shield.png') },
+  { id: 'breaker', name: 'Breaker', kind: 'threat', answers: 'armoured', emoji: '🔨', icon: require('../../assets/icons/abilities-scaled/war-hammer.png') },
+  { id: 'bulwark', name: 'Bulwark', kind: 'playstyle', emoji: '🛡️', icon: require('../../assets/icons/abilities-scaled/bronze-shield.png') },
+  { id: 'bloodrage', name: 'Bloodrage', kind: 'playstyle', emoji: '🩸', icon: require('../../assets/icons/abilities-scaled/red-slashes.png') },
+  { id: 'shadow', name: 'Shadow', kind: 'playstyle', emoji: '🌑', icon: require('../../assets/icons/abilities-scaled/crossed-daggers.png') },
+  { id: 'volley', name: 'Volley', kind: 'playstyle', emoji: '🏹', icon: require('../../assets/icons/abilities-scaled/arrow-strike.png') },
+  { id: 'spellweave', name: 'Spellweave', kind: 'playstyle', emoji: '🌀', icon: require('../../assets/icons/abilities-scaled/water-vortex.png') },
+  { id: 'pack', name: 'Pack', kind: 'playstyle', emoji: '🐾', icon: require('../../assets/icons/abilities-scaled/bat-moon.png') },
+  { id: 'rally', name: 'Rally', kind: 'playstyle', emoji: '📯', icon: require('../../assets/icons/abilities-scaled/hanging-banner.png') },
+  { id: 'plunder', name: 'Plunder', kind: 'playstyle', emoji: '💰', icon: require('../../assets/icons/abilities-scaled/golden-chalice.png') },
 ];
 
 export const familyById = Object.fromEntries(families.map((family) => [family.id, family])) as Record<FamilyId, FamilyDef>;

@@ -14,7 +14,7 @@ import { partWeights } from './parts';
 import { rollLootTrinket } from './trinkets';
 import type { LootRequest } from './roll';
 import { rollValuable } from './valuables';
-import type { Loot, LootCategory, MapRarity } from './types';
+import type { Loot, LootCategory, LootSourceId, MapRarity } from './types';
 
 /** Fills one category's drop into the loot being built. */
 export type Generator = (req: LootRequest, loot: Loot) => void;
@@ -146,10 +146,16 @@ function addParts(req: LootRequest, loot: Loot, [min, max]: [number, number]): v
   addStack(loot, pick.materialId, req.rng.int(min, max));
 }
 
+/** What a source's trophy is, or null when its loot has no Trophies column (see lootConfig.trophies). */
+export function trophyOf(source: LootSourceId): 'relic' | 'parts' | 'stone' | null {
+  if (lootMatrix[source].marks.trophies === '—') return null;
+  return lootConfig.trophies.bySource[source] ?? 'parts';
+}
+
 /** A boss's or elite's trophy, by source: a relic, monster parts or an elemental stone. */
 function trophies(req: LootRequest, loot: Loot): void {
-  const { bySource, parts } = lootConfig.trophies;
-  const kind = bySource[req.source] ?? 'parts';
+  const { parts } = lootConfig.trophies;
+  const kind = trophyOf(req.source) ?? 'parts';
   if (kind === 'relic') loot.relics.push(randomRelic(req.tier, req.rng));
   else if (kind === 'stone') addStack(loot, stoneId(req.element ?? ELEMENTS[req.rng.int(0, ELEMENTS.length - 1)]), 1);
   else addParts(req, loot, parts);

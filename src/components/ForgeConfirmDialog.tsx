@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, View, type ImageSourcePropType } fro
 
 import { affixById } from '@/content/affixes';
 import { gearProfiles, gearTypeNames } from '@/content/equipment';
+import type { FamilyId } from '@/content/families';
 import { gearRules, rarityNames } from '@/content/gear';
 import { heroClasses } from '@/content/heroes';
 import { itemById, materialById, monsterPartById, recipeById, relicById, valuableById } from '@/content/lookup';
@@ -13,9 +14,11 @@ import { canRestore } from '@/game/forging/relics';
 import type { SaveData } from '@/game/save';
 import type { GearDef, GearType } from '@/game/types';
 import { affinityOf } from '@/game/team/team';
+import { gearFamilyTags } from '@/game/families/families';
 import { t, tr } from '@/i18n';
 import { fonts, ui } from '@/theme';
 
+import { FamilyTags } from './FamilyTag';
 import { affixLine, affixRangeLine } from './affixText';
 import { GameIcon } from './GameIcon';
 import { Text } from './Text';
@@ -149,6 +152,7 @@ export function ForgeConfirmDialog({
   let note: string | undefined;
   let lines: PopupLine[] = [];
   let children: ReactNode;
+  let tags: { family: FamilyId; count: number }[];
   let secondary: { title: string; onPress: () => void; disabled?: boolean } | undefined;
   let action: { title: string; onPress: () => void; disabled?: boolean; emoji?: string; icon?: ImageSourcePropType };
 
@@ -160,6 +164,7 @@ export function ForgeConfirmDialog({
     icon = relic.icon;
     subtitle = `${tr(gearTypeNames[confirm.gearType].name)} · ${t('crafting.tierShort', { tier: ROMAN[confirm.tier - 1] })}`;
     lines = [{ tone: 'keyword', text: tr(relic.effect) }];
+    tags = gearFamilyTags(relic, relic.id);
     action = { title: t('crafting.restore'), disabled: !canRestore(save, pending.relicUid), onPress: onConfirm };
   } else {
     if (pending.kind !== 'forge' || confirm.kind !== 'forge') return null;
@@ -169,6 +174,7 @@ export function ForgeConfirmDialog({
     title = tr(item.name);
     emoji = item.emoji;
     icon = item.icon;
+    tags = gearFamilyTags(item);
     subtitle = (
       <Text>
         <Text style={[{ color: gearRules.colors[confirm.expectedRarity] }]}>{tr(rarityNames[confirm.expectedRarity])}</Text>
@@ -260,6 +266,7 @@ export function ForgeConfirmDialog({
           action={action}
           secondary={secondary}
         >
+          <FamilyTags tags={tags} />
           {children}
         </ItemPopup>
       )}

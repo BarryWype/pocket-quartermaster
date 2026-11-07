@@ -90,6 +90,8 @@ export type LaunchPlan = {
   held: number;
   supply: SupplyPick;
   hunger: Hunger;
+  /** Cunning 2 cut the duration. */
+  shortcut: boolean;
 };
 
 const provision = (id: string | null | undefined) => {
@@ -134,6 +136,7 @@ export function launchPlan(
     held: supplyHeld(save.consumables),
     supply,
     hunger: hungerFor(supply.points, need),
+    shortcut: shortcut < 1,
   };
 }
 
@@ -598,6 +601,7 @@ export function resolveExpedition(
     ...(firstWin ? { firstWin } : {}),
     ...(firstTierClear ? { firstTierClear } : {}),
     ...(firstDungeonClear ? { firstDungeonClear } : {}),
+    families: run.families,
     consumablesUsed,
     log,
     seen: false,

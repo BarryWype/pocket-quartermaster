@@ -9,9 +9,11 @@ import { gearIconOf } from '@/game/gear/gearIcon';
 import { affinityOf, equipPreview, healingPotion } from '@/game/team/team';
 import type { SaveData } from '@/game/save';
 import type { EquipmentSlot, GearDef, HeroState, StatKey, Stats } from '@/game/types';
+import { gearFamilyTags } from '@/game/families/families';
 import { t, tr } from '@/i18n';
 import { colors } from '@/theme';
 
+import { FamilyTags } from './FamilyTag';
 import { Button } from './Button';
 import { AffixLines } from './AffixLines';
 import { GearDetails } from './GearDetails';
@@ -144,7 +146,12 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, bossId?
         color: greyed ? colors.muted : gearRules.colors[gear.rarity],
         disabled: greyed,
         equipped,
-        marks: <GearMarks tier={item.tier} affinity={affinity} />,
+        marks: (
+          <View style={styles.marks}>
+            <FamilyTags tags={gearFamilyTags(item, gear.relicId)} named={false} />
+            <GearMarks tier={item.tier} affinity={affinity} />
+          </View>
+        ),
       };
     });
 }
@@ -218,4 +225,5 @@ const styles = StyleSheet.create({
   worn: { gap: 2, paddingBottom: 6, borderBottomWidth: 2, borderBottomColor: colors.muted },
   wornLabel: { fontSize: 15, color: colors.muted },
   subtitle: { fontSize: 17, color: colors.muted },
+  marks: { alignItems: 'flex-end', gap: 4 },
 });

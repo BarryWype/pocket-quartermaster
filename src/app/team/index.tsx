@@ -1,6 +1,7 @@
 import { rosterRules } from '@/content/roster';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { FamilyTag } from '@/components/FamilyTag';
 import { statIcons } from '@/components/GearRow';
 import { GameIcon } from '@/components/GameIcon';
 import { HpBar } from '@/components/HpBar';
@@ -90,9 +91,9 @@ function TeamContent() {
                   <Text style={[styles.status, !away && !escort && !patrol && styles.statusReady]}>{status}</Text>
                 </View>
                 <View style={styles.classRow}>
-                  <Text style={styles.classLine}>
-                    {tr(heroClass.name)} · {tr(traitById[hero.trait]?.name ?? '')}
-                  </Text>
+                  <Text style={styles.classLine}>{tr(heroClass.name)}</Text>
+                  <FamilyTag family={heroClass.familyTag} named={false} size={14} />
+                  <Text style={styles.classLine}>{tr(traitById[hero.trait]?.name ?? '')}</Text>
                   <SpecialLabel classId={hero.classId} special={hero.special} labelStyle={styles.classLine} />
                 </View>
                 <HpBar save={save} hero={hero} />

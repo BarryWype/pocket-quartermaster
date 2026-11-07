@@ -35,6 +35,7 @@ import { highestUnlockedTier } from '@/game/dungeons/unlock';
 import { careProblem, drinkProblem } from '@/game/team/health';
 import { affinityOf, canDismiss, equip, equipPreview, gearKeywordsOf, hasPotionSlot, healingPotion, heroDamageStat, heroStats, isAway, isBusy, statSources, upgradeMark } from '@/game/team/team';
 import { ClassSummary } from '@/components/ClassSummary';
+import { FamilyTag } from '@/components/FamilyTag';
 import { SpecialLabel } from '@/components/SpecialLabel';
 import type { EquipmentSlot, GearDef, GearInstance, HeroState, Stats } from '@/game/types';
 import type { SaveData } from '@/game/save';
@@ -248,6 +249,7 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
           </View>
           <View style={styles.classNameRow}>
             <Text style={styles.className}>{tr(heroClass.name)}</Text>
+            <FamilyTag family={heroClass.familyTag} size={14} labelStyle={styles.className} />
             {element && <IconLabel emoji={element.emoji} label={tr(element.name)} size={14} labelStyle={styles.className} />}
           </View>
           <View style={styles.traitRow}>
@@ -311,7 +313,7 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
             ))}
         </View>
       )}
-      <ClassSummary classId={hero.classId} />
+      <ClassSummary classId={hero.classId} familyTag={false} />
       {keywords.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.heading}>{t('hero.keywords')}</Text>

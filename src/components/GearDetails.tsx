@@ -3,9 +3,11 @@ import { StyleSheet, View, type StyleProp, type TextStyle, type ViewStyle } from
 import { gearRules, rarityNames } from '@/content/gear';
 import { itemById } from '@/content/lookup';
 import type { GearDef, GearInstance } from '@/game/types';
+import { gearFamilyTags } from '@/game/families/families';
 import { tr } from '@/i18n';
 
 import { AffixLines } from './AffixLines';
+import { FamilyTags } from './FamilyTag';
 import { gearStatsParts } from './GearRow';
 import { PartsLine } from './IconLabel';
 import { Text } from './Text';
@@ -20,17 +22,19 @@ type Props = {
 };
 
 /**
- * What a piece is, the same everywhere it is described: its own stats after
- * the roll, its work-tool line, its unique and each of its affixes.
+ * What a piece is, the same everywhere it is described: its family tags, its
+ * own stats after the roll, its work-tool line, its unique and each of its affixes.
  */
 export function GearDetails({ gear, compact, style, labelStyle }: Props) {
   const item = itemById[gear.itemId] as GearDef;
   const stats = gearStatsParts(gear);
   const tool = workToolParts(item);
+  const tags = gearFamilyTags(item, gear.relicId);
   const hasAffixes = gear.relicId !== undefined || gear.unique !== undefined || gear.affixes.length > 0;
-  if (stats.length === 0 && tool.length === 0 && !hasAffixes) return null;
+  if (stats.length === 0 && tool.length === 0 && !hasAffixes && tags.length === 0) return null;
   return (
     <View style={[styles.details, style]}>
+      <FamilyTags tags={tags} />
       {stats.length > 0 && <PartsLine parts={stats} sep="   " labelStyle={labelStyle} />}
       {tool.length > 0 && <PartsLine parts={tool} labelStyle={labelStyle} />}
       <AffixLines piece={gear} compact={compact} labelStyle={labelStyle} />

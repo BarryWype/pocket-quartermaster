@@ -8,7 +8,7 @@ import type { GearDef, GearInstance, HeroClassId, HeroState } from '@/game/types
 
 import { createInitialSave } from '../save';
 
-import { activeFamilies, familyLevel, heroFamilyTags, partyFamilies } from './families';
+import { activeFamilies, familyLevel, gearFamilyTags, heroFamilyTags, partyFamilies } from './families';
 
 const piece = (uid: string, itemId: string, extra: Partial<GearInstance> = {}): GearInstance => ({
   uid,
@@ -103,5 +103,23 @@ describe('partyFamilies', () => {
     ]);
     expect(partyFamilies(save, ['w', 'nobody'])).toEqual({ bulwark: 3, rally: 1 });
     expect(activeFamilies(partyFamilies(save, ['w']))).toEqual([{ family: 'bulwark', count: 3, level: 1 }]);
+  });
+});
+
+describe('gearFamilyTags', () => {
+  test('a piece carries its type’s tag, 2 on a two-handed weapon, then its relic’s extra tag', () => {
+    expect(gearFamilyTags({ gearType: 'sword' })).toEqual([{ family: 'rally', count: 1, magic: false, extra: false }]);
+    expect(gearFamilyTags({ gearType: 'warhammer' })).toEqual([{ family: 'breaker', count: 2, magic: false, extra: false }]);
+    const relic = relics.find((r) => r.extraFamily)!;
+    expect(gearFamilyTags({ gearType: relic.gearType }, relic.id)).toEqual([
+      { family: gearProfiles[relic.gearType].familyTag, count: gearProfiles[relic.gearType].twoHanded ? 2 : 1, magic: gearProfiles[relic.gearType].damageStat === 'magic', extra: false },
+      { family: relic.extraFamily, count: 1, magic: false, extra: true },
+    ]);
+  });
+
+  test('trinkets and work tools carry none', () => {
+    const trinket = items.find((item) => item.slot === 'trinket') as GearDef;
+    expect(gearFamilyTags(trinket)).toEqual([]);
+    expect(gearFamilyTags({ gearType: 'shield', workTool: { kind: 'tongs', job: 'smith' } })).toEqual([]);
   });
 });

@@ -31,6 +31,7 @@ import { Sheet } from './Sheet';
 import { SpecialLabel } from './SpecialLabel';
 import { Text } from './Text';
 import { ThreatChip } from './ThreatChip';
+import { TrophyLine } from './TrophyLine';
 import { IconLabel, PartsLine } from './IconLabel';
 import { asRecalled, includesWorking, recallWorkingHeroes } from './workingHeroes';
 
@@ -148,6 +149,7 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
           {foes.map((mob) => (
             <EnemyTags key={mob.id} mob={mob} />
           ))}
+          <TrophyLine source={kind} />
           <Text style={styles.subtitle}>{t('sanctum.heroes')}</Text>
           <View style={styles.chips}>
             {candidates.map((hero) => (

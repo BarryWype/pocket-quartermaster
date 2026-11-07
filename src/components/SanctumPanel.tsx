@@ -32,6 +32,7 @@ import { SpecialLabel } from './SpecialLabel';
 import { Text } from './Text';
 import { IconLabel } from './IconLabel';
 import { asRecalled, includesWorking, recallWorkingHeroes } from './workingHeroes';
+import { TrophyLine } from './TrophyLine';
 
 const LINE_DELAY_MS = 600;
 
@@ -166,6 +167,7 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
           <Text style={styles.subtitle}>{t('sanctum.guardian', { name: tr(sanctum.guardian.name) })}</Text>
           <EnemyTags mob={sanctumGuardian(sanctum, tier ?? 1)} named={false} />
           <Text style={styles.muted}>{tr(sanctum.guardian.description)}</Text>
+          <TrophyLine source="sanctum" />
           </>
         )}
 

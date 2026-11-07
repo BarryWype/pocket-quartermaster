@@ -7,6 +7,7 @@ import type { PlaceTipSource, TipSource } from '@/content/secrets';
 import type { Difficulty } from '@/content/difficulty';
 import type { Rarity } from '@/content/gear';
 import type { FamilyId } from '@/content/families';
+import type { FamilyLevels } from './families/families';
 
 import type { Element } from './elements';
 import type { LatLng } from './generation/types';
@@ -893,6 +894,8 @@ export type ExpeditionReport = {
   firstTierClear?: boolean;
   /** The first clear of a chain dungeon: its row was rolled on top (once per dungeon). */
   firstDungeonClear?: boolean;
+  /** The party's family levels the run played with (reports from before families have none). */
+  families?: FamilyLevels;
   consumablesUsed: string[];
   log: string[];
   seen: boolean;
