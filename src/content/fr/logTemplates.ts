@@ -120,6 +120,8 @@ export const frLogTemplates: typeof logTemplates = {
     spellweave1: ' Les sorts de {hero} ont gagné en force à chaque tour.',
     rally1: ' {hero} a rallié le groupe : tout le monde a frappé plus fort.',
     watch1: ' La Vigie les a vus venir : {hero} a agi en premier.',
+    watch2: ' La Vigie a repéré l’embuscade : les ennemis ont perdu leur premier tour.',
+    breaker2: ' Le coup écrasant de {hero} a laissé un ennemi chancelant.',
     volley1: ' {hero} a tiré avant que l’ennemi ne puisse approcher.',
     watch3: ' Rien n’a surpris la Vigie : {hero} a frappé le premier coup.',
     watch3Crit: ' {hero} a trouvé la faille dans la garde d’un ennemi d’élite.',

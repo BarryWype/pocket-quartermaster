@@ -144,6 +144,8 @@ export const logTemplates = {
     spellweave1: ' {hero}’s spells grew stronger each round.',
     rally1: ' {hero} rallied the party: everyone hit harder.',
     watch1: ' The Watch saw them coming: {hero} moved first.',
+    watch2: ' The Watch spotted the ambush: the enemies lost their first turn.',
+    breaker2: ' {hero}’s crushing blow left a foe reeling.',
     volley1: ' {hero} loosed before the enemy could close in.',
     watch3: ' Nothing caught the Watch off guard: {hero} struck first.',
     watch3Crit: ' {hero} found the gap in an elite’s guard.',

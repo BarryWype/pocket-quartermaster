@@ -345,6 +345,31 @@ export const familyEffects: FamilyEffect[] = [
       },
     },
   },
+  // Control.
+  {
+    family: 'watch',
+    level: 2,
+    hooks: {
+      fightStart: (f) => {
+        if (!f.ambush) return;
+        f.ambush = false;
+        for (const enemy of f.enemies) enemy.staggered = true;
+        const watcher = f.heroOf('watch');
+        f.log('watch2', watcher ? idOf(watcher) : null);
+      },
+    },
+  },
+  {
+    family: 'breaker',
+    level: 2,
+    hooks: {
+      onHit: (h) => {
+        if (!h.crit || h.target.hp <= 0 || h.target.staggered) return;
+        h.target.staggered = true;
+        h.log('breaker2', idOf(h.hero));
+      },
+    },
+  },
 ];
 
 /** The hooks a party's levels run, by hook, in effect order. */
