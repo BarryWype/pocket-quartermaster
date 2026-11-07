@@ -23,6 +23,7 @@ import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
 
+import { FamilyStrip, usePartyFamilies } from './FamilyStrip';
 import { EnemyTags } from './EnemyTags';
 import { DifficultyChip, EmberButton, WoodButton } from './ui';
 import { GameIcon } from './GameIcon';
@@ -62,6 +63,7 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
   // Working heroes are listed with their mark and recalled on challenge.
   const candidates = save.heroes.filter((hero) => !isAway(save, hero.id));
   const [heroIds, setHeroIds] = useState(candidates.map((h) => h.id));
+  const families = usePartyFamilies(heroIds);
   const [result, setResult] = useState<SanctumResult | null>(null);
   const [shown, setShown] = useState(0);
   const [openedAt] = useState(() => Date.now());
@@ -205,6 +207,7 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
                   </Pressable>
                 ))}
               </View>
+              <FamilyStrip counts={families} />
               </>
             )}
             {heroIds.length > 0 &&

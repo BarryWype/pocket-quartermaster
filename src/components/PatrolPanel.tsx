@@ -17,6 +17,7 @@ import type { LatLng } from '@/game/generation/types';
 import { isPatrolKind, type PatrolSpawn } from '@/game/patrols/generate';
 import { patrolDungeon, patrolFightProblem, patrolOdds, type PatrolFightProblem } from '@/game/patrols/fight';
 import { distanceTo } from '@/game/patrols/visibility';
+import { threatNeeds } from '@/game/families/strip';
 import { currentHp, isExhausted, maxHp } from '@/game/team/health';
 import { isAway } from '@/game/team/team';
 import { formatDuration, formatPercent, localized, t, tr } from '@/i18n';
@@ -27,6 +28,7 @@ import { useWorldStore } from '@/store/worldStore';
 import { colors, pixel } from '@/theme';
 
 import { EnemyTags } from './EnemyTags';
+import { FamilyStrip, usePartyFamilies } from './FamilyStrip';
 import { DifficultyChip, EmberButton, WoodButton } from './ui';
 import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
@@ -66,6 +68,8 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
     kind && difficulty ? candidates.slice(0, patrolFights[difficulty].party).map((hero) => hero.id) : [],
   );
   const texts = localized({ en: patrolTexts, fr: frPatrolTexts });
+  const families = usePartyFamilies(heroIds);
+  const needs = useMemo(() => (kind ? threatNeeds([patrolThreat(spawn)]) : []), [kind, spawn]);
 
   // The odds are computed off the first frame (issue 12's method): the panel
   // opens at once, shows "…" until they land, and odds already held for exactly
@@ -178,6 +182,7 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
               </Pressable>
             ))}
           </View>
+          <FamilyStrip counts={families} needs={needs} />
           {escortId !== undefined && heroIds.includes(escortId) && <Text style={styles.muted}>{t('patrols.escortNote')}</Text>}
           </>
         )}

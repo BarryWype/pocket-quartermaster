@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { rosterRules } from '@/content/roster';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { familyOfThreat } from '@/content/families';
 import { heroClasses } from '@/content/heroes';
 import { itemById, opportunityById } from '@/content/lookup';
 import { briefingOf, dungeonLootSource, launchPlan, type Loadout } from '@/game/expeditions/expeditions';
@@ -25,6 +26,8 @@ import { colors, pixel } from '@/theme';
 
 import { Button } from './Button';
 import { EquipPicker } from './EquipPicker';
+import { FamilyStrip } from './FamilyStrip';
+import { FamilyTag } from './FamilyTag';
 import { HpBar } from './HpBar';
 import { DifficultyChip } from './ui';
 import { Overlay } from './Overlay';
@@ -147,6 +150,11 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
     () => briefingCoverage(save, party, briefing, minute * 60_000, optIn),
     [save, party, briefing, minute, optIn],
   );
+  // The families the briefing's threats need, as the threat chips score them.
+  const needs = useMemo(
+    () => coverage.threats.map((threat) => ({ family: familyOfThreat(threat.threat.id), level: threat.threat.level, met: threat.state === 'met' })),
+    [coverage],
+  );
   const plan = useMemo(
     () => launchPlan(save, dungeon, party, loadout, briefing),
     [save, dungeon, party, loadout, briefing],
@@ -226,6 +234,7 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
               <DifficultyChip difficulty={dungeon.difficulty} />
             </View>
             <ThreatCoverageChips coverage={coverage} labelled={save.tutorial.step !== 'done'} />
+            <FamilyStrip counts={coverage.families} needs={needs} />
             {heroes.map((hero) => (
               <View key={hero.id} style={styles.hero}>
                 <View style={styles.heroLine}>
@@ -329,6 +338,8 @@ export function SendDialog({ save, dungeon, party, now, durationScale, onConfirm
 
             <View style={styles.summaryRow}>
               <IconLabel emoji="⏳" label={formatDuration(durationMs)} labelStyle={styles.summary} />
+              {plan.shortcut && <FamilyTag family="cunning" named={false} size={18} />}
+              {plan.shortcut && <Text style={styles.shortcut}>{t('families.shortcut')}</Text>}
               <Text style={styles.summary}>
                 {' · '}
                 {odds && band ? (
@@ -397,6 +408,7 @@ const styles = StyleSheet.create({
   },
   slotText: { fontSize: 17 },
   summary: { fontSize: 20 },
+  shortcut: { fontSize: 15, color: colors.success },
   muted: { color: colors.muted },
   label: { fontSize: 16, color: colors.muted, textTransform: 'uppercase' },
   picker: { gap: 4 },

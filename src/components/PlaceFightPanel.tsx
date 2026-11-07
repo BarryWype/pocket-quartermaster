@@ -12,6 +12,7 @@ import { distanceMeters } from '@/game/generation/geo';
 import type { LatLng } from '@/game/generation/types';
 import type { PlaceSpawn } from '@/game/places/generate';
 import { dungeonFoes } from '@/game/enemies/tags';
+import { threatNeeds } from '@/game/families/strip';
 import { isFightPlace, placeFightBriefing, placeFightDungeon, placeFightOdds, placeFightProblem, type PlaceFightProblem } from '@/game/places/fights';
 import { currentHp, isExhausted, maxHp } from '@/game/team/health';
 import { isAway } from '@/game/team/team';
@@ -23,6 +24,7 @@ import { useWorldStore } from '@/store/worldStore';
 import { colors, pixel } from '@/theme';
 
 import { EnemyTags } from './EnemyTags';
+import { FamilyStrip, usePartyFamilies } from './FamilyStrip';
 import { DifficultyChip, EmberButton, WoodButton } from './ui';
 import { leavesIn } from './PlacePanel';
 import { GameIcon } from './GameIcon';
@@ -56,6 +58,8 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
   const min = kind === 'monsterLair' ? placeFightRules.lair.minParty : 1;
   const candidates = save.heroes.filter((hero) => !isAway(save, hero.id) && !isExhausted(hero, now));
   const [heroIds, setHeroIds] = useState<string[]>(() => candidates.slice(0, rules?.party ?? 0).map((hero) => hero.id));
+  const families = usePartyFamilies(heroIds);
+  const needs = useMemo(() => (kind ? threatNeeds(placeFightBriefing(save, place).threats) : []), [kind, save, place]);
 
   // The odds are computed off the first frame (issue 12's method): the panel
   // opens at once, shows "…" until they land, and odds already held for exactly
@@ -163,6 +167,7 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
               </Pressable>
             ))}
           </View>
+          <FamilyStrip counts={families} needs={needs} />
           </>
         )}
         {heroIds.length > 0 &&

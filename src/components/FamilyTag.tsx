@@ -1,11 +1,14 @@
 import { StyleSheet, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 
 import { familyById, type FamilyId } from '@/content/families';
-import { tr } from '@/i18n';
+import { threatById } from '@/content/lookup';
+import { tagsForLevel } from '@/game/families/strip';
+import { t, tr, type TextKey } from '@/i18n';
 import { colors } from '@/theme';
 
 import { GameIcon } from './GameIcon';
 import { IconLabel } from './IconLabel';
+import { Text } from './Text';
 
 /** A family's icon beside its name, or beside "×2" alone when `named` is false. */
 export function FamilyTag({
@@ -52,7 +55,39 @@ export function FamilyTags({
   );
 }
 
+/** A family's three levels: what each needs and does; the reached ones highlighted and the next one with its missing tags. */
+export function FamilyLevelLines({ family, count }: { family: FamilyId; /** The party's tags, when there is a party. */ count?: number }) {
+  const def = familyById[family];
+  return (
+    <View style={styles.levels}>
+      {[1, 2, 3].map((level) => {
+        const needed = tagsForLevel(level);
+        const reached = count !== undefined && count >= needed;
+        const isNext = count !== undefined && !reached && (level === 1 || count >= tagsForLevel(level - 1));
+        return (
+          <View key={level} style={[styles.level, reached && styles.reached]}>
+            <View style={styles.levelHead}>
+              <Text style={[styles.levelTitle, reached && styles.reachedText]}>{t('families.level', { level, count: needed })}</Text>
+              {isNext && <Text style={styles.toReach}>{t('families.toReach', { count: needed - count })}</Text>}
+            </View>
+            {def.answers && <Text style={styles.effect}>{t('families.answers', { threat: tr(threatById[def.answers].name), level })}</Text>}
+            <Text style={styles.effect}>{t(`families.effects.${family}${level}` as TextKey)}</Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   label: { fontSize: 14, color: colors.muted },
   tags: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+  levels: { gap: 6 },
+  level: { gap: 2, padding: 6, borderWidth: 2, borderColor: colors.parchmentDark },
+  reached: { borderColor: colors.gold, backgroundColor: colors.highlight },
+  levelHead: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 6 },
+  levelTitle: { fontSize: 16, color: colors.muted },
+  reachedText: { color: colors.ink },
+  toReach: { fontSize: 15, color: colors.danger },
+  effect: { fontSize: 17 },
 });

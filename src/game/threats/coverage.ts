@@ -4,6 +4,7 @@ import { opportunityById, relicById, restrictionById } from '@/content/lookup';
 import { traitById } from '@/content/traits';
 
 import { answersMemberOf, prepareParty, type PartyMember } from '../expeditions/simulate';
+import { familyCountsOf, type FamilyCounts } from '../families/families';
 import type { SaveData } from '../save';
 import type {
   ActiveThreat,
@@ -44,6 +45,8 @@ export type BriefingCoverage = {
   opportunity: OpportunityCoverage | null;
   /** The briefing's restriction; `cancelledBy` names the hero whose signature lifts it. */
   restriction: { id: RestrictionId; def: RestrictionDef; cancelledBy: string | null } | null;
+  /** The party's family tags the restriction leaves standing, as the run counts them. */
+  families: FamilyCounts;
 };
 
 /** What an answer came from, by name: the class, trait, gear piece or relic behind it. */
@@ -125,5 +128,6 @@ export function briefingCoverage(
     restriction: briefing.restriction
       ? { id: briefing.restriction, def: restrictionById[briefing.restriction], cancelledBy: nameOf(signed.cancelledBy) }
       : null,
+    families: familyCountsOf(answers.flatMap((a) => a.tags)),
   };
 }
