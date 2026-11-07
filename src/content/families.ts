@@ -82,11 +82,13 @@ export type FamilyEffectId =
   | 'bulwark3'
   | 'bloodrage1'
   | 'bloodrage2'
+  | 'bloodrage3'
   | 'shadow1'
   | 'shadow2'
   | 'shadow3'
   | 'volley1'
   | 'volley2'
+  | 'volley3'
   | 'venom1'
   | 'venom2'
   | 'venom3'
@@ -110,8 +112,8 @@ export const familyEffectRules = {
   breaker: { armourIgnore: 0.1, shred: 0.3 },
   /** The front hero's damage taken; the share of the weakest ally's hits the front hero takes. */
   bulwark: { frontTaken: 0.85, guardShare: 0.5 },
-  /** Damage below this HP share; the heal on each kill (level 2). */
-  bloodrage: { belowHp: 0.5, damage: 1.2, healOnKill: 0.05 },
+  /** Damage below this HP share; the heal on each kill (level 2); the HP share below which a hero attacks twice a round (level 3). */
+  bloodrage: { belowHp: 0.5, damage: 1.2, healOnKill: 0.05, extraBelowHp: 0.25 },
   /** Crit chance in round 1; Evasion points added; a counter's share of a normal hit. */
   shadow: { firstRoundCrit: 0.15, evasion: 10, counterShare: 0.5 },
   /** The weapons that count as ranged, and the share of armour their hits ignore. */

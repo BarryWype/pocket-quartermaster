@@ -774,6 +774,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       result.effects.push({ heroId, key: 'family', familyEffect: effect, ...(allyId ? { allyId } : {}) });
     },
     heroOf: (family) => alive().find((h) => h.member.familyTags.some((t) => t.family === family)) ?? alive()[0],
+    alive,
     heal: (hero, share) => {
       const before = hero.hp;
       heal(hero, share, result);
@@ -992,7 +993,12 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     const normalHit = (
       hero: HeroState,
       target: EnemyState,
-      { critChance, multiplier = 1, elemental = false }: { critChance?: number; multiplier?: number; elemental?: boolean } = {},
+      {
+        critChance,
+        multiplier = 1,
+        elemental = false,
+        main = false,
+      }: { critChance?: number; multiplier?: number; elemental?: boolean; main?: boolean } = {},
     ) => {
       const id = hero.member.heroId;
       const tags = enemyTags(target.def);
@@ -1017,6 +1023,8 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           poisoned: ctx.dots.some((d) => d.enemy === target),
           beats: !!element && !!targetElement && beats(element, targetElement),
           advantageScale: 1,
+          main,
+          allEnemies: false,
         };
         for (const hook of hooks.beforeAttack) hook(attack);
       }
@@ -1108,6 +1116,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         damage: hit * fortune * bonus * hero.fed * multiplier * (ctx.party ? ctx.party.multiplier : 1) * (attack?.multiplier ?? 1),
         crit,
         staggerOnCrit,
+        allEnemies: attack?.allEnemies ?? false,
       };
     };
     /**
@@ -1320,7 +1329,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
             if (!target) return;
           }
           const tags = enemyTags(target.def);
-          const { damage: hit, crit, staggerOnCrit } = normalHit(hero, target);
+          const { damage: hit, crit, staggerOnCrit, allEnemies } = normalHit(hero, target, { main: true });
           // Focus multiplies the hero's next attack.
           const focus = nextAttackMultiplier.get(id);
           if (focus !== undefined) nextAttackMultiplier.delete(id);
@@ -1328,7 +1337,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           // The first spell of the run's first fight strikes every living enemy instead of one.
           const firstSpell =
             fightsSeen === 0 && hero.member.damageStat === 'magic' && !firstSpellUsed.has(id) && relicEffect(hero, 'firstSpellAll');
-          for (const foe of firstSpell ? enemies.filter((e) => e.hp > 0) : [target]) {
+          for (const foe of firstSpell || allEnemies ? enemies.filter((e) => e.hp > 0) : [target]) {
             foe.hp -= damage;
             add(result.dealt, id, damage);
           }
@@ -1419,6 +1428,11 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           if (gap > 0 && rng.chance(Math.min(rules.speed.secondAttackPerPoint * gap, rules.speed.max))) heroAttack(true);
         };
         heroAttack();
+        if (hooks.afterAttack.length > 0 && !hero.out) {
+          const after = { ...family, hero, round: currentRound, extra: false };
+          for (const hook of hooks.afterAttack) hook(after);
+          if (after.extra) heroAttack(true);
+        }
       }
     };
     /** A protector takes a share of the hits aimed at the most hurt ally. */

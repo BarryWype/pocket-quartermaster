@@ -18,6 +18,8 @@ export type FamilyBase = {
   log: (effect: FamilyEffectId, heroId: string | null, allyId?: string) => void;
   /** The first conscious hero carrying a tag of the family, else the first conscious hero. */
   heroOf: (family: FamilyId) => HeroState | undefined;
+  /** The conscious heroes. */
+  alive: () => HeroState[];
   /** Heals the hero this share of max HP (times the run's healing); the HP healed. */
   heal: (hero: HeroState, share: number) => number;
 };
@@ -65,6 +67,10 @@ export type Attack = FamilyBase & {
   beats: boolean;
   /** Scales the wheel's bonus above 1 when the hero's element beats the target's. */
   advantageScale: number;
+  /** The hero's own attack (not a special, a counter or a jump). */
+  main: boolean;
+  /** The hit strikes every living enemy, not just the target (own attacks only). */
+  allEnemies: boolean;
 };
 
 /** A hero's attack landed. */
@@ -79,6 +85,14 @@ export type Hit = FamilyBase & {
   elite: boolean;
   /** An elemental hero's hit jumps to the next living enemy for this share, in the same element; the enemy hit, or null. */
   jump: (share: number) => EnemyState | null;
+};
+
+/** A hero's turn is over (their attack and any second blow). */
+export type AfterAttack = FamilyBase & {
+  hero: HeroState;
+  round: number;
+  /** The hero strikes once more, as a second blow. */
+  extra: boolean;
 };
 
 /** An enemy attack aimed at a hero, before the dodge roll. */
@@ -167,6 +181,7 @@ export type FamilyHooks = {
   beforeAttack?: (ctx: Attack) => void;
   onHit?: (ctx: Hit) => void;
   onKill?: (ctx: Hit) => void;
+  afterAttack?: (ctx: AfterAttack) => void;
   beforeDefend?: (ctx: Defend) => void;
   onDodge?: (ctx: Dodge) => void;
   incoming?: (ctx: Incoming) => void;
@@ -472,6 +487,32 @@ export const familyEffects: FamilyEffect[] = [
       },
     },
   },
+  // Extra actions.
+  {
+    family: 'bloodrage',
+    level: 3,
+    hooks: {
+      afterAttack: (a) => {
+        if (a.hero.hp >= R.bloodrage.extraBelowHp * a.hero.member.maxHp) return;
+        a.extra = true;
+        a.log('bloodrage3', idOf(a.hero));
+      },
+    },
+  },
+  {
+    family: 'volley',
+    level: 3,
+    hooks: {
+      beforeAttack: (a) => {
+        if (!a.main) return;
+        // A ranged hero looses the volley; without one, the volley's own hero.
+        const volleyer = a.alive().find((h) => h.member.ranged) ?? a.heroOf('volley');
+        if (a.hero !== volleyer || !a.once('volley3')) return;
+        a.allEnemies = true;
+        a.log('volley3', idOf(a.hero));
+      },
+    },
+  },
   // Healing and revival.
   {
     family: 'faith',
@@ -572,6 +613,7 @@ export function activeHooks(levels: FamilyLevels, effects: FamilyEffect[] = fami
     beforeAttack: [],
     onHit: [],
     onKill: [],
+    afterAttack: [],
     beforeDefend: [],
     onDodge: [],
     incoming: [],

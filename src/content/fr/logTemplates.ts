@@ -147,6 +147,8 @@ export const frLogTemplates: typeof logTemplates = {
     wild2: ' Le Sauvage a soigné le groupe après la chute des bêtes.',
     bloodrage2: ' {hero} a puisé des forces dans sa victime.',
     rally2: ' {hero} a rallié le groupe entre deux combats : chacun a repris son souffle.',
+    bloodrage3: ' Au bord du gouffre, {hero} a frappé deux fois dans sa frénésie.',
+    volley3: ' {hero} a décoché une volée qui a touché tous les ennemis.',
   },
   elixirDrank: ' {hero} a bu {le:item} avant de partir.',
   elixirOil: ' {hero} a enduit son arme avec {du:item}.',
