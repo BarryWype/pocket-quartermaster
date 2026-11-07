@@ -149,6 +149,13 @@ export const logTemplates = {
     watch3Crit: ' {hero} found the gap in an elite’s guard.',
     shadow1: ' From the shadows, {hero} struck a weak spot.',
     shadow3: ' {hero} struck down the weakest foe before it could move.',
+    bulwark1: ' {hero} stood in front and took the blows.',
+    bulwark2: ' The Bulwark held: {hero} took the blow meant for {ally}.',
+    bulwark3: ' {hero} shrugged off the first blow of the fight.',
+    warding1: ' The Warding blunted the elements on {hero}.',
+    warding2: ' The Warding swallowed the first elemental blow aimed at {hero}.',
+    warding3: ' The Warding turned the elements back on {hero}’s attacker.',
+    shadow2: ' {hero} slipped a blow and struck back.',
   } as Partial<Record<FamilyEffectId, string>>,
   /** The opening lines for the party's stat, speed and oil elixirs. */
   elixirDrank: ' {hero} drank their {item} before setting out.',

@@ -136,6 +136,29 @@ const idOf = (hero: HeroState) => hero.member.heroId;
 
 /** Every family effect in fights, in the order their hooks run. */
 export const familyEffects: FamilyEffect[] = [
+  // Defence: the hits swallowed whole come first, so nothing else fires on them.
+  {
+    family: 'bulwark',
+    level: 3,
+    hooks: {
+      incoming: (i) => {
+        if (!i.once('bulwark3')) return;
+        i.absorbed = true;
+        i.log('bulwark3', idOf(i.hero));
+      },
+    },
+  },
+  {
+    family: 'warding',
+    level: 2,
+    hooks: {
+      incoming: (i) => {
+        if (i.element === undefined || !i.once('warding2')) return;
+        i.absorbed = true;
+        i.log('warding2', idOf(i.hero));
+      },
+    },
+  },
   // Damage.
   {
     family: 'faith',
@@ -258,6 +281,67 @@ export const familyEffects: FamilyEffect[] = [
         const weakest = foes.reduce((low, e) => (e.hp < low.hp ? e : low));
         f.strikeDown(hero, weakest);
         f.log('shadow3', idOf(hero));
+      },
+    },
+  },
+  // Defence.
+  {
+    family: 'warding',
+    level: 1,
+    hooks: {
+      incoming: (i) => {
+        if (i.element === undefined) return;
+        i.damage *= R.warding.elementalTaken;
+        i.log('warding1', idOf(i.hero));
+      },
+    },
+  },
+  {
+    family: 'warding',
+    level: 3,
+    hooks: {
+      afterTaken: (t) => {
+        if (t.element === undefined) return;
+        t.reflect(t.taken * R.warding.reflect);
+        t.log('warding3', idOf(t.hero));
+      },
+    },
+  },
+  {
+    family: 'shadow',
+    level: 2,
+    hooks: {
+      beforeDefend: (d) => {
+        d.evasion += R.shadow.evasion;
+      },
+      onDodge: (d) => {
+        d.counter(R.shadow.counterShare);
+        d.log('shadow2', idOf(d.hero));
+      },
+    },
+  },
+  {
+    family: 'bulwark',
+    level: 1,
+    hooks: {
+      incoming: (i) => {
+        if (i.hero !== i.front) return;
+        i.damage *= R.bulwark.frontTaken;
+        i.log('bulwark1', idOf(i.hero));
+      },
+    },
+  },
+  // The guard last: the front hero takes their share of the hit as it would land.
+  {
+    family: 'bulwark',
+    level: 2,
+    hooks: {
+      incoming: (i) => {
+        if (i.hero !== i.weakest || i.hero === i.front) return;
+        const moved = i.damage * R.bulwark.guardShare;
+        i.hurt(i.front, moved * R.bulwark.frontTaken);
+        i.damage -= moved;
+        i.log('bulwark2', idOf(i.front), idOf(i.hero));
       },
     },
   },

@@ -219,7 +219,8 @@ describe('relic combat effects', () => {
   });
 
   it("the Dragonbone plate resists fire and halves its hits", () => {
-    const plate = relicMember('dragonbonePlate');
+    // No family tags: the plate's Bulwark would cut the front hero's hits too.
+    const plate = relicMember('dragonbonePlate', { familyTags: [] });
     expect(plate.resists).toContain('fire');
     const boss = { damage: 40, damageType: 'magic' as const, element: 'fire' as const };
     const rules = { ...steady, maxRounds: 1 };

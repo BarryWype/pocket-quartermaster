@@ -45,7 +45,7 @@ describe('family turn order and first strikes', () => {
         expect(hitsTaken(off)).toBeGreaterThan(0);
       }, 'shadow3', 'struck down the weakest foe', null],
     ['Shadow 3: never the boss', 'shadow', 3, {},
-      (on, off) => expect(on.fight.dealt.a).toBeCloseTo(off.fight.dealt.a), 'shadow3', null, null],
+      (on) => expect(on.fight.cleared).toBe(false), 'shadow3', null, null],
   ])('%s', (_name, family, level, setup, check, effect, en, fr) => {
     const on = familyFight(family, level, setup);
     const off = familyFight(null, 0, setup);
