@@ -782,6 +782,14 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     },
   });
 
+  /** Uses each hero's special has left in the run once its own are spent. */
+  const bonusUses = new Map<string, number>();
+  if (hooks.runStart.length > 0) {
+    const start = { specialUses: 0 };
+    for (const hook of hooks.runStart) hook(start);
+    for (const hero of heroes) if (start.specialUses > 0) bonusUses.set(hero.member.heroId, start.specialUses);
+  }
+
   const heal = (hero: HeroState, share: number, result: EncounterResult) => {
     const amount = Math.min(hero.member.maxHp - hero.hp, share * hero.member.maxHp * healing);
     hero.hp += amount;
@@ -988,9 +996,10 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     /** Each conscious hero's speed this round, after the family effects. */
     let roundSpeed = new Map<HeroState, number>();
     /** Whether the hero's special still has its use, this fight or this run. */
-    const hasUseLeft = (hero: HeroState, def: SpecialDef) =>
+    const ownUseLeft = (hero: HeroState, def: SpecialDef) =>
       def.uses === 'betweenFights' ||
       (def.uses === 'perFight' ? !ctx.spent.has(hero.member.heroId) : !specialRunSpent.has(hero.member.heroId));
+    const hasUseLeft = (hero: HeroState, def: SpecialDef) => ownUseLeft(hero, def) || (bonusUses.get(hero.member.heroId) ?? 0) > 0;
     /**
      * A normal hit of `hero` on `target`: the hero's own attack maths (fortune,
      * buffs, blessing, wheel, armour, fed, weakened, crits), with the overrides a
@@ -1285,6 +1294,10 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           log();
           break;
         }
+      }
+      if (!ownUseLeft(hero, def)) {
+        bonusUses.set(id, bonusUses.get(id)! - 1);
+        family.log('rally3', id);
       }
       if (def.uses === 'perFight') ctx.spent.add(id);
       if (def.uses === 'perExpedition') specialRunSpent.add(id);

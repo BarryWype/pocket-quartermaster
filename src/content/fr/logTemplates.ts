@@ -153,6 +153,7 @@ export const frLogTemplates: typeof logTemplates = {
     pack2: ' La meute a poussé l’invocation de {hero} à frapper plus fort.',
     pack3: ' Une bête de la meute a répondu à l’appel de {hero}.',
     wild3: ' {hero} a apaisé une bête, qui s’est retournée contre les siens.',
+    rally3: ' Galvanisé, {hero} a trouvé la force d’un spécial de plus.',
   },
   elixirDrank: ' {hero} a bu {le:item} avant de partir.',
   elixirOil: ' {hero} a enduit son arme avec {du:item}.',

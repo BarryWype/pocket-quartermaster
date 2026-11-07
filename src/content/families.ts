@@ -100,7 +100,8 @@ export type FamilyEffectId =
   | 'spellweave2'
   | 'spellweave3'
   | 'rally1'
-  | 'rally2';
+  | 'rally2'
+  | 'rally3';
 
 /** The numbers behind the family effects in fights (see game/expeditions/familyEffects.ts). */
 export const familyEffectRules = {
@@ -126,8 +127,8 @@ export const familyEffectRules = {
   venom: { woundsTaken: 0.5, dotShare: 0.1, dotRounds: 3, baseStacks: 1, maxStacks: 3, poisonedTaken: 1.2 },
   /** Magic damage added each round of a fight, up to the max; an elemental hit's share that jumps to a second enemy; the scale on the wheel's advantage bonus. */
   spellweave: { perRound: 0.05, max: 0.25, chainShare: 0.3, advantageScale: 2 },
-  /** Party damage; the party's heal between fights (level 2). */
   /** Rounds added to a summon's; its damage; Pack 3's own summon: its share of the hero's hit, and its rounds (before Pack 1). */
   pack: { extraRounds: 1, damage: 1.5, summonShare: 0.5, summonRounds: 3 },
-  rally: { damage: 1.1, healShare: 0.05 },
+  /** Party damage; the party's heal between fights (level 2); extra uses of every special per run (level 3). */
+  rally: { damage: 1.1, healShare: 0.05, extraSpecialUses: 1 },
 };

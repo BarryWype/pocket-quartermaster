@@ -24,6 +24,12 @@ export type FamilyBase = {
   heal: (hero: HeroState, share: number) => number;
 };
 
+/** Once, as the run starts. */
+export type RunStart = {
+  /** Extra uses each hero's special gets in the run once its own are spent. */
+  specialUses: number;
+};
+
 /** Before round 1, once the enemies stand. */
 export type FightStart = FamilyBase & {
   enemies: EnemyState[];
@@ -196,6 +202,7 @@ export type PoisonCap = FamilyBase & {
 };
 
 export type FamilyHooks = {
+  runStart?: (ctx: RunStart) => void;
   fightStart?: (ctx: FightStart) => void;
   turnOrder?: (ctx: TurnOrder) => void;
   beforeAttack?: (ctx: Attack) => void;
@@ -535,6 +542,16 @@ export const familyEffects: FamilyEffect[] = [
       },
     },
   },
+  // Specials.
+  {
+    family: 'rally',
+    level: 3,
+    hooks: {
+      runStart: (r) => {
+        r.specialUses += R.rally.extraSpecialUses;
+      },
+    },
+  },
   // Summons.
   {
     family: 'pack',
@@ -679,6 +696,7 @@ export type ActiveHooks = { [K in keyof FamilyHooks]-?: NonNullable<FamilyHooks[
 
 export function activeHooks(levels: FamilyLevels, effects: FamilyEffect[] = familyEffects): ActiveHooks {
   const hooks: ActiveHooks = {
+    runStart: [],
     fightStart: [],
     turnOrder: [],
     beforeAttack: [],
