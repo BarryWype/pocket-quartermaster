@@ -161,6 +161,9 @@ export const logTemplates = {
     warding2: ' The Warding swallowed the first elemental blow aimed at {hero}.',
     warding3: ' The Warding turned the elements back on {hero}’s attacker.',
     shadow2: ' {hero} slipped a blow and struck back.',
+    venom1: ' Venom ran in {hero}’s veins: the poison’s wounds bit half as deep.',
+    venom2: ' {hero}’s venom took hold again: the poisons stacked.',
+    venom3: ' {hero}’s blows tore at the poisoned foe.',
   } as Partial<Record<FamilyEffectId, string>>,
   /** The opening lines for the party's stat, speed and oil elixirs. */
   elixirDrank: ' {hero} drank their {item} before setting out.',

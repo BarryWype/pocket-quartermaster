@@ -57,6 +57,8 @@ export type Attack = FamilyBase & {
   armourKept: number;
   /** The target has armour this hit would meet. */
   armoured: boolean;
+  /** The target carries a poison (any dot of this fight). */
+  poisoned: boolean;
 };
 
 /** A hero's attack landed. */
@@ -117,6 +119,23 @@ export type BetweenFights = FamilyBase & {
   heroes: HeroState[];
 };
 
+/** The Poison threat's after-fight wounds, per hero before they land. */
+export type PoisonWound = FamilyBase & {
+  hero: HeroState;
+  /** The wounds about to hurt the hero; effects may scale them. */
+  damage: number;
+};
+
+/** A Venomous proc on an enemy, before its poison is added or refreshed. */
+export type PoisonCap = FamilyBase & {
+  hero: HeroState;
+  target: EnemyState;
+  /** The Venomous poisons the enemy already carries. */
+  stacks: number;
+  /** How many it may carry; effects may raise it. */
+  cap: number;
+};
+
 export type FamilyHooks = {
   fightStart?: (ctx: FightStart) => void;
   turnOrder?: (ctx: TurnOrder) => void;
@@ -128,6 +147,8 @@ export type FamilyHooks = {
   incoming?: (ctx: Incoming) => void;
   afterTaken?: (ctx: Taken) => void;
   betweenFights?: (ctx: BetweenFights) => void;
+  poisonWound?: (ctx: PoisonWound) => void;
+  poisonCap?: (ctx: PoisonCap) => void;
 };
 
 export type FamilyEffect = { family: FamilyId; level: 1 | 2 | 3; hooks: FamilyHooks };
@@ -404,6 +425,40 @@ export const familyEffects: FamilyEffect[] = [
       },
     },
   },
+  // Poison.
+  {
+    family: 'venom',
+    level: 1,
+    hooks: {
+      poisonWound: (p) => {
+        p.damage *= R.venom.woundsTaken;
+        const hero = p.heroOf('venom');
+        p.log('venom1', hero ? idOf(hero) : null);
+      },
+    },
+  },
+  {
+    family: 'venom',
+    level: 2,
+    hooks: {
+      poisonCap: (c) => {
+        c.cap = R.venom.maxStacks;
+        // Only a stack past the base cap is the family's doing.
+        if (c.stacks >= R.venom.baseStacks && c.stacks < R.venom.maxStacks) c.log('venom2', idOf(c.hero));
+      },
+    },
+  },
+  {
+    family: 'venom',
+    level: 3,
+    hooks: {
+      beforeAttack: (a) => {
+        if (!a.poisoned) return;
+        a.multiplier *= R.venom.poisonedTaken;
+        a.log('venom3', idOf(a.hero));
+      },
+    },
+  },
 ];
 
 /** The hooks a party's levels run, by hook, in effect order. */
@@ -421,6 +476,8 @@ export function activeHooks(levels: FamilyLevels, effects: FamilyEffect[] = fami
     incoming: [],
     afterTaken: [],
     betweenFights: [],
+    poisonWound: [],
+    poisonCap: [],
   };
   for (const effect of effects) {
     if ((levels[effect.family] ?? 0) < effect.level) continue;

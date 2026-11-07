@@ -83,6 +83,9 @@ export type FamilyEffectId =
   | 'shadow3'
   | 'volley1'
   | 'volley2'
+  | 'venom1'
+  | 'venom2'
+  | 'venom3'
   | 'spellweave1'
   | 'rally1';
 
@@ -103,6 +106,8 @@ export const familyEffectRules = {
   shadow: { firstRoundCrit: 0.15, evasion: 10, counterShare: 0.5 },
   /** The weapons that count as ranged, and the share of armour their hits ignore. */
   volley: { gearTypes: ['bow', 'crossbow', 'throwing'] as string[], armourIgnore: 0.2 },
+  /** Poison wounds taken after a fight; a Venomous poison's share of the hit, its rounds, the stacks an enemy carries (base, and with Venom 2); damage taken by poisoned enemies with Venom 3. */
+  venom: { woundsTaken: 0.5, dotShare: 0.1, dotRounds: 3, baseStacks: 1, maxStacks: 3, poisonedTaken: 1.2 },
   /** Magic damage added each round of a fight, up to the max. */
   spellweave: { perRound: 0.05, max: 0.25 },
   rally: { damage: 1.1 },

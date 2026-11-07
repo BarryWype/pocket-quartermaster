@@ -934,7 +934,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       shield: { rounds: number } | null;
       hot: { pct: number; rounds: number } | null;
       party: { multiplier: number; rounds: number } | null;
-      dots: { heroId: string; enemy: EnemyState; damage: number; rounds: number }[];
+      dots: { heroId: string; enemy: EnemyState; damage: number; rounds: number; source?: 'venomous' }[];
       summons: { heroId: string; damage: number; rounds: number | null }[];
       /** Whether the boss's first turn already fired its specials. */
       bossTurn: boolean;
@@ -997,6 +997,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           critAdd: 0,
           armourKept: 1,
           armoured: !pierce && armour > 0 && target.armour > 0,
+          poisoned: ctx.dots.some((d) => d.enemy === target),
         };
         for (const hook of hooks.beforeAttack) hook(attack);
       }
@@ -1332,8 +1333,25 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           const onKill = affixTotal(hero.member, 'healOnKill');
           if (onKill > 0 && target.hp <= 0) heal(hero, onKill / 100, result);
           // A Venomous piece may poison the hit's target: a tenth of the hit, ticking for three rounds.
+          // An enemy carries at most a few Venomous poisons at a time: a proc past the cap refreshes the one closest to wearing off.
           const venom = affixTotal(hero.member, 'poisonOnHit');
-          if (venom > 0 && rng.chance(venom / 100)) ctx.dots.push({ heroId: id, enemy: target, damage: damage * 0.1, rounds: 3 });
+          if (venom > 0 && rng.chance(venom / 100)) {
+            const stacks = ctx.dots.filter((d) => d.enemy === target && d.source === 'venomous');
+            let cap = familyEffectRules.venom.baseStacks;
+            if (hooks.poisonCap.length > 0) {
+              const poisonCap = { ...family, hero, target, stacks: stacks.length, cap };
+              for (const hook of hooks.poisonCap) hook(poisonCap);
+              cap = poisonCap.cap;
+            }
+            const dotDamage = damage * familyEffectRules.venom.dotShare;
+            if (stacks.length < cap) {
+              ctx.dots.push({ heroId: id, enemy: target, damage: dotDamage, rounds: familyEffectRules.venom.dotRounds, source: 'venomous' });
+            } else {
+              const lowest = stacks.reduce((low, d) => (d.rounds < low.rounds ? d : low));
+              lowest.rounds = familyEffectRules.venom.dotRounds;
+              lowest.damage = Math.max(lowest.damage, dotDamage);
+            }
+          }
           // Cleave splashes onto the next living enemy after the target.
           if (has(hero, 'cleave', tags)) {
             const splashTarget = enemies.slice(enemies.indexOf(target) + 1).find((e) => e.hp > 0);
@@ -1718,7 +1736,13 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         );
         // An Antivenom affix makes the poison wear off faster on its wearer: a smaller share.
         const antivenom = 1 - affixTotal(hero.member, 'dotDuration') / 100;
-        hurt(hero, penalty.pct * hero.member.maxHp * (cut?.effect.multiplier ?? 1) * antivenom, result);
+        let wounds = penalty.pct * hero.member.maxHp * (cut?.effect.multiplier ?? 1) * antivenom;
+        if (hooks.poisonWound.length > 0) {
+          const poisonWound = { ...familyBase(result), hero, damage: wounds };
+          for (const hook of hooks.poisonWound) hook(poisonWound);
+          wounds = poisonWound.damage;
+        }
+        hurt(hero, wounds, result);
         if (cut) noteRelic(result, hero.member.heroId, cut.relicId);
       }
       result.effects.push({ heroId: null, key: 'poison' });
