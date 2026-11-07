@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Party, nobody picked</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&amp;display=swap">
+<style>
+@font-face{font-family:Fantaisie;src:url(/_blob/b832aa39943fd83d650a4a3571bdc3aa) format('truetype')}
+body{margin:0}
+a{color:#7A4A26}a:hover{color:#3A2314}
+.px{image-rendering:pixelated}
+.band{background:repeating-linear-gradient(#5A3820 0 13px,#4E301B 13px 14px);border-bottom:3px solid #1E120A}
+.card{position:relative;background:#F2E4C2;border:3px solid #1E120A;box-shadow:0 4px 0 #1E120A}
+.card::after{content:"";position:absolute;inset:3px;border:2px solid #C9A04E;pointer-events:none}
+.sock{width:34px;height:34px;flex-shrink:0;transform:rotate(45deg);display:flex;align-items:center;justify-content:center;background:#E6D3A8;border:2px dashed #8A6A34}
+.sock img{width:30px;height:30px;transform:rotate(-45deg);opacity:.3;filter:grayscale(1)}
+.cap{font-family:Fantaisie,serif;font-size:17px;color:#7A4A26;letter-spacing:1px}
+.btn{font-family:Fantaisie,serif;font-size:21px;color:#F6D98E;background:#5A3820;border:3px solid #1E120A;box-shadow:inset 0 0 0 2px #C9A04E,0 3px 0 #1E120A}
+.ember{font-family:Fantaisie,serif;font-size:26px;color:#FFF1DC;background:#B4471C;border:3px solid #1E120A;box-shadow:inset 0 0 0 2px #E07A3E,0 4px 0 #1E120A}
+.ember:disabled{color:#C9B48A;background:#5A3820;box-shadow:inset 0 0 0 2px #8A6A34,0 4px 0 #1E120A}
+.plate{display:flex;align-items:center;gap:14px;padding:14px;background:#3A2314;border:3px solid #1E120A;box-shadow:inset 0 0 0 2px #4E301B,0 3px 0 #1E120A;color:#C9B48A;font-family:Fantaisie,serif;font-size:21px}
+.empty{width:56px;height:56px;display:flex;align-items:center;justify-content:center;background:#2A180D;border:2px dashed #8A6A34;color:#8A6A34;font-size:30px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; overflow: hidden; background: repeating-linear-gradient(90deg, #3A2314 0 46px, #2A180D 46px 48px); font-family: Alegreya, Georgia, serif; color: #3A2314; display: flex; flex-direction: column;">
+  <div class="band" style="height: 62px; flex-shrink: 0; display: flex; align-items: center; gap: 6px; padding: 0 8px;">
+    <a href="Main.dc.html" aria-label="Back to the board" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #F6D98E; text-decoration: none;">‹</a>
+    <span style="display: flex; flex-direction: column;">
+      <span style="font-family: Fantaisie, serif; font-size: 26px; color: #F6D98E; text-shadow: 0 2px 0 #1E120A; line-height: 1;">Wolf den</span>
+      <span style="font-size: 14px; color: #C9B48A;">Medium · 2 h 30 · Gold, hides, fangs</span>
+    </span>
+  </div>
+
+  <div style="padding: 12px 12px 0;">
+    <section aria-label="Families" class="card" style="padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 12px;">
+      <span class="cap">This place needs</span>
+      <div style="display: flex; gap: 22px; align-items: flex-start; padding-left: 6px;">
+        <span style="display: flex; flex-direction: column; gap: 10px;">
+          <span style="display: flex; gap: 14px; padding-top: 6px;">
+            <span class="sock"><img class="px" src="/_blob/de06f428570b66d4fdca11832bf05d1f" alt=""></span>
+            <span class="sock"><img class="px" src="/_blob/de06f428570b66d4fdca11832bf05d1f" alt=""></span>
+          </span>
+          <span style="font-size: 15px; color: #6A4A2C;">Beasts · 2 Wild</span>
+        </span>
+        <span style="display: flex; flex-direction: column; gap: 10px;">
+          <span style="display: flex; padding-top: 6px;"><span class="sock"><img class="px" src="/_blob/54f843edb151fef0987493404b4bf829" alt=""></span></span>
+          <span style="font-size: 15px; color: #6A4A2C;">Darkness · 1 Watch</span>
+        </span>
+      </div>
+      <div style="height: 2px; background: #B9A27A;"></div>
+      <span class="cap">Party families</span>
+      <span style="font-size: 15px; color: #6A4A2C;">Each hero and each piece of gear carries a family. Bring heroes to light the sockets.</span>
+    </section>
+  </div>
+
+  <section aria-label="Party" style="flex-grow: 1; padding: 14px 12px; display: flex; flex-direction: column; gap: 10px;">
+    <a href="Hero-picker.dc.html" class="plate" style="text-decoration: none;"><span class="empty">+</span>Add a hero</a>
+    <a href="Hero-picker.dc.html" class="plate" style="text-decoration: none;"><span class="empty">+</span>Add a hero</a>
+    <a href="Hero-picker.dc.html" class="plate" style="text-decoration: none;"><span class="empty">+</span>Add a hero</a>
+    <button type="button" class="btn" style="height: 50px; margin-top: 4px;">Suggest a party</button>
+  </section>
+
+  <div class="band" style="border-top: 3px solid #1E120A; border-bottom: none; padding: 12px; display: flex; align-items: center; gap: 12px;">
+    <span style="width: 70px; height: 70px; flex-shrink: 0; border-radius: 35px; background: #2A180D; border: 3px solid #8A6A34; box-shadow: 0 0 0 3px #1E120A; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #8A6A34;">
+      <span style="font-family: Fantaisie, serif; font-size: 26px; line-height: 1;">?</span>
+      <span style="font-size: 11px;">odds</span>
+    </span>
+    <button type="button" class="ember" disabled style="flex-grow: 1; height: 58px;">Send</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

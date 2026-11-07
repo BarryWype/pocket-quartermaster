@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Party picked, one threat short</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&amp;display=swap">
+<style>
+@font-face{font-family:Fantaisie;src:url(/_blob/b832aa39943fd83d650a4a3571bdc3aa) format('truetype')}
+body{margin:0}
+a{color:#7A4A26}a:hover{color:#3A2314}
+.px{image-rendering:pixelated}
+.band{background:repeating-linear-gradient(#5A3820 0 13px,#4E301B 13px 14px);border-bottom:3px solid #1E120A}
+.card{position:relative;background:#F2E4C2;border:3px solid #1E120A;box-shadow:0 4px 0 #1E120A}
+.card::after{content:"";position:absolute;inset:3px;border:2px solid #C9A04E;pointer-events:none}
+.sock{width:34px;height:34px;flex-shrink:0;transform:rotate(45deg);display:flex;align-items:center;justify-content:center;background:#2A180D;border:2px solid #F6D98E;box-shadow:0 0 0 2px #1E120A,0 0 10px 2px rgba(246,217,142,0.75)}
+.sock img{width:30px;height:30px;transform:rotate(-45deg)}
+.sock.miss{background:#F2D3C2;border:2px dashed #8A2E1C;box-shadow:none}
+.sock.miss img{opacity:.35;filter:grayscale(1)}
+.cap{font-family:Fantaisie,serif;font-size:17px;color:#7A4A26;letter-spacing:1px}
+.fam{display:flex;align-items:center;gap:8px;padding:5px 8px 5px 5px;background:#3A2314;border:2px solid #1E120A;box-shadow:inset 0 0 0 2px #8A6A34;color:#F2E4C2;font:inherit;text-align:left}
+.fam img{width:30px;height:30px;background:#2A180D;border:2px solid #C9A04E}
+.pip{width:7px;height:7px;transform:rotate(45deg);border:1px solid #1E120A;background:#5A3820}
+.pip.on{background:#F6D98E;box-shadow:0 0 4px #F6D98E}
+.plate{display:flex;flex-direction:column;gap:10px;padding:10px 12px 12px;background:#3A2314;border:3px solid #1E120A;box-shadow:inset 0 0 0 2px #4E301B,0 3px 0 #1E120A;color:#F2E4C2}
+.slot{position:relative;width:52px;height:52px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#2A180D;border:2px solid #8A6A34;box-shadow:inset 0 0 0 2px #1E120A;padding:0}
+.slot>img{width:42px;height:42px}
+.slot.hint{border-color:#E07A3E;box-shadow:inset 0 0 0 2px #1E120A,0 0 8px 2px rgba(224,122,62,0.8)}
+.badge{position:absolute;right:-7px;bottom:-7px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;background:#2A180D;border:2px solid #C9A04E}
+.badge img{width:18px;height:18px}
+.hp{height:8px;background:#1E120A;border:1px solid #1E120A}
+.hp span{display:block;height:100%;background:#4E9A3E}
+.ember{font-family:Fantaisie,serif;font-size:26px;color:#FFF1DC;background:#B4471C;border:3px solid #1E120A;box-shadow:inset 0 0 0 2px #E07A3E,0 4px 0 #1E120A}
+</style>
+</helmet>
+<div style="width: 390px; height: 980px; overflow: hidden; background: repeating-linear-gradient(90deg, #3A2314 0 46px, #2A180D 46px 48px); font-family: Alegreya, Georgia, serif; color: #3A2314; display: flex; flex-direction: column;">
+  <div class="band" style="height: 62px; flex-shrink: 0; display: flex; align-items: center; gap: 6px; padding: 0 8px;">
+    <a href="Main.dc.html" aria-label="Back to the board" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #F6D98E; text-decoration: none;">‹</a>
+    <span style="display: flex; flex-direction: column;">
+      <span style="font-family: Fantaisie, serif; font-size: 26px; color: #F6D98E; text-shadow: 0 2px 0 #1E120A; line-height: 1;">Wolf den</span>
+      <span style="font-size: 14px; color: #C9B48A;">Medium · 2 h 30 · Gold, hides, fangs</span>
+    </span>
+  </div>
+
+  <div style="padding: 12px 12px 0;">
+    <section aria-label="Families" class="card" style="padding: 14px 14px 16px; display: flex; flex-direction: column; gap: 12px;">
+      <span class="cap">This place needs</span>
+      <div style="display: flex; gap: 22px; align-items: flex-start; padding-left: 6px;">
+        <span style="display: flex; flex-direction: column; gap: 10px;">
+          <span style="display: flex; gap: 14px; padding-top: 6px;">
+            <span class="sock"><img class="px" src="/_blob/de06f428570b66d4fdca11832bf05d1f" alt="Wild"></span>
+            <span class="sock"><img class="px" src="/_blob/de06f428570b66d4fdca11832bf05d1f" alt="Wild"></span>
+          </span>
+          <span style="font-size: 15px; color: #2F6B32; font-weight: 700;">Beasts · answered</span>
+        </span>
+        <span style="display: flex; flex-direction: column; gap: 10px;">
+          <span style="display: flex; padding-top: 6px;"><span class="sock miss"><img class="px" src="/_blob/54f843edb151fef0987493404b4bf829" alt="Watch, missing"></span></span>
+          <span style="font-size: 15px; color: #8A2E1C; font-weight: 700;">Darkness · 1 Watch short</span>
+          <span style="font-size: 14px; color: #6A4A2C;">A tome or runestone adds it</span>
+        </span>
+      </div>
+      <div style="height: 2px; background: #B9A27A;"></div>
+      <span class="cap">Party families</span>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px;">
+        <button type="button" class="fam"><img class="px" src="/_blob/de06f428570b66d4fdca11832bf05d1f" alt=""><span style="display: flex; flex-direction: column; gap: 3px;"><span style="font-family: Fantaisie, serif; font-size: 18px; line-height: 1;">Wild 3</span><span style="display: flex; gap: 4px; padding-left: 1px;"><span class="pip on"></span><span class="pip"></span><span class="pip"></span></span></span></button>
+        <button type="button" class="fam"><img class="px" src="/_blob/dc931e874462d9cc66212a90134cb4b3" alt=""><span style="display: flex; flex-direction: column; gap: 3px;"><span style="font-family: Fantaisie, serif; font-size: 18px; line-height: 1;">Bulwark 3</span><span style="display: flex; gap: 4px; padding-left: 1px;"><span class="pip on"></span><span class="pip"></span><span class="pip"></span></span></span></button>
+        <button type="button" class="fam"><img class="px" src="/_blob/1578086010507f494351178e576649a6" alt=""><span style="display: flex; flex-direction: column; gap: 3px;"><span style="font-family: Fantaisie, serif; font-size: 18px; line-height: 1;">Faith 3</span><span style="display: flex; gap: 4px; padding-left: 1px;"><span class="pip on"></span><span class="pip"></span><span class="pip"></span></span></span></button>
+        <button type="button" class="fam"><img class="px" src="/_blob/e45d7c3b4da053f6a16c4251adb542e1" alt=""><span style="display: flex; flex-direction: column; gap: 3px;"><span style="font-family: Fantaisie, serif; font-size: 18px; line-height: 1;">Volley 3</span><span style="display: flex; gap: 4px; padding-left: 1px;"><span class="pip on"></span><span class="pip"></span><span class="pip"></span></span></span></button>
+      </div>
+      <span style="font-size: 14px; color: #6A4A2C;">One more tag in any of them lights the second gem. Tap a banner for its bonuses.</span>
+    </section>
+  </div>
+
+  <section aria-label="Party" style="flex-grow: 1; padding: 14px 12px; display: flex; flex-direction: column; gap: 10px;">
+
+    <div class="plate">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span class="slot" style="border-color: #C9A04E;"><img class="px" src="/_blob/c9cd1eb1d178b6c493e5781c07bbd2d1" alt="Warrior"><span class="badge"><img class="px" src="/_blob/dc931e874462d9cc66212a90134cb4b3" alt="Bulwark"></span></span>
+        <span style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px;">
+          <span style="display: flex; align-items: baseline; gap: 8px;"><span style="font-family: Fantaisie, serif; font-size: 22px; color: #F6D98E;">Bram</span><span style="font-size: 14px; color: #C9B48A;">Warrior · lv 6</span></span>
+          <span class="hp"><span style="width: 90%;"></span></span>
+        </span>
+        <button type="button" aria-label="Remove Bram" style="width: 44px; height: 44px; font-size: 20px; color: #C9B48A; background: transparent; border: none;">✕</button>
+      </div>
+      <div style="display: flex; gap: 14px; padding-left: 64px;">
+        <button type="button" class="slot" aria-label="Weapon: spear, Wild"><img class="px" src="/_blob/056250f69597de09ea3cb7570b804471" alt=""><span class="badge"><img class="px" src="/_blob/de06f428570b66d4fdca11832bf05d1f" alt=""></span></button>
+        <button type="button" class="slot" aria-label="Armour: leather, Wild"><img class="px" src="/_blob/0e5ea503bb5734d64123dfd272911123" alt=""><span class="badge"><img class="px" src="/_blob/de06f428570b66d4fdca11832bf05d1f" alt=""></span></button>
+        <button type="button" class="slot" aria-label="Off-hand: shield, Bulwark"><img class="px" src="/_blob/d4bedb700dc5a1e581f9f2042fbe0678" alt=""><span class="badge"><img class="px" src="/_blob/dc931e874462d9cc66212a90134cb4b3" alt=""></span></button>
+      </div>
+    </div>
+
+    <div class="plate">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span class="slot" style="border-color: #C9A04E;"><img class="px" src="/_blob/ba19eb305a3e41c10b08356633737a9f" alt="Cleric"><span class="badge"><img class="px" src="/_blob/1578086010507f494351178e576649a6" alt="Faith"></span></span>
+        <span style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px;">
+          <span style="display: flex; align-items: baseline; gap: 8px;"><span style="font-family: Fantaisie, serif; font-size: 22px; color: #F6D98E;">Lyra</span><span style="font-size: 14px; color: #C9B48A;">Cleric · lv 5</span></span>
+          <span class="hp"><span style="width: 100%;"></span></span>
+        </span>
+        <button type="button" aria-label="Remove Lyra" style="width: 44px; height: 44px; font-size: 20px; color: #C9B48A; background: transparent; border: none;">✕</button>
+      </div>
+      <div style="display: flex; gap: 14px; padding-left: 64px;">
+        <button type="button" class="slot" aria-label="Weapon: censer, Faith"><img class="px" src="/_blob/462bde7c21a74c57f6964cf1bde0f483" alt=""><span class="badge"><img class="px" src="/_blob/1578086010507f494351178e576649a6" alt=""></span></button>
+        <button type="button" class="slot" aria-label="Armour: mail, Faith"><img class="px" src="/_blob/1d2db23118d29a052fb803df00d6f062" alt=""><span class="badge"><img class="px" src="/_blob/1578086010507f494351178e576649a6" alt=""></span></button>
+        <a href="Gear-picker.dc.html" class="slot hint" aria-label="Off-hand: shield, Bulwark. A swap here could cover Darkness"><img class="px" src="/_blob/d4bedb700dc5a1e581f9f2042fbe0678" alt=""><span class="badge"><img class="px" src="/_blob/dc931e874462d9cc66212a90134cb4b3" alt=""></span></a>
+      </div>
+    </div>
+
+    <div class="plate">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span class="slot" style="border-color: #C9A04E;"><img class="px" src="/_blob/affa2c1506f6684afb88ea8cd7f25d64" alt="Ranger"><span class="badge"><img class="px" src="/_blob/e45d7c3b4da053f6a16c4251adb542e1" alt="Volley"></span></span>
+        <span style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px;">
+          <span style="display: flex; align-items: baseline; gap: 8px;"><span style="font-family: Fantaisie, serif; font-size: 22px; color: #F6D98E;">Pip</span><span style="font-size: 14px; color: #C9B48A;">Ranger · lv 5</span></span>
+          <span class="hp"><span style="width: 86%;"></span></span>
+        </span>
+        <button type="button" aria-label="Remove Pip" style="width: 44px; height: 44px; font-size: 20px; color: #C9B48A; background: transparent; border: none;">✕</button>
+      </div>
+      <div style="display: flex; gap: 14px; padding-left: 64px;">
+        <button type="button" class="slot" aria-label="Weapon: bow, Volley"><img class="px" src="/_blob/a3651caec11774f56c528367d3253298" alt=""><span class="badge"><img class="px" src="/_blob/e45d7c3b4da053f6a16c4251adb542e1" alt=""></span></button>
+        <button type="button" class="slot" aria-label="Armour: leather, Wild"><img class="px" src="/_blob/0e5ea503bb5734d64123dfd272911123" alt=""><span class="badge"><img class="px" src="/_blob/de06f428570b66d4fdca11832bf05d1f" alt=""></span></button>
+        <button type="button" class="slot" aria-label="Off-hand: quiver, Volley"><img class="px" src="/_blob/a4c641b527d3f10c08d06fdff1df3375" alt=""><span class="badge"><img class="px" src="/_blob/e45d7c3b4da053f6a16c4251adb542e1" alt=""></span></button>
+      </div>
+    </div>
+  </section>
+
+  <div class="band" style="border-top: 3px solid #1E120A; border-bottom: none; padding: 12px; display: flex; align-items: center; gap: 12px;">
+    <span style="width: 70px; height: 70px; flex-shrink: 0; border-radius: 35px; background: #2A180D; border: 3px solid #D98A2E; box-shadow: 0 0 0 3px #1E120A; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #F6D98E;">
+      <span style="font-family: Fantaisie, serif; font-size: 25px; line-height: 1;">58%</span>
+      <span style="font-size: 11px; color: #C9B48A;">odds</span>
+    </span>
+    <button type="button" class="ember" style="flex-grow: 1; height: 58px;">Send</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":980}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

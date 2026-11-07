@@ -1,30 +1,30 @@
-type,slot,family,tags,notes
-sword,weapon,rally,1,a captain's blade
-axe,weapon,bloodrage,1,
-mace,weapon,faith,1,
-censer,weapon,faith,1,
-dagger,weapon,shadow,1,
-bow,weapon,volley,1,
-spear,weapon,wild,1,
-warhammer,weapon,breaker,2,two-handed
-knuckles,weapon,breaker,1,
-wand,weapon,spellweave,1,
-staff,weapon,warding,2,two-handed
-lute,weapon,rally,1,
-crossbow,weapon,cunning,1,
-throwing,weapon,plunder,1,
-totem,weapon,pack,2,two-handed
-runestone,weapon,watch,1,
-flasks,weapon,venom,1,
-plate,armour,bulwark,1,
-mail,armour,faith,1,a crusader's chainmail
-leather,armour,wild,1,
-robes,armour,spellweave,1,
-shield,offhand,bulwark,1,
-buckler,offhand,shadow,1,
-offhandBlade,offhand,bloodrage,1,
-ammunition,offhand,volley,1,
-tome,offhand,watch,1,knowledge and lore
-focus,offhand,warding,1,
-workTools,offhand,,0,no tag
-trinkets,trinket,,0,no tag (some rare or named trinkets may carry one later)
+type,slot,family,second,tags,notes
+sword,weapon,rally,shadow,1,a captain's blade
+axe,weapon,bloodrage,breaker,1,
+mace,weapon,faith,breaker,1,
+censer,weapon,faith,warding,1,
+dagger,weapon,shadow,venom,1,
+bow,weapon,volley,wild,1,
+spear,weapon,wild,watch,1,
+warhammer,weapon,breaker,,2,two-handed
+knuckles,weapon,breaker,bloodrage,1,
+wand,weapon,spellweave,warding,1,
+staff,weapon,warding,,2,two-handed
+lute,weapon,rally,cunning,1,
+crossbow,weapon,cunning,volley,1,
+throwing,weapon,plunder,volley,1,
+totem,weapon,pack,,2,two-handed
+runestone,weapon,watch,pack,1,
+flasks,weapon,venom,spellweave,1,
+plate,armour,bulwark,,1,
+mail,armour,faith,,1,a crusader's chainmail
+leather,armour,wild,,1,
+robes,armour,spellweave,,1,
+shield,offhand,bulwark,,1,
+buckler,offhand,shadow,,1,
+offhandBlade,offhand,bloodrage,,1,
+ammunition,offhand,volley,,1,
+tome,offhand,watch,,1,knowledge and lore
+focus,offhand,warding,,1,
+workTools,offhand,,,0,no tag
+trinkets,trinket,,,0,no tag (some rare or named trinkets may carry one later)

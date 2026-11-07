@@ -4,15 +4,28 @@ Designed 2026-11-06. One system for building a team: **family tags** counted acr
 
 ## The rules
 - **15 families** (`families.csv`): 7 that answer a threat (Faith, Wild, Watch, Cunning, Venom, Warding, Breaker) and 8 playstyles (Bulwark, Bloodrage, Shadow, Volley, Spellweave, Pack, Rally, Plunder).
-- **Three levels**, by the number of the family's tags in the party: **2, 4 and 6**. A threat family's level N answers its threat at level N, plus its own effect; a playstyle's levels build on its hook.
+- **Threats count tags, not levels (revised 2026-11-08 after play-testing):** a threat at level N needs **N tags** of its family in the party. Beasts 2 means "bring 2 Wild". The briefing shows the requirement as sockets that light up with the family's icon. Before this, a threat at level N needed the family at level N (2N tags): too hard to reach with a small early roster, and too hard to read.
+- **Three levels**, by the number of the family's tags in the party: **2, 4 and 6**. Levels are for **bonuses only**: each family's effects at ●○○, ●●○, ●●●. They no longer gate threats. The interface counts tags and shows levels as pips.
 - **Tags:**
   - **1 per class** (`class-tags.csv`).
   - **1 per item type** (`item-tags.csv`); a **two-handed weapon counts 2** (it takes the off-hand's place).
+  - **One-handed weapons carry a second tag** of another family (`item-tags.csv`, column `second`; added 2026-11-08). Every weapon slot is then worth 2 tags: two-handed = 2 of one family (focused), one-handed = 1 + 1 (flexible). The weapon becomes the main build choice. Checked against the cap: no class goes above 3 of its own family.
   - **Trinkets and work tools: none.**
   - **Rare extras:** some relics carry a second tag; later, a few rare or named trinkets and progression-tree nodes. Keep them scarce: about 2–3 extra tags for a well-equipped endgame party.
-- **Reach:** a party of 3 has 3 class tags and up to 9 item tags: 12. Fully focused, two families at level 3; or a main, a secondary and a splash (6 + 4 + 2).
+- **Reach:** a party of 3 has 3 class tags and up to 12 item tags (weapons count 2): 15. Fully focused, two families at level 3; or a main, a secondary and a splash (6 + 4 + 2).
 - **No free families (a guideline, not a rule):** a class's natural gear shouldn't hand it a high family level without any choice. Item identity comes first: a tag that fits the item's theme wins over the guideline when they clash. The first tag table was solved strictly (at most one favoured weapon or armour type in a class's own family) and some tags were pulled away from their obvious theme for it. Restored on 2026-11-06: sword and plate → Bulwark (mail → Warding), robes → Spellweave, spear → Wild, dagger → Shadow. Revised on 2026-11-07 after the step 1 report: no family may sit on all three gear slots, so sword → Rally, tome → Watch, mail → Faith. Bulwark has no weapon on purpose: it lives on plate and shield, and a tank's weapon is how it mixes in a second family. **Data check (a test, not a player rule):** no class, in any gear it can use, gets more than 3 tags of its own family, so one hero alone reaches level 1 at most and level 2 needs a second hero. Known gap for the numbers pass: Engineer (1), Thief and Cook (1 in favoured gear) and Scout (2) can't anchor their family alone; fix with class affinities rather than tags. The simulator reports how often parties in their favoured gear, picked without regard to families, reach level 2 or 3; if that's too easy, prefer adjusting a few tags or the thresholds over bending item identity.
-- **Every family has at least one weapon type**, so any family can be reached through items with any heroes (e.g. Venom through flasks or daggers before the Alchemist appears).
+- **Every family has at least one item type**, so any family can be reached through items with any heroes (e.g. Venom through flasks or daggers before the Alchemist appears). Bulwark has no weapon.
+
+## Answering threats early (2026-11-08)
+Threats must never be gated behind finding the right hero. Gear is the flexible answer:
+- **Every threat family has a tier-1 item type** that's sold or forgeable from day 1, cheap, and usable (not unfit) by most classes. A data test checks every tier-1 and tier-2 briefing is answerable with the starting heroes and tier-1 shop gear.
+- **The tier-1 recruit pool** gains a Wild class and a Watch class (the tier-1 dungeons are mostly Beasts, Darkness and Poison).
+- **Starting heroes** carry different families.
+- **Restrictions that disable tags are removed** (they undermine the one rule players learn). **Surges** raise a threat by 1 at most.
+- **Kits stay gone.** If gaps remain, the fallback is a family charm in the trinket slot (+1 tag, costs the trinket's stats); not built now.
+
+## Expedition screens (2026-11-08)
+Mockup: `doc/design/expeditions/` (the design canvas boards). The list shows no heroes and no odds: each place is a pinned notice with its needs as gem sockets and a readiness stamp (Ready, Needs gear, No <family>). Picking a place opens the party dialog: needs and party families at the top, three hero plates with their gear slots (each with its family gem), odds only once a hero is in, refreshed on every hero or gear change. Gear changes made there are permanent. Pickers sort what covers a need first (▲) and show the odds after each choice. A Suggest button fills heroes and gear. The same dialog serves patrols, place fights and Sanctums.
 
 ## Threats after this change
 Seven, one per threat family: **Holy** (undead, desecrated ground), **Beasts**, **Darkness** (darkness, ambush), **Traps** (traps, obstacles), **Poison**, **Element** (5 elements), **Armoured**. Removed: Brute, Locals, Swarm, Casters, Thieves, Maze, Underwater. The three obstacles (rubble, locked, puzzle) merge into Traps. Penalties for an unanswered threat stay as they are per threat (merged threats keep one penalty; briefings may keep flavour variants).

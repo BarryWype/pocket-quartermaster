@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Expedition board</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&amp;display=swap">
+<style>
+@font-face{font-family:Fantaisie;src:url(/_blob/b832aa39943fd83d650a4a3571bdc3aa) format('truetype')}
+body{margin:0}
+a{color:#7A4A26}a:hover{color:#3A2314}
+.px{image-rendering:pixelated}
+.band{background:repeating-linear-gradient(#5A3820 0 13px,#4E301B 13px 14px);border-bottom:3px solid #1E120A}
+.card{position:relative;background:#F2E4C2;border:3px solid #1E120A;box-shadow:0 4px 0 #1E120A}
+.card::after{content:"";position:absolute;inset:3px;border:2px solid #C9A04E;pointer-events:none}
+.sock{width:28px;height:28px;flex-shrink:0;transform:rotate(45deg);display:flex;align-items:center;justify-content:center;background:#2A180D;border:2px solid #C9A04E;box-shadow:0 0 0 2px #1E120A}
+.sock img{width:24px;height:24px;transform:rotate(-45deg)}
+.pin{position:absolute;top:-7px;left:50%;width:12px;height:12px;margin-left:-6px;border-radius:6px;background:#8A2E1C;border:2px solid #1E120A;z-index:2}
+.stamp{position:absolute;right:14px;bottom:12px;transform:rotate(-9deg);padding:2px 8px;font-family:Fantaisie,serif;font-size:19px;letter-spacing:1px;border:3px double;background:rgba(242,228,194,0.85)}
+.tab{flex-grow:1;height:46px;font-family:Fantaisie,serif;font-size:20px;color:#C9B48A;background:#3A2314;border:3px solid #1E120A;box-shadow:inset 0 0 0 2px #4E301B}
+.tab.on{color:#F6D98E;background:#7A4A26;box-shadow:inset 0 0 0 2px #C9A04E}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; overflow: hidden; background: repeating-linear-gradient(90deg, #3A2314 0 46px, #2A180D 46px 48px); font-family: Alegreya, Georgia, serif; color: #3A2314; display: flex; flex-direction: column;">
+  <div class="band" style="height: 62px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-family: Fantaisie, serif; font-size: 32px; color: #F6D98E; text-shadow: 0 2px 0 #1E120A;">Expeditions</div>
+
+  <nav aria-label="Expedition tabs" style="display: flex; gap: 6px; padding: 8px 10px;">
+    <button type="button" class="tab on">Places</button>
+    <button type="button" class="tab">Out now · 1</button>
+    <button type="button" class="tab">Jobs</button>
+  </nav>
+
+  <div style="flex-grow: 1; padding: 10px 14px; display: flex; flex-direction: column; gap: 18px;">
+
+    <a href="Party-empty.dc.html" class="card" style="display: block; text-decoration: none; color: #3A2314; transform: rotate(-0.6deg);">
+      <span class="pin"></span>
+      <span class="band" style="display: flex; align-items: center; gap: 8px; padding: 7px 12px;">
+        <span style="font-family: Fantaisie, serif; font-size: 23px; color: #F6D98E;">Wolf den</span>
+        <span aria-label="Medium" style="display: flex; gap: 3px;"><span style="width: 9px; height: 9px; background: #D98A2E; border: 2px solid #1E120A;"></span><span style="width: 9px; height: 9px; background: #D98A2E; border: 2px solid #1E120A;"></span></span>
+        <span style="margin-left: auto; font-size: 15px; color: #C9B48A;">2 h 30</span>
+      </span>
+      <span style="display: flex; flex-direction: column; gap: 10px; padding: 12px 14px 14px;">
+        <span style="display: flex; align-items: center; gap: 12px; padding-left: 4px;">
+          <span class="sock"><img class="px" src="/_blob/de06f428570b66d4fdca11832bf05d1f" alt="Wild"></span>
+          <span class="sock"><img class="px" src="/_blob/de06f428570b66d4fdca11832bf05d1f" alt="Wild"></span>
+          <span style="width: 4px;"></span>
+          <span class="sock"><img class="px" src="/_blob/54f843edb151fef0987493404b4bf829" alt="Watch"></span>
+        </span>
+        <span style="font-size: 15px; color: #6A4A2C;">Beasts 2 · Darkness 1 · Gold, hides, fangs</span>
+      </span>
+      <span class="stamp" style="color: #B4471C; border-color: #B4471C;">NEEDS GEAR</span>
+    </a>
+
+    <div class="card" style="transform: rotate(0.5deg);">
+      <span class="pin"></span>
+      <div class="band" style="display: flex; align-items: center; gap: 8px; padding: 7px 12px;">
+        <span style="font-family: Fantaisie, serif; font-size: 23px; color: #F6D98E;">Rat cellar</span>
+        <span aria-label="Easy" style="display: flex; gap: 3px;"><span style="width: 9px; height: 9px; background: #4E9A3E; border: 2px solid #1E120A;"></span></span>
+        <span style="margin-left: auto; font-size: 15px; color: #C9B48A;">1 h</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px; padding: 12px 14px 14px;">
+        <div style="display: flex; align-items: center; gap: 12px; padding-left: 4px;">
+          <span class="sock"><img class="px" src="/_blob/de06f428570b66d4fdca11832bf05d1f" alt="Wild"></span>
+          <span style="width: 4px;"></span>
+          <span class="sock"><img class="px" src="/_blob/d09a5887c91646b5871a8ccf399f2e21" alt="Venom"></span>
+        </div>
+        <span style="font-size: 15px; color: #6A4A2C;">Beasts 1 · Poison 1 · Gold, rat tails</span>
+      </div>
+      <span class="stamp" style="color: #2F6B32; border-color: #2F6B32;">READY</span>
+    </div>
+
+    <div class="card" style="transform: rotate(-0.4deg);">
+      <span class="pin"></span>
+      <div class="band" style="display: flex; align-items: center; gap: 8px; padding: 7px 12px;">
+        <span style="font-family: Fantaisie, serif; font-size: 23px; color: #F6D98E;">Old graveyard</span>
+        <span aria-label="Hard" style="display: flex; gap: 3px;"><span style="width: 9px; height: 9px; background: #C9473A; border: 2px solid #1E120A;"></span><span style="width: 9px; height: 9px; background: #C9473A; border: 2px solid #1E120A;"></span><span style="width: 9px; height: 9px; background: #C9473A; border: 2px solid #1E120A;"></span></span>
+        <span style="margin-left: auto; font-size: 15px; color: #C9B48A;">4 h</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px; padding: 12px 14px 14px;">
+        <div style="display: flex; align-items: center; gap: 12px; padding-left: 4px;">
+          <span class="sock"><img class="px" src="/_blob/1578086010507f494351178e576649a6" alt="Faith"></span>
+          <span class="sock"><img class="px" src="/_blob/1578086010507f494351178e576649a6" alt="Faith"></span>
+          <span style="width: 4px;"></span>
+          <span class="sock"><img class="px" src="/_blob/54f843edb151fef0987493404b4bf829" alt="Watch"></span>
+        </div>
+        <span style="font-size: 15px; color: #6A4A2C;">Holy 2 · Darkness 1 · Gold, bone, relic chance</span>
+      </div>
+      <span class="stamp" style="color: #2F6B32; border-color: #2F6B32;">READY</span>
+    </div>
+
+    <div class="card" style="transform: rotate(0.7deg); filter: saturate(0.6);">
+      <span class="pin"></span>
+      <div class="band" style="display: flex; align-items: center; gap: 8px; padding: 7px 12px;">
+        <span style="font-family: Fantaisie, serif; font-size: 23px; color: #F6D98E;">Spider burrow</span>
+        <span aria-label="Medium" style="display: flex; gap: 3px;"><span style="width: 9px; height: 9px; background: #D98A2E; border: 2px solid #1E120A;"></span><span style="width: 9px; height: 9px; background: #D98A2E; border: 2px solid #1E120A;"></span></span>
+        <span style="margin-left: auto; font-size: 15px; color: #C9B48A;">2 h</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px; padding: 12px 14px 14px;">
+        <div style="display: flex; align-items: center; gap: 12px; padding-left: 4px;">
+          <span class="sock"><img class="px" src="/_blob/d09a5887c91646b5871a8ccf399f2e21" alt="Venom"></span>
+          <span class="sock"><img class="px" src="/_blob/d09a5887c91646b5871a8ccf399f2e21" alt="Venom"></span>
+          <span style="width: 4px;"></span>
+          <span class="sock"><img class="px" src="/_blob/54f843edb151fef0987493404b4bf829" alt="Watch"></span>
+        </div>
+        <span style="font-size: 15px; color: #6A4A2C;">Poison 2 · Darkness 1 · Gold, silk</span>
+      </div>
+      <span class="stamp" style="color: #8A2E1C; border-color: #8A2E1C;">NO VENOM</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
