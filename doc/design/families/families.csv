@@ -3,14 +3,14 @@ faith,Faith,threat,Holy (undead; desecrated ground),answers Holy level 1; undead
 wild,Wild,threat,Beasts,answers Beasts level 1; beasts deal −10% damage,answers Beasts level 2; after each won fight against beasts the party heals 5% and gains +1 fang or horn,answers Beasts level 3; once per run a calmed beast fights for the party
 watch,Watch,threat,Darkness (darkness; ambush),answers Darkness level 1; +Speed in round 1,answers Darkness level 2; never exposed; enemies that would ambush lose their first turn,answers Darkness level 3; +crit against elites; the party always acts first
 cunning,Cunning,threat,Traps (traps; obstacles),answers Traps level 1; trap wounds halved,answers Traps level 2; runs take 15% less time; hidden cache steps pay their gold,"answers Traps level 3; an extra loot roll from every hidden cache step, Hidden cache and Sealed vault"
-venom,Venom,threat,Poison,answers Poison level 1; poison wounds halved,answers Poison level 2; poison stacks up to 3 times on an enemy (each Venomous hit adds a stack; without Venom 2 a new hit refreshes the one poison),answers Poison level 3; poisoned enemies take +20% damage from everyone
+venom,Venom,threat,Poison,answers Poison level 1; poison wounds halved,answers Poison level 2; poison stacks up to 3 times on an enemy (each Venomous hit adds a stack, 30% of the hit over 3 rounds; without Venom 2 a new hit refreshes the one poison),answers Poison level 3; poisoned enemies take +20% damage from everyone
 warding,Warding,threat,Element (5 elements),answers Element level 1; +elemental resistance,answers Element level 2; the first elemental hit of each fight is absorbed,answers Element level 3; 20% of elemental damage taken is reflected
 breaker,Breaker,threat,Armoured,answers Armoured level 1; ignore 10% of enemy armour,answers Armoured level 2; crits stagger the target (it loses its next turn),answers Armoured level 3; the first hit of each fight shreds 30% of the target's armour
-bulwark,Bulwark,playstyle,,the front hero takes −15% damage,the front hero guards the weakest ally (takes half the hits aimed at them),the party ignores the first hit of each fight
+bulwark,Bulwark,playstyle,,the front hero takes −10% damage,the front hero guards the weakest ally (takes 35% of each hit aimed at them),the first hit of each fight on the party deals −35% damage
 bloodrage,Bloodrage,playstyle,,+20% damage below half HP,heal 5% on each kill,below 25% HP an extra attack each round
-shadow,Shadow,playstyle,,+15% crit chance in round 1,+10% evasion; a dodged attack gives a free counter,the weakest enemy is struck down before it acts (once per fight)
+shadow,Shadow,playstyle,,+15% crit chance in round 1,+6 evasion; a dodged attack gives a free counter (30% of a hit),each fight a 45% chance the weakest enemy is struck down before it acts
 volley,Volley,playstyle,,ranged weapons act first,ranged hits ignore 20% armour,a volley hits every enemy once per fight
 spellweave,Spellweave,playstyle,,magic damage +5% per round (up to +25%),an Infused (elemental) hit jumps to a second enemy for 30% in the same element,elemental advantage doubled
-pack,Pack,playstyle,,summons last 1 more round,summons hit 50% harder,an extra summon each fight even without a summoner
+pack,Pack,playstyle,,summons last 1 more round,summons hit 25% harder,an extra summon each fight even without a summoner (35% of the hero's hit)
 rally,Rally,playstyle,,+10% party damage,the party heals 5% between fights,every special gets one extra use per run
 plunder,Plunder,playstyle,,+10% gold,+1 monster part per won fight,loot rolls one rarity step higher
