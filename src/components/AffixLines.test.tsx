@@ -46,7 +46,7 @@ describe('AffixLines', () => {
     act(() => {
       unique = create(<AffixLines piece={piece({ rarity: 'legendary', unique: 'poachersLongbow' })} />);
     });
-    expect(textsOf(unique)).toContain('Unique: Double crit damage against beasts');
+    expect(textsOf(unique)).toContain('Unique: Double crit damage against beasts; a Wild tag for its carrier');
     expect(unique.root.findAllByType(IconLabel)).toHaveLength(1);
   });
 
