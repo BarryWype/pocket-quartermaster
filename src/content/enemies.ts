@@ -32,6 +32,37 @@ const strength = (tier: number, dungeonFactor: number): Strength => ({ tier, sca
 /** A chain dungeon's fitted factor (see content/difficultyFactors.ts), or its hand-tuned one. */
 const D = (id: string, fallback: number) => dungeonFactors[id] ?? fallback;
 
+/**
+ * Natural armour of the armoured kinds (constructs and golems, shelled beasts,
+ * armoured knights and soldiers, the scaled elder dragon): the share of a Power hit it blocks, by tier;
+ * Magic hits meet part of it (expeditionRules.magicArmourShare), Pierce none.
+ * Rough numbers: enemy strength is refitted around them.
+ */
+export const enemyArmourRules = {
+  byTier: [0.15, 0.18, 0.21, 0.24, 0.27],
+  tags: ['construct', 'carapace'] as Tag[],
+  /** Armoured by name wherever they appear: dungeons, patrols, places. */
+  names: [
+    'mould knight',
+    'bone knight',
+    'death knight',
+    'ash knight',
+    'turncoat knight',
+    'barnacled knight',
+    'fallen legionary',
+    'death captain',
+    'bone general',
+    'tower sergeant',
+    'crypt guard',
+    'bandit captain',
+    'orc warlord',
+    'elder dragon',
+  ],
+};
+
+const enemyArmour = (name: string, tags: Tag[], tier: number) =>
+  tags.some((tag) => enemyArmourRules.tags.includes(tag)) || enemyArmourRules.names.includes(name) ? enemyArmourRules.byTier[tier - 1] : undefined;
+
 const enemySpeed = (tier: number, speedClass: SpeedClass) =>
   enemySpeedRules[speedClass] + enemySpeedRules.speedPerTier * (tier - 1);
 
@@ -56,6 +87,7 @@ function mob(
     speed: enemySpeed(s.tier, speedClass),
     element,
     tags,
+    ...(enemyArmour(name, tags, s.tier) !== undefined ? { armour: enemyArmour(name, tags, s.tier) } : {}),
   };
 }
 

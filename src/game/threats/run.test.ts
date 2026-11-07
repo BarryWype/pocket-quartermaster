@@ -111,7 +111,8 @@ describe('run penalties', () => {
   });
 
   it('expose every other fight when "all" is halved by a half miss', () => {
-    // Darkness level 3 exposes every fight; five Watch tags (one short of level 3) halve that to every other one.
+    // Darkness level 3 exposes every fight; five Watch tags (one short of level 3) halve that to every other one,
+    // and Watch level 2 turns each of those ambushes (the enemies lose their first turn instead).
     const watcher = [member('a', [], { maxHp: 1e6, power: 1000, familyTags: [familyTag('watch', 5)] })];
     const runs = Array.from({ length: 8 }, (_, i) =>
       simulateRun(watcher, fights, `d${i}`, { rules: steady, briefing: threat('darkness', 3) }),
@@ -119,7 +120,8 @@ describe('run penalties', () => {
     runs.forEach((run) => {
       expect(run.threats[0].state).toBe('half');
       run.encounters.forEach((encounter, i) => {
-        expect(encounter.effects.some((e) => e.key === 'exposed')).toBe(i % 2 === 0);
+        expect(encounter.effects.some((e) => e.key === 'exposed')).toBe(false);
+        expect(encounter.effects.some((e) => e.key === 'family' && e.familyEffect === 'watch2')).toBe(i % 2 === 0);
       });
     });
   });

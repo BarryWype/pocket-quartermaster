@@ -750,6 +750,8 @@ export type MobDef = {
   element?: Element;
   /** The tags in order: the first is the enemy's main family. The element is a tag too, added by `mobTags`. */
   tags: Tag[];
+  /** Natural armour of the armoured kinds: the share of a Power hit it blocks (see enemyArmourRules). */
+  armour?: number;
 };
 
 export type BossDef = MobDef & {

@@ -982,6 +982,8 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       const id = hero.member.heroId;
       const tags = enemyTags(target.def);
       const pierce = has(hero, 'pierce', tags);
+      // The target's natural armour, and the armour a missed Armoured threat lends every enemy.
+      const armour = 1 - (1 - (target.def.armour ?? 0)) * weakenedAgainst;
       let attack: Attack | undefined;
       if (hooks.beforeAttack.length > 0) {
         attack = {
@@ -994,12 +996,12 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           multiplier: 1,
           critAdd: 0,
           armourKept: 1,
-          armoured: !pierce && weakenedAgainst < 1 && target.armour > 0,
+          armoured: !pierce && armour > 0 && target.armour > 0,
         };
         for (const hook of hooks.beforeAttack) hook(attack);
       }
       // An armoured target blunts Power in full and Magic only partly; Pierce ignores it.
-      const blocked = (1 - weakenedAgainst) * target.armour * (attack?.armourKept ?? 1);
+      const blocked = armour * target.armour * (attack?.armourKept ?? 1);
       const armourFactor = pierce ? 1 : hero.member.damageStat === 'power' ? 1 - blocked : 1 - rules.magicArmourShare * blocked;
       // The best buff of a conscious hero lifts everyone; buffs don't stack.
       let buffer: { buff: Extract<Ability, { kind: 'partyDamageBuff' }> } | undefined;

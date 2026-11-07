@@ -345,6 +345,40 @@ export const familyEffects: FamilyEffect[] = [
       },
     },
   },
+  // Armour.
+  {
+    family: 'breaker',
+    level: 3,
+    hooks: {
+      beforeAttack: (a) => {
+        if (!a.armoured || !a.once('breaker3')) return;
+        a.target.armour *= 1 - R.breaker.shred;
+        a.log('breaker3', idOf(a.hero));
+      },
+    },
+  },
+  {
+    family: 'breaker',
+    level: 1,
+    hooks: {
+      beforeAttack: (a) => {
+        if (!a.armoured) return;
+        a.armourKept *= 1 - R.breaker.armourIgnore;
+        a.log('breaker1', idOf(a.hero));
+      },
+    },
+  },
+  {
+    family: 'volley',
+    level: 2,
+    hooks: {
+      beforeAttack: (a) => {
+        if (!a.armoured || !a.hero.member.ranged) return;
+        a.armourKept *= 1 - R.volley.armourIgnore;
+        a.log('volley2', idOf(a.hero));
+      },
+    },
+  },
   // Control.
   {
     family: 'watch',
