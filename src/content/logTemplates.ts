@@ -1,3 +1,4 @@
+import type { FamilyEffectId } from '@/content/families';
 import type { ExpeditionOutcome, HeroClassId, SpecialId } from '@/game/types';
 
 /** Before the boss line, keyed by boss id: the weakness item at work. */
@@ -135,6 +136,8 @@ export const logTemplates = {
   } satisfies Record<SpecialId, string>,
   /** A Double or nothing that missed. */
   specialMiss: ' {hero} went double or nothing and missed.',
+  /** A family effect that fired, by effect: {hero} is who it fired for, {ally} who it protected. */
+  families: {} as Partial<Record<FamilyEffectId, string>>,
   /** The opening lines for the party's stat, speed and oil elixirs. */
   elixirDrank: ' {hero} drank their {item} before setting out.',
   elixirOil: ' {hero} coated their weapon with {item}.',

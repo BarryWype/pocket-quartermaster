@@ -46,11 +46,16 @@ export function heroFamilyTagSources(save: SaveData, hero: HeroState): HeroFamil
   return tags;
 }
 
+/** The family counts of a list of tags. */
+export function familyCountsOf(tags: HeroFamilyTag[]): FamilyCounts {
+  const counts: FamilyCounts = {};
+  for (const tag of tags) add(counts, tag.family, tag.count);
+  return counts;
+}
+
 /** The family tags one hero contributes: their class's tag, their gear's and their relic extras. */
 export function heroFamilyTags(save: SaveData, hero: HeroState): FamilyCounts {
-  const counts: FamilyCounts = {};
-  for (const tag of heroFamilyTagSources(save, hero)) add(counts, tag.family, tag.count);
-  return counts;
+  return familyCountsOf(heroFamilyTagSources(save, hero));
 }
 
 /** The family tags a whole party contributes, summed over the heroes found in the roster. */
@@ -70,6 +75,18 @@ export function partyFamilies(save: SaveData, heroIds: string[]): FamilyCounts {
 /** How many of the level thresholds (2, 4, 6) the count reaches: 0 to 3. */
 export function familyLevel(count: number): number {
   return familyRules.levels.filter((threshold) => count >= threshold).length;
+}
+
+/** A party's family levels (1 to 3), for the families that reached level 1. */
+export type FamilyLevels = Partial<Record<FamilyId, number>>;
+
+export function familyLevels(counts: FamilyCounts): FamilyLevels {
+  const levels: FamilyLevels = {};
+  for (const [family, count] of Object.entries(counts) as [FamilyId, number][]) {
+    const level = familyLevel(count);
+    if (level > 0) levels[family] = level;
+  }
+  return levels;
 }
 
 /** The party's families that reached level 1, strongest first, then in `families` order. */

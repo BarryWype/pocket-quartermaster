@@ -59,3 +59,51 @@ export function familyOfThreat(threatId: ThreatId): FamilyId {
 
 /** Tag counts a family's levels are reached at (2, 4 and 6). */
 export const familyRules = { levels: [2, 4, 6] };
+
+/** A family effect that fired, for the log: the family and level, with a suffix when one level has two parts. */
+export type FamilyEffectId =
+  | 'faith1'
+  | 'wild1'
+  | 'watch1'
+  | 'watch2'
+  | 'watch3'
+  | 'watch3Crit'
+  | 'warding1'
+  | 'warding2'
+  | 'warding3'
+  | 'breaker1'
+  | 'breaker2'
+  | 'breaker3'
+  | 'bulwark1'
+  | 'bulwark2'
+  | 'bulwark3'
+  | 'bloodrage1'
+  | 'shadow1'
+  | 'shadow2'
+  | 'shadow3'
+  | 'volley1'
+  | 'volley2'
+  | 'spellweave1'
+  | 'rally1';
+
+/** The numbers behind the family effects in fights (see game/expeditions/familyEffects.ts). */
+export const familyEffectRules = {
+  faith: { vsTags: ['undead', 'spirit'] as string[], damage: 1.1 },
+  wild: { fromTags: ['beast'] as string[], damageTaken: 0.9 },
+  /** Speed added in round 1; crit chance added against elites. */
+  watch: { firstRoundSpeed: 3, eliteCrit: 0.1 },
+  /** Elemental hits taken are multiplied; a share of the elemental damage taken is reflected. */
+  warding: { elementalTaken: 0.85, reflect: 0.2 },
+  /** Shares of the enemy armour ignored, and shredded by the first hit of a fight. */
+  breaker: { armourIgnore: 0.1, shred: 0.3 },
+  /** The front hero's damage taken; the share of the weakest ally's hits the front hero takes. */
+  bulwark: { frontTaken: 0.85, guardShare: 0.5 },
+  bloodrage: { belowHp: 0.5, damage: 1.2 },
+  /** Crit chance in round 1; Evasion points added; a counter's share of a normal hit. */
+  shadow: { firstRoundCrit: 0.15, evasion: 10, counterShare: 0.5 },
+  /** The weapons that count as ranged, and the share of armour their hits ignore. */
+  volley: { gearTypes: ['bow', 'crossbow', 'throwing'] as string[], armourIgnore: 0.2 },
+  /** Magic damage added each round of a fight, up to the max. */
+  spellweave: { perRound: 0.05, max: 0.25 },
+  rally: { damage: 1.1 },
+};

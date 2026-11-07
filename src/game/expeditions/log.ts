@@ -122,6 +122,10 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
             return [logTemplates.poison];
           case 'relic':
             return [fill(logTemplates.relic, { hero, relic: tr(relicById[e.relicId!].name) })];
+          case 'family': {
+            const line = logTemplates.families[e.familyEffect!];
+            return line ? [fill(line, { hero, ally: e.allyId ? nameOf(e.allyId) : '' })] : [];
+          }
           case 'special':
             return [
               fill(e.missed ? logTemplates.specialMiss : logTemplates.specials[e.specialId!], {

@@ -1,5 +1,6 @@
 import { affixById, type AffixEffect } from '@/content/affixes';
 import { expeditionRules } from '@/content/dungeons';
+import { familyEffectRules, type FamilyEffectId } from '@/content/families';
 import { mobById, TIER_SCALE } from '@/content/enemies';
 import { eventById } from '@/content/events';
 import { npcById } from '@/content/npcs';
@@ -20,7 +21,7 @@ import { mobTags } from '../enemies/tags';
 import type { SaveData } from '../save';
 import { trinketEffect } from '../loot/trinkets';
 import { affixEffects, infusedElement } from '../gear/affixes';
-import { heroFamilyTagSources, type HeroFamilyTag } from '../families/families';
+import { familyCountsOf, familyLevels, heroFamilyTagSources, type FamilyLevels, type HeroFamilyTag } from '../families/families';
 import { currentHp } from '../team/health';
 import { equippedGear, heroAbilities, heroDamageStat, heroStats, gearKeywordsOf, healingPotion, relicEffectsOf, type GearKeywordEntry, type WornRelicEffect } from '../team/team';
 import { heroAnswers, type AnswersMember, type HeroAnswers } from '../threats/answers';
@@ -53,6 +54,7 @@ import type {
   Tag,
   ThreatId,
 } from '../types';
+import { activeHooks, type ActiveHooks, type Attack, type FamilyBase, type Incoming } from './familyEffects';
 import { hungerEffect } from './provisions';
 
 export type ExpeditionRules = typeof expeditionRules;
@@ -70,6 +72,8 @@ export type PartyMember = {
   /** The hero's special (see content/specials.ts), fired on its trigger during the run. */
   special?: SpecialId;
   weaponName: string | null;
+  /** The weapon is a ranged one (bow, crossbow, throwing weapons): Volley reads it. */
+  ranged?: boolean;
   /** The keywords of the hero's weapon, armour and off-hand; magic pieces marked, strong ones doubled, relic ones behind their condition. */
   gearKeywords: GearKeywordEntry[];
   /** The non-keyword effects of the relics restored into the hero's weapon, armour and off-hand. */
@@ -172,7 +176,9 @@ export type AbilityEffect = {
     /** An Alchemist drank the potion in their second slot. */
     | 'secondPotion'
     /** A hero's special fired (`specialId`); once per firing, however often it fires. */
-    | 'special';
+    | 'special'
+    /** A family effect fired (`familyEffect`); once per encounter. */
+    | 'family';
   tag?: Tag;
   /** The ally a `protect` shielded. */
   allyId?: string;
@@ -184,6 +190,8 @@ export type AbilityEffect = {
   count?: number;
   /** A Double or nothing that missed. */
   missed?: boolean;
+  /** The family effect behind a `family` note. */
+  familyEffect?: FamilyEffectId;
 };
 
 export type EncounterResult = {
@@ -239,6 +247,8 @@ export type RunResult = {
   meal: MealEffect | null;
   /** Extra rolls of the main loot row a won run pays (a special's bonus). */
   extraLootRolls: number;
+  /** The party's family levels the run played with. */
+  families: FamilyLevels;
 };
 
 /** What the party ate and signed up for: the same for the odds preview and the real run. */
@@ -262,7 +272,7 @@ export type RunOptions = RunProvisions & {
   blessed?: boolean;
 };
 
-type HeroState = {
+export type HeroState = {
   member: PartyMember;
   hp: number;
   out: boolean;
@@ -280,7 +290,8 @@ type HeroState = {
   weakenedRest: number;
 };
 /** `maxHp` is the def's HP after a weakness cut; thresholds like enrage use it. */
-type EnemyState = { def: MobDef | BossDef; hp: number; maxHp: number; staggered: boolean };
+/** `armour` is the share of the enemy's armour still standing (a shred lowers it for the fight). */
+export type EnemyState = { def: MobDef | BossDef; hp: number; maxHp: number; staggered: boolean; armour: number };
 
 /** A party member as `heroAnswers` sees them: their family tags. */
 export function answersMemberOf(member: PartyMember): AnswersMember {
@@ -331,6 +342,7 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs
         traitId: hero.trait,
         special: hero.special,
         weaponName: weapon ? gearName(weapon) : null,
+        ranged: !!weaponItem?.gearType && familyEffectRules.volley.gearTypes.includes(weaponItem.gearType),
         gearKeywords: gearKeywordsOf(save, hero),
         relicEffects,
         affixes: affixEffects(equippedGear(save, hero)),
@@ -460,6 +472,9 @@ export type PreparedSimulation = {
   magicFactor: number;
   partyHealFactor: number;
   healing: number;
+  /** The party's family levels, from the tags the restriction leaves standing (as the threats see them). */
+  families: FamilyLevels;
+  hooks: ActiveHooks;
 };
 
 /**
@@ -567,6 +582,7 @@ export function prepareSimulation(
   const magicFactor = restriction === 'antiMagic' ? restrictionRules.antiMagic : 1;
   const partyHealFactor = restriction === 'antiMagic' ? restrictionRules.antiMagic : 1;
   const healing = restriction === 'noHealing' ? restrictionRules.noHealing : 1;
+  const families = familyLevels(familyCountsOf(answers.flatMap((a) => a.tags)));
   return {
     rules,
     guaranteed,
@@ -593,6 +609,8 @@ export function prepareSimulation(
     magicFactor,
     partyHealFactor,
     healing,
+    families,
+    hooks: activeHooks(families),
   };
 }
 
@@ -628,6 +646,8 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     magicFactor,
     partyHealFactor,
     healing,
+    families,
+    hooks,
   } = prepared;
   const rng = createRng(seed);
   // Specials draw from their own stream, so a special changes only what it does, not every later roll.
@@ -738,6 +758,23 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
   let fightShields: Map<string, number> | null = null;
   /** Heroes whose Unyielding save already fired this run. */
   const lastStands = new Set<string>();
+  /** The family effects' once-only flags: the running fight's, and the run's. */
+  let fightOnce = new Set<string>();
+  const runOnce = new Set<string>();
+  /** The family hooks' shared tools, logging into `result`. */
+  const familyBase = (result: EncounterResult): FamilyBase => ({
+    once: (key, scope = 'fight') => {
+      const used = scope === 'run' ? runOnce : fightOnce;
+      if (used.has(key)) return false;
+      used.add(key);
+      return true;
+    },
+    log: (effect, heroId, allyId) => {
+      if (result.effects.some((e) => e.key === 'family' && e.familyEffect === effect)) return;
+      result.effects.push({ heroId, key: 'family', familyEffect: effect, ...(allyId ? { allyId } : {}) });
+    },
+    heroOf: (family) => alive().find((h) => h.member.familyTags.some((t) => t.family === family)) ?? alive()[0],
+  });
 
   const heal = (hero: HeroState, share: number, result: EncounterResult) => {
     const amount = Math.min(hero.member.maxHp - hero.hp, share * hero.member.maxHp * healing);
@@ -836,9 +873,28 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       // A weakness item cuts the boss's max HP up front.
       const maxHp = def.hp * (isBoss && weakness?.hpCut ? 1 - weakness.hpCut : 1);
       // The dead walk here: undead are harder to put down.
-      return { def, hp: maxHp * (enemyTags(def).includes('undead') ? undeadHp : 1), maxHp, staggered: false };
+      return { def, hp: maxHp * (enemyTags(def).includes('undead') ? undeadHp : 1), maxHp, staggered: false, armour: 1 };
     });
     if (escaped) return;
+    fightOnce = new Set();
+    const family = familyBase(result);
+    /** The enemies strike first in round 1; a family effect may turn the ambush. */
+    let ambush = enemiesFirst;
+    if (hooks.fightStart.length > 0) {
+      const ctx = {
+        ...family,
+        enemies,
+        isBoss,
+        ambush,
+        strikeDown: (hero: HeroState, enemy: EnemyState) => {
+          add(result.dealt, hero.member.heroId, Math.max(0, enemy.hp));
+          enemy.hp = 0;
+        },
+      };
+      for (const hook of hooks.fightStart) hook(ctx);
+      ambush = ctx.ambush;
+    }
+    if (ambush) result.effects.push({ heroId: null, key: 'exposed' });
     // The run's first fight opens with every conscious carrier's firebomb.
     if (elixirs && !firebombThrown) {
       firebombThrown = true;
@@ -905,6 +961,9 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     const living = () => enemies.filter((e) => e.hp > 0);
     const bossOf = () => (isBoss ? enemies[0] : enemies.find((e) => 'effect' in e.def));
     const strongest = (foes: EnemyState[]) => foes.reduce((best, e) => (e.def.damage > best.def.damage ? e : best));
+    const isElite = (enemy: EnemyState) => isBoss || 'effect' in enemy.def || enemy.def.id.includes(':elite');
+    /** Each conscious hero's speed this round, after the family effects. */
+    let roundSpeed = new Map<HeroState, number>();
     /** Whether the hero's special still has its use, this fight or this run. */
     const hasUseLeft = (hero: HeroState, def: SpecialDef) =>
       def.uses === 'betweenFights' ||
@@ -922,12 +981,26 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     ) => {
       const id = hero.member.heroId;
       const tags = enemyTags(target.def);
+      const pierce = has(hero, 'pierce', tags);
+      let attack: Attack | undefined;
+      if (hooks.beforeAttack.length > 0) {
+        attack = {
+          ...family,
+          hero,
+          target,
+          tags,
+          elite: isElite(target),
+          round: currentRound,
+          multiplier: 1,
+          critAdd: 0,
+          armourKept: 1,
+          armoured: !pierce && weakenedAgainst < 1 && target.armour > 0,
+        };
+        for (const hook of hooks.beforeAttack) hook(attack);
+      }
       // An armoured target blunts Power in full and Magic only partly; Pierce ignores it.
-      const armourFactor = has(hero, 'pierce', tags)
-        ? 1
-        : hero.member.damageStat === 'power'
-          ? weakenedAgainst
-          : 1 - rules.magicArmourShare * (1 - weakenedAgainst);
+      const blocked = (1 - weakenedAgainst) * target.armour * (attack?.armourKept ?? 1);
+      const armourFactor = pierce ? 1 : hero.member.damageStat === 'power' ? 1 - blocked : 1 - rules.magicArmourShare * blocked;
       // The best buff of a conscious hero lifts everyone; buffs don't stack.
       let buffer: { buff: Extract<Ability, { kind: 'partyDamageBuff' }> } | undefined;
       for (const other of alive()) {
@@ -1007,10 +1080,10 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       };
       // An Aimed strike makes the hero's next hit a sure crit; an Opener affix sharpens the first round of the fight.
       const opener = currentRound === 1 ? affixTotal(hero.member, 'firstRoundCrit') / 100 : 0;
-      const chance = critChance ?? (sureCrits.delete(id) ? 1 : hero.member.crit / 100 + critBonus + opener);
+      const chance = critChance ?? (sureCrits.delete(id) ? 1 : hero.member.crit / 100 + critBonus + opener + (attack?.critAdd ?? 0));
       const hit = roll(physical + elementalPart, chance, onCrit, duel?.multiplier ?? critDamage?.effect.multiplier);
       return {
-        damage: hit * fortune * bonus * hero.fed * multiplier * (ctx.party ? ctx.party.multiplier : 1),
+        damage: hit * fortune * bonus * hero.fed * multiplier * (ctx.party ? ctx.party.multiplier : 1) * (attack?.multiplier ?? 1),
         crit,
         staggerOnCrit,
       };
@@ -1242,6 +1315,11 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
             noteRelic(result, id, firstSpell.relicId);
           }
           attacked.add(id);
+          if (hooks.onHit.length > 0 || hooks.onKill.length > 0) {
+            const hit = { ...family, hero, target, crit, damage };
+            for (const hook of hooks.onHit) hook(hit);
+            if (target.hp <= 0) for (const hook of hooks.onKill) hook(hit);
+          }
           // A relic heals its wearer when their hit kills a matching foe.
           const healOnKill = relicEffect(hero, 'healOnKill', tags);
           if (healOnKill && target.hp <= 0) {
@@ -1279,7 +1357,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           }
           if (second) return;
           const living = enemies.filter((e) => e.hp > 0);
-          const gap = living.length > 0 ? hero.member.speed - Math.max(...living.map((e) => e.def.speed)) : 0;
+          const gap = living.length > 0 ? (roundSpeed.get(hero) ?? hero.member.speed) - Math.max(...living.map((e) => e.def.speed)) : 0;
           if (gap > 0 && rng.chance(Math.min(rules.speed.secondAttackPerPoint * gap, rules.speed.max))) heroAttack(true);
         };
         heroAttack();
@@ -1352,7 +1430,28 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           // A Vanished hero slips out of the way of every attack.
           if ((ctx.dodges.get(hero.member.heroId) ?? 0) > 0) continue;
           // Quick heroes slip out of the way.
-          if (rng.chance(Math.min(hero.member.evasion, rules.evasionCap) / 100)) continue;
+          let evasion = hero.member.evasion;
+          if (hooks.beforeDefend.length > 0) {
+            const defend = { ...family, hero, attacker: enemy, evasion };
+            for (const hook of hooks.beforeDefend) hook(defend);
+            evasion = defend.evasion;
+          }
+          if (rng.chance(Math.min(evasion, rules.evasionCap) / 100)) {
+            if (hooks.onDodge.length === 0) continue;
+            const dodge = {
+              ...family,
+              hero,
+              attacker: enemy,
+              counter: (share: number) => {
+                if (enemy.hp <= 0 || hero.out) return;
+                const back = normalHit(hero, enemy, { multiplier: share }).damage;
+                enemy.hp -= back;
+                add(result.dealt, hero.member.heroId, back);
+              },
+            };
+            for (const hook of hooks.onDodge) hook(dodge);
+            continue;
+          }
           // Parry turns a physical hit away entirely.
           if (
             enemy.def.damageType === 'power' &&
@@ -1410,7 +1509,43 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
             else ctx.absorbs.set(hero.member.heroId, absorbed - 1);
             continue;
           }
-          hurt(hero, shielded(hero, taken), result);
+          const standing = alive();
+          if (hooks.incoming.length > 0 && standing.length > 0) {
+            const incoming: Incoming = {
+              ...family,
+              hero,
+              attacker: enemy,
+              tags: attackerTags,
+              element,
+              damage: taken,
+              absorbed: false,
+              front: standing.reduce((top, h) => (h.member.threat > top.member.threat ? h : top)),
+              weakest: standing.reduce((low, h) => (h.hp / h.member.maxHp < low.hp / low.member.maxHp ? h : low)),
+              hurt: (other, amount) => hurt(other, amount, result),
+            };
+            for (const hook of hooks.incoming) {
+              hook(incoming);
+              if (incoming.absorbed) break;
+            }
+            if (incoming.absorbed) continue;
+            taken = incoming.damage;
+          }
+          const landed = shielded(hero, taken);
+          hurt(hero, landed, result);
+          if (hooks.afterTaken.length > 0 && landed > 0) {
+            const after = {
+              ...family,
+              hero,
+              attacker: enemy,
+              element,
+              taken: landed,
+              reflect: (amount: number) => {
+                enemy.hp -= amount;
+                add(result.dealt, hero.member.heroId, amount);
+              },
+            };
+            for (const hook of hooks.afterTaken) hook(after);
+          }
           // A Riposte answers the hit with a strike of its own.
           const counter = ctx.counters.get(hero.member.heroId);
           if (counter && !hero.out) {
@@ -1483,21 +1618,35 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         // The round it fires in is past, so the multiplier counts down from the next round.
         if (ctx.party && --ctx.party.rounds < 0) ctx.party = null;
         // An exposed fight gives the enemies the first strike; after that it plays like any fight.
-        const ambushed = enemiesFirst && round === 1;
-        // Reach acts before the enemies in round 1 of every fight (rounds 1-2 when strong).
-        const reach = alive().filter((h) => has(h, 'reach', anyTags) && round <= (isStrong(h, 'reach', anyTags) ? gearKeywordRules.strong.reach.rounds : 1));
-        if (reach.length > 0) {
-          heroesAttack(reach);
+        const ambushed = ambush && round === 1;
+        // Reach acts before the enemies in round 1 of every fight (rounds 1-2 when strong); family effects may add others.
+        const firstSet = new Set(
+          alive().filter((h) => has(h, 'reach', anyTags) && round <= (isStrong(h, 'reach', anyTags) ? gearKeywordRules.strong.reach.rounds : 1)),
+        );
+        roundSpeed = new Map(alive().map((h) => [h, h.member.speed]));
+        if (hooks.turnOrder.length > 0) {
+          const fastestNow = Math.max(...enemies.filter((e) => e.hp > 0).map((e) => e.def.speed));
+          for (const hero of alive()) {
+            const order = { ...family, round, hero, speed: hero.member.speed, first: firstSet.has(hero), fastest: fastestNow, ambushed };
+            for (const hook of hooks.turnOrder) hook(order);
+            roundSpeed.set(hero, order.speed);
+            if (order.first) firstSet.add(hero);
+          }
+        }
+        const first = alive().filter((h) => firstSet.has(h));
+        if (first.length > 0) {
+          heroesAttack(first);
           if (enemies.every((e) => e.hp <= 0)) {
             result.cleared = true;
             return;
           }
         }
         // Heroes at least as fast as the fastest living enemy strike first; the rest strike after them.
-        const rest = alive().filter((h) => !reach.includes(h));
+        const rest = alive().filter((h) => !firstSet.has(h));
         const fastest = Math.max(...enemies.filter((e) => e.hp > 0).map((e) => e.def.speed));
-        const quick = ambushed ? rest : rest.filter((h) => h.member.speed >= fastest);
-        const slow = ambushed ? [] : rest.filter((h) => h.member.speed < fastest);
+        const speedOf = (h: HeroState) => roundSpeed.get(h) ?? h.member.speed;
+        const quick = ambushed ? rest : rest.filter((h) => speedOf(h) >= fastest);
+        const slow = ambushed ? [] : rest.filter((h) => speedOf(h) < fastest);
         if (ambushed) enemiesAttack(round);
         if (escaped || alive().length === 0) return;
         // Raised enemies strike every round and are never targeted; a special's summons fight beside them.
@@ -1541,7 +1690,6 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     isBoss = false,
     weakness?: WeaknessEffect,
   ) => {
-    if (enemiesFirst) result.effects.push({ heroId: null, key: 'exposed' });
     const allies = raised;
     raised = [];
     fight(enemyDefs, result, enemiesFirst, isBoss, weakness, allies);
@@ -1748,7 +1896,11 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       encounters.push(result);
       if (!result.cleared) break;
       if (i === midpoint && i < encounterCount - 1) opportunity = resolveOpportunity(result);
-      // A hero's between-fights special tends the party before the healer does.
+      // The family effects between fights, then a hero's between-fights special, before the healer.
+      if (fought(result) && hooks.betweenFights.length > 0 && alive().length > 0) {
+        const between = { ...familyBase(result), heroes: alive() };
+        for (const hook of hooks.betweenFights) hook(between);
+      }
       if (fought(result)) {
         for (const hero of alive()) {
           const def = specialOf(hero);
@@ -1829,6 +1981,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     meal,
     extraLootRolls,
     potionsDrunk,
+    families,
   };
 }
 

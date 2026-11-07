@@ -113,6 +113,7 @@ export const frLogTemplates: typeof logTemplates = {
     turret: ' La tourelle de {hero} a ouvert le feu.',
   },
   specialMiss: ' {hero} a tenté le tout pour le tout et raté.',
+  families: {},
   elixirDrank: ' {hero} a bu {le:item} avant de partir.',
   elixirOil: ' {hero} a enduit son arme avec {du:item}.',
   escaped: ['Le groupe s’est échappé sous couvert de fumée, avec {gold} pièces d’or.'],
