@@ -896,55 +896,15 @@ export const frNames: Record<string, string> = {
   'The dungeon’s element everywhere; without Warding, its damage is worse.':
     'L’élément du donjon est partout ; sans Protection, ses dégâts sont pires.',
   Element: 'Élément',
-  'The dungeon’s element everywhere; without Resist, its damage is worse.':
-    'L’élément du donjon est partout ; sans Résistance, ses dégâts sont pires.',
-  Brute: 'Brute',
-  'A brute of a boss; missed, it hits harder.': 'Un boss brutal ; sans réponse, il frappe plus fort.',
-  Rubble: 'Éboulis',
-  'Caved-in ways; missed, the party loses time and supply.':
-    'Des passages effondrés ; sans réponse, le groupe perd du temps et des vivres.',
   Poison: 'Poison',
   'Venom in every fight; missed, it wounds the party each time.':
     'Du poison à chaque combat ; sans réponse, il blesse le groupe à chaque fois.',
-  Swarm: 'Nuée',
-  'Enemies in swarms; missed, every big fight has more of them.':
-    'Des ennemis en nuée ; sans réponse, chaque gros combat en compte davantage.',
   Darkness: 'Obscurité',
-  'Pitch dark; missed, enemies strike first and the party hits softer.':
-    'Noir complet ; sans réponse, les ennemis frappent en premier et le groupe tape plus faible.',
-  Locked: 'Verrouillé',
-  'Locked ways; missed, some loot stays behind.':
-    'Des passages verrouillés ; sans réponse, une partie du butin reste derrière.',
-  'Desecrated ground': 'Sol profané',
-  'Profaned ground; missed, the party is weakened and heals half as well.':
-    'Un sol profané ; sans réponse, le groupe est affaibli et soigne deux fois moins bien.',
   Casters: 'Lanceurs de sorts',
-  'Enemy casters; missed, they wound a hero before every fight.':
-    'Des lanceurs de sorts ennemis ; sans réponse, ils blessent un héros avant chaque combat.',
-  Ambush: 'Embuscade',
-  'Ambushers on the paths; missed, enemies strike first.':
-    'Des embusqués sur les chemins ; sans réponse, les ennemis frappent en premier.',
-  Thieves: 'Voleurs',
-  'Thieves on the paths; missed, they make off with loot.':
-    'Des voleurs sur les chemins ; sans réponse, ils s’enfuient avec du butin.',
   Armoured: 'Cuirassés',
   'Armoured enemies; missed, the party’s blows glance off.':
     'Des ennemis cuirassés ; sans réponse, les coups du groupe glissent dessus.',
-  Puzzle: 'Énigme',
-  'An old puzzle; missed, the party loses time and supply.':
-    'Une vieille énigme ; sans réponse, le groupe perd du temps et des vivres.',
-  Maze: 'Dédale',
-  'Twisting passages; missed, the party loses time and supply.':
-    'Des passages enchevêtrés ; sans réponse, le groupe perd du temps et des vivres.',
-  Underwater: 'Immergé',
-  'Flooded ways; missed, the party fights out of its depth, weakened.':
-    'Des passages inondés ; sans réponse, le groupe combat hors de son élément, affaibli.',
-  'Snare pits and tripwires; missed, they wound whoever they catch.':
-    'Fosses à pieux et fils de détente ; sans réponse, elles blessent quiconque les déclenche.',
   'Beasts prowl here; missed, they hit harder.': 'Des bêtes rôdent ici ; sans réponse, elles frappent plus fort.',
-  'The dead walk here; missed, they are harder to put down.':
-    'Les morts marchent ici ; sans réponse, ils sont plus durs à abattre.',
-  'Locals live here; missed, they turn hostile.': 'Des habitants vivent ici ; sans réponse, ils deviennent hostiles.',
 
   // Restrictions
   'Anti-magic zone': 'Zone antimagique',

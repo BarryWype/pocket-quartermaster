@@ -23,6 +23,7 @@ function TipsScreen() {
 function TipsContent() {
   useLanguage();
   const seen = useGameStore((state) => state.save.tips.seen);
+  const reports = useGameStore((state) => state.save.reports);
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
@@ -38,7 +39,7 @@ function TipsContent() {
                 <View style={styles.diamond} />
                 <View style={styles.texts}>
                   <Text style={styles.kind}>{t(`tips.kind.${id}`)}</Text>
-                  <Text style={styles.tip}>{tipText(id)}</Text>
+                  <Text style={styles.tip}>{tipText(id, reports)}</Text>
                 </View>
               </View>
             </Fragment>

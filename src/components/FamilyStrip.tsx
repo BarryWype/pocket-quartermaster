@@ -54,7 +54,10 @@ export function FamilyStrip({ counts, needs }: { counts: FamilyCounts; needs?: F
   const chips = useMemo(() => familyStrip(counts, needs), [counts, needs]);
   const [open, setOpen] = useState<FamilyId | null>(null);
   const noteTips = useGameStore((state) => state.noteTips);
-  useEffect(() => noteTips(['familyStrip']), [noteTips]);
+  const hasNeeds = (needs?.length ?? 0) > 0;
+  useEffect(() => {
+    if (hasNeeds) noteTips(['threats']);
+  }, [hasNeeds, noteTips]);
   const opened = open ? chips.find((chip) => chip.family === open) : undefined;
   const items = chips.map((chip) => <Chip key={chip.family} chip={chip} onPress={() => setOpen(chip.family)} />);
   return (

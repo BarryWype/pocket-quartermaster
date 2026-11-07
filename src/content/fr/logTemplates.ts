@@ -67,7 +67,6 @@ export const frLogTemplates: typeof logTemplates = {
   advantage: ' La magie de {hero} a trouvé l’élément faible.',
   exposed: ' Les ennemis ont frappé les premiers.',
   poison: ' Le poison a rongé tout le groupe.',
-  casters: ' Un lanceur de sorts ennemi a frappé {hero} avant le combat.',
   partyHeal: ' {hero} a pansé les blessures du groupe.',
   firebomb: ' {hero} a lancé une bombe incendiaire.',
   revive: ' {hero} a bu une potion de résurrection et s’est relevé.',

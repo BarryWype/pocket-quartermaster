@@ -2,13 +2,17 @@ import { itemById, monsterPartById } from '@/content/lookup';
 import { offMapRevealKinds, placeRevealKinds, revealRules, tipTexts, type ItemTipKind, type RevealKind, type TipId } from '@/content/reveal';
 import type { PlaceKind } from '@/content/places';
 import { frTipTexts } from '@/content/fr/reveal';
+import { familyById, type FamilyId } from '@/content/families';
+import { fill, t, tr } from '@/i18n';
 import { localized } from '@/i18n/locale';
 
 import { ELEMENTS, stoneId } from '../elements';
 import { highestUnlockedTier } from '../dungeons/unlock';
 import { isGuildUnlocked } from '../guild/guild';
 import { isJobOpen } from '../jobs/jobs';
+import { levelMarks } from '../families/strip';
 import type { SaveData } from '../save';
+import type { ExpeditionReport } from '../types';
 
 type Rules = typeof revealRules;
 
@@ -83,10 +87,10 @@ function heldGearKinds(save: SaveData): TipId[] {
   return held;
 }
 
-/** Tips due now: specials, threats and families once a hero is fielded, family levels once a run reached one, item kinds first held, off-map kinds once revealed, job stations once open. */
+/** Tips due now: specials once a hero is fielded, family levels once a run reached one, item kinds first held, off-map kinds once revealed, job stations once open. */
 export function dueTips(save: SaveData): TipId[] {
   return [
-    ...(save.tutorial.step === 'done' && save.heroes.length > 0 ? (['specials', 'threats', 'families'] as TipId[]) : []),
+    ...(save.tutorial.step === 'done' && save.heroes.length > 0 ? (['specials'] as TipId[]) : []),
     ...(save.reports.some((report) => Object.keys(report.families ?? {}).length > 0) ? (['familyLevel'] as TipId[]) : []),
     ...heldItemKinds(save),
     ...heldGearKinds(save),
@@ -109,7 +113,11 @@ export function nextTip(save: SaveData, onMap: boolean): TipId | null {
   return save.tips.pending[0] ?? null;
 }
 
-/** A tip's one line, in the current language. */
-export function tipText(id: TipId): string {
-  return localized({ en: tipTexts, fr: frTipTexts })[id];
+/** A tip's one line, in the current language; the family level tip names the strongest family of the latest run that reached one. */
+export function tipText(id: TipId, reports: Pick<ExpeditionReport, 'families'>[] = []): string {
+  const text = localized({ en: tipTexts, fr: frTipTexts })[id];
+  if (id !== 'familyLevel') return text;
+  const levels = reports.find((report) => Object.keys(report.families ?? {}).length > 0)?.families ?? {};
+  const [family, level] = (Object.entries(levels) as [FamilyId, number][]).sort(([, a], [, b]) => b - a)[0] ?? [];
+  return fill(text, { family: family ? `${levelMarks(level)} ${tr(familyById[family].name)}` : t('families.aLevel') });
 }

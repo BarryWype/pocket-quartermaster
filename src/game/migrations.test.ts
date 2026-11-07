@@ -7,7 +7,7 @@ import { gearRules } from "@/content/gear";
 import { affixById } from "@/content/affixes";
 import { gearStats } from "./gear/stats";
 import { uniquePool } from "./gear/uniques";
-import { migrateSave, toV38, toV39, toV40, toV41 } from "./migrations";
+import { migrateSave, toV38, toV39, toV40, toV41, toV42 } from "./migrations";
 import { affixPool } from "./gear/affixes";
 import { emptyLoot } from "./loot/types";
 import type { ExpeditionReport, GearDef, GearInstance } from "./types";
@@ -713,5 +713,15 @@ describe("save migrations", () => {
       const once = toV41(v40());
       expect(toV41(once)).toBe(once);
     });
+  });
+});
+
+describe("toV42", () => {
+  it("drops the party strip tip a version 41 save saw or still waits on, and keeps the rest", () => {
+    const base = createInitialSave();
+    const v41 = { ...base, tips: { seen: ["specials", "familyStrip", "families"], pending: ["familyStrip", "threats"] } } as unknown as SaveData;
+    const next = migrateSave(v41, 41, 0);
+    expect(next.tips).toEqual({ seen: ["specials", "families"], pending: ["threats"] });
+    expect(toV42(base)).toBe(base);
   });
 });

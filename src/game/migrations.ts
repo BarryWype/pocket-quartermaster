@@ -500,6 +500,13 @@ export function toV41(save: SaveData): SaveData {
   };
 }
 
+/** Version 42: the party strip's tip merged into the threats tip; its id leaves the tip lists. */
+export function toV42(save: SaveData): SaveData {
+  const removed = (id: string) => id === "familyStrip";
+  if (!save.tips.seen.some(removed) && !save.tips.pending.some(removed)) return save;
+  return { ...save, tips: { seen: save.tips.seen.filter((id) => !removed(id)), pending: save.tips.pending.filter((id) => !removed(id)) } };
+}
+
 /** Applies the migration steps in order, from the save's own version on. */
 export function migrateSave(
   save: SaveData,
@@ -518,5 +525,6 @@ export function migrateSave(
   if (fromVersion < 39) next = toV39(next);
   if (fromVersion < 40) next = toV40(next);
   if (fromVersion < 41) next = toV41(next);
+  if (fromVersion < 42) next = toV42(next);
   return next;
 }

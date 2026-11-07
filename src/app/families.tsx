@@ -27,19 +27,18 @@ export default function FamiliesScreen() {
   const row = (family: FamilyDef) => {
     const count = best?.[family.id] ?? 0;
     const threat = family.answers ? threatById[family.answers] : null;
+    const role = threat ? (
+      <IconLabel emoji={threat.emoji} icon={threat.icon} label={familyRole(family.id)} size={16} labelStyle={styles.role} />
+    ) : (
+      <Text style={styles.role}>{familyRole(family.id)}</Text>
+    );
     return (
       <Row
         key={family.id}
         emoji={family.emoji}
         icon={family.icon}
         title={tr(family.name)}
-        subtitle={
-          threat ? (
-            <IconLabel emoji={threat.emoji} icon={threat.icon} label={familyRole(family.id)} size={16} labelStyle={styles.role} />
-          ) : (
-            <Text style={styles.role}>{familyRole(family.id)}</Text>
-          )
-        }
+        subtitle={role}
         right={
           best && (
             <View style={styles.best} accessibilityLabel={`${t('families.best')}: ${count}`}>

@@ -1,5 +1,6 @@
 import { guildRules } from '@/content/guild';
 import { revealRules, type RevealKind } from '@/content/reveal';
+import { newHero } from '@/content/heroes';
 import { setLocale } from '@/i18n/locale';
 
 import { emptyLoot } from '../loot/types';
@@ -168,10 +169,10 @@ describe('dueTips', () => {
     const save = createInitialSave();
     expect(dueTips(save)).toEqual([]);
     const done = noteTips(opened(), dueTips(opened()));
-    expect(done.tips.pending).toEqual(['specials', 'threats', 'families', 'dungeons', 'quests']);
+    expect(done.tips.pending).toEqual(['specials', 'dungeons', 'quests']);
     const guild = opened();
     guild.clearedDungeons = [guildRules.unlockedBy];
-    guild.tips.seen = ['specials', 'threats', 'families', 'dungeons', 'quests'];
+    guild.tips.seen = ['specials', 'dungeons', 'quests'];
     const owed = noteTips(guild, dueTips(guild));
     expect(owed.tips.pending).toEqual(['guildHall', 'jobMiner']);
   });
@@ -193,7 +194,7 @@ describe('dueTips', () => {
     save.materials = { fangOrHorn: 1, fireStone: 1 };
     expect(dueTips(save)).toEqual(expect.arrayContaining(['affixes', 'ingredients', 'stones', 'reroll']));
     const queued = noteTips(save, dueTips(save));
-    expect(queued.tips.pending).toEqual(['specials', 'threats', 'families', 'affixes', 'ingredients', 'stones', 'reroll', 'dungeons', 'quests']);
+    expect(queued.tips.pending).toEqual(['specials', 'affixes', 'ingredients', 'stones', 'reroll', 'dungeons', 'quests']);
     expect(noteTips(queued, dueTips(queued))).toBe(queued);
   });
 
@@ -204,6 +205,20 @@ describe('dueTips', () => {
     expect(dueTips(save)).not.toContain('familyLevel');
     save.reports = [{ ...report, families: { faith: 1 } }];
     expect(dueTips(save)).toContain('familyLevel');
+  });
+
+  it('leaves the families and threats tips to the hero screen and the first briefing with a threat', () => {
+    const save = opened();
+    save.heroes = [newHero('h', 'H', 'warrior', 'resilient')];
+    expect(dueTips(save)).not.toContain('families');
+    expect(dueTips(save)).not.toContain('threats');
+  });
+
+  it('names the strongest family of the latest run that reached a level', () => {
+    setLocale('en');
+    const reports = [{ families: {} }, { families: { faith: 1, bulwark: 2 } }, { families: { rally: 3 } }];
+    expect(tipText('familyLevel', reports)).toBe('Your party reached ●●○ Bulwark. Tap a family to see what it does.');
+    expect(tipText('familyLevel')).toBe('Your party reached a family level. Tap a family to see what it does.');
   });
 });
 

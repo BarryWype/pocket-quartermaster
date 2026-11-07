@@ -16,12 +16,13 @@ export function TipBar() {
   const insets = useSafeAreaInsets();
   const onMap = usePathname() === '/';
   const tip = useGameStore((state) => nextTip(state.save, onMap));
+  const reports = useGameStore((state) => state.save.reports);
   const closeTip = useGameStore((state) => state.closeTip);
   if (!tip) return null;
 
   return (
     <Pressable onPress={() => closeTip(tip)} style={[styles.bar, { bottom: insets.bottom + ISLAND_HEIGHT + 56 }]}>
-      <IconLabel emoji="💡" label={tipText(tip)} labelStyle={styles.text} />
+      <IconLabel emoji="💡" label={tipText(tip, reports)} labelStyle={styles.text} />
       <Text style={styles.close}>{t('tips.close')}</Text>
     </Pressable>
   );

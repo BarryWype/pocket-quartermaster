@@ -82,8 +82,6 @@ export const logTemplates = {
   exposed: ' The enemies struck first.',
   /** Appended to a fight's line when poison wounded the party. */
   poison: ' Poison wore at everyone.',
-  /** Appended to a fight's line when an enemy caster struck first. */
-  casters: ' An enemy caster struck {hero} before the fight.',
   /** Appended to the encounter after which the party was healed. */
   partyHeal: ' {hero} tended the party’s wounds.',
   /** Appended to the run's first fight when a firebomb opened it. */

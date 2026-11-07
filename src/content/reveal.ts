@@ -34,7 +34,6 @@ export type TipId =
   | 'specials'
   | 'threats'
   | 'families'
-  | 'familyStrip'
   | 'familyLevel'
   | 'jobs'
   | 'jobMiner'
@@ -130,14 +129,9 @@ export const tipTexts: Record<TipId, string> = {
   stones: "Elemental stones give a piece their element — Infused on weapons, Warding on armour. Apply one at the forge's Rework page.",
   reroll: "An Uncommon or better piece can reroll all of its affixes at the forge's Rework page, for materials and gold.",
   specials: 'Specials: every hero has one, rolled from its class. It fires on its own in fights, a limited number of times; rare ones are marked ✦.',
-  threats:
-    'Threats are answered by families: a threat at level N is met when the party’s family of that threat reaches level N (2/4/6 tags from classes and gear). One level short halves the penalty.',
-  families:
-    'Families: every class and most gear carry a family tag. 2, 4 and 6 tags of one family across the party reach its levels, each with its own effect. A two-handed weapon counts 2. Settings → Tips → Families lists them all.',
-  familyStrip:
-    'The party strip shows each family the party has, with its tags and level. A threat’s family comes first, in red until the party reaches it. Tap a chip to see its levels.',
-  familyLevel:
-    'Your party reached a family level: its effect fired on this run. The report’s header shows the families that were active.',
+  threats: 'Each threat needs a family. Bring enough tags to answer it.',
+  families: 'Heroes and gear carry family tags. 2, 4 and 6 tags in a party unlock stronger effects.',
+  familyLevel: 'Your party reached {family}. Tap a family to see what it does.',
   jobs: "A hero at a job produces slowly while you're away. Output fills up after 8 hours, so collect on check-in. Work tires them over a day, and tired heroes rest at the station before working again. Working heroes must be recalled before they can be sent out.",
   jobMiner:
     'The Miner is open at the guild: a hero there digs the ore you pick. Stone now, copper and iron as tiers open. Switching ore keeps what was mined.',

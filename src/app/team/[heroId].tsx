@@ -1,5 +1,5 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useRef, useState, type ComponentRef } from 'react';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { DELTA_KEYS, EquipPicker } from '@/components/EquipPicker';
@@ -124,6 +124,8 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
   const drinkPotion = useGameStore((state) => state.drinkPotion);
   const giveHomeCare = useGameStore((state) => state.giveHomeCare);
   const recallFromJob = useGameStore((state) => state.recallFromJob);
+  const noteTips = useGameStore((state) => state.noteTips);
+  useEffect(() => noteTips(['families']), [noteTips]);
   // Button enablement (potions, home care) turns on time, so the clock is coarse.
   const now = useNow(clockConfig.minutesMs);
   const [picking, setPicking] = useState<EquipmentSlot | null>(null);
