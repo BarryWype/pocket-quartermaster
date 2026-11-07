@@ -68,12 +68,12 @@ export function affixRangeLine(id: string, min: number, max: number): string {
   return `${affixName(id)}: ${effectText(def.effect, value)}`;
 }
 
-/** The icon an affix's line shows: its family tag's or element's. */
+/** The icon an affix's line shows: its enemy tag's, element's or the walking boot. */
 export function affixIcon(id: string): { emoji: string; icon?: ImageSourcePropType } {
   const def = affixById[id];
   if (!def) return { emoji: '◆' };
   if ('element' in def.effect) return { emoji: elementInfo[def.effect.element].emoji };
-  if (def.family === 'walking') return { emoji: '🥾' };
-  const tag = tagInfo[def.family as Tag];
+  if (def.group === 'walking') return { emoji: '🥾' };
+  const tag = tagInfo[def.group as Tag];
   return { emoji: tag.emoji, icon: tag.icon };
 }

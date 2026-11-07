@@ -9,15 +9,9 @@ import { affixPool, affixSlotOf } from './affixes';
 
 const gearTypes = Object.keys(gearProfiles) as GearType[];
 
-/** Distinct affixes a piece rolls from monster parts and loot, the per-threat ones counted once. */
-const rollableCount = (itemId: string): number => {
-  const keys = new Set(
-    affixPool({ itemId })
-      .filter((affix) => affix.source.kind === 'part' || affix.source.kind === 'loot')
-      .map((affix) => (affix.family === 'threat' ? 'threat' : affix.id)),
-  );
-  return keys.size;
-};
+/** Distinct affixes a piece rolls from monster parts and loot. */
+const rollableCount = (itemId: string): number =>
+  affixPool({ itemId }).filter((affix) => affix.source.kind === 'part' || affix.source.kind === 'loot').length;
 
 /** Pieces allowed fewer than 8 rollable affixes, each with its reason. */
 const POOL_EXCEPTIONS: Record<string, string> = {

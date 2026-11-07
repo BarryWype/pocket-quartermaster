@@ -15,7 +15,7 @@ type Props = {
   labelStyle?: StyleProp<TextStyle>;
 };
 
-/** A piece's unique and each of its affixes, the effect's family icon beside its line. */
+/** A piece's unique and each of its affixes, the effect's group icon beside its line. */
 export function AffixLines({ piece, compact, style, labelStyle }: Props) {
   const unique = piece.relicId ?? piece.unique;
   const size = compact ? 15 : 18;

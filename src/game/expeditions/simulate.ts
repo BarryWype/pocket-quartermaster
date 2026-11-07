@@ -1579,7 +1579,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
             taken *= immune.effect.multiplier;
             noteRelic(result, hero.member.heroId, immune.relicId);
           }
-          // The wearer's affixes blunt the hit: by the attacker's family, its magic and its element.
+          // The wearer's affixes blunt the hit: by the attacker's tags, its magic and its element.
           const from = affixTotal(hero.member, 'damageFrom', { tags: attackerTags });
           if (from > 0) taken *= 1 - from / 100;
           const spiritWard = enemy.def.damageType === 'magic' ? affixTotal(hero.member, 'magicDamageTaken') : 0;

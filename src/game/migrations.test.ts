@@ -411,7 +411,7 @@ describe("save migrations", () => {
       expect(
         byUid(next, "g10")
           .affixes.map((a) => a.id)
-          .filter((id) => affixById[id].family === "element"),
+          .filter((id) => affixById[id].group === "element"),
       ).toEqual(["infusedFire"]);
     });
 

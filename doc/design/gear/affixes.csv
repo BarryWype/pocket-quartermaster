@@ -1,4 +1,4 @@
-id,name,source,family,slot,effect,value_range,notes
+id,name,source,group,slot,effect,value_range,notes
 hunter,Hunter,part:fangOrHorn,beast,offensive,More damage to beasts,+15–30%,
 thickHide,Thick hide,part:fangOrHorn,beast,defensive,Less damage from beasts,−15–30%,
 swift,Swift,part:feather,bird,offensive,+Speed,+1–3,

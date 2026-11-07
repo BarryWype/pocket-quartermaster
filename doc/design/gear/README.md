@@ -24,7 +24,7 @@ Roadmap step 3 in `doc/ideas.md`. Designed 2026-11-05. Replaces quality multipli
 
 ## The forge
 - Pick base and tier, as today (known blueprints only), then optionally add **one ingredient**:
-  - a **monster part**: gives its family affix; offensive pieces (weapons and damage off-hands: quiver, off-hand blade, tome, focus) get the offensive affix, defensive ones (armour, shield, buckler) the defensive affix (`affixes.csv`).
+  - a **monster part**: gives its enemy tag's affix (the `group` column of `affixes.csv`); offensive pieces (weapons and damage off-hands: quiver, off-hand blade, tome, focus) get the offensive affix, defensive ones (armour, shield, buckler) the defensive affix (`affixes.csv`).
   - Components and their keyword affixes were removed in the families rework: keyword jobs belong to families now (Breaker and Volley cut armour, Bulwark guards, Breaker 2 staggers), and the keywords gear types, classes and relics have on their own stay.
 - With an ingredient the piece is Uncommon, with that affix and a rolled value. Without, Common.
 - One ingredient only, so crafting stays partly random (the stat roll, the affix value).

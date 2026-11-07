@@ -70,7 +70,7 @@ describe('the affix catalogue', () => {
 
   it('matches affixes.csv', () => {
     for (const row of catalogue) {
-      const [id, name, source, family, slot, , valueRange] = row;
+      const [id, name, source, group, slot, , valueRange] = row;
       for (const affixId of idsFor(row)) {
         const def = affixById[affixId];
         expect(def).toBeDefined();
@@ -80,8 +80,8 @@ describe('the affix catalogue', () => {
           expect(def.source.kind).toBe('element');
           expect((def.source as { element?: string }).element).toBe(affixId.slice(7).toLowerCase());
         } else expect(def.source).toEqual({ kind: 'loot' });
-        expect(def.family).toBe(
-          source.startsWith('part:') ? monsterParts.find((part) => part.id === source.slice(5))?.tag : family,
+        expect(def.group).toBe(
+          source.startsWith('part:') ? monsterParts.find((part) => part.id === source.slice(5))?.tag : group,
         );
         expect(def.slot).toEqual(slotOf(slot));
         const range = rangeIn(valueRange);
