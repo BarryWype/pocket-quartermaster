@@ -59,6 +59,10 @@ export type Attack = FamilyBase & {
   armoured: boolean;
   /** The target carries a poison (any dot of this fight). */
   poisoned: boolean;
+  /** The hero's element beats the target's on the wheel. */
+  beats: boolean;
+  /** Scales the wheel's bonus above 1 when the hero's element beats the target's. */
+  advantageScale: number;
 };
 
 /** A hero's attack landed. */
@@ -69,6 +73,8 @@ export type Hit = FamilyBase & {
   damage: number;
   round: number;
   elite: boolean;
+  /** An elemental hero's hit jumps to the next living enemy for this share, in the same element; the enemy hit, or null. */
+  jump: (share: number) => EnemyState | null;
 };
 
 /** An enemy attack aimed at a hero, before the dodge roll. */
@@ -223,6 +229,26 @@ export const familyEffects: FamilyEffect[] = [
         if (a.hero.member.damageStat !== 'magic' || bonus <= 0) return;
         a.multiplier *= 1 + bonus;
         a.log('spellweave1', idOf(a.hero));
+      },
+    },
+  },
+  {
+    family: 'spellweave',
+    level: 2,
+    hooks: {
+      onHit: (h) => {
+        if (h.jump(R.spellweave.chainShare)) h.log('spellweave2', idOf(h.hero));
+      },
+    },
+  },
+  {
+    family: 'spellweave',
+    level: 3,
+    hooks: {
+      beforeAttack: (a) => {
+        if (!a.beats) return;
+        a.advantageScale *= R.spellweave.advantageScale;
+        a.log('spellweave3', idOf(a.hero));
       },
     },
   },

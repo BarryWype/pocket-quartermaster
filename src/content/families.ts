@@ -87,6 +87,8 @@ export type FamilyEffectId =
   | 'venom2'
   | 'venom3'
   | 'spellweave1'
+  | 'spellweave2'
+  | 'spellweave3'
   | 'rally1';
 
 /** The numbers behind the family effects in fights (see game/expeditions/familyEffects.ts). */
@@ -108,7 +110,7 @@ export const familyEffectRules = {
   volley: { gearTypes: ['bow', 'crossbow', 'throwing'] as string[], armourIgnore: 0.2 },
   /** Poison wounds taken after a fight; a Venomous poison's share of the hit, its rounds, the stacks an enemy carries (base, and with Venom 2); damage taken by poisoned enemies with Venom 3. */
   venom: { woundsTaken: 0.5, dotShare: 0.1, dotRounds: 3, baseStacks: 1, maxStacks: 3, poisonedTaken: 1.2 },
-  /** Magic damage added each round of a fight, up to the max. */
-  spellweave: { perRound: 0.05, max: 0.25 },
+  /** Magic damage added each round of a fight, up to the max; an elemental hit's share that jumps to a second enemy; the scale on the wheel's advantage bonus. */
+  spellweave: { perRound: 0.05, max: 0.25, chainShare: 0.3, advantageScale: 2 },
   rally: { damage: 1.1 },
 };

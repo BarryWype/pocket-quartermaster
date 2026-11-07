@@ -140,6 +140,8 @@ export const frLogTemplates: typeof logTemplates = {
     venom1: ' Le Venin dans le sang de {hero} a affaibli le poison : ses blessures ont été réduites de moitié.',
     venom2: ' Le venin de {hero} s’est à nouveau accumulé sur l’ennemi.',
     venom3: ' Les coups de {hero} ont déchiré l’ennemi empoisonné.',
+    spellweave2: ' Le sort de {hero} a rebondi sur un second ennemi.',
+    spellweave3: ' L’élément de {hero} a submergé un ennemi qu’il domine.',
   },
   elixirDrank: ' {hero} a bu {le:item} avant de partir.',
   elixirOil: ' {hero} a enduit son arme avec {du:item}.',

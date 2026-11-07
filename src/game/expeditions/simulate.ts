@@ -984,6 +984,8 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       const pierce = has(hero, 'pierce', tags);
       // The target's natural armour, and the armour a missed Armoured threat lends every enemy.
       const armour = 1 - (1 - (target.def.armour ?? 0)) * weakenedAgainst;
+      const element = hero.member.weaponElement;
+      const targetElement = enemyElement(target.def);
       let attack: Attack | undefined;
       if (hooks.beforeAttack.length > 0) {
         attack = {
@@ -998,6 +1000,8 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           armourKept: 1,
           armoured: !pierce && armour > 0 && target.armour > 0,
           poisoned: ctx.dots.some((d) => d.enemy === target),
+          beats: !!element && !!targetElement && beats(element, targetElement),
+          advantageScale: 1,
         };
         for (const hook of hooks.beforeAttack) hook(attack);
       }
@@ -1038,7 +1042,6 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         bonus *= rage.multiplier;
         note(id, 'rage');
       }
-      const targetElement = enemyElement(target.def);
       const advantage = own(hero, 'elementalAdvantage');
       // The wheel only touches the elemental part of a hit.
       const wheel = (element: Element | undefined) => {
@@ -1048,10 +1051,12 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
             ? gearKeywordRules.strong.channel.advantage
             : gearKeywordRules.channel.advantage
           : 1;
-        if (element && targetElement && beats(element, targetElement) && (advantage || channel > 1)) {
-          // Channel lifts the wheel's advantage; Anti-magic cuts the bonus above 1 in half.
-          const bonus = Math.max(advantage?.multiplier ?? multiplier, channel);
-          multiplier = restriction === 'antiMagic' && !ignores(hero, 'antiMagic') ? 1 + (bonus - 1) * restrictionRules.antiMagic : bonus;
+        if (element && targetElement && beats(element, targetElement)) {
+          // Channel lifts the wheel's advantage; a family effect may scale the bonus above 1; Anti-magic then cuts that bonus in half.
+          const lifted = !!advantage || channel > 1;
+          if (lifted) multiplier = Math.max(advantage?.multiplier ?? multiplier, channel);
+          multiplier = 1 + (multiplier - 1) * (attack?.advantageScale ?? 1);
+          if (lifted && restriction === 'antiMagic' && !ignores(hero, 'antiMagic')) multiplier = 1 + (multiplier - 1) * restrictionRules.antiMagic;
           if (advantage) note(id, 'advantage');
         }
         return multiplier;
@@ -1059,7 +1064,6 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       // Anti-magic halves Magic; Power only turns elemental through an infused weapon.
       const magic = hero.member.damageStat === 'magic';
       const base = magic ? hero.member.magic * (ignores(hero, 'antiMagic') ? 1 : magicFactor) : hero.member.power;
-      const element = hero.member.weaponElement;
       const physical = elemental && element ? 0 : magic ? 0 : base * (element ? infusionRules.physicalShare : 1);
       const elementalPart = elemental && element
         ? base * wheel(element)
@@ -1319,7 +1323,25 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           }
           attacked.add(id);
           if (hooks.onHit.length > 0 || hooks.onKill.length > 0) {
-            const hit = { ...family, hero, target, crit, damage, round: currentRound, elite: isElite(target) };
+            const hit = {
+              ...family,
+              hero,
+              target,
+              crit,
+              damage,
+              round: currentRound,
+              elite: isElite(target),
+              jump: (share: number) => {
+                if (!hero.member.weaponElement) return null;
+                const others = enemies.filter((e) => e.hp > 0 && e !== target);
+                if (others.length === 0) return null;
+                const second = others.find((e) => enemies.indexOf(e) > enemies.indexOf(target)) ?? others[0];
+                const chained = normalHit(hero, second, { elemental: true, multiplier: share, critChance: 0 }).damage;
+                second.hp -= chained;
+                add(result.dealt, id, chained);
+                return second;
+              },
+            };
             for (const hook of hooks.onHit) hook(hit);
             if (target.hp <= 0) for (const hook of hooks.onKill) hook(hit);
           }

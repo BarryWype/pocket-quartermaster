@@ -164,6 +164,8 @@ export const logTemplates = {
     venom1: ' Venom ran in {hero}’s veins: the poison’s wounds bit half as deep.',
     venom2: ' {hero}’s venom took hold again: the poisons stacked.',
     venom3: ' {hero}’s blows tore at the poisoned foe.',
+    spellweave2: ' {hero}’s spell leapt to a second foe.',
+    spellweave3: ' {hero}’s element overwhelmed a foe it masters.',
   } as Partial<Record<FamilyEffectId, string>>,
   /** The opening lines for the party's stat, speed and oil elixirs. */
   elixirDrank: ' {hero} drank their {item} before setting out.',
