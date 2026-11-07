@@ -931,7 +931,7 @@ export const fr: Dictionary = {
     intro: 'Héros et équipement portent des tags de famille. Comptez-les dans le groupe : 2, 4 et 6 tags allument ●○○, ●●○ et ●●●.',
     threatSection: 'Familles de menace',
     playstyleSection: 'Styles de jeu',
-    best: 'meilleur groupe {count}',
+    best: 'Meilleur groupe',
     kind: { threat: 'Répond à la menace {threat}' },
     role: {
       bulwark: 'Style : défense en première ligne',

@@ -923,7 +923,7 @@ export const en = {
     intro: 'Heroes and gear carry family tags. Count them across the party: 2, 4 and 6 tags light ●○○, ●●○ and ●●●.',
     threatSection: 'Threat families',
     playstyleSection: 'Playstyles',
-    best: 'best party {count}',
+    best: 'Best party',
     kind: { threat: 'Answers {threat} threats' },
     role: {
       bulwark: 'Playstyle: front-line defence',

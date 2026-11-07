@@ -105,3 +105,14 @@ export function activeFamilies(counts: FamilyCounts): { family: FamilyId; count:
     .filter((entry) => entry.level >= 1)
     .sort((a, b) => b.count - a.count || order.get(a.family)! - order.get(b.family)!);
 }
+
+/** Per family, the most tags any party of `size` heroes from the roster carries, as they are equipped now. */
+export function bestPartyCounts(save: Pick<SaveData, 'heroes' | 'gear'>, size: number): FamilyCounts {
+  const perHero = save.heroes.map((hero) => heroFamilyTags(save, hero));
+  const best: FamilyCounts = {};
+  for (const { id } of families) {
+    const top = perHero.map((counts) => counts[id] ?? 0).sort((a, b) => b - a).slice(0, size);
+    add(best, id, top.reduce((sum, tags) => sum + tags, 0));
+  }
+  return best;
+}

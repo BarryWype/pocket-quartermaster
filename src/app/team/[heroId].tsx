@@ -250,6 +250,9 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
           <View style={styles.classNameRow}>
             <Text style={styles.className}>{tr(heroClass.name)}</Text>
             <FamilyTag family={heroClass.familyTag} size={14} labelStyle={styles.className} />
+            <Pressable accessibilityRole="link" onPress={() => navigate('/families')} hitSlop={6}>
+              <Text style={styles.familiesLink}>{t('families.link')}</Text>
+            </Pressable>
             {element && <IconLabel emoji={element.emoji} label={tr(element.name)} size={14} labelStyle={styles.className} />}
           </View>
           <View style={styles.traitRow}>
@@ -738,6 +741,7 @@ const styles = StyleSheet.create({
   nameStatus: { fontFamily: fonts.serif, fontSize: 13, color: ui.inkMuted },
   classNameRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
   className: { fontFamily: fonts.serif, fontSize: 14, color: ui.inkMuted },
+  familiesLink: { fontFamily: fonts.serif, fontSize: 14, color: ui.inkMuted, textDecorationLine: 'underline' },
   traitRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
   note: { fontFamily: fonts.serif, fontSize: 13, color: ui.inkMuted },
   drink: { alignItems: 'stretch', gap: 6 },

@@ -8,7 +8,7 @@ import type { GearDef, GearInstance, HeroClassId, HeroState } from '@/game/types
 
 import { createInitialSave } from '../save';
 
-import { activeFamilies, familyLevel, gearFamilyTags, heroFamilyTags, partyFamilies } from './families';
+import { activeFamilies, bestPartyCounts, familyLevel, gearFamilyTags, heroFamilyTags, partyFamilies } from './families';
 
 const piece = (uid: string, itemId: string, extra: Partial<GearInstance> = {}): GearInstance => ({
   uid,
@@ -121,5 +121,25 @@ describe('gearFamilyTags', () => {
     const trinket = items.find((item) => item.slot === 'trinket') as GearDef;
     expect(gearFamilyTags(trinket)).toEqual([]);
     expect(gearFamilyTags({ gearType: 'shield', workTool: { kind: 'tongs', job: 'smith' } })).toEqual([]);
+  });
+});
+
+describe('bestPartyCounts', () => {
+  test('per family, the tags of the best heroes for it, at most a party of them', () => {
+    const save = {
+      ...createInitialSave(),
+      gear: [],
+      heroes: [
+        newHero('a', 'A', 'cleric', 'resilient'),
+        newHero('b', 'B', 'exorcist', 'resilient'),
+        newHero('c', 'C', 'warrior', 'resilient'),
+        newHero('d', 'D', 'paladin', 'resilient'),
+        newHero('e', 'E', 'porter', 'resilient'),
+        newHero('f', 'F', 'cleric', 'resilient'),
+      ],
+    };
+    expect(bestPartyCounts(save, 3)).toEqual({ faith: 3, bulwark: 3 });
+    expect(bestPartyCounts(save, 2)).toEqual({ faith: 2, bulwark: 2 });
+    expect(bestPartyCounts({ ...save, heroes: [] }, 3)).toEqual({});
   });
 });
