@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { familyById, type FamilyId } from '@/content/families';
 import { partyFamilies, type FamilyCounts } from '@/game/families/families';
 import { familyStrip, type FamilyNeed, type StripChip } from '@/game/families/strip';
 import { t, tr } from '@/i18n';
+import { navigate } from '@/services/navigation';
 import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
 
@@ -13,6 +14,7 @@ import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
 import { Text } from './Text';
+import { WoodButton } from './ui';
 
 /** The family tags of the heroes picked, recomputed only when the picks, the heroes or the gear change. */
 export function usePartyFamilies(heroIds: string[]): FamilyCounts {
@@ -56,6 +58,8 @@ function Chip({ chip, onPress }: { chip: StripChip; onPress: () => void }) {
 export function FamilyStrip({ counts, needs }: { counts: FamilyCounts; needs?: FamilyNeed[] }) {
   const chips = useMemo(() => familyStrip(counts, needs), [counts, needs]);
   const [open, setOpen] = useState<FamilyId | null>(null);
+  const noteTips = useGameStore((state) => state.noteTips);
+  useEffect(() => noteTips(['familyStrip']), [noteTips]);
   const opened = open ? chips.find((chip) => chip.family === open) : undefined;
   return (
     <View style={styles.strip} accessibilityLabel={t('families.strip')}>
@@ -70,6 +74,15 @@ export function FamilyStrip({ counts, needs }: { counts: FamilyCounts; needs?: F
             icon={familyById[open].icon}
             title={`${tr(familyById[open].name)} · ${opened?.count ?? 0}`}
             bodyStyle={styles.body}
+            footer={
+              <WoodButton
+                title={t('families.all')}
+                onPress={() => {
+                  setOpen(null);
+                  navigate('/families');
+                }}
+              />
+            }
           >
             <FamilyLevelLines family={open} count={opened?.count ?? 0} />
           </Sheet>

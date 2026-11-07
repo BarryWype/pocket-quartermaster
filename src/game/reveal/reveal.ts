@@ -83,10 +83,11 @@ function heldGearKinds(save: SaveData): TipId[] {
   return held;
 }
 
-/** Tips due now: specials and threats once a hero is fielded, item kinds first held, off-map kinds once revealed, job stations once open. */
+/** Tips due now: specials, threats and families once a hero is fielded, family levels once a run reached one, item kinds first held, off-map kinds once revealed, job stations once open. */
 export function dueTips(save: SaveData): TipId[] {
   return [
-    ...(save.tutorial.step === 'done' && save.heroes.length > 0 ? (['specials', 'threats'] as TipId[]) : []),
+    ...(save.tutorial.step === 'done' && save.heroes.length > 0 ? (['specials', 'threats', 'families'] as TipId[]) : []),
+    ...(save.reports.some((report) => Object.keys(report.families ?? {}).length > 0) ? (['familyLevel'] as TipId[]) : []),
     ...heldItemKinds(save),
     ...heldGearKinds(save),
     ...offMapRevealKinds.filter((kind) => isRevealed(save, kind)),

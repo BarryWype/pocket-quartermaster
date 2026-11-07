@@ -168,10 +168,10 @@ describe('dueTips', () => {
     const save = createInitialSave();
     expect(dueTips(save)).toEqual([]);
     const done = noteTips(opened(), dueTips(opened()));
-    expect(done.tips.pending).toEqual(['specials', 'threats', 'dungeons', 'quests']);
+    expect(done.tips.pending).toEqual(['specials', 'threats', 'families', 'dungeons', 'quests']);
     const guild = opened();
     guild.clearedDungeons = [guildRules.unlockedBy];
-    guild.tips.seen = ['specials', 'threats', 'dungeons', 'quests'];
+    guild.tips.seen = ['specials', 'threats', 'families', 'dungeons', 'quests'];
     const owed = noteTips(guild, dueTips(guild));
     expect(owed.tips.pending).toEqual(['guildHall', 'jobMiner']);
   });
@@ -193,8 +193,17 @@ describe('dueTips', () => {
     save.materials = { fangOrHorn: 1, fireStone: 1 };
     expect(dueTips(save)).toEqual(expect.arrayContaining(['affixes', 'ingredients', 'stones', 'reroll']));
     const queued = noteTips(save, dueTips(save));
-    expect(queued.tips.pending).toEqual(['specials', 'threats', 'affixes', 'ingredients', 'stones', 'reroll', 'dungeons', 'quests']);
+    expect(queued.tips.pending).toEqual(['specials', 'threats', 'families', 'affixes', 'ingredients', 'stones', 'reroll', 'dungeons', 'quests']);
     expect(noteTips(queued, dueTips(queued))).toBe(queued);
+  });
+
+  it('queues the family level tip once a run’s report shows a family level', () => {
+    const save = opened();
+    const report = { families: {} } as (typeof save.reports)[number];
+    save.reports = [report];
+    expect(dueTips(save)).not.toContain('familyLevel');
+    save.reports = [{ ...report, families: { faith: 1 } }];
+    expect(dueTips(save)).toContain('familyLevel');
   });
 });
 

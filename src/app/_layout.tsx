@@ -117,6 +117,7 @@ export default function RootLayout() {
       team: { title: t('screens.team'), header: TeamHeader, contentStyle: wood },
       hero: { title: t('screens.hero') },
       classes: { title: t('classes.title') },
+      families: { title: t('families.title') },
       expeditions: { title: t('screens.expeditions') },
       quests: { title: t('screens.quests'), header: QuestsHeader, contentStyle: wood },
       guild: { title: t('screens.guild'), header: GuildHeader, contentStyle: wood },
@@ -145,6 +146,7 @@ export default function RootLayout() {
         <Stack.Screen name="team/index" dangerouslySingular options={options.team} />
         <Stack.Screen name="team/[heroId]" dangerouslySingular options={options.hero} />
         <Stack.Screen name="team/classes" dangerouslySingular options={options.classes} />
+        <Stack.Screen name="families" dangerouslySingular options={options.families} />
         <Stack.Screen name="expeditions" dangerouslySingular options={options.expeditions} />
         <Stack.Screen name="quests" dangerouslySingular options={options.quests} />
         <Stack.Screen name="guild" dangerouslySingular options={options.guild} />

@@ -2,10 +2,11 @@ import { Fragment } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/Text';
-import { Deferred, GhostScreen, ParchmentCard } from '@/components/ui';
+import { Deferred, GhostScreen, ParchmentCard, WoodButton } from '@/components/ui';
 import { tipText } from '@/game/reveal/reveal';
 import { useLanguage } from '@/hooks/useLanguage';
 import { t } from '@/i18n';
+import { navigate } from '@/services/navigation';
 import { useGameStore } from '@/store/gameStore';
 import { fonts, ui } from '@/theme';
 import { timed } from '@/components/timed';
@@ -25,6 +26,7 @@ function TipsContent() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
+      <WoodButton title={t('families.all')} compact onPress={() => navigate('/families')} />
       <ParchmentCard style={styles.card}>
         {seen.length === 0 ? (
           <Text style={styles.empty}>{t('tips.empty')}</Text>
@@ -49,7 +51,7 @@ function TipsContent() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: ui.woodDark },
-  container: { padding: 14 },
+  container: { padding: 14, gap: 12 },
   card: { gap: 4 },
   empty: { fontFamily: fonts.serif, fontSize: 15, color: ui.ink },
   rule: { borderWidth: 2, borderStyle: 'dashed', borderColor: ui.parchmentRule },

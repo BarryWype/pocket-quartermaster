@@ -29,6 +29,12 @@ export const frTipTexts: typeof tipTexts = {
   specials: 'Aptitudes : chaque héros en a une, tirée de sa classe. Elle se déclenche seule dans les combats, un nombre limité de fois ; les rares sont marquées ✦.',
   threats:
     'Les familles répondent aux menaces : une menace de niveau N est couverte quand la famille de cette menace atteint le niveau N dans le groupe (2/4/6 tags de classes et d’équipement). Un niveau de moins divise la pénalité par deux.',
+  families:
+    'Familles : chaque classe et la plupart des équipements portent un tag de famille. 2, 4 et 6 tags d’une même famille dans le groupe atteignent ses niveaux, chacun avec son effet. Une arme à deux mains compte 2. Réglages → Astuces → Familles les liste toutes.',
+  familyStrip:
+    'La bande du groupe montre chaque famille présente, avec ses tags et son niveau. La famille d’une menace passe en premier, en rouge tant que le groupe ne l’atteint pas. Touchez une puce pour voir ses niveaux.',
+  familyLevel:
+    'Votre groupe a atteint un niveau de famille : son effet a joué pendant cette expédition. L’en-tête du rapport montre les familles actives.',
   jobs: "Un héros à un métier produit lentement en votre absence. La production remplit en 8 heures : récoltez-la à votre retour. Le travail les fatigue sur une journée, et un héros fatigué se repose à son poste avant de reprendre. Un héros au travail doit d'abord être rappelé avant de pouvoir être envoyé ailleurs.",
   jobMiner:
     'Le Mineur est ouvert à la guilde : un héros y extrait le minerai choisi. La pierre d’abord, le cuivre et le fer avec les paliers suivants. Changer de minerai garde ce qui a été extrait.',
