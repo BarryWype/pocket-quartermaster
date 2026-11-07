@@ -137,7 +137,13 @@ export const logTemplates = {
   /** A Double or nothing that missed. */
   specialMiss: ' {hero} went double or nothing and missed.',
   /** A family effect that fired, by effect: {hero} is who it fired for, {ally} who it protected. */
-  families: {} as Partial<Record<FamilyEffectId, string>>,
+  families: {
+    faith1: ' Faith burned the undead under {hero}’s blows.',
+    wild1: ' The Wild calmed the beasts: they hit {hero} softer.',
+    bloodrage1: ' Bleeding, {hero} hit harder.',
+    spellweave1: ' {hero}’s spells grew stronger each round.',
+    rally1: ' {hero} rallied the party: everyone hit harder.',
+  } as Partial<Record<FamilyEffectId, string>>,
   /** The opening lines for the party's stat, speed and oil elixirs. */
   elixirDrank: ' {hero} drank their {item} before setting out.',
   elixirOil: ' {hero} coated their weapon with {item}.',

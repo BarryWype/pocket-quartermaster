@@ -3,7 +3,7 @@
 // hooks of the party's levels at fixed points of a fight; levels are
 // cumulative, so a level 3 party runs the level 1 and 2 effects too.
 
-import type { FamilyEffectId, FamilyId } from '@/content/families';
+import { familyEffectRules as R, type FamilyEffectId, type FamilyId } from '@/content/families';
 
 import type { Element } from '../elements';
 import type { FamilyLevels } from '../families/families';
@@ -130,8 +130,68 @@ export type FamilyHooks = {
 
 export type FamilyEffect = { family: FamilyId; level: 1 | 2 | 3; hooks: FamilyHooks };
 
+const idOf = (hero: HeroState) => hero.member.heroId;
+
 /** Every family effect in fights, in the order their hooks run. */
-export const familyEffects: FamilyEffect[] = [];
+export const familyEffects: FamilyEffect[] = [
+  // Damage.
+  {
+    family: 'faith',
+    level: 1,
+    hooks: {
+      beforeAttack: (a) => {
+        if (!a.tags.some((tag) => R.faith.vsTags.includes(tag))) return;
+        a.multiplier *= R.faith.damage;
+        a.log('faith1', idOf(a.hero));
+      },
+    },
+  },
+  {
+    family: 'wild',
+    level: 1,
+    hooks: {
+      incoming: (i) => {
+        if (!i.tags.some((tag) => R.wild.fromTags.includes(tag))) return;
+        i.damage *= R.wild.damageTaken;
+        i.log('wild1', idOf(i.hero));
+      },
+    },
+  },
+  {
+    family: 'bloodrage',
+    level: 1,
+    hooks: {
+      beforeAttack: (a) => {
+        if (a.hero.hp >= R.bloodrage.belowHp * a.hero.member.maxHp) return;
+        a.multiplier *= R.bloodrage.damage;
+        a.log('bloodrage1', idOf(a.hero));
+      },
+    },
+  },
+  {
+    family: 'spellweave',
+    level: 1,
+    hooks: {
+      beforeAttack: (a) => {
+        const bonus = Math.min(R.spellweave.perRound * a.round, R.spellweave.max);
+        if (a.hero.member.damageStat !== 'magic' || bonus <= 0) return;
+        a.multiplier *= 1 + bonus;
+        a.log('spellweave1', idOf(a.hero));
+      },
+    },
+  },
+  {
+    family: 'rally',
+    level: 1,
+    hooks: {
+      beforeAttack: (a) => {
+        a.multiplier *= R.rally.damage;
+        const rallier = a.heroOf('rally');
+        a.log('rally1', rallier ? idOf(rallier) : null);
+      },
+    },
+  },
+];
 
 /** The hooks a party's levels run, by hook, in effect order. */
 export type ActiveHooks = { [K in keyof FamilyHooks]-?: NonNullable<FamilyHooks[K]>[] };
