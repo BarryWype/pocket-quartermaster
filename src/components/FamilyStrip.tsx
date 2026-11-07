@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { familyById, type FamilyId } from '@/content/families';
 import { partyFamilies, type FamilyCounts } from '@/game/families/families';
-import { familyStrip, type FamilyNeed, type StripChip } from '@/game/families/strip';
+import { familyStrip, levelMarks, type FamilyNeed, type StripChip } from '@/game/families/strip';
 import { t, tr } from '@/i18n';
 import { navigate } from '@/services/navigation';
 import { useGameStore } from '@/store/gameStore';
@@ -23,9 +23,6 @@ export function usePartyFamilies(heroIds: string[]): FamilyCounts {
   return useMemo(() => partyFamilies({ heroes, gear }, heroIds), [heroes, gear, heroIds]);
 }
 
-/** The level marks: one filled dot per level reached, "●●○". */
-const marks = (level: number) => '●'.repeat(level) + '○'.repeat(3 - level);
-
 function Chip({ chip, onPress }: { chip: StripChip; onPress: () => void }) {
   const def = familyById[chip.family];
   const name = tr(def.name);
@@ -33,13 +30,13 @@ function Chip({ chip, onPress }: { chip: StripChip; onPress: () => void }) {
     <View style={styles.one}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={t('families.chip', { family: name, count: chip.count, level: chip.level })}
+        accessibilityLabel={t('families.chip', { family: name, count: chip.count, lit: chip.level })}
         onPress={onPress}
         style={[styles.chip, chip.level > 0 && styles.lit, chip.level >= 3 && styles.full]}
       >
         <GameIcon emoji={def.emoji} icon={def.icon} size={18} />
         <Text style={[styles.name, chip.level === 0 && styles.dim]}>{`${name} ${chip.count}`}</Text>
-        <Text style={[styles.marks, chip.level > 0 && styles.marksLit]}>{marks(chip.level)}</Text>
+        <Text style={[styles.marks, chip.level > 0 && styles.marksLit]}>{levelMarks(chip.level)}</Text>
       </Pressable>
       {chip.need && (
         <Text style={[styles.need, { color: chip.need.met ? colors.success : colors.danger }]}>

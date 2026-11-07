@@ -6,6 +6,7 @@ import { threatById } from '@/content/lookup';
 import type { BriefingCoverage, ThreatCoverage } from '@/game/threats/coverage';
 import { threatPenalties, type AppliedPenalty } from '@/game/threats/penalties';
 import type { ThreatScore } from '@/game/threats/score';
+import { tagsForLevel } from '@/game/families/strip';
 import { formatPercent, t, tr } from '@/i18n';
 import { colors } from '@/theme';
 
@@ -49,12 +50,12 @@ function DetailLines({ coverage }: { coverage: ThreatCoverage }) {
   const def = threatById[threat.id];
   const lines: string[] = [
     tr(def.description),
-    t('threats.answerFamily', { family: tr(familyById[familyOfThreat(threat.id)].name), needed: coverage.needed }),
   ];
 
   const scoreOf = (state: 'half' | 'full'): ThreatScore => ({
     threat, state, have: coverage.have, needed: coverage.needed, coveredBy: [],
   });
+  const met = coverage.state === 'met';
   return (
     <>
       {lines.map((line) => (
@@ -62,6 +63,9 @@ function DetailLines({ coverage }: { coverage: ThreatCoverage }) {
           {line}
         </Text>
       ))}
+      <Text style={[styles.line, { color: met ? colors.success : colors.danger }]}>
+        {t('families.needs', { count: tagsForLevel(coverage.needed), family: tr(familyById[familyOfThreat(threat.id)].name) }) + (met ? ' ✓' : '')}
+      </Text>
       <Text style={[styles.line, { color: colors.gold }]}>{t('threats.missHalf')}</Text>
       {threatPenalties(scoreOf('half')).map((penalty) => (
         <Text key={penalty.kind} style={styles.line}>

@@ -1,4 +1,4 @@
-import { familyStrip, tagsForLevel, threatNeeds } from './strip';
+import { familyStrip, levelMarks, tagsForLevel, threatNeeds } from './strip';
 
 describe('the party family strip', () => {
   test('one chip per family the party has, with its count and level', () => {
@@ -49,5 +49,18 @@ describe('the party family strip', () => {
 
   test('levels are reached at 2, 4 and 6 tags', () => {
     expect([1, 2, 3].map(tagsForLevel)).toEqual([2, 4, 6]);
+  });
+});
+
+describe('the strip in tags', () => {
+  test('a Holy 2 briefing needs 4 Faith, met once the party has 4', () => {
+    const [chip] = familyStrip({ faith: 3 }, threatNeeds([{ id: 'holy', level: 2 }]));
+    expect(chip.need).toEqual({ count: 4, met: false });
+    expect(chip.next).toEqual({ level: 2, count: 4, short: 1 });
+    expect(familyStrip({ faith: 4 }, threatNeeds([{ id: 'holy', level: 2 }]))[0].need).toEqual({ count: 4, met: true });
+  });
+
+  test('levels show as lit dots', () => {
+    expect([0, 1, 2, 3].map(levelMarks)).toEqual(['○○○', '●○○', '●●○', '●●●']);
   });
 });

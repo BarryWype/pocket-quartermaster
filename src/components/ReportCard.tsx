@@ -4,6 +4,7 @@ import { elementInfo } from '@/content/elements';
 import { families } from '@/content/families';
 import { dungeonById, itemById, materialById, opportunityById, threatById } from '@/content/lookup';
 import type { ExpeditionReport, HeroState, OpportunityOutcome } from '@/game/types';
+import { levelMarks } from '@/game/families/strip';
 import { formatDuration, t, tr } from '@/i18n';
 import { fonts, ui } from '@/theme';
 
@@ -86,7 +87,7 @@ export function ReportCard({ report, heroes, now, expanded, onToggle }: Props) {
                 key={family.id}
                 emoji={family.emoji}
                 icon={family.icon}
-                label={`${tr(family.name)} ${'●'.repeat(level)}${'○'.repeat(3 - level)}`}
+                label={`${tr(family.name)} ${levelMarks(level)}`}
                 size={16}
                 labelStyle={styles.line}
               />

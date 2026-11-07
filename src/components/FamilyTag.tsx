@@ -2,8 +2,10 @@ import { StyleSheet, View, type StyleProp, type TextStyle, type ViewStyle } from
 
 import { familyById, type FamilyId } from '@/content/families';
 import { threatById } from '@/content/lookup';
-import { tagsForLevel } from '@/game/families/strip';
-import { t, tr, type TextKey } from '@/i18n';
+import { levelMarks, tagsForLevel } from '@/game/families/strip';
+import { localized, t, tr, type TextKey } from '@/i18n';
+import { en } from '@/i18n/en';
+import { fr } from '@/i18n/fr';
 import { colors } from '@/theme';
 
 import { GameIcon } from './GameIcon';
@@ -58,6 +60,7 @@ export function FamilyTags({
 /** A family's three levels: what each needs and does; the reached ones highlighted and the next one with its missing tags. */
 export function FamilyLevelLines({ family, count }: { family: FamilyId; /** The party's tags, when there is a party. */ count?: number }) {
   const def = familyById[family];
+  const details: Record<string, string> = localized({ en, fr }).families.details;
   return (
     <View style={styles.levels}>
       {[1, 2, 3].map((level) => {
@@ -67,11 +70,12 @@ export function FamilyLevelLines({ family, count }: { family: FamilyId; /** The 
         return (
           <View key={level} style={[styles.level, reached && styles.reached]}>
             <View style={styles.levelHead}>
-              <Text style={[styles.levelTitle, reached && styles.reachedText]}>{t('families.level', { level, count: needed })}</Text>
+              <Text style={[styles.levelTitle, reached && styles.reachedText]}>{t('families.level', { marks: levelMarks(level), count: needed })}</Text>
               {isNext && <Text style={styles.toReach}>{t('families.toReach', { count: needed - count })}</Text>}
             </View>
-            {def.answers && <Text style={styles.effect}>{t('families.answers', { threat: tr(threatById[def.answers].name), level })}</Text>}
             <Text style={styles.effect}>{t(`families.effects.${family}${level}` as TextKey)}</Text>
+            {details[`${family}${level}`] && <Text style={styles.detail}>{details[`${family}${level}`]}</Text>}
+            {def.answers && <Text style={styles.detail}>{t('families.answers', { threat: tr(threatById[def.answers].name), marks: levelMarks(level) })}</Text>}
           </View>
         );
       })}
@@ -90,4 +94,5 @@ const styles = StyleSheet.create({
   reachedText: { color: colors.ink },
   toReach: { fontSize: 15, color: colors.danger },
   effect: { fontSize: 17 },
+  detail: { fontSize: 15, color: colors.muted },
 });
