@@ -90,6 +90,15 @@ describe('heroStats', () => {
     expect(heroStats(save, levelThree).power).toBe(5 + 2 * 2);
     expect(heroStats(save, levelThree).hp).toBe(24);
   });
+
+  it('hands out a copy each time, and follows a change to the gear list', () => {
+    const save = equip(saveWithGear(), 'bram', 'weapon', 'g1');
+    const first = heroStats(save, hero(save, 'bram'));
+    first.power = 999;
+    expect(heroStats(save, hero(save, 'bram')).power).not.toBe(999);
+    const swapped = { ...save, gear: save.gear.map((g) => (g.uid === 'g1' ? { ...g, roll: 18 } : g)) };
+    expect(heroStats(swapped, hero(swapped, 'bram')).power).toBeGreaterThan(heroStats(save, hero(save, 'bram')).power);
+  });
 });
 
 describe('open gear', () => {

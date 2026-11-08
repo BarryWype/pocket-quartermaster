@@ -118,17 +118,32 @@ export type PartyMember = {
   potion?: ConsumableDef | null;
 };
 
+/** A member's affixes grouped by effect kind, in their order, built once per affix record: fights ask for them on every hit. */
+const byKindCache = new WeakMap<Record<string, number>, Map<AffixEffect['kind'], [AffixEffect, number][]>>();
+function affixesByKind(affixes: Record<string, number>) {
+  let byKind = byKindCache.get(affixes);
+  if (!byKind) {
+    byKind = new Map();
+    for (const [id, value] of Object.entries(affixes)) {
+      const effect = affixById[id]?.effect;
+      if (!effect) continue;
+      byKind.set(effect.kind, [...byKind.get(effect.kind) ?? [], [effect, value]]);
+    }
+    byKindCache.set(affixes, byKind);
+  }
+  return byKind;
+}
+
 /**
  * The member's summed affix values of one effect kind. The tagged families
  * (damageVs, damageFrom) count only against a foe that matches a tag, and a
  * warding affix only for a hit of its element.
  */
 const affixTotal = (member: PartyMember, kind: AffixEffect['kind'], foe?: { tags?: Tag[]; element?: Element }): number => {
+  if (!member.affixes) return 0;
   const tags = foe?.tags;
   const element = foe?.element;
-  return Object.entries(member.affixes ?? {}).reduce((sum, [id, value]) => {
-    const effect = affixById[id]?.effect;
-    if (effect?.kind !== kind) return sum;
+  return (affixesByKind(member.affixes).get(kind) ?? []).reduce((sum, [effect, value]) => {
     if (tags !== undefined && 'tags' in effect && !effect.tags.some((tag) => tags.includes(tag))) return sum;
     if (element !== undefined && 'element' in effect && effect.element !== element) return sum;
     return sum + value;

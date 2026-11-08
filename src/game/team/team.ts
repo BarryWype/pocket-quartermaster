@@ -129,6 +129,17 @@ export function affinityOf(classId: HeroState['classId'], gearType: GearType | u
  * penalty on Magic unless favoured. Then affix stats and traits.
  */
 export function heroStats(save: SaveData, hero: HeroState): Stats {
+  const cached = statsCache.get(hero);
+  if (cached?.gear === save.gear) return { ...cached.stats };
+  const stats = computeHeroStats(save, hero);
+  statsCache.set(hero, { gear: save.gear, stats });
+  return { ...stats };
+}
+
+/** The last stats worked out for a hero object, with the gear list they were read from: saves are never changed in place. */
+const statsCache = new WeakMap<HeroState, { gear: SaveData['gear']; stats: Stats }>();
+
+function computeHeroStats(save: SaveData, hero: HeroState): Stats {
   const stats = baseHeroStats(hero.classId, hero.level, hero.roll);
   let penalty = 0;
   const worn = equippedGear(save, hero);
