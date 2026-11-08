@@ -23,7 +23,7 @@ type Props = {
   equipped?: boolean;
   /** A Legendary piece: a gold frame around the socket. */
   legendary?: boolean;
-  /** A piece's family tags, small in the socket's bottom-left corner. */
+  /** A piece's family tags in the socket's bottom-left corner, a third of its size; a stack count then moves to the top-right. */
   families?: { family: FamilyId; count: number }[];
   onPress?: () => void;
   accessibilityLabel: string;
@@ -62,10 +62,10 @@ export function ItemSlot({ state, emoji, icon, count, mark, size, faded, equippe
         </View>
       )}
       {state === 'short' && <View style={styles.shortMark} pointerEvents="none" />}
-      {count !== undefined && <Text style={styles.count}>{count}</Text>}
+      {count !== undefined && <Text style={[styles.count, families && styles.countTop]}>{count}</Text>}
       {mark !== undefined && <Text style={[styles.mark, mark === 'up' ? styles.markUp : styles.markDown]}>{mark === 'up' ? '▲' : '▼'}</Text>}
       {families && (
-        <FamilyTags tags={families} named={false} sheet={false} size={Math.round((size ?? 60) * 0.24)} style={styles.families} />
+        <FamilyTags tags={families} named={false} sheet={false} size={Math.round((size ?? 60) * 0.33)} style={styles.families} />
       )}
       {equipped && <EquippedBadge size={size ?? 60} />}
     </View>
@@ -130,7 +130,8 @@ const styles = StyleSheet.create({
     textShadowRadius: 0,
   },
   mark: { position: 'absolute', top: 1, left: 2, fontSize: 12 },
-  families: { position: 'absolute', left: 3, bottom: 3, gap: 2 },
+  countTop: { bottom: undefined, top: 1 },
+  families: { position: 'absolute', left: 2, right: 2, bottom: 2, gap: 1 },
   markUp: { color: '#7FC46A' },
   markDown: { color: '#E0704E' },
 });

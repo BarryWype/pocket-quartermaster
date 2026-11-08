@@ -21,6 +21,7 @@ import { elementInfo } from '@/content/elements';
 import { expeditionRules } from '@/content/dungeons';
 import { heroClasses, xpRules, xpToNextLevel } from '@/content/heroes';
 import { slotProblem } from '@/game/equipment/slots';
+import { gearFamilyTags } from '@/game/families/families';
 import { gearIconOf } from '@/game/gear/gearIcon';
 import { jobById } from '@/content/jobs';
 import { workTools } from '@/content/workTools';
@@ -203,6 +204,7 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
         icon: item?.icon,
         legendary: undefined,
         mark: undefined,
+        families: undefined,
         label: `${t(`hero.slots.${slot}`)}${item ? `: ${tr(item.name)}` : ''}`,
       };
     }
@@ -215,6 +217,7 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
       icon: gear ? gearIconOf(gear) : item?.icon,
       legendary: gear?.rarity === 'legendary' ? true : undefined,
       mark: affinity === 'favoured' ? ('up' as const) : affinity === 'unfit' ? ('down' as const) : undefined,
+      families: item ? gearFamilyTags(item, gear?.relicId) : undefined,
       label: `${t(`hero.slots.${slot}`)}${gear ? `: ${gearName(gear)}` : ''}`,
     };
   };
@@ -387,6 +390,7 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
           icon={content.icon}
           legendary={content.legendary}
           mark={content.mark}
+          families={content.families}
           size={64}
           accessibilityLabel={content.label}
           onPress={away || content.state === 'locked' ? undefined : () => setPicking(slot)}
@@ -542,6 +546,7 @@ function StoreroomSlot({
         icon={gearIconOf(gear)}
         legendary={gear.rarity === 'legendary' ? true : undefined}
         mark={upgradeMark(hero, preview)}
+        families={gearFamilyTags(item, gear.relicId)}
         size={size}
         equipped={equipped}
         accessibilityLabel={gearName(gear)}

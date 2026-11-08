@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   hero: { width: 72, alignItems: 'center', gap: 4 },
   busy: { opacity: 0.4 },
-  state: { position: 'absolute', top: 44, left: 0, right: 0, textAlign: 'center', fontFamily: fonts.body, fontSize: 13, color: ui.emberLight },
+  state: { position: 'absolute', top: 26, left: 0, right: 0, textAlign: 'center', fontFamily: fonts.body, fontSize: 13, color: ui.emberLight },
   heroName: { fontFamily: fonts.serif, fontSize: 14, color: ui.onWood },
   card: { gap: 10, paddingHorizontal: 16, paddingVertical: 12 },
   minis: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
   badge: {
     position: 'absolute',
     right: 0,
-    bottom: 0,
+    top: 0,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 999,
