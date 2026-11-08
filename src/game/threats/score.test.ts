@@ -33,26 +33,26 @@ const familyParty = (family: FamilyId, count: number) => party({ familyTags: [ta
 
 const threat = (id: ThreatId, level: 1 | 2 | 3): ActiveThreat => ({ id, level });
 
-describe('scoring threats by family level', () => {
-  it('meets each threat at each level when its family reaches it, half one short, full two short', () => {
+describe('scoring threats by family tags', () => {
+  it('meets a threat at level N with N tags of its family, half one tag short, full two short', () => {
     for (const id of Object.keys(threatById) as ThreatId[]) {
       const family = familyOfThreat(id);
       for (const level of [1, 2, 3] as const) {
-        // The count that reaches each family level; level 0 and below have none.
-        const countAt = (have: number) => (have <= 0 ? 0 : familyRules.levels[have - 1]);
-        const at = (count: number): ThreatScore => scoreThreat(threat(id, level), familyParty(family, count));
-        expect(at(countAt(level))).toMatchObject({ state: 'met', have: level, needed: level });
-        expect(at(countAt(level - 1)).state).toBe('half');
-        // Two levels short is a full miss; level 1 cannot fall further than half.
-        expect(at(countAt(level - 2)).state).toBe(level >= 2 ? 'full' : 'half');
+        const at = (count: number): ThreatScore => scoreThreat(threat(id, level), familyParty(family, Math.max(0, count)));
+        expect(at(level)).toMatchObject({ state: 'met', have: level, needed: level });
+        expect(at(level + 1).state).toBe('met');
+        expect(at(level - 1).state).toBe('half');
+        // Two tags short is a full miss; level 1 cannot fall further than half.
+        expect(at(level - 2).state).toBe(level >= 2 ? 'full' : 'half');
       }
     }
   });
 
   it('counts the whole party’s tags of the threat’s family', () => {
-    const split = party({ familyTags: [tag('cunning', 2)] }, { familyTags: [tag('cunning')] });
-    expect(familyCount(split, 'cunning', 1)).toBe(3);
-    expect(scoreThreat(threat('traps', 2), split)).toMatchObject({ state: 'half', have: 1, needed: 2 });
+    const split = party({ familyTags: [tag('cunning')] }, { familyTags: [tag('cunning')] });
+    expect(familyCount(split, 'cunning', 1)).toBe(2);
+    expect(scoreThreat(threat('traps', 2), split)).toMatchObject({ state: 'met', have: 2, needed: 2 });
+    expect(scoreThreat(threat('traps', 3), split)).toMatchObject({ state: 'half', have: 2, needed: 3 });
   });
 
   it('lists every hero contributing a tag of the family, with the source that gave it', () => {
@@ -75,11 +75,11 @@ describe('scoring threats by family level', () => {
 
 describe('familyVsThreat bonuses', () => {
   it('adds the Exorcist’s +1 Faith when scoring Holy', () => {
-    expect(scoreThreat(threat('holy', 1), party({ classId: 'exorcist' }, { familyTags: [tag('faith')] }))).toMatchObject({
+    expect(scoreThreat(threat('holy', 2), party({ classId: 'exorcist' }, { familyTags: [tag('faith')] }))).toMatchObject({
       state: 'met',
-      have: 1,
+      have: 2,
     });
-    expect(scoreThreat(threat('holy', 1), party({ familyTags: [tag('faith')] })).state).toBe('half');
+    expect(scoreThreat(threat('holy', 2), party({ familyTags: [tag('faith')] })).state).toBe('half');
   });
 
   it('adds the Beastmaster’s +1 Wild only at Beasts 2 and 3', () => {
@@ -94,7 +94,7 @@ describe('familyVsThreat bonuses', () => {
   it('subtracts a negative trait bonus, never below zero', () => {
     expect(familyCount(party({ traitId: 'clumsy', familyTags: [tag('cunning', 2)] }), 'cunning', 1)).toBe(1);
     expect(familyCount(party({ traitId: 'clumsy' }), 'cunning', 1)).toBe(0);
-    expect(scoreThreat(threat('traps', 1), party({ traitId: 'clumsy', familyTags: [tag('cunning', 2)] })).state).toBe('half');
+    expect(scoreThreat(threat('traps', 2), party({ traitId: 'clumsy', familyTags: [tag('cunning', 2)] })).state).toBe('half');
   });
 });
 

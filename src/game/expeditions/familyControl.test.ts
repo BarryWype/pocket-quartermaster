@@ -7,7 +7,7 @@ const taken = (f: FamilyFight) => f.fight.taken.a ?? 0;
 /** The boss's hits on hero a: 5 each, one a round. */
 const hits = (f: FamilyFight) => taken(f) / 5;
 const sturdy = { maxHp: 1e6 };
-/** Darkness 3: a Watch 2 party is half short, so the first fight is exposed. */
+/** Darkness 3: a Watch 1 party (2 tags) is one short, so the first fight is exposed; Watch 2 (4 tags) answers it. */
 const darkness: Briefing = { threats: [{ id: 'darkness', level: 3 }], restriction: null, opportunity: null };
 
 type Case = [string, FamilyId, number, FightSetup, (on: FamilyFight, off: FamilyFight) => void, FamilyEffectId, string | null, string | null];
@@ -25,11 +25,11 @@ describe('family control', () => {
       }, 'breaker2', 'a’s crushing blow left a foe reeling.', 'Le coup écrasant de a a laissé un ennemi chancelant.'],
     ['Breaker 2: no crit, no stagger', 'breaker', 2, { party: { a: sturdy } },
       (on, off) => expect(hits(on)).toBe(hits(off)), 'breaker2', null, null],
-    ['Watch 2: never exposed, and the would-be ambushers lose their first turn', 'watch', 2, { party: { a: sturdy }, options: { briefing: darkness } },
+    ['Watch 2 answers Darkness 3: never exposed, so no ambush to turn', 'watch', 2, { party: { a: sturdy }, options: { briefing: darkness } },
       (on) => {
         expect(on.fight.effects.some((e) => e.key === 'exposed')).toBe(false);
-        expect(hits(on)).toBe(on.fight.rounds - 1);
-      }, 'watch2', 'The Watch spotted the ambush: the enemies lost their first turn.', 'La Vigie a repéré l’embuscade : les ennemis ont perdu leur premier tour.'],
+        expect(hits(on)).toBe(on.fight.rounds);
+      }, 'watch2', null, null],
     ['Watch 1 is still ambushed', 'watch', 1, { party: { a: sturdy }, options: { briefing: darkness } },
       (on) => {
         expect(on.fight.effects.some((e) => e.key === 'exposed')).toBe(true);

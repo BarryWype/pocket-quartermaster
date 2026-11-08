@@ -54,13 +54,12 @@ const crossbowed = (save: SaveData): SaveData => ({
 });
 
 describe('heistScore', () => {
-  it('rides on Cunning tags: a crossbow thief meets the locks, a bare hero is one short', () => {
-    // One Cunning tag from the class alone is one short of level 1.
-    expect(heistScore(saveOf('thief'), 'bram')).toBe('half');
-    // The crossbow's Cunning tag completes level 1.
-    expect(heistScore(crossbowed(saveOf('thief')), 'bram')).toBe('met');
-    // At tier 5 the locks need level 3: no lone hero reaches it.
-    expect(heistScore(crossbowed(saveOf('thief', 5)), 'bram')).toBe('full');
+  it('rides on Cunning tags: one per lock level', () => {
+    // The Thief's own Cunning tag meets level 1; a hero without one is one short.
+    expect(heistScore(saveOf('thief'), 'bram')).toBe('met');
+    expect(heistScore(saveOf('warrior'), 'bram')).toBe('half');
+    // At tier 5 the locks need 3 tags: class and crossbow make 2.
+    expect(heistScore(crossbowed(saveOf('thief', 5)), 'bram')).toBe('half');
     expect(heistScore(saveOf('warrior', 5), 'bram')).toBe('full');
   });
 

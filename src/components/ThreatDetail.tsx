@@ -7,7 +7,6 @@ import type { BriefingCoverage, ThreatCoverage } from '@/game/threats/coverage';
 import { threatPenalties, type AppliedPenalty } from '@/game/threats/penalties';
 import type { ThreatScore } from '@/game/threats/score';
 import type { FamilyCounts } from '@/game/families/families';
-import { tagsForLevel } from '@/game/families/strip';
 import { formatPercent, t, tr } from '@/i18n';
 import { colors } from '@/theme';
 
@@ -71,7 +70,7 @@ function DetailLines({ coverage, counts }: { coverage: ThreatCoverage; counts: F
         <IconLabel
           emoji={familyById[family].emoji}
           icon={familyById[family].icon}
-          label={t('families.needs', { count: tagsForLevel(coverage.needed), family: tr(familyById[family].name) }) + (met ? ' ✓' : '')}
+          label={t('families.needs', { count: coverage.needed, family: tr(familyById[family].name) }) + (met ? ' ✓' : '')}
           labelStyle={[styles.line, { color: met ? colors.success : colors.danger }]}
         />
       </Pressable>

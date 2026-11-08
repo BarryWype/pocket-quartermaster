@@ -3,7 +3,7 @@ import { difficultyRules } from '@/content/difficulty';
 import { rosterRules } from '@/content/roster';
 import { affinityRules, classAffinities, gearProfiles, type Affinity } from '@/content/equipment';
 import { guildTrackById, guildTracks } from '@/content/guild';
-import { familyOfThreat, familyRules, type FamilyId } from '@/content/families';
+import { familyOfThreat, type FamilyId } from '@/content/families';
 import { heroClasses, xpRules } from '@/content/heroes';
 import { dungeonById, itemById, recipeById } from '@/content/lookup';
 import { gathererRules, jobs as jobList, type JobDef } from '@/content/jobs';
@@ -641,7 +641,7 @@ function forgeForThreats(sim: Sim) {
   for (const dungeon of dungeons.filter((d) => d.tier === top && !d.overnight && isDungeonAvailable(sim.save, d, sim.rotation))) {
     for (const threat of briefingFor(sim.rotation, dungeon).threats) {
       const family = familyOfThreat(threat.id);
-      needed.set(family, Math.max(needed.get(family) ?? 0, familyRules.levels[threat.level - 1]));
+      needed.set(family, Math.max(needed.get(family) ?? 0, threat.level));
     }
   }
   // Only types without a spare of the top two tiers: the new piece is then the one kept.

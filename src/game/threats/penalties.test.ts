@@ -1,4 +1,4 @@
-import { familyOfThreat, familyRules } from '@/content/families';
+import { familyOfThreat } from '@/content/families';
 
 import type { FamilyId } from '@/content/families';
 import type { ActiveThreat, ThreatId } from '../types';
@@ -19,11 +19,10 @@ const member = (overrides: Partial<AnswersMember> = {}): AnswersMember => ({
 
 const threat = (id: ThreatId, level: 1 | 2 | 3): ActiveThreat => ({ id, level });
 
-/** The threat scored against one hero whose family level falls `short` levels short of it. */
+/** The threat scored against one hero whose family tags fall `short` tags short of it. */
 const scored = (id: ThreatId, level: 1 | 2 | 3, short = 0): ThreatScore => {
   const family = familyOfThreat(id);
-  const have = level - short;
-  const count = have >= 1 ? familyRules.levels[have - 1] : 0;
+  const count = Math.max(0, level - short);
   return scoreThreat(threat(id, level), [heroAnswers(member({ familyTags: [tag(family, count)] }), null)]);
 };
 

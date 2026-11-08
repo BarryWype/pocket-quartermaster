@@ -35,9 +35,9 @@ function save(): SaveData {
 
 describe('briefingCoverage', () => {
   it('covers a threat and names who and what answers it', () => {
-    // The mace's Faith tag and the three clerics' reach level 2 (4 tags), well past level 1.
+    // The mace's Faith tag and the three clerics' make 4 tags, well past the 1 Holy 1 needs.
     const { threats } = briefingCoverage(save(), ALL, briefing([{ id: 'holy', level: 1 }]));
-    expect(threats[0]).toMatchObject({ threat: { id: 'holy', level: 1 }, state: 'met', display: 'covered', have: 2, needed: 1 });
+    expect(threats[0]).toMatchObject({ threat: { id: 'holy', level: 1 }, state: 'met', display: 'covered', have: 4, needed: 1 });
     expect(threats[0].coveredBy).toEqual([
       { heroId: 'bram', heroName: 'Bram', source: 'gear', sourceName: 'Steel mace' },
       { heroId: 'c1', heroName: 'Cass', source: 'class', sourceName: 'Cleric' },
@@ -48,16 +48,16 @@ describe('briefingCoverage', () => {
 
   it('marks a threat one short as partial and a far miss as uncovered', () => {
     const data = save();
-    // One cleric's Faith tag falls short of level 1 Holy (2 tags): half; level 3 (6 tags): full.
-    const { threats } = briefingCoverage(data, ['c1'], briefing([{ id: 'holy', level: 1 }, { id: 'holy', level: 3 }]));
-    expect(threats[0]).toMatchObject({ state: 'half', display: 'partial', have: 0, needed: 1 });
-    expect(threats[1]).toMatchObject({ state: 'full', display: 'uncovered', have: 0, needed: 3 });
+    // One cleric's Faith tag is one short of Holy 2: half; two short of Holy 3: full.
+    const { threats } = briefingCoverage(data, ['c1'], briefing([{ id: 'holy', level: 2 }, { id: 'holy', level: 3 }]));
+    expect(threats[0]).toMatchObject({ state: 'half', display: 'partial', have: 1, needed: 2 });
+    expect(threats[1]).toMatchObject({ state: 'full', display: 'uncovered', have: 1, needed: 3 });
     expect(threats[1].coveredBy).toEqual([{ heroId: 'c1', heroName: 'Cass', source: 'class', sourceName: 'Cleric' }]);
   });
 
   it('shows the restriction and its definition', () => {
-    const { restriction } = briefingCoverage(save(), ALL, briefing([], { restriction: 'thickFog' }));
-    expect(restriction).toMatchObject({ id: 'thickFog', def: { name: 'Thick fog' } });
+    const { restriction } = briefingCoverage(save(), ALL, briefing([], { restriction: 'cursedLuck' }));
+    expect(restriction).toMatchObject({ id: 'cursedLuck', def: { name: 'Cursed luck' } });
     expect(briefingCoverage(save(), ALL, briefing()).restriction).toBeNull();
   });
 

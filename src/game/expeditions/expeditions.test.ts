@@ -60,9 +60,9 @@ function geared(): SaveData {
 const atTier = (save: SaveData, tier: number): SaveData => ({ ...save, gear: save.gear.map((g) => ({ ...g, itemId: g.itemId.replace(/\d$/, String(tier)) })) });
 
 /** Runs the same expedition with many seeds; resolution is deterministic per seed. */
-function outcomes(save: SaveData, dungeonId: string, runs = 200) {
+function outcomes(save: SaveData, dungeonId: string, runs = 200, heroIds = ALL) {
   return Array.from({ length: runs }, (_, i) => {
-    const started = startExpedition({ ...save, nextUid: i }, dungeonId, ALL, 0);
+    const started = startExpedition({ ...save, nextUid: i }, dungeonId, heroIds, 0);
     return resolveExpedition(started, started.expeditions[0]);
   });
 }
@@ -273,8 +273,9 @@ describe('resolveExpedition', () => {
   });
 
   it('writes one line per played encounter plus a summary, naming the heroes', () => {
+    // Two heroes, so a day with Narrow passages lets them in too.
     for (const dungeon of dungeons) {
-      for (const { report } of outcomes(geared(), dungeon.id, 20)) {
+      for (const { report } of outcomes(geared(), dungeon.id, 20, ALL.slice(0, 2))) {
         // Every encounter played gets at most one line (quiet steps none), plus a summary
         // and any recipe, first-win, first-clear, charter or salvage lines.
         const played = report.encountersCleared + (report.success ? 0 : 1);

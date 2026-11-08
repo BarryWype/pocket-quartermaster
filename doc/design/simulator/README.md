@@ -42,7 +42,7 @@ The simulator plays the game with simple bots, for several player profiles, and 
 - **Map**: do quests (all in the regular and heavy profiles), dig ruins, open a secret place when it has a key and a tip, recruit rare classes.
 - **Team**: field the three heroes with the best answers to the dungeon's threats, counted on their family tags once dressed (below).
 - **Families** (`src/game/sim/rules/families.ts`), for each briefing:
-  1. **Threats first.** Swap spare pieces onto the party, one at a time, picking the swap that brings the threat families closest to their needed level (2, 4 or 6 tags). A piece may be one tier below the one it replaces. Stop when every threat is met or no swap helps.
+  1. **Threats first.** Swap spare pieces onto the party, one at a time, picking the swap that brings the threat families closest to the tags they need (one per threat level). A piece may be one tier below the one it replaces. Stop when every threat is met or no swap helps.
   2. **Then one playstyle.** The party's playstyle family with the most tags (ties in the families' order) is pushed: swaps that add its tags, with pieces of the same tier or better, never losing a threat level, up to 6 tags.
   3. Swaps that reach no new level are undone. Never an unfit weapon or armour, never a weapon or off-hand that rolls with the hero's other damage stat.
   4. **Spares:** the best spare piece of each type of the top two tiers is kept for swaps; other spares are salvaged. Each session starts with every hero back in the gear that suits their stats best.

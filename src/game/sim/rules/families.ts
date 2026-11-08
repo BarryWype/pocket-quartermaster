@@ -12,8 +12,8 @@ import { familyCount } from '../../threats/score';
 import type { Briefing, GearDef, GearInstance, HeroState } from '../../types';
 
 // The bot's family rules (doc/design/simulator/README.md): before a run, the
-// party swaps spare pieces in to reach the briefing's threat families at the
-// needed level, then pushes one playstyle family as high as it can. Pure: each
+// party swaps spare pieces in to bring the tags the briefing's threats need,
+// then pushes one playstyle family as high as it can. Pure: each
 // rule takes a save and returns a save.
 
 const SLOTS = ['weapon', 'armor', 'offhand'] as const;
@@ -124,22 +124,19 @@ function climb(save: SaveData, heroIds: string[], tierDrop: number, score: (s: S
 
 /**
  * How far the party is from the briefing's threats, from its family tags alone
- * (restriction and class or trait bonuses included): the tags still missing
- * for each threat's needed level, and the levels still missing.
+ * (restriction and class or trait bonuses included): the tags still missing,
+ * one per threat level.
  */
-function threatShortfall(save: SaveData, heroIds: string[], briefing: Briefing): { tags: number; levels: number } {
+function threatShortfall(save: SaveData, heroIds: string[], briefing: Briefing): number {
   const answers = save.heroes
     .filter((h) => heroIds.includes(h.id))
     .map((hero) => heroAnswers({ heroId: hero.id, classId: hero.classId, traitId: hero.trait, familyTags: heroFamilyTagSources(save, hero) }, briefing.restriction));
   let tags = 0;
-  let levels = 0;
   for (const threat of briefing.threats) {
     const family = families.find((f) => f.answers === threat.id)!.id;
-    const count = familyCount(answers, family, threat.level);
-    tags += Math.max(0, familyRules.levels[threat.level - 1] - count);
-    levels += Math.max(0, threat.level - familyLevel(count));
+    tags += Math.max(0, threat.level - familyCount(answers, family, threat.level));
   }
-  return { tags, levels };
+  return tags;
 }
 
 /** The party's playstyle family with the most tags, ties in `families` order; null when it has none. */
@@ -155,7 +152,7 @@ export function focusFamily(save: SaveData, heroIds: string[]): FamilyId | null 
 
 /**
  * Dresses a party for a briefing from the spare pieces: first the swaps that
- * answer the threats' family levels (a piece up to one tier below the one it
+ * bring the threats' tags (a piece up to one tier below the one it
  * replaces), then the swaps that push the party's leading playstyle family
  * (`focus`, or the one with most tags) to its next level without losing a
  * threat answer (a piece of the same tier or better). Swaps that reach no new
@@ -163,13 +160,13 @@ export function focusFamily(save: SaveData, heroIds: string[]): FamilyId | null 
  */
 export function dressParty(save: SaveData, heroIds: string[], briefing: Briefing, focus: FamilyId | null = null, push = true): SaveData {
   const shortfall = (s: SaveData) => threatShortfall(s, heroIds, briefing);
-  const threats = briefing.threats.length ? climb(save, heroIds, 1, (s) => shortfall(s).tags, (s) => shortfall(s).levels) : save;
+  const threats = briefing.threats.length ? climb(save, heroIds, 1, shortfall, shortfall) : save;
   const family = push ? (focus ?? focusFamily(threats, heroIds)) : null;
   if (!family) return threats;
-  const missed = shortfall(threats).levels;
+  const missed = shortfall(threats);
   const count = (s: SaveData) => partyFamilies(s, heroIds)[family] ?? 0;
-  // Lower is better: a threat level lost costs more than any tag.
-  const lost = (s: SaveData) => briefing.threats.length > 0 && shortfall(s).levels > missed;
+  // Lower is better: a threat tag lost costs more than any playstyle tag.
+  const lost = (s: SaveData) => briefing.threats.length > 0 && shortfall(s) > missed;
   const short = (s: SaveData) => (lost(s) ? 100 : Math.max(0, familyRules.levels[2] - count(s)));
   return climb(threats, heroIds, 0, short, (s) => (lost(s) ? 100 : -familyLevel(count(s))));
 }

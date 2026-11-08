@@ -1,4 +1,5 @@
 import { familyEffectRules as R, type FamilyEffectId, type FamilyId } from '@/content/families';
+import { threatRules } from '@/content/threats';
 
 import { familyFight, logged, steady, type FamilyFight, type FightSetup } from './familyTestHelpers';
 
@@ -27,8 +28,9 @@ type Case = [string, FamilyId | null, number, FightSetup, (on: FamilyFight, off:
 
 describe('family poison', () => {
   test.each<Case>([
+    // Venom 1's 2 tags leave Poison 3 one tag short: a half miss, its wounds then halved again.
     ['Venom 1: the Poison threat’s after-fight wounds are halved', 'venom', 1, poisoned(3),
-      (on, off) => expect(taken(on)).toBeCloseTo(taken(off) * R.venom.woundsTaken), 'venom1',
+      (on, off) => expect(taken(on)).toBeCloseTo(taken(off) * threatRules.halfShare * R.venom.woundsTaken), 'venom1',
       'Venom ran in a’s veins: the poison’s wounds bit half as deep.',
       'Le Venin dans le sang de a a affaibli le poison : ses blessures ont été réduites de moitié.'],
     ['Venom 1: answering the threat’s level leaves no wounds at all', 'venom', 1, poisoned(1),

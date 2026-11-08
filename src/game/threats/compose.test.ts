@@ -135,19 +135,8 @@ describe('restrictions and answers', () => {
     expect(restrictionKeepsAnswers([{ id: 'darkness', level: 1 }], null)).toBe(true);
   });
 
-  it('refuses anti-magic when only magic sources carry the family', () => {
-    // Venom's class is a caster and its only gear piece is a flask: without
-    // either, level 2 Poison (4 tags) is beyond a party of 3.
-    expect(restrictionKeepsAnswers([{ id: 'poison', level: 2 }], 'antiMagic')).toBe(false);
-    expect(restrictionKeepsAnswers([{ id: 'poison', level: 2 }], null)).toBe(true);
-  });
-
-  it('rejects narrow passages for a threat needing more tags than the shrunken party holds', () => {
-    // Parties of 3 squeeze down to 2: level 3 Poison needs 6 tags, 2 heroes
-    // can wear at most 2 each.
-    expect(restrictionKeepsAnswers([{ id: 'poison', level: 3 }], 'narrowPassages')).toBe(false);
-    expect(restrictionKeepsAnswers([{ id: 'poison', level: 2 }], 'narrowPassages')).toBe(true);
-    expect(restrictionKeepsAnswers([{ id: 'poison', level: 3 }], null)).toBe(true);
+  it('keeps Poison 3 answerable by a party squeezed down to 2: it needs 3 tags', () => {
+    expect(restrictionKeepsAnswers([{ id: 'poison', level: 3 }], 'narrowPassages')).toBe(true);
   });
 });
 

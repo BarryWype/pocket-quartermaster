@@ -264,7 +264,8 @@ describe('relic family tags', () => {
 
   it("the Dwarf-lord's situational pierce adds no family tag", () => {
     const scored = (member: PartyMember, threat: ActiveThreat) => scoreThreat(threat, [heroAnswers(answersMemberOf(member))]);
-    expect(scored(relicMember('dwarfLordsAxe'), { id: 'armoured', level: 2 })).toMatchObject({ state: 'full', have: 0 });
+    // Its one Breaker tag is the relic's extra tag, not the pierce: one short of Armoured 2.
+    expect(scored(relicMember('dwarfLordsAxe'), { id: 'armoured', level: 2 })).toMatchObject({ state: 'half', have: 1 });
   });
 });
 

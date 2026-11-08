@@ -27,7 +27,7 @@ export function familyRole(family: FamilyId): string {
   return def.answers ? t('families.kind.threat', { threat: tr(threatById[def.answers].name) }) : t(`families.role.${family}` as TextKey);
 }
 
-/** A family's three levels: the tags each needs and what it does; with a party, the reached ones lit and the next one's missing tags. */
+/** A family's three levels: the tags each needs and what it does; with a party, the reached ones lit and the next one's missing tags. A threat family adds how it answers its threat. */
 export function FamilyLevelLines({ family, count }: { family: FamilyId; /** The party's tags, when there is a party. */ count?: number }) {
   const def = familyById[family];
   const details: Record<string, string> = localized({ en, fr }).families.details;
@@ -46,10 +46,10 @@ export function FamilyLevelLines({ family, count }: { family: FamilyId; /** The 
             </View>
             <Text style={styles.effect}>{t(`families.effects.${family}${level}` as TextKey)}</Text>
             {detail && <Text style={styles.detail}>{detail}</Text>}
-            {def.answers && <Text style={styles.detail}>{t('families.answers', { threat: tr(threatById[def.answers].name), marks: levelMarks(level) })}</Text>}
           </View>
         );
       })}
+      {def.answers && <Text style={styles.detail}>{t('families.answers', { threat: tr(threatById[def.answers].name), family: tr(def.name) })}</Text>}
     </View>
   );
 }

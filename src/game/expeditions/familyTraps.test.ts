@@ -1,6 +1,7 @@
 import { dungeons } from '@/content/dungeons';
 import { familyEffectRules as R, type FamilyEffectId, type FamilyId } from '@/content/families';
 import { newHero } from '@/content/heroes';
+import { threatRules } from '@/content/threats';
 import { dungeonById } from '@/content/lookup';
 import { createInitialSave } from '@/game/save';
 import type { Briefing, DungeonDef } from '@/game/types';
@@ -20,13 +21,17 @@ describe('family traps', () => {
     ['Cunning 1: a live trap’s wounds are halved', 'cunning', 1, trap,
       (on, off) => {
         expect(wounded(off)).toBeGreaterThan(0);
-        expect(wounded(on)).toBeCloseTo(wounded(off) * R.cunning.trapTaken);
+        // Cunning 1's 2 tags leave Traps 3 one short: half its wounds, then Cunning 1 halves them again.
+        expect(wounded(on)).toBeCloseTo(wounded(off) * threatRules.halfShare * R.cunning.trapTaken);
       }, 'cunning1', 'a spotted the trigger: the trap bit half as deep.', 'a a repéré le déclencheur : le piège a mordu deux fois moins fort.'],
     ['Cunning 1: no live trap, nothing to halve', 'cunning', 1, { ...trap, options: {} },
       (on) => expect(wounded(on)).toBe(0), 'cunning1', null, null],
-    // Level 2 is one short of the level 3 threat: half its wounds, then Cunning 1 halves them again.
-    ['Cunning 2: Cunning 1 still halves the trap', 'cunning', 2, trap,
-      (on, off) => expect(wounded(on)).toBeCloseTo(wounded(off) * 0.5 * R.cunning.trapTaken), 'cunning1', 'a spotted the trigger: the trap bit half as deep.', null],
+    // Cunning 2's 4 tags answer any Traps threat: no trap is live.
+    ['Cunning 2: the threat is answered, the trap never springs', 'cunning', 2, trap,
+      (on, off) => {
+        expect(wounded(off)).toBeGreaterThan(0);
+        expect(wounded(on)).toBe(0);
+      }, 'cunning1', null, null],
   ])('%s', (_name, family, level, setup, check, effect, en, fr) => {
     const on = familyFight(family, level, setup);
     const off = familyFight(null, 0, setup);

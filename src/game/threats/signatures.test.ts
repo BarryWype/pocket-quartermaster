@@ -28,8 +28,8 @@ const saveWith = (...heroes: HeroState[]): SaveData => ({ ...createInitialSave()
 
 describe('familyVsThreat signatures', () => {
   it('adds the Exorcist’s +1 Faith against Holy', () => {
-    expect(scoreThreat(threat('holy', 2), answered(member('exorcist', { familyTags: [tag('faith', 3)] })))).toMatchObject({ state: 'met', have: 2 });
-    expect(scoreThreat(threat('holy', 2), answered(member('cleric', { familyTags: [tag('faith', 3)] })))).toMatchObject({ state: 'half', have: 1 });
+    expect(scoreThreat(threat('holy', 3), answered(member('exorcist', { familyTags: [tag('faith', 2)] })))).toMatchObject({ state: 'met', have: 3 });
+    expect(scoreThreat(threat('holy', 3), answered(member('cleric', { familyTags: [tag('faith', 2)] })))).toMatchObject({ state: 'half', have: 2 });
   });
 
   it('adds the Necromancer’s +1 Faith at Holy 2 and 3 only, and not in an anti-magic zone', () => {
@@ -42,19 +42,19 @@ describe('familyVsThreat signatures', () => {
   it('adds the Beastmaster’s +1 Wild at Beasts 2 and 3 only', () => {
     expect(countVs(member('beastmaster'), 'beasts', 1)).toBe(0);
     expect(countVs(member('beastmaster'), 'beasts', 2)).toBe(1);
-    expect(scoreThreat(threat('beasts', 2), answered(member('beastmaster', { familyTags: [tag('wild', 3)] })))).toMatchObject({ state: 'met' });
+    expect(scoreThreat(threat('beasts', 2), answered(member('beastmaster', { familyTags: [tag('wild', 1)] })))).toMatchObject({ state: 'met' });
   });
 
   it('adds the Engineer’s +1 Cunning against Traps', () => {
-    expect(scoreThreat(threat('traps', 3), answered(member('engineer', { familyTags: [tag('cunning', 5)] })))).toMatchObject({ state: 'met' });
-    expect(scoreThreat(threat('traps', 3), answered(member('warrior', { familyTags: [tag('cunning', 5)] })))).toMatchObject({ state: 'half' });
+    expect(scoreThreat(threat('traps', 3), answered(member('engineer', { familyTags: [tag('cunning', 2)] })))).toMatchObject({ state: 'met' });
+    expect(scoreThreat(threat('traps', 3), answered(member('warrior', { familyTags: [tag('cunning', 2)] })))).toMatchObject({ state: 'half' });
   });
 
   it('adds the trait bonuses: Light sleeper lifts Watch, Clumsy and Loud drag theirs', () => {
-    expect(scoreThreat(threat('darkness', 2), answered(member('warrior', { traitId: 'lightSleeper', familyTags: [tag('watch', 3)] })))).toMatchObject({ state: 'met' });
-    expect(scoreThreat(threat('traps', 1), answered(member('warrior', { traitId: 'clumsy', familyTags: [tag('cunning', 3)] })))).toMatchObject({ state: 'met' });
-    expect(scoreThreat(threat('traps', 1), answered(member('warrior', { traitId: 'clumsy', familyTags: [tag('cunning', 2)] })))).toMatchObject({ state: 'half' });
-    expect(scoreThreat(threat('darkness', 1), answered(member('warrior', { traitId: 'loud', familyTags: [tag('watch', 2)] })))).toMatchObject({ state: 'half' });
+    expect(scoreThreat(threat('darkness', 3), answered(member('warrior', { traitId: 'lightSleeper', familyTags: [tag('watch', 2)] })))).toMatchObject({ state: 'met' });
+    expect(scoreThreat(threat('traps', 2), answered(member('warrior', { traitId: 'clumsy', familyTags: [tag('cunning', 3)] })))).toMatchObject({ state: 'met' });
+    expect(scoreThreat(threat('traps', 2), answered(member('warrior', { traitId: 'clumsy', familyTags: [tag('cunning', 2)] })))).toMatchObject({ state: 'half' });
+    expect(scoreThreat(threat('darkness', 1), answered(member('warrior', { traitId: 'loud', familyTags: [tag('watch', 1)] })))).toMatchObject({ state: 'half' });
   });
 });
 

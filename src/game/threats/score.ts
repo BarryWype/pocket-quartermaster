@@ -6,13 +6,13 @@ import type { FamilyId } from '@/content/families';
 import type { ActiveThreat, Briefing, OpportunityDef, ThreatLevel } from '../types';
 import type { HeroAnswers, TagSource } from './answers';
 
-/** Met: no penalty. Half (one short): half of every number. Full (two or more short): everything. */
+/** Met: no penalty. Half (one tag short): half of every number. Full (two or more short): everything. */
 export type ThreatState = 'met' | 'half' | 'full';
 
 export type ThreatScore = {
   threat: ActiveThreat;
   state: ThreatState;
-  /** The party's family level, and the threat's level. */
+  /** The party's tags of the threat's family, and the tags it needs: one per threat level. */
   have: number;
   needed: number;
   /** Who answers it: every hero contributing a tag of its family, or a familyVsThreat bonus. */
@@ -39,7 +39,7 @@ export function familyCount(party: HeroAnswers[], family: FamilyId, level: Threa
 /** One threat against a party: its state, and who of the party answers it. */
 export function scoreThreat(threat: ActiveThreat, party: HeroAnswers[], rules: ThreatRules = threatRules): ThreatScore {
   const family = familyOfThreat(threat.id);
-  const have = familyLevel(familyCount(party, family, threat.level));
+  const have = familyCount(party, family, threat.level);
   const needed = threat.level;
   const coveredBy = party.flatMap(({ heroId, tags, bonuses }): { heroId: string; source: TagSource }[] => {
     const tag = tags.find((t) => t.family === family);

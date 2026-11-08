@@ -19,12 +19,12 @@ describe('the party family strip', () => {
   });
 
   test('the needed families come first, red until reached', () => {
-    const chips = familyStrip({ rally: 6, faith: 3 }, threatNeeds([{ id: 'holy', level: 2 }, { id: 'traps', level: 1 }]));
+    const chips = familyStrip({ rally: 6, faith: 1 }, threatNeeds([{ id: 'holy', level: 2 }, { id: 'traps', level: 1 }]));
     expect(chips.map((chip) => chip.family)).toEqual(['faith', 'cunning', 'rally']);
-    expect(chips[0].need).toEqual({ count: 4, met: false });
-    expect(chips[1]).toMatchObject({ count: 0, level: 0, need: { count: 2, met: false } });
+    expect(chips[0].need).toEqual({ count: 2, met: false });
+    expect(chips[1]).toMatchObject({ count: 0, level: 0, need: { count: 1, met: false } });
     expect(chips[2].need).toBeNull();
-    expect(familyStrip({ faith: 4 }, threatNeeds([{ id: 'holy', level: 2 }]))[0].need).toEqual({ count: 4, met: true });
+    expect(familyStrip({ faith: 2 }, threatNeeds([{ id: 'holy', level: 2 }]))[0].need).toEqual({ count: 2, met: true });
   });
 
   test('a family needed twice keeps its highest level', () => {
@@ -33,11 +33,11 @@ describe('the party family strip', () => {
       { family: 'wild', level: 3 },
     ]);
     expect(chips).toHaveLength(1);
-    expect(chips[0].need).toEqual({ count: 6, met: false });
+    expect(chips[0].need).toEqual({ count: 3, met: false });
   });
 
   test('the threat scoring’s verdict wins over the count (class bonuses against a threat)', () => {
-    expect(familyStrip({ faith: 2 }, [{ family: 'faith', level: 2, met: true }])[0].need).toEqual({ count: 4, met: true });
+    expect(familyStrip({ faith: 1 }, [{ family: 'faith', level: 2, met: true }])[0].need).toEqual({ count: 2, met: true });
   });
 
   test('the next level and how many tags are missing', () => {
@@ -53,11 +53,11 @@ describe('the party family strip', () => {
 });
 
 describe('the strip in tags', () => {
-  test('a Holy 2 briefing needs 4 Faith, met once the party has 4', () => {
-    const [chip] = familyStrip({ faith: 3 }, threatNeeds([{ id: 'holy', level: 2 }]));
-    expect(chip.need).toEqual({ count: 4, met: false });
-    expect(chip.next).toEqual({ level: 2, count: 4, short: 1 });
-    expect(familyStrip({ faith: 4 }, threatNeeds([{ id: 'holy', level: 2 }]))[0].need).toEqual({ count: 4, met: true });
+  test('a Holy 2 briefing needs 2 Faith, met once the party has 2', () => {
+    const [chip] = familyStrip({ faith: 1 }, threatNeeds([{ id: 'holy', level: 2 }]));
+    expect(chip.need).toEqual({ count: 2, met: false });
+    expect(chip.next).toEqual({ level: 1, count: 2, short: 1 });
+    expect(familyStrip({ faith: 2 }, threatNeeds([{ id: 'holy', level: 2 }]))[0].need).toEqual({ count: 2, met: true });
   });
 
   test('levels show as lit dots', () => {

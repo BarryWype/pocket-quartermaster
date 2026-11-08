@@ -1,4 +1,4 @@
-import { familyOfThreat, familyRules } from '@/content/families';
+import { familyOfThreat } from '@/content/families';
 import { heroClasses } from '@/content/heroes';
 import { opportunityById, restrictionById, threatById } from '@/content/lookup';
 import { rosterRules } from '@/content/roster';
@@ -169,7 +169,7 @@ export function restrictionKeepsAnswers(
 ) {
   const size = restriction === 'narrowPassages' ? narrowPartySize(rosterRules.partySize) : rosterRules.partySize;
   return threats.every(
-    (threat) => size * maxTagsPerHero(familyOfThreat(threat.id), restriction) >= familyRules.levels[threat.level - 1],
+    (threat) => size * maxTagsPerHero(familyOfThreat(threat.id), restriction) >= threat.level,
   );
 }
 

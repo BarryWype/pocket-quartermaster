@@ -6,7 +6,7 @@ import { familyLevel, type FamilyCounts } from './families';
 // The party family strip's pure model: one chip per family the party has,
 // the families a briefing's threats need first.
 
-/** A family a threat needs, at the threat's level; `met` when the threat scoring already decided it. */
+/** A family a threat needs, one tag per threat level; `met` when the threat scoring already decided it. */
 export type FamilyNeed = { family: FamilyId; level: number; met?: boolean };
 
 export type StripChip = {
@@ -14,7 +14,7 @@ export type StripChip = {
   /** The party's tags of the family, and the level they reach (0 to 3). */
   count: number;
   level: number;
-  /** What a threat asks of the family: its tag count, and whether the party meets it. */
+  /** What a threat asks of the family: its tag count (the threat's level), and whether the party meets it. */
   need: { count: number; met: boolean } | null;
   /** The next level, its tag count and how many tags short the party is; null at level 3. */
   next: { level: number; count: number; short: number } | null;
@@ -38,7 +38,7 @@ function chipOf(family: FamilyId, count: number, need: FamilyNeed | undefined): 
     family,
     count,
     level,
-    need: need ? { count: tagsForLevel(need.level), met: need.met ?? level >= need.level } : null,
+    need: need ? { count: need.level, met: need.met ?? count >= need.level } : null,
     next: nextAt === undefined ? null : { level: level + 1, count: nextAt, short: nextAt - count },
   };
 }

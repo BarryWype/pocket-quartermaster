@@ -99,7 +99,7 @@ const bossOnly = (boss: Partial<DungeonDef['boss']>, count: [number, number] = [
 
 describe('run penalties', () => {
   it('expose the first fights: the enemies strike first, and it shows in the results', () => {
-    // No Watch tags against level 2 (needs family level 2): a full miss, the first three fights exposed.
+    // No Watch tags against level 2 (needs 2 tags): a full miss, the first three fights exposed.
     const run = simulateRun([member('a', [], { maxHp: 1e6, power: 1000 })], fights, 's', {
       rules: steady,
       briefing: threat('darkness', 2),
@@ -111,17 +111,15 @@ describe('run penalties', () => {
   });
 
   it('expose every other fight when "all" is halved by a half miss', () => {
-    // Darkness level 3 exposes every fight; five Watch tags (one short of level 3) halve that to every other one,
-    // and Watch level 2 turns each of those ambushes (the enemies lose their first turn instead).
-    const watcher = [member('a', [], { maxHp: 1e6, power: 1000, familyTags: [familyTag('watch', 5)] })];
+    // Darkness level 3 exposes every fight; two Watch tags (one short) halve that to every other one.
+    const watcher = [member('a', [], { maxHp: 1e6, power: 1000, familyTags: [familyTag('watch', 2)] })];
     const runs = Array.from({ length: 8 }, (_, i) =>
       simulateRun(watcher, fights, `d${i}`, { rules: steady, briefing: threat('darkness', 3) }),
     );
     runs.forEach((run) => {
       expect(run.threats[0].state).toBe('half');
       run.encounters.forEach((encounter, i) => {
-        expect(encounter.effects.some((e) => e.key === 'exposed')).toBe(false);
-        expect(encounter.effects.some((e) => e.key === 'family' && e.familyEffect === 'watch2')).toBe(i % 2 === 0);
+        expect(encounter.effects.some((e) => e.key === 'exposed')).toBe(i % 2 === 0);
       });
     });
   });
@@ -225,9 +223,9 @@ describe('run restrictions', () => {
   it('thickFog: drops Watch from classes, while gear still lights the way', () => {
     const ranger = (gearWatch: number) =>
       member('r', [], { classId: 'ranger', familyTags: [familyTag('watch', 1), familyTag('watch', gearWatch, { source: 'gear', fromClass: false })] });
-    const fog: Briefing = { ...threat('darkness', 1), restriction: 'thickFog' };
+    const fog: Briefing = { ...threat('darkness', 2), restriction: 'thickFog' };
     const dark = simulateRun([ranger(1)], fights, 's', { rules: steady, briefing: fog });
-    expect(dark.threats[0]).toMatchObject({ state: 'half', have: 0, needed: 1 });
+    expect(dark.threats[0]).toMatchObject({ state: 'half', have: 1, needed: 2 });
     const lit = simulateRun([ranger(2)], fights, 's', { rules: steady, briefing: fog });
     expect(lit.threats[0]).toMatchObject({ state: 'met' });
   });
