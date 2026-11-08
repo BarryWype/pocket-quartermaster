@@ -40,6 +40,12 @@ const started = performance.now();
 const DIFFICULTIES: PatrolDifficulty[] = ['easy', 'medium', 'hard'];
 const ROLES = ['weak', 'normal', 'boss'] as const;
 
+/** The fitted tier bosses and the S key each is fitted under. */
+const BOSSES = [
+  { id: 'giantsHall', tier: 4, key: 'giantsHall' },
+  { id: 'dragonLair', tier: 5, key: 'dragonLairBoss' },
+];
+
 /** One fitted source, with everything the bisection needs. */
 type Job = {
   source: FitSource;
@@ -106,27 +112,18 @@ function jobs(): Job[] {
     }
   }
   // The tier 4 boss shares its S entry with its own encounter mobs; the tier 5 boss has a key of its own.
-  out.push({
-    source: { kind: 'boss', id: 'giantsHall' },
-    label: 'boss giantsHall',
-    tier: 4,
-    difficulty: 'boss',
-    key: 'giantsHall',
-    f0: dungeonFactors.giantsHall,
-    defs: [
-      ...dungeonById.giantsHall.encounters.filter((e) => e.type === 'fight').flatMap((e) => e.mobs.map((m) => mobById[m.mobId])),
-      bossOf('giantsHall'),
-    ],
-  });
-  out.push({
-    source: { kind: 'boss', id: 'dragonLair' },
-    label: 'boss dragonLair',
-    tier: 5,
-    difficulty: 'boss',
-    key: 'dragonLairBoss',
-    f0: dungeonFactors.dragonLairBoss,
-    defs: [bossOf('dragonLair')],
-  });
+  for (const { id, tier, key } of BOSSES) {
+    const dungeon = dungeonById[id];
+    out.push({
+      source: { kind: 'boss', id },
+      label: `boss ${id}`,
+      tier,
+      difficulty: 'boss',
+      key,
+      f0: dungeonFactors[key],
+      defs: key === id ? [...dungeon.encounters.filter((e) => e.type === 'fight').flatMap((e) => e.mobs.map((m) => mobById[m.mobId])), bossOf(id)] : [bossOf(id)],
+    });
+  }
   return out;
 }
 
@@ -154,31 +151,57 @@ function scale(job: (typeof all)[number], factor: number) {
   });
 }
 
-/** The end-of-tier odds at a factor, bisected towards its difficulty's target. */
-const targetOf = (difficulty: Difficulty) =>
-  difficulty === 'boss'
-    ? (targets.odds.boss[0] + targets.odds.boss[1]) / 2
-    : (difficultyRules.oddsTargets[difficulty].end[0] + difficultyRules.oddsTargets[difficulty].end[1]) / 2;
+/** A source's target ranges: its difficulty's at the tier's start and end; a boss's at its first attempts, measured with the tier's end kit. */
+const rangesOf = (difficulty: Difficulty): { start: [number, number] | null; end: [number, number] } =>
+  difficulty === 'boss' ? { start: null, end: targets.odds.boss } : difficultyRules.oddsTargets[difficulty];
+const middle = ([min, max]: [number, number]) => (min + max) / 2;
 
-type Result = { label: string; tier: number; difficulty: Difficulty; key: string; factor: number; start: number | null; end: number };
-const results: Result[] = [];
-
-for (const job of all) {
-  const target = targetOf(job.difficulty);
+/** The factor at which a source's odds at the tier's start or end meet `target`; a higher factor makes stronger mobs and lower odds. */
+function bisect(job: (typeof all)[number], when: 'start' | 'end', target: number) {
   let lo = job.f0 / 4;
   let hi = job.f0 * 4;
-  // Higher factor, stronger mobs, lower odds: a factor that measures too high is a lower bound.
   for (let step = 0; step < options.steps; step++) {
     const mid = Math.sqrt(lo * hi);
     scale(job, mid);
-    if (sourceOdds(job.source, job.tier, 'end', options.runs) > target) lo = mid;
+    if (sourceOdds(job.source, job.tier, when, options.runs) > target) lo = mid;
     else hi = mid;
   }
-  const factor = Math.round(Math.sqrt(lo * hi) * 100) / 100;
+  return Math.sqrt(lo * hi);
+}
+
+type Result = {
+  label: string;
+  tier: number;
+  difficulty: Difficulty;
+  key: string;
+  factor: number;
+  /** The factors that alone would meet the start's and the end's targets. */
+  forStart: number | null;
+  forEnd: number;
+  start: number | null;
+  end: number;
+};
+const results: Result[] = [];
+
+// One factor per source scales its enemies at both ends of the tier: the one
+// that meets the start's target, kept within the factors that keep the end in
+// its range (the end's middle for a boss). When the start can't be met that
+// way, the end stays in range and the start comes as close as it can.
+for (const job of all) {
+  const ranges = rangesOf(job.difficulty);
+  const forEnd = bisect(job, 'end', middle(ranges.end));
+  const forStart = ranges.start ? bisect(job, 'start', middle(ranges.start)) : null;
+  let chosen = forEnd;
+  if (forStart !== null) {
+    const easiest = bisect(job, 'end', ranges.end[1]);
+    const hardest = bisect(job, 'end', ranges.end[0]);
+    chosen = Math.min(hardest, Math.max(easiest, forStart));
+  }
+  const factor = Math.round(chosen * 100) / 100;
   scale(job, factor);
   const end = sourceOdds(job.source, job.tier, 'end', options.runs);
-  const start = job.difficulty === 'boss' ? null : sourceOdds(job.source, job.tier, 'start', options.runs);
-  results.push({ label: job.label, tier: job.tier, difficulty: job.difficulty, key: job.key, factor, start, end });
+  const start = ranges.start ? sourceOdds(job.source, job.tier, 'start', options.runs) : null;
+  results.push({ label: job.label, tier: job.tier, difficulty: job.difficulty, key: job.key, factor, forStart, forEnd, start, end });
   scale(job, job.f0);
 }
 
@@ -189,7 +212,7 @@ const nearest = (fitted: Map<number, number>, tier: number) =>
 const round2 = (value: number) => Math.round(value * 100) / 100;
 const writeFactors = () => {
   const chainIds = [1, 2, 3, 4, 5].flatMap((tier) => tierChain(tier).filter((d) => (d.chainIndex ?? 6) < 6).map((d) => d.id));
-  const dungeonLines = [...chainIds, 'giantsHall', 'dragonLairBoss'].map((id) => `  ${id}: ${round2(results.find((r) => r.key === id)!.factor)},`);
+  const dungeonLines = [...chainIds, ...BOSSES.map((b) => b.key)].map((id) => `  ${id}: ${round2(results.find((r) => r.key === id)!.factor)},`);
   const patrolLines = (Object.keys(patrolFactors) as PatrolKind[]).map((kind) => {
     const fitted = new Map<number, number>();
     for (const result of results) if (result.key === kind) fitted.set(result.tier, result.factor);
@@ -232,14 +255,30 @@ const pct = (value: number | null) => (value === null ? '—' : `${Math.round(va
 const cell = (value: number | null, range: [number, number]) =>
   value === null ? '—' : `${pct(value)} ${inRange(value, range) ? '✓' : '✗'}`;
 
-console.log('| source | tier | difficulty | factor | start | end |');
-console.log('| --- | --- | --- | --- | --- | --- |');
+// The curve: the start's factor over the end's. Below 1 the start party is too weak for one scale to fit both
+// (the curve within the tier is too steep); above 1 too strong (too flat).
+console.log('| source | tier | difficulty | factor | for start | for end | curve | start | end |');
+console.log('| --- | --- | --- | --- | --- | --- | --- | --- | --- |');
 for (const r of results) {
-  const startRange = r.difficulty === 'boss' ? null : difficultyRules.oddsTargets[r.difficulty as PatrolDifficulty].start;
-  const endRange = r.difficulty === 'boss' ? targets.odds.boss : difficultyRules.oddsTargets[r.difficulty as PatrolDifficulty].end;
+  const ranges = rangesOf(r.difficulty);
+  const curve = r.forStart === null ? '—' : (r.forStart / r.forEnd).toFixed(2);
   console.log(
-    `| ${r.label} | ${r.tier} | ${r.difficulty} | ${r.factor} | ${startRange ? cell(r.start, startRange) : '—'} | ${cell(r.end, endRange)} |`,
+    `| ${r.label} | ${r.tier} | ${r.difficulty} | ${r.factor} | ${r.forStart === null ? '—' : round2(r.forStart)} | ${round2(r.forEnd)} | ${curve} | ${ranges.start ? cell(r.start, ranges.start) : '—'} | ${cell(r.end, ranges.end)} |`,
   );
+}
+
+console.log('\n| tier | difficulty | start | end | curve (start factor / end factor) |');
+console.log('| --- | --- | --- | --- | --- |');
+for (const tier of [1, 2, 3, 4, 5]) {
+  for (const difficulty of [...DIFFICULTIES, 'boss'] as Difficulty[]) {
+    const rows = results.filter((r) => r.tier === tier && r.difficulty === difficulty);
+    if (!rows.length) continue;
+    const mean = (values: number[]) => values.reduce((a, b) => a + b, 0) / values.length;
+    const ranges = rangesOf(difficulty);
+    const start = ranges.start ? mean(rows.map((r) => r.start!)) : null;
+    const curve = ranges.start ? mean(rows.map((r) => r.forStart! / r.forEnd)).toFixed(2) : '—';
+    console.log(`| ${tier} | ${difficulty} | ${ranges.start ? cell(start, ranges.start) : '—'} | ${cell(mean(rows.map((r) => r.end)), ranges.end)} | ${curve} |`);
+  }
 }
 
 writeFactors();
