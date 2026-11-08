@@ -6,10 +6,9 @@ import { useOdds, type OddsJob } from './useOdds';
 
 const odds = (success: number): Odds => ({ success } as Odds);
 
-let shown: number | null | undefined;
+/** Renders the hook's value as text, so the test reads it from the tree. */
 function Probe({ job }: { job: OddsJob | null }) {
-  shown = useOdds(job);
-  return null;
+  return String(useOdds(job));
 }
 
 describe('useOdds', () => {
@@ -22,14 +21,15 @@ describe('useOdds', () => {
     act(() => {
       renderer = create(<Probe job={null} />);
     });
-    expect(shown).toBeNull();
+    const shown = () => renderer.toJSON();
+    expect(shown()).toBe('null');
 
     act(() => renderer.update(<Probe job={{ key: 'party-a', run }} />));
     // The render never waits on a simulation.
-    expect(shown).toBeUndefined();
+    expect(shown()).toBe('undefined');
     expect(run).not.toHaveBeenCalled();
     act(() => jest.runOnlyPendingTimers());
-    expect(shown).toBe(0.5);
+    expect(shown()).toBe('0.5');
 
     // Same key (a re-render with nothing changed): no recompute.
     act(() => renderer.update(<Probe job={{ key: 'party-a', run }} />));
@@ -41,11 +41,11 @@ describe('useOdds', () => {
     act(() => renderer.update(<Probe job={{ key: 'party-b', run: other }} />));
     act(() => jest.runOnlyPendingTimers());
     expect(other).toHaveBeenCalledTimes(1);
-    expect(shown).toBe(0.75);
+    expect(shown()).toBe('0.75');
 
     // Back to the first party: its odds are held, shown at once.
     act(() => renderer.update(<Probe job={{ key: 'party-a', run }} />));
-    expect(shown).toBe(0.5);
+    expect(shown()).toBe('0.5');
     expect(run).toHaveBeenCalledTimes(1);
   });
 });

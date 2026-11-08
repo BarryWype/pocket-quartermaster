@@ -8,7 +8,7 @@ import { useGameStore } from '@/store/gameStore';
 
 import { ExpeditionDialog } from './ExpeditionDialog';
 
-jest.mock('react-native-safe-area-context', () => require('react-native-safe-area-context/jest/mock').default);
+jest.mock('react-native-safe-area-context', () => jest.requireActual('react-native-safe-area-context/jest/mock').default);
 jest.mock('expo-router', () => ({ ...jest.requireActual('expo-router'), router: { push: () => {}, navigate: () => {} } }));
 
 const briefing: Briefing = { threats: [{ id: 'beasts', level: 2 }, { id: 'darkness', level: 1 }], restriction: null, opportunity: null };
