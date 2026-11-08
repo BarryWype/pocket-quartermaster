@@ -11,7 +11,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   warrior: {
     name: 'Warrior',
     emoji: '🛡️',
-    icon: require('../../assets/icons/rpg/helmet-great-helm.png'),
+    icon: require('../../assets/icons/class/warrior.png'),
     rarity: 'common',
     family: 'fighter',
     familyTag: 'bulwark',
@@ -26,7 +26,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   ranger: {
     name: 'Ranger',
     emoji: '🏹',
-    icon: require('../../assets/icons/rpg/helmet-green-hood.png'),
+    icon: require('../../assets/icons/class/ranger.png'),
     rarity: 'common',
     family: 'answerer',
     familyTag: 'volley',
@@ -45,7 +45,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   fireMage: {
     name: 'Fire mage',
     emoji: '🔥',
-    icon: require('../../assets/icons/rpg/helmet-red-wizard-hat.png'),
+    icon: require('../../assets/icons/class/fire-mage.png'),
     rarity: 'common',
     family: 'answerer',
     familyTag: 'spellweave',
@@ -62,7 +62,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   frostMage: {
     name: 'Frost mage',
     emoji: '❄️',
-    icon: require('../../assets/icons/rpg/helmet-crystal-armet.png'),
+    icon: require('../../assets/icons/class/frost-mage.png'),
     rarity: 'common',
     family: 'answerer',
     familyTag: 'warding',
@@ -79,7 +79,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   thief: {
     name: 'Thief',
     emoji: '🗝️',
-    icon: require('../../assets/icons/rpg/helmet-dark-leather.png'),
+    icon: require('../../assets/icons/class/thief.png'),
     rarity: 'uncommon',
     family: 'answerer',
     familyTag: 'cunning',
@@ -97,7 +97,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   barbarian: {
     name: 'Barbarian',
     emoji: '🪓',
-    icon: require('../../assets/icons/rpg/helmet-horned-viking.png'),
+    icon: require('../../assets/icons/class/barbarian.png'),
     rarity: 'uncommon',
     family: 'fighter',
     familyTag: 'bloodrage',
@@ -112,7 +112,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   cleric: {
     name: 'Cleric',
     emoji: '✝️',
-    icon: require('../../assets/icons/relics/book-holy-blue.png'),
+    icon: require('../../assets/icons/class/cleric.png'),
     rarity: 'uncommon',
     family: 'answerer',
     familyTag: 'faith',
@@ -127,7 +127,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   paladin: {
     name: 'Paladin',
     emoji: '⚜️',
-    icon: require('../../assets/icons/rpg/shield-knight-crest.png'),
+    icon: require('../../assets/icons/class/paladin.png'),
     rarity: 'uncommon',
     family: 'fighter',
     familyTag: 'bulwark',
@@ -142,7 +142,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   druid: {
     name: 'Druid',
     emoji: '🌿',
-    icon: require('../../assets/icons/rpg/herb-sprout.png'),
+    icon: require('../../assets/icons/class/druid.png'),
     rarity: 'uncommon',
     family: 'answerer',
     familyTag: 'wild',
@@ -158,7 +158,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   troubadour: {
     name: 'Troubadour',
     emoji: '🎻',
-    icon: require('../../assets/icons/relics/drum-pale.png'),
+    icon: require('../../assets/icons/class/troubadour.png'),
     rarity: 'uncommon',
     family: 'answerer',
     familyTag: 'rally',
@@ -188,7 +188,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   scholar: {
     name: 'Scholar',
     emoji: '📖',
-    icon: require('../../assets/icons/magic/book-gold.png'),
+    icon: require('../../assets/icons/class/scholar.png'),
     rarity: 'common',
     family: 'answerer',
     familyTag: 'watch',
@@ -203,7 +203,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   exorcist: {
     name: 'Exorcist',
     emoji: '📿',
-    icon: require('../../assets/icons/relics/cross-silver.png'),
+    icon: require('../../assets/icons/class/exorcist.png'),
     rarity: 'uncommon',
     family: 'answerer',
     familyTag: 'faith',
@@ -218,7 +218,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   duelist: {
     name: 'Duelist',
     emoji: '🤺',
-    icon: require('../../assets/icons/rpg/sword-gilded-rapier.png'),
+    icon: require('../../assets/icons/class/duelist.png'),
     rarity: 'common',
     family: 'fighter',
     familyTag: 'shadow',
@@ -249,7 +249,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   diplomat: {
     name: 'Diplomat',
     emoji: '🕊️',
-    icon: require('../../assets/icons/magic/scroll-sealed-blue.png'),
+    icon: require('../../assets/icons/class/diplomat.png'),
     rarity: 'uncommon',
     family: 'converter',
     familyTag: 'rally',
@@ -265,7 +265,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   necromancer: {
     name: 'Necromancer',
     emoji: '💀',
-    icon: require('../../assets/icons/relics/skull-ram.png'),
+    icon: require('../../assets/icons/class/necromancer.png'),
     rarity: 'rare',
     family: 'converter',
     familyTag: 'pack',
@@ -283,7 +283,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   beastmaster: {
     name: 'Beastmaster',
     emoji: '🐾',
-    icon: require('../../assets/icons/relics/pelt-wolf.png'),
+    icon: require('../../assets/icons/class/beast-master.png'),
     rarity: 'rare',
     family: 'converter',
     familyTag: 'wild',
@@ -301,7 +301,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   engineer: {
     name: 'Engineer',
     emoji: '⚙️',
-    icon: require('../../assets/icons/rpg/crossbow-mechanical.png'),
+    icon: require('../../assets/icons/class/engineer.png'),
     rarity: 'uncommon',
     family: 'ruleBender',
     familyTag: 'pack',
@@ -316,7 +316,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   alchemist: {
     name: 'Alchemist',
     emoji: '⚗️',
-    icon: require('../../assets/icons/alchemy/potion-cone-emerald.png'),
+    icon: require('../../assets/icons/class/alchemist.png'),
     rarity: 'uncommon',
     family: 'ruleBender',
     familyTag: 'venom',
@@ -331,7 +331,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   porter: {
     name: 'Porter',
     emoji: '🧳',
-    icon: require('../../assets/icons/rpg/bag-small-backpack.png'),
+    icon: require('../../assets/icons/class/porter.png'),
     rarity: 'uncommon',
     family: 'ruleBender',
     familyTag: 'bulwark',
@@ -347,7 +347,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   scout: {
     name: 'Scout',
     emoji: '🔭',
-    icon: require('../../assets/icons/relics/horn-gold-tipped.png'),
+    icon: require('../../assets/icons/class/scout.png'),
     rarity: 'uncommon',
     family: 'ruleBender',
     familyTag: 'watch',
@@ -362,7 +362,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   curseBreaker: {
     name: 'Curse-breaker',
     emoji: '🧿',
-    icon: require('../../assets/icons/relics/ankh-silver.png'),
+    icon: require('../../assets/icons/class/curse-breaker.png'),
     rarity: 'rare',
     family: 'ruleBender',
     familyTag: 'warding',
@@ -377,7 +377,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   cook: {
     name: 'Cook',
     emoji: '🍳',
-    icon: require('../../assets/icons/rpg/mace-iron-pan.png'),
+    icon: require('../../assets/icons/class/cook.png'),
     rarity: 'uncommon',
     family: 'ruleBender',
     familyTag: 'rally',
@@ -397,7 +397,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   monk: {
     name: 'Monk',
     emoji: '🥋',
-    icon: require('../../assets/icons/rpg/gloves-red-cloth.png'),
+    icon: require('../../assets/icons/class/monk.png'),
     rarity: 'uncommon',
     family: 'ruleBender',
     familyTag: 'breaker',
@@ -412,7 +412,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   gambler: {
     name: 'Gambler',
     emoji: '🃏',
-    icon: require('../../assets/icons/tavern/dice.png'),
+    icon: require('../../assets/icons/class/gambler.png'),
     rarity: 'uncommon',
     family: 'ruleBender',
     familyTag: 'plunder',

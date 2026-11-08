@@ -17,9 +17,9 @@ Smuggler,Converter,Uncommon,0,0,0,0,0,1,1,1,Power,0,1,0,0,1,0,0,0,0,0,0,0,0,0,Fi
 Diplomat,Converter,Uncommon,1,0,0,0,1,1,0,0,Magic,0,0,0,0,1,0,0,0,0,0,0,0,0,0,,Answers Locals at any level (as Presence 5 for Locals only); Bounty gives more (better Merchant once it exists),0,1,2,1,4,26,0,3,1,3,5,5,5,0.8,3
 Necromancer,Converter,Rare: secret tavern,1,0,1,0,0,0,0,1,,0,0,1,0,0,0,0,0,0,0,0,0,0,0,,Undead become allies for the run,1,1,3,0,3,26,0,6,0,1,0,5,10,1,Secret (travellers until then)
 Beastmaster,Converter,Rare: secret tavern,1,1,0,0,0,1,0,0,,0,0,0,0,0,0,0,1,0,0,0,0,0,0,,"Beasts at level 1: the first beast fight's enemies fight for the party in the next fight; at levels 2-3, counts as 2 heroes with Calm",2,2,2,1,1,28,5,0,1,1,5,5,5,2,Secret (travellers until then)
-Engineer,Rule-bender,Uncommon,0,1,0,1,0,0,0,1,,1,0,1,0,0,0,0,0,0,0,0,0,0,0,,Their kit gives +3 instead of +2,3,1,3,0,1,26,5,0,3,1,0,5,10,2,4
+Engineer,Rule-bender,Uncommon,0,1,0,1,0,0,0,1,,1,0,1,0,0,0,0,0,0,0,0,0,0,0,,+1 Cunning against Traps,3,1,3,0,1,26,5,0,3,1,0,5,10,2,4
 Alchemist,Rule-bender,Uncommon,1,0,1,0,0,0,1,0,,0,0,1,0,0,0,0,0,0,0,0,0,0,0,,"A second slot, for healing consumables only",0,2,3,1,2,26,0,5,0,1,0,7,5,1,4
-Porter,Rule-bender,Uncommon,1,0,0,1,0,1,0,0,Power,1,0,0,0,0,0,0,0,0,0,0,0,0,0,,Carries a kit for another hero; the carried kit takes the Porter's own consumable slot,3,2,1,1,1,30,3,0,3,1,5,5,5,2,3
+Porter,Rule-bender,Uncommon,1,0,0,1,0,1,0,0,Power,1,0,0,0,0,0,0,0,0,0,0,0,0,0,,Needs one fewer supply point,3,2,1,1,1,30,3,0,3,1,5,5,5,2,3
 Scout,Rule-bender,Uncommon,0,1,0,0,0,1,1,0,,0,1,0,0,0,0,1,0,0,0,0,0,0,0,Same primary stats as Ranger,Lowers one Extreme threat to Strong,1,3,2,0,2,22,5,0,1,1,5,7,5,1,3
 Curse-breaker,Rule-bender,Rare: high tiers,0,0,1,0,1,1,0,0,,0,0,0,1,0,0,0,0,0,0,0,0,0,0,Faith 4,Cancels the day's restriction,1,1,2,4,0,22,0,5,0,3,5,5,5,1,Secret (travellers until then)
 Cook,Rule-bender,Uncommon,1,0,0,0,1,0,1,0,Power,0,0,0,0,1,0,0,0,0,0,0,0,0,0,,Meals count double; the Hunger threat penalty (extra supply) is halved; cancels Spoiled stores; light heal between fights,1,1,1,2,3,28,3,0,1,3,0,7,5,1,2
