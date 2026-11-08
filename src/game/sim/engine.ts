@@ -472,6 +472,7 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
       valuables: { ...save.valuables },
       topLevel: [...save.heroes.map((h) => h.level)].sort((a, b) => b - a).slice(0, 3).reduce((a, b, _, all) => a + b / all.length, 0),
       affixes: wornAffixes(save),
+      helmets: save.heroes.filter((h) => h.equipment.helmet).length / save.heroes.length,
     });
     afterDay?.(sim.day, sim.save);
   }

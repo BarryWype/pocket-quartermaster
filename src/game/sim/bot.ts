@@ -14,8 +14,9 @@ import { traitById } from '@/content/traits';
 import type { Rarity } from '@/content/gear';
 
 import { canCraft, craft, craftableCount, craftMany, forgedItem, isKnown } from '../crafting/crafting';
-import { briefingFor, type Rotation } from '../dungeons/rotation';
+import { type Rotation } from '../dungeons/rotation';
 import {
+  briefingOf,
   firstWinAvailable,
   highestUnlockedTier,
   isDungeonAvailable,
@@ -55,7 +56,7 @@ import { affinityOf, equip, equipPreview, hasPotionSlot, heroDamageStat, heroSta
 import { briefingCoverage } from '../threats/coverage';
 import { heroAnswers, type AnswersMember } from '../threats/answers';
 import { scoreThreat } from '../threats/score';
-import type { ActiveExpedition, ArmourType, Briefing, DungeonDef, GearDef, GearInstance, HeroClassId, HeroState, OffhandType, RecipeDef, Stats, WeaponType } from '../types';
+import type { ActiveExpedition, ArmourType, HelmetType, Briefing, DungeonDef, GearDef, GearInstance, HeroClassId, HeroState, OffhandType, RecipeDef, Stats, WeaponType } from '../types';
 import { expectedLevels, type Profile, type SimConfig } from './config';
 import { playerMetersPerMinute } from './gathererPace';
 import { partRecipeFor } from './rules/inventory';
@@ -70,6 +71,9 @@ import { complete, questEvent } from '../quests/progress';
 import { claimQuest, reachMark } from '../quests/rewards';
 import { needsPlace } from '../quests/targets';
 import type { Quest } from '../quests/types';
+
+/** The briefing a launch today would get: the rotation's, without threats during the safe start. */
+const todaysBriefing = (sim: Sim, dungeon: DungeonDef) => briefingOf(sim.save, dungeon, sim.rotation, sim.now);
 
 export const RARITY_ORDER: Rarity[] = ['common', 'uncommon', 'rare', 'legendary'];
 
@@ -151,6 +155,8 @@ export type DayRow = {
   topLevel: number;
   /** Average number of affixes on the heroes' worn gear. */
   affixes: number;
+  /** Share of the heroes wearing a helmet. */
+  helmets: number;
 };
 
 export type RunLog = {
@@ -394,10 +400,10 @@ export const highestTier = highestUnlockedTier;
 export const homeHeroes = (save: SaveData) => save.heroes.filter((h) => !isOnExpedition(save, h.id));
 const gearOf = (save: SaveData, uid: string | null) => save.gear.find((g) => g.uid === uid);
 
-/** How much a Common piece with average dice adds to a hero: their damage stat for weapons and off-hands, armour, resistance and a share of HP otherwise. */
+/** How much a Common piece with average dice adds to a hero: their damage stat for weapons and off-hands, armour, resistance and a share of HP for armour and helmets. */
 export function gearScore(hero: HeroState, item: GearDef) {
   const stats = gearStats({ itemId: item.id, rarity: 'common', roll: 10.5 });
-  if (item.slot === 'armor') return (stats.armour ?? 0) + (stats.resistance ?? 0) + (stats.hp ?? 0) / 8;
+  if (item.slot === 'armor' || item.slot === 'helmet') return (stats.armour ?? 0) + (stats.resistance ?? 0) + (stats.hp ?? 0) / 8;
   const damage = heroClasses[hero.classId].damageStat === 'magic' ? (stats.magic ?? 0) : (stats.power ?? 0);
   const affinity = item.gearType ? affinityRules[affinityOf(hero.classId, item.gearType)] : 1;
   return (damage + (stats.armour ?? 0) + (stats.resistance ?? 0)) * affinity;
@@ -409,14 +415,14 @@ function statScore(save: SaveData, hero: HeroState, stats: Stats = heroStats(sav
 }
 
 /** How much a hero's worn piece is worth on their real stats, affinity and casting penalty included. */
-function wornScore(save: SaveData, hero: HeroState, slot: 'weapon' | 'armor' | 'offhand') {
+function wornScore(save: SaveData, hero: HeroState, slot: 'weapon' | 'armor' | 'helmet' | 'offhand') {
   if (!hero.equipment[slot]) return 0;
   const bare = unequip(save, hero.id, slot);
   return statScore(save, hero) - statScore(bare, bare.heroes.find((h) => h.id === hero.id)!);
 }
 
 /** How much equipping a piece would change a hero's real stats; 0 when it cannot go in. */
-function equipGain(save: SaveData, hero: HeroState, slot: 'weapon' | 'armor' | 'offhand', uid: string) {
+function equipGain(save: SaveData, hero: HeroState, slot: 'weapon' | 'armor' | 'helmet' | 'offhand', uid: string) {
   const preview = equipPreview(save, hero.id, slot, uid);
   return preview ? statScore(save, hero, preview.after) - statScore(save, hero, preview.before) : 0;
 }
@@ -434,6 +440,10 @@ const armourTypeFor = (classId: HeroClassId): ArmourType | null => {
   const favoured = (['plate', 'mail', 'leather', 'robes'] as ArmourType[]).find((type) => classAffinities[classId][type] === 'favoured');
   return favoured ?? null;
 };
+
+/** The class's helmet of choice: the first favoured helmet type. */
+const helmetTypeFor = (classId: HeroClassId): HelmetType | null =>
+  (['greatHelm', 'sallet', 'hood', 'plagueMask', 'runeCirclet'] as HelmetType[]).find((type) => classAffinities[classId][type] === 'favoured') ?? null;
 
 /** The off-hand that fits the hero's weapon: ammunition for a bow or crossbow, focus for a Magic weapon, shield for a one-handed Power weapon. */
 function offhandTypeFor(save: SaveData, hero: HeroState): OffhandType | null {
@@ -464,7 +474,7 @@ function answersThreat(sim: Sim, classId: HeroClassId): boolean {
   const home = homeHeroes(sim.save).map((hero) => answersMemberOf(prepareParty(sim.save, [hero.id])[0]));
   const offer = offerMember(classId);
   for (const dungeon of open) {
-    const briefing = briefingFor(sim.rotation, dungeon);
+    const briefing = todaysBriefing(sim, dungeon);
     for (const threat of briefing.threats) {
       const now = scoreThreat(threat, home.map((m) => heroAnswers(m)));
       if (now.state === 'met') continue;
@@ -490,8 +500,9 @@ function recordMissing(sim: Sim, recipe: RecipeDef) {
 const forgeRecipes = recipes.filter((r) => forgedItem(r));
 
 /** The best-tier piece a hero could get for a slot from the known recipes, the class's favoured type first. */
-function bestRecipe(save: SaveData, hero: HeroState, slot: 'weapon' | 'armor' | 'offhand') {
-  const want = slot === 'weapon' ? weaponTypeFor(hero.classId) : slot === 'armor' ? armourTypeFor(hero.classId) : offhandTypeFor(save, hero);
+function bestRecipe(save: SaveData, hero: HeroState, slot: 'weapon' | 'armor' | 'helmet' | 'offhand') {
+  const want =
+    slot === 'weapon' ? weaponTypeFor(hero.classId) : slot === 'armor' ? armourTypeFor(hero.classId) : slot === 'helmet' ? helmetTypeFor(hero.classId) : offhandTypeFor(save, hero);
   const rank = (item: GearDef) => [item.tier, item.gearType === want ? 1 : 0, gearScore(hero, item)] as const;
   let best: { recipe: RecipeDef; item: GearDef } | null = null;
   for (const recipe of forgeRecipes) {
@@ -540,13 +551,13 @@ function distributeTrinkets(sim: Sim) {
 /** Gives every spare piece to the home hero it helps most, then salvages what nobody wants. */
 function distribute(sim: Sim) {
   distributeTrinkets(sim);
-  const slots = ['weapon', 'armor', 'offhand', 'trinket'] as const;
+  const slots = ['weapon', 'armor', 'helmet', 'offhand', 'trinket'] as const;
   for (;;) {
     const worn = new Set(sim.save.heroes.flatMap((h) => slots.map((slot) => h.equipment[slot])));
-    let best: { hero: HeroState; uid: string; slot: 'weapon' | 'armor' | 'offhand'; gain: number } | null = null;
+    let best: { hero: HeroState; uid: string; slot: 'weapon' | 'armor' | 'helmet' | 'offhand'; gain: number } | null = null;
     for (const gear of sim.save.gear.filter((g) => !worn.has(g.uid))) {
       const item = itemById[gear.itemId] as GearDef;
-      if (item.slot !== 'weapon' && item.slot !== 'armor' && item.slot !== 'offhand') continue;
+      if (item.slot !== 'weapon' && item.slot !== 'armor' && item.slot !== 'helmet' && item.slot !== 'offhand') continue;
       for (const hero of homeHeroes(sim.save)) {
         const gain = equipGain(sim.save, hero, item.slot, gear.uid);
         if (gain > 0 && (!best || gain > best.gain)) best = { hero, uid: gear.uid, slot: item.slot, gain };
@@ -602,7 +613,7 @@ export function nextForgeRecipe(save: SaveData): RecipeDef | null {
   if (pickaxe && save.knownRecipes.includes(pickaxe.id)) return pickaxe;
   const upgrades = homeHeroes(save)
     .flatMap((hero) => {
-      const slots = (['weapon', 'armor', 'offhand'] as const).filter((slot) => slot !== 'offhand' || offhandTypeFor(save, hero));
+      const slots = (['weapon', 'armor', 'helmet', 'offhand'] as const).filter((slot) => slot !== 'offhand' || offhandTypeFor(save, hero));
       return slots.map((slot) => {
         const best = bestRecipe(save, hero, slot);
         const current = gearOf(save, hero.equipment[slot]);
@@ -640,7 +651,7 @@ function forgeForThreats(sim: Sim) {
   const top = highestTier(sim.save);
   const needed = new Map<FamilyId, number>();
   for (const dungeon of dungeons.filter((d) => d.tier === top && !d.overnight && isDungeonAvailable(sim.save, d, sim.rotation))) {
-    for (const threat of briefingFor(sim.rotation, dungeon).threats) {
+    for (const threat of todaysBriefing(sim, dungeon).threats) {
       const family = familyOfThreat(threat.id);
       needed.set(family, Math.max(needed.get(family) ?? 0, threat.level));
     }
@@ -690,7 +701,7 @@ export function forge(sim: Sim) {
   for (let i = 0; i < 30; i++) {
     const upgrades = homeHeroes(sim.save)
       .flatMap((hero) => {
-        const slots = (['weapon', 'armor', 'offhand'] as const).filter((slot) => slot !== 'offhand' || offhandTypeFor(sim.save, hero));
+        const slots = (['weapon', 'armor', 'helmet', 'offhand'] as const).filter((slot) => slot !== 'offhand' || offhandTypeFor(sim.save, hero));
         return slots.map((slot) => {
           const best = bestRecipe(sim.save, hero, slot);
           const current = gearOf(sim.save, hero.equipment[slot]);
@@ -714,7 +725,7 @@ export function forge(sim: Sim) {
   for (let i = 0; i < sim.config.reforgesPerSession; i++) {
     const candidates = homeHeroes(sim.save)
       .flatMap((hero) =>
-        (['weapon', 'armor', 'offhand'] as const).map((slot) => {
+        (['weapon', 'armor', 'helmet', 'offhand'] as const).map((slot) => {
           const gear = gearOf(sim.save, hero.equipment[slot]);
           const best = bestRecipe(sim.save, hero, slot);
           if (!gear || !best || gear.itemId !== best.item.id) return null;
@@ -771,7 +782,7 @@ const brewablePotion = (save: SaveData) => [...shopRules.potions.ladder].reverse
 
 /** The meal for a run's goal (see BOT_RULES). */
 function mealFor(sim: Sim, dungeon: DungeonDef, heroIds: string[], o: Odds): string | null {
-  const briefing = briefingFor(sim.rotation, dungeon);
+  const briefing = todaysBriefing(sim, dungeon);
   const plan = launchPlan(sim.save, dungeon, heroIds, {}, briefing);
   const back = (minutes: number) => sim.collectionAt(sim.now + minutes * 60_000);
   const level = heroIds.reduce((s, id) => s + sim.save.heroes.find((h) => h.id === id)!.level, 0) / heroIds.length;
@@ -940,7 +951,7 @@ const heroKey = (save: SaveData, hero: HeroState, now: number) => {
   };
   // HP in 5% steps, so healing heroes don't miss the cache every minute.
   const hp = Math.round((currentHp(save, hero, now) / maxHp(save, hero)) * 20);
-  return `${hero.id}:${hero.level}:${gear(hero.equipment.weapon)}:${gear(hero.equipment.armor)}:${gear(hero.equipment.offhand)}:${hero.equipment.consumable}:${hp}`;
+  return `${hero.id}:${hero.level}:${gear(hero.equipment.weapon)}:${gear(hero.equipment.armor)}:${gear(hero.equipment.helmet)}:${gear(hero.equipment.offhand)}:${hero.equipment.consumable}:${hp}`;
 };
 
 /** Odds with fewer runs than the app, with current HP, remembered for the same heroes, gear, HP, supply and dungeon. */
@@ -954,7 +965,7 @@ export function odds(
   briefing: Briefing | null = null,
 ): Odds {
   const heroes = save.heroes.filter((h) => heroIds.includes(h.id));
-  const active = briefing ?? briefingFor(sim.rotation, dungeon);
+  const active = briefing ?? todaysBriefing(sim, dungeon);
   const { hunger } = launchPlan(save, dungeon, heroIds, {}, active);
   const key = `${runs}|${dungeon.id}|${hunger}|${active.threats.map((t) => `${t.id}${t.level}`).join(',')}|${fullHp}|${heroes.map((h) => heroKey(save, h, sim.now)).sort().join('|')}`;
   let result = sim.oddsCache.get(key);
@@ -1009,7 +1020,7 @@ export function withLoadout(save: SaveData, heroIds: string[], dungeon: DungeonD
  * at launch. `dress` false keeps everyone's gear as worn.
  */
 export function bestParty(sim: Sim, dungeon: DungeonDef, candidates: string[], briefingOf: Briefing | null = null, dress = true) {
-  const briefing = briefingOf ?? briefingFor(sim.rotation, dungeon);
+  const briefing = briefingOf ?? todaysBriefing(sim, dungeon);
   const empty = emptySlots(sim.save, candidates);
   const quick = (dressed: SaveData, ids: string[]) => {
     const o = odds(sim, withLoadout(dressed, ids, dungeon, briefing), ids, dungeon, sim.config.odds.searchRuns, false, briefing);
@@ -1108,7 +1119,7 @@ function applyElixirs(sim: Sim, dungeon: DungeonDef, heroIds: string[], loadout:
 export function launch(sim: Sim, dungeon: DungeonDef, party: { heroIds: string[]; swaps: GearSwap[] }, o: Odds) {
   const { heroIds } = party;
   recallWorking(sim, heroIds);
-  const briefing = briefingFor(sim.rotation, dungeon);
+  const briefing = todaysBriefing(sim, dungeon);
   sim.save = withLoadout(applySwaps(emptySlots(sim.save, homeHeroes(sim.save).map((h) => h.id)), party.swaps), heroIds, dungeon, briefing);
   const loadout = { mealId: mealFor(sim, dungeon, heroIds, o) };
   topUpSupply(sim, dungeon, heroIds, loadout, briefing);

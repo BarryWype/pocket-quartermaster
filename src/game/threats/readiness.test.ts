@@ -30,6 +30,11 @@ describe('briefingReadiness', () => {
     expect(briefingReadiness(saveWith('mail1', 'spear1'), briefing(['holy', 1], ['beasts', 1]))).toEqual({ kind: 'needsGear' });
   });
 
+  it('counts a spare helmet like any other piece', () => {
+    expect(briefingReadiness(saveWith('hood1'), briefing(['traps', 1]))).toEqual({ kind: 'needsGear' });
+    expect(briefingReadiness(saveWith('lute1', 'hood1'), briefing(['traps', 2]))).toEqual({ kind: 'needsGear' });
+  });
+
   it('names the families nobody can bring', () => {
     expect(briefingReadiness(saveWith('spear1'), briefing(['holy', 1], ['beasts', 1]))).toEqual({ kind: 'missing', families: ['faith'] });
   });

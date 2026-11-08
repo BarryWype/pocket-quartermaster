@@ -16,12 +16,12 @@ import { familyLevel, heroFamilyTagSources, partyFamilies } from './families';
 // bring the tags the briefing's threats need, then pushes one playstyle family
 // as high as it can. Pure: each rule takes a save and returns a save.
 
-const SLOTS = ['weapon', 'armor', 'offhand'] as const;
+const SLOTS = ['weapon', 'armor', 'helmet', 'offhand'] as const;
 type Slot = (typeof SLOTS)[number];
 
 const defOf = (gear: GearInstance) => itemById[gear.itemId] as GearDef;
 
-/** Spare pieces: weapons, armour and off-hands nobody wears (work tools left out). */
+/** Spare pieces: weapons, armour, helmets and off-hands nobody wears (work tools left out). */
 export function sparePieces(save: SaveData): GearInstance[] {
   const worn = new Set(save.heroes.flatMap((h) => SLOTS.map((slot) => h.equipment[slot])));
   return save.gear.filter((g) => {
@@ -32,7 +32,7 @@ export function sparePieces(save: SaveData): GearInstance[] {
 
 /**
  * Whether a hero would wear this spare piece for its family tag: never an unfit
- * weapon or armour type, a weapon or off-hand only when it rolls with the
+ * weapon, armour or helmet type, a weapon or off-hand only when it rolls with the
  * hero's damage stat, and never more than `tierDrop` tiers below the piece it
  * replaces.
  */

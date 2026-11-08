@@ -37,6 +37,13 @@ describe('suggestParty', () => {
     expect(applySwaps(save, suggested.swaps).heroes).toEqual(suggested.save.heroes);
   });
 
+  it('puts on a spare helmet when it carries a needed family', () => {
+    const save = saveWith('plagueMask1');
+    const suggested = suggestParty(save, briefing(['poison', 1]), 1);
+    expect(covered(suggested.save, suggested.heroIds, briefing(['poison', 1]))).toBe(true);
+    expect(suggested.swaps).toEqual([{ heroId: suggested.heroIds[0], slot: 'helmet', gearUid: 'g0' }]);
+  });
+
   it('keeps the gear as worn when told not to dress', () => {
     const save = saveWith('spear1', 'leather1');
     const suggested = suggestParty(save, briefing(['beasts', 2]), 3, { dress: false });

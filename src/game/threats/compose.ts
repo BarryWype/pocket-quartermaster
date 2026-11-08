@@ -117,7 +117,7 @@ const maxTagsCache = new Map<FamilyId, number>();
 
 /**
  * The most tags of this family one hero can wear: their class's tag plus the
- * best weapon (its first or second tag), armour and off-hand of the family
+ * best weapon (its first or second tag), armour, helmet and off-hand of the family
  * their class can wear (a two-handed weapon counts 2 and takes the off-hand's
  * place).
  */
@@ -134,10 +134,10 @@ export function maxTagsPerHero(family: FamilyId): number {
   let max = 0;
   for (const classId of Object.keys(heroClasses) as HeroClassId[]) {
     const def = heroClasses[classId];
-    // Off-hands fit every class; weapons and armour by the class's affinities.
+    // Off-hands fit every class; weapons, armour and helmets by the class's affinities.
     const wearable = (type: GearType) =>
       gearProfiles[type].slot === 'offhand' || (classAffinities[classId] as Partial<Record<GearType, Affinity>>)[type] !== 'unfit';
-    const ofFamily = (slot: 'weapon' | 'armor' | 'offhand') =>
+    const ofFamily = (slot: 'weapon' | 'armor' | 'helmet' | 'offhand') =>
       (Object.keys(gearProfiles) as GearType[]).filter(
         (type) =>
           gearProfiles[type].slot === slot &&
@@ -147,7 +147,7 @@ export function maxTagsPerHero(family: FamilyId): number {
     const classTag = def.familyTag === family ? 1 : 0;
     // A two-handed weapon counts 2 but leaves no hand for an off-hand.
     const hands = Math.max(best(ofFamily('weapon'), true), best(ofFamily('weapon'), false) + best(ofFamily('offhand'), false));
-    max = Math.max(max, classTag + hands + best(ofFamily('armor'), false));
+    max = Math.max(max, classTag + hands + best(ofFamily('armor'), false) + best(ofFamily('helmet'), false));
   }
   maxTagsCache.set(family, max);
   return max;

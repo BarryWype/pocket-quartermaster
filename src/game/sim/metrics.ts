@@ -72,8 +72,8 @@ export type TierSummary = {
   gatherer: { materials: Record<string, { walked: Stat; fromJob: Stat; share: Stat }>; nodes: Stat; wounds: Stat };
   /**
    * Gear over the tier: looted pieces by rarity (trinkets included, relics
-   * apart) with their per-day rates, affixes per hero worn at the tier's end,
-   * and the gear actions — rerolls (gold and materials), stones and
+   * apart) with their per-day rates, affixes per hero and the share of heroes
+   * wearing a helmet at the tier's end, and the gear actions — rerolls (gold and materials), stones and
    * ingredient forges.
    */
   gear: {
@@ -83,6 +83,7 @@ export type TierSummary = {
     rarePerDay: Stat;
     daysPerRare: Stat;
     affixes: Stat;
+    helmets: Stat;
     rerolls: Stat;
     rerollGold: Stat;
     /** Material → median spent on rerolls over the tier (positive amounts). */
@@ -478,6 +479,10 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
     affixes: stat(logs.map((log) => {
       const day = log.milestones[`boss:${tier}`];
       return day === undefined ? null : (log.daily[day - 1]?.affixes ?? null);
+    })),
+    helmets: stat(logs.map((log) => {
+      const day = log.milestones[`boss:${tier}`];
+      return day === undefined ? null : (log.daily[day - 1]?.helmets ?? null);
     })),
     rerolls: stat(logs.map((log, i) => (windows[i] ? log.rerolls.filter((row) => within(row.day, windows[i])).length : null))),
     rerollGold: stat(logs.map((log, i) => (windows[i] ? sum(log.rerolls.filter((row) => within(row.day, windows[i])).map((row) => row.gold)) : null))),

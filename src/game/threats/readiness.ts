@@ -24,7 +24,7 @@ export type Readiness =
   /** The families nobody can bring: each threat's that no party reaches even alone, or all of them when only together they fall short. */
   | { kind: 'missing'; families: FamilyId[] };
 
-const SLOTS = ['weapon', 'armor', 'offhand'] as const;
+const SLOTS = ['weapon', 'armor', 'helmet', 'offhand'] as const;
 type Slot = (typeof SLOTS)[number];
 
 type Piece = { uid: string; slot: Slot; twoHanded: boolean; tags: { family: FamilyId; count: number }[] };
@@ -36,7 +36,7 @@ type FreeHero = {
   /** The class's tag, and the worn piece per slot. */
   classFamily: FamilyId;
   worn: Record<Slot, Piece | null>;
-  /** Spare pieces per slot the hero can use (no unfit weapon or armour). */
+  /** Spare pieces per slot the hero can use (no unfit weapon, armour or helmet). */
   spares: Record<Slot, Piece[]>;
 };
 
@@ -112,15 +112,17 @@ function gearOptions(free: FreeHero, threats: ActiveThreat[]): Option[] {
   const options: Option[] = [];
   for (const weapon of choices('weapon')) {
     for (const armour of choices('armor')) {
-      // A two-handed weapon leaves the off-hand empty.
-      const offhands = weapon.piece?.twoHanded ? [{ piece: null, spare: false }] : choices('offhand');
-      for (const offhand of offhands) {
-        const picked = [weapon, armour, offhand];
-        const values = needed.map((family, i) => {
-          const gear = picked.reduce((sum, c) => sum + (c.piece?.tags.filter((t) => t.family === family).reduce((n, t) => n + t.count, 0) ?? 0), 0);
-          return (free.classFamily === family ? 1 : 0) + gear + bonuses[i];
-        });
-        options.push({ values, uses: picked.filter((c) => c.spare).map((c) => c.piece!.uid) });
+      for (const helmet of choices('helmet')) {
+        // A two-handed weapon leaves the off-hand empty.
+        const offhands = weapon.piece?.twoHanded ? [{ piece: null, spare: false }] : choices('offhand');
+        for (const offhand of offhands) {
+          const picked = [weapon, armour, helmet, offhand];
+          const values = needed.map((family, i) => {
+            const gear = picked.reduce((sum, c) => sum + (c.piece?.tags.filter((t) => t.family === family).reduce((n, t) => n + t.count, 0) ?? 0), 0);
+            return (free.classFamily === family ? 1 : 0) + gear + bonuses[i];
+          });
+          options.push({ values, uses: picked.filter((c) => c.spare).map((c) => c.piece!.uid) });
+        }
       }
     }
   }

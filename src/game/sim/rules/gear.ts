@@ -12,7 +12,7 @@ import type { SaveData } from '../../save';
 import type { Tag } from '../../types';
 import { act, homeHeroes, type Sim } from '../bot';
 
-const SLOTS = ['weapon', 'armor', 'offhand'] as const;
+const SLOTS = ['weapon', 'armor', 'helmet', 'offhand'] as const;
 
 /**
  * What the dungeons the bot is about to run call for: the tags of their
@@ -56,13 +56,13 @@ export function planGear(save: SaveData, rotation: Rotation): GearPlan {
 }
 
 /**
- * Whether an affix helps against the planned dungeons: bonus damage dealt to
- * or taken from their enemies.
+ * Whether an affix helps against the planned dungeons: bonus damage or crits
+ * dealt to, or damage taken from, their enemies.
  */
 export function affixFits(plan: GearPlan, affixId: string): boolean {
   const effect = affixById[affixId]?.effect;
   if (!effect) return false;
-  if (effect.kind === 'damageVs' || effect.kind === 'damageFrom') return effect.tags.some((tag) => plan.tags.includes(tag));
+  if (effect.kind === 'damageVs' || effect.kind === 'damageFrom' || effect.kind === 'critVs') return effect.tags.some((tag) => plan.tags.includes(tag));
   return false;
 }
 

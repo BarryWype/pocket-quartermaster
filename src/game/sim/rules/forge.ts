@@ -12,8 +12,8 @@ import type { GearDef, HeroState, OffhandType } from '../../types';
 import { RARITY_ORDER, act, homeHeroes, mark, type CraftRow, type Sim } from '../bot';
 import { affixFits, planGear } from './gear';
 
-type Slot = 'weapon' | 'armor' | 'offhand';
-const SLOTS: Slot[] = ['weapon', 'armor', 'offhand'];
+type Slot = 'weapon' | 'armor' | 'helmet' | 'offhand';
+const SLOTS: Slot[] = ['weapon', 'armor', 'helmet', 'offhand'];
 
 const gearOf = (save: SaveData, uid: string | null) => save.gear.find((g) => g.uid === uid);
 

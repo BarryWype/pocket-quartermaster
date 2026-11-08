@@ -16,7 +16,7 @@ export const uncovered = (save: SaveData, heroIds: string[], briefing: Briefing)
   briefingCoverage(save, heroIds, briefing).threats.reduce((sum, t) => sum + Math.max(0, t.needed - t.have), 0);
 
 /** One piece a suggested hero puts on (null: the slot is emptied, as a two-handed weapon empties the off-hand). */
-export type GearSwap = { heroId: string; slot: 'weapon' | 'armor' | 'offhand'; gearUid: string | null };
+export type GearSwap = { heroId: string; slot: 'weapon' | 'armor' | 'helmet' | 'offhand'; gearUid: string | null };
 
 export type SuggestOptions = {
   /** The heroes to pick from; the free ones by default. */
@@ -36,7 +36,7 @@ export type SuggestedParty = {
   save: SaveData;
 };
 
-const SLOTS = ['weapon', 'armor', 'offhand'] as const;
+const SLOTS = ['weapon', 'armor', 'helmet', 'offhand'] as const;
 
 /** The gear changes between two saves, for these heroes. */
 function swapsBetween(before: SaveData, after: SaveData, heroIds: string[]): GearSwap[] {

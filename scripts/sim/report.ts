@@ -281,7 +281,7 @@ function gearLadders(s: ProfileSummary) {
   return table(['Ladder', 'Drops per game', ...RARITIES.map(capitalize)], rows);
 }
 
-/** Affixes worn at each tier's end, and the gear actions over the tier. */
+/** Affixes and helmets worn at each tier's end, and the gear actions over the tier. */
 function gearActions(s: ProfileSummary) {
   const rows = s.tiers.map((t) => {
     const g = t.gear;
@@ -292,6 +292,7 @@ function gearActions(s: ProfileSummary) {
     return [
       String(t.tier),
       `${n(g.affixes.median, 1)}${spread(g.affixes, (v) => n(v, 1))}`,
+      pct(g.helmets.median),
       `${n(g.rerolls.median)}${spread(g.rerolls, (v) => n(v))}`,
       n(g.rerollGold.median),
       materials,
@@ -299,7 +300,7 @@ function gearActions(s: ProfileSummary) {
       `${n(g.forges.median)}${spread(g.forges, (v) => n(v))}`,
     ];
   });
-  return table(['Tier', 'Affixes per hero', 'Rerolls', 'Gold on rerolls', 'Reroll materials', 'Stones applied', 'Ingredient forges'], rows);
+  return table(['Tier', 'Affixes per hero', 'Heroes in a helmet', 'Rerolls', 'Gold on rerolls', 'Reroll materials', 'Stones applied', 'Ingredient forges'], rows);
 }
 
 const capitalize = (word: string) => word[0].toUpperCase() + word.slice(1);
@@ -585,7 +586,7 @@ export function renderReport({ summaries, rules, settings, difficultyOdds, famil
   out.push(
     '## Gear',
     '',
-    'The gear system across the games: pieces looted per tier by rarity (trinkets included, relics apart) with their per-day rates, the rarity split by the loot ladder the piece’s source rolls on, the affixes worn at each tier’s end and the gear actions — rerolls (gold and materials), elemental stones and ingredient forges. Tier times and win odds are in the pace and odds tables above.',
+    'The gear system across the games: pieces looted per tier by rarity (trinkets included, relics apart) with their per-day rates, the rarity split by the loot ladder the piece’s source rolls on, the affixes and helmets worn at each tier’s end and the gear actions — rerolls (gold and materials), elemental stones and ingredient forges. Tier times and win odds are in the pace and odds tables above.',
     '',
   );
   for (const s of summaries) out.push(`### ${s.profile}`, '', gearRarity(s), '', gearLadders(s), '', gearActions(s), '');
