@@ -24,7 +24,7 @@ import { isJobOpen, jobWorker, wornWorkTool } from '../../jobs/jobs';
 import { equip, equipPreview } from '../../team/team';
 import type { GearDef } from '../../types';
 import { act, bestParty, countLoot, highestTier, homeHeroes, mark, nextForgeRecipe, recallWorking, skip, takeVisit, withLoadout, type PlaceRow, type Sim } from '../bot';
-import { dressParty } from './families';
+import { dressParty } from '../../families/dress';
 import { emptySlots } from './loadout';
 
 const MINUTE = 60_000;

@@ -18,7 +18,7 @@ import type { SaveData } from '../save';
 import type { DungeonDef } from '../types';
 import { withLoadout } from './bot';
 import { EMPTY_BRIEFING } from '../expeditions/simulate';
-import { dressParty } from './rules/families';
+import { dressParty } from '../families/dress';
 import { referenceSave } from './reference';
 
 /** A fight source whose strength the fitting script tunes. */
@@ -48,7 +48,7 @@ function stocked(save: SaveData): SaveData {
   };
 }
 
-/** The save a hard or boss source is measured with: dressed for its briefing from the spare pool (rules/families.ts), then the loadout. */
+/** The save a hard or boss source is measured with: dressed for its briefing from the spare pool (families/dress.ts), then the loadout. */
 export function prepared(save: SaveData, heroIds: string[], dungeon: DungeonDef, briefing: Parameters<typeof withLoadout>[3]): SaveData {
   return withLoadout(stocked(dressParty(save, heroIds, briefing)), heroIds, dungeon, briefing);
 }

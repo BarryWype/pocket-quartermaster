@@ -8,18 +8,13 @@ import { infusedElement } from '../../gear/affixes';
 import type { LootSourceId } from '../../loot/types';
 import type { SaveData } from '../../save';
 import { equip, unequip } from '../../team/team';
-import { briefingCoverage } from '../../threats/coverage';
-import type { Briefing, ConsumableDef, DungeonDef } from '../../types';
+import type { ConsumableDef, DungeonDef } from '../../types';
 
 // The bot's loadout before a run: the boss's weakness item, a charm only
 // when the odds are already high, a potion otherwise. Pure: each rule takes a
 // save and returns the save with the party's consumable slots filled.
 
 const consumableOf = (save: SaveData, heroId: string) => save.heroes.find((h) => h.id === heroId)?.equipment.consumable ?? null;
-
-/** The threat points a party still misses on a briefing: each threat's shortfall, summed. */
-export const uncovered = (save: SaveData, heroIds: string[], briefing: Briefing) =>
-  briefingCoverage(save, heroIds, briefing).threats.reduce((sum, t) => sum + Math.max(0, t.needed - t.have), 0);
 
 /** Puts back into the stock every consumable these heroes carry. */
 export function emptySlots(save: SaveData, heroIds: string[]): SaveData {

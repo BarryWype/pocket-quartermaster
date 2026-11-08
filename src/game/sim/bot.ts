@@ -59,8 +59,10 @@ import type { ActiveExpedition, ArmourType, Briefing, DungeonDef, GearDef, GearI
 import { expectedLevels, type Profile, type SimConfig } from './config';
 import { playerMetersPerMinute } from './gathererPace';
 import { partRecipeFor } from './rules/inventory';
-import { dressParty, sparePieces, sparesToKeep } from './rules/families';
-import { emptySlots, fillPotions, heldPotion, oilIds, pickCharm, pickWeakness, statPotionIds, uncovered, withCharm, withElixir, withOil, withStatPotion } from './rules/loadout';
+import { dressParty, sparePieces } from '../families/dress';
+import { sparesToKeep } from './rules/families';
+import { uncovered } from '../threats/suggest';
+import { emptySlots, fillPotions, heldPotion, oilIds, pickCharm, pickWeakness, statPotionIds, withCharm, withElixir, withOil, withStatPotion } from './rules/loadout';
 import { PICKAXES, type WalkRates } from './walking';
 import { questRules } from '@/content/quests';
 import { questUpkeep } from '../quests/arrival';

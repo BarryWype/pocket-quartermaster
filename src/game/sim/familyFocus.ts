@@ -14,7 +14,7 @@ import { withLoadout } from './bot';
 import { expectedLevels } from './config';
 import { FIT_DAYS, FIT_NOW } from './difficultyOdds';
 import { averagePiece, referenceSave, referenceTeam, withSpares } from './reference';
-import { dressParty } from './rules/families';
+import { dressParty } from '../families/dress';
 import { fillPotions } from './rules/loadout';
 
 // Family balance probes for the report and sim:quick: a playstyle family at

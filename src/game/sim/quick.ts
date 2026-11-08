@@ -13,7 +13,7 @@ import { PATROL_KINDS, patrolsAround } from '../patrols/generate';
 import { patrolOdds } from '../patrols/fight';
 import { createInitialSave, type SaveData } from '../save';
 import { averagePiece, withSpares } from './reference';
-import { dressParty } from './rules/families';
+import { dressParty } from '../families/dress';
 import { equip } from '../team/team';
 import { highestTier, withLoadout } from './bot';
 import { expectedLevels, simConfig, type SimConfig } from './config';

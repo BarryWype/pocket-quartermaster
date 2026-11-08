@@ -68,7 +68,7 @@ export function referenceTeam(classes: HeroClassId[], tier: number, rarity: Rari
 /**
  * `copies` spare pieces of every weapon, armour and off-hand type of a tier
  * at a rarity (weapons only when `weaponsOnly`), for the reference teams to
- * dress from (see rules/families.ts).
+ * dress from (see families/dress.ts).
  */
 export function withSpares(save: SaveData, tier: number, rarity: Rarity, weaponsOnly = false, copies = 1): SaveData {
   const types = (Object.keys(gearProfiles) as GearType[]).filter((type) => !weaponsOnly || gearProfiles[type].slot === 'weapon');

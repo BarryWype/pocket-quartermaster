@@ -4,24 +4,15 @@ import { weaknessByBoss } from '@/content/weaknesses';
 
 import { charmApplies } from '../../loot/charms';
 import { createInitialSave, type SaveData } from '../../save';
-import type { Briefing } from '../../types';
-import { emptySlots, fillPotions, pickCharm, pickWeakness, uncovered, withCharm, withElixir, withOil, withStatPotion } from './loadout';
+import { emptySlots, fillPotions, pickCharm, pickWeakness, withCharm, withElixir, withOil, withStatPotion } from './loadout';
 
 const PARTY = ['bram', 'lyra', 'mira'];
-const TRAPS: Briefing = { threats: [{ id: 'traps', level: 3 }], restriction: null, opportunity: null };
-const NONE: Briefing = { threats: [], restriction: null, opportunity: null };
 
 const stocked = (consumables: Record<string, number>): SaveData => ({ ...createInitialSave(), consumables });
 const slots = (save: SaveData) => PARTY.map((id) => save.heroes.find((h) => h.id === id)!.equipment.consumable);
 const dungeonCharms = charms.filter((c) => charmApplies(c.modifier, 'dungeonRun'));
 
 describe('loadout rules', () => {
-  it('counts the threat points a party still misses on a briefing', () => {
-    const save = stocked({ healingPotion: 3 });
-    expect(uncovered(save, PARTY, TRAPS)).toBeGreaterThan(0);
-    expect(uncovered(save, PARTY, NONE)).toBe(0);
-  });
-
   it('gives the boss its weakness item and everyone else a potion', () => {
     const boss = Object.values(dungeonById).find((d) => d.isBoss && weaknessByBoss[d.boss.id])!;
     const item = weaknessByBoss[boss.boss.id].itemId;
