@@ -2,22 +2,23 @@ import { classSpecials } from '@/content/classSpecials';
 import { dungeons } from '@/content/dungeons';
 import { placeFightRules, type FightPlaceKind } from '@/content/placeFights';
 import { bossWeaknesses } from '@/content/weaknesses';
+import { difficultyRules } from '@/content/difficulty';
+import { isElitePatrolKind } from '@/content/enemies';
+import { rosterRules } from '@/content/roster';
 
 import { briefingFor, dailyRotation, rotationDay } from '../dungeons/rotation';
 import { estimateOdds } from '../expeditions/odds';
-import { EMPTY_BRIEFING } from '../expeditions/simulate';
 import { placesWithin } from '../places/generate';
 import { placeFightBriefing, placeFightDungeon } from '../places/fights';
 import { PATROL_KINDS, patrolsAround } from '../patrols/generate';
-import { patrolOdds } from '../patrols/fight';
+import { patrolBriefing, patrolDungeon, patrolOdds } from '../patrols/fight';
 import { createInitialSave, type SaveData } from '../save';
-import { averagePiece, referenceSave, withSpares } from './reference';
-import { dressParty } from '../families/dress';
+import type { Briefing, DungeonDef } from '../types';
+import { averagePiece, rosterSave, withSpares } from './reference';
 import { equip } from '../team/team';
-import { highestTier, withLoadout } from './bot';
+import { highestTier } from './bot';
 import { expectedLevels, simConfig, type SimConfig } from './config';
-import { prepared as preparedFor, difficultyOdds as tierDifficultyOdds, type DifficultyOdds } from './difficultyOdds';
-import { fillPotions } from './rules/loadout';
+import { rosterParty, difficultyOdds as tierDifficultyOdds, type DifficultyOdds } from './difficultyOdds';
 
 const DAY = 86_400_000;
 const NOON = 12 * 3_600_000;
@@ -26,16 +27,17 @@ const NOON = 12 * 3_600_000;
 export type QuickTier = {
   tier: number;
   /**
-   * The tier's medium and hard dungeons for the team `sim:fit` fits them with
-   * (the tier's end): prepared, and with the briefing skipped (dressed for its
-   * playstyle only); the threat gap is the difference.
+   * The tier's medium and hard dungeons for the party `sim:fit` fits them with
+   * (the reference roster at the tier's end): prepared, and with the briefing
+   * skipped (the strongest party as if there were no threats, in the gear it
+   * wears); the threat gap is the difference.
    */
   gap: Record<'medium' | 'hard', { prepared: number | null; skipped: number | null }>;
   /** The tier boss, prepared. */
   boss: number | null;
   /** Fight events around, prepared. */
   events: number | null;
-  /** Patrols around, potions only. */
+  /** Patrols around, prepared. */
   patrols: number | null;
   /** Each fight event kind and patrol kind on its own, null where it never spawned. */
   byKind: Record<string, number | null>;
@@ -46,12 +48,11 @@ export type QuickTier = {
 };
 
 /**
- * The reference team the dungeons are fitted to (see the comment above
- * TIER_SCALE): the starting trio in the tier's sword, bow and wand plus mail,
- * Common rarity, with a spare piece of every type to dress from, at the top
- * of the tier's level band; every lower tier's
- * dungeons cleared (so this tier is unlocked), stocked with every
- * boss weakness item and three healing potions.
+ * The class specials probe's team (specials.ts): the starting trio in the
+ * tier's sword, bow and wand plus mail, Common rarity, with a spare piece of
+ * every type to dress from, at the top of the tier's level band; every lower
+ * tier's dungeons cleared (so this tier is unlocked), stocked with every boss
+ * weakness item and three healing potions.
  */
 export function quickSave(tier: number): SaveData {
   const initial = createInitialSave();
@@ -83,24 +84,25 @@ export function quickSave(tier: number): SaveData {
 const mean = (values: number[]): number | null => (values.length ? values.reduce((sum, v) => sum + v, 0) / values.length : null);
 
 /**
- * The odds-only probe (`npm run sim:quick`): for each tier, the reference team
- * against that tier's medium and hard dungeons (prepared and with the briefing
- * skipped), its boss, the fight events and the patrols around the reference
- * location, once per rotation day at noon. No full game, no rewards.
+ * The odds-only probe (`npm run sim:quick`): for each tier, the party the bot
+ * would send from the reference roster at the tier's end (see rosterSave and
+ * rosterParty) against the tier's medium and hard dungeons (prepared and with
+ * the briefing skipped), its boss, the fight events and the patrols around the
+ * reference location, once per rotation day at noon. No full game, no rewards.
  */
 export function quickProbe(config: SimConfig = simConfig): QuickTier[] {
   const runs = config.quick.runs;
   return [1, 2, 3, 4, 5].map((tier) => {
-    const save = quickSave(tier);
-    const ids = save.heroes.map((h) => h.id);
-    const reference = referenceSave(tier, 'end', 3);
-    const referenceIds = reference.heroes.map((h) => h.id);
-    const natural = dressParty(reference, referenceIds, EMPTY_BRIEFING);
+    const roster = rosterSave(tier, 'end');
     const gap = { medium: { prepared: [] as number[], skipped: [] as number[] }, hard: { prepared: [] as number[], skipped: [] as number[] } };
     const boss: number[] = [];
     const events: number[] = [];
     const patrols: number[] = [];
     const byKind: Record<string, number[]> = Object.fromEntries([...Object.keys(placeFightRules.kinds), ...PATROL_KINDS].map((k) => [k, []]));
+    const dungeonOdds = (dungeon: DungeonDef, briefing: Briefing, t: number, skipped = false) => {
+      const party = rosterParty(roster, dungeon, briefing, rosterRules.partySize, t, skipped);
+      return estimateOdds(party.save, party.heroIds, dungeon, runs, { now: t, briefing }).success;
+    };
     for (let day = 0; day < config.quick.days; day++) {
       const t = config.startDay + day * DAY + NOON;
       const rotation = dailyRotation(rotationDay(t));
@@ -108,33 +110,29 @@ export function quickProbe(config: SimConfig = simConfig): QuickTier[] {
       for (const difficulty of ['medium', 'hard'] as const) {
         for (const dungeon of dungeons.filter((d) => d.tier === tier && d.difficulty === difficulty && !d.isBoss && !d.overnight)) {
           const briefing = briefingFor(rotation, dungeon);
-          gap[difficulty].prepared.push(estimateOdds(preparedFor(reference, referenceIds, dungeon, briefing), referenceIds, dungeon, runs, { now: t, briefing }).success);
-          gap[difficulty].skipped.push(estimateOdds(natural, referenceIds, dungeon, runs, { now: t, briefing }).success);
+          gap[difficulty].prepared.push(dungeonOdds(dungeon, briefing, t));
+          gap[difficulty].skipped.push(dungeonOdds(dungeon, briefing, t, true));
         }
       }
 
       const bossDungeon = dungeons.find((d) => d.tier === tier && d.isBoss && !d.overnight);
-      if (bossDungeon) {
-        const briefing = briefingFor(rotation, bossDungeon);
-        boss.push(estimateOdds(withLoadout(dressParty(save, ids, briefing), ids, bossDungeon, briefing), ids, bossDungeon, runs, { now: t, briefing }).success);
-      }
+      if (bossDungeon) boss.push(dungeonOdds(bossDungeon, briefingFor(rotation, bossDungeon), t));
 
       const places = placesWithin(config.location, 2000, t);
       for (const kind of Object.keys(placeFightRules.kinds) as FightPlaceKind[]) {
         const spawn = places.find((p) => p.kind === kind);
         if (!spawn) continue;
-        const dungeon = placeFightDungeon(spawn, tier);
-        const briefing = placeFightBriefing(save, spawn);
-        const odds = estimateOdds(withLoadout(dressParty(save, ids, briefing), ids, dungeon, briefing), ids, dungeon, runs, { now: t, briefing }).success;
+        const odds = dungeonOdds(placeFightDungeon(spawn, tier), placeFightBriefing(roster, spawn), t);
         events.push(odds);
         byKind[kind].push(odds);
       }
 
-      const armed = fillPotions(save, ids);
       for (const kind of PATROL_KINDS) {
         const spawn = patrolsAround(config.location, t, tier).find((p) => p.kind === kind);
         if (!spawn) continue;
-        const odds = patrolOdds(armed, spawn, ids, t, runs).success;
+        const dungeon = patrolDungeon(spawn, tier, isElitePatrolKind(kind));
+        const party = rosterParty(roster, dungeon, patrolBriefing(spawn), spawn.difficulty ? difficultyRules.patrolParty[spawn.difficulty] : rosterRules.partySize, t);
+        const odds = patrolOdds(party.save, spawn, party.heroIds, t, runs).success;
         patrols.push(odds);
         byKind[kind].push(odds);
       }

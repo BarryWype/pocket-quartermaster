@@ -62,7 +62,7 @@ check('simulator balance bands', () => {
     }
   });
 
-  describe('difficulty odds (reference teams)', () => {
+  describe('difficulty odds (reference roster)', () => {
     for (const [tier, odds] of Object.entries(summary.difficultyOdds ?? {})) {
       for (const difficulty of ['easy', 'medium', 'hard'] as const) {
         it(`tier ${tier} ${difficulty} sources at the tier's start`, () => expectIn(odds[difficulty].start, difficultyRules.oddsTargets[difficulty].start));

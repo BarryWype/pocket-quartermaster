@@ -17,7 +17,7 @@ export type ReportInput = {
   summaries: ProfileSummary[];
   rules: string[];
   settings: { seeds: number; seed: string; overrides: string[]; elapsed: number; date: string };
-  /** The reference teams' odds per tier and difficulty (summary.json's `difficultyOdds`). */
+  /** The reference roster's odds per tier and difficulty (summary.json's `difficultyOdds`). */
   difficultyOdds: Record<number, DifficultyOdds>;
   /** The family probes (summary.json's `familyProbes`). */
   familyProbes?: Summary['familyProbes'];
@@ -508,7 +508,7 @@ function reasonsTable(labels: Record<string, string>, stats: Record<string, Stat
   return table(['Reason', 'Per day'], Object.entries(labels).map(([key, label]) => [label, n(stats[key]?.median ?? null, 2)]));
 }
 
-/** The reference teams' odds per tier and difficulty, the fitting script's target table. */
+/** The reference roster's odds per tier and difficulty, the fitting script's target table. */
 function difficultyTable(difficultyOdds: Record<number, DifficultyOdds>) {
   const cell = (value: number, range: [number, number]) => `${pct(value)}${mark(value, range)}`;
   const rows = Object.entries(difficultyOdds)
@@ -557,9 +557,9 @@ export function renderReport({ summaries, rules, settings, difficultyOdds, famil
   ];
   for (const s of summaries) out.push(`### ${s.profile}`, '', odds(s));
   out.push(
-    '## Difficulty odds (reference teams)',
+    '## Difficulty odds (reference roster)',
     '',
-    'The fitting script\u2019s target table: each tier\u2019s sources of each difficulty, measured with the reference team at the tier\u2019s start and end (see src/game/sim/difficultyOdds.ts). ⚠ marks an odds outside its difficulty\u2019s target range.',
+    'The fitting script\u2019s target table: each tier\u2019s sources of each difficulty, for the party the bot would send from the reference roster at the tier\u2019s start and end (see rosterSave in src/game/sim/reference.ts and src/game/sim/difficultyOdds.ts). ⚠ marks an odds outside its difficulty\u2019s target range.',
     '',
     difficultyTable(difficultyOdds),
   );

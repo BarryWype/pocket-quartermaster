@@ -149,7 +149,7 @@ export type ProfileSummary = {
 export type Summary = {
   settings: { profiles: string[]; seeds: number; seed: string; overrides: string[]; maxDays: number | null; jobs: boolean };
   profiles: Record<string, ProfileSummary>;
-  /** The reference teams' odds per tier and difficulty, measured once per run (see difficultyOdds.ts). */
+  /** The reference roster's odds per tier and difficulty, measured once per run (see difficultyOdds.ts). */
   difficultyOdds: Record<number, DifficultyOdds>;
   /** The family probes, measured once per run (see familyFocus.ts). */
   familyProbes?: { focus: FocusRow[]; venom: AffixRow[] };

@@ -428,7 +428,7 @@ function equipGain(save: SaveData, hero: HeroState, slot: 'weapon' | 'armor' | '
 }
 
 /** The class's weapon of choice: its first favoured weapon type that rolls with the class's damage stat ('wielder' pieces roll with it). */
-const weaponTypeFor = (classId: HeroClassId): WeaponType | null => {
+export const weaponTypeFor = (classId: HeroClassId): WeaponType | null => {
   const favoured = (Object.entries(classAffinities[classId]) as [WeaponType | ArmourType, Affinity][])
     .filter(([type, affinity]) => affinity === 'favoured' && gearProfiles[type]?.slot === 'weapon')
     .map(([type]) => type as WeaponType);
@@ -436,17 +436,17 @@ const weaponTypeFor = (classId: HeroClassId): WeaponType | null => {
 };
 
 /** The class's armour of choice: the first favoured armour type. */
-const armourTypeFor = (classId: HeroClassId): ArmourType | null => {
+export const armourTypeFor = (classId: HeroClassId): ArmourType | null => {
   const favoured = (['plate', 'mail', 'leather', 'robes'] as ArmourType[]).find((type) => classAffinities[classId][type] === 'favoured');
   return favoured ?? null;
 };
 
 /** The class's helmet of choice: the first favoured helmet type. */
-const helmetTypeFor = (classId: HeroClassId): HelmetType | null =>
+export const helmetTypeFor = (classId: HeroClassId): HelmetType | null =>
   (['greatHelm', 'sallet', 'hood', 'plagueMask', 'runeCirclet'] as HelmetType[]).find((type) => classAffinities[classId][type] === 'favoured') ?? null;
 
 /** The off-hand that fits the hero's weapon: ammunition for a bow or crossbow, focus for a Magic weapon, shield for a one-handed Power weapon. */
-function offhandTypeFor(save: SaveData, hero: HeroState): OffhandType | null {
+export function offhandTypeFor(save: SaveData, hero: HeroState): OffhandType | null {
   const weapon = gearOf(save, hero.equipment.weapon);
   const item = weapon ? (itemById[weapon.itemId] as GearDef) : null;
   if (!item || item.twoHanded) return null;

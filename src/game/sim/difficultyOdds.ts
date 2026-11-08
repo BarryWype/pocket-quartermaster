@@ -15,11 +15,14 @@ import { isElitePatrolKind } from '@/content/enemies';
 import { patrolBriefing, patrolDungeon, patrolOdds } from '../patrols/fight';
 import type { PatrolKind, PatrolSpawn } from '../patrols/generate';
 import type { SaveData } from '../save';
-import type { DungeonDef } from '../types';
+import type { Briefing, DungeonDef } from '../types';
+import { suggestParty } from '../threats/suggest';
+import { rosterRules } from '@/content/roster';
 import { withLoadout } from './bot';
 import { EMPTY_BRIEFING } from '../expeditions/simulate';
 import { dressParty } from '../families/dress';
-import { referenceSave } from './reference';
+import { rosterSave } from './reference';
+import { simConfig } from './config';
 
 /** A fight source whose strength the fitting script tunes. */
 export type FitSource =
@@ -48,26 +51,45 @@ function stocked(save: SaveData): SaveData {
   };
 }
 
-/** The save a hard or boss source is measured with: dressed for its briefing from the spare pool (families/dress.ts), then the loadout. */
+/** The save a party is measured with: dressed for its briefing from the spare pool (families/dress.ts), then the loadout. */
 export function prepared(save: SaveData, heroIds: string[], dungeon: DungeonDef, briefing: Parameters<typeof withLoadout>[3]): SaveData {
   return withLoadout(stocked(dressParty(save, heroIds, briefing)), heroIds, dungeon, briefing);
 }
 
-/** The save an easy or medium source is measured with: the briefing skipped, dressed for the team's playstyle family only. */
-const natural = (save: SaveData, heroIds: string[]): SaveData => dressParty(save, heroIds, EMPTY_BRIEFING);
+/**
+ * The party the bot would send from a roster (bot.ts bestParty): suggestParty
+ * with the bot's quick odds and its stop rule, dressed for the briefing, then
+ * its loadout with every weakness item in stock. `skipped`: the briefing
+ * skipped, the strongest party as if there were no threats, in the gear it
+ * wears.
+ */
+export function rosterParty(save: SaveData, dungeon: DungeonDef, briefing: Briefing, slots: number, now: number, skipped = false) {
+  const plan = skipped ? EMPTY_BRIEFING : briefing;
+  const base = skipped ? save : stocked(save);
+  const quick = (dressed: SaveData, ids: string[]) => {
+    const o = estimateOdds(withLoadout(dressed, ids, dungeon, plan), ids, dungeon, simConfig.odds.searchRuns, { now, briefing: plan });
+    return o.success + o.progress * 1e-6;
+  };
+  const candidates = save.heroes.map((h) => h.id);
+  const party = suggestParty(base, plan, slots, { candidates, odds: quick, enough: simConfig.odds.enough, dress: !skipped });
+  return { heroIds: party.heroIds, save: withLoadout(party.save, party.heroIds, dungeon, plan) };
+}
 
-/** The odds of one source for a reference team at a tier's start or end, as a share of runs won. */
+/** A source's odds for the party the bot would send from the reference roster. */
+function partyOdds(save: SaveData, dungeon: DungeonDef, briefing: Briefing, slots: number, measure: (save: SaveData, heroIds: string[]) => number) {
+  const party = rosterParty(save, dungeon, briefing, slots, FIT_NOW);
+  return measure(party.save, party.heroIds);
+}
+
+/** The odds of one source for the reference roster at a tier's start or end, as a share of runs won. */
 export function sourceOdds(source: FitSource, tier: number, when: 'start' | 'end', runs: number): number {
+  const base = rosterSave(tier, when);
   if (source.kind === 'dungeon' || source.kind === 'boss') {
     const dungeon = dungeonById[source.id];
-    const base = referenceSave(tier, when, 3);
-    const ids = base.heroes.map((h) => h.id);
-    const isPrepared = source.kind === 'boss' || dungeon.difficulty === 'hard';
     return mean(
       FIT_DAYS.map((day) => {
         const briefing = composeBriefing(dungeon, day);
-        const save = isPrepared ? prepared(base, ids, dungeon, briefing) : natural(base, ids);
-        return estimateOdds(save, ids, dungeon, runs, { now: FIT_NOW, briefing }).success;
+        return partyOdds(base, dungeon, briefing, rosterRules.partySize, (save, ids) => estimateOdds(save, ids, dungeon, runs, { now: FIT_NOW, briefing }).success);
       }),
     );
   }
@@ -75,9 +97,6 @@ export function sourceOdds(source: FitSource, tier: number, when: 'start' | 'end
     const kind = source.patrolKind;
     const difficulty = patrolDifficulty(kind, tier);
     if (!difficulty) throw new Error(`Patrol kind ${kind} does not spawn at tier ${tier}`);
-    const party = difficultyRules.patrolParty[difficulty];
-    const base = referenceSave(tier, when, party);
-    const ids = base.heroes.map((h) => h.id);
     const spawn: PatrolSpawn = {
       id: `fit|${kind}|${tier}`,
       tile: 'fit',
@@ -90,13 +109,9 @@ export function sourceOdds(source: FitSource, tier: number, when: 'start' | 'end
       endsAt: Infinity,
     };
     const dungeon = patrolDungeon(spawn, tier, isElitePatrolKind(kind));
-    const save = difficulty === 'hard' ? prepared(base, ids, dungeon, patrolBriefing(spawn)) : natural(base, ids);
-    return patrolOdds(save, spawn, ids, FIT_NOW, runs).success;
+    return partyOdds(base, dungeon, patrolBriefing(spawn), difficultyRules.patrolParty[difficulty], (save, ids) => patrolOdds(save, spawn, ids, FIT_NOW, runs).success);
   }
   const kind = source.placeKind;
-  const difficulty = placeFightRules.kinds[kind].difficulty;
-  const base = referenceSave(tier, when, 3);
-  const ids = base.heroes.map((h) => h.id);
   return mean(
     [0, 1, 2].map((i) => {
       const spawn: PlaceSpawn = {
@@ -110,8 +125,7 @@ export function sourceOdds(source: FitSource, tier: number, when: 'start' | 'end
         roll: 0,
       };
       const briefing = placeFightBriefing(base, spawn);
-      const save = difficulty === 'hard' ? prepared(base, ids, placeFightDungeon(spawn, tier), briefing) : natural(base, ids);
-      return placeFightOdds(save, spawn, ids, FIT_NOW, runs).success;
+      return partyOdds(base, placeFightDungeon(spawn, tier), briefing, rosterRules.partySize, (save, ids) => placeFightOdds(save, spawn, ids, FIT_NOW, runs).success);
     }),
   );
 }

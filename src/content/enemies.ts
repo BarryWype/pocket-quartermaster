@@ -15,13 +15,11 @@ export const enemySpeedRules: Record<SpeedClass, number> & { speedPerTier: numbe
 };
 
 // Enemies are written at tier 1 strength, then scaled by their tier and by how
-// tough their dungeon should be within it. Per-dungeon factors are fitted to a
-// reference team (the starting trio in the tier's sword, bow and wand plus
-// mail, Common gear at the average roll, at the top of the tier's level band, no threats):
-// short dungeons about 72%, long about 68%, bosses about 38% before a further
-// ×1.3. Real rosters do much better (trinkets, rarer gear and affixes, meals, the
-// boss's weakness item). Tier 1 short dungeons are kept softer for onboarding
-// (Rat Cellar is the tutorial dungeon).
+// tough their dungeon should be within it. Per-source factors
+// (content/difficultyFactors.ts) are fitted by `npm run sim:fit` to the party
+// the bot would send from a reference roster like the regular player's
+// (src/game/sim/reference.ts rosterSave), against each difficulty's targets at
+// the tier's start and end (difficultyRules.oddsTargets) and the boss's.
 export const TIER_SCALE = [1, 1.9, 3, 4.2, 5.6];
 
 /** A dungeon's scaling, with its tier for enemy Speed. */

@@ -205,7 +205,7 @@ import type { FightPlaceKind } from '@/content/placeFights';
 import type { PatrolKind } from '@/game/patrols/generate';
 
 /**
- * Strength factors, fitted to the reference teams' win-odds targets (see
+ * Strength factors, fitted to the reference roster's win-odds targets (see
  * src/game/sim/difficultyOdds.ts and the fitting script scripts/sim/fitDifficulty.ts).
  */
 

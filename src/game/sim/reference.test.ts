@@ -2,7 +2,7 @@ import { items } from '@/content/items';
 import { classAffinities } from '@/content/equipment';
 import type { GearDef, HeroClassId, WeaponType } from '@/game/types';
 
-import { referenceSave, weaponFor } from './reference';
+import { referenceSave, rosterSave, weaponFor } from './reference';
 import { expectedLevels } from './config';
 
 // The reference teams the difficulty odds are measured against (see difficultyOdds.ts).
@@ -64,5 +64,37 @@ describe('referenceSave', () => {
     const save = referenceSave(5, 'start', 2);
     expect(save.heroes).toHaveLength(2);
     expect(save.clearedDungeons.filter((id) => id === 'giantsHall').length).toBe(1);
+  });
+});
+
+describe('rosterSave', () => {
+  it('ends a tier with six heroes at the band top, each in Uncommon gear of the tier in every slot it fills, a trinket included', () => {
+    const save = rosterSave(3, 'end');
+    expect(save.heroes).toHaveLength(6);
+    expect(save.heroes.every((h) => h.level === expectedLevels[2])).toBe(true);
+    for (const hero of save.heroes) {
+      expect(hero.equipment.weapon && hero.equipment.armor && hero.equipment.helmet && hero.equipment.trinket).toBeTruthy();
+      for (const uid of Object.values(hero.equipment).filter(Boolean)) {
+        const piece = save.gear.find((g) => g.uid === uid);
+        if (!piece) continue;
+        expect(piece.rarity).toBe('uncommon');
+        expect((items.find((i) => i.id === piece.itemId) as GearDef).tier).toBe(3);
+      }
+    }
+  });
+
+  it("starts a tier with the previous tier's end kit, this tier unlocked", () => {
+    const start = rosterSave(4, 'start');
+    const end = rosterSave(3, 'end');
+    expect(start.heroes.map((h) => h.level)).toEqual(end.heroes.map((h) => h.level));
+    expect(start.gear.map((g) => g.itemId)).toEqual(end.gear.map((g) => g.itemId));
+    expect(start.clearedDungeons).toContain('drownedCrypt');
+  });
+
+  it('starts tier 1 like the reference team: the trio with a weapon each', () => {
+    const roster = rosterSave(1, 'start');
+    const reference = referenceSave(1, 'start', 3);
+    expect(roster.heroes).toEqual(reference.heroes);
+    expect(roster.gear).toEqual(reference.gear);
   });
 });

@@ -90,7 +90,7 @@ console.log(`| --- |${kinds.map(() => ' --- |').join('')}`);
 for (const tier of tiers) console.log(`| ${tier.tier} | ${kinds.map((k) => cell(tier.byKind[k], targets.odds.events)).join(' | ')} |`);
 console.log(`| mean | ${averages.map((v) => cell(v, targets.odds.events)).join(' | ')} |`);
 
-console.log('\n## Odds by difficulty (reference teams)');
+console.log('\n## Odds by difficulty (reference roster)');
 console.log('| tier | easy start | easy end | medium start | medium end | hard start | hard end |');
 console.log('| --- | --- | --- | --- | --- | --- | --- |');
 for (const tier of tiers) {

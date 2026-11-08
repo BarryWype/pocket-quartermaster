@@ -11,6 +11,7 @@ import { affixById } from '@/content/affixes';
 
 import { makeGearPiece } from '../gear/make';
 import { equip } from '../team/team';
+import { armourTypeFor, helmetTypeFor, offhandTypeFor, weaponTypeFor } from './bot';
 import { expectedLevels } from './config';
 import { fillPotions } from './rules/loadout';
 
@@ -115,4 +116,52 @@ export function referenceSave(tier: number, when: 'start' | 'end', party: number
     if (withArmour) save = equip(save, hero.id, 'armor', `a${i}`);
   });
   return fillPotions(withSpares(save, gearTier, rarity, !withArmour), save.heroes.map((h) => h.id));
+}
+
+/** The reference roster: the starting trio, then the regular bot's usual first recruits. */
+const ROSTER: HeroClassId[] = ['warrior', 'ranger', 'fireMage', 'frostMage', 'warrior', 'scholar'];
+/** The trinket the bot wears most. */
+const TRINKET = 'hawkEyeRing';
+
+/**
+ * The save every odds target is measured with (sim:fit, sim:quick and the
+ * report's fit table): a roster like the regular bot's, from which
+ * difficultyOdds.ts picks each party as the bot does (suggestParty).
+ *
+ * End of a tier: six heroes at the tier's end level, each in the bot's piece
+ * of choice for every slot (weapon, armour, helmet, off-hand) and a trinket,
+ * Uncommon gear of the tier at the average roll with its affix, a spare piece
+ * of every type to dress from, three healing potions in stock. Start of a
+ * tier: the previous tier's end, what the bot carries into the new tier.
+ * Start of tier 1: the starting trio with a Common weapon each (referenceSave).
+ */
+export function rosterSave(tier: number, when: 'start' | 'end'): SaveData {
+  if (tier === 1 && when === 'start') return referenceSave(1, 'start', 3);
+  const kitTier = when === 'end' ? tier : tier - 1;
+  const level = expectedLevels[kitTier - 1];
+  const initial = createInitialSave();
+  const heroes = ROSTER.map((classId, i) =>
+    i < startingHeroes.length ? { ...startingHeroes[i], level } : newHero(`r${i}`, classId, classId, '', level, classSpecials[classId].common[0]),
+  );
+  let save: SaveData = {
+    ...initial,
+    tutorial: { ...initial.tutorial, step: 'done' },
+    heroes,
+    clearedDungeons: dungeons.filter((d) => d.tier < tier).map((d) => d.id),
+    consumables: { ...initial.consumables, healingPotion: 3 },
+  };
+  const wear = (heroId: string, slot: 'weapon' | 'armor' | 'helmet' | 'offhand' | 'trinket', itemId: string) => {
+    const uid = `${slot}:${heroId}`;
+    save = equip({ ...save, gear: [...save.gear, averagePiece(uid, itemId, 'uncommon')] }, heroId, slot, uid);
+  };
+  for (const hero of heroes) {
+    wear(hero.id, 'weapon', gearId(weaponTypeFor(hero.classId) ?? 'sword', kitTier));
+    wear(hero.id, 'armor', gearId(armourTypeFor(hero.classId) ?? 'mail', kitTier));
+    const helmet = helmetTypeFor(hero.classId);
+    if (helmet) wear(hero.id, 'helmet', gearId(helmet, kitTier));
+    const offhand = offhandTypeFor(save, save.heroes.find((h) => h.id === hero.id)!);
+    if (offhand) wear(hero.id, 'offhand', gearId(offhand, kitTier));
+    wear(hero.id, 'trinket', `${TRINKET}${kitTier}`);
+  }
+  return withSpares(save, kitTier, 'uncommon');
 }
