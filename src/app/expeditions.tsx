@@ -1,5 +1,4 @@
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { rosterRules } from '@/content/roster';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import PagerView from 'react-native-pager-view';
