@@ -90,3 +90,51 @@ Bases within types (sabre, longsword, rapier; ammunition variants; grimoire as a
 - **Work tools** (`src/content/workTools.ts`): ids `hatchet1`–`tongs5`, off-hand, no gear type (never forged, dropped, reforged or sold at smithies and markets), Common, no affixes. Stats are 30% of the off-hand budget (Armour and HP). Prices 5, 10, 20, 40, 80 gold by tier. Output +10, 12.5, 15, 17.5, 20% by tier; scavenge: a 50% chance of 1 unit per won fight (halved after the first full sim run put the forager and miner at up to 27% of walking) (expeditions, place fights, escorts; the miner's chosen ore, else its highest). They fit with no weapon or any one-handed weapon, but not with a bow or crossbow, which take ammunition only. Equipping settles the jobs first, so a tool's bonus counts only from then on.
 - **Relic icons:** one each, listed in `doc/design/loot/relics.csv`. Four are tinted copies made for them: hedge-witch robes, Stormcaller robes, the lamp-staff and the drowned bell. The Siren's lute uses a horn, since the lute has no icon set. Restored relics show their icon (`gearIconOf`); other Legendaries get the gold frame.
 - **Simulator:** reference teams and the bot use each class's favoured types; the bot buys and fits its workers' tools. `sim:quick`'s odds per tier are unchanged by this change (the fitted reference team's classes kept their weapons), so no refit. It also prints the old vs new reference weapon odds for the 10 classes whose favoured weapons changed. Biggest moves: smuggler (dagger → crossbow, about +10 to +30 points at tiers 2–5), druid and necromancer (wand → staff, +5 to +22 points); scholar and curse-breaker stay very low. The full report adds those and a work-tool table (output and scavenge against walking, 15% cap).
+
+## Helmets (2026-11-08)
+A fourth gear slot (`helmet`), ordinary gear like armour: stats, affixes, class affinities and one family tag per type (`doc/design/families/`, Helmets). Order on the hero: helmet, weapon, armour, off-hand, trinket.
+
+| Type | Id | Weight | Family | Stats (budget 2, a third of armour's 6) | Icons, tier 1 → 5 |
+|---|---|---|---|---|---|
+| Great helm | `greatHelm` | heavy | Breaker | Armour 70%, HP 30%; Heavy; costs 30% Magic unless favoured (like plate) | bronze nasal, iron spiked, iron crusader, steel bascinet, knight visor |
+| Sentry's sallet | `sallet` | medium | Watch | Armour 50%, Resistance 30%, HP 20% | plumed bronze, chainmail coif, steel kettle, steel barbute, gilded barbute* |
+| Hood | `hood` | light | Cunning | Armour 40%, HP 40%, Resistance 20%; +3% Evasion (+1%/tier) | leather cap, grey hood*, padded leather, dark hood*, red hood* |
+| Plague mask | `plagueMask` | light | Venom | Resistance 50%, HP 50% | white mask, skull, silver mask, iron mask*, golden mask |
+| Rune circlet | `runeCirclet` | cloth | Warding | Magic 30%, Resistance 60%, HP 10% | grey*, teal*, emerald-violet, blue*, rose* circlet |
+
+\* Tinted copies made for the helmets (`assets/icons/rpg/helmet-*`), since the sheet has few hoods and one circlet. The six helmet icons used as class portraits (great helm, green hood, red wizard hat, crystal armet, dark leather, horned viking) stay portraits only.
+
+- **Recipes** (cheap, all known from the start at tier 1): great helm wood 2 + hide 1; sallet bone 2 + hide 1; hood hide 3; plague mask bone 1 + herb 2; rune circlet wood 1 + mushroom 2. Tiers 2–5 swap the first material for the tier's (stone 2, copper 2…; hood and mask 1).
+- **Affinities** (`affinities.csv`, F favoured, U usable, X unfit): casters are unfit for the great helm, heavy fighters for the circlet, light classes favour the hood or the mask. Every class can wear at least three types.
+
+| Class | Great helm | Sallet | Hood | Plague mask | Rune circlet |
+|---|---|---|---|---|---|
+| Warrior | F | F | U | U | X |
+| Barbarian | F | U | U | U | X |
+| Paladin | F | F | U | X | X |
+| Ranger | U | U | F | U | X |
+| Thief | X | U | F | U | U |
+| Fire mage | X | U | U | U | F |
+| Frost mage | X | U | U | U | F |
+| Sorcerer | X | U | U | U | F |
+| Cleric | X | U | U | U | F |
+| Druid | X | U | F | U | U |
+| Troubadour | X | U | F | U | U |
+| Scholar | X | U | U | U | F |
+| Exorcist | U | F | U | U | U |
+| Duelist | U | U | F | U | U |
+| Smuggler | U | U | F | U | X |
+| Diplomat | X | U | U | U | F |
+| Necromancer | X | U | F | U | U |
+| Beastmaster | U | U | F | U | X |
+| Engineer | F | U | U | U | X |
+| Alchemist | X | U | U | F | U |
+| Porter | F | U | U | U | X |
+| Scout | U | F | F | U | X |
+| Curse-breaker | X | U | U | U | F |
+| Cook | U | F | U | U | X |
+| Monk | X | U | F | U | U |
+| Gambler | U | U | F | U | U |
+
+- **Affixes:** helmets roll only the twelve helmet affixes (`affixes.csv`, slot `helmet`), one per monster part; no walking affixes and no elemental stones. Arcane rolls at a quarter of the usual chance. Helmets have no relics, so a Legendary helmet carries no unique.
+- **Loot and shops:** a looted piece picks its type evenly among all 31 types, so helmets drop about as often as armour (5 types against 4); smithies sell them like any known blueprint.

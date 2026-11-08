@@ -36,6 +36,7 @@ function effectVars(effect: AffixEffect): Vars {
   switch (effect.kind) {
     case 'damageVs':
     case 'damageFrom':
+    case 'critVs':
       return { tags: tagNames(effect.tags) };
     case 'stat':
       return { stat: t(`hero.statNames.${effect.stat}`) };

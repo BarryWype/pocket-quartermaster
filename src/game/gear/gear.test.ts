@@ -27,12 +27,12 @@ describe('affix pools', () => {
 });
 
 describe('affixSlotOf', () => {
-  const expected: Record<GearType, 'weapon' | 'armourOffhand'> = {
-    greatHelm: 'armourOffhand',
-    sallet: 'armourOffhand',
-    hood: 'armourOffhand',
-    plagueMask: 'armourOffhand',
-    runeCirclet: 'armourOffhand',
+  const expected: Record<GearType, 'weapon' | 'armourOffhand' | 'helmet'> = {
+    greatHelm: 'helmet',
+    sallet: 'helmet',
+    hood: 'helmet',
+    plagueMask: 'helmet',
+    runeCirclet: 'helmet',
     sword: 'weapon',
     axe: 'weapon',
     mace: 'weapon',
@@ -62,7 +62,7 @@ describe('affixSlotOf', () => {
     buckler: 'armourOffhand',
   };
 
-  it('puts weapons and damage off-hands in the offensive pool, the rest in the defensive one', () => {
+  it('puts weapons and damage off-hands in the offensive pool, helmets in their own, the rest in the defensive one', () => {
     for (const gearType of Object.keys(gearProfiles) as GearType[]) {
       expect(affixSlotOf(gearType)).toBe(expected[gearType]);
     }

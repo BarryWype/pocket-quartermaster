@@ -48,8 +48,8 @@ const idsFor = (row: string[]): string[] => {
   return [row[0]];
 };
 
-const slotOf = (csvSlot: string): 'weapon' | 'armourOffhand' | 'any' =>
-  csvSlot === 'offensive' ? 'weapon' : csvSlot === 'defensive' ? 'armourOffhand' : 'any';
+const slotOf = (csvSlot: string): 'weapon' | 'armourOffhand' | 'helmet' | 'any' =>
+  csvSlot === 'offensive' ? 'weapon' : csvSlot === 'defensive' ? 'armourOffhand' : csvSlot === 'helmet' ? 'helmet' : 'any';
 
 /** The value range a CSV "value_range" spells out, in display units; absent when fixed. */
 const rangeIn = (csvRange: string): { range: { min: number; max: number }; unit: 'pct' | 'flat' | 'm' } | undefined => {
@@ -97,16 +97,19 @@ describe('the affix catalogue', () => {
     }
   });
 
-  it('gives every monster part one offensive and one defensive affix', () => {
+  it('gives every monster part one offensive, one defensive and one helmet affix', () => {
     for (const part of monsterParts) {
       const matches = affixes.filter((affix) => affix.source.kind === 'part' && affix.source.partId === part.id);
       expect(matches.filter((affix) => affix.slot === 'weapon')).toHaveLength(1);
       expect(matches.filter((affix) => affix.slot === 'armourOffhand')).toHaveLength(1);
+      expect(matches.filter((affix) => affix.slot === 'helmet')).toHaveLength(1);
     }
   });
 
   it('scopes the shared affixes once per party or roster', () => {
     expect(affixById.plunderer.scope).toBe('party');
+    expect(affixById.commander.scope).toBe('party');
+    expect(affixById.haggler.scope).toBe('roster');
     for (const id of ['foragers', 'wanderers', 'pocket']) expect(affixById[id].scope).toBe('roster');
   });
 });

@@ -163,6 +163,8 @@ export function heroStats(save: SaveData, hero: HeroState): Stats {
   stats.speed += (sums.swift ?? 0) + (sums.fleet ?? 0);
   stats.evasion += (sums.light ?? 0) + (sums.silken ?? 0);
   stats.luck += sums.lucky ?? 0;
+  // A Thick skull raises max HP by its share.
+  stats.hp *= 1 + (sums.thickSkull ?? 0) / 100;
 
   for (const effect of heroAbilities(hero)) {
     if (effect.kind === 'statMultiplier') stats[effect.stat] *= effect.multiplier;

@@ -27,6 +27,15 @@ const away = (save: SaveData, heroId: string): SaveData => ({
 });
 
 describe('heroStats', () => {
+  it('a Thick skull helmet raises max HP by its share', () => {
+    const base = createInitialSave();
+    const helm = (affixes: { id: string; value: number }[]) =>
+      equip({ ...base, gear: [{ uid: 'h', itemId: 'greatHelm1', rarity: 'uncommon' as const, roll: 8, affixes, rerolls: 0 }] }, 'bram', 'helmet', 'h');
+    const plain = heroStats(helm([]), hero(helm([]), 'bram')).hp;
+    const thick = helm([{ id: 'thickSkull', value: 10 }]);
+    expect(heroStats(thick, hero(thick, 'bram')).hp).toBe(Math.round(plain * 1.1));
+  });
+
   it('starts from class base stats, with the trait on top (Bram is resilient: +15% HP)', () => {
     const save = createInitialSave();
     expect(heroStats(save, hero(save, 'bram'))).toEqual({

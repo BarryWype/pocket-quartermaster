@@ -59,6 +59,21 @@ describe('placeStock', () => {
     expect(fresh[0].key).toBe('material:wood');
   });
 
+  it('takes a Haggler helmet\'s share off every price, counted once at its best', () => {
+    const haggling = (values: number[]): SaveData => {
+      const save = withGold(100);
+      const gear = values.map((value, i) => ({ uid: `h${i}`, itemId: 'hood1', rarity: 'uncommon' as const, roll: 8, affixes: [{ id: 'haggler', value }], rerolls: 0 }));
+      return { ...save, gear, heroes: save.heroes.map((hero, i) => (i < values.length ? { ...hero, equipment: { ...hero.equipment, helmet: `h${i}` } } : hero)) };
+    };
+    const price = (save: SaveData) => placeStock(save, spawnOf('sawmill'), now)[0].price;
+    const plain = price(withGold(100));
+    expect(price(haggling([10]))).toBe(Math.max(1, Math.round(plain * 0.9)));
+    expect(price(haggling([10, 5]))).toBe(Math.max(1, Math.round(plain * 0.9)));
+    const line = placeStock(haggling([10]), spawnOf('sawmill'), now)[0];
+    const bought = buy(haggling([10]), spawnOf('sawmill'), line.key, 1, position, now);
+    expect(bought.gold).toBe(100 - line.price);
+  });
+
   it('stocks the sawmill with wood at the config price', () => {
     const line = placeStock(withGold(100), spawnOf('sawmill'), now)[0];
     expect(line.kind).toBe('material');

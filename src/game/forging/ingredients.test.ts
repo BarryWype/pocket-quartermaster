@@ -14,10 +14,12 @@ const withMaterials = (counts: Record<string, number>, extra: Partial<SaveData> 
 const known = (ids: string[]) => [...createInitialSave().knownRecipes, ...ids];
 
 describe('ingredient affixes', () => {
-  it('gives a monster part its weapon affix on a weapon, its armour one on armour and off-hands', () => {
+  it('gives a monster part its weapon affix on a weapon, its armour one on armour and off-hands, its helmet one on helmets', () => {
     expect(ingredientAffixId('fangOrHorn', 'sword')).toBe('hunter');
     expect(ingredientAffixId('fangOrHorn', 'mail')).toBe('thickHide');
     expect(ingredientAffixId('fangOrHorn', 'shield')).toBe('thickHide');
+    expect(ingredientAffixId('fangOrHorn', 'hood')).toBe('predatorsEye');
+    expect(ingredientAffixId('ritualCandle', 'runeCirclet')).toBe('arcane');
   });
 });
 

@@ -19,6 +19,7 @@ import { guildBonus } from '../guild/guild';
 import { pickaxeTier } from '../gathering/gathering';
 import { addMaterials, removeMaterials } from '../inventory';
 import { makeGearPiece } from '../gear/make';
+import { rosterAffixBest } from '../gear/affixes';
 import { valuableSellPrice, todaysCollector } from '../loot/valuables';
 import { activeTip, grantTip, rollTip } from '../secrets/tips';
 import type { SaveData } from '../save';
@@ -177,7 +178,10 @@ export function placeStock(save: SaveData, spawn: PlaceSpawn, now: number): Stoc
         gear: makeGearPiece(`shop:${spawn.id}:${id}`, id, 'common'),
       };
     });
-  return [...stocked(), ...tools, ...weaknesses];
+  // A Haggler helmet anywhere in the roster takes its share off every price.
+  const haggle = rosterAffixBest(save, 'haggler') / 100;
+  const lines = [...stocked(), ...tools, ...weaknesses];
+  return haggle > 0 ? lines.map((line) => ({ ...line, price: Math.max(1, Math.round(line.price * (1 - haggle))) })) : lines;
 }
 
 /** How many of a line are still on the shelf, after this player's purchases. */

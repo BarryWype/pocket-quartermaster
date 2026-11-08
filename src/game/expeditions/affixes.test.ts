@@ -180,3 +180,77 @@ describe('gear affixes', () => {
     );
   });
 });
+
+describe('helmet affixes', () => {
+  it("Predator's eye sharpens crits against beasts only", () => {
+    const rules = { ...steady, maxRounds: 2 };
+    const dealt = (affixes: Record<string, number>, tags: BossDef['tags'] = ['beast']) =>
+      bossFight([member('a', affixes, { maxHp: 1e6 })], { tags }, rules).fight.dealt.a;
+    expect(dealt({})).toBeCloseTo(20, 5);
+    expect(dealt({ predatorsEye: 100 })).toBeCloseTo(2 * 10 * calm.critMultiplier, 5);
+    expect(dealt({ predatorsEye: 100 }, ['undead'])).toBeCloseTo(20, 5);
+  });
+
+  it('Far sight lets its wearer strike before a faster enemy in the first round', () => {
+    const rules = { ...steady, maxRounds: 1 };
+    const run = (affixes: Record<string, number>) => bossRun([member('a', affixes)], { hp: 10, damage: 150, speed: 8 }, rules);
+    expect(run({}).hp[0].hp).toBe(0);
+    expect(run({ farSight: 5 }).hp[0].hp).toBe(100);
+  });
+
+  it('Purifying cuts the poison on its wearer, like Antivenom', () => {
+    const poisoned = (affixes: Record<string, number>) =>
+      simulateRun([member('a', affixes, { maxHp: 1000, hp: 1000 })], dungeon({ damage: 0, hp: 1 }), 'seed', {
+        rules: { ...steady, maxRounds: 5 },
+        briefing: { threats: [{ id: 'poison', level: 1 }], restriction: null, opportunity: null },
+      }).hp[0].hp;
+    const lost = 1000 - poisoned({});
+    expect(1000 - poisoned({ purifying: 40 })).toBeCloseTo(lost * 0.6, 0);
+    expect(1000 - poisoned({ purifying: 40, antivenom: 60 })).toBe(0);
+  });
+
+  it('Steady head shrugs off enemy crits', () => {
+    const rules = { ...steady, enemyCritChance: 1, maxRounds: 1 };
+    const taken = (affixes: Record<string, number>) => bossFight([member('a', affixes)], { damage: 50 }, rules).fight.taken.a;
+    expect(taken({})).toBeCloseTo(50 * calm.critMultiplier, 5);
+    expect(taken({ steadyHead: 100 })).toBeCloseTo(50, 5);
+  });
+
+  it('Unafraid blunts hits from undead; Clear mind magic hits', () => {
+    const rules = { ...steady, maxRounds: 1 };
+    const taken = (boss: Partial<BossDef>, affixes: Record<string, number>) => bossFight([member('a', affixes)], boss, rules).fight.taken.a;
+    expect(taken({ damage: 50, tags: ['undead'] }, { unafraid: 20 })).toBeCloseTo(40, 5);
+    expect(taken({ damage: 50, tags: ['beast'] }, { unafraid: 20 })).toBeCloseTo(50, 5);
+    expect(taken({ damage: 50, damageType: 'magic' }, { clearMind: 10 })).toBeCloseTo(45, 5);
+    expect(taken({ damage: 50 }, { clearMind: 10 })).toBeCloseTo(50, 5);
+  });
+
+  it("a standing Commander lifts the whole party's hits, the best one counting", () => {
+    const rules = { ...steady, maxRounds: 2 };
+    const dealt = (commanders: number[]) =>
+      bossFight([member('a', {}, { maxHp: 1e6 }), ...commanders.map((value, i) => member(`c${i}`, { commander: value }, { maxHp: 1e6, power: 0 }))], {}, rules)
+        .fight.dealt.a;
+    expect(dealt([])).toBeCloseTo(20, 5);
+    expect(dealt([10])).toBeCloseTo(22, 5);
+    expect(dealt([10, 5])).toBeCloseTo(22, 5);
+  });
+
+  it('Focus lens makes the special stronger; Arcane gives it one more use', () => {
+    const rules = { ...steady, maxRounds: 2 };
+    const dealt = (affixes: Record<string, number>) =>
+      bossFight([member('a', affixes, { maxHp: 1e6, special: 'smite' })], { tags: ['undead'] }, rules).fight.dealt.a;
+    const base = dealt({});
+    // Smite (×4) in round 1, a plain hit in round 2.
+    expect(dealt({ focusLens: 25 }) - base).toBeCloseTo(40 * 0.25, 5);
+    expect(dealt({ arcane: 1 }) - base).toBeCloseTo(40 - 10, 5);
+  });
+
+  it("Dragon's gaze makes its wearer a less likely target", () => {
+    const rules = { ...steady, maxRounds: 10 };
+    const taken = (affixes: Record<string, number>) =>
+      bossFight([member('a', {}, { maxHp: 1e6 }), member('b', affixes, { maxHp: 1e6 })], { damage: 1 }, rules).fight.taken;
+    expect(taken({}).b).toBeGreaterThan(0);
+    expect(taken({ dragonsGaze: 100 }).b ?? 0).toBe(0);
+  });
+});
+

@@ -202,7 +202,7 @@ function migrateGear(old: LegacyGear): {
     (legacy) => legacy.componentId === old.component,
   );
   const slot = affixSlotOf((item as GearDef).gearType);
-  if (componentAffix && slot !== "any") forced.push({ id: componentAffix[slot] });
+  if (componentAffix && slot !== "any" && slot !== "helmet") forced.push({ id: componentAffix[slot] });
   let refund: Element | undefined;
   if (element && item.slot === "weapon")
     forced.push({ id: `infused${capitalised(element)}` });
@@ -416,7 +416,7 @@ function migrateAffixes(piece: GearInstance): GearInstance {
   const converted = piece.affixes.map((affix) => {
     if (!isLegacyAffix(affix.id)) return affix;
     const legacy = LEGACY_KEYWORD_AFFIXES[affix.id];
-    if (!legacy || slot === "any" || taken.has(legacy[slot])) return null;
+    if (!legacy || slot === "any" || slot === "helmet" || taken.has(legacy[slot])) return null;
     const target = affixById[legacy[slot]];
     taken.add(target.id);
     const share = legacy.range

@@ -31,8 +31,8 @@ describe('affix coverage', () => {
     }
   });
 
-  it('offers every gear type an Infused or Warding affix per element', () => {
-    for (const gearType of gearTypes) {
+  it('offers every gear type but helmets an Infused or Warding affix per element', () => {
+    for (const gearType of gearTypes.filter((type) => gearProfiles[type].slot !== 'helmet')) {
       for (const element of ELEMENTS) expect(affixById[stoneAffixId(gearType, element)]).toBeDefined();
     }
   });
@@ -41,6 +41,14 @@ describe('affix coverage', () => {
     for (const gearType of ['crossbow', 'throwing', 'totem', 'runestone', 'flasks'] as GearType[]) {
       expect(affixSlotOf(gearType)).toBe('weapon');
       expect(stoneAffixId(gearType, 'fire')).toBe('infusedFire');
+    }
+  });
+
+  it('rolls only the helmet affixes on helmets: no walking affixes, no stones', () => {
+    for (const gearType of gearTypes.filter((type) => gearProfiles[type].slot === 'helmet')) {
+      const pool = affixPool({ itemId: gearId(gearType, 1) });
+      expect(pool).toHaveLength(12);
+      expect(pool.every((affix) => affix.slot === 'helmet' && affix.source.kind === 'part')).toBe(true);
     }
   });
 });

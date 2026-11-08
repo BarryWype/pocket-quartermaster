@@ -23,6 +23,18 @@ dragonSlayer,Dragon-slayer,part:scale,dragon,offensive,More damage to dragons,+1
 dragonhide,Dragonhide,part:scale,dragon,defensive,A little resistance to every element,+5–12%,
 opener,Opener,part:ritualCandle,caster,offensive,+Crit in the first round of each fight,+10–25%,
 nullAffix,Null,part:ritualCandle,caster,defensive,Less damage from casters,−15–30%,
+predatorsEye,Predator's eye,part:fangOrHorn,beast,helmet,+Crit against beasts,+10–25%,
+farSight,Far sight,part:feather,bird,helmet,+Speed in the first round of each fight,+2–5,
+purifying,Purifying,part:venomSac,vermin,helmet,Poison on the wearer wears off faster,−20–40% duration,Adds to Antivenom
+steadyHead,Steady head,part:chitin,carapace,helmet,Enemies crit the wearer less often,−30–60%,Heroes are never staggered or stunned: it resists crushing blows instead
+unafraid,Unafraid,part:graveDust,undead,helmet,Less damage from undead,−10–25%,
+clearMind,Clear mind,part:ectoplasm,spirit,helmet,Less damage from magic attacks,−5–15%,
+haggler,Haggler,part:goblinEar,goblinoid,helmet,Lower shop prices,−5–12%,Counts once per roster at its best value
+commander,Commander,part:tatteredInsignia,humanoid,helmet,More party damage while the wearer stands,+3–8%,Counts once per party at its best value
+thickSkull,Thick skull,part:bruteBlood,brute,helmet,+Max HP,+4–10%,
+focusLens,Focus lens,part:cog,construct,helmet,"The wearer's special hits, heals and lands more",+10–25%,"Damage shares, heals and chances (up to sure)"
+dragonsGaze,Dragon's gaze,part:scale,dragon,helmet,Enemies aim at the wearer less often,−15–30%,
+arcane,Arcane,part:ritualCandle,caster,helmet,+1 special use per expedition,+1–1,Rare: a quarter of the usual chance on loot and rerolls
 infused,Infused <element>,elemental stone,element,offensive,Hits deal that element (with elemental advantage),fixed,Replaces infusion; one per element (fire water stone electric grass)
 warding,<Element> warding,elemental stone,element,defensive,Resistance against that element,+15–30%,One per element
 foragers,Forager's,loot only,walking,any,Chance of an extra herb or ore when gathering,5–15%,Only while worn; counts once per roster at its best value

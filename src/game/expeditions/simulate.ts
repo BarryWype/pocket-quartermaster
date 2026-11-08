@@ -781,12 +781,13 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     },
   });
 
-  /** Uses each hero's special has left in the run once its own are spent. */
+  /** Uses each hero's special has left in the run once its own are spent: a family's (Rally 3), then an Arcane helmet's. */
   const bonusUses = new Map<string, number>();
-  if (hooks.runStart.length > 0) {
-    const start = { specialUses: 0 };
-    for (const hook of hooks.runStart) hook(start);
-    for (const hero of heroes) if (start.specialUses > 0) bonusUses.set(hero.member.heroId, start.specialUses);
+  const start = { specialUses: 0 };
+  for (const hook of hooks.runStart) hook(start);
+  for (const hero of heroes) {
+    const uses = start.specialUses + affixTotal(hero.member, 'specialUses');
+    if (uses > 0) bonusUses.set(hero.member.heroId, uses);
   }
 
   const heal = (hero: HeroState, share: number, result: EncounterResult) => {
@@ -1076,6 +1077,9 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       // A damageVs affix lifts the hit against a foe it names.
       const vs = affixTotal(hero.member, 'damageVs', { tags });
       if (vs > 0) bonus *= 1 + vs / 100;
+      // A standing Commander lifts the whole party's hits; the best one counts.
+      const command = Math.max(0, ...alive().map((h) => affixTotal(h.member, 'partyDamage')));
+      if (command > 0) bonus *= 1 + command / 100;
       // Sacred ground dulls every weapon it can see.
       if (restriction === 'sacredGround' && !hero.member.concealed && !ignores(hero, 'sacredGround')) {
         bonus *= restrictionRules.sacredGround;
@@ -1130,7 +1134,9 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       };
       // An Aimed strike makes the hero's next hit a sure crit; an Opener affix sharpens the first round of the fight.
       const opener = currentRound === 1 ? affixTotal(hero.member, 'firstRoundCrit') / 100 : 0;
-      const chance = critChance ?? (sureCrits.delete(id) ? 1 : hero.member.crit / 100 + critBonus + opener + (attack?.critAdd ?? 0));
+      // A Predator's eye sharpens the hero's crits against the foes it names.
+      const predator = affixTotal(hero.member, 'critVs', { tags }) / 100;
+      const chance = critChance ?? (sureCrits.delete(id) ? 1 : hero.member.crit / 100 + critBonus + opener + predator + (attack?.critAdd ?? 0));
       const hit = roll(physical + elementalPart, chance, onCrit, duel?.multiplier ?? critDamage?.effect.multiplier);
       return {
         damage: hit * fortune * bonus * hero.fed * multiplier * (ctx.party ? ctx.party.multiplier : 1) * (attack?.multiplier ?? 1),
@@ -1146,13 +1152,16 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
      */
     const fireSpecial = (hero: HeroState, def: SpecialDef, opts: { target?: EnemyState; victim?: HeroState } = {}): boolean => {
       const id = hero.member.heroId;
+      // A Focus lens makes the special hit, heal and land more: its shares, heals and chances grow (chances up to sure).
+      const lens = 1 + affixTotal(hero.member, 'specialPower') / 100;
+      const sure = (chance: number) => Math.min(1, chance * lens);
       const log = (extra: Partial<AbilityEffect> = {}) => result.effects.push({ heroId: id, key: 'special', specialId: def.id, ...extra });
       switch (def.effect.kind) {
         case 'allEnemies': {
           const foes = living();
           if (foes.length === 0) return false;
           for (const foe of foes) {
-            const damage = normalHit(hero, foe, { elemental: def.effect.elemental, multiplier: def.effect.share }).damage;
+            const damage = normalHit(hero, foe, { elemental: def.effect.elemental, multiplier: def.effect.share * lens }).damage;
             foe.hp -= damage;
             add(result.dealt, id, damage);
           }
@@ -1167,7 +1176,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           let foe = opts.target ?? living()[0];
           if (!foe) return false;
           for (let i = 0; i < def.effect.hits && foe; i++) {
-            const damage = normalHit(hero, foe, { multiplier: def.effect.share }).damage;
+            const damage = normalHit(hero, foe, { multiplier: def.effect.share * lens }).damage;
             foe.hp -= damage;
             add(result.dealt, id, damage);
             if (foe.hp <= 0) foe = living()[0];
@@ -1179,7 +1188,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           const foe = opts.target ?? living()[0];
           if (!foe) return false;
           // The damage is computed once, when applied.
-          ctx.dots.push({ heroId: id, enemy: foe, damage: normalHit(hero, foe, { multiplier: def.effect.share }).damage, rounds: def.effect.rounds });
+          ctx.dots.push({ heroId: id, enemy: foe, damage: normalHit(hero, foe, { multiplier: def.effect.share * lens }).damage, rounds: def.effect.rounds });
           log();
           break;
         }
@@ -1198,7 +1207,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
             log({ missed: true });
             break;
           }
-          const damage = normalHit(hero, foe, { multiplier: e.multiplier }).damage;
+          const damage = normalHit(hero, foe, { multiplier: e.multiplier * lens }).damage;
           foe.hp -= damage;
           add(result.dealt, id, damage);
           log();
@@ -1221,7 +1230,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           ).filter((foe): foe is EnemyState => !!foe && foe.hp > 0);
           if (foes.length === 0) return false;
           // The foes may shake it off: the use is spent either way.
-          if (specialRng.chance(e.chance)) foes.forEach((foe) => (foe.staggered = true));
+          if (specialRng.chance(sure(e.chance))) foes.forEach((foe) => (foe.staggered = true));
           else break;
           log(e.target === 'all' ? { count: foes.length } : {});
           break;
@@ -1256,19 +1265,19 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           const targets =
             e.target === 'self' ? [hero] : e.target === 'party' ? alive() : [alive().reduce((low, h) => (h.hp / h.member.maxHp < low.hp / low.member.maxHp ? h : low))];
           if (!targets.some((h) => h.hp < h.member.maxHp)) return false;
-          targets.forEach((h) => heal(h, e.pct, result));
+          targets.forEach((h) => heal(h, e.pct * lens, result));
           log(e.target === 'weakest' ? { allyId: targets[0].member.heroId } : {});
           break;
         }
         case 'healOverTime':
-          ctx.hot = { pct: def.effect.pct, rounds: def.effect.rounds };
+          ctx.hot = { pct: def.effect.pct * lens, rounds: def.effect.rounds };
           log();
           break;
         case 'revive': {
           const victim = opts.victim;
           if (!victim) return false;
           // The prayer may go unanswered: the use is spent either way.
-          if (!specialRng.chance(def.effect.chance)) break;
+          if (!specialRng.chance(sure(def.effect.chance))) break;
           victim.hp = Math.max(1, Math.round(def.effect.pct * victim.member.maxHp));
           victim.out = false;
           log({ allyId: victim.member.heroId });
@@ -1285,7 +1294,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           const foe = e.tags ? foes.find((x) => enemyTags(x.def).some((tag) => e.tags!.includes(tag))) : foes.length > 0 ? strongest(foes) : undefined;
           if (!foe) return false;
           // The foe may refuse: the use is spent either way.
-          if (!specialRng.chance(e.chance)) break;
+          if (!specialRng.chance(sure(e.chance))) break;
           foe.hp = 0;
           log();
           break;
@@ -1294,14 +1303,15 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           const foe = opts.target ?? living()[0];
           if (!foe) return false;
           // The summon's damage is fixed at summoning, and never crits.
-          ctx.summons.push({ heroId: id, ...summoned(hero, normalHit(hero, foe, { critChance: 0, multiplier: def.effect.share }).damage, def.effect.rounds) });
+          ctx.summons.push({ heroId: id, ...summoned(hero, normalHit(hero, foe, { critChance: 0, multiplier: def.effect.share * lens }).damage, def.effect.rounds) });
           log();
           break;
         }
       }
       if (!ownUseLeft(hero, def)) {
-        bonusUses.set(id, bonusUses.get(id)! - 1);
-        family.log('rally3', id);
+        const left = bonusUses.get(id)! - 1;
+        bonusUses.set(id, left);
+        if (left >= affixTotal(hero.member, 'specialUses')) family.log('rally3', id);
       }
       if (def.uses === 'perFight') ctx.spent.add(id);
       if (def.uses === 'perExpedition') specialRunSpent.add(id);
@@ -1513,8 +1523,10 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         const taunting = ctx.taunt && living.find((h) => h.member.heroId === ctx.taunt!.heroId);
         const spared = ctx.shield && living.length > 1 ? living.reduce((low, h) => (h.hp / h.member.maxHp < low.hp / low.member.maxHp ? h : low)) : undefined;
         const pool = spared ? living.filter((h) => h !== spared) : living;
+        // A Dragon's gaze makes its wearer a less likely target.
         const threatOf = (h: HeroState) =>
           h.member.threat *
+          (1 - affixTotal(h.member, 'targetWeight') / 100) *
           (has(h, 'guard', attackerTags)
             ? isStrong(h, 'guard', attackerTags)
               ? gearKeywordRules.strong.guard.targetWeight
@@ -1564,7 +1576,9 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
             continue;
           }
           const element = enemyElement(enemy.def);
-          let incoming = roll(sweeping ? base * rules.sweepShare : base) * elementFactor(hero, element);
+          // A Steady head shrugs off some of the crushing blows.
+          const steady = 1 - affixTotal(hero.member, 'critTaken') / 100;
+          let incoming = roll(sweeping ? base * rules.sweepShare : base, rules.enemyCritChance * steady) * elementFactor(hero, element);
           // The Element threat bites heroes without Resist.
           if (element !== undefined && element === elementThreat?.element && !hero.member.resists.includes(element)) {
             incoming *= fightsSeen === 0 ? elementalDamageFirst : elementalDamage;
@@ -1749,11 +1763,13 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         const firstSet = new Set(
           alive().filter((h) => has(h, 'reach', anyTags) && round <= (isStrong(h, 'reach', anyTags) ? gearKeywordRules.strong.reach.rounds : 1)),
         );
-        roundSpeed = new Map(alive().map((h) => [h, h.member.speed]));
+        // A Far sight quickens its wearer in each fight's first round.
+        const speedNow = (h: HeroState) => h.member.speed + (round === 1 ? affixTotal(h.member, 'firstRoundSpeed') : 0);
+        roundSpeed = new Map(alive().map((h) => [h, speedNow(h)]));
         if (hooks.turnOrder.length > 0) {
           const fastestNow = Math.max(...enemies.filter((e) => e.hp > 0).map((e) => e.def.speed));
           for (const hero of alive()) {
-            const order = { ...family, round, hero, speed: hero.member.speed, first: firstSet.has(hero), fastest: fastestNow, ambushed };
+            const order = { ...family, round, hero, speed: speedNow(hero), first: firstSet.has(hero), fastest: fastestNow, ambushed };
             for (const hook of hooks.turnOrder) hook(order);
             roundSpeed.set(hero, order.speed);
             if (order.first) firstSet.add(hero);
@@ -1855,8 +1871,8 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           (e): e is WornRelicEffect & { effect: Extract<RelicEffect, { kind: 'penaltyCut' }> } =>
             e.effect.kind === 'penaltyCut' && e.effect.threat === penalty.threatId,
         );
-        // An Antivenom affix makes the poison wear off faster on its wearer: a smaller share.
-        const antivenom = 1 - affixTotal(hero.member, 'dotDuration') / 100;
+        // An Antivenom or Purifying affix makes the poison wear off faster on its wearer: a smaller share.
+        const antivenom = Math.max(0, 1 - affixTotal(hero.member, 'dotDuration') / 100);
         hurt(hero, penalty.pct * hero.member.maxHp * (cut?.effect.multiplier ?? 1) * antivenom, result);
         if (cut) noteRelic(result, hero.member.heroId, cut.relicId);
       }

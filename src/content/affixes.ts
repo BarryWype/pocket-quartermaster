@@ -7,7 +7,7 @@ import { frElementQualifiers } from '@/content/fr/names';
 // The affix catalogue of doc/design/gear/affixes.csv: what a monster part, an
 // elemental stone or lucky looting adds to a piece of gear.
 
-export type AffixSlot = 'weapon' | 'armourOffhand' | 'any';
+export type AffixSlot = 'weapon' | 'armourOffhand' | 'helmet' | 'any';
 export type AffixSource =
   | { kind: 'part'; partId: string }
   | { kind: 'element'; element: Element }
@@ -20,7 +20,10 @@ export type AffixEffect =
   | { kind: 'magicDamageTaken' } | { kind: 'gold' } | { kind: 'xp' } | { kind: 'healOnKill' }
   | { kind: 'potionHealing' } | { kind: 'salvageValue' } | { kind: 'elementResistAll' } | { kind: 'firstRoundCrit' }
   | { kind: 'infused'; element: Element } | { kind: 'warding'; element: Element }
-  | { kind: 'forage' } | { kind: 'gatherRadius' } | { kind: 'pocketYield' };
+  | { kind: 'forage' } | { kind: 'gatherRadius' } | { kind: 'pocketYield' }
+  // The helmet's "mind" affixes.
+  | { kind: 'critVs'; tags: Tag[] } | { kind: 'firstRoundSpeed' } | { kind: 'critTaken' } | { kind: 'shopPrices' }
+  | { kind: 'partyDamage' } | { kind: 'maxHp' } | { kind: 'specialPower' } | { kind: 'targetWeight' } | { kind: 'specialUses' };
 export type AffixDef = {
   id: string;
   name: string;
@@ -34,6 +37,8 @@ export type AffixDef = {
   unit?: 'pct' | 'flat' | 'm';
   /** Counts once per party (gold) or once per roster (walking), at its best value. */
   scope?: 'party' | 'roster';
+  /** Relative chance on a random roll (loot, rerolls); 1 when absent. */
+  weight?: number;
 };
 
 export const affixes: AffixDef[] = [
@@ -302,6 +307,143 @@ export const affixes: AffixDef[] = [
     effect: { kind: 'damageFrom', tags: ['caster'] },
     range: { min: 15, max: 30 },
     unit: 'pct',
+  },
+
+  // Helmets, the "mind" slot: each monster part's third affix (doc/design/families/, Helmets).
+  {
+    id: 'predatorsEye',
+    name: "Predator's eye",
+    nameFr: 'Œil de prédateur',
+    group: 'beast',
+    source: { kind: 'part', partId: 'fangOrHorn' },
+    slot: 'helmet',
+    effect: { kind: 'critVs', tags: ['beast'] },
+    range: { min: 10, max: 25 },
+    unit: 'pct',
+  },
+  {
+    id: 'farSight',
+    name: 'Far sight',
+    nameFr: 'Vue perçante',
+    group: 'bird',
+    source: { kind: 'part', partId: 'feather' },
+    slot: 'helmet',
+    effect: { kind: 'firstRoundSpeed' },
+    range: { min: 2, max: 5 },
+    unit: 'flat',
+  },
+  {
+    id: 'purifying',
+    name: 'Purifying',
+    nameFr: 'Purifiant',
+    group: 'vermin',
+    source: { kind: 'part', partId: 'venomSac' },
+    slot: 'helmet',
+    effect: { kind: 'dotDuration' },
+    range: { min: 20, max: 40 },
+    unit: 'pct',
+  },
+  {
+    id: 'steadyHead',
+    name: 'Steady head',
+    nameFr: 'Tête froide',
+    group: 'carapace',
+    source: { kind: 'part', partId: 'chitin' },
+    slot: 'helmet',
+    effect: { kind: 'critTaken' },
+    range: { min: 30, max: 60 },
+    unit: 'pct',
+  },
+  {
+    id: 'unafraid',
+    name: 'Unafraid',
+    nameFr: 'Intrépide',
+    group: 'undead',
+    source: { kind: 'part', partId: 'graveDust' },
+    slot: 'helmet',
+    effect: { kind: 'damageFrom', tags: ['undead'] },
+    range: { min: 10, max: 25 },
+    unit: 'pct',
+  },
+  {
+    id: 'clearMind',
+    name: 'Clear mind',
+    nameFr: 'Esprit clair',
+    group: 'spirit',
+    source: { kind: 'part', partId: 'ectoplasm' },
+    slot: 'helmet',
+    effect: { kind: 'magicDamageTaken' },
+    range: { min: 5, max: 15 },
+    unit: 'pct',
+  },
+  {
+    id: 'haggler',
+    name: 'Haggler',
+    nameFr: 'Marchandeur',
+    group: 'goblinoid',
+    source: { kind: 'part', partId: 'goblinEar' },
+    slot: 'helmet',
+    effect: { kind: 'shopPrices' },
+    range: { min: 5, max: 12 },
+    unit: 'pct',
+    scope: 'roster',
+  },
+  {
+    id: 'commander',
+    name: 'Commander',
+    nameFr: 'Commandant',
+    group: 'humanoid',
+    source: { kind: 'part', partId: 'tatteredInsignia' },
+    slot: 'helmet',
+    effect: { kind: 'partyDamage' },
+    range: { min: 3, max: 8 },
+    unit: 'pct',
+    scope: 'party',
+  },
+  {
+    id: 'thickSkull',
+    name: 'Thick skull',
+    nameFr: 'Crâne épais',
+    group: 'brute',
+    source: { kind: 'part', partId: 'bruteBlood' },
+    slot: 'helmet',
+    effect: { kind: 'maxHp' },
+    range: { min: 4, max: 10 },
+    unit: 'pct',
+  },
+  {
+    id: 'focusLens',
+    name: 'Focus lens',
+    nameFr: 'Lentille de focalisation',
+    group: 'construct',
+    source: { kind: 'part', partId: 'cog' },
+    slot: 'helmet',
+    effect: { kind: 'specialPower' },
+    range: { min: 10, max: 25 },
+    unit: 'pct',
+  },
+  {
+    id: 'dragonsGaze',
+    name: "Dragon's gaze",
+    nameFr: 'Regard du dragon',
+    group: 'dragon',
+    source: { kind: 'part', partId: 'scale' },
+    slot: 'helmet',
+    effect: { kind: 'targetWeight' },
+    range: { min: 15, max: 30 },
+    unit: 'pct',
+  },
+  {
+    id: 'arcane',
+    name: 'Arcane',
+    nameFr: 'Arcanique',
+    group: 'caster',
+    source: { kind: 'part', partId: 'ritualCandle' },
+    slot: 'helmet',
+    effect: { kind: 'specialUses' },
+    range: { min: 1, max: 1 },
+    unit: 'flat',
+    weight: 0.25,
   },
 
   // Elemental stones: Infused on offensive pieces, Warding on defensive ones.

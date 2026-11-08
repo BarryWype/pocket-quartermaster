@@ -1,5 +1,5 @@
 import { gearRules, type Rarity } from '@/content/gear';
-import { affixById, affixes, type AffixDef } from '@/content/affixes';
+import { affixById, affixes, type AffixDef, type AffixSlot } from '@/content/affixes';
 import { GEAR_SLOTS, gearProfiles } from '@/content/equipment';
 import { itemById } from '@/content/lookup';
 
@@ -20,36 +20,40 @@ export function affixValue(rng: Rng, affix: AffixDef): number {
 /**
  * Which affix pool a gear type rolls from: 'weapon' (the offensive pool) for
  * weapons and damage off-hands, 'armourOffhand' (the defensive pool) for
- * armour and non-damage off-hands, 'any' for trinkets.
+ * armour and non-damage off-hands, 'helmet' for helmets, 'any' for trinkets.
  */
-export function affixSlotOf(gearType: GearType | undefined): 'weapon' | 'armourOffhand' | 'any' {
+export function affixSlotOf(gearType: GearType | undefined): AffixSlot {
   if (!gearType) return 'any';
+  if (GEAR_SLOTS[gearType] === 'helmet') return 'helmet';
   return GEAR_SLOTS[gearType] === 'weapon' || gearProfiles[gearType].damageStat ? 'weapon' : 'armourOffhand';
 }
 
 /**
  * The affixes allowed on a piece: offensive pieces share the weapon affixes,
- * defensive ones the armour/off-hand ones, and every piece takes the "any"
- * pool (trinkets only that one). Element affixes never roll: they come only
- * from elemental stones.
+ * defensive ones the armour/off-hand ones, and every piece but a helmet takes
+ * the "any" pool (trinkets only that one). Element affixes never roll: they
+ * come only from elemental stones.
  */
 export function affixPool(piece: GearInstance | { itemId: string; rarity?: Rarity }): AffixDef[] {
   const item = itemById[piece.itemId] as GearDef;
   const gearType = item.gearType as GearType | undefined;
   const affixSlot = affixSlotOf(gearType);
-  return affixes.filter((affix) => affix.source.kind !== 'element' && (affix.slot === 'any' || affix.slot === affixSlot));
+  return affixes.filter(
+    (affix) => affix.source.kind !== 'element' && (affix.slot === affixSlot || (affix.slot === 'any' && affixSlot !== 'helmet')),
+  );
 }
 
 /**
  * `count` distinct affixes from `pool`, never ones the piece already carries,
- * each with a rolled value. Even pick unless `weightOf` gives weights.
+ * each with a rolled value, picked by each affix's weight unless `weightOf`
+ * gives others.
  */
 export function rollAffixes(
   rng: Rng,
   piece: Pick<GearInstance, 'itemId' | 'rarity' | 'affixes'>,
   count: number,
   pool: AffixDef[],
-  weightOf: (affix: AffixDef) => number = () => 1,
+  weightOf: (affix: AffixDef) => number = (affix) => affix.weight ?? 1,
 ): { id: string; value: number }[] {
   const taken = new Set(piece.affixes.map((affix) => affix.id));
   const rolled: { id: string; value: number }[] = [];
