@@ -86,7 +86,16 @@ const AFFINITY_COLUMNS = [
   'Mail',
   'Leather',
   'Robes',
+  'Great helm',
+  'Sallet',
+  'Hood',
+  'Plague mask',
+  'Rune circlet',
 ] as const;
+
+/** The type id of an affinity column: its lowercased name, or the helmet type it names. */
+const affinityType = (column: string) =>
+  ({ 'Great helm': 'greatHelm', 'Plague mask': 'plagueMask', 'Rune circlet': 'runeCirclet' })[column] ?? column.toLowerCase();
 
 /** Splits a CSV line into cells, keeping quoted fields with commas in one cell. */
 function parseCsvLine(line: string): string[] {
@@ -146,7 +155,7 @@ describe('heroClasses matches classes.csv', () => {
       const affinityRow = affinities.get(row.Class);
       expect(affinityRow).toBeDefined();
       const expected = Object.fromEntries(
-        AFFINITY_COLUMNS.map((column) => [column.toLowerCase(), affinityRow![column].toLowerCase()]),
+        AFFINITY_COLUMNS.map((column) => [affinityType(column), affinityRow![column].toLowerCase()]),
       );
       expect({ class: row.Class, ...classAffinities[CLASS_IDS[row.Class]] }).toEqual({ class: row.Class, ...expected });
     }

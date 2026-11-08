@@ -11,7 +11,7 @@ import { colors } from '@/theme';
 import { FamilyTag } from './FamilyTag';
 import { Text } from './Text';
 
-/** The weapon and armour types a class has at this affinity, by name. */
+/** The weapon, armour and helmet types a class has at this affinity, by name. */
 const typesAt = (classId: HeroClassId, affinity: Affinity) =>
   (Object.entries(classAffinities[classId]) as [WeaponType | ArmourType, Affinity][])
     .filter(([, a]) => a === affinity)

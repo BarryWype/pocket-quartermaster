@@ -115,28 +115,39 @@ describe('no class anchors its own family alone', () => {
     }
   });
 
-  test('class tag plus gear tags of its own family is at most 3 in any gear it can use', () => {
+  // A matching helmet takes some classes to 4 (doc/design/families/, Helmets); the balance pass may raise the thresholds.
+  test('class tag plus gear tags of its own family is at most 4 in any gear it can use', () => {
     const types = Object.keys(gearProfiles) as GearType[];
     const offhands = types.filter((type) => gearProfiles[type].slot === 'offhand');
     const broken: string[] = [];
     for (const classId of Object.keys(heroClasses) as HeroClassId[]) {
       const own = heroClasses[classId].familyTag;
       const affinities = classAffinities[classId];
-      const usable = (slot: 'weapon' | 'armor') =>
+      const usable = (slot: 'weapon' | 'armor' | 'helmet') =>
         types.filter((type) => gearProfiles[type].slot === slot && affinities[type as keyof typeof affinities] !== 'unfit');
       for (const weapon of usable('weapon')) {
         for (const armour of usable('armor')) {
-          const gear = gearProfiles[weapon].twoHanded ? [[weapon, armour]] : offhands.map((offhand) => [weapon, armour, offhand]);
-          for (const set of gear) {
-            const tags = (type: GearType) =>
-              (gearProfiles[type].familyTag === own ? (gearProfiles[type].twoHanded ? 2 : 1) : 0) + (gearProfiles[type].secondFamily === own ? 1 : 0);
-            const count = 1 + set.reduce((sum, type) => sum + tags(type), 0);
-            if (count > 3) broken.push(`${classId} in ${set.join(', ')}: ${count} ${own}`);
+          for (const helmet of usable('helmet')) {
+            const gear = gearProfiles[weapon].twoHanded ? [[weapon, armour, helmet]] : offhands.map((offhand) => [weapon, armour, helmet, offhand]);
+            for (const set of gear) {
+              const tags = (type: GearType) =>
+                (gearProfiles[type].familyTag === own ? (gearProfiles[type].twoHanded ? 2 : 1) : 0) + (gearProfiles[type].secondFamily === own ? 1 : 0);
+              const count = 1 + set.reduce((sum, type) => sum + tags(type), 0);
+              if (count > 4) broken.push(`${classId} in ${set.join(', ')}: ${count} ${own}`);
+            }
           }
         }
       }
     }
     expect(broken).toEqual([]);
+  });
+
+  test('every class can wear at least three helmet types', () => {
+    const helmets = (Object.keys(gearProfiles) as GearType[]).filter((type) => gearProfiles[type].slot === 'helmet');
+    for (const classId of Object.keys(heroClasses) as HeroClassId[]) {
+      const affinities = classAffinities[classId] as Partial<Record<GearType, string>>;
+      expect([classId, helmets.filter((type) => affinities[type] !== 'unfit').length >= 3]).toEqual([classId, true]);
+    }
   });
 });
 

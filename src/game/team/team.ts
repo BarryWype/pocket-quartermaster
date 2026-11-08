@@ -119,8 +119,8 @@ export const hasPotionSlot = (hero: HeroState) => heroClasses[hero.classId].abil
 /** Favoured, usable or unfit: weapons, armour and helmets by class, off-hands and trinkets always usable. */
 export function affinityOf(classId: HeroState['classId'], gearType: GearType | undefined): Affinity {
   if (!gearType) return 'usable';
-  const table = classAffinities[classId] as Partial<Record<WeaponType | ArmourType, Affinity>>;
-  return table[gearType as WeaponType | ArmourType] ?? 'usable';
+  const table = classAffinities[classId] as Partial<Record<WeaponType | ArmourType | HelmetType, Affinity>>;
+  return table[gearType as WeaponType | ArmourType | HelmetType] ?? 'usable';
 }
 
 /**

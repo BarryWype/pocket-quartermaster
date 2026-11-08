@@ -7,6 +7,7 @@ import { relics } from '@/content/loot/relics';
 import type { GearDef, GearInstance, HeroClassId, HeroState } from '@/game/types';
 
 import { createInitialSave } from '../save';
+import { equip, unequip } from '../team/team';
 
 import { activeFamilies, bestPartyCounts, familyLevel, gearFamilyTags, heroFamilyTags, partyFamilies } from './families';
 
@@ -24,7 +25,7 @@ const piece = (uid: string, itemId: string, extra: Partial<GearInstance> = {}): 
 function saveWith(hero: HeroState, gear: GearInstance[]) {
   for (const g of gear) {
     const slot = itemById[g.itemId].slot;
-    if (slot === 'weapon' || slot === 'armor' || slot === 'offhand' || slot === 'trinket') {
+    if (slot === 'weapon' || slot === 'armor' || slot === 'helmet' || slot === 'offhand' || slot === 'trinket') {
       hero.equipment[slot] = g.uid;
     }
   }
@@ -51,6 +52,15 @@ describe('heroFamilyTags', () => {
       if (profile.secondFamily) expected[profile.secondFamily] = (expected[profile.secondFamily] ?? 0) + 1;
       expect(heroFamilyTags(save, save.heroes[0])).toEqual(expected);
     }
+  });
+
+  test('an equipped helmet counts its tag, for the hero and the party', () => {
+    const hero = newHero('h', 'H', 'warrior', 'resilient');
+    const save = equip({ ...createInitialSave(), heroes: [hero], gear: [piece('g1', 'sallet1')] }, 'h', 'helmet', 'g1');
+    expect(save.heroes[0].equipment.helmet).toBe('g1');
+    expect(heroFamilyTags(save, save.heroes[0])).toEqual({ bulwark: 1, watch: 1 });
+    expect(partyFamilies(save, ['h'])).toEqual({ bulwark: 1, watch: 1 });
+    expect(heroFamilyTags(unequip(save, 'h', 'helmet'), hero)).toEqual({ bulwark: 1 });
   });
 
   test('a trinket and a work tool contribute nothing', () => {

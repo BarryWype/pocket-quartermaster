@@ -34,9 +34,9 @@ describe('every threat family has an early answer', () => {
   });
 });
 
-/** Every way one starting hero can dress from these gear types (no unfit weapon or armour), as family tags. */
+/** Every way one starting hero can dress from these gear types (no unfit weapon, armour or helmet), as family tags. */
 function outfits(hero: HeroState, types: GearType[]): HeroFamilyTag[][] {
-  const of = (slot: 'weapon' | 'armor' | 'offhand') => types.filter((t) => gearProfiles[t].slot === slot && usable(hero.classId, t));
+  const of = (slot: 'weapon' | 'armor' | 'helmet' | 'offhand') => types.filter((t) => gearProfiles[t].slot === slot && usable(hero.classId, t));
   const tags = (picked: (GearType | null)[]): HeroFamilyTag[] => [
     { family: heroClasses[hero.classId].familyTag, count: 1, source: 'class' },
     ...picked.flatMap((type) => (type ? gearFamilyTags({ gearType: type }).map((t) => ({ family: t.family, count: t.count, source: 'gear' as const })) : [])),
@@ -44,8 +44,10 @@ function outfits(hero: HeroState, types: GearType[]): HeroFamilyTag[][] {
   const result: HeroFamilyTag[][] = [];
   for (const weapon of [null, ...of('weapon')]) {
     for (const armour of [null, ...of('armor')]) {
-      const offhands = weapon && gearProfiles[weapon].twoHanded ? [null] : [null, ...of('offhand')];
-      for (const offhand of offhands) result.push(tags([weapon, armour, offhand]));
+      for (const helmet of [null, ...of('helmet')]) {
+        const offhands = weapon && gearProfiles[weapon].twoHanded ? [null] : [null, ...of('offhand')];
+        for (const offhand of offhands) result.push(tags([weapon, armour, helmet, offhand]));
+      }
     }
   }
   return result;
