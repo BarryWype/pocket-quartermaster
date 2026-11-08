@@ -10,6 +10,8 @@ import type { FamilyId } from '@/content/families';
   slot: 'weapon' | 'armor' | 'offhand';
   /** The team tag the gear type contributes (see doc/design/families/item-tags.csv). */
   familyTag: FamilyId;
+  /** A one-handed weapon's second tag, of another family (column `second`). */
+  secondFamily?: FamilyId;
   emoji: string;
   damageStat?: DamageStat | 'wielder';
   twoHanded?: boolean;
@@ -53,23 +55,23 @@ export const GEAR_SLOTS: Record<GearType, 'weapon' | 'armor' | 'offhand'> = {
 };
 
 export const gearProfiles: Record<GearType, GearProfile> = {
-  sword: { familyTag: 'rally', slot: 'weapon', emoji: '🗡️', damageStat: 'power', extras: { crit: 5 }, keywords: ['parry'], shares: { power: 1 } },
-  axe: { familyTag: 'bloodrage', slot: 'weapon', emoji: '🪓', damageStat: 'power', extras: { speed: -1 }, keywords: ['cleave'], shares: { power: 1 } },
-  mace: { familyTag: 'faith', slot: 'weapon', emoji: '🔨', damageStat: 'power', extras: { speed: -1 }, keywords: ['stagger'], shares: { power: 1 } },
-  dagger: { familyTag: 'shadow', slot: 'weapon', emoji: '🔪', damageStat: 'power', extras: { speed: 2, crit: 10 }, keywords: ['pierce'], concealed: true, shares: { power: 1 } },
-  bow: { familyTag: 'volley', slot: 'weapon', emoji: '🏹', damageStat: 'power', extras: {}, keywords: ['pierce', 'reach'], shares: { power: 1 } },
-  spear: { familyTag: 'wild', slot: 'weapon', emoji: '🔱', damageStat: 'power', extras: {}, keywords: ['reach', 'brace'], shares: { power: 1 } },
+  sword: { familyTag: 'rally', secondFamily: 'shadow', slot: 'weapon', emoji: '🗡️', damageStat: 'power', extras: { crit: 5 }, keywords: ['parry'], shares: { power: 1 } },
+  axe: { familyTag: 'bloodrage', secondFamily: 'breaker', slot: 'weapon', emoji: '🪓', damageStat: 'power', extras: { speed: -1 }, keywords: ['cleave'], shares: { power: 1 } },
+  mace: { familyTag: 'faith', secondFamily: 'breaker', slot: 'weapon', emoji: '🔨', damageStat: 'power', extras: { speed: -1 }, keywords: ['stagger'], shares: { power: 1 } },
+  dagger: { familyTag: 'shadow', secondFamily: 'venom', slot: 'weapon', emoji: '🔪', damageStat: 'power', extras: { speed: 2, crit: 10 }, keywords: ['pierce'], concealed: true, shares: { power: 1 } },
+  bow: { familyTag: 'volley', secondFamily: 'wild', slot: 'weapon', emoji: '🏹', damageStat: 'power', extras: {}, keywords: ['pierce', 'reach'], shares: { power: 1 } },
+  spear: { familyTag: 'wild', secondFamily: 'watch', slot: 'weapon', emoji: '🔱', damageStat: 'power', extras: {}, keywords: ['reach', 'brace'], shares: { power: 1 } },
   warhammer: { familyTag: 'breaker', slot: 'weapon', emoji: '⚒️', damageStat: 'power', twoHanded: true, extras: { speed: -2 }, keywords: ['pierce', 'stagger'], heavy: true, shares: { power: 1 } },
-  wand: { familyTag: 'spellweave', slot: 'weapon', emoji: '🪄', damageStat: 'magic', extras: { speed: 1 }, keywords: ['channel'], concealed: true, shares: { magic: 1 } },
+  wand: { familyTag: 'spellweave', secondFamily: 'warding', slot: 'weapon', emoji: '🪄', damageStat: 'magic', extras: { speed: 1 }, keywords: ['channel'], concealed: true, shares: { magic: 1 } },
   staff: { familyTag: 'warding', slot: 'weapon', emoji: '🦯', damageStat: 'magic', twoHanded: true, extras: {}, keywords: ['cleave'], shares: { magic: 1 } },
-  lute: { familyTag: 'rally', slot: 'weapon', emoji: '🪕', damageStat: 'magic', extras: {}, keywords: ['inspire'], concealed: true, shares: { magic: 1 } },
-  censer: { familyTag: 'faith', slot: 'weapon', emoji: '🪔', damageStat: 'magic', extras: {}, keywords: ['mend'], shares: { magic: 1 } },
-  knuckles: { familyTag: 'breaker', slot: 'weapon', emoji: '🥊', damageStat: 'power', extras: { speed: 1 }, keywords: ['stagger'], concealed: true, shares: { power: 1 } },
-  crossbow: { familyTag: 'cunning', slot: 'weapon', emoji: '🎯', damageStat: 'power', extras: { speed: -1 }, keywords: ['pierce'], shares: { power: 1 } },
-  throwing: { familyTag: 'plunder', slot: 'weapon', emoji: '🪃', damageStat: 'power', extras: { speed: 1 }, keywords: [], shares: { power: 1 } },
+  lute: { familyTag: 'rally', secondFamily: 'cunning', slot: 'weapon', emoji: '🪕', damageStat: 'magic', extras: {}, keywords: ['inspire'], concealed: true, shares: { magic: 1 } },
+  censer: { familyTag: 'faith', secondFamily: 'warding', slot: 'weapon', emoji: '🪔', damageStat: 'magic', extras: {}, keywords: ['mend'], shares: { magic: 1 } },
+  knuckles: { familyTag: 'breaker', secondFamily: 'bloodrage', slot: 'weapon', emoji: '🥊', damageStat: 'power', extras: { speed: 1 }, keywords: ['stagger'], concealed: true, shares: { power: 1 } },
+  crossbow: { familyTag: 'cunning', secondFamily: 'volley', slot: 'weapon', emoji: '🎯', damageStat: 'power', extras: { speed: -1 }, keywords: ['pierce'], shares: { power: 1 } },
+  throwing: { familyTag: 'plunder', secondFamily: 'volley', slot: 'weapon', emoji: '🪃', damageStat: 'power', extras: { speed: 1 }, keywords: [], shares: { power: 1 } },
   totem: { familyTag: 'pack', slot: 'weapon', emoji: '🗿', damageStat: 'magic', twoHanded: true, extras: { speed: -1 }, keywords: [], shares: { magic: 1 } },
-  runestone: { familyTag: 'watch', slot: 'weapon', emoji: '💠', damageStat: 'magic', extras: {}, keywords: ['channel'], shares: { magic: 1 } },
-  flasks: { familyTag: 'venom', slot: 'weapon', emoji: '⚗️', damageStat: 'wielder', extras: {}, keywords: [], shares: { power: 1 } },
+  runestone: { familyTag: 'watch', secondFamily: 'pack', slot: 'weapon', emoji: '💠', damageStat: 'magic', extras: {}, keywords: ['channel'], shares: { magic: 1 } },
+  flasks: { familyTag: 'venom', secondFamily: 'spellweave', slot: 'weapon', emoji: '⚗️', damageStat: 'wielder', extras: {}, keywords: [], shares: { power: 1 } },
   plate: { familyTag: 'bulwark', slot: 'armor', emoji: '🛡️', extras: { speed: -2 }, keywords: ['guard'], heavy: true, shares: { armour: 0.75, hp: 0.2, resistance: 0.05 } },
   mail: { familyTag: 'faith', slot: 'armor', emoji: '🦺', extras: {}, keywords: ['brace'], shares: { armour: 0.5, resistance: 0.3, hp: 0.2 } },
   leather: { familyTag: 'wild', slot: 'armor', emoji: '🧥', extras: { speed: 1, evasion: 8 }, keywords: [], shares: { armour: 0.45, hp: 0.4, resistance: 0.15 } },

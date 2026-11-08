@@ -32,7 +32,7 @@ import { mealItems, supplyHeld, supplyItems } from '../expeditions/provisions';
 
 import { answersMemberOf, EMPTY_BRIEFING, prepareParty, simulateRun } from '../expeditions/simulate';
 import { salvage } from '../forging/salvage';
-import { familyLevels, partyFamilies, type FamilyLevels } from '../families/families';
+import { familyLevels, gearFamilyTags, partyFamilies, type FamilyLevels } from '../families/families';
 import { gearStats } from '../gear/stats';
 import { trinketEffect } from '../loot/trinkets';
 import { distanceMeters, offsetPosition } from '../generation/geo';
@@ -445,13 +445,12 @@ function offhandTypeFor(save: SaveData, hero: HeroState): OffhandType | null {
 /** A hypothetical member of a class: its best weapon. */
 const offerMember = (classId: HeroClassId): AnswersMember => {
   const gearType = weaponTypeFor(classId);
-  const profile = gearType ? gearProfiles[gearType] : null;
   return {
     heroId: `offer:${classId}`,
     classId,
     traitId: 'none',
-    familyTags: profile
-      ? [{ family: profile.familyTag, count: profile.twoHanded ? 2 : 1, magic: profile.damageStat === 'magic', fromClass: false, source: 'gear' }]
+    familyTags: gearType
+      ? gearFamilyTags({ gearType }).map((tag) => ({ family: tag.family, count: tag.count, magic: tag.magic, fromClass: false, source: 'gear' as const }))
       : [],
   };
 };
@@ -623,8 +622,8 @@ function rosterTags(save: SaveData, family: FamilyId): number {
   const classes = save.heroes.filter((h) => heroClasses[h.classId].familyTag === family).length;
   const gear = save.gear.reduce((sum, g) => {
     const item = itemById[g.itemId] as GearDef;
-    if (!item.gearType || item.workTool || item.tier < top - 1 || gearProfiles[item.gearType].familyTag !== family) return sum;
-    return sum + (item.twoHanded ? 2 : 1);
+    if (!item.gearType || item.workTool || item.tier < top - 1) return sum;
+    return sum + gearFamilyTags(item).reduce((n, tag) => n + (tag.family === family ? tag.count : 0), 0);
   }, 0);
   return classes + gear;
 }
@@ -662,7 +661,7 @@ function forgeForThreats(sim: Sim) {
           !!item.gearType &&
           !item.workTool &&
           !spareTypes.has(item.gearType) &&
-          gearProfiles[item.gearType].familyTag === family
+          gearFamilyTags(item).some((tag) => tag.family === family)
         );
       })
       .sort((a, b) => forgedItem(b)!.tier - forgedItem(a)!.tier)[0];

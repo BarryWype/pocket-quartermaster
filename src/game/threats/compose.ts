@@ -117,9 +117,9 @@ const maxTagsCache = new Map<string, number>();
 
 /**
  * The most tags of this family one hero can wear: their class's tag plus the
- * best weapon, armour and off-hand of the family their class can wear (a
- * two-handed weapon counts 2 and takes the off-hand's place), after the
- * restriction drops tags.
+ * best weapon (its first or second tag), armour and off-hand of the family
+ * their class can wear (a two-handed weapon counts 2 and takes the off-hand's
+ * place), after the restriction drops tags.
  */
 export function maxTagsPerHero(family: FamilyId, restriction: RestrictionId | null): number {
   const key = `${family}|${restriction ?? 'none'}`;
@@ -141,7 +141,10 @@ export function maxTagsPerHero(family: FamilyId, restriction: RestrictionId | nu
       gearProfiles[type].slot === 'offhand' || (classAffinities[classId] as Partial<Record<GearType, Affinity>>)[type] !== 'unfit';
     const ofFamily = (slot: 'weapon' | 'armor' | 'offhand') =>
       (Object.keys(gearProfiles) as GearType[]).filter(
-        (type) => gearProfiles[type].slot === slot && gearProfiles[type].familyTag === family && wearable(type),
+        (type) =>
+          gearProfiles[type].slot === slot &&
+          (gearProfiles[type].familyTag === family || gearProfiles[type].secondFamily === family) &&
+          wearable(type),
       );
     const classTag =
       def.familyTag === family &&

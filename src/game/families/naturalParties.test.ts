@@ -7,7 +7,7 @@ import type { ArmourType, HeroClassId, WeaponType } from '@/game/types';
 
 import type { FamilyCounts } from './families';
 
-import { activeFamilies, familyLevel } from './families';
+import { activeFamilies, familyLevel, gearFamilyTags } from './families';
 
 // Every party of 3 distinct classes in their natural loadout — favoured gear
 // picked without regard to families — and the family levels that falls out.
@@ -49,7 +49,7 @@ function loadoutCounts(classId: HeroClassId, gearTypes: (WeaponType | ArmourType
     counts[family] = (counts[family] ?? 0) + tags;
   };
   add(heroClasses[classId].familyTag, 1);
-  for (const type of gearTypes) add(gearProfiles[type].familyTag, gearProfiles[type].twoHanded ? 2 : 1);
+  for (const type of gearTypes) for (const tag of gearFamilyTags({ gearType: type })) add(tag.family, tag.count);
   return counts;
 }
 

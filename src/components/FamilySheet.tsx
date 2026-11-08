@@ -57,10 +57,10 @@ export function FamilyLevelLines({ family, count }: { family: FamilyId; /** The 
 const classIds = Object.keys(heroClasses) as HeroClassId[];
 const gearTypes = Object.keys(gearProfiles) as GearType[];
 
-/** Where a family's tags come from: classes, then gear types (×2 when two-handed), then relics. */
+/** Where a family's tags come from: classes, then gear types (×2 when two-handed; a one-handed weapon's second tag too), then relics. */
 function FamilySources({ family }: { family: FamilyId }) {
   const classes = classIds.filter((id) => heroClasses[id].familyTag === family);
-  const types = gearTypes.filter((type) => gearProfiles[type].familyTag === family);
+  const types = gearTypes.filter((type) => gearProfiles[type].familyTag === family || gearProfiles[type].secondFamily === family);
   const extras = relics.filter((relic) => relic.extraFamily === family);
   const group = (title: string, items: { key: string; emoji: string; icon?: Parameters<typeof IconLabel>[0]['icon']; label: string }[]) =>
     items.length > 0 && (

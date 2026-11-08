@@ -72,7 +72,8 @@ describe('briefingCoverage', () => {
       { heroName: 'Clem', via: 'Faith' },
     ]);
     const vein = briefingCoverage(save(), ALL, briefing([], { opportunity: 'richVein' }));
-    expect(vein.opportunity).toMatchObject({ answered: false, cost: null, answers: [] });
+    // The mace's one Breaker tag is short of the vein's Breaker ●○○.
+    expect(vein.opportunity).toMatchObject({ answered: false, cost: null, answers: [{ heroName: 'Bram', via: 'Breaker' }] });
     expect(briefingCoverage(save(), ALL, briefing()).opportunity).toBeNull();
   });
 

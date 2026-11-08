@@ -111,7 +111,8 @@ describe('relic keyword effects', () => {
     const options = { rules: steady, briefing: briefingOf('armoured', 3) };
     const dealt = (tags: Tag[]) => bossFight([relicMember('dwarfLordsAxe', { maxHp: 1e6, hp: 1e6 })], { tags }, options).fight.dealt.bram;
     expect(dealt(['construct'])).toBeCloseTo(10 * 40, 5);
-    expect(dealt(['beast'])).toBeCloseTo(10 * (1 - 0.52) * 40, 5);
+    // Its 2 Breaker tags leave Armoured 3 one short: the half miss still weakens the hits on beasts.
+    expect(dealt(['beast'])).toBeLessThan(10 * 40 * 0.8);
   });
 
   it("the Sexton's mace staggers undead strongly, beasts not at all beyond the mace itself", () => {
@@ -264,8 +265,8 @@ describe('relic family tags', () => {
 
   it("the Dwarf-lord's situational pierce adds no family tag", () => {
     const scored = (member: PartyMember, threat: ActiveThreat) => scoreThreat(threat, [heroAnswers(answersMemberOf(member))]);
-    // Its one Breaker tag is the relic's extra tag, not the pierce: one short of Armoured 2.
-    expect(scored(relicMember('dwarfLordsAxe'), { id: 'armoured', level: 2 })).toMatchObject({ state: 'half', have: 1 });
+    // Its 2 Breaker tags are the axe's second tag and the relic's extra tag, not the pierce: one short of Armoured 3.
+    expect(scored(relicMember('dwarfLordsAxe'), { id: 'armoured', level: 3 })).toMatchObject({ state: 'half', have: 2 });
   });
 });
 

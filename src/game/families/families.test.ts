@@ -42,12 +42,13 @@ describe('heroFamilyTags', () => {
     }
   });
 
-  test('each gear type contributes its profile tag, two-handed counting 2', () => {
+  test('each gear type contributes its profile tag, two-handed counting 2, one-handed adding its second tag', () => {
     for (const [type, profile] of Object.entries(gearProfiles)) {
       const save = saveWith(newHero('h', 'H', 'warrior', 'resilient'), [piece('g1', itemIdOfGearType(type))]);
       // The warrior's own class tag lands in the same counts.
       const expected: Record<string, number> = { [heroClasses.warrior.familyTag]: 1 };
       expected[profile.familyTag] = (expected[profile.familyTag] ?? 0) + (profile.twoHanded ? 2 : 1);
+      if (profile.secondFamily) expected[profile.secondFamily] = (expected[profile.secondFamily] ?? 0) + 1;
       expect(heroFamilyTags(save, save.heroes[0])).toEqual(expected);
     }
   });
@@ -63,11 +64,11 @@ describe('heroFamilyTags', () => {
   });
 
   test("a relic's extra family contributes 1 on top of its piece", () => {
-    // The Poacher's longbow: a bow (Volley) with a Wild tag.
+    // The Poacher's longbow: a bow (Volley, second tag Wild) with a Wild tag.
     const save = saveWith(newHero('h', 'H', 'warrior', 'resilient'), [
       piece('g1', itemIdOfGearType('bow'), { relicId: 'poachersLongbow' }),
     ]);
-    expect(heroFamilyTags(save, save.heroes[0])).toEqual({ bulwark: 1, volley: 1, wild: 1 });
+    expect(heroFamilyTags(save, save.heroes[0])).toEqual({ bulwark: 1, volley: 1, wild: 2 });
   });
 
   test('about a third of the relics carry a second tag, never their own type tag', () => {
@@ -101,19 +102,23 @@ describe('partyFamilies', () => {
       piece('g2', itemIdOfGearType('plate')),
       piece('g3', itemIdOfGearType('shield')),
     ]);
-    expect(partyFamilies(save, ['w', 'nobody'])).toEqual({ bulwark: 3, rally: 1 });
+    expect(partyFamilies(save, ['w', 'nobody'])).toEqual({ bulwark: 3, rally: 1, shadow: 1 });
     expect(activeFamilies(partyFamilies(save, ['w']))).toEqual([{ family: 'bulwark', count: 3, level: 1 }]);
   });
 });
 
 describe('gearFamilyTags', () => {
-  test('a piece carries its type’s tag, 2 on a two-handed weapon, then its relic’s extra tag', () => {
-    expect(gearFamilyTags({ gearType: 'sword' })).toEqual([{ family: 'rally', count: 1, magic: false, extra: false }]);
+  test('a piece carries its type’s tag, 2 on a two-handed weapon, a one-handed weapon’s second tag, then its relic’s extra tag', () => {
+    expect(gearFamilyTags({ gearType: 'sword' })).toEqual([
+      { family: 'rally', count: 1, magic: false, extra: false },
+      { family: 'shadow', count: 1, magic: false, extra: false },
+    ]);
     expect(gearFamilyTags({ gearType: 'warhammer' })).toEqual([{ family: 'breaker', count: 2, magic: false, extra: false }]);
-    const relic = relics.find((r) => r.extraFamily)!;
-    expect(gearFamilyTags({ gearType: relic.gearType }, relic.id)).toEqual([
-      { family: gearProfiles[relic.gearType].familyTag, count: gearProfiles[relic.gearType].twoHanded ? 2 : 1, magic: gearProfiles[relic.gearType].damageStat === 'magic', extra: false },
-      { family: relic.extraFamily, count: 1, magic: false, extra: true },
+    expect(gearFamilyTags({ gearType: 'plate' })).toEqual([{ family: 'bulwark', count: 1, magic: false, extra: false }]);
+    expect(gearFamilyTags({ gearType: 'axe' }, 'dwarfLordsAxe')).toEqual([
+      { family: 'bloodrage', count: 1, magic: false, extra: false },
+      { family: 'breaker', count: 1, magic: false, extra: false },
+      { family: 'breaker', count: 1, magic: false, extra: true },
     ]);
   });
 

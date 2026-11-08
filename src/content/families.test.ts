@@ -84,6 +84,7 @@ describe('gearProfiles matches item-tags.csv', () => {
       const row = rowsByType.get(ROW_BY_TYPE[type] ?? type);
       expect([type, row !== undefined]).toEqual([type, true]);
       expect(gearProfiles[type].familyTag).toBe(row!.family as FamilyId);
+      expect([type, gearProfiles[type].secondFamily ?? '']).toEqual([type, row!.second]);
       expect(Number(row!.tags)).toBe(gearProfiles[type].twoHanded ? 2 : 1);
     }
   });
@@ -106,6 +107,14 @@ describe('gearProfiles matches item-tags.csv', () => {
 });
 
 describe('no class anchors its own family alone', () => {
+  test('one-handed weapons carry a second tag of another family; two-handed ones none', () => {
+    for (const [type, profile] of Object.entries(gearProfiles)) {
+      if (profile.slot !== 'weapon') expect([type, profile.secondFamily]).toEqual([type, undefined]);
+      else if (profile.twoHanded) expect([type, profile.secondFamily]).toEqual([type, undefined]);
+      else expect([type, profile.secondFamily !== undefined && profile.secondFamily !== profile.familyTag]).toEqual([type, true]);
+    }
+  });
+
   test('class tag plus gear tags of its own family is at most 3 in any gear it can use', () => {
     const types = Object.keys(gearProfiles) as GearType[];
     const offhands = types.filter((type) => gearProfiles[type].slot === 'offhand');
@@ -119,7 +128,9 @@ describe('no class anchors its own family alone', () => {
         for (const armour of usable('armor')) {
           const gear = gearProfiles[weapon].twoHanded ? [[weapon, armour]] : offhands.map((offhand) => [weapon, armour, offhand]);
           for (const set of gear) {
-            const count = 1 + set.reduce((sum, type) => sum + (gearProfiles[type].familyTag === own ? (gearProfiles[type].twoHanded ? 2 : 1) : 0), 0);
+            const tags = (type: GearType) =>
+              (gearProfiles[type].familyTag === own ? (gearProfiles[type].twoHanded ? 2 : 1) : 0) + (gearProfiles[type].secondFamily === own ? 1 : 0);
+            const count = 1 + set.reduce((sum, type) => sum + tags(type), 0);
             if (count > 3) broken.push(`${classId} in ${set.join(', ')}: ${count} ${own}`);
           }
         }
