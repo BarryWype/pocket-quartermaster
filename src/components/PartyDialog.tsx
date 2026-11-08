@@ -237,7 +237,7 @@ export function PartyDialog({
   slots,
   briefing,
   oddsOf,
-  now,
+  now: clock,
   initialHeroIds = [],
   sendLabel,
   problem,
@@ -255,6 +255,8 @@ export function PartyDialog({
   const [addingHero, setAddingHero] = useState(false);
   const { height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  // A minute is fine enough for HP and who is free: a map's faster clock would recompute coverage on every tick.
+  const now = Math.floor(clock / 60_000) * 60_000;
 
   // The party as the dialog shows it: away heroes dropped, Suggest's swaps put on.
   const party = useMemo(

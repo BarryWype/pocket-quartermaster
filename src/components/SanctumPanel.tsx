@@ -1,13 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { elementInfo } from '@/content/elements';
 import { sanctumGuardian } from '@/content/enemies';
-import { heroClasses } from '@/content/heroes';
+import { rosterRules } from '@/content/roster';
 import { sanctumRules } from '@/content/sanctums';
-import { oddsBand, type Odds } from '@/game/expeditions/odds';
-import { fightOddsKey, cachedOdds, storeOdds } from '@/game/expeditions/oddsCache';
-import { recordTiming } from '@/services/timings';
+import { fightOddsKey } from '@/game/expeditions/oddsCache';
+import type { SaveData } from '@/game/save';
 import { distanceMeters } from '@/game/generation/geo';
 import type { LatLng } from '@/game/generation/types';
 import {
@@ -18,24 +17,23 @@ import {
   type SanctumResult,
   type SanctumSpawn,
 } from '@/game/sanctums/sanctums';
-import { isAway } from '@/game/team/team';
 import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors, pixel } from '@/theme';
 
-import { FamilyStrip, usePartyFamilies } from './FamilyStrip';
 import { EnemyTags } from './EnemyTags';
 import { DifficultyChip, EmberButton, WoodButton } from './ui';
-import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
+import { PartyDialog } from './PartyDialog';
 import { Sheet } from './Sheet';
-import { SpecialLabel } from './SpecialLabel';
 import { Text } from './Text';
 import { IconLabel } from './IconLabel';
 import { asRecalled, includesWorking, recallWorkingHeroes } from './workingHeroes';
 import { TrophyLine } from './TrophyLine';
 
 const LINE_DELAY_MS = 600;
+/** A Sanctum's guardian brings no threats to answer: the dialog shows only the party's families. */
+const NO_THREATS = { threats: [], restriction: null, opportunity: null };
 
 const problemText: Record<ChallengeProblem, (distance: number) => string> = {
   used: () => t('sanctum.used'),
@@ -60,38 +58,17 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
   const element = elementInfo[sanctum.element];
   const tiers = [...new Set(save.sigils)].sort((a, b) => a - b);
   const [tier, setTier] = useState<number | null>(tiers[0] ?? null);
-  // Working heroes are listed with their mark and recalled on challenge.
-  const candidates = save.heroes.filter((hero) => !isAway(save, hero.id));
-  const [heroIds, setHeroIds] = useState(candidates.map((h) => h.id));
-  const families = usePartyFamilies(heroIds);
+  const [picking, setPicking] = useState(false);
   const [result, setResult] = useState<SanctumResult | null>(null);
   const [shown, setShown] = useState(0);
   const [openedAt] = useState(() => Date.now());
-
-  // The odds are computed off the first frame (issue 12's method): the panel
-  // opens at once, shows "…" until they land, and odds already held for exactly
-  // these inputs (same sanctum, tier, party, minute) show immediately.
-  const oddsKey = useMemo(
-    () => (tier && heroIds.length > 0 ? fightOddsKey(save, heroIds, { id: sanctum.id, kind: `sanctum:${sanctum.id}` }, tier, false, openedAt) : null),
-    [save, heroIds, sanctum, tier, openedAt],
+  const oddsOf = useCallback(
+    (dressed: SaveData, heroIds: string[]) => ({
+      key: fightOddsKey(dressed, heroIds, { id: sanctum.id, kind: `sanctum:${sanctum.id}` }, tier ?? 1, false, openedAt),
+      run: () => sanctumOdds(dressed, heroIds, sanctum, tier ?? 1, undefined, openedAt),
+    }),
+    [sanctum, tier, openedAt],
   );
-  const [computed, setComputed] = useState<{ key: string; odds: Odds } | null>(() => {
-    if (oddsKey === null) return null;
-    const held = cachedOdds(oddsKey);
-    return held ? { key: oddsKey, odds: held } : null;
-  });
-  useEffect(() => {
-    if (oddsKey === null || computed?.key === oddsKey) return;
-    const timer = setTimeout(() => {
-      const odds = recordTiming('odds: sanctum', () => sanctumOdds(save, heroIds, sanctum, tier!, undefined, openedAt));
-      storeOdds(oddsKey, odds);
-      setComputed({ key: oddsKey, odds });
-    });
-    return () => clearTimeout(timer);
-    // The key covers the save, the sanctum, the tier, the party and the minute: rerun only when it moves.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [oddsKey, computed?.key]);
-  const odds = computed?.key === oddsKey ? computed.odds : (oddsKey !== null ? (cachedOdds(oddsKey) ?? null) : null);
 
   // Reveal the fight one line at a time.
   useEffect(() => {
@@ -101,13 +78,14 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
   }, [result, shown]);
 
   // Working heroes are recalled on challenge, so the problem sees them as free.
-  const problem = challengeProblem(asRecalled(save, heroIds), spawn, tier ?? 0, heroIds, player, openedAt);
+  const problemOf = (state: SaveData, heroIds: string[]) => challengeProblem(asRecalled(state, heroIds), spawn, tier ?? 0, heroIds, player, openedAt);
+  // Before a party is picked, only the Sanctum's own problems count (used, sigil, distance).
+  const problem = problemOf(save, []);
+  const placeProblem = problem === 'noHeroes' ? null : problem;
   const distance = distanceMeters(player, spawn.position);
   const far = distance > sanctumRules.interactionMeters;
-  const toggle = (heroId: string) =>
-    setHeroIds((ids) => (ids.includes(heroId) ? ids.filter((id) => id !== heroId) : [...ids, heroId]));
 
-  const start = () =>
+  const start = (heroIds: string[]) =>
     Alert.alert(
       t('sanctum.confirmTitle', { guardian: tr(sanctum.guardian.name) }),
       t('sanctum.confirmBody'),
@@ -120,6 +98,7 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
             if (!tier) return;
             // The pure challenge rule refuses working heroes: recall them first, in the same tap.
             recallWorkingHeroes(heroIds);
+            setPicking(false);
             setResult(challenge(spawn, tier, heroIds, player));
           },
         },
@@ -146,11 +125,7 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
         footer={
           <View style={styles.actions}>
             {!result && (
-              <EmberButton
-                title={includesWorking(save, heroIds) ? t('jobs.recallAndSend') : t('sanctum.challenge')}
-                disabled={problem !== null}
-                onPress={start}
-              />
+              <EmberButton title={t('sanctum.challenge')} disabled={placeProblem !== null} onPress={() => setPicking(true)} />
             )}
             <WoodButton
               title={result && !finished ? t('sanctum.skip') : t('common.close')}
@@ -190,36 +165,10 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
                   </Pressable>
                 ))}
               </View>
-              <Text style={styles.subtitle}>{t('sanctum.heroes')}</Text>
-              <View style={styles.chips}>
-                {candidates.map((hero) => (
-                  <Pressable
-                    key={hero.id}
-                    onPress={() => toggle(hero.id)}
-                    style={[styles.chip, heroIds.includes(hero.id) && styles.chipActive]}
-                  >
-                    <GameIcon emoji={heroClasses[hero.classId].emoji} icon={heroClasses[hero.classId].icon} size={20} />
-                    <Text>
-                      {hero.name}
-                      {hero.job ? ` · ${t('jobs.working')}` : ''}
-                    </Text>
-                    <SpecialLabel classId={hero.classId} special={hero.special} short />
-                  </Pressable>
-                ))}
-              </View>
-              <FamilyStrip counts={families} />
               </>
             )}
-            {heroIds.length > 0 &&
-              (odds ? (
-                <Text style={styles.odds}>
-                  {t('sanctum.estimate', { band: t(`odds.${oddsBand(odds.success)}`) })}
-                </Text>
-              ) : (
-                <Text style={styles.odds}>…</Text>
-              ))}
             <Text style={styles.warning}>{t('sanctum.warning')}</Text>
-            {problem && <Text style={styles.problem}>{problemText[problem](distance)}</Text>}
+            {placeProblem && <Text style={styles.problem}>{problemText[placeProblem](distance)}</Text>}
             {far && <Text style={styles.muted}>{t('places.tooFarToSee')}</Text>}
           </>
         )}
@@ -239,6 +188,23 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
           </View>
         )}
       </Sheet>
+      {picking && (
+        <PartyDialog
+          title={tr(sanctum.name)}
+          subtitle={`${tr(element.name)} · ${t('sanctum.guardian', { name: tr(sanctum.guardian.name) })}`}
+          slots={rosterRules.partySize}
+          briefing={NO_THREATS}
+          oddsOf={oddsOf}
+          now={openedAt}
+          sendLabel={t('sanctum.challenge')}
+          problem={(state, heroIds) => {
+            const found = heroIds.length > 0 ? problemOf(state, heroIds) : null;
+            return found ? problemText[found](distance) : null;
+          }}
+          onSend={start}
+          onClose={() => setPicking(false)}
+        />
+      )}
     </Overlay>
   );
 }
@@ -251,7 +217,6 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: pixel.outline, borderColor: colors.woodDark, paddingHorizontal: 10, paddingVertical: 6 },
   chipActive: { borderColor: colors.ink, backgroundColor: colors.highlight },
-  odds: { fontSize: 21, marginTop: 8 },
   warning: { color: colors.danger, marginTop: 4 },
   problem: { color: colors.muted, fontStyle: 'italic' },
   log: { gap: 6, marginTop: 8 },

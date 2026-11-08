@@ -1,41 +1,34 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 
-import { heroClasses } from '@/content/heroes';
 import { opportunityById } from '@/content/lookup';
 import { placeFightRules } from '@/content/placeFights';
 import { placeInfo, placeRules } from '@/content/places';
 import { highestUnlockedTier } from '@/game/expeditions/expeditions';
-import { fightOddsKey, cachedOdds, storeOdds } from '@/game/expeditions/oddsCache';
-import { oddsBand, type Odds } from '@/game/expeditions/odds';
+import { fightOddsKey } from '@/game/expeditions/oddsCache';
 import { distanceMeters } from '@/game/generation/geo';
 import type { LatLng } from '@/game/generation/types';
 import type { PlaceSpawn } from '@/game/places/generate';
 import { dungeonFoes } from '@/game/enemies/tags';
-import { threatNeeds } from '@/game/families/strip';
 import { isFightPlace, placeFightBriefing, placeFightDungeon, placeFightOdds, placeFightProblem, type PlaceFightProblem } from '@/game/places/fights';
-import { currentHp, isExhausted, maxHp } from '@/game/team/health';
-import { isAway } from '@/game/team/team';
-import { formatDuration, formatPercent, t, tr } from '@/i18n';
+import type { SaveData } from '@/game/save';
+import { formatDuration, t, tr } from '@/i18n';
 import { syncBackground } from '@/hooks/useAutoGather';
-import { recordTiming } from '@/services/timings';
 import { useGameStore } from '@/store/gameStore';
 import { useWorldStore } from '@/store/worldStore';
-import { colors, pixel } from '@/theme';
+import { colors } from '@/theme';
 
 import { EnemyTags } from './EnemyTags';
-import { FamilyStrip, usePartyFamilies } from './FamilyStrip';
 import { DifficultyChip, EmberButton, WoodButton } from './ui';
 import { leavesIn } from './PlacePanel';
-import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
+import { PartyDialog } from './PartyDialog';
 import { Sheet } from './Sheet';
-import { SpecialLabel } from './SpecialLabel';
 import { Text } from './Text';
 import { ThreatChip } from './ThreatChip';
 import { TrophyLine } from './TrophyLine';
 import { IconLabel, PartsLine } from './IconLabel';
-import { asRecalled, includesWorking, recallWorkingHeroes } from './workingHeroes';
+import { asRecalled, recallWorkingHeroes } from './workingHeroes';
 
 const problemText: Record<Exclude<PlaceFightProblem, null>, (distance: number) => string> = {
   tooFar: (distance) => t('patrols.walkCloser', { distance: Math.round(distance) }),
@@ -56,50 +49,28 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
   const kind = isFightPlace(place.kind) ? place.kind : null;
   const rules = kind ? placeFightRules.kinds[kind] : null;
   const min = kind === 'monsterLair' ? placeFightRules.lair.minParty : 1;
-  const candidates = save.heroes.filter((hero) => !isAway(save, hero.id) && !isExhausted(hero, now));
-  const [heroIds, setHeroIds] = useState<string[]>(() => candidates.slice(0, rules?.party ?? 0).map((hero) => hero.id));
-  const families = usePartyFamilies(heroIds);
-  const needs = useMemo(() => (kind ? threatNeeds(placeFightBriefing(save, place).threats) : []), [kind, save, place]);
-
-  // The odds are computed off the first frame (issue 12's method): the panel
-  // opens at once, shows "…" until they land, and odds already held for exactly
-  // these inputs (same place, party, minute) show immediately.
-  const oddsKey = useMemo(
-    () =>
-      kind && heroIds.length > 0
-        ? fightOddsKey(save, heroIds, place, highestUnlockedTier(save), placeFightRules.kinds[kind].elite, openedAt)
-        : null,
-    [save, place, heroIds, openedAt, kind],
+  const [picking, setPicking] = useState(false);
+  const tier = highestUnlockedTier(save);
+  const oddsOf = useCallback(
+    (dressed: SaveData, heroIds: string[]) => ({
+      key: fightOddsKey(dressed, heroIds, place, tier, kind ? placeFightRules.kinds[kind].elite : false, openedAt),
+      run: () => placeFightOdds(dressed, place, heroIds, openedAt),
+    }),
+    [place, kind, openedAt, tier],
   );
-  const [computed, setComputed] = useState<{ key: string; odds: Odds } | null>(() => {
-    if (oddsKey === null) return null;
-    const held = cachedOdds(oddsKey);
-    return held ? { key: oddsKey, odds: held } : null;
-  });
-  useEffect(() => {
-    if (oddsKey === null || computed?.key === oddsKey) return;
-    const timer = setTimeout(() => {
-      const odds = recordTiming('odds: placeFight', () => placeFightOdds(save, place, heroIds, openedAt));
-      storeOdds(oddsKey, odds);
-      setComputed({ key: oddsKey, odds });
-    });
-    return () => clearTimeout(timer);
-    // The key covers the save, the place, the party and the minute: rerun only when it moves.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [oddsKey, computed?.key]);
-  const odds = computed?.key === oddsKey ? computed.odds : (oddsKey !== null ? (cachedOdds(oddsKey) ?? null) : null);
-  if (!kind || !rules) return null;
+  const briefing = useMemo(() => (kind ? placeFightBriefing(save, place) : null), [kind, save, place]);
+  if (!kind || !rules || !briefing) return null;
 
-  const briefing = placeFightBriefing(save, place);
   const foes = dungeonFoes(placeFightDungeon(place, highestUnlockedTier(save)));
   // Working heroes are recalled on send, so the problem sees them as free.
-  const problem = placeFightProblem(asRecalled(save, heroIds), place, heroIds, player, now);
+  const problemOf = (state: SaveData, heroIds: string[]) => placeFightProblem(asRecalled(state, heroIds), place, heroIds, player, now);
+  // Before a party is picked, only the place's own problems count (distance, gone).
+  const problem = problemOf(save, []);
+  const placeProblem = problem === 'empty' ? null : problem;
   const far = distanceMeters(player, place.position) > placeRules.interactionMeters;
   const info = placeInfo[kind];
-  const toggle = (heroId: string) =>
-    setHeroIds((ids) => (ids.includes(heroId) ? ids.filter((id) => id !== heroId) : ids.length < rules.party ? [...ids, heroId] : ids));
 
-  const fight = () => {
+  const fight = (heroIds: string[]) => {
     // The pure fight rule refuses working heroes: recall them first, in the same tap.
     recallWorkingHeroes(heroIds);
     engage(place, heroIds, player);
@@ -117,11 +88,7 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
         bodyStyle={styles.content}
         footer={
           <View style={styles.actions}>
-            <EmberButton
-              title={includesWorking(save, heroIds) ? t('jobs.recallAndSend') : t('places.fight')}
-              disabled={problem !== null}
-              onPress={fight}
-            />
+            <EmberButton title={t('places.fight')} disabled={placeProblem !== null} onPress={() => setPicking(true)} />
             <WoodButton title={t('common.close')} onPress={onClose} />
           </View>
         }
@@ -154,33 +121,28 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
             <EnemyTags key={mob.id} mob={mob} />
           ))}
           <TrophyLine source={kind} />
-          <Text style={styles.subtitle}>{t('sanctum.heroes')}</Text>
-          <View style={styles.chips}>
-            {candidates.map((hero) => (
-              <Pressable key={hero.id} onPress={() => toggle(hero.id)} style={[styles.chip, heroIds.includes(hero.id) && styles.chipActive]}>
-                <GameIcon emoji={heroClasses[hero.classId].emoji} icon={heroClasses[hero.classId].icon} size={20} />
-                <Text>
-                  {hero.name}
-                  {hero.job ? ` · ${t('jobs.working')}` : ''} · {formatPercent(currentHp(save, hero, now) / maxHp(save, hero))}
-                </Text>
-                <SpecialLabel classId={hero.classId} special={hero.special} short />
-              </Pressable>
-            ))}
-          </View>
-          <FamilyStrip counts={families} needs={needs} />
           </>
         )}
-        {heroIds.length > 0 &&
-          (odds ? (
-            <Text style={styles.odds}>
-              {t('sanctum.estimate', { band: t(`odds.${oddsBand(odds.success)}`) })}
-            </Text>
-          ) : (
-            <Text style={styles.odds}>…</Text>
-          ))}
-        {problem && <Text style={styles.problem}>{problemText[problem](distanceMeters(player, place.position))}</Text>}
+        {placeProblem && <Text style={styles.problem}>{problemText[placeProblem](distanceMeters(player, place.position))}</Text>}
         {far && <Text style={styles.muted}>{t('places.tooFarToSee')}</Text>}
       </Sheet>
+      {picking && (
+        <PartyDialog
+          title={tr(info.name)}
+          subtitle={`${t('expeditions.tier', { tier: highestUnlockedTier(save) })}${rules.elite ? ' ★' : ''} · ${formatDuration(rules.minutes * 60_000)} · ${t('places.party', { min, max: rules.party })}`}
+          slots={rules.party}
+          briefing={briefing}
+          oddsOf={oddsOf}
+          now={now}
+          sendLabel={t('places.fight')}
+          problem={(state, heroIds) => {
+            const found = heroIds.length > 0 ? problemOf(state, heroIds) : null;
+            return found ? problemText[found](distanceMeters(player, place.position)) : null;
+          }}
+          onSend={fight}
+          onClose={() => setPicking(false)}
+        />
+      )}
     </Overlay>
   );
 }
@@ -189,10 +151,6 @@ const styles = StyleSheet.create({
   content: { gap: 6, paddingBottom: 12 },
   subtitle: { fontSize: 21, marginTop: 8 },
   muted: { color: colors.muted },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: pixel.outline, borderColor: colors.woodDark, paddingHorizontal: 10, paddingVertical: 6 },
-  chipActive: { borderColor: colors.ink, backgroundColor: colors.highlight },
-  odds: { fontSize: 21, marginTop: 8 },
   problem: { color: colors.muted, fontStyle: 'italic' },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
 });

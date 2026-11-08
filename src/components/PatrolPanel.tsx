@@ -1,15 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { rosterRules } from '@/content/roster';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { frPatrolTexts } from '@/content/fr/patrols';
-import { heroClasses } from '@/content/heroes';
 import { patrolFights, patrolRules, patrolTexts } from '@/content/patrols';
 import { patrolThreat } from '@/content/threats';
 import { tagInfo } from '@/content/rotation';
 import { isElitePatrolKind } from '@/content/enemies';
-import { fightOddsKey, cachedOdds, storeOdds } from '@/game/expeditions/oddsCache';
-import { oddsBand, type Odds } from '@/game/expeditions/odds';
+import { fightOddsKey } from '@/game/expeditions/oddsCache';
+import type { SaveData } from '@/game/save';
 import { dungeonTags } from '@/game/dungeons/tags';
 import { dungeonFoes } from '@/game/enemies/tags';
 
@@ -17,27 +16,21 @@ import type { LatLng } from '@/game/generation/types';
 import { isPatrolKind, type PatrolSpawn } from '@/game/patrols/generate';
 import { patrolDungeon, patrolFightProblem, patrolOdds, type PatrolFightProblem } from '@/game/patrols/fight';
 import { distanceTo } from '@/game/patrols/visibility';
-import { threatNeeds } from '@/game/families/strip';
-import { currentHp, isExhausted, maxHp } from '@/game/team/health';
-import { isAway } from '@/game/team/team';
-import { formatDuration, formatPercent, localized, t, tr } from '@/i18n';
+import { formatDuration, localized, t, tr } from '@/i18n';
 import { syncBackground } from '@/hooks/useAutoGather';
-import { recordTiming } from '@/services/timings';
 import { useGameStore } from '@/store/gameStore';
 import { useWorldStore } from '@/store/worldStore';
-import { colors, pixel } from '@/theme';
+import { colors } from '@/theme';
 
 import { EnemyTags } from './EnemyTags';
-import { FamilyStrip, usePartyFamilies } from './FamilyStrip';
 import { DifficultyChip, EmberButton, WoodButton } from './ui';
-import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
+import { PartyDialog } from './PartyDialog';
 import { Sheet } from './Sheet';
-import { SpecialLabel } from './SpecialLabel';
 import { Text } from './Text';
 import { ThreatChip } from './ThreatChip';
 import { PartsLine } from './IconLabel';
-import { asRecalled, includesWorking, recallWorkingHeroes } from './workingHeroes';
+import { asRecalled, recallWorkingHeroes } from './workingHeroes';
 
 const problemText: Record<Exclude<PatrolFightProblem, null>, (distance: number) => string> = {
   tooFar: (distance) => t('patrols.walkCloser', { distance: Math.round(distance) }),
@@ -62,42 +55,19 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
   const [openedAt] = useState(() => Date.now());
   const kind = isPatrolKind(spawn.kind) ? spawn.kind : null;
   const difficulty = kind ? spawn.difficulty : null;
-  // Home heroes who can still fight; the escort can be sent, and stops escorting if so.
-  const candidates = save.heroes.filter((hero) => !isAway(save, hero.id) && !isExhausted(hero, now));
-  const [heroIds, setHeroIds] = useState<string[]>(() =>
-    kind && difficulty ? candidates.slice(0, patrolFights[difficulty].party).map((hero) => hero.id) : [],
-  );
+  const [picking, setPicking] = useState(false);
   const texts = localized({ en: patrolTexts, fr: frPatrolTexts });
-  const families = usePartyFamilies(heroIds);
-  const needs = useMemo(() => (kind ? threatNeeds([patrolThreat(spawn)]) : []), [kind, spawn]);
-
-  // The odds are computed off the first frame (issue 12's method): the panel
-  // opens at once, shows "…" until they land, and odds already held for exactly
-  // these inputs (same patrol, party, minute) show immediately.
-  const oddsKey = useMemo(
-    () => {
-      if (!kind || difficulty === null || heroIds.length === 0) return null;
-      return fightOddsKey(save, heroIds, spawn, spawn.tier, isElitePatrolKind(kind), openedAt);
-    },
-    [save, spawn, heroIds, openedAt, kind, difficulty],
+  const briefing = useMemo(
+    () => ({ threats: kind ? [patrolThreat(spawn)] : [], restriction: null, opportunity: null }),
+    [kind, spawn],
   );
-  const [computed, setComputed] = useState<{ key: string; odds: Odds } | null>(() => {
-    if (oddsKey === null) return null;
-    const held = cachedOdds(oddsKey);
-    return held ? { key: oddsKey, odds: held } : null;
-  });
-  useEffect(() => {
-    if (oddsKey === null || computed?.key === oddsKey) return;
-    const timer = setTimeout(() => {
-      const odds = recordTiming('odds: patrol', () => patrolOdds(save, spawn, heroIds, openedAt));
-      storeOdds(oddsKey, odds);
-      setComputed({ key: oddsKey, odds });
-    });
-    return () => clearTimeout(timer);
-    // The key covers the save, the patrol, the party and the minute: rerun only when it moves.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [oddsKey, computed?.key]);
-  const odds = computed?.key === oddsKey ? computed.odds : (oddsKey !== null ? (cachedOdds(oddsKey) ?? null) : null);
+  const oddsOf = useCallback(
+    (dressed: SaveData, heroIds: string[]) => ({
+      key: fightOddsKey(dressed, heroIds, spawn, spawn.tier, kind ? isElitePatrolKind(kind) : false, openedAt),
+      run: () => patrolOdds(dressed, spawn, heroIds, openedAt),
+    }),
+    [spawn, kind, openedAt],
+  );
 
   if (!kind || difficulty === null) return null;
 
@@ -105,15 +75,14 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
   const elite = isElitePatrolKind(kind);
   const dungeon = patrolDungeon(spawn, tier, elite);
   // Working heroes are recalled on send, so the problem sees them as free.
-  const problem = patrolFightProblem(asRecalled(save, heroIds), spawn, heroIds, player, now);
+  const problemOf = (state: SaveData, heroIds: string[]) => patrolFightProblem(asRecalled(state, heroIds), spawn, heroIds, player, now);
+  // Before a party is picked, only the place's own problems count (distance, gone).
+  const problem = problemOf(save, []);
+  const placeProblem = problem === 'empty' ? null : problem;
   const far = distanceTo(spawn, player, now) > patrolRules.engageMeters;
   const escortId = save.escort?.heroId;
-  const toggle = (heroId: string) =>
-    setHeroIds((ids) =>
-      ids.includes(heroId) ? ids.filter((id) => id !== heroId) : ids.length < rosterRules.partySize ? [...ids, heroId] : ids,
-    );
 
-  const fight = () => {
+  const fight = (heroIds: string[]) => {
     // The pure fight rule refuses working heroes: recall them first, in the same tap.
     recallWorkingHeroes(heroIds);
     engagePatrol(spawn, heroIds, player);
@@ -133,11 +102,7 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
         bodyStyle={styles.content}
         footer={
           <View style={styles.actions}>
-            <EmberButton
-              title={includesWorking(save, heroIds) ? t('jobs.recallAndSend') : t('patrols.fight')}
-              disabled={problem !== null}
-              onPress={fight}
-            />
+            <EmberButton title={t('patrols.fight')} disabled={placeProblem !== null} onPress={() => setPicking(true)} />
             <WoodButton title={t('common.close')} onPress={onClose} />
           </View>
         }
@@ -163,40 +128,29 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
           {dungeonFoes(dungeon).map((mob) => (
             <EnemyTags key={mob.id} mob={mob} />
           ))}
-          <Text style={styles.subtitle}>{t('sanctum.heroes')}</Text>
-          <View style={styles.chips}>
-            {candidates.map((hero) => (
-              <Pressable
-                key={hero.id}
-                onPress={() => toggle(hero.id)}
-                style={[styles.chip, heroIds.includes(hero.id) && styles.chipActive]}
-              >
-                <GameIcon emoji={heroClasses[hero.classId].emoji} icon={heroClasses[hero.classId].icon} size={20} />
-                <Text>
-                  {hero.name}
-                  {hero.job ? ` · ${t('jobs.working')}` : ''}
-                  {hero.id === escortId ? t('common.escort') : ''} ·{' '}
-                  {formatPercent(currentHp(save, hero, now) / maxHp(save, hero))}
-                </Text>
-                <SpecialLabel classId={hero.classId} special={hero.special} short />
-              </Pressable>
-            ))}
-          </View>
-          <FamilyStrip counts={families} needs={needs} />
-          {escortId !== undefined && heroIds.includes(escortId) && <Text style={styles.muted}>{t('patrols.escortNote')}</Text>}
+          {escortId !== undefined && <Text style={styles.muted}>{t('patrols.escortNote')}</Text>}
           </>
         )}
-        {heroIds.length > 0 &&
-          (odds ? (
-            <Text style={styles.odds}>
-              {t('sanctum.estimate', { band: t(`odds.${oddsBand(odds.success)}`) })}
-            </Text>
-          ) : (
-            <Text style={styles.odds}>…</Text>
-          ))}
-        {problem && <Text style={styles.problem}>{problemText[problem](distanceTo(spawn, player, now))}</Text>}
+        {placeProblem && <Text style={styles.problem}>{problemText[placeProblem](distanceTo(spawn, player, now))}</Text>}
         {far && <Text style={styles.muted}>{t('places.tooFarToSee')}</Text>}
       </Sheet>
+      {picking && (
+        <PartyDialog
+          title={texts.kinds[kind]}
+          subtitle={`${t('expeditions.tier', { tier })}${elite ? ` ★ ${t('patrols.eliteX2')}` : ''} · ${formatDuration(dungeon.durationMinutes * 60_000)} · ${t('patrols.recommended', { count: patrolFights[difficulty].party })}`}
+          slots={rosterRules.partySize}
+          briefing={briefing}
+          oddsOf={oddsOf}
+          now={now}
+          sendLabel={t('patrols.fight')}
+          problem={(state, heroIds) => {
+            const found = heroIds.length > 0 ? problemOf(state, heroIds) : null;
+            return found ? problemText[found](distanceTo(spawn, player, now)) : null;
+          }}
+          onSend={fight}
+          onClose={() => setPicking(false)}
+        />
+      )}
     </Overlay>
   );
 }
@@ -205,10 +159,6 @@ const styles = StyleSheet.create({
   content: { gap: 6, paddingBottom: 12 },
   subtitle: { fontSize: 21, marginTop: 8 },
   muted: { color: colors.muted },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: pixel.outline, borderColor: colors.woodDark, paddingHorizontal: 10, paddingVertical: 6 },
-  chipActive: { borderColor: colors.ink, backgroundColor: colors.highlight },
-  odds: { fontSize: 21, marginTop: 8 },
   problem: { color: colors.muted, fontStyle: 'italic' },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
 });
