@@ -6,7 +6,7 @@ Designed 2026-11-08 (design canvas: "Expeditions and party mockups"). These are 
 |---|---|
 | `Main.dc.html` | The expedition list as pinned notices on a wooden board: name, difficulty pips, duration, needs as gem sockets, rewards, a readiness stamp (READY, NEEDS GEAR, NO VENOM). No heroes, no odds. Tabs: Places, Out now, Jobs. |
 | `Party-empty.dc.html` | The party dialog with nobody picked: "This place needs" sockets (dashed, faded), "Party families" empty, three empty hero plates, Suggest a party, the odds medallion showing "?", Send disabled. |
-| `Party-filled.dc.html` | Three heroes in: Wild sockets lit, Watch socket red with a hint, family banners with tag count and three pips, hero plates with portrait and three gear slots each with a family gem in the corner, the swap-worthy slot glowing, odds 58%, Send. |
+| `Party-filled.dc.html` | Three heroes in: Wild sockets lit, Watch socket red with a hint, family banners with tag count and three pips, hero plates with portrait and four gear slots each (helmet, weapon, armour, off-hand) with a family gem in the corner, the swap-worthy slot glowing, odds 58%, Send. |
 | `Gear-picker.dc.html` | Tapping Lyra's off-hand: a slot grid of off-hands (▲ covers a need, "worn" marks the current one, another hero's item dimmed with their name), then a detail card for the selected item: family, "lights the Darkness gem", stat changes, family count change, odds before → after, and "Equip on Lyra". |
 | `Hero-picker.dc.html` | Picking the third hero: portrait grid (▲ covers a need; busy or injured heroes greyed with "hurt 2 h" or "out 40 m"), a detail card for the selected hero (class and gear with family gems, what they light, odds before → after), "Add Sela". |
 
@@ -40,5 +40,11 @@ The boards load the game's own icons and font from the canvas (`/_blob/<id>`). M
 | e4c18b49c91f1ffc48422e824cd36252 | icons/rpg/book-leather.png (tome) |
 | 620833573552122abfecb7dae3971119 | icons/magic/orb-teal.png (focus) |
 | efe2c6eda4c4e9ad6298c8dc01317e42 | icons/rpg/shield-wooden-buckler.png |
+| 4c0c23433dbe9db7f03fc1c449aae915 | icons/rpg/helmet-steel-bascinet.png (great helm) |
+| 5fed41c00c1da2b59eb353946f501194 | icons/rpg/helmet-emerald-violet.png (rune circlet) |
+| 2b667bd7b6744343ec51229df04f532d | icons/rpg/helmet-padded-leather.png (hood) |
+| d46f031fd891b44620e839749572a299 | icons/rpg/helmet-steel-kettle.png (sentry's sallet) |
+| 109bd8429fbfc9a50334ef97e1cb5e6a | icons/abilities-scaled/war-hammer.png (Breaker) |
+| 30e2e186ee781e070c25295fa59bd30d | icons/relics/lockpicks.png (Cunning) |
 
 Numbers in the boards (odds, levels, HP) are examples.
