@@ -40,8 +40,11 @@ const started = performance.now();
 const DIFFICULTIES: PatrolDifficulty[] = ['easy', 'medium', 'hard'];
 const ROLES = ['weak', 'normal', 'boss'] as const;
 
-/** The fitted tier bosses and the S key each is fitted under. */
+/** The tier bosses and the S key each is fitted under. */
 const BOSSES = [
+  { id: 'banditStockade', tier: 1, key: 'banditStockadeBoss' },
+  { id: 'ogreQuarry', tier: 2, key: 'ogreQuarry' },
+  { id: 'drownedCrypt', tier: 3, key: 'drownedCrypt' },
   { id: 'giantsHall', tier: 4, key: 'giantsHall' },
   { id: 'dragonLair', tier: 5, key: 'dragonLairBoss' },
 ];
@@ -111,7 +114,7 @@ function jobs(): Job[] {
       });
     }
   }
-  // The tier 4 boss shares its S entry with its own encounter mobs; the tier 5 boss has a key of its own.
+  // Ogre Quarry's, Drowned Crypt's and Giants' Hall's bosses share their S entry with their own encounter mobs; the tier 1 and 5 bosses have keys of their own.
   for (const { id, tier, key } of BOSSES) {
     const dungeon = dungeonById[id];
     out.push({
@@ -232,7 +235,7 @@ import type { PatrolKind } from '@/game/patrols/generate';
  * src/game/sim/difficultyOdds.ts and the fitting script scripts/sim/fitDifficulty.ts).
  */
 
-/** Chain dungeons' S keys (src/content/enemies.ts), plus the fitted tier 4 and 5 boss keys. */
+/** Chain dungeons' S keys (src/content/enemies.ts), plus the tier bosses' keys. */
 export const dungeonFactors: Record<string, number> = {
 ${dungeonLines.join('\n')}
 };

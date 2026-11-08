@@ -7,7 +7,7 @@ import type { PatrolKind } from '@/game/patrols/generate';
  * src/game/sim/difficultyOdds.ts and the fitting script scripts/sim/fitDifficulty.ts).
  */
 
-/** Chain dungeons' S keys (src/content/enemies.ts), plus the fitted tier 4 and 5 boss keys. */
+/** Chain dungeons' S keys (src/content/enemies.ts), plus the tier bosses' keys. */
 export const dungeonFactors: Record<string, number> = {
   ratCellar: 5.7,
   spiderBurrow: 6.86,
@@ -39,6 +39,9 @@ export const dungeonFactors: Record<string, number> = {
   titanRuins: 3.88,
   wyvernPeaks: 7.07,
   ossuary: 5.78,
+  banditStockadeBoss: 4.61,
+  ogreQuarry: 4.11,
+  drownedCrypt: 3.8,
   giantsHall: 4.08,
   dragonLairBoss: 4.26,
 };
