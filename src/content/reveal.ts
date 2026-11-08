@@ -129,9 +129,9 @@ export const tipTexts: Record<TipId, string> = {
   stones: "Elemental stones give a piece their element — Infused on weapons, Warding on armour. Apply one at the forge's Rework page.",
   reroll: "An Uncommon or better piece can reroll all of its affixes at the forge's Rework page, for materials and gold.",
   specials: 'Specials: every hero has one, rolled from its class. It fires on its own in fights, a limited number of times; rare ones are marked ✦.',
-  threats: 'Each threat needs a family. Bring enough tags to answer it.',
-  families: 'Heroes and gear carry family tags. 2, 4 and 6 tags in a party unlock stronger effects.',
-  familyLevel: 'Your party reached {family}. Tap a family to see what it does.',
+  threats: 'Each gem is a tag the place needs. Heroes and gear light them.',
+  families: 'Heroes and gear carry family tags, shown as gems. 2, 4 and 6 tags in a party light a banner’s pips and unlock stronger effects.',
+  familyLevel: 'Your party reached {family}. Tap a family banner to see what it does.',
   jobs: "A hero at a job produces slowly while you're away. Output fills up after 8 hours, so collect on check-in. Work tires them over a day, and tired heroes rest at the station before working again. Working heroes must be recalled before they can be sent out.",
   jobMiner:
     'The Miner is open at the guild: a hero there digs the ore you pick. Stone now, copper and iron as tiers open. Switching ore keeps what was mined.',

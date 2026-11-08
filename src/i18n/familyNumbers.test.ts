@@ -36,9 +36,8 @@ describe.each([
   });
 });
 
-test('a need, the tags to reach and the next level are written in tags', () => {
+test('the tags to reach and the next level are written in tags', () => {
   setLocale('en');
-  expect(t('families.needs', { count: 2, family: 'Wild' })).toBe('needs 2 Wild');
   expect(t('families.toReach', { count: 2 })).toBe('+2 to reach');
   expect(t('families.next', { count: 2, marks: '●●●' })).toBe('+2 for ●●●');
   expect(t('families.level', { count: tagsForLevel(1), marks: '●○○' })).toBe('●○○ 2 tags');

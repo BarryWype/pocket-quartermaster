@@ -27,9 +27,9 @@ export const frTipTexts: typeof tipTexts = {
   reroll:
     "Une pièce Inhabituelle ou meilleure peut relancer tous ses affixes à la page Retouche de la forge, contre des matériaux et de l'or.",
   specials: 'Aptitudes : chaque héros en a une, tirée de sa classe. Elle se déclenche seule dans les combats, un nombre limité de fois ; les rares sont marquées ✦.',
-  threats: 'Chaque menace demande une famille. Emmenez assez de tags pour y répondre.',
-  families: 'Héros et équipement portent des tags de famille. 2, 4 et 6 tags dans un groupe débloquent des effets plus forts.',
-  familyLevel: 'Votre groupe a atteint {family}. Touchez une famille pour voir ce qu’elle fait.',
+  threats: 'Chaque gemme est un tag que le lieu demande. Héros et équipement les allument.',
+  families: 'Héros et équipement portent des tags de famille, montrés en gemmes. 2, 4 et 6 tags dans un groupe allument les losanges d’une bannière et débloquent des effets plus forts.',
+  familyLevel: 'Votre groupe a atteint {family}. Touchez la bannière d’une famille pour voir ce qu’elle fait.',
   jobs: "Un héros à un métier produit lentement en votre absence. La production remplit en 8 heures : récoltez-la à votre retour. Le travail les fatigue sur une journée, et un héros fatigué se repose à son poste avant de reprendre. Un héros au travail doit d'abord être rappelé avant de pouvoir être envoyé ailleurs.",
   jobMiner:
     'Le Mineur est ouvert à la guilde : un héros y extrait le minerai choisi. La pierre d’abord, le cuivre et le fer avec les paliers suivants. Changer de minerai garde ce qui a été extrait.',

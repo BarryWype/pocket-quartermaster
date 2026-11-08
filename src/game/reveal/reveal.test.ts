@@ -217,8 +217,8 @@ describe('dueTips', () => {
   it('names the strongest family of the latest run that reached a level', () => {
     setLocale('en');
     const reports = [{ families: {} }, { families: { faith: 1, bulwark: 2 } }, { families: { rally: 3 } }];
-    expect(tipText('familyLevel', reports)).toBe('Your party reached ●●○ Bulwark. Tap a family to see what it does.');
-    expect(tipText('familyLevel')).toBe('Your party reached a family level. Tap a family to see what it does.');
+    expect(tipText('familyLevel', reports)).toBe('Your party reached ●●○ Bulwark. Tap a family banner to see what it does.');
+    expect(tipText('familyLevel')).toBe('Your party reached a family level. Tap a family banner to see what it does.');
   });
 });
 

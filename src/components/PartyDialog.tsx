@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -249,6 +249,11 @@ export function PartyDialog({
   const save = useGameStore((state) => state.save);
   const equip = useGameStore((state) => state.equip);
   const dress = useGameStore((state) => state.dress);
+  const noteTips = useGameStore((state) => state.noteTips);
+  const hasNeeds = briefing.threats.length > 0;
+  useEffect(() => {
+    if (hasNeeds) noteTips(['threats']);
+  }, [hasNeeds, noteTips]);
   const [heroIds, setHeroIds] = useState<string[]>(initialHeroIds);
   const [swaps, setSwaps] = useState<GearSwap[]>([]);
   const [picking, setPicking] = useState<{ heroId: string; slot: GearSlot | 'consumable' | 'potion' } | null>(null);
@@ -261,11 +266,13 @@ export function PartyDialog({
   // The party as the dialog shows it: away heroes dropped, Suggest's swaps put on.
   const party = useMemo(
     () =>
-      heroIds.filter((id) => {
-        const hero = save.heroes.find((h) => h.id === id);
-        return hero !== undefined && canJoin(heroStatus(save, hero, now));
-      }),
-    [heroIds, save, now],
+      heroIds
+        .filter((id) => {
+          const hero = save.heroes.find((h) => h.id === id);
+          return hero !== undefined && canJoin(heroStatus(save, hero, now));
+        })
+        .slice(0, slots),
+    [heroIds, save, now, slots],
   );
   const dressed = useMemo(() => dressWith(save, swaps), [save, swaps]);
   const coverage = useMemo(() => (party.length > 0 ? briefingCoverage(dressed, party, briefing, now) : null), [dressed, party, briefing, now]);

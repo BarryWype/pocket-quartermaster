@@ -3,7 +3,7 @@ import { gearProfiles } from '@/content/equipment';
 import { itemById } from '@/content/lookup';
 
 import { statScore } from '../families/dress';
-import { familyLevel, partyFamilies, type FamilyCounts } from '../families/families';
+import { familyLevel, gearFamilyTags, partyFamilies, type FamilyCounts } from '../families/families';
 import { slotProblem } from '../equipment/slots';
 import type { SaveData } from '../save';
 import { isExhausted } from '../team/health';
@@ -154,15 +154,29 @@ export function gearChoices(save: SaveData, partyIds: string[], heroId: string, 
 
 /**
  * The party slots worth a look: a hero's slot glows when an owned piece the
- * hero can wear there lights a short family.
+ * hero can wear there lights a short family. Only pieces carrying a short
+ * family are tried on, so it stays cheap on every party change.
  */
 export function slotHints(save: SaveData, partyIds: string[], short: FamilyId[]): Set<string> {
   const hints = new Set<string>();
   if (short.length === 0) return hints;
+  const before = partyFamilies(save, partyIds);
+  const carriers = save.gear.filter((gear) => {
+    const item = itemById[gear.itemId] as GearDef;
+    return !item.workTool && gearFamilyTags(item, gear.relicId).some((tag) => short.includes(tag.family));
+  });
   for (const heroId of partyIds) {
-    for (const slot of GEAR_SLOTS) {
-      const choice = gearChoices(save, partyIds, heroId, slot, short).find((c) => !c.worn && !c.unfit);
-      if (choice && choice.lights.length > 0) hints.add(`${heroId}:${slot}`);
+    const hero = save.heroes.find((h) => h.id === heroId);
+    if (!hero) continue;
+    for (const gear of carriers) {
+      const item = itemById[gear.itemId] as GearDef;
+      const slot = item.slot as GearSlot;
+      if (!GEAR_SLOTS.includes(slot) || hints.has(`${heroId}:${slot}`) || hero.equipment[slot] === gear.uid) continue;
+      const holder = save.heroes.find((h) => h.id !== heroId && h.equipment[slot] === gear.uid);
+      if (holder && isAway(save, holder.id)) continue;
+      if (slot !== 'offhand' && affinityOf(hero.classId, item.gearType) === 'unfit') continue;
+      if (slot !== 'weapon' && slotProblem(save, hero, slot, gear)) continue;
+      if (familyEffect(before, partyFamilies(equip(save, heroId, slot, gear.uid), partyIds), short).lights.length > 0) hints.add(`${heroId}:${slot}`);
     }
   }
   return hints;
