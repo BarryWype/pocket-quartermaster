@@ -217,17 +217,37 @@ function pace(summaries: ProfileSummary[]) {
 function odds(s: ProfileSummary) {
   const rows = s.tiers.map((t) => {
     const o = t.odds;
-    const line = (l: typeof o.prepared) => `${pct(l.start.median)} → ${pct(l.probe.median)}${mark(l.probe.median, l.target)}`;
-    const actual = (l: typeof o.prepared) => (l.runs ? `${pct(l.actual)} of ${l.runs}` : '—');
-    return [String(t.tier), line(o.prepared), actual(o.prepared), line(o.unprepared), pct(o.gap.median), line(o.boss), actual(o.boss), line(o.events), actual(o.events)];
+    const difficulty = (d: 'easy' | 'medium' | 'hard') => {
+      const l = o.difficulty[d];
+      return `${pct(l.start.median)}${mark(l.start.median, l.target.start)} → ${pct(l.end.median)}${mark(l.end.median, l.target.end)}`;
+    };
+    const gap = (d: 'medium' | 'hard') => `${pct(o.gap[d].median)}${mark(o.gap[d].median, [targets.odds.threatGap[d], 1])}`;
+    const runs = (l: { actual: number | null; runs: number }) => (l.runs ? `${pct(l.actual)} of ${l.runs}` : '—');
+    const launched = (['easy', 'medium', 'hard'] as const).map((d) => runs(o.difficulty[d])).join(', ');
+    return [
+      String(t.tier),
+      difficulty('easy'),
+      difficulty('medium'),
+      difficulty('hard'),
+      launched,
+      gap('medium'),
+      gap('hard'),
+      `${pct(o.boss.first.median)}${mark(o.boss.first.median, o.boss.target)} → ${pct(o.boss.last.median)}`,
+      runs(o.boss),
+      `${pct(o.events.start.median)} → ${pct(o.events.probe.median)}${mark(o.events.probe.median, o.events.target)}`,
+      runs(o.events),
+    ];
   });
+  const span = (d: 'easy' | 'medium' | 'hard') => `${range(targets.odds.difficulty[d].start, pct)} → ${range(targets.odds.difficulty[d].end, pct)}`;
   const head = [
     'Tier',
-    `Prepared (${range(targets.odds.prepared, pct)})`,
-    'Launched, won',
-    `Not prepared, hard (${range(targets.odds.unprepared, pct)})`,
-    'Hard gap',
-    `Boss (${range(targets.odds.boss, pct)})`,
+    `Easy (${span('easy')})`,
+    `Medium (${span('medium')})`,
+    `Hard (${span('hard')})`,
+    'Launched, won (easy, medium, hard)',
+    `Medium gap (≥ ${pct(targets.odds.threatGap.medium)})`,
+    `Hard gap (≥ ${pct(targets.odds.threatGap.hard)})`,
+    `Boss, first attempts → last (${range(targets.odds.boss, pct)})`,
     'Boss runs, won',
     `Events and patrols (${range(targets.odds.events, pct)})`,
     'Fought, won',
@@ -532,7 +552,7 @@ export function renderReport({ summaries, rules, settings, difficultyOdds, famil
     pace(summaries),
     '## Win odds per tier',
     '',
-    'Probe: after the day\u2019s last session every `probeEveryDays` days (and after the first session of a new tier and every session the tier boss is out), the best prepared party from the whole roster at full HP against every open normal dungeon of the tier, the tier boss, and the fight events and patrols around; "not prepared" is the briefing skipped: the strongest party picked as if there were no threats, with no consumables, over the hard dungeons only (easy and medium ones are fitted to be won that way), and the gap is the hard dungeons\u2019 prepared odds minus it. Each probe cell reads "at the tier\u2019s first probe → at its last" (gear of the tier); the last is checked against the target. The column after each probe is what the bot actually launched.',
+    'Probe: after the day\u2019s last session every `probeEveryDays` days (and after the first session of a new tier and every session the tier boss is out), the best prepared party from the whole roster at full HP (the bot\u2019s own pick, `suggestParty`) against every open normal dungeon of the tier, the tier boss once it opens, and the fight events and patrols around. Each difficulty reads "at its first probe in the tier → at its last" (dungeons open in chain order, so medium and hard start later than easy), each checked against its target. The gap is prepared minus the briefing skipped (the strongest party picked as if there were no threats, in the gear it wears, no consumables) over the same dungeons at the tier\u2019s last probe. The boss reads "first attempts (its probes on the day it first opens) → last probe"; the first attempts are checked.',
     '',
   ];
   for (const s of summaries) out.push(`### ${s.profile}`, '', odds(s));

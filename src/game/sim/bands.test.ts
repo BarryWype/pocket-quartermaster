@@ -45,9 +45,18 @@ check('simulator balance bands', () => {
     for (const s of profiles) {
       for (const tier of s.tiers) {
         const { odds } = tier;
-        it(`${s.profile}: tier ${tier.tier} normal expeditions, prepared`, () => expectIn(median(odds.prepared.probe), targets.odds.prepared));
-        it(`${s.profile}: tier ${tier.tier} hard expeditions, not prepared`, () => expectIn(median(odds.unprepared.probe), targets.odds.unprepared));
-        it(`${s.profile}: tier ${tier.tier} boss, prepared`, () => expectIn(median(odds.boss.probe), targets.odds.boss));
+        // A summary from before the per-difficulty targets has no lines to check.
+        if (!odds.difficulty) continue;
+        for (const difficulty of ['easy', 'medium', 'hard'] as const) {
+          const line = odds.difficulty[difficulty];
+          it(`${s.profile}: tier ${tier.tier} ${difficulty} expeditions at the start`, () => expectIn(median(line.start), line.target.start));
+          it(`${s.profile}: tier ${tier.tier} ${difficulty} expeditions at the end`, () => expectIn(median(line.end), line.target.end));
+        }
+        for (const [difficulty, min] of Object.entries(targets.odds.threatGap)) {
+          it(`${s.profile}: tier ${tier.tier} ${difficulty} threat gap of at least ${min * 100} points`, () =>
+            expect(median(odds.gap[difficulty as keyof typeof targets.odds.threatGap])).toBeGreaterThanOrEqual(min));
+        }
+        it(`${s.profile}: tier ${tier.tier} boss at its first attempts`, () => expectIn(median(odds.boss.first), targets.odds.boss));
         it(`${s.profile}: tier ${tier.tier} fight events and patrols, prepared`, () => expectIn(median(odds.events.probe), targets.odds.events));
       }
     }

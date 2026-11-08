@@ -25,6 +25,10 @@ import { inRange, targets as defaultTargets, type Targets } from './targets';
 
 const TIERS = [1, 2, 3, 4, 5];
 
+/** The difficulties a threat gap is measured on. */
+type GapDifficulty = keyof Targets['odds']['threatGap'];
+const DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
+
 /** Median and range over seeds; null where no seed got there. */
 export type Stat = { median: number | null; min: number | null; max: number | null; reached: number; seeds: number };
 
@@ -50,13 +54,26 @@ const within = (day: number, window: [number, number] | null) => !!window && day
 /** Probed odds at the tier's last probe (gear of the tier) and at its first, the launched runs' win rate, and the target. */
 export type OddsLine = { probe: Stat; start: Stat; actual: number | null; runs: number; target: [number, number] };
 
+/** One difficulty's normal expeditions: prepared odds at its first and last probe of the tier, the launched runs' win rate, and the targets. */
+export type DifficultyLine = { start: Stat; end: Stat; actual: number | null; runs: number; target: { start: [number, number]; end: [number, number] } };
+
+/** The tier boss: prepared odds at its first attempts (the probes on the day it first opens) and at its last probe, and its runs; the target is for the first attempts. */
+export type BossLine = { first: Stat; last: Stat; actual: number | null; runs: number; target: [number, number] };
+
 /** One patrol or fight event kind: its probe line and the fights the bot took on. */
 export type KindOdds = { id: string; line: OddsLine; fought: number; won: number };
 
 export type TierSummary = {
   tier: number;
   days: Stat;
-  odds: { prepared: OddsLine; unprepared: OddsLine; gap: Stat; boss: OddsLine; events: OddsLine; kinds: KindOdds[] };
+  odds: {
+    difficulty: Record<GapDifficulty | 'easy', DifficultyLine>;
+    /** Prepared minus the briefing skipped at the tier's last probe, over its dungeons of the difficulty. */
+    gap: Record<GapDifficulty, Stat>;
+    boss: BossLine;
+    events: OddsLine;
+    kinds: KindOdds[];
+  };
   gold: { income: Record<string, number>; spend: Record<string, number>; growth: Stat; incomePerDay: Stat; surplus: boolean };
   material: { id: string; gathered: Stat; spent: Stat; share: Stat };
   /** Wood per day over the tier: gathered by walking, spent, the woodcutter's output, and its share of the spend. */
@@ -262,15 +279,31 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
     start: snapshot(match, value, false),
   });
   const rate = (rows: { won: boolean }[]) => (rows.length ? rows.filter((r) => r.won).length / rows.length : null);
-  const normalRuns = logs.flatMap((log) => log.expeditions.filter((e) => e.tier === tier && !e.boss && !e.overnight).map((e) => ({ won: e.success })));
+  const normalRuns = (difficulty: string) =>
+    logs.flatMap((log) => log.expeditions.filter((e) => e.tier === tier && !e.boss && !e.overnight && dungeonById[e.dungeonId]?.difficulty === difficulty).map((e) => ({ won: e.success })));
   const bossRuns = logs.flatMap((log) => log.expeditions.filter((e) => e.tier === tier && e.boss).map((e) => ({ won: e.success })));
   const eventRuns = logs.flatMap((log) => [
     ...log.places.filter((p) => p.tier === tier && p.won !== null && p.kind !== 'thievesGuild').map((p) => ({ won: !!p.won })),
     ...log.patrols.fights.filter((f) => f.tier === tier).map((f) => ({ won: f.won })),
   ]);
-  // The not-prepared target is for hard dungeons: easy and medium ones are fitted to be won with the briefing skipped.
-  const hard = (p: ProbeRow) => p.kind === 'normal' && dungeonById[p.id]?.difficulty === 'hard';
-  const gap = snapshot(hard, (p) => (p.unprepared === null ? null : p.prepared - p.unprepared), true);
+  const ofDifficulty = (difficulty: string) => (p: ProbeRow) => p.kind === 'normal' && dungeonById[p.id]?.difficulty === difficulty;
+  const difficulty = Object.fromEntries(
+    DIFFICULTIES.map((d) => {
+      const runs = normalRuns(d);
+      const { start, probe: end } = line(ofDifficulty(d), (p) => p.prepared);
+      return [d, { start, end, actual: rate(runs), runs: runs.length, target: t.odds.difficulty[d] }];
+    }),
+  ) as TierSummary['odds']['difficulty'];
+  const gap = Object.fromEntries(
+    (Object.keys(t.odds.threatGap) as GapDifficulty[]).map((d) => [d, snapshot(ofDifficulty(d), (p) => (p.unprepared === null ? null : p.prepared - p.unprepared), true)]),
+  ) as TierSummary['odds']['gap'];
+  // The boss's first attempts: its probes on the first day it is open (boss rows start when it opens).
+  const bossFirst = stat(
+    logs.map((log) => {
+      const rows = log.probes.filter((p) => p.tier === tier && p.kind === 'boss');
+      return rows.length ? mean(rows.filter((p) => p.day === rows[0].day).map((p) => p.prepared)) : null;
+    }),
+  );
 
   // Each patrol and fight event kind's own probe line and fight record.
   const kinds: KindOdds[] = ([...PATROL_KINDS, ...(Object.keys(placeFightRules.kinds) as (keyof typeof placeFightRules.kinds)[])] as string[]).map(
@@ -505,10 +538,9 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
     tier,
     days,
     odds: {
-      prepared: { ...line((p) => p.kind === 'normal', (p) => p.prepared), actual: rate(normalRuns), runs: normalRuns.length, target: t.odds.prepared },
-      unprepared: { ...line(hard, (p) => p.unprepared), actual: null, runs: 0, target: t.odds.unprepared },
+      difficulty,
       gap,
-      boss: { ...line((p) => p.kind === 'boss', (p) => p.prepared), actual: rate(bossRuns), runs: bossRuns.length, target: t.odds.boss },
+      boss: { first: bossFirst, last: snapshot((p) => p.kind === 'boss', (p) => p.prepared, true), actual: rate(bossRuns), runs: bossRuns.length, target: t.odds.boss },
       events: {
         ...line((p) => p.kind === 'event' || p.kind === 'patrol', (p) => p.prepared),
         actual: rate(eventRuns),
@@ -681,9 +713,13 @@ export function misses(summaries: ProfileSummary[]): { what: string; value: numb
   for (const s of summaries) {
     for (const tier of s.tiers) {
       check(`${s.profile}: tier ${tier.tier} days`, tier.days.median, defaultTargets.daysPerTier[s.profile]);
-      check(`${s.profile}: tier ${tier.tier} prepared odds`, tier.odds.prepared.probe.median, tier.odds.prepared.target);
-      check(`${s.profile}: tier ${tier.tier} hard not prepared odds`, tier.odds.unprepared.probe.median, tier.odds.unprepared.target);
-      check(`${s.profile}: tier ${tier.tier} boss odds`, tier.odds.boss.probe.median, tier.odds.boss.target);
+      for (const d of DIFFICULTIES) {
+        const line = tier.odds.difficulty[d];
+        check(`${s.profile}: tier ${tier.tier} ${d} odds at the start`, line.start.median, line.target.start);
+        check(`${s.profile}: tier ${tier.tier} ${d} odds at the end`, line.end.median, line.target.end);
+      }
+      for (const [d, min] of Object.entries(defaultTargets.odds.threatGap)) check(`${s.profile}: tier ${tier.tier} ${d} threat gap`, tier.odds.gap[d as GapDifficulty].median, [min, 1]);
+      check(`${s.profile}: tier ${tier.tier} boss odds at the first attempts`, tier.odds.boss.first.median, tier.odds.boss.target);
       check(`${s.profile}: tier ${tier.tier} fight event and patrol odds`, tier.odds.events.probe.median, tier.odds.events.target);
     }
     for (const row of s.loot) check(`loot: ${row.column} per week`, row.observed, [row.designed * (1 - defaultTargets.lootPacing), row.designed * (1 + defaultTargets.lootPacing)]);

@@ -4,7 +4,6 @@ import { placeFightRules, type FightPlaceKind } from '@/content/placeFights';
 import { bossWeaknesses } from '@/content/weaknesses';
 
 import { briefingFor, dailyRotation, rotationDay } from '../dungeons/rotation';
-import { isDungeonAvailable } from '../expeditions/expeditions';
 import { estimateOdds } from '../expeditions/odds';
 import { EMPTY_BRIEFING } from '../expeditions/simulate';
 import { placesWithin } from '../places/generate';
@@ -26,15 +25,12 @@ const NOON = 12 * 3_600_000;
 /** One tier's means, or null where nothing was sampled. */
 export type QuickTier = {
   tier: number;
-  /** Open normal dungeons, prepared: dressed for the briefing (threat families, then a playstyle), weakness item, potions. */
-  prepared: number | null;
   /**
-   * The tier's hard dungeons for the team `sim:fit` fits them with (the tier's
-   * end): prepared, and with the briefing skipped (dressed for its playstyle
-   * only). The not-prepared target is for hard dungeons: easy and medium ones
-   * are fitted to be won with the briefing skipped.
+   * The tier's medium and hard dungeons for the team `sim:fit` fits them with
+   * (the tier's end): prepared, and with the briefing skipped (dressed for its
+   * playstyle only); the threat gap is the difference.
    */
-  hard: { prepared: number | null; skipped: number | null };
+  gap: Record<'medium' | 'hard', { prepared: number | null; skipped: number | null }>;
   /** The tier boss, prepared. */
   boss: number | null;
   /** Fight events around, prepared. */
@@ -88,7 +84,7 @@ const mean = (values: number[]): number | null => (values.length ? values.reduce
 
 /**
  * The odds-only probe (`npm run sim:quick`): for each tier, the reference team
- * against that tier's open normal dungeons (prepared and with the briefing
+ * against that tier's medium and hard dungeons (prepared and with the briefing
  * skipped), its boss, the fight events and the patrols around the reference
  * location, once per rotation day at noon. No full game, no rewards.
  */
@@ -100,9 +96,7 @@ export function quickProbe(config: SimConfig = simConfig): QuickTier[] {
     const reference = referenceSave(tier, 'end', 3);
     const referenceIds = reference.heroes.map((h) => h.id);
     const natural = dressParty(reference, referenceIds, EMPTY_BRIEFING);
-    const prepared: number[] = [];
-    const hardPrepared: number[] = [];
-    const hardSkipped: number[] = [];
+    const gap = { medium: { prepared: [] as number[], skipped: [] as number[] }, hard: { prepared: [] as number[], skipped: [] as number[] } };
     const boss: number[] = [];
     const events: number[] = [];
     const patrols: number[] = [];
@@ -111,15 +105,12 @@ export function quickProbe(config: SimConfig = simConfig): QuickTier[] {
       const t = config.startDay + day * DAY + NOON;
       const rotation = dailyRotation(rotationDay(t));
 
-      for (const dungeon of dungeons.filter((d) => d.tier === tier && !d.isBoss && !d.overnight && isDungeonAvailable(save, d, rotation))) {
-        const briefing = briefingFor(rotation, dungeon);
-        prepared.push(estimateOdds(withLoadout(dressParty(save, ids, briefing), ids, dungeon, briefing), ids, dungeon, runs, { now: t, briefing }).success);
-      }
-
-      for (const dungeon of dungeons.filter((d) => d.tier === tier && d.difficulty === 'hard' && !d.isBoss && !d.overnight)) {
-        const briefing = briefingFor(rotation, dungeon);
-        hardPrepared.push(estimateOdds(preparedFor(reference, referenceIds, dungeon, briefing), referenceIds, dungeon, runs, { now: t, briefing }).success);
-        hardSkipped.push(estimateOdds(natural, referenceIds, dungeon, runs, { now: t, briefing }).success);
+      for (const difficulty of ['medium', 'hard'] as const) {
+        for (const dungeon of dungeons.filter((d) => d.tier === tier && d.difficulty === difficulty && !d.isBoss && !d.overnight)) {
+          const briefing = briefingFor(rotation, dungeon);
+          gap[difficulty].prepared.push(estimateOdds(preparedFor(reference, referenceIds, dungeon, briefing), referenceIds, dungeon, runs, { now: t, briefing }).success);
+          gap[difficulty].skipped.push(estimateOdds(natural, referenceIds, dungeon, runs, { now: t, briefing }).success);
+        }
       }
 
       const bossDungeon = dungeons.find((d) => d.tier === tier && d.isBoss && !d.overnight);
@@ -150,8 +141,10 @@ export function quickProbe(config: SimConfig = simConfig): QuickTier[] {
     }
     return {
       tier,
-      prepared: mean(prepared),
-      hard: { prepared: mean(hardPrepared), skipped: mean(hardSkipped) },
+      gap: {
+        medium: { prepared: mean(gap.medium.prepared), skipped: mean(gap.medium.skipped) },
+        hard: { prepared: mean(gap.hard.prepared), skipped: mean(gap.hard.skipped) },
+      },
       boss: mean(boss),
       events: mean(events),
       patrols: mean(patrols),
@@ -162,7 +155,7 @@ export function quickProbe(config: SimConfig = simConfig): QuickTier[] {
           { start: tierDifficultyOdds(tier, d, 'start', runs), end: tierDifficultyOdds(tier, d, 'end', runs) },
         ]),
       ) as DifficultyOdds,
-      samples: { normal: prepared.length, boss: boss.length, events: events.length, patrols: patrols.length },
+      samples: { normal: gap.hard.prepared.length, boss: boss.length, events: events.length, patrols: patrols.length },
     };
   });
 }

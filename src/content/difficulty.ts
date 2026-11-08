@@ -5,12 +5,15 @@ export type Difficulty = 'easy' | 'medium' | 'hard' | 'boss';
 export const difficultyRules = {
   /** Display and progression order. */
   order: ['easy', 'medium', 'hard', 'boss'] as Difficulty[],
-  /** Win-odds targets for the reference teams: [min, max] at the tier's start and end. */
+  /**
+   * Win-odds targets of normal expeditions, prepared (the bot's real party,
+   * dressed by suggestParty): [min, max] at the tier's start and end. The fit
+   * (sim:fit) and the simulator's report both measure against them.
+   */
   oddsTargets: {
     easy: { start: [0.55, 0.65], end: [0.85, 0.9] },
     medium: { start: [0.25, 0.4], end: [0.65, 0.75] },
-    hard: { start: [0.05, 0.15], end: [0.5, 0.6] }, // measured with the threat answered
-    // boss: keep the simulator's existing boss targets
+    hard: { start: [0.05, 0.15], end: [0.5, 0.6] },
   } satisfies Record<Exclude<Difficulty, 'boss'>, { start: [number, number]; end: [number, number] }>,
   /** Threat level by difficulty, before and from tier 3 (`threatLevelFromTier`); capped at 3. */
   threatLevel: {

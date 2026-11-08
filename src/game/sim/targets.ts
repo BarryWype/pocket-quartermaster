@@ -1,3 +1,5 @@
+import { difficultyRules } from '@/content/difficulty';
+
 /**
  * The targets of doc/design/simulator/README.md, which the report puts next to
  * each result and the balance band tests check. Ranges are [min, max].
@@ -6,10 +8,14 @@ export const targets = {
   /** Days from one tier boss's first win to the next ("about 7" reads 6–8, "about 14" 12–16). */
   daysPerTier: { casual: [12, 16], regular: [6, 8], heavy: [3, 4] } as Record<string, [number, number]>,
   odds: {
-    /** Normal expeditions with the right party and the tier's gear. */
-    prepared: [0.65, 0.75] as [number, number],
-    /** Not prepared, hard dungeons: the briefing skipped — the strongest party picked as if there were no threats, with no consumables. */
-    unprepared: [0.3, 0.45] as [number, number],
+    /**
+     * Normal expeditions per difficulty, prepared (the bot's real party, dressed
+     * by suggestParty), at the tier's first probe (start) and its last (end).
+     */
+    difficulty: difficultyRules.oddsTargets,
+    /** Prepared minus the briefing skipped, same party pool and dungeons, at the tier's last probe; easy has none. */
+    threatGap: { medium: 0.15, hard: 0.25 },
+    /** The tier boss, prepared, at its first attempts: the probes on the day it first opens. */
     boss: [0.5, 0.6] as [number, number],
     /** Fight events and patrols, prepared. */
     events: [0.7, 0.8] as [number, number],

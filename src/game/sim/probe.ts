@@ -34,8 +34,8 @@ function restedRoster(save: SaveData): SaveData {
  * The win odds for the current tier right now, measured without changing the
  * game: the best prepared party from the whole roster at full HP against every
  * open normal dungeon (and, with the briefing skipped, the strongest party as
- * if there were no threats and no consumables), the tier boss, the fight events
- * around and each patrol kind.
+ * if there were no threats and no consumables), the tier boss once it is open,
+ * the fight events around and each patrol kind.
  */
 export function probe(sim: Sim): ProbeRow[] {
   const save = emptySlots(restedRoster(sim.save), sim.save.heroes.map((h) => h.id));
@@ -64,8 +64,9 @@ export function probe(sim: Sim): ProbeRow[] {
     add('normal', dungeon.id, party.odds.success, plain.success, natural);
   }
 
+  // Only once the boss opens, so the tier's first boss rows are its first attempts.
   const boss = dungeons.find((d) => d.tier === tier && d.isBoss);
-  if (boss) add('boss', boss.id, prepare(boss).party.odds.success);
+  if (boss && isDungeonAvailable(save, boss, sim.rotation)) add('boss', boss.id, prepare(boss).party.odds.success);
 
   const places = placesWithin(sim.location, 2000, sim.now);
   for (const kind of Object.keys(placeFightRules.kinds) as FightPlaceKind[]) {

@@ -12,7 +12,7 @@ describe('quickProbe', () => {
     it(`tier ${tier.tier} samples normal dungeons and the boss`, () => {
       expect(tier.samples.normal).toBeGreaterThan(0);
       expect(tier.samples.boss).toBeGreaterThan(0);
-      for (const value of [tier.prepared, tier.hard.prepared, tier.hard.skipped, tier.boss]) {
+      for (const value of [tier.gap.medium.prepared, tier.gap.medium.skipped, tier.gap.hard.prepared, tier.gap.hard.skipped, tier.boss]) {
         expect(value).not.toBeNull();
         expect(value as number).toBeGreaterThanOrEqual(0);
         expect(value as number).toBeLessThanOrEqual(1);
