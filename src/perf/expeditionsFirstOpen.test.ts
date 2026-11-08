@@ -233,6 +233,18 @@ describe('the first opening of Expeditions', () => {
       );
       row('oddsKeys x4 (oddsKey + briefingOf)', cold, warm);
     }
+    // The readiness stamps of the notices shown: once per save, then from its cache.
+    {
+      const briefings = shown.map((d) => composeBriefing(d, today));
+      const [cold, warm] = coldAndWarm(
+        () => {},
+        (load) => {
+          const m = load<typeof import('@/game/threats/readiness')>('@/game/threats/readiness');
+          for (const briefing of briefings) m.briefingReadiness(save, briefing);
+        },
+      );
+      row('briefingReadiness x4 shown (cold / cached)', cold, warm);
+    }
     {
       const [cold, warm] = coldAndWarm(
         () => {},

@@ -50,7 +50,7 @@ export const tutorialHints: Record<TutorialStep, Partial<Record<TutorialScreen |
   },
   seeThreat: {
     default: 'Open Expeditions.',
-    expeditions: 'This expedition faces Beasts. Red: the party lacks the Wild tags that answer it. Tap to continue.',
+    expeditions: 'This expedition faces Beasts. Lyra’s hide armour carries the Wild tag that answers it, so its socket lights up. Tap to continue.',
   },
   gatherKit: {
     default: 'Back to the map: gather the herbs and mushroom around you.',

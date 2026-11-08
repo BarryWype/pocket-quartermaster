@@ -1,3 +1,4 @@
+import { startingHeroes } from '@/content/heroes';
 import { gearId, gearRecipes } from '@/content/equipment';
 import { itemById, relicById } from '@/content/lookup';
 import { lootConfig } from '@/content/loot/config';
@@ -15,6 +16,8 @@ const holding = (relic: RelicDef, extra: Partial<SaveData> = {}): SaveData => {
   for (const { materialId, amount } of recipe.inputs) materials[materialId] = (materials[materialId] ?? 0) + amount;
   return {
     ...createInitialSave(),
+    gear: [],
+    heroes: startingHeroes,
     relics: [{ uid: 'r1', relicId: relic.id }],
     materials,
     valuables: { [`${recipe.valuables![0].valuableId}:1`]: 1 },
@@ -119,6 +122,8 @@ describe('restoreRelic', () => {
     const [a, b] = [relicById.rustedSaintsBuckler, relicById.desertersMail];
     const save: SaveData = {
       ...createInitialSave(),
+      gear: [],
+      heroes: startingHeroes,
       relics: [{ uid: 'r1', relicId: a.id }, { uid: 'r2', relicId: b.id }],
       materials: {},
       valuables: { 'roughGem:1': 2 },

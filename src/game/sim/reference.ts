@@ -1,7 +1,7 @@
 import { dungeons } from '@/content/dungeons';
 import { classAffinities, gearId, gearProfiles } from '@/content/equipment';
 import { classSpecials } from '@/content/classSpecials';
-import { newHero } from '@/content/heroes';
+import { newHero, startingHeroes } from '@/content/heroes';
 import { items } from '@/content/items';
 import type { Rarity } from '@/content/gear';
 import type { GearDef, GearType, HeroClassId, HeroState } from '@/game/types';
@@ -98,7 +98,7 @@ export function referenceSave(tier: number, when: 'start' | 'end', party: number
   const gearTier = when === 'end' ? tier : Math.max(1, tier - 1);
   const rarity: Rarity = when === 'end' ? 'uncommon' : 'common';
   const withArmour = !(tier === 1 && when === 'start');
-  const heroes = initial.heroes.slice(0, party).map((h) => ({ ...h, level }));
+  const heroes = startingHeroes.slice(0, party).map((h) => ({ ...h, level }));
   let save: SaveData = {
     ...initial,
     tutorial: { ...initial.tutorial, step: 'done' },

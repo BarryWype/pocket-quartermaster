@@ -1,14 +1,15 @@
-import { familyById } from '@/content/families';
+import { familyById, familyOfThreat, type FamilyId } from '@/content/families';
 import { heroClasses } from '@/content/heroes';
-import { opportunityById, relicById, restrictionById } from '@/content/lookup';
+import { gearName, itemById, opportunityById, relicById, restrictionById } from '@/content/lookup';
 import { traitById } from '@/content/traits';
 
 import { answersMemberOf, prepareParty, type PartyMember } from '../expeditions/simulate';
-import { familyCountsOf, type FamilyCounts } from '../families/families';
+import { familyCountsOf, gearFamilyTags, type FamilyCounts } from '../families/families';
 import type { SaveData } from '../save';
 import type {
   ActiveThreat,
   Briefing,
+  GearDef,
   OpportunityDef,
   RestrictionDef,
   RestrictionId,
@@ -49,15 +50,25 @@ export type BriefingCoverage = {
   families: FamilyCounts;
 };
 
+/** The hero's equipped piece whose type carries the family. */
+function pieceWith(save: SaveData, heroId: string, family: FamilyId) {
+  const hero = save.heroes.find((h) => h.id === heroId);
+  return Object.values(hero?.equipment ?? {})
+    .map((uid) => save.gear.find((g) => g.uid === uid))
+    .find((g) => g && gearFamilyTags(itemById[g.itemId] as GearDef).some((t) => t.family === family));
+}
+
 /** What an answer came from, by name: the class, trait, gear piece or relic behind it. */
-function sourceName(member: PartyMember, source: TagSource): string {
+function sourceName(save: SaveData, member: PartyMember, source: TagSource, family: FamilyId): string {
   switch (source) {
     case 'class':
       return heroClasses[member.classId].name;
     case 'trait':
       return traitById[member.traitId]?.name ?? member.traitId;
-    case 'gear':
-      return member.weaponName ?? 'Unarmed';
+    case 'gear': {
+      const piece = pieceWith(save, member.heroId, family);
+      return piece ? gearName(piece) : (member.weaponName ?? 'Unarmed');
+    }
     case 'relic':
       return member.relicEffects?.[0] ? relicById[member.relicEffects[0].relicId].name : 'Relic';
   }
@@ -105,7 +116,7 @@ export function briefingCoverage(
         heroId: cover.heroId,
         heroName: member.name,
         source: cover.source,
-        sourceName: sourceName(member, cover.source),
+        sourceName: sourceName(save, member, cover.source, familyOfThreat(score.threat.id)),
       };
     }),
     loweredBy: signed.lowered?.threatId === score.threat.id ? nameOf(signed.lowered.heroId) : null,

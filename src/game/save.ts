@@ -1,4 +1,5 @@
 import type { GuildTrackId } from '@/content/guild';
+import { gearId } from '@/content/equipment';
 import { startingHeroes } from '@/content/heroes';
 import { choiceOf, jobs, type GathererFocus } from '@/content/jobs';
 import type { PlaceKind } from '@/content/places';
@@ -7,6 +8,7 @@ import { recipes } from '@/content/recipes';
 import type { TipId } from '@/content/reveal';
 
 import { startingRecipes } from './crafting/recipeUnlocks';
+import { makeGearPiece } from './gear/make';
 
 import type { ManualRarity } from './loot/types';
 import type { AutoGatherSave } from './gathering/autoGather';
@@ -215,9 +217,10 @@ export function createInitialSave(playerSeed?: string): SaveData {
     gold: 0,
     materials: {},
     consumables: { ...provisionRules.startingStock },
-    gear: [],
+    // Lyra's hide armour carries the Wild tag that answers the tutorial's Beasts.
+    gear: [makeGearPiece('lyraHide', gearId('leather', 1), 'common')],
     tools: [],
-    heroes: startingHeroes,
+    heroes: startingHeroes.map((hero) => (hero.id === 'lyra' ? { ...hero, equipment: { ...hero.equipment, armor: 'lyraHide' } } : hero)),
     jobOutput: {},
     jobChoice,
     gatherer: { anchors: [], focus: 'any' },

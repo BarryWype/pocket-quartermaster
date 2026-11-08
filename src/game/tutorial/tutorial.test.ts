@@ -46,7 +46,7 @@ describe('tutorial walkthrough', () => {
     expect(tutorialTarget(save)).toBe('team');
     expect(tutorialHint(save, 'team')).toMatch(/Bram/);
 
-    save = advanceTutorial(equip(save, 'bram', 'weapon', save.gear[0].uid));
+    save = advanceTutorial(equip(save, 'bram', 'weapon', save.gear.find((g) => g.itemId === tutorialRules.swordRecipe)!.uid));
     expect(save.tutorial.step).toBe('seeThreat');
     expect(isClosableHint(save)).toBe(true);
     expect(tutorialHint(save, 'expeditions')).toMatch(/Beasts/);
@@ -97,13 +97,12 @@ describe('tutorial walkthrough', () => {
 });
 
 describe('the tutorial threat', () => {
-  it('reads partial with nobody answering it', () => {
+  it('is answered by the starting heroes in their starting gear', () => {
     const save = createInitialSave();
-    const party = ['bram', 'lyra', 'mira'];
-    const uncovered = briefingCoverage(save, party, tutorialRules.briefing);
-    expect(uncovered.threats[0].threat.id).toBe('beasts');
-    // A level-1 threat reads gold (partial) with nobody answering it.
-    expect(uncovered.threats[0].display).toBe('partial');
+    const coverage = briefingCoverage(save, ['bram', 'lyra', 'mira'], tutorialRules.briefing);
+    expect(coverage.threats[0].threat.id).toBe('beasts');
+    expect(coverage.threats[0].display).toBe('covered');
+    expect(coverage.threats[0].coveredBy).toMatchObject([{ heroName: 'Lyra', source: 'gear', sourceName: 'Hide armour' }]);
   });
 });
 

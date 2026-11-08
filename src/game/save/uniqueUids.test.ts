@@ -221,6 +221,7 @@ describe('unique uids', () => {
   it('challenging Sanctums keeps every uid unique across wins', () => {
     let save: SaveData = {
       ...createInitialSave(),
+      gear: [],
       sigils: Array.from({ length: 8 }, () => 1),
       heroes: createInitialSave().heroes.map((hero) => ({ ...hero, level: 9 })),
     };

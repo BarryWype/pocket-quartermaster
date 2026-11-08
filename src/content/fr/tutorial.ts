@@ -15,7 +15,7 @@ export const frTutorialHints: typeof tutorialHints = {
   },
   seeThreat: {
     default: 'Ouvrez Expéditions.',
-    expeditions: 'Cette expédition affronte des Bêtes. En rouge : il manque à l’équipe les tags Sauvage qui y répondent. Touchez pour continuer.',
+    expeditions: 'Cette expédition affronte des Bêtes. L’armure de peau de Lyra porte le tag Sauvage qui y répond : son emplacement s’allume. Touchez pour continuer.',
   },
   gatherKit: {
     default: 'Retournez à la carte : récoltez les herbes et le champignon autour de vous.',

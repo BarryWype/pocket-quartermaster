@@ -1,4 +1,4 @@
-import { heroClasses } from '@/content/heroes';
+import { heroClasses, startingHeroes } from '@/content/heroes';
 import { secretRules } from '@/content/secrets';
 import { shopRules } from '@/content/shops';
 import { trinkets } from '@/content/trinkets';
@@ -51,6 +51,8 @@ const placeOf = (tip: SecretTip) => ({
 
 const saveWith = (tip: SecretTip, extra: Partial<SaveData> = {}): SaveData => ({
   ...createInitialSave(),
+  gear: [],
+  heroes: startingHeroes,
   secretTips: [tip],
   keyFragments: 4,
   gold: 100_000,

@@ -1,4 +1,4 @@
-import { newHero, xpToNextLevel } from '@/content/heroes';
+import { newHero, startingHeroes, xpToNextLevel } from '@/content/heroes';
 import { affinityRules } from '@/content/equipment';
 import { itemById } from '@/content/lookup';
 
@@ -37,7 +37,7 @@ describe('heroStats', () => {
   });
 
   it('starts from class base stats, with the trait on top (Bram is resilient: +15% HP)', () => {
-    const save = createInitialSave();
+    const save = { ...createInitialSave(), gear: [], heroes: startingHeroes };
     expect(heroStats(save, hero(save, 'bram'))).toEqual({
       hp: Math.round(30 * 1.15),
       power: 4,
@@ -84,7 +84,7 @@ describe('heroStats', () => {
   });
 
   it('grows primaries with level and leaves secondaries at their milestones', () => {
-    const save = createInitialSave();
+    const save = { ...createInitialSave(), gear: [], heroes: startingHeroes };
     const levelThree = { ...hero(save, 'lyra'), level: 3 };
     // Ranger primaries: power every level; HP only at the 5/10/15 milestones.
     expect(heroStats(save, levelThree).power).toBe(5 + 2 * 2);

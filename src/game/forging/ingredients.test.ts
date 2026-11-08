@@ -1,3 +1,4 @@
+import { startingHeroes } from '@/content/heroes';
 import { recipeById } from '@/content/lookup';
 
 import { craft } from '../crafting/crafting';
@@ -7,6 +8,8 @@ import { canForgeWithIngredient, fittingIngredients, forgeWithIngredient, ingred
 
 const withMaterials = (counts: Record<string, number>, extra: Partial<SaveData> = {}): SaveData => ({
   ...createInitialSave(),
+  gear: [],
+  heroes: startingHeroes,
   materials: counts,
   ...extra,
 });

@@ -1,3 +1,4 @@
+import { startingHeroes } from '@/content/heroes';
 import { gearRules } from '@/content/gear';
 import { itemById, monsterPartById, recipeById } from '@/content/lookup';
 import { questRules } from '@/content/quests';
@@ -46,6 +47,8 @@ const spawnOf = (kind: PlaceSpawn['kind'], suffix = '0:1'): PlaceSpawn => ({
 
 const withGold = (gold: number, extra: Partial<SaveData> = {}): SaveData => ({
   ...createInitialSave(),
+  gear: [],
+  heroes: startingHeroes,
   gold,
   ...extra,
 });
