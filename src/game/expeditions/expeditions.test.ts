@@ -58,6 +58,9 @@ function geared(): SaveData {
   return equip(save, 'bram', 'consumable', 'healingPotion');
 }
 
+/** The geared trio at the top of tier 1's level band, winning Rat Cellar often. */
+const veterans = (): SaveData => ({ ...geared(), heroes: geared().heroes.map((h) => ({ ...h, level: 3 })) });
+
 /** The same save with every gear id's tier digit replaced. */
 const atTier = (save: SaveData, tier: number): SaveData => ({ ...save, gear: save.gear.map((g) => ({ ...g, itemId: g.itemId.replace(/\d$/, String(tier)) })) });
 
@@ -302,7 +305,7 @@ describe('resolveExpedition', () => {
         expect(report.log.join(' ')).not.toMatch(/\{\w+\}/);
       }
     }
-    const won = outcomes(geared(), 'ratCellar', 20).find((r) => r.report.success)!;
+    const won = outcomes(veterans(), 'ratCellar', 20).find((r) => r.report.success)!;
     expect(won.report.log.join(' ')).toMatch(/Bram|Lyra|Mira/);
   });
 });
@@ -310,7 +313,7 @@ describe('resolveExpedition', () => {
 describe('forced loot', () => {
   it('force-drops a category from debug', () => {
     const wins = Array.from({ length: 20 }, (_, i) => {
-      const run = startExpedition({ ...geared(), nextUid: i }, 'ratCellar', ALL, 0);
+      const run = startExpedition({ ...veterans(), nextUid: i }, 'ratCellar', ALL, 0);
       return resolveExpedition(run, run.expeditions[0], { loot: { force: 'keyFragments' } });
     }).filter((r) => r.report.success);
     expect(wins.length).toBeGreaterThan(0);
@@ -323,7 +326,7 @@ describe('forced loot', () => {
 
   it('force-drops treasure maps, granted unread with a rarity', () => {
     const wins = Array.from({ length: 20 }, (_, i) => {
-      const run = startExpedition({ ...geared(), nextUid: i }, 'ratCellar', ALL, 0);
+      const run = startExpedition({ ...veterans(), nextUid: i }, 'ratCellar', ALL, 0);
       return resolveExpedition(run, run.expeditions[0], { loot: { force: 'treasureMaps' } });
     }).filter((r) => r.report.success);
     expect(wins.length).toBeGreaterThan(0);

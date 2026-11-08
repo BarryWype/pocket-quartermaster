@@ -36,41 +36,41 @@ describe('threat penalties', () => {
   });
 
   it('halves every number when one short, in full when two or more short', () => {
-    expect(kinds(scored('traps', 1, 1))).toEqual(['traps:trapWounds:{"kind":"trapWounds","pct":0.125}']);
-    expect(kinds(scored('traps', 2, 2))).toEqual(['traps:trapWounds:{"kind":"trapWounds","pct":0.35}']);
-    expect(kinds(scored('element', 2, 1))).toEqual(['element:elementalDamage:{"kind":"elementalDamage","multiplier":1.225}']);
-    expect(kinds(scored('element', 2, 2))).toEqual(['element:elementalDamage:{"kind":"elementalDamage","multiplier":1.45}']);
+    expect(kinds(scored('traps', 1, 1))).toEqual(['traps:trapWounds:{"kind":"trapWounds","pct":0.2}']);
+    expect(kinds(scored('traps', 2, 2))).toEqual(['traps:trapWounds:{"kind":"trapWounds","pct":0.6}']);
+    expect(kinds(scored('element', 2, 1))).toEqual(['element:elementalDamage:{"kind":"elementalDamage","multiplier":1.45}']);
+    expect(kinds(scored('element', 2, 2))).toEqual(['element:elementalDamage:{"kind":"elementalDamage","multiplier":1.9}']);
     expect(kinds(scored('holy', 1, 1))).toEqual(['holy:enemyHp:{"kind":"enemyHp","tag":"undead","pct":0.35}']);
     expect(kinds(scored('holy', 3, 2))).toEqual(['holy:enemyHp:{"kind":"enemyHp","tag":"undead","pct":0.9}']);
-    expect(kinds(scored('beasts', 2, 2))).toEqual(['beasts:enemyDamage:{"kind":"enemyDamage","tag":"beast","pct":0.45}']);
-    expect(kinds(scored('poison', 3, 1))).toEqual(['poison:fightWounds:{"kind":"fightWounds","pct":0.125}']);
+    expect(kinds(scored('beasts', 2, 2))).toEqual(['beasts:enemyDamage:{"kind":"enemyDamage","tag":"beast","pct":1.3}']);
+    expect(kinds(scored('poison', 3, 1))).toEqual(['poison:fightWounds:{"kind":"fightWounds","pct":0.325}']);
     expect(kinds(scored('armoured', 2, 2))).toEqual(['armoured:weakenedAgainst:{"kind":"weakenedAgainst","pct":0.48}']);
   });
 
   it('halves exposed fights, and halves "all" into every other fight', () => {
     expect(threatPenalties(scored('darkness', 2, 2))).toEqual([
       { kind: 'exposed', fights: 3, threatId: 'darkness' },
-      { kind: 'weakened', pct: 0.17, threatId: 'darkness' },
+      { kind: 'weakened', pct: 0.35, threatId: 'darkness' },
     ]);
     expect(threatPenalties(scored('darkness', 2, 1))).toEqual([
       { kind: 'exposed', fights: 1.5, threatId: 'darkness' },
-      { kind: 'weakened', pct: 0.085, threatId: 'darkness' },
+      { kind: 'weakened', pct: 0.175, threatId: 'darkness' },
     ]);
     expect(threatPenalties(scored('darkness', 3, 2))).toEqual([
       { kind: 'exposed', fights: 'all', everyOther: false, threatId: 'darkness' },
-      { kind: 'weakened', pct: 0.2, threatId: 'darkness' },
+      { kind: 'weakened', pct: 0.45, threatId: 'darkness' },
     ]);
     expect(threatPenalties(scored('darkness', 3, 1))).toEqual([
       { kind: 'exposed', fights: 'all', everyOther: true, threatId: 'darkness' },
-      { kind: 'weakened', pct: 0.1, threatId: 'darkness' },
+      { kind: 'weakened', pct: 0.225, threatId: 'darkness' },
     ]);
   });
 
   it('multiplies the listed threats’ penalties and leaves the others alone', () => {
     const cut: PenaltyReduction = { threats: { poison: 0.5 } };
-    // Half-missed level 3 Poison, cut by half again: a quarter of 0.25 fight wounds.
+    // Half-missed level 3 Poison, cut by half again: a quarter of 0.65 fight wounds.
     expect(threatPenalties(scored('poison', 3, 1), undefined, cut)).toEqual([
-      { kind: 'fightWounds', pct: 0.0625, threatId: 'poison' },
+      { kind: 'fightWounds', pct: 0.1625, threatId: 'poison' },
     ]);
     // Threats the reduction does not list keep their full penalties.
     expect(threatPenalties(scored('darkness', 2, 2), undefined, cut)).toEqual(threatPenalties(scored('darkness', 2, 2)));

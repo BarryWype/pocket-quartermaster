@@ -142,7 +142,7 @@ describe('relic keyword effects', () => {
   });
 
   it("the Thief-taker's quiver reaches through Darkness briefings only", () => {
-    const hero = (relic: boolean) => [relic ? relicMember('thiefTakersQuiver', { power: 80, speed: 5 }) : wornMember('quiver3', null, { power: 80, speed: 5 })];
+    const hero = (relic: boolean) => [relic ? relicMember('thiefTakersQuiver', { power: 110, speed: 5 }) : wornMember('quiver3', null, { power: 110, speed: 5 })];
     const boss = { hp: 120, damage: 60, speed: 7 };
     // In the dark: the relic's strong reach strikes first in rounds 1 and 2, felling the boss before its second blow.
     const dark = simulateRun(hero(true), bossOnly(boss), 'seed', { rules: steady, briefing: briefingOf('darkness', 3) });
@@ -181,8 +181,8 @@ describe('relic combat effects', () => {
       briefing: briefingOf('poison', 3),
     });
     const boss = run.encounters.find((e) => e.kind === 'boss')!;
-    expect(boss.taken.bram).toBeCloseTo(0.25 * 100 * 0.5, 5);
-    expect(boss.taken.lyra).toBeCloseTo(25, 5);
+    expect(boss.taken.bram).toBeCloseTo(0.65 * 100 * 0.5, 5);
+    expect(boss.taken.lyra).toBeCloseTo(65, 5);
   });
 
   it("the Smuggler's coat cancels the Traps penalty for the whole party", () => {
@@ -190,7 +190,7 @@ describe('relic combat effects', () => {
     const trapped = dungeon([{ type: 'trap', weight: 1, name: 'test trap', targets: 'all' }]);
     const coat = simulateRun([relicMember('smugglersCoat')], trapped, 'seed', options);
     const plain = simulateRun([plainMember('bram')], trapped, 'seed', options);
-    expect(plain.encounters[0].taken.bram).toBeCloseTo(45, 5);
+    expect(plain.encounters[0].taken.bram).toBeCloseTo(80, 5);
     // The cancelled penalty leaves the trap untriggered, so nobody takes anything.
     expect(coat.encounters[0].trapTriggered).toBe(false);
     expect(coat.encounters[0].taken.bram).toBeUndefined();
@@ -211,10 +211,10 @@ describe('relic combat effects', () => {
       options,
     );
     const boss = run.encounters.find((e) => e.kind === 'boss')!;
-    expect(boss.taken.bram).toBeCloseTo(40 * elementRules.unprotectedMultiplier * 1.5, 5);
+    expect(boss.taken.bram).toBeCloseTo(40 * elementRules.unprotectedMultiplier * 2.1, 5);
     // Without the bell, even the first fight pays the penalty.
     expect(bossFight([plainMember('bram', { power: 1000, maxHp: 1e6, hp: 1e6 })], { damage: 40 }, options).fight.taken.bram).toBeCloseTo(
-      40 * elementRules.unprotectedMultiplier * 1.5,
+      40 * elementRules.unprotectedMultiplier * 2.1,
       5,
     );
   });

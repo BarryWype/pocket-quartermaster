@@ -71,14 +71,14 @@ describe('traps', () => {
   it('can have their damage reduced for the whole party', () => {
     const briefing = briefingOf('traps', 2);
     const result = first([member('a', [{ kind: 'trapReduce', multiplier: 0.5 }]), member('b')], trap, 's', briefing);
-    expect(result.taken).toEqual({ a: 17.5, b: 17.5 });
+    expect(result.taken).toEqual({ a: 30, b: 30 });
     expect(result.effects).toEqual([{ heroId: 'a', key: 'trapReduce' }]);
   });
 
   it('ignore knocked-out heroes', () => {
     const briefing = briefingOf('traps', 2);
     const result = first([knockedOut(member('a')), member('b')], trap, 's', briefing);
-    expect(result.taken).toEqual({ b: 35 });
+    expect(result.taken).toEqual({ b: 60 });
   });
 });
 

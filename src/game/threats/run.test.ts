@@ -125,21 +125,21 @@ describe('run penalties', () => {
   it('weaken the party when missed', () => {
     const strong = [member('a', [], { maxHp: 1e6, power: 20 })];
     const none = simulateRun(strong, fights, 's', { rules: steady });
-    // No Watch tags against level 2 (needs family level 2): a full miss, ×0.78 damage.
+    // No Watch tags against level 2 (needs family level 2): a full miss, ×0.65 damage.
     const weakened = simulateRun(strong, fights, 's', { rules: steady, briefing: threat('darkness', 2) });
     expect(weakened.threats[0].state).toBe('full');
-    // The 40 HP boss takes 2 rounds at 20 damage, 3 at 15.6.
+    // The 40 HP boss takes 2 rounds at 20 damage, 4 at 13.
     expect(weakened.encounters.at(-1)!.rounds).toBeGreaterThan(none.encounters.at(-1)!.rounds);
   });
 
   it('poison everyone after each fight, and it shows in the results', () => {
-    // No Venom tags in the party: level 1 is half-missed at 7.5% of max HP per fight.
+    // No Venom tags in the party: level 1 is half-missed at 20% of max HP per fight.
     const hero = [member('a', [], { maxHp: 1000, power: 1000 })];
     const plain = simulateRun(hero, fights, 's', { rules: steady });
     const poisoned = simulateRun(hero, fights, 's', { rules: steady, briefing: threat('poison', 1) });
     expect(poisoned.encounters[0].effects).toContainEqual({ heroId: null, key: 'poison' });
-    // The same fight otherwise: exactly the poison's 7.5% of max HP extra.
-    expect(poisoned.encounters[0].taken.a - plain.encounters[0].taken.a).toBeCloseTo(75);
+    // The same fight otherwise: exactly the poison's 20% of max HP extra.
+    expect(poisoned.encounters[0].taken.a - plain.encounters[0].taken.a).toBeCloseTo(200);
   });
 
   it('make the party hit softer against any enemy when Armoured is missed', () => {

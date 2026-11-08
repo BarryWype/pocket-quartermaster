@@ -89,7 +89,7 @@ describe('gear keywords', () => {
     const rules = { ...steady, maxRounds: 3 };
     const def = dungeon([{ type: 'fight', weight: 1, mobs: [{ mobId: 'giantRat', count: 2 }] }]);
     const fight = (keywords: Keyword[]) =>
-      simulateRun([member('a', keywords, { power: 1 })], def, 'seed', { rules }).encounters[0];
+      simulateRun([member('a', keywords, { power: 1, maxHp: 1e6 })], def, 'seed', { rules }).encounters[0];
     const plain = fight([]).dealt.a;
     const cleave = fight(['cleave']).dealt.a;
     expect(plain).toBeCloseTo(3, 5);
@@ -118,7 +118,7 @@ describe('gear keywords', () => {
   });
 
   it('Reach strikes first in an exposed fight', () => {
-    const hero = (keywords: Keyword[]) => [member('a', keywords, { power: 70, speed: 5 })];
+    const hero = (keywords: Keyword[]) => [member('a', keywords, { power: 80, speed: 5 })];
     const options = { rules: steady, briefing: briefingOf('darkness', 2) };
     const reach = simulateRun(hero(['reach']), bossOnly({ hp: 50, damage: 100, speed: 7 }), 'seed', options);
     expect(reach.bossDefeated).toBe(true);

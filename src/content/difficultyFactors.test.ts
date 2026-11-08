@@ -17,9 +17,8 @@ describe('difficultyFactors', () => {
     }
   });
 
-  it('keeps the fitted tier 4 and 5 boss keys', () => {
-    expect(dungeonFactors.giantsHall).toBeGreaterThan(0);
-    expect(dungeonFactors.dragonLairBoss).toBeGreaterThan(0);
+  it('keeps every tier boss key', () => {
+    for (const key of ['banditStockadeBoss', 'ogreQuarry', 'drownedCrypt', 'giantsHall', 'dragonLairBoss']) expect(dungeonFactors[key]).toBeGreaterThan(0);
   });
 
   it('gives every patrol kind a factor per tier', () => {
@@ -34,6 +33,6 @@ describe('difficultyFactors', () => {
   });
 
   it('only names dungeons that exist', () => {
-    for (const id of Object.keys(dungeonFactors)) expect(dungeons.some((d) => d.id === id || id === 'dragonLairBoss')).toBe(true);
+    for (const id of Object.keys(dungeonFactors)) expect(dungeons.some((d) => d.id === id || id === 'dragonLairBoss' || id === 'banditStockadeBoss')).toBe(true);
   });
 });
