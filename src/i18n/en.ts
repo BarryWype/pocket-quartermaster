@@ -210,6 +210,8 @@ export const en = {
     cannot: '{name} can’t hold it with this weapon',
     takesFrom: 'Taken from {name}: their slot empties.',
     equipOn: 'Equip on {name}',
+    forge: 'Forge',
+    forgeShort: 'Short: {list}',
   },
   workTool: {
     kind: { hatchet: 'hatchet', sickle: 'sickle', snare: 'snare', miningPick: 'mining pick', tongs: 'tongs' },

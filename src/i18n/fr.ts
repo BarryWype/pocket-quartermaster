@@ -212,6 +212,8 @@ export const fr: Dictionary = {
     cannot: '{name} ne peut pas le tenir avec cette arme',
     takesFrom: 'Pris à {name} : son emplacement se vide.',
     equipOn: 'Équiper {name}',
+    forge: 'Forge',
+    forgeShort: 'Il manque : {list}',
   },
   workTool: {
     kind: { hatchet: 'la hachette', sickle: 'la faucille', snare: 'le collet', miningPick: 'la pioche de mineur', tongs: 'la pince' },

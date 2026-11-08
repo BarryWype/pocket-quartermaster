@@ -1,6 +1,7 @@
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 
 import { dungeons } from '@/content/dungeons';
+import { recipeById } from '@/content/lookup';
 import { makeGearPiece } from '@/game/gear/make';
 import { createInitialSave } from '@/game/save';
 import type { Briefing } from '@/game/types';
@@ -62,5 +63,35 @@ describe('the party dialog', () => {
     expect(add).toHaveLength(1);
     press(add[0]);
     expect(text(renderer)).not.toContain('Add a hero');
+    act(() => renderer.unmount());
+  });
+  it('forges a missing piece from the gear picker and puts it on the hero', () => {
+    const save = useGameStore.getState().save;
+    const materials = Object.fromEntries(recipeById.hood1.inputs.map((input) => [input.materialId, input.amount]));
+    act(() => {
+      useGameStore.setState({ save: { ...save, materials } });
+    });
+    let renderer!: ReactTestRenderer;
+    act(() => {
+      renderer = create(<ExpeditionDialog dungeon={dungeon} briefing={briefing} now={0} durationScale={1} onSend={() => {}} onClose={() => {}} />);
+    });
+    press(byLabel(renderer, (l) => l === 'Add a hero')[0]);
+    press(byLabel(renderer, (l) => /^Add (?!a hero)/.test(l))[0]);
+    const heroId = useGameStore.getState().save.heroes.find((h) => text(renderer).includes(h.name))!.id;
+    press(byLabel(renderer, (l) => l.startsWith('Helmet:'))[0]);
+    expect(text(renderer)).toContain('Forge');
+    // A row the materials don't cover says what is short.
+    expect(text(renderer)).toContain('Short:');
+    // The test renderer's views measure nothing: answer the row's measurement so its pop-up opens.
+    for (const node of renderer.root.findAll((n) => n.props.collapsable === false && jest.isMockFunction(n.instance?.measureInWindow))) {
+      node.instance.measureInWindow.mockImplementation((done: (x: number, y: number, w: number, h: number) => void) => done(0, 0, 50, 50));
+    }
+    press(byLabel(renderer, (l) => l.startsWith('Hide hood, Tier I'))[0]);
+    press(byLabel(renderer, (l) => l === 'Forge')[0]);
+    const after = useGameStore.getState().save;
+    const hood = after.gear.find((g) => g.itemId === 'hood1')!;
+    expect(after.heroes.find((h) => h.id === heroId)!.equipment.helmet).toBe(hood.uid);
+    expect(text(renderer)).not.toContain('Equip on');
+    act(() => renderer.unmount());
   });
 });

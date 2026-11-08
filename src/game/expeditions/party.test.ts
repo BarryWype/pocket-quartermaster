@@ -3,7 +3,7 @@ import { createInitialSave, type SaveData } from '../save';
 import { equip } from '../team/team';
 import { briefingCoverage } from '../threats/coverage';
 import type { Briefing, ThreatId } from '../types';
-import { dressWith, dropSwaps, gearChoices, heroChoices, heroStatus, hintTypes, partyBanners, slotHints, socketGroups } from './party';
+import { dressWith, dropSwaps, forgeChoices, gearChoices, heroChoices, heroStatus, hintTypes, partyBanners, slotHints, socketGroups } from './party';
 
 // The starting trio: Bram (warrior), Lyra (ranger), Mira (fire mage), with these pieces owned, none worn.
 const saveWith = (...itemIds: string[]): SaveData => {
@@ -99,6 +99,31 @@ describe('gear choices', () => {
     const save = equip(saveWith('wand1', 'tome1'), 'mira', 'weapon', 'g0');
     expect([...slotHints(save, ['mira'], ['watch'])]).toEqual(['mira:offhand']);
     expect([...slotHints(save, ['mira'], [])]).toEqual([]);
+  });
+});
+
+describe('forge choices', () => {
+  it('list the known blueprints for the slot, a piece lighting a short family first, then by family and tier', () => {
+    const save = saveWith();
+    const choices = forgeChoices(save, ['bram'], 'bram', 'helmet', ['watch']);
+    expect(choices.map((c) => c.recipeId)).toEqual(['sallet1', 'greatHelm1', 'hood1', 'plagueMask1', 'runeCirclet1']);
+    expect(choices[0].lights).toEqual(['watch']);
+    expect(choices.every((c) => c.item.slot === 'helmet')).toBe(true);
+  });
+
+  it('give each material held against needed, and say whether the forge can make it now', () => {
+    const save = saveWith();
+    const [poor] = forgeChoices(save, ['bram'], 'bram', 'helmet', ['watch']);
+    expect(poor.craftable).toBe(false);
+    const materials = Object.fromEntries(poor.cost.materials.map((m) => [m.id, m.needed]));
+    const [rich] = forgeChoices({ ...save, materials }, ['bram'], 'bram', 'helmet', ['watch']);
+    expect(rich.craftable).toBe(true);
+    expect(rich.cost.materials.every((m) => m.held === m.needed)).toBe(true);
+  });
+
+  it('leave out the other slots and anything the forge cannot make', () => {
+    const choices = forgeChoices(saveWith(), ['mira'], 'mira', 'offhand', []);
+    expect(choices.map((c) => c.recipeId)).toEqual(['focus1']);
   });
 });
 

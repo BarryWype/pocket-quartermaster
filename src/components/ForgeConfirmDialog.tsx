@@ -44,7 +44,7 @@ function signed(value: number): string {
 }
 
 /** The pop-up's ingredients: every spent material and valuable with what is held and needed. */
-function ingredientsOf(cost: ConfirmCost): PopupIngredient[] {
+export function ingredientsOf(cost: ConfirmCost): PopupIngredient[] {
   return [
     ...cost.materials.map(({ id, needed, held }) => ({
       key: id,

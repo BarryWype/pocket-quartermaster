@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState, type ComponentRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -6,16 +6,18 @@ import { gearTypeNames } from '@/content/equipment';
 import { familyById } from '@/content/families';
 import { rarityNames } from '@/content/gear';
 import { gearName } from '@/content/lookup';
-import { gearChoices, shortFamilies, type GearChoice, type GearSlot, type SocketGroup } from '@/game/expeditions/party';
+import { forgeChoices, gearChoices, shortFamilies, type ForgeChoice, type GearChoice, type GearSlot, type SocketGroup } from '@/game/expeditions/party';
 import { gearFamilyTags } from '@/game/families/families';
 import { gearIconOf } from '@/game/gear/gearIcon';
 import type { SaveData } from '@/game/save';
 import { affinityOf, equipPreview } from '@/game/team/team';
 import { useOdds, type OddsJob } from '@/hooks/useOdds';
 import { t, tr } from '@/i18n';
+import { useGameStore } from '@/store/gameStore';
 import { fonts, ui } from '@/theme';
 
 import { DELTA_KEYS } from './EquipPicker';
+import { ForgeConfirmDialog, ingredientsOf, ROMAN, type ForgePending, type PopupAnchor } from './ForgeConfirmDialog';
 import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
 import { OddsChange } from './PartyOdds';
@@ -51,16 +53,80 @@ function statLine(save: SaveData, heroId: string, slot: GearSlot, choice: GearCh
   }).join(' · ');
 }
 
+/** One blueprint in the Forge section: the piece with its gems and ▲, its tier, and each material held against needed. */
+function ForgeRow({ choice, selected, onOpen }: { choice: ForgeChoice; selected: boolean; onOpen: (anchor: PopupAnchor) => void }) {
+  const wrapper = useRef<ComponentRef<typeof View>>(null);
+  const name = tr(choice.item.name);
+  const tier = t('crafting.tierShort', { tier: ROMAN[choice.tier - 1] });
+  const ingredients = ingredientsOf(choice.cost);
+  const short = ingredients.filter((i) => i.have < i.need);
+  const label = [name, tier, choice.lights.length > 0 ? t('partyDialog.coversNeed') : null, short.length > 0 ? t('crafting.missing') : null]
+    .filter(Boolean)
+    .join(', ');
+  return (
+    <View ref={wrapper} collapsable={false}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        onPress={() => wrapper.current?.measureInWindow((x, y, width, height) => onOpen({ x, y, width, height }))}
+        style={[styles.forgeRow, choice.unfit && styles.dim]}
+      >
+        <ItemSlot
+          state={selected ? 'selected' : choice.craftable ? 'ready' : 'short'}
+          emoji={choice.item.emoji}
+          icon={choice.item.icon}
+          mark={choice.lights.length > 0 ? 'up' : undefined}
+          families={gearFamilyTags(choice.item)}
+          size={56}
+          accessibilityLabel={name}
+        />
+        <View style={styles.forgeText}>
+          <View style={styles.forgeHead}>
+            <Text style={styles.forgeName} numberOfLines={1}>
+              {name}
+            </Text>
+            <Text style={styles.forgeTier}>{tier}</Text>
+          </View>
+          <View style={styles.forgeCost}>
+            {ingredients.map((ingredient) => (
+              <ItemSlot
+                key={ingredient.key}
+                state={ingredient.have >= ingredient.need ? 'ready' : 'short'}
+                emoji={ingredient.emoji}
+                icon={ingredient.icon}
+                count={`${ingredient.have}/${ingredient.need}`}
+                size={44}
+                accessibilityLabel={`${ingredient.label} ${ingredient.have}/${ingredient.need}`}
+              />
+            ))}
+          </View>
+          {short.length > 0 && (
+            <Text style={styles.forgeShort}>
+              {t('partyDialog.forgeShort', { list: short.map((i) => `${i.need - i.have} ${i.label}`).join(', ') })}
+            </Text>
+          )}
+        </View>
+      </Pressable>
+    </View>
+  );
+}
+
 /**
  * The gear picker for one hero's slot: the owned pieces as a grid (▲ lights a
  * need, "worn" on the current one, another hero's piece dimmed with their
  * name), then the picked piece's card: what it lights, stat and family
- * changes, and the odds before → after.
+ * changes, and the odds before → after. Below them, the Forge section: the
+ * blueprints for the slot, forged through the forge's own confirmation and
+ * put straight on the hero.
  */
 export function GearPicker({ save, party, heroId, slot, groups, oddsOf, chance, onPick, onClose }: Props) {
   const hero = save.heroes.find((h) => h.id === heroId)!;
   const short = useMemo(() => shortFamilies(groups), [groups]);
   const choices = useMemo(() => gearChoices(save, party, heroId, slot, short), [save, party, heroId, slot, short]);
+  const forgeable = useMemo(() => forgeChoices(save, party, heroId, slot, short), [save, party, heroId, slot, short]);
+  const craft = useGameStore((state) => state.craft);
+  const forgeWithIngredient = useGameStore((state) => state.forgeWithIngredient);
+  const [forging, setForging] = useState<{ pending: ForgePending & { kind: 'forge' }; anchor: PopupAnchor } | null>(null);
   const [selected, setSelected] = useState<string | null>(() => (choices.find((c) => !c.worn && !c.blocked) ?? choices[0])?.gear.uid ?? null);
   const choice = choices.find((c) => c.gear.uid === selected) ?? null;
   const job = useMemo(() => (choice?.after ? oddsOf(choice.after, party) : null), [choice, oddsOf, party]);
@@ -73,6 +139,13 @@ export function GearPicker({ save, party, heroId, slot, groups, oddsOf, chance, 
   const stats = choice ? statLine(save, heroId, slot, choice) : '';
   const lights = choice ? lightsLine(choice, groups) : '';
   const affinity = choice ? affinityOf(hero.classId, choice.item.gearType) : null;
+  const forge = () => {
+    if (!forging) return;
+    const { recipeId, ingredientId } = forging.pending;
+    const result = ingredientId ? forgeWithIngredient(recipeId, ingredientId) : craft(recipeId);
+    setForging(null);
+    if (result) onPick(result.gear.uid);
+  };
 
   return (
     <Overlay onClose={onClose} position="bottom">
@@ -158,6 +231,19 @@ export function GearPicker({ save, party, heroId, slot, groups, oddsOf, chance, 
               {!choice.worn && !choice.blocked && <OddsChange before={chance} after={after} />}
             </ParchmentCard>
           )}
+          {forgeable.length > 0 && (
+            <>
+              <Text style={styles.cap}>{t('partyDialog.forge')}</Text>
+              {forgeable.map((f) => (
+                <ForgeRow
+                  key={f.recipeId}
+                  choice={f}
+                  selected={forging?.pending.recipeId === f.recipeId}
+                  onOpen={(anchor) => setForging({ pending: { kind: 'forge', recipeId: f.recipeId, ingredientId: null }, anchor })}
+                />
+              ))}
+            </>
+          )}
         </ScrollView>
         <View style={styles.footer}>
           <EmberButton
@@ -167,6 +253,16 @@ export function GearPicker({ save, party, heroId, slot, groups, oddsOf, chance, 
           />
         </View>
       </View>
+      {forging && (
+        <ForgeConfirmDialog
+          save={save}
+          pending={forging.pending}
+          anchor={forging.anchor}
+          onPickIngredient={(ingredientId) => setForging((current) => current && { ...current, pending: { ...current.pending, ingredientId } })}
+          onConfirm={forge}
+          onClose={() => setForging(null)}
+        />
+      )}
     </Overlay>
   );
 }
@@ -216,5 +312,12 @@ const styles = StyleSheet.create({
   lights: { flex: 1, fontFamily: fonts.serifBold, fontSize: 15, color: ui.inkMuted },
   good: { color: ui.good },
   line: { fontFamily: fonts.serif, fontSize: 15, color: ui.inkMuted },
+  forgeRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 8, backgroundColor: ui.woodMid, borderWidth: 2, borderColor: ui.outline },
+  forgeText: { flex: 1, gap: 6 },
+  forgeHead: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  forgeName: { flexShrink: 1, fontFamily: fonts.body, fontSize: 18, color: ui.brassLight },
+  forgeTier: { fontFamily: fonts.serif, fontSize: 13, color: ui.onWoodMuted },
+  forgeCost: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  forgeShort: { fontFamily: fonts.serif, fontSize: 13, color: ui.emberLight },
   footer: { padding: 12, backgroundColor: ui.woodMid, borderTopWidth: 3, borderTopColor: ui.outline },
 });

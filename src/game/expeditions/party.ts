@@ -1,7 +1,10 @@
 import { familyOfThreat, families, type FamilyId } from '@/content/families';
 import { gearProfiles } from '@/content/equipment';
-import { itemById } from '@/content/lookup';
+import { itemById, recipeById } from '@/content/lookup';
 
+import { forgeConfirmation, type ConfirmCost } from '../crafting/confirm';
+import { canCraft, forgedItem } from '../crafting/crafting';
+import { forgeList } from '../crafting/forgeList';
 import { statScore } from '../families/dress';
 import { familyLevel, gearFamilyTags, partyFamilies, type FamilyCounts } from '../families/families';
 import { slotProblem } from '../equipment/slots';
@@ -149,6 +152,54 @@ export function gearChoices(save: SaveData, partyIds: string[], heroId: string, 
       Number(b.lights.length > 0) - Number(a.lights.length > 0) ||
       Number(b.raises) - Number(a.raises) ||
       b.score - a.score,
+  );
+}
+
+export type ForgeChoice = {
+  recipeId: string;
+  item: GearDef;
+  tier: number;
+  /** As for owned pieces: the class can't use the type, or the slot refuses it. */
+  unfit: boolean;
+  lights: FamilyId[];
+  raises: boolean;
+  cost: ConfirmCost;
+  craftable: boolean;
+};
+
+/**
+ * The blueprints the player knows for a hero's slot, at every tier they can
+ * forge, as the gear picker's Forge section lists them: the same order as the
+ * owned pieces (unfit last, then lighting a short family, raising one, then
+ * the higher tier first). Work tools stay out.
+ */
+export function forgeChoices(save: SaveData, partyIds: string[], heroId: string, slot: GearSlot, short: FamilyId[]): ForgeChoice[] {
+  const hero = save.heroes.find((h) => h.id === heroId);
+  if (!hero) return [];
+  const before = partyFamilies(save, partyIds);
+  const choices = forgeList(save).tiers.flatMap(({ tier, recipeIds }) =>
+    recipeIds.flatMap((recipeId): ForgeChoice[] => {
+      const recipe = recipeById[recipeId];
+      const item = forgedItem(recipe) as GearDef | null;
+      const cost = forgeConfirmation(save, recipeId)?.cost;
+      if (!item || item.slot !== slot || item.workTool || !cost) return [];
+      // The piece as it would come out of the forge, only to see what it does to the party's families.
+      const piece: GearInstance = { uid: 'forge-preview', itemId: item.id, rarity: 'common', roll: 10, affixes: [], rerolls: 0 };
+      const withPiece = { ...save, gear: [...save.gear, piece] };
+      const blocked = slot !== 'weapon' && slotProblem(withPiece, hero, slot, piece) !== null;
+      const unfit = blocked || (slot !== 'offhand' && affinityOf(hero.classId, item.gearType) === 'unfit');
+      const effect = blocked
+        ? { lights: [], raises: false }
+        : familyEffect(before, partyFamilies(equip(withPiece, heroId, slot, piece.uid), partyIds), short);
+      return [{ recipeId, item, tier, unfit, lights: effect.lights, raises: effect.raises, cost, craftable: canCraft(save, recipe) }];
+    }),
+  );
+  return choices.sort(
+    (a, b) =>
+      Number(a.unfit) - Number(b.unfit) ||
+      Number(b.lights.length > 0) - Number(a.lights.length > 0) ||
+      Number(b.raises) - Number(a.raises) ||
+      b.tier - a.tier,
   );
 }
 
