@@ -55,7 +55,7 @@ const pool = (encounters: EncounterDef[], boss: Partial<DungeonDef['boss']> = {}
 const fight = (mobs: MobGroup[]): EncounterDef => ({ type: 'fight', weight: 1, mobs });
 /** Family tags from gear, enough to answer an opportunity of that family at `level`. */
 const answers = (family: PartyMember['familyTags'][number]['family'], level: 1 | 2) => [
-  { family, count: level === 1 ? 2 : 4, magic: false, fromClass: false, source: 'gear' as const },
+  { family, count: level === 1 ? 2 : 4, source: 'gear' as const },
 ];
 const wolves = pool([fight([{ mobId: 'wolfPup', count: 2 }])]);
 const run = (party: PartyMember[], dungeon: DungeonDef, b: Briefing, extra = {}) =>

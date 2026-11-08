@@ -7,7 +7,7 @@ import { activeHooks, type FamilyEffect } from './familyEffects';
 import { member } from './familyTestHelpers';
 import { prepareParty, prepareSimulation } from './simulate';
 
-const tag = (family: HeroFamilyTag['family'], count: number, magic = false): HeroFamilyTag => ({ family, count, magic, fromClass: false, source: 'gear' });
+const tag = (family: HeroFamilyTag['family'], count: number): HeroFamilyTag => ({ family, count, source: 'gear' });
 
 describe('family levels in a run', () => {
   test('levels are cumulative: a level runs its own hooks and the ones below', () => {
@@ -19,11 +19,11 @@ describe('family levels in a run', () => {
   });
 
   test('the run counts the party’s tags across heroes, as the threats see them', () => {
-    const party = [member('a', { familyTags: [tag('warding', 3), tag('rally', 2)] }), member('b', { familyTags: [tag('warding', 1, true)] })];
+    const party = [member('a', { familyTags: [tag('warding', 3), tag('rally', 2)] }), member('b', { familyTags: [tag('warding', 1)] })];
     expect(prepareSimulation(party, dungeonById.ratCellar).families).toEqual({ warding: 2, rally: 1 });
-    // An anti-magic zone drops the magic tags, so Warding falls to level 1.
+    // No restriction drops a tag: an anti-magic zone leaves the levels as they are.
     const briefing = { threats: [], restriction: 'antiMagic' as const, opportunity: null };
-    expect(prepareSimulation(party, dungeonById.ratCellar, { briefing }).families).toEqual({ warding: 1, rally: 1 });
+    expect(prepareSimulation(party, dungeonById.ratCellar, { briefing }).families).toEqual({ warding: 2, rally: 1 });
   });
 
   test('every fight source plays the levels partyFamilies counts for the party it prepares', () => {

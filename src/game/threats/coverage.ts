@@ -89,7 +89,7 @@ export function briefingCoverage(
 ): BriefingCoverage {
   const party = prepareParty(save, heroIds, now);
   const signed = signatureBriefing(briefing, party.map(answersMemberOf));
-  const answers = party.map((member) => heroAnswers(answersMemberOf(member), signed.briefing.restriction));
+  const answers = party.map((member) => heroAnswers(answersMemberOf(member)));
   const scored = scoreBriefing(signed.briefing, answers);
   const nameOf = (heroId: string | null) => party.find((m) => m.heroId === heroId)?.name ?? null;
 

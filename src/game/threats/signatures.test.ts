@@ -10,7 +10,7 @@ import { briefingCoverage } from './coverage';
 import { familyCount, scoreThreat } from './score';
 import { partyMeal, penaltyReduction, signatureBriefing } from './signatures';
 
-const tag = (family: HeroFamilyTag['family'], count = 1): HeroFamilyTag => ({ family, count, magic: false, fromClass: true, source: 'class' });
+const tag = (family: HeroFamilyTag['family'], count = 1): HeroFamilyTag => ({ family, count, source: 'class' });
 
 const member = (classId: HeroClassId, overrides: Partial<AnswersMember> = {}): AnswersMember => ({
   heroId: classId,
@@ -32,11 +32,10 @@ describe('familyVsThreat signatures', () => {
     expect(scoreThreat(threat('holy', 3), answered(member('cleric', { familyTags: [tag('faith', 2)] })))).toMatchObject({ state: 'half', have: 2 });
   });
 
-  it('adds the Necromancer’s +1 Faith at Holy 2 and 3 only, and not in an anti-magic zone', () => {
+  it('adds the Necromancer’s +1 Faith at Holy 2 and 3 only', () => {
     expect(countVs(member('necromancer'), 'holy', 1)).toBe(0);
     expect(countVs(member('necromancer'), 'holy', 2)).toBe(1);
     expect(countVs(member('necromancer'), 'holy', 3)).toBe(1);
-    expect(familyCount([heroAnswers(member('necromancer'), 'antiMagic')], 'faith', 2)).toBe(0);
   });
 
   it('adds the Beastmaster’s +1 Wild at Beasts 2 and 3 only', () => {
@@ -64,9 +63,9 @@ const countVs = (m: AnswersMember, threatId: ThreatId, level: 1 | 2 | 3) =>
 
 describe('briefing signatures', () => {
   it('lets a Curse-breaker cancel any restriction, a Cook only Spoiled stores', () => {
-    const fog = briefing([], { restriction: 'thickFog' });
-    expect(signatureBriefing(fog, [member('curseBreaker')])).toMatchObject({ briefing: { restriction: null }, cancelledBy: 'curseBreaker' });
-    expect(signatureBriefing(fog, [member('cook')])).toMatchObject({ briefing: { restriction: 'thickFog' }, cancelledBy: null });
+    const cursed = briefing([], { restriction: 'cursedLuck' });
+    expect(signatureBriefing(cursed, [member('curseBreaker')])).toMatchObject({ briefing: { restriction: null }, cancelledBy: 'curseBreaker' });
+    expect(signatureBriefing(cursed, [member('cook')])).toMatchObject({ briefing: { restriction: 'cursedLuck' }, cancelledBy: null });
     expect(signatureBriefing(briefing([], { restriction: 'spoiledStores' }), [member('cook')]).briefing.restriction).toBeNull();
   });
 
@@ -111,7 +110,7 @@ describe('penalty and meal signatures', () => {
     const save = saveWith(newHero('m', 'Mira', 'fireMage', 'none'));
     const [mage] = prepareParty(save, ['m']);
     expect(answersMemberOf(mage).familyTags).toEqual([
-      { family: 'spellweave', count: 1, magic: true, fromClass: true, source: 'class' },
+      { family: 'spellweave', count: 1, source: 'class' },
     ]);
   });
 });

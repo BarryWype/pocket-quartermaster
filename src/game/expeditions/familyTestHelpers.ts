@@ -72,7 +72,7 @@ export function familyFight(family: FamilyId | null, level: number, setup: Fight
       ...over,
       familyTags: [
         ...(over.familyTags ?? []),
-        ...(i === 0 && family && count > 0 ? [{ family, count, magic: false, fromClass: false, source: 'gear' as const }] : []),
+        ...(i === 0 && family && count > 0 ? [{ family, count, source: 'gear' as const }] : []),
       ],
     }),
   );

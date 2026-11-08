@@ -2,7 +2,7 @@ import { familyOfThreat } from '@/content/families';
 import { heroClasses } from '@/content/heroes';
 import { opportunityById, restrictionById, threatById } from '@/content/lookup';
 import { rosterRules } from '@/content/roster';
-import { classAffinities, gearProfiles, type Affinity, type GearProfile } from '@/content/equipment';
+import { classAffinities, gearProfiles, type Affinity } from '@/content/equipment';
 import { dungeonThreats, narrowPartySize, surges, threatRules, type ThreatRules } from '@/content/threats';
 import { mobById } from '@/content/enemies';
 import { mobTags } from '../enemies/tags';
@@ -113,24 +113,22 @@ export function composeBriefing(dungeon: DungeonDef, day: number, salt = 0, rule
   return { threats, restriction, opportunity };
 }
 
-const maxTagsCache = new Map<string, number>();
+const maxTagsCache = new Map<FamilyId, number>();
 
 /**
  * The most tags of this family one hero can wear: their class's tag plus the
  * best weapon (its first or second tag), armour and off-hand of the family
  * their class can wear (a two-handed weapon counts 2 and takes the off-hand's
- * place), after the restriction drops tags.
+ * place).
  */
-export function maxTagsPerHero(family: FamilyId, restriction: RestrictionId | null): number {
-  const key = `${family}|${restriction ?? 'none'}`;
-  const cached = maxTagsCache.get(key);
+export function maxTagsPerHero(family: FamilyId): number {
+  const cached = maxTagsCache.get(family);
   if (cached !== undefined) return cached;
-  const keeps = (profile: GearProfile) => !(restriction === 'antiMagic' && profile.damageStat === 'magic');
   const best = (types: GearType[], twoHanded: boolean) =>
     Math.max(
       0,
       ...types
-        .filter((type) => keeps(gearProfiles[type]) && (twoHanded ? gearProfiles[type].twoHanded : !gearProfiles[type].twoHanded))
+        .filter((type) => (twoHanded ? gearProfiles[type].twoHanded : !gearProfiles[type].twoHanded))
         .map((type) => (gearProfiles[type].twoHanded ? 2 : 1)),
     );
   let max = 0;
@@ -146,24 +144,19 @@ export function maxTagsPerHero(family: FamilyId, restriction: RestrictionId | nu
           (gearProfiles[type].familyTag === family || gearProfiles[type].secondFamily === family) &&
           wearable(type),
       );
-    const classTag =
-      def.familyTag === family &&
-      !(restriction === 'antiMagic' && def.damageStat === 'magic') &&
-      !(restriction === 'thickFog' && family === 'watch')
-        ? 1
-        : 0;
+    const classTag = def.familyTag === family ? 1 : 0;
     // A two-handed weapon counts 2 but leaves no hand for an off-hand.
     const hands = Math.max(best(ofFamily('weapon'), true), best(ofFamily('weapon'), false) + best(ofFamily('offhand'), false));
     max = Math.max(max, classTag + hands + best(ofFamily('armor'), false));
   }
-  maxTagsCache.set(key, max);
+  maxTagsCache.set(family, max);
   return max;
 }
 
 /**
  * Whether a restriction leaves every drawn threat answerable: the party must
  * be able to hold enough tags of each threat's family, one hero's best being
- * the ceiling. Narrow passages also shrinks the party.
+ * the ceiling. Only Narrow passages can break it, by shrinking the party.
  */
 export function restrictionKeepsAnswers(
   threats: ActiveThreat[],
@@ -172,7 +165,7 @@ export function restrictionKeepsAnswers(
 ) {
   const size = restriction === 'narrowPassages' ? narrowPartySize(rosterRules.partySize) : rosterRules.partySize;
   return threats.every(
-    (threat) => size * maxTagsPerHero(familyOfThreat(threat.id), restriction) >= threat.level,
+    (threat) => size * maxTagsPerHero(familyOfThreat(threat.id)) >= threat.level,
   );
 }
 

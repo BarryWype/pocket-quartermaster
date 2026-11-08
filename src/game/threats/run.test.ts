@@ -44,8 +44,6 @@ const threat = (id: ThreatId, level: 1 | 2 | 3 = 1, element?: Briefing['threats'
 const familyTag = (family: FamilyId, count = 1, overrides: Partial<HeroFamilyTag> = {}): HeroFamilyTag => ({
   family,
   count,
-  magic: false,
-  fromClass: true,
   source: 'class',
   ...overrides,
 });
@@ -218,16 +216,6 @@ describe('run restrictions', () => {
     expect(cursed.encounters[0].effects).not.toContainEqual({ heroId: 'a', key: 'crit' });
     // Without the crits the fight drags on: 4 rounds instead of 3.
     expect(cursed.encounters[0].rounds).toBeGreaterThan(plain.encounters[0].rounds);
-  });
-
-  it('thickFog: drops Watch from classes, while gear still lights the way', () => {
-    const ranger = (gearWatch: number) =>
-      member('r', [], { classId: 'ranger', familyTags: [familyTag('watch', 1), familyTag('watch', gearWatch, { source: 'gear', fromClass: false })] });
-    const fog: Briefing = { ...threat('darkness', 2), restriction: 'thickFog' };
-    const dark = simulateRun([ranger(1)], fights, 's', { rules: steady, briefing: fog });
-    expect(dark.threats[0]).toMatchObject({ state: 'half', have: 1, needed: 2 });
-    const lit = simulateRun([ranger(2)], fights, 's', { rules: steady, briefing: fog });
-    expect(lit.threats[0]).toMatchObject({ state: 'met' });
   });
 
   it('narrowPassages: one hero fewer than the usual party, unless a Curse-breaker goes', () => {

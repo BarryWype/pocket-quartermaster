@@ -18,40 +18,38 @@ const add = (counts: FamilyCounts, family: FamilyId, tags: number): void => {
 
 const gearDefOf = (gear: GearInstance): GearDef => itemById[gear.itemId] as GearDef;
 
-/** One family tag with where it came from: magic sources fall in an anti-magic zone, class Watch tags in thick fog. */
+/** One family tag with where it came from. */
 export type HeroFamilyTag = {
   family: FamilyId;
   count: number;
-  magic: boolean;
-  fromClass: boolean;
   source: 'class' | 'gear' | 'relic';
 };
 
 /** The hero's family tags one by one, with their source (see heroFamilyTags for the sums). */
 export function heroFamilyTagSources(save: Pick<SaveData, 'gear'>, hero: HeroState): HeroFamilyTag[] {
   const heroClass = heroClasses[hero.classId];
-  const tags: HeroFamilyTag[] = [{ family: heroClass.familyTag, count: 1, magic: heroClass.damageStat === 'magic', fromClass: true, source: 'class' }];
+  const tags: HeroFamilyTag[] = [{ family: heroClass.familyTag, count: 1, source: 'class' }];
   for (const slot of ['weapon', 'armor', 'offhand', 'trinket'] as const) {
     const uid = hero.equipment[slot];
     const gear = uid ? save.gear.find((g) => g.uid === uid) : undefined;
     if (!gear) continue;
     for (const tag of gearFamilyTags(gearDefOf(gear), gear.relicId)) {
-      tags.push({ ...tag, fromClass: false, source: tag.extra ? 'relic' : 'gear' });
+      tags.push({ family: tag.family, count: tag.count, source: tag.extra ? 'relic' : 'gear' });
     }
   }
   return tags;
 }
 
 /** A piece's family tags: its type's (2 on a two-handed weapon, 1 + a second family's 1 on a one-handed one), then its relic's extra tag. Trinkets and work tools carry none. */
-export function gearFamilyTags(item: Pick<GearDef, 'gearType' | 'workTool'>, relicId?: string): { family: FamilyId; count: number; magic: boolean; extra: boolean }[] {
-  const tags: { family: FamilyId; count: number; magic: boolean; extra: boolean }[] = [];
+export function gearFamilyTags(item: Pick<GearDef, 'gearType' | 'workTool'>, relicId?: string): { family: FamilyId; count: number; extra: boolean }[] {
+  const tags: { family: FamilyId; count: number; extra: boolean }[] = [];
   if (item.gearType && !item.workTool) {
     const profile = gearProfiles[item.gearType];
-    tags.push({ family: profile.familyTag, count: profile.twoHanded ? 2 : 1, magic: profile.damageStat === 'magic', extra: false });
-    if (profile.secondFamily) tags.push({ family: profile.secondFamily, count: 1, magic: profile.damageStat === 'magic', extra: false });
+    tags.push({ family: profile.familyTag, count: profile.twoHanded ? 2 : 1, extra: false });
+    if (profile.secondFamily) tags.push({ family: profile.secondFamily, count: 1, extra: false });
   }
   const extraFamily = relicId ? relicById[relicId].extraFamily : undefined;
-  if (extraFamily) tags.push({ family: extraFamily, count: 1, magic: false, extra: true });
+  if (extraFamily) tags.push({ family: extraFamily, count: 1, extra: true });
   return tags;
 }
 

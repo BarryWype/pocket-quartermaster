@@ -175,7 +175,6 @@ export type RestrictionId =
   | 'sacredGround'
   | 'noHealing'
   | 'cursedLuck'
-  | 'thickFog'
   | 'barren'
   | 'narrowPassages'
   | 'spoiledStores';

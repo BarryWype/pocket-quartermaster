@@ -27,9 +27,9 @@ describe('content', () => {
     }
   });
 
-  it('starts with a tier 1 sword and mail at the forge', () => {
+  it('starts with the sword, the mail and a tier 1 answer for every threat family at the forge', () => {
     const known = createInitialSave().knownRecipes.filter((id) => recipeById[id].station === 'forge');
-    expect(known).toEqual(['sword1', 'mail1']);
+    expect(known).toEqual(['sword1', 'mail1', 'spear1', 'lute1', 'flasks1', 'focus1', 'knuckles1']);
   });
 
   it('makes every forge recipe reachable through the starting kit, pickaxes or loot matrix blueprints', () => {

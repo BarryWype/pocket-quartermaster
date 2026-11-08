@@ -130,7 +130,7 @@ function climb(save: SaveData, heroIds: string[], tierDrop: number, score: (s: S
 function threatShortfall(save: SaveData, heroIds: string[], briefing: Briefing): number {
   const answers = save.heroes
     .filter((h) => heroIds.includes(h.id))
-    .map((hero) => heroAnswers({ heroId: hero.id, classId: hero.classId, traitId: hero.trait, familyTags: heroFamilyTagSources(save, hero) }, briefing.restriction));
+    .map((hero) => heroAnswers({ heroId: hero.id, classId: hero.classId, traitId: hero.trait, familyTags: heroFamilyTagSources(save, hero) }));
   let tags = 0;
   for (const threat of briefing.threats) {
     const family = families.find((f) => f.answers === threat.id)!.id;

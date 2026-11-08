@@ -1,9 +1,8 @@
 Restriction,Effect,Removes or weakens,Lifted by,Status
-Anti-magic zone,"Magic -50%; keywords from a magic weapon or off-hand, or from a class whose damage stat is Magic, don't count","Magic weapons, mages",Curse-breaker; the Monk's own damage ignores it,Built
+Anti-magic zone,"Magic -50%; keywords from a magic weapon or off-hand, or from a class whose damage stat is Magic, don't count (family tags always count)","Magic weapons, mages",Curse-breaker; the Monk's own damage ignores it,Built
 Sacred ground,A hero counts fully only if weapon and off-hand are both Concealed or empty; otherwise their weapons -40%,Non-Concealed weapons,Curse-breaker; the Monk's own damage ignores it,Built
 No healing,"Potions, party heals and springs heal half as much",Healing,Curse-breaker,Built
 Cursed luck,No critical hits,Crit,Curse-breaker,Built
-Thick fog,Watchful from classes and traits doesn't count; the Lantern still answers Ambush,Watchful,Curse-breaker,Built
 Barren,"Gold bonuses (traits, charms, meals) don't apply",Gold bonuses,Curse-breaker,Built
 Narrow passages,"One hero fewer than the normal party size (2 heroes while parties are 3). Never combined with a level 3 keyword threat, which would need the whole party",Party size,Curse-breaker (a full party including the Curse-breaker is allowed),Built
 Spoiled stores,Meals have no effect; supply still counts,Meals,"Curse-breaker, Cook",Built

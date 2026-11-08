@@ -110,15 +110,15 @@ describe('partyFamilies', () => {
 describe('gearFamilyTags', () => {
   test('a piece carries its type’s tag, 2 on a two-handed weapon, a one-handed weapon’s second tag, then its relic’s extra tag', () => {
     expect(gearFamilyTags({ gearType: 'sword' })).toEqual([
-      { family: 'rally', count: 1, magic: false, extra: false },
-      { family: 'shadow', count: 1, magic: false, extra: false },
+      { family: 'rally', count: 1, extra: false },
+      { family: 'shadow', count: 1, extra: false },
     ]);
-    expect(gearFamilyTags({ gearType: 'warhammer' })).toEqual([{ family: 'breaker', count: 2, magic: false, extra: false }]);
-    expect(gearFamilyTags({ gearType: 'plate' })).toEqual([{ family: 'bulwark', count: 1, magic: false, extra: false }]);
+    expect(gearFamilyTags({ gearType: 'warhammer' })).toEqual([{ family: 'breaker', count: 2, extra: false }]);
+    expect(gearFamilyTags({ gearType: 'plate' })).toEqual([{ family: 'bulwark', count: 1, extra: false }]);
     expect(gearFamilyTags({ gearType: 'axe' }, 'dwarfLordsAxe')).toEqual([
-      { family: 'bloodrage', count: 1, magic: false, extra: false },
-      { family: 'breaker', count: 1, magic: false, extra: false },
-      { family: 'breaker', count: 1, magic: false, extra: true },
+      { family: 'bloodrage', count: 1, extra: false },
+      { family: 'breaker', count: 1, extra: false },
+      { family: 'breaker', count: 1, extra: true },
     ]);
   });
 

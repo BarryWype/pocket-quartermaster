@@ -228,10 +228,10 @@ describe('meals', () => {
 describe('party meals', () => {
   // Family tags enough to answer every opportunity the meals test takes.
   const answering: PartyMember['familyTags'] = [
-    { family: 'cunning', count: 2, magic: false, fromClass: false, source: 'gear' },
-    { family: 'breaker', count: 2, magic: false, fromClass: false, source: 'gear' },
-    { family: 'watch', count: 4, magic: false, fromClass: false, source: 'gear' },
-    { family: 'rally', count: 2, magic: false, fromClass: false, source: 'gear' },
+    { family: 'cunning', count: 2, source: 'gear' },
+    { family: 'breaker', count: 2, source: 'gear' },
+    { family: 'watch', count: 4, source: 'gear' },
+    { family: 'rally', count: 2, source: 'gear' },
   ];
   const mealRun = (meal: MealEffect | null, boss: BossDef = weakBoss, briefing: Briefing = EMPTY_BRIEFING, familyTags = answering) =>
     simulateRun(

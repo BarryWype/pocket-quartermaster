@@ -7,10 +7,10 @@ import { gearRules } from "@/content/gear";
 import { affixById } from "@/content/affixes";
 import { gearStats } from "./gear/stats";
 import { uniquePool } from "./gear/uniques";
-import { migrateSave, toV38, toV39, toV40, toV41, toV42 } from "./migrations";
+import { migrateSave, toV38, toV39, toV40, toV41, toV42, toV43 } from "./migrations";
 import { affixPool } from "./gear/affixes";
 import { emptyLoot } from "./loot/types";
-import type { ExpeditionReport, GearDef, GearInstance } from "./types";
+import type { Briefing, ExpeditionReport, GearDef, GearInstance } from "./types";
 import { createInitialSave, type SaveData } from "./save";
 import type { Quest } from "./quests/types";
 import { rolledSpecial } from "./team/specials";
@@ -723,5 +723,32 @@ describe("toV42", () => {
     const next = migrateSave(v41, 41, 0);
     expect(next.tips).toEqual({ seen: ["specials", "families"], pending: ["threats"] });
     expect(toV42(base)).toBe(base);
+  });
+});
+
+describe("toV43", () => {
+  const v42 = (): SaveData => {
+    const base = createInitialSave();
+    const fog = { threats: [{ id: "darkness", level: 2 }], restriction: "thickFog", opportunity: null } as unknown as Briefing;
+    const cursed: Briefing = { threats: [], restriction: "cursedLuck", opportunity: null };
+    return {
+      ...base,
+      knownRecipes: ["sword1", "mail1", "axe2"],
+      expeditions: [{ id: "e1", briefing: fog }, { id: "e2", briefing: cursed }, { id: "e3" }] as unknown as SaveData["expeditions"],
+      reports: [{ id: "r1", briefing: fog }] as unknown as SaveData["reports"],
+    };
+  };
+
+  it("learns the new starting blueprints and keeps the known ones", () => {
+    const next = migrateSave(v42(), 42, 0);
+    expect(next.knownRecipes).toEqual(["sword1", "mail1", "axe2", "spear1", "lute1", "flasks1", "focus1", "knuckles1"]);
+    expect(toV43(next).knownRecipes).toEqual(next.knownRecipes);
+  });
+
+  it("lifts Thick fog from running expeditions and reports, and leaves other restrictions", () => {
+    const next = migrateSave(v42(), 42, 0);
+    expect(next.expeditions.map((e) => e.briefing?.restriction)).toEqual([null, "cursedLuck", undefined]);
+    expect(next.expeditions[0].briefing!.threats).toEqual([{ id: "darkness", level: 2 }]);
+    expect(next.reports[0].briefing!.restriction).toBeNull();
   });
 });

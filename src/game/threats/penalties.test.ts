@@ -7,7 +7,7 @@ import { heroAnswers, type AnswersMember } from './answers';
 import { threatPenalties, type PenaltyReduction } from './penalties';
 import { scoreThreat, type ThreatScore } from './score';
 
-const tag = (family: FamilyId, count = 1): HeroFamilyTag => ({ family, count, magic: false, fromClass: true, source: 'class' });
+const tag = (family: FamilyId, count = 1): HeroFamilyTag => ({ family, count, source: 'class' });
 
 const member = (overrides: Partial<AnswersMember> = {}): AnswersMember => ({
   heroId: 'h',
@@ -23,7 +23,7 @@ const threat = (id: ThreatId, level: 1 | 2 | 3): ActiveThreat => ({ id, level })
 const scored = (id: ThreatId, level: 1 | 2 | 3, short = 0): ThreatScore => {
   const family = familyOfThreat(id);
   const count = Math.max(0, level - short);
-  return scoreThreat(threat(id, level), [heroAnswers(member({ familyTags: [tag(family, count)] }), null)]);
+  return scoreThreat(threat(id, level), [heroAnswers(member({ familyTags: [tag(family, count)] }))]);
 };
 
 const kinds = (score: ThreatScore) =>

@@ -37,7 +37,7 @@ export function signatureBriefing(briefing: Briefing, members: AnswersMember[], 
   let threats = briefing.threats;
   let lowered: SignatureBriefing['lowered'] = null;
   if (scout && extreme.length > 0) {
-    const answers = members.map((m) => heroAnswers(m, kept));
+    const answers = members.map((m) => heroAnswers(m));
     const severity = (index: number) => SEVERITY[scoreThreat(extreme[index], answers, rules).state];
     let worst = 0;
     for (let i = 1; i < extreme.length; i++) if (severity(i) > severity(worst)) worst = i;

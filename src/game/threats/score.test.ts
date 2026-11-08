@@ -10,8 +10,6 @@ import { familyCount, scoreBriefing, scoreOpportunity, scoreThreat, type ThreatS
 const tag = (family: FamilyId, count = 1, overrides: Partial<HeroFamilyTag> = {}): HeroFamilyTag => ({
   family,
   count,
-  magic: false,
-  fromClass: true,
   source: 'class',
   ...overrides,
 });
@@ -24,9 +22,9 @@ const member = (overrides: Partial<AnswersMember> = {}): AnswersMember => ({
   ...overrides,
 });
 
-/** A party of one member per override, already answered (no restriction). */
+/** A party of one member per override, already answered. */
 const party = (...overrides: Partial<AnswersMember>[]) =>
-  overrides.map((overrides, i) => heroAnswers(member({ heroId: `h${i + 1}`, ...overrides }), null));
+  overrides.map((overrides, i) => heroAnswers(member({ heroId: `h${i + 1}`, ...overrides })));
 
 /** A party whose only member carries `count` tags of `family`. */
 const familyParty = (family: FamilyId, count: number) => party({ familyTags: [tag(family, count)] });
@@ -58,7 +56,7 @@ describe('scoring threats by family tags', () => {
   it('lists every hero contributing a tag of the family, with the source that gave it', () => {
     const score = scoreThreat(
       threat('holy', 1),
-      party({ familyTags: [tag('faith')] }, { familyTags: [tag('faith', 1, { source: 'gear', fromClass: false })] }, {}),
+      party({ familyTags: [tag('faith')] }, { familyTags: [tag('faith', 1, { source: 'gear' })] }, {}),
     );
     expect(score.coveredBy).toEqual([
       { heroId: 'h1', source: 'class' },
@@ -95,25 +93,6 @@ describe('familyVsThreat bonuses', () => {
     expect(familyCount(party({ traitId: 'clumsy', familyTags: [tag('cunning', 2)] }), 'cunning', 1)).toBe(1);
     expect(familyCount(party({ traitId: 'clumsy' }), 'cunning', 1)).toBe(0);
     expect(scoreThreat(threat('traps', 2), party({ traitId: 'clumsy', familyTags: [tag('cunning', 2)] })).state).toBe('half');
-  });
-});
-
-describe('restrictions in scoring', () => {
-  it('anti-magic drops the tags from magic sources', () => {
-    const magic = [heroAnswers(member({ familyTags: [tag('warding', 2, { source: 'gear', fromClass: false, magic: true })] }), 'antiMagic')];
-    expect(scoreThreat(threat('element', 1), magic).state).toBe('half');
-    const physical = [
-      heroAnswers(member({ familyTags: [tag('warding', 2, { source: 'gear', fromClass: false })] }), 'antiMagic'),
-    ];
-    expect(scoreThreat(threat('element', 1), physical).state).toBe('met');
-  });
-
-  it('thick fog drops Watch tags from classes, but gear still lights the way', () => {
-    const foggy = (fromClass: boolean) => [
-      heroAnswers(member({ familyTags: [tag('watch', 2, { fromClass })] }), 'thickFog'),
-    ];
-    expect(scoreThreat(threat('darkness', 1), foggy(true)).state).toBe('half');
-    expect(scoreThreat(threat('darkness', 1), foggy(false)).state).toBe('met');
   });
 });
 

@@ -507,6 +507,24 @@ export function toV42(save: SaveData): SaveData {
   return { ...save, tips: { seen: save.tips.seen.filter((id) => !removed(id)), pending: save.tips.pending.filter((id) => !removed(id)) } };
 }
 
+/**
+ * Version 43: threats count tags and gear answers them early. The new starting
+ * blueprints are learnt, and Thick fog (gone) leaves the briefings of running
+ * expeditions and reports.
+ */
+export function toV43(save: SaveData): SaveData {
+  const foggy = (entry: { briefing?: Briefing }) => (entry.briefing?.restriction as string | null | undefined) === "thickFog";
+  const clear = <T extends { briefing?: Briefing }>(entry: T): T => (foggy(entry) ? { ...entry, briefing: { ...entry.briefing!, restriction: null } } : entry);
+  const recipes = ["spear1", "lute1", "flasks1", "focus1", "knuckles1"];
+  if (recipes.every((id) => save.knownRecipes.includes(id)) && !save.expeditions.some(foggy) && !save.reports.some(foggy)) return save;
+  return {
+    ...save,
+    knownRecipes: [...new Set([...save.knownRecipes, ...recipes])],
+    expeditions: save.expeditions.map(clear),
+    reports: save.reports.map(clear),
+  };
+}
+
 /** Applies the migration steps in order, from the save's own version on. */
 export function migrateSave(
   save: SaveData,
@@ -526,5 +544,6 @@ export function migrateSave(
   if (fromVersion < 40) next = toV40(next);
   if (fromVersion < 41) next = toV41(next);
   if (fromVersion < 42) next = toV42(next);
+  if (fromVersion < 43) next = toV43(next);
   return next;
 }

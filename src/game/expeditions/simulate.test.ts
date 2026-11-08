@@ -149,7 +149,7 @@ describe('traps', () => {
   it('catch nobody when the threat is met', () => {
     // Two Cunning tags meet level 1.
     const briefing = briefingOf('traps');
-    const cunning = { family: 'cunning', count: 2, magic: false, fromClass: true, source: 'class' } as const;
+    const cunning = { family: 'cunning', count: 2, source: 'class' } as const;
     const run = simulateRun([member('a', { familyTags: [cunning] })], dungeon([trap()]), 's', { rules: steady, briefing });
     expect(run.encounters[0]).toMatchObject({ trapTriggered: false, taken: {}, cleared: true });
   });

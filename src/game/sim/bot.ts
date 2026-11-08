@@ -450,7 +450,7 @@ const offerMember = (classId: HeroClassId): AnswersMember => {
     classId,
     traitId: 'none',
     familyTags: gearType
-      ? gearFamilyTags({ gearType }).map((tag) => ({ family: tag.family, count: tag.count, magic: tag.magic, fromClass: false, source: 'gear' as const }))
+      ? gearFamilyTags({ gearType }).map((tag) => ({ family: tag.family, count: tag.count, source: 'gear' as const }))
       : [],
   };
 };
@@ -464,9 +464,9 @@ function answersThreat(sim: Sim, classId: HeroClassId): boolean {
   for (const dungeon of open) {
     const briefing = briefingFor(sim.rotation, dungeon);
     for (const threat of briefing.threats) {
-      const now = scoreThreat(threat, home.map((m) => heroAnswers(m, briefing.restriction)));
+      const now = scoreThreat(threat, home.map((m) => heroAnswers(m)));
       if (now.state === 'met') continue;
-      const withOffer = scoreThreat(threat, [...home, offer].map((m) => heroAnswers(m, briefing.restriction)));
+      const withOffer = scoreThreat(threat, [...home, offer].map((m) => heroAnswers(m)));
       if (withOffer.state === 'met') return true;
     }
   }

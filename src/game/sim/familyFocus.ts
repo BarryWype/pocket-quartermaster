@@ -40,7 +40,7 @@ function withFamilyCount(party: PartyMember[], family: FamilyId, count: number):
   const carrier = party.find((m) => m.familyTags.some((t) => t.family === family)) ?? party[0];
   return party.map((m) => {
     const tags = m.familyTags.filter((t) => t.family !== family);
-    if (m === carrier && count > 0) tags.push({ family, count, magic: false, fromClass: false, source: 'gear' });
+    if (m === carrier && count > 0) tags.push({ family, count, source: 'gear' });
     return { ...m, familyTags: tags };
   });
 }

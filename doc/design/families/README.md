@@ -23,6 +23,7 @@ Threats must never be gated behind finding the right hero. Gear is the flexible 
 - **Starting heroes** carry different families.
 - **Restrictions that disable tags are removed** (they undermine the one rule players learn). **Surges** raise a threat by 1 at most.
 - **Kits stay gone.** If gaps remain, the fallback is a family charm in the trinket slot (+1 tag, costs the trinket's stats); not built now.
+- **Built (step 9):** starting blueprints sword, mail (Faith), spear (Wild, Watch), lute (Cunning), flasks (Venom), focus (Warding) and knuckles (Breaker); Druid and Scholar join the tier-1 pool; Thick fog is gone and Anti-magic no longer drops tags. Venom and Cunning sit only on weapons, so Poison plus a surged Traps 3 needed 4 weapon tags from 3 heroes: Traps left the Barrow mounds' and Sunken ford's tables.
 
 ## Expedition screens (2026-11-08)
 Mockup: `doc/design/expeditions/` (the design canvas boards). The list shows no heroes and no odds: each place is a pinned notice with its needs as gem sockets and a readiness stamp (Ready, Needs gear, No <family>). Picking a place opens the party dialog: needs and party families at the top, three hero plates with their gear slots (each with its family gem), odds only once a hero is in, refreshed on every hero or gear change. Gear changes made there are permanent. Pickers sort what covers a need first (▲) and show the odds after each choice. A Suggest button fills heroes and gear. The same dialog serves patrols, place fights and Sanctums.

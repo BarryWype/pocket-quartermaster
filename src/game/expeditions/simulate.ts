@@ -496,7 +496,7 @@ export function prepareSimulation(
   const meal = partyMeal(eaten, activeBriefing, classIds);
   // The briefing against this party: what was met, and what it costs.
   const members = mealParty(party, meal);
-  const answers: HeroAnswers[] = members.map((member) => heroAnswers(answersMemberOf(member), restriction));
+  const answers: HeroAnswers[] = members.map((member) => heroAnswers(answersMemberOf(member)));
   const scores = scoreBriefing(activeBriefing, answers);
   // The chowder multiplies the penalties of the threats it lists.
   const reduction: PenaltyReduction = penaltyReduction(classIds);

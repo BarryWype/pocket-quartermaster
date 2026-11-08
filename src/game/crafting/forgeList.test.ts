@@ -15,7 +15,8 @@ describe('forgeList', () => {
   it('lists the starting blueprints at tier 1 and nothing above', () => {
     const { tiers, plainRecipeIds } = forgeList(createInitialSave());
     expect(tiers).toHaveLength(1);
-    expect(tiers[0]).toEqual({ tier: 1, recipeIds: startingRecipes });
+    expect(tiers[0].tier).toBe(1);
+    expect([...tiers[0].recipeIds].sort()).toEqual([...startingRecipes].sort());
     // A fresh save knows no tools or smelting either: they are taught by play.
     expect(plainRecipeIds).toEqual([]);
   });
@@ -31,7 +32,7 @@ describe('forgeList', () => {
   it('lists only the known blueprints of each unlocked tier', () => {
     const save = { ...saveUpTo(3), knownRecipes: [...startingRecipes, 'bow2', 'axe3', 'plate3'] };
     const { tiers } = forgeList(save);
-    expect(tiers[0].recipeIds).toEqual(startingRecipes);
+    expect([...tiers[0].recipeIds].sort()).toEqual([...startingRecipes].sort());
     expect(tiers[1].recipeIds).toEqual(['bow2']);
     expect(tiers[2].recipeIds).toEqual(['axe3', 'plate3']);
   });
@@ -48,7 +49,7 @@ describe('forgeList', () => {
 
 describe('forgeList pages', () => {
   it('groups the blueprints by item type, two-handed weapons with the weapons', () => {
-    const save = { ...saveUpTo(2), knownRecipes: [...startingRecipes, 'warhammer1', 'shield1', 'buckler2'] };
+    const save = { ...saveUpTo(2), knownRecipes: ['sword1', 'mail1', 'warhammer1', 'shield1', 'buckler2'] };
     const { pages } = forgeList(save);
     expect(pages.map(({ type }) => type)).toEqual(['weapons', 'offhands', 'armour']);
     const weapons = pages.find(({ type }) => type === 'weapons');
@@ -70,8 +71,8 @@ describe('forgeList pages', () => {
     const save = { ...createInitialSave(), materials: { wood: 10 } };
     const { pages } = forgeList(save);
     const weapons = pages.find(({ type }) => type === 'weapons');
-    // The sword is affordable; the mail stays out of reach (no bone or hide).
-    expect(weapons?.craftable).toEqual(1);
+    // The sword and the spear are affordable; the mail stays out of reach (no bone or hide).
+    expect(weapons?.craftable).toEqual(2);
     expect(pages.find(({ type }) => type === 'armour')?.craftable).toEqual(0);
   });
 
@@ -83,7 +84,7 @@ describe('forgeList pages', () => {
 
   it('counts held relics and plain recipes on the Other page, hidden when there are none', () => {
     const empty = forgeList(createInitialSave());
-    expect(empty.pages.map(({ type }) => type)).toEqual(['weapons', 'armour']);
+    expect(empty.pages.map(({ type }) => type)).toEqual(['weapons', 'offhands', 'armour']);
 
     const save = {
       ...createInitialSave(),

@@ -908,8 +908,7 @@ export const frNames: Record<string, string> = {
 
   // Restrictions
   'Anti-magic zone': 'Zone antimagique',
-  'Magic damage and abilities −50%; family tags from magic gear and casters don’t count.':
-    'Dégâts et capacités magiques −50 % ; les tags de famille de l’équipement magique et des lanceurs de sorts ne comptent pas.',
+  'Magic damage and abilities −50%.': 'Dégâts et capacités magiques −50 %.',
   'Sacred ground': 'Sol sacré',
   'Only Concealed gear hits at full strength; others −40%.':
     'Seul l’équipement dissimulé frappe à pleine force ; les autres −40 %.',
@@ -918,9 +917,6 @@ export const frNames: Record<string, string> = {
     'Potions, soins de groupe et sources soignent à moitié.',
   'Cursed luck': 'Chance maudite',
   'No critical hits.': 'Aucun coup critique.',
-  'Thick fog': 'Brouillard épais',
-  'Watch from classes doesn’t count; only gear lights the way.':
-    'La Vigie des classes ne compte pas ; seul l’équipement éclaire le chemin.',
   Barren: 'Terres stériles',
   'Gold bonuses from traits, charms and meals don’t apply.':
     'Les bonus d’or des traits, charmes et repas ne s’appliquent pas.',

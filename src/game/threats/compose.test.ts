@@ -127,14 +127,6 @@ describe('composition', () => {
 });
 
 describe('restrictions and answers', () => {
-  it('keeps a threat answerable while some source remains', () => {
-    // Gear Watch answers the darkness even without the classes; a non-caster
-    // Watch class answers it even without gear.
-    expect(restrictionKeepsAnswers([{ id: 'darkness', level: 1 }], 'thickFog')).toBe(true);
-    expect(restrictionKeepsAnswers([{ id: 'darkness', level: 1 }], 'antiMagic')).toBe(true);
-    expect(restrictionKeepsAnswers([{ id: 'darkness', level: 1 }], null)).toBe(true);
-  });
-
   it('keeps Poison 3 answerable by a party squeezed down to 2: it needs 3 tags', () => {
     expect(restrictionKeepsAnswers([{ id: 'poison', level: 3 }], 'narrowPassages')).toBe(true);
   });

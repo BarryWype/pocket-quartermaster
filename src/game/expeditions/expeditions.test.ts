@@ -348,14 +348,12 @@ describe('tutorial expedition', () => {
     }
   });
 
-  it('starts a new game with two tier 1 blueprints: a weapon and an armour', () => {
+  it('starts a new game with tier 1 blueprints only, a weapon and an armour among them', () => {
     const gear = createInitialSave()
       .knownRecipes.map((id) => forgedItem(recipeById[id]))
       .filter((item) => item !== null);
-    expect(gear.map((item) => [item.tier, item.slot])).toEqual([
-      [1, 'weapon'],
-      [1, 'armor'],
-    ]);
+    expect(new Set(gear.map((item) => item.tier))).toEqual(new Set([1]));
+    expect(gear.map((item) => item.slot)).toEqual(expect.arrayContaining(['weapon', 'armor', 'offhand']));
   });
 
   it('pays the day’s first win: one new tier 1 blueprint, and no Sigil', () => {
@@ -368,7 +366,8 @@ describe('tutorial expedition', () => {
     expect(report.loot.recipeIds).toEqual([tutorialRules.blueprintRecipe]);
     expect(before.knownRecipes).not.toContain(tutorialRules.blueprintRecipe);
     expect(save.knownRecipes).toContain(tutorialRules.blueprintRecipe);
-    expect(save.knownRecipes.filter((id) => forgedItem(recipeById[id])?.tier === 1)).toHaveLength(3);
+    const tierOne = (ids: string[]) => ids.filter((id) => forgedItem(recipeById[id])?.tier === 1);
+    expect(tierOne(save.knownRecipes)).toHaveLength(tierOne(before.knownRecipes).length + 1);
     expect(report.sigil).toBeUndefined();
     expect(save.sigils).toEqual([]);
   });
