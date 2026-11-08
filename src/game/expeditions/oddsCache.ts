@@ -17,7 +17,7 @@ function partyProjection(save: SaveData, heroIds: string[]) {
   const heroes = save.heroes
     .filter((hero) => heroIds.includes(hero.id))
     .map((hero) => {
-      for (const slot of ['weapon', 'armor', 'offhand', 'trinket'] as const) {
+      for (const slot of ['helmet', 'weapon', 'armor', 'offhand', 'trinket'] as const) {
         const piece = save.gear.find((g) => g.uid === hero.equipment[slot]);
         if (piece) gear.set(piece.uid, piece);
       }

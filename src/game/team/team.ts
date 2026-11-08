@@ -12,7 +12,7 @@ import { slotProblem } from '../equipment/slots';
 import { rosterCap } from '../guild/guild';
 import { trinketEffect } from '../loot/trinkets';
 import type { SaveData } from '../save';
-import type { Ability, ArmourType, ConsumableDef, DamageStat, EquipmentSlot, GearCondition, GearDef, GearType, HeroClassId, HeroState, Keyword, RelicEffect, StatKey, Stats, WeaponType } from '../types';
+import type { Ability, ArmourType, ConsumableDef, HelmetType, DamageStat, EquipmentSlot, GearCondition, GearDef, GearType, HeroClassId, HeroState, Keyword, RelicEffect, StatKey, Stats, WeaponType } from '../types';
 import { baseHeroStats } from './stats';
 
 const STAT_KEYS: StatKey[] = ['hp', 'power', 'magic', 'armour', 'resistance', 'evasion', 'speed', 'crit'];
@@ -38,7 +38,7 @@ export const isWorking = (save: SaveData, heroId: string) => save.heroes.some((h
 export const isBusy = (save: SaveData, heroId: string) => isAway(save, heroId) || isWorking(save, heroId);
 
 export function equippedGear(save: SaveData, hero: HeroState) {
-  return (['weapon', 'armor', 'offhand', 'trinket'] as const)
+  return (['helmet', 'weapon', 'armor', 'offhand', 'trinket'] as const)
     .map((slot) => save.gear.find((g) => g.uid === hero.equipment[slot]))
     .filter((g) => g !== undefined);
 }
@@ -47,12 +47,12 @@ export function equippedGear(save: SaveData, hero: HeroState) {
 export type GearKeywordEntry = { keyword: Keyword; magic: boolean; when?: GearCondition; strong?: true };
 
 /**
- * The keywords of the hero's weapon, armour and off-hand; magic pieces marked.
+ * The keywords of the hero's helmet, weapon, armour and off-hand; magic pieces marked.
  * An affix's keyword doubles the piece's own keyword (strong), or adds one
  * more entry; a unique's keyword works the same, or rides behind its `when`.
  */
 export function gearKeywordsOf(save: SaveData, hero: HeroState): GearKeywordEntry[] {
-  return (['weapon', 'armor', 'offhand'] as const).flatMap((slot) => {
+  return (['helmet', 'weapon', 'armor', 'offhand'] as const).flatMap((slot) => {
     const gear = save.gear.find((g) => g.uid === hero.equipment[slot]);
     if (!gear) return [];
     const item = itemById[gear.itemId] as GearDef;
@@ -91,7 +91,7 @@ export type WornRelicEffect = { effect: RelicEffect; magic: boolean; relicId: st
  * armour and off-hand, including a non-relic Legendary's unique.
  */
 export function relicEffectsOf(save: SaveData, hero: HeroState): WornRelicEffect[] {
-  return (['weapon', 'armor', 'offhand'] as const).flatMap((slot) => {
+  return (['helmet', 'weapon', 'armor', 'offhand'] as const).flatMap((slot) => {
     const gear = save.gear.find((g) => g.uid === hero.equipment[slot]);
     if (!gear || (!gear.relicId && !gear.unique)) return [];
     const item = itemById[gear.itemId] as GearDef;
@@ -116,7 +116,7 @@ export function healingPotion(itemId: string): ConsumableDef | null {
 /** Whether the hero's class has the second, potion-only slot (the Alchemist). */
 export const hasPotionSlot = (hero: HeroState) => heroClasses[hero.classId].abilities.some((a) => a.kind === 'potionSlot');
 
-/** Favoured, usable or unfit: weapons and armour by class, off-hands and trinkets always usable. */
+/** Favoured, usable or unfit: weapons, armour and helmets by class, off-hands and trinkets always usable. */
 export function affinityOf(classId: HeroState['classId'], gearType: GearType | undefined): Affinity {
   if (!gearType) return 'usable';
   const table = classAffinities[classId] as Partial<Record<WeaponType | ArmourType, Affinity>>;
@@ -152,8 +152,8 @@ export function heroStats(save: SaveData, hero: HeroState): Stats {
       stats[target] += SCALING_KEYS.includes(key) ? value * affinityRules[affinity] : value;
     }
     if (values.luck) stats.luck += values.luck;
-    if (item.slot === 'armor' && affinityOf(hero.classId, item.gearType) !== 'favoured') {
-      penalty = Math.max(penalty, castingPenalty[item.gearType as ArmourType] ?? 0);
+    if ((item.slot === 'armor' || item.slot === 'helmet') && affinityOf(hero.classId, item.gearType) !== 'favoured') {
+      penalty = Math.max(penalty, castingPenalty[item.gearType as ArmourType | HelmetType] ?? 0);
     }
   }
   stats.magic *= 1 - penalty;
@@ -316,7 +316,7 @@ export function canDismiss(save: SaveData, heroId: string) {
 export function dismissHero(save: SaveData, heroId: string): SaveData {
   if (!canDismiss(save, heroId)) throw new Error(`Cannot dismiss ${heroId}`);
   let next = save;
-  for (const slot of ['weapon', 'armor', 'offhand', 'trinket', 'consumable', 'potion'] as const) next = unequip(next, heroId, slot);
+  for (const slot of ['helmet', 'weapon', 'armor', 'offhand', 'trinket', 'consumable', 'potion'] as const) next = unequip(next, heroId, slot);
   return {
     ...next,
     heroes: next.heroes.filter((h) => h.id !== heroId),

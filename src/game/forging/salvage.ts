@@ -24,7 +24,7 @@ type Rules = typeof salvageRules;
 export function wearers(save: SaveData): Map<string, HeroState> {
   const map = new Map<string, HeroState>();
   for (const hero of save.heroes) {
-    for (const slot of ['weapon', 'armor', 'offhand', 'trinket'] as const) {
+    for (const slot of ['helmet', 'weapon', 'armor', 'offhand', 'trinket'] as const) {
       const uid = hero.equipment[slot];
       if (uid) map.set(uid, hero);
     }

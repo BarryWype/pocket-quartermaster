@@ -34,7 +34,7 @@ export function trinketParts(gear: GearInstance): LabelPart[] {
 export function gearStatsParts(gear: GearInstance): LabelPart[] {
   const item = itemById[gear.itemId];
   if (item.slot === 'trinket') return trinketParts(gear);
-  if (item.slot !== 'weapon' && item.slot !== 'armor' && item.slot !== 'offhand') return [];
+  if (item.slot !== 'weapon' && item.slot !== 'armor' && item.slot !== 'helmet' && item.slot !== 'offhand') return [];
   const stats = gearStats(gear);
   return STATS.filter((key) => stats[key]).map((key) => ({ emoji: statIcons[key], text: String(Math.round(stats[key]!)) }));
 }

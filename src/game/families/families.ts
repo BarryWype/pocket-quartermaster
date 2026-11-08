@@ -29,7 +29,7 @@ export type HeroFamilyTag = {
 export function heroFamilyTagSources(save: Pick<SaveData, 'gear'>, hero: HeroState): HeroFamilyTag[] {
   const heroClass = heroClasses[hero.classId];
   const tags: HeroFamilyTag[] = [{ family: heroClass.familyTag, count: 1, source: 'class' }];
-  for (const slot of ['weapon', 'armor', 'offhand', 'trinket'] as const) {
+  for (const slot of ['helmet', 'weapon', 'armor', 'offhand', 'trinket'] as const) {
     const uid = hero.equipment[slot];
     const gear = uid ? save.gear.find((g) => g.uid === uid) : undefined;
     if (!gear) continue;

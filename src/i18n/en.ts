@@ -419,7 +419,7 @@ export const en = {
     },
   },
   equip: {
-    choose: { weapon: 'Choose weapon', armor: 'Choose armor', offhand: 'Choose off-hand', trinket: 'Choose trinket', consumable: 'Choose consumable', potion: 'Choose potion' },
+    choose: { helmet: 'Choose helmet', weapon: 'Choose weapon', armor: 'Choose armor', offhand: 'Choose off-hand', trinket: 'Choose trinket', consumable: 'Choose consumable', potion: 'Choose potion' },
     nothing: 'Nothing',
     wearing: 'Wearing',
     inStock: '{count} in stock',
@@ -453,7 +453,7 @@ export const en = {
   hero: {
     unknown: 'Unknown hero',
     unknownHint: 'This hero is not in your team.',
-    slots: { weapon: 'Weapon', armor: 'Armor', offhand: 'Off-hand', trinket: 'Trinket', consumable: 'Consumable', potion: 'Potion' },
+    slots: { helmet: 'Helmet', weapon: 'Weapon', armor: 'Armor', offhand: 'Off-hand', trinket: 'Trinket', consumable: 'Consumable', potion: 'Potion' },
     empty: 'Empty',
     twoHanded: 'Two-handed weapon',
     offhandTool: 'For {job}: a {tool} in the off-hand',

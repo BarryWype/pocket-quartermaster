@@ -1,4 +1,4 @@
-import type { DamageStat, GearType, HeroClassId, Keyword, MaterialStack, WeaponType, ArmourType } from '@/game/types';
+import type { DamageStat, GearType, HeroClassId, Keyword, MaterialStack, WeaponType, ArmourType, HelmetType } from '@/game/types';
 
 import type { FamilyId } from '@/content/families';
 
@@ -7,7 +7,7 @@ import type { FamilyId } from '@/content/families';
 // src/game/equipment/budget.ts, exactly as tools/gear-budget.py does.
 
 /** One gear type: its slot, damage stat, hands, flat extras and keywords. */export type GearProfile = {
-  slot: 'weapon' | 'armor' | 'offhand';
+  slot: 'weapon' | 'armor' | 'helmet' | 'offhand';
   /** The team tag the gear type contributes (see doc/design/families/item-tags.csv). */
   familyTag: FamilyId;
   /** A one-handed weapon's second tag, of another family (column `second`). */
@@ -24,7 +24,7 @@ import type { FamilyId } from '@/content/families';
   shares: Partial<Record<'power' | 'magic' | 'armour' | 'resistance' | 'hp', number>>;
 };
 
-export const GEAR_SLOTS: Record<GearType, 'weapon' | 'armor' | 'offhand'> = {
+export const GEAR_SLOTS: Record<GearType, 'weapon' | 'armor' | 'helmet' | 'offhand'> = {
   sword: 'weapon',
   axe: 'weapon',
   mace: 'weapon',
@@ -46,6 +46,11 @@ export const GEAR_SLOTS: Record<GearType, 'weapon' | 'armor' | 'offhand'> = {
   mail: 'armor',
   leather: 'armor',
   robes: 'armor',
+  greatHelm: 'helmet',
+  sallet: 'helmet',
+  hood: 'helmet',
+  plagueMask: 'helmet',
+  runeCirclet: 'helmet',
   shield: 'offhand',
   buckler: 'offhand',
   offhandBlade: 'offhand',
@@ -76,6 +81,11 @@ export const gearProfiles: Record<GearType, GearProfile> = {
   mail: { familyTag: 'faith', slot: 'armor', emoji: '🦺', extras: {}, keywords: ['brace'], shares: { armour: 0.5, resistance: 0.3, hp: 0.2 } },
   leather: { familyTag: 'wild', slot: 'armor', emoji: '🧥', extras: { speed: 1, evasion: 8 }, keywords: [], shares: { armour: 0.45, hp: 0.4, resistance: 0.15 } },
   robes: { familyTag: 'spellweave', slot: 'armor', emoji: '👘', extras: {}, keywords: [], shares: { magic: 0.2, resistance: 0.65, hp: 0.15 } },
+  greatHelm: { familyTag: 'breaker', slot: 'helmet', emoji: '🪖', extras: {}, keywords: [], heavy: true, shares: { armour: 0.7, hp: 0.3 } },
+  sallet: { familyTag: 'watch', slot: 'helmet', emoji: '⛑️', extras: {}, keywords: [], shares: { armour: 0.5, resistance: 0.3, hp: 0.2 } },
+  hood: { familyTag: 'cunning', slot: 'helmet', emoji: '🥷', extras: { evasion: 3 }, keywords: [], shares: { armour: 0.4, hp: 0.4, resistance: 0.2 } },
+  plagueMask: { familyTag: 'venom', slot: 'helmet', emoji: '🎭', extras: {}, keywords: [], shares: { resistance: 0.5, hp: 0.5 } },
+  runeCirclet: { familyTag: 'warding', slot: 'helmet', emoji: '👑', extras: {}, keywords: [], shares: { magic: 0.3, resistance: 0.6, hp: 0.1 } },
   shield: { familyTag: 'bulwark', slot: 'offhand', emoji: '🛡️', extras: { speed: -1 }, keywords: ['guard'], shares: { armour: 0.75, hp: 0.25 } },
   buckler: { familyTag: 'shadow', slot: 'offhand', emoji: '🔔', extras: { evasion: 6 }, keywords: ['parry'], shares: { armour: 1 } },
   offhandBlade: { familyTag: 'bloodrage', slot: 'offhand', emoji: '🤺', damageStat: 'power', extras: { crit: 5 }, keywords: [], concealed: true, shares: { power: 1 } },
@@ -107,6 +117,11 @@ export const gearTypeNames: Record<GearType, { name: string; plural: string }> =
   mail: { name: 'Mail', plural: 'mail' },
   leather: { name: 'Leather', plural: 'leather' },
   robes: { name: 'Robes', plural: 'robes' },
+  greatHelm: { name: 'Great helm', plural: 'great helms' },
+  sallet: { name: 'Sentry’s sallet', plural: 'sentry’s sallets' },
+  hood: { name: 'Hood', plural: 'hoods' },
+  plagueMask: { name: 'Plague mask', plural: 'plague masks' },
+  runeCirclet: { name: 'Rune circlet', plural: 'rune circlets' },
   shield: { name: 'Shield', plural: 'shields' },
   buckler: { name: 'Buckler', plural: 'bucklers' },
   offhandBlade: { name: 'Parrying dagger', plural: 'parrying daggers' },
@@ -120,7 +135,7 @@ export const gearBudgetRules = {
   /** Enemy strength per tier; the budget scales with it. */
   tierScale: [1, 1.9, 3, 4.2, 5.6],
   /** Budget points at tier 1. 1 point = 1 Power = 1 Magic = 1 Armour = 1 Resistance = 10 HP. */
-  budget: { weapon: 5, armour: 6, offhand: 3 },
+  budget: { weapon: 5, armour: 6, helmet: 2, offhand: 3 },
   /** Share of the off-hand budget a two-handed weapon absorbs. */
   twoHandedBonus: 0.9,
   hpPerPoint: 10,
@@ -179,6 +194,11 @@ export const gearNames: Record<GearType, [string, string, string, string, string
   mail: ['Bone mail', 'Stone-scale mail', 'Copper mail', 'Iron mail', 'Steel mail'],
   leather: ['Hide armour', 'Stone-studded leather', 'Copper-studded leather', 'Iron-studded leather', 'Steel-studded leather'],
   robes: ['Linen robes', 'Stone-beaded robes', 'Copper-threaded robes', 'Iron-threaded robes', 'Steel-threaded robes'],
+  greatHelm: ['Wooden great helm', 'Stone great helm', 'Copper great helm', 'Iron great helm', 'Steel great helm'],
+  sallet: ['Bone sallet', 'Stone-rimmed sallet', 'Copper sallet', 'Iron sallet', 'Steel sallet'],
+  hood: ['Hide hood', 'Stone-clasped hood', 'Copper-clasped hood', 'Iron-clasped hood', 'Steel-clasped hood'],
+  plagueMask: ['Bone plague mask', 'Stone plague mask', 'Copper plague mask', 'Iron plague mask', 'Steel plague mask'],
+  runeCirclet: ['Wooden rune circlet', 'Stone rune circlet', 'Copper rune circlet', 'Iron rune circlet', 'Steel rune circlet'],
   shield: ['Wooden shield', 'Stone-rimmed shield', 'Copper shield', 'Iron shield', 'Steel shield'],
   buckler: ['Wooden buckler', 'Stone buckler', 'Copper buckler', 'Iron buckler', 'Steel buckler'],
   offhandBlade: ['Bone parrying dagger', 'Flint parrying dagger', 'Copper parrying dagger', 'Iron parrying dagger', 'Steel parrying dagger'],
@@ -336,6 +356,41 @@ export const gearRecipes: Record<GearType, [MaterialStack[], MaterialStack[], Ma
     [{ materialId: 'herb', amount: 4 }, { materialId: 'berries', amount: 1 }, { materialId: 'iron', amount: 1 }],
     [{ materialId: 'herb', amount: 4 }, { materialId: 'berries', amount: 1 }, { materialId: 'steel', amount: 1 }],
   ],
+  greatHelm: [
+    [{ materialId: 'wood', amount: 2 }, { materialId: 'hide', amount: 1 }],
+    [{ materialId: 'hide', amount: 1 }, { materialId: 'stone', amount: 2 }],
+    [{ materialId: 'hide', amount: 1 }, { materialId: 'copper', amount: 2 }],
+    [{ materialId: 'hide', amount: 1 }, { materialId: 'iron', amount: 2 }],
+    [{ materialId: 'hide', amount: 1 }, { materialId: 'steel', amount: 2 }],
+  ],
+  sallet: [
+    [{ materialId: 'bone', amount: 2 }, { materialId: 'hide', amount: 1 }],
+    [{ materialId: 'bone', amount: 1 }, { materialId: 'stone', amount: 2 }],
+    [{ materialId: 'bone', amount: 1 }, { materialId: 'copper', amount: 2 }],
+    [{ materialId: 'bone', amount: 1 }, { materialId: 'iron', amount: 2 }],
+    [{ materialId: 'bone', amount: 1 }, { materialId: 'steel', amount: 2 }],
+  ],
+  hood: [
+    [{ materialId: 'hide', amount: 3 }],
+    [{ materialId: 'hide', amount: 2 }, { materialId: 'stone', amount: 1 }],
+    [{ materialId: 'hide', amount: 2 }, { materialId: 'copper', amount: 1 }],
+    [{ materialId: 'hide', amount: 2 }, { materialId: 'iron', amount: 1 }],
+    [{ materialId: 'hide', amount: 2 }, { materialId: 'steel', amount: 1 }],
+  ],
+  plagueMask: [
+    [{ materialId: 'bone', amount: 1 }, { materialId: 'herb', amount: 2 }],
+    [{ materialId: 'herb', amount: 2 }, { materialId: 'stone', amount: 1 }],
+    [{ materialId: 'herb', amount: 2 }, { materialId: 'copper', amount: 1 }],
+    [{ materialId: 'herb', amount: 2 }, { materialId: 'iron', amount: 1 }],
+    [{ materialId: 'herb', amount: 2 }, { materialId: 'steel', amount: 1 }],
+  ],
+  runeCirclet: [
+    [{ materialId: 'wood', amount: 1 }, { materialId: 'mushroom', amount: 2 }],
+    [{ materialId: 'mushroom', amount: 1 }, { materialId: 'stone', amount: 2 }],
+    [{ materialId: 'mushroom', amount: 1 }, { materialId: 'copper', amount: 2 }],
+    [{ materialId: 'mushroom', amount: 1 }, { materialId: 'iron', amount: 2 }],
+    [{ materialId: 'mushroom', amount: 1 }, { materialId: 'steel', amount: 2 }],
+  ],
   shield: [
     [{ materialId: 'wood', amount: 3 }],
     [{ materialId: 'wood', amount: 1 }, { materialId: 'stone', amount: 2 }],
@@ -446,8 +501,8 @@ export const gearKeywordRules = {
   heavy: { underwaterMultiplier: 2 },
 };
 
-/** Magic lost to mail and plate, unless that armour type is favoured for the class. */
-export const castingPenalty: Partial<Record<ArmourType, number>> = { mail: 0.15, plate: 0.3 };
+/** Magic lost to mail, plate and the great helm, unless that type is favoured for the class. */
+export const castingPenalty: Partial<Record<ArmourType | HelmetType, number>> = { mail: 0.15, plate: 0.3, greatHelm: 0.3 };
 
 /** The item id of a gear type and tier, e.g. `sword3` or `offhandBlade2`. */
 export const gearId = (type: GearType, tier: number) => `${type}${tier}`;

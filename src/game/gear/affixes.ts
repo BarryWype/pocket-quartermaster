@@ -84,7 +84,7 @@ export function bestAffixValue(pieces: GearInstance[], affixId: string): number 
 export function rosterAffixBest(save: SaveData, affixId: string): number {
   const byUid = new Map(save.gear.map((piece) => [piece.uid, piece]));
   const worn = save.heroes.flatMap((hero) =>
-    (['weapon', 'armor', 'offhand', 'trinket'] as const).flatMap((slot) => {
+    (['helmet', 'weapon', 'armor', 'offhand', 'trinket'] as const).flatMap((slot) => {
       const uid = hero.equipment[slot];
       const piece = uid ? byUid.get(uid) : undefined;
       return piece ? [piece] : [];

@@ -134,3 +134,28 @@ Offhand,Focus,2,Stone,0,4,0,2,0,0,0,0
 Offhand,Focus,3,Copper,0,6,0,3,0,0,0,0
 Offhand,Focus,4,Iron,0,8,0,4,0,0,0,0
 Offhand,Focus,5,Steel,0,11,0,5,0,0,0,0
+Helmet,Great helm,1,"Wood, bone",0,0,2,0,7,0,0,0
+Helmet,Great helm,2,Stone,0,0,3,0,13,0,0,0
+Helmet,Great helm,3,Copper,0,0,5,0,20,0,0,0
+Helmet,Great helm,4,Iron,0,0,6,0,28,0,0,0
+Helmet,Great helm,5,Steel,0,0,9,0,37,0,0,0
+Helmet,Sallet,1,"Wood, bone",0,0,1,1,4,0,0,0
+Helmet,Sallet,2,Stone,0,0,2,1,8,0,0,0
+Helmet,Sallet,3,Copper,0,0,3,2,12,0,0,0
+Helmet,Sallet,4,Iron,0,0,4,3,17,0,0,0
+Helmet,Sallet,5,Steel,0,0,6,3,22,0,0,0
+Helmet,Hood,1,"Wood, bone",0,0,1,0,7,0,0,3
+Helmet,Hood,2,Stone,0,0,1,1,13,0,0,4
+Helmet,Hood,3,Copper,0,0,2,1,20,0,0,5
+Helmet,Hood,4,Iron,0,0,3,1,29,0,0,6
+Helmet,Hood,5,Steel,0,0,4,2,38,0,0,7
+Helmet,Plague mask,1,"Wood, bone",0,0,0,1,10,0,0,0
+Helmet,Plague mask,2,Stone,0,0,0,2,19,0,0,0
+Helmet,Plague mask,3,Copper,0,0,0,3,30,0,0,0
+Helmet,Plague mask,4,Iron,0,0,0,4,42,0,0,0
+Helmet,Plague mask,5,Steel,0,0,0,6,56,0,0,0
+Helmet,Rune circlet,1,"Wood, bone",0,1,0,1,2,0,0,0
+Helmet,Rune circlet,2,Stone,0,1,0,2,4,0,0,0
+Helmet,Rune circlet,3,Copper,0,2,0,4,6,0,0,0
+Helmet,Rune circlet,4,Iron,0,3,0,5,8,0,0,0
+Helmet,Rune circlet,5,Steel,0,3,0,7,11,0,0,0

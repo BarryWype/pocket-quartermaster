@@ -24,7 +24,7 @@ const gearDefOf = (save: SaveData, gear: GearInstance): GearDef => itemById[gear
 export function slotProblem(
   save: SaveData,
   hero: HeroState,
-  slot: 'offhand' | 'weapon' | 'armor' | 'trinket',
+  slot: 'offhand' | 'weapon' | 'armor' | 'helmet' | 'trinket',
   gear: GearInstance,
 ): SlotProblem | null {
   if (slot !== 'offhand') return null;

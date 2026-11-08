@@ -61,11 +61,11 @@ export function canCraft(save: SaveData, recipe: RecipeDef) {
   return isKnown(save, recipe) && !ownsTool(save, recipe) && recipeCost(save, recipe) !== null;
 }
 
-/** The gear a recipe forges, if it makes a weapon, armour or off-hand piece. */
+/** The gear a recipe forges, if it makes a weapon, armour, helmet or off-hand piece. */
 export function forgedItem(recipe: RecipeDef) {
   if (!('itemId' in recipe.output)) return null;
   const item = itemById[recipe.output.itemId];
-  return item.slot === 'weapon' || item.slot === 'armor' || item.slot === 'offhand' ? item : null;
+  return item.slot === 'weapon' || item.slot === 'armor' || item.slot === 'helmet' || item.slot === 'offhand' ? item : null;
 }
 
 /** Learns a recipe. */
@@ -157,6 +157,6 @@ export function forgeResult(before: SaveData, after: SaveData): ForgeResult | nu
   const gear = after.gear.find((g) => !before.gear.some((b) => b.uid === g.uid));
   if (!gear) return null;
   const item = itemById[gear.itemId];
-  if (item.slot !== 'weapon' && item.slot !== 'armor' && item.slot !== 'offhand') return null;
+  if (item.slot !== 'weapon' && item.slot !== 'armor' && item.slot !== 'helmet' && item.slot !== 'offhand') return null;
   return { gear };
 }

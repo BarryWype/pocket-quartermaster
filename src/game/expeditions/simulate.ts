@@ -317,13 +317,14 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs
       const stats = heroStats(save, hero);
       const weapon = save.gear.find((g) => g.uid === hero.equipment.weapon);
       const armour = save.gear.find((g) => g.uid === hero.equipment.armor);
+      const helmet = save.gear.find((g) => g.uid === hero.equipment.helmet);
       const offhand = save.gear.find((g) => g.uid === hero.equipment.offhand);
       const weaponItem = weapon ? (itemById[weapon.itemId] as GearDef) : null;
       const offhandItem = offhand ? (itemById[offhand.itemId] as GearDef) : null;
       const trinket = save.gear.find((g) => g.uid === hero.equipment.trinket);
       const elementResist = trinket ? trinketEffect(itemById[trinket.itemId] as GearDef, trinket).elementResist : undefined;
       // Heavy and Concealed read the equipped pieces; no pieces count as concealed.
-      const pieces = [weaponItem, armour ? (itemById[armour.itemId] as GearDef) : null, offhandItem].flatMap(
+      const pieces = [weaponItem, armour ? (itemById[armour.itemId] as GearDef) : null, helmet ? (itemById[helmet.itemId] as GearDef) : null, offhandItem].flatMap(
         (item) => (item ? [item] : []),
       );
       const item = hero.equipment.consumable ? itemById[hero.equipment.consumable] : null;

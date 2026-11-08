@@ -7,7 +7,7 @@ os.makedirs(OUT, exist_ok=True)
 TIER_SCALE = [1, 1.9, 3, 4.2, 5.6]          # enemy strength per tier (src/content/enemies.ts)
 TIER_NAMES = ["Wood, bone", "Stone", "Copper", "Iron", "Steel"]
 # Budget points at tier 1. 1 point = 1 Power = 1 Magic = 1 Armour = 1 Resistance = 10 HP.
-BUDGET = {"weapon": 5.0, "armour": 6.0, "offhand": 3.0}
+BUDGET = {"weapon": 5.0, "armour": 6.0, "helmet": 2.0, "offhand": 3.0}
 TWO_HANDED_BONUS = 0.9                       # share of the off-hand budget a two-handed weapon absorbs
 HP_PER_POINT = 10
 
@@ -49,6 +49,12 @@ P = [
  ("armour","Mail","",0,{},["Brace"],{"Armour":0.5,"Resistance":0.3,"HP":0.2}),
  ("armour","Leather","",0,{"speed":1,"evasion":8},[],{"Armour":0.45,"HP":0.4,"Resistance":0.15}),
  ("armour","Robes","",0,{},[],{"Magic":0.2,"Resistance":0.65,"HP":0.15}),
+ # Helmets (about a third of armour's budget)
+ ("helmet","Great helm","",0,{},[],{"Armour":0.7,"HP":0.3}),
+ ("helmet","Sallet","",0,{},[],{"Armour":0.5,"Resistance":0.3,"HP":0.2}),
+ ("helmet","Hood","",0,{"evasion":3},[],{"Armour":0.4,"HP":0.4,"Resistance":0.2}),
+ ("helmet","Plague mask","",0,{},[],{"Resistance":0.5,"HP":0.5}),
+ ("helmet","Rune circlet","",0,{},[],{"Magic":0.3,"Resistance":0.6,"HP":0.1}),
  # Off-hands
  ("offhand","Shield","",0,{"speed":-1},["Guard"],{"Armour":0.75,"HP":0.25}),
  ("offhand","Buckler","",0,{"evasion":6},["Parry"],{"Armour":1}),
@@ -57,9 +63,9 @@ P = [
  ("offhand","Tome","Magic",0,{"approach":1},[],{"Magic":1}),
  ("offhand","Focus","Magic",0,{},["Channel"],{"Magic":0.7,"Resistance":0.3}),
 ]
-HEAVY = {"Warhammer", "Plate"}
+HEAVY = {"Warhammer", "Plate", "Great helm"}
 # Casting penalty on all Magic when the armour is not favoured for the class.
-CASTING_PENALTY = {"Mail": 0.15, "Plate": 0.30}
+CASTING_PENALTY = {"Mail": 0.15, "Plate": 0.30, "Great helm": 0.30}
 CONCEALED = {"Dagger", "Wand", "Lute", "Knuckles", "Off-hand blade"}
 NOTES = {
  "Bow": "Fully functional alone; a quiver adds its bonus on top", "Quiver": "Bow only", "Shield": "One-handed weapons only",

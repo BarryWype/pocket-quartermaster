@@ -31,6 +31,11 @@ const CSV_TYPES: Record<string, string> = {
   Mail: 'mail',
   Leather: 'leather',
   Robes: 'robes',
+  'Great helm': 'greatHelm',
+  Sallet: 'sallet',
+  Hood: 'hood',
+  'Plague mask': 'plagueMask',
+  'Rune circlet': 'runeCirclet',
   Shield: 'shield',
   Buckler: 'buckler',
   'Off-hand blade': 'offhandBlade',
@@ -132,7 +137,7 @@ describe('gearItemStats', () => {
   const rows = parseTiersCsv();
 
   test('matches every row of equipment-tiers.csv', () => {
-    expect(rows).toHaveLength(135);
+    expect(rows).toHaveLength(160);
     for (const { type, tier, stats } of rows) {
       const item = itemById[gearId(type as keyof typeof gearProfiles, tier)] as GearDef;
       expect(item).toBeDefined();

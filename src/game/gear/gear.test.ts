@@ -28,6 +28,11 @@ describe('affix pools', () => {
 
 describe('affixSlotOf', () => {
   const expected: Record<GearType, 'weapon' | 'armourOffhand'> = {
+    greatHelm: 'armourOffhand',
+    sallet: 'armourOffhand',
+    hood: 'armourOffhand',
+    plagueMask: 'armourOffhand',
+    runeCirclet: 'armourOffhand',
     sword: 'weapon',
     axe: 'weapon',
     mace: 'weapon',

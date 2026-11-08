@@ -65,12 +65,13 @@ export type WeaponType =
   | 'flasks';
 export type ArmourType = 'plate' | 'mail' | 'leather' | 'robes';
 export type OffhandType = 'shield' | 'buckler' | 'offhandBlade' | 'quiver' | 'tome' | 'focus';
+export type HelmetType = 'greatHelm' | 'sallet' | 'hood' | 'plagueMask' | 'runeCirclet';
 
 /** Every gear type. */
-export type GearType = WeaponType | ArmourType | OffhandType;
+export type GearType = WeaponType | ArmourType | OffhandType | HelmetType;
 
 /** `potion` is the Alchemist's second slot, for healing consumables only. */
-export type EquipmentSlot = 'weapon' | 'armor' | 'offhand' | 'trinket' | 'consumable' | 'potion';
+export type EquipmentSlot = 'helmet' | 'weapon' | 'armor' | 'offhand' | 'trinket' | 'consumable' | 'potion';
 
 type ItemBase = {
   id: string;
@@ -81,7 +82,7 @@ type ItemBase = {
 };
 
 export type GearDef = ItemBase & {
-  slot: 'weapon' | 'armor' | 'offhand' | 'trinket';
+  slot: 'weapon' | 'armor' | 'helmet' | 'offhand' | 'trinket';
   /** The gear type; trinkets have none. */
   gearType?: GearType;
   stats: Partial<Stats>;
@@ -647,6 +648,7 @@ export type HeroState = {
   equipment: {
     weapon: string | null;
     armor: string | null;
+    helmet: string | null;
     offhand: string | null;
     trinket: string | null;
     /** Consumable item id (potion, elixir or charm); equipping one takes it out of the stock. */

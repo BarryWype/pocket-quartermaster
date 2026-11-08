@@ -423,7 +423,7 @@ export const fr: Dictionary = {
     },
   },
   equip: {
-    choose: { weapon: 'Choisir une arme', armor: 'Choisir une armure', offhand: 'Choisir une main secondaire', trinket: 'Choisir un bibelot', consumable: 'Choisir un consommable', potion: 'Choisir une potion' },
+    choose: { helmet: 'Choisir un casque', weapon: 'Choisir une arme', armor: 'Choisir une armure', offhand: 'Choisir une main secondaire', trinket: 'Choisir un bibelot', consumable: 'Choisir un consommable', potion: 'Choisir une potion' },
     nothing: 'Rien',
     wearing: 'Porté',
     inStock: '{count} en stock',
@@ -457,7 +457,7 @@ export const fr: Dictionary = {
   hero: {
     unknown: 'Héros inconnu',
     unknownHint: 'Ce héros ne fait pas partie de votre équipe.',
-    slots: { weapon: 'Arme', armor: 'Armure', offhand: 'Main secondaire', trinket: 'Bibelot', consumable: 'Consommable', potion: 'Potion' },
+    slots: { helmet: 'Casque', weapon: 'Arme', armor: 'Armure', offhand: 'Main secondaire', trinket: 'Bibelot', consumable: 'Consommable', potion: 'Potion' },
     empty: 'Vide',
     twoHanded: 'Arme à deux mains',
     offhandTool: 'Pour {job} : {tool} en main secondaire',

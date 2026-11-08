@@ -206,7 +206,7 @@ const GEAR_ICONS: Partial<Record<keyof typeof gearProfiles, GearDef['icon'][]>> 
   ],
 };
 
-/** One item per gear type and tier (135 pieces), stats from the budget maths. */
+/** One item per gear type and tier (160 pieces), stats from the budget maths. */
 const gear: GearDef[] = (Object.keys(gearProfiles) as (keyof typeof gearProfiles)[]).flatMap((type) => {
   const profile = gearProfiles[type];
   return [1, 2, 3, 4, 5].map((tier): GearDef => ({

@@ -351,10 +351,10 @@ const OUTCOMES: LootSourceId[] = ['firstTierClear', 'tierBoss', 'stepChest'];
 /** The day's steps: just enough to open the profile's step chests. */
 const stepsPerDay = (profile: Profile) => stepChests[Math.max(0, Math.min(stepChests.length, Math.round(profile.visits.stepChest ?? 0)) - 1)].steps;
 
-/** Average number of affixes on the heroes' worn gear (all four slots). */
+/** Average number of affixes on the heroes' worn gear (all five slots). */
 function wornAffixes(save: SaveData) {
   const byUid = new Map(save.gear.map((piece) => [piece.uid, piece]));
-  const slots = ['weapon', 'armor', 'offhand', 'trinket'] as const;
+  const slots = ['helmet', 'weapon', 'armor', 'offhand', 'trinket'] as const;
   return save.heroes.reduce((sum, hero) => sum + slots.reduce((n, slot) => n + (byUid.get(hero.equipment[slot] ?? '')?.affixes.length ?? 0), 0), 0) / save.heroes.length;
 }
 
