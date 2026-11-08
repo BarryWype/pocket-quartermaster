@@ -22,6 +22,7 @@ import { fonts, ui } from '@/theme';
 import { EquipPicker } from './EquipPicker';
 import { FamilySheet } from './FamilySheet';
 import { GameIcon } from './GameIcon';
+import { GearPicker } from './GearPicker';
 import { GemSocket } from './GemSocket';
 import { HeroPicker } from './HeroPicker';
 import { Overlay } from './Overlay';
@@ -285,8 +286,13 @@ export function PartyDialog({
     onSend(party);
   };
   const pickGear = (heroId: string, slot: GearSlot | 'consumable' | 'potion', id: string | null) => {
+    if (slot !== 'consumable' && slot !== 'potion') {
+      // The hero's pending swaps go on first: the piece may need them (a tome needs the suggested magic weapon).
+      const mine = swaps.filter((swap) => swap.heroId === heroId);
+      if (mine.length > 0) dress(mine);
+      setSwaps((current) => dropSwaps(current.filter((swap) => swap.heroId !== heroId), heroId, slot, id));
+    }
     equip(heroId, slot, id);
-    if (slot !== 'consumable' && slot !== 'potion') setSwaps((current) => dropSwaps(current, heroId, slot, id));
     setPicking(null);
   };
 
@@ -310,7 +316,7 @@ export function PartyDialog({
             const heroId = party[i];
             if (!heroId)
               return (
-                <Pressable key={`empty${i}`} accessibilityRole="button" onPress={() => setAddingHero(true)} style={[styles.plate, styles.emptyPlate]}>
+                <Pressable key={`empty${i}`} accessibilityRole="button" accessibilityLabel={t('partyDialog.addHero')} onPress={() => setAddingHero(true)} style={[styles.plate, styles.emptyPlate]}>
                   <View style={styles.emptyPortrait}>
                     <Text style={styles.plus}>+</Text>
                   </View>
@@ -347,11 +353,24 @@ export function PartyDialog({
           />
         </View>
       </View>
-      {picking && (
+      {picking && (picking.slot === 'consumable' || picking.slot === 'potion') && (
         <EquipPicker
           save={dressed}
           heroId={picking.heroId}
           slot={picking.slot}
+          onPick={(id) => pickGear(picking.heroId, picking.slot, id)}
+          onClose={() => setPicking(null)}
+        />
+      )}
+      {picking && picking.slot !== 'consumable' && picking.slot !== 'potion' && (
+        <GearPicker
+          save={dressed}
+          party={party}
+          heroId={picking.heroId}
+          slot={picking.slot}
+          groups={groups}
+          oddsOf={oddsOf}
+          chance={chance}
           onPick={(id) => pickGear(picking.heroId, picking.slot, id)}
           onClose={() => setPicking(null)}
         />
