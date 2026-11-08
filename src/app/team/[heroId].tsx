@@ -47,7 +47,7 @@ import { useGameStore } from '@/store/gameStore';
 import { fonts, ui } from '@/theme';
 import { timed } from '@/components/timed';
 
-const GEAR_SLOTS = ['weapon', 'armor', 'offhand', 'trinket'] as const;
+const GEAR_SLOTS = ['helmet', 'weapon', 'armor', 'offhand', 'trinket'] as const;
 
 /**
  * The stack header with the hero's name and the prev/next arrows. Rendered
@@ -411,12 +411,12 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
         <View style={styles.dollArea}>
           <View style={styles.dollRow}>
             {dollSlotView('trinket')}
-            {dollSlotView('armor')}
+            {dollSlotView('helmet')}
             <View style={styles.dollCell} />
           </View>
           <View style={styles.dollRow}>
             {dollSlotView('weapon')}
-            <View style={styles.dollCell} />
+            {dollSlotView('armor')}
             {dollSlotView('offhand')}
           </View>
           <View style={styles.dollRow}>

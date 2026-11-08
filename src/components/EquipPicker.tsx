@@ -162,7 +162,7 @@ export function gainOf({ item, preview }: { item: GearDef; preview: { before: St
   if (!preview) return 0;
   const delta = (key: StatKey) => preview.after[key] - preview.before[key];
   if (item.slot === 'weapon') return delta(pieceDamageStat(item, classId) ?? 'power');
-  if (item.slot === 'armor' || item.slot === 'offhand') return delta('armour') + delta('resistance');
+  if (item.slot === 'armor' || item.slot === 'helmet' || item.slot === 'offhand') return delta('armour') + delta('resistance');
   return 0;
 }
 

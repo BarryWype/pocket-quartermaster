@@ -25,7 +25,7 @@ export function recipeTier(recipe: RecipeDef): number {
 export type ForgeTierList = { tier: number; recipeIds: string[] };
 
 /** One page of the forge: one item type, or everything that is not forged gear. */
-export type ForgePageType = 'weapons' | 'offhands' | 'armour' | 'other';
+export type ForgePageType = 'weapons' | 'offhands' | 'armour' | 'helmets' | 'other';
 
 /** A forge page: the blueprints the player knows of its type by tier, newest first, and how many are craftable right now. */
 export type ForgePage = { type: ForgePageType; craftable: number; tiers: ForgeTierList[] };
@@ -39,6 +39,7 @@ export function pageTypeOf(recipe: RecipeDef): ForgePageType | null {
   if (!item) return null;
   if (item.slot === 'weapon') return 'weapons';
   if (item.slot === 'offhand') return 'offhands';
+  if (item.slot === 'helmet') return 'helmets';
   return 'armour';
 }
 
@@ -68,7 +69,7 @@ export function forgeList(save: SaveData): ForgeList {
   const heldRelicUids = save.relics
     .filter(({ relicId }) => relicById[relicId].tier <= unlocked)
     .map(({ uid }) => uid);
-  const gearPages: ForgePage[] = (['weapons', 'offhands', 'armour'] as const)
+  const gearPages: ForgePage[] = (['weapons', 'offhands', 'armour', 'helmets'] as const)
     .map((type) => {
       const page = gearTiers(type);
       return {

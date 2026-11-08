@@ -48,10 +48,10 @@ describe('forgeList', () => {
 });
 
 describe('forgeList pages', () => {
-  it('groups the blueprints by item type, two-handed weapons with the weapons', () => {
-    const save = { ...saveUpTo(2), knownRecipes: ['sword1', 'mail1', 'warhammer1', 'shield1', 'buckler2'] };
+  it('groups the blueprints by item type, two-handed weapons with the weapons, helmets on their own page', () => {
+    const save = { ...saveUpTo(2), knownRecipes: ['sword1', 'mail1', 'hood1', 'warhammer1', 'shield1', 'buckler2'] };
     const { pages } = forgeList(save);
-    expect(pages.map(({ type }) => type)).toEqual(['weapons', 'offhands', 'armour']);
+    expect(pages.map(({ type }) => type)).toEqual(['weapons', 'offhands', 'armour', 'helmets']);
     const weapons = pages.find(({ type }) => type === 'weapons');
     expect(weapons?.tiers).toEqual([{ tier: 1, recipeIds: ['sword1', 'warhammer1'] }]);
     expect(pages.find(({ type }) => type === 'offhands')?.tiers.flatMap(({ recipeIds }) => recipeIds)).toEqual([
@@ -59,6 +59,7 @@ describe('forgeList pages', () => {
       'shield1',
     ]);
     expect(pages.find(({ type }) => type === 'armour')?.tiers.flatMap(({ recipeIds }) => recipeIds)).toEqual(['mail1']);
+    expect(pages.find(({ type }) => type === 'helmets')?.tiers.flatMap(({ recipeIds }) => recipeIds)).toEqual(['hood1']);
   });
 
   it('hides a type with nothing known', () => {
@@ -84,7 +85,7 @@ describe('forgeList pages', () => {
 
   it('counts held relics and plain recipes on the Other page, hidden when there are none', () => {
     const empty = forgeList(createInitialSave());
-    expect(empty.pages.map(({ type }) => type)).toEqual(['weapons', 'offhands', 'armour']);
+    expect(empty.pages.map(({ type }) => type)).toEqual(['weapons', 'offhands', 'armour', 'helmets']);
 
     const save = {
       ...createInitialSave(),

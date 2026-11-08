@@ -158,7 +158,7 @@ function ReworkCard({
 }) {
   const item = itemById[gear.itemId] as GearDef;
   const holder = wornBy(save, gear.uid);
-  const takesStone = item.slot !== 'trinket';
+  const takesStone = item.slot !== 'trinket' && item.slot !== 'helmet';
   const preview = takesStone && element ? stonePreview(save, gear.uid, element) : null;
   const cost = rerollCost(gear);
   const blocked = rerollBlockedReason(save, gear);

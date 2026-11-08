@@ -32,7 +32,7 @@ import { TutorialHint } from './TutorialHint';
 import { DiamondRail, ItemSlot, useLazyPages, type RailItem } from './ui';
 
 /** The gear sections, always in this order; the Other section joins last when it has content. */
-const GEAR_SECTIONS = ['weapons', 'armour', 'offhands'] as const;
+const GEAR_SECTIONS = ['weapons', 'armour', 'helmets', 'offhands'] as const;
 
 /** The rail's sections: the forge's gear pages, plus the rework page the player holds a stone or an uncommon piece for. */
 export type ForgeSection = ForgePageType | 'rework';
@@ -41,6 +41,7 @@ export type ForgeSection = ForgePageType | 'rework';
 const RAIL_ICONS: Record<ForgePageType, { emoji: string; icon?: ImageSourcePropType }> = {
   weapons: { emoji: '🗡️', icon: require('../../assets/icons/scaled/menu-forge.png') },
   armour: { emoji: '🧥', icon: systemIcons['🧥'] },
+  helmets: { emoji: '🪖', icon: require('../../assets/icons/rpg/helmet-steel-kettle.png') },
   offhands: { emoji: '🛡️', icon: systemIcons['🛡️'] },
   other: { emoji: '⚒️', icon: systemIcons['⚒️'] },
 };
@@ -205,7 +206,7 @@ function GearSection({
   onForge,
 }: {
   save: SaveData;
-  type: 'weapons' | 'armour' | 'offhands';
+  type: 'weapons' | 'armour' | 'helmets' | 'offhands';
   tiers: ForgeTierList[];
   contentWidth: number;
   pending: ForgePending | null;
@@ -242,7 +243,7 @@ function TierBlock({
   onForge,
 }: {
   save: SaveData;
-  type: 'weapons' | 'armour' | 'offhands';
+  type: 'weapons' | 'armour' | 'helmets' | 'offhands';
   tier: number;
   knownIds: string[];
   contentWidth: number;

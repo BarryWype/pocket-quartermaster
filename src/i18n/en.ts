@@ -359,7 +359,7 @@ export const en = {
     unknown: 'Unknown',
     noBlueprints: 'No tier {tier} blueprints yet: expeditions find them',
     nothingKnown: 'No blueprints known yet: expeditions find them',
-    pages: { weapons: 'Weapons', offhands: 'Off-hand', armour: 'Armour', other: 'Other' },
+    pages: { weapons: 'Weapons', offhands: 'Off-hand', armour: 'Armour', helmets: 'Helmets', other: 'Other' },
     confirmTitle: 'Forge {item}?',
     restoreTitle: 'Restore {item}?',
     confirmCost: 'Cost',

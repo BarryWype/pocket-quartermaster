@@ -363,7 +363,7 @@ export const fr: Dictionary = {
     unknown: 'Inconnue',
     noBlueprints: 'Pas encore de plans de palier {tier} : les expéditions en découvrent.',
     nothingKnown: 'Aucun plan connu pour l’instant : les expéditions en découvrent.',
-    pages: { weapons: 'Armes', offhands: 'Main seconde', armour: 'Armures', other: 'Autre' },
+    pages: { weapons: 'Armes', offhands: 'Main seconde', armour: 'Armures', helmets: 'Casques', other: 'Autre' },
     confirmTitle: 'Forger {item} ?',
     restoreTitle: 'Restaurer {item} ?',
     confirmCost: 'Coût',
