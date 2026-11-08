@@ -46,7 +46,7 @@ check('simulator balance bands', () => {
       for (const tier of s.tiers) {
         const { odds } = tier;
         it(`${s.profile}: tier ${tier.tier} normal expeditions, prepared`, () => expectIn(median(odds.prepared.probe), targets.odds.prepared));
-        it(`${s.profile}: tier ${tier.tier} normal expeditions, not prepared`, () => expectIn(median(odds.unprepared.probe), targets.odds.unprepared));
+        it(`${s.profile}: tier ${tier.tier} hard expeditions, not prepared`, () => expectIn(median(odds.unprepared.probe), targets.odds.unprepared));
         it(`${s.profile}: tier ${tier.tier} boss, prepared`, () => expectIn(median(odds.boss.probe), targets.odds.boss));
         it(`${s.profile}: tier ${tier.tier} fight events and patrols, prepared`, () => expectIn(median(odds.events.probe), targets.odds.events));
       }

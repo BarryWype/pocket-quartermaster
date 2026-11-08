@@ -66,12 +66,13 @@ try {
 const cell = (value: number | null, range: [number, number]) =>
   value === null ? '—' : `${Math.round(value * 100)}% ${inRange(value, range) ? '✓' : '✗'}`;
 
-console.log('| tier | prepared | not prepared | gap | boss | events | patrols |');
-console.log('| --- | --- | --- | --- | --- | --- | --- |');
+console.log('| tier | prepared | hard prepared (fit team) | hard not prepared (fit team) | hard gap | boss | events | patrols |');
+console.log('| --- | --- | --- | --- | --- | --- | --- | --- |');
 for (const tier of tiers) {
-  const gap = tier.prepared !== null && tier.notPrepared !== null ? `${Math.round((tier.prepared - tier.notPrepared) * 100)} pts` : '—';
+  const { hard } = tier;
+  const gap = hard.prepared !== null && hard.skipped !== null ? `${Math.round((hard.prepared - hard.skipped) * 100)} pts` : '—';
   console.log(
-    `| ${tier.tier} | ${cell(tier.prepared, targets.odds.prepared)} | ${cell(tier.notPrepared, targets.odds.unprepared)} | ${gap} | ${cell(tier.boss, targets.odds.boss)} | ${cell(tier.events, targets.odds.events)} | ${cell(tier.patrols, targets.odds.events)} |`,
+    `| ${tier.tier} | ${cell(tier.prepared, targets.odds.prepared)} | ${cell(hard.prepared, difficultyRules.oddsTargets.hard.end)} | ${cell(hard.skipped, targets.odds.unprepared)} | ${gap} | ${cell(tier.boss, targets.odds.boss)} | ${cell(tier.events, targets.odds.events)} | ${cell(tier.patrols, targets.odds.events)} |`,
   );
 }
 const kinds = Object.keys(tiers[0].byKind);

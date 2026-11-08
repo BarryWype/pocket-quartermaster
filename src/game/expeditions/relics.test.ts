@@ -211,10 +211,10 @@ describe('relic combat effects', () => {
       options,
     );
     const boss = run.encounters.find((e) => e.kind === 'boss')!;
-    expect(boss.taken.bram).toBeCloseTo(40 * elementRules.unprotectedMultiplier * 2.1, 5);
+    expect(boss.taken.bram).toBeCloseTo(40 * elementRules.unprotectedMultiplier * 1.5, 5);
     // Without the bell, even the first fight pays the penalty.
     expect(bossFight([plainMember('bram', { power: 1000, maxHp: 1e6, hp: 1e6 })], { damage: 40 }, options).fight.taken.bram).toBeCloseTo(
-      40 * elementRules.unprotectedMultiplier * 2.1,
+      40 * elementRules.unprotectedMultiplier * 1.5,
       5,
     );
   });

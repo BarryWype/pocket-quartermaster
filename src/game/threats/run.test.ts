@@ -421,10 +421,12 @@ describe('patrol threats', () => {
     const party = prepareParty(save, ['bram']);
     const { spawn } = findSpawn((s) => s.kind === 'herd');
     const dungeon = patrolDungeon(spawn, 1, true);
-    const withThreat = simulateRun(party, dungeon, 's', patrolRunOptions(spawn));
-    const without = simulateRun(party, dungeon, 's', { rules: { ...expeditionRules, mishapChance: 0 } });
-    expect(withThreat.threats[0]).toMatchObject({ threat: { id: 'beasts' }, state: 'half' });
-    expect(withThreat.encounters[0].taken.bram).toBeGreaterThan(without.encounters[0].taken.bram);
+    const seeds = Array.from({ length: 20 }, (_, i) => `s${i}`);
+    const withThreat = seeds.map((seed) => simulateRun(party, dungeon, seed, patrolRunOptions(spawn)));
+    const without = seeds.map((seed) => simulateRun(party, dungeon, seed, { rules: { ...expeditionRules, mishapChance: 0 } }));
+    const taken = (runs: typeof without) => runs.reduce((sum, run) => sum + (run.encounters[0].taken.bram ?? 0), 0);
+    expect(withThreat[0].threats[0]).toMatchObject({ threat: { id: 'beasts' }, state: 'half' });
+    expect(taken(withThreat)).toBeGreaterThan(taken(without));
   });
 });
 

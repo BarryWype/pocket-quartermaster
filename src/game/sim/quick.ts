@@ -12,12 +12,12 @@ import { placeFightBriefing, placeFightDungeon } from '../places/fights';
 import { PATROL_KINDS, patrolsAround } from '../patrols/generate';
 import { patrolOdds } from '../patrols/fight';
 import { createInitialSave, type SaveData } from '../save';
-import { averagePiece, withSpares } from './reference';
+import { averagePiece, referenceSave, withSpares } from './reference';
 import { dressParty } from '../families/dress';
 import { equip } from '../team/team';
 import { highestTier, withLoadout } from './bot';
 import { expectedLevels, simConfig, type SimConfig } from './config';
-import { difficultyOdds as tierDifficultyOdds, type DifficultyOdds } from './difficultyOdds';
+import { prepared as preparedFor, difficultyOdds as tierDifficultyOdds, type DifficultyOdds } from './difficultyOdds';
 import { fillPotions } from './rules/loadout';
 
 const DAY = 86_400_000;
@@ -28,8 +28,13 @@ export type QuickTier = {
   tier: number;
   /** Open normal dungeons, prepared: dressed for the briefing (threat families, then a playstyle), weakness item, potions. */
   prepared: number | null;
-  /** The same dungeons with the briefing skipped: gear as worn, potions only. */
-  notPrepared: number | null;
+  /**
+   * The tier's hard dungeons for the team `sim:fit` fits them with (the tier's
+   * end): prepared, and with the briefing skipped (dressed for its playstyle
+   * only). The not-prepared target is for hard dungeons: easy and medium ones
+   * are fitted to be won with the briefing skipped.
+   */
+  hard: { prepared: number | null; skipped: number | null };
   /** The tier boss, prepared. */
   boss: number | null;
   /** Fight events around, prepared. */
@@ -40,7 +45,7 @@ export type QuickTier = {
   byKind: Record<string, number | null>;
   /** The mean odds of the tier's sources per difficulty (see difficultyOdds.ts). */
   difficulty: DifficultyOdds;
-  /** Samples behind each mean (`notPrepared` counts as `normal`). */
+  /** Samples behind each mean. */
   samples: { normal: number; boss: number; events: number; patrols: number };
 };
 
@@ -92,8 +97,12 @@ export function quickProbe(config: SimConfig = simConfig): QuickTier[] {
   return [1, 2, 3, 4, 5].map((tier) => {
     const save = quickSave(tier);
     const ids = save.heroes.map((h) => h.id);
+    const reference = referenceSave(tier, 'end', 3);
+    const referenceIds = reference.heroes.map((h) => h.id);
+    const natural = dressParty(reference, referenceIds, EMPTY_BRIEFING);
     const prepared: number[] = [];
-    const plain: number[] = [];
+    const hardPrepared: number[] = [];
+    const hardSkipped: number[] = [];
     const boss: number[] = [];
     const events: number[] = [];
     const patrols: number[] = [];
@@ -105,7 +114,12 @@ export function quickProbe(config: SimConfig = simConfig): QuickTier[] {
       for (const dungeon of dungeons.filter((d) => d.tier === tier && !d.isBoss && !d.overnight && isDungeonAvailable(save, d, rotation))) {
         const briefing = briefingFor(rotation, dungeon);
         prepared.push(estimateOdds(withLoadout(dressParty(save, ids, briefing), ids, dungeon, briefing), ids, dungeon, runs, { now: t, briefing }).success);
-        plain.push(estimateOdds(withLoadout(save, ids, dungeon, EMPTY_BRIEFING), ids, dungeon, runs, { now: t, briefing }).success);
+      }
+
+      for (const dungeon of dungeons.filter((d) => d.tier === tier && d.difficulty === 'hard' && !d.isBoss && !d.overnight)) {
+        const briefing = briefingFor(rotation, dungeon);
+        hardPrepared.push(estimateOdds(preparedFor(reference, referenceIds, dungeon, briefing), referenceIds, dungeon, runs, { now: t, briefing }).success);
+        hardSkipped.push(estimateOdds(natural, referenceIds, dungeon, runs, { now: t, briefing }).success);
       }
 
       const bossDungeon = dungeons.find((d) => d.tier === tier && d.isBoss && !d.overnight);
@@ -137,7 +151,7 @@ export function quickProbe(config: SimConfig = simConfig): QuickTier[] {
     return {
       tier,
       prepared: mean(prepared),
-      notPrepared: mean(plain),
+      hard: { prepared: mean(hardPrepared), skipped: mean(hardSkipped) },
       boss: mean(boss),
       events: mean(events),
       patrols: mean(patrols),

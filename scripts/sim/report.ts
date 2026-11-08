@@ -225,8 +225,8 @@ function odds(s: ProfileSummary) {
     'Tier',
     `Prepared (${range(targets.odds.prepared, pct)})`,
     'Launched, won',
-    `Not prepared (${range(targets.odds.unprepared, pct)})`,
-    'Gap',
+    `Not prepared, hard (${range(targets.odds.unprepared, pct)})`,
+    'Hard gap',
     `Boss (${range(targets.odds.boss, pct)})`,
     'Boss runs, won',
     `Events and patrols (${range(targets.odds.events, pct)})`,
@@ -532,7 +532,7 @@ export function renderReport({ summaries, rules, settings, difficultyOdds, famil
     pace(summaries),
     '## Win odds per tier',
     '',
-    'Probe: after the day\u2019s last session every `probeEveryDays` days (and after the first session of a new tier and every session the tier boss is out), the best prepared party from the whole roster at full HP against every open normal dungeon of the tier, the tier boss, and the fight events and patrols around; "not prepared" is the briefing skipped: the strongest party picked as if there were no threats, with no consumables. Each probe cell reads "at the tier\u2019s first probe → at its last" (gear of the tier); the last is checked against the target. The column after each probe is what the bot actually launched.',
+    'Probe: after the day\u2019s last session every `probeEveryDays` days (and after the first session of a new tier and every session the tier boss is out), the best prepared party from the whole roster at full HP against every open normal dungeon of the tier, the tier boss, and the fight events and patrols around; "not prepared" is the briefing skipped: the strongest party picked as if there were no threats, with no consumables, over the hard dungeons only (easy and medium ones are fitted to be won that way), and the gap is the hard dungeons\u2019 prepared odds minus it. Each probe cell reads "at the tier\u2019s first probe → at its last" (gear of the tier); the last is checked against the target. The column after each probe is what the bot actually launched.',
     '',
   ];
   for (const s of summaries) out.push(`### ${s.profile}`, '', odds(s));

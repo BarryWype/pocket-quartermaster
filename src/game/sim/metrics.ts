@@ -1,6 +1,7 @@
 import { dungeons } from '@/content/dungeons';
 import { RARITIES, type Rarity } from '@/content/gear';
 import { heroClasses } from '@/content/heroes';
+import { dungeonById } from '@/content/lookup';
 import { items } from '@/content/items';
 import { jobs as jobList } from '@/content/jobs';
 import { lootConfig } from '@/content/loot/config';
@@ -267,7 +268,9 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
     ...log.places.filter((p) => p.tier === tier && p.won !== null && p.kind !== 'thievesGuild').map((p) => ({ won: !!p.won })),
     ...log.patrols.fights.filter((f) => f.tier === tier).map((f) => ({ won: f.won })),
   ]);
-  const gap = snapshot((p) => p.kind === 'normal', (p) => (p.unprepared === null ? null : p.prepared - p.unprepared), true);
+  // The not-prepared target is for hard dungeons: easy and medium ones are fitted to be won with the briefing skipped.
+  const hard = (p: ProbeRow) => p.kind === 'normal' && dungeonById[p.id]?.difficulty === 'hard';
+  const gap = snapshot(hard, (p) => (p.unprepared === null ? null : p.prepared - p.unprepared), true);
 
   // Each patrol and fight event kind's own probe line and fight record.
   const kinds: KindOdds[] = ([...PATROL_KINDS, ...(Object.keys(placeFightRules.kinds) as (keyof typeof placeFightRules.kinds)[])] as string[]).map(
@@ -503,7 +506,7 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
     days,
     odds: {
       prepared: { ...line((p) => p.kind === 'normal', (p) => p.prepared), actual: rate(normalRuns), runs: normalRuns.length, target: t.odds.prepared },
-      unprepared: { ...line((p) => p.kind === 'normal', (p) => p.unprepared), actual: null, runs: 0, target: t.odds.unprepared },
+      unprepared: { ...line(hard, (p) => p.unprepared), actual: null, runs: 0, target: t.odds.unprepared },
       gap,
       boss: { ...line((p) => p.kind === 'boss', (p) => p.prepared), actual: rate(bossRuns), runs: bossRuns.length, target: t.odds.boss },
       events: {
@@ -679,7 +682,7 @@ export function misses(summaries: ProfileSummary[]): { what: string; value: numb
     for (const tier of s.tiers) {
       check(`${s.profile}: tier ${tier.tier} days`, tier.days.median, defaultTargets.daysPerTier[s.profile]);
       check(`${s.profile}: tier ${tier.tier} prepared odds`, tier.odds.prepared.probe.median, tier.odds.prepared.target);
-      check(`${s.profile}: tier ${tier.tier} not prepared odds`, tier.odds.unprepared.probe.median, tier.odds.unprepared.target);
+      check(`${s.profile}: tier ${tier.tier} hard not prepared odds`, tier.odds.unprepared.probe.median, tier.odds.unprepared.target);
       check(`${s.profile}: tier ${tier.tier} boss odds`, tier.odds.boss.probe.median, tier.odds.boss.target);
       check(`${s.profile}: tier ${tier.tier} fight event and patrol odds`, tier.odds.events.probe.median, tier.odds.events.target);
     }
