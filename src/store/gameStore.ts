@@ -17,6 +17,8 @@ import { restoreRelic } from '@/game/forging/relics';
 import { salvage } from '@/game/forging/salvage';
 import { convertShards, shardId, stoneId, type Element } from '@/game/elements';
 import { fastForward, resolveExpedition, startExpedition, type Loadout } from '@/game/expeditions/expeditions';
+import { dressWith } from '@/game/expeditions/party';
+import type { GearSwap } from '@/game/threats/suggest';
 import { markWalksSeen, processWalkPath, recordWalk, type WalkFix, type WalkOptions, type WalkPatrols, type WalkSummary } from '@/game/gathering/autoGather';
 import { collectSpawn, localDayKey, type CollectResult, type Gatherer } from '@/game/gathering/gathering';
 import { endWalkEffect, startWalkEffect } from '@/game/gathering/walkEffects';
@@ -121,6 +123,8 @@ type GameState = {
   reroll: (gearUid: string) => void;
   /** Pass null to empty the slot. */
   equip: (heroId: string, slot: EquipmentSlot, id: string | null) => void;
+  /** Puts on a suggested party's gear swaps (those that still fit). */
+  dress: (swaps: GearSwap[]) => void;
   dismissHero: (heroId: string) => void;
   /** Classes shown to the player (tavern or traveller offers) count as met. */
   seeClasses: (classIds: HeroClassId[]) => void;
@@ -392,6 +396,11 @@ export const useGameStore = create<GameState>()(
           return {
             save: advanceTutorial(id ? equip(settled, heroId, slot, id) : unequip(settled, heroId, slot)),
           };
+        }),
+      dress: (swaps) =>
+        set(({ save }) => {
+          const at = Date.now();
+          return { save: dressWith(settleJobs(settleHp(save, at), at), swaps) };
         }),
       // Notifications follow the save: see `useNotifications`.
       dismissHero: (heroId) => set(({ save }) => ({ save: dismissHero(save, heroId) })),

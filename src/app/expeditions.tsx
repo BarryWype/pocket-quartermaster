@@ -4,12 +4,12 @@ import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import PagerView from 'react-native-pager-view';
 
 import { Countdown, countdownText } from '@/components/Countdown';
+import { ExpeditionDialog } from '@/components/ExpeditionDialog';
 import { GameIcon } from '@/components/GameIcon';
 import { LootReveal } from '@/components/LootReveal';
 import { OvernightCard } from '@/components/OvernightCard';
 import { PlaceNotice } from '@/components/PlaceNotice';
 import { ReportCard } from '@/components/ReportCard';
-import { SendDialog } from '@/components/SendDialog';
 import { Text } from '@/components/Text';
 import { TutorialHint } from '@/components/TutorialHint';
 import { IconLabel, RewardLabel, splitLeadingEmoji } from '@/components/IconLabel';
@@ -39,7 +39,6 @@ import { jobs } from '@/content/jobs';
 import { isRevealed } from '@/game/reveal/reveal';
 import { supplyHeld } from '@/game/expeditions/provisions';
 import { briefingReadiness } from '@/game/threats/readiness';
-import { suggestParty } from '@/game/threats/suggest';
 import type { ExpeditionReport, HeroState } from '@/game/types';
 import { syncBackground } from '@/hooks/useAutoGather';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -237,12 +236,6 @@ function ExpeditionsContent() {
   );
 
   const confirmingDungeon = [...open, ...overnight].find((d) => d.id === confirming);
-  const confirmingParty = useMemo(
-    () => (confirmingDungeon ? suggestParty(save, briefingOf(save, confirmingDungeon, rotation, now)).heroIds : []),
-    // Picked once when the dialog opens.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [confirmingDungeon],
-  );
 
   const lowSupply = save.tutorial.step === 'done' && !save.cookingHintSeen && supplyHeld(save.consumables) < provisionRules.lowStockPoints;
   const readyBanner = t('expeditions.readyBanner', { count: ready.length });
@@ -408,17 +401,14 @@ function ExpeditionsContent() {
       </View>
 
       {confirmingDungeon && (
-        <SendDialog
-          save={save}
+        <ExpeditionDialog
           dungeon={confirmingDungeon}
-          party={confirmingParty}
           durationScale={durationScale}
           now={now}
           onClose={() => setConfirming(null)}
-          onSwap={() => {}}
-          onConfirm={(loadout) => {
+          onSend={(party, loadout) => {
             setConfirming(null);
-            send(confirmingDungeon.id, confirmingParty, loadout);
+            send(confirmingDungeon.id, party, loadout);
           }}
         />
       )}

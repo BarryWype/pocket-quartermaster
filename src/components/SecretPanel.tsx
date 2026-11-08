@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { rosterRules } from '@/content/roster';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { heroClasses } from '@/content/heroes';
 import { gearName, itemById } from '@/content/lookup';
@@ -24,26 +23,23 @@ import {
   type MarketLine,
   type SecretProblem,
 } from '@/game/secrets/places';
-import { isExhausted } from '@/game/team/health';
-import { isAway } from '@/game/team/team';
 import { formatDistance, formatDuration, formatPercent, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
-import { colors, pixel } from '@/theme';
+import { colors } from '@/theme';
 
 import { ClassSummary } from './ClassSummary';
 import { EnemyTags } from './EnemyTags';
 import { Price } from './Price';
-import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
 import { EmberButton, WoodButton } from './ui';
 import { RecruitGrade } from './RecruitGrade';
-import { SendDialog } from './SendDialog';
+import { ExpeditionDialog } from './ExpeditionDialog';
 import { SpecialLabel } from './SpecialLabel';
 import { Text } from './Text';
 import { ThreatChip } from './ThreatChip';
 import { IconLabel, PartsLine, type LabelPart } from './IconLabel';
-import { includesWorking, recallWorkingHeroes } from './workingHeroes';
+import { recallWorkingHeroes } from './workingHeroes';
 
 const problemText = (problem: SecretProblem, distance: number, cap: number): string => {
   switch (problem) {
@@ -83,8 +79,6 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
   const far = distance > placeRules.interactionMeters;
   const entered = isEntered(save, place);
   const underwater = place.kind === 'underwaterDungeon';
-  const candidates = save.heroes.filter((hero) => !isAway(save, hero.id) && !isExhausted(hero, now));
-  const [heroIds, setHeroIds] = useState<string[]>(() => candidates.slice(0, rosterRules.partySize).map((hero) => hero.id));
   const [confirming, setConfirming] = useState(false);
   const offer = !underwater && entered ? secretRecruit(save, place) : null;
   const offeredClass = offer?.classId;
@@ -99,9 +93,6 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
   ) : (
     <Text style={styles.locked}>{t('secrets.noKey', { dots: keyDots(save) })}</Text>
   );
-
-  const toggle = (heroId: string) =>
-    setHeroIds((ids) => (ids.includes(heroId) ? ids.filter((id) => id !== heroId) : ids.length < rosterRules.partySize ? [...ids, heroId] : ids));
 
   const underwaterBody = () => {
     const dungeon = underwaterDungeonFor(save);
@@ -130,41 +121,20 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
         {dungeonFoes(dungeon).map((mob) => (
           <EnemyTags key={mob.id} mob={mob} />
         ))}
-        <Text style={styles.subtitle}>{t('sanctum.heroes')}</Text>
-        <View style={styles.chips}>
-          {candidates.map((hero) => (
-            <Pressable key={hero.id} onPress={() => toggle(hero.id)} style={[styles.chip, heroIds.includes(hero.id) && styles.chipActive]}>
-              <GameIcon emoji={heroClasses[hero.classId].emoji} icon={heroClasses[hero.classId].icon} size={20} />
-              <Text>
-                {hero.name}
-                {hero.job ? ` · ${t('jobs.working')}` : ''}
-              </Text>
-              <SpecialLabel classId={hero.classId} special={hero.special} short />
-            </Pressable>
-          ))}
-        </View>
         {problem && problem !== 'noKey' && <Text style={styles.problem}>{problemText(problem, distance, rosterCap(save))}</Text>}
-        <WoodButton
-          title={includesWorking(save, heroIds) ? t('jobs.recallAndSend') : t('secrets.launch')}
-          compact
-          disabled={problem !== null || heroIds.length === 0}
-          onPress={() => setConfirming(true)}
-        />
+        <WoodButton title={t('secrets.launch')} compact disabled={problem !== null} onPress={() => setConfirming(true)} />
         {confirming && (
-          <SendDialog
-            save={save}
+          <ExpeditionDialog
             dungeon={dungeon}
-            party={heroIds}
             now={now}
             durationScale={1}
             briefing={briefing}
             onClose={() => setConfirming(false)}
-            onSwap={(out, into) => setHeroIds(heroIds.map((id) => (id === out ? into : id)))}
-            onConfirm={(loadout) => {
+            onSend={(party, loadout) => {
               setConfirming(false);
               // The pure launch rule refuses working heroes: recall them first, in the same tap.
-              recallWorkingHeroes(heroIds);
-              launch(place, heroIds, player, loadout);
+              recallWorkingHeroes(party);
+              launch(place, party, player, loadout);
               onClose();
             }}
           />
@@ -270,8 +240,5 @@ const styles = StyleSheet.create({
   price: { fontSize: 21 },
   actions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   goldRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: pixel.outline, borderColor: colors.woodDark, paddingHorizontal: 10, paddingVertical: 6 },
-  chipActive: { borderColor: colors.ink, backgroundColor: colors.highlight },
   problem: { color: colors.muted, fontStyle: 'italic' },
 });
