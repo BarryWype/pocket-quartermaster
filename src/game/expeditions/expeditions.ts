@@ -6,7 +6,7 @@ import { lootConfig } from '@/content/loot/config';
 import { MATERIAL_TIERS } from '@/content/items';
 import { heroNames, rosterRules } from '@/content/roster';
 import { recipes } from '@/content/recipes';
-import { narrowPartySize } from '@/content/threats';
+import { narrowPartySize, threatRules } from '@/content/threats';
 import { traitById, traits } from '@/content/traits';
 import { travellerRules } from '@/content/patrols';
 import { tutorialRules } from '@/content/tutorial';
@@ -152,10 +152,16 @@ export const runProvisions = (hunger: Hunger, loadout: Loadout = {}, briefing: B
 /** Whether a patrol is out right now: only one overnight expedition runs at a time. */
 export const overnightUnderWay = (save: SaveData) => save.expeditions.some((e) => dungeonById[e.dungeonId]?.overnight);
 
-/** The briefing an expedition sets out with: the rotation's, else the day's composed one; the tutorial's own while it runs. */
+/**
+ * The briefing an expedition sets out with: the rotation's, else the day's
+ * composed one; the tutorial's own while it runs; and during the safe start
+ * (the first expeditions after the tutorial's) the same without its threats
+ * and restriction.
+ */
 export function briefingOf(save: SaveData, dungeon: DungeonDef, rotation: Rotation | undefined, now: number): Briefing {
   if (isTutorialDungeon(dungeon.id) && save.tutorial.step !== 'done') return tutorialRules.briefing;
-  return rotation ? briefingFor(rotation, dungeon) : composeBriefing(dungeon, rotationDay(now));
+  const briefing = rotation ? briefingFor(rotation, dungeon) : composeBriefing(dungeon, rotationDay(now));
+  return save.stats.expeditionsLaunched < threatRules.safeStartExpeditions ? { ...briefing, threats: [], restriction: null } : briefing;
 }
 
 function expeditionBriefing(save: SaveData, dungeon: DungeonDef, rotation: Rotation | undefined, now: number): Briefing {
@@ -236,6 +242,8 @@ export function startExpedition(
     // The escort hero set out with the player instead: the background task stands down.
     escort: save.escort && heroIds.includes(save.escort.heroId) ? null : save.escort,
     nextUid: save.nextUid + 1,
+    // The tutorial's guaranteed run is not part of the safe start's count.
+    stats: expedition.guaranteed ? save.stats : { ...save.stats, expeditionsLaunched: save.stats.expeditionsLaunched + 1 },
   };
   // An opted-in Sealed vault costs its mysterious key at launch.
   if (loadout.optIn && run.opportunity && opportunityById[run.opportunity].cost?.key) next = spendKey(next);

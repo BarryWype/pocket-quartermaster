@@ -131,8 +131,8 @@ export type SaveData = {
   usedSanctums: Record<string, number>;
   /** Tavern offer id → when the offers refresh; recruited offers stay gone until then. */
   takenOffers: Record<string, number>;
-  /** Lifetime counters the gradual reveal reads; never pruned. */
-  stats: { patrolsWon: number; questsDone: number };
+  /** Lifetime counters the gradual reveal and the safe start read; never pruned. `expeditionsLaunched` leaves out the tutorial's. */
+  stats: { patrolsWon: number; questsDone: number; expeditionsLaunched: number };
   /** Tips already closed, and tips waiting to show, oldest first. */
   tips: { seen: TipId[]; pending: TipId[] };
   /** The cooking tip (shown when supply first runs low) was closed. */
@@ -238,7 +238,7 @@ export function createInitialSave(playerSeed?: string): SaveData {
     walkEffects: [],
     usedSanctums: {},
     takenOffers: {},
-    stats: { patrolsWon: 0, questsDone: 0 },
+    stats: { patrolsWon: 0, questsDone: 0, expeditionsLaunched: 0 },
     tips: { seen: [], pending: [] },
     cookingHintSeen: false,
     guild: {},

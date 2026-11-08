@@ -21,6 +21,8 @@ function team(tier: number, level: number): SaveData {
   let save: SaveData = {
     ...createInitialSave(),
     tutorial: { ...createInitialSave().tutorial, step: 'done' },
+    // Past the safe start, so briefings keep their threats.
+    stats: { ...createInitialSave().stats, expeditionsLaunched: 2 },
     // Every chain's boss and its predecessor cleared, so any dungeon can be started.
     clearedDungeons: dungeons.filter((d) => d.isBoss || d.chainIndex === 5).map((d) => d.id),
     heroes: createInitialSave().heroes.map((h) => ({ ...h, level })),

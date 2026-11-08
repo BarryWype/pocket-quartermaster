@@ -130,7 +130,8 @@ describe('briefingFor', () => {
 });
 
 describe('availability', () => {
-  const done = (save: SaveData): SaveData => ({ ...save, tutorial: { ...createInitialSave().tutorial, step: 'done' } });
+  // Tutorial done and past the safe start, so briefings keep their threats.
+  const done = (save: SaveData): SaveData => ({ ...save, tutorial: { ...createInitialSave().tutorial, step: 'done' }, stats: { ...save.stats, expeditionsLaunched: 2 } });
 
   it('opens every unlocked dungeon every day, and locks the chain behind clears', () => {
     const save = done(createInitialSave());

@@ -433,6 +433,8 @@ function geared(consumables: Record<string, number> = {}): SaveData {
   let save: SaveData = {
     ...createInitialSave(),
     tutorial: { ...createInitialSave().tutorial, step: 'done' },
+    // Past the safe start, so briefings keep their threats.
+    stats: { ...createInitialSave().stats, expeditionsLaunched: 2 },
     consumables: { ...createInitialSave().consumables, trailMix: 30, ...consumables },
     heroes: createInitialSave().heroes.map((h) => ({ ...h, level: 30 })),
     gear: [
@@ -453,6 +455,8 @@ function rallySave(): SaveData {
   let save: SaveData = {
     ...createInitialSave(),
     tutorial: { ...createInitialSave().tutorial, step: 'done' },
+    // Past the safe start, so briefings keep their threats.
+    stats: { ...createInitialSave().stats, expeditionsLaunched: 2 },
     consumables: { ...createInitialSave().consumables, trailMix: 30 },
     heroes: [
       newHero('bram', 'Bram', 'troubadour', 'none', 30),
@@ -471,6 +475,8 @@ function watchSave(): SaveData {
   let save: SaveData = {
     ...createInitialSave(),
     tutorial: { ...createInitialSave().tutorial, step: 'done' },
+    // Past the safe start, so briefings keep their threats.
+    stats: { ...createInitialSave().stats, expeditionsLaunched: 2 },
     consumables: { ...createInitialSave().consumables, trailMix: 30 },
     heroes: [
       newHero('bram', 'Bram', 'scout', 'none', 30),

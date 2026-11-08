@@ -109,6 +109,8 @@ export const threatDefs: ThreatDef[] = [
 ];
 
 export const threatRules = {
+  /** A new player's first expeditions (after the tutorial's) face no threats and no restriction: a safe start. */
+  safeStartExpeditions: 2,
   /** A half penalty is this share of the full one. */
   halfShare: 0.5,
   /** Salvage of an item with no recipe: this much gold. */

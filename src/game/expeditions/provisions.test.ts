@@ -66,7 +66,7 @@ function ready(consumables: Record<string, number> = createInitialSave().consuma
     ...createInitialSave(),
     tutorial: { ...createInitialSave().tutorial, step: 'done' },
     clearedDungeons: ['banditStockade', 'ogreQuarry'],
-    stats: { patrolsWon: 0, questsDone: 1 },
+    stats: { patrolsWon: 0, questsDone: 1, expeditionsLaunched: 0 },
     heroes: createInitialSave().heroes.map((h) => ({ ...h, level: 5 })),
     consumables,
     gear: [
@@ -158,7 +158,7 @@ describe('supply', () => {
     const bought = buySupply(save, 2, tavern, tavern);
     expect(bought.consumables.jerky).toBe(2);
     expect(bought.gold).toBe(100 - 2 * supplyPrice(save));
-    expect(buySupplyProblem({ ...save, stats: { patrolsWon: 0, questsDone: 0 } }, 1, tavern, tavern)).toBe('locked');
+    expect(buySupplyProblem({ ...save, stats: { patrolsWon: 0, questsDone: 0, expeditionsLaunched: 0 } }, 1, tavern, tavern)).toBe('locked');
     expect(buySupplyProblem(save, 1, tavern, { latitude: 1, longitude: 0 })).toBe('tooFar');
     expect(buySupplyProblem({ ...save, gold: 0 }, 1, tavern, tavern)).toBe('gold');
     expect(tavernRules.unlockedAfterQuests).toBe(1);

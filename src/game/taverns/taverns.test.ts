@@ -29,7 +29,7 @@ const now = Date.UTC(2026, 9, 26, 12);
 const unlocked = (extra: Partial<SaveData> = {}): SaveData => ({
   ...createInitialSave(),
   clearedDungeons: ['banditStockade'],
-  stats: { patrolsWon: 0, questsDone: 1 },
+  stats: { patrolsWon: 0, questsDone: 1, expeditionsLaunched: 0 },
   gold: 1000,
   ...extra,
 });

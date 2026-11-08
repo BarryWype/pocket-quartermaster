@@ -14,7 +14,7 @@ const base = { latitude: -41.2865, longitude: 174.7762 };
 
 const unlocked = (seed = 'seed-a', extra: Partial<SaveData> = {}): SaveData => {
   const save = createInitialSave(seed);
-  return { ...save, tutorial: { ...save.tutorial, step: 'done' }, stats: { patrolsWon: 0, questsDone: 1 }, ...extra };
+  return { ...save, tutorial: { ...save.tutorial, step: 'done' }, stats: { patrolsWon: 0, questsDone: 1, expeditionsLaunched: 0 }, ...extra };
 };
 
 const worldTavernNear = (origin: LatLng, at: number) =>
@@ -56,7 +56,7 @@ describe('the personal tavern guarantee', () => {
   });
 
   it('leaves locked or unrevealed saves untouched', () => {
-    const locked = unlocked('seed-a', { stats: { patrolsWon: 0, questsDone: 0 } });
+    const locked = unlocked('seed-a', { stats: { patrolsWon: 0, questsDone: 0, expeditionsLaunched: 0 } });
     expect(checkPersonalTavern(locked, farOrigin, now, (p) => p)).toBe(locked);
     const fresh = createInitialSave('seed-a');
     const unrevealed = unlocked('seed-a', { tutorial: { ...fresh.tutorial, step: 'gatherWood' } });

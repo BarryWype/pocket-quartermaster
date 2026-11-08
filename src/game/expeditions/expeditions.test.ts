@@ -6,11 +6,13 @@ import { lootConfig } from '@/content/loot/config';
 import { tutorialRules } from '@/content/tutorial';
 
 import { rotationDay } from '../dungeons/rotation';
+import { composeBriefing } from '../threats/compose';
 import { forgedItem } from '../crafting/crafting';
 import { createInitialSave, type SaveData } from '../save';
 import { healAll } from '../team/health';
 import { equip } from '../team/team';
 import {
+  briefingOf,
   expeditionMinutes,
   fastForward,
   firstWinAvailable,
@@ -119,6 +121,22 @@ describe('startExpedition', () => {
     const save = startExpedition(allTiers(createInitialSave()), 'goblinWarren', ['bram'], 0);
     expect(() => startExpedition(save, 'goblinWarren', ['bram', 'lyra'], 0)).toThrow();
     expect(() => startExpedition(save, 'goblinWarren', [], 0)).toThrow();
+  });
+
+  it('gives the first two expeditions after the tutorial no threats, and the third its own', () => {
+    const dungeon = dungeonById.goblinWarren;
+    const composed = composeBriefing(dungeon, rotationDay(0));
+    expect(composed.threats.length).toBeGreaterThan(0);
+    let save = allTiers(createInitialSave());
+    for (const heroId of ['bram', 'lyra']) {
+      expect(briefingOf(save, dungeon, undefined, 0).threats).toEqual([]);
+      save = startExpedition(save, dungeon.id, [heroId], 0);
+      expect(save.expeditions.at(-1)!.briefing!.threats).toEqual([]);
+    }
+    expect(save.stats.expeditionsLaunched).toBe(2);
+    expect(briefingOf(save, dungeon, undefined, 0)).toEqual(composed);
+    save = startExpedition(save, dungeon.id, ['mira'], 0);
+    expect(save.expeditions.at(-1)!.briefing).toEqual(composed);
   });
 
   it('stands the escort down when its hero is sent', () => {
