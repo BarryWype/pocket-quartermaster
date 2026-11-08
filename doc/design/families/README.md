@@ -26,6 +26,30 @@ Threats must never be gated behind finding the right hero. Gear is the flexible 
 - **Kits stay gone.** If gaps remain, the fallback is a family charm in the trinket slot (+1 tag, costs the trinket's stats); not built now.
 - **Built (step 9):** starting blueprints sword, mail (Faith), spear (Wild, Watch), lute (Cunning), flasks (Venom), focus (Warding) and knuckles (Breaker); Druid and Scholar join the tier-1 pool; Thick fog is gone and Anti-magic no longer drops tags. Venom and Cunning sit only on weapons, so Poison plus a surged Traps 3 needed 4 weapon tags from 3 heroes: Traps left the Barrow mounds' and Sunken ford's tables.
 
+## Helmets (2026-11-08)
+A fourth gear slot, ordinary gear like armour: each **helmet type carries one family tag**, with stats, affixes and class affinities (favoured, usable, unfit; heavy helms unfit for casters). It is **not** a threat slot: armour and helmets together simply make sure every threat family can be worn outside the weapon and off-hand slots.
+
+| Helmet | Weight | Family | Answers |
+|---|---|---|---|
+| Great helm | heavy | Breaker | Armoured |
+| Sentry's sallet | medium | Watch | Darkness |
+| Hood | light | Cunning | Traps |
+| Plague mask | light | Venom | Poison |
+| Rune circlet | cloth | Warding | Element |
+
+With mail (Faith) and leather (Wild), armour and helmets cover all seven threat families, so three heroes can wear six threat tags without touching weapons or off-hands: enough for any tier 1–2 briefing. **Weapons are many and their blueprints random; armour and helmets are few, so all four armour types and all five helmet types are starting blueprints at tier 1, cheap.** A new player can forge an answer to any threat from day 1.
+
+- **Cap:** some classes reach 4 tags of their own family with a matching helmet (Scholar or Scout with a sallet, Frost mage or Curse-breaker with a circlet, Thief with a hood, Alchemist with a mask). The cap test allows 4 until the thresholds are raised in the balance pass.
+- **Class portraits** use six helmet icons; those stay portraits only, so a hero and their helmet never look alike.
+- **Affixes:** a helmet pool still to design (draft direction: the "mind" slot: specials, crits, initiative, status resistance, knowledge; one helmet affix per monster part).
+- **Balance later:** a fourth piece adds stats and up to 3 tags per party; thresholds can go to 3/6/9.
+
+## A safe start (2026-11-08)
+New players must not get stuck failing threats they can't answer yet:
+- **The first two expeditions have no threats** (both easy).
+- **The board always shows at least one READY place** at tiers 1 and 2; if the roll would leave none, one notice is rerolled.
+- **A lost expedition still pays** some XP and monster parts.
+
 ## Expedition screens (2026-11-08)
 Mockup: `doc/design/expeditions/` (the design canvas boards). The list shows no heroes and no odds: each place is a pinned notice with its needs as gem sockets and a readiness stamp (Ready, Needs gear, No <family>). Picking a place opens the party dialog: needs and party families at the top, three hero plates with their gear slots (each with its family gem), odds only once a hero is in, refreshed on every hero or gear change. Gear changes made there are permanent. Pickers sort what covers a need first (▲) and show the odds after each choice. A Suggest button fills heroes and gear. The same dialog serves patrols, place fights and Sanctums.
 

@@ -50,6 +50,7 @@ Direction: the game stays a walking game with short, dense check-ins at home (di
 - Sigil and elemental stone surplus (the simulator showed far too many Sanctum attempts).
 - Global trade between players.
 - Fishing mini game (see below).
+- **Boots** (2026-11-08): a fifth gear slot for walking and travel: speed and evasion, and the home of the walking affixes (Forager's, Wanderer's, Pocket). No family tag. About 40 boot icons are already in the assets. Comes after helmets, possibly with the village or a Pocket mode pass.
 - Battle plan: cards (hero specials, gear cards, battle consumables) placed on a run's fights before sending, unplaced ones kept for the boss; mockup PlanWood in the UI canvas. Felt clunky, especially for patrols.
 - Reputation and affiliations: towns and organisations, each shop and mission tied to one; filling orders and missions raises standing (better prices, rarer stock).
 - Enemy tags beyond loot: elite components by tag (a drake fang from any dragon elite), and threat dungeons whose enemies match the threat (a Casters threat dungeon holds caster-tagged enemies).

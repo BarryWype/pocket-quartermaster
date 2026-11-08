@@ -26,5 +26,10 @@ offhandBlade,offhand,bloodrage,,1,
 ammunition,offhand,volley,,1,
 tome,offhand,watch,,1,knowledge and lore
 focus,offhand,warding,,1,
+greatHelm,helmet,breaker,,1,heavy; a battering helm
+sallet,helmet,watch,,1,medium; a sentry's helm
+hood,helmet,cunning,,1,light; a thief's hood
+plagueMask,helmet,venom,,1,light; the alchemist's mask
+runeCirclet,helmet,warding,,1,cloth; a warded circlet
 workTools,offhand,,,0,no tag
 trinkets,trinket,,,0,no tag (some rare or named trinkets may carry one later)
