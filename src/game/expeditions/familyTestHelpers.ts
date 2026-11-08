@@ -62,7 +62,8 @@ export type FamilyFight = { run: RunResult; fight: EncounterResult; party: Party
 
 /**
  * One fight of a party at a family level (0: no tags), with the boss alone or
- * a fight of `mobs` first; the fight looked at is the first one.
+ * a fight of `mobs` first; the fight looked at is the first one Watch 2 did
+ * not skip.
  */
 export function familyFight(family: FamilyId | null, level: number, setup: FightSetup = {}): FamilyFight {
   const count = level > 0 ? familyRules.levels[level - 1] : 0;
@@ -89,7 +90,8 @@ export function familyFight(family: FamilyId | null, level: number, setup: Fight
     boss,
   };
   const run = simulateRun(party, dungeon, setup.seed ?? 'seed', { rules: steady, ...setup.options });
-  const fight = run.encounters[0];
+  // The first encounter Watch 2 did not skip.
+  const fight = run.encounters.find((e) => logged(e, 'watch2') === 0) ?? run.encounters[0];
   const logOf = (locale: 'en' | 'fr') => {
     setLocale(locale);
     const lines = buildLog({ dungeon, party, run, gold: 0, recipeItemNames: [], salvaged: [] }, createRng('log'));

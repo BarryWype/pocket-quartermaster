@@ -48,7 +48,8 @@ describe('family turn order and first strikes', () => {
       (on, off) => expect(hitsTaken(on) / hitsTaken(off)).toBeCloseTo(3 / 6), 'volley1', 'a loosed before the enemy could close in.', 'a a tiré avant que l’ennemi ne puisse approcher.'],
     ['Volley 1: not without a ranged weapon', 'volley', 1, rats,
       (on, off) => expect(hitsTaken(on)).toBeCloseTo(hitsTaken(off)), 'volley1', null, null],
-    ['Watch 3: the party always acts first', 'watch', 3, rats,
+    // Two fights: Watch 2 skips one.
+    ['Watch 3: the party always acts first', 'watch', 3, { ...rats, fights: 2 },
       (on, off) => expect(hitsTaken(on) / hitsTaken(off)).toBeCloseTo(3 / 6), 'watch3', 'Nothing caught the Watch off guard: a struck first.', 'Rien n’a surpris la Vigie : a a frappé le premier coup.'],
     ['Shadow 3: the weakest enemy falls before it acts', 'shadow', 3, { mobs: [{ mobId: 'giantRat', count: 1 }, { mobId: 'ratSwarm', count: 1 }], party: { a: { power: 0.001, maxHp: 1e6 } }, options: noSecond },
       (on, off) => {
@@ -94,7 +95,7 @@ describe('family turn order and first strikes', () => {
   });
 
   test('Watch 3 adds no crit against a common fight', () => {
-    for (const { gain } of extra('watch', 3, { mobs: [{ mobId: 'ratSwarm', count: 1 }], party: { a: { power: 0.001 } }, options: noSecond })) {
+    for (const { gain } of extra('watch', 3, { mobs: [{ mobId: 'ratSwarm', count: 1 }], fights: 2, party: { a: { power: 0.001 } }, options: noSecond })) {
       expect(gain).toBeCloseTo(0);
     }
   });

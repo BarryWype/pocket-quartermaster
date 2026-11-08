@@ -118,10 +118,10 @@ export const familyEffectRules = {
   faith: { vsTags: ['undead', 'spirit'] as string[], damage: 1.1, healShare: 0.03, revivePct: 0.25 },
   /** Damage taken from these tags; after a won fight against them, the party's heal and the monster parts found (level 2). */
   wild: { fromTags: ['beast'] as string[], damageTaken: 0.9, healShare: 0.05, part: 'fangOrHorn', parts: 1 },
-  /** Trap wounds taken; the time a dungeon expedition saves (level 2); extra loot rolls from every hidden cache step, Hidden cache and Sealed vault (level 3). */
-  cunning: { trapTaken: 0.5, timeCut: 0.15, cacheRolls: 1 },
-  /** Speed added in round 1; crit chance added against elites. */
-  watch: { firstRoundSpeed: 3, eliteCrit: 0.1 },
+  /** The share of its max HP a random enemy loses to a trap as each fight starts; the time a dungeon expedition saves (level 2); extra loot rolls from every hidden cache step, Hidden cache and Sealed vault (level 3). */
+  cunning: { trapHit: 0.1, timeCut: 0.15, cacheRolls: 1 },
+  /** Speed added in round 1; regular fights skipped per run, the weakest first (level 2); crit chance added against elites. */
+  watch: { firstRoundSpeed: 3, skippedFights: 1, eliteCrit: 0.1 },
   /** Elemental hits taken are multiplied; a share of the elemental damage taken is reflected. */
   warding: { elementalTaken: 0.85, reflect: 0.2 },
   /** Shares of the enemy armour ignored, and shredded by the first hit of a fight. */
@@ -134,8 +134,8 @@ export const familyEffectRules = {
   shadow: { firstRoundCrit: 0.15, evasion: 6, counterShare: 0.3, strikeChance: 0.45 },
   /** The weapons that count as ranged, and the share of armour their hits ignore. */
   volley: { gearTypes: ['bow', 'crossbow', 'throwing'] as string[], armourIgnore: 0.2 },
-  /** Poison wounds taken after a fight; a Venomous poison's share of the hit, its rounds, the stacks an enemy carries (base, and with Venom 2); damage taken by poisoned enemies with Venom 3. */
-  venom: { woundsTaken: 0.5, dotShare: 0.3, dotRounds: 3, baseStacks: 1, maxStacks: 3, poisonedTaken: 1.2 },
+  /** The chance a hit poisons, on top of any Venomous affix; a Venomous poison's share of the hit, its rounds, the stacks an enemy carries (base, and with Venom 2); damage taken by poisoned enemies with Venom 3. */
+  venom: { poisonChance: 0.1, dotShare: 0.3, dotRounds: 3, baseStacks: 1, maxStacks: 3, poisonedTaken: 1.2 },
   /** Magic damage added each round of a fight, up to the max; an elemental hit's share that jumps to a second enemy; the scale on the wheel's advantage bonus. */
   spellweave: { perRound: 0.05, max: 0.25, chainShare: 0.3, advantageScale: 2 },
   /** Rounds added to a summon's; its damage; Pack 3's own summon: its share of the hero's hit, and its rounds (before Pack 1). */

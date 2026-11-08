@@ -1,6 +1,6 @@
 import { affixById, type AffixEffect } from '@/content/affixes';
 import { expeditionRules } from '@/content/dungeons';
-import { familyEffectRules, type FamilyEffectId } from '@/content/families';
+import { familyEffectRules, type FamilyEffectId, type FamilyId } from '@/content/families';
 import { mobById, TIER_SCALE } from '@/content/enemies';
 import { eventById } from '@/content/events';
 import { npcById } from '@/content/npcs';
@@ -772,6 +772,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     heroOf: (family) => alive().find((h) => h.member.familyTags.some((t) => t.family === family)) ?? alive()[0],
     alive,
     chance: (p) => p >= 1 || rng.chance(p),
+    pick: (items) => items[rng.int(0, items.length - 1)],
     heal: (hero, share) => {
       const before = hero.hp;
       heal(hero, share, result);
@@ -910,6 +911,11 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         strikeDown: (hero: HeroState, enemy: EnemyState) => {
           add(result.dealt, hero.member.heroId, Math.max(0, enemy.hp));
           enemy.hp = 0;
+        },
+        strike: (hero: HeroState, enemy: EnemyState, amount: number) => {
+          const dealt = Math.min(Math.max(0, enemy.hp), amount);
+          add(result.dealt, hero.member.heroId, dealt);
+          enemy.hp -= dealt;
         },
       };
       for (const hook of hooks.fightStart) hook(ctx);
@@ -1396,10 +1402,17 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           // A Bloodthirsty piece heals its wearer for every kill.
           const onKill = affixTotal(hero.member, 'healOnKill');
           if (onKill > 0 && target.hp <= 0) heal(hero, onKill / 100, result);
-          // A Venomous piece may poison the hit's target: a tenth of the hit, ticking for three rounds.
+          // A Venomous piece, or a family effect, may poison the hit's target: a share of the hit, ticking for three rounds.
           // An enemy carries at most a few Venomous poisons at a time: a proc past the cap refreshes the one closest to wearing off.
           const venom = affixTotal(hero.member, 'poisonOnHit');
-          if (venom > 0 && rng.chance(venom / 100)) {
+          let poisons = false;
+          if (venom > 0 || hooks.poisonChance.length > 0) {
+            const roll = { ...family, hero, target, roll: rng.next(), affixChance: venom / 100, poisons: false };
+            roll.poisons = roll.roll < roll.affixChance;
+            for (const hook of hooks.poisonChance) hook(roll);
+            poisons = roll.poisons;
+          }
+          if (poisons) {
             const stacks = ctx.dots.filter((d) => d.enemy === target && d.source === 'venomous');
             let cap = familyEffectRules.venom.baseStacks;
             if (hooks.poisonCap.length > 0) {
@@ -1843,13 +1856,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         );
         // An Antivenom affix makes the poison wear off faster on its wearer: a smaller share.
         const antivenom = 1 - affixTotal(hero.member, 'dotDuration') / 100;
-        let wounds = penalty.pct * hero.member.maxHp * (cut?.effect.multiplier ?? 1) * antivenom;
-        if (hooks.poisonWound.length > 0) {
-          const poisonWound = { ...familyBase(result), hero, damage: wounds };
-          for (const hook of hooks.poisonWound) hook(poisonWound);
-          wounds = poisonWound.damage;
-        }
-        hurt(hero, wounds, result);
+        hurt(hero, penalty.pct * hero.member.maxHp * (cut?.effect.multiplier ?? 1) * antivenom, result);
         if (cut) noteRelic(result, hero.member.heroId, cut.relicId);
       }
       result.effects.push({ heroId: null, key: 'poison' });
@@ -1990,13 +1997,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         const reduce = reducer?.ability.multiplier ?? 1;
         const caught = encounter.targets === 'all' ? alive() : [rng.weighted(alive(), () => 1)];
         for (const hero of caught) {
-          let raw = trapWounds * hero.member.maxHp * reduce * elementFactor(hero, encounter.element);
-          if (hooks.trapWound.length > 0) {
-            const wound = { ...familyBase(result), hero, damage: raw };
-            for (const hook of hooks.trapWound) hook(wound);
-            raw = wound.damage;
-          }
-          hurt(hero, raw, result);
+          hurt(hero, trapWounds * hero.member.maxHp * reduce * elementFactor(hero, encounter.element), result);
         }
       }
       result.cleared = alive().length > 0;
@@ -2035,6 +2036,20 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     if (entry && lastFree >= 0) steps[lastFree--] = entry;
   };
   guarantee('traps', 'trap');
+  /** Steps a family effect skips (Watch 2), with the effect to log on each. */
+  const skipped = new Map<number, { effect: FamilyEffectId; heroId: string | null }>();
+  if (hooks.runPlan.length > 0) {
+    // A fight's strength: its enemies' HP times their damage, summed.
+    const fights = steps.flatMap((step, index) =>
+      step.type === 'fight' ? [{ index, strength: expand(step.mobs).reduce((sum: number, mob: MobDef) => sum + mob.hp * mob.damage, 0) }] : [],
+    );
+    const plan = {
+      fights,
+      heroOf: (family: FamilyId) => heroes.find((h) => h.member.familyTags.some((t) => t.family === family)) ?? heroes[0],
+      skip: (index: number, effect: FamilyEffectId, heroId: string | null) => skipped.set(index, { effect, heroId }),
+    };
+    for (const hook of hooks.runPlan) hook(plan);
+  }
   const midpoint = Math.floor((encounterCount - 1) / 2);
   /** The midpoint opportunity's outcome, once the party reaches it. */
   let opportunity: RunOpportunity | null = null;
@@ -2046,6 +2061,14 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       break;
     }
     if (i < encounterCount - 1) {
+      const skip = skipped.get(i);
+      if (skip) {
+        const result = quietResult('');
+        result.effects.push({ heroId: skip.heroId, key: 'family', familyEffect: skip.effect });
+        encounters.push(result);
+        if (i === midpoint) opportunity = resolveOpportunity(result);
+        continue;
+      }
       const result = runEncounter(steps[i]);
       encounters.push(result);
       if (!result.cleared) break;

@@ -1,6 +1,7 @@
 import type { FamilyEffectId, FamilyId } from '@/content/families';
 
 import type { Briefing } from '../types';
+import { familyEffects } from './familyEffects';
 import { familyFight, logged, type FamilyFight, type FightSetup } from './familyTestHelpers';
 
 const taken = (f: FamilyFight) => f.fight.taken.a ?? 0;
@@ -25,18 +26,11 @@ describe('family control', () => {
       }, 'breaker2', 'a’s crushing blow left a foe reeling.', 'Le coup écrasant de a a laissé un ennemi chancelant.'],
     ['Breaker 2: no crit, no stagger', 'breaker', 2, { party: { a: sturdy } },
       (on, off) => expect(hits(on)).toBe(hits(off)), 'breaker2', null, null],
-    ['Watch 2 answers Darkness 3: never exposed, so no ambush to turn', 'watch', 2, { party: { a: sturdy }, options: { briefing: darkness } },
-      (on) => {
-        expect(on.fight.effects.some((e) => e.key === 'exposed')).toBe(false);
-        expect(hits(on)).toBe(on.fight.rounds);
-      }, 'watch2', null, null],
     ['Watch 1 is still ambushed', 'watch', 1, { party: { a: sturdy }, options: { briefing: darkness } },
       (on) => {
         expect(on.fight.effects.some((e) => e.key === 'exposed')).toBe(true);
         expect(hits(on)).toBe(on.fight.rounds);
       }, 'watch2', null, null],
-    ['Watch 2: nothing to turn without an ambush', 'watch', 2, { party: { a: sturdy } },
-      (on, off) => expect(hits(on)).toBe(hits(off)), 'watch2', null, null],
   ])('%s', (_name, family, level, setup, check, effect, en, fr) => {
     const on = familyFight(family, level, setup);
     const off = familyFight(null, 0, setup);
@@ -45,5 +39,37 @@ describe('family control', () => {
     if (en) expect(on.log).toContain(en);
     if (fr) expect(on.logFr).toContain(fr);
     expect(familyFight(family, level, setup).run).toEqual(on.run);
+  });
+
+  test('Watch 2: the scout finds a way round one fight of the run, quietly', () => {
+    const setup: FightSetup = { mobs: [{ mobId: 'giantRat', count: 3 }], fights: 3, party: { a: { power: 1000, maxHp: 1e6 } } };
+    const on = familyFight('watch', 2, setup);
+    const off = familyFight(null, 0, setup);
+    expect(off.run.encounters.map((e) => e.kind)).toEqual(['fight', 'fight', 'fight', 'boss']);
+    // Equal fights: the first is the weakest.
+    expect(on.run.encounters.map((e) => [e.kind, logged(e, 'watch2')])).toEqual([
+      ['quiet', 1],
+      ['fight', 0],
+      ['fight', 0],
+      ['boss', 0],
+    ]);
+    expect(on.run.encountersCleared).toBe(off.run.encountersCleared);
+    expect(on.log).toContain('A found a way round: the party slipped past this fight.');
+    expect(on.logFr).toContain('A a trouvé un détour : le groupe a évité ce combat.');
+  });
+
+  test('Watch 2 skips the weakest fight, the first of equals, and never the boss', () => {
+    const watch2 = familyEffects.find((e) => e.family === 'watch' && e.level === 2)!;
+    const skipped: number[] = [];
+    const plan = (fights: { index: number; strength: number }[]) => {
+      skipped.length = 0;
+      watch2.hooks.runPlan!({ fights, heroOf: () => undefined, skip: (index) => skipped.push(index) });
+      return [...skipped];
+    };
+    expect(plan([{ index: 0, strength: 50 }, { index: 2, strength: 10 }, { index: 3, strength: 30 }])).toEqual([2]);
+    expect(plan([{ index: 1, strength: 10 }, { index: 4, strength: 10 }])).toEqual([1]);
+    expect(plan([])).toEqual([]);
+    // A boss-only run has no fight to skip.
+    expect(familyFight('watch', 2, { party: { a: sturdy } }).run.encounters.map((e) => e.kind)).toEqual(['boss']);
   });
 });

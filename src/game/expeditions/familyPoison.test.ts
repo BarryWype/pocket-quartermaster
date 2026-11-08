@@ -1,15 +1,10 @@
 import { familyEffectRules as R, type FamilyEffectId, type FamilyId } from '@/content/families';
-import { threatRules } from '@/content/threats';
 
 import { familyFight, logged, steady, type FamilyFight, type FightSetup } from './familyTestHelpers';
 
 const power = 10;
-const taken = (f: FamilyFight) => f.fight.taken.a ?? 0;
-/** A poison threat at `level`, with a boss that never hurts back. */
-const poisoned = (level: 1 | 2 | 3): FightSetup => ({
-  boss: { damage: 0 },
-  options: { briefing: { threats: [{ id: 'poison', level }], restriction: null, opportunity: null } },
-});
+/** One hero without the Venomous affix, for `rounds` rounds. */
+const bare = (rounds: number): FightSetup => ({ boss: { damage: 0 }, options: { rules: { ...steady, maxRounds: rounds } } });
 /** Two Venomous heroes striking every round, for `rounds` rounds. */
 const pair = (rounds: number): FightSetup => ({
   boss: { damage: 0 },
@@ -27,19 +22,25 @@ const dealt = (f: FamilyFight) => f.fight.dealt.a + (f.fight.dealt.b ?? 0);
 type Case = [string, FamilyId | null, number, FightSetup, (on: FamilyFight, off: FamilyFight) => void, FamilyEffectId, string | null, string | null];
 
 describe('family poison', () => {
+  test('Venom 1 poisons about its chance of hits', () => {
+    const seeds = Array.from({ length: 300 }, (_, i) => `seed${i}`);
+    const share = seeds.filter((seed) => logged(familyFight('venom', 1, { ...bare(1), seed }).fight, 'venom1') === 1).length / seeds.length;
+    expect(share).toBeGreaterThan(R.venom.poisonChance - 0.05);
+    expect(share).toBeLessThan(R.venom.poisonChance + 0.05);
+  });
+
   test.each<Case>([
-    // Venom 1's 2 tags leave Poison 3 one tag short: a half miss, its wounds then halved again.
-    ['Venom 1: the Poison threat’s after-fight wounds are halved', 'venom', 1, poisoned(3),
-      (on, off) => expect(taken(on)).toBeCloseTo(taken(off) * threatRules.halfShare * R.venom.woundsTaken), 'venom1',
-      'Venom ran in a’s veins: the poison’s wounds bit half as deep.',
-      'Le Venin dans le sang de a a affaibli le poison : ses blessures ont été réduites de moitié.'],
-    ['Venom 1: answering the threat’s level leaves no wounds at all', 'venom', 1, poisoned(1),
+    // 40 plain hits: some poison, each poison ticking a share of its hit on top.
+    ['Venom 1: hits may poison without the Venomous affix', 'venom', 1, bare(40),
       (on, off) => {
-        expect(taken(on)).toBe(0);
-        expect(taken(off)).toBeGreaterThan(0);
-      }, 'venom1', null, null],
-    ['Venom 1: no poison threat, no wounds to halve', 'venom', 1, { boss: { damage: 0 } },
-      (on, off) => expect(taken(on)).toBe(taken(off)), 'venom1', null, null],
+        expect(off.fight.dealt.a).toBeCloseTo(40 * power);
+        expect(on.fight.dealt.a).toBeGreaterThan(off.fight.dealt.a);
+      }, 'venom1',
+      'a’s blade dripped with Venom: the hit poisoned its target.',
+      'L’arme de a suintait de Venin : le coup a empoisonné sa cible.'],
+    // A Venomous hit that poisons every time leaves Venom 1 nothing to add.
+    ['Venom 1: not where the Venomous affix already poisons', 'venom', 1, lone(6),
+      (on, off) => expect(on.fight.dealt.a).toBeCloseTo(off.fight.dealt.a), 'venom1', null, null],
     // One stack, refreshed by every round’s two procs: a tick a round from round 2.
     ['Base: two Venomous procs a round leave one stack', null, 0, pair(6),
       (on) => expect(dealt(on)).toBeCloseTo(2 * 6 * power + (6 - 1) * power * R.venom.dotShare), 'venom2', null, null],

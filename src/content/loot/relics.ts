@@ -37,10 +37,10 @@ export const relics: RelicDef[] = [
     extraFamily: 'faith',
   },
   {
-    ...relic('poachersLongbow', 'Poacher’s longbow', 1, 'bow', 'Double crit damage against beasts; a Wild tag for its carrier', [
+    ...relic('poachersLongbow', 'Poacher’s longbow', 1, 'bow', 'Double crit damage against beasts; a Cunning tag for its carrier', [
       { kind: 'critDamage', multiplier: 2, when: { tag: 'beast' } },
     ], require('../../../assets/icons/rpg/bow-knotted-wooden.png')),
-    extraFamily: 'wild',
+    extraFamily: 'cunning',
   },
   relic('sextonsMace', 'Sexton’s mace', 1, 'mace', 'Stagger against undead', [
     { kind: 'keyword', keyword: 'stagger', when: { tag: 'undead' } },
@@ -80,10 +80,10 @@ export const relics: RelicDef[] = [
     { kind: 'ignorePenalty', threat: 'element', when: { firstFight: true } },
   ], require('../../../assets/icons/relics/censer-drowned.png')),
   {
-    ...relic('dwarfLordsAxe', 'Dwarf-lord’s axe', 3, 'axe', 'Pierce against constructs; a Breaker tag for its carrier', [
+    ...relic('dwarfLordsAxe', 'Dwarf-lord’s axe', 3, 'axe', 'Pierce against constructs; a Bulwark tag for its carrier', [
       { kind: 'keyword', keyword: 'pierce', when: { tag: 'construct' } },
     ], require('../../../assets/icons/rpg/axe-bearded-spike.png')),
-    extraFamily: 'breaker',
+    extraFamily: 'bulwark',
   },
   relic('witchHuntersDagger', 'Witch-hunter’s dagger', 3, 'dagger', 'Double crit damage against casters', [
     { kind: 'critDamage', multiplier: 2, when: { tag: 'caster' } },

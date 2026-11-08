@@ -64,18 +64,21 @@ describe('heroFamilyTags', () => {
   });
 
   test("a relic's extra family contributes 1 on top of its piece", () => {
-    // The Poacher's longbow: a bow (Volley, second tag Wild) with a Wild tag.
+    // The Poacher's longbow: a bow (Volley, second tag Wild) with a Cunning tag.
     const save = saveWith(newHero('h', 'H', 'warrior', 'resilient'), [
       piece('g1', itemIdOfGearType('bow'), { relicId: 'poachersLongbow' }),
     ]);
-    expect(heroFamilyTags(save, save.heroes[0])).toEqual({ bulwark: 1, volley: 1, wild: 2 });
+    expect(heroFamilyTags(save, save.heroes[0])).toEqual({ bulwark: 1, volley: 1, wild: 1, cunning: 1 });
   });
 
-  test('about a third of the relics carry a second tag, never their own type tag', () => {
+  test('about a third of the relics carry a second tag, never their own type tag nor their weapon’s second tag', () => {
     const tagged = relics.filter((relic) => relic.extraFamily);
     expect(tagged.length).toBeGreaterThanOrEqual(Math.floor(relics.length / 3));
     expect(tagged.length).toBeLessThanOrEqual(Math.ceil(relics.length / 3) + 1);
-    for (const relic of tagged) expect(relic.extraFamily).not.toBe(gearProfiles[relic.gearType].familyTag);
+    for (const relic of tagged) {
+      expect([relic.id, relic.extraFamily]).not.toEqual([relic.id, gearProfiles[relic.gearType].familyTag]);
+      expect([relic.id, relic.extraFamily]).not.toEqual([relic.id, gearProfiles[relic.gearType].secondFamily]);
+    }
   });
 });
 
@@ -118,7 +121,7 @@ describe('gearFamilyTags', () => {
     expect(gearFamilyTags({ gearType: 'axe' }, 'dwarfLordsAxe')).toEqual([
       { family: 'bloodrage', count: 1, extra: false },
       { family: 'breaker', count: 1, extra: false },
-      { family: 'breaker', count: 1, extra: true },
+      { family: 'bulwark', count: 1, extra: true },
     ]);
   });
 

@@ -25,12 +25,24 @@ export type FamilyBase = {
   heal: (hero: HeroState, share: number) => number;
   /** True with this chance, from the run's rng; a chance of 1 or more draws nothing. */
   chance: (p: number) => boolean;
+  /** One of the items, at random from the run's rng. */
+  pick: <T>(items: readonly T[]) => T;
 };
 
 /** Once, as the run starts. */
 export type RunStart = {
   /** Extra uses each hero's special gets in the run once its own are spent. */
   specialUses: number;
+};
+
+/** Once the run's steps before the boss are drawn. */
+export type RunPlan = {
+  /** The regular fights: their step, and their enemies' HP times damage, summed. */
+  fights: { index: number; strength: number }[];
+  /** The first hero carrying a tag of the family, else the first hero. */
+  heroOf: (family: FamilyId) => HeroState | undefined;
+  /** The step passes quietly, with this effect in its log line. */
+  skip: (index: number, effect: FamilyEffectId, heroId: string | null) => void;
 };
 
 /** Before round 1, once the enemies stand. */
@@ -41,6 +53,8 @@ export type FightStart = FamilyBase & {
   ambush: boolean;
   /** Fells an enemy outright, its HP credited to the hero. */
   strikeDown: (hero: HeroState, enemy: EnemyState) => void;
+  /** Wounds an enemy for this much HP, at most what it has, credited to the hero. */
+  strike: (hero: HeroState, enemy: EnemyState, amount: number) => void;
 };
 
 /** Each conscious hero at the start of every round: their speed, and whether they act before everyone. */
@@ -210,18 +224,16 @@ export type RunEnd = FamilyBase & {
   cleared: number;
 };
 
-/** A live trap's wound, per caught hero before it lands. */
-export type TrapWound = FamilyBase & {
+/** Every landed hit, before its Venomous poison: whether the hit poisons its target. */
+export type PoisonChance = FamilyBase & {
   hero: HeroState;
-  /** The wound about to hurt the hero; effects may scale it. */
-  damage: number;
-};
-
-/** The Poison threat's after-fight wounds, per hero before they land. */
-export type PoisonWound = FamilyBase & {
-  hero: HeroState;
-  /** The wounds about to hurt the hero; effects may scale them. */
-  damage: number;
+  target: EnemyState;
+  /** The hit's draw in [0, 1): it poisons below the chance. */
+  roll: number;
+  /** The Venomous affix's chance. */
+  affixChance: number;
+  /** The hit poisons; effects may set it. */
+  poisons: boolean;
 };
 
 /** A Venomous proc on an enemy, before its poison is added or refreshed. */
@@ -236,6 +248,7 @@ export type PoisonCap = FamilyBase & {
 
 export type FamilyHooks = {
   runStart?: (ctx: RunStart) => void;
+  runPlan?: (ctx: RunPlan) => void;
   fightStart?: (ctx: FightStart) => void;
   turnOrder?: (ctx: TurnOrder) => void;
   beforeAttack?: (ctx: Attack) => void;
@@ -253,8 +266,7 @@ export type FamilyHooks = {
   betweenFights?: (ctx: BetweenFights) => void;
   knockout?: (ctx: Knockout) => void;
   afterFight?: (ctx: AfterFight) => void;
-  trapWound?: (ctx: TrapWound) => void;
-  poisonWound?: (ctx: PoisonWound) => void;
+  poisonChance?: (ctx: PoisonChance) => void;
   poisonCap?: (ctx: PoisonCap) => void;
 };
 
@@ -532,12 +544,10 @@ export const familyEffects: FamilyEffect[] = [
     family: 'watch',
     level: 2,
     hooks: {
-      fightStart: (f) => {
-        if (!f.ambush) return;
-        f.ambush = false;
-        for (const enemy of f.enemies) enemy.staggered = true;
-        const watcher = f.heroOf('watch');
-        f.log('watch2', watcher ? idOf(watcher) : null);
+      runPlan: (p) => {
+        const watcher = p.heroOf('watch');
+        const weakest = [...p.fights].sort((a, b) => a.strength - b.strength || a.index - b.index).slice(0, R.watch.skippedFights);
+        for (const fight of weakest) p.skip(fight.index, 'watch2', watcher ? idOf(watcher) : null);
       },
     },
   },
@@ -697,10 +707,13 @@ export const familyEffects: FamilyEffect[] = [
     family: 'cunning',
     level: 1,
     hooks: {
-      trapWound: (t) => {
-        t.damage *= R.cunning.trapTaken;
-        const hero = t.heroOf('cunning');
-        t.log('cunning1', hero ? idOf(hero) : null);
+      fightStart: (f) => {
+        const standing = f.enemies.filter((e) => e.hp > 0);
+        const hero = f.heroOf('cunning');
+        if (standing.length === 0 || !hero) return;
+        const enemy = f.pick(standing);
+        f.strike(hero, enemy, enemy.maxHp * R.cunning.trapHit);
+        f.log('cunning1', idOf(hero));
       },
     },
   },
@@ -765,10 +778,11 @@ export const familyEffects: FamilyEffect[] = [
     family: 'venom',
     level: 1,
     hooks: {
-      poisonWound: (p) => {
-        p.damage *= R.venom.woundsTaken;
-        const hero = p.heroOf('venom');
-        p.log('venom1', hero ? idOf(hero) : null);
+      poisonChance: (p) => {
+        // Only a hit the affix alone would not have poisoned is the family's doing.
+        if (p.poisons || p.roll >= p.affixChance + R.venom.poisonChance) return;
+        p.poisons = true;
+        p.log('venom1', idOf(p.hero));
       },
     },
   },
@@ -802,6 +816,7 @@ export type ActiveHooks = { [K in keyof FamilyHooks]-?: NonNullable<FamilyHooks[
 export function activeHooks(levels: FamilyLevels, effects: FamilyEffect[] = familyEffects): ActiveHooks {
   const hooks: ActiveHooks = {
     runStart: [],
+    runPlan: [],
     fightStart: [],
     turnOrder: [],
     beforeAttack: [],
@@ -819,8 +834,7 @@ export function activeHooks(levels: FamilyLevels, effects: FamilyEffect[] = fami
     betweenFights: [],
     knockout: [],
     afterFight: [],
-    trapWound: [],
-    poisonWound: [],
+    poisonChance: [],
     poisonCap: [],
   };
   for (const effect of effects) {
