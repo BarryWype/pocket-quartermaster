@@ -10,7 +10,7 @@ import { gathererRules, jobs as jobList, type JobDef } from '@/content/jobs';
 import { lootConfig } from '@/content/loot/config';
 import { shopRules } from '@/content/shops';
 import { recipes } from '@/content/recipes';
-import { narrowPartySize } from '@/content/threats';import { traitById } from '@/content/traits';
+import { traitById } from '@/content/traits';
 import type { Rarity } from '@/content/gear';
 
 import { canCraft, craft, craftableCount, craftMany, forgedItem, isKnown } from '../crafting/crafting';
@@ -59,9 +59,9 @@ import type { ActiveExpedition, ArmourType, Briefing, DungeonDef, GearDef, GearI
 import { expectedLevels, type Profile, type SimConfig } from './config';
 import { playerMetersPerMinute } from './gathererPace';
 import { partRecipeFor } from './rules/inventory';
-import { dressParty, sparePieces } from '../families/dress';
+import { sparePieces } from '../families/dress';
 import { sparesToKeep } from './rules/families';
-import { uncovered } from '../threats/suggest';
+import { applySwaps, suggestParty, type GearSwap } from '../threats/suggest';
 import { emptySlots, fillPotions, heldPotion, oilIds, pickCharm, pickWeakness, statPotionIds, withCharm, withElixir, withOil, withStatPotion } from './rules/loadout';
 import { PICKAXES, type WalkRates } from './walking';
 import { questRules } from '@/content/quests';
@@ -1001,41 +1001,29 @@ export function withLoadout(save: SaveData, heroIds: string[], dungeon: DungeonD
 }
 
 /**
- * The heroes with the best answers to the threats: adds the hero who leaves
- * the fewest threat levels unanswered by the party's family tags (once
- * dressed for the threats from the spare pieces), ties broken by a quick
- * estimate of the prepared party's odds, until the party is full, or covers
- * everything and is safe enough. The party found is dressed in full (threats,
- * then its playstyle family; see rules/families.ts) and gets the full
- * estimate. `dress` false keeps everyone's gear as worn.
+ * The heroes and gear for a run, from suggestParty (threats/suggest.ts): the
+ * heroes who leave the fewest threat tags missing once dressed from the spare
+ * pieces, ties broken by a quick estimate of the prepared party's odds, until
+ * the party is full, or covers everything and is safe enough; then dressed in
+ * full. The party gets the full estimate, and `swaps` is the gear it puts on
+ * at launch. `dress` false keeps everyone's gear as worn.
  */
 export function bestParty(sim: Sim, dungeon: DungeonDef, candidates: string[], briefingOf: Briefing | null = null, dress = true) {
   const briefing = briefingOf ?? briefingFor(sim.rotation, dungeon);
   const empty = emptySlots(sim.save, candidates);
-  const dressedFor = (ids: string[], push: boolean) => (dress ? dressParty(empty, ids, briefing, null, push) : empty);
-  // Narrow passages cap the party at launch (one hero fewer), unless a Curse-breaker in it lifts them.
-  const fits = (ids: string[]) =>
-    briefing.restriction !== 'narrowPassages' ||
-    ids.length <= narrowPartySize(rosterRules.partySize) ||
-    briefingCoverage(empty, ids, briefing).restriction?.cancelledBy != null;
-  const quick = (ids: string[]) => odds(sim, withLoadout(dressedFor(ids, false), ids, dungeon, briefing), ids, dungeon, sim.config.odds.searchRuns, false, briefing);
-  const party: string[] = [];
-  while (party.length < rosterRules.partySize) {
-    const options = candidates
-      .filter((c) => !party.includes(c) && fits([...party, c]))
-      .map((id) => ({ id, missing: uncovered(dressedFor([...party, id], false), [...party, id], briefing) }));
-    if (!options.length) break;
-    const fewest = Math.min(...options.map((o) => o.missing));
-    let pick: { id: string; odds: Odds } | null = null;
-    for (const { id } of options.filter((o) => o.missing === fewest)) {
-      const o = quick([...party, id]);
-      if (!pick || o.success > pick.odds.success || (o.success === pick.odds.success && o.progress > pick.odds.progress)) pick = { id, odds: o };
-    }
-    party.push(pick!.id);
-    if (fewest === 0 && pick!.odds.success >= sim.config.odds.enough) break;
-  }
-  const save = withLoadout(dressedFor(party, true), party, dungeon, briefing);
-  return { heroIds: party, odds: party.length ? odds(sim, save, party, dungeon, sim.config.odds.runs, false, briefing) : { success: 0, flawless: 0, progress: 0 } };
+  const quick = (dressed: SaveData, ids: string[]) => {
+    const o = odds(sim, withLoadout(dressed, ids, dungeon, briefing), ids, dungeon, sim.config.odds.searchRuns, false, briefing);
+    // Progress only breaks ties between equal success odds.
+    return o.success + o.progress * 1e-6;
+  };
+  const suggested = suggestParty(empty, briefing, rosterRules.partySize, { candidates, odds: quick, enough: sim.config.odds.enough, dress });
+  const party = suggested.heroIds;
+  const save = withLoadout(suggested.save, party, dungeon, briefing);
+  return {
+    heroIds: party,
+    swaps: suggested.swaps,
+    odds: party.length ? odds(sim, save, party, dungeon, sim.config.odds.runs, false, briefing) : { success: 0, flawless: 0, progress: 0 },
+  };
 }
 
 // —— Sanctums and treasure ——
@@ -1117,10 +1105,11 @@ function applyElixirs(sim: Sim, dungeon: DungeonDef, heroIds: string[], loadout:
   }
 }
 
-export function launch(sim: Sim, dungeon: DungeonDef, heroIds: string[], o: Odds) {
+export function launch(sim: Sim, dungeon: DungeonDef, party: { heroIds: string[]; swaps: GearSwap[] }, o: Odds) {
+  const { heroIds } = party;
   recallWorking(sim, heroIds);
   const briefing = briefingFor(sim.rotation, dungeon);
-  sim.save = withLoadout(dressParty(emptySlots(sim.save, homeHeroes(sim.save).map((h) => h.id)), heroIds, briefing), heroIds, dungeon, briefing);
+  sim.save = withLoadout(applySwaps(emptySlots(sim.save, homeHeroes(sim.save).map((h) => h.id)), party.swaps), heroIds, dungeon, briefing);
   const loadout = { mealId: mealFor(sim, dungeon, heroIds, o) };
   topUpSupply(sim, dungeon, heroIds, loadout, briefing);
   // A revival draught on a tier boss run, a firebomb while a beasts threat is missed.
@@ -1219,7 +1208,7 @@ export function sendExpeditions(sim: Sim) {
   if (unbeatenBoss && idle().length && sim.due.expeditions >= 1) {
     const party = bestParty(sim, unbeatenBoss, idle());
     if (party.odds.success >= sim.config.odds.boss && restUp(sim, unbeatenBoss, party.heroIds)) {
-      launch(sim, unbeatenBoss, party.heroIds, odds(sim, sim.save, party.heroIds, unbeatenBoss));
+      launch(sim, unbeatenBoss, party, odds(sim, sim.save, party.heroIds, unbeatenBoss));
       sim.expeditionStop.launched = true;
     }
   }
@@ -1263,7 +1252,7 @@ export function sendExpeditions(sim: Sim) {
       sim.waiting.add(pick.d.id);
       continue;
     }
-    launch(sim, pick.d, pick.party.heroIds, odds(sim, sim.save, pick.party.heroIds, pick.d));
+    launch(sim, pick.d, pick.party, odds(sim, sim.save, pick.party.heroIds, pick.d));
     sim.expeditionStop.launched = true;
   }
   if (dueExpeditions() && !idle().length) sim.expeditionStop.reason = 'noParty';

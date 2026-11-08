@@ -4,7 +4,7 @@ import { makeGearPiece } from '../gear/make';
 import { createInitialSave, type SaveData } from '../save';
 import type { Briefing, ThreatId } from '../types';
 import { briefingCoverage } from './coverage';
-import { suggestParty, uncovered } from './suggest';
+import { applySwaps, suggestParty, uncovered } from './suggest';
 
 // The starting trio (warrior, ranger, fire mage: no threat family of their own) with these pieces owned, none worn.
 const saveWith = (...itemIds: string[]): SaveData => ({
@@ -34,9 +34,14 @@ describe('suggestParty', () => {
     expect(covered(suggested.save, suggested.heroIds, b)).toBe(true);
     expect(suggested.swaps.map((s) => s.gearUid).sort()).toEqual(expect.arrayContaining(['g0', 'g1', 'g2']));
     // The swaps are exactly what changed on the suggested heroes.
-    for (const swap of suggested.swaps) {
-      expect(suggested.save.heroes.find((h) => h.id === swap.heroId)!.equipment[swap.slot]).toBe(swap.gearUid);
-    }
+    expect(applySwaps(save, suggested.swaps).heroes).toEqual(suggested.save.heroes);
+  });
+
+  it('keeps the gear as worn when told not to dress', () => {
+    const save = saveWith('spear1', 'leather1');
+    const suggested = suggestParty(save, briefing(['beasts', 2]), 3, { dress: false });
+    expect(suggested.swaps).toEqual([]);
+    expect(suggested.save).toBe(save);
   });
 
   it('picks the hero whose class answers a threat first', () => {

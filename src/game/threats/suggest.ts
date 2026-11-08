@@ -3,7 +3,7 @@ import { narrowPartySize } from '@/content/threats';
 
 import { dressParty, statScore } from '../families/dress';
 import type { SaveData } from '../save';
-import { isBusy } from '../team/team';
+import { equip, isBusy, unequip } from '../team/team';
 import type { Briefing, HeroState } from '../types';
 import { briefingCoverage } from './coverage';
 
@@ -25,6 +25,8 @@ export type SuggestOptions = {
   odds?: (dressed: SaveData, heroIds: string[]) => number;
   /** Stops adding heroes once the party covers every threat and `odds` reaches this. */
   enough?: number;
+  /** False keeps everyone's gear as worn. */
+  dress?: boolean;
 };
 
 export type SuggestedParty = {
@@ -59,7 +61,8 @@ function swapsBetween(before: SaveData, after: SaveData, heroIds: string[]): Gea
 export function suggestParty(save: SaveData, briefing: Briefing, slots: number = rosterRules.partySize, options: SuggestOptions = {}): SuggestedParty {
   const candidates = options.candidates ?? save.heroes.filter((h: HeroState) => !isBusy(save, h.id)).map((h) => h.id);
   const odds = options.odds ?? ((dressed: SaveData, ids: string[]) => ids.reduce((sum, id) => sum + statScore(dressed, id), 0));
-  const threatsOnly = (ids: string[]) => dressParty(save, ids, briefing, null, false);
+  const dress = options.dress ?? true;
+  const threatsOnly = (ids: string[]) => (dress ? dressParty(save, ids, briefing, null, false) : save);
   const fits = (ids: string[]) =>
     briefing.restriction !== 'narrowPassages' ||
     ids.length <= narrowPartySize(rosterRules.partySize) ||
@@ -83,6 +86,11 @@ export function suggestParty(save: SaveData, briefing: Briefing, slots: number =
     party.push(pick!.id);
     if (options.enough !== undefined && fewest === 0 && pick!.odds >= options.enough) break;
   }
-  const dressed = dressParty(save, party, briefing);
+  const dressed = dress ? dressParty(save, party, briefing) : save;
   return { heroIds: party, swaps: swapsBetween(save, dressed, party), save: dressed };
+}
+
+/** Puts a suggested party's swaps on, in order. */
+export function applySwaps(save: SaveData, swaps: GearSwap[]): SaveData {
+  return swaps.reduce((next, swap) => (swap.gearUid ? equip(next, swap.heroId, swap.slot, swap.gearUid) : unequip(next, swap.heroId, swap.slot)), save);
 }
