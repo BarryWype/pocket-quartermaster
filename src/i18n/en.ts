@@ -228,6 +228,13 @@ export const en = {
     partial: 'partly covered',
     uncovered: 'not covered',
     answered: { covered: 'Answered', partial: 'Partly answered', uncovered: 'Not answered' },
+    /** The expedition list's stamp (see game/threats/readiness.ts). */
+    readiness: { ready: 'Ready', needsGear: 'Needs gear', missing: 'No {family}' },
+    /** The needs as sockets, one per tag: lit by the party's tags. */
+    sockets: 'This place needs',
+    stillNeeded: 'Still needed: {count} {family}',
+    short: '{threat} · {count} {family} short',
+    lights: '+{count} {family} · lights the {threat} gem',
     cost: '{count} supply',
     keyword: {
       pierce: 'Pierce', cleave: 'Cleave', guard: 'Guard',

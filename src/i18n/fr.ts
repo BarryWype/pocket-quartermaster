@@ -233,6 +233,11 @@ export const fr: Dictionary = {
     partial: 'à moitié couvert',
     uncovered: 'non couvert',
     answered: { covered: 'Réponse trouvée', partial: 'Réponse partielle', uncovered: 'Sans réponse' },
+    readiness: { ready: 'Prêt', needsGear: 'Équipement à changer', missing: 'Manque : {family}' },
+    sockets: 'Ce lieu demande',
+    stillNeeded: 'Il manque encore : {count} {family}',
+    short: '{threat} · il manque {count} {family}',
+    lights: '+{count} {family} · allume la gemme {threat}',
     cost: '{count} vivres',
     keyword: {
       pierce: 'Perce-armure', cleave: 'Taillade', guard: 'Garde',
