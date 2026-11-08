@@ -91,9 +91,9 @@ describe('hero HP', () => {
     let save = hurt(0.6, kit);
     save = equip(equip(save, 'bram', 'weapon', 's'), 'bram', 'armor', 'a');
     save = { ...save, heroes: save.heroes.map((h) => ({ ...h, xp: xpToNextLevel(1) - 1 })) };
-    const started = startExpedition(save, 'ratCellar', ['bram'], 0);
+    const started = startExpedition(save, 'ratCellar', ['bram', 'lyra', 'mira'], 0);
     const { save: after, report } = resolveExpedition(started, started.expeditions[0]);
-    const back = report.heroHp[0];
+    const back = report.heroHp.find((h) => h.heroId === 'bram')!;
     const levelled = hero(after);
     expect(levelled.level).toBe(2);
     expect((levelled.hp ?? maxHp(after, levelled)) / maxHp(after, levelled)).toBeCloseTo(back.hp / back.maxHp, 1);
