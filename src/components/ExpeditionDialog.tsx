@@ -252,6 +252,7 @@ export function ExpeditionDialog({ dungeon, now, durationScale, briefing: fixedB
       title={tr(dungeon.name)}
       subtitle={`${kind === 'overnight' ? t('expeditions.overnight.title') : t(`expeditions.kind.${kind}`)} · ${formatDuration(expeditionMinutes(save, dungeon) * 60_000 * durationScale)}`}
       slots={rosterRules.partySize}
+      draftKey={`expedition:${dungeon.id}`}
       briefing={briefing}
       oddsOf={oddsOf}
       now={minute}

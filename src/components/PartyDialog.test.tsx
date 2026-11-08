@@ -6,6 +6,7 @@ import { makeGearPiece } from '@/game/gear/make';
 import { createInitialSave } from '@/game/save';
 import type { Briefing } from '@/game/types';
 import { useGameStore } from '@/store/gameStore';
+import { dropDraft, partyDraft } from '@/store/partyDrafts';
 
 import { ExpeditionDialog } from './ExpeditionDialog';
 
@@ -23,6 +24,7 @@ const press = (node: ReactTestInstance) => act(() => node.props.onPress());
 describe('the party dialog', () => {
   beforeEach(() => {
     jest.useFakeTimers();
+    dropDraft(`expedition:${dungeon.id}`);
     const base = createInitialSave();
     useGameStore.setState({
       save: {
@@ -92,6 +94,50 @@ describe('the party dialog', () => {
     const hood = after.gear.find((g) => g.itemId === 'hood1')!;
     expect(after.heroes.find((h) => h.id === heroId)!.equipment.helmet).toBe(hood.uid);
     expect(text(renderer)).not.toContain('Equip on');
+    act(() => renderer.unmount());
+  });
+  it('keeps the unsent party when the dialog closes, until it is sent or a hero is hurt', () => {
+    const open = () => {
+      let renderer!: ReactTestRenderer;
+      act(() => {
+        renderer = create(
+          <ExpeditionDialog
+            dungeon={dungeon}
+            briefing={briefing}
+            now={0}
+            durationScale={1}
+            onSend={(party) => useGameStore.getState().startExpedition(dungeon.id, party, 1)}
+            onClose={() => {}}
+          />,
+        );
+      });
+      return renderer;
+    };
+    let renderer = open();
+    press(byLabel(renderer, (l) => l === 'Suggest a party')[0]);
+    act(() => renderer.unmount());
+
+    renderer = open();
+    expect(text(renderer)).not.toContain('Add a hero');
+    const [first] = useGameStore.getState().save.heroes;
+    act(() => {
+      useGameStore.setState(({ save }) => ({
+        save: { ...save, heroes: save.heroes.map((h) => (h.id === first.id ? { ...h, exhaustedUntil: Date.now() + 3_600_000 } : h)) },
+      }));
+    });
+    act(() => renderer.unmount());
+
+    // The hurt hero's slot is empty, the others stay.
+    renderer = open();
+    expect(byLabel(renderer, (l) => l === 'Add a hero')).toHaveLength(1);
+    expect(byLabel(renderer, (l) => l === `Remove ${first.name}`)).toHaveLength(0);
+    press(byLabel(renderer, (l) => l === 'Send')[0]);
+    act(() => renderer.unmount());
+    expect(partyDraft(`expedition:${dungeon.id}`)).toBeUndefined();
+
+    // The sent heroes are away, so the next party starts from nothing.
+    renderer = open();
+    expect(byLabel(renderer, (l) => l === 'Add a hero')).toHaveLength(3);
     act(() => renderer.unmount());
   });
 });

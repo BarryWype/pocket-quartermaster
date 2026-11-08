@@ -139,6 +139,7 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
           title={texts.kinds[kind]}
           subtitle={`${t('expeditions.tier', { tier })}${elite ? ` ★ ${t('patrols.eliteX2')}` : ''} · ${formatDuration(dungeon.durationMinutes * 60_000)} · ${t('patrols.recommended', { count: patrolFights[difficulty].party })}`}
           slots={rosterRules.partySize}
+          draftKey={`patrol:${spawn.id}`}
           briefing={briefing}
           oddsOf={oddsOf}
           now={now}

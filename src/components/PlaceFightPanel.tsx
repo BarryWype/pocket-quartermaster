@@ -131,6 +131,7 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
           title={tr(info.name)}
           subtitle={`${t('expeditions.tier', { tier: highestUnlockedTier(save) })}${rules.elite ? ' ★' : ''} · ${formatDuration(rules.minutes * 60_000)} · ${t('places.party', { min, max: rules.party })}`}
           slots={rules.party}
+          draftKey={`place:${place.id}`}
           briefing={briefing}
           oddsOf={oddsOf}
           now={now}

@@ -299,3 +299,16 @@ export function dressWith(save: SaveData, swaps: GearSwap[]): SaveData {
 /** Suggest's swaps still pending once the player equipped this slot by hand: theirs and any moving the same piece go. */
 export const dropSwaps = (swaps: GearSwap[], heroId: string, slot: GearSlot, gearUid: string | null) =>
   swaps.filter((s) => !(s.heroId === heroId && s.slot === slot) && (gearUid === null || s.gearUid !== gearUid));
+
+/** The party dialog's unsent party for one place: its heroes and Suggest's pending swaps. */
+export type PartyDraft = { heroIds: string[]; swaps: GearSwap[] };
+
+/** A draft without the heroes who were dismissed or can't join now (away or hurt), and their swaps with them. */
+export function prunedDraft(save: SaveData, draft: PartyDraft, now: number): PartyDraft {
+  const heroIds = draft.heroIds.filter((id) => {
+    const hero = save.heroes.find((h) => h.id === id);
+    return hero !== undefined && canJoin(heroStatus(save, hero, now));
+  });
+  if (heroIds.length === draft.heroIds.length) return draft;
+  return { heroIds, swaps: draft.swaps.filter((swap) => heroIds.includes(swap.heroId)) };
+}

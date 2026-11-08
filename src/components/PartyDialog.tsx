@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { familyById, type FamilyId } from '@/content/families';
 import { heroClasses } from '@/content/heroes';
 import { gearName, itemById, threatById } from '@/content/lookup';
-import { canJoin, dressWith, dropSwaps, GEAR_SLOTS, heroStatus, partyBanners, shortFamilies, slotHints, socketGroups, type GearSlot, type SocketGroup } from '@/game/expeditions/party';
+import { canJoin, dressWith, dropSwaps, GEAR_SLOTS, heroStatus, partyBanners, prunedDraft, shortFamilies, slotHints, socketGroups, type GearSlot, type SocketGroup } from '@/game/expeditions/party';
 import { gearFamilyTags, partyFamilies } from '@/game/families/families';
 import { gearIconOf } from '@/game/gear/gearIcon';
 import type { SaveData } from '@/game/save';
@@ -17,6 +17,7 @@ import type { Briefing, GearDef } from '@/game/types';
 import { useOdds, type OddsJob } from '@/hooks/useOdds';
 import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
+import { dropDraft, keepDraft, partyDraft } from '@/store/partyDrafts';
 import { fonts, ui } from '@/theme';
 
 import { EquipPicker } from './EquipPicker';
@@ -38,6 +39,8 @@ export type PartyDialogProps = {
   subtitle?: string;
   /** How many heroes fit: 1 to 3. */
   slots: number;
+  /** The place, so its unsent party is back when the dialog opens again (until sent). */
+  draftKey: string;
   /** The place's threats (none for a Sanctum) and the rest of its briefing, scored as the run scores it. */
   briefing: Briefing;
   /** The odds of a party in a save (the dialog passes the save dressed in pending swaps). */
@@ -235,6 +238,7 @@ export function PartyDialog({
   title,
   subtitle,
   slots,
+  draftKey,
   briefing,
   oddsOf,
   now: clock,
@@ -254,8 +258,12 @@ export function PartyDialog({
   useEffect(() => {
     if (hasNeeds) noteTips(['threats']);
   }, [hasNeeds, noteTips]);
-  const [heroIds, setHeroIds] = useState<string[]>(initialHeroIds);
-  const [swaps, setSwaps] = useState<GearSwap[]>([]);
+  const [draft] = useState(() => {
+    const kept = partyDraft(draftKey);
+    return kept ? prunedDraft(save, kept, clock) : { heroIds: initialHeroIds, swaps: [] };
+  });
+  const [heroIds, setHeroIds] = useState<string[]>(draft.heroIds);
+  const [swaps, setSwaps] = useState<GearSwap[]>(draft.swaps);
   const [picking, setPicking] = useState<{ heroId: string; slot: GearSlot | 'consumable' | 'potion' } | null>(null);
   const [addingHero, setAddingHero] = useState(false);
   const { height } = useWindowDimensions();
@@ -274,6 +282,9 @@ export function PartyDialog({
         .slice(0, slots),
     [heroIds, save, now, slots],
   );
+  useEffect(() => {
+    keepDraft(draftKey, { heroIds: party, swaps: swaps.filter((swap) => party.includes(swap.heroId)) });
+  }, [draftKey, party, swaps]);
   const dressed = useMemo(() => dressWith(save, swaps), [save, swaps]);
   const coverage = useMemo(() => (party.length > 0 ? briefingCoverage(dressed, party, briefing, now) : null), [dressed, party, briefing, now]);
   const groups = useMemo(() => socketGroups(briefing.threats, coverage?.threats ?? null), [briefing, coverage]);
@@ -291,6 +302,7 @@ export function PartyDialog({
     setSwaps(suggested.swaps);
   };
   const send = () => {
+    dropDraft(draftKey);
     if (swaps.length > 0) dress(swaps);
     onSend(party);
   };

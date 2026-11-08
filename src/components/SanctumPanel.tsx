@@ -193,6 +193,7 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
           title={tr(sanctum.name)}
           subtitle={`${tr(element.name)} · ${t('sanctum.guardian', { name: tr(sanctum.guardian.name) })}`}
           slots={rosterRules.partySize}
+          draftKey={`sanctum:${spawn.id}`}
           briefing={NO_THREATS}
           oddsOf={oddsOf}
           now={openedAt}

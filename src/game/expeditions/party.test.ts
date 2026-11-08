@@ -3,7 +3,7 @@ import { createInitialSave, type SaveData } from '../save';
 import { equip } from '../team/team';
 import { briefingCoverage } from '../threats/coverage';
 import type { Briefing, ThreatId } from '../types';
-import { dressWith, dropSwaps, forgeChoices, gearChoices, heroChoices, heroStatus, hintTypes, partyBanners, slotHints, socketGroups } from './party';
+import { dressWith, dropSwaps, forgeChoices, gearChoices, heroChoices, heroStatus, hintTypes, partyBanners, prunedDraft, slotHints, socketGroups } from './party';
 
 // The starting trio: Bram (warrior), Lyra (ranger), Mira (fire mage), with these pieces owned, none worn.
 const saveWith = (...itemIds: string[]): SaveData => {
@@ -167,5 +167,24 @@ describe('suggested swaps', () => {
       { heroId: 'mira', slot: 'helmet' as const, gearUid: 'g2' },
     ];
     expect(dropSwaps(swaps, 'bram', 'armor', 'g1')).toEqual([swaps[2]]);
+  });
+});
+
+describe('party drafts', () => {
+  it('keep the heroes who can still join, and drop a hurt or dismissed one with their swaps', () => {
+    const base = saveWith('leather1');
+    const draft = {
+      heroIds: ['bram', 'lyra', 'mira'],
+      swaps: [
+        { heroId: 'lyra', slot: 'armor' as const, gearUid: 'g0' },
+        { heroId: 'bram', slot: 'helmet' as const, gearUid: null },
+      ],
+    };
+    expect(prunedDraft(base, draft, 0)).toBe(draft);
+    const save: SaveData = {
+      ...base,
+      heroes: base.heroes.filter((h) => h.id !== 'mira').map((h) => (h.id === 'lyra' ? { ...h, exhaustedUntil: 60_000 } : h)),
+    };
+    expect(prunedDraft(save, draft, 0)).toEqual({ heroIds: ['bram'], swaps: [draft.swaps[1]] });
   });
 });
