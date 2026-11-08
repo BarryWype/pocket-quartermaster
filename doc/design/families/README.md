@@ -41,14 +41,28 @@ With mail (Faith) and leather (Wild), armour and helmets cover all seven threat 
 
 - **Cap:** some classes reach 4 tags of their own family with a matching helmet (Scholar or Scout with a sallet, Frost mage or Curse-breaker with a circlet, Thief with a hood, Alchemist with a mask). The cap test allows 4 until the thresholds are raised in the balance pass.
 - **Class portraits** use six helmet icons; those stay portraits only, so a hero and their helmet never look alike.
-- **Affixes:** a helmet pool still to design (draft direction: the "mind" slot: specials, crits, initiative, status resistance, knowledge; one helmet affix per monster part).
+- **Affixes: the "mind" slot.** Each monster part gives a third affix, for helmets, around specials, crits, initiative, status resistance and knowledge. Elemental stones and walking affixes don't go on helmets. First version, to tune later:
+
+| Part | Helmet affix | Effect |
+|---|---|---|
+| Fang or horn | Predator's eye | + crit vs beasts |
+| Feather | Far sight | + speed in round 1 |
+| Venom sac | Purifying | poison on the wearer ends sooner |
+| Chitin | Steady head | resist stagger and stun |
+| Grave dust | Unafraid | + resistance vs undead |
+| Ectoplasm | Clear mind | + magic resistance |
+| Goblin ear | Haggler | better shop prices |
+| Tattered insignia | Commander | + party damage while the wearer stands |
+| Brute blood | Thick skull | + max HP |
+| Cog | Focus lens | the wearer's special is stronger |
+| Scale | Dragon's gaze | enemies hit the wearer less often |
+| Ritual candle | Arcane | + 1 special use per run (rare) |
+
 - **Balance later:** a fourth piece adds stats and up to 3 tags per party; thresholds can go to 3/6/9.
 
 ## A safe start (2026-11-08)
 New players must not get stuck failing threats they can't answer yet:
-- **The first two expeditions have no threats** (both easy).
-- **The board always shows at least one READY place** at tiers 1 and 2; if the roll would leave none, one notice is rerolled.
-- **A lost expedition still pays** some XP and monster parts.
+- **The first two expeditions have no threats** (both easy). Simple and enough for now; a board guarantee (always one READY place at tiers 1–2) and losses that still pay were considered and left out.
 
 ## Expedition screens (2026-11-08)
 Mockup: `doc/design/expeditions/` (the design canvas boards). The list shows no heroes and no odds: each place is a pinned notice with its needs as gem sockets and a readiness stamp (Ready, Needs gear, No <family>). Picking a place opens the party dialog: needs and party families at the top, three hero plates with their gear slots (each with its family gem), odds only once a hero is in, refreshed on every hero or gear change. Gear changes made there are permanent. Pickers sort what covers a need first (▲) and show the odds after each choice. A Suggest button fills heroes and gear. The same dialog serves patrols, place fights and Sanctums.
