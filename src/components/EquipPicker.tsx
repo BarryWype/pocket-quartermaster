@@ -22,7 +22,7 @@ import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
 import { Row } from './Row';
 import { Text } from './Text';
-import { statIcons, trinketParts } from './GearRow';
+import { DELTA_KEYS, statIcons, trinketParts } from './GearRow';
 import { workToolParts } from './WorkToolLine';
 import { PartsLine, type LabelPart } from './IconLabel';
 
@@ -50,8 +50,6 @@ type Option = {
   legendary?: boolean;
   marks?: ReactNode;
 };
-
-export const DELTA_KEYS: (keyof Stats)[] = ['hp', 'power', 'magic', 'armour', 'resistance', 'evasion', 'speed', 'crit', 'luck'];
 
 function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, bossId?: string): Option[] {
   if (slot === 'consumable' || slot === 'potion') {

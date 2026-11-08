@@ -2,9 +2,8 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { DELTA_KEYS, EquipPicker } from '@/components/EquipPicker';
-import { GearDetails, GearSubtitle } from '@/components/GearDetails';
-import { affixIcon, affixLine } from '@/components/affixText';
+import { EquipPicker } from '@/components/EquipPicker';
+import { GearCard } from '@/components/GearDetails';
 import { EnergyBar } from '@/components/EnergyBar';
 import { PlaceholderScreen } from '@/components/PlaceholderScreen';
 import { statIcons } from '@/components/GearRow';
@@ -15,7 +14,7 @@ import { PixelBar } from '@/components/PixelBar';
 import { Text } from '@/components/Text';
 import { Tip } from '@/components/Tip';
 import { TutorialHint } from '@/components/TutorialHint';
-import { AnchoredPopup, Chip, Deferred, GhostScreen, ItemPopup, ItemSlot, ScreenHeader, SwipeTabs, WoodButton, WoodPanel, type PopupAnchor, type PopupLine } from '@/components/ui';
+import { AnchoredPopup, Chip, Deferred, GhostScreen, ItemSlot, ScreenHeader, SwipeTabs, WoodButton, WoodPanel, type PopupAnchor, type PopupLine } from '@/components/ui';
 import { abilityText } from '@/content/abilities';
 import { clockConfig } from '@/content/clockConfig';
 import { elementInfo } from '@/content/elements';
@@ -572,23 +571,13 @@ function ComparePopup({
   pointer: { side: 'top' | 'bottom'; x: number } | undefined;
   onEquip: () => void;
 }) {
-  const item = itemById[gear.itemId] as GearDef;
   const problem = slot !== 'weapon' ? slotProblem(save, hero, slot, gear) : null;
   const preview = equipPreview(save, hero.id, slot, gear.uid);
   const wornUid = hero.equipment[slot];
   const worn = wornUid ? save.gear.find((g) => g.uid === wornUid) : undefined;
   const lines: PopupLine[] = [];
-  // What the worn piece and this one each add to the hero, against the slot left empty.
-  const bare = heroStats(save, { ...hero, equipment: { ...hero.equipment, [slot]: null } });
-  const rows = preview
-    ? DELTA_KEYS.map((key) => ({ key, worn: preview.before[key] - bare[key], next: preview.after[key] - bare[key] })).filter(
-        (row) => row.worn !== 0 || row.next !== 0,
-      )
-    : [];
-  const affixRows = preview ? affixChanges(worn, gear) : [];
   if (preview) {
-    const keywords = keywordChange(save, hero, slot, gear);
-    for (const { keyword, gained } of keywords) {
+    for (const { keyword, gained } of keywordChange(save, hero, slot, gear)) {
       lines.push(
         gained
           ? { tone: 'keyword', text: t('hero.gainsKeyword', { keyword: t(`threats.keyword.${keyword}`) }) }
@@ -599,74 +588,15 @@ function ComparePopup({
     lines.push({ tone: 'muted', text: t(`equip.problem.${problem}`) });
   }
   return (
-    <ItemPopup
-      title={gearName(gear)}
-      subtitle={<GearSubtitle gear={gear} />}
-      emoji={item.emoji}
-      icon={gearIconOf(gear)}
-      legendary={gear.rarity === 'legendary' ? true : undefined}
+    <GearCard
+      gear={gear}
+      compare={{ save, heroId: hero.id, slot }}
+      note={t('hero.insteadOf', { item: worn ? gearName(worn) : t('hero.empty') })}
       lines={lines}
       action={{ title: t('hero.equip'), onPress: onEquip, disabled: !preview || isAway(save, hero.id) }}
       pointer={pointer}
-    >
-      <GearDetails gear={gear} compact labelStyle={styles.compareValue} />
-      {(rows.length > 0 || affixRows.length > 0) && (
-        <Text style={styles.compareHeading}>{t('hero.insteadOf', { item: worn ? gearName(worn) : t('hero.empty') })}</Text>
-      )}
-      {rows.length > 0 && (
-        <View style={styles.compare}>
-          {rows.map(({ key, worn: wornValue, next }) => (
-            <View key={key} style={styles.compareRow}>
-              <Text style={styles.compareName}>{t(`hero.statNames.${key}`)}</Text>
-              <Text style={styles.compareValue}>{`${wornValue} → ${next}`}</Text>
-              <Text style={[styles.compareMark, next > wornValue ? styles.compareUp : styles.compareDown]}>
-                {next > wornValue ? '▲' : next < wornValue ? '▼' : ''}
-              </Text>
-            </View>
-          ))}
-        </View>
-      )}
-      {affixRows.length > 0 && (
-        <View style={styles.compare}>
-          {affixRows.map(({ mark, icon, text, up, down }, i) => (
-            <View key={i} style={styles.affixRow}>
-              <Text style={[styles.compareMark, up && styles.compareUp, down && styles.compareDown]}>{mark}</Text>
-              <IconLabel
-                emoji={icon.emoji}
-                icon={icon.icon}
-                label={text}
-                size={15}
-                labelStyle={[styles.compareValue, up && styles.compareUp, down && styles.compareDown]}
-              />
-            </View>
-          ))}
-        </View>
-      )}
-    </ItemPopup>
+    />
   );
-}
-
-/** The affixes the piece would gain, change or lose, marked against the worn one. */
-function affixChanges(worn: GearInstance | undefined, piece: GearInstance) {
-  const before = new Map((worn?.affixes ?? []).map((affix) => [affix.id, affix.value]));
-  const rows: { mark: '+' | '−' | ''; icon: ReturnType<typeof affixIcon>; text: string; up: boolean; down: boolean }[] = [];
-  for (const affix of piece.affixes) {
-    const old = before.get(affix.id);
-    if (old === undefined) rows.push({ mark: '+', icon: affixIcon(affix.id), text: affixLine(affix), up: true, down: false });
-    else if (old !== affix.value)
-      rows.push({
-        mark: '',
-        icon: affixIcon(affix.id),
-        text: `${affixLine({ id: affix.id, value: old })} → ${affixLine(affix)}`,
-        up: affix.value > old,
-        down: affix.value < old,
-      });
-  }
-  const after = new Set(piece.affixes.map((affix) => affix.id));
-  for (const affix of worn?.affixes ?? []) {
-    if (!after.has(affix.id)) rows.push({ mark: '−', icon: affixIcon(affix.id), text: affixLine(affix), up: false, down: true });
-  }
-  return rows;
 }
 
 /** The keywords equipping the piece would add or take away, versus the hero as equipped. */
@@ -687,15 +617,6 @@ function keywordChange(save: SaveData, hero: HeroState, slot: (typeof GEAR_SLOTS
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: ui.woodDark },
-  compare: { alignSelf: 'stretch', gap: 2 },
-  compareHeading: { fontFamily: fonts.body, fontSize: 14, color: ui.inkMuted, marginTop: 4 },
-  compareRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
-  affixRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  compareName: { flex: 1, fontFamily: fonts.serif, fontSize: 15, color: ui.ink },
-  compareValue: { fontFamily: fonts.serif, fontSize: 15, color: ui.ink },
-  compareMark: { width: 14, fontFamily: fonts.serif, fontSize: 15 },
-  compareUp: { color: ui.good },
-  compareDown: { color: ui.bad },
   page: { padding: 12, gap: 10 },
   navRow: { flexDirection: 'row', gap: 6 },
   navButton: {

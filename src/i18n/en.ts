@@ -477,6 +477,7 @@ export const en = {
   gear: {
     equipped: 'Equipped',
     unique: 'Unique: {effect}',
+    affinityStats: 'stats ×{value}',
   },
   team: {
     roster: 'Roster {count}/{cap} · up to {party} per expedition',

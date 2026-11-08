@@ -478,6 +478,7 @@ export const fr: Dictionary = {
   gear: {
     equipped: 'Équipé',
     unique: 'Unique : {effect}',
+    affinityStats: 'stats ×{value}',
   },
   team: {
     roster: 'Effectif {count}/{cap} · jusqu’à {party} par expédition',

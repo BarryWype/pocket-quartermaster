@@ -2,7 +2,7 @@ import { elementInfo } from '@/content/elements';
 import { itemById } from '@/content/lookup';
 import { gearStats } from '@/game/gear/stats';
 import { trinketEffect } from '@/game/loot/trinkets';
-import type { GearDef, GearInstance } from '@/game/types';
+import type { GearDef, GearInstance, Stats } from '@/game/types';
 
 import type { LabelPart } from './IconLabel';
 
@@ -18,6 +18,9 @@ export const statIcons = {
   luck: '🍀',
 } as const;
 export const STATS = Object.keys(statIcons) as (keyof typeof statIcons)[];
+
+/** The hero stats a piece can change, in the order comparisons list them. */
+export const DELTA_KEYS: (keyof Stats)[] = ['hp', 'power', 'magic', 'armour', 'resistance', 'evasion', 'speed', 'crit', 'luck'];
 
 /** "🎯 6" or "🔰 🔥 +12": what a trinket gives after its roll. */
 export function trinketParts(gear: GearInstance): LabelPart[] {

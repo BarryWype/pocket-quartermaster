@@ -1,26 +1,27 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState, type ComponentRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { familyById } from '@/content/families';
 import { heroClasses } from '@/content/heroes';
 import { gearName, itemById } from '@/content/lookup';
-import { GEAR_SLOTS, heroChoices, shortFamilies, type HeroChoice, type SocketGroup } from '@/game/expeditions/party';
+import { GEAR_SLOTS, heroChoices, shortFamilies, type GearSlot, type HeroChoice, type SocketGroup } from '@/game/expeditions/party';
 import { gearFamilyTags } from '@/game/families/families';
 import { gearIconOf } from '@/game/gear/gearIcon';
 import type { SaveData } from '@/game/save';
 import { currentHp, maxHp } from '@/game/team/health';
-import type { GearDef } from '@/game/types';
+import type { GearDef, GearInstance, HeroState } from '@/game/types';
 import { useOdds, type OddsJob } from '@/hooks/useOdds';
 import { formatDuration, t, tr } from '@/i18n';
 import { fonts, ui } from '@/theme';
 
 import { GameIcon } from './GameIcon';
+import { GearCard } from './GearDetails';
 import { Overlay } from './Overlay';
 import { OddsChange } from './PartyOdds';
 import { lightsLine, stillNeeded } from './partyText';
 import { Text } from './Text';
-import { EmberButton, ItemSlot, ParchmentCard } from './ui';
+import { AnchoredPopup, EmberButton, ItemSlot, ParchmentCard, type PopupAnchor } from './ui';
 
 type Props = {
   save: SaveData;
@@ -51,6 +52,7 @@ export function HeroPicker({ save, party, groups, ordinal, now, oddsOf, chance, 
   const choices = useMemo(() => heroChoices(save, party, short, now), [save, party, short, now]);
   const [selected, setSelected] = useState<string | null>(() => choices.find((c) => c.status.kind === 'free' || c.status.kind === 'working')?.hero.id ?? null);
   const choice = choices.find((c) => c.hero.id === selected) ?? null;
+  const [openGear, setOpenGear] = useState<{ gear: GearInstance; slot: GearSlot; anchor: PopupAnchor } | null>(null);
   const job = useMemo(() => (choice ? oddsOf(save, [...party, choice.hero.id]) : null), [choice, oddsOf, save, party]);
   const after = useOdds(job);
   const { height } = useWindowDimensions();
@@ -128,22 +130,9 @@ export function HeroPicker({ save, party, groups, ordinal, now, oddsOf, chance, 
                   families={[{ family: heroClasses[choice.hero.classId].familyTag, count: 1 }]}
                   accessibilityLabel={tr(heroClasses[choice.hero.classId].name)}
                 />
-                {GEAR_SLOTS.map((slot) => {
-                  const uid = choice.hero.equipment[slot];
-                  const gear = uid ? save.gear.find((g) => g.uid === uid) : undefined;
-                  const item = gear ? (itemById[gear.itemId] as GearDef) : undefined;
-                  return (
-                    <ItemSlot
-                      key={slot}
-                      state={gear ? 'ready' : 'empty'}
-                      emoji={item?.emoji}
-                      icon={gear ? gearIconOf(gear) : undefined}
-                      size={40}
-                      families={item ? gearFamilyTags(item, gear?.relicId) : undefined}
-                      accessibilityLabel={`${t(`hero.slots.${slot}`)}: ${gear ? gearName(gear) : t('hero.empty')}`}
-                    />
-                  );
-                })}
+                {GEAR_SLOTS.map((slot) => (
+                  <MiniGear key={slot} save={save} hero={choice.hero} slot={slot} onOpen={(gear, anchor) => setOpenGear({ gear, slot, anchor })} />
+                ))}
               </View>
               {(choice.lights.length > 0 || choice.changes.length > 0) && (
                 <View style={styles.lightsRow}>
@@ -167,7 +156,45 @@ export function HeroPicker({ save, party, groups, ordinal, now, oddsOf, chance, 
           />
         </View>
       </View>
+      {openGear && choice && (
+        <AnchoredPopup
+          anchor={openGear.anchor}
+          onClose={() => setOpenGear(null)}
+          render={(pointer) => <GearCard gear={openGear.gear} compare={{ save, heroId: choice.hero.id, slot: openGear.slot }} pointer={pointer} />}
+        />
+      )}
     </Overlay>
+  );
+}
+
+/** One of the picked hero's gear slots, small, with its family gems; tapping a piece opens its card. */
+function MiniGear({
+  save,
+  hero,
+  slot,
+  onOpen,
+}: {
+  save: SaveData;
+  hero: HeroState;
+  slot: GearSlot;
+  onOpen: (gear: GearInstance, anchor: PopupAnchor) => void;
+}) {
+  const wrapper = useRef<ComponentRef<typeof View>>(null);
+  const uid = hero.equipment[slot];
+  const gear = uid ? save.gear.find((g) => g.uid === uid) : undefined;
+  const item = gear ? (itemById[gear.itemId] as GearDef) : undefined;
+  return (
+    <View ref={wrapper} collapsable={false}>
+      <ItemSlot
+        state={gear ? 'ready' : 'empty'}
+        emoji={item?.emoji}
+        icon={gear ? gearIconOf(gear) : undefined}
+        size={40}
+        families={item ? gearFamilyTags(item, gear?.relicId) : undefined}
+        accessibilityLabel={`${t(`hero.slots.${slot}`)}: ${gear ? gearName(gear) : t('hero.empty')}`}
+        onPress={gear ? () => wrapper.current?.measureInWindow((x, y, width, height) => onOpen(gear, { x, y, width, height })) : undefined}
+      />
+    </View>
   );
 }
 

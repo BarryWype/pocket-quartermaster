@@ -2,28 +2,25 @@ import { useMemo, useRef, useState, type ComponentRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { gearTypeNames } from '@/content/equipment';
 import { familyById } from '@/content/families';
-import { rarityNames } from '@/content/gear';
 import { gearName } from '@/content/lookup';
-import { forgeChoices, gearChoices, shortFamilies, type ForgeChoice, type GearChoice, type GearSlot, type SocketGroup } from '@/game/expeditions/party';
+import { forgeChoices, gearChoices, shortFamilies, type ForgeChoice, type GearSlot, type SocketGroup } from '@/game/expeditions/party';
 import { gearFamilyTags } from '@/game/families/families';
 import { gearIconOf } from '@/game/gear/gearIcon';
 import type { SaveData } from '@/game/save';
-import { affinityOf, equipPreview } from '@/game/team/team';
 import { useOdds, type OddsJob } from '@/hooks/useOdds';
 import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { fonts, ui } from '@/theme';
 
-import { DELTA_KEYS } from './EquipPicker';
+import { GearCard } from './GearDetails';
 import { ForgeConfirmDialog, ingredientsOf, ROMAN, type ForgePending, type PopupAnchor } from './ForgeConfirmDialog';
 import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
 import { OddsChange } from './PartyOdds';
 import { lightsLine, stillNeeded } from './partyText';
 import { Text } from './Text';
-import { EmberButton, ItemSlot, ParchmentCard } from './ui';
+import { EmberButton, ItemSlot } from './ui';
 
 type Props = {
   save: SaveData;
@@ -41,17 +38,6 @@ type Props = {
 
 const COLUMNS = 5;
 const GAP = 10;
-
-/** "Magic +2 · Armour −3": the hero's stat changes with the piece on. */
-function statLine(save: SaveData, heroId: string, slot: GearSlot, choice: GearChoice): string {
-  if (choice.worn || choice.blocked) return '';
-  const preview = equipPreview(save, heroId, slot, choice.gear.uid);
-  if (!preview) return '';
-  return DELTA_KEYS.flatMap((key) => {
-    const delta = Math.round(preview.after[key] - preview.before[key]);
-    return delta ? [`${t(`hero.statNames.${key}`)} ${delta > 0 ? '+' : '−'}${Math.abs(delta)}`] : [];
-  }).join(' · ');
-}
 
 /** One blueprint in the Forge section: the piece with its gems and ▲, its tier, and each material held against needed. */
 function ForgeRow({ choice, selected, onOpen }: { choice: ForgeChoice; selected: boolean; onOpen: (anchor: PopupAnchor) => void }) {
@@ -136,9 +122,7 @@ export function GearPicker({ save, party, heroId, slot, groups, oddsOf, chance, 
   const size = Math.floor((width - 28 - GAP * (COLUMNS - 1)) / COLUMNS) - 4;
   const worn = choices.find((c) => c.worn);
   const sub = stillNeeded(groups);
-  const stats = choice ? statLine(save, heroId, slot, choice) : '';
   const lights = choice ? lightsLine(choice, groups) : '';
-  const affinity = choice ? affinityOf(hero.classId, choice.item.gearType) : null;
   const forge = () => {
     if (!forging) return;
     const { recipeId, ingredientId } = forging.pending;
@@ -202,19 +186,10 @@ export function GearPicker({ save, party, heroId, slot, groups, oddsOf, chance, 
           </View>
           {short.length > 0 && <Text style={styles.footnote}>{t('partyDialog.legend')}</Text>}
           {choice && (
-            <ParchmentCard
-              title={gearName(choice.gear)}
-              titleEmoji={choice.item.emoji}
-              titleIcon={gearIconOf(choice.gear)}
-              titleIconLegendary={choice.gear.rarity === 'legendary'}
-              titleSub={[
-                tr(rarityNames[choice.gear.rarity]),
-                choice.item.gearType ? tr(gearTypeNames[choice.item.gearType].name) : null,
-                choice.blocked ? t('partyDialog.cannot', { name: hero.name }) : t(`partyDialog.affinity.${affinity ?? 'usable'}`, { name: hero.name }),
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-              contentStyle={styles.card}
+            <GearCard
+              gear={choice.gear}
+              compare={{ save, heroId, slot }}
+              lines={choice.blocked ? [{ tone: 'bad', text: t('partyDialog.cannot', { name: hero.name }) }] : undefined}
             >
               {lights !== '' && (
                 <View style={styles.lightsRow}>
@@ -226,10 +201,9 @@ export function GearPicker({ save, party, heroId, slot, groups, oddsOf, chance, 
                   <Text style={[styles.lights, choice.lights.length > 0 && styles.good]}>{lights}</Text>
                 </View>
               )}
-              {stats !== '' && <Text style={styles.line}>{stats}</Text>}
               {choice.holder && !choice.worn && <Text style={styles.line}>{t('partyDialog.takesFrom', { name: choice.holder.name })}</Text>}
               {!choice.worn && !choice.blocked && <OddsChange before={chance} after={after} />}
-            </ParchmentCard>
+            </GearCard>
           )}
           {forgeable.length > 0 && (
             <>
@@ -306,8 +280,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 0,
   },
   footnote: { fontFamily: fonts.serif, fontSize: 14, color: ui.onWoodMuted },
-  card: { gap: 8, paddingHorizontal: 16, paddingVertical: 12 },
-  lightsRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  lightsRow: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', gap: 8 },
   lightsIcon: { width: 26, height: 26, alignItems: 'center', justifyContent: 'center', backgroundColor: ui.woodDeep, borderWidth: 2, borderColor: ui.brass },
   lights: { flex: 1, fontFamily: fonts.serifBold, fontSize: 15, color: ui.inkMuted },
   good: { color: ui.good },

@@ -6,7 +6,7 @@ import { Text } from '@/components/Text';
 import { Countdown, countdownText } from '@/components/Countdown';
 import { TutorialHint } from '@/components/TutorialHint';
 import { StepChests } from '@/components/StepChests';
-import { GearDetails, GearSubtitle } from '@/components/GearDetails';
+import { GearCard } from '@/components/GearDetails';
 import { SalvageDialog } from '@/components/SalvageDialog';
 import { bossById } from '@/content/enemies';
 import { lootConfig } from '@/content/loot/config';
@@ -365,6 +365,19 @@ function InventoryPopup({
 }) {
   const readManual = useGameStore((state) => state.readManual);
   const top = lootConfig.manuals.topLevelByTier;
+  if (row.kind === 'gear') {
+    const gear = row.gear;
+    const holder = wornBy(save, gear.uid);
+    return (
+      <GearCard
+        gear={gear}
+        pointer={pointer}
+        note={holder ? t('common.equippedBy', { name: holder.name }) : undefined}
+        labelStyle={styles.line}
+        action={{ title: t('inventory.salvage'), disabled: !canSalvage(save, gear.uid), onPress: () => onSalvage(gear) }}
+      />
+    );
+  }
   let title: string;
   let emoji: string;
   let icon: ImageSourcePropType | undefined;
@@ -408,20 +421,6 @@ function InventoryPopup({
           )}
         </>
       );
-      break;
-    }
-    case 'gear': {
-      const gear = row.gear;
-      const item = itemById[gear.itemId];
-      const holder = wornBy(save, gear.uid);
-      title = gearName(gear);
-      emoji = item.emoji;
-      icon = gearIconOf(gear);
-      legendary = gear.rarity === 'legendary' ? true : undefined;
-      subtitle = <GearSubtitle gear={gear} />;
-      note = holder ? t('common.equippedBy', { name: holder.name }) : undefined;
-      children = <GearDetails gear={gear} compact labelStyle={styles.line} />;
-      action = { title: t('inventory.salvage'), disabled: !canSalvage(save, gear.uid), onPress: () => onSalvage(gear) };
       break;
     }
     case 'consumable': {
