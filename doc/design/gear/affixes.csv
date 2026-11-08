@@ -26,7 +26,7 @@ nullAffix,Null,part:ritualCandle,caster,defensive,Less damage from casters,−15
 predatorsEye,Predator's eye,part:fangOrHorn,beast,helmet,+Crit against beasts,+10–25%,
 farSight,Far sight,part:feather,bird,helmet,+Speed in the first round of each fight,+2–5,
 purifying,Purifying,part:venomSac,vermin,helmet,Poison on the wearer wears off faster,−20–40% duration,Adds to Antivenom
-steadyHead,Steady head,part:chitin,carapace,helmet,Enemies crit the wearer less often,−30–60%,Heroes are never staggered or stunned: it resists crushing blows instead
+coolHead,Steady head,part:chitin,carapace,helmet,Enemies crit the wearer less often,−30–60%,Heroes are never staggered or stunned: it resists crushing blows instead
 unafraid,Unafraid,part:graveDust,undead,helmet,Less damage from undead,−10–25%,
 clearMind,Clear mind,part:ectoplasm,spirit,helmet,Less damage from magic attacks,−5–15%,
 haggler,Haggler,part:goblinEar,goblinoid,helmet,Lower shop prices,−5–12%,Counts once per roster at its best value

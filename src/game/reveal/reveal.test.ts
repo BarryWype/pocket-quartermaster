@@ -236,7 +236,7 @@ describe('quest objectives', () => {
 describe('tips state', () => {
   it('starts with no counters and no tips', () => {
     const save = createInitialSave();
-    expect(save.stats).toEqual({ patrolsWon: 0, questsDone: 0 });
+    expect(save.stats).toEqual({ patrolsWon: 0, questsDone: 0, expeditionsLaunched: 0 });
     expect(save.tips).toEqual({ seen: [], pending: [] });
   });
 

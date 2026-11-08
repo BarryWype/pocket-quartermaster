@@ -344,7 +344,7 @@ export const affixes: AffixDef[] = [
     unit: 'pct',
   },
   {
-    id: 'steadyHead',
+    id: 'coolHead',
     name: 'Steady head',
     nameFr: 'Tête froide',
     group: 'carapace',

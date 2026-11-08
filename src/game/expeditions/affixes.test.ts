@@ -213,7 +213,7 @@ describe('helmet affixes', () => {
     const rules = { ...steady, enemyCritChance: 1, maxRounds: 1 };
     const taken = (affixes: Record<string, number>) => bossFight([member('a', affixes)], { damage: 50 }, rules).fight.taken.a;
     expect(taken({})).toBeCloseTo(50 * calm.critMultiplier, 5);
-    expect(taken({ steadyHead: 100 })).toBeCloseTo(50, 5);
+    expect(taken({ coolHead: 100 })).toBeCloseTo(50, 5);
   });
 
   it('Unafraid blunts hits from undead; Clear mind magic hits', () => {
