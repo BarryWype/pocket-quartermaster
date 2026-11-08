@@ -23,6 +23,8 @@ import type { ActiveThreat, Briefing, ExpeditionReport, GearDef, GearInstance, H
 import { sellGoodsAmount } from "./quests/unlocks";
 import type { Quest } from "./quests/types";
 import { rolledSpecial } from "./team/specials";
+import { STARTING_ARMOUR } from "./crafting/recipeUnlocks";
+import { isTutorialDungeon } from "./tutorial/tutorial";
 
 /**
  * Version 31: the collector quest now names the valuable it wants, chosen from
@@ -525,6 +527,29 @@ export function toV43(save: SaveData): SaveData {
   };
 }
 
+/**
+ * Version 44: helmets and the safe start. Every hero gets an empty helmet
+ * slot, every armour and helmet type is learnt at tier 1, and the launched
+ * expedition count starts at what the save shows (running and reported
+ * expeditions, the tutorial's left out), at least 2, so an existing save gets
+ * no threat-free runs.
+ */
+export function toV44(save: SaveData): SaveData {
+  const old = save as SaveData & { stats: Partial<SaveData["stats"]> };
+  const done =
+    save.heroes.every((hero) => hero.equipment.helmet !== undefined) &&
+    STARTING_ARMOUR.every((id) => save.knownRecipes.includes(id)) &&
+    old.stats.expeditionsLaunched !== undefined;
+  if (done) return save;
+  const launched = [...save.expeditions, ...save.reports].filter((e) => !isTutorialDungeon(e.dungeonId)).length;
+  return {
+    ...save,
+    heroes: save.heroes.map((hero) => ({ ...hero, equipment: { ...hero.equipment, helmet: hero.equipment.helmet ?? null } })),
+    knownRecipes: [...new Set([...save.knownRecipes, ...STARTING_ARMOUR])],
+    stats: { ...save.stats, expeditionsLaunched: old.stats.expeditionsLaunched ?? Math.max(2, launched) },
+  };
+}
+
 /** Applies the migration steps in order, from the save's own version on. */
 export function migrateSave(
   save: SaveData,
@@ -545,5 +570,6 @@ export function migrateSave(
   if (fromVersion < 41) next = toV41(next);
   if (fromVersion < 42) next = toV42(next);
   if (fromVersion < 43) next = toV43(next);
+  if (fromVersion < 44) next = toV44(next);
   return next;
 }

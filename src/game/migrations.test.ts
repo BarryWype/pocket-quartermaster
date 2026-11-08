@@ -7,7 +7,7 @@ import { gearRules } from "@/content/gear";
 import { affixById } from "@/content/affixes";
 import { gearStats } from "./gear/stats";
 import { uniquePool } from "./gear/uniques";
-import { migrateSave, toV38, toV39, toV40, toV41, toV42, toV43 } from "./migrations";
+import { migrateSave, toV38, toV39, toV40, toV41, toV42, toV43, toV44 } from "./migrations";
 import { affixPool } from "./gear/affixes";
 import { emptyLoot } from "./loot/types";
 import type { Briefing, ExpeditionReport, GearDef, GearInstance } from "./types";
@@ -740,7 +740,7 @@ describe("toV43", () => {
   };
 
   it("learns the new starting blueprints and keeps the known ones", () => {
-    const next = migrateSave(v42(), 42, 0);
+    const next = toV43(v42());
     expect(next.knownRecipes).toEqual(["sword1", "mail1", "axe2", "spear1", "lute1", "flasks1", "focus1", "knuckles1"]);
     expect(toV43(next).knownRecipes).toEqual(next.knownRecipes);
   });
@@ -752,3 +752,47 @@ describe("toV43", () => {
     expect(next.reports[0].briefing!.restriction).toBeNull();
   });
 });
+
+describe("toV44", () => {
+  /** A version 43 save: heroes without a helmet slot, no launched count, two reported runs and one running. */
+  const v43 = (): SaveData => {
+    const base = createInitialSave();
+    return {
+      ...base,
+      heroes: base.heroes.map(({ equipment: { helmet: _helmet, ...equipment }, ...hero }) => ({ ...hero, equipment })),
+      stats: { patrolsWon: 1, questsDone: 2 },
+      knownRecipes: ["sword1", "mail1", "axe2"],
+      gear: [{ uid: "g1", itemId: "plate2", rarity: "rare", roll: 9, affixes: [{ id: "thickHide", value: 20 }, { id: "light", value: 3 }], rerolls: 1 }],
+      expeditions: [{ id: "e1", dungeonId: "goblinWarren" }] as unknown as SaveData["expeditions"],
+      reports: [{ id: "r1", dungeonId: "wolfDen" }, { id: "r2", dungeonId: "goblinWarren" }, { id: "r0", dungeonId: "ratCellar" }] as unknown as SaveData["reports"],
+    } as unknown as SaveData;
+  };
+
+  it("gives every hero an empty helmet slot and keeps what they wear", () => {
+    const old = v43();
+    const next = migrateSave(old, 43, 0);
+    expect(next.heroes.map((h) => h.equipment.helmet)).toEqual(old.heroes.map(() => null));
+    expect(next.heroes.map(({ equipment: { helmet: _helmet, ...rest } }) => rest)).toEqual(old.heroes.map((h) => h.equipment));
+    expect(next.gear).toEqual(old.gear);
+  });
+
+  it("learns every armour and helmet type at tier 1 and keeps the known blueprints", () => {
+    const next = migrateSave(v43(), 43, 0);
+    expect(next.knownRecipes).toEqual([
+      "sword1", "mail1", "axe2",
+      "plate1", "leather1", "robes1", "greatHelm1", "sallet1", "hood1", "plagueMask1", "runeCirclet1",
+    ]);
+  });
+
+  it("counts the launched expeditions, the tutorial's left out, at least 2, so no threat-free runs follow", () => {
+    expect(migrateSave(v43(), 43, 0).stats).toEqual({ patrolsWon: 1, questsDone: 2, expeditionsLaunched: 3 });
+    const fresh = { ...v43(), expeditions: [], reports: [] } as SaveData;
+    expect(migrateSave(fresh, 43, 0).stats.expeditionsLaunched).toBe(2);
+  });
+
+  it("leaves a version 44 save as it is", () => {
+    const save = createInitialSave();
+    expect(toV44(save)).toBe(save);
+  });
+});
+
