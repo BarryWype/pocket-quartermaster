@@ -1,3 +1,6 @@
+import { gearId, gearRecipes } from '@/content/equipment';
+import type { GearType } from '@/game/types';
+
 import { createInitialSave, type SaveData } from '../save';
 import { equip } from '../team/team';
 import type { GearInstance } from '../types';
@@ -77,6 +80,17 @@ describe('salvage dialog', () => {
 });
 
 describe('salvage returns', () => {
+  it('gives materials back for a Common of every looted gear type and tier, helmets included', () => {
+    for (const type of Object.keys(gearRecipes) as GearType[]) {
+      gearRecipes[type].forEach((recipes, i) => {
+        if (recipes.length === 0) return;
+        const returned = salvageReturns(piece(gearId(type, i + 1)));
+        expect(returned.length).toBeGreaterThan(0);
+        expect(returned.every((stack) => stack.amount > 0)).toBe(true);
+      });
+    }
+  });
+
   it('never returns a monster part', () => {
     const save: SaveData = { ...createInitialSave(), gear: [piece('sword1', 'uncommon', { affixes: [{ id: 'hunter', value: 20 }] })] };
     const salvaged = salvage(save, 'g1');

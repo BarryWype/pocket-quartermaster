@@ -14,6 +14,15 @@ describe('grantLoot', () => {
     expect(save.gold).toBe(25);
   });
 
+  it('keeps every looted piece: the gear inventory has no cap', () => {
+    // Five tiers of looted gear and trinkets for a regular player who never salvages: about 45 a week.
+    const pieces = Array.from({ length: 300 }, (_, i) => ({ uid: '' as const, itemId: i % 2 ? 'sword3' : 'greatHelm3', rarity: 'common' as const }));
+    const start = createInitialSave();
+    const save = grantLoot(start, [], { ...emptyLoot(), gear: pieces }, NOW);
+    expect(save.gear.length).toBe(start.gear.length + 300);
+    expect(new Set(save.gear.map((g) => g.uid)).size).toBe(save.gear.length);
+  });
+
   /** A save whose heroes wear a weapon with the given affix, by hero id. */
   const wornAffix = (affixId: string, values: Record<string, number>): SaveData => {
     const base = createInitialSave();

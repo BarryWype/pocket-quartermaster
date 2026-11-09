@@ -61,6 +61,10 @@ Families ask players to swap gear for each place, over four gear slots (weapon, 
 - Type: random, but 30% of the time (`lootConfig.usefulDrops`) one of the useful types (`src/game/loot/useful.ts`): the types carrying a threat family that one of the briefings open at the player's tier needs and that no free hero can wear yet (a free hero could wear the type, but the roster holds no piece of it of the tier or one below that isn't away on a run); failing those, the types some hero could wear that the roster owns none of. Rolls without a clock (the background escort) stay random.
 - Tier: expeditions give the dungeon's tier; map events, patrols and the lair give the player's tier 70% of the time, one below 30%, never more than one below.
 
+### Inventory
+- The gear inventory has no cap, so more loot never turns pieces away; a regular player who never salvages gains about 45 pieces a week (gear and trinkets). No auto-salvage for now (revisit if the gear page gets unwieldy).
+- Salvage gives back a share of the piece's recipe by rarity (40% for a Common, at least 1 of the first input) for every gear type and tier, helmets included, or gold for a trinket; never a monster part.
+
 ### Blueprints
 - One per forgeable type and tier (110). Never a duplicate: a drop picks an unknown one of the source's tier, weighted towards types the roster favours. Once the tier is complete it gives 2–3 monster parts of the enemies' family instead, or gold (30 × the tier's gold curve) from a source without enemies (`lootConfig.blueprints`).
 - The player starts with two tier 1 blueprints (one weapon, one armour). The first tutorial dungeon (always won) gives a third through the normal first-win-of-the-day rule.
