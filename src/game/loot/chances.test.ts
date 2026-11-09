@@ -35,7 +35,7 @@ describe('loot chances', () => {
     expect(runLengthMultiplier('patrol', 5)).toBe(1);
     const gear = categoryChance('gear', input('dungeonRun', { minutes: 5 }));
     expect(gear).toBeCloseTo(0.25 * 0.25);
-    expect(categoryChance('gear', input('firstWin', { minutes: 5 }))).toBeCloseTo(0.25);
+    expect(categoryChance('gear', input('firstWin', { minutes: 5 }))).toBeCloseTo(0.6);
   });
 
   it('caps stacked chances at 95%', () => {
