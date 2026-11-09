@@ -42,7 +42,7 @@ import type { LatLng } from '../generation/types';
 import { buyRank, guildBonus, isGuildUnlocked, rankPrice, rankProblem } from '../guild/guild';
 import { hasMaterials } from '../inventory';
 import { addAnchor } from '../jobs/gatherer';
-import { assignJob, collectJob, isJobOpen, jobChoices, jobMaterials, jobOutputDetail, jobWorker, openJobs, recallFromJob, setJobChoice } from '../jobs/jobs';
+import { assignJob, collectJob, isJobOpen, jobChoices, jobMaterials, jobOutputDetail, jobWorker, openJobs, recallFromJob, setJobChoice, wornWorkTool } from '../jobs/jobs';
 import { isRevealed } from '../reveal/reveal';
 import type { PatrolKind, PatrolSubject, TravellerKind } from '../patrols/generate';
 import type { TravellerReward } from '../patrols/travellers';
@@ -934,6 +934,16 @@ export function assignJobs(sim: Sim) {
     if (!free.length) continue;
     const pick = [...free].sort((a, b) => statScore(sim.save, a) - statScore(sim.save, b))[0];
     act(sim, 'job', (save) => assignJob(save, pick.id, job.id, sim.now));
+  }
+  // A worker whose tool was swapped out for a run puts back the best one held for their job.
+  for (const job of openJobs(sim.save)) {
+    const worker = jobWorker(sim.save, job.id);
+    if (!worker || wornWorkTool(sim.save, worker)?.job === job.id) continue;
+    const worn = new Set(sim.save.heroes.map((h) => h.equipment.offhand));
+    const tool = sim.save.gear
+      .filter((g) => !worn.has(g.uid) && (itemById[g.itemId] as GearDef).workTool?.job === job.id)
+      .sort((a, b) => (itemById[b.itemId] as GearDef).tier - (itemById[a.itemId] as GearDef).tier)[0];
+    if (tool && equipPreview(sim.save, worker.id, 'offhand', tool.uid)) act(sim, 'equip', (save) => equip(save, worker.id, 'offhand', tool.uid));
   }
   // The miner digs the unlocked ore the bot holds least of; assignJob above may have just picked another.
   const ores = [...jobChoices(sim.save, 'miner')].sort((a, b) => (sim.save.materials[a] ?? 0) - (sim.save.materials[b] ?? 0));

@@ -118,10 +118,10 @@ describe('tier 1 opens up as the team gears up', () => {
   });
 
   it('does not let levels replace gear', () => {
-    // The boss is tuned past the reference kit at the band's top: compare two levels up.
     const levelled = swordOnly(5);
     const kit = team(5, 'wood');
     expect(chance(levelled, dungeonById.goblinWarren)).toBeLessThan(chance(kit, dungeonById.goblinWarren) - 0.3);
-    expect(chance(levelled, dungeonById.banditStockade)).toBeLessThan(chance(kit, dungeonById.banditStockade) - 0.2);
+    // The boss is fitted to a full roster's party at the band's top, past this trio: compare four levels up.
+    expect(chance(swordOnly(7), dungeonById.banditStockade)).toBeLessThan(chance(team(7, 'wood'), dungeonById.banditStockade) - 0.2);
   });
 });

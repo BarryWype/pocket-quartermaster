@@ -147,7 +147,7 @@ describe('balance lab', () => {
   });
 
   it('counts the work-tool scavenge in the tools’ share of walking', () => {
-    const log = runSim({ profile: 'regular', maxDays: 21, seed: 'tools', rates });
+    const log = runSim({ profile: 'regular', maxDays: 35, seed: 'tools', rates });
     const lines = summarize([log])
       .tiers.flatMap((tier) => Object.values(tier.tools ?? {}))
       .filter((line) => line.walked.median !== null && line.walked.median > 0);
