@@ -14,14 +14,14 @@ import { createRng, type Rng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { addMaterials } from '../inventory';
 import { partyCharms } from '../loot/charms';
-import { sourceAmounts } from '../loot/context';
+import { lootContextOf, sourceAmounts } from '../loot/context';
 import { grantLoot } from '../loot/grant';
 import { mergeLoot, rollSourceLoot } from '../loot/roll';
 import { emptyLoot, type Loot, type LootModifier, type LootSourceId } from '../loot/types';
 import type { SaveData } from '../save';
 import { applyRunHp, isExhausted } from '../team/health';
 import { isBusy } from '../team/team';
-import type { BossDef, Briefing, DungeonDef, EncounterDef, ExpeditionReport } from '../types';
+import type { BossDef, Briefing, DungeonDef, EncounterDef, ExpeditionReport, GearType } from '../types';
 import { isPatrolKind, pruneByWindow, wyvernElement, type PatrolKind, type PatrolSpawn } from './generate';
 import { distanceTo, isGone } from './visibility';
 import { questEvent } from '../quests/progress';
@@ -50,14 +50,17 @@ export type RewardContext = {
   pickaxeTier: number;
   /** The highest unlocked tier, for looted gear. */
   playerTier: number;
+  /** Gear types a looted piece leans towards (loot/useful.ts); none for the background escort. */
+  usefulTypes?: GearType[];
 };
 
-export const rewardContextOf = (save: SaveData, luck = 0, modifiers: LootModifier[] = []): RewardContext => ({
+export const rewardContextOf = (save: SaveData, luck = 0, modifiers: LootModifier[] = [], now?: number): RewardContext => ({
   goldMultiplier: 1 + guildBonus(save, 'gold'),
   luck,
   modifiers,
   pickaxeTier: pickaxeTier(save),
   playerTier: highestUnlockedTier(save),
+  ...(now === undefined ? {} : { usefulTypes: lootContextOf(save, now).usefulTypes }),
 });
 
 /** Every patrol kind rolls the same Patrol row; its material theme comes with the kind. */
@@ -120,7 +123,7 @@ export function patrolRewards(
     difficulty: spawn.difficulty ?? undefined,
     patrolKind: spawn.kind,
     base: { gold: Math.round(amounts.gold * elites * context.goldMultiplier), xp: Math.round(amounts.xp * elites) },
-    context: { playerTier: context.playerTier, pickaxeTier: context.pickaxeTier, knownRecipes: [], favourCounts: {} },
+    context: { playerTier: context.playerTier, pickaxeTier: context.pickaxeTier, knownRecipes: [], favourCounts: {}, usefulTypes: context.usefulTypes },
     rng,
   });
 }
@@ -196,7 +199,7 @@ export function startPatrolFight(
   const run = simulateRun(party, dungeon, `${id}|${spawn.id}`, patrolRunOptions(spawn));
   // A special's extra loot rolls draw from their own derived seeds.
   const rollRewards = (rng: Rng) =>
-    patrolRewards(rewardContextOf(save, party.reduce((sum, m) => sum + m.luck, 0), partyCharms(party)), spawn, tier, elite, foughtEnemies(run), rng);
+    patrolRewards(rewardContextOf(save, party.reduce((sum, m) => sum + m.luck, 0), partyCharms(party), now), spawn, tier, elite, foughtEnemies(run), rng);
   let rewards: Loot = run.bossDefeated ? rollRewards(createRng(`${id}|rewards`)) : emptyLoot();
   for (let i = 0; i < run.extraLootRolls; i++) rewards = mergeLoot(rewards, rollRewards(createRng(`${id}|rewards|extra|${i}`)));
 

@@ -29,8 +29,8 @@ export function questLuck(save: SaveData): number {
 }
 
 /** What a quest pays, fixed by its id and this save's seed: its band's row with the roster's Luck, no charms. */
-export function questLoot(save: SaveData, quest: Quest): Loot {
-  return rollForSave(save, QUEST_SOURCES[quest.band], createRng(`quest-loot|${save.playerSeed}|${quest.id}`), { luck: questLuck(save) });
+export function questLoot(save: SaveData, quest: Quest, now?: number): Loot {
+  return rollForSave(save, QUEST_SOURCES[quest.band], createRng(`quest-loot|${save.playerSeed}|${quest.id}`), { luck: questLuck(save) }, now);
 }
 
 export function claimProblem(save: SaveData, questId: string): 'gone' | 'notDone' | null {
@@ -43,7 +43,7 @@ export function claimProblem(save: SaveData, questId: string): 'gone' | 'notDone
 export function claimQuest(save: SaveData, questId: string, now: number): { save: SaveData; loot: Loot } {
   const quest = save.quests.list.find((q) => q.id === questId);
   if (!quest || claimProblem(save, questId) !== null) throw new Error(`Cannot claim quest ${questId}`);
-  const loot = questLoot(save, quest);
+  const loot = questLoot(save, quest, now);
   const paid = grantLoot(save, [], loot, now);
   return { save: { ...paid, quests: { ...paid.quests, list: paid.quests.list.filter((q) => q.id !== questId) } }, loot };
 }

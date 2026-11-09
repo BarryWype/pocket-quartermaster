@@ -156,6 +156,8 @@ export const lootConfig = {
      */
     upgrades: { basic: { rare: 0.04, legendary: 0.0125 } } as Partial<Record<'basic' | 'big' | 'boss', { rare: number; legendary: number }>>,
   },
+  /** A looted gear piece picks its type among the useful types this share of the time (loot/useful.ts), else among all. */
+  usefulDrops: { share: 0.3 },
   treasureMaps: {
     rarityWeights: { common: 70, rare: 25, legendary: 5 } as Record<MapRarity, number>,
     distanceMeters: { common: [200, 800], rare: [800, 1500], legendary: [1500, 2000] } as Record<MapRarity, [number, number]>,

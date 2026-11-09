@@ -37,13 +37,13 @@ export function readTreasureMap(save: SaveData, mapId: string, position: LatLng,
 }
 
 /** What a map's treasure holds: the treasure spot row at the map's tier, scaled by its rarity, fixed by the map's id. */
-export function treasureContents(save: SaveData, map: TreasureMap): Loot {
+export function treasureContents(save: SaveData, map: TreasureMap, now?: number): Loot {
   const amounts = sourceAmounts('treasureSpot', map.tier);
   return rollForSave(save, 'treasureSpot', createRng(`treasure|${map.id}|loot`), {
     tier: map.tier,
     mapRarity: map.rarity,
     base: { gold: Math.round(amounts.gold * (1 + guildBonus(save, 'gold'))), xp: 0 },
-  });
+  }, now);
 }
 
 /**
@@ -60,7 +60,7 @@ export function collectTreasure(
   const map = liveTreasureMaps(save, now).find((m) => m.id === mapId);
   if (!map?.location) throw new Error(`Treasure map ${mapId} has not been read`);
   if (distanceMeters(player, treasureAt) > gatheringConfig.collectRadiusMeters) throw new Error('Too far from the treasure');
-  const contents = treasureContents(save, map);
+  const contents = treasureContents(save, map, now);
   const granted = grantLoot({ ...save, treasureMaps: save.treasureMaps.filter((m) => m.id !== mapId) }, [], contents, now);
   return { contents, save: granted };
 }

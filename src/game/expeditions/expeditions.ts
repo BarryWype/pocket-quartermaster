@@ -293,7 +293,7 @@ export function tutorialLoot(save: SaveData, now: number): Loot {
     modifiers: [],
     enemies: dungeon.encounters.flatMap((encounter) => (encounter.type === 'fight' ? encounter.mobs.map((m) => m.mobId) : [])),
     base: { gold: Math.round(dungeon.gold[1] * row.gold), xp: Math.round(dungeon.xp * row.xp) },
-    context: lootContextOf(save),
+    context: lootContextOf(save, now),
     rng: createRng(tutorialRules.lootSeed),
   });
   if (loot.recipeIds.length > 0 && !save.knownRecipes.includes(tutorialRules.blueprintRecipe)) {
@@ -421,7 +421,7 @@ export function resolveExpedition(
     dungeon.chainIndex !== undefined &&
     !dungeon.isBoss &&
     !save.clearedDungeons.includes(dungeon.id);
-  const context = lootContextOf(save);
+  const context = lootContextOf(save, expedition.endsAt);
   const enemies = run.encounters.flatMap((e) => e.mobs.map((m) => m.mobId));
   const source = dungeonLootSource(dungeon);
   // Barren runs take no gold bonus from charms.

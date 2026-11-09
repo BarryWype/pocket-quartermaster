@@ -3,7 +3,8 @@ import { difficultyRules, type Difficulty } from '@/content/difficulty';
 import { gearRecipes } from '@/content/equipment';
 import { lootConfig } from '@/content/loot/config';
 
-import { highestUnlockedTier } from '../dungeons/unlock';
+import { dailyRotation, briefingFor, rotationDay } from '../dungeons/rotation';
+import { highestUnlockedTier, isDungeonUnlocked } from '../dungeons/unlock';
 import { pickaxeTier } from '../gathering/gathering';
 import type { Rng } from '../generation/rng';
 import { guildBonus } from '../guild/guild';
@@ -11,21 +12,26 @@ import type { GearType } from '../types';
 import type { SaveData } from '../save';
 import { affinityOf } from '../team/team';
 import { rollSourceLoot, type LootContext, type LootRequest } from './roll';
+import { usefulGearTypes } from './useful';
 import type { Loot, LootSourceId } from './types';
 
-/** What the generators read from the save: tiers, known blueprints and the types the roster favours. */
-export function lootContextOf(save: SaveData): LootContext {
+/**
+ * What the generators read from the save: tiers, known blueprints, the types
+ * the roster favours and, given the time, the useful gear types for the
+ * briefings open now at the player's tier.
+ */
+export function lootContextOf(save: SaveData, now?: number): LootContext {
   const favourCounts: Partial<Record<GearType, number>> = {};
   for (const type of Object.keys(gearRecipes) as GearType[]) {
     const count = save.heroes.filter((h) => affinityOf(h.classId, type) === 'favoured').length;
     if (count > 0) favourCounts[type] = count;
   }
-  return {
-    playerTier: highestUnlockedTier(save),
-    pickaxeTier: pickaxeTier(save),
-    knownRecipes: save.knownRecipes,
-    favourCounts,
-  };
+  const playerTier = highestUnlockedTier(save);
+  const context: LootContext = { playerTier, pickaxeTier: pickaxeTier(save), knownRecipes: save.knownRecipes, favourCounts };
+  if (now === undefined) return context;
+  const rotation = dailyRotation(rotationDay(now));
+  const briefings = dungeons.filter((d) => d.tier === playerTier && !d.overnight && isDungeonUnlocked(save, d)).map((d) => briefingFor(rotation, d));
+  return { ...context, usefulTypes: usefulGearTypes(save, briefings, playerTier) };
 }
 
 const shortDungeon = (tier: number) => dungeons.find((d) => d.tier === tier && d.chainIndex === 0)!;
@@ -48,9 +54,10 @@ export function sourceAmounts(source: LootSourceId, tier: number, difficulty?: D
 
 /**
  * A source's loot at the player's tier: its gold (with the Guild Hall gold
- * bonus) and XP from `sourceAmounts`, no Luck or charms unless given.
+ * bonus) and XP from `sourceAmounts`, no Luck or charms unless given; given
+ * the time, its gear leans towards useful types.
  */
-export function rollForSave(save: SaveData, source: LootSourceId, rng: Rng, options: Partial<LootRequest> = {}): Loot {
+export function rollForSave(save: SaveData, source: LootSourceId, rng: Rng, options: Partial<LootRequest> = {}, now?: number): Loot {
   const tier = highestUnlockedTier(save);
   const amounts = sourceAmounts(source, tier, options.difficulty);
   return rollSourceLoot({
@@ -60,7 +67,7 @@ export function rollForSave(save: SaveData, source: LootSourceId, rng: Rng, opti
     modifiers: [],
     enemies: [],
     base: { gold: Math.round(amounts.gold * (1 + guildBonus(save, 'gold'))), xp: amounts.xp },
-    context: lootContextOf(save),
+    context: lootContextOf(save, now),
     rng,
     ...options,
   });

@@ -14,6 +14,8 @@ export type LootContext = {
   pickaxeTier: number;
   knownRecipes: string[];
   favourCounts: Partial<Record<GearType, number>>;
+  /** Gear types a looted piece leans towards (loot/useful.ts); none when the roll has no clock. */
+  usefulTypes?: GearType[];
 };
 
 export type LootRequest = ChanceInput & {

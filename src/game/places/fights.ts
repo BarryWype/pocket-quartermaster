@@ -95,6 +95,7 @@ export function placeLoot(
   rng: Rng,
   element?: Element,
   modifiers: LootModifier[] = [],
+  now?: number,
 ): Loot {
   return rollForSave(save, kind, rng, {
     luck,
@@ -102,7 +103,7 @@ export function placeLoot(
     enemies,
     difficulty: rulesOf(kind).difficulty,
     ...(element ? { element } : {}),
-  });
+  }, now);
 }
 
 export type PlaceFightProblem = 'gone' | 'tooFar' | 'empty' | 'partySize' | 'away' | 'exhausted' | null;
@@ -158,6 +159,7 @@ export function startPlaceFight(save: SaveData, spawn: PlaceSpawn, heroIds: stri
       rng,
       kind === 'elementalRift' ? riftElement(spawn) : undefined,
       partyCharms(party),
+      now,
     );
   let reward: Loot = run.bossDefeated ? rollRewards(createRng(`${id}|rewards`)) : emptyLoot();
   // A special's extra loot rolls draw from their own derived seeds.

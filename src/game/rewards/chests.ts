@@ -53,9 +53,9 @@ export function openChest(save: SaveData, chestId: string, steps: number, day: s
   if (!chest) throw new Error(`Unknown chest ${chestId}`);
   if (chestState(save, chest, steps, day) !== 'ready') throw new Error(`The ${chest.steps} steps chest is not ready`);
   const rolls = chest.steps === stepChests[stepChests.length - 1].steps ? 1 + guildBonus(save, 'stepChests') : 1;
-  let reward = rollForSave(save, 'stepChest', createRng(`chest|${chest.id}|${day}`), { chanceMultiplier: chest.chanceMultiplier });
+  let reward = rollForSave(save, 'stepChest', createRng(`chest|${chest.id}|${day}`), { chanceMultiplier: chest.chanceMultiplier }, now);
   for (let i = 1; i < rolls; i++) {
-    reward = mergeLoot(reward, rollForSave(save, 'stepChest', createRng(`chest|${chest.id}|${day}|${i}`), { chanceMultiplier: chest.chanceMultiplier }));
+    reward = mergeLoot(reward, rollForSave(save, 'stepChest', createRng(`chest|${chest.id}|${day}|${i}`), { chanceMultiplier: chest.chanceMultiplier }, now));
   }
   const opened = save.chests.day === day ? save.chests.opened : [];
   return { save: grantLoot({ ...save, chests: { day, opened: [...opened, chest.id] } }, [], reward, now), reward };

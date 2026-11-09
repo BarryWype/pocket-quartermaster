@@ -48,11 +48,13 @@ export function lootGearRarity(source: LootSourceId, rng: Rng, bonus: number, ma
   return rarity;
 }
 
-/** A random looted piece: uid '' until the save grants it, when its rolls are made. */
+/** A random looted piece, its type now and then one of the context's useful types: uid '' until the save grants it, when its rolls are made. */
 export function rollLootGear(req: LootRequest): RolledGear {
   const tier = lootGearTier(req.source, req.tier, req.context.playerTier, req.rng);
   const types = (Object.keys(gearRecipes) as GearType[]).filter((type) => gearRecipes[type][tier - 1].length > 0);
-  const type = types[req.rng.int(0, types.length - 1)];
+  const useful = types.filter((type) => req.context.usefulTypes?.includes(type));
+  const pool = useful.length > 0 && req.rng.next() < lootConfig.usefulDrops.share ? useful : types;
+  const type = pool[req.rng.int(0, pool.length - 1)];
   const rarity = lootGearRarity(req.source, req.rng, rarityBonus(req), req.mapRarity, raritySteps(req));
   return { uid: '', itemId: gearId(type, tier), rarity };
 }

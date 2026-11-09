@@ -74,7 +74,7 @@ describe('chests', () => {
     const rolls = [0, 1, 2].map((i) =>
       rollForSave(save, 'stepChest', createRng(i === 0 ? `chest|${top.id}|${today}` : `chest|${top.id}|${today}|${i}`), {
         chanceMultiplier: top.chanceMultiplier,
-      }),
+      }, 0),
     );
     let merged = rolls[0];
     for (const roll of rolls.slice(1)) merged = mergeLoot(merged, roll);
