@@ -24,8 +24,8 @@ The simulator plays the game with simple bots, for several player profiles, and 
 | Target | Value |
 | --- | --- |
 | Days per tier | Regular **about 7**, casual **about 14**, heavy **3–4** |
-| Win odds per difficulty, prepared (the bot's real party, dressed by `suggestParty`), at the tier's **start** (first probe) → **end** (last probe) | Easy **55–65% → 85–90%**, medium **25–40% → 65–75%**, hard **5–15% → 50–60%** |
-| Threat gap: prepared minus briefing skipped (same party pool, same dungeons) | Medium **≥ 15 points**, hard **≥ 25 points**; easy has none |
+| Win odds per difficulty, prepared (the bot's real party, dressed by `suggestParty`), at the tier's **end** (last probe); easy also at its **start** (the last probe of the tier's first day) | Easy **55–65% → 85–90%**, medium **65–75%**, hard **50–60%** at the end; medium and hard starts are reported, not targeted |
+| Threat gap: prepared minus briefing skipped (same party pool in fixed natural gear, same dungeons) | Medium **≥ 15 points**, hard **≥ 25 points**; easy has none |
 | Win odds, tier boss, prepared, at the **first attempts** (the probes while the boss first appears) | **50–60%** |
 | Win odds, fight events and patrols, prepared | 70–80% |
 | Loot pacing | Within 20% of `doc/design/loot/tools/pacing.py` for the regular profile |
@@ -35,7 +35,9 @@ The simulator plays the game with simple bots, for several player profiles, and 
 
 **Revised 2026-11-08 (sanity check after families):** one party for fitting and reporting, the bot's real party, so the fit and the report can't disagree; the old blanket "prepared 65–75%" is gone (it mixed easy dungeons, fitted to 85–90%, with hard ones); the start of each tier is fitted as well as the end, so a new tier never opens as a wall; the boss is judged when it first appears, not after it's beaten; and threats are judged as a gap, whatever the overall strength. Pace is judged only once the odds are in range.
 
-"Prepared" vs "not prepared" is the point of the families design: "not prepared" is the briefing skipped, the strongest party picked as if there were no threats, in the gear it wears (the natural party: its family levels are whatever its classes and gear happen to bring). The gap between the two lines must stay wide. If the bot wins that way, the game is too easy. The gap is measured on medium and hard dungeons; easy ones are forgiving by design.
+**Revised 2026-11-09:** only easy dungeons have a start target, measured at the end of the tier's first day: medium and hard open later in the chain, when the party has grown, so their start is reported without a target. The briefing skipped wears fixed natural gear, so gear left on from earlier briefings (gear changes are permanent) doesn't count as preparing for today's. A tier boss's first clear brings the next tier's armour and helmet blueprints and a piece of its gear, so a new tier doesn't open as a wall.
+
+"Prepared" vs "not prepared" is the point of the families design: "not prepared" is the briefing skipped, the strongest party picked as if there were no threats, in fixed natural gear: each hero's weapon, armour, helmet and off-hand swapped for the class's first favoured types (and the off-hand that fits the weapon) at the tier and rarity of the piece it replaces, trinkets kept (the natural party: its family levels are whatever its classes and that gear happen to bring). The gap between the two lines must stay wide. If the bot wins that way, the game is too easy. The gap is measured on medium and hard dungeons; easy ones are forgiving by design.
 
 ## Bot rules (simple, not clever)
 - **Before a run**: the boss's weakness item; a charm only when its odds are already high (the safe-or-greedy choice); a potion otherwise. No kits (they're gone).

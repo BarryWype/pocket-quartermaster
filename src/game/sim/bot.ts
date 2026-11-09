@@ -231,7 +231,7 @@ export type ProbeRow = {
   id: string;
   prepared: number;
   unprepared: number | null;
-  /** Normal dungeons: the not-prepared party's best family level in the gear it wears (the natural party). */
+  /** Normal dungeons: the not-prepared party's best family level in its natural gear (the natural party). */
   natural: number | null;
 };
 

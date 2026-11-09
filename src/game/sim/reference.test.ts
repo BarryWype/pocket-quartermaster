@@ -2,7 +2,7 @@ import { items } from '@/content/items';
 import { classAffinities } from '@/content/equipment';
 import type { GearDef, HeroClassId, WeaponType } from '@/game/types';
 
-import { referenceSave, rosterSave, weaponFor } from './reference';
+import { naturalGear, referenceSave, rosterSave, weaponFor } from './reference';
 import { expectedLevels } from './config';
 
 // The reference teams the difficulty odds are measured against (see difficultyOdds.ts).
@@ -96,5 +96,21 @@ describe('rosterSave', () => {
     const reference = referenceSave(1, 'start', 3);
     expect(roster.heroes).toEqual(reference.heroes);
     expect(roster.gear).toEqual(reference.gear);
+  });
+});
+
+describe('naturalGear', () => {
+  it("swaps the worn weapon, armour and helmet for the class's first favoured types at the worn tier and rarity", () => {
+    const save = rosterSave(3, 'end');
+    const ids = save.heroes.map((h) => h.id);
+    const dressed = { ...save, heroes: save.heroes.map((h, i) => (i === 0 ? { ...h, equipment: { ...h.equipment, helmet: 'helmet:r5' } } : h)) };
+    const regeared = naturalGear(dressed, ids);
+    const warrior = regeared.heroes[0];
+    const piece = (uid: string | null) => regeared.gear.find((g) => g.uid === uid)!;
+    expect(piece(warrior.equipment.weapon).itemId).toBe('sword3');
+    expect(piece(warrior.equipment.armor).itemId).toBe('plate3');
+    expect(piece(warrior.equipment.helmet).itemId).toBe('greatHelm3');
+    expect(piece(warrior.equipment.helmet).rarity).toBe('uncommon');
+    expect(warrior.equipment.trinket).toBe(save.heroes[0].equipment.trinket);
   });
 });

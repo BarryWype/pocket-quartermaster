@@ -14,6 +14,7 @@ import type { SaveData } from '../save';
 import type { DungeonDef } from '../types';
 import { bestParty, highestTier, withLoadout, type ProbeRow, type RunLog, type Sim } from './bot';
 import { emptySlots, fillPotions } from './rules/loadout';
+import { naturalGear } from './reference';
 
 /** The probe's own odds cache per game: the bot's cache rounds HP, so sharing it would let the probe change the game. */
 const caches = new WeakMap<RunLog, Map<string, Odds>>();
@@ -33,8 +34,9 @@ function restedRoster(save: SaveData): SaveData {
 /**
  * The win odds for the current tier right now, measured without changing the
  * game: the best prepared party from the whole roster at full HP against every
- * open normal dungeon (and, with the briefing skipped, the strongest party as
- * if there were no threats and no consumables), the tier boss once it is open,
+ * open normal dungeon (and, with the briefing skipped, the strongest party in
+ * a natural gear as if there were no threats and no consumables), the tier boss
+ * once it is open,
  * the fight events around and each patrol kind.
  */
 export function probe(sim: Sim): ProbeRow[] {
@@ -54,13 +56,16 @@ export function probe(sim: Sim): ProbeRow[] {
     return { party, briefing };
   };
 
+  // Not prepared: the briefing skipped. The roster in fixed natural gear (reference.ts), so gear left on
+  // from earlier briefings doesn't answer today's; the strongest party as if there were no threats and no
+  // consumables, against the real briefing. Its family levels are the natural party's.
+  const regeared = naturalGear(save, all);
+  const blindView: Sim = { ...view, save: regeared };
   for (const dungeon of dungeons.filter((d) => d.tier === tier && !d.isBoss && !d.overnight && isDungeonAvailable(save, d, sim.rotation))) {
     const { party, briefing } = prepare(dungeon);
-    // Not prepared: the briefing skipped. The strongest party as if there were no threats and no consumables, against the real briefing.
-    // Its gear stays as worn, so its family levels are the natural party's: picked without regard to families.
-    const blind = bestParty(view, dungeon, all, EMPTY_BRIEFING, false);
-    const plain = estimateOdds(withLoadout(save, blind.heroIds, dungeon, EMPTY_BRIEFING), blind.heroIds, dungeon, runs, { now: sim.now, briefing });
-    const natural = Math.max(0, ...Object.values(familyLevels(partyFamilies(save, blind.heroIds))));
+    const blind = bestParty(blindView, dungeon, all, EMPTY_BRIEFING, false);
+    const plain = estimateOdds(withLoadout(regeared, blind.heroIds, dungeon, EMPTY_BRIEFING), blind.heroIds, dungeon, runs, { now: sim.now, briefing });
+    const natural = Math.max(0, ...Object.values(familyLevels(partyFamilies(regeared, blind.heroIds))));
     add('normal', dungeon.id, party.odds.success, plain.success, natural);
   }
 

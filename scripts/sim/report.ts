@@ -131,7 +131,7 @@ function familyProfile(s: ProfileSummary) {
     '',
     table(head('Threat'), threatRows),
     '',
-    '**Natural parties** (the probe’s not-prepared party: picked as if there were no threats, in the gear it wears)',
+    '**Natural parties** (the probe’s not-prepared party: picked as if there were no threats, in fixed natural gear)',
     '',
     table(['Tier', 'Probes', 'Level 2+', 'Level 3'], tiers.map((t) => [String(t.tier), String(t.natural.probes), pct(t.natural.level2), pct(t.natural.level3)])),
     '',
@@ -219,7 +219,7 @@ function odds(s: ProfileSummary) {
     const o = t.odds;
     const difficulty = (d: 'easy' | 'medium' | 'hard') => {
       const l = o.difficulty[d];
-      return `${pct(l.start.median)}${mark(l.start.median, l.target.start)} → ${pct(l.end.median)}${mark(l.end.median, l.target.end)}`;
+      return `${pct(l.start.median)}${l.target.start ? mark(l.start.median, l.target.start) : ''} → ${pct(l.end.median)}${mark(l.end.median, l.target.end)}`;
     };
     const gap = (d: 'medium' | 'hard') => `${pct(o.gap[d].median)}${mark(o.gap[d].median, [targets.odds.threatGap[d], 1])}`;
     const runs = (l: { actual: number | null; runs: number }) => (l.runs ? `${pct(l.actual)} of ${l.runs}` : '—');
@@ -238,7 +238,10 @@ function odds(s: ProfileSummary) {
       runs(o.events),
     ];
   });
-  const span = (d: 'easy' | 'medium' | 'hard') => `${range(targets.odds.difficulty[d].start, pct)} → ${range(targets.odds.difficulty[d].end, pct)}`;
+  const span = (d: 'easy' | 'medium' | 'hard') => {
+    const { start, end } = targets.odds.difficulty[d];
+    return start ? `${range(start, pct)} → ${range(end, pct)}` : `end ${range(end, pct)}`;
+  };
   const head = [
     'Tier',
     `Easy (${span('easy')})`,
@@ -510,7 +513,7 @@ function reasonsTable(labels: Record<string, string>, stats: Record<string, Stat
 
 /** The reference roster's odds per tier and difficulty, the fitting script's target table. */
 function difficultyTable(difficultyOdds: Record<number, DifficultyOdds>) {
-  const cell = (value: number, range: [number, number]) => `${pct(value)}${mark(value, range)}`;
+  const cell = (value: number, range: [number, number] | null) => `${pct(value)}${range ? mark(value, range) : ''}`;
   const rows = Object.entries(difficultyOdds)
     .map(([tier, odds]) => Number(tier))
     .sort((a, b) => a - b)
@@ -552,7 +555,7 @@ export function renderReport({ summaries, rules, settings, difficultyOdds, famil
     pace(summaries),
     '## Win odds per tier',
     '',
-    'Probe: after the day\u2019s last session every `probeEveryDays` days (and after the first session of a new tier and every session the tier boss is out), the best prepared party from the whole roster at full HP (the bot\u2019s own pick, `suggestParty`) against every open normal dungeon of the tier, the tier boss once it opens, and the fight events and patrols around. Each difficulty reads "at its first probe in the tier → at its last" (dungeons open in chain order, so medium and hard start later than easy), each checked against its target. The gap is prepared minus the briefing skipped (the strongest party picked as if there were no threats, in the gear it wears, no consumables) over the same dungeons at the tier\u2019s last probe. The boss reads "first attempts (its probes on the day it first opens) → last probe"; the first attempts are checked.',
+    'Probe: after the day\u2019s last session every `probeEveryDays` days (and after the first session of a new tier and every session the tier boss is out), the best prepared party from the whole roster at full HP (the bot\u2019s own pick, `suggestParty`) against every open normal dungeon of the tier, the tier boss once it opens, and the fight events and patrols around. Each difficulty reads "at the end of its first day in the tier → at its last probe" (dungeons open in chain order, so medium and hard start later than easy); the end is checked, and the start for easy only. The gap is prepared minus the briefing skipped (the strongest party picked as if there were no threats, the roster in fixed natural gear, no consumables) over the same dungeons at the tier\u2019s last probe. The boss reads "first attempts (its probes on the day it first opens) → last probe"; the first attempts are checked.',
     '',
   ];
   for (const s of summaries) out.push(`### ${s.profile}`, '', odds(s));

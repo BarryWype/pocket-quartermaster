@@ -49,7 +49,8 @@ check('simulator balance bands', () => {
         if (!odds.difficulty) continue;
         for (const difficulty of ['easy', 'medium', 'hard'] as const) {
           const line = odds.difficulty[difficulty];
-          it(`${s.profile}: tier ${tier.tier} ${difficulty} expeditions at the start`, () => expectIn(median(line.start), line.target.start));
+          const start = line.target.start;
+          if (start) it(`${s.profile}: tier ${tier.tier} ${difficulty} expeditions at the start`, () => expectIn(median(line.start), start));
           it(`${s.profile}: tier ${tier.tier} ${difficulty} expeditions at the end`, () => expectIn(median(line.end), line.target.end));
         }
         for (const [difficulty, min] of Object.entries(targets.odds.threatGap)) {
@@ -65,7 +66,8 @@ check('simulator balance bands', () => {
   describe('difficulty odds (reference roster)', () => {
     for (const [tier, odds] of Object.entries(summary.difficultyOdds ?? {})) {
       for (const difficulty of ['easy', 'medium', 'hard'] as const) {
-        it(`tier ${tier} ${difficulty} sources at the tier's start`, () => expectIn(odds[difficulty].start, difficultyRules.oddsTargets[difficulty].start));
+        const start = difficultyRules.oddsTargets[difficulty].start;
+        if (start) it(`tier ${tier} ${difficulty} sources at the tier's start`, () => expectIn(odds[difficulty].start, start));
         it(`tier ${tier} ${difficulty} sources at the tier's end`, () => expectIn(odds[difficulty].end, difficultyRules.oddsTargets[difficulty].end));
       }
     }

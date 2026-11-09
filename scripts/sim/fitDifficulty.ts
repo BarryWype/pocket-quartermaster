@@ -154,7 +154,7 @@ function scale(job: (typeof all)[number], factor: number) {
   });
 }
 
-/** A source's target ranges: its difficulty's at the tier's start and end; a boss's at its first attempts, measured with the tier's end kit. */
+/** A source's target ranges: its difficulty's at the tier's end (and start, for easy); a boss's at its first attempts, measured with the tier's end kit. */
 const rangesOf = (difficulty: Difficulty): { start: [number, number] | null; end: [number, number] } =>
   difficulty === 'boss' ? { start: null, end: targets.odds.boss } : difficultyRules.oddsTargets[difficulty];
 const middle = ([min, max]: [number, number]) => (min + max) / 2;
@@ -203,7 +203,7 @@ for (const job of all) {
   const factor = Math.round(chosen * 100) / 100;
   scale(job, factor);
   const end = sourceOdds(job.source, job.tier, 'end', options.runs);
-  const start = ranges.start ? sourceOdds(job.source, job.tier, 'start', options.runs) : null;
+  const start = job.difficulty === 'boss' ? null : sourceOdds(job.source, job.tier, 'start', options.runs);
   results.push({ label: job.label, tier: job.tier, difficulty: job.difficulty, key: job.key, factor, forStart, forEnd, start, end });
   scale(job, job.f0);
 }
@@ -257,6 +257,8 @@ const inRange = (value: number, [min, max]: [number, number]) => value >= min &&
 const pct = (value: number | null) => (value === null ? '—' : `${Math.round(value * 100)}%`);
 const cell = (value: number | null, range: [number, number]) =>
   value === null ? '—' : `${pct(value)} ${inRange(value, range) ? '✓' : '✗'}`;
+/** A start's odds, checked only where its difficulty has a start target. */
+const startCell = (value: number | null, range: [number, number] | null) => (range ? cell(value, range) : pct(value));
 
 // The curve: the start's factor over the end's. Below 1 the start party is too weak for one scale to fit both
 // (the curve within the tier is too steep); above 1 too strong (too flat).
@@ -266,7 +268,7 @@ for (const r of results) {
   const ranges = rangesOf(r.difficulty);
   const curve = r.forStart === null ? '—' : (r.forStart / r.forEnd).toFixed(2);
   console.log(
-    `| ${r.label} | ${r.tier} | ${r.difficulty} | ${r.factor} | ${r.forStart === null ? '—' : round2(r.forStart)} | ${round2(r.forEnd)} | ${curve} | ${ranges.start ? cell(r.start, ranges.start) : '—'} | ${cell(r.end, ranges.end)} |`,
+    `| ${r.label} | ${r.tier} | ${r.difficulty} | ${r.factor} | ${r.forStart === null ? '—' : round2(r.forStart)} | ${round2(r.forEnd)} | ${curve} | ${startCell(r.start, ranges.start)} | ${cell(r.end, ranges.end)} |`,
   );
 }
 
@@ -278,9 +280,9 @@ for (const tier of [1, 2, 3, 4, 5]) {
     if (!rows.length) continue;
     const mean = (values: number[]) => values.reduce((a, b) => a + b, 0) / values.length;
     const ranges = rangesOf(difficulty);
-    const start = ranges.start ? mean(rows.map((r) => r.start!)) : null;
+    const start = difficulty === 'boss' ? null : mean(rows.map((r) => r.start!));
     const curve = ranges.start ? mean(rows.map((r) => r.forStart! / r.forEnd)).toFixed(2) : '—';
-    console.log(`| ${tier} | ${difficulty} | ${ranges.start ? cell(start, ranges.start) : '—'} | ${cell(mean(rows.map((r) => r.end)), ranges.end)} | ${curve} |`);
+    console.log(`| ${tier} | ${difficulty} | ${startCell(start, ranges.start)} | ${cell(mean(rows.map((r) => r.end)), ranges.end)} | ${curve} |`);
   }
 }
 

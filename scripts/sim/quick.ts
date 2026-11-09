@@ -63,8 +63,8 @@ try {
 }
 
 /** `72% ✓` when the value sits in its target range, `—` when there is no sample. */
-const cell = (value: number | null, range: [number, number]) =>
-  value === null ? '—' : `${Math.round(value * 100)}% ${inRange(value, range) ? '✓' : '✗'}`;
+const cell = (value: number | null, range: [number, number] | null) =>
+  value === null ? '—' : `${Math.round(value * 100)}%${range ? ` ${inRange(value, range) ? '✓' : '✗'}` : ''}`;
 
 console.log('| tier | medium prepared (fit team) | medium skipped | medium gap | hard prepared (fit team) | hard skipped | hard gap | boss | events | patrols |');
 console.log('| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |');

@@ -165,3 +165,33 @@ export function rosterSave(tier: number, when: 'start' | 'end'): SaveData {
   }
   return withSpares(save, kitTier, 'uncommon');
 }
+
+/**
+ * The heroes in fixed natural gear, for the briefing skipped: each worn
+ * weapon, armour, helmet and off-hand swapped for the class's piece of choice
+ * (its first favoured type, and the off-hand that fits the new weapon) at the
+ * worn piece's tier and rarity, whatever families it carries. Trinkets stay;
+ * empty slots stay empty, and so does a slot the class has no type for.
+ */
+export function naturalGear(save: SaveData, heroIds: string[]): SaveData {
+  let next = save;
+  for (const id of heroIds) {
+    const worn = (slot: 'weapon' | 'armor' | 'helmet' | 'offhand') => {
+      const uid = save.heroes.find((h) => h.id === id)!.equipment[slot];
+      return save.gear.find((g) => g.uid === uid);
+    };
+    const wear = (slot: 'weapon' | 'armor' | 'helmet' | 'offhand', type: GearType | null) => {
+      const piece = worn(slot);
+      if (!piece || !type) return;
+      const tier = (items.find((i) => i.id === piece.itemId) as GearDef).tier;
+      const uid = `natural:${slot}:${id}`;
+      next = equip({ ...next, gear: [...next.gear, averagePiece(uid, gearId(type, tier), piece.rarity)] }, id, slot, uid);
+    };
+    const classId = save.heroes.find((h) => h.id === id)!.classId;
+    wear('weapon', weaponTypeFor(classId));
+    wear('armor', armourTypeFor(classId));
+    wear('helmet', helmetTypeFor(classId));
+    wear('offhand', offhandTypeFor(next, next.heroes.find((h) => h.id === id)!));
+  }
+  return next;
+}

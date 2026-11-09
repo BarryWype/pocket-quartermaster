@@ -51,11 +51,11 @@ export function tierWindow(log: RunLog, tier: number): [number, number] | null {
 
 const within = (day: number, window: [number, number] | null) => !!window && day >= window[0] && day <= window[1];
 
-/** Probed odds at the tier's last probe (gear of the tier) and at its first, the launched runs' win rate, and the target. */
+/** Probed odds at the tier's last probe (gear of the tier) and at the end of its first day, the launched runs' win rate, and the target. */
 export type OddsLine = { probe: Stat; start: Stat; actual: number | null; runs: number; target: [number, number] };
 
 /** One difficulty's normal expeditions: prepared odds at its first and last probe of the tier, the launched runs' win rate, and the targets. */
-export type DifficultyLine = { start: Stat; end: Stat; actual: number | null; runs: number; target: { start: [number, number]; end: [number, number] } };
+export type DifficultyLine = { start: Stat; end: Stat; actual: number | null; runs: number; target: { start: [number, number] | null; end: [number, number] } };
 
 /** The tier boss: prepared odds at its first attempts (the probes on the day it first opens) and at its last probe, and its runs; the target is for the first attempts. */
 export type BossLine = { first: Stat; last: Stat; actual: number | null; runs: number; target: [number, number] };
@@ -164,7 +164,7 @@ export type FamilyTier = {
   reached: Partial<Record<FamilyId, [number, number, number]>>;
   /** Per threat in the briefings: runs that met it, half met it, or missed it. */
   threats: Record<string, { met: number; half: number; full: number }>;
-  /** The probe's not-prepared party, in the gear it wears (picked without regard to families): probes, and the share reaching level 2 or more, and 3. */
+  /** The probe's not-prepared party, in fixed natural gear (picked without regard to families): probes, and the share reaching level 2 or more, and 3. */
   natural: { probes: number; level2: number; level3: number };
   /**
    * Runs with Cunning 2 or more against the rest, on the same dungeons: their
@@ -264,13 +264,14 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
   const windows = logs.map((log) => tierWindow(log, tier));
   const days = stat(logs.map((log, i) => (log.milestones[`boss:${tier}`] !== undefined && windows[i] ? windows[i]![1] - windows[i]![0] + 1 : null)));
 
-  /** The mean of one probe snapshot (the tier's first or last) in each game, over seeds. */
+  /** The mean of one probe snapshot in each game, over seeds: the tier's last, or the last of its first day (the start). */
   const snapshot = (match: (p: ProbeRow) => boolean, value: (p: ProbeRow) => number | null, last: boolean) =>
     stat(
       logs.map((log) => {
         const rows = log.probes.filter((p) => p.tier === tier && match(p));
         if (!rows.length) return null;
-        const at = last ? Math.max(...rows.map((p) => p.at)) : Math.min(...rows.map((p) => p.at));
+        const firstDay = Math.min(...rows.map((p) => p.day));
+        const at = Math.max(...rows.filter((p) => last || p.day === firstDay).map((p) => p.at));
         return mean(rows.filter((p) => p.at === at).map(value).filter((v): v is number => v !== null));
       }),
     );
@@ -715,7 +716,7 @@ export function misses(summaries: ProfileSummary[]): { what: string; value: numb
       check(`${s.profile}: tier ${tier.tier} days`, tier.days.median, defaultTargets.daysPerTier[s.profile]);
       for (const d of DIFFICULTIES) {
         const line = tier.odds.difficulty[d];
-        check(`${s.profile}: tier ${tier.tier} ${d} odds at the start`, line.start.median, line.target.start);
+        if (line.target.start) check(`${s.profile}: tier ${tier.tier} ${d} odds at the start`, line.start.median, line.target.start);
         check(`${s.profile}: tier ${tier.tier} ${d} odds at the end`, line.end.median, line.target.end);
       }
       for (const [d, min] of Object.entries(defaultTargets.odds.threatGap)) check(`${s.profile}: tier ${tier.tier} ${d} threat gap`, tier.odds.gap[d as GapDifficulty].median, [min, 1]);

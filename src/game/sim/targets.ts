@@ -10,10 +10,11 @@ export const targets = {
   odds: {
     /**
      * Normal expeditions per difficulty, prepared (the bot's real party, dressed
-     * by suggestParty), at the tier's first probe (start) and its last (end).
+     * by suggestParty), at the tier's last probe (end) and, for easy, at the
+     * last probe of its first day (start).
      */
     difficulty: difficultyRules.oddsTargets,
-    /** Prepared minus the briefing skipped, same party pool and dungeons, at the tier's last probe; easy has none. */
+    /** Prepared minus the briefing skipped (the roster in natural gear), same dungeons, at the tier's last probe; easy has none. */
     threatGap: { medium: 0.15, hard: 0.25 },
     /** The tier boss, prepared, at its first attempts: the probes on the day it first opens. */
     boss: [0.5, 0.6] as [number, number],

@@ -7,14 +7,16 @@ export const difficultyRules = {
   order: ['easy', 'medium', 'hard', 'boss'] as Difficulty[],
   /**
    * Win-odds targets of normal expeditions, prepared (the bot's real party,
-   * dressed by suggestParty): [min, max] at the tier's start and end. The fit
-   * (sim:fit) and the simulator's report both measure against them.
+   * dressed by suggestParty): [min, max] at the tier's end, and for easy ones
+   * at its start too (medium and hard open later in the chain; their start is
+   * reported, not targeted). The fit (sim:fit) and the simulator's report both
+   * measure against them.
    */
   oddsTargets: {
     easy: { start: [0.55, 0.65], end: [0.85, 0.9] },
-    medium: { start: [0.25, 0.4], end: [0.65, 0.75] },
-    hard: { start: [0.05, 0.15], end: [0.5, 0.6] },
-  } satisfies Record<Exclude<Difficulty, 'boss'>, { start: [number, number]; end: [number, number] }>,
+    medium: { start: null, end: [0.65, 0.75] },
+    hard: { start: null, end: [0.5, 0.6] },
+  } as Record<Exclude<Difficulty, 'boss'>, { start: [number, number] | null; end: [number, number] }>,
   /** Threat level by difficulty, before and from tier 3 (`threatLevelFromTier`); capped at 3. */
   threatLevel: {
     easy: [1, 1],

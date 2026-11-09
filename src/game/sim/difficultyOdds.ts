@@ -21,7 +21,7 @@ import { rosterRules } from '@/content/roster';
 import { withLoadout } from './bot';
 import { EMPTY_BRIEFING } from '../expeditions/simulate';
 import { dressParty } from '../families/dress';
-import { rosterSave } from './reference';
+import { naturalGear, rosterSave } from './reference';
 import { simConfig } from './config';
 
 /** A fight source whose strength the fitting script tunes. */
@@ -60,17 +60,17 @@ export function prepared(save: SaveData, heroIds: string[], dungeon: DungeonDef,
  * The party the bot would send from a roster (bot.ts bestParty): suggestParty
  * with the bot's quick odds and its stop rule, dressed for the briefing, then
  * its loadout with every weakness item in stock. `skipped`: the briefing
- * skipped, the strongest party as if there were no threats, in the gear it
- * wears.
+ * skipped, the strongest party as if there were no threats, in natural gear
+ * (reference.ts naturalGear).
  */
 export function rosterParty(save: SaveData, dungeon: DungeonDef, briefing: Briefing, slots: number, now: number, skipped = false) {
   const plan = skipped ? EMPTY_BRIEFING : briefing;
-  const base = skipped ? save : stocked(save);
+  const candidates = save.heroes.map((h) => h.id);
+  const base = skipped ? naturalGear(save, candidates) : stocked(save);
   const quick = (dressed: SaveData, ids: string[]) => {
     const o = estimateOdds(withLoadout(dressed, ids, dungeon, plan), ids, dungeon, simConfig.odds.searchRuns, { now, briefing: plan });
     return o.success + o.progress * 1e-6;
   };
-  const candidates = save.heroes.map((h) => h.id);
   const party = suggestParty(base, plan, slots, { candidates, odds: quick, enough: simConfig.odds.enough, dress: !skipped });
   return { heroIds: party.heroIds, save: withLoadout(party.save, party.heroIds, dungeon, plan) };
 }
