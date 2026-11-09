@@ -125,18 +125,18 @@ export const lootConfig = {
         [14, 'common'],
         [Infinity, 'uncommon'],
       ] as [number, Rarity][],
-      // 35% Common, 35% Uncommon, 20% Rare, 10% Legendary.
+      // 35% Common, 30% Uncommon, 30% Rare, 5% Legendary.
       big: [
         [7, 'common'],
-        [14, 'uncommon'],
-        [18, 'rare'],
+        [13, 'uncommon'],
+        [19, 'rare'],
         [Infinity, 'legendary'],
       ] as [number, Rarity][],
-      // 25% each: bosses and the basic upgrade roll share the Rares and Legendaries.
+      // 20% Common, 30% Uncommon, 40% Rare, 10% Legendary: with up to 29 Luck a Legendary stays at most half as likely as a Rare.
       boss: [
-        [5, 'common'],
+        [4, 'common'],
         [10, 'uncommon'],
-        [15, 'rare'],
+        [18, 'rare'],
         [Infinity, 'legendary'],
       ] as [number, Rarity][],
     },
@@ -150,10 +150,11 @@ export const lootConfig = {
     floors: { firstTierClear: 'uncommon', monsterLair: 'rare' } as Partial<Record<LootSourceId, Rarity>>,
     /**
      * A ladder's own upgrade roll after the d20: basic sources drop most of the
-     * gear, so small chances there give a Legendary about 1.3–1.8 times a tier and a Rare
-     * every 3–5 days (regular profile), below big fights' chances.
+     * gear, so small chances there give a Rare every 2–3 days and a Legendary
+     * about once a tier (regular profile), a Legendary about a third as often
+     * as a Rare.
      */
-    upgrades: { basic: { rare: 0.025, legendary: 0.0275 } } as Partial<Record<'basic' | 'big' | 'boss', { rare: number; legendary: number }>>,
+    upgrades: { basic: { rare: 0.04, legendary: 0.0125 } } as Partial<Record<'basic' | 'big' | 'boss', { rare: number; legendary: number }>>,
   },
   treasureMaps: {
     rarityWeights: { common: 70, rare: 25, legendary: 5 } as Record<MapRarity, number>,

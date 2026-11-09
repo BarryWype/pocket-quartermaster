@@ -56,7 +56,8 @@ Families ask players to swap gear for each place, over four gear slots (weapon, 
 
 ### Gear as loot
 - Stats, rarity and affixes: see `doc/design/gear/` (stat ranges on 3d6, rarity = number of affixes, loot rarity from each source's ladder). Quality and crafting mastery are superseded by the gear rework (`doc/design/gear/`).
-- Rarity: the source ladders keep their order, basic < big fights < bosses < monster lair; Legendary only from bosses and the monster lair.
+- Rarity: the source ladders keep their order, basic < big fights < bosses < monster lair (`lootConfig.gearRarity`): basic is 70% Common, 30% Uncommon, then its own upgrade roll gives a Rare 4% and a Legendary 1.25% of the time; big fights 35/30/30/5% and bosses 20/30/40/10% (Common, Uncommon, Rare, Legendary). On every ladder a Legendary is at most half as likely as a Rare, with up to 29 Luck.
+- Rarity steps (Hard sources, the Tinker's lodestone, Plunder) lift a piece up to Rare at most: a Legendary only comes from a ladder's own roll. (A step used to lift Rares to Legendary, so the Hard wanted outlaw dropped more Legendaries than Rares and every piece from the monster lair was Legendary.)
 - Tier: expeditions give the dungeon's tier; map events, patrols and the lair give the player's tier 70% of the time, one below 30%, never more than one below.
 
 ### Blueprints

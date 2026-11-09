@@ -10,7 +10,7 @@ import type { LootRequest } from './roll';
 import { createInitialSave } from '../save';
 import { uniquePool } from '../gear/uniques';
 import { grantLoot } from './grant';
-import { emptyLoot, type LootSourceId } from './types';
+import { emptyLoot, type LootSourceId, type MapRarity } from './types';
 
 const context = (playerTier: number) => ({
   playerTier,
@@ -83,6 +83,29 @@ describe('looted gear', () => {
     const { rare, legendary: top } = lootConfig.gearRarity.upgrades.basic!;
     expect(rareOrBetter[0]).toBeLessThan((rare + top) * 1.5);
     expect(legendary[0]).toBeLessThan(top * 1.5);
+  });
+
+  it('keeps a Legendary at most half as likely as a Rare on every ladder, with Luck and rarity steps', () => {
+    const cases: [LootSourceId, MapRarity?][] = [['dungeonRun'], ['wantedOutlaw'], ['firstTierClear'], ['treasureSpot', 'rare'], ['tierBoss'], ['monsterLair']];
+    for (const [source, mapRarity] of cases) {
+      for (const bonus of [0, 1, 2]) {
+        for (const steps of [0, 1]) {
+          const rng = createRng(`${source}|${bonus}|${steps}`);
+          const rolled = Array.from({ length: 20000 }, () => lootGearRarity(source, rng, bonus, mapRarity, steps));
+          const share = (rarity: Rarity) => rolled.filter((r) => r === rarity).length / rolled.length;
+          expect(share('rare')).toBeGreaterThan(0);
+          expect(share('legendary')).toBeLessThanOrEqual(share('rare') / 2 + 0.01);
+        }
+      }
+    }
+  });
+
+  it('never lifts a piece past Rare with a rarity step', () => {
+    // A d20 of 19 is Rare on the boss ladder and the lair's floor: a step keeps it Rare.
+    expect(lootGearRarity('tierBoss', scripted(19), 0, undefined, 1)).toBe('legendary');
+    expect(lootGearRarity('tierBoss', scripted(18), 0, undefined, 1)).toBe('rare');
+    expect(lootGearRarity('monsterLair', scripted(2), 0, undefined, 2)).toBe('rare');
+    expect(lootGearRarity('wantedOutlaw', scripted(19), 0, undefined, 1)).toBe('rare');
   });
 
   it('holds the source floors', () => {

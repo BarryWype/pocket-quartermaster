@@ -10,7 +10,7 @@ import { LOOT_SOURCES, type LootSourceId } from './types';
 
 // Looted gear against the loot README's targets: every source rolled over
 // seeds at its matrix visits for the regular player (no Luck, run length or
-// charms, as pacing.py counts them).
+// charms, as pacing.py counts them). A tier is about a week.
 
 const ROLLS = 3000;
 const context = { playerTier: 3, pickaxeTier: 3, knownRecipes: [] as string[], favourCounts: {} };
@@ -47,6 +47,14 @@ describe('looted gear rates', () => {
     const { piecesPerWeek } = targets.gear;
     expect(perWeek('gear')).toBeGreaterThanOrEqual(piecesPerWeek * 0.9);
     expect(perWeek('gear')).toBeLessThanOrEqual(piecesPerWeek * 1.1);
+  });
+
+  it('gives a Rare at least every 3 days, and a Legendary about once a tier, a third as often or less', () => {
+    // Fight events and the monster lair add about 2.3 Rares a week when they're won as often as the matrix plans.
+    expect(perWeek('rare')).toBeGreaterThanOrEqual(7 / targets.gear.daysPerRare.regular[1]);
+    expect(perWeek('legendary')).toBeGreaterThanOrEqual(targets.gear.legendariesPerTier[0]);
+    expect(perWeek('legendary')).toBeLessThanOrEqual(targets.gear.legendariesPerTier[1]);
+    expect(perWeek('legendary')).toBeLessThanOrEqual(perWeek('rare') / 3);
   });
 
   it('raises gear where players already go: the first win, tier bosses, patrols and step chests', () => {
