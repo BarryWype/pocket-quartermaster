@@ -29,6 +29,7 @@ The simulator plays the game with simple bots, for several player profiles, and 
 | Win odds, tier boss, prepared, at the **first attempts** (the probes while the boss first appears) | **50–60%** |
 | Win odds, fight events and patrols, prepared | 70–80% |
 | Loot pacing | Within 20% of `doc/design/loot/tools/pacing.py` for the regular profile |
+| Gear | About **36 pieces a week** for the regular profile (within 20%); a Rare every **2–3 days** (regular) and **4–5 days** (casual); Legendaries about **one per tier** (regular), clearly rarer than Rares (`doc/design/loot/README.md`, Targets) |
 | Gold | Income covers recruits, healing, shops and weakness items with a small surplus; never piles up over a tier |
 | Materials | The tier's main material stays tight (spent about as fast as it's gathered) |
 | Levels | Heroes reach the top of the tier's level band around the end of the tier |

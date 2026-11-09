@@ -47,6 +47,13 @@ Loot is designed from scratch on top of the new dungeons, bosses, places, events
 - Pacing balance tests come later, skipped until balancing.
 - Gold follows one curve per tier, ×1, ×1.9, ×3, ×4.2, ×5.6 for tiers 1–5 (the enemy strength curve; `lootConfig.goldByTier`): dungeon and overnight gold, the first-win and first-clear bonuses, every source paid as a share of the tier's short dungeon (quests, step chests, treasure spots, patrols, fight events) and a duplicate secret tip. Valuable prices use the same curve.
 
+### Targets
+Families ask players to swap gear for each place, over four gear slots (weapon, armour, helmet, off-hand) plus trinkets, so looted gear is set for that:
+- **Pieces:** about **36 gear pieces a week** for the regular player (trinkets apart), `pacing.py`'s Gear row (it was 26.8 for three slots, ×4/3 for the helmet).
+- **Rares:** about one every **2–3 days** for the regular player, every **4–5 days** for the casual player.
+- **Legendaries:** clearly rarer than Rares on every ladder and source, about **one per tier** for the regular player.
+- The simulator checks them (`src/game/sim/targets.ts`, `gear`), with the gear pieces per week by source in its report.
+
 ### Gear as loot
 - Stats, rarity and affixes: see `doc/design/gear/` (stat ranges on 3d6, rarity = number of affixes, loot rarity from each source's ladder). Quality and crafting mastery are superseded by the gear rework (`doc/design/gear/`).
 - Rarity: the source ladders keep their order, basic < big fights < bosses < monster lair; Legendary only from bosses and the monster lair.

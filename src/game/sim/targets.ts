@@ -23,6 +23,16 @@ export const targets = {
   },
   /** Weekly drops per category for the regular profile, at most this share off doc/design/loot/tools/pacing.py. */
   lootPacing: 0.2,
+  /**
+   * Looted gear (doc/design/loot/README.md): pieces a week for the regular
+   * profile (pacing.py's Gear row: four gear slots), days between Rares by
+   * profile, and Legendaries per tier for the regular profile.
+   */
+  gear: {
+    piecesPerWeek: 36,
+    daysPerRare: { regular: [2, 3], casual: [4, 5] } as Record<string, [number, number]>,
+    legendariesPerTier: [0.5, 1.5] as [number, number],
+  },
   /** Gold held may not grow over a tier by more than this many days of the tier's income. */
   goldSurplusDays: 3,
   /** The tier's main material: spent at least this share of what was gathered. */

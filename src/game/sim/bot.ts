@@ -209,8 +209,8 @@ export type RunLog = {
   notLaunched: Record<string, number>;
   /** Place visits owed that couldn't happen, by reason; 'hidden' is the kind still behind the reveal. */
   placesNotDone: Record<string, number>;
-  /** Every looted piece (gear, trinkets and relics), with the loot source it came from; a relic is named `relic:<id>` and has no rarity. */
-  gearLoot: { day: number; source: LootSourceId; itemId: string | null; rarity: Rarity | null }[];
+  /** Every piece gained (gear, trinkets and relics), with the loot source it came from or 'shop'; a relic is named `relic:<id>` and has no rarity. */
+  gearLoot: { day: number; source: LootSourceId | 'shop'; itemId: string | null; rarity: Rarity | null }[];
   /** Each reroll: its day and what it cost (gold and materials, negative amounts). */
   rerolls: { day: number; gold: number; materials: Record<string, number> }[];
   /** The day of each elemental stone applied to a piece. */
@@ -1069,11 +1069,13 @@ export function challengeSanctums(sim: Sim) {
     const { spawn, tier, heroIds } = pick;
     recallWorking(sim, heroIds);
     let win = false;
+    const before = sim.save;
     act(sim, 'sanctum', (save) => {
       const result = challengeSanctum(save, spawn, tier, heroIds, spawn.position, sim.now);
       win = result.result.win;
       return result.save;
     });
+    countNewGear(sim, before, 'sanctum');
     sim.log.sanctums.push({ day: sim.day, tier, odds: pick.odds, win });
     if (win) mark(sim, 'firstSanctumWin');
   }
@@ -1289,6 +1291,12 @@ export function countLoot(sim: Sim, loot: Loot, source: LootSourceId) {
     const byDay = (sim.log.scavenge[sim.day] ??= {});
     byDay[stack.materialId] = (byDay[stack.materialId] ?? 0) + stack.amount;
   }
+}
+
+/** Logs the pieces a save gained since `before` that no loot roll reported (Sanctums, shops). */
+export function countNewGear(sim: Sim, before: SaveData, source: LootSourceId | 'shop') {
+  const held = new Set(before.gear.map((g) => g.uid));
+  for (const piece of sim.save.gear) if (!held.has(piece.uid)) sim.log.gearLoot.push({ day: sim.day, source, itemId: piece.itemId, rarity: piece.rarity });
 }
 
 /** Resolves one expedition through the game, and logs it with the abilities that fired in its run. */

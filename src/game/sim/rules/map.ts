@@ -23,7 +23,7 @@ import { isExhausted } from '../../team/health';
 import { isJobOpen, jobWorker, wornWorkTool } from '../../jobs/jobs';
 import { equip, equipPreview } from '../../team/team';
 import type { GearDef } from '../../types';
-import { act, bestParty, countLoot, highestTier, homeHeroes, mark, nextForgeRecipe, recallWorking, skip, takeVisit, withLoadout, type PlaceRow, type Sim } from '../bot';
+import { act, bestParty, countLoot, countNewGear, highestTier, homeHeroes, mark, nextForgeRecipe, recallWorking, skip, takeVisit, withLoadout, type PlaceRow, type Sim } from '../bot';
 import { applySwaps } from '../../threats/suggest';
 import { emptySlots } from './loadout';
 
@@ -224,6 +224,7 @@ export function buyWorkTools(sim: Sim) {
     if (stockLeft(sim.save, spawn, line) < 1 || buyProblem(sim.save, spawn, line.key, 1, spawn.position, sim.now) !== null) continue;
     const before = sim.save;
     act(sim, 'workTool', (save) => buy(save, spawn, line.key, 1, spawn.position, sim.now));
+    countNewGear(sim, before, 'shop');
     const piece = sim.save.gear.find((g) => !before.gear.some((b) => b.uid === g.uid));
     if (piece && equipPreview(sim.save, worker.id, 'offhand', piece.uid)) {
       act(sim, 'equip', (save) => equip(save, worker.id, 'offhand', piece.uid));

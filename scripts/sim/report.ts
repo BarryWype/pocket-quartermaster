@@ -1,4 +1,5 @@
 import { materialById } from '@/content/lookup';
+import { lootMatrix } from '@/content/loot/matrix';
 import { gathererRules } from '@/content/jobs';
 import { RARITIES } from '@/content/gear';
 import { REVEAL_KINDS } from '@/content/reveal';
@@ -284,24 +285,46 @@ function loot(s: ProfileSummary) {
 
 /** Pieces looted per tier by rarity (trinkets included, relics apart), with the per-day rates. */
 function gearRarity(s: ProfileSummary) {
+  const rareTarget = targets.gear.daysPerRare[s.profile];
+  const legendaryMark = (stat: Stat) => (s.profile === 'regular' ? mark(stat.median, targets.gear.legendariesPerTier) : '');
   const rows = s.tiers.map((t) => {
     const g = t.gear;
     return [
       String(t.tier),
-      ...RARITIES.map((rarity) => `${n(g.rarity[rarity].median)}${spread(g.rarity[rarity], (v) => n(v))}`),
+      ...RARITIES.map((rarity) => `${n(g.rarity[rarity].median)}${spread(g.rarity[rarity], (v) => n(v))}${rarity === 'legendary' ? legendaryMark(g.rarity[rarity]) : ''}`),
       `${n(g.relics.median)}${spread(g.relics, (v) => n(v))}`,
       n(g.uncommonPerDay.median, 2),
       n(g.rarePerDay.median, 2),
-      g.daysPerRare.median === null ? '—' : n(g.daysPerRare.median, 1),
+      g.daysPerRare.median === null ? '—' : `${n(g.daysPerRare.median, 1)}${rareTarget ? mark(g.daysPerRare.median, rareTarget) : ''}`,
     ];
   });
-  return table(['Tier', ...RARITIES.map(capitalize), 'Relics', 'Uncommon/day', 'Rare/day', 'Days per Rare'], rows);
+  const legendaryHead = s.profile === 'regular' ? `Legendary (${range(targets.gear.legendariesPerTier, (v) => n(v, 1))})` : 'Legendary';
+  const rareHead = rareTarget ? `Days per Rare (${range(rareTarget, (v) => n(v))})` : 'Days per Rare';
+  return table(['Tier', ...RARITIES.map((rarity) => (rarity === 'legendary' ? legendaryHead : capitalize(rarity))), 'Relics', 'Uncommon/day', 'Rare/day', rareHead], rows);
 }
 
 /** The observed rarity split of looted pieces by the ladder their loot source rolls on. */
 function gearLadders(s: ProfileSummary) {
   const rows = s.ladders.map((l) => [l.ladder, n(l.drops.median), ...RARITIES.map((rarity) => pct(l.split[rarity]))]);
   return table(['Ladder', 'Drops per game', ...RARITIES.map(capitalize)], rows);
+}
+
+/** Pieces gained per week by source (medians over seeds), gear and trinkets apart, with the Rares and Legendaries among them. */
+function gearSources(s: ProfileSummary) {
+  const label = (source: ProfileSummary['gearSources'][number]['source']) =>
+    source === 'total' ? '**Loot total**' : source === 'shop' ? 'Shops (work tools)' : lootMatrix[source].name;
+  const { piecesPerWeek } = targets.gear;
+  const band: [number, number] = [piecesPerWeek * (1 - targets.lootPacing), piecesPerWeek * (1 + targets.lootPacing)];
+  const rows = s.gearSources.map((r) => [
+    r.group,
+    label(r.source),
+    `${n(r.gear.median, 1)}${r.source === 'total' && s.profile === 'regular' ? mark(r.gear.median, band) : ''}`,
+    n(r.trinkets.median, 1),
+    n(r.rare.median, 2),
+    n(r.legendary.median, 2),
+    r.rare.median ? n(7 / r.rare.median, 1) : '—',
+  ]);
+  return table(['Group', 'Source', s.profile === 'regular' ? `Gear/week (${piecesPerWeek} ± ${targets.lootPacing * 100}%)` : 'Gear/week', 'Trinkets/week', 'Rare/week', 'Legendary/week', 'Days per Rare'], rows);
 }
 
 /** Affixes and helmets worn at each tier's end, and the gear actions over the tier. */
@@ -609,10 +632,10 @@ export function renderReport({ summaries, rules, settings, difficultyOdds, famil
   out.push(
     '## Gear',
     '',
-    'The gear system across the games: pieces looted per tier by rarity (trinkets included, relics apart) with their per-day rates, the rarity split by the loot ladder the piece’s source rolls on, the affixes and helmets worn at each tier’s end and the gear actions — rerolls (gold and materials), elemental stones and ingredient forges. Tier times and win odds are in the pace and odds tables above.',
+    'The gear system across the games: pieces looted per tier by rarity (trinkets included, relics apart) with their per-day rates, the pieces gained per week by source (gear and trinkets apart; the Rares and Legendaries among them; first-win and first-clear bonuses count with their dungeon run or boss), the rarity split by the loot ladder the piece’s source rolls on, the affixes and helmets worn at each tier’s end and the gear actions — rerolls (gold and materials), elemental stones and ingredient forges. Tier times and win odds are in the pace and odds tables above.',
     '',
   );
-  for (const s of summaries) out.push(`### ${s.profile}`, '', gearRarity(s), '', gearLadders(s), '', gearActions(s), '');
+  for (const s of summaries) out.push(`### ${s.profile}`, '', gearRarity(s), '', gearSources(s), '', gearLadders(s), '', gearActions(s), '');
   out.push('## Gold per tier', '');
   for (const s of summaries) out.push(`### ${s.profile}`, '', gold(s));
   out.push('## Materials: the tier’s main material', '');

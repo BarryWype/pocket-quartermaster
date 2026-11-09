@@ -14,6 +14,9 @@ CHANCES = {"—": 0.0, "R/2": 0.035, "R": 0.07, "S": 0.25, "O": 0.60, "A": 1.0}
 # Fixed extras that aren't a mark: the ruins give a relic every 5th dig.
 EXTRAS = {("Ruins, a dig", "Relics"): 1 / 5}
 SKIP = {"Source", "Visits per day (regular player)", "Notes"}
+# Weekly targets the marks are tuned to. Gear: 26.8 was set for three gear
+# slots; helmets make four, so x4/3 (README, "Targets").
+TARGETS = {"Gear": 36}
 
 path = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parent.parent / "matrix.csv"
 with path.open(newline="") as f:
@@ -29,4 +32,5 @@ for cat in categories:
             per_day += chance * visits
             sources.append((chance * visits, row["Source"]))
     top = ", ".join(name for _, name in sorted(sources, reverse=True)[:3])
-    print(f"{cat:15} {per_day * 7:6.1f} per week   mostly: {top}")
+    target = f"   target {TARGETS[cat]}" if cat in TARGETS else ""
+    print(f"{cat:15} {per_day * 7:6.1f} per week{target}   mostly: {top}")

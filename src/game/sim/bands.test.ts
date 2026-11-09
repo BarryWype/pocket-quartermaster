@@ -79,6 +79,21 @@ check('simulator balance bands', () => {
     }
   });
 
+  describe('gear', () => {
+    const { piecesPerWeek, daysPerRare, legendariesPerTier } = targets.gear;
+    const total = summary.profiles.regular?.gearSources?.find((r) => r.source === 'total');
+    if (total) {
+      it(`regular: about ${piecesPerWeek} looted gear pieces a week`, () =>
+        expectIn(median(total.gear), [piecesPerWeek * (1 - targets.lootPacing), piecesPerWeek * (1 + targets.lootPacing)]));
+    }
+    for (const s of profiles) {
+      for (const tier of s.tiers) {
+        if (daysPerRare[s.profile]) it(`${s.profile}: tier ${tier.tier} a Rare every ${daysPerRare[s.profile].join('–')} days`, () => expectIn(median(tier.gear.daysPerRare), daysPerRare[s.profile]));
+        if (s.profile === 'regular') it(`regular: tier ${tier.tier} about one Legendary`, () => expectIn(median(tier.gear.rarity.legendary), legendariesPerTier));
+      }
+    }
+  });
+
   describe('jobs', () => {
     for (const tier of summary.profiles.regular?.tiers ?? []) {
       const share = tier.wood?.share;

@@ -1,7 +1,7 @@
 import { dungeons } from '@/content/dungeons';
 import { RARITIES, type Rarity } from '@/content/gear';
 import { heroClasses } from '@/content/heroes';
-import { dungeonById } from '@/content/lookup';
+import { dungeonById, itemById } from '@/content/lookup';
 import { items } from '@/content/items';
 import { jobs as jobList } from '@/content/jobs';
 import { lootConfig } from '@/content/loot/config';
@@ -13,6 +13,7 @@ import { workToolRules } from '@/content/workTools';
 
 import { jobMaterials } from '../jobs/jobs';
 import type { LootCategory, LootSourceId } from '../loot/types';
+import type { GearDef } from '../types';
 import { PATROL_KINDS, TRAVELLER_KINDS, type PatrolKind } from '../patrols/generate';
 import { families, type FamilyId } from '@/content/families';
 
@@ -112,6 +113,22 @@ export type TierSummary = {
   level: { end: Stat; target: number };
 };
 
+/** Where gained pieces come from, in the report's order: every loot source and the shops, grouped. */
+export const GEAR_SOURCE_GROUPS: [group: string, sources: (LootSourceId | 'shop')[]][] = [
+  ['Dungeon runs', ['dungeonRun', 'firstWin', 'firstDungeonClear', 'overnightExpedition']],
+  ['Bosses and elites', ['tierBoss', 'firstTierClear', 'monsterLair']],
+  ['Patrols', ['patrol']],
+  ['Fight events', ['banditCamp', 'goblinRaid', 'beastDen', 'hauntedCrypt', 'elementalRift', 'abandonedCaravan', 'wantedOutlaw']],
+  ['Chests', ['stepChest', 'treasureSpot', 'fishingDock']],
+  ['Quests', ['questShort', 'questMedium', 'questLong', 'secretQuest']],
+  ['Sanctums', ['sanctum']],
+  ['Shops', ['shop']],
+  ['Other', ['traveller', 'ruinsDig', 'heist']],
+];
+
+/** One source's pieces per week (median over seeds); `source` is 'total' on the last row. */
+export type GearSourceRow = { group: string; source: LootSourceId | 'shop' | 'total'; gear: Stat; trinkets: Stat; rare: Stat; legendary: Stat };
+
 export type ProfileSummary = {
   profile: string;
   /** The Families report: what the bot's parties reached per tier (see familyTiers). */
@@ -126,6 +143,8 @@ export type ProfileSummary = {
   loot: { category: LootCategory; column: string; designed: number; observed: number; off: number }[];
   /** Gear: the observed rarity split of looted pieces (relics apart) by the loot ladder their source rolls on. */
   ladders: { ladder: 'basic' | 'big' | 'boss'; drops: Stat; split: Record<Rarity, number> }[];
+  /** Gear: pieces gained per week by source (gear and trinkets apart, Rares and Legendaries among them), the loot total (shops apart) last. */
+  gearSources: GearSourceRow[];
   health: {
     pileUps: { id: string; final: number }[];
     dead: { items: string[]; recipes: string[]; places: string[]; dungeons: string[] };
@@ -595,7 +614,7 @@ export function summarize(logs: RunLog[], t: Targets = defaultTargets): ProfileS
   const ladderOf = (source: LootSourceId) => ladderBySource[source] ?? 'basic';
   const ladderSummary = (Object.keys(rarityLadders) as ('basic' | 'big' | 'boss')[]).map((ladder) => {
     const perSeed = logs.map((log) => {
-      const rows = log.gearLoot.filter((row) => row.rarity !== null && ladderOf(row.source) === ladder);
+      const rows = log.gearLoot.filter((row) => row.rarity !== null && row.source !== 'shop' && ladderOf(row.source) === ladder);
       return { drops: rows.length, byRarity: Object.fromEntries(RARITIES.map((rarity) => [rarity, rows.filter((row) => row.rarity === rarity).length])) };
     });
     return {
@@ -604,6 +623,23 @@ export function summarize(logs: RunLog[], t: Targets = defaultTargets): ProfileS
       split: Object.fromEntries(RARITIES.map((rarity) => [rarity, stat(perSeed.map((seed) => (seed.drops ? seed.byRarity[rarity as Rarity] / seed.drops : null))).median ?? 0])) as Record<Rarity, number>,
     };
   });
+
+  // Pieces per week by source; a trinket is told apart by its slot.
+  const perWeek = (match: (row: RunLog['gearLoot'][number]) => boolean) =>
+    stat(logs.map((log) => (log.days > 0 ? (log.gearLoot.filter((row) => row.rarity !== null && match(row)).length / log.days) * 7 : null)));
+  const isTrinket = (row: RunLog['gearLoot'][number]) => (itemById[row.itemId!] as GearDef | undefined)?.slot === 'trinket';
+  const sourceRow = (group: string, source: GearSourceRow['source'], of: (row: RunLog['gearLoot'][number]) => boolean): GearSourceRow => ({
+    group,
+    source,
+    gear: perWeek((row) => of(row) && !isTrinket(row)),
+    trinkets: perWeek((row) => of(row) && isTrinket(row)),
+    rare: perWeek((row) => of(row) && row.rarity === 'rare'),
+    legendary: perWeek((row) => of(row) && row.rarity === 'legendary'),
+  });
+  const gearSources = [
+    ...GEAR_SOURCE_GROUPS.flatMap(([group, sources]) => sources.map((source) => sourceRow(group, source, (row) => row.source === source))),
+    sourceRow('', 'total', (row) => row.source !== 'shop'),
+  ].filter((row) => row.source === 'total' || row.gear.max || row.trinkets.max);
 
   const pile = new Map<string, number[]>();
   for (const log of logs) for (const p of pileUps(log, t)) pile.set(p.id, [...(pile.get(p.id) ?? []), p.final]);
@@ -681,6 +717,7 @@ export function summarize(logs: RunLog[], t: Targets = defaultTargets): ProfileS
     totalDays: stat(logs.map((l) => (l.finished ? l.days : null))),
     tiers,
     ladders: ladderSummary,
+    gearSources,
     reveals: Object.fromEntries(REVEAL_KINDS.map((kind) => [kind, stat(logs.map((l) => l.milestones[`reveal:${kind}`]))])) as Record<RevealKind, Stat>,
     loot,
     health: {
