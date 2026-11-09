@@ -83,11 +83,14 @@ describe('rosterSave', () => {
     }
   });
 
-  it("starts a tier with the previous tier's end kit, this tier unlocked", () => {
+  it("starts a tier with the previous tier's end gear and the boss's piece of this tier, this tier unlocked", () => {
     const start = rosterSave(4, 'start');
     const end = rosterSave(3, 'end');
     expect(start.heroes.map((h) => h.level)).toEqual(end.heroes.map((h) => h.level));
-    expect(start.gear.map((g) => g.itemId)).toEqual(end.gear.map((g) => g.itemId));
+    expect(start.gear.filter((g) => g.uid !== 'boss:weapon').map((g) => g.itemId)).toEqual(end.gear.map((g) => g.itemId));
+    // The tier 3 boss's piece of tier 4: the warrior's weapon of choice.
+    expect(start.heroes[0].equipment.weapon).toBe('boss:weapon');
+    expect(start.gear.find((g) => g.uid === 'boss:weapon')!.itemId).toBe('sword4');
     expect(start.clearedDungeons).toContain('drownedCrypt');
   });
 

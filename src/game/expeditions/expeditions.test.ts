@@ -238,6 +238,16 @@ describe('resolveExpedition', () => {
     wins.forEach(({ save }) => expect(save.knownRecipes).toContain('woodPickaxe'));
   });
 
+  it("hands over the next tier's armour and helmet blueprints and a piece of its gear on a boss's first clear", () => {
+    const veteran = { ...geared(), clearedDungeons: ['millRuins'], heroes: geared().heroes.map((h) => ({ ...h, level: 15 })) };
+    const wins = outcomes(veteran, 'banditStockade', 10).filter((r) => r.report.success);
+    expect(wins.length).toBeGreaterThan(0);
+    for (const { save, report } of wins) {
+      for (const id of ['plate2', 'mail2', 'leather2', 'robes2', 'greatHelm2', 'sallet2', 'hood2', 'plagueMask2', 'runeCirclet2']) expect(save.knownRecipes).toContain(id);
+      expect(report.loot.gear.some((g) => g.itemId.endsWith('2'))).toBe(true);
+    }
+  });
+
   it('applies rewards and XP to the save, and never wears gear down', () => {
     const started = startExpedition(geared(), 'goblinWarren', ALL, 0);
     const { save, report } = resolveExpedition(started, started.expeditions[0]);

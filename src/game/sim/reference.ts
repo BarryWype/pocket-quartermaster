@@ -132,7 +132,8 @@ const TRINKET = 'hawkEyeRing';
  * of choice for every slot (weapon, armour, helmet, off-hand) and a trinket,
  * Uncommon gear of the tier at the average roll with its affix, a spare piece
  * of every type to dress from, three healing potions in stock. Start of a
- * tier: the previous tier's end, what the bot carries into the new tier.
+ * tier: the previous tier's end, what the bot carries into the new tier, plus
+ * the piece of this tier the previous boss's first clear brought.
  * Start of tier 1: the starting trio with a Common weapon each (referenceSave).
  */
 export function rosterSave(tier: number, when: 'start' | 'end'): SaveData {
@@ -162,6 +163,11 @@ export function rosterSave(tier: number, when: 'start' | 'end'): SaveData {
     const offhand = offhandTypeFor(save, save.heroes.find((h) => h.id === hero.id)!);
     if (offhand) wear(hero.id, 'offhand', gearId(offhand, kitTier));
     wear(hero.id, 'trinket', `${TRINKET}${kitTier}`);
+  }
+  if (when === 'start') {
+    // The previous boss's first clear brought a piece of this tier: the first hero's weapon of choice.
+    const hero = heroes[0];
+    save = equip({ ...save, gear: [...save.gear, averagePiece('boss:weapon', gearId(weaponTypeFor(hero.classId) ?? 'sword', tier), 'uncommon')] }, hero.id, 'weapon', 'boss:weapon');
   }
   return withSpares(save, kitTier, 'uncommon');
 }

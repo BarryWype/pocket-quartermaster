@@ -20,6 +20,7 @@ import { addMaterials } from '../inventory';
 import { charmApplies, partyCharms } from '../loot/charms';
 import { lootContextOf } from '../loot/context';
 import { grantLoot } from '../loot/grant';
+import { nextTierReward } from '../loot/nextTier';
 import { mergeLoot, rollSourceLoot } from '../loot/roll';
 import { scavengeLoot } from '../gear/workTools';
 import { rollSigil, type SigilDrop } from '../loot/sigils';
@@ -402,7 +403,8 @@ export function resolveExpedition(
   );
 
   // A win rolls its row of the loot matrix, plus the day's first win (dungeons
-  // and tier bosses, never overnight expeditions) and a new tier's first clear on top. A
+  // and tier bosses, never overnight expeditions) and a new tier's first clear on top, which
+  // also brings the next tier's armour and helmet blueprints and a piece of its gear. A
   // loss keeps its share of gold and XP and rolls nothing. The tutorial run
   // pays the first-win row and counts as the day's first win.
   const firstWin =
@@ -453,7 +455,10 @@ export function resolveExpedition(
       loot = mergeLoot(loot, roll(source, { gold: baseGold, xp: Math.round(xp * mealXp) }, i + 1));
     }
     if (firstWin) loot = mergeLoot(loot, roll('firstWin', bonus('firstWin')));
-    if (firstTierClear) loot = mergeLoot(loot, roll('firstTierClear', bonus('firstTierClear')));
+    if (firstTierClear) {
+      loot = mergeLoot(loot, roll('firstTierClear', bonus('firstTierClear')));
+      loot = mergeLoot(loot, nextTierReward(save, dungeon.tier, createRng(`${expedition.seed}|nextTier`)));
+    }
     if (firstDungeonClear) loot = mergeLoot(loot, roll('firstDungeonClear', bonus('firstDungeonClear')));
   } else {
     loot = { ...emptyLoot(), gold: Math.round(baseGold * (1 + lootConfig.luck.goldPerPoint * luck)), xp: Math.round(xp * mealXp) };
