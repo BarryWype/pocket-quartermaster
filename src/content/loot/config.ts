@@ -151,10 +151,10 @@ export const lootConfig = {
     /**
      * A ladder's own upgrade roll after the d20: basic sources drop most of the
      * gear, so small chances there give a Rare every 2–3 days and a Legendary
-     * about once a tier (regular profile), a Legendary about a third as often
+     * about once a tier (regular profile), a Legendary less than half as often
      * as a Rare.
      */
-    upgrades: { basic: { rare: 0.04, legendary: 0.0125 } } as Partial<Record<'basic' | 'big' | 'boss', { rare: number; legendary: number }>>,
+    upgrades: { basic: { rare: 0.025, legendary: 0.01 } } as Partial<Record<'basic' | 'big' | 'boss', { rare: number; legendary: number }>>,
   },
   /** A looted gear piece picks its type among the useful types this share of the time (loot/useful.ts), else among all. */
   usefulDrops: { share: 0.3 },

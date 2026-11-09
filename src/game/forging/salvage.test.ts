@@ -1,9 +1,8 @@
 import { gearId, gearRecipes } from '@/content/equipment';
-import type { GearType } from '@/game/types';
 
 import { createInitialSave, type SaveData } from '../save';
 import { equip } from '../team/team';
-import type { GearInstance } from '../types';
+import type { GearInstance, GearType } from '../types';
 import { salvage, salvageDialog, salvageReturns } from './salvage';
 
 const piece = (itemId: string, rarity: GearInstance['rarity'] = 'common', extra: Partial<GearInstance> = {}): GearInstance => ({
