@@ -24,12 +24,12 @@ import { expectedLevels, profiles } from './config';
 import type { DifficultyOdds } from './difficultyOdds';
 import { lootPacing } from './pacing';
 import { rotationOf } from './rotation';
-import { inRange, targets as defaultTargets, type Targets } from './targets';
+import { inRange, targets as defaultTargets, threatGapTarget, type Targets } from './targets';
 
 const TIERS = [1, 2, 3, 4, 5];
 
 /** The difficulties a threat gap is measured on. */
-type GapDifficulty = keyof Targets['odds']['threatGap'];
+type GapDifficulty = 'medium' | 'hard';
 const DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
 
 /** Median and range over seeds; null where no seed got there. */
@@ -340,7 +340,7 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): Omit<TierSummary
     }),
   ) as TierSummary['odds']['difficulty'];
   const gap = Object.fromEntries(
-    (Object.keys(t.odds.threatGap) as GapDifficulty[]).map((d) => [d, snapshot(ofDifficulty(d), (p) => (p.unprepared === null ? null : p.prepared - p.unprepared), true)]),
+    (['medium', 'hard'] as GapDifficulty[]).map((d) => [d, snapshot(ofDifficulty(d), (p) => (p.unprepared === null ? null : p.prepared - p.unprepared), true)]),
   ) as TierSummary['odds']['gap'];
   // The boss's first attempts: its probes on the first day it is open (boss rows start when it opens).
   const bossFirst = stat(
@@ -795,7 +795,7 @@ export function misses(summaries: ProfileSummary[]): { what: string; value: numb
         if (line.target.start) check(`${s.profile}: tier ${tier.tier} ${d} odds at the start`, line.start.median, line.target.start);
         check(`${s.profile}: tier ${tier.tier} ${d} odds at the end`, line.end.median, line.target.end);
       }
-      for (const [d, min] of Object.entries(defaultTargets.odds.threatGap)) check(`${s.profile}: tier ${tier.tier} ${d} threat gap`, tier.odds.gap[d as GapDifficulty].median, [min, 1]);
+      for (const d of ['medium', 'hard'] as const) check(`${s.profile}: tier ${tier.tier} ${d} threat gap`, tier.odds.gap[d].median, [threatGapTarget(tier.tier, d), 1]);
       check(`${s.profile}: tier ${tier.tier} boss odds at the first attempts`, tier.odds.boss.first.median, tier.odds.boss.target);
       check(`${s.profile}: tier ${tier.tier} fight event and patrol odds`, tier.odds.events.probe.median, tier.odds.events.target);
     }

@@ -61,8 +61,8 @@ export const threatDefs: ThreatDef[] = [
     icon: require('../../assets/icons/abilities-scaled/rope-snare.png'),
     firstTier: 1,
     penalties: [
-      [{ kind: 'trapWounds', pct: 0.4 }],
-      [{ kind: 'trapWounds', pct: 0.6 }],
+      [{ kind: 'trapWounds', pct: 0.8 }],
+      [{ kind: 'trapWounds', pct: 0.8 }],
       [{ kind: 'trapWounds', pct: 0.8 }],
     ],
     description: 'Snares, locks and caved-in ways; missed, they wound whoever they catch.',

@@ -10,7 +10,7 @@ import { FAMILY_RUNS, FIRE_RUNS, FOCUS_FLAG, familyName, focusFlags, levelLift, 
 import { cunningSpeedup, misses, type ProfileSummary, type Stat, type Summary } from '@/game/sim/metrics';
 import { familyById, familyOfThreat, families } from '@/content/families';
 import { gathererPace } from '@/game/sim/gathererPace';
-import { inRange, targets } from '@/game/sim/targets';
+import { inRange, targets, threatGapTarget } from '@/game/sim/targets';
 import type { ThreatId } from '@/game/types';
 import { heroClasses } from '@/content/heroes';
 import { createInitialSave } from '@/game/save';
@@ -225,7 +225,7 @@ function odds(s: ProfileSummary) {
       const l = o.difficulty[d];
       return `${pct(l.start.median)}${l.target.start ? mark(l.start.median, l.target.start) : ''} → ${pct(l.end.median)}${mark(l.end.median, l.target.end)}`;
     };
-    const gap = (d: 'medium' | 'hard') => `${pct(o.gap[d].median)}${mark(o.gap[d].median, [targets.odds.threatGap[d], 1])}`;
+    const gap = (d: 'medium' | 'hard') => `${pct(o.gap[d].median)}${mark(o.gap[d].median, [threatGapTarget(t.tier, d), 1])}`;
     const runs = (l: { actual: number | null; runs: number }) => (l.runs ? `${pct(l.actual)} of ${l.runs}` : '—');
     const launched = (['easy', 'medium', 'hard'] as const).map((d) => runs(o.difficulty[d])).join(', ');
     return [
@@ -252,8 +252,8 @@ function odds(s: ProfileSummary) {
     `Medium (${span('medium')})`,
     `Hard (${span('hard')})`,
     'Launched, won (easy, medium, hard)',
-    `Medium gap (≥ ${pct(targets.odds.threatGap.medium)})`,
-    `Hard gap (≥ ${pct(targets.odds.threatGap.hard)})`,
+    `Medium gap (≥ ${pct(threatGapTarget(1, 'medium'))} at tier 1, else ${pct(threatGapTarget(2, 'medium'))})`,
+    `Hard gap (≥ ${pct(threatGapTarget(1, 'hard'))})`,
     `Boss, first attempts → last (${range(targets.odds.boss, pct)})`,
     'Boss runs, won',
     `Events and patrols (${range(targets.odds.events, pct)})`,

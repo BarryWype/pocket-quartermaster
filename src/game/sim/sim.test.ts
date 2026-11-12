@@ -138,10 +138,11 @@ describe('balance lab', () => {
   it('fits a worker with their job’s work tool during tier 2', () => {
     const saves: SaveData[] = [];
     const log = runSim({ profile: 'regular', maxDays: 21, seed: 'tools', rates, afterDay: (day, save) => { saves[day] = save; } });
-    const end = log.milestones['boss:2'];
-    expect(end).toBeDefined();
+    // Tier 2 runs to its boss, or to the end of the 21 days when the boss is still standing.
+    expect(log.milestones['boss:1']).toBeDefined();
+    const end = log.milestones['boss:2'] ?? 21;
     const fitted = Object.entries(saves)
-      .filter(([day]) => Number(day) <= end!)
+      .filter(([day]) => Number(day) > log.milestones['boss:1']! && Number(day) <= end)
       .flatMap(([, save]) => save.heroes.filter((h) => h.job && wornWorkTool(save, h)?.job === h.job.jobId));
     expect(fitted.length).toBeGreaterThan(0);
   });

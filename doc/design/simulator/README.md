@@ -27,7 +27,7 @@ The simulator plays the game with simple bots, for several player profiles, and 
 | --- | --- |
 | Days per tier | Regular **about 7**, casual **about 14**, heavy **3–4** |
 | Win odds per difficulty, prepared (the bot's real party, dressed by `suggestParty`), at the tier's **end** (last probe); easy also at its **start** (the last probe of the tier's first day) | Easy **55–65% → 85–90%**, medium **65–75%**, hard **50–60%** at the end; medium and hard starts are reported, not targeted |
-| Threat gap: prepared minus briefing skipped (same party pool in fixed natural gear, same dungeons) | Medium **≥ 15 points**, hard **≥ 25 points**; easy has none |
+| Threat gap: prepared minus briefing skipped (same party pool in fixed natural gear, same dungeons) | Medium **≥ 10 points at tier 1**, **≥ 15 points from tier 2**, hard **≥ 25 points** at every tier; easy has none. Tier 1 medium briefings carry a single level 1 threat, which a missed answer only half-applies, and the starting classes' own kit answers many of them, so preparing can win back about 10 points there; from tier 2, two threats and level 2 make it worth 15 |
 | Win odds, tier boss, prepared, at the **first attempts** (the probes while the boss first appears) | **50–60%** |
 | Win odds, fight events and patrols, prepared | 70–80% |
 | Loot pacing | Within 20% of `doc/design/loot/tools/pacing.py` for the regular profile |

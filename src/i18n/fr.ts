@@ -1087,7 +1087,7 @@ export const fr: Dictionary = {
       warrior: 'Une ligne de front solide.',
       barbarian: '+{rage} de dégâts sous {below} de PV.',
       paladin: 'Encaisse {protect} des coups visant l’allié le plus blessé ; Garde attire les coups ennemis.',
-      ranger: 'Pénalités de Pièges manquées ×{traps} ; +{tagBonus} de dégâts contre les bêtes.',
+      ranger: '+{tagBonus} de dégâts contre les bêtes.',
       thief: 'Critiques ×{concealedCrit} avec une arme dissimulée ; ouvre chaque cache, ×{cache} d’or.',
       fireMage: 'Le feu fend les rangs ; résiste au feu.',
       frostMage: 'Armure de glace ; résiste à l’eau.',

@@ -2,7 +2,7 @@ import { simConfig } from '@/game/sim/config';
 import { difficultyRules } from '@/content/difficulty';
 import { applyOverrides, parseOverride } from '@/game/sim/overrides';
 import { quickProbe, type QuickTier } from '@/game/sim/quick';
-import { inRange, targets } from '@/game/sim/targets';
+import { inRange, targets, threatGapTarget } from '@/game/sim/targets';
 import { focusOdds, familyName, venomousOdds } from '@/game/sim/familyFocus';
 import { threatCosts } from '@/game/sim/threatCosts';
 import { elementalProtection } from '@/game/sim/elementalTier';
@@ -92,7 +92,7 @@ for (const tier of tiers) {
     return [
       cell(prepared, difficultyRules.oddsTargets[d].end),
       skipped === null ? '—' : `${Math.round(skipped * 100)}%`,
-      gap === null ? '—' : `${Math.round(gap * 100)} pts ${gap >= targets.odds.threatGap[d] ? '✓' : '✗'}`,
+      gap === null ? '—' : `${Math.round(gap * 100)} pts ${gap >= threatGapTarget(tier.tier, d) ? '✓' : '✗'}`,
     ];
   };
   console.log(`| ${tier.tier} | ${[...pair('medium'), ...pair('hard'), cell(tier.boss, targets.odds.boss), cell(tier.events, targets.odds.events), cell(tier.patrols, targets.odds.events)].join(' | ')} |`);

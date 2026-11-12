@@ -39,7 +39,6 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     abilities: [
       { kind: 'trapReduce', multiplier: 0.5 },
       { kind: 'damageVsTag', tag: 'beast', multiplier: 1.5 },
-      { kind: 'penaltyReduce', threat: 'traps', multiplier: 0.5 },
     ],
   },
   fireMage: {

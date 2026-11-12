@@ -137,12 +137,12 @@ describe('fights', () => {
 
 describe('traps', () => {
   it('wound each hero it catches by the missed threat\'s share of max HP', () => {
-    // Finesse 1 against level 2 (needs 3): a full miss, trapWounds 60%.
+    // Finesse 1 against level 2 (needs 3): a full miss, trapWounds 80%.
     const briefing = briefingOf('traps', 2);
     const run = simulateRun([member('a'), member('b', { maxHp: 50 })], dungeon([trap()]), 's', { rules: steady, briefing });
     const caught = run.encounters[0];
     expect(caught.trapTriggered).toBe(true);
-    expect(caught.taken).toEqual({ a: 60, b: 30 });
+    expect(caught.taken).toEqual({ a: 80, b: 40 });
   });
 
   it('catch nobody when the threat is met', () => {
@@ -154,10 +154,10 @@ describe('traps', () => {
   });
 
   it('wound half as much on a half miss', () => {
-    // Finesse 1 against level 1 (needs 2): one short, so half of the 40%.
+    // Finesse 1 against level 1 (needs 2): one short, so half of the 80%.
     const briefing = briefingOf('traps');
     const run = simulateRun([member('a')], dungeon([trap()]), 's', { rules: steady, briefing });
-    expect(run.encounters[0].taken).toEqual({ a: 20 });
+    expect(run.encounters[0].taken).toEqual({ a: 40 });
   });
 
   it('are quiet steps without the traps threat in the briefing', () => {
@@ -169,7 +169,7 @@ describe('traps', () => {
     const briefing = briefingOf('traps', 2);
     const fire = trap({ element: 'fire' });
     const taken = simulateRun([member('a')], dungeon([fire]), 's', { rules: steady, briefing }).encounters[0].taken.a;
-    expect(taken).toBeCloseTo(60 * elementRules.unprotectedMultiplier);
+    expect(taken).toBeCloseTo(80 * elementRules.unprotectedMultiplier);
   });
 
   it('are guaranteed an encounter when the threat is drawn but none was rolled', () => {

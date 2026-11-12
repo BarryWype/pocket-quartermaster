@@ -36,8 +36,8 @@ describe('threat penalties', () => {
   });
 
   it('halves every number when one short, in full when two or more short', () => {
-    expect(kinds(scored('traps', 1, 1))).toEqual(['traps:trapWounds:{"kind":"trapWounds","pct":0.2}']);
-    expect(kinds(scored('traps', 2, 2))).toEqual(['traps:trapWounds:{"kind":"trapWounds","pct":0.6}']);
+    expect(kinds(scored('traps', 1, 1))).toEqual(['traps:trapWounds:{"kind":"trapWounds","pct":0.4}']);
+    expect(kinds(scored('traps', 2, 2))).toEqual(['traps:trapWounds:{"kind":"trapWounds","pct":0.8}']);
     expect(kinds(scored('element', 2, 1))).toEqual(['element:elementalDamage:{"kind":"elementalDamage","multiplier":1.45}']);
     expect(kinds(scored('element', 2, 2))).toEqual(['element:elementalDamage:{"kind":"elementalDamage","multiplier":1.9}']);
     expect(kinds(scored('holy', 1, 1))).toEqual(['holy:enemyHp:{"kind":"enemyHp","tag":"undead","pct":0.35}']);

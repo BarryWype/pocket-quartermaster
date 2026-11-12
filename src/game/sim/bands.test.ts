@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import { difficultyRules } from '@/content/difficulty';
 
 import type { Stat, Summary } from './metrics';
-import { inRange, targets } from './targets';
+import { inRange, targets, threatGapTarget } from './targets';
 
 // Balance bands on the simulator's targets (doc/design/simulator/README.md),
 // read from the summary the last `npm run sim` wrote. Skipped until tuning
@@ -53,9 +53,10 @@ check('simulator balance bands', () => {
           if (start) it(`${s.profile}: tier ${tier.tier} ${difficulty} expeditions at the start`, () => expectIn(median(line.start), start));
           it(`${s.profile}: tier ${tier.tier} ${difficulty} expeditions at the end`, () => expectIn(median(line.end), line.target.end));
         }
-        for (const [difficulty, min] of Object.entries(targets.odds.threatGap)) {
+        for (const difficulty of ['medium', 'hard'] as const) {
+          const min = threatGapTarget(tier.tier, difficulty);
           it(`${s.profile}: tier ${tier.tier} ${difficulty} threat gap of at least ${min * 100} points`, () =>
-            expect(median(odds.gap[difficulty as keyof typeof targets.odds.threatGap])).toBeGreaterThanOrEqual(min));
+            expect(median(odds.gap[difficulty])).toBeGreaterThanOrEqual(min));
         }
         it(`${s.profile}: tier ${tier.tier} boss at its first attempts`, () => expectIn(median(odds.boss.first), targets.odds.boss));
         it(`${s.profile}: tier ${tier.tier} fight events and patrols, prepared`, () => expectIn(median(odds.events.probe), targets.odds.events));

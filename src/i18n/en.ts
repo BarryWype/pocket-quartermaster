@@ -1086,7 +1086,7 @@ export const en = {
       warrior: 'Solid front line.',
       barbarian: '+{rage} damage below {below} HP.',
       paladin: 'Takes {protect} of the hits aimed at the most hurt ally; Guard draws enemy blows.',
-      ranger: 'Missed Traps penalties ×{traps}; +{tagBonus} damage against beasts.',
+      ranger: '+{tagBonus} damage against beasts.',
       thief: 'Concealed crits ×{concealedCrit}; opens every hidden cache, ×{cache} gold from them.',
       fireMage: 'Fire cleaves; resists fire.',
       frostMage: 'Ice armour; resists water.',

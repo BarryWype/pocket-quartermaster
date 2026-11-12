@@ -2,7 +2,7 @@ Threat,Family,Covers,First tier,Penalty type,Level 1,Level 2,Level 3,Dungeon,Pat
 Holy,Faith,"Undead, desecrated ground",1,Enemy HP (undead),+70%,+80%,+90%,1,1,1,Families step 2: Undead and Desecrated ground merged; keeps Undead's penalty
 Beasts,Wild,"Beasts, swarms",1,Enemy damage (beasts),+120%,+130%,+140%,1,1,0,Families step 2: absorbs Swarm
 Darkness,Watch,"Darkness, ambush",3,Exposed + Weakened,Exposed 2 fights + Weakened 20%,Exposed 3 fights + Weakened 22%,Exposed all fights + Weakened 25%,1,1,1,Families step 2: absorbs Ambush
-Traps,Cunning,"Traps; the obstacles rubble, locked and puzzle; maze; thieves",1,Wounds,25% per trap,35% per trap,45% per trap,1,0,1,Families step 2: absorbs the obstacles; keeps the Traps penalty
+Traps,Cunning,"Traps; the obstacles rubble, locked and puzzle; maze; thieves",1,Wounds,80% per trap,80% per trap,80% per trap,1,0,1,Families step 2: absorbs the obstacles; keeps the Traps penalty
 Poison,Venom,,2,Wounds,15% per fight,20% per fight,25% per fight,1,1,1,Exists
 Element (any of 5),Warding,"5 elements; casters; underwater",1,Elemental damage,×1.75,×1.9,×2.1,1,1,1,Families step 2: absorbs Casters and Underwater
 Armoured,Breaker,"Armoured, brutes",3,Weakened against them,45%,48%,52%,1,1,0,Families step 2: absorbs Brute

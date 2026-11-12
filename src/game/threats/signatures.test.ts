@@ -102,8 +102,8 @@ describe('briefing signatures', () => {
 });
 
 describe('penalty and meal signatures', () => {
-  it('halves missed Traps with a Ranger, once per party', () => {
-    expect(penaltyReduction(['ranger', 'ranger', 'warrior'])).toEqual({ threats: { traps: 0.5 } });
+  it('leaves missed Traps uncut for a Ranger', () => {
+    expect(penaltyReduction(['ranger', 'ranger', 'warrior'])).toEqual({ threats: {} });
     expect(penaltyReduction(['warrior'])).toEqual({ threats: {} });
   });
 

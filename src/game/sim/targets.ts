@@ -1,6 +1,14 @@
 import { difficultyRules } from '@/content/difficulty';
 
 /**
+ * Prepared minus the briefing skipped (the roster in natural gear), same
+ * dungeons, at the tier's last probe: medium wants 10 points at tier 1 and 15
+ * from tier 2, hard 25 at every tier; easy has none.
+ */
+export const threatGapTarget = (tier: number, difficulty: 'medium' | 'hard'): number =>
+  difficulty === 'medium' ? (tier === 1 ? 0.1 : 0.15) : 0.25;
+
+/**
  * The targets of doc/design/simulator/README.md, which the report puts next to
  * each result and the balance band tests check. Ranges are [min, max].
  */
@@ -14,8 +22,6 @@ export const targets = {
      * last probe of its first day (start).
      */
     difficulty: difficultyRules.oddsTargets,
-    /** Prepared minus the briefing skipped (the roster in natural gear), same dungeons, at the tier's last probe; easy has none. */
-    threatGap: { medium: 0.15, hard: 0.25 },
     /** The tier boss, prepared, at its first attempts: the probes on the day it first opens. */
     boss: [0.5, 0.6] as [number, number],
     /** Fight events and patrols, prepared. */

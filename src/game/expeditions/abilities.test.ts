@@ -71,14 +71,14 @@ describe('traps', () => {
   it('can have their damage reduced for the whole party', () => {
     const briefing = briefingOf('traps', 2);
     const result = first([member('a', [{ kind: 'trapReduce', multiplier: 0.5 }]), member('b')], trap, 's', briefing);
-    expect(result.taken).toEqual({ a: 30, b: 30 });
+    expect(result.taken).toEqual({ a: 40, b: 40 });
     expect(result.effects).toEqual([{ heroId: 'a', key: 'trapReduce' }]);
   });
 
   it('ignore knocked-out heroes', () => {
     const briefing = briefingOf('traps', 2);
     const result = first([knockedOut(member('a')), member('b')], trap, 's', briefing);
-    expect(result.taken).toEqual({ b: 60 });
+    expect(result.taken).toEqual({ b: 80 });
   });
 });
 
@@ -152,15 +152,15 @@ describe('support and combat primitives', () => {
 });
 
 describe('trait effects', () => {
-  /** Three live traps at level 1, half-missed: 37.5% of max HP in wounds, before the boss. */
-  const wounded = (): DungeonDef => ({ ...oneEncounter(trap, [trap, trap]), encounterCount: [4, 4] });
+  /** One live trap at level 1, half-missed: 40% of max HP in wounds, before the boss. */
+  const wounded = (): DungeonDef => oneEncounter(trap);
 
   it('potionThreshold: drinks earlier', () => {
     const potion = { id: 'p', name: 'potion', emoji: '', slot: 'consumable' as const, heal: 1, when: 'lowHp' as const };
     const briefing = briefingOf('traps', 1);
     const run = (abilities: Ability[]) =>
       simulateRun([member('a', abilities, { consumable: potion })], wounded(), 's', { rules: steady, briefing });
-    // Down to 62.5% of max HP: below the raised threshold (65%), above the normal one (35%).
+    // Down to 60% of max HP: below the raised threshold (65%), above the normal one (35%).
     expect(run([{ kind: 'potionThreshold', add: 0.3 }]).consumed).toEqual(['a']);
     expect(run([]).consumed).toEqual([]);
   });

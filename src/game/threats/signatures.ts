@@ -47,7 +47,7 @@ export function signatureBriefing(briefing: Briefing, members: AnswersMember[], 
   return { briefing: { ...briefing, restriction: kept, threats }, cancelledBy: breaker?.heroId ?? null, lowered };
 }
 
-/** The party's multipliers on missed threats' penalties (a Ranger's Traps cut): the best of each threat counts, once. */
+/** The party's multipliers on missed threats' penalties (a penaltyReduce ability): the best of each threat counts, once. */
 export function penaltyReduction(classIds: HeroClassId[]): { threats: Partial<Record<ThreatId, number>> } {
   const threats: Partial<Record<ThreatId, number>> = {};
   for (const id of classIds) {

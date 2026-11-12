@@ -1,6 +1,6 @@
 import { simConfig } from './config';
 import { quickProbe } from './quick';
-import { targets } from './targets';
+import { threatGapTarget } from './targets';
 
 // The quick probe's shape, at a sample size small enough to stay quick.
 
@@ -27,7 +27,8 @@ describe('quickProbe', () => {
 describe('preparation gap', () => {
   const sampled = quickProbe({ ...simConfig, quick: { days: 3, runs: 150 } });
   for (const tier of sampled) {
-    for (const [difficulty, min] of Object.entries(targets.odds.threatGap) as ['medium' | 'hard', number][]) {
+    for (const difficulty of ['medium', 'hard'] as const) {
+      const min = threatGapTarget(tier.tier, difficulty);
       it(`tier ${tier.tier} ${difficulty}: prepared beats skipped by at least ${min * 100} points`, () => {
         const { prepared, skipped } = tier.gap[difficulty];
         expect((prepared as number) - (skipped as number)).toBeGreaterThanOrEqual(min);

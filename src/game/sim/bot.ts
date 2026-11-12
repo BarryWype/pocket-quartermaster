@@ -1216,6 +1216,9 @@ function applyElixirs(sim: Sim, dungeon: DungeonDef, heroIds: string[], loadout:
 
 export function launch(sim: Sim, dungeon: DungeonDef, party: { heroIds: string[]; swaps: GearSwap[] }, o: Odds) {
   const { heroIds } = party;
+  const workers = heroIds
+    .map((id) => ({ id, jobId: sim.save.heroes.find((h) => h.id === id)?.job?.jobId }))
+    .filter((w): w is { id: string; jobId: string } => !!w.jobId);
   recallWorking(sim, heroIds);
   const briefing = todaysBriefing(sim, dungeon);
   sim.save = withLoadout(applySwaps(emptySlots(sim.save, homeHeroes(sim.save).map((h) => h.id)), party.swaps), heroIds, dungeon, briefing);
@@ -1231,6 +1234,19 @@ export function launch(sim: Sim, dungeon: DungeonDef, party: { heroIds: string[]
   if (lowOdds.success < sim.config.smokeBombBelowOdds) sim.save = withElixir(sim.save, heroIds, 'smokeBomb');
   // A safe run wears a loot trinket for what it finds, a risky one the best combat trinket.
   sim.save = dressLootTrinkets(sim.save, heroIds, runSource(dungeon), o.success >= sim.profile.oddsThreshold);
+  // A safe run keeps the worker's tool for what it scavenges, a risky one the combat off-hand (like the loot trinkets just above).
+  for (const { id, jobId } of workers) {
+    const hero = sim.save.heroes.find((h) => h.id === id)!;
+    if (wornWorkTool(sim.save, hero)?.job === jobId) continue;
+    const worn = new Set(sim.save.heroes.flatMap((h) => (['weapon', 'armor', 'helmet', 'offhand', 'trinket'] as const).map((slot) => h.equipment[slot])));
+    const tool = sim.save.gear
+      .filter((g) => !worn.has(g.uid) && (itemById[g.itemId] as GearDef).workTool?.job === jobId)
+      .sort((a, b) => (itemById[b.itemId] as GearDef).tier - (itemById[a.itemId] as GearDef).tier)[0];
+    if (!tool || !equipPreview(sim.save, id, 'offhand', tool.uid)) continue;
+    const withTool = equip(sim.save, id, 'offhand', tool.uid);
+    const tooled = estimateOdds(withTool, heroIds, dungeon, sim.config.odds.searchRuns, { now: sim.now, loadout, briefing });
+    if (tooled.success >= sim.profile.oddsThreshold) sim.save = withTool;
+  }
   // The prediction logged is for the party exactly as it leaves.
   const final = estimateOdds(sim.save, heroIds, dungeon, sim.config.odds.runs, { now: sim.now, loadout, briefing });
   const rarities = Object.fromEntries(RARITY_ORDER.map((r) => [r, 0])) as Record<Rarity, number>;

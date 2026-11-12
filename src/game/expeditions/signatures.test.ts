@@ -209,9 +209,9 @@ describe('the Engineer and the Ranger at a trap', () => {
     return result.encounters[0].taken.h ?? 0;
   };
 
-  it('halves trap wounds for an Engineer; a Ranger’s two cuts stack to a quarter', () => {
+  it('halves trap wounds for an Engineer and a Ranger alike', () => {
     expect(wounds('engineer')).toBeCloseTo(wounds('warrior') * 0.5);
-    expect(wounds('ranger')).toBeCloseTo(wounds('warrior') * 0.25);
+    expect(wounds('ranger')).toBeCloseTo(wounds('warrior') * 0.5);
   });
 });
 
