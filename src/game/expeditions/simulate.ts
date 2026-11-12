@@ -2032,8 +2032,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         const reducer = withAbility('trapReduce');
         if (reducer) result.effects.push({ heroId: reducer.hero.member.heroId, key: 'trapReduce' });
         const reduce = reducer?.ability.multiplier ?? 1;
-        const caught = encounter.targets === 'all' ? alive() : [rng.weighted(alive(), () => 1)];
-        for (const hero of caught) {
+        for (const hero of alive()) {
           hurt(hero, trapWounds * hero.member.maxHp * reduce * elementFactor(hero, encounter.element), result);
         }
       }

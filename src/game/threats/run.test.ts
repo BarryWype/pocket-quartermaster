@@ -90,7 +90,7 @@ const pool = (
   boss: { id: 'testBoss', name: 'test boss', hp: 40, damage: 4, damageType: 'power', speed: 5, tags: [], ...boss },
 });
 const fight = (mobs: MobGroup[] = [{ mobId: 'wolfPup', count: 2 }]): EncounterDef => ({ type: 'fight', weight: 1, mobs });
-const trap = (): EncounterDef => ({ type: 'trap', weight: 1, name: 'test trap', targets: 'all' });
+const trap = (): EncounterDef => ({ type: 'trap', weight: 1, name: 'test trap' });
 const fights = pool([fight()]);
 /** The boss on its own. */
 const bossOnly = (boss: Partial<DungeonDef['boss']>, count: [number, number] = [1, 1]) => pool([], count, boss);

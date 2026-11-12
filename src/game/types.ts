@@ -768,10 +768,9 @@ export type MobGroup = { mobId: string; count: number };
 export type EncounterDef = { weight: number } & (
   | { type: 'fight'; mobs: MobGroup[] }
   | {
-      /** Live only when the briefing has the traps threat; it wounds whoever it catches. */
+      /** Live only when the briefing has the traps threat missed; it wounds the whole party. */
       type: 'trap';
       name: string;
-      targets: 'one' | 'all';
       element?: Element;
     }
   | { type: 'event'; eventId: string }

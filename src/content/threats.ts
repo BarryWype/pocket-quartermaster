@@ -118,6 +118,10 @@ export const threatRules = {
   compose: {
     /** Threats per briefing, by dungeon tier (index tier − 1). */
     threatCount: [1, 2, 2, 2, 2],
+    /** Hard dungeons draw this many threats more, each at the highest level its tier allows. */
+    hardExtraThreats: 1,
+    /** The lowest level a hard dungeon's threats take, by tier: tier 1's cap of level 1 would leave hard no harder than medium. */
+    hardLevelFloor: [2, 1, 1, 1, 1],
     /** Briefings can carry an opportunity from this tier on. */
     opportunityFromTier: 2,
     /** Restrictions appear from this tier, on this share of days. */

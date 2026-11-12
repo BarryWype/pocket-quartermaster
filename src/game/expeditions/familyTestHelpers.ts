@@ -85,7 +85,7 @@ export function familyFight(family: FamilyId | null, level: number, setup: Fight
     encounters: setup.mobs
       ? [{ type: 'fight', weight: 1, mobs: setup.mobs }]
       : setup.traps
-        ? [{ type: 'trap', weight: 1, name: 'test trap', targets: 'all' }]
+        ? [{ type: 'trap', weight: 1, name: 'test trap' }]
         : [{ type: 'event', weight: 1, eventId: 'cache' }],
     boss,
   };

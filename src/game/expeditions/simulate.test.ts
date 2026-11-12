@@ -55,7 +55,6 @@ const trap = (overrides: Partial<Extract<EncounterDef, { type: 'trap' }>> = {}):
   type: 'trap',
   weight: 1,
   name: 'test trap',
-  targets: 'all',
   ...overrides,
 });
 const potion = itemById.healingPotion as ConsumableDef;
@@ -178,7 +177,7 @@ describe('traps', () => {
     // A pool where the trap can be missed by the draw: it still shows up before the boss.
     const pool: EncounterDef[] = [
       { type: 'event', weight: 1, eventId: 'spring' },
-      { type: 'trap', weight: 1e-9, name: 'hidden trap', targets: 'all' },
+      { type: 'trap', weight: 1e-9, name: 'hidden trap' },
     ];
     const runs = Array.from({ length: 10 }, (_, i) =>
       simulateRun([member('a', { maxHp: 1e6 })], dungeon(pool, {}, [3, 3]), `g${i}`, { rules: steady, briefing }),

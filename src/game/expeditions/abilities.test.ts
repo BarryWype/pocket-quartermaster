@@ -48,7 +48,7 @@ const briefingOf = (id: ThreatId, level: 1 | 2 | 3 = 1): Briefing => ({ threats:
 const first = (party: PartyMember[], encounter: EncounterDef, seed = 's', briefing?: Briefing, extra: EncounterDef[] = []) =>
   simulateRun(party, oneEncounter(encounter, extra), seed, { rules: steady, ...(briefing ? { briefing } : {}) }).encounters[0];
 
-const trap: EncounterDef = { type: 'trap', weight: 1, name: 'test trap', targets: 'all' };
+const trap: EncounterDef = { type: 'trap', weight: 1, name: 'test trap' };
 const beasts: EncounterDef = { type: 'fight', weight: 1, mobs: [{ mobId: 'wolfPup', count: 2 }] };
 const locals = (npcId: string): EncounterDef => ({ type: 'locals', weight: 1, npcId });
 

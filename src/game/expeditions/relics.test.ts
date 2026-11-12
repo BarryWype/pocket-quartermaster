@@ -187,7 +187,7 @@ describe('relic combat effects', () => {
 
   it("the Smuggler's coat cancels the Traps penalty for the whole party", () => {
     const options = { rules: steady, briefing: briefingOf('traps', 3) };
-    const trapped = dungeon([{ type: 'trap', weight: 1, name: 'test trap', targets: 'all' }]);
+    const trapped = dungeon([{ type: 'trap', weight: 1, name: 'test trap' }]);
     const coat = simulateRun([relicMember('smugglersCoat')], trapped, 'seed', options);
     const plain = simulateRun([plainMember('bram')], trapped, 'seed', options);
     expect(plain.encounters[0].taken.bram).toBeCloseTo(80, 5);

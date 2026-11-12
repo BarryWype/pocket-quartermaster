@@ -17,6 +17,7 @@ import type {
   HeroClassId,
   OpportunityId,
   RestrictionId,
+  Tag,
   ThreatId,
   ThreatLevel,
 } from '../types';
@@ -31,12 +32,19 @@ function rollLevel(rng: Rng, max: number, rules: ThreatRules): ThreatLevel {
   return rng.weighted(levels, (level) => rules.compose.levelWeights[max - level] ?? 0) as ThreatLevel;
 }
 
-/** Whether the dungeon's fights or its boss include a beast-tagged mob (for the Trophy beast opportunity). */
-const hasBeasts = (dungeon: DungeonDef) =>
-  dungeon.boss.tags.includes('beast') ||
+/** Whether the dungeon's fights or its boss include a mob with this tag. */
+const hasFoe = (dungeon: DungeonDef, tag: Tag) =>
+  dungeon.boss.tags.includes(tag) ||
   dungeon.encounters.some(
-    (e) => e.type === 'fight' && e.mobs.some((group) => mobTags(mobById[group.mobId]).includes('beast')),
+    (e) => e.type === 'fight' && e.mobs.some((group) => mobTags(mobById[group.mobId]).includes(tag)),
   );
+
+/** Whether the dungeon has beasts (for the Trophy beast opportunity). */
+const hasBeasts = (dungeon: DungeonDef) => hasFoe(dungeon, 'beast');
+
+/** A threat whose penalties only touch tagged foes can only be drawn where such a foe is. */
+export const bitesHere = (dungeon: DungeonDef, threat: ThreatId) =>
+  threatById[threat].penalties.flat().every((p) => !('tag' in p) || hasFoe(dungeon, p.tag));
 
 /**
  * The dungeon's threats for a day, sharing composeBriefing's seeded stream:
@@ -45,10 +53,12 @@ const hasBeasts = (dungeon: DungeonDef) =>
 function rollThreats(dungeon: DungeonDef, day: number, salt: number, rules: ThreatRules): { threats: ActiveThreat[]; rng: Rng } {
   const rng = createRng(salt > 0 ? `threats|${day}|${dungeon.id}|${salt}` : `threats|${day}|${dungeon.id}`);
   const table = dungeonThreats[dungeon.id] ?? { weights: {} };
-  const count = rules.compose.threatCount[dungeon.tier - 1];
+  // A hard dungeon draws more threats than the others, each at the highest level the tier allows.
+  const hard = dungeon.difficulty === 'hard';
+  const count = rules.compose.threatCount[dungeon.tier - 1] + (hard ? rules.compose.hardExtraThreats : 0);
 
   const eligible = (Object.entries(table.weights) as [ThreatId, number][])
-    .filter(([id]) => threatById[id].firstTier <= dungeon.tier)
+    .filter(([id]) => threatById[id].firstTier <= dungeon.tier && bitesHere(dungeon, id))
     .map(([id, weight]) => ({ id, weight: weight * (rules.compose.tierWeights[dungeon.tier]?.[id] ?? 1) }));
 
   const threats: ActiveThreat[] = [];
@@ -58,7 +68,9 @@ function rollThreats(dungeon: DungeonDef, day: number, salt: number, rules: Thre
     const def = threatById[pick.id];
     threats.push({
       id: pick.id,
-      level: rollLevel(rng, maxThreatLevel(dungeon.tier, def.firstTier), rules),
+      level: hard
+        ? (Math.max(maxThreatLevel(dungeon.tier, def.firstTier), rules.compose.hardLevelFloor[dungeon.tier - 1]) as ThreatLevel)
+        : rollLevel(rng, maxThreatLevel(dungeon.tier, def.firstTier), rules),
       ...(pick.id === 'element' && table.element ? { element: table.element } : {}),
     });
   }

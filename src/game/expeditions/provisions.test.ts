@@ -58,7 +58,7 @@ const oneEncounter = (encounter: EncounterDef): DungeonDef => ({
   boss: weakBoss,
 });
 
-const trap: EncounterDef = { type: 'trap', weight: 1, name: 'test trap', targets: 'all' };
+const trap: EncounterDef = { type: 'trap', weight: 1, name: 'test trap' };
 
 /** A started tutorial-free save with heroes strong enough to clear the refit Rat Cellar. */
 function ready(consumables: Record<string, number> = createInitialSave().consumables): SaveData {

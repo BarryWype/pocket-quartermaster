@@ -1,6 +1,6 @@
 import { dungeons } from '@/content/dungeons';
 import { threatById } from '@/content/lookup';
-import { dungeonThreats, patrolThreatIds } from '@/content/threats';
+import { dungeonThreats, patrolThreatIds, threatRules } from '@/content/threats';
 import { PATROL_KINDS } from '@/game/patrols/generate';
 
 import type { ThreatId } from '../types';
@@ -50,7 +50,8 @@ describe('composition', () => {
         for (const threat of briefing.threats) {
           const def = threatById[threat.id];
           expect(def.firstTier).toBeLessThanOrEqual(dungeon.tier);
-          expect(threat.level).toBeLessThanOrEqual(Math.min(3, 1 + dungeon.tier - def.firstTier));
+          const floor = dungeon.difficulty === 'hard' ? threatRules.compose.hardLevelFloor[dungeon.tier - 1] : 1;
+          expect(threat.level).toBeLessThanOrEqual(Math.max(floor, Math.min(3, 1 + dungeon.tier - def.firstTier)));
         }
       }
     }
@@ -60,6 +61,24 @@ describe('composition', () => {
     // First-tier threats stay at level 1 the tier they appear in.
     for (const day of days(30)) {
       expect(compose('nightWatch1', day).threats.every((t) => t.level === 1)).toBe(true);
+    }
+  });
+
+  it('draws a hard dungeon one threat more than a medium one, at the top level, level 2 at least in tier 1', () => {
+    const hard = dungeons.filter((d) => d.difficulty === 'hard' && !d.isBoss && !d.overnight);
+    for (const dungeon of hard) {
+      for (const day of days(10)) {
+        for (const threat of composeBriefing(dungeon, day).threats) {
+          const def = threatById[threat.id];
+          expect(threat.level).toBe(Math.max(maxThreatLevel(dungeon.tier, def.firstTier), threatRules.compose.hardLevelFloor[dungeon.tier - 1]));
+        }
+      }
+    }
+    const tier1Hard = hard.filter((d) => d.tier === 1);
+    expect(tier1Hard.length).toBeGreaterThan(0);
+    for (const dungeon of tier1Hard) {
+      expect(days(10).some((day) => composeBriefing(dungeon, day).threats.length === threatRules.compose.threatCount[0] + threatRules.compose.hardExtraThreats)).toBe(true);
+      for (const day of days(10)) expect(composeBriefing(dungeon, day).threats.every((t) => t.level >= 2)).toBe(true);
     }
   });
 

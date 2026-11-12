@@ -6,7 +6,7 @@ import { dungeonThreats, threatDefs } from '@/content/threats';
 import { launchPlan, runProvisions } from '../expeditions/expeditions';
 import { estimatePartyOdds } from '../expeditions/odds';
 import { EMPTY_BRIEFING, prepareParty, type PartyMember } from '../expeditions/simulate';
-import { maxThreatLevel } from '../threats/compose';
+import { bitesHere, maxThreatLevel } from '../threats/compose';
 import type { SaveData } from '../save';
 import type { Briefing, DungeonDef, ThreatId, ThreatLevel } from '../types';
 import { withLoadout } from './bot';
@@ -66,7 +66,7 @@ export type ThreatCostRow = {
 /**
  * Each threat alone, at each level it reaches in the tier: the fitted party with the
  * answering family stripped, on the tier's medium and hard dungeons whose
- * threat table lists it, with no briefing (answered) and with only that
+ * threat table lists it (and where it can bite), with no briefing (answered) and with only that
  * threat (missed). The difference is the penalty's worth in points of odds.
  */
 export function threatCosts(runs: number, tiers = [1, 2, 3, 4, 5]): ThreatCostRow[] {
@@ -76,7 +76,7 @@ export function threatCosts(runs: number, tiers = [1, 2, 3, 4, 5]): ThreatCostRo
       const strip = (party: PartyMember[]) => withFamilyCount(party, familyOfThreat(def.id), 0);
       for (let level = 1; level <= maxThreatLevel(tier, def.firstTier); level++) {
         const cost = (difficulty: 'medium' | 'hard') => {
-          const listed = tierDungeons(tier, difficulty).filter((d) => dungeonThreats[d.id]?.weights[def.id]);
+          const listed = tierDungeons(tier, difficulty).filter((d) => dungeonThreats[d.id]?.weights[def.id] && bitesHere(d, def.id));
           if (listed.length === 0) return null;
           return mean(
             listed.map((dungeon) => {
