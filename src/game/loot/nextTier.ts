@@ -3,7 +3,7 @@ import { classAffinities, gearId, gearProfiles } from '@/content/equipment';
 import { lootConfig } from '@/content/loot/config';
 import { recipeById } from '@/content/lookup';
 import { dungeonThreats } from '@/content/threats';
-import { startingHeroes } from '@/content/heroes';
+import { signatureWeapons, startingHeroes } from '@/content/heroes';
 import { tierMaterials } from '@/content/materials';
 import { stoneId } from '@/game/elements';
 
@@ -22,7 +22,7 @@ import { emptyLoot, type Loot } from './types';
  * and from the tiers in `lootConfig.bossStones` an elemental stone of the next
  * tier's first elemental dungeon. Nothing after the last tier.
  *
- * The foothold: the next tier's blueprint of the weapon of choice of the
+ * The foothold: the next tier's blueprint of the signature weapon of the
  * starting-trio class the player fields most (its most levelled hero stands
  * for that: heroes level by being fielded), with that tier's main material for one
  * craft of it — the one exception to "materials only where you walk".
@@ -69,11 +69,12 @@ export function nextTierReward(save: SaveData, tier: number, rng: Rng): Loot {
 
 const TRIO = startingHeroes.map((hero) => hero.classId);
 
-/** The foothold's blueprint: the weapon of choice, at `tier`, of the class of the most levelled starting-trio-class hero (XP, then trio order, break ties). */
+/** The foothold's blueprint: the signature weapon (else the weapon of choice), at `tier`, of the class of the most levelled starting-trio-class hero (XP, then trio order, break ties). */
 export function footholdRecipe(save: SaveData, tier: number) {
   const top = save.heroes
     .filter((h) => TRIO.includes(h.classId))
     .sort((a, b) => b.level - a.level || b.xp - a.xp || TRIO.indexOf(a.classId) - TRIO.indexOf(b.classId))[0];
-  const type = weaponTypeFor(top?.classId ?? TRIO[0]);
+  const classId = top?.classId ?? TRIO[0];
+  const type = signatureWeapons[classId] ?? weaponTypeFor(classId);
   return type ? (recipeById[gearId(type, tier)] ?? null) : null;
 }

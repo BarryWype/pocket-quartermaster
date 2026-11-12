@@ -1,7 +1,7 @@
 import { dungeons } from '@/content/dungeons';
 import { classAffinities, gearId, gearProfiles } from '@/content/equipment';
 import { classSpecials } from '@/content/classSpecials';
-import { newHero, startingHeroes } from '@/content/heroes';
+import { newHero, signatureWeapons, startingHeroes } from '@/content/heroes';
 import { items } from '@/content/items';
 import type { Rarity } from '@/content/gear';
 import type { GearDef, GearType, HeroClassId, HeroState } from '@/game/types';
@@ -78,7 +78,7 @@ export function withSpares(save: SaveData, tier: number, rarity: Rarity, weapons
 }
 
 /** The tier's chain weapons: a sword, a bow and a wand, one per hero like the sim's quick team. */
-const WEAPONS = ['sword', 'bow', 'wand'] as const;
+const WEAPONS = startingHeroes.map((hero) => signatureWeapons[hero.classId]!);
 
 /**
  * The reference save a difficulty's odds are measured against (see
@@ -172,9 +172,9 @@ export function rosterSave(tier: number, when: 'start' | 'end', extra: HeroClass
     // The previous boss's first clear brought a piece of this tier: the first hero's weapon of choice.
     const hero = heroes[0];
     save = equip({ ...save, gear: [...save.gear, averagePiece('boss:weapon', gearId(weaponTypeFor(hero.classId) ?? 'sword', tier), 'uncommon')] }, hero.id, 'weapon', 'boss:weapon');
-    // And the foothold: the weapon blueprint and material for one craft, forged Common, for the trio class the bot fields most (the ranger).
+    // And the foothold: the signature weapon's blueprint and material for one craft, forged Common, for the trio class the bot fields most (the ranger).
     const ranger = heroes.find((h) => h.classId === FOOTHOLD_CLASS)!;
-    save = equip({ ...save, gear: [...save.gear, averagePiece('foothold:weapon', gearId(weaponTypeFor(ranger.classId) ?? 'bow', tier), 'common')] }, ranger.id, 'weapon', 'foothold:weapon');
+    save = equip({ ...save, gear: [...save.gear, averagePiece('foothold:weapon', gearId(signatureWeapons[ranger.classId]!, tier), 'common')] }, ranger.id, 'weapon', 'foothold:weapon');
   }
   return withSpares(save, kitTier, 'uncommon');
 }

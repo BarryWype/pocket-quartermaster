@@ -2,7 +2,6 @@ import { items } from '@/content/items';
 import { classAffinities } from '@/content/equipment';
 import type { GearDef, HeroClassId, WeaponType } from '@/game/types';
 
-import { weaponTypeFor } from '../equipment/weaponOfChoice';
 import { naturalGear, referenceSave, rosterSave, weaponFor } from './reference';
 import { expectedLevels } from './config';
 
@@ -92,10 +91,10 @@ describe('rosterSave', () => {
     // The tier 3 boss's piece of tier 4: the warrior's weapon of choice.
     expect(start.heroes[0].equipment.weapon).toBe('boss:weapon');
     expect(start.gear.find((g) => g.uid === 'boss:weapon')!.itemId).toBe('sword4');
-    // The foothold: the ranger's weapon of choice, forged Common.
+    // The foothold: the ranger's signature weapon, forged Common.
     const foothold = start.gear.find((g) => g.uid === 'foothold:weapon')!;
     expect(start.heroes.find((h) => h.classId === 'ranger')!.equipment.weapon).toBe('foothold:weapon');
-    expect(foothold).toMatchObject({ itemId: `${weaponTypeFor('ranger')}4`, rarity: 'common' });
+    expect(foothold).toMatchObject({ itemId: 'bow4', rarity: 'common' });
     expect(start.clearedDungeons).toContain('drownedCrypt');
   });
 

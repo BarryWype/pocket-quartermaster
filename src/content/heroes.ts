@@ -1,4 +1,4 @@
-import type { HeroClassDef, HeroClassId, HeroState, SpecialId, StatKey } from '@/game/types';
+import type { HeroClassDef, HeroClassId, HeroState, SpecialId, StatKey, WeaponType } from '@/game/types';
 
 import { rolledSpecial } from '@/game/team/specials';
 
@@ -439,6 +439,9 @@ export const newHero = (id: string, name: string, classId: HeroClassId, trait: s
   job: null,
   energy: { value: 100, at: 0 },
 });
+
+/** The starting trio's signature weapons: the ones they set out with, and the foothold's blueprint for their class. */
+export const signatureWeapons: Partial<Record<HeroClassId, WeaponType>> = { warrior: 'sword', ranger: 'bow', fireMage: 'wand' };
 
 export const startingHeroes: HeroState[] = [
   newHero('bram', 'Bram', 'warrior', 'resilient'),

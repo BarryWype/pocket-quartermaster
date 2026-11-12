@@ -1,7 +1,6 @@
 import { tierMaterials } from '@/content/materials';
 import { stoneId } from '@/game/elements';
 
-import { weaponTypeFor } from '../equipment/weaponOfChoice';
 import { createRng } from '../generation/rng';
 import { createInitialSave } from '../save';
 import { footholdRecipe, nextTierReward } from './nextTier';
@@ -32,11 +31,13 @@ describe('nextTierReward', () => {
     }
   });
 
-  it('picks the weapon of the starting-trio class whose hero is most levelled, the trio’s order on a tie', () => {
+  it('picks the signature weapon of the starting-trio class whose hero is most levelled, the trio’s order on a tie', () => {
     const save = createInitialSave();
-    expect(footholdRecipe(save, 2)!.output).toEqual({ itemId: `${weaponTypeFor('warrior')}2` });
+    expect(footholdRecipe(save, 2)!.output).toEqual({ itemId: 'sword2' });
     const lyraAhead = { ...save, heroes: save.heroes.map((h) => (h.classId === 'ranger' ? { ...h, level: 5 } : h)) };
-    expect(footholdRecipe(lyraAhead, 2)!.output).toEqual({ itemId: `${weaponTypeFor('ranger')}2` });
+    expect(footholdRecipe(lyraAhead, 2)!.output).toEqual({ itemId: 'bow2' });
+    const miraAhead = { ...save, heroes: save.heroes.map((h) => (h.classId === 'fireMage' ? { ...h, level: 5 } : h)) };
+    expect(footholdRecipe(miraAhead, 2)!.output).toEqual({ itemId: 'wand2' });
   });
 
   it('gives nothing after the last tier', () => {
