@@ -1,13 +1,13 @@
 # Loot: design catalogue
 
-**Status: implemented** (loot base, monster parts and charms, blueprints, trophies and relics, trinkets and valuables). Components were removed in the families rework (see Trophies). The source for discussion is the Loot Design doc; this folder is the version to build from, and `matrix.csv` wins over any table elsewhere.
+**Status: implemented** (loot base, monster parts and charms, blueprints, trophies and relics, trinkets). Components were removed in the families rework (see Trophies); valuables and the market collector were removed later, their worth folded into gold. The source for discussion is the Loot Design doc; this folder is the version to build from, and `matrix.csv` wins over any table elsewhere.
 
 Loot is designed from scratch on top of the new dungeons, bosses, places, events and shops, not on the old reward code.
 
 ## Principles
 1. **Materials only where you walk**: gathering, shops, map events, patrols, ruins, the monster lair. Expeditions launched from the phone give no materials.
 2. **Loot feeds the forge instead of replacing it**: looted gear is random and usually average; forging gives the chosen type and an ingredient's affix (see `doc/design/gear/`). Most looted gear is salvaged into materials.
-3. **Something after every fight**: monster parts and valuables make every win rewarding without handing out gear every time.
+3. **Something after every fight**: monster parts make every win rewarding without handing out gear every time.
 4. **Tuning is cheap** (see below): no loot numbers in logic.
 
 ## Files
@@ -23,7 +23,6 @@ Loot is designed from scratch on top of the new dungeons, bosses, places, events
 | `components.csv` | **Removed** in the families rework; kept as a record of the 13 components that boss and elite drops used to give |
 | `relics.csv` | 25 relics: tier, type, unique effect |
 | `trinkets.csv` | Trinket kinds |
-| `valuables.csv` | Valuables and their rarity |
 | `purposes.csv` | Purpose tags on base items, with icons |
 | `enemy-tags.csv` | Every enemy's family tags, in order (from the enemy tags change) |
 | `tools/pacing.py` | Weekly drops for the regular player from `matrix.csv` |
@@ -45,7 +44,7 @@ Loot is designed from scratch on top of the new dungeons, bosses, places, events
 - A pacing report in the simulator gives the same weekly numbers as `tools/pacing.py`, so design and code can be compared.
 - Debug: show a source's roll table with its final chances (after Luck, charms, run length); force a drop.
 - Pacing balance tests come later, skipped until balancing.
-- Gold follows one curve per tier, ×1, ×1.9, ×3, ×4.2, ×5.6 for tiers 1–5 (the enemy strength curve; `lootConfig.goldByTier`): dungeon and overnight gold, the first-win and first-clear bonuses, every source paid as a share of the tier's short dungeon (quests, step chests, treasure spots, patrols, fight events) and a duplicate secret tip. Valuable prices use the same curve.
+- Gold follows one curve per tier, ×1, ×1.9, ×3, ×4.2, ×5.6 for tiers 1–5 (the enemy strength curve; `lootConfig.goldByTier`): dungeon and overnight gold, the first-win and first-clear bonuses, every source paid as a share of the tier's short dungeon (quests, step chests, treasure spots, patrols, fight events) and a duplicate secret tip. Dungeon rows also pay their finds as gold, with no roll (`lootConfig.dungeonFinds`): `worth` × the tier's gold curve × the row's find chance, scaled like a drop chance.
 
 ### Targets
 Families ask players to swap gear for each place, over four gear slots (weapon, armour, helmet, off-hand) plus trinkets, so looted gear is set for that:
@@ -84,7 +83,7 @@ Families ask players to swap gear for each place, over four gear slots (weapon, 
 - Components are removed: their keyword affixes went with them (families do those jobs now), the black market sells Rare trinkets only, salvage gives no component back, and held components and component affixes were converted by the save migration.
 
 ### Relics
-- A relic is a one-off item in the inventory. Restoring it at the forge costs its type's recipe at its tier ×1.5 (plus gems, see valuables) and turns it into the finished item: Legendary, with 3 affixes and its fixed effect as the unique (`doc/design/gear/`). It teaches no blueprint and never shows in the craftable list; two relics make two items.
+- A relic is a one-off item in the inventory. Restoring it at the forge costs its type's recipe at its tier ×1.5 plus gold (5 × the tier's gold curve up to tier 3, 30 × it above; `lootConfig.restore.gold`) and turns it into the finished item: Legendary, with 3 affixes and its fixed effect as the unique (`doc/design/gear/`). It teaches no blueprint and never shows in the craftable list; two relics make two items.
 - The effect is paid from the item's stat budget (like other extras), so a relic has slightly lower stats than the best forged item of its tier.
 - Every effect is situational (an enemy family, a threat, an element, the first fight), never two keywords at once.
 - The holy kit is **Holy symbols** (it was "Holy relics"; the ids `holyRelics` and `blessedRelics` stay).
@@ -93,11 +92,5 @@ Families ask players to swap gear for each place, over four gear slots (weapon, 
 - Loot only, never crafted. They carry what's rare elsewhere: Luck, Crit, Speed, Evasion, +1 to an approach (uncommon drops), elemental resistance. Stat trinkets scale with tier and roll the gear stat range; rarity gives them affixes from the any-slot pool (`doc/design/gear/`).
 - The Ring of fortune (+Luck) only ever drops Legendary.
 
-### Valuables
-- Full price at the market (or the thieves' guild fence), half price anywhere else.
-- The market sometimes wants one kind ("a collector pays double for old coins today").
-- Gems are also ingredients (Prism charm, Architect's seal, relic restoring). Value rises with the source's tier.
-
 ### Item purposes
 - Every base item (not equipment, not consumables) has one or more purpose tags (`purposes.csv`), shown as an icon on its inventory tile and usable as inventory filters. Tapping the item shows what's next (recipes, best place to sell, the boss it's for, set progress, restore cost, or the action).
-- Good only goes on items whose main purpose is selling.

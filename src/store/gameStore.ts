@@ -20,7 +20,7 @@ import { fastForward, resolveExpedition, startExpedition, type Loadout } from '@
 import { dressWith } from '@/game/expeditions/party';
 import type { GearSwap } from '@/game/threats/suggest';
 import { markWalksSeen, processWalkPath, recordWalk, type WalkFix, type WalkOptions, type WalkPatrols, type WalkSummary } from '@/game/gathering/autoGather';
-import { collectSpawn, localDayKey, type CollectResult, type Gatherer } from '@/game/gathering/gathering';
+import { collectSpawn, type CollectResult, type Gatherer } from '@/game/gathering/gathering';
 import { endWalkEffect, startWalkEffect } from '@/game/gathering/walkEffects';
 import type { LatLng, Spawn } from '@/game/generation/types';
 import type { WalkableTile } from '@/game/generation/walkable';
@@ -38,13 +38,13 @@ import { addAnchor, addAnchorsFromFixes } from '@/game/jobs/gatherer';
 import { assignJob, assignProblem, collectJob, jobChoices, jobOutputNow, recallFromJob, setGathererFocus, setJobChoice, settleJobs } from '@/game/jobs/jobs';
 import { isTravellerKind, type PatrolSpawn, type TravellerKind } from '@/game/patrols/generate';
 import { resolvePatrolFights as resolveDueFights, startPatrolFight, type PatrolFight } from '@/game/patrols/fight';
-import { acceptRecruit, helpTraveller as helpTravellerRule, sellValuableToTrader, trade, type TravellerRecruit, type TravellerReward } from '@/game/patrols/travellers';
+import { acceptRecruit, helpTraveller as helpTravellerRule, trade, type TravellerRecruit, type TravellerReward } from '@/game/patrols/travellers';
 import { addPatrolsToWalks, escortHpChange, walkPatrolsFrom } from '@/game/patrols/walkPatrols';
 import { challengeSanctum, type SanctumResult, type SanctumSpawn } from '@/game/sanctums/sanctums';
 import { closeTip as closeTipRule, dueTips, noteTips as queueTips } from '@/game/reveal/reveal';
 import { createInitialSave, type SaveData, type TutorialStep } from '@/game/save';
 import { careProblem, drinkPotion, drinkProblem, fastForwardHealing, giveHomeCare, healAll, setHeroHp, settleHp } from '@/game/team/health';
-import { buy, sellGear, sellMaterial, sellValuable } from '@/game/places/shops';
+import { buy, sellGear, sellMaterial } from '@/game/places/shops';
 import { apothecaryCare, chapelCare, takeChapelBlessing, trainHero, type CareKind } from '@/game/places/services';
 import type { PlaceSpawn } from '@/game/places/generate';
 import { fish } from '@/game/places/dock';
@@ -157,11 +157,8 @@ type GameState = {
   buyAtPlace: (spawn: PlaceSpawn, lineKey: string, count: number, player: LatLng) => void;
   sellGearAtPlace: (spawn: PlaceSpawn, gearUid: string, player: LatLng) => void;
   sellMaterialAtPlace: (spawn: PlaceSpawn, materialId: string, count: number, player: LatLng) => void;
-  /** Sells valuables of one `valuableId:tier` stack to a place that buys them. */
-  sellValuableAtPlace: (spawn: PlaceSpawn, key: string, count: number, player: LatLng) => void;
-  sellValuableToTrader: (spawn: PatrolSpawn, key: string, count: number, player: LatLng) => void;
-  /** Debug: every market's collector wants this valuable today. */
-  setCollector: (valuableId: string) => void;
+  /** Clears the one-time toast about the version 45 treasure sale. */
+  clearSoldTreasureGold: () => void;
   /** The chapel's free care, once per visit. */
   chapelCare: (spawn: PlaceSpawn, heroId: string, care: CareKind, player: LatLng) => void;
   takeChapelBlessing: (spawn: PlaceSpawn, player: LatLng) => void;
@@ -451,12 +448,7 @@ export const useGameStore = create<GameState>()(
       sellGearAtPlace: (spawn, gearUid, player) => set(({ save }) => ({ save: sellGear(save, spawn, gearUid, player, Date.now()) })),
       sellMaterialAtPlace: (spawn, materialId, count, player) =>
         set(({ save }) => ({ save: sellMaterial(save, spawn, materialId, count, player, Date.now()) })),
-      sellValuableAtPlace: (spawn, key, count, player) =>
-        set(({ save }) => ({ save: sellValuable(save, spawn, key, count, player, Date.now()) })),
-      sellValuableToTrader: (spawn, key, count, player) =>
-        set(({ save }) => ({ save: sellValuableToTrader(save, spawn, key, count, player, Date.now()) })),
-      setCollector: (valuableId) =>
-        set(({ save }) => ({ save: { ...save, collectorOverride: { dayKey: localDayKey(Date.now()), valuableId } } })),
+      clearSoldTreasureGold: () => set(({ save }) => ({ save: { ...save, soldTreasureGold: undefined } })),
       chapelCare: (spawn, heroId, care, player) => set(({ save }) => ({ save: chapelCare(save, spawn, heroId, care, player, Date.now()) })),
       takeChapelBlessing: (spawn, player) => set(({ save }) => ({ save: takeChapelBlessing(save, spawn, player, Date.now()) })),
       apothecaryCare: (spawn, heroId, care, player) =>
@@ -748,7 +740,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 44,
+      version: 45,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
       // Saves from version 30 on are kept: every later version bump adds a migration step here (see AGENTS.md, Saves).

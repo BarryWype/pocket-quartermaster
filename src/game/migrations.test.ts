@@ -1,7 +1,6 @@
 import { classSpecials } from "@/content/classSpecials";
 import { questRules } from "@/content/quests";
 
-import { todaysCollector } from "./loot/valuables";
 import { itemById } from "@/content/lookup";
 import { gearRules } from "@/content/gear";
 import { affixById } from "@/content/affixes";
@@ -22,7 +21,7 @@ const marketId = "place:market:tile:0:1";
 describe("save migrations", () => {
   const collector = (id: string, overrides: Partial<Quest> = {}): Quest => ({
     id,
-    objective: "collector",
+    objective: "collector" as Quest["objective"],
     band: "short",
     arrivedAt: 100,
     expiresAt: 2 * DAY,
@@ -79,27 +78,25 @@ describe("save migrations", () => {
     expect(quest.itemId).toBeUndefined();
   });
 
-  it("keeps an open collector whose market wants a valuable the player holds", () => {
+  it("turns every other collector into sell goods too, keeping a done one done", () => {
     const now = 10 * DAY;
-    const save = withQuests(collector("q-1"));
-    const wanted = todaysCollector(save, marketId, now);
-    save.valuables = { [`${wanted}:2`]: 1 };
+    const named = collector("q-1", { itemId: "oldCoins" });
+    const done = collector("q-2", { doneAt: 1000 });
+    const save = withQuests(named, done, walk);
     const next = migrateSave(save, 30, now);
-    expect(next.quests.list[0].objective).toBe("collector");
-    expect(next.quests.list[0].itemId).toBe(wanted);
-    expect(next.quests.list[0].target).toEqual(save.quests.list[0].target);
-  });
-
-  it("leaves done collectors and other quests alone", () => {
-    const done = collector("q-1", { doneAt: 1000 });
-    const save = withQuests(done, walk);
-    const next = migrateSave(save, 30, 10 * DAY);
-    expect(next.quests.list[0]).toEqual(done);
-    expect(next.quests.list[1]).toEqual(walk);
+    const [first, second, third] = next.quests.list;
+    expect(first.objective).toBe("sellGoods");
+    expect(first.progress).toBe(0);
+    expect(first.target).toBe(null);
+    expect(second.objective).toBe("sellGoods");
+    expect(second.amount).toBe(questRules.sellGoodsGold[0]);
+    expect(second.progress).toBe(questRules.sellGoodsGold[0]);
+    expect(second.doneAt).toBe(1000);
+    expect(third).toEqual(walk);
   });
 
   it("does nothing for a save already at version 32", () => {
-    const save = withQuests(collector("q-1"));
+    const save = withQuests(walk);
     expect(migrateSave(save, 32, 10 * DAY)).toBe(save);
   });
 
@@ -793,6 +790,84 @@ describe("toV44", () => {
   it("leaves a version 44 save as it is", () => {
     const save = createInitialSave();
     expect(toV44(save)).toBe(save);
+  });
+});
+
+describe("toV45", () => {
+  type V44Save = SaveData & {
+    valuables: Record<string, number>;
+    collectorOverride?: { dayKey: string; valuableId: string };
+  };
+
+  const collector = (id: string, overrides: Partial<Quest> = {}): Quest => ({
+    id,
+    objective: "collector" as Quest["objective"],
+    band: "short",
+    arrivedAt: 100,
+    expiresAt: 2 * DAY,
+    acceptedAt: 200,
+    amount: 1,
+    progress: 0,
+    target: {
+      placeId: marketId,
+      kind: "market",
+      position: origin,
+      from: origin,
+      expiresAt: 5 * DAY,
+    },
+    doneAt: null,
+    seen: true,
+    ...overrides,
+  });
+
+  const v44 = (): V44Save => {
+    const save = createInitialSave() as V44Save;
+    save.gold = 100;
+    save.valuables = { "oldCoins:1": 2, "jadeIdol:3": 1, "cutGem:5": 1, "unknown:2": 1 };
+    save.guild = { collector: 2 } as never;
+    save.collectorOverride = { dayKey: "2026-11-12", valuableId: "oldCoins" };
+    const open = collector("q-open");
+    const done = collector("q-done", { doneAt: 1000 });
+    save.quests = { ...save.quests, list: [open, done] };
+    save.patrolFights = [
+      {
+        id: "f1", patrolId: "p1", kind: "goblins", tier: 1, elite: false, heroIds: ["lyra"],
+        startedAt: 0, endsAt: DAY, windowEndsAt: DAY, won: true, hp: [], salvaged: [],
+        rewards: { ...emptyLoot(), gold: 5, valuables: [{ valuableId: "roughGem", tier: 2, amount: 2 }] } as never,
+      },
+    ];
+    return save;
+  };
+
+  it("sells the held valuables, refunds the collector ranks and turns the quests into sell goods", () => {
+    const next = migrateSave(v44(), 44, 0);
+    // Held: 2 × (5 × 1) + 30 × 3 + 30 × 5.6 = 268; ranks 1 and 2 refund 150 + 270 = 420.
+    expect(next.gold).toBe(100 + 268 + 420);
+    expect(next.soldTreasureGold).toBe(268);
+    expect((next.guild as Record<string, number>).collector).toBeUndefined();
+    expect((next as Record<string, unknown>).valuables).toBeUndefined();
+    expect((next as Record<string, unknown>).collectorOverride).toBeUndefined();
+    const [open, done] = next.quests.list;
+    expect(open.objective).toBe("sellGoods");
+    expect(open.amount).toBe(questRules.sellGoodsGold[0]);
+    expect(open.progress).toBe(0);
+    expect(open.target).toBeNull();
+    expect(done.objective).toBe("sellGoods");
+    expect(done.amount).toBe(questRules.sellGoodsGold[0]);
+    expect(done.progress).toBe(questRules.sellGoodsGold[0]);
+    expect(done.doneAt).toBe(1000);
+  });
+
+  it("pays a stored, not-yet-granted loot's valuables as gold inside it", () => {
+    const next = migrateSave(v44(), 44, 0);
+    // 2 × round(5 × 1.9) = 20, on top of the 5 the loot already held.
+    expect(next.patrolFights[0].rewards.gold).toBe(5 + 20);
+    expect((next.patrolFights[0].rewards as Record<string, unknown>).valuables).toBeUndefined();
+  });
+
+  it("leaves a save without valuables alone, apart from the removed fields", () => {
+    const save = createInitialSave();
+    expect(migrateSave(save, 44, 0)).toEqual(save);
   });
 });
 

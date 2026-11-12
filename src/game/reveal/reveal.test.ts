@@ -122,9 +122,8 @@ describe('heldItemKinds', () => {
     expect(heldItemKinds(save)).toEqual(['charms']);
     save.relics = [{ uid: 'r1', relicId: 'any' }];
     save.gear = [{ uid: 'g1', itemId: 'hawkEyeRing1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 }];
-    save.valuables = { oldCoins: 1 };
     save.keyFragments = 4;
-    expect(heldItemKinds(save)).toEqual(['charms', 'relics', 'trinkets', 'valuables', 'keyFragments']);
+    expect(heldItemKinds(save)).toEqual(['charms', 'relics', 'trinkets', 'keyFragments']);
   });
 
   it('counts a charm a hero carries', () => {
@@ -226,7 +225,6 @@ describe('quest objectives', () => {
   it('keeps fight events out until a patrol is won', () => {
     const save = opened();
     save.seenPlaceKinds = ['banditCamp', 'chapel', 'market'];
-    save.valuables = { oldCoins: 1 };
     expect(availableObjectives(save, 'short')).not.toContain('fightEvent');
     save.stats.patrolsWon = 1;
     expect(availableObjectives(save, 'short')).toContain('fightEvent');

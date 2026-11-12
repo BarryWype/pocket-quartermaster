@@ -1,5 +1,5 @@
 import { items } from '@/content/items';
-import { monsterPartById, relicById, valuableById } from '@/content/lookup';
+import { monsterPartById, relicById } from '@/content/lookup';
 import { lootConfig } from '@/content/loot/config';
 import type { Purpose } from '@/content/loot/purposes';
 import { PURPOSES } from '@/content/loot/purposes';
@@ -11,11 +11,8 @@ import { guildBonus } from '@/game/guild/guild';
 import type { ConsumableDef, MaterialStack, RecipeDef } from '@/game/types';
 import type { SaveData } from '@/game/save';
 
-import { valuablePrice } from './catalogue';
-
 export type BaseItemRef =
   | { kind: 'material'; id: string } // materials, shards, stones, monster parts
-  | { kind: 'valuable'; id: string; tier?: number }
   | { kind: 'relic'; id: string }
   | { kind: 'weakness'; id: string } // boss weakness items (items with `weakness`)
   | { kind: 'keyFragment' }
@@ -42,9 +39,8 @@ export function ingredientIds(recipeList: RecipeDef[] = recipes): Set<string> {
 function isIngredient(id: string, ingredients: Set<string>): boolean {
   return (
     ingredients.has(id) ||
-    // Parts and gems with a listed use.
-    !!monsterPartById[id]?.uses ||
-    !!valuableById[id]?.uses
+    // Parts with a listed use.
+    !!monsterPartById[id]?.uses
   );
 }
 
@@ -57,10 +53,6 @@ export function purposesOf(ref: BaseItemRef, recipeList: RecipeDef[] = recipes):
   switch (ref.kind) {
     case 'material':
       if (isIngredient(ref.id, ingredients)) add('ingredient');
-      break;
-    case 'valuable':
-      if (isIngredient(ref.id, ingredients)) add('ingredient');
-      add('good');
       break;
     case 'relic':
       add('restore');
@@ -83,10 +75,9 @@ export function purposesOf(ref: BaseItemRef, recipeList: RecipeDef[] = recipes):
 
 export type NextStep =
   | { kind: 'recipes'; known: string[]; unknown: boolean } // recipe ids using it that the save knows; unknown = some recipe uses it that isn't known (or none known)
-  | { kind: 'sell'; place: 'market'; price: number }
   | { kind: 'boss'; bossId: string }
   | { kind: 'set'; have: number; need: number }
-  | { kind: 'restore'; cost: MaterialStack[] } // the relic's restore cost: its type's recipe at its tier ×1.5 rounded up, plus the tier's gem
+  | { kind: 'restore'; cost: MaterialStack[]; gold: number } // the relic's restore cost: its type's recipe at its tier ×1.5 rounded up, plus gold
   | { kind: 'action'; action: 'read' | 'open' | 'learn' };
 
 /** What tapping the item shows, one step per purpose. */
@@ -99,8 +90,6 @@ export function nextSteps(save: SaveData, ref: BaseItemRef, recipeList: RecipeDe
         const known = using.filter((r) => isKnown(save, r)).map((r) => r.id);
         return { kind: 'recipes', known, unknown: known.length === 0 || using.some((r) => !isKnown(save, r)) };
       }
-      case 'good':
-        return { kind: 'sell', place: 'market', price: valuablePrice(id!, ref.kind === 'valuable' ? ref.tier ?? 1 : 1) };
       case 'quest':
         return { kind: 'boss', bossId: bossByWeaknessItem.get(id!) ?? '' };
       case 'collect':
@@ -110,7 +99,8 @@ export function nextSteps(save: SaveData, ref: BaseItemRef, recipeList: RecipeDe
         const recipe = relicRecipe(relic, guildBonus(save, 'relicRestore'));
         return {
           kind: 'restore',
-          cost: [...recipe.inputs, { materialId: recipe.valuables![0].valuableId, amount: recipe.valuables![0].amount }],
+          cost: recipe.inputs,
+          gold: recipe.gold ?? 0,
         };
       }
       case 'use':

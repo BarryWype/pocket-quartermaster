@@ -43,7 +43,7 @@ The simulator plays the game with simple bots, for several player profiles, and 
 ## Bot rules (simple, not clever)
 - **Before a run**: the boss's weakness item; a charm only when its odds are already high (the safe-or-greedy choice); a potion otherwise. No kits (they're gone).
 - **Forge**: the best known blueprint for each hero's slots; a component on the best fitting item; restore a relic when its type fits a hero.
-- **Inventory**: equip the best trinket by its stat; sell valuables at the market (to the collector when it wants one); craft charms and part potions when it has the parts.
+- **Inventory**: equip the best trinket by its stat; craft charms and part potions when it has the parts.
 - **Map**: do quests (all in the regular and heavy profiles), dig ruins, open a secret place when it has a key and a tip, recruit rare classes.
 - **Team**: field the three heroes with the best answers to the dungeon's threats, counted on their family tags once dressed (below).
 - **Families** (`src/game/families/dress.ts`, shared with the Suggest button through `suggestParty` in `src/game/threats/suggest.ts`), for each briefing:

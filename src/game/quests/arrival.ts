@@ -7,7 +7,7 @@ import { questCap, guildBonus } from '../guild/guild';
 import type { SaveData } from '../save';
 import { isRevealed } from '../reveal/reveal';
 import { refreshWalks } from './progress';
-import { availableObjectives, deliverItems, heldValuables, objectiveAmount, sellGoodsAmount } from './unlocks';
+import { availableObjectives, deliverItems, objectiveAmount, sellGoodsAmount } from './unlocks';
 import type { Quest, QuestsState } from './types';
 
 const DAY_MS = 86_400_000;
@@ -72,10 +72,6 @@ export function newQuest(
   if (objective === 'deliver') {
     const options = deliverOptions(save);
     itemId = options[rng.int(0, options.length - 1)]?.itemId;
-  }
-  if (objective === 'collector') {
-    const held = heldValuables(save);
-    itemId = held[rng.int(0, held.length - 1)];
   }
   return {
     id,

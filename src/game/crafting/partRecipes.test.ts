@@ -16,7 +16,7 @@ describe('part recipe unlocks', () => {
     const before = createInitialSave();
     const after = grantLoot(before, [], { ...emptyLoot(), materials: [{ materialId: 'goblinEar', amount: 1 }] }, 0);
     expect(after.seenParts).toEqual(['goblinEar']);
-    expect(newPartRecipes(before, after)).toEqual(['luckyEar']);
+    expect(newPartRecipes(before, after)).toEqual(['luckyEar', 'prismCharm']);
     expect(isKnown(after, recipeById.luckyEar)).toBe(true);
   });
 
@@ -30,17 +30,15 @@ describe('part recipe unlocks', () => {
     expect(isKnown({ ...save, clearedDungeons: tier(3).clearedDungeons }, recipeById.standardHealingPotionPart)).toBe(true);
   });
 
-  it('unlocks a two-part recipe only once both have been seen, even if the first is gone', () => {
+  it('unlocks every recipe a seen part feeds, even once the part is gone', () => {
     const insignia = seeParts(createInitialSave(), ['tatteredInsignia']);
-    expect(insignia.partRecipes).toEqual(['bountyToken']);
-    const both = grantLoot(insignia, [], { ...emptyLoot(), valuables: [{ valuableId: 'cutGem', tier: 2, amount: 1 }] }, 0);
-    expect(both.partRecipes).toContain('architectsSeal');
-    expect(both.materials.tatteredInsignia).toBeUndefined();
+    expect(insignia.partRecipes).toEqual(['bountyToken', 'prismCharm', 'architectsSeal']);
+    expect(insignia.materials.tatteredInsignia).toBeUndefined();
   });
 
-  it('unlocks the Prism charm on the first rough gem', () => {
-    const save = seeParts(createInitialSave(), ['roughGem']);
-    expect(save.partRecipes).toEqual(['prismCharm']);
+  it('unlocks the Prism charm with the first part seen: it waits on none', () => {
+    const save = seeParts(createInitialSave(), ['goblinEar']);
+    expect(save.partRecipes).toEqual(['luckyEar', 'prismCharm']);
   });
 
   it('ignores ids no recipe waits on, and parts already seen', () => {
@@ -78,17 +76,14 @@ describe('part recipes', () => {
     expect(craft(save, recipeById.viperOil).consumables.viperOil).toBe(1);
   });
 
-  it('spends the lowest-tier gem and the shards of the element held most', () => {
+  it('spends three shards of the element held most', () => {
     const save: SaveData = {
       ...known(tier(1)),
       materials: { fireShard: 2, waterShard: 3 },
-      valuables: { 'roughGem:3': 1, 'roughGem:1': 1 },
     };
     const after = craft(save, recipeById.prismCharm);
     expect(after.consumables.prismCharm).toBe(1);
-    expect(after.materials).toEqual({ fireShard: 2, waterShard: 1 });
-    expect(after.valuables).toEqual({ 'roughGem:3': 1 });
+    expect(after.materials).toEqual({ fireShard: 2 });
     expect(canCraft({ ...save, materials: { fireShard: 1, waterShard: 1 } }, recipeById.prismCharm)).toBe(false);
-    expect(canCraft({ ...save, valuables: {} }, recipeById.prismCharm)).toBe(false);
   });
 });

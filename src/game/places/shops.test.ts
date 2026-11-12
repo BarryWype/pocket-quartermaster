@@ -8,7 +8,6 @@ import { workToolRules } from '@/content/workTools';
 
 import { forgedItem, isKnown } from '../crafting/crafting';
 import { rollTip } from '../secrets/tips';
-import { valuableSellPrice, todaysCollector } from '../loot/valuables';
 import { createInitialSave, type SaveData } from '../save';
 import type { GearDef, GearInstance } from '../types';
 import type { LatLng } from '../generation/types';
@@ -22,11 +21,8 @@ import {
   placeStock,
   sellGear,
   sellGearProblem,
-  placeValuablePrice,
   sellMaterial,
   sellMaterialProblem,
-  sellValuable,
-  sellValuableProblem,
   stockLeft,
 } from './shops';
 
@@ -354,60 +350,14 @@ describe('selling', () => {
     expect(() => sellMaterial(save, market, 'wood', 11, position, now)).toThrow();
   });
 
-  it('buys valuables at the collector price, full price elsewhere and refuses non-buyers', () => {
-    const market = spawnOf('market');
-    const save = withGold(0, { valuables: { 'oldCoins:2': 2, 'jadeIdol:2': 2 } });
-    const wanted = todaysCollector(save, market.id, now);
-    const key = wanted === 'oldCoins' ? 'oldCoins:2' : 'jadeIdol:2';
-    const other = wanted === 'oldCoins' ? 'jadeIdol:2' : 'oldCoins:2';
-    expect(placeValuablePrice(save, market, key, now)).toBe(
-      valuableSellPrice(key.slice(0, key.lastIndexOf(':')), 2, 'market', wanted),
-    );
-    expect(placeValuablePrice(save, market, other, now)).toBe(valuableSellPrice(other.slice(0, other.lastIndexOf(':')), 2, 'market'));
-
-    const next = sellValuable(save, market, key, 1, position, now);
-    expect(next.gold).toBe(placeValuablePrice(save, market, key, now));
-    expect(next.valuables[key]).toBe(1);
-    const last = sellValuable(next, market, other, 2, position, now);
-    expect(last.valuables[other]).toBeUndefined();
-    expect(() => sellValuable(last, market, other, 1, position, now)).toThrow();
-
-    const chapel = spawnOf('chapel');
-    expect(sellValuableProblem(save, chapel, 'oldCoins:2', 1, position, now)).toBe('notBuyer');
-    expect(() => sellValuable(save, chapel, 'oldCoins:2', 1, position, now)).toThrow();
-    expect(sellValuableProblem(save, spawnOf('sawmill'), 'oldCoins:2', 1, position, now)).toBe('notBuyer');
-    expect(sellValuableProblem(save, market, 'oldCoins:2', 4, position, now)).toBe('notEnough');
-
-    const smithy = spawnOf('smithy');
-    expect(placeValuablePrice(save, smithy, 'oldCoins:2', now)).toBe(Math.round(valuableSellPrice('oldCoins', 2, 'market') * 0.5));
-    expect(placeValuablePrice(save, market, 'oldCoins:2', now)).toBe(
-      wanted === 'oldCoins' ? valuableSellPrice('oldCoins', 2, 'market') * 2 : valuableSellPrice('oldCoins', 2, 'market'),
-    );
-  });
-
-  it('pays the Collector’s contacts bonus on top of the rules', () => {
-    const market = spawnOf('market');
-    const smithy = spawnOf('smithy');
-    const save = withGold(0, { valuables: { 'oldCoins:2': 1 }, guild: { collector: 2 } });
-    const wanted = todaysCollector(save, market.id, now);
-    expect(placeValuablePrice(save, market, 'oldCoins:2', now)).toBe(
-      Math.max(1, Math.round(valuableSellPrice('oldCoins', 2, 'market', wanted === 'oldCoins' ? 'oldCoins' : null) * 1.2)),
-    );
-    expect(placeValuablePrice(save, smithy, 'oldCoins:2', now)).toBe(
-      Math.max(1, Math.round(valuableSellPrice('oldCoins', 2, 'market') * 0.5 * 1.2)),
-    );
-  });
-
   it('feeds the gold paid into a sell goods quest', () => {
     const market = spawnOf('market');
-    const save = withGold(0, { materials: { wood: 10 }, valuables: { 'oldCoins:2': 1 } });
+    const save = withGold(0, { materials: { wood: 10 } });
     save.quests.list = [
       { id: 'q', objective: 'sellGoods', band: 'short', arrivedAt: 0, expiresAt: 1e15, acceptedAt: null,
         amount: questRules.sellGoodsGold[0], progress: 0, target: null, doneAt: null, seen: true },
     ];
     const next = sellMaterial(save, market, 'wood', 2, position, now);
     expect(next.quests.list[0].progress).toBe(materialSellPrice('wood') * 2);
-    const last = sellValuable(next, market, 'oldCoins:2', 1, position, now);
-    expect(last.quests.list[0].progress).toBe(materialSellPrice('wood') * 2 + placeValuablePrice(save, market, 'oldCoins:2', now));
   });
 });

@@ -9,6 +9,5 @@ Fight,Clear the monster lair,Nearest monster lair,The lair is defeated,Lair seen
 Deliver,Bring a crafted item,"A place that wants it (a potion to an apothecary, a meal to a tavern, a kit to a chapel)",The item is handed over (used up),The recipe is known
 Gather,Mine or buy a material,"Nearest mine, sawmill or hunting lodge of the player's tier",N units bought or gathered there,The place is unlocked at the player's tier
 Gather,Gather on the way,"N herbs, berries or mushrooms",N gathered after the quest started,Always
-Trade,Sell a valuable,Nearest market,The valuable named at arrival is sold there,"Market seen and a valuable held; the valuable is picked among those held when the quest arrives"
-Trade,Sell goods,Any buyer,"Goods worth N gold sold after the quest arrived (valuables, materials, gear; N by tier in questRules.sellGoodsGold)",Market seen
+Trade,Sell goods,Any buyer,"Goods worth N gold sold after the quest arrived (materials, gear; N by tier in questRules.sellGoodsGold)",Market seen
 Walk,Walk a distance,"500 m, 1 km or 2 km of walking",Walked after the quest started,Always

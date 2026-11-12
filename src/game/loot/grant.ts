@@ -17,8 +17,8 @@ import type { Loot } from './types';
 /**
  * Pays a roll's loot: gold (the party's best Plunderer counts once), XP per
  * hero who took part (trait, Veteran and Guild Hall bonuses on top), materials, consumables, lures, gear (rolled with its fresh
- * uid), blueprints, key fragments, treasure maps (found `now`), manuals,
- * valuables and relics. Parts and gems found unlock their recipes.
+ * uid), blueprints, key fragments, treasure maps (found `now`), manuals
+ * and relics. Parts found unlock their recipes.
  * Pure: returns a new save.
  */
 export function grantLoot(save: SaveData, heroIds: string[], loot: Loot, now: number): SaveData {
@@ -26,11 +26,6 @@ export function grantLoot(save: SaveData, heroIds: string[], loot: Loot, now: nu
   const playerTier = highestUnlockedTier(save);
   const consumables = { ...save.consumables };
   for (const { itemId, amount } of loot.consumables) consumables[itemId] = (consumables[itemId] ?? 0) + amount;
-  const valuables = { ...save.valuables };
-  for (const { valuableId, tier, amount } of loot.valuables) {
-    const key = `${valuableId}:${tier}`;
-    valuables[key] = (valuables[key] ?? 0) + amount;
-  }
   const manuals = { ...save.manuals };
   for (const rarity of loot.manuals) manuals[rarity] = (manuals[rarity] ?? 0) + 1;
 
@@ -60,11 +55,10 @@ export function grantLoot(save: SaveData, heroIds: string[], loot: Loot, now: nu
     keyFragments: save.keyFragments + loot.keyFragments,
     treasureMaps: [...save.treasureMaps, ...maps],
     manuals,
-    valuables,
     relics: [...save.relics, ...relics],
     nextUid: uid,
   };
   for (const recipeId of loot.recipeIds) next = unlockRecipe(next, recipeId);
-  next = seeParts(next, [...loot.materials.map((stack) => stack.materialId), ...loot.valuables.map((v) => v.valuableId)]);
+  next = seeParts(next, loot.materials.map((stack) => stack.materialId));
   return next;
 }

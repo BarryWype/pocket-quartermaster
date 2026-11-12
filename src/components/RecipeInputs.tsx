@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 
-import { materialById, valuableById } from '@/content/lookup';
+import { materialById } from '@/content/lookup';
 import { ELEMENTS, shardId } from '@/game/elements';
 import type { SaveData } from '@/game/save';
 import type { RecipeDef } from '@/game/types';
@@ -10,10 +10,8 @@ import { colors } from '@/theme';
 import { GameIcon } from './GameIcon';
 import { Text } from './Text';
 
-/** One recipe's ingredients, held / needed: materials, then gems (any tier) and shards (any one element). */
+/** One recipe's ingredients, held / needed: materials and shards (any one element). */
 export function RecipeInputs({ save, recipe }: { save: SaveData; recipe: RecipeDef }) {
-  const held = (valuableId: string) =>
-    Object.entries(save.valuables).reduce((sum, [key, n]) => (key.startsWith(`${valuableId}:`) ? sum + n : sum), 0);
   const shards = Math.max(...ELEMENTS.map((element) => save.materials[shardId(element)] ?? 0));
   return (
     <>
@@ -28,14 +26,6 @@ export function RecipeInputs({ save, recipe }: { save: SaveData; recipe: RecipeD
           </View>
         );
       })}
-      {(recipe.valuables ?? []).map(({ valuableId, amount }) => (
-        <View key={valuableId} style={recipeInputsStyles.input}>
-          <GameIcon emoji={valuableById[valuableId].emoji} icon={valuableById[valuableId].icon} size={18} />
-          <Text style={recipeInputsStyles.inputText}>
-            {held(valuableId)}/{amount}
-          </Text>
-        </View>
-      ))}
       {recipe.anyShards ? (
         <View style={recipeInputsStyles.input}>
           <Text style={recipeInputsStyles.inputText}>{t('crafting.anyShards', { held: shards, amount: recipe.anyShards })}</Text>

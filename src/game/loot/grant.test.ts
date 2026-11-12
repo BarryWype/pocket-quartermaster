@@ -116,11 +116,6 @@ describe('grantLoot', () => {
     expect(save.manuals).toEqual({ common: 2, legendary: 1 });
   });
 
-  it('pays valuables keyed by id and tier', () => {
-    const save = grantLoot(createInitialSave(), [], { ...emptyLoot(), valuables: [{ valuableId: 'goblet', tier: 2, amount: 3 }] }, NOW);
-    expect(save.valuables['goblet:2']).toBe(3);
-  });
-
   it('pays relics with uids', () => {
     const save = createInitialSave();
     const after = grantLoot(save, [], { ...emptyLoot(), relics: ['rustyCoin'] }, NOW);

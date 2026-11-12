@@ -590,7 +590,7 @@ function sumBy<T>(rows: T[], key: (row: T) => string, value: (row: T) => number)
 function pileUps(log: RunLog, t: Targets) {
   const ends = TIERS.map((tier) => log.milestones[`boss:${tier}`]).filter((d): d is number => d !== undefined);
   if (!log.finished) ends.push(log.days);
-  const stocks = ends.map((day) => log.daily[day - 1]).filter(Boolean).map((row) => ({ ...row.stock, ...row.consumables, ...row.valuables }));
+  const stocks = ends.map((day) => log.daily[day - 1]).filter(Boolean).map((row) => ({ ...row.stock, ...row.consumables }));
   if (stocks.length < 3) return [];
   const ids = Object.keys(stocks.at(-1)!);
   return ids

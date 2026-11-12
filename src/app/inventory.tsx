@@ -11,7 +11,7 @@ import { SalvageDialog } from '@/components/SalvageDialog';
 import { bossById } from '@/content/enemies';
 import { lootConfig } from '@/content/loot/config';
 import { purposeInfo } from '@/content/loot/purposes';
-import { gearName, itemById, materialById, recipeById, recipeOutput, valuableById } from '@/content/lookup';
+import { gearName, itemById, materialById, recipeById, recipeOutput } from '@/content/lookup';
 import { placeInfo } from '@/content/places';
 import { systemIcons } from '@/content/systemIcons';
 import { distanceMeters } from '@/game/generation/geo';
@@ -230,11 +230,9 @@ function rowFace(row: InventoryRow, save: SaveData): { emoji: string; icon?: Ima
         icon:
           ref.kind === 'material'
             ? materialById[ref.id]?.icon
-            : ref.kind === 'valuable'
-              ? valuableById[ref.id]?.icon
-              : ref.kind === 'weakness'
-                ? itemById[ref.id]?.icon
-                : systemIcons[row.item.emoji],
+            : ref.kind === 'weakness'
+              ? itemById[ref.id]?.icon
+              : systemIcons[row.item.emoji],
         count: row.item.count,
         label: row.item.count > 1 ? `${row.item.name}, ${row.item.count}` : row.item.name,
       };
@@ -309,16 +307,14 @@ function stepText(step: NextStep): string {
       const known = step.known.map((id) => tr(recipeOutput(recipeById[id]).name));
       return known.length > 0 ? t('inventory.next.recipes', { recipes: known.join(', ') }) : t('inventory.next.unknownRecipe');
     }
-    case 'sell':
-      return t('inventory.next.sell', { price: step.price });
     case 'boss':
       return t('inventory.next.boss', { boss: tr(bossById[step.bossId]?.name ?? step.bossId) });
     case 'set':
       return t('inventory.next.set', { dots: ruinsDots(step.have, step.need) });
     case 'restore':
       return t('inventory.next.restore', {
-        // The gem in a restore cost is a valuable, not a material.
-        cost: step.cost.map((s) => `${s.amount} ${tr((materialById[s.materialId] ?? valuableById[s.materialId]).name).toLowerCase()}`).join(', '),
+        cost: step.cost.map((s) => `${s.amount} ${tr(materialById[s.materialId].name).toLowerCase()}`).join(', '),
+        gold: step.gold,
       });
     case 'action':
       return t(`inventory.next.${step.action}`);

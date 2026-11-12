@@ -1,5 +1,5 @@
 import { gearRules } from '@/content/gear';
-import { gearName, itemById, materialById, recipeById, recipeOutput, relicById, valuableById } from '@/content/lookup';
+import { gearName, itemById, materialById, recipeById, recipeOutput, relicById } from '@/content/lookup';
 import type { Loot } from '@/game/loot/types';
 import { t, tr } from '@/i18n';
 
@@ -23,9 +23,6 @@ export function lootGains(loot: Loot): LootGain[] {
     ...loot.recipeIds.map((id) => ({ text: t('expeditions.newBlueprint', { name: tr(recipeOutput(recipeById[id]).name) }) })),
     ...loot.treasureMaps.map((m) => ({ text: t('expeditions.treasureMap', { rarity: rarity(m.rarity) }) })),
     ...loot.manuals.map((m) => ({ text: t('expeditions.manual', { rarity: rarity(m) }) })),
-    ...loot.valuables.map((v) => ({
-      text: `${valuableById[v.valuableId].emoji} ${t('inventory.valuable', { name: tr(valuableById[v.valuableId].name), tier: v.tier })}${v.amount > 1 ? ` ×${v.amount}` : ''}`,
-    })),
     ...loot.relics.map((id) => ({ text: `🏺 ${tr(relicById[id].name)}` })),
     loot.keyFragments > 0 ? { text: t('places.keyFragments', { count: loot.keyFragments }) } : null,
     ...loot.consumables.map((c) => ({ text: `${itemById[c.itemId].emoji} ×${c.amount}` })),

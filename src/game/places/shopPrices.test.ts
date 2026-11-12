@@ -3,8 +3,6 @@ import { dungeons } from '@/content/dungeons';
 import { heroClasses } from '@/content/heroes';
 import { itemById, monsterPartById, materialById } from '@/content/lookup';
 import { shopStock } from '@/content/shops';
-import { valuables } from '@/content/loot/valuables';
-import { lootConfig } from '@/content/loot/config';
 
 import { recipes } from '@/content/recipes';
 import { createInitialSave, type SaveData } from '../save';
@@ -13,7 +11,6 @@ import type { PlaceSpawn } from './generate';
 import { placeStock, gearSellPrice, materialSellPrice } from './shops';
 import { blackMarketGoods } from '../secrets/places';
 import { tavernOffers } from '../taverns/taverns';
-import { valuableSellPrice } from '../loot/valuables';
 import { apothecaryCarePrice, trainPrice } from './services';
 import { forgedItem } from '../crafting/crafting';
 
@@ -116,14 +113,6 @@ describe('every shop price is finite and positive at every tier', () => {
     const common = gearSellPrice({ uid: 'u', itemId: 'sword1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 });
     const tinkered = gearSellPrice({ uid: 'u', itemId: 'sword1', rarity: 'common' as const, roll: 8, affixes: [{ id: 'tinkered', value: 50 }], rerolls: 0 });
     expect(tinkered).toBe(Math.round(common * 1.5));
-    for (const valuable of valuables) {
-      for (const tier2 of TIERS) {
-        for (const buyer of lootConfig.valuables.buyers) {
-          const price = valuableSellPrice(valuable.id, tier2, buyer);
-          if (price !== 0) finite(price, `${buyer} price of ${valuable.id} tier ${tier2}`);
-        }
-      }
-    }
     for (const recipe of recipes) {
       const item = forgedItem(recipe);
       if (!item) continue;

@@ -8,7 +8,7 @@ import { emptyPocketLog, pocketNotifications } from '../notifications/pocket';
 import { placesAround } from '../places/generate';
 import { isFightPlace, startPlaceFight } from '../places/fights';
 import { digRuin } from '../places/ruins';
-import { buy, sellGear, sellMaterial, sellValuable } from '../places/shops';
+import { buy, sellGear, sellMaterial } from '../places/shops';
 import { claimQuest } from '../quests/rewards';
 import type { Quest } from '../quests/types';
 import type { SaveData } from '../save';
@@ -26,7 +26,7 @@ const spy = (path: string, names: string[]) => {
 };
 jest.mock('../places/fights', () => spy('../places/fights', ['startPlaceFight']));
 jest.mock('../places/ruins', () => spy('../places/ruins', ['digRuin']));
-jest.mock('../places/shops', () => spy('../places/shops', ['buy', 'sellGear', 'sellMaterial', 'sellValuable']));
+jest.mock('../places/shops', () => spy('../places/shops', ['buy', 'sellGear', 'sellMaterial']));
 jest.mock('../quests/rewards', () => spy('../quests/rewards', ['claimQuest']));
 jest.mock('../secrets/places', () => spy('../secrets/places', ['enterSecret', 'recruitAtSecret', 'buyAtBlackMarket']));
 jest.mock('../secrets/dungeon', () => spy('../secrets/dungeon', ['launchUnderwater']));
@@ -39,7 +39,6 @@ const ACTIONS = [
   buy,
   sellGear,
   sellMaterial,
-  sellValuable,
   claimQuest,
   enterSecret,
   recruitAtSecret,

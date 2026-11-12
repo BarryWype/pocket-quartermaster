@@ -6,7 +6,8 @@ import { gearProfiles, gearTypeNames } from '@/content/equipment';
 import type { FamilyId } from '@/content/families';
 import { gearRules, rarityNames } from '@/content/gear';
 import { heroClasses } from '@/content/heroes';
-import { itemById, materialById, monsterPartById, recipeById, relicById, valuableById } from '@/content/lookup';
+import { itemById, materialById, monsterPartById, recipeById, relicById } from '@/content/lookup';
+import { systemIcons } from '@/content/systemIcons';
 import { forgeConfirmation, restoreConfirmation, type ConfirmCost } from '@/game/crafting/confirm';
 import { canCraft } from '@/game/crafting/crafting';
 import { canForgeWithIngredient, fittingIngredients, ingredientAffixId } from '@/game/forging/ingredients';
@@ -43,8 +44,8 @@ function signed(value: number): string {
   return rounded < 0 ? `−${-rounded}` : String(rounded);
 }
 
-/** The pop-up's ingredients: every spent material and valuable with what is held and needed. */
-export function ingredientsOf(cost: ConfirmCost): PopupIngredient[] {
+/** The pop-up's ingredients: every spent material, plus the gold a restore costs, with what is held and needed. */
+export function ingredientsOf(cost: ConfirmCost, save: SaveData): PopupIngredient[] {
   return [
     ...cost.materials.map(({ id, needed, held }) => ({
       key: id,
@@ -54,13 +55,9 @@ export function ingredientsOf(cost: ConfirmCost): PopupIngredient[] {
       have: held,
       need: needed,
     })),
-    ...cost.valuables.map(({ id, needed, held }) => ({
-      key: id,
-      label: tr(valuableById[id].name),
-      emoji: valuableById[id].emoji,
-      have: held,
-      need: needed,
-    })),
+    ...(cost.gold > 0
+      ? [{ key: 'gold', label: t('common.gold'), emoji: '🪙', icon: systemIcons['🪙'], have: save.gold, need: cost.gold }] // coin-ok: the gold slot's icon, no amount
+      : []),
   ];
 }
 
@@ -262,7 +259,7 @@ export function ForgeConfirmDialog({
           valueLabel={valueLabel}
           note={note}
           lines={lines}
-          ingredients={ingredientsOf(confirm.cost)}
+          ingredients={ingredientsOf(confirm.cost, save)}
           action={action}
           secondary={secondary}
         >

@@ -2,11 +2,11 @@ import { recipes } from '@/content/recipes';
 
 import type { SaveData } from '../save';
 
-/** Every id a part recipe waits on: monster parts and the gems of two charms. */
+/** Every id a part recipe waits on: monster parts. */
 const unlockIds = new Set(recipes.flatMap((recipe) => recipe.unlockedBy ?? []));
 
 /**
- * Notes the parts (and gems) among `ids` as seen, then unlocks every part
+ * Notes the parts among `ids` as seen, then unlocks every part
  * recipe whose `unlockedBy` have all been seen.
  */
 export function seeParts(save: SaveData, ids: string[]): SaveData {

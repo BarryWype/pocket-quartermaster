@@ -406,7 +406,6 @@ export function applyBackgroundResults(save: SaveData, results: BackgroundResult
             consumables: result.rewards.consumables.map((c) => ({ ...c, amount: Math.round(c.amount * pocketYield) })),
             lures: Math.round(result.rewards.lures * pocketYield),
             keyFragments: Math.round(result.rewards.keyFragments * pocketYield),
-            valuables: result.rewards.valuables.map((v) => ({ ...v, amount: Math.round(v.amount * pocketYield) })),
           };
     if (result.won) next = grantPatrolWin(next, [result.heroId], rewards, result.patrolId, result.windowEndsAt, result.at);
     if (isAway(next, result.heroId)) continue;

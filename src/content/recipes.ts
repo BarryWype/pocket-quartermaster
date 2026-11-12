@@ -161,7 +161,7 @@ export const recipes: RecipeDef[] = [
     ['viperOil', 'viperOil', { venomSac: 2 }, 2],
   ]),
 
-  // Charms, known once their parts (or gems) have been seen.
+  // Charms, known once their parts have been seen.
   ...charms.map((charm): RecipeDef => ({
     id: charm.id,
     station: 'provisions',
@@ -169,9 +169,6 @@ export const recipes: RecipeDef[] = [
     output: { itemId: charm.id },
     inputs: Object.entries(charm.inputs).map(([materialId, amount]) => ({ materialId, amount })),
     unlockedByDefault: false,
-    ...(charm.valuables
-      ? { valuables: Object.entries(charm.valuables).map(([valuableId, amount]) => ({ valuableId, amount })) }
-      : {}),
     ...(charm.anyShards ? { anyShards: charm.anyShards } : {}),
     unlockedBy: charm.unlockedBy,
   })),

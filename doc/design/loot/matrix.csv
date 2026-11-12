@@ -1,27 +1,27 @@
-Source,Visits per day (regular player),Gold,XP,Materials,Shards,Blueprints,Gear,Trinkets,Trophies,Relics,Monster parts,Valuables,Consumables,Treasure maps,Manuals,Key fragments,Notes
-Dungeon run,5,A,A,—,—,R,S,R/2,—,—,O,S,S,R,R,R/2,Launched from the phone: no materials
-"Dungeon, first win of the day",1,A,A,—,R,A,O,S,—,—,O,S,S,R,S,R,The first won dungeon of the day (one per day in total)
-First clear of a new tier,0.03,A,A,—,—,A,A,—,—,—,O,S,S,—,S,A,Gear at least Uncommon
-"First clear of a dungeon",0.3,A,A,—,—,S,A,R/2,—,—,O,S,S,R,R,R/2,"Paid once per chain dungeon; stacks with the difficulty multiplier"
-Tier boss,0.2,A,A,—,R,R,A,S,S,R,A,O,S,S,S,R,Trophies are relics; Legendary gear possible
-Overnight expedition,1,A,A,—,—,R,S,R,—,—,O,O,S,S,R,—,
-Patrol,4,O,O,S,—,—,S,—,—,—,O,S,S,—,—,—,Materials by patrol kind (lootConfig.patrolThemes)
-Traveller,0.3,S,—,S,S,—,—,R,—,—,—,S,S,R,—,R,"Also a blessing, trades, a rare recruit"
-Bandit camp,0.43,A,O,S,—,R,S,—,—,—,S,O,S,R,—,—,
-Goblin raiding party,0.43,O,O,O,—,—,R,R,—,—,O,S,O,—,—,—,
-Beast den,0.43,S,O,A,—,—,—,—,S,—,A,—,—,—,—,—,
-Haunted crypt,0.43,S,O,S,—,—,R,—,—,R,O,S,—,—,—,S,Bone
-Elemental rift,0.43,—,O,—,A,—,—,R,R,—,S,—,—,—,—,—,Trophies are elemental stones
-Abandoned caravan,0.43,O,O,O,—,S,S,—,—,—,—,S,O,—,—,—,
-Wanted outlaw,0.43,A,O,—,—,—,O,S,—,—,S,S,—,—,—,—,Gold bounty; Rare gear possible
-Monster lair,0.15,A,A,O,O,—,A,O,O,R,A,O,S,S,S,S,Gear at least Rare; Legendary possible
-"Ruins, a dig",1,—,—,O,—,—,—,—,—,—,—,S,—,—,—,S,The 5th dig gives a relic
-Thieves' guild heist,0.3,A,O,—,—,—,—,R,—,—,—,O,—,S,—,—,Sometimes the black market tip
-Fishing dock,0.3,—,—,A,—,R,—,—,R,R,—,R,—,R,—,—,Fish; rarely a sunken chest (under 10%) with one rare item; sometimes the underwater dungeon tip
-Treasure spot,0.4,A,—,O,—,—,S,S,R,R,—,O,S,—,—,—,Scales with the map's rarity
-Sanctum,0.3,—,O,—,A,—,—,—,R,—,—,—,—,—,—,—,Trophies are elemental stones
-Step chest,2,A,—,O,—,—,S,—,—,—,S,S,S,S,R,—,Rewards walking
-Quest: short (500 m),1.2,A,—,O,—,—,R,—,—,—,S,S,S,R,—,R/2,
-Quest: medium (1 km),0.9,A,—,O,R,R,S,R,—,—,S,S,S,R,R,R,
-Quest: long (2 km),0.4,A,—,A,S,S,S,S,R,R,O,O,S,S,S,R,
-Secret quest,0.15,A,—,—,—,—,—,—,—,—,—,S,—,—,—,—,Gives a secret place tip within ~1 km
+Source,Visits per day (regular player),Gold,XP,Materials,Shards,Blueprints,Gear,Trinkets,Trophies,Relics,Monster parts,Consumables,Treasure maps,Manuals,Key fragments,Notes
+Dungeon run,5,A,A,—,—,R,S,R/2,—,—,O,S,R,R,R/2,Launched from the phone: no materials
+"Dungeon, first win of the day",1,A,A,—,R,A,O,S,—,—,O,S,R,S,R,The first won dungeon of the day (one per day in total)
+First clear of a new tier,0.03,A,A,—,—,A,A,—,—,—,O,S,—,S,A,Gear at least Uncommon
+"First clear of a dungeon",0.3,A,A,—,—,S,A,R/2,—,—,O,S,R,R,R/2,"Paid once per chain dungeon; stacks with the difficulty multiplier"
+Tier boss,0.2,A,A,—,R,R,A,S,S,R,A,S,S,S,R,Trophies are relics; Legendary gear possible
+Overnight expedition,1,A,A,—,—,R,S,R,—,—,O,S,S,R,—,
+Patrol,4,O,O,S,—,—,S,—,—,—,O,S,—,—,—,Materials by patrol kind (lootConfig.patrolThemes)
+Traveller,0.3,S,—,S,S,—,—,R,—,—,—,S,R,—,R,"Also a blessing, trades, a rare recruit"
+Bandit camp,0.43,A,O,S,—,R,S,—,—,—,S,S,R,—,—,
+Goblin raiding party,0.43,O,O,O,—,—,R,R,—,—,O,O,—,—,—,
+Beast den,0.43,S,O,A,—,—,—,—,S,—,A,—,—,—,—,
+Haunted crypt,0.43,S,O,S,—,—,R,—,—,R,O,—,—,—,S,Bone
+Elemental rift,0.43,—,O,—,A,—,—,R,R,—,S,—,—,—,—,Trophies are elemental stones
+Abandoned caravan,0.43,O,O,O,—,S,S,—,—,—,—,O,—,—,—,
+Wanted outlaw,0.43,A,O,—,—,—,O,S,—,—,S,—,—,—,—,Gold bounty; Rare gear possible
+Monster lair,0.15,A,A,O,O,—,A,O,O,R,A,S,S,S,S,Gear at least Rare; Legendary possible
+"Ruins, a dig",1,S,—,O,—,—,—,—,—,—,—,—,—,—,S,The 5th dig gives a relic
+"Thieves' guild heist",0.3,A,O,—,—,—,—,R,—,—,—,—,S,—,—,Sometimes the black market tip
+Fishing dock,0.3,R,—,A,—,R,—,—,R,R,—,—,R,—,—,Fish; rarely a sunken chest (under 10%) with one rare item; sometimes the underwater dungeon tip
+Treasure spot,0.4,A,—,O,—,—,S,S,R,R,—,S,—,—,—,Scales with the map's rarity
+Sanctum,0.3,—,O,—,A,—,—,—,R,—,—,—,—,—,—,Trophies are elemental stones
+Step chest,2,A,—,O,—,—,S,—,—,—,S,S,S,R,—,Rewards walking
+Quest: short (500 m),1.2,A,—,O,—,—,R,—,—,—,S,S,R,—,R/2,
+Quest: medium (1 km),0.9,A,—,O,R,R,S,R,—,—,S,S,R,R,R,
+Quest: long (2 km),0.4,A,—,A,S,S,S,S,R,R,O,S,S,S,R,
+Secret quest,0.15,A,—,—,—,—,—,—,—,—,—,—,—,—,—,Gives a secret place tip within ~1 km

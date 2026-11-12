@@ -4,7 +4,7 @@ import { heroNames, recruitRules } from '@/content/roster';
 import { traits } from '@/content/traits';
 import { mealItems, pickSupply, supplyHeld } from '../expeditions/provisions';
 import { highestUnlockedTier } from '../expeditions/expeditions';
-import { guildBonus, rosterCap } from '../guild/guild';
+import { rosterCap } from '../guild/guild';
 import { createRng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { hasMaterials, removeMaterials, addMaterials } from '../inventory';
@@ -12,8 +12,6 @@ import { pickaxeTier } from '../gathering/gathering';
 import { rollForSave } from '../loot/context';
 import { grantLoot } from '../loot/grant';
 import type { Loot } from '../loot/types';
-import { valuableSellPrice } from '../loot/valuables';
-import { questEvent } from '../quests/progress';
 import { grantTip, rollTip, type TipOutcome } from '../secrets/tips';
 import { recruitGrade, rollRecruit, type Grade } from '../taverns/roll';
 import { pickRecruitClass } from '../taverns/taverns';
@@ -205,44 +203,6 @@ export function traderOffers(spawn: PatrolSpawn, save: SaveData, rules: PatrolRu
 }
 
 const tradeKey = (spawn: PatrolSpawn, index: number) => `${spawn.id}:${index}`;
-
-/** Why this valuable cannot be sold to the trader now, or null. */
-export function traderValuableProblem(
-  save: SaveData,
-  spawn: PatrolSpawn,
-  key: string,
-  count: number,
-  player: LatLng,
-  now: number,
-  rules: PatrolRules = patrolRules,
-): 'gone' | 'tooFar' | 'notEnough' | null {
-  if (spawn.kind !== 'trader' || spawn.endsAt <= now) return 'gone';
-  if (distanceTo(spawn, player, now) > rules.engageMeters) return 'tooFar';
-  if ((save.valuables[key] ?? 0) < count) return 'notEnough';
-  return null;
-}
-
-/** Sells a valuable stack to the trader at the elsewhere share; the trader stays unhelped. */
-export function sellValuableToTrader(
-  save: SaveData,
-  spawn: PatrolSpawn,
-  key: string,
-  count: number,
-  player: LatLng,
-  now: number,
-  rules: PatrolRules = patrolRules,
-): SaveData {
-  const problem = traderValuableProblem(save, spawn, key, count, player, now, rules);
-  if (problem) throw new Error(`Cannot sell ${key}: ${problem}`);
-  const separator = key.lastIndexOf(':');
-  const price =
-    valuableSellPrice(key.slice(0, separator), Number(key.slice(separator + 1)), 'trader', null, guildBonus(save, 'collector')) * count;
-  const valuables = { ...save.valuables };
-  const left = (valuables[key] ?? 0) - count;
-  if (left > 0) valuables[key] = left;
-  else delete valuables[key];
-  return questEvent({ ...save, gold: save.gold + price, valuables }, { kind: 'sold', gold: price }, now);
-}
 
 /** Why this trade cannot be made now, or null. */
 export function tradeProblem(

@@ -1,11 +1,10 @@
 import { relicById } from '@/content/lookup';
-import { lootConfig } from '@/content/loot/config';
 
 import { createInitialSave, type SaveData } from '../save';
 import { relicRecipe } from '../forging/relics';
 import { forgeConfirmation, restoreConfirmation } from './confirm';
 
-/** A save holding a relic and exactly its restore cost, gem included. */
+/** A save holding a relic and exactly its restore cost, gold included. */
 const holding = (relicId: string): SaveData => {
   const recipe = relicRecipe(relicById[relicId]);
   const materials: Record<string, number> = {};
@@ -14,7 +13,7 @@ const holding = (relicId: string): SaveData => {
     ...createInitialSave(),
     relics: [{ uid: 'r1', relicId }],
     materials,
-    valuables: { [`${recipe.valuables![0].valuableId}:1`]: 1 },
+    gold: recipe.gold,
   };
 };
 
@@ -24,7 +23,7 @@ describe('forgeConfirmation', () => {
     const confirm = forgeConfirmation(save, 'sword1');
     expect(confirm).toMatchObject({ kind: 'forge', itemId: 'sword1', tier: 1, gearType: 'sword', ingredientId: null });
     expect(confirm?.cost.materials).toEqual([{ id: 'wood', needed: 4, held: 6, remaining: 2 }]);
-    expect(confirm?.cost.valuables).toEqual([]);
+    expect(confirm?.cost.gold).toBe(0);
   });
 
   it('expects Common without an ingredient, Uncommon with one', () => {
@@ -72,7 +71,7 @@ describe('forgeConfirmation', () => {
 });
 
 describe('restoreConfirmation', () => {
-  it('shows the relic, its tier and type, and the restore cost with the gem', () => {
+  it('shows the relic, its tier and type, and the restore cost with the gold', () => {
     const save = holding('rustedSaintsBuckler');
     const confirm = restoreConfirmation(save, 'r1');
     expect(confirm).toMatchObject({ kind: 'restore', relicId: 'rustedSaintsBuckler', tier: 1, gearType: 'buckler' });
@@ -80,13 +79,12 @@ describe('restoreConfirmation', () => {
     expect(confirm?.cost.materials.map(({ id, needed, remaining }) => [id, needed, remaining])).toEqual(
       recipe.inputs.map(({ materialId, amount }) => [materialId, amount, 0]),
     );
-    const gem = lootConfig.restore.gems[0].valuableId;
-    expect(confirm?.cost.valuables).toEqual([{ id: gem, needed: 1, held: 1, remaining: 0 }]);
+    expect(confirm?.cost.gold).toBe(recipe.gold);
   });
 
   it('returns null when the relic is not held or not affordable', () => {
     expect(restoreConfirmation(createInitialSave(), 'r1')).toBeNull();
-    const broke = { ...holding('rustedSaintsBuckler'), valuables: {} };
+    const broke = { ...holding('rustedSaintsBuckler'), gold: 0 };
     expect(restoreConfirmation(broke, 'r1')).toBeNull();
   });
 });

@@ -8,7 +8,7 @@ Daily **quests** are short walking objectives that arrive on their own. They rep
 - **Arrival**: 2–3 new quests every 24 h, stacking up to 6. No board to walk to; they appear in the quests list (the floating menu bar). Picks are seeded per player, day and slot (`playerSeed` on the save), so two players or two new games don't get the same first quests; only the tutorial's hand-over quest is fixed.
 - **Variety**: among the active quests, at most one per objective **kind** (Visit, Fight, Deliver, Gather, Trade, Walk) while other kinds are unlocked (`questRules.variety` in `src/content/quests.ts`). A new quest picks a kind not already active; only when every unlocked kind is taken can a kind repeat — and then never Walk twice. Within a kind, avoid the same objective as an active quest.
 - **Counting from arrival**: walk, gather, patrol and sell-goods objectives count everything from the moment the quest **arrives** — not from when the player first opens the list. Opening the list only fixes a place target; players never lose a walk for not having looked. Every active quest of those kinds counts the same walk, independently, in the app and in Pocket mode.
-- **Trade**: the collector quest names the valuable it wants, picked among those held when the quest arrives (a market must be seen and a valuable held to unlock it); it is done when that valuable is sold at its market. "Sell goods" needs no map place: goods — valuables, materials, gear, any buyer — worth N gold must be sold after the quest arrived (N by tier in `questRules.sellGoodsGold`). Both are Trade, so at most one of the two is active at a time.
+- **Trade**: "Sell goods" needs no map place: goods — materials, gear, any buyer — worth N gold must be sold after the quest arrived (N by tier in `questRules.sellGoodsGold`).
 - **Lifetime**: 48 h each. Ignoring a quest costs nothing. One free reroll per day.
 - **Distance bands**: short **500 m**, medium **1 km**, long **2 km**. Nothing in a quest is ever more than 2 km away (straight line from where the quest was given). Rewards grow with the band.
 - **Targets**: "the nearest X" that exists within the band's distance. If no place of that kind is within range (rarer places are often more than 2 km away), pick another objective. Only kinds the player has seen or unlocked, at their tier (`objectives.csv`).
@@ -31,11 +31,11 @@ Daily **quests** are short walking objectives that arrive on their own. They rep
 ## Rewards: rows to add to `doc/design/loot/matrix.csv`
 Added by the quests prompt (with the rename of "Overnight quest" to "Overnight expedition"), so the content test and the CSV change together. Quests are a walking source, so materials are allowed.
 
-| Source | Visits/day | Gold | XP | Materials | Shards | Blueprints | Gear | Trinkets | Trophies | Relics | Monster parts | Valuables | Consumables | Treasure maps | Manuals | Key fragments | Notes |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Quest, short (500 m) | 1.2 | A | — | O | — | — | R | — | — | — | S | S | S | R | — | R/2 | |
-| Quest, medium (1 km) | 0.9 | A | — | O | R | R | S | R | — | — | S | S | S | R | R | R | |
-| Quest, long (2 km) | 0.4 | A | — | A | S | S | S | S | R | R | O | O | S | S | S | R | |
-| Secret quest | 0.15 | A | — | — | — | — | — | — | — | — | — | S | — | — | — | — | Gives a secret place tip within ~1 km |
+| Source | Visits/day | Gold | XP | Materials | Shards | Blueprints | Gear | Trinkets | Trophies | Relics | Monster parts | Consumables | Treasure maps | Manuals | Key fragments | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Quest, short (500 m) | 1.2 | A | — | O | — | — | R | — | — | — | S | S | R | — | R/2 | |
+| Quest, medium (1 km) | 0.9 | A | — | O | R | R | S | R | — | — | S | S | R | R | R | |
+| Quest, long (2 km) | 0.4 | A | — | A | S | S | S | S | R | R | O | S | S | S | R | |
+| Secret quest | 0.15 | A | — | — | — | — | — | — | — | — | — | — | — | — | — | Gives a secret place tip within ~1 km |
 
 With these rows the regular player gets about 6 key fragments a week (a key every 4–5 days) and about 8 training manuals a week.

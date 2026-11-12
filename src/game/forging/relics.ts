@@ -10,13 +10,14 @@ import { removeMaterials } from '../inventory';
 import type { SaveData } from '../save';
 import type { GearDef, RecipeDef } from '../types';
 
-/** The gem a relic of `tier` restores with: rough up to tier 3, cut above. */
-function gemFor(tier: number) {
-  return (lootConfig.restore.gems.find((gem) => tier <= gem.upToTier) ?? lootConfig.restore.gems.at(-1)!).valuableId;
+/** The gold a relic of `tier` restores for: the old rough/cut gem's full price. */
+function goldFor(tier: number) {
+  const step = lootConfig.restore.gold.find((entry) => tier <= entry.upToTier) ?? lootConfig.restore.gold.at(-1)!;
+  return Math.round(step.base * lootConfig.goldByTier[tier - 1]);
 }
 
-/** The relic's restore recipe: its type's recipe at its tier, each amount ×1.5 rounded up, plus the tier's gem. `discount` cuts the cost (Guild Hall). */
-export function relicRecipe(relic: RelicDef, discount = 0): RecipeDef {
+/** The relic's restore recipe: its type's recipe at its tier, each amount ×1.5 rounded up, plus gold. `discount` cuts the cost (Guild Hall). */
+export function relicRecipe(relic: RelicDef, discount = 0): RecipeDef & { gold: number } {
   const inputs = gearRecipes[relic.gearType][relic.tier - 1].map(({ materialId, amount }) => ({
     materialId,
     amount: Math.max(1, Math.ceil(Math.ceil(amount * lootConfig.restore.recipeMultiplier) * (1 - discount))),
@@ -27,7 +28,7 @@ export function relicRecipe(relic: RelicDef, discount = 0): RecipeDef {
     output: { itemId: gearId(relic.gearType, relic.tier) },
     inputs,
     unlockedByDefault: false,
-    valuables: [{ valuableId: gemFor(relic.tier), amount: Math.max(1, Math.ceil(1 * (1 - discount))) }],
+    gold: Math.max(1, Math.ceil(goldFor(relic.tier) * (1 - discount))),
   };
 }
 
@@ -39,8 +40,8 @@ export function canRestore(save: SaveData, relicUid: string) {
 }
 
 /**
- * Restores a held relic into a finished piece: the recipe's materials plus the
- * tier's gem are spent, and the piece comes out Legendary: the relic's effect
+ * Restores a held relic into a finished piece: the recipe's materials and gold
+ * are spent, and the piece comes out Legendary: the relic's effect
  * as its unique and 3 affixes, seeded by its uid so they can't be rerolled by
  * reopening. No blueprint learned. `free` skips the cost (debug).
  */
@@ -58,7 +59,7 @@ export function restoreRelic(save: SaveData, relicUid: string, free = false): Sa
   return {
     ...save,
     relics: save.relics.filter((r) => r.uid !== relicUid),
-    ...(cost ? { materials: removeMaterials(save.materials, cost.materials), valuables: cost.valuables } : {}),
+    ...(cost ? { materials: removeMaterials(save.materials, cost.materials), gold: save.gold - cost.gold } : {}),
     gear: [...save.gear, piece],
     nextUid: save.nextUid + 1,
   };

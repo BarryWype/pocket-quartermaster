@@ -116,16 +116,6 @@ describe('quest progress', () => {
     expect(done.quests.list[0].doneAt).toBe(at);
   });
 
-  it('completes the collector only on its own valuable at its market', () => {
-    const save = withQuest(opened(), quest('collector', 'short', { itemId: 'oldCoins', target: target('market-1', 'market') }));
-    const other = feed(save, { kind: 'soldValuable', placeId: 'market-1', valuableId: 'silverRing' });
-    expect(other.quests.list[0].doneAt).toBe(null);
-    const elsewhere = feed(save, { kind: 'soldValuable', placeId: 'market-2', valuableId: 'oldCoins' });
-    expect(elsewhere.quests.list[0].doneAt).toBe(null);
-    const done = feed(save, { kind: 'soldValuable', placeId: 'market-1', valuableId: 'oldCoins' });
-    expect(done.quests.list[0].doneAt).toBe(at);
-  });
-
   it('counts gold sold anywhere for sell goods, from arrival and before being shown', () => {
     const save = withQuest(opened(), quest('sellGoods', 'short', { amount: 100, acceptedAt: null, seen: false }));
     const part = feed(save, { kind: 'sold', gold: 60 });

@@ -6,7 +6,7 @@ import { lootConfig } from './config';
 
 // The 10 charms of doc/design/loot/charms.csv: consumable-slot items that raise
 // what a run finds, crafted at the alchemy panel. Each recipe is known once the
-// player has seen every part (or gem) in `unlockedBy`.
+// player has seen every part in `unlockedBy` (the Prism charm needs none).
 
 export type CharmDef = {
   id: string;
@@ -15,8 +15,6 @@ export type CharmDef = {
   icon?: ImageSourcePropType;
   description: string;
   inputs: Record<string, number>;
-  /** Valuables by id, any tier (lowest first). */
-  valuables?: Record<string, number>;
   /** Shards of any one element. */
   anyShards?: number;
   unlockedBy: string[];
@@ -32,7 +30,7 @@ const chanceCharm = (
   icon: ImageSourcePropType,
   what: string,
   category: Extract<LootModifier, { kind: 'chance' }>['category'],
-  recipe: Pick<CharmDef, 'inputs' | 'valuables' | 'anyShards' | 'unlockedBy'>,
+  recipe: Pick<CharmDef, 'inputs' | 'anyShards' | 'unlockedBy'>,
 ): CharmDef => ({
   id,
   name,
@@ -89,14 +87,12 @@ export const charms: CharmDef[] = [
   chanceCharm('graveDustPouch', 'Grave-dust pouch', '⚱️', require('../../../assets/icons/relics/pouch-purple-dust.png'), 'Relic', 'relics', { inputs: { graveDust: 3 }, unlockedBy: ['graveDust'] }),
   chanceCharm('prismCharm', 'Prism charm', '🔷', require('../../../assets/icons/rpg/gem-purple-brilliant.png'), 'Trinket', 'trinkets', {
     inputs: {},
-    anyShards: 2,
-    valuables: { roughGem: 1 },
-    unlockedBy: ['roughGem'],
+    anyShards: 3,
+    unlockedBy: [],
   }),
   chanceCharm('architectsSeal', 'Architect’s seal', '📐', require('../../../assets/icons/magic/scroll-sealed-red.png'), 'Blueprint', 'blueprints', {
-    inputs: { tatteredInsignia: 2 },
-    valuables: { cutGem: 1 },
-    unlockedBy: ['tatteredInsignia', 'cutGem'],
+    inputs: { tatteredInsignia: 3 },
+    unlockedBy: ['tatteredInsignia'],
   }),
   chanceCharm('seersCandle', 'Seer’s candle', '🕯️', require('../../../assets/icons/magic/elixir-amber-sparkle.png'), 'Training manual', 'manuals', { inputs: { ritualCandle: 3 }, unlockedBy: ['ritualCandle'] }),
 ];

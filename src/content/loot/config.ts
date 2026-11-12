@@ -1,4 +1,3 @@
-import type { ValuableBuyer, ValuableRarity } from '@/content/loot/valuables';
 import type { PatrolKind } from '@/game/patrols/generate';
 import type { LootCategory, LootSourceId, MapRarity } from '@/game/loot/types';
 import type { Rarity } from '@/content/gear';
@@ -27,7 +26,6 @@ export const lootConfig = {
     trophies: 1,
     relics: 1,
     monsterParts: 1,
-    valuables: 1,
     consumables: 1,
     treasureMaps: 1,
     manuals: 1,
@@ -198,48 +196,44 @@ export const lootConfig = {
    * dungeon's gold and XP instead; the two bonus rows use `bonusRows`.
    */
   amounts: {
-    patrol: { gold: 1, xp: 0.25 },
-    traveller: { gold: 1, xp: 0 },
-    banditCamp: { gold: 2, xp: 0.3 },
-    goblinRaid: { gold: 0.5, xp: 0.3 },
+    patrol: { gold: 1.39, xp: 0.25 },
+    traveller: { gold: 1.94, xp: 0 },
+    banditCamp: { gold: 2.56, xp: 0.3 },
+    goblinRaid: { gold: 0.89, xp: 0.3 },
     beastDen: { gold: 0.5, xp: 0.3 },
-    hauntedCrypt: { gold: 0.5, xp: 0.3 },
+    hauntedCrypt: { gold: 1.44, xp: 0.3 },
     elementalRift: { gold: 0, xp: 0.3 },
-    abandonedCaravan: { gold: 1, xp: 0.3 },
-    wantedOutlaw: { gold: 3, xp: 0.3 },
-    monsterLair: { gold: 6, xp: 0.3 },
-    ruinsDig: { gold: 0, xp: 0 },
-    heist: { gold: 2, xp: 0 },
-    fishingDock: { gold: 0, xp: 0 },
-    treasureSpot: { gold: 2.5, xp: 0 },
+    abandonedCaravan: { gold: 1.39, xp: 0.3 },
+    wantedOutlaw: { gold: 3.24, xp: 0.3 },
+    monsterLair: { gold: 6.56, xp: 0.3 },
+    ruinsDig: { gold: 0.94, xp: 0 },
+    heist: { gold: 2.56, xp: 0 },
+    fishingDock: { gold: 0.94, xp: 0 },
+    treasureSpot: { gold: 3.06, xp: 0 },
     sanctum: { gold: 0, xp: 0.5 },
-    stepChest: { gold: 2, xp: 0 },
-    questShort: { gold: 1, xp: 0 },
-    questMedium: { gold: 2, xp: 0 },
-    questLong: { gold: 4, xp: 0 },
-    secretQuest: { gold: 2, xp: 0 },
+    stepChest: { gold: 2.24, xp: 0 },
+    questShort: { gold: 1.24, xp: 0 },
+    questMedium: { gold: 2.24, xp: 0 },
+    questLong: { gold: 4.56, xp: 0 },
+    secretQuest: { gold: 2.24, xp: 0 },
   } as Partial<Record<LootSourceId, { gold: number; xp: number }>>,
   /** The day's first win and a new tier's first clear: shares of the dungeon's top gold and its XP. */
   bonusRows: { firstWin: { gold: 1, xp: 0.5 }, firstTierClear: { gold: 1, xp: 0.5 }, firstDungeonClear: { gold: 1, xp: 0.5 } },
+  /**
+   * Dungeon rows also pay their finds as gold, with no roll: `worth` × the
+   * tier's gold curve × the row's find chance, scaled like a drop chance (run
+   * length, the difficulty's chance, capped at `maxChance`).
+   */
+  dungeonFinds: {
+    worth: 8,
+    chance: { dungeonRun: 0.25, firstWin: 0.25, firstTierClear: 0.25, firstDungeonClear: 0.25, tierBoss: 0.6, overnightExpedition: 0.6 } as Partial<Record<LootSourceId, number>>,
+  },
   /** Elite patrols pay this many times the gold and XP. */
   eliteMultiplier: 2,
   /** Treasure maps last this long once found. */
   treasureMapHours: 48,
-  /** Valuables: rarity weights of a drop, where they sell and the market's daily collector. */
-  valuables: {
-    rarityWeights: { common: 70, uncommon: 25, rare: 5 } as Record<ValuableRarity, number>,
-    /** Full price here, `elsewhereShare` at every other buyer. */
-    fullPriceAt: ['market', 'thievesGuild'] as ValuableBuyer[],
-    elsewhereShare: 0.5,
-    buyers: ['market', 'thievesGuild', 'smithy', 'huntingLodge', 'apothecary', 'trader'] as ValuableBuyer[],
-    collectorMultiplier: 2,
-    /** Weight of each valuable in the collector's daily pick; others weigh 1. */
-    collectorWeights: { oldCoins: 2 } as Record<string, number>,
-  },
   /** Gold at each tier relative to tier 1; rewards follow it (see `chainGold` in content/dungeons.ts). */
   goldByTier,
-  /** A valuable's price is its base price times this, by the source's tier: the enemy strength curve. */
-  valuablePriceByTier: goldByTier,
   /**
    * Blueprint drops: weight by how many roster heroes favour the type. A
    * complete tier gives monster parts of the enemies' family instead, or gold
@@ -271,13 +265,13 @@ export const lootConfig = {
   sigils: { chanceBySlot: { short: 0.09, long: 0.23, boss: 0.46 }, pityAfter: 10, cap: 5, capShardsPerTier: 2 },
   /**
    * Restoring a relic costs its type's recipe at its tier times 1.5 rounded
-   * up, plus one gem: rough for tiers 1-3, cut for 4-5.
+   * up, plus gold: the old rough/cut gem's full price.
    */
   restore: {
     recipeMultiplier: 1.5,
-    gems: [
-      { upToTier: 3, valuableId: 'roughGem' },
-      { upToTier: 5, valuableId: 'cutGem' },
+    gold: [
+      { upToTier: 3, base: 5 },
+      { upToTier: 5, base: 30 },
     ],
   },
 };

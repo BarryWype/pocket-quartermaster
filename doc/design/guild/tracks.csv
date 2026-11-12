@@ -7,7 +7,6 @@ War room,Extra party slot,Removed,,,,The party is 3 heroes
 Treasury,Gold,Kept,4,+10% gold,"0, 1, 2, 3",
 Treasury,Shards,Kept,3,+1 shard per shard drop,"1, 2, 3",
 Treasury,Sigil cap,Changed,1,+1 Sigil cap,3,No longer needs a charter
-Treasury,Collector's contacts,New,3,+10% when selling valuables,"1, 2, 3",Proposed base cost 150
 Treasury,Main rewards,Removed,,,,Loot is tuned in the matrix only
 Barracks,Tavern discount,Kept,3,-10% recruit price,"0, 1, 2",
 Barracks,Extra tavern offer,Kept,1,+1 recruit offer,1,

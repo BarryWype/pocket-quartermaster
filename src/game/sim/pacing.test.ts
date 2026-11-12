@@ -19,7 +19,7 @@ describe('loot pacing', () => {
 
   it('prints one line per category in pacing.py’s format', () => {
     const lines = pacingLines();
-    expect(lines).toHaveLength(15);
+    expect(lines).toHaveLength(14);
     expect(lines[0]).toMatch(/^Gold {12}\s*\d+\.\d per week {3}mostly: /);
   });
 });

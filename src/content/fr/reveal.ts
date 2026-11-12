@@ -18,7 +18,6 @@ export const frTipTexts: typeof tipTexts = {
   charms: 'Les charmes vont dans l’emplacement consommable et augmentent ce qu’une expédition rapporte.',
   relics: 'Reliques : restaurez-en une à la forge pour obtenir un objet à effet fixe.',
   trinkets: 'Bibelots : de l’équipement introuvable en boutique, aux statistiques rares comme Chance et Critique.',
-  valuables: 'Objets de valeur : vendez-les au marché. Les collectionneurs en paient certains plus cher.',
   keyFragments: 'Fragments de clé : quatre forment une clé mystérieuse, qui ouvre les lieux secrets.',
   affixes: "Affixes : des effets nommés portés par une pièce d'équipement, affichés sous ses statistiques. Une pièce Peu commune en a un, Rare deux, Légendaire trois.",
   ingredients:

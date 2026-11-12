@@ -27,7 +27,6 @@ function emptySave(): SaveData {
     ruinsProgress: 0,
     keyFragments: 0,
     secretTips: [],
-    valuables: {},
     relics: [],
     manuals: {},
   };
@@ -97,16 +96,15 @@ describe('inventoryPages', () => {
     expect(itemRows(rowsOn(save, 'materials'))).not.toContain('w:strongAle');
   });
 
-  it('valuables, relics and manuals all go to treasures', () => {
+  it('relics and manuals both go to treasures', () => {
     const save = {
       ...emptySave(),
-      valuables: { 'oldCoins:1': 2 },
       relics: [{ uid: 'r1', relicId: 'rustedSaintsBuckler' }],
       manuals: { common: 1 },
     };
     const treasures = itemRows(rowsOn(save, 'treasures'));
-    expect(treasures).toEqual(expect.arrayContaining(['v:oldCoins:1', 'r:r1', 'manual:common']));
-    expect(inventoryPages(save, NOW).find((page) => page.id === 'treasures')?.count).toBe(3);
+    expect(treasures).toEqual(expect.arrayContaining(['r:r1', 'manual:common']));
+    expect(inventoryPages(save, NOW).find((page) => page.id === 'treasures')?.count).toBe(2);
   });
 
   it('a save holding nothing shows only materials, with no rows', () => {
@@ -119,7 +117,6 @@ describe('inventoryPages', () => {
       materials: { wood: 3, hide: 1 },
       gear: [{ uid: '1', itemId: 'sword1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 }],
       consumables: { ...createInitialSave().consumables, strongAle: 1 },
-      valuables: { 'oldCoins:1': 1 },
       relics: [{ uid: 'r1', relicId: 'rustedSaintsBuckler' }],
       manuals: { common: 2 },
       sigils: [1, 1],

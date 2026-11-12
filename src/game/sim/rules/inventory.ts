@@ -1,18 +1,17 @@
 import { charms } from '@/content/loot/charms';
 import { monsterParts } from '@/content/loot/monsterParts';
 import { xpRules } from '@/content/heroes';
-import { itemById, recipeById, relicById } from '@/content/lookup';
+import { itemById, recipeById } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
 import { shopRules } from '@/content/shops';
 
 import { canCraft, craftableCount, craftMany, isKnown } from '../../crafting/crafting';
 import { highestUnlockedTier } from '../../dungeons/unlock';
-import { relicRecipe } from '../../forging/relics';
 import { distanceMeters } from '../../generation/geo';
 import { manualXp, readManual } from '../../loot/manuals';
 import type { ManualRarity } from '../../loot/types';
 import { placesWithin } from '../../places/generate';
-import { sellMaterial, sellMaterialProblem, sellValuable, sellValuableProblem } from '../../places/shops';
+import { sellMaterial, sellMaterialProblem } from '../../places/shops';
 import { isPlaceRevealed } from '../../reveal/reveal';
 import type { SaveData } from '../../save';
 import type { ConsumableDef, RecipeDef } from '../../types';
@@ -26,32 +25,6 @@ const charmIds = new Set(charms.map((c) => c.id));
 const charmRecipes: ItemRecipe[] = recipes.filter((r): r is ItemRecipe => 'itemId' in r.output && charmIds.has(r.output.itemId));
 const partIds = new Set(monsterParts.map((part) => part.id));
 
-/** Every valuable held, minus the gems the held relics need to be restored and one craft of each known charm recipe; only lines with count > 0. */
-export function valuablesToSell(save: SaveData): { key: string; count: number }[] {
-  const held = { ...save.valuables };
-  const reserve = (valuableId: string, amount: number) => {
-    let left = amount;
-    const keys = Object.keys(held)
-      .filter((key) => key.startsWith(`${valuableId}:`))
-      .sort((a, b) => Number(a.split(':')[1]) - Number(b.split(':')[1]));
-    for (const key of keys) {
-      const take = Math.min(left, held[key]);
-      held[key] -= take;
-      left -= take;
-      if (held[key] === 0) delete held[key];
-    }
-  };
-  for (const { relicId } of save.relics) {
-    for (const { valuableId, amount } of relicRecipe(relicById[relicId]).valuables ?? []) reserve(valuableId, amount);
-  }
-  for (const recipe of charmRecipes.filter((r) => isKnown(save, r))) {
-    for (const { valuableId, amount } of recipe.valuables ?? []) reserve(valuableId, amount);
-  }
-  return Object.entries(held)
-    .map(([key, count]) => ({ key, count }))
-    .filter((line) => line.count > 0);
-}
-
 /** The nearest open, revealed market within 1500 m, else null. */
 export function nearestMarket(sim: Sim) {
   if (!isPlaceRevealed(sim.save, 'market')) return null;
@@ -60,19 +33,6 @@ export function nearestMarket(sim: Sim) {
       .filter((spawn) => spawn.kind === 'market' && spawn.startsAt <= sim.now && spawn.expiresAt > sim.now)
       .sort((a, b) => distanceMeters(sim.location, a.position) - distanceMeters(sim.location, b.position))[0] ?? null
   );
-}
-
-/** Sells everything from `valuablesToSell` at the nearest market within 1500 m, the collector included through the market's price. */
-export function sellValuables(sim: Sim) {
-  const market = nearestMarket(sim);
-  if (!market) return;
-  let sold = false;
-  for (const { key, count } of valuablesToSell(sim.save)) {
-    if (sellValuableProblem(sim.save, market, key, count, market.position, sim.now) !== null) continue;
-    act(sim, 'valuables', (save) => sellValuable(save, market, key, count, market.position, sim.now));
-    sold = true;
-  }
-  if (sold) sim.log.places.push({ day: sim.day, kind: 'market', tier: highestUnlockedTier(sim.save), odds: null, won: null });
 }
 
 /** Sells every material held above the cap, down to it, never below what the next planned forge needs. */

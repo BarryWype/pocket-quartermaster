@@ -110,11 +110,7 @@ describe('unique uids', () => {
       const recipe = relicRecipe(relic);
       const materials = { ...save.materials };
       for (const { materialId, amount } of recipe.inputs) materials[materialId] = (materials[materialId] ?? 0) + amount;
-      const gem = recipe.valuables![0];
-      save = restoreRelic(
-        { ...save, materials, valuables: { ...save.valuables, [`${gem.valuableId}:1`]: (save.valuables[`${gem.valuableId}:1`] ?? 0) + gem.amount } },
-        save.relics.at(-1)!.uid,
-      );
+      save = restoreRelic({ ...save, materials, gold: save.gold + recipe.gold }, save.relics.at(-1)!.uid);
       save = craftSword(save);
       expectUniqueIds(save);
     }

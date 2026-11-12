@@ -1,7 +1,7 @@
 import { difficultyRules } from '@/content/difficulty';
 import { lootConfig } from '@/content/loot/config';
 
-import { categoryChance, lootChances, partyLuck, runLengthMultiplier } from './chances';
+import { categoryChance, findGold, lootChances, partyLuck, runLengthMultiplier } from './chances';
 import type { LootModifier, LootSourceId } from './types';
 
 const input = (source: LootSourceId, overrides: Partial<Parameters<typeof lootChances>[0]> = {}) => ({
@@ -80,9 +80,21 @@ describe('loot chances', () => {
     ];
     const base = categoryChance('gear', input('overnightExpedition'));
     expect(categoryChance('gear', input('overnightExpedition', { modifiers }))).toBeCloseTo(base * 1.5);
-    expect(categoryChance('valuables', input('overnightExpedition', { modifiers }))).toBeCloseTo(
-      categoryChance('valuables', input('overnightExpedition')),
+    expect(categoryChance('relics', input('overnightExpedition', { modifiers }))).toBeCloseTo(
+      categoryChance('relics', input('overnightExpedition')),
     );
+  });
+
+  it('pays a dungeon row\'s finds as gold, scaled like a drop chance', () => {
+    // dungeonRun tier 1, easy, 5 min: 8 × 1 × (0.25 × 0.25) = 0.5, rounded half up.
+    expect(findGold('dungeonRun', 1, 5, 'easy')).toBe(1);
+    // tierBoss tier 2: 8 × 1.9 × 0.6 = 9.12.
+    expect(findGold('tierBoss', 2)).toBe(9);
+    // overnight 480 min: the chance caps at 0.95, so 8 × 1 × 0.95 = 7.6.
+    expect(findGold('overnightExpedition', 1, 480)).toBe(8);
+    // Hard raises the chance: 8 × 1 × (0.25 × 1.5) = 3.
+    expect(findGold('dungeonRun', 1, 45, 'hard')).toBe(3);
+    expect(findGold('patrol', 1)).toBe(0);
   });
 
   it('scales the treasure spot by map rarity', () => {

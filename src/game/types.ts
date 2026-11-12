@@ -350,8 +350,8 @@ export type RecipeDef = {
   availableFromTier?: number;
   /** Recipes learned the first time this one is crafted. */
   unlocks?: string[];
-  /** Valuables spent by id, any tier (lowest first). */
-  valuables?: { valuableId: string; amount: number }[];
+  /** Gold spent on top of the materials (relic restoring). */
+  gold?: number;
   /** Shards of any one element spent (the one held most). */
   anyShards?: number;
   /** A part recipe: known once every part (or gem) here has been seen, and its tier reached. */

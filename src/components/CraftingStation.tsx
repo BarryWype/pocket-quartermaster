@@ -2,7 +2,7 @@ import { useRef, useState, type ComponentRef } from 'react';
 import { ScrollView, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 import PagerView from 'react-native-pager-view';
 
-import { itemById, materialById, recipeOutput, valuableById } from '@/content/lookup';
+import { itemById, materialById, recipeOutput } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
 import { systemIcons } from '@/content/systemIcons';
 import { canCraft, isKnown, ownsTool, type ForgeResult } from '@/game/crafting/crafting';
@@ -256,8 +256,6 @@ function RecipePopup({
   const owned = ownsTool(save, recipe);
   const description = 'itemId' in recipe.output ? itemById[recipe.output.itemId].description : undefined;
   const count = save.consumables[output.id] ?? 0;
-  const heldValuable = (valuableId: string) =>
-    Object.entries(save.valuables).reduce((sum, [key, n]) => (key.startsWith(`${valuableId}:`) ? sum + n : sum), 0);
   const shards = Math.max(...ELEMENTS.map((element) => save.materials[shardId(element)] ?? 0));
   const ingredients: PopupIngredient[] = [
     ...recipe.inputs.map(({ materialId, amount }) => ({
@@ -266,13 +264,6 @@ function RecipePopup({
       emoji: materialById[materialId].emoji,
       icon: materialById[materialId].icon,
       have: save.materials[materialId] ?? 0,
-      need: amount,
-    })),
-    ...(recipe.valuables ?? []).map(({ valuableId, amount }) => ({
-      key: valuableId,
-      label: tr(valuableById[valuableId].name),
-      emoji: valuableById[valuableId].emoji,
-      have: heldValuable(valuableId),
       need: amount,
     })),
   ];

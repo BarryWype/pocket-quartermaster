@@ -1,7 +1,6 @@
 import { gearRecipes } from '@/content/equipment';
 import { items } from '@/content/items';
 import { materials } from '@/content/materials';
-import { valuables } from '@/content/loot/valuables';
 import { relics } from '@/content/loot/relics';
 import { recipes } from '@/content/recipes';
 import { createInitialSave } from '@/game/save';
@@ -14,7 +13,6 @@ const save = () => createInitialSave();
 describe('purpose tags', () => {
   const refs: BaseItemRef[] = [
     ...materials.map((m): BaseItemRef => ({ kind: 'material', id: m.id })),
-    ...valuables.map((v): BaseItemRef => ({ kind: 'valuable', id: v.id })),
     ...relics.map((r): BaseItemRef => ({ kind: 'relic', id: r.id })),
     ...weaknessItems.map((i): BaseItemRef => ({ kind: 'weakness', id: i.id })),
     { kind: 'keyFragment' },
@@ -46,15 +44,12 @@ describe('purpose tags', () => {
     expect(ingredientIds([fakeRecipe]).has('nothingUsesThis')).toBe(true);
   });
 
-  it('keeps Good on valuables only, Restore on relics only, Collect on key fragments', () => {
+  it('keeps Restore on relics only, Collect on key fragments', () => {
     for (const ref of refs) {
       const purposes = purposesOf(ref);
-      expect(purposes.includes('good')).toBe(ref.kind === 'valuable');
       expect(purposes.includes('restore')).toBe(ref.kind === 'relic');
       expect(purposes.includes('collect')).toBe(ref.kind === 'keyFragment');
     }
-    // Gems are goods and ingredients both.
-    expect(purposesOf({ kind: 'valuable', id: 'roughGem' })).toEqual(['ingredient', 'good']);
   });
 
   it('tags quest on boss weakness items, use on maps, manuals, keys and blueprints', () => {
@@ -71,25 +66,18 @@ describe('what’s next', () => {
     expect(nextSteps({ ...save(), keyFragments: 2 }, { kind: 'keyFragment' })).toEqual([{ kind: 'set', have: 2, need: 4 }]);
   });
 
-  it('prices a valuable at the market, at its tier', () => {
-    expect(nextSteps(save(), { kind: 'valuable', id: 'oldCoins' })).toEqual([{ kind: 'sell', place: 'market', price: 5 }]);
-    expect(nextSteps(save(), { kind: 'valuable', id: 'oldCoins', tier: 3 })).toEqual([{ kind: 'sell', place: 'market', price: 15 }]);
-  });
-
   it('points a weakness item at its boss', () => {
     expect(nextSteps(save(), { kind: 'weakness', id: 'wantedPoster' })).toEqual([{ kind: 'boss', bossId: 'banditCaptain' }]);
   });
 
-  it('costs a relic its type recipe at its tier, times one and a half rounded up, plus its gem', () => {
+  it('costs a relic its type recipe at its tier, times one and a half rounded up, plus gold', () => {
     const steps = nextSteps(save(), { kind: 'relic', id: 'sextonsMace' });
     const base = gearRecipes.mace[0];
     expect(steps).toEqual([
       {
         kind: 'restore',
-        cost: [
-          ...base.map((stack) => ({ materialId: stack.materialId, amount: Math.ceil(stack.amount * 1.5) })),
-          { materialId: 'roughGem', amount: 1 },
-        ],
+        cost: base.map((stack) => ({ materialId: stack.materialId, amount: Math.ceil(stack.amount * 1.5) })),
+        gold: 5,
       },
     ]);
   });

@@ -61,7 +61,7 @@ describe('costs and gates', () => {
   });
 
   it('use the new tracks\' base costs', () => {
-    const base = { collector: 150, questCap: 200, questReroll: 300, relicRestore: 300, salvage: 150, mastery: 200 };
+    const base = { questCap: 200, questReroll: 300, relicRestore: 300, salvage: 150, mastery: 200 };
     for (const [id, cost] of Object.entries(base)) expect(rankCost(guildTrackById[id as GuildTrackId], 1)).toBe(cost);
     expect(rankCost(guildTrackById.relicRestore, 2)).toBe(540);
   });
@@ -85,7 +85,6 @@ describe('costs and gates', () => {
       gold: 'treasury 0,1,2,3',
       shards: 'treasury 1,2,3',
       sigilCap: 'treasury 3',
-      collector: 'treasury 1,2,3',
       tavernDiscount: 'barracks 0,1,2',
       tavernOffer: 'barracks 1',
       training: 'barracks 0,1,2',

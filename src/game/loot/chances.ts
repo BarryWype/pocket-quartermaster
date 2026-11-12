@@ -84,3 +84,17 @@ export function lootChances(input: ChanceInput): Record<LootCategory, number> {
     ]),
   ) as Record<LootCategory, number>;
 }
+
+/** The gold a dungeon row's finds are worth, with no roll (see `lootConfig.dungeonFinds`); 0 for sources not listed. */
+export function findGold(source: LootSourceId, tier: number, minutes?: number, difficulty?: Difficulty): number {
+  const chance = lootConfig.dungeonFinds.chance[source];
+  if (chance === undefined) return 0;
+  return Math.round(
+    lootConfig.dungeonFinds.worth *
+      lootConfig.goldByTier[tier - 1] *
+      Math.min(
+        lootConfig.maxChance,
+        chance * runLengthMultiplier(source, minutes) * (difficulty ? difficultyRules.rewards[difficulty].chance : 1),
+      ),
+  );
+}

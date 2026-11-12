@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { bossById } from '@/content/enemies';
 import { gearRules } from '@/content/gear';
 import { heroClasses } from '@/content/heroes';
-import { gearName, itemById, materialById, recipeById, recipeOutput, threatById, valuableById } from '@/content/lookup';
+import { gearName, itemById, materialById, recipeById, recipeOutput, threatById } from '@/content/lookup';
 import { heistRules } from '@/content/placeActivities';
 import { placeInfo, placeRules, type PlaceKind, type SecretKind } from '@/content/places';
 import { serviceRules } from '@/content/services';
@@ -34,15 +34,11 @@ import {
   gearSellPrice,
   materialSellPrice,
   placeStock,
-  placeValuablePrice,
   sellGearProblem,
   sellMaterialProblem,
-  sellValuableProblem,
   stockLeft,
   type StockLine,
 } from '@/game/places/shops';
-import { todaysCollector } from '@/game/loot/valuables';
-import { lootConfig } from '@/content/loot/config';
 import { currentHp, isExhausted, maxHp } from '@/game/team/health';
 import { isAway } from '@/game/team/team';
 import { gainsPrefix, lootLabels } from '@/components/lootText';
@@ -58,7 +54,6 @@ import { Overlay } from './Overlay';
 import { Sheet } from './Sheet';
 import { EmberButton, WoodButton } from './ui';
 import { Text } from './Text';
-import { ValuableRows } from './ValuableRows';
 import { asRecalled, includesWorking, recallWorkingHeroes } from './workingHeroes';
 
 /** Kinds this sheet knows how to open; other kinds stay off the map until their rules exist. */
@@ -115,9 +110,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
   const far = distance > placeRules.interactionMeters;
   const locked = isLockedMine(place.kind, pickaxeTier(save));
   const stock = placeStock(save, place, now);
-  const buysValuables = (lootConfig.valuables.buyers as readonly string[]).includes(place.kind);
-  const sells = place.kind === 'smithy' || buysMaterials(place.kind) || buysValuables;
-  const wanted = place.kind === 'market' ? todaysCollector(save, place.id, now) : null;
+  const sells = place.kind === 'smithy' || buysMaterials(place.kind);
   const homeHeroes = save.heroes.filter((hero) => !isAway(save, hero.id));
   // A heist takes one hero who can go now, picked from chips like a patrol party.
   const heistCandidates = homeHeroes.filter((hero) => !isExhausted(hero, now));
@@ -150,22 +143,8 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
 
   const sellRows = () => {
     const goods = place.kind === 'smithy' || buysMaterials(place.kind) ? goodsRows() : null;
-    const hasValuables = buysValuables && Object.values(save.valuables).some((count) => count > 0);
-    if (!goods && !hasValuables) return <Text style={styles.muted}>{t('places.nothingToSell')}</Text>;
-    return (
-      <>
-        {goods}
-        {hasValuables && (
-          <ValuableRows
-            valuables={save.valuables}
-            wanted={wanted}
-            price={(key) => placeValuablePrice(save, place, key, now)}
-            canSell={(key, count) => sellValuableProblem(save, place, key, count, player, now) === null}
-            onSell={(key, count) => actions.sellValuableAtPlace(place, key, count, player)}
-          />
-        )}
-      </>
-    );
+    if (!goods) return <Text style={styles.muted}>{t('places.nothingToSell')}</Text>;
+    return goods;
   };
 
   const goodsRows = () => {
@@ -260,7 +239,6 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
         ) : (
           <>
           <Text style={styles.muted}>{tr(info.description)}</Text>
-          {wanted && <Text style={styles.wanted}>{t('places.collector', { name: tr(valuableById[wanted].name).toLowerCase() })}</Text>}
           <View style={styles.goldRow}>
             <Text style={styles.muted}>
               {leavesIn(place.expiresAt - now)} · {t('places.gold')}
@@ -435,5 +413,4 @@ const styles = StyleSheet.create({
   chip: { flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: pixel.outline, borderColor: colors.woodDark, paddingHorizontal: 10, paddingVertical: 6 },
   chipActive: { borderColor: colors.ink, backgroundColor: colors.highlight },
   odds: { fontSize: 21 },
-  wanted: { color: colors.success },
 });

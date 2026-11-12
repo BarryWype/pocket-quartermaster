@@ -7,7 +7,7 @@ import { StepChests } from '@/components/StepChests';
 import { gainsPrefix, lootLabels } from '@/components/lootText';
 import { Countdown, countdownText } from '@/components/Countdown';
 import { Text } from '@/components/Text';
-import { itemById, valuableById } from '@/content/lookup';
+import { itemById } from '@/content/lookup';
 import { lootMatrix } from '@/content/loot/matrix';
 import { placeInfo } from '@/content/places';
 import { objectives, questRules } from '@/content/quests';
@@ -46,7 +46,6 @@ const CATEGORY_EMOJI: Record<LootCategory, string> = {
   trophies: '🏆',
   relics: '🏺',
   monsterParts: '🦴',
-  valuables: '💎',
   consumables: '🧪',
   treasureMaps: '🗺️',
   manuals: '📖',
@@ -75,8 +74,6 @@ function objectiveText(quest: Quest) {
       return t('quests.objective.deliver', { count: quest.amount, item: tr(itemById[quest.itemId ?? '']?.name ?? ''), place });
     case 'mine':
       return t('quests.objective.mine', { count: quest.amount, place });
-    case 'collector':
-      return t('quests.objective.collector', { item: tr(valuableById[quest.itemId ?? '']?.name ?? '') });
     case 'sellGoods':
       return t('quests.objective.sellGoods', { gold: quest.amount });
     case 'fightEvent':

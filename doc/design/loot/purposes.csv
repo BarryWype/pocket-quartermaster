@@ -1,6 +1,5 @@
 Tag,Icon,Means,Items,Tapping it shows
-Ingredient,Flask,Used in a recipe,"Materials, shards, monster parts, gems","The recipes it's used in (""a recipe you don't know yet"" if none known)"
-Good,Coin,Mainly for selling,"Valuables, gems",Its price and where it sells best (the market)
+Ingredient,Flask,Used in a recipe,"Materials, shards, monster parts","The recipes it's used in (""a recipe you don't know yet"" if none known)"
 Quest,Star,For a specific boss or event,"Boss weakness items, later contract items",The boss or event it's for
 Collect,Puzzle piece,Gather a set to make something,Key fragments,Progress (●●○○)
 Restore,Hammer,Rebuild it at the forge,Relics,The restore cost

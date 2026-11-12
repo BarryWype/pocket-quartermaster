@@ -13,7 +13,6 @@ import { rollLootGear } from './gear';
 import { partWeights } from './parts';
 import { rollLootTrinket } from './trinkets';
 import type { LootRequest } from './roll';
-import { rollValuable } from './valuables';
 import type { Loot, LootCategory, LootSourceId, MapRarity, TrophyDrop } from './types';
 
 /** Fills one category's drop into the loot being built. */
@@ -201,9 +200,6 @@ export const generators: Record<LootCategory, Generator> = {
   },
   trophies,
   relics: relicDrops,
-  valuables: (req, loot) => {
-    loot.valuables.push(rollValuable(req));
-  },
   consumables,
   treasureMaps: (req, loot) => {
     loot.treasureMaps.push({ rarity: rarityByWeight(req.rng, lootConfig.treasureMaps.rarityWeights), tier: req.tier });

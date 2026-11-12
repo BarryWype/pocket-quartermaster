@@ -40,11 +40,11 @@ const COLUMNS = 5;
 const GAP = 10;
 
 /** One blueprint in the Forge section: the piece with its gems and ▲, its tier, and each material held against needed. */
-function ForgeRow({ choice, selected, onOpen }: { choice: ForgeChoice; selected: boolean; onOpen: (anchor: PopupAnchor) => void }) {
+function ForgeRow({ choice, save, selected, onOpen }: { choice: ForgeChoice; save: SaveData; selected: boolean; onOpen: (anchor: PopupAnchor) => void }) {
   const wrapper = useRef<ComponentRef<typeof View>>(null);
   const name = tr(choice.item.name);
   const tier = t('crafting.tierShort', { tier: ROMAN[choice.tier - 1] });
-  const ingredients = ingredientsOf(choice.cost);
+  const ingredients = ingredientsOf(choice.cost, save);
   const short = ingredients.filter((i) => i.have < i.need);
   const label = [name, tier, choice.lights.length > 0 ? t('partyDialog.coversNeed') : null, short.length > 0 ? t('crafting.missing') : null]
     .filter(Boolean)
@@ -212,6 +212,7 @@ export function GearPicker({ save, party, heroId, slot, groups, oddsOf, chance, 
                 <ForgeRow
                   key={f.recipeId}
                   choice={f}
+                  save={save}
                   selected={forging?.pending.recipeId === f.recipeId}
                   onOpen={(anchor) => setForging({ pending: { kind: 'forge', recipeId: f.recipeId, ingredientId: null }, anchor })}
                 />

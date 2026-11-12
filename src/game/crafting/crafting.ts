@@ -22,8 +22,6 @@ export function ownsTool(save: SaveData, recipe: RecipeDef) {
   return 'itemId' in recipe.output && save.tools.includes(recipe.output.itemId);
 }
 
-const valuableTier = (key: string) => Number(key.split(':')[1]);
-
 /** The element a recipe's `anyShards` takes: the one held most, if there are enough. */
 export function shardElementFor(save: SaveData, recipe: RecipeDef): Element | null {
   if (!recipe.anyShards) return null;
@@ -31,8 +29,8 @@ export function shardElementFor(save: SaveData, recipe: RecipeDef): Element | nu
   return (save.materials[shardId(element)] ?? 0) >= recipe.anyShards ? element : null;
 }
 
-/** What one craft spends: materials (shards included) and valuables, lowest tier first; null when short. */
-export function recipeCost(save: SaveData, recipe: RecipeDef): { materials: MaterialStack[]; valuables: Record<string, number> } | null {
+/** What one craft spends: materials (shards included) and gold; null when short. */
+export function recipeCost(save: SaveData, recipe: RecipeDef): { materials: MaterialStack[]; gold: number } | null {
   const materials = [...recipe.inputs];
   if (recipe.anyShards) {
     const element = shardElementFor(save, recipe);
@@ -40,21 +38,9 @@ export function recipeCost(save: SaveData, recipe: RecipeDef): { materials: Mate
     materials.push({ materialId: shardId(element), amount: recipe.anyShards });
   }
   if (!hasMaterials(save.materials, materials)) return null;
-  const valuables = { ...save.valuables };
-  for (const { valuableId, amount } of recipe.valuables ?? []) {
-    let left = amount;
-    const keys = Object.keys(valuables)
-      .filter((key) => key.startsWith(`${valuableId}:`))
-      .sort((a, b) => valuableTier(a) - valuableTier(b));
-    for (const key of keys) {
-      const take = Math.min(left, valuables[key]);
-      valuables[key] -= take;
-      left -= take;
-      if (valuables[key] === 0) delete valuables[key];
-    }
-    if (left > 0) return null;
-  }
-  return { materials, valuables };
+  const gold = recipe.gold ?? 0;
+  if (save.gold < gold) return null;
+  return { materials, gold };
 }
 
 export function canCraft(save: SaveData, recipe: RecipeDef) {
@@ -108,7 +94,7 @@ export function forgeGearPiece(next: SaveData, gearItem: GearDef, rarity: Rarity
 export function craft(save: SaveData, recipe: RecipeDef, forceRarity?: Rarity): SaveData {
   const cost = canCraft(save, recipe) ? recipeCost(save, recipe) : null;
   if (!cost) throw new Error(`Cannot craft ${recipe.id}`);
-  let next: SaveData = { ...save, materials: removeMaterials(save.materials, cost.materials), valuables: cost.valuables };
+  let next: SaveData = { ...save, materials: removeMaterials(save.materials, cost.materials), gold: save.gold - cost.gold };
 
   const gearItem = forgedItem(recipe);
   if ('materialId' in recipe.output) {
@@ -132,10 +118,7 @@ export function craftableCount(save: SaveData, recipe: RecipeDef) {
   const { anyShards } = recipe;
   return Math.min(
     ...recipe.inputs.map((input) => Math.floor((save.materials[input.materialId] ?? 0) / input.amount)),
-    ...(recipe.valuables ?? []).map(({ valuableId, amount }) => {
-      const held = Object.entries(save.valuables).reduce((sum, [key, n]) => (key.startsWith(`${valuableId}:`) ? sum + n : sum), 0);
-      return Math.floor(held / amount);
-    }),
+    ...(recipe.gold ? [Math.floor(save.gold / recipe.gold)] : []),
     // Each craft takes the element held most, so every element's shards count.
     ...(anyShards ? [ELEMENTS.reduce((sum, element) => sum + Math.floor((save.materials[shardId(element)] ?? 0) / anyShards), 0)] : []),
   );

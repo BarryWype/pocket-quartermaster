@@ -65,7 +65,7 @@ import {
 import { probe } from './probe';
 import { applyStones, rerollGear } from './rules/gear';
 import { forgeIngredients, restoreRelics } from './rules/forge';
-import { craftCharms, craftCombatElixirs, craftOils, craftStatPotions, readManuals, sellMaterials, sellParts, sellValuables } from './rules/inventory';
+import { craftCharms, craftCombatElixirs, craftOils, craftStatPotions, readManuals, sellMaterials, sellParts } from './rules/inventory';
 import { buyWeakness, buyForgeMaterials, buyWorkTools, openSecrets, visitPlaces, SOURCES } from './rules/map';
 import { profiles, simConfig, type Profile, type SimConfig } from './config';
 import { targets } from './targets';
@@ -293,7 +293,6 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, firstSession: b
   if (walking) {
     meetPatrols(sim);
     visitPlaces(sim);
-    sellValuables(sim);
     sellMaterials(sim);
     sellParts(sim);
     buyWeakness(sim);
@@ -469,7 +468,6 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
       guildRanks: guildTracks.reduce((s, t) => s + (save.guild[t.id] ?? 0), 0),
       stock: { ...save.materials },
       consumables: { ...save.consumables },
-      valuables: { ...save.valuables },
       topLevel: [...save.heroes.map((h) => h.level)].sort((a, b) => b - a).slice(0, 3).reduce((a, b, _, all) => a + b / all.length, 0),
       affixes: wornAffixes(save),
       helmets: save.heroes.filter((h) => h.equipment.helmet).length / save.heroes.length,

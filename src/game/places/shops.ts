@@ -1,6 +1,4 @@
 import { placeRules, type PlaceKind } from '@/content/places';
-import { lootConfig } from '@/content/loot/config';
-import type { ValuableBuyer } from '@/content/loot/valuables';
 import { dungeons } from '@/content/dungeons';
 import { itemById, monsterPartById, recipeById } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
@@ -15,12 +13,10 @@ import { isJobOpen } from '../jobs/jobs';
 import { distanceMeters } from '../generation/geo';
 import { createRng, type Rng } from '../generation/rng';
 import { wornBy } from '../forging/salvage';
-import { guildBonus } from '../guild/guild';
 import { pickaxeTier } from '../gathering/gathering';
 import { addMaterials, removeMaterials } from '../inventory';
 import { makeGearPiece } from '../gear/make';
 import { rosterAffixBest } from '../gear/affixes';
-import { valuableSellPrice, todaysCollector } from '../loot/valuables';
 import { activeTip, grantTip, rollTip } from '../secrets/tips';
 import type { SaveData } from '../save';
 import { affinityOf } from '../team/team';
@@ -28,7 +24,7 @@ import type { GearDef, GearInstance, Rarity, RecipeDef } from '../types';
 import type { LatLng } from '../generation/types';
 import type { PlaceSpawn } from './generate';
 import { isLockedMine } from './generate';
-import { questEvent, type QuestEvent } from '../quests/progress';
+import { questEvent } from '../quests/progress';
 
 export type StockLine = {
   key: string;
@@ -333,48 +329,3 @@ export function sellMaterial(save: SaveData, spawn: PlaceSpawn, materialId: stri
   return questEvent(sold, { kind: 'sold', gold }, now);
 }
 
-export type SellValuableProblem = 'gone' | 'tooFar' | 'notBuyer' | 'notEnough';
-
-export function sellValuableProblem(
-  save: SaveData,
-  spawn: PlaceSpawn,
-  key: string,
-  count: number,
-  player: LatLng,
-  now: number,
-): SellValuableProblem | null {
-  if (spawn.expiresAt <= now || spawn.id in save.usedPlaces) return 'gone';
-  if (distanceMeters(player, spawn.position) > placeRules.interactionMeters) return 'tooFar';
-  if (!(lootConfig.valuables.buyers as readonly string[]).includes(spawn.kind)) return 'notBuyer';
-  if ((save.valuables[key] ?? 0) < count) return 'notEnough';
-  return null;
-}
-
-/** What this place pays per unit of the `valuableId:tier` key; the market uses today's collector. */
-export function placeValuablePrice(save: SaveData, spawn: PlaceSpawn, key: string, now: number) {
-  const separator = key.lastIndexOf(':');
-  return valuableSellPrice(
-    key.slice(0, separator),
-    Number(key.slice(separator + 1)),
-    spawn.kind as ValuableBuyer,
-    spawn.kind === 'market' ? todaysCollector(save, spawn.id, now) : null,
-    guildBonus(save, 'collector'),
-  );
-}
-
-/** Sells a valuable stack to a buyer: removes it and pays the price. */
-export function sellValuable(save: SaveData, spawn: PlaceSpawn, key: string, count: number, player: LatLng, now: number): SaveData {
-  const problem = sellValuableProblem(save, spawn, key, count, player, now);
-  if (problem) throw new Error(`Cannot sell ${key}: ${problem}`);
-  const valuables = { ...save.valuables };
-  const left = (valuables[key] ?? 0) - count;
-  if (left > 0) valuables[key] = left;
-  else delete valuables[key];
-  const gold = placeValuablePrice(save, spawn, key, now) * count;
-  const sold = { ...save, gold: save.gold + gold, valuables };
-  const events: QuestEvent[] = [
-    { kind: 'sold', gold },
-    { kind: 'soldValuable', placeId: spawn.id, valuableId: key.slice(0, key.lastIndexOf(':')) },
-  ];
-  return events.reduce((s, e) => questEvent(s, e, now), sold);
-}

@@ -8,7 +8,7 @@ import type { LatLng } from '../generation/types';
 import { isLockedMine, type PlaceSpawn } from '../places/generate';
 import { isPlaceRevealed } from '../reveal/reveal';
 import type { SaveData } from '../save';
-import { availableObjectives, deliverItems, heldValuables, mineKinds, objectiveAmount, objectiveNeedsPlace, sellGoodsAmount } from './unlocks';
+import { availableObjectives, deliverItems, mineKinds, objectiveAmount, objectiveNeedsPlace, sellGoodsAmount } from './unlocks';
 import type { Quest, QuestTarget } from './types';
 
 type QuestObjectiveOrMark = Quest['objective'];
@@ -79,11 +79,6 @@ function findTarget(
     const pick = options[rng.int(0, options.length - 1)];
     if (!pick) return { target: null };
     itemId = pick.itemId;
-  }
-  if (objective === 'collector' && itemId === undefined) {
-    const held = heldValuables(save);
-    if (held.length === 0) return { target: null };
-    itemId = held[rng.int(0, held.length - 1)];
   }
   const kinds = targetKinds(save, { ...quest, objective, ...(itemId ? { itemId } : {}) });
   const shown = candidates.filter((spawn) => isPlaceRevealed(save, spawn.kind));

@@ -18,6 +18,7 @@ import { briefingFor, rotationDay, type Rotation } from '../dungeons/rotation';
 import { createRng, type Rng } from '../generation/rng';
 import { addMaterials } from '../inventory';
 import { charmApplies, partyCharms } from '../loot/charms';
+import { findGold } from '../loot/chances';
 import { lootContextOf } from '../loot/context';
 import { grantLoot } from '../loot/grant';
 import { nextTierReward } from '../loot/nextTier';
@@ -292,7 +293,7 @@ export function tutorialLoot(save: SaveData, now: number): Loot {
     luck: 0,
     modifiers: [],
     enemies: dungeon.encounters.flatMap((encounter) => (encounter.type === 'fight' ? encounter.mobs.map((m) => m.mobId) : [])),
-    base: { gold: Math.round(dungeon.gold[1] * row.gold), xp: Math.round(dungeon.xp * row.xp) },
+    base: { gold: Math.round(dungeon.gold[1] * row.gold) + findGold('firstWin', dungeon.tier), xp: Math.round(dungeon.xp * row.xp) },
     context: lootContextOf(save, now),
     rng: createRng(tutorialRules.lootSeed),
   });
@@ -436,7 +437,7 @@ export function resolveExpedition(
       enemies,
       difficulty: dungeon.difficulty,
       familySteps: (run.families.plunder ?? 0) >= 3 ? familyEffectRules.plunder.raritySteps : 0,
-      base,
+      base: { gold: base.gold + Math.round(findGold(source, dungeon.tier, dungeon.durationMinutes, dungeon.difficulty) * goldScale), xp: base.xp },
       context,
       // A special's extra rolls draw from their own derived seed.
       rng: createRng(extra > 0 ? `${expedition.seed}|${source}|extra|${extra}` : `${expedition.seed}|${source}`),

@@ -12,7 +12,6 @@ export const CATEGORY_COLUMNS: Record<string, LootCategory> = {
   Trophies: 'trophies',
   Relics: 'relics',
   'Monster parts': 'monsterParts',
-  Valuables: 'valuables',
   Consumables: 'consumables',
   'Treasure maps': 'treasureMaps',
   Manuals: 'manuals',

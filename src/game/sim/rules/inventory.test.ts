@@ -3,7 +3,7 @@ import { createRng } from '../../generation/rng';
 import { dungeonById } from '@/content/lookup';
 import { emptyLog, stockProvisions, type Sim } from '../bot';
 import { profiles, simConfig } from '../config';
-import { craftCharms, craftOils, craftStatPotions, partRecipeFor, partsToSell, valuablesToSell } from './inventory';
+import { craftCharms, craftOils, craftStatPotions, partRecipeFor, partsToSell } from './inventory';
 
 
 /** A Sim with just the fields the inventory rules touch: a real day 1 save, an empty log. */
@@ -34,22 +34,6 @@ function simOf(save: SaveData): Sim {
     log: emptyLog('regular', 'test'),
   };
 }
-
-describe('valuablesToSell', () => {
-  it('keeps the gem a held relic needs and sells the rest', () => {
-    const save = createInitialSave();
-    save.valuables = { 'oldCoins:1': 2, 'roughGem:1': 1 };
-    save.relics = [{ uid: 'r1', relicId: 'rustedSaintsBuckler' }];
-    expect(valuablesToSell(save)).toEqual([{ key: 'oldCoins:1', count: 2 }]);
-  });
-
-  it('keeps one gem a known charm recipe needs', () => {
-    const save = createInitialSave();
-    save.valuables = { 'roughGem:1': 2 };
-    save.partRecipes = ['prismCharm'];
-    expect(valuablesToSell(save)).toEqual([{ key: 'roughGem:1', count: 1 }]);
-  });
-});
 
 describe('partsToSell', () => {
   it('sells the parts above the cap, keeping a known recipe’s input', () => {

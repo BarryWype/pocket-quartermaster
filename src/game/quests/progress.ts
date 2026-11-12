@@ -16,8 +16,7 @@ export type QuestEvent =
   | { kind: 'patrolWon' }
   | { kind: 'gathered'; materialId: string; amount: number }
   | { kind: 'bought'; placeId: string; amount: number } // units bought at a mine, sawmill or lodge
-  | { kind: 'sold'; gold: number } // goods sold anywhere: valuables, materials, gear
-  | { kind: 'soldValuable'; placeId: string; valuableId: string } // a valuable sold there
+  | { kind: 'sold'; gold: number } // goods sold anywhere: materials, gear
   | { kind: 'arrived'; placeId: string }; // reached a 'mark'
 
 const questsState = (save: SaveData, quests: Partial<QuestsState>): SaveData => ({
@@ -87,9 +86,6 @@ export function questEvent(save: SaveData, event: QuestEvent, at: number): SaveD
         break;
       case 'sold':
         if (quest.objective === 'sellGoods') progress += event.gold;
-        break;
-      case 'soldValuable':
-        if (atTarget && quest.objective === 'collector' && event.valuableId === quest.itemId) progress += quest.amount;
         break;
       case 'arrived':
         if (atTarget && quest.objective === 'mark') progress += quest.amount;

@@ -13,7 +13,7 @@ import { guildTrackById, guildTracks, type GuildTrackId } from '@/content/guild'
 import { gamblerRules, heroClasses, xpRules } from '@/content/heroes';
 import { traits } from '@/content/traits';
 import { items } from '@/content/items';
-import { itemById, threatById, restrictionById, opportunityById, recipeById, recipeOutput, relicById, valuableById } from '@/content/lookup';
+import { itemById, threatById, restrictionById, opportunityById, recipeById, recipeOutput, relicById } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
 import { dungeonThreats, opportunityDefs, restrictionDefs, surges, threatDefs } from '@/content/threats';
 import { notificationCategories, notificationTexts as texts } from '@/content/notifications';
@@ -66,7 +66,6 @@ import { lootMatrix } from '@/content/loot/matrix';
 import { charms } from '@/content/loot/charms';
 import { monsterParts } from '@/content/loot/monsterParts';
 import { relics } from '@/content/loot/relics';
-import { valuables } from '@/content/loot/valuables';
 import { lootText } from '@/components/lootText';
 import type { ActiveThreat, Briefing, GearType, HeroClassId, Rarity, StatKey, ThreatId, ThreatLevel } from '@/game/types';
 import { forgedItem, isKnown } from '@/game/crafting/crafting';
@@ -342,19 +341,6 @@ function LootDebug() {
           <Button key={charm.id} emoji={charm.emoji} title="+" onPress={() => grant({ consumables: [{ itemId: charm.id, amount: 1 }] })} />
         ))}
       </View>
-      <View style={styles.row}>
-        {valuables.map((valuable) => (
-          <Button key={valuable.id} title={valuable.emoji} onPress={() => grant({ valuables: [{ valuableId: valuable.id, tier, amount: 1 }] })} />
-        ))}
-      </View>
-      <Text>Collector today at every market</Text>
-      <Choice
-        options={valuables.map((valuable) => valuable.id)}
-        value={game.save.collectorOverride?.valuableId ?? ''}
-        emojiOf={(id) => valuableById[id].emoji}
-        label={(id) => valuableById[id].name}
-        onChange={game.setCollector}
-      />
       <Choice
         options={relics.filter((relic) => relic.tier === tier).map((relic) => relic.id)}
         value=""

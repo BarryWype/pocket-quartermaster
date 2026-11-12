@@ -90,7 +90,6 @@ describe('quest targets', () => {
   it('treats sell goods like walk and patrol: no place on the map', () => {
     expect(needsPlace(quest('sellGoods'))).toBe(false);
     expect(needsPlace(quest('patrols'))).toBe(false);
-    expect(needsPlace(quest('collector'))).toBe(true);
   });
 
   it('swaps to another objective when nothing is in range', () => {
@@ -102,16 +101,6 @@ describe('quest targets', () => {
     expect(accepted.objective).not.toBe('chapel');
     expect(accepted.target === null || accepted.target.kind === 'market').toBe(true);
     expect(['gatherOnWay', 'walk', 'patrols', 'fightEvent', 'sellGoods']).toContain(accepted.objective);
-  });
-
-  it('names a held valuable when a quest swaps to the collector', () => {
-    const save = opened();
-    save.valuables = { 'oldCoins:1': 2 };
-    // No chapel anywhere, a market in range: across seeds, some quests swap to the collector.
-    save.quests.list = Array.from({ length: 40 }, (_, i) => quest('chapel', 'short', { id: `q|10|${i}` }));
-    const collectors = acceptQuests(save, [spawn('market', 'market', 150)], origin, 100).quests.list.filter((q) => q.objective === 'collector');
-    expect(collectors.length).toBeGreaterThan(0);
-    for (const q of collectors) expect(q.itemId).toBe('oldCoins');
   });
 
   it('retargets from where the target was fixed, staying in band', () => {

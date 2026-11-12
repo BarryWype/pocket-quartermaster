@@ -1,5 +1,5 @@
 import { gearTypeNames } from '@/content/equipment';
-import { itemById, monsterPartById, relicById, valuableById } from '@/content/lookup';
+import { itemById, monsterPartById, relicById } from '@/content/lookup';
 import { baseItems } from '@/content/loot/baseItems';
 import { materials } from '@/content/materials';
 import type { SecretKind } from '@/content/places';
@@ -7,7 +7,6 @@ import { t, tr } from '@/i18n';
 
 import type { ManualRarity } from '../loot/types';
 import type { BaseItemRef } from '../loot/purposes';
-import { valuablePrice } from '../loot/catalogue';
 import { isLureActive } from '../rewards/lures';
 import { equippedFirst } from '../forging/salvage';
 import { liveTreasureMaps } from '../rewards/treasure';
@@ -108,17 +107,6 @@ export function inventoryRows(save: SaveData, now: number): InventoryRow[] {
     }
   }
 
-  for (const [key, count] of Object.entries(save.valuables)) {
-    const [id, tier] = key.split(':');
-    if (count > 0 && valuableById[id]) {
-      const def = valuableById[id];
-      rows.push({
-        kind: 'item',
-        page: 'treasures',
-        item: { key: `v:${key}`, ref: { kind: 'valuable', id, tier: Number(tier) }, emoji: def.emoji, name: t('inventory.valuable', { name: tr(def.name), tier }), count, about: t('inventory.valuablePrice', { price: valuablePrice(id, Number(tier)) }) },
-      });
-    }
-  }
   for (const { uid, relicId } of save.relics) {
     const def = relicById[relicId];
     rows.push({

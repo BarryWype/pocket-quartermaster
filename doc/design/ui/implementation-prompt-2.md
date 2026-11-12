@@ -20,7 +20,7 @@ All in `doc/design/ui/mockups/`. Read them as specs, as in part 1:
 
 ## Screens
 
-1. **Inventory** (`src/app/inventory.tsx`, `ValuableRows.tsx`): mockup InventoryWood.
+1. **Inventory** (`src/app/inventory.tsx`): mockup InventoryWood.
    - The header reads "Storeroom", with the gold count on the right.
    - Replace the current pager with a `DiamondRail` of its six pages: Materials, Gear, Provisions, Treasures, Finds, Secrets, using the existing page keys.
    - Each page is an `ItemSlot` grid with counts. Tapping a slot opens an `ItemPopup` holding what that page already shows for the item:

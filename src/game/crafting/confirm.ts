@@ -18,22 +18,13 @@ export type CostLine = {
   remaining: number;
 };
 
-/** The full cost of one forge or restore: materials and valuables (gems), each with what is held and what remains. */
-export type ConfirmCost = { materials: CostLine[]; valuables: CostLine[] };
+/** The full cost of one forge or restore: the materials, each with what is held and what remains, and the gold. */
+export type ConfirmCost = { materials: CostLine[]; gold: number };
 
 const materialCost = (save: SaveData, inputs: { materialId: string; amount: number }[]): CostLine[] =>
   inputs.map(({ materialId, amount }) => {
     const held = save.materials[materialId] ?? 0;
     return { id: materialId, needed: amount, held, remaining: Math.max(0, held - amount) };
-  });
-
-const valuableCost = (save: SaveData, valuables: { valuableId: string; amount: number }[] = []): CostLine[] =>
-  valuables.map(({ valuableId, amount }) => {
-    const held = Object.entries(save.valuables).reduce(
-      (sum, [key, n]) => (key.startsWith(`${valuableId}:`) ? sum + n : sum),
-      0,
-    );
-    return { id: valuableId, needed: amount, held, remaining: Math.max(0, held - amount) };
   });
 
 
@@ -85,7 +76,7 @@ export function forgeConfirmation(save: SaveData, recipeId: string, ingredientId
       key: key as StatKey,
       ...statRange(base ?? 0, expectedRarity),
     })),
-    cost: { materials: materialCost(save, inputs), valuables: valuableCost(save, recipe.valuables) },
+    cost: { materials: materialCost(save, inputs), gold: recipe.gold ?? 0 },
   };
 }
 
@@ -101,6 +92,6 @@ export function restoreConfirmation(save: SaveData, relicUid: string): RestoreCo
     relicId: relic.id,
     tier: relic.tier,
     gearType: relic.gearType,
-    cost: { materials: materialCost(save, recipe.inputs), valuables: valuableCost(save, recipe.valuables) },
+    cost: { materials: materialCost(save, recipe.inputs), gold: recipe.gold ?? 0 },
   };
 }

@@ -887,7 +887,6 @@ export const frNames: Record<string, string> = {
   Training: 'Entraînement',
   'Roster slot 7': 'Place d’effectif 7',
   'Roster slot 8': 'Place d’effectif 8',
-  'Collector’s contacts': 'Contacts de collectionneurs',
   'Quest board': 'Tableau des quêtes',
   'Quest cap': 'Limite de quêtes',
   'Extra reroll': 'Relance en plus',
@@ -1204,18 +1203,6 @@ export const frNames: Record<string, string> = {
   'Water amulet': 'Amulette d’eau',
   'Ring of fortune': 'Anneau de fortune',
 
-  // Valuables
-  'Old coins': 'Pièces anciennes',
-  'Silver ring': 'Bague en argent',
-  'Silverware': 'Argenterie',
-  'Rough gem': 'Gemme brute',
-  'Prism charm, relic restoring': 'Charme prisme, restauration de reliques',
-  'Gold chain': 'Chaîne en or',
-  'Silver chalice': 'Coupe en argent',
-  'Jade idol': 'Idole de jade',
-  'Painting': 'Tableau',
-  'Cut gem': 'Gemme taillée',
-  'Architect’s seal, relic restoring': 'Sceau de l’architecte, restauration de reliques',
   // Relics
   'Rusted saint’s buckler': 'Bouclier du saint rouillé',
   'Blessed': 'Béni',
@@ -1291,7 +1278,6 @@ export const frNames: Record<string, string> = {
   'Outdoor gatherer': 'Cueilleur des environs',
   // Purpose tags
   'Ingredient': 'Ingrédient',
-  'Good': 'Marchandise',
   'Quest': 'Quête',
   'Collect': 'Collection',
   'Restore': 'Restauration',

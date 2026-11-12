@@ -31,14 +31,6 @@ export function deliverItems(save: SaveData): DeliverItem[] {
   return items;
 }
 
-/** The valuables held, by id (any tier), sorted: what a collector quest can ask for. */
-export function heldValuables(save: SaveData): string[] {
-  const ids = Object.entries(save.valuables)
-    .filter(([, count]) => count > 0)
-    .map(([key]) => key.slice(0, key.lastIndexOf(':')));
-  return [...new Set(ids)].sort();
-}
-
 /** The mine places at the player's pickaxe tier: wood and hide, plus the ore they can mine. */
 export function mineKinds(save: SaveData): PlaceKind[] {
   const tier = Math.min(pickaxeTier(save), 4);
@@ -59,7 +51,6 @@ export function availableObjectives(save: SaveData, band: QuestBand): QuestObjec
     'patrols',
     'deliver',
     'mine',
-    'collector',
     'sellGoods',
     'gatherOnWay',
     'walk',
@@ -83,8 +74,6 @@ export function availableObjectives(save: SaveData, band: QuestBand): QuestObjec
         return deliverItems(save).some((item) => seenKind(item.place));
       case 'mine':
         return mineKinds(save).some(seenKind);
-      case 'collector':
-        return seenKind('market') && heldValuables(save).length > 0;
       case 'sellGoods':
         return seenKind('market');
       default:

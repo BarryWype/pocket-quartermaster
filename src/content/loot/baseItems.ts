@@ -1,7 +1,7 @@
 import { patrolTexts } from '../patrols';
 
-// The base items that are not materials, shards, stones, parts,
-// valuables or relics: display entries for inventory tiles.
+// The base items that are not materials, shards, stones, parts
+// or relics: display entries for inventory tiles.
 
 export type BaseItemDef = {
   name: string;

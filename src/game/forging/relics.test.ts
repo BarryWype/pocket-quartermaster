@@ -9,7 +9,13 @@ import { createInitialSave, type SaveData } from '../save';
 import { gearStats } from '../gear/stats';
 import { canRestore, relicRecipe, restoreRelic } from './relics';
 
-/** A save holding the relic and exactly its restore cost, gem included. */
+/** The gold a relic of `tier` restores for: the old rough/cut gem's full price. */
+const goldFor = (tier: number) => {
+  const step = lootConfig.restore.gold.find((entry) => tier <= entry.upToTier) ?? lootConfig.restore.gold.at(-1)!;
+  return Math.round(step.base * lootConfig.goldByTier[tier - 1]);
+};
+
+/** A save holding the relic and exactly its restore cost, gold included. */
 const holding = (relic: RelicDef, extra: Partial<SaveData> = {}): SaveData => {
   const recipe = relicRecipe(relic);
   const materials: Record<string, number> = {};
@@ -20,13 +26,13 @@ const holding = (relic: RelicDef, extra: Partial<SaveData> = {}): SaveData => {
     heroes: startingHeroes,
     relics: [{ uid: 'r1', relicId: relic.id }],
     materials,
-    valuables: { [`${recipe.valuables![0].valuableId}:1`]: 1 },
+    gold: recipe.gold,
     ...extra,
   };
 };
 
 describe('relicRecipe', () => {
-  it('costs the type recipe at the relic tier ×1.5 rounded up, plus the tier gem', () => {
+  it('costs the type recipe at the relic tier ×1.5 rounded up, plus the tier gold', () => {
     for (const relic of relics) {
       const recipe = relicRecipe(relic);
       expect(recipe.inputs).toEqual(
@@ -35,12 +41,11 @@ describe('relicRecipe', () => {
           amount: Math.ceil(amount * lootConfig.restore.recipeMultiplier),
         })),
       );
-      const gem = relic.tier <= 3 ? 'roughGem' : 'cutGem';
-      expect(recipe.valuables).toEqual([{ valuableId: gem, amount: 1 }]);
+      expect(recipe.gold).toBe(goldFor(relic.tier));
     }
   });
 
-  it('cuts every amount by the discount, at least 1 each', () => {
+  it('cuts every amount and the gold by the discount, at least 1 each', () => {
     const discount = 0.15 * 3;
     for (const relic of relics) {
       const recipe = relicRecipe(relic, discount);
@@ -50,7 +55,7 @@ describe('relicRecipe', () => {
           amount: Math.max(1, Math.ceil(Math.ceil(amount * lootConfig.restore.recipeMultiplier) * (1 - discount))),
         })),
       );
-      expect(recipe.valuables).toEqual([{ valuableId: relic.tier <= 3 ? 'roughGem' : 'cutGem', amount: 1 }]);
+      expect(recipe.gold).toBe(Math.max(1, Math.ceil(goldFor(relic.tier) * (1 - discount))));
     }
   });
 });
@@ -67,14 +72,14 @@ describe('restoreRelic', () => {
     expect(piece).toMatchObject({ uid: 'g7', itemId: gearId('mace', 1), relicId: relic.id });
     expect(next.nextUid).toBe(8);
     expect(next.materials).toEqual({});
-    expect(next.valuables).toEqual({});
+    expect(next.gold).toBe(0);
     expect(next.knownRecipes).toEqual(save.knownRecipes);
   });
 
-  it('throws without the gem, the materials or the relic', () => {
+  it('throws without the gold, the materials or the relic', () => {
     const relic = relicById.smugglersCoat;
-    expect(canRestore(holding(relic, { valuables: {} }), 'r1')).toBe(false);
-    expect(() => restoreRelic(holding(relic, { valuables: {} }), 'r1')).toThrow();
+    expect(canRestore(holding(relic, { gold: 0 }), 'r1')).toBe(false);
+    expect(() => restoreRelic(holding(relic, { gold: 0 }), 'r1')).toThrow();
     expect(() => restoreRelic(holding(relic, { materials: {} }), 'r1')).toThrow();
     expect(() => restoreRelic(holding(relic), 'r9')).toThrow();
     expect(holding(relic).gear).toHaveLength(0);
@@ -82,7 +87,7 @@ describe('restoreRelic', () => {
 
   it('restores free of cost when asked (debug)', () => {
     const relic = relicById.wyrmSlayersSword;
-    const next = restoreRelic(holding(relic, { materials: {}, valuables: {} }), 'r1', true);
+    const next = restoreRelic(holding(relic, { materials: {}, gold: 0 }), 'r1', true);
     expect(next.gear[0].relicId).toBe(relic.id);
   });
 
@@ -91,7 +96,7 @@ describe('restoreRelic', () => {
     const recipe = relicRecipe(relic, 0.15 * 3);
     const materials: Record<string, number> = {};
     for (const { materialId, amount } of recipe.inputs) materials[materialId] = (materials[materialId] ?? 0) + amount;
-    const save: SaveData = { ...holding(relic), materials, guild: { relicRestore: 3 } };
+    const save: SaveData = { ...holding(relic), materials, gold: recipe.gold, guild: { relicRestore: 3 } };
     expect(canRestore(save, 'r1')).toBe(true);
     expect(restoreRelic(save, 'r1').materials).toEqual({});
   });
@@ -126,7 +131,7 @@ describe('restoreRelic', () => {
       heroes: startingHeroes,
       relics: [{ uid: 'r1', relicId: a.id }, { uid: 'r2', relicId: b.id }],
       materials: {},
-      valuables: { 'roughGem:1': 2 },
+      gold: goldFor(a.tier) + goldFor(b.tier),
     };
     for (const relic of [a, b]) {
       for (const { materialId, amount } of relicRecipe(relic).inputs) save.materials[materialId] = (save.materials[materialId] ?? 0) + amount;

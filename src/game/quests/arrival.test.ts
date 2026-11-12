@@ -110,7 +110,6 @@ describe('quest arrivals', () => {
     const save = opened();
     save.revealAll = true;
     save.seenPlaceKinds = ['chapel', 'library', 'ruins', 'fishingDock', 'market', 'apothecary', 'tavern', 'sawmill', 'huntingLodge', 'monsterLair', 'banditCamp'];
-    save.valuables = { gem: 1 };
     // Visit and Fight are already active: the day's new quests come from the other kinds.
     save.quests.list = [{ ...regular('a'), objective: 'chapel' }, { ...regular('b'), objective: 'patrols' }];
     save.quests.lastArrivalDay = 9;
@@ -128,9 +127,8 @@ describe('quest arrivals', () => {
     const save = opened();
     save.revealAll = true;
     save.seenPlaceKinds = ['chapel', 'library', 'ruins', 'fishingDock', 'market', 'apothecary', 'tavern', 'sawmill', 'huntingLodge', 'monsterLair', 'banditCamp'];
-    save.valuables = { gem: 1 };
     // One active quest of every unlocked kind, Walk included (cap raised so the day's arrivals still come).
-    const taken: QuestObjective[] = ['chapel', 'patrols', 'deliver', 'mine', 'collector', 'walk'];
+    const taken: QuestObjective[] = ['chapel', 'patrols', 'deliver', 'mine', 'walk'];
     save.quests.list = taken.map((objective, i) => ({ ...regular(`q${i}`), objective }));
     save.quests.lastArrivalDay = 9;
     save.guild = { questCap: 3 };
@@ -237,7 +235,6 @@ describe('available objectives', () => {
     const short = availableObjectives(save, 'short');
     expect(short).toContain('chapel');
     expect(short).not.toContain('library');
-    expect(short).not.toContain('collector');
     expect(short).toContain('walk');
     expect(short).toContain('gatherOnWay');
   });
@@ -277,24 +274,6 @@ describe('available objectives', () => {
     expect(availableObjectives(save, 'short')).not.toContain('mine');
   });
 
-  it('offers the collector only with a market seen and a valuable held', () => {
-    const save = opened();
-    save.seenPlaceKinds = ['market'];
-    expect(availableObjectives(save, 'short')).not.toContain('collector');
-    expect(availableObjectives(save, 'short')).toContain('sellGoods');
-    save.valuables = { goldRing: 1 };
-    expect(availableObjectives(save, 'short')).toContain('collector');
-  });
-
-  it('names the collector quest after a valuable held on arrival', () => {
-    const save = opened();
-    save.valuables = { 'oldCoins:2': 1, 'oldCoins:1': 1, 'silverRing:1': 2, 'roughGem:2': 0 };
-    for (const seed of ['a', 'b', 'c', 'd']) {
-      const quest = newQuest('q', 'short', 'collector', save, createRng(`seed|${seed}`), 0);
-      expect(['oldCoins', 'silverRing']).toContain(quest.itemId);
-    }
-  });
-
   it('asks sell goods for the player tier', () => {
     const save = opened();
     expect(newQuest('q', 'short', 'sellGoods', save, createRng('seed'), 0).amount).toBe(questRules.sellGoodsGold[0]);
@@ -304,8 +283,7 @@ describe('available objectives', () => {
     const save = opened();
     save.revealAll = true;
     save.seenPlaceKinds = ['chapel', 'library', 'ruins', 'fishingDock', 'market', 'apothecary', 'tavern', 'sawmill', 'huntingLodge'];
-    save.valuables = { 'oldCoins:2': 1 };
-    save.quests.list = [{ ...regular('a'), objective: 'collector', itemId: 'oldCoins' }];
+    save.quests.list = [{ ...regular('a'), objective: 'sellGoods' }];
     save.quests.lastArrivalDay = 9;
     const next = receiveQuests(save, 10 * DAY);
     const fresh = next.quests.list.filter((q) => q.arrivedAt === 10 * DAY);

@@ -10,6 +10,12 @@ import {
   LEGACY_KEYWORD_AFFIXES,
   LEGACY_STEADY,
 } from "./legacyComponents";
+import {
+  LEGACY_COLLECTOR_TRACK_REFUND,
+  LEGACY_GOLD_BY_TIER,
+  LEGACY_VALUABLE_PRICES,
+} from "./legacyValuables";
+import { addMaterials } from "./inventory";
 import { LEGACY_KIT_REFUNDS, LEGACY_TALISMAN, LEGACY_THREAT_MAP } from "./legacyThreats";
 import { affixPool, affixSlotOf, rollAffixes } from "./gear/affixes";
 import { createRng } from "./generation/rng";
@@ -17,7 +23,6 @@ import { makeGearPiece } from "./gear/make";
 import { statFactor } from "./gear/stats";
 import { jobMaterials } from "./jobs/jobs";
 import type { Loot } from "./loot/types";
-import { todaysCollector } from "./loot/valuables";
 import type { JobOutput, SaveData } from "./save";
 import type { ActiveThreat, Briefing, ExpeditionReport, GearDef, GearInstance, HeroState, MaterialStack } from "./types";
 import { sellGoodsAmount } from "./quests/unlocks";
@@ -28,26 +33,18 @@ import { isTutorialDungeon } from "./tutorial/tutorial";
 
 /**
  * Version 31: the collector quest now names the valuable it wants, chosen from
- * those held when it arrives. Open collector quests keep their objective when
- * the market's wanted valuable is held (its id becomes their `itemId`); the
- * rest become a sellGoods quest, which needs no item and no target.
+ * those held when it arrives. Open collector quests without an item become a
+ * sellGoods quest, which needs no item and no target (version 45 turns every
+ * collector quest into sellGoods anyway).
  */
 export function toV31(save: SaveData, now: number): SaveData {
   const list = save.quests.list.map((quest): Quest => {
     if (
-      quest.objective !== "collector" ||
+      (quest.objective as string) !== "collector" ||
       quest.doneAt !== null ||
       quest.itemId !== undefined
     )
       return quest;
-    if (quest.target) {
-      const wanted = todaysCollector(save, quest.target.placeId, now);
-      const held = Object.entries(save.valuables).some(
-        ([key, count]) =>
-          key.slice(0, key.lastIndexOf(":")) === wanted && count > 0,
-      );
-      if (held) return { ...quest, itemId: wanted };
-    }
     return {
       ...quest,
       objective: "sellGoods",
@@ -550,6 +547,99 @@ export function toV44(save: SaveData): SaveData {
   };
 }
 
+/** The gold one removed valuable is worth at its tier: its old base price × the tier's gold curve. */
+function legacyValuableGold(valuableId: string, tier: number): number {
+  const price = LEGACY_VALUABLE_PRICES[valuableId] ?? 0;
+  const clamped = Math.min(Math.max(tier, 1), LEGACY_GOLD_BY_TIER.length);
+  return Math.round(price * LEGACY_GOLD_BY_TIER[clamped - 1]);
+}
+
+/** Pays a stored, not-yet-granted loot's valuables as gold inside it, so nothing is lost. */
+function sellStoredValuables(loot: Loot): Loot {
+  const old = loot as Loot & { valuables?: { valuableId: string; tier: number; amount: number }[] };
+  if (!old.valuables || old.valuables.length === 0) return loot;
+  const gold = old.valuables.reduce(
+    (sum, { valuableId, tier, amount }) => sum + legacyValuableGold(valuableId, tier) * amount,
+    0,
+  );
+  const { valuables: _sold, ...rest } = old;
+  return { ...rest, gold: rest.gold + gold, dropped: rest.dropped.filter((category) => (category as string) !== "valuables") };
+}
+
+/**
+ * Version 45: valuables and the collector are removed. Held valuables sell at
+ * their old full price (counted once in `soldTreasureGold` for a toast), the
+ * collector track's bought ranks are refunded, every collector quest becomes
+ * sellGoods, loot still waiting to be granted pays its valuables as gold, and
+ * the removed fields leave the save.
+ */
+export function toV45(save: SaveData): SaveData {
+  const old = save as SaveData & { valuables?: Record<string, number>; collectorOverride?: unknown };
+  let sold = 0;
+  for (const [key, count] of Object.entries(old.valuables ?? {})) {
+    const separator = key.lastIndexOf(":");
+    sold += legacyValuableGold(key.slice(0, separator), Number(key.slice(separator + 1))) * count;
+  }
+
+  let materials = save.materials;
+  let refund = 0;
+  const ranks = (save.guild as Record<string, number>).collector ?? 0;
+  for (const rank of LEGACY_COLLECTOR_TRACK_REFUND.slice(0, ranks)) {
+    refund += rank.gold;
+    if ("materialId" in rank && rank.amount > 0) {
+      materials = addMaterials(materials, [{ materialId: rank.materialId, amount: rank.amount }]);
+    }
+  }
+
+  const stored = [
+    ...save.patrolFights.map((fight) => fight.rewards),
+    ...save.placeFights.map((fight) => fight.reward),
+    ...save.heists.map((heist) => heist.reward),
+  ];
+  // Nothing the step touches: the save passes through unchanged.
+  if (
+    sold === 0 &&
+    ranks === 0 &&
+    old.collectorOverride === undefined &&
+    old.valuables === undefined &&
+    save.quests.list.every((quest) => (quest.objective as string) !== "collector") &&
+    stored.every((loot) => !(loot as Loot & { valuables?: unknown[] }).valuables?.length)
+  ) {
+    return save;
+  }
+
+  const guild = { ...save.guild } as Record<string, unknown>;
+  delete guild.collector;
+
+  const list = save.quests.list.map((quest): Quest => {
+    if ((quest.objective as string) !== "collector") return quest;
+    if (quest.doneAt !== null) {
+      return { ...quest, objective: "sellGoods", amount: sellGoodsAmount(save), progress: sellGoodsAmount(save), itemId: undefined };
+    }
+    return {
+      ...quest,
+      objective: "sellGoods",
+      amount: sellGoodsAmount(save),
+      progress: 0,
+      target: null,
+      itemId: undefined,
+    };
+  });
+
+  const { valuables: _dropped, collectorOverride: _override, ...rest } = old;
+  return {
+    ...rest,
+    gold: save.gold + sold + refund,
+    ...(sold > 0 ? { soldTreasureGold: sold } : {}),
+    materials,
+    guild,
+    quests: { ...save.quests, list },
+    patrolFights: save.patrolFights.map((fight) => ({ ...fight, rewards: sellStoredValuables(fight.rewards) })),
+    placeFights: save.placeFights.map((fight) => ({ ...fight, reward: sellStoredValuables(fight.reward) })),
+    heists: save.heists.map((heist) => ({ ...heist, reward: sellStoredValuables(heist.reward) })),
+  };
+}
+
 /** Applies the migration steps in order, from the save's own version on. */
 export function migrateSave(
   save: SaveData,
@@ -571,5 +661,6 @@ export function migrateSave(
   if (fromVersion < 42) next = toV42(next);
   if (fromVersion < 43) next = toV43(next);
   if (fromVersion < 44) next = toV44(next);
+  if (fromVersion < 45) next = toV45(next);
   return next;
 }

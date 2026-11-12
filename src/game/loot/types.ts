@@ -12,7 +12,6 @@ export const LOOT_CATEGORIES = [
   'trophies',
   'relics',
   'monsterParts',
-  'valuables',
   'consumables',
   'treasureMaps',
   'manuals',
@@ -89,7 +88,6 @@ export type Loot = {
   keyFragments: number;
   treasureMaps: { rarity: MapRarity; tier: number }[];
   manuals: ManualRarity[];
-  valuables: { valuableId: string; tier: number; amount: number }[];
   relics: string[];
   /** Every category that rolled a drop. */
   dropped: LootCategory[];
@@ -113,7 +111,6 @@ export const emptyLoot = (): Loot => ({
   keyFragments: 0,
   treasureMaps: [],
   manuals: [],
-  valuables: [],
   relics: [],
   dropped: [],
 });

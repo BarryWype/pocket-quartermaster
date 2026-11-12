@@ -7,13 +7,10 @@ import { materialById } from '@/content/lookup';
 import { patrolRules, patrolTexts } from '@/content/patrols';
 import { traitById } from '@/content/traits';
 import { mealItems, supplyHeld } from '@/game/expeditions/provisions';
-import { guildBonus } from '@/game/guild/guild';
-import { valuableSellPrice } from '@/game/loot/valuables';
 import type { LatLng } from '@/game/generation/types';
 import { isTravellerKind, type PatrolSpawn } from '@/game/patrols/generate';
 import {
   helpProblem,
-  traderValuableProblem,
   tradeProblem,
   traderOffers,
   travellerOffer,
@@ -33,7 +30,6 @@ import { Sheet } from './Sheet';
 import { EmberButton, WoodButton } from './ui';
 import { RecruitGrade } from './RecruitGrade';
 import { SpecialLabel } from './SpecialLabel';
-import { ValuableRows } from './ValuableRows';
 import { Text } from './Text';
 import { GainsLine } from './IconLabel';
 
@@ -62,7 +58,6 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
   const save = useGameStore((state) => state.save);
   const helpTraveller = useGameStore((state) => state.helpTraveller);
   const tradeWithTrader = useGameStore((state) => state.tradeWithTrader);
-  const sellValuableToTrader = useGameStore((state) => state.sellValuableToTrader);
   const acceptTravellerRecruit = useGameStore((state) => state.acceptTravellerRecruit);
   const [helped, setHelped] = useState<{ reward: TravellerReward; rosterFull: boolean } | null>(null);
   const kind = isTravellerKind(spawn.kind) ? spawn.kind : null;
@@ -150,12 +145,6 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
                   </View>
                 );
               })}
-              <ValuableRows
-                valuables={save.valuables}
-                price={(key) => valuableSellPrice(key.split(':')[0], Number(key.split(':')[1]), 'trader', null, guildBonus(save, 'collector'))}
-                canSell={(key, count) => traderValuableProblem(save, spawn, key, count, player, now) === null}
-                onSell={(key, count) => sellValuableToTrader(spawn, key, count, player)}
-              />
             </>
           ) : (
             !reward && (

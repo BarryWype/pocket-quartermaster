@@ -18,7 +18,7 @@ export type RevealKind =
   | 'secrets';
 
 /** Item kinds that get a tip the first time one is held. */
-export type ItemTipKind = 'charms' | 'relics' | 'trinkets' | 'valuables' | 'keyFragments';
+export type ItemTipKind = 'charms' | 'relics' | 'trinkets' | 'keyFragments';
 
 /**
  * The specials tip: due once the tutorial is done and a hero is fielded. The jobs tip: due once
@@ -122,7 +122,6 @@ export const tipTexts: Record<TipId, string> = {
   charms: 'Charms go in the consumable slot and raise what a run finds.',
   relics: 'Relics: restore one at the forge to get an item with a fixed effect.',
   trinkets: 'Trinkets: loot-only gear with rare stats like Luck and Crit.',
-  valuables: 'Valuables: sell them at a market. Collectors pay more for some.',
   keyFragments: 'Key fragments: four make a mysterious key, which opens secret places.',
   affixes: 'Affixes: named effects a piece of gear carries, shown under its stats. Uncommon pieces have one, Rare two, Legendary three.',
   ingredients: 'Ingredients: monster parts. Forging a blueprint with one makes the piece Uncommon and adds its affix.',

@@ -58,7 +58,6 @@ export function heldItemKinds(save: SaveData): ItemTipKind[] {
   if (save.relics.length > 0) held.push('relics');
   const isTrinket = (itemId: string) => itemById[itemId]?.slot === 'trinket';
   if (save.gear.some((gear) => isTrinket(gear.itemId))) held.push('trinkets');
-  if (Object.values(save.valuables).some((count) => count > 0)) held.push('valuables');
   if (save.keyFragments > 0) held.push('keyFragments');
   return held;
 }

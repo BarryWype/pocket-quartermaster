@@ -6,7 +6,7 @@ import { pickIngredientForge, pickRelic } from './forge';
 
 const known = (ids: string[]) => [...createInitialSave().knownRecipes, ...ids];
 
-/** A save holding the relics and exactly their restore costs, gems included. */
+/** A save holding the relics and exactly their restore costs, gold included. */
 const holding = (relicIds: string[], extra: Partial<SaveData> = {}): SaveData => {
   const save: SaveData = {
     ...createInitialSave(),
@@ -14,15 +14,13 @@ const holding = (relicIds: string[], extra: Partial<SaveData> = {}): SaveData =>
     ...extra,
   };
   const materials = { ...save.materials };
-  const valuables = { ...save.valuables };
+  let gold = save.gold;
   for (const relicId of relicIds) {
     const recipe = relicRecipe(relicById[relicId]);
     for (const { materialId, amount } of recipe.inputs) materials[materialId] = (materials[materialId] ?? 0) + amount;
-    for (const { valuableId, amount } of recipe.valuables ?? []) {
-      valuables[`${valuableId}:1`] = (valuables[`${valuableId}:1`] ?? 0) + amount;
-    }
+    gold += recipe.gold;
   }
-  return { ...save, materials, valuables };
+  return { ...save, materials, gold };
 };
 
 describe('pickIngredientForge', () => {

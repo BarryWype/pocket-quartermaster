@@ -150,7 +150,6 @@ export type DayRow = {
   guildRanks: number;
   stock: Record<string, number>;
   consumables: Record<string, number>;
-  valuables: Record<string, number>;
   /** Average level of the three highest-level heroes. */
   topLevel: number;
   /** Average number of affixes on the heroes' worn gear. */

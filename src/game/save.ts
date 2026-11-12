@@ -185,18 +185,16 @@ export type SaveData = {
   personalTavern: { day: number; spot: { id: string; position: LatLng } | null } | null;
   /** Background fight result id → when it was applied; idempotence and pruning. */
   appliedBackgroundResults: Record<string, number>;
-  /** Valuables held, by `valuableId:tier` (their value rises with the tier). */
-  valuables: Record<string, number>;
+  /** Gold from the version 45 sale, shown once in a toast, then cleared. */
+  soldTreasureGold?: number;
   /** Relics found but not restored yet. */
   relics: { uid: string; relicId: string }[];
   /** Training manuals held, by rarity. */
   manuals: Partial<Record<ManualRarity, number>>;
   /** Monster-part recipes unlocked (a part's first find). */
   partRecipes: string[];
-  /** Parts and gems found at least once; a part recipe unlocks once all of its have been seen. */
+  /** Parts found at least once; a part recipe unlocks once all of its have been seen. */
   seenParts: string[];
-  /** Debug: the collector every market uses on that day. */
-  collectorOverride?: { dayKey: string; valuableId: string };
   /** Debug: every kind shows, whatever its condition. */
   revealAll?: boolean;
   /** Daily quests: the list plus arrival, reroll and secret bookkeeping. */
@@ -267,7 +265,6 @@ export function createInitialSave(playerSeed?: string): SaveData {
     ruinsProgress: 0,
     dugRuins: {},
     personalTavern: null,
-    valuables: {},
     relics: [],
     manuals: {},
     partRecipes: [],

@@ -203,7 +203,11 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
   // regenerates spawns, whose windows last whole minutes anyway.
   const now = useNow(clockConfig.mapMovingMs);
   const minute = Math.floor(useNow(clockConfig.spawnsMs) / 60_000);
-  const [message, setMessage] = useState<{ text: string; gains?: string[] } | null>(null);
+  // The version 45 treasure sale opens the map with its one-time toast.
+  const [message, setMessage] = useState<{ text: string; gains?: string[] } | null>(() => {
+    const gold = useGameStore.getState().save.soldTreasureGold;
+    return gold === undefined ? null : { text: t('map.treasuresSold', { gold }) };
+  });
   const [freshLegsOpen, setFreshLegsOpen] = useState(true);
   const autoMode = useWorldStore((state) => state.autoGather);
   const autoEnabled = useSettingsStore((state) => pocketTracking(state.pocketMode));
@@ -226,6 +230,10 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
     const timer = setTimeout(() => setMessage(null), 2500);
     return () => clearTimeout(timer);
   }, [message]);
+
+  useEffect(() => {
+    if (useGameStore.getState().save.soldTreasureGold !== undefined) useGameStore.getState().clearSoldTreasureGold();
+  }, []);
 
   const position = player.status === 'ready' ? player.location.position : null;
   const speed = player.status === 'ready' ? player.location.speed : null;

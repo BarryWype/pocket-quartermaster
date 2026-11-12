@@ -56,7 +56,7 @@ export function forgeWithIngredient(save: SaveData, recipe: RecipeDef, ingredien
   const next: SaveData = {
     ...save,
     materials: removeMaterials(save.materials, [...cost.materials, { materialId: ingredientId, amount: 1 }]),
-    valuables: cost.valuables,
+    gold: save.gold - cost.gold,
   };
   return (recipe.unlocks ?? []).reduce(
     unlockRecipe,
