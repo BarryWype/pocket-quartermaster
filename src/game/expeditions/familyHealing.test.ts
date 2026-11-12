@@ -27,13 +27,13 @@ type Case = [string, FamilyId, number, FightSetup, (on: FamilyFight, off: Family
 
 describe('family healing and revival', () => {
   test.each<Case>([
-    ['Faith 2: hits on the undead heal 3% of their damage', 'faith', 2, undead,
+    ['Faith 2: every hit heals 4% of its damage', 'faith', 2, undead,
       (on, off) => {
         expect(healed(off)).toBe(0);
         expect(healed(on)).toBeCloseTo(on.fight.dealt.a * R.faith.healShare);
-      }, 'faith2', 'Faith mended a with every blow at the undead.', 'La foi a soigné a à chaque coup porté aux morts-vivants.'],
-    ['Faith 2: no heal against the living', 'faith', 2, { ...undead, boss: { damage: 0 } },
-      (on) => expect(healed(on)).toBe(0), 'faith2', null, null],
+      }, 'faith2', 'Faith mended a with every blow.', 'La foi a soigné a à chaque coup porté.'],
+    ['Faith 2: against the living too', 'faith', 2, { ...undead, boss: { damage: 0 } },
+      (on) => expect(healed(on)).toBeGreaterThan(0), 'faith2', 'Faith mended a with every blow.', null],
     ['Faith 3: the first knockout gets back up at 25% HP', 'faith', 3, falls,
       (on, off) => {
         expect(off.run.bossDefeated).toBe(false);

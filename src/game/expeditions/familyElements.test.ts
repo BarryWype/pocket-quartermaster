@@ -38,6 +38,14 @@ describe('family elements', () => {
       }, 'spellweave3', 'a’s element overwhelmed a foe it masters.', 'L’élément de a a submergé un ennemi qu’il domine.'],
     ['Spellweave 3: nothing on a neutral target', 'spellweave', 3, { ...grassBoss, boss: { damage: 0 } },
       (on, off) => expect(perRound(on)).toBeCloseTo(perRound(off)), 'spellweave3', null, null],
+    // A magic hero's second-round hit gains the late +10% on top of Spellweave 1's ramp.
+    ['Spellweave 3: magic hits +10% from round 2', 'spellweave', 3,
+      { boss: { damage: 0 }, party: { a: { magic: power, damageStat: 'magic' } }, options: { rules: { ...steady, maxRounds: 2 } } },
+      (on) => {
+        const level2 = familyFight('spellweave', 2, { boss: { damage: 0 }, party: { a: { magic: power, damageStat: 'magic' } }, options: { rules: { ...steady, maxRounds: 2 } } });
+        expect(on.fight.dealt.a - level2.fight.dealt.a).toBeCloseTo(power * (1 + 2 * R.spellweave.perRound) * (R.spellweave.lateDamage - 1));
+        expect(logged(on.fight, 'spellweave3Late')).toBe(1);
+      }, 'spellweave3', null, null],
     // Level 3 still runs levels 1 and 2: a magic hero gains 5% in round 1, and the hit still jumps.
     ['Spellweave 3: Spellweave 1 and 2 still apply', 'spellweave', 3,
       { ...twoRats, party: { a: { magic: power, damageStat: 'magic', weaponElement: 'fire', maxHp: 1e6 } } },

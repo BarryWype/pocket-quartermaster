@@ -1,5 +1,5 @@
 import { dungeons } from '@/content/dungeons';
-import { familyOfThreat, families, type FamilyId } from '@/content/families';
+import { familyOfThreat, type FamilyId } from '@/content/families';
 import { rosterRules } from '@/content/roster';
 import { dungeonThreats, threatDefs } from '@/content/threats';
 
@@ -13,10 +13,9 @@ import { withLoadout } from './bot';
 import { FIT_NOW, rosterParty } from './difficultyOdds';
 import { rosterSave } from './reference';
 
-// Measurement probes for sim:quick, on the party the bot would send from the
+// A measurement probe for sim:quick, on the party the bot would send from the
 // reference roster at each tier's end (the team the dungeons are fitted to),
-// picked with no briefing in mind: what each threat costs on its own, and
-// what each family's levels add.
+// picked with no briefing in mind: what each threat costs on its own.
 
 const mean = (values: number[]) => values.reduce((sum, v) => sum + v, 0) / Math.max(1, values.length);
 
@@ -94,24 +93,4 @@ export function threatCosts(runs: number, tiers = [1, 2, 3, 4, 5]): ThreatCostRo
     }
   }
   return rows;
-}
-
-export type LevelLiftRow = { tier: number; family: FamilyId; /** Odds with 0, 2, 4 and 6 tags (none, level 1, 2, 3). */ odds: [number, number, number, number] };
-
-/**
- * Each family at levels 1, 2 and 3 against none: the fitted party on the tier's medium
- * dungeons with no briefing (so a threat family's answer counts for nothing
- * here: its worth is in threatCosts), the family's tags set to 0, 2, 4 and 6.
- */
-export function levelLifts(runs: number, tiers = [1, 2, 3, 4, 5]): LevelLiftRow[] {
-  return tiers.flatMap((tier) => {
-    const list = tierDungeons(tier, 'medium');
-    return families.map((f) => ({
-      tier,
-      family: f.id,
-      odds: [0, 2, 4, 6].map((count) =>
-        mean(list.map((dungeon) => odds(dungeon, EMPTY_BRIEFING, runs, (party) => withFamilyCount(party, f.id, count)))),
-      ) as LevelLiftRow['odds'],
-    }));
-  });
 }

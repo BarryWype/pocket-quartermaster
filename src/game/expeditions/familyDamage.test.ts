@@ -35,7 +35,7 @@ describe('family damage modifiers', () => {
     ['Rally 1: the whole party hits harder', 'rally', 1, { party: { a: {}, b: {} }, boss: { damage: 0 } },
       (on, off) => expect(on.fight.dealt.b / off.fight.dealt.b).toBeCloseTo(R.rally.damage), 'rally1', 'a rallied the party: everyone hit harder.', 'a a rallié le groupe : tout le monde a frappé plus fort.'],
     ['Levels are cumulative: Rally 3 keeps level 1', 'rally', 3, { boss: { damage: 0 } },
-      (on, off) => expect(perRound(on, 'dealt') / perRound(off, 'dealt')).toBeCloseTo(R.rally.damage), 'rally1', 'rallied the party', null],
+      (on, off) => expect(perRound(on, 'dealt') / perRound(off, 'dealt')).toBeCloseTo(R.rally.damage * R.rally.lateDamage), 'rally1', 'rallied the party', null],
   ])('%s', (_name, family, level, setup, check, effect, en, fr) => {
     const on = familyFight(family, level, setup);
     const off = familyFight(null, 0, setup);

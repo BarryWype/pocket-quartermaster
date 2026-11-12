@@ -9,7 +9,7 @@ import { affinityOf, equip, heroDamageStat, heroStats } from '../team/team';
 import { heroAnswers } from '../threats/answers';
 import { familyCount } from '../threats/score';
 import type { Briefing, GearDef, GearInstance, HeroState } from '../types';
-import { familyLevel, heroFamilyTagSources, partyFamilies } from './families';
+import { familyLevel, gearFamilyTags, heroFamilyTagSources, partyFamilies } from './families';
 
 // Dressing a party for a briefing (doc/design/simulator/README.md), shared by
 // the Suggest button and the simulator bot: the party swaps spare pieces in to
@@ -54,10 +54,14 @@ export function statScore(save: SaveData, heroId: string): number {
   return stats[heroDamageStat(save, hero)] + stats.armour + stats.resistance + stats.hp / 8;
 }
 
-/** Every save one swap away: a party hero putting on one spare piece. */
-function swaps(save: SaveData, heroIds: string[], tierDrop: number): { save: SaveData; cost: number }[] {
+/**
+ * Every save one swap away: a party hero putting on one spare piece that
+ * carries a tag of one of the `sought` families (no other piece can raise
+ * their counts, so trying it is wasted work).
+ */
+function swaps(save: SaveData, heroIds: string[], tierDrop: number, sought: FamilyId[]): { save: SaveData; cost: number }[] {
   const out: { save: SaveData; cost: number }[] = [];
-  const spares = sparePieces(save);
+  const spares = sparePieces(save).filter((piece) => gearFamilyTags(defOf(piece), piece.relicId).some((tag) => sought.includes(tag.family)));
   for (const id of heroIds) {
     const hero = save.heroes.find((h) => h.id === id);
     if (!hero) continue;
@@ -83,14 +87,14 @@ function swaps(save: SaveData, heroIds: string[], tierDrop: number): { save: Sav
  * most, the cheapest in stats first; keeps the save where `level` (lower is
  * better) was last lowered, so swaps that reach no new level are dropped.
  */
-function climb(save: SaveData, heroIds: string[], tierDrop: number, score: (s: SaveData) => number, level: (s: SaveData) => number): SaveData {
+function climb(save: SaveData, heroIds: string[], tierDrop: number, sought: FamilyId[], score: (s: SaveData) => number, level: (s: SaveData) => number): SaveData {
   let current = save;
   let best = save;
   for (let i = 0; i < 9; i++) {
     const now = score(current);
     if (now <= 0) break;
     let pick: { save: SaveData; score: number; cost: number } | null = null;
-    for (const option of swaps(current, heroIds, tierDrop)) {
+    for (const option of swaps(current, heroIds, tierDrop, sought)) {
       const s = score(option.save);
       if (s >= now) continue;
       if (!pick || s < pick.score || (s === pick.score && option.cost < pick.cost)) pick = { save: option.save, score: s, cost: option.cost };
@@ -140,7 +144,8 @@ export function focusFamily(save: SaveData, heroIds: string[]): FamilyId | null 
  */
 export function dressParty(save: SaveData, heroIds: string[], briefing: Briefing, focus: FamilyId | null = null, push = true): SaveData {
   const shortfall = (s: SaveData) => threatShortfall(s, heroIds, briefing);
-  const threats = briefing.threats.length ? climb(save, heroIds, 1, shortfall, shortfall) : save;
+  const answering = briefing.threats.map((threat) => families.find((f) => f.answers === threat.id)!.id);
+  const threats = briefing.threats.length ? climb(save, heroIds, 1, answering, shortfall, shortfall) : save;
   const family = push ? (focus ?? focusFamily(threats, heroIds)) : null;
   if (!family) return threats;
   const missed = shortfall(threats);
@@ -148,5 +153,5 @@ export function dressParty(save: SaveData, heroIds: string[], briefing: Briefing
   // Lower is better: a threat tag lost costs more than any playstyle tag.
   const lost = (s: SaveData) => briefing.threats.length > 0 && shortfall(s) > missed;
   const short = (s: SaveData) => (lost(s) ? 100 : Math.max(0, familyRules.levels[2] - count(s)));
-  return climb(threats, heroIds, 0, short, (s) => (lost(s) ? 100 : -familyLevel(count(s))));
+  return climb(threats, heroIds, 0, [family], short, (s) => (lost(s) ? 100 : -familyLevel(count(s))));
 }

@@ -299,7 +299,7 @@ export const dungeonThreats: Record<string, DungeonThreats> = {
   fungalGrotto: { weights: { poison: 4, element: 3, darkness: 2, beasts: 3, traps: 1 }, element: 'grass' },
   stormRidge: { weights: { element: 4, beasts: 3, darkness: 2, traps: 1 }, element: 'electric' },
   cinderHollow: { weights: { element: 4, beasts: 4, darkness: 1, poison: 1 }, element: 'fire' },
-  dwarfhold: { weights: { traps: 9, armoured: 3, element: 2, darkness: 2 }, element: 'stone' },
+  dwarfhold: { weights: { traps: 9, armoured: 3, darkness: 2 } },
   witchMarsh: { weights: { element: 6, poison: 3, traps: 2, beasts: 1 }, element: 'grass' },
   drownedCrypt: { weights: { holy: 4, element: 8, traps: 3, armoured: 3 }, element: 'water' },
   harpyCliffs: { weights: { beasts: 6, darkness: 3, traps: 2 } },

@@ -1,25 +1,29 @@
 import { affixById } from '@/content/affixes';
-import { classAffinities, gearId } from '@/content/equipment';
+import { dungeons } from '@/content/dungeons';
+import { mobById } from '@/content/enemies';
 import { familyById, families, type FamilyId } from '@/content/families';
 import { heroClasses } from '@/content/heroes';
+import { rosterRules } from '@/content/roster';
+import { dungeonThreats } from '@/content/threats';
 
 import { tierChain } from '../dungeons/unlock';
+import { mobTags } from '../enemies/tags';
 import { launchPlan, runProvisions } from '../expeditions/expeditions';
-import { estimatePartyOdds } from '../expeditions/odds';
-import { EMPTY_BRIEFING, prepareParty, type PartyMember } from '../expeditions/simulate';
+import { estimateOdds, estimatePartyOdds } from '../expeditions/odds';
+import { EMPTY_BRIEFING, prepareParty, simulateRun, type PartyMember } from '../expeditions/simulate';
 import type { SaveData } from '../save';
 import { composeBriefing } from '../threats/compose';
-import type { ArmourType, HeroClassId } from '../types';
+import type { DungeonDef, HeroClassId, ThreatId } from '../types';
 import { withLoadout } from './bot';
-import { expectedLevels } from './config';
-import { FIT_DAYS, FIT_NOW } from './difficultyOdds';
-import { averagePiece, referenceSave, referenceTeam, withSpares } from './reference';
+import { simConfig } from './config';
+import { FIT_DAYS, FIT_NOW, rosterParty } from './difficultyOdds';
+import { referenceSave, rosterSave } from './reference';
 import { dressParty } from '../families/dress';
 import { fillPotions } from './rules/loadout';
 import { withFamilyCount } from './threatCosts';
 
-// Family balance probes for the report and sim:quick: a playstyle family at
-// level 3 against the same team with its tags stripped (same heroes, same
+// Family balance probes for the report and sim:quick: each family at levels
+// 1, 2 and 3 against the same team with its tags stripped (same heroes, same
 // gear, so only the family's effects differ), and the Venomous affix against
 // other weapon affixes outside Venom parties.
 
@@ -52,75 +56,171 @@ function chainOdds(save: SaveData, tier: number, runs: number, tweak: (party: Pa
   return mean(odds);
 }
 
-const ARMOURS: ArmourType[] = ['plate', 'mail', 'leather', 'robes'];
-
-/** A reference team with each hero's armour (`a<i>`) remade as their class's first favoured armour type of the tier. */
-function inFavouredArmour(save: SaveData, tier: number): SaveData {
-  return {
-    ...save,
-    gear: save.gear.map((g) => {
-      const hero = save.heroes.find((h) => h.equipment.armor === g.uid);
-      const type = hero && ARMOURS.find((a) => classAffinities[hero.classId][a] === 'favoured');
-      return type ? { ...averagePiece(g.uid, gearId(type, tier), g.rarity), uid: g.uid } : g;
-    }),
-  };
-}
-
-export type FocusRow = { tier: number; family: FamilyId; classes: HeroClassId[]; /** The level the team reaches in its own gear. */ reached: number; level3: number; none: number };
+/** The tier's regular dungeons (no boss, no overnight run). */
+const regular = (tier: number) => dungeons.filter((d) => d.tier === tier && !d.isBoss && !d.overnight);
+const foesOf = (d: DungeonDef) => [d.boss, ...d.encounters.flatMap((e) => (e.type === 'fight' ? e.mobs.map((g) => mobById[g.mobId]) : []))];
+const hasTag = (d: DungeonDef, tags: string[]) => foesOf(d).some((m) => mobTags(m).some((t) => tags.includes(t)));
+const listsThreat = (d: DungeonDef, threat: ThreatId) => !!dungeonThreats[d.id]?.weights[threat];
 
 /**
- * Each playstyle family's focus team at the end of each tier (its classes at
- * the tier's top level in Uncommon gear of the tier, favoured weapon and
- * armour, dressed from a spare piece of every type per hero to push the
- * family), with the family set to 6 tags
- * (level 3) and with its tags stripped.
+ * Where a threat family is measured: the tier's dungeons with its own foes
+ * (undead or spirits, beasts, armoured or elemental ones), or for a threat no
+ * foe carries, the dungeons that can roll it. Playstyle families: the tier's
+ * medium dungeons.
  */
-export function focusOdds(runs: number, tiers = [1, 2, 3, 4, 5]): FocusRow[] {
+const OWN_FOES: Partial<Record<FamilyId, (d: DungeonDef) => boolean>> = {
+  faith: (d) => hasTag(d, ['undead', 'spirit']),
+  wild: (d) => hasTag(d, ['beast']),
+  breaker: (d) => foesOf(d).some((m) => (m.armour ?? 0) > 0),
+  warding: (d) => foesOf(d).some((m) => m.element !== undefined),
+  watch: (d) => listsThreat(d, 'darkness'),
+  cunning: (d) => listsThreat(d, 'traps'),
+  venom: (d) => listsThreat(d, 'poison'),
+};
+export const focusDungeons = (family: FamilyId, tier: number): DungeonDef[] => {
+  const own = OWN_FOES[family];
+  return own ? regular(tier).filter(own) : regular(tier).filter((d) => d.difficulty === 'medium');
+};
+
+/** Runs per level behind each "fires" share. */
+export const FIRE_RUNS = 40;
+
+export type FocusRow = {
+  tier: number;
+  family: FamilyId;
+  classes: HeroClassId[];
+  /** The level the team reaches in its own gear. */
+  reached: number;
+  /** Mean odds over the dungeons with 0, 2, 4 and 6 tags (none, level 1, 2, 3); null when the tier has none. */
+  odds: [number, number, number, number] | null;
+  /** The share of runs where each level's effect shows in the log, at that level. */
+  fires: [number, number, number] | null;
+  dungeons: number;
+  runs: number;
+};
+
+/** The fitted party of each dungeon: picked from the reference roster at the tier's end with no briefing. */
+const fitted = new Map<string, string[]>();
+function fittedParty(dungeon: DungeonDef): string[] {
+  let ids = fitted.get(dungeon.id);
+  if (!ids) {
+    ids = rosterParty(rosterSave(dungeon.tier, 'end'), dungeon, EMPTY_BRIEFING, rosterRules.partySize, FIT_NOW).heroIds;
+    fitted.set(dungeon.id, ids);
+  }
+  return ids;
+}
+
+/**
+ * A family's focus team for a dungeon: the fitted party, with the family's
+ * carrier (its first class, kitted like the roster) swapped in for the member
+ * whose loss costs the least, unless a member already is of the family's
+ * classes; then dressed to push the family from the spare pieces.
+ */
+function focusTeam(family: FamilyId, dungeon: DungeonDef): { save: SaveData; ids: string[]; classes: HeroClassId[] } {
+  const carrierClass = focusClasses(family)[0];
+  const roster = rosterSave(dungeon.tier, 'end', [carrierClass]);
+  const carrier = roster.heroes[roster.heroes.length - 1].id;
+  let ids = fittedParty(dungeon);
+  const own = (id: string) => heroClasses[roster.heroes.find((h) => h.id === id)!.classId].familyTag === family;
+  if (!ids.some(own)) {
+    const quick = (party: string[]) =>
+      estimateOdds(withLoadout(roster, party, dungeon, EMPTY_BRIEFING), party, dungeon, simConfig.odds.searchRuns, { now: FIT_NOW, briefing: EMPTY_BRIEFING }).success;
+    const swaps = ids.map((_, i) => ids.map((id, j) => (i === j ? carrier : id)));
+    ids = swaps.reduce((best, party) => (quick(party) > quick(best) ? party : best));
+  }
+  const save = fillPotions(dressParty(roster, ids, EMPTY_BRIEFING, family), ids);
+  return { save, ids, classes: ids.map((id) => save.heroes.find((h) => h.id === id)!.classId) };
+}
+
+/**
+ * Each family's focus team at each tier's end (focusTeam) on the family's
+ * dungeons (focusDungeons), with no briefing: its odds with the family's
+ * tags set to 0, 2, 4 and 6, and how often each level fires.
+ */
+export function focusOdds(runs: number, tiers = [1, 2, 3, 4, 5], fireRuns = FIRE_RUNS): FocusRow[] {
   const rows: FocusRow[] = [];
   for (const tier of tiers) {
-    for (const family of families.filter((f) => f.kind === 'playstyle').map((f) => f.id)) {
-      const classes = focusClasses(family);
-      const team = withSpares(inFavouredArmour(referenceTeam(classes, tier, 'uncommon', expectedLevels[tier - 1]), tier), tier, 'uncommon', false, classes.length);
-      const ids = team.heroes.map((h) => h.id);
-      const save = fillPotions(dressParty(team, ids, EMPTY_BRIEFING, family), ids);
-      const count = prepareParty(save, ids).reduce((sum, m) => sum + m.familyTags.filter((t) => t.family === family).reduce((n, t) => n + t.count, 0), 0);
+    for (const family of families.map((f) => f.id)) {
+      const list = focusDungeons(family, tier);
+      const per = list.map((dungeon) => {
+        const { save, ids, classes } = focusTeam(family, dungeon);
+        const count = prepareParty(save, ids).reduce((sum, m) => sum + m.familyTags.filter((t) => t.family === family).reduce((n, t) => n + t.count, 0), 0);
+        const loaded = withLoadout(save, ids, dungeon, EMPTY_BRIEFING);
+        const { hunger } = launchPlan(loaded, dungeon, ids, {}, EMPTY_BRIEFING);
+        const party = prepareParty(loaded, ids, FIT_NOW, true);
+        const options = runProvisions(hunger, {}, EMPTY_BRIEFING);
+        const at = (n: number) => withFamilyCount(party, family, n);
+        const fired = (level: number) => {
+          let n = 0;
+          for (let i = 0; i < fireRuns; i++) {
+            const run = simulateRun(at(level * 2), dungeon, `focus-fire|${i}`, options);
+            if (run.encounters.some((e) => e.effects.some((x) => x.key === 'family' && String(x.familyEffect).startsWith(`${family}${level}`)))) n++;
+          }
+          return n / fireRuns;
+        };
+        return {
+          classes,
+          reached: [2, 4, 6].filter((n) => count >= n).length,
+          odds: [0, 2, 4, 6].map((n) => estimatePartyOdds(at(n), dungeon, runs, options).success),
+          fires: [1, 2, 3].map(fired),
+        };
+      });
       rows.push({
         tier,
         family,
-        classes,
-        reached: [2, 4, 6].filter((n) => count >= n).length,
-        level3: chainOdds(save, tier, runs, (party) => withFamilyCount(party, family, 6)),
-        none: chainOdds(save, tier, runs, (party) => withFamilyCount(party, family, 0)),
+        classes: per[0]?.classes ?? [focusClasses(family)[0]],
+        reached: per.length ? Math.min(...per.map((p) => p.reached)) : 0,
+        odds: per.length ? ([0, 1, 2, 3].map((i) => mean(per.map((p) => p.odds[i]))) as FocusRow['odds']) : null,
+        fires: per.length ? ([0, 1, 2].map((i) => mean(per.map((p) => p.fires[i]))) as FocusRow['fires']) : null,
+        dungeons: list.length,
+        runs,
       });
     }
   }
   return rows;
 }
 
-/** A family's lift: level 3 odds minus none, in points, averaged over the tiers. */
-export const focusLift = (rows: FocusRow[], family: FamilyId) => mean(rows.filter((r) => r.family === family).map((r) => r.level3 - r.none));
+/** A family's lift at each level (odds at the level minus none), per tier where measured. */
+export const levelLift = (row: FocusRow, level: 1 | 2 | 3) => (row.odds ? row.odds[level] - row.odds[0] : null);
+
+/** A family's mean lift at a level over the tiers where it was measured. */
+export const focusLift = (rows: FocusRow[], family: FamilyId, level: 1 | 2 | 3 = 3) =>
+  mean(rows.filter((r) => r.family === family).flatMap((r) => (r.odds ? [levelLift(r, level)!] : [])));
 
 /**
- * The flag bounds around the median lift. Loot families (Plunder: gold, parts
- * and rarity, nothing in a fight) are shown but neither flagged nor counted
- * in the median.
+ * The flags: a lift above 1.5× the median lift of the playstyle families over
+ * all tiers (Plunder, a loot family, is left out of the median and never
+ * flagged; so is Cunning, whose levels 2 and 3 work outside fights), and a
+ * family whose lift at one tier is above twice its own mean.
  */
-export const FOCUS_FLAG = { above: 1.5, below: 0.5, loot: ['plunder'] as FamilyId[] };
+export const FOCUS_FLAG = { above: 1.5, below: 0.5, spike: 2, fires: 0.6, loot: ['plunder', 'cunning'] as FamilyId[], firesExempt: ['faith3', 'cunning3', 'plunder3'] };
 
 const median = (values: number[]) => {
   const sorted = [...values].sort((a, b) => a - b);
   return sorted.length % 2 ? sorted[(sorted.length - 1) / 2] : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2;
 };
 
-/** Each playstyle family's lift and flag: above 1.5× the median lift, or below 0.5×; null for loot families. */
-export function focusFlags(rows: FocusRow[]): { family: FamilyId; lift: number; flag: 'high' | 'low' | 'loot' | null }[] {
-  const lifts = [...new Set(rows.map((r) => r.family))].map((family) => ({ family, lift: focusLift(rows, family) }));
-  const mid = median(lifts.filter((l) => !FOCUS_FLAG.loot.includes(l.family)).map((l) => l.lift));
-  return lifts.map(({ family, lift }) => ({
-    family,
-    lift,
-    flag: FOCUS_FLAG.loot.includes(family) ? 'loot' : lift > FOCUS_FLAG.above * mid ? 'high' : lift < FOCUS_FLAG.below * mid ? 'low' : null,
-  }));
+export type FocusFlag = { family: FamilyId; lift: [number, number, number]; flags: string[] };
+
+/** Each family's mean lift at levels 1–3 and its flags. */
+export function focusFlags(rows: FocusRow[]): FocusFlag[] {
+  const ids = [...new Set(rows.map((r) => r.family))];
+  const lifts = ids.map((family) => ({ family, lift: [1, 2, 3].map((l) => focusLift(rows, family, l as 1 | 2 | 3)) as [number, number, number] }));
+  const playstyle = lifts.filter((l) => familyById[l.family].kind === 'playstyle' && !FOCUS_FLAG.loot.includes(l.family));
+  const mid = [0, 1, 2].map((i) => median(playstyle.map((l) => l.lift[i])));
+  return lifts.map(({ family, lift }) => {
+    const flags: string[] = [];
+    if (!FOCUS_FLAG.loot.includes(family)) {
+      for (const level of [2, 3] as const) {
+        if (lift[level - 1] > FOCUS_FLAG.above * mid[level - 1]) flags.push(`L${level} above ${FOCUS_FLAG.above}× median`);
+        const spiky = rows.filter((r) => r.family === family && r.odds).some((r) => levelLift(r, level)! > FOCUS_FLAG.spike * lift[level - 1] && lift[level - 1] > 0);
+        if (spiky) flags.push(`L${level} above ${FOCUS_FLAG.spike}× its mean at a tier`);
+      }
+      const fires = rows.filter((r) => r.family === family && r.fires).map((r) => r.fires![2]);
+      if (!FOCUS_FLAG.firesExempt.includes(`${family}3`) && fires.length && mean(fires) < FOCUS_FLAG.fires) flags.push('L3 fires in under 60% of runs');
+    }
+    return { family, lift, flags };
+  });
 }
 
 /** The weapon affixes the Venomous one is measured against: those that help in every fight. */

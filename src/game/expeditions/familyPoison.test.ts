@@ -46,23 +46,24 @@ describe('family poison', () => {
       (on) => expect(dealt(on)).toBeCloseTo(2 * 6 * power + (6 - 1) * power * R.venom.dotShare), 'venom2', null, null],
     // The third stack lands in round 2, so rounds 3-6 tick three stacks; the cap keeps it at three.
     ['Venom 2: the stacks reach three and no more', 'venom', 2, pair(6),
-      (on) => expect(dealt(on)).toBeCloseTo(2 * 6 * power + (2 + 3 * (6 - 2)) * power * R.venom.dotShare), 'venom2',
+      (on) => expect(dealt(on)).toBeCloseTo(2 * 6 * power + (2 + 3 * (6 - 2)) * power * R.venom.stackShare), 'venom2',
       'b’s venom took hold again: the poisons stacked.',
       'Le venin de b s’est à nouveau accumulé sur l’ennemi.'],
-    // Round 1’s hit meets no poison yet; only round 2’s hit is lifted.
+    // Round 1’s hit meets no poison yet; only round 2’s hit is lifted. Venom 2's stronger stack ticks once.
     ['Venom 3: +20% on the poisoned enemy, none on the unpoisoned one', 'venom', 3, lone(2),
       (on, off) => {
-        expect(on.fight.dealt.a - off.fight.dealt.a).toBeCloseTo(power * (R.venom.poisonedTaken - 1));
+        expect(on.fight.dealt.a - off.fight.dealt.a).toBeCloseTo(power * (R.venom.poisonedTaken - 1) + power * (R.venom.stackShare - R.venom.dotShare));
         expect(off.fight.dealt.a).toBeCloseTo(2 * power + power * R.venom.dotShare);
       }, 'venom3',
       'a’s blows tore at the poisoned foe.',
       'Les coups de a ont déchiré l’ennemi empoisonné.'],
-    ['Venom 3: nothing on an unpoisoned enemy', 'venom', 3, { boss: { damage: 0 }, options: { rules: { ...steady, maxRounds: 2 } } },
+    // A seed where Venom 1's chance never poisons in these two rounds.
+    ['Venom 3: nothing on an unpoisoned enemy', 'venom', 3, { boss: { damage: 0 }, seed: 'seed0', options: { rules: { ...steady, maxRounds: 2 } } },
       (on, off) => expect(on.fight.dealt.a).toBeCloseTo(off.fight.dealt.a), 'venom3', null, null],
     // Level 3 still runs Venom 2: the second and third stacks land, so round 3 ticks two poisons.
     ['Venom 3: Venom 2’s stacking still applies', 'venom', 3, lone(3),
       (on) => {
-        expect(on.fight.dealt.a).toBeCloseTo(power * (1 + 2 * R.venom.poisonedTaken) + power * R.venom.dotShare * (2 + R.venom.poisonedTaken));
+        expect(on.fight.dealt.a).toBeCloseTo(power * (1 + 2 * R.venom.poisonedTaken) + power * R.venom.stackShare * (2 + R.venom.poisonedTaken));
         expect(logged(on.fight, 'venom2')).toBe(1);
       }, 'venom3',
       'a’s blows tore at the poisoned foe.',

@@ -5,14 +5,13 @@ import { RARITIES } from '@/content/gear';
 import { REVEAL_KINDS } from '@/content/reveal';
 import { difficultyRules } from '@/content/difficulty';
 import type { DifficultyOdds } from '@/game/sim/difficultyOdds';
-import { affinityChanges } from '@/game/sim/affinity';
 import { affixById } from '@/content/affixes';
-import { FOCUS_FLAG, familyName, focusFlags, VENOM_RIVALS, type AffixRow, type FocusRow } from '@/game/sim/familyFocus';
+import { FAMILY_RUNS, FIRE_RUNS, FOCUS_FLAG, familyName, focusFlags, levelLift, VENOM_RIVALS, type AffixRow, type FocusRow } from '@/game/sim/familyFocus';
 import { cunningSpeedup, misses, type ProfileSummary, type Stat, type Summary } from '@/game/sim/metrics';
 import { familyById, familyOfThreat, families } from '@/content/families';
 import { gathererPace } from '@/game/sim/gathererPace';
 import { inRange, targets } from '@/game/sim/targets';
-import type { HeroClassId, ThreatId, WeaponType } from '@/game/types';
+import type { ThreatId } from '@/game/types';
 
 export type ReportInput = {
   summaries: ProfileSummary[];
@@ -22,58 +21,29 @@ export type ReportInput = {
   difficultyOdds: Record<number, DifficultyOdds>;
   /** The family probes (summary.json's `familyProbes`). */
   familyProbes?: Summary['familyProbes'];
-  /** The "Class affinity changes" section's table, measured with the quick odds machinery. */
-  affinity?: string | null;
   /** A summary to compare days per tier against, e.g. a run with `--no-jobs`. */
   baseline?: Summary | null;
   /** The specials section carried over from the previous report, written by `npm run sim:specials`. */
   specials?: string | null;
 };
 
-/**
- * The favoured weapon lists before the weapon-types change (the pre-change
- * table): what the classes below favoured before crossbow, throwing, totem,
- * runestone and flasks joined the weapon types.
- */
-export const OLD_FAVOURED_WEAPONS: Record<string, WeaponType[]> = {
-  thief: ['sword', 'dagger', 'knuckles'],
-  gambler: ['dagger', 'lute'],
-  scout: ['dagger', 'bow', 'spear'],
-  smuggler: ['dagger', 'bow'],
-  engineer: ['axe', 'bow', 'warhammer'],
-  druid: ['wand', 'staff'],
-  scholar: ['wand', 'staff'],
-  necromancer: ['wand', 'staff', 'censer'],
-  alchemist: ['wand', 'censer'],
-  curseBreaker: ['wand', 'staff', 'censer'],
-};
-
-/** The "Class affinity changes" table: each changed class's reference win odds per tier with its old vs new reference weapon. */
-export function affinityTable(runs?: number) {
-  const rows = affinityChanges(
-    (Object.entries(OLD_FAVOURED_WEAPONS) as [HeroClassId, WeaponType[]][]).map(([classId, oldFavoured]) => ({ classId, oldFavoured })),
-    runs,
-  ).flatMap((c) => c.tiers.map((t) => [c.classId, String(t.tier), t.oldWeapon, t.newWeapon, pct(t.oldOdds), pct(t.newOdds)]));
-  return table(['Class', 'Tier', 'Old reference weapon', 'New reference weapon', 'Old odds', 'New odds'], rows);
-}
-
-/** Win odds per family focus: each playstyle family's team per tier at level 3 and with its tags stripped, then the lift and its flag. */
+/** Lift per family focus: each family's team per tier, odds with no tags and the lift at levels 1, 2 and 3 (and how often level 3 fires), then the means and flags. */
 export function familyFocusTable(rows: FocusRow[]) {
   const tiers = [...new Set(rows.map((r) => r.tier))];
-  const flags = focusFlags(rows);
-  const body = flags.map(({ family, lift, flag }) => {
+  const body = focusFlags(rows).map(({ family, lift, flags }) => {
     const mine = rows.filter((r) => r.family === family);
     return [
       `${familyName(family)} (${mine[0].classes.join(', ')})`,
       ...tiers.map((tier) => {
         const r = mine.find((row) => row.tier === tier)!;
-        return `${pct(r.none)} → ${pct(r.level3)} (L${r.reached})`;
+        if (!r.odds) return '—';
+        return `${pct(r.odds[0])}: ${[1, 2, 3].map((l) => n(levelLift(r, l as 1 | 2 | 3)! * 100, 1)).join(' / ')} (${pct(r.fires![2])}, L${r.reached})`;
       }),
-      `${n(lift * 100, 1)} pts`,
-      flag === 'high' ? `${WARN} above ${FOCUS_FLAG.above}× median` : flag === 'low' ? `${WARN} below ${FOCUS_FLAG.below}× median` : flag === 'loot' ? 'loot family, not flagged' : '',
+      lift.map((v) => n(v * 100, 1)).join(' / '),
+      FOCUS_FLAG.loot.includes(family) ? 'works outside fights, not flagged' : flags.map((f) => `${WARN} ${f}`).join('; '),
     ];
   });
-  return table(['Family (team)', ...tiers.map((t) => `Tier ${t}: none → L3 (reached)`), 'Lift', 'Flag'], body);
+  return table(['Family (team)', ...tiers.map((t) => `Tier ${t}: none: L1 / L2 / L3 (L3 fires, reached)`), 'Mean L1 / L2 / L3', 'Flag'], body);
 }
 
 /** The Venomous affix outside Venom parties against the rival weapon affixes, per tier and on average (flagged below half the rivals' median), with Venom 2 for comparison. */
@@ -161,14 +131,14 @@ function familiesSection(summaries: ProfileSummary[], probes: Summary['familyPro
   const out = [
     '## Families',
     '',
-    'How the families play out: the family focus probe (each playstyle family at level 3 against the same team with its tags stripped, so only the family’s effects differ), the Venomous affix outside Venom parties, then per profile what the bot’s parties reached, how often each threat was answered, how often natural parties reach level 2 and 3 in real gear, how much faster Cunning 2 parties go, and what trophies bring.',
+    'How the families play out: the family focus probe (each family at levels 1, 2 and 3 against the same team with its tags stripped, so only the family’s effects differ), the Venomous affix outside Venom parties, then per profile what the bot’s parties reached, how often each threat was answered, how often natural parties reach level 2 and 3 in real gear, how much faster Cunning 2 parties go, and what trophies bring.',
     '',
   ];
   if (probes) {
     out.push(
-      '### Win odds per family focus',
+      '### Lift per family focus',
       '',
-      `Each playstyle family’s focus team (its first two classes, filled from the starting trio) at each tier’s end, in Uncommon gear of the tier and dressed to push the family, over the tier’s chain dungeons: odds with the family’s tags stripped → at level 3, and the level the team reaches in its own gear. Lift: level 3 minus none, averaged over the tiers. ${WARN} flags a lift above ${FOCUS_FLAG.above}× or below ${FOCUS_FLAG.below}× the median lift; Plunder (gold, parts and rarity, nothing in a fight) is shown but not flagged.`,
+      `Each family’s focus team at each tier’s end: the party the dungeons are fitted to, with the family’s first class (kitted like the roster) swapped in for the member whose loss costs least unless one of its classes is already there, dressed to push the family, with no briefing: playstyle families on the tier’s medium dungeons, threat families on its dungeons with their own foes (undead, beasts, armoured or elemental foes; for Watch, Cunning and Venom the dungeons that can roll their threat). Each cell: odds with the family’s tags stripped, then points of odds at levels 1 / 2 / 3, the share of runs where level 3 fires (${FIRE_RUNS} runs) and the level the team reaches in its own gear; odds over ${FAMILY_RUNS} runs a dungeon. ${WARN} flags a lift above ${FOCUS_FLAG.above}× the playstyle families’ median over all tiers, a tier above ${FOCUS_FLAG.spike}× the family’s own mean, and a level 3 firing in under 60% of runs (Faith 3’s revive needs a knockout and is exempt). Plunder and Cunning work outside fights and aren’t flagged.`,
       '',
       familyFocusTable(probes.focus),
       '',
@@ -565,7 +535,7 @@ export function specialsBlock(markdown: string): string | null {
 }
 
 /** The markdown report: targets next to results, ⚠ on anything out of range. */
-export function renderReport({ summaries, rules, settings, difficultyOdds, familyProbes, affinity, baseline, specials }: ReportInput) {
+export function renderReport({ summaries, rules, settings, difficultyOdds, familyProbes, baseline, specials }: ReportInput) {
   const regular = summaries.find((s) => s.profile === 'regular');
   const worst = misses(summaries).slice(0, 10);
   const out: string[] = [
@@ -594,15 +564,6 @@ export function renderReport({ summaries, rules, settings, difficultyOdds, famil
     '',
     difficultyTable(difficultyOdds),
   );
-  if (affinity)
-    out.push(
-      '## Class affinity changes',
-      '',
-      'Each class whose favoured weapons changed: the reference team’s win odds per tier with its old reference weapon (picked from the pre-change favoured list) against its new one, measured with the quick odds machinery (src/game/sim/affinity.ts).',
-      '',
-      affinity,
-      '',
-    );
   out.push(...familiesSection(summaries, familyProbes));
   if (specials) out.push(specials);
   out.push(

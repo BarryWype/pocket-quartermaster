@@ -1,16 +1,16 @@
-id,name,kind,answers threat,level 1 (2 tags),level 2 (4 tags),level 3 (6 tags)
-faith,Faith,threat,Holy (undead; desecrated ground),undead and spirits take +10% damage,every hit on undead or spirits heals the hero for 3% of the damage,the first knockout of the run is revived at 25% HP
+id,name,kind,answers threat,level 1 (2 tags),level 2 (4 tags) — signature,level 3 (6 tags)
+faith,Faith,threat,Holy (undead; desecrated ground),undead and spirits take +5% damage,every hit heals the hero for 4% of its damage (any enemy),the first knockout of the run is revived at 15% HP
 wild,Wild,threat,Beasts,beasts deal −10% damage,after each won fight against beasts the party heals 5% and gains +1 fang or horn,once per run a calmed beast fights for the party
-watch,Watch,threat,Darkness (darkness; ambush),+Speed in round 1,the scout finds a way round: skip one fight per run (the weakest),+crit against elites; the party always acts first
+watch,Watch,threat,Darkness (darkness; ambush),+4 Speed in round 1,"ambush: the run's weakest fight is still fought, but its enemies lose their first turn","+crit against elites; the party acts first in round 1"
 cunning,Cunning,threat,Traps (traps; obstacles),"in round 1, a trap hits a random enemy for 10% of its HP",runs take 15% less time; hidden cache steps pay their gold,"an extra loot roll from every hidden cache step, Hidden cache and Sealed vault"
-venom,Venom,threat,Poison,"hits have a 10% chance to poison, even without the Venomous affix","poison stacks up to 3 times on an enemy (each Venomous hit adds a stack, 30% of the hit over 3 rounds; without Venom 2 a new hit refreshes the one poison)",poisoned enemies take +20% damage from everyone
-warding,Warding,threat,Element (5 elements),+elemental resistance,the first elemental hit of each fight is absorbed,20% of elemental damage taken is reflected
-breaker,Breaker,threat,Armoured,ignore 10% of enemy armour,crits stagger the target (it loses its next turn),the first hit of each fight shreds 30% of the target's armour
+venom,Venom,threat,Poison,"hits have a 20% chance to poison, even without the Venomous affix","poison stacks up to 3 times on an enemy, each stack 50% of the hit over 3 rounds (without Venom 2: one poison of 30%, a new hit refreshes it)",poisoned enemies take +20% damage from everyone
+warding,Warding,threat,Element (5 elements),elemental hits taken −8%,the first elemental hit of each fight −25%,10% of elemental damage taken is reflected
+breaker,Breaker,threat,Armoured,+3% party damage; ignore 10% of enemy armour,"a crit staggers its target (it loses its next turn) 30% of the time, once per enemy each fight",the first hit of each fight deals +50% and shreds 30% of the target's armour
 bulwark,Bulwark,playstyle,,the front hero takes −10% damage,the front hero guards the weakest ally (takes 35% of each hit aimed at them),the first hit of each fight on the party deals −35% damage
-bloodrage,Bloodrage,playstyle,,+20% damage below half HP,heal 5% on each kill,below 25% HP an extra attack each round
-shadow,Shadow,playstyle,,+15% crit chance in round 1,+6 evasion; a dodged attack gives a free counter (30% of a hit),each fight a 45% chance the weakest enemy is struck down before it acts
-volley,Volley,playstyle,,ranged weapons act first,ranged hits ignore 20% armour,a volley hits every enemy once per fight
-spellweave,Spellweave,playstyle,,magic damage +5% per round (up to +25%),an Infused (elemental) hit jumps to a second enemy for 30% in the same element,elemental advantage doubled
-pack,Pack,playstyle,,summons last 1 more round,summons hit 25% harder,an extra summon each fight even without a summoner (35% of the hero's hit)
-rally,Rally,playstyle,,+10% party damage,the party heals 5% between fights,every special gets one extra use per run
+bloodrage,Bloodrage,playstyle,,+20% damage below half HP,heal 8% on each kill,below 45% HP an extra attack each round
+shadow,Shadow,playstyle,,+25% crit chance in round 1,+6 evasion; a dodged attack gives a free counter (30% of a hit),each fight a 45% chance the weakest enemy is struck down before it acts
+volley,Volley,playstyle,,ranged weapons act first and deal +10% damage,"opening volley: once per fight, a ranged hero's first blow hits every enemy (the family's hero without one)",the opening volley strikes a second time
+spellweave,Spellweave,playstyle,,magic damage +2.5% per round (up to +12.5%),an Infused (elemental) hit jumps to a second enemy for 40% in the same element,magic damage +10% from round 2; elemental advantage doubled
+pack,Pack,playstyle,,"a spirit hound joins each fight, even without a summoner (35% of the hit of the hero with most Pack tags, 2 rounds)",summons hit 25% harder and last 1 more round,a second hound each fight
+rally,Rally,playstyle,,+5% party damage,the party heals 8% between fights,+5% party damage more; every special gets one extra use per run
 plunder,Plunder,playstyle,,+10% gold,+1 monster part per won fight,loot rolls one rarity step higher

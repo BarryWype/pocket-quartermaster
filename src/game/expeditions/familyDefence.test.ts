@@ -36,9 +36,9 @@ describe('family defence', () => {
       (on, off) => expect(taken(on) / taken(off)).toBeCloseTo(R.warding.elementalTaken), 'warding1', 'The Warding blunted the elements on a.', 'La Protection a émoussé les éléments sur a.'],
     ['Warding 1: not plain hits', 'warding', 1, { party: sturdy },
       (on, off) => expect(taken(on)).toBeCloseTo(taken(off)), 'warding1', null, null],
-    ['Warding 2: the first elemental hit of each fight is absorbed', 'warding', 2, fire,
-      (on, off) => expect(taken(on)).toBeCloseTo((taken(off) - oneHit(off)) * R.warding.elementalTaken), 'warding2', 'The Warding swallowed the first elemental blow aimed at a.', 'La Protection a avalé le premier coup élémentaire visant a.'],
-    ['Warding 3: 20% of elemental damage taken is reflected', 'warding', 3, fire,
+    ['Warding 2: the first elemental hit of each fight is cut by a quarter', 'warding', 2, fire,
+      (on, off) => expect(taken(on)).toBeCloseTo((taken(off) - oneHit(off) * (1 - R.warding.firstHitTaken)) * R.warding.elementalTaken), 'warding2', 'The Warding blunted the first elemental blow aimed at a.', 'La Protection a émoussé le premier coup élémentaire visant a.'],
+    ['Warding 3: 10% of elemental damage taken is reflected', 'warding', 3, fire,
       (on, off) => expect(on.fight.dealt.a - off.fight.dealt.a).toBeCloseTo(taken(on) * R.warding.reflect), 'warding3', 'The Warding turned the elements back on a’s attacker.', 'La Protection a retourné les éléments contre l’assaillant de a.'],
     ['Shadow 2: +Evasion, and every dodge strikes back', 'shadow', 2, { party: sturdy, options: { rules: { ...steady, critMultiplier: 1 } }, seed: 'seed0' },
       (on, off) => {

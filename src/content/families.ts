@@ -78,6 +78,8 @@ export type FamilyEffectId =
   | 'watch2'
   | 'watch3'
   | 'watch3Crit'
+  | 'spellweave3Late'
+  | 'rally3Damage'
   | 'warding1'
   | 'warding2'
   | 'warding3'
@@ -114,34 +116,34 @@ export type FamilyEffectId =
 
 /** The numbers behind the family effects in fights (see game/expeditions/familyEffects.ts). */
 export const familyEffectRules = {
-  /** Damage against these tags; the share of that damage healed (level 2); the HP share the run's first knockout gets back up at (level 3). */
-  faith: { vsTags: ['undead', 'spirit'] as string[], damage: 1.1, healShare: 0.03, revivePct: 0.25 },
+  /** Damage against these tags; the share of every hit's damage healed, against any enemy (level 2); the HP share the run's first knockout gets back up at (level 3). */
+  faith: { vsTags: ['undead', 'spirit'] as string[], damage: 1.05, healShare: 0.04, revivePct: 0.15 },
   /** Damage taken from these tags; after a won fight against them, the party's heal and the monster parts found (level 2). */
   wild: { fromTags: ['beast'] as string[], damageTaken: 0.9, healShare: 0.05, part: 'fangOrHorn', parts: 1 },
   /** The share of its max HP a random enemy loses to a trap as each fight starts; the time a dungeon expedition saves (level 2); extra loot rolls from every hidden cache step, Hidden cache and Sealed vault (level 3). */
   cunning: { trapHit: 0.1, timeCut: 0.15, cacheRolls: 1 },
-  /** Speed added in round 1; regular fights skipped per run, the weakest first (level 2); crit chance added against elites. */
-  watch: { firstRoundSpeed: 3, skippedFights: 1, eliteCrit: 0.1 },
-  /** Elemental hits taken are multiplied; a share of the elemental damage taken is reflected. */
-  warding: { elementalTaken: 0.85, reflect: 0.2 },
-  /** Shares of the enemy armour ignored, and shredded by the first hit of a fight. */
-  breaker: { armourIgnore: 0.1, shred: 0.3 },
+  /** Speed added in round 1; regular fights ambushed per run, the weakest first: their enemies lose their first turn (level 2); crit chance added against elites. */
+  watch: { firstRoundSpeed: 4, ambushedFights: 1, eliteCrit: 0.1 },
+  /** Elemental hits taken are multiplied; each fight's first elemental hit is multiplied again (level 2); a share of the elemental damage taken is reflected (level 3). */
+  warding: { elementalTaken: 0.92, firstHitTaken: 0.75, reflect: 0.1 },
+  /** Party damage and the share of enemy armour ignored (level 1); the chance a crit staggers, once per enemy and fight (level 2); the damage of each fight's first hit, and the armour it shreds (level 3). */
+  breaker: { damage: 1.03, armourIgnore: 0.1, staggerChance: 0.3, firstHit: 1.5, shred: 0.3 },
   /** The front hero's damage taken; the share of the weakest ally's hits the front hero takes; the share of each fight's first hit the party still takes (level 3). */
   bulwark: { frontTaken: 0.9, guardShare: 0.35, firstHitTaken: 0.65 },
   /** Damage below this HP share; the heal on each kill (level 2); the HP share below which a hero attacks twice a round (level 3). */
-  bloodrage: { belowHp: 0.5, damage: 1.2, healOnKill: 0.05, extraBelowHp: 0.25 },
+  bloodrage: { belowHp: 0.5, damage: 1.2, healOnKill: 0.08, extraBelowHp: 0.45 },
   /** Crit chance in round 1; Evasion points added; a counter's share of a normal hit; the chance each fight's weakest enemy is struck down (level 3). */
-  shadow: { firstRoundCrit: 0.15, evasion: 6, counterShare: 0.3, strikeChance: 0.45 },
-  /** The weapons that count as ranged, and the share of armour their hits ignore. */
-  volley: { gearTypes: ['bow', 'crossbow', 'throwing'] as string[], armourIgnore: 0.2 },
-  /** The chance a hit poisons, on top of any Venomous affix; a Venomous poison's share of the hit, its rounds, the stacks an enemy carries (base, and with Venom 2); damage taken by poisoned enemies with Venom 3. */
-  venom: { poisonChance: 0.1, dotShare: 0.3, dotRounds: 3, baseStacks: 1, maxStacks: 3, poisonedTaken: 1.2 },
-  /** Magic damage added each round of a fight, up to the max; an elemental hit's share that jumps to a second enemy; the scale on the wheel's advantage bonus. */
-  spellweave: { perRound: 0.05, max: 0.25, chainShare: 0.3, advantageScale: 2 },
-  /** Rounds added to a summon's; its damage; Pack 3's own summon: its share of the hero's hit, and its rounds (before Pack 1). */
-  pack: { extraRounds: 1, damage: 1.25, summonShare: 0.35, summonRounds: 3 },
-  /** Party damage; the party's heal between fights (level 2); extra uses of every special per run (level 3). */
-  rally: { damage: 1.1, healShare: 0.05, extraSpecialUses: 1 },
+  shadow: { firstRoundCrit: 0.25, evasion: 6, counterShare: 0.3, strikeChance: 0.45 },
+  /** The weapons that count as ranged, and their heroes' damage (level 1). */
+  volley: { gearTypes: ['bow', 'crossbow', 'throwing'] as string[], damage: 1.1 },
+  /** The chance a hit poisons, on top of any Venomous affix; a Venomous poison's share of the hit, its rounds, the stacks an enemy carries (base, and with Venom 2) and each stack's share with Venom 2; damage taken by poisoned enemies with Venom 3. */
+  venom: { poisonChance: 0.2, dotShare: 0.3, dotRounds: 3, baseStacks: 1, maxStacks: 3, stackShare: 0.5, poisonedTaken: 1.2 },
+  /** Magic damage added each round of a fight, up to the max; an elemental hit's share that jumps to a second enemy (level 2); magic damage from round 2, and the scale on the wheel's advantage bonus (level 3). */
+  spellweave: { perRound: 0.025, max: 0.125, chainShare: 0.4, lateDamage: 1.1, advantageScale: 2 },
+  /** The spirit hound each fight: its share of the carrier's hit and its rounds (one at level 1, a second at level 3); every summon's extra rounds and damage (level 2). */
+  pack: { houndShare: 0.35, houndRounds: 2, extraRounds: 1, damage: 1.25 },
+  /** Party damage; the party's heal between fights (level 2); more party damage and extra uses of every special per run (level 3). */
+  rally: { damage: 1.05, healShare: 0.08, lateDamage: 1.05, extraSpecialUses: 1 },
   /** The run's gold; monster parts per won fight (level 2); rarity steps on gear loot (level 3). */
   plunder: { gold: 1.1, partsPerFight: 1, raritySteps: 1 },
 };

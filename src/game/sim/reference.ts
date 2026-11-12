@@ -135,13 +135,14 @@ const TRINKET = 'hawkEyeRing';
  * tier: the previous tier's end, what the bot carries into the new tier, plus
  * the piece of this tier the previous boss's first clear brought.
  * Start of tier 1: the starting trio with a Common weapon each (referenceSave).
+ * `extra` adds heroes of those classes, kitted the same way (the family focus teams).
  */
-export function rosterSave(tier: number, when: 'start' | 'end'): SaveData {
-  if (tier === 1 && when === 'start') return referenceSave(1, 'start', 3);
+export function rosterSave(tier: number, when: 'start' | 'end', extra: HeroClassId[] = []): SaveData {
+  if (tier === 1 && when === 'start' && extra.length === 0) return referenceSave(1, 'start', 3);
   const kitTier = when === 'end' ? tier : tier - 1;
   const level = expectedLevels[kitTier - 1];
   const initial = createInitialSave();
-  const heroes = ROSTER.map((classId, i) =>
+  const heroes = [...ROSTER, ...extra].map((classId, i) =>
     i < startingHeroes.length ? { ...startingHeroes[i], level } : newHero(`r${i}`, classId, classId, '', level, classSpecials[classId].common[0]),
   );
   let save: SaveData = {

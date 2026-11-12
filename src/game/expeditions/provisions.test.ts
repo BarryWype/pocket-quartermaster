@@ -259,7 +259,7 @@ describe('party meals', () => {
   });
 
   it('Mushroom risotto: +10% Resistance blunts magic hits', () => {
-    const caster: BossDef = { ...weakBoss, speed: 10, damage: 40, damageType: 'magic' };
+    const caster: BossDef = { ...weakBoss, speed: 20, damage: 40, damageType: 'magic' };
     const defence = (resistance: number) => Math.round(100 - (40 * 100) / (100 + expeditionRules.defenseFactor * resistance));
     expect(mealRun(null, caster, undefined).hp[0].hp).toBe(defence(10));
     expect(mealRun({ kind: 'resistance', multiplier: provisionRules.meals.risottoResistance }, caster, undefined).hp[0].hp).toBe(defence(11));

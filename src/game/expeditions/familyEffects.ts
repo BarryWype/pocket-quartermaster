@@ -11,6 +11,15 @@ import type { FamilyLevels } from '../families/families';
 import type { Tag } from '../types';
 import type { EnemyState, HeroState } from './simulate';
 
+/** Enemies Breaker 2 has staggered (enemies are new objects every fight). */
+const staggeredOnce = new WeakSet<EnemyState>();
+
+/** The hero with the most Pack tags (the first in party order on a tie), whose hit the spirit hound copies. */
+function packCarrier(f: FamilyBase): HeroState | undefined {
+  const count = (h: HeroState) => h.member.familyTags.filter((t) => t.family === 'pack').reduce((n, t) => n + t.count, 0);
+  return f.alive().reduce<HeroState | undefined>((best, h) => (!best || count(h) > count(best) ? h : best), undefined);
+}
+
 /** What every hook gets: once-only flags, the log and the party's family heroes. */
 export type FamilyBase = {
   /** True the first time `key` is asked in this fight, or in this run with `scope` 'run'. */
@@ -43,6 +52,8 @@ export type RunPlan = {
   heroOf: (family: FamilyId) => HeroState | undefined;
   /** The step passes quietly, with this effect in its log line. */
   skip: (index: number, effect: FamilyEffectId, heroId: string | null) => void;
+  /** The fight at this step is ambushed: its enemies lose their first turn. */
+  ambush: (index: number, effect: FamilyEffectId, heroId: string | null) => void;
 };
 
 /** Before round 1, once the enemies stand. */
@@ -244,6 +255,8 @@ export type PoisonCap = FamilyBase & {
   stacks: number;
   /** How many it may carry; effects may raise it. */
   cap: number;
+  /** The poison's share of the hit; effects may raise it. */
+  share: number;
 };
 
 export type FamilyHooks = {
@@ -294,7 +307,7 @@ export const familyEffects: FamilyEffect[] = [
     hooks: {
       incoming: (i) => {
         if (i.element === undefined || !i.once('warding2')) return;
-        i.absorbed = true;
+        i.damage *= R.warding.firstHitTaken;
         i.log('warding2', idOf(i.hero));
       },
     },
@@ -359,6 +372,10 @@ export const familyEffects: FamilyEffect[] = [
     level: 3,
     hooks: {
       beforeAttack: (a) => {
+        if (a.hero.member.damageStat === 'magic' && a.round >= 2) {
+          a.multiplier *= R.spellweave.lateDamage;
+          a.log('spellweave3Late', idOf(a.hero));
+        }
         if (!a.beats) return;
         a.advantageScale *= R.spellweave.advantageScale;
         a.log('spellweave3', idOf(a.hero));
@@ -393,6 +410,11 @@ export const familyEffects: FamilyEffect[] = [
     family: 'volley',
     level: 1,
     hooks: {
+      beforeAttack: (a) => {
+        if (!a.hero.member.ranged) return;
+        a.multiplier *= R.volley.damage;
+        a.log('volley1', idOf(a.hero));
+      },
       turnOrder: (o) => {
         if (!o.hero.member.ranged || o.first) return;
         o.first = true;
@@ -405,7 +427,7 @@ export const familyEffects: FamilyEffect[] = [
     level: 3,
     hooks: {
       turnOrder: (o) => {
-        if (o.first) return;
+        if (o.first || o.round !== 1) return;
         o.first = true;
         if (o.speed < o.fastest || o.ambushed) o.log('watch3', idOf(o.hero));
       },
@@ -511,8 +533,9 @@ export const familyEffects: FamilyEffect[] = [
     level: 3,
     hooks: {
       beforeAttack: (a) => {
-        if (!a.armoured || !a.once('breaker3')) return;
-        a.target.armour *= 1 - R.breaker.shred;
+        if (!a.main || !a.once('breaker3')) return;
+        a.multiplier *= R.breaker.firstHit;
+        if (a.armoured) a.target.armour *= 1 - R.breaker.shred;
         a.log('breaker3', idOf(a.hero));
       },
     },
@@ -522,20 +545,9 @@ export const familyEffects: FamilyEffect[] = [
     level: 1,
     hooks: {
       beforeAttack: (a) => {
-        if (!a.armoured) return;
-        a.armourKept *= 1 - R.breaker.armourIgnore;
+        a.multiplier *= R.breaker.damage;
+        if (a.armoured) a.armourKept *= 1 - R.breaker.armourIgnore;
         a.log('breaker1', idOf(a.hero));
-      },
-    },
-  },
-  {
-    family: 'volley',
-    level: 2,
-    hooks: {
-      beforeAttack: (a) => {
-        if (!a.armoured || !a.hero.member.ranged) return;
-        a.armourKept *= 1 - R.volley.armourIgnore;
-        a.log('volley2', idOf(a.hero));
       },
     },
   },
@@ -546,8 +558,8 @@ export const familyEffects: FamilyEffect[] = [
     hooks: {
       runPlan: (p) => {
         const watcher = p.heroOf('watch');
-        const weakest = [...p.fights].sort((a, b) => a.strength - b.strength || a.index - b.index).slice(0, R.watch.skippedFights);
-        for (const fight of weakest) p.skip(fight.index, 'watch2', watcher ? idOf(watcher) : null);
+        const weakest = [...p.fights].sort((a, b) => a.strength - b.strength || a.index - b.index).slice(0, R.watch.ambushedFights);
+        for (const fight of weakest) p.ambush(fight.index, 'watch2', watcher ? idOf(watcher) : null);
       },
     },
   },
@@ -556,7 +568,9 @@ export const familyEffects: FamilyEffect[] = [
     level: 2,
     hooks: {
       onHit: (h) => {
-        if (!h.crit || h.target.hp <= 0 || h.target.staggered) return;
+        if (!h.crit || h.target.hp <= 0 || h.target.staggered || staggeredOnce.has(h.target) || !h.chance(R.breaker.staggerChance)) return;
+        // Enemies are new objects every fight, so this holds once per enemy and fight.
+        staggeredOnce.add(h.target);
         h.target.staggered = true;
         h.log('breaker2', idOf(h.hero));
       },
@@ -576,13 +590,27 @@ export const familyEffects: FamilyEffect[] = [
   },
   {
     family: 'volley',
-    level: 3,
+    level: 2,
     hooks: {
       beforeAttack: (a) => {
         if (!a.main) return;
-        // A ranged hero looses the volley; without one, the volley's own hero.
+        // The opening volley: a ranged hero looses it; without one, the volley's own hero.
         const volleyer = a.alive().find((h) => h.member.ranged) ?? a.heroOf('volley');
-        if (a.hero !== volleyer || !a.once('volley3')) return;
+        if (a.hero !== volleyer || !a.once(`volley:${idOf(a.hero)}`)) return;
+        a.allEnemies = true;
+        a.log('volley2', idOf(a.hero));
+      },
+    },
+  },
+  {
+    family: 'volley',
+    level: 3,
+    hooks: {
+      beforeAttack: (a) => {
+        // The opening volley strikes a second time: the volleyer's next blow hits every enemy too.
+        if (!a.main || a.allEnemies) return;
+        const volleyer = a.alive().find((h) => h.member.ranged) ?? a.heroOf('volley');
+        if (a.hero !== volleyer || a.once(`volley:${idOf(a.hero)}`) || !a.once(`volley3:${idOf(a.hero)}`)) return;
         a.allEnemies = true;
         a.log('volley3', idOf(a.hero));
       },
@@ -596,25 +624,20 @@ export const familyEffects: FamilyEffect[] = [
       runStart: (r) => {
         r.specialUses += R.rally.extraSpecialUses;
       },
+      beforeAttack: (a) => {
+        a.multiplier *= R.rally.lateDamage;
+        const rallier = a.heroOf('rally');
+        a.log('rally3Damage', rallier ? idOf(rallier) : null);
+      },
     },
   },
   // Summons.
   {
     family: 'pack',
-    level: 1,
-    hooks: {
-      summon: (s) => {
-        if (s.rounds === null) return;
-        s.rounds += R.pack.extraRounds;
-        s.log('pack1', idOf(s.hero));
-      },
-    },
-  },
-  {
-    family: 'pack',
     level: 2,
     hooks: {
       summon: (s) => {
+        if (s.rounds !== null) s.rounds += R.pack.extraRounds;
         s.damage *= R.pack.damage;
         s.log('pack2', idOf(s.hero));
       },
@@ -639,11 +662,21 @@ export const familyEffects: FamilyEffect[] = [
   },
   {
     family: 'pack',
+    level: 1,
+    hooks: {
+      fightReady: (f) => {
+        const hero = packCarrier(f);
+        if (hero && f.summon(hero, R.pack.houndShare, R.pack.houndRounds)) f.log('pack1', idOf(hero));
+      },
+    },
+  },
+  {
+    family: 'pack',
     level: 3,
     hooks: {
       fightReady: (f) => {
-        const hero = f.heroOf('pack');
-        if (hero && f.summon(hero, R.pack.summonShare, R.pack.summonRounds)) f.log('pack3', idOf(hero));
+        const hero = packCarrier(f);
+        if (hero && f.summon(hero, R.pack.houndShare, R.pack.houndRounds)) f.log('pack3', idOf(hero));
       },
     },
   },
@@ -653,7 +686,6 @@ export const familyEffects: FamilyEffect[] = [
     level: 2,
     hooks: {
       onHit: (h) => {
-        if (!h.tags.some((tag) => R.faith.vsTags.includes(tag))) return;
         if (h.heal(h.hero, (R.faith.healShare * h.damage) / h.hero.member.maxHp) > 0) h.log('faith2', idOf(h.hero));
       },
     },
@@ -792,6 +824,7 @@ export const familyEffects: FamilyEffect[] = [
     hooks: {
       poisonCap: (c) => {
         c.cap = R.venom.maxStacks;
+        c.share = R.venom.stackShare;
         // Only a stack past the base cap is the family's doing.
         if (c.stacks >= R.venom.baseStacks && c.stacks < R.venom.maxStacks) c.log('venom2', idOf(c.hero));
       },

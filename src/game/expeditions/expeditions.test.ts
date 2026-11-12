@@ -191,10 +191,10 @@ describe('resolveExpedition', () => {
 
   it('pays in full for the boss and the cleared share on a retreat', () => {
     const dungeon = dungeonById.banditStockade;
-    // Tier 1 is still the highest, so its XP isn't reduced; levelled heroes, so the boss falls sometimes.
+    // Tier 1 is still the highest, so its XP isn't reduced; levelled heroes in tier 2 gear, so the boss falls sometimes.
     // Rat Cellar counts as the day's first win; the boss is the tier's first clear, so its bonus XP shows too.
     const save = {
-      ...geared(),
+      ...atTier(geared(), 2),
       heroes: geared().heroes.map((h) => ({ ...h, level: 4 })),
       clearedDungeons: ['ratCellar', 'millRuins'],
       firstWinDay: rotationDay(dungeon.durationMinutes * MIN),
@@ -484,7 +484,7 @@ describe('first tier clear', () => {
     const started = startExpedition({ ...save, nextUid: 100 }, dungeonId, ALL, endsAt - dungeon.durationMinutes * MIN);
     return resolveExpedition(started, started.expeditions[0]);
   };
-  const strong = () => ({ ...geared(), heroes: geared().heroes.map((h) => ({ ...h, level: 15 })), clearedDungeons: [] });
+  const strong = () => ({ ...atTier(geared(), 2), heroes: geared().heroes.map((h) => ({ ...h, level: 15 })), clearedDungeons: [] });
 
   it('is paid only through the tier boss; chain dungeons pay their own first clear', () => {
     const first = win(strong(), 'ratCellar');

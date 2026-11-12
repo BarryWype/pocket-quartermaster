@@ -42,6 +42,7 @@ export function FamilyLevelLines({ family, count }: { family: FamilyId; /** The 
           <View key={level} style={[styles.level, reached && styles.reached]}>
             <View style={styles.levelHead}>
               <Text style={[styles.levelTitle, reached && styles.reachedText]}>{t('families.level', { marks: levelMarks(level), count: needed })}</Text>
+              {level === 2 && <Text style={styles.toReach}>{t('families.signature')}</Text>}
               {isNext && <Text style={styles.toReach}>{t('families.toReach', { count: needed - count })}</Text>}
             </View>
             <Text style={styles.effect}>{t(`families.effects.${family}${level}` as TextKey)}</Text>

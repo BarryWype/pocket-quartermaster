@@ -41,35 +41,35 @@ describe('family control', () => {
     expect(familyFight(family, level, setup).run).toEqual(on.run);
   });
 
-  test('Watch 2: the scout finds a way round one fight of the run, quietly', () => {
-    const setup: FightSetup = { mobs: [{ mobId: 'giantRat', count: 3 }], fights: 3, party: { a: { power: 1000, maxHp: 1e6 } } };
+  test('Watch 2: the party ambushes one fight of the run, whose enemies lose their first turn', () => {
+    const setup: FightSetup = { mobs: [{ mobId: 'giantRat', count: 3 }], fights: 3, party: { a: { power: 4, maxHp: 1e6 } } };
     const on = familyFight('watch', 2, setup);
     const off = familyFight(null, 0, setup);
     expect(off.run.encounters.map((e) => e.kind)).toEqual(['fight', 'fight', 'fight', 'boss']);
-    // Equal fights: the first is the weakest.
+    // Equal fights: the first is the weakest, and it is still fought.
     expect(on.run.encounters.map((e) => [e.kind, logged(e, 'watch2')])).toEqual([
-      ['quiet', 1],
+      ['fight', 1],
       ['fight', 0],
       ['fight', 0],
       ['boss', 0],
     ]);
-    expect(on.run.encountersCleared).toBe(off.run.encountersCleared);
-    expect(on.log).toContain('A found a way round: the party slipped past this fight.');
-    expect(on.logFr).toContain('A a trouvé un détour : le groupe a évité ce combat.');
+    expect(on.run.encounters[0].taken.a).toBeLessThan(off.run.encounters[0].taken.a);
+    expect(on.log).toContain('a led the party into an ambush: the enemies lost their first turn.');
+    expect(on.logFr).toContain('a a mené le groupe dans une embuscade : les ennemis ont perdu leur premier tour.');
   });
 
-  test('Watch 2 skips the weakest fight, the first of equals, and never the boss', () => {
+  test('Watch 2 ambushes the weakest fight, the first of equals, and never the boss', () => {
     const watch2 = familyEffects.find((e) => e.family === 'watch' && e.level === 2)!;
-    const skipped: number[] = [];
+    const ambushed: number[] = [];
     const plan = (fights: { index: number; strength: number }[]) => {
-      skipped.length = 0;
-      watch2.hooks.runPlan!({ fights, heroOf: () => undefined, skip: (index) => skipped.push(index) });
-      return [...skipped];
+      ambushed.length = 0;
+      watch2.hooks.runPlan!({ fights, heroOf: () => undefined, skip: () => undefined, ambush: (index) => ambushed.push(index) });
+      return [...ambushed];
     };
     expect(plan([{ index: 0, strength: 50 }, { index: 2, strength: 10 }, { index: 3, strength: 30 }])).toEqual([2]);
     expect(plan([{ index: 1, strength: 10 }, { index: 4, strength: 10 }])).toEqual([1]);
     expect(plan([])).toEqual([]);
-    // A boss-only run has no fight to skip.
+    // A boss-only run has no fight to ambush.
     expect(familyFight('watch', 2, { party: { a: sturdy } }).run.encounters.map((e) => e.kind)).toEqual(['boss']);
   });
 });

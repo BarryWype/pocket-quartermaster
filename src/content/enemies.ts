@@ -22,6 +22,16 @@ export const enemySpeedRules: Record<SpeedClass, number> & { speedPerTier: numbe
 // the tier's start and end (difficultyRules.oddsTargets) and the boss's.
 export const TIER_SCALE = [1, 1.9, 3, 4.2, 5.6];
 
+/**
+ * Elemental foes of these tiers (not bosses) trade damage for HP, so their
+ * fights last about four rounds instead of being decided in two (the
+ * strength fit then keeps the odds on target).
+ */
+export const elementalTrade: Partial<Record<number, { hp: number; damage: number }>> = {
+  3: { hp: 2.2, damage: 0.5 },
+  5: { hp: 2, damage: 0.55 },
+};
+
 /** A dungeon's scaling, with its tier for enemy Speed. */
 type Strength = { tier: number; scale: number };
 
@@ -74,12 +84,14 @@ function mob(
   element?: Element,
   speedClass: SpeedClass = 'normal',
   damageType?: DamageStat,
+  traded = true,
 ): MobDef {
+  const trade = element && traded ? elementalTrade[s.tier] : undefined;
   return {
     id,
     name,
-    hp: Math.round(hp * s.scale),
-    damage: Math.round(damage * s.scale),
+    hp: Math.round(hp * s.scale * (trade?.hp ?? 1)),
+    damage: Math.round(damage * s.scale * (trade?.damage ?? 1)),
     // Elemental enemies and casters hit with Magic, everyone else with Power.
     damageType: damageType ?? (element ? 'magic' : 'power'),
     speed: enemySpeed(s.tier, speedClass),
@@ -101,7 +113,8 @@ function boss(
   speedClass: SpeedClass = 'normal',
   damageType?: DamageStat,
 ): BossDef {
-  return { ...mob(id, name, s, hp, damage, tags, element, speedClass, damageType), effect };
+  // Bosses keep their stats: a chain boss's HP stays below its tier boss's.
+  return { ...mob(id, name, s, hp, damage, tags, element, speedClass, damageType, false), effect };
 }
 
 const S = {
@@ -216,8 +229,8 @@ export const mobs: MobDef[] = [
   mob('magmaSlug', 'magma slug', S.cinderHollow, 16, 4, ['vermin', 'beast'], 'fire', 'slow'),
   mob('emberHound', 'ember hound', S.cinderHollow, 18, 5, ['beast'], 'fire', 'fast'),
   mob('tunnelBeetle', 'tunnel beetle', S.dwarfhold, 10, 3, ['carapace', 'beast']),
-  mob('stoneWarden', 'stone warden', S.dwarfhold, 16, 4, ['construct'], 'stone', 'slow'),
-  mob('runeGolem', 'rune golem', S.dwarfhold, 24, 5, ['construct'], 'stone', 'slow'),
+  mob('stoneWarden', 'stone warden', S.dwarfhold, 16, 4, ['construct'], undefined, 'slow'),
+  mob('runeGolem', 'rune golem', S.dwarfhold, 24, 5, ['construct'], undefined, 'slow'),
   mob('marshToad', 'marsh toad', S.witchMarsh, 8, 3, ['vermin', 'beast'], 'grass'),
   mob('bogling', 'bogling', S.witchMarsh, 14, 4, ['goblinoid'], 'grass'),
   mob('hexedHunter', 'hexed hunter', S.witchMarsh, 18, 5, ['humanoid']),
@@ -289,7 +302,7 @@ export const bosses: BossDef[] = [
   boss('sporeQueen', 'spore queen', S.fungalGrotto, 55, 7, ['vermin'], undefined, 'grass'),
   boss('stormRoc', 'storm roc', S.stormRidge, 55, 7, ['bird', 'beast'], undefined, 'electric', 'fast'),
   boss('ashWyrm', 'ash wyrm', S.cinderHollow, 70, 8, ['dragon', 'beast'], undefined, 'fire'),
-  boss('forgeGuardian', 'forge guardian', S.dwarfhold, 70, 8, ['construct'], undefined, 'stone', 'slow'),
+  boss('forgeGuardian', 'forge guardian', S.dwarfhold, 70, 8, ['construct'], undefined, undefined, 'slow'),
   boss('marshWitch', 'marsh witch', S.witchMarsh, 70, 8, ['caster'], 'enrage', 'grass'),
   boss('lichOfTheDeep', 'lich of the deep', S.drownedCrypt, 125, 10, ['undead', 'caster'], 'enrage', undefined, 'normal', 'magic'),
   boss('harpyMatriarch', 'harpy matriarch', S.harpyCliffs, 55, 7, ['bird', 'beast'], 'sweep', undefined, 'fast'),

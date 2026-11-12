@@ -751,6 +751,8 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
   const ignores = (hero: HeroState, id: RestrictionId) => own(hero, 'ignoresRestrictions')?.restrictions.includes(id) ?? false;
   /** Raised enemies who fight for the party in the next fight, and the threats whose fallen were already raised. */
   let raised: { def: MobDef | BossDef; damage: number; heroId: string; tag: Tag }[] = [];
+  /** The fight being run was ambushed by the party (Watch 2): its enemies lose their first turn. */
+  let surprised: { effect: FamilyEffectId; heroId: string | null } | null = null;
   const raisedFor = new Set<string>();
   /** A relic effect at work: one note per encounter and hero. */
   const noteRelic = (result: EncounterResult, heroId: string, relicId: string) => {
@@ -1446,12 +1448,14 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           if (poisons) {
             const stacks = ctx.dots.filter((d) => d.enemy === target && d.source === 'venomous');
             let cap = familyEffectRules.venom.baseStacks;
+            let share = familyEffectRules.venom.dotShare;
             if (hooks.poisonCap.length > 0) {
-              const poisonCap = { ...family, hero, target, stacks: stacks.length, cap };
+              const poisonCap = { ...family, hero, target, stacks: stacks.length, cap, share };
               for (const hook of hooks.poisonCap) hook(poisonCap);
               cap = poisonCap.cap;
+              share = poisonCap.share;
             }
-            const dotDamage = damage * familyEffectRules.venom.dotShare;
+            const dotDamage = damage * share;
             if (stacks.length < cap) {
               ctx.dots.push({ heroId: id, enemy: target, damage: dotDamage, rounds: familyEffectRules.venom.dotRounds, source: 'venomous' });
             } else {
@@ -1511,6 +1515,10 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       return amount - moved;
     };
     const enemiesAttack = (round: number) => {
+      if (surprised && round === 1) {
+        result.effects.push({ heroId: surprised.heroId, key: 'family', familyEffect: surprised.effect });
+        return;
+      }
       // The boss's first turn is when the specials waiting for it fire.
       if (isBoss && !ctx.bossTurn) {
         ctx.bossTurn = true;
@@ -2074,6 +2082,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
   guarantee('traps', 'trap');
   /** Steps a family effect skips (Watch 2), with the effect to log on each. */
   const skipped = new Map<number, { effect: FamilyEffectId; heroId: string | null }>();
+  const ambushes = new Map<number, { effect: FamilyEffectId; heroId: string | null }>();
   if (hooks.runPlan.length > 0) {
     // A fight's strength: its enemies' HP times their damage, summed.
     const fights = steps.flatMap((step, index) =>
@@ -2083,6 +2092,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       fights,
       heroOf: (family: FamilyId) => heroes.find((h) => h.member.familyTags.some((t) => t.family === family)) ?? heroes[0],
       skip: (index: number, effect: FamilyEffectId, heroId: string | null) => skipped.set(index, { effect, heroId }),
+      ambush: (index: number, effect: FamilyEffectId, heroId: string | null) => ambushes.set(index, { effect, heroId }),
     };
     for (const hook of hooks.runPlan) hook(plan);
   }
@@ -2105,7 +2115,9 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         if (i === midpoint) opportunity = resolveOpportunity(result);
         continue;
       }
+      surprised = ambushes.get(i) ?? null;
       const result = runEncounter(steps[i]);
+      surprised = null;
       encounters.push(result);
       if (!result.cleared) break;
       if (i === midpoint && i < encounterCount - 1) opportunity = resolveOpportunity(result);

@@ -17,6 +17,14 @@ const killRound = (hp: number, summon: number, rounds: number) => {
     if (total >= hp) return round;
   }
 };
+/** The same with several summons, each [damage a round, rounds]. */
+const killRoundMany = (hp: number, summons: [number, number][]) => {
+  let total = 0;
+  for (let round = 1; ; round++) {
+    total += power + summons.reduce((sum, [damage, n]) => sum + (round <= n ? damage : 0), 0);
+    if (total >= hp) return round;
+  }
+};
 const turret = specials.turret.effect as { share: number; rounds: number };
 /** A boss of `hp` that never hurts back, against a hero with the Engineer's turret. */
 const withTurret = (hp: number): FightSetup => ({ boss: { hp, damage: 0 }, party: { a: { special: 'turret' } }, options: noSecond });
@@ -34,28 +42,30 @@ type Case = [string, FamilyId, number, FightSetup, (on: FamilyFight, off: Family
 
 describe('family summons', () => {
   test.each<Case>([
-    // The turret's hits of 4 for 3 rounds fell 55 HP in round 5; a fourth round fells it in round 4.
-    ['Pack 1: a summon stays one more round', 'pack', 1, withTurret(55),
+    // With no summoner, the hound alone hits for 35% of the hero's hit for 2 rounds.
+    ['Pack 1: a spirit hound joins the fight, without a summoner', 'pack', 1, plain(55),
+      (on, off) => {
+        expect(rounds(off)).toBe(killRound(55, 0, 0));
+        expect(rounds(on)).toBe(killRound(55, R.pack.houndShare * power, R.pack.houndRounds));
+      }, 'pack1', 'A spirit hound answered a’s call.', 'Un chien spectral a répondu à l’appel de a.'],
+    // With a summoner, the hound comes too: the turret and the hound both hit.
+    ['Pack 1: the hound joins a summoner’s turret', 'pack', 1, withTurret(55),
       (on, off) => {
         expect(rounds(off)).toBe(killRound(55, turret.share * power, turret.rounds));
-        expect(rounds(on)).toBe(killRound(55, turret.share * power, turret.rounds + R.pack.extraRounds));
-        expect(rounds(on)).toBeLessThan(rounds(off));
-      }, 'pack1', 'The pack kept a’s summon in the fight a round longer.', 'La meute a gardé l’invocation de a au combat un tour de plus.'],
-    ['Pack 1: nothing without a summon', 'pack', 1, plain(55),
-      (on, off) => expect(rounds(on)).toBe(rounds(off)), 'pack1', null, null],
-    // Level 2 still runs Pack 1: the stronger turret stays four rounds.
-    ['Pack 2: summons hit 50% harder, Pack 1 still applies', 'pack', 2, withTurret(60),
+        expect(rounds(on)).toBe(killRoundMany(55, [[turret.share * power, turret.rounds], [R.pack.houndShare * power, R.pack.houndRounds]]));
+      }, 'pack1', 'A spirit hound answered a’s call.', null],
+    ['Pack 2: every summon hits 25% harder and stays a round longer, the hound included', 'pack', 2, withTurret(60),
       (on) => {
-        expect(rounds(on)).toBe(killRound(60, turret.share * power * R.pack.damage, turret.rounds + R.pack.extraRounds));
-        expect(rounds(on)).toBeLessThan(killRound(60, turret.share * power, turret.rounds + R.pack.extraRounds));
+        const boost = (share: number, n: number): [number, number] => [share * power * R.pack.damage, n + R.pack.extraRounds];
+        expect(rounds(on)).toBe(killRoundMany(60, [boost(turret.share, turret.rounds), boost(R.pack.houndShare, R.pack.houndRounds)]));
         expect(logged(on.fight, 'pack1')).toBe(1);
-      }, 'pack2', 'The pack drove a’s summon to hit harder.', 'La meute a poussé l’invocation de a à frapper plus fort.'],
-    // With no summoner, Pack 3's beast (shaped by Pack 1 and 2) fells the boss well before the hero alone would.
-    ['Pack 3: an extra summon each fight, without a summoner', 'pack', 3, plain(69),
+      }, 'pack2', 'The pack drove a’s summon harder and longer.', 'La meute a poussé l’invocation de a à frapper plus fort et plus longtemps.'],
+    ['Pack 3: a second hound, both shaped by Pack 2', 'pack', 3, plain(69),
       (on, off) => {
         expect(rounds(off)).toBe(killRound(69, 0, 0));
-        expect(rounds(on)).toBe(killRound(69, R.pack.summonShare * power * R.pack.damage, R.pack.summonRounds + R.pack.extraRounds));
-      }, 'pack3', 'A beast of the pack answered a’s call.', 'Une bête de la meute a répondu à l’appel de a.'],
+        const hound = R.pack.houndShare * power * R.pack.damage;
+        expect(rounds(on)).toBe(killRoundMany(69, [[hound, R.pack.houndRounds + R.pack.extraRounds], [hound, R.pack.houndRounds + R.pack.extraRounds]]));
+      }, 'pack3', 'A second spirit hound answered a’s call.', 'Un second chien spectral a répondu à l’appel de a.'],
     // One rat is calmed and leaves; only the other strikes the hero, softened by Wild 1.
     ['Wild 3: a calmed beast leaves the enemies and fights for the party', 'wild', 3, rats,
       (on, off) => {

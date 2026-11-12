@@ -431,23 +431,10 @@ export const dungeons: DungeonDef[] = [
 
   // Tier 3: copper
   {
-    id: 'stormRidge',
-    name: 'Storm Ridge',
-    emoji: '⚡',
-    chainIndex: 0,
-    ...chain(3, 'easy'),
-    encounters: encounterPool(
-      ['sparkMoth', 'stormHawk', 'boltElemental'],
-      { name: 'lightning rod', element: 'electric' },
-      [{ type: 'fight', weight: 2, mobs: [{ mobId: 'boltElemental', count: 2 }] }],
-    ),
-    boss: bossById.stormRoc,
-  },
-  {
     id: 'dwarfhold',
     name: 'Collapsed Dwarfhold',
     emoji: '⛏️',
-    chainIndex: 1,
+    chainIndex: 0,
     ...chain(3, 'easy'),
     encounters: encounterPool(
       ['tunnelBeetle', 'stoneWarden', 'runeGolem'],
@@ -455,6 +442,19 @@ export const dungeons: DungeonDef[] = [
       [obstacle('rubble', 'collapsed gallery', 3), obstacle('locked', 'dwarven vault door', 2), locals('lostMiner')],
     ),
     boss: bossById.forgeGuardian,
+  },
+  {
+    id: 'stormRidge',
+    name: 'Storm Ridge',
+    emoji: '⚡',
+    chainIndex: 1,
+    ...chain(3, 'easy'),
+    encounters: encounterPool(
+      ['sparkMoth', 'stormHawk', 'boltElemental'],
+      { name: 'lightning rod', element: 'electric' },
+      [{ type: 'fight', weight: 2, mobs: [{ mobId: 'boltElemental', count: 2 }] }],
+    ),
+    boss: bossById.stormRoc,
   },
   {
     id: 'witchMarsh',

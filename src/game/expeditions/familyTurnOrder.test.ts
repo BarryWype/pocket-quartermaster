@@ -48,9 +48,9 @@ describe('family turn order and first strikes', () => {
       (on, off) => expect(hitsTaken(on) / hitsTaken(off)).toBeCloseTo(3 / 6), 'volley1', 'a loosed before the enemy could close in.', 'a a tiré avant que l’ennemi ne puisse approcher.'],
     ['Volley 1: not without a ranged weapon', 'volley', 1, rats,
       (on, off) => expect(hitsTaken(on)).toBeCloseTo(hitsTaken(off)), 'volley1', null, null],
-    // Two fights: Watch 2 skips one.
-    ['Watch 3: the party always acts first', 'watch', 3, { ...rats, fights: 2 },
-      (on, off) => expect(hitsTaken(on) / hitsTaken(off)).toBeCloseTo(3 / 6), 'watch3', 'Nothing caught the Watch off guard: a struck first.', 'Rien n’a surpris la Vigie : a a frappé le premier coup.'],
+    // Two fights, the first ambushed by Watch 2 (no rat strikes in its round 1); Watch 3 puts the party first in round 1 of the other.
+    ['Watch 3: the party acts first in round 1', 'watch', 3, { ...rats, fights: 2, party: { a: { power: 1000, speed: 0 } } },
+      (on, off) => expect(hitsTaken(on)).toBeLessThan(hitsTaken(off)), 'watch3', 'Nothing caught the Watch off guard: a struck first.', 'Rien n’a surpris la Vigie : a a frappé le premier coup.'],
     ['Shadow 3: the weakest enemy falls before it acts', 'shadow', 3, { mobs: [{ mobId: 'giantRat', count: 1 }, { mobId: 'ratSwarm', count: 1 }], party: { a: { power: 0.001, maxHp: 1e6 } }, options: noSecond },
       (on, off) => {
         // The rat (8 HP) is gone at once, the swarm (18 HP) stands; only the swarm ever hits.

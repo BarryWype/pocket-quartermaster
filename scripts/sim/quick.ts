@@ -4,8 +4,8 @@ import { applyOverrides, parseOverride } from '@/game/sim/overrides';
 import { quickProbe, type QuickTier } from '@/game/sim/quick';
 import { inRange, targets } from '@/game/sim/targets';
 import { focusOdds, familyName, venomousOdds } from '@/game/sim/familyFocus';
-import { levelLifts, threatCosts } from '@/game/sim/threatCosts';
-import { affinityTable, familyFocusTable, venomTable } from './report';
+import { threatCosts } from '@/game/sim/threatCosts';
+import { familyFocusTable, venomTable } from './report';
 
 const USAGE = `npm run sim:quick -- [options]
   --days N        rotation days to sample (default: sim.quick.days)
@@ -40,7 +40,7 @@ const familyRuns = options.runs ?? simConfig.quick.runs;
 
 /** The family tables: each playstyle family's focus odds and flag, and the Venomous affix outside Venom parties. */
 function familyTables() {
-  console.log('\n## Win odds per family focus (team odds with the family stripped → at level 3)');
+  console.log('\n## Lift per family focus (odds with no tags: points at L1 / L2 / L3, L3 fires, level reached)');
   console.log(familyFocusTable(focusOdds(familyRuns)));
   console.log('\n## Venomous outside Venom parties (points over no affix)');
   console.log(venomTable(venomousOdds(familyRuns)));
@@ -120,21 +120,5 @@ for (const key of [...new Set(costs.map((r) => `${r.threat}|${r.level}`))]) {
   console.log(`| ${threat} | ${level} | ${cells.join(' | ')} |`);
 }
 
-const lifts = levelLifts(breakdownRuns);
-console.log('\n## Family lift by level (fitted party at tier end, medium dungeons, no briefing; odds with no tags: points over no tags at L1 / L2 / L3)');
-console.log(`| family | ${costTiers.map((t) => `tier ${t}`).join(' | ')} | mean L1 / L2 / L3 |`);
-console.log(`| --- |${costTiers.map(() => ' --- |').join('')} --- |`);
-for (const family of [...new Set(lifts.map((r) => r.family))]) {
-  const mine = lifts.filter((r) => r.family === family);
-  const lift = (r: (typeof lifts)[number]) => [1, 2, 3].map((l) => r.odds[l] - r.odds[0]);
-  const avg = [0, 1, 2].map((i) => mine.reduce((sum, r) => sum + lift(r)[i], 0) / mine.length);
-  console.log(`| ${familyName(family)} | ${costTiers.map((tier) => {
-    const r = mine.find((row) => row.tier === tier)!;
-    return `${pct0(r.odds[0])}: ${lift(r).map(pts).join(' / ')}`;
-  }).join(' | ')} | ${avg.map(pts).join(' / ')} |`);
-}
-
 familyTables();
-console.log('\n## Class affinity changes (reference odds, old vs new favoured weapon)');
-console.log(affinityTable(options.runs));
 console.log(`\n${((performance.now() - started) / 1000).toFixed(1)} s`);

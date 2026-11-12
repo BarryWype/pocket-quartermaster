@@ -259,6 +259,8 @@ export const lootConfig = {
     } as Partial<Record<LootSourceId, 'relic' | 'parts' | 'stone'>>,
     parts: [2, 3] as [number, number],
   },
+  /** Tier bosses whose first clear also gives an elemental stone, of the next tier's first elemental dungeon (tier 2's: before the elemental tier). */
+  bossStones: [2],
   /** Key fragments needed for one mysterious key. */
   keyFragmentsPerKey: 4,
   /** Sigil drops by slot, with a pity counter and a shard cap per tier. */
