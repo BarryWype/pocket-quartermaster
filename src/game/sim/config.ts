@@ -178,9 +178,9 @@ export const simConfig = {
     'shards',
     'questReroll',
     'tavernOffer',
-    'rosterSlot7',
+    'rosterSlot13',
     'sigilCap',
-    'rosterSlot8',
+    'rosterSlot14',
   ] as GuildTrackId[],
 };
 

@@ -128,9 +128,9 @@ describe('travellers', () => {
 
 describe('traveller recruits', () => {
   const always = { ...patrolRules, recruitChance: 1 };
-  /** A roster of `size`, with Guild Hall roster slot 7 bought so there is room for one more. */
+  /** A roster of `size`, with Guild Hall roster slot 13 bought so there is room for one more. */
   const withRoster = (size: number): SaveData => {
-    let save: SaveData = { ...stocked(), guild: { rosterSlot7: 1 } };
+    let save: SaveData = { ...stocked(), guild: { rosterSlot13: 1 } };
     while (save.heroes.length < size) save = { ...save, heroes: [...save.heroes, newHero(`x${save.heroes.length}`, 'X', 'warrior', 'resilient', save.heroes[0].level)] };
     return save;
   };

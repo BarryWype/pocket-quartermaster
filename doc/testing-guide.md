@@ -69,7 +69,7 @@ A fresh save walks you through the whole loop in a few minutes. A one-line 🧭 
 
 ## Team
 
-1. **Team** shows Bram (warrior, Tough), Lyra (ranger, Lucky) and Mira (fire mage, Quick learner), with level, XP, trait and stats. Up to 3 heroes go on each expedition; the roster holds 6.
+1. **Team** shows Bram (warrior, Tough), Lyra (ranger, Lucky) and Mira (fire mage, Quick learner), with level, XP, trait and stats. Up to 3 heroes go on each expedition; the roster holds 12.
 2. Tap **Change** on a slot to equip gear or a consumable.
    - Stats update straight away.
    - Class affinities apply: swords boost Bram, bows boost Lyra, wands boost Mira.
@@ -118,11 +118,11 @@ A fresh save walks you through the whole loop in a few minutes. A one-line 🧭 
 ## Taverns, classes and traits
 
 1. **Taverns** 🍺 sit in fixed places on the map (1–2 per ~5 km tile), visible from 4.5 km. They open once the Bandit Stockade is beaten; a tip on the map says so.
-2. Within 50 m, tap one to see its **3 recruits** for the day (they change at 00:00 UTC with the dungeon rotation): class, name, level, trait, abilities and price.
+2. Within 50 m, tap one to see its **4 recruits** for the day (they change at 00:00 UTC with the dungeon rotation): class, name, level, trait, abilities and price.
    - About 60% common classes (warrior, ranger, fire mage, frost mage) and 40% uncommon (thief, barbarian, cleric, paladin, druid, troubadour, sorcerer).
    - **Level:** the roster's average level minus 1.
    - **Price:** base (80 common, 180 uncommon) × (1 + 25% per level above 1) × (1 + 35% per hero beyond 3) × trait (×1.15 positive, ×0.75 negative).
-   - A recruited offer is gone until the next day. You can't recruit with a full roster (6).
+   - A recruited offer is gone until the next day. You can't recruit with a full roster (12).
 3. **Classes** only use their own weapon types (armour is open to all): axes, maces, daggers, staves and lutes are new. Recruiting the first hero who uses a type teaches its recipes up to your highest tier; later tiers drop from dungeons.
    - Fire mages attack with fire, frost mages with water, druids with grass, unless their weapon is infused.
    - Thieves disarm traps, pick locks and pockets and find more in caches. Barbarians clear rubble, provoke locals and rage when hurt. Clerics heal the party between encounters; paladins shield the most hurt ally; both hit the undead hard. Druids calm beasts. Troubadours charm locals and lift the party's damage. Sorcerers get more from elemental advantage.

@@ -29,7 +29,7 @@ export const guildBonus = (save: SaveData, id: GuildTrackId) => guildRank(save, 
 
 export const sigilCap = (save: SaveData) => lootConfig.sigils.cap + guildBonus(save, 'sigilCap');
 export const rosterCap = (save: SaveData) =>
-  rosterRules.rosterCap + guildBonus(save, 'rosterSlot7') + guildBonus(save, 'rosterSlot8');
+  rosterRules.rosterCap + guildBonus(save, 'rosterSlot13') + guildBonus(save, 'rosterSlot14');
 export const tavernOfferCount = (save: SaveData) => recruitRules.offersPerTavern + guildBonus(save, 'tavernOffer');
 export const questCap = (save: SaveData) => questRules.cap + guildBonus(save, 'questCap');
 

@@ -6,13 +6,14 @@ import { gearRules } from "@/content/gear";
 import { affixById } from "@/content/affixes";
 import { gearStats } from "./gear/stats";
 import { uniquePool } from "./gear/uniques";
-import { migrateSave, toV38, toV39, toV40, toV41, toV42, toV43, toV44 } from "./migrations";
+import { migrateSave, toV38, toV39, toV40, toV41, toV42, toV43, toV44, toV47 } from "./migrations";
 import { affixPool } from "./gear/affixes";
 import { emptyLoot } from "./loot/types";
 import type { Briefing, ExpeditionReport, GearDef, GearInstance } from "./types";
 import { createInitialSave, type SaveData } from "./save";
 import type { Quest } from "./quests/types";
 import { rolledSpecial } from "./team/specials";
+import { rosterCap } from "./guild/guild";
 
 const DAY = 86_400_000;
 const origin = { latitude: 0, longitude: 0 };
@@ -953,6 +954,20 @@ describe("toV46", () => {
   it("leaves a save without charms alone", () => {
     const save = createInitialSave();
     expect(migrateSave(save, 45, 0)).toBe(save);
+  });
+});
+
+describe("toV47", () => {
+  it("moves the roster slot ranks to slots 13 and 14", () => {
+    const save = { ...createInitialSave(), guild: { rosterSlot7: 1, rosterSlot8: 1, heroXp: 2 } as never };
+    const next = migrateSave(save, 46, 0);
+    expect(next.guild).toEqual({ heroXp: 2, rosterSlot13: 1, rosterSlot14: 1 });
+    expect(rosterCap(next)).toBe(14);
+  });
+
+  it("leaves a save without roster slot ranks alone", () => {
+    const save = createInitialSave();
+    expect(toV47(save)).toBe(save);
   });
 });
 

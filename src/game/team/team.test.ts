@@ -1,5 +1,6 @@
 import { newHero, startingHeroes, xpToNextLevel } from '@/content/heroes';
 import { affinityRules } from '@/content/equipment';
+import { rosterRules } from '@/content/roster';
 import { itemById } from '@/content/lookup';
 
 import { createInitialSave, type SaveData } from '../save';
@@ -189,10 +190,10 @@ describe('roster', () => {
     expect(dismissHero(save, 'lyra').escort).toEqual({ heroId: 'bram' });
   });
 
-  it('is full at six heroes', () => {
-    const six = Array.from({ length: 6 }, (_, i) => newHero(`h${i}`, 'X', 'warrior', 'tough'));
+  it(`is full at ${rosterRules.rosterCap} heroes`, () => {
+    const full = Array.from({ length: rosterRules.rosterCap }, (_, i) => newHero(`h${i}`, 'X', 'warrior', 'tough'));
     expect(rosterFull(createInitialSave())).toBe(false);
-    expect(rosterFull({ ...createInitialSave(), heroes: six })).toBe(true);
+    expect(rosterFull({ ...createInitialSave(), heroes: full })).toBe(true);
   });
 });
 

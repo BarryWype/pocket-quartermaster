@@ -82,7 +82,7 @@ describe('offers', () => {
 
   it('cost base × level × roster × trait × tier', () => {
     expect(recruitPrice('common', 1, 3, true)).toBe(Math.round(recruitRules.price.base.common * 1.15));
-    expect(recruitPrice('uncommon', 3, 5, false)).toBe(
+    expect(recruitPrice('uncommon', 3, recruitRules.price.freeHeroes + 2, false)).toBe(
       Math.round(recruitRules.price.base.uncommon * 1.5 * (1 + recruitRules.price.perExtraHero * 2) * 0.75),
     );
     expect(recruitPrice('common', 1, 3, true, 3)).toBe(Math.round(recruitRules.price.base.common * 1.15 * recruitRules.price.perTier ** 2));

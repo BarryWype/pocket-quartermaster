@@ -742,6 +742,21 @@ export function toV46(save: SaveData): SaveData {
   };
 }
 
+/** The roster slot tracks are now slots 13 and 14 (the base roster holds 12): owned ranks keep their track. */
+export function toV47(save: SaveData): SaveData {
+  const guild = { ...save.guild } as Record<string, number | undefined>;
+  if (!('rosterSlot7' in guild) && !('rosterSlot8' in guild)) return save;
+  const { rosterSlot7, rosterSlot8, ...rest } = guild;
+  return {
+    ...save,
+    guild: {
+      ...rest,
+      ...(rosterSlot7 !== undefined ? { rosterSlot13: rosterSlot7 } : {}),
+      ...(rosterSlot8 !== undefined ? { rosterSlot14: rosterSlot8 } : {}),
+    } as SaveData['guild'],
+  };
+}
+
 /** Applies the migration steps in order, from the save's own version on. */
 export function migrateSave(
   save: SaveData,
@@ -765,5 +780,6 @@ export function migrateSave(
   if (fromVersion < 44) next = toV44(next);
   if (fromVersion < 45) next = toV45(next);
   if (fromVersion < 46) next = toV46(next);
+  if (fromVersion < 47) next = toV47(next);
   return next;
 }

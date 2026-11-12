@@ -2,6 +2,7 @@ import { guildRules, guildTrackById, guildTracks, type GuildTrackId } from '@/co
 import { newHero, xpToNextLevel } from '@/content/heroes';
 import { dungeonById } from '@/content/lookup';
 import { lootConfig } from '@/content/loot/config';
+import { rosterRules, recruitRules } from '@/content/roster';
 import { dungeons } from '@/content/dungeons';
 
 import { questRules } from '@/content/quests';
@@ -55,7 +56,7 @@ const run = (save: SaveData, dungeonId = 'ratCellar', seed = 0) => {
 describe('costs and gates', () => {
   it('cost baseCost × 1.8^(rank − 1), rounded to clean numbers, unless a track lists its own', () => {
     expect([1, 2, 3].map((r) => rankCost(guildTrackById.heroXp, r))).toEqual([150, 270, 490]);
-    expect(rankCost(guildTrackById.rosterSlot8, 1)).toBe(4000);
+    expect(rankCost(guildTrackById.rosterSlot14, 1)).toBe(4000);
     expect(rankCost({ ...guildTrackById.heroXp, baseCost: 700 }, 2)).toBe(1250);
     expect([1, 2, 3, 4].map((r) => rankCost(guildTrackById.gold, r))).toEqual(guildTrackById.gold.costs);
   });
@@ -73,7 +74,7 @@ describe('costs and gates', () => {
     expect(rankPrice(guildTrackById.mastery, 3).materials).toEqual([{ materialId: 'iron', amount: 15 }]);
     expect(rankPrice(guildTrackById.relicRestore, 3).materials).toEqual([{ materialId: 'iron', amount: 15 }]);
     expect(rankPrice(guildTrackById.betterRetreats, 3).materials).toEqual([{ materialId: 'stone', amount: 15 }]);
-    expect(rankPrice(guildTrackById.rosterSlot7, 1)).toEqual({ gold: 1200, materials: [] });
+    expect(rankPrice(guildTrackById.rosterSlot13, 1)).toEqual({ gold: 1200, materials: [] });
   });
 
   it('follow tracks.csv: five buildings, ranks and gates from data, everything open by tier 5', () => {
@@ -88,8 +89,8 @@ describe('costs and gates', () => {
       tavernDiscount: 'barracks 0,1,2',
       tavernOffer: 'barracks 1',
       training: 'barracks 0,1,2',
-      rosterSlot7: 'barracks 2',
-      rosterSlot8: 'barracks 4',
+      rosterSlot13: 'barracks 2',
+      rosterSlot14: 'barracks 4',
       questCap: 'questBoard 1,3',
       questReroll: 'questBoard 2',
       stepChests: 'questBoard 0,1,2',
@@ -120,13 +121,13 @@ describe('costs and gates', () => {
     expect(rankProblem(withRanks({ gold: 1 }), 'gold')).toBeNull();
     expect(rankProblem(withRanks({ gold: 2 }), 'gold')).toEqual({ kind: 'gate', tier: 2, boss: 'Ogre Quarry' });
     expect(rankProblem(withRanks({ gold: 2 }, hall(2)), 'gold')).toBeNull();
-    expect(rankProblem(hall(1), 'rosterSlot7')).toMatchObject({ kind: 'gate', tier: 2 });
+    expect(rankProblem(hall(1), 'rosterSlot13')).toMatchObject({ kind: 'gate', tier: 2 });
     expect(rankProblem(withRanks({ gold: 4 }), 'gold')).toEqual({ kind: 'maxed' });
   });
 
-  it('needs Roster slot 7 before Roster slot 8', () => {
-    expect(rankProblem(hall(4), 'rosterSlot8')).toEqual({ kind: 'requires', track: 'rosterSlot7' });
-    expect(rankProblem(withRanks({ rosterSlot7: 1 }, hall(4)), 'rosterSlot8')).toBeNull();
+  it('needs Roster slot 13 before Roster slot 14', () => {
+    expect(rankProblem(hall(4), 'rosterSlot14')).toEqual({ kind: 'requires', track: 'rosterSlot13' });
+    expect(rankProblem(withRanks({ rosterSlot13: 1 }, hall(4)), 'rosterSlot14')).toBeNull();
   });
 
   it('says what is missing when unaffordable', () => {
@@ -136,7 +137,7 @@ describe('costs and gates', () => {
       gold: rankCost(guildTrackById.gold, 3) - 50,
       materials: [{ materialId: 'stone', amount: 10 }],
     });
-    expect(rankProblem({ ...hall(2), gold: 0 }, 'rosterSlot7')).toEqual({ kind: 'missing', gold: 1200, materials: [] });
+    expect(rankProblem({ ...hall(2), gold: 0 }, 'rosterSlot13')).toEqual({ kind: 'missing', gold: 1200, materials: [] });
   });
 });
 
@@ -144,13 +145,13 @@ describe('buying', () => {
   it('spends gold and materials, and raises the rank', () => {
     const save = buyRank(withRanks({ gold: 2 }, hall(2)), 'gold');
     expect(save).toMatchObject({ gold: 100_000 - rankCost(guildTrackById.gold, 3), materials: { stone: 85, copper: 100 }, guild: { gold: 3 } });
-    const roster = buyRank(hall(2), 'rosterSlot7');
-    expect(roster).toMatchObject({ gold: 100_000 - 1200, guild: { rosterSlot7: 1 } });
+    const roster = buyRank(hall(2), 'rosterSlot13');
+    expect(roster).toMatchObject({ gold: 100_000 - 1200, guild: { rosterSlot13: 1 } });
   });
 
   it('refuses past the max rank, when locked or when unaffordable', () => {
     expect(() => buyRank(withRanks({ gold: 4 }, hall(4)), 'gold')).toThrow();
-    expect(() => buyRank(hall(1), 'rosterSlot7')).toThrow();
+    expect(() => buyRank(hall(1), 'rosterSlot13')).toThrow();
     expect(() => buyRank({ ...hall(), gold: 0 }, 'gold')).toThrow();
   });
 });
@@ -227,10 +228,10 @@ describe('effects', () => {
   it('Sigil cap and roster cap add to their base values; the party is always 3', () => {
     expect(sigilCap(hall())).toBe(lootConfig.sigils.cap);
     expect(sigilCap(withRanks({ sigilCap: 1 }))).toBe(lootConfig.sigils.cap + 1);
-    expect(rosterCap(withRanks({ rosterSlot7: 1, rosterSlot8: 1 }))).toBe(8);
-    const six = { ...hall(), heroes: Array.from({ length: 6 }, (_, i) => newHero(`h${i}`, 'X', 'warrior', 'tough')) };
-    expect(rosterFull(six)).toBe(true);
-    expect(rosterFull(withRanks({ rosterSlot7: 1 }, six))).toBe(false);
+    expect(rosterCap(withRanks({ rosterSlot13: 1, rosterSlot14: 1 }))).toBe(14);
+    const full = { ...hall(), heroes: Array.from({ length: rosterRules.rosterCap }, (_, i) => newHero(`h${i}`, 'X', 'warrior', 'tough')) };
+    expect(rosterFull(full)).toBe(true);
+    expect(rosterFull(withRanks({ rosterSlot13: 1 }, full))).toBe(false);
     const four = { ...withRanks(Object.fromEntries(guildTracks.map((t) => [t.id, t.ranks]))), heroes: [...hall().heroes, newHero('h9', 'Nim', 'thief', 'lucky')] };
     expect(() => startExpedition(four, 'ratCellar', [...ALL, 'h9'], 0)).toThrow(/At most 3 heroes/);
   });
@@ -243,14 +244,14 @@ describe('effects', () => {
     expect(drop(withRanks({ sigilCap: 1 }, full)).sigil).toBe(1);
   });
 
-  it('Tavern discount cuts prices; the extra offer leaves the first three unchanged', () => {
+  it('Tavern discount cuts prices; the extra offer leaves the base offers unchanged', () => {
     const now = Date.UTC(2026, 9, 26, 12);
     const base = tavernOffers(hall(), 'tavern:t:0', now);
     const discounted = tavernOffers(withRanks({ tavernDiscount: 3 }), 'tavern:t:0', now);
     discounted.forEach((o, i) => expect(o.price).toBe(Math.round(base[i].price * 0.7)));
     const four = tavernOffers(withRanks({ tavernOffer: 1 }), 'tavern:t:0', now);
-    expect(four).toHaveLength(4);
-    expect(four.slice(0, 3)).toEqual(base);
+    expect(four).toHaveLength(recruitRules.offersPerTavern + 1);
+    expect(four.slice(0, recruitRules.offersPerTavern)).toEqual(base);
   });
 });
 

@@ -4,12 +4,12 @@ export const rosterRules = {
   /** Heroes per expedition. */
   partySize: 3,
   /** Heroes the player can have at once. */
-  rosterCap: 6,
+  rosterCap: 12,
 };
 
 /** Recruits offered at taverns. Price = base × level factor × roster factor × trait factor. */
 export const recruitRules = {
-  offersPerTavern: 3,
+  offersPerTavern: 4,
   rarityWeights: { common: 0.6, uncommon: 0.4, rare: 0 } satisfies Record<ClassRarity, number>,
   /** A class that just joined the pool is easier to find during its tier. */
   newClassWeight: 2,
@@ -23,9 +23,9 @@ export const recruitRules = {
     /** +25% per level above 1. */
     perLevel: 0.25,
     /** The roster factor counts heroes beyond this many. */
-    freeHeroes: 3,
-    /** +45% per hero beyond `freeHeroes`; raised from 35% when the forge fee went, so the 6th hero stays a save-up. */
-    perExtraHero: 0.45,
+    freeHeroes: 6,
+    /** +15% per hero beyond `freeHeroes`: a company of 12 is meant to be affordable, not a save-up. */
+    perExtraHero: 0.15,
     trait: { positive: 1.15, negative: 0.75 },
     /** × this per tier above 1 (highest unlocked tier), so recruits keep pace with income. */
     perTier: 1.5,
