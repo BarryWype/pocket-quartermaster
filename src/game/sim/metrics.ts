@@ -162,6 +162,12 @@ export type ProfileSummary = {
   };
   /** The profile's planned visits per day next to the median over seeds of visits done per day. */
   visits: { activity: string; planned: number; done: Stat }[];
+  /**
+   * Runs launched with at least one threat unanswered (full penalty), over
+   * all seeds: their share of the runs launched and their win rate, next to
+   * the win rate of all runs; `half` counts runs whose worst threat was half answered.
+   */
+  unanswered: { launched: number; runs: number; won: number; allWon: number; half: number; halfWon: number };
   /** Expeditions still owed at a day's start, per day median over seeds, by why the last session stopped. */
   notLaunched: Record<string, Stat>;
   /** Owed place visits that couldn't happen, per day median over seeds, by reason. */
@@ -719,8 +725,14 @@ export function summarize(logs: RunLog[], t: Targets = defaultTargets): ProfileS
   const notLaunched = byReason(['noParty', 'hp', 'odds', 'noSession'], (log, key) => log.notLaunched[key] ?? 0);
   const placesNotDone = byReason(['nothing', 'odds', 'noParty', 'hidden'], (log, key) => log.placesNotDone[key] ?? 0);
 
+  const runs = logs.flatMap((log) => log.expeditions);
+  const missed = runs.filter((r) => / full(,|$)/.test(r.threats));
+  const halfOnly = runs.filter((r) => !/ full(,|$)/.test(r.threats) && / half(,|$)/.test(r.threats));
+  const wins = (list: typeof runs) => (list.length ? list.filter((r) => r.success).length / list.length : 0);
+  const unanswered = { launched: runs.length, runs: missed.length, won: wins(missed), allWon: wins(runs), half: halfOnly.length, halfWon: wins(halfOnly) };
   return {
     profile,
+    unanswered,
     families: familyTiers(logs),
     seeds: logs.length,
     finished: logs.filter((l) => l.finished).length,

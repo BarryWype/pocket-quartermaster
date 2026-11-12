@@ -120,6 +120,8 @@ export function referenceSave(tier: number, when: 'start' | 'end', party: number
 
 /** The reference roster: the starting trio, then the regular bot's usual first recruits. */
 const ROSTER: HeroClassId[] = ['warrior', 'ranger', 'fireMage', 'frostMage', 'warrior', 'scholar'];
+/** The starting-trio class the bot fields most (the 2026-11-12 run: 28–29% of party slots), who gets the reference start's foothold weapon. */
+const FOOTHOLD_CLASS: HeroClassId = 'ranger';
 /** The trinket the bot wears most. */
 const TRINKET = 'hawkEyeRing';
 
@@ -133,7 +135,8 @@ const TRINKET = 'hawkEyeRing';
  * Uncommon gear of the tier at the average roll with its affix, a spare piece
  * of every type to dress from, three healing potions in stock. Start of a
  * tier: the previous tier's end, what the bot carries into the new tier, plus
- * the piece of this tier the previous boss's first clear brought.
+ * the piece of this tier the previous boss's first clear brought and the
+ * foothold weapon it forged from that clear's blueprint and material.
  * Start of tier 1: the starting trio with a Common weapon each (referenceSave).
  * `extra` adds heroes of those classes, kitted the same way (the family focus teams).
  */
@@ -169,6 +172,9 @@ export function rosterSave(tier: number, when: 'start' | 'end', extra: HeroClass
     // The previous boss's first clear brought a piece of this tier: the first hero's weapon of choice.
     const hero = heroes[0];
     save = equip({ ...save, gear: [...save.gear, averagePiece('boss:weapon', gearId(weaponTypeFor(hero.classId) ?? 'sword', tier), 'uncommon')] }, hero.id, 'weapon', 'boss:weapon');
+    // And the foothold: the weapon blueprint and material for one craft, forged Common, for the trio class the bot fields most (the ranger).
+    const ranger = heroes.find((h) => h.classId === FOOTHOLD_CLASS)!;
+    save = equip({ ...save, gear: [...save.gear, averagePiece('foothold:weapon', gearId(weaponTypeFor(ranger.classId) ?? 'bow', tier), 'common')] }, ranger.id, 'weapon', 'foothold:weapon');
   }
   return withSpares(save, kitTier, 'uncommon');
 }

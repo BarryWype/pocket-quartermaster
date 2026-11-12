@@ -189,7 +189,10 @@ const results: Result[] = [];
 // One factor per source scales its enemies at both ends of the tier: the one
 // that meets the start's target, kept within the factors that keep the end in
 // its range (the end's middle for a boss). When the start can't be met that
-// way, the end stays in range and the start comes as close as it can.
+// way, the end stays in range and the start comes as close as it can, except
+// for the sources in START_FIRST: there the start's target wins, and the end
+// lands where it lands (the fit table shows it).
+const START_FIRST = new Set(tierChain(2).filter((d) => d.chainIndex === 0).map((d) => d.id));
 for (const job of all) {
   const ranges = rangesOf(job.difficulty);
   const forEnd = bisect(job, 'end', middle(ranges.end));
@@ -198,7 +201,7 @@ for (const job of all) {
   if (forStart !== null) {
     const easiest = bisect(job, 'end', ranges.end[1]);
     const hardest = bisect(job, 'end', ranges.end[0]);
-    chosen = Math.min(hardest, Math.max(easiest, forStart));
+    chosen = START_FIRST.has(job.key) ? forStart : Math.min(hardest, Math.max(easiest, forStart));
   }
   const factor = Math.round(chosen * 100) / 100;
   scale(job, factor);

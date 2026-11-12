@@ -557,7 +557,17 @@ export function renderReport({ summaries, rules, settings, difficultyOdds, famil
     'Probe: after the day\u2019s last session every `probeEveryDays` days (and after the first session of a new tier and every session the tier boss is out), the best prepared party from the whole roster at full HP (the bot\u2019s own pick, `suggestParty`) against every open normal dungeon of the tier, the tier boss once it opens, and the fight events and patrols around. Each difficulty reads "at the end of its first day in the tier → at its last probe" (dungeons open in chain order, so medium and hard start later than easy); the end is checked, and the start for easy only. The gap is prepared minus the briefing skipped (the strongest party picked as if there were no threats, the roster in fixed natural gear, no consumables) over the same dungeons at the tier\u2019s last probe. The boss reads "first attempts (its probes on the day it first opens) → last probe"; the first attempts are checked.',
     '',
   ];
-  for (const s of summaries) out.push(`### ${s.profile}`, '', odds(s));
+  for (const s of summaries) {
+    const u = s.unanswered;
+    out.push(
+      `### ${s.profile}`,
+      '',
+      odds(s),
+      '',
+      `- Runs launched with at least one threat unanswered (full penalty): ${pct(u.runs / Math.max(1, u.launched))} of ${u.launched}; won ${pct(u.won)} (all runs: ${pct(u.allWon)}).`,
+      `- Runs whose worst threat was half answered: ${pct(u.half / Math.max(1, u.launched))}; won ${pct(u.halfWon)}.`,
+    );
+  }
   out.push(
     '## Difficulty odds (reference roster)',
     '',

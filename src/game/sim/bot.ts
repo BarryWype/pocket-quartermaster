@@ -1,7 +1,7 @@
 import { dungeons } from '@/content/dungeons';
 import { difficultyRules } from '@/content/difficulty';
 import { rosterRules } from '@/content/roster';
-import { affinityRules, classAffinities, gearProfiles, type Affinity } from '@/content/equipment';
+import { affinityRules, classAffinities } from '@/content/equipment';
 import { guildTrackById, guildTracks } from '@/content/guild';
 import { familyOfThreat, type FamilyId } from '@/content/families';
 import { heroClasses, xpRules } from '@/content/heroes';
@@ -28,6 +28,7 @@ import {
   type Loadout,
 } from '../expeditions/expeditions';
 import { pieceDamageStat } from '../equipment/damageStat';
+import { weaponTypeFor } from '../equipment/weaponOfChoice';
 import { estimateOdds, type Odds } from '../expeditions/odds';
 import { mealItems, supplyHeld, supplyItems } from '../expeditions/provisions';
 
@@ -57,7 +58,7 @@ import { affinityOf, equip, equipPreview, hasPotionSlot, heroDamageStat, heroSta
 import { briefingCoverage } from '../threats/coverage';
 import { heroAnswers, type AnswersMember } from '../threats/answers';
 import { scoreThreat } from '../threats/score';
-import type { ActiveExpedition, ArmourType, HelmetType, Briefing, DungeonDef, GearDef, GearInstance, HeroClassId, HeroState, OffhandType, RecipeDef, Stats, WeaponType } from '../types';
+import type { ActiveExpedition, ArmourType, HelmetType, Briefing, DungeonDef, GearDef, GearInstance, HeroClassId, HeroState, OffhandType, RecipeDef, Stats } from '../types';
 import { expectedLevels, type Profile, type SimConfig } from './config';
 import { playerMetersPerMinute } from './gathererPace';
 import { partRecipeFor } from './rules/inventory';
@@ -429,13 +430,7 @@ function equipGain(save: SaveData, hero: HeroState, slot: 'weapon' | 'armor' | '
   return preview ? statScore(save, hero, preview.after) - statScore(save, hero, preview.before) : 0;
 }
 
-/** The class's weapon of choice: its first favoured weapon type that rolls with the class's damage stat ('wielder' pieces roll with it). */
-export const weaponTypeFor = (classId: HeroClassId): WeaponType | null => {
-  const favoured = (Object.entries(classAffinities[classId]) as [WeaponType | ArmourType, Affinity][])
-    .filter(([type, affinity]) => affinity === 'favoured' && gearProfiles[type]?.slot === 'weapon')
-    .map(([type]) => type as WeaponType);
-  return favoured.find((type) => pieceDamageStat(gearProfiles[type], classId) === heroClasses[classId].damageStat) ?? favoured[0] ?? null;
-};
+export { weaponTypeFor };
 
 /** The class's armour of choice: the first favoured armour type. */
 export const armourTypeFor = (classId: HeroClassId): ArmourType | null => {

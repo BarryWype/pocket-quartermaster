@@ -15,7 +15,7 @@ export const dungeonFactors: Record<string, number> = {
   goblinWarren: 7.09,
   smugglersCove: 6.53,
   millRuins: 7.5,
-  sunkenFord: 3.82,
+  sunkenFord: 2.61,
   boarThicket: 5.2,
   wolfDen: 8.1,
   trollBridge: 5.51,
