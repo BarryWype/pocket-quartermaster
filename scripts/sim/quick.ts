@@ -3,7 +3,8 @@ import { difficultyRules } from '@/content/difficulty';
 import { applyOverrides, parseOverride } from '@/game/sim/overrides';
 import { quickProbe, type QuickTier } from '@/game/sim/quick';
 import { inRange, targets } from '@/game/sim/targets';
-import { focusOdds, venomousOdds } from '@/game/sim/familyFocus';
+import { focusOdds, familyName, venomousOdds } from '@/game/sim/familyFocus';
+import { levelLifts, threatCosts } from '@/game/sim/threatCosts';
 import { affinityTable, familyFocusTable, venomTable } from './report';
 
 const USAGE = `npm run sim:quick -- [options]
@@ -63,6 +64,7 @@ try {
 }
 
 /** `72% ✓` when the value sits in its target range, `—` when there is no sample. */
+const pct0 = (value: number) => `${Math.round(value * 100)}%`;
 const cell = (value: number | null, range: [number, number] | null) =>
   value === null ? '—' : `${Math.round(value * 100)}%${range ? ` ${inRange(value, range) ? '✓' : '✗'}` : ''}`;
 
@@ -100,6 +102,38 @@ for (const tier of tiers) {
       .join(' | ')} |`,
   );
 }
+
+const pts = (value: number | null) => (value === null ? '—' : (value * 100).toFixed(1));
+// Differences of two estimates: twice the runs keeps their noise near the other tables'.
+const breakdownRuns = 2 * (options.runs ?? simConfig.quick.runs);
+const costs = threatCosts(breakdownRuns);
+console.log('\n## Threat costs (fitted party at tier end, answering family stripped: points of odds lost to the threat alone, medium / hard)');
+const costTiers = [1, 2, 3, 4, 5];
+console.log(`| threat | level | ${costTiers.map((t) => `tier ${t}`).join(' | ')} |`);
+console.log(`| --- | --- |${costTiers.map(() => ' --- |').join('')}`);
+for (const key of [...new Set(costs.map((r) => `${r.threat}|${r.level}`))]) {
+  const [threat, level] = key.split('|');
+  const cells = costTiers.map((tier) => {
+    const r = costs.find((c) => c.tier === tier && `${c.threat}|${c.level}` === key);
+    return r ? `${pts(r.medium)} / ${pts(r.hard)}` : '';
+  });
+  console.log(`| ${threat} | ${level} | ${cells.join(' | ')} |`);
+}
+
+const lifts = levelLifts(breakdownRuns);
+console.log('\n## Family lift by level (fitted party at tier end, medium dungeons, no briefing; odds with no tags: points over no tags at L1 / L2 / L3)');
+console.log(`| family | ${costTiers.map((t) => `tier ${t}`).join(' | ')} | mean L1 / L2 / L3 |`);
+console.log(`| --- |${costTiers.map(() => ' --- |').join('')} --- |`);
+for (const family of [...new Set(lifts.map((r) => r.family))]) {
+  const mine = lifts.filter((r) => r.family === family);
+  const lift = (r: (typeof lifts)[number]) => [1, 2, 3].map((l) => r.odds[l] - r.odds[0]);
+  const avg = [0, 1, 2].map((i) => mine.reduce((sum, r) => sum + lift(r)[i], 0) / mine.length);
+  console.log(`| ${familyName(family)} | ${costTiers.map((tier) => {
+    const r = mine.find((row) => row.tier === tier)!;
+    return `${pct0(r.odds[0])}: ${lift(r).map(pts).join(' / ')}`;
+  }).join(' | ')} | ${avg.map(pts).join(' / ')} |`);
+}
+
 familyTables();
 console.log('\n## Class affinity changes (reference odds, old vs new favoured weapon)');
 console.log(affinityTable(options.runs));

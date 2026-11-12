@@ -16,6 +16,7 @@ import { FIT_DAYS, FIT_NOW } from './difficultyOdds';
 import { averagePiece, referenceSave, referenceTeam, withSpares } from './reference';
 import { dressParty } from '../families/dress';
 import { fillPotions } from './rules/loadout';
+import { withFamilyCount } from './threatCosts';
 
 // Family balance probes for the report and sim:quick: a playstyle family at
 // level 3 against the same team with its tags stripped (same heroes, same
@@ -33,16 +34,6 @@ const STARTERS: HeroClassId[] = ['warrior', 'ranger', 'fireMage'];
 export function focusClasses(family: FamilyId): HeroClassId[] {
   const own = (Object.keys(heroClasses) as HeroClassId[]).filter((id) => heroClasses[id].familyTag === family).slice(0, 2);
   return [...own, ...STARTERS.filter((id) => !own.includes(id))].slice(0, 3);
-}
-
-/** The family's tags set to `count` on the party: stripped from everyone, then given to the first hero who had one (or the first hero). */
-function withFamilyCount(party: PartyMember[], family: FamilyId, count: number): PartyMember[] {
-  const carrier = party.find((m) => m.familyTags.some((t) => t.family === family)) ?? party[0];
-  return party.map((m) => {
-    const tags = m.familyTags.filter((t) => t.family !== family);
-    if (m === carrier && count > 0) tags.push({ family, count, source: 'gear' });
-    return { ...m, familyTags: tags };
-  });
 }
 
 /** Mean win odds of a save's party over a tier's chain dungeons (no boss) and the fitting days, with each party tweak. */
