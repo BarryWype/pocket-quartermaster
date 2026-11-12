@@ -35,6 +35,7 @@ The simulator plays the game with simple bots, for several player profiles, and 
 | Gold | Income covers recruits, healing, shops and weakness items with a small surplus; never piles up over a tier |
 | Materials | The tier's main material stays tight (spent about as fast as it's gathered) |
 | Levels | Heroes reach the top of the tier's level band around the end of the tier |
+| Rotation | Once the roster has **8** heroes, no class fills more than **20%** of party slots (regular profile); from tier **2** on, every complete week fields at least **5** distinct heroes |
 
 **Revised 2026-11-08 (sanity check after families):** one party for fitting and reporting, the bot's real party, so the fit and the report can't disagree; the old blanket "prepared 65–75%" is gone (it mixed easy dungeons, fitted to 85–90%, with hard ones); the start of each tier is fitted as well as the end, so a new tier never opens as a wall; the boss is judged when it first appears, not after it's beaten; and threats are judged as a gap, whatever the overall strength. Pace is judged only once the odds are in range.
 

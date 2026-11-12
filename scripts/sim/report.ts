@@ -13,6 +13,7 @@ import { gathererPace } from '@/game/sim/gathererPace';
 import { inRange, targets } from '@/game/sim/targets';
 import type { ThreatId } from '@/game/types';
 import { heroClasses } from '@/content/heroes';
+import { createInitialSave } from '@/game/save';
 import { weaponTypeFor } from '@/game/equipment/weaponOfChoice';
 import { CLASS_RUNS, type ClassSwap, type ClassSwapRow } from '@/game/sim/classSwap';
 
@@ -504,6 +505,7 @@ function health(s: ProfileSummary) {
         .sort((a, b) => b[1].fielded - a[1].fielded || b[1].offered - a[1].offered)
         .map(([c, v]) => [c, String(v.offered), String(v.recruited), String(v.fielded), pct(h.classSpread[c] ?? 0)]),
     ),
+    ...(s.rotation ? rotationBlock(s) : []),
     '**Milestones** (day, median over seeds that got there)',
     '',
     table(
@@ -514,6 +516,34 @@ function health(s: ProfileSummary) {
     '',
     table(['Activity', 'Skipped'], Object.entries(h.skipped).map(([k, v]) => [k, n(v)])),
   ].join('\n');
+}
+
+/** The rotation report: party slots by class per tier, then the weekly rotation targets. */
+function rotationBlock(s: ProfileSummary) {
+  const trio = [...new Set(createInitialSave().heroes.map((hero) => hero.classId))];
+  const rows = s.tiers.map((t) => {
+    const top = Object.entries(t.slots ?? {}).sort((a, b) => b[1] - a[1]);
+    const trioShare = trio.reduce((sum, c) => sum + (t.slots[c] ?? 0), 0);
+    return [
+      String(t.tier),
+      String(top.filter(([, share]) => share > 0).length),
+      pct(trioShare),
+      top.slice(0, 5).map(([c, share]) => `${c} ${pct(share)}`).join(', ') || '—',
+      `${n(t.heroesPerWeek.median)}${spread(t.heroesPerWeek, (v) => n(v))}`,
+    ];
+  });
+  const r = s.rotation;
+  const topOff = s.profile === 'regular' && r.topClassShare.median !== null && r.topClassShare.median > targets.rotation.topClassShare;
+  const fewOff = r.fewestHeroesPerWeek.median !== null && r.fewestHeroesPerWeek.median < targets.rotation.heroesPerWeek;
+  return [
+    `**Party slots by class per tier** (share of the tier's party slots, all seeds pooled; the starting trio is ${trio.join(', ')})`,
+    '',
+    table(['Tier', 'Classes fielded', 'Starting trio', 'Top classes', 'Distinct heroes a week'], rows),
+    '',
+    `Once the roster has ${targets.rotation.roster} heroes, the top class (${r.topClass ?? '—'}) fills ${pct(r.topClassShare.median)} of party slots (target ≤ ${Math.round(targets.rotation.topClassShare * 100)}%, regular profile)${topOff ? ` ${WARN}` : ''}`,
+    '',
+    `Fewest distinct heroes in a week from tier ${targets.rotation.fromTier}: ${n(r.fewestHeroesPerWeek.median)} (target ≥ ${targets.rotation.heroesPerWeek})${fewOff ? ` ${WARN}` : ''}`,
+  ];
 }
 
 function visitsTable(s: ProfileSummary) {

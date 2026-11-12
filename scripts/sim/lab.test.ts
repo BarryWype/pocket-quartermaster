@@ -40,6 +40,7 @@ describe('balance lab CLI', () => {
       '**Pile-ups**',
       '**Dead content**',
       '**Classes**',
+      '**Party slots by class per tier**',
       'Classes never offered',
       'Classes offered but never recruited',
       'Classes recruited but never fielded',

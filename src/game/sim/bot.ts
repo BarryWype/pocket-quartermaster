@@ -93,6 +93,8 @@ export type ExpeditionRow = {
   /** The briefing's threats, e.g. "ambush L2 met". */
   threats: string;
   classes: string[];
+  /** The party's hero ids, in the order of `classes`. */
+  heroIds: string[];
   odds: number;
   success: boolean;
   outcome: string;
@@ -1428,6 +1430,7 @@ export function collectExpedition(sim: Sim, expedition: ActiveExpedition) {
     overnight: !!dungeon.overnight,
     threats: run.threats.map((t) => `${t.threat.id} L${t.threat.level} ${t.state}`).join(', '),
     classes,
+    heroIds: expedition.heroIds,
     odds: launched?.odds ?? 1,
     success: report.success,
     outcome: report.outcome,

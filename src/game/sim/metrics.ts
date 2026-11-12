@@ -23,6 +23,7 @@ import type { AffixRow, FocusRow } from './familyFocus';
 import { expectedLevels, profiles } from './config';
 import type { DifficultyOdds } from './difficultyOdds';
 import { lootPacing } from './pacing';
+import { rotationOf } from './rotation';
 import { inRange, targets as defaultTargets, type Targets } from './targets';
 
 const TIERS = [1, 2, 3, 4, 5];
@@ -115,6 +116,10 @@ export type TierSummary = {
   };
   /** Share of the roster's trinket slots holding loot trinkets, sampled daily and averaged over the tier. */
   lootTrinkets: Stat;
+  /** The tier's party slots by class (share of the tier's slots, all seeds pooled). */
+  slots: Record<string, number>;
+  /** Median over seeds of each seed's median distinct heroes over the tier's complete weeks. */
+  heroesPerWeek: Stat;
   level: { end: Stat; target: number };
 };
 
@@ -173,6 +178,13 @@ export type ProfileSummary = {
   notLaunched: Record<string, Stat>;
   /** Owed place visits that couldn't happen, per day median over seeds, by reason. */
   placesNotDone: Record<string, Stat>;
+  /**
+   * Rotation: the top class's share of party slots once the roster holds
+   * `targets.rotation.roster` heroes (null for a seed that never got there),
+   * and the fewest distinct heroes a complete week fields from
+   * `targets.rotation.fromTier` on.
+   */
+  rotation: { topClass: string | null; topClassShare: Stat; fewestHeroesPerWeek: Stat };
 };
 
 /** What `npm run sim` writes to doc/design/simulator/summary.json, and the balance band tests read. */
@@ -292,7 +304,7 @@ function medianTotals(perSeed: Record<string, number>[]): Record<string, number>
   return Object.fromEntries(keys.map((k) => [k, stat(perSeed.map((r) => r[k] ?? 0)).median ?? 0]));
 }
 
-function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
+function tierSummary(logs: RunLog[], tier: number, t: Targets): Omit<TierSummary, 'slots' | 'heroesPerWeek'> {
   const windows = logs.map((log) => tierWindow(log, tier));
   const days = stat(logs.map((log, i) => (log.milestones[`boss:${tier}`] !== undefined && windows[i] ? windows[i]![1] - windows[i]![0] + 1 : null)));
 
@@ -619,7 +631,8 @@ function pileUps(log: RunLog, t: Targets) {
 
 export function summarize(logs: RunLog[], t: Targets = defaultTargets): ProfileSummary {
   const profile = logs[0].profile;
-  const tiers = TIERS.map((tier) => tierSummary(logs, tier, t));
+  const rotation = rotationOf(logs, t);
+  const tiers = TIERS.map((tier) => ({ ...tierSummary(logs, tier, t), slots: rotation.tiers[tier]!.slots, heroesPerWeek: rotation.tiers[tier]!.heroesPerWeek }));
 
   const designed = lootPacing();
   const loot =
@@ -762,6 +775,7 @@ export function summarize(logs: RunLog[], t: Targets = defaultTargets): ProfileS
     visits,
     notLaunched,
     placesNotDone,
+    rotation: { topClass: rotation.topClass, topClassShare: rotation.topClassShare, fewestHeroesPerWeek: rotation.fewestHeroesPerWeek },
   };
 }
 

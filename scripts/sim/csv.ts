@@ -28,11 +28,12 @@ export function dailyCsv(logs: RunLog[]) {
 export function expeditionsCsv(logs: RunLog[]) {
   return toCsv(
     logs.flatMap((log) =>
-      log.expeditions.map(({ classes, rarities, effects, ...row }) => ({
+      log.expeditions.map(({ classes, heroIds, rarities, effects, ...row }) => ({
         profile: log.profile,
         seed: log.seed,
         ...row,
         classes: classes.join(' '),
+        heroIds: heroIds.join(' '),
         ...Object.fromEntries(Object.entries(rarities).map(([k, v]) => [`gear_${k}`, v])),
         effects: Object.entries(effects).map(([k, v]) => `${k}×${v}`).join(' '),
       })),

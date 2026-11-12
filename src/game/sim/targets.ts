@@ -66,6 +66,12 @@ export const targets = {
    * hour of sending the same 3 heroes to the shortest tier 1 dungeon over and over.
    */
   spamAdvantage: 1.2,
+  /**
+   * Rotation: once the roster has `roster` heroes no class fills more than
+   * `topClassShare` of party slots (regular profile), and from `fromTier` on
+   * every complete week fields at least `heroesPerWeek` distinct heroes.
+   */
+  rotation: { roster: 8, topClassShare: 0.2, heroesPerWeek: 5, fromTier: 2 },
 };
 
 export type Targets = typeof targets;

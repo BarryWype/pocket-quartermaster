@@ -132,6 +132,18 @@ check('simulator balance bands', () => {
     }
   });
 
+  describe('rotation', () => {
+    for (const s of profiles) {
+      // A summary from before rotation was covered has no rotation data to check.
+      if (!s.rotation) continue;
+      if (s.profile === 'regular')
+        it(`regular: no class above ${Math.round(targets.rotation.topClassShare * 100)}% of party slots once the roster has ${targets.rotation.roster} heroes`, () =>
+          expect(median(s.rotation!.topClassShare)).toBeLessThanOrEqual(targets.rotation.topClassShare));
+      it(`${s.profile}: at least ${targets.rotation.heroesPerWeek} distinct heroes fielded a week from tier ${targets.rotation.fromTier}`, () =>
+        expect(median(s.rotation!.fewestHeroesPerWeek)).toBeGreaterThanOrEqual(targets.rotation.heroesPerWeek));
+    }
+  });
+
   describe('gold, materials and levels', () => {
     for (const s of profiles) {
       for (const tier of s.tiers) {
