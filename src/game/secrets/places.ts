@@ -120,9 +120,9 @@ export function blackMarketGoods(save: SaveData, place: PlaceSpawn): MarketLine[
   const markup = secretRules.blackMarket.markup;
   const tier = highestUnlockedTier(save);
   const count = rng.int(...secretRules.blackMarket.lines);
-  // The five amulets are one weighted entry, like a looted trinket; the ring never sells here.
+  // The five amulets are one weighted entry, like a looted trinket; the ring and the loot trinkets never sell here.
   const amulet = trinketKinds.find((kind) => kind.group === 'amulet')!;
-  const trinketPool = trinketKinds.filter((kind) => kind.group !== 'fortune' && (kind.group !== 'amulet' || kind === amulet));
+  const trinketPool = trinketKinds.filter((kind) => kind.group !== 'fortune' && kind.group !== 'loot' && (kind.group !== 'amulet' || kind === amulet));
   return Array.from({ length: count }, (_, i) => {
     const pick = rng.weighted(trinketPool, (kind) => trinketRules.weights[kind.group]);
     const kind = pick.group === 'amulet' ? `${ELEMENTS[rng.int(0, ELEMENTS.length - 1)]}Amulet` : pick.kind;

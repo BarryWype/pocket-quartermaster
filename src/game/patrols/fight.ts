@@ -13,7 +13,7 @@ import { guildBonus } from '../guild/guild';
 import { createRng, type Rng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { addMaterials } from '../inventory';
-import { partyCharms } from '../loot/charms';
+import { partyLootModifiers } from '../loot/modifiers';
 import { lootContextOf, sourceAmounts } from '../loot/context';
 import { grantLoot } from '../loot/grant';
 import { mergeLoot, rollSourceLoot } from '../loot/roll';
@@ -44,7 +44,7 @@ export type RewardContext = {
   goldMultiplier: number;
   /** The party's Luck. */
   luck: number;
-  /** The party's charms. */
+  /** The party's loot trinkets. */
   modifiers?: LootModifier[];
   /** The player's pickaxe tier: caches never hold ore above it. */
   pickaxeTier: number;
@@ -199,7 +199,7 @@ export function startPatrolFight(
   const run = simulateRun(party, dungeon, `${id}|${spawn.id}`, patrolRunOptions(spawn));
   // A special's extra loot rolls draw from their own derived seeds.
   const rollRewards = (rng: Rng) =>
-    patrolRewards(rewardContextOf(save, party.reduce((sum, m) => sum + m.luck, 0), partyCharms(party), now), spawn, tier, elite, foughtEnemies(run), rng);
+    patrolRewards(rewardContextOf(save, party.reduce((sum, m) => sum + m.luck, 0), partyLootModifiers(party), now), spawn, tier, elite, foughtEnemies(run), rng);
   let rewards: Loot = run.bossDefeated ? rollRewards(createRng(`${id}|rewards`)) : emptyLoot();
   for (let i = 0; i < run.extraLootRolls; i++) rewards = mergeLoot(rewards, rollRewards(createRng(`${id}|rewards|extra|${i}`)));
 
@@ -219,7 +219,7 @@ export function startPatrolFight(
         windowEndsAt: spawn.endsAt,
         won: run.bossDefeated,
         hp: run.hp,
-        salvaged: untriggeredSalvage(party, run, PATROL_SOURCE),
+        salvaged: untriggeredSalvage(party, run),
         rewards,
       },
     ],

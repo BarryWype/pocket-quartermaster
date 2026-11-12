@@ -43,7 +43,7 @@ Not all 14 place kinds at once. Each kind appears when its condition is met, wit
 | Rarer places (library, thieves' guild, monster lair, fishing dock), Sanctums | Tier 2 |
 | Secret place markers | When the player has a tip |
 
-New item kinds (charms, relics, trinkets, key fragments) also get a one-line tip the first time one is obtained.
+New item kinds (relics, trinkets, key fragments) also get a one-line tip the first time one is obtained.
 
 ## Implementation notes
 - The tutorial run pays only the first-win roll (no fixed gold, no Sigil: Sanctums show from tier 2). The roll is seeded apart, so skipping gives the same loot; the bow blueprint is set after it.

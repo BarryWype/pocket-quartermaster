@@ -4,6 +4,7 @@ import { RARITIES } from '@/content/gear';
 import { dungeonById } from '@/content/lookup';
 import type { FamilyLevels } from '@/game/families/families';
 import { raritySteps } from '@/game/loot/gear';
+import { createRng } from '@/game/generation/rng';
 import { createInitialSave, type SaveData } from '@/game/save';
 import type { Briefing, Tag } from '@/game/types';
 
@@ -146,7 +147,7 @@ describe('family loot when the expedition resolves', () => {
   });
 
   test('Plunder 3: gear loot rolls one rarity step higher', () => {
-    expect(raritySteps({ modifiers: [], familySteps: R.plunder.raritySteps })).toBe(R.plunder.raritySteps);
+    expect(raritySteps({ modifiers: [], familySteps: R.plunder.raritySteps, rng: createRng('r') })).toBe(R.plunder.raritySteps);
     const rank = (loot: ReturnType<typeof resolved>) => RARITIES.indexOf(loot.gear[0].rarity);
     const off = rank(resolved({ plunder: 2 }, [], 'gear'));
     const on = rank(resolved({ plunder: 3 }, [], 'gear'));

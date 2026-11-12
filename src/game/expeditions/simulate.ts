@@ -20,6 +20,7 @@ import { createRng } from '../generation/rng';
 import { mobTags } from '../enemies/tags';
 import type { SaveData } from '../save';
 import { trinketEffect } from '../loot/trinkets';
+import type { LootModifier } from '../loot/types';
 import { affixEffects, infusedElement } from '../gear/affixes';
 import { familyCountsOf, familyLevels, heroFamilyTagSources, type FamilyLevels, type HeroFamilyTag } from '../families/families';
 import { currentHp } from '../team/health';
@@ -110,12 +111,14 @@ export type PartyMember = {
   abilities: Ability[];
   /** The infused weapon's element, or the class's innate one. */
   weaponElement?: Element;
-  /** Potion, elixir or charm. */
+  /** Potion or elixir. */
   consumable: ConsumableDef | null;
   /** The class's keywords for this hero: a Monk's fists add Pierce. */
   classKeywords?: Keyword[];
   /** The Alchemist's second slot: a healing consumable. */
   potion?: ConsumableDef | null;
+  /** The worn loot trinket's bonus to what the run finds (see loot/modifiers.ts). */
+  loot?: LootModifier;
 };
 
 /** A member's affixes grouped by effect kind, in their order, built once per affix record: fights ask for them on every hit. */
@@ -242,7 +245,7 @@ export type RunResult = {
   hp: { heroId: string; hp: number; maxHp: number }[];
   /** Heroes whose healing consumable (potion) was used up during the run. */
   consumed: string[];
-  /** Heroes who attacked at least once (a crit charm that never did is salvaged). */
+  /** Heroes who attacked at least once (a crit elixir that never did is salvaged). */
   attacked: string[];
   /** Heroes whose elixir (bomb, draught) triggered during the run; stat, speed and oil elixirs always count as used. */
   elixirsUsed: string[];
@@ -337,7 +340,8 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs
       const weaponItem = weapon ? (itemById[weapon.itemId] as GearDef) : null;
       const offhandItem = offhand ? (itemById[offhand.itemId] as GearDef) : null;
       const trinket = save.gear.find((g) => g.uid === hero.equipment.trinket);
-      const elementResist = trinket ? trinketEffect(itemById[trinket.itemId] as GearDef, trinket).elementResist : undefined;
+      const trinketItem = trinket ? (itemById[trinket.itemId] as GearDef) : null;
+      const elementResist = trinket ? trinketEffect(trinketItem!, trinket).elementResist : undefined;
       // Heavy and Concealed read the equipped pieces; no pieces count as concealed.
       const pieces = [weaponItem, armour ? (itemById[armour.itemId] as GearDef) : null, helmet ? (itemById[helmet.itemId] as GearDef) : null, offhandItem].flatMap(
         (item) => (item ? [item] : []),
@@ -394,6 +398,7 @@ export function prepareParty(save: SaveData, heroIds: string[], now = 0, elixirs
         consumable,
         classKeywords: fists ? [...new Set([...heroClass.keywords, 'pierce' as const])] : heroClass.keywords,
         potion: heroClass.abilities.some((a) => a.kind === 'potionSlot') && hero.equipment.potion ? healingPotion(hero.equipment.potion) : null,
+        ...(trinketItem?.loot ? { loot: trinketItem.loot } : {}),
       };
     });
 }

@@ -77,7 +77,7 @@ The game is moving to a "problems first" model: dungeons, patrols and exploratio
 
 ## Known gaps
 
-- Charms (rabbit's foot, lucky tooth) need a redesign: they should affect what a run finds (Luck, blueprint, component and relic chances, materials). Parked until the loot rework.
+- Charms became loot trinkets worn in the trinket slot (see `doc/design/loot/README.md`); the rabbit's foot and lucky tooth were never picked up.
 
 - Guard comes from plate, the shield (off-hand) and the Paladin class.
 - Exact numbers for class signatures are still to propose.

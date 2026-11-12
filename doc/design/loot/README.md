@@ -1,6 +1,6 @@
 # Loot: design catalogue
 
-**Status: implemented** (loot base, monster parts and charms, blueprints, trophies and relics, trinkets). Components were removed in the families rework (see Trophies); valuables and the market collector were removed later, their worth folded into gold. The source for discussion is the Loot Design doc; this folder is the version to build from, and `matrix.csv` wins over any table elsewhere.
+**Status: implemented** (loot base, monster parts and loot trinkets, blueprints, trophies and relics, trinkets). Components were removed in the families rework (see Trophies); valuables and the market collector were removed later, their worth folded into gold. The source for discussion is the Loot Design doc; this folder is the version to build from, and `matrix.csv` wins over any table elsewhere.
 
 Loot is designed from scratch on top of the new dungeons, bosses, places, events and shops, not on the old reward code.
 
@@ -18,11 +18,10 @@ Loot is designed from scratch on top of the new dungeons, bosses, places, events
 | `qualities.csv` | Gear qualities. Superseded by the gear rework (`doc/design/gear/`): rarity and affixes replace them |
 | `treasure-maps.csv`, `training-manuals.csv` | Map rarity (distance, loot); manual XP cap by tier band |
 | `monster-parts.csv` | 12 parts, one per enemy family tag, and their uses |
-| `charms.csv` | 10 charms (consumable slot) and their recipes |
+| `trinkets.csv` | Trinket kinds, plus the nine loot trinkets and their recipes |
 | `part-recipes.csv` | Potions made with parts: second recipes and part-only recipes, plus Viper oil |
 | `components.csv` | **Removed** in the families rework; kept as a record of the 13 components that boss and elite drops used to give |
 | `relics.csv` | 25 relics: tier, type, unique effect |
-| `trinkets.csv` | Trinket kinds |
 | `purposes.csv` | Purpose tags on base items, with icons |
 | `enemy-tags.csv` | Every enemy's family tags, in order (from the enemy tags change) |
 | `tools/pacing.py` | Weekly drops for the regular player from `matrix.csv` |
@@ -33,7 +32,7 @@ Loot is designed from scratch on top of the new dungeons, bosses, places, events
 - Each category is rolled separately on a win, with the chance of its mark: R 7%, R/2 3.5%, S 25%, O 60%, A 100%.
 - **Run length**: for dungeon runs and overnight expeditions, every R/2, R, S and O chance is multiplied by run minutes ÷ 45 (between ×0.25 and ×2, never above 95%). The first win of the day isn't scaled.
 - **Luck**: the party's total Luck multiplies every non-A chance by 1% per point (up to +30%); every 10 points add +1 to the looted gear rarity roll. Never touches A drops or amounts.
-- **Charms**: a "×1.5" charm multiplies that category's chance (with Luck, never above 95%). The same charm doesn't stack across the party.
+- **Loot trinkets**: worn in the trinket slot, so permanent. A "×1.25" one multiplies that category's chance (with Luck, never above 95%); the others give +10% gold, +8% XP, or a 50% chance of one rarity step on looted gear. The same modifier id from two heroes counts once.
 - **Quantities per drop**: gold and XP by tier and source (existing scaling); materials 2–4 of the tier's materials; shards 2–4 of one element; monster parts 1–2 (2–3 on A sources); everything else 1.
 - **Step chests**: at 2,000, 5,000, 8,000 and 12,000 steps each day, each rolling the Step chest row; the third and fourth roll at ×1.5.
 - **Ruins**: every 5th dig gives a relic (progress kept across ruins).
@@ -42,7 +41,7 @@ Loot is designed from scratch on top of the new dungeons, bosses, places, events
 - Every source's chances come from `matrix.csv`, generated into content. Logic only reads it.
 - Marks map to chances in one place, with a **multiplier per category** and a **multiplier per source** on top (all 1 by default).
 - A pacing report in the simulator gives the same weekly numbers as `tools/pacing.py`, so design and code can be compared.
-- Debug: show a source's roll table with its final chances (after Luck, charms, run length); force a drop.
+- Debug: show a source's roll table with its final chances (after Luck, loot trinkets, run length); force a drop.
 - Pacing balance tests come later, skipped until balancing.
 - Gold follows one curve per tier, ×1, ×1.9, ×3, ×4.2, ×5.6 for tiers 1–5 (the enemy strength curve; `lootConfig.goldByTier`): dungeon and overnight gold, the first-win and first-clear bonuses, every source paid as a share of the tier's short dungeon (quests, step chests, treasure spots, patrols, fight events) and a duplicate secret tip. Dungeon rows also pay their finds as gold, with no roll (`lootConfig.dungeonFinds`): `worth` × the tier's gold curve × the row's find chance, scaled like a drop chance.
 
@@ -68,11 +67,11 @@ Families ask players to swap gear for each place, over four gear slots (weapon, 
 - One per forgeable type and tier (110). Never a duplicate: a drop picks an unknown one of the source's tier, weighted towards types the roster favours. Once the tier is complete it gives 2–3 monster parts of the enemies' family instead, or gold (30 × the tier's gold curve) from a source without enemies (`lootConfig.blueprints`).
 - The player starts with two tier 1 blueprints (one weapon, one armour). The first tutorial dungeon (always won) gives a third through the normal first-win-of-the-day rule.
 
-### Monster parts and charms
+### Monster parts and loot trinkets
 - Each part belongs to an enemy family tag (`monster-parts.csv`). An enemy with several tags can drop the part of any of them; its first tag counts double. Elemental enemies (`elemental` tag) drop shards of their element instead of a part.
 - Parts are sellable at the hunting lodge or the apothecary.
-- A charm or part recipe unlocks the first time the player gets its part: no blueprint.
-- **Charms** go in the consumable slot, single-use. They raise what a run finds, never materials. They compete with kits on purpose: kits lower risk, charms raise rewards.
+- A loot trinket or part recipe unlocks the first time the player gets its part: no blueprint.
+- **Loot trinkets** are worn in the trinket slot — one slot, so a combat trinket and a loot trinket compete for it. They raise what the wearer's runs find, never materials, and are forged from 8 parts at the forge (the Lucky ear is gone). They drop with weight 1 among the trinket groups.
 - **Part recipes**: a part replaces one secondary ingredient of an existing potion; the tier's main material stays. Common potions keep both recipes (same item, stacks), the others switch to the part recipe only (`part-recipes.csv`). Part potions never answer a threat.
 
 ### Trophies

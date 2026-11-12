@@ -65,7 +65,7 @@ import {
 import { probe } from './probe';
 import { applyStones, rerollGear } from './rules/gear';
 import { forgeIngredients, restoreRelics } from './rules/forge';
-import { craftCharms, craftCombatElixirs, craftOils, craftStatPotions, readManuals, sellMaterials, sellParts } from './rules/inventory';
+import { craftCombatElixirs, craftOils, craftStatPotions, forgeLootTrinkets, readManuals, sellMaterials, sellParts } from './rules/inventory';
 import { buyWeakness, buyForgeMaterials, buyWorkTools, openSecrets, visitPlaces, SOURCES } from './rules/map';
 import { profiles, simConfig, type Profile, type SimConfig } from './config';
 import { targets } from './targets';
@@ -314,10 +314,10 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, firstSession: b
   forgeIngredients(sim);
   restoreRelics(sim);
   stockProvisions(sim);
-  craftCharms(sim);
   craftStatPotions(sim);
   craftOils(sim);
   craftCombatElixirs(sim);
+  forgeLootTrinkets(sim);
   readManuals(sim);
   applyStones(sim);
   rerollGear(sim);
@@ -355,6 +355,15 @@ function wornAffixes(save: SaveData) {
   const byUid = new Map(save.gear.map((piece) => [piece.uid, piece]));
   const slots = ['helmet', 'weapon', 'armor', 'offhand', 'trinket'] as const;
   return save.heroes.reduce((sum, hero) => sum + slots.reduce((n, slot) => n + (byUid.get(hero.equipment[slot] ?? '')?.affixes.length ?? 0), 0), 0) / save.heroes.length;
+}
+
+/** Share of the heroes whose trinket slot holds a loot trinket. */
+function lootTrinketShare(save: SaveData) {
+  const worn = save.heroes.filter((h) => {
+    const piece = save.gear.find((g) => g.uid === h.equipment.trinket);
+    return !!piece && !!(itemById[piece.itemId] as { loot?: unknown }).loot;
+  });
+  return worn.length / save.heroes.length;
 }
 
 /** Plays a profile with the bot until the tier 5 boss falls or the profile's day cap, and returns everything that happened. */
@@ -471,6 +480,7 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
       topLevel: [...save.heroes.map((h) => h.level)].sort((a, b) => b - a).slice(0, 3).reduce((a, b, _, all) => a + b / all.length, 0),
       affixes: wornAffixes(save),
       helmets: save.heroes.filter((h) => h.equipment.helmet).length / save.heroes.length,
+      lootTrinkets: lootTrinketShare(save),
     });
     afterDay?.(sim.day, sim.save);
   }

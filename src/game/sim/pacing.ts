@@ -3,20 +3,20 @@ import { lootMatrix } from '@/content/loot/matrix';
 
 import { categoryChance } from '../loot/chances';
 import { CATEGORY_COLUMNS } from '../loot/matrixCsv';
-import { LOOT_CATEGORIES, LOOT_SOURCES, type LootCategory, type LootSourceId, type MapRarity } from '../loot/types';
+import { LOOT_CATEGORIES, LOOT_SOURCES, type LootCategory, type LootModifier, type LootSourceId, type MapRarity } from '../loot/types';
 
 /** Fixed extras that aren't a mark: the ruins give a relic every 5th dig. */
 const EXTRAS: Partial<Record<LootSourceId, Partial<Record<LootCategory, number>>>> = {
   ruinsDig: { relics: 1 / 5 },
 };
 
-/** A source's chance with no Luck or charms; a treasure spot's averages its map rarities by how often each drops. */
-function sourceChance(source: LootSourceId, category: LootCategory): number {
-  if (source !== 'treasureSpot') return categoryChance(category, { source, luck: 0, modifiers: [] });
+/** A source's chance with no Luck or trinkets unless given; a treasure spot's averages its map rarities by how often each drops. */
+function sourceChance(source: LootSourceId, category: LootCategory, modifiers: LootModifier[]): number {
+  if (source !== 'treasureSpot') return categoryChance(category, { source, luck: 0, modifiers });
   const weights = lootConfig.treasureMaps.rarityWeights;
   const total = Object.values(weights).reduce((a, b) => a + b, 0);
   return (Object.keys(weights) as MapRarity[]).reduce(
-    (sum, mapRarity) => sum + (weights[mapRarity] / total) * categoryChance(category, { source, luck: 0, modifiers: [], mapRarity }),
+    (sum, mapRarity) => sum + (weights[mapRarity] / total) * categoryChance(category, { source, luck: 0, modifiers, mapRarity }),
     0,
   );
 }
@@ -25,14 +25,15 @@ export type PacingRow = { category: LootCategory; column: string; perWeek: numbe
 
 /**
  * Weekly drops per category for the regular player: each source's final
- * chance (config multipliers and map rarity included, no Luck, charms or run length) times
- * its visits per day, as doc/design/loot/tools/pacing.py works it out.
+ * chance (config multipliers and map rarity included, no Luck or trinkets
+ * unless given, no run length) times its visits per day, as
+ * doc/design/loot/tools/pacing.py works it out.
  */
-export function lootPacing(): PacingRow[] {
+export function lootPacing(modifiers: LootModifier[] = []): PacingRow[] {
   const columns = Object.fromEntries(Object.entries(CATEGORY_COLUMNS).map(([column, category]) => [category, column]));
   return LOOT_CATEGORIES.map((category) => {
     const bySource = LOOT_SOURCES.map((source) => {
-      const chance = sourceChance(source, category) + (EXTRAS[source]?.[category] ?? 0);
+      const chance = sourceChance(source, category, modifiers) + (EXTRAS[source]?.[category] ?? 0);
       return { source, perDay: chance * lootMatrix[source].visitsPerDay };
     }).filter((s) => s.perDay > 0);
     return {

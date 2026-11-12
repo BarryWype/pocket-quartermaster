@@ -1,16 +1,13 @@
 import { dungeonById } from '@/content/lookup';
-import { charms } from '@/content/loot/charms';
 import { weaknessByBoss } from '@/content/weaknesses';
 
-import { charmApplies } from '../../loot/charms';
 import { createInitialSave, type SaveData } from '../../save';
-import { emptySlots, fillPotions, pickCharm, pickWeakness, withCharm, withElixir, withOil, withStatPotion } from './loadout';
+import { emptySlots, fillPotions, pickWeakness, withElixir, withOil, withStatPotion } from './loadout';
 
 const PARTY = ['bram', 'lyra', 'mira'];
 
 const stocked = (consumables: Record<string, number>): SaveData => ({ ...createInitialSave(), consumables });
 const slots = (save: SaveData) => PARTY.map((id) => save.heroes.find((h) => h.id === id)!.equipment.consumable);
-const dungeonCharms = charms.filter((c) => charmApplies(c.modifier, 'dungeonRun'));
 
 describe('loadout rules', () => {
   it('gives the boss its weakness item and everyone else a potion', () => {
@@ -19,20 +16,6 @@ describe('loadout rules', () => {
     const save = fillPotions(pickWeakness(stocked({ [item]: 1, healingPotion: 5 }), PARTY, boss), PARTY);
     expect(slots(save).filter((s) => s === item)).toHaveLength(1);
     expect(slots(save).filter((s) => s === 'healingPotion')).toHaveLength(2);
-  });
-
-  it('picks the charm held most that applies to the run', () => {
-    const [few, many] = dungeonCharms;
-    expect(pickCharm(stocked({ [few.id]: 1, [many.id]: 3 }), 'dungeonRun')).toBe(many.id);
-    expect(pickCharm(stocked({ healingPotion: 3 }), 'dungeonRun')).toBeNull();
-  });
-
-  it('puts a held charm on the first hero with a free slot or a healing potion', () => {
-    const [charm] = dungeonCharms;
-    const potions = fillPotions(stocked({ [charm.id]: 1, healingPotion: 2 }), PARTY);
-    const withCharmSave = withCharm(potions, PARTY, charm.id);
-    expect(slots(withCharmSave).filter((s) => s === charm.id)).toHaveLength(1);
-    expect(withCharmSave.consumables[charm.id]).toBe(0);
   });
 
   it('puts carried consumables back in the stock', () => {

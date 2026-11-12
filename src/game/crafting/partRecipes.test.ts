@@ -14,10 +14,10 @@ const tier = (n: number): SaveData => ({
 describe('part recipe unlocks', () => {
   it('unlocks a recipe the first time its part drops', () => {
     const before = createInitialSave();
-    const after = grantLoot(before, [], { ...emptyLoot(), materials: [{ materialId: 'goblinEar', amount: 1 }] }, 0);
-    expect(after.seenParts).toEqual(['goblinEar']);
-    expect(newPartRecipes(before, after)).toEqual(['luckyEar', 'prismCharm']);
-    expect(isKnown(after, recipeById.luckyEar)).toBe(true);
+    const after = grantLoot(before, [], { ...emptyLoot(), materials: [{ materialId: 'scale', amount: 1 }] }, 0);
+    expect(after.seenParts).toEqual(['scale']);
+    expect(newPartRecipes(before, after)).toEqual(['firebomb', 'prismCharm']);
+    expect(isKnown(after, recipeById.prismCharm)).toBe(true);
   });
 
   it('unlocks every recipe a part feeds, each known once its tier is reached', () => {
@@ -32,19 +32,19 @@ describe('part recipe unlocks', () => {
 
   it('unlocks every recipe a seen part feeds, even once the part is gone', () => {
     const insignia = seeParts(createInitialSave(), ['tatteredInsignia']);
-    expect(insignia.partRecipes).toEqual(['bountyToken', 'prismCharm', 'architectsSeal']);
+    expect(insignia.partRecipes).toEqual(['bountyToken', 'architectsSeal']);
     expect(insignia.materials.tatteredInsignia).toBeUndefined();
   });
 
-  it('unlocks the Prism charm with the first part seen: it waits on none', () => {
-    const save = seeParts(createInitialSave(), ['goblinEar']);
-    expect(save.partRecipes).toEqual(['luckyEar', 'prismCharm']);
+  it('unlocks the Prism charm with the first scale seen: it waits on none of the shards', () => {
+    const save = seeParts(createInitialSave(), ['scale']);
+    expect(save.partRecipes).toEqual(['firebomb', 'prismCharm']);
   });
 
   it('ignores ids no recipe waits on, and parts already seen', () => {
-    const save = seeParts(createInitialSave(), ['wood', 'goblinEar']);
-    expect(save.seenParts).toEqual(['goblinEar']);
-    expect(seeParts(save, ['goblinEar'])).toBe(save);
+    const save = seeParts(createInitialSave(), ['wood', 'feather']);
+    expect(save.seenParts).toEqual(['feather']);
+    expect(seeParts(save, ['feather'])).toBe(save);
   });
 
   it('unlocks every part recipe for debug', () => {
@@ -76,14 +76,14 @@ describe('part recipes', () => {
     expect(craft(save, recipeById.viperOil).consumables.viperOil).toBe(1);
   });
 
-  it('spends three shards of the element held most', () => {
+  it('forges the Prism charm from four scales and four shards of the element held most', () => {
     const save: SaveData = {
       ...known(tier(1)),
-      materials: { fireShard: 2, waterShard: 3 },
+      materials: { scale: 4, fireShard: 2, waterShard: 5 },
     };
     const after = craft(save, recipeById.prismCharm);
-    expect(after.consumables.prismCharm).toBe(1);
-    expect(after.materials).toEqual({ fireShard: 2 });
-    expect(canCraft({ ...save, materials: { fireShard: 1, waterShard: 1 } }, recipeById.prismCharm)).toBe(false);
+    expect(after.gear.some((piece) => piece.itemId === 'prismCharm')).toBe(true);
+    expect(after.materials).toEqual({ fireShard: 2, waterShard: 1 });
+    expect(canCraft({ ...save, materials: { scale: 4, fireShard: 1, waterShard: 1 } }, recipeById.prismCharm)).toBe(false);
   });
 });

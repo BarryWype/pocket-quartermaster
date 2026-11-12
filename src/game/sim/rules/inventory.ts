@@ -1,11 +1,11 @@
-import { charms } from '@/content/loot/charms';
 import { monsterParts } from '@/content/loot/monsterParts';
+import { lootTrinketKinds } from '@/content/trinkets';
 import { xpRules } from '@/content/heroes';
 import { itemById, recipeById } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
 import { shopRules } from '@/content/shops';
 
-import { canCraft, craftableCount, craftMany, isKnown } from '../../crafting/crafting';
+import { canCraft, craft, craftableCount, craftMany, isKnown } from '../../crafting/crafting';
 import { highestUnlockedTier } from '../../dungeons/unlock';
 import { distanceMeters } from '../../generation/geo';
 import { manualXp, readManual } from '../../loot/manuals';
@@ -21,8 +21,6 @@ import { oilIds, statPotionIds } from './loadout';
 /** A recipe whose output is an item, with the output narrowed to its itemId. */
 type ItemRecipe = RecipeDef & { output: { itemId: string } };
 
-const charmIds = new Set(charms.map((c) => c.id));
-const charmRecipes: ItemRecipe[] = recipes.filter((r): r is ItemRecipe => 'itemId' in r.output && charmIds.has(r.output.itemId));
 const partIds = new Set(monsterParts.map((part) => part.id));
 
 /** The nearest open, revealed market within 1500 m, else null. */
@@ -50,11 +48,18 @@ export function sellMaterials(sim: Sim) {
   if (sold) sim.log.places.push({ day: sim.day, kind: 'market', tier: highestUnlockedTier(sim.save), odds: null, won: null });
 }
 
-/** Every monster part held above `keepAbove`, minus one craft of each known charm and potion recipe that uses it; only lines with count > 0. */
+/** Every monster part held above `keepAbove`, minus one craft of each known potion recipe and one forge of each known loot trinket recipe that uses it; only lines with count > 0. */
 export function partsToSell(save: SaveData, keepAbove: number): { id: string; count: number }[] {
   const reserved: Record<string, number> = {};
-  const partRecipes = recipes.filter((r): r is ItemRecipe => 'itemId' in r.output && (charmIds.has(r.output.itemId) || (itemById[r.output.itemId] as ConsumableDef | undefined)?.slot === 'consumable'));
+  const partRecipes = recipes.filter((r): r is ItemRecipe => 'itemId' in r.output && (itemById[r.output.itemId] as ConsumableDef | undefined)?.slot === 'consumable');
   for (const recipe of partRecipes.filter((r) => isKnown(save, r))) {
+    for (const { materialId, amount } of recipe.inputs) {
+      if (partIds.has(materialId)) reserved[materialId] = (reserved[materialId] ?? 0) + amount;
+    }
+  }
+  for (const kind of lootTrinketKinds) {
+    const recipe = recipeById[kind.kind];
+    if (!recipe || !isKnown(save, recipe)) continue;
     for (const { materialId, amount } of recipe.inputs) {
       if (partIds.has(materialId)) reserved[materialId] = (reserved[materialId] ?? 0) + amount;
     }
@@ -93,23 +98,9 @@ export function sellParts(sim: Sim) {
 export function partRecipeFor(save: SaveData, itemId: string): RecipeDef | null {
   return (
     recipes.find(
-      (r): r is ItemRecipe => !!r.unlockedBy && 'itemId' in r.output && r.output.itemId === itemId && !charmIds.has(r.output.itemId) && canCraft(save, r),
+      (r): r is ItemRecipe => !!r.unlockedBy && 'itemId' in r.output && r.output.itemId === itemId && canCraft(save, r),
     ) ?? null
   );
-}
-
-/** Crafts every known charm recipe up to the charms-per-kind stock. */
-export function craftCharms(sim: Sim) {
-  for (const recipe of charmRecipes.filter((r) => isKnown(sim.save, r))) {
-    const missing = sim.config.provisions.charms - (sim.save.consumables[recipe.output.itemId] ?? 0);
-    const n = Math.min(missing, craftableCount(sim.save, recipe));
-    if (n <= 0) continue;
-    act(sim, 'alchemy', (save) => craftMany(save, recipe, n));
-    for (let i = 0; i < n; i++) {
-      sim.log.crafts.push({ day: sim.day, kind: 'consumable', itemId: recipe.output.itemId, tier: 0, rarity: null, roll: null, materials: {} });
-    }
-    mark(sim, 'charmCrafted');
-  }
 }
 
 /** Crafts each item up to its stock (its part recipe when the parts are held, else the base recipe when known). */
@@ -135,6 +126,17 @@ export const craftOils = (sim: Sim) => craftUpTo(sim, oilIds, sim.config.provisi
 
 /** Crafts each combat elixir (firebomb, smoke bomb, revival draught) up to the combat-elixirs stock. */
 export const craftCombatElixirs = (sim: Sim) => craftUpTo(sim, ['firebomb', 'smokeBomb', 'revivalDraught'], sim.config.provisions.combatElixirs);
+
+/** Forges one of each known loot trinket recipe the bot holds none of (worn or spare), when the parts cover it. */
+export function forgeLootTrinkets(sim: Sim) {
+  for (const kind of lootTrinketKinds) {
+    const recipe = recipeById[kind.kind];
+    if (!recipe || !isKnown(sim.save, recipe) || sim.save.gear.some((g) => g.itemId === kind.kind) || !canCraft(sim.save, recipe)) continue;
+    const materials = act(sim, 'forge', (save) => craft(save, recipe));
+    sim.log.crafts.push({ day: sim.day, kind: 'lootTrinket', itemId: kind.kind, tier: 1, rarity: 'common', roll: null, materials });
+    mark(sim, 'lootTrinketForged');
+  }
+}
 
 /** Reads every training manual held to the home hero with the lowest level below the max level. */
 export function readManuals(sim: Sim) {

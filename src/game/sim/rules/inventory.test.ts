@@ -3,7 +3,7 @@ import { createRng } from '../../generation/rng';
 import { dungeonById } from '@/content/lookup';
 import { emptyLog, stockProvisions, type Sim } from '../bot';
 import { profiles, simConfig } from '../config';
-import { craftCharms, craftOils, craftStatPotions, partRecipeFor, partsToSell } from './inventory';
+import { craftOils, craftStatPotions, forgeLootTrinkets, partRecipeFor, partsToSell } from './inventory';
 
 
 /** A Sim with just the fields the inventory rules touch: a real day 1 save, an empty log. */
@@ -38,18 +38,25 @@ function simOf(save: SaveData): Sim {
 describe('partsToSell', () => {
   it('sells the parts above the cap, keeping a known recipe’s input', () => {
     const save = createInitialSave();
-    save.partRecipes = ['luckyEar'];
+    save.partRecipes = ['firebomb'];
     save.materials = { ...save.materials, goblinEar: 25, fangOrHorn: 30, scale: 20 };
     expect(partsToSell(save, 20)).toEqual([
       { id: 'fangOrHorn', count: 10 },
       { id: 'goblinEar', count: 5 },
     ]);
-    // Lucky ear (known) keeps 3 goblin ears; the firebomb's scale recipe isn't known, so nothing holds scales back.
+    // The firebomb's scale recipe is known, so it keeps one craft's worth of scales; nothing holds goblin ears back.
     expect(partsToSell(save, 2)).toEqual([
       { id: 'fangOrHorn', count: 28 },
-      { id: 'goblinEar', count: 22 },
+      { id: 'goblinEar', count: 23 },
       { id: 'scale', count: 18 },
     ]);
+  });
+
+  it('keeps one forge of a known loot trinket recipe back from the sale', () => {
+    const save = createInitialSave();
+    save.partRecipes = ['bountyToken'];
+    save.materials = { ...save.materials, tatteredInsignia: 25 };
+    expect(partsToSell(save, 2)).toEqual([{ id: 'tatteredInsignia', count: 17 }]);
   });
 });
 
@@ -61,22 +68,6 @@ describe('partRecipeFor', () => {
     expect(partRecipeFor(save, 'healingPotion')?.id).toBe('healingPotionPart');
     expect(partRecipeFor({ ...save, materials: { ...save.materials, bruteBlood: 0 } }, 'healingPotion')).toBeNull();
     expect(partRecipeFor({ ...save, partRecipes: [] }, 'healingPotion')).toBeNull();
-  });
-});
-
-describe('craftCharms', () => {
-  it('crafts a charm with its parts up to the stock', () => {
-    const sim = simOf(createInitialSave());
-    sim.save.partRecipes = ['luckyEar'];
-    sim.save.materials = { ...sim.save.materials, goblinEar: 5 };
-    craftCharms(sim);
-    expect(sim.save.consumables.luckyEar).toBe(1);
-    expect(sim.save.materials.goblinEar).toBe(2);
-    expect(sim.log.crafts.filter((c) => c.kind === 'consumable')).toHaveLength(1);
-    expect(sim.log.milestones.charmCrafted).toBe(1);
-    craftCharms(sim);
-    expect(sim.save.consumables.luckyEar).toBe(1);
-    expect(sim.log.crafts).toHaveLength(1);
   });
 });
 
@@ -128,6 +119,33 @@ describe('craftOils', () => {
     locked.save.materials = { ...locked.save.materials, copper: 2, fireShard: 4, herb: 2 };
     craftOils(locked);
     expect(locked.save.consumables.emberOil).toBeUndefined();
+  });
+});
+
+describe('forgeLootTrinkets', () => {
+  it('forges one of each known loot trinket recipe the bot holds none of, and only once', () => {
+    const sim = simOf(createInitialSave());
+    sim.save.partRecipes = ['bountyToken'];
+    sim.save.materials = { ...sim.save.materials, tatteredInsignia: 20 };
+    forgeLootTrinkets(sim);
+    expect(sim.save.gear.filter((g) => g.itemId === 'bountyToken')).toHaveLength(1);
+    expect(sim.save.materials.tatteredInsignia).toBe(12);
+    expect(sim.log.milestones.lootTrinketForged).toBe(1);
+    forgeLootTrinkets(sim);
+    expect(sim.save.gear.filter((g) => g.itemId === 'bountyToken')).toHaveLength(1);
+    expect(sim.log.crafts.filter((c) => c.kind === 'lootTrinket')).toHaveLength(1);
+  });
+
+  it('forges nothing while the recipe is unknown or the parts are short', () => {
+    const sim = simOf(createInitialSave());
+    sim.save.materials = { ...sim.save.materials, tatteredInsignia: 20 };
+    forgeLootTrinkets(sim);
+    expect(sim.log.crafts).toHaveLength(0);
+    const known = simOf(createInitialSave());
+    known.save.partRecipes = ['bountyToken'];
+    known.save.materials = { ...known.save.materials, tatteredInsignia: 3 };
+    forgeLootTrinkets(known);
+    expect(known.log.crafts).toHaveLength(0);
   });
 });
 

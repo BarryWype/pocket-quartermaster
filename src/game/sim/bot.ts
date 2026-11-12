@@ -36,6 +36,7 @@ import { salvage } from '../forging/salvage';
 import { familyLevels, gearFamilyTags, partyFamilies, type FamilyLevels } from '../families/families';
 import { gearStats } from '../gear/stats';
 import { trinketEffect } from '../loot/trinkets';
+import { lootModifierApplies } from '../loot/modifiers';
 import { distanceMeters, offsetPosition } from '../generation/geo';
 import { createRng, type Rng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
@@ -63,7 +64,7 @@ import { partRecipeFor } from './rules/inventory';
 import { sparePieces } from '../families/dress';
 import { sparesToKeep } from './rules/families';
 import { applySwaps, suggestParty, type GearSwap } from '../threats/suggest';
-import { emptySlots, fillPotions, heldPotion, oilIds, pickCharm, pickWeakness, statPotionIds, withCharm, withElixir, withOil, withStatPotion } from './rules/loadout';
+import { emptySlots, fillPotions, heldPotion, oilIds, pickWeakness, statPotionIds, withElixir, withOil, withStatPotion } from './rules/loadout';
 import { PICKAXES, type WalkRates } from './walking';
 import { questRules } from '@/content/quests';
 import { questUpkeep } from '../quests/arrival';
@@ -116,7 +117,7 @@ export type ExpeditionRow = {
   meal: string | null;
   /** Healing potions drunk in the dungeon. */
   potions: number;
-  /** Consumables the party carried (charms, potions, weakness items). */
+  /** Consumables the party carried (potions, weakness items). */
   consumables: string[];
   /** The party's family levels at launch, as dressed for the briefing. */
   families: FamilyLevels;
@@ -126,7 +127,7 @@ export type ExpeditionRow = {
 
 export type CraftRow = {
   day: number;
-  kind: 'pickaxe' | 'upgrade' | 'family' | 'reforge' | 'component' | 'relic' | 'consumable' | 'provision' | 'salvage' | 'tutorial';
+  kind: 'pickaxe' | 'upgrade' | 'family' | 'reforge' | 'component' | 'relic' | 'consumable' | 'provision' | 'salvage' | 'tutorial' | 'lootTrinket';
   itemId: string;
   tier: number;
   rarity: Rarity | null;
@@ -156,6 +157,8 @@ export type DayRow = {
   affixes: number;
   /** Share of the heroes wearing a helmet. */
   helmets: number;
+  /** Share of the heroes whose trinket slot holds a loot trinket. */
+  lootTrinkets: number;
 };
 
 export type RunLog = {
@@ -533,7 +536,70 @@ function trinketScore(gear: GearInstance) {
   return crit + evasion + 3 * (speed + luck) + (effect.elementResist?.amount ?? 0) / 2;
 }
 
-/** Gives each home hero, in turn, the best spare trinket that beats the one they wear. */
+/** The loot trinket a piece is, else null. */
+const lootTrinketOf = (save: SaveData, uid: string | null): GearDef | null => {
+  const gear = gearOf(save, uid);
+  const item = gear ? (itemById[gear.itemId] as GearDef) : null;
+  return item?.loot ? item : null;
+};
+
+/** A hero with an empty trinket slot wears a spare loot trinket whose kind no hero wears. */
+export function fillLootTrinkets(save: SaveData, heroIds: string[]): SaveData {
+  let next = save;
+  for (const id of heroIds) {
+    const hero = next.heroes.find((h) => h.id === id);
+    if (!hero || hero.equipment.trinket) continue;
+    const worn = new Set(next.heroes.map((h) => h.equipment.trinket));
+    const wornKinds = new Set(next.heroes.map((h) => lootTrinketOf(next, h.equipment.trinket)?.id).filter(Boolean) as string[]);
+    const spare = next.gear.find((g) => {
+      const item = itemById[g.itemId] as GearDef;
+      return item.loot && !worn.has(g.uid) && !wornKinds.has(g.itemId);
+    });
+    if (spare) next = equip(next, id, 'trinket', spare.uid);
+  }
+  return next;
+}
+
+/**
+ * The run's trinket choice: a safe run (prepared odds at or above the
+ * threshold it launched at) trades stats for loot — the party hero whose
+ * combat trinket scores lowest swaps it for a spare loot trinket that applies
+ * at the run's source; a risky run trades back, every party hero in a loot
+ * trinket taking the best spare combat trinket.
+ */
+export function dressLootTrinkets(save: SaveData, heroIds: string[], source: LootSourceId, safe: boolean): SaveData {
+  const party = heroIds.map((id) => save.heroes.find((h) => h.id === id)).filter((h): h is HeroState => !!h);
+  let next = save;
+  if (safe) {
+    const carriers = party
+      .filter((h) => h.equipment.trinket && !lootTrinketOf(next, h.equipment.trinket))
+      .sort((a, b) => trinketScore(gearOf(next, a.equipment.trinket)!) - trinketScore(gearOf(next, b.equipment.trinket)!));
+    const hero = carriers[0];
+    if (!hero) return next;
+    const worn = new Set(next.heroes.map((h) => h.equipment.trinket));
+    const partyKinds = new Set(party.map((h) => lootTrinketOf(next, h.equipment.trinket)?.id));
+    const spare = next.gear.find((g) => {
+      const item = itemById[g.itemId] as GearDef;
+      return !!item.loot && !worn.has(g.uid) && !partyKinds.has(item.id) && lootModifierApplies(item.loot, source);
+    });
+    if (spare) next = equip(next, hero.id, 'trinket', spare.uid);
+    return next;
+  }
+  for (const hero of party) {
+    if (!lootTrinketOf(next, hero.equipment.trinket)) continue;
+    const worn = new Set(next.heroes.map((h) => h.equipment.trinket));
+    const best = next.gear
+      .filter((g) => {
+        const item = itemById[g.itemId] as GearDef;
+        return item.slot === 'trinket' && !item.loot && !worn.has(g.uid);
+      })
+      .sort((a, b) => trinketScore(b) - trinketScore(a))[0];
+    if (best) next = equip(next, hero.id, 'trinket', best.uid);
+  }
+  return next;
+}
+
+/** Gives each home hero, in turn, the best spare trinket that beats the one they wear, then a loot trinket to every slot left empty. */
 function distributeTrinkets(sim: Sim) {
   for (const hero of homeHeroes(sim.save)) {
     const worn = new Set(sim.save.heroes.map((h) => h.equipment.trinket));
@@ -545,6 +611,7 @@ function distributeTrinkets(sim: Sim) {
       act(sim, 'equip', (save) => equip(save, hero.id, 'trinket', spare.uid));
     }
   }
+  sim.save = fillLootTrinkets(sim.save, homeHeroes(sim.save).map((h) => h.id));
 }
 
 /** Gives every spare piece to the home hero it helps most, then salvages what nobody wants. */
@@ -571,6 +638,7 @@ function distribute(sim: Sim) {
   for (const gear of sim.save.gear.filter((g) => !worn.has(g.uid) && !kept.has(g.uid))) {
     const item = itemById[gear.itemId] as GearDef;
     if (item.workTool) continue; // work tools cannot be salvaged; a spare one just waits
+    if (item.loot) continue; // a spare loot trinket waits for a run
     const materials = act(sim, 'salvage', (save) => salvage(save, gear.uid));
     sim.log.crafts.push({ day: sim.day, kind: 'salvage', itemId: item.id, tier: item.tier, rarity: gear.rarity, roll: gear.roll, materials });
   }
@@ -1142,13 +1210,10 @@ export function launch(sim: Sim, dungeon: DungeonDef, party: { heroIds: string[]
   // A smoke bomb in place of a healing potion when the odds stay low.
   const lowOdds = estimateOdds(sim.save, heroIds, dungeon, sim.config.odds.searchRuns, { now: sim.now, loadout, briefing });
   if (lowOdds.success < sim.config.smokeBombBelowOdds) sim.save = withElixir(sim.save, heroIds, 'smokeBomb');
+  // A safe run wears a loot trinket for what it finds, a risky one the best combat trinket.
+  sim.save = dressLootTrinkets(sim.save, heroIds, runSource(dungeon), o.success >= sim.profile.oddsThreshold);
   // The prediction logged is for the party exactly as it leaves.
-  let final = estimateOdds(sim.save, heroIds, dungeon, sim.config.odds.runs, { now: sim.now, loadout, briefing });
-  const charm = final.success >= sim.config.odds.charm ? pickCharm(sim.save, runSource(dungeon)) : null;
-  if (charm) {
-    sim.save = withCharm(sim.save, heroIds, charm);
-    final = estimateOdds(sim.save, heroIds, dungeon, sim.config.odds.runs, { now: sim.now, loadout, briefing });
-  }
+  const final = estimateOdds(sim.save, heroIds, dungeon, sim.config.odds.runs, { now: sim.now, loadout, briefing });
   const rarities = Object.fromEntries(RARITY_ORDER.map((r) => [r, 0])) as Record<Rarity, number>;
   for (const id of heroIds) {
     const hero = sim.save.heroes.find((h) => h.id === id)!;
@@ -1170,7 +1235,7 @@ export function launch(sim: Sim, dungeon: DungeonDef, party: { heroIds: string[]
   sim.launched.set(id, { odds: final.success, rarities, day: sim.day, hour: (sim.now - sim.startedAt) / 3_600_000, level, consumables, families });
 }
 
-/** The loot row a run of this dungeon rolls, for charms. */
+/** The loot row a run of this dungeon rolls. */
 const runSource = (dungeon: DungeonDef): LootSourceId => (dungeon.overnight ? 'overnightExpedition' : dungeon.isBoss ? 'tierBoss' : 'dungeonRun');
 
 /** Whether a win here could drop a weapon or armour blueprint of the dungeon's tier the roster favours and doesn't know yet. */

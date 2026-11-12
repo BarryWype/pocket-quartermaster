@@ -7,7 +7,7 @@ import { Text } from '@/components/Text';
 import { elementInfo } from '@/content/elements';
 import { RARITIES, rarityNames } from '@/content/gear';
 import { gearId, gearProfiles } from '@/content/equipment';
-import { trinketId, trinketKinds } from '@/content/trinkets';
+import { lootTrinketKinds, trinketId, trinketKinds } from '@/content/trinkets';
 import { dungeons } from '@/content/dungeons';
 import { guildTrackById, guildTracks, type GuildTrackId } from '@/content/guild';
 import { gamblerRules, heroClasses, xpRules } from '@/content/heroes';
@@ -63,7 +63,6 @@ import { lootConfig } from '@/content/loot/config';
 import { secretRules, type PlaceTipSource } from '@/content/secrets';
 import { objectives, type QuestBand, type QuestObjective } from '@/content/quests';
 import { lootMatrix } from '@/content/loot/matrix';
-import { charms } from '@/content/loot/charms';
 import { monsterParts } from '@/content/loot/monsterParts';
 import { relics } from '@/content/loot/relics';
 import { lootText } from '@/components/lootText';
@@ -271,9 +270,9 @@ function UiKitDebug() {
 }
 
 /**
- * A source's roll table with its final chances (after Luck, a ×1.5 charm on
- * one category, run length and map rarity), a roll paid into the save, an
- * optional forced category, and grants of every new item.
+ * A source's roll table with its final chances (after Luck, a loot trinket's
+ * chance multiplier on one category, run length and map rarity), a roll paid
+ * into the save, an optional forced category, and grants of every new item.
  */
 function LootDebug() {
   const game = useGameStore();
@@ -281,7 +280,7 @@ function LootDebug() {
   const [tier, setTier] = useState(1);
   const [luck, setLuck] = useState(0);
   const [minutes, setMinutes] = useState<number | null>(null);
-  const [charm, setCharm] = useState<LootCategory | null>(null);
+  const [lootTrinket, setLootTrinket] = useState<LootCategory | null>(null);
   const [force, setForce] = useState<LootCategory | null>(null);
   const [mapRarity, setMapRarity] = useState<MapRarity>('common');
   const [last, setLast] = useState('');
@@ -289,7 +288,9 @@ function LootDebug() {
   const input = {
     source,
     luck,
-    modifiers: charm ? [{ id: 'debugCharm', kind: 'chance' as const, category: charm, multiplier: 1.5 }] : [],
+    modifiers: lootTrinket
+      ? [{ id: 'debugLoot', kind: 'chance' as const, category: lootTrinket, multiplier: lootConfig.lootTrinkets.chanceMultiplier }]
+      : [],
     ...(minutes ? { minutes } : {}),
     ...(source === 'treasureSpot' ? { mapRarity } : {}),
   };
@@ -310,8 +311,8 @@ function LootDebug() {
       <Choice options={TIERS} value={tier} label={(t) => `T${t}`} onChange={setTier} />
       <Choice options={LUCK_POINTS} value={luck} label={(l) => `${l} Luck`} onChange={setLuck} />
       <Choice options={RUN_MINUTES} value={minutes} label={(m) => (m ? `${m} min` : 'no run length')} onChange={setMinutes} />
-      <Text>×1.5 charm on</Text>
-      <Choice options={LOOT_FORCES} value={charm} label={(c) => c ?? 'none'} onChange={setCharm} />
+      <Text>×{lootConfig.lootTrinkets.chanceMultiplier} loot trinket on</Text>
+      <Choice options={LOOT_FORCES} value={lootTrinket} label={(c) => c ?? 'none'} onChange={setLootTrinket} />
       {source === 'treasureSpot' && <Choice options={MAP_RARITIES} value={mapRarity} label={(r) => r} onChange={setMapRarity} />}
       {LOOT_CATEGORIES.filter((c) => chances[c] > 0).map((c) => (
         <Text key={c}>
@@ -337,8 +338,8 @@ function LootDebug() {
         {monsterParts.map((part) => (
           <Button key={part.id} title={part.emoji} onPress={() => grant({ materials: [{ materialId: part.id, amount: 3 }] })} />
         ))}
-        {charms.map((charm) => (
-          <Button key={charm.id} emoji={charm.emoji} title="+" onPress={() => grant({ consumables: [{ itemId: charm.id, amount: 1 }] })} />
+        {lootTrinketKinds.map((kind) => (
+          <Button key={kind.kind} emoji={kind.emoji} title="+" onPress={() => game.addGear(kind.kind, 'common')} />
         ))}
       </View>
       <Choice
@@ -835,7 +836,7 @@ export default function DebugScreen() {
       <Choice options={[...RARITIES]} value={gearRarity} label={(r) => rarityNames[r]} onChange={setGearRarity} />
       <View style={styles.row}>
         <Button title="Add gear" onPress={() => game.addGear(gearId(gearType, gearTier), gearRarity)} />
-        <Button title={t('debug.grantCharm')} onPress={() => game.addGear('testCharm', 'common')} />
+        <Button title={t('debug.grantTestTrinket')} onPress={() => game.addGear('testTrinket', 'common')} />
       </View>
       <Text>Trinket (tier and rarity above)</Text>
       <Choice
@@ -1142,7 +1143,7 @@ export default function DebugScreen() {
         <Button title="+10 min healing" onPress={() => game.fastForwardHealing(10)} />
         <Button title="+1 h healing" onPress={() => game.fastForwardHealing(60)} />
       </View>
-      <Button title="+5 of every food and charm" onPress={() => game.addProvisions(5)} />
+      <Button title="+5 of every food" onPress={() => game.addProvisions(5)} />
       <Button title="Grant one of each elixir, meal, walking and home care item" onPress={game.addConsumables} />
       <Text>Healing potions and fish dishes</Text>
       <View style={styles.row}>

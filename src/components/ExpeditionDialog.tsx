@@ -10,13 +10,13 @@ import { briefingOf, dungeonLootSource, expeditionMinutes, firstWinAvailable, la
 import { cachedEstimateOdds, oddsKey } from '@/game/expeditions/oddsCache';
 import { canJoin, heroStatus } from '@/game/expeditions/party';
 import { mealItems } from '@/game/expeditions/provisions';
-import { charmApplies } from '@/game/loot/charms';
+import { lootModifierApplies } from '@/game/loot/modifiers';
 import type { SaveData } from '@/game/save';
 import { hasKey } from '@/game/secrets/keys';
 import { buySupplyProblem, supplyPrice } from '@/game/taverns/taverns';
 import { currentHp, drinkProblem, isExhausted, maxHp, timeToFull } from '@/game/team/health';
 import { briefingCoverage } from '@/game/threats/coverage';
-import type { Briefing, ConsumableDef, DungeonDef, ProvisionDef } from '@/game/types';
+import type { Briefing, DungeonDef, GearDef, ProvisionDef } from '@/game/types';
 import { formatDuration, formatPercent, t, tr } from '@/i18n';
 import { currentRotation } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
@@ -72,7 +72,7 @@ function MealPicker({ stock, value, onChange, disabled }: { stock: Record<string
   );
 }
 
-/** What else the run takes and pays, under the plates: the boss, supply, meal, opportunity, charms, time and warnings. */
+/** What else the run takes and pays, under the plates: the boss, supply, meal, opportunity, loot trinkets, time and warnings. */
 function ExpeditionDetails({
   save,
   party,
@@ -102,13 +102,15 @@ function ExpeditionDetails({
   const keyCost = !!opportunity?.cost?.key;
   const spoiled = coverage.restriction?.id === 'spoiledStores' && !coverage.restriction.cancelledBy;
   const barren = coverage.restriction?.id === 'barren' && !coverage.restriction.cancelledBy;
-  const charms = heroes
-    .map((h) => (h.equipment.consumable ? (itemById[h.equipment.consumable] as ConsumableDef) : null))
-    .filter((item): item is ConsumableDef => !!item?.charm);
-  const charmLines = [...new Set(charms.map((c) => c.id))].map((id) => {
-    const item = itemById[id] as ConsumableDef;
-    const applies = charmApplies(item.charm!, dungeonLootSource(dungeon)) && !(barren && item.charm!.kind === 'gold');
-    return { id, emoji: item.emoji, text: `${tr(item.name)}: ${tr(item.description!)}`, applies, twice: charms.filter((c) => c.id === id).length > 1 };
+  const lootTrinkets = heroes.flatMap((h) => {
+    const piece = h.equipment.trinket ? save.gear.find((g) => g.uid === h.equipment.trinket) : undefined;
+    const item = piece ? (itemById[piece.itemId] as GearDef) : undefined;
+    return item?.loot ? [item] : [];
+  });
+  const lootLines = [...new Set(lootTrinkets.map((trinket) => trinket.id))].map((id) => {
+    const item = itemById[id] as GearDef;
+    const applies = lootModifierApplies(item.loot!, dungeonLootSource(dungeon)) && !(barren && item.loot!.kind === 'gold');
+    return { id, emoji: item.emoji, text: `${tr(item.name)}: ${tr(item.description!)}`, applies, twice: lootTrinkets.filter((t) => t.id === id).length > 1 };
   });
   const weakness = dungeon.isBoss ? weaknessByBoss[dungeon.boss.id] : undefined;
   const weaknessHeld = !!weakness && ((save.consumables[weakness.itemId] ?? 0) > 0 || save.heroes.some((h) => h.equipment.consumable === weakness.itemId));
@@ -184,12 +186,12 @@ function ExpeditionDetails({
       )}
       <MealPicker stock={save.consumables} value={loadout.mealId} onChange={(mealId) => setLoadout({ ...loadout, mealId })} disabled={spoiled} />
       {spoiled && <Text style={styles.muted}>{t('expeditions.confirm.spoiledStores')}</Text>}
-      {charmLines.length > 0 && <Text style={styles.label}>{t('expeditions.confirm.rewards')}</Text>}
-      {charmLines.map((line) => (
+      {lootLines.length > 0 && <Text style={styles.label}>{t('expeditions.confirm.rewards')}</Text>}
+      {lootLines.map((line) => (
         <View key={line.id} style={styles.row}>
           <IconLabel emoji={line.emoji} label={line.text} labelStyle={line.applies ? styles.text : styles.muted} />
-          {!line.applies && <Text style={styles.muted}>{t('expeditions.confirm.charmNoEffect')}</Text>}
-          {line.twice && <Text style={styles.muted}>{t('expeditions.confirm.charmOnce')}</Text>}
+          {!line.applies && <Text style={styles.muted}>{t('expeditions.confirm.lootNoEffect')}</Text>}
+          {line.twice && <Text style={styles.muted}>{t('expeditions.confirm.lootOnce')}</Text>}
         </View>
       ))}
       <View style={styles.row}>

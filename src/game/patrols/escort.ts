@@ -20,7 +20,7 @@ import { applyRunHp } from '../team/health';
 import { isAway, isBusy } from '../team/team';
 import { rolledSpecial } from '../team/specials';
 import { activeLairs } from '../places/fights';
-import { partyCharms } from '../loot/charms';
+import { partyLootModifiers } from '../loot/modifiers';
 import { mergeLoot } from '../loot/roll';
 import { emptyLoot, type Loot } from '../loot/types';
 import type { QuestTarget } from '../quests/types';
@@ -307,7 +307,7 @@ export function backgroundStep(
             pickaxeTier: next.pickaxeTier,
             playerTier: next.highestTier,
             luck: escort.member.luck,
-            modifiers: partyCharms([escort.member]),
+            modifiers: partyLootModifiers([escort.member]),
           },
           target,
           target.tier,
@@ -337,7 +337,7 @@ export function backgroundStep(
         hpBefore: hp,
         hpAfter,
         maxHp: escort.maxHp,
-        salvaged: untriggeredSalvage([{ ...escort.member, hp }], run, 'patrol'),
+        salvaged: untriggeredSalvage([{ ...escort.member, hp }], run),
         rewards,
       });
       if (run.bossDefeated) next.beaten[target.id] = target.endsAt;

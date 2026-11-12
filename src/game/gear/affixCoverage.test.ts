@@ -22,7 +22,11 @@ describe('affix coverage', () => {
   it('gives every gear type and trinket at least 8 rollable affixes, exceptions at least 1', () => {
     const pieces = [
       ...gearTypes.map((gearType) => ({ name: gearType, itemId: gearId(gearType, 1), exception: POOL_EXCEPTIONS[gearType] })),
-      ...trinketKinds.map((kind) => ({ name: kind.kind, itemId: trinketId(kind.kind, 1), exception: POOL_EXCEPTIONS.trinket })),
+      ...trinketKinds.map((kind) => ({
+        name: kind.kind,
+        itemId: kind.group === 'loot' ? kind.kind : trinketId(kind.kind, 1),
+        exception: POOL_EXCEPTIONS.trinket,
+      })),
     ];
     const table = pieces.map((piece) => ({ type: piece.name, rollable: rollableCount(piece.itemId) }));
     console.table(table);

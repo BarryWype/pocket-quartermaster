@@ -3,13 +3,14 @@ import type { Rarity } from "@/content/gear";
 import { choiceOf, jobById, jobs } from "@/content/jobs";
 import { itemById } from "@/content/lookup";
 import { shopRules } from "@/content/shops";
-import { ELEMENTS, stoneId, type Element } from "./elements";
+import { ELEMENTS, shardId, stoneId, type Element } from "./elements";
 import {
   LEGACY_COMPONENT_PART_COUNT,
   LEGACY_COMPONENT_PARTS,
   LEGACY_KEYWORD_AFFIXES,
   LEGACY_STEADY,
 } from "./legacyComponents";
+import { LEGACY_CHARMS } from "./legacyCharms";
 import {
   LEGACY_COLLECTOR_TRACK_REFUND,
   LEGACY_GOLD_BY_TIER,
@@ -640,6 +641,107 @@ export function toV45(save: SaveData): SaveData {
   };
 }
 
+/** The element whose shard the save holds most of (ties: ELEMENTS order). */
+function mostHeldElement(save: SaveData): Element {
+  return ELEMENTS.reduce(
+    (best, element) =>
+      (save.materials[shardId(element)] ?? 0) > (save.materials[shardId(best)] ?? 0) ? element : best,
+    ELEMENTS[0],
+  );
+}
+
+/**
+ * Version 46: charms became loot trinkets (see LEGACY_CHARMS). A charm worn on
+ * a running expedition keeps its effect for that run; every held one pays one
+ * loot trinket per three copies (the rest three parts each, a Prism charm
+ * shards of the most-held element), the Lucky ear's recipes, the test charm's
+ * old id and the charms tip go, and stored loot and quests asking for a charm
+ * lose it (the stored copies count as held).
+ */
+export function toV46(save: SaveData): SaveData {
+  const isCharm = (id: string | null | undefined) => !!id && id in LEGACY_CHARMS;
+  const stored = [
+    ...save.patrolFights.map((fight) => fight.rewards),
+    ...save.placeFights.map((fight) => fight.reward),
+    ...save.heists.map((heist) => heist.reward),
+  ];
+  if (
+    !Object.keys(save.consumables).some(isCharm) &&
+    !save.heroes.some((hero) => isCharm(hero.equipment.consumable)) &&
+    !stored.some((loot) => loot.consumables.some((entry) => isCharm(entry.itemId))) &&
+    !save.quests.list.some((quest) => isCharm(quest.itemId)) &&
+    !save.gear.some((piece) => piece.itemId === "testCharm") &&
+    !save.knownRecipes.includes("luckyEar") &&
+    !save.partRecipes.includes("luckyEar") &&
+    !save.tips.seen.concat(save.tips.pending).some((id) => (id as string) === "charms")
+  ) {
+    return save;
+  }
+
+  const held: Record<string, number> = {};
+  const count = (id: string, amount: number) => {
+    held[id] = (held[id] ?? 0) + amount;
+  };
+  for (const [id, amount] of Object.entries(save.consumables)) if (isCharm(id)) count(id, amount);
+  for (const loot of stored)
+    for (const entry of loot.consumables) if (isCharm(entry.itemId)) count(entry.itemId, entry.amount);
+
+  const expeditions = save.expeditions.map((expedition) => ({ ...expedition }));
+  const heroes = save.heroes.map((hero) => {
+    const id = hero.equipment.consumable;
+    if (!id || !(id in LEGACY_CHARMS)) return hero;
+    const expedition = expeditions.find((e) => e.heroIds.includes(hero.id));
+    if (expedition) {
+      const { modifier } = LEGACY_CHARMS[id];
+      if (!expedition.lootModifiers?.some((own) => own.id === modifier.id))
+        expedition.lootModifiers = [...(expedition.lootModifiers ?? []), modifier];
+    } else count(id, 1);
+    return { ...hero, equipment: { ...hero.equipment, consumable: null } };
+  });
+
+  const materials = { ...save.materials };
+  const gear = save.gear.map((piece) =>
+    piece.itemId === "testCharm" ? { ...piece, itemId: "testTrinket" } : piece,
+  );
+  let nextUid = save.nextUid;
+  for (const [id, entry] of Object.entries(LEGACY_CHARMS)) {
+    let amount = held[id] ?? 0;
+    if (entry.trinket && amount >= 3) {
+      gear.push(makeGearPiece(`g${nextUid}`, id, "common"));
+      nextUid += 1;
+      amount -= 3;
+    }
+    if (amount <= 0) continue;
+    const part = entry.part === "shards" ? shardId(mostHeldElement(save)) : entry.part;
+    materials[part] = (materials[part] ?? 0) + amount * 3;
+  }
+
+  const stripCharms = (loot: Loot): Loot => ({
+    ...loot,
+    consumables: loot.consumables.filter((entry) => !isCharm(entry.itemId)),
+  });
+
+  return {
+    ...save,
+    materials,
+    gear,
+    heroes,
+    expeditions,
+    nextUid,
+    consumables: Object.fromEntries(Object.entries(save.consumables).filter(([id]) => !isCharm(id))),
+    knownRecipes: save.knownRecipes.filter((id) => id !== "luckyEar"),
+    partRecipes: save.partRecipes.filter((id) => id !== "luckyEar"),
+    tips: {
+      seen: save.tips.seen.filter((id) => (id as string) !== "charms"),
+      pending: save.tips.pending.filter((id) => (id as string) !== "charms"),
+    },
+    quests: { ...save.quests, list: save.quests.list.filter((quest) => !isCharm(quest.itemId)) },
+    patrolFights: save.patrolFights.map((fight) => ({ ...fight, rewards: stripCharms(fight.rewards) })),
+    placeFights: save.placeFights.map((fight) => ({ ...fight, reward: stripCharms(fight.reward) })),
+    heists: save.heists.map((heist) => ({ ...heist, reward: stripCharms(heist.reward) })),
+  };
+}
+
 /** Applies the migration steps in order, from the save's own version on. */
 export function migrateSave(
   save: SaveData,
@@ -662,5 +764,6 @@ export function migrateSave(
   if (fromVersion < 43) next = toV43(next);
   if (fromVersion < 44) next = toV44(next);
   if (fromVersion < 45) next = toV45(next);
+  if (fromVersion < 46) next = toV46(next);
   return next;
 }

@@ -62,13 +62,14 @@ export type LootSourceRow = {
 export type MapRarity = 'common' | 'rare' | 'legendary';
 export type ManualRarity = MapRarity;
 
-/** Charm hook: the same `id` from two heroes counts once. */
+/** Loot trinket hook: the same `id` from two heroes counts once. */
 export type LootModifier =
   | { id: string; kind: 'chance'; category: LootCategory; multiplier: number }
   | { id: string; kind: 'luck'; add: number }
   | { id: string; kind: 'gold'; percent: number }
   | { id: string; kind: 'xp'; percent: number }
-  | { id: string; kind: 'rarity'; steps: number };
+  /** Applied with this chance, each roll, when set. */
+  | { id: string; kind: 'rarity'; steps: number; chance?: number };
 
 /**
  * A looted piece before it is granted: its uid is filled in then, and its

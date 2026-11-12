@@ -1,8 +1,8 @@
 import type { MaterialStack, RecipeDef } from '@/game/types';
 
 import { gearId, gearRecipes } from './equipment';
-import { charms } from './loot/charms';
 import { monsterParts } from './loot/monsterParts';
+import { lootTrinketKinds } from './trinkets';
 
 /** Provisions recipes: [item id, tab, inputs, known from the start (default yes), known from tier]. */
 function provisionRecipes(
@@ -161,15 +161,14 @@ export const recipes: RecipeDef[] = [
     ['viperOil', 'viperOil', { venomSac: 2 }, 2],
   ]),
 
-  // Charms, known once their parts have been seen.
-  ...charms.map((charm): RecipeDef => ({
-    id: charm.id,
-    station: 'provisions',
-    tab: 'alchemy',
-    output: { itemId: charm.id },
-    inputs: Object.entries(charm.inputs).map(([materialId, amount]) => ({ materialId, amount })),
+  // Loot trinkets, forged at the forge, known once their parts have been seen.
+  ...lootTrinketKinds.map((kind): RecipeDef => ({
+    id: kind.kind,
+    station: 'forge',
+    output: { itemId: kind.kind },
+    inputs: Object.entries(kind.recipe.inputs).map(([materialId, amount]) => ({ materialId, amount })),
+    ...(kind.recipe.anyShards ? { anyShards: kind.recipe.anyShards } : {}),
     unlockedByDefault: false,
-    ...(charm.anyShards ? { anyShards: charm.anyShards } : {}),
-    unlockedBy: charm.unlockedBy,
+    unlockedBy: kind.recipe.unlockedBy,
   })),
 ];

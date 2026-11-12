@@ -22,4 +22,12 @@ describe('loot pacing', () => {
     expect(lines).toHaveLength(14);
     expect(lines[0]).toMatch(/^Gold {12}\s*\d+\.\d per week {3}mostly: /);
   });
+
+  it('raises only the category a given chance trinket touches, and nothing without one', () => {
+    const plain = lootPacing();
+    const withScarab = lootPacing([{ id: 'scarabCharm', kind: 'chance', category: 'treasureMaps', multiplier: 1.25 }]);
+    const row = (rows: typeof plain, category: string) => rows.find((r) => r.category === category)!;
+    expect(row(withScarab, 'treasureMaps').perWeek).toBeGreaterThan(row(plain, 'treasureMaps').perWeek);
+    expect(row(withScarab, 'gold').perWeek).toBe(row(plain, 'gold').perWeek);
+  });
 });

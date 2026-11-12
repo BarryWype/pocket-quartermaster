@@ -135,7 +135,7 @@ describe('boss weaknesses', () => {
     const run = simulateRun([carrier], dungeon({ id: 'testBoss', hp: 300 }), 's', { rules: steady });
     expect(run.weaknessUsedBy).toBeNull();
     expect(run.encounters.find((e) => e.kind === 'boss')!.effects).not.toContainEqual({ heroId: 'a', key: 'weakness' });
-    const salvaged = untriggeredSalvage([carrier], run, 'dungeonRun');
+    const salvaged = untriggeredSalvage([carrier], run);
     expect(salvaged).toEqual([{ heroId: 'a', itemId: 'wantedPoster', materials: [], gold: threatRules.salvageGold }]);
   });
 
@@ -144,7 +144,7 @@ describe('boss weaknesses', () => {
     const second = member('b', { maxHp: 1e6, power: 20, consumable: weaknessItem('wantedPoster') });
     const run = simulateRun([first, second], dungeon({ id: 'banditCaptain', hp: 300 }), 's', { rules: steady });
     expect(run.weaknessUsedBy).toBe('a');
-    const salvaged = untriggeredSalvage([first, second], run, 'dungeonRun');
+    const salvaged = untriggeredSalvage([first, second], run);
     expect(salvaged).toEqual([{ heroId: 'b', itemId: 'wantedPoster', materials: [], gold: threatRules.salvageGold }]);
   });
 
@@ -153,7 +153,7 @@ describe('boss weaknesses', () => {
     const run = simulateRun([carrier], dungeonById.banditStockade, 's', { rules: calm });
     expect(run.bossDefeated).toBe(false);
     expect(run.weaknessUsedBy).toBeNull();
-    const salvaged = untriggeredSalvage([carrier], run, 'dungeonRun');
+    const salvaged = untriggeredSalvage([carrier], run);
     expect(salvaged).toEqual([{ heroId: 'a', itemId: 'wantedPoster', materials: [], gold: threatRules.salvageGold }]);
   });
 

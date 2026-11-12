@@ -463,7 +463,7 @@ describe('elixirs', () => {
       member('revive', [], { consumable: elixirOf('revivalDraught') }),
       member('smoke', [], { consumable: elixirOf('smokeBomb') }),
     ];
-    const salvaged = untriggeredSalvage(holders, run, 'dungeonRun');
+    const salvaged = untriggeredSalvage(holders, run);
     expect(salvaged.map((s) => s.heroId).sort()).toEqual(['bomb', 'oil', 'oilUnarmed', 'revive', 'smoke']);
     // Triggered: a thrown bomb, a draught that revived, a bomb that escaped, an oil that struck.
     const triggered: [PartyMember, RunResult, RunResult][] = [
@@ -473,8 +473,8 @@ describe('elixirs', () => {
       [holders[2], run, { ...run, attacked: [...run.attacked, 'oil'] }],
     ];
     for (const [holder, base, tweaked] of triggered) {
-      expect(untriggeredSalvage([holder], tweaked, 'dungeonRun')).toEqual([]);
-      expect(untriggeredSalvage([holder], base, 'dungeonRun').length).toBe(1);
+      expect(untriggeredSalvage([holder], tweaked)).toEqual([]);
+      expect(untriggeredSalvage([holder], base).length).toBe(1);
     }
   });
 

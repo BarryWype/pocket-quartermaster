@@ -13,7 +13,7 @@ import { createRng, type Rng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { foughtEnemies, settleConsumables } from '../patrols/fight';
 import { scavengeLoot } from '../gear/workTools';
-import { partyCharms } from '../loot/charms';
+import { partyLootModifiers } from '../loot/modifiers';
 import { rollForSave, sourceAmounts } from '../loot/context';
 import { grantLoot } from '../loot/grant';
 import { mergeLoot } from '../loot/roll';
@@ -158,7 +158,7 @@ export function startPlaceFight(save: SaveData, spawn: PlaceSpawn, heroIds: stri
       foughtEnemies(run),
       rng,
       kind === 'elementalRift' ? riftElement(spawn) : undefined,
-      partyCharms(party),
+      partyLootModifiers(party),
       now,
     );
   let reward: Loot = run.bossDefeated ? rollRewards(createRng(`${id}|rewards`)) : emptyLoot();
@@ -191,7 +191,7 @@ export function startPlaceFight(save: SaveData, spawn: PlaceSpawn, heroIds: stri
         placeExpiresAt: spawn.expiresAt,
         won: run.bossDefeated,
         hp: run.hp,
-        salvaged: untriggeredSalvage(party, run, kind),
+        salvaged: untriggeredSalvage(party, run),
         reward,
         ...(tip ? { tip } : {}),
       },

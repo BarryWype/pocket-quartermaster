@@ -1,18 +1,18 @@
 import { lootMatrix } from '@/content/loot/matrix';
 
-import type { ConsumableDef } from '../types';
 import { dedupeModifiers } from './chances';
 import { LOOT_CATEGORIES, type LootModifier, type LootSourceId } from './types';
 
-/** The charms in a party's consumable slots, as loot modifiers: the same charm counts once. */
-export const partyCharms = (party: { consumable: ConsumableDef | null }[]): LootModifier[] =>
-  dedupeModifiers(party.flatMap((member) => (member.consumable?.charm ? [member.consumable.charm] : [])));
+/** The loot trinkets a party wears, as loot modifiers: the same trinket counts once. */
+export const partyLootModifiers = (party: { loot?: LootModifier }[]): LootModifier[] =>
+  dedupeModifiers(party.flatMap((member) => (member.loot ? [member.loot] : [])));
 
 /**
- * Whether a charm can do anything at a source: its category (gold, XP or gear
- * for those charms) can drop there. Luck works wherever a chance can be raised.
+ * Whether a loot trinket can do anything at a source: its category (gold, XP
+ * or gear for those trinkets) can drop there. Luck works wherever a chance
+ * can be raised.
  */
-export function charmApplies(modifier: LootModifier, source: LootSourceId): boolean {
+export function lootModifierApplies(modifier: LootModifier, source: LootSourceId): boolean {
   const marks = lootMatrix[source].marks;
   switch (modifier.kind) {
     case 'chance':
@@ -27,4 +27,3 @@ export function charmApplies(modifier: LootModifier, source: LootSourceId): bool
       return marks.gold !== '—' || LOOT_CATEGORIES.some((category) => marks[category] !== '—' && marks[category] !== 'A');
   }
 }
-

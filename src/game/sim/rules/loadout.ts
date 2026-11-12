@@ -1,18 +1,15 @@
-import { charms } from '@/content/loot/charms';
 import { shopRules } from '@/content/shops';
 import { items } from '@/content/items';
 import { weaknessByBoss } from '@/content/weaknesses';
 
-import { charmApplies } from '../../loot/charms';
 import { infusedElement } from '../../gear/affixes';
-import type { LootSourceId } from '../../loot/types';
 import type { SaveData } from '../../save';
 import { equip, unequip } from '../../team/team';
 import type { ConsumableDef, DungeonDef } from '../../types';
 
-// The bot's loadout before a run: the boss's weakness item, a charm only
-// when the odds are already high, a potion otherwise. Pure: each rule takes a
-// save and returns the save with the party's consumable slots filled.
+// The bot's loadout before a run: the boss's weakness item, a potion
+// otherwise. Pure: each rule takes a save and returns the save with the
+// party's consumable slots filled.
 
 const consumableOf = (save: SaveData, heroId: string) => save.heroes.find((h) => h.id === heroId)?.equipment.consumable ?? null;
 
@@ -29,12 +26,6 @@ export function pickWeakness(save: SaveData, heroIds: string[], dungeon: Dungeon
   return equip(save, free, 'consumable', itemId);
 }
 
-/** The charm held most of that raises what this source finds; the same charm never stacks, so one per party. */
-export function pickCharm(save: SaveData, source: LootSourceId): string | null {
-  const held = charms.filter((c) => (save.consumables[c.id] ?? 0) > 0 && charmApplies(c.modifier, source));
-  return held.sort((a, b) => (save.consumables[b.id] ?? 0) - (save.consumables[a.id] ?? 0))[0]?.id ?? null;
-}
-
 /** The healing potions, weakest first (a stock line naming any of them sells the strongest the player can brew). */
 export const healingPotionIds = shopRules.potions.ladder;
 
@@ -45,13 +36,6 @@ export const isHealingPotion = (itemId: string | null | undefined) => !!itemId &
 
 /** The strongest healing potion held, or null when none is. */
 export const heldPotion = (save: SaveData): string | null => [...healingPotionIds].reverse().find((id) => (save.consumables[id] ?? 0) > 0) ?? null;
-
-/** Swaps one hero's potion (or empty slot) for the charm, never a weakness item. */
-export function withCharm(save: SaveData, heroIds: string[], charmId: string): SaveData {
-  const carrier = heroIds.find((id) => !consumableOf(save, id) || isHealingPotion(consumableOf(save, id)));
-  if (!carrier || (save.consumables[charmId] ?? 0) < 1) return save;
-  return equip(save, carrier, 'consumable', charmId);
-}
 
 /** The six stat potions: they take a healing potion's slot when the prepared odds are low. */
 export const statPotionIds = ['strengthDraught', 'arcaneTonic', 'ironskinBrew', 'nullrootTincture', 'quicksilver', 'viperOil'];

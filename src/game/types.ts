@@ -102,6 +102,8 @@ export type GearDef = ItemBase & {
   elementResist?: { element: Element; amount: number };
   /** A work tool: the off-hand line for workers, with the job it boosts and scavenges for (see content/workTools.ts). */
   workTool?: { kind: WorkToolKind; job: string };
+  /** A loot trinket's bonus to what the wearer's runs find (see loot/modifiers.ts). */
+  loot?: LootModifier;
 };
 
 /** What a hero consumable does for the run (see expeditions/simulate.ts). */
@@ -130,8 +132,6 @@ export type ConsumableDef = ItemBase & {
   elixir?: Elixir;
   /** The boss id this weakness item weakens when its carrier meets that boss. */
   weakness?: string;
-  /** A charm: what it raises in the run's loot (see loot/charms.ts). */
-  charm?: LootModifier;
 };
 
 /** What a meal does for the run; one meal per expedition. */
@@ -651,7 +651,7 @@ export type HeroState = {
     helmet: string | null;
     offhand: string | null;
     trinket: string | null;
-    /** Consumable item id (potion, elixir or charm); equipping one takes it out of the stock. */
+    /** Consumable item id (potion or elixir); equipping one takes it out of the stock. */
     consumable: string | null;
     /** The Alchemist's second slot: a healing consumable. */
     potion?: string | null;
@@ -736,6 +736,8 @@ export type ActiveExpedition = {
   supplyUsed?: number;
   /** Meal eaten (provision item id). */
   mealId?: string | null;
+  /** Loot modifiers this run carries on top of its party's trinkets. */
+  lootModifiers?: LootModifier[];
   notificationId: string | null;
 };
 

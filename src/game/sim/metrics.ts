@@ -110,6 +110,8 @@ export type TierSummary = {
     stones: Stat;
     forges: Stat;
   };
+  /** Share of the roster's trinket slots holding loot trinkets, sampled daily and averaged over the tier. */
+  lootTrinkets: Stat;
   level: { end: Stat; target: number };
 };
 
@@ -576,6 +578,11 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
     tools,
     gatherer,
     gear,
+    lootTrinkets: stat(
+      logs.map((log, i) =>
+        windows[i] ? mean(log.daily.filter((row) => within(row.day, windows[i])).map((row) => row.lootTrinkets)) : null,
+      ),
+    ),
     level: { end, target: expectedLevels[tier - 1] },
   };
 }
@@ -652,7 +659,7 @@ export function summarize(logs: RunLog[], t: Targets = defaultTargets): ProfileS
   const picked = new Set(logs.flatMap((log) => log.expeditions.map((e) => e.dungeonId)));
   const consumables = items.filter((i) => i.slot === 'consumable').map((i) => i.id);
   const spread = sumBy(fielded, (c) => c, () => 1);
-  const keys = ['componentFound', 'componentForged', 'relicFound', 'relicRestored', 'firstKey', 'firstTip', 'secretPlace', 'charmCrafted'];
+  const keys = ['componentFound', 'componentForged', 'relicFound', 'relicRestored', 'firstKey', 'firstTip', 'secretPlace'];
 
   // Classes by how far the profile got with them: offered (tavern, traveller, secret place), recruited, fielded.
   const allClasses = Object.keys(heroClasses);

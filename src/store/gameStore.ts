@@ -286,7 +286,7 @@ type GameState = {
   /** Sets a hero's HP share; `exhausted` also knocks them out for a while. */
   setHeroHp: (heroId: string, share: number, exhausted: boolean) => void;
   healAll: () => void;
-  /** Adds this many of every provision and charm. */
+  /** Adds this many of every provision. */
   addProvisions: (amount: number) => void;
   /** Adds one of every elixir, provision, walking and home care item (debug only). */
   addConsumables: () => void;
@@ -727,7 +727,7 @@ export const useGameStore = create<GameState>()(
       addConsumables: () =>
         set(({ save }) => {
           const consumables = { ...save.consumables };
-          for (const item of items.filter((i) => (i.slot === 'consumable' && (i.elixir || i.charm)) || i.slot === 'provision' || i.slot === 'utility')) {
+          for (const item of items.filter((i) => (i.slot === 'consumable' && i.elixir) || i.slot === 'provision' || i.slot === 'utility')) {
             consumables[item.id] = (consumables[item.id] ?? 0) + 1;
           }
           return { save: { ...save, consumables } };
@@ -740,7 +740,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 45,
+      version: 46,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
       // Saves from version 30 on are kept: every later version bump adds a migration step here (see AGENTS.md, Saves).

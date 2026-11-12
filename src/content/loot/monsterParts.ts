@@ -22,10 +22,10 @@ export const monsterParts: MonsterPartDef[] = [
   { id: 'chitin', name: 'Chitin', emoji: '🪲', icon: require('../../../assets/icons/alchemy/bowl-blue-scales.png'), tag: 'carapace', uses: 'Scarab charm, Ironskin brew', sellPrice: 4 },
   { id: 'graveDust', name: 'Grave dust', emoji: '⚱️', icon: require('../../../assets/icons/alchemy/bowl-grey-ash.png'), tag: 'undead', uses: 'Grave-dust pouch', sellPrice: 3 },
   { id: 'ectoplasm', name: 'Ectoplasm', emoji: '👻', icon: require('../../../assets/icons/relics/jar-blue-essence.png'), tag: 'spirit', uses: 'Ghost lantern, Arcane tonic', sellPrice: 5 },
-  { id: 'goblinEar', name: 'Goblin ear', emoji: '👂', tag: 'goblinoid', uses: 'Lucky ear', sellPrice: 3 },
+  { id: 'goblinEar', name: 'Goblin ear', emoji: '👂', tag: 'goblinoid', uses: 'Plunderer, Lucky, Haggler', sellPrice: 3 },
   { id: 'tatteredInsignia', name: 'Tattered insignia', emoji: '🎖️', icon: require('../../../assets/icons/relics/banner-red-tattered.png'), tag: 'humanoid', uses: 'Bounty token, Architect’s seal', sellPrice: 3 },
   { id: 'bruteBlood', name: 'Brute blood', emoji: '🩸', icon: require('../../../assets/icons/alchemy/potion-blood.png'), tag: 'brute', uses: 'Healing potions, Revival draught', sellPrice: 6 },
   { id: 'cog', name: 'Cog', emoji: '⚙️', tag: 'construct', uses: 'Tinker’s lodestone', sellPrice: 5 },
-  { id: 'scale', name: 'Scale', emoji: '🐉', icon: require('../../../assets/icons/magic/part-dragon-scale.png'), tag: 'dragon', uses: 'Firebomb', sellPrice: 6 },
+  { id: 'scale', name: 'Scale', emoji: '🐉', icon: require('../../../assets/icons/magic/part-dragon-scale.png'), tag: 'dragon', uses: 'Firebomb, Prism charm', sellPrice: 6 },
   { id: 'ritualCandle', name: 'Ritual candle', emoji: '🕯️', icon: require('../../../assets/icons/relics/candle-holder.png'), tag: 'caster', uses: 'Seer’s candle, Nullroot tincture', sellPrice: 4 },
 ];

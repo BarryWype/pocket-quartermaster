@@ -327,6 +327,11 @@ function gearSources(s: ProfileSummary) {
   return table(['Group', 'Source', s.profile === 'regular' ? `Gear/week (${piecesPerWeek} ± ${targets.lootPacing * 100}%)` : 'Gear/week', 'Trinkets/week', 'Rare/week', 'Legendary/week', 'Days per Rare'], rows);
 }
 
+/** The share of the roster's trinket slots holding loot trinkets, sampled daily and averaged over each tier. */
+function lootTrinketSlots(s: ProfileSummary) {
+  return table(['Tier', 'Loot trinket slots'], s.tiers.map((t) => [String(t.tier), pct(t.lootTrinkets.median)]));
+}
+
 /** Affixes and helmets worn at each tier's end, and the gear actions over the tier. */
 function gearActions(s: ProfileSummary) {
   const rows = s.tiers.map((t) => {
@@ -632,10 +637,11 @@ export function renderReport({ summaries, rules, settings, difficultyOdds, famil
   out.push(
     '## Gear',
     '',
-    'The gear system across the games: pieces looted per tier by rarity (trinkets included, relics apart) with their per-day rates, the pieces gained per week by source (gear and trinkets apart; the Rares and Legendaries among them; first-win and first-clear bonuses count with their dungeon run or boss), the rarity split by the loot ladder the piece’s source rolls on, the affixes and helmets worn at each tier’s end and the gear actions — rerolls (gold and materials), elemental stones and ingredient forges. Tier times and win odds are in the pace and odds tables above.',
+    'The gear system across the games: pieces looted per tier by rarity (trinkets included, relics apart) with their per-day rates, the pieces gained per week by source (gear and trinkets apart; the Rares and Legendaries among them; first-win and first-clear bonuses count with their dungeon run or boss), the rarity split by the loot ladder the piece’s source rolls on, the affixes and helmets worn at each tier’s end, the share of the roster’s trinket slots holding loot trinkets, and the gear actions — rerolls (gold and materials), elemental stones and ingredient forges. Tier times and win odds are in the pace and odds tables above.',
     '',
   );
-  for (const s of summaries) out.push(`### ${s.profile}`, '', gearRarity(s), '', gearSources(s), '', gearLadders(s), '', gearActions(s), '');
+  for (const s of summaries)
+    out.push(`### ${s.profile}`, '', gearRarity(s), '', gearSources(s), '', gearLadders(s), '', gearActions(s), '', lootTrinketSlots(s), '');
   out.push('## Gold per tier', '');
   for (const s of summaries) out.push(`### ${s.profile}`, '', gold(s));
   out.push('## Materials: the tier’s main material', '');

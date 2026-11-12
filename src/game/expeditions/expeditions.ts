@@ -17,10 +17,10 @@ import { highestUnlockedTier, isDungeonUnlocked } from '../dungeons/unlock';
 import { briefingFor, rotationDay, type Rotation } from '../dungeons/rotation';
 import { createRng, type Rng } from '../generation/rng';
 import { addMaterials } from '../inventory';
-import { charmApplies, partyCharms } from '../loot/charms';
-import { findGold } from '../loot/chances';
+import { dedupeModifiers, findGold } from '../loot/chances';
 import { lootContextOf } from '../loot/context';
 import { grantLoot } from '../loot/grant';
+import { partyLootModifiers } from '../loot/modifiers';
 import { nextTierReward } from '../loot/nextTier';
 import { mergeLoot, rollSourceLoot } from '../loot/roll';
 import { scavengeLoot } from '../gear/workTools';
@@ -318,11 +318,9 @@ export function grantTutorialLoot(save: SaveData, heroIds: string[], now: number
  * down (see threats/salvage.ts): potions nobody needed, elixirs and weakness
  * items never used.
  */
-export function untriggeredSalvage(party: PartyMember[], run: RunResult, source: LootSourceId): ExpeditionReport['salvaged'] {
+export function untriggeredSalvage(party: PartyMember[], run: RunResult): ExpeditionReport['salvaged'] {
   const triggered = (member: PartyMember): boolean => {
     const item = member.consumable!;
-    // A charm is spent by any run at a source where it can apply, won or lost.
-    if (item.charm) return charmApplies(item.charm, source);
     if (item.when === 'lowHp') return run.consumed.includes(member.heroId);
     const elixir = item.elixir;
     if (elixir) {
@@ -379,7 +377,7 @@ export function resolveExpedition(
   const retreat = success ? 1 : 1 + guildBonus(save, 'betterRetreats') + (meal?.kind === 'retreat' ? meal.bonus : 0) + (bomber?.kind === 'smokeBomb' ? bomber.retreatBonus : 0);
   const lootShare = Math.min(1, (run.encountersCleared / run.encounterCount) * retreat);
   const guildGold = 1 + guildBonus(save, 'gold');
-  // Barren leaves gold bonuses from traits, charms and meals out; the others only apply above 1.
+  // Barren leaves gold bonuses from traits, trinkets and meals out; the others only apply above 1.
   const cut = (multiplier: number) => (barren && multiplier > 1 ? 1 : multiplier);
 
   // Thrifty and greedy heroes: each trait counts once per party, different ones combine.
@@ -425,8 +423,10 @@ export function resolveExpedition(
   const context = lootContextOf(save, expedition.endsAt);
   const enemies = run.encounters.flatMap((e) => e.mobs.map((m) => m.mobId));
   const source = dungeonLootSource(dungeon);
-  // Barren runs take no gold bonus from charms.
-  const modifiers = partyCharms(party).filter((mod) => !barren || mod.kind !== 'gold');
+  // Barren runs take no gold bonus from loot trinkets.
+  const modifiers = dedupeModifiers([...partyLootModifiers(party), ...(expedition.lootModifiers ?? [])]).filter(
+    (mod) => !barren || mod.kind !== 'gold',
+  );
   const roll = (source: LootSourceId, base: { gold: number; xp: number }, extra = 0) =>
     rollSourceLoot({
       source,
@@ -485,7 +485,7 @@ export function resolveExpedition(
 
   // Everything in a consumable slot is gone after the run; what never triggered
   // is broken back down instead (see threats/salvage.ts).
-  const salvaged = untriggeredSalvage(party, run, source);
+  const salvaged = untriggeredSalvage(party, run);
   const consumablesUsed = party.flatMap((m) => [...(m.consumable ? [m.consumable.id] : []), ...(m.potion ? [m.potion.id] : [])]);
   const salvageGold = salvaged.reduce((sum, s) => sum + s.gold, 0);
   const salvageMaterials = salvaged.flatMap((s) => s.materials);

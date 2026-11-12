@@ -508,9 +508,9 @@ export const castingPenalty: Partial<Record<ArmourType | HelmetType, number>> = 
 export const gearId = (type: GearType, tier: number) => `${type}${tier}`;
 
 /** Debug trinket: +1 Luck, +2% Crit; never crafted or dropped. */
-export const testCharm = {
-  id: 'testCharm',
-  name: 'Test charm',
+export const testTrinket = {
+  id: 'testTrinket',
+  name: 'Test trinket',
   emoji: '🧿',
   slot: 'trinket' as const,
   stats: { luck: 1, crit: 2 },

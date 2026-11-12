@@ -20,7 +20,7 @@ export function deliverItems(save: SaveData): DeliverItem[] {
     if (!item) continue;
     let group: 'potion' | 'meal' | null = null;
     if (item.slot === 'consumable') {
-      group = item.charm ? null : 'potion';
+      group = 'potion';
     } else if (item.slot === 'provision' && item.meal) {
       group = 'meal';
     }

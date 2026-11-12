@@ -54,7 +54,7 @@ export function sourceAmounts(source: LootSourceId, tier: number, difficulty?: D
 
 /**
  * A source's loot at the player's tier: its gold (with the Guild Hall gold
- * bonus) and XP from `sourceAmounts`, no Luck or charms unless given; given
+ * bonus) and XP from `sourceAmounts`, no Luck or loot trinkets unless given; given
  * the time, its gear leans towards useful types.
  */
 export function rollForSave(save: SaveData, source: LootSourceId, rng: Rng, options: Partial<LootRequest> = {}, now?: number): Loot {

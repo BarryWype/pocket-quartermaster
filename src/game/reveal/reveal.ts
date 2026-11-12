@@ -45,16 +45,6 @@ export function isPlaceRevealed(save: SaveData, kind: PlaceKind): boolean {
 /** The item kinds the player holds something of, in tip order. */
 export function heldItemKinds(save: SaveData): ItemTipKind[] {
   const held: ItemTipKind[] = [];
-  const hasCharm = (id: string | null | undefined) => {
-    const item = id === null || id === undefined ? undefined : itemById[id];
-    return item !== undefined && 'charm' in item && item.charm !== undefined;
-  };
-  if (
-    Object.entries(save.consumables).some(([id, count]) => count > 0 && hasCharm(id)) ||
-    save.heroes.some((hero) => hasCharm(hero.equipment.consumable))
-  ) {
-    held.push('charms');
-  }
   if (save.relics.length > 0) held.push('relics');
   const isTrinket = (itemId: string) => itemById[itemId]?.slot === 'trinket';
   if (save.gear.some((gear) => isTrinket(gear.itemId))) held.push('trinkets');

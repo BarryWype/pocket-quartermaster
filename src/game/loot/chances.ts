@@ -15,7 +15,7 @@ export type ChanceInput = {
   difficulty?: Difficulty;
 };
 
-/** First modifier of each id: the same charm from two heroes counts once. */
+/** First modifier of each id: the same trinket from two heroes counts once. */
 export function dedupeModifiers(mods: LootModifier[]): LootModifier[] {
   const seen = new Set<string>();
   return mods.filter((mod) => {
@@ -32,7 +32,7 @@ export function runLengthMultiplier(source: LootSourceId, minutes?: number): num
   return Math.min(max, Math.max(min, minutes / baseMinutes));
 }
 
-/** The party's Luck, plus flat Luck charms (deduped). */
+/** The party's Luck, plus flat Luck modifiers (deduped). */
 export function partyLuck(luck: number, modifiers: LootModifier[]): number {
   return (
     luck + dedupeModifiers(modifiers).reduce((sum, mod) => (mod.kind === 'luck' ? sum + mod.add : sum), 0)
@@ -58,7 +58,7 @@ export function categoryChance(category: LootCategory, input: ChanceInput): numb
   }
   const luck = partyLuck(input.luck, input.modifiers);
   const { chancePerPoint, maxChanceBonus } = lootConfig.luck;
-  const charms = dedupeModifiers(input.modifiers).reduce(
+  const trinkets = dedupeModifiers(input.modifiers).reduce(
     (factor, mod) => (mod.kind === 'chance' && mod.category === category ? factor * mod.multiplier : factor),
     1,
   );
@@ -68,14 +68,14 @@ export function categoryChance(category: LootCategory, input: ChanceInput): numb
     lootConfig.sourceMultipliers[input.source] *
     runLengthMultiplier(input.source, input.minutes) *
     (1 + Math.min(maxChanceBonus, chancePerPoint * luck)) *
-    charms *
+    trinkets *
     mapMultiplier(input) *
     (input.difficulty ? difficultyRules.rewards[input.difficulty].chance : 1) *
     (input.chanceMultiplier ?? 1);
   return Math.min(lootConfig.maxChance, chance);
 }
 
-/** Every category's final drop chance, after Luck, charms, run length and caps. */
+/** Every category's final drop chance, after Luck, loot trinkets, run length and caps. */
 export function lootChances(input: ChanceInput): Record<LootCategory, number> {
   return Object.fromEntries(
     (Object.keys(lootMatrix[input.source].marks) as LootCategory[]).map((category) => [

@@ -15,7 +15,6 @@ export const frTipTexts: typeof tipTexts = {
   rarePlaces: 'Des lieux plus rares : bibliothèques, guildes des voleurs, quais de pêche. Ils sont plus éloignés.',
   sanctums: 'Sanctuaires : des autels élémentaires. Dépensez un Sceau pour défier le gardien et gagner des éclats.',
   secrets: 'Un tuyau a marqué un lieu secret. Il vous faut une clé mystérieuse pour entrer.',
-  charms: 'Les charmes vont dans l’emplacement consommable et augmentent ce qu’une expédition rapporte.',
   relics: 'Reliques : restaurez-en une à la forge pour obtenir un objet à effet fixe.',
   trinkets: 'Bibelots : de l’équipement introuvable en boutique, aux statistiques rares comme Chance et Critique.',
   keyFragments: 'Fragments de clé : quatre forment une clé mystérieuse, qui ouvre les lieux secrets.',

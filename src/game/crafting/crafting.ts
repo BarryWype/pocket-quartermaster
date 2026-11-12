@@ -103,7 +103,10 @@ export function craft(save: SaveData, recipe: RecipeDef, forceRarity?: Rarity): 
     next = forgeGearPiece(next, gearItem, forceRarity ?? 'common');
   } else {
     const item = itemById[recipe.output.itemId];
-    if (item.slot === 'consumable' || item.slot === 'provision' || item.slot === 'utility') {
+    if (item.slot === 'trinket') {
+      // A loot trinket: a Common piece, its stats never rolled.
+      next = forgeGearPiece(next, item, 'common');
+    } else if (item.slot === 'consumable' || item.slot === 'provision' || item.slot === 'utility') {
       next = { ...next, consumables: { ...next.consumables, [item.id]: (next.consumables[item.id] ?? 0) + 1 } };
     } else if (item.slot === 'tool') {
       next = { ...next, tools: [...next.tools, item.id] };
@@ -140,6 +143,6 @@ export function forgeResult(before: SaveData, after: SaveData): ForgeResult | nu
   const gear = after.gear.find((g) => !before.gear.some((b) => b.uid === g.uid));
   if (!gear) return null;
   const item = itemById[gear.itemId];
-  if (item.slot !== 'weapon' && item.slot !== 'armor' && item.slot !== 'helmet' && item.slot !== 'offhand') return null;
+  if (item.slot !== 'weapon' && item.slot !== 'armor' && item.slot !== 'helmet' && item.slot !== 'offhand' && item.slot !== 'trinket') return null;
   return { gear };
 }

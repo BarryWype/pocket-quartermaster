@@ -118,35 +118,26 @@ describe('heldItemKinds', () => {
   it('lists each held item kind', () => {
     const save = opened();
     expect(heldItemKinds(save)).toEqual([]);
-    save.consumables = { luckyEar: 1 };
-    expect(heldItemKinds(save)).toEqual(['charms']);
     save.relics = [{ uid: 'r1', relicId: 'any' }];
     save.gear = [{ uid: 'g1', itemId: 'hawkEyeRing1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 }];
     save.keyFragments = 4;
-    expect(heldItemKinds(save)).toEqual(['charms', 'relics', 'trinkets', 'keyFragments']);
-  });
-
-  it('counts a charm a hero carries', () => {
-    const save = opened();
-    save.consumables = {};
-    save.heroes = [{ ...save.heroes[0], equipment: { ...save.heroes[0].equipment, consumable: 'luckyEar' } }];
-    expect(heldItemKinds(save)).toEqual(['charms']);
+    expect(heldItemKinds(save)).toEqual(['relics', 'trinkets', 'keyFragments']);
   });
 });
 
 describe('tips', () => {
   it('queues each tip once, seen tips never again', () => {
     const save = opened();
-    const queued = noteTips(save, ['ruins', 'ruins', 'charms']);
-    expect(queued.tips.pending).toEqual(['ruins', 'charms']);
+    const queued = noteTips(save, ['ruins', 'ruins', 'relics']);
+    expect(queued.tips.pending).toEqual(['ruins', 'relics']);
     expect(noteTips(queued, ['ruins'])).toBe(queued);
   });
 
   it('closes a tip into seen and shows the oldest first', () => {
-    const save = noteTips(opened(), ['ruins', 'charms']);
+    const save = noteTips(opened(), ['ruins', 'relics']);
     expect(nextTip(save, true)).toBe('ruins');
     const closed = closeTip(save, 'ruins');
-    expect(nextTip(closed, true)).toBe('charms');
+    expect(nextTip(closed, true)).toBe('relics');
     expect(closed.tips.seen).toEqual(['ruins']);
     expect(closeTip(closed, 'ruins').tips.seen).toEqual(['ruins']);
   });
@@ -156,10 +147,10 @@ describe('tips', () => {
     expect(nextTip(save, false)).toBeNull();
     expect(save.tips.pending).toEqual(['ruins']);
     expect(nextTip(save, true)).toBe('ruins');
-    const two = noteTips(save, ['charms']);
+    const two = noteTips(save, ['relics']);
     expect(nextTip(two, true)).toBe('ruins');
     const afterFirst = closeTip(two, 'ruins');
-    expect(nextTip(afterFirst, true)).toBe('charms');
+    expect(nextTip(afterFirst, true)).toBe('relics');
   });
 });
 
@@ -240,9 +231,9 @@ describe('tips state', () => {
 
   it('translates a tip', () => {
     setLocale('en');
-    expect(tipText('charms')).toMatch(/^Charms /);
+    expect(tipText('relics')).toMatch(/^Relics: /);
     setLocale('fr');
-    expect(tipText('charms')).toMatch(/^Les charmes /);
+    expect(tipText('relics')).toMatch(/^Reliques : /);
     setLocale('en');
   });
 });

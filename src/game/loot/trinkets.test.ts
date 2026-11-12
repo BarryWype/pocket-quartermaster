@@ -1,7 +1,7 @@
 import { lootConfig } from '@/content/loot/config';
 import { itemById } from '@/content/lookup';
 import { gearRules } from '@/content/gear';
-import { trinketKinds, trinketId } from '@/content/trinkets';
+import { trinketKinds, lootTrinketKinds, trinketId } from '@/content/trinkets';
 import type { GearDef } from '@/game/types';
 
 import { createRng } from '../generation/rng';
@@ -37,10 +37,12 @@ const byRoll = (item: GearDef, pick: (effect: ReturnType<typeof trinketEffect>) 
   );
 
 describe('the trinket catalogue', () => {
-  it('holds one trinket per kind and tier, all in the trinket slot', () => {
-    expect(trinketKinds).toHaveLength(9);
-    expect(trinketKinds.flatMap((kind) => [1, 2, 3, 4, 5].map((tier) => trinketId(kind.kind, tier)))).toHaveLength(45);
-    for (const id of trinketKinds.flatMap((kind) => [1, 2, 3, 4, 5].map((tier) => trinketId(kind.kind, tier)))) {
+  it('holds one trinket per kind and tier plus one of each loot trinket, all in the trinket slot', () => {
+    expect(trinketKinds).toHaveLength(18);
+    const tiered = trinketKinds.filter((kind) => kind.group !== 'loot');
+    expect(tiered).toHaveLength(9);
+    expect(tiered.flatMap((kind) => [1, 2, 3, 4, 5].map((tier) => trinketId(kind.kind, tier)))).toHaveLength(45);
+    for (const id of [...tiered.flatMap((kind) => [1, 2, 3, 4, 5].map((tier) => trinketId(kind.kind, tier))), ...lootTrinketKinds.map((kind) => kind.kind)]) {
       expect(itemById[id].slot).toBe('trinket');
     }
   });
@@ -91,9 +93,24 @@ describe('looted trinkets', () => {
   });
 
   it('follows the gear tier rules', () => {
-    for (const piece of Array.from({ length: 50 }, (_, i) => rollLootTrinket(request('dungeonRun', `d${i}`, { tier: 4 })))) {
+    const tiered = Array.from({ length: 50 }, (_, i) => rollLootTrinket(request('dungeonRun', `d${i}`, { tier: 4 })))
+      .filter((piece) => !lootTrinketKinds.some((kind) => kind.kind === piece.itemId));
+    for (const piece of tiered) {
       expect(piece.itemId).toMatch(/4$/);
       expect(piece.uid).toBe('');
     }
+  });
+
+  it('drops the nine loot trinkets as one weighted entry, always Common with no tier', () => {
+    const rolls = Array.from({ length: 3000 }, (_, i) => rollLootTrinket(request('monsterLair', `loot${i}`)));
+    const looted = rolls.filter((piece) => lootTrinketKinds.some((kind) => kind.kind === piece.itemId));
+    expect(looted.length).toBeGreaterThan(0);
+    for (const piece of looted) {
+      expect(piece.rarity).toBe('common');
+      expect(piece.itemId).not.toMatch(/\d$/);
+    }
+    // The other groups still drop, and a looted loot trinket is one of the nine.
+    expect(rolls.length - looted.length).toBeGreaterThan(0);
+    for (const piece of looted) expect(itemById[piece.itemId].slot).toBe('trinket');
   });
 });

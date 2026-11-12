@@ -163,7 +163,7 @@ describe('the Alchemist’s second slot', () => {
 
     const healthy = member('a', 'alchemist', { maxHp: 100, power: 0, consumable: potion, potion });
     const calm = simulateRun([healthy], hitter, 's', { rules: { ...steady, maxRounds: 1 } });
-    expect(untriggeredSalvage([healthy], calm, 'dungeonRun').map((s) => s.itemId)).toEqual(['healingPotion', 'healingPotion']);
+    expect(untriggeredSalvage([healthy], calm).map((s) => s.itemId)).toEqual(['healingPotion', 'healingPotion']);
   });
 
   it('only takes healing consumables, and only for an Alchemist', () => {

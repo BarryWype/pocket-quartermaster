@@ -65,8 +65,8 @@ export const lootConfig = {
   runLength: { sources: ['dungeonRun', 'overnightExpedition'] as LootSourceId[], baseMinutes: 45, min: 0.25, max: 2 },
   /** Luck raises non-A chances and gold amounts, never materials or other amounts. */
   luck: { chancePerPoint: 0.01, maxChanceBonus: 0.3, pointsPerRarityStep: 10, goldPerPoint: 0.05 },
-  /** Charm effects for the run (see content/loot/charms.ts). */
-  charms: { chanceMultiplier: 1.5, luck: 3, goldPercent: 20, xpPercent: 15, raritySteps: 1 },
+  /** Loot trinkets (worn, so permanent): a ×1.25 chance, +10% gold, +8% XP, or a 50% chance of one rarity step on looted gear. */
+  lootTrinkets: { chanceMultiplier: 1.25, goldPercent: 10, xpPercent: 8, rarityChance: 0.5, parts: 8 },
   /** Amounts per drop; everything not listed is 1. */
   quantities: {
     materials: [2, 4] as [number, number],

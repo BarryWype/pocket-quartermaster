@@ -1,4 +1,4 @@
-import { trinketId, trinketKinds, trinketRules } from '@/content/trinkets';
+import { lootTrinketKinds, trinketId, trinketKinds, trinketRules } from '@/content/trinkets';
 import { ELEMENTS, type Element } from '@/game/elements';
 import type { GearDef, GearInstance, Stats } from '@/game/types';
 
@@ -29,15 +29,25 @@ export function trinketEffect(item: GearDef, gear: Pick<GearInstance, 'roll' | '
 
 /** The five amulets are one weighted entry: the element is picked after the group. */
 const amuletKind = trinketKinds.find((kind) => kind.group === 'amulet')!;
+/** The loot trinkets are one weighted entry the same way. */
+const lootKind = trinketKinds.find((kind) => kind.group === 'loot')!;
 
-/** A random looted trinket; its tier and rarity follow the gear rules, its kind the group weights. */
+/**
+ * A random looted trinket; its tier and rarity follow the gear rules, its kind
+ * the group weights. The nine loot trinkets are one weighted entry too: their
+ * kind is picked after the group, and they drop Common, with no tier.
+ */
 export function rollLootTrinket(req: LootRequest): RolledGear {
   const tier = lootGearTier(req.source, req.tier, req.context.playerTier, req.rng);
   const rarity = lootGearRarity(req.source, req.rng, rarityBonus(req), req.mapRarity, raritySteps(req));
   const pool = trinketKinds.filter(
-    (kind) => kind.group === 'stat' || kind === amuletKind || (kind.group === 'fortune' && rarity === 'legendary'),
+    (kind) => kind.group === 'stat' || kind === amuletKind || kind === lootKind || (kind.group === 'fortune' && rarity === 'legendary'),
   );
   const pick = req.rng.weighted(pool, (kind) => trinketRules.weights[kind.group]);
+  if (pick.group === 'loot') {
+    const kind = lootTrinketKinds[req.rng.int(0, lootTrinketKinds.length - 1)];
+    return { uid: '', itemId: kind.kind, rarity: 'common' };
+  }
   const kind = pick.group === 'amulet'
     ? `${req.element ?? ELEMENTS[req.rng.int(0, ELEMENTS.length - 1)]}Amulet`
     : pick.kind;

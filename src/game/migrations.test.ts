@@ -871,3 +871,88 @@ describe("toV45", () => {
   });
 });
 
+describe("toV46", () => {
+  /** A version 45 save: two held charms, one worn at home, one worn on a running expedition. */
+  const v45 = (): SaveData => {
+    const save = createInitialSave();
+    save.gold = 100;
+    save.materials = { ...save.materials, wood: 7, fireShard: 2, waterShard: 5 };
+    save.consumables = { ...save.consumables, bountyToken: 4, luckyEar: 2 };
+    save.heroes = save.heroes.map((hero, i) => ({
+      ...hero,
+      equipment: { ...hero.equipment, consumable: i === 0 ? "prismCharm" : i === 1 ? "ghostLantern" : null },
+    }));
+    save.expeditions = [{ id: "e1", dungeonId: "wolfDen", heroIds: ["lyra"] }] as unknown as SaveData["expeditions"];
+    save.knownRecipes = [...save.knownRecipes, "luckyEar"];
+    save.partRecipes = ["luckyEar"];
+    save.gear = [{ uid: "g1", itemId: "testCharm", rarity: "common", roll: 10, affixes: [], rerolls: 0 }];
+    save.tips = { seen: ["charms" as never], pending: [] };
+    save.nextUid = 9;
+    return save;
+  };
+
+  it("pays held charms as one loot trinket per three copies and parts for the rest", () => {
+    const next = migrateSave(v45(), 45, 0);
+    // Four Bounty tokens: one trinket, one copy left = three insignia.
+    expect(next.gear).toContainEqual(expect.objectContaining({ uid: "g9", itemId: "bountyToken", rarity: "common" }));
+    expect(next.materials.tatteredInsignia).toBe(3);
+    // Two Lucky ears: no trinket, six goblin ears.
+    expect(next.gear.some((piece) => piece.itemId === "luckyEar")).toBe(false);
+    expect(next.materials.goblinEar).toBe(6);
+    // One Prism charm worn at home: three shards of the most-held element (water).
+    expect(next.materials.waterShard).toBe(8);
+    expect(next.materials.fireShard).toBe(2);
+    // The Ghost lantern went to its run, not to the stock.
+    expect(next.materials.ectoplasm).toBeUndefined();
+    expect(next.nextUid).toBe(10);
+    expect(next.consumables).not.toHaveProperty("bountyToken");
+    expect(next.consumables).not.toHaveProperty("luckyEar");
+    expect(next.gold).toBe(100);
+    expect(next.materials.wood).toBe(7);
+  });
+
+  it("keeps a charm worn on a running expedition as that run's loot modifier and frees the slot", () => {
+    const next = migrateSave(v45(), 45, 0);
+    expect(next.expeditions[0].lootModifiers).toEqual([
+      { id: "ghostLantern", kind: "chance", category: "keyFragments", multiplier: 1.5 },
+    ]);
+    expect(next.heroes.map((hero) => hero.equipment.consumable)).toEqual([null, null, null]);
+  });
+
+  it("clears the lucky ear's recipes, renames the test charm and drops the charms tip", () => {
+    const next = migrateSave(v45(), 45, 0);
+    expect(next.knownRecipes).not.toContain("luckyEar");
+    expect(next.partRecipes).toEqual([]);
+    expect(next.gear.some((piece) => piece.itemId === "testTrinket")).toBe(true);
+    expect(next.gear.some((piece) => piece.itemId === "testCharm")).toBe(false);
+    expect(next.tips.seen).toEqual([]);
+  });
+
+  it("counts a charm waiting in stored loot as held and drops a quest asking for one", () => {
+    const save = v45();
+    save.patrolFights = [
+      {
+        id: "f1", patrolId: "p1", kind: "goblins", tier: 1, elite: false, heroIds: ["lyra"],
+        startedAt: 0, endsAt: DAY, windowEndsAt: DAY, won: true, hp: [], salvaged: [],
+        rewards: { ...emptyLoot(), consumables: [{ itemId: "scarabCharm", amount: 1 }] } as never,
+      },
+    ];
+    save.quests = {
+      ...save.quests,
+      list: [{ id: "q-1", objective: "deliver", itemId: "seersCandle" } as unknown as Quest],
+    };
+    const next = migrateSave(save, 45, 0);
+    expect(next.patrolFights[0].rewards.consumables).toEqual([]);
+    expect(next.quests.list).toEqual([]);
+    // The Scarab charm from the loot counts as held: three chitin. The dropped
+    // quest asked for a candle the player never handed in, so nothing is lost.
+    expect(next.materials.ritualCandle).toBeUndefined();
+    expect(next.materials.chitin).toBe(3);
+  });
+
+  it("leaves a save without charms alone", () => {
+    const save = createInitialSave();
+    expect(migrateSave(save, 45, 0)).toBe(save);
+  });
+});
+

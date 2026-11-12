@@ -64,8 +64,16 @@ export function rarityBonus(req: Pick<LootRequest, 'luck' | 'modifiers'>): numbe
   return Math.floor(partyLuck(req.luck, req.modifiers) / lootConfig.luck.pointsPerRarityStep);
 }
 
-/** Rarity charms: whole steps up after the roll; a harder source and the party's family add their own (see difficultyRules.rewards). */
-export const raritySteps = (req: Pick<LootRequest, 'modifiers' | 'difficulty' | 'familySteps'>): number =>
-  dedupeModifiers(req.modifiers).reduce((sum, mod) => (mod.kind === 'rarity' ? sum + mod.steps : sum), 0) +
+/**
+ * Rarity modifiers: whole steps up after the roll; one with a `chance` adds
+ * its steps only when that roll passes. A harder source and the party's family
+ * add their own (see difficultyRules.rewards).
+ */
+export const raritySteps = (req: Pick<LootRequest, 'modifiers' | 'difficulty' | 'familySteps' | 'rng'>): number =>
+  dedupeModifiers(req.modifiers).reduce(
+    (sum, mod) =>
+      mod.kind === 'rarity' && (mod.chance === undefined || req.rng.next() < mod.chance) ? sum + mod.steps : sum,
+    0,
+  ) +
   (req.difficulty ? difficultyRules.rewards[req.difficulty].raritySteps : 0) +
   (req.familySteps ?? 0);

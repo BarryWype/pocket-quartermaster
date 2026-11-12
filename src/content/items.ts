@@ -1,10 +1,9 @@
-import type { ConsumableDef, GearDef, ItemDef } from '@/game/types';
+import type { GearDef, ItemDef } from '@/game/types';
 
 import { gearItemStats } from '@/game/equipment/budget';
 
-import { GEAR_SLOTS, gearBudgetRules, gearId, gearNames, gearProfiles, testCharm } from './equipment';
+import { GEAR_SLOTS, gearBudgetRules, gearId, gearNames, gearProfiles, testTrinket } from './equipment';
 import { healthRules } from './health';
-import { charms } from './loot/charms';
 import { provisionRules } from './provisions';
 import { workToolId, workToolNames, workTools, workToolRules } from './workTools';
 
@@ -324,16 +323,6 @@ export const items: ItemDef[] = [
   { id: 'smokeBomb', name: 'Smoke bomb', emoji: '💨', icon: require('../../assets/icons/relics/bomb-iron.png'), description: 'Instead of a knock-out, the party escapes with more loot.', slot: 'consumable', elixir: { kind: 'smokeBomb', retreatBonus: elixirs.smokeBombRetreat } },
   { id: 'revivalDraught', name: 'Revival draught', emoji: '✨', icon: require('../../assets/icons/magic/elixir-golden-glow.png'), description: 'Once per run, gets back up at 30% HP when knocked out.', slot: 'consumable', elixir: { kind: 'revive', hp: elixirs.reviveHp } },
   { id: 'viperOil', name: 'Viper oil', emoji: '🐍', icon: require('../../assets/icons/relics/flask-green-poison.png'), description: `+${elixirs.viperCrit}% critical hit chance for the run.`, slot: 'consumable', elixir: { kind: 'crit', add: elixirs.viperCrit } },
-  // Charms: raise what the run finds (see content/loot/charms.ts).
-  ...charms.map((charm): ConsumableDef => ({
-    id: charm.id,
-    name: charm.name,
-    emoji: charm.emoji,
-    icon: charm.icon,
-    description: charm.description,
-    slot: 'consumable',
-    charm: charm.modifier,
-  })),
 
   // Boss weakness items, bought at map places and used up when the run meets
   // their boss.
@@ -372,7 +361,7 @@ export const items: ItemDef[] = [
   { id: 'calmingTea', name: 'Calming tea', emoji: '🫖', icon: require('../../assets/icons/tavern/mug-herb-brew.png'), description: 'Ends exhaustion at home.', slot: 'utility', homeCare: { kind: 'rest' } },
 
   // Debug trinket: never crafted or dropped.
-  testCharm,
+  testTrinket,
 
   ...gear,
   ...workToolGear,

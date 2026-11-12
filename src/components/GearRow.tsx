@@ -3,6 +3,7 @@ import { itemById } from '@/content/lookup';
 import { gearStats } from '@/game/gear/stats';
 import { trinketEffect } from '@/game/loot/trinkets';
 import type { GearDef, GearInstance, Stats } from '@/game/types';
+import { tr } from '@/i18n';
 
 import type { LabelPart } from './IconLabel';
 
@@ -22,10 +23,12 @@ export const STATS = Object.keys(statIcons) as (keyof typeof statIcons)[];
 /** The hero stats a piece can change, in the order comparisons list them. */
 export const DELTA_KEYS: (keyof Stats)[] = ['hp', 'power', 'magic', 'armour', 'resistance', 'evasion', 'speed', 'crit', 'luck'];
 
-/** "🎯 6" or "🔰 🔥 +12": what a trinket gives after its roll. */
+/** "🎯 6" or "🔰 🔥 +12": what a trinket gives after its roll; a loot trinket (no stats) shows its description. */
 export function trinketParts(gear: GearInstance): LabelPart[] {
-  const effect = trinketEffect(itemById[gear.itemId] as GearDef, gear);
+  const item = itemById[gear.itemId] as GearDef;
+  const effect = trinketEffect(item, gear);
   const statParts: LabelPart[] = STATS.filter((key) => effect.stats[key]).map((key) => ({ emoji: statIcons[key], text: String(effect.stats[key]) }));
+  if (statParts.length === 0 && !effect.elementResist) return item.description ? [tr(item.description)] : [];
   return statParts.concat(
     effect.elementResist
       ? [{ emoji: statIcons.resistance, after: elementInfo[effect.elementResist.element].emoji, text: `+${effect.elementResist.amount}` }]

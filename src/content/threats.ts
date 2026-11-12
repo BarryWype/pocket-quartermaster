@@ -154,7 +154,7 @@ export const restrictionDefs: RestrictionDef[] = [
     description: 'Potions, party heals and springs heal half as much.',
   },
   { id: 'cursedLuck', name: 'Cursed luck', emoji: '🎲', description: 'No critical hits.' },
-  { id: 'barren', name: 'Barren', emoji: '💸', description: 'Gold bonuses from traits, charms and meals don’t apply.' },
+  { id: 'barren', name: 'Barren', emoji: '💸', description: 'Gold bonuses from traits, trinkets and meals don’t apply.' },
   { id: 'narrowPassages', name: 'Narrow passages', emoji: '🕳️', description: 'One hero fewer than usual per expedition.' },
   { id: 'spoiledStores', name: 'Spoiled stores', emoji: '🥀', description: 'Meals have no effect; supply still counts.' },
 ];
