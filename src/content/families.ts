@@ -130,16 +130,16 @@ export const familyEffectRules = {
   breaker: { damage: 1.03, armourIgnore: 0.1, staggerChance: 0.3, firstHit: 1.5, shred: 0.3 },
   /** The front hero's damage taken; the share of the weakest ally's hits the front hero takes; the share of each fight's first hit the party still takes (level 3). */
   bulwark: { frontTaken: 0.9, guardShare: 0.35, firstHitTaken: 0.65 },
-  /** Damage below this HP share; the heal on each kill (level 2); the HP share below which a hero attacks twice a round (level 3). */
+  /** Damage below this HP share; the heal on each kill (level 2); the HP share below which a hero attacks twice, once per fight (level 3). */
   bloodrage: { belowHp: 0.5, damage: 1.2, healOnKill: 0.08, extraBelowHp: 0.45 },
   /** Crit chance in round 1; Evasion points added; a counter's share of a normal hit; the chance each fight's weakest enemy is struck down (level 3). */
   shadow: { firstRoundCrit: 0.25, evasion: 6, counterShare: 0.3, strikeChance: 0.45 },
   /** The weapons that count as ranged, and their heroes' damage (level 1). */
-  volley: { gearTypes: ['bow', 'crossbow', 'throwing'] as string[], damage: 1.1 },
+  volley: { gearTypes: ['bow', 'crossbow', 'throwing'] as string[], damage: 1.05 },
   /** The chance a hit poisons, on top of any Venomous affix; a Venomous poison's share of the hit, its rounds, the stacks an enemy carries (base, and with Venom 2) and each stack's share with Venom 2; damage taken by poisoned enemies with Venom 3. */
   venom: { poisonChance: 0.2, dotShare: 0.3, dotRounds: 3, baseStacks: 1, maxStacks: 3, stackShare: 0.5, poisonedTaken: 1.2 },
-  /** Magic damage added each round of a fight, up to the max; an elemental hit's share that jumps to a second enemy (level 2); magic damage from round 2, and the scale on the wheel's advantage bonus (level 3). */
-  spellweave: { perRound: 0.025, max: 0.125, chainShare: 0.4, lateDamage: 1.1, advantageScale: 2 },
+  /** Magic damage added each round of a fight, up to the max; an elemental hit's share that jumps to a second enemy (level 2); magic damage from round 2, and the scale on the wheel's advantage bonus: its +50% becomes +75% (level 3). */
+  spellweave: { perRound: 0.025, max: 0.125, chainShare: 0.4, lateDamage: 1.1, advantageScale: 1.5 },
   /** The spirit hound each fight: its share of the carrier's hit and its rounds (one at level 1, a second at level 3); every summon's extra rounds and damage (level 2). */
   pack: { houndShare: 0.35, houndRounds: 2, extraRounds: 1, damage: 1.25 },
   /** Party damage; the party's heal between fights (level 2); more party damage and extra uses of every special per run (level 3). */

@@ -5,6 +5,7 @@ import { quickProbe, type QuickTier } from '@/game/sim/quick';
 import { inRange, targets } from '@/game/sim/targets';
 import { focusOdds, familyName, venomousOdds } from '@/game/sim/familyFocus';
 import { threatCosts } from '@/game/sim/threatCosts';
+import { elementalProtection } from '@/game/sim/elementalTier';
 import { familyFocusTable, venomTable } from './report';
 
 const USAGE = `npm run sim:quick -- [options]
@@ -118,6 +119,13 @@ for (const key of [...new Set(costs.map((r) => `${r.threat}|${r.level}`))]) {
     return r ? `${pts(r.medium)} / ${pts(r.hard)}` : '';
   });
   console.log(`| ${threat} | ${level} | ${cells.join(' | ')} |`);
+}
+
+console.log('\n## Tier 3 protection (fitted party at tier end, elemental dungeons, no briefing: unprotected (target) / stones on gear / stones + Warding 2 + Spellweave 2)');
+console.log('| dungeon | unprotected | stones | stones + families |');
+console.log('| --- | --- | --- | --- |');
+for (const row of elementalProtection(breakdownRuns)) {
+  console.log(`| ${row.dungeonId} (${row.difficulty}, ${row.element}) | ${cell(row.unprotected, row.target)} (${row.target.map((v) => Math.round(v * 100)).join('–')}%) | ${pct0(row.stones)} | ${pct0(row.families)} |`);
 }
 
 familyTables();

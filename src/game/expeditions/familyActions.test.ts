@@ -18,16 +18,16 @@ type Case = [string, FamilyId, number, FightSetup, (on: FamilyFight, off: Family
 
 describe('family extra actions', () => {
   test.each<Case>([
-    // Below 45% of HP Bloodrage 1’s +20% lifts both blows.
-    ['Bloodrage 3: below 45% HP an extra attack each round', 'bloodrage', 3, bleeding(20),
+    // Below 45% of HP: two blows in round 1, one in round 2 (the extra attack comes once per fight); Bloodrage 1’s +20% lifts them all.
+    ['Bloodrage 3: below 45% HP an extra attack, once per fight', 'bloodrage', 3, bleeding(20),
       (on, off) => {
         expect(perRound(off)).toBeCloseTo(power);
-        expect(perRound(on)).toBeCloseTo(2 * power * R.bloodrage.damage);
+        expect(on.fight.dealt.a).toBeCloseTo(3 * power * R.bloodrage.damage);
         expect(logged(on.fight, 'bloodrage1')).toBe(1);
       }, 'bloodrage3', 'On the brink, a struck twice in a frenzy.', 'Au bord du gouffre, a a frappé deux fois dans sa frénésie.'],
     ['Bloodrage 3: no extra attack at 45% HP or more', 'bloodrage', 3, bleeding(46),
       (on) => expect(perRound(on)).toBeCloseTo(power * R.bloodrage.damage), 'bloodrage3', null, null],
-    // Round 1’s blow strikes all three rats, round 2’s one: two more hits than without, each 10% harder (Volley 1).
+    // Round 1’s blow strikes all three rats, round 2’s one: two more hits than without, each lifted by Volley 1.
     ['Volley 2: once per fight, the ranged hero’s blow strikes every enemy', 'volley', 2, rats({ a: { ...sturdy, ranged: true } }),
       (on, off) => {
         expect(off.fight.dealt.a).toBeCloseTo(2 * tiny);

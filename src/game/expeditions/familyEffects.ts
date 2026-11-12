@@ -582,7 +582,8 @@ export const familyEffects: FamilyEffect[] = [
     level: 3,
     hooks: {
       afterAttack: (a) => {
-        if (a.hero.hp >= R.bloodrage.extraBelowHp * a.hero.member.maxHp) return;
+        // Once per fight: the first time the hero acts below the threshold.
+        if (a.hero.hp >= R.bloodrage.extraBelowHp * a.hero.member.maxHp || !a.once(`bloodrage3:${idOf(a.hero)}`)) return;
         a.extra = true;
         a.log('bloodrage3', idOf(a.hero));
       },

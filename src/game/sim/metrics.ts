@@ -108,6 +108,8 @@ export type TierSummary = {
     /** Material → median spent on rerolls over the tier (positive amounts). */
     rerollMaterials: Record<string, number>;
     stones: Stat;
+    /** Stones applied before the tier's first day, per seed. */
+    stonesBefore: Stat;
     forges: Stat;
   };
   /** Share of the roster's trinket slots holding loot trinkets, sampled daily and averaged over the tier. */
@@ -553,6 +555,7 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): TierSummary {
       }),
     ),
     stones: stat(logs.map((log, i) => (windows[i] ? log.stones.filter((day) => within(day, windows[i])).length : null))),
+    stonesBefore: stat(logs.map((log, i) => (windows[i] ? log.stones.filter((day) => day < windows[i]![0]).length : null))),
     forges: stat(logs.map((log, i) => (windows[i] ? log.crafts.filter((row) => row.kind === 'component' && within(row.day, windows[i])).length : null))),
   };
 

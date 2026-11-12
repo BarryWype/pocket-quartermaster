@@ -138,7 +138,7 @@ function familiesSection(summaries: ProfileSummary[], probes: Summary['familyPro
     out.push(
       '### Lift per family focus',
       '',
-      `Each family’s focus team at each tier’s end: the party the dungeons are fitted to, with the family’s first class (kitted like the roster) swapped in for the member whose loss costs least unless one of its classes is already there, dressed to push the family, with no briefing: playstyle families on the tier’s medium dungeons, threat families on its dungeons with their own foes (undead, beasts, armoured or elemental foes; for Watch, Cunning and Venom the dungeons that can roll their threat). Each cell: odds with the family’s tags stripped, then points of odds at levels 1 / 2 / 3, the share of runs where level 3 fires (${FIRE_RUNS} runs) and the level the team reaches in its own gear; odds over ${FAMILY_RUNS} runs a dungeon. ${WARN} flags a lift above ${FOCUS_FLAG.above}× the playstyle families’ median over all tiers, a tier above ${FOCUS_FLAG.spike}× the family’s own mean, and a level 3 firing in under 60% of runs (Faith 3’s revive needs a knockout and is exempt). Plunder and Cunning work outside fights and aren’t flagged.`,
+      `Each family’s focus team at each tier’s end: the party the dungeons are fitted to, with the family’s first class (kitted like the roster) swapped in for the member whose loss costs least unless one of its classes is already there, dressed to push the family, with no briefing: playstyle families on the tier’s medium dungeons, threat families on its dungeons with their own foes (undead, beasts, armoured or elemental foes; for Watch, Cunning and Venom the dungeons that can roll their threat). Each cell: odds with the family’s tags stripped, then points of odds at levels 1 / 2 / 3, the share of runs where level 3 fires (${FIRE_RUNS} runs) and the level the team reaches in its own gear; odds over ${FAMILY_RUNS} runs a dungeon. ${WARN} flags a lift above ${FOCUS_FLAG.above}× the playstyle families’ median over all tiers, a tier above ${FOCUS_FLAG.spike}× the family’s own mean (Warding and Spellweave are exempt at tier 3, the elemental tier), and a level 3 firing in under 60% of runs. Exempt from that: Faith 3’s revive, which needs a knockout, and Shadow 3, a 45% chance each regular fight (never a boss): runs hold only 1.6–2.1 regular fights and 7–15% hold none, so it shows in about half of them. Plunder and Cunning work outside fights and aren’t flagged.`,
       '',
       familyFocusTable(probes.focus),
       '',
@@ -317,11 +317,12 @@ function gearActions(s: ProfileSummary) {
       `${n(g.rerolls.median)}${spread(g.rerolls, (v) => n(v))}`,
       n(g.rerollGold.median),
       materials,
+      `${n(g.stonesBefore.median)}${spread(g.stonesBefore, (v) => n(v))}`,
       `${n(g.stones.median)}${spread(g.stones, (v) => n(v))}`,
       `${n(g.forges.median)}${spread(g.forges, (v) => n(v))}`,
     ];
   });
-  return table(['Tier', 'Affixes per hero', 'Heroes in a helmet', 'Rerolls', 'Gold on rerolls', 'Reroll materials', 'Stones applied', 'Ingredient forges'], rows);
+  return table(['Tier', 'Affixes per hero', 'Heroes in a helmet', 'Rerolls', 'Gold on rerolls', 'Reroll materials', 'Stones applied by the tier’s start', 'Stones applied in the tier', 'Ingredient forges'], rows);
 }
 
 const capitalize = (word: string) => word[0].toUpperCase() + word.slice(1);

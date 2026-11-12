@@ -77,9 +77,19 @@ const OWN_FOES: Partial<Record<FamilyId, (d: DungeonDef) => boolean>> = {
   cunning: (d) => listsThreat(d, 'traps'),
   venom: (d) => listsThreat(d, 'poison'),
 };
+/**
+ * The difficulty a tier's focus teams are measured on: medium, but hard at
+ * tier 5, where medium dungeons let the teams start too high (63–80%) to show
+ * what a family adds.
+ */
+const FOCUS_DIFFICULTY: Partial<Record<number, DungeonDef['difficulty']>> = { 5: 'hard' };
 export const focusDungeons = (family: FamilyId, tier: number): DungeonDef[] => {
+  const difficulty = FOCUS_DIFFICULTY[tier] ?? 'medium';
   const own = OWN_FOES[family];
-  return own ? regular(tier).filter(own) : regular(tier).filter((d) => d.difficulty === 'medium');
+  if (!own) return regular(tier).filter((d) => d.difficulty === difficulty);
+  const list = regular(tier).filter(own);
+  const harder = list.filter((d) => d.difficulty === difficulty);
+  return FOCUS_DIFFICULTY[tier] && harder.length > 0 ? harder : list;
 };
 
 /** Runs per level behind each "fires" share. */
@@ -193,7 +203,22 @@ export const focusLift = (rows: FocusRow[], family: FamilyId, level: 1 | 2 | 3 =
  * flagged; so is Cunning, whose levels 2 and 3 work outside fights), and a
  * family whose lift at one tier is above twice its own mean.
  */
-export const FOCUS_FLAG = { above: 1.5, below: 0.5, spike: 2, fires: 0.6, loot: ['plunder', 'cunning'] as FamilyId[], firesExempt: ['faith3', 'cunning3', 'plunder3'] };
+export const FOCUS_FLAG = {
+  above: 1.5,
+  below: 0.5,
+  spike: 2,
+  fires: 0.6,
+  loot: ['plunder', 'cunning'] as FamilyId[],
+  /**
+   * Level 3s left out of the firing check: Faith 3's revive needs a knockout;
+   * Shadow 3 (45% each regular fight, never a boss) shows in about half the
+   * runs because runs hold only 1.6–2.1 regular fights; Cunning 3 and Plunder 3
+   * work outside fights.
+   */
+  firesExempt: ['faith3', 'shadow3', 'cunning3', 'plunder3'],
+  /** Tiers left out of a family's spike check: tier 3 is the elemental tier, where Warding and Spellweave are meant to matter most. */
+  spikeExempt: { warding: [3], spellweave: [3] } as Partial<Record<FamilyId, number[]>>,
+};
 
 const median = (values: number[]) => {
   const sorted = [...values].sort((a, b) => a - b);
@@ -213,7 +238,9 @@ export function focusFlags(rows: FocusRow[]): FocusFlag[] {
     if (!FOCUS_FLAG.loot.includes(family)) {
       for (const level of [2, 3] as const) {
         if (lift[level - 1] > FOCUS_FLAG.above * mid[level - 1]) flags.push(`L${level} above ${FOCUS_FLAG.above}× median`);
-        const spiky = rows.filter((r) => r.family === family && r.odds).some((r) => levelLift(r, level)! > FOCUS_FLAG.spike * lift[level - 1] && lift[level - 1] > 0);
+        const spiky = rows
+          .filter((r) => r.family === family && r.odds && !FOCUS_FLAG.spikeExempt[family]?.includes(r.tier))
+          .some((r) => levelLift(r, level)! > FOCUS_FLAG.spike * lift[level - 1] && lift[level - 1] > 0);
         if (spiky) flags.push(`L${level} above ${FOCUS_FLAG.spike}× its mean at a tier`);
       }
       const fires = rows.filter((r) => r.family === family && r.fires).map((r) => r.fires![2]);

@@ -20,6 +20,18 @@ export const targets = {
     boss: [0.5, 0.6] as [number, number],
     /** Fight events and patrols, prepared. */
     events: [0.7, 0.8] as [number, number],
+    /**
+     * Tier 3, the elemental tier: the fitted party with no stone affixes and no
+     * Warding or Spellweave tags, on each elemental dungeon, by difficulty;
+     * Witch Marsh (one foe of six not elemental) has its own. With stones the
+     * party should reach its difficulty's end target.
+     */
+    unprotected: {
+      easy: [0.65, 0.75] as [number, number],
+      medium: [0.35, 0.45] as [number, number],
+      hard: [0.2, 0.3] as [number, number],
+      witchMarsh: [0.5, 0.6] as [number, number],
+    },
   },
   /** Weekly drops per category for the regular profile, at most this share off doc/design/loot/tools/pacing.py. */
   lootPacing: 0.2,

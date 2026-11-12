@@ -7,10 +7,10 @@ venom,Venom,threat,Poison,"hits have a 20% chance to poison, even without the Ve
 warding,Warding,threat,Element (5 elements),elemental hits taken −8%,the first elemental hit of each fight −25%,10% of elemental damage taken is reflected
 breaker,Breaker,threat,Armoured,+3% party damage; ignore 10% of enemy armour,"a crit staggers its target (it loses its next turn) 30% of the time, once per enemy each fight",the first hit of each fight deals +50% and shreds 30% of the target's armour
 bulwark,Bulwark,playstyle,,the front hero takes −10% damage,the front hero guards the weakest ally (takes 35% of each hit aimed at them),the first hit of each fight on the party deals −35% damage
-bloodrage,Bloodrage,playstyle,,+20% damage below half HP,heal 8% on each kill,below 45% HP an extra attack each round
+bloodrage,Bloodrage,playstyle,,+20% damage below half HP,heal 8% on each kill,below 45% HP an extra attack, once per fight
 shadow,Shadow,playstyle,,+25% crit chance in round 1,+6 evasion; a dodged attack gives a free counter (30% of a hit),each fight a 45% chance the weakest enemy is struck down before it acts
-volley,Volley,playstyle,,ranged weapons act first and deal +10% damage,"opening volley: once per fight, a ranged hero's first blow hits every enemy (the family's hero without one)",the opening volley strikes a second time
-spellweave,Spellweave,playstyle,,magic damage +2.5% per round (up to +12.5%),an Infused (elemental) hit jumps to a second enemy for 40% in the same element,magic damage +10% from round 2; elemental advantage doubled
+volley,Volley,playstyle,,ranged weapons act first and deal +5% damage,"opening volley: once per fight, a ranged hero's first blow hits every enemy (the family's hero without one)",the opening volley strikes a second time
+spellweave,Spellweave,playstyle,,magic damage +2.5% per round (up to +12.5%),an Infused (elemental) hit jumps to a second enemy for 40% in the same element,magic damage +10% from round 2; elemental advantage +50%
 pack,Pack,playstyle,,"a spirit hound joins each fight, even without a summoner (35% of the hit of the hero with most Pack tags, 2 rounds)",summons hit 25% harder and last 1 more round,a second hound each fight
 rally,Rally,playstyle,,+5% party damage,the party heals 8% between fights,+5% party damage more; every special gets one extra use per run
 plunder,Plunder,playstyle,,+10% gold,+1 monster part per won fight,loot rolls one rarity step higher
