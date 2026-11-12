@@ -1,3 +1,4 @@
+import { rosterRules } from '@/content/roster';
 import { lootConfig } from '@/content/loot/config';
 import { traitById } from '@/content/traits';
 
@@ -36,13 +37,16 @@ export function grantLoot(save: SaveData, heroIds: string[], loot: Loot, now: nu
   );
   const relics = loot.relics.map((relicId) => ({ uid: `r${uid++}`, relicId }));
   const party = save.heroes.filter((hero) => heroIds.includes(hero.id));
+  // Heroes left well behind the roster's best catch up faster.
+  const top = Math.max(0, ...save.heroes.map((hero) => hero.level));
   // The party's best Plunderer counts once on the gold.
   const plunderer = bestAffixValue(party.flatMap((hero) => equippedGear(save, hero)), 'plunderer');
   const heroes = save.heroes.map((hero) => {
     if (!heroIds.includes(hero.id) || loot.xp <= 0) return hero;
     const xpBonus = (traitById[hero.trait]?.effects ?? []).reduce((m, e) => m * (e.kind === 'xpMultiplier' ? e.multiplier : 1), 1);
     const veteran = affixEffects(equippedGear(save, hero)).veteran ?? 0;
-    return addXp(hero, Math.round(loot.xp * xpBonus * (1 + veteran / 100) * guildXp), playerTier);
+    const catchUp = hero.level < top - rosterRules.catchUpGap ? rosterRules.catchUpXp : 1;
+    return addXp(hero, Math.round(loot.xp * xpBonus * (1 + veteran / 100) * guildXp * catchUp), playerTier);
   });
   let next: SaveData = {
     ...save,

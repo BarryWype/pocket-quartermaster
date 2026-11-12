@@ -10,6 +10,7 @@ import { placeFightRules } from '@/content/placeFights';
 import { placeInfo } from '@/content/places';
 import { REVEAL_KINDS, type RevealKind } from '@/content/reveal';
 import { workToolRules } from '@/content/workTools';
+import type { ClassSwap } from './classSwap';
 
 import { jobMaterials } from '../jobs/jobs';
 import type { LootCategory, LootSourceId } from '../loot/types';
@@ -182,6 +183,8 @@ export type Summary = {
   difficultyOdds: Record<number, DifficultyOdds>;
   /** The family probes, measured once per run (see familyFocus.ts). */
   familyProbes?: { focus: FocusRow[]; venom: AffixRow[] };
+  /** Each class swapped into the fitted party, measured once per run (see classSwap.ts). */
+  classProbe?: ClassSwap;
 };
 
 /** One tier of the Families report, from the bot's own runs. */

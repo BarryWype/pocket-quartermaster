@@ -10,6 +10,7 @@ import { formatDuration, t, tr } from '@/i18n';
 import { fonts, ui } from '@/theme';
 
 import { FamilySheet } from './FamilySheet';
+import { FreePickPanel } from './FreePickPanel';
 import { lootItems } from './LootReveal';
 import { GainsLine, IconLabel } from './IconLabel';
 import { goldLabel } from './Price';
@@ -98,6 +99,7 @@ export function ReportCard({ report, heroes, now, expanded, onToggle }: Props) {
       {active.length > 0 && <ReportFamilies levels={report.families!} active={active.map((family) => family.id)} />}
       <GainsLine gains={loot} size={16} gap={6} labelStyle={styles.line} />
       <GainsLine gains={extras} size={16} gap={6} labelStyle={styles.line} />
+      {report.freePick && <FreePickPanel />}
 
       <View style={styles.log}>
         {(report.threats ?? []).map((threat, i) => {

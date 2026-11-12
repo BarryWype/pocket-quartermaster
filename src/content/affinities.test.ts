@@ -31,8 +31,9 @@ const BEFORE_COUNTS: Record<HeroClassId, { weapons: number; armour: number }> = 
   scout: { weapons: 3, armour: 1 },
   curseBreaker: { weapons: 3, armour: 2 },
   cook: { weapons: 3, armour: 2 },
-  monk: { weapons: 2, armour: 2 },
-  gambler: { weapons: 2, armour: 1 },
+  // The Monk's weapon of choice is knuckles (spear only usable); a Gambler who rolls Magic takes a wand.
+  monk: { weapons: 1, armour: 2 },
+  gambler: { weapons: 3, armour: 1 },
 };
 
 const favouredCount = (classId: HeroClassId, types: (WeaponType | ArmourType)[]) =>

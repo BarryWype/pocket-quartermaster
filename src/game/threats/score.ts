@@ -70,6 +70,7 @@ export type OpportunityScore = {
  */
 export function scoreOpportunity(opportunity: OpportunityDef, party: HeroAnswers[], optIn = false): OpportunityScore {
   if (opportunity.answers.length === 0) return { answered: true };
+  if (party.some((a) => a.opportunities?.includes(opportunity.id))) return { answered: true };
   const met = opportunity.answers.some((answer) => familyLevel(familyCount(party, answer.family, answer.level)) >= answer.level);
   return { answered: met || (optIn && !!opportunity.cost) };
 }

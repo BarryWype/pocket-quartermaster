@@ -206,6 +206,15 @@ describe('resolveExpedition', () => {
     expect(retreats.length).toBeGreaterThan(0);
     const firstTierXp = lootConfig.bonusRows.firstTierClear.xp;
     wins.forEach(({ report }) => expect(report.xp).toBe(Math.round(dungeon.xp * (1 + firstTierXp))));
+    // The first tier boss's first clear offers the free recruit, on the save and in the report; a retreat doesn't.
+    wins.forEach(({ report, save: after }) => {
+      expect(report.freePick).toHaveLength(3);
+      expect(after.freePick).toEqual(report.freePick);
+    });
+    retreats.forEach(({ report, save: after }) => {
+      expect(report.freePick).toBeUndefined();
+      expect(after.freePick).toBeNull();
+    });
     retreats.forEach(({ report }) => {
       const share = report.encountersCleared / report.encounterCount;
       expect(share).toBeGreaterThan(0);

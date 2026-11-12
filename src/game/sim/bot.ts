@@ -53,6 +53,7 @@ import { challengeSanctum, sanctumById, sanctumDungeon, type SanctumSpawn } from
 import type { Loot, LootCategory, LootSourceId, TrophyDrop } from '../loot/types';
 import type { SaveData } from '../save';
 import { buySupply, buySupplyProblem, isTavernUnlocked, offerLevel, recruit, recruitPrice, tavernOffers, type TavernSpawn } from '../taverns/taverns';
+import { claimFreePick } from '../taverns/freePick';
 import { currentHp, drinkPotion, drinkProblem, maxHp } from '../team/health';
 import { affinityOf, equip, equipPreview, hasPotionSlot, heroDamageStat, heroStats, isBusy, isOnExpedition, rosterFull, unequip } from '../team/team';
 import { briefingCoverage } from '../threats/coverage';
@@ -321,6 +322,8 @@ export type Sim = {
   rotation: Rotation;
   location: LatLng;
   tavern: TavernSpawn;
+  /** The price of the uncommon recruit the bot wants and can't afford yet: the Guild Hall leaves that much gold. */
+  recruitWanted: number;
   /** Today's reach rolls. */
   reach: { meters: number; tavern: boolean; sanctums: SanctumSpawn[]; maps: Map<string, boolean> };
   /** Bonus gathers left today (the daily walking bonus). */
@@ -880,21 +883,40 @@ function nextRecruitPrice(save: SaveData) {
   return Math.round(recruitPrice('common', offerLevel(save), save.heroes.length, false, highestTier(save)) * (1 - guildBonus(save, 'tavernDiscount')));
 }
 
+/** Takes the free recruit the first tier boss offered: a class that answers a missed threat of today's briefings, else the first. */
+export function takeFreePick(sim: Sim) {
+  const choices = sim.save.freePick;
+  if (!choices || rosterFull(sim.save)) return;
+  const classId = choices.find((c) => answersThreat(sim, c)) ?? choices[0];
+  act(sim, 'recruit', (save) => claimFreePick(save, classId));
+  sim.log.recruits.push({ day: sim.day, classId, price: 0, trait: sim.save.heroes[sim.save.heroes.length - 1].trait });
+  mark(sim, `recruit:${sim.save.heroes.length}`);
+}
+
 export function recruitHeroes(sim: Sim) {
+  sim.recruitWanted = 0;
   if (!sim.reach.tavern || !isTavernUnlocked(sim.save) || !isRevealed(sim.save, 'taverns')) return;
   for (;;) {
     if (rosterFull(sim.save)) return;
-    const owned = new Set(sim.save.heroes.map((h) => h.classId));
+    const copies = (classId: HeroClassId) => sim.save.heroes.filter((h) => h.classId === classId).length;
     const seen = tavernOffers(sim.save, sim.tavern.id, sim.now).filter((o) => !(o.id in sim.save.takenOffers));
     for (const o of seen) sim.log.offered[o.id] = o.classId;
-    const offers = seen
-      .filter((o) => sim.save.gold >= o.price + sim.config.recruitReserve)
+    // Never a third hero of a class; classes that answer a missed threat first, then classes the roster lacks.
+    const ranked = seen
+      .filter((o) => copies(o.classId) < sim.config.maxClassCopies)
       .map((offer) => {
         const counters = answersThreat(sim, offer.classId);
-        return { offer, score: (counters ? 2 : 0) + (owned.has(offer.classId) ? 0 : 1), positive: traitById[offer.trait]?.positive ? 1 : 0 };
+        return { offer, score: (counters ? 2 : 0) + (copies(offer.classId) ? 0 : 1), positive: traitById[offer.trait]?.positive ? 1 : 0 };
       })
       .sort((a, b) => b.score - a.score || b.positive - a.positive || a.offer.price - b.offer.price);
-    const pick = offers[0]?.offer;
+    const affordable = (o: (typeof ranked)[number]) => sim.save.gold >= o.offer.price + sim.config.recruitReserve;
+    // The best offer is an uncommon out of reach: keep its price back from the Guild Hall rather than settle.
+    const best = ranked[0];
+    if (best && !affordable(best) && heroClasses[best.offer.classId].rarity === 'uncommon') {
+      sim.recruitWanted = best.offer.price;
+      return;
+    }
+    const pick = ranked.find(affordable)?.offer;
     if (!pick) return;
     act(sim, 'recruit', (save) => recruit(save, pick, sim.tavern.position, sim.tavern.position));
     sim.log.places.push({ day: sim.day, kind: 'tavern', tier: highestTier(sim.save), odds: null, won: null });
@@ -907,7 +929,7 @@ export function buyGuildRanks(sim: Sim) {
   if (!isGuildUnlocked(sim.save) || !isRevealed(sim.save, 'guildHall')) return;
   for (let bought = true; bought; ) {
     bought = false;
-    const reserve = rosterFull(sim.save) ? 0 : nextRecruitPrice(sim.save) + sim.config.recruitReserve;
+    const reserve = rosterFull(sim.save) ? 0 : Math.max(nextRecruitPrice(sim.save), sim.recruitWanted) + sim.config.recruitReserve;
     for (const id of sim.config.guildPriority) {
       if (rankProblem(sim.save, id)) continue;
       const rank = (sim.save.guild[id] ?? 0) + 1;

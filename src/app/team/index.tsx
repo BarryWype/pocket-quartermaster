@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { FamilyTag } from '@/components/FamilyTag';
 import { statIcons } from '@/components/GearRow';
+import { FreePickPanel } from '@/components/FreePickPanel';
 import { GameIcon } from '@/components/GameIcon';
 import { HpBar } from '@/components/HpBar';
 import { SpecialLabel } from '@/components/SpecialLabel';
@@ -47,6 +48,7 @@ function TeamContent() {
           {t('team.roster', { count: save.heroes.length, cap: rosterCap(save), party: rosterRules.partySize })}
         </Text>
       </View>
+      <FreePickPanel />
       <WoodButton emoji="📜" title={t('classes.link')} onPress={() => navigate('/team/classes')} />
       {save.heroes.map((hero) => {
         const heroClass = heroClasses[hero.classId];

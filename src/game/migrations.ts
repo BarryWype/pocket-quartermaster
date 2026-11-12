@@ -3,6 +3,7 @@ import type { Rarity } from "@/content/gear";
 import { choiceOf, jobById, jobs } from "@/content/jobs";
 import { itemById } from "@/content/lookup";
 import { shopRules } from "@/content/shops";
+import { recruitRules } from "@/content/roster";
 import { ELEMENTS, shardId, stoneId, type Element } from "./elements";
 import {
   LEGACY_COMPONENT_PART_COUNT,
@@ -31,6 +32,8 @@ import type { Quest } from "./quests/types";
 import { rolledSpecial } from "./team/specials";
 import { STARTING_ARMOUR } from "./crafting/recipeUnlocks";
 import { isTutorialDungeon } from "./tutorial/tutorial";
+import { bossBeaten } from "./guild/guild";
+import { freePickClasses } from "./taverns/freePick";
 
 /**
  * Version 31: the collector quest now names the valuable it wants, chosen from
@@ -757,6 +760,16 @@ export function toV47(save: SaveData): SaveData {
   };
 }
 
+/**
+ * Version 48: the free recruit after the first tier boss. A save whose first
+ * tier boss already fell gets the pick it would have had; others get none yet.
+ */
+export function toV48(save: SaveData): SaveData {
+  if ('freePick' in save && save.freePick !== undefined) return save;
+  const beaten = bossBeaten(save, recruitRules.freePick.afterBossTier);
+  return { ...save, freePick: beaten ? freePickClasses(save) : null };
+}
+
 /** Applies the migration steps in order, from the save's own version on. */
 export function migrateSave(
   save: SaveData,
@@ -781,5 +794,6 @@ export function migrateSave(
   if (fromVersion < 45) next = toV45(next);
   if (fromVersion < 46) next = toV46(next);
   if (fromVersion < 47) next = toV47(next);
+  if (fromVersion < 48) next = toV48(next);
   return next;
 }

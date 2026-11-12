@@ -33,7 +33,7 @@ import { gearName, itemById } from '@/content/lookup';
 import { prepareParty } from '@/game/expeditions/simulate';
 import { highestUnlockedTier } from '@/game/dungeons/unlock';
 import { careProblem, drinkProblem } from '@/game/team/health';
-import { affinityOf, canDismiss, equip, equipPreview, gearKeywordsOf, hasPotionSlot, healingPotion, heroDamageStat, heroStats, isAway, isBusy, statSources, upgradeMark } from '@/game/team/team';
+import { affinityOf, canDismiss, equip, equipPreview, gearKeywordsOf, hasPotionSlot, healingPotion, heroDamageStat, heroStats, isAway, isBusy, retireManual, statSources, upgradeMark } from '@/game/team/team';
 import { ClassSummary } from '@/components/ClassSummary';
 import { FamilyTag } from '@/components/FamilyTag';
 import { SpecialLabel } from '@/components/SpecialLabel';
@@ -167,7 +167,7 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
   const xpShare = next ? hero.xp / next : 1;
   const aboveBand = hero.level >= lootConfig.manuals.topLevelByTier[highestUnlockedTier(save) - 1] + xpRules.aboveBandMargin;
   const confirmDismiss = () =>
-    Alert.alert(t('hero.dismissTitle', { name: hero.name }), t('hero.dismissBody'), [
+    Alert.alert(t('hero.dismissTitle', { name: hero.name }), t('hero.dismissBody', { manual: t(`expeditions.rarity.${retireManual(hero)}`) }), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('hero.dismiss'),

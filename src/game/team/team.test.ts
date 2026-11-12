@@ -190,8 +190,21 @@ describe('roster', () => {
     expect(dismissHero(save, 'lyra').escort).toEqual({ heroId: 'bram' });
   });
 
-  it(`is full at ${rosterRules.rosterCap} heroes`, () => {
-    const full = Array.from({ length: rosterRules.rosterCap }, (_, i) => newHero(`h${i}`, 'X', 'warrior', 'tough'));
+  it('leaves a training manual sized to the hero’s level', () => {
+    const at = (level: number) => {
+      const save = { ...saveWithGear(), manuals: {} };
+      const leveled = { ...save, heroes: save.heroes.map((h) => (h.id === 'lyra' ? { ...h, level } : h)) };
+      return dismissHero(leveled, 'lyra').manuals;
+    };
+    expect(at(1)).toEqual({ common: 1 });
+    expect(at(5)).toEqual({ common: 1 });
+    expect(at(6)).toEqual({ rare: 1 });
+    expect(at(11)).toEqual({ legendary: 1 });
+    expect(at(15)).toEqual({ legendary: 1 });
+  });
+
+  it(`is full at ${rosterRules.startCap} heroes before any tier boss falls`, () => {
+    const full = Array.from({ length: rosterRules.startCap }, (_, i) => newHero(`h${i}`, 'X', 'warrior', 'tough'));
     expect(rosterFull(createInitialSave())).toBe(false);
     expect(rosterFull({ ...createInitialSave(), heroes: full })).toBe(true);
   });

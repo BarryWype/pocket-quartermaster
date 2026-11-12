@@ -3,11 +3,12 @@ import { affinityRules, castingPenalty, classAffinities, type Affinity } from '@
 import { itemById } from '@/content/lookup';
 import { traitById } from '@/content/traits';
 import { lootConfig } from '@/content/loot/config';
+import { rosterRules } from '@/content/roster';
 
 import { affixEffects } from '../gear/affixes';
 import { gearStats, SCALING_KEYS } from '../gear/stats';
 import { pieceEffects } from '../gear/uniques';
-import { pieceDamageStat } from '../equipment/damageStat';
+import { pieceDamageStat, classDamageStat } from '../equipment/damageStat';
 import { slotProblem } from '../equipment/slots';
 import { rosterCap } from '../guild/guild';
 import { trinketEffect } from '../loot/trinkets';
@@ -56,7 +57,7 @@ export function gearKeywordsOf(save: SaveData, hero: HeroState): GearKeywordEntr
     const gear = save.gear.find((g) => g.uid === hero.equipment[slot]);
     if (!gear) return [];
     const item = itemById[gear.itemId] as GearDef;
-    const magic = pieceDamageStat(item, hero.classId) === 'magic';
+    const magic = pieceDamageStat(item, hero.classId, hero.roll) === 'magic';
     const keywords: GearKeywordEntry[] = item.keywords.map((keyword) => ({
       keyword,
       magic,
@@ -97,7 +98,7 @@ export function relicEffectsOf(save: SaveData, hero: HeroState): WornRelicEffect
     const item = itemById[gear.itemId] as GearDef;
     return pieceEffects(gear)
       .filter((effect) => effect.kind !== 'keyword')
-      .map((effect) => ({ effect, magic: pieceDamageStat(item, hero.classId) === 'magic', relicId: gear.relicId ?? gear.unique! }));
+      .map((effect) => ({ effect, magic: pieceDamageStat(item, hero.classId, hero.roll) === 'magic', relicId: gear.relicId ?? gear.unique! }));
   });
 }
 
@@ -155,7 +156,7 @@ function computeHeroStats(save: SaveData, hero: HeroState): Stats {
     const affinity = affinityOf(hero.classId, item.gearType);
     const values = gearStats(gear);
     // A flask's Power counts as the wielder's class damage stat.
-    const wielderStat = item.damageStat === 'wielder' ? heroClasses[hero.classId].damageStat : null;
+    const wielderStat = item.damageStat === 'wielder' ? classDamageStat(hero.classId, hero.roll) : null;
     for (const key of STAT_KEYS) {
       const value = values[key];
       if (!value) continue;
@@ -208,9 +209,7 @@ export function statSources(save: SaveData, hero: HeroState, stat: keyof Stats) 
 export function heroDamageStat(save: SaveData, hero: HeroState): DamageStat {
   const weapon = save.gear.find((g) => g.uid === hero.equipment.weapon);
   const item = weapon ? (itemById[weapon.itemId] as GearDef) : null;
-  // An unarmed Gambler rolls with Magic when Magic is their third primary.
-  if (!item && hero.roll?.primary === 'magic') return 'magic';
-  return (item ? pieceDamageStat(item, hero.classId) : undefined) ?? heroClasses[hero.classId].damageStat;
+  return (item ? pieceDamageStat(item, hero.classId, hero.roll) : undefined) ?? classDamageStat(hero.classId, hero.roll);
 }
 
 function updateHero(save: SaveData, heroId: string, update: (hero: HeroState) => HeroState): SaveData {
@@ -321,7 +320,11 @@ export function upgradeMark(hero: HeroState, preview: { before: Stats; after: St
   return undefined;
 }
 
-/** Heroes can be dismissed at home, keeping at least one; their gear and consumable go back to the stock. */
+/** The training manual a dismissed hero leaves: the rarity of the last level band they reach. */
+export const retireManual = (hero: Pick<HeroState, 'level'>) =>
+  [...rosterRules.retireManual].reverse().find((band) => hero.level >= band.minLevel)!.rarity;
+
+/** Heroes can be dismissed at home, keeping at least one; their gear and consumable go back to the stock, and they leave a training manual. */
 export function canDismiss(save: SaveData, heroId: string) {
   return save.heroes.length > 1 && save.heroes.some((h) => h.id === heroId) && !isAway(save, heroId);
 }
@@ -330,9 +333,11 @@ export function dismissHero(save: SaveData, heroId: string): SaveData {
   if (!canDismiss(save, heroId)) throw new Error(`Cannot dismiss ${heroId}`);
   let next = save;
   for (const slot of ['helmet', 'weapon', 'armor', 'offhand', 'trinket', 'consumable', 'potion'] as const) next = unequip(next, heroId, slot);
+  const rarity = retireManual(save.heroes.find((h) => h.id === heroId)!);
   return {
     ...next,
     heroes: next.heroes.filter((h) => h.id !== heroId),
+    manuals: { ...next.manuals, [rarity]: (next.manuals[rarity] ?? 0) + 1 },
     // The escort hero is gone: the background task stands down.
     escort: next.escort && next.escort.heroId === heroId ? null : next.escort,
   };

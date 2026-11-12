@@ -110,6 +110,7 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
           case 'duel':
           case 'fightHeal':
           case 'secondPotion':
+          case 'calmBeast':
             return [fill(logTemplates[e.key], { hero })];
           case 'raise':
           case 'allies':
@@ -238,8 +239,11 @@ export function buildLog(input: LogInput, rng: Rng): string[] {
       ).trim();
       if (line) encounterLines.push(line);
     } else {
-      // A quiet step speaks only for the family effects it woke (a hidden cache opened).
-      const notes = capitalised(familyNotes(encounter).trim());
+      // A quiet step speaks only for what woke it: a band talked out, a hidden cache opened.
+      const signature = (['parley', 'cacheOpen'] as const).flatMap((key) =>
+        effect(encounter, key) ? [fill(logTemplates[key], { hero: effectHero(encounter, key) })] : [],
+      );
+      const notes = capitalised([...signature, familyNotes(encounter).trim()].filter(Boolean).join(' ').trim());
       if (notes) encounterLines.push(notes);
     }
     if (i === midpoint && run.opportunity) encounterLines.push(opportunityLine());

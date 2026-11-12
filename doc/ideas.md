@@ -17,6 +17,7 @@ Design catalogues for what's built or being built live in `doc/design/` (threats
 - Daily quests and the secret quest (`doc/design/quests/`).
 - Guild Hall rework: five buildings (`doc/design/guild/`).
 - Simulator rework and balance passes 1–4 (`doc/design/simulator/`).
+- Use the roster, part 1 (2026-11-13): dead and narrow class abilities reworked (Druid, Monk, Scout, Thief, Sorcerer, Diplomat, Scholar, Necromancer, Beastmaster, Curse-breaker, Engineer, Gambler) and weak bodies tuned on the class strength table (`sim:quick --classes`, report "Class strength"); roster cap by tier boss; tavern weights so every class shows weekly, "Wanted this week"; recruits at the roster's median level and catch-up XP; a manual for a dismissed hero; a free recruit after the first tier boss.
 - Tutorial rework with the gradual reveal and tips; Pocket mode rework (background notifications).
 - 0.7 out; fixes since are under "After 0.7" below.
 - Wood & brass UI on every screen.

@@ -95,6 +95,12 @@ export const logTemplates = {
   allies: ' The raised {tag} fought alongside the party.',
   duel: ' {hero} found the gap in a lone foe’s guard.',
   fightHeal: ' {hero} shared a bite to eat.',
+  /** Appended to a fight line: a Druid calmed one of the beasts, which walked away. */
+  calmBeast: ' {hero} calmed a beast, and it walked away.',
+  /** A quiet step's line: a Diplomat talked a band out of fighting. */
+  parley: '{hero} talked a band out of a fight.',
+  /** A quiet step's line: a Thief opened a hidden cache. */
+  cacheOpen: '{hero} found a hidden cache and opened it.',
   secondPotion: ' {hero} drank a second potion.',
   relic: ' {hero}’s {relic} answered.',
   /** Appended to a fight line: a hero's special at work, keyed by special id. */

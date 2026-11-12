@@ -6,16 +6,18 @@ import { inRange, targets } from '@/game/sim/targets';
 import { focusOdds, familyName, venomousOdds } from '@/game/sim/familyFocus';
 import { threatCosts } from '@/game/sim/threatCosts';
 import { elementalProtection } from '@/game/sim/elementalTier';
-import { familyFocusTable, venomTable } from './report';
+import { classSwapTable, familyFocusTable, venomTable } from './report';
+import { classSwapOdds } from '@/game/sim/classSwap';
 
 const USAGE = `npm run sim:quick -- [options]
   --days N        rotation days to sample (default: sim.quick.days)
   --runs N        odds runs per estimate (default: sim.quick.runs)
   --set path=value   override a number for this run, repeatable (e.g. dungeons.ratCellar.strength=1)
-  --families      only the family tables (family focus, Venomous)`;
+  --families      only the family tables (family focus, Venomous)
+  --classes       only the class strength table (each class swapped into the fitted party)`;
 
 function parse(argv: string[]) {
-  const options = { days: undefined as number | undefined, runs: undefined as number | undefined, overrides: [] as string[], families: false };
+  const options = { days: undefined as number | undefined, runs: undefined as number | undefined, overrides: [] as string[], families: false, classes: false };
   for (let i = 0; i < argv.length; i++) {
     const value = () => {
       const next = argv[++i];
@@ -27,6 +29,7 @@ function parse(argv: string[]) {
       case '--runs': options.runs = Number(value()); break;
       case '--set': options.overrides.push(value()); break;
       case '--families': options.families = true; break;
+      case '--classes': options.classes = true; break;
       case '--help': console.log(USAGE); process.exit(0);
       default: throw new Error(`Unknown option ${argv[i]}\n${USAGE}`);
     }
@@ -45,6 +48,17 @@ function familyTables() {
   console.log(familyFocusTable(focusOdds(familyRuns)));
   console.log('\n## Venomous outside Venom parties (points over no affix)');
   console.log(venomTable(venomousOdds(familyRuns)));
+}
+
+if (options.classes) {
+  try {
+    console.log('\n## Class strength (each class swapped into the fitted party, medium dungeons at the tier’s end, no briefing: odds and points over the fitted party)');
+    console.log(classSwapTable(classSwapOdds(familyRuns)));
+  } finally {
+    undo();
+  }
+  console.log(`\n${((performance.now() - started) / 1000).toFixed(1)} s`);
+  process.exit(0);
 }
 
 if (options.families) {

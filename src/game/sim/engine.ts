@@ -55,6 +55,7 @@ import {
   reachChance,
   recallWorking,
   recruitHeroes,
+  takeFreePick,
   sendExpeditions,
   stockProvisions,
   type RunLog,
@@ -322,6 +323,7 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, firstSession: b
   applyStones(sim);
   rerollGear(sim);
   openSecrets(sim);
+  takeFreePick(sim);
   recruitHeroes(sim);
   buyGuildRanks(sim);
   challengeSanctums(sim);
@@ -396,6 +398,7 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
     rotation: dailyRotation(rotationDay(startedAt)),
     location,
     tavern,
+    recruitWanted: 0,
     reach: { meters: 0, tavern: false, sanctums: [], maps: new Map() },
     bonusGathers: gatheringConfig.walkingBonus.gathers,
     collectionAt: (time) => {

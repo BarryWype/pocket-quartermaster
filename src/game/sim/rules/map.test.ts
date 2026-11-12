@@ -35,6 +35,7 @@ const makeSim = (save: SaveData = createInitialSave(), now = simConfig.startDay)
   rotation: dailyRotation(rotationDay(now)),
   location: LOCATION,
   tavern: generateTavernsAround(LOCATION, now)[0],
+  recruitWanted: 0,
   reach: { meters: 0, tavern: true, sanctums: [], maps: new Map() },
   bonusGathers: 0,
   collectionAt: (time) => time,

@@ -31,7 +31,7 @@ The game is moving to a "problems first" model: dungeons, patrols and exploratio
 | `gear-keywords.csv` | Gear keyword | Effect and the threat it answers (if any) |
 | `weapons.csv` | Weapon type | Keyword grid |
 | `armour.csv` | Armour type | Keyword grid |
-| `classes.csv` | Class | Family, rarity, approach and keyword strengths, signature |
+| `classes.csv` | Class | Family, family tag, rarity, pool tier, primaries, keywords, base stats, weapon of choice, signature (regenerated from `src/content/heroes.ts`; `heroes.test.ts` reads it) |
 | `boss-weaknesses.csv` | Tier boss | Weakness item, where it's found, effect |
 | `coverage.csv` | Threat | Which kits and gear answer it, and how many item sources |
 | `legacy-mapping.csv` | Existing system | What it becomes in the new model |
@@ -73,7 +73,7 @@ The game is moving to a "problems first" model: dungeons, patrols and exploratio
 - **Consumables**: hero consumables (elixirs, bombs, oils) share the consumable slot with kits and are single-use with salvage; meals are one per expedition for the party; walking consumables are used on the map; home care heals or rests heroes at home. About 3 units each, using their tier's main material for alchemy; kitchen items use food materials.
 - **Infusion**: salvaging an infused weapon refunds 8 of its 10 shards, so an infusion carries over to the next tier's weapon for 2 shards. Elemental oil gives the same effect for one run (2 shards) but takes the consumable slot.
 
-- **Classes**: every class has 8 approach points (`Might score`…`Presence score` in `classes.csv`; the Gambler's are rolled daily). Base stats follow the existing pattern: primary stats start higher. Classes join the tavern pool by tier (`Tavern pool from tier`); a class that just opened has double weight during its tier; within the pool, the rarity weighting applies (common 60%, uncommon 40%). Rare classes (Necromancer, Beastmaster, Curse-breaker) come from secret places later; until then about 5% of traveller recruits offer one. Kits are gone: the Porter's signature is now one fewer supply point for the run.
+- **Classes**: approach points are gone (families answer threats); the Gambler's third primary is rolled at recruitment among Power, Magic and Crit, and its damage stat follows the roll. Base stats follow the existing pattern: primary stats start higher. Classes join the tavern pool by tier (`Tavern pool from tier`); a class that just opened weighs 1.5× during its tier, a class the roster already has 0.3×, and common and uncommon classes weigh the same, so every class of the pool shows at a single tavern about once a week (rarity sets the price). Each rotation week one family is "wanted": every tavern's first offer is one of its classes (the families with a class in the tier's pool take turns, in an order shuffled each cycle). Recruits join one level under the roster's median level, never below the tier band's bottom; a hero more than 2 levels under the roster's top earns +50% XP. The roster holds 6, plus 2 for each of the first four tier bosses beaten, plus the Barracks' extra slots. The first tier boss's first clear offers one free recruit among three classes of the tier 2 pool, each of a family the roster lacks. A dismissed hero leaves a training manual: Common under level 6, Rare from 6, Legendary from 11. Rare classes (Necromancer, Beastmaster, Curse-breaker) come from secret places later; until then about 5% of traveller recruits offer one. Kits are gone: the Porter's signature is now one fewer supply point for the run.
 
 ## Known gaps
 

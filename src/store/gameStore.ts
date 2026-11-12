@@ -56,6 +56,7 @@ import { grantTip, type TipOutcome } from '@/game/secrets/tips';
 import { buyAtBlackMarket, enterSecret, recruitAtSecret } from '@/game/secrets/places';
 import { secretRules, type PlaceTipSource } from '@/content/secrets';
 import type { TipId } from '@/content/reveal';
+import { claimFreePick } from '@/game/taverns/freePick';
 import { dismissHero, equip, heroStats, isAway, keepHpShare, markClassesSeen, unequip } from '@/game/team/team';
 import { buySupply, recruit, type RecruitOffer } from '@/game/taverns/taverns';
 import { checkPersonalTavern } from '@/game/taverns/personal';
@@ -126,6 +127,8 @@ type GameState = {
   /** Puts on a suggested party's gear swaps (those that still fit). */
   dress: (swaps: GearSwap[]) => void;
   dismissHero: (heroId: string) => void;
+  /** Takes the free recruit the first tier boss offered. */
+  claimFreePick: (classId: HeroClassId) => void;
   /** Classes shown to the player (tavern or traveller offers) count as met. */
   seeClasses: (classIds: HeroClassId[]) => void;
   recruit: (offer: RecruitOffer, tavern: LatLng, player: LatLng) => void;
@@ -401,6 +404,7 @@ export const useGameStore = create<GameState>()(
         }),
       // Notifications follow the save: see `useNotifications`.
       dismissHero: (heroId) => set(({ save }) => ({ save: dismissHero(save, heroId) })),
+      claimFreePick: (classId) => set(({ save }) => ({ save: claimFreePick(save, classId) })),
       seeClasses: (classIds) => {
         const next = markClassesSeen(get().save, classIds);
         if (next !== get().save) set({ save: next });
@@ -740,7 +744,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 47,
+      version: 48,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
       // Saves from version 30 on are kept: every later version bump adds a migration step here (see AGENTS.md, Saves).

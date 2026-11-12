@@ -1,9 +1,8 @@
 import { gearProfiles } from '@/content/equipment';
 import { families, familyRules, type FamilyId } from '@/content/families';
-import { heroClasses } from '@/content/heroes';
 import { itemById } from '@/content/lookup';
 
-import { pieceDamageStat } from '../equipment/damageStat';
+import { classDamageStat, pieceDamageStat } from '../equipment/damageStat';
 import type { SaveData } from '../save';
 import { affinityOf, equip, heroDamageStat, heroStats } from '../team/team';
 import { heroAnswers } from '../threats/answers';
@@ -40,8 +39,8 @@ function wearable(save: SaveData, hero: HeroState, slot: Slot, piece: GearInstan
   const item = defOf(piece);
   if (item.slot !== slot || !item.gearType) return false;
   if (slot !== 'offhand' && affinityOf(hero.classId, item.gearType) === 'unfit') return false;
-  const damageStat = heroClasses[hero.classId].damageStat;
-  if (slot === 'weapon' && pieceDamageStat(item, hero.classId) !== damageStat) return false;
+  const damageStat = classDamageStat(hero.classId, hero.roll);
+  if (slot === 'weapon' && pieceDamageStat(item, hero.classId, hero.roll) !== damageStat) return false;
   if (slot === 'offhand' && gearProfiles[item.gearType].damageStat && gearProfiles[item.gearType].damageStat !== damageStat) return false;
   const worn = hero.equipment[slot] ? save.gear.find((g) => g.uid === hero.equipment[slot]) : undefined;
   return !worn || item.tier >= defOf(worn).tier - tierDrop;

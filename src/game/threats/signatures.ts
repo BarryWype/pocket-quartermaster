@@ -1,7 +1,7 @@
 import { heroClasses } from '@/content/heroes';
 import { threatRules, type ThreatRules } from '@/content/threats';
 
-import type { Ability, Briefing, HeroClassId, MealEffect, ThreatId } from '../types';
+import type { Ability, ActiveThreat, Briefing, HeroClassId, MealEffect, ThreatId, ThreatLevel } from '../types';
 import { heroAnswers, type AnswersMember } from './answers';
 import { scoreThreat, type ThreatState } from './score';
 
@@ -10,8 +10,8 @@ export type SignatureBriefing = {
   briefing: Briefing;
   /** The hero whose signature cancelled the restriction (Curse-breaker, or a Cook for Spoiled stores). */
   cancelledBy: string | null;
-  /** The Extreme threat a Scout lowered to Strong, and that Scout. */
-  lowered: { threatId: ThreatId; heroId: string } | null;
+  /** The threat a Scout lowered one level (`to` 0: gone from the briefing), and that Scout. */
+  lowered: { threatId: ThreatId; heroId: string; from: ThreatLevel; to: number } | null;
 };
 
 const signaturesOf = <K extends Ability['kind']>(classId: HeroClassId, kind: K) =>
@@ -21,9 +21,9 @@ const SEVERITY: Record<ThreatState, number> = { met: 0, half: 1, full: 2 };
 
 /**
  * What the party's signatures do to a briefing: a Curse-breaker cancels its
- * restriction (a Cook only Spoiled stores), then a Scout lowers the Extreme
- * threat that is worst for this party (full before half before met; the first
- * one on a tie) to Strong.
+ * restriction (a Cook only Spoiled stores), then a Scout lowers the threat
+ * that is worst for this party by one level (full before half before met, then
+ * the higher level; the first one on a tie); a level 1 threat is gone.
  */
 export function signatureBriefing(briefing: Briefing, members: AnswersMember[], rules: ThreatRules = threatRules): SignatureBriefing {
   const restriction = briefing.restriction;
@@ -33,16 +33,15 @@ export function signatureBriefing(briefing: Briefing, members: AnswersMember[], 
   const kept = breaker ? null : restriction;
 
   const scout = members.find((m) => signaturesOf(m.classId, 'lowerThreat').length > 0);
-  const extreme = briefing.threats.filter((t) => t.level === 3);
   let threats = briefing.threats;
   let lowered: SignatureBriefing['lowered'] = null;
-  if (scout && extreme.length > 0) {
+  if (scout && threats.length > 0) {
     const answers = members.map((m) => heroAnswers(m));
-    const severity = (index: number) => SEVERITY[scoreThreat(extreme[index], answers, rules).state];
-    let worst = 0;
-    for (let i = 1; i < extreme.length; i++) if (severity(i) > severity(worst)) worst = i;
-    threats = threats.map((t) => (t === extreme[worst] ? { ...t, level: 2 } : t));
-    lowered = { threatId: extreme[worst].id, heroId: scout.heroId };
+    const severity = (t: ActiveThreat) => SEVERITY[scoreThreat(t, answers, rules).state] * 10 + t.level;
+    const worst = threats.reduce((w, t) => (severity(t) > severity(w) ? t : w));
+    const to = worst.level - 1;
+    threats = to === 0 ? threats.filter((t) => t !== worst) : threats.map((t) => (t === worst ? { ...t, level: to as ThreatLevel } : t));
+    lowered = { threatId: worst.id, heroId: scout.heroId, from: worst.level, to };
   }
 
   return { briefing: { ...briefing, restriction: kept, threats }, cancelledBy: breaker?.heroId ?? null, lowered };

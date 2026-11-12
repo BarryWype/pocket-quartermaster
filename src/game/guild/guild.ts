@@ -28,8 +28,12 @@ export const guildRank = (save: SaveData, id: GuildTrackId) => save.guild[id] ??
 export const guildBonus = (save: SaveData, id: GuildTrackId) => guildRank(save, id) * guildTrackById[id].perRank;
 
 export const sigilCap = (save: SaveData) => lootConfig.sigils.cap + guildBonus(save, 'sigilCap');
-export const rosterCap = (save: SaveData) =>
-  rosterRules.rosterCap + guildBonus(save, 'rosterSlot13') + guildBonus(save, 'rosterSlot14');
+/** The roster cap: the starting cap, more for each tier boss beaten, and the Barracks' extra slots. */
+export const rosterCap = (save: SaveData, rules: typeof rosterRules = rosterRules) =>
+  rules.startCap +
+  rules.perBoss * rules.bossTiers.filter((tier) => bossBeaten(save, tier)).length +
+  guildBonus(save, 'rosterSlot13') +
+  guildBonus(save, 'rosterSlot14');
 export const tavernOfferCount = (save: SaveData) => recruitRules.offersPerTavern + guildBonus(save, 'tavernOffer');
 export const questCap = (save: SaveData) => questRules.cap + guildBonus(save, 'questCap');
 

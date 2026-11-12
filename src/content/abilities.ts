@@ -71,6 +71,12 @@ export function abilityText(ability: Ability): string {
     case 'mealBoost':
     case 'fightHeal':
     case 'ignoresRestrictions':
+    case 'concealedCrit':
+    case 'cacheOpener':
+    case 'answersOpportunity':
+    case 'attunement':
+    case 'calmBeast':
+    case 'parley':
       return '';
   }
 }
@@ -121,6 +127,9 @@ export function signatureText(classId: HeroClassId): string {
         break;
       case 'critBonus':
         vars.critBonus = percent(a.chance);
+        break;
+      case 'concealedCrit':
+        vars.concealedCrit = formatNumber(a.multiplier);
         break;
     }
   }

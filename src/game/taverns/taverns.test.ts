@@ -1,5 +1,5 @@
 import { heroClasses, newHero } from '@/content/heroes';
-import { recruitRules, rosterRules } from '@/content/roster';
+import { recruitRules } from '@/content/roster';
 import { traitById } from '@/content/traits';
 
 import { nextRotationAt } from '../dungeons/rotation';
@@ -17,11 +17,15 @@ import {
   offerLevel,
   pickRecruitClass,
   recruit,
+  rotationWeek,
   recruitPool,
   recruitPrice,
   recruitProblem,
   tavernOffers,
+  wantedFamily,
 } from './taverns';
+import { rosterCap } from '../guild/guild';
+import { dungeons } from '@/content/dungeons';
 
 const here = { latitude: -41.2865, longitude: 174.7762 };
 const DAY = 86_400_000;
@@ -66,18 +70,16 @@ describe('offers', () => {
     expect(firstOffer(save).expiresAt).toBe(nextRotationAt(now));
   });
 
-  it('are about 60% common classes', () => {
-    const offers = Array.from({ length: 200 }, (_, i) => tavernOffers(unlocked(), `tavern:x:${i}`, now)).flat();
-    const common = offers.filter((o) => heroClasses[o.classId].rarity === 'common').length / offers.length;
-    expect(common).toBeGreaterThan(0.5);
-    expect(common).toBeLessThan(0.7);
-  });
-
-  it('come in at the bottom of the player tier band, whatever the roster level', () => {
+  it('come in one level under the roster’s median level, never below the bottom of the tier band', () => {
     expect(offerLevel(createInitialSave())).toBe(recruitRules.levelByTier[0]);
     const veterans = { ...createInitialSave(), heroes: createInitialSave().heroes.map((h, i) => ({ ...h, level: 4 + i })) };
-    expect(offerLevel(veterans)).toBe(recruitRules.levelByTier[0]);
-    expect(offerLevel({ ...veterans, clearedDungeons: ['banditStockade'] })).toBe(recruitRules.levelByTier[1]);
+    // Levels 4, 5, 6: the median is 5.
+    expect(offerLevel(veterans)).toBe(4);
+    const behind = { ...veterans, heroes: veterans.heroes.map((h) => ({ ...h, level: 2 })) };
+    expect(offerLevel({ ...behind, clearedDungeons: ['banditStockade'] })).toBe(recruitRules.levelByTier[1]);
+    // An even roster takes the lower of its two middle levels: 2, 5, 8, 9 → 5.
+    const four = { ...veterans, heroes: [2, 5, 8, 9].map((level, i) => ({ ...createInitialSave().heroes[i % 3], id: `h${i}`, level })) };
+    expect(offerLevel(four)).toBe(4);
   });
 
   it('cost base × level × roster × trait × tier', () => {
@@ -102,30 +104,39 @@ describe('recruit classes', () => {
   const draws = (tier: number, count: number) =>
     Array.from({ length: count }, (_, i) => pickRecruitClass(createRng(`pick-test|${i}`), tier));
 
-  it('pool exactly the classes up to the tier, doubling its newcomers', () => {
+  it('pool exactly the classes up to the tier, with the newcomers and owned classes weighted', () => {
+    const owned = new Set<HeroClassId>(['warrior', 'thief']);
     for (let tier = 1; tier <= 5; tier++) {
-      const pool = recruitPool(tier);
+      const pool = recruitPool(tier, recruitRules, owned);
       expect(pool.map((p) => p.classId).sort()).toEqual(inPool(tier).sort());
       for (const { classId, weight } of pool) {
-        expect(heroClasses[classId].rarity).not.toBe('rare');
-        expect(weight).toBe(heroClasses[classId].poolTier === tier ? recruitRules.newClassWeight : 1);
+        const { rarity, poolTier } = heroClasses[classId];
+        expect(rarity).not.toBe('rare');
+        expect(weight).toBeCloseTo(
+          recruitRules.rarityWeights[rarity] * (poolTier === tier ? recruitRules.newClassWeight : 1) * (owned.has(classId) ? recruitRules.ownedClassWeight : 1),
+        );
       }
     }
   });
 
-  it('never draw a rare class or one from above the tier, and keep the rarity split', () => {
+  it('never draw a rare class or one from above the tier', () => {
     const tier = 3;
-    const picked = draws(tier, 2000);
-    for (const classId of picked) {
+    for (const classId of draws(tier, 2000)) {
       expect(heroClasses[classId].rarity).not.toBe('rare');
       expect(heroClasses[classId].poolTier!).toBeLessThanOrEqual(tier);
     }
-    const common = picked.filter((id) => heroClasses[id].rarity === 'common').length / picked.length;
-    expect(common).toBeGreaterThan(0.55);
-    expect(common).toBeLessThan(0.65);
   });
 
-  it('draw the tier\'s newcomers about twice as often as an older class of the same rarity', () => {
+  it('draw a class the roster has about 0.3 times as often', () => {
+    const owned = new Set<HeroClassId>(['druid']);
+    const count = (set: Set<HeroClassId>) =>
+      Array.from({ length: 4000 }, (_, i) => pickRecruitClass(createRng(`owned-test|${i}`), 2, recruitRules, set)).filter((c) => c === 'druid').length;
+    const ratio = count(owned) / count(new Set());
+    expect(ratio).toBeGreaterThan(recruitRules.ownedClassWeight * 0.7);
+    expect(ratio).toBeLessThan(recruitRules.ownedClassWeight * 1.3);
+  });
+
+  it('draw the tier\'s newcomers more often than an older class of the same rarity, by the newcomer weight', () => {
     const tier = 3;
     const counts = new Map<HeroClassId, number>();
     for (const classId of draws(tier, 2000)) counts.set(classId, (counts.get(classId) ?? 0) + 1);
@@ -135,8 +146,8 @@ describe('recruit classes', () => {
     };
     const newcomer = perClass((id) => heroClasses[id].poolTier === tier);
     const older = perClass((id) => heroClasses[id].poolTier! < tier && heroClasses[id].rarity === 'uncommon');
-    expect(newcomer / older).toBeGreaterThan(1.6);
-    expect(newcomer / older).toBeLessThan(2.4);
+    expect(newcomer / older).toBeGreaterThan(recruitRules.newClassWeight * 0.8);
+    expect(newcomer / older).toBeLessThan(recruitRules.newClassWeight * 1.2);
   });
 
   it('never offer a class from above the player\'s tier', () => {
@@ -153,6 +164,84 @@ describe('recruit classes', () => {
   });
 });
 
+/** The families with a class in the tier's pool: the ones a week can want. */
+const eligible = (tier: number) => new Set(recruitPool(tier).map(({ classId }) => heroClasses[classId].familyTag));
+
+describe('wanted this week', () => {
+  const DAYS = recruitRules.wantedDays;
+
+  it('is one family a week, the same for every player of a tier, and the first offer of every tavern is of it', () => {
+    const save = unlocked();
+    const week = rotationWeek(now);
+    const family = wantedFamily(week, 2);
+    for (const tavern of ['tavern:a:0', 'tavern:b:0', 'tavern:c:0']) {
+      const [first, ...rest] = tavernOffers(save, tavern, now);
+      expect(first.wanted).toBe(family);
+      expect(heroClasses[first.classId].familyTag).toBe(family);
+      for (const offer of rest) expect(offer.wanted).toBeUndefined();
+    }
+    expect(wantedFamily(week, 2)).toBe(family);
+  });
+
+  it('cycles through every family with a class in the tier’s pool before any comes back', () => {
+    for (let tier = 1; tier <= 5; tier++) {
+      const families = eligible(tier);
+      for (const start of [0, families.size, 5 * families.size]) {
+        const seen = Array.from({ length: families.size }, (_, i) => wantedFamily(start + i, tier));
+        expect(new Set(seen)).toEqual(families);
+      }
+    }
+  });
+
+  it('changes with the rotation week, not the day', () => {
+    const week = rotationWeek(now);
+    const weekStart = Date.UTC(2026, 0, 1) + (week * DAYS + 0.5) * DAY;
+    expect(rotationWeek(weekStart + (DAYS - 1) * DAY)).toBe(rotationWeek(weekStart));
+    expect(rotationWeek(weekStart + DAYS * DAY)).toBe(rotationWeek(weekStart) + 1);
+  });
+});
+
+describe('every class can be found', () => {
+  // A single tavern a day, the starting trio on the roster: the rate each class
+  // of the tier's pool the roster lacks is offered at.
+  const tierSave = (tier: number) => unlocked({ clearedDungeons: dungeons.filter((d) => d.tier < Math.max(2, tier)).map((d) => d.id) });
+  const lacking = (save: SaveData, tier: number) => {
+    const owned = new Set(save.heroes.map((h) => h.classId));
+    return recruitPool(tier).map(({ classId }) => classId).filter((classId) => !owned.has(classId));
+  };
+
+  it('offers each one at least once a week on average, from the weights', () => {
+    for (let tier = 2; tier <= 5; tier++) {
+      const save = tierSave(tier);
+      const owned = new Set(save.heroes.map((h) => h.classId));
+      const pool = recruitPool(tier, recruitRules, owned);
+      const total = pool.reduce((sum, p) => sum + p.weight, 0);
+      const families = eligible(tier);
+      for (const classId of lacking(save, tier)) {
+        const { weight } = pool.find((p) => p.classId === classId)!;
+        const family = pool.filter((p) => heroClasses[p.classId].familyTag === heroClasses[classId].familyTag).reduce((sum, p) => sum + p.weight, 0);
+        // Offers after the first draw from the whole pool; the first draws from the week's family, each family's turn coming once a cycle.
+        const perWeek = recruitRules.wantedDays * ((recruitRules.offersPerTavern - 1) * (weight / total) + (1 / families.size) * (weight / family));
+        expect({ tier, classId, enough: perWeek >= 1 }).toEqual({ tier, classId, enough: true });
+      }
+    }
+  });
+
+  it('offers each one over a seeded year, none starved', () => {
+    for (let tier = 2; tier <= 5; tier++) {
+      const save = tierSave(tier);
+      const counts = new Map<HeroClassId, number>();
+      for (let day = 0; day < 364; day++) {
+        for (const offer of tavernOffers(save, 'tavern:year:0', now + day * DAY)) counts.set(offer.classId, (counts.get(offer.classId) ?? 0) + 1);
+      }
+      for (const classId of lacking(save, tier)) {
+        // 0.75 a week leaves room for a year's luck around the at-least-one-a-week mean above.
+        expect({ tier, classId, enough: (counts.get(classId) ?? 0) / 52 >= 0.75 }).toEqual({ tier, classId, enough: true });
+      }
+    }
+  });
+});
+
 describe('recruiting', () => {
   it('is locked until the first quest is done', () => {
     const fresh = { ...createInitialSave(), gold: 1000 };
@@ -166,7 +255,7 @@ describe('recruiting', () => {
     const far = { latitude: here.latitude + 0.01, longitude: here.longitude };
     expect(recruitProblem(save, firstOffer(save), far, here)).toBe('tooFar');
     expect(recruitProblem({ ...save, gold: 0 }, firstOffer(save), here, here)).toBe('gold');
-    const full = { ...save, heroes: Array.from({ length: rosterRules.rosterCap }, (_, i) => newHero(`h${i}`, 'X', 'warrior', 'tough')) };
+    const full = { ...save, heroes: Array.from({ length: rosterCap(save) }, (_, i) => newHero(`h${i}`, 'X', 'warrior', 'tough')) };
     expect(recruitProblem(full, firstOffer(full), here, here)).toBe('rosterFull');
   });
 

@@ -465,7 +465,7 @@ export type Ability =
   /** The opportunity's reward bonus (above 1, or its chances) is multiplied by this. */
   | { kind: 'opportunityBoost'; opportunity: OpportunityId; multiplier: number }
   /** At this threat level, the enemies with the tag of the first fight that has any fight for the party in the next fight. */
-  | { kind: 'raiseAllies'; threat: ThreatId; level: ThreatLevel; tag: Tag; max: number; damage: number }
+  | { kind: 'raiseAllies'; threat: ThreatId; tag: Tag; max: number; damage: number }
   /** This hero's crits deal this multiplier instead in fights that start against a single enemy. */
   | { kind: 'singleEnemyCrit'; multiplier: number }
   /** The meal's bonus (above 1, or its amount) is multiplied by this. */
@@ -473,7 +473,19 @@ export type Ability =
   /** After every fight, conscious heroes heal this share of max HP. */
   | { kind: 'fightHeal'; pct: number }
   /** This hero's own damage ignores these restrictions. */
-  | { kind: 'ignoresRestrictions'; restrictions: RestrictionId[] };
+  | { kind: 'ignoresRestrictions'; restrictions: RestrictionId[] }
+  /** This hero's crits deal this multiplier while concealed. */
+  | { kind: 'concealedCrit'; multiplier: number }
+  /** Every hidden cache opens for the party, paying its worth. */
+  | { kind: 'cacheOpener' }
+  /** The party takes these opportunities even with no answer for them. */
+  | { kind: 'answersOpportunity'; opportunities: OpportunityId[] }
+  /** This hero's attack element becomes the one that beats the dungeon's. */
+  | { kind: 'attunement' }
+  /** One beast-tagged enemy of the run's first beast fight walks away before it. */
+  | { kind: 'calmBeast' }
+  /** The run's first fight is talked out: a quiet step, cleared. */
+  | { kind: 'parley' };
 
 /** A hero's special: one active ability, rolled from its class's pool at recruitment (see content/specials.ts). */
 export type SpecialId =
@@ -898,6 +910,8 @@ export type ExpeditionReport = {
   firstDungeonClear?: boolean;
   /** The party's family levels the run played with (reports from before families have none). */
   families?: FamilyLevels;
+  /** The free recruit this first boss clear offered: the classes to choose from. */
+  freePick?: HeroClassId[];
   consumablesUsed: string[];
   log: string[];
   seen: boolean;

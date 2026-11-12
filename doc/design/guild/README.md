@@ -14,7 +14,7 @@ The Guild Hall is the player's gold sink and progression outside heroes and gear
 `tracks.csv` lists every track: kept, changed, moved, new or removed, with its ranks, effect per rank and the tier boss needed for each rank. Five buildings:
 - **War room** (expeditions): hero XP, faster expeditions, better retreats.
 - **Treasury**: gold, shards, Sigil cap.
-- **Barracks**: tavern discount, extra tavern offer, training, roster slots 13 and 14.
+- **Barracks**: tavern discount, extra tavern offer, training, two extra roster slots (on top of the cap the tier bosses give: 6, then 8, 10, 12 and 14 as the first four bosses fall).
 - **Quest board** (new): quest cap, extra reroll, step chests.
 - **Workshop** (new): relic restoring, salvage, mastery.
 

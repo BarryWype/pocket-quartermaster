@@ -11,8 +11,8 @@ Treasury,Main rewards,Removed,,,,Loot is tuned in the matrix only
 Barracks,Tavern discount,Kept,3,-10% recruit price,"0, 1, 2",
 Barracks,Extra tavern offer,Kept,1,+1 recruit offer,1,
 Barracks,Training,Kept,3,+2 training (existing effect),"0, 1, 2",
-Barracks,Roster slot 13,Changed,1,13 heroes on the roster,2,No longer needs a charter; the base roster holds 12
-Barracks,Roster slot 14,Changed,1,14 heroes on the roster,4,Requires roster slot 13; no longer needs a charter
+Barracks,Extra roster slot,Changed,1,+1 roster slot on top of the tier bosses' cap,2,No longer needs a charter; the roster cap is 6 plus 2 for each of the first four tier bosses beaten (id rosterSlot13)
+Barracks,Second extra roster slot,Changed,1,+1 roster slot on top of the tier bosses' cap,4,Requires the extra roster slot; no longer needs a charter (id rosterSlot14)
 Quest board,Quest cap,New,2,+1 quest cap (6 to 8),"1, 3",Proposed base cost 200
 Quest board,Extra reroll,New,1,+1 daily quest reroll,2,Proposed cost 300
 Quest board,Step chests,Moved,3,One more roll of the 12k-step chest,"0, 1, 2",Moved from the treasury

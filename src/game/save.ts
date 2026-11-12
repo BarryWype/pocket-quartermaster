@@ -191,6 +191,8 @@ export type SaveData = {
   relics: { uid: string; relicId: string }[];
   /** Training manuals held, by rarity. */
   manuals: Partial<Record<ManualRarity, number>>;
+  /** The free recruit a tier boss's first clear offers, until taken: the classes to choose from (see taverns/freePick.ts). */
+  freePick: HeroClassId[] | null;
   /** Monster-part recipes unlocked (a part's first find). */
   partRecipes: string[];
   /** Parts found at least once; a part recipe unlocks once all of its have been seen. */
@@ -267,6 +269,7 @@ export function createInitialSave(playerSeed?: string): SaveData {
     personalTavern: null,
     relics: [],
     manuals: {},
+    freePick: null,
     partRecipes: [],
     seenParts: [],
     quests: { list: [], lastArrivalDay: null, rerollDay: null, rerolls: 0, secretDay: null, completions: [] },

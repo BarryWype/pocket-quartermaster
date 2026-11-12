@@ -84,14 +84,17 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     family: 'answerer',
     familyTag: 'cunning',
     poolTier: 1,
-    baseStats: { hp: 22, power: 5, magic: 0, armour: 1, resistance: 1, evasion: 5, speed: 5, crit: 10 },
-    primary: ['power', 'evasion', 'crit'],
+    baseStats: { hp: 26, power: 5, magic: 0, armour: 1, resistance: 1, evasion: 5, speed: 5, crit: 10 },
+    primary: ['hp', 'power', 'crit'],
     damageStat: 'power',
     keywords: [],
     threat: 1,
     abilities: [
-      { kind: 'critBonus', chance: 0.15 },
+      { kind: 'critBonus', chance: 0.2 },
       { kind: 'cacheBonus', multiplier: 2 },
+      { kind: 'concealedCrit', multiplier: 1.5 },
+      { kind: 'cacheOpener' },
+      { kind: 'answersOpportunity', opportunities: ['hiddenCache'] },
     ],
   },
   barbarian: {
@@ -153,7 +156,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     damageStat: 'magic',
     keywords: [],
     threat: 1,
-    abilities: [],
+    abilities: [{ kind: 'familyVsThreat', family: 'wild', add: 1 }, { kind: 'calmBeast' }],
   },
   troubadour: {
     name: 'Troubadour',
@@ -178,12 +181,12 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     family: 'answerer',
     familyTag: 'spellweave',
     poolTier: 2,
-    baseStats: { hp: 20, power: 0, magic: 6, armour: 0, resistance: 3, evasion: 0, speed: 5, crit: 10 },
+    baseStats: { hp: 24, power: 0, magic: 6, armour: 0, resistance: 3, evasion: 0, speed: 5, crit: 10 },
     primary: ['magic', 'resistance', 'crit'],
     damageStat: 'magic',
     keywords: [],
     threat: 1,
-    abilities: [{ kind: 'elementalAdvantage', multiplier: 1.8 }],
+    abilities: [{ kind: 'elementalAdvantage', multiplier: 1.8 }, { kind: 'attunement' }],
   },
   scholar: {
     name: 'Scholar',
@@ -198,7 +201,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     damageStat: 'magic',
     keywords: [],
     threat: 1,
-    abilities: [{ kind: 'opportunityBoost', opportunity: 'oldInscriptions', multiplier: 2 }],
+    abilities: [{ kind: 'opportunityBoost', opportunity: 'oldInscriptions', multiplier: 2 }, { kind: 'answersOpportunity', opportunities: ['oldInscriptions'] }],
   },
   exorcist: {
     name: 'Exorcist',
@@ -208,7 +211,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     family: 'answerer',
     familyTag: 'faith',
     poolTier: 3,
-    baseStats: { hp: 26, power: 5, magic: 0, armour: 2, resistance: 3, evasion: 0, speed: 5, crit: 10 },
+    baseStats: { hp: 30, power: 5, magic: 0, armour: 2, resistance: 3, evasion: 0, speed: 5, crit: 10 },
     primary: ['power', 'resistance', 'crit'],
     damageStat: 'power',
     keywords: [],
@@ -260,7 +263,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     damageStat: 'magic',
     keywords: [],
     threat: 0.8,
-    abilities: [{ kind: 'opportunityBoost', opportunity: 'bounty', multiplier: 5 / 3 }],
+    abilities: [{ kind: 'opportunityBoost', opportunity: 'bounty', multiplier: 5 / 3 }, { kind: 'answersOpportunity', opportunities: ['bounty', 'prisoners', 'refugees'] }, { kind: 'parley' }],
   },
   necromancer: {
     name: 'Necromancer',
@@ -270,14 +273,14 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     family: 'converter',
     familyTag: 'pack',
     poolTier: null,
-    baseStats: { hp: 26, power: 0, magic: 6, armour: 0, resistance: 1, evasion: 0, speed: 5, crit: 10 },
+    baseStats: { hp: 26, power: 0, magic: 7, armour: 0, resistance: 1, evasion: 0, speed: 7, crit: 10 },
     primary: ['hp', 'magic', 'crit'],
     damageStat: 'magic',
     keywords: [],
     threat: 1,
     abilities: [
-      { kind: 'raiseAllies', threat: 'holy', level: 1, tag: 'undead', max: 3, damage: 1 },
-      { kind: 'familyVsThreat', family: 'faith', add: 1, levels: [2, 3] },
+      { kind: 'raiseAllies', threat: 'holy', tag: 'undead', max: 3, damage: 1 },
+      { kind: 'familyVsThreat', family: 'faith', add: 1 },
     ],
   },
   beastmaster: {
@@ -294,8 +297,8 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     keywords: [],
     threat: 2,
     abilities: [
-      { kind: 'raiseAllies', threat: 'beasts', level: 1, tag: 'beast', max: 3, damage: 1 },
-      { kind: 'familyVsThreat', family: 'wild', add: 1, levels: [2, 3] },
+      { kind: 'raiseAllies', threat: 'beasts', tag: 'beast', max: 3, damage: 1 },
+      { kind: 'familyVsThreat', family: 'wild', add: 1 },
     ],
   },
   engineer: {
@@ -307,11 +310,11 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     familyTag: 'pack',
     poolTier: 4,
     baseStats: { hp: 26, power: 5, magic: 0, armour: 3, resistance: 1, evasion: 0, speed: 5, crit: 10 },
-    primary: ['power', 'armour', 'crit'],
+    primary: ['hp', 'power', 'speed'],
     damageStat: 'power',
     keywords: [],
     threat: 2,
-    abilities: [{ kind: 'familyVsThreat', family: 'cunning', add: 1 }],
+    abilities: [{ kind: 'familyVsThreat', family: 'cunning', add: 1 }, { kind: 'trapReduce', multiplier: 0.5 }],
   },
   alchemist: {
     name: 'Alchemist',
@@ -352,7 +355,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     family: 'ruleBender',
     familyTag: 'watch',
     poolTier: 3,
-    baseStats: { hp: 22, power: 5, magic: 0, armour: 1, resistance: 1, evasion: 5, speed: 7, crit: 5 },
+    baseStats: { hp: 26, power: 5, magic: 0, armour: 1, resistance: 1, evasion: 5, speed: 7, crit: 5 },
     primary: ['power', 'evasion', 'speed'],
     damageStat: 'power',
     keywords: [],
@@ -367,12 +370,12 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     family: 'ruleBender',
     familyTag: 'warding',
     poolTier: null,
-    baseStats: { hp: 22, power: 0, magic: 5, armour: 0, resistance: 3, evasion: 5, speed: 5, crit: 5 },
-    primary: ['magic', 'resistance', 'evasion'],
+    baseStats: { hp: 26, power: 0, magic: 5, armour: 0, resistance: 3, evasion: 5, speed: 7, crit: 5 },
+    primary: ['hp', 'magic', 'evasion'],
     damageStat: 'magic',
     keywords: [],
     threat: 1,
-    abilities: [{ kind: 'cancelRestriction' }],
+    abilities: [{ kind: 'cancelRestriction' }, { kind: 'familyVsThreat', family: 'warding', add: 1 }],
   },
   cook: {
     name: 'Cook',
@@ -407,7 +410,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     damageStat: 'power',
     keywords: [],
     threat: 1.5,
-    abilities: [{ kind: 'fistsPierce' }, { kind: 'ignoresRestrictions', restrictions: ['sacredGround', 'antiMagic'] }],
+    abilities: [{ kind: 'fistsPierce' }, { kind: 'ignoresRestrictions', restrictions: ['sacredGround'] }, { kind: 'familyVsThreat', family: 'breaker', add: 1 }],
   },
   gambler: {
     name: 'Gambler',
@@ -417,8 +420,8 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
     family: 'ruleBender',
     familyTag: 'plunder',
     poolTier: 4,
-    baseStats: { hp: 22, power: 3, magic: 3, armour: 0, resistance: 1, evasion: 0, speed: 7, crit: 10 },
-    primary: ['speed', 'crit'],
+    baseStats: { hp: 22, power: 5, magic: 5, armour: 0, resistance: 1, evasion: 0, speed: 7, crit: 15 },
+    primary: ['hp', 'speed'],
     damageStat: 'power',
     keywords: [],
     threat: 1,
@@ -468,7 +471,7 @@ export const xpToNextLevel = (level: number, rules: typeof xpRules = xpRules) =>
 
 /** The Gambler's dice (see team/stats.ts): the stats a third primary is rolled from. */
 export const gamblerRules = {
-  primaryChoices: ['hp', 'power', 'magic', 'armour', 'resistance', 'evasion'] satisfies StatKey[],
+  primaryChoices: ['power', 'magic', 'crit'] satisfies StatKey[],
 };
 
 /** Growth rules (see team/stats.ts): steps per level, milestones, Luck and the recruit roll's pull. */

@@ -32,16 +32,22 @@ describe('familyVsThreat signatures', () => {
     expect(scoreThreat(threat('holy', 3), answered(member('cleric', { familyTags: [tag('faith', 2)] })))).toMatchObject({ state: 'half', have: 2 });
   });
 
-  it('adds the Necromancer’s +1 Faith at Holy 2 and 3 only', () => {
-    expect(countVs(member('necromancer'), 'holy', 1)).toBe(0);
+  it('adds the Necromancer’s +1 Faith at every Holy level', () => {
+    expect(countVs(member('necromancer'), 'holy', 1)).toBe(1);
     expect(countVs(member('necromancer'), 'holy', 2)).toBe(1);
     expect(countVs(member('necromancer'), 'holy', 3)).toBe(1);
   });
 
-  it('adds the Beastmaster’s +1 Wild at Beasts 2 and 3 only', () => {
-    expect(countVs(member('beastmaster'), 'beasts', 1)).toBe(0);
+  it('adds the Beastmaster’s +1 Wild at every Beasts level', () => {
+    expect(countVs(member('beastmaster'), 'beasts', 1)).toBe(1);
     expect(countVs(member('beastmaster'), 'beasts', 2)).toBe(1);
     expect(scoreThreat(threat('beasts', 2), answered(member('beastmaster', { familyTags: [tag('wild', 1)] })))).toMatchObject({ state: 'met' });
+  });
+
+  it('adds the Druid’s +1 Wild, the Curse-breaker’s +1 Warding and the Monk’s +1 Breaker against their threats', () => {
+    expect(countVs(member('druid'), 'beasts', 1)).toBe(1);
+    expect(countVs(member('curseBreaker'), 'element', 2)).toBe(1);
+    expect(countVs(member('monk'), 'armoured', 3)).toBe(1);
   });
 
   it('adds the Engineer’s +1 Cunning against Traps', () => {
@@ -69,13 +75,22 @@ describe('briefing signatures', () => {
     expect(signatureBriefing(briefing([], { restriction: 'spoiledStores' }), [member('cook')]).briefing.restriction).toBeNull();
   });
 
-  it('lets a Scout lower the Extreme threat that is worst for the party to Strong', () => {
+  it('lets a Scout lower the threat that is worst for the party by one level', () => {
     // The party answers Extreme traps (Cunning 6) but misses Extreme holy: holy is lowered.
     const tags = [tag('cunning', 6)];
     const signed = signatureBriefing(briefing([threat('traps', 3), threat('holy', 3)]), [member('scout'), member('thief', { familyTags: tags })]);
-    expect(signed.lowered).toEqual({ threatId: 'holy', heroId: 'scout' });
+    expect(signed.lowered).toEqual({ threatId: 'holy', heroId: 'scout', from: 3, to: 2 });
     expect(signed.briefing.threats).toEqual([threat('traps', 3), threat('holy', 2)]);
-    expect(signatureBriefing(briefing([threat('traps', 2)]), [member('scout')]).lowered).toBeNull();
+    // Among threats missed alike, the higher level goes down.
+    expect(signatureBriefing(briefing([threat('beasts', 1), threat('traps', 2)]), [member('scout')]).lowered).toMatchObject({ threatId: 'traps', to: 1 });
+  });
+
+  it('lets a Scout clear a level 1 threat from the briefing, and does nothing without one', () => {
+    const signed = signatureBriefing(briefing([threat('beasts', 1)]), [member('scout')]);
+    expect(signed.lowered).toEqual({ threatId: 'beasts', heroId: 'scout', from: 1, to: 0 });
+    expect(signed.briefing.threats).toEqual([]);
+    expect(signatureBriefing(briefing([]), [member('scout')]).lowered).toBeNull();
+    expect(signatureBriefing(briefing([threat('traps', 2)]), [member('warrior')]).lowered).toBeNull();
   });
 
   it('shows the lowered threat and the cancelled restriction in the team preparation coverage', () => {

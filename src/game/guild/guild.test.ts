@@ -228,12 +228,18 @@ describe('effects', () => {
   it('Sigil cap and roster cap add to their base values; the party is always 3', () => {
     expect(sigilCap(hall())).toBe(lootConfig.sigils.cap);
     expect(sigilCap(withRanks({ sigilCap: 1 }))).toBe(lootConfig.sigils.cap + 1);
-    expect(rosterCap(withRanks({ rosterSlot13: 1, rosterSlot14: 1 }))).toBe(14);
-    const full = { ...hall(), heroes: Array.from({ length: rosterRules.rosterCap }, (_, i) => newHero(`h${i}`, 'X', 'warrior', 'tough')) };
+    // hall() has the first tier boss beaten: 6 + 2, and the two Barracks slots on top.
+    expect(rosterCap(hall())).toBe(rosterRules.startCap + rosterRules.perBoss);
+    expect(rosterCap(withRanks({ rosterSlot13: 1, rosterSlot14: 1 }))).toBe(rosterRules.startCap + rosterRules.perBoss + 2);
+    const full = { ...hall(), heroes: Array.from({ length: rosterCap(hall()) }, (_, i) => newHero(`h${i}`, 'X', 'warrior', 'tough')) };
     expect(rosterFull(full)).toBe(true);
     expect(rosterFull(withRanks({ rosterSlot13: 1 }, full))).toBe(false);
     const four = { ...withRanks(Object.fromEntries(guildTracks.map((t) => [t.id, t.ranks]))), heroes: [...hall().heroes, newHero('h9', 'Nim', 'thief', 'lucky')] };
     expect(() => startExpedition(four, 'ratCellar', [...ALL, 'h9'], 0)).toThrow(/At most 3 heroes/);
+  });
+
+  it('raises the roster cap by 2 for each of the first four tier bosses beaten: 6, 8, 10, 12, 14', () => {
+    expect([0, 1, 2, 3, 4, 5].map((tier) => rosterCap({ ...hall(), clearedDungeons: BOSSES.slice(0, tier) }))).toEqual([6, 8, 10, 12, 14, 14]);
   });
 
   it('shards replace a Sigil only at the raised cap', () => {

@@ -141,23 +141,25 @@ describe('flasks (wielder damage stat)', () => {
 });
 
 describe('the Gambler', () => {
-  it('rolls a third primary stat at recruitment, never Speed or Crit, the same for an offer', () => {
+  it('rolls a third primary stat at recruitment among Power, Magic and Crit, the same for an offer', () => {
     const seen = new Set<StatKey>();
     for (let i = 0; i < 200; i++) {
       const roll = rollRecruit(`offer${i}`, undefined, 'gambler');
       expect(roll.primary).toBe(rollRecruit(`offer${i}`, undefined, 'gambler').primary);
       seen.add(roll.primary!);
     }
-    expect([...seen].sort()).toEqual(['armour', 'evasion', 'hp', 'magic', 'power', 'resistance']);
+    expect([...seen].sort()).toEqual(['crit', 'magic', 'power']);
     expect(rollRecruit('offer1', undefined, 'thief').primary).toBeUndefined();
     expect(rollGamblerPrimary('x')).toBe(rollGamblerPrimary('x'));
   });
 
-  it('grows the third primary every level, and rolls with Magic unarmed when it is Magic', () => {
+  it('grows the third primary every level, and rolls damage with Magic when it is Magic, else Power', () => {
     const roll = { ...rollOf(10.5), primary: 'magic' as const };
-    expect(baseHeroStats('gambler', 4, roll).magic).toBe(3 + 3 * growthRules.steps.magic);
-    expect(baseHeroStats('gambler', 4).magic).toBe(3);
+    expect(baseHeroStats('gambler', 4, roll).magic).toBe(5 + 3 * growthRules.steps.magic);
+    expect(baseHeroStats('gambler', 4).magic).toBe(5);
     const hero = { ...newHero('g', 'G', 'gambler', ''), roll };
     expect(heroDamageStat({ ...createInitialSave(), heroes: [hero] }, hero)).toBe('magic');
+    const lucky = { ...hero, roll: { ...roll, primary: 'crit' as const } };
+    expect(heroDamageStat({ ...createInitialSave(), heroes: [lucky] }, lucky)).toBe('power');
   });
 });

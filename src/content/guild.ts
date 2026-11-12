@@ -1,5 +1,5 @@
 import { lootConfig } from '@/content/loot/config';
-import { recruitRules, rosterRules } from '@/content/roster';
+import { recruitRules } from '@/content/roster';
 import { formatPercent, t } from '@/i18n';
 
 export type GuildBuildingId = 'warRoom' | 'treasury' | 'barracks' | 'questBoard' | 'workshop';
@@ -67,8 +67,8 @@ export const guildTracks: GuildTrack[] = [
   track({ id: 'tavernDiscount', building: 'barracks', name: 'Tavern discount', gates: [0, 1, 2], perRank: 0.1, baseCost: 120, describe: (r) => t('guildTracks.tavernDiscount', { percent: pct(r * 0.1) }) }),
   track({ id: 'tavernOffer', building: 'barracks', name: 'Extra tavern offer', gates: [1], perRank: 1, baseCost: 500, describe: (r) => t('guildTracks.tavernOffer', { count: recruitRules.offersPerTavern + r }) }),
   track({ id: 'training', building: 'barracks', name: 'Training', gates: [0, 1, 2], perRank: 2, baseCost: 250, describe: (r) => t('guildTracks.training', { count: r * 2 }) }),
-  track({ id: 'rosterSlot13', building: 'barracks', name: 'Roster slot 13', gates: [2], perRank: 1, baseCost: 1200, describe: (r) => t('guildTracks.roster', { count: rosterRules.rosterCap + r }) }),
-  track({ id: 'rosterSlot14', building: 'barracks', name: 'Roster slot 14', gates: [4], perRank: 1, baseCost: 4000, requires: 'rosterSlot13', describe: (r) => t('guildTracks.roster', { count: rosterRules.rosterCap + 1 + r }) }),
+  track({ id: 'rosterSlot13', building: 'barracks', name: 'Extra roster slot', gates: [2], perRank: 1, baseCost: 1200, describe: (r) => t('guildTracks.roster', { count: r }) }),
+  track({ id: 'rosterSlot14', building: 'barracks', name: 'Second extra roster slot', gates: [4], perRank: 1, baseCost: 4000, requires: 'rosterSlot13', describe: (r) => t('guildTracks.roster', { count: 1 + r }) }),
   // Quest board
   track({ id: 'questCap', building: 'questBoard', name: 'Quest cap', gates: [1, 3], perRank: 1, baseCost: 200, describe: (r) => t('guildTracks.questCap', { count: 6 + r }) }),
   track({ id: 'questReroll', building: 'questBoard', name: 'Extra reroll', gates: [2], perRank: 1, baseCost: 300, describe: (r) => t('guildTracks.questReroll', { count: 1 + r }) }),

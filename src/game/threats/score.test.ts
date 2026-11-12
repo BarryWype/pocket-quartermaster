@@ -80,8 +80,8 @@ describe('familyVsThreat bonuses', () => {
     expect(scoreThreat(threat('holy', 2), party({ familyTags: [tag('faith')] })).state).toBe('half');
   });
 
-  it('adds the Beastmaster’s +1 Wild only at Beasts 2 and 3', () => {
-    expect(familyCount(party({ classId: 'beastmaster' }), 'wild', 1)).toBe(0);
+  it('adds the Beastmaster’s +1 Wild at every Beasts level', () => {
+    expect(familyCount(party({ classId: 'beastmaster' }), 'wild', 1)).toBe(1);
     expect(familyCount(party({ classId: 'beastmaster' }), 'wild', 2)).toBe(1);
     expect(familyCount(party({ classId: 'beastmaster' }), 'wild', 3)).toBe(1);
     expect(scoreThreat(threat('beasts', 2), party({ classId: 'beastmaster' }, { familyTags: [tag('wild', 3)] }))).toMatchObject({
@@ -128,6 +128,13 @@ describe('scoring opportunities', () => {
     expect(at(opportunityById.hiddenCache, 'cunning', 2)).toBe(true);
     expect(at(opportunityById.hiddenCache, 'plunder', 2)).toBe(true);
     expect(at(opportunityById.hiddenCache, 'cunning', 1)).toBe(false);
+  });
+
+  it('lets a class take its opportunities alone: a Thief the Hidden cache, a Scholar the inscriptions, a Diplomat the bounty', () => {
+    expect(scoreOpportunity(opportunityById.hiddenCache, party({ classId: 'thief' })).answered).toBe(true);
+    expect(scoreOpportunity(opportunityById.oldInscriptions, party({ classId: 'scholar' })).answered).toBe(true);
+    for (const id of ['bounty', 'prisoners', 'refugees'] as const) expect(scoreOpportunity(opportunityById[id], party({ classId: 'diplomat' })).answered).toBe(true);
+    expect(scoreOpportunity(opportunityById.bounty, party({ classId: 'scholar' })).answered).toBe(false);
   });
 
   it('only takes a costly opportunity when an answer is met, or when opted in', () => {

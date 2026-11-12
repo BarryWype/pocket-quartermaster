@@ -14,6 +14,16 @@ describe('grantLoot', () => {
     expect(save.gold).toBe(25);
   });
 
+  it('gives a hero more than 2 levels under the roster’s top 50% more XP', () => {
+    const base = createInitialSave();
+    // No traits, levels inside the tier 1 band (no soft cap), so only the catch-up differs.
+    const save = { ...base, heroes: base.heroes.map((h, i) => ({ ...h, trait: '', level: [4, 1, 2][i] })) };
+    const after = grantLoot(save, save.heroes.map((h) => h.id), { ...emptyLoot(), xp: 10 }, NOW);
+    const gained = (id: string) => after.heroes.find((h) => h.id === id)!.xp - save.heroes.find((h) => h.id === id)!.xp;
+    // Level 1 is 3 under the top (4): catches up; level 2 is 2 under: doesn't.
+    expect(gained(save.heroes[1].id)).toBe(gained(save.heroes[2].id) * 1.5);
+  });
+
   it('keeps every looted piece: the gear inventory has no cap', () => {
     // Five tiers of looted gear and trinkets for a regular player who never salvages: about 45 a week.
     const pieces = Array.from({ length: 300 }, (_, i) => ({ uid: '' as const, itemId: i % 2 ? 'sword3' : 'greatHelm3', rarity: 'common' as const }));

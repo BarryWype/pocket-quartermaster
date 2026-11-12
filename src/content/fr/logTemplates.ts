@@ -75,6 +75,9 @@ export const frLogTemplates: typeof logTemplates = {
   allies: ' Relevés, {tag} ont combattu aux côtés du groupe.',
   duel: ' {hero} a trouvé la faille dans la garde d’un adversaire seul.',
   fightHeal: ' {hero} a partagé un morceau à manger.',
+  calmBeast: ' {hero} a apaisé une bête, qui est repartie.',
+  parley: '{hero} a dissuadé une bande de se battre.',
+  cacheOpen: '{hero} a trouvé une cache et l’a ouverte.',
   secondPotion: ' {hero} a bu une seconde potion.',
   relic: ' {relic} a répondu pour {hero}.',
   specials: {

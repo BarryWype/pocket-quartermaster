@@ -12,6 +12,9 @@ import { familyById, familyOfThreat, families } from '@/content/families';
 import { gathererPace } from '@/game/sim/gathererPace';
 import { inRange, targets } from '@/game/sim/targets';
 import type { ThreatId } from '@/game/types';
+import { heroClasses } from '@/content/heroes';
+import { weaponTypeFor } from '@/game/equipment/weaponOfChoice';
+import { CLASS_RUNS, type ClassSwap, type ClassSwapRow } from '@/game/sim/classSwap';
 
 export type ReportInput = {
   summaries: ProfileSummary[];
@@ -21,11 +24,40 @@ export type ReportInput = {
   difficultyOdds: Record<number, DifficultyOdds>;
   /** The family probes (summary.json's `familyProbes`). */
   familyProbes?: Summary['familyProbes'];
+  /** Each class swapped into the fitted party (summary.json's `classProbe`). */
+  classProbe?: Summary['classProbe'];
   /** A summary to compare days per tier against, e.g. a run with `--no-jobs`. */
   baseline?: Summary | null;
   /** The specials section carried over from the previous report, written by `npm run sim:specials`. */
   specials?: string | null;
 };
+
+/** Class strength: each class swapped into the fitted party per tier, odds and points over it, sorted by the mean. */
+export function classSwapTable(probe: ClassSwap) {
+  const signed = (v: number) => `${v >= 0 ? '+' : ''}${Math.round(v * 100)}`;
+  const mostReplaced = (row: ClassSwapRow) => {
+    const all = row.tiers.map((t) => t.replaced);
+    return all.reduce((a, b) => (all.filter((c) => c === b).length > all.filter((c) => c === a).length ? b : a), all[0]);
+  };
+  const body = [
+    ['Fitted party', '', '', '', '', ...probe.fitted.map((t) => pct(t.odds)), ''],
+    ...[...probe.rows]
+      .sort((a, b) => b.meanDelta - a.meanDelta)
+      .map((row) => {
+        const def = heroClasses[row.classId];
+        return [
+          def.name,
+          def.rarity,
+          String(def.poolTier ?? 'secret'),
+          weaponTypeFor(row.classId) ?? '—',
+          heroClasses[mostReplaced(row)].name,
+          ...row.tiers.map((t) => `${pct(t.odds)} (${signed(t.delta)})`),
+          signed(row.meanDelta),
+        ];
+      }),
+  ];
+  return table(['Class', 'Rarity', 'Pool', 'Weapon of choice', 'Replaces mostly', ...probe.fitted.map((t) => `Tier ${t.tier}`), 'Mean Δ'], body);
+}
 
 /** Lift per family focus: each family's team per tier, odds with no tags and the lift at levels 1, 2 and 3 (and how often level 3 fires), then the means and flags. */
 export function familyFocusTable(rows: FocusRow[]) {
@@ -536,7 +568,7 @@ export function specialsBlock(markdown: string): string | null {
 }
 
 /** The markdown report: targets next to results, ⚠ on anything out of range. */
-export function renderReport({ summaries, rules, settings, difficultyOdds, familyProbes, baseline, specials }: ReportInput) {
+export function renderReport({ summaries, rules, settings, difficultyOdds, familyProbes, classProbe, baseline, specials }: ReportInput) {
   const regular = summaries.find((s) => s.profile === 'regular');
   const worst = misses(summaries).slice(0, 10);
   const out: string[] = [
@@ -576,6 +608,16 @@ export function renderReport({ summaries, rules, settings, difficultyOdds, famil
     difficultyTable(difficultyOdds),
   );
   out.push(...familiesSection(summaries, familyProbes));
+  if (classProbe) {
+    out.push(
+      '## Class strength',
+      '',
+      `Each class swapped into the party the dungeons are fitted to (the reference roster at each tier’s end, as the bot picks it), in place of the member whose loss costs least, on the tier’s medium dungeons with no briefing, both parties dressed and packed; ${CLASS_RUNS} runs an estimate. Each cell: the class’s party odds, then points over the fitted party. A starting class is swapped in as a second copy. A Gambler is measured with Power as its rolled third stat.`,
+      '',
+      classSwapTable(classProbe),
+      '',
+    );
+  }
   if (specials) out.push(specials);
   out.push(
     '## Events and patrols by kind',

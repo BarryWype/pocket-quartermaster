@@ -31,7 +31,7 @@ describe('heroAnswers', () => {
 
   it('collects the class familyVsThreat bonuses, with their levels', () => {
     expect(bonusesOf(heroAnswers(member({ classId: 'exorcist' })))).toEqual(['faith:1:class']);
-    expect(bonusesOf(heroAnswers(member({ classId: 'necromancer' })))).toEqual(['faith:1:class:23']);
+    expect(bonusesOf(heroAnswers(member({ classId: 'necromancer' })))).toEqual(['faith:1:class']);
     expect(bonusesOf(heroAnswers(member({ classId: 'engineer' })))).toEqual(['cunning:1:class']);
     expect(bonusesOf(heroAnswers(member()))).toEqual([]);
   });

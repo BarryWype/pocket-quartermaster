@@ -69,7 +69,7 @@ A fresh save walks you through the whole loop in a few minutes. A one-line 🧭 
 
 ## Team
 
-1. **Team** shows Bram (warrior, Tough), Lyra (ranger, Lucky) and Mira (fire mage, Quick learner), with level, XP, trait and stats. Up to 3 heroes go on each expedition; the roster holds 12.
+1. **Team** shows Bram (warrior, Tough), Lyra (ranger, Lucky) and Mira (fire mage, Quick learner), with level, XP, trait and stats. Up to 3 heroes go on each expedition; the roster holds 6, then 2 more for each of the first four tier bosses beaten (8, 10, 12, 14), plus the Barracks' extra slots.
 2. Tap **Change** on a slot to equip gear or a consumable.
    - Stats update straight away.
    - Class affinities apply: swords boost Bram, bows boost Lyra, wands boost Mira.
@@ -119,16 +119,19 @@ A fresh save walks you through the whole loop in a few minutes. A one-line 🧭 
 
 1. **Taverns** 🍺 sit in fixed places on the map (1–2 per ~5 km tile), visible from 4.5 km. They open once the Bandit Stockade is beaten; a tip on the map says so.
 2. Within 50 m, tap one to see its **4 recruits** for the day (they change at 00:00 UTC with the dungeon rotation): class, name, level, trait, abilities and price.
-   - About 60% common classes (warrior, ranger, fire mage, frost mage) and 40% uncommon (thief, barbarian, cleric, paladin, druid, troubadour, sorcerer).
-   - **Level:** the roster's average level minus 1.
+   - Every class of the tier's pool weighs the same, a class that just opened 1.5×, a class you already have 0.3×: each class you lack shows about once a week at one tavern.
+   - **Wanted this week:** a banner names the week's family; the first offer of every tavern is one of its classes. The family changes with the rotation week, the same for everyone.
+   - **Level:** one under the roster's median level, never below the bottom of your tier band.
    - **Price:** base (80 common, 180 uncommon) × (1 + 25% per level above 1) × (1 + 35% per hero beyond 3) × trait (×1.15 positive, ×0.75 negative).
-   - A recruited offer is gone until the next day. You can't recruit with a full roster (12).
+   - A recruited offer is gone until the next day. You can't recruit with a full roster.
 3. **Classes** only use their own weapon types (armour is open to all): axes, maces, daggers, staves and lutes are new. Recruiting the first hero who uses a type teaches its recipes up to your highest tier; later tiers drop from dungeons.
    - Fire mages attack with fire, frost mages with water, druids with grass, unless their weapon is infused.
    - Thieves disarm traps, pick locks and pockets and find more in caches. Barbarians clear rubble, provoke locals and rage when hurt. Clerics heal the party between encounters; paladins shield the most hurt ally; both hit the undead hard. Druids calm beasts. Troubadours charm locals and lift the party's damage. Sorcerers get more from elemental advantage.
 4. **Traits:** every hero has one. Positive: Tough, Thrifty, Lucky, Quick learner, Light sleeper, Iron stomach. Negative: Clumsy, Greedy, Coward, Loud. Party-wide ones (gold, traps, locals, ambushes) count once per trait.
-5. **Dismiss** a hero from their page; their gear and consumable return to the inventory. Not while they're away, and not your last hero.
-6. **Debug → Taverns and heroes:** place a tavern next to you, roll new offers, add a hero of any class, trait and level, and add gold.
+5. **Dismiss** a hero from their page; their gear and consumable return to the inventory, and they leave a training manual (Common under level 6, Rare from 6, Legendary from 11; the dialog names it). Not while they're away, and not your last hero.
+6. **Free recruit:** beating the Bandit Stockade the first time offers one free hero among three classes, each of a family your roster lacks. Pick one in that report, or later from Team; it waits while the roster is full.
+7. **Catch-up:** a hero more than 2 levels under your best earns +50% XP from runs.
+8. **Debug → Taverns and heroes:** place a tavern next to you, roll new offers, add a hero of any class, trait and level, and add gold.
 
 ## Guild Hall
 

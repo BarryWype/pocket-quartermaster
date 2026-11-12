@@ -12,6 +12,11 @@ export function beats(attacker: Element, target: Element, rules: ElementRules = 
   return rules.beats[attacker] === target;
 }
 
+/** The element that beats `target`. */
+export function beaterOf(target: Element, rules: ElementRules = elementRules): Element {
+  return ELEMENTS.find((element) => rules.beats[element] === target)!;
+}
+
 /** Weapon damage against a target: stronger against the element it beats, weaker against the one beating it. */
 export function weaponMultiplier(weapon: Element | undefined, target: Element | undefined, rules: ElementRules = elementRules) {
   if (!weapon || !target) return 1;

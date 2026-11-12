@@ -1,5 +1,6 @@
 import { heroClasses, newHero } from '@/content/heroes';
 import { provisionRules } from '@/content/provisions';
+import { families, type FamilyId } from '@/content/families';
 import { heroNames, recruitRules } from '@/content/roster';
 import { tavernName, tavernNames, tavernRules } from '@/content/taverns';
 import { traits } from '@/content/traits';
@@ -39,6 +40,8 @@ export type RecruitOffer = {
   price: number;
   /** When the tavern's offers refresh. */
   expiresAt: number;
+  /** The week's wanted family, on the tavern's first offer only (see wantedFamily). */
+  wanted?: FamilyId;
 };
 
 export type RecruitProblem = 'locked' | 'tooFar' | 'taken' | 'rosterFull' | 'gold';
@@ -65,9 +68,11 @@ export function generateTavernsAround(position: LatLng, timeMs: number): TavernS
 export const isTavernUnlocked = (save: SaveData, rules: TavernRules = tavernRules) =>
   save.stats.questsDone >= rules.unlockedAfterQuests;
 
-/** Recruits join at the bottom of the player's current tier band. */
+/** Recruits join one level under the roster's median level, never below the bottom of the player's tier band. */
 export function offerLevel(save: SaveData, rules: RecruitRules = recruitRules) {
-  return rules.levelByTier[highestUnlockedTier(save) - 1];
+  const levels = save.heroes.map((h) => h.level).sort((a, b) => a - b);
+  const median = levels.length ? levels[Math.floor((levels.length - 1) / 2)] : 1;
+  return Math.max(rules.levelByTier[highestUnlockedTier(save) - 1], median - 1);
 }
 
 /** base by rarity × level factor × roster factor × trait factor × tier factor × grade factor. */
@@ -89,26 +94,55 @@ export function recruitPrice(
   );
 }
 
-/** The classes a tier's taverns can offer, with their pick weights: the tier's newcomers weigh more. */
-export function recruitPool(tier: number, rules: RecruitRules = recruitRules): { classId: HeroClassId; weight: number }[] {
+/**
+ * The classes a tier's taverns can offer, with their pick weights: the
+ * class's rarity weight, more for the tier's newcomers, less for a class the
+ * roster already has (`owned`).
+ */
+export function recruitPool(
+  tier: number,
+  rules: RecruitRules = recruitRules,
+  owned: ReadonlySet<HeroClassId> = new Set(),
+): { classId: HeroClassId; weight: number }[] {
   return (Object.keys(heroClasses) as HeroClassId[]).flatMap((classId) => {
     const { rarity, poolTier } = heroClasses[classId];
     if (rarity === 'rare' || poolTier === null || poolTier > tier) return [];
-    return [{ classId, weight: poolTier === tier ? rules.newClassWeight : 1 }];
+    const weight = rules.rarityWeights[rarity] * (poolTier === tier ? rules.newClassWeight : 1) * (owned.has(classId) ? rules.ownedClassWeight : 1);
+    return [{ classId, weight }];
   });
 }
 
-/** Draws a tavern class: the rarity first, then a class of it from the tier's pool. */
-export function pickRecruitClass(rng: Rng, tier: number, rules: RecruitRules = recruitRules): HeroClassId {
-  const pool = recruitPool(tier, rules);
-  const rarities = (Object.keys(rules.rarityWeights) as ClassRarity[]).filter((rarity) =>
-    pool.some(({ classId }) => heroClasses[classId].rarity === rarity),
-  );
-  const rarity = rng.weighted(rarities, (r) => rules.rarityWeights[r]);
-  return rng.weighted(
-    pool.filter(({ classId }) => heroClasses[classId].rarity === rarity),
-    ({ weight }) => weight,
-  ).classId;
+/** Draws a tavern class from the tier's pool, by weight; `family` keeps only that family's classes. */
+export function pickRecruitClass(
+  rng: Rng,
+  tier: number,
+  rules: RecruitRules = recruitRules,
+  owned: ReadonlySet<HeroClassId> = new Set(),
+  family: FamilyId | null = null,
+): HeroClassId {
+  const pool = recruitPool(tier, rules, owned).filter(({ classId }) => !family || heroClasses[classId].familyTag === family);
+  return rng.weighted(pool, ({ weight }) => weight).classId;
+}
+
+/** The rotation week of a time: `wantedDays` rotation days each. */
+export const rotationWeek = (now: number, rules: RecruitRules = recruitRules) => Math.floor(rotationDay(now) / rules.wantedDays);
+
+/**
+ * The family "in town" this week at a tier: the families with a class in the
+ * tier's pool take turns, one a week, in an order shuffled afresh each cycle
+ * from the cycle's number, so it is the same for every player of that tier.
+ */
+export function wantedFamily(week: number, tier: number, rules: RecruitRules = recruitRules): FamilyId {
+  const inPool = new Set(recruitPool(tier, rules).map(({ classId }) => heroClasses[classId].familyTag));
+  const eligible = families.map((f) => f.id).filter((id) => inPool.has(id));
+  const cycle = Math.floor(week / eligible.length);
+  const rng = createRng(`wanted|${tier}|${cycle}`);
+  const order = [...eligible];
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = rng.int(0, i);
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return order[week - cycle * eligible.length];
 }
 
 /**
@@ -123,8 +157,11 @@ export function tavernOffers(save: SaveData, tavernId: string, now: number, seed
   const level = offerLevel(save, rules);
   // Offers are drawn one after another from the seed, so a 4th one leaves the first 3 unchanged.
   const discount = 1 - guildBonus(save, 'tavernDiscount');
+  const owned = new Set(save.heroes.map((h) => h.classId));
+  const wanted = wantedFamily(rotationWeek(now, rules), tier, rules);
   return Array.from({ length: tavernOfferCount(save) }, (_, i) => {
-    const classId = pickRecruitClass(rng, tier, rules);
+    // The first offer is of the week's wanted family.
+    const classId = pickRecruitClass(rng, tier, rules, owned, i === 0 ? wanted : null);
     const rarity = heroClasses[classId].rarity;
     const names = heroNames[classId];
     const positive = rng.chance(rules.positiveTraitChance);
@@ -146,6 +183,7 @@ export function tavernOffers(save: SaveData, tavernId: string, now: number, seed
         recruitPrice(rarity, level, save.heroes.length, positive, tier, grade, rules) * discount,
       ),
       expiresAt: nextRotationAt(now),
+      ...(i === 0 ? { wanted } : {}),
     };
   });
 }

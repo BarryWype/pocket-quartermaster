@@ -2,7 +2,7 @@ import { heroClasses } from '@/content/heroes';
 import { traitById } from '@/content/traits';
 
 import type { FamilyId } from '@/content/families';
-import type { HeroClassId, ThreatLevel } from '../types';
+import type { HeroClassId, OpportunityId, ThreatLevel } from '../types';
 import type { HeroFamilyTag } from '../families/families';
 
 /** Where a family tag came from; each tag counts once per hero. */
@@ -27,6 +27,8 @@ export type HeroAnswers = {
   tags: HeroFamilyTag[];
   /** The hero's familyVsThreat effects (class and trait). */
   bonuses: FamilyBonus[];
+  /** Opportunities the hero's class takes on its own (a Scholar's inscriptions, a Diplomat's bounty). */
+  opportunities?: OpportunityId[];
 };
 
 /**
@@ -50,5 +52,11 @@ export function heroAnswers(member: AnswersMember): HeroAnswers {
     )
     .filter((b): b is FamilyBonus => b !== null);
 
-  return { heroId: member.heroId, tags: member.familyTags, bonuses: [...classBonuses, ...traitBonuses] };
+  const opportunities = heroClass.abilities.flatMap((a) => (a.kind === 'answersOpportunity' ? a.opportunities : []));
+  return {
+    heroId: member.heroId,
+    tags: member.familyTags,
+    bonuses: [...classBonuses, ...traitBonuses],
+    ...(opportunities.length > 0 ? { opportunities } : {}),
+  };
 }

@@ -109,10 +109,11 @@ describe('raised allies', () => {
     expect(result.encounters[2].effects.some((e) => e.key === 'allies' || e.key === 'raise')).toBe(false);
   });
 
-  it('raises nobody at Holy 2, or without the threat', () => {
-    for (const b of [threat('holy', 2), briefing()]) {
-      expect(run([member('n', 'necromancer')], bones, b).encounters.some((e) => e.effects.some((x) => x.key === 'raise'))).toBe(false);
+  it('raises at every Holy level, and nobody without the threat', () => {
+    for (const level of [2, 3] as const) {
+      expect(run([member('n', 'necromancer')], bones, threat('holy', level)).encounters[0].effects).toContainEqual({ heroId: 'n', key: 'raise', tag: 'undead' });
     }
+    expect(run([member('n', 'necromancer')], bones, briefing()).encounters.some((e) => e.effects.some((x) => x.key === 'raise'))).toBe(false);
   });
 
   it('lets the Beastmaster raise beasts at Beasts 1', () => {
@@ -147,7 +148,70 @@ describe('the Monk', () => {
       }).encounters[0].dealt.m;
     expect(dealt('monk', 'sacredGround')).toBeCloseTo(dealt('monk', null));
     expect(dealt('warrior', 'sacredGround')).toBeLessThan(dealt('warrior', null));
-    expect(dealt('monk', 'antiMagic', true)).toBeCloseTo(dealt('monk', null, true));
+    // Anti-magic cuts a Monk's Magic like anyone's.
+    expect(dealt('monk', 'antiMagic', true)).toBeLessThan(dealt('monk', null, true));
+  });
+});
+
+describe('the Thief', () => {
+  const lone = pool([], { hp: 1e6 }, [1, 1]);
+  const strike = (classId: HeroClassId, concealed: boolean) =>
+    simulateRun([member('a', classId, { power: 10, crit: 100, concealed })], lone, 's', { rules: { ...steady, maxRounds: 1 } }).encounters.at(-1)!.dealt.a;
+
+  it('crits ×1.5 harder with a Concealed weapon only', () => {
+    expect(strike('thief', true)).toBeCloseTo(strike('thief', false) * 1.5);
+    expect(strike('warrior', true)).toBeCloseTo(strike('warrior', false));
+  });
+
+  it('opens a hidden cache step alone, with its ×2', () => {
+    const caches = pool([{ type: 'event', weight: 1, eventId: 'cache' }], {}, [2, 2]);
+    const opened = run([member('t', 'thief')], caches, briefing());
+    expect(opened.encounters[0].effects).toContainEqual({ heroId: 't', key: 'cacheOpen' });
+    expect(opened.encounters[0].gold).toBe(Math.round(0.25 * caches.gold[1] * 2));
+    expect(run([member('w', 'warrior')], caches, briefing()).encounters[0].gold).toBe(0);
+  });
+});
+
+describe('the Sorcerer', () => {
+  it('attunes to the element that beats the dungeon’s', () => {
+    const embers = pool([], { hp: 1e6, element: 'fire' }, [1, 1]);
+    const dealt = (classId: HeroClassId) =>
+      simulateRun([member('s', classId, { power: 0, magic: 10, damageStat: 'magic', crit: 0 })], embers, 's', { rules: { ...steady, maxRounds: 1 } }).encounters.at(-1)!
+        .dealt.s;
+    // Water beats fire: the advantage applies on top of the element wheel.
+    expect(dealt('sorcerer')).toBeGreaterThan(dealt('frostMage') * 1.5);
+  });
+});
+
+describe('the Druid', () => {
+  it('sends one beast of the first beast fight away, once a run', () => {
+    const packs = pool([fight([{ mobId: 'wolfPup', count: 2 }])], {}, [3, 3]);
+    const result = run([member('d', 'druid')], packs, briefing());
+    expect(result.encounters[0].effects).toContainEqual({ heroId: 'd', key: 'calmBeast' });
+    expect(result.encounters[1].effects.some((e) => e.key === 'calmBeast')).toBe(false);
+  });
+});
+
+describe('the Diplomat', () => {
+  it('talks the first fight out, once a run', () => {
+    const packs = pool([fight([{ mobId: 'wolfPup', count: 2 }])], {}, [3, 3]);
+    const result = run([member('d', 'diplomat')], packs, briefing());
+    expect(result.encounters[0]).toMatchObject({ kind: 'quiet', cleared: true, mobs: [] });
+    expect(result.encounters[0].effects).toContainEqual({ heroId: 'd', key: 'parley' });
+    expect(result.encounters[1].kind).toBe('fight');
+  });
+});
+
+describe('the Engineer and the Ranger at a trap', () => {
+  const snare = pool([{ type: 'trap', weight: 1, name: 'snare' }], {}, [2, 2]);
+  const wounds = (classId: HeroClassId) => {
+    const result = run([member('h', classId, { maxHp: 1000, hp: 1000 })], snare, threat('traps', 3));
+    return result.encounters[0].taken.h ?? 0;
+  };
+
+  it('halves trap wounds for an Engineer; a Ranger’s two cuts stack to a quarter', () => {
+    expect(wounds('engineer')).toBeCloseTo(wounds('warrior') * 0.5);
+    expect(wounds('ranger')).toBeCloseTo(wounds('warrior') * 0.25);
   });
 });
 

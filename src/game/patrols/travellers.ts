@@ -1,6 +1,6 @@
 import { newHero } from '@/content/heroes';
 import { patrolRules, travellerRules, type PatrolRules } from '@/content/patrols';
-import { heroNames, recruitRules } from '@/content/roster';
+import { heroNames } from '@/content/roster';
 import { traits } from '@/content/traits';
 import { mealItems, pickSupply, supplyHeld } from '../expeditions/provisions';
 import { highestUnlockedTier } from '../expeditions/expeditions';
@@ -14,7 +14,7 @@ import { grantLoot } from '../loot/grant';
 import type { Loot } from '../loot/types';
 import { grantTip, rollTip, type TipOutcome } from '../secrets/tips';
 import { recruitGrade, rollRecruit, type Grade } from '../taverns/roll';
-import { pickRecruitClass } from '../taverns/taverns';
+import { offerLevel, pickRecruitClass } from '../taverns/taverns';
 import type { SaveData } from '../save';
 import { isAway } from '../team/team';
 import { rolledSpecial } from '../team/specials';
@@ -87,10 +87,10 @@ export function helpProblem(
   return null;
 }
 
-/** A recruit offer from a traveller: a pool class for the player's tier, at the band's bottom level. */
+/** A recruit offer from a traveller: a pool class for the player's tier, at the tavern offers' level. */
 function travellerRecruit(save: SaveData, spawn: PatrolSpawn): TravellerRecruit {
   const rng = createRng(`traveller-recruit|${spawn.id}`);
-  const classId = pickRecruitClass(rng, highestUnlockedTier(save));
+  const classId = pickRecruitClass(rng, highestUnlockedTier(save), undefined, new Set(save.heroes.map((h) => h.classId)));
   const names = heroNames[classId];
   const positive = traits.filter((t) => t.positive);
   const id = `traveller:${spawn.id}`;
@@ -101,7 +101,7 @@ function travellerRecruit(save: SaveData, spawn: PatrolSpawn): TravellerRecruit 
     name: names[rng.int(0, names.length - 1)],
     trait: positive[rng.int(0, positive.length - 1)].id,
     special: rolledSpecial(id, classId),
-    level: recruitRules.levelByTier[highestUnlockedTier(save) - 1],
+    level: offerLevel(save),
     roll,
     grade: recruitGrade(roll),
   };

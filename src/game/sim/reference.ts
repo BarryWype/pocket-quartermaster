@@ -11,9 +11,20 @@ import { affixById } from '@/content/affixes';
 
 import { makeGearPiece } from '../gear/make';
 import { equip } from '../team/team';
+import { gradeRoll } from '../taverns/roll';
 import { armourTypeFor, helmetTypeFor, offhandTypeFor, weaponTypeFor } from './bot';
 import { expectedLevels } from './config';
 import { fillPotions } from './rules/loadout';
+
+/**
+ * A reference hero: its class's first common special, no trait. A Gambler gets
+ * an average roll with Power as its third primary: the tables measure the Power
+ * build (the Magic one mirrors it with a wand).
+ */
+const referenceHero = (id: string, classId: HeroClassId, level: number): HeroState => ({
+  ...newHero(id, classId, classId, '', level, classSpecials[classId].common[0]),
+  ...(classId === 'gambler' ? { roll: gradeRoll('B', 'power') } : {}),
+});
 
 /** The middle of the 3d6 stat dice: a reference piece's stats are the average roll. */
 const AVERAGE_ROLL = 10.5;
@@ -48,7 +59,7 @@ export function weaponFor(classId: HeroClassId, tier: number) {
  */
 export function referenceTeam(classes: HeroClassId[], tier: number, rarity: Rarity, level: number, weaponOf: (classId: HeroClassId, tier: number) => GearDef | undefined = weaponFor): SaveData {
   // Each class rolls its first common special, like the reference teams it simulates.
-  const heroes: HeroState[] = classes.map((classId, i) => newHero(`h${i}`, classId, classId, '', level, classSpecials[classId].common[0]));
+  const heroes: HeroState[] = classes.map((classId, i) => referenceHero(`h${i}`, classId, level));
   const armour = items.find((i) => i.slot === 'armor' && i.tier === tier)!;
   let save: SaveData = {
     ...createInitialSave(),
@@ -146,7 +157,7 @@ export function rosterSave(tier: number, when: 'start' | 'end', extra: HeroClass
   const level = expectedLevels[kitTier - 1];
   const initial = createInitialSave();
   const heroes = [...ROSTER, ...extra].map((classId, i) =>
-    i < startingHeroes.length ? { ...startingHeroes[i], level } : newHero(`r${i}`, classId, classId, '', level, classSpecials[classId].common[0]),
+    i < startingHeroes.length ? { ...startingHeroes[i], level } : referenceHero(`r${i}`, classId, level),
   );
   let save: SaveData = {
     ...initial,

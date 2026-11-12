@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { familyById } from '@/content/families';
 import { heroClasses } from '@/content/heroes';
 import { tavernRules } from '@/content/taverns';
 import { traitById } from '@/content/traits';
@@ -103,6 +104,14 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
               {t('tavern.header', { count: save.heroes.length, cap: rosterCap(save) })}
             </Text>
           </View>
+          {offers[0]?.wanted && (
+            <IconLabel
+              emoji={familyById[offers[0].wanted].emoji}
+              icon={familyById[offers[0].wanted].icon}
+              label={t('tavern.wanted', { family: tr(familyById[offers[0].wanted].name) })}
+              labelStyle={styles.wanted}
+            />
+          )}
           {offers.map(offerRow)}
           <View style={styles.offer}>
             <IconLabel emoji="🥓" label={t('tavern.emergency')} labelStyle={styles.name} />
@@ -151,4 +160,5 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   goldRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
   problem: { color: colors.muted, fontStyle: 'italic' },
+  wanted: { fontSize: 19, color: colors.ink },
 });

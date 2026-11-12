@@ -15,7 +15,7 @@ import { specials } from '@/content/specials';
 import { traitById } from '@/content/traits';
 import { weaknessByBoss, type WeaknessEffect } from '@/content/weaknesses';
 
-import { ELEMENTS, beats, incomingMultiplier, shardId, weaponMultiplier, type Element } from '../elements';
+import { ELEMENTS, beaterOf, beats, incomingMultiplier, shardId, weaponMultiplier, type Element } from '../elements';
 import { createRng } from '../generation/rng';
 import { mobTags } from '../enemies/tags';
 import type { SaveData } from '../save';
@@ -189,6 +189,12 @@ export type AbilityEffect = {
     | 'duel'
     /** A Cook's bite to eat after the fight. */
     | 'fightHeal'
+    /** A Diplomat talked this band out of a fight (a quiet step). */
+    | 'parley'
+    /** A Druid calmed a beast of this fight, which walked away. */
+    | 'calmBeast'
+    /** A Thief opened this hidden cache. */
+    | 'cacheOpen'
     /** A relic answered for this hero in this encounter. */
     | 'relic'
     /** An Alchemist drank the potion in their second slot. */
@@ -516,7 +522,15 @@ export function prepareSimulation(
   const restriction = activeBriefing.restriction;
   const meal = partyMeal(eaten, activeBriefing, classIds);
   // The briefing against this party: what was met, and what it costs.
-  const members = mealParty(party, meal);
+  // A Sorcerer attunes to the element that beats the dungeon's: the Element threat's, else the boss's or the first elemental foe's.
+  const dungeonElement =
+    activeBriefing.threats.find((t) => t.id === 'element' && t.element)?.element ??
+    [dungeon.boss, ...dungeon.encounters.flatMap((e) => (e.type === 'fight' ? e.mobs.map((g) => mobById[g.mobId]) : []))].find((def) => def.element)?.element;
+  const members = mealParty(party, meal).map((member) =>
+    dungeonElement && !member.weaponElement && member.abilities.some((a) => a.kind === 'attunement')
+      ? { ...member, weaponElement: beaterOf(dungeonElement) }
+      : member,
+  );
   const answers: HeroAnswers[] = members.map((member) => heroAnswers(answersMemberOf(member)));
   const scores = scoreBriefing(activeBriefing, answers);
   // The chowder multiplies the penalties of the threats it lists.
@@ -754,6 +768,9 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
   /** The fight being run was ambushed by the party (Watch 2): its enemies lose their first turn. */
   let surprised: { effect: FamilyEffectId; heroId: string | null } | null = null;
   const raisedFor = new Set<string>();
+  /** A Diplomat's parley and a Druid's calming work once a run. */
+  let parleyed = false;
+  let calmed = false;
   /** A relic effect at work: one note per encounter and hero. */
   const noteRelic = (result: EncounterResult, heroId: string, relicId: string) => {
     if (!result.effects.some((e) => e.key === 'relic' && e.heroId === heroId)) result.effects.push({ heroId, key: 'relic', relicId });
@@ -1159,7 +1176,9 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       // A Predator's eye sharpens the hero's crits against the foes it names.
       const predator = affixTotal(hero.member, 'critVs', { tags }) / 100;
       const chance = critChance ?? (sureCrits.delete(id) ? 1 : hero.member.crit / 100 + critBonus + opener + predator + (attack?.critAdd ?? 0));
-      const hit = roll(physical + elementalPart, chance, onCrit, duel?.multiplier ?? critDamage?.effect.multiplier);
+      // A Thief's crits with a Concealed weapon cut deeper.
+      const concealedCrit = hero.member.concealed ? (own(hero, 'concealedCrit')?.multiplier ?? 1) : 1;
+      const hit = roll(physical + elementalPart, chance, onCrit, (duel?.multiplier ?? critDamage?.effect.multiplier ?? rules.critMultiplier) * concealedCrit);
       return {
         damage: hit * fortune * bonus * hero.fed * multiplier * (ctx.party ? ctx.party.multiplier : 1) * (attack?.multiplier ?? 1),
         crit,
@@ -1878,11 +1897,11 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       };
       for (const hook of hooks.afterFight) hook(after);
     }
-    // The first fight with the tag, at the signature's threat level: its fallen fight for the party next.
+    // The first fight with the tag, under the signature's threat: its fallen fight for the party next.
     for (const hero of heroes) {
       for (const ability of hero.member.abilities) {
         if (ability.kind !== 'raiseAllies' || raisedFor.has(ability.threat)) continue;
-        if (!activeBriefing.threats.some((t) => t.id === ability.threat && t.level === ability.level)) continue;
+        if (!activeBriefing.threats.some((t) => t.id === ability.threat)) continue;
         const fallen = enemyDefs.filter((def) => enemyTags(def).includes(ability.tag));
         if (fallen.length === 0) continue;
         raisedFor.add(ability.threat);
@@ -2024,8 +2043,25 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
 
   const runEncounter = (encounter: EncounterDef): EncounterResult => {
     if (encounter.type === 'fight') {
+      // A Diplomat talks the run's first band out of fighting: a quiet step.
+      const diplomat = !parleyed ? withAbility('parley') : null;
+      if (diplomat) {
+        parleyed = true;
+        const result = quietResult('');
+        result.effects.push({ heroId: diplomat.hero.member.heroId, key: 'parley' });
+        return result;
+      }
+      let enemies = expand(encounter.mobs);
+      // A Druid calms one beast of the run's first beast fight: it walks away.
+      const druid = !calmed && enemies.some((def) => enemyTags(def).includes('beast')) ? withAbility('calmBeast') : null;
+      if (druid) {
+        calmed = true;
+        const index = enemies.map((def) => enemyTags(def).includes('beast')).lastIndexOf(true);
+        enemies = enemies.filter((_, i) => i !== index);
+      }
       const result = emptyResult('fight', '', encounter.mobs);
-      runFight(expand(encounter.mobs), result, exposedAt(fightsSeen));
+      if (druid) result.effects.push({ heroId: druid.hero.member.heroId, key: 'calmBeast' });
+      runFight(enemies, result, exposedAt(fightsSeen));
       fightsSeen++;
       return result;
     }
@@ -2053,10 +2089,16 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     }
     // A hidden cache is a quiet step unless a family effect opens it.
     const event = encounter.type === 'event' ? eventById[encounter.eventId] : undefined;
-    if (event?.kind === 'cache' && hooks.cache.length > 0) {
+    // A Thief opens every hidden cache, whatever the party's Cunning.
+    const opener = event?.kind === 'cache' ? withAbility('cacheOpener') : null;
+    if (event?.kind === 'cache' && (hooks.cache.length > 0 || opener)) {
       const result = quietResult(event.name);
       const finder = withAbility('cacheBonus');
       const cache = { ...familyBase(result), step: true, worth: event.goldShare * dungeon.gold[1] * (finder?.ability.multiplier ?? 1), gold: 0, rolls: 0 };
+      if (opener) {
+        cache.gold = cache.worth;
+        result.effects.push({ heroId: opener.hero.member.heroId, key: 'cacheOpen' });
+      }
       for (const hook of hooks.cache) hook(cache);
       result.gold = Math.round(cache.gold);
       extraLootRolls += cache.rolls;

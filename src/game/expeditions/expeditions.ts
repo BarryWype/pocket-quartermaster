@@ -4,7 +4,7 @@ import { newHero, xpRules } from '@/content/heroes';
 import { dungeonById, itemById, opportunityById, recipeById, recipeOutput } from '@/content/lookup';
 import { lootConfig } from '@/content/loot/config';
 import { MATERIAL_TIERS } from '@/content/items';
-import { heroNames, rosterRules } from '@/content/roster';
+import { heroNames, rosterRules, recruitRules } from '@/content/roster';
 import { recipes } from '@/content/recipes';
 import { narrowPartySize, threatRules } from '@/content/threats';
 import { traitById, traits } from '@/content/traits';
@@ -50,6 +50,7 @@ import {
   type RunOptions,
   type RunResult,
 } from './simulate';
+import { freePickClasses } from '../taverns/freePick';
 
 // Tier unlocks are shared with crafting (see dungeons/unlock.ts).
 export { highestUnlockedTier, isDungeonUnlocked } from '../dungeons/unlock';
@@ -514,6 +515,9 @@ export function resolveExpedition(
     loot,
     expedition.endsAt,
   );
+  // The first tier boss's first clear offers a free recruit.
+  const freePick = firstTierClear && dungeon.tier === recruitRules.freePick.afterBossTier ? freePickClasses(next) : null;
+  if (freePick) next = { ...next, freePick };
   // A tier boss teaches the pickaxe that opens the next tier.
   const pickaxe = success && dungeon.isBoss ? recipeById[`${MATERIAL_TIERS[dungeon.tier - 1].id}Pickaxe`] : undefined;
   if (pickaxe) next = unlockRecipe(next, pickaxe.id);
@@ -615,6 +619,7 @@ export function resolveExpedition(
     ...(firstWin ? { firstWin } : {}),
     ...(firstTierClear ? { firstTierClear } : {}),
     ...(firstDungeonClear ? { firstDungeonClear } : {}),
+    ...(freePick ? { freePick } : {}),
     families: run.families,
     consumablesUsed,
     log,
