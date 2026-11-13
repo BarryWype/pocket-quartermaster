@@ -984,6 +984,12 @@ export const en = {
     sightRange: 'Sight range',
     sightRangeHint: 'How far sanctums, taverns and events show on the map.',
     sight: { '1': 'Normal', '2': 'Far', '3': 'Very far' },
+    animations: 'Animations',
+    animationsHint: 'How much buttons, panels and numbers move. Reduced keeps only fades.',
+    motion: { full: 'Full', reduced: 'Reduced', off: 'Off' },
+    motionPhoneReduced: 'Your phone asks for less motion, so animations are reduced.',
+    haptics: 'Haptics',
+    hapticsHint: 'A light buzz on presses, rewards and crafts.',
     fieldNotes: 'Field notes',
     fieldNotesHint: {
       one: "Read again the tip you've seen",

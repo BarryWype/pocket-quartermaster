@@ -28,3 +28,6 @@ export function Text({ style, children, ...props }: TextProps) {
 const styles = StyleSheet.create({
   text: { fontFamily: fonts.body, fontSize: 18, color: colors.ink },
 });
+
+/** The game font's base look, for the rare text drawn by something other than `Text`. */
+export const baseTextStyle = styles.text;

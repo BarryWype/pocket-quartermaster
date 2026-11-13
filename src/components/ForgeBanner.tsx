@@ -1,4 +1,6 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+
+import { PressScale } from '@/components/motion';
 
 import { gearRules, rarityNames } from '@/content/gear';
 import { gearName, itemById } from '@/content/lookup';
@@ -18,7 +20,7 @@ export function ForgeBanner({ result, onClose }: { result: ForgeResult; onClose:
   const legendary = rarity === 'legendary';
   const color = gearRules.colors[rarity];
   return (
-    <Pressable
+    <PressScale
       onPress={onClose}
       style={[styles.banner, (rarity === 'rare' || legendary) && { borderColor: color }, legendary && styles.legendary]}
     >
@@ -37,7 +39,7 @@ export function ForgeBanner({ result, onClose }: { result: ForgeResult; onClose:
       </View>
       <Text style={{ color }}>{t('crafting.quality', { quality: tr(rarityNames[rarity]) })}</Text>
       <GearDetails gear={result.gear} labelStyle={styles.stats} />
-    </Pressable>
+    </PressScale>
   );
 }
 

@@ -8,6 +8,7 @@ import { gainsPrefix } from '@/components/lootText';
 import { LootGrid, TileFace } from '@/components/LootGrid';
 import { lootTiles, type RewardTile } from '@/game/loot/tiles';
 import { Countdown, countdownText } from '@/components/Countdown';
+import { AppearIf, CountUp, FillBar } from '@/components/motion';
 import { Text } from '@/components/Text';
 import { itemById } from '@/content/lookup';
 import { lootMatrix } from '@/content/loot/matrix';
@@ -24,6 +25,7 @@ import type { Quest } from '@/game/quests/types';
 import { isRevealed } from '@/game/reveal/reveal';
 import { chestState, dayKey, stepChests } from '@/game/rewards/chests';
 import { useTodaySteps } from '@/hooks/useTodaySteps';
+import { useFreshRows } from '@/hooks/useFreshRows';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useNow } from '@/hooks/useNow';
 import { clockConfig } from '@/content/clockConfig';
@@ -91,6 +93,18 @@ function progressText(quest: Quest) {
   return quest.objective === 'walk'
     ? t('quests.progress', { progress: formatDistance(quest.progress), amount: formatDistance(quest.amount) })
     : t('quests.progress', { progress: quest.progress, amount: quest.amount });
+}
+
+/** "3 / 10" with the count ticking when it moves on screen; the words around it come from the same text as `progressText`. */
+function CountedProgress({ quest }: { quest: Quest }) {
+  const [before, after] = t('quests.progress', { progress: '\u0001', amount: quest.amount }).split('\u0001');
+  return (
+    <View style={styles.countedProgress}>
+      {before !== '' && <Text style={styles.progressText}>{before}</Text>}
+      <CountUp value={quest.progress} style={styles.progressText} />
+      <Text style={styles.progressText}>{after}</Text>
+    </View>
+  );
 }
 
 const order = (quest: Quest) => (quest.band === 'secret' ? 0 : quest.doneAt !== null ? 1 : 2);
@@ -164,6 +178,10 @@ function QuestsContent() {
 
   const rerolls = rerollsLeft(save, now);
   const quests = [...save.quests.list].sort((a, b) => order(a) - order(b) || a.expiresAt - b.expiresAt);
+  const freshQuests = useFreshRows(
+    quests.map((quest) => quest.id),
+    (id) => save.quests.list.some((quest) => quest.id === id && !quest.seen),
+  );
 
   const claim = (quest: Quest) => {
     const before = useGameStore.getState().save;
@@ -231,18 +249,19 @@ function QuestsContent() {
               </View>
             ))}
           {quests.map((quest, index) => (
-            <QuestCard
-              key={quest.id}
-              quest={quest}
-              index={index}
-              now={now}
-              secret={quest.band === 'secret'}
-              rerollDisabled={quest.band !== 'secret' && rerollProblem(save, quest.id, now) !== null}
-              target={targetLine(quest)}
-              onClaim={() => claim(quest)}
-              onDeliver={() => deliver(quest)}
-              onReroll={() => game.rerollQuest(quest.id)}
-            />
+            <AppearIf key={quest.id} fresh={freshQuests.has(quest.id)}>
+              <QuestCard
+                quest={quest}
+                index={index}
+                now={now}
+                secret={quest.band === 'secret'}
+                rerollDisabled={quest.band !== 'secret' && rerollProblem(save, quest.id, now) !== null}
+                target={targetLine(quest)}
+                onClaim={() => claim(quest)}
+                onDeliver={() => deliver(quest)}
+                onReroll={() => game.rerollQuest(quest.id)}
+              />
+            </AppearIf>
           ))}
         </ScrollView>
       ),
@@ -319,12 +338,14 @@ function QuestCard({
       </View>
       {progress !== null && (
         <View style={styles.progressRow}>
-          <View style={styles.barTrack}>
-            <View
-              style={[styles.barFill, { width: `${Math.min(1, done ? 1 : quest.progress / quest.amount) * 100}%` }, done && styles.barDone]}
-            />
+          <View style={styles.bar}>
+            <FillBar value={done ? 1 : quest.progress / quest.amount} segments={1} height={16} color={done ? ui.good : ui.hp} />
           </View>
-          <RewardLabel text={progress} size={13} labelStyle={styles.progressText} />
+          {!done && quest.objective !== 'walk' ? (
+            <CountedProgress quest={quest} />
+          ) : (
+            <RewardLabel text={progress} size={13} labelStyle={styles.progressText} />
+          )}
         </View>
       )}
       <View style={styles.rewardRow}>
@@ -380,9 +401,8 @@ const styles = StyleSheet.create({
   subline: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
   sub: { fontFamily: fonts.serif, fontSize: 13, color: ui.inkMuted },
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  barTrack: { flex: 1, height: 12, borderWidth: 2, borderColor: ui.outline, backgroundColor: ui.woodDark },
-  barFill: { height: '100%', backgroundColor: ui.hp },
-  barDone: { backgroundColor: ui.good },
+  bar: { flex: 1 },
+  countedProgress: { flexDirection: 'row' },
   progressText: { fontFamily: fonts.serifBold, fontSize: 13, color: ui.ink },
   rewardRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5 },
   spacer: { flex: 1 },

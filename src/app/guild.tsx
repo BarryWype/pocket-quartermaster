@@ -1,6 +1,7 @@
-import { Fragment, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import PagerView from 'react-native-pager-view';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 
 import { IconLabel } from '@/components/IconLabel';
 import { Price } from '@/components/Price';
@@ -10,6 +11,9 @@ import { materialById } from '@/content/lookup';
 import { guildRank, isGuildUnlocked, rankGate, rankPrice, rankProblem } from '@/game/guild/guild';
 import type { MaterialStack } from '@/game/types';
 import { useLanguage } from '@/hooks/useLanguage';
+import type { MotionLevel } from '@/content/motion';
+import { useLiveChange } from '@/hooks/useLiveChange';
+import { spring, timing, useMotion } from '@/hooks/useMotion';
 import { t, tr } from '@/i18n';
 import { useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
@@ -48,9 +52,31 @@ function PriceLine({ price }: { price: ReturnType<typeof rankPrice> }) {
   );
 }
 
-/** A rank pip: a small brass-filled diamond when bought, parchment when not. */
+/**
+ * A rank pip: a small brass-filled diamond when bought, parchment when not.
+ * Bought on screen, its brass pops in (Full) or fades in (Reduced); only then
+ * is an animated view mounted, so the guild's many pips cost plain views.
+ */
 function RankPip({ on }: { on: boolean }) {
-  return <View style={[styles.pip, on && styles.pipOn]} />;
+  const { level } = useMotion();
+  const change = useLiveChange(on ? 1 : 0);
+  if (!change.live || !on || level === 'off') return <View style={[styles.pip, on && styles.pipOn]} />;
+  return <FillingPip key={change.changes} level={level} />;
+}
+
+function FillingPip({ level }: { level: MotionLevel }) {
+  const fill = useSharedValue(0);
+  useEffect(() => {
+    fill.set(level === 'full' ? withSpring(1, spring('pop')) : withTiming(1, timing('small')));
+    // It fills once, when the purchase mounts it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const filling = useAnimatedStyle(() => (level === 'full' ? { transform: [{ scale: fill.value }] } : { opacity: fill.value }));
+  return (
+    <View style={styles.pip}>
+      <Animated.View style={[styles.pipFill, filling]} />
+    </View>
+  );
 }
 
 /** One upgrade: rank diamonds, the current and next effect, then the cost with Buy or a locked note. */
@@ -215,6 +241,7 @@ const styles = StyleSheet.create({
   pips: { flexDirection: 'row', gap: 10 },
   pip: { width: 11, height: 11, transform: [{ rotate: '45deg' }], borderWidth: 2, borderColor: ui.outline, backgroundColor: ui.parchmentShade },
   pipOn: { backgroundColor: ui.brass },
+  pipFill: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: ui.brass },
   effect: { fontFamily: fonts.serif, fontSize: 14, color: ui.ink },
   effectLabel: { fontFamily: fonts.serif, fontSize: 14, color: ui.inkMuted },
   next: { fontFamily: fonts.serifBold, color: ui.good },

@@ -1,6 +1,8 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+
+import { FillBar, PressScale, Pulse } from '@/components/motion';
 
 import { EquipPicker } from '@/components/EquipPicker';
 import { GearCard } from '@/components/GearDetails';
@@ -10,7 +12,6 @@ import { statIcons } from '@/components/GearRow';
 import { GameIcon } from '@/components/GameIcon';
 import { IconLabel } from '@/components/IconLabel';
 import { HpBar } from '@/components/HpBar';
-import { PixelBar } from '@/components/PixelBar';
 import { Text } from '@/components/Text';
 import { Tip } from '@/components/Tip';
 import { TutorialHint } from '@/components/TutorialHint';
@@ -73,14 +74,14 @@ function HeroHeader({ heroId }: { heroId: string }) {
             right={
               save.heroes.length > 1 ? (
                 <View style={styles.navRow}>
-                  <Pressable accessibilityRole="button" accessibilityLabel={t('hero.previous')} onPress={() => gotoHero(-1)} style={styles.navButton}>
+                  <PressScale accessibilityRole="button" accessibilityLabel={t('hero.previous')} onPress={() => gotoHero(-1)} style={styles.navButton}>
                     <View style={styles.navRim} pointerEvents="none" />
                     <Text style={styles.navGlyph}>‹</Text>
-                  </Pressable>
-                  <Pressable accessibilityRole="button" accessibilityLabel={t('hero.next')} onPress={() => gotoHero(1)} style={styles.navButton}>
+                  </PressScale>
+                  <PressScale accessibilityRole="button" accessibilityLabel={t('hero.next')} onPress={() => gotoHero(1)} style={styles.navButton}>
                     <View style={styles.navRim} pointerEvents="none" />
                     <Text style={styles.navGlyph}>›</Text>
-                  </Pressable>
+                  </PressScale>
                 </View>
               ) : undefined
             }
@@ -281,9 +282,9 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
           <View style={styles.classNameRow}>
             <Text style={styles.className}>{tr(heroClass.name)}</Text>
             <FamilyTag family={heroClass.familyTag} size={14} labelStyle={styles.className} />
-            <Pressable accessibilityRole="link" onPress={() => navigate('/families')} hitSlop={6}>
+            <PressScale accessibilityRole="link" onPress={() => navigate('/families')} hitSlop={6}>
               <Text style={styles.familiesLink}>{t('families.link')}</Text>
-            </Pressable>
+            </PressScale>
             {element && <IconLabel emoji={element.emoji} label={tr(element.name)} size={14} labelStyle={styles.className} />}
           </View>
           <View style={styles.traitRow}>
@@ -300,7 +301,7 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
         <HpBar save={save} hero={hero} inBar />
       </View>
       <Tip text={t('hero.xp', { xp: hero.xp, next })} accessibilityLabel={t('hero.xp', { xp: hero.xp, next })}>
-        <PixelBar value={xpShare} overlay={`${Math.round(xpShare * 100)}%`} />
+        <FillBar value={xpShare} overlay={`${Math.round(xpShare * 100)}%`} />
       </Tip>
       {aboveBand ? <Text style={styles.note}>{t('hero.xpAboveBand')}</Text> : null}
       {hero.job ? (
@@ -390,7 +391,7 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
                   if (!def) return [];
                   const shown = hero.title === id;
                   return [
-                    <Pressable
+                    <PressScale
                       key={id}
                       accessibilityRole="button"
                       accessibilityState={{ selected: shown }}
@@ -400,7 +401,7 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
                     >
                       <Text style={styles.titleName}>{tr(def.name)}</Text>
                       <Text style={styles.titleWhy}>{tr(def.description)}</Text>
-                    </Pressable>,
+                    </PressScale>,
                   ];
                 })}
               </View>
@@ -448,17 +449,20 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
     const jobTool = slot === 'offhand' && hero.job ? workTools.find((w) => w.job === hero.job!.jobId) : undefined;
     return (
       <View key={slot} style={styles.dollCell}>
-        <ItemSlot
-          state={content.state}
-          emoji={content.emoji}
-          icon={content.icon}
-          legendary={content.legendary}
-          mark={content.mark}
-          families={content.families}
-          size={64}
-          accessibilityLabel={content.label}
-          onPress={away || content.state === 'locked' ? undefined : () => setPicking(slot)}
-        />
+        {/* A piece equipped here pulses its slot once. */}
+        <Pulse on={hero.equipment[slot] ?? null}>
+          <ItemSlot
+            state={content.state}
+            emoji={content.emoji}
+            icon={content.icon}
+            legendary={content.legendary}
+            mark={content.mark}
+            families={content.families}
+            size={64}
+            accessibilityLabel={content.label}
+            onPress={away || content.state === 'locked' ? undefined : () => setPicking(slot)}
+          />
+        </Pulse>
         <Text style={styles.slotLabel}>{t(`hero.slots.${slot}`)}</Text>
         {jobTool && (
           <Text style={styles.slotNote}>
@@ -505,7 +509,7 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
           const open = !collapsed.includes(slot);
           return (
             <View key={slot} style={styles.section}>
-              <Pressable
+              <PressScale
                 accessibilityRole="button"
                 accessibilityState={{ expanded: open }}
                 onPress={() => setCollapsed(open ? [...collapsed, slot] : collapsed.filter((s) => s !== slot))}
@@ -513,7 +517,7 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
               >
                 <Text style={styles.slotHeading}>{`${t(`hero.slots.${slot}`)} (${pieces.length})`}</Text>
                 <Text style={styles.note}>{open ? '▲' : '▼'}</Text>
-              </Pressable>
+              </PressScale>
               {open && (
                 <View style={styles.grid}>
                   {pieces.map(({ gear, item, equipped }) => (

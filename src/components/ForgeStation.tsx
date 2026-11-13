@@ -1,4 +1,4 @@
-import { useRef, useState, type ComponentRef } from 'react';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { ScrollView, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 import PagerView from 'react-native-pager-view';
@@ -17,6 +17,8 @@ import { canRestore, relicRecipe } from '@/game/forging/relics';
 import { guildBonus } from '@/game/guild/guild';
 import type { SaveData } from '@/game/save';
 import { t, tr } from '@/i18n';
+import { useFreshRows } from '@/hooks/useFreshRows';
+import { feel } from '@/services/feel';
 import { useGameStore } from '@/store/gameStore';
 import { colors, fonts, ui } from '@/theme';
 
@@ -30,6 +32,7 @@ import { RecipeInputs, recipeInputsStyles } from './RecipeInputs';
 import { Row } from './Row';
 import { Text } from './Text';
 import { TutorialHint } from './TutorialHint';
+import { AppearIf } from './motion';
 import { DiamondRail, ItemSlot, useLazyPages, type RailItem } from './ui';
 
 /** The gear sections, always in this order; the Other section joins last when it has content. */
@@ -112,8 +115,14 @@ export function ForgeStation() {
   const confirmPending = () => {
     if (!pending) return;
     // A confirmed forge goes straight through; a cancel keeps everything as it is.
-    if (pending.kind === 'restore') setResult(restoreRelic(pending.relicUid));
-    else setResult(pending.ingredientId ? forgeWithIngredient(pending.recipeId, pending.ingredientId) : craft(pending.recipeId));
+    const made =
+      pending.kind === 'restore'
+        ? restoreRelic(pending.relicUid)
+        : pending.ingredientId
+          ? forgeWithIngredient(pending.recipeId, pending.ingredientId)
+          : craft(pending.recipeId);
+    if (made) feel('forge');
+    setResult(made);
     setPending(null);
     setAnchor(null);
   };
@@ -145,7 +154,11 @@ export function ForgeStation() {
               setAnchor(null);
               setPending({ kind: 'restore', relicUid: uid });
             }}
-            onCraft={(id) => setResult(craft(id))}
+            onCraft={(id) => {
+              const made = craft(id);
+              if (made) feel('forge');
+              setResult(made);
+            }}
           />
         ) : (
           <GearSection
@@ -236,6 +249,13 @@ function GearSection({
   );
 }
 
+/**
+ * Blueprints the forge has shown since the app started, so one learned since
+ * then appears once the first time it shows. Null until the forge first
+ * opens: what is known then counts as shown (there is no record of it in the save).
+ */
+let shownBlueprints: Set<string> | null = null;
+
 /** One tier of one item type: the tier line and the blueprint grid. */
 function TierBlock({
   save,
@@ -256,6 +276,10 @@ function TierBlock({
 }) {
   const allIds = tierRecipes(tier).filter((id) => pageTypeOf(recipeById[id]) === type);
   const known = allIds.filter((id) => knownIds.includes(id));
+  const fresh = useFreshRows(known, (id) => shownBlueprints !== null && !shownBlueprints.has(id));
+  useEffect(() => {
+    shownBlueprints = new Set([...(shownBlueprints ?? []), ...known]);
+  });
   const unknown = allIds.filter((id) => !knownIds.includes(id));
   const material = materialById[tierMaterials[tier - 1]];
   // Each slot is wrapped in a 2 px ring, so its face is 4 px narrower than its cell.
@@ -269,14 +293,15 @@ function TierBlock({
       </View>
       <View style={styles.grid}>
         {known.map((id) => (
-          <GearSlot
-            key={id}
-            save={save}
-            recipeId={id}
-            size={cell}
-            selected={pending !== null && pending.kind === 'forge' && pending.recipeId === id}
-            onForge={onForge}
-          />
+          <AppearIf key={id} fresh={fresh.has(id)}>
+            <GearSlot
+              save={save}
+              recipeId={id}
+              size={cell}
+              selected={pending !== null && pending.kind === 'forge' && pending.recipeId === id}
+              onForge={onForge}
+            />
+          </AppearIf>
         ))}
         {unknown.map((id) => (
           <ItemSlot key={id} state="empty" size={cell} accessibilityLabel={t('crafting.notFound')} />

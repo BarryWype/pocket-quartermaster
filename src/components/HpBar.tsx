@@ -11,7 +11,7 @@ import { formatDuration, t } from '@/i18n';
 import { colors, fonts } from '@/theme';
 import { useNow } from '@/hooks/useNow';
 
-import { PixelBar } from './PixelBar';
+import { FillBar } from '@/components/motion';
 import { Text } from './Text';
 import { IconLabel } from './IconLabel';
 
@@ -40,7 +40,7 @@ export function HpBar({ save, hero, light, inBar }: Props) {
         : t('health.fullIn', { time: formatDuration(timeToFull(save, hero, now)) });
   return (
     <View>
-      <PixelBar
+      <FillBar
         value={share}
         color={share < healthRules.hurtShare ? colors.danger : colors.success}
         height={inBar ? 32 : undefined}

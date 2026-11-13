@@ -1,5 +1,7 @@
 import { useMemo, useRef, useState, type ComponentRef } from 'react';
-import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+
+import { PressScale } from '@/components/motion';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { familyById } from '@/content/families';
@@ -51,7 +53,7 @@ function ForgeRow({ choice, save, selected, onOpen }: { choice: ForgeChoice; sav
     .join(', ');
   return (
     <View ref={wrapper} collapsable={false}>
-      <Pressable
+      <PressScale
         accessibilityRole="button"
         accessibilityLabel={label}
         onPress={() => wrapper.current?.measureInWindow((x, y, width, height) => onOpen({ x, y, width, height }))}
@@ -92,7 +94,7 @@ function ForgeRow({ choice, save, selected, onOpen }: { choice: ForgeChoice; sav
             </Text>
           )}
         </View>
-      </Pressable>
+      </PressScale>
     </View>
   );
 }
@@ -142,9 +144,9 @@ export function GearPicker({ save, party, heroId, slot, groups, oddsOf, chance, 
             <Text style={styles.title}>{`${hero.name} · ${t(`hero.slots.${slot}`)}`}</Text>
             {sub && <Text style={styles.sub}>{sub}</Text>}
           </View>
-          <Pressable accessibilityRole="button" accessibilityLabel={t('common.close')} onPress={onClose} style={styles.close}>
+          <PressScale accessibilityRole="button" accessibilityLabel={t('common.close')} onPress={onClose} style={styles.close}>
             <Text style={styles.closeText}>✕</Text>
-          </Pressable>
+          </PressScale>
         </View>
         <ScrollView style={styles.scroll} contentContainerStyle={styles.body}>
           <Text style={styles.cap}>{t(`partyDialog.yours.${slot}`)}</Text>

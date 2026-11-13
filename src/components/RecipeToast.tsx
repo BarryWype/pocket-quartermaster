@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StyleSheet } from 'react-native';
+
+import { Toast } from '@/components/motion';
 
 import { recipeById, recipeOutput } from '@/content/lookup';
 import { newPartRecipes } from '@/game/crafting/partRecipes';
@@ -10,9 +11,8 @@ import { colors } from '@/theme';
 
 import { Text } from './Text';
 
-/** "New recipe: …" over any screen when a found part unlocks recipes. */
+/** "New recipe: …" over any screen when a found part unlocks recipes; it sits in the root layout's toast column. */
 export function RecipeToast() {
-  const insets = useSafeAreaInsets();
   const [names, setNames] = useState<string | null>(null);
 
   useEffect(
@@ -34,14 +34,13 @@ export function RecipeToast() {
 
   if (!names) return null;
   return (
-    <View pointerEvents="none" style={[styles.wrapper, { top: insets.top + 8 }]}>
+    <Toast edge="top">
       <Text style={styles.banner}>{t('crafting.newRecipe', { names })}</Text>
-    </View>
+    </Toast>
   );
 }
 
 const styles = StyleSheet.create({
-  wrapper: { position: 'absolute', left: 16, right: 16, alignItems: 'center' },
   banner: {
     overflow: 'hidden',
     borderRadius: 12,

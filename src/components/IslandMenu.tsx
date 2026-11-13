@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { Image, Keyboard, Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { PressScale } from '@/components/motion';
+
 import { healthRules } from '@/content/health';
 import { jobs } from '@/content/jobs';
 import { isJobFull, isTired } from '@/game/jobs/jobs';
@@ -85,18 +87,14 @@ export function IslandMenu() {
         {craftOpen && (
           <View style={styles.dropdown}>
             {CRAFT_LINKS.map((link) => (
-              <Pressable
-                key={link.label}
-                onPress={() => go(link.href)}
-                style={({ pressed }) => [
-                  styles.dropdownItem,
-                  (link.target === target || link.href === pathname) && styles.dropdownHighlight,
-                  pressed && styles.pressed,
-                ]}
-              >
-                <Image source={link.icon} style={styles.dropdownIcon} />
-                <Text style={styles.dropdownLabel}>{t(link.label)}</Text>
-              </Pressable>
+              <PressScale key={link.label} accessibilityRole="button" accessibilityLabel={t(link.label)} onPress={() => go(link.href)}>
+                {({ pressed }) => (
+                  <View style={[styles.dropdownItem, (link.target === target || link.href === pathname) && styles.dropdownHighlight, pressed && styles.pressed]}>
+                    <Image source={link.icon} style={styles.dropdownIcon} />
+                    <Text style={styles.dropdownLabel}>{t(link.label)}</Text>
+                  </View>
+                )}
+              </PressScale>
             ))}
           </View>
         )}

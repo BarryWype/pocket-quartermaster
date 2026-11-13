@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
-import { AccessibilityInfo, Animated, Easing, Platform, Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { Animated, Easing, Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 
 import { gearRules } from '@/content/gear';
+import { motion } from '@/content/motion';
 import { gearName, itemById, materialById, recipeById, recipeOutput, relicById } from '@/content/lookup';
 import { wornBy } from '@/game/forging/salvage';
 import type { RewardTile } from '@/game/loot/tiles';
 import type { SaveData } from '@/game/save';
 import { isAway } from '@/game/team/team';
 import type { GearDef } from '@/game/types';
+import { useMotion } from '@/hooks/useMotion';
 import { t, tr } from '@/i18n';
+import { feel } from '@/services/feel';
 import { navigate } from '@/services/navigation';
 import { useGameStore } from '@/store/gameStore';
 import { fonts, ui } from '@/theme';
@@ -22,10 +24,7 @@ import { AnchoredPopup, Chip, Deferred, ItemPopup, ItemSlot, WoodButton, type Po
 import { usedInChips } from './usedInChips';
 
 const GAP = 6;
-/** The reveal: the plain tiles in one beat, then each best find after a pause; under two seconds in all. */
-const BEAT_MS = 280;
-const PAUSE_MS = 150;
-const BEST_MS = 380;
+const { beat: BEAT_MS, pause: PAUSE_MS, best: BEST_MS } = motion.reveal;
 
 /** Gear, maps and manuals wear their rarity; blueprints and relics have their own frame; the rest stay plain. */
 function frameOf(tile: RewardTile): string | undefined {
@@ -35,15 +34,13 @@ function frameOf(tile: RewardTile): string | undefined {
   return gearRules.colors[tile.rarity];
 }
 
-function lightHaptic() {
-  if (Platform.OS === 'android') Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Context_Click).catch(() => {});
-  else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-}
-
 /** Each tile's reveal value (0 hidden, 1 shown), the skip, and whether it is over. */
 function useReveal(tiles: RewardTile[], reveal: boolean) {
-  const [values] = useState(() => new Map(tiles.map((tile) => [tile.key, new Animated.Value(reveal ? 0 : 1)])));
-  const [done, setDone] = useState(!reveal);
+  // The reveal pops and grows tiles, so only the Full level stages it.
+  const { level } = useMotion();
+  const staged = reveal && level === 'full';
+  const [values] = useState(() => new Map(tiles.map((tile) => [tile.key, new Animated.Value(staged ? 0 : 1)])));
+  const [done, setDone] = useState(!staged);
   const running = useRef<{ animation: Animated.CompositeAnimation; timers: ReturnType<typeof setTimeout>[] } | null>(null);
 
   const finish = () => {
@@ -55,29 +52,22 @@ function useReveal(tiles: RewardTile[], reveal: boolean) {
   };
 
   useEffect(() => {
-    if (!reveal) return;
-    let cancelled = false;
-    AccessibilityInfo.isReduceMotionEnabled().then(
-      (reduce) => {
-        if (cancelled) return;
-        if (reduce) return finish();
-        // The best find shows last.
-        const best = tiles.filter((tile) => tile.best).reverse();
-        const plain = tiles.filter((tile) => !tile.best);
-        const pop = (key: string, duration: number) =>
-          Animated.timing(values.get(key)!, { toValue: 1, duration, easing: Easing.out(Easing.back(2)), useNativeDriver: true });
-        const animation = Animated.sequence([
-          Animated.parallel(plain.map((tile) => pop(tile.key, BEAT_MS))),
-          ...best.map((tile) => Animated.sequence([Animated.delay(PAUSE_MS), pop(tile.key, BEST_MS)])),
-        ]);
-        const timers = best.map((_, i) => setTimeout(lightHaptic, BEAT_MS + (i + 1) * PAUSE_MS + i * BEST_MS));
-        running.current = { animation, timers };
-        animation.start(({ finished }) => finished && finish());
-      },
-      () => finish(),
+    if (!staged) return;
+    // The best find shows last.
+    const best = tiles.filter((tile) => tile.best).reverse();
+    const plain = tiles.filter((tile) => !tile.best);
+    const pop = (key: string, duration: number) =>
+      Animated.timing(values.get(key)!, { toValue: 1, duration, easing: Easing.out(Easing.back(2)), useNativeDriver: true });
+    const animation = Animated.sequence([
+      Animated.parallel(plain.map((tile) => pop(tile.key, BEAT_MS))),
+      ...best.map((tile) => Animated.sequence([Animated.delay(PAUSE_MS), pop(tile.key, BEST_MS)])),
+    ]);
+    const timers = best.map((tile, i) =>
+      setTimeout(() => feel('reward', { rarity: tile.rarity }), BEAT_MS + (i + 1) * PAUSE_MS + i * BEST_MS),
     );
+    running.current = { animation, timers };
+    animation.start(({ finished }) => finished && finish());
     return () => {
-      cancelled = true;
       running.current?.animation.stop();
       running.current?.timers.forEach(clearTimeout);
     };
@@ -146,7 +136,7 @@ function RevealTile({ tile, size, value, reveal, labelColor, onPress }: { tile: 
 
 type Props = {
   tiles: RewardTile[];
-  /** Play the reveal when the grid opens (skipped by a tap, static with reduce motion on). */
+  /** Play the reveal when the grid opens (skipped by a tap, static below the Full animation level). */
   reveal?: boolean;
   /** A fixed tile size; by default four tiles fill the grid's width. */
   size?: number;

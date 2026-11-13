@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
+
+import { PressScale } from '@/components/motion';
 
 import { elementInfo } from '@/content/elements';
 import { sanctumGuardian } from '@/content/enemies';
@@ -162,13 +164,13 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
               <View style={styles.chips}>
                 {tiers.length === 0 && <Text style={styles.muted}>{t('sanctum.noSigilHeld')}</Text>}
                 {tiers.map((sigilTier) => (
-                  <Pressable
+                  <PressScale
                     key={sigilTier}
                     onPress={() => setTier(sigilTier)}
                     style={[styles.chip, tier === sigilTier && styles.chipActive]}
                   >
                     <Text>{t('sanctum.tier', { tier: sigilTier, count: save.sigils.filter((s) => s === sigilTier).length })}</Text>
-                  </Pressable>
+                  </PressScale>
                 ))}
               </View>
               </>

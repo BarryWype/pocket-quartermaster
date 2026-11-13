@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, View, type ImageSourcePropType } from 'react-native';
+import { ScrollView, StyleSheet, View, type ImageSourcePropType } from 'react-native';
+
+import { PressScale } from '@/components/motion';
 
 import { affixById } from '@/content/affixes';
 import { gearProfiles, gearTypeNames } from '@/content/equipment';
@@ -78,21 +80,21 @@ function IngredientRow({
   const picked = () => onPick(selected ? null : ingredientId);
   if (ingredientId === null) {
     return (
-      <Pressable
+      <PressScale
         accessibilityRole="button"
         accessibilityLabel={t('crafting.noIngredient')}
         onPress={picked}
         style={[styles.ingredientRow, selected && styles.ingredientSelected]}
       >
         <Text style={styles.ingredientName}>{t('crafting.noIngredient')}</Text>
-      </Pressable>
+      </PressScale>
     );
   }
   const ingredient = monsterPartById[ingredientId];
   const affixId = ingredientAffixId(ingredientId, gearType);
   const range = affixId ? affixById[affixId].range : undefined;
   return (
-    <Pressable
+    <PressScale
       accessibilityRole="button"
       accessibilityLabel={tr(ingredient.name)}
       onPress={picked}
@@ -108,7 +110,7 @@ function IngredientRow({
         )}
       </View>
       <Text style={styles.ingredientHeld}>×{held}</Text>
-    </Pressable>
+    </PressScale>
   );
 }
 

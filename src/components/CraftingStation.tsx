@@ -10,6 +10,7 @@ import { ELEMENTS, shardId } from '@/game/elements';
 import type { SaveData } from '@/game/save';
 import type { RecipeDef } from '@/game/types';
 import { t, tr } from '@/i18n';
+import { feel } from '@/services/feel';
 import { useGameStore } from '@/store/gameStore';
 import { fonts, ui } from '@/theme';
 
@@ -71,6 +72,8 @@ export function CraftingStation({ station, action }: Props) {
   const save = useGameStore((state) => state.save);
   const craft = useGameStore((state) => state.craft);
   const [result, setResult] = useState<ForgeResult | null>(null);
+  /** What the open pop-up has made, so its card flashes on each. */
+  const [made, setMade] = useState(0);
   const [section, setSection] = useState<Section>('kitchen');
   /** The recipe picked for an item that has two, by item id. */
   const [picked, setPicked] = useState<Record<string, string>>({});
@@ -143,7 +146,15 @@ export function CraftingStation({ station, action }: Props) {
           action={action}
           onClose={() => setPending(null)}
           onPick={(recipeId) => setPicked({ ...picked, [recipeOutput(pending.group[0]).id]: recipeId })}
-          onCraft={(recipeId) => setResult(craft(recipeId))}
+          made={made}
+          onCraft={(recipeId) => {
+            const crafted = craft(recipeId);
+            setResult(crafted);
+            if (crafted) {
+              feel('forge');
+              setMade((count) => count + 1);
+            }
+          }}
         />
       )}
     </View>
@@ -238,6 +249,7 @@ function RecipePopup({
   onClose,
   onPick,
   onCraft,
+  made,
 }: {
   save: SaveData;
   group: Group;
@@ -248,6 +260,7 @@ function RecipePopup({
   onClose: () => void;
   onPick: (recipeId: string) => void;
   onCraft: (recipeId: string) => void;
+  made: number;
 }) {
   const output = recipeOutput(group[0]);
   // The recipe the player can afford, or their pick when both are.
@@ -284,6 +297,7 @@ function RecipePopup({
           lines={lines}
           ingredients={ingredients}
           secondary={other ? { title: t('crafting.otherRecipe'), onPress: () => onPick(other.id) } : undefined}
+          made={made}
           action={{
             title: owned ? t('crafting.owned') : kitchen ? t('crafting.cook') : action,
             disabled: owned || !canCraft(save, recipe),

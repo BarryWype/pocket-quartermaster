@@ -1,5 +1,7 @@
 import { useMemo, useRef, useState, type ComponentRef } from 'react';
-import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+
+import { PressScale } from '@/components/motion';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { familyById } from '@/content/families';
@@ -67,9 +69,9 @@ export function HeroPicker({ save, party, groups, ordinal, now, oddsOf, chance, 
             <Text style={styles.title}>{t(`partyDialog.ordinal.${ORDINALS[Math.min(3, ordinal) - 1]}`)}</Text>
             {sub && <Text style={styles.sub}>{sub}</Text>}
           </View>
-          <Pressable accessibilityRole="button" accessibilityLabel={t('common.close')} onPress={onClose} style={styles.close}>
+          <PressScale accessibilityRole="button" accessibilityLabel={t('common.close')} onPress={onClose} style={styles.close}>
             <Text style={styles.closeText}>✕</Text>
-          </Pressable>
+          </PressScale>
         </View>
         <ScrollView style={styles.scroll} contentContainerStyle={styles.body}>
           <Text style={styles.cap}>{t('partyDialog.yourHeroes')}</Text>
@@ -80,7 +82,7 @@ export function HeroPicker({ save, party, groups, ordinal, now, oddsOf, chance, 
               const status = statusText(c);
               const free = status === null;
               return (
-                <Pressable
+                <PressScale
                   key={c.hero.id}
                   accessibilityRole="button"
                   accessibilityLabel={[c.hero.name, tr(heroClass.name), c.lights.length > 0 ? t('partyDialog.coversNeed') : null, status].filter(Boolean).join(', ')}
@@ -104,7 +106,7 @@ export function HeroPicker({ save, party, groups, ordinal, now, oddsOf, chance, 
                   <Text style={styles.heroName} numberOfLines={1}>
                     {c.hero.name}
                   </Text>
-                </Pressable>
+                </PressScale>
               );
             })}
           </View>

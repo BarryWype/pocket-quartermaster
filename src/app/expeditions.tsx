@@ -1,6 +1,8 @@
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+
+import { AppearIf, PressScale } from '@/components/motion';
 import PagerView from 'react-native-pager-view';
 
 import { Countdown, countdownText } from '@/components/Countdown';
@@ -42,6 +44,7 @@ import { briefingReadiness } from '@/game/threats/readiness';
 import type { SaveData } from '@/game/save';
 import type { ExpeditionReport } from '@/game/types';
 import { syncBackground } from '@/hooks/useAutoGather';
+import { useFreshRows } from '@/hooks/useFreshRows';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useNow } from '@/hooks/useNow';
 import { syncPlan } from '@/hooks/useNotifications';
@@ -122,6 +125,10 @@ function ExpeditionsContent() {
   /** The place whose notice was tapped: its party dialog is open. */
   const [confirming, setConfirming] = useState<string | null>(null);
   const [openReport, setOpenReport] = useState<string | null>(null);
+  const freshReports = useFreshRows(
+    save.reports.map((report) => report.id),
+    (id) => save.reports.some((report) => report.id === id && !report.seen),
+  );
   const [collected, setCollected] = useState<Collected | null>(null);
 
   // Reports count as read once the player leaves their tab or the screen.
@@ -244,9 +251,9 @@ function ExpeditionsContent() {
   const placesTab = (
     <>
       {lowSupply && (
-        <Pressable onPress={closeCookingHint} accessibilityLabel={t('map.cookingHint')} style={styles.hint}>
+        <PressScale onPress={closeCookingHint} accessibilityLabel={t('map.cookingHint')} style={styles.hint}>
           <RewardLabel text={t('map.cookingHint')} size={16} labelStyle={styles.hintText} />
-        </Pressable>
+        </PressScale>
       )}
       <View style={styles.tiers}>
         {ROMAN.map((roman, i) => {
@@ -353,14 +360,15 @@ function ExpeditionsContent() {
       <Text style={styles.heading}>{t('expeditions.reports')}</Text>
       {save.reports.length === 0 && <Text style={styles.muted}>{t('expeditions.noReports')}</Text>}
       {save.reports.map((report) => (
-        <ReportCard
-          key={report.id}
-          report={report}
-          heroes={save.heroes}
-          now={now}
-          expanded={openReport === report.id}
-          onToggle={() => setOpenReport(openReport === report.id ? null : report.id)}
-        />
+        <AppearIf key={report.id} fresh={freshReports.has(report.id)}>
+          <ReportCard
+            report={report}
+            heroes={save.heroes}
+            now={now}
+            expanded={openReport === report.id}
+            onToggle={() => setOpenReport(openReport === report.id ? null : report.id)}
+          />
+        </AppearIf>
       ))}
     </>
   );
@@ -373,14 +381,14 @@ function ExpeditionsContent() {
       <ScrollView style={styles.content} contentContainerStyle={styles.container}>
         <TutorialHint screen="expeditions" />
         {ready.length > 0 && key !== 'out' && (
-          <Pressable
+          <PressScale
             accessibilityRole="button"
             accessibilityLabel={readyBanner}
             onPress={() => setTab('out')}
             style={styles.banner}
           >
             <RewardLabel text={readyBanner} size={16} labelStyle={styles.bannerText} />
-          </Pressable>
+          </PressScale>
         )}
         {key === 'places' ? placesTab : key === 'out' ? outTab : <JobsTab key={heroId ?? 'none'} preselect={heroId ?? null} />}
       </ScrollView>

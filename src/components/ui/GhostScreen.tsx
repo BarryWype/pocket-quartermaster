@@ -1,8 +1,11 @@
 import { useEffect, useLayoutEffect, useState, type ReactNode } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
+import Reanimated, { FadeOut, ReduceMotion } from 'react-native-reanimated';
 
 import { useAfterFirstFrame } from '@/hooks/useAfterFirstFrame';
+import { motion } from '@/content/motion';
 import { useAnimationsEnabled } from '@/hooks/useAnimationFrame';
+import { useMotion } from '@/hooks/useMotion';
 import { recordTapToContent } from '@/services/timings';
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
 import { ui } from '@/theme';
@@ -11,6 +14,22 @@ import { ui } from '@/theme';
 export type GhostVariant = 'cards' | 'grid' | 'hero';
 
 const PULSE = { low: 0.35, high: 0.55, ms: 900 };
+
+const FADE_AWAY = FadeOut.duration(motion.duration.small).reduceMotion(ReduceMotion.Never);
+
+/**
+ * Wraps a ghost: when the real content replaces it, the ghost fades out over
+ * the content in the small duration (Full and Reduced), so the content shows
+ * through without a jump: it is laid out in its final place from its first frame.
+ */
+export function GhostFade({ children }: { children: ReactNode }) {
+  const { level } = useMotion();
+  return (
+    <Reanimated.View style={styles.fade} exiting={level === 'off' ? undefined : FADE_AWAY}>
+      {children}
+    </Reanimated.View>
+  );
+}
 
 /** A parchment block with ParchmentCard's border and no text. */
 function Block({ height, width, flex }: { height: number; width?: number; flex?: number }) {
@@ -88,10 +107,11 @@ function ContentMark({ name, children }: { name: string; children: ReactNode }) 
 export function Deferred({ name, ghost, children }: { name: string; ghost: ReactNode; children: ReactNode }) {
   const ready = useAfterFirstFrame();
   const noDeferral = useDebugStore((state) => debugEnabled(state) && state.noContentDeferral);
-  return ready || noDeferral ? <ContentMark name={name}>{children}</ContentMark> : ghost;
+  return ready || noDeferral ? <ContentMark name={name}>{children}</ContentMark> : <GhostFade>{ghost}</GhostFade>;
 }
 
 const styles = StyleSheet.create({
+  fade: { flex: 1 },
   screen: { flex: 1, flexDirection: 'row', backgroundColor: ui.woodDark },
   body: { flex: 1, paddingVertical: 14, paddingHorizontal: 12, gap: 10, backgroundColor: ui.woodDark },
   block: { borderWidth: 3, borderColor: ui.outline, backgroundColor: ui.parchment },

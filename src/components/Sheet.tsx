@@ -1,10 +1,11 @@
-import type { ReactNode } from 'react';
+import { useContext, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View, useWindowDimensions, type ImageSourcePropType, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { sheetMaxHeight } from '@/content/overlay';
 import { colors, pixel, fonts, ui } from '@/theme';
 
+import { SheetDrag } from './motion/OverlayPanel';
 import { GameIcon } from './GameIcon';
 import { IconLabel } from './IconLabel';
 import { Text } from './Text';
@@ -45,12 +46,15 @@ export function useSheetMaxHeight(): number {
  * content up to `useSheetMaxHeight` — a short list (the equip picker) shows all
  * its rows, a long one (the patrol panel) scrolls — and it touches the bottom
  * of the screen: the overlay's modal spans the whole screen, so only the
- * footer's inset padding lifts the buttons.
+ * footer's inset padding lifts the buttons. Its header can be dragged down to
+ * close it, when it sits in a bottom overlay.
  */
 export function Sheet({ title, emoji, icon, subtitle, bodyStyle, footer, children, variant }: Props) {
   const { bottom } = useSafeAreaInsets();
   const maxHeight = useSheetMaxHeight();
   const wood = variant === 'wood';
+  // The header is the sheet's handle: pulled down, it closes the sheet. The body keeps its own scrolling.
+  const drag = useContext(SheetDrag);
   return (
     <View style={[styles.sheet, wood && styles.woodSheet, { maxHeight }]}>
       {wood && (
@@ -61,7 +65,7 @@ export function Sheet({ title, emoji, icon, subtitle, bodyStyle, footer, childre
       )}
       {(title !== undefined || subtitle !== undefined) &&
         (wood ? (
-          <View style={styles.band}>
+          <View style={styles.band} {...drag}>
             <View style={styles.bandSeams} pointerEvents="none">
               {Array.from({ length: 6 }, (_, i) => (
                 <View key={i} style={[styles.bandSeam, { top: (i + 1) * 14 }]} />
@@ -78,7 +82,7 @@ export function Sheet({ title, emoji, icon, subtitle, bodyStyle, footer, childre
             </View>
           </View>
         ) : (
-          <View style={styles.header}>
+          <View style={styles.header} {...drag}>
             {title !== undefined &&
               (emoji ? (
                 <IconLabel emoji={emoji} icon={icon} label={title} size={24} gap={6} labelStyle={styles.title} />

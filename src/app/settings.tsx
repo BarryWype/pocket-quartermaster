@@ -1,6 +1,8 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { Alert, AppState, Linking, Pressable, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Alert, AppState, Linking, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+
+import { PressScale } from '@/components/motion';
 import PagerView from 'react-native-pager-view';
 import Constants from 'expo-constants';
 
@@ -11,9 +13,11 @@ import { Text } from '@/components/Text';
 import { frNotificationCategories, frNotificationGroups } from '@/content/fr/notifications';
 import { gatheringConfig } from '@/content/gatheringConfig';
 import { sightRules } from '@/content/map';
+import { MOTION_LEVELS, type MotionLevel } from '@/content/motion';
 import { notificationCategories, notificationGroups } from '@/content/notifications';
 import type { NotificationCategory, NotificationGroup } from '@/game/notifications/types';
 import { useLanguage } from '@/hooks/useLanguage';
+import { useMotion } from '@/hooks/useMotion';
 import { syncPlan } from '@/hooks/useNotifications';
 import { localized, t } from '@/i18n';
 import { navigate } from '@/services/navigation';
@@ -38,6 +42,12 @@ const SIGHT_LABELS: Record<number, () => string> = {
   1: () => t('settings.sight.1'),
   2: () => t('settings.sight.2'),
   3: () => t('settings.sight.3'),
+};
+
+const MOTION_LABELS: Record<MotionLevel, () => string> = {
+  full: () => t('settings.motion.full'),
+  reduced: () => t('settings.motion.reduced'),
+  off: () => t('settings.motion.off'),
 };
 
 const clock = (minutes: number) =>
@@ -95,7 +105,7 @@ function SelectButton({
   style?: StyleProp<ViewStyle>;
 }) {
   return (
-    <Pressable
+    <PressScale
       accessibilityRole="radio"
       accessibilityLabel={label}
       accessibilityState={{ checked: selected }}
@@ -103,7 +113,7 @@ function SelectButton({
       style={[styles.choice, selected && styles.choiceOn, style]}
     >
       <Text style={[styles.choiceText, selected && styles.choiceTextOn]}>{label}</Text>
-    </Pressable>
+    </PressScale>
   );
 }
 
@@ -141,7 +151,8 @@ function SettingsScreen() {
 
 function SettingsContent() {
   useLanguage();
-  const { language, notifications, updateNotifications, setCategory, setQuietHours, set, sightRange, pocketMode, setPocketMode } = useSettingsStore();
+  const { language, notifications, updateNotifications, setCategory, setQuietHours, set, sightRange, pocketMode, setPocketMode, animations, haptics } = useSettingsStore();
+  const { phoneReduced } = useMotion();
   const autoToggle = useAutoGatherToggle();
   const walks = useGameStore((state) => state.save.autoGather.history);
   const tipsSeen = useGameStore((state) => state.save.tips.seen.length);
@@ -248,6 +259,22 @@ function SettingsContent() {
             />
           ))}
         </View>
+      </ParchmentCard>
+      <ParchmentCard title={t('settings.animations')} contentStyle={styles.card}>
+        <Text style={styles.hint}>{t('settings.animationsHint')}</Text>
+        <View style={styles.choiceFrame}>
+          {MOTION_LEVELS.map((level) => (
+            <SelectButton
+              key={level}
+              label={MOTION_LABELS[level]()}
+              selected={animations === level}
+              onPress={() => set({ animations: level })}
+              style={styles.choiceGrow}
+            />
+          ))}
+        </View>
+        {phoneReduced && animations === 'full' && <Text style={styles.hint}>{t('settings.motionPhoneReduced')}</Text>}
+        <SwitchRow title={t('settings.haptics')} description={t('settings.hapticsHint')} value={haptics} onChange={(on) => set({ haptics: on })} />
       </ParchmentCard>
       <ParchmentCard title={t('autoGather.history')} contentStyle={styles.card}>
         {walks.length === 0 && <Text style={styles.hint}>{t('autoGather.noHistory')}</Text>}

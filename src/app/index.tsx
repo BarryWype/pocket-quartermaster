@@ -2,7 +2,9 @@ import { Camera, type CameraRef, Images, Map, type MapRef } from '@maplibre/mapl
 import { useFocusEffect, useNavigation, type NativeStackNavigationProp } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Freeze } from 'react-freeze';
-import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+
+import { PressScale, Toast } from '@/components/motion';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AutoGatherPill, WalkCard } from '@/components/AutoGather';
@@ -794,7 +796,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
         </View>
       )}
       {(!following || focusPlace) && (
-        <Pressable
+        <PressScale
           accessibilityLabel={t('map.recentre')}
           onPress={() => {
             setFollowing(true);
@@ -805,7 +807,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
         >
           <View style={styles.squareRim} pointerEvents="none" />
           <Text style={styles.recentreEmoji}>🧙</Text>
-        </Pressable>
+        </PressScale>
       )}
       <TutorialHint screen="map" style={[styles.tutorialHint, { top: insets.top + TOP_BAR_HEIGHT + (player.mocked ? 84 : 48) }]} />
       {isLureActive(save, now) && (
@@ -834,14 +836,14 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
           </Text>
         </View>
       ) : (
-        <Pressable
+        <PressScale
           accessibilityLabel={t('map.freshLegsShow')}
           onPress={() => setFreshLegsOpen(true)}
           style={[styles.squareButton, styles.freshLegsButton, { top: insets.top + TOP_BAR_HEIGHT + 48 }]}
         >
           <View style={styles.squareRim} pointerEvents="none" />
           <Text style={styles.buttonEmoji}>🦵</Text>
-        </Pressable>
+        </PressScale>
       ))}
       <MapPanels player={position} patrols={visiblePatrols} />
       {fallbackButton}
@@ -855,10 +857,10 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
 /** The map's toast: its words, then up to four small tiles of what it paid and "+N" for the rest. */
 function ToastBanner({ message, style }: { message: { text: string; tiles?: RewardTile[] }; style: StyleProp<ViewStyle> }) {
   return (
-    <View style={[styles.bannerView, style]}>
+    <Toast edge="bottom" style={[styles.bannerView, style]}>
       <Text style={styles.bannerText}>{message.text}</Text>
       {message.tiles && message.tiles.length > 0 && <LootGrid key={message.text} tiles={message.tiles} size={TOAST_TILE} max={4} interactive={false} />}
-    </View>
+    </Toast>
   );
 }
 

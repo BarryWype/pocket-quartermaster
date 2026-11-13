@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StyleSheet } from 'react-native';
+
+import { Toast } from '@/components/motion';
 
 import { placeInfo } from '@/content/places';
 import { distanceMeters } from '@/game/generation/geo';
@@ -18,7 +19,6 @@ import { Text } from './Text';
  * key while a tipped place waits.
  */
 export function SecretToast() {
-  const insets = useSafeAreaInsets();
   const [lines, setLines] = useState<string[] | null>(null);
 
   useEffect(
@@ -59,20 +59,17 @@ export function SecretToast() {
 
   if (!lines) return null;
   return (
-    <View pointerEvents="none" style={[styles.wrapper, { top: insets.top + 8 }]}>
-      <View style={styles.banner}>
-        {lines.map((line) => (
-          <Text key={line} style={styles.text}>
-            {line}
-          </Text>
-        ))}
-      </View>
-    </View>
+    <Toast edge="top" style={styles.banner}>
+      {lines.map((line) => (
+        <Text key={line} style={styles.text}>
+          {line}
+        </Text>
+      ))}
+    </Toast>
   );
 }
 
 const styles = StyleSheet.create({
-  wrapper: { position: 'absolute', left: 16, right: 16, alignItems: 'center' },
   banner: { overflow: 'hidden', borderRadius: 12, backgroundColor: colors.ink, paddingHorizontal: 12, paddingVertical: 6 },
   text: { color: colors.parchment, fontSize: 18 },
 });

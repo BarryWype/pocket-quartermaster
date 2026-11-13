@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+
+import { PressScale, Pulse } from '@/components/motion';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { familyById, type FamilyId } from '@/content/families';
@@ -102,7 +104,7 @@ function NeedsCard({ groups, counts, empty }: { groups: SocketGroup[]; counts: R
             {banners.map((banner) => {
               const def = familyById[banner.family];
               return (
-                <Pressable
+                <PressScale
                   key={banner.family}
                   accessibilityRole="button"
                   accessibilityLabel={t('families.chip', { family: tr(def.name), count: banner.count, lit: banner.level })}
@@ -120,7 +122,7 @@ function NeedsCard({ groups, counts, empty }: { groups: SocketGroup[]; counts: R
                       ))}
                     </View>
                   </View>
-                </Pressable>
+                </PressScale>
               );
             })}
           </View>
@@ -188,9 +190,9 @@ function HeroPlate({
             <View style={[styles.hpFill, { width: `${share * 100}%` }, share < 0.5 && styles.hpLow]} />
           </View>
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel={t('partyDialog.remove', { name: hero.name })} onPress={onRemove} hitSlop={8} style={styles.remove}>
+        <PressScale accessibilityRole="button" accessibilityLabel={t('partyDialog.remove', { name: hero.name })} onPress={onRemove} hitSlop={8} style={styles.remove}>
           <Text style={styles.removeText}>✕</Text>
-        </Pressable>
+        </PressScale>
       </View>
       <View style={styles.gearRow}>
         {GEAR_SLOTS.map((slot) => {
@@ -199,7 +201,7 @@ function HeroPlate({
           const glow = hints.has(`${hero.id}:${slot}`);
           const label = `${t(`hero.slots.${slot}`)}: ${gear ? gearName(gear) : t('hero.empty')}${glow ? `. ${t('partyDialog.swapHint')}` : ''}`;
           return (
-            <View key={slot} style={glow && styles.glow}>
+            <Pulse key={slot} on={gear?.uid ?? null} style={glow && styles.glow}>
               <ItemSlot
                 state={gear ? 'ready' : 'empty'}
                 emoji={item?.emoji}
@@ -210,22 +212,23 @@ function HeroPlate({
                 onPress={() => onSlot(slot)}
                 accessibilityLabel={label}
               />
-            </View>
+            </Pulse>
           );
         })}
         {extra.map((slot) => {
           const id = hero.equipment[slot];
           return (
-            <ItemSlot
-              key={slot}
-              state={id ? 'ready' : 'empty'}
-              emoji={id ? itemById[id].emoji : undefined}
-              icon={id ? itemById[id].icon : undefined}
-              size={40}
-              onPress={() => onSlot(slot)}
-              accessibilityLabel={`${t(`hero.slots.${slot}`)}: ${id ? tr(itemById[id].name) : t('hero.empty')}`}
-              style={styles.smallSlot}
-            />
+            <Pulse key={slot} on={id ?? null}>
+              <ItemSlot
+                state={id ? 'ready' : 'empty'}
+                emoji={id ? itemById[id].emoji : undefined}
+                icon={id ? itemById[id].icon : undefined}
+                size={40}
+                onPress={() => onSlot(slot)}
+                accessibilityLabel={`${t(`hero.slots.${slot}`)}: ${id ? tr(itemById[id].name) : t('hero.empty')}`}
+                style={styles.smallSlot}
+              />
+            </Pulse>
           );
         })}
       </View>
@@ -327,9 +330,9 @@ export function PartyDialog({
     <Overlay onClose={onClose} position="bottom">
       <View style={[styles.dialog, { height, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <View style={styles.header}>
-          <Pressable accessibilityRole="button" accessibilityLabel={t('common.close')} onPress={onClose} style={styles.back}>
+          <PressScale accessibilityRole="button" accessibilityLabel={t('common.close')} onPress={onClose} style={styles.back}>
             <Text style={styles.backText}>‹</Text>
-          </Pressable>
+          </PressScale>
           <View style={styles.headerText}>
             <Text style={styles.title} numberOfLines={1}>
               {title}
@@ -343,12 +346,12 @@ export function PartyDialog({
             const heroId = party[i];
             if (!heroId)
               return (
-                <Pressable key={`empty${i}`} accessibilityRole="button" accessibilityLabel={t('partyDialog.addHero')} onPress={() => setAddingHero(true)} style={[styles.plate, styles.emptyPlate]}>
+                <PressScale key={`empty${i}`} accessibilityRole="button" accessibilityLabel={t('partyDialog.addHero')} onPress={() => setAddingHero(true)} style={[styles.plate, styles.emptyPlate]}>
                   <View style={styles.emptyPortrait}>
                     <Text style={styles.plus}>+</Text>
                   </View>
                   <Text style={styles.addHero}>{t('partyDialog.addHero')}</Text>
-                </Pressable>
+                </PressScale>
               );
             return (
               <HeroPlate

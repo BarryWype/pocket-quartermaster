@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-native';
+import { StyleSheet, View, type ImageSourcePropType } from 'react-native';
+
+import { PressScale } from '@/components/motion';
 
 import { elementInfo } from '@/content/elements';
 import { threatById } from '@/content/lookup';
@@ -48,9 +50,9 @@ function Chip({ emoji, icon, title, titleIcon, label, state, onPress, children }
   );
   if (!onPress) return body;
   return (
-    <Pressable accessibilityRole="button" onPress={onPress}>
+    <PressScale accessibilityRole="button" onPress={onPress}>
       {body}
-    </Pressable>
+    </PressScale>
   );
 }
 

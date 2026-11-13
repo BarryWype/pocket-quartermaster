@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Alert, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+
+import { PressScale } from '@/components/motion';
 
 import { items } from '@/content/items';
 import { itemById } from '@/content/lookup';
@@ -53,9 +55,9 @@ export function WalkEffects({ player, buttonStyle, chipsStyle }: {
   return (
     <>
       {held.length > 0 && (
-        <Pressable accessibilityLabel={t('walkEffects.title')} onPress={() => setOpen(true)} style={[styles.button, buttonStyle]}>
+        <PressScale accessibilityLabel={t('walkEffects.title')} onPress={() => setOpen(true)} style={[styles.button, buttonStyle]}>
           <GameIcon emoji="🧴" icon={WALK_BUTTON_ICON} size={28} />
-        </Pressable>
+        </PressScale>
       )}
       {active.length > 0 && (
         <View style={[styles.chips, chipsStyle]}>

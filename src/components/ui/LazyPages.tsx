@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { GhostBody, type GhostVariant } from './GhostScreen';
+import { GhostBody, GhostFade, type GhostVariant } from './GhostScreen';
 
 type Props<K extends string> = {
   /** One key per page, in pager order. */
@@ -25,7 +25,13 @@ export function useLazyPages<K extends string>({ keys, active, variant, render }
   if (!visited.has(active)) setVisited(new Set([...visited, active]));
   return keys.map((key) => (
     <View key={key} collapsable={false} style={styles.page}>
-      {visited.has(key) || key === active ? render(key) : <GhostBody variant={variant} />}
+      {visited.has(key) || key === active ? (
+        render(key)
+      ) : (
+        <GhostFade>
+          <GhostBody variant={variant} />
+        </GhostFade>
+      )}
     </View>
   ));
 }

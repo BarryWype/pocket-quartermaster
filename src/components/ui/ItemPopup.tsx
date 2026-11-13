@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View, type ImageSourcePropType, type StyleProp, type ViewStyle } from 'react-native';
 
+import { Flash } from '@/components/motion/Pulse';
 import { Text } from '@/components/Text';
 import { fonts, ui } from '@/theme';
 
@@ -37,6 +38,8 @@ type Props = {
   ingredients?: PopupIngredient[];
   action?: { title: string; onPress: () => void; disabled?: boolean; emoji?: string; icon?: ImageSourcePropType };
   secondary?: { title: string; onPress: () => void; disabled?: boolean };
+  /** Counts what was made from this card: each new one flashes its border once. */
+  made?: number;
   /** A pointer sticking out of the card's top or bottom edge, at `x` px from its left. */
   pointer?: { side: 'top' | 'bottom'; x: number };
   style?: StyleProp<ViewStyle>;
@@ -67,7 +70,7 @@ function Line({ line }: { line: PopupLine }) {
 }
 
 /** The selected item's pop-up: parchment card with value, lines, ingredients and the main action. */
-export function ItemPopup({ title, subtitle, emoji, icon, legendary, value, valueLabel, note, lines, children, ingredients, action, secondary, pointer, style }: Props) {
+export function ItemPopup({ title, subtitle, emoji, icon, legendary, value, valueLabel, note, lines, children, ingredients, action, secondary, made, pointer, style }: Props) {
   return (
     <View style={style}>
       {pointer?.side === 'top' && (
@@ -115,6 +118,7 @@ export function ItemPopup({ title, subtitle, emoji, icon, legendary, value, valu
           </View>
         )}
       </ParchmentCard>
+      {made !== undefined && <Flash count={made} style={styles.flash} />}
       {pointer?.side === 'bottom' && (
         <View style={[styles.pointer, styles.pointerBottom, { left: pointer.x - 9 }]} pointerEvents="none" />
       )}
@@ -132,6 +136,7 @@ const styles = StyleSheet.create({
   },
   pointerTop: { top: -9, backgroundColor: ui.woodMid, borderTopWidth: 3, borderLeftWidth: 3, borderTopColor: ui.outline, borderLeftColor: ui.outline },
   pointerBottom: { bottom: -9, backgroundColor: ui.parchment, borderBottomWidth: 3, borderRightWidth: 3, borderBottomColor: ui.outline, borderRightColor: ui.outline },
+  flash: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderWidth: 3, borderColor: ui.brassLight },
   content: { alignItems: 'center', gap: 3, paddingVertical: 10, paddingHorizontal: 14 },
   center: { alignItems: 'center' },
   valueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },

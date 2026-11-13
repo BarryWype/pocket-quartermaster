@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+
+import { FillBar, PressScale } from '@/components/motion';
 
 import { elementInfo } from '@/content/elements';
 import { familyById, families, type FamilyId } from '@/content/families';
@@ -19,7 +21,6 @@ import { reportNote } from './LootReveal';
 import { GainsLine, IconLabel } from './IconLabel';
 import { goldLabel } from './Price';
 import { GameIcon } from './GameIcon';
-import { PixelBar } from './PixelBar';
 import { Chip, DifficultyChip, ParchmentCard } from './ui';
 import { Text } from './Text';
 
@@ -53,9 +54,9 @@ function ReportFamilies({ levels, active }: { levels: Partial<Record<FamilyId, n
   return (
     <View style={styles.families} accessibilityLabel={t('families.strip')}>
       {active.map((id) => (
-        <Pressable key={id} accessibilityRole="button" onPress={() => setOpen(id)} hitSlop={4}>
+        <PressScale key={id} accessibilityRole="button" onPress={() => setOpen(id)} hitSlop={4}>
           <IconLabel emoji={familyById[id].emoji} icon={familyById[id].icon} label={`${tr(familyById[id].name)} ${levelMarks(levels[id]!)}`} size={16} labelStyle={styles.line} />
-        </Pressable>
+        </PressScale>
       ))}
       {open && <FamilySheet family={open} onClose={() => setOpen(null)} />}
     </View>
@@ -88,7 +89,7 @@ export function ReportCard({ report, heroes, now, expanded, onToggle }: Props) {
   // Older reports travel light: a wood row that opens into the parchment report.
   if (!expanded) {
     return (
-      <Pressable accessibilityRole="button" accessibilityState={{ expanded: false }} accessibilityLabel={label} onPress={onToggle} style={styles.row}>
+      <PressScale accessibilityRole="button" accessibilityState={{ expanded: false }} accessibilityLabel={label} onPress={onToggle} style={styles.row}>
         <View style={styles.rowInner} pointerEvents="none" />
         <Text style={styles.rowName} numberOfLines={1}>
           {tr(dungeon.name)}
@@ -97,7 +98,7 @@ export function ReportCard({ report, heroes, now, expanded, onToggle }: Props) {
         <Chip tone={win ? 'good' : 'bad'} label={t(`expeditions.outcome.${report.outcome}`)} />
         <Text style={styles.rowWhen}>{when}</Text>
         <Text style={styles.chevron}>▸</Text>
-      </Pressable>
+      </PressScale>
     );
   }
 
@@ -162,7 +163,7 @@ export function ReportCard({ report, heroes, now, expanded, onToggle }: Props) {
               </View>
               <View style={styles.plateHead}>
                 <View style={styles.hpBar}>
-                  <PixelBar value={hp / maxHp} color={hp / maxHp < 0.3 ? ui.bad : ui.good} />
+                  <FillBar value={hp / maxHp} color={hp / maxHp < 0.3 ? ui.bad : ui.good} />
                 </View>
                 <Text style={styles.hpText}>
                   {before === undefined ? `${hp}/${maxHp}` : t('expeditions.hpChange', { before, hp, max: maxHp })}
@@ -173,10 +174,10 @@ export function ReportCard({ report, heroes, now, expanded, onToggle }: Props) {
         );
       })}
 
-      <Pressable accessibilityRole="button" accessibilityState={{ expanded: logOpen }} onPress={() => setLogOpen(!logOpen)} style={styles.logToggle}>
+      <PressScale accessibilityRole="button" accessibilityState={{ expanded: logOpen }} onPress={() => setLogOpen(!logOpen)} style={styles.logToggle}>
         <Text style={styles.heading}>{t('expeditions.card.heading.log')}</Text>
         <Text style={styles.logChevron}>{logOpen ? '▾' : '▸'}</Text>
-      </Pressable>
+      </PressScale>
       {logOpen && (
         <View style={styles.log}>
           {(report.threats ?? []).map((threat, i) => {

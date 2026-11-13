@@ -1,4 +1,6 @@
-import { Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-native';
+import { StyleSheet, View, type ImageSourcePropType } from 'react-native';
+
+import { PressScale } from '@/components/motion';
 
 import { GameIcon } from '@/components/GameIcon';
 import { Text } from '@/components/Text';
@@ -22,7 +24,7 @@ type Props = {
 export function DiamondButton({ label, emoji, icon, selected, badge, size = 52, showLabel = true, disabled, onPress, accessibilityLabel }: Props) {
   const iconSize = Math.round(size * 0.6);
   return (
-    <Pressable
+    <PressScale
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ disabled: !!disabled }}
@@ -57,7 +59,7 @@ export function DiamondButton({ label, emoji, icon, selected, badge, size = 52, 
           </>
         );
       }}
-    </Pressable>
+    </PressScale>
   );
 }
 

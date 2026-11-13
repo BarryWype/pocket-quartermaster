@@ -987,6 +987,12 @@ export const fr: Dictionary = {
     sightRange: 'Portée de vue',
     sightRangeHint: 'Distance à laquelle sanctuaires, tavernes et événements apparaissent sur la carte.',
     sight: { '1': 'Normale', '2': 'Loin', '3': 'Très loin' },
+    animations: 'Animations',
+    animationsHint: 'À quel point boutons, panneaux et nombres bougent. Réduites ne garde que les fondus.',
+    motion: { full: 'Complètes', reduced: 'Réduites', off: 'Aucune' },
+    motionPhoneReduced: 'Votre téléphone demande moins de mouvement : les animations sont réduites.',
+    haptics: 'Vibrations',
+    hapticsHint: 'Une légère vibration aux appuis, récompenses et fabrications.',
     fieldNotes: 'Carnet de terrain',
     fieldNotesHint: {
       one: 'Relire l’astuce déjà vue',

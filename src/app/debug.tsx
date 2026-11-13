@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Switch, View } from 'react-native';
+
+import { FillBar, PressScale } from '@/components/motion';
 
 import { Button } from '@/components/Button';
 import { patrolIcons } from '@/components/PatrolMarker';
@@ -79,7 +81,6 @@ import * as Clipboard from 'expo-clipboard';
 import { clearTimings, timingEntries, timingsAsText } from '@/services/timings';
 import { formatPercent, t } from '@/i18n';
 import { ui } from '@/theme';
-import { PixelBar } from '@/components/PixelBar';
 import {
   Chip,
   DifficultyChip,
@@ -254,8 +255,8 @@ function UiKitDebug() {
           </View>
         ))}
       </View>
-      <PixelBar value={0.3} />
-      <PixelBar value={0.8} />
+      <FillBar value={0.3} />
+      <FillBar value={0.8} />
       <View style={styles.kitTabs}>
         <SwipeTabs
           tabs={[{ key: 'summary', label: 'Summary' }, { key: 'stats', label: 'Stats' }, { key: 'gear', label: 'Gear' }]}
@@ -408,7 +409,7 @@ function Choice<T>({
   return (
     <View style={styles.choices}>
       {options.map((option) => (
-        <Pressable
+        <PressScale
           key={label(option)}
           onPress={() => onChange(option)}
           style={[styles.choice, option === value && styles.choiceActive]}
@@ -417,7 +418,7 @@ function Choice<T>({
             const emoji = emojiOf?.(option);
             return emoji ? <IconLabel emoji={emoji} label={label(option)} /> : <Text>{label(option)}</Text>;
           })()}
-        </Pressable>
+        </PressScale>
       ))}
     </View>
   );

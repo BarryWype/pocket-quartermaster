@@ -1,4 +1,6 @@
-import { Pressable, StyleSheet, View, type ImageSourcePropType, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type ImageSourcePropType, type StyleProp, type ViewStyle } from 'react-native';
+
+import { CountUp, PressScale } from '@/components/motion';
 
 import { EquippedBadge } from '@/components/EquippedBadge';
 import { FamilyTags } from '@/components/FamilyTag';
@@ -27,13 +29,15 @@ type Props = {
   frame?: string;
   /** A piece's family tags in the socket's bottom-left corner, a third of its size; a stack count then moves to the top-right. */
   families?: { family: FamilyId; count: number }[];
+  /** The count ticks when it changes on screen, with a "+N" on a gain (the inventory). */
+  liveCount?: boolean;
   onPress?: () => void;
   accessibilityLabel: string;
   style?: StyleProp<ViewStyle>;
 };
 
 /** A square item socket: selected, ready, short, empty or locked. */
-export function ItemSlot({ state, emoji, icon, count, mark, size, faded, equipped, legendary, frame, families, onPress, accessibilityLabel, style }: Props) {
+export function ItemSlot({ state, emoji, icon, count, mark, size, faded, equipped, legendary, frame, families, liveCount, onPress, accessibilityLabel, style }: Props) {
   const filled = state === 'selected' || state === 'ready' || state === 'short';
   const shown = state === 'locked' ? '🔒' : state === 'empty' ? undefined : emoji;
   const face = (
@@ -65,7 +69,14 @@ export function ItemSlot({ state, emoji, icon, count, mark, size, faded, equippe
         </View>
       )}
       {state === 'short' && <View style={styles.shortMark} pointerEvents="none" />}
-      {count !== undefined && <Text style={[styles.count, families && styles.countTop]}>{count}</Text>}
+      {count !== undefined &&
+        (liveCount && typeof count === 'number' ? (
+          <View style={[styles.countSpot, families && styles.countTop]}>
+            <CountUp value={count} style={styles.countText} />
+          </View>
+        ) : (
+          <Text style={[styles.countSpot, styles.countText, families && styles.countTop]}>{count}</Text>
+        ))}
       {mark !== undefined && <Text style={[styles.mark, mark === 'up' ? styles.markUp : styles.markDown]}>{mark === 'up' ? '▲' : '▼'}</Text>}
       {families && (
         <FamilyTags tags={families} named={false} sheet={false} size={Math.round((size ?? 60) * 0.33)} style={styles.families} />
@@ -76,14 +87,14 @@ export function ItemSlot({ state, emoji, icon, count, mark, size, faded, equippe
   const ring = [styles.ring, state === 'selected' && styles.ringSelected];
   if (!onPress) return <View style={ring}>{face}</View>;
   return (
-    <Pressable
+    <PressScale
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       onPress={onPress}
       style={ring}
     >
       {face}
-    </Pressable>
+    </PressScale>
   );
 }
 
@@ -121,10 +132,8 @@ const styles = StyleSheet.create({
   ring: { borderWidth: 2, borderColor: 'transparent' },
   ringSelected: { borderColor: ui.brass },
   shortMark: { position: 'absolute', top: 2, right: 2, width: 10, height: 10, backgroundColor: ui.ember, borderWidth: 2, borderColor: ui.outline },
-  count: {
-    position: 'absolute',
-    right: 3,
-    bottom: 1,
+  countSpot: { position: 'absolute', right: 3, bottom: 1 },
+  countText: {
     fontFamily: fonts.serifBold,
     fontSize: 13,
     color: ui.onWood,

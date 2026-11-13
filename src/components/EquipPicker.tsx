@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-native';
+import { StyleSheet, View, type ImageSourcePropType } from 'react-native';
+
+import { PressScale } from '@/components/motion';
 
 import { gearRules } from '@/content/gear';
 import { gearName, itemById } from '@/content/lookup';
@@ -195,11 +197,11 @@ export function EquipPicker({ save, heroId, slot, bossId, onPick, onClose }: Pro
             />
           </View>
         )}
-        <Pressable onPress={() => onPick(null)}>
+        <PressScale onPress={() => onPick(null)}>
           <Row emoji="🚫" title={t('equip.nothing')} />
-        </Pressable>
+        </PressScale>
         {options.map((option) => (
-          <Pressable key={option.id} disabled={option.disabled} onPress={() => onPick(option.id)}>
+          <PressScale key={option.id} disabled={option.disabled} onPress={() => onPick(option.id)}>
             <Row
               emoji={option.emoji}
               icon={option.icon}
@@ -210,7 +212,7 @@ export function EquipPicker({ save, heroId, slot, bossId, onPick, onClose }: Pro
               equipped={option.equipped}
               right={option.marks}
             />
-          </Pressable>
+          </PressScale>
         ))}
         {options.length === 0 && <Text style={styles.empty}>{t('equip.empty')}</Text>}
       </Sheet>

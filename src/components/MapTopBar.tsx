@@ -1,4 +1,6 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+
+import { CountUp, PressScale } from '@/components/motion';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GameIcon } from '@/components/GameIcon';
@@ -43,7 +45,7 @@ export function MapTopBar() {
       <View style={styles.row}>
         <Text style={styles.tier}>{t('map.tier', { tier: ROMAN[tier - 1] ?? tier })}</Text>
         <View style={styles.gold}>
-          <Price amount={save.gold} size={16} textStyle={styles.goldAmount} />
+          <Price amount={save.gold} size={16} textStyle={styles.goldAmount} counting />
         </View>
         <View style={styles.chest}>
           <Text style={styles.chestLabel}>{t('map.nextChest')}</Text>
@@ -51,21 +53,23 @@ export function MapTopBar() {
             <View style={[styles.chestFill, { width: `${progress * 100}%` }]} />
           </View>
           {chest && (
-            <Text style={styles.chestCount}>
-              {formatNumber(steps)} / {formatNumber(chest.steps)}
-            </Text>
+            <View style={styles.chestCountRow}>
+              {/* Steps grow all the time while walking: they tick, without a "+N" each time. */}
+              <CountUp value={steps} style={styles.chestCount} gain={false} />
+              <Text style={styles.chestCount}>{` / ${formatNumber(chest.steps)}`}</Text>
+            </View>
           )}
         </View>
         {debugOn && (
-          <Pressable accessibilityLabel={t('map.debug')} onPress={() => navigate('/debug')} style={styles.button}>
+          <PressScale accessibilityLabel={t('map.debug')} onPress={() => navigate('/debug')} style={styles.button}>
             <View style={styles.buttonRim} pointerEvents="none" />
             <GameIcon emoji="🐞" size={22} />
-          </Pressable>
+          </PressScale>
         )}
-        <Pressable accessibilityLabel={t('screens.settings')} onPress={() => navigate('/settings')} style={styles.button}>
+        <PressScale accessibilityLabel={t('screens.settings')} onPress={() => navigate('/settings')} style={styles.button}>
           <View style={styles.buttonRim} pointerEvents="none" />
           <GameIcon emoji="⚙️" size={22} />
-        </Pressable>
+        </PressScale>
       </View>
     </View>
   );
@@ -92,6 +96,7 @@ const styles = StyleSheet.create({
   chestLabel: { fontFamily: fonts.serif, fontSize: 12, color: ui.onWoodMuted },
   chestTrack: { flex: 1, height: 10, borderWidth: 2, borderColor: ui.outline, backgroundColor: ui.woodDeep },
   chestFill: { height: '100%', backgroundColor: ui.xp },
+  chestCountRow: { flexDirection: 'row' },
   chestCount: { fontFamily: fonts.serif, fontSize: 12, color: ui.onWood },
   button: {
     width: 44,

@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+
+import { PressScale } from '@/components/motion';
 
 import { familyById, type FamilyId } from '@/content/families';
 import { tr } from '@/i18n';
@@ -45,9 +47,9 @@ export function FamilyTag({
   if (!sheet) return tag;
   return (
     <>
-      <Pressable accessibilityRole="button" accessibilityLabel={count > 1 ? `${name} ×${count}` : name} onPress={() => setOpen(true)} hitSlop={6}>
+      <PressScale accessibilityRole="button" accessibilityLabel={count > 1 ? `${name} ×${count}` : name} onPress={() => setOpen(true)} hitSlop={6}>
         {tag}
-      </Pressable>
+      </PressScale>
       {open && <FamilySheet family={family} onClose={() => setOpen(false)} />}
     </>
   );

@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+
+import { PressScale } from '@/components/motion';
 
 import { bossById } from '@/content/enemies';
 import { gearRules } from '@/content/gear';
@@ -330,7 +332,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
               {heistCandidates.length === 0 && <Text style={styles.muted}>{t('places.noHeroes')}</Text>}
               <View style={styles.chips}>
                 {heistCandidates.map((hero) => (
-                  <Pressable
+                  <PressScale
                     key={hero.id}
                     onPress={() => setHeistHeroId(hero.id)}
                     style={[styles.chip, heistHeroId === hero.id && styles.chipActive]}
@@ -340,7 +342,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
                       {hero.name}
                       {hero.job ? ` · ${t('jobs.working')}` : ''} · {formatPercent(currentHp(save, hero, now) / maxHp(save, hero))}
                     </Text>
-                  </Pressable>
+                  </PressScale>
                 ))}
               </View>
               {heistHeroId && (

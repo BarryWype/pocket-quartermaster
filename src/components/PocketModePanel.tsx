@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+
+import { PressScale } from '@/components/motion';
 
 import { frNotificationCategories } from '@/content/fr/notifications';
 import { heroClasses } from '@/content/heroes';
@@ -65,7 +67,7 @@ export function AlertForPicker() {
       <Text style={styles.pickerLabel}>{t('autoGather.alertFor')}</Text>
       <View style={styles.options}>
         {ALERT_CHOICES.map((choice) => (
-          <Pressable
+          <PressScale
             key={choice}
             onPress={() => {
               updateNotifications({ patrolAlertFor: choice });
@@ -74,7 +76,7 @@ export function AlertForPicker() {
             style={[styles.option, patrolAlertFor === choice && styles.optionActive]}
           >
             <Text style={styles.optionText}>{t(`autoGather.alertForChoices.${choice}`)}</Text>
-          </Pressable>
+          </PressScale>
         ))}
       </View>
     </View>
@@ -95,7 +97,7 @@ function NearbyKindsPicker() {
         {nearbyKinds.map((kind) => {
           const on = wanted.includes(kind);
           return (
-            <Pressable
+            <PressScale
               key={kind}
               accessibilityRole="checkbox"
               accessibilityState={{ checked: on }}
@@ -106,7 +108,7 @@ function NearbyKindsPicker() {
               style={[styles.option, on && styles.optionActive]}
             >
               <Text style={styles.optionText}>{t(`autoGather.nearbyChoices.${kind}`)}</Text>
-            </Pressable>
+            </PressScale>
           );
         })}
       </View>
@@ -164,7 +166,7 @@ function EscortSection({ save, now }: { save: SaveData; now: number }) {
       <View style={styles.section}>
         <View style={styles.options}>
           {candidates.map((candidate) => (
-            <Pressable
+            <PressScale
               key={candidate.id}
               onPress={() => {
                 // The pure escort rule refuses a working hero: recall them first, in the same tap.
@@ -182,7 +184,7 @@ function EscortSection({ save, now }: { save: SaveData; now: number }) {
                 } · ${formatPercent(currentHp(save, candidate, now) / maxHp(save, candidate))}`}
                 labelStyle={styles.optionText}
               />
-            </Pressable>
+            </PressScale>
           ))}
         </View>
         <Button title={t('common.cancel')} color={colors.muted} onPress={() => setPicking(false)} />

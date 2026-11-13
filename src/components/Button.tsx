@@ -1,4 +1,6 @@
-import { Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-native';
+import { StyleSheet, View, type ImageSourcePropType } from 'react-native';
+
+import { PressScale } from '@/components/motion';
 
 import { colors, pixel } from '@/theme';
 
@@ -18,7 +20,7 @@ type Props = {
 /** A pixel-art button: square, outlined, bevelled; the bevel flips while pressed. */
 export function Button({ title, onPress, disabled, color = colors.wood, emoji, icon }: Props) {
   return (
-    <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={[styles.outline, disabled && styles.disabled]}>
+    <PressScale accessibilityRole="button" disabled={disabled} onPress={onPress} style={[styles.outline, disabled && styles.disabled]}>
       {({ pressed }) => (
         <View style={[styles.face, { backgroundColor: color }, pressed && styles.pressed]}>
           {emoji ? (
@@ -28,7 +30,7 @@ export function Button({ title, onPress, disabled, color = colors.wood, emoji, i
           )}
         </View>
       )}
-    </Pressable>
+    </PressScale>
   );
 }
 

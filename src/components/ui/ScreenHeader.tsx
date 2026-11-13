@@ -1,6 +1,8 @@
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+
+import { PressScale } from '@/components/motion';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/Text';
@@ -26,7 +28,7 @@ export function ScreenHeader({ title, onBack, right, backLabel }: Props) {
       </View>
       <View style={styles.brassLine} pointerEvents="none" />
       <View style={styles.row}>
-        <Pressable
+        <PressScale
           accessibilityRole="button"
           accessibilityLabel={backLabel ?? t('common.back')}
           onPress={onBack ?? (() => router.back())}
@@ -34,7 +36,7 @@ export function ScreenHeader({ title, onBack, right, backLabel }: Props) {
         >
           <View style={styles.backRim} pointerEvents="none" />
           <Text style={styles.backGlyph}>‹</Text>
-        </Pressable>
+        </PressScale>
         <View style={styles.titleWrap}>
           <Text style={styles.title} numberOfLines={1}>
             {title}

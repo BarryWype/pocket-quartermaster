@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Alert, Linking, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Alert, Linking, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+
+import { PressScale } from '@/components/motion';
 
 import { gatheringConfig } from '@/content/gatheringConfig';
 import { frPatrolTexts } from '@/content/fr/patrols';
@@ -146,22 +148,22 @@ export function AutoGatherPill({ style }: { style?: StyleProp<ViewStyle> }) {
   const openPanel = () => useWorldStore.getState().set({ pocketPanel: 'open' });
   return (
     <View style={[styles.pillRow, style]}>
-      <Pressable accessibilityRole="switch" accessibilityState={{ checked: enabled }} onPress={() => toggle(!enabled)} style={[styles.pill, styles[state]]}>
+      <PressScale accessibilityRole="switch" accessibilityState={{ checked: enabled }} onPress={() => toggle(!enabled)} style={[styles.pill, styles[state]]}>
         <Text style={styles.pillText}>
           {state === 'off' ? '○' : '●'} {t('autoGather.label')}: {t(`autoGather.${state}`)}
         </Text>
-      </Pressable>
-      <Pressable accessibilityLabel={t('autoGather.openOptions')} onPress={openPanel} style={styles.info}>
+      </PressScale>
+      <PressScale accessibilityLabel={t('autoGather.openOptions')} onPress={openPanel} style={styles.info}>
         <Text style={styles.infoText}>›</Text>
-      </Pressable>
-      <Pressable accessibilityLabel={t('autoGather.info')} onPress={showInfo} style={styles.info}>
+      </PressScale>
+      <PressScale accessibilityLabel={t('autoGather.info')} onPress={showInfo} style={styles.info}>
         <Text style={styles.infoText}>ⓘ</Text>
-      </Pressable>
+      </PressScale>
       {state === 'limited' && (
         // Background location is one system setting away.
-        <Pressable accessibilityLabel={t('autoGather.openSettings')} onPress={openSettings} style={styles.info}>
+        <PressScale accessibilityLabel={t('autoGather.openSettings')} onPress={openSettings} style={styles.info}>
           <Text style={styles.infoText}>⚙️</Text>
-        </Pressable>
+        </PressScale>
       )}
       {dialog}
       <PocketModePanel />

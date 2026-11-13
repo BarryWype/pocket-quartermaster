@@ -1,6 +1,9 @@
 import { createContext, type ReactNode } from 'react';
 import { Modal, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { OverlayPanel } from '@/components/motion/OverlayPanel';
+import { currentMotionLevel } from '@/hooks/useMotion';
+
 /**
  * Inside an overlay: closes it and every overlay around it, so a link can leave
  * for another screen. Null inside an overlay that must be answered first;
@@ -21,6 +24,8 @@ type Props = {
   backdropStyle?: StyleProp<ViewStyle>;
   /** Style on the wrapper around the panel. */
   contentStyle?: StyleProp<ViewStyle>;
+  /** False for a panel that animates itself (a popup growing from its anchor). */
+  panelMotion?: boolean;
   children: ReactNode;
 };
 
@@ -61,19 +66,26 @@ const styles = StyleSheet.create({
  * The modal spans the whole screen (status bar and navigation bar too), so a
  * bottom sheet can touch the very bottom and pad its footer for the insets.
  */
-export function Overlay({ onClose, dismissOnBackdrop = true, position = 'center', backdropStyle, contentStyle, children }: Props) {
+export function Overlay({ onClose, dismissOnBackdrop = true, position = 'center', backdropStyle, contentStyle, panelMotion = true, children }: Props) {
   const { backdrop, back } = overlayHandlers(onClose, dismissOnBackdrop);
   return (
     <Modal
       transparent
       statusBarTranslucent
       navigationBarTranslucent
-      animationType={position === 'center' ? 'fade' : 'slide'}
+      // The modal fades the backdrop in, and everything out when it closes (the panel unmounts at once, so
+      // only the modal's own animation can play on the way out); the panel's slide or scale is OverlayPanel's.
+      animationType={currentMotionLevel() === 'off' ? 'none' : 'fade'}
       onRequestClose={back}
     >
       <View style={styles.frame}>
         <Pressable style={[styles.backdrop, position === 'center' ? styles.dimCenter : styles.dimBottom, backdropStyle]} onPress={backdrop} />
-        <View style={[position === 'center' ? styles.layoutCenter : styles.layoutBottom, contentStyle]}>
+        <OverlayPanel
+          position={position}
+          animated={panelMotion}
+          onDragClose={dismissOnBackdrop ? onClose : undefined}
+          style={[position === 'center' ? styles.layoutCenter : styles.layoutBottom, contentStyle]}
+        >
           <CloseOverlays.Consumer>
             {(closeOuter) => (
               <CloseOverlays.Provider value={dismissOnBackdrop && closeOuter !== null ? () => (closeOuter?.(), onClose()) : null}>
@@ -81,7 +93,7 @@ export function Overlay({ onClose, dismissOnBackdrop = true, position = 'center'
               </CloseOverlays.Provider>
             )}
           </CloseOverlays.Consumer>
-        </View>
+        </OverlayPanel>
       </View>
     </Modal>
   );

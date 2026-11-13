@@ -11,14 +11,18 @@ import { dropDraft, partyDraft } from '@/store/partyDrafts';
 import { ExpeditionDialog } from './ExpeditionDialog';
 
 jest.mock('react-native-safe-area-context', () => jest.requireActual('react-native-safe-area-context/jest/mock').default);
-jest.mock('expo-router', () => ({ ...jest.requireActual('expo-router'), router: { push: () => {}, navigate: () => {} } }));
+// The dialog opens on the Expeditions screen; here it renders alone, so the screen counts as focused.
+jest.mock('expo-router', () => ({ ...jest.requireActual('expo-router'), useIsFocused: () => true, router: { push: () => {}, navigate: () => {} } }));
 
 const briefing: Briefing = { threats: [{ id: 'beasts', level: 2 }, { id: 'darkness', level: 1 }], restriction: null, opportunity: null };
 const dungeon = dungeons.find((d) => d.tier === 1 && !d.overnight && !d.isBoss)!;
 
 const text = (renderer: ReactTestRenderer) => JSON.stringify(renderer.toJSON());
 const byLabel = (renderer: ReactTestRenderer, match: (label: string) => boolean): ReactTestInstance[] =>
-  renderer.root.findAll((node) => typeof node.props.accessibilityLabel === 'string' && typeof node.props.onPress === 'function' && match(node.props.accessibilityLabel));
+  renderer.root.findAll((node) => typeof node.props.accessibilityLabel === 'string' && typeof node.props.onPress === 'function' && match(node.props.accessibilityLabel), {
+    // A button's label and press handler pass down to its inner pressable: keep the outermost.
+    deep: false,
+  });
 const press = (node: ReactTestInstance) => act(() => node.props.onPress());
 
 describe('the party dialog', () => {

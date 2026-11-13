@@ -289,6 +289,7 @@ function RowSlot({
         emoji={face.emoji}
         icon={face.icon}
         count={face.count}
+        liveCount
         equipped={row.kind === 'gear' ? worn.has(row.gear.uid) : undefined}
         legendary={row.kind === 'gear' && row.gear.rarity === 'legendary' ? true : undefined}
         families={row.kind === 'gear' ? gearFamilyTags(itemById[row.gear.itemId] as GearDef, row.gear.relicId) : undefined}

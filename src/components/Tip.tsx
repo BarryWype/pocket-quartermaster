@@ -1,6 +1,7 @@
 import { useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { feel } from '@/services/feel';
 import { colors, pixel } from '@/theme';
 
 import { Overlay } from './Overlay';
@@ -25,7 +26,10 @@ export function Tip({ title, text, children, style, accessibilityLabel }: Props)
   const [anchor, setAnchor] = useState<Anchor | null>(null);
   const window = useWindowDimensions();
 
-  const open = () => ref.current?.measureInWindow((x, y, width, height) => setAnchor({ x, y, width, height }));
+  const open = () => {
+    feel('press');
+    ref.current?.measureInWindow((x, y, width, height) => setAnchor({ x, y, width, height }));
+  };
 
   let position: ViewStyle | null = null;
   if (anchor) {
@@ -39,6 +43,7 @@ export function Tip({ title, text, children, style, accessibilityLabel }: Props)
 
   return (
     <>
+      {/* A plain Pressable: it measures itself as the bubble's anchor, and PressScale's animated view can't hand its ref over. */}
       <Pressable ref={ref} accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityHint={text} onPress={open} hitSlop={6} style={style}>
         {children}
       </Pressable>

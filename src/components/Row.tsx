@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View, type ImageSourcePropType } from 'react-native';
+import { StyleSheet, View, type ImageSourcePropType } from 'react-native';
+
+import { PressScale } from '@/components/motion';
 
 import { gearRules } from '@/content/gear';
 import { colors } from '@/theme';
@@ -27,7 +29,7 @@ type Props = {
 
 export function Row({ emoji, icon, title, subtitle, right, titleColor, badge, equipped, legendary, onPress }: Props) {
   return (
-    <Pressable style={styles.row} onPress={onPress} disabled={!onPress} accessibilityRole={onPress ? 'button' : undefined}>
+    <PressScale style={styles.row} onPress={onPress} disabled={!onPress} accessibilityRole={onPress ? 'button' : undefined}>
       <View>
         <IconSlot emoji={emoji} icon={icon} legendary={legendary} />
         {badge ? <Text style={styles.badge}>{badge}</Text> : null}
@@ -38,7 +40,7 @@ export function Row({ emoji, icon, title, subtitle, right, titleColor, badge, eq
         {typeof subtitle === 'string' ? <Text style={styles.subtitle}>{subtitle}</Text> : subtitle}
       </View>
       {typeof right === 'string' || typeof right === 'number' ? <Text style={styles.right}>{right}</Text> : right}
-    </Pressable>
+    </PressScale>
   );
 }
 

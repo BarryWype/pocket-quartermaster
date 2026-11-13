@@ -161,14 +161,12 @@ describe('IslandMenu', () => {
     useGameStore.setState({ save: midGameSave() });
     const { tree } = mountMenu();
 
-    // Open the craft dropdown: the diamond items style their rows as a function.
     act(() => {
       tree.root.findByProps({ accessibilityLabel: t('menu.craftClosed') }).props.onPress();
     });
-    const dropdownItems = tree.root.findAll((node) => typeof node.props.onPress === 'function' && typeof node.props.style === 'function');
     // The dropdown opens with Forge, the screen the menu is on: nothing to navigate.
     act(() => {
-      dropdownItems[0].props.onPress();
+      tree.root.findByProps({ accessibilityLabel: t('screens.forge') }).props.onPress();
     });
     expect(pushMock).not.toHaveBeenCalled();
     expect(replaceMock).not.toHaveBeenCalled();

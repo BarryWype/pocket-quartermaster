@@ -1,4 +1,6 @@
-import { Pressable, StyleSheet, View, type ImageSourcePropType, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type ImageSourcePropType, type StyleProp, type ViewStyle } from 'react-native';
+
+import { PressScale } from '@/components/motion';
 
 import { IconLabel } from '@/components/IconLabel';
 import { Text } from '@/components/Text';
@@ -18,7 +20,7 @@ type Props = {
 /** The secondary button: a wood block with a brass inner outline. */
 export function WoodButton({ title, onPress, disabled, emoji, icon, compact, style }: Props) {
   return (
-    <Pressable
+    <PressScale
       accessibilityRole="button"
       accessibilityLabel={title}
       accessibilityState={{ disabled: !!disabled }}
@@ -34,7 +36,7 @@ export function WoodButton({ title, onPress, disabled, emoji, icon, compact, sty
           <Text style={[styles.label, compact && styles.compactLabel]}>{title}</Text>
         )}
       </View>
-    </Pressable>
+    </PressScale>
   );
 }
 

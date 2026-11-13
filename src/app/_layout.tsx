@@ -156,8 +156,11 @@ export default function RootLayout() {
         <Stack.Screen name="debug" dangerouslySingular options={options.debug} />
       </Stack>
       <IslandMenu />
-      <RecipeToast />
-      <SecretToast />
+      {/* The toasts over every screen share one column, so two at once stack instead of overlapping. */}
+      <View pointerEvents="none" style={[styles.toasts, { top: insets.top + 8 }]}>
+        <RecipeToast />
+        <SecretToast />
+      </View>
       <TipBar />
     </View>
   );
@@ -168,12 +171,13 @@ function HeaderGold() {
   const gold = useGameStore((state) => state.save.gold);
   return (
     <View style={styles.gold} accessibilityLabel={t('common.gold')}>
-      <Price amount={gold} size={14} textStyle={styles.goldAmount} />
+      <Price amount={gold} size={14} textStyle={styles.goldAmount} counting />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  toasts: { position: 'absolute', left: 16, right: 16, alignItems: 'center', gap: 6 },
   root: { flex: 1 },
   gold: { minWidth: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4 },
   goldAmount: { fontFamily: fonts.serifBold, fontSize: 15, color: ui.gold },

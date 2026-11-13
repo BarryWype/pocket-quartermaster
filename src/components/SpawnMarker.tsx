@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Animated, Easing, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 
 import type { ResourceKind } from '@/game/generation/types';
+import { MarkerPulse } from '@/components/motion/Pulse';
 import { useAnimationsEnabled } from '@/hooks/useAnimationFrame';
 import { colors, ui } from '@/theme';
 
@@ -40,21 +41,24 @@ export function SpawnMarker({ emoji, icon, kind, inRange, fleeing, locked = fals
   const tilt = useSway(sway);
   return (
     <View style={styles.tap}>
-      <View
-        style={[
-          styles.tile,
-          { backgroundColor: fills[kind] },
-          inRange && styles.inRange,
-          fleeing && styles.fleeing,
-          locked && styles.locked,
-        ]}
-      >
-        <View style={styles.upright}>
-          <Animated.View style={[styles.swayOrigin, tilt && { transform: [{ rotate: tilt }] }]}>
-            {fleeing ? <GameIcon emoji="💨" size={18} /> : <GameIcon emoji={emoji} icon={icon} size={18} />}
-          </Animated.View>
+      {/* Coming into reach (its border turning green), it pulses once. */}
+      <MarkerPulse on={inRange ? 'inRange' : null}>
+        <View
+          style={[
+            styles.tile,
+            { backgroundColor: fills[kind] },
+            inRange && styles.inRange,
+            fleeing && styles.fleeing,
+            locked && styles.locked,
+          ]}
+        >
+          <View style={styles.upright}>
+            <Animated.View style={[styles.swayOrigin, tilt && { transform: [{ rotate: tilt }] }]}>
+              {fleeing ? <GameIcon emoji="💨" size={18} /> : <GameIcon emoji={emoji} icon={icon} size={18} />}
+            </Animated.View>
+          </View>
         </View>
-      </View>
+      </MarkerPulse>
     </View>
   );
 }

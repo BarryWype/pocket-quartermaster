@@ -28,8 +28,10 @@
     "react-freeze": "1.0.4",
     "react-native": "0.88.1",
     "react-native-pager-view": "9.0.7",
+    "react-native-reanimated": "4.7.1",
     "react-native-safe-area-context": "~5.10.1",
     "react-native-screens": "~4.30.1",
+    "react-native-worklets": "0.13.0",
     "seedrandom": "^3.0.5",
     "zustand": "^5.0.16"
   },
@@ -120,6 +122,7 @@
       {
         "displayName": "app",
         "preset": "jest-expo",
+        "resolver": "react-native-reanimated/jest/resolver",
         "setupFiles": [
           "./jest.setup.ts"
         ],
@@ -150,6 +153,7 @@
       {
         "displayName": "perf",
         "preset": "jest-expo",
+        "resolver": "react-native-reanimated/jest/resolver",
         "setupFiles": [
           "./jest.setup.ts"
         ],

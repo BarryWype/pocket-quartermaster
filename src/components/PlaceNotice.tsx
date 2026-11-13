@@ -1,4 +1,6 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+
+import { PressScale } from '@/components/motion';
 
 import { familyOfThreat, familyById } from '@/content/families';
 import { threatById } from '@/content/lookup';
@@ -44,7 +46,7 @@ export function PlaceNotice({ dungeon, briefing, sub, source, firstWin, readines
         ? t('expeditions.stamp.missing', { families: readiness.families.slice(0, 2).map((f) => tr(familyById[f].name).toUpperCase()).join(', ') })
         : t(`expeditions.stamp.${readiness.kind}`);
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={tr(dungeon.name)} accessibilityState={{ disabled: !!disabled }} onPress={onPress} disabled={disabled}>
+    <PressScale accessibilityRole="button" accessibilityLabel={tr(dungeon.name)} accessibilityState={{ disabled: !!disabled }} onPress={onPress} disabled={disabled}>
       <ParchmentCard
         pinned
         tilt={tilt}
@@ -81,7 +83,7 @@ export function PlaceNotice({ dungeon, briefing, sub, source, firstWin, readines
         </View>
         <Text style={styles.line}>{[...threats, rewards].join(' · ')}</Text>
       </ParchmentCard>
-    </Pressable>
+    </PressScale>
   );
 }
 

@@ -1,4 +1,6 @@
-import { Alert, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Alert, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+
+import { PressScale } from '@/components/motion';
 
 import { isClosableHint, tutorialHint, type TutorialScreen } from '@/game/tutorial/tutorial';
 import { t } from '@/i18n';
@@ -31,7 +33,7 @@ export function TutorialHint({ screen, style, text }: Props) {
     ]);
 
   return (
-    <Pressable
+    <PressScale
       accessibilityRole={closable ? 'button' : 'text'}
       disabled={!closable}
       onPress={() => nextTutorialStep(step)}
@@ -41,10 +43,10 @@ export function TutorialHint({ screen, style, text }: Props) {
         <Text style={styles.icon}>🧭</Text>
         <Text style={styles.text}>{line}</Text>
       </View>
-      <Pressable accessibilityRole="button" onPress={confirmSkip} hitSlop={8} style={styles.skip}>
+      <PressScale accessibilityRole="button" onPress={confirmSkip} hitSlop={8} style={styles.skip}>
         <Text style={styles.skipText}>{t('tutorial.skip')}</Text>
-      </Pressable>
-    </Pressable>
+      </PressScale>
+    </PressScale>
   );
 }
 

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+
+import { FillBar, PressScale } from '@/components/motion';
 
 import { clockConfig } from '@/content/clockConfig';
 import { jobById, type GathererFocus } from '@/content/jobs';
@@ -15,7 +17,6 @@ import { useGameStore } from '@/store/gameStore';
 import { EnergyBar } from './EnergyBar';
 import { HeroChips } from './JobsTab';
 import { IconLabel } from './IconLabel';
-import { PixelBar } from './PixelBar';
 import { Text } from './Text';
 import { EmberButton, ParchmentCard, WoodButton } from './ui';
 
@@ -61,13 +62,13 @@ export function GathererCard() {
         <Text style={styles.pickerLabel}>{t('jobs.gatherer.focus')}</Text>
         <View style={styles.options}>
           {FOCUS_CHOICES.map((focus) => (
-            <Pressable
+            <PressScale
               key={focus}
               onPress={() => setGathererFocus(focus)}
               style={[styles.option, save.gatherer.focus === focus && styles.optionActive]}
             >
               <Text style={styles.optionText}>{t(`jobs.gatherer.focusChoices.${focus}`)}</Text>
-            </Pressable>
+            </PressScale>
           ))}
         </View>
       </View>
@@ -134,7 +135,7 @@ function GathererOutput({ save }: { save: SaveData }) {
   const nodes = detail.nodes ?? 0;
   return (
     <View style={styles.bar}>
-      <PixelBar value={nodes / cap} color={colors.success} />
+      <FillBar value={nodes / cap} color={colors.success} />
       <View style={styles.row}>
         {waiting.map(([materialId, amount]) => (
           <IconLabel

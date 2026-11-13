@@ -1,5 +1,7 @@
 import { rosterRules } from '@/content/roster';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+
+import { PressScale } from '@/components/motion';
 
 import { FamilyTag } from '@/components/FamilyTag';
 import { statIcons } from '@/components/GearRow';
@@ -65,51 +67,54 @@ function TeamContent() {
         const stats = heroStats(save, hero);
         const damageStat = heroDamageStat(save, hero);
         return (
-          <Pressable
+          <PressScale
             key={hero.id}
             accessibilityRole="button"
             accessibilityLabel={`${hero.name}, ${tr(heroClass.name)}, ${t('common.level', { level: hero.level })}`}
             onPress={() => navigate({ pathname: '/team/[heroId]', params: { heroId: hero.id } })}
-            style={({ pressed }) => pressed && styles.pressed}
           >
-            <ParchmentCard contentStyle={styles.card}>
-              <View style={styles.portrait}>
-                <View style={styles.portraitSeams} pointerEvents="none">
-                  {Array.from({ length: 6 }, (_, i) => (
-                    <View key={i} style={[styles.portraitSeam, { top: (i + 1) * 10 }]} />
-                  ))}
-                </View>
-                <View style={styles.portraitBrass} pointerEvents="none" />
-                <GameIcon emoji={heroClass.emoji} icon={heroClass.icon} size={46} />
-                <View style={styles.levelDiamond}>
-                  <View style={styles.levelDiamondFace}>
-                    <Text style={styles.levelText}>{hero.level}</Text>
-                  </View>
-                </View>
-              </View>
-              <View style={styles.body}>
-                <View style={styles.titleLine}>
-                  <Text style={styles.name}>{hero.name}</Text>
-                  <Text style={[styles.status, !away && !escort && !patrol && styles.statusReady]}>{status}</Text>
-                </View>
-                <View style={styles.classRow}>
-                  <Text style={styles.classLine}>{tr(heroClass.name)}</Text>
-                  <FamilyTag family={heroClass.familyTag} size={14} labelStyle={styles.classLine} />
-                  <Text style={styles.classLine}>{tr(traitById[hero.trait]?.name ?? '')}</Text>
-                  <SpecialLabel classId={hero.classId} special={hero.special} labelStyle={styles.classLine} />
-                </View>
-                <HpBar save={save} hero={hero} />
-                <View style={styles.statRow}>
-                  {(['hp', damageStat, 'armour', 'speed'] as const).map((stat) => (
-                    <View key={stat} style={styles.statCell}>
-                      <GameIcon emoji={statIcons[stat]} icon={systemIcons[statIcons[stat]]} size={12} />
-                      <Text style={styles.statValue}>{stats[stat]}</Text>
+            {({ pressed }) => (
+              <View style={pressed && styles.pressed}>
+                <ParchmentCard contentStyle={styles.card}>
+                  <View style={styles.portrait}>
+                    <View style={styles.portraitSeams} pointerEvents="none">
+                      {Array.from({ length: 6 }, (_, i) => (
+                        <View key={i} style={[styles.portraitSeam, { top: (i + 1) * 10 }]} />
+                      ))}
                     </View>
-                  ))}
-                </View>
+                    <View style={styles.portraitBrass} pointerEvents="none" />
+                    <GameIcon emoji={heroClass.emoji} icon={heroClass.icon} size={46} />
+                    <View style={styles.levelDiamond}>
+                      <View style={styles.levelDiamondFace}>
+                        <Text style={styles.levelText}>{hero.level}</Text>
+                      </View>
+                    </View>
+                  </View>
+                  <View style={styles.body}>
+                    <View style={styles.titleLine}>
+                      <Text style={styles.name}>{hero.name}</Text>
+                      <Text style={[styles.status, !away && !escort && !patrol && styles.statusReady]}>{status}</Text>
+                    </View>
+                    <View style={styles.classRow}>
+                      <Text style={styles.classLine}>{tr(heroClass.name)}</Text>
+                      <FamilyTag family={heroClass.familyTag} size={14} labelStyle={styles.classLine} />
+                      <Text style={styles.classLine}>{tr(traitById[hero.trait]?.name ?? '')}</Text>
+                      <SpecialLabel classId={hero.classId} special={hero.special} labelStyle={styles.classLine} />
+                    </View>
+                    <HpBar save={save} hero={hero} />
+                    <View style={styles.statRow}>
+                      {(['hp', damageStat, 'armour', 'speed'] as const).map((stat) => (
+                        <View key={stat} style={styles.statCell}>
+                          <GameIcon emoji={statIcons[stat]} icon={systemIcons[statIcons[stat]]} size={12} />
+                          <Text style={styles.statValue}>{stats[stat]}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                </ParchmentCard>
               </View>
-            </ParchmentCard>
-          </Pressable>
+            )}
+          </PressScale>
         );
       })}
       {Array.from({ length: freeBunks }, (_, i) => (

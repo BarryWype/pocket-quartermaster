@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+
+import { PressScale } from '@/components/motion';
 
 import { dungeonById, itemById, opportunityById, restrictionById } from '@/content/lookup';
 import { placeInfo } from '@/content/places';
@@ -51,7 +53,7 @@ function MealPicker({ stock, value, onChange, disabled }: { stock: Record<string
       <Text style={styles.label}>{t('expeditions.confirm.meal')}</Text>
       <View style={styles.options}>
         {[null, ...held.map((item) => item.id)].map((id) => (
-          <Pressable
+          <PressScale
             key={id ?? 'none'}
             accessibilityRole="radio"
             accessibilityState={{ selected: value === id, disabled }}
@@ -64,7 +66,7 @@ function MealPicker({ stock, value, onChange, disabled }: { stock: Record<string
             ) : (
               <Text style={styles.optionText}>{t('expeditions.confirm.none')}</Text>
             )}
-          </Pressable>
+          </PressScale>
         ))}
       </View>
       {value && itemById[value].description ? <Text style={styles.muted}>{tr(itemById[value].description!)}</Text> : null}
@@ -158,7 +160,7 @@ function ExpeditionDetails({
       )}
       {opportunity?.cost && (
         <View style={styles.section}>
-          <Pressable
+          <PressScale
             accessibilityRole="checkbox"
             accessibilityState={{ checked: loadout.optIn, disabled: keyCost && !hasKey(save) }}
             disabled={keyCost && !hasKey(save)}
@@ -176,7 +178,7 @@ function ExpeditionDetails({
               }
               labelStyle={styles.optionText}
             />
-          </Pressable>
+          </PressScale>
           {keyCost && hasKey(save) && <Text style={styles.bad}>{t('secrets.vaultWarning')}</Text>}
           <Text style={styles.muted}>{tr(opportunity.description)}</Text>
           {coverage.opportunity?.answers && coverage.opportunity.answers.length > 0 && (

@@ -5,6 +5,7 @@ import { systemIcons } from '@/content/systemIcons';
 import { ui } from '@/theme';
 
 import { GameIcon } from './GameIcon';
+import { CountUp } from './motion/CountUp';
 import { Text } from './Text';
 
 /** The amount as it reads beside the coin, or a visible `?` when it is somehow not a usable number. */
@@ -35,6 +36,8 @@ type Props = {
   short?: boolean;
   /** The coin's square size; the amount keeps its own style. */
   size?: number;
+  /** A purse the player watches (the map's and the headers' gold): the amount ticks to a new value and a gain floats up. */
+  counting?: boolean;
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
 };
@@ -45,14 +48,19 @@ type Props = {
  * clip the number. It never shrinks, so a crowded row can't crush it either —
  * the noLoosePrice guard test fails on a coin drawn next to a number without it.
  */
-export function Price({ amount, to, prefix = '', short = false, size = 18, style, textStyle }: Props) {
+export function Price({ amount, to, prefix = '', short = false, size = 18, counting = false, style, textStyle }: Props) {
   const label = `${prefix}${formatPrice(amount)}${to === undefined ? '' : `–${formatPrice(to)}`}`;
+  const amountStyle = [styles.amount, textStyle, short && styles.short];
   return (
     <View style={[styles.row, style]}>
       <GameIcon emoji="🪙" icon={systemIcons['🪙']} size={size} />
-      <Text style={[styles.amount, textStyle, short && styles.short]} numberOfLines={1}>
-        {label}
-      </Text>
+      {counting && to === undefined && prefix === '' && formatPrice(amount) !== '?' ? (
+        <CountUp value={amount as number} style={amountStyle} />
+      ) : (
+        <Text style={amountStyle} numberOfLines={1}>
+          {label}
+        </Text>
+      )}
     </View>
   );
 }

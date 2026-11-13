@@ -1,4 +1,6 @@
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
+
+import { PressScale } from '@/components/motion';
 import { usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -21,10 +23,10 @@ export function TipBar() {
   if (!tip) return null;
 
   return (
-    <Pressable onPress={() => closeTip(tip)} style={[styles.bar, { bottom: insets.bottom + ISLAND_HEIGHT + 56 }]}>
+    <PressScale onPress={() => closeTip(tip)} style={[styles.bar, { bottom: insets.bottom + ISLAND_HEIGHT + 56 }]}>
       <IconLabel emoji="💡" label={tipText(tip, reports)} labelStyle={styles.text} />
       <Text style={styles.close}>{t('tips.close')}</Text>
-    </Pressable>
+    </PressScale>
   );
 }
 

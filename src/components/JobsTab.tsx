@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+
+import { FillBar, PressScale } from '@/components/motion';
 
 import { clockConfig } from '@/content/clockConfig';
 import { type JobDef, jobRules, jobs } from '@/content/jobs';
@@ -19,7 +21,6 @@ import { useGameStore } from '@/store/gameStore';
 import { EnergyBar } from './EnergyBar';
 import { GameIcon } from './GameIcon';
 import { IconLabel } from './IconLabel';
-import { PixelBar } from './PixelBar';
 import { SpecialLabel } from './SpecialLabel';
 import { Text } from './Text';
 import { Tip } from './Tip';
@@ -133,7 +134,7 @@ export function HeroChips({ save, preselect, onPick }: { save: SaveData; presele
   return (
     <View style={styles.chips}>
       {free.map((hero) => (
-        <Pressable
+        <PressScale
           key={hero.id}
           onPress={() => onPick(hero.id)}
           style={[styles.chip, preselect === hero.id && styles.chipActive]}
@@ -143,7 +144,7 @@ export function HeroChips({ save, preselect, onPick }: { save: SaveData; presele
             {hero.name} · {formatPercent(currentEnergy(save, hero, now) / jobRules.energy.max)}
           </Text>
           <SpecialLabel classId={hero.classId} special={hero.special} short />
-        </Pressable>
+        </PressScale>
       ))}
     </View>
   );
@@ -201,13 +202,13 @@ function OrePicker({ save, job }: { save: SaveData; job: JobDef }) {
       <Text style={styles.barText}>{t('jobs.ore')}</Text>
       <View style={styles.chips}>
         {choices.map((material) => (
-          <Pressable
+          <PressScale
             key={material}
             onPress={() => setJobChoice(job.id, material)}
             style={[styles.chip, current === material && styles.chipActive]}
           >
             <IconLabel emoji={materialById[material].emoji} icon={materialById[material].icon} label={tr(materialById[material].name)} />
-          </Pressable>
+          </PressScale>
         ))}
       </View>
     </View>
@@ -224,7 +225,7 @@ function OutputBar({ save, job }: { save: SaveData; job: JobDef }) {
   const waiting = jobMaterials(job).filter((id) => (detail.amounts[id] ?? 0) > 0);
   return (
     <View style={styles.bar}>
-      <PixelBar value={cap > 0 ? output / cap : 0} color={colors.success} />
+      <FillBar value={cap > 0 ? output / cap : 0} color={colors.success} />
       <View style={styles.row}>
         {waiting.map((materialId) => (
           <IconLabel

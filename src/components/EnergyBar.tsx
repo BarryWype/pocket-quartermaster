@@ -10,7 +10,7 @@ import { colors } from '@/theme';
 import { useNow } from '@/hooks/useNow';
 
 import { IconLabel } from './IconLabel';
-import { PixelBar } from './PixelBar';
+import { FillBar } from '@/components/motion';
 import { Text } from './Text';
 
 type Props = {
@@ -26,7 +26,7 @@ export function EnergyBar({ save, hero }: Props) {
   const tired = isTired(save, hero, now);
   return (
     <View>
-      <PixelBar value={energy / jobRules.energy.max} color={tired ? colors.danger : colors.gold} />
+      <FillBar value={energy / jobRules.energy.max} color={tired ? colors.danger : colors.gold} />
       <View style={styles.row}>
         <IconLabel emoji="⚡" label={t('jobs.energy', { value: Math.round(energy), max: jobRules.energy.max })} labelStyle={styles.text} />
         {tired && (

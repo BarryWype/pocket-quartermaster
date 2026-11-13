@@ -1,4 +1,6 @@
-import { Pressable, StyleSheet, View, type ImageSourcePropType, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type ImageSourcePropType, type StyleProp, type ViewStyle } from 'react-native';
+
+import { PressScale } from '@/components/motion';
 
 import { IconLabel } from '@/components/IconLabel';
 import { Text } from '@/components/Text';
@@ -18,7 +20,7 @@ type Props = {
 /** The screen's main action: an ember block with a bevel that flips while pressed. */
 export function EmberButton({ title, onPress, disabled, emoji, icon, compact, style }: Props) {
   return (
-    <Pressable
+    <PressScale
       accessibilityRole="button"
       accessibilityLabel={title}
       accessibilityState={{ disabled: !!disabled }}
@@ -41,7 +43,7 @@ export function EmberButton({ title, onPress, disabled, emoji, icon, compact, st
           )}
         </View>
       )}
-    </Pressable>
+    </PressScale>
   );
 }
 
