@@ -1,12 +1,12 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { Text as NativeText, StyleSheet, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 
 import { affinityRules } from '@/content/equipment';
 import { gearRules, rarityNames } from '@/content/gear';
 import { bossById } from '@/content/enemies';
 import { dungeonById, earnedNameText, gearName, itemById } from '@/content/lookup';
 import type { SaveData } from '@/game/save';
-import type { GearDef, GearInstance, GearSource, Stats } from '@/game/types';
+import type { GearDef, GearInstance, GearSource, Rarity, Stats } from '@/game/types';
 import { gearFamilyTags } from '@/game/families/families';
 import { gearIconOf } from '@/game/gear/gearIcon';
 import { affinityOf, equipPreview, heroStats } from '@/game/team/team';
@@ -136,10 +136,19 @@ export function GearDetails({ gear, compact, compare, style, labelStyle }: Props
 export function GearSubtitle({ gear }: { gear: GearInstance }) {
   return (
     <>
-      <Text style={{ color: gearRules.colors[gear.rarity] }}>{tr(rarityNames[gear.rarity])}</Text>
+      <RarityName rarity={gear.rarity} />
       {` · ${tr(itemById[gear.itemId].name)}`}
     </>
   );
+}
+
+/**
+ * A rarity's name inside a card's title-band subtitle: a plain nested text, so
+ * it keeps the band's light font and size, tinted with the rarity's colour.
+ * Common keeps the band's colour: its own dark brown is made for parchment.
+ */
+export function RarityName({ rarity }: { rarity: Rarity }) {
+  return <NativeText style={rarity === 'common' ? undefined : { color: gearRules.colors[rarity] }}>{tr(rarityNames[rarity])}</NativeText>;
 }
 
 /** Where a piece came from: forged by you, or found where; nothing when unknown (pieces from before version 50). */

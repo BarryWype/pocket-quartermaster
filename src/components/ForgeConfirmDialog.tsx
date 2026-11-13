@@ -6,7 +6,6 @@ import { PressScale } from '@/components/motion';
 import { affixById } from '@/content/affixes';
 import { gearProfiles, gearTypeNames } from '@/content/equipment';
 import type { FamilyId } from '@/content/families';
-import { gearRules, rarityNames } from '@/content/gear';
 import { heroClasses } from '@/content/heroes';
 import { itemById, materialById, monsterPartById, recipeById, relicById } from '@/content/lookup';
 import { systemIcons } from '@/content/systemIcons';
@@ -24,6 +23,7 @@ import { fonts, ui } from '@/theme';
 import { FamilyTags } from './FamilyTag';
 import { affixLine, affixRangeLine } from './affixText';
 import { GameIcon } from './GameIcon';
+import { RarityName } from './GearDetails';
 import { Text } from './Text';
 import { AnchoredPopup, ItemPopup, type PopupAnchor, type PopupIngredient, type PopupLine } from './ui';
 
@@ -174,11 +174,12 @@ export function ForgeConfirmDialog({
     emoji = item.emoji;
     icon = item.icon;
     tags = gearFamilyTags(item);
+    // A fragment, not a Text: the title band's subtitle text gives it its light colour and font.
     subtitle = (
-      <Text>
-        <Text style={[{ color: gearRules.colors[confirm.expectedRarity] }]}>{tr(rarityNames[confirm.expectedRarity])}</Text>
+      <>
+        <RarityName rarity={confirm.expectedRarity} />
         {` · ${tr(gearTypeNames[confirm.gearType].name)} · ${t('crafting.tierShort', { tier: ROMAN[confirm.tier - 1] })}`}
-      </Text>
+      </>
     );
 
     // One line per stat, with the values the forge can roll at the piece's rarity.

@@ -9,16 +9,19 @@ import { colors } from '@/theme';
 import { ClassSummary } from './ClassSummary';
 import { IconLabel } from './IconLabel';
 import { Text } from './Text';
-import { EmberButton } from './ui';
+import { EmberButton, ParchmentCard } from './ui';
 
-/** The free recruit after the first tier boss, while it waits: one of three classes, taken in one tap. */
+/**
+ * The free recruit after the first tier boss, while it waits: one of three
+ * classes, taken in one tap. On a parchment card, like the hero cards around it
+ * on the Barracks' wood: its ink text is written for parchment.
+ */
 export function FreePickPanel() {
   const save = useGameStore((state) => state.save);
   const claim = useGameStore((state) => state.claimFreePick);
   if (!save.freePick) return null;
   return (
-    <View style={styles.panel}>
-      <Text style={styles.title}>{t('freePick.title')}</Text>
+    <ParchmentCard title={t('freePick.title')} contentStyle={styles.panel}>
       <Text style={styles.body}>{t('freePick.body')}</Text>
       {save.freePick.map((classId) => {
         const heroClass = heroClasses[classId];
@@ -32,13 +35,12 @@ export function FreePickPanel() {
           </View>
         );
       })}
-    </View>
+    </ParchmentCard>
   );
 }
 
 const styles = StyleSheet.create({
-  panel: { gap: 6, paddingVertical: 8 },
-  title: { fontSize: 21 },
+  panel: { gap: 6 },
   body: { color: colors.muted },
   choice: { gap: 4, paddingVertical: 8, borderTopWidth: 2, borderTopColor: colors.parchmentDark },
   name: { fontSize: 20 },

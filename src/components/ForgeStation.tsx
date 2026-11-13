@@ -33,7 +33,7 @@ import { Row } from './Row';
 import { Text } from './Text';
 import { TutorialHint } from './TutorialHint';
 import { AppearIf } from './motion';
-import { DiamondRail, ItemSlot, useLazyPages, type RailItem } from './ui';
+import { DiamondRail, ItemSlot, ParchmentCard, useLazyPages, type RailItem } from './ui';
 
 /** The gear sections, always in this order; the Other section joins last when it has content. */
 const GEAR_SECTIONS = ['weapons', 'armour', 'helmets', 'offhands'] as const;
@@ -347,7 +347,7 @@ function GearSlot({
   );
 }
 
-/** Relic restoring and the recipes that need no blueprint: tools and smelting. */
+/** Relic restoring and the recipes that need no blueprint: tools and smelting. Each list sits on a parchment card: its rows' ink text is written for parchment, not the forge's wood. */
 function OtherPage({
   save,
   onRestore,
@@ -359,37 +359,41 @@ function OtherPage({
 }) {
   const { plainRecipeIds } = forgeList(save);
   return (
-    <View>
+    <View style={styles.otherPage}>
       <RelicList save={save} onRestore={onRestore} />
-      {plainRecipeIds.map((id) => {
-        const recipe = recipeById[id];
-        const output = recipeOutput(recipe);
-        return (
-          <Row
-            key={id}
-            emoji={output.emoji}
-            icon={output.icon}
-            title={tr(output.name)}
-            subtitle={
-              <View>
-                <View style={recipeInputsStyles.inputs}>
-                  <RecipeInputs save={save} recipe={recipe} />
-                </View>
-                {'description' in output && typeof output.description === 'string' ? (
-                  <Text style={styles.subtitle}>{tr(output.description)}</Text>
-                ) : null}
-              </View>
-            }
-            right={
-              ownsTool(save, recipe) ? (
-                t('crafting.owned')
-              ) : (
-                <Button title={t('crafting.forge')} disabled={!canCraft(save, recipe)} onPress={() => onCraft(id)} />
-              )
-            }
-          />
-        );
-      })}
+      {plainRecipeIds.length > 0 && (
+        <ParchmentCard>
+          {plainRecipeIds.map((id) => {
+            const recipe = recipeById[id];
+            const output = recipeOutput(recipe);
+            return (
+              <Row
+                key={id}
+                emoji={output.emoji}
+                icon={output.icon}
+                title={tr(output.name)}
+                subtitle={
+                  <View>
+                    <View style={recipeInputsStyles.inputs}>
+                      <RecipeInputs save={save} recipe={recipe} />
+                    </View>
+                    {'description' in output && typeof output.description === 'string' ? (
+                      <Text style={styles.subtitle}>{tr(output.description)}</Text>
+                    ) : null}
+                  </View>
+                }
+                right={
+                  ownsTool(save, recipe) ? (
+                    t('crafting.owned')
+                  ) : (
+                    <Button title={t('crafting.forge')} disabled={!canCraft(save, recipe)} onPress={() => onCraft(id)} />
+                  )
+                }
+              />
+            );
+          })}
+        </ParchmentCard>
+      )}
     </View>
   );
 }
@@ -399,8 +403,7 @@ function RelicList({ save, onRestore }: { save: SaveData; onRestore: (relicUid: 
   const relics = save.relics.filter(({ relicId }) => relicById[relicId].tier <= highestUnlockedTier(save));
   if (relics.length === 0) return null;
   return (
-    <View>
-      <Text style={styles.family}>{t('crafting.relics')}</Text>
+    <ParchmentCard title={t('crafting.relics')}>
       {relics.map(({ uid, relicId }) => {
         const relic = relicById[relicId];
         return (
@@ -427,7 +430,7 @@ function RelicList({ save, onRestore }: { save: SaveData; onRestore: (relicUid: 
           />
         );
       })}
-    </View>
+    </ParchmentCard>
   );
 }
 
@@ -444,6 +447,6 @@ const styles = StyleSheet.create({
   knownCount: { fontFamily: fonts.serif, fontSize: 13, color: ui.onWoodMuted },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   subtitle: { fontSize: 16, color: colors.muted },
-  family: { fontSize: 18, color: ui.onWood, marginTop: 8, marginBottom: 2 },
+  otherPage: { gap: 10 },
   relicHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 });

@@ -263,6 +263,17 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 21 },
   muted: { color: colors.muted },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: pixel.outline, borderColor: colors.woodDark, paddingHorizontal: 10, paddingVertical: 6 },
+  // Never wider than the card: a long hero line (name, energy, special) wraps inside the chip.
+  chip: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 4,
+    maxWidth: '100%',
+    borderWidth: pixel.outline,
+    borderColor: colors.woodDark,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
   chipActive: { borderColor: colors.ink, backgroundColor: colors.highlight },
 });
