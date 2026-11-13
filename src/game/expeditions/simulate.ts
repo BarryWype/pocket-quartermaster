@@ -55,8 +55,9 @@ import type {
   Tag,
   ThreatId,
 } from '../types';
-import { activeHooks, type ActiveHooks, type Attack, type FamilyBase, type Incoming } from './familyEffects';
+import { activeHookOwners, activeHooks, type ActiveHooks, type Attack, type FamilyBase, type Incoming } from './familyEffects';
 import { hungerEffect } from './provisions';
+import { createTally, type RunTally, type Share } from './tally';
 
 export type ExpeditionRules = typeof expeditionRules;
 
@@ -122,7 +123,7 @@ export type PartyMember = {
 };
 
 /** A member's affixes grouped by effect kind, in their order, built once per affix record: fights ask for them on every hit. */
-const byKindCache = new WeakMap<Record<string, number>, Map<AffixEffect['kind'], [AffixEffect, number][]>>();
+const byKindCache = new WeakMap<Record<string, number>, Map<AffixEffect['kind'], [AffixEffect, number, string][]>>();
 function affixesByKind(affixes: Record<string, number>) {
   let byKind = byKindCache.get(affixes);
   if (!byKind) {
@@ -130,7 +131,7 @@ function affixesByKind(affixes: Record<string, number>) {
     for (const [id, value] of Object.entries(affixes)) {
       const effect = affixById[id]?.effect;
       if (!effect) continue;
-      byKind.set(effect.kind, [...byKind.get(effect.kind) ?? [], [effect, value]]);
+      byKind.set(effect.kind, [...byKind.get(effect.kind) ?? [], [effect, value, id]]);
     }
     byKindCache.set(affixes, byKind);
   }
@@ -151,6 +152,20 @@ const affixTotal = (member: PartyMember, kind: AffixEffect['kind'], foe?: { tags
     if (element !== undefined && 'element' in effect && effect.element !== element) return sum;
     return sum + value;
   }, 0);
+};
+
+/** The member's affixes of one kind that count against the foe, by affix id, for the tally: `frac` split by their values. */
+const affixShares = (member: PartyMember, kind: AffixEffect['kind'], frac: number, foe?: { tags?: Tag[]; element?: Element }): Share[] => {
+  if (!member.affixes || !(frac > 0)) return [];
+  const tags = foe?.tags;
+  const element = foe?.element;
+  const parts = (affixesByKind(member.affixes).get(kind) ?? []).filter(
+    ([effect]) =>
+      !(tags !== undefined && 'tags' in effect && !effect.tags.some((tag) => tags.includes(tag))) &&
+      !(element !== undefined && 'element' in effect && effect.element !== element),
+  );
+  const total = parts.reduce((sum, [, value]) => sum + value, 0);
+  return total > 0 ? parts.map(([, value, id]) => ({ kind: 'affix', id, heroId: member.heroId, frac: (frac * value) / total })) : [];
 };
 
 /** An ability that changed an encounter, for the log. `heroId` is null for a local's tip. */
@@ -275,6 +290,8 @@ export type RunResult = {
   familyMaterials: MaterialStack[];
   /** The party's family levels the run played with. */
   families: FamilyLevels;
+  /** Who did what (see tally.ts); only when the run was asked to keep it. */
+  tally?: RunTally;
 };
 
 /** What the party ate and signed up for: the same for the odds preview and the real run. */
@@ -296,6 +313,8 @@ export type RunOptions = RunProvisions & {
   elixirs?: boolean;
   /** A chapel's blessing: the party hits harder (see serviceRules.chapel). */
   blessed?: boolean;
+  /** Keep the run's tally (see tally.ts) for the report; odds runs leave it out. */
+  tally?: boolean;
 };
 
 export type HeroState = {
@@ -504,6 +523,10 @@ export type PreparedSimulation = {
   /** The party's family levels, from the tags the restriction leaves standing (as the threats see them). */
   families: FamilyLevels;
   hooks: ActiveHooks;
+  /** Keep the run's tally; with it, the family effect behind each hook and the threat behind each penalty kind. */
+  tally: boolean;
+  hookOwners: Record<keyof ActiveHooks, FamilyEffectId[]>;
+  penaltyThreat: Partial<Record<AppliedPenalty['kind'], ThreatId>>;
 };
 
 /**
@@ -513,7 +536,7 @@ export type PreparedSimulation = {
 export function prepareSimulation(
   party: PartyMember[],
   dungeon: DungeonDef,
-  { rules = expeditionRules, guaranteed = false, hunger = 'fed', meal: eaten = null, briefing = null, optIn = false, elixirs = false, blessed = false }: RunOptions = {},
+  { rules = expeditionRules, guaranteed = false, hunger = 'fed', meal: eaten = null, briefing = null, optIn = false, elixirs = false, blessed = false, tally = false }: RunOptions = {},
 ): PreparedSimulation {
   // The party's signatures first: a cancelled restriction, a lowered threat, a Cook's meal.
   const classIds = party.map((member) => member.classId);
@@ -641,6 +664,9 @@ export function prepareSimulation(
     healing,
     families,
     hooks: activeHooks(families),
+    tally,
+    hookOwners: activeHookOwners(families),
+    penaltyThreat: Object.fromEntries(penalties.map((p) => [p.kind, p.threatId])),
   };
 }
 
@@ -678,6 +704,8 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     healing,
     families,
     hooks,
+    hookOwners,
+    penaltyThreat,
   } = prepared;
   const rng = createRng(seed);
   // Specials draw from their own stream, so a special changes only what it does, not every later roll.
@@ -689,6 +717,31 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
   // while the keyword sets are only ever read.
   const heroes: HeroState[] = heroStart.map((hero) => ({ ...hero }));
   const alive = () => heroes.filter((h) => !h.out);
+  /** Who did what, when the run keeps it; nothing the tally does draws from the rng. */
+  const tally = prepared.tally ? createTally(heroes.map((h) => h.member.heroId)) : null;
+  /** The family effect whose hook is running: with a tally, what happens meanwhile is its doing. */
+  let hookOwner: FamilyEffectId | null = null;
+  /** Runs a hook list; with a tally, each hook as its effect (`hookOwner`), then `after` with it. */
+  const runHooks = <K extends keyof ActiveHooks>(name: K, ctx: Parameters<ActiveHooks[K][number]>[0], after?: (owner: FamilyEffectId) => void) => {
+    const list = hooks[name] as unknown as ((c: typeof ctx) => void)[];
+    if (!tally) {
+      for (const hook of list) hook(ctx);
+      return;
+    }
+    const outer = hookOwner;
+    const owners = hookOwners[name];
+    for (let i = 0; i < list.length; i++) {
+      hookOwner = owners[i];
+      list[i](ctx);
+      after?.(owners[i]);
+    }
+    hookOwner = outer;
+  };
+  /** Credits a hero's affixes of one kind, `total` split by their values. */
+  const creditAffixes = (member: PartyMember, kind: AffixEffect['kind'], amount: 'damage' | 'prevented' | 'healing' | 'saves', total: number, foe?: { tags?: Tag[]; element?: Element }) => {
+    for (const share of affixShares(member, kind, total, foe)) tally!.credit('affix', share.id, member.heroId, amount, share.frac);
+  };
+  const weaknessItem = weaknessByBoss[dungeon.boss.id]?.itemId;
 
   /** The first conscious hero with an ability of this kind that passes `test`. */
   const withAbility = <K extends Ability['kind']>(kind: K, test: (ability: Extract<Ability, { kind: K }>) => boolean = () => true) => {
@@ -816,7 +869,9 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     heal: (hero, share) => {
       const before = hero.hp;
       heal(hero, share, result);
-      return hero.hp - before;
+      const healed = hero.hp - before;
+      if (tally && hookOwner) tally.credit('family', hookOwner, null, 'healing', healed);
+      return healed;
     },
   });
 
@@ -829,27 +884,40 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     if (uses > 0) bonusUses.set(hero.member.heroId, uses);
   }
 
+  /** Heals the hero; the HP healed. */
   const heal = (hero: HeroState, share: number, result: EncounterResult) => {
     const amount = Math.min(hero.member.maxHp - hero.hp, share * hero.member.maxHp * healing);
     hero.hp += amount;
     add(result.healed, hero.member.heroId, amount);
+    return amount;
   };
 
   /** A Potion affinity multiplies the healing consumables used on the hero. */
   const potionFactor = (hero: HeroState) => 1 + affixTotal(hero.member, 'potionHealing') / 100;
+  /** Credits a healing consumable's healing, the Potion affinity's part apart. */
+  const creditPotion = (hero: HeroState, itemId: string, healed: number, result: EncounterResult) => {
+    const plain = healed / potionFactor(hero);
+    tally!.credit('consumable', itemId, hero.member.heroId, 'healing', plain);
+    creditAffixes(hero.member, 'potionHealing', 'healing', healed - plain);
+    tally!.fired(itemId, hero.member.heroId, result);
+  };
 
   const hurt = (hero: HeroState, raw: number, result: EncounterResult) => {
     // The fight's Bulwark shield soaks damage before it lands.
     const shield = fightShields?.get(hero.member.heroId) ?? 0;
     if (shield > 0) fightShields!.set(hero.member.heroId, Math.max(0, shield - raw));
+    if (tally && shield > 0) creditAffixes(hero.member, 'fightShield', 'prevented', Math.min(shield, raw));
     const amount = Math.max(0, raw - shield) * (own(hero, 'damageTaken')?.multiplier ?? 1);
     hero.hp -= amount;
     add(result.taken, hero.member.heroId, amount);
     if (hero.hp <= 0) {
       let revive: number | null = null;
+      let reviver: FamilyEffectId | null = null;
       if (!guaranteed && hooks.knockout.length > 0) {
         const knockout = { ...familyBase(result), hero, revive };
-        for (const hook of hooks.knockout) hook(knockout);
+        runHooks('knockout', knockout, tally ? (owner) => {
+          if (knockout.revive !== null && reviver === null) reviver = owner;
+        } : undefined);
         revive = knockout.revive;
       }
       if (guaranteed) {
@@ -858,6 +926,10 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         // A family revival gets the hero back up before any draught; the run still counts them as knocked out.
         hero.hp = Math.max(1, Math.round(revive * hero.member.maxHp));
         result.knockedOut.push(hero.member.heroId);
+        if (tally && reviver) {
+          tally.credit('family', reviver, null, 'healing', hero.hp);
+          tally.credit('family', reviver, null, 'saves', 1);
+        }
       } else {
         const elixir = hero.member.consumable?.elixir;
         // A revival draught gets the carrier back up once; the run still counts them as knocked out.
@@ -867,6 +939,11 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           elixirsUsed.push(hero.member.heroId);
           result.effects.push({ heroId: hero.member.heroId, key: 'revive' });
           result.knockedOut.push(hero.member.heroId);
+          if (tally) {
+            tally.credit('consumable', hero.member.consumable!.id, hero.member.heroId, 'healing', hero.hp);
+            tally.credit('consumable', hero.member.consumable!.id, hero.member.heroId, 'saves', 1);
+            tally.fired(hero.member.consumable!.id, hero.member.heroId, result);
+          }
         } else {
           // Unyielding may hold the hero at 1 HP at their first would-be fall of the expedition.
           const lastStand = affixTotal(hero.member, 'lastStand');
@@ -874,6 +951,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           if (firstFall) lastStands.add(hero.member.heroId);
           if (firstFall && rng.chance(lastStand / 100)) {
             hero.hp = 1;
+            if (tally) creditAffixes(hero.member, 'lastStand', 'saves', 1);
           } else {
             // A conscious holder's smoke bomb leaves the hero at 1 HP and ends the run in an escape.
             const bomber = elixirs
@@ -885,6 +963,10 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
               elixirsUsed.push(bomber.member.heroId);
               escaped = true;
               result.effects.push({ heroId: bomber.member.heroId, key: 'smokeBomb' });
+              if (tally) {
+                tally.credit('consumable', bomber.member.consumable!.id, bomber.member.heroId, 'saves', 1);
+                tally.fired(bomber.member.consumable!.id, bomber.member.heroId, result);
+              }
             } else {
               hero.hp = 0;
               hero.out = true;
@@ -903,13 +985,15 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     const healShare = potion?.when === 'lowHp' ? potion.heal : undefined;
     if (hero.consumableLeft && healShare !== undefined && low()) {
       hero.consumableLeft = false;
-      heal(hero, healShare * potionFactor(hero), result);
+      const healed = heal(hero, healShare * potionFactor(hero), result);
       result.consumed.push(hero.member.heroId);
+      if (tally) creditPotion(hero, potion!.id, healed, result);
     }
     // The Alchemist's second potion, once the first is gone or isn't one.
     if (hero.potionLeft && low()) {
       hero.potionLeft = false;
-      heal(hero, hero.member.potion!.heal! * potionFactor(hero), result);
+      const healed = heal(hero, hero.member.potion!.heal! * potionFactor(hero), result);
+      if (tally) creditPotion(hero, hero.member.potion!.id, healed, result);
       potionsDrunk.push(hero.member.heroId);
       result.effects.push({ heroId: hero.member.heroId, key: 'secondPotion' });
     }
@@ -939,6 +1023,27 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       return { def, hp: maxHp * (enemyTags(def).includes('undead') ? undeadHp : 1), maxHp, staggered: false, armour: 1 };
     });
     if (escaped) return;
+    const isElite = (enemy: EnemyState) => isBoss || 'effect' in enemy.def || enemy.def.id.includes(':elite');
+    if (tally) {
+      // The undead's extra HP is what a missed threat cost; a weakness item's HP cut is damage the party didn't have to deal.
+      for (const enemy of enemies) if (enemy.hp > enemy.maxHp) tally.threat(penaltyThreat.enemyHp, 'lost', enemy.hp - enemy.maxHp);
+      if (isBoss && weakness?.hpCut) tally.credit('weakness', weaknessItem!, weaknessUsedBy, 'damage', enemyDefs[0].hp * weakness.hpCut);
+    }
+    /** With a tally: the hit's kill, and whose doing its damage was (a running family hook's, else the shares'). */
+    const tallyHit = (enemy: EnemyState, heroId: string | null, amount: number, standing: boolean, shares?: Share[]) => {
+      if (hookOwner) tally!.credit('family', hookOwner, null, 'damage', amount);
+      else if (shares) tally!.shares(shares, amount);
+      if (standing && enemy.hp <= 0) tally!.kill(heroId, isBoss && enemy === enemies[0], isElite(enemy), enemyTags(enemy.def));
+    };
+    /** Wounds an enemy, credited to the hero (summons aren't: `dealt` false). */
+    const hitEnemy = (enemy: EnemyState, heroId: string | null, amount: number, shares?: Share[], dealt = true) => {
+      const standing = enemy.hp > 0;
+      enemy.hp -= amount;
+      if (dealt && heroId !== null) add(result.dealt, heroId, amount);
+      if (tally) tallyHit(enemy, heroId, amount, standing, shares);
+    };
+    /** Enemies a family effect staggered, to credit the turn they lose. */
+    const staggeredBy = tally ? new Map<EnemyState, FamilyEffectId>() : null;
     fightOnce = new Set();
     const family = familyBase(result);
     /** The enemies strike first in round 1; a family effect may turn the ambush. */
@@ -950,19 +1055,25 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         isBoss,
         ambush,
         strikeDown: (hero: HeroState, enemy: EnemyState) => {
-          add(result.dealt, hero.member.heroId, Math.max(0, enemy.hp));
+          const standing = enemy.hp > 0;
+          const dealt = Math.max(0, enemy.hp);
+          add(result.dealt, hero.member.heroId, dealt);
           enemy.hp = 0;
+          if (tally) tallyHit(enemy, hero.member.heroId, dealt, standing);
         },
         strike: (hero: HeroState, enemy: EnemyState, amount: number) => {
+          const standing = enemy.hp > 0;
           const dealt = Math.min(Math.max(0, enemy.hp), amount);
           add(result.dealt, hero.member.heroId, dealt);
           enemy.hp -= dealt;
+          if (tally) tallyHit(enemy, hero.member.heroId, dealt, standing);
         },
       };
-      for (const hook of hooks.fightStart) hook(ctx);
+      runHooks('fightStart', ctx);
       ambush = ctx.ambush;
     }
     if (ambush) result.effects.push({ heroId: null, key: 'exposed' });
+    if (tally && ambush && enemiesFirst) tally.threat(penaltyThreat.exposed, 'firstStrikes', 1);
     // The run's first fight opens with every conscious carrier's firebomb.
     if (elixirs && !firebombThrown) {
       firebombThrown = true;
@@ -972,11 +1083,12 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         hero.consumableLeft = false;
         elixirsUsed.push(hero.member.heroId);
         result.effects.push({ heroId: hero.member.heroId, key: 'firebomb' });
+        const bomb: Share[] = [{ kind: 'consumable', id: hero.member.consumable!.id, heroId: hero.member.heroId, frac: 1 }];
         for (const enemy of enemies) {
           const damage = Math.round(elixir.damage * TIER_SCALE[dungeon.tier - 1] * weaponMultiplier('fire', enemyElement(enemy.def)));
-          enemy.hp -= damage;
-          add(result.dealt, hero.member.heroId, damage);
+          hitEnemy(enemy, hero.member.heroId, damage, bomb);
         }
+        tally?.fired(hero.member.consumable!.id, hero.member.heroId, result);
       }
     }
     /** How many big hits each hero's Brace has softened in this fight. */
@@ -1000,10 +1112,10 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       absorbs: Map<string, number>;
       taunt: { heroId: string; rounds: number; damageTaken: number } | null;
       shield: { rounds: number } | null;
-      hot: { pct: number; rounds: number } | null;
+      hot: { pct: number; rounds: number; heroId: string } | null;
       party: { multiplier: number; rounds: number } | null;
-      dots: { heroId: string; enemy: EnemyState; damage: number; rounds: number; source?: 'venomous' }[];
-      summons: { heroId: string; damage: number; rounds: number | null }[];
+      dots: { heroId: string; enemy: EnemyState; damage: number; rounds: number; source?: 'venomous'; shares?: Share[] }[];
+      summons: { heroId: string; damage: number; rounds: number | null; shares?: Share[] }[];
       /** Whether the boss's first turn already fired its specials. */
       bossTurn: boolean;
     } = {
@@ -1028,15 +1140,19 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     );
     const living = () => enemies.filter((e) => e.hp > 0);
     /** A summon joining the party's side, after the family effects that scale it. */
-    const summoned = (hero: HeroState, damage: number, rounds: number | null) => {
+    const summoned = (hero: HeroState, damage: number, rounds: number | null): { damage: number; rounds: number | null; shares?: Share[] } => {
       if (hooks.summon.length === 0) return { damage, rounds };
       const joining = { ...family, hero, damage, rounds };
-      for (const hook of hooks.summon) hook(joining);
-      return { damage: joining.damage, rounds: joining.rounds };
+      const shares: Share[] = [];
+      let last = damage;
+      runHooks('summon', joining, tally ? (owner) => {
+        if (joining.damage > last) shares.push({ kind: 'family', id: owner, heroId: null, frac: 1 - last / joining.damage });
+        last = joining.damage;
+      } : undefined);
+      return { damage: joining.damage, rounds: joining.rounds, ...(tally ? { shares } : {}) };
     };
     const bossOf = () => (isBoss ? enemies[0] : enemies.find((e) => 'effect' in e.def));
     const strongest = (foes: EnemyState[]) => foes.reduce((best, e) => (e.def.damage > best.def.damage ? e : best));
-    const isElite = (enemy: EnemyState) => isBoss || 'effect' in enemy.def || enemy.def.id.includes(':elite');
     /** Each conscious hero's speed this round, after the family effects. */
     let roundSpeed = new Map<HeroState, number>();
     /** Whether the hero's special still has its use, this fight or this run. */
@@ -1068,6 +1184,8 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       const element = hero.member.weaponElement;
       const targetElement = enemyElement(target.def);
       let attack: Attack | undefined;
+      /** With a tally: what each family hook changed on this hit, as ratios. */
+      let changes: { owner: FamilyEffectId; multiplier: number; critAdd: number; armourKept: number; advantageScale: number; allEnemies: boolean }[] | undefined;
       if (hooks.beforeAttack.length > 0) {
         attack = {
           ...family,
@@ -1086,11 +1204,34 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           main,
           allEnemies: false,
         };
-        for (const hook of hooks.beforeAttack) hook(attack);
+        if (tally) {
+          const a = attack;
+          const found: NonNullable<typeof changes> = (changes = []);
+          const snap = () => ({ multiplier: a.multiplier, critAdd: a.critAdd, armourKept: a.armourKept, advantageScale: a.advantageScale, allEnemies: a.allEnemies });
+          let before = snap();
+          runHooks('beforeAttack', a, (owner) => {
+            const after = snap();
+            if (Object.keys(after).every((key) => after[key as keyof typeof after] === before[key as keyof typeof before])) return;
+            found.push({
+              owner,
+              multiplier: before.multiplier > 0 ? after.multiplier / before.multiplier : 1,
+              critAdd: after.critAdd - before.critAdd,
+              armourKept: before.armourKept > 0 ? after.armourKept / before.armourKept : 1,
+              advantageScale: before.advantageScale > 0 ? after.advantageScale / before.advantageScale : 1,
+              allEnemies: after.allEnemies && !before.allEnemies,
+            });
+            before = after;
+          });
+        } else {
+          for (const hook of hooks.beforeAttack) hook(attack);
+        }
       }
       // An armoured target blunts Power in full and Magic only partly; Pierce ignores it.
-      const blocked = armour * target.armour * (attack?.armourKept ?? 1);
-      const armourFactor = pierce ? 1 : hero.member.damageStat === 'power' ? 1 - blocked : 1 - rules.magicArmourShare * blocked;
+      const armourFactorOf = (armourShare: number, kept: number) => {
+        const blocked = armourShare * target.armour * kept;
+        return pierce ? 1 : hero.member.damageStat === 'power' ? 1 - blocked : 1 - rules.magicArmourShare * blocked;
+      };
+      const armourFactor = armourFactorOf(armour, attack?.armourKept ?? 1);
       // The best buff of a conscious hero lifts everyone; buffs don't stack.
       let buffer: { buff: Extract<Ability, { kind: 'partyDamageBuff' }> } | undefined;
       for (const other of alive()) {
@@ -1129,8 +1270,8 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         note(id, 'rage');
       }
       const advantage = own(hero, 'elementalAdvantage');
-      // The wheel only touches the elemental part of a hit.
-      const wheel = (element: Element | undefined) => {
+      // The wheel only touches the elemental part of a hit; the tally asks it again, quietly, with another scale.
+      const wheel = (element: Element | undefined, scale = attack?.advantageScale ?? 1, quiet = false) => {
         let multiplier = weaponMultiplier(element, targetElement);
         const channel = has(hero, 'channel', tags)
           ? isStrong(hero, 'channel', tags)
@@ -1141,9 +1282,9 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           // Channel lifts the wheel's advantage; a family effect may scale the bonus above 1; Anti-magic then cuts that bonus in half.
           const lifted = !!advantage || channel > 1;
           if (lifted) multiplier = Math.max(advantage?.multiplier ?? multiplier, channel);
-          multiplier = 1 + (multiplier - 1) * (attack?.advantageScale ?? 1);
+          multiplier = 1 + (multiplier - 1) * scale;
           if (lifted && restriction === 'antiMagic' && !ignores(hero, 'antiMagic')) multiplier = 1 + (multiplier - 1) * restrictionRules.antiMagic;
-          if (advantage) note(id, 'advantage');
+          if (advantage && !quiet) note(id, 'advantage');
         }
         return multiplier;
       };
@@ -1151,13 +1292,15 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       const magic = hero.member.damageStat === 'magic';
       const base = magic ? hero.member.magic * (ignores(hero, 'antiMagic') ? 1 : magicFactor) : hero.member.power;
       const physical = elemental && element ? 0 : magic ? 0 : base * (element ? infusionRules.physicalShare : 1);
-      const elementalPart = elemental && element
-        ? base * wheel(element)
-        : magic
-          ? base * wheel(element)
-          : element
-            ? (base * infusionRules.elementalShare + hero.member.power * infusionRules.bonusShare) * wheel(element)
-            : 0;
+      const elementalOf = (scale?: number, quiet?: boolean) =>
+        elemental && element
+          ? base * wheel(element, scale, quiet)
+          : magic
+            ? base * wheel(element, scale, quiet)
+            : element
+              ? (base * infusionRules.elementalShare + hero.member.power * infusionRules.bonusShare) * wheel(element, scale, quiet)
+              : 0;
+      const elementalPart = elementalOf();
       const critBonus = hero.member.abilities.reduce((sum, a) => sum + (a.kind === 'critBonus' ? a.chance : 0), 0);
       // A Duelist's crits hit harder in a fight against a lone enemy.
       const duel = enemies.length === 1 ? own(hero, 'singleEnemyCrit') : undefined;
@@ -1175,16 +1318,53 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       const opener = currentRound === 1 ? affixTotal(hero.member, 'firstRoundCrit') / 100 : 0;
       // A Predator's eye sharpens the hero's crits against the foes it names.
       const predator = affixTotal(hero.member, 'critVs', { tags }) / 100;
-      const chance = critChance ?? (sureCrits.delete(id) ? 1 : hero.member.crit / 100 + critBonus + opener + predator + (attack?.critAdd ?? 0));
+      const sure = critChance === undefined && sureCrits.delete(id);
+      const chance = critChance ?? (sure ? 1 : hero.member.crit / 100 + critBonus + opener + predator + (attack?.critAdd ?? 0));
       // A Thief's crits with a Concealed weapon cut deeper.
       const concealedCrit = hero.member.concealed ? (own(hero, 'concealedCrit')?.multiplier ?? 1) : 1;
-      const hit = roll(physical + elementalPart, chance, onCrit, (duel?.multiplier ?? critDamage?.effect.multiplier ?? rules.critMultiplier) * concealedCrit);
-      return {
-        damage: hit * fortune * bonus * hero.fed * multiplier * (ctx.party ? ctx.party.multiplier : 1) * (attack?.multiplier ?? 1),
-        crit,
-        staggerOnCrit,
-        allEnemies: attack?.allEnemies ?? false,
-      };
+      const critMultiplier = (duel?.multiplier ?? critDamage?.effect.multiplier ?? rules.critMultiplier) * concealedCrit;
+      const hit = roll(physical + elementalPart, chance, onCrit, critMultiplier);
+      const damage = hit * fortune * bonus * hero.fed * multiplier * (ctx.party ? ctx.party.multiplier : 1) * (attack?.multiplier ?? 1);
+      if (!tally) return { damage, crit, staggerOnCrit, allEnemies: attack?.allEnemies ?? false };
+      // The share of the hit each source made (marginal: the hit without it alone), and what missed threats took off it.
+      const shares: Share[] = [];
+      let allEnemiesBy: FamilyEffectId | undefined;
+      if (vs > 0) shares.push(...affixShares(hero.member, 'damageVs', 1 - 1 / (1 + vs / 100), { tags }));
+      if (command > 0) {
+        const commander = alive().find((h) => affixTotal(h.member, 'partyDamage') === command)!;
+        shares.push(...affixShares(commander.member, 'partyDamage', 1 - 1 / (1 + command / 100)));
+      }
+      const elixir = elixirs ? hero.member.consumable?.elixir : undefined;
+      if (elixir?.kind === 'stat' && elixir.stat === hero.member.damageStat && elixir.multiplier > 1) {
+        shares.push({ kind: 'consumable', id: hero.member.consumable!.id, heroId: id, frac: 1 - 1 / elixir.multiplier });
+      }
+      for (const change of changes ?? []) {
+        let kept = 1 / change.multiplier;
+        if (change.armourKept !== 1 && armourFactor > 0) kept *= armourFactorOf(armour, attack!.armourKept / change.armourKept) / armourFactor;
+        if (change.advantageScale !== 1 && physical + elementalPart > 0) {
+          kept *= (physical + elementalOf(attack!.advantageScale / change.advantageScale, true)) / (physical + elementalPart);
+        }
+        if (kept < 1) shares.push({ kind: 'family', id: change.owner, heroId: null, frac: 1 - kept });
+        if (change.allEnemies) allEnemiesBy = change.owner;
+      }
+      // A crit's extra damage, split over the chance each source added.
+      if (crit && !sure && critChance === undefined && chance > 0 && critMultiplier > 1) {
+        const perChance = (1 - 1 / critMultiplier) / chance;
+        shares.push(...affixShares(hero.member, 'firstRoundCrit', opener * perChance));
+        shares.push(...affixShares(hero.member, 'critVs', predator * perChance, { tags }));
+        for (const change of changes ?? []) {
+          if (change.critAdd > 0) shares.push({ kind: 'family', id: change.owner, heroId: null, frac: change.critAdd * perChance });
+        }
+        if (elixir?.kind === 'crit') shares.push({ kind: 'consumable', id: hero.member.consumable!.id, heroId: id, frac: (elixir.add / 100) * perChance });
+        if (meal?.kind === 'crit') shares.push({ kind: 'meal', id: meal.kind, heroId: null, frac: (meal.add / 100) * perChance });
+      }
+      const weakened = fightsSeen === 0 ? hero.weakenedFirst : hero.weakenedRest;
+      if (weakened > 0 && weakened < 1 && penaltyThreat.weakened) shares.push({ kind: 'threat', id: penaltyThreat.weakened, heroId: null, frac: 1 / weakened - 1 });
+      if (weakenedAgainst < 1 && armourFactor > 0 && penaltyThreat.weakenedAgainst) {
+        const unarmoured = armourFactorOf(target.def.armour ?? 0, attack?.armourKept ?? 1);
+        if (unarmoured > armourFactor) shares.push({ kind: 'threat', id: penaltyThreat.weakenedAgainst, heroId: null, frac: unarmoured / armourFactor - 1 });
+      }
+      return { damage, crit, staggerOnCrit, allEnemies: attack?.allEnemies ?? false, shares, allEnemiesBy };
     };
     /**
      * Fires the hero's special in this fight: the effect, its use spent, and a
@@ -1197,14 +1377,23 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       const lens = 1 + affixTotal(hero.member, 'specialPower') / 100;
       const sure = (chance: number) => Math.min(1, chance * lens);
       const log = (extra: Partial<AbilityEffect> = {}) => result.effects.push({ heroId: id, key: 'special', specialId: def.id, ...extra });
+      /** With a tally: the hit's shares, with the lens's part of a special's hit. */
+      const lensShares = tally && lens > 1 ? affixShares(hero.member, 'specialPower', 1 - 1 / lens) : [];
+      const withLens = (shares?: Share[]) => (shares && lensShares.length > 0 ? [...shares, ...lensShares] : shares);
+      /** Heals for the special, credited to the hero and the lens. */
+      const specialHeal = (target: HeroState, share: number) => {
+        const healed = heal(target, share, result);
+        if (!tally) return;
+        tally.healBy(id, healed);
+        creditAffixes(hero.member, 'specialPower', 'healing', healed * (1 - 1 / lens));
+      };
       switch (def.effect.kind) {
         case 'allEnemies': {
           const foes = living();
           if (foes.length === 0) return false;
           for (const foe of foes) {
-            const damage = normalHit(hero, foe, { elemental: def.effect.elemental, multiplier: def.effect.share * lens }).damage;
-            foe.hp -= damage;
-            add(result.dealt, id, damage);
+            const hit = normalHit(hero, foe, { elemental: def.effect.elemental, multiplier: def.effect.share * lens });
+            hitEnemy(foe, id, hit.damage, withLens(hit.shares));
           }
           log({ count: foes.length });
           break;
@@ -1217,9 +1406,8 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           let foe = opts.target ?? living()[0];
           if (!foe) return false;
           for (let i = 0; i < def.effect.hits && foe; i++) {
-            const damage = normalHit(hero, foe, { multiplier: def.effect.share * lens }).damage;
-            foe.hp -= damage;
-            add(result.dealt, id, damage);
+            const hit = normalHit(hero, foe, { multiplier: def.effect.share * lens });
+            hitEnemy(foe, id, hit.damage, withLens(hit.shares));
             if (foe.hp <= 0) foe = living()[0];
           }
           log({ count: def.effect.hits });
@@ -1229,7 +1417,8 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           const foe = opts.target ?? living()[0];
           if (!foe) return false;
           // The damage is computed once, when applied.
-          ctx.dots.push({ heroId: id, enemy: foe, damage: normalHit(hero, foe, { multiplier: def.effect.share * lens }).damage, rounds: def.effect.rounds });
+          const hit = normalHit(hero, foe, { multiplier: def.effect.share * lens });
+          ctx.dots.push({ heroId: id, enemy: foe, damage: hit.damage, rounds: def.effect.rounds, ...(tally ? { shares: withLens(hit.shares) } : {}) });
           log();
           break;
         }
@@ -1248,9 +1437,8 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
             log({ missed: true });
             break;
           }
-          const damage = normalHit(hero, foe, { multiplier: e.multiplier * lens }).damage;
-          foe.hp -= damage;
-          add(result.dealt, id, damage);
+          const hit = normalHit(hero, foe, { multiplier: e.multiplier * lens });
+          hitEnemy(foe, id, hit.damage, withLens(hit.shares));
           log();
           break;
         }
@@ -1306,12 +1494,12 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           const targets =
             e.target === 'self' ? [hero] : e.target === 'party' ? alive() : [alive().reduce((low, h) => (h.hp / h.member.maxHp < low.hp / low.member.maxHp ? h : low))];
           if (!targets.some((h) => h.hp < h.member.maxHp)) return false;
-          targets.forEach((h) => heal(h, e.pct * lens, result));
+          targets.forEach((h) => specialHeal(h, e.pct * lens));
           log(e.target === 'weakest' ? { allyId: targets[0].member.heroId } : {});
           break;
         }
         case 'healOverTime':
-          ctx.hot = { pct: def.effect.pct * lens, rounds: def.effect.rounds };
+          ctx.hot = { pct: def.effect.pct * lens, rounds: def.effect.rounds, heroId: id };
           log();
           break;
         case 'revive': {
@@ -1321,6 +1509,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           if (!specialRng.chance(sure(def.effect.chance))) break;
           victim.hp = Math.max(1, Math.round(def.effect.pct * victim.member.maxHp));
           victim.out = false;
+          tally?.healBy(id, victim.hp);
           log({ allyId: victim.member.heroId });
           break;
         }
@@ -1337,6 +1526,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           // The foe may refuse: the use is spent either way.
           if (!specialRng.chance(sure(e.chance))) break;
           foe.hp = 0;
+          if (tally) tallyHit(foe, id, 0, true);
           log();
           break;
         }
@@ -1344,7 +1534,8 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           const foe = opts.target ?? living()[0];
           if (!foe) return false;
           // The summon's damage is fixed at summoning, and never crits.
-          ctx.summons.push({ heroId: id, ...summoned(hero, normalHit(hero, foe, { critChance: 0, multiplier: def.effect.share * lens }).damage, def.effect.rounds) });
+          const joined = summoned(hero, normalHit(hero, foe, { critChance: 0, multiplier: def.effect.share * lens }).damage, def.effect.rounds);
+          ctx.summons.push({ heroId: id, ...joined, ...(tally ? { shares: withLens(joined.shares ?? []) } : {}) });
           log();
           break;
         }
@@ -1404,7 +1595,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
             if (!target) return;
           }
           const tags = enemyTags(target.def);
-          const { damage: hit, crit, staggerOnCrit, allEnemies } = normalHit(hero, target, { main: true });
+          const { damage: hit, crit, staggerOnCrit, allEnemies, shares, allEnemiesBy } = normalHit(hero, target, { main: true });
           // Focus multiplies the hero's next attack.
           const focus = nextAttackMultiplier.get(id);
           if (focus !== undefined) nextAttackMultiplier.delete(id);
@@ -1412,9 +1603,10 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           // The first spell of the run's first fight strikes every living enemy instead of one.
           const firstSpell =
             fightsSeen === 0 && hero.member.damageStat === 'magic' && !firstSpellUsed.has(id) && relicEffect(hero, 'firstSpellAll');
+          // A family volley's blow on the other enemies is all its doing.
+          const volley: Share[] | undefined = allEnemiesBy && !firstSpell ? [{ kind: 'family', id: allEnemiesBy, heroId: null, frac: 1 }] : undefined;
           for (const foe of firstSpell || allEnemies ? enemies.filter((e) => e.hp > 0) : [target]) {
-            foe.hp -= damage;
-            add(result.dealt, id, damage);
+            hitEnemy(foe, id, damage, foe !== target && volley ? volley : shares);
           }
           if (firstSpell) {
             firstSpellUsed.add(id);
@@ -1437,31 +1629,46 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
                 if (others.length === 0) return null;
                 const second = others.find((e) => enemies.indexOf(e) > enemies.indexOf(target)) ?? others[0];
                 const chained = normalHit(hero, second, { elemental: true, multiplier: share, critChance: 0 }).damage;
-                second.hp -= chained;
-                add(result.dealt, id, chained);
+                hitEnemy(second, id, chained);
                 return second;
               },
             };
-            for (const hook of hooks.onHit) hook(hit);
-            if (target.hp <= 0) for (const hook of hooks.onKill) hook(hit);
+            let wasStaggered = target.staggered;
+            runHooks('onHit', hit, tally ? (owner) => {
+              if (!wasStaggered && target.staggered) staggeredBy!.set(target, owner);
+              wasStaggered = target.staggered;
+            } : undefined);
+            if (target.hp <= 0) runHooks('onKill', hit);
           }
           // A relic heals its wearer when their hit kills a matching foe.
           const healOnKill = relicEffect(hero, 'healOnKill', tags);
           if (healOnKill && target.hp <= 0) {
-            heal(hero, healOnKill.effect.pct, result);
+            const healed = heal(hero, healOnKill.effect.pct, result);
+            tally?.healBy(id, healed);
             noteRelic(result, id, healOnKill.relicId);
           }
           // A Bloodthirsty piece heals its wearer for every kill.
           const onKill = affixTotal(hero.member, 'healOnKill');
-          if (onKill > 0 && target.hp <= 0) heal(hero, onKill / 100, result);
+          if (onKill > 0 && target.hp <= 0) {
+            const healed = heal(hero, onKill / 100, result);
+            if (tally) {
+              tally.healBy(id, healed);
+              creditAffixes(hero.member, 'healOnKill', 'healing', healed);
+            }
+          }
           // A Venomous piece, or a family effect, may poison the hit's target: a share of the hit, ticking for three rounds.
           // An enemy carries at most a few Venomous poisons at a time: a proc past the cap refreshes the one closest to wearing off.
           const venom = affixTotal(hero.member, 'poisonOnHit');
           let poisons = false;
+          /** With a tally: who made the hit poison, the Venomous affix or a family effect. */
+          let poisonedBy: Share[] = [];
           if (venom > 0 || hooks.poisonChance.length > 0) {
             const roll = { ...family, hero, target, roll: rng.next(), affixChance: venom / 100, poisons: false };
             roll.poisons = roll.roll < roll.affixChance;
-            for (const hook of hooks.poisonChance) hook(roll);
+            if (tally && roll.poisons) poisonedBy = affixShares(hero.member, 'poisonOnHit', 1);
+            runHooks('poisonChance', roll, tally ? (owner) => {
+              if (roll.poisons && poisonedBy.length === 0) poisonedBy = [{ kind: 'family', id: owner, heroId: null, frac: 1 }];
+            } : undefined);
             poisons = roll.poisons;
           }
           if (poisons) {
@@ -1470,13 +1677,32 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
             let share = familyEffectRules.venom.dotShare;
             if (hooks.poisonCap.length > 0) {
               const poisonCap = { ...family, hero, target, stacks: stacks.length, cap, share };
-              for (const hook of hooks.poisonCap) hook(poisonCap);
+              let lastShare = share;
+              let lastCap = cap;
+              runHooks('poisonCap', poisonCap, tally ? (owner) => {
+                // A poison past the base cap is all the raised cap's; a larger share, its part of each tick.
+                if (poisonCap.cap > lastCap && stacks.length >= lastCap) {
+                  poisonedBy = [{ kind: 'family', id: owner, heroId: null, frac: 1 }];
+                } else if (poisonCap.share > lastShare) {
+                  const kept = lastShare / poisonCap.share;
+                  poisonedBy = [...poisonedBy.map((p) => ({ ...p, frac: p.frac * kept })), { kind: 'family', id: owner, heroId: null, frac: 1 - kept }];
+                }
+                lastShare = poisonCap.share;
+                lastCap = poisonCap.cap;
+              } : undefined);
               cap = poisonCap.cap;
               share = poisonCap.share;
             }
             const dotDamage = damage * share;
             if (stacks.length < cap) {
-              ctx.dots.push({ heroId: id, enemy: target, damage: dotDamage, rounds: familyEffectRules.venom.dotRounds, source: 'venomous' });
+              ctx.dots.push({
+                heroId: id,
+                enemy: target,
+                damage: dotDamage,
+                rounds: familyEffectRules.venom.dotRounds,
+                source: 'venomous',
+                ...(tally ? { shares: poisonedBy } : {}),
+              });
             } else {
               const lowest = stacks.reduce((low, d) => (d.rounds < low.rounds ? d : low));
               lowest.rounds = familyEffectRules.venom.dotRounds;
@@ -1488,8 +1714,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
             const splashTarget = enemies.slice(enemies.indexOf(target) + 1).find((e) => e.hp > 0);
             if (splashTarget) {
               const splash = damage * (isStrong(hero, 'cleave', tags) ? gearKeywordRules.strong.cleave.splash : gearKeywordRules.cleave.splash);
-              splashTarget.hp -= splash;
-              add(result.dealt, id, splash);
+              hitEnemy(splashTarget, id, splash, shares);
             }
           }
           // Stagger makes the target lose its next attack, once at a time.
@@ -1514,8 +1739,17 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         heroAttack();
         if (hooks.afterAttack.length > 0 && !hero.out) {
           const after = { ...family, hero, round: currentRound, extra: false };
-          for (const hook of hooks.afterAttack) hook(after);
-          if (after.extra) heroAttack(true);
+          let extraBy: FamilyEffectId | null = null;
+          runHooks('afterAttack', after, tally ? (owner) => {
+            if (after.extra && extraBy === null) extraBy = owner;
+          } : undefined);
+          if (after.extra) {
+            // The extra blow is all the family effect's doing.
+            const outer = hookOwner;
+            if (tally) hookOwner = extraBy;
+            heroAttack(true);
+            hookOwner = outer;
+          }
         }
       }
     };
@@ -1536,6 +1770,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     const enemiesAttack = (round: number) => {
       if (surprised && round === 1) {
         result.effects.push({ heroId: surprised.heroId, key: 'family', familyEffect: surprised.effect });
+        tally?.credit('family', surprised.effect, null, 'turns', living().length);
         return;
       }
       // The boss's first turn is when the specials waiting for it fire.
@@ -1550,10 +1785,18 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         // A staggered enemy loses this attack.
         if (enemy.staggered) {
           enemy.staggered = false;
+          const by = staggeredBy?.get(enemy);
+          if (by) {
+            tally!.credit('family', by, null, 'turns', 1);
+            staggeredBy!.delete(enemy);
+          }
           continue;
         }
         // A drugged boss sleeps through the fight's first rounds.
-        if (weakness?.freeRounds && round <= weakness.freeRounds) continue;
+        if (weakness?.freeRounds && round <= weakness.freeRounds) {
+          tally?.credit('weakness', weaknessItem!, weaknessUsedBy, 'turns', 1);
+          continue;
+        }
         const boss: BossDef | null = isBoss || 'effect' in enemy.def ? (enemy.def as BossDef) : null;
         const enraged = boss?.effect === 'enrage' && !weakness?.noEnrage && enemy.hp < enemy.maxHp / 2;
         const attackerTags = enemyTags(enemy.def);
@@ -1593,12 +1836,23 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           if ((ctx.dodges.get(hero.member.heroId) ?? 0) > 0) continue;
           // Quick heroes slip out of the way.
           let evasion = hero.member.evasion;
+          let evasionBy: FamilyEffectId | null = null;
           if (hooks.beforeDefend.length > 0) {
             const defend = { ...family, hero, attacker: enemy, evasion };
-            for (const hook of hooks.beforeDefend) hook(defend);
+            runHooks('beforeDefend', defend, tally ? (owner) => {
+              if (defend.evasion > evasion) evasionBy = owner;
+            } : undefined);
             evasion = defend.evasion;
           }
-          if (rng.chance(Math.min(evasion, rules.evasionCap) / 100)) {
+          const dodgeDraw = rng.next();
+          if (dodgeDraw < Math.min(evasion, rules.evasionCap) / 100) {
+            // A dodge only the family's evasion made keeps the whole hit off, as it would have landed before its roll.
+            if (tally && evasionBy && dodgeDraw >= Math.min(hero.member.evasion, rules.evasionCap) / 100) {
+              const defence = enemy.def.damageType === 'power' ? hero.member.armour : hero.member.resistance;
+              const estimate =
+                ((sweeping ? base * rules.sweepShare : base) * elementFactor(hero, enemyElement(enemy.def)) * 100) / (100 + rules.defenseFactor * defence) / fortune;
+              tally.credit('family', evasionBy, null, 'prevented', estimate);
+            }
             if (hooks.onDodge.length === 0) continue;
             const dodge = {
               ...family,
@@ -1607,11 +1861,10 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
               counter: (share: number) => {
                 if (enemy.hp <= 0 || hero.out) return;
                 const back = normalHit(hero, enemy, { multiplier: share }).damage;
-                enemy.hp -= back;
-                add(result.dealt, hero.member.heroId, back);
+                hitEnemy(enemy, hero.member.heroId, back);
               },
             };
-            for (const hook of hooks.onDodge) hook(dodge);
+            runHooks('onDodge', dodge);
             continue;
           }
           // Parry turns a physical hit away entirely.
@@ -1675,6 +1928,8 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           }
           const standing = alive();
           if (hooks.incoming.length > 0 && standing.length > 0) {
+            /** What a hook passed on to another hero (a guard): moved, not kept off. */
+            let moved = 0;
             const incoming: Incoming = {
               ...family,
               hero,
@@ -1685,14 +1940,67 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
               absorbed: false,
               front: standing.reduce((top, h) => (h.member.threat > top.member.threat ? h : top)),
               weakest: standing.reduce((low, h) => (h.hp / h.member.maxHp < low.hp / low.member.maxHp ? h : low)),
-              hurt: (other, amount) => hurt(other, amount, result),
+              hurt: (other, amount) => {
+                moved += amount;
+                // What the hurt hero's specials do in answer isn't the hook's doing.
+                const outer = hookOwner;
+                hookOwner = null;
+                hurt(other, amount, result);
+                hookOwner = outer;
+              },
             };
-            for (const hook of hooks.incoming) {
-              hook(incoming);
-              if (incoming.absorbed) break;
+            if (tally) {
+              const outer = hookOwner;
+              for (let i = 0; i < hooks.incoming.length; i++) {
+                const before = incoming.damage;
+                moved = 0;
+                hookOwner = hookOwners.incoming[i];
+                hooks.incoming[i](incoming);
+                tally.credit('family', hookOwner, null, 'prevented', before - (incoming.absorbed ? 0 : incoming.damage) - moved);
+                if (incoming.absorbed) break;
+              }
+              hookOwner = outer;
+            } else {
+              for (const hook of hooks.incoming) {
+                hook(incoming);
+                if (incoming.absorbed) break;
+              }
             }
             if (incoming.absorbed) continue;
             taken = incoming.damage;
+          }
+          if (tally) {
+            // What the hit would have been without each defence of the hero's, and what missed threats added to it.
+            const without = (factor: number) => (factor > 0 && factor < 1 ? taken * (1 / factor - 1) : 0);
+            if (from > 0) creditAffixes(hero.member, 'damageFrom', 'prevented', without(1 - from / 100), { tags: attackerTags });
+            if (spiritWard > 0) creditAffixes(hero.member, 'magicDamageTaken', 'prevented', without(1 - spiritWard / 100));
+            if (element !== undefined) {
+              creditAffixes(hero.member, 'warding', 'prevented', without(1 - affixTotal(hero.member, 'warding', { element }) / 100), { element });
+              creditAffixes(hero.member, 'elementResistAll', 'prevented', without(1 - affixTotal(hero.member, 'elementResistAll') / 100));
+            }
+            // A defence elixir or meal: the hit against the defence without it.
+            const defenceWithout = (stat: number, multiplier: number) =>
+              taken * ((100 + rules.defenseFactor * defence) / (100 + rules.defenseFactor * (defence - stat + stat / multiplier)) - 1);
+            const elixir = elixirs ? hero.member.consumable?.elixir : undefined;
+            const defenceStat = enemy.def.damageType === 'power' ? 'armour' : 'resistance';
+            if (elixir?.kind === 'stat' && elixir.stat === defenceStat && elixir.multiplier > 1) {
+              tally.credit('consumable', hero.member.consumable!.id, hero.member.heroId, 'prevented', defenceWithout(hero.member[defenceStat], elixir.multiplier));
+            }
+            if (meal?.kind === 'resistance' && defenceStat === 'resistance' && meal.multiplier > 1) {
+              tally.credit('meal', meal.kind, null, 'prevented', defenceWithout(hero.member.resistance, meal.multiplier));
+            }
+            // A weakness item's cut, and the enrage or sweep it called off.
+            if (weakness) {
+              const enrageOff = boss?.effect === 'enrage' && weakness.noEnrage && enemy.hp < enemy.maxHp / 2 ? rules.enrageMultiplier : 1;
+              const cut = weakness.damageCut ? 1 - weakness.damageCut : 1;
+              const sweepOff = boss?.effect === 'sweep' && weakness.noSweep ? Math.max(0, pool.length * rules.sweepShare - 1) : 0;
+              tally.credit('weakness', weaknessItem!, weaknessUsedBy, 'prevented', taken * (enrageOff / cut - 1 + sweepOff));
+            }
+            if (beast && beastDamage > 1) tally.threat(penaltyThreat.enemyDamage, 'taken', taken * (1 - 1 / beastDamage));
+            const elemental = fightsSeen === 0 ? elementalDamageFirst : elementalDamage;
+            if (element !== undefined && element === elementThreat?.element && !hero.member.resists.includes(element) && elemental > 1) {
+              tally.threat(penaltyThreat.elementalDamage, 'taken', taken * (1 - 1 / elemental));
+            }
           }
           const landed = shielded(hero, taken);
           hurt(hero, landed, result);
@@ -1703,19 +2011,15 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
               attacker: enemy,
               element,
               taken: landed,
-              reflect: (amount: number) => {
-                enemy.hp -= amount;
-                add(result.dealt, hero.member.heroId, amount);
-              },
+              reflect: (amount: number) => hitEnemy(enemy, hero.member.heroId, amount),
             };
-            for (const hook of hooks.afterTaken) hook(after);
+            runHooks('afterTaken', after);
           }
           // A Riposte answers the hit with a strike of its own.
           const counter = ctx.counters.get(hero.member.heroId);
           if (counter && !hero.out) {
-            const back = normalHit(hero, enemy, { multiplier: counter.share }).damage;
-            enemy.hp -= back;
-            add(result.dealt, hero.member.heroId, back);
+            const back = normalHit(hero, enemy, { multiplier: counter.share });
+            hitEnemy(enemy, hero.member.heroId, back.damage, back.shares);
             if (--counter.hits <= 0) ctx.counters.delete(hero.member.heroId);
           }
           if (escaped) return;
@@ -1741,7 +2045,8 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     // Raised enemies join with the family effects that scale summons; their damage multiplies their own.
     const raisedAllies = allies.map((ally) => {
       const hero = heroes.find((h) => h.member.heroId === ally.heroId)!;
-      return { ...ally, damage: summoned(hero, ally.damage, null).damage };
+      const joined = summoned(hero, ally.damage, null);
+      return { ...ally, damage: joined.damage, shares: joined.shares };
     });
     if (hooks.fightReady.length > 0) {
       const ready = {
@@ -1751,15 +2056,17 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         summon: (hero: HeroState, share: number, rounds: number) => {
           const foe = living()[0];
           if (!foe) return false;
-          ctx.summons.push({ heroId: hero.member.heroId, ...summoned(hero, normalHit(hero, foe, { critChance: 0, multiplier: share }).damage, rounds) });
+          ctx.summons.push({ heroId: hero.member.heroId, ...summoned(hero, normalHit(hero, foe, { critChance: 0, multiplier: share }).damage, rounds), ...ownShare() });
           return true;
         },
         tame: (hero: HeroState, enemy: EnemyState) => {
           enemy.hp = 0;
-          ctx.summons.push({ heroId: hero.member.heroId, ...summoned(hero, enemy.def.damage, null) });
+          ctx.summons.push({ heroId: hero.member.heroId, ...summoned(hero, enemy.def.damage, null), ...ownShare() });
         },
       };
-      for (const hook of hooks.fightReady) hook(ready);
+      /** A family's own summon fights wholly for it. */
+      const ownShare = (): { shares?: Share[] } => (tally && hookOwner ? { shares: [{ kind: 'family', id: hookOwner, heroId: null, frac: 1 }] } : {});
+      runHooks('fightReady', ready);
     }
     // While the fight runs, hurt() hands the specials that watch for damage or a fall over to it.
     damageTriggers = (hero, knockedOut) => {
@@ -1792,13 +2099,15 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         // A special's lasting effects: poison wears, regrowth heals, rally's rounds count down.
         for (const dot of ctx.dots) {
           if (dot.enemy.hp <= 0) continue;
-          dot.enemy.hp -= dot.damage;
-          add(result.dealt, dot.heroId, dot.damage);
+          hitEnemy(dot.enemy, dot.heroId, dot.damage, dot.shares);
           dot.rounds--;
         }
         ctx.dots = ctx.dots.filter((dot) => dot.rounds > 0 && dot.enemy.hp > 0);
         if (ctx.hot) {
-          alive().forEach((h) => heal(h, ctx.hot!.pct, result));
+          alive().forEach((h) => {
+            const healed = heal(h, ctx.hot!.pct, result);
+            tally?.healBy(ctx.hot!.heroId, healed);
+          });
           ctx.hot.rounds--;
           if (ctx.hot.rounds <= 0) ctx.hot = null;
         }
@@ -1836,17 +2145,22 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         const speedOf = (h: HeroState) => roundSpeed.get(h) ?? h.member.speed;
         const quick = ambushed ? rest : rest.filter((h) => speedOf(h) >= fastest);
         const slow = ambushed ? [] : rest.filter((h) => speedOf(h) < fastest);
-        if (ambushed) enemiesAttack(round);
+        if (ambushed) {
+          // What the enemies' first strike cost, for the missed threat that exposed the party.
+          const takenBefore = tally ? Object.values(result.taken).reduce((sum, n) => sum + n, 0) : 0;
+          enemiesAttack(round);
+          if (tally) tally.threat(penaltyThreat.exposed, 'taken', Object.values(result.taken).reduce((sum, n) => sum + n, 0) - takenBefore);
+        }
         if (escaped || alive().length === 0) return;
         // Raised enemies strike every round and are never targeted; a special's summons fight beside them.
         for (const ally of [...raisedAllies, ...ctx.summons]) {
           const target = enemies.find((e) => e.hp > 0);
           if (!target) break;
           if ('tag' in ally) {
-            target.hp -= ally.def.damage * ally.damage;
+            hitEnemy(target, ally.heroId, ally.def.damage * ally.damage, ally.shares, false);
             note(ally.heroId, 'allies', { tag: ally.tag });
           } else {
-            target.hp -= ally.damage;
+            hitEnemy(target, ally.heroId, ally.damage, ally.shares, false);
           }
         }
         ctx.summons = ctx.summons
@@ -1895,7 +2209,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
           else familyMaterials.push({ materialId, amount });
         },
       };
-      for (const hook of hooks.afterFight) hook(after);
+      runHooks('afterFight', after);
     }
     // The first fight with the tag, under the signature's threat: its fallen fight for the party next.
     for (const hero of heroes) {
@@ -1920,7 +2234,12 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         );
         // An Antivenom or Purifying affix makes the poison wear off faster on its wearer: a smaller share.
         const antivenom = Math.max(0, 1 - affixTotal(hero.member, 'dotDuration') / 100);
-        hurt(hero, penalty.pct * hero.member.maxHp * (cut?.effect.multiplier ?? 1) * antivenom, result);
+        const wound = penalty.pct * hero.member.maxHp * (cut?.effect.multiplier ?? 1);
+        hurt(hero, wound * antivenom, result);
+        if (tally) {
+          tally.threat(penalty.threatId, 'taken', wound * antivenom);
+          creditAffixes(hero.member, 'dotDuration', 'prevented', wound - wound * antivenom);
+        }
         if (cut) noteRelic(result, hero.member.heroId, cut.relicId);
       }
       result.effects.push({ heroId: null, key: 'poison' });
@@ -1928,7 +2247,10 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     // A conscious Cook feeds everyone a bite after every fight.
     const cook = withAbility('fightHeal');
     if (cook && alive().some((h) => h.hp < h.member.maxHp)) {
-      alive().forEach((hero) => heal(hero, cook.ability.pct, result));
+      alive().forEach((hero) => {
+        const healed = heal(hero, cook.ability.pct, result);
+        tally?.healBy(cook.hero.member.heroId, healed);
+      });
       result.effects.push({ heroId: cook.hero.member.heroId, key: 'fightHeal' });
     }
     // A conscious Mender patches up the most wounded hero after every fight.
@@ -1936,11 +2258,12 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       const wounded = alive().filter((h) => h.hp < h.member.maxHp);
       if (wounded.length > 0) {
         const lowest = wounded.reduce((low, h) => (h.hp / h.member.maxHp < low.hp / low.member.maxHp ? h : low));
-        heal(
+        const healed = heal(
           lowest,
           alive().some((h) => h.strong.has('mend')) ? gearKeywordRules.strong.mend.pct : gearKeywordRules.mend.pct,
           result,
         );
+        tally?.healBy(alive().find((h) => h.keywords.has('mend'))!.member.heroId, healed);
       }
     }
   };
@@ -2077,7 +2400,9 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
         if (reducer) result.effects.push({ heroId: reducer.hero.member.heroId, key: 'trapReduce' });
         const reduce = reducer?.ability.multiplier ?? 1;
         for (const hero of alive()) {
-          hurt(hero, trapWounds * hero.member.maxHp * reduce * elementFactor(hero, encounter.element), result);
+          const wound = trapWounds * hero.member.maxHp * reduce * elementFactor(hero, encounter.element);
+          hurt(hero, wound, result);
+          tally?.threat(penaltyThreat.trapWounds, 'taken', wound);
         }
       }
       result.cleared = alive().length > 0;
@@ -2153,6 +2478,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       if (skip) {
         const result = quietResult('');
         result.effects.push({ heroId: skip.heroId, key: 'family', familyEffect: skip.effect });
+        tally?.credit('family', skip.effect, null, 'fights', 1);
         encounters.push(result);
         if (i === midpoint) opportunity = resolveOpportunity(result);
         continue;
@@ -2166,13 +2492,16 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       // The family effects between fights, then a hero's between-fights special, before the healer.
       if (fought(result) && hooks.betweenFights.length > 0 && alive().length > 0) {
         const between = { ...familyBase(result), heroes: alive() };
-        for (const hook of hooks.betweenFights) hook(between);
+        runHooks('betweenFights', between);
       }
       if (fought(result)) {
         for (const hero of alive()) {
           const def = specialOf(hero);
           if (def?.trigger.kind === 'betweenFights' && def.effect.kind === 'heal' && alive().some((h) => h.hp < h.member.maxHp)) {
-            for (const h of alive()) heal(h, def.effect.pct, result);
+            for (const h of alive()) {
+              const healed = heal(h, def.effect.pct, result);
+              tally?.healBy(hero.member.heroId, healed);
+            }
             result.effects.push({ heroId: hero.member.heroId, key: 'special', specialId: def.id });
           }
         }
@@ -2180,14 +2509,20 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
       // A healer tends the party between encounters.
       const healer = withAbility('partyHeal');
       if (healer && alive().some((h) => h.hp < h.member.maxHp)) {
-        alive().forEach((hero) => heal(hero, healer.ability.pct * partyHealFactor, result));
+        alive().forEach((hero) => {
+          const healed = heal(hero, healer.ability.pct * partyHealFactor, result);
+          tally?.healBy(healer.hero.member.heroId, healed);
+        });
         result.effects.push({ heroId: healer.hero.member.heroId, key: 'partyHeal' });
       }
       continue;
     }
     const result = emptyResult('boss', dungeon.boss.name);
     if (meal?.kind === 'bossHeal' && alive().length > 0) {
-      for (const hero of alive()) heal(hero, meal.pct * (own(hero, 'stewBoost')?.multiplier ?? 1), result);
+      for (const hero of alive()) {
+        const healed = heal(hero, meal.pct * (own(hero, 'stewBoost')?.multiplier ?? 1), result);
+        tally?.credit('meal', meal.kind, null, 'healing', healed);
+      }
       result.effects.push({ heroId: null, key: 'stew' });
     }
     // A conscious carrier's weakness item weakens its boss, used up on the spot; other copies never trigger.
@@ -2255,6 +2590,7 @@ export function runPrepared(prepared: PreparedSimulation, seed: string): RunResu
     familyMaterials,
     potionsDrunk,
     families,
+    ...(tally ? { tally: tally.finish(finalEncounters) } : {}),
   };
 }
 

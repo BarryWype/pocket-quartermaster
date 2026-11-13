@@ -1,3 +1,4 @@
+import { monsterPartById } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
 
 import type { SaveData } from '../save';
@@ -6,11 +7,11 @@ import type { SaveData } from '../save';
 const unlockIds = new Set(recipes.flatMap((recipe) => recipe.unlockedBy ?? []));
 
 /**
- * Notes the parts among `ids` as seen, then unlocks every part
+ * Notes the monster parts among `ids` as seen, then unlocks every part
  * recipe whose `unlockedBy` have all been seen.
  */
 export function seeParts(save: SaveData, ids: string[]): SaveData {
-  const fresh = ids.filter((id) => unlockIds.has(id) && !save.seenParts.includes(id));
+  const fresh = ids.filter((id) => (unlockIds.has(id) || monsterPartById[id]) && !save.seenParts.includes(id));
   if (fresh.length === 0) return save;
   const seenParts = [...save.seenParts, ...new Set(fresh)];
   const unlocked = recipes

@@ -58,5 +58,5 @@ export function openChest(save: SaveData, chestId: string, steps: number, day: s
     reward = mergeLoot(reward, rollForSave(save, 'stepChest', createRng(`chest|${chest.id}|${day}|${i}`), { chanceMultiplier: chest.chanceMultiplier }, now));
   }
   const opened = save.chests.day === day ? save.chests.opened : [];
-  return { save: grantLoot({ ...save, chests: { day, opened: [...opened, chest.id] } }, [], reward, now), reward };
+  return { save: grantLoot({ ...save, chests: { day, opened: [...opened, chest.id] } }, [], reward, now, 'chest'), reward };
 }

@@ -4,6 +4,7 @@ import { newHero, xpRules } from '@/content/heroes';
 import { dungeonById, itemById, opportunityById, recipeById, recipeOutput } from '@/content/lookup';
 import { lootConfig } from '@/content/loot/config';
 import { MATERIAL_TIERS } from '@/content/items';
+import { heroRecordRules } from '@/content/heroTitles';
 import { heroNames, rosterRules, recruitRules } from '@/content/roster';
 import { recipes } from '@/content/recipes';
 import { narrowPartySize, threatRules } from '@/content/threats';
@@ -19,7 +20,7 @@ import { createRng, type Rng } from '../generation/rng';
 import { addMaterials } from '../inventory';
 import { dedupeModifiers, findGold } from '../loot/chances';
 import { lootContextOf } from '../loot/context';
-import { grantLoot } from '../loot/grant';
+import { grantLoot, withGrantedUids } from '../loot/grant';
 import { partyLootModifiers } from '../loot/modifiers';
 import { nextTierReward } from '../loot/nextTier';
 import { mergeLoot, rollSourceLoot } from '../loot/roll';
@@ -30,14 +31,17 @@ import { secretPrize } from '../secrets/prize';
 import { spendKey } from '../secrets/keys';
 import type { SaveData } from '../save';
 import { applyRunHp, settleHp } from '../team/health';
-import { heroAbilities, heroStats, isAway, isBusy } from '../team/team';
+import { equippedGear, heroAbilities, heroStats, isAway, isBusy } from '../team/team';
 import { composeBriefing } from '../threats/compose';
 import { salvage } from '../threats/salvage';
 import { partyMeal, signatureBriefing } from '../threats/signatures';
 import { pickRecruitClass } from '../taverns/taverns';
 import { isTutorialDungeon, isTutorialExpedition } from '../tutorial/tutorial';
 import type { ActiveExpedition, Briefing, DungeonDef, ExpeditionReport, HeroState, Hunger, OpportunityOutcome, ProvisionDef } from '../types';
-import { buildLog } from './log';
+import { noteRunOnGear } from '../gear/history';
+import { companionPairs, factsOfReport, noteRunOnHeroes } from '../team/record';
+import { buildLog, withCompanionLine } from './log';
+import { reportTally, type RunTally } from './tally';
 import { heroSupplyNeed, hungerFor, pickSupply, supplyHeld, type SupplyPick } from './provisions';
 import {
   answersMemberOf,
@@ -311,6 +315,7 @@ export function grantTutorialLoot(save: SaveData, heroIds: string[], now: number
     heroIds,
     tutorialLoot(save, now),
     now,
+    tutorialRules.dungeonId,
   );
 }
 
@@ -343,6 +348,21 @@ export function untriggeredSalvage(party: PartyMember[], run: RunResult): Expedi
   ];
 }
 
+/** Names each affix contribution's piece: the hero's worn piece carrying the most of that affix. */
+function withAffixPieces(save: SaveData, tally: RunTally): RunTally {
+  const contributions = tally.contributions.map((c) => {
+    const hero = c.kind === 'affix' ? save.heroes.find((h) => h.id === c.heroId) : undefined;
+    if (!hero) return c;
+    const valueOn = (piece: { affixes: { id: string; value: number }[] }) => piece.affixes.find((a) => a.id === c.id)?.value ?? 0;
+    const piece = equippedGear(save, hero).reduce<ReturnType<typeof equippedGear>[number] | undefined>(
+      (best, g) => (valueOn(g) > (best ? valueOn(best) : 0) ? g : best),
+      undefined,
+    );
+    return piece ? { ...c, uid: piece.uid, itemId: piece.itemId, ...(piece.forged ? { forged: true as const } : {}) } : c;
+  });
+  return { ...tally, contributions };
+}
+
 /**
  * Runs the expedition and applies it: gold, loot and XP for the share of
  * encounters cleared, boss-only recipe drops, consumables and a report. The
@@ -363,6 +383,7 @@ export function resolveExpedition(
     guaranteed: expedition.guaranteed,
     ...(expedition.blessed ? { blessed: true } : {}),
     ...runProvisions(expedition.hunger ?? 'fed', { mealId: expedition.mealId, optIn: expedition.optIn }, briefing),
+    tally: true,
   });
   const meal = run.meal;
   const barren = run.signed.briefing.restriction === 'barren';
@@ -514,7 +535,9 @@ export function resolveExpedition(
     expedition.heroIds,
     loot,
     expedition.endsAt,
+    dungeon.id,
   );
+  const granted = withGrantedUids(loot, save, next);
   // The first tier boss's first clear offers a free recruit.
   const freePick = firstTierClear && dungeon.tier === recruitRules.freePick.afterBossTier ? freePickClasses(next) : null;
   if (freePick) next = { ...next, freePick };
@@ -569,7 +592,7 @@ export function resolveExpedition(
   }
 
   const opportunity: OpportunityOutcome | null = run.opportunity;
-  const log = buildLog(
+  const story = buildLog(
     {
       dungeon,
       party,
@@ -588,11 +611,29 @@ export function resolveExpedition(
     },
     createRng(`${expedition.seed}|log`),
   );
+  // Companions in the party may get a line of their own.
+  const nameOf = (id: string) => save.heroes.find((h) => h.id === id)?.name ?? id;
+  const log = withCompanionLine(
+    story,
+    companionPairs(save, expedition.heroIds).map(([a, b]): [string, string] => [nameOf(a), nameOf(b)]),
+    createRng(`${expedition.seed}|companions`),
+    heroRecordRules.companionLineChance,
+  );
 
-  const report: ExpeditionReport = {
+  // The party's gear counts the run, the boss and its kills, and may earn a name.
+  const gearRun = noteRunOnGear(next, {
+    party: run.tally!.heroes.map((h) => ({ heroId: h.heroId, kills: h.kills, killTags: h.killTags, bossKill: h.bossKill })),
+    bossBeaten: success ? dungeon.boss.id : null,
+    tierBoss: !!dungeon.isBoss,
+    now: expedition.endsAt,
+  });
+  next = gearRun.save;
+
+  const draft: ExpeditionReport = {
     id: expedition.id,
     dungeonId: dungeon.id,
     heroIds: expedition.heroIds,
+    startedAt: expedition.startedAt,
     finishedAt: expedition.endsAt,
     outcome: run.outcome,
     success,
@@ -603,15 +644,16 @@ export function resolveExpedition(
     supplyUsed: expedition.supplyUsed,
     mealId: expedition.mealId ?? null,
     briefing,
-    threats: run.threats.map(({ threat, state }) => ({
+    threats: run.threats.map(({ threat, state, have, needed }) => ({
       id: threat.id,
       level: threat.level,
       ...(threat.element ? { element: threat.element } : {}),
       state,
+      ...(needed > have ? { short: needed - have } : {}),
     })),
     opportunity,
     salvaged,
-    loot,
+    loot: granted,
     gold: loot.gold,
     xp: loot.xp,
     ...sigil,
@@ -621,10 +663,17 @@ export function resolveExpedition(
     ...(firstDungeonClear ? { firstDungeonClear } : {}),
     ...(freePick ? { freePick } : {}),
     families: run.families,
+    ...(gearRun.named.length > 0 ? { gearNames: gearRun.named } : {}),
+    tally: withAffixPieces(save, reportTally(run.tally!, run.hp.reduce((sum, h) => sum + h.maxHp, 0) / Math.max(1, run.hp.length))),
     consumablesUsed,
     log,
     seen: false,
   };
+  // The heroes' records count the run: titles earned and companions made go on the report.
+  const heroRun = noteRunOnHeroes(next, factsOfReport(draft));
+  next = heroRun.save;
+  const { news } = heroRun;
+  const report = news.titles.length + news.companions.length > 0 ? { ...draft, heroNews: news } : draft;
 
   return { save: { ...next, reports: [report, ...save.reports].slice(0, rules.reportsKept) }, report };
 }

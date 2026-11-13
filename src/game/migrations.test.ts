@@ -6,7 +6,7 @@ import { gearRules } from "@/content/gear";
 import { affixById } from "@/content/affixes";
 import { gearStats } from "./gear/stats";
 import { uniquePool } from "./gear/uniques";
-import { migrateSave, toV38, toV39, toV40, toV41, toV42, toV43, toV44, toV47, toV48 } from "./migrations";
+import { migrateSave, toV38, toV39, toV40, toV41, toV42, toV43, toV44, toV47, toV48, toV49, toV50 } from "./migrations";
 import { affixPool } from "./gear/affixes";
 import { emptyLoot } from "./loot/types";
 import type { Briefing, ExpeditionReport, GearDef, GearInstance } from "./types";
@@ -772,7 +772,8 @@ describe("toV44", () => {
     const next = migrateSave(old, 43, 0);
     expect(next.heroes.map((h) => h.equipment.helmet)).toEqual(old.heroes.map(() => null));
     expect(next.heroes.map(({ equipment: { helmet: _helmet, ...rest } }) => rest)).toEqual(old.heroes.map((h) => h.equipment));
-    expect(next.gear).toEqual(old.gear);
+    // Version 50 then starts the gear's history.
+    expect(next.gear.map(({ history: _history, ...piece }) => piece)).toEqual(old.gear);
   });
 
   it("learns every armour and helmet type at tier 1 and keeps the known blueprints", () => {
@@ -989,5 +990,48 @@ describe("toV48", () => {
     expect(migrateSave(v47(), 47, 0).freePick).toBeNull();
     const taken = { ...createInitialSave(), clearedDungeons: ["banditStockade"], freePick: null };
     expect(toV48(taken)).toBe(taken);
+  });
+});
+
+describe("toV49", () => {
+  const v48 = (extra: Partial<SaveData> = {}) => {
+    const { seenFinds: _drop, ...rest } = { ...createInitialSave(), ...extra };
+    return rest as SaveData;
+  };
+
+  it("counts the gear, trinkets, relics and monster parts the save holds as found", () => {
+    const next = migrateSave(
+      v48({
+        gear: [
+          { uid: "g1", itemId: "sword2", rarity: "common", roll: 8, affixes: [], rerolls: 0 },
+          { uid: "g2", itemId: "bountyToken", rarity: "common", roll: 8, affixes: [], rerolls: 0 },
+        ],
+        relics: [{ uid: "r1", relicId: "poachersLongbow" }],
+        materials: { goblinEar: 2, feather: 0, wood: 5 },
+      }),
+      48,
+      0,
+    );
+    expect(next.seenFinds.sort()).toEqual(["gear:sword", "item:bountyToken", "relic:poachersLongbow"]);
+    expect(next.seenParts).toEqual(["goblinEar"]);
+  });
+
+  it("keeps a save already on version 49 as it is", () => {
+    const save = createInitialSave();
+    expect(toV49(save)).toBe(save);
+  });
+});
+
+describe("toV50", () => {
+  it("starts existing gear at zero runs, kills and bosses, its origin unknown", () => {
+    const piece = { uid: "g1", itemId: "sword2", rarity: "common" as const, roll: 8, affixes: [], rerolls: 0 };
+    const next = migrateSave({ ...createInitialSave(), gear: [piece] }, 49, 0);
+    expect(next.gear).toEqual([{ ...piece, history: { runs: 0, kills: 0, killTags: {}, bosses: [] } }]);
+    expect(next.gear[0].forged).toBeUndefined();
+  });
+
+  it("keeps a save already on version 50 as it is", () => {
+    const save = toV50({ ...createInitialSave(), gear: [] });
+    expect(toV50(save)).toBe(save);
   });
 });

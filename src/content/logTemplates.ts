@@ -220,4 +220,12 @@ export const logTemplates = {
   salvage: 'The {item} came back unused and was salvaged.',
   /** Used for {weapon} when a hero has none. */
   noWeapon: 'bare hands',
+  /** Now and then, between two companions in the party (see team/record.ts). */
+  companions: [
+    '{a} covered {b}’s retreat.',
+    '{a} and {b} fought back to back.',
+    '{a} shared the last of the water with {b}.',
+    '{a} caught {b} before a bad fall.',
+    'Around the fire, {a} and {b} traded old stories.',
+  ],
 };

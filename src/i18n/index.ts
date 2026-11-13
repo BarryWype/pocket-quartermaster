@@ -47,6 +47,10 @@ export function formatNumber(value: number) {
   return getLocale() === 'fr' ? english.replace(/,/g, NBSP).replace('.', ',') : english;
 }
 
+/** A day, "13 Nov 2026" ("13 nov. 2026"). */
+export const formatDate = (ms: number) =>
+  new Date(ms).toLocaleDateString(getLocale() === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+
 /** A 0–1 share as a whole percentage: 45% in English, 45 % in French. */
 export const formatPercent = (share: number) =>
   `${Math.round(share * 100)}${getLocale() === 'fr' ? `${NBSP}%` : '%'}`;

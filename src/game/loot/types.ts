@@ -73,9 +73,10 @@ export type LootModifier =
 
 /**
  * A looted piece before it is granted: its uid is filled in then, and its
- * rolls happen with it (makeGearPiece seeds everything by the uid).
+ * rolls happen with it (makeGearPiece seeds everything by the uid). An
+ * expedition report's loot keeps the uid the piece was granted with.
  */
-export type RolledGear = { uid: ''; itemId: string; rarity: Rarity };
+export type RolledGear = { uid: string; itemId: string; rarity: Rarity };
 
 /** What a roll gives. Shards, stones and monster parts go in `materials`; trinkets in `gear`. */
 export type Loot = {

@@ -5,7 +5,10 @@ import { elementInfo } from '@/content/elements';
 import { sanctumGuardian } from '@/content/enemies';
 import { rosterRules } from '@/content/roster';
 import { sanctumRules } from '@/content/sanctums';
+import { shardId, stoneId } from '@/game/elements';
 import { fightOddsKey } from '@/game/expeditions/oddsCache';
+import { lootTiles } from '@/game/loot/tiles';
+import { emptyLoot } from '@/game/loot/types';
 import type { SaveData } from '@/game/save';
 import { distanceMeters } from '@/game/generation/geo';
 import type { LatLng } from '@/game/generation/types';
@@ -19,7 +22,7 @@ import {
 } from '@/game/sanctums/sanctums';
 import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
-import { colors, pixel } from '@/theme';
+import { colors, pixel, ui } from '@/theme';
 
 import { EnemyTags } from './EnemyTags';
 import { DifficultyChip, EmberButton, WoodButton } from './ui';
@@ -28,6 +31,7 @@ import { PartyDialog } from './PartyDialog';
 import { Sheet } from './Sheet';
 import { Text } from './Text';
 import { IconLabel } from './IconLabel';
+import { LootGrid } from './LootGrid';
 import { asRecalled, includesWorking, recallWorkingHeroes } from './workingHeroes';
 import { TrophyLine } from './TrophyLine';
 
@@ -106,14 +110,16 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
     );
 
   const finished = result && shown >= result.log.length;
-  const rewardText = result
-    ? [
-        result.reward.shards > 0 && t('sanctum.shards', { count: result.reward.shards, element: tr(element.name).toLowerCase() }),
-        result.reward.stones > 0 && t('sanctum.stones', { count: result.reward.stones, element: tr(element.name).toLowerCase() }),
-      ]
-        .filter(Boolean)
-        .join(t('common.and'))
-    : '';
+  const tiles = result
+    ? lootTiles({
+        ...emptyLoot(),
+        xp: result.reward.xp,
+        materials: [
+          { materialId: shardId(result.reward.element), amount: result.reward.shards },
+          { materialId: stoneId(result.reward.element), amount: result.reward.stones },
+        ],
+      })
+    : [];
 
   return (
     <Overlay onClose={onClose} position="bottom">
@@ -181,9 +187,12 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
               </Text>
             ))}
             {finished && (
-              <Text style={[styles.outcome, { color: result.win ? colors.wood : colors.danger }]}>
-                {t(result.win ? 'sanctum.victory' : 'sanctum.defeat', { reward: rewardText })}
-              </Text>
+              <>
+                <Text style={[styles.outcome, { color: result.win ? colors.wood : colors.danger }]}>
+                  {t(result.win ? 'sanctum.victory' : 'sanctum.defeat')}
+                </Text>
+                {tiles.length > 0 && <LootGrid tiles={tiles} reveal labelColor={ui.onWood} />}
+              </>
             )}
           </View>
         )}

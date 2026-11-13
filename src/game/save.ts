@@ -8,6 +8,8 @@ import { recipes } from '@/content/recipes';
 import type { TipId } from '@/content/reveal';
 
 import { startingRecipes } from './crafting/recipeUnlocks';
+import { emptyHistory } from './gear/history';
+import { emptyRecord } from './team/record';
 import { makeGearPiece } from './gear/make';
 
 import type { ManualRarity } from './loot/types';
@@ -195,8 +197,10 @@ export type SaveData = {
   freePick: HeroClassId[] | null;
   /** Monster-part recipes unlocked (a part's first find). */
   partRecipes: string[];
-  /** Parts found at least once; a part recipe unlocks once all of its have been seen. */
+  /** Monster parts found at least once; a part recipe unlocks once all of its have been seen. */
   seenParts: string[];
+  /** Gear types, trinkets and relics found at least once (see loot/finds.ts), for the loot grid's "New" ribbon. */
+  seenFinds: string[];
   /** Debug: every kind shows, whatever its condition. */
   revealAll?: boolean;
   /** Daily quests: the list plus arrival, reroll and secret bookkeeping. */
@@ -218,9 +222,9 @@ export function createInitialSave(playerSeed?: string): SaveData {
     materials: {},
     consumables: { ...provisionRules.startingStock },
     // Lyra's hide armour carries the Wild tag that answers the tutorial's Beasts.
-    gear: [makeGearPiece('lyraHide', gearId('leather', 1), 'common')],
+    gear: [{ ...makeGearPiece('lyraHide', gearId('leather', 1), 'common'), history: emptyHistory() }],
     tools: [],
-    heroes: startingHeroes.map((hero) => (hero.id === 'lyra' ? { ...hero, equipment: { ...hero.equipment, armor: 'lyraHide' } } : hero)),
+    heroes: startingHeroes.map((hero) => ({ ...(hero.id === 'lyra' ? { ...hero, equipment: { ...hero.equipment, armor: 'lyraHide' } } : hero), record: emptyRecord() })),
     jobOutput: {},
     jobChoice,
     gatherer: { anchors: [], focus: 'any' },
@@ -272,6 +276,7 @@ export function createInitialSave(playerSeed?: string): SaveData {
     freePick: null,
     partRecipes: [],
     seenParts: [],
+    seenFinds: [],
     quests: { list: [], lastArrivalDay: null, rerollDay: null, rerolls: 0, secretDay: null, completions: [] },
     seenPlaceKinds: [],
     stepsTotal: 0,

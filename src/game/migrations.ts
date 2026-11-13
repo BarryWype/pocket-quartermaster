@@ -1,7 +1,7 @@
 import { affixById } from "@/content/affixes";
 import type { Rarity } from "@/content/gear";
 import { choiceOf, jobById, jobs } from "@/content/jobs";
-import { itemById } from "@/content/lookup";
+import { itemById, monsterPartById } from "@/content/lookup";
 import { shopRules } from "@/content/shops";
 import { recruitRules } from "@/content/roster";
 import { ELEMENTS, shardId, stoneId, type Element } from "./elements";
@@ -34,6 +34,9 @@ import { STARTING_ARMOUR } from "./crafting/recipeUnlocks";
 import { isTutorialDungeon } from "./tutorial/tutorial";
 import { bossBeaten } from "./guild/guild";
 import { freePickClasses } from "./taverns/freePick";
+import { heldFindKeys } from "./loot/finds";
+import { emptyHistory } from "./gear/history";
+import { emptyRecord, factsOfReport, noteRunOnHeroes } from "./team/record";
 
 /**
  * Version 31: the collector quest now names the valuable it wants, chosen from
@@ -770,6 +773,40 @@ export function toV48(save: SaveData): SaveData {
   return { ...save, freePick: beaten ? freePickClasses(save) : null };
 }
 
+/**
+ * Version 49: the loot grid's "New" ribbon. Gear types, trinkets and relics
+ * the save holds count as found; so do the monster parts it holds, now that
+ * every part is noted when found (the goblin ear wasn't).
+ */
+export function toV49(save: SaveData): SaveData {
+  if ("seenFinds" in save && Array.isArray(save.seenFinds)) return save;
+  const heldParts = Object.entries(save.materials)
+    .filter(([id, amount]) => monsterPartById[id] && (amount ?? 0) > 0 && !save.seenParts.includes(id))
+    .map(([id]) => id);
+  return { ...save, seenFinds: [...new Set(heldFindKeys(save))], seenParts: [...save.seenParts, ...heldParts] };
+}
+
+/**
+ * Version 50: gear with a history. Existing pieces start at zero runs, kills
+ * and bosses; whether they were forged stays unknown (shown as nothing).
+ */
+export function toV50(save: SaveData): SaveData {
+  if (save.gear.every((g) => g.history)) return save;
+  return { ...save, gear: save.gear.map((g) => (g.history ? g : { ...g, history: emptyHistory() })) };
+}
+
+/**
+ * Version 51: heroes with a history. Each hero's record starts from the
+ * reports still in the save, oldest first (titles they earn are shown), else
+ * at zero.
+ */
+export function toV51(save: SaveData): SaveData {
+  if (save.heroes.every((h) => h.record)) return save;
+  let next = save;
+  for (const report of [...save.reports].reverse()) next = noteRunOnHeroes(next, factsOfReport(report)).save;
+  return { ...next, heroes: next.heroes.map((h) => (h.record ? h : { ...h, record: emptyRecord() })) };
+}
+
 /** Applies the migration steps in order, from the save's own version on. */
 export function migrateSave(
   save: SaveData,
@@ -795,5 +832,8 @@ export function migrateSave(
   if (fromVersion < 46) next = toV46(next);
   if (fromVersion < 47) next = toV47(next);
   if (fromVersion < 48) next = toV48(next);
+  if (fromVersion < 49) next = toV49(next);
+  if (fromVersion < 50) next = toV50(next);
+  if (fromVersion < 51) next = toV51(next);
   return next;
 }

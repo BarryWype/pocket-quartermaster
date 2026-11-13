@@ -27,6 +27,7 @@ Design catalogues for what's built or being built live in `doc/design/` (threats
 - Families (`doc/design/families/`, built 2026-11-07 on `feat/families`): one team-tag system for builds. 15 families (7 that answer the 7 threats, 8 playstyles) reach levels at 2, 4 and 6 tags counted across the party from classes, gear types and a few relics; the simulator bot and reference teams dress for them. Removed: approaches (and their milestone picks and scores), threat keywords as threat answers, kits, components (boss and elite drops became trophies), the "Steady vs threat" affix, and 7 threats (Brute, Locals, Swarm, Casters, Thieves, Maze, Underwater; the obstacles merged into Traps).
 - Valuables and the collector removed, their worth folded into gold.
 - Charms became loot trinkets: worn in the trinket slot, forged from 8 parts; the Lucky ear is gone.
+- The report is the reward (2026-11-13, `doc/design/report/`): runs keep a tally of who did what (per hero, affix, family level, consumable, meal, weakness item, and what each missed threat cost); the report card credits the player's work by name, says what would have helped and names the hero of the run; every reward is a tile grid with rarity frames, a reveal, "New" ribbons and item sheets; gear keeps its history and earns names; heroes keep a record, earn titles and become companions. Collect all waits for the dispatch board.
 
 **Experimenting**
 - Live combat for places, patrols and Sanctums, with route, damage forecast and enemy intent (branch `feature/live-combat`).

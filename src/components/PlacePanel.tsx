@@ -41,12 +41,14 @@ import {
 } from '@/game/places/shops';
 import { currentHp, isExhausted, maxHp } from '@/game/team/health';
 import { isAway } from '@/game/team/team';
-import { gainsPrefix, lootLabels } from '@/components/lootText';
+import { gainsPrefix } from '@/components/lootText';
+import { LootGrid } from '@/components/LootGrid';
+import { lootTiles, type RewardTile } from '@/game/loot/tiles';
 import { formatPercent, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors, pixel, ui } from '@/theme';
 
-import { GainsLine, IconLabel, PartsLine, type LabelPart } from './IconLabel';
+import { IconLabel, PartsLine, type LabelPart } from './IconLabel';
 import { GearDetails } from './GearDetails';
 import { Price } from './Price';
 import { GameIcon } from './GameIcon';
@@ -104,7 +106,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
   const actions = useGameStore.getState();
   const [tab, setTab] = useState<'buy' | 'sell'>('buy');
   /** What the last dig or catch brought, shown until the sheet closes. */
-  const [result, setResult] = useState<{ text: string; gains: string[] } | null>(null);
+  const [result, setResult] = useState<{ text: string; tiles: RewardTile[] } | null>(null);
   const info = placeInfo[place.kind];
   const distance = distanceMeters(player, place.position);
   const far = distance > placeRules.interactionMeters;
@@ -290,8 +292,9 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
                 compact
                 disabled={digProblem(save, place, player, now) !== null}
                 onPress={() => {
+                  const before = useGameStore.getState().save;
                   const { reward, relic } = actions.digRuin(place, player);
-                  setResult({ text: gainsPrefix(t(relic ? 'places.relicFound' : 'places.dug', { gains: '' })), gains: lootLabels(reward) });
+                  setResult({ text: gainsPrefix(t(relic ? 'places.relicFound' : 'places.dug', { gains: '' })), tiles: lootTiles(reward, { before }) });
                 }}
               />
             </View>
@@ -304,7 +307,10 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
                 title={t('places.fishAction')}
                 compact
                 disabled={fishProblem(save, place, player, now) !== null}
-                onPress={() => setResult({ text: gainsPrefix(t('places.caught', { gains: '' })), gains: lootLabels(actions.fish(place, player)) })}
+                onPress={() => {
+                  const before = useGameStore.getState().save;
+                  setResult({ text: gainsPrefix(t('places.caught', { gains: '' })), tiles: lootTiles(actions.fish(place, player), { before }) });
+                }}
               />
             </View>
           )}
@@ -358,7 +364,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
           {result && (
             <View style={styles.resultRow}>
               <Text style={styles.result}>{result.text}</Text>
-              <GainsLine gains={result.gains} labelStyle={styles.result} />
+              <LootGrid key={result.tiles.map((tile) => tile.key).join()} tiles={result.tiles} reveal />
             </View>
           )}
 
@@ -394,7 +400,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
 }
 
 const styles = StyleSheet.create({
-  resultRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+  resultRow: { gap: 6 },
   content: { gap: 6, paddingBottom: 12 },
   muted: { color: colors.muted },
   gearInfo: { flex: 1, gap: 2 },

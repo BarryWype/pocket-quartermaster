@@ -8,6 +8,7 @@ import type { Difficulty } from '@/content/difficulty';
 import type { Rarity } from '@/content/gear';
 import type { FamilyId } from '@/content/families';
 import type { FamilyLevels } from './families/families';
+import type { RunTally } from './expeditions/tally';
 
 import type { Element } from './elements';
 import type { LatLng } from './generation/types';
@@ -682,6 +683,31 @@ export type HeroState = {
   job: { jobId: string; since: number; tired: boolean } | null;
   /** Energy (0–100) as of `at`: drained while working a job, regained otherwise. */
   energy: { value: number; at: number };
+  /** What the hero has been through (see team/record.ts); absent counts as nothing yet. */
+  record?: HeroRecord;
+  /** The title shown under the hero's name, one of `record.titles`; null when the player hides it. */
+  title?: string | null;
+};
+
+/** A hero's record, grown by each expedition report. */
+export type HeroRecord = {
+  runs: number;
+  wins: number;
+  knockouts: number;
+  kills: number;
+  bosses: number;
+  /** Times hero of the run. */
+  heroOfRun: number;
+  /** Killing blows on a tier boss. */
+  tierBossKills: number;
+  /** Runs in a row without a knockout. */
+  cleanStreak: number;
+  /** Runs as the party's least-damaged hero who healed. */
+  patient: number;
+  /** Runs with each other hero, by hero id. */
+  with: Record<string, number>;
+  /** Titles earned (content/heroTitles.ts), in the order earned. */
+  titles: string[];
 };
 
 /** Supply at launch: enough, some, or none. */
@@ -724,7 +750,24 @@ export type GearInstance = {
   relicId?: string;
   /** A non-relic Legendary's unique: the id of the relic whose effects it carries (unnamed). */
   unique?: string;
+  /** True when the player forged it, false when found or bought; unknown (absent) on pieces from before version 50. */
+  forged?: boolean;
+  /** Where a found piece came from: a dungeon id or a `GearSource`. */
+  foundIn?: string;
+  /** What the piece has been through (see gear/history.ts); absent counts as nothing yet. */
+  history?: GearHistory;
+  /** Its earned name, once (see gear/history.ts); names give no stats. */
+  earnedName?: GearEarnedName;
 };
+
+/** Where a found or bought piece came from, besides a dungeon. */
+export type GearSource = 'patrol' | 'traveller' | 'placeFight' | 'ruins' | 'heist' | 'dock' | 'treasure' | 'sanctum' | 'chest' | 'quest' | 'shop' | 'market';
+
+/** A piece's tallies, grown by each expedition report: runs worn, kills (weapons only, by enemy tag too) and the bosses beaten wearing it. */
+export type GearHistory = { runs: number; kills: number; killTags: Partial<Record<Tag, number>>; bosses: string[] };
+
+/** "<hero>'s <epithet>": the epithet's id (content/gearNames.ts), how far it grew (0–2), who carried it, and when. */
+export type GearEarnedName = { epithet: string; step: number; hero: string; at: number };
 
 export type ActiveExpedition = {
   id: string;
@@ -873,6 +916,8 @@ export type ExpeditionReport = {
   id: string;
   dungeonId: string;
   heroIds: string[];
+  /** When the party set out (reports from before the report card have none). */
+  startedAt?: number;
   finishedAt: number;
   outcome: ExpeditionOutcome;
   /** Boss beaten (flawless or success). */
@@ -887,7 +932,7 @@ export type ExpeditionReport = {
   /** The briefing the expedition played under (empty when it had none). */
   briefing?: Briefing;
   /** Each drawn threat, its level and how the party fared against it. */
-  threats: { id: ThreatId; level: ThreatLevel; element?: Element; state: 'met' | 'half' | 'full' }[];
+  threats: { id: ThreatId; level: ThreatLevel; element?: Element; state: 'met' | 'half' | 'full'; /** Tags the party was short of answering it. */ short?: number }[];
   /** The briefing's opportunity at the midpoint and what it gave, or null when there was none. */
   opportunity: OpportunityOutcome | null;
   /** Consumables that never triggered, broken back down (see threats/salvage.ts). */
@@ -912,6 +957,12 @@ export type ExpeditionReport = {
   families?: FamilyLevels;
   /** The free recruit this first boss clear offered: the classes to choose from. */
   freePick?: HeroClassId[];
+  /** Who did what in the run, trimmed (see expeditions/tally.ts); reports from before it have none. */
+  tally?: RunTally;
+  /** Titles earned and companionships formed on this run. */
+  heroNews?: { titles: { heroId: string; titleId: string }[]; companions: [string, string][] };
+  /** Gear that earned or grew its name on this run. */
+  gearNames?: { uid: string; itemId: string; name: GearEarnedName; grew: boolean }[];
   consumablesUsed: string[];
   log: string[];
   seen: boolean;

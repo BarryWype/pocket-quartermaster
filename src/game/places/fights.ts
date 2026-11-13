@@ -223,7 +223,7 @@ export function resolvePlaceFights(save: SaveData, now: number): { save: SaveDat
   for (const fight of due) {
     next = settleConsumables(next, fight.heroIds, fight.salvaged);
     if (fight.won) {
-      next = grantLoot(next, fight.heroIds, fight.reward, fight.endsAt);
+      next = grantLoot(next, fight.heroIds, fight.reward, fight.endsAt, 'placeFight');
       next = { ...next, usedPlaces: { ...next.usedPlaces, [fight.placeId]: fight.placeExpiresAt } };
       next = questEvent(next, { kind: 'placeUsed', placeId: fight.placeId }, fight.endsAt);
       if (fight.tip) {

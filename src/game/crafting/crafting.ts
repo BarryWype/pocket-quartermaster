@@ -81,7 +81,7 @@ export function forgeGearPiece(next: SaveData, gearItem: GearDef, rarity: Rarity
   const uid = `g${next.nextUid}`;
   return {
     ...next,
-    gear: [...next.gear, makeGearPiece(uid, gearItem.id, rarity, undefined, opts)],
+    gear: [...next.gear, { ...makeGearPiece(uid, gearItem.id, rarity, undefined, opts), forged: true }],
     nextUid: next.nextUid + 1,
   };
 }

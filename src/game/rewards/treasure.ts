@@ -61,6 +61,6 @@ export function collectTreasure(
   if (!map?.location) throw new Error(`Treasure map ${mapId} has not been read`);
   if (distanceMeters(player, treasureAt) > gatheringConfig.collectRadiusMeters) throw new Error('Too far from the treasure');
   const contents = treasureContents(save, map, now);
-  const granted = grantLoot({ ...save, treasureMaps: save.treasureMaps.filter((m) => m.id !== mapId) }, [], contents, now);
+  const granted = grantLoot({ ...save, treasureMaps: save.treasureMaps.filter((m) => m.id !== mapId) }, [], contents, now, 'treasure');
   return { contents, save: granted };
 }

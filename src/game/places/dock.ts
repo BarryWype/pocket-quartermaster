@@ -30,7 +30,7 @@ export function fish(save: SaveData, spawn: PlaceSpawn, player: LatLng, now: num
   const problem = fishProblem(save, spawn, player, now);
   if (problem) throw new Error(`Cannot fish here: ${problem}`);
   const loot = rollForSave(save, 'fishingDock', createRng(`fish|${spawn.id}`));
-  const granted = grantLoot(save, [], loot, now);
+  const granted = grantLoot(save, [], loot, now, 'dock');
   const next = questEvent(
     { ...granted, usedPlaces: { ...granted.usedPlaces, [spawn.id]: spawn.expiresAt } },
     { kind: 'placeUsed', placeId: spawn.id },

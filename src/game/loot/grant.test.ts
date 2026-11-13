@@ -151,4 +151,10 @@ describe('grantLoot', () => {
     );
     expect(after.nextUid).toBe(save.nextUid + 4);
   });
+
+  it('notes where found gear came from: never forged', () => {
+    const loot = { ...emptyLoot(), gear: [{ uid: '', itemId: 'sword2', rarity: 'common' as const }] };
+    expect(grantLoot(createInitialSave(), [], loot, 0, 'goblinWarren').gear.at(-1)).toMatchObject({ itemId: 'sword2', forged: false, foundIn: 'goblinWarren' });
+    expect(grantLoot(createInitialSave(), [], loot, 0).gear.at(-1)!.foundIn).toBeUndefined();
+  });
 });

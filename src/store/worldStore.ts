@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import type { LatLng } from '@/game/generation/types';
 import type { PatrolSpawn } from '@/game/patrols/generate';
 import type { TavernSpawn } from '@/game/taverns/taverns';
+import type { RewardTile } from '@/game/loot/tiles';
 
 /** Auto-gather as it runs: in the background, only while the app is open, or not at all. */
 export type AutoGatherMode = 'off' | 'on' | 'limited';
@@ -18,7 +19,7 @@ type WorldState = {
   /** A short note from auto-gather for the map (what it just gathered, or why it stopped). */
   autoGatherMessage: { text: string; at: number } | null;
   /** A short note from patrol fights for the map (who came back, and what it paid). */
-  patrolMessage: { text: string; gains?: string[]; at: number } | null;
+  patrolMessage: { text: string; tiles?: RewardTile[]; at: number } | null;
   /** Patrol id → when the map first showed it, for goblins' flee timer. */
   patrolsSeen: Record<string, number>;
   /** A notification tapped patrol to centre on and select; cleared by the map. */

@@ -53,6 +53,20 @@ function top(party: PartyMember[], values: Record<string, number>) {
   );
 }
 
+/**
+ * Now and then, a line between two companions in the party, slipped in among
+ * the encounters' lines; the log as it was otherwise. Its own random stream,
+ * so the other lines stay the same.
+ */
+export function withCompanionLine(log: string[], names: [string, string][], rng: Rng, chance: number): string[] {
+  if (names.length === 0 || log.length === 0 || !rng.chance(chance)) return log;
+  const [a, b] = rng.chance(0.5) ? names[rng.int(0, names.length - 1)] : [...names[rng.int(0, names.length - 1)]].reverse();
+  const templates = localized({ en: enLogTemplates, fr: frLogTemplates }).companions;
+  const line = fill(templates[rng.int(0, templates.length - 1)], { a, b });
+  const at = rng.int(1, Math.max(1, log.length - 1));
+  return [...log.slice(0, at), line, ...log.slice(at)];
+}
+
 /** One line per encounter, a summary, then any recipe or broken gear. */
 export function buildLog(input: LogInput, rng: Rng): string[] {
   const { dungeon, party, run } = input;

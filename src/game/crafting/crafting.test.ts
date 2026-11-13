@@ -78,7 +78,7 @@ describe('crafting', () => {
       ['g1', 'sword1'],
       ['g2', 'sword1'],
     ]);
-    twice.gear.forEach((g) => expect(g).toMatchObject({ rarity: 'common', affixes: [], rerolls: 0 }));
+    twice.gear.forEach((g) => expect(g).toMatchObject({ rarity: 'common', affixes: [], rerolls: 0, forged: true }));
     expect(twice.materials).toEqual({ wood: 1 });
   });
 

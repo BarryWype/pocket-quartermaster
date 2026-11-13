@@ -27,12 +27,14 @@ import { jobById } from '@/content/jobs';
 import { workTools } from '@/content/workTools';
 import { lootConfig } from '@/content/loot/config';
 import { traitById } from '@/content/traits';
+import { heroTitleById } from '@/content/heroTitles';
 import { systemIcons } from '@/content/systemIcons';
 import { items } from '@/content/items';
 import { gearName, itemById } from '@/content/lookup';
 import { prepareParty } from '@/game/expeditions/simulate';
 import { highestUnlockedTier } from '@/game/dungeons/unlock';
 import { careProblem, drinkProblem } from '@/game/team/health';
+import { companionsOf, mostRunWith, standingTitle } from '@/game/team/record';
 import { affinityOf, canDismiss, equip, equipPreview, gearKeywordsOf, hasPotionSlot, healingPotion, heroDamageStat, heroStats, isAway, isBusy, retireManual, statSources, upgradeMark } from '@/game/team/team';
 import { ClassSummary } from '@/components/ClassSummary';
 import { FamilyTag } from '@/components/FamilyTag';
@@ -121,6 +123,7 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
   const save = useGameStore((state) => state.save);
   const equipAction = useGameStore((state) => state.equip);
   const dismiss = useGameStore((state) => state.dismissHero);
+  const chooseHeroTitle = useGameStore((state) => state.chooseTitle);
   const drinkPotion = useGameStore((state) => state.drinkPotion);
   const giveHomeCare = useGameStore((state) => state.giveHomeCare);
   const recallFromJob = useGameStore((state) => state.recallFromJob);
@@ -166,18 +169,41 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
   /** The hero's progress to the next level, 1 when there is none left to gain. */
   const xpShare = next ? hero.xp / next : 1;
   const aboveBand = hero.level >= lootConfig.manuals.topLevelByTier[highestUnlockedTier(save) - 1] + xpRules.aboveBandMargin;
+  const dismissNow = () => {
+    router.back();
+    dismiss(hero.id);
+  };
+  // A hero with a title asks a second time, naming it.
+  const titled = standingTitle(hero);
   const confirmDismiss = () =>
     Alert.alert(t('hero.dismissTitle', { name: hero.name }), t('hero.dismissBody', { manual: t(`expeditions.rarity.${retireManual(hero)}`) }), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('hero.dismiss'),
         style: 'destructive',
-        onPress: () => {
-          router.back();
-          dismiss(hero.id);
-        },
+        onPress: () =>
+          titled
+            ? Alert.alert(t('hero.dismissTitle', { name: hero.name }), t('hero.dismissTitled', { name: hero.name, title: tr(heroTitleById[titled].name) }), [
+                { text: t('common.cancel'), style: 'cancel' },
+                { text: t('hero.dismiss'), style: 'destructive', onPress: dismissNow },
+              ])
+            : dismissNow(),
       },
     ]);
+  const record = hero.record;
+  const recordParts = record
+    ? [
+        t('hero.record.runs', { count: record.runs }),
+        t('hero.record.wins', { count: record.wins }),
+        t('hero.record.knockouts', { count: record.knockouts }),
+        t('hero.record.kills', { count: record.kills }),
+        t('hero.record.bosses', { count: record.bosses }),
+        ...(record.heroOfRun > 0 ? [t('hero.record.heroOfRun', { count: record.heroOfRun })] : []),
+      ]
+    : [];
+  const partnerName = (id: string) => save.heroes.find((h) => h.id === id)?.name;
+  const most = mostRunWith(record);
+  const companions = companionsOf(record).flatMap((id) => partnerName(id) ?? []);
 
   /** One gear piece that fits this hero's gear slots, if another hero does not have it out. */
   const storeroomPieces = save.gear.flatMap((gear) => {
@@ -251,6 +277,7 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
               </Text>
             )}
           </View>
+          {hero.title && heroTitleById[hero.title] && <Text style={styles.title}>{tr(heroTitleById[hero.title].name)}</Text>}
           <View style={styles.classNameRow}>
             <Text style={styles.className}>{tr(heroClass.name)}</Text>
             <FamilyTag family={heroClass.familyTag} size={14} labelStyle={styles.className} />
@@ -344,6 +371,43 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
             </Text>
           ))}
       </View>
+      {record && record.runs > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.heading}>{t('hero.record.title')}</Text>
+          <Text style={styles.recordLine}>{recordParts.join(' · ')}</Text>
+          {most && partnerName(most.heroId) && <Text style={styles.recordLine}>{t('hero.record.mostWith', { name: partnerName(most.heroId)!, count: most.runs })}</Text>}
+          {companions.map((name) => (
+            <Text key={name} style={styles.recordLine}>
+              {t('hero.record.companion', { name })}
+            </Text>
+          ))}
+          {record.titles.length > 0 && (
+            <>
+              <Text style={styles.note}>{t('hero.record.titles')}</Text>
+              <View style={styles.titles}>
+                {record.titles.flatMap((id) => {
+                  const def = heroTitleById[id];
+                  if (!def) return [];
+                  const shown = hero.title === id;
+                  return [
+                    <Pressable
+                      key={id}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: shown }}
+                      accessibilityLabel={`${tr(def.name)}: ${tr(def.description)}`}
+                      onPress={() => chooseHeroTitle(hero.id, shown ? null : id)}
+                      style={[styles.titleRow, shown && styles.titleRowShown]}
+                    >
+                      <Text style={styles.titleName}>{tr(def.name)}</Text>
+                      <Text style={styles.titleWhy}>{tr(def.description)}</Text>
+                    </Pressable>,
+                  ];
+                })}
+              </View>
+            </>
+          )}
+        </View>
+      )}
       <View style={styles.dismiss}>
         <WoodButton title={t('hero.dismiss')} disabled={!canDismiss(save, hero.id)} onPress={confirmDismiss} />
         {!canDismiss(save, hero.id) && <Text style={styles.note}>{away ? t('hero.cantDismissAway') : t('hero.cantDismissLast')}</Text>}
@@ -675,6 +739,13 @@ const styles = StyleSheet.create({
   drink: { alignItems: 'stretch', gap: 6 },
   section: { gap: 6 },
   heading: { fontFamily: fonts.body, fontSize: 18, color: ui.ink },
+  title: { fontFamily: fonts.serifBold, fontSize: 14, color: ui.brassDim },
+  recordLine: { fontFamily: fonts.serif, fontSize: 14, color: ui.ink },
+  titles: { gap: 4 },
+  titleRow: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 8, paddingVertical: 4, borderWidth: 2, borderColor: ui.parchmentRule },
+  titleRowShown: { borderColor: ui.brass, backgroundColor: ui.parchmentShade },
+  titleName: { fontFamily: fonts.serifBold, fontSize: 15, color: ui.ink },
+  titleWhy: { fontFamily: fonts.serif, fontSize: 13, color: ui.inkMuted },
   slotHeading: { fontFamily: fonts.body, fontSize: 15, color: ui.ink },
   headRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   keywords: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },

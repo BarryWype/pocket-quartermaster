@@ -179,7 +179,7 @@ export function challengeSanctum(
   return {
     result: { win, log, reward },
     save: {
-      ...applyRunHp(grantLoot(save, heroIds, loot, now), run.hp, now),
+      ...applyRunHp(grantLoot(save, heroIds, loot, now, 'sanctum'), run.hp, now),
       sigils: save.sigils.filter((_, i) => i !== sigilIndex),
       gold: save.gold + loot.gold,
       materials: convertShards(

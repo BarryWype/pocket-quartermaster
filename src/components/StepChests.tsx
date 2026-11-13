@@ -2,13 +2,15 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { chestState, dayKey, stepChests } from '@/game/rewards/chests';
-import { gainsPrefix, lootLabels } from '@/components/lootText';
+import { gainsPrefix } from '@/components/lootText';
+import { lootTiles, type RewardTile } from '@/game/loot/tiles';
 import { useTodaySteps } from '@/hooks/useTodaySteps';
 import { formatNumber, t } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { fonts, ui } from '@/theme';
 
-import { GainsLine, RewardLabel } from './IconLabel';
+import { RewardLabel } from './IconLabel';
+import { LootGrid } from './LootGrid';
 import { GameIcon } from './GameIcon';
 import { Text } from './Text';
 import { EmberButton, ParchmentCard } from './ui';
@@ -17,12 +19,13 @@ export function StepChests() {
   const steps = useTodaySteps();
   const save = useGameStore((state) => state.save);
   const openChest = useGameStore((state) => state.openChest);
-  const [message, setMessage] = useState<{ text: string; gains: string[] } | null>(null);
+  const [message, setMessage] = useState<{ chestId: string; text: string; tiles: RewardTile[] } | null>(null);
   const day = dayKey(new Date());
 
   const open = (chestId: string) => {
-    const gains = lootLabels(openChest(chestId, steps));
-    setMessage(gains.length > 0 ? { text: gainsPrefix(t('chests.reward', { reward: '' })), gains } : { text: t('chests.nothing'), gains: [] });
+    const before = useGameStore.getState().save;
+    const tiles = lootTiles(openChest(chestId, steps), { before });
+    setMessage({ chestId, text: tiles.length > 0 ? gainsPrefix(t('chests.reward', { reward: '' })) : t('chests.nothing'), tiles });
   };
 
   return (
@@ -52,7 +55,7 @@ export function StepChests() {
       {message && (
         <View style={styles.rewardRow}>
           <RewardLabel text={message.text} labelStyle={styles.reward} />
-          {message.gains.length > 0 && <GainsLine gains={message.gains} labelStyle={styles.reward} />}
+          {message.tiles.length > 0 && <LootGrid key={message.chestId} tiles={message.tiles} reveal />}
         </View>
       )}
     </>
@@ -77,9 +80,6 @@ const styles = StyleSheet.create({
   barTrack: { height: 10, borderWidth: 2, borderColor: ui.outline, backgroundColor: ui.woodDark },
   barFill: { height: '100%', backgroundColor: ui.hp },
   rewardRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
     gap: 8,
     padding: 8,
     backgroundColor: ui.parchment,

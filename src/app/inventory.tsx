@@ -7,11 +7,10 @@ import { Countdown, countdownText } from '@/components/Countdown';
 import { TutorialHint } from '@/components/TutorialHint';
 import { StepChests } from '@/components/StepChests';
 import { GearCard } from '@/components/GearDetails';
+import { usedInChips } from '@/components/usedInChips';
 import { SalvageDialog } from '@/components/SalvageDialog';
-import { bossById } from '@/content/enemies';
 import { lootConfig } from '@/content/loot/config';
-import { purposeInfo } from '@/content/loot/purposes';
-import { gearName, itemById, materialById, recipeById, recipeOutput } from '@/content/lookup';
+import { gearName, itemById, materialById } from '@/content/lookup';
 import { placeInfo } from '@/content/places';
 import { systemIcons } from '@/content/systemIcons';
 import { distanceMeters } from '@/game/generation/geo';
@@ -19,7 +18,6 @@ import { highestUnlockedTier } from '@/game/dungeons/unlock';
 import { inventoryPages, inventoryRows, type InventoryItem, type InventoryPageId, type InventoryRow } from '@/game/inventory/inventoryPages';
 import { canSalvage, wearers, wornBy } from '@/game/forging/salvage';
 import { gearIconOf } from '@/game/gear/gearIcon';
-import { nextSteps, purposesOf, type BaseItemRef, type NextStep } from '@/game/loot/purposes';
 import { ruinsDots } from '@/game/places/ruins';
 import { isLureActive, lureEndsAt } from '@/game/rewards/lures';
 import { isRevealed } from '@/game/reveal/reveal';
@@ -299,44 +297,6 @@ function RowSlot({
       />
     </View>
   );
-}
-
-function stepText(step: NextStep): string {
-  switch (step.kind) {
-    case 'recipes': {
-      const known = step.known.map((id) => tr(recipeOutput(recipeById[id]).name));
-      return known.length > 0 ? t('inventory.next.recipes', { recipes: known.join(', ') }) : t('inventory.next.unknownRecipe');
-    }
-    case 'boss':
-      return t('inventory.next.boss', { boss: tr(bossById[step.bossId]?.name ?? step.bossId) });
-    case 'set':
-      return t('inventory.next.set', { dots: ruinsDots(step.have, step.need) });
-    case 'restore':
-      return t('inventory.next.restore', {
-        cost: step.cost.map((s) => `${s.amount} ${tr(materialById[s.materialId].name).toLowerCase()}`).join(', '),
-        gold: step.gold,
-      });
-    case 'action':
-      return t(`inventory.next.${step.action}`);
-  }
-}
-
-/** What a base item is used in: its purposes, then one chip per known recipe and any other next step. */
-function usedInChips(save: SaveData, ref: BaseItemRef) {
-  const chips: { key: string; tone: 'keyword' | 'neutral'; label: string }[] = purposesOf(ref).map((purpose, i) => ({
-    key: `p${i}`,
-    tone: 'keyword',
-    label: tr(purposeInfo[purpose].name),
-  }));
-  for (const step of nextSteps(save, ref)) {
-    if (step.kind === 'recipes') {
-      for (const id of step.known) chips.push({ key: id, tone: 'neutral', label: tr(recipeOutput(recipeById[id]).name) });
-      if (step.known.length === 0) chips.push({ key: 'unknown', tone: 'neutral', label: t('inventory.next.unknownRecipe') });
-    } else {
-      chips.push({ key: step.kind, tone: 'neutral', label: stepText(step) });
-    }
-  }
-  return chips;
 }
 
 /** One row's open pop-up: what that row's page already showed for it, plus its action. */

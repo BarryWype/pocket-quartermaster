@@ -131,7 +131,7 @@ export function blackMarketGoods(save: SaveData, place: PlaceSpawn): MarketLine[
       key: `gear:${i}`,
       id,
       price: Math.round(shopRules.gearPrice[tier - 1] * shopRules.rarityPrice.rare * markup),
-      gear: makeGearPiece(`market:${place.id}:${i}`, id, 'rare'),
+      gear: { ...makeGearPiece(`market:${place.id}:${i}`, id, 'rare'), forged: false, foundIn: 'market' },
     };
   });
 }

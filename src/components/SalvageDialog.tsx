@@ -18,6 +18,7 @@ import { Text } from './Text';
 import { IconLabel } from './IconLabel';
 
 const warningKey: Record<SalvageWarning, TextKey> = {
+  named: 'inventory.salvageWarning.named',
   equipped: 'inventory.salvageWarning.equipped',
   rareOrBetter: 'inventory.salvageWarning.rareOrBetter',
   relic: 'inventory.salvageWarning.relic',

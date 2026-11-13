@@ -2,7 +2,8 @@
  * Issue 18: how long each menu screen's first frame (its ghost) takes, and how
  * long the real content behind it takes to land.
  *
- * Every screen the bottom menu and the hero list open is mounted with
+ * Every screen the bottom menu and the hero list open, and an opened expedition
+ * report with 30 loot tiles, is mounted with
  * react-test-renderer on a mid-game save (three tiers unlocked, six heroes,
  * ~40 gear pieces, every material and consumable in stock), cold (first mount
  * in a fresh module registry, `jest.isolateModules`, modules loaded before the
@@ -69,7 +70,12 @@ const SCREENS: [name: string, path: string][] = [
   ['guild', '@/app/guild'],
   ['settings', '@/app/settings'],
   ['tips', '@/app/tips'],
+  // An opened expedition report whose loot is 30 tiles (the loot grid defers its tiles like a screen).
+  ['report (30 tiles)', '@/perf/reportFixture'],
 ];
+
+/** The ghost's budget on the dev machine: ~100 ms on a phone (doc/design/perf/menu-speed-prompt.md). */
+const GHOST_BUDGET_MS = 25;
 
 const RARITIES: Rarity[] = ['common', 'common', 'uncommon', 'rare'];
 
@@ -188,5 +194,6 @@ describe('the first opening of each menu screen', () => {
     ];
     console.log(lines.join('\n'));
     expect(rows).toHaveLength(SCREENS.length + 1);
+    expect(rows.find((r) => r.name === 'screen: report (30 tiles)')!.ghost).toBeLessThan(GHOST_BUDGET_MS);
   });
 });

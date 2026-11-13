@@ -10,19 +10,31 @@ import { makeGearPiece } from '../gear/make';
 import { guildBonus } from '../guild/guild';
 import { highestUnlockedTier } from '../dungeons/unlock';
 import { addMaterials } from '../inventory';
+import { noteFinds } from './finds';
 import type { SaveData } from '../save';
 import { addXp, equippedGear } from '../team/team';
 import type { TreasureMap } from '../types';
 import type { Loot } from './types';
 
+/** The loot with each gear piece's uid as granted: the pieces `after` holds that `before` didn't, matched in order. */
+export function withGrantedUids(loot: Loot, before: SaveData, after: SaveData): Loot {
+  const had = new Set(before.gear.map((g) => g.uid));
+  const fresh = after.gear.filter((g) => !had.has(g.uid));
+  const gear = loot.gear.map((piece) => {
+    const i = fresh.findIndex((g) => g.itemId === piece.itemId && g.rarity === piece.rarity);
+    return i === -1 ? piece : { ...piece, uid: fresh.splice(i, 1)[0].uid };
+  });
+  return { ...loot, gear };
+}
+
 /**
- * Pays a roll's loot: gold (the party's best Plunderer counts once), XP per
+ * Pays a roll's loot (found where `foundIn` says: a dungeon id or a `GearSource`): gold (the party's best Plunderer counts once), XP per
  * hero who took part (trait, Veteran and Guild Hall bonuses on top), materials, consumables, lures, gear (rolled with its fresh
  * uid), blueprints, key fragments, treasure maps (found `now`), manuals
  * and relics. Parts found unlock their recipes.
  * Pure: returns a new save.
  */
-export function grantLoot(save: SaveData, heroIds: string[], loot: Loot, now: number): SaveData {
+export function grantLoot(save: SaveData, heroIds: string[], loot: Loot, now: number, foundIn?: string): SaveData {
   const guildXp = 1 + guildBonus(save, 'heroXp');
   const playerTier = highestUnlockedTier(save);
   const consumables = { ...save.consumables };
@@ -31,7 +43,7 @@ export function grantLoot(save: SaveData, heroIds: string[], loot: Loot, now: nu
   for (const rarity of loot.manuals) manuals[rarity] = (manuals[rarity] ?? 0) + 1;
 
   let uid = save.nextUid;
-  const gear = loot.gear.map((piece) => makeGearPiece(`g${uid++}`, piece.itemId, piece.rarity));
+  const gear = loot.gear.map((piece) => ({ ...makeGearPiece(`g${uid++}`, piece.itemId, piece.rarity), forged: false, ...(foundIn ? { foundIn } : {}) }));
   const maps = loot.treasureMaps.map(
     ({ rarity, tier }): TreasureMap => ({ id: `map${uid++}`, tier, rarity, expiresAt: now + lootConfig.treasureMapHours * 3_600_000, location: null }),
   );
@@ -64,5 +76,5 @@ export function grantLoot(save: SaveData, heroIds: string[], loot: Loot, now: nu
   };
   for (const recipeId of loot.recipeIds) next = unlockRecipe(next, recipeId);
   next = seeParts(next, loot.materials.map((stack) => stack.materialId));
-  return next;
+  return noteFinds(next, loot);
 }

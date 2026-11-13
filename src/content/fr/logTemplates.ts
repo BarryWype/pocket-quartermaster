@@ -188,4 +188,11 @@ export const frLogTemplates: typeof logTemplates = {
   sigilShards: ['Faute de place pour un autre Sceau, il s’est brisé en {amount} {shards}.'],
   salvage: '{le:item} n’a pas servi et finit en récupération.',
   noWeapon: 'ses poings',
+  companions: [
+    '{a} a couvert la retraite de {b}.',
+    '{a} et {b} se sont battus dos à dos.',
+    '{a} a partagé sa dernière gorgée d’eau avec {b}.',
+    '{a} a rattrapé {b} au bord d’une mauvaise chute.',
+    'Autour du feu, {a} et {b} ont échangé de vieilles histoires.',
+  ],
 };

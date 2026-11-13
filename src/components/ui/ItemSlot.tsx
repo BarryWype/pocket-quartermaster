@@ -23,6 +23,8 @@ type Props = {
   equipped?: boolean;
   /** A Legendary piece: a gold frame around the socket. */
   legendary?: boolean;
+  /** A rarity frame around the socket, in this colour (the loot grid's gear, blueprints and relics). */
+  frame?: string;
   /** A piece's family tags in the socket's bottom-left corner, a third of its size; a stack count then moves to the top-right. */
   families?: { family: FamilyId; count: number }[];
   onPress?: () => void;
@@ -31,7 +33,7 @@ type Props = {
 };
 
 /** A square item socket: selected, ready, short, empty or locked. */
-export function ItemSlot({ state, emoji, icon, count, mark, size, faded, equipped, legendary, families, onPress, accessibilityLabel, style }: Props) {
+export function ItemSlot({ state, emoji, icon, count, mark, size, faded, equipped, legendary, frame, families, onPress, accessibilityLabel, style }: Props) {
   const filled = state === 'selected' || state === 'ready' || state === 'short';
   const shown = state === 'locked' ? '🔒' : state === 'empty' ? undefined : emoji;
   const face = (
@@ -41,6 +43,7 @@ export function ItemSlot({ state, emoji, icon, count, mark, size, faded, equippe
         size !== undefined ? { width: size, height: size } : styles.fill,
         state === 'selected' && styles.selected,
         legendary && { borderColor: gearRules.colors.legendary },
+        frame !== undefined && { borderColor: frame, borderWidth: 3 },
         (state === 'empty' || state === 'locked') && styles.emptyish,
         faded && styles.faded,
         style,

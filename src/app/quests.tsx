@@ -2,9 +2,11 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import PagerView from 'react-native-pager-view';
 
-import { GainsLine, IconLabel, RewardLabel } from '@/components/IconLabel';
+import { IconLabel, RewardLabel } from '@/components/IconLabel';
 import { StepChests } from '@/components/StepChests';
-import { gainsPrefix, lootLabels } from '@/components/lootText';
+import { gainsPrefix } from '@/components/lootText';
+import { LootGrid, TileFace } from '@/components/LootGrid';
+import { lootTiles, type RewardTile } from '@/game/loot/tiles';
 import { Countdown, countdownText } from '@/components/Countdown';
 import { Text } from '@/components/Text';
 import { itemById } from '@/content/lookup';
@@ -31,7 +33,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useWorldStore } from '@/store/worldStore';
 import { fonts, ui } from '@/theme';
 
-import { Deferred, DiamondRail, EmberButton, GhostScreen, ItemSlot, ParchmentCard, WoodButton, useLazyPages, type RailItem } from '@/components/ui';
+import { Deferred, DiamondRail, EmberButton, GhostScreen, ParchmentCard, WoodButton, useLazyPages, type RailItem } from '@/components/ui';
 import { timed } from '@/components/timed';
 
 /** One emoji per loot category, for the reward slots. */
@@ -146,7 +148,7 @@ function QuestsContent() {
   const game = useGameStore.getState();
   const player = useWorldStore((state) => state.player);
   const { places, ready } = useQuestPlaces(save, player, now);
-  const [claimed, setClaimed] = useState<Record<string, string[]>>({});
+  const [claimed, setClaimed] = useState<Record<string, RewardTile[]>>({});
   const rail = useQuestsRail();
   const [page, setPage] = useState<QuestsPageId>(() => rail.selected);
   const pager = useRef<PagerView>(null);
@@ -164,8 +166,9 @@ function QuestsContent() {
   const quests = [...save.quests.list].sort((a, b) => order(a) - order(b) || a.expiresAt - b.expiresAt);
 
   const claim = (quest: Quest) => {
+    const before = useGameStore.getState().save;
     const loot = useGameStore.getState().claimQuest(quest.id);
-    setClaimed((current) => ({ ...current, [quest.id]: lootLabels(loot) }));
+    setClaimed((current) => ({ ...current, [quest.id]: lootTiles(loot, { before }) }));
   };
 
   const targetLine = (quest: Quest) => {
@@ -221,10 +224,10 @@ function QuestsContent() {
           {quests.length === 0 && Object.keys(claimed).length === 0 && <Text style={styles.muted}>{t('quests.empty')}</Text>}
           {Object.entries(claimed)
             .filter(([id]) => !quests.some((q) => q.id === id))
-            .map(([id, gains]) => (
+            .map(([id, tiles]) => (
               <View key={id} style={styles.claimed}>
                 <RewardLabel text={gainsPrefix(t('quests.claimed', { gains: '' }))} size={13} labelStyle={styles.claimedText} />
-                <GainsLine gains={gains.length > 0 ? gains : [t('quests.nothing')]} size={13} labelStyle={styles.claimedText} />
+                {tiles.length > 0 ? <LootGrid tiles={tiles} reveal /> : <Text style={styles.claimedText}>{t('quests.nothing')}</Text>}
               </View>
             ))}
           {quests.map((quest, index) => (
@@ -325,11 +328,17 @@ function QuestCard({
         </View>
       )}
       <View style={styles.rewardRow}>
-        {likely.map((category) => (
-          <ItemSlot key={category} state="ready" size={32} emoji={CATEGORY_EMOJI[category]} icon={systemIcons[CATEGORY_EMOJI[category]]} accessibilityLabel={t(`quests.categories.${category}`)} />
-        ))}
-        {maybe.map((category) => (
-          <ItemSlot key={category} state="ready" size={32} faded emoji={CATEGORY_EMOJI[category]} icon={systemIcons[CATEGORY_EMOJI[category]]} accessibilityLabel={t(`quests.categories.${category}`)} />
+        {/* Everything a quest pays is rolled when it is claimed: "?" tiles, the rarer finds faded. */}
+        {[...likely, ...maybe].map((category) => (
+          <TileFace
+            key={category}
+            size={32}
+            faded={maybe.includes(category)}
+            emoji={CATEGORY_EMOJI[category]}
+            icon={systemIcons[CATEGORY_EMOJI[category]]}
+            label={t('tiles.rolledLater')}
+            accessibilityLabel={t(`quests.categories.${category}`)}
+          />
         ))}
         <View style={styles.spacer} />
         {done ? (
@@ -358,9 +367,6 @@ const styles = StyleSheet.create({
   pageTitle: { fontSize: 19, color: ui.brassLight },
   rerolls: { fontFamily: fonts.serif, fontSize: 13, color: ui.onWoodMuted },
   claimed: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
     gap: 8,
     padding: 8,
     backgroundColor: ui.parchment,

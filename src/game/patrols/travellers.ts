@@ -174,7 +174,7 @@ export function helpTraveller(
 /** Writes a reward into the save: the loot, and a blessing that rests every home hero (heroes away keep what they have). */
 function grantReward(save: SaveData, reward: TravellerReward, now: number): SaveData {
   if (reward.kind !== 'loot') return save;
-  const granted = grantLoot(save, [], reward.loot, now);
+  const granted = grantLoot(save, [], reward.loot, now, 'traveller');
   if (!reward.blessing) return granted;
   return {
     ...granted,

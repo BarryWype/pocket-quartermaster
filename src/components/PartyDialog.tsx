@@ -16,6 +16,7 @@ import { hasPotionSlot } from '@/game/team/team';
 import type { Briefing, GearDef } from '@/game/types';
 import { useOdds, type OddsJob } from '@/hooks/useOdds';
 import { t, tr } from '@/i18n';
+import { heroTitleById } from '@/content/heroTitles';
 import { useGameStore } from '@/store/gameStore';
 import { dropDraft, keepDraft, partyDraft } from '@/store/partyDrafts';
 import { fonts, ui } from '@/theme';
@@ -178,6 +179,11 @@ function HeroPlate({
               {t('partyDialog.classLevel', { className: tr(heroClass.name), level: hero.level })}
             </Text>
           </View>
+          {hero.title && heroTitleById[hero.title] && (
+            <Text style={styles.heroTitle} numberOfLines={1}>
+              {tr(heroTitleById[hero.title].name)}
+            </Text>
+          )}
           <View style={styles.hpTrack}>
             <View style={[styles.hpFill, { width: `${share * 100}%` }, share < 0.5 && styles.hpLow]} />
           </View>
@@ -472,6 +478,7 @@ const styles = StyleSheet.create({
   plateText: { flex: 1, gap: 6 },
   nameRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   heroName: { fontFamily: fonts.body, fontSize: 21, color: ui.brassLight, flexShrink: 1 },
+  heroTitle: { fontFamily: fonts.serifBold, fontSize: 13, color: ui.onWoodMuted },
   heroClass: { fontFamily: fonts.serif, fontSize: 13, color: ui.onWoodMuted, flexShrink: 1 },
   hpTrack: { height: 8, backgroundColor: ui.outline },
   hpFill: { height: '100%', backgroundColor: ui.hp },

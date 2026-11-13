@@ -3,13 +3,14 @@ import { StyleSheet, View, type StyleProp, type TextStyle, type ViewStyle } from
 
 import { affinityRules } from '@/content/equipment';
 import { gearRules, rarityNames } from '@/content/gear';
-import { gearName, itemById } from '@/content/lookup';
+import { bossById } from '@/content/enemies';
+import { dungeonById, earnedNameText, gearName, itemById } from '@/content/lookup';
 import type { SaveData } from '@/game/save';
-import type { GearDef, GearInstance, Stats } from '@/game/types';
+import type { GearDef, GearInstance, GearSource, Stats } from '@/game/types';
 import { gearFamilyTags } from '@/game/families/families';
 import { gearIconOf } from '@/game/gear/gearIcon';
 import { affinityOf, equipPreview, heroStats } from '@/game/team/team';
-import { formatNumber, t, tr } from '@/i18n';
+import { formatDate, formatNumber, t, tr } from '@/i18n';
 import { fonts, ui } from '@/theme';
 
 import { AffixLines } from './AffixLines';
@@ -141,6 +142,36 @@ export function GearSubtitle({ gear }: { gear: GearInstance }) {
   );
 }
 
+/** Where a piece came from: forged by you, or found where; nothing when unknown (pieces from before version 50). */
+function originLine(gear: GearInstance): string | null {
+  if (gear.forged) return t('gear.history.forged');
+  if (!gear.foundIn) return null;
+  const dungeon = dungeonById[gear.foundIn];
+  return dungeon ? t('gear.history.foundIn', { dungeon: tr(dungeon.name) }) : t(`gear.history.source.${gear.foundIn as GearSource}`);
+}
+
+/** A piece's history: where it came from, its runs, kills and bosses, and its earned name with the day it was earned. */
+export function GearHistoryBlock({ gear }: { gear: GearInstance }) {
+  const history = gear.history;
+  const origin = originLine(gear);
+  const counts = [
+    history && history.runs > 0 ? t('gear.history.runs', { count: history.runs }) : null,
+    history && history.kills > 0 ? t('gear.history.kills', { count: history.kills }) : null,
+  ].filter((part): part is string => part !== null);
+  const bosses = (history?.bosses ?? []).map((id) => tr(bossById[id]?.name ?? id));
+  const name = gear.earnedName ? earnedNameText(gear.earnedName) : null;
+  if (!origin && counts.length === 0 && bosses.length === 0 && !name) return null;
+  return (
+    <View style={styles.history}>
+      <Text style={styles.historyTitle}>{t('gear.history.title')}</Text>
+      {origin && <Text style={styles.historyLine}>{origin}</Text>}
+      {counts.length > 0 && <Text style={styles.historyLine}>{counts.join(' · ')}</Text>}
+      {bosses.length > 0 && <Text style={styles.historyLine}>{t('gear.history.bosses', { list: bosses.join(', ') })}</Text>}
+      {name && <Text style={styles.historyLine}>{t('gear.history.named', { date: formatDate(gear.earnedName!.at) })}</Text>}
+    </View>
+  );
+}
+
 /**
  * A piece's card, the same in the inventory, on the hero screen and in the
  * party's pickers: its name, rarity and details, compared with a hero's slot
@@ -179,6 +210,7 @@ export function GearCard({
       action={action}
     >
       <GearDetails gear={gear} compact compare={compare} labelStyle={labelStyle} style={styles.card} />
+      <GearHistoryBlock gear={gear} />
       {children}
     </ItemPopup>
   );
@@ -196,4 +228,7 @@ const styles = StyleSheet.create({
   up: { color: ui.good },
   down: { color: ui.bad },
   muted: { color: ui.inkMuted },
+  history: { alignSelf: 'stretch', gap: 1, borderTopWidth: 2, borderTopColor: ui.parchmentRule, borderStyle: 'dashed', paddingTop: 4 },
+  historyTitle: { fontSize: 16, color: ui.ink },
+  historyLine: { fontFamily: fonts.serif, fontSize: 14, color: ui.inkMuted },
 });

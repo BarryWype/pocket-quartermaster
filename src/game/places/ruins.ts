@@ -76,7 +76,7 @@ export function digRuin(
   const problem = digProblem(save, spawn, player, now);
   if (problem) throw new Error(`Cannot dig this ruin: ${problem}`);
   const { reward, relic } = ruinDig(save, spawn);
-  const granted = grantLoot(save, [], reward, now);
+  const granted = grantLoot(save, [], reward, now, 'ruins');
   return {
     save: questEvent({
       ...granted,

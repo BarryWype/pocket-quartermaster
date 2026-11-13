@@ -89,7 +89,7 @@ export function resolveHeists(save: SaveData, now: number): { save: SaveData; re
   const tips: TipOutcome[] = [];
   for (const heist of due) {
     if (heist.success) {
-      next = grantLoot(next, [], heist.reward, heist.endsAt);
+      next = grantLoot(next, [], heist.reward, heist.endsAt, 'heist');
       if (heist.tip) {
         const granted = grantTip(next, heist.tip, heist.endsAt);
         next = granted.save;

@@ -44,7 +44,7 @@ export function claimQuest(save: SaveData, questId: string, now: number): { save
   const quest = save.quests.list.find((q) => q.id === questId);
   if (!quest || claimProblem(save, questId) !== null) throw new Error(`Cannot claim quest ${questId}`);
   const loot = questLoot(save, quest, now);
-  const paid = grantLoot(save, [], loot, now);
+  const paid = grantLoot(save, [], loot, now, 'quest');
   return { save: { ...paid, quests: { ...paid.quests, list: paid.quests.list.filter((q) => q.id !== questId) } }, loot };
 }
 

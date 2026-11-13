@@ -1,4 +1,5 @@
 import { useRef, useState, type ComponentRef } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { ScrollView, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 import PagerView from 'react-native-pager-view';
 
@@ -91,11 +92,14 @@ export function ForgeStation() {
   const forgeWithIngredient = useGameStore((state) => state.forgeWithIngredient);
   const restoreRelic = useGameStore((state) => state.restoreRelic);
   const [result, setResult] = useState<ForgeResult | null>(null);
+  // Opened on a blueprint (the loot grid's "Forge"): its section, its confirmation open.
+  const { recipe: openedOn } = useLocalSearchParams<{ recipe?: string }>();
+  const openedType = openedOn && recipeById[openedOn] && save.knownRecipes.includes(openedOn) ? pageTypeOf(recipeById[openedOn]) : null;
   /** The forge or restore waiting for its confirmation, if any, and the slot it opened from. */
-  const [pending, setPending] = useState<ForgePending | null>(null);
+  const [pending, setPending] = useState<ForgePending | null>(() => (openedType ? { kind: 'forge', recipeId: openedOn!, ingredientId: null } : null));
   const [anchor, setAnchor] = useState<PopupAnchor | null>(null);
   const rail = useForgeRail();
-  const [section, setSection] = useState<ForgeSection>(() => rail.selected);
+  const [section, setSection] = useState<ForgeSection>(() => (openedType && rail.sections.includes(openedType) ? openedType : rail.selected));
   const [contentWidth, setContentWidth] = useState(0);
   const pager = useRef<PagerView>(null);
   const { items: railItems, sections, pages, tiers } = rail;

@@ -70,8 +70,9 @@ import { useQuestMarks } from '@/hooks/useQuestMarks';
 import { usePersonalTavern } from '@/hooks/usePersonalTavern';
 import { useSecretPlaces } from '@/hooks/useSecretPlaces';
 import { useWalkableTiles } from '@/hooks/useWalkableTiles';
-import { gainsPrefix, lootLabels } from '@/components/lootText';
-import { GainsLine } from '@/components/IconLabel';
+import { gainsPrefix } from '@/components/lootText';
+import { LootGrid } from '@/components/LootGrid';
+import { lootTiles, type RewardTile } from '@/game/loot/tiles';
 import { t, tr } from '@/i18n';
 import { navigate } from '@/services/navigation';
 import { markTap, recordTiming } from '@/services/timings';
@@ -204,7 +205,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
   const now = useNow(clockConfig.mapMovingMs);
   const minute = Math.floor(useNow(clockConfig.spawnsMs) / 60_000);
   // The version 45 treasure sale opens the map with its one-time toast.
-  const [message, setMessage] = useState<{ text: string; gains?: string[] } | null>(() => {
+  const [message, setMessage] = useState<{ text: string; tiles?: RewardTile[] } | null>(() => {
     const gold = useGameStore.getState().save.soldTreasureGold;
     return gold === undefined ? null : { text: t('map.treasuresSold', { gold }) };
   });
@@ -220,7 +221,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
     () =>
       useWorldStore.subscribe((state, previous) => {
         if (state.autoGatherMessage && state.autoGatherMessage !== previous.autoGatherMessage) setMessage({ text: state.autoGatherMessage.text });
-        if (state.patrolMessage && state.patrolMessage !== previous.patrolMessage) setMessage({ text: state.patrolMessage.text, gains: state.patrolMessage.gains });
+        if (state.patrolMessage && state.patrolMessage !== previous.patrolMessage) setMessage({ text: state.patrolMessage.text, tiles: state.patrolMessage.tiles });
       }),
     [],
   );
@@ -626,7 +627,9 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
         setMessage({ text: t('map.treasureTooFar', { distance: Math.round(distance), radius: gatheringConfig.collectRadiusMeters }) });
         return;
       }
-      setMessage({ text: gainsPrefix(t('map.treasureFound', { gains: '' })), gains: lootLabels(collectTreasure(mapId, position, treasureAt)) });
+      const before = useGameStore.getState().save;
+      const found = collectTreasure(mapId, position, treasureAt);
+      setMessage({ text: gainsPrefix(t('map.treasureFound', { gains: '' })), tiles: lootTiles(found, { before }) });
     },
     [collectTreasure, position],
   );
@@ -849,15 +852,17 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
   );
 }
 
-/** The map's toast: its words, then each gain with its emoji in its own element beside them. */
-function ToastBanner({ message, style }: { message: { text: string; gains?: string[] }; style: StyleProp<ViewStyle> }) {
+/** The map's toast: its words, then up to four small tiles of what it paid and "+N" for the rest. */
+function ToastBanner({ message, style }: { message: { text: string; tiles?: RewardTile[] }; style: StyleProp<ViewStyle> }) {
   return (
     <View style={[styles.bannerView, style]}>
       <Text style={styles.bannerText}>{message.text}</Text>
-      {message.gains && message.gains.length > 0 && <GainsLine gains={message.gains} size={20} labelStyle={styles.bannerText} />}
+      {message.tiles && message.tiles.length > 0 && <LootGrid key={message.text} tiles={message.tiles} size={TOAST_TILE} max={4} interactive={false} />}
     </View>
   );
 }
+
+const TOAST_TILE = 34;
 
 const styles = StyleSheet.create({
   container: { flex: 1 },

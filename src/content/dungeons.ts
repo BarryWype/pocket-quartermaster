@@ -778,4 +778,21 @@ export const expeditionRules = {
   /** A fight still going after this many rounds counts as lost. */
   maxRounds: 40,
   reportsKept: 20,
+  /**
+   * The run's tally as a report keeps it (see expeditions/tally.ts): the largest
+   * contributions only, ranked in HP, an enemy turn denied, a fight skipped and a
+   * knockout saved each worth this share of the party's mean max HP.
+   */
+  tally: { contributionsKept: 10, worth: { turn: 0.1, fight: 0.5, save: 0.5 } },
+  /** The report card (see expeditions/reportCard.ts). */
+  card: {
+    /** "Your work" shows at most this many lines… */
+    workLines: 3,
+    /** …each for a contribution worth at least this share of the party's mean max HP (ranked as the tally ranks them). */
+    workThreshold: 0.25,
+    /** A damage line names its share of the party's damage from this share on, its amount below it. */
+    damageShareFrom: 0.1,
+    /** Hero of the run: the largest share of the party's damage, healing and (standing heroes only) this part of the hits taken, in HP; the boss's killing blow adds `bossKill` to the share. */
+    heroOfRun: { bossKill: 0.25, taken: 0.5 },
+  },
 };

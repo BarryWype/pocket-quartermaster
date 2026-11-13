@@ -21,10 +21,14 @@ import { baseItems } from '../loot/baseItems';
 import { monsterParts } from '../loot/monsterParts';
 import { PURPOSES, purposeInfo } from '../loot/purposes';
 import { relics } from '../loot/relics';
+import { allEpithets } from '../gearNames';
+import { heroTitles } from '../heroTitles';
 
 /** Every content name and description shown to players, in English: each needs an entry in `frNames`. */
 export function contentTexts(): string[] {
   const texts = [
+    ...allEpithets(),
+    ...heroTitles.flatMap((title) => [title.name, title.description]),
     ...materials.map((m) => m.name),
     ...items.flatMap((i) => [i.name, ...(i.description ? [i.description] : [])]),
     ...resources.map((r) => r.name),

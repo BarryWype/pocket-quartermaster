@@ -117,7 +117,7 @@ export function placeStock(save: SaveData, spawn: PlaceSpawn, now: number): Stoc
             id: item.id,
             amount: 1,
             price: gearPrice(item, rarity),
-            gear: makeGearPiece(`shop:${spawn.id}:${i}`, item.id, rarity),
+            gear: { ...makeGearPiece(`shop:${spawn.id}:${i}`, item.id, rarity), forged: false, foundIn: 'shop' },
           };
         }),
         ...(recipe ? [recipe] : []),
@@ -171,7 +171,7 @@ export function placeStock(save: SaveData, spawn: PlaceSpawn, now: number): Stoc
         id,
         amount: 1,
         price: workToolRules.price[tier - 1],
-        gear: makeGearPiece(`shop:${spawn.id}:${id}`, id, 'common'),
+        gear: { ...makeGearPiece(`shop:${spawn.id}:${id}`, id, 'common'), forged: false, foundIn: 'shop' },
       };
     });
   // A Haggler helmet anywhere in the roster takes its share off every price.

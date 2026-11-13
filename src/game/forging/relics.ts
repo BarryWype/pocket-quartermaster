@@ -55,7 +55,7 @@ export function restoreRelic(save: SaveData, relicUid: string, free = false): Sa
 
   const uid = `g${save.nextUid}`;
   const gearItem = itemById[gearId(relic.gearType, relic.tier)] as GearDef;
-  const piece = makeGearPiece(uid, gearItem.id, 'legendary', undefined, { relicId: relic.id });
+  const piece = { ...makeGearPiece(uid, gearItem.id, 'legendary', undefined, { relicId: relic.id }), forged: true };
   return {
     ...save,
     relics: save.relics.filter((r) => r.uid !== relicUid),

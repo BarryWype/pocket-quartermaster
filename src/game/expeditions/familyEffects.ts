@@ -877,3 +877,13 @@ export function activeHooks(levels: FamilyLevels, effects: FamilyEffect[] = fami
   }
   return hooks;
 }
+
+/** The family effect behind each active hook, in the same order as `activeHooks` (`wild1`): the run's tally credits it. */
+export function activeHookOwners(levels: FamilyLevels, effects: FamilyEffect[] = familyEffects): Record<keyof ActiveHooks, FamilyEffectId[]> {
+  const owners = Object.fromEntries(Object.keys(activeHooks({}, [])).map((name) => [name, []])) as unknown as Record<keyof ActiveHooks, FamilyEffectId[]>;
+  for (const effect of effects) {
+    if ((levels[effect.family] ?? 0) < effect.level) continue;
+    for (const name of Object.keys(effect.hooks)) owners[name as keyof ActiveHooks].push(`${effect.family}${effect.level}` as FamilyEffectId);
+  }
+  return owners;
+}

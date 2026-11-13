@@ -18,7 +18,8 @@ import {
   type TravellerReward,
 } from '@/game/patrols/travellers';
 import { distanceTo } from '@/game/patrols/visibility';
-import { lootLabels } from '@/components/lootText';
+import { LootGrid } from '@/components/LootGrid';
+import { lootTiles, type RewardTile } from '@/game/loot/tiles';
 import { localized, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
@@ -31,7 +32,6 @@ import { EmberButton, WoodButton } from './ui';
 import { RecruitGrade } from './RecruitGrade';
 import { SpecialLabel } from './SpecialLabel';
 import { Text } from './Text';
-import { GainsLine } from './IconLabel';
 
 const helpProblemText: Record<'tooFar' | 'gone' | 'noStock', (distance: number) => string> = {
   tooFar: (distance) => t('patrols.walkCloser', { distance: Math.round(distance) }),
@@ -59,7 +59,7 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
   const helpTraveller = useGameStore((state) => state.helpTraveller);
   const tradeWithTrader = useGameStore((state) => state.tradeWithTrader);
   const acceptTravellerRecruit = useGameStore((state) => state.acceptTravellerRecruit);
-  const [helped, setHelped] = useState<{ reward: TravellerReward; rosterFull: boolean } | null>(null);
+  const [helped, setHelped] = useState<{ reward: TravellerReward; rosterFull: boolean; tiles: RewardTile[] } | null>(null);
   const kind = isTravellerKind(spawn.kind) ? spawn.kind : null;
   const texts = localized({ en: patrolTexts, fr: frPatrolTexts });
   const seeClasses = useGameStore((state) => state.seeClasses);
@@ -79,7 +79,11 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
   const reward = helped?.reward ?? null;
   const recruit = reward?.kind === 'recruit' ? reward.offer : null;
 
-  const help = (choice?: 'meal' | 'supply') => setHelped(helpTraveller(spawn, player, choice));
+  const help = (choice?: 'meal' | 'supply') => {
+    const before = useGameStore.getState().save;
+    const result = helpTraveller(spawn, player, choice);
+    setHelped(result && { ...result, tiles: result.reward.kind === 'loot' ? lootTiles(result.reward.loot, { before }) : [] });
+  };
   const hasMeal = kind === 'pilgrim' && mealItems.some((item) => (save.consumables[item.id] ?? 0) > 0);
   const canSupply = kind === 'pilgrim' && supplyHeld(save.consumables) >= supplyPoints;
 
@@ -175,8 +179,8 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
             <View style={styles.offer}>
               {reward.kind === 'loot' && (
                 <View style={styles.rewardRow}>
-                  {lootLabels(reward.loot).length > 0 ? (
-                    <GainsLine gains={lootLabels(reward.loot)} labelStyle={styles.name} />
+                  {helped!.tiles.length > 0 ? (
+                    <LootGrid tiles={helped!.tiles} reveal />
                   ) : (
                     <Text style={styles.name}>{t('chests.nothing')}</Text>
                   )}
@@ -215,7 +219,7 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
   );
 }
 const styles = StyleSheet.create({
-  rewardRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+  rewardRow: { gap: 8 },
   content: { gap: 6, paddingBottom: 12 },
   muted: { color: colors.muted },
   offer: { gap: 4, paddingVertical: 10, borderTopWidth: 2, borderTopColor: colors.parchmentDark },

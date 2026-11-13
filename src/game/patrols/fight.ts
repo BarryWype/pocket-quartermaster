@@ -277,7 +277,7 @@ export function settleConsumables(save: SaveData, heroIds: string[], salvaged: E
  * they are filled in first.
  */
 export function grantPatrolWin(save: SaveData, heroIds: string[], rewards: Loot, patrolId: string, windowEndsAt: number, now: number): SaveData {
-  const granted = grantLoot(save, heroIds, { ...emptyLoot(), ...rewards }, now);
+  const granted = grantLoot(save, heroIds, { ...emptyLoot(), ...rewards }, now, 'patrol');
   const counted = { ...granted, stats: { ...granted.stats, patrolsWon: granted.stats.patrolsWon + 1 } };
   return questEvent(
     { ...counted, beatenPatrols: { ...counted.beatenPatrols, [patrolId]: windowEndsAt } },

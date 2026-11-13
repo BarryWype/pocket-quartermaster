@@ -39,7 +39,8 @@ import { jobs } from '@/content/jobs';
 import { isRevealed } from '@/game/reveal/reveal';
 import { supplyHeld } from '@/game/expeditions/provisions';
 import { briefingReadiness } from '@/game/threats/readiness';
-import type { ExpeditionReport, HeroState } from '@/game/types';
+import type { SaveData } from '@/game/save';
+import type { ExpeditionReport } from '@/game/types';
 import { syncBackground } from '@/hooks/useAutoGather';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useNow } from '@/hooks/useNow';
@@ -61,7 +62,7 @@ const ROMAN = ['I', 'II', 'III', 'IV', 'V'];
 const NOTICE_TILTS = [-1, 1, 0] as const;
 
 /** What the loot reveal shows: the report, and the heroes before and after for XP and level-ups. */
-type Collected = { report: ExpeditionReport; before: HeroState[]; after: HeroState[] };
+type Collected = { report: ExpeditionReport; before: SaveData; after: SaveData };
 
 /** The rail's items, and the tab the screen opens on: Out now when a team is back, so the loot is the first thing to see. */
 export function useExpeditionsRail(): { items: RailItem[]; initial: Tab } {
@@ -183,9 +184,9 @@ function ExpeditionsContent() {
   };
 
   const collect = (expeditionId: string) => {
-    const before = useGameStore.getState().save.heroes;
+    const before = useGameStore.getState().save;
     const report = collectLoot(expeditionId);
-    if (report) setCollected({ report, before, after: useGameStore.getState().save.heroes });
+    if (report) setCollected({ report, before, after: useGameStore.getState().save });
   };
 
   // The unlocked chain dungeons per tier, in chain order; until dungeons are

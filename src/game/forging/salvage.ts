@@ -10,7 +10,7 @@ import type { SaveData } from '../save';
 import type { GearDef, GearInstance, HeroState, MaterialStack } from '../types';
 
 /** Why a piece deserves a red warning line before it is destroyed. */
-export type SalvageWarning = 'equipped' | 'rareOrBetter' | 'relic' | 'affixes';
+export type SalvageWarning = 'named' | 'equipped' | 'rareOrBetter' | 'relic' | 'affixes';
 
 export type SalvageDialogContent = {
   rarity: Rarity;
@@ -89,6 +89,7 @@ export function salvageDialog(save: SaveData, gear: GearInstance): SalvageDialog
       gold: salvageGold(gear),
     },
     warnings: [
+      gear.earnedName ? 'named' : null,
       wornBy(save, gear.uid) ? 'equipped' : null,
       gear.rarity === 'rare' || gear.rarity === 'legendary' ? 'rareOrBetter' : null,
       gear.relicId ? 'relic' : null,

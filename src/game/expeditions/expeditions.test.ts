@@ -1,4 +1,4 @@
-import { dungeons } from '@/content/dungeons';
+import { dungeons, expeditionRules } from '@/content/dungeons';
 import { xpRules, xpToNextLevel } from '@/content/heroes';
 import { MATERIAL_TIERS } from '@/content/items';
 import { dungeonById, monsterPartById, recipeById } from '@/content/lookup';
@@ -257,6 +257,58 @@ describe('resolveExpedition', () => {
     }
   });
 
+  it('keeps a trimmed tally of who did what on the report', () => {
+    const reports = outcomes(geared(), 'goblinWarren', 20).map((r) => r.report);
+    for (const report of reports) {
+      expect(report.tally!.heroes.map((h) => h.heroId).sort()).toEqual([...ALL].sort());
+      expect(report.tally!.contributions.length).toBeLessThanOrEqual(expeditionRules.tally.contributionsKept);
+      // 20 reports are kept: the tally adds a few kilobytes to the save at most.
+      expect(JSON.stringify(report.tally).length).toBeLessThan(2500);
+    }
+    expect(reports.some((r) => r.tally!.contributions.length > 0)).toBe(true);
+  });
+
+  it('adds the run to the gear the party wore, the hero’s kills to their weapon, and notes where the loot was found', () => {
+    const started = startExpedition(geared(), 'goblinWarren', ALL, 0);
+    const { save, report } = resolveExpedition(started, started.expeditions[0]);
+    const bram = report.tally!.heroes.find((h) => h.heroId === 'bram')!;
+    expect(save.gear.find((g) => g.uid === 'g1')!.history).toMatchObject({ runs: 1, kills: bram.kills, bosses: report.success ? ['goblinChief'] : [] });
+    expect(save.gear.find((g) => g.uid === 'g4')!.history).toMatchObject({ runs: 1, kills: 0 });
+    for (const piece of report.loot.gear) expect(save.gear.find((g) => g.uid === piece.uid)).toMatchObject({ forged: false, foundIn: 'goblinWarren' });
+  });
+
+  it('plays out the same whatever the gear and heroes have been through: names, titles and companions give nothing', () => {
+    const plain = geared();
+    const storied: SaveData = {
+      ...plain,
+      gear: plain.gear.map((g) => ({
+        ...g,
+        history: { runs: 120, kills: 600, killTags: { beast: 400 }, bosses: ['millOgre'] },
+        earnedName: { epithet: 'tag:beast', step: 2, hero: 'Bram', at: 0 },
+      })),
+      heroes: plain.heroes.map((h) => ({
+        ...h,
+        record: { runs: 120, wins: 90, knockouts: 12, kills: 900, bosses: 40, heroOfRun: 30, tierBossKills: 2, cleanStreak: 25, patient: 12, with: { bram: 50, lyra: 50, mira: 50 }, titles: ['giantSlayer', 'loyal'] },
+        title: 'giantSlayer',
+      })),
+    };
+    const outcome = ({ report }: ReturnType<typeof resolveExpedition>) => {
+      const { log: _log, gearNames: _names, heroNews: _news, ...rest } = report;
+      return rest;
+    };
+    expect(outcomes(storied, 'goblinWarren', 30).map(outcome)).toEqual(outcomes(plain, 'goblinWarren', 30).map(outcome));
+  });
+
+  it('names the piece behind an affix: the worn one carrying the most of it', () => {
+    const base = geared();
+    const values: Record<string, number> = { g1: 10, g4: 20 };
+    const save = { ...base, gear: base.gear.map((g) => (values[g.uid] ? { ...g, affixes: [{ id: 'venomous', value: values[g.uid] }] } : g)) };
+    const reports = outcomes(save, 'goblinWarren', 10).map((r) => r.report);
+    const credited = reports.flatMap((r) => r.tally!.contributions.filter((c) => c.kind === 'affix' && c.id === 'venomous'));
+    expect(credited.length).toBeGreaterThan(0);
+    for (const c of credited) expect(c).toMatchObject({ heroId: 'bram', uid: 'g4', itemId: 'mail1' });
+  });
+
   it('applies rewards and XP to the save, and never wears gear down', () => {
     const started = startExpedition(geared(), 'goblinWarren', ALL, 0);
     const { save, report } = resolveExpedition(started, started.expeditions[0]);
@@ -270,7 +322,8 @@ describe('resolveExpedition', () => {
     save.heroes.forEach((hero) =>
       expect(total(hero)).toBe(Math.round(report.xp * (hero.trait === 'quickLearner' ? 1.2 : 1))),
     );
-    expect(save.gear).toEqual(started.gear);
+    // The worn pieces only gain a history: their stats and affixes stay.
+    expect(save.gear.map(({ history: _history, earnedName: _name, ...piece }) => piece)).toEqual(started.gear);
   });
 
   it('uses up every equipped consumable, salvaging the ones that never triggered', () => {
