@@ -1,6 +1,13 @@
 # The six-day rotation · proposal (step 2)
 
-**Status: proposal, for review.** Nothing below is built yet. Once approved and built, its rules move into the README.
+**Status: built 2026-11-17.** The rules as built are in the README ("Places: the six-day rotation"); this page keeps the proposal and its reasoning.
+
+## Decisions
+
+1. **No switch:** the branch is the experiment, so the six-day rotation applies always, with or without "Supply lines (experimental)". The switch-flip table below becomes what happens once, when a save first opens this build (save version 54 re-points place quests and drops the day's personal tavern).
+2. **At night, on the phone's clock:** places change at 04:00 local time. The world stays shared between players in one time zone; server time can replace the phone's later.
+3. **Monster lairs last six days** like other places. Clearing a lair before building near it may become part of the plan later.
+4. **The personal tavern lasts two days**, until the next group change.
 
 ## How places work today
 

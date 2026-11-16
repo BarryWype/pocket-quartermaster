@@ -46,10 +46,12 @@ export type PlaceGroup = {
   precision: number;
   /** How long a place stays before moving elsewhere. */
   windowHours: number;
+  /** Slots split into this many groups, each replaced on its own day at the change hour; without it each slot keeps a random phase. */
+  phases?: number;
   visibilityMeters: number;
 };
 
-const WINDOW_72H = { windowHours: 72, visibilityMeters: 1200 };
+const WINDOW_6D = { windowHours: 144, visibilityMeters: 1200, phases: 3 };
 
 /** One kind per group, at the common destination density. */
 const single = (kind: PlaceKind, densityPerKm2: number, precision = 5): PlaceGroup => ({
@@ -57,7 +59,7 @@ const single = (kind: PlaceKind, densityPerKm2: number, precision = 5): PlaceGro
   kinds: { [kind]: 1 } as Partial<Record<PlaceKind, number>>,
   densityPerKm2,
   precision,
-  ...WINDOW_72H,
+  ...WINDOW_6D,
 });
 
 export const placeGroups: PlaceGroup[] = [
@@ -97,6 +99,8 @@ export const placeGroups: PlaceGroup[] = [
 
 export const placeRules = {
   interactionMeters: 50,
+  /** Places with phases change at this hour on the phone's clock, at night; the world is shared within a time zone. */
+  changeHourLocal: 4,
   /** Snapped to walkable places with coarse map tiles, like Sanctums. */
   placement: { mapZoom: 12, maxSnapMeters: 150 },
   /** Ore places double as mine tiers; a mine above the player's pickaxe tier shows less often. */

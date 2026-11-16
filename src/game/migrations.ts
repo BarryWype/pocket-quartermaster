@@ -891,6 +891,23 @@ export function toV53(save: SaveData): SaveData {
   };
 }
 
+/**
+ * Version 54: places rotate in seeded phase groups every six days, and the
+ * personal tavern follows the two-day period (see taverns/personal.ts). The
+ * pending check is dropped — it rechecks under the new period — and every
+ * open quest pointing at a place gets its target expired, so the retarget
+ * (quests/targets.ts) points it at a live place; progress and the quest's
+ * own expiry stay.
+ */
+export function toV54(save: SaveData): SaveData {
+  const list = save.quests.list.map((quest): Quest => {
+    if (quest.doneAt !== null || !quest.target || quest.target.kind === "mark") return quest;
+    return { ...quest, target: { ...quest.target, expiresAt: 0 } };
+  });
+  if (save.personalTavern === null && list.every((quest, i) => quest === save.quests.list[i])) return save;
+  return { ...save, personalTavern: null, quests: { ...save.quests, list } };
+}
+
 /** Applies the migration steps in order, from the save's own version on. */
 export function migrateSave(
   save: SaveData,
@@ -921,5 +938,6 @@ export function migrateSave(
   if (fromVersion < 51) next = toV51(next);
   if (fromVersion < 52) next = toV52(next, now);
   if (fromVersion < 53) next = toV53(next);
+  if (fromVersion < 54) next = toV54(next);
   return next;
 }

@@ -57,8 +57,8 @@ export const withTavernName = (spawn: PlaceSpawn): TavernSpawn => {
 };
 
 /**
- * Taverns are map places now: the same for everyone while their 72 h window
- * lasts, then they move. Only their recruits change every rotation day.
+ * Taverns are map places now: the same for everyone while their six-day
+ * window lasts, then they move. Only their recruits change every rotation day.
  */
 export function generateTavernsAround(position: LatLng, timeMs: number): TavernSpawn[] {
   return placesAround(position, timeMs, [placeGroupOf('tavern')])

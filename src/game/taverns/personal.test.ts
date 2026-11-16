@@ -1,14 +1,14 @@
+import { placeRules } from '@/content/places';
 import { tavernRules } from '@/content/taverns';
 
-import { nextRotationAt, rotationDay } from '../dungeons/rotation';
+import { localDayStart } from '../generation/localDays';
 import { distanceMeters, offsetPosition } from '../generation/geo';
 import type { LatLng } from '../generation/types';
 import { placeGroupOf, placesWithin } from '../places/generate';
 import { createInitialSave, type SaveData } from '../save';
-import { checkPersonalTavern, personalTavernSpots, personalTaverns } from './personal';
+import { checkPersonalTavern, personalTavernSpots, personalTaverns, tavernPeriod, tavernPeriodEnd } from './personal';
 import { tavernOffers } from './taverns';
 
-const DAY = 86_400_000;
 const now = Date.UTC(2026, 9, 26, 12);
 const base = { latitude: -41.2865, longitude: 174.7762 };
 
@@ -28,20 +28,23 @@ const farOrigin = origins.find((origin) => !worldTavernNear(origin, now))!;
 const nearOrigin = origins.find((origin) => worldTavernNear(origin, now))!;
 
 describe('the personal tavern guarantee', () => {
-  it('creates one when no world tavern is within reach of the day\'s first position', () => {
+  it('creates one when no world tavern is within reach of the period\'s first position', () => {
     const save = unlocked();
     const spots = personalTavernSpots(save, farOrigin, now);
-    const snapped = (p: LatLng) => (p === spots[0] ? null : offsetPosition(p, 10, 0));
+    // The check draws its own spot objects, so the unsnappable first spot is matched by value.
+    const first = spots[0];
+    const snapped = (p: LatLng) =>
+      p.latitude === first.latitude && p.longitude === first.longitude ? null : offsetPosition(p, 10, 0);
     const next = checkPersonalTavern(save, farOrigin, now, snapped);
     const spot = next.personalTavern?.spot;
-    expect(next.personalTavern?.day).toBe(rotationDay(now));
-    expect(spot?.id).toBe(`tavern:personal:${save.playerSeed}:${rotationDay(now)}`);
-    // The first spot that snapped wins, 10 m off its raw point.
-    expect(spot?.position).toEqual(offsetPosition(spots[1], 10, 0));
+    expect(next.personalTavern?.period).toBe(tavernPeriod(now));
+    expect(spot?.id).toBe(`tavern:personal:${save.playerSeed}:${tavernPeriod(now)}`);
+    // The first spot that snapped wins, 10 m off its raw point (the raw first spot cannot snap).
+    expect(spots.slice(1).map((p) => offsetPosition(p, 10, 0))).toContainEqual(spot?.position);
     const distance = distanceMeters(farOrigin, spot!.position);
     expect(distance).toBeGreaterThanOrEqual(tavernRules.personal.meters[0]);
     expect(distance).toBeLessThanOrEqual(tavernRules.personal.meters[1]);
-    // The check is seeded: same save, same origin, same day, same result.
+    // The check is seeded: same save, same origin, same period, same result.
     expect(checkPersonalTavern(save, farOrigin, now, snapped)).toEqual(next);
     // Another player gets their own spot.
     const other = checkPersonalTavern(unlocked('seed-b'), farOrigin, now, (p) => p);
@@ -51,7 +54,7 @@ describe('the personal tavern guarantee', () => {
   it('records a null spot when a world tavern is already within reach', () => {
     const save = unlocked();
     const next = checkPersonalTavern(save, nearOrigin, now, (p) => p);
-    expect(next.personalTavern).toEqual({ day: rotationDay(now), spot: null });
+    expect(next.personalTavern).toEqual({ period: tavernPeriod(now), spot: null });
     expect(personalTaverns(next, now)).toEqual([]);
   });
 
@@ -63,16 +66,16 @@ describe('the personal tavern guarantee', () => {
     expect(checkPersonalTavern(unrevealed, farOrigin, now, (p) => p)).toBe(unrevealed);
   });
 
-  it('runs once per rotation day', () => {
+  it('runs once per period', () => {
     const save = unlocked();
     const next = checkPersonalTavern(save, farOrigin, now, (p) => p);
-    // Same day, another position: unchanged.
+    // Same period, another position: unchanged.
     expect(checkPersonalTavern(next, nearOrigin, now, (p) => p)).toBe(next);
-    // The next day the check runs again, and yesterday's field shows nothing.
-    const nextDay = now + DAY;
-    const renewed = checkPersonalTavern(next, farOrigin, nextDay, (p) => p);
-    expect(renewed.personalTavern?.day).toBe(rotationDay(nextDay));
-    expect(personalTaverns(next, nextDay)).toEqual([]);
+    // The next period the check runs again, and the old record shows nothing.
+    const nextPeriod = tavernPeriodEnd(tavernPeriod(now)) + 1;
+    const renewed = checkPersonalTavern(next, farOrigin, nextPeriod, (p) => p);
+    expect(renewed.personalTavern?.period).toBe(tavernPeriod(nextPeriod));
+    expect(personalTaverns(next, nextPeriod)).toEqual([]);
   });
 
   it('offers recruits like any tavern', () => {
@@ -90,12 +93,14 @@ describe('the personal tavern guarantee', () => {
     expect(own.length).toBe(worlds.length);
   });
 
-  it('spawns a named tavern that lasts until the rotation reset', () => {
+  it('spawns a named tavern that lives for its period', () => {
     const save = unlocked();
     const next = checkPersonalTavern(save, farOrigin, now, (p) => p);
     const [personal] = personalTaverns(next, now);
     expect(personal.kind).toBe('tavern');
     expect(personal.name).toMatch(/^The \w+ \w+$/);
-    expect(personal.expiresAt).toBe(nextRotationAt(now));
+    const period = tavernPeriod(now);
+    expect(personal.startsAt).toBe(localDayStart(period * 2, placeRules.changeHourLocal));
+    expect(personal.expiresAt).toBe(tavernPeriodEnd(period));
   });
 });

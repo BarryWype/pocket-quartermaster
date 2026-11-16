@@ -15,8 +15,9 @@ describe('generateTilePlaces', () => {
     const spawns = generateTilePlaces(tavernGroup, tile, now);
     expect(spawns.length).toBeGreaterThan(0);
     expect(generateTilePlaces(tavernGroup, tile, now)).toEqual(spawns);
-    // +1 ms into the next window gives every slot a new id.
-    const next = generateTilePlaces(tavernGroup, tile, now + tavernGroup.windowHours * HOUR_MS + 1);
+    // Past every slot's expiry, each has rolled into a new window with a new id.
+    const lastEnd = Math.max(...spawns.map((s) => s.expiresAt));
+    const next = generateTilePlaces(tavernGroup, tile, lastEnd + 1);
     expect(next.map((s) => s.id)).not.toEqual(spawns.map((s) => s.id));
   });
 
@@ -24,10 +25,13 @@ describe('generateTilePlaces', () => {
     for (const group of [tavernGroup, fightGroup]) {
       const tile = tileAt(wellington, group.precision);
       for (const spawn of generateTilePlaces(group, tile, now)) {
-        expect(spawn.expiresAt - spawn.startsAt).toBe(group.windowHours * HOUR_MS);
+        // A phased window follows local days, so a daylight-saving shift can bend it by an hour.
+        const tolerance = group.phases ? HOUR_MS : 0;
+        expect(Math.abs(spawn.expiresAt - spawn.startsAt - group.windowHours * HOUR_MS)).toBeLessThanOrEqual(tolerance);
       }
     }
-    expect(tavernGroup.windowHours).toBeLessThanOrEqual(72);
+    expect(tavernGroup.windowHours).toBe(144);
+    expect(tavernGroup.phases).toBe(3);
     expect(fightGroup.windowHours).toBe(24);
   });
 

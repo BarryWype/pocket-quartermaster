@@ -52,9 +52,10 @@ describe('tavern spawning', () => {
     }
   });
 
-  it('moves taverns after their 72 h window', () => {
+  it('moves taverns once their window has passed', () => {
     const before = generateTavernsAround(here, now);
-    const after = generateTavernsAround(here, now + 72 * 3_600_000 + 1);
+    const lastEnd = Math.max(...before.map((t) => t.expiresAt));
+    const after = generateTavernsAround(here, lastEnd + 1);
     expect(after.map((t) => t.id)).not.toEqual(before.map((t) => t.id));
   });
 });

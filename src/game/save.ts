@@ -185,8 +185,8 @@ export type SaveData = {
   ruinsProgress: number;
   /** Ruin id → when and where it was dug; a replacement ruin shows elsewhere 24 h later. */
   dugRuins: Record<string, DugRuin>;
-  /** The day's tavern check (rotation day): the personal tavern made when no world tavern was near the first map position, or null spot when one was. */
-  personalTavern: { day: number; spot: { id: string; position: LatLng } | null } | null;
+  /** The period's tavern check (two local days): the personal tavern made when no world tavern was near the first map position, or null spot when one was. */
+  personalTavern: { period: number; spot: { id: string; position: LatLng } | null } | null;
   /** Background fight result id → when it was applied; idempotence and pruning. */
   appliedBackgroundResults: Record<string, number>;
   /** Gold from the version 45 sale, shown once in a toast, then cleared. */

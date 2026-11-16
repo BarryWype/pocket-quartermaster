@@ -2,7 +2,7 @@ import { localized } from '@/i18n/locale';
 
 import { frTavernName } from './fr/taverns';
 
-/** Taverns are temporary map places (72 h); their recruits change every rotation day. */
+/** Taverns are temporary map places (six days); their recruits change every rotation day. */
 export const tavernRules = {
   visibilityMeters: 1200,
   interactionMeters: 50,

@@ -296,7 +296,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
     [placedSanctums, sanctumsShown, debugSanctum, now, save.usedSanctums, sight, position?.latitude, position?.longitude],
   );
 
-  // Tavern windows last 72 h, so regenerating once a minute is enough.
+  // Tavern windows last days, so regenerating once a minute is enough.
   const tavernCandidates = useMemo(() => {
     if (!position) return [];
     const reach = tavernRules.visibilityMeters * sight + tavernRules.placement.maxSnapMeters;

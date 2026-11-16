@@ -14,6 +14,17 @@ Decided at step 0 (2026-11-13): danger counts live patrols (option A); the promp
 4. **Plan the cart's route** on the map, around danger. Give it a **crew**, start it, and it carries the camps' stock home loop after loop.
 5. **Raids** are announced against a camp. Send defenders, empty it, or let it go.
 
+## Places: the six-day rotation
+
+Always on, with or without the switch (decided 2026-11-17; the proposal and its reasoning are in `rotation.md`).
+
+- **Six days:** every place group except fight events lasts 144 h: taverns, shops, chapels, markets, ruins, libraries, thieves' guilds, monster lairs, fishing docks, and the sites to come. Fight events keep their 24 h random phases.
+- **Three groups:** each slot belongs to one of three groups, seeded from the group, tile and slot (the seed of its old random phase), so the world stays shared. Group *g* is replaced on day 2*g* of every 6-day cycle, counted in local days from 1 January 2026: every second day a third of the places changes, and two thirds hold.
+- **At night, on the phone's clock:** places change at 04:00 local time (`placeRules.changeHourLocal`), so the world is shared within a time zone and moves with daylight saving (`src/game/generation/localDays.ts`). Server time can replace it later.
+- **Density, placement, kinds and ids** are unchanged; an id still names its window.
+- **The tavern guarantee:** unchanged, a tavern within 800 m of the period's first map position. The personal tavern now lasts a two-day period, until the next group change.
+- **Tested** over a seeded year (`src/game/places/rotation.test.ts`), in any time zone: each third of a place's life holds 28–38% of the live places at every sample, and no change hour replaces more than 40%.
+
 ## Cells and terrain
 
 - **One grid, geohash precision 7:** 153 m north–south, 115 m east–west at Wellington. It is the grid of animal and herb spawns, and sits inside the patrol tiles (precision 6) and place tiles (precision 5). Danger is scored per cell, and the cart's route crosses cells.
@@ -112,7 +123,8 @@ eady generates:
   - the cart parks with its crew and no route; a pending raid is dropped;
   - the hall keeps its cell, with its last move counted in the new 7-day window;
   - the scouted cells, the packed-up slots and the three first-run tips leave the save.
-- Renumber both whenever the branch is brought up to date with main.
+- **Version 54** follows the six-day rotation (`toV54`): open quests aimed at a place retarget to a live one (progress kept), and the personal tavern is checked again under its two-day period (`personalTavern.day` becomes `period`).
+- Renumber all three whenever the branch is brought up to date with main.
 - **Types** are in `src/game/supply/types.ts`. **The switch** is a setting, not save data.
 
 ## Simulator

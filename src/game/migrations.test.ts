@@ -6,7 +6,7 @@ import { gearRules } from "@/content/gear";
 import { affixById } from "@/content/affixes";
 import { gearStats } from "./gear/stats";
 import { uniquePool } from "./gear/uniques";
-import { migrateSave, toV38, toV39, toV40, toV41, toV42, toV43, toV44, toV47, toV48, toV49, toV50, toV52, toV53 } from "./migrations";
+import { migrateSave, toV38, toV39, toV40, toV41, toV42, toV43, toV44, toV47, toV48, toV49, toV50, toV52, toV53, toV54 } from "./migrations";
 import { affixPool } from "./gear/affixes";
 import { emptyLoot } from "./loot/types";
 import type { Briefing, ExpeditionReport, GearDef, GearInstance } from "./types";
@@ -1182,5 +1182,65 @@ describe("toV53", () => {
     const fresh = v52();
     const unmoved = toV53({ ...fresh, supply: { ...fresh.supply, hall: { cell: hallCell, movedAt: 0 } } } as unknown as SaveData);
     expect(unmoved.supply.hall).toEqual({ cell: hallCell, moves: [] });
+  });
+});
+
+describe("toV54", () => {
+  const NOW = 500 * DAY;
+  const at = { latitude: 0, longitude: 0 };
+
+  /** A quest pointing at a place, with its own expiry and progress kept by the step. */
+  const placeQuest = (id: string, overrides: Partial<Quest> = {}): Quest => ({
+    id,
+    objective: "chapel",
+    band: "short",
+    arrivedAt: 100,
+    expiresAt: NOW + DAY,
+    acceptedAt: 200,
+    amount: 1,
+    progress: 0,
+    target: { placeId: "place:chapel:tile:0:1", kind: "chapel", position: at, from: at, expiresAt: NOW + 3 * DAY },
+    doneAt: null,
+    seen: true,
+    ...overrides,
+  });
+
+  /** A version 53 save: a personal tavern checked by rotation day, an open place-target quest, a done one and a mark quest. */
+  const v53 = (): SaveData => {
+    const base = createInitialSave();
+    return {
+      ...base,
+      personalTavern: { day: 250, spot: { id: "tavern:personal:seed:250", position: at } },
+      quests: {
+        ...base.quests,
+        list: [
+          placeQuest("open"),
+          placeQuest("done", { doneAt: NOW - DAY }),
+          placeQuest("mark", { objective: "mark", target: { placeId: "mark:mark", kind: "mark", position: at, from: at, expiresAt: NOW + DAY } }),
+        ],
+      },
+    } as unknown as SaveData;
+  };
+
+  it("drops the personal tavern, so it rechecks under the new period", () => {
+    expect(toV54(v53()).personalTavern).toBeNull();
+  });
+
+  it("expires the target of every open place quest, keeping progress and the quest's own expiry", () => {
+    const next = toV54(v53());
+    const [open, done, mark] = next.quests.list;
+    expect(open.target?.expiresAt).toBe(0);
+    expect(open.target?.placeId).toBe("place:chapel:tile:0:1");
+    expect(open.expiresAt).toBe(NOW + DAY);
+    expect(open.progress).toBe(0);
+    // A done quest and a mark quest keep their targets.
+    expect(done.target?.expiresAt).toBe(NOW + 3 * DAY);
+    expect(mark.target?.expiresAt).toBe(NOW + DAY);
+  });
+
+  it("returns the same save when nothing changes", () => {
+    const base = createInitialSave();
+    const quiet = { ...base, quests: { ...base.quests, list: [placeQuest("done", { doneAt: NOW })] } };
+    expect(toV54(quiet)).toBe(quiet);
   });
 });

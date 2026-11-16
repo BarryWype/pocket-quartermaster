@@ -1,6 +1,7 @@
 import { placeGroups, placeRules, type PlaceGroup, type PlaceKind } from '@/content/places';
 
 import { distanceMeters } from '../generation/geo';
+import { localDayIndex, localDayStart } from '../generation/localDays';
 import { createRng } from '../generation/rng';
 import { randomPointInTile, tileAreaKm2, tilesAround, tilesWithin } from '../generation/tiles';
 import type { LatLng } from '../generation/types';
@@ -22,8 +23,10 @@ export type PlaceSpawn = {
 /**
  * The places of one tile: the slot count follows the tile's real area, and
  * each slot rotates on its own phase, so places in an area don't all move at
- * once. Everything derives from the group, tile and time, so every player at
- * the same time sees the same places.
+ * once. A phased group splits its slots into `phases` seeded groups, each
+ * replaced at the change hour on its own day of the window. Everything derives
+ * from the group, tile and time, so every player at the same time sees the
+ * same places.
  */
 export function generateTilePlaces(group: PlaceGroup, tile: string, timeMs: number): PlaceSpawn[] {
   const windowMs = group.windowHours * HOUR_MS;
@@ -32,9 +35,26 @@ export function generateTilePlaces(group: PlaceGroup, tile: string, timeMs: numb
   const count = Math.floor(expected) + (rng.chance(expected - Math.floor(expected)) ? 1 : 0);
   const kinds = Object.keys(group.kinds) as PlaceKind[];
   return Array.from({ length: count }, (_, s) => {
-    const offset = createRng(`places|${group.id}|${tile}|${s}`).next() * windowMs;
-    const w = Math.floor((timeMs - offset) / windowMs);
-    const startsAt = w * windowMs + offset;
+    const slotRng = createRng(`places|${group.id}|${tile}|${s}`);
+    let startsAt: number;
+    let expiresAt: number;
+    let w: number;
+    if (group.phases) {
+      // The slot's phase group, replaced every window at the change hour on its own day.
+      const phase = Math.floor(slotRng.next() * group.phases);
+      const days = group.windowHours / 24;
+      const step = days / group.phases;
+      const d = localDayIndex(timeMs, placeRules.changeHourLocal);
+      w = Math.floor((d - phase * step) / days);
+      const firstDay = w * days + phase * step;
+      startsAt = localDayStart(firstDay, placeRules.changeHourLocal);
+      expiresAt = localDayStart(firstDay + days, placeRules.changeHourLocal);
+    } else {
+      const offset = slotRng.next() * windowMs;
+      w = Math.floor((timeMs - offset) / windowMs);
+      startsAt = w * windowMs + offset;
+      expiresAt = startsAt + windowMs;
+    }
     const spawnRng = createRng(`place|${group.id}|${tile}|${s}|${w}`);
     const kind = spawnRng.weighted(kinds, (k) => group.kinds[k] ?? 0);
     return {
@@ -44,7 +64,7 @@ export function generateTilePlaces(group: PlaceGroup, tile: string, timeMs: numb
       tile,
       position: randomPointInTile(tile, spawnRng),
       startsAt,
-      expiresAt: startsAt + windowMs,
+      expiresAt,
       roll: spawnRng.next(),
     };
   });

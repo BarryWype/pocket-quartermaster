@@ -185,7 +185,7 @@ type GameState = {
   /** Uses a home care item from the stock on a hero at home. */
   giveHomeCare: (heroId: string, itemId: string) => void;
   buySupply: (count: number, tavern: LatLng, player: LatLng) => void;
-  /** Runs the day's tavern-guarantee check from the day's first map position; `snap` places a spot on a walkable point. */
+  /** Runs the period's tavern-guarantee check from the period's first map position; `snap` places a spot on a walkable point. */
   checkPersonalTavern: (origin: LatLng, snap: (point: LatLng) => LatLng | null) => void;
   /** Buys from a place's stock; a sold-out place leaves the map for this player. */
   buyAtPlace: (spawn: PlaceSpawn, lineKey: string, count: number, player: LatLng) => void;
@@ -800,7 +800,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 53,
+      version: 54,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
       // Saves from version 30 on are kept: every later version bump adds a migration step here (see AGENTS.md, Saves).
