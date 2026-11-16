@@ -3,12 +3,15 @@ import { jobById, jobs } from '@/content/jobs';
 import { frNotificationTexts } from '@/content/fr/notifications';
 import { notificationCategories, notificationRules, notificationTexts as enNotificationTexts } from '@/content/notifications';
 import { nearbyKinds } from '@/content/pocketMode';
-import { fill, localized, tr } from '@/i18n';
+import { frPatrolTexts } from '@/content/fr/patrols';
+import { patrolTexts } from '@/content/patrols';
+import { fill, localized, t as text, tr } from '@/i18n';
 
 import { resolveExpedition } from '../expeditions/expeditions';
 import { gathererFirstWoundAt } from '../jobs/gatherer';
 import { fullAt, jobWorker, tiredAt } from '../jobs/jobs';
 import type { SaveData } from '../save';
+import { raidAnnouncedAt, raidLeadMs } from '../supply/raids';
 import { timeToFull } from '../team/health';
 import type { ActiveExpedition, ExpeditionReport, Heist } from '../types';
 import { deliveryTime } from './quietHours';
@@ -227,6 +230,29 @@ function jobNotifications(save: SaveData, now: number): PlannedNotification[] {
   return [...full, ...tired, ...hurt];
 }
 
+/** Raids: when the pending raid on a camp is announced (supply lines only). */
+function raidNotifications(save: SaveData): PlannedNotification[] {
+  const raid = save.supply.raid;
+  const camp = raid && !raid.result ? save.supply.camps.find((c) => c.id === raid.campId) : undefined;
+  if (!raid || !camp) return [];
+  const t = notificationTexts();
+  const campName = text(camp.kind === 'timber' ? 'supply.camp.timberName' : 'supply.camp.trapperName').toLowerCase();
+  return [
+    {
+      id: `raid:${raid.landsAt}`,
+      category: 'raids',
+      group: 'expeditions',
+      at: raidAnnouncedAt(save, raid),
+      title: fill(t.raidAnnounced.title, { camp: campName }),
+      body: fill(t.raidAnnounced.body, {
+        kind: localized({ en: patrolTexts, fr: frPatrolTexts }).kinds[raid.kind],
+        hours: Math.round(raidLeadMs(save, raid) / 3_600_000),
+      }),
+      data: { route: 'network' },
+    },
+  ];
+}
+
 /**
  * Every notification that should be scheduled right now, given the game state
  * and settings: expedition results, rested heroes, the idle reminder and the daily reset,
@@ -237,6 +263,7 @@ export function planNotifications(
   settings: NotificationSettings,
   now: number,
   rules: Rules = notificationRules,
+  supplyLines = false,
 ): PlannedNotification[] {
   if (!settings.enabled) return [];
   const { categories } = settings;
@@ -247,6 +274,7 @@ export function planNotifications(
     ...(categories.heroesRested ? restedNotification(save, now) : []),
     ...(categories.jobs ? jobNotifications(save, now) : []),
     ...(categories.dailyReset ? dailyResetNotification(now) : []),
+    ...(supplyLines && categories.raids ? raidNotifications(save) : []),
   ];
   return planned
     .map((n) => (n.at === null ? n : { ...n, at: deliveryTime(n.at, n.category, settings) }))

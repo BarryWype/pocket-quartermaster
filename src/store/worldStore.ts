@@ -20,6 +20,8 @@ type WorldState = {
   autoGatherMessage: { text: string; at: number } | null;
   /** A short note from patrol fights for the map (who came back, and what it paid). */
   patrolMessage: { text: string; tiles?: RewardTile[]; at: number } | null;
+  /** A short note from the supply cart for the map (an ambush on its way). */
+  supplyMessage: { text: string; at: number } | null;
   /** Patrol id → when the map first showed it, for goblins' flee timer. */
   patrolsSeen: Record<string, number>;
   /** A notification tapped patrol to centre on and select; cleared by the map. */
@@ -47,6 +49,7 @@ export const useWorldStore = create<WorldState>()((set) => ({
   autoGatherRefused: false,
   autoGatherMessage: null,
   patrolMessage: null,
+  supplyMessage: null,
   patrolsSeen: {},
   focusPatrol: null,
   focusPlace: null,

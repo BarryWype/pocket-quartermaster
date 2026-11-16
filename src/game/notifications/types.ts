@@ -20,7 +20,8 @@ export type NotificationCategory =
   | 'nearbyPlaces'
   | 'secretPlace'
   | 'patrolSpotted'
-  | 'escort';
+  | 'escort'
+  | 'raids';
 
 export type NotificationSettings = {
   /** Master switch. */

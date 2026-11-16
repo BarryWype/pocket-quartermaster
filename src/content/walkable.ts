@@ -22,6 +22,13 @@ export const walkableRules = {
   landcoverSubclasses: ['park', 'recreation_ground', 'village_green'],
   landuseClasses: ['playground'],
   parkClasses: ['nature_reserve', 'national_park'],
+
+  /** `landcover` polygon classes that count as green (see supply terrain). */
+  greenLandcoverClasses: ['wood', 'grass', 'wetland', 'farmland'],
+  /** Green landcover subclasses left out: private gardens. */
+  greenExcludedSubclasses: ['garden'],
+  /** `landuse` polygon classes that count as green. */
+  greenLanduseClasses: ['cemetery', 'playground'],
 };
 
 export type WalkableRules = typeof walkableRules;

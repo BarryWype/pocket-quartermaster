@@ -10,7 +10,8 @@ import { familyLevel, gearFamilyTags, partyFamilies, type FamilyCounts } from '.
 import { slotProblem } from '../equipment/slots';
 import type { SaveData } from '../save';
 import { isExhausted } from '../team/health';
-import { affinityOf, equip, isAway, isWorking, unequip } from '../team/team';
+import { defenderHomeAt } from '../supply/raids';
+import { affinityOf, equip, isAway, isPosted, isWorking, unequip } from '../team/team';
 import type { ActiveThreat, GearDef, GearInstance, GearType, HeroState } from '../types';
 import type { ThreatCoverage } from '../threats/coverage';
 import type { GearSwap } from '../threats/suggest';
@@ -233,7 +234,7 @@ export function slotHints(save: SaveData, partyIds: string[], short: FamilyId[])
   return hints;
 }
 
-export type HeroStatus = { kind: 'free' } | { kind: 'working' } | { kind: 'hurt'; ms: number } | { kind: 'out'; ms: number };
+export type HeroStatus = { kind: 'free' } | { kind: 'working' } | { kind: 'posted' } | { kind: 'hurt'; ms: number } | { kind: 'out'; ms: number };
 
 /** Whether a hero can join a party now, and if not, for how long they are out or hurt. */
 export function heroStatus(save: SaveData, hero: HeroState, now: number): HeroStatus {
@@ -243,14 +244,17 @@ export function heroStatus(save: SaveData, hero: HeroState, now: number): HeroSt
       ...save.patrolFights.filter((f) => f.heroIds.includes(hero.id)),
       ...save.placeFights.filter((f) => f.heroIds.includes(hero.id)),
       ...save.heists.filter((h) => h.heroId === hero.id),
+      ...(save.supply.cart.loop && [save.supply.cart.crew.driver, ...save.supply.cart.crew.escorts].includes(hero.id) ? [save.supply.cart.loop] : []),
+      ...(save.supply.raid?.defenders ?? []).filter((d) => d.heroId === hero.id).map((d) => ({ endsAt: defenderHomeAt(save.supply.raid!, d) })),
     ].map((e) => e.endsAt);
     return { kind: 'out', ms: Math.max(0, Math.max(...ends) - now) };
   }
   if (isExhausted(hero, now)) return { kind: 'hurt', ms: Math.max(0, (hero.exhaustedUntil ?? now) - now) };
-  return isWorking(save, hero.id) ? { kind: 'working' } : { kind: 'free' };
+  if (isWorking(save, hero.id)) return { kind: 'working' };
+  return isPosted(save, hero.id) ? { kind: 'posted' } : { kind: 'free' };
 }
 
-export const canJoin = (status: HeroStatus) => status.kind === 'free' || status.kind === 'working';
+export const canJoin = (status: HeroStatus) => status.kind === 'free' || status.kind === 'working' || status.kind === 'posted';
 
 export type HeroChoice = {
   hero: HeroState;

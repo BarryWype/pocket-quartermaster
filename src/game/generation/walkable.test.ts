@@ -10,6 +10,7 @@ import type { AnimalSpawn, LatLng, StaticSpawn } from './types';
 import {
   classifyFeature,
   decodeWalkableTile,
+  isGreenArea,
   mapTileAt,
   mapTileKey,
   mapTileKeysFor,
@@ -84,6 +85,25 @@ describe('classifyFeature', () => {
   });
 });
 
+describe('isGreenArea', () => {
+  const polygon = 3;
+  const line = 2;
+
+  it('keeps wood, grass, wetland and farmland, cemeteries, playgrounds and any park, but not gardens', () => {
+    expect(isGreenArea('landcover', { class: 'wood' }, polygon)).toBe(true);
+    expect(isGreenArea('landcover', { class: 'grass', subclass: 'garden' }, polygon)).toBe(false);
+    expect(isGreenArea('landuse', { class: 'cemetery' }, polygon)).toBe(true);
+    expect(isGreenArea('park', { class: 'golf_course' }, polygon)).toBe(true);
+    expect(isGreenArea('landcover', { class: 'ice' }, polygon)).toBe(false);
+    expect(isGreenArea('landuse', { class: 'residential' }, polygon)).toBe(false);
+    expect(isGreenArea('transportation', { class: 'path' }, line)).toBe(false);
+  });
+
+  it('fills the green list from the fixture alongside the other lists', () => {
+    expect(fixture.green.length).toBeGreaterThan(0);
+  });
+});
+
 describe('decodeWalkableTile', () => {
   it('keeps the walkable ways, public areas and water of a real tile', () => {
     expect(fixture.ways.length).toBeGreaterThan(20);
@@ -104,7 +124,7 @@ describe('snapToWalkable', () => {
   const placed = samples.map((point) => ({ point, snapped: snapToWalkable(fixture, point, max) }));
 
   it('places nearly every point on land and drops points out in the harbour', () => {
-    const onlyWater: WalkableTile = { ways: [], areas: fixture.water, water: [] };
+    const onlyWater: WalkableTile = { ways: [], areas: fixture.water, water: [], green: [] };
     const onLand = placed.filter(({ point }) => snapToWalkable(onlyWater, point, 0) === null);
     expect(onLand.filter((p) => p.snapped).length).toBeGreaterThan(onLand.length * 0.9);
     expect(placed.filter((p) => !p.snapped).length).toBeGreaterThan(samples.length * 0.5);
@@ -122,7 +142,7 @@ describe('snapToWalkable', () => {
 
   it('never keeps a point in the water', () => {
     const inWater = (point: LatLng) => {
-      const onlyWater: WalkableTile = { ways: [], areas: fixture.water, water: [] };
+      const onlyWater: WalkableTile = { ways: [], areas: fixture.water, water: [], green: [] };
       return snapToWalkable(onlyWater, point, 0) !== null;
     };
     const wet = placed.filter(({ point }) => inWater(point));
@@ -144,6 +164,7 @@ describe('nearWater', () => {
   const square: WalkableTile = {
     ways: [],
     areas: [],
+    green: [],
     water: [
       {
         rings: [[sw, { latitude: ne.latitude, longitude: sw.longitude }, ne, { latitude: sw.latitude, longitude: ne.longitude }, sw]],
@@ -177,7 +198,7 @@ describe('placeSpawns', () => {
     resourceId: 'deer',
     path: { waypoints: samples.slice(0, 4), loopMs: 60_000, phaseMs: 0 },
   };
-  const empty: WalkableTile = { ways: [], areas: [], water: [] };
+  const empty: WalkableTile = { ways: [], areas: [], water: [], green: [] };
 
   it('waits for tiles that are not loaded yet', () => {
     expect(placeSpawns([ore('a', samples[0])], {})).toEqual([]);

@@ -6,6 +6,7 @@ import { materialById } from '@/content/lookup';
 import { clearProcessed, shouldAutoStop, walkTileKeys, type WalkFix, type WalkSummary } from '@/game/gathering/autoGather';
 import { jobOutputDetail, jobWorker } from '@/game/jobs/jobs';
 import { snapshotBackground } from '@/game/patrols/escort';
+import { periodAt } from '@/game/supply/period';
 import { clearsRefusal, locationPermissionState } from '@/game/patrols/pocketPermission';
 import { needsBackgroundState, patrolSettingsFrom, pocketTracking, snapshotPocket } from '@/game/patrols/pocketMode';
 import type { PocketCounts } from '@/game/patrols/pocketCounts';
@@ -24,6 +25,7 @@ import {
   updateBuffer,
   type AutoGatherPermission,
 } from '@/services/walkTracking';
+import { useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useWorldStore, type AutoGatherMode } from '@/store/worldStore';
@@ -101,9 +103,20 @@ async function processBuffer(away: boolean): Promise<WalkSummary | null> {
     Platform.OS === 'ios' && fresh.length > 1
       ? await devicePedometer.getStepsBetween(fresh[0].timestamp, fresh[fresh.length - 1].timestamp).catch(() => null)
       : null;
+  // Supply lines scout the walked cells, at the current period plus the debug offset.
+  const scoutPeriod = useSettingsStore.getState().supplyLines
+    ? periodAt(Date.now()) + useDebugStore.getState().supplyPeriodOffset
+    : undefined;
   const summary = useGameStore.getState().processWalk(
     buffer.fixes,
-    { tiles, estimateSteps: Platform.OS !== 'ios', measuredSteps, autoStopped: buffer.autoStopped, riding: buffer.riding },
+    {
+      tiles,
+      estimateSteps: Platform.OS !== 'ios',
+      measuredSteps,
+      autoStopped: buffer.autoStopped,
+      riding: buffer.riding,
+      ...(scoutPeriod !== undefined ? { scoutPeriod } : {}),
+    },
     away,
   );
   const processedUntil = useGameStore.getState().save.autoGather.processedUntil;

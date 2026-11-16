@@ -44,6 +44,7 @@ const makeSim = (save: SaveData = createInitialSave(), now = simConfig.startDay)
   waiting: new Set(),
   rerolled: new Set(),
   expeditionStop: { reason: null, launched: false },
+  supply: null,
   log: makeLog(),
 });
 

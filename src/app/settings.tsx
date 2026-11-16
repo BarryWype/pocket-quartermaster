@@ -151,7 +151,7 @@ function SettingsScreen() {
 
 function SettingsContent() {
   useLanguage();
-  const { language, notifications, updateNotifications, setCategory, setQuietHours, set, sightRange, pocketMode, setPocketMode, animations, haptics } = useSettingsStore();
+  const { language, notifications, updateNotifications, setCategory, setQuietHours, set, sightRange, pocketMode, setPocketMode, animations, haptics, supplyLines } = useSettingsStore();
   const { phoneReduced } = useMotion();
   const autoToggle = useAutoGatherToggle();
   const walks = useGameStore((state) => state.save.autoGather.history);
@@ -328,7 +328,10 @@ function SettingsContent() {
         />
         {groups.map((group) => {
           const shown = categories.filter(
-            (category) => notificationCategories[category].group === group && !POCKET_CATEGORIES.includes(category),
+            (category) =>
+              notificationCategories[category].group === group &&
+              !POCKET_CATEGORIES.includes(category) &&
+              (category !== 'raids' || supplyLines),
           );
           if (shown.length === 0) return null;
           return (
@@ -389,6 +392,16 @@ function SettingsContent() {
           value={debugOn}
           disabled={__DEV__}
           onChange={toggleDebug}
+        />
+        <SwitchRow
+          title={t('settings.supplyLines')}
+          description={t('settings.supplyLinesHint')}
+          value={supplyLines}
+          onChange={(on) => {
+            set({ supplyLines: on });
+            // The first time the switch goes on, three short cards wait for the map.
+            if (on) useGameStore.getState().noteTips(['supplyHall', 'supplyScout', 'supplyCamps']);
+          }}
         />
       </ParchmentCard>
     </>

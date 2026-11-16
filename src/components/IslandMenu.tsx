@@ -9,11 +9,13 @@ import { healthRules } from '@/content/health';
 import { jobs } from '@/content/jobs';
 import { isJobFull, isTired } from '@/game/jobs/jobs';
 import { isRevealed } from '@/game/reveal/reveal';
+import { campsAtCap } from '@/game/supply/production';
 import { currentHp, maxHp } from '@/game/team/health';
 import { tutorialTarget, type MenuTarget } from '@/game/tutorial/tutorial';
 import { navigate } from '@/services/navigation';
 import { t, type TextKey } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { fonts, ui } from '@/theme';
 
 import { Text } from './Text';
@@ -70,6 +72,9 @@ export function IslandMenu() {
     const now = Date.now();
     return jobs.filter((job) => isJobFull(save, job.id, now)).length + save.heroes.filter((hero) => isTired(save, hero, now)).length;
   });
+  // Camps whose stock is full, waiting on a collection.
+  const supplyOn = useSettingsStore((s) => s.supplyLines);
+  const capNews = useGameStore(({ save }) => (supplyOn ? campsAtCap(save, Date.now()) : 0));
 
   const go = (href: Href) => {
     setCraftOpen(false);
@@ -141,7 +146,7 @@ export function IslandMenu() {
           <DiamondButton
             label={t('menu.expeditions')}
             icon={require('../../assets/icons/scaled/menu-expeditions.png')}
-            badge={(unseenReports || 0) + jobNews || undefined}
+            badge={(unseenReports || 0) + jobNews + capNews || undefined}
             size={DIAMOND_SIZE}
             showLabel={false}
             selected={target === 'expeditions' || pathname === '/expeditions'}

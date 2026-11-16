@@ -13,9 +13,10 @@ import { parseMatrixCsv } from '../loot/matrixCsv';
 import type { LootSourceId } from '../loot/types';
 import { createInitialSave, type SaveData } from '../save';
 import { profiles, simConfig } from './config';
+import { homeHeroes } from './bot';
 import { checkSave, runSim } from './engine';
 import { renderReport } from '../../../scripts/sim/report';
-import { summarize } from './metrics';
+import { summarize, supplySummary } from './metrics';
 import { applyOverrides, parseOverride } from './overrides';
 import { spamCheck } from './spam';
 import { measureWalkRates } from './walking';
@@ -102,6 +103,30 @@ describe('balance lab', () => {
     for (const profile of ['casual', 'heavy']) {
       runSim({ profile, maxDays: 8, seed: 'legal', rates, afterSession: checkSave });
     }
+  });
+
+  it('keeps heroes out on the supply lines (cart crew, raid defenders) out of the bot’s parties', () => {
+    const base = createInitialSave();
+    const loop = { n: 1, startedAt: 0, endsAt: 1, points: [], speedMps: 1, capacity: 1, events: [] };
+    const save: SaveData = {
+      ...base,
+      supply: {
+        ...base.supply,
+        cart: { ...base.supply.cart, crew: { driver: null, escorts: ['bram'] }, loop },
+        raid: { campId: 'c1', kind: 'goblins', tier: 1, landsAt: 1, defenders: [{ heroId: 'lyra', sentAt: 0, arrivesAt: 1 }], result: null },
+      },
+    };
+    expect(homeHeroes(save).map((hero) => hero.id)).toEqual(['mira']);
+  });
+
+  it('plays the supply lines only with the flag: camps found, the cart delivers, the save stays valid', () => {
+    expect(runSim({ profile: 'regular', maxDays: 2, seed: 'supply', rates }).supply).toBeNull();
+    const log = runSim({ profile: 'regular', maxDays: 10, seed: 'supply', rates, supplyLines: true, afterSession: checkSave });
+    expect(log.supply).not.toBeNull();
+    expect(log.supply!.camps).toBeGreaterThan(0);
+    expect(log.supply!.delivered).toBeGreaterThan(0);
+    expect(log.supply!.postedHours).toBeGreaterThan(0);
+    expect(supplySummary([log])!.deliveredPerDay.median).toBeGreaterThan(0);
   });
 
   it('meets patrols and travellers while keeping the save valid', () => {

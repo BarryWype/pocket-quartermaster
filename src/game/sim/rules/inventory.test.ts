@@ -32,6 +32,7 @@ function simOf(save: SaveData): Sim {
     waiting: new Set(),
     rerolled: new Set(),
     expeditionStop: { reason: null, launched: false },
+    supply: null,
     log: emptyLog('regular', 'test'),
   };
 }

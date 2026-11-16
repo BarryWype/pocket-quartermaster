@@ -35,7 +35,11 @@ import { maxThreatLevel } from '@/game/threats/compose';
 import { playbackRoute, type WalkSummary } from '@/game/gathering/autoGather';
 import { offsetPosition } from '@/game/generation/geo';
 import { windowIndex, windowRange } from '@/game/generation/time';
-import { tileAt } from '@/game/generation/tiles';
+import { tileAt, tilesWithin } from '@/game/generation/tiles';
+import { cellAt } from '@/game/discovery/cells';
+import { cellTerrain, cellTileKeys } from '@/game/supply/terrain';
+import { supplyRules } from '@/content/supplyLines';
+import { walkableTiles } from '@/services/mapTiles';
 import type { LatLng, TimeOfDay } from '@/game/generation/types';
 import { patrolNotifications } from '@/game/notifications/patrols';
 import { fill } from '@/game/notifications/plan';
@@ -390,6 +394,11 @@ const SAMPLE_NOTIFICATIONS: Record<NotificationCategory, { title: string; body: 
   secretPlace: { ...texts.secretPlace, body: fill(texts.secretPlace.body, { place: 'Hidden den', distance: '90 m' }) },
   patrolSpotted: { ...texts.patrolSpotted, body: fill(texts.patrolSpotted.body, { patrol: 'Goblin patrol', distance: '180 m', tier: 2 }) },
   escort: { ...texts.escortPaused, body: fill(texts.escortPaused.body, { hero: 'Bram', percent: 45 }) },
+  raids: {
+    title: fill(texts.raidAnnounced.title, { camp: 'timber camp' }),
+    body: fill(texts.raidAnnounced.body, { kind: 'Goblins', hours: 2 }),
+    data: { route: 'network' },
+  },
 };
 
 function Choice<T>({
@@ -498,6 +507,69 @@ function PerformanceDebug() {
         <Text>Pause background hooks off the map</Text>
         <Switch value={useDebugStore((state) => state.pauseBackgroundHooks)} onValueChange={(on) => set({ pauseBackgroundHooks: on })} />
       </View>
+    </>
+  );
+}
+
+function SupplyDebug() {
+  const set = useDebugStore((state) => state.set);
+  const offset = useDebugStore((state) => state.supplyPeriodOffset);
+  const showDanger = useDebugStore((state) => state.showDanger);
+  const camps = useGameStore((state) => state.save.supply.camps);
+  const position = useDebugStore((state) => state.mockLocation) ?? useWorldStore.getState().player ?? FALLBACK_LOCATION;
+
+  const placeHallHere = () => {
+    try {
+      useGameStore.getState().placeHall(cellAt(position));
+    } catch (error) {
+      Alert.alert('Cannot place the hall', String(error));
+    }
+  };
+
+  const scoutAround = () => useGameStore.getState().scoutCells(tilesWithin(position, 500, supplyRules.cellPrecision));
+
+  /** Loads the cell's terrain the way the map does, then founds for free (standing and cost skipped). */
+  const foundCampHere = async (kind: 'timber' | 'trapper') => {
+    const cell = cellAt(position);
+    try {
+      const keys = cellTileKeys(cell);
+      const tiles = await Promise.all(keys.map((key) => walkableTiles.load(key)));
+      const terrain = cellTerrain(cell, Object.fromEntries(keys.map((key, i) => [key, tiles[i]])));
+      useGameStore.getState().foundCamp(kind, cell, terrain, cell, true);
+    } catch (error) {
+      Alert.alert('Cannot found a camp', String(error));
+    }
+  };
+
+  return (
+    <>
+      <Text style={styles.title}>Supply lines</Text>
+      <View style={styles.row}>
+        <Button title="Place the hall here" onPress={placeHallHere} />
+      </View>
+      <View style={styles.row}>
+        <Button title="Scout cells within 500 m" onPress={scoutAround} />
+      </View>
+      <View style={styles.row}>
+        <Button title="Found timber camp here (free)" onPress={() => foundCampHere('timber')} />
+        <Button title="Found trapper camp here (free)" onPress={() => foundCampHere('trapper')} />
+      </View>
+      <View style={styles.row}>
+        <Text>Period offset: {offset}</Text>
+        <Button title="Next period" onPress={() => set({ supplyPeriodOffset: offset + 1 })} />
+        <Button title="Reset period" onPress={() => set({ supplyPeriodOffset: 0 })} />
+      </View>
+      <View style={styles.row}>
+        <Text>Show danger levels</Text>
+        <Switch value={showDanger} onValueChange={(on) => set({ showDanger: on })} />
+      </View>
+      {camps.length > 0 && (
+        <View style={styles.row}>
+          {camps.map((camp) => (
+            <Button key={camp.id} title={`Raid ${camp.kind} camp ${camp.id} in 2 min`} onPress={() => useGameStore.getState().debugRaid(camp.id)} />
+          ))}
+        </View>
+      )}
     </>
   );
 }
@@ -754,6 +826,7 @@ export default function DebugScreen() {
     <ScrollView contentContainerStyle={styles.container}>
       <TimingsDebug />
       <PerformanceDebug />
+      <SupplyDebug />
       <UiKitDebug />
       <Text style={styles.title}>Location</Text>
       <View style={styles.row}>

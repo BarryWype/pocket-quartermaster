@@ -12,6 +12,7 @@ import { pickaxeTier } from '../gathering/gathering';
 import { rollForSave } from '../loot/context';
 import { grantLoot } from '../loot/grant';
 import type { Loot } from '../loot/types';
+import { rolledTrade } from '../supply/trades';
 import { grantTip, rollTip, type TipOutcome } from '../secrets/tips';
 import { recruitGrade, rollRecruit, type Grade } from '../taverns/roll';
 import { offerLevel, pickRecruitClass } from '../taverns/taverns';
@@ -250,6 +251,6 @@ export function trade(
 /** Takes a traveller up on joining the roster. */
 export function acceptRecruit(save: SaveData, offer: TravellerRecruit): SaveData {
   if (save.heroes.length >= rosterCap(save)) throw new Error('Roster is full');
-  const hero = { ...newHero(`h${save.nextUid}`, offer.name, offer.classId, offer.trait, offer.level, offer.special), roll: offer.roll };
+  const hero = { ...newHero(`h${save.nextUid}`, offer.name, offer.classId, offer.trait, offer.level, offer.special, rolledTrade(offer.id)), roll: offer.roll };
   return { ...save, heroes: [...save.heroes, hero], nextUid: save.nextUid + 1 };
 }

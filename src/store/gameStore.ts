@@ -76,7 +76,16 @@ import { claimQuest, reachMark } from '@/game/quests/rewards';
 import { acceptQuests, retargetQuests, targetFirstQuest } from '@/game/quests/targets';
 import { createRng } from '@/game/generation/rng';
 import { makeGearPiece } from '@/game/gear/make';
+import { addCells } from '@/game/discovery/cells';
 import { distanceMeters } from '@/game/generation/geo';
+import { periodAt } from '@/game/supply/period';
+import { foundCamp as foundCampInSave, packUpCamp as packUpCampInSave } from '@/game/supply/camps';
+import { placeHall as placeHallInSave, scoutPath as scoutPathInSave } from '@/game/supply/hall';
+import { collectCamp as collectCampInSave, postHero as postHeroInSave, recallPosted as recallPostedInSave } from '@/game/supply/postings';
+import { debugRaid as debugRaidInSave, sendDefenders as sendDefendersInSave } from '@/game/supply/raids';
+import { settleNetwork } from '@/game/supply/settle';
+import { setCrew as setCrewInSave, setRoute as setRouteInSave, startCart as startCartInSave, stopCart as stopCartInSave } from '@/game/supply/cart';
+import type { RoutePoint, Terrain } from '@/game/supply/types';
 import type { EquipmentSlot, ExpeditionReport, Heist, HeroClassId, HeroRoll, PlaceFight, Rarity } from '@/game/types';
 
 import { t } from '@/i18n';
@@ -102,6 +111,36 @@ type GameState = {
   resolvePatrolFights: () => PatrolFight[];
   /** Sends home heroes at a patrol; the fight settles when its time is up. */
   engagePatrol: (spawn: PatrolSpawn, heroIds: string[], player: LatLng) => void;
+  /** Supply lines: places or moves the hall (see game/supply/hall.ts). */
+  placeHall: (cell: string) => void;
+  /** Supply lines: scouts the cells a path crosses, at the current period plus the debug offset. */
+  scoutPath: (points: LatLng[]) => void;
+  /** Supply lines: marks cells scouted at the current period (debug tool). */
+  scoutCells: (cells: string[]) => void;
+  /** Supply lines: founds a camp; `free` skips the standing and cost checks (debug). */
+  foundCamp: (kind: 'timber' | 'trapper', cell: string, terrain: Terrain | 'water' | undefined, playerCell: string, free?: boolean) => void;
+  /** Supply lines: packs a camp up; its slot frees again after the cooldown. */
+  packUpCamp: (campId: string) => void;
+  /** Supply lines: posts a hero at a camp (see game/supply/postings.ts). */
+  postHero: (campId: string, heroId: string) => void;
+  /** Supply lines: recalls a posted hero. */
+  recallPosted: (heroId: string) => void;
+  /** Supply lines: collects a camp's stock in person, inspecting it. */
+  collectCamp: (campId: string, player: LatLng) => void;
+  /** Supply lines: settles every camp to now (stock and trade hours); a no-op when nothing changed. */
+  settleSupply: () => void;
+  /** Sends heroes from the hall to defend the raided camp. */
+  sendDefenders: (heroIds: string[]) => void;
+  /** Debug: a raid on this camp in two minutes. */
+  debugRaid: (campId: string) => void;
+  /** Supply lines: sets the cart's route; while a loop runs it applies at the next departure. */
+  setRoute: (route: RoutePoint[]) => void;
+  /** Supply lines: sets the cart's crew, which can only change while the cart is parked. */
+  setCrew: (driver: string | null, escorts: string[]) => void;
+  /** Supply lines: starts the cart on its route. */
+  startCart: () => void;
+  /** Supply lines: parks the cart, after the current loop when one runs. */
+  stopCart: () => void;
   /** Helps a traveller, pays what they ask and notes them in the walk summary. */
   helpTraveller: (
     spawn: PatrolSpawn,
@@ -339,6 +378,66 @@ export const useGameStore = create<GameState>()(
         return resolved;
       },
       engagePatrol: (spawn, heroIds, player) => set({ save: startPatrolFight(get().save, spawn, heroIds, player, Date.now()) }),
+      placeHall: (cell) => set({ save: placeHallInSave(get().save, cell, Date.now()) }),
+      scoutPath: (points) => {
+        const period = periodAt(Date.now()) + useDebugStore.getState().supplyPeriodOffset;
+        const save = scoutPathInSave(get().save, points, period);
+        if (save !== get().save) set({ save });
+      },
+      scoutCells: (cells) => {
+        const period = periodAt(Date.now()) + useDebugStore.getState().supplyPeriodOffset;
+        const supply = get().save.supply;
+        const scouted = addCells(supply.scouted, cells, period);
+        if (scouted !== supply.scouted) set({ save: { ...get().save, supply: { ...supply, scouted } } });
+      },
+      foundCamp: (kind, cell, terrain, playerCell, free) =>
+        set({ save: foundCampInSave(get().save, kind, cell, terrain, playerCell, Date.now(), free ? { free: true } : {}) }),
+      packUpCamp: (campId) =>
+        set({
+          save: packUpCampInSave(
+            settleNetwork(get().save, Date.now(), useDebugStore.getState().supplyPeriodOffset),
+            campId,
+            Date.now(),
+            useDebugStore.getState().supplyPeriodOffset,
+          ),
+        }),
+      postHero: (campId, heroId) =>
+        set({
+          save: postHeroInSave(
+            settleNetwork(get().save, Date.now(), useDebugStore.getState().supplyPeriodOffset),
+            campId,
+            heroId,
+            Date.now(),
+            useDebugStore.getState().supplyPeriodOffset,
+          ),
+        }),
+      recallPosted: (heroId) =>
+        set({ save: recallPostedInSave(get().save, heroId, Date.now(), useDebugStore.getState().supplyPeriodOffset) }),
+      collectCamp: (campId, player) =>
+        set({
+          save: collectCampInSave(
+            settleNetwork(get().save, Date.now(), useDebugStore.getState().supplyPeriodOffset),
+            campId,
+            player,
+            Date.now(),
+            useDebugStore.getState().supplyPeriodOffset,
+          ),
+        }),
+      settleSupply: () => {
+        const now = Date.now();
+        const settled = settleNetwork(get().save, now, useDebugStore.getState().supplyPeriodOffset);
+        set({ save: { ...settled, supply: { ...settled.supply, lastOpenAt: now } } });
+      },
+      sendDefenders: (heroIds) => {
+        const now = Date.now();
+        set({ save: sendDefendersInSave(settleNetwork(get().save, now, useDebugStore.getState().supplyPeriodOffset), heroIds, now) });
+      },
+      debugRaid: (campId) => set({ save: debugRaidInSave(get().save, campId, Date.now()) }),
+      setRoute: (route) => set({ save: setRouteInSave(get().save, route, Date.now()) }),
+      setCrew: (driver, escorts) => set({ save: setCrewInSave(get().save, driver, escorts, Date.now()) }),
+      startCart: () =>
+        set({ save: startCartInSave(get().save, Date.now(), useDebugStore.getState().supplyPeriodOffset) }),
+      stopCart: () => set({ save: stopCartInSave(get().save, Date.now()) }),
       helpTraveller: (spawn, player, choice) => {
         if (!isTravellerKind(spawn.kind)) throw new Error(`Nothing to ask of a ${spawn.kind}`);
         const now = Date.now();
@@ -748,7 +847,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 51,
+      version: 52,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
       // Saves from version 30 on are kept: every later version bump adds a migration step here (see AGENTS.md, Saves).

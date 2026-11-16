@@ -21,6 +21,10 @@ import { MapPanels } from '@/components/MapPanels';
 import { MapRanges, type RangeCircle } from '@/components/MapRanges';
 import { PANEL_KINDS } from '@/components/PlacePanel';
 import { PlaceholderScreen } from '@/components/PlaceholderScreen';
+import { SupplyLayers } from '@/components/SupplyLayers';
+import { SupplyMarkers } from '@/components/SupplyMarkers';
+import { SupplyRoute } from '@/components/SupplyRoute';
+import { CartMarker } from '@/components/CartMarker';
 import { timed } from '@/components/timed';
 import { Text } from '@/components/Text';
 import { TutorialHint } from '@/components/TutorialHint';
@@ -39,12 +43,14 @@ import { tavernRules } from '@/content/taverns';
 import { tutorialRules } from '@/content/tutorial';
 import { walkableRules } from '@/content/walkable';
 import { freshGathersLeft, pickaxeTier, showsOnMap, type CollectFailure } from '@/game/gathering/gathering';
+import { cellAt, isScouted } from '@/game/discovery/cells';
 import { requiredPickaxeTier } from '@/game/gathering/lockedNodes';
 import { ambienceConfig, decorationMode, inSpan, type DecorationMode } from '@/game/generation/ambience';
 import type { Bounds } from '@/game/generation/foliage';
 import { distanceMeters, offsetPosition } from '@/game/generation/geo';
 import { gathererFinds, gathererHeroAt } from '@/game/jobs/gatherer';
 import { heroClasses } from '@/content/heroes';
+import { useSupplyOn } from '@/hooks/useSupply';
 import { generateSpawnsAround } from '@/game/generation/spawns';
 import type { LatLng, Spawn, SpawnConfig } from '@/game/generation/types';
 import { visibleSpawns } from '@/game/generation/visibility';
@@ -214,6 +220,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
   const [freshLegsOpen, setFreshLegsOpen] = useState(true);
   const autoMode = useWorldStore((state) => state.autoGather);
   const autoEnabled = useSettingsStore((state) => pocketTracking(state.pocketMode));
+  const supplyOn = useSupplyOn();
   const sight = useSettingsStore((s) => s.sightRange);
   const showAutoRadius = useDebugStore((state) => debugOn && state.showAutoRadius);
   const showNodeRanges = useDebugStore((state) => debugOn && state.showNodeRanges);
@@ -224,6 +231,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
       useWorldStore.subscribe((state, previous) => {
         if (state.autoGatherMessage && state.autoGatherMessage !== previous.autoGatherMessage) setMessage({ text: state.autoGatherMessage.text });
         if (state.patrolMessage && state.patrolMessage !== previous.patrolMessage) setMessage({ text: state.patrolMessage.text, tiles: state.patrolMessage.tiles });
+        if (state.supplyMessage && state.supplyMessage !== previous.supplyMessage) setMessage({ text: state.supplyMessage.text });
       }),
     [],
   );
@@ -663,6 +671,10 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
     markTap('quest marker');
     navigate('/quests');
   }, []);
+  // The player's own marker opens their cell's sheet; only passed while the switch is on, so the memo keeps working.
+  const onPlayerCell = useCallback(() => {
+    if (position) useMapPanels.getState().openSupplyCell(cellAt(position));
+  }, [position]);
 
   // The menu stays reachable while there is no map to show.
   if (player.status === 'pending' || player.status === 'denied' || !position) {
@@ -749,6 +761,15 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
           if (debugOn && player.mocked) {
             const [longitude, latitude] = event.nativeEvent.lngLat;
             setDebug({ mockLocation: { latitude, longitude } });
+          } else if (supplyOn) {
+            const [longitude, latitude] = event.nativeEvent.lngLat;
+            const cell = cellAt({ latitude, longitude });
+            if (useMapPanels.getState().routeDraft !== null) {
+              if (isScouted(save.supply.scouted, cell)) useMapPanels.getState().addToRoute({ cell });
+              else useWorldStore.getState().set({ supplyMessage: { text: t('supply.planner.onlyScouted'), at: Date.now() } });
+            } else {
+              useMapPanels.getState().openSupplyCell(cell);
+            }
           }
         }}
       >
@@ -758,6 +779,10 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
         {!noDecorations && <MapTrail position={position} />}
         {!noDecorations && <MapFoliage data={foliage.data} mode={decor} />}
         <MapRanges circles={ranges} />
+        {supplyOn && <SupplyLayers bounds={bounds} position={position} />}
+        {supplyOn && <SupplyRoute />}
+        {supplyOn && <SupplyMarkers />}
+        {supplyOn && <CartMarker />}
         <MapMarkers
           save={save}
           position={position}
@@ -786,6 +811,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
           onOpenPlace={openPlaceAt}
           onOpenPatrol={openPatrolAt}
           onQuest={quest}
+          onPlayer={supplyOn ? onPlayerCell : undefined}
         />
       </Map>
       {!noDecorations && <MapSky pan={skyPan} hour={ambience.hour} raining={ambience.raining} decor={decor !== 'hidden'} />}

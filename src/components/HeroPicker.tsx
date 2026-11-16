@@ -23,6 +23,7 @@ import { Overlay } from './Overlay';
 import { OddsChange } from './PartyOdds';
 import { lightsLine, stillNeeded } from './partyText';
 import { Text } from './Text';
+import { TradeLabel } from './TradeLabel';
 import { AnchoredPopup, EmberButton, ItemSlot, ParchmentCard, type PopupAnchor } from './ui';
 
 type Props = {
@@ -41,18 +42,22 @@ type Props = {
 
 const ORDINALS = ['first', 'second', 'third'] as const;
 
-const statusText = (choice: HeroChoice) =>
+export const statusText = (choice: HeroChoice) =>
   choice.status.kind === 'hurt'
     ? t('partyDialog.hurt', { time: formatDuration(choice.status.ms) })
     : choice.status.kind === 'out'
       ? t('partyDialog.out', { time: formatDuration(choice.status.ms) })
-      : null;
+      : choice.status.kind === 'posted'
+        ? t('supply.posted')
+        : null;
 
 /** The hero picker: a portrait grid (▲ lights a need; busy or hurt heroes greyed), then the picked hero's card and odds. */
 export function HeroPicker({ save, party, groups, ordinal, now, oddsOf, chance, onPick, onClose }: Props) {
   const short = useMemo(() => shortFamilies(groups), [groups]);
   const choices = useMemo(() => heroChoices(save, party, short, now), [save, party, short, now]);
-  const [selected, setSelected] = useState<string | null>(() => choices.find((c) => c.status.kind === 'free' || c.status.kind === 'working')?.hero.id ?? null);
+  const [selected, setSelected] = useState<string | null>(
+    () => choices.find((c) => c.status.kind === 'free' || c.status.kind === 'working' || c.status.kind === 'posted')?.hero.id ?? null,
+  );
   const choice = choices.find((c) => c.hero.id === selected) ?? null;
   const [openGear, setOpenGear] = useState<{ gear: GearInstance; slot: GearSlot; anchor: PopupAnchor } | null>(null);
   const job = useMemo(() => (choice ? oddsOf(save, [...party, choice.hero.id]) : null), [choice, oddsOf, save, party]);
@@ -106,6 +111,7 @@ export function HeroPicker({ save, party, groups, ordinal, now, oddsOf, chance, 
                   <Text style={styles.heroName} numberOfLines={1}>
                     {c.hero.name}
                   </Text>
+                  <TradeLabel trade={c.hero.trade.id} hours={c.hero.trade.hours} />
                 </PressScale>
               );
             })}

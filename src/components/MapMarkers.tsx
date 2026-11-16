@@ -106,6 +106,8 @@ type Props = {
   onOpenPlace: (place: PlaceSpawn) => void;
   onOpenPatrol: (spawn: PatrolSpawn) => void;
   onQuest: () => void;
+  /** Supply lines: opens the player's own cell's sheet; undefined while the switch is off. */
+  onPlayer?: () => void;
 };
 
 const toLngLat = (position: LatLng): [number, number] => [position.longitude, position.latitude];
@@ -144,6 +146,7 @@ function MapMarkersBase({
   onOpenPlace,
   onOpenPatrol,
   onQuest,
+  onPlayer,
 }: Props) {
   const spawns = useMemo(() => visible.map((entry) => ({ ...entry, id: entry.spawn.id })), [visible]);
   const patrols = useMemo(() => visiblePatrols.map((spawn) => ({ spawn, id: spawn.id, position: patrolPositionAt(spawn, now) })), [visiblePatrols, now]);
@@ -281,7 +284,7 @@ function MapMarkersBase({
           <GathererHeroMarker emoji={gathererHero.emoji} icon={gathererHero.icon} />
         </Marker>
       )}
-      <Marker id="player" lngLat={toLngLat(position)}>
+      <Marker id="player" lngLat={toLngLat(position)} onPress={onPlayer ? tapped(onPlayer) : undefined}>
         <Text style={styles.player}>🧙</Text>
       </Marker>
     </>

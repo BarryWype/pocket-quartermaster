@@ -185,11 +185,50 @@ export type ProfileSummary = {
    * `targets.rotation.fromTier` on.
    */
   rotation: { topClass: string | null; topClassShare: Stat; fewestHeroesPerWeek: Stat };
+  /** The supply lines, on runs played with `--supply-lines`; null otherwise (see supplySummary). */
+  supply: SupplySummary | null;
 };
+
+/** The supply lines over a run, per seed: what the cart brought in against walking, ambushes and raids, and hero time. */
+export type SupplySummary = {
+  /** Units the cart delivered per day, against the units of the same materials (wood, meat, hide, bone) walking gathered per day. */
+  deliveredPerDay: Stat;
+  walkedPerDay: Stat;
+  camps: Stat;
+  ambushesPerWeek: Record<'won' | 'lost' | 'unguarded', Stat>;
+  raidsPerWeek: Record<'won' | 'lost' | 'unguarded', Stat>;
+  /** Hero-hours per day posted at camps, and on the cart's crew. */
+  postedHoursPerDay: Stat;
+  cartHoursPerDay: Stat;
+};
+
+/** The walking sources: what a walk gathers, by hand or auto-gather, with the lure and the daily bonus. */
+const WALK_SOURCES = ['walk', 'autoGather', 'lure', 'walkBonus', 'autoGatherBonus'];
+/** What camps make: the materials the cart's deliveries are set against. */
+const CAMP_MATERIALS = ['wood', 'meat', 'hide', 'bone'];
+
+/** The Supply lines section's numbers, or null for a run without them. */
+export function supplySummary(logs: RunLog[]): SupplySummary | null {
+  const played = logs.filter((log) => log.supply !== null);
+  if (played.length === 0) return null;
+  const perDay = (value: (log: RunLog) => number) => stat(played.map((log) => value(log) / Math.max(1, log.days)));
+  const perWeek = (value: (log: RunLog) => number) => stat(played.map((log) => (value(log) * 7) / Math.max(1, log.days)));
+  const outcomes = (of: (log: RunLog) => Record<'won' | 'lost' | 'unguarded', number>) =>
+    ({ won: perWeek((log) => of(log).won), lost: perWeek((log) => of(log).lost), unguarded: perWeek((log) => of(log).unguarded) });
+  return {
+    deliveredPerDay: perDay((log) => log.supply!.delivered),
+    walkedPerDay: perDay((log) => sum(CAMP_MATERIALS.flatMap((material) => WALK_SOURCES.map((source) => log.gathered[material]?.[source] ?? 0)))),
+    camps: stat(played.map((log) => log.supply!.camps)),
+    ambushesPerWeek: outcomes((log) => log.supply!.ambushes),
+    raidsPerWeek: outcomes((log) => log.supply!.raids),
+    postedHoursPerDay: perDay((log) => log.supply!.postedHours),
+    cartHoursPerDay: perDay((log) => log.supply!.cartHours),
+  };
+}
 
 /** What `npm run sim` writes to doc/design/simulator/summary.json, and the balance band tests read. */
 export type Summary = {
-  settings: { profiles: string[]; seeds: number; seed: string; overrides: string[]; maxDays: number | null; jobs: boolean };
+  settings: { profiles: string[]; seeds: number; seed: string; overrides: string[]; maxDays: number | null; jobs: boolean; supplyLines?: boolean };
   profiles: Record<string, ProfileSummary>;
   /** The reference roster's odds per tier and difficulty, measured once per run (see difficultyOdds.ts). */
   difficultyOdds: Record<number, DifficultyOdds>;
@@ -776,6 +815,7 @@ export function summarize(logs: RunLog[], t: Targets = defaultTargets): ProfileS
     notLaunched,
     placesNotDone,
     rotation: { topClass: rotation.topClass, topClassShare: rotation.topClassShare, fewestHeroesPerWeek: rotation.fewestHeroesPerWeek },
+    supply: supplySummary(logs),
   };
 }
 

@@ -29,6 +29,8 @@ export type LabOptions = {
   maxDays?: number;
   /** Guild jobs on (false: a baseline run without them). */
   jobs?: boolean;
+  /** The supply lines experiment on (off by default). */
+  supplyLines?: boolean;
   /** A summary to compare days per tier against, e.g. a run with `--no-jobs`. */
   baseline?: Summary | null;
   /** Measured walk yields; read from (or written to) the cache when not given. */
@@ -42,7 +44,7 @@ export type LabOptions = {
 };
 
 /** One game, sent to a worker process over IPC. */
-type WorkerJob = { profile: string; index: number; seed: string; maxDays?: number; overrides: string[]; rates: WalkRates; jobs: boolean };
+type WorkerJob = { profile: string; index: number; seed: string; maxDays?: number; overrides: string[]; rates: WalkRates; jobs: boolean; supplyLines: boolean };
 
 function walkRates(cacheDir: string, print: (line: string) => void): WalkRates {
   const file = path.join(cacheDir, `walk-${walkCacheKey()}.json`);
@@ -108,7 +110,7 @@ export function runWorker() {
     const undo = applyOverrides(job.overrides.map(parseOverride));
     let log: RunLog;
     try {
-      log = runSim({ profile: job.profile, seed: job.seed, rates: job.rates, maxDays: job.maxDays, jobs: job.jobs, afterDay: weeklyProgress(job.profile, job.index, console.log) });
+      log = runSim({ profile: job.profile, seed: job.seed, rates: job.rates, maxDays: job.maxDays, jobs: job.jobs, supplyLines: job.supplyLines, afterDay: weeklyProgress(job.profile, job.index, console.log) });
     } finally {
       undo();
     }
@@ -127,7 +129,7 @@ export async function runLab(options: LabOptions) {
     const jobsOn = options.jobs ?? true;
     const jobs: WorkerJob[] = [];
     for (const profile of options.profiles)
-      for (let i = 1; i <= options.seeds; i++) jobs.push({ profile, index: i, seed: `${options.seed}-${i}`, maxDays: options.maxDays, overrides: options.overrides, rates, jobs: jobsOn });
+      for (let i = 1; i <= options.seeds; i++) jobs.push({ profile, index: i, seed: `${options.seed}-${i}`, maxDays: options.maxDays, overrides: options.overrides, rates, jobs: jobsOn, supplyLines: options.supplyLines ?? false });
     let logs: RunLog[];
     if ((options.workers ?? 1) > 1) {
       if (!options.workerScript) throw new Error('workers > 1 needs a workerScript');
@@ -135,7 +137,7 @@ export async function runLab(options: LabOptions) {
       for (let i = 0; i < jobs.length; i++) print(finishedLine(jobs[i].profile, jobs[i].index, logs[i]));
     } else {
       logs = jobs.map((job) => {
-        const log = runSim({ profile: job.profile, seed: job.seed, rates, maxDays: job.maxDays, jobs: job.jobs, afterDay: weeklyProgress(job.profile, job.index, print) });
+        const log = runSim({ profile: job.profile, seed: job.seed, rates, maxDays: job.maxDays, jobs: job.jobs, supplyLines: job.supplyLines, afterDay: weeklyProgress(job.profile, job.index, print) });
         print(finishedLine(job.profile, job.index, log));
         return log;
       });
@@ -143,7 +145,7 @@ export async function runLab(options: LabOptions) {
     const summaries: ProfileSummary[] = [];
     for (let i = 0; i < options.profiles.length; i++) summaries.push(summarize(logs.slice(i * options.seeds, (i + 1) * options.seeds)));
     const summary: Summary = {
-      settings: { profiles: options.profiles, seeds: options.seeds, seed: options.seed, overrides: options.overrides, maxDays: options.maxDays ?? null, jobs: jobsOn },
+      settings: { profiles: options.profiles, seeds: options.seeds, seed: options.seed, overrides: options.overrides, maxDays: options.maxDays ?? null, jobs: jobsOn, supplyLines: options.supplyLines ?? false },
       difficultyOdds: difficultyOddsByTier(),
       familyProbes: { focus: focusOdds(FAMILY_RUNS), venom: venomousOdds(FAMILY_RUNS) },
       classProbe: classSwapOdds(CLASS_RUNS),

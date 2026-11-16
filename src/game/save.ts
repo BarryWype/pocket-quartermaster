@@ -17,6 +17,8 @@ import type { AutoGatherSave } from './gathering/autoGather';
 import type { LatLng } from './generation/types';
 import type { PatrolFight } from './patrols/fight';
 import type { QuestsState } from './quests/types';
+import { emptySupply } from './supply/state';
+import type { SupplyState } from './supply/types';
 import type {
   ActiveExpedition,
   ActiveLure,
@@ -209,6 +211,8 @@ export type SaveData = {
   seenPlaceKinds: PlaceKind[];
   /** Lifetime steps; the walk quest measures progress with this. */
   stepsTotal: number;
+  /** The supply lines' state: camps, the cart and raids (see game/supply/). */
+  supply: SupplyState;
   /** Counter for unique ids (gear, maps, lures, fights, heroes). */
   nextUid: number;
 };
@@ -280,6 +284,7 @@ export function createInitialSave(playerSeed?: string): SaveData {
     quests: { list: [], lastArrivalDay: null, rerollDay: null, rerolls: 0, secretDay: null, completions: [] },
     seenPlaceKinds: [],
     stepsTotal: 0,
+    supply: emptySupply(0),
     nextUid: 1,
   };
 }

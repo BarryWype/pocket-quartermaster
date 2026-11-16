@@ -37,6 +37,10 @@ import { freePickClasses } from "./taverns/freePick";
 import { heldFindKeys } from "./loot/finds";
 import { emptyHistory } from "./gear/history";
 import { emptyRecord, factsOfReport, noteRunOnHeroes } from "./team/record";
+import { emptySupply } from "./supply/state";
+import { rolledTrade } from "./supply/trades";
+import { supplyRules } from "@/content/supplyLines";
+import type { TradeId } from "@/content/supplyLines";
 
 /**
  * Version 31: the collector quest now names the valuable it wants, chosen from
@@ -807,6 +811,22 @@ export function toV51(save: SaveData): SaveData {
   return { ...next, heroes: next.heroes.map((h) => (h.record ? h : { ...h, record: emptyRecord() })) };
 }
 
+/**
+ * Version 52: supply lines (doc/design/supply-lines/). The whole supply state
+ * lands empty, and every hero without a trade gets one: the starting trio
+ * theirs, anyone else a roll from their own id, so it never changes.
+ */
+export function toV52(save: SaveData, now: number): SaveData {
+  const supply = save.supply ?? emptySupply(now);
+  const heroes = save.heroes.map((hero) =>
+    hero.trade
+      ? hero
+      : { ...hero, trade: { id: (supplyRules.startingTrades as Record<string, TradeId>)[hero.id] ?? rolledTrade(hero.id), hours: 0 } },
+  );
+  if (heroes.every((hero, i) => hero === save.heroes[i]) && supply === save.supply) return save;
+  return { ...save, heroes, supply };
+}
+
 /** Applies the migration steps in order, from the save's own version on. */
 export function migrateSave(
   save: SaveData,
@@ -835,5 +855,6 @@ export function migrateSave(
   if (fromVersion < 49) next = toV49(next);
   if (fromVersion < 50) next = toV50(next);
   if (fromVersion < 51) next = toV51(next);
+  if (fromVersion < 52) next = toV52(next, now);
   return next;
 }

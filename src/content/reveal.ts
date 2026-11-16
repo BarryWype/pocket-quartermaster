@@ -38,7 +38,13 @@ export type TipId =
   | 'jobs'
   | 'jobMiner'
   | 'jobCharcoalBurner'
-  | 'jobGatherer';
+  | 'jobGatherer'
+  | 'supplyHall'
+  | 'supplyScout'
+  | 'supplyCamps'
+  | 'supplyCampSheet'
+  | 'supplyPlanner'
+  | 'supplyRaid';
 
 /** What has to be true for a kind to show; read by `isRevealed`. */
 export type RevealCondition =
@@ -136,4 +142,10 @@ export const tipTexts: Record<TipId, string> = {
   jobCharcoalBurner: "The Charcoal burner is open at the guild: a hero there makes coal while you're away.",
   jobGatherer:
     'The outdoor gatherer works around you: a hero gathers the resources you can see on the map, the closest first, about 4 an hour at most. It works best in Pocket mode, while you walk. Pick a focus if you need one material. Outdoor work tires faster, and wildlife can hurt the hero a little.',
+  supplyHall: 'Supply lines: tap the map, or your own marker, to place your hall. Everything your network brings in arrives there.',
+  supplyScout: 'Walk to scout: every cell you cross shows its richness as dots when you zoom in. Green dots are timber, brown ones game.',
+  supplyCamps: 'Found a camp where you stand: open your cell’s sheet on good ground. A camp makes materials over time.',
+  supplyCampSheet: 'Locals work an empty camp slowly. Post a hero for the full rate, more with a matching trade. Collect in person to inspect it: +25% for a day.',
+  supplyPlanner: 'Tap camps in order, and scouted cells as waypoints to steer around danger. Unscouted cells count as risky.',
+  supplyRaid: 'Raiders are coming: send defenders before they land, empty the camp, or let it go. A Watchman posted there hears of raids sooner.',
 };

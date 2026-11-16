@@ -8,6 +8,7 @@ import { traitById } from '@/content/traits';
 import { distanceMeters } from '@/game/generation/geo';
 import { rosterCap } from '@/game/guild/guild';
 import { buyProblem, placeStock, stockLeft } from '@/game/places/shops';
+import { rolledTrade } from '@/game/supply/trades';
 import type { LatLng } from '@/game/generation/types';
 import {
   buySupplyProblem,
@@ -33,6 +34,7 @@ import { EmberButton, WoodButton } from './ui';
 import { RecruitGrade } from './RecruitGrade';
 import { SpecialLabel } from './SpecialLabel';
 import { Text } from './Text';
+import { TradeLabel } from './TradeLabel';
 
 const problemText: Record<RecruitProblem, (distance: number, cap: number) => string> = {
   locked: () => t('tavern.locked'),
@@ -75,6 +77,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
         <Text style={[styles.trait, { color: trait.positive ? colors.ink : colors.danger }]}>
           {tr(trait.name)}: {tr(trait.description)}
         </Text>
+        <TradeLabel trade={rolledTrade(offer.id)} />
         <SpecialLabel classId={offer.classId} special={offer.special} />
         <ClassSummary classId={offer.classId} />
         <View style={styles.actions}>

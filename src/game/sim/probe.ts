@@ -28,6 +28,13 @@ function restedRoster(save: SaveData): SaveData {
     placeFights: [],
     heists: [],
     heroes: save.heroes.map(({ hp: _hp, hpAt: _hpAt, exhaustedUntil: _exhausted, ...hero }) => hero),
+    // The supply lines' heroes (cart crew, raid defenders, posted) count as home too.
+    supply: {
+      ...save.supply,
+      cart: { ...save.supply.cart, loop: null },
+      raid: null,
+      camps: save.supply.camps.map((camp) => ({ ...camp, heroId: null, postedAt: null })),
+    },
   };
 }
 

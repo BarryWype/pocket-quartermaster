@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 import * as Notifications from 'expo-notifications';
 
 
+import { notificationRules } from '@/content/notifications';
 import { dayKey } from '@/game/rewards/chests';
 import { planNotifications } from '@/game/notifications/plan';
 import { deliveryTime } from '@/game/notifications/quietHours';
@@ -33,6 +34,8 @@ function openFrom(data: Record<string, unknown> | undefined) {
     navigate('/quests');
   } else if (data?.route === 'jobs') {
     navigate({ pathname: '/expeditions', params: { tab: 'jobs' } });
+  } else if (data?.route === 'network') {
+    navigate({ pathname: '/expeditions', params: { tab: 'network' } });
   } else if (data?.route === 'pocketMode') {
     useWorldStore.getState().set({ pocketPanel: 'escort' });
     navigate('/');
@@ -45,7 +48,8 @@ export function syncPlan() {
   const { save } = useGameStore.getState();
   const { notifications } = useSettingsStore.getState();
   const enabled = (category: NotificationCategory) => notifications.enabled && notifications.categories[category];
-  deviceNotifications.sync(planNotifications(save, notifications, Date.now()), enabled).catch(() => {});
+  const { supplyLines } = useSettingsStore.getState();
+  deviceNotifications.sync(planNotifications(save, notifications, Date.now(), notificationRules, supplyLines), enabled).catch(() => {});
 }
 
 /**
@@ -68,11 +72,18 @@ export function useNotifications() {
     ].join('|'),
   );
   const settings = useSettingsStore((state) => state.notifications);
+  const supplyLines = useSettingsStore((state) => state.supplyLines);
+  // A raid's announcement moves with a Watchman posted at its target.
+  const raidAt = useGameStore(({ save }) => {
+    const raid = save.supply.raid;
+    if (!raid || raid.result) return '';
+    return `${raid.landsAt}:${save.supply.camps.find((camp) => camp.id === raid.campId)?.heroId ?? ''}`;
+  });
   const steps = useTodaySteps();
 
   useEffect(() => {
     syncPlan();
-  }, [expeditions, lastReport, jobsAt, settings]);
+  }, [expeditions, lastReport, jobsAt, settings, supplyLines, raidAt]);
 
   useEffect(() => {
     const unsubscribe = [useGameStore, useSettingsStore].map((store) => store.persist.onFinishHydration(syncPlan));

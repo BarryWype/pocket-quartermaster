@@ -12,6 +12,7 @@ import { distanceMeters } from '../generation/geo';
 import { createRng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { makeGearPiece } from '../gear/make';
+import { rolledTrade } from '../supply/trades';
 import type { PlaceSpawn } from '../places/generate';
 import { rosterFull } from '../team/team';
 import { rolledSpecial } from '../team/specials';
@@ -94,7 +95,7 @@ export function recruitAtSecret(save: SaveData, place: PlaceSpawn, player: LatLn
   const problem = secretRecruitProblem(save, place, player, now);
   if (problem) throw new Error(`Cannot recruit: ${problem}`);
   const offer = secretRecruit(save, place);
-  const hero = { ...newHero(`h${save.nextUid}`, offer.name, offer.classId, offer.trait, offer.level, offer.special), roll: offer.roll };
+  const hero = { ...newHero(`h${save.nextUid}`, offer.name, offer.classId, offer.trait, offer.level, offer.special, rolledTrade(offer.id)), roll: offer.roll };
   let next: SaveData = {
     ...save,
     gold: save.gold - offer.price,

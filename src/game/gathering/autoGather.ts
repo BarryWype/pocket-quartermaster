@@ -18,6 +18,7 @@ import type { PatrolKind, TravellerKind } from '../patrols/generate';
 import type { TravellerReward } from '../patrols/travellers';
 import type { MaterialStack } from '../types';
 import { collectSpawn, localDayKey } from './gathering';
+import { scoutPath } from '../supply/hall';
 import { walkEffectAt, walkEffectSpawns, walkKind } from './walkEffects';
 
 /** One location reading recorded while auto-gather runs. */
@@ -95,6 +96,8 @@ export type WalkOptions = {
   measuredSteps?: number | null;
   autoStopped?: boolean;
   riding?: boolean;
+  /** When set, the walk also scouts the cells its segments cross, for this richness period. */
+  scoutPeriod?: number;
 };
 
 type Segment = { from: WalkFix; to: WalkFix; meters: number };
@@ -317,6 +320,10 @@ export function processWalkPath(
   for (const [day, steps] of Object.entries(estimatedByDay)) next = recordSteps(next, day, Math.round(steps));
   const estimated = Object.values(estimatedByDay).reduce((sum, steps) => sum + Math.round(steps), 0);
   const measured = options.measuredSteps ?? null;
+
+  if (options.scoutPeriod !== undefined) {
+    next = scoutPath(next, segments.flatMap((segment) => [segment.from.position, segment.to.position]), options.scoutPeriod);
+  }
 
   const summary: WalkSummary = {
     startedAt: segments[0]?.from.timestamp ?? 0,

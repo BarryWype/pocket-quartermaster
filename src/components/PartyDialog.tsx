@@ -33,6 +33,7 @@ import { Overlay } from './Overlay';
 import { OddsMedallion } from './PartyOdds';
 import { hintText } from './partyText';
 import { Text } from './Text';
+import { TradeLabel } from './TradeLabel';
 import { EmberButton, ItemSlot, ParchmentCard, WoodButton } from './ui';
 import { includesWorking } from './workingHeroes';
 
@@ -181,6 +182,7 @@ function HeroPlate({
               {t('partyDialog.classLevel', { className: tr(heroClass.name), level: hero.level })}
             </Text>
           </View>
+          <TradeLabel trade={hero.trade.id} hours={hero.trade.hours} />
           {hero.title && heroTitleById[hero.title] && (
             <Text style={styles.heroTitle} numberOfLines={1}>
               {tr(heroTitleById[hero.title].name)}

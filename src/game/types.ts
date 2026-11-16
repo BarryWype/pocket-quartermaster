@@ -2,6 +2,7 @@ import type { Loot, LootModifier, MapRarity } from './loot/types';
 import type { ImageSourcePropType } from 'react-native';
 
 import type { PlaceKind, SecretKind } from '@/content/places';
+import type { TradeId } from '@/content/supplyLines';
 import type { WorkToolKind } from '@/content/workTools';
 import type { PlaceTipSource, TipSource } from '@/content/secrets';
 import type { Difficulty } from '@/content/difficulty';
@@ -683,6 +684,8 @@ export type HeroState = {
   job: { jobId: string; since: number; tired: boolean } | null;
   /** Energy (0–100) as of `at`: drained while working a job, regained otherwise. */
   energy: { value: number; at: number };
+  /** The hero's supply-lines trade; hours spent using it set its level. */
+  trade: { id: TradeId; hours: number };
   /** What the hero has been through (see team/record.ts); absent counts as nothing yet. */
   record?: HeroRecord;
   /** The title shown under the hero's name, one of `record.titles`; null when the player hides it. */

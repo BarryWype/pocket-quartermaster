@@ -11,6 +11,7 @@ import { distanceMeters } from '@/game/generation/geo';
 import type { LatLng } from '@/game/generation/types';
 import { rosterCap } from '@/game/guild/guild';
 import type { PlaceSpawn } from '@/game/places/generate';
+import { rolledTrade } from '@/game/supply/trades';
 import { underwaterBriefing, underwaterDungeonFor, underwaterLaunchProblem } from '@/game/secrets/dungeon';
 import { hasKey, keyDots, keysHeld } from '@/game/secrets/keys';
 import {
@@ -37,6 +38,7 @@ import { RecruitGrade } from './RecruitGrade';
 import { ExpeditionDialog } from './ExpeditionDialog';
 import { SpecialLabel } from './SpecialLabel';
 import { Text } from './Text';
+import { TradeLabel } from './TradeLabel';
 import { ThreatChip } from './ThreatChip';
 import { IconLabel, PartsLine, type LabelPart } from './IconLabel';
 import { recallWorkingHeroes } from './workingHeroes';
@@ -168,6 +170,7 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
             <Text style={[styles.trait, { color: trait.positive ? colors.ink : colors.danger }]}>
               {tr(trait.name)}: {tr(trait.description)}
             </Text>
+            <TradeLabel trade={rolledTrade(offer.id)} />
             <SpecialLabel classId={offer.classId} special={offer.special} />
             <ClassSummary classId={offer.classId} />
             <View style={styles.actions}>

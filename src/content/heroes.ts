@@ -1,6 +1,8 @@
+import { supplyRules, type TradeId } from '@/content/supplyLines';
 import type { HeroClassDef, HeroClassId, HeroState, SpecialId, StatKey, WeaponType } from '@/game/types';
 
 import { rolledSpecial } from '@/game/team/specials';
+import { rolledTrade } from '@/game/supply/trades';
 
 // Heroes keep modest bases and grow mostly through their three primary stats
 // (every level) and milestone steps for the rest (levels 5, 10, 15). Gear
@@ -428,7 +430,7 @@ export const heroClasses: Record<HeroClassId, HeroClassDef> = {
   },
 };
 
-export const newHero = (id: string, name: string, classId: HeroClassId, trait: string, level = 1, special?: SpecialId): HeroState => ({
+export const newHero = (id: string, name: string, classId: HeroClassId, trait: string, level = 1, special?: SpecialId, trade?: TradeId): HeroState => ({
   id,
   name,
   classId,
@@ -437,6 +439,7 @@ export const newHero = (id: string, name: string, classId: HeroClassId, trait: s
   xp: 0,
   // Offers hand over theirs; anyone else rolls from the hero's id, so it never changes.
   special: special ?? rolledSpecial(id, classId),
+  trade: { id: trade ?? rolledTrade(id), hours: 0 },
   equipment: { weapon: null, armor: null, helmet: null, offhand: null, trinket: null, consumable: null },
   job: null,
   energy: { value: 100, at: 0 },
@@ -446,9 +449,9 @@ export const newHero = (id: string, name: string, classId: HeroClassId, trait: s
 export const signatureWeapons: Partial<Record<HeroClassId, WeaponType>> = { warrior: 'sword', ranger: 'bow', fireMage: 'wand' };
 
 export const startingHeroes: HeroState[] = [
-  newHero('bram', 'Bram', 'warrior', 'resilient'),
-  newHero('lyra', 'Lyra', 'ranger', 'lucky'),
-  newHero('mira', 'Mira', 'fireMage', 'quickLearner'),
+  newHero('bram', 'Bram', 'warrior', 'resilient', 1, undefined, supplyRules.startingTrades.bram),
+  newHero('lyra', 'Lyra', 'ranger', 'lucky', 1, undefined, supplyRules.startingTrades.lyra),
+  newHero('mira', 'Mira', 'fireMage', 'quickLearner', 1, undefined, supplyRules.startingTrades.mira),
 ];
 
 export const xpRules = {

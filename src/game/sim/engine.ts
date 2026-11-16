@@ -64,6 +64,7 @@ import {
   emptyLog,
 } from './bot';
 import { probe } from './probe';
+import { emptySupplySim, supplyEvening, supplyMorning } from './supply';
 import { applyStones, rerollGear } from './rules/gear';
 import { forgeIngredients, restoreRelics } from './rules/forge';
 import { craftCombatElixirs, craftOils, craftStatPotions, forgeLootTrinkets, readManuals, sellMaterials, sellParts } from './rules/inventory';
@@ -84,6 +85,8 @@ export type RunOptions = {
   config?: SimConfig;
   /** Guild jobs on (false: a baseline run without them). */
   jobs?: boolean;
+  /** The supply lines experiment on (off by default, so the default report doesn't move). */
+  supplyLines?: boolean;
   /** Called after every session, e.g. to check the save. */
   afterSession?: (save: SaveData) => void;
   /** Called at the end of each simulated day, after the daily row is pushed. */
@@ -264,7 +267,8 @@ function helpTravellerSpawn(sim: Sim, spawn: PatrolSpawn, at: number, player: La
   }
 }
 
-function session(sim: Sim, walking: boolean, firstWalk: boolean, firstSession: boolean, steps: number, dayKey: string) {
+function session(sim: Sim, walking: boolean, firstWalk: boolean, firstSession: boolean, lastSession: boolean, steps: number, dayKey: string) {
+  if (sim.supply) supplyMorning(sim, sim.supply, firstSession);
   moveGathererAnchor(sim, walking);
   collectJobs(sim);
   if (firstSession) keepGatherer(sim);
@@ -329,6 +333,7 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, firstSession: b
   challengeSanctums(sim);
   digTreasure(sim);
   sendExpeditions(sim);
+  if (sim.supply) supplyEvening(sim, sim.supply, walking, lastSession);
   assignJobs(sim);
   if (walking) buyWorkTools(sim);
   markCoreGear(sim);
@@ -369,7 +374,7 @@ function lootTrinketShare(save: SaveData) {
 }
 
 /** Plays a profile with the bot until the tier 5 boss falls or the profile's day cap, and returns everything that happened. */
-export function runSim({ profile: name, seed, rates, maxDays, config = simConfig, jobs = true, afterSession, afterDay }: RunOptions): RunLog {
+export function runSim({ profile: name, seed, rates, maxDays, config = simConfig, jobs = true, supplyLines = false, afterSession, afterDay }: RunOptions): RunLog {
   const profile = profiles[name];
   if (!profile) throw new Error(`Unknown profile ${name}`);
   const days = maxDays ?? profile.maxDays;
@@ -410,6 +415,7 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
     waiting: new Set(),
     rerolled: new Set(),
     expeditionStop: { reason: null, launched: false },
+    supply: supplyLines ? emptySupplySim() : null,
     log: emptyLog(name, seed),
   };
 
@@ -452,7 +458,7 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
     let idle = 0;
     sessionTimes(day).forEach((time, i) => {
       sim.now = time;
-      session(sim, profile.walkHours.includes(hours[i]), hours[i] === Math.min(...profile.walkHours), i === 0, steps / hours.length, dayKey);
+      session(sim, profile.walkHours.includes(hours[i]), hours[i] === Math.min(...profile.walkHours), i === 0, i === hours.length - 1, steps / hours.length, dayKey);
       idle += homeHeroes(sim.save).length / sim.save.heroes.length;
       markHoldings(sim);
       markReveals(sim);
@@ -488,5 +494,6 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
     afterDay?.(sim.day, sim.save);
   }
   sim.log.knownRecipes = [...sim.save.knownRecipes];
+  sim.log.supply = sim.supply?.log ?? null;
   return sim.log;
 }

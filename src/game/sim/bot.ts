@@ -12,6 +12,7 @@ import { shopRules } from '@/content/shops';
 import { recipes } from '@/content/recipes';
 import { traitById } from '@/content/traits';
 import type { Rarity } from '@/content/gear';
+import type { SupplyLog, SupplySim } from './supply';
 
 import { canCraft, craft, craftableCount, craftMany, forgedItem, isKnown } from '../crafting/crafting';
 import { type Rotation } from '../dungeons/rotation';
@@ -55,7 +56,7 @@ import type { SaveData } from '../save';
 import { buySupply, buySupplyProblem, isTavernUnlocked, offerLevel, recruit, recruitPrice, tavernOffers, type TavernSpawn } from '../taverns/taverns';
 import { claimFreePick } from '../taverns/freePick';
 import { currentHp, drinkPotion, drinkProblem, maxHp } from '../team/health';
-import { affinityOf, equip, equipPreview, hasPotionSlot, heroDamageStat, heroStats, isBusy, isOnExpedition, rosterFull, unequip } from '../team/team';
+import { affinityOf, equip, equipPreview, hasPotionSlot, heroDamageStat, heroStats, isBusy, isOnExpedition, isOnSupplyRun, rosterFull, unequip } from '../team/team';
 import { briefingCoverage } from '../threats/coverage';
 import { heroAnswers, type AnswersMember } from '../threats/answers';
 import { scoreThreat } from '../threats/score';
@@ -225,6 +226,8 @@ export type RunLog = {
   trophies: ({ day: number; source: LootSourceId } & TrophyDrop)[];
   /** The tier 5 boss was beaten before the profile's day cap. */
   finished: boolean;
+  /** What the supply lines did, when the run plays them; null otherwise. */
+  supply: SupplyLog | null;
 };
 
 /** One probe measurement: the best prepared party's odds, and for normal dungeons the same party with its consumable slots empty. */
@@ -282,6 +285,7 @@ export const emptyLog = (profile: string, seed: string): RunLog => ({
   stones: [],
   trophies: [],
   finished: false,
+  supply: null,
 });
 
 /** Everything met on a walk, at the tier it would have fought at. */
@@ -340,6 +344,8 @@ export type Sim = {
   rerolled: Set<string>;
   /** How this session's expedition search ended while expeditions were owed, and whether one launched. */
   expeditionStop: { reason: 'noParty' | 'hp' | 'odds' | null; launched: boolean };
+  /** The supply lines bot's state, when the run plays them (see supply.ts); null otherwise. */
+  supply: SupplySim | null;
   log: RunLog;
 };
 
@@ -405,7 +411,8 @@ export function act(sim: Sim, source: string, action: (save: SaveData) => SaveDa
 // —— Helpers ——
 
 export const highestTier = highestUnlockedTier;
-export const homeHeroes = (save: SaveData) => save.heroes.filter((h) => !isOnExpedition(save, h.id));
+/** Heroes the bot can dress and send: not on an expedition, and not out on the supply lines (cart crew, raid defenders). */
+export const homeHeroes = (save: SaveData) => save.heroes.filter((h) => !isOnExpedition(save, h.id) && !isOnSupplyRun(save, h.id));
 const gearOf = (save: SaveData, uid: string | null) => save.gear.find((g) => g.uid === uid);
 
 /** How much a Common piece with average dice adds to a hero: their damage stat for weapons and off-hands, armour, resistance and a share of HP for armour and helmets. */

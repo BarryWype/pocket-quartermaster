@@ -13,7 +13,7 @@ type Way = { points: LatLng[]; bbox: Bbox };
 type Area = { rings: LatLng[][]; bbox: Bbox };
 
 /** The parts of one map tile that decide where spawns may go. */
-export type WalkableTile = { ways: Way[]; areas: Area[]; water: Area[] };
+export type WalkableTile = { ways: Way[]; areas: Area[]; water: Area[]; green: Area[] };
 
 export type MapTile = { z: number; x: number; y: number };
 
@@ -67,6 +67,20 @@ export function classifyFeature(
   return null;
 }
 
+/** Whether an OpenMapTiles polygon counts as green, whatever else it is (see supply terrain). */
+export function isGreenArea(
+  layer: string,
+  props: Properties,
+  geometryType: number,
+  rules: WalkableRules = defaultRules,
+): boolean {
+  if (geometryType !== 3) return false;
+  const is = (list: string[], value: unknown) => list.includes(String(value));
+  if (layer === 'landcover') return is(rules.greenLandcoverClasses, props.class) && !is(rules.greenExcludedSubclasses, props.subclass);
+  if (layer === 'landuse') return is(rules.greenLanduseClasses, props.class);
+  return layer === 'park';
+}
+
 const toLatLng = ([longitude, latitude]: Position): LatLng => ({ latitude, longitude });
 
 function bboxOf(points: LatLng[]): Bbox {
@@ -93,7 +107,7 @@ function polygonsOf(geometry: Geometry): LatLng[][][] {
 /** Decodes a vector tile and keeps only what spawn placement needs. */
 export function decodeWalkableTile(bytes: Uint8Array, tile: MapTile, rules: WalkableRules = defaultRules): WalkableTile {
   const vectorTile = new VectorTile(new Pbf(bytes));
-  const result: WalkableTile = { ways: [], areas: [], water: [] };
+  const result: WalkableTile = { ways: [], areas: [], water: [], green: [] };
 
   for (const layerName of LAYERS) {
     const layer = vectorTile.layers[layerName];
@@ -101,13 +115,16 @@ export function decodeWalkableTile(bytes: Uint8Array, tile: MapTile, rules: Walk
     for (let i = 0; i < layer.length; i++) {
       const feature = layer.feature(i);
       const kind = classifyFeature(layerName, feature.properties, feature.type, rules);
-      if (!kind) continue;
+      const green = isGreenArea(layerName, feature.properties, feature.type, rules);
+      if (!kind && !green) continue;
       const geometry = feature.toGeoJSON(tile.x, tile.y, tile.z).geometry;
       if (kind === 'way') {
         for (const points of linesOf(geometry)) result.ways.push({ points, bbox: bboxOf(points) });
       } else {
         for (const rings of polygonsOf(geometry)) {
-          result[kind === 'area' ? 'areas' : 'water'].push({ rings, bbox: bboxOf(rings[0]) });
+          if (kind === 'area') result.areas.push({ rings, bbox: bboxOf(rings[0]) });
+          else if (kind === 'water') result.water.push({ rings, bbox: bboxOf(rings[0]) });
+          if (green) result.green.push({ rings, bbox: bboxOf(rings[0]) });
         }
       }
     }
@@ -127,7 +144,7 @@ function inBbox(bbox: Bbox, point: LatLng, marginMeters = 0) {
 }
 
 /** Even-odd ray casting over all rings, so holes count as outside. */
-function contains(area: Area, point: LatLng) {
+export function inArea(area: Area, point: LatLng) {
   if (!inBbox(area.bbox, point)) return false;
   let inside = false;
   for (const ring of area.rings) {
@@ -156,7 +173,7 @@ export function nearWater(tile: WalkableTile, point: LatLng, meters: number): bo
     y: (p.latitude - point.latitude) * METERS_PER_DEGREE,
   });
   for (const area of tile.water) {
-    if (contains(area, point)) return true;
+    if (inArea(area, point)) return true;
     if (!inBbox(area.bbox, point, meters)) continue;
     for (const ring of area.rings) {
       for (let i = 1; i < ring.length; i++) {
@@ -179,7 +196,7 @@ export function nearWater(tile: WalkableTile, point: LatLng, meters: number): bo
  * within `maxMeters`, else nowhere.
  */
 export function snapToWalkable(tile: WalkableTile, point: LatLng, maxMeters: number): LatLng | null {
-  if (tile.areas.some((area) => contains(area, point)) && !tile.water.some((area) => contains(area, point))) {
+  if (tile.areas.some((area) => inArea(area, point)) && !tile.water.some((area) => inArea(area, point))) {
     return point;
   }
 

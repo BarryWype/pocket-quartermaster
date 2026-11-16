@@ -37,9 +37,11 @@ import {
 import { isJobFull, isTired } from '@/game/jobs/jobs';
 import { includesWorking, recallWorkingHeroes } from '@/components/workingHeroes';
 import { JobsTab } from '@/components/JobsTab';
+import { NetworkTab } from '@/components/NetworkTab';
 import { jobs } from '@/content/jobs';
 import { isRevealed } from '@/game/reveal/reveal';
 import { supplyHeld } from '@/game/expeditions/provisions';
+import { campsAtCap } from '@/game/supply/production';
 import { briefingReadiness } from '@/game/threats/readiness';
 import type { SaveData } from '@/game/save';
 import type { ExpeditionReport } from '@/game/types';
@@ -53,11 +55,11 @@ import { deviceNotifications } from '@/services/notifications';
 import { currentRotation, debugEnabled, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { useSettingsStore } from '@/store/settingsStore';
+import { useSupplyOn } from '@/hooks/useSupply';
 import { fonts, ui } from '@/theme';
 import { timed } from '@/components/timed';
 
-type Tab = 'places' | 'out' | 'jobs';
-const TABS: Tab[] = ['places', 'out', 'jobs'];
+type Tab = 'places' | 'out' | 'jobs' | 'network';
 
 /** The tier diamonds' labels. */
 const ROMAN = ['I', 'II', 'III', 'IV', 'V'];
@@ -77,6 +79,9 @@ export function useExpeditionsRail(): { items: RailItem[]; initial: Tab } {
   // Stations full of output and tired workers, waiting on a check-in.
   const jobNews =
     jobs.filter((job) => isJobFull(save, job.id, now)).length + save.heroes.filter((hero) => isTired(save, hero, now)).length;
+  // Camps whose stock is full, waiting on a collection.
+  const supplyOn = useSupplyOn();
+  const atCap = supplyOn ? campsAtCap(save, now, useDebugStore.getState().supplyPeriodOffset) : 0;
   const items: RailItem[] = [
     {
       key: 'places',
@@ -86,6 +91,9 @@ export function useExpeditionsRail(): { items: RailItem[]; initial: Tab } {
     },
     { key: 'out', label: t('expeditions.tabs.out'), emoji: '🧭', badge: outBadge },
     { key: 'jobs', label: t('expeditions.tabs.jobs'), emoji: '🪓', badge: jobNews > 0 ? jobNews : undefined },
+    ...(supplyOn
+      ? [{ key: 'network', label: t('expeditions.tabs.network'), emoji: '🏠', badge: atCap > 0 ? atCap : undefined } as const]
+      : []),
   ];
   return { items, initial: ready.length > 0 ? 'out' : 'places' };
 }
@@ -117,10 +125,12 @@ function ExpeditionsContent() {
   const ready = readyExpeditions(save, now);
 
   const rail = useExpeditionsRail();
+  // The pager's pages follow the rail, so the Network page exists only while the switch is on.
+  const tabs = rail.items.map((item) => item.key as Tab);
   // The hero card opens the Jobs tab on a hero: tab=jobs preselects them in the assign picker.
   const { tab: tabParam, heroId } = useLocalSearchParams<{ tab?: string; heroId?: string }>();
   // Open on Out now when a team is back, so the loot is the first thing to see.
-  const [tab, setTabState] = useState<Tab>(() => (tabParam === 'jobs' ? 'jobs' : rail.initial));
+  const [tab, setTabState] = useState<Tab>(() => (tabParam === 'jobs' || tabParam === 'network' ? tabParam : rail.initial));
   const [tier, setTier] = useState<number | null>(null);
   /** The place whose notice was tapped: its party dialog is open. */
   const [confirming, setConfirming] = useState<string | null>(null);
@@ -142,16 +152,16 @@ function ExpeditionsContent() {
     setTabState(next);
   };
   const setTab = (next: Tab) => {
-    pager.current?.setPage(TABS.indexOf(next));
+    pager.current?.setPage(tabs.indexOf(next));
     showTab(next);
   };
   useFocusEffect(useCallback(() => () => markReportsSeen(), [markReportsSeen]));
 
   // A hero card's link can also land while the screen is open: follow its tab then.
   useEffect(() => {
-    if (tabParam === 'jobs')
+    if (tabParam === 'jobs' || tabParam === 'network')
       // eslint-disable-next-line react-hooks/set-state-in-effect -- navigation params are external input, not render state.
-      setTab('jobs');
+      setTab(tabParam);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- setTab comes from this render and is stable.
   }, [tabParam]);
 
@@ -374,7 +384,7 @@ function ExpeditionsContent() {
   );
 
   const pagerPages = useLazyPages({
-    keys: TABS,
+    keys: tabs,
     active: tab,
     variant: 'cards',
     render: (key) => (
@@ -390,7 +400,7 @@ function ExpeditionsContent() {
             <RewardLabel text={readyBanner} size={16} labelStyle={styles.bannerText} />
           </PressScale>
         )}
-        {key === 'places' ? placesTab : key === 'out' ? outTab : <JobsTab key={heroId ?? 'none'} preselect={heroId ?? null} />}
+        {key === 'places' ? placesTab : key === 'out' ? outTab : key === 'jobs' ? <JobsTab key={heroId ?? 'none'} preselect={heroId ?? null} /> : <NetworkTab />}
       </ScrollView>
     ),
   });
@@ -402,8 +412,8 @@ function ExpeditionsContent() {
         <PagerView
           ref={pager}
           style={styles.pager}
-          initialPage={TABS.indexOf(initialTab)}
-          onPageSelected={({ nativeEvent }) => showTab(TABS[nativeEvent.position])}
+          initialPage={tabs.indexOf(initialTab)}
+          onPageSelected={({ nativeEvent }) => showTab(tabs[nativeEvent.position])}
         >
           {pagerPages}
         </PagerView>

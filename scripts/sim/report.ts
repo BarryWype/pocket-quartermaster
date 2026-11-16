@@ -402,6 +402,27 @@ function jobsTable(s: ProfileSummary) {
   return table(['Tier', 'Wood walked/day', 'Wood spent/day', 'Woodcutter/day', `Woodcutter share (target ${range(targets.woodcutterShare, pct)})`], rows);
 }
 
+/** The supply lines on a `--supply-lines` run: the cart's deliveries against walking, ambushes and raids, and hero time. */
+function supplyTable(s: ProfileSummary) {
+  const supply = s.supply!;
+  const outcomes = (o: Record<'won' | 'lost' | 'unguarded', { median: number | null }>) =>
+    `${n(o.won.median, 1)} won · ${n(o.lost.median, 1)} lost · ${n(o.unguarded.median, 1)} unguarded`;
+  const share = supply.walkedPerDay.median ? (supply.deliveredPerDay.median ?? 0) / supply.walkedPerDay.median : null;
+  return table(
+    ['Measure', 'Median over seeds'],
+    [
+      ['Camps founded', n(supply.camps.median, 0)],
+      ['Delivered by the cart / day (units)', n(supply.deliveredPerDay.median, 1)],
+      ['Walked / day (wood, meat, hide, bone)', n(supply.walkedPerDay.median, 1)],
+      ['Cart against walking', pct(share)],
+      ['Ambushes / week', outcomes(supply.ambushesPerWeek)],
+      ['Raids / week', outcomes(supply.raidsPerWeek)],
+      ['Hero-hours posted / day', n(supply.postedHoursPerDay.median, 1)],
+      ['Hero-hours on the cart / day', n(supply.cartHoursPerDay.median, 1)],
+    ],
+  );
+}
+
 /** Each job's material over each tier: what walking brought in, what the job added, and the job's share of the walk. */
 function jobsVsWalking(s: ProfileSummary) {
   const rows = s.tiers.flatMap((t) =>
@@ -711,6 +732,15 @@ export function renderReport({ summaries, rules, settings, difficultyOdds, famil
     for (const s of summaries) out.push(`### ${s.profile}`, '', baselineTable(s, baseline));
   } else {
     out.push('Days per tier before jobs: run with `--no-jobs` for a baseline, then pass that summary with `--baseline <summary.json>`.', '');
+  }
+  if (summaries.some((s) => s.supply)) {
+    out.push(
+      '## Supply lines',
+      '',
+      'Played with `--supply-lines` (doc/design/supply-lines/). The bot places the hall at home, founds a camp on the richest cell of each walk, defends an announced raid when its odds pass the profile threshold, and at the day’s last session sends the cart round every camp (one spare escort) and posts the heroes still home, recalling them the next morning. Deliveries go straight into the stock, outside the material flows above (the walking columns still mean walking), but the bot spends them like any material, so days per tier can move against a run without the flag.',
+      '',
+    );
+    for (const s of summaries) if (s.supply) out.push(`### ${s.profile}`, '', supplyTable(s), '');
   }
   out.push('## Hero levels at the end of each tier', '');
   for (const s of summaries) out.push(`### ${s.profile}`, '', levels(s));

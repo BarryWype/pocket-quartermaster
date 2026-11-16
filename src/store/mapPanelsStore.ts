@@ -3,6 +3,8 @@ import { create } from 'zustand';
 import type { PlaceSpawn } from '@/game/places/generate';
 import type { PatrolSpawn } from '@/game/patrols/generate';
 import type { SanctumSpawn } from '@/game/sanctums/sanctums';
+import type { routePreview } from '@/game/supply/cart';
+import type { RoutePoint } from '@/game/supply/types';
 import type { TavernSpawn } from '@/game/taverns/taverns';
 
 import { useWorldStore } from './worldStore';
@@ -17,16 +19,41 @@ type MapPanelsState = {
   tavern: TavernSpawn | null;
   place: PlaceSpawn | null;
   patrol: PatrolSpawn | null;
+  /** The supply cell sheet's cell, or the camp sheet's camp id. */
+  supplyCell: string | null;
+  supplyCamp: string | null;
+  /** The cart's sheet. */
+  cartOpen: boolean;
+  /** The route being drawn in the map's planner, or null when it is closed. */
+  routeDraft: RoutePoint[] | null;
+  /** The planner's last preview of the draft (length, time, each crossed cell's danger), shared with the map's route layer. */
+  draftPreview: ReturnType<typeof routePreview> | null;
   openSanctum: (spawn: SanctumSpawn) => void;
   openTavern: (tavern: TavernSpawn) => void;
   openPlace: (place: PlaceSpawn) => void;
   /** Also lets go of a notification's held camera: the patrol was picked by hand. */
   openPatrol: (spawn: PatrolSpawn) => void;
+  openSupplyCell: (cell: string) => void;
+  openSupplyCamp: (id: string) => void;
+  openCart: () => void;
+  /** Opens the map's route planner on a starting route, closing the cart's sheet. */
+  planRoute: (route: RoutePoint[]) => void;
+  /** Appends a point to the planner's draft. */
+  addToRoute: (point: RoutePoint) => void;
+  /** Drops the draft's last point. */
+  undoRoute: () => void;
+  /** Empties the draft, keeping the planner open. */
+  clearRoute: () => void;
+  setDraftPreview: (preview: ReturnType<typeof routePreview> | null) => void;
   closeSanctum: () => void;
   closeTavern: () => void;
   closePlace: () => void;
   /** Also lets go of a notification's held camera. */
   closePatrol: () => void;
+  closeSupplyCell: () => void;
+  closeSupplyCamp: () => void;
+  closeCart: () => void;
+  cancelRoute: () => void;
 };
 
 export const useMapPanels = create<MapPanelsState>()((set) => ({
@@ -34,6 +61,11 @@ export const useMapPanels = create<MapPanelsState>()((set) => ({
   tavern: null,
   place: null,
   patrol: null,
+  supplyCell: null,
+  supplyCamp: null,
+  cartOpen: false,
+  routeDraft: null,
+  draftPreview: null,
   openSanctum: (spawn) => set({ sanctum: spawn }),
   openTavern: (tavern) => set({ tavern }),
   openPlace: (place) => set({ place }),
@@ -41,6 +73,14 @@ export const useMapPanels = create<MapPanelsState>()((set) => ({
     set({ patrol: spawn });
     useWorldStore.getState().set({ focusPatrol: null });
   },
+  openSupplyCell: (cell) => set({ supplyCell: cell, supplyCamp: null }),
+  openSupplyCamp: (id) => set({ supplyCamp: id, supplyCell: null }),
+  openCart: () => set({ cartOpen: true }),
+  planRoute: (route) => set({ routeDraft: route, cartOpen: false }),
+  addToRoute: (point) => set((state) => ({ routeDraft: [...(state.routeDraft ?? []), point] })),
+  undoRoute: () => set((state) => ({ routeDraft: state.routeDraft?.slice(0, -1) ?? null })),
+  clearRoute: () => set({ routeDraft: [] }),
+  setDraftPreview: (draftPreview) => set({ draftPreview }),
   closeSanctum: () => set({ sanctum: null }),
   closeTavern: () => set({ tavern: null }),
   closePlace: () => set({ place: null }),
@@ -48,4 +88,8 @@ export const useMapPanels = create<MapPanelsState>()((set) => ({
     set({ patrol: null });
     useWorldStore.getState().set({ focusPatrol: null });
   },
+  closeSupplyCell: () => set({ supplyCell: null }),
+  closeSupplyCamp: () => set({ supplyCamp: null }),
+  closeCart: () => set({ cartOpen: false }),
+  cancelRoute: () => set({ routeDraft: null, draftPreview: null }),
 }));

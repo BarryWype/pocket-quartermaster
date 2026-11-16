@@ -13,6 +13,7 @@ import { GameIcon } from '@/components/GameIcon';
 import { IconLabel } from '@/components/IconLabel';
 import { HpBar } from '@/components/HpBar';
 import { Text } from '@/components/Text';
+import { TradeLabel } from '@/components/TradeLabel';
 import { Tip } from '@/components/Tip';
 import { TutorialHint } from '@/components/TutorialHint';
 import { AnchoredPopup, Chip, Deferred, GhostScreen, ItemSlot, ScreenHeader, SwipeTabs, WoodButton, WoodPanel, type PopupAnchor, type PopupLine } from '@/components/ui';
@@ -294,6 +295,7 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
               </Tip>
             )}
             <SpecialLabel classId={hero.classId} special={hero.special} />
+            <TradeLabel trade={hero.trade.id} hours={hero.trade.hours} />
           </View>
         </View>
       </View>

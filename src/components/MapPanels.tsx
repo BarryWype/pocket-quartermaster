@@ -11,8 +11,12 @@ import { useWorldStore } from '@/store/worldStore';
 import { PatrolPanel } from './PatrolPanel';
 import { PlaceFightPanel } from './PlaceFightPanel';
 import { PlacePanel } from './PlacePanel';
+import { RoutePlannerBar } from './RoutePlannerBar';
 import { SanctumPanel } from './SanctumPanel';
 import { SecretPanel } from './SecretPanel';
+import { SupplyCampPanel } from './SupplyCampPanel';
+import { SupplyCartPanel } from './SupplyCartPanel';
+import { SupplyCellPanel } from './SupplyCellPanel';
 import { TavernPanel } from './TavernPanel';
 import { TravellerPanel } from './TravellerPanel';
 
@@ -23,6 +27,9 @@ const TimedSecretPanel = timed('panel: secret', SecretPanel);
 const TimedTavernPanel = timed('panel: tavern', TavernPanel);
 const TimedTravellerPanel = timed('panel: traveller', TravellerPanel);
 const TimedPatrolPanel = timed('panel: patrol', PatrolPanel);
+const TimedSupplyCellPanel = timed('panel: supply cell', SupplyCellPanel);
+const TimedSupplyCampPanel = timed('panel: supply camp', SupplyCampPanel);
+const TimedSupplyCartPanel = timed('panel: supply cart', SupplyCartPanel);
 
 type Props = {
   player: LatLng;
@@ -45,10 +52,17 @@ export function MapPanels({ player, patrols }: Props) {
   const openPlace = useMapPanels((state) => state.place);
   const openTavern = useMapPanels((state) => state.tavern);
   const openPatrol = useMapPanels((state) => state.patrol);
+  const supplyCell = useMapPanels((state) => state.supplyCell);
+  const supplyCamp = useMapPanels((state) => state.supplyCamp);
   const closeSanctum = useMapPanels((state) => state.closeSanctum);
   const closePlace = useMapPanels((state) => state.closePlace);
   const closeTavern = useMapPanels((state) => state.closeTavern);
   const closePatrol = useMapPanels((state) => state.closePatrol);
+  const closeSupplyCell = useMapPanels((state) => state.closeSupplyCell);
+  const closeSupplyCamp = useMapPanels((state) => state.closeSupplyCamp);
+  const cartOpen = useMapPanels((state) => state.cartOpen);
+  const closeCart = useMapPanels((state) => state.closeCart);
+  const routeDraft = useMapPanels((state) => state.routeDraft);
   const focusPatrol = useWorldStore((state) => state.focusPatrol);
   const focusedPatrol = focusPatrol ? (patrols.find((spawn) => spawn.id === focusPatrol.id) ?? null) : null;
   const selectedPatrol = openPatrol ?? focusedPatrol;
@@ -70,6 +84,10 @@ export function MapPanels({ player, patrols }: Props) {
       {selectedPatrol && isTravellerKind(selectedPatrol.kind) && (
         <TimedTravellerPanel spawn={selectedPatrol} player={player} now={now} onClose={closePatrol} />
       )}
+      {supplyCell && <TimedSupplyCellPanel cell={supplyCell} player={player} onClose={closeSupplyCell} />}
+      {supplyCamp && <TimedSupplyCampPanel id={supplyCamp} player={player} onClose={closeSupplyCamp} />}
+      {cartOpen && <TimedSupplyCartPanel onClose={closeCart} />}
+      {routeDraft !== null && <RoutePlannerBar />}
     </>
   );
 }

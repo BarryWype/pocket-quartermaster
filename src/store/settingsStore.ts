@@ -29,11 +29,13 @@ type SettingsState = {
   animations: MotionLevel;
   /** Haptic feedback on presses, rewards and crafts. */
   haptics: boolean;
+  /** The experimental supply-lines feature, off by default. */
+  supplyLines: boolean;
   updateNotifications: (change: Partial<NotificationSettings>) => void;
   setCategory: (category: NotificationCategory, on: boolean) => void;
   setQuietHours: (change: Partial<NotificationSettings['quietHours']>) => void;
   setPocketMode: (change: Partial<PocketModeSettings>) => void;
-  set: (change: Partial<Pick<SettingsState, 'language' | 'stepAlertLog' | 'askedNotificationPermission' | 'sightRange' | 'animations' | 'haptics'>>) => void;
+  set: (change: Partial<Pick<SettingsState, 'language' | 'stepAlertLog' | 'askedNotificationPermission' | 'sightRange' | 'animations' | 'haptics' | 'supplyLines'>>) => void;
 };
 
 export const useSettingsStore = create<SettingsState>()(
@@ -47,6 +49,7 @@ export const useSettingsStore = create<SettingsState>()(
       pocketMode: { enabled: false, autoGather: true, patrolAlerts: true, escort: true, autoStopMinutes: gatheringConfig.autoGather.autoStopMinutes, introSeen: false },
       animations: 'full',
       haptics: true,
+      supplyLines: false,
       updateNotifications: (change) => set(({ notifications }) => ({ notifications: { ...notifications, ...change } })),
       setCategory: (category, on) =>
         set(({ notifications }) => ({
@@ -63,7 +66,7 @@ export const useSettingsStore = create<SettingsState>()(
       name: 'pocket-quartermaster-settings',
       version: 3,
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: ({ language, notifications, stepAlertLog, askedNotificationPermission, sightRange, pocketMode, animations, haptics }) => ({
+      partialize: ({ language, notifications, stepAlertLog, askedNotificationPermission, sightRange, pocketMode, animations, haptics, supplyLines }) => ({
         language,
         notifications,
         stepAlertLog,
@@ -72,6 +75,7 @@ export const useSettingsStore = create<SettingsState>()(
         pocketMode,
         animations,
         haptics,
+        supplyLines,
       }),
       // v3 folded auto-gather into Pocket mode; `merge` fills in its defaults.
       migrate: (persisted, version) =>

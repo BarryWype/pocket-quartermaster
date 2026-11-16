@@ -18,6 +18,7 @@ import {
   type TravellerReward,
 } from '@/game/patrols/travellers';
 import { distanceTo } from '@/game/patrols/visibility';
+import { rolledTrade } from '@/game/supply/trades';
 import { LootGrid } from '@/components/LootGrid';
 import { lootTiles, type RewardTile } from '@/game/loot/tiles';
 import { localized, t, tr } from '@/i18n';
@@ -32,6 +33,7 @@ import { EmberButton, WoodButton } from './ui';
 import { RecruitGrade } from './RecruitGrade';
 import { SpecialLabel } from './SpecialLabel';
 import { Text } from './Text';
+import { TradeLabel } from './TradeLabel';
 
 const helpProblemText: Record<'tooFar' | 'gone' | 'noStock', (distance: number) => string> = {
   tooFar: (distance) => t('patrols.walkCloser', { distance: Math.round(distance) }),
@@ -202,6 +204,7 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
                   <Text style={[styles.trait, { color: traitById[recruit.trait].positive ? colors.ink : colors.danger }]}>
                     {tr(traitById[recruit.trait].name)}: {tr(traitById[recruit.trait].description)}
                   </Text>
+                  <TradeLabel trade={rolledTrade(recruit.id)} />
                   <SpecialLabel classId={recruit.classId} special={recruit.special} />
                   <View style={styles.actions}>
                     <EmberButton title={t('patrols.accept')} compact onPress={() => { acceptTravellerRecruit(recruit); onClose(); }} />

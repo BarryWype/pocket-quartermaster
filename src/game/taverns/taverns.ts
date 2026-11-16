@@ -13,6 +13,7 @@ import { distanceMeters } from '../generation/geo';
 import { createRng, type Rng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { placeGroupOf, placesAround, type PlaceSpawn } from '../places/generate';
+import { rolledTrade } from '../supply/trades';
 import type { SaveData } from '../save';
 import { rosterFull } from '../team/team';
 import { rolledSpecial } from '../team/specials';
@@ -207,7 +208,7 @@ export function recruitProblem(
 export function recruit(save: SaveData, offer: RecruitOffer, tavern: LatLng, player: LatLng): SaveData {
   const problem = recruitProblem(save, offer, tavern, player);
   if (problem) throw new Error(`Cannot recruit ${offer.name}: ${problem}`);
-  const hero = { ...newHero(`h${save.nextUid}`, offer.name, offer.classId, offer.trait, offer.level, offer.special), roll: offer.roll };
+  const hero = { ...newHero(`h${save.nextUid}`, offer.name, offer.classId, offer.trait, offer.level, offer.special, rolledTrade(offer.id)), roll: offer.roll };
   return {
     ...save,
     gold: save.gold - offer.price,

@@ -3,7 +3,7 @@ import { createInitialSave, type SaveData } from '../save';
 import { equip } from '../team/team';
 import { briefingCoverage } from '../threats/coverage';
 import type { Briefing, ThreatId } from '../types';
-import { dressWith, dropSwaps, forgeChoices, gearChoices, heroChoices, heroStatus, hintTypes, partyBanners, prunedDraft, slotHints, socketGroups } from './party';
+import { dressWith, dropSwaps, forgeChoices, gearChoices, heroChoices, heroStatus, hintTypes, canJoin, partyBanners, prunedDraft, slotHints, socketGroups } from './party';
 
 // The starting trio: Bram (warrior), Lyra (ranger), Mira (fire mage), with these pieces owned, none worn.
 const saveWith = (...itemIds: string[]): SaveData => {
@@ -146,6 +146,29 @@ describe('hero choices', () => {
     };
     expect(heroStatus(out, out.heroes.find((h) => h.id === 'mira')!, 0)).toEqual({ kind: 'out', ms: 2_400_000 });
     expect(heroChoices(out, [], [], 0).map((c) => c.hero.id).at(-1)).toBe('mira');
+  });
+
+  it('greys a posted hero as posted, and the send recalls them', () => {
+    const base = saveWith();
+    const camp = {
+      id: 'c1',
+      kind: 'timber',
+      cell: 'x',
+      terrain: 'green',
+      foundedAt: 0,
+      heroId: 'lyra',
+      postedAt: 0,
+      stock: {},
+      progress: 0,
+      made: 0,
+      settledAt: 0,
+      inspectedUntil: 0,
+      closedUntil: 0,
+    } as SaveData['supply']['camps'][number];
+    const posted: SaveData = { ...base, supply: { ...base.supply, camps: [camp] } };
+    const status = heroStatus(posted, posted.heroes.find((h) => h.id === 'lyra')!, 0);
+    expect(status).toEqual({ kind: 'posted' });
+    expect(canJoin(status)).toBe(true);
   });
 });
 

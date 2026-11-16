@@ -7,7 +7,7 @@ import { createRng } from '../generation/rng';
 import { addMaterials } from '../inventory';
 import { currentHp, maxHp, withHp } from '../team/health';
 import type { JobOutput, SaveData } from '../save';
-import { isAway } from '../team/team';
+import { isAway, isPosted } from '../team/team';
 import type { GearDef, HeroState } from '../types';
 import { gathererCapNodes, gathererDetail, gathererFullAt, gathererNodesNow, anchorsKeepFrom, pruneAnchors, type GathererWound } from './gatherer';
 
@@ -255,7 +255,7 @@ export function assignProblem(save: SaveData, heroId: string, jobId: string, now
   if (!isJobOpen(save, jobId)) return 'closed';
   const hero = save.heroes.find((h) => h.id === heroId);
   if (!hero || isAway(save, heroId)) return 'away';
-  if (hero.job) return 'working';
+  if (hero.job || isPosted(save, heroId)) return 'working';
   if (jobWorker(save, jobId)) return 'taken';
   return null;
 }

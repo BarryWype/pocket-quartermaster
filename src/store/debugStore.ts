@@ -55,6 +55,10 @@ type DebugSettings = {
   noScreenAnimation: boolean;
   /** Patrol and auto-gather intervals pause while a screen other than the map is open. */
   pauseBackgroundHooks: boolean;
+  /** Added to the supply-lines richness period, to skip ahead. */
+  supplyPeriodOffset: number;
+  /** Shows the supply-lines danger level of the cells in view. */
+  showDanger: boolean;
 };
 
 type DebugState = DebugSettings & {
@@ -90,6 +94,8 @@ const DEBUG_DEFAULTS: DebugSettings = {
   noContentDeferral: false,
   noScreenAnimation: false,
   pauseBackgroundHooks: false,
+  supplyPeriodOffset: 0,
+  showDanger: false,
 };
 
 export const useDebugStore = create<DebugState>()(

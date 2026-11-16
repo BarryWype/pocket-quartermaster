@@ -34,4 +34,10 @@ export const frTipTexts: typeof tipTexts = {
   jobCharcoalBurner: 'Le Charbonnier est ouvert à la guilde : un héros y fait du charbon en votre absence.',
   jobGatherer:
     'Le cueilleur des environs travaille autour de vous : un héros ramasse les ressources que vous voyez sur la carte, la plus proche d’abord, environ 4 par heure au plus. Il donne le meilleur en mode Poche, pendant que vous marchez. Choisissez une cible si vous manquez d’un matériau. Le travail dehors fatigue plus vite, et la faune peut blesser un peu le héros.',
+  supplyHall: 'Lignes de ravitaillement : touchez la carte, ou votre propre repère, pour placer votre hall. Tout ce que votre réseau rapporte y arrive.',
+  supplyScout: 'Marchez pour explorer : chaque case traversée montre sa richesse en points quand vous zoomez. Les points verts sont le bois, les bruns le gibier.',
+  supplyCamps: 'Fondez un camp là où vous êtes : ouvrez la fiche de votre case sur une bonne terre. Un camp produit des matériaux avec le temps.',
+  supplyCampSheet: 'Les gens du coin travaillent lentement un camp vide. Postez un héros pour le plein rendement, plus avec le bon métier. Récoltez sur place pour l’inspecter : +25 % pendant un jour.',
+  supplyPlanner: 'Touchez les camps dans l’ordre, et des cases explorées comme étapes pour contourner le danger. Les cases inexplorées comptent comme risquées.',
+  supplyRaid: 'Des pillards arrivent : envoyez des défenseurs avant leur arrivée, videz le camp, ou laissez faire. Un Guetteur posté là apprend les raids plus tôt.',
 };

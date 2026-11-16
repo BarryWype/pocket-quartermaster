@@ -15,14 +15,17 @@ import { ScreenHeader } from '@/components/ui';
 import { SecretToast } from '@/components/SecretToast';
 import { TipBar } from '@/components/TipBar';
 import { useAutoGather } from '@/hooks/useAutoGather';
+import { useCartTick } from '@/hooks/useCartTick';
 import { useLanguage } from '@/hooks/useLanguage';
 import { syncPlan, useNotifications } from '@/hooks/useNotifications';
 import { usePatrols } from '@/hooks/usePatrols';
+import { useScouting } from '@/hooks/useScouting';
 import { useStepTracking } from '@/hooks/useTodaySteps';
 import { t } from '@/i18n';
 import { configureChannels, configureNotifications } from '@/services/notifications';
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { colors, fonts, ui } from '@/theme';
 
 configureNotifications();
@@ -40,6 +43,8 @@ const BackgroundServices = memo(function BackgroundServices() {
   const paused = useDebugStore((s) => debugEnabled(s) && s.pauseBackgroundHooks) && pathname !== '/';
   useAutoGather(paused);
   usePatrols(paused);
+  useScouting();
+  useCartTick();
   return null;
 });
 
@@ -66,6 +71,7 @@ function useUpkeep() {
       useGameStore.getState().resolvePatrolFights();
       useGameStore.getState().resolvePlaces();
       useGameStore.getState().train();
+      if (useSettingsStore.getState().supplyLines) useGameStore.getState().settleSupply();
     };
     const unsubscribeHydration = useGameStore.persist.onFinishHydration(upkeep);
     if (useGameStore.persist.hasHydrated()) upkeep();

@@ -6,13 +6,15 @@ import { gearRules } from "@/content/gear";
 import { affixById } from "@/content/affixes";
 import { gearStats } from "./gear/stats";
 import { uniquePool } from "./gear/uniques";
-import { migrateSave, toV38, toV39, toV40, toV41, toV42, toV43, toV44, toV47, toV48, toV49, toV50 } from "./migrations";
+import { migrateSave, toV38, toV39, toV40, toV41, toV42, toV43, toV44, toV47, toV48, toV49, toV50, toV52 } from "./migrations";
 import { affixPool } from "./gear/affixes";
 import { emptyLoot } from "./loot/types";
 import type { Briefing, ExpeditionReport, GearDef, GearInstance } from "./types";
 import { createInitialSave, type SaveData } from "./save";
 import type { Quest } from "./quests/types";
 import { rolledSpecial } from "./team/specials";
+import { rolledTrade } from "./supply/trades";
+import { emptySupply } from "./supply/state";
 import { rosterCap } from "./guild/guild";
 import { rosterRules } from "@/content/roster";
 
@@ -1033,5 +1035,48 @@ describe("toV50", () => {
   it("keeps a save already on version 50 as it is", () => {
     const save = toV50({ ...createInitialSave(), gear: [] });
     expect(toV50(save)).toBe(save);
+  });
+});
+
+describe("toV52", () => {
+  const NOW = 123_456;
+
+  /** A version 51 save: no supply state, and heroes without a trade. */
+  const v51 = (): SaveData => {
+    const base = createInitialSave();
+    const heroes = base.heroes.map(({ trade: _trade, ...hero }) => hero);
+    const other = { ...heroes[0], id: "h9", name: "Other" };
+    const { supply: _supply, ...rest } = { ...base, heroes: [...heroes, other] } as SaveData;
+    return rest as SaveData;
+  };
+
+  it("gives the trio their starting trades, anyone else a roll from their own id", () => {
+    const next = migrateSave(v51(), 51, NOW);
+    const byId = Object.fromEntries(next.heroes.map((hero) => [hero.id, hero]));
+    expect(byId.bram.trade).toEqual({ id: "woodcutter", hours: 0 });
+    expect(byId.lyra.trade).toEqual({ id: "trapper", hours: 0 });
+    expect(byId.mira.trade).toEqual({ id: "teamster", hours: 0 });
+    expect(byId.h9.trade).toEqual({ id: rolledTrade("h9"), hours: 0 });
+  });
+
+  it("adds the empty supply state and changes nothing else", () => {
+    const save = v51();
+    const next = migrateSave(save, 51, NOW);
+    expect(next.supply).toEqual(emptySupply(NOW));
+    expect(next.heroes).toHaveLength(save.heroes.length);
+    next.heroes.forEach((hero, i) => {
+      const { trade: _trade, ...rest } = hero;
+      expect(rest).toEqual(save.heroes[i]);
+    });
+    const { supply: _supply, heroes: _heroes, ...rest } = next;
+    const old: Partial<SaveData> = { ...save };
+    delete old.supply;
+    delete old.heroes;
+    expect(rest).toEqual(old);
+  });
+
+  it("is a no-op the second time", () => {
+    const once = migrateSave(v51(), 51, NOW);
+    expect(toV52(once, NOW)).toBe(once);
   });
 });

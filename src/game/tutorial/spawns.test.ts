@@ -26,6 +26,7 @@ const tile: WalkableTile = {
   ],
   areas: [],
   water: [],
+  green: [],
 };
 
 const atStep = (step: SaveData['tutorial']['step']): SaveData => ({
