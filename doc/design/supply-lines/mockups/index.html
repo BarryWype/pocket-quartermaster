@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Supply network mockups</title>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="mockups.css">
+</head>
+<body>
+<div class="page">
+  <h1>The supply network · mockups for review</h1>
+  <p class="lead">Step 1 of <code>Claude outputs/supply-network-prompts.md</code>: one page per screen, in the order asked, each at phone width (390) with its empty, normal and full states, the questions it answers at a glance (numbered on the phones) and the decisions to confirm. No screen is built until these are approved. Numbers are placeholders; the layout and wording are what's up for review.</p>
+
+  <div class="notes" style="margin-top: 0">
+    <section>
+      <h3>Screens</h3>
+      <ol>
+        <li><a href="SiteSheet.html" style="color: var(--keyword, #2E4E8A)">A site's sheet</a>: undiscovered, discovered, can't build, built.</li>
+        <li><a href="BuildingSheet.html" style="color: #2E4E8A">A building's sheet</a>: just built, running, full with a raid.</li>
+        <li><a href="OrderSheet.html" style="color: #2E4E8A">A place's order sheet</a>: just discovered, under way, filled.</li>
+        <li><a href="RoutePlanner.html" style="color: #2E4E8A">The route planner</a>: stops (empty and normal), order, result.</li>
+        <li><a href="NetworkTab.html" style="color: #2E4E8A">The Network tab</a>: empty, normal, full with trouble.</li>
+        <li><a href="MapNetwork.html" style="color: #2E4E8A">The network on the map</a>: street zoom, zoomed out with the Network filter, legend.</li>
+      </ol>
+    </section>
+    <section>
+      <h3>One vocabulary, everywhere</h3>
+      <ul>
+        <li><b>Nouns:</b> site, building, place, order, cart, stop, hall. Buildings: farm, quarry, herb garden.</li>
+        <li><b>Verbs:</b> Discover, Build, Post, Deliver, Collect.</li>
+        <li><b>Time:</b> "Leaves in 2 days 4 h", in the timer strip under every temporary sheet's header; "LAST DAY" and ⏳ in its last day.</li>
+        <li><b>Goods:</b> one icon each, everywhere: 🌾 grain (no pixel icon yet), stone, herbs, berries, mushrooms, meat. Counts beside the icon.</li>
+        <li><b>French:</b> chantier (site), bâtiment, lieu, commande, charrette, étape, hall; Découvrir, Bâtir, Poster, Livrer, Récolter. Ferme, carrière, jardin d'herbes.</li>
+      </ul>
+    </section>
+    <section>
+      <h3>Shared rules the mockups follow</h3>
+      <ul>
+        <li><b>One ember button per screen:</b> the next useful step. Every other action is wood.</li>
+        <li><b>Every disabled button</b> has a one-line reason beneath it.</li>
+        <li><b>Flow, left to right:</b> worker → goods → stock → cart on a building; buildings → cart → places on the Network tab; hall → stops → hall in the planner.</li>
+        <li><b>Never colour alone:</b> last day = ember + ⏳ + "LAST DAY"; full = gold bar + "FULL"; filled = ✓; not visited = 👣; risky street = hatched + "risky".</li>
+        <li><b>Two taps from the map</b> to build (site → Build), post (building → Post a hero) or add a stop (building or place → Add to the cart's route).</li>
+        <li><b>Built from existing pieces:</b> Sheet, Overlay, ParchmentCard, WoodButton, EmberButton, ItemSlot / LootGrid tiles, Price, FillBar, the diamond markers and DifficultyRing.</li>
+      </ul>
+    </section>
+    <section>
+      <h3>Biggest decisions to confirm</h3>
+      <ul>
+        <li><b>A built site is its building:</b> one marker, one sheet.</li>
+        <li><b>The planner becomes a guided sheet</b>; the trial's tap-on-map planning mode goes.</li>
+        <li><b>The order lives at the top of the place's own sheet</b>, above its shop.</li>
+        <li><b>Rewards are claimed with a tap</b> per step, through the loot grid.</li>
+        <li><b>The time ring is an outer arc</b> drawn by DifficultyRing, outside any difficulty ring.</li>
+        <li><b>The Network chip</b> also shows the hall's building reach as a dashed circle.</li>
+      </ul>
+    </section>
+  </div>
+</div>
+</body>
+</html>

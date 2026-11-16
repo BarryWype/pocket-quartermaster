@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Order sheet</title>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="mockups.css">
+</head>
+<body>
+<div class="page">
+  <h1>3 · A place's order sheet</h1>
+  <p class="lead">Taverns, smithies, apothecaries and markets, once visited. The order is the top of the place's sheet; its shop and other actions stay below it, as today. Top to bottom, as the prompt asks: place and time left, the headline reward, the bar with its steps, what it wants, what's on its way, then the two actions. <a href="index.html">All mockups</a></p>
+
+  <div class="states">
+    <!-- Empty -->
+    <div class="state">
+      <h2>Just discovered</h2>
+      <p>Empty state: nothing delivered, and nothing you make fits yet, so the wants say how to start.</p>
+      <div class="phone">
+        <div class="map"></div><div class="dim"></div>
+        <div class="sheet">
+          <div class="sheet-head"><span class="grip"></span>
+            <div class="mk" style="position: static; transform: none"><div class="dia"><span class="em">🍺</span></div></div>
+            <h3>The Rusty Tankard<span class="sub">Tavern · you are here</span></h3>
+          </div>
+          <div class="timer"><span class="glass">⏳</span><span>Leaves in 5 days 2 h</span><span class="pin">1</span></div>
+          <div class="sheet-body" style="gap: 10px">
+            <div class="row" style="gap: 12px">
+              <div class="tile headline"><img src="../../../../assets/icons/meals/board-cheese-mixed.png" alt=""></div>
+              <div style="flex: 1"><span class="label">Innkeeper's hamper</span><br><span class="small">Expedition supply: +10% party HP for one run. <b>Only from orders.</b></span><br><span class="small muted">For filling the order</span></div>
+              <span class="pin">2</span>
+            </div>
+            <div>
+              <div class="bar"><div class="fill" style="width: 0%"></div><span class="step" style="left: 25%"></span><span class="step" style="left: 50%"></span></div>
+              <div class="row" style="justify-content: space-between; margin-top: 6px">
+                <span class="small b">0%</span>
+                <div class="row small"><span>25%</span><div class="tile" style="width: 40px; height: 40px"><img src="../../../../assets/icons/tavern/coins-gold.png" alt="" style="width: 28px; height: 28px"><span class="count">40</span></div></div>
+                <div class="row small"><span>50%</span><div class="tile" style="width: 40px; height: 40px"><img src="../../../../assets/icons/meals/meal-steak-bread.png" alt="" style="width: 28px; height: 28px"><span class="count">×2</span></div></div>
+                <div class="row small"><span>100%</span><div class="tile rare" style="width: 40px; height: 40px"><img src="../../../../assets/icons/meals/board-cheese-mixed.png" alt="" style="width: 28px; height: 28px"></div></div>
+              </div>
+              <span class="pin">3</span>
+            </div>
+            <div class="card inset">
+              <div class="spread"><span class="label">Wants</span><span class="price small"><span class="coin"></span> 6 each</span><span class="pin">4</span></div>
+              <div class="spread"><span class="good"><span class="em">🌾</span>Grain</span><span class="b">40 needed</span></div>
+              <div class="spread"><span class="good"><img src="../../../../assets/icons/alchemy/food-raw-meat.png" alt="">Meat</span><span class="b">10 needed</span></div>
+              <div class="banner info small"><span class="em">🌾</span><span>None of your buildings make grain yet. <b>Build a farm</b> on a site.</span></div>
+            </div>
+            <div class="action"><span class="wbtn small off">Deliver from my bag</span><p class="why">You carry no grain or meat.</p></div>
+            <div class="action"><span class="wbtn small off">Add to the cart's route</span><p class="why">Nothing on the route makes grain or meat yet.</p><span class="pin">6</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Normal -->
+    <div class="state">
+      <h2>Under way</h2>
+      <p>Normal state: 40% filled, the first step reached and waiting to be claimed, the cart bringing more (striped on the bar).</p>
+      <div class="phone">
+        <div class="map"></div><div class="dim"></div>
+        <div class="sheet">
+          <div class="sheet-head"><span class="grip"></span>
+            <div class="mk" style="position: static; transform: none"><div class="dia"><span class="em">🍺</span></div></div>
+            <h3>The Rusty Tankard<span class="sub">Tavern · 450 m from you</span></h3>
+          </div>
+          <div class="timer"><span class="glass">⏳</span><span>Leaves in 2 days 4 h</span></div>
+          <div class="sheet-body" style="gap: 10px">
+            <div class="row" style="gap: 12px">
+              <div class="tile headline"><img src="../../../../assets/icons/meals/board-cheese-mixed.png" alt=""></div>
+              <div style="flex: 1"><span class="label">Innkeeper's hamper</span><br><span class="small">Expedition supply: +10% party HP for one run. <b>Only from orders.</b></span></div>
+            </div>
+            <div>
+              <div class="bar"><div class="fill" style="width: 40%"></div><div class="incoming" style="left: 40%; width: 24%"></div><span class="step" style="left: 25%"></span><span class="step" style="left: 50%"></span></div>
+              <div class="row" style="justify-content: space-between; margin-top: 6px">
+                <span class="small b">40%</span>
+                <div class="row small"><span>25%</span><div class="tile" style="width: 40px; height: 40px"><img src="../../../../assets/icons/tavern/coins-gold.png" alt="" style="width: 28px; height: 28px"><span class="count">40</span><span class="done">✓</span></div></div>
+                <div class="row small"><span>50%</span><div class="tile" style="width: 40px; height: 40px"><img src="../../../../assets/icons/meals/meal-steak-bread.png" alt="" style="width: 28px; height: 28px"><span class="count">×2</span></div></div>
+                <div class="row small"><span>100%</span><div class="tile rare" style="width: 40px; height: 40px"><img src="../../../../assets/icons/meals/board-cheese-mixed.png" alt="" style="width: 28px; height: 28px"></div></div>
+              </div>
+            </div>
+            <span class="ebtn small">Claim the 25% reward</span>
+            <div class="card inset">
+              <div class="spread"><span class="label">Wants</span><span class="price small"><span class="coin"></span> 6 each</span></div>
+              <div class="spread"><span class="good"><span class="em">🌾</span>Grain</span><span><b>20</b> of 40 still needed</span></div>
+              <div class="spread"><span class="good"><img src="../../../../assets/icons/alchemy/food-raw-meat.png" alt="">Meat</span><span><b>10</b> of 10 still needed</span></div>
+              <div class="row small"><span class="em">🐴</span><span style="flex: 1">On its way: <span class="good"><span class="em">🌾</span>12</span> in 25 min</span><span class="pin">5</span></div>
+            </div>
+            <div class="row"><span class="wbtn small off" style="flex: 1">Deliver from my bag</span><span class="wbtn small" style="flex: 1">On the route ✓</span></div>
+            <p class="why" style="margin-top: -6px">Deliver: walk to the tavern (450 m). · Route: stop 3 of 3.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Full -->
+    <div class="state">
+      <h2>Filled</h2>
+      <p>Full state: every step reached and claimed. The place still sells and recruits; the order part shrinks to one line.</p>
+      <div class="phone">
+        <div class="map"></div><div class="dim"></div>
+        <div class="sheet">
+          <div class="sheet-head"><span class="grip"></span>
+            <div class="mk" style="position: static; transform: none"><div class="dia"><span class="em">🍺</span></div></div>
+            <h3>The Rusty Tankard<span class="sub">Tavern · 450 m from you</span></h3>
+          </div>
+          <div class="timer last"><span class="glass">⏳</span><span>Leaves in 18 h</span><span class="tag">Last day</span></div>
+          <div class="sheet-body" style="gap: 10px">
+            <div class="banner ok"><span class="em">✅</span><span><b>Order filled.</b> The tavern wants nothing more before it leaves. Take the cart off this stop.</span></div>
+            <div class="row" style="gap: 8px">
+              <div class="tile claimed"><img src="../../../../assets/icons/tavern/coins-gold.png" alt=""><span class="count">40</span><span class="done">✓</span></div>
+              <div class="tile claimed"><img src="../../../../assets/icons/meals/meal-steak-bread.png" alt=""><span class="count">×2</span><span class="done">✓</span></div>
+              <div class="tile rare claimed"><img src="../../../../assets/icons/meals/board-cheese-mixed.png" alt=""><span class="done">✓</span></div>
+              <span class="small muted" style="flex: 1">Claimed, plus 300 gold from deliveries.</span>
+            </div>
+            <div class="bar full"><div class="fill" style="width: 100%"></div></div>
+            <span class="wbtn small">Remove from the cart's route</span>
+            <div class="hr"></div>
+            <p class="small muted" style="margin: 0">Below: the tavern's usual sheet (recruits, emergency supply), unchanged.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <section>
+      <h3>What it must answer at a glance</h3>
+      <ol>
+        <li><span class="pin inline-pin">1</span><b>How long is it here?</b> The timer strip, as everywhere.</li>
+        <li><span class="pin inline-pin">2</span><b>What's the big prize, and is it worth it?</b> The headline tile, large, with what it does and "Only from orders".</li>
+        <li><span class="pin inline-pin">3</span><b>How far along am I, and what's next?</b> The bar with notches at 25/50/100%, each step's reward tile under it, ✓ when reached.</li>
+        <li><span class="pin inline-pin">4</span><b>What does it want, how much more, and what does it pay?</b> One row per good by icon, "20 of 40 still needed", gold per unit on the title row.</li>
+        <li><span class="pin inline-pin">5</span><b>What's already coming?</b> The cart line, and the striped part of the bar.</li>
+        <li><span class="pin inline-pin">6</span><b>Can I deliver now, and why not?</b> Two actions, each with its reason line.</li>
+      </ol>
+    </section>
+    <section>
+      <h3>Decisions to confirm</h3>
+      <ul>
+        <li><b>Rewards are claimed by tapping</b> "Claim the 25% reward" (the loot grid opens), not given silently, so each step is a small moment.</li>
+        <li><b>Two places of one kind</b> show their different headline tiles on the map-side card too (see Network tab), so choosing which to serve doesn't need opening both.</li>
+        <li><b>A filled order</b> suggests taking the stop off the route; the cart would otherwise unload nothing there.</li>
+        <li><b>Gold per unit</b> is shown once for the order, not per good, as long as one place pays the same for each good it wants. Say if you want per-good prices.</li>
+        <li><b>Undiscovered places</b> keep today's sheet with "Walk here to discover it" (as on the site sheet) and no order at all.</li>
+      </ul>
+    </section>
+  </div>
+</div>
+</body>
+</html>

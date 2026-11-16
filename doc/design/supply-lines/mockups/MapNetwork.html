@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Network on the map</title>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="mockups.css">
+<style>
+  .topbar { position: absolute; left: 10px; right: 10px; top: 40px; height: 56px; background: var(--plank); border: 2px solid var(--outline); outline: 2px solid var(--brass); outline-offset: -5px; box-shadow: 0 4px 0 var(--outline); display: flex; align-items: center; justify-content: space-between; padding: 0 14px; font-family: Fantaisie, serif; color: var(--brass-light); font-size: 19px; }
+  .chips { position: absolute; left: 10px; top: 112px; display: flex; gap: 8px; }
+  .node-dot { position: absolute; transform: translate(-50%, -50%); font-size: 18px; }
+  .patrol { position: absolute; transform: translate(-50%, -50%); width: 40px; height: 40px; border-radius: 50%; border: 4px solid #C9473A; background: var(--wood-dark); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .cart { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; }
+  .cart .body { width: 34px; height: 34px; background: var(--parchment); border: 2px solid var(--outline); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .cart .lbl { margin-top: 2px; padding: 0 4px; font-size: 13px; color: var(--parchment); background: var(--wood-dark); }
+  .legend { display: grid; grid-template-columns: 64px 1fr; gap: 10px 12px; align-items: center; }
+  .legend .mk { position: relative; transform: none; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>6 · The network on the map</h1>
+  <p class="lead">Network markers are the framed diamond every place uses, with a <b>draining ring</b> for time left: full when new, emptying clockwise. In the last day the ring turns ember <b>and</b> gains an hourglass badge. Labels only at high zoom; the <b>Network</b> chip dims everything else, for planning. <a href="index.html">All mockups</a></p>
+
+  <div class="states">
+    <!-- Zoom 17 -->
+    <div class="state">
+      <h2>Street zoom (17), filter off</h2>
+      <p>Labels show. Each network marker carries one number: stock for a building, progress for an order. The cart moves along the streets on the map's slow clock.</p>
+      <div class="phone">
+        <svg class="mapsvg" viewBox="0 0 390 844" aria-hidden="true">
+          <rect width="390" height="844" fill="#7DB65A"/><circle cx="220" cy="350" r="55" fill="#5E9A4A"/><path d="M0 760 L120 844 L0 844 Z" fill="#6FA8C8"/>
+          <g stroke="#E9DFC6" stroke-width="10" fill="none"><path d="M110 0 V844 M300 0 V844 M0 250 H390 M0 560 H390 M110 420 L300 420"/></g>
+          <path d="M110 560 V250 H300 V560 H110" stroke="#B4471C" stroke-width="5" fill="none" stroke-dasharray="12 6" opacity=".9"/>
+        </svg>
+        <div class="topbar"><span>Tier II</span><span style="font-family: Alegreya, serif; font-weight: 700; font-size: 15px"><span class="coin"></span> 412</span></div>
+        <div class="chips"><span class="chip">🏠 Network</span></div>
+
+        <!-- non-network things, as today -->
+        <span class="node-dot" style="left: 190px; top: 180px">🌿</span>
+        <span class="node-dot" style="left: 50px; top: 400px">🪵</span>
+        <div class="patrol" style="left: 220px; top: 470px">👺</div>
+
+        <div class="mk" style="left: 110px; top: 560px"><div class="dia hall"><span class="em">🏠</span></div><span class="lbl">Hall</span></div>
+        <div class="mk" style="left: 110px; top: 250px"><div class="ring" style="--left: 55%"><div class="dia"><span class="em">🌾</span></div></div><span class="badge">18</span><span class="lbl">Farm</span><span class="pin">1</span></div>
+        <div class="mk" style="left: 300px; top: 250px"><div class="ring" style="--left: 35%"><div class="dia"><span class="em">🍺</span></div></div><span class="badge">40%</span><span class="lbl">Rusty Tankard</span></div>
+        <div class="mk" style="left: 300px; top: 420px"><div class="ring" style="--left: 80%"><div class="dia"><img src="../../../../assets/icons/scaled/stone.png" alt=""></div></div><span class="badge">6</span><span class="lbl">Quarry</span></div>
+        <div class="mk" style="left: 210px; top: 640px"><div class="ring last" style="--left: 9%"><div class="dia"><span class="em">⚒️</span></div></div><span class="badge">70%</span><span class="badge glass">⏳</span><span class="lbl">Smithy · 14 h</span><span class="pin">2</span></div>
+        <div class="mk" style="left: 315px; top: 700px"><div class="ring" style="--left: 90%"><div class="dia"><span class="em">⚗️</span></div></div><span class="badge unseen">👣</span><span class="lbl">Not visited</span><span class="pin">3</span></div>
+        <div class="mk" style="left: 60px; top: 690px"><div class="ring" style="--left: 70%"><div class="dia site"><span class="em">🪧</span></div></div><span class="lbl">Site ★★☆</span><span class="pin">4</span></div>
+        <div class="cart" style="left: 205px; top: 250px"><div class="body">🐴</div><span class="lbl">🌾 12</span><span class="pin">5</span></div>
+        <div style="position: absolute; left: 160px; top: 556px; font-size: 18px">🧙</div>
+        <div class="island"></div>
+      </div>
+    </div>
+
+    <!-- Zoom 15 + filter -->
+    <div class="state">
+      <h2>Zoomed out (15), Network on</h2>
+      <p>The whole network around the hall. No labels; smaller markers; rings and badges stay. Everything not in the network is dimmed, so the route and its stops stand out.</p>
+      <div class="phone">
+        <svg class="mapsvg" viewBox="0 0 390 844" aria-hidden="true">
+          <rect width="390" height="844" fill="#7DB65A"/><circle cx="210" cy="400" r="28" fill="#5E9A4A"/><circle cx="60" cy="200" r="35" fill="#5E9A4A"/><path d="M0 700 L200 844 L0 844 Z" fill="#6FA8C8"/>
+          <g stroke="#E9DFC6" stroke-width="5" fill="none"><path d="M60 0 V844 M160 0 V844 M250 0 V844 M340 0 V844 M0 160 H390 M0 300 H390 M0 450 H390 M0 600 H390"/></g>
+          <path d="M160 450 V300 H250 V450 H160" stroke="#B4471C" stroke-width="4" fill="none"/>
+          <circle cx="205" cy="375" r="150" fill="none" stroke="#3A2314" stroke-width="2" stroke-dasharray="6 6"/>
+        </svg>
+        <div class="topbar"><span>Tier II</span><span style="font-family: Alegreya, serif; font-weight: 700; font-size: 15px"><span class="coin"></span> 412</span></div>
+        <div class="chips"><span class="chip on">🏠 Network ✓</span><span class="pin" style="position: static">6</span></div>
+
+        <span class="node-dot" style="left: 100px; top: 240px; opacity: .3">🌿</span>
+        <span class="node-dot" style="left: 300px; top: 520px; opacity: .3">🪵</span>
+        <div class="patrol" style="left: 210px; top: 520px; opacity: .3; width: 28px; height: 28px; font-size: 13px; border-width: 3px">👺</div>
+        <div class="mk small faded" style="left: 340px; top: 200px"><div class="ring" style="--left: 60%"><div class="dia"><span class="em">🏛️</span></div></div></div>
+        <div class="mk small faded" style="left: 60px; top: 560px"><div class="ring" style="--left: 40%"><div class="dia"><span class="em">📜</span></div></div></div>
+
+        <div class="mk small" style="left: 160px; top: 450px"><div class="dia hall"><span class="em">🏠</span></div></div>
+        <div class="mk small" style="left: 160px; top: 300px"><div class="ring" style="--left: 55%"><div class="dia"><span class="em">🌾</span></div></div><span class="badge">18</span></div>
+        <div class="mk small" style="left: 250px; top: 300px"><div class="ring" style="--left: 35%"><div class="dia"><span class="em">🍺</span></div></div><span class="badge">40%</span></div>
+        <div class="mk small" style="left: 250px; top: 380px"><div class="ring" style="--left: 80%"><div class="dia"><img src="../../../../assets/icons/scaled/stone.png" alt=""></div></div><span class="badge">6</span></div>
+        <div class="mk small" style="left: 205px; top: 450px"><div class="ring last" style="--left: 9%"><div class="dia"><span class="em">⚒️</span></div></div><span class="badge glass">⏳</span></div>
+        <div class="mk small" style="left: 300px; top: 610px"><div class="ring" style="--left: 90%"><div class="dia"><span class="em">⚗️</span></div></div><span class="badge unseen">👣</span></div>
+        <div class="mk small" style="left: 90px; top: 380px"><div class="ring" style="--left: 70%"><div class="dia site"><span class="em">🪧</span></div></div></div>
+        <div class="mk small" style="left: 300px; top: 160px"><div class="ring last" style="--left: 15%"><div class="dia site"><span class="em">🪧</span></div></div><span class="badge glass">⏳</span></div>
+        <div class="cart" style="left: 205px; top: 300px"><div class="body" style="width: 24px; height: 24px; font-size: 14px">🐴</div></div>
+        <div style="position: absolute; left: 330px; top: 760px; background: var(--parchment); color: var(--ink); border: 2px solid var(--outline); padding: 2px 6px; font-size: 12px">1 km from the hall<span class="pin">7</span></div>
+        <div class="island"></div>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="state">
+      <h2>Legend</h2>
+      <p>Every state has a shape or a word as well as its colour; each marker also has a spoken label, e.g. "Farm, 18 in stock, leaves in 3 days".</p>
+      <div class="card" style="width: 390px; gap: 14px">
+        <div class="legend">
+          <div class="mk"><div class="ring" style="--left: 100%"><div class="dia"><span class="em">🌾</span></div></div></div><span><b>Full ring:</b> new, six days left.</span>
+          <div class="mk"><div class="ring" style="--left: 40%"><div class="dia"><span class="em">🌾</span></div></div></div><span><b>Draining ring:</b> the dark part is time gone, clockwise from the top. Updates on the map's slow clock.</span>
+          <div class="mk"><div class="ring last" style="--left: 10%"><div class="dia"><span class="em">⚒️</span></div></div><span class="badge glass">⏳</span></div><span><b>Last day:</b> ember ring <b>and</b> hourglass badge.</span>
+          <div class="mk"><div class="ring" style="--left: 80%"><div class="dia site"><span class="em">🪧</span></div></div></div><span><b>Site:</b> dashed frame, empty sign. Stars in its label once discovered.</span>
+          <div class="mk"><div class="ring" style="--left: 80%"><div class="dia"><span class="em">⚗️</span></div></div><span class="badge unseen">👣</span></div><span><b>Not visited:</b> footprints badge. Walk there to see its order.</span>
+          <div class="mk"><div class="ring" style="--left: 60%"><div class="dia"><span class="em">🍺</span></div></div><span class="badge">40%</span></div><span><b>One number:</b> stock on a building, progress on an order. "✓" when an order is filled; "FULL" when stock stops.</span>
+          <div class="mk"><div class="dia hall"><span class="em">🏠</span></div></div><span><b>Hall:</b> ember diamond, no ring: it doesn't expire.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <section>
+      <h3>What it must answer at a glance</h3>
+      <ol>
+        <li><span class="pin inline-pin">1</span><b>How is each piece doing?</b> One number per marker: stock, or order %.</li>
+        <li><span class="pin inline-pin">2</span><b>What's leaving today?</b> Ember ring + ⏳ badge, and the time in its label at street zoom.</li>
+        <li><span class="pin inline-pin">3</span><b>Where haven't I been?</b> 👣 badge and "Not visited".</li>
+        <li><span class="pin inline-pin">4</span><b>Where can I build?</b> Dashed site markers, stars in the label once discovered.</li>
+        <li><span class="pin inline-pin">5</span><b>Where's the cart and what's it carrying?</b> The cart marker on the route, its load by icon.</li>
+        <li><span class="pin inline-pin">6</span><b>What's part of my network?</b> The Network chip dims everything else.</li>
+        <li><span class="pin inline-pin">7</span><b>Where may I build?</b> With the chip on, a dashed circle shows the building reach around the hall (1 km at tier 2).</li>
+      </ol>
+    </section>
+    <section>
+      <h3>Decisions to confirm</h3>
+      <ul>
+        <li><b>Rings on every temporary marker</b> while the switch is on (places, taverns, sites, buildings), as the prompt asks. Fight events keep their own ring (difficulty); their 24 h isn't drawn.</li>
+        <li><b>The ring is drawn with the existing ring code</b> (DifficultyRing), as a second, outer arc. Places that already have a difficulty ring get the time arc outside it.</li>
+        <li><b>Zoom thresholds and culling</b> stay the map's own: labels from zoom 16.5, as places today.</li>
+        <li><b>The Network chip</b> sits under the top bar, off by default, remembered per session. The route planner turns it on while open.</li>
+        <li><b>The reach circle</b> only shows with the chip on, to keep the map calm.</li>
+        <li><b>A small unload animation</b> (goods icons popping off the cart) plays at a stop if the app is open, at the Full animation level only.</li>
+      </ul>
+    </section>
+  </div>
+</div>
+</body>
+</html>

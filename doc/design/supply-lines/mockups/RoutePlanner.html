@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Route planner</title>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="mockups.css">
+<style>
+  /* The planner's sheet keeps the top of the map in view: the route is drawn there. */
+  .planner .sheet { position: absolute !important; margin: 0 !important; top: auto !important; bottom: 0; }
+  .planner { height: 844px !important; padding-top: 0 !important; display: block !important; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>4 · The route planner</h1>
+  <p class="lead">Opened from the cart's sheet or the Network tab ("Set a route"). A guided flow in three steps, in one sheet that keeps the top of the map in view: <b>pick stops</b> from a list, <b>order</b> them, <b>see the result</b>. The route follows the streets and redraws at each change. <a href="index.html">All mockups</a></p>
+
+  <!-- One map, reused: streets, a park, water; the route and stops are drawn per state. -->
+  <template id="streets">
+  </template>
+
+  <div class="states">
+    <!-- Step 1, empty -->
+    <div class="state">
+      <h2>1 · Stops, nothing yet</h2>
+      <p>Empty state: no building and no visited place wants anything. The list says how to get the first stop.</p>
+      <div class="phone planner">
+        <svg class="mapsvg" viewBox="0 0 390 844" aria-hidden="true">
+          <rect width="390" height="844" fill="#7DB65A"/><circle cx="200" cy="200" r="60" fill="#5E9A4A"/><path d="M300 0 L390 0 L390 160 Z" fill="#6FA8C8"/>
+          <g stroke="#E9DFC6" stroke-width="9" fill="none"><path d="M80 0 V844 M300 0 V844 M0 90 H390 M0 330 H390 M80 210 L300 90"/></g>
+        </svg>
+        <div class="mk" style="left: 80px; top: 330px"><div class="dia hall"><span class="em">🏠</span></div><span class="lbl">Hall</span></div>
+        <div class="sheet" style="top: 400px">
+          <div class="sheet-head"><span class="grip"></span><h3>Cart route<span class="sub">Pick the stops</span></h3></div>
+          <div class="sheet-body">
+            <div class="steps-nav"><span class="on">1 · Stops</span><span>2 · Order</span><span>3 · Result</span><span class="pin">1</span></div>
+            <div class="banner info"><span class="em">🪧</span><span><b>No stops yet.</b> Build on a site, or walk to a tavern, smithy, apothecary or market: each becomes a stop.</span></div>
+            <span class="ebtn small">Show sites near me</span>
+          </div>
+          <div class="sheet-foot"><span class="wbtn">Cancel</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 1, normal -->
+    <div class="state">
+      <h2>1 · Stops</h2>
+      <p>Every stop says what it gives or wants, by icon, and how long it stays. Tap a row to add it; markers on the map get a tick.</p>
+      <div class="phone planner">
+        <svg class="mapsvg" viewBox="0 0 390 844" aria-hidden="true">
+          <rect width="390" height="844" fill="#7DB65A"/><circle cx="200" cy="200" r="60" fill="#5E9A4A"/><path d="M300 0 L390 0 L390 160 Z" fill="#6FA8C8"/>
+          <g stroke="#E9DFC6" stroke-width="9" fill="none"><path d="M80 0 V844 M300 0 V844 M0 90 H390 M0 330 H390 M80 210 L300 90"/></g>
+        </svg>
+        <div class="mk small" style="left: 80px; top: 90px"><div class="dia"><span class="em">🌾</span></div></div>
+        <div class="mk small" style="left: 300px; top: 90px"><div class="dia"><span class="em">🍺</span></div></div>
+        <div class="mk small" style="left: 300px; top: 210px"><div class="dia"><img src="../../../../assets/icons/scaled/stone.png" alt=""></div></div>
+        <div class="mk small" style="left: 190px; top: 330px"><div class="dia"><span class="em">⚒️</span></div></div>
+        <div class="mk small" style="left: 80px; top: 330px"><div class="dia hall"><span class="em">🏠</span></div></div>
+        <div class="sheet" style="top: 352px">
+          <div class="sheet-head"><span class="grip"></span><h3>Cart route<span class="sub">Pick the stops · 3 picked</span></h3></div>
+          <div class="sheet-body" style="gap: 6px">
+            <div class="steps-nav"><span class="on">1 · Stops</span><span>2 · Order</span><span>3 · Result</span></div>
+            <div class="list-row sel"><span class="check on">✓</span><span class="good big"><span class="em">🌾</span></span><span style="flex: 1"><b>Farm</b> <span class="stars small">★★☆</span><br><span class="small">Gives <span class="good"><span class="em">🌾</span>~20</span> <span class="good"><img src="../../../../assets/icons/alchemy/food-raw-meat.png" alt="">~3</span></span></span><span class="small muted">⏳ 3 d</span><span class="pin">2</span></div>
+            <div class="list-row sel"><span class="check on">✓</span><span class="good big"><img src="../../../../assets/icons/scaled/stone.png" alt=""></span><span style="flex: 1"><b>Quarry</b> <span class="stars small">★☆☆</span><br><span class="small">Gives <span class="good"><img src="../../../../assets/icons/scaled/stone.png" alt="">~14</span></span></span><span class="small muted">⏳ 5 d</span></div>
+            <div class="list-row sel"><span class="check on">✓</span><span class="good big"><span class="em">🍺</span></span><span style="flex: 1"><b>The Rusty Tankard</b><br><span class="small">Wants <span class="good"><span class="em">🌾</span>20</span> <span class="good"><img src="../../../../assets/icons/alchemy/food-raw-meat.png" alt="">10</span></span></span><span class="small muted">⏳ 2 d</span></div>
+            <div class="list-row"><span class="check"></span><span class="good big"><span class="em">⚒️</span></span><span style="flex: 1"><b>Ironhand Smithy</b><br><span class="small">Wants <span class="good"><img src="../../../../assets/icons/scaled/stone.png" alt="">30</span></span></span><span class="small" style="color: var(--ember-dark); font-weight: 700">⏳ 14 h</span><span class="pin">3</span></div>
+            <div class="list-row" style="opacity: .55"><span class="check"></span><span class="good big"><span class="em">⚗️</span></span><span style="flex: 1"><b>Apothecary</b><br><span class="small">Wants <span class="good"><img src="../../../../assets/icons/rpg/herb-green-leaf.png" alt="">25</span> · nothing you make</span></span><span class="small muted">⏳ 4 d</span></div>
+          </div>
+          <div class="sheet-foot"><span class="wbtn">Cancel</span><span class="ebtn">Next: order</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="state">
+      <h2>2 · Order</h2>
+      <p>Drag by the handle, or use the arrows (44 pt each). "Suggest" fills in an order: load before unload, nearest next.</p>
+      <div class="phone planner">
+        <svg class="mapsvg" viewBox="0 0 390 844" aria-hidden="true">
+          <rect width="390" height="844" fill="#7DB65A"/><circle cx="200" cy="200" r="60" fill="#5E9A4A"/><path d="M300 0 L390 0 L390 160 Z" fill="#6FA8C8"/>
+          <g stroke="#E9DFC6" stroke-width="9" fill="none"><path d="M80 0 V844 M300 0 V844 M0 90 H390 M0 330 H390 M80 210 L300 90"/></g>
+          <path d="M80 330 V90 H300 V330 H80" stroke="#B4471C" stroke-width="5" fill="none" stroke-dasharray="10 6"/>
+        </svg>
+        <div class="mk small" style="left: 80px; top: 90px"><div class="dia"><span class="em">🌾</span></div><span class="badge">1</span></div>
+        <div class="mk small" style="left: 300px; top: 90px"><div class="dia"><span class="em">🍺</span></div><span class="badge">2</span></div>
+        <div class="mk small" style="left: 300px; top: 210px"><div class="dia"><img src="../../../../assets/icons/scaled/stone.png" alt=""></div><span class="badge">3</span></div>
+        <div class="mk small" style="left: 190px; top: 330px"><div class="dia"><span class="em">⚒️</span></div><span class="badge">4</span></div>
+        <div class="mk small" style="left: 80px; top: 330px"><div class="dia hall"><span class="em">🏠</span></div></div>
+        <div class="sheet" style="top: 372px">
+          <div class="sheet-head"><span class="grip"></span><h3>Cart route<span class="sub">Put the stops in order</span></h3></div>
+          <div class="sheet-body" style="gap: 6px">
+            <div class="steps-nav"><span class="done">1 · Stops ✓</span><span class="on">2 · Order</span><span>3 · Result</span></div>
+            <span class="wbtn small">✨ Suggest an order<span class="pin">4</span></span>
+            <div class="list-row"><span class="b">1</span><span class="good"><span class="em">🌾</span></span><span style="flex: 1"><b>Farm</b> <span class="small">loads</span></span><span class="handle">▲<br>▼</span><span class="handle">⠿</span><span class="pin">5</span></div>
+            <div class="list-row"><span class="b">2</span><span class="good"><span class="em">🍺</span></span><span style="flex: 1"><b>Rusty Tankard</b> <span class="small">unloads</span></span><span class="handle">▲<br>▼</span><span class="handle">⠿</span></div>
+            <div class="list-row"><span class="b">3</span><span class="good"><img src="../../../../assets/icons/scaled/stone.png" alt=""></span><span style="flex: 1"><b>Quarry</b> <span class="small">loads</span></span><span class="handle">▲<br>▼</span><span class="handle">⠿</span></div>
+            <div class="list-row"><span class="b">4</span><span class="good"><span class="em">⚒️</span></span><span style="flex: 1"><b>Ironhand Smithy</b> <span class="small">unloads</span></span><span class="handle">▲<br>▼</span><span class="handle">⠿</span></div>
+          </div>
+          <div class="sheet-foot"><span class="wbtn">Back</span><span class="ebtn">Next: result</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3, full -->
+    <div class="state">
+      <h2>3 · Result</h2>
+      <p>Full state: the flow strip (what each stop loads ▲ or unloads ▼, by icon), loop time, danger, and the warnings that matter. A tap on a street forces the route through it.</p>
+      <div class="phone planner">
+        <svg class="mapsvg" viewBox="0 0 390 844" aria-hidden="true">
+          <rect width="390" height="844" fill="#7DB65A"/><circle cx="200" cy="200" r="60" fill="#5E9A4A"/><path d="M300 0 L390 0 L390 160 Z" fill="#6FA8C8"/>
+          <g stroke="#E9DFC6" stroke-width="9" fill="none"><path d="M80 0 V844 M300 0 V844 M0 90 H390 M0 330 H390 M80 210 L300 90"/></g>
+          <path d="M80 330 V90 H300 V330 H80" stroke="#B4471C" stroke-width="5" fill="none"/>
+          <path d="M300 240 V330" stroke="#8A2E1C" stroke-width="9" fill="none" stroke-dasharray="4 4"/>
+        </svg>
+        <div class="mk small" style="left: 80px; top: 90px"><div class="dia"><span class="em">🌾</span></div><span class="badge">1</span></div>
+        <div class="mk small" style="left: 300px; top: 90px"><div class="dia"><span class="em">🍺</span></div><span class="badge">2</span></div>
+        <div class="mk small" style="left: 300px; top: 210px"><div class="dia"><img src="../../../../assets/icons/scaled/stone.png" alt=""></div><span class="badge">3</span></div>
+        <div class="mk small" style="left: 190px; top: 330px"><div class="ring last" style="--left: 10%; width: 34px; height: 34px"><div class="dia"><span class="em">⚒️</span></div></div><span class="badge">4</span><span class="badge glass">⏳</span></div>
+        <div class="mk small" style="left: 80px; top: 330px"><div class="dia hall"><span class="em">🏠</span></div></div>
+        <div style="position: absolute; left: 312px; top: 270px; background: var(--parchment); color: var(--bad); border: 2px solid var(--outline); font-size: 12px; padding: 1px 4px; font-weight: 700">⚠ risky</div>
+        <div class="sheet" style="top: 362px">
+          <div class="sheet-head"><span class="grip"></span><h3>Cart route<span class="sub">One loop</span></h3></div>
+          <div class="sheet-body" style="gap: 8px">
+            <div class="steps-nav"><span class="done">1 ✓</span><span class="done">2 ✓</span><span class="on">3 · Result</span></div>
+            <div class="flowstrip">
+              <div class="stop"><span class="head">🏠</span><span class="name">Hall</span><span class="small muted">empty</span></div>
+              <div class="stop"><span class="head">🌾</span><span class="name">Farm</span><span class="in">▲<span class="good"><span class="em">🌾</span>12</span></span></div>
+              <div class="stop"><span class="head">🍺</span><span class="name">Tankard</span><span class="out">▼<span class="good"><span class="em">🌾</span>12</span></span></div>
+              <div class="stop"><span class="head"><img class="px" src="../../../../assets/icons/scaled/stone.png" width="22" alt=""></span><span class="name">Quarry</span><span class="in">▲<span class="good"><img src="../../../../assets/icons/scaled/stone.png" alt="">14</span></span></div>
+              <div class="stop warn"><span class="head">⚒️</span><span class="name">Smithy ⏳</span><span class="out">▼<span class="good"><img src="../../../../assets/icons/scaled/stone.png" alt="">12</span></span></div>
+              <div class="stop"><span class="head">🏠</span><span class="name">Hall</span><span class="in">▲<span class="good"><img src="../../../../assets/icons/scaled/stone.png" alt="">2</span></span></div>
+              <span class="pin">6</span>
+            </div>
+            <div class="row small" style="justify-content: space-between"><span><b>52 min</b> a loop</span><span><b>3.1 km</b> along streets</span><span><b>6%</b> ambush a loop</span><span class="pin">7</span></div>
+            <div class="banner bad small"><span class="em">⏳</span><span><b>Ironhand Smithy leaves in 14 h</b>, after about 16 loops. Then the cart skips it and brings the stone home.</span><span class="pin">8</span></div>
+            <div class="banner info small"><span class="em">⚠️</span><span>One risky street, by the quarry. Tap another street to send the cart that way.</span></div>
+          </div>
+          <div class="sheet-foot"><span class="wbtn">Back</span><span class="ebtn">Set the route</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <section>
+      <h3>What it must answer at a glance</h3>
+      <ol>
+        <li><span class="pin inline-pin">1</span><b>Where am I in planning?</b> The three-step bar.</li>
+        <li><span class="pin inline-pin">2</span><b>What can I add, and what does each stop give or want?</b> One row per stop, goods by icon, time left on the right.</li>
+        <li><span class="pin inline-pin">3</span><b>Is a stop about to go?</b> Its time turns ember and bold in its last day.</li>
+        <li><span class="pin inline-pin">4</span><b>I don't know the best order.</b> "Suggest an order" on top.</li>
+        <li><span class="pin inline-pin">5</span><b>How do I change the order?</b> Arrows and a drag handle, 44 pt each.</li>
+        <li><span class="pin inline-pin">6</span><b>What will a loop actually do?</b> The flow strip: ▲ loads, ▼ unloads, by icon and count, and what reaches the hall.</li>
+        <li><span class="pin inline-pin">7</span><b>How long and how risky?</b> Loop time, length on the streets, ambush chance per loop (danger uses the day's average).</li>
+        <li><span class="pin inline-pin">8</span><b>What will break?</b> A warning for each stop that leaves before the loop after next ends.</li>
+      </ol>
+    </section>
+    <section>
+      <h3>Decisions to confirm</h3>
+      <ul>
+        <li><b>The planner is a sheet, not a map mode.</b> The trial's tap-on-map planner goes; the map above shows the result and takes the one "force through this street" tap.</li>
+        <li><b>The strip uses the cart's capacity</b> and today's stock and wants, so it's an estimate of the next loop; later loops are shown on the cart's sheet.</li>
+        <li><b>Suggest</b> puts each building before the places that want its goods, then nearest first. It never removes a stop.</li>
+        <li><b>A stop with nothing to do</b> (a filled order, a building with no stock) stays allowed, greyed in the strip as "nothing".</li>
+        <li><b>Ambush odds</b> stay per loop in percent, as in the trial; the risky street is drawn hatched and labelled.</li>
+      </ul>
+    </section>
+  </div>
+</div>
+</body>
+</html>

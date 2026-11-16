@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Building sheet</title>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="mockups.css">
+</head>
+<body>
+<div class="page">
+  <h1>2 · A building's sheet</h1>
+  <p class="lead">Opened by tapping a building on the map, or its card on the Network tab. The top row is the building's flow, read left to right: who works it → what it makes → what it holds → where it goes. Posting takes the second tap. <a href="index.html">All mockups</a></p>
+
+  <div class="states">
+    <!-- Empty -->
+    <div class="state">
+      <h2>Just built</h2>
+      <p>Empty state: locals only, nothing in stock, not on the route. The ember button is the next step.</p>
+      <div class="phone">
+        <div class="map"></div><div class="dim"></div>
+        <div class="sheet">
+          <div class="sheet-head"><span class="grip"></span>
+            <div class="mk" style="position: static; transform: none"><div class="dia"><span class="em">🌾</span></div></div>
+            <h3>Farm <span class="stars">★★<span class="off">☆</span></span><span class="sub">2-star site · 0.9 km from your hall</span></h3>
+          </div>
+          <div class="timer"><span class="glass">⏳</span><span>Leaves in 6 days</span><span class="pin">1</span></div>
+          <div class="sheet-body">
+            <div class="flow" style="grid-template-columns: 1fr 16px 1fr 16px 1fr 16px 1fr">
+              <div class="node"><span class="em">🧑‍🌾</span>Locals<span class="small muted">40%</span></div><span class="arrow">→</span>
+              <div class="node"><span class="row"><span class="good"><span class="em">🌾</span></span><span class="good"><img src="../../../../assets/icons/alchemy/food-raw-meat.png" alt=""></span></span><span>1.1/h</span></div><span class="arrow">→</span>
+              <div class="node"><span class="b">0</span><span class="small muted">of 36</span></div><span class="arrow">→</span>
+              <div class="node"><span class="em">🏠</span><span class="small">You collect</span></div>
+              <span class="pin">2</span>
+            </div>
+            <div class="card inset">
+              <div class="spread"><span class="label">Worked by</span><span class="pin">3</span></div>
+              <div class="row"><span class="slot-empty">+</span><span class="small" style="flex: 1">Locals work it at 40%. A hero works it at the full rate; a <b>Farmer</b> adds up to +100%.</span></div>
+              <span class="ebtn small">Post a hero</span>
+            </div>
+            <div class="card inset">
+              <div class="spread"><span class="label">Stock</span><span class="small">Full in 33 h</span><span class="pin">4</span></div>
+              <div class="bar green"><div class="fill" style="width: 0%"></div></div>
+              <div class="row small muted">Nothing made yet.</div>
+            </div>
+            <div class="card inset">
+              <div class="spread"><span class="label">Cart</span><span class="pin">5</span></div>
+              <div class="row small"><span class="em">🐴</span><span style="flex: 1">Not on the cart's route. Add it, and the cart carries its stock to a place that wants it.</span></div>
+              <span class="wbtn small">Add to the cart's route</span>
+            </div>
+          </div>
+          <div class="sheet-foot"><span class="wbtn">Close</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Normal -->
+    <div class="state">
+      <h2>Running</h2>
+      <p>Normal state: a Farmer posted, stock building up, the cart calling as stop 1 of 3. Collect is off with its reason, since the player is away.</p>
+      <div class="phone">
+        <div class="map"></div><div class="dim"></div>
+        <div class="sheet">
+          <div class="sheet-head"><span class="grip"></span>
+            <div class="mk" style="position: static; transform: none"><div class="dia"><span class="em">🌾</span></div></div>
+            <h3>Farm <span class="stars">★★<span class="off">☆</span></span><span class="sub">2-star site · 0.9 km from your hall</span></h3>
+          </div>
+          <div class="timer"><span class="glass">⏳</span><span>Leaves in 3 days 20 h</span></div>
+          <div class="sheet-body">
+            <div class="flow" style="grid-template-columns: 1fr 16px 1fr 16px 1fr 16px 1fr">
+              <div class="node"><span class="hero" style="width: 30px; height: 30px"><img src="../../../../assets/icons/class/druid.png" alt="" style="width: 24px; height: 24px"></span>Bram</div><span class="arrow">→</span>
+              <div class="node"><span class="row"><span class="good"><span class="em">🌾</span></span><span class="good"><img src="../../../../assets/icons/alchemy/food-raw-meat.png" alt=""></span></span><span>4.2/h</span></div><span class="arrow">→</span>
+              <div class="node"><span class="b">18</span><span class="small muted">of 36</span></div><span class="arrow">→</span>
+              <div class="node"><span class="em">🐴</span><span class="small">in 40 min</span></div>
+            </div>
+            <div class="card inset">
+              <div class="spread"><span class="label">Worked by</span></div>
+              <div class="row"><span class="hero"><img src="../../../../assets/icons/class/druid.png" alt=""></span><span style="flex: 1"><b>Bram</b> · Farmer, level 2<br><span class="small muted">Full rate +50%: 4.2 an hour</span></span><span class="wbtn small" style="width: auto">Recall</span></div>
+            </div>
+            <div class="card inset">
+              <div class="spread"><span class="label">Stock</span><span class="small">Full in 4 h</span></div>
+              <div class="bar green"><div class="fill" style="width: 50%"></div></div>
+              <div class="row"><span class="good"><span class="em">🌾</span>15</span><span class="good"><img src="../../../../assets/icons/alchemy/food-raw-meat.png" alt="">3</span></div>
+              <div class="action"><span class="wbtn small off">Collect</span><p class="why">Walk to the farm to collect (780 m).</p></div>
+            </div>
+            <div class="card inset">
+              <div class="spread"><span class="label">Cart</span><span class="small">Stop 1 of 3</span></div>
+              <div class="row small"><span class="em">🐴</span><span style="flex: 1">Calls in 40 min and loads all it can carry: about <b>20</b>.</span></div>
+            </div>
+          </div>
+          <div class="sheet-foot"><span class="wbtn">Close</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Full -->
+    <div class="state">
+      <h2>Full, last day, raid coming</h2>
+      <p>Full state: everything that needs attention, most urgent first. Each state has a word or icon as well as its colour.</p>
+      <div class="phone">
+        <div class="map"></div><div class="dim"></div>
+        <div class="sheet">
+          <div class="sheet-head"><span class="grip"></span>
+            <div class="mk" style="position: static; transform: none"><div class="dia"><span class="em">🌾</span></div></div>
+            <h3>Farm <span class="stars">★★<span class="off">☆</span></span><span class="sub">2-star site · 0.9 km from your hall</span></h3>
+          </div>
+          <div class="timer last"><span class="glass">⏳</span><span>Leaves in 9 h</span><span class="tag">Last day</span><span class="pin">6</span></div>
+          <div class="sheet-body" style="gap: 8px">
+            <div class="banner bad"><span class="em">⚔️</span><span><b>Raiders land in 1 h 40 min.</b> Send defenders, or empty the farm first.</span><span class="pin">7</span></div>
+            <div class="flow" style="grid-template-columns: 1fr 16px 1fr 16px 1fr 16px 1fr">
+              <div class="node"><span class="hero" style="width: 30px; height: 30px"><img src="../../../../assets/icons/class/druid.png" alt="" style="width: 24px; height: 24px"></span>Bram</div><span class="arrow">→</span>
+              <div class="node"><span class="em">⏸</span><span class="b">Stopped</span></div><span class="arrow">→</span>
+              <div class="node last"><span class="b">36</span><span class="small">FULL</span></div><span class="arrow">→</span>
+              <div class="node"><span class="em">🐴</span><span class="small">in 2 h 10</span></div>
+            </div>
+            <div class="card inset">
+              <div class="spread"><span class="label">Stock</span><span class="small b">Full: making nothing</span></div>
+              <div class="bar full"><div class="fill" style="width: 100%"></div></div>
+              <div class="row"><span class="good"><span class="em">🌾</span>30</span><span class="good"><img src="../../../../assets/icons/alchemy/food-raw-meat.png" alt="">6</span></div>
+              <p class="small" style="margin: 0"><b>The farm leaves in 9 h.</b> Stock the cart hasn't taken is lost; Bram comes home.</p>
+              <div class="action"><span class="ebtn small">Collect 36 now</span></div>
+            </div>
+            <div class="row"><span class="wbtn small">Defend</span><span class="wbtn small">Recall Bram</span></div>
+          </div>
+          <div class="sheet-foot"><span class="wbtn">Close</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <section>
+      <h3>What it must answer at a glance</h3>
+      <ol>
+        <li><span class="pin inline-pin">1</span><b>How long will it last?</b> The timer strip; in the last day it turns ember with "Last day".</li>
+        <li><span class="pin inline-pin">2</span><b>Is it working, and where do its goods go?</b> The flow row: worker → goods per hour → stock → cart or you.</li>
+        <li><span class="pin inline-pin">3</span><b>Who works it, and how well?</b> The hero slot, with their trade and its bonus in words.</li>
+        <li><span class="pin inline-pin">4</span><b>How full is it, and when does it stop?</b> The stock bar, the counts by icon, and "Full in 4 h".</li>
+        <li><span class="pin inline-pin">5</span><b>Will the cart take it, and when?</b> "Stop 1 of 3 · calls in 40 min", or how to add it.</li>
+        <li><span class="pin inline-pin">6</span><b>What do I lose if I wait?</b> The last-day line spells out that the stock is lost and the hero comes home.</li>
+        <li><span class="pin inline-pin">7</span><b>Is it in danger?</b> The raid banner comes first, above the flow, with the two ways out.</li>
+      </ol>
+    </section>
+    <section>
+      <h3>Decisions to confirm</h3>
+      <ul>
+        <li><b>One ember button per sheet:</b> the next useful action (post, add to route, collect before it's lost). Everything else is wood.</li>
+        <li><b>Stock cap</b> stays "hours of full output", shown only as a count ("of 36") and "Full in …". No hours in the UI.</li>
+        <li><b>"Collect"</b> needs you within range, as in the trial; its reason line gives the distance.</li>
+        <li><b>The worker node</b> shows 🧑‍🌾 for locals; a posted hero shows their portrait. Defenders are only reached from the raid banner.</li>
+        <li><b>Quarry and herb garden</b> use the same sheet with their own goods' icons; no per-building layout.</li>
+      </ul>
+    </section>
+  </div>
+</div>
+</body>
+</html>

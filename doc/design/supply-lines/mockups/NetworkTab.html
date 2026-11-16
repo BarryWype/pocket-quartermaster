@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Network tab</title>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="mockups.css">
+<style>
+  .next { border-color: var(--outline); box-shadow: inset 0 0 0 2px var(--parchment), inset 0 0 0 4px var(--ember), 0 3px 0 var(--outline); }
+  .sec { font-family: Fantaisie, serif; font-size: 18px; color: var(--ink); margin: 2px 0 -4px; display: flex; align-items: center; gap: 6px; }
+  .mini { display: flex; align-items: center; gap: 8px; }
+  .mini .t { flex: 1; min-width: 0; }
+  .mini .left { font-size: 13px; white-space: nowrap; }
+  .mini .left.last { color: var(--ember-dark); font-weight: 700; }
+  .bar.thin { height: 10px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>5 · The Network tab</h1>
+  <p class="lead">On the Expeditions screen, beside Places, Out now and Jobs. Read in five seconds: <b>what to do next</b> (one line, one button), <b>how goods flow</b> (a picture, left to right), then <b>each piece as a card</b> with its stock or progress, time left and warnings. <a href="index.html">All mockups</a></p>
+
+  <div class="states">
+    <!-- Empty -->
+    <div class="state">
+      <h2>Empty</h2>
+      <p>Just unlocked, hall placed, nothing built. The next step is the whole screen; the flow shows the shape of what's coming, greyed.</p>
+      <div class="phone">
+        <div class="screen">
+          <div class="screen-head">Expeditions</div>
+          <div class="tabs"><span>Places</span><span>Out now</span><span>Jobs</span><span class="on">Network</span></div>
+          <div class="scroll">
+            <div class="card next">
+              <div class="row"><span class="em" style="font-size: 22px">👣</span><span style="flex: 1"><b>Next:</b> walk to the site 340 m north to discover it.</span><span class="pin">1</span></div>
+              <span class="ebtn small">Show it on the map</span>
+            </div>
+            <div class="card" style="opacity: .6">
+              <div class="flow">
+                <div class="col"><div class="node"><span class="em">🪧</span>A building</div></div><span class="arrow">→</span>
+                <div class="col"><div class="node"><span class="em">🐴</span>The cart</div></div><span class="arrow">→</span>
+                <div class="col"><div class="node"><span class="em">🍺</span>A place</div></div>
+              </div>
+              <p class="small" style="margin: 0; text-align: center">Build on a site, then the cart carries what it makes to places that pay for it.</p>
+              <span class="pin">2</span>
+            </div>
+            <div class="sec">Hall</div>
+            <div class="card"><div class="mini"><span class="em" style="font-size: 22px">🏠</span><span class="t">Placed by the station · moves left this week: 2</span></div></div>
+            <div class="sec">Buildings</div>
+            <div class="card inset"><span class="small muted">None yet. Discover a site, then build on it where you stand.</span></div>
+            <div class="sec">Places</div>
+            <div class="card inset"><span class="small muted">No order yet. Walk to a tavern, smithy, apothecary or market to see what it wants.</span></div>
+          </div>
+          <div class="island"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Normal -->
+    <div class="state">
+      <h2>Normal</h2>
+      <p>Two buildings, two places served, the cart on its loop. The flow carries icons and counts, so a good can be followed by its icon alone.</p>
+      <div class="phone">
+        <div class="screen">
+          <div class="screen-head">Expeditions</div>
+          <div class="tabs"><span>Places</span><span>Out now</span><span>Jobs</span><span class="on">Network</span></div>
+          <div class="scroll" style="gap: 8px">
+            <div class="card next">
+              <div class="row"><span class="em" style="font-size: 22px">🧑‍🌾</span><span style="flex: 1"><b>Next:</b> post a hero at the quarry: it runs at 40%.</span></div>
+              <span class="ebtn small">Post a hero</span>
+            </div>
+            <div class="card">
+              <div class="flow">
+                <div class="col">
+                  <div class="node"><span class="row"><span class="good"><span class="em">🌾</span>15</span></span><span class="small">Farm</span></div>
+                  <div class="node"><span class="row"><span class="good"><img src="../../../../assets/icons/scaled/stone.png" alt="">6</span></span><span class="small">Quarry</span></div>
+                </div><span class="arrow">→</span>
+                <div class="col"><div class="node"><span class="em">🐴</span><span class="good"><span class="em">🌾</span>12</span><span class="small">→ Tankard<br>25 min</span></div></div><span class="arrow">→</span>
+                <div class="col">
+                  <div class="node"><span class="em">🍺</span><span class="small">Tankard <b>40%</b></span></div>
+                  <div class="node"><span class="em">⚒️</span><span class="small">Smithy <b>10%</b></span></div>
+                </div>
+              </div>
+            </div>
+            <div class="sec">Buildings</div>
+            <div class="card" style="gap: 6px">
+              <div class="mini"><span class="good big"><span class="em">🌾</span></span><span class="t"><b>Farm</b> <span class="stars small">★★☆</span><div class="bar green thin"><div class="fill" style="width: 50%"></div></div></span><span class="small">18/36</span><span class="left">⏳ 3 d</span></div>
+              <div class="hr"></div>
+              <div class="mini"><span class="good big"><img src="../../../../assets/icons/scaled/stone.png" alt=""></span><span class="t"><b>Quarry</b> <span class="stars small">★☆☆</span> <span class="small" style="color: var(--ember-dark)">· locals only</span><div class="bar green thin"><div class="fill" style="width: 30%"></div></div></span><span class="small">6/20</span><span class="left">⏳ 5 d</span></div>
+            </div>
+            <div class="sec">Places</div>
+            <div class="card" style="gap: 6px">
+              <div class="mini"><span class="good big"><span class="em">🍺</span></span><span class="t"><b>Rusty Tankard</b><div class="bar thin"><div class="fill" style="width: 40%"></div><span class="step" style="left: 25%"></span><span class="step" style="left: 50%"></span></div></span><div class="tile rare" style="width: 36px; height: 36px"><img src="../../../../assets/icons/meals/board-cheese-mixed.png" alt="" style="width: 26px; height: 26px"></div><span class="left">⏳ 2 d</span></div>
+              <div class="hr"></div>
+              <div class="mini"><span class="good big"><span class="em">⚒️</span></span><span class="t"><b>Ironhand Smithy</b><div class="bar thin"><div class="fill" style="width: 10%"></div><span class="step" style="left: 25%"></span><span class="step" style="left: 50%"></span></div></span><div class="tile rare" style="width: 36px; height: 36px"><img src="../../../../assets/icons/relics/armor-steel-plate.png" alt="" style="width: 26px; height: 26px"></div><span class="left">⏳ 4 d</span></div>
+            </div>
+            <div class="sec">Cart</div>
+            <div class="card"><div class="mini"><span class="em" style="font-size: 22px">🐴</span><span class="t small">Loop 7 · to the Rusty Tankard with <span class="good"><span class="em">🌾</span>12</span> · home in 40 min</span></div></div>
+          </div>
+          <div class="island"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Full -->
+    <div class="state">
+      <h2>Full, with trouble</h2>
+      <p>Anything in its last day sorts the cards "Leaving soonest" first, with the hourglass and the word as well as the colour. A raid is the next step.</p>
+      <div class="phone">
+        <div class="screen">
+          <div class="screen-head">Expeditions</div>
+          <div class="tabs"><span>Places</span><span>Out now</span><span>Jobs</span><span class="on">Network <span style="background: var(--ember); color: var(--on-ember); padding: 0 4px; border: 1px solid var(--outline)">!</span></span></div>
+          <div class="scroll" style="gap: 8px">
+            <div class="card next">
+              <div class="row"><span class="em" style="font-size: 22px">⚔️</span><span style="flex: 1"><b>Next:</b> raiders reach the farm in 1 h 40 min. Defend it or empty it.</span><span class="pin">3</span></div>
+              <span class="ebtn small">Answer the raid</span>
+            </div>
+            <div class="card">
+              <div class="flow">
+                <div class="col">
+                  <div class="node last"><span class="row"><span class="good"><span class="em">🌾</span>36</span></span><span class="small">Farm ⏳ FULL</span></div>
+                  <div class="node"><span class="row"><span class="good"><img src="../../../../assets/icons/scaled/stone.png" alt="">12</span></span><span class="small">Quarry</span></div>
+                  <div class="node"><span class="row"><span class="good"><img src="../../../../assets/icons/rpg/herb-green-leaf.png" alt="">9</span></span><span class="small">Garden</span></div>
+                </div><span class="arrow">→</span>
+                <div class="col"><div class="node"><span class="em">🐴</span><span class="small">at the hall<br>waiting</span></div></div><span class="arrow">→</span>
+                <div class="col">
+                  <div class="node"><span class="em">🍺</span><span class="small">Tankard <b>✓</b></span></div>
+                  <div class="node last"><span class="em">⚒️</span><span class="small">Smithy ⏳ 70%</span></div>
+                  <div class="node"><span class="em">⚗️</span><span class="small">Apoth. 20%</span></div>
+                </div>
+              </div>
+              <span class="pin">4</span>
+            </div>
+            <div class="sec">⏳ Leaving soonest<span class="pin" style="position: static">5</span></div>
+            <div class="card warn" style="gap: 6px">
+              <div class="mini"><span class="good big"><span class="em">⚒️</span></span><span class="t"><b>Ironhand Smithy</b> · 70%<div class="bar thin"><div class="fill" style="width: 70%"></div><span class="step" style="left: 25%"></span><span class="step" style="left: 50%"></span></div></span><span class="left last">⏳ 14 h<br>LAST DAY</span></div>
+              <div class="hr"></div>
+              <div class="mini"><span class="good big"><span class="em">🌾</span></span><span class="t"><b>Farm</b> · <b>full</b>, 36 at risk<div class="bar full thin"><div class="fill" style="width: 100%"></div></div></span><span class="left last">⏳ 9 h<br>LAST DAY</span></div>
+            </div>
+            <div class="card" style="gap: 6px">
+              <div class="mini"><span class="good big"><img src="../../../../assets/icons/scaled/stone.png" alt=""></span><span class="t"><b>Quarry</b><div class="bar green thin"><div class="fill" style="width: 60%"></div></div></span><span class="small">12/20</span><span class="left">⏳ 4 d</span></div>
+              <div class="hr"></div>
+              <div class="mini"><span class="good big"><img src="../../../../assets/icons/rpg/herb-green-leaf.png" alt=""></span><span class="t"><b>Herb garden</b><div class="bar green thin"><div class="fill" style="width: 35%"></div></div></span><span class="small">9/24</span><span class="left">⏳ 5 d</span></div>
+              <div class="hr"></div>
+              <div class="mini"><span class="good big"><span class="em">🍺</span></span><span class="t"><b>Rusty Tankard</b> · filled ✓<div class="bar full thin"><div class="fill" style="width: 100%"></div></div></span><span class="left">⏳ 1 d</span></div>
+            </div>
+            <div class="card"><div class="mini"><span class="em" style="font-size: 22px">🐴</span><span class="t small"><b>Cart waiting at the hall:</b> Mira came home hurt. Change the crew or start it again.</span></div></div>
+          </div>
+          <div class="island"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <section>
+      <h3>What it must answer at a glance</h3>
+      <ol>
+        <li><span class="pin inline-pin">1</span><b>What should I do next?</b> One line, one ember button, always first. Its order: answer a raid · place the hall · discover a site · build · discover a place that wants your goods · set a route · crew the cart · post a hero · claim a reward.</li>
+        <li><span class="pin inline-pin">2</span><b>What is this tab for?</b> In the empty state, the greyed flow shows building → cart → place in one sentence.</li>
+        <li><span class="pin inline-pin">3</span><b>Is something in danger?</b> A raid takes the next-step line, and the tab gets a "!" badge.</li>
+        <li><span class="pin inline-pin">4</span><b>How do goods move?</b> The flow: stock by icon on the left, the cart's load and destination in the middle, each place's progress on the right.</li>
+        <li><span class="pin inline-pin">5</span><b>What's about to go?</b> "Leaving soonest" sorts to the top when anything is in its last day; each line has ⏳, the time and "LAST DAY".</li>
+      </ol>
+    </section>
+    <section>
+      <h3>Decisions to confirm</h3>
+      <ul>
+        <li><b>Tapping a card</b> opens its sheet over the tab (building, order, cart), same sheets as from the map; "Show on the map" jumps to the map centred on it.</li>
+        <li><b>The flow picture</b> lists at most 3 per column; more collapse into "+2".</li>
+        <li><b>A place's card shows its headline tile</b>, so two taverns with different prizes can be compared from here.</li>
+        <li><b>The trial's line-of-numbers camp cards and the raid log</b> go; the raid log moves into the cart/building sheets as plain sentences.</li>
+        <li><b>The first chain checklist</b> (step 8) will sit where the next-step card is, until it's done.</li>
+      </ul>
+    </section>
+  </div>
+</div>
+</body>
+</html>

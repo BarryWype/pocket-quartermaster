@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Site sheet</title>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="mockups.css">
+</head>
+<body>
+<div class="page">
+  <h1>1 · A site's sheet</h1>
+  <p class="lead">Opened by tapping a site on the map (one tap). Building takes the second tap, on the building's own card. Numbers are placeholders until balance: the layout is what's up for review. <a href="index.html">All mockups</a></p>
+
+  <div class="states">
+    <!-- Undiscovered -->
+    <div class="state">
+      <h2>Undiscovered</h2>
+      <p>Plain until the player walks within range. No stars, no buildings, no cost: only what to do and how far.</p>
+      <div class="phone">
+        <div class="map"></div><div class="dim"></div>
+        <div class="sheet">
+          <div class="sheet-head"><span class="grip"></span>
+            <div class="mk" style="position: static; transform: none"><div class="dia site"><span class="em">🪧</span></div></div>
+            <h3>Empty site<span class="sub">Not visited</span></h3>
+          </div>
+          <div class="timer"><span class="glass">⏳</span><span>Leaves in 5 days 6 h</span><span class="pin">2</span></div>
+          <div class="sheet-body">
+            <div class="banner info"><span class="pin">1</span><span class="em">👣</span><span><b>Walk here to discover it.</b> You'll see how good it is and what you can build.</span></div>
+            <div class="spread small"><span>340 m from you</span><span>0.9 km from your hall</span><span class="pin">3</span></div>
+          </div>
+          <div class="sheet-foot"><span class="wbtn">Close</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Discovered: can build -->
+    <div class="state">
+      <h2>Discovered, standing here</h2>
+      <p>Stars revealed. Every building fits any site: each card says what it makes and who wants it, and has its own Build button.</p>
+      <div class="phone">
+        <div class="map"></div><div class="dim"></div>
+        <div class="sheet">
+          <div class="sheet-head"><span class="grip"></span>
+            <div class="mk" style="position: static; transform: none"><div class="dia site"><span class="em">🪧</span></div></div>
+            <h3>Site <span class="stars">★★<span class="off">☆</span></span><span class="sub">Good ground: 2 stars of 3</span></h3><span class="pin">4</span>
+          </div>
+          <div class="timer"><span class="glass">⏳</span><span>Leaves in 5 days 6 h</span><span class="pin">2</span></div>
+          <div class="sheet-body" style="gap: 8px">
+            <div class="spread small"><span>You are here</span><span>0.9 km from your hall</span><span class="pin">3</span></div>
+            <div class="spread small"><span>Buildings near the hall</span><span class="b">2 of 3 within 1 km</span><span class="pin">5</span></div>
+            <div class="card inset">
+              <div class="row"><span class="good big"><span class="em">🌾</span></span><span class="label" style="flex: 1">Farm</span><span class="small muted">for</span><span class="good"><span class="em">🍺</span></span><span class="small">Taverns</span><span class="pin">6</span></div>
+              <div class="row small"><span>Makes</span><span class="good"><span class="em">🌾</span>2.4/h</span><span class="good"><img src="../../../../assets/icons/alchemy/food-raw-meat.png" alt="">0.4/h</span><span class="muted">with a hero</span></div>
+              <div class="row"><span class="pin">7</span><span class="ebtn small" style="flex: 1">Build · <span class="coin"></span> 60 · <img class="px" src="../../../../assets/icons/scaled/wood.png" width="20" alt=""> 10</span></div>
+            </div>
+            <div class="card inset">
+              <div class="row"><span class="good big"><img src="../../../../assets/icons/scaled/stone.png" alt=""></span><span class="label" style="flex: 1">Quarry</span><span class="small muted">for</span><span class="good"><span class="em">⚒️</span></span><span class="small">Smithies</span></div>
+              <div class="row small"><span>Makes</span><span class="good"><img src="../../../../assets/icons/scaled/stone.png" alt="">2.0/h</span><span class="muted">with a hero</span></div>
+              <div class="row"><span class="wbtn small" style="flex: 1">Build · <span class="coin"></span> 60 · <img class="px" src="../../../../assets/icons/scaled/wood.png" width="20" alt=""> 10</span></div>
+            </div>
+            <div class="card inset">
+              <div class="row"><span class="good big"><img src="../../../../assets/icons/rpg/herb-green-leaf.png" alt=""></span><span class="label" style="flex: 1">Herb garden</span><span class="small muted">for</span><span class="good"><span class="em">⚗️</span></span><span class="small">Apothecaries</span></div>
+              <div class="row small"><span>Makes</span><span class="good"><img src="../../../../assets/icons/rpg/herb-green-leaf.png" alt=""><img src="../../../../assets/icons/tavern/berries-blue.png" alt=""><img src="../../../../assets/icons/rpg/herb-purple-mushroom.png" alt="">2.0/h</span></div>
+              <div class="row"><span class="wbtn small" style="flex: 1">Build · <span class="coin"></span> 60 · <img class="px" src="../../../../assets/icons/scaled/wood.png" width="20" alt=""> 10</span></div>
+            </div>
+          </div>
+          <div class="sheet-foot"><span class="wbtn">Close</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Discovered: can't build -->
+    <div class="state">
+      <h2>Discovered, can't build</h2>
+      <p>Full state: a rich site in its last day, but too far from the hall. Each disabled Build says why in one line beneath it; a banner gives the way out when one reason blocks them all.</p>
+      <div class="phone">
+        <div class="map"></div><div class="dim"></div>
+        <div class="sheet">
+          <div class="sheet-head"><span class="grip"></span>
+            <div class="mk" style="position: static; transform: none"><div class="dia site"><span class="em">🪧</span></div></div>
+            <h3>Site <span class="stars">★★★</span><span class="sub">Rich ground: 3 stars of 3</span></h3>
+          </div>
+          <div class="timer last"><span class="glass">⏳</span><span>Leaves in 14 h</span><span class="tag">Last day</span></div>
+          <div class="sheet-body" style="gap: 8px">
+            <div class="spread small"><span>620 m from you</span><span>1.4 km from your hall</span></div>
+            <div class="banner bad"><span class="em">⚠️</span><span><b>Too far from your hall.</b> Buildings must stand within 1 km of it at tier 2. Move the hall, or pick a nearer site.</span></div>
+            <div class="card inset">
+              <div class="row"><span class="good big"><span class="em">🌾</span></span><span class="label" style="flex: 1">Farm</span><span class="small muted">for</span><span class="good"><span class="em">🍺</span></span><span class="small">Taverns</span></div>
+              <div class="action"><span class="pin">7</span><span class="wbtn small off">Build · <span class="coin"></span> 60 · <img class="px" src="../../../../assets/icons/scaled/wood.png" width="20" alt=""> 10</span><p class="why">Too far from your hall (1.4 km of 1 km).</p></div>
+            </div>
+            <div class="card inset">
+              <div class="row"><span class="good big"><img src="../../../../assets/icons/scaled/stone.png" alt=""></span><span class="label" style="flex: 1">Quarry</span><span class="small muted">for</span><span class="good"><span class="em">⚒️</span></span><span class="small">Smithies</span></div>
+              <div class="action"><span class="wbtn small off">Build</span><p class="why">Too far from your hall (1.4 km of 1 km).</p></div>
+            </div>
+            <p class="small muted" style="margin: 0">Other reasons, in this order: walk to the site to build (620 m) · all 3 buildings placed · not enough gold or wood (shown on the cost) · leaves in under a day (a building would last 6 days: allowed, it resets the site's life).</p>
+          </div>
+          <div class="sheet-foot"><span class="wbtn">Close</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Built -->
+    <div class="state">
+      <h2>Built</h2>
+      <p>A built site's marker opens the building's sheet directly (one tap; see Building sheet). This header is what the site part of it looks like: stars, the life reset by building, and where it stands.</p>
+      <div class="phone">
+        <div class="map"></div><div class="dim"></div>
+        <div class="sheet">
+          <div class="sheet-head"><span class="grip"></span>
+            <div class="mk" style="position: static; transform: none"><div class="dia"><span class="em">🌾</span></div></div>
+            <h3>Farm <span class="stars">★★<span class="off">☆</span></span><span class="sub">On a 2-star site · 0.9 km from your hall</span></h3>
+          </div>
+          <div class="timer"><span class="glass">⏳</span><span>Leaves in 6 days</span></div>
+          <div class="sheet-body">
+            <div class="banner ok"><span class="pin">8</span><span class="em">✅</span><span><b>Farm built.</b> Locals work it slowly. Post a hero for the full rate, then add it to the cart's route.</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <section>
+      <h3>What it must answer at a glance</h3>
+      <ol>
+        <li><span class="pin inline-pin">1</span><b>Have I been here?</b> "Not visited" under the name, and the blue "Walk here" banner as the only content.</li>
+        <li><span class="pin inline-pin">2</span><b>How long will it last?</b> The timer strip under the header, same place and words as every temporary sheet.</li>
+        <li><span class="pin inline-pin">3</span><b>How far is it, from me and from my hall?</b> One distance line.</li>
+        <li><span class="pin inline-pin">4</span><b>How good is it?</b> Stars by the name, with the count in words beneath (never colour alone).</li>
+        <li><span class="pin inline-pin">5</span><b>Can I build more?</b> "Buildings near the hall: 2 of 3 within 1 km".</li>
+        <li><span class="pin inline-pin">6</span><b>What can I build, what does it make, who wants it?</b> One card per building: the good's icon, the rate, and the place icon it's for.</li>
+        <li><span class="pin inline-pin">7</span><b>What does it cost, and why can't I?</b> Cost on the button; a reason line under every disabled one; a banner when one reason blocks everything.</li>
+        <li><span class="pin inline-pin">8</span><b>What now?</b> After building, one line says the next step.</li>
+      </ol>
+    </section>
+    <section>
+      <h3>Decisions to confirm</h3>
+      <ul>
+        <li><b>Built site = building.</b> Its marker opens the building sheet directly, so there's no separate "built site" sheet to learn.</li>
+        <li><b>The ember button</b> goes on the building that suits the nearest discovered place (here a tavern is near); the others are wood. It's a hint, not a rule.</li>
+        <li><b>Rates</b> shown are "with a hero" at this site's stars. Locals' rate appears on the building sheet.</li>
+        <li><b>Grain</b> has no pixel icon in the game yet; 🌾 stands in until one is picked or drawn.</li>
+        <li><b>Building on a site in its last day</b> is allowed: building resets the site's life to six days.</li>
+        <li><b>Site icon:</b> 🪧 on a dashed brass diamond, so an empty site never looks like a place you can visit for goods.</li>
+      </ul>
+    </section>
+  </div>
+</div>
+</body>
+</html>
