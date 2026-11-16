@@ -25,6 +25,7 @@ import type { Bounds } from '@/game/generation/foliage';
 import type { LatLng, Spawn } from '@/game/generation/types';
 import type { VisibleSpawn } from '@/game/generation/visibility';
 import { isLockedMine } from '@/game/places/generate';
+import { isNetworkKind } from '@/game/supply/discovery';
 import { isPatrolKind, patrolPositionAt, type PatrolSpawn } from '@/game/patrols/generate';
 import { fleesAt } from '@/game/patrols/visibility';
 import { isEntered } from '@/game/secrets/places';
@@ -108,6 +109,8 @@ type Props = {
   onQuest: () => void;
   /** Supply lines: opens the player's own cell's sheet; undefined while the switch is off. */
   onPlayer?: () => void;
+  /** Supply lines: show the not-visited badge on undiscovered network places. */
+  supplyOn?: boolean;
 };
 
 const toLngLat = (position: LatLng): [number, number] => [position.longitude, position.latitude];
@@ -147,6 +150,7 @@ function MapMarkersBase({
   onOpenPatrol,
   onQuest,
   onPlayer,
+  supplyOn,
 }: Props) {
   const spawns = useMemo(() => visible.map((entry) => ({ ...entry, id: entry.spawn.id })), [visible]);
   const patrols = useMemo(() => visiblePatrols.map((spawn) => ({ spawn, id: spawn.id, position: patrolPositionAt(spawn, now) })), [visiblePatrols, now]);
@@ -223,7 +227,12 @@ function MapMarkersBase({
       })}
       {culledTaverns.map((tavern) => (
         <Marker key={tavern.id} id={tavern.id} lngLat={toLngLat(tavern.position)} onPress={tapped(() => onOpenTavern(tavern))}>
-          <TimedSanctumMarker emoji="🍺" locked={!tavernsOpen} label={tr(placeInfo.tavern.name)} />
+          <TimedSanctumMarker
+            emoji="🍺"
+            locked={!tavernsOpen}
+            label={tr(placeInfo.tavern.name)}
+            unvisited={supplyOn && !(tavern.id in save.supply.discovered)}
+          />
         </Marker>
       ))}
       {culledPlaces.map((place) => {
@@ -235,6 +244,7 @@ function MapMarkersBase({
               locked={isLockedMine(place.kind, playerPickaxe)}
               label={tr(placeInfo[place.kind].name)}
               difficulty={difficulty}
+              unvisited={supplyOn && isNetworkKind(place.kind) && !(place.id in save.supply.discovered)}
               accessibilityLabel={difficulty ? markerLabel(tr(placeInfo[place.kind].name), difficulty, t('difficulty.fight')) : undefined}
             />
           </Marker>

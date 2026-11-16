@@ -4,6 +4,7 @@ import { distanceMeters, interpolate, offsetPosition } from '../generation/geo';
 import type { LatLng } from '../generation/types';
 import { placesAround, type PlaceSpawn } from '../places/generate';
 import { isFightPlace } from '../places/fights';
+import { isNetworkKind } from '../supply/discovery';
 import { createInitialSave, type SaveData } from '../save';
 import type { SecretTip } from '../types';
 import { snapshotNearby, stepNearby, type NearbyWatch } from './pocketNearby';
@@ -133,5 +134,22 @@ describe('Pocket mode nearby-place alerts', () => {
     expect(carried.alerted[spawn.id]).toBe(spawn.expiresAt);
     const pruned = snapshotNearby(readySave(), all, spawn.expiresAt + 1, stepped.watch as NearbyWatch);
     expect(pruned.alerted[spawn.id]).toBeUndefined();
+  });
+
+  it('alerts once for an undiscovered network place while the switch is on, never while off or already discovered', () => {
+    const { spawn, at } = findSpawn((s) => isNetworkKind(s.kind));
+    const fixes = [fixNear(spawn.position, 100, at)];
+    const off = snapshotNearby(readySave(), [], at);
+    expect(off.network).toBe(false);
+    expect(stepNearby(off, fixes, at).alerts).toEqual([]);
+    const on = snapshotNearby(readySave(), [], at, null, true);
+    expect(on.network).toBe(true);
+    const stepped = stepNearby(on, fixes, at);
+    expect(stepped.alerts).toMatchObject([{ kind: 'newPlace', placeId: spawn.id, place: spawn.kind, distance: 100 }]);
+    const again = stepNearby(stepped.watch, [fixNear(spawn.position, 100, at + 1000)], at + 1000);
+    expect(again.alerts).toEqual([]);
+    const known = readySave();
+    known.supply.discovered[spawn.id] = spawn.expiresAt;
+    expect(stepNearby(snapshotNearby(known, [], at, null, true), fixes, at).alerts).toEqual([]);
   });
 });

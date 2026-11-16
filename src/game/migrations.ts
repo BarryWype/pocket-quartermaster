@@ -908,6 +908,15 @@ export function toV54(save: SaveData): SaveData {
   return { ...save, personalTavern: null, quests: { ...save.quests, list } };
 }
 
+/**
+ * Version 55: walking to a network place discovers it (see supply/discovery.ts).
+ * The map starts empty: nothing has been walked to yet.
+ */
+export function toV55(save: SaveData): SaveData {
+  if (save.supply.discovered) return save;
+  return { ...save, supply: { ...save.supply, discovered: {} } };
+}
+
 /** Applies the migration steps in order, from the save's own version on. */
 export function migrateSave(
   save: SaveData,
@@ -939,5 +948,6 @@ export function migrateSave(
   if (fromVersion < 52) next = toV52(next, now);
   if (fromVersion < 53) next = toV53(next);
   if (fromVersion < 54) next = toV54(next);
+  if (fromVersion < 55) next = toV55(next);
   return next;
 }

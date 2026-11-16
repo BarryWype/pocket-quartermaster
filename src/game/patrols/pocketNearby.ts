@@ -12,6 +12,7 @@ import { isPlaceRevealed, isRevealed } from '../reveal/reveal';
 import type { SaveData } from '../save';
 import { hasKey } from '../secrets/keys';
 import { secretPlaces } from '../secrets/tips';
+import { isNetworkKind } from '../supply/discovery';
 
 /** A spot the save knows about (treasure, secret place, replacement ruin), copied at hand-off. */
 export type KnownSpot = {
@@ -34,12 +35,17 @@ export type NearbyWatch = {
   secrets: (KnownSpot & { secret: SecretKind })[];
   /** Places used / dug / won (save.usedPlaces) at hand-off. */
   used: Record<string, number>;
+  /** The supply-lines switch at hand-off: undiscovered network places alert. */
+  network: boolean;
+  /** Network places already discovered (save.supply.discovered) at hand-off. */
+  discovered: Record<string, number>;
   /** Place id → its expiry, once alerted. */
   alerted: Record<string, number>;
 };
 
 export type NearbyAlert =
   | { kind: 'nearbyPlace'; placeId: string; place: PlaceKind | 'treasure'; position: LatLng; distance: number }
+  | { kind: 'newPlace'; placeId: string; place: PlaceKind; position: LatLng; distance: number }
   | { kind: 'secretPlace'; placeId: string; secret: SecretKind; position: LatLng; distance: number };
 
 const toSpot = (spawn: PlaceSpawn): KnownSpot => ({
@@ -62,6 +68,7 @@ export function snapshotNearby(
   wanted: NearbyKind[],
   now: number,
   previous: NearbyWatch | null = null,
+  network = false,
 ): NearbyWatch {
   const wants = (kind: NearbyKind) => wanted.includes(kind);
   const ruins = wants('ruins') && isPlaceRevealed(save, 'ruins');
@@ -81,6 +88,8 @@ export function snapshotNearby(
       ? secretPlaces(save, now).map((spawn) => ({ ...toSpot(spawn), secret: spawn.kind as SecretKind }))
       : [],
     used: { ...save.usedPlaces },
+    network,
+    discovered: { ...save.supply.discovered },
     alerted: prune(previous?.alerted ?? {}, now),
   };
 }
@@ -99,29 +108,29 @@ export function stepNearby(
   const alerted = { ...watch.alerted };
   const alerts: NearbyAlert[] = [];
   const needsPlaces = watch.fightKinds.length > 0 || watch.ruins;
+  const needsNetwork = watch.network;
   for (const fix of fixes) {
     const t = fix.timestamp;
     const live = (spot: { startsAt: number; expiresAt: number }) => spot.startsAt <= t && spot.expiresAt > t;
-    const generated: PlaceSpawn[] = needsPlaces
+    const generated: PlaceSpawn[] = needsPlaces || needsNetwork
       ? placesAround(fix.position, t).filter(
           (spawn) =>
             live(spawn) &&
             !(spawn.id in watch.used) &&
             ((watch.ruins && spawn.kind === 'ruins') ||
-              (isFightPlace(spawn.kind) && watch.fightKinds.includes(spawn.kind))),
+              (isFightPlace(spawn.kind) && watch.fightKinds.includes(spawn.kind)) ||
+              (needsNetwork && isNetworkKind(spawn.kind) && !(spawn.id in watch.discovered))),
         )
       : [];
     const alertsHere: NearbyAlert[] = [];
     for (const spawn of generated) {
       const distance = Math.round(distanceMeters(fix.position, spawn.position));
       if (spawn.id in alerted || distance > meters) continue;
-      alertsHere.push({
-        kind: 'nearbyPlace',
-        placeId: spawn.id,
-        place: spawn.kind,
-        position: spawn.position,
-        distance,
-      });
+      if (needsNetwork && isNetworkKind(spawn.kind) && !(spawn.id in watch.discovered)) {
+        alertsHere.push({ kind: 'newPlace', placeId: spawn.id, place: spawn.kind, position: spawn.position, distance });
+      } else {
+        alertsHere.push({ kind: 'nearbyPlace', placeId: spawn.id, place: spawn.kind, position: spawn.position, distance });
+      }
       alerted[spawn.id] = spawn.expiresAt;
     }
     const spots: { spot: KnownSpot; place: PlaceKind | 'treasure'; secret?: SecretKind }[] = [

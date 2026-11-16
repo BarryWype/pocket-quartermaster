@@ -145,7 +145,7 @@ export async function syncBackground() {
     const nearbyKinds = notifications.categories.nearbyPlaces ? notifications.nearbyKinds : [];
     return {
       ...snapshotBackground(save, patrolSettingsFrom(pocketMode, save, notifications.patrolAlertFor), now, current),
-      pocket: snapshotPocket(save, nearbyKinds, now, current?.pocket ?? null),
+      pocket: snapshotPocket(save, nearbyKinds, now, current?.pocket ?? null, useSettingsStore.getState().supplyLines),
     };
   });
 }

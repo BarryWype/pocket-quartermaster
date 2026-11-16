@@ -811,6 +811,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
           onOpenPatrol={openPatrolAt}
           onQuest={quest}
           onPlayer={supplyOn ? onPlayerCell : undefined}
+          supplyOn={supplyOn}
         />
       </Map>
       {!noDecorations && <MapSky pan={skyPan} hour={ambience.hour} raining={ambience.raining} decor={decor !== 'hidden'} />}

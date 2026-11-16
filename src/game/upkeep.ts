@@ -27,6 +27,7 @@ export function pruneExpired(save: SaveData, now: number, config: GatheringConfi
     (effect) => effect.endsAt > now || (save.autoGather.processedUntil < effect.endsAt && effect.endsAt >= buffer),
   );
   const secretTips = pruneTips(save.secretTips, now);
+  const discovered = Object.fromEntries(Object.entries(save.supply.discovered).filter(([, expiresAt]) => expiresAt > now));
   const unchanged =
     treasureMaps.length === save.treasureMaps.length &&
     activeLure === save.activeLure &&
@@ -38,8 +39,23 @@ export function pruneExpired(save: SaveData, now: number, config: GatheringConfi
     Object.keys(chapelVisits).length === Object.keys(save.chapelVisits).length &&
     Object.keys(placePurchases).length === Object.keys(save.placePurchases).length &&
     Object.keys(dugRuins).length === Object.keys(save.dugRuins).length &&
-    secretTips.length === save.secretTips.length;
+    secretTips.length === save.secretTips.length &&
+    Object.keys(discovered).length === Object.keys(save.supply.discovered).length;
   return unchanged
     ? save
-    : { ...save, treasureMaps, activeLure, walkEffects, usedSanctums, collected, takenOffers, usedPlaces, chapelVisits, placePurchases, dugRuins, secretTips };
+    : {
+        ...save,
+        treasureMaps,
+        activeLure,
+        walkEffects,
+        usedSanctums,
+        collected,
+        takenOffers,
+        usedPlaces,
+        chapelVisits,
+        placePurchases,
+        dugRuins,
+        secretTips,
+        supply: { ...save.supply, discovered },
+      };
 }

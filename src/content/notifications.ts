@@ -167,6 +167,8 @@ export const notificationTexts = {
   chestsUnlocked: { title: 'Step chests unlocked', body: '{chests} are ready to open.' },
   nearbyPlace: { title: '{place} nearby', body: '{distance} from your path.' },
   nearbyPlaces: { title: 'Places nearby', body: '{places}' },
+  newPlace: { title: 'Something new is nearby', body: '{place}, {distance} from your path: walk there to discover it.' },
+  newPlaces: { title: 'Something new is nearby', body: '{places}' },
   treasureSpot: 'Treasure spot',
   secretPlace: { title: 'A secret place is close', body: '{place}, {distance} away. You have a key.' },
 };

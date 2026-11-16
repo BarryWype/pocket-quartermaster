@@ -1,4 +1,5 @@
 import type { Camp } from '@/game/supply/types';
+import type { PlaceKind } from '@/content/places';
 
 /** The supply-lines trades a hero can carry (see doc/design/supply-lines/). */
 export type TradeId = 'woodcutter' | 'trapper' | 'teamster' | 'watchman';
@@ -19,6 +20,9 @@ export const supplyRules = {
   },
   /** The starting trio's fixed trades, so a new game and a migrated save agree. */
   startingTrades: { bram: 'woodcutter', lyra: 'trapper', mira: 'teamster' } satisfies Record<string, TradeId>,
+
+  /** Places that will hold orders; sites join later. */
+  discovery: { kinds: ['tavern', 'smithy', 'apothecary', 'market'] satisfies PlaceKind[] },
 
   /** Geohash precision of the supply grid (about 115–153 m cells; see the design doc). */
   cellPrecision: 7,

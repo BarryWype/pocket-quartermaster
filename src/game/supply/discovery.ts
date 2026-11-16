@@ -1,0 +1,89 @@
+import { placeInfo, placeRules, type PlaceKind } from '@/content/places';
+import { supplyRules } from '@/content/supplyLines';
+
+import { distanceMeters } from '../generation/geo';
+import { localDayIndex } from '../generation/localDays';
+import { tileAt } from '../generation/tiles';
+import type { LatLng } from '../generation/types';
+import { placeGroupOf, placesAround, type PlaceSpawn } from '../places/generate';
+import type { SaveData } from '../save';
+import { personalTaverns } from '../taverns/personal';
+import { withTavernName } from '../taverns/taverns';
+import { t, tr, type TextKey } from '@/i18n';
+
+/** The place kinds the network trades with (see content/supplyLines.ts). */
+export type NetworkKind = (typeof supplyRules.discovery.kinds)[number];
+
+export const isNetworkKind = (kind: PlaceKind): kind is NetworkKind =>
+  supplyRules.discovery.kinds.includes(kind as NetworkKind);
+
+export const isDiscovered = (save: SaveData, placeId: string) => placeId in save.supply.discovered;
+
+/** The network places around a position at a time: the network kinds' groups, plus the save's personal tavern. */
+export function networkPlacesAround(save: SaveData, position: LatLng, timeMs: number): PlaceSpawn[] {
+  const groups = [...new Set(supplyRules.discovery.kinds.map((kind) => placeGroupOf(kind)))];
+  return [...placesAround(position, timeMs, groups), ...personalTaverns(save, timeMs)];
+}
+
+/**
+ * Discovers every live, undiscovered network place within interaction range of
+ * the position. The same save object comes back when nothing was found.
+ */
+export function discoverAt(
+  save: SaveData,
+  places: PlaceSpawn[],
+  position: LatLng,
+  timeMs: number,
+): { save: SaveData; found: PlaceSpawn[] } {
+  const found = places.filter(
+    (place) =>
+      isNetworkKind(place.kind) &&
+      place.startsAt <= timeMs &&
+      timeMs < place.expiresAt &&
+      !isDiscovered(save, place.id) &&
+      distanceMeters(position, place.position) <= placeRules.interactionMeters,
+  );
+  if (found.length === 0) return { save, found };
+  const discovered = { ...save.supply.discovered };
+  for (const place of found) discovered[place.id] = place.expiresAt;
+  return { save: { ...save, supply: { ...save.supply, discovered } }, found };
+}
+
+/**
+ * Walks a path's fixes, discovering the network places it passes; each fix sees
+ * the places of its own time. Network places only change at the change hour, so
+ * the places around a fix are generated once per tile and local day.
+ */
+export function discoverAlong(
+  save: SaveData,
+  fixes: { position: LatLng; timestamp: number }[],
+): { save: SaveData; found: PlaceSpawn[] } {
+  let next = save;
+  const found: PlaceSpawn[] = [];
+  const around = new Map<string, PlaceSpawn[]>();
+  const precision = Math.max(...supplyRules.discovery.kinds.map((kind) => placeGroupOf(kind).precision));
+  for (const fix of fixes) {
+    const key = `${tileAt(fix.position, precision)}|${localDayIndex(fix.timestamp, placeRules.changeHourLocal)}`;
+    if (!around.has(key)) around.set(key, networkPlacesAround(next, fix.position, fix.timestamp));
+    const step = discoverAt(next, around.get(key)!, fix.position, fix.timestamp);
+    next = step.save;
+    found.push(...step.found);
+  }
+  return { save: next, found };
+}
+
+const wantsKey: Record<NetworkKind, TextKey> = {
+  tavern: 'supply.discover.wants.tavern',
+  smithy: 'supply.discover.wants.smithy',
+  apothecary: 'supply.discover.wants.apothecary',
+  market: 'supply.discover.wants.market',
+};
+
+/** The map's note for places just discovered: the first one's name and wants, plus a count when several came at once. */
+export function discoveryNote(found: PlaceSpawn[]): string | null {
+  if (found.length === 0) return null;
+  const name = (place: PlaceSpawn) => (place.kind === 'tavern' ? withTavernName(place).name : tr(placeInfo[place.kind].name));
+  const [first] = found;
+  const note = t('supply.discover.found', { name: name(first), wants: t(wantsKey[first.kind as NetworkKind]) });
+  return found.length > 1 ? `${note} ${t('supply.discover.more', { count: found.length - 1 })}` : note;
+}

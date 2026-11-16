@@ -9,6 +9,7 @@ import { distanceMeters } from '@/game/generation/geo';
 import { rosterCap } from '@/game/guild/guild';
 import { buyProblem, placeStock, stockLeft } from '@/game/places/shops';
 import { rolledTrade } from '@/game/supply/trades';
+import { useSupplyOn } from '@/hooks/useSupply';
 import type { LatLng } from '@/game/generation/types';
 import {
   buySupplyProblem,
@@ -50,6 +51,7 @@ type Props = { tavern: TavernSpawn; player: LatLng; onClose: () => void };
 /** A tavern's three recruits for today. */
 export function TavernPanel({ tavern, player, onClose }: Props) {
   const save = useGameStore((state) => state.save);
+  const supplyOn = useSupplyOn();
   const recruit = useGameStore((state) => state.recruit);
   const buySupply = useGameStore((state) => state.buySupply);
   const buyAtPlace = useGameStore((state) => state.buyAtPlace);
@@ -92,6 +94,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
   return (
     <Overlay onClose={onClose} position="bottom">
       <Sheet variant="wood" emoji="🍺" title={tavern.name} bodyStyle={styles.content} footer={<WoodButton title={t('common.close')} onPress={onClose} />}>
+        {supplyOn && !(tavern.id in save.supply.discovered) && <IconLabel emoji="👣" label={t('supply.discover.walkHere')} />}
         {far ? (
           <>
             <Text style={styles.problem}>{problemText.tooFar(distance, rosterCap(save))}</Text>

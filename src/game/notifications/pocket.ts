@@ -25,6 +25,7 @@ const CATEGORY: Record<PocketAlert['kind'], PocketCategory> = {
   questTarget: 'questTarget',
   chestReady: 'chestUnlocked',
   nearbyPlace: 'nearbyPlaces',
+  newPlace: 'nearbyPlaces',
   secretPlace: 'secretPlace',
 };
 
@@ -69,6 +70,17 @@ function grouped(category: PocketCategory, alerts: PocketAlert[], at: number | n
       return { ...base, id: `chest:${chests.map((a) => a.chestId).join('+')}`, group: 'steps', ...text, data: { route: 'chests' } };
     }
     case 'nearbyPlaces': {
+      // A new network place has its own texts, so it never shares a notification with the others.
+      const fresh = alerts.filter((a): a is Extract<PocketAlert, { kind: 'newPlace' }> => a.kind === 'newPlace').sort((a, b) => a.distance - b.distance);
+      if (fresh.length > 0) {
+        const [nearest] = fresh;
+        const text =
+          fresh.length === 1
+            ? { title: texts.newPlace.title, body: fill(texts.newPlace.body, { place: tr(placeInfo[fresh[0].place].name), distance: roundedDistance(nearest.distance) }) }
+            : { title: texts.newPlaces.title, body: fill(texts.newPlaces.body, { places: fresh.map((a) => `${tr(placeInfo[a.place].name)} (${roundedDistance(a.distance)})`).join(', ') }) };
+        const data = { route: 'place', placeId: nearest.placeId, latitude: nearest.position.latitude, longitude: nearest.position.longitude };
+        return { ...base, id: `newPlace:${fresh.map((a) => a.placeId).join('+')}`, group: 'places', ...text, data };
+      }
       const places = alerts.filter((a) => a.kind === 'nearbyPlace').sort((a, b) => a.distance - b.distance);
       const name = (a: (typeof places)[number]) => (a.place === 'treasure' ? texts.treasureSpot : tr(placeInfo[a.place].name));
       const [nearest] = places;
@@ -129,7 +141,15 @@ export function pocketNotifications(
     }
     const at = deliveryTime(now, category, settings);
     if (at > now && passing) continue;
-    notifications.push(grouped(category, due, at > now ? at : null));
+    // New places and places nearby share a category but not their texts, so they go out separately.
+    const batches =
+      category === 'nearbyPlaces' && due.some((alert) => alert.kind === 'newPlace')
+        ? [due.filter((alert) => alert.kind === 'newPlace'), due.filter((alert) => alert.kind !== 'newPlace')]
+        : [due];
+    for (const batch of batches) {
+      if (batch.length === 0) continue;
+      notifications.push(grouped(category, batch, at > now ? at : null));
+    }
     sentAt[category] = now;
   }
   return { notifications, log: { sentAt, held } };

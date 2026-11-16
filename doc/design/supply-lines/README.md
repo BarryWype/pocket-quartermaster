@@ -25,6 +25,17 @@ Always on, with or without the switch (decided 2026-11-17; the proposal and its 
 - **The tavern guarantee:** unchanged, a tavern within 800 m of the period's first map position. The personal tavern now lasts a two-day period, until the next group change.
 - **Tested** over a seeded year (`src/game/places/rotation.test.ts`), in any time zone: each third of a place's life holds 28–38% of the live places at every sample, and no change hour replaces more than 40%.
 
+## Discovering places
+
+Behind the switch. Only the places the network will trade with are discovered: taverns (the personal tavern too), smithies, apothecaries and markets (`supplyRules.discovery.kinds`); sites join in step 4. Other places look and work as before.
+
+- **Discovered** when you come within a place's interaction range (50 m): live, from each position the map reports (`useDiscovery`), and along walks processed on open (Pocket mode and "app open only"), each fix seeing the places of its own time.
+- **Kept** in `save.supply.discovered` (place id → when it leaves), pruned with the other place bookkeeping once the place has gone.
+- **Not visited yet:** a 👣 badge on the marker's top-right (and "not visited" in its spoken label), and "Walk here to discover it" at the top of its sheet.
+- **Found:** a note on the map names it and what its kind wants ("Discovered: The Rusty Tankard. Taverns want grain and meat."), one note for several at once.
+- **Pocket mode** alerts "Something new is nearby" for an undiscovered network place within 150 m of the walk, under the existing "Places nearby" notifications. It never discovers, builds or routes.
+- **Cost:** a two-hour processed walk takes about 0.3 s on a laptop: the places around a fix are generated once per tile and local day.
+
 ## Cells and terrain
 
 - **One grid, geohash precision 7:** 153 m north–south, 115 m east–west at Wellington. It is the grid of animal and herb spawns, and sits inside the patrol tiles (precision 6) and place tiles (precision 5). Danger is scored per cell, and the cart's route crosses cells.
@@ -124,7 +135,8 @@ eady generates:
   - the hall keeps its cell, with its last move counted in the new 7-day window;
   - the scouted cells, the packed-up slots and the three first-run tips leave the save.
 - **Version 54** follows the six-day rotation (`toV54`): open quests aimed at a place retarget to a live one (progress kept), and the personal tavern is checked again under its two-day period (`personalTavern.day` becomes `period`).
-- Renumber all three whenever the branch is brought up to date with main.
+- **Version 55** adds `save.supply.discovered`, empty.
+- Renumber all four whenever the branch is brought up to date with main.
 - **Types** are in `src/game/supply/types.ts`. **The switch** is a setting, not save data.
 
 ## Simulator

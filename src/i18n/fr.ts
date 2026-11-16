@@ -1041,6 +1041,18 @@ export const fr: Dictionary = {
     terrain: { green: 'Terrain vert', waterside: 'Bord de l’eau', built: 'Zone bâtie', water: 'Eau libre' },
     resource: { timber: 'Bois', game: 'Gibier' },
     youAreHere: 'Vous êtes ici',
+    discover: {
+      found: 'Découvert : {name}. {wants}',
+      more: 'Et {count} de plus.',
+      wants: {
+        tavern: 'Les tavernes veulent du grain et de la viande.',
+        smithy: 'Les forges veulent de la pierre.',
+        apothecary: 'Les apothicaires veulent des herbes, des baies et des champignons.',
+        market: 'Les marchés prennent toutes les marchandises.',
+      },
+      walkHere: 'Venez ici pour le découvrir.',
+      notVisitedLabel: 'pas encore visité',
+    },
     hall: {
       here: 'Le hall est ici.',
       place: 'Installer le hall ici',

@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
 import type { Difficulty } from '@/content/difficulty';
+import { t } from '@/i18n';
 import { colors, ui } from '@/theme';
 
 import { DifficultyPips, DifficultyRing } from './ui';
@@ -19,13 +20,16 @@ type Props = {
   secret?: boolean;
   /** The fight's difficulty band; plain places have none. */
   difficulty?: Difficulty;
+  /** Supply lines: a network place not walked to yet. */
+  unvisited?: boolean;
   accessibilityLabel?: string;
 };
 
 /** A Sanctum or other place on the map: a diamond tile, ringed when it is a fight, greyed with a lock when locked. */
-export function SanctumMarker({ emoji, locked, label, secret, difficulty, accessibilityLabel }: Props) {
+export function SanctumMarker({ emoji, locked, label, secret, difficulty, unvisited, accessibilityLabel }: Props) {
+  const spoken = unvisited ? [accessibilityLabel ?? label, t('supply.discover.notVisitedLabel')].filter(Boolean).join(', ') : accessibilityLabel;
   return (
-    <View style={styles.marker} accessibilityLabel={accessibilityLabel}>
+    <View style={styles.marker} accessibilityLabel={spoken}>
       <View style={styles.tileWrap}>
         {difficulty ? (
           <DifficultyRing difficulty={difficulty} shape="diamond" size={SIDE}>
@@ -43,6 +47,7 @@ export function SanctumMarker({ emoji, locked, label, secret, difficulty, access
           </View>
         )}
         {locked && <Text style={styles.lock}>🔒</Text>}
+        {unvisited && <Text style={styles.unvisited}>👣</Text>}
         {secret && !locked && <Text style={styles.lock}>🔓</Text>}
         {difficulty && (
           <View style={styles.pips}>
@@ -73,6 +78,8 @@ const styles = StyleSheet.create({
   emoji: { fontSize: 22 },
   // The diamond's right point, its mid-height corner.
   lock: { position: 'absolute', right: -6, top: '50%', marginTop: -10, fontSize: 16 },
+  // The diamond's top-right corner.
+  unvisited: { position: 'absolute', right: -8, top: -8, fontSize: 14 },
   pips: { position: 'absolute', bottom: -8 },
   label: {
     marginTop: 2,

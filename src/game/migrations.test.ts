@@ -6,7 +6,7 @@ import { gearRules } from "@/content/gear";
 import { affixById } from "@/content/affixes";
 import { gearStats } from "./gear/stats";
 import { uniquePool } from "./gear/uniques";
-import { migrateSave, toV38, toV39, toV40, toV41, toV42, toV43, toV44, toV47, toV48, toV49, toV50, toV52, toV53, toV54 } from "./migrations";
+import { migrateSave, toV38, toV39, toV40, toV41, toV42, toV43, toV44, toV47, toV48, toV49, toV50, toV52, toV53, toV54, toV55 } from "./migrations";
 import { affixPool } from "./gear/affixes";
 import { emptyLoot } from "./loot/types";
 import type { Briefing, ExpeditionReport, GearDef, GearInstance } from "./types";
@@ -1242,5 +1242,28 @@ describe("toV54", () => {
     const base = createInitialSave();
     const quiet = { ...base, quests: { ...base.quests, list: [placeQuest("done", { doneAt: NOW })] } };
     expect(toV54(quiet)).toBe(quiet);
+  });
+});
+
+describe("toV55", () => {
+  /** A version 54 save: its supply has no `discovered` map yet. */
+  const v54 = (): SaveData => {
+    const base = createInitialSave();
+    const supply = { ...base.supply } as Omit<typeof base.supply, 'discovered'> & { discovered?: Record<string, number> };
+    delete supply.discovered;
+    return { ...base, supply } as unknown as SaveData;
+  };
+
+  it("adds an empty discovered map to the supply", () => {
+    expect(toV55(v54()).supply.discovered).toEqual({});
+  });
+
+  it("returns the same save when the map is already there", () => {
+    const save = createInitialSave();
+    expect(toV55(save)).toBe(save);
+  });
+
+  it("runs from migrateSave on a version 54 save", () => {
+    expect(migrateSave(v54(), 54, 0).supply.discovered).toEqual({});
   });
 });

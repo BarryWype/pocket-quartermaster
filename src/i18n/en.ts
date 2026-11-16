@@ -1038,6 +1038,18 @@ export const en = {
     terrain: { green: 'Green ground', waterside: 'Water’s edge', built: 'Built-up', water: 'Open water' },
     resource: { timber: 'Timber', game: 'Game' },
     youAreHere: 'You are here',
+    discover: {
+      found: 'Discovered: {name}. {wants}',
+      more: 'And {count} more.',
+      wants: {
+        tavern: 'Taverns want grain and meat.',
+        smithy: 'Smithies want stone.',
+        apothecary: 'Apothecaries want herbs, berries and mushrooms.',
+        market: 'Markets take every good.',
+      },
+      walkHere: 'Walk here to discover it.',
+      notVisitedLabel: 'not visited',
+    },
     hall: {
       here: 'The hall is here.',
       place: 'Place the hall here',

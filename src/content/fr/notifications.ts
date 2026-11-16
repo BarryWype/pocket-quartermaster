@@ -70,6 +70,8 @@ export const frNotificationTexts: typeof notificationTexts = {
   chestsUnlocked: { title: 'Coffres de pas débloqués', body: '{chests} sont prêts à être ouverts.' },
   nearbyPlace: { title: '{place} à proximité', body: 'À {distance} de votre chemin.' },
   nearbyPlaces: { title: 'Lieux à proximité', body: '{places}' },
+  newPlace: { title: 'Du nouveau tout près', body: '{place}, à {distance} de votre chemin : allez-y pour le découvrir.' },
+  newPlaces: { title: 'Du nouveau tout près', body: '{places}' },
   treasureSpot: 'Trésor',
   secretPlace: { title: 'Un lieu secret tout proche', body: '{place}, à {distance}. Vous avez une clé.' },
 };

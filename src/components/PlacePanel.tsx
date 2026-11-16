@@ -18,6 +18,8 @@ import { distanceMeters } from '@/game/generation/geo';
 import type { LatLng } from '@/game/generation/types';
 import { fishProblem } from '@/game/places/dock';
 import { isLockedMine, type PlaceSpawn } from '@/game/places/generate';
+import { isNetworkKind } from '@/game/supply/discovery';
+import { useSupplyOn } from '@/hooks/useSupply';
 import { heistLevel, heistOdds, heistProblem } from '@/game/places/heists';
 import { digProblem, ruinsDots } from '@/game/places/ruins';
 import {
@@ -105,6 +107,7 @@ type Props = { place: PlaceSpawn; player: LatLng; now: number; onClose: () => vo
 /** What a place offers: its stock (and what it buys), and its services for heroes at home. */
 export function PlacePanel({ place, player, now, onClose }: Props) {
   const save = useGameStore((state) => state.save);
+  const supplyOn = useSupplyOn();
   const actions = useGameStore.getState();
   const [tab, setTab] = useState<'buy' | 'sell'>('buy');
   /** What the last dig or catch brought, shown until the sheet closes. */
@@ -235,6 +238,9 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
   return (
     <Overlay onClose={onClose} position="bottom">
       <Sheet variant="wood" emoji={info.emoji} title={tr(info.name)} bodyStyle={styles.content} footer={<WoodButton title={t('common.close')} onPress={onClose} />}>
+        {supplyOn && isNetworkKind(place.kind) && !(place.id in save.supply.discovered) && (
+          <IconLabel emoji="👣" label={t('supply.discover.walkHere')} />
+        )}
         {far ? (
           <>
             <Text style={styles.problem}>{t('places.walkCloser', { distance: Math.round(distance) })}</Text>

@@ -78,6 +78,7 @@ import { createRng } from '@/game/generation/rng';
 import { makeGearPiece } from '@/game/gear/make';
 import { distanceMeters } from '@/game/generation/geo';
 import { placeHall as placeHallInSave } from '@/game/supply/hall';
+import { discoverAlong, discoverAt, discoveryNote } from '@/game/supply/discovery';
 import { collectCamp as collectCampInSave, postHero as postHeroInSave, recallPosted as recallPostedInSave } from '@/game/supply/postings';
 import { debugRaid as debugRaidInSave, sendDefenders as sendDefendersInSave } from '@/game/supply/raids';
 import { settleNetwork } from '@/game/supply/settle';
@@ -88,6 +89,7 @@ import type { EquipmentSlot, ExpeditionReport, Heist, HeroClassId, HeroRoll, Pla
 import { t } from '@/i18n';
 
 import { currentRotation, debugEnabled, useDebugStore } from './debugStore';
+import { useSettingsStore } from './settingsStore';
 import { useWorldStore } from './worldStore';
 
 /** A tip for a place already tipped pays gold: say so on the map. New tips have their own toast (SecretToast). */
@@ -101,6 +103,8 @@ type GameState = {
   collect: (spawn: Spawn, gatherer: Gatherer, timeMs: number) => CollectResult;
   /** Auto-gather: collects along the walked path; `record` adds the summary to the walk history. */
   processWalk: (fixes: WalkFix[], options: WalkOptions, record: boolean) => WalkSummary;
+  /** Supply lines: discovers the network places given around the player; writes only when something was found. */
+  discoverPlaces: (places: PlaceSpawn[], position: LatLng) => PlaceSpawn[];
   markWalksSeen: () => void;
   /** Folds the background task's fight results into the save and the newest walk summary; results already applied change nothing. */
   mergeBackground: (results: BackgroundResult[]) => void;
@@ -345,11 +349,27 @@ export const useGameStore = create<GameState>()(
       },
       processWalk: (fixes, options, record) => {
         // The walk moves the gatherer's anchor first, then the gatherer settles, so a node its hero took is gone.
-        const anchored = settleJobs(addAnchorsFromFixes(get().save, fixes), Date.now());
+        const before = get().save;
+        const anchored = settleJobs(addAnchorsFromFixes(before, fixes), Date.now());
         const { save, summary } = processWalkPath(anchored, fixes, options);
-        const walked = refreshWalks(save, Date.now());
+        let walked = refreshWalks(save, Date.now());
+        // Supply lines: the walk discovers the network places it passed. The switch is read here, so autoGather stays store-free.
+        if (useSettingsStore.getState().supplyLines) {
+          const fresh = fixes.filter((fix) => fix.timestamp > before.autoGather.processedUntil);
+          const { save: discovered, found } = discoverAlong(walked, fresh);
+          if (found.length > 0) {
+            walked = discovered;
+            const note = discoveryNote(found);
+            if (note) useWorldStore.getState().set({ supplyMessage: { text: note, at: Date.now() } });
+          }
+        }
         set({ save: record ? recordWalk(walked, summary) : walked });
         return summary;
+      },
+      discoverPlaces: (places, position) => {
+        const { save, found } = discoverAt(get().save, places, position, Date.now());
+        if (found.length > 0) set({ save });
+        return found;
       },
       markWalksSeen: () => set(({ save }) => ({ save: markWalksSeen(save) })),
       mergeBackground: (results) => {
@@ -800,7 +820,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 54,
+      version: 55,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
       // Saves from version 30 on are kept: every later version bump adds a migration step here (see AGENTS.md, Saves).

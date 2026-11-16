@@ -42,9 +42,15 @@ export const needsBackgroundState = (pocketMode: PocketModeSettings): boolean =>
 export type PocketWatch = { counts: PocketCounts; nearby: NearbyWatch; log: PocketNotifyLog };
 
 /** From the save at hand-off; what was already alerted, and the notification log, carry over from `previous`. */
-export const snapshotPocket = (save: SaveData, nearbyKinds: NearbyKind[], now: number, previous: PocketWatch | null): PocketWatch => ({
+export const snapshotPocket = (
+  save: SaveData,
+  nearbyKinds: NearbyKind[],
+  now: number,
+  previous: PocketWatch | null,
+  supplyLines = false,
+): PocketWatch => ({
   counts: snapshotPocketCounts(save, now, previous?.counts ?? null),
-  nearby: snapshotNearby(save, nearbyKinds, now, previous?.nearby ?? null),
+  nearby: snapshotNearby(save, nearbyKinds, now, previous?.nearby ?? null, supplyLines),
   log: previous?.log ?? emptyPocketLog(),
 });
 

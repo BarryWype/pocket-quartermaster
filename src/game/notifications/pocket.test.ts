@@ -29,6 +29,13 @@ const ruin = (placeId = 'place:ruins:a', distance = 120): PocketAlert => ({
   distance,
 });
 const secret: PocketAlert = { kind: 'secretPlace', placeId: 'secret:den', secret: 'hiddenDen', position: spot, distance: 80 };
+const fresh = (placeId = 'place:tavern:a', distance = 100): PocketAlert => ({
+  kind: 'newPlace',
+  placeId,
+  place: 'tavern',
+  position: offsetPosition(spot, distance, 0),
+  distance,
+});
 const target: PocketAlert = {
   kind: 'questTarget',
   questId: 'q|2',
@@ -57,6 +64,7 @@ describe('Pocket mode notifications', () => {
     expect(send([target], without('questTarget')).notifications).toEqual([]);
     expect(send([chest], without('chestUnlocked')).notifications).toEqual([]);
     expect(send([ruin()], without('nearbyPlaces')).notifications).toEqual([]);
+    expect(send([fresh()], without('nearbyPlaces')).notifications).toEqual([]);
     expect(send([secret], without('secretPlace')).notifications).toEqual([]);
     expect(send([questReady(), ruin()], settings({ enabled: false })).notifications).toEqual([]);
   });
@@ -90,5 +98,23 @@ describe('Pocket mode notifications', () => {
       ['questReady', at(13)],
       ['chestUnlocked', at(13)],
     ]);
+  });
+
+  it('sends a new place under the nearbyPlaces category, with its own texts', () => {
+    const { notifications } = send([fresh()]);
+    const [note] = notifications;
+    expect(note.category).toBe('nearbyPlaces');
+    expect(note.title).toBe('Something new is nearby');
+    expect(note.body).toContain('walk there to discover it');
+    expect(note.data).toMatchObject({ placeId: 'place:tavern:a' });
+  });
+
+  it('groups several new places into one, apart from places nearby', () => {
+    const { notifications } = send([fresh('a', 140), fresh('b', 60), ruin()]);
+    const nearby = notifications.filter((n) => n.category === 'nearbyPlaces');
+    expect(nearby).toHaveLength(2);
+    expect(nearby[0].data).toMatchObject({ placeId: 'b' });
+    expect(nearby[0].body).toContain('Tavern');
+    expect(nearby[1].data).toMatchObject({ placeId: 'place:ruins:a' });
   });
 });

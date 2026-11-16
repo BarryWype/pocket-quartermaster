@@ -21,6 +21,8 @@ export type SupplyState = {
   lastOpenAt: number;
   /** Raid outcomes for the Network tab, the last ten. */
   raidLog: RaidLogLine[];
+  /** Network places the player walked to: place id → its expiresAt, pruned once expired. */
+  discovered: Record<string, number>;
   nextId: number;
 };
 

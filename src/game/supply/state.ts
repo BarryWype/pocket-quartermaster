@@ -20,6 +20,7 @@ export function emptySupply(now: number): SupplyState {
     raidDay: null,
     lastOpenAt: now,
     raidLog: [],
+    discovered: {},
     nextId: 1,
   };
 }
