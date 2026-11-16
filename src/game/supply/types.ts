@@ -11,17 +11,9 @@ export type Terrain = 'green' | 'waterside' | 'built';
 export type SupplyState = {
   /** First-run cards and one-line tips already shown. */
   seen: string[];
-  /** The hall's cell, and when it last moved (once a week at most). */
-  hall: { cell: string; movedAt: number } | null;
-  /**
-   * Scouted cells: by precision 5 prefix, then by the period each cell was last walked in,
-   * the cells' 2-character suffixes back to back. A cell sits in one period only, so
-   * walking it again moves it to the current one.
-   */
-  scouted: Record<string, Record<number, string>>;
+  /** The hall's cell, and the times of the moves made in the last 7 days (the first placement isn't one). */
+  hall: { cell: string; moves: number[] } | null;
   camps: Camp[];
-  /** When each packed-up camp's slot frees again. */
-  slotsFreeAt: number[];
   cart: Cart;
   raid: Raid | null;
   /** The last day a raid was rolled for, and the last time supply was settled with the app open (the 2-day rule). */
@@ -36,8 +28,8 @@ export type Camp = {
   id: string;
   kind: 'timber' | 'trapper';
   cell: string;
-  /** Fixed at founding, so production never needs map tiles. */
-  terrain: Terrain;
+  /** Its site's stars; the rate is quality x the base rate. */
+  quality: 1 | 2 | 3;
   foundedAt: number;
   heroId: string | null;
   postedAt: number | null;

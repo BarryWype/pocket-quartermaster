@@ -1,7 +1,7 @@
 import { patrolRules, type PatrolDifficulty } from '@/content/patrols';
 import { supplyRules } from '@/content/supplyLines';
 
-import { cellAt, cellsAlong, isScouted } from '../discovery/cells';
+import { cellAt, cellsAlong } from '../discovery/cells';
 import { highestUnlockedTier } from '../expeditions/expeditions';
 import { distanceMeters, interpolate } from '../generation/geo';
 import { createRng } from '../generation/rng';
@@ -76,7 +76,7 @@ function crossings(points: LatLng[], startedAt: number, speedMps: number): { cel
     const from = points[i - 1];
     const to = points[i];
     const leg = distanceMeters(from, to);
-    const steps = Math.ceil(leg / supplyRules.scoutStepMeters);
+    const steps = Math.ceil(leg / supplyRules.cellStepMeters);
     for (let s = 0; s <= steps; s++) {
       const cell = cellAt(interpolate(from, to, steps === 0 ? 0 : s / steps));
       if (!crossed.some((c) => c.cell === cell)) {
@@ -113,12 +113,11 @@ export function cartCapacity(save: SaveData): number {
   return supplyRules.cart.capacity * (1 + bonus);
 }
 
-/** The danger level of each scouted crossing, one danger call per patrol window. */
+/** The danger level of each crossing, one danger call per patrol window. */
 function levelsOf(save: SaveData, crossed: { cell: string; at: number }[]): Map<string, 0 | 1 | 2 | 3> {
   const ctx = dangerContextOf(save);
   const byWindow = new Map<number, string[]>();
   for (const { cell, at } of crossed) {
-    if (!isScouted(save.supply.scouted, cell)) continue;
     const w = windowIndex(at, patrolRules.windowMinutes);
     byWindow.set(w, [...(byWindow.get(w) ?? []), cell]);
   }
@@ -170,7 +169,7 @@ function planLoop(save: SaveData, at: number, n: number): Cart['loop'] {
   let working = save;
   let lostAt: number | null = null;
   for (const { cell, at: crossingAt } of crossed) {
-    const level = (levels.get(cell) ?? supplyRules.danger.unscoutedLevel) as 0 | 1 | 2 | 3;
+    const level = (levels.get(cell) ?? 0) as 0 | 1 | 2 | 3;
     if (!createRng(`cart|${n}|${cell}`).chance(ambushChance(level))) continue;
     const difficulty: PatrolDifficulty = level === 1 ? 'easy' : level === 2 ? 'medium' : 'hard';
     const spawn = cellAmbusher(cell, crossingAt, ctx) ?? syntheticPatrol(tier, difficulty, `cart-kind|${n}|${cell}`, cell, crossingAt);
@@ -196,7 +195,7 @@ function planLoop(save: SaveData, at: number, n: number): Cart['loop'] {
 }
 
 /** Starts a loop at `at`: the plan is fixed, and the cargo starts empty. */
-export function startLoop(save: SaveData, at: number, periodOffset = 0, n = 1): SaveData {
+export function startLoop(save: SaveData, at: number, n = 1): SaveData {
   const cart = save.supply.cart;
   return {
     ...save,
@@ -234,7 +233,7 @@ function crewHurt(save: SaveData, crew: string[], at: number): boolean {
 }
 
 /** Closes a finished loop at its end: delivers, pays the fights, logs it, and either parks or starts the next one. */
-function finishLoop(save: SaveData, periodOffset: number): SaveData {
+function finishLoop(save: SaveData): SaveData {
   const cart = save.supply.cart;
   const loop = cart.loop!;
   const crew = crewIds(cart);
@@ -282,7 +281,7 @@ function finishLoop(save: SaveData, periodOffset: number): SaveData {
   if (crewHurt(next, crew, loop.endsAt)) return { ...next, supply: { ...next.supply, cart: { ...parked, loop: null, waitingForCrew: true } } };
   const hasCamp = route.some((point) => 'camp' in point && next.supply.camps.some((camp) => camp.id === point.camp));
   if (!next.supply.hall || !hasCamp) return { ...next, supply: { ...next.supply, cart: { ...parked, loop: null } } };
-  return startLoop(next, loop.endsAt, periodOffset, loop.n + 1);
+  return startLoop(next, loop.endsAt, loop.n + 1);
 }
 
 /**
@@ -290,7 +289,7 @@ function finishLoop(save: SaveData, periodOffset: number): SaveData {
  * each finished loop delivers, pays its fights and starts the next one, so
  * one call replays every loop since the last settlement.
  */
-export function settleCart(save: SaveData, now: number, periodOffset = 0): SaveData {
+export function settleCart(save: SaveData, now: number): SaveData {
   let next = save;
   for (;;) {
     const cart = next.supply.cart;
@@ -307,7 +306,7 @@ export function settleCart(save: SaveData, now: number, periodOffset = 0): SaveD
       if (event.kind === 'camp') {
         const index = camps.findIndex((camp) => camp.id === event.campId);
         if (index === -1) continue;
-        const settled = settleCamp(next, camps[index], event.at, periodOffset);
+        const settled = settleCamp(next, camps[index], event.at);
         const loaded = loadStock(cargo, settled.stock, loop.capacity);
         cargo = loaded.cargo;
         camps = camps.map((camp, i) => (i === index ? { ...settled, stock: loaded.stock } : camp));
@@ -317,7 +316,7 @@ export function settleCart(save: SaveData, now: number, periodOffset = 0): SaveD
     }
     if (changed) next = { ...next, supply: { ...next.supply, camps, cart: { ...next.supply.cart, cargo } } };
     if (loop.endsAt > now) return { ...next, supply: { ...next.supply, cart: { ...next.supply.cart, settledAt: now } } };
-    next = finishLoop(next, periodOffset);
+    next = finishLoop(next);
   }
 }
 
@@ -327,11 +326,10 @@ export function routePreview(save: SaveData, route: RoutePoint[], now: number) {
   const meters = routeLength(points);
   const speedMps = cartSpeedMps(save);
   const crossed = routeCells(points);
-  const scouted = crossed.filter((cell) => isScouted(save.supply.scouted, cell));
-  const dangers = scouted.length > 0 ? cellDangers(scouted, now, dangerContextOf(save)) : {};
+  const dangers = crossed.length > 0 ? cellDangers(crossed, now, dangerContextOf(save)) : {};
   const cells = crossed.map((cell) => ({
     cell,
-    level: (dangers[cell]?.level ?? supplyRules.danger.unscoutedLevel) as 0 | 1 | 2 | 3,
+    level: (dangers[cell]?.level ?? 0) as 0 | 1 | 2 | 3,
   }));
   const ambushChanceTotal = 1 - cells.reduce((none, { level }) => none * (1 - ambushChance(level)), 1);
   return { points, meters, loopMinutes: meters / speedMps / 60, cells, ambushChance: ambushChanceTotal };
@@ -352,22 +350,20 @@ export function cartProblem(save: SaveData, now: number): CartProblem {
 }
 
 /** Starts the cart from a parked standstill, at the log's next loop number. */
-export function startCart(save: SaveData, now: number, periodOffset = 0): SaveData {
+export function startCart(save: SaveData, now: number): SaveData {
   const problem = cartProblem(save, now);
   if (problem) throw new Error(`Cannot start the cart: ${problem}`);
   const cart = save.supply.cart;
   const n = (cart.log.length > 0 ? cart.log[cart.log.length - 1].n : 0) + 1;
-  return startLoop({ ...save, supply: { ...save.supply, cart: { ...cart, waitingForCrew: false } } }, now, periodOffset, n);
+  return startLoop({ ...save, supply: { ...save.supply, cart: { ...cart, waitingForCrew: false } } }, now, n);
 }
 
-export type RouteProblem = 'unscoutedWaypoint' | 'noCamp' | null;
+export type RouteProblem = 'noCamp' | null;
 
 /** Why a route cannot be set, or null. */
 export function routeProblem(save: SaveData, route: RoutePoint[]): RouteProblem {
   for (const point of route) {
-    if ('camp' in point) {
-      if (!save.supply.camps.some((camp) => camp.id === point.camp)) return 'noCamp';
-    } else if (!isScouted(save.supply.scouted, point.cell)) return 'unscoutedWaypoint';
+    if ('camp' in point && !save.supply.camps.some((camp) => camp.id === point.camp)) return 'noCamp';
   }
   return null;
 }

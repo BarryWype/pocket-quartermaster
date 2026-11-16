@@ -1,32 +1,24 @@
 # Supply lines (experimental)
 
-**Status: built** (steps 0–6 of `Claude outputs/supply-lines-small-prompt.md`), on branch `feat/supply-lines`. It answers one question: is it fun to scout ground, found camps, draw a cart route around danger and decide who guards what?
+**Status: being reshaped** on branch `feat/supply-lines`. The first trial (steps 0–6 of `Claude outputs/supply-lines-small-prompt.md`) scouted ground and founded camps anywhere. Step 0 of `Claude outputs/supply-network-prompts.md` removed the scouting grid, richness, founding on any cell and packing up: camps, postings, the cart and raids stay, waiting for the sites and buildings of the next steps. Nothing in the game creates a camp until then.
 
-The whole feature sits behind **Settings → Developer → "Supply lines (experimental)"**, off by default. With it off, nothing changes or shows, and the simulator's default run doesn't play it. Every number lives in `src/content/supplyLines.ts` (table below). The rules are pure functions in `src/game/supply/` and `src/game/discovery/`, settled from timestamps when read; nothing runs on a timer except one timeout for the next cart or raid moment while the app is open.
+The whole feature sits behind **Settings → Developer → "Supply lines (experimental)"**, off by default. With it off, nothing changes or shows, and the simulator's default run doesn't play it. Every number lives in `src/content/supplyLines.ts` (table below). The rules are pure functions in `src/game/supply/`, settled from timestamps when read; nothing runs on a timer except one timeout for the next cart or raid moment while the app is open.
 
 Decided at step 0 (2026-11-13): danger counts live patrols (option A); the prompt's ambush chances are kept; the trade names stay even though Woodcutter and Trapper are also guild job names; the starting trio is Bram Woodcutter, Lyra Trapper, Mira Teamster; cart legs may cross open water.
 
 ## How it plays
 
-1. Turn the switch on. Three cards wait on the map: place the hall, walk to scout, found a camp where you stand.
+1. Turn the switch on.
 2. Tap the map (or your own marker) to open a cell's sheet, and place the **hall** there.
-3. **Walk.** Every cell you cross is scouted: zoomed in, it shows its richness as dots.
-4. Stand on good ground and **found a camp** from your cell's sheet. Locals work it slowly; **post a hero** for the full rate.
-5. **Plan the cart's route** on the map, around danger. Give it a **crew**, start it, and it carries the camps' stock home loop after loop.
-6. **Raids** are announced against a camp. Send defenders, empty it, or let it go.
+3. Camps (made by buildings on sites, in a later step) produce over time. Locals work them slowly; **post a hero** for the full rate.
+4. **Plan the cart's route** on the map, around danger. Give it a **crew**, start it, and it carries the camps' stock home loop after loop.
+5. **Raids** are announced against a camp. Send defenders, empty it, or let it go.
 
 ## Cells and terrain
 
-- **One grid, geohash precision 7:** 153 m north–south, 115 m east–west at Wellington. It is the grid of animal and herb spawns, and sits inside the patrol tiles (precision 6) and place tiles (precision 5). Precision 6 is too coarse to route around anything; precision 8 is finer than the 35 m GPS accuracy Pocket mode accepts.
+- **One grid, geohash precision 7:** 153 m north–south, 115 m east–west at Wellington. It is the grid of animal and herb spawns, and sits inside the patrol tiles (precision 6) and place tiles (precision 5). Danger is scored per cell, and the cart's route crosses cells.
 - **Cells along a path** come from stepping a straight segment every 35 m (`cellsAlong`).
-- **Terrain** comes from the zoom 14 vector tiles spawn placement already decodes (never what the map renders). The decode keeps one more polygon list, `green`: landcover wood, grass, wetland and farmland except private gardens; landuse cemetery and playground; park polygons.
-- **Classification:** a 4 × 4 grid of points per cell, each looked up in its own map tile, then in this order:
-  1. **Open water:** every point in water. No terrain; nothing can be founded there.
-  2. **Green:** at least a quarter of the points in green areas.
-  3. **Water's edge:** any point in or within 50 m of water.
-  4. **Built-up:** the rest.
-- **Unknown terrain:** while a tile loads or can't be fetched, the terrain is unknown and founding is refused. A camp stores its terrain when founded, so production never needs tiles.
-- **Measured** around the Wellington fixture, across its 3 × 3 block of zoom 14 tiles: 912 land cells, of which 31% are green, 24% water's edge and 45% built-up (the fixture tile alone is mostly harbour). Classifying a cell costs well under a millisecond; terrain is computed lazily per cell and cached.
+- **Terrain** comes from the zoom 14 vector tiles spawn placement already decodes (never what the map renders): open water, green, water's edge or built-up, from a 4 × 4 grid of points per cell. Today it only names a cell on its sheet.
 
 ## Danger
 
@@ -41,35 +33,27 @@ Decided at step 0 (2026-11-13): danger counts live patrols (option A); the promp
 - **How often it changes:** the patrol part every 30 minutes, fight events daily per slot, lairs every 72 hours.
 - **Cost:** a 20-cell route costs a few ms; tints are computed off the first frame and cached per window.
 
-## Trades
+eady generates:
+  - each patrol (not travellers, not beaten) whose track during the current 30-minute window comes within 150 m of the cell's centre: easy 1, medium 2, hard 3;
+  - each live fight event within 300 m: its difficulty's weight;
+  - each live lair within 500 m: 3.
+- **Levels:** score 0 → level 0, 1–2 → 1, 3–4 → 2, 5 and over → 3.
+- **Ambush chance per crossing:** 0%, 2%, 5% and 10% by level.
+- **Shared world:** positions and difficulties are the same for every player. Only the patrol kind (by tier), beaten patrols and used places differ, which is where patrols already differ.
 
-- **Every hero has a trade** beside their class: Woodcutter, Trapper, Teamster or Watchman. It's rolled at even weights from the offer's id for tavern, traveller and secret recruits (so the offer shows what the hero gets), from the hero's id otherwise. The starting trio is fixed.
-- **Level 1 to 3**, by hours spent using it: posted at a matching camp (any camp for a Watchman), or driving the cart for a Teamster. A level-up applies from the next settle.
-- **Where it shows:** offers, the hero sheet and the hero pickers, only while the switch is on.
-- **Guild jobs** are untouched.
-
-## The hall, scouting and camps
+## The hall and camps
 
 - **The hall:** placed from a cell's sheet and stored as its cell.
-  - The first move is free; after that, once a week.
-  - A move is refused while a camp would end up more than 2 km away.
-- **Scouting:** a cell is scouted when your path crosses it.
-  - Covered: live GPS while the app is open, and walks from Pocket mode and "app open only" (the same walk segments the step counter accepts, processed on open).
-  - Only while the switch is on.
-  - The set is stored compactly (by precision 5 prefix and period, 2 characters per cell): a few KB for a year of walking. Its functions are general, for a future fog of war.
-- **Richness:** 0 to 3 per resource the terrain allows, rolled from cell, resource and the 3-week period, so it's the same for every player.
-  - Timber grows only on green cells; game grows everywhere, poorest in built-up cells.
-  - Only scouted cells show theirs. A cell last walked in an earlier period shows that period's values greyed.
-- **Camps:** a timber camp (green only, makes wood) or a trapper's camp (any land cell, makes meat, hide and bone).
-  - Founding needs you standing in the cell, the hall within 2 km, and 50 gold and 10 wood.
-  - At most 3 camps, counting packed-up slots still cooling down. One camp per cell.
-- **Packing up** works from anywhere, loses the stock, and frees the slot after 6 hours.
+  - The first placement is free and doesn't count as a move.
+  - After that it moves **twice in any 7 days**. The sheet's button says when the next move comes back once both are used.
+  - A move asks first, in a dialog: the moves left this week, when the next one comes back, and how many camps would end up more than 2 km away, out of the hall's reach (a warning, not a refusal).
+- **Camps:** a timber camp (makes wood) or a trapper's camp (makes meat, hide and bone), each with a **quality** of 1 to 3 stars. Nothing creates them in this step: buildings on sites will.
 
 ## Production and postings
 
-- **Rate:** richness × base rate per hour, at the full rate.
-  - Timber: 1.0 wood per richness point.
-  - Trapper's camp: 0.8 units per point, rolled with the trapper job's weights (meat 45, hide 35, bone 20).
+- **Rate:** quality × base rate per hour, at the full rate.
+  - Timber: 1.0 wood per star.
+  - Trapper's camp: 0.8 units per star, rolled with the trapper job's weights (meat 45, hide 35, bone 20).
   - Guild jobs make 0.3 an hour.
 - **Locals** work an empty camp at 40% of the rate. Set `localsShare` to 0 and an empty camp makes nothing.
 - **Posting** a hero runs the camp at the full rate.
@@ -77,13 +61,13 @@ Decided at step 0 (2026-11-13): danger counts live patrols (option A); the promp
   - A posted hero is busy like a hero on a guild job: shown as "Posted", and recalled automatically by any send.
 - **Stock** fills up to 12 hours of full output, then stops.
 - **Collecting** in person within 100 m moves the stock to the inventory and inspects the camp: +25% for 24 hours.
-- **Settling:** a camp settles in pieces split at every rate change (inspection, closure, period), so settling once or often gives the same stock.
+- **Settling:** a camp settles in pieces split at every rate change (inspection, closure), so settling once or often gives the same stock.
 - **The Network tab** (Expeditions screen) shows the hall, each camp's line of numbers, the cart and raids. Its badge and the menu's count camps at their cap.
 
 ## The cart and its route
 
 - **One cart** runs loops (hall → route points in order → hall) while a route is set, in straight lines between cell centres.
-- **The route planner** is a mode on the map. Tap camps in order, and scouted cells as waypoints. A bottom bar shows the length, loop time and chance of at least one ambush per loop, and crossed cells are tinted by danger. Unscouted cells count as level 2.
+- **The route planner** is a mode on the map. Tap camps in order, and any cell as a waypoint. A bottom bar shows the length, loop time and chance of at least one ambush per loop, and crossed cells are tinted by danger.
 - **Speed and load:** 3 km/h, or 60% of that with no driver. It carries 20 units. It loads at each camp, largest material first, and delivers at the hall.
   - A Teamster driving adds 15/30/50% speed and 25/50/100% capacity.
 - **Crew:** a driver and up to two escorts. They are away during a loop, and the crew can only change while the cart is parked.
@@ -117,32 +101,24 @@ Decided at step 0 (2026-11-13): danger counts live patrols (option A); the promp
 
 ## First run
 
-- **Three cards on switch-on:** the hall, scouting and camps. They go through the game's tip queue, shown one at a time on the map.
-- **One-line tips** queue the first time a camp's sheet, the route planner and a raid banner appear. All six also land in Field notes.
+- **One-line tips** queue the first time a camp's sheet, the route planner and a raid banner appear. They also land in Field notes. The trial's three first-run cards are gone; the guided first chain replaces them later.
 
 ## Save
 
 - **Version 52** adds `save.supply`, fully shaped and empty, and a trade on every hero.
   - The starting trio gets its fixed trades; anyone else rolls from their id.
-  - Renumber it whenever the branch is brought up to date with main.
-- **No other bump:** later steps only changed shapes that existing saves hold as null (the cart's loop, the raid).
-- **Types** are in `src/game/supply/types.ts`.
-- **The switch** is a setting, not save data.
+- **Version 53** removes the trial's scouting and founding (`toV53`):
+  - every camp closes and its stock, with the cart's cargo, goes to the inventory;
+  - the cart parks with its crew and no route; a pending raid is dropped;
+  - the hall keeps its cell, with its last move counted in the new 7-day window;
+  - the scouted cells, the packed-up slots and the three first-run tips leave the save.
+- Renumber both whenever the branch is brought up to date with main.
+- **Types** are in `src/game/supply/types.ts`. **The switch** is a setting, not save data.
 
 ## Simulator
 
 - **The flag:** `npm run sim -- --supply-lines` plays the supply lines with a minimal bot (`src/game/sim/supply.ts`) and adds a **Supply lines** section to the report. Without the flag nothing runs, so today's numbers don't move.
-- **The bot:**
-  - places the hall at home and scouts a triangle loop as long as the profile's walks;
-  - founds a camp on the richest free cell of each walk;
-  - defends an announced raid when its odds reach the profile's threshold;
-  - at the day's last session, sends the cart round every camp (nearest first) with one spare escort, then posts the heroes still home, recalling them and stopping the cart the next morning.
-- **Terrain:** the sim has no map tiles, so terrain is drawn per cell at the measured Wellington shares.
-- **The section:** cart deliveries per day against walking (wood, meat, hide and bone), camps, ambushes and raids per week by outcome, and hero-hours posted and on the cart.
-- **A first 10-day regular run** (a test, not the report):
-  - 3 camps; the cart delivered about 35 units a day against roughly 40 of the same materials walked;
-  - about 4 ambushes a day, nearly all with nobody aboard;
-  - raids landed on camps nobody guarded during the day.
+- **The bot** places the hall at home. With no way to make camps in this step, the cart, postings and raids stay idle and the section reads zero until sites and buildings land.
 
 ## Config (`src/content/supplyLines.ts`)
 
@@ -151,18 +127,13 @@ Decided at step 0 (2026-11-13): danger counts live patrols (option A); the promp
 | `trade.levelHours` | 0 / 40 / 120 | Hours of use to reach trade levels 1, 2, 3. |
 | `startingTrades` | Bram woodcutter, Lyra trapper, Mira teamster | The starting trio's trades. |
 | `cellPrecision` | 7 | The geohash grid of the feature. |
-| `periodWeeks` | 3 | Richness rerolls each period. |
-| `scoutStepMeters` | 35 | Step along a path when collecting the cells it crosses. |
-| `hall.moveEveryDays` | 7 | The hall moves at most once this often (the first move is free). |
-| `camps.max` | 3 | Camps at once, counting packed-up slots cooling down. |
-| `camps.maxHallMeters` | 2000 | Camps must be within this distance of the hall. |
-| `camps.foundCost` | 50 gold, 10 wood | What founding costs. |
-| `camps.packUpCooldownHours` | 6 | A packed-up slot frees after this long. |
+| `cellStepMeters` | 35 | Step along a segment when listing the cells it crosses. |
+| `hall.movesPerWeek` | 2 | Moves of the hall in any 7 days (the first placement doesn't count). |
+| `camps.maxHallMeters` | 2000 | A move warns about camps farther than this from the new hall. |
 | `terrain.samplesPerSide` | 4 | A cell is classified on this many points per side. |
 | `terrain.greenShare` | 0.25 | Share of points in green that makes a cell green. |
 | `terrain.waterEdgeMeters` | 50 | How close to water still counts as water's edge. |
-| `richness` | timber on green 0.40/0.35/0.18/0.07; game on green the same, water's edge 0.45/0.35/0.15/0.05, built-up 0.60/0.30/0.08/0.02 | Weights of richness 0–3 per resource and terrain. |
-| `production.baseRate` | timber 1.0, trapper 0.8 | Units per hour per richness point at the full rate. |
+| `production.baseRate` | timber 1.0, trapper 0.8 | Units per hour per quality star at the full rate. |
 | `production.localsShare` | 0.4 | Share of the rate locals make with nobody posted (0 works). |
 | `production.tradeBonus` | 0.25 / 0.5 / 1.0 | A matching trade's bonus by level. |
 | `production.capHours` | 12 | Stock holds this many hours of full output. |
@@ -183,7 +154,6 @@ Decided at step 0 (2026-11-13): danger counts live patrols (option A); the promp
 | `danger.weights` | easy 1, medium 2, hard 3 | Score per difficulty. |
 | `danger.levelFrom` | 1 / 3 / 5 | Scores where levels 1, 2, 3 start. |
 | `danger.ambushChance` | 0 / 0.02 / 0.05 / 0.10 | Ambush chance per crossing by level. |
-| `danger.unscoutedLevel` | 2 | The level an unscouted cell counts as. |
 | `danger.trackStepMinutes` | 2 | A patrol's track is sampled this often. |
 | `raids.dailyChance` | 0.5 | Chance of a raid on a day the app is opened. |
 | `raids.announceHours` | 2 | Lead between announcement and landing. |
@@ -203,8 +173,8 @@ Decided at step 0 (2026-11-13): danger counts live patrols (option A); the promp
 - **The danger tint** for a route uses the current window; the ambush roll uses the crossing window.
 - **Raid announcements** move with a Watchman posted at the target; the day itself is rolled only once.
 - **Open water:** cart legs may cross it.
-- **Sim terrain** is drawn at measured shares; the sim's walk is a triangle loop.
-- **`supply.seen`** is unused: the cards and tips use the game's tip queue instead.
+- **Out of reach** after a hall move is only a warning for now; buildings give it a consequence later.
+- **`supply.seen`** is unused: the tips use the game's tip queue instead.
 
 ## What I'd build next
 

@@ -1,4 +1,4 @@
-import type { Camp, Terrain } from '@/game/supply/types';
+import type { Camp } from '@/game/supply/types';
 
 /** The supply-lines trades a hero can carry (see doc/design/supply-lines/). */
 export type TradeId = 'woodcutter' | 'trapper' | 'teamster' | 'watchman';
@@ -12,24 +12,6 @@ export const tradeInfo: Record<TradeId, { name: string; emoji: string; descripti
   watchman: { name: 'Watchman', emoji: '🏮', description: 'Posted at a camp: raids are announced earlier, and fights there with a bonus.' },
 };
 
-/** The resource a camp kind works: what its richness is rolled for. */
-export type SupplyResource = 'timber' | 'game';
-
-/** Which resource each camp kind draws on. */
-export const campResource: Record<'timber' | 'trapper', SupplyResource> = { timber: 'timber', trapper: 'game' };
-
-/** Richness weights for levels 0–3, per resource and terrain; a missing terrain means the resource cannot grow there. */
-const richness: Record<SupplyResource, Partial<Record<Terrain, [number, number, number, number]>>> = {
-  timber: {
-    green: [0.4, 0.35, 0.18, 0.07],
-  },
-  game: {
-    green: [0.4, 0.35, 0.18, 0.07],
-    waterside: [0.45, 0.35, 0.15, 0.05],
-    built: [0.6, 0.3, 0.08, 0.02],
-  },
-};
-
 export const supplyRules = {
   trade: {
     /** Hours of use to reach level 1, 2 and 3. */
@@ -40,29 +22,17 @@ export const supplyRules = {
 
   /** Geohash precision of the supply grid (about 115–153 m cells; see the design doc). */
   cellPrecision: 7,
-  /** Richness rerolls when a period of this many weeks changes. */
-  periodWeeks: 3,
-  /** Steps this long when collecting the cells a path crosses. */
-  scoutStepMeters: 35,
+  /** Step along a segment when listing the cells it crosses. */
+  cellStepMeters: 35,
 
   hall: {
-    /** The hall moves at most once every this many days. */
-    moveEveryDays: 7,
+    /** Moves of the hall allowed in any 7 days; the first placement doesn't count. */
+    movesPerWeek: 2,
   },
 
   camps: {
-    /** Camps at once, counting packed-up slots still cooling down. */
-    max: 3,
     /** A camp must sit within this many metres of the hall. */
     maxHallMeters: 2000,
-    foundCost: {
-      /** Gold a camp costs to found. */
-      gold: 50,
-      /** Materials a camp costs to found. */
-      materials: [{ materialId: 'wood', amount: 10 }],
-    },
-    /** After packing up, the slot frees again after this many hours. */
-    packUpCooldownHours: 6,
   },
 
   terrain: {
@@ -74,11 +44,8 @@ export const supplyRules = {
     waterEdgeMeters: 50,
   },
 
-  /** Richness weights for levels 0–3, per resource and terrain; a missing terrain means the resource cannot grow there. */
-  richness,
-
   production: {
-    /** Units per hour per richness point, at the full rate; well above the guild jobs' 0.3. */
+    /** Units per hour per quality star at the full rate; well above the guild jobs' 0.3. */
     baseRate: { timber: 1.0, trapper: 0.8 },
     /** Share of the full rate locals make with nobody posted; 0 means an empty camp makes nothing. */
     localsShare: 0.4,
@@ -134,8 +101,6 @@ export const supplyRules = {
     levelFrom: [1, 3, 5],
     /** Chance a crossing ambushes, per danger level 0–3. */
     ambushChance: [0, 0.02, 0.05, 0.1],
-    /** The danger level an unscouted cell counts as. */
-    unscoutedLevel: 2,
     /** Minutes between the track points a patrol's reach is sampled on. */
     trackStepMinutes: 2,
   },

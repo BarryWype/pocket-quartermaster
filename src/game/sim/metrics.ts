@@ -194,7 +194,6 @@ export type SupplySummary = {
   /** Units the cart delivered per day, against the units of the same materials (wood, meat, hide, bone) walking gathered per day. */
   deliveredPerDay: Stat;
   walkedPerDay: Stat;
-  camps: Stat;
   ambushesPerWeek: Record<'won' | 'lost' | 'unguarded', Stat>;
   raidsPerWeek: Record<'won' | 'lost' | 'unguarded', Stat>;
   /** Hero-hours per day posted at camps, and on the cart's crew. */
@@ -218,7 +217,6 @@ export function supplySummary(logs: RunLog[]): SupplySummary | null {
   return {
     deliveredPerDay: perDay((log) => log.supply!.delivered),
     walkedPerDay: perDay((log) => sum(CAMP_MATERIALS.flatMap((material) => WALK_SOURCES.map((source) => log.gathered[material]?.[source] ?? 0)))),
-    camps: stat(played.map((log) => log.supply!.camps)),
     ambushesPerWeek: outcomes((log) => log.supply!.ambushes),
     raidsPerWeek: outcomes((log) => log.supply!.raids),
     postedHoursPerDay: perDay((log) => log.supply!.postedHours),

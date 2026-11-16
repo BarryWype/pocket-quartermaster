@@ -43,7 +43,7 @@ import { tavernRules } from '@/content/taverns';
 import { tutorialRules } from '@/content/tutorial';
 import { walkableRules } from '@/content/walkable';
 import { freshGathersLeft, pickaxeTier, showsOnMap, type CollectFailure } from '@/game/gathering/gathering';
-import { cellAt, isScouted } from '@/game/discovery/cells';
+import { cellAt } from '@/game/discovery/cells';
 import { requiredPickaxeTier } from '@/game/gathering/lockedNodes';
 import { ambienceConfig, decorationMode, inSpan, type DecorationMode } from '@/game/generation/ambience';
 import type { Bounds } from '@/game/generation/foliage';
@@ -765,8 +765,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
             const [longitude, latitude] = event.nativeEvent.lngLat;
             const cell = cellAt({ latitude, longitude });
             if (useMapPanels.getState().routeDraft !== null) {
-              if (isScouted(save.supply.scouted, cell)) useMapPanels.getState().addToRoute({ cell });
-              else useWorldStore.getState().set({ supplyMessage: { text: t('supply.planner.onlyScouted'), at: Date.now() } });
+              useMapPanels.getState().addToRoute({ cell });
             } else {
               useMapPanels.getState().openSupplyCell(cell);
             }

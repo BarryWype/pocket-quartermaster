@@ -5,12 +5,12 @@ import { offsetPosition } from '../generation/geo';
 import { createInitialSave, type SaveData } from '../save';
 import { emptySupply } from './state';
 import type { Camp } from './types';
-import { hallProblem, placeHall, scoutPath } from './hall';
+import { campsOutOfReach, hallMoveBackAt, hallMovesLeft, hallProblem, placeHall } from './hall';
 
 const origin = { latitude: -41.2865, longitude: 174.7762 };
 const now = Date.UTC(2026, 10, 2, 12);
 const DAY_MS = 24 * 3_600_000;
-const moveEveryMs = supplyRules.hall.moveEveryDays * DAY_MS;
+const WEEK_MS = 7 * DAY_MS;
 
 const save = (): SaveData => ({ ...createInitialSave(), supply: emptySupply(now) });
 
@@ -20,7 +20,7 @@ const campAt = (cell: string): Camp => ({
   id: 'c1',
   kind: 'trapper',
   cell,
-  terrain: 'built',
+  quality: 2,
   foundedAt: now,
   heroId: null,
   postedAt: null,
@@ -33,41 +33,46 @@ const campAt = (cell: string): Camp => ({
 });
 
 describe('placeHall', () => {
-  it('places the first hall with movedAt 0, so the first move is free', () => {
+  it('places the first hall with no moves, so the first move is free', () => {
     const placed = placeHall(save(), cellNear(0), now);
-    expect(placed.supply.hall).toEqual({ cell: cellNear(0), movedAt: 0 });
+    expect(placed.supply.hall).toEqual({ cell: cellNear(0), moves: [] });
     expect(hallProblem(placed, cellNear(100), now + DAY_MS)).toBeNull();
-    expect(placeHall(placed, cellNear(100), now + DAY_MS).supply.hall).toEqual({ cell: cellNear(100), movedAt: now + DAY_MS });
+    expect(placeHall(placed, cellNear(100), now + DAY_MS).supply.hall).toEqual({ cell: cellNear(100), moves: [now + DAY_MS] });
   });
 
-  it('refuses a move too soon', () => {
-    const placed = placeHall(placeHall(save(), cellNear(0), now), cellNear(100), now + DAY_MS);
-    expect(hallProblem(placed, cellNear(200), now + 2 * DAY_MS)).toBe('tooSoon');
-    expect(() => placeHall(placed, cellNear(200), now + 2 * DAY_MS)).toThrow();
-    expect(hallProblem(placed, cellNear(200), placed.supply.hall!.movedAt + moveEveryMs)).toBeNull();
+  it('allows movesPerWeek moves in any 7 days, then refuses until the oldest leaves the window', () => {
+    let moved = placeHall(placeHall(save(), cellNear(0), now), cellNear(100), now + DAY_MS);
+    moved = placeHall(moved, cellNear(200), now + 2 * DAY_MS);
+    expect(hallMovesLeft(moved, now + 2 * DAY_MS)).toBe(0);
+    expect(hallProblem(moved, cellNear(300), now + 3 * DAY_MS)).toBe('noMovesLeft');
+    expect(() => placeHall(moved, cellNear(300), now + 3 * DAY_MS)).toThrow();
+    // The first move frees again 7 days after it was made.
+    expect(hallMoveBackAt(moved, now + 3 * DAY_MS)).toBe(now + DAY_MS + WEEK_MS);
+    expect(hallProblem(moved, cellNear(300), now + DAY_MS + WEEK_MS)).toBeNull();
+    expect(placeHall(moved, cellNear(300), now + DAY_MS + WEEK_MS).supply.hall?.moves).toEqual([now + 2 * DAY_MS, now + DAY_MS + WEEK_MS]);
   });
 
-  it('refuses a move that leaves a camp out of range', () => {
-    const withCamp = { ...save(), supply: { ...emptySupply(now), hall: { cell: cellNear(0), movedAt: 0 }, camps: [campAt(cellAt(offsetPosition(origin, -1500, 0)))] } };
-    expect(hallProblem(withCamp, cellNear(-500), now)).toBeNull();
-    const far = cellAt(offsetPosition(origin, supplyRules.camps.maxHallMeters + 500, 0));
-    expect(hallProblem(withCamp, far, now)).toBe('campsOutOfRange');
-    expect(() => placeHall(withCamp, far, now)).toThrow();
+  it('drops moves older than 7 days when placing again', () => {
+    const times = [now - 8 * DAY_MS, now - 6 * DAY_MS];
+    const aged: SaveData = { ...save(), supply: { ...emptySupply(now), hall: { cell: cellNear(0), moves: [...times] } } };
+    expect(hallMovesLeft(aged, now)).toBe(supplyRules.hall.movesPerWeek - 1);
+    const placed = placeHall(aged, cellNear(100), now);
+    expect(placed.supply.hall?.moves).toEqual([now - 6 * DAY_MS, now]);
+  });
+
+  it('a first placement never has a problem, and no move leaves nothing to wait for', () => {
+    expect(hallProblem(save(), cellNear(0), now)).toBeNull();
+    expect(hallMovesLeft(save(), now)).toBe(supplyRules.hall.movesPerWeek);
+    expect(hallMoveBackAt(save(), now)).toBeNull();
   });
 });
 
-describe('scoutPath', () => {
-  it('scouts the cells along the path into the period, and changes nothing the second time', () => {
-    const points = [origin, offsetPosition(origin, 300, 0), offsetPosition(origin, 300, 90)];
-    const walked = scoutPath(save(), points, 4);
-    expect(Object.keys(walked.supply.scouted).length).toBeGreaterThan(0);
-    expect(scoutPath(walked, points, 4)).toBe(walked);
-    const again = scoutPath(walked, points, 5);
-    expect(again).not.toBe(walked);
-    expect(JSON.stringify(again.supply.scouted)).not.toBe(JSON.stringify(walked.supply.scouted));
-  });
-
-  it('scouts nothing for a path of one point', () => {
-    expect(scoutPath(save(), [origin], 4).supply.scouted).toEqual({});
+describe('campsOutOfReach', () => {
+  it('lists the camps farther than maxHallMeters from the cell, without refusing the move', () => {
+    const withCamp = { ...save(), supply: { ...emptySupply(now), hall: { cell: cellNear(0), moves: [] }, camps: [campAt(cellAt(offsetPosition(origin, -1500, 0)))] } };
+    expect(campsOutOfReach(withCamp, cellNear(-500))).toEqual([]);
+    const far = cellAt(offsetPosition(origin, supplyRules.camps.maxHallMeters + 500, 0));
+    expect(campsOutOfReach(withCamp, far).map((camp) => camp.id)).toEqual(['c1']);
+    expect(hallProblem(withCamp, far, now)).toBeNull();
   });
 });

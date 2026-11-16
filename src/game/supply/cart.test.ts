@@ -1,12 +1,10 @@
 import { supplyRules } from '@/content/supplyLines';
 
-import { addCells, cellAt, cellsAlong, isScouted } from '../discovery/cells';
+import { cellAt } from '../discovery/cells';
 import { offsetPosition } from '../generation/geo';
-import { tileCenter } from '../generation/tiles';
 import { createInitialSave, type SaveData } from '../save';
 import { currentHp } from '../team/health';
 import { isAway } from '../team/team';
-import { periodAt } from './period';
 import { emptySupply } from './state';
 import type { Camp, CartEvent } from './types';
 import {
@@ -36,7 +34,7 @@ const campAt = (cell: string, id: string, stock: Record<string, number>): Camp =
   id,
   kind: 'trapper',
   cell,
-  terrain: 'built',
+  quality: 2,
   foundedAt: now,
   heroId: null,
   postedAt: null,
@@ -48,15 +46,11 @@ const campAt = (cell: string, id: string, stock: Record<string, number>): Camp =
   closedUntil: 0,
 });
 
-/** A save with the hall at the origin, two stocked camps, and every cell on their route scouted. */
+/** A save with the hall at the origin and two stocked camps. */
 const baseSave = (): SaveData => {
   const hallCell = cellNear(0);
   const camps = [campAt(cellNear(300), 'c1', { wood: 8 }), campAt(cellNear(600, 90), 'c2', { game: 6 })];
-  const withCamps: SaveData = { ...createInitialSave(), supply: { ...emptySupply(now), hall: { cell: hallCell, movedAt: 0 }, camps } };
-  const points = [tileCenter(hallCell), tileCenter(camps[0].cell), tileCenter(camps[1].cell), tileCenter(hallCell)];
-  let scouted = {};
-  for (let i = 1; i < points.length; i++) scouted = addCells(scouted, cellsAlong(points[i - 1], points[i]), periodAt(now));
-  return { ...withCamps, supply: { ...withCamps.supply, scouted } };
+  return { ...createInitialSave(), supply: { ...emptySupply(now), hall: { cell: hallCell, moves: [] }, camps } };
 };
 
 const readySave = () => setRoute(setCrew(baseSave(), 'bram', ['lyra'], now), [{ camp: 'c1' }, { camp: 'c2' }], now);
@@ -120,7 +114,7 @@ describe('a full loop', () => {
     expect(nextLoop.events.filter((event) => event.kind === 'camp').map((event) => (event as { campId: string }).campId)).toEqual(['c2']);
   });
 
-  it('loads nothing from a camp packed up while the cart is on its way, and the loop goes on', () => {
+  it('loads nothing from a camp removed while the cart is on its way, and the loop goes on', () => {
     const started = startCart(readySave(), now);
     const loop = started.supply.cart.loop!;
     const withoutC2: SaveData = { ...started, supply: { ...started.supply, camps: started.supply.camps.filter((camp) => camp.id !== 'c2') } };
@@ -143,11 +137,8 @@ describe('ambushes', () => {
     const placed = (offset: number): SaveData => {
       const hallCell = cellNear(offset);
       const camps = [campAt(cellNear(offset + 300), 'c1', { wood: 8 }), campAt(cellNear(offset + 600, 90), 'c2', { game: 6 })];
-      const withCamps: SaveData = { ...createInitialSave(), supply: { ...emptySupply(now), hall: { cell: hallCell, movedAt: 0 }, camps } };
-      const points = [tileCenter(hallCell), tileCenter(camps[0].cell), tileCenter(camps[1].cell), tileCenter(hallCell)];
-      let scouted = {};
-      for (let i = 1; i < points.length; i++) scouted = addCells(scouted, cellsAlong(points[i - 1], points[i]), periodAt(now));
-      return setRoute(setCrew({ ...withCamps, supply: { ...withCamps.supply, scouted } }, 'bram', ['lyra', 'mira'], now), [{ camp: 'c1' }, { camp: 'c2' }], now);
+      const withCamps: SaveData = { ...createInitialSave(), supply: { ...emptySupply(now), hall: { cell: hallCell, moves: [] }, camps } };
+      return setRoute(setCrew(withCamps, 'bram', ['lyra', 'mira'], now), [{ camp: 'c1' }, { camp: 'c2' }], now);
     };
     let started = startCart(strong(placed(0)), now);
     let ambush: Extract<CartEvent, { kind: 'ambush' }> | undefined;
@@ -244,22 +235,20 @@ describe('crew and parking', () => {
 });
 
 describe('routePreview', () => {
-  it('matches 1 − Π(1 − p) over the crossed cells, with unscouted cells at the unscouted level', () => {
+  it('matches 1 − Π(1 − p) over the crossed cells, each at its real danger level', () => {
     jest.restoreAllMocks();
     const save = baseSave();
-    const unscouted = cellNear(900, 200);
-    const route = [{ camp: 'c1' }, { cell: unscouted }] as ({ camp: string } | { cell: string })[];
+    const waypoint = cellNear(900, 200);
+    const route = [{ camp: 'c1' }, { cell: waypoint }] as ({ camp: string } | { cell: string })[];
     const preview = routePreview(save, route, now);
     const crossed = routeCells(preview.points);
-    expect(crossed).toContain(unscouted);
+    expect(crossed).toContain(waypoint);
     let none = 1;
     for (const cell of crossed) {
       const entry = preview.cells.find((c) => c.cell === cell)!;
       const level = entry.level as 0 | 1 | 2 | 3;
-      if (!isScouted(save.supply.scouted, cell)) expect(level).toBe(supplyRules.danger.unscoutedLevel);
       none *= 1 - supplyRules.danger.ambushChance[level];
     }
-    expect(preview.cells.find((entry) => entry.cell === unscouted)!.level).toBe(supplyRules.danger.unscoutedLevel);
     expect(preview.ambushChance).toBeCloseTo(1 - none);
   });
 });

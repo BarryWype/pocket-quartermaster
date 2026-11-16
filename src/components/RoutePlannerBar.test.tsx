@@ -20,7 +20,7 @@ const camp: Camp = {
   id: 'c1',
   kind: 'timber',
   cell: campCell,
-  terrain: 'green',
+  quality: 2,
   foundedAt: 0,
   heroId: null,
   postedAt: null,
@@ -35,7 +35,7 @@ const camp: Camp = {
 /** A save with a hall and one camp, like the cart sheet's tests. */
 const withNetwork = (): SaveData => {
   const base = createInitialSave();
-  return { ...base, supply: { ...base.supply, hall: { cell: hallCell, movedAt: 0 }, camps: [camp] } };
+  return { ...base, supply: { ...base.supply, hall: { cell: hallCell, moves: [] }, camps: [camp] } };
 };
 
 const text = (renderer: ReactTestRenderer) => JSON.stringify(renderer.toJSON());
@@ -80,11 +80,11 @@ describe('the route planner bar', () => {
     expect(sheet).toContain('The hall → Timber camp → The hall');
     expect(sheet).toContain('min a loop');
     expect(sheet).toContain('Ambush risk');
-    expect(sheet).toContain('Tap camps in order, and scouted cells as waypoints.');
+    expect(sheet).toContain('Tap camps in order, and any cell as a waypoint to steer around danger.');
     expect(disabled).toBe(false);
   });
 
-  it('a draft with only an unscouted waypoint: Save is disabled', () => {
+  it('a draft with only a waypoint: Save is disabled', () => {
     const { sheet, disabled } = open([{ cell: cellAt(offsetPosition(origin, 1500, 90)) }]);
     expect(sheet).toContain('The hall → waypoint → The hall');
     expect(disabled).toBe(true);

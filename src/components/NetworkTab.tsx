@@ -7,7 +7,7 @@ import { IconLabel } from '@/components/IconLabel';
 import { Text } from '@/components/Text';
 import { EmberButton, ParchmentCard, WoodButton } from '@/components/ui';
 import { clockConfig } from '@/content/clockConfig';
-import { campResource, supplyRules, tradeInfo } from '@/content/supplyLines';
+import { supplyRules, tradeInfo } from '@/content/supplyLines';
 import { distanceMeters } from '@/game/generation/geo';
 import { tileCenter } from '@/game/generation/tiles';
 import { routePreview } from '@/game/supply/cart';
@@ -17,14 +17,13 @@ import type { Camp } from '@/game/supply/types';
 import { formatDistance, formatDuration, t, tr } from '@/i18n';
 import { raidText } from '@/hooks/useCartTick';
 import { useNow } from '@/hooks/useNow';
-import { useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { useWorldStore } from '@/store/worldStore';
 import { ui } from '@/theme';
 
 import { PostHeroList } from './PostHeroList';
 import { RaidBanner } from './RaidBanner';
-import { RichnessPips } from './SupplyCellPanel';
+import { QualityPips } from './SupplyCellPanel';
 import { SupplyCartPanel } from './SupplyCartPanel';
 
 /** A landed raid's outcome stays on the tab this long. */
@@ -34,7 +33,6 @@ const LAST_RAID_SHOWN_MS = 24 * 3_600_000;
 export function NetworkTab() {
   const save = useGameStore((s) => s.save);
   const player = useWorldStore((s) => s.player);
-  const offset = useDebugStore((s) => s.supplyPeriodOffset);
   const now = useNow(clockConfig.minutesMs);
   const hall = save.supply.hall;
   const camps = save.supply.camps;
@@ -62,7 +60,7 @@ export function NetworkTab() {
       {camps.length === 0 ? (
         <Text style={styles.line}>{t('supply.network.empty')}</Text>
       ) : (
-        camps.map((camp) => <CampCard key={camp.id} camp={camp} now={now} offset={offset} />)
+        camps.map((camp) => <CampCard key={camp.id} camp={camp} now={now} />)
       )}
       <CartCard now={now} onOpen={() => setCartOpen(true)} />
       {cartOpen && <SupplyCartPanel onClose={() => setCartOpen(false)} />}
@@ -96,16 +94,16 @@ function CartCard({ now, onOpen }: { now: number; onOpen: () => void }) {
   );
 }
 
-/** One camp's card: its ground, rate, stock and posting. */
-function CampCard({ camp, now, offset }: { camp: Camp; now: number; offset: number }) {
+/** One camp's card: its quality, rate, stock and posting. */
+function CampCard({ camp, now }: { camp: Camp; now: number }) {
   const save = useGameStore((s) => s.save);
   const recallPosted = useGameStore((s) => s.recallPosted);
   const [posting, setPosting] = useState(false);
-  const settled = settleCamp(save, camp, now, offset);
-  const parts = campRateParts(save, camp, now, offset);
+  const settled = settleCamp(save, camp, now);
+  const parts = campRateParts(save, camp, now);
   const posted = settled.heroId ? save.heroes.find((h) => h.id === settled.heroId) ?? null : null;
   const stock = campStockTotal(settled);
-  const cap = campCap(camp, now, offset);
+  const cap = campCap(camp);
   const rate = String(Math.round(parts.rate * 100) / 100);
 
   return (
@@ -115,9 +113,9 @@ function CampCard({ camp, now, offset }: { camp: Camp; now: number; offset: numb
       titleSub={posted ? t('supply.camp.postedHero', { name: posted.name }) : t('supply.camp.locals', { share: Math.round(supplyRules.production.localsShare * 100) })}
       contentStyle={styles.card}
     >
-      <View style={styles.richnessRow}>
-        <IconLabel emoji={camp.kind === 'timber' ? '🪵' : '🦌'} label={t(campResource[camp.kind] === 'timber' ? 'supply.resource.timber' : 'supply.resource.game')} size={16} />
-        <RichnessPips level={parts.richness} />
+      <View style={styles.qualityRow}>
+        <IconLabel emoji={camp.kind === 'timber' ? '🪵' : '🦌'} label={t(camp.kind === 'timber' ? 'supply.resource.timber' : 'supply.resource.game')} size={16} />
+        <QualityPips level={camp.quality} />
       </View>
       <Text style={styles.line}>{t(camp.kind === 'timber' ? 'supply.camp.rateTimber' : 'supply.camp.rateTrapper', { rate })}</Text>
       {posted && parts.tradeBonus > 0 && (
@@ -149,7 +147,6 @@ const styles = StyleSheet.create({
   body: { gap: 10 },
   card: { gap: 8 },
   line: { color: ui.ink },
-  richnessRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  stockRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  qualityRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },  stockRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   stockText: { color: ui.ink },
 });

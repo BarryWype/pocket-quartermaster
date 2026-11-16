@@ -67,7 +67,7 @@ function raidersFor(save: SaveData, cell: string, at: number, seedKey: string): 
  * Rolls today's raid once, on the first settle of the day: whether one lands,
  * when, on which camp and by whom. Nothing is rolled while a raid is pending.
  */
-export function rollRaidDay(save: SaveData, now: number, periodOffset = 0): SaveData {
+export function rollRaidDay(save: SaveData, now: number): SaveData {
   const supply = save.supply;
   const today = dayKey(new Date(now));
   if (supply.raid || supply.raidDay === today) return save;
@@ -83,7 +83,7 @@ export function rollRaidDay(save: SaveData, now: number, periodOffset = 0): Save
 
   const ctx = dangerContextOf(save);
   const weights = supply.camps.map((camp) => {
-    const stock = campStockTotal(settleCamp(save, camp, landsAt, periodOffset));
+    const stock = campStockTotal(settleCamp(save, camp, landsAt));
     if (stock === 0) return 0;
     const cells = neighbourhood(camp.cell);
     const dangers = cellDangers(cells, landsAt, ctx);
@@ -150,11 +150,11 @@ export function defenderHomeAt(raid: Raid, defender: Raid['defenders'][number]):
  * arrived fight the raiders (easy with a Watchman among them, else medium).
  * A loss, or nobody there, takes the camp's stock and closes it.
  */
-export function resolveRaid(save: SaveData, periodOffset = 0): SaveData {
+export function resolveRaid(save: SaveData): SaveData {
   const raid = save.supply.raid;
   if (!raid || raid.result) return save;
   const at = raid.landsAt;
-  let next = settleCamps(save, at, periodOffset);
+  let next = settleCamps(save, at);
   const camp = next.supply.camps.find((c) => c.id === raid.campId);
   const defenders = raid.defenders.map((d) => ({ ...d, returnsAt: defenderHomeAt(raid, d) }));
   const log = (won: boolean | null, lost: Record<string, number>) =>
@@ -191,10 +191,10 @@ export function resolveRaid(save: SaveData, periodOffset = 0): SaveData {
  * Settles raids to `now`: lands the pending one if due, lets defenders home
  * once walked back (the raid clears when the last one is), then rolls today.
  */
-export function settleRaids(save: SaveData, now: number, periodOffset = 0): SaveData {
+export function settleRaids(save: SaveData, now: number): SaveData {
   let next = save;
   const pending = next.supply.raid;
-  if (pending && !pending.result && pending.landsAt <= now) next = resolveRaid(next, periodOffset);
+  if (pending && !pending.result && pending.landsAt <= now) next = resolveRaid(next);
   const raid = next.supply.raid;
   if (raid?.result) {
     const away = raid.defenders.filter((d) => defenderHomeAt(raid, d) > now);
@@ -202,7 +202,7 @@ export function settleRaids(save: SaveData, now: number, periodOffset = 0): Save
       next = { ...next, supply: { ...next.supply, raid: away.length === 0 ? null : { ...raid, defenders: away } } };
     }
   }
-  return rollRaidDay(next, now, periodOffset);
+  return rollRaidDay(next, now);
 }
 
 /** The next moment raids need settling: the announcement, the landing, or a defender's return. */

@@ -17,13 +17,13 @@ const raided = (): SaveData => {
     ...base,
     supply: {
       ...emptySupply(noon),
-      hall: { cell: cellAt(origin), movedAt: 0 },
+      hall: { cell: cellAt(origin), moves: [] },
       camps: [
         {
           id: 'c1',
           kind: 'timber',
           cell: cellAt(offsetPosition(origin, 800, 0)),
-          terrain: 'green',
+          quality: 2,
           foundedAt: 0,
           heroId: null,
           postedAt: null,

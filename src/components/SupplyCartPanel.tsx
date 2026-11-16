@@ -18,7 +18,6 @@ import type { SaveData } from '@/game/save';
 import { formatDistance, formatDuration, formatPercent, t, tr } from '@/i18n';
 import { ambushText } from '@/hooks/useCartTick';
 import { useNow } from '@/hooks/useNow';
-import { useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { useMapPanels } from '@/store/mapPanelsStore';
 import { ui } from '@/theme';
@@ -57,12 +56,11 @@ export function SupplyCartPanel({ onClose }: { onClose: () => void }) {
   const setCrew = useGameStore((s) => s.setCrew);
   const startCart = useGameStore((s) => s.startCart);
   const stopCart = useGameStore((s) => s.stopCart);
-  const offset = useDebugStore((s) => s.supplyPeriodOffset);
   const now = useNow(clockConfig.minutesMs);
   const [picking, setPicking] = useState<Slot | null>(null);
 
   // Shown as of now without writing: the store settles the cart when its next event is due.
-  const save = settleCart(stored, now, offset);
+  const save = settleCart(stored, now);
   const cart = save.supply.cart;
   const loop = cart.loop;
   const crew = { driver: cart.crew.driver, escorts: cart.crew.escorts };
@@ -98,7 +96,7 @@ export function SupplyCartPanel({ onClose }: { onClose: () => void }) {
       ? t('supply.cart.waiting', { names: hurtNames(save, crewIds, now) })
       : t('supply.cart.parked');
   const problemText: Record<Exclude<typeof problem, null | 'running'>, string> = {
-    noHall: t('supply.campProblem.noHall'),
+    noHall: t('supply.cart.noHall'),
     noRoute: t('supply.cart.noRouteYet'),
     crewBusy: t('supply.cart.crewBusy'),
     crewHurt: t('supply.cart.crewHurt'),

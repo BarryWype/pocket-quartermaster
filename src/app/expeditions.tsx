@@ -81,7 +81,7 @@ export function useExpeditionsRail(): { items: RailItem[]; initial: Tab } {
     jobs.filter((job) => isJobFull(save, job.id, now)).length + save.heroes.filter((hero) => isTired(save, hero, now)).length;
   // Camps whose stock is full, waiting on a collection.
   const supplyOn = useSupplyOn();
-  const atCap = supplyOn ? campsAtCap(save, now, useDebugStore.getState().supplyPeriodOffset) : 0;
+  const atCap = supplyOn ? campsAtCap(save, now) : 0;
   const items: RailItem[] = [
     {
       key: 'places',

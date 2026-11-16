@@ -6,7 +6,7 @@ import { gearRules } from "@/content/gear";
 import { affixById } from "@/content/affixes";
 import { gearStats } from "./gear/stats";
 import { uniquePool } from "./gear/uniques";
-import { migrateSave, toV38, toV39, toV40, toV41, toV42, toV43, toV44, toV47, toV48, toV49, toV50, toV52 } from "./migrations";
+import { migrateSave, toV38, toV39, toV40, toV41, toV42, toV43, toV44, toV47, toV48, toV49, toV50, toV52, toV53 } from "./migrations";
 import { affixPool } from "./gear/affixes";
 import { emptyLoot } from "./loot/types";
 import type { Briefing, ExpeditionReport, GearDef, GearInstance } from "./types";
@@ -15,6 +15,8 @@ import type { Quest } from "./quests/types";
 import { rolledSpecial } from "./team/specials";
 import { rolledTrade } from "./supply/trades";
 import { emptySupply } from "./supply/state";
+import { cellAt } from "./discovery/cells";
+import { offsetPosition } from "./generation/geo";
 import { rosterCap } from "./guild/guild";
 import { rosterRules } from "@/content/roster";
 
@@ -1078,5 +1080,107 @@ describe("toV52", () => {
   it("is a no-op the second time", () => {
     const once = migrateSave(v51(), 51, NOW);
     expect(toV52(once, NOW)).toBe(once);
+  });
+});
+
+describe("toV53", () => {
+  const NOW = 500 * DAY;
+  const hallCell = cellAt(origin);
+  const campCell = cellAt(offsetPosition(origin, 800, 0));
+  const waypointCell = cellAt(offsetPosition(origin, 400, 90));
+
+  /** A version 52 save: a moved hall, scouted cells, two camps (one posted), a cart mid-loop with cargo, and a pending raid. */
+  const v52 = (): SaveData => {
+    const base = createInitialSave();
+    const camp = (id: string, heroId: string | null) => ({
+      id,
+      kind: "timber" as const,
+      cell: campCell,
+      terrain: "green",
+      quality: 2,
+      foundedAt: NOW - DAY,
+      heroId,
+      postedAt: heroId ? NOW - DAY : null,
+      stock: { wood: id === "c1" ? 7 : 0 },
+      progress: 0,
+      made: 3,
+      settledAt: NOW - DAY,
+      inspectedUntil: 0,
+      closedUntil: 0,
+    });
+    const loop = {
+      n: 1,
+      startedAt: NOW - 3_600_000,
+      endsAt: NOW + 3_600_000,
+      points: [origin, offsetPosition(origin, 800, 0), origin],
+      speedMps: 1,
+      capacity: 20,
+      events: [],
+    };
+    return {
+      ...base,
+      materials: { ...base.materials, wood: 2 },
+      tips: { seen: ["supplyHall", "supplyScout"], pending: ["supplyCamps", "supplyCampSheet"] },
+      supply: {
+        ...emptySupply(NOW),
+        hall: { cell: hallCell, movedAt: NOW - 2 * DAY },
+        scouted: { [hallCell.slice(0, 5)]: { 4: hallCell.slice(-2) } },
+        slotsFreeAt: [NOW + DAY],
+        camps: [camp("c1", "bram"), camp("c2", null)],
+        cart: {
+          ...emptySupply(NOW).cart,
+          route: [{ camp: "c1" }, { cell: waypointCell }],
+          nextRoute: [{ camp: "c2" }, { cell: waypointCell }],
+          crew: { driver: "mira", escorts: ["lyra"] },
+          loop,
+          cargo: { wood: 4 },
+          waitingForCrew: true,
+        },
+        raid: {
+          campId: "c1",
+          kind: "goblins",
+          tier: 1,
+          landsAt: NOW + 2 * 3_600_000,
+          defenders: [{ heroId: "lyra", sentAt: NOW, arrivesAt: NOW + 3_600_000 }],
+          result: null,
+        },
+      },
+    } as unknown as SaveData;
+  };
+
+  it("pays every camp's stock and the cart's cargo into the materials, and frees the posted heroes", () => {
+    const before = v52();
+    const next = toV53(before);
+    expect(next.materials.wood).toBe(2 + 7 + 4);
+    expect(next.supply.camps).toEqual([]);
+    // The posted hero's camp is gone, so they are free.
+    expect(next.supply.cart.crew).toEqual({ driver: "mira", escorts: ["lyra"] });
+  });
+
+  it("parks the cart: no loop, no cargo, no waiting, and a route with nothing to run", () => {
+    const next = toV53(v52());
+    expect(next.supply.cart.loop).toBeNull();
+    expect(next.supply.cart.cargo).toEqual({});
+    expect(next.supply.cart.waitingForCrew).toBe(false);
+    expect(next.supply.cart.route).toEqual([]);
+    expect(next.supply.cart.nextRoute).toBeNull();
+  });
+
+  it("drops the raid, keeps the hall with its move, and drops the scouted cells, slots and removed tips", () => {
+    const before = v52();
+    const next = toV53(before);
+    expect(next.supply.raid).toBeNull();
+    expect(next.supply.hall).toEqual({ cell: hallCell, moves: [NOW - 2 * DAY] });
+    expect((next.supply as Record<string, unknown>).scouted).toBeUndefined();
+    expect((next.supply as Record<string, unknown>).slotsFreeAt).toBeUndefined();
+    expect(next.tips).toEqual({ seen: [], pending: ["supplyCampSheet"] });
+  });
+
+  it("keeps a hall never moved as one with no moves, and is a no-op the second time", () => {
+    const once = toV53(v52());
+    expect(toV53(once)).toBe(once);
+    const fresh = v52();
+    const unmoved = toV53({ ...fresh, supply: { ...fresh.supply, hall: { cell: hallCell, movedAt: 0 } } } as unknown as SaveData);
+    expect(unmoved.supply.hall).toEqual({ cell: hallCell, moves: [] });
   });
 });

@@ -399,8 +399,6 @@ function SettingsContent() {
           value={supplyLines}
           onChange={(on) => {
             set({ supplyLines: on });
-            // The first time the switch goes on, three short cards wait for the map.
-            if (on) useGameStore.getState().noteTips(['supplyHall', 'supplyScout', 'supplyCamps']);
           }}
         />
       </ParchmentCard>

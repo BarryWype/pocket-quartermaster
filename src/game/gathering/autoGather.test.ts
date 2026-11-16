@@ -1,7 +1,6 @@
 import { gatheringConfig } from '@/content/gatheringConfig';
 import { spawnConfig } from '@/content/spawnConfig';
 
-import { cellPeriod, cellsAlong, isScouted } from '../discovery/cells';
 import { offsetPosition } from '../generation/geo';
 import type { AnimalSpawn, LatLng, Spawn, StaticSpawn } from '../generation/types';
 import { lureSpawns } from '../rewards/lures';
@@ -293,22 +292,5 @@ describe('walk buffer', () => {
     const buffer = appendFixes(legacy, [fix(0, 0, 0), fix(0, 20, 15)], t0 + 15_000);
     expect(buffer.fixes).toHaveLength(2);
     expect(buffer.riding).toBe(false);
-  });
-});
-
-describe('processWalkPath scouting', () => {
-  it('scouts the cells along the accepted segments for the period', () => {
-    const { save } = processWalkPath(player(), eastWalk, { spawnsAt: only([]), scoutPeriod: 7 });
-    for (const cell of cellsAlong(origin, at(0, 200))) {
-      expect(isScouted(save.supply.scouted, cell)).toBe(true);
-      expect(cellPeriod(save.supply.scouted, cell)).toBe(7);
-    }
-  });
-
-  it('scouts nothing without a period, and nothing from rejected segments', () => {
-    expect(processWalkPath(player(), eastWalk, { spawnsAt: only([]) }).save.supply.scouted).toEqual({});
-    // 200 m in 1.5 s is far too fast: no segment is accepted, so nothing is scouted.
-    const jumped = processWalkPath(player(), [fix(0, 0, 0), fix(0, 200, 1.5)], { spawnsAt: only([]), scoutPeriod: 7 });
-    expect(jumped.save.supply.scouted).toEqual({});
   });
 });

@@ -1,10 +1,7 @@
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 import { cellAt } from '@/game/discovery/cells';
-import { offsetPosition } from '@/game/generation/geo';
 import { tileCenter } from '@/game/generation/tiles';
-import { periodAt } from '@/game/supply/period';
-import { cellRichness } from '@/game/supply/richness';
 import type { Camp } from '@/game/supply/types';
 import { createInitialSave, type SaveData } from '@/game/save';
 import { useGameStore } from '@/store/gameStore';
@@ -16,22 +13,13 @@ jest.mock('react-native-safe-area-context', () => jest.requireActual('react-nati
 jest.mock('expo-router', () => ({ ...jest.requireActual('expo-router'), useIsFocused: () => true }));
 
 const origin = { latitude: -41.2865, longitude: 174.7762 };
+const cell = cellAt(origin);
 
-/** A green cell whose timber richness rolls to 1 in the current period. */
-const richnessOneCell = (): string => {
-  const period = periodAt(Date.now());
-  for (let i = 0; i < 5000; i++) {
-    const cell = cellAt(offsetPosition(origin, i * 40, i * 7));
-    if (cellRichness(cell, period, 'green', 'timber') === 1) return cell;
-  }
-  throw new Error('No richness 1 cell found');
-};
-
-const campIn = (cell: string, extra: Partial<Camp> = {}): Camp => ({
+const campIn = (extra: Partial<Camp> = {}): Camp => ({
   id: 'c1',
   kind: 'timber',
   cell,
-  terrain: 'green',
+  quality: 1,
   foundedAt: Date.now(),
   heroId: null,
   postedAt: null,
@@ -64,9 +52,8 @@ describe('the camp sheet', () => {
 
   it('shows a posted camp: the hero, Recall, and the rate line with the trade bonus', () => {
     useSettingsStore.setState({ supplyLines: true });
-    const cell = richnessOneCell();
     act(() => {
-      useGameStore.setState({ save: saveWithCamp(campIn(cell, { heroId: 'bram', postedAt: Date.now() })) });
+      useGameStore.setState({ save: saveWithCamp(campIn({ heroId: 'bram', postedAt: Date.now() })) });
     });
     act(() => {
       renderer = create(<SupplyCampPanel id="c1" player={tileCenter(cell)} onClose={() => {}} />);
@@ -74,17 +61,16 @@ describe('the camp sheet', () => {
     const sheet = text(renderer!);
     expect(sheet).toContain('Bram is posted');
     expect(sheet).toContain('Recall');
-    // Richness 1 at the full rate with a level 2 Woodcutter: 1.5 wood an hour, +50%.
+    // Quality 1 at the full rate with a level 2 Woodcutter: 1.5 wood an hour, +50%.
     expect(sheet).toContain('1.5 wood an hour');
     expect(sheet).toContain('Woodcutter level 2: +50%');
     expect(sheet).toContain('0 / 12');
   });
 
-  it('shows an empty camp with the heroes free to post', () => {
+  it('shows an empty camp with the heroes free to post, and no packing up', () => {
     useSettingsStore.setState({ supplyLines: true });
-    const cell = richnessOneCell();
     act(() => {
-      useGameStore.setState({ save: saveWithCamp(campIn(cell)) });
+      useGameStore.setState({ save: saveWithCamp(campIn()) });
     });
     act(() => {
       renderer = create(<SupplyCampPanel id="c1" player={tileCenter(cell)} onClose={() => {}} />);
@@ -96,5 +82,6 @@ describe('the camp sheet', () => {
     // The player stands at the camp, but nothing has been made yet.
     expect(sheet).toContain('Nothing to collect yet');
     expect(sheet).not.toContain('Recall');
+    expect(sheet).not.toContain('Pack up');
   });
 });

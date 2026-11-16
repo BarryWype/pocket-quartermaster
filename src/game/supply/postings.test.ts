@@ -19,7 +19,7 @@ const campIn = (id: string, extra: Partial<Camp> = {}): Camp => ({
   id,
   kind: 'timber',
   cell: cellAt(origin),
-  terrain: 'green',
+  quality: 2,
   foundedAt: now,
   heroId: null,
   postedAt: null,

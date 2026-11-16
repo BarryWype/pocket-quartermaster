@@ -8,11 +8,11 @@ import { resolveRaid, settleRaids } from './raids';
  * up to a raid's landing (a call there first saves its cargo), the raid, then
  * the cart, raids and camps to now.
  */
-export function settleNetwork(save: SaveData, now: number, periodOffset = 0): SaveData {
+export function settleNetwork(save: SaveData, now: number): SaveData {
   let next = save;
   const raid = next.supply.raid;
-  if (raid && !raid.result && raid.landsAt <= now) next = resolveRaid(settleCart(next, raid.landsAt, periodOffset), periodOffset);
-  next = settleCart(next, now, periodOffset);
-  next = settleRaids(next, now, periodOffset);
-  return settleCamps(next, now, periodOffset);
+  if (raid && !raid.result && raid.landsAt <= now) next = resolveRaid(settleCart(next, raid.landsAt));
+  next = settleCart(next, now);
+  next = settleRaids(next, now);
+  return settleCamps(next, now);
 }

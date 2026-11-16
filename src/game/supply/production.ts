@@ -1,23 +1,16 @@
 import { jobById } from '@/content/jobs';
-import { campResource, supplyRules } from '@/content/supplyLines';
+import { supplyRules } from '@/content/supplyLines';
 
 import { createRng } from '../generation/rng';
 import type { SaveData } from '../save';
-import { periodAt } from './period';
-import { cellRichness } from './richness';
 import { tradeLevel } from './trades';
 import type { Camp } from './types';
 
 const HOUR = 3_600_000;
-const PERIOD_MS = supplyRules.periodWeeks * 7 * 24 * HOUR;
-
-/** A camp's richness at a time, at the period the offset picks. */
-const richnessAt = (camp: Camp, t: number, periodOffset: number): 0 | 1 | 2 | 3 =>
-  cellRichness(camp.cell, periodAt(t) + periodOffset, camp.terrain, campResource[camp.kind]);
 
 export type CampRateParts = {
-  richness: number;
-  /** Richness × the base rate: the full rate before shares and bonuses. */
+  quality: number;
+  /** Quality × the base rate: the full rate before shares and bonuses. */
   base: number;
   /** 1 with a hero posted, the locals' share without one. */
   share: number;
@@ -27,10 +20,9 @@ export type CampRateParts = {
 };
 
 /** The camp's output rate at a time, broken into its parts for display. */
-export function campRateParts(save: SaveData, camp: Camp, t: number, periodOffset = 0): CampRateParts {
-  if (t < camp.closedUntil) return { richness: 0, base: 0, share: 0, tradeBonus: 0, inspected: false, rate: 0 };
-  const richness = richnessAt(camp, t, periodOffset);
-  const base = richness * supplyRules.production.baseRate[camp.kind];
+export function campRateParts(save: SaveData, camp: Camp, t: number): CampRateParts {
+  if (t < camp.closedUntil) return { quality: camp.quality, base: 0, share: 0, tradeBonus: 0, inspected: false, rate: 0 };
+  const base = camp.quality * supplyRules.production.baseRate[camp.kind];
   const hero = camp.heroId ? save.heroes.find((h) => h.id === camp.heroId) : undefined;
   const share = hero ? 1 : supplyRules.production.localsShare;
   const tradeBonus =
@@ -39,16 +31,15 @@ export function campRateParts(save: SaveData, camp: Camp, t: number, periodOffse
       : 0;
   const inspected = t < camp.inspectedUntil;
   const rate = base * share * (1 + tradeBonus) * (inspected ? 1 + supplyRules.production.inspectBonus : 1);
-  return { richness, base, share, tradeBonus, inspected, rate };
+  return { quality: camp.quality, base, share, tradeBonus, inspected, rate };
 }
 
 /** The camp's output rate at a time, in units per hour. */
-export const campRate = (save: SaveData, camp: Camp, t: number, periodOffset = 0): number =>
-  campRateParts(save, camp, t, periodOffset).rate;
+export const campRate = (save: SaveData, camp: Camp, t: number): number => campRateParts(save, camp, t).rate;
 
 /** Whole units the camp's stock holds at `t`: capHours of full output (no bonus). */
-export const campCap = (camp: Camp, t: number, periodOffset = 0): number =>
-  Math.floor(supplyRules.production.capHours * richnessAt(camp, t, periodOffset) * supplyRules.production.baseRate[camp.kind]);
+export const campCap = (camp: Camp): number =>
+  Math.floor(supplyRules.production.capHours * camp.quality * supplyRules.production.baseRate[camp.kind]);
 
 const stockTotal = (stock: Record<string, number>): number => Object.values(stock).reduce((sum, amount) => sum + amount, 0);
 
@@ -56,8 +47,8 @@ const stockTotal = (stock: Record<string, number>): number => Object.values(stoc
 export const campStockTotal = (camp: Camp): number => stockTotal(camp.stock);
 
 /** Camps whose settled stock has reached their cap, for the Network badges. */
-export function campsAtCap(save: SaveData, now: number, periodOffset = 0): number {
-  return save.supply.camps.filter((camp) => campStockTotal(settleCamp(save, camp, now, periodOffset)) >= campCap(camp, now, periodOffset)).length;
+export function campsAtCap(save: SaveData, now: number): number {
+  return save.supply.camps.filter((camp) => campStockTotal(settleCamp(save, camp, now)) >= campCap(camp)).length;
 }
 
 /** The material one made unit becomes: wood, or the trapper job's weighted roll from the unit count. */
@@ -70,26 +61,25 @@ const unitMaterial = (camp: Camp, made: number): string => {
 
 /**
  * Settles a camp from its last settlement to `now`, in pieces split at every
- * point the rate can change (the inspection ending, a closure, a period
- * boundary), so settling once or many times over a span gives the same camp.
+ * point the rate can change (the inspection ending, a closure), so settling
+ * once or many times over a span gives the same camp.
  */
-export function settleCamp(save: SaveData, camp: Camp, now: number, periodOffset = 0): Camp {
+export function settleCamp(save: SaveData, camp: Camp, now: number): Camp {
   if (now <= camp.settledAt) return camp;
   const cuts = [camp.settledAt];
   for (const t of [camp.inspectedUntil, camp.closedUntil]) {
     if (t > camp.settledAt && t < now) cuts.push(t);
   }
-  for (let k = Math.floor(camp.settledAt / PERIOD_MS) + 1; k * PERIOD_MS < now; k++) cuts.push(k * PERIOD_MS);
   cuts.push(now);
   cuts.sort((a, b) => a - b);
 
   let { stock, progress, made } = camp;
   for (let i = 1; i < cuts.length; i++) {
     const from = cuts[i - 1];
-    const rate = campRate(save, camp, from, periodOffset);
+    const rate = campRate(save, camp, from);
     if (rate <= 0) continue;
     progress += (rate * (cuts[i] - from)) / HOUR;
-    const cap = campCap(camp, from, periodOffset);
+    const cap = campCap(camp);
     while (progress >= 1) {
       if (stockTotal(stock) >= cap) {
         progress = 0;
@@ -109,10 +99,10 @@ export function settleCamp(save: SaveData, camp: Camp, now: number, periodOffset
  * where their trade is used: a matching camp, or any camp for a Watchman.
  * Returns the same save when nothing changed.
  */
-export function settleCamps(save: SaveData, now: number, periodOffset = 0): SaveData {
+export function settleCamps(save: SaveData, now: number): SaveData {
   const camps = save.supply.camps;
   if (camps.length === 0) return save;
-  const settledCamps = camps.map((camp) => settleCamp(save, camp, now, periodOffset));
+  const settledCamps = camps.map((camp) => settleCamp(save, camp, now));
   const heroes = save.heroes.map((hero) => {
     const hours = camps.reduce((sum, camp) => {
       if (camp.heroId !== hero.id) return sum;

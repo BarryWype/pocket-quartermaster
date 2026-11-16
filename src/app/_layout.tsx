@@ -19,7 +19,6 @@ import { useCartTick } from '@/hooks/useCartTick';
 import { useLanguage } from '@/hooks/useLanguage';
 import { syncPlan, useNotifications } from '@/hooks/useNotifications';
 import { usePatrols } from '@/hooks/usePatrols';
-import { useScouting } from '@/hooks/useScouting';
 import { useStepTracking } from '@/hooks/useTodaySteps';
 import { t } from '@/i18n';
 import { configureChannels, configureNotifications } from '@/services/notifications';
@@ -43,7 +42,6 @@ const BackgroundServices = memo(function BackgroundServices() {
   const paused = useDebugStore((s) => debugEnabled(s) && s.pauseBackgroundHooks) && pathname !== '/';
   useAutoGather(paused);
   usePatrols(paused);
-  useScouting();
   useCartTick();
   return null;
 });

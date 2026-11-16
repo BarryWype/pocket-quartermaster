@@ -119,14 +119,14 @@ describe('balance lab', () => {
     expect(homeHeroes(save).map((hero) => hero.id)).toEqual(['mira']);
   });
 
-  it('plays the supply lines only with the flag: camps found, the cart delivers, the save stays valid', () => {
+  it('plays the supply lines only with the flag: the hall is placed, nothing is founded, the save stays valid', () => {
     expect(runSim({ profile: 'regular', maxDays: 2, seed: 'supply', rates }).supply).toBeNull();
     const log = runSim({ profile: 'regular', maxDays: 10, seed: 'supply', rates, supplyLines: true, afterSession: checkSave });
     expect(log.supply).not.toBeNull();
-    expect(log.supply!.camps).toBeGreaterThan(0);
-    expect(log.supply!.delivered).toBeGreaterThan(0);
-    expect(log.supply!.postedHours).toBeGreaterThan(0);
-    expect(supplySummary([log])!.deliveredPerDay.median).toBeGreaterThan(0);
+    // Nothing founds a camp any more, so the cart delivers nothing and nobody is posted.
+    expect(log.supply!.delivered).toBe(0);
+    expect(log.supply!.postedHours).toBe(0);
+    expect(supplySummary([log])!.deliveredPerDay.median).toBe(0);
   });
 
   it('meets patrols and travellers while keeping the save valid', () => {

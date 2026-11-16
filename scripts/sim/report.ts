@@ -411,7 +411,6 @@ function supplyTable(s: ProfileSummary) {
   return table(
     ['Measure', 'Median over seeds'],
     [
-      ['Camps founded', n(supply.camps.median, 0)],
       ['Delivered by the cart / day (units)', n(supply.deliveredPerDay.median, 1)],
       ['Walked / day (wood, meat, hide, bone)', n(supply.walkedPerDay.median, 1)],
       ['Cart against walking', pct(share)],

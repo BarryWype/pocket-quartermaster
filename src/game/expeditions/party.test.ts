@@ -154,7 +154,7 @@ describe('hero choices', () => {
       id: 'c1',
       kind: 'timber',
       cell: 'x',
-      terrain: 'green',
+      quality: 2,
       foundedAt: 0,
       heroId: 'lyra',
       postedAt: 0,

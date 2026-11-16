@@ -22,7 +22,7 @@ const camp: Camp = {
   id: 'c1',
   kind: 'timber',
   cell: campCell,
-  terrain: 'green',
+  quality: 2,
   foundedAt: 0,
   heroId: null,
   postedAt: null,
@@ -39,7 +39,7 @@ const withNetwork = (cart: Partial<SaveData['supply']['cart']> = {}): SaveData =
   const base = createInitialSave();
   return {
     ...base,
-    supply: { ...base.supply, hall: { cell: hallCell, movedAt: 0 }, camps: [camp], cart: { ...base.supply.cart, ...cart } },
+    supply: { ...base.supply, hall: { cell: hallCell, moves: [] }, camps: [camp], cart: { ...base.supply.cart, ...cart } },
   };
 };
 

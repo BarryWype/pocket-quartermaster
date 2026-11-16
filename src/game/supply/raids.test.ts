@@ -34,7 +34,7 @@ const camp = (extra: Partial<Camp> = {}): Camp => ({
   id: 'c1',
   kind: 'timber',
   cell: campCell,
-  terrain: 'green',
+  quality: 2,
   foundedAt: 0,
   heroId: null,
   postedAt: null,
@@ -53,7 +53,7 @@ const network = (now = morning, hits = true, campExtra: Partial<Camp> = {}): Sav
   let seed = 0;
   while (createRng(`raid|p${seed}|${today}`).chance(supplyRules.raids.dailyChance) !== hits) seed++;
   const base = createInitialSave(`p${seed}`);
-  return { ...base, supply: { ...emptySupply(now), hall: { cell: hallCell, movedAt: 0 }, camps: [camp(campExtra)] } };
+  return { ...base, supply: { ...emptySupply(now), hall: { cell: hallCell, moves: [] }, camps: [camp(campExtra)] } };
 };
 
 /** A raid on the camp, set by hand, landing at `landsAt`. */

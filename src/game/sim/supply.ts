@@ -1,20 +1,14 @@
-import { supplyRules, campResource, type SupplyResource } from '@/content/supplyLines';
+import { supplyRules } from '@/content/supplyLines';
 
-import { cellAt, cellsAlong } from '../discovery/cells';
-import { distanceMeters, offsetPosition } from '../generation/geo';
-import { createRng } from '../generation/rng';
+import { cellAt } from '../discovery/cells';
+import { distanceMeters } from '../generation/geo';
 import { tileCenter } from '../generation/tiles';
-import type { LatLng } from '../generation/types';
 import { patrolOdds } from '../patrols/fight';
-import { campProblem, foundCamp } from '../supply/camps';
 import { cartProblem, setCrew, setRoute, startCart, stopCart } from '../supply/cart';
-import { hallProblem, placeHall, scoutPath } from '../supply/hall';
-import { periodAt } from '../supply/period';
+import { hallProblem, placeHall } from '../supply/hall';
 import { postHero, recallPosted } from '../supply/postings';
 import { defendProblem, isAnnounced, raidSpawn, sendDefenders } from '../supply/raids';
-import { cellRichness } from '../supply/richness';
 import { settleNetwork } from '../supply/settle';
-import type { Camp, Terrain } from '../supply/types';
 import { isExhausted } from '../team/health';
 import { isBusy } from '../team/team';
 import type { Sim } from './bot';
@@ -22,22 +16,11 @@ import type { Sim } from './bot';
 const HOUR = 3_600_000;
 /** Odds runs per raid the bot weighs: few, like its other quick checks. */
 const RAID_ODDS_RUNS = 40;
-/**
- * The sim has no map tiles, so a cell's terrain is drawn at the shares
- * measured around the Wellington fixture (see doc/design/supply-lines/).
- */
-const TERRAIN_SHARES: [Terrain, number][] = [
-  ['green', 0.31],
-  ['waterside', 0.24],
-  ['built', 0.45],
-];
 
 /** What the supply lines did over a run, for the report's Supply lines section. */
 export type SupplyLog = {
   /** Units the cart delivered to the hall. */
   delivered: number;
-  /** Camps founded. */
-  camps: number;
   ambushes: { won: number; lost: number; unguarded: number };
   raids: { won: number; lost: number; unguarded: number };
   /** Hero-hours spent posted at a camp, and on the cart's crew. */
@@ -55,13 +38,11 @@ export type SupplySim = {
 };
 
 export const emptySupplySim = (): SupplySim => ({
-  log: { delivered: 0, camps: 0, ambushes: { won: 0, lost: 0, unguarded: 0 }, raids: { won: 0, lost: 0, unguarded: 0 }, postedHours: 0, cartHours: 0 },
+  log: { delivered: 0, ambushes: { won: 0, lost: 0, unguarded: 0 }, raids: { won: 0, lost: 0, unguarded: 0 }, postedHours: 0, cartHours: 0 },
   lastLoop: 0,
   lastRaid: 0,
   postedSince: {},
 });
-
-export const simTerrain = (cell: string): Terrain => createRng(`terrain|${cell}`).weighted(TERRAIN_SHARES, ([, share]) => share)[0];
 
 const outcome = (won: boolean | null) => (won === true ? 'won' : won === null ? 'unguarded' : 'lost');
 
@@ -88,31 +69,6 @@ function settle(sim: Sim, supply: SupplySim) {
   }
 }
 
-/** The day's walk as a triangle loop from home, as long as the profile's walks, on a bearing that changes daily. */
-function walkLoop(sim: Sim): LatLng[] {
-  const meters = sim.profile.walkHours.length * sim.profile.walkMinutes * 60 * sim.config.walk.speed;
-  const side = meters / 3;
-  const bearing = createRng(`supply-walk|${sim.day}`).next() * 2 * Math.PI;
-  const at = (angle: number) => offsetPosition(sim.location, side * Math.cos(angle), side * Math.sin(angle));
-  return [sim.location, at(bearing), at(bearing + Math.PI / 3), sim.location];
-}
-
-/** The best camp the day's walk passed: the richest resource on ground that grows it, near the hall and free. */
-function bestCampSite(sim: Sim, cells: string[]): { kind: Camp['kind']; cell: string; terrain: Terrain } | null {
-  const period = periodAt(sim.now);
-  let best: { kind: Camp['kind']; cell: string; terrain: Terrain; richness: number } | null = null;
-  for (const cell of new Set(cells)) {
-    const terrain = simTerrain(cell);
-    for (const kind of ['timber', 'trapper'] as Camp['kind'][]) {
-      const richness = cellRichness(cell, period, terrain, campResource[kind] as SupplyResource);
-      if (richness === 0 || (best && richness <= best.richness)) continue;
-      if (campProblem(sim.save, kind, cell, terrain, cell, sim.now) !== null) continue;
-      best = { kind, cell, terrain, richness };
-    }
-  }
-  return best;
-}
-
 /** Heroes free for supply work now: not busy, not knocked out, strongest first. */
 const freeHeroes = (sim: Sim) =>
   sim.save.heroes.filter((hero) => !isBusy(sim.save, hero.id) && !isExhausted(hero, sim.now)).sort((a, b) => b.level - a.level);
@@ -133,23 +89,14 @@ export function supplyMorning(sim: Sim, supply: SupplySim, firstSession: boolean
 }
 
 /**
- * After the session's sends: on a walk, place the hall at home, scout the
- * walk's cells and found a camp on the best of them; defend an announced raid
- * the odds favour; at the day's last session, send the cart round every camp
- * with one spare escort, then post the heroes still home.
+ * After the session's sends: on a walk, place the hall at home; defend an
+ * announced raid the odds favour; at the day's last session, send the cart
+ * round every camp with one spare escort, then post the heroes still home.
+ * Nothing here founds a camp, so with none the cart and postings idle.
  */
 export function supplyEvening(sim: Sim, supply: SupplySim, walking: boolean, lastSession: boolean) {
-  if (walking) {
-    if (!sim.save.supply.hall && hallProblem(sim.save, cellAt(sim.location), sim.now) === null) {
-      sim.save = placeHall(sim.save, cellAt(sim.location), sim.now);
-    }
-    const loop = walkLoop(sim);
-    sim.save = scoutPath(sim.save, loop, periodAt(sim.now));
-    const site = bestCampSite(sim, loop.slice(1).flatMap((to, i) => cellsAlong(loop[i], to)));
-    if (site) {
-      sim.save = foundCamp(sim.save, site.kind, site.cell, site.terrain, site.cell, sim.now);
-      supply.log.camps += 1;
-    }
+  if (walking && !sim.save.supply.hall && hallProblem(sim.save, cellAt(sim.location), sim.now) === null) {
+    sim.save = placeHall(sim.save, cellAt(sim.location), sim.now);
   }
 
   const raid = sim.save.supply.raid;

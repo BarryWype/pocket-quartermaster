@@ -827,6 +827,70 @@ export function toV52(save: SaveData, now: number): SaveData {
   return { ...save, heroes, supply };
 }
 
+/**
+ * Version 53: the supply-lines trial loses its scouting grid and camps. Every
+ * camp closes and its whole stock (and the cart's cargo) is paid into the
+ * materials, so nothing made is lost; the cart parks at the hall with its crew
+ * and no route (no camp remains to call on); the pending raid is dropped (all
+ * raids targeted camps); the hall keeps its cell with its last move's time;
+ * the scouted cells, camp slots and removed first-run tips leave the save.
+ */
+export function toV53(save: SaveData): SaveData {
+  const old = save as SaveData & {
+    supply?: {
+      hall?: { cell: string; movedAt?: number } | null;
+      scouted?: unknown;
+      slotsFreeAt?: unknown;
+      camps?: unknown;
+      cart?: unknown;
+      raid?: unknown;
+    };
+  };
+  const supply = old.supply;
+  if (!supply) return save;
+  // A save already on version 53 has neither field: nothing left to migrate.
+  if (!('scouted' in supply) && !('slotsFreeAt' in supply)) return save;
+
+  type OldCamp = { id: string; stock?: Record<string, number> };
+  type OldCart = { cargo?: Record<string, number> };
+  const camps = (supply.camps ?? []) as OldCamp[];
+  const cart = (supply.cart ?? {}) as OldCart;
+
+  let materials = save.materials;
+  const stockOf = (stock: Record<string, number> | undefined) =>
+    Object.entries(stock ?? {}).filter(([, amount]) => amount > 0).map(([materialId, amount]) => ({ materialId, amount }));
+  for (const camp of camps) materials = addMaterials(materials, stockOf(camp.stock));
+  materials = addMaterials(materials, stockOf(cart.cargo));
+
+
+  const removedTips = new Set(['supplyHall', 'supplyScout', 'supplyCamps']);
+  const tips = {
+    seen: save.tips.seen.filter((id) => !removedTips.has(id as string)),
+    pending: save.tips.pending.filter((id) => !removedTips.has(id as string)),
+  };
+
+  const { scouted: _scouted, slotsFreeAt: _slots, ...rest } = supply;
+  return {
+    ...save,
+    materials,
+    tips,
+    supply: {
+      ...(rest as SaveData['supply']),
+      hall: supply.hall ? { cell: supply.hall.cell, moves: (supply.hall.movedAt ?? 0) > 0 ? [supply.hall.movedAt!] : [] } : null,
+      camps: [],
+      raid: null,
+      cart: {
+        ...(rest as SaveData['supply']).cart,
+        route: [],
+        nextRoute: null,
+        loop: null,
+        cargo: {},
+        waitingForCrew: false,
+      },
+    },
+  };
+}
+
 /** Applies the migration steps in order, from the save's own version on. */
 export function migrateSave(
   save: SaveData,
@@ -856,5 +920,6 @@ export function migrateSave(
   if (fromVersion < 50) next = toV50(next);
   if (fromVersion < 51) next = toV51(next);
   if (fromVersion < 52) next = toV52(next, now);
+  if (fromVersion < 53) next = toV53(next);
   return next;
 }

@@ -1,10 +1,9 @@
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
-import { addCells, cellAt } from '@/game/discovery/cells';
+import { cellAt } from '@/game/discovery/cells';
 import { heroStatus } from '@/game/expeditions/party';
 import { offsetPosition } from '@/game/generation/geo';
 import { tileCenter } from '@/game/generation/tiles';
-import { periodAt } from '@/game/supply/period';
 import { createInitialSave, type SaveData } from '@/game/save';
 import { useGameStore } from '@/store/gameStore';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -26,7 +25,6 @@ jest.mock('@/services/mapTiles', () => ({ walkableTiles: { load: () => Promise.r
 
 const position = { latitude: -41.2865, longitude: 174.7762 };
 const cell = cellAt(position);
-// A cell well beyond the 2 km hall radius, so founding is blocked with a visible reason.
 const hallCell = cellAt(offsetPosition(position, 3000, 0));
 
 const text = (renderer: ReactTestRenderer) => JSON.stringify(renderer.toJSON());
@@ -51,7 +49,7 @@ describe('the supply lines on the map', () => {
     expect(renderer!.toJSON()).toBeNull();
   });
 
-  it('shows a scouted green cell with the hall elsewhere: the found buttons and the blocking reason', () => {
+  it('shows a green cell with the hall elsewhere: the move button, and no founding any more', () => {
     useSettingsStore.setState({ supplyLines: true });
     const base = createInitialSave();
     act(() => {
@@ -60,8 +58,7 @@ describe('the supply lines on the map', () => {
           ...base,
           supply: {
             ...base.supply,
-            hall: { cell: hallCell, movedAt: 0 },
-            scouted: addCells({}, [cell], periodAt(Date.now())),
+            hall: { cell: hallCell, moves: [] },
           },
         },
       });
@@ -70,12 +67,68 @@ describe('the supply lines on the map', () => {
       renderer = create(<SupplyCellPanel cell={cell} player={tileCenter(cell)} onClose={() => {}} />);
     });
     const sheet = text(renderer!);
-    expect(sheet).toContain('Found a timber camp');
-    expect(sheet).toContain('Found a trapper');
-    expect(sheet).toContain('Too far from the hall');
-    // The scouted cell shows its richness, not the not-scouted line.
-    expect(sheet).toContain('Timber');
-    expect(sheet).not.toContain('Not scouted yet');
+    expect(sheet).toContain('Move the hall here');
+    expect(sheet).toContain('Green ground');
+    expect(sheet).not.toContain('Found a timber camp');
+  });
+
+  it('refuses a move once the week’s moves are spent, and says when the next comes back', () => {
+    useSettingsStore.setState({ supplyLines: true });
+    const base = createInitialSave();
+    const spent = Date.now() - 3 * 24 * 3_600_000;
+    act(() => {
+      useGameStore.setState({
+        save: {
+          ...base,
+          supply: {
+            ...base.supply,
+            hall: { cell: hallCell, moves: [spent, spent + 1] },
+          },
+        },
+      });
+    });
+    act(() => {
+      renderer = create(<SupplyCellPanel cell={cell} player={tileCenter(cell)} onClose={() => {}} />);
+    });
+    const sheet = text(renderer!);
+    expect(sheet).toContain('No moves left this week');
+  });
+
+  it('asks before a move: moves left, when the next comes back, and the camps left out of reach', () => {
+    useSettingsStore.setState({ supplyLines: true });
+    const base = createInitialSave();
+    const farCamp: SaveData['supply']['camps'][number] = {
+      id: 'c1',
+      kind: 'timber',
+      cell: cellAt(offsetPosition(position, 2500, 180)),
+      quality: 1,
+      foundedAt: 0,
+      heroId: null,
+      postedAt: null,
+      stock: {},
+      progress: 0,
+      made: 0,
+      settledAt: 0,
+      inspectedUntil: 0,
+      closedUntil: 0,
+    };
+    act(() => {
+      useGameStore.setState({
+        save: { ...base, supply: { ...base.supply, hall: { cell: hallCell, moves: [Date.now() - 24 * 3_600_000] }, camps: [farCamp] } },
+      });
+    });
+    act(() => {
+      renderer = create(<SupplyCellPanel cell={cell} player={tileCenter(cell)} onClose={() => {}} />);
+    });
+    act(() => {
+      renderer!.root.findAll((node) => node.props.title === 'Move the hall here' && typeof node.props.onPress === 'function')[0].props.onPress();
+    });
+    const dialog = text(renderer!);
+    expect(dialog).toContain('Move the hall here?');
+    expect(dialog).toContain('Moves left this week: 1 of 2');
+    expect(dialog).toContain('The next move comes back in');
+    expect(dialog).toContain('out of its reach: 1');
+    expect(useGameStore.getState().save.supply.hall!.cell).toBe(hallCell);
   });
 
   it('shows a posted hero as Posted in the picker', () => {
@@ -84,7 +137,7 @@ describe('the supply lines on the map', () => {
       id: 'c1',
       kind: 'timber',
       cell,
-      terrain: 'green',
+      quality: 2,
       foundedAt: 0,
       heroId: 'lyra',
       postedAt: 0,
