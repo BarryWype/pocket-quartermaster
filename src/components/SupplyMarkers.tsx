@@ -5,8 +5,13 @@ import { StyleSheet, View } from 'react-native';
 import { Countdown } from '@/components/Countdown';
 import { GameIcon } from '@/components/GameIcon';
 import { IconLabel } from '@/components/IconLabel';
+import { SiteMarker } from '@/components/SiteMarker';
+import { Text } from '@/components/Text';
 import { clockConfig } from '@/content/clockConfig';
+import { buildingEmoji, buildingNameKey, isLastDay } from '@/game/supply/buildings';
 import { isAnnounced } from '@/game/supply/raids';
+import { buildingStockTotal, settleBuilding } from '@/game/supply/production';
+import type { PlaceSpawn } from '@/game/places/generate';
 import { formatDuration, t } from '@/i18n';
 import { useNow } from '@/hooks/useNow';
 import { colors, ui } from '@/theme';
@@ -26,12 +31,12 @@ const tapped = (action: () => void) => () => {
 
 const toLngLat = (position: { latitude: number; longitude: number }): [number, number] => [position.longitude, position.latitude];
 
-/** Under a camp's marker while a raid on it is announced: the time left before it lands. */
-function RaidCountdown({ campId }: { campId: string }) {
+/** Under a building's marker while a raid on it is announced: the time left before it lands. */
+function RaidCountdown({ buildingId }: { buildingId: string }) {
   const save = useGameStore((s) => s.save);
   const now = useNow(clockConfig.minutesMs);
   const raid = save.supply.raid;
-  if (!raid || raid.campId !== campId || !isAnnounced(save, raid, now)) return null;
+  if (!raid || raid.buildingId !== buildingId || !isAnnounced(save, raid, now)) return null;
   return (
     <IconLabel
       emoji="⚔️"
@@ -43,19 +48,51 @@ function RaidCountdown({ campId }: { campId: string }) {
   );
 }
 
+/** A building's whole stock under its marker, and the hourglass once its last day has come. */
+function BuildingBadges({ buildingId }: { buildingId: string }) {
+  const save = useGameStore((s) => s.save);
+  const now = useNow(clockConfig.minutesMs);
+  const building = save.supply.buildings.find((entry) => entry.id === buildingId);
+  if (!building) return null;
+  const stock = buildingStockTotal(settleBuilding(save, building, now));
+  return (
+    <View
+      style={styles.badges}
+      accessibilityLabel={t('supply.building.markerLabel', {
+        building: t(buildingNameKey[building.kind]),
+        stock,
+        time: formatDuration(Math.max(0, building.expiresAt - now), false),
+      })}
+    >
+      <View style={styles.stockBadge}>
+        <Text style={styles.badgeText}>{stock}</Text>
+      </View>
+      {isLastDay(building.expiresAt, now) && (
+        <View style={[styles.stockBadge, styles.lastBadge]}>
+          <Text style={styles.badgeText}>⏳</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+type Props = { sites: PlaceSpawn[] };
+
 /**
- * The hall and the camps on the map. It takes no props: opening a panel goes
- * through the panels store, so the map screen's renders never reach it.
+ * The hall, the buildings and the sites on the map. Panels open through the
+ * panels store, so the map screen's renders never reach this tree; `sites` is
+ * the map screen's memoised list.
  */
-export const SupplyMarkers = memo(function SupplyMarkers() {
+export const SupplyMarkers = memo(function SupplyMarkers({ sites }: Props) {
   const on = useSupplyOn();
   const planning = useMapPanels((state) => state.routeDraft !== null);
   const hall = useGameStore((s) => s.save.supply.hall);
-  const camps = useGameStore((s) => s.save.supply.camps);
+  const buildings = useGameStore((s) => s.save.supply.buildings);
+  const discovered = useGameStore((s) => s.save.supply.discovered);
   if (!on) return null;
-  // While the planner is open, a camp tap adds it to the draft instead of opening its sheet.
-  const openCamp = (id: string) =>
-    planning ? useMapPanels.getState().addToRoute({ camp: id }) : useMapPanels.getState().openSupplyCamp(id);
+  // While the planner is open, a building tap adds it to the draft instead of opening its sheet.
+  const openBuilding = (id: string) =>
+    planning ? useMapPanels.getState().addToRoute({ building: id }) : useMapPanels.getState().openSupplyBuilding(id);
   return (
     <>
       {hall && (
@@ -63,17 +100,28 @@ export const SupplyMarkers = memo(function SupplyMarkers() {
           <GameIcon emoji="🏠" size={MARKER_SIZE} />
         </Marker>
       )}
-      {camps.map((camp) => (
+      {buildings.map((building) => (
         <Marker
-          key={camp.id}
-          id={`supply-camp:${camp.id}`}
-          lngLat={toLngLat(tileCenter(camp.cell))}
-          onPress={tapped(() => openCamp(camp.id))}
+          key={building.id}
+          id={`supply-building:${building.id}`}
+          lngLat={toLngLat(building.position)}
+          onPress={tapped(() => openBuilding(building.id))}
         >
-          <View style={styles.camp}>
-            <GameIcon emoji={camp.kind === 'timber' ? '🪵' : '🪤'} size={MARKER_SIZE} />
-            <RaidCountdown campId={camp.id} />
+          <View style={styles.building}>
+            <GameIcon emoji={buildingEmoji[building.kind]} size={MARKER_SIZE} />
+            <BuildingBadges buildingId={building.id} />
+            <RaidCountdown buildingId={building.id} />
           </View>
+        </Marker>
+      ))}
+      {sites.map((site) => (
+        <Marker
+          key={site.id}
+          id={`supply-site:${site.id}`}
+          lngLat={toLngLat(site.position)}
+          onPress={tapped(() => useMapPanels.getState().openSite(site))}
+        >
+          <SiteMarker site={site} discovered={discovered} />
         </Marker>
       ))}
     </>
@@ -81,7 +129,17 @@ export const SupplyMarkers = memo(function SupplyMarkers() {
 });
 
 const styles = StyleSheet.create({
-  camp: { alignItems: 'center' },
+  building: { alignItems: 'center' },
   raid: { backgroundColor: colors.danger, paddingHorizontal: 4, borderRadius: 2 },
   raidText: { fontSize: 13, color: ui.parchment },
+  badges: { flexDirection: 'row', gap: 4 },
+  stockBadge: {
+    backgroundColor: ui.woodDark,
+    borderWidth: 1,
+    borderColor: ui.brass,
+    paddingHorizontal: 4,
+    borderRadius: 2,
+  },
+  lastBadge: { backgroundColor: ui.ember },
+  badgeText: { fontSize: 12, color: ui.parchment },
 });

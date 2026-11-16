@@ -33,7 +33,7 @@ function restedRoster(save: SaveData): SaveData {
       ...save.supply,
       cart: { ...save.supply.cart, loop: null },
       raid: null,
-      camps: save.supply.camps.map((camp) => ({ ...camp, heroId: null, postedAt: null })),
+      buildings: save.supply.buildings.map((building) => ({ ...building, heroId: null, postedAt: null })),
     },
   };
 }

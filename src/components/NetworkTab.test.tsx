@@ -1,10 +1,10 @@
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
-import { cellAt } from '@/game/discovery/cells';
-import type { Camp } from '@/game/supply/types';
+import type { Building } from '@/game/supply/types';
 import { createInitialSave, type SaveData } from '@/game/save';
 import { useGameStore } from '@/store/gameStore';
 import { useSettingsStore } from '@/store/settingsStore';
+import { useWorldStore } from '@/store/worldStore';
 
 import { NetworkTab } from './NetworkTab';
 
@@ -13,12 +13,14 @@ jest.mock('expo-router', () => ({ ...jest.requireActual('expo-router'), useIsFoc
 
 const origin = { latitude: -41.2865, longitude: 174.7762 };
 
-const campIn = (quality: 1 | 2 | 3): Camp => ({
-  id: 'c1',
-  kind: 'timber',
-  cell: cellAt(origin),
+const buildingIn = (quality: 1 | 2 | 3): Building => ({
+  id: 'b1',
+  kind: 'farm',
+  siteId: 's1',
+  position: origin,
   quality,
-  foundedAt: Date.now(),
+  builtAt: Date.now(),
+  expiresAt: Date.now() + 6 * 24 * 3_600_000,
   heroId: null,
   postedAt: null,
   stock: {},
@@ -38,7 +40,7 @@ describe('the Network tab', () => {
   });
   let renderer: ReactTestRenderer | null = null;
 
-  it('shows the empty state: no hall, no camps, and a parked cart with no route', () => {
+  it('shows the empty state: no hall, no buildings, and a parked cart with no route', () => {
     useSettingsStore.setState({ supplyLines: true });
     act(() => {
       useGameStore.setState({ save: createInitialSave() });
@@ -52,20 +54,24 @@ describe('the Network tab', () => {
     expect(tab).toContain('No route yet: plan one on the map.');
   });
 
-  it('shows a camp card: its rate, stock against the cap, and collecting in person', () => {
+  it('shows a building card: its stock against the cap and its time left, and a tap opens its sheet', () => {
     useSettingsStore.setState({ supplyLines: true });
-    const save: SaveData = { ...createInitialSave(), supply: { ...createInitialSave().supply, camps: [campIn(1)] } };
+    const save: SaveData = { ...createInitialSave(), supply: { ...createInitialSave().supply, buildings: [buildingIn(1)] } };
     act(() => {
       useGameStore.setState({ save });
+      useWorldStore.setState({ player: origin });
     });
     act(() => {
       renderer = create(<NetworkTab />);
     });
     const tab = text(renderer!);
-    expect(tab).toContain('Timber camp');
-    expect(tab).toContain('0.4 wood an hour');
+    expect(tab).toContain('Farm');
     expect(tab).toContain('0 / 12');
-    expect(tab).toContain('Collect at the camp');
-    expect(tab).toContain('Post a hero');
+    expect(tab).toContain('Leaves in');
+    // The card's tap opens the building's sheet.
+    act(() => {
+      renderer!.root.findByProps({ accessibilityLabel: 'Farm' }).props.onPress();
+    });
+    expect(renderer!.root.findAll((node) => node.props.accessibilityLabel === 'Post a hero').length).toBeGreaterThan(0);
   });
 });

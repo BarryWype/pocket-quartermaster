@@ -17,7 +17,7 @@ jest.mock('expo-router', () => ({ ...jest.requireActual('expo-router'), useIsFoc
 const HOUR = 3_600_000;
 const origin = { latitude: -41.2865, longitude: 174.7762 };
 
-/** A hall, a stocked camp 800 m away, and a raid on it landing in `landsIn`. */
+/** A hall, a stocked farm 800 m away, and a raid on it landing in `landsIn`. */
 const raided = (landsIn: number, extra: Partial<Raid> = {}): SaveData => {
   const now = Date.now();
   const base = createInitialSave();
@@ -26,16 +26,18 @@ const raided = (landsIn: number, extra: Partial<Raid> = {}): SaveData => {
     supply: {
       ...emptySupply(now),
       hall: { cell: cellAt(origin), moves: [] },
-      camps: [
+      buildings: [
         {
-          id: 'c1',
-          kind: 'timber',
-          cell: cellAt(offsetPosition(origin, 800, 0)),
+          id: 'b1',
+          kind: 'farm',
+          siteId: 's1',
+          position: offsetPosition(origin, 800, 0),
           quality: 2,
-          foundedAt: 0,
+          builtAt: 0,
+          expiresAt: now + 6 * 24 * HOUR,
           heroId: null,
           postedAt: null,
-          stock: { wood: 5 },
+          stock: { grain: 5 },
           progress: 0,
           made: 0,
           settledAt: now,
@@ -43,7 +45,7 @@ const raided = (landsIn: number, extra: Partial<Raid> = {}): SaveData => {
           closedUntil: 0,
         },
       ],
-      raid: { campId: 'c1', kind: 'goblins', tier: 1, landsAt: now + landsIn, defenders: [], result: null, ...extra },
+      raid: { buildingId: 'b1', kind: 'goblins', tier: 1, landsAt: now + landsIn, defenders: [], result: null, ...extra },
     },
   };
 };
@@ -60,20 +62,20 @@ describe('the raid banner', () => {
     useSettingsStore.setState({ supplyLines: false });
   });
 
-  const mount = (save: SaveData, campId?: string) => {
+  const mount = (save: SaveData, buildingId?: string) => {
     useSettingsStore.setState({ supplyLines: true });
     act(() => {
       useGameStore.setState({ save });
     });
     act(() => {
-      renderer = create(<RaidBanner campId={campId} />);
+      renderer = create(<RaidBanner buildingId={buildingId} />);
     });
     return renderer!;
   };
 
-  it('shows an announced raid: who, which camp, nobody guarding, and Defend', () => {
+  it('shows an announced raid: who, which building, nobody guarding, and Defend', () => {
     const banner = text(mount(raided(HOUR)));
-    expect(banner).toContain('timber camp');
+    expect(banner).toContain('farm');
     expect(banner).toContain('Nobody guards it');
     expect(banner).toContain('Defend');
   });

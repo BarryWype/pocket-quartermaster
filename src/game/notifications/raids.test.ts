@@ -18,16 +18,18 @@ const raided = (): SaveData => {
     supply: {
       ...emptySupply(noon),
       hall: { cell: cellAt(origin), moves: [] },
-      camps: [
+      buildings: [
         {
-          id: 'c1',
-          kind: 'timber',
-          cell: cellAt(offsetPosition(origin, 800, 0)),
+          id: 'b1',
+          kind: 'farm',
+          siteId: 's1',
+          position: offsetPosition(origin, 800, 0),
           quality: 2,
-          foundedAt: 0,
+          builtAt: 0,
+          expiresAt: noon + 6 * 24 * HOUR,
           heroId: null,
           postedAt: null,
-          stock: { wood: 5 },
+          stock: { grain: 5 },
           progress: 0,
           made: 0,
           settledAt: noon,
@@ -35,7 +37,7 @@ const raided = (): SaveData => {
           closedUntil: 0,
         },
       ],
-      raid: { campId: 'c1', kind: 'goblins', tier: 1, landsAt: noon + 4 * HOUR, defenders: [], result: null },
+      raid: { buildingId: 'b1', kind: 'goblins', tier: 1, landsAt: noon + 4 * HOUR, defenders: [], result: null },
     },
   };
 };
@@ -51,7 +53,7 @@ describe('raid notifications', () => {
     const [raid] = raidsOf(raided(), true);
     expect(raid.at).toBe(noon + 2 * HOUR);
     expect(raid.data).toEqual({ route: 'network' });
-    expect(raid.title).toContain('timber camp');
+    expect(raid.title).toContain('farm');
   });
 
   it('is not planned with the switch off, with the category off, or once the raid has landed', () => {

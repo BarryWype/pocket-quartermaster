@@ -1,8 +1,6 @@
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
-import { cellAt } from '@/game/discovery/cells';
-import { tileCenter } from '@/game/generation/tiles';
-import type { Camp } from '@/game/supply/types';
+import type { Building } from '@/game/supply/types';
 import { createInitialSave, type SaveData } from '@/game/save';
 import { useGameStore } from '@/store/gameStore';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -13,14 +11,16 @@ jest.mock('react-native-safe-area-context', () => jest.requireActual('react-nati
 jest.mock('expo-router', () => ({ ...jest.requireActual('expo-router'), useIsFocused: () => true }));
 
 const origin = { latitude: -41.2865, longitude: 174.7762 };
-const cell = cellAt(origin);
+const DAY = 24 * 3_600_000;
 
-const campIn = (extra: Partial<Camp> = {}): Camp => ({
-  id: 'c1',
-  kind: 'timber',
-  cell,
+const buildingIn = (extra: Partial<Building> = {}): Building => ({
+  id: 'b1',
+  kind: 'herbGarden',
+  siteId: 's1',
+  position: origin,
   quality: 1,
-  foundedAt: Date.now(),
+  builtAt: Date.now(),
+  expiresAt: Date.now() + 6 * DAY,
   heroId: null,
   postedAt: null,
   stock: {},
@@ -32,56 +32,79 @@ const campIn = (extra: Partial<Camp> = {}): Camp => ({
   ...extra,
 });
 
-const saveWithCamp = (camp: Camp): SaveData => {
+const saveWithBuilding = (building: Building): SaveData => {
   const base = createInitialSave();
   return {
     ...base,
-    heroes: base.heroes.map((h) => (h.id === 'bram' ? { ...h, trade: { id: 'woodcutter', hours: 40 } } : h)),
-    supply: { ...base.supply, camps: [camp] },
+    heroes: base.heroes.map((h) => (h.id === 'bram' ? { ...h, trade: { id: 'herbalist', hours: 40 } } : h)),
+    supply: { ...base.supply, buildings: [building] },
   };
 };
 
 const text = (renderer: ReactTestRenderer) => JSON.stringify(renderer.toJSON());
 
-describe('the camp sheet', () => {
+describe('the building sheet', () => {
   afterEach(() => {
     useSettingsStore.setState({ supplyLines: false });
     act(() => renderer?.unmount());
   });
   let renderer: ReactTestRenderer | null = null;
 
-  it('shows a posted camp: the hero, Recall, and the rate line with the trade bonus', () => {
+  it('shows a locals-only building: the flow row, the ember Post a hero, and the cart to add', () => {
     useSettingsStore.setState({ supplyLines: true });
     act(() => {
-      useGameStore.setState({ save: saveWithCamp(campIn({ heroId: 'bram', postedAt: Date.now() })) });
+      useGameStore.setState({ save: saveWithBuilding(buildingIn()) });
     });
     act(() => {
-      renderer = create(<SupplyCampPanel id="c1" player={tileCenter(cell)} onClose={() => {}} />);
+      renderer = create(<SupplyCampPanel id="b1" player={origin} onClose={() => {}} />);
     });
     const sheet = text(renderer!);
-    expect(sheet).toContain('Bram is posted');
-    expect(sheet).toContain('Recall');
-    // Quality 1 at the full rate with a level 2 Woodcutter: 1.5 wood an hour, +50%.
-    expect(sheet).toContain('1.5 wood an hour');
-    expect(sheet).toContain('Woodcutter level 2: +50%');
-    expect(sheet).toContain('0 / 12');
-  });
-
-  it('shows an empty camp with the heroes free to post, and no packing up', () => {
-    useSettingsStore.setState({ supplyLines: true });
-    act(() => {
-      useGameStore.setState({ save: saveWithCamp(campIn()) });
-    });
-    act(() => {
-      renderer = create(<SupplyCampPanel id="c1" player={tileCenter(cell)} onClose={() => {}} />);
-    });
-    const sheet = text(renderer!);
-    expect(sheet).toContain('Worked by locals (40%)');
+    // The flow row reads left to right: locals at their share, the goods, the stock, who takes it home.
+    expect(sheet).toContain('Locals 40%');
+    expect(sheet).toContain('You collect');
+    expect(sheet).toContain('0');
+    expect(sheet).toContain('of 9');
+    // One ember button a sheet: posting is the next step, so the cart's add stays wood.
     expect(sheet).toContain('Post a hero');
-    for (const name of ['Bram', 'Lyra', 'Mira']) expect(sheet).toContain(name);
-    // The player stands at the camp, but nothing has been made yet.
+    expect(sheet).toContain('Add to the cart’s route');
+    expect(sheet).toContain('Not on the cart’s route.');
+    // The player stands at the building, but nothing has been made yet.
     expect(sheet).toContain('Nothing to collect yet');
     expect(sheet).not.toContain('Recall');
-    expect(sheet).not.toContain('Pack up');
+  });
+
+  it('shows a posted building: the hero with their trade, the bonus rate, and Recall', () => {
+    useSettingsStore.setState({ supplyLines: true });
+    act(() => {
+      useGameStore.setState({ save: saveWithBuilding(buildingIn({ heroId: 'bram', postedAt: Date.now() })) });
+    });
+    act(() => {
+      renderer = create(<SupplyCampPanel id="b1" player={origin} onClose={() => {}} />);
+    });
+    const sheet = text(renderer!);
+    expect(sheet).toContain('Bram · Herbalist, level 2');
+    // Quality 1 at the full rate with a level 2 Herbalist: 1.2 an hour, +50%.
+    expect(sheet).toContain('Full rate +50%: 1.2 an hour');
+    expect(sheet).toContain('Recall');
+    expect(sheet).not.toContain('Post a hero');
+  });
+
+  it('warns in the last day: the ember strip, the lost stock, and the hero coming home', () => {
+    useSettingsStore.setState({ supplyLines: true });
+    act(() => {
+      useGameStore.setState({
+        save: saveWithBuilding(buildingIn({ heroId: 'bram', postedAt: Date.now(), expiresAt: Date.now() + 9 * 3_600_000, stock: { herb: 3 } })),
+      });
+    });
+    act(() => {
+      renderer = create(<SupplyCampPanel id="b1" player={origin} onClose={() => {}} />);
+    });
+    const sheet = text(renderer!);
+    expect(sheet).toContain('LAST DAY');
+    expect(sheet).toContain('The herb garden leaves in');
+    expect(sheet).toContain('Stock the cart hasn’t taken is lost.');
+    expect(sheet).toContain('Bram comes home.');
+    // Collecting before it is lost is the next step, so it is the sheet's ember button.
+    expect(sheet).toContain('Collect 3 now');
   });
 });

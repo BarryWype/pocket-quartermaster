@@ -18,25 +18,25 @@ import { isBusy } from '../team/team';
 import type { SaveData } from '../save';
 import { ambushChance, cellAmbusher, cellDangers, dangerContextOf } from './danger';
 import { playPatrolFight, syntheticPatrol } from './fights';
-import { settleCamp } from './production';
+import { settleBuilding } from './production';
 import { tradeLevel } from './trades';
 import type { Cart, CartEvent, RoutePoint } from './types';
 
 const MINUTE = 60_000;
 const HOUR = 3_600_000;
 
-/** A stop on the route: a camp's cell centre, or a waypoint cell's centre. */
-type Stop = { at: LatLng; campId: string | null };
+/** A stop on the route: a building's position, or a waypoint cell's centre. */
+type Stop = { at: LatLng; buildingId: string | null };
 
-/** The route's stops, dropping points whose camp no longer exists. */
+/** The route's stops, dropping points whose building no longer exists. */
 function stopsOf(save: SaveData, route: RoutePoint[]): Stop[] {
   const stops: Stop[] = [];
   for (const point of route) {
-    if ('camp' in point) {
-      const camp = save.supply.camps.find((c) => c.id === point.camp);
-      if (camp) stops.push({ at: tileCenter(camp.cell), campId: camp.id });
+    if ('building' in point) {
+      const building = save.supply.buildings.find((b) => b.id === point.building);
+      if (building) stops.push({ at: building.position, buildingId: building.id });
     } else {
-      stops.push({ at: tileCenter(point.cell), campId: null });
+      stops.push({ at: tileCenter(point.cell), buildingId: null });
     }
   }
   return stops;
@@ -158,8 +158,8 @@ function planLoop(save: SaveData, at: number, n: number): Cart['loop'] {
   let travelled = 0;
   for (let i = 0; i < stops.length; i++) {
     travelled += distanceMeters(points[i], points[i + 1]);
-    const campId = stops[i].campId;
-    if (campId) events.push({ at: at + (travelled / speedMps) * 1000, kind: 'camp', campId });
+    const buildingId = stops[i].buildingId;
+    if (buildingId) events.push({ at: at + (travelled / speedMps) * 1000, kind: 'building', buildingId });
   }
 
   const crossed = crossings(points, at, speedMps);
@@ -205,7 +205,7 @@ export function startLoop(save: SaveData, at: number, n = 1): SaveData {
 
 const stockTotal = (stock: Record<string, number>): number => Object.values(stock).reduce((sum, amount) => sum + amount, 0);
 
-/** Loads the camp's stock up to the cart's free capacity, largest material first, ties by material id. */
+/** Loads the building's stock up to the cart's free capacity, largest material first, ties by material id. */
 function loadStock(cargo: Record<string, number>, stock: Record<string, number>, capacity: number): { cargo: Record<string, number>; stock: Record<string, number> } {
   let free = capacity - stockTotal(cargo);
   const taken = Object.entries(stock)
@@ -279,8 +279,8 @@ function finishLoop(save: SaveData): SaveData {
   };
   next = { ...next, supply: { ...next.supply, cart: parked } };
   if (crewHurt(next, crew, loop.endsAt)) return { ...next, supply: { ...next.supply, cart: { ...parked, loop: null, waitingForCrew: true } } };
-  const hasCamp = route.some((point) => 'camp' in point && next.supply.camps.some((camp) => camp.id === point.camp));
-  if (!next.supply.hall || !hasCamp) return { ...next, supply: { ...next.supply, cart: { ...parked, loop: null } } };
+  const hasBuilding = route.some((point) => 'building' in point && next.supply.buildings.some((building) => building.id === point.building));
+  if (!next.supply.hall || !hasBuilding) return { ...next, supply: { ...next.supply, cart: { ...parked, loop: null } } };
   return startLoop(next, loop.endsAt, loop.n + 1);
 }
 
@@ -298,23 +298,24 @@ export function settleCart(save: SaveData, now: number): SaveData {
 
     const upto = Math.min(now, loop.endsAt);
     let cargo = cart.cargo;
-    let camps = next.supply.camps;
+    let buildings = next.supply.buildings;
     let changed = false;
     for (const event of loop.events) {
       if (event.at <= cart.settledAt || event.at > upto) continue;
       changed = true;
-      if (event.kind === 'camp') {
-        const index = camps.findIndex((camp) => camp.id === event.campId);
+      if (event.kind === 'building') {
+        // A building that expired mid-loop is simply skipped: its stock went with it.
+        const index = buildings.findIndex((building) => building.id === event.buildingId);
         if (index === -1) continue;
-        const settled = settleCamp(next, camps[index], event.at);
+        const settled = settleBuilding(next, buildings[index], event.at);
         const loaded = loadStock(cargo, settled.stock, loop.capacity);
         cargo = loaded.cargo;
-        camps = camps.map((camp, i) => (i === index ? { ...settled, stock: loaded.stock } : camp));
+        buildings = buildings.map((building, i) => (i === index ? { ...settled, stock: loaded.stock } : building));
       } else if (event.won !== true) {
         cargo = {};
       }
     }
-    if (changed) next = { ...next, supply: { ...next.supply, camps, cart: { ...next.supply.cart, cargo } } };
+    if (changed) next = { ...next, supply: { ...next.supply, buildings, cart: { ...next.supply.cart, cargo } } };
     if (loop.endsAt > now) return { ...next, supply: { ...next.supply, cart: { ...next.supply.cart, settledAt: now } } };
     next = finishLoop(next);
   }
@@ -358,12 +359,12 @@ export function startCart(save: SaveData, now: number): SaveData {
   return startLoop({ ...save, supply: { ...save.supply, cart: { ...cart, waitingForCrew: false } } }, now, n);
 }
 
-export type RouteProblem = 'noCamp' | null;
+export type RouteProblem = 'noBuilding' | null;
 
 /** Why a route cannot be set, or null. */
 export function routeProblem(save: SaveData, route: RoutePoint[]): RouteProblem {
   for (const point of route) {
-    if ('camp' in point && !save.supply.camps.some((camp) => camp.id === point.camp)) return 'noCamp';
+    if ('building' in point && !save.supply.buildings.some((building) => building.id === point.building)) return 'noBuilding';
   }
   return null;
 }

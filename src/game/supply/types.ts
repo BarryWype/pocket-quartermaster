@@ -13,7 +13,9 @@ export type SupplyState = {
   seen: string[];
   /** The hall's cell, and the times of the moves made in the last 7 days (the first placement isn't one). */
   hall: { cell: string; moves: number[] } | null;
-  camps: Camp[];
+  buildings: Building[];
+  /** The period's personal site check (see supply/sites.ts): the spot it settled on, or null when the world covers the origin. */
+  personalSite: { period: number; spot: { id: string; position: LatLng; roll: number } | null } | null;
   cart: Cart;
   raid: Raid | null;
   /** The last day a raid was rolled for, and the last time supply was settled with the app open (the 2-day rule). */
@@ -26,30 +28,32 @@ export type SupplyState = {
   nextId: number;
 };
 
-export type Camp = {
+export type BuildingKind = 'farm' | 'quarry' | 'herbGarden';
+export type Building = {
   id: string;
-  kind: 'timber' | 'trapper';
-  cell: string;
-  /** Its site's stars; the rate is quality x the base rate. */
+  kind: BuildingKind;
+  siteId: string;
+  /** The site's placed position (what the map shows). */
+  position: LatLng;
   quality: 1 | 2 | 3;
-  foundedAt: number;
+  builtAt: number;
+  /** Building resets the site's life: six days from builtAt. */
+  expiresAt: number;
   heroId: string | null;
   postedAt: number | null;
-  /** Whole units on hand, and the fraction towards the next one. */
   stock: Record<string, number>;
   progress: number;
-  /** Units made so far: seeds the trapper's per-unit roll, as jobs do. */
   made: number;
   settledAt: number;
   inspectedUntil: number;
   closedUntil: number;
 };
 
-export type RoutePoint = { camp: string } | { cell: string };
+export type RoutePoint = { building: string } | { cell: string };
 
-/** What happens on a loop: a camp call, or an ambush played out at departure. */
+/** What happens on a loop: a building call, or an ambush played out at departure. */
 export type CartEvent =
-  | { at: number; kind: 'camp'; campId: string }
+  | { at: number; kind: 'building'; buildingId: string }
   | {
       at: number;
       kind: 'ambush';
@@ -87,11 +91,11 @@ export type CartLogLine = {
 };
 
 /**
- * A raid on a camp, fixed when its day is rolled. Its announcement follows
+ * A raid on a building, fixed when its day is rolled. Its announcement follows
  * from the landing and the target's Watchman (see game/supply/raids.ts).
  */
 export type Raid = {
-  campId: string;
+  buildingId: string;
   kind: PatrolKind;
   tier: number;
   landsAt: number;
@@ -102,7 +106,7 @@ export type Raid = {
 };
 
 export type RaidLogLine = {
-  campId: string;
+  buildingId: string;
   landsAt: number;
   kind: PatrolKind;
   won: boolean | null;

@@ -15,7 +15,8 @@ import { fightOddsKey } from '@/game/expeditions/oddsCache';
 import { patrolBriefing, patrolOdds } from '@/game/patrols/fight';
 import type { SaveData } from '@/game/save';
 import { defendProblem, isAnnounced, raidSpawn, raidTravelMs, type DefendProblem } from '@/game/supply/raids';
-import type { Camp, Raid } from '@/game/supply/types';
+import { buildingNameKey } from '@/game/supply/buildings';
+import type { Building, Raid } from '@/game/supply/types';
 import { formatDuration, localized, t } from '@/i18n';
 import { useNow } from '@/hooks/useNow';
 import { useGameStore } from '@/store/gameStore';
@@ -23,21 +24,22 @@ import { colors, ui } from '@/theme';
 
 import { asRecalled, recallWorkingHeroes } from './workingHeroes';
 
-const campNameOf = (kind: 'timber' | 'trapper') => t(kind === 'timber' ? 'supply.camp.timberName' : 'supply.camp.trapperName').toLowerCase();
+const buildingNameOf = (kind: Building['kind']) => t(buildingNameKey[kind]).toLowerCase();
 
 /**
  * The announced raid: who is coming, when, who will fight, and sending
- * defenders through the party dialog. With `campId`, only a raid on that camp.
+ * defenders through the party dialog. With `buildingId`, only a raid on that
+ * building.
  */
-export function RaidBanner({ campId }: { campId?: string }) {
+export function RaidBanner({ buildingId }: { buildingId?: string }) {
   const save = useGameStore((s) => s.save);
   const now = useNow(clockConfig.minutesMs);
   const [picking, setPicking] = useState(false);
   const raid = save.supply.raid;
-  const camp = raid ? save.supply.camps.find((c) => c.id === raid.campId) : undefined;
+  const building = raid ? save.supply.buildings.find((b) => b.id === raid.buildingId) : undefined;
 
-  const posted = camp?.heroId ?? null;
-  const shown = !!raid && !!camp && (!campId || raid.campId === campId) && isAnnounced(save, raid, now);
+  const posted = building?.heroId ?? null;
+  const shown = !!raid && !!building && (!buildingId || raid.buildingId === buildingId) && isAnnounced(save, raid, now);
   const noteTips = useGameStore((s) => s.noteTips);
   // The first announced raid queues its tip.
   useEffect(() => {
@@ -47,8 +49,8 @@ export function RaidBanner({ campId }: { campId?: string }) {
   if (!shown) return null;
 
   const kind = localized({ en: patrolTexts, fr: frPatrolTexts }).kinds[raid.kind];
-  const campName = campNameOf(camp.kind);
-  const travel = raidTravelMs(save, raid.campId);
+  const buildingName = buildingNameOf(building.kind);
+  const travel = raidTravelMs(save, raid.buildingId);
   const slots = supplyRules.raids.maxDefenders - raid.defenders.length;
   const canSend = slots > 0 && now + travel <= raid.landsAt;
   const postedHero = posted ? save.heroes.find((hero) => hero.id === posted) : undefined;
@@ -58,7 +60,7 @@ export function RaidBanner({ campId }: { campId?: string }) {
       <View style={styles.heading}>
         <IconLabel
           emoji="⚔️"
-          label={<Countdown endsAt={raid.landsAt} render={(ms) => t('supply.raid.banner', { kind, camp: campName, time: formatDuration(ms, false) })} />}
+          label={<Countdown endsAt={raid.landsAt} render={(ms) => t('supply.raid.banner', { kind, building: buildingName, time: formatDuration(ms, false) })} />}
           size={18}
         />
       </View>
@@ -69,21 +71,21 @@ export function RaidBanner({ campId }: { campId?: string }) {
           <Text key={defender.heroId} style={styles.line}>
             {defender.arrivesAt > now
               ? t('supply.raid.onTheirWay', { name, time: formatDuration(defender.arrivesAt - now, false) })
-              : t('supply.raid.atCamp', { name })}
+              : t('supply.raid.atBuilding', { name })}
           </Text>
         );
       })}
       <EmberButton title={t('supply.raid.defend')} disabled={!canSend} onPress={() => setPicking(true)} />
-      {picking && <DefendDialog raid={raid} camp={camp} now={now} onClose={() => setPicking(false)} />}
+      {picking && <DefendDialog raid={raid} building={building} now={now} onClose={() => setPicking(false)} />}
     </View>
   );
 }
 
 /** Sending defenders: the party dialog with the raid's odds (the posted hero fights too) and the arrival time. */
-function DefendDialog({ raid, camp, now, onClose }: { raid: Raid; camp: Camp; now: number; onClose: () => void }) {
+function DefendDialog({ raid, building, now, onClose }: { raid: Raid; building: Building; now: number; onClose: () => void }) {
   const save = useGameStore((s) => s.save);
   const sendDefenders = useGameStore((s) => s.sendDefenders);
-  const posted = camp.heroId;
+  const posted = building.heroId;
   const oddsOf = useCallback(
     (dressed: SaveData, heroIds: string[]) => {
       const fighters = [...(posted ? [posted] : []), ...heroIds];
@@ -96,13 +98,13 @@ function DefendDialog({ raid, camp, now, onClose }: { raid: Raid; camp: Camp; no
     [raid, posted, now],
   );
   const kind = localized({ en: patrolTexts, fr: frPatrolTexts }).kinds[raid.kind];
-  const travel = raidTravelMs(save, raid.campId);
+  const travel = raidTravelMs(save, raid.buildingId);
   const problemText = (problem: Exclude<DefendProblem, null>) =>
     t(`supply.raid.problem.${problem}`, { max: supplyRules.raids.maxDefenders });
 
   return (
     <PartyDialog
-      title={t('supply.raid.dialogTitle', { camp: campNameOf(camp.kind) })}
+      title={t('supply.raid.dialogTitle', { building: buildingNameOf(building.kind) })}
       subtitle={t('supply.raid.dialogSubtitle', { kind, time: formatDuration(Math.max(0, raid.landsAt - now), false) })}
       slots={supplyRules.raids.maxDefenders - raid.defenders.length}
       draftKey={`raid:${raid.landsAt}`}

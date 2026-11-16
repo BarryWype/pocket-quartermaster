@@ -16,7 +16,6 @@ import { SecretToast } from '@/components/SecretToast';
 import { TipBar } from '@/components/TipBar';
 import { useAutoGather } from '@/hooks/useAutoGather';
 import { useCartTick } from '@/hooks/useCartTick';
-import { useDiscovery } from '@/hooks/useDiscovery';
 import { useLanguage } from '@/hooks/useLanguage';
 import { syncPlan, useNotifications } from '@/hooks/useNotifications';
 import { usePatrols } from '@/hooks/usePatrols';
@@ -44,7 +43,6 @@ const BackgroundServices = memo(function BackgroundServices() {
   useAutoGather(paused);
   usePatrols(paused);
   useCartTick();
-  useDiscovery();
   return null;
 });
 

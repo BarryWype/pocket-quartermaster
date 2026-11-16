@@ -31,6 +31,8 @@ type DebugSettings = {
   debugTavern: TavernSpawn | null;
   /** Places put by hand next to the player. */
   debugPlaces: PlaceSpawn[];
+  /** Sites put by hand next to the player. */
+  debugSites: PlaceSpawn[];
   /** Changes every tavern's offers, to reroll them. */
   offerSeed: string;
   /** Days added to today's rotation day. */
@@ -81,6 +83,7 @@ const DEBUG_DEFAULTS: DebugSettings = {
   rotationDayOffset: 0,
   debugTavern: null,
   debugPlaces: [],
+  debugSites: [],
   offerSeed: '',
   forcedBriefings: {},
   showAutoRadius: false,

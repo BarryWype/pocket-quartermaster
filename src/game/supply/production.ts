@@ -1,14 +1,13 @@
-import { jobById } from '@/content/jobs';
 import { supplyRules } from '@/content/supplyLines';
 
 import { createRng } from '../generation/rng';
 import type { SaveData } from '../save';
 import { tradeLevel } from './trades';
-import type { Camp } from './types';
+import type { Building } from './types';
 
 const HOUR = 3_600_000;
 
-export type CampRateParts = {
+export type BuildingRateParts = {
   quality: number;
   /** Quality × the base rate: the full rate before shares and bonuses. */
   base: number;
@@ -19,99 +18,97 @@ export type CampRateParts = {
   rate: number;
 };
 
-/** The camp's output rate at a time, broken into its parts for display. */
-export function campRateParts(save: SaveData, camp: Camp, t: number): CampRateParts {
-  if (t < camp.closedUntil) return { quality: camp.quality, base: 0, share: 0, tradeBonus: 0, inspected: false, rate: 0 };
-  const base = camp.quality * supplyRules.production.baseRate[camp.kind];
-  const hero = camp.heroId ? save.heroes.find((h) => h.id === camp.heroId) : undefined;
+/** The building's output rate at a time, broken into its parts for display. */
+export function buildingRateParts(save: SaveData, building: Building, t: number): BuildingRateParts {
+  if (t < building.closedUntil) return { quality: building.quality, base: 0, share: 0, tradeBonus: 0, inspected: false, rate: 0 };
+  const base = building.quality * supplyRules.buildings.kinds[building.kind].baseRate;
+  const hero = building.heroId ? save.heroes.find((h) => h.id === building.heroId) : undefined;
   const share = hero ? 1 : supplyRules.production.localsShare;
   const tradeBonus =
-    hero && hero.trade.id === supplyRules.matchingTrade[camp.kind]
+    hero && hero.trade.id === supplyRules.matchingTrade[building.kind]
       ? supplyRules.production.tradeBonus[tradeLevel(hero.trade.hours) - 1]
       : 0;
-  const inspected = t < camp.inspectedUntil;
+  const inspected = t < building.inspectedUntil;
   const rate = base * share * (1 + tradeBonus) * (inspected ? 1 + supplyRules.production.inspectBonus : 1);
-  return { quality: camp.quality, base, share, tradeBonus, inspected, rate };
+  return { quality: building.quality, base, share, tradeBonus, inspected, rate };
 }
 
-/** The camp's output rate at a time, in units per hour. */
-export const campRate = (save: SaveData, camp: Camp, t: number): number => campRateParts(save, camp, t).rate;
+/** The building's output rate at a time, in units per hour. */
+export const buildingRate = (save: SaveData, building: Building, t: number): number => buildingRateParts(save, building, t).rate;
 
-/** Whole units the camp's stock holds at `t`: capHours of full output (no bonus). */
-export const campCap = (camp: Camp): number =>
-  Math.floor(supplyRules.production.capHours * camp.quality * supplyRules.production.baseRate[camp.kind]);
+/** Whole units the building's stock holds at `t`: capHours of full output (no bonus). */
+export const buildingCap = (building: Building): number =>
+  Math.floor(supplyRules.production.capHours * building.quality * supplyRules.buildings.kinds[building.kind].baseRate);
 
 const stockTotal = (stock: Record<string, number>): number => Object.values(stock).reduce((sum, amount) => sum + amount, 0);
 
-/** Whole units a camp holds on hand. */
-export const campStockTotal = (camp: Camp): number => stockTotal(camp.stock);
+/** Whole units a building holds on hand. */
+export const buildingStockTotal = (building: Building): number => stockTotal(building.stock);
 
-/** Camps whose settled stock has reached their cap, for the Network badges. */
-export function campsAtCap(save: SaveData, now: number): number {
-  return save.supply.camps.filter((camp) => campStockTotal(settleCamp(save, camp, now)) >= campCap(camp)).length;
+/** Buildings whose settled stock has reached their cap, for the Network badges. */
+export function buildingsAtCap(save: SaveData, now: number): number {
+  return save.supply.buildings.filter((building) => buildingStockTotal(settleBuilding(save, building, now)) >= buildingCap(building)).length;
 }
 
-/** The material one made unit becomes: wood, or the trapper job's weighted roll from the unit count. */
-const unitMaterial = (camp: Camp, made: number): string => {
-  if (camp.kind === 'timber') return 'wood';
-  const produces = jobById.trapper.produces;
-  if (typeof produces === 'string' || !('weights' in produces)) throw new Error('The trapper job lost its produce weights');
-  return createRng(`camp|${camp.id}|${made}`).weighted(Object.keys(produces.weights), (material) => produces.weights[material]);
+/** The material one made unit becomes: the kind's weighted roll from the unit count. */
+const unitMaterial = (building: Building, made: number): string => {
+  const makes = supplyRules.buildings.kinds[building.kind].makes;
+  return createRng(`building|${building.id}|${made}`).weighted(Object.keys(makes), (material) => makes[material]);
 };
 
 /**
- * Settles a camp from its last settlement to `now`, in pieces split at every
+ * Settles a building from its last settlement to `now`, in pieces split at every
  * point the rate can change (the inspection ending, a closure), so settling
- * once or many times over a span gives the same camp.
+ * once or many times over a span gives the same building.
  */
-export function settleCamp(save: SaveData, camp: Camp, now: number): Camp {
-  if (now <= camp.settledAt) return camp;
-  const cuts = [camp.settledAt];
-  for (const t of [camp.inspectedUntil, camp.closedUntil]) {
-    if (t > camp.settledAt && t < now) cuts.push(t);
+export function settleBuilding(save: SaveData, building: Building, now: number): Building {
+  if (now <= building.settledAt) return building;
+  const cuts = [building.settledAt];
+  for (const t of [building.inspectedUntil, building.closedUntil]) {
+    if (t > building.settledAt && t < now) cuts.push(t);
   }
   cuts.push(now);
   cuts.sort((a, b) => a - b);
 
-  let { stock, progress, made } = camp;
+  let { stock, progress, made } = building;
   for (let i = 1; i < cuts.length; i++) {
     const from = cuts[i - 1];
-    const rate = campRate(save, camp, from);
+    const rate = buildingRate(save, building, from);
     if (rate <= 0) continue;
     progress += (rate * (cuts[i] - from)) / HOUR;
-    const cap = campCap(camp);
+    const cap = buildingCap(building);
     while (progress >= 1) {
       if (stockTotal(stock) >= cap) {
         progress = 0;
         break;
       }
-      const material = unitMaterial(camp, made);
+      const material = unitMaterial(building, made);
       stock = { ...stock, [material]: (stock[material] ?? 0) + 1 };
       made += 1;
       progress -= 1;
     }
   }
-  return { ...camp, stock, progress, made, settledAt: now };
+  return { ...building, stock, progress, made, settledAt: now };
 }
 
 /**
- * Settles every camp to `now`, and adds the trade hours a posted hero put in
- * where their trade is used: a matching camp, or any camp for a Watchman.
+ * Settles every building to `now`, and adds the trade hours a posted hero put in
+ * where their trade is used: a matching building, or any building for a Watchman.
  * Returns the same save when nothing changed.
  */
-export function settleCamps(save: SaveData, now: number): SaveData {
-  const camps = save.supply.camps;
-  if (camps.length === 0) return save;
-  const settledCamps = camps.map((camp) => settleCamp(save, camp, now));
+export function settleBuildings(save: SaveData, now: number): SaveData {
+  const buildings = save.supply.buildings;
+  if (buildings.length === 0) return save;
+  const settledBuildings = buildings.map((building) => settleBuilding(save, building, now));
   const heroes = save.heroes.map((hero) => {
-    const hours = camps.reduce((sum, camp) => {
-      if (camp.heroId !== hero.id) return sum;
-      if (hero.trade.id !== supplyRules.matchingTrade[camp.kind] && hero.trade.id !== 'watchman') return sum;
-      const from = Math.max(camp.settledAt, camp.postedAt ?? camp.settledAt);
+    const hours = buildings.reduce((sum, building) => {
+      if (building.heroId !== hero.id) return sum;
+      if (hero.trade.id !== supplyRules.matchingTrade[building.kind] && hero.trade.id !== 'watchman') return sum;
+      const from = Math.max(building.settledAt, building.postedAt ?? building.settledAt);
       return sum + Math.max(0, now - from) / HOUR;
     }, 0);
     return hours > 0 ? { ...hero, trade: { ...hero.trade, hours: hero.trade.hours + hours } } : hero;
   });
-  if (settledCamps.every((camp, i) => camp === camps[i]) && heroes.every((hero, i) => hero === save.heroes[i])) return save;
-  return { ...save, heroes, supply: { ...save.supply, camps: settledCamps } };
+  if (settledBuildings.every((building, i) => building === buildings[i]) && heroes.every((hero, i) => hero === save.heroes[i])) return save;
+  return { ...save, heroes, supply: { ...save.supply, buildings: settledBuildings } };
 }

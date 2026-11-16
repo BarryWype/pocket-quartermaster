@@ -113,7 +113,7 @@ describe('balance lab', () => {
       supply: {
         ...base.supply,
         cart: { ...base.supply.cart, crew: { driver: null, escorts: ['bram'] }, loop },
-        raid: { campId: 'c1', kind: 'goblins', tier: 1, landsAt: 1, defenders: [{ heroId: 'lyra', sentAt: 0, arrivesAt: 1 }], result: null },
+        raid: { buildingId: 'b1', kind: 'goblins', tier: 1, landsAt: 1, defenders: [{ heroId: 'lyra', sentAt: 0, arrivesAt: 1 }], result: null },
       },
     };
     expect(homeHeroes(save).map((hero) => hero.id)).toEqual(['mira']);

@@ -34,7 +34,7 @@ export const frTipTexts: typeof tipTexts = {
   jobCharcoalBurner: 'Le Charbonnier est ouvert à la guilde : un héros y fait du charbon en votre absence.',
   jobGatherer:
     'Le cueilleur des environs travaille autour de vous : un héros ramasse les ressources que vous voyez sur la carte, la plus proche d’abord, environ 4 par heure au plus. Il donne le meilleur en mode Poche, pendant que vous marchez. Choisissez une cible si vous manquez d’un matériau. Le travail dehors fatigue plus vite, et la faune peut blesser un peu le héros.',
-  supplyCampSheet: 'Les gens du coin travaillent lentement un camp vide. Postez un héros pour le plein rendement, plus avec le bon métier. Récoltez sur place pour l’inspecter : +25 % pendant un jour.',
-  supplyPlanner: 'Touchez les camps dans l’ordre, et n’importe quelle case comme étape pour contourner le danger.',
-  supplyRaid: 'Des pillards arrivent : envoyez des défenseurs avant leur arrivée, videz le camp, ou laissez faire. Un Guetteur posté là apprend les raids plus tôt.',
+  supplyBuildingSheet: 'Les gens du coin travaillent lentement un bâtiment vide. Postez un héros pour le plein rendement, plus avec le bon métier. Récoltez sur place pour l’inspecter : +25 % pendant un jour.',
+  supplyPlanner: 'Touchez les bâtiments dans l’ordre, et n’importe quelle case comme étape pour contourner le danger.',
+  supplyRaid: 'Des pillards arrivent : envoyez des défenseurs avant leur arrivée, videz le bâtiment, ou laissez faire. Un Guetteur posté là apprend les raids plus tôt.',
 };

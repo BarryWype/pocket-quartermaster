@@ -17,7 +17,7 @@ export function asRecalled(save: SaveData, heroIds: string[]): SaveData {
   return {
     ...save,
     heroes: save.heroes.map((h) => (heroIds.includes(h.id) && h.job ? { ...h, job: null } : h)),
-    supply: { ...save.supply, camps: save.supply.camps.map((c) => (c.heroId && heroIds.includes(c.heroId) ? { ...c, heroId: null, postedAt: null } : c)) },
+    supply: { ...save.supply, buildings: save.supply.buildings.map((b) => (b.heroId && heroIds.includes(b.heroId) ? { ...b, heroId: null, postedAt: null } : b)) },
   };
 }
 

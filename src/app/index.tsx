@@ -34,10 +34,10 @@ import { items } from '@/content/items';
 import { materialById } from '@/content/lookup';
 import { mapStyle } from '@/content/mapStyle';
 import { patrolRules } from '@/content/patrols';
-import { dockRules } from '@/content/placeActivities';
 import { placeGroups, placeRules } from '@/content/places';
 import { placeRevealKinds, type TipId } from '@/content/reveal';
 import { sanctumRules } from '@/content/sanctums';
+import { siteGroup } from '@/content/supplyLines';
 import { spawnConfig } from '@/content/spawnConfig';
 import { tavernRules } from '@/content/taverns';
 import { tutorialRules } from '@/content/tutorial';
@@ -60,22 +60,27 @@ import { pocketModeAvailable, pocketTracking } from '@/game/patrols/pocketMode';
 import { activeLairs, isFightPlace } from '@/game/places/fights';
 import { highestUnlockedTier } from '@/game/expeditions/expeditions';
 import { isPlaceVisible, placeGroupOf, placesWithin, showsForPlayer, type PlaceSpawn } from '@/game/places/generate';
+import { keepPlace, placePlacement } from '@/game/places/placement';
 import { ruinReplacements } from '@/game/places/ruins';
-import { mapTileAt, mapTileKey, nearWater, type WalkableTile } from '@/game/generation/walkable';
+import { mapTileAt, mapTileKey } from '@/game/generation/walkable';
 import { hasFled, isGone, isVisible } from '@/game/patrols/visibility';
 import { isLureActive, lureEndsAt, lureSpawns } from '@/game/rewards/lures';
 import { liveTreasureMaps } from '@/game/rewards/treasure';
 import { isPlaceRevealed, isRevealed } from '@/game/reveal/reveal';
+import { isNetworkKind } from '@/game/supply/discovery';
+import { sitesAround } from '@/game/supply/sites';
 import { generateSanctumsAround, type SanctumSpawn } from '@/game/sanctums/sanctums';
 import { generateTavernsAround, type TavernSpawn } from '@/game/taverns/taverns';
 import { collectRadiusNow, fallbackReady, shownTutorialSpawns } from '@/game/tutorial/spawns';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useAmbience } from '@/hooks/useAmbience';
+import { useDiscovery } from '@/hooks/useDiscovery';
 import { useNow } from '@/hooks/useNow';
 import { usePlacedPoints, usePlacedSpawns } from '@/hooks/usePlacedSpawns';
 import { usePlayerLocation, type PlayerLocationState } from '@/hooks/usePlayerLocation';
 import { useQuestMarks } from '@/hooks/useQuestMarks';
 import { usePersonalTavern } from '@/hooks/usePersonalTavern';
+import { usePersonalSite } from '@/hooks/usePersonalSite';
 import { useSecretPlaces } from '@/hooks/useSecretPlaces';
 import { useWalkableTiles } from '@/hooks/useWalkableTiles';
 import { gainsPrefix } from '@/components/lootText';
@@ -109,13 +114,9 @@ const MAP_TEXTURES = {
 /** Sanctums and taverns snap with coarse map tiles so they can be shown from kilometres away. */
 const sanctumPlacement = { ...walkableRules, ...sanctumRules.placement };
 const tavernPlacement = { ...walkableRules, ...tavernRules.placement };
-const placePlacement = { ...walkableRules, ...placeRules.placement };
 /** Groups whose places the map shows; taverns have their own markers. */
 const shownPlaceGroups = placeGroups.filter((group) => group.id !== 'tavern');
 const isShownKind = (kind: PlaceSpawn['kind']) => PANEL_KINDS.includes(kind) || isFightPlace(kind);
-/** Fishing docks only stay where there is water nearby; with no map tile, there's no telling, so they're left out. */
-const keepPlace = (place: PlaceSpawn, tile: WalkableTile | null, position: LatLng) =>
-  place.kind !== 'fishingDock' || (tile !== null && nearWater(tile, position, dockRules.waterMeters));
 
 const failureMessages: Record<CollectFailure, (distance: number, radius?: number) => string> = {
   tooFar: (distance, radius = gatheringConfig.collectRadiusMeters) =>
@@ -190,6 +191,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
   const debugSanctum = useDebugStore((state) => state.debugSanctum);
   const debugTavern = useDebugStore((state) => state.debugTavern);
   const debugPlaces = useDebugStore((state) => state.debugPlaces);
+  const debugSites = useDebugStore((state) => state.debugSites);
   // The panels' open state lives in its own store (MapPanels reads it), so opening
   // or closing one never re-renders the markers; only the narrow slices the map
   // screen itself needs are subscribed to here.
@@ -337,6 +339,35 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
     );
   }, [position, minute, save.dugRuins, sight]); // eslint-disable-line react-hooks/exhaustive-deps
   const placedPlaces = usePlacedPoints(placeCandidates, placePlacement, keepPlace);
+  // Supply lines: sites, the empty ground to build on — the world's around, the period's personal one, and any put by hand.
+  const personalSite = usePersonalSite(save, position, now);
+  const siteCandidates = useMemo(() => {
+    if (!position || !supplyOn) return [];
+    const reach = siteGroup.visibilityMeters * sight + placePlacement.maxSnapMeters;
+    return recordTiming('map: siteCandidates', () =>
+      [...sitesAround(position, minute * 60_000), ...personalSite, ...debugSites].filter(
+        (site) => distanceMeters(position, site.position) <= reach,
+      ),
+    );
+  }, [position, minute, sight, supplyOn, personalSite, debugSites]);
+  const placedSites = usePlacedPoints(siteCandidates, placePlacement, keepPlace);
+  const sitesInSight = useMemo(
+    () =>
+      recordTiming('map: sitesInSight', () =>
+        placedSites.filter(
+          (site) =>
+            site.startsAt <= now &&
+            now < site.expiresAt &&
+            !(site.id in save.usedPlaces) &&
+            !save.supply.buildings.some((building) => building.siteId === site.id) &&
+            position !== null &&
+            distanceMeters(position, site.position) <= siteGroup.visibilityMeters * sight,
+        ),
+      ),
+    // Keyed by the coordinates, not the object: GPS fixes would recompute the list each second.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [placedSites, now, save.usedPlaces, save.supply.buildings, sight, position?.latitude, position?.longitude],
+  );
   const playerPickaxe = pickaxeTier(save);
   const placesInSight = useMemo(
     () =>
@@ -357,6 +388,8 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
   const tippedSecrets = useSecretPlaces(save, now);
   const secretsShown = isRevealed(save, 'secrets');
   const secretsInSight = useMemo(() => (secretsShown ? tippedSecrets : []), [secretsShown, tippedSecrets]);
+  // Supply lines: the placed network places in sight are what the player can walk to and discover.
+  useDiscovery(useMemo(() => [...placesInSight.filter((place) => isNetworkKind(place.kind)), ...tavernsInSight, ...sitesInSight], [placesInSight, tavernsInSight, sitesInSight]));
   // Quest objectives unlock from the place kinds the player has seen.
   const notePlacesSeen = useGameStore((state) => state.notePlacesSeen);
   const kindsInSight = [...new Set([...placesInSight.map((place) => place.kind), ...(tavernsInSight.length > 0 ? (['tavern'] as const) : [])])].sort().join(',');
@@ -780,7 +813,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
         <MapRanges circles={ranges} />
         {supplyOn && <SupplyLayers bounds={bounds} position={position} />}
         {supplyOn && <SupplyRoute />}
-        {supplyOn && <SupplyMarkers />}
+        {supplyOn && <SupplyMarkers sites={sitesInSight} />}
         {supplyOn && <CartMarker />}
         <MapMarkers
           save={save}

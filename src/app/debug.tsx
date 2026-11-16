@@ -20,7 +20,7 @@ import { recipes } from '@/content/recipes';
 import { dungeonThreats, opportunityDefs, restrictionDefs, surges, threatDefs } from '@/content/threats';
 import { notificationCategories, notificationTexts as texts } from '@/content/notifications';
 import { patrolRules, patrolTexts } from '@/content/patrols';
-import { placeGroupOf, placesAround } from '@/game/places/generate';
+import { placeGroupOf, placesAround, type PlaceSpawn } from '@/game/places/generate';
 import { nearestByKind } from '@/game/places/density';
 import { placeInfo, type PlaceKind } from '@/content/places';
 import { PANEL_KINDS } from '@/components/PlacePanel';
@@ -392,7 +392,7 @@ const SAMPLE_NOTIFICATIONS: Record<NotificationCategory, { title: string; body: 
   patrolSpotted: { ...texts.patrolSpotted, body: fill(texts.patrolSpotted.body, { patrol: 'Goblin patrol', distance: '180 m', tier: 2 }) },
   escort: { ...texts.escortPaused, body: fill(texts.escortPaused.body, { hero: 'Bram', percent: 45 }) },
   raids: {
-    title: fill(texts.raidAnnounced.title, { camp: 'timber camp' }),
+    title: fill(texts.raidAnnounced.title, { building: 'farm' }),
     body: fill(texts.raidAnnounced.body, { kind: 'Goblins', hours: 2 }),
     data: { route: 'network' },
   },
@@ -511,7 +511,8 @@ function PerformanceDebug() {
 function SupplyDebug() {
   const set = useDebugStore((state) => state.set);
   const showDanger = useDebugStore((state) => state.showDanger);
-  const camps = useGameStore((state) => state.save.supply.camps);
+  const debugSites = useDebugStore((state) => state.debugSites);
+  const buildings = useGameStore((state) => state.save.supply.buildings);
   const position = useDebugStore((state) => state.mockLocation) ?? useWorldStore.getState().player ?? FALLBACK_LOCATION;
 
   const placeHallHere = () => {
@@ -522,6 +523,22 @@ function SupplyDebug() {
     }
   };
 
+  // A site 20 m north of the debug position, at the quality the button's stars say.
+  const placeSite = (roll: number) => {
+    const now = Date.now();
+    const site: PlaceSpawn = {
+      id: `site:debug:${now}`,
+      kind: 'site',
+      group: 'site',
+      tile: 'debug',
+      position: offsetPosition(position, 20, 0),
+      startsAt: now,
+      expiresAt: now + 6 * 24 * 3_600_000,
+      roll,
+    };
+    set({ debugSites: [...debugSites, site] });
+  };
+
   return (
     <>
       <Text style={styles.title}>Supply lines</Text>
@@ -529,13 +546,37 @@ function SupplyDebug() {
         <Button title="Place the hall here" onPress={placeHallHere} />
       </View>
       <View style={styles.row}>
+        <Text>Place a site here:</Text>
+        <Button title="★" onPress={() => placeSite(0.1)} />
+        <Button title="★★" onPress={() => placeSite(0.6)} />
+        <Button title="★★★" onPress={() => placeSite(0.95)} />
+      </View>
+      <View style={styles.row}>
+        <Button title="Discover everything in view" onPress={() => useGameStore.getState().debugDiscoverAround(position)} />
+      </View>
+      <View style={styles.row}>
+        <Button title="Age the network by two days" onPress={() => useGameStore.getState().debugAgeNetwork(2 * 24 * 3_600_000)} />
+      </View>
+      <Text style={styles.hint}>Ages buildings, the cart and raids; map places follow the real clock.</Text>
+      <View style={styles.row}>
         <Text>Show danger levels</Text>
         <Switch value={showDanger} onValueChange={(on) => set({ showDanger: on })} />
       </View>
-      {camps.length > 0 && (
+      {buildings.length > 0 && (
         <View style={styles.row}>
-          {camps.map((camp) => (
-            <Button key={camp.id} title={`Raid ${camp.kind} camp ${camp.id} in 2 min`} onPress={() => useGameStore.getState().debugRaid(camp.id)} />
+          {buildings.map((building) => (
+            <Button
+              key={building.id}
+              title={`Raid ${building.kind} building ${building.id} in 2 min`}
+              onPress={() => useGameStore.getState().debugRaid(building.id)}
+            />
+          ))}
+          {buildings.map((building) => (
+            <Button
+              key={`${building.id}:expire`}
+              title={`Expire building ${building.id}`}
+              onPress={() => useGameStore.getState().debugExpireBuilding(building.id)}
+            />
           ))}
         </View>
       )}

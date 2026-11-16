@@ -196,14 +196,14 @@ export type SupplySummary = {
   walkedPerDay: Stat;
   ambushesPerWeek: Record<'won' | 'lost' | 'unguarded', Stat>;
   raidsPerWeek: Record<'won' | 'lost' | 'unguarded', Stat>;
-  /** Hero-hours per day posted at camps, and on the cart's crew. */
+  /** Hero-hours per day posted at buildings, and on the cart's crew. */
   postedHoursPerDay: Stat;
   cartHoursPerDay: Stat;
 };
 
 /** The walking sources: what a walk gathers, by hand or auto-gather, with the lure and the daily bonus. */
 const WALK_SOURCES = ['walk', 'autoGather', 'lure', 'walkBonus', 'autoGatherBonus'];
-/** What camps make: the materials the cart's deliveries are set against. */
+/** What buildings make: the materials the cart's deliveries are set against. */
 const CAMP_MATERIALS = ['wood', 'meat', 'hide', 'bone'];
 
 /** The Supply lines section's numbers, or null for a run without them. */

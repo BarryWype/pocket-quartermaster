@@ -2,7 +2,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 import { cellAt } from '@/game/discovery/cells';
 import { offsetPosition } from '@/game/generation/geo';
-import type { Camp, RoutePoint } from '@/game/supply/types';
+import type { Building, RoutePoint } from '@/game/supply/types';
 import { createInitialSave, type SaveData } from '@/game/save';
 import { useGameStore } from '@/store/gameStore';
 import { useMapPanels } from '@/store/mapPanelsStore';
@@ -14,17 +14,18 @@ jest.mock('react-native-safe-area-context', () => jest.requireActual('react-nati
 
 const origin = { latitude: -41.2865, longitude: 174.7762 };
 const hallCell = cellAt(origin);
-const campCell = cellAt(offsetPosition(origin, 400, 0));
 
-const camp: Camp = {
-  id: 'c1',
-  kind: 'timber',
-  cell: campCell,
+const building: Building = {
+  id: 'b1',
+  kind: 'farm',
+  siteId: 's1',
+  position: offsetPosition(origin, 400, 0),
   quality: 2,
-  foundedAt: 0,
+  builtAt: 0,
+  expiresAt: Date.now() + 6 * 24 * 3_600_000,
   heroId: null,
   postedAt: null,
-  stock: { wood: 5 },
+  stock: { grain: 5 },
   progress: 0,
   made: 0,
   settledAt: Date.now(),
@@ -32,10 +33,10 @@ const camp: Camp = {
   closedUntil: 0,
 };
 
-/** A save with a hall and one camp, like the cart sheet's tests. */
+/** A save with a hall and one building, like the cart sheet's tests. */
 const withNetwork = (): SaveData => {
   const base = createInitialSave();
-  return { ...base, supply: { ...base.supply, hall: { cell: hallCell, moves: [] }, camps: [camp] } };
+  return { ...base, supply: { ...base.supply, hall: { cell: hallCell, moves: [] }, buildings: [building] } };
 };
 
 const text = (renderer: ReactTestRenderer) => JSON.stringify(renderer.toJSON());
@@ -75,12 +76,12 @@ describe('the route planner bar', () => {
     return { sheet: text(renderer!), disabled: saveDisabled(renderer!) };
   };
 
-  it('a draft with a camp: the points line, the numbers, and an enabled Save', () => {
-    const { sheet, disabled } = open([{ camp: 'c1' }]);
-    expect(sheet).toContain('The hall → Timber camp → The hall');
+  it('a draft with a building: the points line, the numbers, and an enabled Save', () => {
+    const { sheet, disabled } = open([{ building: 'b1' }]);
+    expect(sheet).toContain('The hall → Farm → The hall');
     expect(sheet).toContain('min a loop');
     expect(sheet).toContain('Ambush risk');
-    expect(sheet).toContain('Tap camps in order, and any cell as a waypoint to steer around danger.');
+    expect(sheet).toContain('Tap buildings in order, and any cell as a waypoint to steer around danger.');
     expect(disabled).toBe(false);
   });
 
@@ -93,12 +94,12 @@ describe('the route planner bar', () => {
   it('adds, undoes and clears points in the draft', () => {
     act(() => {
       useMapPanels.getState().planRoute([]);
-      useMapPanels.getState().addToRoute({ camp: 'c1' });
+      useMapPanels.getState().addToRoute({ building: 'b1' });
       useMapPanels.getState().addToRoute({ cell: hallCell });
     });
-    expect(useMapPanels.getState().routeDraft).toEqual([{ camp: 'c1' }, { cell: hallCell }]);
+    expect(useMapPanels.getState().routeDraft).toEqual([{ building: 'b1' }, { cell: hallCell }]);
     act(() => useMapPanels.getState().undoRoute());
-    expect(useMapPanels.getState().routeDraft).toEqual([{ camp: 'c1' }]);
+    expect(useMapPanels.getState().routeDraft).toEqual([{ building: 'b1' }]);
     act(() => useMapPanels.getState().clearRoute());
     expect(useMapPanels.getState().routeDraft).toEqual([]);
   });

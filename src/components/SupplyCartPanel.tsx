@@ -66,7 +66,7 @@ export function SupplyCartPanel({ onClose }: { onClose: () => void }) {
   const crew = { driver: cart.crew.driver, escorts: cart.crew.escorts };
   const crewIds = [crew.driver, ...crew.escorts].filter((id): id is string => id !== null);
   const preview = routePreview(save, cart.route, now);
-  const camps = cart.route.filter((point) => 'camp' in point && save.supply.camps.some((camp) => camp.id === point.camp)).length;
+  const stops = cart.route.filter((point) => 'building' in point && save.supply.buildings.some((building) => building.id === point.building)).length;
   const problem = cartProblem(save, now);
   const parked = loop === null;
   const stopping = loop !== null && cart.nextRoute !== null && cart.nextRoute.length === 0;
@@ -122,12 +122,12 @@ export function SupplyCartPanel({ onClose }: { onClose: () => void }) {
 
           <View style={styles.section}>
             <Text style={styles.heading}>{t('supply.cart.route')}</Text>
-            {camps === 0 ? (
+            {stops === 0 ? (
               <Text style={styles.muted}>{t('supply.cart.noRoute')}</Text>
             ) : (
               <>
                 <Text style={styles.line}>
-                  {t('supply.cart.routeLine', { count: camps, distance: formatDistance(preview.meters), minutes: Math.round(preview.loopMinutes) })}
+                  {t('supply.cart.routeLine', { count: stops, distance: formatDistance(preview.meters), minutes: Math.round(preview.loopMinutes) })}
                 </Text>
                 <Text style={styles.line}>{t('supply.cart.ambushChance', { percent: formatPercent(preview.ambushChance) })}</Text>
               </>

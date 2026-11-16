@@ -17,6 +17,7 @@ import { SecretPanel } from './SecretPanel';
 import { SupplyCampPanel } from './SupplyCampPanel';
 import { SupplyCartPanel } from './SupplyCartPanel';
 import { SupplyCellPanel } from './SupplyCellPanel';
+import { SupplySitePanel } from './SupplySitePanel';
 import { TavernPanel } from './TavernPanel';
 import { TravellerPanel } from './TravellerPanel';
 
@@ -28,8 +29,9 @@ const TimedTavernPanel = timed('panel: tavern', TavernPanel);
 const TimedTravellerPanel = timed('panel: traveller', TravellerPanel);
 const TimedPatrolPanel = timed('panel: patrol', PatrolPanel);
 const TimedSupplyCellPanel = timed('panel: supply cell', SupplyCellPanel);
-const TimedSupplyCampPanel = timed('panel: supply camp', SupplyCampPanel);
+const TimedSupplyBuildingPanel = timed('panel: supply building', SupplyCampPanel);
 const TimedSupplyCartPanel = timed('panel: supply cart', SupplyCartPanel);
+const TimedSupplySitePanel = timed('panel: supply site', SupplySitePanel);
 
 type Props = {
   player: LatLng;
@@ -53,13 +55,15 @@ export function MapPanels({ player, patrols }: Props) {
   const openTavern = useMapPanels((state) => state.tavern);
   const openPatrol = useMapPanels((state) => state.patrol);
   const supplyCell = useMapPanels((state) => state.supplyCell);
-  const supplyCamp = useMapPanels((state) => state.supplyCamp);
+  const supplyBuilding = useMapPanels((state) => state.supplyBuilding);
+  const site = useMapPanels((state) => state.site);
   const closeSanctum = useMapPanels((state) => state.closeSanctum);
   const closePlace = useMapPanels((state) => state.closePlace);
   const closeTavern = useMapPanels((state) => state.closeTavern);
   const closePatrol = useMapPanels((state) => state.closePatrol);
   const closeSupplyCell = useMapPanels((state) => state.closeSupplyCell);
-  const closeSupplyCamp = useMapPanels((state) => state.closeSupplyCamp);
+  const closeSupplyBuilding = useMapPanels((state) => state.closeSupplyBuilding);
+  const closeSite = useMapPanels((state) => state.closeSite);
   const cartOpen = useMapPanels((state) => state.cartOpen);
   const closeCart = useMapPanels((state) => state.closeCart);
   const routeDraft = useMapPanels((state) => state.routeDraft);
@@ -85,7 +89,8 @@ export function MapPanels({ player, patrols }: Props) {
         <TimedTravellerPanel spawn={selectedPatrol} player={player} now={now} onClose={closePatrol} />
       )}
       {supplyCell && <TimedSupplyCellPanel cell={supplyCell} player={player} onClose={closeSupplyCell} />}
-      {supplyCamp && <TimedSupplyCampPanel id={supplyCamp} player={player} onClose={closeSupplyCamp} />}
+      {supplyBuilding && <TimedSupplyBuildingPanel id={supplyBuilding} player={player} onClose={closeSupplyBuilding} />}
+      {site && <TimedSupplySitePanel site={site} player={player} onClose={closeSite} />}
       {cartOpen && <TimedSupplyCartPanel onClose={closeCart} />}
       {routeDraft !== null && <RoutePlannerBar />}
     </>

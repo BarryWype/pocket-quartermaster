@@ -1,14 +1,17 @@
 import { placeInfo, placeRules, type PlaceKind } from '@/content/places';
-import { supplyRules } from '@/content/supplyLines';
+import { siteGroup, supplyRules } from '@/content/supplyLines';
 
 import { distanceMeters } from '../generation/geo';
 import { localDayIndex } from '../generation/localDays';
 import { tileAt } from '../generation/tiles';
 import type { LatLng } from '../generation/types';
+import type { WalkableTile } from '../generation/walkable';
 import { placeGroupOf, placesAround, type PlaceSpawn } from '../places/generate';
+import { placedPosition } from '../places/placement';
 import type { SaveData } from '../save';
 import { personalTaverns } from '../taverns/personal';
 import { withTavernName } from '../taverns/taverns';
+import { personalSites, sitesAround } from './sites';
 import { t, tr, type TextKey } from '@/i18n';
 
 /** The place kinds the network trades with (see content/supplyLines.ts). */
@@ -19,10 +22,18 @@ export const isNetworkKind = (kind: PlaceKind): kind is NetworkKind =>
 
 export const isDiscovered = (save: SaveData, placeId: string) => placeId in save.supply.discovered;
 
-/** The network places around a position at a time: the network kinds' groups, plus the save's personal tavern. */
+/**
+ * The network places around a position at a time: the network kinds' groups,
+ * the world's sites, and the save's personal tavern and site.
+ */
 export function networkPlacesAround(save: SaveData, position: LatLng, timeMs: number): PlaceSpawn[] {
-  const groups = [...new Set(supplyRules.discovery.kinds.map((kind) => placeGroupOf(kind)))];
-  return [...placesAround(position, timeMs, groups), ...personalTaverns(save, timeMs)];
+  const groups = [...new Set(supplyRules.discovery.kinds.map((kind) => placeGroupOf(kind)))].filter((group) => group.id !== siteGroup.id);
+  return [
+    ...placesAround(position, timeMs, groups),
+    ...sitesAround(position, timeMs),
+    ...personalTaverns(save, timeMs),
+    ...personalSites(save, timeMs),
+  ];
 }
 
 /**
@@ -52,11 +63,13 @@ export function discoverAt(
 /**
  * Walks a path's fixes, discovering the network places it passes; each fix sees
  * the places of its own time. Network places only change at the change hour, so
- * the places around a fix are generated once per tile and local day.
+ * the places around a fix are generated once per tile and local day, snapped
+ * onto the map's walkable ground (a place that does not place is not there).
  */
 export function discoverAlong(
   save: SaveData,
   fixes: { position: LatLng; timestamp: number }[],
+  tiles: Record<string, WalkableTile | null>,
 ): { save: SaveData; found: PlaceSpawn[] } {
   let next = save;
   const found: PlaceSpawn[] = [];
@@ -64,7 +77,13 @@ export function discoverAlong(
   const precision = Math.max(...supplyRules.discovery.kinds.map((kind) => placeGroupOf(kind).precision));
   for (const fix of fixes) {
     const key = `${tileAt(fix.position, precision)}|${localDayIndex(fix.timestamp, placeRules.changeHourLocal)}`;
-    if (!around.has(key)) around.set(key, networkPlacesAround(next, fix.position, fix.timestamp));
+    if (!around.has(key)) {
+      const places = networkPlacesAround(next, fix.position, fix.timestamp).flatMap((place) => {
+        const placed = placedPosition(place, tiles);
+        return placed === null ? [] : [{ ...place, position: placed }];
+      });
+      around.set(key, places);
+    }
     const step = discoverAt(next, around.get(key)!, fix.position, fix.timestamp);
     next = step.save;
     found.push(...step.found);
@@ -77,6 +96,7 @@ const wantsKey: Record<NetworkKind, TextKey> = {
   smithy: 'supply.discover.wants.smithy',
   apothecary: 'supply.discover.wants.apothecary',
   market: 'supply.discover.wants.market',
+  site: 'supply.discover.wants.site',
 };
 
 /** The map's note for places just discovered: the first one's name and wants, plus a count when several came at once. */

@@ -225,6 +225,7 @@ export const frNames: Record<string, string> = {
   Hide: 'Cuir',
   Bone: 'Os',
   Meat: 'Viande',
+  Grain: 'Grain',
   Herbs: 'Herbes',
   Berries: 'Baies',
   Mushroom: 'Champignon',
@@ -1127,6 +1128,8 @@ export const frNames: Record<string, string> = {
   'A rare hero and goods no shop sells.': 'Un héros rare et des marchandises qu’aucune boutique ne vend.',
   'Underwater dungeon': 'Donjon englouti',
   'A drowned dungeon with a treasure at its end.': 'Un donjon noyé, avec un trésor au bout.',
+  'Site': 'Chantier',
+  'Empty ground to build on.': 'Un terrain vide à bâtir.',
 
   // Base item catalogue (see content/loot/)
   // Monster parts
@@ -1276,13 +1279,17 @@ export const frNames: Record<string, string> = {
   'Charcoal burner': 'Charbonnier',
   'Outdoor gatherer': 'Cueilleur des environs',
   // Supply-line trades
+  Farmer: 'Fermier',
+  Quarryman: 'Carrier',
+  Herbalist: 'Herboriste',
   Teamster: 'Charretier',
   Watchman: 'Guetteur',
-  'Raises a timber camp’s output.': 'Augmente le rendement d’un camp de bûcherons.',
-  'Raises a trapper’s camp’s output.': 'Augmente le rendement d’un camp de trappeur.',
+  'Raises a farm’s output.': 'Augmente le rendement d’une ferme.',
+  'Raises a quarry’s output.': 'Augmente le rendement d’une carrière.',
+  'Raises a herb garden’s output.': 'Augmente le rendement d’un jardin d’herbes.',
   'Drives the cart: more capacity and speed.': 'Conduit la charrette : plus de capacité et de vitesse.',
-  'Posted at a camp: raids are announced earlier, and fights there with a bonus.':
-    'Posté dans un camp : les raids sont annoncés plus tôt, et les combats sur place avec un bonus.',
+  'Posted at a building: raids are announced earlier, and fights there with a bonus.':
+    'Posté dans un bâtiment : les raids sont annoncés plus tôt, et les combats sur place avec un bonus.',
   // Purpose tags
   'Ingredient': 'Ingrédient',
   'Quest': 'Quête',

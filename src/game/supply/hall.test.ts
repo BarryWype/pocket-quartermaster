@@ -4,8 +4,9 @@ import { cellAt } from '../discovery/cells';
 import { offsetPosition } from '../generation/geo';
 import { createInitialSave, type SaveData } from '../save';
 import { emptySupply } from './state';
-import type { Camp } from './types';
-import { campsOutOfReach, hallMoveBackAt, hallMovesLeft, hallProblem, placeHall } from './hall';
+import type { Building } from './types';
+import { buildingReach } from './buildings';
+import { buildingsOutOfReach, hallMoveBackAt, hallMovesLeft, hallProblem, placeHall } from './hall';
 
 const origin = { latitude: -41.2865, longitude: 174.7762 };
 const now = Date.UTC(2026, 10, 2, 12);
@@ -16,12 +17,14 @@ const save = (): SaveData => ({ ...createInitialSave(), supply: emptySupply(now)
 
 const cellNear = (meters: number, bearing = 0) => cellAt(offsetPosition(origin, meters, bearing));
 
-const campAt = (cell: string): Camp => ({
-  id: 'c1',
-  kind: 'trapper',
-  cell,
+const buildingAt = (position: { latitude: number; longitude: number }): Building => ({
+  id: 'b1',
+  kind: 'farm',
+  siteId: 's1',
+  position,
   quality: 2,
-  foundedAt: now,
+  builtAt: now,
+  expiresAt: now + 6 * DAY_MS,
   heroId: null,
   postedAt: null,
   stock: {},
@@ -67,12 +70,12 @@ describe('placeHall', () => {
   });
 });
 
-describe('campsOutOfReach', () => {
-  it('lists the camps farther than maxHallMeters from the cell, without refusing the move', () => {
-    const withCamp = { ...save(), supply: { ...emptySupply(now), hall: { cell: cellNear(0), moves: [] }, camps: [campAt(cellAt(offsetPosition(origin, -1500, 0)))] } };
-    expect(campsOutOfReach(withCamp, cellNear(-500))).toEqual([]);
-    const far = cellAt(offsetPosition(origin, supplyRules.camps.maxHallMeters + 500, 0));
-    expect(campsOutOfReach(withCamp, far).map((camp) => camp.id)).toEqual(['c1']);
-    expect(hallProblem(withCamp, far, now)).toBeNull();
+describe('buildingsOutOfReach', () => {
+  it('lists the buildings farther than the tier’s reach from the cell, without refusing the move', () => {
+    const withBuilding = { ...save(), supply: { ...emptySupply(now), hall: { cell: cellNear(0), moves: [] }, buildings: [buildingAt(offsetPosition(origin, -1500, 0))] } };
+    expect(buildingsOutOfReach(withBuilding, cellNear(-500))).toEqual([]);
+    const far = cellAt(offsetPosition(origin, buildingReach(withBuilding).meters + 500, 0));
+    expect(buildingsOutOfReach(withBuilding, far).map((building) => building.id)).toEqual(['b1']);
+    expect(hallProblem(withBuilding, far, now)).toBeNull();
   });
 });

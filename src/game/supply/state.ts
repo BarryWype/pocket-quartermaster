@@ -1,11 +1,12 @@
 import type { SupplyState } from './types';
 
-/** The supply state before anything is built: no hall, camps or raid, a parked cart with no crew. */
+/** The supply state before anything is built: no hall, buildings or raid, a parked cart with no crew. */
 export function emptySupply(now: number): SupplyState {
   return {
     seen: [],
     hall: null,
-    camps: [],
+    buildings: [],
+    personalSite: null,
     cart: {
       route: [],
       nextRoute: null,

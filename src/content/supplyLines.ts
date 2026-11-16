@@ -1,16 +1,17 @@
-import type { Camp } from '@/game/supply/types';
-import type { PlaceKind } from '@/content/places';
+import type { BuildingKind } from '@/game/supply/types';
+import type { PlaceGroup, PlaceKind } from '@/content/places';
 
 /** The supply-lines trades a hero can carry (see doc/design/supply-lines/). */
-export type TradeId = 'woodcutter' | 'trapper' | 'teamster' | 'watchman';
+export type TradeId = 'farmer' | 'quarryman' | 'herbalist' | 'teamster' | 'watchman';
 
-export const TRADE_IDS: TradeId[] = ['woodcutter', 'trapper', 'teamster', 'watchman'];
+export const TRADE_IDS: TradeId[] = ['farmer', 'quarryman', 'herbalist', 'teamster', 'watchman'];
 
 export const tradeInfo: Record<TradeId, { name: string; emoji: string; description: string }> = {
-  woodcutter: { name: 'Woodcutter', emoji: '🪓', description: 'Raises a timber camp’s output.' },
-  trapper: { name: 'Trapper', emoji: '🪤', description: 'Raises a trapper’s camp’s output.' },
+  farmer: { name: 'Farmer', emoji: '🧑‍🌾', description: 'Raises a farm’s output.' },
+  quarryman: { name: 'Quarryman', emoji: '⛏️', description: 'Raises a quarry’s output.' },
+  herbalist: { name: 'Herbalist', emoji: '🌿', description: 'Raises a herb garden’s output.' },
   teamster: { name: 'Teamster', emoji: '🐴', description: 'Drives the cart: more capacity and speed.' },
-  watchman: { name: 'Watchman', emoji: '🏮', description: 'Posted at a camp: raids are announced earlier, and fights there with a bonus.' },
+  watchman: { name: 'Watchman', emoji: '🏮', description: 'Posted at a building: raids are announced earlier, and fights there with a bonus.' },
 };
 
 export const supplyRules = {
@@ -19,10 +20,10 @@ export const supplyRules = {
     levelHours: [0, 40, 120],
   },
   /** The starting trio's fixed trades, so a new game and a migrated save agree. */
-  startingTrades: { bram: 'woodcutter', lyra: 'trapper', mira: 'teamster' } satisfies Record<string, TradeId>,
+  startingTrades: { bram: 'herbalist', lyra: 'farmer', mira: 'teamster' } satisfies Record<string, TradeId>,
 
-  /** Places that will hold orders; sites join later. */
-  discovery: { kinds: ['tavern', 'smithy', 'apothecary', 'market'] satisfies PlaceKind[] },
+  /** Places that will hold orders; sites are built on. */
+  discovery: { kinds: ['tavern', 'smithy', 'apothecary', 'market', 'site'] satisfies PlaceKind[] },
 
   /** Geohash precision of the supply grid (about 115–153 m cells; see the design doc). */
   cellPrecision: 7,
@@ -32,11 +33,6 @@ export const supplyRules = {
   hall: {
     /** Moves of the hall allowed in any 7 days; the first placement doesn't count. */
     movesPerWeek: 2,
-  },
-
-  camps: {
-    /** A camp must sit within this many metres of the hall. */
-    maxHallMeters: 2000,
   },
 
   terrain: {
@@ -49,23 +45,72 @@ export const supplyRules = {
   },
 
   production: {
-    /** Units per hour per quality star at the full rate; well above the guild jobs' 0.3. */
-    baseRate: { timber: 1.0, trapper: 0.8 },
-    /** Share of the full rate locals make with nobody posted; 0 means an empty camp makes nothing. */
+    /** Share of the full rate locals make with nobody posted; 0 means an empty building makes nothing. */
     localsShare: 0.4,
-    /** Output bonus by trade level when the posted hero's trade matches the camp. */
+    /** Output bonus by trade level when the posted hero's trade matches the building. */
     tradeBonus: [0.25, 0.5, 1.0],
     /** Stock holds this many hours of full output (no bonus), then stops. */
     capHours: 12,
-    /** Collecting inspects the camp for this many hours. */
+    /** Collecting inspects the building for this many hours. */
     inspectHours: 24,
-    /** Output bonus while the camp is inspected. */
+    /** Output bonus while the building is inspected. */
     inspectBonus: 0.25,
-    /** Collecting works within this many metres of the camp cell's centre. */
+    /** Collecting works within this many metres of the building. */
     collectMeters: 100,
   },
-  /** The trade that raises each camp kind's output (and earns its hours there). */
-  matchingTrade: { timber: 'woodcutter', trapper: 'trapper' } satisfies Record<Camp['kind'], TradeId>,
+
+  /** The trade that raises each building kind's output (and earns its hours there). */
+  matchingTrade: { farm: 'farmer', quarry: 'quarryman', herbGarden: 'herbalist' } satisfies Record<BuildingKind, TradeId>,
+
+  sites: {
+    /** Share of sites at quality 1, 2 and 3, drawn from the spawn's roll. */
+    qualityShares: [0.5, 0.35, 0.15],
+    /** A personal site appears only when no world site sits this close to the origin. */
+    guaranteeMeters: 800,
+    personal: {
+      /** The personal site's distance band from the origin. */
+      meters: [300, 700] as [number, number],
+      /** Candidate spots tried before falling back to the first raw one. */
+      tries: 6,
+    },
+  },
+
+  buildings: {
+    kinds: {
+      farm: {
+        /** Weights picking the material each made unit becomes. */
+        makes: { grain: 85, meat: 15 },
+        /** Units per hour per quality star at the full rate. */
+        baseRate: 1.0,
+        /** The place kind the farm mainly serves. */
+        for: 'tavern',
+      },
+      quarry: {
+        makes: { stone: 100 },
+        baseRate: 0.8,
+        for: 'smithy',
+      },
+      herbGarden: {
+        makes: { herb: 50, berries: 30, mushroom: 20 },
+        baseRate: 0.8,
+        for: 'apothecary',
+      },
+    } as Record<BuildingKind, { makes: Record<string, number>; baseRate: number; for: PlaceKind }>,
+    /** What a building costs to raise. */
+    cost: { gold: 60, materials: [{ materialId: 'wood', amount: 10 }] },
+    /** A building lasts this many days from when it was built. */
+    lifeDays: 6,
+    /** The last hours of its life warn that it is going. */
+    lastDayHours: 24,
+    /** How many buildings the player may hold at once, and how far from the hall they may stand, by tier. */
+    limits: {
+      1: { count: 3, meters: 1000 },
+      2: { count: 3, meters: 1000 },
+      3: { count: 4, meters: 1500 },
+      4: { count: 5, meters: 2000 },
+      5: { count: 6, meters: 2500 },
+    } as Record<number, { count: number; meters: number }>,
+  },
 
   cart: {
     /** The cart's speed in km/h with a driver. */
@@ -120,11 +165,22 @@ export const supplyRules = {
     awayDays: 2,
     /** After such an absence, nothing is announced for this many hours. */
     returnQuietHours: 2,
-    /** A camp that lost a raid makes nothing for this many hours. */
+    /** A building that lost a raid makes nothing for this many hours. */
     closedHours: 6,
-    /** Heroes the player can send to defend a camp, on top of the posted one. */
+    /** Heroes the player can send to defend a building, on top of the posted one. */
     maxDefenders: 3,
-    /** Defenders walk from the hall to the camp, and back, at this speed. */
+    /** Defenders walk from the hall to the building, and back, at this speed. */
     walkKmh: 4,
   },
+};
+
+/** The site group: empty ground to build on. Not in `placeGroups`, so nothing outside the network sees sites. */
+export const siteGroup: PlaceGroup = {
+  id: 'site',
+  kinds: { site: 1 },
+  densityPerKm2: 0.8,
+  precision: 5,
+  windowHours: 144,
+  phases: 3,
+  visibilityMeters: 1200,
 };

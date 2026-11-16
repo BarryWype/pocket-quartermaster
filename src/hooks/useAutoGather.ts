@@ -4,6 +4,8 @@ import { AppState, Platform } from 'react-native';
 import { gatheringConfig } from '@/content/gatheringConfig';
 import { materialById } from '@/content/lookup';
 import { clearProcessed, shouldAutoStop, walkTileKeys, type WalkFix, type WalkSummary } from '@/game/gathering/autoGather';
+import { mapTileAt, mapTileKey } from '@/game/generation/walkable';
+import { placePlacement } from '@/game/places/placement';
 import { jobOutputDetail, jobWorker } from '@/game/jobs/jobs';
 import { snapshotBackground } from '@/game/patrols/escort';
 import { clearsRefusal, locationPermissionState } from '@/game/patrols/pocketPermission';
@@ -91,15 +93,20 @@ async function reconcile(foregrounded: boolean) {
 async function processBuffer(away: boolean): Promise<WalkSummary | null> {
   const buffer = await readBuffer();
   if (buffer.fixes.length === 0 && !buffer.autoStopped) return null;
-  const keys = walkTileKeys(useGameStore.getState().save, buffer.fixes);
+  const fresh = () => buffer.fixes.filter((f) => f.timestamp > useGameStore.getState().save.autoGather.processedUntil);
+  let keys = walkTileKeys(useGameStore.getState().save, buffer.fixes);
+  // Supply lines: the walk discovers the network places it passes, which are placed on the walkable ground of their own map tiles.
+  if (useSettingsStore.getState().supplyLines) {
+    keys = [...new Set([...keys, ...fresh().map((fix) => mapTileKey(mapTileAt(fix.position, placePlacement.mapZoom)))])];
+  }
   const tiles = Object.fromEntries(await Promise.all(keys.map(async (key) => [key, await walkableTiles.load(key)] as const)));
   const oldest = buffer.fixes[0]?.timestamp ?? Date.now();
   if (keys.some((key) => tiles[key] === null) && Date.now() - oldest < config.tileRetryHours * 3_600_000) return null;
 
-  const fresh = buffer.fixes.filter((f) => f.timestamp > useGameStore.getState().save.autoGather.processedUntil);
+  const freshFixes = fresh();
   const measuredSteps =
-    Platform.OS === 'ios' && fresh.length > 1
-      ? await devicePedometer.getStepsBetween(fresh[0].timestamp, fresh[fresh.length - 1].timestamp).catch(() => null)
+    Platform.OS === 'ios' && freshFixes.length > 1
+      ? await devicePedometer.getStepsBetween(freshFixes[0].timestamp, freshFixes[freshFixes.length - 1].timestamp).catch(() => null)
       : null;
   const summary = useGameStore.getState().processWalk(
     buffer.fixes,

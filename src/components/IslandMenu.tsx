@@ -9,7 +9,7 @@ import { healthRules } from '@/content/health';
 import { jobs } from '@/content/jobs';
 import { isJobFull, isTired } from '@/game/jobs/jobs';
 import { isRevealed } from '@/game/reveal/reveal';
-import { campsAtCap } from '@/game/supply/production';
+import { buildingsAtCap } from '@/game/supply/production';
 import { currentHp, maxHp } from '@/game/team/health';
 import { tutorialTarget, type MenuTarget } from '@/game/tutorial/tutorial';
 import { navigate } from '@/services/navigation';
@@ -72,9 +72,9 @@ export function IslandMenu() {
     const now = Date.now();
     return jobs.filter((job) => isJobFull(save, job.id, now)).length + save.heroes.filter((hero) => isTired(save, hero, now)).length;
   });
-  // Camps whose stock is full, waiting on a collection.
+  // Buildings whose stock is full, waiting on a collection.
   const supplyOn = useSettingsStore((s) => s.supplyLines);
-  const capNews = useGameStore(({ save }) => (supplyOn ? campsAtCap(save, Date.now()) : 0));
+  const capNews = useGameStore(({ save }) => (supplyOn ? buildingsAtCap(save, Date.now()) : 0));
 
   const go = (href: Href) => {
     setCraftOpen(false);

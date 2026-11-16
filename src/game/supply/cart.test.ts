@@ -2,11 +2,12 @@ import { supplyRules } from '@/content/supplyLines';
 
 import { cellAt } from '../discovery/cells';
 import { offsetPosition } from '../generation/geo';
+import type { LatLng } from '../generation/types';
 import { createInitialSave, type SaveData } from '../save';
 import { currentHp } from '../team/health';
 import { isAway } from '../team/team';
 import { emptySupply } from './state';
-import type { Camp, CartEvent } from './types';
+import type { Building, CartEvent } from './types';
 import {
   cartCapacity,
   cartNextEventAt,
@@ -30,12 +31,14 @@ const MINUTE = 60_000;
 
 const cellNear = (meters: number, bearing = 0) => cellAt(offsetPosition(origin, meters, bearing));
 
-const campAt = (cell: string, id: string, stock: Record<string, number>): Camp => ({
+const buildingAt = (position: LatLng, id: string, stock: Record<string, number>): Building => ({
   id,
-  kind: 'trapper',
-  cell,
+  kind: 'farm',
+  siteId: `site-${id}`,
+  position,
   quality: 2,
-  foundedAt: now,
+  builtAt: now,
+  expiresAt: now + 6 * 24 * HOUR,
   heroId: null,
   postedAt: null,
   stock,
@@ -46,14 +49,14 @@ const campAt = (cell: string, id: string, stock: Record<string, number>): Camp =
   closedUntil: 0,
 });
 
-/** A save with the hall at the origin and two stocked camps. */
+/** A save with the hall at the origin and two stocked buildings. */
 const baseSave = (): SaveData => {
   const hallCell = cellNear(0);
-  const camps = [campAt(cellNear(300), 'c1', { wood: 8 }), campAt(cellNear(600, 90), 'c2', { game: 6 })];
-  return { ...createInitialSave(), supply: { ...emptySupply(now), hall: { cell: hallCell, moves: [] }, camps } };
+  const buildings = [buildingAt(offsetPosition(origin, 300, 0), 'b1', { grain: 8 }), buildingAt(offsetPosition(origin, 600, 90), 'b2', { stone: 6 })];
+  return { ...createInitialSave(), supply: { ...emptySupply(now), hall: { cell: hallCell, moves: [] }, buildings } };
 };
 
-const readySave = () => setRoute(setCrew(baseSave(), 'bram', ['lyra'], now), [{ camp: 'c1' }, { camp: 'c2' }], now);
+const readySave = () => setRoute(setCrew(baseSave(), 'bram', ['lyra'], now), [{ building: 'b1' }, { building: 'b2' }], now);
 
 beforeEach(() => {
   // No ambushes unless a test forces them.
@@ -65,22 +68,22 @@ afterEach(() => {
 });
 
 describe('a full loop', () => {
-  it('delivers the camps’ stock up to capacity into materials, and logs it', () => {
+  it('delivers the buildings’ stock up to capacity into materials, and logs it', () => {
     const started = startCart(readySave(), now);
     const loop = started.supply.cart.loop!;
-    expect(loop.events.filter((event) => event.kind === 'camp')).toHaveLength(2);
+    expect(loop.events.filter((event) => event.kind === 'building')).toHaveLength(2);
     const done = settleCart(started, loop.endsAt);
     const line = done.supply.cart.log.find((entry) => entry.n === 1)!;
     const capacity = supplyRules.cart.capacity;
     const deliveredTotal = Object.values(line.delivered).reduce((sum, amount) => sum + amount, 0);
     expect(deliveredTotal).toBeLessThanOrEqual(capacity);
-    expect(line.delivered.wood).toBeGreaterThanOrEqual(8);
-    expect(line.delivered.game).toBeGreaterThanOrEqual(6);
-    expect(done.materials.wood).toBe((started.materials.wood ?? 0) + line.delivered.wood);
-    expect(done.materials.game).toBe((started.materials.game ?? 0) + line.delivered.game);
+    expect(line.delivered.grain).toBeGreaterThanOrEqual(8);
+    expect(line.delivered.stone).toBeGreaterThanOrEqual(6);
+    expect(done.materials.grain).toBe((started.materials.grain ?? 0) + line.delivered.grain);
+    expect(done.materials.stone).toBe((started.materials.stone ?? 0) + line.delivered.stone);
     expect(line.ambush).toBeNull();
-    // The camps were emptied into the cart.
-    expect(done.supply.camps.find((camp) => camp.id === 'c1')!.stock.wood ?? 0).toBeLessThan(1);
+    // The buildings were emptied into the cart.
+    expect(done.supply.buildings.find((building) => building.id === 'b1')!.stock.grain ?? 0).toBeLessThan(1);
   });
 
   it('replays eight hours in one call exactly like settling every ten minutes', () => {
@@ -92,61 +95,61 @@ describe('a full loop', () => {
     expect(onePass).toEqual(stepped);
   });
 
-  it('keeps the cargo of camps already visited aboard when settled halfway', () => {
+  it('keeps the cargo of buildings already visited aboard when settled halfway', () => {
     const started = startCart(readySave(), now);
     const loop = started.supply.cart.loop!;
-    const firstCamp = loop.events.find((event) => event.kind === 'camp')!;
-    const half = settleCart(started, firstCamp.at + 1);
+    const firstBuilding = loop.events.find((event) => event.kind === 'building')!;
+    const half = settleCart(started, firstBuilding.at + 1);
     expect(half.supply.cart.loop).not.toBeNull();
-    expect(half.supply.cart.cargo.wood).toBeGreaterThanOrEqual(8);
+    expect(half.supply.cart.cargo.grain).toBeGreaterThanOrEqual(8);
     const done = settleCart(half, loop.endsAt);
-    expect(done.supply.cart.log.find((entry) => entry.n === 1)!.delivered.wood).toBeGreaterThanOrEqual(8);
+    expect(done.supply.cart.log.find((entry) => entry.n === 1)!.delivered.grain).toBeGreaterThanOrEqual(8);
   });
 
   it('applies a route changed mid-loop from the next departure', () => {
     const started = startCart(readySave(), now);
-    const changed = setRoute(started, [{ camp: 'c2' }], now);
-    expect(changed.supply.cart.nextRoute).toEqual([{ camp: 'c2' }]);
+    const changed = setRoute(started, [{ building: 'b2' }], now);
+    expect(changed.supply.cart.nextRoute).toEqual([{ building: 'b2' }]);
     const done = settleCart(changed, started.supply.cart.loop!.endsAt);
-    expect(done.supply.cart.route).toEqual([{ camp: 'c2' }]);
+    expect(done.supply.cart.route).toEqual([{ building: 'b2' }]);
     expect(done.supply.cart.nextRoute).toBeNull();
     const nextLoop = done.supply.cart.loop!;
-    expect(nextLoop.events.filter((event) => event.kind === 'camp').map((event) => (event as { campId: string }).campId)).toEqual(['c2']);
+    expect(nextLoop.events.filter((event) => event.kind === 'building').map((event) => (event as { buildingId: string }).buildingId)).toEqual(['b2']);
   });
 
-  it('loads nothing from a camp removed while the cart is on its way, and the loop goes on', () => {
+  it('loads nothing from a building removed while the cart is on its way, and the loop goes on', () => {
     const started = startCart(readySave(), now);
     const loop = started.supply.cart.loop!;
-    const withoutC2: SaveData = { ...started, supply: { ...started.supply, camps: started.supply.camps.filter((camp) => camp.id !== 'c2') } };
-    const done = settleCart(withoutC2, loop.endsAt);
+    const withoutB2: SaveData = { ...started, supply: { ...started.supply, buildings: started.supply.buildings.filter((building) => building.id !== 'b2') } };
+    const done = settleCart(withoutB2, loop.endsAt);
     const line = done.supply.cart.log.find((entry) => entry.n === 1)!;
-    expect(line.delivered.game ?? 0).toBe(0);
-    expect(line.delivered.wood).toBeGreaterThanOrEqual(8);
+    expect(line.delivered.stone ?? 0).toBe(0);
+    expect(line.delivered.grain).toBeGreaterThanOrEqual(8);
   });
 });
 
 describe('ambushes', () => {
-  it('a won ambush after a camp keeps the cargo and pays its rewards and HP at loop end', () => {
+  it('a won ambush after a building keeps the cargo and pays its rewards and HP at loop end', () => {
     jest.restoreAllMocks();
     // Seed search over hall placements with a strong crew: the ambush roll is seeded per cell,
-    // so moving the hall changes the crossed cells; find one with a won ambush after the first camp.
+    // so moving the hall changes the crossed cells; find one with a won ambush after the first building.
     const strong = (save: SaveData): SaveData => ({
       ...save,
       heroes: save.heroes.map((hero) => ({ ...hero, level: 12, xp: 0, exhaustedUntil: 0 })),
     });
     const placed = (offset: number): SaveData => {
       const hallCell = cellNear(offset);
-      const camps = [campAt(cellNear(offset + 300), 'c1', { wood: 8 }), campAt(cellNear(offset + 600, 90), 'c2', { game: 6 })];
-      const withCamps: SaveData = { ...createInitialSave(), supply: { ...emptySupply(now), hall: { cell: hallCell, moves: [] }, camps } };
-      return setRoute(setCrew(withCamps, 'bram', ['lyra', 'mira'], now), [{ camp: 'c1' }, { camp: 'c2' }], now);
+      const buildings = [buildingAt(offsetPosition(origin, offset + 300, 0), 'b1', { grain: 8 }), buildingAt(offsetPosition(origin, offset + 600, 90), 'b2', { stone: 6 })];
+      const withBuildings: SaveData = { ...createInitialSave(), supply: { ...emptySupply(now), hall: { cell: hallCell, moves: [] }, buildings } };
+      return setRoute(setCrew(withBuildings, 'bram', ['lyra', 'mira'], now), [{ building: 'b1' }, { building: 'b2' }], now);
     };
     let started = startCart(strong(placed(0)), now);
     let ambush: Extract<CartEvent, { kind: 'ambush' }> | undefined;
     for (let k = 0; k < 400 && !ambush; k++) {
       const candidate = startCart(strong(placed(k * 17)), now);
       const loop = candidate.supply.cart.loop!;
-      const firstCamp = loop.events.find((event) => event.kind === 'camp');
-      const found = loop.events.find((event) => event.kind === 'ambush' && event.won === true && firstCamp && event.at > firstCamp.at);
+      const firstBuilding = loop.events.find((event) => event.kind === 'building');
+      const found = loop.events.find((event) => event.kind === 'ambush' && event.won === true && firstBuilding && event.at > firstBuilding.at);
       if (found && found.kind === 'ambush') {
         started = candidate;
         ambush = found;
@@ -154,7 +157,7 @@ describe('ambushes', () => {
     }
     expect(ambush).toBeDefined();
     const loop = started.supply.cart.loop!;
-    // Halfway, after the camp but before the ambush: the cargo is aboard.
+    // Halfway, after the building but before the ambush: the cargo is aboard.
     const half = settleCart(started, ambush!.at - 1);
     expect(Object.values(half.supply.cart.cargo).reduce((sum, amount) => sum + amount, 0)).toBeGreaterThan(0);
     const done = settleCart(half, loop.endsAt);
@@ -185,7 +188,7 @@ describe('ambushes', () => {
 
 describe('crew and parking', () => {
   it('a hurt crew parks the cart with waitingForCrew, and startCart starts it again', () => {
-    const started = startCart(setRoute(setCrew(baseSave(), 'bram', ['lyra'], now), [{ camp: 'c1' }], now), now);
+    const started = startCart(setRoute(setCrew(baseSave(), 'bram', ['lyra'], now), [{ building: 'b1' }], now), now);
     const exhausted = {
       ...started,
       heroes: started.heroes.map((hero) => (hero.id === 'bram' ? { ...hero, exhaustedUntil: now + 48 * HOUR } : hero)),
@@ -210,7 +213,7 @@ describe('crew and parking', () => {
     expect(cartSpeedMps(plain)).toBeCloseTo((supplyRules.cart.speedKmh * 1000) / 3600);
     expect(cartSpeedMps(noDriver)).toBeCloseTo((supplyRules.cart.speedKmh * supplyRules.cart.noDriverSpeed * 1000) / 3600);
     expect(cartCapacity(teamster)).toBeCloseTo(supplyRules.cart.capacity * (1 + supplyRules.cart.teamster.capacity[level]));
-    const started = startCart(setRoute(teamster, [{ camp: 'c1' }], now), now);
+    const started = startCart(setRoute(teamster, [{ building: 'b1' }], now), now);
     const loop = started.supply.cart.loop!;
     const done = settleCart(started, loop.endsAt);
     const hours = done.heroes.find((hero) => hero.id === 'mira')!.trade.hours;
@@ -239,7 +242,7 @@ describe('routePreview', () => {
     jest.restoreAllMocks();
     const save = baseSave();
     const waypoint = cellNear(900, 200);
-    const route = [{ camp: 'c1' }, { cell: waypoint }] as ({ camp: string } | { cell: string })[];
+    const route = [{ building: 'b1' }, { cell: waypoint }] as ({ building: string } | { cell: string })[];
     const preview = routePreview(save, route, now);
     const crossed = routeCells(preview.points);
     expect(crossed).toContain(waypoint);
@@ -268,7 +271,7 @@ describe('position and tick', () => {
 });
 
 describe('performance', () => {
-  it('replays eight hours with two camps in under 500 ms', () => {
+  it('replays eight hours with two buildings in under 500 ms', () => {
     const started = startCart(readySave(), now);
     const began = Date.now();
     settleCart(started, now + 8 * HOUR);

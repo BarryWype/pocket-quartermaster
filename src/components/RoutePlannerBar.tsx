@@ -6,17 +6,18 @@ import { ISLAND_HEIGHT } from '@/components/IslandMenu';
 import { Text } from '@/components/Text';
 import { EmberButton, ParchmentCard, WoodButton } from '@/components/ui';
 import { routePreview, routeProblem } from '@/game/supply/cart';
+import { buildingNameKey } from '@/game/supply/buildings';
 import type { RoutePoint } from '@/game/supply/types';
 import { formatDistance, formatPercent, t } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { useMapPanels } from '@/store/mapPanelsStore';
 import { ui } from '@/theme';
 
-/** Each stop's name on the points line: the hall, a camp's name, or a waypoint. */
+/** Each stop's name on the points line: the hall, a building's name, or a waypoint. */
 function pointName(save: Parameters<typeof routePreview>[0], point: RoutePoint): string {
-  if ('camp' in point) {
-    const camp = save.supply.camps.find((c) => c.id === point.camp);
-    return t(camp?.kind === 'trapper' ? 'supply.camp.trapperName' : 'supply.camp.timberName');
+  if ('building' in point) {
+    const building = save.supply.buildings.find((b) => b.id === point.building);
+    return building ? t(buildingNameKey[building.kind]) : t('supply.planner.waypoint');
   }
   return t('supply.planner.waypoint');
 }
@@ -44,7 +45,7 @@ export function RoutePlannerBar() {
   }, [draft, save]);
 
   if (!draft) return null;
-  const hasCamp = draft.some((point) => 'camp' in point);
+  const hasBuilding = draft.some((point) => 'building' in point);
   const problem = routeProblem(save, draft);
   const hall = t('supply.network.hall');
   const pointsLine = [hall, ...draft.map((point) => pointName(save, point)), hall].join(' → ');
@@ -68,7 +69,7 @@ export function RoutePlannerBar() {
           <WoodButton compact title={t('common.cancel')} onPress={() => useMapPanels.getState().cancelRoute()} />
           <EmberButton
             title={t('supply.planner.save')}
-            disabled={problem !== null || !hasCamp}
+            disabled={problem !== null || !hasBuilding}
             onPress={() => {
               setRoute(draft);
               useMapPanels.getState().cancelRoute();

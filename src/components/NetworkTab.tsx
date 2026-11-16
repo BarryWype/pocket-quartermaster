@@ -1,42 +1,40 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { FillBar } from '@/components/motion';
+import { FillBar, PressScale } from '@/components/motion';
 
-import { IconLabel } from '@/components/IconLabel';
 import { Text } from '@/components/Text';
-import { EmberButton, ParchmentCard, WoodButton } from '@/components/ui';
+import { ParchmentCard, WoodButton } from '@/components/ui';
 import { clockConfig } from '@/content/clockConfig';
-import { supplyRules, tradeInfo } from '@/content/supplyLines';
 import { distanceMeters } from '@/game/generation/geo';
 import { tileCenter } from '@/game/generation/tiles';
 import { routePreview } from '@/game/supply/cart';
-import { campCap, campRateParts, campStockTotal, settleCamp } from '@/game/supply/production';
-import { tradeLevel } from '@/game/supply/trades';
-import type { Camp } from '@/game/supply/types';
-import { formatDistance, formatDuration, t, tr } from '@/i18n';
+import { buildingEmoji, buildingNameKey, isLastDay } from '@/game/supply/buildings';
+import { buildingCap, buildingStockTotal, settleBuilding } from '@/game/supply/production';
+import type { Building } from '@/game/supply/types';
+import { formatDistance, formatDuration, t } from '@/i18n';
 import { raidText } from '@/hooks/useCartTick';
 import { useNow } from '@/hooks/useNow';
 import { useGameStore } from '@/store/gameStore';
 import { useWorldStore } from '@/store/worldStore';
 import { ui } from '@/theme';
 
-import { PostHeroList } from './PostHeroList';
-import { RaidBanner } from './RaidBanner';
-import { QualityPips } from './SupplyCellPanel';
+import { SupplyCampPanel } from './SupplyCampPanel';
 import { SupplyCartPanel } from './SupplyCartPanel';
+import { RaidBanner } from './RaidBanner';
 
 /** A landed raid's outcome stays on the tab this long. */
 const LAST_RAID_SHOWN_MS = 24 * 3_600_000;
 
-/** The Expeditions screen's Network tab: the hall, every camp's line of numbers, and the cart. */
+/** The Expeditions screen's Network tab: the hall, every building's line of numbers, and the cart. */
 export function NetworkTab() {
   const save = useGameStore((s) => s.save);
   const player = useWorldStore((s) => s.player);
   const now = useNow(clockConfig.minutesMs);
   const hall = save.supply.hall;
-  const camps = save.supply.camps;
+  const buildings = save.supply.buildings;
   const [cartOpen, setCartOpen] = useState(false);
+  const [openBuilding, setOpenBuilding] = useState<string | null>(null);
 
   const lastRaid = save.supply.raidLog.at(-1);
 
@@ -57,13 +55,19 @@ export function NetworkTab() {
       ) : (
         <Text style={styles.line}>{t('supply.network.noHall')}</Text>
       )}
-      {camps.length === 0 ? (
+      {buildings.length === 0 ? (
         <Text style={styles.line}>{t('supply.network.empty')}</Text>
       ) : (
-        camps.map((camp) => <CampCard key={camp.id} camp={camp} now={now} />)
+        buildings.map((building) => (
+          <BuildingCard key={building.id} building={building} now={now} onOpen={() => setOpenBuilding(building.id)} />
+        ))
       )}
       <CartCard now={now} onOpen={() => setCartOpen(true)} />
       {cartOpen && <SupplyCartPanel onClose={() => setCartOpen(false)} />}
+      {/* The building sheet wants the player's position; the hall's centre stands in while the map has none. */}
+      {openBuilding && (player ?? (save.supply.hall ? tileCenter(save.supply.hall.cell) : null)) && (
+        <SupplyCampPanel id={openBuilding} player={player ?? tileCenter(save.supply.hall!.cell)} onClose={() => setOpenBuilding(null)} />
+      )}
     </View>
   );
 }
@@ -72,7 +76,7 @@ export function NetworkTab() {
 function CartCard({ now, onOpen }: { now: number; onOpen: () => void }) {
   const save = useGameStore((s) => s.save);
   const cart = save.supply.cart;
-  const camps = cart.route.filter((point) => 'camp' in point && save.supply.camps.some((camp) => camp.id === point.camp)).length;
+  const stops = cart.route.filter((point) => 'building' in point && save.supply.buildings.some((building) => building.id === point.building)).length;
   const preview = routePreview(save, cart.route, now);
   const crew = [cart.crew.driver, ...cart.crew.escorts]
     .map((id) => save.heroes.find((hero) => hero.id === id)?.name)
@@ -84,9 +88,9 @@ function CartCard({ now, onOpen }: { now: number; onOpen: () => void }) {
     <ParchmentCard title={t('supply.cart.title')} titleEmoji="🐴" contentStyle={styles.card}>
       <Text style={styles.line}>{status}</Text>
       <Text style={styles.line}>
-        {camps === 0
+        {stops === 0
           ? t('supply.cart.noRoute')
-          : t('supply.cart.routeLine', { count: camps, distance: formatDistance(preview.meters), minutes: Math.round(preview.loopMinutes) })}
+          : t('supply.cart.routeLine', { count: stops, distance: formatDistance(preview.meters), minutes: Math.round(preview.loopMinutes) })}
       </Text>
       <Text style={styles.line}>{crew.length > 0 ? crew.join(', ') : t('supply.cart.noCrew')}</Text>
       <WoodButton title={t('supply.cart.open')} onPress={onOpen} />
@@ -94,52 +98,31 @@ function CartCard({ now, onOpen }: { now: number; onOpen: () => void }) {
   );
 }
 
-/** One camp's card: its quality, rate, stock and posting. */
-function CampCard({ camp, now }: { camp: Camp; now: number }) {
+/** One building's card: its quality, rate, stock and posting. */
+function BuildingCard({ building, now, onOpen }: { building: Building; now: number; onOpen: () => void }) {
   const save = useGameStore((s) => s.save);
-  const recallPosted = useGameStore((s) => s.recallPosted);
-  const [posting, setPosting] = useState(false);
-  const settled = settleCamp(save, camp, now);
-  const parts = campRateParts(save, camp, now);
-  const posted = settled.heroId ? save.heroes.find((h) => h.id === settled.heroId) ?? null : null;
-  const stock = campStockTotal(settled);
-  const cap = campCap(camp);
-  const rate = String(Math.round(parts.rate * 100) / 100);
+  const settled = settleBuilding(save, building, now);
+  const stock = buildingStockTotal(settled);
+  const cap = buildingCap(building);
+  const last = isLastDay(building.expiresAt, now);
 
   return (
-    <ParchmentCard
-      title={t(camp.kind === 'timber' ? 'supply.camp.timberName' : 'supply.camp.trapperName')}
-      titleEmoji={camp.kind === 'timber' ? '🪵' : '🪤'}
-      titleSub={posted ? t('supply.camp.postedHero', { name: posted.name }) : t('supply.camp.locals', { share: Math.round(supplyRules.production.localsShare * 100) })}
-      contentStyle={styles.card}
-    >
-      <View style={styles.qualityRow}>
-        <IconLabel emoji={camp.kind === 'timber' ? '🪵' : '🦌'} label={t(camp.kind === 'timber' ? 'supply.resource.timber' : 'supply.resource.game')} size={16} />
-        <QualityPips level={camp.quality} />
-      </View>
-      <Text style={styles.line}>{t(camp.kind === 'timber' ? 'supply.camp.rateTimber' : 'supply.camp.rateTrapper', { rate })}</Text>
-      {posted && parts.tradeBonus > 0 && (
+    <PressScale accessibilityRole="button" accessibilityLabel={t(buildingNameKey[building.kind])} onPress={onOpen}>
+      <ParchmentCard
+        title={t(buildingNameKey[building.kind])}
+        titleEmoji={buildingEmoji[building.kind]}
+        titleSub={`${'★'.repeat(building.quality)}${'☆'.repeat(3 - building.quality)}`}
+        contentStyle={styles.card}
+      >
+        <View style={styles.stockRow}>
+          <FillBar value={cap > 0 ? stock / cap : 0} />
+          <Text style={styles.stockText}>{`${stock} / ${cap}`}</Text>
+        </View>
         <Text style={styles.line}>
-          {t('supply.camp.tradeBonus', {
-            trade: tr(tradeInfo[posted.trade.id].name),
-            level: tradeLevel(posted.trade.hours),
-            percent: Math.round(parts.tradeBonus * 100),
-          })}
+          {`${t('supply.leavesIn', { time: formatDuration(Math.max(0, building.expiresAt - now), false) })}${last ? ` · ${t('supply.lastDay')}` : ''}`}
         </Text>
-      )}
-      <View style={styles.stockRow}>
-        <FillBar value={cap > 0 ? stock / cap : 0} />
-        <Text style={styles.stockText}>{`${stock} / ${cap}`}</Text>
-      </View>
-      <Text style={styles.line}>{t('supply.network.collectAtCamp')}</Text>
-      {posted ? (
-        <WoodButton title={t('jobs.recall')} compact onPress={() => recallPosted(posted.id)} />
-      ) : posting ? (
-        <PostHeroList camp={settled} />
-      ) : (
-        <EmberButton title={t('supply.camp.post')} compact onPress={() => setPosting(true)} />
-      )}
-    </ParchmentCard>
+      </ParchmentCard>
+    </PressScale>
   );
 }
 
@@ -147,6 +130,6 @@ const styles = StyleSheet.create({
   body: { gap: 10 },
   card: { gap: 8 },
   line: { color: ui.ink },
-  qualityRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },  stockRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  stockRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   stockText: { color: ui.ink },
 });

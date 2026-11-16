@@ -19,9 +19,11 @@ type MapPanelsState = {
   tavern: TavernSpawn | null;
   place: PlaceSpawn | null;
   patrol: PatrolSpawn | null;
-  /** The supply cell sheet's cell, or the camp sheet's camp id. */
+  /** The site sheet's site. */
+  site: PlaceSpawn | null;
+  /** The supply cell sheet's cell, or the building sheet's building id. */
   supplyCell: string | null;
-  supplyCamp: string | null;
+  supplyBuilding: string | null;
   /** The cart's sheet. */
   cartOpen: boolean;
   /** The route being drawn in the map's planner, or null when it is closed. */
@@ -31,10 +33,11 @@ type MapPanelsState = {
   openSanctum: (spawn: SanctumSpawn) => void;
   openTavern: (tavern: TavernSpawn) => void;
   openPlace: (place: PlaceSpawn) => void;
+  openSite: (site: PlaceSpawn) => void;
   /** Also lets go of a notification's held camera: the patrol was picked by hand. */
   openPatrol: (spawn: PatrolSpawn) => void;
   openSupplyCell: (cell: string) => void;
-  openSupplyCamp: (id: string) => void;
+  openSupplyBuilding: (id: string) => void;
   openCart: () => void;
   /** Opens the map's route planner on a starting route, closing the cart's sheet. */
   planRoute: (route: RoutePoint[]) => void;
@@ -48,10 +51,11 @@ type MapPanelsState = {
   closeSanctum: () => void;
   closeTavern: () => void;
   closePlace: () => void;
+  closeSite: () => void;
   /** Also lets go of a notification's held camera. */
   closePatrol: () => void;
   closeSupplyCell: () => void;
-  closeSupplyCamp: () => void;
+  closeSupplyBuilding: () => void;
   closeCart: () => void;
   cancelRoute: () => void;
 };
@@ -61,20 +65,22 @@ export const useMapPanels = create<MapPanelsState>()((set) => ({
   tavern: null,
   place: null,
   patrol: null,
+  site: null,
   supplyCell: null,
-  supplyCamp: null,
+  supplyBuilding: null,
   cartOpen: false,
   routeDraft: null,
   draftPreview: null,
   openSanctum: (spawn) => set({ sanctum: spawn }),
   openTavern: (tavern) => set({ tavern }),
   openPlace: (place) => set({ place }),
+  openSite: (site) => set({ site }),
   openPatrol: (spawn) => {
     set({ patrol: spawn });
     useWorldStore.getState().set({ focusPatrol: null });
   },
-  openSupplyCell: (cell) => set({ supplyCell: cell, supplyCamp: null }),
-  openSupplyCamp: (id) => set({ supplyCamp: id, supplyCell: null }),
+  openSupplyCell: (cell) => set({ supplyCell: cell, supplyBuilding: null }),
+  openSupplyBuilding: (id) => set({ supplyBuilding: id, supplyCell: null }),
   openCart: () => set({ cartOpen: true }),
   planRoute: (route) => set({ routeDraft: route, cartOpen: false }),
   addToRoute: (point) => set((state) => ({ routeDraft: [...(state.routeDraft ?? []), point] })),
@@ -84,12 +90,13 @@ export const useMapPanels = create<MapPanelsState>()((set) => ({
   closeSanctum: () => set({ sanctum: null }),
   closeTavern: () => set({ tavern: null }),
   closePlace: () => set({ place: null }),
+  closeSite: () => set({ site: null }),
   closePatrol: () => {
     set({ patrol: null });
     useWorldStore.getState().set({ focusPatrol: null });
   },
   closeSupplyCell: () => set({ supplyCell: null }),
-  closeSupplyCamp: () => set({ supplyCamp: null }),
+  closeSupplyBuilding: () => set({ supplyBuilding: null }),
   closeCart: () => set({ cartOpen: false }),
   cancelRoute: () => set({ routeDraft: null, draftPreview: null }),
 }));

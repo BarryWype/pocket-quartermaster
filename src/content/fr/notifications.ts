@@ -29,7 +29,7 @@ export const frNotificationCategories: Record<keyof typeof notificationCategorie
   secretPlace: { title: 'Lieu secret', description: 'Quand vous passez près d’un lieu secret indiqué et que vous avez une clé.' },
   patrolSpotted: { title: 'Patrouille repérée', description: 'Quand une patrouille ou un voyageur entre dans votre champ de vision pendant que l’app est fermée.' },
   escort: { title: 'Escorte', description: 'Quand votre escorte fait une pause pour se reposer ou est mise KO.' },
-  raids: { title: 'Raids', description: 'Quand des pillards sont annoncés contre l’un de vos camps.' },
+  raids: { title: 'Raids', description: 'Quand des pillards sont annoncés contre l’un de vos bâtiments.' },
 };
 
 export const frNotificationTexts: typeof notificationTexts = {
@@ -51,7 +51,7 @@ export const frNotificationTexts: typeof notificationTexts = {
   jobFull: { title: '{job} : production pleine', body: 'Prête à être récoltée à la guilde.' },
   jobTired: { title: '{hero} est fatigué ({job})', body: 'Repos au poste jusqu’au retour de son énergie.' },
   jobHurt: { title: '{hero} a été blessé en cueillant', body: 'La faune près du camp. Vérifiez ses PV avant un donjon.' },
-  raidAnnounced: { title: 'Des pillards en route vers votre {camp}', body: '{kind}, dans {hours} h. Envoyez des défenseurs, ou videz le camp.' },
+  raidAnnounced: { title: 'Des pillards en route vers votre {building}', body: '{kind}, dans {hours} h. Envoyez des défenseurs, ou videz le bâtiment.' },
   chestUnlocked: { title: 'Coffre de pas débloqué', body: 'Votre {chest} est prêt à être ouvert.' },
   chestClose: { title: 'Presque arrivé', body: 'Plus que {steps} pas avant votre {chest}.' },
   dailyReset: { title: 'Nouvelle journée', body: 'Nouvelle journée, nouveaux coffres de pas.' },

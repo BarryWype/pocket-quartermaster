@@ -6,7 +6,7 @@ import { gearRules } from "@/content/gear";
 import { affixById } from "@/content/affixes";
 import { gearStats } from "./gear/stats";
 import { uniquePool } from "./gear/uniques";
-import { migrateSave, toV38, toV39, toV40, toV41, toV42, toV43, toV44, toV47, toV48, toV49, toV50, toV52, toV53, toV54, toV55 } from "./migrations";
+import { migrateSave, toV38, toV39, toV40, toV41, toV42, toV43, toV44, toV47, toV48, toV49, toV50, toV52, toV53, toV54, toV55, toV56 } from "./migrations";
 import { affixPool } from "./gear/affixes";
 import { emptyLoot } from "./loot/types";
 import type { Briefing, ExpeditionReport, GearDef, GearInstance } from "./types";
@@ -1055,8 +1055,8 @@ describe("toV52", () => {
   it("gives the trio their starting trades, anyone else a roll from their own id", () => {
     const next = migrateSave(v51(), 51, NOW);
     const byId = Object.fromEntries(next.heroes.map((hero) => [hero.id, hero]));
-    expect(byId.bram.trade).toEqual({ id: "woodcutter", hours: 0 });
-    expect(byId.lyra.trade).toEqual({ id: "trapper", hours: 0 });
+    expect(byId.bram.trade).toEqual({ id: "herbalist", hours: 0 });
+    expect(byId.lyra.trade).toEqual({ id: "farmer", hours: 0 });
     expect(byId.mira.trade).toEqual({ id: "teamster", hours: 0 });
     expect(byId.h9.trade).toEqual({ id: rolledTrade("h9"), hours: 0 });
   });
@@ -1120,7 +1120,7 @@ describe("toV53", () => {
     return {
       ...base,
       materials: { ...base.materials, wood: 2 },
-      tips: { seen: ["supplyHall", "supplyScout"], pending: ["supplyCamps", "supplyCampSheet"] },
+      tips: { seen: ["supplyHall", "supplyScout"], pending: ["supplyCamps", "supplyBuildingSheet"] },
       supply: {
         ...emptySupply(NOW),
         hall: { cell: hallCell, movedAt: NOW - 2 * DAY },
@@ -1152,7 +1152,7 @@ describe("toV53", () => {
     const before = v52();
     const next = toV53(before);
     expect(next.materials.wood).toBe(2 + 7 + 4);
-    expect(next.supply.camps).toEqual([]);
+    expect((next.supply as unknown as { camps: unknown[] }).camps).toEqual([]);
     // The posted hero's camp is gone, so they are free.
     expect(next.supply.cart.crew).toEqual({ driver: "mira", escorts: ["lyra"] });
   });
@@ -1173,7 +1173,7 @@ describe("toV53", () => {
     expect(next.supply.hall).toEqual({ cell: hallCell, moves: [NOW - 2 * DAY] });
     expect((next.supply as Record<string, unknown>).scouted).toBeUndefined();
     expect((next.supply as Record<string, unknown>).slotsFreeAt).toBeUndefined();
-    expect(next.tips).toEqual({ seen: [], pending: ["supplyCampSheet"] });
+    expect(next.tips).toEqual({ seen: [], pending: ["supplyBuildingSheet"] });
   });
 
   it("keeps a hall never moved as one with no moves, and is a no-op the second time", () => {
@@ -1265,5 +1265,81 @@ describe("toV55", () => {
 
   it("runs from migrateSave on a version 54 save", () => {
     expect(migrateSave(v54(), 54, 0).supply.discovered).toEqual({});
+  });
+});
+
+describe("toV56", () => {
+  /** A version 55 save: its supply still holds camps, camp route points, camp events and camp raid lines. */
+  const v55 = (): SaveData => {
+    const base = createInitialSave();
+    const supply = base.supply as unknown as Record<string, unknown>;
+    delete supply.buildings;
+    delete supply.personalSite;
+    supply.camps = [{ id: "c1", stock: { wood: 4 } }];
+    supply.cart = {
+      ...base.supply.cart,
+      route: [{ camp: "c1" }, { cell: "abc" }],
+      nextRoute: [{ camp: "c1" }],
+      loop: {
+        n: 1,
+        startedAt: 0,
+        endsAt: 1,
+        points: [],
+        speedMps: 1,
+        capacity: 20,
+        events: [{ at: 0, kind: "camp", campId: "c1" }],
+      },
+      cargo: { wood: 2 },
+    };
+    supply.raid = { campId: "c1", kind: "goblins", tier: 1, landsAt: 10, defenders: [], result: null };
+    supply.raidLog = [{ campId: "c1", landsAt: 5, kind: "goblins", won: true, lost: {} }];
+    return {
+      ...base,
+      heroes: base.heroes.map((hero) =>
+        hero.id === "bram"
+          ? { ...hero, trade: { id: "woodcutter" as unknown as never, hours: 12 } }
+          : hero.id === "lyra"
+            ? { ...hero, trade: { id: "trapper" as unknown as never, hours: 40 } }
+            : hero,
+      ),
+      supply: supply as unknown as SaveData["supply"],
+    };
+  };
+
+  it("closes the remaining camps into the materials and starts the buildings empty", () => {
+    const next = toV56(v55());
+    expect(next.supply.buildings).toEqual([]);
+    expect(next.supply.personalSite).toBeNull();
+    expect(next.materials.wood).toBe(4);
+  });
+
+  it("keeps only waypoint cells in the routes, and parks a loop that held camp events", () => {
+    const next = toV56(v55());
+    expect(next.supply.cart.route).toEqual([{ cell: "abc" }]);
+    expect(next.supply.cart.nextRoute).toEqual([]);
+    expect(next.supply.cart.loop).toBeNull();
+    expect(next.supply.cart.cargo).toEqual({});
+  });
+
+  it("drops the pending raid and points the raid log's lines at building ids", () => {
+    const next = toV56(v55());
+    expect(next.supply.raid).toBeNull();
+    expect(next.supply.raidLog).toEqual([{ buildingId: "c1", landsAt: 5, kind: "goblins", won: true, lost: {} }]);
+  });
+
+  it("turns a Woodcutter into an Herbalist and a Trapper into a Farmer, hours kept", () => {
+    const next = toV56(v55());
+    const tradeOf = (heroId: string) => next.heroes.find((h) => h.id === heroId)!.trade;
+    expect(tradeOf("bram")).toMatchObject({ id: "herbalist", hours: 12 });
+    expect(tradeOf("lyra")).toMatchObject({ id: "farmer", hours: 40 });
+  });
+
+  it("returns the same save when it has no camps left", () => {
+    const save = createInitialSave();
+    expect(toV56(save)).toBe(save);
+  });
+
+  it("runs from migrateSave on a version 55 save", () => {
+    expect(migrateSave(v55(), 55, 0).supply.buildings).toEqual([]);
   });
 });

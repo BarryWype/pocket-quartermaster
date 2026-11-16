@@ -1,18 +1,19 @@
 # Supply lines (experimental)
 
-**Status: being reshaped** on branch `feat/supply-lines`. The first trial (steps 0–6 of `Claude outputs/supply-lines-small-prompt.md`) scouted ground and founded camps anywhere. Step 0 of `Claude outputs/supply-network-prompts.md` removed the scouting grid, richness, founding on any cell and packing up: camps, postings, the cart and raids stay, waiting for the sites and buildings of the next steps. Nothing in the game creates a camp until then.
+**Status: being reshaped** on branch `feat/supply-lines`, following `Claude outputs/supply-network-prompts.md` (steps 0–4 built). The first trial (`Claude outputs/supply-lines-small-prompt.md`) scouted ground and founded camps anywhere; the network replaces that with sites you discover and buildings you put on them. Orders at places, street routes and the guided first chain come next.
 
 The whole feature sits behind **Settings → Developer → "Supply lines (experimental)"**, off by default. With it off, nothing changes or shows, and the simulator's default run doesn't play it. Every number lives in `src/content/supplyLines.ts` (table below). The rules are pure functions in `src/game/supply/`, settled from timestamps when read; nothing runs on a timer except one timeout for the next cart or raid moment while the app is open.
 
-Decided at step 0 (2026-11-13): danger counts live patrols (option A); the prompt's ambush chances are kept; the trade names stay even though Woodcutter and Trapper are also guild job names; the starting trio is Bram Woodcutter, Lyra Trapper, Mira Teamster; cart legs may cross open water.
+Decided at the trial's step 0 (2026-11-13): danger counts live patrols (option A); the prompt's ambush chances are kept; cart legs may cross open water.
 
 ## How it plays
 
 1. Turn the switch on.
 2. Tap the map (or your own marker) to open a cell's sheet, and place the **hall** there.
-3. Camps (made by buildings on sites, in a later step) produce over time. Locals work them slowly; **post a hero** for the full rate.
-4. **Plan the cart's route** on the map, around danger. Give it a **crew**, start it, and it carries the camps' stock home loop after loop.
-5. **Raids** are announced against a camp. Send defenders, empty it, or let it go.
+3. **Walk** to sites and places to discover them.
+4. **Build** a farm, quarry or herb garden on a discovered site, standing on it. Locals work it slowly; **post a hero** for the full rate.
+5. **Plan the cart's route** around danger. Give it a **crew**, start it, and it carries the buildings' stock home loop after loop.
+6. **Raids** are announced against a building. Send defenders, empty it, or let it go.
 
 ## Places: the six-day rotation
 
@@ -63,34 +64,53 @@ eady generates:
 - **Ambush chance per crossing:** 0%, 2%, 5% and 10% by level.
 - **Shared world:** positions and difficulties are the same for every player. Only the patrol kind (by tier), beaten patrols and used places differ, which is where patrols already differ.
 
-## The hall and camps
+## Trades
+
+- **Every hero has a trade** beside their class: Farmer, Quarryman, Herbalist, Teamster or Watchman. It's rolled at even weights from the offer's id for tavern, traveller and secret recruits (so the offer shows what the hero gets), from the hero's id otherwise. The starting trio: Bram Herbalist, Lyra Farmer, Mira Teamster.
+- **Level 1 to 3**, by hours spent using it: posted at a matching building (any building for a Watchman), or driving the cart for a Teamster.
+- **Where it shows:** offers, the hero sheet and the hero pickers, only while the switch is on.
+- **The trial's trades** became network ones in save version 56, keeping their hours: Woodcutter → Herbalist, Trapper → Farmer.
+
+## The hall, sites and buildings
 
 - **The hall:** placed from a cell's sheet and stored as its cell.
   - The first placement is free and doesn't count as a move.
   - After that it moves **twice in any 7 days**. The sheet's button says when the next move comes back once both are used.
-  - A move asks first, in a dialog: the moves left this week, when the next one comes back, and how many camps would end up more than 2 km away, out of the hall's reach (a warning, not a refusal).
-- **Camps:** a timber camp (makes wood) or a trapper's camp (makes meat, hide and bone), each with a **quality** of 1 to 3 stars. Nothing creates them in this step: buildings on sites will.
+  - A move asks first, in a dialog: the moves left this week, when the next one comes back, and how many buildings would end up beyond the tier's reach of it (a warning, not a refusal).
+- **Sites** are places of their own (`siteGroup`, kept out of the map's other place groups): six days, the three-group rotation, 0.8 per km² (about 2–3 within 1 km), placed on walkable ground like other places. Only shown while the switch is on.
+  - **The guarantee:** if no site is within 800 m of the period's first map position, a personal site appears 300–700 m away for the two-day period, like the personal tavern.
+  - **Quality:** 1 to 3 stars (50%, 35%, 15%), drawn from the site's seed and revealed by discovering it.
+- **Buildings:** any of three on any discovered site, built in person (within 50 m) for 60 gold and 10 wood. Building resets the site's life: a building lasts six days.
+
+  | Building | Makes, per unit | Base rate per star | Mainly for |
+  | --- | --- | --- | --- |
+  | Farm | grain 85%, meat 15% | 1.0 / h | Taverns |
+  | Quarry | stone | 0.8 / h | Smithies |
+  | Herb garden | herbs 50%, berries 30%, mushrooms 20% | 0.8 / h | Apothecaries |
+
+- **Limits by tier:** buildings at once, each within this distance of the hall: tiers 1–2: 3 within 1 km; tier 3: 4 within 1.5 km; tier 4: 5 within 2 km; tier 5: 6 within 2.5 km.
+- **Why not:** a build is refused, in this order, for no hall, a site not discovered, one already built, too far from the hall, all buildings placed, not standing there, or the cost. The site's sheet shows the first that blocks every building as a banner and each one's reason under its button.
+- **When it leaves:** the cart's calls before that moment still collect; then the stock left is lost, the posted hero is free again, and a raid on it is dropped. The sheet says so in its last day, and the marker gets an hourglass badge.
+- **Grain** is a new material, made only by farms. Its use comes with orders (step 5).
 
 ## Production and postings
 
-- **Rate:** quality × base rate per hour, at the full rate.
-  - Timber: 1.0 wood per star.
-  - Trapper's camp: 0.8 units per star, rolled with the trapper job's weights (meat 45, hide 35, bone 20).
-  - Guild jobs make 0.3 an hour.
-- **Locals** work an empty camp at 40% of the rate. Set `localsShare` to 0 and an empty camp makes nothing.
-- **Posting** a hero runs the camp at the full rate.
-  - A matching trade (Woodcutter at timber, Trapper at a trapper's camp) adds 25/50/100% by level. Any other trade gets the full rate with no bonus.
+- **Rate:** quality × the building's base rate per hour, at the full rate (guild jobs make 0.3 an hour).
+- **Locals** work an empty building at 40% of the rate. Set `localsShare` to 0 and an empty building makes nothing.
+- **Posting** a hero runs the building at the full rate.
+  - A matching trade (Farmer at a farm, Quarryman at a quarry, Herbalist at a herb garden) adds 25/50/100% by level. Any other trade gets the full rate with no bonus.
   - A posted hero is busy like a hero on a guild job: shown as "Posted", and recalled automatically by any send.
 - **Stock** fills up to 12 hours of full output, then stops.
-- **Collecting** in person within 100 m moves the stock to the inventory and inspects the camp: +25% for 24 hours.
-- **Settling:** a camp settles in pieces split at every rate change (inspection, closure), so settling once or often gives the same stock.
-- **The Network tab** (Expeditions screen) shows the hall, each camp's line of numbers, the cart and raids. Its badge and the menu's count camps at their cap.
+- **Collecting** in person within 100 m moves the stock to the inventory and inspects the building: +25% for 24 hours.
+- **Settling:** a building settles in pieces split at every rate change (inspection, closure, expiry), so settling once or often gives the same stock.
+- **The sheets** follow the approved mockups (`mockups/SiteSheet.html`, `mockups/BuildingSheet.html`): a "Leaves in …" strip under the header (ember with "LAST DAY" in the last 24 h), the building's flow (worker → goods per hour → stock → cart or you), who works it, its stock and the cart, with one ember button for the next step.
+- **The Network tab** lists the hall, each building (stock, time left), the cart and raids. Its full rebuild comes with the first chain.
 
 ## The cart and its route
 
 - **One cart** runs loops (hall → route points in order → hall) while a route is set, in straight lines between cell centres.
-- **The route planner** is a mode on the map. Tap camps in order, and any cell as a waypoint. A bottom bar shows the length, loop time and chance of at least one ambush per loop, and crossed cells are tinted by danger.
-- **Speed and load:** 3 km/h, or 60% of that with no driver. It carries 20 units. It loads at each camp, largest material first, and delivers at the hall.
+- **The route planner** is a mode on the map. Tap buildings in order, and any cell as a waypoint. A bottom bar shows the length, loop time and chance of at least one ambush per loop, and crossed cells are tinted by danger.
+- **Speed and load:** 3 km/h, or 60% of that with no driver. It carries 20 units. It loads at each building, largest material first, and delivers at the hall.
   - A Teamster driving adds 15/30/50% speed and 25/50/100% capacity.
 - **Crew:** a driver and up to two escorts. They are away during a loop, and the crew can only change while the cart is parked.
 - **Ambushes:** at departure, each distinct crossed cell rolls its level's chance once, seeded by loop and cell, at the danger of the window it's crossed in.
@@ -108,22 +128,22 @@ eady generates:
 - **The daily roll:** on each day the app is opened, one roll (50%) decides whether a raid lands later that day.
   - Never announced in the past, and nothing announced in the first 2 hours after an absence of 2 days or more.
   - At most one a day.
-- **Target:** weighted by projected stock at landing × (1 + average danger of the camp's cell and its 8 neighbours). No raid if no camp will hold stock.
-- **Raiders:** the strongest patrol around the camp, else one of your tier's medium kinds. They fight as a medium patrol fight, or easy when a Watchman is among the defenders.
-- **Announced** 2 hours before landing, or 4/5/6 hours with a Watchman posted at the target. It comes as a notification (its own setting, quiet hours respected), a banner on the Network tab and the camp sheet, and a countdown on the camp's marker.
+- **Target:** weighted by projected stock at landing × (1 + average danger of the building's cell and its 8 neighbours). No raid if no building will hold stock.
+- **Raiders:** the strongest patrol around the building, else one of your tier's medium kinds. They fight as a medium patrol fight, or easy when a Watchman is among the defenders.
+- **Announced** 2 hours before landing, or 4/5/6 hours with a Watchman posted at the target. It comes as a notification (its own setting, quiet hours respected), a banner on the Network tab and the building's sheet, and a countdown on its marker.
 - **Before it lands:**
   - **Defend:** send up to 3 heroes from the hall at 4 km/h; a party that would arrive too late can't go. The party dialog shows the odds and arrival time.
-  - **Empty the camp:** collect it in person, or let the cart call first.
+  - **Empty the building:** collect it in person, or let the cart call first.
   - **Leave it.**
 - **When it lands:** the posted hero and the arrived defenders fight.
   - **Won:** nothing is lost, plus the patrol loot roll.
-  - **Lost, or nobody there:** the stock is taken, and the camp is closed for 6 hours. A posted hero who loses comes home hurt and unposted.
+  - **Lost, or nobody there:** the stock is taken, and the building is closed for 6 hours. A posted hero who loses comes home hurt and unposted.
 - **Afterwards:** defenders wait for the raid, then walk back as long as they walked out.
 - **Settling order:** the cart up to the landing, then the raid, then everything to now, so a cart call before the landing saves its cargo.
 
 ## First run
 
-- **One-line tips** queue the first time a camp's sheet, the route planner and a raid banner appear. They also land in Field notes. The trial's three first-run cards are gone; the guided first chain replaces them later.
+- **One-line tips** queue the first time a building's sheet, the route planner and a raid banner appear. They also land in Field notes. The trial's three first-run cards are gone; the guided first chain replaces them later.
 
 ## Save
 
@@ -136,34 +156,39 @@ eady generates:
   - the scouted cells, the packed-up slots and the three first-run tips leave the save.
 - **Version 54** follows the six-day rotation (`toV54`): open quests aimed at a place retarget to a live one (progress kept), and the personal tavern is checked again under its two-day period (`personalTavern.day` becomes `period`).
 - **Version 55** adds `save.supply.discovered`, empty.
-- Renumber all four whenever the branch is brought up to date with main.
+- **Version 56** turns camps into buildings (`toV56`): `supply.camps` becomes an empty `supply.buildings`, route points name buildings, a pending raid is dropped, `personalSite` is added, and the trial's trades become Herbalist and Farmer.
+- Renumber all five whenever the branch is brought up to date with main.
 - **Types** are in `src/game/supply/types.ts`. **The switch** is a setting, not save data.
 
 ## Simulator
 
 - **The flag:** `npm run sim -- --supply-lines` plays the supply lines with a minimal bot (`src/game/sim/supply.ts`) and adds a **Supply lines** section to the report. Without the flag nothing runs, so today's numbers don't move.
-- **The bot** places the hall at home. With no way to make camps in this step, the cart, postings and raids stay idle and the section reads zero until sites and buildings land.
+- **The bot** places the hall at home and doesn't build yet (step 8), so the cart, postings and raids stay idle and the section reads zero.
 
 ## Config (`src/content/supplyLines.ts`)
 
 | Number | Value | What it does |
 | --- | --- | --- |
 | `trade.levelHours` | 0 / 40 / 120 | Hours of use to reach trade levels 1, 2, 3. |
-| `startingTrades` | Bram woodcutter, Lyra trapper, Mira teamster | The starting trio's trades. |
+| `startingTrades` | Bram herbalist, Lyra farmer, Mira teamster | The starting trio's trades. |
 | `cellPrecision` | 7 | The geohash grid of the feature. |
 | `cellStepMeters` | 35 | Step along a segment when listing the cells it crosses. |
 | `hall.movesPerWeek` | 2 | Moves of the hall in any 7 days (the first placement doesn't count). |
-| `camps.maxHallMeters` | 2000 | A move warns about camps farther than this from the new hall. |
+| `buildings.limits` | 3/1 km (tiers 1–2), 4/1.5 km, 5/2 km, 6/2.5 km | Buildings at once, each within this distance of the hall. |
+| `buildings.cost` / `lifeDays` / `lastDayHours` | 60 gold + 10 wood / 6 / 24 | What building costs, how long a building lasts, when its last day starts. |
+| `buildings.kinds` | see the table above | What each building makes, its base rate per star, the place kind it serves. |
+| `sites.qualityShares` | 0.5 / 0.35 / 0.15 | Chances of 1, 2 and 3 stars. |
+| `sites.guaranteeMeters` / `personal.meters` | 800 / 300–700 | The site guarantee and where a personal site goes. |
+| `siteGroup` | 0.8 per km², six days, three groups | How sites spawn. |
 | `terrain.samplesPerSide` | 4 | A cell is classified on this many points per side. |
 | `terrain.greenShare` | 0.25 | Share of points in green that makes a cell green. |
 | `terrain.waterEdgeMeters` | 50 | How close to water still counts as water's edge. |
-| `production.baseRate` | timber 1.0, trapper 0.8 | Units per hour per quality star at the full rate. |
 | `production.localsShare` | 0.4 | Share of the rate locals make with nobody posted (0 works). |
 | `production.tradeBonus` | 0.25 / 0.5 / 1.0 | A matching trade's bonus by level. |
 | `production.capHours` | 12 | Stock holds this many hours of full output. |
-| `production.inspectHours` / `inspectBonus` | 24 / 0.25 | Collecting in person inspects the camp: +25% for a day. |
-| `production.collectMeters` | 100 | Collect range from the camp cell's centre. |
-| `matchingTrade` | timber woodcutter, trapper trapper | The trade that raises each camp kind. |
+| `production.inspectHours` / `inspectBonus` | 24 / 0.25 | Collecting in person inspects the building: +25% for a day. |
+| `production.collectMeters` | 100 | Collect range from the building. |
+| `matchingTrade` | farm farmer, quarry quarryman, herb garden herbalist | The trade that raises each building. |
 | `cart.speedKmh` | 3 | The cart's speed with a driver. |
 | `cart.noDriverSpeed` | 0.6 | Share of the speed with nobody driving. |
 | `cart.capacity` | 20 | Units the cart carries. |
@@ -183,7 +208,7 @@ eady generates:
 | `raids.announceHours` | 2 | Lead between announcement and landing. |
 | `raids.watchmanAnnounceHours` | 4 / 5 / 6 | The lead with a Watchman posted, by level. |
 | `raids.awayDays` / `returnQuietHours` | 2 / 2 | After 2 days away, nothing is announced for 2 hours. |
-| `raids.closedHours` | 6 | A camp that lost a raid makes nothing this long. |
+| `raids.closedHours` | 6 | A building that lost a raid makes nothing this long. |
 | `raids.maxDefenders` | 3 | Heroes you can send, on top of the posted one. |
 | `raids.walkKmh` | 4 | Defenders' walking speed. |
 
@@ -200,7 +225,15 @@ eady generates:
 - **Out of reach** after a hall move is only a warning for now; buildings give it a consequence later.
 - **`supply.seen`** is unused: the tips use the game's tip queue instead.
 
-## What I'd build next
+## Debug (Settings → Developer, Supply lines)
+
+- **Place a site here** with 1, 2 or 3 stars, 20 m north of you.
+- **Discover everything in view** (1.2 km): network places and sites.
+- **Age the network by two days:** buildings, the cart and raids replay two more days; map places follow the real clock.
+- On a site's sheet: **Build free** and **Expire this site now**; on a building's: **Expire now** and the raid button.
+- **Place the hall here**, **Show danger levels**.
+
+## From the trial: what I'd build next
 
 1. **Fewer, fairer ambushes first:** lower per-level chances (0 / 0.5 / 2 / 5%) or patrol-free routing. At today's numbers about 40% of loops meet one, which drowns the routing choice.
 2. **A raiders' camp to win back stolen cargo:** a temporary place near the raided camp, the stock as its loot. It turns a loss into a goal instead of a tax.

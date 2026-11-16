@@ -5,7 +5,7 @@ import { PressScale } from '@/components/motion';
 import { heroClasses } from '@/content/heroes';
 import { supplyRules } from '@/content/supplyLines';
 import { isBusy } from '@/game/team/team';
-import type { Camp } from '@/game/supply/types';
+import type { Building } from '@/game/supply/types';
 import type { HeroState } from '@/game/types';
 import { t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
@@ -16,7 +16,7 @@ import { TradeLabel } from './TradeLabel';
 
 /** A list of heroes to pick from, each with their class and trade; tap picks one. */
 export function HeroChoiceList({ heroes, action, onPick }: { heroes: HeroState[]; action: string; onPick: (heroId: string) => void }) {
-  if (heroes.length === 0) return <Text style={styles.empty}>{t('supply.camp.noFreeHeroes')}</Text>;
+  if (heroes.length === 0) return <Text style={styles.empty}>{t('supply.building.noFreeHeroes')}</Text>;
   return (
     <View style={styles.list}>
       {heroes.map((hero) => (
@@ -38,15 +38,15 @@ export function HeroChoiceList({ heroes, action, onPick }: { heroes: HeroState[]
   );
 }
 
-/** The heroes free to post at a camp, the matching trade first; tap posts them. */
-export function PostHeroList({ camp }: { camp: Camp }) {
+/** The heroes free to post at a building, the matching trade first; tap posts them. */
+export function PostHeroList({ building }: { building: Building }) {
   const save = useGameStore((s) => s.save);
   const postHero = useGameStore((s) => s.postHero);
-  const matching = supplyRules.matchingTrade[camp.kind];
+  const matching = supplyRules.matchingTrade[building.kind];
   const free = save.heroes
     .filter((hero) => !isBusy(save, hero.id))
     .sort((a, b) => Number(b.trade.id === matching) - Number(a.trade.id === matching));
-  return <HeroChoiceList heroes={free} action={t('supply.camp.post')} onPick={(heroId) => postHero(camp.id, heroId)} />;
+  return <HeroChoiceList heroes={free} action={t('supply.building.post')} onPick={(heroId) => postHero(building.id, heroId)} />;
 }
 
 const styles = StyleSheet.create({

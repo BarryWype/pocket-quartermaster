@@ -69,7 +69,7 @@ describe('network place discovery', () => {
       { position: offsetPosition(spawn.position, placeRules.interactionMeters + 10, 0), timestamp: at },
       { position: spawn.position, timestamp: at + 1000 },
     ];
-    const { save: next, found } = discoverAlong(save, fixes);
+    const { save: next, found } = discoverAlong(save, fixes, {});
     expect(found.map((place) => place.id)).toEqual([spawn.id]);
     expect(isDiscovered(next, spawn.id)).toBe(true);
   });

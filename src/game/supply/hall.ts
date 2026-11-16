@@ -3,7 +3,8 @@ import { supplyRules } from '@/content/supplyLines';
 import { distanceMeters } from '../generation/geo';
 import { tileCenter } from '../generation/tiles';
 import type { SaveData } from '../save';
-import type { Camp } from './types';
+import { buildingReach } from './buildings';
+import type { Building } from './types';
 
 const WEEK_MS = 7 * 24 * 3_600_000;
 
@@ -31,10 +32,10 @@ export function hallProblem(save: SaveData, cell: string, now: number): HallProb
   return hallMovesLeft(save, now) <= 0 ? 'noMovesLeft' : null;
 }
 
-/** The camps that would stand farther than `maxHallMeters` from that cell's centre: a warning, not a refusal. */
-export function campsOutOfReach(save: SaveData, cell: string): Camp[] {
+/** The buildings that would stand farther than the tier's reach from that cell's centre: a warning, not a refusal. */
+export function buildingsOutOfReach(save: SaveData, cell: string): Building[] {
   const centre = tileCenter(cell);
-  return save.supply.camps.filter((camp) => distanceMeters(tileCenter(camp.cell), centre) > supplyRules.camps.maxHallMeters);
+  return save.supply.buildings.filter((building) => distanceMeters(building.position, centre) > buildingReach(save).meters);
 }
 
 /**

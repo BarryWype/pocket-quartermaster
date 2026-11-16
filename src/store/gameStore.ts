@@ -78,12 +78,15 @@ import { createRng } from '@/game/generation/rng';
 import { makeGearPiece } from '@/game/gear/make';
 import { distanceMeters } from '@/game/generation/geo';
 import { placeHall as placeHallInSave } from '@/game/supply/hall';
-import { discoverAlong, discoverAt, discoveryNote } from '@/game/supply/discovery';
-import { collectCamp as collectCampInSave, postHero as postHeroInSave, recallPosted as recallPostedInSave } from '@/game/supply/postings';
+import { discoverAlong, discoverAt, discoveryNote, networkPlacesAround } from '@/game/supply/discovery';
+import { collectBuilding as collectBuildingInSave, postHero as postHeroInSave, recallPosted as recallPostedInSave } from '@/game/supply/postings';
+import { build as buildInSave } from '@/game/supply/buildings';
+import { checkPersonalSite as checkPersonalSiteInSave } from '@/game/supply/sites';
+import { ageNetwork } from '@/game/supply/debug';
 import { debugRaid as debugRaidInSave, sendDefenders as sendDefendersInSave } from '@/game/supply/raids';
 import { settleNetwork } from '@/game/supply/settle';
 import { setCrew as setCrewInSave, setRoute as setRouteInSave, startCart as startCartInSave, stopCart as stopCartInSave } from '@/game/supply/cart';
-import type { RoutePoint } from '@/game/supply/types';
+import type { BuildingKind, RoutePoint } from '@/game/supply/types';
 import type { EquipmentSlot, ExpeditionReport, Heist, HeroClassId, HeroRoll, PlaceFight, Rarity } from '@/game/types';
 
 import { t } from '@/i18n';
@@ -114,18 +117,30 @@ type GameState = {
   engagePatrol: (spawn: PatrolSpawn, heroIds: string[], player: LatLng) => void;
   /** Supply lines: places or moves the hall (see game/supply/hall.ts). */
   placeHall: (cell: string) => void;
-  /** Supply lines: posts a hero at a camp (see game/supply/postings.ts). */
-  postHero: (campId: string, heroId: string) => void;
+  /** Supply lines: posts a hero at a building (see game/supply/postings.ts). */
+  postHero: (buildingId: string, heroId: string) => void;
   /** Supply lines: recalls a posted hero. */
   recallPosted: (heroId: string) => void;
-  /** Supply lines: collects a camp's stock in person, inspecting it. */
-  collectCamp: (campId: string, player: LatLng) => void;
-  /** Supply lines: settles every camp to now (stock and trade hours); a no-op when nothing changed. */
+  /** Supply lines: collects a building's stock in person, inspecting it. */
+  collectBuilding: (buildingId: string, player: LatLng) => void;
+  /** Supply lines: raises a building on a discovered site; `free` skips the cost and the walk (debug only). */
+  build: (site: PlaceSpawn, kind: BuildingKind, player: LatLng, free?: boolean) => void;
+  /** Runs the period's site-guarantee check from the period's first map position; `snap` places a spot on a walkable point. */
+  checkPersonalSite: (origin: LatLng, snap: (point: LatLng) => LatLng | null) => void;
+  /** Supply lines: settles every building to now (stock and trade hours); a no-op when nothing changed. */
   settleSupply: () => void;
-  /** Sends heroes from the hall to defend the raided camp. */
+  /** Sends heroes from the hall to defend the raided building. */
   sendDefenders: (heroIds: string[]) => void;
-  /** Debug: a raid on this camp in two minutes. */
-  debugRaid: (campId: string) => void;
+  /** Debug: a raid on this building in two minutes. */
+  debugRaid: (buildingId: string) => void;
+  /** Debug: shifts every supply timestamp back by `ms`, then settles the network to now. */
+  debugAgeNetwork: (ms: number) => void;
+  /** Debug: a building's life ends now, then the network settles to now. */
+  debugExpireBuilding: (buildingId: string) => void;
+  /** Debug: a site's life ends now: it lands in usedPlaces with its expiry. */
+  debugExpireSite: (site: PlaceSpawn) => void;
+  /** Debug: marks every live network place and site within 1.2 km of the position discovered. */
+  debugDiscoverAround: (position: LatLng) => void;
   /** Supply lines: sets the cart's route; while a loop runs it applies at the next departure. */
   setRoute: (route: RoutePoint[]) => void;
   /** Supply lines: sets the cart's crew, which can only change while the cart is parked. */
@@ -356,7 +371,7 @@ export const useGameStore = create<GameState>()(
         // Supply lines: the walk discovers the network places it passed. The switch is read here, so autoGather stays store-free.
         if (useSettingsStore.getState().supplyLines) {
           const fresh = fixes.filter((fix) => fix.timestamp > before.autoGather.processedUntil);
-          const { save: discovered, found } = discoverAlong(walked, fresh);
+          const { save: discovered, found } = discoverAlong(walked, fresh, options.tiles ?? {});
           if (found.length > 0) {
             walked = discovered;
             const note = discoveryNote(found);
@@ -388,15 +403,20 @@ export const useGameStore = create<GameState>()(
       },
       engagePatrol: (spawn, heroIds, player) => set({ save: startPatrolFight(get().save, spawn, heroIds, player, Date.now()) }),
       placeHall: (cell) => set({ save: placeHallInSave(get().save, cell, Date.now()) }),
-      postHero: (campId, heroId) =>
+      postHero: (buildingId, heroId) =>
         set({
-          save: postHeroInSave(settleNetwork(get().save, Date.now()), campId, heroId, Date.now()),
+          save: postHeroInSave(settleNetwork(get().save, Date.now()), buildingId, heroId, Date.now()),
         }),
       recallPosted: (heroId) => set({ save: recallPostedInSave(get().save, heroId, Date.now()) }),
-      collectCamp: (campId, player) =>
+      collectBuilding: (buildingId, player) =>
         set({
-          save: collectCampInSave(settleNetwork(get().save, Date.now()), campId, player, Date.now()),
+          save: collectBuildingInSave(settleNetwork(get().save, Date.now()), buildingId, player, Date.now()),
         }),
+      build: (site, kind, player, free = false) => set({ save: buildInSave(settleNetwork(get().save, Date.now()), site, kind, player, Date.now(), { free }) }),
+      checkPersonalSite: (origin, snap) => {
+        const next = checkPersonalSiteInSave(get().save, origin, Date.now(), snap);
+        if (next !== get().save) set({ save: next });
+      },
       settleSupply: () => {
         const now = Date.now();
         const settled = settleNetwork(get().save, now);
@@ -406,7 +426,31 @@ export const useGameStore = create<GameState>()(
         const now = Date.now();
         set({ save: sendDefendersInSave(settleNetwork(get().save, now), heroIds, now) });
       },
-      debugRaid: (campId) => set({ save: debugRaidInSave(get().save, campId, Date.now()) }),
+      debugRaid: (buildingId) => set({ save: debugRaidInSave(get().save, buildingId, Date.now()) }),
+      debugAgeNetwork: (ms) => set({ save: settleNetwork(ageNetwork(get().save, ms), Date.now()) }),
+      debugExpireBuilding: (buildingId) => {
+        const now = Date.now();
+        const save = get().save;
+        const aged = {
+          ...save,
+          supply: { ...save.supply, buildings: save.supply.buildings.map((b) => (b.id === buildingId ? { ...b, expiresAt: now } : b)) },
+        };
+        set({ save: settleNetwork(aged, now) });
+      },
+      debugExpireSite: (site) =>
+        set(({ save }) => ({ save: { ...save, usedPlaces: { ...save.usedPlaces, [site.id]: site.expiresAt } } })),
+      debugDiscoverAround: (position) => {
+        const now = Date.now();
+        const save = get().save;
+        const places = [...networkPlacesAround(save, position, now), ...useDebugStore.getState().debugSites];
+        const discovered = { ...save.supply.discovered };
+        for (const place of places) {
+          if (place.startsAt <= now && now < place.expiresAt && distanceMeters(position, place.position) <= 1200) {
+            discovered[place.id] = place.expiresAt;
+          }
+        }
+        set({ save: { ...save, supply: { ...save.supply, discovered } } });
+      },
       setRoute: (route) => set({ save: setRouteInSave(get().save, route, Date.now()) }),
       setCrew: (driver, escorts) => set({ save: setCrewInSave(get().save, driver, escorts, Date.now()) }),
       startCart: () => set({ save: startCartInSave(get().save, Date.now()) }),
@@ -820,7 +864,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 55,
+      version: 56,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
       // Saves from version 30 on are kept: every later version bump adds a migration step here (see AGENTS.md, Saves).

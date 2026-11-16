@@ -13,7 +13,8 @@ import { cellAt } from '@/game/discovery/cells';
 import { distanceMeters } from '@/game/generation/geo';
 import { tileCenter } from '@/game/generation/tiles';
 import type { LatLng } from '@/game/generation/types';
-import { campsOutOfReach, hallMoveBackAt, hallMovesLeft, hallProblem, type HallProblem } from '@/game/supply/hall';
+import { buildingCell, buildingReach } from '@/game/supply/buildings';
+import { buildingsOutOfReach, hallMoveBackAt, hallMovesLeft, hallProblem, type HallProblem } from '@/game/supply/hall';
 import type { Terrain } from '@/game/supply/types';
 import { formatDistance, formatDuration, t, type TextKey } from '@/i18n';
 import { useCellTerrains } from '@/hooks/useCellTerrains';
@@ -39,7 +40,7 @@ const hallProblemKeys: Record<Exclude<HallProblem, null>, TextKey> = {
   noMovesLeft: 'supply.hall.noMovesLeft',
 };
 
-/** A camp's quality as pips: `level` filled of 3, drawn as small views. */
+/** A building's quality as pips: `level` filled of 3, drawn as small views. */
 export function QualityPips({ level }: { level: number }) {
   return (
     <View style={styles.pips}>
@@ -50,11 +51,11 @@ export function QualityPips({ level }: { level: number }) {
   );
 }
 
-/** Asks before the hall moves: the moves left this week, when the next comes back, and the camps it would leave out of reach. */
+/** Asks before the hall moves: the moves left this week, when the next comes back, and the buildings it would leave out of reach. */
 function MoveHallDialog({ cell, now, onConfirm, onClose }: { cell: string; now: number; onConfirm: () => void; onClose: () => void }) {
   const save = useGameStore((s) => s.save);
   const backAt = hallMoveBackAt(save, now);
-  const outOfReach = campsOutOfReach(save, cell).length;
+  const outOfReach = buildingsOutOfReach(save, cell).length;
   return (
     <Overlay onClose={onClose}>
       <Panel style={styles.dialog}>
@@ -78,7 +79,7 @@ function MoveHallDialog({ cell, now, onConfirm, onClose }: { cell: string; now: 
             size={16}
             label={t('supply.hall.outOfReach', {
               count: outOfReach,
-              distance: formatDistance(supplyRules.camps.maxHallMeters),
+              distance: formatDistance(buildingReach(save).meters),
             })}
           />
         )}
@@ -93,7 +94,7 @@ function MoveHallDialog({ cell, now, onConfirm, onClose }: { cell: string; now: 
 
 type Props = { cell: string; player: LatLng; onClose: () => void };
 
-/** A cell's sheet: what it holds, and the hall and camp actions that stand there. */
+/** A cell's sheet: what it holds, and the hall and building actions that stand there. */
 export function SupplyCellPanel({ cell, player, onClose }: Props) {
   const save = useGameStore((s) => s.save);
   const placeHall = useGameStore((s) => s.placeHall);
@@ -103,7 +104,7 @@ export function SupplyCellPanel({ cell, player, onClose }: Props) {
   const hall = save.supply.hall;
   const hallHere = hall?.cell === cell;
   const hallProblemNow = hallHere ? null : hallProblem(save, cell, now);
-  const campHere = save.supply.camps.find((camp) => camp.cell === cell) ?? null;
+  const buildingHere = save.supply.buildings.find((building) => buildingCell(building) === cell) ?? null;
   const [confirming, setConfirming] = useState(false);
 
   return (
@@ -135,12 +136,12 @@ export function SupplyCellPanel({ cell, player, onClose }: Props) {
                 )}
               </View>
             )}
-            {campHere && (
+            {buildingHere && (
               <WoodButton
-                title={t('supply.camp.open')}
+                title={t('supply.building.open')}
                 onPress={() => {
                   onClose();
-                  useMapPanels.getState().openSupplyCamp(campHere.id);
+                  useMapPanels.getState().openSupplyBuilding(buildingHere.id);
                 }}
               />
             )}

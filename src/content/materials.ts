@@ -35,6 +35,7 @@ export const materials: MaterialDef[] = [
   { id: 'hide', name: 'Hide', emoji: '🟫', icon: require('../../assets/icons/relics/pelt-hide.png') },
   { id: 'bone', name: 'Bone', emoji: '🦴', icon: require('../../assets/icons/magic/part-bone.png') },
   { id: 'meat', name: 'Meat', emoji: '🍖', icon: require('../../assets/icons/alchemy/food-raw-meat.png') },
+  { id: 'grain', name: 'Grain', emoji: '🌾' },
   { id: 'fish', name: 'Fish', emoji: '🐟', icon: require('../../assets/icons/magic/food-fish.png') },
   { id: 'herb', name: 'Herbs', emoji: '🌿', icon: require('../../assets/icons/rpg/herb-green-leaf.png') },
   { id: 'berries', name: 'Berries', emoji: '🫐', icon: require('../../assets/icons/tavern/berries-blue.png') },

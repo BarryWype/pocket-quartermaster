@@ -20,25 +20,27 @@ import {
 } from './raids';
 import { settleNetwork } from './settle';
 import { emptySupply } from './state';
-import type { Camp, Raid } from './types';
+import type { Building, Raid } from './types';
 
 const HOUR = 3_600_000;
 const MINUTE = 60_000;
 const origin = { latitude: -41.2865, longitude: 174.7762 };
 const hallCell = cellAt(origin);
-const campCell = cellAt(offsetPosition(origin, 800, 0));
+const buildingPosition = offsetPosition(origin, 800, 0);
 /** 08:00 local: a raid rolled now can land later today. */
 const morning = new Date(2026, 10, 16, 8, 0).getTime();
 
-const camp = (extra: Partial<Camp> = {}): Camp => ({
-  id: 'c1',
-  kind: 'timber',
-  cell: campCell,
+const building = (extra: Partial<Building> = {}): Building => ({
+  id: 'b1',
+  kind: 'farm',
+  siteId: 's1',
+  position: buildingPosition,
   quality: 2,
-  foundedAt: 0,
+  builtAt: 0,
+  expiresAt: morning + 6 * 24 * HOUR,
   heroId: null,
   postedAt: null,
-  stock: { wood: 10 },
+  stock: { grain: 10 },
   progress: 0,
   made: 0,
   settledAt: morning,
@@ -47,19 +49,19 @@ const camp = (extra: Partial<Camp> = {}): Camp => ({
   ...extra,
 });
 
-/** A save with a hall, one stocked camp, and a player seed whose roll for `now`'s day lands a raid (or not). */
-const network = (now = morning, hits = true, campExtra: Partial<Camp> = {}): SaveData => {
+/** A save with a hall, one stocked building, and a player seed whose roll for `now`'s day lands a raid (or not). */
+const network = (now = morning, hits = true, buildingExtra: Partial<Building> = {}): SaveData => {
   const today = dayKey(new Date(now));
   let seed = 0;
   while (createRng(`raid|p${seed}|${today}`).chance(supplyRules.raids.dailyChance) !== hits) seed++;
   const base = createInitialSave(`p${seed}`);
-  return { ...base, supply: { ...emptySupply(now), hall: { cell: hallCell, moves: [] }, camps: [camp(campExtra)] } };
+  return { ...base, supply: { ...emptySupply(now), hall: { cell: hallCell, moves: [] }, buildings: [building(buildingExtra)] } };
 };
 
-/** A raid on the camp, set by hand, landing at `landsAt`. */
+/** A raid on the building, set by hand, landing at `landsAt`. */
 const withRaid = (save: SaveData, landsAt: number, extra: Partial<Raid> = {}): SaveData => ({
   ...save,
-  supply: { ...save.supply, raidDay: dayKey(new Date(morning)), raid: { campId: 'c1', kind: 'goblins', tier: 1, landsAt, defenders: [], result: null, ...extra } },
+  supply: { ...save.supply, raidDay: dayKey(new Date(morning)), raid: { buildingId: 'b1', kind: 'goblins', tier: 1, landsAt, defenders: [], result: null, ...extra } },
 });
 
 const levelled = (save: SaveData, level: number): SaveData => ({ ...save, heroes: save.heroes.map((hero) => ({ ...hero, level })) });
@@ -77,14 +79,14 @@ describe('rolling the day', () => {
     const raid = rollRaidDay(network(), morning).supply.raid!;
     expect(raid.landsAt).toBeGreaterThanOrEqual(morning + supplyRules.raids.announceHours * HOUR);
     expect(dayKey(new Date(raid.landsAt))).toBe(dayKey(new Date(morning)));
-    expect(raid.campId).toBe('c1');
+    expect(raid.buildingId).toBe('b1');
   });
 
   it('a day whose roll misses has no raid', () => {
     expect(rollRaidDay(network(morning, false), morning).supply.raid).toBeNull();
   });
 
-  it('no raid when no camp will hold stock', () => {
+  it('no raid when no building will hold stock', () => {
     const empty = network(morning, true, { stock: {}, closedUntil: morning + 48 * HOUR });
     expect(rollRaidDay(empty, morning).supply.raid).toBeNull();
   });
@@ -105,7 +107,7 @@ describe('the announcement', () => {
     const watched: SaveData = {
       ...save,
       heroes: save.heroes.map((hero) => (hero.id === 'bram' ? { ...hero, trade: { id: 'watchman', hours: 0 } } : hero)),
-      supply: { ...save.supply, camps: [camp({ heroId: 'bram', postedAt: morning })] },
+      supply: { ...save.supply, buildings: [building({ heroId: 'bram', postedAt: morning })] },
     };
     expect(raidAnnouncedAt(watched, watched.supply.raid!)).toBe(morning + 2 * HOUR);
   });
@@ -117,10 +119,10 @@ describe('defending', () => {
   it('walks from the hall at the configured speed', () => {
     const save = announced();
     const expected = (800 / ((supplyRules.raids.walkKmh * 1000) / 3600)) * 1000;
-    expect(raidTravelMs(save, 'c1')).toBeGreaterThan(expected * 0.9);
-    expect(raidTravelMs(save, 'c1')).toBeLessThan(expected * 1.1);
+    expect(raidTravelMs(save, 'b1')).toBeGreaterThan(expected * 0.9);
+    expect(raidTravelMs(save, 'b1')).toBeLessThan(expected * 1.1);
     const sent = sendDefenders(save, ['bram'], morning);
-    expect(sent.supply.raid!.defenders[0].arrivesAt).toBe(morning + raidTravelMs(save, 'c1'));
+    expect(sent.supply.raid!.defenders[0].arrivesAt).toBe(morning + raidTravelMs(save, 'b1'));
     expect(isAway(sent, 'bram')).toBe(true);
   });
 
@@ -129,7 +131,7 @@ describe('defending', () => {
     expect(defendProblem(save, ['bram'], morning + HOUR - MINUTE)).toBe('tooLate');
     const four = { ...save, heroes: [...save.heroes, { ...save.heroes[0], id: 'h9' }] };
     expect(defendProblem(four, ['bram', 'lyra', 'mira', 'h9'], morning)).toBe('tooMany');
-    const posted = { ...save, supply: { ...save.supply, camps: [camp({ heroId: 'bram', postedAt: morning })] } };
+    const posted = { ...save, supply: { ...save.supply, buildings: [building({ heroId: 'bram', postedAt: morning })] } };
     expect(defendProblem(posted, ['bram'], morning)).toBe('busy');
   });
 
@@ -145,27 +147,27 @@ describe('the landing', () => {
     const sent = sendDefenders(save, ['bram', 'lyra', 'mira'], morning);
     const landed = resolveRaid(sent);
     expect(landed.supply.raid!.result).toEqual({ won: true, fighters: ['bram', 'lyra', 'mira'] });
-    expect(landed.supply.camps[0].stock.wood).toBeGreaterThanOrEqual(10);
+    expect(landed.supply.buildings[0].stock.grain).toBeGreaterThanOrEqual(10);
     expect(landed.supply.raidLog.at(-1)).toMatchObject({ won: true, lost: {} });
     // The patrol loot roll is paid: every defender gains XP.
     for (const hero of landed.heroes) expect(hero.xp).toBeGreaterThan(sent.heroes.find((h) => h.id === hero.id)!.xp);
   });
 
-  it('an undefended raid takes the stock and closes the camp', () => {
+  it('an undefended raid takes the stock and closes the building', () => {
     const landsAt = morning + HOUR;
     const landed = resolveRaid(withRaid(network(), landsAt));
-    expect(landed.supply.camps[0].stock).toEqual({});
-    expect(landed.supply.camps[0].closedUntil).toBe(landsAt + supplyRules.raids.closedHours * HOUR);
+    expect(landed.supply.buildings[0].stock).toEqual({});
+    expect(landed.supply.buildings[0].closedUntil).toBe(landsAt + supplyRules.raids.closedHours * HOUR);
     expect(landed.supply.raidLog.at(-1)!.won).toBeNull();
-    expect(landed.supply.raidLog.at(-1)!.lost.wood).toBeGreaterThanOrEqual(10);
+    expect(landed.supply.raidLog.at(-1)!.lost.grain).toBeGreaterThanOrEqual(10);
   });
 
   it('a posted hero who loses comes home hurt and is no longer posted', () => {
     const save = withRaid(network(morning, true, { heroId: 'mira', postedAt: morning }), morning + HOUR, { kind: 'trolls', tier: 5 });
     const landed = resolveRaid(save);
     expect(landed.supply.raid!.result!.won).toBe(false);
-    expect(landed.supply.camps[0].heroId).toBeNull();
-    expect(landed.supply.camps[0].stock).toEqual({});
+    expect(landed.supply.buildings[0].heroId).toBeNull();
+    expect(landed.supply.buildings[0].stock).toEqual({});
   });
 
   it('defenders are away until they have walked back, then the raid clears', () => {
@@ -180,22 +182,22 @@ describe('the landing', () => {
     expect(isAway(back, 'bram')).toBe(false);
   });
 
-  it('a cart calling at the camp before the landing keeps its cargo', () => {
-    const save = network(morning, true, { stock: { wood: 10 } });
-    const started = startCart({ ...save, supply: { ...save.supply, cart: { ...save.supply.cart, route: [{ camp: 'c1' }] } } }, morning);
-    const call = started.supply.cart.loop!.events.find((event) => event.kind === 'camp')!;
+  it('a cart calling at the building before the landing keeps its cargo', () => {
+    const save = network(morning, true, { stock: { grain: 10 } });
+    const started = startCart({ ...save, supply: { ...save.supply, cart: { ...save.supply.cart, route: [{ building: 'b1' }] } } }, morning);
+    const call = started.supply.cart.loop!.events.find((event) => event.kind === 'building')!;
     const raided = withRaid(started, call.at + MINUTE);
     const settled = settleNetwork(raided, call.at + 2 * MINUTE);
-    const aboard = settled.supply.cart.cargo.wood ?? settled.supply.cart.log.at(-1)?.delivered.wood ?? 0;
+    const aboard = settled.supply.cart.cargo.grain ?? settled.supply.cart.log.at(-1)?.delivered.grain ?? 0;
     expect(aboard).toBeGreaterThanOrEqual(10);
-    expect(settled.supply.raidLog.at(-1)!.lost.wood ?? 0).toBeLessThan(10);
+    expect(settled.supply.raidLog.at(-1)!.lost.grain ?? 0).toBeLessThan(10);
   });
 });
 
 describe('debug', () => {
-  it('raids the camp two minutes from now', () => {
-    const raid = debugRaid(network(), 'c1', morning).supply.raid!;
+  it('raids the building two minutes from now', () => {
+    const raid = debugRaid(network(), 'b1', morning).supply.raid!;
     expect(raid.landsAt).toBe(morning + 2 * MINUTE);
-    expect(raid.campId).toBe('c1');
+    expect(raid.buildingId).toBe('b1');
   });
 });

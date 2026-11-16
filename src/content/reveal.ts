@@ -39,7 +39,7 @@ export type TipId =
   | 'jobMiner'
   | 'jobCharcoalBurner'
   | 'jobGatherer'
-  | 'supplyCampSheet'
+  | 'supplyBuildingSheet'
   | 'supplyPlanner'
   | 'supplyRaid';
 
@@ -98,6 +98,7 @@ export const placeRevealKinds: Record<PlaceKind, RevealKind> = {
   elementalRift: 'fightEvents',
   abandonedCaravan: 'fightEvents',
   wantedOutlaw: 'fightEvents',
+  site: 'commonPlaces',
   hiddenDen: 'secrets',
   blackMarket: 'secrets',
   underwaterDungeon: 'secrets',
@@ -139,7 +140,7 @@ export const tipTexts: Record<TipId, string> = {
   jobCharcoalBurner: "The Charcoal burner is open at the guild: a hero there makes coal while you're away.",
   jobGatherer:
     'The outdoor gatherer works around you: a hero gathers the resources you can see on the map, the closest first, about 4 an hour at most. It works best in Pocket mode, while you walk. Pick a focus if you need one material. Outdoor work tires faster, and wildlife can hurt the hero a little.',
-  supplyCampSheet: 'Locals work an empty camp slowly. Post a hero for the full rate, more with a matching trade. Collect in person to inspect it: +25% for a day.',
-  supplyPlanner: 'Tap camps in order, and any cell as a waypoint to steer around danger.',
-  supplyRaid: 'Raiders are coming: send defenders before they land, empty the camp, or let it go. A Watchman posted there hears of raids sooner.',
+  supplyBuildingSheet: 'Locals work an empty building slowly. Post a hero for the full rate, more with a matching trade. Collect in person to inspect it: +25% for a day.',
+  supplyPlanner: 'Tap buildings in order, and any cell as a waypoint to steer around danger.',
+  supplyRaid: 'Raiders are coming: send defenders before they land, empty the building, or let it go. A Watchman posted there hears of raids sooner.',
 };

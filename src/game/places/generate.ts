@@ -1,4 +1,5 @@
 import { placeGroups, placeRules, type PlaceGroup, type PlaceKind } from '@/content/places';
+import { siteGroup } from '@/content/supplyLines';
 
 import { distanceMeters } from '../generation/geo';
 import { localDayIndex, localDayStart } from '../generation/localDays';
@@ -84,9 +85,9 @@ export function placesWithin(position: LatLng, meters: number, timeMs: number, g
     .filter((spawn) => distanceMeters(position, spawn.position) <= meters);
 }
 
-/** The group a kind belongs to. */
+/** The group a kind belongs to; sites live outside `placeGroups` (see content/supplyLines.ts). */
 export function placeGroupOf(kind: PlaceKind): PlaceGroup {
-  const group = placeGroups.find((g) => kind in g.kinds);
+  const group = kind === 'site' ? siteGroup : placeGroups.find((g) => kind in g.kinds);
   if (!group) throw new Error(`No place group contains ${kind}`);
   return group;
 }

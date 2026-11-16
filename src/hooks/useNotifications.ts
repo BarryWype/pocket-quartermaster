@@ -77,7 +77,7 @@ export function useNotifications() {
   const raidAt = useGameStore(({ save }) => {
     const raid = save.supply.raid;
     if (!raid || raid.result) return '';
-    return `${raid.landsAt}:${save.supply.camps.find((camp) => camp.id === raid.campId)?.heroId ?? ''}`;
+    return `${raid.landsAt}:${save.supply.buildings.find((building) => building.id === raid.buildingId)?.heroId ?? ''}`;
   });
   const steps = useTodaySteps();
 

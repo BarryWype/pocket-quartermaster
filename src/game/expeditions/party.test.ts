@@ -150,12 +150,14 @@ describe('hero choices', () => {
 
   it('greys a posted hero as posted, and the send recalls them', () => {
     const base = saveWith();
-    const camp = {
-      id: 'c1',
-      kind: 'timber',
-      cell: 'x',
+    const building = {
+      id: 'b1',
+      kind: 'farm',
+      siteId: 's1',
+      position: { latitude: 0, longitude: 0 },
       quality: 2,
-      foundedAt: 0,
+      builtAt: 0,
+      expiresAt: 0,
       heroId: 'lyra',
       postedAt: 0,
       stock: {},
@@ -164,8 +166,8 @@ describe('hero choices', () => {
       settledAt: 0,
       inspectedUntil: 0,
       closedUntil: 0,
-    } as SaveData['supply']['camps'][number];
-    const posted: SaveData = { ...base, supply: { ...base.supply, camps: [camp] } };
+    } as SaveData['supply']['buildings'][number];
+    const posted: SaveData = { ...base, supply: { ...base.supply, buildings: [building] } };
     const status = heroStatus(posted, posted.heroes.find((h) => h.id === 'lyra')!, 0);
     expect(status).toEqual({ kind: 'posted' });
     expect(canJoin(status)).toBe(true);

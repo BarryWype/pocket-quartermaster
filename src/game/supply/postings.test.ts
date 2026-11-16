@@ -1,26 +1,26 @@
 import { supplyRules } from '@/content/supplyLines';
 
 import { assignProblem } from '../jobs/jobs';
-import { cellAt } from '../discovery/cells';
 import { offsetPosition } from '../generation/geo';
-import { tileCenter } from '../generation/tiles';
 import { createInitialSave, type SaveData } from '../save';
 import { emptySupply } from './state';
-import type { Camp } from './types';
-import { campStockTotal } from './production';
-import { collectCamp, collectProblem, postHero, postProblem, recallPosted } from './postings';
+import type { Building } from './types';
+import { buildingStockTotal } from './production';
+import { collectBuilding, collectProblem, postHero, postProblem, recallPosted } from './postings';
 import { isBusy, isPosted } from '../team/team';
 
 const origin = { latitude: -41.2865, longitude: 174.7762 };
 const HOUR = 3_600_000;
 const now = Date.UTC(2026, 10, 2, 12);
 
-const campIn = (id: string, extra: Partial<Camp> = {}): Camp => ({
+const buildingIn = (id: string, extra: Partial<Building> = {}): Building => ({
   id,
-  kind: 'timber',
-  cell: cellAt(origin),
+  kind: 'farm',
+  siteId: `site-${id}`,
+  position: origin,
   quality: 2,
-  foundedAt: now,
+  builtAt: now,
+  expiresAt: now + 6 * 24 * HOUR,
   heroId: null,
   postedAt: null,
   stock: {},
@@ -32,51 +32,51 @@ const campIn = (id: string, extra: Partial<Camp> = {}): Camp => ({
   ...extra,
 });
 
-const saveWith = (camps: Camp[], heroes?: SaveData['heroes']): SaveData => ({
+const saveWith = (buildings: Building[], heroes?: SaveData['heroes']): SaveData => ({
   ...createInitialSave(),
   ...(heroes ? { heroes } : {}),
-  supply: { ...emptySupply(now), camps },
+  supply: { ...emptySupply(now), buildings },
 });
 
 describe('postProblem', () => {
-  it('needs a known camp and a known hero', () => {
-    const save = saveWith([campIn('c1')]);
+  it('needs a known building and a known hero', () => {
+    const save = saveWith([buildingIn('b1')]);
     expect(postProblem(save, 'nope', 'bram', now)).toBe('unknown');
-    expect(postProblem(save, 'c1', 'nobody', now)).toBe('unknown');
+    expect(postProblem(save, 'b1', 'nobody', now)).toBe('unknown');
   });
 
-  it('a camp holds one hero at a time', () => {
-    const save = postHero(saveWith([campIn('c1')]), 'c1', 'bram', now);
-    expect(postProblem(save, 'c1', 'lyra', now)).toBe('taken');
-    expect(postProblem(save, 'c1', 'bram', now)).toBeNull();
+  it('a building holds one hero at a time', () => {
+    const save = postHero(saveWith([buildingIn('b1')]), 'b1', 'bram', now);
+    expect(postProblem(save, 'b1', 'lyra', now)).toBe('taken');
+    expect(postProblem(save, 'b1', 'bram', now)).toBeNull();
   });
 
   it('a busy hero cannot be posted', () => {
-    const working = saveWith([campIn('c1')], [{ ...createInitialSave().heroes[0], job: { jobId: 'woodcutter', since: now, tired: false } }]);
-    expect(postProblem(working, 'c1', 'bram', now)).toBe('busy');
-    const posted = postHero(saveWith([campIn('c1'), campIn('c2')]), 'c1', 'bram', now);
-    expect(postProblem(posted, 'c2', 'bram', now)).toBe('busy');
+    const working = saveWith([buildingIn('b1')], [{ ...createInitialSave().heroes[0], job: { jobId: 'woodcutter', since: now, tired: false } }]);
+    expect(postProblem(working, 'b1', 'bram', now)).toBe('busy');
+    const posted = postHero(saveWith([buildingIn('b1'), buildingIn('b2')]), 'b1', 'bram', now);
+    expect(postProblem(posted, 'b2', 'bram', now)).toBe('busy');
   });
 });
 
 describe('postHero and recallPosted', () => {
   it('posting sets the hero and the time, and makes them busy', () => {
-    const save = postHero(saveWith([campIn('c1')]), 'c1', 'bram', now);
-    expect(save.supply.camps[0]).toMatchObject({ heroId: 'bram', postedAt: now });
+    const save = postHero(saveWith([buildingIn('b1')]), 'b1', 'bram', now);
+    expect(save.supply.buildings[0]).toMatchObject({ heroId: 'bram', postedAt: now });
     expect(isPosted(save, 'bram')).toBe(true);
     expect(isBusy(save, 'bram')).toBe(true);
-    expect(() => postHero(save, 'c1', 'lyra', now)).toThrow(/taken/);
+    expect(() => postHero(save, 'b1', 'lyra', now)).toThrow(/taken/);
   });
 
   it('a posted hero cannot take a guild job', () => {
-    const save = postHero(saveWith([campIn('c1')]), 'c1', 'bram', now);
+    const save = postHero(saveWith([buildingIn('b1')]), 'b1', 'bram', now);
     expect(assignProblem(save, 'bram', 'woodcutter', now)).toBe('working');
   });
 
   it('recalling settles, frees the hero and throws when nobody is posted', () => {
-    const posted = postHero(saveWith([campIn('c1')]), 'c1', 'bram', now);
+    const posted = postHero(saveWith([buildingIn('b1', { kind: 'herbGarden' })]), 'b1', 'bram', now);
     const recalled = recallPosted(posted, 'bram', now + 5 * HOUR);
-    expect(recalled.supply.camps[0]).toMatchObject({ heroId: null, postedAt: null });
+    expect(recalled.supply.buildings[0]).toMatchObject({ heroId: null, postedAt: null });
     expect(isBusy(recalled, 'bram')).toBe(false);
     // The matching trade's hours accrued over the posted span before the recall.
     expect(recalled.heroes.find((h) => h.id === 'bram')!.trade.hours).toBeCloseTo(5);
@@ -85,35 +85,35 @@ describe('postHero and recallPosted', () => {
   });
 });
 
-describe('collectProblem and collectCamp', () => {
-  const stocked = (): SaveData => saveWith([campIn('c1', { stock: { wood: 3 }, progress: 0.5 })]);
+describe('collectProblem and collectBuilding', () => {
+  const stocked = (): SaveData => saveWith([buildingIn('b1', { stock: { grain: 3 }, progress: 0.5 })]);
 
-  it('needs a known camp, the player in range, and stock on hand', () => {
+  it('needs a known building, the player in range, and stock on hand', () => {
     const save = stocked();
-    const centre = tileCenter(save.supply.camps[0].cell);
-    expect(collectProblem(save, 'nope', centre, now)).toBe('unknown');
-    expect(collectProblem(save, 'c1', offsetPosition(centre, supplyRules.production.collectMeters + 50, 0), now)).toBe('tooFar');
-    expect(collectProblem(saveWith([campIn('c1')]), 'c1', centre, now)).toBe('empty');
-    expect(collectProblem(save, 'c1', centre, now)).toBeNull();
+    const at = save.supply.buildings[0].position;
+    expect(collectProblem(save, 'nope', at, now)).toBe('unknown');
+    expect(collectProblem(save, 'b1', offsetPosition(at, supplyRules.production.collectMeters + 50, 0), now)).toBe('tooFar');
+    expect(collectProblem(saveWith([buildingIn('b1')]), 'b1', at, now)).toBe('empty');
+    expect(collectProblem(save, 'b1', at, now)).toBeNull();
   });
 
-  it('collecting moves the stock, keeps the fraction and inspects the camp', () => {
+  it('collecting moves the stock, keeps the fraction and inspects the building', () => {
     const save = stocked();
-    const centre = tileCenter(save.supply.camps[0].cell);
-    const collected = collectCamp(save, 'c1', centre, now);
-    expect(collected.materials.wood).toBe(3);
-    expect(collected.supply.camps[0]).toMatchObject({ stock: {}, progress: 0.5 });
-    expect(collected.supply.camps[0].inspectedUntil).toBe(now + supplyRules.production.inspectHours * HOUR);
-    expect(campStockTotal(collected.supply.camps[0])).toBe(0);
-    expect(() => collectCamp(collected, 'c1', centre, now)).toThrow(/empty/);
+    const at = save.supply.buildings[0].position;
+    const collected = collectBuilding(save, 'b1', at, now);
+    expect(collected.materials.grain).toBe(3);
+    expect(collected.supply.buildings[0]).toMatchObject({ stock: {}, progress: 0.5 });
+    expect(collected.supply.buildings[0].inspectedUntil).toBe(now + supplyRules.production.inspectHours * HOUR);
+    expect(buildingStockTotal(collected.supply.buildings[0])).toBe(0);
+    expect(() => collectBuilding(collected, 'b1', at, now)).toThrow(/empty/);
   });
 });
 
 describe('postHero settling', () => {
   it('settles before re-posting, so the hours already put in are kept', () => {
-    const posted = postHero(saveWith([campIn('c1')]), 'c1', 'bram', now);
-    const again = postHero(posted, 'c1', 'bram', now + 10 * HOUR);
-    expect(again.supply.camps[0]).toMatchObject({ heroId: 'bram', postedAt: now + 10 * HOUR });
+    const posted = postHero(saveWith([buildingIn('b1', { kind: 'herbGarden' })]), 'b1', 'bram', now);
+    const again = postHero(posted, 'b1', 'bram', now + 10 * HOUR);
+    expect(again.supply.buildings[0]).toMatchObject({ heroId: 'bram', postedAt: now + 10 * HOUR });
     expect(again.heroes.find((h) => h.id === 'bram')!.trade.hours).toBeCloseTo(10);
   });
 });

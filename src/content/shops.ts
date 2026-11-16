@@ -15,6 +15,7 @@ export const materialPrices: Record<string, number> = {
   coal: 4,
   hide: 1,
   meat: 1,
+  grain: 1,
   bone: 1,
   herb: 1,
   berries: 1,

@@ -12,6 +12,7 @@ import { gathererFirstWoundAt } from '../jobs/gatherer';
 import { fullAt, jobWorker, tiredAt } from '../jobs/jobs';
 import type { SaveData } from '../save';
 import { raidAnnouncedAt, raidLeadMs } from '../supply/raids';
+import { buildingNameKey } from '../supply/buildings';
 import { timeToFull } from '../team/health';
 import type { ActiveExpedition, ExpeditionReport, Heist } from '../types';
 import { deliveryTime } from './quietHours';
@@ -230,20 +231,20 @@ function jobNotifications(save: SaveData, now: number): PlannedNotification[] {
   return [...full, ...tired, ...hurt];
 }
 
-/** Raids: when the pending raid on a camp is announced (supply lines only). */
+/** Raids: when the pending raid on a building is announced (supply lines only). */
 function raidNotifications(save: SaveData): PlannedNotification[] {
   const raid = save.supply.raid;
-  const camp = raid && !raid.result ? save.supply.camps.find((c) => c.id === raid.campId) : undefined;
-  if (!raid || !camp) return [];
+  const building = raid && !raid.result ? save.supply.buildings.find((b) => b.id === raid.buildingId) : undefined;
+  if (!raid || !building) return [];
   const t = notificationTexts();
-  const campName = text(camp.kind === 'timber' ? 'supply.camp.timberName' : 'supply.camp.trapperName').toLowerCase();
+  const buildingName = text(buildingNameKey[building.kind]).toLowerCase();
   return [
     {
       id: `raid:${raid.landsAt}`,
       category: 'raids',
       group: 'expeditions',
       at: raidAnnouncedAt(save, raid),
-      title: fill(t.raidAnnounced.title, { camp: campName }),
+      title: fill(t.raidAnnounced.title, { building: buildingName }),
       body: fill(t.raidAnnounced.body, {
         kind: localized({ en: patrolTexts, fr: frPatrolTexts }).kinds[raid.kind],
         hours: Math.round(raidLeadMs(save, raid) / 3_600_000),

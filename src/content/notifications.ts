@@ -112,7 +112,7 @@ export const notificationCategories: Record<
   raids: {
     group: 'expeditions',
     title: 'Raids',
-    description: 'When raiders are announced against one of your supply camps.',
+    description: 'When raiders are announced against one of your supply buildings.',
     defaultOn: true,
   },
 };
@@ -148,7 +148,7 @@ export const notificationTexts = {
   jobFull: { title: '{job}: output full', body: 'Ready to collect at the guild.' },
   jobTired: { title: '{hero} is tired ({job})', body: 'Resting at the station until their energy is back.' },
   jobHurt: { title: '{hero} was hurt while gathering', body: 'Wildlife near the camp. Check their HP before a dungeon.' },
-  raidAnnounced: { title: 'Raiders heading for your {camp}', body: '{kind}, landing in {hours} h. Send defenders, or empty the camp.' },
+  raidAnnounced: { title: 'Raiders heading for your {building}', body: '{kind}, landing in {hours} h. Send defenders, or empty the building.' },
   chestUnlocked: { title: 'Step chest unlocked', body: 'Your {chest} is ready to open.' },
   chestClose: { title: 'Almost there', body: 'Only {steps} more steps to your {chest}.' },
   dailyReset: { title: 'New day', body: 'New day, new step chests.' },

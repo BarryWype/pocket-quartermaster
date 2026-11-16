@@ -887,7 +887,7 @@ export function toV53(save: SaveData): SaveData {
         cargo: {},
         waitingForCrew: false,
       },
-    },
+    } as unknown as SaveData['supply'],
   };
 }
 
@@ -915,6 +915,60 @@ export function toV54(save: SaveData): SaveData {
 export function toV55(save: SaveData): SaveData {
   if (save.supply.discovered) return save;
   return { ...save, supply: { ...save.supply, discovered: {} } };
+}
+
+/**
+ * Version 56: camps become buildings raised on sites (see supply/buildings.ts).
+ * Camps have been empty since version 53; any that remain close like toV53 did,
+ * their stock paid into the materials. The cart keeps only waypoint cells (no
+ * camp remains to call on) and parks if its loop held camp events; the pending
+ * raid is dropped (all raids targeted camps); the raid log's lines point at
+ * building ids; the personal site check starts empty; and a hero's Woodcutter
+ * or Trapper trade becomes Herbalist or Farmer, hours kept.
+ */
+export function toV56(save: SaveData): SaveData {
+  type OldPoint = { camp: string } | { cell: string };
+  type OldCart = Omit<SaveData['supply']['cart'], 'route' | 'nextRoute'> & { route?: OldPoint[]; nextRoute?: OldPoint[] | null };
+  type OldRaidLogLine = Omit<SaveData['supply']['raidLog'][number], 'buildingId'> & { campId: string };
+  type OldSupply = Omit<SaveData['supply'], 'buildings' | 'personalSite' | 'cart' | 'raidLog'> & {
+    camps?: { id: string; stock?: Record<string, number> }[];
+    cart: OldCart;
+    raidLog: OldRaidLogLine[];
+  };
+  const supply = save.supply as unknown as OldSupply;
+  // A save already on version 56 has no camps: nothing left to migrate.
+  if (!('camps' in supply)) return save;
+
+  let materials = save.materials;
+  const stockOf = (stock: Record<string, number> | undefined) =>
+    Object.entries(stock ?? {}).filter(([, amount]) => amount > 0).map(([materialId, amount]) => ({ materialId, amount }));
+  for (const camp of supply.camps ?? []) materials = addMaterials(materials, stockOf(camp.stock));
+
+  const cart = supply.cart;
+  const cellsOnly = (route: OldPoint[] | null | undefined) => (route ?? []).flatMap((point) => ('cell' in point ? [{ cell: point.cell }] : []));
+  const loop = cart.loop && cart.loop.events.some((event) => (event.kind as string) === 'camp') ? null : cart.loop;
+  const raidLog = supply.raidLog.map(({ campId, ...line }) => ({ ...line, buildingId: campId }));
+  const heroes = save.heroes.map((hero) =>
+    hero.trade && (hero.trade.id as string) === 'woodcutter'
+      ? { ...hero, trade: { ...hero.trade, id: 'herbalist' as const } }
+      : hero.trade && (hero.trade.id as string) === 'trapper'
+        ? { ...hero, trade: { ...hero.trade, id: 'farmer' as const } }
+        : hero,
+  );
+  const { camps: _camps, ...rest } = supply;
+  return {
+    ...save,
+    materials,
+    heroes,
+    supply: {
+      ...(rest as unknown as SaveData['supply']),
+      buildings: [],
+      personalSite: null,
+      cart: { ...cart, route: cellsOnly(cart.route), nextRoute: cellsOnly(cart.nextRoute), loop, cargo: {} },
+      raid: null,
+      raidLog,
+    },
+  };
 }
 
 /** Applies the migration steps in order, from the save's own version on. */
@@ -949,5 +1003,6 @@ export function migrateSave(
   if (fromVersion < 53) next = toV53(next);
   if (fromVersion < 54) next = toV54(next);
   if (fromVersion < 55) next = toV55(next);
+  if (fromVersion < 56) next = toV56(next);
   return next;
 }

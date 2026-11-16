@@ -3,7 +3,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { cellAt } from '@/game/discovery/cells';
 import { offsetPosition } from '@/game/generation/geo';
 import { startCart } from '@/game/supply/cart';
-import type { Camp } from '@/game/supply/types';
+import type { Building } from '@/game/supply/types';
 import { createInitialSave, type SaveData } from '@/game/save';
 import { useCartTick } from '@/hooks/useCartTick';
 import { useGameStore } from '@/store/gameStore';
@@ -16,17 +16,18 @@ jest.mock('expo-router', () => ({ ...jest.requireActual('expo-router'), useIsFoc
 
 const origin = { latitude: -41.2865, longitude: 174.7762 };
 const hallCell = cellAt(origin);
-const campCell = cellAt(offsetPosition(origin, 400, 0));
 
-const camp: Camp = {
-  id: 'c1',
-  kind: 'timber',
-  cell: campCell,
+const building: Building = {
+  id: 'b1',
+  kind: 'farm',
+  siteId: 's1',
+  position: offsetPosition(origin, 400, 0),
   quality: 2,
-  foundedAt: 0,
+  builtAt: 0,
+  expiresAt: Date.now() + 6 * 24 * 3_600_000,
   heroId: null,
   postedAt: null,
-  stock: { wood: 5 },
+  stock: { grain: 5 },
   progress: 0,
   made: 0,
   settledAt: Date.now(),
@@ -34,12 +35,12 @@ const camp: Camp = {
   closedUntil: 0,
 };
 
-/** A save with a hall, one camp, and the cart parked with no route. */
+/** A save with a hall, one building, and the cart parked with no route. */
 const withNetwork = (cart: Partial<SaveData['supply']['cart']> = {}): SaveData => {
   const base = createInitialSave();
   return {
     ...base,
-    supply: { ...base.supply, hall: { cell: hallCell, moves: [] }, camps: [camp], cart: { ...base.supply.cart, ...cart } },
+    supply: { ...base.supply, hall: { cell: hallCell, moves: [] }, buildings: [building], cart: { ...base.supply.cart, ...cart } },
   };
 };
 
@@ -72,14 +73,14 @@ describe('the cart sheet', () => {
   });
 
   it('running: shows the loop and when it is back', () => {
-    const sheet = open(startCart(withNetwork({ route: [{ camp: 'c1' }] }), Date.now()));
+    const sheet = open(startCart(withNetwork({ route: [{ building: 'b1' }] }), Date.now()));
     expect(sheet).toContain('Loop 1: back at the hall in');
     expect(sheet).toContain('Stop after this loop');
     expect(sheet).toContain('The crew can change once the cart is parked.');
   });
 
   it('back with a hurt crew: names them and offers to start again', () => {
-    const base = withNetwork({ route: [{ camp: 'c1' }], crew: { driver: 'bram', escorts: [] }, waitingForCrew: true });
+    const base = withNetwork({ route: [{ building: 'b1' }], crew: { driver: 'bram', escorts: [] }, waitingForCrew: true });
     const save = { ...base, heroes: base.heroes.map((hero) => (hero.id === 'bram' ? { ...hero, hp: 1, hpAt: Date.now() } : hero)) };
     const sheet = open(save);
     expect(sheet).toContain('Bram');
@@ -112,12 +113,12 @@ describe('the cart tick', () => {
   };
 
   it('schedules nothing while the cart is parked', () => {
-    mount(withNetwork({ route: [{ camp: 'c1' }] }));
+    mount(withNetwork({ route: [{ building: 'b1' }] }));
     expect(jest.getTimerCount()).toBe(0);
   });
 
   it('waits for the next event while a loop runs', () => {
-    mount(startCart(withNetwork({ route: [{ camp: 'c1' }] }), Date.now()));
+    mount(startCart(withNetwork({ route: [{ building: 'b1' }] }), Date.now()));
     expect(jest.getTimerCount()).toBe(1);
   });
 });

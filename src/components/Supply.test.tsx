@@ -41,7 +41,7 @@ describe('the supply lines on the map', () => {
     act(() => {
       renderer = create(
         <>
-          <SupplyMarkers />
+          <SupplyMarkers sites={[]} />
           <SupplyLayers bounds={null} position={position} />
         </>,
       );
@@ -94,15 +94,17 @@ describe('the supply lines on the map', () => {
     expect(sheet).toContain('No moves left this week');
   });
 
-  it('asks before a move: moves left, when the next comes back, and the camps left out of reach', () => {
+  it('asks before a move: moves left, when the next comes back, and the buildings left out of reach', () => {
     useSettingsStore.setState({ supplyLines: true });
     const base = createInitialSave();
-    const farCamp: SaveData['supply']['camps'][number] = {
-      id: 'c1',
-      kind: 'timber',
-      cell: cellAt(offsetPosition(position, 2500, 180)),
+    const farBuilding: SaveData['supply']['buildings'][number] = {
+      id: 'b1',
+      kind: 'farm',
+      siteId: 's1',
+      position: offsetPosition(position, 2500, 180),
       quality: 1,
-      foundedAt: 0,
+      builtAt: 0,
+      expiresAt: 6 * 24 * 3_600_000,
       heroId: null,
       postedAt: null,
       stock: {},
@@ -114,7 +116,7 @@ describe('the supply lines on the map', () => {
     };
     act(() => {
       useGameStore.setState({
-        save: { ...base, supply: { ...base.supply, hall: { cell: hallCell, moves: [Date.now() - 24 * 3_600_000] }, camps: [farCamp] } },
+        save: { ...base, supply: { ...base.supply, hall: { cell: hallCell, moves: [Date.now() - 24 * 3_600_000] }, buildings: [farBuilding] } },
       });
     });
     act(() => {
@@ -133,12 +135,14 @@ describe('the supply lines on the map', () => {
 
   it('shows a posted hero as Posted in the picker', () => {
     const base = createInitialSave();
-    const camp: SaveData['supply']['camps'][number] = {
-      id: 'c1',
-      kind: 'timber',
-      cell,
+    const building: SaveData['supply']['buildings'][number] = {
+      id: 'b1',
+      kind: 'farm',
+      siteId: 's1',
+      position,
       quality: 2,
-      foundedAt: 0,
+      builtAt: 0,
+      expiresAt: 6 * 24 * 3_600_000,
       heroId: 'lyra',
       postedAt: 0,
       stock: {},
@@ -148,7 +152,7 @@ describe('the supply lines on the map', () => {
       inspectedUntil: 0,
       closedUntil: 0,
     };
-    const save: SaveData = { ...base, supply: { ...base.supply, camps: [camp] } };
+    const save: SaveData = { ...base, supply: { ...base.supply, buildings: [building] } };
     const hero = save.heroes.find((h) => h.id === 'lyra')!;
     const status = heroStatus(save, hero, 0);
     expect(status.kind).toBe('posted');

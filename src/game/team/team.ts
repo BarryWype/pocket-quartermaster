@@ -33,7 +33,7 @@ export function isAway(save: SaveData, heroId: string) {
   );
 }
 
-/** Whether a hero is out on the supply lines: on the cart's crew while a loop runs, or sent to defend a camp until walked back. */
+/** Whether a hero is out on the supply lines: on the cart's crew while a loop runs, or sent to defend a building until walked back. */
 export function isOnSupplyRun(save: SaveData, heroId: string) {
   const cart = save.supply.cart;
   return (
@@ -45,8 +45,8 @@ export function isOnSupplyRun(save: SaveData, heroId: string) {
 /** Whether the hero is working a guild job (see game/jobs/jobs.ts). */
 export const isWorking = (save: SaveData, heroId: string) => save.heroes.some((h) => h.id === heroId && h.job !== null);
 
-/** Whether the hero is posted at a supply camp (see game/supply/postings.ts). */
-export const isPosted = (save: SaveData, heroId: string) => save.supply.camps.some((camp) => camp.heroId === heroId);
+/** Whether the hero is posted at a supply building (see game/supply/postings.ts). */
+export const isPosted = (save: SaveData, heroId: string) => save.supply.buildings.some((building) => building.heroId === heroId);
 
 /** Whether a hero is away, working or posted: not free for anything that sends heroes out. */
 export const isBusy = (save: SaveData, heroId: string) => isAway(save, heroId) || isWorking(save, heroId) || isPosted(save, heroId);
