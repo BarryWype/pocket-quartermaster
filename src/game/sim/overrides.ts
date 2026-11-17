@@ -12,6 +12,7 @@ import { rotationRules } from '@/content/rotation';
 import { sanctumRules } from '@/content/sanctums';
 import { tavernRules } from '@/content/taverns';
 
+import { siteGroup, supplyRules } from '@/content/supplyLines';
 import { profiles, simConfig } from './config';
 import { targets } from './targets';
 
@@ -36,6 +37,8 @@ const roots: Record<string, unknown> = {
   sanctums: sanctumRules,
   rotation: rotationRules,
   elements: elementRules,
+  supply: supplyRules,
+  siteGroup,
   sim: simConfig,
   profiles,
   targets,

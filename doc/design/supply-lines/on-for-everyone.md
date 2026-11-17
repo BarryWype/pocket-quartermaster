@@ -80,3 +80,27 @@ So it adds income mostly at tiers 4–5, where the surplus already is. By rough 
 
 1. **Step gold multipliers 1, 1, 1.5, 2, 3** and **building cost rising with tier:** OK as a first pass?
 2. **Every simulator run plays the network** from now on (no flag): OK?
+
+## After the first full run (2026-11-18)
+
+The run (report of 2026-11-17 in `doc/design/simulator/report.md`) played the network in every game, with the step gold and building cost above.
+
+**Gold per tier, regular player** (medians over 4 seeds; "after" income leaves out order gold, which the gold table didn't record yet):
+
+| Tier | Income before → after | Spent before → after | Gold held, change before → after |
+| --- | --- | --- | --- |
+| 1 | 3,207 → 2,944 | 2,453 → 2,849 | +133 → +84 |
+| 2 | 6,270 → 5,538 | 6,059 → 6,251 | +81 → +366 |
+| 3 | 10,726 → 11,031 | 9,611 → 9,771 | +654 → +1,957 |
+| 4 | 17,740 → 17,669 | 15,240 → 18,855 | +999 → −1,415 |
+| 5 | 22,882 → 23,684 | 18,024 → 5,270 | +6,053 → +19,679 |
+
+Heavy tier 5: +14,176 → +18,647; casual tier 5: +1,094 → +4,542.
+
+- **Orders add little gold:** 56 / 72 / 88 a day (casual / regular / heavy), about 3% of a regular player's tier 5 income (2,694 a day). The step multipliers aren't what moves the surplus, so they stay.
+- **The tier 5 surplus comes from spending:** regular recruits fell from 12,587 to 3,582 and the guild from 4,485 to 970 (the guild's upgrades moved to tier 4: 8,415 against 6,235). The seeds spread widely (−5,203 to +28,027). A sink for tier 5 gold is a question of its own, older than the network.
+- **Buildings make far less than walking:** 0.06–0.5× by tier, against at least 1.5× (the prompt: "buildings make clearly more"). With a one-seed run of the regular bot:
+  - The bot rarely found a site within the hall's reach: its walk heads one way each day and only detoured 400 m. **Fixed:** with a building slot free, the walk now goes to the nearest site within reach that it can walk to and back (half its walk, 800 m). Tier 2 then fills its three slots.
+  - A building stops at 12 hours of stock, and the cart takes 20 units in one loop a day, so most buildings sit full. Locals make 0.4 of the rate, and heroes are posted overnight only.
+  - Cart capacity 60 and 24 hours of stock, with locals at 0.6 and 1.2 sites per km², reached about 0.5–0.7× walking. 1.5× needs roughly three times the buildings' output.
+- **The gold table now counts** order gold (`orders`) and building costs (`building`). `--set` reaches `supply.…` and `siteGroup.…`.

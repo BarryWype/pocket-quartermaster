@@ -253,7 +253,7 @@ Prompt 2, step 2 (proposal approved as written in `quests.md`).
 - **Every run** plays the network with a bot (`src/game/sim/supply.ts`), and the report has a **Supply network** section.
 - **The bot,** from tier 2 only:
   - places the hall at home;
-  - discovers network places and sites along its walks, plus one detour per walk to the nearest undiscovered site and order place within 400 m;
+  - discovers network places and sites along its walks; with a building slot free, the walk goes to the nearest undiscovered site within the hall's reach it can walk to and back (half its walk), otherwise it detours to the nearest undiscovered site within 400 m; and one detour per walk to the nearest undiscovered order place within 400 m;
   - builds on the best discovered site within reach (stars, then nearness to the hall) the kind serving the order whose headline it values most (gear its heroes can use, then meals and potions), keeping twice the cost in gold;
   - sets the route at the day's last session (its buildings, then the places it serves, in the suggested order; straight paths, since the sim has no map tiles) and starts the cart with one spare escort;
   - hands goods over when a walk passes a place it serves, claims reached steps, defends raids and posts heroes as before.

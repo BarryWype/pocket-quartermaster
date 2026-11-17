@@ -24,6 +24,7 @@ import type { GearType } from '../types';
 import { isExhausted } from '../team/health';
 import { affinityOf, isBusy } from '../team/team';
 import { highestTier, walkPoints, type Sim } from './bot';
+import { playerMetersPerMinute } from './gathererPace';
 
 const HOUR = 3_600_000;
 const MINUTE = 60_000;
@@ -118,6 +119,12 @@ export const emptySupplySim = (): SupplySim => ({
 const outcome = (won: boolean | null) => (won === true ? 'won' : won === null ? 'unguarded' : 'lost');
 const total = (goods: Record<string, number>) => Object.values(goods).reduce((sum, amount) => sum + amount, 0);
 
+/** Order gold goes into the report's gold table as well as the supply section. */
+function logOrderGold(sim: Sim, supply: SupplySim, gold: number) {
+  supply.log.orderGold += gold;
+  if (gold > 0) sim.log.goldIn.push({ day: sim.day, source: 'orders', amount: gold });
+}
+
 /** Counts the units buildings made since the last tally, and remembers where each stands now. */
 function tallyMade(save: Sim['save'], supply: SupplySim, day: number) {
   const made = Object.fromEntries(save.supply.buildings.map((building) => [building.id, building.made]));
@@ -157,7 +164,7 @@ function settle(sim: Sim, supply: SupplySim) {
     supply.log.delivered += total(line.delivered);
     for (const unload of line.places) {
       supply.log.toPlacesByCart += total(unload.goods);
-      supply.log.orderGold += unload.gold;
+      logOrderGold(sim, supply, unload.gold);
     }
     if (line.ambush) supply.log.ambushes[outcome(line.ambush.won)] += 1;
   }
@@ -183,7 +190,7 @@ function claimReachedSteps(sim: Sim, supply: SupplySim) {
       sim.save = save;
       supply.log.stepsClaimed += 1;
       if (order.steps[step].at === 1) supply.log.headlinesClaimed += 1;
-      supply.log.orderGold += paid.gold;
+      logOrderGold(sim, supply, paid.gold);
     }
   }
 }
@@ -242,6 +249,7 @@ function tryBuild(sim: Sim) {
   const kind = order ? servingKind(order.kind) : shortestKind(save);
   if (buildProblem(save, site, kind, site.position, sim.now) !== null) return;
   sim.save = build(save, site, kind, site.position, sim.now);
+  sim.log.goldOut.push({ day: sim.day, sink: 'building', amount: buildCost(save).gold });
 }
 
 /** An open Ride-the-route quest: the bot walks hall → each stop → hall when that loop fits in its walk. */
@@ -277,12 +285,23 @@ export function supplyWalk(sim: Sim, supply: SupplySim) {
   );
   const detourMeters = (place: (typeof places)[number]) =>
     Math.min(...fixes.map((fix) => distanceMeters(fix.position, place.position)));
+  // With a building slot free, the walk heads for the nearest site within the hall's reach it can walk to and back.
+  const hall = sim.save.supply.hall;
+  const reach = buildingReach(sim.save);
+  const outAndBack = (sim.profile.walkMinutes * playerMetersPerMinute) / 2;
+  const siteToBuild =
+    hall && sim.save.supply.buildings.length < reach.count
+      ? places
+          .filter((p) => p.kind === 'site' && !(p.id in sim.save.supply.discovered))
+          .filter((p) => distanceMeters(tileCenter(hall.cell), p.position) <= reach.meters && distanceMeters(sim.location, p.position) <= outAndBack)
+          .sort((a, b) => distanceMeters(sim.location, a.position) - distanceMeters(sim.location, b.position))[0]
+      : undefined;
   const detours: (typeof places)[number][] = [];
   for (const pick of [
-    places.filter((p) => p.kind === 'site' && !(p.id in sim.save.supply.discovered)).sort((a, b) => detourMeters(a) - detourMeters(b))[0],
+    siteToBuild ?? places.filter((p) => p.kind === 'site' && !(p.id in sim.save.supply.discovered)).sort((a, b) => detourMeters(a) - detourMeters(b))[0],
     places.filter((p) => isOrderKind(p.kind) && !(p.id in sim.save.supply.discovered)).sort((a, b) => detourMeters(a) - detourMeters(b))[0],
   ]) {
-    if (!pick || detourMeters(pick) > DISCOVER_DETOUR_METERS) continue;
+    if (!pick || (pick !== siteToBuild && detourMeters(pick) > DISCOVER_DETOUR_METERS)) continue;
     const step = discoverAt(sim.save, places, pick.position, sim.now);
     sim.save = step.save;
     supply.log[pick.kind === 'site' ? 'discoveredSites' : 'discoveredPlaces'] += step.found.length;
@@ -298,7 +317,7 @@ export function supplyWalk(sim: Sim, supply: SupplySim) {
     const given = deliverFromBag(sim.save, place.id, place.position, at, sim.now);
     sim.save = given.save;
     supply.log.toPlacesByHand += total(given.delivered);
-    supply.log.orderGold += given.gold;
+    logOrderGold(sim, supply, given.gold);
     supply.served.add(place.id);
   }
 }
