@@ -5,14 +5,17 @@ import { notificationCategories, notificationRules, notificationTexts as enNotif
 import { nearbyKinds } from '@/content/pocketMode';
 import { frPatrolTexts } from '@/content/fr/patrols';
 import { patrolTexts } from '@/content/patrols';
+import { supplyRules } from '@/content/supplyLines';
 import { fill, localized, t as text, tr } from '@/i18n';
 
 import { resolveExpedition } from '../expeditions/expeditions';
 import { gathererFirstWoundAt } from '../jobs/gatherer';
 import { fullAt, jobWorker, tiredAt } from '../jobs/jobs';
 import type { SaveData } from '../save';
+import { orderPlaceName, orderProgress } from '../supply/orders';
 import { raidAnnouncedAt, raidLeadMs } from '../supply/raids';
 import { buildingNameKey } from '../supply/buildings';
+import { tavernNameOf } from '../taverns/taverns';
 import { timeToFull } from '../team/health';
 import type { ActiveExpedition, ExpeditionReport, Heist } from '../types';
 import { deliveryTime } from './quietHours';
@@ -254,6 +257,29 @@ function raidNotifications(save: SaveData): PlannedNotification[] {
   ];
 }
 
+/** Orders: the day before a part-filled order's place leaves (supply lines only). */
+function orderNotifications(save: SaveData, now: number): PlannedNotification[] {
+  const t = notificationTexts();
+  return Object.values(save.supply.orders).flatMap((order): PlannedNotification[] => {
+    const progress = orderProgress(order);
+    if (progress < supplyRules.orders.steps[0] || progress >= 1) return [];
+    const at = order.expiresAt - supplyRules.orders.noticeHours * 3_600_000;
+    if (at <= now) return [];
+    const place = orderPlaceName(order, tavernNameOf);
+    return [
+      {
+        id: `order:${order.placeId}`,
+        category: 'orders',
+        group: 'expeditions',
+        at,
+        title: fill(t.orderLeaves.title, { place }),
+        body: fill(t.orderLeaves.body, { pct: Math.round(progress * 100) }),
+        data: { route: 'network' },
+      },
+    ];
+  });
+}
+
 /**
  * Every notification that should be scheduled right now, given the game state
  * and settings: expedition results, rested heroes, the idle reminder and the daily reset,
@@ -276,6 +302,7 @@ export function planNotifications(
     ...(categories.jobs ? jobNotifications(save, now) : []),
     ...(categories.dailyReset ? dailyResetNotification(now) : []),
     ...(supplyLines && categories.raids ? raidNotifications(save) : []),
+    ...(supplyLines && categories.orders ? orderNotifications(save, now) : []),
   ];
   return planned
     .map((n) => (n.at === null ? n : { ...n, at: deliveryTime(n.at, n.category, settings) }))

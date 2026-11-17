@@ -324,6 +324,12 @@ export const items: ItemDef[] = [
   { id: 'revivalDraught', name: 'Revival draught', emoji: '✨', icon: require('../../assets/icons/magic/elixir-golden-glow.png'), description: 'Once per run, gets back up at 30% HP when knocked out.', slot: 'consumable', elixir: { kind: 'revive', hp: elixirs.reviveHp } },
   { id: 'viperOil', name: 'Viper oil', emoji: '🐍', icon: require('../../assets/icons/relics/flask-green-poison.png'), description: `+${elixirs.viperCrit}% critical hit chance for the run.`, slot: 'consumable', elixir: { kind: 'crit', add: elixirs.viperCrit } },
 
+  // Order headline potions, paid by apothecary and market orders at 100%:
+  // found nowhere else (orderOnly keeps them out of every recipe, shop and loot).
+  { id: 'phoenixDraught', name: 'Phoenix draught', emoji: '🔥', icon: require('../../assets/icons/alchemy/potion-scarlet.png'), description: 'Once per run, gets back up at 60% HP when knocked out.', slot: 'consumable', orderOnly: true, elixir: { kind: 'revive', hp: elixirs.phoenixReviveHp } },
+  { id: 'giantsDraught', name: 'Giant’s draught', emoji: '💪', icon: require('../../assets/icons/alchemy/potion-cone-gold.png'), description: '+30% Power for the run.', slot: 'consumable', orderOnly: true, elixir: { kind: 'stat', stat: 'power', multiplier: elixirs.giantPower } },
+  { id: 'sagesDraught', name: 'Sage’s draught', emoji: '🔮', icon: require('../../assets/icons/alchemy/potion-cobalt.png'), description: '+30% Magic for the run.', slot: 'consumable', orderOnly: true, elixir: { kind: 'stat', stat: 'magic', multiplier: elixirs.sageMagic } },
+
   // Boss weakness items, bought at map places and used up when the run meets
   // their boss.
   { id: 'wantedPoster', name: 'His own wanted poster', emoji: '📜', icon: require('../../assets/icons/magic/parchment-note.png'), description: 'Half the bandit captain’s men desert: −25% HP.', slot: 'consumable', weakness: 'banditCaptain' },
@@ -350,6 +356,12 @@ export const items: ItemDef[] = [
   { id: 'mushroomRisotto', name: 'Mushroom risotto', emoji: '🍚', icon: require('../../assets/icons/magic/bowl-mushrooms.png'), description: '+10% Resistance for the party.', slot: 'provision', meal: { kind: 'resistance', multiplier: meals.risottoResistance } },
   { id: 'grilledTrout', name: 'Grilled trout', emoji: '🍤', icon: require('../../assets/icons/meals/meal-salmon-salad.png'), description: '+10% critical hit chance for the party.', slot: 'provision', meal: { kind: 'crit', add: meals.troutCrit } },
   { id: 'fishermansChowder', name: 'Fisherman’s chowder', emoji: '🥘', icon: require('../../assets/icons/meals/soup-chowder.png'), description: 'Halves the Element and Poison penalties.', slot: 'provision', meal: { kind: 'penaltyCut', threats: ['element', 'poison'], multiplier: meals.chowderCut } },
+
+  // Order headline meals, paid by tavern and market orders at 100%: found
+  // nowhere else (orderOnly keeps them out of every recipe, shop and loot).
+  { id: 'banquetRoast', name: 'Banquet roast', emoji: '🍖', icon: require('../../assets/icons/meals/meal-roast-duck.png'), description: '+20% max HP for the party.', slot: 'provision', orderOnly: true, meal: { kind: 'maxHp', multiplier: meals.banquetHp } },
+  { id: 'wayfarersFeast', name: 'Wayfarer’s feast', emoji: '🍗', icon: require('../../assets/icons/meals/meal-ham-hock.png'), description: '+35% gold.', slot: 'provision', orderOnly: true, meal: { kind: 'gold', multiplier: meals.feastGold } },
+  { id: 'stormbread', name: 'Stormbread', emoji: '🍞', icon: require('../../assets/icons/meals/bread-round-loaf.png'), description: '+2 Speed for the party.', slot: 'provision', orderOnly: true, meal: { kind: 'speed', add: meals.stormbreadSpeed } },
 
   // Utilities: used by the player from the stock, on the map or at home.
   { id: 'foragersTonic', name: 'Forager’s tonic', emoji: '🍃', icon: require('../../assets/icons/alchemy/potion-light-green.png'), description: 'Auto-gather reaches 10 m further for 30 minutes.', slot: 'utility', walk: 'forage' },

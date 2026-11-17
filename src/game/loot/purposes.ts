@@ -3,6 +3,7 @@ import { monsterPartById, relicById } from '@/content/lookup';
 import { lootConfig } from '@/content/loot/config';
 import type { Purpose } from '@/content/loot/purposes';
 import { PURPOSES } from '@/content/loot/purposes';
+import { orderKindsWanting } from '@/content/supplyLines';
 import { recipes } from '@/content/recipes';
 import { isKnown } from '@/game/crafting/crafting';
 import { ELEMENTS, shardId, stoneId } from '@/game/elements';
@@ -10,6 +11,7 @@ import { relicRecipe } from '@/game/forging/relics';
 import { guildBonus } from '@/game/guild/guild';
 import type { ConsumableDef, MaterialStack, RecipeDef } from '@/game/types';
 import type { SaveData } from '@/game/save';
+import type { OrderKind } from '@/content/supplyLines';
 
 export type BaseItemRef =
   | { kind: 'material'; id: string } // materials, shards, stones, monster parts
@@ -53,6 +55,8 @@ export function purposesOf(ref: BaseItemRef, recipeList: RecipeDef[] = recipes):
   switch (ref.kind) {
     case 'material':
       if (isIngredient(ref.id, ingredients)) add('ingredient');
+      // Goods some place's order wants (a market takes every network good).
+      if (orderKindsWanting(ref.id).length > 0) add('deliver');
       break;
     case 'relic':
       add('restore');
@@ -78,7 +82,8 @@ export type NextStep =
   | { kind: 'boss'; bossId: string }
   | { kind: 'set'; have: number; need: number }
   | { kind: 'restore'; cost: MaterialStack[]; gold: number } // the relic's restore cost: its type's recipe at its tier ×1.5 rounded up, plus gold
-  | { kind: 'action'; action: 'read' | 'open' | 'learn' };
+  | { kind: 'action'; action: 'read' | 'open' | 'learn' }
+  | { kind: 'deliver'; kinds: OrderKind[] }; // the place kinds whose orders want it
 
 /** What tapping the item shows, one step per purpose. */
 export function nextSteps(save: SaveData, ref: BaseItemRef, recipeList: RecipeDef[] = recipes): NextStep[] {
@@ -108,6 +113,8 @@ export function nextSteps(save: SaveData, ref: BaseItemRef, recipeList: RecipeDe
           kind: 'action',
           action: ref.kind === 'mysteriousKey' ? 'open' : ref.kind === 'blueprint' ? 'learn' : 'read',
         };
+      case 'deliver':
+        return { kind: 'deliver', kinds: orderKindsWanting(id!) };
     }
   });
 }

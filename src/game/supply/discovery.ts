@@ -12,6 +12,7 @@ import type { SaveData } from '../save';
 import { personalTaverns } from '../taverns/personal';
 import { withTavernName } from '../taverns/taverns';
 import { personalSites, sitesAround } from './sites';
+import { isOrderKind, makeOrder } from './orders';
 import { t, tr, type TextKey } from '@/i18n';
 
 /** The place kinds the network trades with (see content/supplyLines.ts). */
@@ -56,8 +57,14 @@ export function discoverAt(
   );
   if (found.length === 0) return { save, found };
   const discovered = { ...save.supply.discovered };
-  for (const place of found) discovered[place.id] = place.expiresAt;
-  return { save: { ...save, supply: { ...save.supply, discovered } }, found };
+  const orders = { ...save.supply.orders };
+  // The seed save carries the orders made so far, so two places of one kind differ in their headline.
+  const next = { ...save, supply: { ...save.supply, discovered, orders } };
+  for (const place of found) {
+    discovered[place.id] = place.expiresAt;
+    if (isOrderKind(place.kind)) orders[place.id] = makeOrder(next, place, timeMs);
+  }
+  return { save: next, found };
 }
 
 /**

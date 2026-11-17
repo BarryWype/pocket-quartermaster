@@ -396,6 +396,11 @@ const SAMPLE_NOTIFICATIONS: Record<NotificationCategory, { title: string; body: 
     body: fill(texts.raidAnnounced.body, { kind: 'Goblins', hours: 2 }),
     data: { route: 'network' },
   },
+  orders: {
+    title: texts.orderLeaves.title,
+    body: fill(texts.orderLeaves.body, { place: 'smithy', pct: 70 }),
+    data: { route: 'network' },
+  },
 };
 
 function Choice<T>({

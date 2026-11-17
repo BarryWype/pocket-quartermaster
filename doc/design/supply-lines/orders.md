@@ -1,6 +1,6 @@
 # Orders · proposal (step 5)
 
-**Status: proposal, for review.** Numbers are first guesses, all to live in `src/content/supplyLines.ts`. Once approved and built, the rules move into the README.
+**Status: approved as proposed and built 2026-11-17.** The rules as built are in the README ("Orders"); numbers live in `src/content/supplyLines.ts`.
 
 ## The order
 

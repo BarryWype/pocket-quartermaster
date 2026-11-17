@@ -1,6 +1,6 @@
 # Supply lines (experimental)
 
-**Status: being reshaped** on branch `feat/supply-lines`, following `Claude outputs/supply-network-prompts.md` (steps 0–4 built). The first trial (`Claude outputs/supply-lines-small-prompt.md`) scouted ground and founded camps anywhere; the network replaces that with sites you discover and buildings you put on them. Orders at places, street routes and the guided first chain come next.
+**Status: being reshaped** on branch `feat/supply-lines`, following `Claude outputs/supply-network-prompts.md` (steps 0–5 built). The first trial (`Claude outputs/supply-lines-small-prompt.md`) scouted ground and founded camps anywhere; the network replaces that with sites you discover and buildings you put on them. Time rings, street routes for the cart and the guided first chain come next.
 
 The whole feature sits behind **Settings → Developer → "Supply lines (experimental)"**, off by default. With it off, nothing changes or shows, and the simulator's default run doesn't play it. Every number lives in `src/content/supplyLines.ts` (table below). The rules are pure functions in `src/game/supply/`, settled from timestamps when read; nothing runs on a timer except one timeout for the next cart or raid moment while the app is open.
 
@@ -91,7 +91,22 @@ eady generates:
 - **Limits by tier:** buildings at once, each within this distance of the hall: tiers 1–2: 3 within 1 km; tier 3: 4 within 1.5 km; tier 4: 5 within 2 km; tier 5: 6 within 2.5 km.
 - **Why not:** a build is refused, in this order, for no hall, a site not discovered, one already built, too far from the hall, all buildings placed, not standing there, or the cost. The site's sheet shows the first that blocks every building as a banner and each one's reason under its button.
 - **When it leaves:** the cart's calls before that moment still collect; then the stock left is lost, the posted hero is free again, and a raid on it is dropped. The sheet says so in its last day, and the marker gets an hourglass badge.
-- **Grain** is a new material, made only by farms. Its use comes with orders (step 5).
+- **Grain** is a new material, made only by farms, wanted by taverns and markets.
+
+## Orders
+
+Behind the switch; the full proposal, approved as written on 2026-11-17, is `orders.md`.
+
+- **One order per discovered tavern, smithy, apothecary and market**, made at discovery (seeded from the place and you) and kept in `save.supply.orders` until the place leaves.
+- **Wants:** taverns grain and meat, smithies stone, apothecaries herbs and berries, markets any network good. **Size:** one average building (1.65 stars) at 60% of its full rate fills it in 3.5 days, ±20% (a tavern wants about 70 grain and 12 meat).
+- **Gold per unit delivered:** 1.25 × the shop price, fractions carried on the order.
+- **Steps** at 25%, 50% and 100%: gold (×1 at tier 2, ×2, ×4, ×8 by tier), then meals you can cook (taverns), your tier's ore (smithies) or your best healing potion (apothecaries), then gold and the **headline**.
+- **Headlines, found nowhere else:** Banquet roast, Wayfarer's feast and Stormbread (meals); Phoenix, Giant's and Sage's draughts (potions), or one time in five a Rare flask weapon (apothecaries); a Rare piece of a type your heroes wear (smithies); any of these (markets). A new order avoids the headlines of your other live orders of that kind.
+- **Deliver from my bag** within 50 m hands over every wanted good you carry, up to the need, with a preview of the goods and gold first. Cart deliveries come with step 7.
+- **Claim** each reached step with a tap; the rewards show in the loot grid. When the place leaves, reached steps not claimed are paid automatically; the rest is lost.
+- **The day before** a place leaves with its order 25–99% filled: one notification, "Leaves tomorrow: Smithy", in the Orders setting (shown while the switch is on).
+- **Grain's use** is delivering: wanted goods carry a "Deliver" use on their item card.
+- **On screen:** the order sits at the top of the place's sheet (`OrderSection`, after the approved mockup); the Network tab lists live orders by time left.
 
 ## Production and postings
 
@@ -157,7 +172,8 @@ eady generates:
 - **Version 54** follows the six-day rotation (`toV54`): open quests aimed at a place retarget to a live one (progress kept), and the personal tavern is checked again under its two-day period (`personalTavern.day` becomes `period`).
 - **Version 55** adds `save.supply.discovered`, empty.
 - **Version 56** turns camps into buildings (`toV56`): `supply.camps` becomes an empty `supply.buildings`, route points name buildings, a pending raid is dropped, `personalSite` is added, and the trial's trades become Herbalist and Farmer.
-- Renumber all five whenever the branch is brought up to date with main.
+- **Version 57** adds `save.supply.orders`, empty.
+- Renumber all six whenever the branch is brought up to date with main.
 - **Types** are in `src/game/supply/types.ts`. **The switch** is a setting, not save data.
 
 ## Simulator

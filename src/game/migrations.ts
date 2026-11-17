@@ -971,6 +971,15 @@ export function toV56(save: SaveData): SaveData {
   };
 }
 
+/**
+ * Version 57: discovered places hold orders (see supply/orders.ts). Places
+ * already discovered get none: an order is made when its place is found.
+ */
+export function toV57(save: SaveData): SaveData {
+  if (save.supply.orders) return save;
+  return { ...save, supply: { ...save.supply, orders: {} } };
+}
+
 /** Applies the migration steps in order, from the save's own version on. */
 export function migrateSave(
   save: SaveData,
@@ -1004,5 +1013,6 @@ export function migrateSave(
   if (fromVersion < 54) next = toV54(next);
   if (fromVersion < 55) next = toV55(next);
   if (fromVersion < 56) next = toV56(next);
+  if (fromVersion < 57) next = toV57(next);
   return next;
 }

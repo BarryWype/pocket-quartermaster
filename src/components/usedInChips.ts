@@ -23,6 +23,10 @@ function stepText(step: NextStep): string {
       });
     case 'action':
       return t(`inventory.next.${step.action}`);
+    case 'deliver':
+      return t('inventory.next.deliver', {
+        places: step.kinds.map((kind) => t(`supply.orders.wantedBy.${kind}`)).join(t('common.and')),
+      });
   }
 }
 

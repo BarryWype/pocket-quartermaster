@@ -22,8 +22,50 @@ export const supplyRules = {
   /** The starting trio's fixed trades, so a new game and a migrated save agree. */
   startingTrades: { bram: 'herbalist', lyra: 'farmer', mira: 'teamster' } satisfies Record<string, TradeId>,
 
-  /** Places that will hold orders; sites are built on. */
+  /** The place kinds that hold orders; sites are built on. */
   discovery: { kinds: ['tavern', 'smithy', 'apothecary', 'market', 'site'] satisfies PlaceKind[] },
+
+  /** The kinds whose places hold orders (a subset of the discovery kinds). */
+  orders: {
+    /** What each kind's order wants, as shares of the total; a market takes any network good, in any mix. */
+    kinds: {
+      tavern: { wants: { grain: 0.85, meat: 0.15 } },
+      smithy: { wants: { stone: 1 } },
+      apothecary: { wants: { herb: 0.62, berries: 0.38 } },
+      market: { any: true },
+    } as Record<OrderKind, { wants?: Record<string, number>; any?: boolean }>,
+    /** An order is what one building of this star quality makes in `fillHours` at `rateShare` of its full rate. */
+    averageQuality: 1.65,
+    rateShare: 0.6,
+    fillHours: 84,
+    /** Each order varies from the middle by this much, seeded. */
+    spread: 0.2,
+    /** Gold per unit delivered, × the good's shop price; fractions build up and are paid as whole gold. */
+    goldPerUnitShare: 1.25,
+    /** The progress levels that pay a reward. */
+    steps: [0.25, 0.5, 1],
+    /** Gold rewards are multiplied by this, by tier 1–5. */
+    tierGold: [1, 1, 2, 4, 8],
+    rewards: {
+      /** Gold at each step, before the tier multiplier; 0 marks a goods step. */
+      gold: { tavern: [20, 0, 40], smithy: [20, 0, 40], apothecary: [20, 0, 40], market: [20, 30, 50] } as Record<OrderKind, [number, number, number]>,
+      /** The smithy's 50% step: this many of the tier's ore. */
+      ore: 6,
+      /** The apothecary's 50% step: this many of the best healing potion the player can brew. */
+      potions: 2,
+      /** The tavern's 50% step: this many of one cookable meal. */
+      meals: 2,
+    },
+    /** The 100% headline pool per kind; a market draws from all three. */
+    headlines: {
+      tavern: ['banquetRoast', 'wayfarersFeast', 'stormbread'],
+      apothecary: ['phoenixDraught', 'giantsDraught', 'sagesDraught'],
+    },
+    /** One apothecary order in five pays a Rare flask weapon instead of a potion. */
+    flaskChance: 0.2,
+    /** The day before the place leaves, one notification for a part-filled order. */
+    noticeHours: 24,
+  },
 
   /** Geohash precision of the supply grid (about 115–153 m cells; see the design doc). */
   cellPrecision: 7,
@@ -184,3 +226,19 @@ export const siteGroup: PlaceGroup = {
   phases: 3,
   visibilityMeters: 1200,
 };
+
+/** The place kinds that hold orders. */
+export type OrderKind = 'tavern' | 'smithy' | 'apothecary' | 'market';
+export const ORDER_KINDS: OrderKind[] = ['tavern', 'smithy', 'apothecary', 'market'];
+
+/** Every good the network's buildings make: what a market order takes. */
+export const networkGoods: string[] = [
+  ...new Set(Object.values(supplyRules.buildings.kinds).flatMap((kind) => Object.keys(kind.makes))),
+];
+
+/** The order kinds whose orders want the good (a market takes every network good). */
+export const orderKindsWanting = (materialId: string): OrderKind[] =>
+  ORDER_KINDS.filter((kind) => {
+    const rule = supplyRules.orders.kinds[kind];
+    return rule.any ? networkGoods.includes(materialId) : materialId in (rule.wants ?? {});
+  });

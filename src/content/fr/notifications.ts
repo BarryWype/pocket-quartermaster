@@ -30,6 +30,7 @@ export const frNotificationCategories: Record<keyof typeof notificationCategorie
   patrolSpotted: { title: 'Patrouille repérée', description: 'Quand une patrouille ou un voyageur entre dans votre champ de vision pendant que l’app est fermée.' },
   escort: { title: 'Escorte', description: 'Quand votre escorte fait une pause pour se reposer ou est mise KO.' },
   raids: { title: 'Raids', description: 'Quand des pillards sont annoncés contre l’un de vos bâtiments.' },
+  orders: { title: 'Commandes', description: 'Un lieu part demain avec sa commande à moitié remplie.' },
 };
 
 export const frNotificationTexts: typeof notificationTexts = {
@@ -52,6 +53,7 @@ export const frNotificationTexts: typeof notificationTexts = {
   jobTired: { title: '{hero} est fatigué ({job})', body: 'Repos au poste jusqu’au retour de son énergie.' },
   jobHurt: { title: '{hero} a été blessé en cueillant', body: 'La faune près du camp. Vérifiez ses PV avant un donjon.' },
   raidAnnounced: { title: 'Des pillards en route vers votre {building}', body: '{kind}, dans {hours} h. Envoyez des défenseurs, ou videz le bâtiment.' },
+  orderLeaves: { title: 'Part demain : {place}', body: 'Sa commande est remplie à {pct} % ; les étapes non atteintes d’ici là sont perdues.' },
   chestUnlocked: { title: 'Coffre de pas débloqué', body: 'Votre {chest} est prêt à être ouvert.' },
   chestClose: { title: 'Presque arrivé', body: 'Plus que {steps} pas avant votre {chest}.' },
   dailyReset: { title: 'Nouvelle journée', body: 'Nouvelle journée, nouveaux coffres de pas.' },

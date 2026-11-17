@@ -79,6 +79,7 @@ import { makeGearPiece } from '@/game/gear/make';
 import { distanceMeters } from '@/game/generation/geo';
 import { placeHall as placeHallInSave } from '@/game/supply/hall';
 import { discoverAlong, discoverAt, discoveryNote, networkPlacesAround } from '@/game/supply/discovery';
+import { claimStep, deliverFromBag, isOrderKind, makeOrder } from '@/game/supply/orders';
 import { collectBuilding as collectBuildingInSave, postHero as postHeroInSave, recallPosted as recallPostedInSave } from '@/game/supply/postings';
 import { build as buildInSave } from '@/game/supply/buildings';
 import { checkPersonalSite as checkPersonalSiteInSave } from '@/game/supply/sites';
@@ -129,6 +130,10 @@ type GameState = {
   checkPersonalSite: (origin: LatLng, snap: (point: LatLng) => LatLng | null) => void;
   /** Supply lines: settles every building to now (stock and trade hours); a no-op when nothing changed. */
   settleSupply: () => void;
+  /** Supply lines: delivers the order's goods from the bag, standing at the place. */
+  deliverOrder: (placeId: string, placePosition: LatLng, player: LatLng) => { delivered: Record<string, number>; gold: number };
+  /** Supply lines: claims a reached order step, returning the loot paid (the headline at 100% included). */
+  claimOrderStep: (placeId: string, stepIndex: number) => Loot;
   /** Sends heroes from the hall to defend the raided building. */
   sendDefenders: (heroIds: string[]) => void;
   /** Debug: a raid on this building in two minutes. */
@@ -422,6 +427,18 @@ export const useGameStore = create<GameState>()(
         const settled = settleNetwork(get().save, now);
         set({ save: { ...settled, supply: { ...settled.supply, lastOpenAt: now } } });
       },
+      deliverOrder: (placeId, placePosition, player) => {
+        const now = Date.now();
+        const { save, delivered, gold } = deliverFromBag(get().save, placeId, placePosition, player, now);
+        set({ save });
+        return { delivered, gold };
+      },
+      claimOrderStep: (placeId, stepIndex) => {
+        const now = Date.now();
+        const { save, paid } = claimStep(get().save, placeId, stepIndex, now);
+        set({ save });
+        return paid;
+      },
       sendDefenders: (heroIds) => {
         const now = Date.now();
         set({ save: sendDefendersInSave(settleNetwork(get().save, now), heroIds, now) });
@@ -444,12 +461,16 @@ export const useGameStore = create<GameState>()(
         const save = get().save;
         const places = [...networkPlacesAround(save, position, now), ...useDebugStore.getState().debugSites];
         const discovered = { ...save.supply.discovered };
+        const orders = { ...save.supply.orders };
+        // The seed save carries the orders made so far, so two places of one kind differ in their headline.
+        const next = { ...save, supply: { ...save.supply, discovered, orders } };
         for (const place of places) {
           if (place.startsAt <= now && now < place.expiresAt && distanceMeters(position, place.position) <= 1200) {
             discovered[place.id] = place.expiresAt;
+            if (isOrderKind(place.kind) && !(place.id in orders)) orders[place.id] = makeOrder(next, place, now);
           }
         }
-        set({ save: { ...save, supply: { ...save.supply, discovered } } });
+        set({ save: next });
       },
       setRoute: (route) => set({ save: setRouteInSave(get().save, route, Date.now()) }),
       setCrew: (driver, escorts) => set({ save: setCrewInSave(get().save, driver, escorts, Date.now()) }),
@@ -864,7 +885,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 56,
+      version: 57,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
       // Saves from version 30 on are kept: every later version bump adds a migration step here (see AGENTS.md, Saves).

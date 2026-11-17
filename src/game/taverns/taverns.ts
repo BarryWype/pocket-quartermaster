@@ -47,14 +47,17 @@ export type RecruitOffer = {
 
 export type RecruitProblem = 'locked' | 'tooFar' | 'taken' | 'rosterFull' | 'gold';
 
-/** A tavern spawn with its name: drawn from the spawn id, so a tavern keeps its name for everyone. */
-export const withTavernName = (spawn: PlaceSpawn): TavernSpawn => {
-  const rng = createRng(`tavern-name|${spawn.id}`);
-  return {
-    ...spawn,
-    name: tavernName(rng.int(0, tavernNames.adjectives.length - 1), rng.int(0, tavernNames.nouns.length - 1)),
-  };
+/** A tavern's name, drawn from its place id, so a tavern keeps its name for everyone. */
+export const tavernNameOf = (placeId: string): string => {
+  const rng = createRng(`tavern-name|${placeId}`);
+  return tavernName(rng.int(0, tavernNames.adjectives.length - 1), rng.int(0, tavernNames.nouns.length - 1));
 };
+
+/** A tavern spawn with its name. */
+export const withTavernName = (spawn: PlaceSpawn): TavernSpawn => ({
+  ...spawn,
+  name: tavernNameOf(spawn.id),
+});
 
 /**
  * Taverns are map places now: the same for everyone while their six-day

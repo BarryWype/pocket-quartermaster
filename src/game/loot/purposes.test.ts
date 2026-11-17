@@ -23,10 +23,19 @@ describe('purpose tags', () => {
   ];
 
   it('gives every base item at least one purpose', () => {
-    // Grain's purpose is delivering it to taverns' orders, which the supply network adds with orders.
-    for (const ref of refs.filter((r) => !(r.kind === 'material' && r.id === 'grain'))) {
+    for (const ref of refs) {
       expect([ref, purposesOf(ref).length > 0]).toEqual([ref, true]);
     }
+  });
+
+  it('tags goods some order wants as deliver, with the kinds that want them', () => {
+    // Grain no recipe uses: delivering it to taverns' and markets' orders is its only purpose.
+    expect(purposesOf({ kind: 'material', id: 'grain' })).toEqual(['deliver']);
+    expect(nextSteps(save(), { kind: 'material', id: 'grain' })).toEqual([{ kind: 'deliver', kinds: ['tavern', 'market'] }]);
+    // Meat is both an ingredient and a wanted good.
+    expect(purposesOf({ kind: 'material', id: 'meat' })).toEqual(['ingredient', 'deliver']);
+    // A material no order wants never gets the tag.
+    expect(purposesOf({ kind: 'material', id: 'wood' }).includes('deliver')).toBe(false);
   });
 
   it('computes the ingredient tag from recipes, never by hand', () => {

@@ -4,15 +4,21 @@ import { StyleSheet, View } from 'react-native';
 import { FillBar, PressScale } from '@/components/motion';
 
 import { Text } from '@/components/Text';
+import { LootGrid } from '@/components/LootGrid';
 import { ParchmentCard, WoodButton } from '@/components/ui';
 import { clockConfig } from '@/content/clockConfig';
+import { placeInfo } from '@/content/places';
+import { supplyRules } from '@/content/supplyLines';
 import { distanceMeters } from '@/game/generation/geo';
 import { tileCenter } from '@/game/generation/tiles';
+import { lootTiles } from '@/game/loot/tiles';
 import { routePreview } from '@/game/supply/cart';
 import { buildingEmoji, buildingNameKey, isLastDay } from '@/game/supply/buildings';
+import { orderPlaceName, orderProgress, type Order } from '@/game/supply/orders';
 import { buildingCap, buildingStockTotal, settleBuilding } from '@/game/supply/production';
 import type { Building } from '@/game/supply/types';
-import { formatDistance, formatDuration, t } from '@/i18n';
+import { tavernNameOf } from '@/game/taverns/taverns';
+import { formatDistance, formatDuration, formatPercent, t } from '@/i18n';
 import { raidText } from '@/hooks/useCartTick';
 import { useNow } from '@/hooks/useNow';
 import { useGameStore } from '@/store/gameStore';
@@ -61,6 +67,14 @@ export function NetworkTab() {
         buildings.map((building) => (
           <BuildingCard key={building.id} building={building} now={now} onOpen={() => setOpenBuilding(building.id)} />
         ))
+      )}
+      <Text style={styles.sectionTitle}>{t('supply.order.places')}</Text>
+      {Object.keys(save.supply.orders).length === 0 ? (
+        <Text style={styles.line}>{t('supply.order.empty')}</Text>
+      ) : (
+        Object.values(save.supply.orders)
+          .sort((a, b) => a.expiresAt - b.expiresAt)
+          .map((order) => <OrderCard key={order.placeId} order={order} now={now} />)
       )}
       <CartCard now={now} onOpen={() => setCartOpen(true)} />
       {cartOpen && <SupplyCartPanel onClose={() => setCartOpen(false)} />}
@@ -126,10 +140,40 @@ function BuildingCard({ building, now, onOpen }: { building: Building; now: numb
   );
 }
 
+/** One live order's card: its place, its progress with its steps' notches, its headline and its time left. */
+function OrderCard({ order, now }: { order: Order; now: number }) {
+  const progress = orderProgress(order);
+  const last = isLastDay(order.expiresAt, now);
+  return (
+    <ParchmentCard title={orderPlaceName(order, tavernNameOf)} titleEmoji={placeInfo[order.kind].emoji} contentStyle={styles.card}>
+      <View style={styles.progressRow}>
+        <View style={styles.barWrap}>
+          <FillBar value={progress} height={10} />
+          {supplyRules.orders.steps.slice(0, -1).map((at) => (
+            <View key={at} style={[styles.notch, { left: `${at * 100}%` }]} />
+          ))}
+        </View>
+        <Text style={styles.stockText}>{formatPercent(progress)}</Text>
+      </View>
+      <View style={styles.orderRow}>
+        <LootGrid tiles={lootTiles(order.headline)} size={40} interactive={false} />
+        <Text style={styles.line}>{t('supply.leavesIn', { time: formatDuration(Math.max(0, order.expiresAt - now), false) })}</Text>
+        {last && <Text style={styles.lastDay}>{t('supply.lastDay')}</Text>}
+      </View>
+    </ParchmentCard>
+  );
+}
+
 const styles = StyleSheet.create({
   body: { gap: 10 },
   card: { gap: 8 },
   line: { color: ui.ink },
+  sectionTitle: { fontSize: 19, color: ui.brassLight },
   stockRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   stockText: { color: ui.ink },
+  progressRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  barWrap: { flex: 1, position: 'relative' },
+  notch: { position: 'absolute', top: -2, bottom: -2, width: 2, backgroundColor: ui.outline },
+  orderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  lastDay: { color: ui.onEmber, backgroundColor: ui.ember, fontSize: 12, letterSpacing: 1, paddingHorizontal: 4, paddingVertical: 2 },
 });

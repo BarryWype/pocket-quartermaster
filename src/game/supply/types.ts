@@ -5,6 +5,7 @@ import type { RunResult } from '../expeditions/simulate';
 import type { Loot } from '../loot/types';
 import type { PatrolKind } from '../patrols/generate';
 import type { ExpeditionReport } from '../types';
+import type { Order } from './orders';
 
 export type Terrain = 'green' | 'waterside' | 'built';
 
@@ -25,6 +26,8 @@ export type SupplyState = {
   raidLog: RaidLogLine[];
   /** Network places the player walked to: place id → its expiresAt, pruned once expired. */
   discovered: Record<string, number>;
+  /** The orders of the discovered places: place id → its order, until the place leaves. */
+  orders: Record<string, Order>;
   nextId: number;
 };
 

@@ -331,7 +331,7 @@ function SettingsContent() {
             (category) =>
               notificationCategories[category].group === group &&
               !POCKET_CATEGORIES.includes(category) &&
-              (category !== 'raids' || supplyLines),
+              (category !== 'raids' && category !== 'orders' || supplyLines),
           );
           if (shown.length === 0) return null;
           return (

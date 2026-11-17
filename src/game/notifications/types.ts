@@ -21,7 +21,8 @@ export type NotificationCategory =
   | 'secretPlace'
   | 'patrolSpotted'
   | 'escort'
-  | 'raids';
+  | 'raids'
+  | 'orders';
 
 export type NotificationSettings = {
   /** Master switch. */

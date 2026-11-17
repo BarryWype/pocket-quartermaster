@@ -26,6 +26,7 @@ import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
 
 import { ClassSummary } from './ClassSummary';
+import { OrderSection } from './OrderSection';
 import { lineParts } from './PlacePanel';
 import { IconLabel, PartsLine } from './IconLabel';
 import { Price } from './Price';
@@ -94,6 +95,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
   return (
     <Overlay onClose={onClose} position="bottom">
       <Sheet variant="wood" emoji="🍺" title={tavern.name} bodyStyle={styles.content} footer={<WoodButton title={t('common.close')} onPress={onClose} />}>
+        <OrderSection place={tavern} player={player} now={openedAt} />
         {supplyOn && !(tavern.id in save.supply.discovered) && <IconLabel emoji="👣" label={t('supply.discover.walkHere')} />}
         {far ? (
           <>

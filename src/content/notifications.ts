@@ -115,6 +115,12 @@ export const notificationCategories: Record<
     description: 'When raiders are announced against one of your supply buildings.',
     defaultOn: true,
   },
+  orders: {
+    group: 'expeditions',
+    title: 'Orders',
+    description: 'A place leaves tomorrow with its order part-filled.',
+    defaultOn: true,
+  },
 };
 
 export const notificationRules = {
@@ -149,6 +155,7 @@ export const notificationTexts = {
   jobTired: { title: '{hero} is tired ({job})', body: 'Resting at the station until their energy is back.' },
   jobHurt: { title: '{hero} was hurt while gathering', body: 'Wildlife near the camp. Check their HP before a dungeon.' },
   raidAnnounced: { title: 'Raiders heading for your {building}', body: '{kind}, landing in {hours} h. Send defenders, or empty the building.' },
+  orderLeaves: { title: 'Leaves tomorrow: {place}', body: 'Its order is {pct}% filled; steps not reached by then are lost.' },
   chestUnlocked: { title: 'Step chest unlocked', body: 'Your {chest} is ready to open.' },
   chestClose: { title: 'Almost there', body: 'Only {steps} more steps to your {chest}.' },
   dailyReset: { title: 'New day', body: 'New day, new step chests.' },

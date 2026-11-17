@@ -325,6 +325,19 @@ export const frNames: Record<string, string> = {
   '+1 Speed for the party.': '+1 de Vitesse pour le groupe.',
   'Mushroom risotto': 'Risotto aux champignons',
   '+10% Resistance for the party.': '+10 % de Résistance pour le groupe.',
+  'Banquet roast': 'Rôti de banquet',
+  '+20% max HP for the party.': '+20 % de PV max pour le groupe.',
+  'Wayfarer’s feast': 'Festin du voyageur',
+  '+35% gold.': '+35 % d’or.',
+  'Stormbread': 'Pain d’orage',
+  '+2 Speed for the party.': '+2 de Vitesse pour le groupe.',
+  'Phoenix draught': 'Philtre de phénix',
+  'Once per run, gets back up at 60% HP when knocked out.':
+    'Une fois par expédition, se relève à 60 % de PV après un évanouissement.',
+  'Giant’s draught': 'Philtre du géant',
+  '+30% Power for the run.': '+30 % de Puissance pour l’expédition.',
+  'Sage’s draught': 'Philtre du sage',
+  '+30% Magic for the run.': '+30 % de Magie pour l’expédition.',
   Pemmican: 'Pemmican',
 
   // Utilities
@@ -1292,6 +1305,7 @@ export const frNames: Record<string, string> = {
     'Posté dans un bâtiment : les raids sont annoncés plus tôt, et les combats sur place avec un bonus.',
   // Purpose tags
   'Ingredient': 'Ingrédient',
+  'Deliver': 'Livrer',
   'Quest': 'Quête',
   'Collect': 'Collection',
   'Restore': 'Restauration',

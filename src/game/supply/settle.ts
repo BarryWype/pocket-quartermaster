@@ -1,5 +1,6 @@
 import type { SaveData } from '../save';
 import { settleCart } from './cart';
+import { settleOrders } from './orders';
 import { settleBuildings } from './production';
 import { resolveRaid, settleRaids } from './raids';
 
@@ -31,5 +32,6 @@ export function settleNetwork(save: SaveData, now: number): SaveData {
   }
   next = settleCart(next, now);
   next = settleRaids(next, now);
-  return settleBuildings(next, now);
+  next = settleBuildings(next, now);
+  return settleOrders(next, now);
 }

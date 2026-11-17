@@ -22,6 +22,7 @@ export function emptySupply(now: number): SupplyState {
     lastOpenAt: now,
     raidLog: [],
     discovered: {},
+    orders: {},
     nextId: 1,
   };
 }

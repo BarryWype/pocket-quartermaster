@@ -6,7 +6,7 @@ import { gearRules } from "@/content/gear";
 import { affixById } from "@/content/affixes";
 import { gearStats } from "./gear/stats";
 import { uniquePool } from "./gear/uniques";
-import { migrateSave, toV38, toV39, toV40, toV41, toV42, toV43, toV44, toV47, toV48, toV49, toV50, toV52, toV53, toV54, toV55, toV56 } from "./migrations";
+import { migrateSave, toV38, toV39, toV40, toV41, toV42, toV43, toV44, toV47, toV48, toV49, toV50, toV52, toV53, toV54, toV55, toV56, toV57 } from "./migrations";
 import { affixPool } from "./gear/affixes";
 import { emptyLoot } from "./loot/types";
 import type { Briefing, ExpeditionReport, GearDef, GearInstance } from "./types";
@@ -1341,5 +1341,28 @@ describe("toV56", () => {
 
   it("runs from migrateSave on a version 55 save", () => {
     expect(migrateSave(v55(), 55, 0).supply.buildings).toEqual([]);
+  });
+});
+
+describe("toV57", () => {
+  /** A version 56 save: its supply has no `orders` map yet. */
+  const v56 = (): SaveData => {
+    const base = createInitialSave();
+    const supply = { ...base.supply } as Omit<typeof base.supply, "orders"> & { orders?: Record<string, unknown> };
+    delete supply.orders;
+    return { ...base, supply } as unknown as SaveData;
+  };
+
+  it("adds an empty orders map to the supply", () => {
+    expect(toV57(v56()).supply.orders).toEqual({});
+  });
+
+  it("returns the same save when the map is already there", () => {
+    const save = createInitialSave();
+    expect(toV57(save)).toBe(save);
+  });
+
+  it("runs from migrateSave on a version 56 save", () => {
+    expect(migrateSave(v56(), 56, 0).supply.orders).toEqual({});
   });
 });

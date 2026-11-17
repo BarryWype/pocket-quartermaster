@@ -81,6 +81,8 @@ type ItemBase = {
   emoji: string;
   description?: string;
   icon?: ImageSourcePropType;
+  /** An order headline reward: no recipe, shop, market or loot table offers it. */
+  orderOnly?: boolean;
 };
 
 export type GearDef = ItemBase & {
