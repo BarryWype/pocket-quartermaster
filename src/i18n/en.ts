@@ -1182,13 +1182,6 @@ export const en = {
       deliveredNote: 'Delivered {n} {good} to {place}',
     },
     planner: {
-      hint: 'Tap buildings in order, and any cell as a waypoint to steer around danger.',
-      waypoint: 'waypoint',
-      line: '{distance} · {minutes} min a loop',
-      ambush: 'Ambush risk: {percent} a loop',
-      undo: 'Undo',
-      clear: 'Clear',
-      save: 'Save',
       title: 'Cart route',
       subStops: 'Pick the stops',
       subOrder: 'Put the stops in order',

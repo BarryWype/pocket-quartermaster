@@ -3,7 +3,6 @@ import { create } from 'zustand';
 import type { PlaceSpawn } from '@/game/places/generate';
 import type { PatrolSpawn } from '@/game/patrols/generate';
 import type { SanctumSpawn } from '@/game/sanctums/sanctums';
-import type { routePreview } from '@/game/supply/cart';
 import type { RoutePoint } from '@/game/supply/types';
 import type { TavernSpawn } from '@/game/taverns/taverns';
 import type { LatLng } from '@/game/generation/types';
@@ -33,10 +32,6 @@ type MapPanelsState = {
   plannerStep: 1 | 2 | 3;
   /** A tap on the map while the planner is on its result step, waiting to become a via point. */
   plannerTap: { position: LatLng; seq: number } | null;
-  /** The route being drawn in the map's planner, or null when it is closed. */
-  routeDraft: RoutePoint[] | null;
-  /** The planner's last preview of the draft (length, time, each crossed cell's danger), shared with the map's route layer. */
-  draftPreview: ReturnType<typeof routePreview> | null;
   openSanctum: (spawn: SanctumSpawn) => void;
   openTavern: (tavern: TavernSpawn) => void;
   openPlace: (place: PlaceSpawn) => void;
@@ -53,15 +48,6 @@ type MapPanelsState = {
   setPlannerStep: (step: 1 | 2 | 3) => void;
   /** Notes a map tap for the planner's result step. */
   notePlannerTap: (position: LatLng) => void;
-  /** Opens the map's route planner on a starting route, closing the cart's sheet. */
-  planRoute: (route: RoutePoint[]) => void;
-  /** Appends a point to the planner's draft. */
-  addToRoute: (point: RoutePoint) => void;
-  /** Drops the draft's last point. */
-  undoRoute: () => void;
-  /** Empties the draft, keeping the planner open. */
-  clearRoute: () => void;
-  setDraftPreview: (preview: ReturnType<typeof routePreview> | null) => void;
   closeSanctum: () => void;
   closeTavern: () => void;
   closePlace: () => void;
@@ -71,7 +57,6 @@ type MapPanelsState = {
   closeSupplyCell: () => void;
   closeSupplyBuilding: () => void;
   closeCart: () => void;
-  cancelRoute: () => void;
 };
 
 export const useMapPanels = create<MapPanelsState>()((set) => ({
@@ -86,8 +71,6 @@ export const useMapPanels = create<MapPanelsState>()((set) => ({
   routePlanner: null,
   plannerStep: 1,
   plannerTap: null,
-  routeDraft: null,
-  draftPreview: null,
   openSanctum: (spawn) => set({ sanctum: spawn }),
   openTavern: (tavern) => set({ tavern }),
   openPlace: (place) => set({ place }),
@@ -103,11 +86,6 @@ export const useMapPanels = create<MapPanelsState>()((set) => ({
   closeRoutePlanner: () => set({ routePlanner: null, plannerTap: null }),
   setPlannerStep: (step) => set({ plannerStep: step }),
   notePlannerTap: (position) => set((state) => ({ plannerTap: { position, seq: (state.plannerTap?.seq ?? 0) + 1 } })),
-  planRoute: (route) => set({ routeDraft: route, cartOpen: false }),
-  addToRoute: (point) => set((state) => ({ routeDraft: [...(state.routeDraft ?? []), point] })),
-  undoRoute: () => set((state) => ({ routeDraft: state.routeDraft?.slice(0, -1) ?? null })),
-  clearRoute: () => set({ routeDraft: [] }),
-  setDraftPreview: (draftPreview) => set({ draftPreview }),
   closeSanctum: () => set({ sanctum: null }),
   closeTavern: () => set({ tavern: null }),
   closePlace: () => set({ place: null }),
@@ -119,5 +97,4 @@ export const useMapPanels = create<MapPanelsState>()((set) => ({
   closeSupplyCell: () => set({ supplyCell: null }),
   closeSupplyBuilding: () => set({ supplyBuilding: null }),
   closeCart: () => set({ cartOpen: false }),
-  cancelRoute: () => set({ routeDraft: null, draftPreview: null }),
 }));

@@ -1185,13 +1185,6 @@ export const fr: Dictionary = {
       deliveredNote: 'Livré {n} {good} à {place}',
     },
     planner: {
-      hint: 'Touchez les bâtiments dans l’ordre, et n’importe quelle case comme étape pour contourner le danger.',
-      waypoint: 'point de passage',
-      line: '{distance} · {minutes} min la tournée',
-      ambush: 'Risque d’embuscade : {percent} par tournée',
-      undo: 'Annuler le dernier',
-      clear: 'Effacer',
-      save: 'Enregistrer',
       title: 'Itinéraire de la charrette',
       subStops: 'Choisissez les étapes',
       subOrder: 'Ordonnez les étapes',
