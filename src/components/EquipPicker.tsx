@@ -25,7 +25,6 @@ import { Sheet } from './Sheet';
 import { Row } from './Row';
 import { Text } from './Text';
 import { DELTA_KEYS, statIcons, trinketParts } from './GearRow';
-import { workToolParts } from './WorkToolLine';
 import { PartsLine, type LabelPart } from './IconLabel';
 
 type Props = {
@@ -123,7 +122,6 @@ function optionsFor(save: SaveData, heroId: string, slot: EquipmentSlot, bossId?
           : []
         : [
             ...(item.slot === 'trinket' ? trinketParts(gear) : deltaParts(preview!)),
-            ...(item.workTool ? workToolParts(item) : []),
             unequipsOffhand ? t('equip.unequipsOffhand') : null,
             holder ? t('equip.usedBy', { name: holder.name }) : null,
           ].filter((part): part is LabelPart => part !== null);

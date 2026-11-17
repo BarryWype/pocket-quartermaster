@@ -35,7 +35,7 @@ export type SupplyState = {
   nextId: number;
 };
 
-export type BuildingKind = 'farm' | 'quarry' | 'herbGarden';
+export type BuildingKind = 'farm' | 'herbGarden' | 'quarry' | 'lumberCamp' | 'huntingCamp' | 'copperMine' | 'ironMine' | 'charcoalKiln';
 export type Building = {
   id: string;
   kind: BuildingKind;

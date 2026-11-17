@@ -81,10 +81,10 @@ eady generates:
 
 ## Trades
 
-- **Every hero has a trade** beside their class: Farmer, Quarryman, Herbalist, Teamster or Watchman. It's rolled at even weights from the offer's id for tavern, traveller and secret recruits (so the offer shows what the hero gets), from the hero's id otherwise. The starting trio: Bram Herbalist, Lyra Farmer, Mira Teamster.
+- **Every hero has a trade** beside their class: Farmer, Herbalist, Woodcutter, Hunter, Miner, Teamster or Watchman. It's rolled at even weights from the offer's id for tavern, traveller and secret recruits (so the offer shows what the hero gets), from the hero's id otherwise. The starting trio: Bram Herbalist, Lyra Farmer, Mira Teamster.
 - **Level 1 to 3**, by hours spent using it: posted at a matching building (any building for a Watchman), or driving the cart for a Teamster.
 - **Where it shows:** offers, the hero sheet and the hero pickers, only while the switch is on.
-- **The trial's trades** became network ones in save version 56, keeping their hours: Woodcutter → Herbalist, Trapper → Farmer.
+- **Older trades** were mapped, keeping their hours: the trial's Woodcutter → Herbalist and Trapper → Farmer (version 56), then Quarryman → Miner (version 60).
 
 ## The hall, sites and buildings
 
@@ -97,11 +97,18 @@ eady generates:
   - **Quality:** 1 to 3 stars (50%, 35%, 15%), drawn from the site's seed and revealed by discovering it.
 - **Buildings:** any of three on any discovered site, built in person (within 50 m) for 60 gold and 10 wood. Building resets the site's life: a building lasts six days.
 
-  | Building | Makes, per unit | Base rate per star | Mainly for |
-  | --- | --- | --- | --- |
-  | Farm | grain 85%, meat 15% | 1.0 / h | Taverns |
-  | Quarry | stone | 0.8 / h | Smithies |
-  | Herb garden | herbs 50%, berries 30%, mushrooms 20% | 0.8 / h | Apothecaries |
+  | Building | Makes, per unit | Base rate per star | Mainly for | Opens at | Trade |
+  | --- | --- | --- | --- | --- | --- |
+  | Farm | grain 85%, meat 15% | 1.0 / h | Taverns | tier 2 | Farmer |
+  | Herb garden | herbs 50%, berries 30%, mushrooms 20% | 0.8 / h | Apothecaries | tier 2 | Herbalist |
+  | Quarry | stone | 0.8 / h | Smithies | tier 2 | Miner |
+  | Lumber camp | wood | 1.0 / h | your workshop | tier 2 | Woodcutter |
+  | Hunting camp | meat 45%, hide 35%, bone 20% | 0.8 / h | your workshop | tier 2 | Hunter |
+  | Copper mine | copper | 0.6 / h | your workshop | tier 3 | Miner |
+  | Iron mine | iron | 0.5 / h | your workshop | tier 4 | Miner |
+  | Charcoal kiln | coal | 0.4 / h | your workshop | tier 5 | Woodcutter |
+
+  Dearer ores come slower, so each building's gold per hour stays close. Goods "for your workshop" go home, or to markets, which take every good. A save unlocked before tier 2 (debug) builds as at tier 2.
 
 - **Limits by tier:** buildings at once, each within this distance of the hall: tiers 1–2: 3 within 1 km; tier 3: 4 within 1.5 km; tier 4: 5 within 2 km; tier 5: 6 within 2.5 km.
 - **Why not:** a build is refused, in this order, for no hall, a site not discovered, one already built, too far from the hall, all buildings placed, not standing there, or the cost. The site's sheet shows the first that blocks every building as a banner and each one's reason under its button.
@@ -131,6 +138,19 @@ Behind the switch, after the approved map mockup (`mockups/MapNetwork.html`).
 - **Built with views,** no new native code: `TimeRing` sits beside `DifficultyRing` in `src/components/ui/DifficultyRing.tsx`, and `DifficultyRing` takes an optional `time`. The share left moves in 1/48 steps (`timeLeftShare`), on the map's existing slow clock, so markers stay memoised between steps.
 - **A timer in every temporary sheet:** the "Leaves in …" strip under the header (ember, with "LAST DAY", in the last day) on places, taverns, monster lairs, sites and buildings, once per sheet.
 - **The Network tab** puts a "Leaving soonest" section first whenever a building or an order is in its last day.
+
+## What the network replaced
+
+Prompt 2, step 1 (proposal approved as written in `replacements.md`); for everyone, with or without the switch.
+
+- **The six material shops left the map:** sawmills, quarries, copper and iron mines, coal pits and hunting lodges. The fishing dock stays.
+  - The market still sells every material (ores up to your pickaxe) and now buys monster parts, with the apothecary.
+  - The "mine" quest left the pool; mine tiers and locked mines went; the tier ore table moved to content (`tierOres`).
+  - **Strong ale** (the Ogre Chieftain's weakness) is sold at the market and given at tavern orders' 50% step while the boss is unlocked and unbeaten.
+- **The guild gathering jobs left:** woodcutter, forager, trapper, miner and charcoal burner, with their work tools (hatchet, sickle, snare, mining pick, tongs) and the tools' scavenging.
+  - The **outdoor gatherer stays**: the Expeditions tab "Jobs" is now "Gatherer".
+  - The job engine stays generic (energy cycles, output), with the gatherer its only job.
+- **Hand gathering is untouched.** The simulator's supply section compares, by tier, what the bot's buildings make with what its walks gather of the same goods; a band test wants at least 1.5× at tier 2 and a ratio that never falls as tiers rise (`targets.buildingsOverWalking`).
 
 ## Production and postings
 
@@ -207,7 +227,8 @@ Behind the switch, after the approved map mockup (`mockups/MapNetwork.html`).
 - **Version 57** adds `save.supply.orders`, empty.
 - **Version 58** stores the street path with the route (`cart.path`, `nextPath`); the trial's waypoint cells became forced street points.
 - **Version 59** adds `supply.debugUnlocked` and `supply.firstChain`.
-- Renumber all eight whenever the branch is brought up to date with main.
+- **Version 60** follows what the network replaced (`toV60`): open mine quests are swapped for fresh ones of the same band, quests aimed at removed places retarget, and the removed kinds leave seen kinds; each guild job's waiting units plus its work since the last settlement (at the old rate, tool bonus and cap) go into the materials and its hero comes off the job; every work tool is unequipped, removed and refunded at its shop price (5/10/20/40/80 by tier); the two job tips go; Quarrymen become Miners.
+- Renumber all nine whenever the branch is brought up to date with main.
 - **Types** are in `src/game/supply/types.ts`. **The switch** is a setting, not save data.
 
 ## Simulator

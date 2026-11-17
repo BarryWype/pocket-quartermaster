@@ -9,7 +9,6 @@ import { localized } from '@/i18n/locale';
 import { ELEMENTS, stoneId } from '../elements';
 import { highestUnlockedTier } from '../dungeons/unlock';
 import { isGuildUnlocked } from '../guild/guild';
-import { isJobOpen } from '../jobs/jobs';
 import { levelMarks } from '../families/strip';
 import type { SaveData } from '../save';
 import type { ExpeditionReport } from '../types';
@@ -84,8 +83,6 @@ export function dueTips(save: SaveData): TipId[] {
     ...heldItemKinds(save),
     ...heldGearKinds(save),
     ...offMapRevealKinds.filter((kind) => isRevealed(save, kind)),
-    ...(isJobOpen(save, 'miner') ? (['jobMiner'] as TipId[]) : []),
-    ...(isJobOpen(save, 'charcoalBurner') ? (['jobCharcoalBurner'] as TipId[]) : []),
   ];
 }
 

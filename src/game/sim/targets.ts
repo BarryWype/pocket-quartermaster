@@ -55,12 +55,10 @@ export const targets = {
   goldSurplusDays: 3,
   /** The tier's main material: spent at least this share of what was gathered. */
   materialSpent: 0.75,
-  /** The woodcutter's share of the wood spent per day, at every tier (doc/design/jobs/README.md's 10–15%). */
-  woodcutterShare: [0.1, 0.15] as [number, number],
-  /** A job gives at most this share of a material's walking intake (regular profile); walk first. */
-  jobShareMax: 0.15,
-  /** The gatherer gives at most this share of a material's walking intake (regular profile); it beats guild jobs because it depends on spawns. */
+  /** The gatherer gives at most this share of a material's walking intake (regular profile); walk first. */
   gathererShareMax: 0.25,
+  /** With `--supply-lines`, a regular player's buildings make at least this many times what walking gathers of the same goods at tier 2, and the ratio never falls as tiers rise. */
+  buildingsOverWalking: 1.5,
   /** Heroes end each tier within this many levels of the top of its band (expectedLevels). */
   levelSlack: 1,
   /** A stock that grows at every tier end and ends above this is a pile-up. */

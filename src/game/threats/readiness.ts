@@ -64,7 +64,7 @@ function contextOf(save: SaveData) {
       const worn = Object.fromEntries(
         SLOTS.map((slot) => {
           const gear = hero.equipment[slot] ? byUid.get(hero.equipment[slot]!) : undefined;
-          return [slot, gear && !(itemById[gear.itemId] as GearDef).workTool ? pieceOf(gear) : null];
+          return [slot, gear ? pieceOf(gear) : null];
         }),
       ) as Record<Slot, Piece | null>;
       const usable = ({ gear, piece }: (typeof spares)[number]) =>

@@ -31,9 +31,6 @@ export const frTipTexts: typeof tipTexts = {
   families: 'Héros et équipement portent des tags de famille, montrés en gemmes. 2, 4 et 6 tags dans un groupe allument les losanges d’une bannière et débloquent des effets plus forts.',
   familyLevel: 'Votre groupe a atteint {family}. Touchez la bannière d’une famille pour voir ce qu’elle fait.',
   jobs: "Un héros à un métier produit lentement en votre absence. La production remplit en 8 heures : récoltez-la à votre retour. Le travail les fatigue sur une journée, et un héros fatigué se repose à son poste avant de reprendre. Un héros au travail doit d'abord être rappelé avant de pouvoir être envoyé ailleurs.",
-  jobMiner:
-    'Le Mineur est ouvert à la guilde : un héros y extrait le minerai choisi. La pierre d’abord, le cuivre et le fer avec les paliers suivants. Changer de minerai garde ce qui a été extrait.',
-  jobCharcoalBurner: 'Le Charbonnier est ouvert à la guilde : un héros y fait du charbon en votre absence.',
   jobGatherer:
     'Le cueilleur des environs travaille autour de vous : un héros ramasse les ressources que vous voyez sur la carte, la plus proche d’abord, environ 4 par heure au plus. Il donne le meilleur en mode Poche, pendant que vous marchez. Choisissez une cible si vous manquez d’un matériau. Le travail dehors fatigue plus vite, et la faune peut blesser un peu le héros.',
   supplyBuildingSheet: 'Les gens du coin travaillent lentement un bâtiment vide. Postez un héros pour le plein rendement, plus avec le bon métier. Récoltez sur place pour l’inspecter : +25 % pendant un jour.',

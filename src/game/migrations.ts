@@ -1,6 +1,5 @@
 import { affixById } from "@/content/affixes";
 import type { Rarity } from "@/content/gear";
-import { choiceOf, jobById, jobs } from "@/content/jobs";
 import { itemById, monsterPartById } from "@/content/lookup";
 import { objectives, type QuestBand } from "@/content/quests";
 import { shopRules } from "@/content/shops";
@@ -24,7 +23,6 @@ import { affixPool, affixSlotOf, rollAffixes } from "./gear/affixes";
 import { createRng } from "./generation/rng";
 import { makeGearPiece } from "./gear/make";
 import { statFactor } from "./gear/stats";
-import { jobMaterials } from "./jobs/jobs";
 import type { Loot } from "./loot/types";
 import type { JobOutput, SaveData } from "./save";
 import type { ActiveThreat, Briefing, ExpeditionReport, GearDef, GearInstance, HeroState, MaterialStack } from "./types";
@@ -115,17 +113,20 @@ export function toV35(save: SaveData, now: number): SaveData {
  * single amount becomes whole units of its job's material plus the fraction.
  * Choice jobs get their picked material, unset until the player chooses.
  */
+/** The version 36 stations' first material, which a version 35 entry's single amount was made of. */
+const V36_FIRST_MATERIAL: Record<string, string> = { woodcutter: "wood", forager: "herb", trapper: "meat", miner: "stone", charcoalBurner: "coal" };
+
 export function toV36(save: SaveData): SaveData {
   const jobOutput: Record<string, JobOutput> = {};
   let changed = !save.jobChoice;
   for (const [id, raw] of Object.entries(save.jobOutput ?? {})) {
     if (raw && typeof raw === "object" && "amount" in raw) {
       const entry = raw as unknown as { amount: number; since: number };
-      const job = jobById[id];
-      if (!job) continue;
+      const material = V36_FIRST_MATERIAL[id];
+      if (!material) continue;
       const whole = Math.floor(entry.amount);
       jobOutput[id] = {
-        amounts: whole > 0 ? { [jobMaterials(job)[0]]: whole } : {},
+        amounts: whole > 0 ? { [material]: whole } : {},
         fraction: entry.amount - whole,
         units: whole,
         since: entry.since,
@@ -135,9 +136,8 @@ export function toV36(save: SaveData): SaveData {
       jobOutput[id] = raw;
     }
   }
-  const jobChoice: Record<string, string | null> = {};
-  for (const job of jobs)
-    if (choiceOf(job)) jobChoice[job.id] = save.jobChoice?.[job.id] ?? null;
+  // The miner was the version 36 choice job.
+  const jobChoice: Record<string, string | null> = { miner: save.jobChoice?.miner ?? null };
   if (!changed) return save;
   return { ...save, jobOutput, jobChoice };
 }
@@ -150,9 +150,7 @@ export function toV36(save: SaveData): SaveData {
  */
 export function toV37(save: SaveData): SaveData {
   if (save.jobChoice) return save;
-  const jobChoice: Record<string, string | null> = {};
-  for (const job of jobs) if (choiceOf(job)) jobChoice[job.id] = null;
-  return { ...save, jobChoice };
+  return { ...save, jobChoice: { miner: null } };
 }
 
 /** A version 37 gear piece: quality multipliers, and element, luck and component as fields. */
@@ -1042,8 +1040,111 @@ export function toV59(save: SaveData): SaveData {
  * same band from the current pool, keeping arrival and expiry; quests whose
  * target names a removed kind get their target expired, so the retarget
  * points them at a live place; the removed kinds leave `seenPlaceKinds`.
+ * Then the guild gathering jobs and their work tools leave (see toV60Jobs).
  */
 export function toV60(save: SaveData, now: number): SaveData {
+  return toV60Jobs(toV60Places(save), now);
+}
+
+/** The old guild jobs, as they were: what each made, by weight (the miner made its chosen ore). */
+const OLD_JOBS: Record<string, Record<string, number> | 'choice'> = {
+  woodcutter: { wood: 1 },
+  forager: { herb: 50, berries: 30, mushroom: 20 },
+  trapper: { meat: 45, hide: 35, bone: 20 },
+  miner: 'choice',
+  charcoalBurner: { coal: 1 },
+};
+/** The old jobs' units per hour of work, and the hours of work their output held. */
+const OLD_JOB_RATE = 0.3;
+const OLD_JOB_CAP_HOURS = 8;
+/** The old work tools: their job, price and output bonus by tier (1–5). */
+const OLD_TOOLS: Record<string, string> = { hatchet: 'woodcutter', sickle: 'forager', snare: 'trapper', miningPick: 'miner', tongs: 'charcoalBurner' };
+const OLD_TOOL_PRICE = [5, 10, 20, 40, 80];
+const OLD_TOOL_BONUS = [0.1, 0.125, 0.15, 0.175, 0.2];
+const oldTool = (itemId: string): { job: string; tier: number } | null => {
+  const match = /^(hatchet|sickle|snare|miningPick|tongs)([1-5])$/.exec(itemId);
+  return match ? { job: OLD_TOOLS[match[1]], tier: Number(match[2]) } : null;
+};
+
+/** Splits whole units over weights, largest remainders first, so the parts add up. */
+function splitUnits(units: number, weights: Record<string, number>): Record<string, number> {
+  const total = Object.values(weights).reduce((sum, w) => sum + w, 0);
+  const exact = Object.entries(weights).map(([id, w]) => ({ id, value: (units * w) / total }));
+  const parts = Object.fromEntries(exact.map(({ id, value }) => [id, Math.floor(value)]));
+  let left = units - Object.values(parts).reduce((sum, n) => sum + n, 0);
+  for (const { id } of [...exact].sort((a, b) => (b.value % 1) - (a.value % 1))) {
+    if (left <= 0) break;
+    parts[id] += 1;
+    left -= 1;
+  }
+  return parts;
+}
+
+/**
+ * The guild gathering jobs (woodcutter, forager, trapper, miner, charcoal
+ * burner) and their work tools leave. Each job's waiting units, plus the work
+ * since its last settlement at the old rate, tool bonus and cap, go into the
+ * materials, and its hero comes off the job; every work tool is unequipped,
+ * removed and refunded at its shop price; the jobs' tips go; Quarrymen become
+ * Miners. The outdoor gatherer stays.
+ */
+function toV60Jobs(save: SaveData, now: number): SaveData {
+  const removedTips = new Set(['jobMiner', 'jobCharcoalBurner']);
+  const tools = save.gear.flatMap((piece) => {
+    const tool = oldTool(piece.itemId);
+    return tool ? [{ uid: piece.uid, ...tool }] : [];
+  });
+  const working = save.heroes.filter((hero) => hero.job && hero.job.jobId in OLD_JOBS);
+  const quarrymen = save.heroes.some((hero) => (hero.trade?.id as string) === 'quarryman');
+  const oldOutputs = Object.keys(save.jobOutput).filter((id) => id in OLD_JOBS);
+  const oldTips = [...save.tips.seen, ...save.tips.pending].some((id) => removedTips.has(id as string));
+  if (tools.length === 0 && working.length === 0 && !quarrymen && oldOutputs.length === 0 && !oldTips && !Object.keys(save.jobChoice).some((id) => id in OLD_JOBS)) {
+    return save;
+  }
+
+  const materials = { ...save.materials };
+  const add = (parts: Record<string, number>) => {
+    for (const [id, n] of Object.entries(parts)) if (n > 0) materials[id] = (materials[id] ?? 0) + n;
+  };
+  for (const jobId of oldOutputs) {
+    const output = save.jobOutput[jobId];
+    add(output.amounts);
+    const hero = working.find((h) => h.job!.jobId === jobId);
+    if (!hero) continue;
+    const toolPiece = save.gear.find((piece) => piece.uid === hero.equipment.offhand);
+    const tool = toolPiece ? oldTool(toolPiece.itemId) : null;
+    const rate = OLD_JOB_RATE * (1 + (tool && tool.job === jobId ? OLD_TOOL_BONUS[tool.tier - 1] : 0));
+    const stored = Object.values(output.amounts).reduce((sum, n) => sum + n, 0);
+    const room = Math.max(0, OLD_JOB_CAP_HOURS * rate - stored);
+    const made = Math.min(room, (Math.max(0, now - output.since) / 3_600_000) * rate) + output.fraction;
+    const kind = OLD_JOBS[jobId];
+    add(splitUnits(Math.floor(made), kind === 'choice' ? { [save.jobChoice[jobId] ?? 'stone']: 1 } : kind));
+  }
+
+  const toolUids = new Set(tools.map((tool) => tool.uid));
+  const heroes = save.heroes.map((hero) => {
+    let next = hero;
+    if (hero.job && hero.job.jobId in OLD_JOBS) next = { ...next, job: null };
+    if (hero.equipment.offhand && toolUids.has(hero.equipment.offhand)) next = { ...next, equipment: { ...next.equipment, offhand: null } };
+    if ((hero.trade?.id as string) === 'quarryman') next = { ...next, trade: { ...next.trade, id: 'miner' } };
+    return next;
+  });
+  return {
+    ...save,
+    heroes,
+    materials,
+    gold: save.gold + tools.reduce((sum, tool) => sum + OLD_TOOL_PRICE[tool.tier - 1], 0),
+    gear: save.gear.filter((piece) => !toolUids.has(piece.uid)),
+    jobOutput: Object.fromEntries(Object.entries(save.jobOutput).filter(([id]) => !(id in OLD_JOBS))),
+    jobChoice: Object.fromEntries(Object.entries(save.jobChoice).filter(([id]) => !(id in OLD_JOBS))),
+    tips: {
+      seen: save.tips.seen.filter((id) => !removedTips.has(id as string)),
+      pending: save.tips.pending.filter((id) => !removedTips.has(id as string)),
+    },
+  };
+}
+
+function toV60Places(save: SaveData): SaveData {
   const removed = new Set(["sawmill", "quarry", "copperMine", "ironMine", "coalPit", "huntingLodge"]);
   let changed = false;
   const list = save.quests.list.map((quest): Quest => {

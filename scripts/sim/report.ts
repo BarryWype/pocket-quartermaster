@@ -315,7 +315,7 @@ function gearLadders(s: ProfileSummary) {
 /** Pieces gained per week by source (medians over seeds), gear and trinkets apart, with the Rares and Legendaries among them. */
 function gearSources(s: ProfileSummary) {
   const label = (source: ProfileSummary['gearSources'][number]['source']) =>
-    source === 'total' ? '**Loot total**' : source === 'shop' ? 'Shops (work tools)' : lootMatrix[source].name;
+    source === 'total' ? '**Loot total**' : source === 'shop' ? 'Shops' : lootMatrix[source].name;
   const { piecesPerWeek } = targets.gear;
   const band: [number, number] = [piecesPerWeek * (1 - targets.lootPacing), piecesPerWeek * (1 + targets.lootPacing)];
   const rows = s.gearSources.map((r) => [
@@ -387,21 +387,6 @@ function materials(s: ProfileSummary) {
   return table(['Tier', 'Main material', 'Gathered', 'Spent', `Spent share (min ${pct(targets.materialSpent)})`], rows);
 }
 
-/** Wood per day over each tier, and the woodcutter's share of what was spent. */
-function jobsTable(s: ProfileSummary) {
-  const rows = s.tiers.map((t) => {
-    const w = t.wood;
-    return [
-      String(t.tier),
-      n(w?.walked.median, 1),
-      n(w?.spent.median, 1),
-      n(w?.woodcutter.median, 1),
-      `${pct(w?.share.median)}${w && w.share.median !== null ? mark(w.share.median, targets.woodcutterShare) : ''}`,
-    ];
-  });
-  return table(['Tier', 'Wood walked/day', 'Wood spent/day', 'Woodcutter/day', `Woodcutter share (target ${range(targets.woodcutterShare, pct)})`], rows);
-}
-
 /** The supply lines on a `--supply-lines` run: the buildings' output, the cart's deliveries against walking, the orders served, ambushes and raids, and hero time. */
 function supplyTable(s: ProfileSummary) {
   const supply = s.supply!;
@@ -431,40 +416,17 @@ function supplyTable(s: ProfileSummary) {
   );
 }
 
-/** Each job's material over each tier: what walking brought in, what the job added, and the job's share of the walk. */
-function jobsVsWalking(s: ProfileSummary) {
-  const rows = s.tiers.flatMap((t) =>
-    Object.entries(t.jobs ?? {})
-      .filter(([, j]) => (j.fromJob.median ?? 0) > 0 || (j.walked.median ?? 0) > 0)
-      .map(([material, j]) => [
-        String(t.tier),
-        j.job,
-        name(material),
-        n(j.walked.median, 1),
-        n(j.fromJob.median, 1),
-        `${pct(j.share.median)}${j.share.median !== null && j.share.median > targets.jobShareMax ? ` ${WARN}` : ''}`,
-      ]),
-  );
-  return table(['Tier', 'Job', 'Material', 'Walked/day', 'Job/day', `Share of walking (max ${pct(targets.jobShareMax)})`], rows);
-}
-
-/** Each station's work tool over each tier: job output per day with and without the tool, scavenge per day, against the walking intake. */
-function toolsTable(s: ProfileSummary) {
-  const rows = s.tiers.flatMap((t) =>
-    Object.entries(t.tools ?? {})
-      .filter(([, x]) => (x.withTool.median ?? 0) > 0 || (x.withoutTool.median ?? 0) > 0 || (x.scavenge.median ?? 0) > 0)
-      .map(([material, x]) => [
-        String(t.tier),
-        x.job,
-        name(material),
-        n(x.withTool.median, 1),
-        n(x.withoutTool.median, 1),
-        n(x.scavenge.median, 1),
-        n(x.walked.median, 1),
-        `${pct(x.share.median)}${x.share.median !== null && x.share.median > targets.jobShareMax ? ` ${WARN}` : ''}`,
-      ]),
-  );
-  return table(['Tier', 'Job', 'Material', 'Job/day with tool', 'Job/day without tool', 'Scavenge/day', 'Walked/day', `Share of walking, job + scavenge (max ${pct(targets.jobShareMax)})`], rows);
+/** By tier, what the bot's buildings made against what its walks gathered of the same goods, per day (buildings should clearly lead, more so at each tier). */
+function supplyByTier(s: ProfileSummary) {
+  const rows = s.supply!.byTier
+    .filter((t) => t.ratio.median !== null)
+    .map((t) => [
+      String(t.tier),
+      n(t.madePerDay.median, 1),
+      n(t.walkedPerDay.median, 1),
+      `${n(t.ratio.median, 2)}×${t.tier === 2 && t.ratio.median! < targets.buildingsOverWalking ? ` ${WARN}` : ''}`,
+    ]);
+  return table(['Tier', 'Buildings made/day', 'Walked/day (same goods)', `Buildings ÷ walking (min ${targets.buildingsOverWalking}× at tier 2, rising)`], rows);
 }
 
 /** The gatherer's nodes gathered and wounds settled per day, per tier. */
@@ -720,9 +682,9 @@ export function renderReport({ summaries, rules, settings, difficultyOdds, famil
   out.push('## Materials: the tier’s main material', '');
   for (const s of summaries) out.push(`### ${s.profile}`, '', materials(s));
   out.push(
-    '## Jobs',
+    '## Outdoor gatherer',
     '',
-    'Every guild job over each tier: wood for the woodcutter, then each job’s materials — what walking and the map brought in, what the job added, and the job’s share of that walking (walk first).',
+    'The gatherer over each tier: its nodes and wounds per day, and its materials against what walking and the map brought in (walk first).',
     '',
   );
   const gatherer = gathererPace();
@@ -731,9 +693,9 @@ export function renderReport({ summaries, rules, settings, difficultyOdds, famil
     '',
   );
   for (const s of summaries)
-    out.push(`### ${s.profile}`, '', jobsTable(s), '', '**Jobs vs walking**', '', jobsVsWalking(s), '', '**Work tools**', '', toolsTable(s), '', '**Outdoor gatherer**', '', gathererNodes(s), '', gathererVsWalking(s), '');
+    out.push(`### ${s.profile}`, '', gathererNodes(s), '', gathererVsWalking(s), '');
   out.push(
-    'The bot collects every station at the start of a session, recalls a worker whenever a send needs them, and staffs every open station at the end of a session — the one shortest of its material first, so a worker never costs a party member; the miner digs the unlocked ore the bot holds least of (see the Jobs rule under Bot rules).',
+    'The bot collects the gatherer at the start of a session, recalls it whenever a send needs its hero, and keeps it staffed at the end of a session (see the Jobs rule under Bot rules).',
     '',
   );
   if (baseline) {
@@ -748,7 +710,7 @@ export function renderReport({ summaries, rules, settings, difficultyOdds, famil
       'Played with `--supply-lines` (doc/design/supply-lines/). The network opens at tier 2: the bot places the hall at home, discovers the network places and sites its walks pass (and detours to the nearest undiscovered site and order place within 400 m of a walk’s points), builds on the best discovered site in reach the kind serving the order it values most (a gear headline by rarity and fit first), and keeps twice a building’s cost in gold before spending. It serves the top orders up to its buildings: at the day’s last session the cart runs the planner’s route round the buildings and those places with one spare escort, and a walk that passes a discovered order place hands goods over from the bag. Reached order steps are claimed each session. Deliveries go straight into the stock, outside the material flows above (the walking columns still mean walking), but the bot spends them like any material, so days per tier can move against a run without the flag.',
       '',
     );
-    for (const s of summaries) if (s.supply) out.push(`### ${s.profile}`, '', supplyTable(s), '');
+    for (const s of summaries) if (s.supply) out.push(`### ${s.profile}`, '', supplyTable(s), '', '**Buildings vs walking, by tier**', '', supplyByTier(s), '');
   }
   out.push('## Hero levels at the end of each tier', '');
   for (const s of summaries) out.push(`### ${s.profile}`, '', levels(s));

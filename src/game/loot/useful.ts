@@ -20,7 +20,7 @@ export function usefulGearTypes(save: SaveData, briefings: Briefing[], tier: num
   const held = (type: GearType, minTier: number) =>
     save.gear.some((piece) => {
       const item = itemById[piece.itemId] as GearDef;
-      return item.gearType === type && !item.workTool && item.tier >= minTier && !away.has(piece.uid);
+      return item.gearType === type && item.tier >= minTier && !away.has(piece.uid);
     });
   const types = Object.keys(gearProfiles) as GearType[];
   const needed = new Set(briefings.flatMap((briefing) => briefing.threats.map((threat) => familyOfThreat(threat.id))));

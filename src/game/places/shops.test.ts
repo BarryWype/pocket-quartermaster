@@ -4,7 +4,6 @@ import { itemById, monsterPartById, recipeById } from '@/content/lookup';
 import { questRules } from '@/content/quests';
 import { secretRules } from '@/content/secrets';
 import { materialPrices, shopRules } from '@/content/shops';
-import { workToolRules } from '@/content/workTools';
 
 import { forgedItem, isKnown } from '../crafting/crafting';
 import { rollTip } from '../secrets/tips';
@@ -211,59 +210,8 @@ describe('buy', () => {
     const lines = placeStock(save, spawnOf('apothecary'), now);
     expect(lines.map((l) => l.id).lastIndexOf('sleepingDraught')).toBe(lines.length - 1);
     expect(lines[lines.length - 1].price).toBe(120);
-    // Two normal lines, the sickle, and the weakness line.
-    expect(lines.length).toBe(4);
-  });
-});
-
-describe('work tool stock lines', () => {
-  /** A save whose bosses up to `tier` - 1 have fallen. */
-  const atTier = (tier: number): SaveData => ({
-    ...withGold(1000),
-    clearedDungeons: ['banditStockade', 'ogreQuarry', 'drownedCrypt', 'giantsHall'].slice(0, tier - 1),
-  });
-
-  it('stocks the apothecary with a sickle at the player’s tier, after its normal lines', () => {
-    const save = withGold(1000);
-    const lines = placeStock(save, spawnOf('apothecary'), now);
-    expect(lines[0]).toMatchObject({ key: 'item:healingPotion', kind: 'item', id: 'healingPotion' });
-    const tool = lines.find((l) => l.kind === 'gear');
-    expect(tool).toEqual({
-      key: 'gear:sickle1',
-      kind: 'gear',
-      id: 'sickle1',
-      amount: 1,
-      price: workToolRules.price[0],
-      gear: expect.objectContaining({ itemId: 'sickle1', rarity: 'common', affixes: [] }),
-    });
-    // The tool line is the only addition: the apothecary's normal lines are untouched.
-    expect(lines.filter((l) => l.kind !== 'gear')).toEqual(lines.slice(0, 2));
-    // A new tier restocks the tool under a new key.
-    const tier2 = placeStock(atTier(2), spawnOf('apothecary'), now).find((l) => l.kind === 'gear');
-    expect(tier2).toMatchObject({ key: 'gear:sickle2', id: 'sickle2', price: workToolRules.price[1] });
-  });
-
-  it('stocks no tool whose shops are gone, and only the sickle at the apothecary', () => {
-    for (const kind of ['market', 'smithy', 'tavern', 'library', 'chapel'] as const) {
-      for (let i = 0; i < 20; i++) {
-        expect(placeStock(atTier(5), spawnOf(kind, `${i}:1`), now).some((l) => l.kind === 'gear' && (itemById[l.id] as GearDef).workTool)).toBe(false);
-      }
-    }
-    for (let i = 0; i < 20; i++) {
-      expect(placeStock(atTier(5), spawnOf('apothecary', `${i}:1`), now).filter((l) => l.kind === 'gear').map((l) => l.id)).toEqual(['sickle5']);
-    }
-    // The charcoal burner opens at tier 5: no tongs anywhere before that.
-    expect(placeStock(atTier(4), spawnOf('apothecary'), now).some((l) => l.id.startsWith('tongs'))).toBe(false);
-  });
-
-  it('sells a work tool through the gear buy path', () => {
-    const spawn = spawnOf('apothecary');
-    const save = withGold(100);
-    const next = buy(save, spawn, 'gear:sickle1', 1, position, now);
-    expect(next.gold).toBe(100 - workToolRules.price[0]);
-    expect(next.gear).toHaveLength(1);
-    expect(next.gear[0]).toMatchObject({ itemId: 'sickle1', rarity: 'common', affixes: [] });
-    expect(buyProblem(next, spawn, 'gear:sickle1', 1, position, now)).toBe('soldOut');
+    // Two normal lines and the weakness line.
+    expect(lines.length).toBe(3);
   });
 });
 

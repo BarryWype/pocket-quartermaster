@@ -38,15 +38,8 @@ export const gathererRules = {
 /** What the gatherer looks for first: anything, or one focus of gathererRules.focus. */
 export type GathererFocus = 'any' | keyof typeof gathererRules.focus;
 
-/**
- * One material, a weighted roll per unit, a player-picked material from an
- * unlock list, or — for the gatherer — whatever nodes it gathers (`nodes`).
- */
-export type JobProduces =
-  | string
-  | { weights: Record<string, number> }
-  | { choice: { material: string; fromTier: number }[] }
-  | { nodes: true };
+/** One material, a weighted roll per unit, or — for the gatherer — whatever nodes it gathers (`nodes`). */
+export type JobProduces = string | { weights: Record<string, number> } | { nodes: true };
 
 export type JobDef = {
   id: string;
@@ -65,23 +58,8 @@ export type JobDef = {
   emoji: string;
 };
 
-/** The ore list a choice job picks from, or undefined. */
-export const choiceOf = (job: JobDef) => (typeof job.produces === 'object' && 'choice' in job.produces ? job.produces.choice : undefined);
-
-/** Rate fitted to the simulator's regular profile: a full day of work makes 10–15% of the wood it spends per day. */
+/** The outdoor gatherer; the guild's gathering stations left with the supply network's buildings (doc/design/supply-lines/replacements.md). */
 export const jobs: JobDef[] = [
-  { id: 'woodcutter', name: 'Woodcutter', produces: 'wood', ratePerHour: 0.3, opensAtTier: 1, emoji: '🪓' },
-  { id: 'forager', name: 'Forager', produces: { weights: { herb: 50, berries: 30, mushroom: 20 } }, ratePerHour: 0.3, opensAtTier: 1, emoji: '🧺' },
-  { id: 'trapper', name: 'Trapper', produces: { weights: { meat: 45, hide: 35, bone: 20 } }, ratePerHour: 0.3, opensAtTier: 1, emoji: '🪤' },
-  {
-    id: 'miner',
-    name: 'Miner',
-    produces: { choice: [{ material: 'stone', fromTier: 2 }, { material: 'copper', fromTier: 3 }, { material: 'iron', fromTier: 4 }] },
-    ratePerHour: 0.3,
-    opensAtTier: 2,
-    emoji: '⛏️',
-  },
-  { id: 'charcoalBurner', name: 'Charcoal burner', produces: 'coal', ratePerHour: 0.3, opensAtTier: 5, emoji: '🔥' },
   {
     id: 'gatherer',
     name: 'Outdoor gatherer',

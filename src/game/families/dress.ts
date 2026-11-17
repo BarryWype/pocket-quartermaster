@@ -25,7 +25,7 @@ export function sparePieces(save: SaveData): GearInstance[] {
   const worn = new Set(save.heroes.flatMap((h) => SLOTS.map((slot) => h.equipment[slot])));
   return save.gear.filter((g) => {
     const item = defOf(g);
-    return !worn.has(g.uid) && SLOTS.includes(item.slot as Slot) && !item.workTool;
+    return !worn.has(g.uid) && SLOTS.includes(item.slot as Slot);
   });
 }
 

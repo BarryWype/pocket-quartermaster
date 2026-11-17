@@ -1,3 +1,4 @@
+import { materialById } from '@/content/lookup';
 import { placeRules } from '@/content/places';
 import { supplyRules } from '@/content/supplyLines';
 
@@ -18,13 +19,35 @@ export const buildingNameKey: Record<BuildingKind, TextKey> = {
   farm: 'supply.building.farmName',
   quarry: 'supply.building.quarryName',
   herbGarden: 'supply.building.herbGardenName',
+  lumberCamp: 'supply.building.lumberCampName',
+  huntingCamp: 'supply.building.huntingCampName',
+  copperMine: 'supply.building.copperMineName',
+  ironMine: 'supply.building.ironMineName',
+  charcoalKiln: 'supply.building.charcoalKilnName',
 };
-export const buildingEmoji: Record<BuildingKind, string> = { farm: '🌾', quarry: '🪨', herbGarden: '🌿' };
+export const buildingEmoji: Record<BuildingKind, string> = {
+  farm: '🌾',
+  quarry: '🪨',
+  herbGarden: '🌿',
+  lumberCamp: '🪵',
+  huntingCamp: '🏹',
+  copperMine: materialById.copper.emoji,
+  ironMine: materialById.iron.emoji,
+  charcoalKiln: materialById.coal.emoji,
+};
+
+/** Whether a building kind is open: the network opens at tier 2, so a save unlocked earlier builds as at tier 2. */
+const isKindOpen = (save: SaveData, kind: BuildingKind) =>
+  supplyRules.buildings.kinds[kind].opensAtTier <= Math.max(2, highestUnlockedTier(save));
+
+/** The building kinds open at the player's tier. */
+export const openBuildingKinds = (save: SaveData): BuildingKind[] =>
+  (Object.keys(supplyRules.buildings.kinds) as BuildingKind[]).filter((kind) => isKindOpen(save, kind));
 
 const DAY = 24 * 3_600_000;
 const HOUR = 3_600_000;
 
-export type BuildProblem = 'noHall' | 'notDiscovered' | 'taken' | 'tooFarFromHall' | 'full' | 'notHere' | 'cost' | null;
+export type BuildProblem = 'notOpen' | 'noHall' | 'notDiscovered' | 'taken' | 'tooFarFromHall' | 'full' | 'notHere' | 'cost' | null;
 
 /** How many buildings the player may hold at once, and how far from the hall they may stand. */
 export function buildingReach(save: SaveData): { count: number; meters: number } {
@@ -48,6 +71,7 @@ export function timeLeftShare(startsAt: number, expiresAt: number, now: number):
 
 /** Why a building of this kind cannot be raised on the site now, or null. */
 export function buildProblem(save: SaveData, site: PlaceSpawn, kind: BuildingKind, player: LatLng, now: number): BuildProblem {
+  if (!isKindOpen(save, kind)) return 'notOpen';
   if (!save.supply.hall) return 'noHall';
   if (!(site.id in save.supply.discovered)) return 'notDiscovered';
   if (save.supply.buildings.some((b) => b.siteId === site.id)) return 'taken';

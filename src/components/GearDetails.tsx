@@ -19,7 +19,6 @@ import { FamilyTags } from './FamilyTag';
 import { DELTA_KEYS, gearStatsParts } from './GearRow';
 import { IconLabel, PartsLine } from './IconLabel';
 import { Text } from './Text';
-import { workToolParts } from './WorkToolLine';
 import { ItemPopup, type PopupLine } from './ui';
 
 /** The gear slots a comparison is made in. */
@@ -94,7 +93,7 @@ function StatLine({ row, labelStyle }: { row: StatRow; labelStyle?: StyleProp<Te
 
 /**
  * What a piece is, the same everywhere it is described: its family tags, its
- * own stats after the roll, its work-tool line, its unique and each of its
+ * own stats after the roll, its unique and each of its
  * affixes. Compared with a hero's slot, the stats count as they do for that
  * hero, each with its difference to the worn piece, after the hero's affinity.
  */
@@ -104,10 +103,9 @@ export function GearDetails({ gear, compact, compare, style, labelStyle }: Props
   const affinity = compare ? affinityLine(compare.save, compare.heroId, gear) : null;
   const lost = compare ? lostAffixes(compare.save, compare.heroId, compare.slot, gear) : [];
   const stats = rows ? [] : gearStatsParts(gear);
-  const tool = workToolParts(item);
   const tags = gearFamilyTags(item, gear.relicId);
   const hasAffixes = gear.relicId !== undefined || gear.unique !== undefined || gear.affixes.length > 0;
-  if (stats.length === 0 && !rows?.length && tool.length === 0 && !hasAffixes && tags.length === 0 && !affinity) return null;
+  if (stats.length === 0 && !rows?.length && !hasAffixes && tags.length === 0 && !affinity) return null;
   return (
     <View style={[styles.details, style]}>
       <FamilyTags tags={tags} />
@@ -122,7 +120,6 @@ export function GearDetails({ gear, compact, compare, style, labelStyle }: Props
           ))}
         </View>
       )}
-      {tool.length > 0 && <PartsLine parts={tool} labelStyle={labelStyle} />}
       <AffixLines piece={gear} compact={compact} labelStyle={labelStyle} />
       {lost.map((affix, i) => {
         const icon = affixIcon(affix.id);

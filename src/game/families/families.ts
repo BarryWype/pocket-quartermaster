@@ -41,9 +41,9 @@ export function heroFamilyTagSources(save: Pick<SaveData, 'gear'>, hero: HeroSta
 }
 
 /** A piece's family tags: its type's (2 on a two-handed weapon, 1 + a second family's 1 on a one-handed one), then its relic's extra tag. Trinkets and work tools carry none. */
-export function gearFamilyTags(item: Pick<GearDef, 'gearType' | 'workTool'>, relicId?: string): { family: FamilyId; count: number; extra: boolean }[] {
+export function gearFamilyTags(item: Pick<GearDef, 'gearType'>, relicId?: string): { family: FamilyId; count: number; extra: boolean }[] {
   const tags: { family: FamilyId; count: number; extra: boolean }[] = [];
-  if (item.gearType && !item.workTool) {
+  if (item.gearType) {
     const profile = gearProfiles[item.gearType];
     tags.push({ family: profile.familyTag, count: profile.twoHanded ? 2 : 1, extra: false });
     if (profile.secondFamily) tags.push({ family: profile.secondFamily, count: 1, extra: false });

@@ -6,7 +6,6 @@ import { dungeonById, recipeById } from '@/content/lookup';
 
 import { craft } from '../crafting/crafting';
 import { startExpedition } from '../expeditions/expeditions';
-import { wornWorkTool } from '../jobs/jobs';
 import { PATROL_KINDS, TRAVELLER_KINDS } from '../patrols/generate';
 import { rankCost } from '../guild/guild';
 import { parseMatrixCsv } from '../loot/matrixCsv';
@@ -146,37 +145,9 @@ describe('balance lab', () => {
     expect(log.patrols.recruits.length).toBe(log.patrols.rewards.recruit ?? 0);
   });
 
-  it('staffs the woodcutter and collects its wood without costing a party member', () => {
-    const log = runSim({ profile: 'regular', maxDays: 4, seed: 'jobs', rates, afterSession: checkSave });
-    expect(log.gathered.wood?.['job:woodcutter']).toBeGreaterThan(0);
-    expect(log.expeditions.length).toBeGreaterThan(0);
-  });
-
   it('plays without jobs when they are turned off', () => {
     const log = runSim({ profile: 'regular', maxDays: 2, seed: 'no-jobs', rates, jobs: false });
-    expect(log.gathered.wood?.['job:woodcutter']).toBeUndefined();
-  });
-
-  it('fits a worker with their job’s work tool, the sickle being the only one still sold', () => {
-    const saves: SaveData[] = [];
-    const log = runSim({ profile: 'regular', maxDays: 21, seed: 'tools', rates, afterDay: (day, save) => { saves[day] = save; } });
-    expect(log.milestones['boss:1']).toBeDefined();
-    const fitted = Object.values(saves).flatMap((save) => save.heroes.filter((h) => h.job && wornWorkTool(save, h)?.job === h.job.jobId));
-    expect(fitted.length).toBeGreaterThan(0);
-  });
-
-  it('counts the work-tool scavenge in the tools’ share of walking', () => {
-    const log = runSim({ profile: 'regular', maxDays: 35, seed: 'tools', rates });
-    const lines = summarize([log])
-      .tiers.flatMap((tier) => Object.values(tier.tools ?? {}))
-      .filter((line) => line.walked.median !== null && line.walked.median > 0);
-    expect(lines.length).toBeGreaterThan(0);
-    // The bot fitted a tool and won fights with it, so some scavenge was logged.
-    expect(lines.some((line) => (line.scavenge.median ?? 0) > 0)).toBe(true);
-    for (const line of lines) {
-      // The share is the tool's job output and its scavenge together against the walking intake.
-      expect(line.share.median).toBeCloseTo(((line.withTool.median ?? 0) + (line.scavenge.median ?? 0)) / line.walked.median!, 6);
-    }
+    expect(Object.values(log.gathered).some((sources) => 'job:gatherer' in sources)).toBe(false);
   });
 
   it('relies on the game functions, which refuse what is not allowed', () => {

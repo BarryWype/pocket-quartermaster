@@ -164,15 +164,7 @@ describe('dueTips', () => {
     guild.clearedDungeons = [guildRules.unlockedBy];
     guild.tips.seen = ['specials', 'dungeons', 'quests'];
     const owed = noteTips(guild, dueTips(guild));
-    expect(owed.tips.pending).toEqual(['guildHall', 'network', 'jobMiner']);
-  });
-
-  it('queues the Miner tip once tier 2 opens, and not before', () => {
-    const save = opened();
-    expect(dueTips(save)).not.toContain('jobMiner');
-    save.clearedDungeons = [tierBoss(1).id];
-    expect(dueTips(save)).toContain('jobMiner');
-    expect(dueTips(save)).not.toContain('jobCharcoalBurner');
+    expect(owed.tips.pending).toEqual(['guildHall', 'network']);
   });
 
   it('queues each gear tip once, when its piece or stock is first held', () => {

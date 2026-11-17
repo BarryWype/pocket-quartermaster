@@ -9,6 +9,14 @@ import { buildingStockTotal } from './production';
 import { collectBuilding, collectProblem, postHero, postProblem, recallPosted } from './postings';
 import { isBusy, isPosted } from '../team/team';
 
+// The job engine is generic; the only job left in the game is the outdoor gatherer, so these tests use a plain station
+// of their own.
+jest.mock('@/content/jobs', () => {
+  const actual = jest.requireActual('@/content/jobs');
+  const woodcutter = { id: 'woodcutter', name: 'Woodcutter', produces: 'wood', ratePerHour: 0.3, opensAtTier: 1, emoji: '🪓' };
+  return { ...actual, jobs: [woodcutter, ...actual.jobs], jobById: { ...actual.jobById, woodcutter } };
+});
+
 const origin = { latitude: -41.2865, longitude: 174.7762 };
 const HOUR = 3_600_000;
 const now = Date.UTC(2026, 10, 2, 12);

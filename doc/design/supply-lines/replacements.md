@@ -1,6 +1,6 @@
 # What the network replaces · proposal (prompt 2, step 1)
 
-**Status: proposal, for review.** Nothing below is built yet. This step changes the main game. Numbers are placeholders until the balance pass in step 3.
+**Status: approved as proposed and built 2026-11-18** (question 1: for everyone now). The rules as built are in the README ("What the network replaced"); numbers stay placeholders until the balance pass in step 3.
 
 ## 1. The six material shops leave the map
 

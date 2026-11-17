@@ -24,7 +24,6 @@ import { grantLoot, withGrantedUids } from '../loot/grant';
 import { partyLootModifiers } from '../loot/modifiers';
 import { nextTierReward } from '../loot/nextTier';
 import { mergeLoot, rollSourceLoot } from '../loot/roll';
-import { scavengeLoot } from '../gear/workTools';
 import { rollSigil, type SigilDrop } from '../loot/sigils';
 import { emptyLoot, type Loot, type LootCategory, type LootSourceId } from '../loot/types';
 import { secretPrize } from '../secrets/prize';
@@ -496,14 +495,6 @@ export function resolveExpedition(
       ? secretPrize(dungeon.tier, createRng(`${expedition.seed}|prize`))
       : null;
   if (prize) loot = mergeLoot(loot, prize);
-
-  // A hero wearing a work tool scavenges its job's material from every fight they won (see gear/workTools.ts).
-  const scavenge = run.encounters.flatMap((encounter, i) =>
-    encounter.cleared && (encounter.kind === 'fight' || encounter.kind === 'boss')
-      ? expedition.heroIds.flatMap((heroId) => scavengeLoot(save, heroId, i, expedition.id))
-      : [],
-  );
-  if (scavenge.length > 0) loot = mergeLoot(loot, { ...emptyLoot(), materials: scavenge, scavenged: scavenge });
 
   // Everything in a consumable slot is gone after the run; what never triggered
   // is broken back down instead (see threats/salvage.ts).

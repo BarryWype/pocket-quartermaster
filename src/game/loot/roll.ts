@@ -70,7 +70,6 @@ export function mergeLoot(a: Loot, b: Loot): Loot {
     manuals: [...a.manuals, ...b.manuals],
     relics: [...a.relics, ...b.relics],
     dropped: [...a.dropped, ...b.dropped.filter((category) => !a.dropped.includes(category))],
-    scavenged: [...(a.scavenged ?? []), ...(b.scavenged ?? [])],
     ...(a.trophies || b.trophies ? { trophies: [...(a.trophies ?? []), ...(b.trophies ?? [])] } : {}),
   };
 }

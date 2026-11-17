@@ -2,14 +2,16 @@ import type { BuildingKind } from '@/game/supply/types';
 import type { PlaceGroup, PlaceKind } from '@/content/places';
 
 /** The supply-lines trades a hero can carry (see doc/design/supply-lines/). */
-export type TradeId = 'farmer' | 'quarryman' | 'herbalist' | 'teamster' | 'watchman';
+export type TradeId = 'farmer' | 'herbalist' | 'woodcutter' | 'hunter' | 'miner' | 'teamster' | 'watchman';
 
-export const TRADE_IDS: TradeId[] = ['farmer', 'quarryman', 'herbalist', 'teamster', 'watchman'];
+export const TRADE_IDS: TradeId[] = ['farmer', 'herbalist', 'woodcutter', 'hunter', 'miner', 'teamster', 'watchman'];
 
 export const tradeInfo: Record<TradeId, { name: string; emoji: string; description: string }> = {
   farmer: { name: 'Farmer', emoji: '🧑‍🌾', description: 'Raises a farm’s output.' },
-  quarryman: { name: 'Quarryman', emoji: '⛏️', description: 'Raises a quarry’s output.' },
   herbalist: { name: 'Herbalist', emoji: '🌿', description: 'Raises a herb garden’s output.' },
+  woodcutter: { name: 'Woodcutter', emoji: '🪓', description: 'Raises a lumber camp’s and a charcoal kiln’s output.' },
+  hunter: { name: 'Hunter', emoji: '🏹', description: 'Raises a hunting camp’s output.' },
+  miner: { name: 'Miner', emoji: '⛏️', description: 'Raises a quarry’s and a mine’s output.' },
   teamster: { name: 'Teamster', emoji: '🐴', description: 'Drives the cart: more capacity and speed.' },
   watchman: { name: 'Watchman', emoji: '🏮', description: 'Posted at a building: raids are announced earlier, and fights there with a bonus.' },
 };
@@ -107,7 +109,16 @@ export const supplyRules = {
   },
 
   /** The trade that raises each building kind's output (and earns its hours there). */
-  matchingTrade: { farm: 'farmer', quarry: 'quarryman', herbGarden: 'herbalist' } satisfies Record<BuildingKind, TradeId>,
+  matchingTrade: {
+    farm: 'farmer',
+    herbGarden: 'herbalist',
+    lumberCamp: 'woodcutter',
+    charcoalKiln: 'woodcutter',
+    huntingCamp: 'hunter',
+    quarry: 'miner',
+    copperMine: 'miner',
+    ironMine: 'miner',
+  } satisfies Record<BuildingKind, TradeId>,
 
   sites: {
     /** Share of sites at quality 1, 2 and 3, drawn from the spawn's roll. */
@@ -129,20 +140,21 @@ export const supplyRules = {
         makes: { grain: 85, meat: 15 },
         /** Units per hour per quality star at the full rate. */
         baseRate: 1.0,
-        /** The place kind the farm mainly serves. */
+        /** The place kind the farm mainly serves; null: its goods go home (and to markets). */
         for: 'tavern',
+        /** The tier at which it can be built. */
+        opensAtTier: 2,
       },
-      quarry: {
-        makes: { stone: 100 },
-        baseRate: 0.8,
-        for: 'smithy',
-      },
-      herbGarden: {
-        makes: { herb: 50, berries: 30, mushroom: 20 },
-        baseRate: 0.8,
-        for: 'apothecary',
-      },
-    } as Record<BuildingKind, { makes: Record<string, number>; baseRate: number; for: PlaceKind }>,
+      herbGarden: { makes: { herb: 50, berries: 30, mushroom: 20 }, baseRate: 0.8, for: 'apothecary', opensAtTier: 2 },
+      quarry: { makes: { stone: 100 }, baseRate: 0.8, for: 'smithy', opensAtTier: 2 },
+      lumberCamp: { makes: { wood: 100 }, baseRate: 1.0, for: null, opensAtTier: 2 },
+      /** The old trapper job's weights. */
+      huntingCamp: { makes: { meat: 45, hide: 35, bone: 20 }, baseRate: 0.8, for: null, opensAtTier: 2 },
+      /** Dearer ores come slower, so each building's gold per hour stays close. */
+      copperMine: { makes: { copper: 100 }, baseRate: 0.6, for: null, opensAtTier: 3 },
+      ironMine: { makes: { iron: 100 }, baseRate: 0.5, for: null, opensAtTier: 4 },
+      charcoalKiln: { makes: { coal: 100 }, baseRate: 0.4, for: null, opensAtTier: 5 },
+    } as Record<BuildingKind, { makes: Record<string, number>; baseRate: number; for: PlaceKind | null; opensAtTier: number }>,
     /** What a building costs to raise. */
     cost: { gold: 60, materials: [{ materialId: 'wood', amount: 10 }] },
     /** A building lasts this many days from when it was built. */

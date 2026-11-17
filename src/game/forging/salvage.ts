@@ -42,11 +42,10 @@ export function equippedFirst<T>(items: T[], uidOf: (item: T) => string, save: S
   return [...equipped, ...spare];
 }
 
-/** Worn gear (including gear away on an expedition) has to be taken off first; work tools are durable and never salvaged. */
+/** Worn gear (including gear away on an expedition) has to be taken off first. */
 export function canSalvage(save: SaveData, gearUid: string) {
   const gear = save.gear.find((g) => g.uid === gearUid);
-  if (!gear || wornBy(save, gearUid)) return false;
-  return !(itemById[gear.itemId] as GearDef).workTool;
+  return !!gear && !wornBy(save, gearUid);
 }
 
 /**

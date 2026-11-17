@@ -68,7 +68,7 @@ import { emptySupplySim, supplyEvening, supplyMorning, supplyWalk } from './supp
 import { applyStones, rerollGear } from './rules/gear';
 import { forgeIngredients, restoreRelics } from './rules/forge';
 import { craftCombatElixirs, craftOils, craftStatPotions, forgeLootTrinkets, readManuals, sellMaterials, sellParts } from './rules/inventory';
-import { buyWeakness, buyForgeMaterials, buyWorkTools, openSecrets, visitPlaces, SOURCES } from './rules/map';
+import { buyWeakness, buyForgeMaterials, openSecrets, visitPlaces, SOURCES } from './rules/map';
 import { profiles, simConfig, type Profile, type SimConfig } from './config';
 import { targets } from './targets';
 import { PICKAXES, bonusScaled, walkYield, type WalkRates } from './walking';
@@ -336,7 +336,6 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, firstSession: b
   sendExpeditions(sim);
   if (sim.supply) supplyEvening(sim, sim.supply, walking, lastSession);
   assignJobs(sim);
-  if (walking) buyWorkTools(sim);
   markCoreGear(sim);
 }
 

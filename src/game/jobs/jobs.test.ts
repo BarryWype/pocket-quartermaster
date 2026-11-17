@@ -1,5 +1,4 @@
 import { jobById, jobRules } from '@/content/jobs';
-import { workToolRules } from '@/content/workTools';
 
 import { startExpedition } from '../expeditions/expeditions';
 import { createInitialSave, type SaveData } from '../save';
@@ -12,19 +11,21 @@ import {
   isJobFull,
   isTired,
   jobCap,
-  jobChoices,
-  jobMaterials,
   jobOutputNow,
   jobProduced,
-  jobRate,
   jobWorker,
-  openJobs,
   recallFromJob,
-  setJobChoice,
   settleJobs,
   tiredAt,
-  unitMaterial,
 } from './jobs';
+
+// The job engine is generic (energy cycles, output, collecting); the only job left in the game is the outdoor
+// gatherer, so these tests run it with a plain station of their own.
+jest.mock('@/content/jobs', () => {
+  const actual = jest.requireActual('@/content/jobs');
+  const woodcutter = { id: 'woodcutter', name: 'Woodcutter', produces: 'wood', ratePerHour: 0.3, opensAtTier: 1, emoji: '🪓' };
+  return { ...actual, jobs: [woodcutter, ...actual.jobs], jobById: { ...actual.jobById, woodcutter } };
+});
 
 const HOUR = 3_600_000;
 const RATE = jobById.woodcutter.ratePerHour;
@@ -212,123 +213,5 @@ describe('determinism', () => {
   it('gives the same save for the same inputs', () => {
     const run = () => settleJobs(assignJob(base(), 'bram', 'woodcutter', 0), 25 * HOUR);
     expect(run()).toEqual(run());
-  });
-});
-
-describe('guild gathering jobs', () => {
-  /** A save whose bosses up to `tier` - 1 have fallen, so tier `tier` stations stand open. */
-  const atTier = (tier: number): SaveData => ({
-    ...base(),
-    clearedDungeons: ['banditStockade', 'ogreQuarry', 'drownedCrypt', 'giantsHall'].slice(0, tier - 1),
-  });
-
-  it('opens stations with the tiers: forager and trapper at the start, miner at 2, charcoal burner at 5', () => {
-    const ids = (save: SaveData) => openJobs(save).map((job) => job.id);
-    expect(ids(base())).toEqual(['woodcutter', 'forager', 'trapper']);
-    expect(ids(atTier(2))).toEqual(['woodcutter', 'forager', 'trapper', 'miner']);
-    expect(ids(atTier(3))).toEqual(['woodcutter', 'forager', 'trapper', 'miner']);
-    expect(ids(atTier(5))).toEqual(['woodcutter', 'forager', 'trapper', 'miner', 'charcoalBurner']);
-  });
-
-  it('refuses a closed station with a problem of its own', () => {
-    expect(assignProblem(base(), 'bram', 'miner', 0)).toBe('closed');
-    const save = assignJob(atTier(2), 'bram', 'miner', 0);
-    expect(assignProblem(save, 'bram', 'miner', 0)).toBe('working');
-  });
-
-  it('lists every material a job can make, whatever shape its produces takes', () => {
-    expect(unitMaterial(base(), 'woodcutter', 'bram', 0)).toBe('wood');
-    expect(jobMaterials(jobById.forager)).toEqual(['herb', 'berries', 'mushroom']);
-    expect(jobMaterials(jobById.trapper)).toEqual(['meat', 'hide', 'bone']);
-    expect(jobMaterials(jobById.miner)).toEqual(['stone', 'copper', 'iron']);
-    expect(jobMaterials(jobById.charcoalBurner)).toEqual(['coal']);
-  });
-
-  it('rolls each unit of a weighted job from its list, the same roll every time', () => {
-    const save = base();
-    for (let index = 0; index < 25; index++) {
-      expect(jobMaterials(jobById.forager)).toContain(unitMaterial(save, 'forager', 'bram', index));
-      expect(unitMaterial(save, 'forager', 'bram', index)).toBe(unitMaterial(save, 'forager', 'bram', index));
-    }
-  });
-
-  it('pays the rolled units on collecting, and rolls them the same way again', () => {
-    const foraged = () => collectJob(assignJob(base(), 'bram', 'forager', 0), 'forager', 8 * HOUR);
-    const materialsOf = (save: SaveData) =>
-      ['herb', 'berries', 'mushroom'].map((id) => (save.materials[id] ?? 0) - (base().materials[id] ?? 0));
-    const first = foraged();
-    expect(materialsOf(first).reduce((sum, count) => sum + count, 0)).toBe(Math.floor(CAP));
-    expect(first.materials.wood ?? 0).toBe(base().materials.wood ?? 0);
-    expect(materialsOf(foraged())).toEqual(materialsOf(first));
-  });
-
-  it('gives the miner the ores the tier has unlocked', () => {
-    expect(jobChoices(base(), 'miner')).toEqual([]);
-    expect(jobChoices(atTier(2), 'miner')).toEqual(['stone']);
-    expect(jobChoices(atTier(3), 'miner')).toEqual(['stone', 'copper']);
-    expect(jobChoices(atTier(4), 'miner')).toEqual(['stone', 'copper', 'iron']);
-    expect(jobChoices(base(), 'woodcutter')).toEqual([]);
-  });
-
-  it('starts a choice job on its highest unlocked material', () => {
-    const save = assignJob(atTier(3), 'bram', 'miner', 0);
-    expect(save.jobChoice.miner).toBe('copper');
-    const collected = collectJob(save, 'miner', 8 * HOUR);
-    expect(collected.materials.copper ?? 0).toBe((base().materials.copper ?? 0) + Math.floor(CAP));
-  });
-
-  it('switches the ore but keeps what was already mined', () => {
-    const save = assignJob(atTier(3), 'bram', 'miner', 0);
-    const at4h = setJobChoice(save, 'miner', 'stone', 4 * HOUR);
-    expect(at4h.jobChoice.miner).toBe('stone');
-    const collected = collectJob(at4h, 'miner', 8 * HOUR);
-    // 1.2 units by the 4-hour switch (copper), then 1.2 more (stone): a unit each.
-    expect(collected.materials.copper ?? 0).toBe((base().materials.copper ?? 0) + 1);
-    expect(collected.materials.stone ?? 0).toBe((base().materials.stone ?? 0) + 1);
-  });
-
-  it('refuses an ore the tier has not unlocked', () => {
-    expect(() => setJobChoice(atTier(2), 'miner', 'copper', 0)).toThrow();
-    expect(() => setJobChoice(base(), 'woodcutter', 'wood', 0)).toThrow();
-  });
-});
-
-describe('work tool output bonus', () => {
-  /** Bram wearing a work tool of `itemId` in the off-hand. */
-  const withTool = (itemId: string): SaveData => ({
-    ...base(),
-    gear: [{ uid: 't1', itemId, rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 }],
-    heroes: base().heroes.map((h) => (h.id === 'bram' ? { ...h, equipment: { ...h.equipment, offhand: 't1' } } : h)),
-  });
-
-  it('raises the worker’s job rate by the tool’s tier bonus', () => {
-    expect(jobRate(working(), 'woodcutter')).toBe(RATE);
-    expect(jobRate(assignJob(withTool('hatchet1'), 'bram', 'woodcutter', 0), 'woodcutter')).toBeCloseTo(RATE * (1 + workToolRules.outputBonus[0]));
-    expect(jobRate(assignJob(withTool('hatchet3'), 'bram', 'woodcutter', 0), 'woodcutter')).toBeCloseTo(RATE * (1 + workToolRules.outputBonus[2]));
-  });
-
-  it(`produces ${(1 + workToolRules.outputBonus[0]).toFixed(2)}× the output over the same time with a tier-1 hatchet`, () => {
-    const tooled = assignJob(withTool('hatchet1'), 'bram', 'woodcutter', 0);
-    expect(jobOutputNow(tooled, 'woodcutter', 4 * HOUR)).toBeCloseTo(4 * RATE * (1 + workToolRules.outputBonus[0]));
-    expect(jobOutputNow(working(), 'woodcutter', 4 * HOUR)).toBeCloseTo(4 * RATE);
-    expect(fullAt(tooled, 'woodcutter', 0)).toBeCloseTo((8 / (1 + workToolRules.outputBonus[0])) * HOUR);
-  });
-
-  it('does not help a job the tool is not for', () => {
-    const foraging = assignJob(withTool('hatchet1'), 'bram', 'forager', 0);
-    expect(jobRate(foraging, 'forager')).toBe(RATE);
-    expect(jobOutputNow(foraging, 'forager', 4 * HOUR)).toBeCloseTo(4 * RATE);
-  });
-
-  it('applies only forward when the tool is equipped mid-job, once the store settles', () => {
-    // 4 h of plain work, then the hatchet goes on: the settled fraction stays, the rate rises from then.
-    const at4h = settleJobs(working(), 4 * HOUR);
-    const equipped = {
-      ...at4h,
-      gear: [...at4h.gear, { uid: 't1', itemId: 'hatchet1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 }],
-      heroes: at4h.heroes.map((h) => (h.id === 'bram' ? { ...h, equipment: { ...h.equipment, offhand: 't1' } } : h)),
-    };
-    expect(jobOutputNow(equipped, 'woodcutter', 4 * HOUR)).toBeCloseTo(4 * RATE);
-    expect(jobOutputNow(equipped, 'woodcutter', 6 * HOUR)).toBeCloseTo(4 * RATE + 2 * RATE * (1 + workToolRules.outputBonus[0]));
   });
 });

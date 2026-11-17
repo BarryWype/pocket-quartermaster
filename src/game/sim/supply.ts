@@ -6,7 +6,7 @@ import { cellAt } from '../discovery/cells';
 import { distanceMeters } from '../generation/geo';
 import { tileCenter } from '../generation/tiles';
 import { patrolOdds } from '../patrols/fight';
-import { build, buildProblem, buildingReach } from '../supply/buildings';
+import { build, buildProblem, buildingReach, openBuildingKinds } from '../supply/buildings';
 import { cartProblem, setCrew, setRoute, startCart, stopCart } from '../supply/cart';
 import { discoverAlong, discoverAt, networkPlacesAround } from '../supply/discovery';
 import { hallProblem, placeHall } from '../supply/hall';
@@ -46,6 +46,8 @@ export type SupplyLog = {
   delivered: number;
   /** Units the buildings made. */
   made: number;
+  /** Units the buildings made, by day: the by-tier comparison with walking. */
+  madeByDay: Record<number, number>;
   /** Units delivered to order places, by the cart and by hand. */
   toPlacesByCart: number;
   toPlacesByHand: number;
@@ -87,6 +89,7 @@ export const emptySupplySim = (): SupplySim => ({
   log: {
     delivered: 0,
     made: 0,
+    madeByDay: {},
     toPlacesByCart: 0,
     toPlacesByHand: 0,
     orderGold: 0,
@@ -115,9 +118,13 @@ const outcome = (won: boolean | null) => (won === true ? 'won' : won === null ? 
 const total = (goods: Record<string, number>) => Object.values(goods).reduce((sum, amount) => sum + amount, 0);
 
 /** Counts the units buildings made since the last tally, and remembers where each stands now. */
-function tallyMade(save: Sim['save'], supply: SupplySim) {
+function tallyMade(save: Sim['save'], supply: SupplySim, day: number) {
   const made = Object.fromEntries(save.supply.buildings.map((building) => [building.id, building.made]));
-  for (const [id, now] of Object.entries(made)) supply.log.made += Math.max(0, now - (supply.lastMade[id] ?? 0));
+  for (const [id, now] of Object.entries(made)) {
+    const units = Math.max(0, now - (supply.lastMade[id] ?? 0));
+    supply.log.made += units;
+    supply.log.madeByDay[day] = (supply.log.madeByDay[day] ?? 0) + units;
+  }
   supply.lastMade = made;
 }
 
@@ -131,7 +138,7 @@ function settle(sim: Sim, supply: SupplySim) {
   let working = sim.save;
   for (const expiresAt of [...new Set(working.supply.buildings.filter((b) => b.expiresAt <= sim.now).map((b) => b.expiresAt))].sort((a, b) => a - b)) {
     working = settleBuildings(working, expiresAt);
-    tallyMade(working, supply);
+    tallyMade(working, supply, sim.day);
     for (const building of working.supply.buildings.filter((b) => b.expiresAt === expiresAt && buildingStockTotal(b) > 0)) {
       supply.log.buildingsLostStocked += 1;
       supply.log.unitsLost += buildingStockTotal(building);
@@ -142,7 +149,7 @@ function settle(sim: Sim, supply: SupplySim) {
   const loopStart = before.loop?.startedAt ?? null;
   sim.save = settleNetwork(working, sim.now);
   sim.save = { ...sim.save, supply: { ...sim.save.supply, lastOpenAt: sim.now } };
-  tallyMade(sim.save, supply);
+  tallyMade(sim.save, supply, sim.day);
   const { cart, raidLog } = sim.save.supply;
   const loops = cart.log.filter((line) => line.n > supply.lastLoop);
   for (const line of loops) {
@@ -203,11 +210,18 @@ function topOrders(save: Sim['save'], now: number): Order[] {
 const servingKind = (kind: Order['kind']): BuildingKind =>
   (Object.keys(supplyRules.buildings.kinds) as BuildingKind[]).find((b) => supplyRules.buildings.kinds[b].for === kind) ?? 'farm';
 
+/** The open building kind making the material the bot holds least of. */
+const shortestKind = (save: Sim['save']): BuildingKind =>
+  [...openBuildingKinds(save)].sort((a, b) => leastHeld(save, a) - leastHeld(save, b))[0];
+const leastHeld = (save: Sim['save'], kind: BuildingKind) =>
+  Math.min(...Object.keys(supplyRules.buildings.kinds[kind].makes).map((material) => save.materials[material] ?? 0));
+
 /**
  * Builds, when a slot is free and it can pay (keeping the cost again in gold),
- * the kind serving the most valued order not already served by a building, on
- * the best discovered site within reach: highest quality, then nearest to the
- * hall. The bot stands at the site, as if it had walked there.
+ * the kind serving the most valued order not already served by a building, or
+ * else the kind making what it holds least of, on the best discovered site
+ * within reach: highest quality, then nearest to the hall. The bot stands at
+ * the site, as if it had walked there.
  */
 function tryBuild(sim: Sim) {
   const save = sim.save;
@@ -215,10 +229,8 @@ function tryBuild(sim: Sim) {
   if (!hall) return;
   const reach = buildingReach(save);
   if (save.supply.buildings.length >= reach.count) return;
-  const orders = topOrders(save, sim.now);
-  const order =
-    orders.find((o) => !save.supply.buildings.some((building) => building.kind === servingKind(o.kind))) ?? orders[0];
-  if (!order || save.gold < BUILD_GOLD_KEEP * supplyRules.buildings.cost.gold) return;
+  const order = topOrders(save, sim.now).find((o) => !save.supply.buildings.some((building) => building.kind === servingKind(o.kind)));
+  if (save.gold < BUILD_GOLD_KEEP * supplyRules.buildings.cost.gold) return;
   const centre = tileCenter(hall.cell);
   const site = networkPlacesAround(save, centre, sim.now)
     .filter((place) => place.kind === 'site' && place.id in save.supply.discovered && place.startsAt <= sim.now && sim.now < place.expiresAt)
@@ -226,7 +238,7 @@ function tryBuild(sim: Sim) {
     .filter((place) => !save.supply.buildings.some((building) => building.siteId === place.id))
     .sort((a, b) => siteQuality(b) - siteQuality(a) || distanceMeters(centre, a.position) - distanceMeters(centre, b.position))[0];
   if (!site) return;
-  const kind = servingKind(order.kind);
+  const kind = order ? servingKind(order.kind) : shortestKind(save);
   if (buildProblem(save, site, kind, site.position, sim.now) !== null) return;
   sim.save = build(save, site, kind, site.position, sim.now);
 }

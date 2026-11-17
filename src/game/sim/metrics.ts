@@ -3,22 +3,19 @@ import { RARITIES, type Rarity } from '@/content/gear';
 import { heroClasses } from '@/content/heroes';
 import { dungeonById, itemById } from '@/content/lookup';
 import { items } from '@/content/items';
-import { jobs as jobList } from '@/content/jobs';
 import { lootConfig } from '@/content/loot/config';
 import { tierMaterials } from '@/content/materials';
 import { placeFightRules } from '@/content/placeFights';
 import { placeInfo } from '@/content/places';
 import { REVEAL_KINDS, type RevealKind } from '@/content/reveal';
-import { workToolRules } from '@/content/workTools';
 import type { ClassSwap } from './classSwap';
 
-import { jobMaterials } from '../jobs/jobs';
 import type { LootCategory, LootSourceId } from '../loot/types';
 import type { GearDef } from '../types';
 import { PATROL_KINDS, TRAVELLER_KINDS, type PatrolKind } from '../patrols/generate';
 import { families, type FamilyId } from '@/content/families';
 
-import type { ExpeditionRow, ProbeRow, RunLog } from './bot';
+import { WALK_SOURCES, type ExpeditionRow, type ProbeRow, type RunLog } from './bot';
 import type { AffixRow, FocusRow } from './familyFocus';
 import { expectedLevels, profiles } from './config';
 import type { DifficultyOdds } from './difficultyOdds';
@@ -79,17 +76,7 @@ export type TierSummary = {
   };
   gold: { income: Record<string, number>; spend: Record<string, number>; growth: Stat; incomePerDay: Stat; surplus: boolean };
   material: { id: string; gathered: Stat; spent: Stat; share: Stat };
-  /** Wood per day over the tier: gathered by walking, spent, the woodcutter's output, and its share of the spend. */
-  wood: { walked: Stat; spent: Stat; woodcutter: Stat; share: Stat };
-  /** Every job's materials over the tier: gathered by walking, gathered at the job, and the job's share of the walk. */
-  jobs: Record<string /* material */, { job: string; walked: Stat; fromJob: Stat; share: Stat }>;
-  /**
-   * Every station's work tool over the tier: the job's output per day with and
-   * without the tool, the tool's scavenge per day, the walking intake of the
-   * material, and the job's share of it.
-   */
-  tools: Record<string /* material */, { job: string; withTool: Stat; withoutTool: Stat; scavenge: Stat; walked: Stat; share: Stat }>;
-  /** The gatherer's own output over the tier: its materials against the same walking intake as the guild jobs, and its nodes and wounds per day. */
+  /** The gatherer's own output over the tier: its materials against the walking intake, and its nodes and wounds per day. */
   gatherer: { materials: Record<string, { walked: Stat; fromJob: Stat; share: Stat }>; nodes: Stat; wounds: Stat };
   /**
    * Gear over the tier: looted pieces by rarity (trinkets included, relics
@@ -212,10 +199,10 @@ export type SupplySummary = {
   /** Hero-hours per day posted at buildings, and on the cart's crew. */
   postedHoursPerDay: Stat;
   cartHoursPerDay: Stat;
+  /** Per tier from 2: units the buildings made and units of the same goods walking gathered, per day, and their ratio. */
+  byTier: { tier: number; madePerDay: Stat; walkedPerDay: Stat; ratio: Stat }[];
 };
 
-/** The walking sources: what a walk gathers, by hand or auto-gather, with the lure and the daily bonus. */
-const WALK_SOURCES = ['walk', 'autoGather', 'lure', 'walkBonus', 'autoGatherBonus'];
 /** What buildings make: the materials the cart's deliveries are set against. */
 const CAMP_MATERIALS = ['wood', 'meat', 'hide', 'bone'];
 
@@ -243,6 +230,24 @@ export function supplySummary(logs: RunLog[]): SupplySummary | null {
     raidsPerWeek: outcomes((log) => log.supply!.raids),
     postedHoursPerDay: perDay((log) => log.supply!.postedHours),
     cartHoursPerDay: perDay((log) => log.supply!.cartHours),
+    byTier: [2, 3, 4, 5].map((tier) => {
+      const seeds = played.map((log) => {
+        const window = tierWindow(log, tier);
+        if (!window) return null;
+        const days = window[1] - window[0] + 1;
+        const inWindow = (byDay: Record<number, number>) =>
+          sum(Object.entries(byDay).filter(([day]) => Number(day) >= window[0] && Number(day) <= window[1]).map(([, n]) => n));
+        const made = inWindow(log.supply!.madeByDay) / days;
+        const walked = inWindow(log.walkedNetworkGoods) / days;
+        return { made, walked, ratio: walked > 0 ? made / walked : null };
+      });
+      return {
+        tier,
+        madePerDay: stat(seeds.map((s) => s?.made ?? null)),
+        walkedPerDay: stat(seeds.map((s) => s?.walked ?? null)),
+        ratio: stat(seeds.map((s) => s?.ratio ?? null)),
+      };
+    }),
   };
 }
 
@@ -448,7 +453,6 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): Omit<TierSummary
     return g ? (s ?? 0) / g : null;
   }));
 
-  // Wood per day: what walking and the map brought in, what every sink spent, and the woodcutter's share of it.
   const perDay = (total: number | null, window: [number, number] | null) => (total === null || !window ? null : total / (window[1] - window[0] + 1));
   const jobFlowOfDay = (log: RunLog, window: [number, number] | null, jobId: string, material: string) =>
     window ? sum(Object.entries(log.jobFlow).filter(([day]) => within(Number(day), window)).map(([, jobs]) => jobs[jobId]?.[material] ?? 0)) : null;
@@ -456,104 +460,13 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): Omit<TierSummary
     window
       ? sum(Object.entries(log.jobFlow).filter(([day]) => within(Number(day), window)).map(([, jobs]) => sum(Object.values(jobs).map((m) => m[material] ?? 0))))
       : null;
-  /** A material's scavenge over the window: what work tools took from won fights. */
-  const scavengeOf = (log: RunLog, window: [number, number] | null, material: string) =>
-    window ? sum(Object.entries(log.scavenge).filter(([day]) => within(Number(day), window)).map(([, m]) => m[material] ?? 0)) : null;
-  /** A material's walking intake over the window: what everything but the jobs and the scavenge gathered of it. */
+  /** A material's walking intake over the window: what everything but the gatherer gathered of it. */
   const walkedOf = (log: RunLog, window: [number, number] | null, material: string) => {
     const gathered = flowOf(log, window, material, 0);
     const jobs = jobFlowOf(log, window, material);
-    const scavenged = scavengeOf(log, window, material);
-    return gathered !== null && jobs !== null && scavenged !== null ? gathered - jobs - scavenged : null;
+    return gathered !== null && jobs !== null ? gathered - jobs : null;
   };
-  const woodSeeds = logs.map((log, i) => {
-    const window = windows[i];
-    const spentWood = flowOf(log, window, 'wood', 1);
-    const job = jobFlowOfDay(log, window, 'woodcutter', 'wood');
-    const walked = walkedOf(log, window, 'wood');
-    return {
-      walked: perDay(walked, window),
-      spent: perDay(spentWood, window),
-      woodcutter: perDay(job, window),
-      share: job !== null && spentWood ? job / spentWood : null,
-    };
-  });
-  const wood = {
-    walked: stat(woodSeeds.map((s) => s.walked)),
-    spent: stat(woodSeeds.map((s) => s.spent)),
-    woodcutter: stat(woodSeeds.map((s) => s.woodcutter)),
-    share: stat(woodSeeds.map((s) => s.share)),
-  };
-
-  // Each job's materials over the tier: what the station added against the same material gathered by walking.
-  const jobs = Object.fromEntries(
-    jobList.flatMap((job) =>
-      jobMaterials(job).map((material) => {
-        const seeds = logs.map((log, i) => {
-          const window = windows[i];
-          const fromJob = jobFlowOfDay(log, window, job.id, material);
-          const scavenged = scavengeOf(log, window, material);
-          const walked = walkedOf(log, window, material);
-          if (fromJob === null || walked === null) return { walked: null, fromJob: null, share: null };
-          return {
-            walked: perDay(walked, window),
-            fromJob: perDay(fromJob, window),
-            share: walked > 0 ? (fromJob + (scavenged ?? 0)) / walked : null,
-          };
-        });
-        return [
-          material,
-          {
-            job: job.name,
-            walked: stat(seeds.map((s) => s.walked)),
-            fromJob: stat(seeds.map((s) => s.fromJob)),
-            share: stat(seeds.map((s) => s.share)),
-          },
-        ] as const;
-      }),
-    ),
-  );
-
-  // Each station's work tool over the tier: the job's output per day with the tool
-  // (logged) and without it (the tool's bonus removed), its scavenge per day,
-  // against the same walking intake as the guild jobs.
-  const tools = Object.fromEntries(
-    jobList
-      .filter((job) => job.id !== 'gatherer')
-      .flatMap((job) =>
-        jobMaterials(job).map((material) => {
-          const bonus = workToolRules.outputBonus[tier - 1];
-          const seeds = logs.map((log, i) => {
-            const window = windows[i];
-            const withTool = jobFlowOfDay(log, window, job.id, material);
-            const scavenged = scavengeOf(log, window, material);
-            const walked = walkedOf(log, window, material);
-            if (withTool === null || walked === null) return { withTool: null, withoutTool: null, scavenge: null, walked: null, share: null };
-            const perDayWithTool = perDay(withTool, window);
-            return {
-              withTool: perDayWithTool,
-              withoutTool: perDayWithTool !== null ? perDayWithTool / (1 + bonus) : null,
-              scavenge: perDay(scavenged, window),
-              walked: perDay(walked, window),
-              share: walked > 0 ? (withTool + (scavenged ?? 0)) / walked : null,
-            };
-          });
-          return [
-            material,
-            {
-              job: job.name,
-              withTool: stat(seeds.map((s) => s.withTool)),
-              withoutTool: stat(seeds.map((s) => s.withoutTool)),
-              scavenge: stat(seeds.map((s) => s.scavenge)),
-              walked: stat(seeds.map((s) => s.walked)),
-              share: stat(seeds.map((s) => s.share)),
-            },
-          ] as const;
-        }),
-      ),
-  );
-
-  // The gatherer: its nodes and wounds per day, and its own materials against the walking intake the guild jobs share.
+  // The gatherer: its nodes and wounds per day, and its own materials against the walking intake.
   const gathererTotal = (log: RunLog, window: [number, number] | null, key: 'nodes' | 'wounds') =>
     window ? sum(Object.entries(log.gatherer).filter(([day]) => within(Number(day), window)).map(([, g]) => g[key])) : null;
   const gathererMaterials = [...new Set(logs.flatMap((log, i) => Object.entries(log.jobFlow)
@@ -656,9 +569,6 @@ function tierSummary(logs: RunLog[], tier: number, t: Targets): Omit<TierSummary
     },
     gold: { income, spend, growth, incomePerDay, surplus },
     material: { id, gathered, spent, share },
-    wood,
-    jobs,
-    tools,
     gatherer,
     gear,
     lootTrinkets: stat(

@@ -33,12 +33,6 @@ describe('GearDetails', () => {
     expect(labels).toContain('Hunter: +22% damage to beasts');
     expect(tree.root.findAllByType(AffixLines)).toHaveLength(1);
   });
-
-  it('shows a work tool’s job line', () => {
-    const tree = render(piece({ itemId: 'hatchet1', rarity: 'common' }));
-    const texts = tree.root.findAll((node) => typeof node.props.children === 'string').map((node) => node.props.children as string);
-    expect([...labelsOf(tree), ...texts].join(' ').toLowerCase()).toMatch(/wood/);
-  });
 });
 
 describe('the comparison card', () => {

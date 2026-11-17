@@ -89,13 +89,15 @@ describe('the site sheet', () => {
     expect(sheet).toContain('Poor ground: 1 star of 3');
     expect(sheet).toContain(`Buildings near the hall: 0 of 3 within ${formatDistance(1000)}`);
     // One card per kind, each saying who wants its goods.
-    for (const name of ['Farm', 'Quarry', 'Herb garden']) expect(sheet).toContain(name);
-    for (const who of ['Taverns', 'Smithies', 'Apothecaries']) expect(sheet).toContain(who);
+    for (const name of ['Farm', 'Herb garden', 'Quarry', 'Lumber camp', 'Hunting camp']) expect(sheet).toContain(name);
+    for (const who of ['Taverns', 'Smithies', 'Apothecaries', 'your workshop']) expect(sheet).toContain(who);
+    // The mines and the kiln open at later tiers.
+    expect(sheet).not.toContain('Copper mine');
     expect(sheet).toContain('with a hero');
 
-    // The second tap, on the quarry's Build, raises it: the fee leaves the purse and the sheet swaps.
+    // The second tap, on the quarry's Build (the third card), raises it: the fee leaves the purse and the sheet swaps.
     act(() => {
-      renderer!.root.findAll((node) => node.props.title === 'Build' && typeof node.props.onPress === 'function')[1].props.onPress();
+      renderer!.root.findAll((node) => node.props.title === 'Build' && typeof node.props.onPress === 'function')[2].props.onPress();
     });
     const save = useGameStore.getState().save;
     expect(save.supply.buildings).toHaveLength(1);
@@ -124,6 +126,7 @@ describe('the site sheet', () => {
       useGameStore.setState({ save: saveReadyToBuild(site) });
     });
     act(() => {
+      renderer!.unmount();
       renderer = create(<SupplySitePanel site={site} player={away} onClose={() => {}} />);
     });
     sheet = text(renderer!);

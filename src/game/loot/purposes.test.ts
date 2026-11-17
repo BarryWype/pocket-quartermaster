@@ -34,8 +34,8 @@ describe('purpose tags', () => {
     expect(nextSteps(save(), { kind: 'material', id: 'grain' })).toEqual([{ kind: 'deliver', kinds: ['tavern', 'market'] }]);
     // Meat is both an ingredient and a wanted good.
     expect(purposesOf({ kind: 'material', id: 'meat' })).toEqual(['ingredient', 'deliver']);
-    // A material no order wants never gets the tag.
-    expect(purposesOf({ kind: 'material', id: 'wood' }).includes('deliver')).toBe(false);
+    // A material no order wants (no building makes fish) never gets the tag.
+    expect(purposesOf({ kind: 'material', id: 'fish' }).includes('deliver')).toBe(false);
   });
 
   it('computes the ingredient tag from recipes, never by hand', () => {

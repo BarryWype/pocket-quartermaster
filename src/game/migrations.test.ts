@@ -6,7 +6,7 @@ import { gearRules } from "@/content/gear";
 import { affixById } from "@/content/affixes";
 import { gearStats } from "./gear/stats";
 import { uniquePool } from "./gear/uniques";
-import { migrateSave, toV38, toV39, toV40, toV41, toV42, toV43, toV44, toV47, toV48, toV49, toV50, toV52, toV53, toV54, toV55, toV56, toV57, toV58, toV59, toV60 } from "./migrations";
+import { migrateSave, toV36, toV37, toV38, toV39, toV40, toV41, toV42, toV43, toV44, toV47, toV48, toV49, toV50, toV52, toV53, toV54, toV55, toV56, toV57, toV58, toV59, toV60 } from "./migrations";
 import { affixPool } from "./gear/affixes";
 import { emptyLoot } from "./loot/types";
 import type { Briefing, ExpeditionReport, GearDef, GearInstance } from "./types";
@@ -199,7 +199,7 @@ describe("save migrations", () => {
     } as unknown as SaveData;
 
     it("turns a station amount into whole units of its material plus the fraction", () => {
-      const next = migrateSave(v35, 35, 10 * DAY);
+      const next = toV36(v35);
       expect(next.jobOutput.woodcutter).toEqual({
         amounts: { wood: 2 },
         fraction: 0.5,
@@ -214,7 +214,7 @@ describe("save migrations", () => {
         ...v35,
         jobOutput: { woodcutter: { amount: 0.25, since: 6 * DAY } },
       } as unknown as SaveData;
-      expect(migrateSave(subUnit, 35, 10 * DAY).jobOutput.woodcutter).toEqual({
+      expect(toV36(subUnit).jobOutput.woodcutter).toEqual({
         amounts: {},
         fraction: 0.25,
         units: 0,
@@ -227,7 +227,7 @@ describe("save migrations", () => {
         ...v35,
         jobChoice: { miner: "stone" },
       } as unknown as SaveData;
-      expect(migrateSave(withChoice, 35, 10 * DAY).jobChoice).toEqual({
+      expect(toV36(withChoice).jobChoice).toEqual({
         miner: "stone",
       });
     });
@@ -248,7 +248,8 @@ describe("save migrations", () => {
       } as unknown as SaveData;
       const next = migrateSave(v34, 34, 10 * DAY);
       expect(next.jobOutput).toEqual({});
-      expect(next.jobChoice).toEqual({ miner: null });
+      // Version 60 drops the miner's choice with the guild jobs.
+      expect(next.jobChoice).toEqual({});
       for (const hero of next.heroes) {
         expect(hero.job).toBeNull();
         expect(hero.energy.value).toBe(100);
@@ -283,11 +284,12 @@ describe("save migrations", () => {
             since: 10 * DAY,
           },
         },
+        jobChoice: { miner: null },
       } as SaveData;
     };
 
     it("migrates without a camp, gatherer output or new counters", () => {
-      const next = migrateSave(v36(), 36, 12 * DAY);
+      const next = toV37(v36());
       expect(next.jobOutput.woodcutter).toEqual({
         amounts: { wood: 2 },
         fraction: 0.5,
@@ -300,8 +302,7 @@ describe("save migrations", () => {
 
     it("leaves a save already carrying its choices alone", () => {
       const save = v36();
-      expect(migrateSave(save, 36, 12 * DAY)).toBe(save);
-      expect(migrateSave(save, 37, 12 * DAY)).toBe(save);
+      expect(toV37(save)).toBe(save);
     });
   });
 
@@ -1537,5 +1538,65 @@ describe("toV60", () => {
     const next = migrateSave(save, 59, 0);
     expect(next.quests.list[0].objective).not.toBe("mine");
     expect(next.seenPlaceKinds).toEqual([]);
+  });
+});
+
+describe("toV60: the guild gathering jobs and work tools leave", () => {
+  const HOUR = 3_600_000;
+  const NOW = 10 * DAY;
+
+  /** A version 59 save: Bram cuts wood with a tier 2 hatchet, Lyra is a Quarryman, Mira gathers outdoors. */
+  const v59 = (): SaveData => {
+    const base = createInitialSave();
+    const hatchet = { uid: "tool-1", itemId: "hatchet2", rarity: "common", roll: 10, affixes: [], rerolls: 0 } as unknown as SaveData["gear"][number];
+    const heroes = base.heroes.map((hero) => {
+      if (hero.id === "bram") return { ...hero, job: { jobId: "woodcutter", since: NOW - 3 * HOUR, tired: false }, equipment: { ...hero.equipment, offhand: "tool-1" } };
+      if (hero.id === "lyra") return { ...hero, trade: { id: "quarryman", hours: 12 } };
+      if (hero.id === "mira") return { ...hero, job: { jobId: "gatherer", since: NOW - HOUR, tired: false } };
+      return hero;
+    }) as SaveData["heroes"];
+    return {
+      ...base,
+      gold: 100,
+      materials: { ...base.materials, wood: 0 },
+      gear: [...base.gear, hatchet],
+      heroes,
+      jobOutput: {
+        woodcutter: { amounts: {}, fraction: 0, units: 0, since: NOW - 3 * HOUR },
+        gatherer: { amounts: { herb: 2 }, fraction: 0, units: 2, since: NOW - HOUR },
+      },
+      jobChoice: { miner: "copper" },
+      tips: { seen: ["jobMiner"], pending: ["jobCharcoalBurner"] },
+    } as unknown as SaveData;
+  };
+
+  it("pays a woodcutter's uncollected work at the old rate and tool bonus, and takes the hero off the job", () => {
+    const next = toV60(v59(), NOW);
+    // 3 h × 0.3 × 1.125 (tier 2 hatchet) = 1.01 → 1 wood.
+    expect(next.materials.wood).toBe(1);
+    expect(next.heroes.find((hero) => hero.id === "bram")!.job).toBeNull();
+    expect(next.jobOutput.woodcutter).toBeUndefined();
+    expect(next.jobChoice.miner).toBeUndefined();
+  });
+
+  it("unequips, removes and refunds every work tool at its shop price", () => {
+    const next = toV60(v59(), NOW);
+    expect(next.gear.some((piece) => piece.itemId === "hatchet2")).toBe(false);
+    expect(next.heroes.find((hero) => hero.id === "bram")!.equipment.offhand).toBeNull();
+    expect(next.gold).toBe(110);
+  });
+
+  it("turns Quarrymen into Miners with their hours, drops the jobs' tips, and leaves the gatherer alone", () => {
+    const before = v59();
+    const next = toV60(before, NOW);
+    expect(next.heroes.find((hero) => hero.id === "lyra")!.trade).toEqual({ id: "miner", hours: 12 });
+    expect(next.tips).toEqual({ seen: [], pending: [] });
+    expect(next.heroes.find((hero) => hero.id === "mira")!.job).toEqual(before.heroes.find((hero) => hero.id === "mira")!.job);
+    expect(next.jobOutput.gatherer).toEqual(before.jobOutput.gatherer);
+  });
+
+  it("is a no-op the second time", () => {
+    const once = toV60(v59(), NOW);
+    expect(toV60(once, NOW)).toBe(once);
   });
 });

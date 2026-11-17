@@ -2,6 +2,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useGameStore } from './gameStore';
 
+// The store's job actions are generic; the only job left in the game is the outdoor gatherer, so these tests use a
+// plain station of their own.
+jest.mock('@/content/jobs', () => {
+  const actual = jest.requireActual('@/content/jobs');
+  const woodcutter = { id: 'woodcutter', name: 'Woodcutter', produces: 'wood', ratePerHour: 0.3, opensAtTier: 1, emoji: '🪓' };
+  return { ...actual, jobs: [woodcutter, ...actual.jobs], jobById: { ...actual.jobById, woodcutter } };
+});
+
 describe('gameStore', () => {
   beforeEach(() => {
     useGameStore.getState().resetSave();
@@ -74,32 +82,6 @@ describe('gameStore', () => {
     const recalled = useGameStore.getState().save;
     useGameStore.getState().recallFromJob(heroId);
     expect(useGameStore.getState().save).toBe(recalled);
-  });
-
-  it('picks a choice job material only among the ones the tier has unlocked', () => {
-    const { save } = useGameStore.getState();
-    useGameStore.getState().setJobChoice('woodcutter', 'wood');
-    useGameStore.getState().setJobChoice('miner', 'stone');
-    expect(useGameStore.getState().save).toBe(save);
-  });
-
-  it('settles jobs when a working hero’s equipment changes, so a tool’s bonus applies forward', () => {
-    const { save } = useGameStore.getState();
-    const heroId = save.heroes[0].id;
-    useGameStore.getState().assignJob(heroId, 'woodcutter');
-    useGameStore.setState({
-      save: {
-        ...useGameStore.getState().save,
-        gear: [...useGameStore.getState().save.gear, { uid: 't1', itemId: 'hatchet1', rarity: 'common' as const, roll: 8, affixes: [], rerolls: 0 }],
-      },
-    });
-    useGameStore.getState().equip(heroId, 'offhand', 't1');
-    const after = useGameStore.getState().save;
-    const hero = after.heroes.find((h) => h.id === heroId)!;
-    // The job was settled at the moment of the change.
-    expect(hero.energy.at).toBeCloseTo(Date.now(), -3);
-    expect(after.jobOutput.woodcutter.since).toBe(hero.energy.at);
-    expect(hero.equipment.offhand).toBe('t1');
   });
 
   it('resets save data', () => {

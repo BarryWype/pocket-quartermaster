@@ -17,6 +17,14 @@ import { deliveryTime, inQuietHours, quietHoursEnd } from './quietHours';
 import { stepAlerts } from './steps';
 import type { NotificationSettings } from './types';
 
+// The job engine is generic; the only job left in the game is the outdoor gatherer, so these tests use a plain station
+// of their own.
+jest.mock('@/content/jobs', () => {
+  const actual = jest.requireActual('@/content/jobs');
+  const woodcutter = { id: 'woodcutter', name: 'Woodcutter', produces: 'wood', ratePerHour: 0.3, opensAtTier: 1, emoji: '🪓' };
+  return { ...actual, jobs: [woodcutter, ...actual.jobs], jobById: { ...actual.jobById, woodcutter } };
+});
+
 const at = (hours: number, minutes = 0, day = 26) => new Date(2026, 9, day, hours, minutes).getTime();
 const MIN = 60_000;
 const HOUR = 60 * MIN;

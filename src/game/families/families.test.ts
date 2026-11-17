@@ -63,13 +63,9 @@ describe('heroFamilyTags', () => {
     expect(heroFamilyTags(unequip(save, 'h', 'helmet'), hero)).toEqual({ bulwark: 1 });
   });
 
-  test('a trinket and a work tool contribute nothing', () => {
+  test('a trinket contributes nothing', () => {
     const trinket = items.find((item) => item.slot === 'trinket')!;
-    const workTool = items.find((item): item is GearDef => 'workTool' in item && item.workTool !== undefined)!;
-    const save = saveWith(newHero('h', 'H', 'warrior', 'resilient'), [
-      piece('g1', trinket.id),
-      piece('g2', workTool.id),
-    ]);
+    const save = saveWith(newHero('h', 'H', 'warrior', 'resilient'), [piece('g1', trinket.id)]);
     expect(heroFamilyTags(save, save.heroes[0])).toEqual({ bulwark: 1 });
   });
 
@@ -135,10 +131,9 @@ describe('gearFamilyTags', () => {
     ]);
   });
 
-  test('trinkets and work tools carry none', () => {
+  test('trinkets carry none', () => {
     const trinket = items.find((item) => item.slot === 'trinket') as GearDef;
     expect(gearFamilyTags(trinket)).toEqual([]);
-    expect(gearFamilyTags({ gearType: 'shield', workTool: { kind: 'tongs', job: 'smith' } })).toEqual([]);
   });
 });
 

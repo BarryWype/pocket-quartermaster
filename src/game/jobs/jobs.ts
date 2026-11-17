@@ -1,6 +1,4 @@
-import { choiceOf, jobById, jobRules, jobs, type GathererFocus, type JobDef } from '@/content/jobs';
-import { itemById } from '@/content/lookup';
-import { type WorkToolKind, workToolRules } from '@/content/workTools';
+import { jobById, jobRules, jobs, type GathererFocus } from '@/content/jobs';
 
 import { highestUnlockedTier } from '../dungeons/unlock';
 import { createRng } from '../generation/rng';
@@ -8,7 +6,7 @@ import { addMaterials } from '../inventory';
 import { currentHp, maxHp, withHp } from '../team/health';
 import type { JobOutput, SaveData } from '../save';
 import { isAway, isPosted } from '../team/team';
-import type { GearDef, HeroState } from '../types';
+import type { HeroState } from '../types';
 import { gathererCapNodes, gathererDetail, gathererFullAt, gathererNodesNow, anchorsKeepFrom, pruneAnchors, type GathererWound } from './gatherer';
 
 const HOUR = 3_600_000;
@@ -66,62 +64,20 @@ export function isTired(save: SaveData, hero: HeroState, now: number): boolean {
 export const jobWorker = (save: SaveData, jobId: string): HeroState | undefined =>
   save.heroes.find((hero) => hero.job?.jobId === jobId);
 
-/** A work tool as worn: its kind and job, plus the tier of the piece. */
-export type WornWorkTool = { kind: WorkToolKind; job: string; tier: number };
+/** The job's rate per hour of work. */
+export const jobRate = (jobId: string): number => jobById[jobId].ratePerHour;
 
-/** The work tool a hero wears in the off-hand, if any. */
-export function wornWorkTool(save: SaveData, hero: HeroState): WornWorkTool | null {
-  const uid = hero.equipment.offhand;
-  if (!uid) return null;
-  const gear = save.gear.find((g) => g.uid === uid);
-  const item = gear ? (itemById[gear.itemId] as GearDef) : null;
-  return item?.workTool ? { kind: item.workTool.kind, job: item.workTool.job, tier: item.tier } : null;
-}
-
-/** The job's rate per hour of work, raised by the worker's matching work tool (see workToolRules.outputBonus). */
-export function jobRate(save: SaveData, jobId: string): number {
-  const worker = jobWorker(save, jobId);
-  const tool = worker ? wornWorkTool(save, worker) : null;
-  const bonus = tool && tool.job === jobId ? workToolRules.outputBonus[tool.tier - 1] : 0;
-  return jobById[jobId].ratePerHour * (1 + bonus);
-}
-
-/** The material a roll index becomes: fixed, weighted, or the job's chosen material. */
-export function unitMaterial(save: SaveData, jobId: string, heroId: string, index: number): string {
+/** The material a roll index becomes: fixed, or weighted. */
+export function unitMaterial(jobId: string, heroId: string, index: number): string {
   const produces = jobById[jobId].produces;
   if (typeof produces === 'string') return produces;
   if ('nodes' in produces) throw new Error(`Job ${jobId} gathers no unit material`);
-  if ('weights' in produces) {
-    return createRng(`job|${jobId}|${heroId}|${index}`).weighted(Object.keys(produces.weights), (m) => produces.weights[m]);
-  }
-  const material = save.jobChoice[jobId];
-  if (material === null || material === undefined) throw new Error(`Job ${jobId} has no chosen material`);
-  return material;
-}
-
-/** Every material the job can produce, whatever shape its `produces` takes. */
-export function jobMaterials(job: JobDef): string[] {
-  const produces = job.produces;
-  if (typeof produces === 'string') return [produces];
-  if ('nodes' in produces) return [];
-  if ('weights' in produces) return Object.keys(produces.weights);
-  return produces.choice.map((option) => option.material);
-}
-
-/** The ore options a choice job has at the save's tier; empty for any other job. */
-export function jobChoices(save: SaveData, jobId: string): string[] {
-  const choice = choiceOf(jobById[jobId]);
-  if (!choice) return [];
-  const tier = highestUnlockedTier(save);
-  return choice.filter((option) => option.fromTier <= tier).map((option) => option.material);
+  return createRng(`job|${jobId}|${heroId}|${index}`).weighted(Object.keys(produces.weights), (m) => produces.weights[m]);
 }
 
 /** Whether the save's tier has opened the station yet. */
 export const isJobOpen = (save: SaveData, jobId: string): boolean =>
   !!jobById[jobId] && highestUnlockedTier(save) >= jobById[jobId].opensAtTier;
-
-/** The stations the save's tier has opened, in content order; the gatherer has no station card. */
-export const openJobs = (save: SaveData): JobDef[] => jobs.filter((job) => !job.kind && isJobOpen(save, job.id));
 
 /** The output a job holds once full: units for a station, gathered nodes for the gatherer. */
 export const jobCap = (jobId: string) => (jobById[jobId].kind === 'outdoor' ? gathererCapNodes() : jobById[jobId].ratePerHour * jobRules.capHours);
@@ -141,7 +97,7 @@ export function jobProduced(save: SaveData, jobId: string, now: number): number 
   // Counted from the later of the output's and the worker's timestamps, both on the worker's cycle.
   const from = Math.max(entry?.since ?? now, worker.energy.at);
   if (now <= from) return 0;
-  const produced = jobRate(save, jobId) * (workDone(worker, cycleAt(worker, now)) - workDone(worker, cycleAt(worker, from)));
+  const produced = jobRate(jobId) * (workDone(worker, cycleAt(worker, now)) - workDone(worker, cycleAt(worker, from)));
   return Math.min(Math.max(0, produced), room);
 }
 
@@ -164,7 +120,7 @@ export function jobOutputDetail(save: SaveData, jobId: string, now: number): Job
   const made = Math.floor(fraction + 1e-9);
   const amounts = { ...entry.amounts };
   for (let i = 0; i < made && worker; i++) {
-    const material = unitMaterial(save, jobId, worker.id, entry.units + i);
+    const material = unitMaterial(jobId, worker.id, entry.units + i);
     amounts[material] = (amounts[material] ?? 0) + 1;
   }
   return { amounts, fraction: Math.max(0, fraction - made), units: entry.units + made, since: now };
@@ -223,7 +179,7 @@ export function fullAt(save: SaveData, jobId: string, now: number): number | nul
   if (!worker || isJobFull(save, jobId, now)) return null;
   if (job.kind === 'outdoor') return gathererFullAt(save, jobId, now);
   const { d, c } = cycleOf(worker);
-  let need = (jobCap(jobId) - jobOutputNow(save, jobId, now)) / jobRate(save, jobId);
+  let need = (jobCap(jobId) - jobOutputNow(save, jobId, now)) / jobRate(jobId);
   let x = cycleAt(worker, now);
   for (;;) {
     const m = mod(x, c);
@@ -278,21 +234,7 @@ export function assignJob(save: SaveData, heroId: string, jobId: string, now: nu
     ),
     jobOutput: jobId in settled.jobOutput ? settled.jobOutput : { ...settled.jobOutput, [jobId]: { amounts: {}, fraction: 0, units: 0, since: now } },
   };
-  // A choice job starts on its highest unlocked material until the player picks one.
-  const choices = jobChoices(settled, jobId);
-  const current = settled.jobChoice[jobId];
-  if (choices.length > 0 && (current === null || current === undefined)) {
-    return { ...withJob, jobChoice: { ...settled.jobChoice, [jobId]: choices[choices.length - 1] } };
-  }
   return withJob;
-}
-
-/** Sends the choice job's future units to `material`; units already made keep their old material. */
-export function setJobChoice(save: SaveData, jobId: string, material: string, now: number): SaveData {
-  if (!jobById[jobId] || !choiceOf(jobById[jobId])) throw new Error(`Job ${jobId} takes no choice`);
-  if (!jobChoices(save, jobId).includes(material)) throw new Error(`Job ${jobId} cannot make ${material}`);
-  const settled = settleJobs(save, now);
-  return { ...settled, jobChoice: { ...settled.jobChoice, [jobId]: material } };
 }
 
 /** Points the gatherer at a focus from now on; what it gathered so far is kept. */

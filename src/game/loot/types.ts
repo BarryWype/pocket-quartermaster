@@ -93,8 +93,6 @@ export type Loot = {
   relics: string[];
   /** Every category that rolled a drop. */
   dropped: LootCategory[];
-  /** The work-tool scavenge merged into `materials`, kept apart so reports can tell it from rolled loot. */
-  scavenged?: MaterialStack[];
   /** What trophies and a complete blueprint tier's overflow brought (merged above), kept apart for reports. */
   trophies?: TrophyDrop[];
 };

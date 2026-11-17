@@ -137,7 +137,7 @@ export function gearChoices(save: SaveData, partyIds: string[], heroId: string, 
   const before = partyFamilies(save, partyIds);
   const choices = save.gear.flatMap((gear): GearChoice[] => {
     const item = itemById[gear.itemId] as GearDef;
-    if (item.slot !== slot || item.workTool) return [];
+    if (item.slot !== slot) return [];
     const holder = save.heroes.find((h) => h.id !== heroId && h.equipment[slot] === gear.uid) ?? null;
     if (holder && isAway(save, holder.id)) return [];
     const worn = hero.equipment[slot] === gear.uid;
@@ -183,7 +183,7 @@ export function forgeChoices(save: SaveData, partyIds: string[], heroId: string,
       const recipe = recipeById[recipeId];
       const item = forgedItem(recipe) as GearDef | null;
       const cost = forgeConfirmation(save, recipeId)?.cost;
-      if (!item || item.slot !== slot || item.workTool || !cost) return [];
+      if (!item || item.slot !== slot || !cost) return [];
       // The piece as it would come out of the forge, only to see what it does to the party's families.
       const piece: GearInstance = { uid: 'forge-preview', itemId: item.id, rarity: 'common', roll: 10, affixes: [], rerolls: 0 };
       const withPiece = { ...save, gear: [...save.gear, piece] };
@@ -215,7 +215,7 @@ export function slotHints(save: SaveData, partyIds: string[], short: FamilyId[])
   const before = partyFamilies(save, partyIds);
   const carriers = save.gear.filter((gear) => {
     const item = itemById[gear.itemId] as GearDef;
-    return !item.workTool && gearFamilyTags(item, gear.relicId).some((tag) => short.includes(tag.family));
+    return gearFamilyTags(item, gear.relicId).some((tag) => short.includes(tag.family));
   });
   for (const heroId of partyIds) {
     const hero = save.heroes.find((h) => h.id === heroId);

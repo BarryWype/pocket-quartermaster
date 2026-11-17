@@ -1,4 +1,5 @@
 import { dungeons } from '@/content/dungeons';
+import { networkGoods } from '@/content/supplyLines';
 import { difficultyRules } from '@/content/difficulty';
 import { rosterRules } from '@/content/roster';
 import { affinityRules, classAffinities } from '@/content/equipment';
@@ -6,7 +7,7 @@ import { guildTrackById, guildTracks } from '@/content/guild';
 import { familyOfThreat, type FamilyId } from '@/content/families';
 import { heroClasses, xpRules } from '@/content/heroes';
 import { dungeonById, itemById, recipeById } from '@/content/lookup';
-import { gathererRules, jobs as jobList, type JobDef } from '@/content/jobs';
+import { gathererRules, jobs as jobList } from '@/content/jobs';
 import { lootConfig } from '@/content/loot/config';
 import { shopRules } from '@/content/shops';
 import { recipes } from '@/content/recipes';
@@ -45,7 +46,7 @@ import type { LatLng } from '../generation/types';
 import { buyRank, guildBonus, isGuildUnlocked, rankPrice, rankProblem } from '../guild/guild';
 import { hasMaterials } from '../inventory';
 import { addAnchor } from '../jobs/gatherer';
-import { assignJob, collectJob, isJobOpen, jobChoices, jobMaterials, jobOutputDetail, jobWorker, openJobs, recallFromJob, setJobChoice, wornWorkTool } from '../jobs/jobs';
+import { assignJob, collectJob, isJobOpen, jobOutputDetail, jobWorker, recallFromJob } from '../jobs/jobs';
 import { isRevealed } from '../reveal/reveal';
 import type { PatrolKind, PatrolSubject, TravellerKind } from '../patrols/generate';
 import type { TravellerReward } from '../patrols/travellers';
@@ -200,10 +201,10 @@ export type RunLog = {
   probes: ProbeRow[];
   /** Day → material → [gathered, used]. */
   materialFlow: Record<number, Record<string, [number, number]>>;
+  /** Units of the goods buildings make that walking gathered, by day (the supply report's buildings-vs-walking rows). */
+  walkedNetworkGoods: Record<number, number>;
   /** Day → job id → material → gathered from that guild job (sources `job:<id>`), the jobs report. */
   jobFlow: Record<number, Record<string, Record<string, number>>>;
-  /** Day → material → work-tool scavenge from won fights (loot's `scavenged`). */
-  scavenge: Record<number, Record<string, number>>;
   /** Day → the gatherer's nodes gathered and wounds settled, as the day's collects clear them. */
   gatherer: Record<number, { nodes: number; wounds: number }>;
   /** Recipes known at the end. */
@@ -272,8 +273,8 @@ export const emptyLog = (profile: string, seed: string): RunLog => ({
   quests: { claimed: { short: 0, medium: 0, long: 0, secret: 0 }, tips: 0 },
   probes: [],
   materialFlow: {},
+  walkedNetworkGoods: {},
   jobFlow: {},
-  scavenge: {},
   gatherer: {},
   knownRecipes: [],
   places: [],
@@ -380,6 +381,9 @@ const add = (table: Record<string, Record<string, number>>, material: string, ke
   table[material][key] = (table[material][key] ?? 0) + amount;
 };
 
+/** The walking sources: what a walk gathers, by hand or auto-gather, with the lure and the daily bonus. */
+export const WALK_SOURCES = ['walk', 'autoGather', 'lure', 'walkBonus', 'autoGatherBonus'];
+
 /**
  * Runs a game action and records what it changed: gold in or out, and
  * materials gathered or used, under `source`. Returns the material changes.
@@ -402,6 +406,9 @@ export function act(sim: Sim, source: string, action: (save: SaveData) => SaveDa
       const byJob = (sim.log.jobFlow[sim.day] ??= {});
       const flow = (byJob[source.slice('job:'.length)] ??= {});
       flow[id] = (flow[id] ?? 0) + delta;
+    }
+    if (delta > 0 && WALK_SOURCES.includes(source) && networkGoods.includes(id)) {
+      sim.log.walkedNetworkGoods[sim.day] = (sim.log.walkedNetworkGoods[sim.day] ?? 0) + delta;
     }
     if (delta > 0 && id.endsWith('Stone')) mark(sim, 'firstStone');
   }
@@ -644,7 +651,6 @@ function distribute(sim: Sim) {
   const kept = sparesToKeep(sim.save, highestTier(sim.save));
   for (const gear of sim.save.gear.filter((g) => !worn.has(g.uid) && !kept.has(g.uid))) {
     const item = itemById[gear.itemId] as GearDef;
-    if (item.workTool) continue; // work tools cannot be salvaged; a spare one just waits
     if (item.loot) continue; // a spare loot trinket waits for a run
     const materials = act(sim, 'salvage', (save) => salvage(save, gear.uid));
     sim.log.crafts.push({ day: sim.day, kind: 'salvage', itemId: item.id, tier: item.tier, rarity: gear.rarity, roll: gear.roll, materials });
@@ -709,7 +715,7 @@ function rosterTags(save: SaveData, family: FamilyId): number {
   const classes = save.heroes.filter((h) => heroClasses[h.classId].familyTag === family).length;
   const gear = save.gear.reduce((sum, g) => {
     const item = itemById[g.itemId] as GearDef;
-    if (!item.gearType || item.workTool || item.tier < top - 1) return sum;
+    if (!item.gearType || item.tier < top - 1) return sum;
     return sum + gearFamilyTags(item).reduce((n, tag) => n + (tag.family === family ? tag.count : 0), 0);
   }, 0);
   return classes + gear;
@@ -746,7 +752,6 @@ function forgeForThreats(sim: Sim) {
           sim.save.knownRecipes.includes(r.id) &&
           item.tier >= top - 1 &&
           !!item.gearType &&
-          !item.workTool &&
           !spareTypes.has(item.gearType) &&
           gearFamilyTags(item).some((tag) => tag.family === family)
         );
@@ -1018,39 +1023,10 @@ export function recallWorking(sim: Sim, heroIds: string[]) {
   }
 }
 
-/** Staffs every open station at the end of a session, the one shortest of its material first, with the least useful free heroes. */
+/** Keeps the outdoor gatherer staffed at the end of a session. */
 export function assignJobs(sim: Sim) {
   if (!sim.jobs) return;
-  // The gatherer comes first, or the stations would take every free hero.
   keepGatherer(sim);
-  // A station's shortage score: the stock of the material it can produce least of.
-  const shortage = (job: JobDef) => {
-    const materials = job.id === 'miner' ? jobChoices(sim.save, 'miner') : jobMaterials(job);
-    return Math.min(...materials.map((m) => sim.save.materials[m] ?? 0));
-  };
-  const open = [...openJobs(sim.save)].sort((a, b) => shortage(a) - shortage(b));
-  for (const job of open) {
-    if (jobWorker(sim.save, job.id)) continue;
-    const free = sim.save.heroes.filter((h) => !isBusy(sim.save, h.id));
-    if (!free.length) continue;
-    const pick = [...free].sort((a, b) => statScore(sim.save, a) - statScore(sim.save, b))[0];
-    act(sim, 'job', (save) => assignJob(save, pick.id, job.id, sim.now));
-  }
-  // A worker whose tool was swapped out for a run puts back the best one held for their job.
-  for (const job of openJobs(sim.save)) {
-    const worker = jobWorker(sim.save, job.id);
-    if (!worker || wornWorkTool(sim.save, worker)?.job === job.id) continue;
-    const worn = new Set(sim.save.heroes.map((h) => h.equipment.offhand));
-    const tool = sim.save.gear
-      .filter((g) => !worn.has(g.uid) && (itemById[g.itemId] as GearDef).workTool?.job === job.id)
-      .sort((a, b) => (itemById[b.itemId] as GearDef).tier - (itemById[a.itemId] as GearDef).tier)[0];
-    if (tool && equipPreview(sim.save, worker.id, 'offhand', tool.uid)) act(sim, 'equip', (save) => equip(save, worker.id, 'offhand', tool.uid));
-  }
-  // The miner digs the unlocked ore the bot holds least of; assignJob above may have just picked another.
-  const ores = [...jobChoices(sim.save, 'miner')].sort((a, b) => (sim.save.materials[a] ?? 0) - (sim.save.materials[b] ?? 0));
-  if (ores.length > 0 && sim.save.jobChoice.miner !== ores[0]) {
-    act(sim, 'job', (save) => setJobChoice(save, 'miner', ores[0], sim.now));
-  }
 }
 
 // —— Parties and odds ——
@@ -1231,9 +1207,6 @@ function applyElixirs(sim: Sim, dungeon: DungeonDef, heroIds: string[], loadout:
 
 export function launch(sim: Sim, dungeon: DungeonDef, party: { heroIds: string[]; swaps: GearSwap[] }, o: Odds) {
   const { heroIds } = party;
-  const workers = heroIds
-    .map((id) => ({ id, jobId: sim.save.heroes.find((h) => h.id === id)?.job?.jobId }))
-    .filter((w): w is { id: string; jobId: string } => !!w.jobId);
   recallWorking(sim, heroIds);
   const briefing = todaysBriefing(sim, dungeon);
   sim.save = withLoadout(applySwaps(emptySlots(sim.save, homeHeroes(sim.save).map((h) => h.id)), party.swaps), heroIds, dungeon, briefing);
@@ -1249,19 +1222,6 @@ export function launch(sim: Sim, dungeon: DungeonDef, party: { heroIds: string[]
   if (lowOdds.success < sim.config.smokeBombBelowOdds) sim.save = withElixir(sim.save, heroIds, 'smokeBomb');
   // A safe run wears a loot trinket for what it finds, a risky one the best combat trinket.
   sim.save = dressLootTrinkets(sim.save, heroIds, runSource(dungeon), o.success >= sim.profile.oddsThreshold);
-  // A safe run keeps the worker's tool for what it scavenges, a risky one the combat off-hand (like the loot trinkets just above).
-  for (const { id, jobId } of workers) {
-    const hero = sim.save.heroes.find((h) => h.id === id)!;
-    if (wornWorkTool(sim.save, hero)?.job === jobId) continue;
-    const worn = new Set(sim.save.heroes.flatMap((h) => (['weapon', 'armor', 'helmet', 'offhand', 'trinket'] as const).map((slot) => h.equipment[slot])));
-    const tool = sim.save.gear
-      .filter((g) => !worn.has(g.uid) && (itemById[g.itemId] as GearDef).workTool?.job === jobId)
-      .sort((a, b) => (itemById[b.itemId] as GearDef).tier - (itemById[a.itemId] as GearDef).tier)[0];
-    if (!tool || !equipPreview(sim.save, id, 'offhand', tool.uid)) continue;
-    const withTool = equip(sim.save, id, 'offhand', tool.uid);
-    const tooled = estimateOdds(withTool, heroIds, dungeon, sim.config.odds.searchRuns, { now: sim.now, loadout, briefing });
-    if (tooled.success >= sim.profile.oddsThreshold) sim.save = withTool;
-  }
   // The prediction logged is for the party exactly as it leaves.
   const final = estimateOdds(sim.save, heroIds, dungeon, sim.config.odds.runs, { now: sim.now, loadout, briefing });
   const rarities = Object.fromEntries(RARITY_ORDER.map((r) => [r, 0])) as Record<Rarity, number>;
@@ -1401,10 +1361,6 @@ export function countLoot(sim: Sim, loot: Loot, source: LootSourceId) {
   for (const piece of loot.gear) sim.log.gearLoot.push({ day: sim.day, source, itemId: piece.itemId, rarity: piece.rarity });
   for (const relicId of loot.relics) sim.log.gearLoot.push({ day: sim.day, source, itemId: `relic:${relicId}`, rarity: null });
   for (const drop of loot.trophies ?? []) sim.log.trophies.push({ day: sim.day, source, ...drop });
-  for (const stack of loot.scavenged ?? []) {
-    const byDay = (sim.log.scavenge[sim.day] ??= {});
-    byDay[stack.materialId] = (byDay[stack.materialId] ?? 0) + stack.amount;
-  }
 }
 
 /** Logs the pieces a save gained since `before` that no loot roll reported (Sanctums, shops). */

@@ -4,12 +4,10 @@ import { itemById, monsterPartById, recipeById } from '@/content/lookup';
 import { recipes } from '@/content/recipes';
 import { secretRules } from '@/content/secrets';
 import { itemPrices, marketPool, materialPrices, oreTier, shopRules, shopStock } from '@/content/shops';
-import { workToolId, workTools, workToolRules } from '@/content/workTools';
 import { bossWeaknesses, weaknessByItem } from '@/content/weaknesses';
 
 import { forgedItem, isKnown, unlockRecipe } from '../crafting/crafting';
 import { highestUnlockedTier } from '../dungeons/unlock';
-import { isJobOpen } from '../jobs/jobs';
 import { distanceMeters } from '../generation/geo';
 import { createRng, type Rng } from '../generation/rng';
 import { wornBy } from '../forging/salvage';
@@ -156,26 +154,9 @@ export function placeStock(save: SaveData, spawn: PlaceSpawn, now: number): Stoc
     .filter((w) => w.place === spawn.kind)
     .filter((w) => (dungeons.find((d) => d.boss.id === w.bossId)?.tier ?? Infinity) <= highestUnlockedTier(save))
     .map((w) => ({ key: `item:${w.itemId}`, kind: 'item' as const, id: w.itemId, amount: 1, price: w.price }));
-  // Work tools, one line per tool this place stocks while its job is open; the
-  // key carries the tier, and the line is drawn without the rng so the normal
-  // stock stays exactly what it was.
-  const tier = highestUnlockedTier(save);
-  const tools = workTools
-    .filter((tool) => tool.places.includes(spawn.kind) && isJobOpen(save, tool.job))
-    .map((tool) => {
-      const id = workToolId(tool.kind, tier);
-      return {
-        key: `gear:${id}`,
-        kind: 'gear' as const,
-        id,
-        amount: 1,
-        price: workToolRules.price[tier - 1],
-        gear: { ...makeGearPiece(`shop:${spawn.id}:${id}`, id, 'common'), forged: false, foundIn: 'shop' },
-      };
-    });
   // A Haggler helmet anywhere in the roster takes its share off every price.
   const haggle = rosterAffixBest(save, 'haggler') / 100;
-  const lines = [...stocked(), ...tools, ...weaknesses];
+  const lines = [...stocked(), ...weaknesses];
   return haggle > 0 ? lines.map((line) => ({ ...line, price: Math.max(1, Math.round(line.price * (1 - haggle))) })) : lines;
 }
 
@@ -184,12 +165,9 @@ export function stockLeft(save: SaveData, spawn: PlaceSpawn, line: StockLine) {
   return line.amount - (save.placePurchases[spawn.id]?.bought[line.key] ?? 0);
 }
 
-/** Whether every line of the place has been bought out; weakness and work tool lines never sell a place out. */
+/** Whether every line of the place has been bought out; weakness lines never sell a place out. */
 export function isSoldOut(save: SaveData, spawn: PlaceSpawn, now: number) {
-  const lines = placeStock(save, spawn, now).filter((line) => {
-    const item = itemById[line.id];
-    return !(line.id in weaknessByItem) && !(item && (item as GearDef).workTool);
-  });
+  const lines = placeStock(save, spawn, now).filter((line) => !(line.id in weaknessByItem));
   if (lines.length === 0) return false;
   const bought = save.placePurchases[spawn.id];
   const counts = bought && bought.expiresAt > now ? bought.bought : {};

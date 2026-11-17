@@ -26,7 +26,6 @@ import { slotProblem } from '@/game/equipment/slots';
 import { gearFamilyTags } from '@/game/families/families';
 import { gearIconOf } from '@/game/gear/gearIcon';
 import { jobById } from '@/content/jobs';
-import { workTools } from '@/content/workTools';
 import { lootConfig } from '@/content/loot/config';
 import { traitById } from '@/content/traits';
 import { heroTitleById } from '@/content/heroTitles';
@@ -447,8 +446,6 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
   /** One doll cell: the slot, with its slot label under it. */
   const dollSlotView = (slot: EquipmentSlot) => {
     const content = dollSlot(slot);
-    // A working hero's job tool as an off-hand recommendation.
-    const jobTool = slot === 'offhand' && hero.job ? workTools.find((w) => w.job === hero.job!.jobId) : undefined;
     return (
       <View key={slot} style={styles.dollCell}>
         {/* A piece equipped here pulses its slot once. */}
@@ -466,11 +463,6 @@ function CharacterSheetContent({ heroId }: { heroId: string }) {
           />
         </Pulse>
         <Text style={styles.slotLabel}>{t(`hero.slots.${slot}`)}</Text>
-        {jobTool && (
-          <Text style={styles.slotNote}>
-            {t('hero.offhandTool', { job: tr(jobById[hero.job!.jobId].name), tool: t(`workTool.kind.${jobTool.kind}`) })}
-          </Text>
-        )}
       </View>
     );
   };
@@ -790,7 +782,6 @@ const styles = StyleSheet.create({
   dollRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   dollCell: { width: 96, alignItems: 'center', gap: 3 },
   slotLabel: { fontFamily: fonts.body, fontSize: 13, color: ui.brassLight },
-  slotNote: { fontFamily: fonts.serif, fontSize: 11, color: ui.inkMuted, maxWidth: 96, textAlign: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
 });
 

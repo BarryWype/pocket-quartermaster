@@ -97,32 +97,6 @@ check('simulator balance bands', () => {
 
   describe('jobs', () => {
     for (const tier of summary.profiles.regular?.tiers ?? []) {
-      const share = tier.wood?.share;
-      // A summary from before jobs were covered has no wood data to check.
-      if (!share || share.median === null) continue;
-      const value = share.median;
-      it(`regular: tier ${tier.tier} woodcutter gives ${targets.woodcutterShare.join('–')} of the wood spent`, () =>
-        expectIn(value, targets.woodcutterShare));
-    }
-    for (const tier of summary.profiles.regular?.tiers ?? []) {
-      // A summary from before jobs were covered has no per-job data to check.
-      if (!tier.jobs) continue;
-      for (const [material, line] of Object.entries(tier.jobs)) {
-        if (line.share.median === null) continue;
-        it(`regular: tier ${tier.tier} jobs give at most ${Math.round(targets.jobShareMax * 100)}% of the ${material} walked`, () =>
-          expect(line.share.median).toBeLessThanOrEqual(targets.jobShareMax));
-      }
-    }
-    for (const tier of summary.profiles.regular?.tiers ?? []) {
-      // A summary from before work tools were covered has no per-tool data to check.
-      if (!tier.tools) continue;
-      for (const [material, line] of Object.entries(tier.tools)) {
-        if (line.share.median === null) continue;
-        it(`regular: tier ${tier.tier} work tools give at most ${Math.round(targets.jobShareMax * 100)}% of the ${material} walked`, () =>
-          expect(line.share.median).toBeLessThanOrEqual(targets.jobShareMax));
-      }
-    }
-    for (const tier of summary.profiles.regular?.tiers ?? []) {
       // A summary from before the gatherer was covered has no gatherer data to check.
       if (!tier.gatherer) continue;
       for (const [material, line] of Object.entries(tier.gatherer.materials)) {
@@ -153,6 +127,20 @@ check('simulator balance bands', () => {
         it(`${s.profile}: tier ${tier.tier} ends near the top of its level band`, () =>
           expect(inRange(median(tier.level.end), [tier.level.target - targets.levelSlack, tier.level.target + targets.levelSlack])).toBe(true));
       }
+    }
+  });
+
+  describe('supply network', () => {
+    // A summary from a run without --supply-lines has no supply data to check.
+    const tiers = (summary.profiles.regular?.supply?.byTier ?? []).filter((t) => t.ratio.median !== null);
+    const tier2 = tiers.find((t) => t.tier === 2);
+    if (tier2)
+      it(`regular: tier 2 buildings make at least ${targets.buildingsOverWalking}× what walking gathers of the same goods`, () =>
+        expect(tier2.ratio.median).toBeGreaterThanOrEqual(targets.buildingsOverWalking));
+    for (let i = 1; i < tiers.length; i++) {
+      const [previous, tier] = [tiers[i - 1], tiers[i]];
+      it(`regular: the buildings' lead over walking does not fall from tier ${previous.tier} to ${tier.tier}`, () =>
+        expect(tier.ratio.median).toBeGreaterThanOrEqual(previous.ratio.median!));
     }
   });
 });

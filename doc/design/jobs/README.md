@@ -1,5 +1,7 @@
 # Jobs
 
+**Status (2026-11-18): the guild gathering jobs and their work tools are gone,** replaced by the supply network's buildings (`doc/design/supply-lines/replacements.md`). The outdoor gatherer below still holds; the station and work tool sections are kept as history.
+
 Step 2 of the roadmap in `doc/ideas.md` ("Heroes, jobs and expeditions"). Designed 2026-11-04.
 
 ## Split of step 2

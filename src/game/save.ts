@@ -1,7 +1,7 @@
 import type { GuildTrackId } from '@/content/guild';
 import { gearId } from '@/content/equipment';
 import { startingHeroes } from '@/content/heroes';
-import { choiceOf, jobs, type GathererFocus } from '@/content/jobs';
+import type { GathererFocus } from '@/content/jobs';
 import type { PlaceKind } from '@/content/places';
 import { provisionRules } from '@/content/provisions';
 import { recipes } from '@/content/recipes';
@@ -100,7 +100,7 @@ export type SaveData = {
   jobOutput: Record<string, JobOutput>;
   /** The outdoor gatherer: where the player was (see game/jobs/gatherer.ts), and what it looks for first. */
   gatherer: { anchors: GathererAnchor[]; focus: GathererFocus };
-  /** The material each choice job makes (see content/jobs.ts); null until set. */
+  /** The material each choice job makes; no current job takes a choice. */
   jobChoice: Record<string, string | null>;
   expeditions: ActiveExpedition[];
   /** Finished expeditions, newest first. */
@@ -218,8 +218,6 @@ export type SaveData = {
 };
 
 export function createInitialSave(playerSeed?: string): SaveData {
-  const jobChoice: Record<string, string | null> = {};
-  for (const job of jobs) if (choiceOf(job)) jobChoice[job.id] = null;
   return {
     playerSeed: playerSeed ?? `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`,
     gold: 0,
@@ -230,7 +228,7 @@ export function createInitialSave(playerSeed?: string): SaveData {
     tools: [],
     heroes: startingHeroes.map((hero) => ({ ...(hero.id === 'lyra' ? { ...hero, equipment: { ...hero.equipment, armor: 'lyraHide' } } : hero), record: emptyRecord() })),
     jobOutput: {},
-    jobChoice,
+    jobChoice: {},
     gatherer: { anchors: [], focus: 'any' },
     expeditions: [],
     reports: [],

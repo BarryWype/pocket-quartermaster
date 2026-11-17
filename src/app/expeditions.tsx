@@ -90,7 +90,7 @@ export function useExpeditionsRail(): { items: RailItem[]; initial: Tab } {
       icon: require('../../assets/icons/scaled/menu-expeditions.png'),
     },
     { key: 'out', label: t('expeditions.tabs.out'), emoji: '🧭', badge: outBadge },
-    { key: 'jobs', label: t('expeditions.tabs.jobs'), emoji: '🪓', badge: jobNews > 0 ? jobNews : undefined },
+    { key: 'jobs', label: t('expeditions.tabs.jobs'), emoji: '🎒', badge: jobNews > 0 ? jobNews : undefined },
     ...(supplyOn
       ? [{ key: 'network', label: t('expeditions.tabs.network'), emoji: '🏠', badge: atCap > 0 ? atCap : undefined } as const]
       : []),
@@ -127,8 +127,8 @@ function ExpeditionsContent() {
   const rail = useExpeditionsRail();
   // The pager's pages follow the rail, so the Network page exists only while the switch is on.
   const tabs = rail.items.map((item) => item.key as Tab);
-  // The hero card opens the Jobs tab on a hero: tab=jobs preselects them in the assign picker.
-  const { tab: tabParam, heroId } = useLocalSearchParams<{ tab?: string; heroId?: string }>();
+  // A link can open the screen on a tab (tab=jobs or tab=network).
+  const { tab: tabParam } = useLocalSearchParams<{ tab?: string }>();
   // Open on Out now when a team is back, so the loot is the first thing to see.
   const [tab, setTabState] = useState<Tab>(() => (tabParam === 'jobs' || tabParam === 'network' ? tabParam : rail.initial));
   const [tier, setTier] = useState<number | null>(null);
@@ -400,7 +400,7 @@ function ExpeditionsContent() {
             <RewardLabel text={readyBanner} size={16} labelStyle={styles.bannerText} />
           </PressScale>
         )}
-        {key === 'places' ? placesTab : key === 'out' ? outTab : key === 'jobs' ? <JobsTab key={heroId ?? 'none'} preselect={heroId ?? null} /> : <NetworkTab />}
+        {key === 'places' ? placesTab : key === 'out' ? outTab : key === 'jobs' ? <JobsTab /> : <NetworkTab />}
       </ScrollView>
     ),
   });

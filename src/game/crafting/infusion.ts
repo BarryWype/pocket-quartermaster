@@ -34,7 +34,7 @@ export type StonePreview = { kind: 'add' } | { kind: 'replace'; candidates: stri
 export function stonePreview(save: SaveData, gearUid: string, element: Element): StonePreview | null {
   const gear = save.gear.find((g) => g.uid === gearUid);
   const item = gear ? (itemById[gear.itemId] as GearDef) : undefined;
-  const held = !!item && !item.workTool && (item.slot === 'weapon' || item.slot === 'armor' || item.slot === 'offhand');
+  const held = !!item && (item.slot === 'weapon' || item.slot === 'armor' || item.slot === 'offhand');
   if (!gear || !held) return null;
   return gear.affixes.length === 0
     ? { kind: 'add' }
@@ -45,7 +45,7 @@ export function stonePreview(save: SaveData, gearUid: string, element: Element):
 export function canApplyStone(save: SaveData, gearUid: string, element: Element) {
   const gear = save.gear.find((g) => g.uid === gearUid);
   const item = gear ? (itemById[gear.itemId] as GearDef) : undefined;
-  const held = !!item && !item.workTool && (item.slot === 'weapon' || item.slot === 'armor' || item.slot === 'offhand');
+  const held = !!item && (item.slot === 'weapon' || item.slot === 'armor' || item.slot === 'offhand');
   const holder = wornBy(save, gearUid);
   return (
     held &&

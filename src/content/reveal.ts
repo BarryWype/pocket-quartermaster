@@ -37,8 +37,6 @@ export type TipId =
   | 'families'
   | 'familyLevel'
   | 'jobs'
-  | 'jobMiner'
-  | 'jobCharcoalBurner'
   | 'jobGatherer'
   | 'supplyBuildingSheet'
   | 'supplyPlanner'
@@ -133,9 +131,6 @@ export const tipTexts: Record<TipId, string> = {
   families: 'Heroes and gear carry family tags, shown as gems. 2, 4 and 6 tags in a party light a banner’s pips and unlock stronger effects.',
   familyLevel: 'Your party reached {family}. Tap a family banner to see what it does.',
   jobs: "A hero at a job produces slowly while you're away. Output fills up after 8 hours, so collect on check-in. Work tires them over a day, and tired heroes rest at the station before working again. Working heroes must be recalled before they can be sent out.",
-  jobMiner:
-    'The Miner is open at the guild: a hero there digs the ore you pick. Stone now, copper and iron as tiers open. Switching ore keeps what was mined.',
-  jobCharcoalBurner: "The Charcoal burner is open at the guild: a hero there makes coal while you're away.",
   jobGatherer:
     'The outdoor gatherer works around you: a hero gathers the resources you can see on the map, the closest first, about 4 an hour at most. It works best in Pocket mode, while you walk. Pick a focus if you need one material. Outdoor work tires faster, and wildlife can hurt the hero a little.',
   supplyBuildingSheet: 'Locals work an empty building slowly. Post a hero for the full rate, more with a matching trade. Collect in person to inspect it: +25% for a day.',

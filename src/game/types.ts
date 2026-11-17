@@ -3,7 +3,6 @@ import type { ImageSourcePropType } from 'react-native';
 
 import type { PlaceKind, SecretKind } from '@/content/places';
 import type { TradeId } from '@/content/supplyLines';
-import type { WorkToolKind } from '@/content/workTools';
 import type { PlaceTipSource, TipSource } from '@/content/secrets';
 import type { Difficulty } from '@/content/difficulty';
 import type { Rarity } from '@/content/gear';
@@ -104,8 +103,6 @@ export type GearDef = ItemBase & {
   damageStat?: DamageStat | 'wielder';
   /** An amulet's Resistance against one element (Normal-quality value, unrounded). */
   elementResist?: { element: Element; amount: number };
-  /** A work tool: the off-hand line for workers, with the job it boosts and scavenges for (see content/workTools.ts). */
-  workTool?: { kind: WorkToolKind; job: string };
   /** A loot trinket's bonus to what the wearer's runs find (see loot/modifiers.ts). */
   loot?: LootModifier;
 };

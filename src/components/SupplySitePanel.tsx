@@ -15,7 +15,7 @@ import { tileCenter } from '@/game/generation/tiles';
 import type { LatLng } from '@/game/generation/types';
 import type { PlaceSpawn } from '@/game/places/generate';
 import { networkPlacesAround } from '@/game/supply/discovery';
-import { buildingNameKey, buildingReach, buildProblem, type BuildProblem } from '@/game/supply/buildings';
+import { openBuildingKinds, buildingNameKey, buildingReach, buildProblem, type BuildProblem } from '@/game/supply/buildings';
 import { siteQuality } from '@/game/supply/sites';
 import type { BuildingKind } from '@/game/supply/types';
 import { highestUnlockedTier } from '@/game/expeditions/expeditions';
@@ -30,7 +30,6 @@ import { colors, ui } from '@/theme';
 
 type Props = { site: PlaceSpawn; player: LatLng; onClose: () => void };
 
-const KINDS = Object.keys(supplyRules.buildings.kinds) as BuildingKind[];
 const qualityKey: Record<1 | 2 | 3, TextKey> = { 1: 'supply.site.quality.one', 2: 'supply.site.quality.two', 3: 'supply.site.quality.three' };
 const forKindKey: Record<string, TextKey> = {
   tavern: 'supply.site.for.tavern',
@@ -76,9 +75,10 @@ export function SupplySitePanel({ site, player, onClose }: Props) {
 
   const quality = siteQuality(site);
   const reach = buildingReach(save);
-  const problems = Object.fromEntries(KINDS.map((kind) => [kind, buildProblem(save, site, kind, player, now)])) as Record<BuildingKind, BuildProblem>;
+  const kinds = openBuildingKinds(save);
+  const problems = Object.fromEntries(kinds.map((kind) => [kind, buildProblem(save, site, kind, player, now)])) as Record<BuildingKind, BuildProblem>;
   // One reason that stops every building gets the banner; the same words serve under each disabled button.
-  const blocking = (['noHall', 'tooFarFromHall', 'full'] as const).find((reason) => KINDS.every((kind) => problems[kind] === reason));
+  const blocking = kinds.length > 0 ? (['noHall', 'tooFarFromHall', 'full'] as const).find((reason) => kinds.every((kind) => problems[kind] === reason)) : undefined;
   const blockingText =
     blocking === 'noHall'
       ? t('supply.site.blocked.noHall')
@@ -91,7 +91,7 @@ export function SupplySitePanel({ site, player, onClose }: Props) {
   const nearest = networkPlacesAround(save, site.position, now)
     .filter((place) => place.id in save.supply.discovered && place.startsAt <= now && now < place.expiresAt)
     .reduce<PlaceSpawn | null>((best, place) => (best === null || distanceMeters(site.position, place.position) < distanceMeters(site.position, best.position) ? place : best), null);
-  const emberKind = nearest ? (KINDS.find((kind) => supplyRules.buildings.kinds[kind].for === nearest.kind) ?? 'farm') : 'farm';
+  const emberKind = nearest ? (kinds.find((kind) => supplyRules.buildings.kinds[kind].for === nearest.kind) ?? 'farm') : 'farm';
 
   const onBuild = (kind: BuildingKind, free: boolean) => {
     build(site, kind, player, free);
@@ -127,7 +127,7 @@ export function SupplySitePanel({ site, player, onClose }: Props) {
             <Text style={styles.line}>{blockingText}</Text>
           </View>
         )}
-        {KINDS.map((kind) => (
+        {kinds.map((kind) => (
           <BuildingCard
             key={kind}
             kind={kind}
@@ -210,7 +210,11 @@ function BuildingCard({
       </View>
       <View style={styles.cardRow}>
         <Text style={styles.muted}>{t('supply.site.forWord')}</Text>
-        <IconLabel emoji={placeInfo[rules.for].emoji} label={t(forKindKey[rules.for])} size={16} />
+        {rules.for ? (
+          <IconLabel emoji={placeInfo[rules.for].emoji} label={t(forKindKey[rules.for])} size={16} />
+        ) : (
+          <IconLabel emoji="🏠" label={t('supply.site.forWorkshop')} size={16} />
+        )}
       </View>
       <View style={styles.cardRow}>
         {ember ? (
